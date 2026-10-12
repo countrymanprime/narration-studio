@@ -217,10 +217,14 @@ H.test('a chain deeper than the listing reaches is refused although its file is 
   H.eq(s:events()[1][1], 'RANGE_FX_APPLIED', 'three folders deep is listed')
 end)
 
-H.test("a name that is on disk but not in REAPER's file listing is refused: a folder named like a chain", function()
-  local s, p = project()
-  host.makedirs(H.join(p.root, 'Odd.RfxChain'))
-  refused(s, p, BAD_CHAIN, p.item.guid, '14', '16', 'Odd.RfxChain', '10')
+-- Each name opens on some file system but REAPER does not list it: a folder named like a chain (it opens on Linux), and a
+-- listed chain in other letter case (it opens on Windows, whose names ignore case). Only the listing refuses both.
+H.test("a name that is on disk but not in REAPER's file listing is refused: a folder, or a listed chain in other case", function()
+  for _, name in ipairs({ 'Odd.RfxChain', 'BREATH.RfxChain', 'voice/radio.RfxChain' }) do
+    local s, p = project()
+    host.makedirs(H.join(p.root, 'Odd.RfxChain'))
+    refused(s, p, BAD_CHAIN, p.item.guid, '14', '16', name, '10')
+  end
 end)
 
 H.test('a chain added since the last listing is found (the listing cache is cleared)', function()
