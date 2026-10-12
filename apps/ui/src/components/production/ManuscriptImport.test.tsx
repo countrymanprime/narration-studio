@@ -52,7 +52,9 @@ describe('the import review dialog, as the narrator meets it', () => {
     expect(kinds('Characters')).toBe('reference');
     expect(kinds('Glossary')).toBe('reference');
     expect(kinds('Front Matter')).toBe('opening');
-    // Eight sections, and the delivery profile a first import of a project with none chosen also asks for.
+    // Eight sections, and the delivery profile a first import of a project with none chosen also asks for. The profile is read after
+    // the dialog opens, so the count waits for its field.
+    await dialog.findByRole('combobox', { name: 'Delivery profile' });
     expect(dialog.getAllByRole('combobox')).toHaveLength(9);
   });
 

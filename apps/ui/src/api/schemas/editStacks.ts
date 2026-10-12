@@ -4,7 +4,7 @@ import { STACK_MAX_ID, STACK_MAX_STEPS, STACK_MAX_TAKES, STACK_MAX_UNDO_STEPS } 
 
 /** An id the host offered, never a path or markup: no space, control character, slash, backslash or angle bracket
  * (apps/desktop/internal/editlog/stacks.go plainID). */
-export const stackIdSchema = z
+const stackIdSchema = z
   .string()
   .min(1)
   .refine((id) => [...id].length <= STACK_MAX_ID && !/[\s\p{Cc}/\\<>\uFEFF]/u.test(id), { message: 'an id the host offered, never a path' });
