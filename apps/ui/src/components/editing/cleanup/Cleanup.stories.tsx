@@ -15,10 +15,12 @@ import { CleanupTab } from './CleanupTab';
 
 const params = initialParams();
 
-const shell = (children: React.ReactNode, width = 420) => (
-  <div style={{ width }} className="bg-[var(--surface)] text-[var(--text)]">
-    {children}
-  </div>
+const shell = (children: React.ReactNode, width = 420, over: Partial<typeof api> = {}) => (
+  <ApiProvider api={{ ...api, ...over } as ReturnType<typeof createMockApi>}>
+    <div style={{ width }} className="bg-[var(--surface)] text-[var(--text)]">
+      {children}
+    </div>
+  </ApiProvider>
 );
 
 const inspector = (kind: CleanupKind, over: Partial<CleanupInspectorProps> = {}, p: CleanupParams = params[kind]): CleanupInspectorProps => {
@@ -100,7 +102,20 @@ export const InspectorNoiseNotMeasured: Story = {
 export const InspectorDawOff: Story = {
   render: () => shell(<CleanupInspector {...inspector('gaps', { dawReason: 'REAPER is not running.' })} />),
 };
-export const InspectorNoDawCommand: Story = { render: () => shell(<CleanupInspector {...inspector('clicks')} />) };
+export const InspectorBreathsApplies: Story = {
+  render: () => shell(<CleanupInspector {...inspector('breaths')} />),
+  play: async ({ canvasElement }) => {
+    const apply = await within(canvasElement).findByRole('button', { name: /^Apply to/ });
+    await expect((apply as HTMLButtonElement).disabled).toBe(false);
+  },
+};
+export const InspectorNoDawCommand: Story = {
+  render: () => shell(<CleanupInspector {...inspector('clicks')} />, 420, { dawCapabilities: async () => DAW_SETUPS.builtin }),
+  play: async ({ canvasElement }) => {
+    await expect(await within(canvasElement).findByText(DAW_SETUPS.builtin.capabilities['click_repair']?.message ?? '')).toBeTruthy();
+    await expect((within(canvasElement).getByRole('button', { name: /^Apply to/ }) as HTMLButtonElement).disabled).toBe(true);
+  },
+};
 
 export const Preview: Story = {
   render: () => {

@@ -1,3 +1,6 @@
+import { useEffect, useState } from 'react';
+import type { DawCapabilities } from '../../../api/contracts/daw';
+import { usePort } from '../../../ports/usePort';
 import { Button } from '../../primitives/Button';
 import { Disclosure } from '../../primitives/Disclosure';
 import { NumberInput } from '../../primitives/NumberInput';
@@ -5,7 +8,7 @@ import { SectionLabel } from '../../primitives/SectionLabel';
 import { ToggleGroup } from '../../primitives/ToggleGroup';
 import type { CleanupPreview as Preview } from './cleanupApply';
 import { CleanupPreview } from './CleanupPreview';
-import { LEVELS, NO_DAW_COMMAND, hasDawCommand, levelOf, opSpec, type CleanupKind, type CleanupParams, type Level, type ParamKey } from './cleanupOps';
+import { LEVELS, dawCommandReason, levelOf, opSpec, type CleanupKind, type CleanupParams, type Level, type ParamKey } from './cleanupOps';
 
 /** The chapter's noise floor in dBFS, or why there is none. */
 type NoiseFloor = { ok: true; value: number } | { ok: false; reason: string };
@@ -34,12 +37,30 @@ export interface CleanupInspectorProps {
   busy?: boolean;
 }
 
+/** The DAW's capability report, read once; null until it answers (or if it cannot). */
+function useCapabilities(): DawCapabilities | null {
+  const daw = usePort('daw');
+  const [caps, setCaps] = useState<DawCapabilities | null>(null);
+  useEffect(() => {
+    let live = true;
+    daw
+      .capabilities()
+      .then((c) => live && setCaps(c))
+      .catch(() => live && setCaps(null));
+    return () => {
+      live = false;
+    };
+  }, [daw]);
+  return caps;
+}
+
 /** Light, Standard or Heavy, the thresholds behind them, and Preview and Apply for the selected findings. */
 export function CleanupInspector(p: CleanupInspectorProps) {
   const spec = opSpec(p.kind);
   const level = levelOf(p.kind, p.params);
-  // Why Apply is off, in the order a narrator can fix them: the DAW first, then what the DAW cannot do yet.
-  const reason = p.dawReason ?? (hasDawCommand(p.kind) ? null : NO_DAW_COMMAND);
+  const caps = useCapabilities();
+  // Why Apply is off, in the order a narrator can fix them: the DAW first, then what the DAW's capability report says it cannot do.
+  const reason = p.dawReason ?? dawCommandReason(p.kind, caps);
   return (
     <div className="flex flex-col gap-3 p-3">
       <div className="flex items-baseline gap-2">
