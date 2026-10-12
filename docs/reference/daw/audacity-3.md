@@ -30,7 +30,17 @@ Audacity has no items, takes or extension data. Take creation, pickups, line ide
 
 ## Not yet available
 
-`cut_range`, `fx_range` and `stack_takes` are in the catalogue but not yet available with Audacity: the adapter has no role for them. Every other capability except navigate, markers, `macro_render` and `backups` is not yet available too ([matrix](matrix.md)).
+Every capability except navigate, markers, `macro_render`, `backups` and the five below is not yet available ([matrix](matrix.md)).
+
+## What needs backups
+
+Audacity keeps no takes and its edits change the audio itself, so `takes`, `punch`, `stack_takes`, `cut_range` and `fx_range` exist in Audacity only while `backups` is available ([PRD decision DQ-18](../../prds/studio-next-daw-ports-and-capabilities.prd.md#decisions); the Studio Next mock's [`capabilitiesFor`](../../research/mockups/studio-next/src/selectors/daw.ts)). The adapter declares the five Experimental, each requiring `backups` (`apps/desktop/internal/dawport/audacity/audacity.go`):
+
+- While backups are turned off, takes, stacking, cutting and an effect on words are refused with backups' reason and one sentence, for example "Stacking takes needs Audacity backups. Turn on Audio backups in Settings."
+- A roll stays usable without backups and is destructive, so the page asks first; with backups available it is not destructive.
+- `stack_takes`, `cut_range` and `fx_range` are made in `steps`.
+
+Until the steps are built, each of the five roles refuses every call with the "not available yet" sentence, so the five stay Experimental and behind the narrator's switch ([capabilities](capabilities.md#rules-every-capability-follows)).
 
 ## Backups
 
