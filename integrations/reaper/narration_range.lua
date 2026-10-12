@@ -32,17 +32,21 @@
 -- saying one Undo rejoins the item when it was split. Answers RANGE_FX_APPLIED|run|middleItemGuid|middleTakeGuid|chain|
 -- undoPoints.
 --
+-- apply_fx_range refuses a take that already carries a range chain, and records in P_EXT the GUIDs of the pieces it
+-- split off either side.
+--
 -- remove_fx_range(run, item_guid, chain) takes the FX that P_EXT records for that chain off the piece, clears the record,
--- and joins the piece to each neighbour on its track that carries on its audio: the neighbour touches it, has the same
--- takes (source, rate, and an offset that follows on), the same active take, the same mute and as many FX per take, and
--- carries no chain of its own. The join lengthens the first piece over the others (D_LENGTH, keeping the last piece's
+-- and joins the piece to each piece apply_fx_range split off that still carries on its audio: on the same track, touching
+-- it, with the same takes (source, rate, volume, FX by name, and an offset that follows on), the same active take, mute and
+-- volume, and no chain of its own. A neighbour it did not split is never joined. When REAPER keeps an FX it was asked to
+-- delete, the record stays, nothing is joined, and the answer is ERROR. The join lengthens the first piece over the others (D_LENGTH, keeping the last piece's
 -- fade-out) and deletes the pieces it folded in, whose audio the kept piece now plays, in one undo block. Answers
 -- RANGE_FX_REMOVED|run|itemGuid|chain|undoPoints: the item that remains, and 0 with no block when the piece no longer
 -- carries that chain or any FX of it.
 --
 -- Not run in REAPER (pending the QA pass, #1495): whether TakeFX_AddByName loads a .RfxChain onto a take with the full
--- path and appends its FX at the end, whether a split copies a take's P_EXT, and whether the splits and the load, and the
--- removal and the join, are each one undo step.
+-- path and appends its FX at the end, whether a split copies a take's P_EXT and gives the copied FX new GUIDs, and
+-- whether the splits and the load, and the removal and the join, are each one undo step.
 
 local core = ...
 local event = core.event
@@ -67,6 +71,8 @@ local UNDO_REMOVE_CHAIN = 'Narration Utils: remove chain from range'
 -- The take P_EXT keys apply_fx_range writes: the chain's name, and the GUIDs of the FX it added, space-separated.
 local CHAIN_KEY = 'P_EXT:narration_utils_fx_range_chain'
 local CHAIN_FX_KEY = 'P_EXT:narration_utils_fx_range_fx'
+-- The GUIDs of the pieces apply_fx_range split off either side, '-' for none: the only items remove_fx_range joins back.
+local CHAIN_SEAMS_KEY = 'P_EXT:narration_utils_fx_range_seams'
 -- list_fx_chains' depth: a chain at most three folders under FXChains (narration_workspace.lua's CHAIN_DEPTH_LIMIT).
 local CHAIN_PARTS_LIMIT = 4
 local BAD_CHAIN = 'That FX chain is not in the FXChains folder REAPER lists.'
@@ -360,7 +366,8 @@ local function apply_fx_range(session_dir, run_id, guid_text, start_text, end_te
     event(session_dir, 'ITEM_STALE', run_id, guid_text, 'item')
     return
   end
-  if not reaper.GetActiveTake(item) then
+  local active = reaper.GetActiveTake(item)
+  if not active then
     event(session_dir, 'ERROR', run_id, 'That item has no take to put the chain on.')
     return
   end
@@ -368,6 +375,11 @@ local function apply_fx_range(session_dir, run_id, guid_text, start_text, end_te
   local last = first + reaper.GetMediaItemInfo_Value(item, 'D_LENGTH')
   if first_fx < first - EDGE_TOLERANCE or last_fx > last + EDGE_TOLERANCE then
     event(session_dir, 'ERROR', run_id, CHAIN_OUTSIDE)
+    return
+  end
+  -- A second chain on a take that carries one would overwrite its record, and its FX could not be taken off again.
+  if take_ext(active, CHAIN_KEY) ~= '' then
+    event(session_dir, 'ERROR', run_id, 'Those words already have a chain on them. Take it off first.')
     return
   end
   local split_start = first_fx - first > EDGE_TOLERANCE
@@ -402,6 +414,8 @@ local function apply_fx_range(session_dir, run_id, guid_text, start_text, end_te
       end
       reaper.GetSetMediaItemTakeInfo_String(take, CHAIN_KEY, name, true)
       reaper.GetSetMediaItemTakeInfo_String(take, CHAIN_FX_KEY, table.concat(guids, ' '), true)
+      local seams = (left and item_guid(left) or '-') .. ' ' .. (right and item_guid(right) or '-')
+      reaper.GetSetMediaItemTakeInfo_String(take, CHAIN_SEAMS_KEY, seams, true)
       for _, seam in ipairs({ { left, 'D_FADEOUTLEN', 'D_FADEINLEN' }, { right, 'D_FADEINLEN', 'D_FADEOUTLEN' } }) do
         local neighbour, its_edge, middle_edge = seam[1], seam[2], seam[3]
         if neighbour then
@@ -424,8 +438,8 @@ local function apply_fx_range(session_dir, run_id, guid_text, start_text, end_te
   event(session_dir, 'RANGE_FX_APPLIED', run_id, item_guid(middle), take_guid(take), name, 1)
 end
 
--- The item's takes as a join compares them: per take its source file, rate, offset and FX count, plus the active take's
--- index and whether any take carries a range chain.
+-- An item as a join compares it: per take its source file, rate, offset, volume and FX names, plus the active take's index,
+-- whether any take carries a range chain, and the item's mute and volume.
 local function takes_of(item)
   local takes, active, carries = {}, reaper.GetActiveTake(item), false
   local active_index = -1
@@ -437,29 +451,42 @@ local function takes_of(item)
     if take_ext(take, CHAIN_KEY) ~= '' then
       carries = true
     end
+    local fx = {}
+    for slot = 0, reaper.TakeFX_GetCount(take) - 1 do
+      local _, fx_name = reaper.TakeFX_GetFXName(take, slot, '')
+      fx[#fx + 1] = fx_name or ''
+    end
     takes[#takes + 1] = {
       file = reaper.GetMediaSourceFileName(reaper.GetMediaItemTake_Source(take), ''),
       rate = reaper.GetMediaItemTakeInfo_Value(take, 'D_PLAYRATE'),
       offset = reaper.GetMediaItemTakeInfo_Value(take, 'D_STARTOFFS'),
-      fx = reaper.TakeFX_GetCount(take),
+      vol = reaper.GetMediaItemTakeInfo_Value(take, 'D_VOL'),
+      fx = table.concat(fx, '\0'),
     }
   end
-  return { takes = takes, active = active_index, carries = carries, muted = reaper.GetMediaItemInfo_Value(item, 'B_MUTE') }
+  return {
+    takes = takes,
+    active = active_index,
+    carries = carries,
+    muted = reaper.GetMediaItemInfo_Value(item, 'B_MUTE'),
+    vol = reaper.GetMediaItemInfo_Value(item, 'D_VOL'),
+  }
 end
 
--- Whether b carries on a's audio from where a ends, so the two can be one item: a and b as takes_of reads them.
-local function follows(a, a_item, b, b_item)
-  local a_end = reaper.GetMediaItemInfo_Value(a_item, 'D_POSITION') + reaper.GetMediaItemInfo_Value(a_item, 'D_LENGTH')
+-- Whether b carries on a's audio from where a ends, with nothing set differently, so the two can be one item.
+local function follows(a_item, b_item)
+  local a, b = takes_of(a_item), takes_of(b_item)
   local length = reaper.GetMediaItemInfo_Value(a_item, 'D_LENGTH')
+  local a_end = reaper.GetMediaItemInfo_Value(a_item, 'D_POSITION') + length
   if math.abs(reaper.GetMediaItemInfo_Value(b_item, 'D_POSITION') - a_end) > EDGE_TOLERANCE then
     return false
   end
-  if a.carries or b.carries or a.active ~= b.active or a.muted ~= b.muted or #a.takes ~= #b.takes then
+  if a.carries or b.carries or a.active ~= b.active or a.muted ~= b.muted or a.vol ~= b.vol or #a.takes ~= #b.takes then
     return false
   end
   for index, take in ipairs(a.takes) do
     local other = b.takes[index]
-    if take.file ~= other.file or take.rate ~= other.rate or take.fx ~= other.fx then
+    if take.file ~= other.file or take.rate ~= other.rate or take.vol ~= other.vol or take.fx ~= other.fx then
       return false
     end
     if math.abs(take.offset + length * take.rate - other.offset) > EDGE_TOLERANCE then
@@ -469,22 +496,19 @@ local function follows(a, a_item, b, b_item)
   return true
 end
 
--- The neighbour on the piece's track that a join folds in on one side (before: it ends where the piece starts), or nil.
-local function joinable(piece, shape, before)
-  local track = reaper.GetMediaItem_Track(piece)
-  for index = 0, reaper.CountTrackMediaItems(track) - 1 do
-    local other = reaper.GetTrackMediaItem(track, index)
-    if other ~= piece then
-      local other_shape = takes_of(other)
-      if before and follows(other_shape, other, shape, piece) then
-        return other
-      end
-      if not before and follows(shape, piece, other_shape, other) then
-        return other
-      end
-    end
+-- The piece apply_fx_range split off on one side (recorded by GUID in seams), when it is still on the piece's track and
+-- carries on the same audio; else nil. A neighbour this command did not split is never joined.
+local function joinable(piece, seams, before)
+  local left, right = seams:match('^(%S+) (%S+)$')
+  local wanted = before and left or right
+  local other = wanted and wanted ~= '-' and find_item(normalize_guid(wanted)) or nil
+  if not other or reaper.GetMediaItem_Track(other) ~= reaper.GetMediaItem_Track(piece) then
+    return nil
   end
-  return nil
+  if before then
+    return follows(other, piece) and other or nil
+  end
+  return follows(piece, other) and other or nil
 end
 
 local function remove_fx_range(session_dir, run_id, guid_text, name)
@@ -496,7 +520,7 @@ local function remove_fx_range(session_dir, run_id, guid_text, name)
     event(session_dir, 'ERROR', run_id, RECORDING)
     return
   end
-  local needed = { 'TakeFX_Delete', 'TakeFX_GetFXGUID', 'TakeFX_GetCount', 'DeleteTrackMediaItem' }
+  local needed = { 'TakeFX_Delete', 'TakeFX_GetFXGUID', 'TakeFX_GetFXName', 'TakeFX_GetCount', 'DeleteTrackMediaItem' }
   for _, api in ipairs(needed) do
     if not reaper.APIExists(api) then
       event(session_dir, 'ERROR', run_id, 'This REAPER version cannot take an FX chain off a range.')
@@ -537,13 +561,25 @@ local function remove_fx_range(session_dir, run_id, guid_text, name)
 
   reaper.PreventUIRefresh(1)
   reaper.Undo_BeginBlock2(0)
+  local kept = 0
   for _, fx in ipairs(doomed) do
-    reaper.TakeFX_Delete(take, fx)
+    if not reaper.TakeFX_Delete(take, fx) then
+      kept = kept + 1
+    end
   end
-  reaper.GetSetMediaItemTakeInfo_String(take, CHAIN_KEY, '', true)
-  reaper.GetSetMediaItemTakeInfo_String(take, CHAIN_FX_KEY, '', true)
-  local shape = takes_of(piece)
-  local left, right = joinable(piece, shape, true), joinable(piece, shape, false)
+  if kept > 0 then
+    -- The record stays, so the FX REAPER kept can be taken off again; nothing is joined.
+    reaper.Undo_EndBlock2(0, UNDO_REMOVE_CHAIN, -1)
+    reaper.PreventUIRefresh(-1)
+    reaper.UpdateArrange()
+    event(session_dir, 'ERROR', run_id, 'REAPER did not take off every FX of the chain. Press Undo in REAPER to put back what it took off.')
+    return
+  end
+  local seams = take_ext(take, CHAIN_SEAMS_KEY)
+  for _, key in ipairs({ CHAIN_KEY, CHAIN_FX_KEY, CHAIN_SEAMS_KEY }) do
+    reaper.GetSetMediaItemTakeInfo_String(take, key, '', true)
+  end
+  local left, right = joinable(piece, seams, true), joinable(piece, seams, false)
   local keep, last = left or piece, right or piece
   if keep ~= last then
     local track = reaper.GetMediaItem_Track(piece)

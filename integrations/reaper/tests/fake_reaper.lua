@@ -960,11 +960,20 @@ function Fake:add_take_api(api)
     local fx = (take.fx or {})[index + 1]
     return fx and fx.guid or nil
   end
+  -- TakeFX_GetFXName(take, fx, buf): true and the FX's name, or false and '' for an index the take does not have.
+  function api.TakeFX_GetFXName(take, index, _)
+    local fx = (take.fx or {})[index + 1]
+    if not fx then
+      return false, ''
+    end
+    return true, fx.name
+  end
+  -- fake.fx_delete_fails makes TakeFX_Delete refuse, as REAPER answers false for an FX it does not delete.
   -- TakeFX_Delete(take, fx): removes the FX at a 0-based index; false for an index the take does not have. Recorded in
   -- fake.calls.
   function api.TakeFX_Delete(take, index)
     fake.calls[#fake.calls + 1] = { name = 'TakeFX_Delete', index = index }
-    if not (take.fx or {})[index + 1] then
+    if fake.fx_delete_fails or not (take.fx or {})[index + 1] then
       return false
     end
     table.remove(take.fx, index + 1)

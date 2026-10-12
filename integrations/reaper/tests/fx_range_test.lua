@@ -388,14 +388,112 @@ end)
 
 H.test('a neighbour carrying another range chain is not joined', function()
   local s, p = project()
-  s:send('apply_fx_range', 'r0', p.item.guid, '12', '14', 'Breath.RfxChain', '0')
-  local breath = by_guid(s, s:events()[1][3])
-  s:send('apply_fx_range', 'r1', breath.guid, '13', '14', CHAIN, '0')
-  local radio = by_guid(s, s:events()[1][3])
-  s:send('remove_fx_range', 'r2', radio.guid, CHAIN)
-  H.eq(s:events(), { { 'RANGE_FX_REMOVED', 'r2', radio.guid, CHAIN, '1' } })
-  H.eq(span(breath), { 12, 1 })
-  H.eq(fx_count(breath), 1, 'the other chain stays on its piece')
+  local middle = applied(s, p)
+  local right = p.chapter.items[4]
+  s:send('apply_fx_range', 'r1', right.guid, '16', '30', 'Breath.RfxChain', '0')
+  H.eq(s:events()[1][3], right.guid, 'the whole right piece carries the other chain')
+  s:send('remove_fx_range', 'r2', middle.guid, CHAIN)
+  H.eq(s:events(), { { 'RANGE_FX_REMOVED', 'r2', p.item.guid, CHAIN, '1' } })
+  H.eq(span(p.item), { 10, 6 }, 'joined to the left piece only')
+  H.eq(span(right), { 16, 14 })
+  H.eq(fx_count(right), 1, 'the other chain stays on its piece')
+end)
+
+H.test('a neighbour with another gain, take volume, chain record or FX is not joined', function()
+  local cases = {
+    function(_, right)
+      right.vol = 0.5
+    end,
+    function(_, right)
+      right.takes[1].vol = 0.5
+    end,
+    function(_, right)
+      right.takes[1].ext[CHAIN_KEY] = 'Breath.RfxChain'
+    end,
+  }
+  for index, change in ipairs(cases) do
+    local s, p = project()
+    local middle = applied(s, p)
+    local right = p.chapter.items[4]
+    change(p.item, right)
+    s:send('remove_fx_range', 'r2', middle.guid, CHAIN)
+    local events = s:events()
+    H.eq(events[1][1], 'RANGE_FX_REMOVED', index)
+    H.truthy(by_guid(s, right.guid) ~= nil, 'the right piece stays, case ' .. index)
+  end
+end)
+
+H.test('a neighbour whose FX the narrator swapped for another, as many, is not joined', function()
+  local s, p = project()
+  p.item.takes[1].fx = { { name = 'VST: ReaComp', guid = '{C1}' } }
+  local middle = applied(s, p)
+  local right = p.chapter.items[4]
+  right.takes[1].fx = { { name = 'VST: ReaGate', guid = '{C2}' } }
+  s:send('remove_fx_range', 'r2', middle.guid, CHAIN)
+  H.eq(s:events(), { { 'RANGE_FX_REMOVED', 'r2', p.item.guid, CHAIN, '1' } })
+  H.eq(span(p.item), { 10, 6 }, 'joined to the left piece only')
+  H.eq(right.takes[1].fx[1].name, 'VST: ReaGate')
+end)
+
+H.test('a neighbour with the same FX names is joined, and the kept piece keeps them', function()
+  local s, p = project()
+  p.item.takes[1].fx = { { name = 'VST: ReaComp', guid = '{C1}' } }
+  local middle = applied(s, p)
+  s:send('remove_fx_range', 'r2', middle.guid, CHAIN)
+  H.eq(s:events(), { { 'RANGE_FX_REMOVED', 'r2', p.item.guid, CHAIN, '1' } })
+  H.eq(span(p.item), { 10, 20 })
+  H.eq(p.item.takes[1].fx[1].name, 'VST: ReaComp')
+end)
+
+H.test('a neighbour the command did not split is never joined: a split the narrator made stays', function()
+  local s, p = project()
+  local second = s.fake.reaper.SplitMediaItem(p.item, 20)
+  s:send('apply_fx_range', 'r1', second.guid, '20', '30', CHAIN, '0')
+  H.eq(s:events()[1][3], second.guid, 'the whole piece, no split')
+  s:send('remove_fx_range', 'r2', second.guid, CHAIN)
+  H.eq(s:events(), { { 'RANGE_FX_REMOVED', 'r2', second.guid, CHAIN, '1' } })
+  H.eq(span(p.item), { 10, 10 })
+  H.eq(span(second), { 20, 10 })
+  H.eq(calls_named(s, 'DeleteTrackMediaItem'), 0)
+end)
+
+H.test('a range from the item start joins back to the right piece only', function()
+  local s, p = project()
+  s:send('apply_fx_range', 'r1', p.item.guid, '10', '12', CHAIN, '10')
+  s:events()
+  s:send('remove_fx_range', 'r2', p.item.guid, CHAIN)
+  H.eq(s:events(), { { 'RANGE_FX_REMOVED', 'r2', p.item.guid, CHAIN, '1' } })
+  H.eq(span(p.item), { 10, 20 })
+  H.eq({ p.item.fadein, p.item.fadeout }, { 0.5, 0.25 }, 'its own fade-in and the right piece fade-out')
+  H.eq(#p.chapter.items, 3)
+end)
+
+H.test('a second chain on words that carry one is refused before any change', function()
+  local s, p = project()
+  local middle = applied(s, p)
+  s.fake.calls = {}
+  s.fake.undo = {}
+  for _, range in ipairs({ { '14', '16' }, { '14.5', '15.5' } }) do
+    s:send('apply_fx_range', 'r2', middle.guid, range[1], range[2], 'Breath.RfxChain', '0')
+    H.eq(s:events(), { { 'ERROR', 'r2', 'Those words already have a chain on them. Take it off first.' } })
+  end
+  H.eq(calls_named(s, 'SplitMediaItem'), 0)
+  H.eq(#s.fake.undo, 0)
+  H.eq(fx_count(middle), 1)
+end)
+
+H.test('when REAPER keeps an FX it was asked to delete, the record stays, nothing is joined, and the answer says so', function()
+  local s, p = project()
+  local middle = applied(s, p)
+  s.fake.fx_delete_fails = true
+  s:send('remove_fx_range', 'r2', middle.guid, CHAIN)
+  H.eq(s:events(), {
+    { 'ERROR', 'r2', 'REAPER did not take off every FX of the chain. Press Undo in REAPER to put back what it took off.' },
+  })
+  H.eq(middle.takes[1].ext[CHAIN_KEY], CHAIN)
+  H.eq(#p.chapter.items, 5)
+  H.eq(s.fake.open_undo_blocks, 0)
+  H.eq(s.fake.ui_refresh_hold or 0, 0)
 end)
 
 H.test('a piece that no longer carries the chain answers 0 and opens no block', function()
