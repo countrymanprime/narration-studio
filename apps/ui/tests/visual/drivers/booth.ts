@@ -2,7 +2,7 @@
 // It opens on Chapter 1 (the mock's last chapter read) unless a state picks otherwise. The Companion rows open `/companion`.
 import type { Page } from '@playwright/test';
 import { settlePage } from '../helpers/settle';
-import { type Driver, clickSettingsCategory, clickVisible, goToPage, openBooth } from './shared';
+import { type Driver, chooseTheme, goToPage, openBooth } from './shared';
 
 // The record capability on, so Record is enabled (the mock's REAPER keeps it switched off by default, which is the refusal row).
 const RECORD_ON = '?mockRecordCapabilityOn=1';
@@ -99,15 +99,12 @@ export const boothDrivers: Record<string, Driver> = {
     await settlePage(page);
     await page.getByRole('button', { name: /Fill them in Settings$/ }).waitFor();
   },
-  // The Booth in the Dark theme, chosen the way a narrator chooses it (Settings > Appearance). If the Booth ever forced one
+  // The Booth in the Dark theme, chosen the way a narrator chooses it (Settings' Appearance panel). If the Booth ever forced one
   // palette again, this would render the same as 'setup' and the suite's identical-states check would fail the run.
   dark: async (page) => {
     await page.goto(`/${RECORD_ON}`);
     await settlePage(page);
-    await goToPage(page, 'Settings');
-    await clickVisible(page, 'tab', 'Global');
-    await clickSettingsCategory(page, 'Appearance');
-    await clickVisible(page, 'button', 'Dark');
+    await chooseTheme(page, 'Dark');
     await goToPage(page, 'Booth');
     await page.getByRole('button', { name: /^Resume at ¶/ }).waitFor();
     await record(page).and(page.locator(':enabled')).waitFor();

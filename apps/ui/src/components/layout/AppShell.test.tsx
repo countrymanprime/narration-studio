@@ -58,7 +58,7 @@ describe('AppShell on the Booth', () => {
 describe('AppShell nav gating', () => {
   it('disables the manuscript pages, and only those, when there is no manuscript', () => {
     renderShell({ hasManuscript: false, dawFileLinked: false });
-    for (const name of ['Script', 'Story Bible', 'Booth']) {
+    for (const name of ['Script', 'Story Bible', 'Booth', 'Delivery']) {
       expect(screen.getAllByRole('button', { name }).every((button) => (button as HTMLButtonElement).disabled)).toBe(true);
     }
     for (const name of ['Production', 'Proof', 'Pickups', 'Master & QC']) {
@@ -148,7 +148,7 @@ describe('AppShell grouped navigation', () => {
 
   it('lists every other page, with Production in place of Home, Proof in place of Proofing and Review and Booth in place of the Teleprompter', () => {
     renderShell();
-    for (const name of ['Production', 'Schedule', 'Script', 'Story Bible', 'Booth', 'Proof', 'Pickups', 'Master & QC', 'Settings']) {
+    for (const name of ['Production', 'Schedule', 'Script', 'Story Bible', 'Booth', 'Proof', 'Pickups', 'Master & QC', 'Delivery', 'Settings']) {
       expect(screen.getAllByRole('button', { name }).length).toBeGreaterThan(0);
     }
   });
@@ -370,7 +370,7 @@ describe('AppShell rail', () => {
   it('keeps every item reachable by name in the one rail, which is also what the collapsed rail shows', () => {
     const { container } = renderShell();
     const rail = container.querySelector('aside') as HTMLElement;
-    for (const name of ['Production', 'Script', 'Story Bible', 'Booth', 'Proof', 'Pickups', 'Master & QC', 'Settings']) {
+    for (const name of ['Production', 'Script', 'Story Bible', 'Booth', 'Proof', 'Pickups', 'Master & QC', 'Delivery', 'Settings']) {
       expect(within(rail).getByRole('button', { name })).toBeTruthy();
     }
   });
@@ -379,6 +379,27 @@ describe('AppShell rail', () => {
     renderShell({ navCounts: { proof: 3 } });
     expect(screen.getAllByRole('button', { name: 'Proof, 3' }).length).toBeGreaterThan(0);
     expect(screen.queryByRole('button', { name: /^Master & QC, / })).toBeNull();
+    expect(screen.queryByRole('button', { name: /^Delivery, / })).toBeNull();
     expect(screen.queryByRole('button', { name: /^Pickups, / })).toBeNull();
+  });
+
+  // SN-M5 (ADR 0802): Delivery sits beside Master & QC in Finish, gated on a manuscript like the mock's NeedManuscript; Master stays ungated.
+  it('the-delivery-rail-item: Finish is Master & QC then Delivery, and Delivery opens /delivery', () => {
+    const navigate = vi.fn();
+    renderShell({ navigate });
+    const finish = screen.getAllByRole('group', { name: 'Finish' })[0];
+    expect(
+      within(finish)
+        .getAllByRole('button')
+        .map((button) => button.textContent?.trim()),
+    ).toEqual(['Master & QC', 'Delivery']);
+    fireEvent.click(within(finish).getByRole('button', { name: 'Delivery' }));
+    expect(navigate).toHaveBeenCalledWith('/delivery');
+  });
+
+  it('the-delivery-rail-item: "Go to Delivery" is a page only with a manuscript', () => {
+    expect(shellPages(true)).toContainEqual({ id: '/delivery', label: 'Delivery' });
+    expect(shellPages(false)).not.toContainEqual({ id: '/delivery', label: 'Delivery' });
+    expect(shellPages(false)).toContainEqual({ id: '/master', label: 'Master & QC' });
   });
 });

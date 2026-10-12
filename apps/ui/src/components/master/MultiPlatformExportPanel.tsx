@@ -13,9 +13,8 @@ const DANGER = { color: 'var(--danger-text)' };
 const OK = { color: 'var(--ok-text)' };
 const MONO = "font-['IBM_Plex_Mono',ui-monospace,monospace]";
 
-/** The label a checkbox gives a profile: its platform for a built-in, its own name for a custom profile - the same
- * rule MasterQcPage.tsx's own `platformName` applies to the single-select platform tabs (ADR 0480: the tabs stay
- * the project's own single delivery-profile choice; this list is a separate, multi-select export-platform picker). */
+/** The label a checkbox gives a profile: its platform for a built-in, its own name for a custom profile (ADR 0480: the
+ * project's own single delivery-profile choice is Delivery's profile card; this list is a separate, multi-select export-platform picker). */
 const platformNameFor = (profile: DeliveryProfile) => (profile.builtIn ? profile.platform : profile.name);
 
 const plural = (count: number, one: string, many = `${one}s`) => `${count} ${count === 1 ? one : many}`;
