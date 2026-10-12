@@ -1,5 +1,5 @@
 // This file writes and reads this package's ledger records
-// (apps/desktop/internal/evidence/ledger.go, EL Phase 3): one record per
+// (apps/desktop/internal/evidence/ledger.go): one record per
 // item per class per decode pass (Architecture Notes: "One decode pass over
 // an item writes three records..., each with analyzer version, parameter
 // hash, scope, outcome complete|partial|failed, and counts, so a class can
@@ -18,7 +18,7 @@ import (
 )
 
 // ItemScopeInput is what WriteLedgerRecord and CurrentItemRecord need to
-// identify one item's own fingerprint (EL Phase 2/6): the parsed item, its
+// identify one item's own fingerprint: the parsed item, its
 // resolved analysis key (from Resolve/evidence.ComputeAnalysisKey) and the
 // project it belongs to.
 type ItemScopeInput struct {
@@ -63,7 +63,7 @@ func WriteLedgerRecord(ledger *evidence.LedgerStore, analyzerID, analyzerVersion
 }
 
 // ItemStaleness is one item's answer to "is the newest complete record for
-// analyzerID still current" (EL Phase 6's Q4 rule, applied at item scope
+// analyzerID still current" (the evidence package's staleness rule, applied at item scope
 // rather than chapter scope): never (no complete record at all), stale (an
 // item, analyzer or parameter mismatch, named by Reasons), or current.
 type ItemStaleness struct {

@@ -70,7 +70,7 @@ func TestIdentifyDetectsAChangedMiddleBlockEvenWhenSizeAndModTimeMatch(t *testin
 		t.Fatalf("test setup: size/mtime should match (size %d vs %d, mtime %v vs %v)", before.Size, after.Size, before.ModTime, after.ModTime)
 	}
 	if before.PartialHash == after.PartialHash {
-		t.Error("PartialHash did not change when the file's middle block changed, size and mtime held constant (Q1 option A's blind spot)")
+		t.Error("PartialHash did not change when the file's middle block changed, size and mtime held constant (the blind spot of a size, mtime and partial-hash identity)")
 	}
 }
 

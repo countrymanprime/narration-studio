@@ -52,7 +52,7 @@ type ExcludedReference struct {
 
 // SubjectStatus says whether a character (or narration) has a baseline.
 // An unavailable subject raises no flag: "insufficient reference" is shown
-// as unavailable evidence, never as a low-confidence guess (Q6).
+// as unavailable evidence, never as a low-confidence guess.
 type SubjectStatus struct {
 	CharacterID        string `json:"character_id"`
 	UsableReferences   int    `json:"usable_references"`
@@ -244,7 +244,7 @@ func collectReferences(config Config, result *Result) (map[string]*subject, []st
 }
 
 // narrationEvidence is the candidate's distance to the narration baseline
-// (Q9 option A), or why there is none.
+// (the narration baseline is the second comparison, besides the character's own), or why there is none.
 func narrationEvidence(narration *subject, speaker string, scale Scale, vector []float64) NarrationEvidence {
 	switch {
 	case speaker == character.NarrationCharacterID:

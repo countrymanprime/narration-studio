@@ -7,7 +7,7 @@ import (
 	"path/filepath"
 )
 
-// creditsManuscriptPath is where a credits check's synthetic single-chapter manuscript is written (Phase 3): two
+// creditsManuscriptPath is where a credits check's synthetic single-chapter manuscript is written: two
 // directories below the project root, the same depth as the real narration-utils/manuscript/manuscript.json, so the
 // sidecar's own project_data_dir (Path(manuscript_path).resolve().parents[2]) still resolves to
 // <project>/TranscriptCompare and the narrator's word equivalences and vocabulary hints still apply to a credits
