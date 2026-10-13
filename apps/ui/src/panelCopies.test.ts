@@ -30,7 +30,6 @@ const CEILING: Record<Copy, Record<string, number>> = {
     'src/components/engine/EnginePanel.tsx': 1,
     'src/components/project/ProjectPicker.tsx': 1,
     // The chapter card's sticky header rounds its own top corners (`rounded-lg border-b-0`); the card is PANEL_FRAME_CLASS.
-    'src/components/manuscript/ReaderCard.tsx': 1,
     // The waveform's frame, with its own tight padding round the drawing.
     // The bookmarks tab's list frame (SN-B62), to move onto Panel with #1119.
     'src/components/script/bookmarks/ui/BookmarksTab.tsx': 1,

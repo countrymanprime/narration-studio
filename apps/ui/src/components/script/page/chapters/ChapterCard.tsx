@@ -50,9 +50,7 @@ export function ChapterCard({
       {previous ? <EndOf ended={{ name: endedName(previous), words: previous.wordCount }} /> : ended && <EndOf ended={ended} />}
       <InsetCard as="section" fill aria-label={title} className="flex flex-col gap-2 font-sans">
         <div className="flex items-center justify-between gap-2">
-          <span className="font-['Barlow_Condensed',sans-serif] text-xs font-semibold tracking-[0.08em] text-[var(--text-muted)] uppercase">
-            {cardLabel(chapter)}
-          </span>
+          <SectionLabel>{cardLabel(chapter)}</SectionLabel>
           {onRecord && <IconButton action="recordInBooth" onClick={() => onRecord(chapter.id)} />}
         </div>
         <h2 className="font-['Barlow_Condensed',sans-serif] text-[1.625rem] font-semibold">{title}</h2>
