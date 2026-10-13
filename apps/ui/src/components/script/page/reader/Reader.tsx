@@ -53,6 +53,8 @@ export type ReaderProps = {
   renderGutter?: (paragraph: ManuscriptParagraph) => ReactNode;
   /** The chapter's card (the previous chapter's end marker, title, facts, prep state, record). With it the reader draws no heading of its own, so the title shows once; without it, a bare heading. */
   renderChapterCard?: (chapter: ManuscriptChapter) => ReactNode;
+  /** Drawn after the last chapter's text: the closing credits. */
+  after?: ReactNode;
   /** The sticky header's buttons. */
   toolbar?: ReactNode;
   onPickSpeaker?: (cueId: string, anchor: DOMRect) => void;
@@ -189,6 +191,7 @@ export function Reader(props: ReaderProps) {
     activeMarkId = null,
     renderGutter,
     renderChapterCard,
+    after,
     toolbar,
     onPickSpeaker,
     onShowAnnotation,
@@ -437,6 +440,7 @@ export function Reader(props: ReaderProps) {
               onPickSpeaker={onPickSpeaker}
             />
           ))}
+          {after}
         </div>
       </div>
     </section>

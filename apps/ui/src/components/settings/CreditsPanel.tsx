@@ -5,6 +5,7 @@ import { previewParts } from '../../creditsPreviewParts';
 import type { CreditsRenderResult, CreditTemplate, CreditValues, DetectedCandidate } from '../../types';
 import { RetailSamplePanel } from './RetailSamplePanel';
 import { Button } from '../primitives/Button';
+import { ConfirmDialog } from '../primitives/ConfirmDialog';
 import { Field } from '../primitives/Field';
 import { Select } from '../primitives/Select';
 import { Highlight } from '../primitives/Highlight';
@@ -41,6 +42,11 @@ const VALUE_FIELDS: { key: keyof CreditValues; label: string }[] = [
 // A DetectedCandidate's token is a credits.Values Go field name ("Title", "CopyrightHolder"), not this panel's
 // lowerCamelCase key; every VALUE_FIELDS key maps to its token by capitalizing the first letter, with no
 // exceptions to keep track of as fields are added.
+/** What Clear credits removes, named in its confirmation: every project value field, the narrator as the override it is here. */
+const CLEARED_FIELDS = `${VALUE_FIELDS.slice(0, -1)
+  .map(({ label }) => label)
+  .join(', ')} and the Narrator override`;
+
 const detectedToken = (key: keyof CreditValues): string => key.charAt(0).toUpperCase() + key.slice(1);
 
 // previewParts (splitting an unresolved token out as its own chip marker) lives in ../../creditsPreviewParts,
@@ -50,7 +56,8 @@ const detectedToken = (key: keyof CreditValues): string => key.charAt(0).toUpper
  * Settings > Credits: the narrator's template library (shipped defaults
  * plus their own, add/duplicate/edit/delete), this project's own credit values with suggestions seeded from the
  * manuscript, and a live preview rendered by the same Go renderer the estimate and the teleprompter use.
- * Saving values never blocks on an unresolved token; this panel only shows the count and chip.
+ * Saving values never blocks on an unresolved token; this panel only shows the count and chip. Clear credits empties every project
+ * value at once, after a confirmation; the template library stays.
  */
 export function CreditsPanel({ notify }: { notify: Notify }) {
   const api = useApi();
@@ -73,6 +80,8 @@ export function CreditsPanel({ notify }: { notify: Notify }) {
   // starts one of these disables until it ends, and the field being saved disables too.
   const [busy, setBusy] = useState(false);
   const [savingKey, setSavingKey] = useState<keyof CreditValues>();
+  const [confirmingClear, setConfirmingClear] = useState(false);
+  const [clearing, setClearing] = useState(false);
 
   const selected = templates.find((template) => template.id === selectedId);
 
@@ -196,6 +205,20 @@ export function CreditsPanel({ notify }: { notify: Notify }) {
       setSavingKey((current) => (current === key ? undefined : current));
     }
   };
+  // Clear credits: every one of this project's values goes back to empty in one save, so the credits ask for them again. The template
+  // library is the narrator's across projects and stays; a template is removed with Delete above.
+  const clearValues = async () => {
+    setClearing(true);
+    try {
+      setValues(await api.saveCreditsProjectValues({}));
+      notify('Credits cleared for this project.');
+      setConfirmingClear(false);
+    } catch (error) {
+      notify(apiErrorMessage(error), 'error');
+    } finally {
+      setClearing(false);
+    }
+  };
   const acceptDetected = (key: keyof CreditValues, candidate: DetectedCandidate) => {
     void saveValue(key, candidate.value);
   };
@@ -302,7 +325,7 @@ export function CreditsPanel({ notify }: { notify: Notify }) {
           Project values
         </h3>
         <p style={{ color: 'var(--text-muted)' }}>
-          The global narrator default is {narratorGlobal ? <strong>{narratorGlobal}</strong> : 'not set (see Settings &gt; General)'}; a narrator override here
+          The global narrator default is {narratorGlobal ? <strong>{narratorGlobal}</strong> : 'not set (see Settings > General)'}; a narrator override here
           applies only to this project.
         </p>
         {VALUE_FIELDS.map(({ key, label }) => {
@@ -324,7 +347,27 @@ export function CreditsPanel({ notify }: { notify: Notify }) {
             </div>
           );
         })}
+        <Button
+          variant="danger"
+          type="button"
+          disabled={!VALUE_FIELDS.some(({ key }) => values[key]) || savingKey !== undefined}
+          onClick={() => setConfirmingClear(true)}
+        >
+          Clear credits
+        </Button>
       </section>
+
+      {confirmingClear && (
+        <ConfirmDialog
+          title="Clear this project's credits?"
+          body={`This removes the credit values saved for this project: ${CLEARED_FIELDS}. The credit templates in your library stay, and the credits show their [Tokens] to fill in again.`}
+          confirmLabel="Clear credits"
+          confirmVariant="danger"
+          pending={clearing}
+          confirm={() => void clearValues()}
+          cancel={() => setConfirmingClear(false)}
+        />
+      )}
 
       <RetailSamplePanel notify={notify} />
     </div>

@@ -8,8 +8,8 @@ three parts side by side:
 - **Chapters** on the left: every narration chapter, the one in view marked, each with a dot for how far its prep is
   (**Not started**, **In progress** or **Prepped**; the key is under the list). A **?** beside a chapter means it has
   questions for the author still open. Press a chapter to go to it. When the project has opening credits, an
-  **Opening credits** row comes first; it goes to the credits card, and its dot is **Prepped** once the credits have no
-  token left to fill in.
+  **Opening credits** row comes first, and when it has closing credits, a **Closing credits** row comes last; each goes
+  to its credits card, and its dot is **Prepped** once those credits have no token left to fill in.
 - **The reader** in the middle: the whole book as one scrolling text, a card at the top of each chapter with its word
   count, its finished audio, its marks and open queries, and **My prep**, where you set the chapter's prep state.
   Your marks are drawn in the text in their own colours, a speaker's lines carry a chip with their name, and Story Bible
@@ -84,7 +84,7 @@ plain-text file with no chapter markings, or an EPUB with no table of contents o
 still imports as one narration chapter rather than failing or importing nothing narratable — the
 import log says so. Re-import a manuscript (Replace manuscript on [Production](production.md#importing-the-manuscript)) to pick this up in an older project.
 
-**Opening credits** and **Closing credits** sit above the first chapter, when the
+**Opening credits** sit above the first chapter and **Closing credits** after the last chapter's text, when the
 credit template library (Settings, This Project, [Credits](settings.md#credits)) has an opening or a
 closing template. Each shows its word count and a read time, and opens and closes the same way a
 chapter card does — press anywhere on its header, not just the title — with a chevron showing which

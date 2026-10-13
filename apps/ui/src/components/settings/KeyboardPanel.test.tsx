@@ -21,7 +21,7 @@ function keydown(init: Partial<KeyboardEventInit> & { code: string }): void {
   });
 }
 
-// Mirrors what Settings.tsx does for every category: read `Keymap` out of `settingsForScope('global')` and hand the
+// Mirrors what the Settings page's Keyboard & pedals panel does: read `Keymap` out of `settingsForScope('global')` and hand the
 // panel its own field plus a reload it can call after saving - so these tests exercise the real save/reload round trip
 // through the mock host, not a hand-built fixture.
 function Harness({ notify }: { notify: Notify }) {
