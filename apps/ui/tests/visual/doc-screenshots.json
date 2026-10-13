@@ -196,6 +196,20 @@
     "caption": "Booth - the closing credits, with the warning chip for tokens that have no value"
   },
   {
+    "page": "booth",
+    "state": "refusal",
+    "viewport": "desktop",
+    "docName": "booth-record-refused",
+    "caption": "Booth - Record disabled with the reason in the footer, and the Recording in REAPER is experimental box above it with Turn on Record and DAW settings"
+  },
+  {
+    "page": "booth",
+    "state": "record-connect",
+    "viewport": "desktop",
+    "docName": "booth-record-setup",
+    "caption": "Booth - the Connect REAPER to record box, with the two steps and Open in REAPER and connect, above the disabled Record button and its reason"
+  },
+  {
     "page": "engine",
     "state": "default",
     "viewport": "desktop",
@@ -553,6 +567,34 @@
     "caption": "Schedule before a due date is set: no verdict, and the Final delivery milestone with no date"
   },
   {
+    "page": "settings",
+    "state": "recording-found",
+    "viewport": "desktop",
+    "docName": "settings-recording-link",
+    "caption": "Settings > Recording - REAPER chosen, not linked yet, with Link Alice.rpp for the project file found in the folder"
+  },
+  {
+    "page": "settings",
+    "state": "recording-linked",
+    "viewport": "desktop",
+    "docName": "settings-recording-linked",
+    "caption": "Settings > Recording - the REAPER project file is linked, with Start REAPER"
+  },
+  {
+    "page": "booth",
+    "state": "daw-not-linked",
+    "viewport": "desktop",
+    "docName": "booth-daw-not-linked",
+    "caption": "The Booth - the top-bar chip warns REAPER - not linked"
+  },
+  {
+    "page": "project",
+    "state": "new-project-dialog",
+    "viewport": "desktop",
+    "docName": "project-new-dialog",
+    "caption": "New Project - the location line shows the default projects folder, with Change location"
+  },
+  {
     "page": "schedule",
     "state": "on-pace",
     "viewport": "desktop",
@@ -845,47 +887,5 @@
     "viewport": "desktop",
     "docName": "settings-unsaved",
     "caption": "Settings with unsaved changes: the footer with Save and Discard"
-  },
-  {
-    "page": "booth",
-    "state": "refusal",
-    "viewport": "desktop",
-    "docName": "booth-record-refused",
-    "caption": "Booth - Record disabled with the reason in the footer, and the Recording in REAPER is experimental box above it"
-  },
-  {
-    "page": "booth",
-    "state": "record-connect",
-    "viewport": "desktop",
-    "docName": "booth-record-setup",
-    "caption": "Booth - the Connect REAPER to record box, with the two steps, above the disabled Record button and its reason"
-  },
-  {
-    "page": "settings",
-    "state": "recording-found",
-    "viewport": "desktop",
-    "docName": "settings-recording-link",
-    "caption": "Settings > Recording - REAPER chosen, not linked yet, with Link Alice.rpp for the project file found in the folder"
-  },
-  {
-    "page": "settings",
-    "state": "recording-linked",
-    "viewport": "desktop",
-    "docName": "settings-recording-linked",
-    "caption": "Settings > Recording - the REAPER project file is linked, with Start REAPER"
-  },
-  {
-    "page": "booth",
-    "state": "daw-not-linked",
-    "viewport": "desktop",
-    "docName": "booth-daw-not-linked",
-    "caption": "The Booth - the top-bar chip warns REAPER - not linked"
-  },
-  {
-    "page": "project",
-    "state": "new-project-dialog",
-    "viewport": "desktop",
-    "docName": "project-new-dialog",
-    "caption": "New Project - the location line shows the default projects folder, with Change location"
   }
 ]
