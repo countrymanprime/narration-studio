@@ -66,6 +66,7 @@ import { useRecordingEngine } from './components/booth/useRecorder';
 // `#teleprompter` is kept as an alias of `#booth` so links from before the Booth replaced the Teleprompter page still land;
 // the category's key stays its settings tool's name.
 const SETTINGS_ANCHORS: Record<string, string> = {
+  '#recording': 'Recording',
   '#credits': 'Credits',
   '#delivery': 'Delivery',
   '#cleanup': 'Cleanup',

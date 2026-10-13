@@ -19,7 +19,8 @@ const themes = parseThemes(options.themes);
 const out = options.out ?? 'screenshots/targeted';
 const grep = visualGrep(pages);
 const env = { ...process.env, ...browserEnv(process.env, existsSync(chromium.executablePath())) };
-if (env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH) console.log(`browser: ${env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH}`);
+if (env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH)
+  console.log('browser: an installed Chromium (PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH or the headless shell under PLAYWRIGHT_BROWSERS_PATH)');
 
 function statesOf(report) {
   const rows = [];

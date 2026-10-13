@@ -34,7 +34,7 @@ export type RecordInReaperState = {
 
 /**
  * The Record-in-REAPER toggle's memory and orchestration: a per-project on/off (`ReadAloud.record_in_reaper`, reusing the generic
- * settings mechanism the way `Keymap.overrides` does - no Settings category names this tool, so it never joins the
+ * settings mechanism the way `Keymap.overrides` does - no Settings panel names this tool, so it never joins the
  * generic Settings page) with a first-time confirm (`record_confirmed`), "Arm `<chapter>` only", and what Play
  * and Stop do while it is on: `ReadAloudRecordStart` before a session starts listening, `ReadAloudRecordStop` after it
  * stops. Reading with the toggle off, with the record capability unavailable, or with no chapter (credits mode)

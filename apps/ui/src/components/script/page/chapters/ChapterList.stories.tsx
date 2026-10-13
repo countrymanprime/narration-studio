@@ -37,12 +37,19 @@ export const AllStates: Story = {
   },
 };
 
-// The mock's Opening credits row above chapter 1, with the prep dot the cards use.
+// The mock's Opening credits row above chapter 1 and Closing credits row after the last chapter, with the prep dot the cards use.
 export const OpeningCredits: Story = {
-  args: { chapters: CHAPTERS.filter((chapter) => chapter.contentKind !== 'opening'), openingCredits: { state: 'prepped', onJump: fn() } },
+  args: {
+    chapters: CHAPTERS.filter((chapter) => chapter.contentKind !== 'opening'),
+    openingCredits: { state: 'prepped', onJump: fn() },
+    closingCredits: { state: 'none', onJump: fn() },
+  },
   play: async ({ canvasElement, args }) => {
-    await userEvent.click(await within(canvasElement).findByRole('button', { name: /Opening credits/ }));
+    const canvas = within(canvasElement);
+    await userEvent.click(await canvas.findByRole('button', { name: /Opening credits/ }));
     await expect(args.openingCredits?.onJump).toHaveBeenCalled();
+    const rows = canvas.getAllByRole('button');
+    await expect(rows.at(-1)?.textContent).toContain('Closing credits');
   },
 };
 

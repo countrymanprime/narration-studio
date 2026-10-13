@@ -19,7 +19,7 @@ export function AppearanceView({ value, onChange }: { value: ThemePreference; on
   );
 }
 
-/** Settings > Appearance: the theme choice, saved through `useTheme` as the old Appearance category saves it. */
+/** Settings > Appearance: the theme choice, saved through `useTheme` the one app-wide theme setting. */
 export function AppearancePanel() {
   const { preference, setPreference } = useTheme();
   return <AppearanceView value={preference} onChange={setPreference} />;

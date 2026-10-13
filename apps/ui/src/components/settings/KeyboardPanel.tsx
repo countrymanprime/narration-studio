@@ -170,7 +170,7 @@ function Recorder({ command, currentGestures, scope, catalog, keymap, busy, onCa
 /**
  * Settings > Keyboard & pedals every command the catalogue lists on `settings` (`commandsFor`), grouped by
  * scope, remappable by pressing a key or a pedal. Self-contained like DeliveryProfilesPanel/CreditsPanel: it reads and
- * writes the `Keymap.overrides` row directly rather than through Settings.tsx's generic dirty-tracking form,
+ * writes the `Keymap.overrides` row directly rather than through the Settings page's generic dirty-tracking form (`page/ScopedFieldsPanel.tsx`),
  * since that mechanism is for a page of independent fields with a shared Save button, and this is one JSON document a
  * narrator changes one command at a time (each action saves immediately, like LocalAssets' install actions).
  */

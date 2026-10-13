@@ -6,19 +6,23 @@ const mmss = (seconds: number): string => {
   return `${String(Math.floor(whole / 60)).padStart(2, '0')}:${String(whole % 60).padStart(2, '0')}`;
 };
 
-/** The last punch and this session's recorded time and punch count. */
+/** The last punch and where the next roll starts; the mock puts it above the voices. */
+export function LastPunch({ numbers }: { numbers: SessionNumbersData }) {
+  return (
+    <SideSection title="Last punch">
+      <div className="text-sm">{numbers.lastPunch ?? 'No punches yet'}</div>
+      {numbers.nextRoll ? <div className={DIM_CLASS}>{numbers.nextRoll}</div> : null}
+    </SideSection>
+  );
+}
+
+/** This session's recorded time and punch count. */
 export function SessionNumbers({ numbers }: { numbers: SessionNumbersData }) {
   return (
-    <>
-      <SideSection title="Last punch">
-        <div className="text-sm">{numbers.lastPunch ?? 'No punches yet'}</div>
-        {numbers.nextRoll ? <div className={DIM_CLASS}>{numbers.nextRoll}</div> : null}
-      </SideSection>
-      <SideSection title="This session">
-        <div className="text-sm">
-          Recorded <b className="font-mono">{mmss(numbers.recordedSeconds)}</b> · {numbers.punches} {numbers.punches === 1 ? 'punch' : 'punches'}
-        </div>
-      </SideSection>
-    </>
+    <SideSection title="This session">
+      <div className="text-sm">
+        Recorded <b className="font-mono">{mmss(numbers.recordedSeconds)}</b> · {numbers.punches} {numbers.punches === 1 ? 'punch' : 'punches'}
+      </div>
+    </SideSection>
   );
 }

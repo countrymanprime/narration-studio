@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"errors"
+	"reflect"
 	"strings"
 	"sync"
 	"testing"
@@ -10,6 +11,7 @@ import (
 	"github.com/countrymanprime/narration-utils/shell/internal/bridge"
 	"github.com/countrymanprime/narration-utils/shell/internal/daw"
 	"github.com/countrymanprime/narration-utils/shell/internal/dawport"
+	"github.com/countrymanprime/narration-utils/shell/internal/dawport/reaper"
 	"github.com/countrymanprime/narration-utils/shell/internal/findings"
 )
 
@@ -306,5 +308,46 @@ func TestConfigureBuildsTheNavigatorOnTheSessionsBridge(t *testing.T) {
 		if got := role.resolver.Kind(); got != check.wantKind {
 			t.Fatalf("%s: resolver kind %v, want %v", check.name, got, check.wantKind)
 		}
+	}
+}
+
+// p5aAdapter is the adapter behind h.dawPortResolver, which recorderFrom and puncherFrom ask for the Booth's Record and
+// punch roles. It once declared neither, so every Record press from the Booth was refused as experimental_off on a
+// connected REAPER whatever the settings said, while DawCapabilities (over REAPER's full declaration) enabled the button.
+// Every capability it declares is at REAPER's own level and served by a role of the capability's type.
+func TestP5aAdapterServesRecordAndPunchAtREAPERsLevel(t *testing.T) {
+	client, err := bridge.New(t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+	full, err := reaper.New(client, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	puncher, _ := full.Role(dawport.CapPunch).(dawport.Puncher)
+	adapter := p5aAdapter{navigator: bridge.NewNavigator(client), actions: bridge.NewActions(client, nil), puncher: puncher}
+
+	reaperLevels := reaper.Declaration().Declares()
+	for capability, level := range adapter.Declares() {
+		if reaperLevels[capability] != level {
+			t.Errorf("%s: p5aAdapter declares %v, REAPER declares %v", capability, level, reaperLevels[capability])
+		}
+		spec, ok := dawport.SpecOf(capability)
+		role := adapter.Role(capability)
+		if !ok || role == nil || !reflect.TypeOf(role).Implements(spec.Role) {
+			t.Errorf("%s: role %T does not serve the capability", capability, role)
+		}
+	}
+
+	resolver := dawport.NewResolver(dawport.ResolverConfig{
+		Adapter:      adapter,
+		Runtime:      func() dawport.Runtime { return dawport.Runtime{Bridge: true, Reachable: true} },
+		Experimental: func() bool { return true },
+	})
+	if _, err := dawport.Role[dawport.Recorder](resolver, dawport.CapRecord); err != nil {
+		t.Errorf("record role: %v", err)
+	}
+	if _, err := dawport.Role[dawport.Puncher](resolver, dawport.CapPunch); err != nil {
+		t.Errorf("punch role: %v", err)
 	}
 }

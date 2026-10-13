@@ -51,7 +51,8 @@ const TOOLTIP: Record<string, string> = {
   check_on_startup:
     'Once a day, when the app starts, it asks GitHub whether a newer release exists. It sends nothing about you or your projects, and it never downloads anything without your click.',
   channel: 'Release candidates are the pre-releases that come before each stable release; every release so far is one.',
-  input_device: 'The microphone the Booth listens to. Choose it from the list in the Booth; it is remembered here.',
+  input_device:
+    'The microphone the Booth listens to so the text follows your voice. With a DAW it is the one the DAW records from, when the DAW names it; otherwise choose it in the Booth’s Levels menu. It is remembered here.',
   engine:
     'Which local speech engine listens for your voice during a Booth session. Moonshine is offered on Windows only. Choosing one never downloads anything: a missing model is asked for when you start reading.',
   model: 'Which model size the live engine loads. Tiny keeps up on most computers; Small is more accurate but needs a faster one.',
@@ -93,8 +94,7 @@ const pickerColor = (value: string) => {
 // One setting: the label above its control below `md`, the label beside it from `md` (Tailwind's 48rem, the app's own layout
 // breakpoint). The two-column template does not apply below `md`: a grid gives a fixed-range track (the label's
 // minmax(12rem,16rem)) its full maximum before a flexible one gets any, which left the control column 45 px at a 390 px window.
-// Between `md` and `lg` the settings panel is narrow (the category list stands beside it) so the label takes its 12rem
-// minimum and the control the rest (191 px at 768 px, not 127); from `lg` the label may grow to 16rem again.
+// Between `md` and `lg` the label takes its 12rem minimum and the control the rest; from `lg` the label may grow to 16rem again.
 const ROW_CLASSES =
   'grid grid-cols-1 gap-2 border-b border-[var(--border)] py-4 md:grid-cols-[12rem_minmax(0,1fr)] md:items-start md:gap-5 lg:grid-cols-[minmax(12rem,16rem)_minmax(0,1fr)]';
 // The controls (a select, or a swatch and a hex box) and the Reset link. The row may wrap so Reset drops under the control only

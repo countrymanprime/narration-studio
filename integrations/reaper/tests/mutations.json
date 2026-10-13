@@ -1814,7 +1814,7 @@
   {
     "name": "reduce_range_gain: the undo block is never closed",
     "file": "narration_range.lua",
-    "find": "  reaper.Undo_EndBlock2(0, UNDO_REDUCE_GAIN, -1)\n",
+    "find": "  reaper.Undo_EndBlock2(0, env and UNDO_REDUCE_GAIN or '', -1)\n",
     "replace": ""
   },
   {
@@ -1982,7 +1982,7 @@
   {
     "name": "repair_click: the undo block is never closed",
     "file": "narration_range.lua",
-    "find": "  reaper.Undo_EndBlock2(0, UNDO_REPAIR_CLICKS, -1)\n",
+    "find": "  reaper.Undo_EndBlock2(0, env and UNDO_REPAIR_CLICKS or '', -1)\n",
     "replace": ""
   },
   {
@@ -1994,8 +1994,8 @@
   {
     "name": "repair_click: no envelope point is added",
     "file": "narration_range.lua",
-    "find": "      reaper.InsertEnvelopePoint(env, point[1], point[2], 0, 0, false, true)\n    end\n    reaper.Envelope_SortPoints(env)\n  end\n  reaper.UpdateItemInProject(item)\n  reaper.Undo_EndBlock2(0, UNDO_REPAIR_CLICKS",
-    "replace": "    end\n    reaper.Envelope_SortPoints(env)\n  end\n  reaper.UpdateItemInProject(item)\n  reaper.Undo_EndBlock2(0, UNDO_REPAIR_CLICKS"
+    "find": "      reaper.InsertEnvelopePoint(env, point[1], point[2], 0, 0, false, true)\n    end\n    reaper.Envelope_SortPoints(env)\n  end\n  reaper.UpdateItemInProject(item)\n  -- No envelope means nothing changed, so the block is closed with no description and records no undo point.\n  reaper.Undo_EndBlock2(0, env and UNDO_REPAIR_CLICKS",
+    "replace": "    end\n    reaper.Envelope_SortPoints(env)\n  end\n  reaper.UpdateItemInProject(item)\n  -- No envelope means nothing changed, so the block is closed with no description and records no undo point.\n  reaper.Undo_EndBlock2(0, env and UNDO_REPAIR_CLICKS"
   },
   {
     "name": "fx_range edits: a stale item GUID falls back to another item",

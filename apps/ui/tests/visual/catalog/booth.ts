@@ -25,6 +25,26 @@ export const boothStates: StateEntry[] = [
   },
   {
     page: 'booth',
+    state: 'following',
+    description:
+      'Booth, six seconds into a take (the page clock run on, then held): the text follows the voice - the mock teleprompter replays a recorded reading, so the reading position has left ¶ 1 and the progress line counts it; Levels names the microphone the DAW records from, so the footer says nothing about the listening',
+    ...FREEZES_THE_CLOCK,
+  },
+  {
+    page: 'booth',
+    state: 'listening-no-mic',
+    description:
+      'Booth with no microphone listed (?mockNoDevices=1): the footer says in the warning colour that the text cannot follow the voice and why; Record still records',
+  },
+  {
+    page: 'booth',
+    state: 'model-required',
+    description:
+      "Booth, Record pressed with the live engine's model not installed (?mockAssets=missing): the take starts and the first-use question asks to download the model, naming its size, publisher and licence; nothing downloads until Download model",
+    ...FREEZES_THE_CLOCK,
+  },
+  {
+    page: 'booth',
     state: 'leave-dialog',
     description:
       'Booth, Escape pressed during a take: the "Stop recording?" question ("REAPER is recording. Leaving the Booth stops it."), with Cancel and Stop and leave; the take is held while it is open, so the pill reads REC PAUSED (ADR 0790)',
@@ -46,7 +66,8 @@ export const boothStates: StateEntry[] = [
   {
     page: 'booth',
     state: 'levels-menu',
-    description: 'Booth, the footer\'s Levels menu open: the input level and the microphone, chosen in the DAW ("Chosen in REAPER")',
+    description:
+      'Booth, the footer\'s Levels menu open: the input level and the microphone the DAW records from, named, with "Chosen in REAPER" (TeleprompterReaperInput, ADR 0250)',
   },
   {
     page: 'booth',

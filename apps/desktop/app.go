@@ -731,7 +731,7 @@ func (h *Host) configureLocked(next config) {
 	// client above was never built) has no adapter, which the resolver reports as every capability unsupported.
 	var dawPortAdapter dawport.Adapter
 	if client != nil {
-		dawPortAdapter = p5aAdapter{navigator: bridge.NewNavigator(client), actions: h.actions}
+		dawPortAdapter = p5aAdapter{navigator: bridge.NewNavigator(client), actions: h.actions, puncher: h.puncher}
 	}
 	// reach is this project's reachability tracker, captured here rather than read as h.reachability from inside the
 	// closure below: the closure outlives configureLocked's lock and a later project switch reassigns h.reachability,
