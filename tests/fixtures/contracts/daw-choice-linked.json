@@ -21,7 +21,7 @@
     },
     {
       "daw": "Audacity",
-      "installed": null,
+      "installed": false,
       "record": {
         "available": false,
         "level": "not_yet_available",

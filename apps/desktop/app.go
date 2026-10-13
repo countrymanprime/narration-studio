@@ -369,6 +369,8 @@ type Host struct {
 	// daw.LocateReaperExecutable, the real detached spawn and the real registry lookup.
 	reaperLaunch func(program string, args []string) error
 	reaperLocate func() (path, source string, err error)
+	// audacityLocate is DawChoice's seam for daw.LocateAudacityExecutable (bindings_dawchoice.go); nil means the real one.
+	audacityLocate func() (path, source string, err error)
 	// dawCatalogDetectors is a seam for tests (dawcatalog.go): nil means dawcatalog.DefaultDetectors(), the real
 	// per-entry registry/path lookups. Detection is stateless and not project-scoped, so unlike the swappable
 	// services above it needs no lock or snapshot - it is set once (or left nil) and read directly.

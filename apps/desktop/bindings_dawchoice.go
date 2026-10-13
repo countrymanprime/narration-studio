@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"path/filepath"
+	"strings"
 
 	"github.com/countrymanprime/narration-utils/shell/internal/daw"
 	"github.com/countrymanprime/narration-utils/shell/internal/dawport"
@@ -85,19 +86,14 @@ func (h *Host) DawLinkFound() (string, error) {
 	default:
 		return "", fmt.Errorf("this project's folder holds %d REAPER project files: choose the one to link", len(found))
 	}
-	result, err := linkDawFile(h.persist, svc.config.projectFolder, filepath.Join(svc.config.projectFolder, found[0]))
+	result, err := h.linkPickedDawFile(filepath.Join(svc.config.projectFolder, found[0]))
 	if err != nil {
 		return "", err
 	}
-	h.dawFolder.forget()
 	if linked, _ := result["linked"].(bool); !linked {
 		message, _ := result["message"].(string)
 		return "", errors.New(message)
 	}
-	if err := h.chooseProjectDaw(dawport.KindREAPER); err != nil {
-		return "", err
-	}
-	go h.chapterSyncTrigger(syncTriggerDawLink) // the DAW is hooked up: ask, or sync (chaptersync.go)
 	return encodeBinding(h.dawChoice(h.services()), nil)
 }
 
@@ -133,7 +129,7 @@ func (h *Host) chooseProjectDaw(kind dawport.Kind) error {
 		}
 		h.mu.Unlock()
 		if !reattached {
-			return errors.New("the choice is saved, and takes effect when the project is opened again: " + attachBusyReason)
+			return errors.New("the choice is saved, and takes effect when the project is opened again: " + strings.TrimSuffix(attachBusyReason, "."))
 		}
 	}
 	h.pollDawCapabilities()
@@ -202,7 +198,8 @@ func dawChoiceState(project projectDaw, bridge, reachable bool) string {
 }
 
 // dawInstalled is whether kind was found on this computer: REAPER through the DAW.reaper_path override or the Windows registry
-// (daw.Resolve, ADR 0092), the built-in recorder always (it is part of the app), and Audacity unknown (no detector yet).
+// (daw.Resolve, ADR 0092), Audacity through the same registry list (daw.LocateAudacityExecutable), and the built-in recorder
+// always (it is part of the app). null is an engine the app has no way to look for.
 func (h *Host) dawInstalled(svc hostServices, kind dawport.Kind) *bool {
 	found := true
 	switch {
@@ -217,6 +214,13 @@ func (h *Host) dawInstalled(svc hostServices, kind dawport.Kind) *bool {
 			locate = daw.LocateReaperExecutable
 		}
 		_, _, err := daw.Resolve(override, locate)
+		found = err == nil
+	case kind.IsDAW():
+		locate := h.audacityLocate
+		if locate == nil {
+			locate = daw.LocateAudacityExecutable
+		}
+		_, _, err := locate()
 		found = err == nil
 	default:
 		return nil

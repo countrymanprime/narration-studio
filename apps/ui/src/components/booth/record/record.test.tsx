@@ -179,6 +179,7 @@ describe('SetupChip with the project DAW choice', () => {
     const capabilities = setupCapabilities('reaper');
     const { rerender, unmount } = render(<SetupChip capabilities={capabilities} standaloneName="Recorder" choice={{ ...base, state: 'not_linked' }} />);
     expect(screen.getByRole('group').getAttribute('aria-label')).toBe('Recording setup: REAPER, not linked');
+    expect(screen.getByRole('group').textContent).toBe('REAPER · not linked');
     expect(await tooltipOf()).toBe('Recording settings · REAPER not linked · link Book.rpp in Recording settings');
     rerender(<SetupChip capabilities={capabilities} standaloneName="Recorder" choice={{ ...base, state: 'linked', linkedFile: 'Book.rpp' }} />);
     expect(screen.getByRole('group').getAttribute('aria-label')).toBe('Recording setup: REAPER, linked');
@@ -193,7 +194,7 @@ describe('SetupChip with the project DAW choice', () => {
   });
 
   it('names the project choice even when the capability report names none, and the page name when it records in the app', () => {
-    const { rerender } = render(<SetupChip capabilities={setupCapabilities('builtin')} standaloneName="Recorder" choice={{ ...base, state: 'not_linked' }} />);
+    const { rerender } = render(<SetupChip capabilities={setupCapabilities('builtin')} standaloneName="Recorder" choice={{ ...base, state: 'connected' }} />);
     expect(screen.getByRole('group').textContent).toBe('REAPER');
     rerender(<SetupChip capabilities={setupCapabilities('builtin')} standaloneName="Recorder" choice={{ ...base, daw: 'Built-in', state: 'app' }} />);
     expect(screen.getByRole('group').textContent).toBe('Recorder');

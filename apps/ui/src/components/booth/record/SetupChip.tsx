@@ -30,7 +30,7 @@ function choiceDetail(choice: DawChoice): string {
 /**
  * The Booth top bar's recording-setup chip (the mock's `bsetup`): the name of what records, read from the capabilities. A setup
  * with no DAW has no name of its own to read, so the page passes the one it words. The chip is a button when `onClick` opens the
- * recording settings, where the project's engine is chosen. With the project's DAW choice (`choice`), the tooltip and the chip's
+ * recording settings, where the project's engine is chosen. With the project's DAW choice (`choice`), the chip's text, tooltip and
  * name say whether that DAW is linked, connected or not running, and the tone warns until it is connected. When the host reports
  * that the DAW's project has changes its saved file does not have (`DawProjectState`), the chip says so in its tooltip and its name.
  */
@@ -59,7 +59,9 @@ export function SetupChip({
         ? 'Recording happens in the app'
         : `${name} linked`;
   const unsaved = capabilities.reachable && !!project?.unsavedChanges;
-  const state = choice && !standalone && choice.state !== 'connected' ? `, ${choice.state.replace('_', ' ')}` : '';
+  // The project's DAW short of connected says how far it got in the chip itself, not only in the tooltip.
+  const stateWords = choice && !standalone && choice.state !== 'connected' ? choice.state.replace('_', ' ') : '';
+  const state = stateWords ? `, ${stateWords}` : '';
   return (
     <TooltipTarget text={`Recording settings · ${detail}${unsaved ? ` · ${UNSAVED}` : ''}`}>
       <HeaderChip
@@ -68,7 +70,7 @@ export function SetupChip({
         role={onClick ? undefined : 'group'}
         aria-label={`Recording setup: ${name}${state}${unsaved ? `, ${UNSAVED}` : ''}`}
       >
-        {name}
+        {stateWords ? `${name} · ${stateWords}` : name}
       </HeaderChip>
     </TooltipTarget>
   );

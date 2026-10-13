@@ -6,6 +6,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/countrymanprime/narration-utils/shell/internal/dawport"
 	"github.com/countrymanprime/narration-utils/shell/internal/persist"
 	"github.com/countrymanprime/narration-utils/shell/internal/project"
 )
@@ -34,14 +35,29 @@ func (h *Host) ProjectLinkDawFile() (string, error) {
 	if path == "" {
 		return encodeBinding(map[string]any{"selected": false, "linked": false}, nil)
 	}
-	result, err := linkDawFile(h.persist, projectFolder, path)
+	result, err := h.linkPickedDawFile(path)
 	if err != nil {
 		return "", err
 	}
+	return encodeBinding(result, nil)
+}
+
+// linkPickedDawFile links path, the narrator's pick, to the open project (linkDawFile) and, once linked, chooses REAPER for the
+// project and starts chapter sync, as DawLinkFound does.
+func (h *Host) linkPickedDawFile(path string) (map[string]any, error) {
+	result, err := linkDawFile(h.persist, h.services().config.projectFolder, path)
+	if err != nil {
+		return nil, err
+	}
+	h.dawFolder.forget()
 	if linked, _ := result["linked"].(bool); linked {
+		// Linking a REAPER project file chooses REAPER for the project (projectdaw.go), as DawLinkFound does.
+		if err := h.chooseProjectDaw(dawport.KindREAPER); err != nil {
+			_ = h.log.Report("daw", "linked the REAPER project file but could not choose REAPER: "+err.Error())
+		}
 		go h.chapterSyncTrigger(syncTriggerDawLink) // the DAW is hooked up: ask, or sync (chaptersync.go)
 	}
-	return encodeBinding(result, nil)
+	return result, nil
 }
 
 // linkDawFile is ProjectLinkDawFile's pure logic, kept apart from the dialog

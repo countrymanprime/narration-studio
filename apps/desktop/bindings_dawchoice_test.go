@@ -37,6 +37,9 @@ func choiceHost(t *testing.T, reaperFound bool) *Host {
 		}
 		return "", "", errors.New("reaper.exe was not found on this machine")
 	}
+	host.audacityLocate = func() (string, string, error) {
+		return "", "", errors.New("Audacity.exe was not found on this machine")
+	}
 	return host
 }
 
@@ -62,8 +65,8 @@ func TestDawChoiceListsEveryEngine(t *testing.T) {
 	if reaper := option(t, choice, "REAPER"); reaper.Installed == nil || *reaper.Installed {
 		t.Errorf("REAPER installed = %v, want false", reaper.Installed)
 	}
-	if audacity := option(t, choice, "Audacity"); audacity.Installed != nil {
-		t.Errorf("Audacity installed = %v, want unknown", *audacity.Installed)
+	if audacity := option(t, choice, "Audacity"); audacity.Installed == nil || *audacity.Installed {
+		t.Errorf("Audacity installed = %v, want false", audacity.Installed)
 	}
 	if builtin := option(t, choice, "Built-in"); builtin.Installed == nil || !*builtin.Installed || builtin.Record["level"] != "experimental" {
 		t.Errorf("Built-in = %+v", builtin)
@@ -71,8 +74,13 @@ func TestDawChoiceListsEveryEngine(t *testing.T) {
 	if choice.Daw != "Built-in" || choice.Source != "default" || choice.State != "app" || choice.Chosen != nil {
 		t.Errorf("empty folder: %+v", choice)
 	}
-	if found := decodeDawChoice(t)(choiceHost(t, true).DawChoice()); *option(t, found, "REAPER").Installed != true {
-		t.Error("REAPER found by the locator reads as not installed")
+	foundHost := choiceHost(t, true)
+	foundHost.audacityLocate = func() (string, string, error) {
+		return `C:\Program Files\Audacity\Audacity.exe`, "uninstall_registry", nil
+	}
+	found := decodeDawChoice(t)(foundHost.DawChoice())
+	if *option(t, found, "REAPER").Installed != true || *option(t, found, "Audacity").Installed != true {
+		t.Error("an engine found by its locator reads as not installed")
 	}
 }
 
@@ -204,4 +212,23 @@ func TestDawChoiceGoldensAreCurrent(t *testing.T) {
 	raw, err = found.DawLinkFound()
 	check("daw-choice-linked", found, raw, err)
 	found.chapterSyncEmits.Wait()
+}
+
+// link-by-dialog-chooses-reaper: linking a file through the dialog's path (linkDawFile, as ProjectLinkDawFile does after the
+// pick) reads at once, and chooses REAPER over an earlier Audacity choice.
+func TestLinkingByTheDialogChoosesREAPER(t *testing.T) {
+	host := choiceHost(t, true)
+	rppFolder(t, host)
+	decodeDawChoice(t)(host.DawChoose("Audacity"))
+	if choice := decodeDawChoice(t)(host.DawChoice()); choice.State != "not_running" {
+		t.Fatalf("Audacity chosen: %+v", choice)
+	}
+	if _, err := host.linkPickedDawFile(filepath.Join(host.config.projectFolder, "Book.rpp")); err != nil {
+		t.Fatal(err)
+	}
+	choice := decodeDawChoice(t)(host.DawChoice())
+	if choice.Daw != "REAPER" || choice.State != "linked" || choice.LinkedFile == nil || *choice.LinkedFile != "Book.rpp" {
+		t.Fatalf("after the dialog's link: %+v", choice)
+	}
+	host.chapterSyncEmits.Wait()
 }
