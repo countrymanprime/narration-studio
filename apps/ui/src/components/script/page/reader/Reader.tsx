@@ -325,6 +325,17 @@ export function Reader(props: ReaderProps) {
     const bound = root?.querySelector<HTMLElement>(`[data-bound][data-ch="${chapterId}"]`);
     if (root && bound) root.scrollTop = bound.offsetTop - 8;
   };
+  /** Where the first draw put the reader, held until the narrator scrolls or a request scrolls it. */
+  const held = useRef<{ chapterId: string; offset: number } | null>(null);
+  const hold = (): void => {
+    const root = scroller.current;
+    const place = held.current;
+    const bound = place && root?.querySelector<HTMLElement>(`[data-bound][data-ch="${place.chapterId}"]`);
+    if (root && place && bound && root.scrollTop !== Math.max(0, bound.offsetTop + place.offset)) root.scrollTop = Math.max(0, bound.offsetTop + place.offset);
+  };
+  const release = (): void => {
+    held.current = null;
+  };
   const rowOf = (paragraphId: string): HTMLElement | null =>
     Array.from(scroller.current?.querySelectorAll<HTMLElement>('[data-para]') ?? []).find((row) => row.dataset.para === paragraphId) ?? null;
 
@@ -333,19 +344,22 @@ export function Reader(props: ReaderProps) {
     if (restored.current) return;
     restored.current = true;
     const root = scroller.current;
-    if (!root || pendingJump || pendingPid || pendingBm) return;
-    if (remembered && startChapter === remembered.chapterId) {
-      const bound = root.querySelector<HTMLElement>(`[data-bound][data-ch="${startChapter}"]`);
-      if (bound) root.scrollTop = bound.offsetTop + remembered.offset;
-    } else if (startChapter) scrollToChapter(startChapter);
+    if (!root || pendingJump || pendingPid || pendingBm || !startChapter) return;
+    held.current = { chapterId: startChapter, offset: remembered && startChapter === remembered.chapterId ? remembered.offset : -8 };
+    hold();
     // The first draw only.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  /* A section drawn above that place after the first draw (the credits, read after the chapters) does not push it down: the reader
+     stays there until the narrator moves it or a request scrolls it. */
+  useLayoutEffect(hold);
 
   /* Later: honour each request to scroll once. A target outside the drawn text is drawn first and the request waits for it. */
   useLayoutEffect(() => {
     const root = scroller.current;
     if (!root) return;
+    if (pendingJump || pendingPid || pendingBm) release();
     if (pendingJump) {
       const at = indexOf.get(pendingJump);
       if (at === undefined) {
@@ -435,6 +449,10 @@ export function Reader(props: ReaderProps) {
         aria-label="Script reader. Up and down arrows scroll. Left and right arrows change the prep state of the chapter in view."
         className="relative min-h-0 flex-1 overflow-y-auto focus-visible:outline-2 focus-visible:outline-[var(--focus)]"
         onScroll={onScroll}
+        onWheel={release}
+        onPointerDown={release}
+        onTouchStart={release}
+        onKeyDownCapture={release}
         onKeyDown={(event) => {
           if (event.target !== event.currentTarget || (event.key !== 'ArrowRight' && event.key !== 'ArrowLeft')) return;
           const id = spy.get().chapterId ?? chapters[0]?.id;

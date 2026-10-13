@@ -159,6 +159,35 @@ describe('the remembered position', () => {
     expect(scrolls.get(scroller())).toBe(592);
   });
 
+  it('stays at that chapter when a section is drawn above it after the first draw, until the narrator scrolls', () => {
+    const above = <div data-bound="" data-ch="credits:opening" />;
+    const { rerender } = render(<Reader {...props({ initialChapterId: 'c3' })} />);
+    expect(scrolls.get(scroller())).toBe(592);
+    // A row drawn above moves every row down; the fake layout is read again on the next render's measure.
+    const relaid = vi.spyOn(HTMLElement.prototype, 'offsetTop', 'get').mockImplementation(function (this: HTMLElement) {
+      const rows = Array.from(document.querySelectorAll('[data-bound], [data-para]'));
+      return rows.indexOf(this) * 100;
+    });
+    rerender(<Reader {...props({ initialChapterId: 'c3', before: above })} />);
+    expect(scrolls.get(scroller())).toBe(692);
+    fireEvent.wheel(scroller());
+    rerender(
+      <Reader
+        {...props({
+          initialChapterId: 'c3',
+          before: (
+            <>
+              {above}
+              <div data-bound="" data-ch="x" />
+            </>
+          ),
+        })}
+      />,
+    );
+    expect(scrolls.get(scroller())).toBe(692);
+    relaid.mockRestore();
+  });
+
   it('renders when storage throws', () => {
     vi.spyOn(Storage.prototype, 'getItem').mockImplementation(() => {
       throw new Error('blocked');

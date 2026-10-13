@@ -111,12 +111,9 @@ export const scriptDrivers: Record<string, Driver> = {
     // the page's own banner.
     await clickVisible(page, 'button', 'Not now');
     await goToPage(page, 'Script');
-    await page
-      .getByRole('list', { name: 'Chapters' })
-      .getByRole('button', { name: /Opening credits$/ })
-      .first()
-      .click();
+    // The banner sits at the top of the book, above the Opening credits; the reader is scrolled there.
     await page.getByText(/The credits need 3 values/).waitFor();
+    await page.locator('section[aria-label="Reader"] [role="region"]').evaluate((reader) => (reader.scrollTop = 0));
     await page.getByRole('button', { name: 'Fill in' }).first().waitFor();
   },
   // The retail sample: ?mockCredits=extras picks lines 1-3 of Chapter 3, reached from the chapter list.
