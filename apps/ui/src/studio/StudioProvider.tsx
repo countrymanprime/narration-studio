@@ -2,6 +2,7 @@ import { createContext, useContext, useEffect, useRef, useState, type ReactNode 
 import { usePort } from '../ports/usePort';
 import type { DawKind } from '../api/contracts/daw';
 import { useDawKind } from '../useDawKind';
+import { DAW_ACTION_KINDS } from '../api/contracts/daw';
 import { createJournal, type Journal } from './journal/createJournal';
 import { createHostEvents, createSlots, StudioStoreProvider, useStudio, type StudioRegistry } from './slots';
 import { createStudioStore, type StudioStore } from './store/createStudioStore';
@@ -20,7 +21,7 @@ const StoreContext = createContext<StudioStore<StudioRegistry> | null>(null);
  * The composition root of the command journal and the read-model store for the shell (ADR 0770, 0771). It creates the one journal
  * the header's Undo and History read and the one store the slots live in, starts the store and stops it on unmount. A project
  * switch empties both: what was loaded for the old project is dropped and a load still in flight for it is ignored. The DAW's
- * name comes from the DAW capabilities; its last action is not reportable yet, so it answers 'unknown'. A test passes its own
+ * name comes from the DAW capabilities; its last action comes from the DAW port for the kinds of change it can undo, else 'unknown'. A test passes its own
  * `journal` and `store`.
  */
 export function StudioProvider({
@@ -38,7 +39,19 @@ export function StudioProvider({
   const system = usePort('system');
   const nameRef = useRef('the DAW');
   nameRef.current = daw ? dawShortName(daw) : 'the DAW';
-  const [created] = useState(() => createJournal({ dawName: () => nameRef.current, dawLastAction: async () => 'unknown' }));
+  const dawPort = usePort('daw');
+  const dawRef = useRef(dawPort);
+  dawRef.current = dawPort;
+  const [created] = useState(() =>
+    createJournal({
+      dawName: () => nameRef.current,
+      // The DAW answers for the kinds of change it can undo; an entry that named none, or one this build does not know, cannot be told.
+      dawLastAction: async (action) => {
+        const kind = DAW_ACTION_KINDS.find((k) => k === action?.kind);
+        return kind ? dawRef.current.lastAction(kind) : 'unknown';
+      },
+    }),
+  );
   const [createdStore] = useState(() =>
     createStudioStore({
       registry: createSlots(manuscript, bookmarks),

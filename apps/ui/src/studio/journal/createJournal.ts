@@ -20,6 +20,11 @@ export type Command<R> = {
   touches: string[];
   /** The change is made in the DAW too (rule 4). */
   daw?: boolean;
+  /**
+   * What the DAW's own undo history holds for this change, from what `run` returned: the kind of change and how many undo points it made. With it
+   * the journal can ask the DAW whether the change is still its last action; without it the DAW cannot say and a DAW entry is refused (rule 4).
+   */
+  dawAction?(result: R): DawAction | undefined;
   run(): Promise<Result<R>>;
   /** The inverse host command, given what `run` returned. It may answer a value the caller needs, such as a replacement id. */
   undo?(result: R): Promise<Result<unknown>>;
@@ -27,8 +32,11 @@ export type Command<R> = {
   notUndoableReason?: string;
 };
 
-/** What the DAW says about the entry at the head of its own undo history. Until the DAW port can report it, answer 'unknown'. */
-export type DawLastAction = () => Promise<'this' | 'other' | 'unknown'>;
+/** The change a DAW entry made, as the DAW's undo history knows it: a kind the DAW port names and the undo points it left. */
+export type DawAction = { kind: string; steps: number };
+
+/** What the DAW says about the head of its own undo history: whether it is this action (`undefined` for an entry that named none), another, or cannot be told. */
+export type DawLastAction = (action: DawAction | undefined) => Promise<'this' | 'other' | 'unknown'>;
 
 export type JournalOptions = {
   /** The DAW's name as the narrator knows it, read when a sentence is built. */
@@ -67,6 +75,8 @@ type Entry = {
   label: string;
   daw: boolean;
   touches: readonly string[];
+  /** What the DAW's undo history holds for it, when the command said. */
+  dawAction: DawAction | undefined;
   /** Runs the inverse with the value `run` returned; absent when the command has none. */
   inverse: (() => Promise<Result<unknown>>) | null;
   notUndoableReason: string;
@@ -118,7 +128,7 @@ export function createJournal(options: JournalOptions): Journal {
 
   async function dawRefusal(entry: Entry): Promise<Refusal | null> {
     if (!entry.daw) return null;
-    const answer = await dawLastAction().catch(() => 'unknown' as const);
+    const answer = await dawLastAction(entry.dawAction).catch(() => 'unknown' as const);
     if (answer === 'this') return null;
     const name = dawName();
     return { code: 'daw-last-action', reason: `${name}'s last action is not this one, so it was left alone. Use Edit > Undo in ${name}.` };
@@ -137,6 +147,7 @@ export function createJournal(options: JournalOptions): Journal {
       label: command.label,
       daw: command.daw === true,
       touches: [...command.touches],
+      dawAction: command.dawAction?.(result.value),
       inverse: undo ? () => undo.call(command, result.value) : null,
       notUndoableReason: undo ? '' : notUndoableSentence(command),
     };
