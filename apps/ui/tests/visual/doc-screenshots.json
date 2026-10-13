@@ -523,19 +523,5 @@
     "viewport": "desktop",
     "docName": "schedule-on-pace",
     "caption": "Schedule - the verdict, the recorded audio against the plan, how the book pays, the work left and the milestones"
-  },
-  {
-    "page": "booth",
-    "state": "refusal",
-    "viewport": "desktop",
-    "docName": "booth-record-refused",
-    "caption": "Booth - Record disabled with the reason in the footer, and the Recording in REAPER is experimental box above it"
-  },
-  {
-    "page": "booth",
-    "state": "record-connect",
-    "viewport": "desktop",
-    "docName": "booth-record-setup",
-    "caption": "Booth - the Connect REAPER to record box, with the two steps, above the disabled Record button and its reason"
   }
 ]
