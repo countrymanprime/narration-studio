@@ -30,6 +30,7 @@ const GOLDEN_FILES = [
   'edit-wordfx-list.json',
   'edit-wordfx-record.json',
   'edit-wordfx-remove.json',
+  'edit-wordfx-bypass.json',
   'edit-stacks-list.json',
   'edit-stacks-record.json',
   'edit-stacks-remove.json',
@@ -150,6 +151,7 @@ const hostApi = (): EditLogHostApi => ({
     return Promise.resolve(fxChange('edit-wordfx-record.json'));
   },
   editingWordFxRemove: () => Promise.resolve(fxChange('edit-wordfx-remove.json')),
+  editingWordFxBypass: () => Promise.resolve(fxChange('edit-wordfx-bypass.json')),
   editingStacksList: (chapterId) => Promise.resolve(chapterId === HOST_CHAPTER ? stacksList('edit-stacks-list.json') : { chapterId, stacks: [] }),
   editingStackRecord: (chapterId, stack) => {
     try {
@@ -354,6 +356,7 @@ const cases: ReadonlyArray<ContractCase<EditLogPort>> = [
       const { chapterId, paragraph } = await wordOf(adapter);
       wordFxListSchema.parse(await port.editingWordFxList(chapterId));
       const recorded = wordFxChangeSchema.parse(await port.editingWordFxRecord(chapterId, fxOf(paragraph)));
+      wordFxChangeSchema.parse(await port.editingWordFxBypass(chapterId, recorded.changed[0] ?? '', true));
       wordFxChangeSchema.parse(await port.editingWordFxRemove(chapterId, recorded.changed[0] ?? ''));
     },
   },

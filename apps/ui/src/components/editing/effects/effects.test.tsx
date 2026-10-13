@@ -69,6 +69,17 @@ describe('coverage is the union of the effects that are on', () => {
     expect(coverageOfEffects([wordFx('s', { stale: true })], [], TOTAL).sec).toBe(0);
     expect(coverageOfEffects(ONE, [{ a: 0, b: 4, mode: 'close' }], TOTAL).segs).toEqual([{ start: 6, end: 18, n: 1 }]);
   });
+  it('a bypassed effect does not count toward the coverage cap', () => {
+    const fx2Off = MANY.map((f) => (f.id === 'fx2' ? { ...f, bypassed: true } : f));
+    // fx1 (10 to 22) and fx3 (100 to 104) are on: 16 s, 8%. With fx2 counted it was 24 s, 12%, over the cap.
+    expect(coverageOfEffects(fx2Off, [], TOTAL).sec).toBe(16);
+    expect(coverageOfEffects(fx2Off, [], TOTAL).pct).toBe(8);
+    // Turning fx3 on is judged against the effects that are on: fx1 alone with fx3 stays within the cap.
+    const others = fx2Off.filter((f) => f.id !== 'fx3');
+    expect(impactOf(others, [], TOTAL, { start: 100, end: 104 })).toMatchObject({ before: 6, after: 8, over: false });
+    expect(capSentence(others, [], TOTAL, { start: 100, end: 104 })).toBe('');
+    expect(impactOf(MANY.slice(0, 2), [], TOTAL, { start: 100, end: 104 }).over).toBe(true);
+  });
   it('judges the figure against the cap: within, over, far over', () => {
     expect(capState(10, 10)).toBe('within');
     expect(capState(10.1, 10)).toBe('over');
@@ -415,15 +426,20 @@ describe('the inspector with a DAW that has the commands', () => {
   let bypasses: boolean[];
   let bypassed: boolean;
   let plays: [number, number][];
+  let compares: unknown[];
+  let stopsInDaw: number;
+  let pageStops: number;
+  let shown: WordFx[][];
+  let log: ReturnType<typeof fakeFxLog>;
   let journal: ReturnType<typeof createJournal>;
   const host = (over: Partial<EffectHost> = {}): EffectHost => ({
     chapterId: 'chapter-1',
     locator,
     journal,
     effects: MANY,
+    onEffects: (effects) => void shown.push(effects),
     play: (from, to) => void plays.push([from, to]),
-    stop: () => {},
-    playing: false,
+    stop: () => void pageStops++,
     ...over,
   });
   const dawWith = (setup: DawCapabilities): DawClient => {
@@ -433,11 +449,13 @@ describe('the inspector with a DAW that has the commands', () => {
       fxRangeParams: async (t) => ({ ...(await base.fxRangeParams(t)), bypassed }),
       setFxRangeParam: (c) => (sets.push(c), base.setFxRangeParam(c)),
       bypassFxRange: (t, b) => ((bypassed = b), bypasses.push(b), base.bypassFxRange(t, b)),
+      compareFxRange: (t) => (compares.push(t), base.compareFxRange(t)),
+      stopFxCompare: () => (stopsInDaw++, base.stopFxCompare()),
     };
   };
   const show = (fx: WordFx, daw: DawClient, h: EffectHost = host()) =>
     render(
-      <ApiProvider api={{ ...createMockApi(), dawCapabilities: async () => DAW_SETUPS.reaper }}>
+      <ApiProvider api={{ ...createMockApi(), ...log, dawCapabilities: async () => DAW_SETUPS.reaper }}>
         <PortOverrides clients={{ daw }}>
           <EffectHostProvider value={h}>
             <EffectInspector fx={fx} cuts={[]} total={TOTAL} dawName="REAPER" onRemove={() => {}} />
@@ -446,12 +464,19 @@ describe('the inspector with a DAW that has the commands', () => {
         </PortOverrides>
       </ApiProvider>,
     );
+  const inspector = () => within(screen.getByRole('region', { name: 'Effect' }));
   beforeEach(() => {
     sets = [];
     bypasses = [];
     plays = [];
+    compares = [];
+    stopsInDaw = 0;
+    pageStops = 0;
+    shown = [];
     bypassed = false;
-    journal = createJournal({ dawName: () => 'REAPER', dawLastAction: async () => 'unknown' });
+    log = fakeFxLog();
+    log.effects.push(...MANY.map((f) => ({ ...f })));
+    journal = createJournal({ dawName: () => 'REAPER', dawLastAction: async () => 'this' });
   });
 
   it('changes a setting, bypasses, previews and compares an effect, and asks before turning one on over the cap', async () => {
@@ -508,38 +533,98 @@ describe('the inspector with a DAW that has the commands', () => {
     await waitFor(() => expect(sets).toEqual([{ ...target, fx: 0, index: 0, value: 9.6 }]));
   });
 
-  it('compares the words without the effect, then with it, and leaves the effect as it was', async () => {
+  it('Compare plays the effect on and then off through the DAW', async () => {
     const daw = dawWith(withFxRange(DAW_SETUPS.reaper, 'native'));
-    const h = host();
-    const view = show(MANY[0], daw, h);
+    show(MANY[0], daw);
     await screen.findByRole('textbox', { name: 'Mode' });
     fireEvent.click(screen.getByRole('button', { name: 'Compare' }));
-    await waitFor(() => expect(plays).toEqual([[10, 22]]));
+    // The DAW plays both passes itself: the page's own playback stops, and nothing is bypassed from the page.
+    await waitFor(() => expect(compares).toEqual([target]));
+    expect(pageStops).toBe(1);
+    expect(plays).toEqual([]);
+    expect(bypasses).toEqual([]);
+    expect((await inspector().findByRole('status')).textContent).toBe('With the effect');
+    await waitFor(() => expect(inspector().getByRole('status').textContent).toBe('Without the effect'), { timeout: 2000 });
+    await waitFor(() => expect(inspector().queryByRole('status')).toBeNull(), { timeout: 2000 });
+    expect(screen.getByRole('button', { name: 'Compare' }).hasAttribute('disabled')).toBe(false);
+    expect(stopsInDaw).toBe(0);
+  });
+
+  it('Compare is one journal entry with one Undo', async () => {
+    const daw = dawWith(withFxRange(DAW_SETUPS.reaper, 'native'));
+    show(MANY[0], daw);
+    await screen.findByRole('textbox', { name: 'Mode' });
+    fireEvent.click(screen.getByRole('button', { name: 'Compare' }));
+    await inspector().findByRole('status');
+    // Stopping early asks the DAW to stop and put the effect back; the Compare stays one entry.
+    fireEvent.click(screen.getByRole('button', { name: 'Stop comparing' }));
+    await waitFor(() => expect(stopsInDaw).toBe(1));
+    await waitFor(() => expect(inspector().queryByRole('status')).toBeNull());
+    const entries = await journal.entries();
+    expect(entries.map((e) => [e.label, e.daw, e.undoable])).toEqual([['Compared Podcast Voice with and without', true, true]]);
+    // One Undo stops any Compare still playing and leaves the effect as it was before (on): no record changes.
+    expect(await journal.undo(entries[0].id)).toMatchObject({ ok: true });
+    expect(stopsInDaw).toBe(2);
+    expect(bypasses).toEqual([false]);
+    expect(await journal.entries()).toEqual([]);
+    expect(log.effects.find((f) => f.id === 'fx1')?.bypassed).toBe(false);
+  });
+
+  it('a refused Compare adds no entry and says why', async () => {
+    const base = dawWith(withFxRange(DAW_SETUPS.reaper, 'native'));
+    const daw: DawClient = {
+      ...base,
+      compareFxRange: async () => ({
+        result: { ok: false, changed: false, message: 'gone', undoSteps: 0, refused: 'That effect is gone.', code: 'stale' },
+        pass: 0,
+      }),
+    };
+    const toast = vi.spyOn(overlay, 'toast');
+    show(MANY[0], daw);
+    await screen.findByRole('textbox', { name: 'Mode' });
+    fireEvent.click(screen.getByRole('button', { name: 'Compare' }));
+    await waitFor(() => expect(toast).toHaveBeenCalledWith('That effect is gone.', { tone: 'error' }));
+    expect(inspector().queryByRole('status')).toBeNull();
+    expect(await journal.entries()).toEqual([]);
+  });
+
+  it('Bypass is kept with the effect, so the figure leaves it out, and one Undo turns it on in the DAW and the record', async () => {
+    const daw = dawWith(withFxRange(DAW_SETUPS.reaper, 'native'));
+    show(MANY[0], daw);
+    const box = await screen.findByRole('checkbox', { name: 'Bypass this effect' });
+    await screen.findByRole('textbox', { name: 'Mode' });
+    fireEvent.click(box);
+    await waitFor(() => expect(log.effects.find((f) => f.id === 'fx1')?.bypassed).toBe(true));
     expect(bypasses).toEqual([true]);
-    // Playing, then stopped: the first pass is over and the second plays with the effect on.
-    const again = (playing: boolean) =>
-      view.rerender(
-        <ApiProvider api={{ ...createMockApi(), dawCapabilities: async () => DAW_SETUPS.reaper }}>
-          <PortOverrides clients={{ daw }}>
-            <EffectHostProvider value={{ ...h, playing }}>
-              <EffectInspector fx={MANY[0]} cuts={[]} total={TOTAL} dawName="REAPER" onRemove={() => {}} />
-            </EffectHostProvider>
-          </PortOverrides>
-        </ApiProvider>,
-      );
-    again(true);
-    again(false);
-    await waitFor(() =>
-      expect(plays).toEqual([
-        [10, 22],
-        [10, 22],
-      ]),
-    );
+    expect(shown.at(-1)?.find((f) => f.id === 'fx1')?.bypassed).toBe(true);
+    // fx2 (20 to 30) and fx3 (100 to 104) are left: 14 s, 7%.
+    expect(coverageOfEffects(shown.at(-1) ?? [], [], TOTAL).pct).toBeCloseTo(7);
+    const [entry] = await journal.entries();
+    expect(entry.label).toBe('Bypassed Podcast Voice');
+    expect(await journal.undo(entry.id)).toMatchObject({ ok: true });
     expect(bypasses).toEqual([true, false]);
-    again(true);
-    again(false);
-    await waitFor(() => expect(screen.getByRole('button', { name: 'Compare' }).hasAttribute('disabled')).toBe(false));
-    expect(bypasses).toEqual([true, false]);
+    expect(log.effects.find((f) => f.id === 'fx1')?.bypassed).toBe(false);
+    expect(shown.at(-1)?.find((f) => f.id === 'fx1')?.bypassed).toBe(false);
+  });
+
+  it('an effect the DAW reports bypassed is recorded so, outside the history', async () => {
+    bypassed = true;
+    show(MANY[0], dawWith(withFxRange(DAW_SETUPS.reaper, 'native')));
+    await waitFor(() => expect(log.effects.find((f) => f.id === 'fx1')?.bypassed).toBe(true));
+    expect(shown.at(-1)?.find((f) => f.id === 'fx1')?.bypassed).toBe(true);
+    expect(await journal.entries()).toEqual([]);
+    expect(bypasses).toEqual([]);
+  });
+
+  it('turning an effect on is judged against the effects that are on: a bypassed one does not count', async () => {
+    bypassed = true;
+    const effects = MANY.map((f) => (f.id === 'fx2' || f.id === 'fx3' ? { ...f, bypassed: true } : f));
+    show(effects[2], dawWith(withFxRange(DAW_SETUPS.reaper, 'native')), host({ effects }));
+    const off = await screen.findByRole('checkbox', { name: 'Bypass this effect' });
+    await waitFor(() => expect(off.getAttribute('aria-checked')).toBe('true'));
+    fireEvent.click(off);
+    await waitFor(() => expect(bypasses).toEqual([false]));
+    expect(within(screen.getByRole('region', { name: 'Effect' })).queryByRole('alert')).toBeNull();
   });
 
   it('a DAW without the commands keeps the controls off and says why', async () => {

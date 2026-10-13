@@ -1,7 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
-import type { DawFxSetting } from '../../../api/contracts/daw';
-import type { DawResult } from '../../../api/contracts/daw';
-import type { WordFx } from '../../../api/contracts/wordFx';
+import type { DawFxRangeCompare, DawFxSetting, DawResult } from '../../../api/contracts/daw';
+import type { EditWordFxApi, WordFx } from '../../../api/contracts/wordFx';
 import { overlay } from '../../../overlay/overlayService';
 import type { FxRangeTarget } from '../../../ports/daw';
 import { usePort } from '../../../ports/usePort';
@@ -22,12 +21,14 @@ export interface EffectHost {
   chapterId: string;
   locator: RangeLocator;
   journal: Pick<Journal, 'act' | 'undo' | 'subscribe'>;
-  /** The chapter's effects as the page last read them: turning one back on is judged against the others. */
+  /** The chapter's effects as the page last read them: turning one back on is judged against the others that are on. */
   effects: readonly WordFx[];
+  /** The chapter's effects after a bypass is recorded, so the page's coverage figure leaves a bypassed effect out. */
+  onEffects: (effects: WordFx[]) => void;
   /** Plays from `from` to `to` seconds of the chapter. */
   play: (from: number, to: number) => void;
+  /** Stops the page's playback, so a Compare in the DAW is the one thing playing. */
   stop: () => void;
-  playing: boolean;
 }
 
 const HostContext = createContext<EffectHost | null>(null);
@@ -37,8 +38,6 @@ export const useEffectHost = (): EffectHost | null => useContext(HostContext);
 
 /** The words an effect is on before and after a Preview, in seconds (the mock's "Preview with 2 s before and after"). */
 const PREVIEW_PAD = 2;
-/** How long Compare waits for playback to start before it gives up and puts the effect back. */
-const START_WITHIN_MS = 2500;
 
 /** The controls the DAW cannot back: each stays, disabled, and says why. */
 const Off = ({ id, dawName, children }: { id: string; dawName: string; children: ReactNode }) => (
@@ -93,6 +92,17 @@ function targetOf(fx: WordFx, chapterId: string, locator: RangeLocator): FxRange
 }
 
 type Daw = ReturnType<typeof usePort<'daw'>>;
+type Log = Pick<EditWordFxApi, 'editingWordFxBypass'>;
+
+/** Records an effect's bypass and hands the page the effects after it; a refusal is the host's sentence. */
+async function recordBypass(log: Log, onEffects: EffectHost['onEffects'], fx: WordFx, bypass: boolean): Promise<string | null> {
+  try {
+    onEffects((await log.editingWordFxBypass(fx.chapterId, fx.id, bypass)).effects);
+    return null;
+  } catch (e) {
+    return why(e);
+  }
+}
 
 /** One setting changed as one history entry: the DAW sets it (one undo step of its own), and Undo sets it back. */
 function setCommand(daw: Daw, target: FxRangeTarget, fx: WordFx, setting: DawFxSetting, value: number, previous: number): Command<DawResult> {
@@ -109,18 +119,49 @@ function setCommand(daw: Daw, target: FxRangeTarget, fx: WordFx, setting: DawFxS
   };
 }
 
-/** Bypass or turning back on as one history entry; Undo does the opposite. */
-function bypassCommand(daw: Daw, target: FxRangeTarget, fx: WordFx, bypass: boolean): Command<DawResult> {
-  const to = (b: boolean) => daw.bypassFxRange(target, b).catch(failed);
+/**
+ * Bypass or turning back on as one history entry: the DAW switches the chain, then the effect's record keeps it so the coverage figure
+ * counts only the effects that are on. Undo does both the other way.
+ */
+function bypassCommand(daw: Daw, log: Log, onEffects: EffectHost['onEffects'], target: FxRangeTarget, fx: WordFx, bypass: boolean): Command<DawResult> {
+  // A run that changes nothing in the DAW records nothing; an Undo puts the record back whatever the DAW answered.
+  const to = async (b: boolean, mustChange: boolean): Promise<Result<DawResult>> => {
+    const res = okOrRefusal(await daw.bypassFxRange(target, b).catch(failed));
+    if (!res.ok) return res;
+    if (mustChange && !res.value.changed) return refusal('nothing_changed', res.value.message);
+    const notKept = await recordBypass(log, onEffects, fx, b);
+    return notKept ? refusal('record_failed', `${notKept} The DAW ${b ? 'bypassed' : 'turned on'} the effect: undo it there (Edit > Undo).`) : res;
+  };
   return {
     label: `${bypass ? 'Bypassed' : 'Turned on'} ${fx.chainName}`,
     touches: [`editing/${target.chapterId}/wordfx`],
     daw: true,
+    run: () => to(bypass, true),
+    undo: () => to(!bypass, false),
+  };
+}
+
+/**
+ * Compare as one history entry: the DAW plays the words with the effect on, then bypassed, and puts it back, adding no undo step of its own.
+ * Undo stops a Compare still playing and leaves the effect as it was before (`was`), in the DAW and the record.
+ */
+function compareCommand(daw: Daw, log: Log, onEffects: EffectHost['onEffects'], target: FxRangeTarget, fx: WordFx, was: boolean): Command<DawFxRangeCompare> {
+  return {
+    label: `Compared ${fx.chainName} with and without`,
+    touches: [`editing/${target.chapterId}/wordfx`],
+    daw: true,
     async run() {
-      const res = okOrRefusal(await to(bypass));
-      return res.ok && !res.value.changed ? refusal('nothing_changed', res.value.message) : res;
+      const answer = await daw.compareFxRange(target).catch((e: unknown) => ({ result: failed(e), pass: 0 }));
+      const res = okOrRefusal(answer.result);
+      return res.ok ? { ok: true, value: answer } : res;
     },
-    undo: async () => okOrRefusal(await to(!bypass)),
+    async undo() {
+      await daw.stopFxCompare().catch(failed);
+      const res = okOrRefusal(await daw.bypassFxRange(target, was).catch(failed));
+      if (!res.ok) return res;
+      const notKept = fx.bypassed === was ? null : await recordBypass(log, onEffects, fx, was);
+      return notKept ? refusal('record_failed', notKept) : res;
+    },
   };
 }
 
@@ -181,13 +222,14 @@ function SettingField({ setting, disabled, onCommit }: { setting: DawFxSetting; 
  */
 export function EffectSettings({ fx, cuts, total, dawName, host }: { fx: WordFx; cuts: readonly CutSpan[]; total: number; dawName: string; host: EffectHost }) {
   const daw = usePort('daw');
+  const log = usePort('editWordFx');
   const fxCap = useFxCap();
-  const { chapterId, locator, journal } = host;
+  const { chapterId, locator, journal, onEffects } = host;
   const target = useMemo(() => targetOf(fx, chapterId, locator), [fx, chapterId, locator]);
   const [read, setRead] = useState<Read>({ kind: 'reading' });
   const [tick, setTick] = useState(0);
   const [asking, setAsking] = useState(false);
-  const [phase, setPhase] = useState<'idle' | 'without' | 'with'>('idle');
+  const [phase, setPhase] = useState<'idle' | 'with' | 'without'>('idle');
   const reload = useCallback(() => setTick((n) => n + 1), []);
 
   useEffect(() => journal.subscribe(reload), [journal, reload]);
@@ -200,6 +242,8 @@ export function EffectSettings({ fx, cuts, total, dawName, host }: { fx: WordFx;
     daw.fxRangeParams(target).then(
       (answer) => {
         if (!live) return;
+        // The narrator can bypass the chain in the DAW itself: the record follows what the DAW reports, outside the history.
+        if (answer.result.ok && answer.bypassed !== fx.bypassed) void recordBypass(log, onEffects, fx, answer.bypassed);
         setRead(
           answer.result.ok
             ? { kind: 'ready', settings: answer.settings, bypassed: answer.bypassed, truncated: answer.truncated }
@@ -211,6 +255,7 @@ export function EffectSettings({ fx, cuts, total, dawName, host }: { fx: WordFx;
     return () => {
       live = false;
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- read again when the target or the history changes, not when the record follows the DAW
   }, [daw, target, tick]);
   useEffect(() => setAsking(false), [fx.id]);
 
@@ -238,62 +283,33 @@ export function EffectSettings({ fx, cuts, total, dawName, host }: { fx: WordFx;
     if (!target) return;
     if (!bypass && !confirmed && overCap()) return setAsking(true);
     setAsking(false);
-    void act(bypassCommand(daw, target, fx, bypass));
+    void act(bypassCommand(daw, log, onEffects, target, fx, bypass));
   };
 
-  // Compare: the words without the effect, then with it, then the effect as it was. The page's playback says when each pass has ended.
-  const was = useRef(false);
-  const held = useRef(false);
-  const heard = useRef(false);
-  const hold = useCallback(
-    async (to: boolean): Promise<DawResult> => {
-      if (!target) return failed('There are no words to compare.');
-      const res = await daw.bypassFxRange(target, to).catch(failed);
-      if (res.ok) held.current = to;
-      return res;
-    },
-    [target, daw],
-  );
+  // Compare: the DAW plays the words with the effect, then without, then puts it back. Each pass lasts `pass` seconds, which says which is playing.
+  const timers = useRef<ReturnType<typeof setTimeout>[]>([]);
+  const clearTimers = () => {
+    timers.current.forEach(clearTimeout);
+    timers.current = [];
+  };
+  useEffect(() => clearTimers, []);
   const compare = async () => {
     if (!target || read.kind !== 'ready') return;
-    was.current = read.bypassed;
-    held.current = read.bypassed;
-    heard.current = false;
-    if (!read.bypassed) {
-      const res = await hold(true);
-      if (!res.ok) return overlay.toast(res.refused ?? res.message, { tone: 'error' });
-    }
-    setPhase('without');
-    host.play(span.start, span.end);
-  };
-  const finish = useCallback(async () => {
     host.stop();
+    const result = await journal.act(compareCommand(daw, log, onEffects, target, fx, read.bypassed));
+    if (!result.ok) return overlay.toast(result.refusal.reason, { tone: 'error' });
+    const ms = result.value.value.pass * 1000;
+    clearTimers();
+    setPhase('with');
+    timers.current = [setTimeout(() => setPhase('without'), ms), setTimeout(() => (setPhase('idle'), reload()), 2 * ms)];
+  };
+  const stopComparing = async () => {
+    clearTimers();
     setPhase('idle');
-    if (held.current !== was.current) await hold(was.current);
+    const res = await daw.stopFxCompare().catch(failed);
+    if (!res.ok) overlay.toast(res.refused ?? res.message, { tone: 'error' });
     reload();
-  }, [host, hold, reload]);
-  useEffect(() => {
-    if (phase === 'idle') return;
-    if (host.playing) {
-      heard.current = true;
-      return;
-    }
-    if (!heard.current) {
-      const timer = setTimeout(() => void finish(), START_WITHIN_MS);
-      return () => clearTimeout(timer);
-    }
-    heard.current = false;
-    if (phase === 'without') {
-      void hold(false).then((res) => {
-        if (!res.ok) return void finish();
-        setPhase('with');
-        host.play(span.start, span.end);
-      });
-    } else {
-      void finish();
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- a pass ending is `playing` falling; nothing else restarts it
-  }, [host.playing, phase]);
+  };
 
   const preview = () => host.play(Math.max(0, span.start - PREVIEW_PAD), span.end + PREVIEW_PAD);
 
@@ -346,7 +362,7 @@ export function EffectSettings({ fx, cuts, total, dawName, host }: { fx: WordFx;
             Compare
           </Button>
         ) : (
-          <Button variant="secondary" size="sm" onClick={() => void finish()}>
+          <Button variant="secondary" size="sm" onClick={() => void stopComparing()}>
             Stop comparing
           </Button>
         )}

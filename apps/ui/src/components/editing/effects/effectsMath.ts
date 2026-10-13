@@ -35,8 +35,11 @@ export interface Coverage {
 
 export type CapState = 'within' | 'over' | 'far';
 
-/** The effects that count: one whose words changed (stale) sits on no audio the app can place, so it covers nothing. */
-export const liveEffects = (effects: readonly WordFx[]): WordFx[] => effects.filter((f) => !f.stale);
+/**
+ * The effects that count: one whose words changed (stale) sits on no audio the app can place, and one bypassed in the DAW changes no audio,
+ * so neither covers anything.
+ */
+export const liveEffects = (effects: readonly WordFx[]): WordFx[] => effects.filter((f) => !f.stale && !f.bypassed);
 
 /** Where an effect sounds now, clipped to the chapter. */
 export function spanOf(fx: Pick<WordFx, 'a' | 'b'>, cuts: readonly CutSpan[], total: number): Span {

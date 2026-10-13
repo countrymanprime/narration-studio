@@ -31,6 +31,7 @@ import { dawCatalogListSchema } from './schemas/dawCatalog';
 import {
   dawBackupsFileSchema,
   dawCapabilitiesSchema,
+  dawFxRangeCompareSchema,
   dawFxRangeSettingsSchema,
   dawProjectStateSchema,
   dawResultSchema,
@@ -445,6 +446,7 @@ export const wailsClient: NarrationApi = {
   editingWordFxList: (chapterId) => decode(wordFxListSchema, 'EditingWordFxList', host.EditingWordFxList(chapterId)),
   editingWordFxRecord: (chapterId, fx) => decode(wordFxChangeSchema, 'EditingWordFxRecord', host.EditingWordFxRecord(chapterId, fx)),
   editingWordFxRemove: (chapterId, id) => decode(wordFxChangeSchema, 'EditingWordFxRemove', host.EditingWordFxRemove(chapterId, id)),
+  editingWordFxBypass: (chapterId, id, bypassed) => decode(wordFxChangeSchema, 'EditingWordFxBypass', host.EditingWordFxBypass(chapterId, id, bypassed)),
   editingStacksList: (chapterId) => decode(stackListSchema, 'EditingStacksList', host.EditingStacksList(chapterId)),
   editingStackRecord: (chapterId, stack) => decode(stackChangeSchema, 'EditingStackRecord', host.EditingStackRecord(chapterId, stack)),
   editingStackRemove: (chapterId, passageId, takeIds) =>
@@ -648,6 +650,9 @@ export const wailsClient: NarrationApi = {
     decode(dawResultSchema, 'DawSetFxRangeParam', host.DawSetFxRangeParam(chapterId, firstToken, lastToken, chainName, fx, index, value)),
   dawBypassFxRange: (chapterId, firstToken, lastToken, chainName, bypass) =>
     decode(dawResultSchema, 'DawBypassFxRange', host.DawBypassFxRange(chapterId, firstToken, lastToken, chainName, bypass)),
+  dawCompareFxRange: (chapterId, firstToken, lastToken, chainName) =>
+    decode(dawFxRangeCompareSchema, 'DawCompareFxRange', host.DawCompareFxRange(chapterId, firstToken, lastToken, chainName)),
+  dawStopFxCompare: () => decode(dawResultSchema, 'DawStopFxCompare', host.DawStopFxCompare()),
   dawStackTakes: (chapterId, passageIds) => decode(dawResultSchema, 'DawStackTakes', host.DawStackTakes(chapterId, passageIds)),
   dawUnstackTakes: (chapterId, passageIds) => decode(dawResultSchema, 'DawUnstackTakes', host.DawUnstackTakes(chapterId, passageIds)),
   dawSplitTake: (chapterId, takeId, at) => decode(dawResultSchema, 'DawSplitTake', host.DawSplitTake(chapterId, takeId, at)),

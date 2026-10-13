@@ -88,10 +88,12 @@ var realEvents = map[string][]string{
 	// integrations/reaper/tests/repair_click_test.lua (repair_click).
 	"CLICKS_REPAIRED": {"CLICKS_REPAIRED", "c1", "{AAAAAAAA-0000-4000-8000-000000000001}", "{AAAAAAAA-0000-4000-8000-000000000002}", "2", "1"},
 	// integrations/reaper/tests/fx_range_test.lua (fx_range_params, fx_range_set_param, fx_range_bypass).
-	"RANGE_FX_PARAM":     {"RANGE_FX_PARAM", "p1", "0", "C:/REAPER/FXChains/Voice/Radio.RfxChain", "0", "Gain", "0", "-24", "24", "0", "0 dB"},
-	"RANGE_FX_PARAMS":    {"RANGE_FX_PARAMS", "p1", "{0000000F-0000-4000-8000-00000000000F}", "{00000010-0000-4000-8000-000000000010}", "Voice/Radio.RfxChain", "6", "0", "0"},
-	"RANGE_FX_PARAM_SET": {"RANGE_FX_PARAM_SET", "s1", "{0000000F-0000-4000-8000-00000000000F}", "{00000010-0000-4000-8000-000000000010}", "1", "0", "-6.5", "-6.5 dB", "1"},
-	"RANGE_FX_BYPASSED":  {"RANGE_FX_BYPASSED", "b1", "{0000000F-0000-4000-8000-00000000000F}", "{00000010-0000-4000-8000-000000000010}", "Voice/Radio.RfxChain", "1", "1"},
+	"RANGE_FX_PARAM":           {"RANGE_FX_PARAM", "p1", "0", "C:/REAPER/FXChains/Voice/Radio.RfxChain", "0", "Gain", "0", "-24", "24", "0", "0 dB"},
+	"RANGE_FX_PARAMS":          {"RANGE_FX_PARAMS", "p1", "{0000000F-0000-4000-8000-00000000000F}", "{00000010-0000-4000-8000-000000000010}", "Voice/Radio.RfxChain", "6", "0", "0"},
+	"RANGE_FX_PARAM_SET":       {"RANGE_FX_PARAM_SET", "s1", "{0000000F-0000-4000-8000-00000000000F}", "{00000010-0000-4000-8000-000000000010}", "1", "0", "-6.5", "-6.5 dB", "1"},
+	"RANGE_FX_BYPASSED":        {"RANGE_FX_BYPASSED", "b1", "{0000000F-0000-4000-8000-00000000000F}", "{00000010-0000-4000-8000-000000000010}", "Voice/Radio.RfxChain", "1", "1"},
+	"RANGE_FX_COMPARE":         {"RANGE_FX_COMPARE", "c1", "{0000000F-0000-4000-8000-00000000000F}", "{00000010-0000-4000-8000-000000000010}", "Voice/Radio.RfxChain", "14", "16", "0"},
+	"RANGE_FX_COMPARE_STOPPED": {"RANGE_FX_COMPARE_STOPPED", "s1", "1"},
 	// integrations/reaper/tests/split_take_test.lua (split_take).
 	"TAKE_SPLIT": {"TAKE_SPLIT", "p1", "{AAAAAAAA-0000-4000-8000-000000000001}", "{AAAAAAAA-0000-4000-8000-000000000002}", "{00000001-0000-4000-8000-000000000001}", "15.500", "1"},
 }

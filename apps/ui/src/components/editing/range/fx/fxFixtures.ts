@@ -2,8 +2,8 @@ import type { DawCapabilities } from '../../../../api/contracts/daw';
 import type { EditWordFxApi, WordFx, WordFxRequest } from '../../../../api/contracts/wordFx';
 import type { FxChainsPort } from '../../../../ports/fxchains';
 
-/** An in-memory Editing records log for the word effects: records what it is sent, in time order, and forgets by id. */
-export function fakeFxLog(): Pick<EditWordFxApi, 'editingWordFxList' | 'editingWordFxRecord' | 'editingWordFxRemove'> & {
+/** An in-memory Editing records log for the word effects: records what it is sent, in time order, forgets by id and keeps a bypass. */
+export function fakeFxLog(): Pick<EditWordFxApi, 'editingWordFxList' | 'editingWordFxRecord' | 'editingWordFxRemove' | 'editingWordFxBypass'> & {
   effects: WordFx[];
   recorded: WordFxRequest[];
 } {
@@ -20,12 +20,17 @@ export function fakeFxLog(): Pick<EditWordFxApi, 'editingWordFxList' | 'editingW
       const id = `fx${++self.next}`;
       const over = self.effects.filter((f) => f.keys.some((k) => fx.keys.includes(k))).map((f) => f.id);
       self.recorded.push(fx);
-      self.effects.push({ ...fx, id, chapterId, words: fx.keys.map(() => ''), at: '2026-10-12T00:00:00Z', paragraph: 0, stale: false });
+      self.effects.push({ ...fx, id, chapterId, words: fx.keys.map(() => ''), at: '2026-10-12T00:00:00Z', paragraph: 0, stale: false, bypassed: false });
       return self.change(chapterId, [id], over);
     },
     editingWordFxRemove(chapterId: string, id: string) {
       self.effects = self.effects.filter((f) => f.id !== id);
       return self.change(chapterId, [id]);
+    },
+    editingWordFxBypass(chapterId: string, id: string, bypassed: boolean) {
+      const changed = self.effects.filter((f) => f.id === id && f.bypassed !== bypassed).map((f) => f.id);
+      self.effects = self.effects.map((f) => (f.id === id ? { ...f, bypassed } : f));
+      return self.change(chapterId, changed);
     },
   };
   return self;
