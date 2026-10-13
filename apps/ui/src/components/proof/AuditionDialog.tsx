@@ -111,7 +111,7 @@ export function AuditionDialog<T extends AuditionSource>({
   };
 
   return (
-    <Dialog title="Audition candidate reads" onClose={onClose} actions={null}>
+    <Dialog dismissOnOutsidePress={true} title="Audition candidate reads" onClose={onClose} actions={null}>
       <p className="font-semibold" style={{ color: 'var(--danger-text)' }}>
         Raw source, no FX or edits applied
       </p>

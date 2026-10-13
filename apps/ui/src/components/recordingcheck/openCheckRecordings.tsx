@@ -8,6 +8,7 @@ import { CheckRecordingsDialog } from './CheckRecordingsDialog';
 export function openCheckRecordings(preselected: readonly string[] = [], service: OverlayService = appOverlay): () => void {
   return service.open({
     kind: 'dialog',
+    dismissOnOutsidePress: false,
     title: 'Check recordings',
     render: ({ close }) => <CheckRecordingsDialog preselected={preselected} close={close} />,
   });

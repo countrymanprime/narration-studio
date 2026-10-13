@@ -62,7 +62,7 @@ export const ClosesOnEscapeAndReturnsFocus: Story = {
 // closes the popover first, leaving the dialog open (Dialog.tsx's escape check).
 export const InsideADialog: Story = {
   render: (args) => (
-    <Dialog title="Read aloud" onClose={() => undefined} actions={null} size="full">
+    <Dialog dismissOnOutsidePress={false} title="Read aloud" onClose={() => undefined} actions={null} size="full">
       <p className="mb-4">Chapter text goes here.</p>
       <Popover {...args} />
     </Dialog>

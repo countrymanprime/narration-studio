@@ -14,7 +14,13 @@ export const boothStates: StateEntry[] = [
     page: 'booth',
     state: 'refusal',
     description:
-      'Booth with the record capability switched off (the mock\'s default): Record is disabled and the footer says why in the capability\'s own sentence ("Experimental: switched off in Settings."), naming no DAW of its own',
+      'Booth with the record capability switched off (the mock\'s default): Record is disabled and the footer says why in the capability\'s own sentence ("Experimental: switched off in Settings."), naming no DAW of its own; above the footer, "Recording in REAPER is experimental" with Turn on Record and DAW settings',
+  },
+  {
+    page: 'booth',
+    state: 'record-connect',
+    description:
+      'Booth opened without REAPER\'s bridge (?mockDawConnected=0 with the record capability on, the app started on its own): Record is disabled with the capability\'s sentence, and above the footer "Connect REAPER to record" lists loading the launcher action once (the mock reports no launcher path, so the step names the file; the Booth/RecordSetup stories show the path with Copy path) and running it, with Open in REAPER and connect',
   },
   {
     page: 'booth',

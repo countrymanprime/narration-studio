@@ -46,6 +46,7 @@ export function CleanupToolsDialog({ onClose }: { onClose: () => void }) {
 
   return (
     <Dialog
+      dismissOnOutsidePress={true}
       title="Cleanup tools"
       onClose={running ? undefined : onClose}
       escapeCloses={!running}
