@@ -2,7 +2,9 @@ package project
 
 import (
 	"os"
+	"os/exec"
 	"path/filepath"
+	"runtime"
 	"testing"
 )
 
@@ -109,9 +111,7 @@ func TestBuildDawLinkThroughASymlinkedProjectFolderIsStillInside(t *testing.T) {
 	rpp := filepath.Join(real, "sub", "alice.rpp")
 	writeFile(t, rpp, "rpp")
 	alias := filepath.Join(t.TempDir(), "alias")
-	if err := os.Symlink(real, alias); err != nil {
-		t.Skipf("symlinks unavailable here: %v", err)
-	}
+	aliasFolder(t, real, alias)
 
 	// The project is opened through the alias; the dialog hands back the real path (and the reverse).
 	for _, tc := range []struct{ folder, file string }{{alias, rpp}, {real, filepath.Join(alias, "sub", "alice.rpp")}} {
@@ -160,5 +160,21 @@ func TestDawLinkInASubfolderSurvivesMovingTheWholeProject(t *testing.T) {
 	resolved, ok := link.Resolve(moved)
 	if want := filepath.Join(moved, "REAPER", "alice.rpp"); !ok || resolved != want {
 		t.Fatalf("Resolve() = %q, %v, want %q", resolved, ok, want)
+	}
+}
+
+// aliasFolder makes alias point at target: a symlink, or on Windows without the symlink privilege a directory
+// junction (mklink /J needs none), which is the case a narrator's redirected folder most often is.
+func aliasFolder(t *testing.T, target, alias string) {
+	t.Helper()
+	err := os.Symlink(target, alias)
+	if err == nil {
+		return
+	}
+	if runtime.GOOS != "windows" {
+		t.Fatalf("could not make a symlink: %v", err)
+	}
+	if out, junctionErr := exec.Command("cmd", "/c", "mklink", "/J", alias, target).CombinedOutput(); junctionErr != nil {
+		t.Fatalf("could not make a symlink (%v) or a junction (%v: %s)", err, junctionErr, out)
 	}
 }

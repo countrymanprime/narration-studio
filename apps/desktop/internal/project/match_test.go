@@ -162,9 +162,7 @@ func TestFindByDawFileMatchesTheSameFileReachedThroughASymlink(t *testing.T) {
 	writeFile(t, rpp, "rpp")
 	folder := writeManifestWithLink(t, projectsDir, "Alice", rpp)
 	alias := filepath.Join(t.TempDir(), "alias")
-	if err := os.Symlink(dawDir, alias); err != nil {
-		t.Skipf("symlinks unavailable here: %v", err)
-	}
+	aliasFolder(t, dawDir, alias)
 
 	got, _, ok := FindByDawFile(nil, projectsDir, filepath.Join(alias, "Book.rpp"))
 	if !ok || got != folder {

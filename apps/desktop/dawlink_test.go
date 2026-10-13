@@ -2,7 +2,9 @@ package main
 
 import (
 	"os"
+	"os/exec"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
 	"time"
@@ -102,9 +104,7 @@ func TestLinkDawFileThroughASymlinkedProjectFolderIsInside(t *testing.T) {
 	rpp := filepath.Join(real, "Book.rpp")
 	writeFile(t, rpp, "x")
 	alias := filepath.Join(t.TempDir(), "alias")
-	if err := os.Symlink(real, alias); err != nil {
-		t.Skipf("symlinks unavailable here: %v", err)
-	}
+	aliasFolder(t, real, alias)
 
 	result, err := linkDawFile(nil, alias, rpp)
 	if err != nil {
@@ -227,5 +227,21 @@ func TestProjectLinkDawFileRefusesWithNoHostContext(t *testing.T) {
 	host.config.projectFolder = t.TempDir()
 	if _, err := host.ProjectLinkDawFile(); err == nil {
 		t.Fatal("want an error when the desktop host has no window context yet")
+	}
+}
+
+// aliasFolder makes alias point at target: a symlink, or on Windows without the symlink privilege a directory
+// junction (mklink /J needs none), which is the case a narrator's redirected folder most often is.
+func aliasFolder(t *testing.T, target, alias string) {
+	t.Helper()
+	err := os.Symlink(target, alias)
+	if err == nil {
+		return
+	}
+	if runtime.GOOS != "windows" {
+		t.Fatalf("could not make a symlink: %v", err)
+	}
+	if out, junctionErr := exec.Command("cmd", "/c", "mklink", "/J", alias, target).CombinedOutput(); junctionErr != nil {
+		t.Fatalf("could not make a symlink (%v) or a junction (%v: %s)", err, junctionErr, out)
 	}
 }
