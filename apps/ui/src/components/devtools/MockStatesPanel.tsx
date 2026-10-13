@@ -21,7 +21,7 @@ export function MockStatesPanel({ reload = () => window.location.reload() }: { r
 
   return (
     <>
-      <div className="fixed right-4 bottom-4 z-40">
+      <div className="fixed right-4 bottom-4 z-[var(--z-takeover)]">
         <Button variant="secondary" size="sm" onClick={() => setOpen(true)}>
           Mock states
         </Button>
