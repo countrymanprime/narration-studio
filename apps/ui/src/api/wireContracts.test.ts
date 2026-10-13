@@ -30,6 +30,7 @@ import {
   takesStackedAnswer,
   takesUnstackedAnswer,
 } from '../fixtures/daw';
+import { notLastAnswer, undoneAnswer } from '../fixtures/dawUndo';
 import { createExtractionMock } from './extractionMock';
 import type { JobEnded, ScopedSettingField } from './contracts/system';
 import type { ProjectStateState } from './contracts/projectstate';
@@ -193,6 +194,7 @@ import {
   dawCapabilitiesSchema,
   dawFxRangeCompareSchema,
   dawFxRangeSettingsSchema,
+  dawLastActionSchema,
   dawProjectStateSchema,
   dawResultSchema,
   dawTransportSchema,
@@ -3249,6 +3251,49 @@ describe('answers of the mock client for the settings, voice, model, transcript 
     expect(off.refused).toBe((await createMockApi().dawCapabilities()).capabilities.click_repair.message);
   });
 
+  it('dawLastAction and dawUndoLast answer a dawLastAction and a dawResult: the host goldens parse, and the mock answers as the host does', async () => {
+    expect(dawLastActionSchema.parse(readGolden('daw-last-action-this.json'))).toBe('this');
+    expect(dawLastActionSchema.parse(readGolden('daw-last-action-unknown.json'))).toBe('unknown');
+    expect(dawLastActionSchema.safeParse('maybe').success).toBe(false);
+    for (const file of [
+      'daw-undo-last-done.json',
+      'daw-undo-last-partial.json',
+      'daw-undo-last-refused-not-last.json',
+      'daw-undo-last-refused-capability.json',
+    ]) {
+      expectMatches(dawResultSchema, readGolden(file), file);
+      expect(readGolden(file), file).toMatchObject({ undoSteps: 0 });
+    }
+    expect(readGolden('daw-undo-last-done.json')).toMatchObject({ ok: true, changed: true, message: undoneAnswer('REAPER', 'cut_range', 1, 1) });
+    expect(readGolden('daw-undo-last-partial.json')).toMatchObject({ ok: true, changed: true, message: undoneAnswer('REAPER', 'cut_range', 2, 3) });
+    expect(readGolden('daw-undo-last-refused-not-last.json')).toMatchObject({ ok: false, changed: false, refused: notLastAnswer('REAPER') });
+    expect(readGolden('daw-undo-last-refused-capability.json')).not.toHaveProperty('code');
+
+    const [chapter] = await createMockApi().manuscriptChapters();
+    const api = createMockApi({}, { daw: { toggles: { cut_range: 'on', undo_last: 'on' } } });
+    expect(await api.dawLastAction('cut_range')).toBe('other');
+    expect(await api.dawUndoLast('cut_range', 1)).toEqual(readGolden('daw-undo-last-refused-not-last.json'));
+    expect((await api.dawDeleteRange(chapter.id, 0, 0, 'close', 12, 0, false)).ok).toBe(true);
+    const last = await api.dawLastAction('cut_range');
+    expectMatches(dawLastActionSchema, last, 'mock last action');
+    expect(last).toBe('this');
+    const undone = await api.dawUndoLast('cut_range', 1);
+    expectMatches(dawResultSchema, undone, 'mock undo last');
+    expect(undone).toEqual(readGolden('daw-undo-last-done.json'));
+    expect(await api.dawLastAction('cut_range')).toBe('other');
+    await api.dawDeleteRange(chapter.id, 0, 0, 'close', 12, 0, false);
+    await api.dawDeleteRange(chapter.id, 0, 0, 'close', 12, 0, false);
+    expect(await api.dawUndoLast('cut_range', 3)).toEqual(readGolden('daw-undo-last-partial.json'));
+    expect((await api.dawUndoLast('cut_range', 13)).ok).toBe(false);
+    await expect(api.dawLastAction('fx_range' as never)).rejects.toThrow();
+
+    const off = createMockApi();
+    expect(await off.dawLastAction('cut_range')).toBe('unknown');
+    const refused = await off.dawUndoLast('cut_range', 1);
+    expectMatches(dawResultSchema, refused, 'mock undo last, experimental off');
+    expect(refused.refused).toBe((await off.dawCapabilities()).capabilities.undo_last.message);
+  });
+
   it('backups.json (the Audacity backups table the host reads back) parses from the Go goldens, and the schema refuses what the host refuses', () => {
     expectMatches(dawBackupsFileSchema, readGolden('daw-backups-empty.json'), 'daw-backups-empty.json');
     expectMatches(dawBackupsFileSchema, readGolden('daw-backups-two.json'), 'daw-backups-two.json');
@@ -3957,6 +4002,8 @@ describe('answers of the mock client for the settings, voice, model, transcript 
       'dawTrimRange',
       'dawReduceRangeGain',
       'dawRepairClick',
+      'dawLastAction',
+      'dawUndoLast',
       'dawBackupAround',
       'dawRestoreBackup',
       'dawBackups',

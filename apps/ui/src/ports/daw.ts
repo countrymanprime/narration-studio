@@ -1,4 +1,5 @@
 import type {
+  DawActionKind,
   DawBackup,
   DawCapabilities,
   DawClick,
@@ -6,6 +7,7 @@ import type {
   DawFxRangeCompare,
   DawFxRangeSettings,
   DawGainStretch,
+  DawLastAction,
   DawProjectState,
   DawResult,
 } from '../api/contracts/daw';
@@ -42,6 +44,7 @@ import {
   trimRangeAnswerOf,
   repairClickAnswerOf,
 } from '../fixtures/daw';
+import { knownActionKind, MOCK_DAW_UNDO_LABELS, MockUndoHistory } from '../fixtures/dawUndo';
 import type { NarrationApi } from '../types';
 
 // The DAW port (ADR 0770, ADR 0810): what the app asks of the DAW and what it answers, one `DawResult` per call. A refusal
@@ -191,6 +194,15 @@ export interface DawClient {
   /** Smooth the request's clicks in a take, in one undo step of the DAW's own where it can; the recorded audio is left as it was where the
    * DAW can (a volume envelope). The DAW refuses a take that is gone or a click outside it (code `stale`). */
   repairClick(request: ClickRepairRequest): Promise<DawResult>;
+  /** Whether the DAW's next undo point is the app's own action of `kind` (ADR 0771 rule 4): `this`, `other` (another action, or none),
+   * or `unknown` when the DAW cannot tell. It never changes the project and never rejects: the `undo_last` capability refused, a DAW not
+   * answering and a call that failed are all `unknown`. */
+  lastAction(action: DawActionKind): Promise<DawLastAction>;
+  /** Undo `steps` (1 to 12) consecutive undo points of the app's own action of `kind` from the top of the DAW's own undo history, one at
+   * a time, never one of any other action. The top point not `kind`'s is refused with nothing changed, in the DAW's sentence; stopping
+   * part way at another action is `ok` and `changed`, and the message says how many were undone. `undoSteps` is 0: it counts undo
+   * points a call adds, and an undo adds none, so how many were undone is in the message only. */
+  undoLast(action: DawActionKind, steps: number): Promise<DawResult>;
   /** Clone the audio around the request's words before an edit, so it can be put back. It changes no audio (`changed: false`). */
   backupAround(request: BackupRequest): Promise<DawResult>;
   /** Put a backup's audio back over the window it came from. Refused when the DAW has no backup with that id. */
@@ -238,6 +250,8 @@ export type DawHostApi = Pick<
   | 'dawSplitTake'
   | 'dawReduceRangeGain'
   | 'dawRepairClick'
+  | 'dawLastAction'
+  | 'dawUndoLast'
   | 'dawBackupAround'
   | 'dawRestoreBackup'
   | 'dawBackups'
@@ -434,6 +448,16 @@ export function createHostDawClient(api: DawHostApi): DawClient {
     reduceRangeGain: ({ chapterId, takeId, stretches, reduceDb }) => api.dawReduceRangeGain(chapterId, takeId, stretches, reduceDb),
     /** The binding answers a DawResult already: it looks the take up on the chapter's track and checks each click is inside it. */
     repairClick: ({ chapterId, takeId, clicks }) => api.dawRepairClick(chapterId, takeId, clicks),
+    /** The binding answers `unknown` itself for a capability it refuses; a call that fails is `unknown` too, so a read never rejects. */
+    async lastAction(action) {
+      try {
+        return await api.dawLastAction(action);
+      } catch {
+        return 'unknown';
+      }
+    },
+    /** The binding answers a DawResult already: the host checks the action and the DAW reads its own history before each step. */
+    undoLast: (action, steps) => api.dawUndoLast(action, steps),
     /** The bindings answer a DawResult already and take ids only: the host resolves the window and the track itself. */
     backupAround: ({ chapterId, firstToken, lastToken, label }) => api.dawBackupAround(chapterId, firstToken, lastToken, label),
     restoreBackup: (backupId) => api.dawRestoreBackup(backupId),
@@ -486,6 +510,13 @@ export function createMockDawClient(
   project: DawProject = DAW_PROJECT,
   projectState: DawProjectState = projectStateOf(setup),
 ): DawClient {
+  const history = new MockUndoHistory();
+  const client = mockDawCalls(setup, project, projectState);
+  return { ...client, ...recordingUndo(client, history), ...mockUndoLast(setup, history) };
+}
+
+/** The mock's calls, each answering as the host does; createMockDawClient adds the undo history over them. */
+function mockDawCalls(setup: DawCapabilities, project: DawProject, projectState: DawProjectState): Omit<DawClient, 'lastAction' | 'undoLast'> {
   return {
     capabilities: () => Promise.resolve(setup),
     projectState: () => Promise.resolve(projectState),
@@ -627,6 +658,72 @@ export function createMockDawClient(
       return done(true, 1);
     },
     ...mockPickupMarkers(setup),
+  };
+}
+
+/** The DAW edits that add an undo point, each answering as `client` does and leaving on `history` the label REAPER's script closes its
+ * block with when it added one (MOCK_DAW_UNDO_LABELS). */
+function recordingUndo(
+  client: Omit<DawClient, 'lastAction' | 'undoLast'>,
+  history: MockUndoHistory,
+): Pick<
+  DawClient,
+  | 'useTake'
+  | 'hideTakes'
+  | 'deleteRange'
+  | 'trimRange'
+  | 'applyFxToRange'
+  | 'removeFxFromRange'
+  | 'setFxRangeParam'
+  | 'bypassFxRange'
+  | 'stackTakes'
+  | 'unstackTakes'
+  | 'splitTake'
+  | 'reduceRangeGain'
+  | 'repairClick'
+  | 'addMarker'
+  | 'addPickupMarkers'
+  | 'setPickupMarkerDone'
+> {
+  const labels = MOCK_DAW_UNDO_LABELS;
+  const record =
+    <A extends unknown[]>(label: string | ((...args: NoInfer<A>) => string), call: (...args: A) => Promise<DawResult>) =>
+    async (...args: A) =>
+      history.record(typeof label === 'string' ? label : label(...args), await call(...args));
+  return {
+    useTake: record(labels.useTake, client.useTake),
+    hideTakes: record(labels.hideTakes, client.hideTakes),
+    deleteRange: record(labels.cut, client.deleteRange),
+    trimRange: record(labels.cut, client.trimRange),
+    applyFxToRange: record(labels.addChain, client.applyFxToRange),
+    removeFxFromRange: record(labels.removeChain, client.removeFxFromRange),
+    setFxRangeParam: record(labels.setParam, client.setFxRangeParam),
+    bypassFxRange: record((_target: FxRangeTarget, bypass: boolean) => (bypass ? labels.bypass : labels.enable), client.bypassFxRange),
+    stackTakes: record(labels.stack, client.stackTakes),
+    unstackTakes: record(labels.unstack, client.unstackTakes),
+    splitTake: record(labels.split, client.splitTake),
+    reduceRangeGain: record(labels.reduceGain, client.reduceRangeGain),
+    repairClick: record(labels.repairClicks, client.repairClick),
+    addMarker: record(labels.addMarker, client.addMarker),
+    addPickupMarkers: record(labels.importPickups, client.addPickupMarkers),
+    setPickupMarkerDone: record((_ref: string, isDone: boolean) => (isDone ? labels.resolvePickup : labels.reopenPickup), client.setPickupMarkerDone),
+  };
+}
+
+/** lastAction and undoLast over the mock's undo history, as bindings_daw_undo_last.go answers them: the undo_last capability's refusal is
+ * `unknown` for a read and its sentence for an undo, and an action the host does not know is `unknown` for a read and rejects an undo. */
+function mockUndoLast(setup: DawCapabilities, history: MockUndoHistory): Pick<DawClient, 'lastAction' | 'undoLast'> {
+  return {
+    async lastAction(action) {
+      if (!knownActionKind(action) || !setup.capabilities.undo_last?.available) return 'unknown';
+      return history.lastAction(action);
+    },
+    async undoLast(action, steps) {
+      if (!knownActionKind(action)) throw new Error(`${String(action)} is not an action the app can read or undo in the DAW`);
+      const sentence = unavailable(setup, 'undo_last', 'undoLast');
+      if (sentence) return refused(sentence, 'undoLast');
+      return history.undoLast(setup, action, steps);
+    },
   };
 }
 
