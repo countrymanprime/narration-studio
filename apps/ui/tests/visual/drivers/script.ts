@@ -92,9 +92,16 @@ export const scriptDrivers: Record<string, Driver> = {
   'credits-cards': async (page) => {
     await goToPage(page, 'Script');
     // The default mock project has no Title/Author/Narrator value set, so the shipped opening template's tokens render as unresolved
-    // chips (C6): expanding the card shows both the chip and the "unresolved token(s)" count.
-    await clickVisible(page, 'button', 'Opening credits');
-    await page.getByText(/unresolved token/).waitFor();
+    // chips (C6): the credits' card counts them under its facts. The chapter list's row goes to the credits.
+    await page
+      .getByRole('list', { name: 'Chapters' })
+      .getByRole('button', { name: /Opening credits$/ })
+      .first()
+      .click();
+    await page
+      .getByText(/unresolved token/)
+      .first()
+      .waitFor();
   },
   // The credits-setup banner and the credits card's own Fill in button: the mock's setup seam.
   'credits-setup-banner': async (page) => {
@@ -104,7 +111,11 @@ export const scriptDrivers: Record<string, Driver> = {
     // the page's own banner.
     await clickVisible(page, 'button', 'Not now');
     await goToPage(page, 'Script');
-    await clickVisible(page, 'button', 'Opening credits');
+    await page
+      .getByRole('list', { name: 'Chapters' })
+      .getByRole('button', { name: /Opening credits$/ })
+      .first()
+      .click();
     await page.getByText(/The credits need 3 values/).waitFor();
     await page.getByRole('button', { name: 'Fill in' }).first().waitFor();
   },
