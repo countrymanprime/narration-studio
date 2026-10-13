@@ -24,6 +24,9 @@ type DialogProps = {
   // Draws no header row and no Close button, for a surface whose first row is its own field (the jump menu, D98). The title
   // still names the dialog, visually hidden; Escape closes through `onClose` or `onEscape`. The body has no padding.
   headerless?: boolean;
+  // A press on the backdrop (or anywhere outside the popup) calls `onClose`. Only for a transient picker with nothing to lose, the
+  // jump menu; a form, a confirm or a job stays put (ADR 0048), so it is off by default.
+  dismissOnOutsidePress?: boolean;
   // null when there is nothing to press (a running job that cannot be cancelled): no empty action row is drawn.
   actions: ReactNode;
   // WorkDialog only ever shows one action at a time - 'between' would strand
@@ -49,7 +52,8 @@ const hasContent = (node: ReactNode): boolean => node !== undefined && node !== 
 // wrapper owns the policy on top of it:
 // - Escape closes a dialog that has somewhere to go (`onClose`, or `onEscape` when there is no header button) and is
 //   ignored otherwise or when `escapeCloses` is false, so work in flight is never dismissed by a stray key.
-// - A press on the backdrop never closes it: an accidental click on the scrim must not discard a confirm.
+// - A press on the backdrop never closes it, unless the dialog opts in with `dismissOnOutsidePress` (the jump menu): an accidental
+//   click on the scrim must not discard a confirm or a form.
 // - Focus lands on the body region (so a screen reader reads the message first) unless a child asked for focus with
 //   `autoFocus`, and returns to the element that opened the dialog, or into the page's <main> when that is gone.
 // Dialogs are mounted conditionally (`{open && <Dialog />}`), so `open` is always true here and the parent's unmount is
@@ -63,6 +67,7 @@ export function Dialog({
   variant = 'dialog',
   size = 'default',
   headerless = false,
+  dismissOnOutsidePress = false,
   actions,
   actionsAlign = 'between',
   footer,
@@ -91,8 +96,12 @@ export function Dialog({
   return (
     <Parts.Root
       open
-      disablePointerDismissal
+      disablePointerDismissal={!dismissOnOutsidePress}
       onOpenChange={(_open, details) => {
+        if (details.reason === 'outside-press') {
+          if (onClose) onClose();
+          return;
+        }
         if (details.reason !== 'escape-key') return;
         // Escape belongs to a hint or a Popover that is showing (a tooltip, a device picker, a settings panel inside the
         // dialog), and to a handler that already took it.
@@ -104,8 +113,8 @@ export function Dialog({
       <Parts.Portal>
         {/* forceRender: Base UI leaves out the backdrop of a dialog opened inside another dialog or a SlideOver (a Drawer), which
             left the page undimmed behind a confirm opened from a panel (chapter-track-link-control/06 draws it dimmed). */}
-        <Parts.Backdrop data-dialog-backdrop forceRender className="fixed inset-0 z-[60] bg-[var(--backdrop)]" />
-        <Parts.Viewport className="fixed inset-0 z-[60] flex items-center justify-center p-4">
+        <Parts.Backdrop data-dialog-backdrop forceRender className="fixed inset-0 z-[var(--z-dialog)] bg-[var(--backdrop)]" />
+        <Parts.Viewport className="fixed inset-0 z-[var(--z-dialog)] flex items-center justify-center p-4">
           <Parts.Popup
             ref={popupRef}
             initialFocus={initialFocus}
