@@ -186,3 +186,25 @@ func TestARecordingTheNarratorStopsInREAPERIsReportedToTheHandler(t *testing.T) 
 	case <-time.After(50 * time.Millisecond):
 	}
 }
+
+func TestArmOnlyRefusesAnAnswerForAnotherTrack(t *testing.T) {
+	actions, client, dir := newActionsSession(t, true)
+	startFakeReaper(t, client, dir, func(command []string) [][]string {
+		return [][]string{{"ARMED", run(command), "{00000002-0000-4000-8000-000000000002}", "2", "1"}}
+	})
+	if got, err := actions.ArmOnly(context.Background(), testTrack); err == nil || got != (Armed{}) {
+		t.Fatalf("ArmOnly = %+v, %v; want a zero result and an error for another track", got, err)
+	}
+}
+
+func TestRecordStartReportsATrackThatIsGone(t *testing.T) {
+	actions, client, dir := newActionsSession(t, true)
+	startFakeReaper(t, client, dir, func(command []string) [][]string {
+		return [][]string{{"TRACK_STALE", run(command), testTrack}}
+	})
+	_, err := actions.RecordStart(context.Background(), testTrack, RecordOptions{})
+	var stale *TrackStaleError
+	if !errors.As(err, &stale) || stale.GUID != testTrack || !errors.Is(err, ErrStale) {
+		t.Fatalf("err = %v, want a TrackStaleError for %s", err, testTrack)
+	}
+}

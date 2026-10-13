@@ -330,3 +330,58 @@ func TestFXRangeEditsReportAStaleEffectAndCheckTheirArgumentsFirst(t *testing.T)
 		t.Fatalf("err = %v, want REAPER's own sentence", err)
 	}
 }
+
+func TestFXRangeEditsRefuseABadTargetAndAnAnswerForAnotherEffect(t *testing.T) {
+	actions, client, dir := newActionsSession(t, true)
+	var answer func([]string) [][]string
+	fake := startFakeReaper(t, client, dir, func(command []string) [][]string { return answer(command) })
+
+	if _, err := actions.SetFXRangeParam(context.Background(), "", fxRangeTake, fxRangeChain, 0, 0, 1); !errors.Is(err, ErrBadFXRange) {
+		t.Fatalf("set without a piece: %v", err)
+	}
+	if _, err := actions.BypassFXRange(context.Background(), "", fxRangeTake, fxRangeChain, true); !errors.Is(err, ErrBadFXRange) {
+		t.Fatalf("bypass without a piece: %v", err)
+	}
+	time.Sleep(20 * time.Millisecond)
+	if sent := fake.commands(); len(sent) != 0 {
+		t.Fatalf("a refused request was sent: %v", sent)
+	}
+
+	for name, call := range map[string]struct {
+		answer func([]string) [][]string
+		run    func() error
+	}{
+		"bypass answered for another chain": {
+			answer: func(command []string) [][]string {
+				return [][]string{{"RANGE_FX_BYPASSED", run(command), fxRangePiece, fxRangeTake, "Other.RfxChain", "1", "0"}}
+			},
+			run: func() error {
+				_, err := actions.BypassFXRange(context.Background(), fxRangePiece, fxRangeTake, fxRangeChain, true)
+				return err
+			},
+		},
+		"bypass answered with the other switch": {
+			answer: func(command []string) [][]string {
+				return [][]string{{"RANGE_FX_BYPASSED", run(command), fxRangePiece, fxRangeTake, fxRangeChain, "0", "0"}}
+			},
+			run: func() error {
+				_, err := actions.BypassFXRange(context.Background(), fxRangePiece, fxRangeTake, fxRangeChain, true)
+				return err
+			},
+		},
+		"set answered for another setting": {
+			answer: func(command []string) [][]string {
+				return [][]string{{"RANGE_FX_PARAM_SET", run(command), fxRangePiece, fxRangeTake, "1", "3", "-6.5", "-6.5 dB", "1"}}
+			},
+			run: func() error {
+				_, err := actions.SetFXRangeParam(context.Background(), fxRangePiece, fxRangeTake, fxRangeChain, 1, 0, -6.5)
+				return err
+			},
+		},
+	} {
+		answer = call.answer
+		if err := call.run(); err == nil {
+			t.Fatalf("%s: want an error", name)
+		}
+	}
+}
