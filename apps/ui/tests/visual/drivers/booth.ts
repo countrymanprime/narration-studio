@@ -55,7 +55,7 @@ export const boothDrivers: Record<string, Driver> = {
     await page.getByRole('button', { name: /^Resume at ¶/ }).waitFor();
   },
   'record-connect': async (page) => {
-    await openBooth(page, '?mockDawConnected=0');
+    await openBooth(page, '?mockDawConnected=0&mockRecordCapabilityOn=1');
     await page.getByRole('heading', { name: 'Connect REAPER to record' }).waitFor();
     await page.getByRole('button', { name: 'Open in REAPER and connect' }).waitFor();
   },

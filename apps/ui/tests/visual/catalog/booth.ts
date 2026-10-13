@@ -20,7 +20,7 @@ export const boothStates: StateEntry[] = [
     page: 'booth',
     state: 'record-connect',
     description:
-      'Booth opened without REAPER\'s bridge (?mockDawConnected=0, the app started on its own): Record is disabled with the capability\'s sentence, and above the footer "Connect REAPER to record" lists loading the launcher action once (the mock reports no launcher path, so the step names the file; the Booth/RecordSetup stories show the path with Copy path) and running it, with Open in REAPER and connect',
+      'Booth opened without REAPER\'s bridge (?mockDawConnected=0 with the record capability on, the app started on its own): Record is disabled with the capability\'s sentence, and above the footer "Connect REAPER to record" lists loading the launcher action once (the mock reports no launcher path, so the step names the file; the Booth/RecordSetup stories show the path with Copy path) and running it, with Open in REAPER and connect',
   },
   {
     page: 'booth',
