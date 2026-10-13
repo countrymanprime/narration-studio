@@ -21,7 +21,7 @@ something, there is no ring, every chapter in the strip is empty and the Inspect
 
 ## All chapters or one chapter
 
-The chapter stepper beside the title shows **All chapters** or one chapter. Choose a chapter from it, or step with its
+The chapter stepper beside the title shows **All chapters** or one chapter. On **All chapters** the notes run in book order, chapter by chapter, and **J**/**K** follow that order. Choose a chapter from it, or step with its
 arrows or the Left and Right keys. From All chapters, a step opens the last chapter you looked at in this project (the
 first chapter until you have looked at one). The chapter is in the page's address (`/proof?chapter=<id>`), and Esc goes
 back to All chapters.

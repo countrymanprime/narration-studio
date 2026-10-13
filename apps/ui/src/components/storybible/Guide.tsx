@@ -23,7 +23,8 @@ import { TooltipTarget } from '../primitives/Tooltip';
 import { StatusBadge } from '../primitives/StatusBadge';
 import { Swatch, type SwatchColour } from '../primitives/Swatch';
 import {
-  aliasCount,
+  nameCount,
+  typeUnknown,
   chapterCount,
   ENTRY_SORT_OPTIONS,
   entryNeedsReview,
@@ -422,9 +423,9 @@ function GuideLoaded({ notify, goToManuscript }: Pick<GuideProps, 'notify' | 'go
                           <span data-line="kind" className="flex items-center gap-1.5 text-xs font-normal" style={{ color: 'var(--text-muted)' }}>
                             <Swatch colour={kindSwatch(types, row.category)} />
                             <span>
-                              {row.category === 'Draft' ? categoryLabel(row.category) : row.category}
+                              {row.category === 'Draft' ? categoryLabel(row.category) : typeUnknown(row) ? 'Type not set' : row.category}
                               {row.category !== 'Draft' &&
-                                ` · ${aliasCount(row)} ${aliasCount(row) === 1 ? 'name' : 'names'} · ${chapterCount(row)} ${chapterCount(row) === 1 ? 'chapter' : 'chapters'}`}
+                                ` · ${nameCount(row)} ${nameCount(row) === 1 ? 'name' : 'names'} · ${chapterCount(row)} ${chapterCount(row) === 1 ? 'chapter' : 'chapters'}`}
                             </span>
                           </span>
                         </button>

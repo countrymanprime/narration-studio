@@ -196,6 +196,20 @@
     "caption": "Booth - the closing credits, with the warning chip for tokens that have no value"
   },
   {
+    "page": "booth",
+    "state": "refusal",
+    "viewport": "desktop",
+    "docName": "booth-record-refused",
+    "caption": "Booth - Record disabled with the reason in the footer, and the Recording in REAPER is experimental box above it with Turn on Record and DAW settings"
+  },
+  {
+    "page": "booth",
+    "state": "record-connect",
+    "viewport": "desktop",
+    "docName": "booth-record-setup",
+    "caption": "Booth - the Connect REAPER to record box, with the two steps and Open in REAPER and connect, above the disabled Record button and its reason"
+  },
+  {
     "page": "engine",
     "state": "default",
     "viewport": "desktop",
@@ -532,17 +546,10 @@
     "caption": "New Project - the location line shows the default projects folder, with Change location"
   },
   {
-    "page": "booth",
-    "state": "refusal",
+    "page": "schedule",
+    "state": "on-pace",
     "viewport": "desktop",
-    "docName": "booth-record-refused",
-    "caption": "Booth - Record disabled with the reason in the footer, and the Recording in REAPER is experimental box above it with Turn on Record and DAW settings"
-  },
-  {
-    "page": "booth",
-    "state": "record-connect",
-    "viewport": "desktop",
-    "docName": "booth-record-setup",
-    "caption": "Booth - the Connect REAPER to record box, with the two steps and Open in REAPER and connect, above the disabled Record button and its reason"
+    "docName": "schedule-on-pace",
+    "caption": "Schedule - the verdict, the recorded audio against the plan, how the book pays, the work left and the milestones"
   }
 ]

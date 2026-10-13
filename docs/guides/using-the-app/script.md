@@ -62,6 +62,8 @@ Select words in the reader and a toolbar appears over them:
 - **Bookmarks** lists your bookmarks under their chapters, each with its line; one goes to its place, its pencil
   button edits its label and note, and its bin button deletes it. The reader's margin shows a ribbon where each one is.
 
+A Story Bible name met in the chapter is listed on **Words** too, marked with the Story Bible icon and read-only there: its pronunciation is the entry's, edited in the Story Bible.
+
 ![Script - a word looked up: how to say it, its source and the web look-ups in the rail's Words tab](../../images/ui/script-word-lookup.webp)
 
 ![Script - the rail's Notes tab](../../images/ui/script-note-sidebar.webp)
