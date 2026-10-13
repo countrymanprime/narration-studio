@@ -8,7 +8,7 @@ export const settingsStates: StateEntry[] = [
     page: 'settings',
     state: 'page-top',
     description:
-      "Settings, the top of the page (the Studio Next mock's panels): the Recording radios on the launch's DAW, the Delivery profile select on ACX, the Reader text panel (font, size, line height and the preview quote), the Marks pills with Edit marks, the Story Bible types, the Appearance theme radios, the Keyboard shortcuts list read-only and the Manuscript panel with Replace manuscript, above the kept panels",
+      "Settings, the top of the page (the Studio Next mock's panels): the Recording radios on the launch's DAW, the Delivery profile select on ACX, the Reader text panel (font, size, line spacing, column width and the preview quote), the Marks pills with Edit marks, the Story Bible types, the Appearance theme radios, the Keyboard shortcuts list read-only and the Manuscript panel with Replace manuscript, above the kept panels",
     ...REFLOW,
   },
   {
