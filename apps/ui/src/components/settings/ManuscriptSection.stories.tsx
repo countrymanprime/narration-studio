@@ -28,7 +28,7 @@ type Story = StoryObj<typeof meta>;
 // A manuscript exists: the one place to replace it.
 export const WithManuscript: Story = {
   play: async ({ canvasElement }) => {
-    await expect(within(canvasElement).getByRole('button', { name: 'Replace manuscript' })).toBeTruthy();
+    await expect(within(canvasElement).getByRole('button', { name: 'Replace manuscript…' })).toBeTruthy();
   },
 };
 

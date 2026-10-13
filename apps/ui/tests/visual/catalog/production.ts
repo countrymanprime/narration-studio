@@ -108,7 +108,7 @@ export const productionStates: StateEntry[] = [
     page: 'production',
     state: 'import-confirm',
     description:
-      'Production, import manuscript confirm dialog with format/paragraph/chapter preview (reached via "Replace manuscript" since a manuscript is already loaded)',
+      'Production, import manuscript confirm dialog with format/paragraph/chapter preview (reached via Settings > Manuscript, "Replace manuscript…", since a manuscript is already loaded)',
   },
   {
     page: 'production',

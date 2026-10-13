@@ -270,7 +270,7 @@ export function confirmDialog(page: Page, name: string | RegExp) {
 export async function clickReplaceManuscript(page: Page): Promise<void> {
   await goToPage(page, 'Settings');
   await clickSettingsCategory(page, 'Manuscript');
-  await clickVisible(page, 'button', 'Replace manuscript');
+  await clickVisible(page, 'button', 'Replace manuscript…');
 }
 
 // Opens the import review dialog with the mock's own preview (`?mockImportPreview=`, main.tsx): "Replace manuscript" begins the same

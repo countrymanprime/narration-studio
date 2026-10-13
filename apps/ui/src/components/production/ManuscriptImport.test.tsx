@@ -384,7 +384,7 @@ describe('the "Set up the credits" prompt ', () => {
         </ApiProvider>
       </MemoryRouter>,
     );
-    await screen.findByRole('button', { name: 'Replace manuscript' });
+    await screen.findByRole('button', { name: 'Replace manuscript…' });
     expect(screen.queryByRole('dialog', { name: 'Set up the credits' })).toBeNull();
   });
 
@@ -466,7 +466,7 @@ describe('the credits-setup banner, the way back after Not now', () => {
         </ApiProvider>
       </MemoryRouter>,
     );
-    await screen.findByRole('button', { name: 'Replace manuscript' });
+    await screen.findByRole('button', { name: 'Replace manuscript…' });
     expect(screen.queryByText(/The credits need/)).toBeNull();
   });
 });
@@ -533,7 +533,7 @@ describe('the delivery profile on the first import (SNM-4d)', () => {
         </ApiProvider>
       </MemoryRouter>,
     );
-    fireEvent.click(await screen.findByRole('button', { name: 'Replace manuscript' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Replace manuscript…' }));
     const dialog = within(await screen.findByRole('alertdialog', { name: /^Import Alice\./ }));
     expect(profileField(dialog)).toBeNull();
   });

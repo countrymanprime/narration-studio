@@ -6,7 +6,7 @@ import { type Driver, clickNav, clickSettingsCategory, settingsPanel, confirmDia
 export const settingsDrivers: Record<string, Driver> = {
   'page-top': async (page) => {
     await goToPage(page, 'Settings');
-    await page.getByRole('button', { name: 'Replace manuscript' }).waitFor();
+    await page.getByRole('button', { name: 'Replace manuscript…' }).waitFor();
     await page.getByRole('combobox', { name: 'Delivery profile', exact: true }).waitFor();
     await page.getByRole('radio', { name: /^Built-in recorder/ }).waitFor();
   },
