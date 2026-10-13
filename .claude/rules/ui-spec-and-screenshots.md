@@ -20,9 +20,10 @@ The rule is the rebuild PRD's [Which mocks are the spec](../../docs/prds/studio-
 
 Permanent owner rule (2026-09-29): a PR that changes what `apps/ui` draws and has no screenshots of the change has failed, and the owner rejects it until it has them. What to show, the viewports, where the images live and how to capture them are in [UI PRs show their screenshots](../../CONTRIBUTING.md#ui-prs-show-their-screenshots). Before calling a UI PR ready:
 
-1. Add the **Screenshots** section to the PR body: per changed state at 1440×900, the Studio Next mock page, before (`main`) and after (the branch), in the same state, viewport and fixture; the other viewports in a collapsed `<details>`. There is no match percentage.
-2. Commit the images on the PR's own branch under `pr-screenshots/<slice or branch>/` and embed them by commit SHA. Create no `pr-images/*` branch.
-3. After every push that changes the UI, regenerate them and update the SHA in the body.
-4. Make the last commit before merge delete `pr-screenshots/`, so the squash brings no images to `main`.
+1. Name the page(s) the change touches (a `page` of `apps/ui/tests/visual/state-catalog.ts`) and run the targeted real-app and Storybook runs on them: `node scripts/dev/pr-screenshots.mjs <slice> <page>...` (the runs and flags are in CONTRIBUTING). A cloud container needs no `playwright install`: the runs find the installed headless shell, or take `PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH`. "The Chromium does not match" is not a reason to attach Storybook states only.
+2. Add the **Screenshots** section to the PR body: per changed state at 1440×900, the Studio Next mock page, before (`main`) and after (the branch), in the same state, viewport and fixture; the other viewports in a collapsed `<details>`. There is no match percentage. Add the helper's tables with the image of **every** catalogued state of the named pages, light and dark, desktop and narrow, and state the real-app (Playwright) result, not only Storybook's.
+3. Commit the images on the PR's own branch under `pr-screenshots/<slice or branch>/` and embed them by commit SHA. Create no `pr-images/*` branch.
+4. After every push that changes the UI, regenerate them and update the SHA in the body.
+5. Make the last commit before merge delete `pr-screenshots/`, so the squash brings no images to `main`.
 
-The coordinator does not merge, and no worker calls a UI PR ready, without them.
+A PR that changes a page and lacks the page's state images, either run's result or the real-app result is not mergeable. The coordinator does not merge, and no worker calls a UI PR ready, without them. `docs/images/ui/` is regenerated only by the guide-refresh worker.

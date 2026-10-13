@@ -267,3 +267,13 @@ describe('a long book', () => {
     expect(renderGutter.mock.calls.length).toBeLessThanOrEqual(drawn + 2 * PER_CHAPTER);
   });
 });
+
+describe('the chapter card slot', () => {
+  it('leaves the chapter heading to the card when one is given, and draws its own only without one', () => {
+    const { unmount } = render(<Reader {...props({ renderChapterCard: (chapter) => <h2>{`Card ${chapter.title}`}</h2> })} />);
+    expect(screen.getAllByRole('heading', { level: 2 }).map((h) => h.textContent)).toEqual(['Card Chapter 1', 'Card Chapter 2', 'Card Chapter 3']);
+    unmount();
+    render(<Reader {...props()} />);
+    expect(screen.getAllByRole('heading', { level: 2 })).toHaveLength(3);
+  });
+});

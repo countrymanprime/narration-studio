@@ -196,7 +196,7 @@ The Studio Next mock (`docs/research/mockups/studio-next/`) is the only spec for
 
 ## UI PRs show their screenshots
 
-The rule and how to capture and embed the images are in [CONTRIBUTING.md](../../../CONTRIBUTING.md#ui-prs-show-their-screenshots). For the train: a UI PR without its Screenshots section has failed. The worker adds the images before it says the PR is ready and pushes the commit that deletes `pr-screenshots/` once nothing else on the PR is left to change. The coordinator checks the PR body for the images at every sweep, and neither merges a UI PR without them nor counts it ready, whatever the CI result. A worker without network lists the missing mock image in the PR and the owner supplies it.
+The rule and how to capture and embed the images are in [CONTRIBUTING.md](../../../CONTRIBUTING.md#ui-prs-show-their-screenshots). For the train: a UI PR without its Screenshots section has failed. The images are every catalogued state of the page(s) the PR names, light and dark, desktop and narrow, from the targeted Playwright run and the targeted Storybook run (`node scripts/dev/pr-screenshots.mjs`, which works in a cloud container), and the PR states the real-app result: Storybook states alone do not count. The worker adds the images before it says the PR is ready and pushes the commit that deletes `pr-screenshots/` once nothing else on the PR is left to change. The coordinator checks the PR body for the images at every sweep, and neither merges a UI PR without them nor counts it ready, whatever the CI result. A worker without network lists the missing mock image in the PR and the owner supplies it.
 
 ## Owner standing rules
 

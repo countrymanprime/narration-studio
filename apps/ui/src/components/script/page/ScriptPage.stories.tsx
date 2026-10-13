@@ -77,7 +77,7 @@ const meta = {
 export default meta;
 type Story = StoryObj<typeof meta>;
 
-const firstChapter = (canvasElement: HTMLElement) => within(canvasElement).findByRole('heading', { level: 2, name: 'Chapter 1' }, { timeout: 5000 });
+const firstChapter = (canvasElement: HTMLElement) => within(canvasElement).findByRole('heading', { level: 2, name: 'Down the Rabbit-Hole' }, { timeout: 5000 });
 
 // The key state: the reader at the first chapter with its marks, the credits cards above it, the Words tab in the rail. The tab
 // stories below open the rail, which is a column from 1281 px and a drawer below.
