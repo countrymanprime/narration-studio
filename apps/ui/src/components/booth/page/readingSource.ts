@@ -1,7 +1,7 @@
 import type { GuideDialogueCue, GuideEntity, ManuscriptParagraph, TeleprompterFlag, TeleprompterSpan } from '../../../types';
 import { WPH } from '../../schedule/estimates';
 import type { CreditsKind } from '../readerModel';
-import { wordCount, type BoothUnit, type ReadingParagraph, type WordDecoration } from '../reading/boothUnits';
+import { UNKNOWN_SPEAKER, wordCount, type BoothUnit, type ReadingParagraph, type WordDecoration } from '../reading/boothUnits';
 import type { ReadingPosition } from '../reading/readingPosition';
 import type { SuspectedFlag } from '../suspected/suspectedLines';
 
@@ -35,7 +35,7 @@ export function readingParagraphsOf(
         start: cue.quote_start,
         end: cue.quote_end,
         quoted: true,
-        speaker: (cue.speaker_entity_id && names.get(cue.speaker_entity_id)) || '',
+        speaker: (cue.speaker_entity_id && names.get(cue.speaker_entity_id)) || UNKNOWN_SPEAKER,
         confirmed: cue.corrected || cue.speaker_source === 'correction',
       });
       at = cue.quote_end;

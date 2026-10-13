@@ -27,8 +27,8 @@ the view without moving your place.
 
 Clicking a Story Bible name, a marked word or a note shows it in the side panel's **Reference**, read-only: the entry, or the
 mark with its note and its replies. A click on another word or on empty space clears it. The side panel also has the suspected
-lines of this take, **Voices in this scene** (the characters nearby, with their voice notes), **Coming up** (the next names with a
-pronunciation), **Last punch** and **This session** (how long you have recorded and how many punches). In a
+lines of this take, **Last punch**, **Voices in this scene** (the characters nearby, with their voice notes), **Coming up** (the
+next names with a pronunciation) and **This session** (how long you have recorded and how many punches). In a
 [pickup session](#a-pickup-session) the pickup lines come first.
 
 The footer has **Record**, the take's timer, **Levels** (the input level and the microphone in use), a level bar and the room tone
@@ -74,6 +74,17 @@ Right-click the text for **Start from here** (on a phrase), **Bookmark here** (o
 during a take it rolls again from that phrase, as **R** does. A take is held while the menu is open.
 
 The engine and model the Booth listens with are chosen in [Settings](settings.md) › Booth. Nothing you say is sent anywhere.
+
+### The microphone the Booth listens to
+
+The text follows your voice through a microphone of its own choosing. With a DAW, the Booth listens to the microphone the DAW
+records from when the DAW names it, and **Levels** shows its name with **Chosen in** and the DAW's name. When the DAW cannot say,
+**Levels** lists the microphones on this computer with the DAW's reason, and the footer says **Choose the microphone the Booth listens
+to in Levels**. A microphone you chose is never replaced. The choice is remembered for every project.
+
+If the speech model is not downloaded yet, the first take asks to download it, says how large it is and where it goes, and
+downloads nothing until you press **Download model**. While the text cannot follow (no microphone listed, or the listening failed
+to start), the footer says why; the take still records.
 
 ## Where you stopped
 
