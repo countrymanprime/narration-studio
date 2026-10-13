@@ -240,7 +240,7 @@ goes back into the chapter's text so it is narrated (the row says it "is read as
 **Read a heading's second line as its subtitle** option in Import options does the same for every
 row at once; a row you changed by hand keeps your choice.
 
-![Production - import manuscript confirm dialog with format/paragraph/chapter preview](../../images/ui/production-import-confirm.webp)
+![The import manuscript dialog: format, paragraph and chapter preview](../../images/ui/production-import-confirm.webp)
 
 The message at the top says what was found: the format, the number of paragraphs and of narration
 chapters, then how many front matter and reference sections, character suggestions and repairs the
@@ -287,7 +287,7 @@ Once you confirm, importing runs in the background and reports what it is actual
 the source into the project, writing the manuscript, adding checked characters to the Story Bible —
 in a live activity log, so the progress bar and log always match the real work.
 
-![Production - a finished manuscript import with its real, step-by-step activity log](../../images/ui/production-import-activity.webp)
+![A finished manuscript import with its step-by-step activity log](../../images/ui/production-import-activity.webp)
 
 Once a manuscript is imported you can read it on the [Script](script.md) page.
 

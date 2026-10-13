@@ -55,7 +55,7 @@ A chapter with no recording yet says **No recording for this chapter yet** where
 
 ![Proof on Chapter 1: the recording check card, the waveform and the chapter's notes](../../images/ui/proof-chapter-linked.webp)
 
-![Proof - a recording check that is out of date, with what changed](../../images/ui/proof-check-stale.webp)
+![Proof - a recording check marked out of date: the recording changed since this check](../../images/ui/proof-check-stale.webp)
 
 ![Proof - a note whose spot has several takes, the playing take marked on the waveform](../../images/ui/proof-takes.webp)
 
@@ -79,7 +79,7 @@ count. A note whose spot has more than one take has a takes badge.
 
 ![Proof - the To review chip: "Notes · 3 of 4", the waived note left out](../../images/ui/proof-notes-filtered.webp)
 
-![Proof - find in notes on "rabbit", with the one matching note](../../images/ui/proof-find.webp)
+![Proof - find in notes on "rabbit", with the two matching notes](../../images/ui/proof-find.webp)
 
 ## A note and your decision
 

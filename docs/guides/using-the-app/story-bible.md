@@ -135,7 +135,7 @@ entry yet. An entry with suggestions waiting shows a **Verify** pill in the list
 list where you accept, edit or reject each one, with the quote it rests on (press the quote to go to the line in the
 Script). An entry cannot be marked reviewed while it has suggestions waiting.
 
-![Story Bible - Needs verification: the suggestions not in the Story Bible yet, each with its quote](../../images/ui/storybible-verification.webp)
+![Story Bible - Needs verification: the suggestions not in the Story Bible yet, each with its score](../../images/ui/storybible-verification.webp)
 
 ## Voice references and dialogue cue attribution
 
@@ -164,7 +164,7 @@ for the two things that aren't about one character: approving a reference for **
 approved reference in the project - for every character and for narration - in one action, after you
 confirm. It doesn't touch the manuscript, dialogue cues, or anything else in the Story Bible.
 
-![Story Bible - the Voice data slide-over: approved reference clips and Remove voice data](../../images/ui/storybible-voice-data.webp)
+![Story Bible - the Voice data slide-over: choosing a region to approve as a reference, and Remove voice data](../../images/ui/storybible-voice-data.webp)
 
 ## Series voice bible
 

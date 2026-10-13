@@ -67,7 +67,7 @@
     "state": "rail-words",
     "viewport": "desktop",
     "docName": "script-word-lookup",
-    "caption": "Script - a word looked up: how to say it, its source and the web look-ups in the rail's Words tab"
+    "caption": "Script - a word looked up in the rail's Words tab: a box for how to say it, its source and the web look-ups"
   },
   {
     "page": "script",
@@ -102,7 +102,7 @@
     "state": "import-confirm",
     "viewport": "desktop",
     "docName": "production-import-confirm",
-    "caption": "Production - import manuscript confirm dialog with format/paragraph/chapter preview"
+    "caption": "The import manuscript dialog: format, paragraph and chapter preview"
   },
   {
     "page": "proof-chapter",
@@ -172,7 +172,7 @@
     "state": "recording",
     "viewport": "desktop",
     "docName": "booth-listening",
-    "caption": "Booth - a take recording: Stop in place of Record, the REC pill beside the setup chip and the take counted in This session"
+    "caption": "Booth - a take recording: Stop in place of Record and the REC pill beside the setup chip"
   },
   {
     "page": "booth",
@@ -256,21 +256,21 @@
     "state": "page-top",
     "viewport": "desktop",
     "docName": "settings-appearance",
-    "caption": "Settings - the top of the page: the Recording radios on the DAW, the Delivery profile select and the Story Bible types"
+    "caption": "Settings - the top of the page: the Recording radios, the Delivery profile select, where definitions come from and the reader text"
   },
   {
     "page": "settings",
     "state": "global-manuscript",
     "viewport": "desktop",
     "docName": "settings-manuscript",
-    "caption": "Settings - Global scope, Manuscript category (reader-note colour picker)"
+    "caption": "Settings - the Note colour panel, with Recording check below"
   },
   {
     "page": "settings",
     "state": "about-update-available",
     "viewport": "desktop",
     "docName": "settings-about-updates",
-    "caption": "Settings - Global scope, About and updates category with a newer version found"
+    "caption": "Settings - the About & updates panel with a newer version found"
   },
   {
     "page": "settings",
@@ -305,7 +305,7 @@
     "state": "import-activity-log",
     "viewport": "desktop",
     "docName": "production-import-activity",
-    "caption": "Production - a finished manuscript import with its real, step-by-step activity log"
+    "caption": "A finished manuscript import with its step-by-step activity log"
   },
   {
     "page": "script",
@@ -410,7 +410,7 @@
     "state": "daw-off",
     "viewport": "desktop",
     "docName": "editing-daw-off",
-    "caption": "Editing with the DAW not connected - the banner with its reason and Retry"
+    "caption": "Editing - the banner when the chosen DAW is not supported yet, with its reason and Retry"
   },
   {
     "page": "proof",
@@ -571,14 +571,14 @@
     "state": "rail-story-bible",
     "viewport": "desktop",
     "docName": "script-rail-story-bible",
-    "caption": "Script - the rail's Story Bible tab: the book's entries by kind, one opened"
+    "caption": "Script - the rail's Story Bible tab: the entries met in this chapter"
   },
   {
     "page": "script",
     "state": "rail-queries",
     "viewport": "desktop",
     "docName": "script-rail-queries",
-    "caption": "Script - the rail's Queries tab: the chapter's questions for the author"
+    "caption": "Script - the rail's Queries tab, with no queries in this chapter"
   },
   {
     "page": "script",
@@ -599,7 +599,7 @@
     "state": "credits-cards",
     "viewport": "desktop",
     "docName": "script-credits",
-    "caption": "Script - the Opening credits card above Chapter 1, with a value still to fill in"
+    "caption": "Script - the Opening credits card, folded, above Chapter 1"
   },
   {
     "page": "storybible",
@@ -620,7 +620,7 @@
     "state": "verification-filter",
     "viewport": "desktop",
     "docName": "storybible-verification",
-    "caption": "Story Bible - Needs verification: the suggestions not in the Story Bible yet, each with its quote"
+    "caption": "Story Bible - Needs verification: the suggestions not in the Story Bible yet, each with its score"
   },
   {
     "page": "storybible",
@@ -634,7 +634,7 @@
     "state": "voice-data-panel",
     "viewport": "desktop",
     "docName": "storybible-voice-data",
-    "caption": "Story Bible - the Voice data slide-over: approved reference clips and Remove voice data"
+    "caption": "Story Bible - the Voice data slide-over: choosing a region to approve as a reference, and Remove voice data"
   },
   {
     "page": "booth",
@@ -669,7 +669,7 @@
     "state": "text-popover",
     "viewport": "desktop",
     "docName": "booth-text-settings",
-    "caption": "Booth - the Text settings: font, size and spacing of the text you read"
+    "caption": "Booth - the Text settings: the font and size of the text you read"
   },
   {
     "page": "booth",
@@ -704,14 +704,14 @@
     "state": "suggestion-step",
     "viewport": "desktop",
     "docName": "editing-suggestion-step",
-    "caption": "Editing - Normalise in a suggestion's steps: the takes it would bring to the same level"
+    "caption": "Editing - Normalise from a suggestion's steps: the question says what it will change in the DAW"
   },
   {
     "page": "editing",
     "state": "drawer-effects",
     "viewport": "desktop",
     "docName": "editing-drawer-effects",
-    "caption": "Editing - the drawer's Effects tab: the effects on words and adding one"
+    "caption": "Editing - the drawer's Effects tab with no effects yet, and Add effect waiting for a selection"
   },
   {
     "page": "proof",
@@ -732,7 +732,7 @@
     "state": "check-stale",
     "viewport": "desktop",
     "docName": "proof-check-stale",
-    "caption": "Proof - a recording check that is out of date, with what changed"
+    "caption": "Proof - a recording check marked out of date: the recording changed since this check"
   },
   {
     "page": "proof",
@@ -746,7 +746,7 @@
     "state": "find-open",
     "viewport": "desktop",
     "docName": "proof-find",
-    "caption": "Proof - find in notes on \"rabbit\", with the one matching note"
+    "caption": "Proof - find in notes on \"rabbit\", with the two matching notes"
   },
   {
     "page": "pickups",

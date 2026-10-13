@@ -18,7 +18,7 @@ built-in recorder). The chip opens [Settings](settings.md). The chapter is named
 you last chose. The button at the right shows or hides the side panel; in a window 1280 pixels wide or narrower the panel is a
 drawer that starts closed.
 
-![Booth - the Text settings: font, size and spacing of the text you read](../../images/ui/booth-text-settings.webp)
+![Booth - the Text settings: the font and size of the text you read](../../images/ui/booth-text-settings.webp)
 
 ![Booth - ready to record: the chapter stepper, progress and resume line on the top bar, the text with the reading position, the side panel, and Record, the levels and the key hints in the footer](../../images/ui/booth-setup.webp)
 
@@ -46,7 +46,7 @@ track and starts at the end of the last item on it, so a take never records over
 disabled and the footer says why, in the DAW's own words: the DAW is not running, the record action is switched off in Settings,
 the chapter has no track, or the DAW is already playing.
 
-![Booth - a take recording: Stop in place of Record, the REC pill beside the setup chip and the take counted in This session](../../images/ui/booth-listening.webp)
+![Booth - a take recording: Stop in place of Record and the REC pill beside the setup chip](../../images/ui/booth-listening.webp)
 
 While a take runs, Record becomes **Stop**, a **REC** pill shows beside the setup chip and the timer counts. The chapter cannot be
 changed until you stop. When listening reaches the last word of the chapter and stops, the take stops with it and a message says

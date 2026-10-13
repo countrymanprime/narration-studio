@@ -68,11 +68,11 @@ Select words in the reader and a toolbar appears over them:
 - **Bookmarks** lists your bookmarks under their chapters, each with its line; one goes to its place, its pencil
   button edits its label and note, and its bin button deletes it. The reader's margin shows a ribbon where each one is.
 
-![Script - the rail's Queries tab: the chapter's questions for the author](../../images/ui/script-rail-queries.webp)
+![Script - the rail's Queries tab, with no queries in this chapter](../../images/ui/script-rail-queries.webp)
 
-![Script - the rail's Story Bible tab: the book's entries by kind, one opened](../../images/ui/script-rail-story-bible.webp)
+![Script - the rail's Story Bible tab: the entries met in this chapter](../../images/ui/script-rail-story-bible.webp)
 
-![Script - a word looked up: how to say it, its source and the web look-ups in the rail's Words tab](../../images/ui/script-word-lookup.webp)
+![Script - a word looked up in the rail's Words tab: a box for how to say it, its source and the web look-ups](../../images/ui/script-word-lookup.webp)
 
 ![Script - the rail's Notes tab](../../images/ui/script-note-sidebar.webp)
 
@@ -110,7 +110,7 @@ chapter's recording with that chapter's text only, so credits recorded inside it
 words. Each credits
 card also has a **Record in Booth** button once it has anything to read (see below).
 
-![Script - the Opening credits card above Chapter 1, with a value still to fill in](../../images/ui/script-credits.webp)
+![Script - the Opening credits card, folded, above Chapter 1](../../images/ui/script-credits.webp)
 
 The [retail sample](settings.md#retail-sample), once picked, is marked where it is: a **Retail sample**
 tag above each chapter it is in, and a bar in the margin beside each of its lines.

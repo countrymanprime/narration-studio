@@ -29,7 +29,7 @@ the rest of the settings.
 - **Manuscript** says when the manuscript was imported (or **No manuscript yet**), with **Replace
   manuscript** (or **Import manuscript** when there is none). The replace confirm names what it clears.
 
-![Settings - the top of the page: the Recording radios on the DAW, the Delivery profile select and the Story Bible types](../../images/ui/settings-appearance.webp)
+![Settings - the top of the page: the Recording radios, the Delivery profile select, where definitions come from and the reader text](../../images/ui/settings-appearance.webp)
 
 ![Production in the Dark theme](../../images/ui/theme-dark.webp)
 
@@ -128,7 +128,7 @@ before the word a punch-in starts. Old links to it by its former name, Telepromp
 
 ![Settings - a copy of ACX open in the delivery profile editor](../../images/ui/settings-delivery-profile.webp)
 
-![Settings - Global scope, Manuscript category (note color picker)](../../images/ui/settings-manuscript.webp)
+![Settings - the Note colour panel, with Recording check below](../../images/ui/settings-manuscript.webp)
 
 The **Project data** panel is a project-only danger zone: **Clear derived project data…**
 removes the imported manuscript and its stored source, the Story Bible, proofing artifacts, reader notes and
@@ -247,7 +247,7 @@ again.
 The last panel, **About & updates**, shows which version of Narration Studio you are running and looks
 after updates.
 
-![Settings - Global scope, About and updates category with a newer version found](../../images/ui/settings-about-updates.webp)
+![Settings - the About & updates panel with a newer version found](../../images/ui/settings-about-updates.webp)
 
 - **Check for updates on startup** (on by default): once a day, when the app starts, it asks GitHub which releases exist. That
   request sends nothing about you, your projects or your computer, and it never downloads anything by itself. Switch it off
