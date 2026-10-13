@@ -14,7 +14,9 @@ import { ALL_CHAPTERS, ChapterStepper } from '../primitives/ChapterStepper';
 import { IconButton } from '../primitives/IconButton';
 import { KeyHints } from '../primitives/KeyHints';
 import { openCheckRecordings } from '../recordingcheck/openCheckRecordings';
-import { NeedManuscript } from '../script/page/layout/NeedManuscript';
+import { creditsEntries, creditsKindOfId } from '../credits/creditsEntries';
+import { useCreditsRows } from '../credits/useCreditsRows';
+import { NeedManuscript } from '../layout/NeedManuscript';
 import { CheckCard } from './checkcard/CheckCard';
 import { ChapterStrip, type StripChapter } from './frame/ChapterStrip';
 import type { Band, Pin } from './frame/pins';
@@ -99,6 +101,10 @@ export function ProofPage({
   const review = useCapability('review');
   const [params, setParams] = useSearchParams();
   const [chapters, setChapters] = useState<ManuscriptChapter[]>([]);
+  // The credits tiles of the strip: the same entries the Script list draws, the opening left out when the manuscript brought its own.
+  const [ownsOpening, setOwnsOpening] = useState(false);
+  const credits = useCreditsRows(projectFolder, (error) => overlay.toast(describeApiError(error), { tone: 'error' }));
+  const creditsTiles = useMemo(() => creditsEntries(credits.rows, ownsOpening), [credits.rows, ownsOpening]);
   const [listed, setFindings] = useState<Finding[]>([]);
   const [summary, setSummary] = useState<FindingsSummary>();
   const [sort, setSort] = useState<NoteSort>('time');
@@ -134,7 +140,11 @@ export function ProofPage({
     let live = true;
     manuscriptApi
       .manuscriptChapters()
-      .then((list) => live && setChapters(list.filter(isNarration)))
+      .then((list) => {
+        if (!live) return;
+        setChapters(list.filter(isNarration));
+        setOwnsOpening(list.some((c) => c.contentKind === 'opening'));
+      })
       .catch((error: unknown) => overlay.toast(describeApiError(error), { tone: 'error' }));
     return () => {
       live = false;
@@ -257,13 +267,25 @@ export function ProofPage({
     [active, activeAt],
   );
 
-  const strip = useMemo<StripChapter[]>(
-    () =>
-      chapters.map((c, i) => {
-        const rows = findings.filter((f) => chapterOf(f) === c.id).map(noteRow);
-        return { id: c.id, name: chapterName(c), number: i + 1, total: rows.length, open: rows.filter((r) => r.open).length };
-      }),
-    [chapters, findings],
+  const strip = useMemo<StripChapter[]>(() => {
+    const tile = (id: string, name: string, number: number | null): StripChapter => {
+      const rows = findings.filter((f) => chapterOf(f) === id).map(noteRow);
+      return { id, name, number, total: rows.length, open: rows.filter((r) => r.open).length };
+    };
+    return [
+      ...(creditsTiles.opening ? [tile(creditsTiles.opening.id, creditsTiles.opening.name, null)] : []),
+      ...chapters.map((c, i) => tile(c.id, chapterName(c), i + 1)),
+      ...(creditsTiles.closing ? [tile(creditsTiles.closing.id, creditsTiles.closing.name, null)] : []),
+    ];
+  }, [chapters, findings, creditsTiles]);
+  // Proof has no chapter view for the credits (its notes and recording are the manuscript chapters'), so their tiles open the credits card on Script.
+  const chooseTile = useCallback(
+    (id: string) => {
+      const kind = creditsKindOfId(id);
+      if (kind) goTo(`/script#credits-${kind}`);
+      else choose(id);
+    },
+    [goTo, choose],
   );
   const progress = useMemo(() => {
     if (all) return proofProgress(summary ?? { total: 0, decided: 0, cleared: 0 }, 0);
@@ -298,7 +320,7 @@ export function ProofPage({
     <CommandScope kind="page">
       <div className="flex min-h-full flex-col">
         <div
-          className="grid flex-1 gap-4 min-[1100px]:grid-cols-[minmax(0,1fr)_380px] min-[1100px]:grid-rows-[auto_minmax(0,1fr)]"
+          className="grid flex-1 gap-4 min-[1180px]:grid-cols-[minmax(0,1fr)_380px] min-[1180px]:grid-rows-[auto_minmax(0,1fr)]"
           // A right click on a row selects it first, so the menu acts on the row under the pointer.
           onContextMenuCapture={(event) => {
             const row = (event.target as Element).closest<HTMLElement>('section[aria-label="Notes"] tr[data-row]');
@@ -316,7 +338,7 @@ export function ProofPage({
             {all || !chapter ? (
               <div className="flex flex-col gap-1">
                 <span className="text-xs text-[var(--text-muted)]">Open notes, by chapter</span>
-                <ChapterStrip chapters={strip} current={current} onChooseChapter={choose} />
+                <ChapterStrip chapters={strip} current={current} onChooseChapter={chooseTile} />
               </div>
             ) : (
               <>
@@ -345,7 +367,7 @@ export function ProofPage({
             )}
           </section>
           <div
-            className="min-h-0 min-w-0 min-[1100px]:row-start-2"
+            className="min-h-0 min-w-0 min-[1180px]:row-start-2"
             // A row pressed (a click or Enter), not stepped to with the keys, opens its chapter from All chapters, as in the mock.
             onClickCapture={(event) => {
               if (!selectingForMenu.current && (event.target as Element).closest('tr[data-row]')) opening.current = true;
@@ -386,7 +408,7 @@ export function ProofPage({
               }}
             />
           </div>
-          <div className="min-w-0 rounded-[var(--radius-panel)] border border-[var(--border)] bg-[var(--surface)] p-4 min-[1100px]:col-start-2 min-[1100px]:row-span-2 min-[1100px]:row-start-1">
+          <div className="min-w-0 rounded-[var(--radius-panel)] border border-[var(--border)] bg-[var(--surface)] p-4 min-[1180px]:col-start-2 min-[1180px]:row-span-2 min-[1180px]:row-start-1">
             {selected ? (
               <Inspector
                 key={selected.id}

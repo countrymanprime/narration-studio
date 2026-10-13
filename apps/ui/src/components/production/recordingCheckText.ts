@@ -11,7 +11,7 @@ import type {
   CoverageState,
   ManuscriptChapter,
 } from '../../types';
-import type { CreditsKind } from './useCreditsRows';
+import type { CreditsKind } from '../credits/useCreditsRows';
 
 /**
  * One plain sentence per reason. The host also sends its own message with a refusal, but that one is written for a log

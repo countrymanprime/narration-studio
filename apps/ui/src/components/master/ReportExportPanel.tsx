@@ -15,9 +15,9 @@ const count = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : 
  * The report export: an explicit action that writes an HTML page a reviewer can open
  * without the app and a JSON file with the same finding IDs, covering the last measurement and diagnostics check, into the project's
  * sidecar folder. File locations stay out unless the narrator ticks the box. The host refuses while a job runs, without a project, or
- * with nothing measured; the page shows why.
+ * with nothing measured; the button is off while a job runs or nothing is measured, and any refusal that remains is shown.
  */
-export function ReportExportPanel({ busy }: { busy: boolean }) {
+export function ReportExportPanel({ busy, measured }: { busy: boolean; measured: boolean }) {
   const api = useApi();
   const [includePaths, setIncludePaths] = useState(false);
   const [pending, setPending] = useState(false);
@@ -41,7 +41,7 @@ export function ReportExportPanel({ busy }: { busy: boolean }) {
     <Panel
       title="Report"
       actions={
-        <Button onClick={() => void exportReport()} pending={pending} disabled={busy}>
+        <Button onClick={() => void exportReport()} pending={pending} disabled={busy || !measured}>
           Export report
         </Button>
       }
@@ -51,6 +51,11 @@ export function ReportExportPanel({ busy }: { busy: boolean }) {
         narration-utils/delivery folder. Every open finding and every file not measured is listed. It is a measurement, not a distributor’s approval, and your
         audio is never changed.
       </p>
+      {!measured && (
+        <p className="mt-2 text-sm" style={MUTED}>
+          Check some files first: the report covers the files measured here.
+        </p>
+      )}
       <div className="mt-2">
         <Checkbox checked={includePaths} onChange={setIncludePaths}>
           Include each file’s full location (otherwise only file names are written)

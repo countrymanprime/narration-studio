@@ -1,11 +1,13 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { apiErrorMessage } from '../../api/errorMessage';
+import { apiErrorMessage, describeApiError } from '../../api/errorMessage';
 import type { DawCapabilities } from '../../api/contracts/daw';
 import type { ChapterStatus } from '../../api/contracts/manuscript';
 import type { ProductionOverview, ProductionPlan, ProductionTotals } from '../../api/contracts/production';
 import { chapterName } from '../../chapterName';
 import { usePort } from '../../ports/usePort';
 import type { Bootstrap } from '../../types';
+import { creditsEntries, creditsKindOfId } from '../credits/creditsEntries';
+import { useCreditsRows } from '../credits/useCreditsRows';
 import { Panel } from '../primitives/Panel';
 import { StatStrip } from '../primitives/StatStrip';
 import type { Notify } from '../primitives/Toast';
@@ -30,6 +32,7 @@ import { NextUp } from './pipeline/NextUp';
 import { NoManuscript } from './pipeline/NoManuscript';
 import { PageHeader } from './pipeline/PageHeader';
 import { PipelineTable } from './pipeline/PipelineTable';
+import { pipelineChapters } from './pipeline/pipelineChapters';
 import { buildPipelineRows, type GoTarget } from './pipeline/pipelineRows';
 import { useStageTimer } from './pipeline/useStageTimer';
 import { formatClock, formatPfh, formatRate, stageHoursHint } from './productionFormat';
@@ -190,17 +193,26 @@ export function ProductionPage({
   }, [read, refreshStages]);
 
   const onGo = (target: GoTarget | OverviewTarget, chapterId?: string) => {
-    if (target === 'script') return chapterId ? goToScript(chapterId) : go('/script');
+    // A credits row is not a chapter: Script opens its card, the Booth reads it, Editing's check is the credits panel, and Proof has no chapter for it.
+    const credits = chapterId ? creditsKindOfId(chapterId) : undefined;
+    if (target === 'script') return credits ? go(`/script#credits-${credits}`) : chapterId ? goToScript(chapterId) : go('/script');
     if (target === 'booth') return goToBooth(chapterId);
-    if (target === 'editing') return chapterId ? tools.openEditingCheck(chapterId) : go('/editing');
-    if (target === 'proof') return go(proofAt(chapterId));
+    if (target === 'editing') return credits ? tools.openCredits(credits) : chapterId ? tools.openEditingCheck(chapterId) : go('/editing');
+    if (target === 'proof') return go(proofAt(credits ? undefined : chapterId));
     if (target === 'pickups') return go('/pickups');
     if (target === 'master') return go('/master');
     return go('/schedule');
   };
 
+  // The opening and closing credits are rows of the pipeline, in the places the mock puts them and the Script list draws them.
+  const credits = useCreditsRows(manuscriptKey, (error) => notify(describeApiError(error), 'error'));
+  const ownsOpening = Boolean(overview?.chapters.some((chapter) => chapter.contentKind === 'opening'));
+  const entries = useMemo(() => creditsEntries(credits.rows, ownsOpening), [credits.rows, ownsOpening]);
+  const pipelineRows = useMemo(() => (overview ? pipelineChapters(overview.chapters, entries) : []), [overview, entries]);
+
   const tools = useChapterTools({
-    rows: narrated,
+    rows: pipelineRows,
+    credits,
     notify,
     go: { script: (id) => goToScript(id), booth: (id) => goToBooth(id), proof: (id) => go(proofAt(id)), master: () => go('/master') },
     goToScript,
@@ -249,8 +261,10 @@ export function ProductionPage({
   const finishedOf = (words: number) => (words / WPH) * 3600;
   const recordedHours = narrated.reduce((a, c) => a + (c.recordedSeconds ?? 0), 0) / 3600;
   const recommendations = stages.state.byChapter;
-  const rows = buildPipelineRows(narrated, {
+  const rows = buildPipelineRows(pipelineRows, {
     ...pipelineSources,
+    // Only a credits row's Prep is read (its template's tokens); a chapter's Prep stays "Not measured yet" until a source says.
+    prep: Object.fromEntries([entries.opening, entries.closing].flatMap((entry) => (entry ? [[entry.id, entry.prep] as const] : []))),
     checks: Object.fromEntries(
       narrated.map((c) => {
         const link = tools.trackLinks?.chapters.find((entry) => entry.chapterId === c.id);

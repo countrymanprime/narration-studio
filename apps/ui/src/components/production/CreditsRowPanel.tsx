@@ -5,7 +5,7 @@ import { Button } from '../primitives/Button';
 import { Select } from '../primitives/Select';
 import { SlideOver } from '../primitives/SlideOver';
 import { formatLength } from './productionFormat';
-import type { CreditsRow } from './useCreditsRows';
+import type { CreditsRow } from '../credits/useCreditsRows';
 
 const MUTED = { color: 'var(--text-muted)' };
 
@@ -29,7 +29,7 @@ const unresolvedWarning = (unresolved: string[]): string | undefined => {
 };
 
 /**
- * An Opening or Closing credits row's slide-over on the Production board: its template, words and estimated length, the
+ * An Opening or Closing credits row's slide-over on the Production board (a kind with no template has no row, so there is always one): its template, words and estimated length, the
  * tokens still to fill in, and its status, which only `setCreditsStatus` writes (credits are never a manuscript chapter and the
  * stage engine does not assess them).
  */
@@ -54,29 +54,18 @@ export function CreditsRowPanel({
   return (
     <SlideOver open={open} title={label} onClose={onClose}>
       <div className="space-y-4 text-sm">
-        {row.template ? (
-          <>
-            <p>
-              <span className="font-semibold">{row.template.name}</span> · {(row.words ?? 0).toLocaleString()} words · about{' '}
-              {creditsLength(row.estimatedSeconds ?? 0)}
-            </p>
-            {warning && (
-              <p role="alert" style={{ color: 'var(--danger-text)' }}>
-                {warning}
-              </p>
-            )}
-            <Link className="font-semibold underline" to={`/script#credits-${row.kind}`}>
-              Open in Script
-            </Link>
-          </>
-        ) : (
-          <p style={MUTED}>
-            Not set up ·{' '}
-            <Link className="underline" to="/settings#credits">
-              Add {row.kind === 'opening' ? 'an opening' : 'a closing'} template in Settings › Credits
-            </Link>
+        <p>
+          <span className="font-semibold">{row.template?.name}</span> · {(row.words ?? 0).toLocaleString()} words · about{' '}
+          {creditsLength(row.estimatedSeconds ?? 0)}
+        </p>
+        {warning && (
+          <p role="alert" style={{ color: 'var(--danger-text)' }}>
+            {warning}
           </p>
         )}
+        <Link className="font-semibold underline" to={`/script#credits-${row.kind}`}>
+          Open in Script
+        </Link>
         <Select
           label={`${label} status`}
           value={row.status}
