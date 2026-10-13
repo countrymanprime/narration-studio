@@ -1,6 +1,6 @@
 # 0048. Every dialog is one modal shell, confirms are alert dialogs, and Escape, the backdrop and focus follow one policy
 
-**Status:** Accepted
+**Status:** Accepted (amended 2026-10-13, issue 1706: the backdrop closes a dialog when it declares `dismissOnOutsidePress`, never a confirm, form or job; the rest stands)
 **Date:** 2026-09-20
 **Supersedes:**
 
