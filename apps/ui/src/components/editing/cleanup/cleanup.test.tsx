@@ -466,6 +466,20 @@ describe('the Clean up tab', () => {
 describe('Preview plays the findings', () => {
   const FOUR = [...FINDINGS, finding({ id: 'g4', start: 70, end: 74, cls: 'silence' })];
 
+  it('each row names its kind and plays itself with two seconds around it; without playback Play says why', async () => {
+    const fake = fakePlayback();
+    mount({ findings: FOUR, playback: fake });
+    await screen.findByRole('button', { name: /^Gaps 3/ });
+    const play = screen.getByRole('button', { name: 'Play 0:10 with 2 s before and after' });
+    expect(play.closest('tr')!.textContent).toContain('gap');
+    fireEvent.click(play);
+    expect(fake.played).toEqual([[8, 14.4]]);
+    cleanup();
+    mount({ findings: FOUR });
+    await screen.findByRole('button', { name: /^Gaps 3/ });
+    expect(screen.getByRole('button', { name: 'Play 0:10 with 2 s before and after' }).getAttribute('aria-disabled')).toBe('true');
+  });
+
   it('Preview plays the first three selected with two seconds around each', async () => {
     const fake = fakePlayback();
     mount({ findings: FOUR, playback: fake });

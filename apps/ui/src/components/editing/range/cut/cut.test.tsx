@@ -28,6 +28,7 @@ import { EditingPageProvider, useEditingPage } from '../../script/EditingPageSta
 import { marksDoc } from '../../script/scriptFixtures';
 import { docCutsOf } from '../common/locate';
 import { cutPlanText } from '../common/rangePlan';
+import { DeleteButton } from './CutButtons';
 import { fakeCutLog, locator } from './cutFixtures';
 import { beforeCut, CUT_ALREADY, cutCommand, NO_AUDIO, NO_BACKUP, ONLY_SAID, type BeforeCutStep } from './cutCommand';
 import { useCutWords, type CutWords } from './useCutWords';
@@ -184,6 +185,22 @@ describe('Delete words and audio', () => {
     expect(screen.getByRole('dialog')).toBeTruthy();
     expect(calls).toEqual([]);
     expect(log.cuts).toEqual([]);
+  });
+
+  it('is the mock\'s red text button: "Delete words and audio" in the wide bar, "Delete" in the toolbar and a narrow bar', () => {
+    const onClick = vi.fn();
+    const { rerender } = render(<DeleteButton onClick={onClick} />);
+    const wide = button('Delete words and audio');
+    expect(wide.textContent).toBe('Delete words and audio');
+    expect(wide.className).toContain('text-[var(--danger-text)]');
+    fireEvent.click(wide);
+    expect(onClick).toHaveBeenCalledTimes(1);
+    rerender(<DeleteButton short separated onClick={onClick} />);
+    expect(button('Delete words and audio').textContent).toBe('Delete');
+    rerender(<DeleteButton short reason={NO_AUDIO} onClick={onClick} />);
+    fireEvent.click(button('Delete words and audio'));
+    expect(onClick).toHaveBeenCalledTimes(1);
+    expect(button('Delete words and audio').getAttribute('aria-disabled')).toBe('true');
   });
 
   it('Delete opens the confirmation and never cuts at once; M opens the same question for muting', async () => {

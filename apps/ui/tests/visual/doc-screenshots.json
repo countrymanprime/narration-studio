@@ -417,7 +417,7 @@
     "state": "drawer-timeline",
     "viewport": "desktop",
     "docName": "editing-drawer-timeline",
-    "caption": "Editing - the drawer on Timeline: the waveform and takes of the line the cursor is on"
+    "caption": "Editing - the Timeline strip under the text: the waveform and takes of the line the cursor is on"
   },
   {
     "page": "editing",

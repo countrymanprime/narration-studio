@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useRef, useState } from 'react';
 import type { DawResult } from '../../../api/contracts/daw';
 import { overlay } from '../../../overlay/overlayService';
 import { usePort } from '../../../ports/usePort';
@@ -36,12 +36,29 @@ export interface KeepTakes {
   kept: Readonly<Record<string, string>>;
   /** Keeps the take: one `useTake` call and the usual Undo toast; a refusal shows the DAW's own sentence and changes nothing here. */
   keep: (passage: LinePassage, take: LineTake) => Promise<void>;
+  /** Undo choice: takes the line's last keep back through the history, or says why it cannot. */
+  undoKeep: (passageId: string) => Promise<void>;
 }
 
 /** Keeps takes through the journal and the DAW port. "Kept" is shown only after the DAW has said so. */
 export function useKeepTakes(journal: KeepJournal): KeepTakes {
   const daw = usePort('daw');
   const [kept, setKept] = useState<Record<string, string>>({});
+  const entries = useRef<Record<string, number>>({});
+  const undoKeep = useCallback(
+    async (passageId: string) => {
+      const id = entries.current[passageId];
+      if (id === undefined) return;
+      const undone = await journal.undo(id);
+      if (!undone.ok) {
+        overlay.toast(undone.refusal.reason, { tone: 'error' });
+        return;
+      }
+      delete entries.current[passageId];
+      setKept((k) => Object.fromEntries(Object.entries(k).filter(([p]) => p !== passageId)));
+    },
+    [journal],
+  );
   const keep = useCallback(
     async (passage: LinePassage, take: LineTake) => {
       if (kept[passage.id] === take.id) {
@@ -54,6 +71,7 @@ export function useKeepTakes(journal: KeepJournal): KeepTakes {
         return;
       }
       setKept((k) => ({ ...k, [passage.id]: take.id }));
+      entries.current[passage.id] = result.value.id;
       overlay.toastUndo(`Kept ${take.label}. The other takes are still there.`, async () => {
         const undone = await journal.undo(result.value.id);
         if (undone.ok) setKept((k) => Object.fromEntries(Object.entries(k).filter(([id]) => id !== passage.id)));
@@ -62,5 +80,5 @@ export function useKeepTakes(journal: KeepJournal): KeepTakes {
     },
     [daw, journal, kept],
   );
-  return { kept, keep };
+  return { kept, keep, undoKeep };
 }

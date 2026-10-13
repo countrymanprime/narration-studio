@@ -41,6 +41,7 @@ import {
   faGlobe,
   faHighlighter,
   faHouse,
+  faLayerGroup,
   faListOl,
   faListUl,
   faLocationCrosshairs,
@@ -59,6 +60,7 @@ import {
   faRotate,
   faRotateLeft,
   faScissors,
+  faSliders,
   faStop,
   faSun,
   faTableColumns,
@@ -264,6 +266,12 @@ export const CATALOG = {
   sourceManual: action(faPen, 'edit', 'Use my own entry'),
   sourceImported: action(faFileImport, 'import', 'Use the imported file'),
   sourceGliner: action(faLocationCrosshairs, 'locate in text', 'Use GLiNER'),
+
+  // Editing: the mock's sliders for effects, on Add FX and on the clean-up and effects drawer.
+  addFx: action(faSliders, 'effects', 'Add FX', 'F'),
+  cleanUpAndEffects: action(faSliders, 'effects', 'Show clean up and effects', 'Ctrl+Shift+C'),
+  // The mock's wave is the Proof page's icon (audit rule 1), so the takes of a line wear the layers.
+  showTakes: action(faLayerGroup, 'takes', 'Show the takes of this line', 'T'),
 
   // No unambiguous icon: text (audit rule 6).
   cancel: text('cancel', 'Cancel'),

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode, type RefObject } from 'react';
+import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { chapterHeading } from '../../chapterHeading';
 import { CommandScope } from '../../input/router';
 import { useUserKeymap } from '../../input/useUserKeymap';
@@ -9,15 +9,15 @@ import { Panel } from '../primitives/Panel';
 import { NeedManuscript } from '../layout/NeedManuscript';
 import type { DrawerTab } from './drawer/drawerTabs';
 import { STRIP_MIN_WIDTH } from './drawer/drawerTabs';
+import { useWindowWidth } from './drawer/useDrawer';
 import { EditingPageProvider } from './script/EditingPageState';
-import { StripRoot } from './strip/TimelineStrip';
 import { DawOffBanner } from './page/DawOffBanner';
 import { EditingBody, type DeepLink, type PanelsState } from './page/EditingBody';
 import { EditingHeader } from './page/EditingHeader';
 import { useChapterSource } from './page/useChapterSource';
 import { useDawStatus } from './page/useDawStatus';
 
-/** At or below this width of the page root the legend is short and the drawer lies over the text (the mock's `layout.medium`). */
+/** At or below this window width the legend is short and the drawer lies over the text (the mock's `layout.medium`). */
 const COMPACT_MAX_WIDTH = 1280;
 
 /** A chapter named as the manuscript heads it, label then title ("CHAPTER VIII. The Queen's Croquet-Ground"), as the mock's `chName`. */
@@ -43,21 +43,6 @@ export interface EditingPageProps {
   onChapter?: (id: string) => void;
   /** Opens the import flow, from the need-a-manuscript state. */
   onImport?: () => void;
-}
-
-/** The width of the page root, read by a ResizeObserver (once without one). */
-function useWidth(root: RefObject<HTMLElement | null>): number {
-  const [width, setWidth] = useState(0);
-  useLayoutEffect(() => {
-    const el = root.current;
-    if (!el) return;
-    setWidth(el.getBoundingClientRect().width);
-    if (typeof ResizeObserver === 'undefined') return;
-    const ro = new ResizeObserver((entries) => setWidth(entries[0]?.contentRect.width ?? 0));
-    ro.observe(el);
-    return () => ro.disconnect();
-  }, [root]);
-  return width;
 }
 
 /** The strip and the drawer: page state that a chapter change keeps. */
@@ -93,8 +78,7 @@ function EditingLoaded({ chapterId: asked, passageId, findingId, t, drawer, onCh
   const keymap = useUserKeymap();
   const daw = useDawStatus();
   const panels = usePanels(drawer);
-  const root = useRef<HTMLElement>(null);
-  const width = useWidth(root);
+  const width = useWindowWidth();
   const [chapters, setChapters] = useState<ManuscriptChapter[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [chosen, setChosen] = useState<string | undefined>(asked);
@@ -140,8 +124,8 @@ function EditingLoaded({ chapterId: asked, passageId, findingId, t, drawer, onCh
 
   return (
     <CommandScope kind="page">
-      <section ref={root} aria-label="Script editor" className="flex h-full min-h-0 flex-col">
-        <StripRoot className="flex h-full min-h-0 flex-col">
+      <section aria-label="Script editor" className="flex h-full min-h-0 flex-col">
+        <div className="flex h-full min-h-0 flex-col">
           {error ? (
             <p role="alert" className="p-4 text-sm text-[var(--danger-text)]">
               {error}
@@ -165,7 +149,7 @@ function EditingLoaded({ chapterId: asked, passageId, findingId, t, drawer, onCh
               <p className="text-sm text-[var(--text-muted)]">Import a manuscript with at least one narration chapter first.</p>
             </Panel>
           ) : null}
-        </StripRoot>
+        </div>
       </section>
     </CommandScope>
   );

@@ -7,11 +7,11 @@ import type { Journal } from '../../../studio/journal/createJournal';
 import { useDawKind } from '../../../useDawKind';
 import { applyCleanupCommand, outcomeSentence, previewOf, type CleanupDeps, type CleanupPreview } from './cleanupApply';
 import { initialParams, opSpec, type CleanupKind, type CleanupParams, type Level, type ParamKey } from './cleanupOps';
-import { countsOf, noiseFloorOf, proposals, selectedRows } from './cleanupRows';
+import { countsOf, noiseFloorOf, proposals, selectedRows, type CleanupRow } from './cleanupRows';
 import { CleanupHeader } from './CleanupHeader';
 import { CleanupInspector } from './CleanupInspector';
 import { CleanupList } from './CleanupList';
-import { usePreviewPlay, type PreviewPlayback } from './usePreviewPlay';
+import { NO_PLAYBACK, usePreviewPlay, windowOf, type PreviewPlayback } from './usePreviewPlay';
 
 const NO_TRIM = 'The DAW cannot trim ranges here yet.';
 
@@ -121,7 +121,16 @@ export function CleanupTab({ chapterId, journal, deps, playback }: CleanupTabPro
           {readError}
         </p>
       ) : null}
-      <CleanupList kind={op} rows={rows} params={params[op]} skip={skip} onToggle={(k, c) => toggle([k], c)} onToggleAll={toggle} />
+      <CleanupList
+        kind={op}
+        rows={rows}
+        params={params[op]}
+        skip={skip}
+        onToggle={(k, c) => toggle([k], c)}
+        onToggleAll={toggle}
+        playReason={NO_PLAYBACK}
+        {...(playback ? { onPlay: (r: CleanupRow) => playback.playFrom(...windowOf(r)) } : {})}
+      />
       <CleanupInspector
         kind={op}
         params={params[op]}

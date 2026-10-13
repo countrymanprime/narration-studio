@@ -10,7 +10,7 @@ import type { ScriptPlayback } from './useScriptPlayback';
  * The bar at the foot of the script: transport, what is selected, and what the selection can do. The actions are whatever the other slices
  * registered (`registerSelectionAction`); with none registered the right-hand side is empty. `end` is the chapter's length in seconds.
  */
-export function SelectionBar({ playback, end }: { playback: ScriptPlayback; end: number }) {
+export function SelectionBar({ playback, end, narrow = false }: { playback: ScriptPlayback; end: number; narrow?: boolean }) {
   const { doc, state, selected } = useEditingPage();
   const actions = useSelectionActions('bar');
   const keys = state.sel ? selected : [];
@@ -65,7 +65,7 @@ export function SelectionBar({ playback, end }: { playback: ScriptPlayback; end:
       <div className="flex flex-none items-center gap-2">
         {actions.map((a) => (
           <span key={a.id} className="contents">
-            {a.render({ doc, keys, summary, allCut })}
+            {a.render({ doc, keys, summary, allCut, place: 'bar', narrow })}
           </span>
         ))}
       </div>
