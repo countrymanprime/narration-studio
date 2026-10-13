@@ -1,7 +1,7 @@
 import type { DawResult } from '../../../api/contracts/daw';
 import type { DawClient } from '../../../ports/daw';
 import type { Result } from '../../../studio/journal/createJournal';
-import type { Range } from '../model';
+import type { ChapterDoc, Range } from '../model';
 import { tokensOf, type RangeLocator } from '../range/common/locate';
 import { beforeCut, type BeforeCutStep } from '../range/cut/cutCommand';
 import { beforeFx, type BeforeFxStep } from '../range/fx/fxCommand';
@@ -45,6 +45,15 @@ function spanOf(locator: RangeLocator, ranges: readonly Range[]): BackupTokens |
   return all.length ? { firstToken: Math.min(...all.map((t) => t.firstToken)), lastToken: Math.max(...all.map((t) => t.lastToken)) } : null;
 }
 
+/** The tokens of the script words heard (now) inside a span of seconds, first to last, or null when none is (a stack's region). */
+export function tokensIn({ doc, locator }: { doc: ChapterDoc; locator: RangeLocator }, span: { start: number; end: number }): BackupTokens | null {
+  const tokens = doc.items
+    .filter((i) => i.t0 !== null && i.t1 !== null && i.t1 > span.start && i.t0 < span.end)
+    .map((i) => locator.token(i.key))
+    .filter((t): t is number => t !== undefined);
+  return tokens.length ? { firstToken: Math.min(...tokens), lastToken: Math.max(...tokens) } : null;
+}
+
 const STEP = 'Back up the audio';
 
 /** The backup step for a delete: one clone around every range of the cut. */
@@ -79,8 +88,7 @@ function drop<T>(list: T[], step: T): void {
 /**
  * Puts the backup step in the delete, effect and stack slots, so a DAW that changes the audio itself backs it up before each of them, and
  * returns the function that takes them out again. The page that mounts the editor calls it once with its DAW client and the places of its
- * words; nothing calls it yet (the page stays unrouted until the Editing swap, #1305). The prep steps (#1271) and the split have no slot
- * that takes it yet.
+ * words (`EditingBody`). The prep steps (#1271) and the split have no slot that takes it yet.
  */
 export function installBackupSteps(daw: BackupDaw, places: BackupPlaces): () => void {
   const cut = cutBackupStep(daw, places);

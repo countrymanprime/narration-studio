@@ -205,9 +205,9 @@ export function useFxWords({ journal, chapterId, chapterName, effects, cuts, loc
     if (at) openMenu(at);
   }, [selected, doc, docCuts, refusalOf, openMenu]);
 
-  const latest = useRef({ openMenu, refusalOf, itemsOf, selected });
+  const latest = useRef({ openMenu, refusalOf, itemsOf, selected, effects, remove });
   useEffect(() => {
-    latest.current = { openMenu, refusalOf, itemsOf, selected };
+    latest.current = { openMenu, refusalOf, itemsOf, selected, effects, remove };
   });
   useEffect(() => {
     const removers = [
@@ -221,6 +221,15 @@ export function useFxWords({ journal, chapterId, chapterName, effects, cuts, loc
       registerWordMenuSection({
         order: 90,
         items: ({ keys, summary }) => (summary.items.length > 0 && summary.items.every((i) => i.cut) ? [] : latest.current.itemsOf(keys, summary)),
+      }),
+      // "Remove <chain>" for the first effect on the selected words, as the mock's menu has it.
+      registerWordMenuSection({
+        order: 105,
+        items: ({ summary }) => {
+          const id = summary.items.map((i) => i.fx[0]).find((x) => x !== undefined);
+          const on = id === undefined ? undefined : latest.current.effects.find((f) => f.id === id);
+          return on ? [{ key: 'fx-remove', label: `Remove ${on.chainName}`, onSelect: () => void latest.current.remove(on) }] : [];
+        },
       }),
     ];
     return () => removers.forEach((off) => off());

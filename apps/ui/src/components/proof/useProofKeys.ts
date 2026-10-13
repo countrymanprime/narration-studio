@@ -8,11 +8,11 @@ export const DECISIONS = { pickup: 'Needs pickup', edit: 'Fix in edit', waive: '
 /** A dialog, menu or popover is showing: Escape is theirs. */
 const layerOpen = () => document.querySelector('[role="dialog"], [role="alertdialog"], [role="menu"]') !== null;
 
-/** Presses the Inspector's control that is named `name` (its text or its label), unless it is off. */
+/** Presses the Inspector's control whose text or label starts with `name` ("Show in " for "Show in REAPER"), unless it is off. */
 export function press(name: string): void {
   const inspector = document.querySelector('aside[aria-label="Note"]');
   const button = [...(inspector?.querySelectorAll<HTMLButtonElement>('button') ?? [])].find(
-    (b) => b.getAttribute('aria-label') === name || b.textContent?.startsWith(name),
+    (b) => b.getAttribute('aria-label')?.startsWith(name) || b.textContent?.startsWith(name),
   );
   if (button && !button.disabled && button.getAttribute('aria-disabled') !== 'true') button.click();
 }

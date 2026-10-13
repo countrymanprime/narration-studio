@@ -7,6 +7,7 @@ import { EnginePanelProvider } from '../engine/EnginePanelContext';
 import { providedCommands } from '../../input/commandProviders';
 import { contextItemsFor } from '../../registries/context';
 import { overlay } from '../../overlay/overlayService';
+import { createJournal } from '../../studio/journal/createJournal';
 import { createMockDawClient, type DawClient } from '../../ports/daw';
 import type { NarrationApi } from '../../types';
 import { clock } from './bar/clock';
@@ -340,6 +341,18 @@ describe('EditingPage', () => {
     expect(drawerButton()).toBeTruthy();
   });
 
+  it('measures the window, not the page beside the rail, as the mock does', async () => {
+    // A 1440 window leaves the page root about 1150 wide; the mock still draws the full legend and the strip toggle.
+    vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockImplementation(function (this: HTMLElement) {
+      const w = this === document.documentElement ? 1440 : 1150;
+      return { width: w, height: 800, top: 0, left: 0, right: w, bottom: 800, x: 0, y: 0, toJSON: () => ({}) };
+    });
+    mount();
+    await script();
+    expect(await screen.findByRole('button', { name: 'Timeline' })).toBeTruthy();
+    expect(document.querySelector('[data-legend="extra"]')!.textContent).toBe('Not in the script · 1');
+  });
+
   it('below 1360, S opens the drawer on Timeline and closes it again', async () => {
     width = 1280;
     mount();
@@ -542,6 +555,135 @@ describe('EditingPage', () => {
       await script();
       expect(screen.getByRole('toolbar', { name: 'Playback and selection' })).toBeTruthy();
       expect(screen.getByRole('note', { name: 'Keyboard shortcuts' })).toBeTruthy();
+    });
+  });
+
+  describe('the controls reach the host', () => {
+    it("the word menu's Play selection plays the words", async () => {
+      mount();
+      await script();
+      fireEvent.mouseDown(word('p1:0'), { button: 0 });
+      fireEvent.contextMenu(word('p1:0'));
+      const menu = await screen.findByRole('menu');
+      fireEvent.click(within(menu).getByRole('menuitem', { name: /^Play selection/ }));
+      await waitFor(() => expect(audios.some((a) => a.play.mock.calls.length > 0)).toBe(true));
+    });
+
+    it("Clean up's Preview plays through the page's playback", async () => {
+      const breath = finding({ id: 'b1', start: 2, end: 2.4, cls: 'breath', db: -22 });
+      mount({ drawer: 'cleanup', api: { findingsList: async () => ({ findings: [breath], total: 1 }), editingCandidates: async () => [breath] } });
+      await script();
+      const drawer = document.querySelector<HTMLElement>('#drawer')!;
+      fireEvent.click(await within(drawer).findByRole('button', { name: /^Breaths/ }));
+      fireEvent.click(within(drawer).getByRole('button', { name: 'Preview' }));
+      expect(within(drawer).queryByText(/this page has no playback/)).toBeNull();
+      await waitFor(() => expect(audios.some((a) => a.play.mock.calls.length > 0)).toBe(true));
+    });
+
+    it("the toolbar's Takes of this line opens the line's takes", async () => {
+      mount({ chapterId: 'c1' });
+      await script();
+      await waitFor(() => expect(document.querySelector('[data-tchip="p1"]')).not.toBeNull());
+      expect(document.querySelector('[data-tchip="p1"]')!.getAttribute('aria-expanded')).toBe('false');
+      fireEvent.mouseDown(word('p1:1'), { button: 0, detail: 2 });
+      const toolbar = await screen.findByRole('toolbar', { name: 'Selection' });
+      fireEvent.click(await within(toolbar).findByRole('button', { name: 'Takes of this line' }));
+      await waitFor(() => expect(document.querySelector('[data-tchip="p1"]')!.getAttribute('aria-expanded')).toBe('true'));
+    });
+
+    it("the takes footer's Show in the DAW moves the DAW to the line", async () => {
+      const goTo = vi.fn(async () => ({ outcome: 'navigated' as const, projectTime: 65 }));
+      const toast = vi.spyOn(overlay, 'toast');
+      mount({ chapterId: 'c1', passageId: 'ps-1', api: { workspaceGoTo: goTo } as never });
+      await script();
+      const footer = await waitFor(() => {
+        const el = document.querySelector<HTMLElement>('[data-takes="p1"] [data-takes-footer]');
+        expect(el).not.toBeNull();
+        return el!;
+      });
+      fireEvent.click(await within(footer).findByRole('button', { name: 'Show in the DAW' }));
+      await waitFor(() => expect(goTo).toHaveBeenCalledWith('c1', expect.any(Number)));
+      await waitFor(() => expect(toast).toHaveBeenCalledWith('Moved to 1:05 in the DAW.'));
+    });
+
+    it("the Clean up tab starts with the chapter's retry bar", async () => {
+      mount({ chapterId: 'c1', drawer: 'cleanup' });
+      await script();
+      const drawer = document.querySelector<HTMLElement>('#drawer')!;
+      const retries = await within(drawer).findByRole('region', { name: 'Retries' });
+      expect(within(retries).getByText(/How retries are kept/)).toBeTruthy();
+    });
+
+    it('Undo choice takes a kept take back', async () => {
+      const journal = createJournal({ dawName: () => 'the DAW', dawLastAction: async () => 'this' });
+      render(
+        <EditingHost api={pageApi()} daw={dawFor('reaper')} journal={journal}>
+          <EditingPage hasManuscript chapterId="c1" passageId="ps-1" />
+        </EditingHost>,
+      );
+      await script();
+      await waitFor(() => expect(document.querySelectorAll('[data-takes="p1"] [data-take]')).toHaveLength(2));
+      const lines = document.querySelector<HTMLElement>('[data-takes="p1"]')!;
+      const keeps = within(lines).getAllByRole('button', { name: /^Keep / });
+      fireEvent.click(keeps[keeps.length - 1]!);
+      const undo = await within(lines).findByRole('button', { name: 'Undo choice' });
+      fireEvent.click(undo);
+      await waitFor(() => expect(within(lines).queryByRole('button', { name: 'Undo choice' })).toBeNull());
+    });
+
+    it('the marker after an effect selects its words and takes it off', async () => {
+      const fx = {
+        id: 'fx-1',
+        chapterId: 'c1',
+        pid: 'p1',
+        keys: ['p1:1', 'p1:2'],
+        words: [word('p1:1')?.textContent ?? '', ''],
+        text: 'the words',
+        a: 0,
+        b: 1,
+        off0: 0,
+        off1: 1,
+        chainId: 'Warm.RfxChain',
+        chainName: 'Warm',
+        source: 'REAPER',
+        fadeMs: 10,
+        daw: 'reaper',
+        guid: 'g',
+        at: '2026-10-01T00:00:00Z',
+        paragraph: 0,
+        stale: false,
+        bypassed: false,
+      };
+      const removeFx = vi.fn(async () => ({ chapterId: 'c1', effects: [] }));
+      mount({ api: { editingWordFxList: async (chapterId: string) => ({ chapterId, effects: [fx] }), editingWordFxRemove: removeFx } as never });
+      await script();
+      const [marker] = await within(await script()).findAllByRole('button', { name: 'Warm on the words. Options' });
+      // The word menu offers to take it off too.
+      fireEvent.contextMenu(word('p1:1'));
+      expect(within(await screen.findByRole('menu')).getByRole('menuitem', { name: 'Remove Warm' })).toBeTruthy();
+      fireEvent.keyDown(document.activeElement ?? document.body, { key: 'Escape' });
+      await waitFor(() => expect(screen.queryByRole('menu')).toBeNull());
+      fireEvent.click(marker!);
+      fireEvent.click(await screen.findByRole('menuitem', { name: 'Select the words' }));
+      await waitFor(() => expect(word('p1:1').hasAttribute('data-sel')).toBe(true));
+      fireEvent.click(marker!);
+      fireEvent.click(await screen.findByRole('menuitem', { name: 'Remove the effect' }));
+      await waitFor(() => expect(removeFx).toHaveBeenCalled());
+    });
+
+    it('a DAW that edits in steps backs the words up before a cut', async () => {
+      const base = dawFor('audacity-backups');
+      const backupAround = vi.fn(base.backupAround);
+      mount({ daw: { ...base, backupAround } });
+      await script();
+      fireEvent.mouseDown(word('p1:0'), { button: 0 });
+      press('Delete');
+      const dialog = await screen.findByRole('dialog');
+      const go = within(dialog).getByRole('button', { name: /^Delete/ });
+      await waitFor(() => expect(go.getAttribute('aria-disabled')).not.toBe('true'));
+      fireEvent.click(go);
+      await waitFor(() => expect(backupAround).toHaveBeenCalledTimes(1));
+      expect(backupAround.mock.calls[0]![0]).toMatchObject({ chapterId: expect.any(String), firstToken: expect.any(Number) });
     });
   });
 

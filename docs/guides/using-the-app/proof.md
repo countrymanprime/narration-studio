@@ -27,8 +27,9 @@ first chapter until you have looked at one). The chapter is in the page's addres
 back to All chapters.
 
 On the right of the title, a ring and two counters say how far the notes in view have got: **12 of 14 cleared · 13
-decided**, for example. A note is cleared once it is fixed, waived or dismissed; a deferred note, or one waiting for its
-pickup, is decided but still open, so the ring cannot fill while a pickup is open.
+decided**, for example. A note is cleared once it is waived; a deferred note, or one waiting for its pickup, is decided
+but still open. A pickup on the [Pickups](pickups.md) list that no note stands for (a gap the recording check found, or a
+line you added) also keeps the ring from filling while it is open.
 
 ### All chapters
 
@@ -49,8 +50,8 @@ A chapter shows its **Recording check** card and its recording:
   decision: **Accept** turns one into a note with that decision, and **Ignore** keeps it out of your notes and is
   remembered.
 - The waveform window draws the chapter's recording with a pin at each note that has a time. Press a pin to select its
-  note. Zoom in and out, or drag the window's edges, to see more or less of the chapter; the window follows the selected
-  note.
+  note. It opens on a minute of the chapter; zoom in and out, or drag the window's edges, to see more or less of it. The
+  window follows the selected note.
 - When the selected note's spot has more than one take, the take that plays is a band on the waveform and the others sit
   in lanes under it.
 
@@ -67,18 +68,21 @@ A chapter with no recording yet says **No recording for this chapter yet** where
 The notes panel lists the notes in view, **Notes · 14** for example, with:
 
 - chips that narrow the list: **All**, **To review**, **Open**, **Pickups** and **Decided**, each with its count;
-- **In view**, on one chapter while the waveform window shows only part of it, to list only the notes in the window;
+- **In view**, on one chapter while the waveform window shows only part of it. It starts on, so the list keeps to the
+  notes in the window; press it to list the whole chapter;
 - the sort: **By time**, **By confidence** (lowest first, so the least certain come up first) or **By severity** (most
   serious first);
-- **Find in notes** (Ctrl+F), which keeps only the notes whose text matches what you type; Esc closes it;
 - **Check recordings…**, the same check the card runs, starting with the chapter in view;
+- **Find in notes** (Ctrl+F), which keeps only the notes whose text matches what you type; Esc closes it;
 - **Import proofer sheet** and **Export for proofer**: the proofer's CSV sheet. Import adds each row as a pickup marker in
-  the DAW and says how many rows it skipped; Export saves the pickups still open as `pickups-for-proofer.csv` for the
-  proofer. Both need the DAW.
+  the DAW and, when the DAW has answered, says how many pickups it added, how many were there already and how many rows
+  it skipped. Export saves the pickups still open as `pickups-for-proofer.csv` and says how many it wrote. Both need the
+  DAW.
 
-Under them, **Sources** names the checks the notes in view came from, with a count for each. The table lists Time, Type,
-Script vs heard, From and Resolution for every note; with All chapters it groups them by chapter, with each chapter's open
-count. A note whose spot has more than one take has a takes badge.
+Under them, **Sources** names the checks the notes came from, with a count for each, before any chip or search narrows
+the list. The table lists Time (minutes and seconds, `02:14.6`), Type, Script vs heard, From and Resolution (**To
+review**, **Needs pickup**, **Fix in edit**, **Waive** or **Defer**) for every note; with All chapters it groups them by
+chapter, with each chapter's open count. A note whose spot has more than one take has a takes badge.
 
 ![Proof - the To review chip: "Notes · 3 of 4", the waived note left out](../../images/ui/proof-notes-filtered.webp)
 
@@ -95,10 +99,15 @@ Select a note in the table, or its pin on the waveform, and the Inspector shows 
 - **Takes at this spot**, when the spot has more than one take: each take with **Play** (from its own recording, without
   the DAW) and which one is active or kept. **Manage takes in Editing** opens the chapter on
   [Editing](editing.md) with the note's words selected and the takes of its line open, where takes are chosen;
-- **Show in the DAW**, **Add marker in the DAW** (see [Going to a note in the DAW](#going-to-a-note-in-the-daw)), **Open
-  this chapter in Script** and **Open this chapter in Booth**, and **Reopen** once the note is decided;
+- **Trim the gap to 1.2 s**, on a gap note not decided yet (see [Trimming a gap](#trimming-a-gap));
+- **Show in** and **Add marker in** your DAW, each followed by your DAW's name (see [Going to a note in the
+  DAW](#going-to-a-note-in-the-daw)), **Open this chapter in Script** and **Open this chapter in Booth**, and **Reopen**
+  once the note is decided;
 - the decisions, **Needs pickup**, **Fix in edit**, **Waive** and **Defer** (keys P, E, W and D), an optional note with the
-  decision (up to 2,000 characters), and the check's confidence, or why it has none.
+  decision (up to 2,000 characters), and the check's confidence, or why it has none. Whether a note needs a pickup or a
+  fix in the edit comes from its kind: a misread or a skipped word is re-recorded, a repeat or a gap is fixed in the edit.
+  So only one of the two is on for a note, and the line under the buttons says which and why;
+- **Notes on this finding**, the conversation about the spot (see [Notes on a finding](#notes-on-a-finding)).
 
 A decision is saved at once and the next note is selected. A message says what was saved, with **Undo** to put the
 note back as it was. **Waive** says the line stays as it was read. **Reopen** puts a decided note back
@@ -110,17 +119,34 @@ hears **Now**, and keeps your note. Press **Use the new evidence**, look again a
 
 ![Proof - a decision refused because the evidence changed since the note was shown: before and now, with the typed note kept](../../images/ui/proof-evidence-changed.webp)
 
-Right-click a note in the table, or its pin, for the same actions: the four decisions, **Reopen**, **Show in the DAW**,
-and open its chapter in Script or the Booth.
+Right-click a note in the table, or its pin, for the same actions: the four decisions (the one that does not fit the note
+says why), **Reopen**, **Go to** your DAW, **Trim the gap** on a gap note, and open its chapter in Script or the Booth.
+
+## Notes on a finding
+
+Under the decision, **Notes on this finding** keeps a thread of notes on the spot: questions for yourself, or a
+proofer's replies. Choose **Proofer replied** to paste in what the proofer wrote, or **My note** for your own, type it
+and press **Add note**. Each note shows who wrote it and when; edit it with the pencil, or delete it, with **Undo** to
+bring it back where it was. The notes are kept with the project beside your decisions, are not a decision themselves,
+and stay with the note when a check runs again.
+
+![Proof - Notes on this finding: a note of your own and a proofer's reply, with Proofer replied chosen for the next](../../images/ui/proof-note-thread.webp)
+
+## Trimming a gap
+
+A note about a long pause (a gap) that is not decided yet has **Trim the gap to 1.2 s** in the Inspector and in its
+right-click menu. It shortens that one gap the way [Editing](editing.md)'s Clean up does: the extra silence goes to the
+muted Cuts track in your DAW as one change, with the DAW's own Undo, and the note is then decided **Fix in edit**. It is
+off, with the reason, when the DAW cannot cut a range or the gap is already 1.2 s or shorter.
 
 ## Going to a note in the DAW
 
-**Show in the DAW** selects the note's item in the DAW and puts the edit cursor on its spot; the Inspector says where it
-went. **Add marker in the DAW** puts one marker on the note's spot. It is off until you mark the note **Needs pickup** or
-**Fix in edit**. The marker is named like the ones a chapter's [comparison
+**Show in** your DAW selects the note's item there and puts the edit cursor on its spot; the Inspector says where it
+went. **Add marker in** your DAW puts one marker on the note's spot, whatever you decided about the note. The marker is
+named like the ones a chapter's [comparison
 export](#comparing-the-recording-with-the-script) adds, so Export markers does not add it a second time, and if the spot
-already has one nothing is added. It is the only control here that changes your project, and one Undo in the DAW removes
-it.
+already has one nothing is added. Apart from **Trim the gap**, it is the only control here that changes your project, and one Undo in
+the DAW removes it.
 
 Each follows what your DAW offers: when it does not offer one, or is not answering, the control is off and the reason is
 under the row. A note found by an older check that did not record its item cannot be placed; run the check again. When
@@ -139,7 +165,7 @@ why.
 
 The footer lists them, and you can change them in [Settings](settings.md). Space is not a Proof key.
 
-Proof has no decision history list, no thread of notes and no **Play ±3 s**. Finding the lines you recorded more than
+Proof has no decision history list and no **Play ±3 s**. Finding the lines you recorded more than
 once and comparing their takes are not on Proof: choosing a take is on [Editing](editing.md).
 
 ## Delivery checks

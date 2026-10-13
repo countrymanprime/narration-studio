@@ -1,6 +1,6 @@
 import type { DawCapabilities } from '../../../api/contracts/daw';
 
-/** The Studio Next mock's `STRIP_MIN_WIDTH`: from this width of the page root the strip fits and the timeline is not a drawer tab. */
+/** The Studio Next mock's `STRIP_MIN_WIDTH`: from this window width the strip fits and the timeline is not a drawer tab. */
 export const STRIP_MIN_WIDTH = 1360;
 
 export type DrawerTab = 'cleanup' | 'effects' | 'backups' | 'timeline';

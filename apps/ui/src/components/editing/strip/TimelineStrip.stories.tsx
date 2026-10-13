@@ -7,7 +7,7 @@ import { createMockApi } from '../../../api/mockApi';
 import { EditingPageProvider, useEditingPage } from '../script/EditingPageState';
 import { marksDoc } from '../script/scriptFixtures';
 import type { LinePassage, LineTake } from '../takes/types';
-import { StripRoot, TimelineStrip } from './TimelineStrip';
+import { TimelineStrip } from './TimelineStrip';
 
 /** A steady tone-shaped entry over `seconds`, so the bars read the same on every run. */
 function peaksOf(seconds: number): WorkspacePeaks {
@@ -53,14 +53,14 @@ function Seed({ select, playT }: { select?: [string, string]; playT?: number }) 
   return null;
 }
 
-/** `width` stands for the page root's width: the strip is offered at 1360 and wider and absent below it. */
+/** `width` is the frame's width; the page decides whether the strip is offered (from a 1360 px window). */
 function frame(width: number, node: ReactNode, seed: { select?: [string, string]; playT?: number } = {}, withPeaks = true) {
   return (
     <div style={{ width }} className="bg-[var(--surface)] text-[var(--text)]">
       <ApiProvider api={api(withPeaks)}>
         <EditingPageProvider doc={doc}>
           <Seed {...seed} />
-          <StripRoot>{node}</StripRoot>
+          {node}
         </EditingPageProvider>
       </ApiProvider>
     </div>
@@ -134,11 +134,11 @@ export const NoAudio: Story = {
   },
 };
 
-// Below 1360 the strip is not offered.
+// Below a 1360 px window the page offers the strip in the drawer's Timeline tab instead; drawn in a narrow frame it still lays out.
 export const Narrow: Story = {
   args: { passage: three, playingId: null, onPlay: () => undefined, chapterId: '5' },
   render: () => frame(1100, strip(three)),
   play: async ({ canvasElement }) => {
-    await expect(canvasElement.querySelector('#timeline')?.className).toContain('hidden');
+    await expect(canvasElement.querySelector('#timeline')?.className).not.toContain('hidden');
   },
 };

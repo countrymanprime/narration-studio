@@ -270,14 +270,14 @@
     "state": "page-top",
     "viewport": "desktop",
     "docName": "settings-appearance",
-    "caption": "Settings - the top of the page: the Recording radios with the linked DAW project, the Delivery profile select and where definitions come from"
+    "caption": "Settings - the top of the page: the Recording radios with each engine\u2019s state, the linked REAPER project, the Delivery profile and Definitions and pronunciations"
   },
   {
     "page": "settings",
-    "state": "global-manuscript",
+    "state": "manuscript",
     "viewport": "desktop",
     "docName": "settings-manuscript",
-    "caption": "Settings - the Note colour panel, with Recording check below"
+    "caption": "Settings - the Manuscript panel: when it was imported, its word count and Replace manuscript\u2026"
   },
   {
     "page": "settings",
@@ -894,5 +894,26 @@
     "viewport": "desktop",
     "docName": "settings-unsaved",
     "caption": "Settings with unsaved changes: the footer with Save and Discard"
+  },
+  {
+    "page": "settings",
+    "state": "reader-text",
+    "viewport": "desktop",
+    "docName": "settings-reader-text",
+    "caption": "Settings - Reader text: font, size, line spacing and column width over the preview quote, then the Marks"
+  },
+  {
+    "page": "settings",
+    "state": "analysis-tools",
+    "viewport": "desktop",
+    "docName": "settings-analysis-tools",
+    "caption": "Settings - Story Bible analysis: the four optional tools, each Not available yet with its reason, and Offer better analysis when scanning"
+  },
+  {
+    "page": "proof",
+    "state": "note-thread",
+    "viewport": "desktop",
+    "docName": "proof-note-thread",
+    "caption": "Proof - Notes on this finding: a note of your own and a proofer's reply, with Proofer replied chosen for the next"
   }
 ]

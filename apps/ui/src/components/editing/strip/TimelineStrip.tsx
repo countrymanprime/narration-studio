@@ -1,4 +1,4 @@
-import { useMemo, useRef, type PointerEvent as ReactPointerEvent, type ReactNode } from 'react';
+import { useMemo, useRef, type PointerEvent as ReactPointerEvent } from 'react';
 import { Button } from '../../primitives/Button';
 import { StatusBadge } from '../../primitives/StatusBadge';
 import { useEditingPage } from '../script/EditingPageState';
@@ -9,31 +9,17 @@ import { MiniWave } from '../takes/MiniWave';
 import type { LinePassage, LineTake } from '../takes/types';
 import { stripLayout, wordAtTime } from './stripLayout';
 
-/**
- * The strip is offered at the Studio Next mock's `STRIP_MIN_WIDTH`, 1360 px, measured on the page root (a container query, not the window). The
- * root carries `@container`; everything the width decides carries these classes.
- */
-const STRIP_ROOT = '@container';
-export const STRIP_OFFERED = 'hidden @min-[1360px]:block';
-
 const mono = "font-['IBM_Plex_Mono',ui-monospace,monospace]";
 const pct = (t: number, t0: number, t1: number): string => `${(((t - t0) / (t1 - t0)) * 100).toFixed(2)}%`;
 const clock = (t: number): string => `${Math.floor(t / 60)}:${(t % 60).toFixed(1).padStart(4, '0')}`;
 
-/** The header button that shows and hides the strip. Not rendered below 1360 px of the page root. */
+/** The header button that shows and hides the strip. The page offers it from a 1360 px window (`useStripFits`), as the mock does. */
 export function StripToggle({ open, onToggle }: { open: boolean; onToggle: () => void }) {
   return (
-    <span className={STRIP_OFFERED}>
-      <Button variant="secondary" size="sm" id="striptoggle" aria-pressed={open} aria-keyshortcuts="S" onClick={onToggle}>
-        Timeline
-      </Button>
-    </span>
+    <Button variant="secondary" size="sm" id="striptoggle" aria-pressed={open} aria-keyshortcuts="S" onClick={onToggle}>
+      Timeline
+    </Button>
   );
-}
-
-/** Puts the `@container` root around the page the strip and its toggle sit in. */
-export function StripRoot({ children, className = '' }: { children: ReactNode; className?: string }) {
-  return <div className={`${STRIP_ROOT} ${className}`}>{children}</div>;
 }
 
 export interface TimelineStripProps {
@@ -84,7 +70,7 @@ export function TimelineStrip({ passage, hidden, starts = {}, playingId, onPlay,
   );
   // The drawer stacks a take's name over its badge, so the column is as wide as the longest name ("Retake on lane 2") on one line.
   const labelWidth = inDrawer ? 'w-[7.5rem]' : 'w-24';
-  const region = `${inDrawer ? '' : STRIP_OFFERED} border-t border-[var(--border)] bg-[var(--surface)] text-[var(--text)]`;
+  const region = `border-t border-[var(--border)] bg-[var(--surface)] text-[var(--text)]`;
   if (!layout || !base) {
     return (
       <section id="timeline" aria-label="Waveform and takes, following the line the cursor is on" className={region}>

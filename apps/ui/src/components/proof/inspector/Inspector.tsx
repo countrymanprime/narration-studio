@@ -3,17 +3,19 @@ import { MAX_REVIEW_NOTE_LENGTH, shownFindingNoteType } from '../../../api/contr
 import type { Finding, FindingReviewStatus } from '../../../types';
 import { Field } from '../../primitives/Field';
 import { SectionLabel } from '../../primitives/SectionLabel';
-import { categoryLabel, formatTime } from '../findingFormat';
+import { categoryLabel, noteTime } from '../findingFormat';
 import { fixKindOf, savedMessage } from '../resolution';
 import { DecisionButtons } from './DecisionButtons';
 import { EvidenceChangedBanner } from './EvidenceChangedBanner';
+import { FindingThread, type FindingThreadApi } from './FindingThread';
 import { evidenceQuotes, parseMarkup, type MarkupNode } from './evidenceQuotes';
 import { InspectorActions, type InspectorActionsApi } from './InspectorActions';
 import { NoteSteps } from './NoteSteps';
+import { TrimGap, trimmableGap } from './TrimGap';
 import { useShownEvidence, type InspectorApi } from './useShownEvidence';
 
-/** What the Inspector asks of the host: the two reads of `useShownEvidence` and the Go to of the icon row. */
-export type InspectorHostApi = InspectorApi & InspectorActionsApi;
+/** What the Inspector asks of the host: the two reads of `useShownEvidence`, the Go to of the icon row and the thread's changes. */
+export type InspectorHostApi = InspectorApi & InspectorActionsApi & FindingThreadApi;
 
 /** The counter shows only for the last stretch of the note's limit. */
 const COUNTER_FROM = MAX_REVIEW_NOTE_LENGTH - 100;
@@ -103,7 +105,7 @@ export function Inspector({
     <aside aria-label="Note" className="flex flex-col gap-3">
       <div className="flex items-center gap-2">
         <h2 className="font-['IBM_Plex_Mono',ui-monospace,monospace] text-base font-semibold">
-          {shown.time_range ? formatTime(shown.time_range.start) : categoryLabel(shown.category)}
+          {shown.time_range ? noteTime(shown.time_range.start) : categoryLabel(shown.category)}
         </h2>
         {typeControl ?? <span className="text-sm text-[var(--text-muted)]">{shownFindingNoteType(shown)}</span>}
         <span className="flex-1" />
@@ -117,6 +119,7 @@ export function Inspector({
         </div>
       )}
       {spot}
+      {trimmableGap(shown) && <TrimGap finding={shown} inert={inert} onTrimmed={() => void decide('accepted')} />}
       <InspectorActions
         finding={shown}
         api={api}
@@ -146,6 +149,7 @@ export function Inspector({
       <p className="text-sm text-[var(--text-muted)]" title={shown.confidence == null ? shown.confidence_reason : undefined}>
         {shown.confidence == null ? `No confidence: ${shown.confidence_reason || 'the check gave none.'}` : `Confidence ${shown.confidence.toFixed(2)}`}
       </p>
+      <FindingThread finding={shown} api={api} onChanged={(next) => onChanged(next, false)} />
     </aside>
   );
 }

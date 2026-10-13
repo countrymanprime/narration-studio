@@ -4,9 +4,9 @@ import type { CleanupRow } from './cleanupRows';
 /** How many of the selected findings Preview plays. */
 const PREVIEW_COUNT = 3;
 /** Seconds of the recording heard before and after each finding. */
-const PREVIEW_AROUND = 2;
+export const PREVIEW_AROUND = 2;
 /** What Preview says when the page lends no playback. */
-const NO_PLAYBACK = 'Nothing can play here: this page has no playback.';
+export const NO_PLAYBACK = 'Nothing can play here: this page has no playback.';
 
 /** The part of the page's playback Preview calls: the one the take's Play uses. */
 export interface PreviewPlayback {
@@ -28,7 +28,7 @@ export interface PreviewPlay {
 }
 
 /** The window a finding plays: its start and end, widened by `PREVIEW_AROUND` seconds, never before the chapter begins. */
-const windowOf = (row: CleanupRow): [number, number] => [Math.max(0, row.sec - PREVIEW_AROUND), row.end + PREVIEW_AROUND];
+export const windowOf = (row: CleanupRow): [number, number] => [Math.max(0, row.sec - PREVIEW_AROUND), row.end + PREVIEW_AROUND];
 
 /**
  * Plays the first `PREVIEW_COUNT` of the rows in order, one `playFrom` each, the next when the page's playback goes quiet. Stop, and

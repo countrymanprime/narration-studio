@@ -10,7 +10,7 @@ export interface EditingHeaderProps {
   /** What is marked (the legend), or the "Not transcribed yet" pill; nothing while the chapter loads. */
   legend: ReactNode;
   strip: { open: boolean; toggle: () => void };
-  /** The strip fits beside the text: its button is offered (the button also hides itself below 1360 px of the page root). */
+  /** The strip fits beside the text: its button is offered (the button also hides itself below a 1360 px window). */
   stripFits: boolean;
   drawerOpen: boolean;
   onDrawer: () => void;
@@ -30,7 +30,7 @@ export function EditingHeader({ stepper, legend, strip, stripFits, drawerOpen, o
         {stripFits ? <StripToggle open={strip.open} onToggle={strip.toggle} /> : null}
         <TooltipTarget text="Clean up and effects (Ctrl+Shift+C)">
           <IconButton
-            action="sidePanel"
+            action="cleanUpAndEffects"
             label="Clean up and effects"
             id="drawertoggle"
             aria-pressed={drawerOpen}

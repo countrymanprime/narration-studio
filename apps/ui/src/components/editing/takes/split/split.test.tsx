@@ -13,7 +13,8 @@ import { createJournal, type Journal } from '../../../../studio/journal/createJo
 import { FlagCard } from '../../flags/FlagCard';
 import { registerFlagAction } from '../../flags/flagActions';
 import { marksDoc } from '../../script/scriptFixtures';
-import type { ChapterDoc } from '../../model';
+import { summarize, type ChapterDoc } from '../../model';
+import { buildWordMenu } from '../../menu/wordMenuRegistry';
 import { TakeLines } from '../TakeLines';
 import { singleTakePassage } from '../takeFixtures';
 import { SplitConfirmBody } from './SplitConfirm';
@@ -110,6 +111,23 @@ describe('card-answers-split-leave-delete', () => {
     await waitFor(() => expect(calls).toEqual(['splitTake t-12 621.2']));
     expect(deleteWords).toHaveBeenCalledTimes(1);
     off();
+  });
+});
+
+describe('the word menu offers Split into takes', () => {
+  it('on a line whose one take reads it twice, and splits from it', async () => {
+    mount();
+    await flush();
+    const doc = dupDoc();
+    const keys = ['p-2:0'];
+    const menu = buildWordMenu({ doc, keys, summary: summarize(doc, keys, [], (t) => t), play: vi.fn(), notify: vi.fn() });
+    const item = menu.groups.flat().find((i) => i.key === 'split-takes');
+    expect(item?.label).toBe('Split into takes');
+    act(() => item!.onSelect());
+    await waitFor(() => expect(calls).toEqual(['splitTake t-12 621.2']));
+    const other = ['p-1:0'];
+    const none = buildWordMenu({ doc, keys: other, summary: summarize(doc, other, [], (t) => t), play: vi.fn(), notify: vi.fn() });
+    expect(none.groups.flat().some((i) => i.key === 'split-takes')).toBe(false);
   });
 });
 

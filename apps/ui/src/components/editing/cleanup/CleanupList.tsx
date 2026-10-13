@@ -1,12 +1,18 @@
 import { Checkbox } from '../../primitives/Checkbox';
+import { IconButton } from '../../primitives/IconButton';
+import { StatusBadge } from '../../primitives/StatusBadge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../primitives/Table';
 import { clock } from '../bar/clock';
 import { actionText, measureText, opSpec, type CleanupKind, type CleanupParams } from './cleanupOps';
 import { selectedRows, type CleanupRow } from './cleanupRows';
+import { PREVIEW_AROUND } from './usePreviewPlay';
 
 const NO_FINDINGS = 'No finding passes these thresholds.';
 
-/** The findings of the chosen operation in time order, each with the fix the page proposes; a done one is struck as Fixed. */
+/**
+ * The findings of the chosen operation in time order, each with its kind, the fix the page proposes and Play (the finding with two seconds
+ * either side); a done one is marked Fixed. Without `onPlay`, Play is off with `playReason`.
+ */
 export function CleanupList({
   kind,
   rows,
@@ -14,6 +20,8 @@ export function CleanupList({
   skip,
   onToggle,
   onToggleAll,
+  onPlay,
+  playReason,
 }: {
   kind: CleanupKind;
   rows: readonly CleanupRow[];
@@ -21,6 +29,8 @@ export function CleanupList({
   skip: readonly string[];
   onToggle: (key: string, on: boolean) => void;
   onToggleAll: (keys: string[], on: boolean) => void;
+  onPlay?: (row: CleanupRow) => void;
+  playReason?: string;
 }) {
   if (!rows.length) return <p className="m-0 p-3 text-[var(--text-muted)]">{NO_FINDINGS}</p>;
   const open = rows.filter((r) => !r.done);
@@ -45,8 +55,10 @@ export function CleanupList({
         <TableHead>
           <TableRow>
             <TableHeader align="left">Time</TableHeader>
+            <TableHeader align="left">Kind</TableHeader>
             <TableHeader align="left">Measured</TableHeader>
             <TableHeader align="left">Proposed</TableHeader>
+            <TableHeader align="left" hiddenLabel="Play" />
           </TableRow>
         </TableHead>
         <TableBody>
@@ -57,10 +69,21 @@ export function CleanupList({
                   <span data-row={r.key}>{clock(r.sec)}</span>
                 </Checkbox>
               </TableCell>
+              <TableCell>{opSpec(kind).noun[0]}</TableCell>
               <TableCell numeric align="left">
                 {measureText(kind, r)}
               </TableCell>
-              <TableCell>{r.done ? <span className="text-[var(--text-muted)]">Fixed</span> : actionText(kind, params)}</TableCell>
+              <TableCell>{r.done ? <StatusBadge tone="success" label="Fixed" /> : actionText(kind, params)}</TableCell>
+              <TableCell>
+                <IconButton
+                  action="play"
+                  size="sm"
+                  label={`Play ${clock(r.sec)} with ${PREVIEW_AROUND} s before and after`}
+                  data-rplay={r.key}
+                  disabledReason={onPlay ? undefined : playReason}
+                  onClick={() => onPlay?.(r)}
+                />
+              </TableCell>
             </TableRow>
           ))}
         </TableBody>

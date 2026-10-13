@@ -1,5 +1,6 @@
 # The drawer is not modal: a named complementary region beside or over the text, with its own heading and Close, the tabs on offer
 # (Clean up and Effects always, Timeline where the strip does not fit, Backups where the DAW keeps them) and the open tab's panel.
+# At the 1440 px window it is captured at, the strip fits, so there is no Timeline tab.
 - complementary "Clean up and effects":
   - heading "Clean up and effects" [level=2]
   - button "Close"
@@ -7,9 +8,9 @@
     - /children: equal
     - tab /^Clean up · \d+$/ [selected]
     - tab /^Effects · \d+$/
-    - tab "Timeline"
   - tabpanel /^Clean up/:
     - region "Found in this chapter"
+    - region "Retries"
     - region "Clean up findings":
       - group "Kind of finding"
       - group "Strength"

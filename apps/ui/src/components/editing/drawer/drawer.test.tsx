@@ -2,7 +2,7 @@
 import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import axe from 'axe-core';
-import { useRef, type ReactNode } from 'react';
+import type { ReactNode } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { ApiProvider } from '../../../api/ApiContext';
 import type { DawCapabilities } from '../../../api/contracts/daw';
@@ -13,7 +13,6 @@ import { createMockDawClient } from '../../../ports/daw';
 import { PortOverrides } from '../../../ports/usePort';
 import { EditingPageProvider } from '../script/EditingPageState';
 import { marksDoc } from '../script/scriptFixtures';
-import { StripRoot } from '../strip/TimelineStrip';
 import { Drawer } from './Drawer';
 import { DrawerLayout } from './DrawerLayout';
 import { registerDrawerSection } from './drawerSections';
@@ -37,13 +36,12 @@ const withBackups = (level: 'supported' | 'unsupported', reason?: 'turned_off'):
 
 /** Stands in for the page: it owns the drawer state, the way the Editing page will. */
 function Harness({ width, onReview = () => {}, children }: { width: number; onReview?: (k: never) => void; children?: ReactNode }) {
-  const root = useRef<HTMLDivElement>(null);
-  const fits = useStripFits(root);
+  const fits = useStripFits();
   const backups = useBackupsOffered();
   const d = useDrawerState(fits, backups);
   useDrawerCommands(d.offered, d.openTab);
   return (
-    <div ref={root} style={{ width }} className="@container" data-width={width}>
+    <div style={{ width }} data-width={width}>
       <button type="button" id="drawertoggle" onClick={d.toggle}>
         Toggle
       </button>
@@ -87,9 +85,7 @@ function mount(width: number, caps?: DawCapabilities, onReview?: (k: never) => v
     <ApiProvider api={createMockApi()}>
       <PortOverrides clients={{ daw: createMockDawClient(dawCaps) }}>
         <EditingPageProvider doc={doc}>
-          <StripRoot>
-            <Harness width={width} onReview={onReview} />
-          </StripRoot>
+          <Harness width={width} onReview={onReview} />
         </EditingPageProvider>
       </PortOverrides>
     </ApiProvider>,
@@ -169,11 +165,12 @@ describe('layout-by-width', () => {
     await open();
     const slot = document.querySelector('[data-drawer-slot]')!;
     expect(slot.className).toContain('absolute');
-    expect(slot.className).toContain('@min-[1281px]:static');
+    expect(slot.className).toContain('min-[1281px]:static');
+    expect(slot.className).not.toContain('@');
     cleanup();
     mount(1440);
     await open();
-    expect(document.querySelector('[data-drawer-open]')!.className).toContain('@min-[1281px]:grid-cols-[minmax(0,1fr)_352px]');
+    expect(document.querySelector('[data-drawer-open]')!.className).toContain(' min-[1281px]:grid-cols-[minmax(0,1fr)_352px]');
   });
 });
 

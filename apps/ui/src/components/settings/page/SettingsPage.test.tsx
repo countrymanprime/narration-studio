@@ -186,7 +186,7 @@ describe('Settings page (SN-M52)', () => {
   it('manuscript-panel-replaces-in-its-one-place: mounts ManuscriptSection unchanged', async () => {
     await renderPage();
     const manuscript = panel('Manuscript');
-    expect(await within(manuscript).findByRole('button', { name: 'Replace manuscript' })).toBeTruthy();
+    expect(await within(manuscript).findByRole('button', { name: 'Replace manuscript…' })).toBeTruthy();
     const source = readFileSync(join(__dirname, 'SettingsPage.tsx'), 'utf8');
     expect(source).toMatch(/<ManuscriptSection\b/);
   });
@@ -329,5 +329,10 @@ describe('Settings page (SN-M52)', () => {
     const source = readFileSync(join(__dirname, 'SettingsPage.tsx'), 'utf8');
     expect(source).toMatch(/max-w-\[860px\]/);
     expect(source).not.toMatch(/(?<!max-)\b(min-)?w-\[\d/);
+  });
+
+  it("the column starts at the left of the content area, as the mock's `.page` does (no auto margins)", () => {
+    const source = readFileSync(join(__dirname, 'SettingsPage.tsx'), 'utf8');
+    expect(source).not.toMatch(/\bmx-auto\b/);
   });
 });

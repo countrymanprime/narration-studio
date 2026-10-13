@@ -24,7 +24,7 @@ import {
 
 const FIGURE_SPACE = ' ';
 
-/** "Sources: <analyzer> <n> · ..." from the rows in view (the mock's `#psources` line). Nothing is drawn while there are no rows. */
+/** "Sources: <analyzer> <n> · ..." from every note in scope, before the filters (the mock's `#psources`, `sourcesOf(base)`). Nothing is drawn while there are no rows. */
 function SourcesLine({ rows }: { rows: readonly NoteRow[] }) {
   if (rows.length === 0) return null;
   return <p className="px-4 py-1.5 text-xs text-[var(--text-muted)]">Sources: {sourcesText(rows)}</p>;
@@ -48,6 +48,7 @@ export function NotesPanel({
   onSelect,
   window: win,
   badge,
+  lead,
   actions,
 }: {
   findings: readonly Finding[];
@@ -59,11 +60,14 @@ export function NotesPanel({
   /** The waveform window (SN-Q42 owns it): the "In view" chip appears only when it is narrower than the chapter. */
   window?: NoteWindow;
   badge?: (row: NoteRow) => ReactNode;
-  /** The page's icons after find in notes (mock: Check recordings, Import proofer sheet, Export for proofer). */
+  /** The page's icon between the sort and find in notes (mock: Check recordings). */
+  lead?: ReactNode;
+  /** The page's icons after find in notes (mock: Import proofer sheet, Export for proofer). */
   actions?: ReactNode;
 }) {
   const [chip, setChip] = useState<NoteChip>('all');
-  const [inView, setInView] = useState(false);
+  // On from the start, as in the mock (`winFilter: true`): the list follows the stretch the waveform shows once it is narrower than the chapter.
+  const [inView, setInView] = useState(true);
   const [findOpen, setFindOpen] = useState(false);
   const [query, setQuery] = useState('');
   const root = useRef<HTMLElement>(null);
@@ -144,6 +148,7 @@ export function NotesPanel({
         <span className="flex-1" />
         <div className="flex items-center gap-1.5">
           <Select label="Sort notes" value={sort} onChange={(value) => onSortChange(value as NoteSort)} options={NOTE_SORTS} />
+          {lead}
           {findOpen && (
             <div className="w-44">
               <SearchField
@@ -165,7 +170,7 @@ export function NotesPanel({
           {actions}
         </div>
       </div>
-      <SourcesLine rows={rows} />
+      <SourcesLine rows={base} />
       <div className="min-h-0 flex-1 overflow-auto" tabIndex={0} role="group" aria-label="Notes scroll area">
         <NotesTable
           rows={rows}

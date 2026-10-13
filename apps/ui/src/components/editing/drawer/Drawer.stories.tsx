@@ -5,7 +5,6 @@ import { ApiProvider } from '../../../api/ApiContext';
 import { createMockApi } from '../../../api/mockApi';
 import { EditingPageProvider, useEditingPage } from '../script/EditingPageState';
 import { marksDoc } from '../script/scriptFixtures';
-import { StripRoot } from '../strip/TimelineStrip';
 import { Drawer } from './Drawer';
 import { DrawerLayout } from './DrawerLayout';
 import type { LinePassage, LineTake } from '../takes/types';
@@ -39,13 +38,13 @@ const lines: LinePassage = {
 };
 const noStrip: TimelineStripProps = { passage: null, playingId: null, onPlay: () => undefined, chapterId: '5' };
 
-/** `width` stands for the page root: a column beside the text above 1280, an overlay on it at 1280 and below (mock `layout.medium`). */
+/** `width` picks the tabs (Timeline below 1360). Column or overlay follows the window, as in the mock: beside the text above 1280, over it at 1280 and below. */
 function frame(width: number, tab: DrawerTab, backups: boolean, strip: TimelineStripProps = noStrip) {
   return (
     <div style={{ width, height: 480 }} className="bg-[var(--surface)] text-[var(--text)]">
       <ApiProvider api={createMockApi()}>
         <EditingPageProvider doc={doc}>
-          <StripRoot className="h-full">
+          <div className="h-full">
             <Cursor />
             <DrawerLayout
               open
@@ -65,7 +64,7 @@ function frame(width: number, tab: DrawerTab, backups: boolean, strip: TimelineS
             >
               <p className="p-3">The text of the chapter sits here.</p>
             </DrawerLayout>
-          </StripRoot>
+          </div>
         </EditingPageProvider>
       </ApiProvider>
     </div>

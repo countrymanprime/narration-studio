@@ -119,6 +119,15 @@ func TestContractFindingsReviewBindings(t *testing.T) {
 		t.Fatal(err)
 	}
 	checkBindingContract(t, "findings-retype", retyped)
+
+	if _, err := host.FindingsThread(shown.Findings[0].ID, "add", "", "you", "Is this a misread or the room?"); err != nil {
+		t.Fatal(err)
+	}
+	threaded, err := host.FindingsThread(shown.Findings[0].ID, "add", "", "proofer", "The room: waive it.")
+	if err != nil {
+		t.Fatal(err)
+	}
+	checkBindingContract(t, "findings-thread", threaded)
 }
 
 // checkBindingContract pins a string binding's answer as the UI receives it, with the decision timestamp fixed.

@@ -11,13 +11,16 @@ const keyOf = (target: Element): string | undefined => target.closest<HTMLElemen
 
 /**
  * Registers the Editing page's one context provider while it is mounted. It matches only the words of the script, so other pages' menus are
- * untouched. A right click on a word outside the selection selects that word first; the items are always those of the whole selection.
+ * untouched. A right click on a word outside the selection selects that word first; the items are always those of the whole selection. `play`
+ * is the page's playback, which Play selection plays the words through.
  */
-export function useEditingWordMenu(): void {
+export function useEditingWordMenu(play?: (from: number, to?: number) => void): void {
   const page = useEditingPage();
   const latest = useRef(page);
+  const player = useRef(play);
   useEffect(() => {
     latest.current = page;
+    player.current = play;
   });
   useEffect(() => registerPlayAndCopySections(), []);
 
@@ -36,7 +39,8 @@ export function useEditingWordMenu(): void {
           doc,
           keys,
           summary,
-          play: (start) => dispatch({ type: 'play', t: start }),
+          // Play selection plays the words through the page's playback; without one it only moves the playing position.
+          play: (start, end) => (player.current ? player.current(start, end) : dispatch({ type: 'play', t: start })),
           notify: (text) => overlay.toast(text),
         });
         if (groups.length === 0) return [];

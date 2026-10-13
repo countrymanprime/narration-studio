@@ -4,6 +4,7 @@ import { usePort } from '../../../../ports/usePort';
 import type { Journal } from '../../../../studio/journal/createJournal';
 import { clock } from '../../bar/clock';
 import { registerFlagAction } from '../../flags/flagActions';
+import { registerWordMenuSection } from '../../menu/wordMenuRegistry';
 import { registerTakeControl } from '../takeControls';
 import { SplitButton } from './SplitButton';
 import { SplitConfirmBody } from './SplitConfirm';
@@ -83,9 +84,20 @@ export function useSplitDuplicate({ journal, splitter, resolve }: SplitOptions):
         return <SplitButton reason={refused} onSplit={() => act(passage.id)} />;
       },
     });
+    // The word menu's "Split into takes", on a line whose one take reads it twice.
+    const offMenu = registerWordMenuSection({
+      order: 310,
+      items: ({ summary }) => {
+        const pid = summary.items[0]?.pid;
+        if (pid === undefined || !latest.current.resolve(pid)) return [];
+        const refused = plan?.kind === 'refused' ? plan.reason : plan ? undefined : 'Checking what the DAW can do.';
+        return [{ key: 'split-takes', label: 'Split into takes', ...(refused ? { unavailable: refused } : {}), onSelect: () => act(pid) }];
+      },
+    });
     return () => {
       offAction();
       offControl();
+      offMenu();
     };
   }, [plan]);
 

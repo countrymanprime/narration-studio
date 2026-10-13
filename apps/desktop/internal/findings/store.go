@@ -53,9 +53,10 @@ type TypeChoice struct {
 }
 
 type reviewHistory struct {
-	SchemaVersion int          `json:"schema_version"`
-	Decisions     []Decision   `json:"decisions"`
-	Types         []TypeChoice `json:"types,omitempty"`
+	SchemaVersion int           `json:"schema_version"`
+	Decisions     []Decision    `json:"decisions"`
+	Types         []TypeChoice  `json:"types,omitempty"`
+	Thread        []ThreadEntry `json:"thread,omitempty"`
 }
 
 // Store persists analyzer findings and narrator decisions for one project.
@@ -137,11 +138,12 @@ func (s *Store) mergeScope(analyzer, scope string, fresh []Finding, markAbsent b
 	}
 	latest := latestDecisions(history.Decisions)
 	chosen := latestTypes(history.Types)
+	threads := foldThreads(history.Thread)
 
 	merged := make([]Finding, 0, len(fresh)+len(previous))
 	position := make(map[string]int, len(fresh))
 	for _, f := range fresh {
-		f = applyType(applyDecision(f, latest[f.ID]), chosen[f.ID])
+		f = applyThread(applyType(applyDecision(f, latest[f.ID]), chosen[f.ID]), threads[f.ID])
 		f.NotInLatestRun = false
 		if at, repeated := position[f.ID]; repeated {
 			merged[at] = f
@@ -154,7 +156,7 @@ func (s *Store) mergeScope(analyzer, scope string, fresh []Finding, markAbsent b
 		if _, seen := position[prior.ID]; seen {
 			continue
 		}
-		carried := applyType(applyDecision(prior, latest[prior.ID]), chosen[prior.ID])
+		carried := applyThread(applyType(applyDecision(prior, latest[prior.ID]), chosen[prior.ID]), threads[prior.ID])
 		if markAbsent {
 			carried.NotInLatestRun = true
 		}
@@ -225,8 +227,15 @@ func (s *Store) RecordDecision(id, evidenceVersion string, status Status, note, 
 	defer s.mu.Unlock()
 
 	decision := Decision{FindingID: id, EvidenceVersion: evidenceVersion, Status: status, Note: note, Timestamp: timestamp}
-	history, err := s.appendHistory(func(h *reviewHistory) { h.Decisions = append(h.Decisions, decision) })
+	history, err := s.readHistory()
 	if err != nil {
+		return Finding{}, false, err
+	}
+	// Deciding what is already decided, against the same evidence and with the same note, is not a new line (Q2 of the
+	// Proof parity note): the history records changes of mind, and the first decision keeps its time.
+	if last := latestDecisions(history.Decisions)[id]; last != nil && last.EvidenceVersion == evidenceVersion && last.Status == status && last.Note == note {
+		decision = *last
+	} else if history, err = s.appendHistory(func(h *reviewHistory) { h.Decisions = append(h.Decisions, decision) }); err != nil {
 		return Finding{}, false, err
 	}
 
@@ -237,7 +246,7 @@ func (s *Store) RecordDecision(id, evidenceVersion string, status Status, note, 
 	if path == "" {
 		return Finding{}, false, nil
 	}
-	findingsInFile[index] = applyType(applyDecision(findingsInFile[index], &decision), latestTypes(history.Types)[id])
+	findingsInFile[index] = applyThread(applyType(applyDecision(findingsInFile[index], &decision), latestTypes(history.Types)[id]), foldThreads(history.Thread)[id])
 	if err := writeJSONFile(path, findingsInFile); err != nil {
 		return Finding{}, false, err
 	}

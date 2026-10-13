@@ -24,7 +24,7 @@ describe('rows-are-findings-in-time-order', () => {
   it('builds the row from the finding', () => {
     const row = byId('a');
     expect(row).toMatchObject({
-      time: '0:12.0',
+      time: '00:12.0',
       type: 'misread',
       script: 'I could not help it',
       heard: 'I could not help myself',
@@ -111,8 +111,8 @@ describe('type-and-resolution-chips-are-words-and-shapes', () => {
       'To review',
       'Needs pickup',
       'Fix in edit',
-      'Waived',
-      'Deferred',
+      'Waive',
+      'Defer',
     ]);
   });
   it('gives the type chip room for the longest category', () => {

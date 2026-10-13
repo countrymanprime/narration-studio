@@ -1,3 +1,4 @@
+import type { WordFx } from '../../../api/contracts/wordFx';
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode, type RefObject } from 'react';
 import { usePort } from '../../../ports/usePort';
 import type { DawCapabilities } from '../../../api/contracts/daw';
@@ -55,6 +56,13 @@ import { useTakesGate } from '../takes/useTakesGate';
 import type { PlaylistSegment } from '../../proof/playlist';
 import { doubledCut, wordAt, type ChapterRead } from './chapterSource';
 import { EditingHeader } from './EditingHeader';
+import { installBackupSteps, tokensIn } from '../backups/backupBefore';
+import { FxMarkersContext } from '../range/fx/fxMarkers';
+import { registerSelectionAction } from '../bar/selectionActions';
+import { SelectionActionButton } from '../bar/SelectionActionButton';
+import { useShowInDaw } from '../takes/useShowInDaw';
+import { IconButton } from '../../primitives/IconButton';
+import { registerTakeControl } from '../takes/takeControls';
 import { InHost, rowOf } from './InHost';
 import { NoAudioBanner } from './NoAudioBanner';
 import { useLines } from './useLines';
@@ -96,9 +104,9 @@ export interface EditingBodyProps {
   onReread: () => void;
   caps: DawCapabilities | null;
   keymap: Keymap;
-  /** The page root is 1360 px or wider: the strip fits and the timeline is not a drawer tab. */
+  /** The window is 1360 px or wider: the strip fits and the timeline is not a drawer tab. */
   stripFits: boolean;
-  /** The page root is 1280 px or narrower: the legend is short and the drawer lies over the text. */
+  /** The window is 1280 px or narrower: the legend is short and the drawer lies over the text. */
   compact: boolean;
   panels: PanelsState;
   chapterStep: (d: 1 | -1) => void;
@@ -245,9 +253,20 @@ export function EditingBody(props: EditingBodyProps) {
   const cut = useCutWords({ journal, chapterId, chapterName, cuts: read.cuts, locator, onCuts: props.onCuts });
   const fx = useFxWords({ journal, chapterId, chapterName, effects: read.effects, cuts: read.cuts, locator, onEffects: props.onEffects });
   const accept = useAcceptWords({ journal, chapterId, onChange: props.onAccepted });
+  // A DAW that changes the audio itself (a cut, FX or stack capability that runs `steps`) backs the words up first.
+  const backupPlaces = useRef({ chapterId, locator, doc });
+  backupPlaces.current = { chapterId, locator, doc };
+  useEffect(
+    () =>
+      installBackupSteps(daw, {
+        locator: (id) => (id === backupPlaces.current.chapterId ? backupPlaces.current.locator : null),
+        tokensIn: (id, span) => (id === backupPlaces.current.chapterId ? tokensIn(backupPlaces.current, span) : null),
+      }),
+    [daw],
+  );
 
   // The word menu: play and copy, marks, takes.
-  useEditingWordMenu();
+  useEditingWordMenu(playback.playFrom);
   useMarkMenuSections(chapterId);
   const latest = useRef({ lines, gate, keep, setLineOpen });
   latest.current = { lines, gate, keep, setLineOpen };
@@ -261,6 +280,40 @@ export function EditingBody(props: EditingBodyProps) {
       }),
     [],
   );
+  useShowInDaw(chapterId, caps);
+  // Undo choice in the footer of a line whose take was kept here.
+  useEffect(
+    () =>
+      registerTakeControl({
+        id: 'undo-choice',
+        order: 2,
+        render: ({ passage, keptId }) =>
+          keptId !== null ? <IconButton action="undo" label="Undo choice" size="sm" onClick={() => void latest.current.keep.undoKeep(passage.id)} /> : null,
+      }),
+    [],
+  );
+  // The floating toolbar's "Takes of this line" (T), on a line with more than one take.
+  useEffect(
+    () =>
+      registerSelectionAction({
+        id: 'takes.show',
+        order: 25,
+        where: 'toolbar',
+        render: ({ doc: d, keys }) => {
+          const line = lineOfKey(d, latest.current.lines.byId, keys[0]);
+          if (!line || line.takes.length < 2) return null;
+          return (
+            <SelectionActionButton
+              icon="showTakes"
+              label="Takes of this line"
+              hint="Takes of this line (T)"
+              onClick={() => latest.current.setLineOpen(line.id, true)}
+            />
+          );
+        },
+      }),
+    [],
+  );
 
   // The drawer and its sections.
   const backups = keepsBackups(caps);
@@ -268,11 +321,19 @@ export function EditingBody(props: EditingBodyProps) {
   const tab = resolveTab(panels.drawer.want, offered);
   useDrawerCommands(offered, panels.drawer.openTab);
   const selectWords = useCallback((keys: string[]) => keys.length && dispatch({ type: 'select', anchor: keys[0], head: keys[keys.length - 1] }), [dispatch]);
+  const fxMarkers = useMemo(
+    () => ({ effects: read.effects, onSelect: (f: WordFx) => void selectWords(f.keys), onRemove: (f: WordFx) => void fx.remove(f) }),
+    [read.effects, selectWords, fx],
+  );
   const cleanupDeps = useCleanupDeps({ cuts: read.cuts, onCuts: props.onCuts });
-  useEffect(() => registerCleanupSection({ journal, ...(cleanupDeps ? { deps: cleanupDeps } : {}) }), [journal, cleanupDeps]);
+  const { playing, playFrom, stop: stopPlayback } = playback;
+  const previewPlayback = useMemo(() => ({ playing, playFrom, stop: stopPlayback }), [playing, playFrom, stopPlayback]);
+  useEffect(
+    () => registerCleanupSection({ journal, playback: previewPlayback, ...(cleanupDeps ? { deps: cleanupDeps } : {}) }),
+    [journal, cleanupDeps, previewPlayback],
+  );
   // What the inspector needs to change, bypass and compare an effect through the DAW and the history, and to hear its words through the
   // page's playback (stopped while the DAW plays a Compare).
-  const { playFrom, stop: stopPlayback } = playback;
   const { onEffects } = props;
   const effectHost = useMemo(
     () => ({ chapterId, locator, journal, effects: read.effects, onEffects, play: playFrom, stop: stopPlayback }),
@@ -390,7 +451,9 @@ export function EditingBody(props: EditingBodyProps) {
           <div className="flex h-full min-h-0 flex-col overflow-hidden rounded-[10px] border border-[var(--border)] bg-[var(--surface)]">
             <ScriptHost box={scriptBox} root={root}>
               {doc.paras.length ? (
-                <ScriptDoc reason={reason} explained={read.audio.kind !== 'ready'} />
+                <FxMarkersContext.Provider value={fxMarkers}>
+                  <ScriptDoc reason={reason} explained={read.audio.kind !== 'ready'} />
+                </FxMarkersContext.Provider>
               ) : (
                 // The page's own empty state, so its heading sits under the page's h1.
                 <div className="px-4 py-10">
@@ -399,7 +462,7 @@ export function EditingBody(props: EditingBodyProps) {
               )}
             </ScriptHost>
             {panels.strip.open && stripFits ? <TimelineStrip {...stripProps} /> : null}
-            <SelectionBar playback={playback} end={total} />
+            <SelectionBar playback={playback} end={total} narrow={compact} />
             <div className="sticky bottom-0 z-[5]">
               <KeyHints hints={hints} id="keyhints" />
             </div>

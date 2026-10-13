@@ -5,6 +5,7 @@ import { createInstallMock, installSeedFor, LOCAL_ASSETS_SEEDS } from '../assetI
 import type { AssetInstallState } from '../contracts/assets';
 import type { CoverageEngines } from '../contracts/coverage';
 import { MOCK_DICTIONARY, MOCK_DICTIONARY_DISK_SIZE, MOCK_DICTIONARY_DOWNLOAD_SIZE } from '../dictionaryMock';
+import { MOCK_ANALYSIS_TOOLS } from './analysisTools';
 import type { MockApiSeed } from './state';
 
 type AssetFactsSource = {
@@ -267,6 +268,17 @@ export function createAssetsMock(initial: MockApiSeed) {
         ...item('dictionary', 'Dictionary', { ...MOCK_DICTIONARY, downloadSize: MOCK_DICTIONARY_DOWNLOAD_SIZE }, dictionaryState, dictionaryInstall.activeId()),
         diskSize: MOCK_DICTIONARY_DISK_SIZE,
       };
+      // None is installable yet (the host's catalog pins no tool's every file), so each is listed not installed, with its reason.
+      const analysis = MOCK_ANALYSIS_TOOLS.map((tool) => ({
+        ...tool,
+        kind: 'analysis',
+        kindLabel: 'Analysis tool',
+        path: `${MOCK_ASSET_ROOT}/analysis/${tool.id}`,
+        installState: 'not_installed' as const,
+        installedAt: '',
+        verifiedAt: '',
+        activeJobId: '',
+      }));
       return {
         cacheRoot: MOCK_ASSET_ROOT,
         // Only what verifies counts: a damaged asset is not one the app can use.
@@ -275,7 +287,7 @@ export function createAssetsMock(initial: MockApiSeed) {
           (whisperInstalled && !whisperDamaged ? model.diskSize : 0) +
           (spacyInstalled ? language.diskSize : 0) +
           (dictionaryState === 'installed' ? dictionary.diskSize : 0),
-        assets: [voice, model, language, dictionary],
+        assets: [voice, model, language, dictionary, ...analysis],
       };
     },
     assetsInstall: async (kind, id) => {

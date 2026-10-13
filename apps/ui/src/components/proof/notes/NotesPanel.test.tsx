@@ -3,10 +3,7 @@ import { cleanup, fireEvent, render, screen, within } from '@testing-library/rea
 import userEvent from '@testing-library/user-event';
 import { useState } from 'react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { ApiProvider } from '../../../api/ApiContext';
-import { createMockApi } from '../../../api/mockApi';
 import { TooltipProvider } from '../../primitives/Tooltip';
-import { NotesList } from './NotesList';
 import { NotesPanel } from './NotesPanel';
 import type { NoteSort, NoteWindow } from './noteRows';
 import { notesFixture } from './testNotes';
@@ -78,20 +75,6 @@ describe('sort-changes-the-order', () => {
     expect(onSort).toHaveBeenCalledWith('severity');
     expect((screen.getByRole('option', { name: 'By severity' }) as HTMLOptionElement).selected).toBe(true);
   });
-  it('asks the host for the sort through FindingsQuery', async () => {
-    const findingsList = vi.fn(async () => ({ findings: notesFixture(), total: 5 }));
-    render(
-      <ApiProvider api={createMockApi({ findingsList })}>
-        <TooltipProvider>
-          <NotesList selectedId={null} onSelect={() => {}} />
-        </TooltipProvider>
-      </ApiProvider>,
-    );
-    await screen.findByText('Chapter 1');
-    expect(findingsList).toHaveBeenLastCalledWith({ sort: 'time' });
-    await userEvent.selectOptions(screen.getByRole('combobox', { name: 'Sort notes' }), 'confidence');
-    await vi.waitFor(() => expect(findingsList).toHaveBeenLastCalledWith({ sort: 'confidence' }));
-  });
 });
 
 describe('chips-filter-and-count', () => {
@@ -129,12 +112,15 @@ describe('chips-filter-and-count', () => {
 });
 
 describe('in-view-chip-only-when-the-window-is-narrower', () => {
-  it('is absent for the whole chapter, and filters to the window otherwise', async () => {
+  it('is absent for the whole chapter, and on by default otherwise, filtering to the window (mock `winFilter: true`)', async () => {
     const { rerender } = render(<Harness all={false} window={{ start: 0, len: 760, total: 760 }} />);
     expect(screen.queryByRole('button', { name: 'In view' })).toBeNull();
+    const all = dataRows().length;
     rerender(<Harness all={false} window={{ start: 10, len: 100, total: 760 }} />);
-    await userEvent.click(screen.getByRole('button', { name: 'In view' }));
+    expect(screen.getByRole('button', { name: 'In view' }).getAttribute('aria-pressed')).toBe('true');
     expect(dataRows()).toHaveLength(3);
+    await userEvent.click(screen.getByRole('button', { name: 'In view' }));
+    expect(dataRows()).toHaveLength(all);
   });
 });
 
@@ -153,11 +139,11 @@ describe('find-in-notes-filters-script-and-heard', () => {
 });
 
 describe('sources-line-names-the-analyzers', () => {
-  it('names the analyzers of the rows in view', async () => {
+  it('names the analyzers of every note in scope, before the filters (mock `sourcesOf(base)`)', async () => {
     render(<Harness />);
     expect(screen.getByText('Sources: Local AI compare 4 · Delivery measurement 1')).toBeTruthy();
     await userEvent.click(screen.getByRole('button', { name: /^Pickups/ }));
-    expect(screen.getByText('Sources: Local AI compare 1')).toBeTruthy();
+    expect(screen.getByText('Sources: Local AI compare 4 · Delivery measurement 1')).toBeTruthy();
   });
 });
 
@@ -191,7 +177,7 @@ describe('selection-and-keys', () => {
 describe('type-and-resolution-chips-are-words-and-shapes', () => {
   it('reads each decision as a word', () => {
     render(<Harness />);
-    for (const word of ['To review', 'Needs pickup', 'Fix in edit', 'Waived', 'Deferred']) expect(screen.getAllByText(word).length).toBeGreaterThan(0);
+    for (const word of ['To review', 'Needs pickup', 'Fix in edit', 'Waive', 'Defer']) expect(screen.getAllByText(word).length).toBeGreaterThan(0);
   });
   it('shows the confidence, or the reason on hover when there is none', () => {
     render(<Harness />);

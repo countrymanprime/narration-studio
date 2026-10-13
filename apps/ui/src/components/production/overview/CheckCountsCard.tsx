@@ -16,8 +16,14 @@ type Props = {
 function Row({ label, ids, nameOf, warn }: { label: string; ids: readonly string[]; nameOf: (id: string) => string; warn?: boolean }) {
   const names = ids.length ? ids.map(nameOf).join(', ') : 'No chapters';
   return (
-    <TooltipTarget text={names}>
-      <div role="group" aria-label={`${label}: ${ids.length}. ${names}`} className="flex items-baseline justify-between gap-3 text-[0.875rem]" tabIndex={0}>
+    <TooltipTarget text={names} className="w-full">
+      {/* flex-1: the trigger is inline-flex, so the row fills it and the count sits at the right, as This week's figures do. */}
+      <div
+        role="group"
+        aria-label={`${label}: ${ids.length}. ${names}`}
+        className="flex flex-1 items-baseline justify-between gap-3 text-[0.875rem]"
+        tabIndex={0}
+      >
         <span>{label}</span>
         <b className="font-mono" style={ids.length && warn ? { color: 'var(--warn-text)' } : undefined}>
           {ids.length}

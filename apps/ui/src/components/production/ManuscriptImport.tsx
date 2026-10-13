@@ -195,10 +195,11 @@ export function useManuscriptImport({
       setImportJob((current) => (current ? { ...current, phase: 'error', error: message, message } : current));
     }
   };
-  // Replacing clears what the narrator has built on the manuscript, so the button says so before the file dialog opens.
+  // Replacing clears what the narrator has built on the manuscript, so the button says so before the file dialog opens: the
+  // mock's danger "Replace manuscript…" (Settings, its one place), with the ellipsis of a control that asks before it acts.
   const button = (
     <Button
-      variant={found ? 'secondary' : 'primary'}
+      variant={found ? 'danger' : 'primary'}
       pending={choosing.isPending('choose')}
       onClick={() =>
         void choosing.run('choose', async () => {
@@ -214,7 +215,7 @@ export function useManuscriptImport({
         })
       }
     >
-      {found ? 'Replace manuscript' : 'Import manuscript'}
+      {found ? 'Replace manuscript…' : 'Import manuscript'}
     </Button>
   );
   const chooseButton = found ? (

@@ -18,7 +18,14 @@ import type {
   FindingSortKey,
   ReaperStatus,
 } from '../types';
-import { defaultFindingNoteType, FINDING_CATEGORIES, FINDING_NOTE_TYPES, MAX_REVIEW_NOTE_LENGTH } from './contracts/findings';
+import {
+  defaultFindingNoteType,
+  FINDING_CATEGORIES,
+  FINDING_NOTE_TYPES,
+  FINDING_THREAD_AUTHORS,
+  MAX_REVIEW_NOTE_LENGTH,
+  type FindingThreadMessage,
+} from './contracts/findings';
 import { wireClone } from './mockFixtures';
 
 // The reads of a finding that groups several, whichever analyzer wrote it (a take-review group or a take comparison of one),
@@ -133,7 +140,6 @@ export const REAPER_MESSAGES = {
   recording: 'REAPER is recording, so nothing was moved. Stop recording first.',
   outdated: "The Narration Utils script in REAPER is older than this app. Import it again from this app's REAPER folder, then try again.",
   // The approved marker's own words (apps/desktop/bindings_marker.go).
-  notAccepted: 'Accept this finding first. Only a finding you accepted gets a marker in REAPER.',
   markerNoItem: 'This finding has no REAPER item to mark, because it came from an older check. Run the check again to record one.',
   markerNoSourceTime: 'This finding has no time in its audio to put a marker at.',
   markerStale: "This finding's item is no longer in the REAPER project, so no marker was added. Run the check again to find it where it is now.",
@@ -235,7 +241,6 @@ function createReaperMock(mode: MockReaper, find: (id: string) => Finding) {
     },
     findingsAddMarker: async (id: string): Promise<FindingMarker> => {
       const finding = find(id);
-      if (finding.review.status !== 'accepted') return markerRefused('not_accepted', REAPER_MESSAGES.notAccepted);
       if (!finding.source.item_guid) return markerRefused('no_item', REAPER_MESSAGES.markerNoItem);
       const sourceTime = finding.time_range?.source_start;
       if (sourceTime === undefined) return markerRefused('no_source_time', REAPER_MESSAGES.markerNoSourceTime);
@@ -272,6 +277,10 @@ export function createFindingsMock(
   saveFileFindings: (analyzer: string, files: readonly string[], fresh: Finding[]) => void;
 } {
   let store = wireClone(seed);
+  // The thread's history the host keeps in review.json: how many notes each finding has had (ids are never reused) and the deleted
+  // ones, so a restore puts a note back where it was.
+  const threadAdds = new Map<string, number>();
+  const threadDeleted = new Map<string, Map<string, { at: number; message: FindingThreadMessage }>>();
   let pendingRerun = options.rerunAfterFirstList === true;
   const find = (id: string): Finding => {
     const finding = store.find((candidate) => candidate.id === id);
@@ -313,7 +322,8 @@ export function createFindingsMock(
         throw new Error('this finding changed since it was shown (its analyzer ran again); look at it again before deciding');
       }
       const timestamp = new Date().toISOString().replace(/\.\d{3}Z$/, 'Z');
-      const decided: Finding = { ...current, review: note ? { status, note, timestamp } : { status, timestamp } };
+      const kept = { ...(current.review.type ? { type: current.review.type } : {}), ...(current.review.thread ? { thread: current.review.thread } : {}) };
+      const decided: Finding = { ...current, review: { ...(note ? { status, note, timestamp } : { status, timestamp }), ...kept } };
       store = store.map((finding) => (finding.id === id ? decided : finding));
       return wireClone(decided);
     },
@@ -330,6 +340,39 @@ export function createFindingsMock(
       const retyped: Finding = { ...current, review: type === defaultFindingNoteType(current) ? review : { ...review, type } };
       store = store.map((finding) => (finding.id === id ? retyped : finding));
       return wireClone(retyped);
+    },
+    findingsThread: async (id, change) => {
+      foldLazySeed();
+      if (!id) throw new Error('a finding id is required');
+      const current = find(id);
+      const thread = [...(current.review.thread ?? [])];
+      const deletedHere = threadDeleted.get(id) ?? new Map<string, { at: number; message: FindingThreadMessage }>();
+      const text = 'text' in change ? change.text.trim() : '';
+      if ((change.op === 'add' || change.op === 'edit') && !text) throw new Error('a note needs some text');
+      if ([...text].length > MAX_REVIEW_NOTE_LENGTH) throw new Error(`a note can be at most ${MAX_REVIEW_NOTE_LENGTH} characters`);
+      const timestamp = new Date().toISOString().replace(/\.\d{3}Z$/, 'Z');
+      if (change.op === 'add') {
+        if (!FINDING_THREAD_AUTHORS.includes(change.who)) throw new Error(`a note is written by "you" or "proofer", not "${change.who}"`);
+        const added = (threadAdds.get(id) ?? 0) + 1;
+        threadAdds.set(id, added);
+        thread.push({ id: `m${added}`, who: change.who, text, at: timestamp });
+      } else if (change.op === 'restore') {
+        const gone = deletedHere.get(change.messageId);
+        if (!gone) throw new Error(`this finding has no deleted note "${change.messageId}"`);
+        deletedHere.delete(change.messageId);
+        thread.splice(Math.min(gone.at, thread.length), 0, gone.message);
+      } else {
+        const at = thread.findIndex((message) => message.id === change.messageId);
+        if (at < 0) throw new Error(`this finding has no note "${change.messageId}"`);
+        if (change.op === 'edit') thread[at] = { ...thread[at]!, text, edited_at: timestamp };
+        else deletedHere.set(change.messageId, { at, message: thread.splice(at, 1)[0]! });
+      }
+      threadDeleted.set(id, deletedHere);
+      const review = { ...current.review };
+      delete review.thread;
+      const changed: Finding = { ...current, review: thread.length ? { ...review, thread } : review };
+      store = store.map((finding) => (finding.id === id ? changed : finding));
+      return wireClone(changed);
     },
     findingsSummary: async () => {
       foldLazySeed();

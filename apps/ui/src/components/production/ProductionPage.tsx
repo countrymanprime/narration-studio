@@ -31,6 +31,7 @@ import { WeekCard } from './overview/WeekCard';
 import { DawBanner } from './pipeline/DawBanner';
 import { NextUp } from './pipeline/NextUp';
 import { NoManuscript } from './pipeline/NoManuscript';
+import { pickupChapters } from './pipeline/nextUpSources';
 import { PageHeader } from './pipeline/PageHeader';
 import { PipelineTable } from './pipeline/PipelineTable';
 import { pipelineChapters } from './pipeline/pipelineChapters';
@@ -156,6 +157,16 @@ export function ProductionPage({
     daw.capabilities().then(setCaps, () => setCaps(undefined));
   }, [daw]);
   useEffect(() => readCaps(), [readCaps]);
+  // The banner's Retry reads the DAW again and, when it is still not running, says so (the mock's toast); a DAW now running drops the banner.
+  const retryDaw = useCallback(() => {
+    daw.capabilities().then(
+      (next) => {
+        setCaps(next);
+        if (!next.reachable) notify(`Still not running. Start ${next.daw} and try again.`);
+      },
+      (error: unknown) => notify(describeApiError(error), 'error'),
+    );
+  }, [daw, notify]);
 
   // The open lines of the Pickups page's list, so the tile, Next up and the pickup hours count what that page lists.
   const openLines = useOpenPickups();
@@ -211,6 +222,14 @@ export function ProductionPage({
     active: found,
     refreshKey: manuscriptKey,
     onChanged,
+    daw: {
+      name: caps && caps.daw !== 'none' ? caps.daw : 'your DAW',
+      unavailable: !caps
+        ? 'Checking the audio engine…'
+        : caps.capabilities.track_select?.available
+          ? undefined
+          : caps.capabilities.track_select?.message || 'This audio engine cannot select a track.',
+    },
   });
 
   // Chapter sync: the batch toast with Undo, and a re-read of the chapters on every later `chaptersync:state`.
@@ -255,10 +274,14 @@ export function ProductionPage({
   // Open lines per chapter from the Pickups list, so a chapter's Pickups cell and the tile above add up. Nothing is claimed until the list is read.
   const pickupsByChapter = openLines ? Object.fromEntries(narrated.map((c) => [c.id, openLines.filter((line) => line.chapterId === c.id).length])) : undefined;
   const rows = buildPipelineRows(pipelineRows, {
-    ...pipelineSources,
+    proof: pipelineSources.proof,
+    master: pipelineSources.master,
     pickups: pickupsByChapter,
-    // Only a credits row's Prep is read (its template's tokens); a chapter's Prep stays "Not measured yet" until a source says.
-    prep: Object.fromEntries([entries.opening, entries.closing].flatMap((entry) => (entry ? [[entry.id, entry.prep] as const] : []))),
+    // A chapter's Prep is the Script page's prep record; a credits row's is its template's tokens. Absent until read: "Not measured yet".
+    prep: {
+      ...pipelineSources.prep,
+      ...Object.fromEntries([entries.opening, entries.closing].flatMap((entry) => (entry ? [[entry.id, entry.prep] as const] : []))),
+    },
     checks: Object.fromEntries(
       narrated.map((c) => {
         const link = tools.trackLinks?.chapters.find((entry) => entry.chapterId === c.id);
@@ -275,7 +298,7 @@ export function ProductionPage({
 
   return (
     <div className="mx-auto flex max-w-[96rem] flex-col gap-4">
-      {caps && !caps.reachable && caps.daw !== 'none' && <DawBanner reachable={false} daw={caps.daw} onRetry={readCaps} onUseBuiltIn={() => go('/settings')} />}
+      {caps && !caps.reachable && caps.daw !== 'none' && <DawBanner reachable={false} daw={caps.daw} onRetry={retryDaw} onUseBuiltIn={() => go('/settings')} />}
       <PageHeader
         chapters={narrated.length}
         words={k.words}
@@ -367,8 +390,8 @@ export function ProductionPage({
                               : null,
                         }
                       : null,
-                    pickups: openPickups > 0 ? { lines: openPickups, chapters: ['across the book'] } : null,
-                    failing: null,
+                    pickups: openPickups > 0 ? { lines: openPickups, chapters: pickupChapters(openLines ?? [], nameOf) } : null,
+                    failing: pipelineSources.failing,
                     changed: null,
                   }}
                   record={record}

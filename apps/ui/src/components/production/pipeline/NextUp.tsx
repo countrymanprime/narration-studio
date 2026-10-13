@@ -16,12 +16,21 @@ type Props = {
   timer: { running: boolean; starting?: string; onStart: (chapterId: string, stage: ChapterStatus) => void };
 };
 
-function Item({ icon, title, sub, children }: { icon: string; title: ReactNode; sub: ReactNode; children: ReactNode }) {
+/** The disc's colours by what the item is (the mock: copper for recording, danger for pickups and a failed check, warn for changes). */
+const DISC = {
+  rec: { background: 'var(--accent-soft)', color: 'var(--accent-strong)' },
+  danger: { background: 'var(--danger-soft)', color: 'var(--danger-text)' },
+  warn: { background: 'var(--warn-soft)', color: 'var(--warn-text)' },
+} as const;
+
+function Item({ icon, tone, title, sub, children }: { icon: string; tone: keyof typeof DISC; title: ReactNode; sub: ReactNode; children: ReactNode }) {
   return (
     <li className="flex gap-3 border-t border-[var(--border)] py-3 first:border-t-0">
       <span
         aria-hidden="true"
-        className="mt-0.5 flex size-6 flex-none items-center justify-center rounded-full bg-[var(--surface-2)] text-[0.8rem] text-[var(--text-muted)]"
+        data-tone={tone}
+        className="mt-0.5 flex size-6 flex-none items-center justify-center rounded-full text-[0.8rem]"
+        style={DISC[tone]}
       >
         {icon}
       </span>
@@ -44,7 +53,7 @@ function Rendered({ item, record, onGo, onReviewChanges, timer }: Omit<Props, 'i
           ? 'recording in progress'
           : `${Math.round((item.share ?? 0) * 100)}% recorded · about ${hm(item.hoursLeft)} of finished audio left`;
       return (
-        <Item icon="●" title={`Finish recording ${item.name}`} sub={left}>
+        <Item icon="●" tone="rec" title={`Finish recording ${item.name}`} sub={left}>
           {/* Opening the Booth to read and prepare is navigation; only Record needs the capability (the Booth gates that itself). */}
           <Button variant="primary" size="sm" onClick={() => onGo('booth', item.chapterId)}>
             Open Booth
@@ -67,7 +76,7 @@ function Rendered({ item, record, onGo, onReviewChanges, timer }: Omit<Props, 'i
     }
     case 'pick':
       return (
-        <Item icon="↺" title={`Pickup session · ${item.lines} lines`} sub={`${item.chapters.join(' and ')} · match mic, gain and position first`}>
+        <Item icon="↺" tone="danger" title={`Pickup session · ${item.lines} lines`} sub={`${item.chapters.join(' and ')} · match mic, gain and position first`}>
           <Button variant="secondary" size="sm" onClick={() => onGo('pickups')}>
             Review pickups
           </Button>
@@ -75,7 +84,12 @@ function Rendered({ item, record, onGo, onReviewChanges, timer }: Omit<Props, 'i
       );
     case 'fail':
       return (
-        <Item icon="◠" title={`${item.tag} fails ${item.fails.length} ACX ${item.fails.length > 1 ? 'checks' : 'check'}`} sub={item.fails.join(' · ')}>
+        <Item
+          icon="◠"
+          tone="danger"
+          title={`${item.tag} fails ${item.fails.length} ACX ${item.fails.length > 1 ? 'checks' : 'check'}`}
+          sub={item.fails.join(' · ')}
+        >
           <Button variant="secondary" size="sm" onClick={() => onGo('master', item.chapterId)}>
             Inspect failed check
           </Button>
@@ -83,7 +97,12 @@ function Rendered({ item, record, onGo, onReviewChanges, timer }: Omit<Props, 'i
       );
     case 'flags':
       return (
-        <Item icon="!" title={`${item.count} ${item.count > 1 ? 'chapters' : 'chapter'} changed by the new manuscript`} sub={item.names.join(' · ')}>
+        <Item
+          icon="!"
+          tone="warn"
+          title={`${item.count} ${item.count > 1 ? 'chapters' : 'chapter'} changed by the new manuscript`}
+          sub={item.names.join(' · ')}
+        >
           <Button variant="secondary" size="sm" onClick={onReviewChanges}>
             Review changes
           </Button>

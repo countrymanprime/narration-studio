@@ -15,8 +15,9 @@ With no manuscript imported yet, the page says so and offers **Import manuscript
 ## The page
 
 The header has the chapter step (the previous and next chapter buttons, Alt+↑ and Alt+↓, and the chapter list), a
-legend of the marks in the text, the recogniser that heard the words (**Flagged by**), and the button that opens the
-drawer.
+legend of the marks in the text with how many of each, the recogniser that heard the words (**Flagged by**), the
+**Timeline** button (on a window 1360 px wide or more) and the button that opens the drawer. At 1280 px and below the
+legend uses short labels with no counts.
 
 Words carry what the last [recording check](production.md#checking-a-chapters-recording) heard:
 
@@ -49,9 +50,11 @@ that was never checked has no heard words; run the check on Production first.
 ## Selecting words
 
 Click a word to place the cursor there. Shift+click another, drag across the text or press Shift+← and Shift+→ to
-select a run of words. A toolbar floats under the selection with **Play**, **FX**, **Mute** and **Delete**; the bar
-offers the same actions. The line's audio shows under it while the cursor is on it. Right-click a word for its menu:
-play, copy, delete or mute the words, mark them for a pickup, add a note.
+select a run of words. A toolbar floats under the selection with **Play**, **Add FX**, **Mute**, **Takes of this
+line** (on a line with more than one take) and **Delete**; the bar offers the same actions, with **Delete words and
+audio** in full on a wide window. The line's audio shows under it while the cursor is on it. Right-click a word for its
+menu: play the selection, copy, delete or mute the words, add or remove an effect, mark them for a pickup, add a note,
+show or keep the line's takes, and **Split into takes** on a line whose one take reads it twice.
 
 A flagged word opens its card: what the script says and what was heard, and the choice to keep the word as read, which
 clears the mark (with Undo in the message that confirms it).
@@ -73,7 +76,8 @@ touched. **Mute** keeps the audio and silences the words.
 **Add FX** (F) lists your FX chains from the DAW. Choose one and the question shows how the item will be split around
 the words, where the splits fall, the fades at the joins and what the DAW does: it splits the item at both ends and puts
 the chain on the middle piece only. Nothing else moves, and one undo step in the DAW takes it off. The words with an
-effect are underlined, and the drawer's Effects tab lists them.
+effect are underlined and end with an effects marker: click it to select the words or remove the effect. The word
+menu offers **Remove** with the chain's name too, and the drawer's Effects tab lists them.
 
 ![Editing - Add FX on four selected words: the DAW's effect chains](../../images/ui/editing-fx-menu.webp)
 
@@ -89,7 +93,8 @@ Click a line's takes chip (T steps to the next take) to open its takes under it.
 why it is suggested and the steps that would make the comparison surer: **Trim white space**, **Trim breaths** and
 **Normalise**, each asking before it changes anything in the DAW. Then each take, with its waveform, what share of the
 script it read as written, and its pause, level, noise, clarity and breaths. Play a take to hear it; **Keep take**
-(Enter) makes it the one that plays, and **Hide others** (H) hides the other takes from the lanes.
+(Enter) makes it the one that plays, and **Hide others** (H) hides the other takes from the lanes. **Show in the DAW**
+moves the DAW to the line, on a DAW that can move to a place in the project.
 
 ![Editing - Normalise from a suggestion's steps: the question says what it will change in the DAW](../../images/ui/editing-suggestion-step.webp)
 
@@ -107,7 +112,8 @@ The drawer button (Ctrl+Shift+C) opens the drawer beside the text, or over it on
 
 **Clean up** lists what was found in the chapter (words not in the script, not read, misread and of low confidence,
 each with **Review** to step through them) and the clean-up findings by kind: gaps, breaths, clicks, plosives and noise.
-Pick a strength, preview the change and apply it to the findings you selected. Clean-up actions that are still
+Pick a strength, **Preview** to hear the first three findings with two seconds either side, and apply the change to
+the findings you selected. Clean-up actions that are still
 experimental stay off until you turn them on in [Settings](settings.md).
 
 ![Editing - the drawer on Clean up: what was found in the chapter and the findings by kind](../../images/ui/editing-drawer-cleanup.webp)
@@ -115,12 +121,14 @@ experimental stay off until you turn them on in [Settings](settings.md).
 ### Effects, Backups and Timeline
 
 **Effects** lists the effects on words in this chapter and adds one. **Backups** shows only with a DAW that keeps
-backups of its project. **Timeline** shows the line the cursor is on as the chapter's audio and one lane per take on
-one time axis; on a wide window it is a strip under the text instead (S).
+backups of its project; with one that edits the audio itself, the app backs the words up before each delete, effect or
+stack, and refuses the edit if the backup fails. **Timeline** shows the line the cursor is on as the chapter's audio
+and one lane per take on one time axis. On a window 1360 px wide or more it is a strip under the text, which the header's
+**Timeline** button (S) shows and hides; on a narrower window it is a tab of the drawer.
 
 ![Editing - the drawer's Effects tab with no effects yet, and Add effect waiting for a selection](../../images/ui/editing-drawer-effects.webp)
 
-![Editing - the drawer on Timeline: the waveform and takes of the line the cursor is on](../../images/ui/editing-drawer-timeline.webp)
+![Editing - the Timeline strip under the text: the waveform and takes of the line the cursor is on](../../images/ui/editing-drawer-timeline.webp)
 
 ## When the DAW is not connected
 

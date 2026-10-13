@@ -180,8 +180,15 @@ export function useCutWords({ journal, chapterId, chapterName, cuts, locator, on
         id: 'cut.delete',
         order: 30,
         where: 'both',
-        render: ({ keys, summary, allCut }) =>
-          allCut ? null : <DeleteButton reason={latest.current.refusalOf(summary) || undefined} onClick={() => latest.current.ask(keys, false)} />,
+        render: ({ keys, summary, allCut, place, narrow }) =>
+          allCut ? null : (
+            <DeleteButton
+              short={place === 'toolbar' || narrow === true}
+              separated={place === 'toolbar'}
+              reason={latest.current.refusalOf(summary) || undefined}
+              onClick={() => latest.current.ask(keys, false)}
+            />
+          ),
       }),
       registerWordMenuSection({
         order: 100,

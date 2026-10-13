@@ -7,16 +7,14 @@ type Args = Parameters<typeof ReaderTextView>[0];
 
 // The choices are held here, as the saved store holds them.
 function Choosing(args: Args) {
-  const [size, setSize] = useState(args.size);
-  const [lineHeight, setLineHeight] = useState(args.lineHeight);
-  const [font, setFont] = useState(args.font);
-  return <ReaderTextView size={size} lineHeight={lineHeight} font={font} onSize={setSize} onLineHeight={setLineHeight} onFont={setFont} />;
+  const [prefs, setPrefs] = useState(args.prefs);
+  return <ReaderTextView prefs={prefs} onChange={(change) => setPrefs((current) => ({ ...current, ...change }))} />;
 }
 
 const meta = {
   title: 'Settings/Page/ReaderTextPanel',
   component: ReaderTextView,
-  args: { size: 40, lineHeight: 1.8, font: 'Georgia', onSize: fn(), onLineHeight: fn(), onFont: fn() },
+  args: { prefs: { font: 'Georgia', size: 20, spacing: 1.8, width: 64 }, onChange: fn() },
   render: (args) => <Choosing {...args} />,
   decorators: [
     (Story) => (
@@ -32,4 +30,4 @@ type Story = StoryObj<typeof meta>;
 
 export const Defaults: Story = {};
 
-export const LargeSerif: Story = { args: { size: 64, lineHeight: 2.2, font: 'Merriweather' } };
+export const LargeSerif: Story = { args: { prefs: { font: 'Merriweather', size: 32, spacing: 2.2, width: 100 } } };
