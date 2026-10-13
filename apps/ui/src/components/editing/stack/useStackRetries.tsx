@@ -148,6 +148,7 @@ export function useStackRetries({ journal, chapterId, lines, passageOf }: StackO
       const byId = new Map(source.map((l) => [l.id, l]));
       overlay.open({
         kind: 'dialog',
+        dismissOnOutsidePress: false,
         title: stackTitle(direction),
         render: ({ close }) => (
           <StackDialog

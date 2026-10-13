@@ -11,15 +11,22 @@ type ConfirmSpec = {
   confirmLabel: string;
   confirmVariant?: 'primary' | 'danger';
 };
-type DialogSpec = {
-  kind: 'dialog' | 'slideOver';
-  title: string;
-  /** A dialog without a header row; the title still names it for assistive technology. */
-  headerless?: boolean;
-  /** A press outside the dialog closes it: for a picker such as the jump menu, never for a form or a confirm. */
-  dismissOnOutsidePress?: boolean;
-  render: (api: { close: () => void }) => ReactNode;
-};
+type DialogSpec =
+  | {
+      kind: 'dialog';
+      title: string;
+      /** A dialog without a header row; the title still names it for assistive technology. */
+      headerless?: boolean;
+      /** Whether a press outside the dialog closes it (issue 1706): true for a reference view or a picker with nothing to lose, false for a form or a confirm (ADR 0048). */
+      dismissOnOutsidePress: boolean;
+      render: (api: { close: () => void }) => ReactNode;
+    }
+  | {
+      /** A slide-over always closes on a press outside, like the mock's side sheet. */
+      kind: 'slideOver';
+      title: string;
+      render: (api: { close: () => void }) => ReactNode;
+    };
 type ToastOptions = { tone?: ToastTone; action?: ToastAction };
 
 /** An open layer. The primitive that draws it owns focus, stacking and Escape (ADR 0048, 0172, 0630); this is only what to draw and who to tell. */

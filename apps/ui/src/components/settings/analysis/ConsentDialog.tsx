@@ -49,6 +49,7 @@ export function ConsentDialog({ tools, cancel, download }: { tools: AssetItem[];
   const title = tools.length === 1 ? `Download ${tools[0].displayName}` : 'Download better analysis';
   return (
     <Dialog
+      dismissOnOutsidePress={false}
       title={title}
       onClose={cancel}
       // Cancel and Download sit together on the right, as the mock draws them.

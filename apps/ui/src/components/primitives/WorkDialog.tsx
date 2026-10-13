@@ -36,6 +36,7 @@ export function WorkDialog({
   return (
     <Dialog
       title={title}
+      dismissOnOutsidePress={false}
       actionsAlign="end"
       // Escape is ignored while a job runs (Cancel is a deliberate action) and works as Close once it has finished.
       onEscape={close && !running ? close : showBackground ? background : undefined}
