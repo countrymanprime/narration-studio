@@ -562,7 +562,7 @@ function AppRoutes() {
       moveTo(next);
       return;
     }
-    void overlay.confirm({ title: verdict.ask.title, body: verdict.ask.body, confirmLabel: verdict.ask.confirmLabel }).then((confirmed) => {
+    void overlay.confirm(verdict.ask).then((confirmed) => {
       if (confirmed) moveTo(next);
     });
   };
@@ -593,7 +593,7 @@ function AppRoutes() {
     // The page's leave guard is asked first, as for the nav (the Booth while a take records). Its guard does not read the destination.
     const verdict = journal.checkLeave('');
     if (verdict !== 'allow') {
-      void overlay.confirm({ title: verdict.ask.title, body: verdict.ask.body, confirmLabel: verdict.ask.confirmLabel }).then((confirmed) => {
+      void overlay.confirm(verdict.ask).then((confirmed) => {
         if (confirmed) moveByDelta(direction);
       });
       return;

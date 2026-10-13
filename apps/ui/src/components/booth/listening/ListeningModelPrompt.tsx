@@ -4,7 +4,7 @@ import { ENGINE_LABELS, type TeleprompterSession } from '../useTeleprompterSessi
 
 /**
  * The live engine's model question, asked when a session found its model missing (`session.prompt`): nothing downloads until the
- * narrator confirms, and a finished download starts the session. The Booth and the Companion draw the same question.
+ * narrator confirms, and a finished download starts the session. The Companion's frozen `ReadAlongView` keeps its own copy (DQ-13).
  */
 export function ListeningModelPrompt({ session }: { session: Pick<TeleprompterSession, 'prompt' | 'modelInstall' | 'closeModelPrompt'> }) {
   const { prompt } = session;
