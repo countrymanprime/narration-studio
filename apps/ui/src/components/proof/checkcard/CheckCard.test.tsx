@@ -268,6 +268,31 @@ describe('the Check recordings button', () => {
   });
 });
 
+describe('a chapter with no recording', () => {
+  // A stored result cannot be current for a recording that is not there: the card says no recording, not "Up to date" beside "Recorded —".
+  it.each([
+    ['unlinked', 'No track is linked to it.', true],
+    ['multiple_tracks', 'More than one track is linked to it.', true],
+    ['track_missing', 'Its linked track is not in the saved project.', true],
+    ['no_project', 'No saved project could be read.', false],
+  ] as const)('%s: shows no check result and says why', async (recordedUnavailable, why, offersEngine) => {
+    mount({ chapter: { recordedSeconds: undefined, recordedUnavailable } });
+    await waitFor(() => expect(card().getAttribute('data-check-state')).toBe('none'));
+    expect(within(card()).getByText('This chapter has no recording to check.')).toBeTruthy();
+    expect(within(card()).getByText(why)).toBeTruthy();
+    expect(within(card()).queryByRole('button', { name: 'Open the audio engine panel' }) !== null).toBe(offersEngine);
+    expect(card().textContent).not.toContain('Up to date');
+    expect(card().querySelector('[data-cc-sentence]')).toBeNull();
+    expect(card().querySelector('[data-cc-asof]')).toBeNull();
+    expect(within(card()).getByText('Not checked yet')).toBeTruthy();
+  });
+  it('a chapter with a recording still shows its stored result', async () => {
+    mount();
+    await waitFor(() => expect(card().getAttribute('data-check-state')).toBe('current'));
+    expect(card().querySelector('[data-cc-sentence]')).not.toBeNull();
+  });
+});
+
 describe('running a check decides nothing', () => {
   it('mounting and a finished run call no accept, ignore or review', async () => {
     const { calls, emit } = mount({ audio: [audio('a1', 'noise', 5)] });

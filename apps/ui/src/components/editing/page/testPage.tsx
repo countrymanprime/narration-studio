@@ -153,6 +153,27 @@ export function pageApi({ heard = true, ...overrides }: Partial<NarrationApi> & 
   } as Partial<NarrationApi>);
 }
 
+/**
+ * What the host answers for a chapter with no audio to edit: no track linked (`unlinked`), a link to a track the saved project no longer has
+ * (`missing`), or a linked track with nothing on it (`empty`). In each the alignment's item is not live, as the host's is without a track.
+ */
+export function noAudioApi(kind: 'unlinked' | 'missing' | 'empty'): Partial<NarrationApi> {
+  const whole = pageApi();
+  return {
+    workspaceAlignment: async (chapterId: string) => ({ ...(await whole.workspaceAlignment(chapterId)), items: [] }),
+    chapterTrackMapList: async () => ({
+      documentId: 'd',
+      mappings:
+        kind === 'unlinked'
+          ? []
+          : [{ chapterId: 'c1', trackGuid: kind === 'missing' ? '{GONE}' : TRACK_GUID, chapterTitle: 'Chapter One', confirmedAt: '2026-09-01T12:00:00Z' }],
+    }),
+    ...(kind === 'empty'
+      ? { tracksList: async () => ({ ...(await whole.tracksList()), tracks: (await whole.tracksList()).tracks.map((t) => ({ ...t, items: [] })) }) }
+      : {}),
+  };
+}
+
 export const dawFor = (setup: DawSetupId): DawClient =>
   createMockDawClient(DAW_SETUPS[setup], { chapterIds: ['c1', 'c2'], candidateIds: ['t1', 't2'], findingIds: [] });
 

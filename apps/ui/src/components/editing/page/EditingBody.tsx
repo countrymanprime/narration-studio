@@ -56,6 +56,7 @@ import type { PlaylistSegment } from '../../proof/playlist';
 import { doubledCut, wordAt, type ChapterRead } from './chapterSource';
 import { EditingHeader } from './EditingHeader';
 import { InHost, rowOf } from './InHost';
+import { NoAudioBanner } from './NoAudioBanner';
 import { useLines } from './useLines';
 
 /** The page state a chapter change keeps: the strip and the drawer stay as the narrator left them. */
@@ -91,6 +92,8 @@ export interface EditingBodyProps {
   onCuts: Parameters<typeof useCutWords>[0]['onCuts'];
   onEffects: Parameters<typeof useFxWords>[0]['onEffects'];
   onAccepted: () => void;
+  /** Reads the chapter again (the no-audio banner's Read again). */
+  onReread: () => void;
   caps: DawCapabilities | null;
   keymap: Keymap;
   /** The page root is 1360 px or wider: the strip fits and the timeline is not a drawer tab. */
@@ -368,9 +371,15 @@ export function EditingBody(props: EditingBodyProps) {
   return (
     <div ref={root} className="flex min-h-0 flex-1 flex-col">
       {props.banner}
+      <NoAudioBanner
+        audio={read.audio}
+        chapterName={chapterName}
+        daw={caps && caps.daw !== 'none' && caps.daw !== 'Built-in' ? caps.daw : null}
+        onReread={props.onReread}
+      />
       <EditingHeader
         stepper={props.stepper}
-        legend={<Legend doc={doc} compact={compact} />}
+        legend={<Legend doc={doc} compact={compact} noAudio={read.audio.kind !== 'ready'} />}
         strip={panels.strip}
         stripFits={stripFits}
         drawerOpen={drawerOpen}
@@ -381,7 +390,7 @@ export function EditingBody(props: EditingBodyProps) {
           <div className="flex h-full min-h-0 flex-col overflow-hidden rounded-[10px] border border-[var(--border)] bg-[var(--surface)]">
             <ScriptHost box={scriptBox} root={root}>
               {doc.paras.length ? (
-                <ScriptDoc reason={reason} />
+                <ScriptDoc reason={reason} explained={read.audio.kind !== 'ready'} />
               ) : (
                 // The page's own empty state, so its heading sits under the page's h1.
                 <div className="px-4 py-10">

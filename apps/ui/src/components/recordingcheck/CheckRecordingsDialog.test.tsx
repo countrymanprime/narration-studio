@@ -137,6 +137,20 @@ describe('CheckRecordingsDialog', () => {
     expect(screen.getByText('Not measured yet')).toBeTruthy();
   });
 
+  it('audio-to-check-says-not-measured-rather-than-0-min', async () => {
+    const { api } = host({
+      manuscriptChapters: async () => [
+        chapter('c', { recordedSeconds: undefined, recordedFraction: 0.5 }),
+        chapter('d', { recordedSeconds: undefined, recordedFraction: 1 }),
+      ],
+    });
+    open(api, ['c', 'd']);
+    await screen.findByText('Audio to check');
+    expect(screen.getByText('Not measured')).toBeTruthy();
+    expect(screen.queryByText('0 min')).toBeNull();
+    expect(screen.getByText('2 chapters left out: length not measured')).toBeTruthy();
+  });
+
   it('run-checks-chapters-one-at-a-time', async () => {
     const { api, starts, emit } = host();
     open(api, ['a', 'b']);

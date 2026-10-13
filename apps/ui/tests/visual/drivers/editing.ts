@@ -77,6 +77,15 @@ export const editingDrivers: Record<string, Driver> = {
     await page.getByRole('menuitemradio', { name: /^Chapter 7\b/ }).click();
     await page.getByRole('heading', { name: 'This chapter has no text yet.' }).waitFor();
   },
+  unlinked: async (page) => {
+    await page.goto('/?mockChapterLink=none');
+    await settlePage(page);
+    await goToPage(page, 'Editing');
+    await page.getByRole('textbox', { name: 'Script with what was heard' }).waitFor();
+    await page.locator('#noaudio').waitFor();
+    // Nothing is boxed "not read" in a recording that is not there.
+    if (await page.locator('[data-mark="miss"]').count()) throw new Error('Words are marked "not read" in a chapter with no audio.');
+  },
   'daw-off': async (page) => {
     await openEditing(page, `${LINKED}&mockDaw=Audacity`);
     await page.getByRole('button', { name: 'Retry' }).waitFor();

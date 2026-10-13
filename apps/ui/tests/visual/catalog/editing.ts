@@ -70,6 +70,12 @@ export const editingStates: StateEntry[] = [
   },
   {
     page: 'editing',
+    state: 'unlinked',
+    description:
+      'Editing on Chapter 1 with no track linked (?mockChapterLink=none) - the banner says why there is no audio to edit and opens the audio engine panel, the legend says "No audio to edit", and the script reads plain with no word boxed "not read"',
+  },
+  {
+    page: 'editing',
     state: 'daw-off',
     description: 'Editing with the DAW not connected (?mockDaw=Audacity) - the banner with its reason and Retry; the edit actions wait',
   },

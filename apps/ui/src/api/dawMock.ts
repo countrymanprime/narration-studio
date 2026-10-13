@@ -55,6 +55,7 @@ const REAPER_DECLARATION: Record<DawCapabilityKey, DawCapabilityLevel> = {
   file_reveal: 'experimental',
   range_gain: 'experimental',
   click_repair: 'experimental',
+  undo_last: 'experimental',
 };
 
 const CAPABILITY_NEEDS: Record<DawCapabilityKey, DawMockNeeds> = {
@@ -89,6 +90,7 @@ const CAPABILITY_NEEDS: Record<DawCapabilityKey, DawMockNeeds> = {
   file_reveal: 'running',
   range_gain: 'running',
   click_repair: 'running',
+  undo_last: 'running',
 };
 
 /** The host's own wording for a REAPER that is not connected or not answering, and the resolver's generic wording for
@@ -144,7 +146,7 @@ const MESSAGE_BUILTIN_NO_SAVED_PROJECT = 'The built-in recorder keeps no saved p
  * list the recorder plays and exports past, mode `app`) Experimental until the owner's pass, punch and the edits the app has not
  * built yet not available, everything else unsupported. */
 const BUILTIN_EXPERIMENTAL: ReadonlySet<DawCapabilityKey> = new Set<DawCapabilityKey>(['record', 'takes', 'cut_range']);
-const BUILTIN_NOT_YET: ReadonlySet<DawCapabilityKey> = new Set<DawCapabilityKey>(['punch', 'fx_range', 'stack_takes']);
+const BUILTIN_NOT_YET: ReadonlySet<DawCapabilityKey> = new Set<DawCapabilityKey>(['punch', 'fx_range', 'stack_takes', 'undo_last']);
 /** The built-in recorder's Describer (builtin.go's depthOf): the app makes a cut itself. */
 const BUILTIN_DEPTH: Partial<Record<DawCapabilityKey, { destructive?: boolean; mode?: DawCapabilityMode }>> = { cut_range: { mode: 'app' } };
 

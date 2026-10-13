@@ -201,7 +201,7 @@ type ChapterProps = {
 
 /** One chapter on the page. Keyed by it, so a chapter change starts with no cursor, selection, card or playhead. */
 function EditingChapter({ chapterId, chapterName: name, link, stepper, banner, panels, caps, keymap, width, step }: ChapterProps) {
-  const { source, setCuts, setEffects, reloadAccepted } = useChapterSource(chapterId, name);
+  const { source, setCuts, setEffects, reloadAccepted, reread } = useChapterSource(chapterId, name);
   const stripFits = width >= STRIP_MIN_WIDTH;
   if (source.status !== 'ready') {
     return (
@@ -240,6 +240,7 @@ function EditingChapter({ chapterId, chapterName: name, link, stepper, banner, p
         onCuts={setCuts}
         onEffects={setEffects}
         onAccepted={reloadAccepted}
+        onReread={reread}
         caps={caps}
         keymap={keymap}
         stripFits={stripFits}

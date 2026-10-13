@@ -8,14 +8,16 @@ export interface LegendProps {
   doc: ChapterDoc;
   /** 1280 and below: short labels with no counts. */
   compact: boolean;
+  /** The chapter has no audio to edit (its words were never matched to a recording), which is not the same as nothing transcribed. */
+  noAudio?: boolean;
 }
 
 /** What is marked in the script and how many of each, and which engine flagged it. With nothing aligned it says so. Accepted and cut words are not counted. */
-export function Legend({ doc, compact }: LegendProps) {
+export function Legend({ doc, compact, noAudio = false }: LegendProps) {
   if (!doc.aligned) {
     return (
       <div id="legend" className="flex items-center gap-3 text-[length:var(--font-size-sm)]">
-        <Badge label="Not transcribed yet" colors={toneColors('neutral')} />
+        <Badge label={noAudio ? 'No audio to edit' : 'Not transcribed yet'} colors={toneColors('neutral')} />
       </div>
     );
   }
