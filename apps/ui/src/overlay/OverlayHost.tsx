@@ -7,13 +7,14 @@ import { overlay, type DialogEntry, type OverlayService } from './overlayService
 
 function Layer({ entry }: { entry: DialogEntry }) {
   if (entry.kind === 'confirm') {
-    const { title, body, confirmLabel, confirmVariant } = entry.spec;
+    const { title, body, confirmLabel, confirmVariant, cancelLabel } = entry.spec;
     return (
       <ConfirmDialog
         title={title}
         body={body}
         confirmLabel={confirmLabel}
         confirmVariant={confirmVariant}
+        cancelLabel={cancelLabel}
         confirm={() => entry.answer(true)}
         cancel={() => entry.answer(false)}
       />

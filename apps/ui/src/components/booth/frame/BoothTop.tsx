@@ -39,7 +39,8 @@ const REC_COLORS = { fill: 'var(--rec-fill)', text: 'var(--rec-text)', line: 'va
 /**
  * The Booth's top bar (the mock's `BoothTop`): the chapter bar and the progress line, the resume offer and the recording-setup
  * chip as slots (SN-O51, SN-O23), the REC pill only while a take runs, the text popover and the side-panel toggle. There is no Ready chip and
- * no exit button: Esc Exit is a reminder in the footer.
+ * no exit button: Esc Exit is a reminder in the footer. It wraps, as the mock's `.btop` does, so a narrow window puts the progress and
+ * the chips on a second row instead of over the chapter picker.
  */
 export function BoothTop({
   chapter,
@@ -71,8 +72,7 @@ export function BoothTop({
 }) {
   const drawer = useSidePanelDrawer();
   return (
-    // The mock's `.btop`: the parts wrap, so at 390 px the progress line takes a row of its own instead of printing over the chapter picker.
-    <div className="flex min-h-13 flex-wrap items-center gap-x-3 gap-y-1 border-b border-[var(--border)] bg-[var(--surface)] px-3 py-1 min-[860px]:px-5 [&>*:not(#bprog)]:shrink-0">
+    <div className="flex min-h-13 flex-wrap items-center gap-x-3 gap-y-2 border-b border-[var(--border)] bg-[var(--surface)] px-5 py-1.5">
       {chapter}
       {pickupsOpen != null ? (
         <Badge
@@ -82,7 +82,7 @@ export function BoothTop({
           look="outline"
         />
       ) : null}
-      <span id="bprog" className="max-w-full min-w-0 truncate font-mono text-sm text-[var(--text-muted)]">
+      <span id="bprog" className="min-w-0 font-mono text-sm text-[var(--text-muted)]">
         {progress}
       </span>
       {resume}

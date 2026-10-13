@@ -76,6 +76,8 @@ export function BoothSidePanel({
       ref={ref}
       id="booth-side"
       aria-label="Side panel"
+      // A tab stop of its own, so the panel scrolls from the keyboard when it is taller than the window and holds nothing focusable.
+      tabIndex={0}
       hidden={!open}
       // It scrolls inside the window and its sections may hold nothing to focus, so the panel itself is the tab stop that lets a keyboard scroll it.
       tabIndex={0}

@@ -55,20 +55,6 @@ function top(over: Partial<Parameters<typeof BoothTop>[0]> = {}) {
   return render(<BoothTop progress="¶ 1 of 2 · 0% · ~1:00 finished left" recording={false} panelOpen={false} onTogglePanel={() => {}} {...over} />);
 }
 
-// Issue 1718: at 390 px the bar wraps onto a second row instead of printing the progress line over the chapter picker.
-describe('the-top-bar-fits-a-narrow-window', () => {
-  it('wraps its parts, keeps the buttons their size and lets only the progress line shrink and truncate', () => {
-    top({ resume: <button>Resume at ¶ 14</button> });
-    const bar = screen.getByText(/finished left/).parentElement!;
-    expect(bar.className).toContain('flex-wrap');
-    expect(bar.className).not.toMatch(/(^|\s)h-13(\s|$)/);
-    const progress = screen.getByText(/finished left/);
-    expect(progress.className).toContain('min-w-0');
-    expect(progress.className).toContain('truncate');
-    expect(bar.className).toContain('[&>*:not(#bprog)]:shrink-0');
-  });
-});
-
 describe('rec-shows-only-while-recording', () => {
   it('has no Ready chip, and REC only while recording', () => {
     const { rerender } = top();
@@ -150,6 +136,19 @@ describe('the-side-panel-toggle-and-drawer-width', () => {
     width(1281);
     top();
     expect(screen.getByRole('button', { name: /side panel/i }).getAttribute('data-panel')).toBe('column');
+  });
+});
+
+describe('the-bars-follow-the-mock-at-narrow-widths', () => {
+  it("the top bar wraps (the mock's .btop), so a narrow window puts the progress on its own row instead of over the chapter picker", () => {
+    top();
+    expect(document.getElementById('bprog')?.parentElement?.className).toContain('flex-wrap');
+  });
+  it("the meter and the room tone sit at the right of the footer as a chip (the mock's .lvl-inline)", () => {
+    footer(api());
+    const group = screen.getByRole('group', { name: 'Input' });
+    expect(group.className).toContain('ml-auto');
+    expect(screen.getByText('Room tone −58 dBFS').className).toContain('rounded-full');
   });
 });
 

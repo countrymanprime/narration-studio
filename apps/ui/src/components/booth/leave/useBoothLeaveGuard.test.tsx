@@ -56,6 +56,8 @@ describe('useBoothLeaveGuard', () => {
       done = hook.result.current.leave('/proof', go);
     });
     expect(dialog()?.spec.title).toBe('Stop recording?');
+    // The page's own question names its way out as the mock does, as the shell's does.
+    expect(dialog()?.spec).toMatchObject({ cancelLabel: 'Keep recording' });
     expect(stopRecording).not.toHaveBeenCalled();
     act(() => dialog()!.answer(false));
     await act(() => done);

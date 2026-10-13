@@ -8,7 +8,7 @@ export const boothStates: StateEntry[] = [
     page: 'booth',
     state: 'setup',
     description:
-      'Booth, ready to record (the record capability on, ?mockRecordCapabilityOn=1): the top bar with the chapter stepper, the progress line, "Resume at ¶ 14 from the saved project" and the REAPER setup chip; the text full-bleed with the reading position on its first word; the side panel (Voices in this scene, Coming up, Last punch, This session); the footer with Record, the timer, Levels, the level bar and room tone, and the key hints from the catalogue',
+      "Booth, ready to record (the record capability on, ?mockRecordCapabilityOn=1): the top bar with the chapter stepper, the progress line, \"Resume at ¶ 14 from the saved project\" and the REAPER setup chip; the text full-bleed with the reading position on its first word; the side panel (Voices in this scene, Coming up, Last punch, This session); the footer with Record, the timer, Levels, and at its right the level bar and the room tone chip (the mock's .lvl-inline), and the key hints from the catalogue. Also captured at the 390 px reflow width (#1718): the top bar wraps as the mock's .btop does, the chapter picker at the mock's medium 190 px, so the progress line, the resume line and the setup chip never overlap the picker",
     ...REFLOW,
   },
   {
@@ -74,7 +74,7 @@ export const boothStates: StateEntry[] = [
     page: 'booth',
     state: 'leave-dialog',
     description:
-      'Booth, Escape pressed during a take: the "Stop recording?" question ("REAPER is recording. Leaving the Booth stops it."), with Cancel and Stop and leave; the take is held while it is open, so the pill reads REC PAUSED (ADR 0790)',
+      'Booth, Escape pressed during a take: the "Stop recording?" question ("REAPER is recording. Leaving the Booth stops it."), with Keep recording (the mock\'s name for staying) and Stop and leave; the take is held while it is open, so the pill reads REC PAUSED (ADR 0790)',
     ...FREEZES_THE_CLOCK,
     ...REFLOW,
   },

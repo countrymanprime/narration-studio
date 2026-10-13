@@ -54,6 +54,12 @@ import { useBoothPage } from './useBoothPage';
 /** Where the Booth's links go. The page is mounted at `/booth` (SN-O10); every one of them passes the leave guard. */
 const BOOTH_LINKS = { script: '/script', settings: '/settings', storyBible: '/story-bible', pickups: '/pickups' } as const;
 
+/**
+ * In the medium layout (1280 and below, where the side panel is a drawer) the chapter picker is the mock's 190 px
+ * (`.md .booth .chapbar .chapsel`), its name cut with an ellipsis, so the top bar fits a narrow window. Wider, it keeps the longest name's width.
+ */
+const MEDIUM_PICKER = "[&_[aria-label^='Chapter:']]:!w-[190px] [&_[aria-label^='Chapter:']]:!min-w-0";
+
 /** A chapter named as the manuscript heads it, label then title ("CHAPTER VIII. The Queen's Croquet-Ground"), as the mock's `chName`. */
 const headingName = (chapter: Parameters<typeof chapterHeading>[0]): string => {
   const { label, title } = chapterHeading(chapter);
@@ -355,7 +361,7 @@ function BoothSession({ source, from, requested, adopt, data, choose, navigate, 
             <BoothTop
               chapter={
                 // The chapter cannot change during a take: a fieldset disables the picker and its arrows while one runs.
-                <fieldset disabled={control.recording} className="m-0 min-w-0 border-0 p-0">
+                <fieldset disabled={control.recording} className={`m-0 min-w-0 border-0 p-0 ${side.drawer ? MEDIUM_PICKER : ''}`}>
                   <legend className="sr-only">Chapter</legend>
                   <ChapterStepper
                     chapters={pickerChapters}
