@@ -1,3 +1,4 @@
+import type { WordFx } from '../../../api/contracts/wordFx';
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode, type RefObject } from 'react';
 import { usePort } from '../../../ports/usePort';
 import type { DawCapabilities } from '../../../api/contracts/daw';
@@ -56,6 +57,7 @@ import type { PlaylistSegment } from '../../proof/playlist';
 import { doubledCut, wordAt, type ChapterRead } from './chapterSource';
 import { EditingHeader } from './EditingHeader';
 import { installBackupSteps, tokensIn } from '../backups/backupBefore';
+import { FxMarkersContext } from '../range/fx/fxMarkers';
 import { InHost, rowOf } from './InHost';
 import { NoAudioBanner } from './NoAudioBanner';
 import { useLines } from './useLines';
@@ -280,6 +282,10 @@ export function EditingBody(props: EditingBodyProps) {
   const tab = resolveTab(panels.drawer.want, offered);
   useDrawerCommands(offered, panels.drawer.openTab);
   const selectWords = useCallback((keys: string[]) => keys.length && dispatch({ type: 'select', anchor: keys[0], head: keys[keys.length - 1] }), [dispatch]);
+  const fxMarkers = useMemo(
+    () => ({ effects: read.effects, onSelect: (f: WordFx) => void selectWords(f.keys), onRemove: (f: WordFx) => void fx.remove(f) }),
+    [read.effects, selectWords, fx],
+  );
   const cleanupDeps = useCleanupDeps({ cuts: read.cuts, onCuts: props.onCuts });
   const { playing, playFrom, stop: stopPlayback } = playback;
   const previewPlayback = useMemo(() => ({ playing, playFrom, stop: stopPlayback }), [playing, playFrom, stopPlayback]);
@@ -406,7 +412,9 @@ export function EditingBody(props: EditingBodyProps) {
           <div className="flex h-full min-h-0 flex-col overflow-hidden rounded-[10px] border border-[var(--border)] bg-[var(--surface)]">
             <ScriptHost box={scriptBox} root={root}>
               {doc.paras.length ? (
-                <ScriptDoc reason={reason} explained={read.audio.kind !== 'ready'} />
+                <FxMarkersContext.Provider value={fxMarkers}>
+                  <ScriptDoc reason={reason} explained={read.audio.kind !== 'ready'} />
+                </FxMarkersContext.Provider>
               ) : (
                 // The page's own empty state, so its heading sits under the page's h1.
                 <div className="px-4 py-10">

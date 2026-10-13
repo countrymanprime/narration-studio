@@ -1,6 +1,8 @@
 import { Fragment, memo } from 'react';
 import { clockText } from '../../booth/boothProgress';
 import { isLow, type DocItem } from '../model';
+import { FxMarker } from '../range/fx/FxButtons';
+import { useFxMarker } from '../range/fx/fxMarkers';
 
 /** What marks a word: each is drawn with a shape (underline, strike, dashed box) as well as a colour, and named in `aria-description`. */
 type Mark = 'cut' | 'extra' | 'miss' | 'mis' | 'low';
@@ -93,17 +95,24 @@ export const Word = memo(function Word({ it, sel, cur, now, said, flag, join, fx
       >
         {it.text}
       </span>
-      {fxEnd ? (
-        <span
-          role="img"
-          aria-label="Effect on the words before"
-          data-fx-marker
-          className="mx-[0.15em] rounded-full border border-[var(--accent-strong)] px-1.5 align-[0.2em] font-mono text-[11px] text-[var(--accent-strong)]"
-        >
-          fx
-        </span>
-      ) : null}
+      {fxEnd ? <FxEnd id={it.fx[0]} /> : null}
       {join ? <span className="bg-[var(--info-soft)] shadow-[0_2px_0_var(--info)]">{gap}</span> : gap}
     </Fragment>
   );
 });
+
+/** The marker after an effect's last word: the mock's menu (select the words, remove the effect), or a plain mark for an effect not read yet. */
+function FxEnd({ id }: { id: string | undefined }) {
+  const marker = useFxMarker(id);
+  if (marker) return <FxMarker fx={marker.fx} onSelect={marker.onSelect} onRemove={marker.onRemove} />;
+  return (
+    <span
+      role="img"
+      aria-label="Effect on the words before"
+      data-fx-marker
+      className="mx-[0.15em] rounded-full border border-[var(--accent-strong)] px-1.5 align-[0.2em] font-mono text-[11px] text-[var(--accent-strong)]"
+    >
+      fx
+    </span>
+  );
+}

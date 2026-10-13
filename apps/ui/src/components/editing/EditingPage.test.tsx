@@ -579,6 +579,41 @@ describe('EditingPage', () => {
       await waitFor(() => expect(audios.some((a) => a.play.mock.calls.length > 0)).toBe(true));
     });
 
+    it('the marker after an effect selects its words and takes it off', async () => {
+      const fx = {
+        id: 'fx-1',
+        chapterId: 'c1',
+        pid: 'p1',
+        keys: ['p1:1', 'p1:2'],
+        words: [word('p1:1')?.textContent ?? '', ''],
+        text: 'the words',
+        a: 0,
+        b: 1,
+        off0: 0,
+        off1: 1,
+        chainId: 'Warm.RfxChain',
+        chainName: 'Warm',
+        source: 'REAPER',
+        fadeMs: 10,
+        daw: 'reaper',
+        guid: 'g',
+        at: '2026-10-01T00:00:00Z',
+        paragraph: 0,
+        stale: false,
+        bypassed: false,
+      };
+      const removeFx = vi.fn(async () => ({ chapterId: 'c1', effects: [] }));
+      mount({ api: { editingWordFxList: async (chapterId: string) => ({ chapterId, effects: [fx] }), editingWordFxRemove: removeFx } as never });
+      await script();
+      const [marker] = await within(await script()).findAllByRole('button', { name: 'Warm on the words. Options' });
+      fireEvent.click(marker!);
+      fireEvent.click(await screen.findByRole('menuitem', { name: 'Select the words' }));
+      await waitFor(() => expect(word('p1:1').hasAttribute('data-sel')).toBe(true));
+      fireEvent.click(marker!);
+      fireEvent.click(await screen.findByRole('menuitem', { name: 'Remove the effect' }));
+      await waitFor(() => expect(removeFx).toHaveBeenCalled());
+    });
+
     it('a DAW that edits in steps backs the words up before a cut', async () => {
       const base = dawFor('audacity-backups');
       const backupAround = vi.fn(base.backupAround);

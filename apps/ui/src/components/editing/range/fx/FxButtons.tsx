@@ -1,4 +1,5 @@
 import type { WordFx } from '../../../../api/contracts/wordFx';
+import { Icon } from '../../../primitives/Icon';
 import { Menu } from '../../../primitives/Menu';
 import { SelectionActionButton } from '../../bar/SelectionActionButton';
 
@@ -21,7 +22,9 @@ export function FxMarker({ fx, onSelect, onRemove }: { fx: WordFx; onSelect: (fx
         { key: 'remove', label: 'Remove the effect', onSelect: () => onRemove(fx) },
       ]}
     >
-      <span data-fx-marker={fx.id}>fx</span>
+      <span data-fx-marker={fx.id}>
+        <Icon name="addFx" />
+      </span>
     </Menu>
   );
 }
