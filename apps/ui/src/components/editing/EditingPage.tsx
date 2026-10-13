@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useLayoutEffect, useMemo, useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { chapterHeading } from '../../chapterHeading';
 import { CommandScope } from '../../input/router';
 import { useUserKeymap } from '../../input/useUserKeymap';
@@ -9,8 +9,8 @@ import { Panel } from '../primitives/Panel';
 import { NeedManuscript } from '../layout/NeedManuscript';
 import type { DrawerTab } from './drawer/drawerTabs';
 import { STRIP_MIN_WIDTH } from './drawer/drawerTabs';
+import { useWindowWidth } from './drawer/useDrawer';
 import { EditingPageProvider } from './script/EditingPageState';
-import { StripRoot } from './strip/TimelineStrip';
 import { DawOffBanner } from './page/DawOffBanner';
 import { EditingBody, type DeepLink, type PanelsState } from './page/EditingBody';
 import { EditingHeader } from './page/EditingHeader';
@@ -43,18 +43,6 @@ export interface EditingPageProps {
   onChapter?: (id: string) => void;
   /** Opens the import flow, from the need-a-manuscript state. */
   onImport?: () => void;
-}
-
-/** The width of the window, as the mock's `layout.width` reads it (`documentElement`), not of the page beside the rail. */
-function useWidth(): number {
-  const [width, setWidth] = useState(0);
-  useLayoutEffect(() => {
-    const measure = (): void => setWidth(document.documentElement.getBoundingClientRect().width);
-    measure();
-    window.addEventListener('resize', measure);
-    return () => window.removeEventListener('resize', measure);
-  }, []);
-  return width;
 }
 
 /** The strip and the drawer: page state that a chapter change keeps. */
@@ -90,7 +78,7 @@ function EditingLoaded({ chapterId: asked, passageId, findingId, t, drawer, onCh
   const keymap = useUserKeymap();
   const daw = useDawStatus();
   const panels = usePanels(drawer);
-  const width = useWidth();
+  const width = useWindowWidth();
   const [chapters, setChapters] = useState<ManuscriptChapter[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [chosen, setChosen] = useState<string | undefined>(asked);
@@ -137,7 +125,7 @@ function EditingLoaded({ chapterId: asked, passageId, findingId, t, drawer, onCh
   return (
     <CommandScope kind="page">
       <section aria-label="Script editor" className="flex h-full min-h-0 flex-col">
-        <StripRoot className="flex h-full min-h-0 flex-col">
+        <div className="flex h-full min-h-0 flex-col">
           {error ? (
             <p role="alert" className="p-4 text-sm text-[var(--danger-text)]">
               {error}
@@ -161,7 +149,7 @@ function EditingLoaded({ chapterId: asked, passageId, findingId, t, drawer, onCh
               <p className="text-sm text-[var(--text-muted)]">Import a manuscript with at least one narration chapter first.</p>
             </Panel>
           ) : null}
-        </StripRoot>
+        </div>
       </section>
     </CommandScope>
   );

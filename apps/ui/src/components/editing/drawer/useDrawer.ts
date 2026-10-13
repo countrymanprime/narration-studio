@@ -1,22 +1,23 @@
-import { useCallback, useEffect, useState, type RefObject } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useState } from 'react';
 import { usePort } from '../../../ports/usePort';
 import type { DawCapabilities } from '../../../api/contracts/daw';
 import { backupsOffered, resolveTab, STRIP_MIN_WIDTH, tabsFor, type DrawerTab } from './drawerTabs';
 
-/** Whether the strip fits: the width of `root` (the page root) against `STRIP_MIN_WIDTH`. Without a ResizeObserver it reads the width once. */
-export function useStripFits(root: RefObject<HTMLElement | null>): boolean {
-  const [fits, setFits] = useState(false);
-  useEffect(() => {
-    const el = root.current;
-    if (!el) return;
-    const measure = (width: number): void => setFits(width >= STRIP_MIN_WIDTH);
-    measure(el.getBoundingClientRect().width);
-    if (typeof ResizeObserver === 'undefined') return;
-    const ro = new ResizeObserver((entries) => measure(entries[0]?.contentRect.width ?? 0));
-    ro.observe(el);
-    return () => ro.disconnect();
-  }, [root]);
-  return fits;
+/** The width of the window, as the mock's `layout.width` reads it (`documentElement`), not of the page beside the rail; 0 before the first read. */
+export function useWindowWidth(): number {
+  const [width, setWidth] = useState(0);
+  useLayoutEffect(() => {
+    const measure = (): void => setWidth(document.documentElement.getBoundingClientRect().width);
+    measure();
+    window.addEventListener('resize', measure);
+    return () => window.removeEventListener('resize', measure);
+  }, []);
+  return width;
+}
+
+/** Whether the strip fits: the window is `STRIP_MIN_WIDTH` or wider. */
+export function useStripFits(): boolean {
+  return useWindowWidth() >= STRIP_MIN_WIDTH;
 }
 
 /** Whether the DAW offers backups, from `DawClient.capabilities`; false while it is being asked or if it cannot answer. */

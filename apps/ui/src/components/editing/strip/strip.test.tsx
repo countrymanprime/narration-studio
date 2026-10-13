@@ -9,7 +9,7 @@ import { createMockApi } from '../../../api/mockApi';
 import { EditingPageProvider, useEditingPage } from '../script/EditingPageState';
 import { marksDoc } from '../script/scriptFixtures';
 import type { LinePassage, LineTake } from '../takes/types';
-import { STRIP_OFFERED, StripRoot, StripToggle, TimelineStrip } from './TimelineStrip';
+import { StripToggle, TimelineStrip } from './TimelineStrip';
 import { stripLayout, wordAtTime } from './stripLayout';
 import { useStripOpen } from './useStripOpen';
 
@@ -63,9 +63,7 @@ function mount(p: LinePassage | null, place: Place = { key: 'p-1:1' }, extra: Pa
     <ApiProvider api={api}>
       <EditingPageProvider doc={doc}>
         <Seed place={place} />
-        <StripRoot>
-          <TimelineStrip passage={p} playingId={null} onPlay={onPlay} chapterId="5" {...extra} />
-        </StripRoot>
+        <TimelineStrip passage={p} playingId={null} onPlay={onPlay} chapterId="5" {...extra} />
       </EditingPageProvider>
     </ApiProvider>,
   );
@@ -73,26 +71,24 @@ function mount(p: LinePassage | null, place: Place = { key: 'p-1:1' }, extra: Pa
 }
 
 describe('offered at 1360 and wider, off to begin with', () => {
-  it('the toggle and the strip are offered by a container query on the page root, and S-less state starts off', () => {
+  // The width gate is the page's (EditingPage.test.tsx "measures the window, not the page beside the rail").
+  it('the toggle shows and hides the strip, and it starts off', () => {
     function Page() {
       const { open, toggle } = useStripOpen();
       return (
-        <StripRoot>
+        <div>
           <StripToggle open={open} onToggle={toggle} />
-          {open ? <section id="timeline" className={STRIP_OFFERED} /> : null}
-        </StripRoot>
+          {open ? <section id="timeline" /> : null}
+        </div>
       );
     }
     const { container } = render(<Page />);
     const btn = container.querySelector('#striptoggle') as HTMLElement;
-    expect(container.firstElementChild!.className).toContain('@container');
-    expect(btn.parentElement!.className).toContain('@min-[1360px]:');
-    expect(btn.parentElement!.className).toContain('hidden');
     expect(btn.getAttribute('aria-pressed')).toBe('false');
     expect(container.querySelector('#timeline')).toBeNull();
     fireEvent.click(btn);
     expect(btn.getAttribute('aria-pressed')).toBe('true');
-    expect(container.querySelector('#timeline')!.className).toContain('@min-[1360px]:block');
+    expect(container.querySelector('#timeline')).not.toBeNull();
     fireEvent.click(btn);
     expect(container.querySelector('#timeline')).toBeNull();
   });

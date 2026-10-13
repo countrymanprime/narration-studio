@@ -96,9 +96,9 @@ export interface EditingBodyProps {
   onReread: () => void;
   caps: DawCapabilities | null;
   keymap: Keymap;
-  /** The page root is 1360 px or wider: the strip fits and the timeline is not a drawer tab. */
+  /** The window is 1360 px or wider: the strip fits and the timeline is not a drawer tab. */
   stripFits: boolean;
-  /** The page root is 1280 px or narrower: the legend is short and the drawer lies over the text. */
+  /** The window is 1280 px or narrower: the legend is short and the drawer lies over the text. */
   compact: boolean;
   panels: PanelsState;
   chapterStep: (d: 1 | -1) => void;
