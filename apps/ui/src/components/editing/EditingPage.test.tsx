@@ -606,6 +606,14 @@ describe('EditingPage', () => {
       await waitFor(() => expect(toast).toHaveBeenCalledWith('Moved to 1:05 in the DAW.'));
     });
 
+    it("the Clean up tab starts with the chapter's retry bar", async () => {
+      mount({ chapterId: 'c1', drawer: 'cleanup' });
+      await script();
+      const drawer = document.querySelector<HTMLElement>('#drawer')!;
+      const retries = await within(drawer).findByRole('region', { name: 'Retries' });
+      expect(within(retries).getByText(/How retries are kept/)).toBeTruthy();
+    });
+
     it('Undo choice takes a kept take back', async () => {
       const journal = createJournal({ dawName: () => 'the DAW', dawLastAction: async () => 'this' });
       render(

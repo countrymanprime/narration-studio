@@ -5,6 +5,8 @@ import { usePort } from '../../../ports/usePort';
 import type { Journal } from '../../../studio/journal/createJournal';
 import { registerCommandProvider } from '../../../input/commandProviders';
 import { registerWordMenuSection, type WordMenuSelection } from '../menu/wordMenuRegistry';
+import { registerDrawerSection } from '../drawer/drawerSections';
+import { RetryBar } from './RetryBar';
 import { canStack, canUnstack, movableTakes, stackable, stackPlanOf, type RetrySettings, type StackPlan } from '../model/stacking';
 import { registerTakeControl } from '../takes/takeControls';
 import { StackControls } from './StackControls';
@@ -286,6 +288,28 @@ export function useStackRetries({ journal, chapterId, lines, passageOf }: StackO
     });
     return offControl;
   }, [merged, settings, reasonFor, requestStack, requestUnstack, requestCleanUp, refresh]);
+
+  // The chapter's retry bar at the top of the drawer's Clean up tab (the mock's "Retries" section), while the chapter has lines with takes.
+  const hasLines = merged.length > 0;
+  useEffect(() => {
+    if (!hasLines) return undefined;
+    return registerDrawerSection({
+      tab: 'cleanup',
+      order: 5,
+      label: 'Retries',
+      render: ({ chapterId: id }) => (
+        <RetryBar
+          level="chapter"
+          chapterId={id}
+          scope="chapter"
+          count={latest.current.count}
+          reason={latest.current.reasonFor()}
+          onStack={() => latest.current.requestStack()}
+          onChange={() => latest.current.refresh()}
+        />
+      ),
+    });
+  }, [hasLines, count]);
 
   return { how, lines: merged, settings, count, requestStack, requestUnstack, requestCleanUp, reasonFor, refresh };
 }
