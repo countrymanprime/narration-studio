@@ -4,6 +4,9 @@ const WINDOW_LENGTHS = [30, 60, 120, 300] as const;
 /** The shortest window, in seconds (or the whole chapter when it is shorter). */
 export const MIN_WINDOW = WINDOW_LENGTHS[0];
 
+/** The window a chapter opens with (mock `winLen: 60`), or the whole chapter when it is shorter. */
+export const FIRST_WINDOW = WINDOW_LENGTHS[1];
+
 export type TimeWindow = { start: number; len: number };
 
 const clamp = (value: number, low: number, high: number): number => Math.max(low, Math.min(high, value));

@@ -102,7 +102,9 @@ export const proofDrivers: Record<string, Driver> = {
       .filter({ hasText: /pink eyes/ })
       .click();
     await inspector(page).getByText('The evidence changed', { exact: true }).waitFor();
-    await inspector(page).getByRole('textbox').fill('Heard it twice; the second read is right.');
+    await inspector(page)
+      .getByRole('textbox', { name: /Note with the decision/ })
+      .fill('Heard it twice; the second read is right.');
   },
   empty: async (page) => {
     await openProof(page, 'mockFindings=empty', false);

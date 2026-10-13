@@ -45,7 +45,7 @@ describe('notes-on-this-finding', () => {
   it('starts empty and adds a note as mine or as the proofer’s reply', async () => {
     const { api, id } = await setup();
     expect(screen.getByText('No notes yet.')).toBeTruthy();
-    await addNote('Is this the room or a misread?');
+    await addNote('Is this the room or a misread?', 'My note');
     await addNote('The room: waive it.', 'Proofer replied');
     expect(messages()[0]).toMatch(/^You/);
     expect(messages()[1]).toMatch(/^Proofer/);
@@ -55,7 +55,7 @@ describe('notes-on-this-finding', () => {
 
   it('adds, edits and deletes a message, and Undo brings it back', async () => {
     const { api, id } = await setup();
-    await addNote('one');
+    await addNote('one', 'My note');
     await addNote('two');
     const first = document.querySelector<HTMLElement>('[data-message="m1"]')!;
     fireEvent.click(within(first).getByRole('button', { name: 'Edit this note' }));

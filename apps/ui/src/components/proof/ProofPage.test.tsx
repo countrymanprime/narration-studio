@@ -57,6 +57,18 @@ const noteRows = async () => {
 const where = () => screen.getByTestId('where').textContent;
 const press = (key: string, code: string) => fireEvent.keyDown(document.body, { key, code });
 
+describe('the-head-and-open-pickups', () => {
+  it('the head cannot read 100 while a pickup is open', async () => {
+    const api = createMockApi();
+    vi.spyOn(api, 'findingsSummary').mockResolvedValue({ ...(await api.findingsSummary()), total: 3, decided: 3, cleared: 3 });
+    const list = await api.pickupsList();
+    vi.spyOn(api, 'pickupsList').mockResolvedValue({ ...list, pickups: [{ ...list.pickups[0]!, findingId: undefined, done: false }] });
+    renderPage({ api });
+    await noteRows();
+    await waitFor(() => expect(document.querySelector('[data-ring]')?.getAttribute('data-ring')).toBe('99'));
+  });
+});
+
 describe('proof-route-draws-the-mock-page', () => {
   it('draws the head with the ring, the chapter strip, the notes queue and the key hints for all chapters', async () => {
     renderPage();

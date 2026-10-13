@@ -129,12 +129,15 @@ describe('chips-filter-and-count', () => {
 });
 
 describe('in-view-chip-only-when-the-window-is-narrower', () => {
-  it('is absent for the whole chapter, and filters to the window otherwise', async () => {
+  it('is absent for the whole chapter, and on by default otherwise, filtering to the window (mock `winFilter: true`)', async () => {
     const { rerender } = render(<Harness all={false} window={{ start: 0, len: 760, total: 760 }} />);
     expect(screen.queryByRole('button', { name: 'In view' })).toBeNull();
+    const all = dataRows().length;
     rerender(<Harness all={false} window={{ start: 10, len: 100, total: 760 }} />);
-    await userEvent.click(screen.getByRole('button', { name: 'In view' }));
+    expect(screen.getByRole('button', { name: 'In view' }).getAttribute('aria-pressed')).toBe('true');
     expect(dataRows()).toHaveLength(3);
+    await userEvent.click(screen.getByRole('button', { name: 'In view' }));
+    expect(dataRows()).toHaveLength(all);
   });
 });
 
@@ -153,11 +156,11 @@ describe('find-in-notes-filters-script-and-heard', () => {
 });
 
 describe('sources-line-names-the-analyzers', () => {
-  it('names the analyzers of the rows in view', async () => {
+  it('names the analyzers of every note in scope, before the filters (mock `sourcesOf(base)`)', async () => {
     render(<Harness />);
     expect(screen.getByText('Sources: Local AI compare 4 · Delivery measurement 1')).toBeTruthy();
     await userEvent.click(screen.getByRole('button', { name: /^Pickups/ }));
-    expect(screen.getByText('Sources: Local AI compare 1')).toBeTruthy();
+    expect(screen.getByText('Sources: Local AI compare 4 · Delivery measurement 1')).toBeTruthy();
   });
 });
 
@@ -191,7 +194,7 @@ describe('selection-and-keys', () => {
 describe('type-and-resolution-chips-are-words-and-shapes', () => {
   it('reads each decision as a word', () => {
     render(<Harness />);
-    for (const word of ['To review', 'Needs pickup', 'Fix in edit', 'Waived', 'Deferred']) expect(screen.getAllByText(word).length).toBeGreaterThan(0);
+    for (const word of ['To review', 'Needs pickup', 'Fix in edit', 'Waive', 'Defer']) expect(screen.getAllByText(word).length).toBeGreaterThan(0);
   });
   it('shows the confidence, or the reason on hover when there is none', () => {
     render(<Harness />);

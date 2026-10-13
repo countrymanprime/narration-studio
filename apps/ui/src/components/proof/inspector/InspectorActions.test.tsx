@@ -47,7 +47,7 @@ describe('actions-follow-the-daw-capability', () => {
     await waitFor(() => expect(enabled('Show in REAPER')).toBe(true));
     await userEvent.click(button('Show in REAPER'));
     expect(t.api.findingsGoTo).toHaveBeenCalledWith('f1');
-    expect((await screen.findByRole('status')).textContent).toBe('Moved to 0:12.4 in REAPER.');
+    expect((await screen.findByRole('status')).textContent).toBe('Moved to 00:12.4 in REAPER.');
   });
 
   it('turns Add marker on for an accepted note and calls DawClient.addMarker', async () => {

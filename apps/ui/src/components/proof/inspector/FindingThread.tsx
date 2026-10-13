@@ -74,7 +74,8 @@ function Message({
 export function FindingThread({ finding, api, onChanged }: { finding: Finding; api: FindingThreadApi; onChanged: (finding: Finding) => void }) {
   const overlay = useOverlay();
   const action = usePendingAction();
-  const [who, setWho] = useState<FindingThreadAuthor>('you');
+  // Pasting the proofer's reply is the common case (mock `who: 'proofer'`).
+  const [who, setWho] = useState<FindingThreadAuthor>('proofer');
   const [reply, setReply] = useState('');
   const [failure, setFailure] = useState<string>();
   const thread = finding.review.thread ?? [];

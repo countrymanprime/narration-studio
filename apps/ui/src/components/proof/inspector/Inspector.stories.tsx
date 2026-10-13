@@ -67,7 +67,7 @@ export const DecidedWithANote: Story = {
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
     await expect(canvas.getByRole('button', { name: 'Reopen' })).toBeTruthy();
-    await expect((canvas.getByRole('textbox') as HTMLTextAreaElement).value).toBe('Re-record the last three words.');
+    await expect((canvas.getByRole('textbox', { name: /Note with the decision/ }) as HTMLTextAreaElement).value).toBe('Re-record the last three words.');
   },
 };
 

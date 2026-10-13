@@ -3,7 +3,7 @@ import { MAX_REVIEW_NOTE_LENGTH, shownFindingNoteType } from '../../../api/contr
 import type { Finding, FindingReviewStatus } from '../../../types';
 import { Field } from '../../primitives/Field';
 import { SectionLabel } from '../../primitives/SectionLabel';
-import { categoryLabel, formatTime } from '../findingFormat';
+import { categoryLabel, noteTime } from '../findingFormat';
 import { fixKindOf, savedMessage } from '../resolution';
 import { DecisionButtons } from './DecisionButtons';
 import { EvidenceChangedBanner } from './EvidenceChangedBanner';
@@ -105,7 +105,7 @@ export function Inspector({
     <aside aria-label="Note" className="flex flex-col gap-3">
       <div className="flex items-center gap-2">
         <h2 className="font-['IBM_Plex_Mono',ui-monospace,monospace] text-base font-semibold">
-          {shown.time_range ? formatTime(shown.time_range.start) : categoryLabel(shown.category)}
+          {shown.time_range ? noteTime(shown.time_range.start) : categoryLabel(shown.category)}
         </h2>
         {typeControl ?? <span className="text-sm text-[var(--text-muted)]">{shownFindingNoteType(shown)}</span>}
         <span className="flex-1" />

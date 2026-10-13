@@ -6,7 +6,7 @@ import type { DawCapabilities } from '../../../api/contracts/daw';
 import type { Finding, NarrationApi } from '../../../types';
 import { Button } from '../../primitives/Button';
 import { IconButton } from '../../primitives/IconButton';
-import { formatTime } from '../findingFormat';
+import { noteTime } from '../findingFormat';
 
 /** The one host call the icon row makes itself; the marker goes through the DAW port. */
 export type InspectorActionsApi = Pick<NarrationApi, 'findingsGoTo'>;
@@ -87,7 +87,7 @@ export function InspectorActions({
       try {
         const went = await api.findingsGoTo(finding.id);
         if (went.outcome === 'refused') show(went.message, true);
-        else if (went.outcome === 'navigated') show(`Moved to ${formatTime(went.projectTime)} in ${dawName}.`);
+        else if (went.outcome === 'navigated') show(`Moved to ${noteTime(went.projectTime)} in ${dawName}.`);
       } catch (error) {
         show(`The DAW was not asked: ${apiErrorMessage(error)}`, true);
       }
