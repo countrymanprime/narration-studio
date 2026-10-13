@@ -8,6 +8,7 @@ import {
   dawChoiceSchema,
   dawFxRangeCompareSchema,
   dawFxRangeSettingsSchema,
+  dawLastActionSchema,
   dawProjectStateSchema,
   dawResultSchema,
   dawTransportSchema,
@@ -89,6 +90,14 @@ export const dawGoldens: Record<string, z.ZodType> = {
   'daw-repair-click-done.json': dawResultSchema,
   'daw-repair-click-refused-stale.json': dawResultSchema,
   'daw-repair-click-refused-capability.json': dawResultSchema,
+  // DawLastAction and DawUndoLast (bindings_daw_undo_last_test.go): a cut on top and a capability refused; a cut undone in REAPER, two of
+  // three, REAPER's refusal when its last action is not the cut, and the undo_last capability's refusal.
+  'daw-last-action-this.json': dawLastActionSchema,
+  'daw-last-action-unknown.json': dawLastActionSchema,
+  'daw-undo-last-done.json': dawResultSchema,
+  'daw-undo-last-partial.json': dawResultSchema,
+  'daw-undo-last-refused-not-last.json': dawResultSchema,
+  'daw-undo-last-refused-capability.json': dawResultSchema,
   // narration-utils/backups.json, the file the host reads back (backups_contract_test.go): an empty table and one with two rows.
   'daw-backups-empty.json': dawBackupsFileSchema,
   'daw-backups-two.json': dawBackupsFileSchema,

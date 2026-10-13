@@ -56,6 +56,9 @@ export const engineDrivers: Record<string, Driver> = {
     await page.getByRole('button', { name: 'Link a REAPER project file' }).waitFor();
   },
   'chapter-link-confirmed': async (page) => {
+    // Boots with no link, so the click through Confirm below is what makes it (an unset seed boots Chapter 1 already linked).
+    await page.goto('/?mockChapterLink=none');
+    await settlePage(page);
     await openEnginePanel(page);
     const table = page.getByRole('table', { name: 'Chapter links' });
     await table.scrollIntoViewIfNeeded();
@@ -82,6 +85,8 @@ export const engineDrivers: Record<string, Driver> = {
     await panel.getByText('This chapter can’t be checked yet').waitFor();
   },
   'link-chapters-preview': async (page) => {
+    await page.goto('/?mockChapterLink=none');
+    await settlePage(page);
     await openEnginePanel(page);
     await clickVisible(page, 'button', 'Link chapters…');
     await page.getByRole('combobox', { name: 'Track for Chapter 1', exact: true }).selectOption({ label: 'Chapter 1' });

@@ -72,7 +72,8 @@ nothing measured it says **No measured files yet** rather than a zero.
 
 **Delivery package** on the right lists the package checks drawn from the profile's rules (chapters as one
 file each, every file under the profile's longest length, the channels, sample rate and MP3 format), the files that
-fail and how many checks each fails, and how many files are not measured yet. A rule the profile lacks or
+fail and how many checks each fails, and how many chapters are not ready (the same count Delivery's **Before you
+build** gives). A rule the profile lacks or
 has turned off has no row. **Open Delivery** goes on to build the package.
 
 ![Master & QC judged by a custom profile based on ACX, named on the profile button](../../images/ui/master-custom-profile.webp)

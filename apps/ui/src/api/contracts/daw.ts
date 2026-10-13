@@ -85,7 +85,8 @@ export type DawCapabilityKey =
   | 'file_preview'
   | 'file_reveal'
   | 'range_gain'
-  | 'click_repair';
+  | 'click_repair'
+  | 'undo_last';
 
 export type DawCapabilities = {
   daw: DawKind;
@@ -130,6 +131,7 @@ export const DAW_CAPABILITIES: ReadonlyArray<{ key: DawCapabilityKey; label: str
   { key: 'file_reveal', label: 'Show a file in the audio engine' },
   { key: 'range_gain', label: 'Lower stretches of a take' },
   { key: 'click_repair', label: 'Repair clicks in a take' },
+  { key: 'undo_last', label: "Undo the app's last action" },
 ];
 
 /** The DAW's transport as of its last heartbeat (daw_transport_changed, ADR 0305;
@@ -360,6 +362,37 @@ export interface DawClick {
  * a sentence; a take the track no longer holds, a click outside it and a take that changed since the host read it are code `stale`. */
 export interface DawRepairClickApi {
   dawRepairClick(chapterId: string, takeId: string, clicks: DawClick[]): Promise<DawResult>;
+}
+
+/** A kind of app action whose undo point the DAW can tell from any other (dawport.ActionKind): what `dawLastAction` reads and
+ * `dawUndoLast` undoes. `cut_range` is a cut made with `dawDeleteRange`. The host and the DAW map a kind to the DAW's own mark for it;
+ * the page never names one. A closed union: a later kind is added on both sides. */
+export type DawActionKind = 'cut_range';
+
+/** The action kinds this build knows, in the order of DawActionKind. */
+export const DAW_ACTION_KINDS = ['cut_range'] as const satisfies readonly DawActionKind[];
+
+/** What `dawLastAction` answers of the DAW's next undo point for a kind (dawport.LastAction): `this` when it is that kind's, `other`
+ * when it is anything else or there is none, `unknown` when the DAW cannot tell (the `undo_last` capability refused, the DAW not
+ * answering). */
+export type DawLastAction = 'this' | 'other' | 'unknown';
+
+export const DAW_LAST_ACTIONS = ['this', 'other', 'unknown'] as const satisfies readonly DawLastAction[];
+
+/** DawLastAction and DawUndoLast (#1711; apps/desktop/bindings_daw_undo_last.go): read and undo the app's own last action in the DAW's own
+ * undo history, so the page's Undo reaches it (ADR 0771 rule 4). */
+export interface DawUndoLastApi {
+  /** Whether the DAW's next undo point is the app's action of `kind`. It never changes the project; a capability refusal, a DAW not
+   * answering and no live DAW are `unknown`. A kind the host does not know rejects. */
+  dawLastAction(kind: DawActionKind): Promise<DawLastAction>;
+  /** Undo `steps` (1 to DAW_RESULT_MAX_UNDO_STEPS) consecutive undo points of the app's action of `kind` from the top of the DAW's own
+   * history, one at a time, never one of any other action. All undone: `ok`, `changed`, "Undid the cut in REAPER.". The top point not
+   * `kind`'s: refused with nothing changed, "<DAW>'s last action is not this one, so it was left alone. Use Edit > Undo in <DAW>.".
+   * Stopped part way at another action: `ok`, `changed`, and the message says how many were undone and that the rest need Edit > Undo.
+   * `undoSteps` is always 0: it counts undo points a call adds, and an undo adds none, so how many were undone is in the message only.
+   * A capability refusal carries the `undo_last` capability's sentence; steps out of bounds and the DAW recording are refused with a
+   * sentence. A kind the host does not know rejects. */
+  dawUndoLast(kind: DawActionKind, steps: number): Promise<DawResult>;
 }
 
 /** DawBackupAround, DawRestoreBackup and DawBackups (SN-D82, ADR 0863; apps/desktop/bindings_daw_backups.go): clone the audio around a

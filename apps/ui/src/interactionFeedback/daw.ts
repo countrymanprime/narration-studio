@@ -52,6 +52,20 @@ export const dawFeedback = {
   'src/ports/daw.ts::dawRepairClick#1': adapter(
     'Forwards Repair the click with the chapter, take id and clicks only; the binding already answers a DawResult.',
   ),
+  'src/ports/daw.ts::dawLastAction#1': row(
+    'click',
+    'file-io',
+    'na',
+    'na',
+    'ui',
+    'na',
+    'na',
+    'exempt',
+    "Forwards the read of the DAW's last action before an Undo. It changes nothing and never rejects: a failed read is `unknown`, which the page's Undo words as the DAW's own Edit > Undo.",
+  ),
+  'src/ports/daw.ts::dawUndoLast#1': adapter(
+    "Forwards Undo of the app's last action in the DAW with the kind and steps only; the binding already answers a DawResult.",
+  ),
   'src/ports/daw.ts::dawUnstackTakes#1': adapter('Forwards Un-stack the takes with the passage ids only; the binding already answers a DawResult.'),
   'src/ports/daw.ts::workspaceListFXChains#1': adapter("Reads the DAW's saved FX chains for the Add FX list; a refusal rejects for the page to show."),
   'src/ports/daw.ts::dawCapabilities#3': adapter("Reads the capability report beside the chain list, for the list's source label."),

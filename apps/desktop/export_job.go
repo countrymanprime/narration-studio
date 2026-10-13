@@ -455,8 +455,10 @@ func (h *Host) cancelExport() ExportJob {
 	job.mu.Lock()
 	job.message = "Cancelling the export."
 	job.mu.Unlock()
+	// The snapshot comes first: once cancelled, the run can end before a later read, and the caller would see it ended.
+	snapshot := job.snapshot()
 	job.cancel()
-	return job.snapshot()
+	return snapshot
 }
 
 // pickExportFiles opens the picker and remembers what it chose, so only those paths can be exported (mirrors

@@ -6,13 +6,13 @@ import type { OverlayService } from '../../../overlay/overlayService';
 import { Checkbox } from '../../primitives/Checkbox';
 import { ChapterStepper } from '../../primitives/ChapterStepper';
 import { Heading } from '../../primitives/Heading';
-import { Icon } from '../../primitives/Icon';
 import { IconButton } from '../../primitives/IconButton';
 import { PANEL_FRAME_CLASS, PANEL_HEADER_CLASS } from '../../primitives/panelStyles';
 import { Popover } from '../../primitives/Popover';
+import { StatusBadge } from '../../primitives/StatusBadge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../primitives/Table';
 import { AddPickup } from './AddPickup';
-import { clock, groupByChapter, inScope, sourceLabel, sourceTitle, typeLabel, ALL_SCOPE, type ChapterRef } from './pickupRows';
+import { clock, groupByChapter, inScope, sourceLabel, sourceTitle, typeLabel, typeTone, ALL_SCOPE, type ChapterRef } from './pickupRows';
 import { ScriptLine } from './ScriptLine';
 import { PICKUP_ROW, usePickupsContextMenu } from './usePickupsContextMenu';
 
@@ -22,6 +22,8 @@ export type RemoveUndo = () => Promise<{ ok: true } | { ok: false; refusal: { re
 /** The DAW as the head needs it: whether the recording check can run, and the host's sentence when it cannot. */
 export type DawGate = { available: boolean; message?: string };
 
+/** Why Play is off: the app has no player for the original recording around a line yet (the Booth plays a take, the Editing page a chapter). */
+const PLAY_OFF = 'Playing the original around a line is not available here yet. Open the line in the Booth to hear and re-record it.';
 const MONO = "font-['IBM_Plex_Mono',ui-monospace,monospace]";
 /** A control inside a row has its own key handling; the row's keys are for the row itself. */
 const OWN_KEYS = 'button, a, input, textarea, select, [role="checkbox"]';
@@ -197,7 +199,11 @@ export function PickupsTable({
                       <TableCell numeric align="left">
                         {clock(pickup.time)}
                       </TableCell>
-                      <TableCell>{typeLabel(pickup)}</TableCell>
+                      <TableCell>
+                        <span className="whitespace-nowrap">
+                          <StatusBadge tone={typeTone(pickup)} label={typeLabel(pickup)} shape="tag" />
+                        </span>
+                      </TableCell>
                       <TableCell style={{ fontSize: 16 }}>
                         <ScriptLine text={pickup.script} />
                       </TableCell>
@@ -205,13 +211,11 @@ export function PickupsTable({
                         <span title={sourceTitle(pickup)}>{sourceLabel(pickup)}</span>
                       </TableCell>
                       <TableCell>
-                        <span className="inline-flex items-center gap-1.5">
-                          <Icon name={pickup.done ? 'markedDone' : 'markDone'} />
-                          {pickup.done ? 'Recorded' : 'Open'}
-                        </span>
+                        <StatusBadge tone={pickup.done ? 'success' : 'neutral'} label={pickup.done ? 'Recorded' : 'Open'} />
                       </TableCell>
                       <TableCell>
                         <div className="flex flex-nowrap items-center justify-end gap-1">
+                          <IconButton action="play" label="Play the original around this line" size="sm" disabledReason={PLAY_OFF} />
                           <IconButton action="openInBooth" label="Open in Booth at this line" size="sm" onClick={() => onOpenInBooth([pickup])} />
                           <IconButton
                             action={pickup.done ? 'markedDone' : 'markDone'}

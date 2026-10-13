@@ -37,7 +37,7 @@
       - /children: equal
       - text: Review
       - button /Proof, \d+/
-      - button "Pickups"
+      - button /Pickups, \d+/
     - group "Finish":
       - /children: equal
       - text: Finish

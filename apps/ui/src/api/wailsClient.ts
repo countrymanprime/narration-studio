@@ -41,6 +41,7 @@ import {
   dawChoiceSchema,
   dawFxRangeCompareSchema,
   dawFxRangeSettingsSchema,
+  dawLastActionSchema,
   dawProjectStateSchema,
   dawResultSchema,
   dawTransportSchema,
@@ -671,6 +672,8 @@ export const wailsClient: NarrationApi = {
   dawReduceRangeGain: (chapterId, takeId, stretches, reduceDb) =>
     decode(dawResultSchema, 'DawReduceRangeGain', host.DawReduceRangeGain(chapterId, takeId, stretches, reduceDb)),
   dawRepairClick: (chapterId, takeId, clicks) => decode(dawResultSchema, 'DawRepairClick', host.DawRepairClick(chapterId, takeId, clicks)),
+  dawLastAction: (kind) => decode(dawLastActionSchema, 'DawLastAction', host.DawLastAction(kind)),
+  dawUndoLast: (kind, steps) => decode(dawResultSchema, 'DawUndoLast', host.DawUndoLast(kind, steps)),
   dawBackupAround: (chapterId, firstToken, lastToken, label) =>
     decode(dawResultSchema, 'DawBackupAround', host.DawBackupAround(chapterId, firstToken, lastToken, label)),
   dawRestoreBackup: (backupId) => decode(dawResultSchema, 'DawRestoreBackup', host.DawRestoreBackup(backupId)),

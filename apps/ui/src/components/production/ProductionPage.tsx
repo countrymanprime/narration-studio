@@ -4,6 +4,7 @@ import type { DawCapabilities } from '../../api/contracts/daw';
 import type { ChapterStatus } from '../../api/contracts/manuscript';
 import type { ProductionOverview, ProductionPlan, ProductionTotals } from '../../api/contracts/production';
 import { chapterName } from '../../chapterName';
+import { useOpenPickups } from '../pickups/useOpenPickups';
 import { usePort } from '../../ports/usePort';
 import type { Bootstrap } from '../../types';
 import { creditsEntries, creditsKindOfId } from '../credits/creditsEntries';
@@ -124,7 +125,6 @@ export function ProductionPage({
 }) {
   const production = usePort('production');
   const chapterSyncPort = usePort('chapterSync');
-  const pickupsPort = usePort('pickups');
   const measurements = usePort('measurements');
   const daw = usePort('daw');
   const found = Boolean(data.manuscript);
@@ -132,7 +132,6 @@ export function ProductionPage({
   const manuscriptImport = useManuscriptImport({ data, go, notify, refreshBootstrap });
   const [load, setLoad] = useState<Load>({ status: 'loading' });
   const [plan, setPlan] = useState<ProductionPlan>();
-  const [openPickups, setOpenPickups] = useState(0);
   const [caps, setCaps] = useState<DawCapabilities>();
   const today = useMemo(() => new Date(), []);
 
@@ -158,20 +157,12 @@ export function ProductionPage({
   }, [daw]);
   useEffect(() => readCaps(), [readCaps]);
 
-  useEffect(() => {
-    let live = true;
-    pickupsPort
-      .pickupsState()
-      .then((state) => live && setOpenPickups(state.remaining ?? 0))
-      .catch(() => live && setOpenPickups(0));
-    const unsubscribe = pickupsPort.subscribePickups((state) => setOpenPickups(state.remaining ?? 0));
-    return () => {
-      live = false;
-      unsubscribe();
-    };
-  }, [pickupsPort]);
+  // The open lines of the Pickups page's list, so the tile, Next up and the pickup hours count what that page lists.
+  const openLines = useOpenPickups();
+  const openPickups = openLines?.length ?? 0;
+  const sessionIds = useMemo(() => (openLines ?? []).filter((line) => line.included).map((line) => line.id), [openLines]);
 
-  const measured = useMeasured(measurements, '', []);
+  const measured = useMeasured(measurements, '', sessionIds);
   const pipelineSources = usePipelineSources(found, manuscriptKey);
   const timer = useStageTimer(production, read);
 
@@ -261,8 +252,11 @@ export function ProductionPage({
   const finishedOf = (words: number) => (words / WPH) * 3600;
   const recordedHours = narrated.reduce((a, c) => a + (c.recordedSeconds ?? 0), 0) / 3600;
   const recommendations = stages.state.byChapter;
+  // Open lines per chapter from the Pickups list, so a chapter's Pickups cell and the tile above add up. Nothing is claimed until the list is read.
+  const pickupsByChapter = openLines ? Object.fromEntries(narrated.map((c) => [c.id, openLines.filter((line) => line.chapterId === c.id).length])) : undefined;
   const rows = buildPipelineRows(pipelineRows, {
     ...pipelineSources,
+    pickups: pickupsByChapter,
     // Only a credits row's Prep is read (its template's tokens); a chapter's Prep stays "Not measured yet" until a source says.
     prep: Object.fromEntries([entries.opening, entries.closing].flatMap((entry) => (entry ? [[entry.id, entry.prep] as const] : []))),
     checks: Object.fromEntries(

@@ -194,6 +194,10 @@ var eventSpecs = map[string]eventSpec{
 	// piece's project seconds and bypassed 1 when the chain was bypassed before; stopped 1 when a Compare was running.
 	"RANGE_FX_COMPARE":         {required: []fieldSpec{text("run"), text("itemGuid"), text("takeGuid"), text("chain"), number("start"), number("end"), count("bypassed")}},
 	"RANGE_FX_COMPARE_STOPPED": {required: []fieldSpec{text("run"), count("stopped")}},
+	// last_action and undo_last (narration_undo.lua): the kind asked about and whether REAPER's next undo point is its ("this" or
+	// "other"); the kind, the steps asked for and the points undone. Neither carries a label read from the project.
+	"LAST_ACTION": {required: []fieldSpec{text("run"), text("kind"), text("answer")}},
+	"UNDONE_LAST": {required: []fieldSpec{text("run"), text("kind"), count("steps"), count("undone")}},
 }
 
 // CheckEvent validates one decoded event line (the tag first) against the table. The error names the tag, the position and name of

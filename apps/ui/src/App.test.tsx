@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import { act, cleanup, configure, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { App } from './App';
 import { chapterName } from './chapterName';
@@ -26,6 +26,10 @@ beforeEach(() => {
   window.history.replaceState(null, '', '/');
 });
 afterEach(cleanup);
+
+// This file mounts the whole app. On a small CI runner with the suite running in parallel that takes longer than the 5 s
+// default of test-setup.ts, so its waits get more room (still under `testTimeout`, 15 s). A wait ends as soon as it holds.
+configure({ asyncUtilTimeout: 12_000 });
 
 function renderApp(overrides: Parameters<typeof createMockApi>[0] = {}, initial: Parameters<typeof createMockApi>[1] = {}) {
   const api = createMockApi(overrides, initial);
@@ -1505,6 +1509,18 @@ describe('App shell mounts', () => {
     return button;
   };
 
+  // The chapters slot answers after the shell has mounted, and a late answer can redraw the open menu. So the filter is applied again on
+  // every poll rather than once: the wait ends as soon as the chapters are listed.
+  const chapterOptions = () =>
+    waitFor(() => {
+      const field = screen.getByRole('combobox', { name: 'Jump menu' });
+      fireEvent.change(field, { target: { value: '' } });
+      fireEvent.change(field, { target: { value: 'Go to Chapter' } });
+      const options = screen.getAllByRole('option', { name: /^Go to Chapter/ });
+      expect(options.length).toBeGreaterThan(0);
+      return options;
+    });
+
   it('overlay-host-is-mounted-once: overlay.confirm from outside React shows one confirm over the page', async () => {
     const { overlay } = await import('./overlay/overlayService');
     renderApp();
@@ -1538,9 +1554,7 @@ describe('App shell mounts', () => {
   it('jump-menu-chapters-come-from-the-slot: lists "Go to <chapter>" for every chapter of the manuscript', async () => {
     renderApp();
     await openJumpFromHeader();
-    const field = await screen.findByRole('combobox', { name: 'Jump menu' });
-    fireEvent.change(field, { target: { value: 'Go to Chapter' } });
-    expect((await screen.findAllByRole('option', { name: /^Go to Chapter/ })).length).toBeGreaterThan(0);
+    expect((await chapterOptions()).length).toBeGreaterThan(0);
   });
 
   it('jump-menu-chapters-come-from-the-slot: with no manuscript the list is empty and nothing is loaded', async () => {
@@ -1694,6 +1708,33 @@ describe('App shell mounts', () => {
     await waitFor(() => expect(screen.getByRole('button', { name: 'Undo' }).getAttribute('aria-disabled')).toBeNull());
     fireEvent.click(screen.getByRole('button', { name: 'Undo' }));
     expect(await screen.findByText('Renaming cannot be undone here.')).toBeTruthy();
+  });
+
+  it('ctrl-z-undoes-the-last-change: Ctrl+Z with focus on the page body undoes the newest entry', async () => {
+    const journal = newJournal();
+    const undo = vi.fn(async () => ({ ok: true as const, value: 1 }));
+    await journal.act({ label: 'Added a bookmark', touches: ['bookmarks'], run: async () => ({ ok: true, value: 1 }), undo });
+    renderWithJournal(journal);
+    await screen.findByRole('heading', { level: 1, name: 'Production' });
+    fireEvent.keyDown(document.body, { code: 'KeyZ', key: 'z', ctrlKey: true });
+    await waitFor(() => expect(undo).toHaveBeenCalledTimes(1));
+    expect(await screen.findByText('Undid Added a bookmark')).toBeTruthy();
+  });
+
+  it('ctrl-z-undoes-the-last-change: in a text field Ctrl+Z is the field’s own undo and the journal is left alone', async () => {
+    const journal = newJournal();
+    const undo = vi.fn(async () => ({ ok: true as const, value: 1 }));
+    await journal.act({ label: 'Added a bookmark', touches: ['bookmarks'], run: async () => ({ ok: true, value: 1 }), undo });
+    renderWithJournal(journal);
+    await screen.findByRole('heading', { level: 1, name: 'Production' });
+    const field = document.createElement('input');
+    document.body.appendChild(field);
+    field.focus();
+    const notPrevented = fireEvent.keyDown(field, { code: 'KeyZ', key: 'z', ctrlKey: true });
+    expect(notPrevented).toBe(true);
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    expect(undo).not.toHaveBeenCalled();
+    field.remove();
   });
 
   it('leave-guard-is-asked-before-navigating: a guard that asks shows the confirm; Cancel stays, Yes goes', async () => {

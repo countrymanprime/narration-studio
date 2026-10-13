@@ -35,7 +35,7 @@
       - rowgroup:
         - row "Track Chapter Playable items"
       - rowgroup:
-        - row "Chapter 1 Not linked 1/1"
+        - row "Chapter 1 Chapter 1 1/1"
         - row "Chapter 2 Not linked This track has an item that can't be played 0/1"
         - row "Click Track Muted Not linked This track has an item that can't be played 0/1"
   - region "Chapter links":

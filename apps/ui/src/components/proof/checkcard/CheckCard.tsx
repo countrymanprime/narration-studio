@@ -5,6 +5,7 @@ import { describeApiError } from '../../../api/errorMessage';
 import { usePort } from '../../../ports/usePort';
 import { useCapability } from '../../../useCapability';
 import type { ManuscriptChapter } from '../../../types';
+import { EnginePanelLink } from '../../engine/EnginePanelContext';
 import { Button } from '../../primitives/Button';
 import { Dot, StatusBadge, type StatusTone } from '../../primitives/StatusBadge';
 import { Icon } from '../../primitives/Icon';
@@ -22,6 +23,8 @@ import {
   cardTally,
   checkSentence,
   estimateLabel,
+  hasRecording,
+  NO_RECORDING_WHY,
   recordedLabel,
   runningFor,
   SPEECH_COUNTS,
@@ -116,8 +119,11 @@ export function CheckCard({ chapter, onCheck }: { chapter: ManuscriptChapter; on
     };
   }, [coverage, chapterId, load]);
 
-  const state = cardState(loaded?.result, run !== undefined);
-  const hasResult = loaded?.result.result !== undefined && (state === 'current' || state === 'stale');
+  // A check cannot be "up to date" against a recording that is not measured: that result is not shown. An out-of-date one still is, as it says so.
+  const shownResult = loaded && (hasRecording(chapter.recordedSeconds) || loaded.result.state !== 'current');
+  const stored = shownResult ? loaded.result : undefined;
+  const state = cardState(stored, run !== undefined);
+  const hasResult = stored?.result !== undefined && (state === 'current' || state === 'stale');
   const all = cardFindings(hasResult ? loaded?.result : undefined, loaded?.reviews ?? {}, hasResult ? (loaded?.audio ?? []) : []);
   const counts = cardCounts(all, hasResult);
   const differences = hasResult ? (loaded?.result.result?.gaps ?? []).length : undefined;
@@ -137,6 +143,8 @@ export function CheckCard({ chapter, onCheck }: { chapter: ManuscriptChapter; on
         : !dawReview.available
           ? 'The DAW is not reachable.'
           : '';
+
+  const noRecording = !hasRecording(chapter.recordedSeconds) && chapter.recordedUnavailable ? NO_RECORDING_WHY[chapter.recordedUnavailable] : undefined;
 
   const decide = async (id: string, action: () => Promise<string | void>) => {
     setBusy(true);
@@ -224,6 +232,18 @@ export function CheckCard({ chapter, onCheck }: { chapter: ManuscriptChapter; on
       {whyNot && state !== 'checking' && (
         <p id="check-why-not" className="text-sm text-[var(--text-muted)]">
           {whyNot}
+          {noRecording ? (
+            <>
+              {' '}
+              <span>{noRecording.text}</span>
+              {noRecording.engine ? (
+                <>
+                  {' '}
+                  <EnginePanelLink />
+                </>
+              ) : null}
+            </>
+          ) : null}
         </p>
       )}
       <div className={`grid gap-4 sm:grid-cols-[auto_auto_1fr] ${dim ? 'text-[var(--text-muted)]' : ''}`}>

@@ -128,7 +128,8 @@
 local core = ...
 local event = core.event
 
-local UNDO_DELETE_WORDS = 'Narration Utils: delete words'
+-- The cut's undo label is the cut_range kind's (narration_bridge_core.lua), the one undo_last may undo (narration_undo.lua).
+local UNDO_DELETE_WORDS = core.undo_label('cut_range')
 -- The Cuts track's key and name. The key is what the bridge looks for; the name is what the narrator sees.
 local CUTS_KEY = 'P_EXT:narration_utils_cuts'
 local CUTS_NAME = 'Cuts'

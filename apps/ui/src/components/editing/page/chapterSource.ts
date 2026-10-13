@@ -35,6 +35,12 @@ function heardSpans(answer: HeardAnswer, firstParagraph: string | undefined): Ma
   return out;
 }
 
+/**
+ * Whether the chapter has audio the page can edit. When it has none, why: no track is linked to it (`unlinked`), the linked track is not in the
+ * saved project (`missing`), or the track holds nothing (`empty`).
+ */
+export type ChapterAudio = { kind: 'ready' } | { kind: 'unlinked' | 'missing' | 'empty' };
+
 /** Everything the page reads for one chapter, as the ports answered. */
 export interface ChapterRead {
   workspace: WorkspaceAlignmentResult;
@@ -46,11 +52,26 @@ export interface ChapterRead {
   items: TrackItem[];
   /** What the DAW calls where the chapter's audio is (`track “Chapter 1”`), or the chapter's own name. */
   place: string;
+  /** Whether there is audio to edit. Without it the document is the plain script: a word cannot be "not read" in a recording that is not there. */
+  audio: ChapterAudio;
+}
+
+const NO_AUDIO_REASON = 'There is no audio for this chapter.';
+
+/**
+ * The chapter's audio from its link: audio exists when its linked track holds items or the alignment names an item the saved project still has
+ * (`live`; the built-in recorder has no track to link). With neither, the link says why. `unknown` is a project that could not be read, which says
+ * nothing about the link, so the page does not claim there is no audio.
+ */
+export function audioOf(link: 'linked' | 'unlinked' | 'missing' | 'unknown', trackItems: number, liveItems: number): ChapterAudio {
+  if (link === 'unknown' || trackItems > 0 || liveItems > 0) return { kind: 'ready' };
+  return { kind: link === 'linked' ? 'empty' : link };
 }
 
 /** The chapter's document with its cuts, effects and accepted words. */
 export function docOf(read: ChapterRead): ChapterDoc {
-  return docFromHeard(read.workspace.paragraphs, read.answer, {
+  const answer: HeardAnswer = read.audio.kind === 'ready' ? read.answer : { heard: null, reason: NO_AUDIO_REASON, reasons: [] };
+  return docFromHeard(read.workspace.paragraphs, answer, {
     cuts: docCutsOf(read.cuts),
     effects: read.effects.filter((e) => !e.stale).map((e) => ({ id: e.id, keys: [...e.keys] })),
     accepted: read.accepted,

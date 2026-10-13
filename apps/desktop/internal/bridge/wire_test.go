@@ -94,6 +94,9 @@ var realEvents = map[string][]string{
 	"RANGE_FX_BYPASSED":        {"RANGE_FX_BYPASSED", "b1", "{0000000F-0000-4000-8000-00000000000F}", "{00000010-0000-4000-8000-000000000010}", "Voice/Radio.RfxChain", "1", "1"},
 	"RANGE_FX_COMPARE":         {"RANGE_FX_COMPARE", "c1", "{0000000F-0000-4000-8000-00000000000F}", "{00000010-0000-4000-8000-000000000010}", "Voice/Radio.RfxChain", "14", "16", "0"},
 	"RANGE_FX_COMPARE_STOPPED": {"RANGE_FX_COMPARE_STOPPED", "s1", "1"},
+	// integrations/reaper/tests/undo_test.lua (last_action, undo_last).
+	"LAST_ACTION": {"LAST_ACTION", "l1", "cut_range", "this"},
+	"UNDONE_LAST": {"UNDONE_LAST", "u1", "cut_range", "4", "2"},
 	// integrations/reaper/tests/split_take_test.lua (split_take).
 	"TAKE_SPLIT": {"TAKE_SPLIT", "p1", "{AAAAAAAA-0000-4000-8000-000000000001}", "{AAAAAAAA-0000-4000-8000-000000000002}", "{00000001-0000-4000-8000-000000000001}", "15.500", "1"},
 }

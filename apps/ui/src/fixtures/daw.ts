@@ -65,6 +65,7 @@ const REAPER_LEVELS: Record<DawCapabilityKey, DawCapabilitySupport['level']> = {
   file_reveal: 'experimental',
   range_gain: 'experimental',
   click_repair: 'experimental',
+  undo_last: 'experimental',
 };
 
 type Rows = Partial<Record<DawCapabilityKey, DawCapabilitySupport>>;
@@ -161,6 +162,7 @@ const BUILTIN_CAPABILITIES = everyCapability(() => ({ level: 'unsupported', avai
   cut_range: { ...builtinExperimental, mode: 'app' },
   fx_range: notYet(BUILTIN_NOT_YET),
   stack_takes: notYet(BUILTIN_NOT_YET),
+  undo_last: notYet(BUILTIN_NOT_YET),
 });
 
 export const DAW_SETUPS: Readonly<Record<DawSetupId, DawCapabilities>> = {

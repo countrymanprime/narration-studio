@@ -209,7 +209,7 @@ function MasterBody({ projectFolder, onOpenDelivery, openSettings, fileActions, 
           <ReportExportPanel busy={run.running} measured={run.files.length > 0} />
         </div>
         <div className="flex min-w-0 flex-col gap-4">
-          <PackageChecks profile={profile} files={run.files} onOpenDelivery={onOpenDelivery} />
+          <PackageChecks profile={profile} chapters={chapters} files={run.files} onOpenDelivery={onOpenDelivery} />
           <MultiPlatformExportPanel profiles={all} jobs={jobs} />
         </div>
       </div>

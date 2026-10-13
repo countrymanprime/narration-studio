@@ -7,7 +7,7 @@ The sidebar on the left is grouped by production stage, the way a narrator's wee
 **Review** ([Proof](proof.md), [Pickups](pickups.md)) and **Finish** ([Master & QC](master-and-qc.md), [Delivery](delivery.md)).
 From 1360 px wide each group shows as a heading over its pages. Below that the rail shrinks to icons, grouped by a thin line,
 and below 768 px it hides behind a hamburger menu that opens it as a slide-in drawer with the headings back. [Settings](settings.md) lives at the bottom of the sidebar, in every layout, below every group, under a **Dark theme** / **Light theme** item that switches the theme. **Proof** carries a count of
-the notes still open and **Pickups** the pickups the DAW last reported open; a zero, or a count the app cannot read, shows no badge.
+the notes still open and **Pickups** the open lines of the Pickups list; a zero, or a count the app cannot read, shows no badge.
 
 ![Primary navigation sidebar at desktop width](../../images/ui/nav-sidebar-desktop.webp)
 
@@ -25,7 +25,7 @@ type `>` to list commands only. Escape, or a press anywhere outside the menu, cl
 
 ![The jump menu open over the page: type to find a page, a chapter or a command](../../images/ui/nav-jump-menu.webp)
 
-Undo takes back the last change you made in the app, and says why when it cannot; History lists
+Undo (`Ctrl+Z`, except in a text box, which keeps its own undo) takes back the last change you made in the app, and says why when it cannot; History lists
 the changes you can undo (`Ctrl+Shift+H`). Below the tablet width Undo and History leave the header; the jump menu opens History.
 While a [production stage timer](production.md#the-stage-timer) runs,
 the timer chip counts its time and names the chapter ("0:42:07 · timer on Chapter 6") on every page; below the

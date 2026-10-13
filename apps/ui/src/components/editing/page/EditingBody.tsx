@@ -56,6 +56,7 @@ import type { PlaylistSegment } from '../../proof/playlist';
 import { doubledCut, wordAt, type ChapterRead } from './chapterSource';
 import { EditingHeader } from './EditingHeader';
 import { InHost, rowOf } from './InHost';
+import { NoAudioBanner } from './NoAudioBanner';
 import { useLines } from './useLines';
 
 /** The page state a chapter change keeps: the strip and the drawer stay as the narrator left them. */
@@ -91,6 +92,8 @@ export interface EditingBodyProps {
   onCuts: Parameters<typeof useCutWords>[0]['onCuts'];
   onEffects: Parameters<typeof useFxWords>[0]['onEffects'];
   onAccepted: () => void;
+  /** Reads the chapter again (the no-audio banner's Read again). */
+  onReread: () => void;
   caps: DawCapabilities | null;
   keymap: Keymap;
   /** The page root is 1360 px or wider: the strip fits and the timeline is not a drawer tab. */
@@ -368,9 +371,15 @@ export function EditingBody(props: EditingBodyProps) {
   return (
     <div ref={root} className="flex min-h-0 flex-1 flex-col">
       {props.banner}
+      <NoAudioBanner
+        audio={read.audio}
+        chapterName={chapterName}
+        daw={caps && caps.daw !== 'none' && caps.daw !== 'Built-in' ? caps.daw : null}
+        onReread={props.onReread}
+      />
       <EditingHeader
         stepper={props.stepper}
-        legend={<Legend doc={doc} compact={compact} />}
+        legend={<Legend doc={doc} compact={compact} noAudio={read.audio.kind !== 'ready'} />}
         strip={panels.strip}
         stripFits={stripFits}
         drawerOpen={drawerOpen}
@@ -381,7 +390,7 @@ export function EditingBody(props: EditingBodyProps) {
           <div className="flex h-full min-h-0 flex-col overflow-hidden rounded-[10px] border border-[var(--border)] bg-[var(--surface)]">
             <ScriptHost box={scriptBox} root={root}>
               {doc.paras.length ? (
-                <ScriptDoc reason={reason} />
+                <ScriptDoc reason={reason} explained={read.audio.kind !== 'ready'} />
               ) : (
                 // The page's own empty state, so its heading sits under the page's h1.
                 <div className="px-4 py-10">
@@ -405,7 +414,15 @@ export function EditingBody(props: EditingBodyProps) {
         const shown = line ? view(line) : null;
         const open = !!line && isOpen(pid);
         return (
-          <InHost key={pid} root={root} selector={rowOf(pid)} name={`under-${pid}`} className="col-start-2 flex flex-col items-start gap-2 pt-1" watch={doc}>
+          // What sits under a line is UI text (the mock's `.sx-tkw`, 13 px), not the 24 px reading size of the row it is drawn in.
+          <InHost
+            key={pid}
+            root={root}
+            selector={rowOf(pid)}
+            name={`under-${pid}`}
+            className="col-start-2 flex flex-col items-start gap-2 pt-1 text-[length:var(--font-size-sm)] leading-[1.4]"
+            watch={doc}
+          >
             {pid === current && doc.aligned ? <Ribbon chapterId={chapterId} pid={pid} /> : null}
             {flagPara && flagPid === pid && state.flag ? (
               <FlagCard

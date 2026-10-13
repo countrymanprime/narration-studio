@@ -14,7 +14,9 @@ import { createFakeTools, type FakeInstall } from './fixtures';
 afterEach(cleanup);
 
 // The install loop polls every 400 ms and a download takes three polls, so a state that arrives by polling is waited for, not faked.
-const SLOW = { timeout: 4000 };
+// A retry also re-queues the job and reloads the list; on a loaded CI runner that has run past 4 s, so the wait gets 10 s (under
+// `testTimeout`, 15 s). It still ends as soon as the state arrives.
+const SLOW = { timeout: 10_000 };
 
 function mount(options: { installs?: Record<string, FakeInstall>; overrides?: Partial<NarrationApi> } = {}) {
   const fake = createFakeTools({ installs: options.installs });

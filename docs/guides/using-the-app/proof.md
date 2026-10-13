@@ -43,7 +43,9 @@ A chapter shows its **Recording check** card and its recording:
 - The card says whether the chapter's check is current, stale (and what changed since), running or not done yet; how much
   is recorded against the script's estimate; and what the check counted, against the script and in the audio. **Check
   recordings** runs it (with **Cancel** while it runs). It is off, with the reason, when the chapter has no recording or
-  no text, or the DAW is not reachable. **Show the findings** lists what the check found, each with the suggested
+  no text, or the DAW is not reachable. A chapter with no measured recording shows no check result, only why (no track
+  linked, more than one, the linked track not in the saved project, or no saved project), with the audio engine panel
+  where it can be fixed. **Show the findings** lists what the check found, each with the suggested
   decision: **Accept** turns one into a note with that decision, and **Ignore** keeps it out of your notes and is
   remembered.
 - The waveform window draws the chapter's recording with a pin at each note that has a time. Press a pin to select its

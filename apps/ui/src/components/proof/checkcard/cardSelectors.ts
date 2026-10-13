@@ -3,6 +3,7 @@
 // the stored `CoverageResult`, the live `CoverageState`, the gap reviews and the audio analyzers' findings.
 import type { CoverageGap, CoverageGapReviews, CoverageReason, CoverageResult, CoverageState } from '../../../api/contracts/coverage';
 import type { Finding } from '../../../api/contracts/findings';
+import type { RecordedUnavailable } from '../../../api/contracts/manuscript';
 import { formatAudioTime, formatWhen, plural } from '../../production/recordingCheckText';
 import { WPH } from '../../schedule/estimates';
 
@@ -40,6 +41,17 @@ export function staleWhy(result: CoverageResult): StaleWhy {
   if (result.reasons.some((reason) => !SAVE_REASONS.has(reason))) return 'recording';
   return 'save';
 }
+
+/** Whether the chapter has a measured recording. Without one a stored check cannot be current: there is nothing for it to be a check of. */
+export const hasRecording = (seconds: number | undefined): boolean => seconds !== undefined && seconds > 0;
+
+/** Why a chapter has no measured recording, in the words Production and the engine panel use (ADR 0193), and whether the audio engine panel is where to fix it. */
+export const NO_RECORDING_WHY: Record<RecordedUnavailable, { text: string; engine: boolean }> = {
+  unlinked: { text: 'No track is linked to it.', engine: true },
+  multiple_tracks: { text: 'More than one track is linked to it.', engine: true },
+  track_missing: { text: 'Its linked track is not in the saved project.', engine: true },
+  no_project: { text: 'No saved project could be read.', engine: false },
+};
 
 /** The recorded length from the chapter's measured seconds, "—" when none. */
 export const recordedLabel = (seconds: number | undefined): string => (seconds !== undefined && seconds > 0 ? formatAudioTime(seconds) : '—');

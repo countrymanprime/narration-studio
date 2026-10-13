@@ -47,6 +47,8 @@ let journal: Journal;
 let last: 'this' | 'other' | 'unknown';
 let log: ReturnType<typeof fakeCutLog>;
 let calls: Parameters<DawClient['deleteRange']>[0][];
+let undoCalls: Array<[string, number]>;
+let undoRefusal: string | null;
 let snapMoved: number | 'refused';
 let toneRefusal: string | null;
 let page: ReturnType<typeof useEditingPage>;
@@ -92,6 +94,10 @@ function mount(setup: DawCapabilities | DawSetupId = 'reaper') {
   const base = createMockDawClient(caps);
   const daw: DawClient = {
     ...base,
+    undoLast: (action, steps) => (
+      undoCalls.push([action, steps]),
+      undoRefusal ? Promise.resolve({ ok: false, changed: false, message: undoRefusal, undoSteps: 0, refused: undoRefusal }) : base.undoLast(action, steps)
+    ),
     deleteRange: (r) => (
       calls.push(r),
       toneRefusal && r.roomTone ? Promise.resolve({ ok: false, changed: false, message: toneRefusal, undoSteps: 0, refused: toneRefusal }) : base.deleteRange(r)
@@ -139,6 +145,8 @@ beforeEach(() => {
   journal = createJournal({ dawName: () => 'REAPER', dawLastAction: async () => last });
   log = fakeCutLog();
   calls = [];
+  undoCalls = [];
+  undoRefusal = null;
   snapMoved = 0;
   toneRefusal = null;
   toast = vi.spyOn(overlay, 'toast');
@@ -358,6 +366,41 @@ describe('Delete words and audio', () => {
     expect(undone).toMatchObject({ ok: false, refusal: { reason: "Undo 'Added a bookmark' first. It came after this." } });
   });
 
+  it('undo-takes-the-cut-back-in-the-daw-first: one undo point for each range, and a DAW that refuses keeps the entry and the records', async () => {
+    mount();
+    await flush();
+    await select('p-1:7', 'p-2:1');
+    act(() => cut.remove());
+    await confirm(/Delete \d words and audio/);
+    expect(log.cuts).toHaveLength(2);
+
+    last = 'this';
+    undoRefusal = "REAPER's last action is not this one, so it was left alone. Use Edit > Undo in REAPER.";
+    expect(await journal.undo(1)).toMatchObject({ ok: false, refusal: { reason: undoRefusal } });
+    expect(undoCalls).toEqual([['cut_range', 2]]);
+    expect(log.cuts).toHaveLength(2);
+    expect(await journal.entries()).toHaveLength(1);
+
+    undoRefusal = null;
+    await act(async () => void (await journal.undo(1)));
+    expect(undoCalls).toEqual([
+      ['cut_range', 2],
+      ['cut_range', 2],
+    ]);
+    expect(log.cuts).toEqual([]);
+  });
+
+  it('a cut the built-in recorder made is not a DAW change: undo asks the DAW nothing', async () => {
+    mount('builtin');
+    await flush();
+    await select('p-1:0', 'p-1:1');
+    act(() => cut.remove());
+    await confirm(/Delete 2 words and audio/);
+    await act(async () => void (await journal.undo(1)));
+    expect(undoCalls).toEqual([]);
+    expect(log.cuts).toEqual([]);
+  });
+
   it('restore-brings-struck-words-back-or-says-why-not', async () => {
     mount();
     await flush();
@@ -464,7 +507,10 @@ describe('Delete words and audio', () => {
     const sum = summarize(marksDoc(), ['p-1:0', 'p-1:1'], [], (t) => t);
     const order: string[] = [];
     const deps = {
-      daw: { deleteRange: async () => (order.push('cut'), { ok: true, changed: true, message: 'Cut.', undoSteps: 2 }) },
+      daw: {
+        deleteRange: async () => (order.push('cut'), { ok: true, changed: true, message: 'Cut.', undoSteps: 2 }),
+        undoLast: async () => ({ ok: true, changed: true, message: 'Undid.', undoSteps: 0 }),
+      },
       log,
       onCuts: () => {},
     };

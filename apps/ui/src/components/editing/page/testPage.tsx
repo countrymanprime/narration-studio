@@ -107,6 +107,35 @@ function takesOf(chapterId: string, firstToken: number, lastToken: number): Work
   };
 }
 
+const PROJECT = {
+  path: 'C:/p.rpp',
+  tracks: [
+    {
+      guid: TRACK_GUID,
+      index: 0,
+      name: 'Chapter One',
+      color: '',
+      muted: false,
+      soloed: false,
+      items: [
+        {
+          guid: ITEM_GUID,
+          position: 0,
+          length: 12,
+          name: 'c1.wav',
+          sourceKind: 'WAVE',
+          sourceFile: 'C:/media/c1.wav',
+          sourceAvailable: true,
+          supported: true,
+          takeGuid: '{t1}',
+          sourceStart: 0,
+          playRate: 1,
+        },
+      ],
+    },
+  ],
+};
+
 /** The finding the "open at a finding" link names: the misread "quiet". */
 export const FINDING: Finding = {
   id: 'f-quiet',
@@ -120,37 +149,28 @@ export function pageApi({ heard = true, ...overrides }: Partial<NarrationApi> & 
     workspaceAlignment: async (chapterId: string) => alignmentOf(chapterId, heard),
     workspaceTakes: async (chapterId: string, firstToken: number, lastToken: number) => takesOf(chapterId, firstToken, lastToken),
     chapterTrackMapList: async () => ({ documentId: 'd', mappings: [{ chapterId: 'c1', trackGuid: TRACK_GUID }] }),
-    tracksList: async () => ({
-      path: 'C:/p.rpp',
-      tracks: [
-        {
-          guid: TRACK_GUID,
-          index: 0,
-          name: 'Chapter One',
-          color: '',
-          muted: false,
-          soloed: false,
-          items: [
-            {
-              guid: ITEM_GUID,
-              position: 0,
-              length: 12,
-              name: 'c1.wav',
-              sourceKind: 'WAVE',
-              sourceFile: 'C:/media/c1.wav',
-              sourceAvailable: true,
-              supported: true,
-              takeGuid: '{t1}',
-              sourceStart: 0,
-              playRate: 1,
-            },
-          ],
-        },
-      ],
-    }),
+    tracksList: async () => PROJECT,
     findingsGet: async (id: string) => (id === FINDING.id ? FINDING : Promise.reject(new Error('no such finding'))),
     ...overrides,
   } as Partial<NarrationApi>);
+}
+
+/**
+ * What the host answers for a chapter with no audio to edit: no track linked (`unlinked`), a link to a track the saved project no longer has
+ * (`missing`), or a linked track with nothing on it (`empty`). In each the alignment's item is not live, as the host's is without a track.
+ */
+export function noAudioApi(kind: 'unlinked' | 'missing' | 'empty'): Partial<NarrationApi> {
+  return {
+    workspaceAlignment: async (chapterId: string) => ({ ...alignmentOf(chapterId, true), items: [] }),
+    chapterTrackMapList: async () => ({
+      documentId: 'd',
+      mappings:
+        kind === 'unlinked'
+          ? []
+          : [{ chapterId: 'c1', trackGuid: kind === 'missing' ? '{GONE}' : TRACK_GUID, chapterTitle: 'Chapter One', confirmedAt: '2026-09-01T12:00:00Z' }],
+    }),
+    ...(kind === 'empty' ? { tracksList: async () => ({ ...PROJECT, tracks: PROJECT.tracks.map((t) => ({ ...t, items: [] })) }) } : {}),
+  };
 }
 
 export const dawFor = (setup: DawSetupId): DawClient =>

@@ -5,6 +5,8 @@ import { describe, expect, it } from 'vitest';
 import { ApiProvider } from '../../api/ApiContext';
 import { createMockApi } from '../../api/mockApi';
 import type { NarrationApi as Api } from '../../types';
+import { MIXED } from '../pickups/list/pickupFixtures';
+import { openPickups } from '../pickups/list/pickupRows';
 import { useNavCounts } from './useNavCounts';
 
 const wrap = (api: Api) =>
@@ -13,15 +15,15 @@ const wrap = (api: Api) =>
   };
 
 describe('useNavCounts (rail badges, N-B61)', () => {
-  it('reads the notes still open (not cleared, not just unreviewed) and the pickups remaining from the host, and no Story Bible count', async () => {
+  it('reads the notes still open (not cleared, not just unreviewed) and the open lines of the pickup list, and no Story Bible count', async () => {
     const base = createMockApi({}, {});
     const api: Api = {
       ...base,
       findingsSummary: async () => ({ ...(await base.findingsSummary()), unreviewed: 3, total: 20, decided: 17, cleared: 6 }),
-      pickupsState: async () => ({ phase: 'counted', message: '', remaining: 9, total: 12, csv: '' }) as never,
+      pickupsList: async () => ({ pickups: MIXED, leftOut: [] }),
     };
     const { result } = renderHook(() => useNavCounts('/'), { wrapper: wrap(api) });
-    await waitFor(() => expect(result.current).toEqual({ proof: 14, pickups: 9 }));
+    await waitFor(() => expect(result.current).toEqual({ proof: 14, pickups: openPickups(MIXED).length }));
   });
 
   it('leaves a count out when its call fails, rather than drawing a made-up number', async () => {
@@ -29,7 +31,7 @@ describe('useNavCounts (rail badges, N-B61)', () => {
     const api: Api = {
       ...base,
       findingsSummary: async () => ({ ...(await base.findingsSummary()), unreviewed: 2, total: 5, decided: 3, cleared: 3 }),
-      pickupsState: async () => {
+      pickupsList: async () => {
         throw new Error('no reaper');
       },
     };

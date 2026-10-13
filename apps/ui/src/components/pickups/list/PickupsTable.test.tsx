@@ -129,6 +129,27 @@ describe('PickupsTable', () => {
     expect(onSetIncluded).not.toHaveBeenCalled();
   });
 
+  it('a row leads with Play, draws the type as a chip and the status as a pill, and shows the whole line', () => {
+    const long =
+      'The first question of course was, how to get dry again: they had a consultation about this, and after a few minutes it seemed quite natural to Alice.';
+    setup({ pickups: [{ ...SPEECH, script: long }, DONE] });
+    const row = rowOf('05:12.0');
+    const buttons = within(row)
+      .getAllByRole('button')
+      .map((button) => button.getAttribute('aria-label'));
+    expect(buttons.slice(0, 2)).toEqual(['Play the original around this line', 'Open in Booth at this line']);
+    // A chip is the badge primitive: the type a tag (capitals), the status a pill (fully rounded).
+    expect(within(row).getByText('Misread').className).toContain('uppercase');
+    expect(within(row).getByText('Open').className).toContain('rounded-full');
+    expect(within(row).getByText(long)).toBeTruthy();
+  });
+
+  it('Play says why it is off rather than doing nothing', () => {
+    setup();
+    const play = within(rowOf('05:12.0')).getByRole('button', { name: 'Play the original around this line' });
+    expect(play.getAttribute('aria-disabled') === 'true' || (play as HTMLButtonElement).disabled).toBe(true);
+  });
+
   it('status-is-a-word-and-a-shape: Recorded and Open, and Mark recorded calls onSetDone', async () => {
     const { onSetDone, user } = setup();
     expect(within(rowOf('05:12.0')).getByText('Open')).toBeTruthy();

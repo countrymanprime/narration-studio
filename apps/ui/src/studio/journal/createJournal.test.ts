@@ -207,6 +207,26 @@ describe('DAW entries (ADR 0771 rule 4)', () => {
     expect(await journal.undo(id)).toMatchObject({ refusal: { reason: expect.stringContaining("Audacity's last action") } });
   });
 
+  it('asks the DAW about the action the entry made, as the command named it from its result', async () => {
+    const dawLastAction = vi.fn<DawLastAction>(async () => 'this');
+    const journal = setup(dawLastAction);
+    const cut: Command<number> = {
+      label: 'Deleted 3 words',
+      touches: ['cuts'],
+      daw: true,
+      run: async () => ok(3),
+      dawAction: (steps) => ({ kind: 'cut_range', steps }),
+      undo: async () => ok(undefined),
+    };
+    const made = await journal.act(cut);
+    if (!made.ok) throw new Error('act refused');
+    await journal.undo(made.value.id);
+    expect(dawLastAction).toHaveBeenCalledWith({ kind: 'cut_range', steps: 3 });
+    dawLastAction.mockClear();
+    await journal.undo(await added(journal, cmd('Put back a backup', ['backups/b1'], { daw: true }).command));
+    expect(dawLastAction).toHaveBeenCalledWith(undefined);
+  });
+
   it('treats a thrown DAW check as unknown', async () => {
     const journal = setup(async () => {
       throw new Error('bridge down');

@@ -115,7 +115,7 @@ describe('ProfileCard', () => {
     const onProfile = vi.fn();
     mount({}, edited, { onProfile });
     await screen.findByText('Files');
-    expect(onProfile).toHaveBeenCalledWith(edited, limitsOf(edited));
+    await waitFor(() => expect(onProfile).toHaveBeenCalledWith(edited, limitsOf(edited)));
   });
 
   it('the-host-refuses-an-edit-to-a-built-in-and-the-card-shows-its-sentence', async () => {
