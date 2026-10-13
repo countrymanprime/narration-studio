@@ -30,7 +30,7 @@ export function SelToolbar({ host, playback, hidden = false }: { host: RefObject
       role="toolbar"
       aria-label="Selection"
       style={{ left: pos.x, top: pos.y }}
-      className="absolute z-[5] flex items-center gap-0.5 rounded-[10px] bg-[var(--text)] p-[5px] text-[var(--surface)] shadow-[var(--shadow-lg)] [&_button:not([data-danger])]:border-0 [&_button:not([data-danger])]:bg-transparent [&_button:not([data-danger])]:text-[var(--surface)] [&_button[data-danger]]:bg-[var(--danger)] [&_button[data-danger]]:text-white"
+      className="absolute z-[5] flex items-center gap-0.5 rounded-[10px] bg-[var(--text)] p-[5px] text-[var(--surface)] shadow-[var(--shadow-lg)] [&_button:not([data-danger])]:border-0 [&_button:not([data-danger])]:bg-transparent [&_button:not([data-danger])]:text-[var(--surface)] [&_button[data-danger]]:bg-[var(--danger)] [&_button[data-danger]]:text-[var(--surface)]"
     >
       <IconButton
         action="play"
