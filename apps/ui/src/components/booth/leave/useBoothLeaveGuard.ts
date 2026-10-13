@@ -55,7 +55,7 @@ export function useBoothLeaveGuard(session: BoothLeaveSession, { guard, overlay 
         const startedByApp = now.startedByApp ?? true;
         let spec = stopRecordingSpec(now.daw.name, startedByApp);
         for (;;) {
-          if (!(await overlay.confirm({ title: spec.title, body: spec.body, confirmLabel: spec.confirmLabel }))) return;
+          if (!(await overlay.confirm(spec))) return;
           if (!startedByApp) break;
           const result = await sessionRef.current.stopRecording();
           if (result.ok) {

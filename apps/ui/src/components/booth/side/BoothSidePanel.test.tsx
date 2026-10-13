@@ -133,6 +133,14 @@ describe('the reference', () => {
   });
 });
 
+describe('the panel scrolls by keyboard', () => {
+  it('is a tab stop, so a panel taller than the window can be scrolled without a mouse (axe scrollable-region-focusable)', () => {
+    matchMedia(true);
+    render(<Harness />);
+    expect(panel().tabIndex).toBe(0);
+  });
+});
+
 describe('the panel can be hidden', () => {
   it('above 1280 it starts open inline and the toggle hides it', async () => {
     matchMedia(false);

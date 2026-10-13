@@ -139,6 +139,19 @@ describe('the-side-panel-toggle-and-drawer-width', () => {
   });
 });
 
+describe('the-bars-follow-the-mock-at-narrow-widths', () => {
+  it("the top bar wraps (the mock's .btop), so a narrow window puts the progress on its own row instead of over the chapter picker", () => {
+    top();
+    expect(document.getElementById('bprog')?.parentElement?.className).toContain('flex-wrap');
+  });
+  it("the meter and the room tone sit at the right of the footer as a chip (the mock's .lvl-inline)", () => {
+    footer(api());
+    const group = screen.getByRole('group', { name: 'Input' });
+    expect(group.className).toContain('ml-auto');
+    expect(screen.getByText('Room tone −58 dBFS').className).toContain('rounded-full');
+  });
+});
+
 describe('levels-is-an-icon-button-with-a-tooltip', () => {
   it('opens a menu with the microphone choice and the level meter, and leaves the room tone in the footer', async () => {
     footer(api());
