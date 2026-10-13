@@ -30,7 +30,7 @@ export function EditingHeader({ stepper, legend, strip, stripFits, drawerOpen, o
         {stripFits ? <StripToggle open={strip.open} onToggle={strip.toggle} /> : null}
         <TooltipTarget text="Clean up and effects (Ctrl+Shift+C)">
           <IconButton
-            action="sidePanel"
+            action="cleanUpAndEffects"
             label="Clean up and effects"
             id="drawertoggle"
             aria-pressed={drawerOpen}
