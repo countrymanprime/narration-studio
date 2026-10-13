@@ -356,7 +356,8 @@ function ScriptWorkspace({
   const lookUp = useCallback(
     (text: string, picked: ReaderSelection) => {
       const target = lookupTarget(text, entries.entries);
-      if (target.tab === 'pron') update({ tab: 'pron', word: target.word });
+      // The selection goes with a single word, so its card can offer Add to my words for a word not flagged yet.
+      if (target.tab === 'pron') update({ tab: 'pron', word: target.word, missSel: picked });
       else if ('entryId' in target) update({ tab: 'bible', entryId: target.entryId, miss: null, missSel: null });
       else update({ tab: 'bible', entryId: null, miss: target.miss, missSel: picked });
       openRailIfDrawer();
@@ -382,6 +383,7 @@ function ScriptWorkspace({
     goToChapter,
     composeMark: (type, picked) => setComposing({ type, selection: picked }),
     recordFromHere,
+    pickSpeaker: (cueId, anchor) => setPicking({ cueId, anchor }),
     bookmarkHere: (picked) => void bookmarkAt({ chapterId: picked.chapterId, paragraphId: picked.paragraphId, offset: picked.start }),
     recordChapter:
       goToBooth &&

@@ -252,6 +252,21 @@ describe('record-from-here-and-flagged-words', () => {
     expect(goToBooth).toHaveBeenCalledTimes(2);
   });
 
+  it('Look up on one word opens its card, and Add to my words flags the word selected', async () => {
+    const api = createMockApi({ creditsTemplates: async () => [] });
+    const flag = vi.spyOn(api, 'scriptWordFlag');
+    mount({ api });
+    await firstHeading();
+    const p = await waitFor(() => document.querySelector<HTMLElement>('p[data-pid="p-2"]')!);
+    const found = /\b(?!Alice\b|Rabbit\b|White\b)\p{L}{4,}/u.exec(p.textContent!)!;
+    selectIn('p-2', found.index, found.index + found[0].length);
+    fireEvent.mouseUp(document.getElementById('reader')!);
+    fireEvent.click(await screen.findByRole('button', { name: 'Look up' }));
+    await waitFor(() => expect(view.tab).toBe('pron'));
+    fireEvent.click(await screen.findByRole('button', { name: 'Add to my words' }));
+    await waitFor(() => expect(flag).toHaveBeenCalledWith('chapter-1', 'p-2', found.index, found.index + found[0].length));
+  });
+
   it('a click on a flagged word opens it in the Words tab', async () => {
     const api = createMockApi({ creditsTemplates: async () => [] });
     const [chapter] = await api.manuscriptChapters();

@@ -115,6 +115,23 @@ describe('context-provider-matches-the-targets', () => {
     expect(items.length).toBeGreaterThan(2);
   });
 
+  it('a quoted phrase gets the speaker item first, which opens the picker on its cue', () => {
+    const pickSpeaker = vi.fn();
+    const { provider } = build({ pickSpeaker });
+    const html = (spk: string, state: string) => `<p data-pid="p1"><span data-ph="q1" data-spk="${spk}" data-state="${state}"><b data-t>Hi</b></span></p>`;
+    expect(provider.items(dom(html(entry.id, 'suggested')))[0]!.label).toBe(`Speaker: ${entry.canonical_name} (suggested)…`);
+    expect(provider.items(dom(html(entry.id, 'confirmed')))[0]!.label).toBe(`Speaker: ${entry.canonical_name}…`);
+    const items = provider.items(dom(html('', 'unknown')));
+    expect(items[0]!.label).toBe('Speaker: not set…');
+    items[0]!.onSelect();
+    expect(pickSpeaker).toHaveBeenCalledWith('q1', expect.anything());
+    expect(
+      build()
+        .provider.items(dom(html('', 'unknown')))
+        .map((i) => i.label),
+    ).not.toContain('Speaker: not set…');
+  });
+
   it('a chapter row or boundary card gets Go to, Record in Booth, and the prep states', () => {
     const { provider } = build({ recordChapter: vi.fn() });
     const items = provider.items(dom('<div data-jump="c1"><b data-t>One</b></div>'));

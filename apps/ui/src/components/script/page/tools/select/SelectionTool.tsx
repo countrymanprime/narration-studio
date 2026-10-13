@@ -135,7 +135,7 @@ export function SelectionTool({ selection, zoom = 1, onDismiss, onCompose, onDef
               onClick={() => {
                 onDismiss();
                 const target = lookupTarget(place.quote, entries);
-                if (target.tab === 'pron') updateView({ tab: 'pron', word: target.word });
+                if (target.tab === 'pron') updateView({ tab: 'pron', word: target.word, missSel: place });
                 else if ('entryId' in target) updateView({ tab: 'bible', entryId: target.entryId, miss: null, missSel: null });
                 else updateView({ tab: 'bible', entryId: null, miss: target.miss, missSel: place });
               }}
