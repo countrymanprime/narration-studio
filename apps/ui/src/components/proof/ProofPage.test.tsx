@@ -11,6 +11,7 @@ import { CommandRouter } from '../../input/router';
 import { OverlayHost } from '../../overlay/OverlayHost';
 import { providedCommands } from '../../input/commandProviders';
 import { contextItemsFor } from '../../registries/context';
+import type { DawCapabilities } from '../../api/contracts/daw';
 import type { Finding, NarrationApi } from '../../types';
 import { TooltipProvider } from '../primitives/Tooltip';
 import * as checkRecordings from '../recordingcheck/openCheckRecordings';
@@ -56,6 +57,18 @@ const noteRows = async () => {
 };
 const where = () => screen.getByTestId('where').textContent;
 const press = (key: string, code: string) => fireEvent.keyDown(document.body, { key, code });
+
+describe('sort-asks-the-host', () => {
+  it('asks the host for the sort through FindingsQuery', async () => {
+    const api = createMockApi();
+    const findingsList = vi.spyOn(api, 'findingsList');
+    renderPage({ api });
+    await noteRows();
+    expect(findingsList).toHaveBeenLastCalledWith({ sort: 'time' });
+    await userEvent.selectOptions(screen.getByRole('combobox', { name: 'Sort notes' }), 'confidence');
+    await waitFor(() => expect(findingsList).toHaveBeenLastCalledWith({ sort: 'confidence' }));
+  });
+});
 
 describe('the-head-and-open-pickups', () => {
   it('the head cannot read 100 while a pickup is open', async () => {
@@ -255,6 +268,65 @@ describe('proof-decisions-and-undo', () => {
     const items = contextItemsFor(row.querySelector('td') ?? row);
     expect(items?.map((item) => item.label)).toEqual(expect.arrayContaining(['Needs pickup', 'Fix in edit', 'Waive', 'Defer', 'Reopen']));
     expect(items?.map((item) => item.label)).not.toContain('Play ±3 s');
+  });
+});
+
+describe('page-level-checks', () => {
+  const inspector = () => screen.findByRole('complementary', { name: 'Note' });
+
+  it('P, E and D decide the selected note, and E does nothing on a note fixed with a pickup', async () => {
+    const api = createMockApi();
+    const review = vi.spyOn(api, 'findingsReview');
+    renderPage({ api, at: '/proof?chapter=chapter-1' });
+    const rows = await noteRows();
+    const at = rows.findIndex((row) => row.textContent?.includes('misread') && row.textContent?.includes('To review'));
+    fireEvent.click(rows[at]!);
+    await inspector();
+    press('e', 'KeyE');
+    press('d', 'KeyD');
+    await waitFor(() => expect(review).toHaveBeenCalledTimes(1));
+    expect(review.mock.calls[0]![0].status).toBe('deferred');
+    fireEvent.click((await noteRows())[at]!);
+    press('p', 'KeyP');
+    await waitFor(() => expect(review).toHaveBeenCalledTimes(2));
+    expect(review.mock.calls[1]![0].status).toBe('accepted');
+  });
+
+  it('the retype is stored', async () => {
+    const api = createMockApi();
+    const setType = vi.spyOn(api, 'findingsSetType');
+    renderPage({ api });
+    fireEvent.click((await noteRows())[0]!);
+    const select = within(await inspector()).getByRole('combobox', { name: 'Type of finding' });
+    await userEvent.selectOptions(select, 'breath');
+    await waitFor(() => expect(setType).toHaveBeenCalledWith(expect.any(String), expect.any(String), 'breath'));
+  });
+
+  it('Check recordings is off when the DAW is away', async () => {
+    const api = createMockApi();
+    const caps = await api.dawCapabilities();
+    const away: DawCapabilities = {
+      ...caps,
+      reachable: false,
+      capabilities: { ...caps.capabilities, review: { level: 'supported', available: false, reason: 'not_running', message: 'REAPER is not running.' } },
+    };
+    vi.spyOn(api, 'dawCapabilities').mockResolvedValue(away);
+    vi.spyOn(api, 'subscribeDawCapabilities').mockImplementation((onUpdate) => {
+      onUpdate(away);
+      return () => {};
+    });
+    renderPage({ api });
+    await noteRows();
+    const check = screen.getByRole('button', { name: 'Check recordings…' });
+    await waitFor(() => expect(check.getAttribute('aria-disabled') === 'true' || (check as HTMLButtonElement).disabled).toBe(true));
+  });
+
+  it('Alt with an arrow does not step the chapter', async () => {
+    renderPage({ at: '/proof?chapter=chapter-1' });
+    await noteRows();
+    fireEvent.keyDown(document.body, { key: 'ArrowRight', code: 'ArrowRight', altKey: true });
+    await new Promise((resolve) => setTimeout(resolve, 20));
+    expect(where()).toBe('/proof?chapter=chapter-1');
   });
 });
 

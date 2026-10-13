@@ -3,10 +3,7 @@ import { cleanup, fireEvent, render, screen, within } from '@testing-library/rea
 import userEvent from '@testing-library/user-event';
 import { useState } from 'react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { ApiProvider } from '../../../api/ApiContext';
-import { createMockApi } from '../../../api/mockApi';
 import { TooltipProvider } from '../../primitives/Tooltip';
-import { NotesList } from './NotesList';
 import { NotesPanel } from './NotesPanel';
 import type { NoteSort, NoteWindow } from './noteRows';
 import { notesFixture } from './testNotes';
@@ -77,20 +74,6 @@ describe('sort-changes-the-order', () => {
     await userEvent.selectOptions(screen.getByRole('combobox', { name: 'Sort notes' }), 'severity');
     expect(onSort).toHaveBeenCalledWith('severity');
     expect((screen.getByRole('option', { name: 'By severity' }) as HTMLOptionElement).selected).toBe(true);
-  });
-  it('asks the host for the sort through FindingsQuery', async () => {
-    const findingsList = vi.fn(async () => ({ findings: notesFixture(), total: 5 }));
-    render(
-      <ApiProvider api={createMockApi({ findingsList })}>
-        <TooltipProvider>
-          <NotesList selectedId={null} onSelect={() => {}} />
-        </TooltipProvider>
-      </ApiProvider>,
-    );
-    await screen.findByText('Chapter 1');
-    expect(findingsList).toHaveBeenLastCalledWith({ sort: 'time' });
-    await userEvent.selectOptions(screen.getByRole('combobox', { name: 'Sort notes' }), 'confidence');
-    await vi.waitFor(() => expect(findingsList).toHaveBeenLastCalledWith({ sort: 'confidence' }));
   });
 });
 
