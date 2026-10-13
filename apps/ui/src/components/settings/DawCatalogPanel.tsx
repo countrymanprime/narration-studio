@@ -14,7 +14,7 @@ import type { Notify } from '../primitives/Toast';
  * only open a browser tab or re-run the on-demand check.
  *
  * Detection is on demand, not polled: it runs once when this panel mounts, which in practice means whenever the
- * narrator opens or returns to Settings' DAW Integration category, and again on every "Check again" click - both
+ * narrator opens or returns to Settings' DAW Integration panel, and again on every "Check again" click - both
  * share the one `load` call site (mirrors `LocalAssets`' mount-plus-"Try again" pattern).
  *
  * `onLinkDawFile`/`dawFileLinked` are optional: when given, an installed-but-not-yet-linked entry also offers the

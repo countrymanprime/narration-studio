@@ -29,7 +29,7 @@ export const teleprompterFeedback: Record<string, FeedbackRow> = {
     'inline',
     'na',
     'ok',
-    'Saving the toggle (on confirm, or off at once for a project that already confirmed it): a one-field or two-field write, the same tier-1 cost as Settings.tsx\'s own saveSettings rows. The toggle\'s own pressed state flips at once (optimistic); a failure shows inline in the bar\'s status line rather than silently reverting, since REAPER behaviour hinges on the narrator trusting what the toggle says.',
+    'Saving the toggle (on confirm, or off at once for a project that already confirmed it): a one-field or two-field write, the same tier-1 cost as the Settings panels\' own saveSettings rows (ScopedFieldsPanel.tsx). The toggle\'s own pressed state flips at once (optimistic); a failure shows inline in the bar\'s status line rather than silently reverting, since REAPER behaviour hinges on the narrator trusting what the toggle says.',
   ),
   'src/components/booth/useRecordInReaper.ts::readAloudArmOnly#1': row(
     'click',
