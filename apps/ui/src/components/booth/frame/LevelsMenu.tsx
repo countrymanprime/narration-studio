@@ -6,6 +6,7 @@ import { IconButton } from '../../primitives/IconButton';
 import { LevelMeter } from '../../primitives/LevelMeter';
 import { Popover } from '../../primitives/Popover';
 import { Select } from '../../primitives/Select';
+import { Badge } from '../../primitives/StatusBadge';
 import type { InputLevel } from './useLevels';
 
 export type LevelsMenuProps = {
@@ -153,10 +154,12 @@ export function LevelsInline({ level, roomTone, roomToneOk }: { level: InputLeve
       <div className="w-28">
         <LevelMeter label="Input level" peak={level?.peak ?? null} rms={level?.rms ?? null} size="compact" />
       </div>
-      <span
-        className={`rounded-full border border-[var(--btn-line)] bg-[var(--surface)] px-2.5 py-0.5 text-xs font-semibold whitespace-nowrap ${roomToneOk ? 'text-[var(--ok-text)]' : 'text-[var(--text-muted)]'}`}
-      >
-        {roomTone}
+      <span className="whitespace-nowrap">
+        <Badge
+          label={roomTone}
+          look="outline"
+          colors={{ fill: 'var(--surface)', text: roomToneOk ? 'var(--ok-text)' : 'var(--text-muted)', line: 'var(--btn-line)' }}
+        />
       </span>
     </div>
   );
