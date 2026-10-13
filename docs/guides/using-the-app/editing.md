@@ -126,7 +126,7 @@ stack, and refuses the edit if the backup fails. **Timeline** shows the line the
 and one lane per take on one time axis. On a window 1360 px wide or more it is a strip under the text, which the header's
 **Timeline** button (S) shows and hides; on a narrower window it is a tab of the drawer.
 
-![Editing - the drawer's Effects tab with no effects yet, and Add effect waiting for a selection](../../images/ui/editing-drawer-effects.webp)
+![Editing - the Clean up and effects panel on Effects: no effects yet, and Add effect waiting for a selection](../../images/ui/editing-drawer-effects.webp)
 
 ![Editing - the Timeline strip under the text: the waveform and takes of the line the cursor is on](../../images/ui/editing-drawer-timeline.webp)
 
