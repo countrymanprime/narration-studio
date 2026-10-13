@@ -1,11 +1,29 @@
 // @vitest-environment jsdom
-import { cleanup, render, screen, waitFor } from '@testing-library/react';
+import { act, cleanup, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { MockStatesPanel } from './MockStatesPanel';
 
+// `boot` mounts the whole app through main.tsx, which never unmounts its root. Left mounted, its pending renders run after
+// the file's jsdom is torn down ("window is not defined"), so every root made here is unmounted after each test.
+const roots = vi.hoisted(() => [] as { unmount(): void }[]);
+vi.mock('react-dom/client', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('react-dom/client')>();
+  return {
+    ...actual,
+    createRoot: (...args: Parameters<typeof actual.createRoot>) => {
+      const root = actual.createRoot(...args);
+      roots.push(root);
+      return root;
+    },
+  };
+});
+
 beforeEach(() => window.history.replaceState(null, '', '/?mockPanel=1&mockZoom=125'));
-afterEach(cleanup);
+afterEach(() => {
+  cleanup();
+  act(() => roots.splice(0).forEach((root) => root.unmount()));
+});
 
 describe('choosing-writes-the-parameter-and-reloads', () => {
   it('rewrites the URL, keeps the others, and reloads', async () => {
