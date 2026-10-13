@@ -9,7 +9,6 @@ import { StudioProvider } from '../../../studio/StudioProvider';
 import type { NarrationApi } from '../../../types';
 import type { ScriptViewState } from './data/scriptView';
 import { useScriptView } from './data/useScriptData';
-import { setImportPrompted } from './layout/NeedManuscript';
 import { ScriptPage } from './ScriptPage';
 
 // The Studio Next Script page (docs/research/mockups/studio-next/src/pages/script/ScriptPage.tsx) over the browser mock host: the chapter
@@ -151,12 +150,10 @@ export const ChapterDrawer: Story = {
   },
 };
 
-// A project with no manuscript: the empty state and its import button. The import has already opened once this session.
+// A project with no manuscript: the empty state and its import button. It never opens the import by itself.
 export const NoManuscript: Story = {
   beforeEach: () => {
     api = createMockApi({ manuscriptChapters: async () => [] });
-    setImportPrompted(true);
-    return () => setImportPrompted(false);
   },
   play: async ({ canvasElement }) => {
     await expect(await within(canvasElement).findByText('This project has no manuscript yet. Import one to begin.')).toBeTruthy();

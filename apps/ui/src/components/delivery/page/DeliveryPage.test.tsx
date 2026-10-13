@@ -140,7 +140,7 @@ describe('DeliveryPage', () => {
 
   it('asks-for-the-manuscript-first', () => {
     mount(PASSING, {}, { hasManuscript: false });
-    expect(screen.getByText(/Add the manuscript first/)).toBeTruthy();
+    expect(screen.getByText('This project has no manuscript yet. Import one to begin.')).toBeTruthy();
     expect(screen.queryByText('Before you build')).toBeNull();
   });
 

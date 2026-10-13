@@ -16,7 +16,7 @@ import { Button } from '../../primitives/Button';
 import { ChapterStepper } from '../../primitives/ChapterStepper';
 import { Heading } from '../../primitives/Heading';
 import { Panel } from '../../primitives/Panel';
-import { NeedManuscript } from '../../script/page/layout/NeedManuscript';
+import { NeedManuscript } from '../../layout/NeedManuscript';
 import type { FileActions } from '../files/FileActions';
 import { FileChecks } from '../files/FileChecks';
 import { FilesTable } from '../files/FilesTable';

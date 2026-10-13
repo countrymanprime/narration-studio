@@ -15,9 +15,9 @@ import { usePendingAction } from '../../hooks/usePendingAction';
 import { useWorkJob } from '../../hooks/useWorkJob';
 import { AssetFacts } from '../assets/AssetFacts';
 import { AssetInstallPrompt } from '../assets/AssetInstallPrompt';
-import { Button } from '../primitives/Button';
 import { Heading } from '../primitives/Heading';
 import { Panel } from '../primitives/Panel';
+import { NeedManuscript } from '../layout/NeedManuscript';
 import { PANEL_FRAME_CLASS } from '../primitives/panelStyles';
 import { TooltipTarget } from '../primitives/Tooltip';
 import { StatusBadge } from '../primitives/StatusBadge';
@@ -89,21 +89,7 @@ type GuideProps = {
 };
 
 export function Guide({ hasManuscript = true, onImport, ...rest }: GuideProps) {
-  return hasManuscript ? <GuideLoaded {...rest} /> : <AskForManuscript onImport={onImport} />;
-}
-
-/** The page with no manuscript (the mock's `NeedManuscript`): it says so and offers the import, which lives on Production. Unlike the Script page it
- * does not open the import by itself; the mock's Story Bible does not either. */
-function AskForManuscript({ onImport }: { onImport?: () => void }) {
-  return (
-    <Panel label="Story Bible">
-      <div className="flex flex-col items-center gap-3 px-4 py-12 text-center">
-        <Heading title="Story Bible" />
-        <p className="m-0 text-[var(--text-muted)]">This project has no manuscript yet. Import one to begin.</p>
-        {onImport && <Button onClick={onImport}>Import manuscript</Button>}
-      </div>
-    </Panel>
-  );
+  return hasManuscript ? <GuideLoaded {...rest} /> : <NeedManuscript title="Story Bible" onImport={onImport} />;
 }
 
 function GuideLoaded({ notify, goToManuscript }: Pick<GuideProps, 'notify' | 'goToManuscript'>) {

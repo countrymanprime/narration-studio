@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { apiErrorMessage } from '../../../api/errorMessage';
 import { usePort } from '../../../ports/usePort';
 import { DeliveryProfilePanel } from '../../master/DeliveryProfilePanel';
+import { NeedManuscript } from '../../layout/NeedManuscript';
 import { Heading } from '../../primitives/Heading';
 import type { DeliveryProfile, ManuscriptChapter, MeasureFileResult } from '../../../types';
 import { ProfileCard } from '../profile/ProfileCard';
@@ -15,7 +16,16 @@ import { useBuildPackage } from './useBuildPackage';
  * host's measurement (`measureState`) against the project's profile; the build runs over the export and package jobs. The profile's
  * rules and their sources have no mock equivalent and stay as built, below Output. The page navigates by callback only.
  */
-export function DeliveryPage({ hasManuscript, onOpenInMaster }: { hasManuscript: boolean; onOpenInMaster: (chapterId: string) => void }) {
+export function DeliveryPage({
+  hasManuscript,
+  onOpenInMaster,
+  onImport,
+}: {
+  hasManuscript: boolean;
+  onOpenInMaster: (chapterId: string) => void;
+  /** Goes to the import, from the need-a-manuscript state. */
+  onImport?: () => void;
+}) {
   const manuscript = usePort('manuscript');
   const measure = usePort('measure');
   const [chapters, setChapters] = useState<ManuscriptChapter[]>([]);
@@ -48,16 +58,7 @@ export function DeliveryPage({ hasManuscript, onOpenInMaster }: { hasManuscript:
     build.build();
   };
 
-  if (!hasManuscript) {
-    return (
-      <section aria-label="Delivery" className="flex flex-col gap-1 p-4">
-        <Heading title="Delivery" />
-        <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
-          Add the manuscript first. Delivery checks every chapter against the profile.
-        </p>
-      </section>
-    );
-  }
+  if (!hasManuscript) return <NeedManuscript title="Delivery" onImport={onImport} />;
 
   const states = chapterStates(chapters, files);
   const { ready, text } = readiness(states);

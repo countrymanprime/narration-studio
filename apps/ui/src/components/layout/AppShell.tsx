@@ -33,19 +33,20 @@ import { EngineChip, type EngineState } from './EngineChip';
 import { TimerChip, type RunningTimer } from './TimerChip';
 import type { NavCounts } from './useNavCounts';
 
-// requiresManuscript/requiresDaw name what each nav item is gated on: no item needs a linked DAW project file since Proof replaced Proofing (its compare
-// run gates itself inside the chapter view). The requiresDaw field stays for the next item that needs one.
+// requiresManuscript/requiresDaw name what each nav item is gated on. The Studio Next mock's rail never disables an item: with no manuscript every
+// page draws its own "import a manuscript" state (issue 1720), so no item needs one today, and none needs a linked DAW project file since Proof
+// replaced Proofing (its compare run gates itself inside the chapter view). Both fields stay for the next item that needs one.
 // The Production stage's page: the Production home at `/`, which replaced Home.
 // Not gated: with no manuscript it is where the import is.
 const PRODUCTION = { name: 'Production', path: '/', icon: faHouse, requiresManuscript: false, requiresDaw: false };
 // The Schedule (the Studio Next mock's rail, ADR 0802): the due date, how the book pays and the milestones. Not gated: with no
 // manuscript the page asks for one.
 const SCHEDULE = { name: 'Schedule', path: '/schedule', icon: iconFor('calendar'), requiresManuscript: false, requiresDaw: false };
-const SCRIPT = { name: 'Script', path: '/script', icon: faFileLines, requiresManuscript: true, requiresDaw: false };
-const STORY_BIBLE = { name: 'Story Bible', path: '/story-bible', icon: faBookOpen, requiresManuscript: true, requiresDaw: false };
+const SCRIPT = { name: 'Script', path: '/script', icon: faFileLines, requiresManuscript: false, requiresDaw: false };
+const STORY_BIBLE = { name: 'Story Bible', path: '/story-bible', icon: faBookOpen, requiresManuscript: false, requiresDaw: false };
 // The Record stage's one page: it replaced the Teleprompter page. Its
 // icon is a record dot, as the stage-nav mocks draw it (audit SH12).
-const BOOTH = { name: 'Booth', path: '/booth', icon: faCircleDot, requiresManuscript: true, requiresDaw: false };
+const BOOTH = { name: 'Booth', path: '/booth', icon: faCircleDot, requiresManuscript: false, requiresDaw: false };
 // Editing (the Studio Next mock's Editing page, ADR 0804): the chapter's script as the editor, at /editing and /editing/:chapterId. It took the
 // chapter workspace out of Proof. Not gated: with no manuscript the page asks for one, as the mock's does.
 const EDITING = { name: 'Editing', path: '/editing', icon: iconFor('scissors'), requiresManuscript: false, requiresDaw: false };
@@ -59,9 +60,9 @@ const PROOF = { name: 'Proof', path: '/proof', icon: faWaveSquare, requiresManus
 // Pickups dialog. Not gated: its import, export and jumps talk to REAPER and each says itself when REAPER is not there.
 const PICKUPS = { name: 'Pickups', path: '/pickups', icon: faRotateLeft, requiresManuscript: false, requiresDaw: false };
 const MASTER_QC = { name: 'Master & QC', path: '/master', icon: faGaugeHigh, requiresManuscript: false, requiresDaw: false };
-// Delivery (the Studio Next mock's rail, ADR 0802): the profile card, the package build and what is left before it. Gated on a
-// manuscript, as the mock's page asks for one: it checks every chapter against the profile.
-const DELIVERY = { name: 'Delivery', path: '/delivery', icon: iconFor('delivery'), requiresManuscript: true, requiresDaw: false };
+// Delivery (the Studio Next mock's rail, ADR 0802): the profile card, the package build and what is left before it. Not gated: with no
+// manuscript the page asks for one, as the mock's does.
+const DELIVERY = { name: 'Delivery', path: '/delivery', icon: iconFor('delivery'), requiresManuscript: false, requiresDaw: false };
 
 // Grouped by production stage (ADR 0407): Production, Prep, Record, Edit (the Studio Next mock's own group for Editing, ADR 0804), Review,
 // Finish, with Settings pinned at the foot (below, not a group). A page is renamed only in the change that ships its
@@ -224,8 +225,8 @@ export function AppShell({
     </>
   );
   // The Booth fills the whole window: no rail, no header, no drawer. Exit booth (or Escape) is the way
-  // out, and the page keeps its own `<main>` so the landmark stays.
-  if (isActivePath(pathname, '/booth')) {
+  // out, and the page keeps its own `<main>` so the landmark stays. With no manuscript the page is the empty state and has no Exit, so it keeps the rail.
+  if (isActivePath(pathname, '/booth') && hasManuscript) {
     return (
       <div className="h-full overflow-hidden bg-[var(--bg)]">
         <main tabIndex={-1} className="size-full overflow-hidden focus:outline-none">

@@ -14,7 +14,7 @@ import { ALL_CHAPTERS, ChapterStepper } from '../primitives/ChapterStepper';
 import { IconButton } from '../primitives/IconButton';
 import { KeyHints } from '../primitives/KeyHints';
 import { openCheckRecordings } from '../recordingcheck/openCheckRecordings';
-import { NeedManuscript } from '../script/page/layout/NeedManuscript';
+import { NeedManuscript } from '../layout/NeedManuscript';
 import { CheckCard } from './checkcard/CheckCard';
 import { ChapterStrip, type StripChapter } from './frame/ChapterStrip';
 import type { Band, Pin } from './frame/pins';

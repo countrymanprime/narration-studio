@@ -14,7 +14,6 @@ import { contextItemsFor } from '../../registries/context';
 import type { Finding, NarrationApi } from '../../types';
 import { TooltipProvider } from '../primitives/Tooltip';
 import * as checkRecordings from '../recordingcheck/openCheckRecordings';
-import { setImportPrompted } from '../script/page/layout/NeedManuscript';
 import { proofProgress } from './proof.selectors';
 import { ProofPage } from './ProofPage';
 
@@ -153,7 +152,6 @@ describe('proof-route-draws-the-mock-page', () => {
   });
 
   it('says to import a manuscript first when there is none', async () => {
-    setImportPrompted(true);
     renderPage({ hasManuscript: false });
     expect(await screen.findByRole('button', { name: 'Import manuscript' })).toBeTruthy();
   });

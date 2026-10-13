@@ -48,6 +48,12 @@ describe('AppShell on the Booth', () => {
     expect(within(screen.getByRole('main')).getByText('page content')).toBeTruthy();
   });
 
+  // Issue 1720: with no manuscript the Booth is the empty state, which needs the way out the full window takes away.
+  it('keeps the rail on the Booth when there is no manuscript to record', () => {
+    renderShell({ pathname: '/booth', hasManuscript: false });
+    expect(screen.getAllByRole('button', { name: 'Production' }).length).toBeGreaterThan(0);
+  });
+
   it('keeps the rail and header on every other page', () => {
     renderShell({ pathname: '/script' });
     expect(screen.getAllByRole('button', { name: 'Booth' }).length).toBeGreaterThan(0);
@@ -56,15 +62,16 @@ describe('AppShell on the Booth', () => {
 });
 
 describe('AppShell nav gating', () => {
-  it('disables the manuscript pages, and only those, when there is no manuscript', () => {
+  // The mock's rail never disables an item: with no manuscript every page draws its own "import a manuscript" state (issue 1720).
+  it('disables no page when there is no manuscript: each page asks for the manuscript itself', () => {
     renderShell({ hasManuscript: false, dawFileLinked: false });
-    for (const name of ['Script', 'Story Bible', 'Booth', 'Delivery']) {
-      expect(screen.getAllByRole('button', { name }).every((button) => (button as HTMLButtonElement).disabled)).toBe(true);
+    for (const name of ['Production', 'Schedule', 'Script', 'Story Bible', 'Booth', 'Editing', 'Proof', 'Pickups', 'Master & QC', 'Delivery']) {
+      expect(
+        screen.getAllByRole('button', { name }).every((button) => !(button as HTMLButtonElement).disabled),
+        name,
+      ).toBe(true);
     }
-    for (const name of ['Production', 'Proof', 'Pickups', 'Master & QC']) {
-      expect(screen.getAllByRole('button', { name }).every((button) => (button as HTMLButtonElement).disabled)).toBe(false);
-    }
-    expect(screen.getAllByRole('group', { name: /Import a manuscript to unlock this page/ }).length).toBeGreaterThan(0);
+    expect(screen.queryAllByRole('group', { name: /Import a manuscript to unlock this page/ })).toHaveLength(0);
   });
 
   // Proof replaces Proofing and Review, and its compare run gates itself on
@@ -412,7 +419,7 @@ describe('AppShell rail', () => {
     expect(screen.queryByRole('button', { name: /^Pickups, / })).toBeNull();
   });
 
-  // SN-M5 (ADR 0802): Delivery sits beside Master & QC in Finish, gated on a manuscript like the mock's NeedManuscript; Master stays ungated.
+  // SN-M5 (ADR 0802): Delivery sits beside Master & QC in Finish, as the mock draws it: no item is gated, the page asks for the manuscript itself.
   it('the-delivery-rail-item: Finish is Master & QC then Delivery, and Delivery opens /delivery', () => {
     const navigate = vi.fn();
     renderShell({ navigate });
@@ -426,9 +433,9 @@ describe('AppShell rail', () => {
     expect(navigate).toHaveBeenCalledWith('/delivery');
   });
 
-  it('the-delivery-rail-item: "Go to Delivery" is a page only with a manuscript', () => {
+  it('the-delivery-rail-item: "Go to Delivery" is a page with or without a manuscript', () => {
     expect(shellPages(true)).toContainEqual({ id: '/delivery', label: 'Delivery' });
-    expect(shellPages(false)).not.toContainEqual({ id: '/delivery', label: 'Delivery' });
+    expect(shellPages(false)).toContainEqual({ id: '/delivery', label: 'Delivery' });
     expect(shellPages(false)).toContainEqual({ id: '/master', label: 'Master & QC' });
   });
 });

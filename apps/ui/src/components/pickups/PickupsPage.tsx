@@ -10,7 +10,7 @@ import { useDawKind } from '../../useDawKind';
 import type { ManuscriptChapter } from '../../types';
 import { boothQuery } from '../booth/page/boothQuery';
 import { openCheckRecordings } from '../recordingcheck/openCheckRecordings';
-import { NeedManuscript } from '../script/page/layout/NeedManuscript';
+import { NeedManuscript } from '../layout/NeedManuscript';
 import { ALL_SCOPE, inScope, plainLine, type ChapterRef } from './list/pickupRows';
 import { PickupsTable, type RemoveUndo } from './list/PickupsTable';
 import { SessionPanel } from './list/SessionPanel';

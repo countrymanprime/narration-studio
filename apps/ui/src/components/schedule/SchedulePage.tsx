@@ -5,6 +5,7 @@ import { overlay } from '../../overlay/overlayService';
 import { usePort } from '../../ports/usePort';
 import type { Command, Journal } from '../../studio/journal/createJournal';
 import { Button } from '../primitives/Button';
+import { NeedManuscript } from '../layout/NeedManuscript';
 import { Heading } from '../primitives/Heading';
 import { IconButton } from '../primitives/IconButton';
 import { Panel } from '../primitives/Panel';
@@ -26,6 +27,8 @@ export type SchedulePageProps = {
   journal: ScheduleJournal;
   /** The day the estimates start from. The page uses the real date; a test fixes it. */
   today?: Date;
+  /** False when the project has no manuscript: the page asks for one whatever the estimates a cached word count could still give. */
+  hasManuscript?: boolean;
   /** Opens the manuscript import from the empty state, when the shell offers one. */
   onImport?: () => void;
 };
@@ -41,7 +44,7 @@ const platformIdOf = (projectProfile: string | undefined): string | undefined =>
  * the milestones. Every change is one journalled command, so one
  * undo step; a refusal from the host is shown as its own sentence and nothing is changed.
  */
-export function SchedulePage({ journal, today, onImport }: SchedulePageProps) {
+export function SchedulePage({ journal, today, hasManuscript = true, onImport }: SchedulePageProps) {
   const production = usePort('production');
   const deliveryProfiles = usePort('deliveryProfiles');
   const [state, setState] = useState<State>({ phase: 'loading' });
@@ -81,15 +84,7 @@ export function SchedulePage({ journal, today, onImport }: SchedulePageProps) {
   const { plan, chapters, profileId } = state;
   const keep = (next: ProductionPlan) => setState({ phase: 'ready', plan: next, chapters, profileId });
 
-  if (chapters.length === 0)
-    return (
-      <Panel title="Schedule">
-        <div className="flex flex-col items-start gap-3">
-          <p>This project has no manuscript yet. Import one to begin.</p>
-          {onImport && <Button onClick={onImport}>Import manuscript</Button>}
-        </div>
-      </Panel>
-    );
+  if (!hasManuscript || chapters.length === 0) return <NeedManuscript title="Schedule" onImport={onImport} />;
 
   /** Runs a change as one journal entry. A refusal shows the host's sentence and changes nothing; the answer is the plan it left. */
   const run = async (command: Command<ProductionPlan>, undoText?: string): Promise<string | undefined> => {

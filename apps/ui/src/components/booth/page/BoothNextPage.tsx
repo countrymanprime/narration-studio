@@ -12,10 +12,10 @@ import type { MeasurementsPort } from '../../../ports/measurements';
 import { PortOverrides, usePort } from '../../../ports/usePort';
 import { dawShortName, useJournal } from '../../../studio/StudioProvider';
 import { ContextMenuHost } from '../../layout/ContextMenuHost';
-import { Button } from '../../primitives/Button';
 import type { ContextMenuItem } from '../../primitives/ContextMenu';
 import { ChapterStepper } from '../../primitives/ChapterStepper';
 import { Panel } from '../../primitives/Panel';
+import { NeedManuscript } from '../../layout/NeedManuscript';
 import { speakerColorToken } from '../../primitives/speakerColor';
 import { BookmarkRibbons } from '../bookmarks/BookmarkRibbons';
 import { useBoothBookmarks } from '../bookmarks/useBoothBookmarks';
@@ -79,21 +79,8 @@ export function BoothNextPage({ hasManuscript, navigate, onImport, exitTo = BOOT
   return (
     <>
       <h1 className="sr-only">Booth</h1>
-      {hasManuscript ? <BoothLoaded navigate={navigate} exitTo={exitTo} /> : <NeedManuscript onImport={onImport} />}
+      {hasManuscript ? <BoothLoaded navigate={navigate} exitTo={exitTo} /> : <NeedManuscript title="Booth" onImport={onImport} />}
     </>
-  );
-}
-
-function NeedManuscript({ onImport }: { onImport?: () => void }) {
-  return (
-    <div className="p-4 md:p-6">
-      <Panel title="Booth">
-        <div className="flex flex-col items-start gap-3">
-          <p>This project has no manuscript yet. Import one to begin.</p>
-          {onImport && <Button onClick={onImport}>Import manuscript</Button>}
-        </div>
-      </Panel>
-    </div>
   );
 }
 

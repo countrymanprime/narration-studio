@@ -35,7 +35,7 @@ import { ChapterList } from './chapters/ChapterList';
 import { isAsk } from './data/script.selectors';
 import { useChapters, useEntries, useMarks, useScriptCommands, useScriptPrep, useScriptView, useSpeakers } from './data/useScriptData';
 import { BookmarkGutter, GutterContext, type GutterState } from './layout/BookmarkGutter';
-import { NeedManuscript } from './layout/NeedManuscript';
+import { NeedManuscript } from '../../layout/NeedManuscript';
 import { RAIL_LABEL, RailPanel, type RailTab } from './layout/RailPanel';
 import { ScriptColumns } from './layout/ScriptColumns';
 import { ScriptCredits } from './layout/ScriptCredits';
