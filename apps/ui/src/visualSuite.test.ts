@@ -215,6 +215,18 @@ describe('checkControlWidths', () => {
   });
 });
 
+// Issue 1718: nothing captured these pages at 390 px, so nothing could flag them there.
+describe('the narrow pages are captured at the reflow width', () => {
+  test.each(['proof', 'pickups', 'booth'])('every %s row has the reflow viewport', (page) => {
+    // The Companion's rows are the Companion's window (380 px, COMPANION), not the Booth's.
+    const rows = STATE_CATALOG.filter((entry) => entry.page === page && !entry.state.startsWith('companion-'));
+    expect(rows.length).toBeGreaterThan(0);
+    for (const row of rows) {
+      expect(row.extraViewports, `${page}/${row.state}`).toContain(REFLOW_VIEWPORT);
+    }
+  });
+});
+
 describe('disambiguateLabels', () => {
   test('keeps unique names as they are', () => {
     expect(disambiguateLabels([control('A', 100), control('B', 100)]).map((c) => c.label)).toEqual(['A', 'B']);

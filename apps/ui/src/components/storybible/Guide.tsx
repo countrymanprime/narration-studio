@@ -21,7 +21,7 @@ import { NeedManuscript } from '../layout/NeedManuscript';
 import { PANEL_FRAME_CLASS } from '../primitives/panelStyles';
 import { TooltipTarget } from '../primitives/Tooltip';
 import { StatusBadge } from '../primitives/StatusBadge';
-import { Swatch, type SwatchColour } from '../primitives/Swatch';
+import { Swatch } from '../primitives/Swatch';
 import {
   aliasCount,
   chapterCount,
@@ -39,6 +39,7 @@ import {
 import { evidenceLinks } from './evidenceLinks';
 import { ImportButton } from './suggested/panel/ImportButton';
 import { LooseSuggestionRows } from './suggested/panel/LooseSuggestionRows';
+import { FilterChip } from './FilterChip';
 import { NeedsVerificationChip } from './suggested/panel/NeedsVerificationChip';
 import { ScanButton } from './suggested/panel/ScanButton';
 import { useSuggestions } from './suggested/panel/useSuggestions';
@@ -355,9 +356,9 @@ function GuideLoaded({ notify, goToManuscript }: Pick<GuideProps, 'notify' | 'go
                   <Select label="Sort entries" value={sort} onChange={chooseSort} options={ENTRY_SORT_OPTIONS} className="w-auto min-w-[7.5rem] flex-none" />
                 </div>
                 <div className="flex flex-wrap gap-2" role="group" aria-label="Kind">
-                  <KindChip label="All" on={activeKind === 'All'} onPress={() => setKind('All')} />
+                  <FilterChip label="All" on={activeKind === 'All'} onPress={() => setKind('All')} />
                   {types.map((type) => (
-                    <KindChip
+                    <FilterChip
                       key={type.name}
                       label={type.name}
                       swatch={kindSwatch(types, type.name)}
@@ -369,7 +370,7 @@ function GuideLoaded({ notify, goToManuscript }: Pick<GuideProps, 'notify' | 'go
                 {(toReview > 0 || reviewOnly || toVerifyAll > 0 || verifyOnly) && (
                   <div className="flex flex-wrap gap-2" role="group" aria-label="Filter entries">
                     {(toReview > 0 || reviewOnly) && (
-                      <KindChip label={`Needs review · ${toReview}`} on={reviewOnly} onPress={() => setReviewOnly((on) => !on)} />
+                      <FilterChip label={`Needs review · ${toReview}`} on={reviewOnly} onPress={() => setReviewOnly((on) => !on)} />
                     )}
                     <NeedsVerificationChip count={toVerifyAll} on={verifyOnly} onToggle={setVerifyOnly} />
                   </div>
@@ -499,21 +500,5 @@ function GuideLoaded({ notify, goToManuscript }: Pick<GuideProps, 'notify' | 'go
         <VoiceDataPanel open={voiceDataOpen} onClose={() => setVoiceDataOpen(false)} notify={notify} />
       </Tabs>
     </CommandScope>
-  );
-}
-
-/** One chip of the filters over the list (the mock's `.chip`): 28 px, fully rounded, filled with the ink when it is on; a kind carries its type's swatch. */
-function KindChip({ label, swatch, on, onPress }: { label: string; swatch?: SwatchColour; on: boolean; onPress: () => void }) {
-  return (
-    // native-control-ok: the mock's filter chip is a 28 px pill with a swatch; Pill's 32 px uppercase look and Button's padded chrome do not draw it.
-    <button
-      type="button"
-      aria-pressed={on}
-      onClick={onPress}
-      className={`inline-flex h-7 items-center gap-1.5 rounded-full border px-3 text-sm font-medium ${on ? 'border-[var(--text)] bg-[var(--text)] text-[var(--surface)]' : 'border-[var(--line-strong)] bg-[var(--surface)] text-[var(--text-muted)] hover:bg-[var(--surface-2)]'}`}
-    >
-      {swatch && <Swatch colour={swatch} />}
-      {label}
-    </button>
   );
 }

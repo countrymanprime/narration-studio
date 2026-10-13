@@ -1,4 +1,5 @@
 import { Menu as BaseMenu } from '@base-ui/react/menu';
+import type { CSSProperties } from 'react';
 import { Button } from './Button';
 import { Icon } from './Icon';
 import { IconButton } from './IconButton';
@@ -45,7 +46,7 @@ export function ChapterStepper({
   );
 
   return (
-    <div role="group" aria-label="Chapter" className="flex min-w-0 items-center gap-1">
+    <div role="group" aria-label="Chapter" className="flex max-w-full min-w-0 items-center gap-1">
       {arrow(-1, 'Previous chapter', 'previousChapter', stepKeys[0], !isAll && index <= 0)}
       <BaseMenu.Root modal={false}>
         <BaseMenu.Trigger
@@ -53,8 +54,9 @@ export function ChapterStepper({
             <Button
               variant="secondary"
               aria-label={`Chapter: ${label}. Change chapter`}
-              className="max-w-full flex-none justify-between gap-2"
-              style={{ minWidth: `${width}ch` }}
+              // One width for the longest label, up to the mock's 340 px, once there is room for it; below 860 px the picker takes what is left.
+              className="max-w-full min-w-0 justify-between gap-2 min-[860px]:min-w-[min(var(--chapter-ch),21.25rem)]"
+              style={{ '--chapter-ch': `${width}ch` } as CSSProperties}
             />
           }
         >

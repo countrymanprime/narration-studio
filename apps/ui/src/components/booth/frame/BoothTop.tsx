@@ -71,7 +71,8 @@ export function BoothTop({
 }) {
   const drawer = useSidePanelDrawer();
   return (
-    <div className="flex h-13 items-center gap-3 border-b border-[var(--border)] bg-[var(--surface)] px-5">
+    // The mock's `.btop`: the parts wrap, so at 390 px the progress line takes a row of its own instead of printing over the chapter picker.
+    <div className="flex min-h-13 flex-wrap items-center gap-x-3 gap-y-1 border-b border-[var(--border)] bg-[var(--surface)] px-3 py-1 min-[860px]:px-5 [&>*:not(#bprog)]:shrink-0">
       {chapter}
       {pickupsOpen != null ? (
         <Badge
@@ -81,7 +82,7 @@ export function BoothTop({
           look="outline"
         />
       ) : null}
-      <span id="bprog" className="font-mono text-sm text-[var(--text-muted)]">
+      <span id="bprog" className="max-w-full min-w-0 truncate font-mono text-sm text-[var(--text-muted)]">
         {progress}
       </span>
       {resume}

@@ -309,7 +309,7 @@ export function ProofPage({
     <CommandScope kind="page">
       <div className="flex min-h-full flex-col">
         <div
-          className="grid flex-1 gap-4 min-[1100px]:grid-cols-[minmax(0,1fr)_380px] min-[1100px]:grid-rows-[auto_minmax(0,1fr)]"
+          className="grid flex-1 gap-4 min-[1180px]:grid-cols-[minmax(0,1fr)_380px] min-[1180px]:grid-rows-[auto_minmax(0,1fr)]"
           // A right click on a row selects it first, so the menu acts on the row under the pointer.
           onContextMenuCapture={(event) => {
             const row = (event.target as Element).closest<HTMLElement>('section[aria-label="Notes"] tr[data-row]');
@@ -356,7 +356,7 @@ export function ProofPage({
             )}
           </section>
           <div
-            className="min-h-0 min-w-0 min-[1100px]:row-start-2"
+            className="min-h-0 min-w-0 min-[1180px]:row-start-2"
             // A row pressed (a click or Enter), not stepped to with the keys, opens its chapter from All chapters, as in the mock.
             onClickCapture={(event) => {
               if (!selectingForMenu.current && (event.target as Element).closest('tr[data-row]')) opening.current = true;
@@ -397,7 +397,7 @@ export function ProofPage({
               }}
             />
           </div>
-          <div className="min-w-0 rounded-[var(--radius-panel)] border border-[var(--border)] bg-[var(--surface)] p-4 min-[1100px]:col-start-2 min-[1100px]:row-span-2 min-[1100px]:row-start-1">
+          <div className="min-w-0 rounded-[var(--radius-panel)] border border-[var(--border)] bg-[var(--surface)] p-4 min-[1180px]:col-start-2 min-[1180px]:row-span-2 min-[1180px]:row-start-1">
             {selected ? (
               <Inspector
                 key={selected.id}
