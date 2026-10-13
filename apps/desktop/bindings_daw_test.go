@@ -82,7 +82,7 @@ func TestDawCapabilitiesBuiltInGoldenIsCurrent(t *testing.T) {
 }
 
 // built-in-is-a-kind: the project's engine choice makes the launch's kind the built-in recorder only while no DAW launched the
-// app; choosing REAPER again, or a DAW launch, keeps the DAW.
+// app; choosing the DAW again makes it REAPER without any --daw, and a DAW launch keeps its DAW.
 func TestDawLaunchKindFollowsTheEngineChoiceOnlyWithoutADAW(t *testing.T) {
 	host := builtinCapabilitiesHost(t)
 	if kind := host.dawLaunchKind(host.services()); kind != dawport.KindBuiltIn {
@@ -98,14 +98,14 @@ func TestDawLaunchKindFollowsTheEngineChoiceOnlyWithoutADAW(t *testing.T) {
 	host.config.daw = ""
 	host.mu.Unlock()
 	recorderOf(t)(host.RecorderChooseEngine(engineDAW))
-	if kind := host.dawLaunchKind(host.services()); kind != dawport.KindNone {
-		t.Errorf("no DAW, REAPER chosen: kind = %v, want KindNone", kind)
+	if kind := host.dawLaunchKind(host.services()); kind != dawport.KindREAPER {
+		t.Errorf("no DAW, REAPER chosen: kind = %v, want KindREAPER", kind)
 	}
 	host.platform = "windows"
 	recorderOf(t)(host.RecorderChooseEngine(engineBuiltin))
 	host.platform = "linux"
 	if kind := host.dawLaunchKind(host.services()); kind != dawport.KindNone {
-		t.Errorf("built-in chosen where its capture row does not run: kind = %v, want KindNone", kind)
+		t.Errorf("built-in chosen where its capture row does not run, empty folder: kind = %v, want KindNone", kind)
 	}
 }
 

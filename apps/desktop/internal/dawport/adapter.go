@@ -13,12 +13,13 @@ const (
 	// KindNone is a launch with no DAW the suite drives: a standalone launch, a picker switch ("Standalone"), a developer
 	// launch without --daw, or a label it does not know.
 	KindNone Kind = iota
-	// KindREAPER is `--daw REAPER`, which NarrationUtils_Launcher.lua always passes.
+	// KindREAPER is `--daw REAPER`, which NarrationUtils_Launcher.lua always passes, or a project that chose REAPER or holds a
+	// REAPER project file (ProjectKind).
 	KindREAPER
-	// KindAudacity is `--daw Audacity` (ADR 0144).
+	// KindAudacity is `--daw Audacity` (ADR 0144), or a project that chose Audacity.
 	KindAudacity
 	// KindBuiltIn is the app's own recorder (internal/recording, ADR 0455) as the launch's engine: a launch with no DAW whose
-	// project chose the built-in recorder (LaunchKind), or `--daw Built-in`.
+	// project chose the built-in recorder (ProjectKind), or `--daw Built-in`.
 	KindBuiltIn
 )
 
@@ -51,15 +52,89 @@ func Classify(label string) Kind {
 	}
 }
 
-// LaunchKind is the launch's engine: the DAW label names, or, when it names none, the built-in recorder if the project chose it
-// as its engine (the Recording.engine row, which the host reads). The host asks this in one place (bindings_daw.go) so nothing
-// else decides the launch's kind.
-func LaunchKind(label string, builtinChosen bool) Kind {
-	if kind := Classify(label); kind != KindNone || !builtinChosen {
-		return kind
-	}
-	return KindBuiltIn
+// Source is where a project's DAW came from (ProjectKind): the launch's label, the narrator's own choice, the project's linked DAW
+// file, a DAW project file found in the folder, or the default when the folder holds none.
+type Source string
+
+const (
+	SourceLaunch  Source = "launch"
+	SourceChosen  Source = "chosen"
+	SourceLinked  Source = "linked"
+	SourceFound   Source = "found"
+	SourceDefault Source = "default"
+)
+
+// ProjectFacts is what ProjectKind decides from. Every field is the host's own fact, never a label from the page
+// (docs/architecture/threat-model.md, row 6f).
+type ProjectFacts struct {
+	// Label is the launch's `--daw` label ("" or "Standalone" for a launch no DAW started).
+	Label string
+	// Saved is the project's own Recording.engine row: "reaper", "audacity" or "builtin"; anything else is no choice.
+	Saved string
+	// Linked is whether the project's manifest links a REAPER project file that still exists.
+	Linked bool
+	// ProjectFiles is how many REAPER project files (.rpp) sit directly in the project folder.
+	ProjectFiles int
+	// BuiltinAvailable is whether the built-in recorder's capture row runs here (Windows, ADR 0357).
+	BuiltinAvailable bool
 }
+
+// ProjectKind is the project's engine and why. The launch's label is an override; then the narrator's saved choice (the built-in
+// recorder only where it runs); then the folder: a linked file or any .rpp means REAPER, so a folder holding a REAPER project is
+// never silently the built-in recorder's; then the built-in recorder where it runs, else none. The host asks this in one place
+// (bindings_daw.go) so nothing else decides the project's kind.
+func ProjectKind(f ProjectFacts) (Kind, Source) {
+	if kind := Classify(f.Label); kind != KindNone {
+		return kind, SourceLaunch
+	}
+	switch kind := Classify(f.Saved); kind {
+	case KindREAPER, KindAudacity:
+		return kind, SourceChosen
+	case KindBuiltIn:
+		if f.BuiltinAvailable {
+			return kind, SourceChosen
+		}
+	}
+	switch {
+	case f.Linked:
+		return KindREAPER, SourceLinked
+	case f.ProjectFiles > 0:
+		return KindREAPER, SourceFound
+	case f.BuiltinAvailable:
+		return KindBuiltIn, SourceDefault
+	}
+	return KindNone, SourceDefault
+}
+
+// Choosable is every engine a narrator can choose for a project, in the order Settings > Recording lists them.
+func Choosable() []Kind { return []Kind{KindREAPER, KindAudacity, KindBuiltIn} }
+
+// SavedValue is k's Recording.engine row value ("reaper", "audacity", "builtin"), or "" for KindNone. Classify reads it back.
+func (k Kind) SavedValue() string {
+	switch k {
+	case KindREAPER:
+		return "reaper"
+	case KindAudacity:
+		return "audacity"
+	case KindBuiltIn:
+		return "builtin"
+	default:
+		return ""
+	}
+}
+
+// IsDAW is whether k is a DAW outside the app (REAPER or Audacity), whose recordings live in the DAW.
+func (k Kind) IsDAW() bool { return k == KindREAPER || k == KindAudacity }
+
+// RecordsInApp is whether k is the app's own recorder.
+func (k Kind) RecordsInApp() bool { return k == KindBuiltIn }
+
+// RebuildsServices is whether moving a project from engine a to engine b changes the services the host builds when it attaches the
+// project (an Audacity project gets Audacity's review refusal and backups, ADR 0144), so the host attaches it again.
+func RebuildsServices(a, b Kind) bool { return (a == KindAudacity) != (b == KindAudacity) }
+
+// LinksProjectFile is whether k keeps its project in a file the app links (a REAPER .rpp, ProjectLinkDawFile).
+func (k Kind) LinksProjectFile() bool { return k == KindREAPER }
 
 // IsREAPERLaunch reports whether daw (the launch's own `daw` fact) names a live REAPER launch. It is the one place outside this
 // package allowed to ask "is this REAPER" at all (boundary_test.go enforces it): a caller with a narrower question asks the

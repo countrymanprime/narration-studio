@@ -85,6 +85,9 @@ type Host struct {
 	// answer actually changed, never on every transcriptLoop tick.
 	// +checklocks:mu
 	dawCapabilitiesSnapshot string
+	// dawFolder caches what the project folder holds for the project's DAW (projectdaw.go): the tick that polls the capability
+	// report asks it every 150 ms, and a folder listing that fresh is not needed.
+	dawFolder dawFolderCache
 	// dawTransportSnapshot is the last daw_transport_changed payload (bindings_daw_transport.go, ADR 0305), compared
 	// the same way.
 	// +checklocks:mu
@@ -597,8 +600,10 @@ func (h *Host) configureLocked(next config) {
 	h.guide.SetFindings(h.findings)
 	// The session directory is REAPER's file bridge (NarrationUtils_Launcher.lua makes it). An Audacity launch never opens it,
 	// even when one is passed, so nothing on that launch writes REAPER bridge commands.
+	// The project's DAW (projectdaw.go): the launch's --daw, else the project's own choice or what its folder holds.
+	projectKind := h.projectDaw(hostServices{config: h.config, settings: h.settings}).kind
 	var client *bridge.Client
-	if h.config.sessionDir != "" && dawport.Classify(h.config.daw) != dawport.KindAudacity {
+	if h.config.sessionDir != "" && projectKind != dawport.KindAudacity {
 		client, _ = bridge.New(h.config.sessionDir)
 		if client != nil {
 			client.SetLog(func(kind, message string) { _ = h.log.Report(kind, message) })
@@ -608,10 +613,10 @@ func (h *Host) configureLocked(next config) {
 	// consumers of bridge.Client's fan-out (events.go), so neither steals the other's events (ADR 0068).
 	h.reachability = daw.NewReachability(client)
 	h.bridge = client
-	// The review workflow's session follows the launch's --daw: REAPER's bridge (or none), or on an Audacity launch one that
+	// The review workflow's session follows the project's DAW: REAPER's bridge (or none), or for an Audacity project one that
 	// answers "not available yet" until the Audacity pipe client exists (ADR 0144).
 	review := reaper.ReviewFor(client)
-	if dawport.Classify(h.config.daw) == dawport.KindAudacity {
+	if projectKind == dawport.KindAudacity {
 		review = audacity.UnavailableReview()
 	}
 	h.transcript = transcript.NewWithReview(transcript.Config{Project: h.config.projectFolder, SessionDir: h.config.sessionDir, Python: h.config.comparePython, Backend: h.config.compareBackend}, review, h.settings, h.sidecars, h.emitTranscript)
@@ -708,10 +713,10 @@ func (h *Host) configureLocked(next config) {
 	if previous, ok := h.backupKeeper.(audacityBackups); ok {
 		previous.closePipe()
 	}
-	// Only an Audacity launch with a project has a backups role: REAPER and the built-in recorder declare backups not yet
+	// Only an Audacity project has a backups role: REAPER and the built-in recorder declare backups not yet
 	// available or unsupported, and the table lives in the project folder.
 	h.backupKeeper = nil
-	if h.config.projectFolder != "" && dawport.Classify(h.config.daw) == dawport.KindAudacity {
+	if h.config.projectFolder != "" && projectKind == dawport.KindAudacity {
 		h.backupKeeper = audacityBackupsFor(h.config.projectFolder, h.persist, settingsStore)
 		// The prune runs after the lock is released, over a snapshot taken here: services() cannot be called under h.mu.
 		snapshot := hostServices{config: h.config, settings: h.settings, bridge: h.bridge, reachability: h.reachability, backupKeeper: h.backupKeeper}

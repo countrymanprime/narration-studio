@@ -7,25 +7,27 @@ import (
 	"time"
 
 	"github.com/countrymanprime/narration-utils/shell/internal/captureport"
+	"github.com/countrymanprime/narration-utils/shell/internal/dawport"
 	"github.com/countrymanprime/narration-utils/shell/internal/manuscript"
 	"github.com/countrymanprime/narration-utils/shell/internal/port"
 	"github.com/countrymanprime/narration-utils/shell/internal/recording"
 	"github.com/countrymanprime/narration-utils/shell/internal/teleprompter"
 )
 
-// The built-in recorder's bindings (docs/adr/0455): the Booth records with REAPER or with the built-in recorder, a
-// per-project choice that sets the engine chip. The recorder itself is internal/recording over the capture port's
+// The built-in recorder's bindings (docs/adr/0455): the Booth records with the project's DAW or with the built-in recorder, a
+// per-project choice (projectdaw.go) that sets the engine chip. The recorder itself is internal/recording over the capture port's
 // wasapi row (Experimental, ADR 0357); every state change goes out as the "recording:state" live event and every level
 // report as "recording:level". The choice and the remembered device are the project settings rows Recording.engine and
-// Recording.device, written only here (like Mastering.provider, bindings_mastering.go): not generic Settings fields, so
+// Recording.device, written only here and by DawChoose (like Mastering.provider, bindings_mastering.go): not generic Settings fields, so
 // the Settings page neither lists nor saves them. The wire schema, golden payloads, wireContracts rows and mock live in
 // apps/ui/src/api (docs/architecture/wire-contracts.md).
 const (
 	recordingSettingsTool = "Recording"
-	recordingEngineKey    = "engine"
-	recordingDeviceKey    = "device"
-	engineDAW             = "daw"
-	engineBuiltin         = "builtin"
+	// recordingEngineKey holds "reaper", "audacity" or "builtin" (dawport.Kind.SavedValue); no row is no choice.
+	recordingEngineKey = "engine"
+	recordingDeviceKey = "device"
+	engineDAW          = "daw"
+	engineBuiltin      = "builtin"
 	// recorderDevicesTimeout bounds one `--list-devices --capture wasapi` run, like teleprompterDevicesTimeout.
 	recorderDevicesTimeout = 20 * time.Second
 )
@@ -44,31 +46,30 @@ func (h *Host) RecorderState() (string, error) {
 	return encodeBinding(h.recorderState(h.services(), nil), nil)
 }
 
-// RecorderChooseEngine saves which engine the project records with: "daw" (REAPER, the default) or "builtin". The built-in
-// recorder is refused, with its sentence, where its capture row is not available; nothing changes while a take records.
+// RecorderChooseEngine saves which engine the project records with: "daw" (the project's DAW, REAPER unless it records with
+// Audacity) or "builtin". The built-in recorder is refused, with its sentence, where its capture row is not available; nothing
+// changes while a take records. DawChoose (bindings_dawchoice.go) chooses a DAW by name; both write the same Recording.engine row.
 func (h *Host) RecorderChooseEngine(engine string) (string, error) {
 	svc := h.services()
 	if svc.config.projectFolder == "" || svc.settings == nil {
 		return "", errors.New("open a project before choosing how it records")
 	}
-	if svc.recorder != nil && svc.recorder.Busy() {
-		return "", errors.New("stop the take before changing how the project records")
-	}
-	var value *string
+	var kind dawport.Kind
 	switch engine {
 	case engineDAW:
+		kind = dawport.KindREAPER
+		if current := h.projectDaw(svc).kind; current.IsDAW() {
+			kind = current
+		}
 	case engineBuiltin:
 		if support := recorderSupport(h.recorderPlatform()); !support.Available {
 			return "", &port.NotSupportedError{Capability: captureport.WASAPI, Support: support}
 		}
-		value = &engine
+		kind = dawport.KindBuiltIn
 	default:
 		return "", errors.New(`the engine is "daw" or "builtin"`)
 	}
-	if engine == engineDAW && svc.recorder != nil {
-		svc.recorder.StopMeter()
-	}
-	if err := svc.settings.Save(recordingSettingsTool, "project", map[string]*string{recordingEngineKey: value}); err != nil {
+	if err := h.chooseProjectDaw(kind); err != nil {
 		return "", err
 	}
 	return h.RecorderState()
@@ -205,13 +206,13 @@ func (h *Host) builtinRecorder() (hostServices, error) {
 	return svc, nil
 }
 
-// recordingEngine is the project's engine choice: "builtin" only when it chose the built-in recorder and its row is
-// available here, "daw" otherwise.
+// recordingEngine is the project's engine: "builtin" when the project records with the built-in recorder (its own choice, or the
+// default for a folder with no DAW project where the recorder runs: projectDaw), "daw" otherwise.
 func (h *Host) recordingEngine(svc hostServices) string {
 	if svc.config.projectFolder == "" || svc.settings == nil {
 		return engineDAW
 	}
-	if svc.settings.Project(recordingSettingsTool)[recordingEngineKey] == engineBuiltin && recorderSupport(h.recorderPlatform()).Available {
+	if h.projectDaw(svc).kind.RecordsInApp() {
 		return engineBuiltin
 	}
 	return engineDAW

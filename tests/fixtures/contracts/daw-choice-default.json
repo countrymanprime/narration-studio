@@ -1,0 +1,44 @@
+{
+  "chosen": null,
+  "daw": "Built-in",
+  "experimental": false,
+  "foundFiles": [],
+  "hasProject": true,
+  "launcherAutoStart": false,
+  "linkedFile": null,
+  "options": [
+    {
+      "daw": "REAPER",
+      "installed": true,
+      "record": {
+        "available": false,
+        "level": "experimental",
+        "message": "Experimental: switched off in Settings.",
+        "reason": "experimental_off"
+      }
+    },
+    {
+      "daw": "Audacity",
+      "installed": null,
+      "record": {
+        "available": false,
+        "level": "not_yet_available",
+        "message": "Audacity support is not available yet. This version can't read audio from Audacity or add labels to it, so open the project from REAPER to compare it.",
+        "reason": "not_yet"
+      }
+    },
+    {
+      "daw": "Built-in",
+      "installed": true,
+      "record": {
+        "available": false,
+        "level": "experimental",
+        "message": "Experimental: switched off in Settings.",
+        "reason": "experimental_off"
+      }
+    }
+  ],
+  "reachable": true,
+  "source": "default",
+  "state": "app"
+}
