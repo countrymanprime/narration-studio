@@ -34,4 +34,11 @@ export const pickupsStates: StateEntry[] = [
     description: 'Pickups after every line is removed: "No pickups queued", the way to Proof, and an empty session',
     ...REFLOW,
   },
+  {
+    page: 'pickups',
+    state: 'no-manuscript',
+    description:
+      'Pickups with no manuscript imported (?mockNoManuscript=1): the page asks for the manuscript, the rail shows no count, and nothing moves to Production',
+    ...REFLOW,
+  },
 ];

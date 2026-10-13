@@ -76,4 +76,11 @@ export const proofStates: StateEntry[] = [
     description: 'Proof, a project with no notes at all (?mockFindings=empty): no ring, every chapter tile empty, "No notes yet" in the Inspector',
     ...REFLOW,
   },
+  {
+    page: 'proof',
+    state: 'no-manuscript',
+    description:
+      'Proof with no manuscript imported (?mockNoManuscript=1): the page asks for the manuscript, the rail shows no note count, and nothing moves to Production',
+    ...REFLOW,
+  },
 ];

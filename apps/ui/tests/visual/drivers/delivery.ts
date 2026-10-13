@@ -34,6 +34,6 @@ export const deliveryDrivers: Record<string, Driver> = {
   'no-manuscript': async (page) => {
     await page.goto('/delivery?mockNoManuscript');
     await settlePage(page);
-    await page.getByText(/^Add the manuscript first/).waitFor();
+    await page.getByText('This project has no manuscript yet. Import one to begin.').waitFor();
   },
 };

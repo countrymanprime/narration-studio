@@ -111,4 +111,10 @@ export const boothStates: StateEntry[] = [
       'The Companion mid-session (?mockTeleprompter=listening, 30 words into the first paragraph) with REAPER playing (?mockDawPlayhead=134.6) - the header badge reads "Playhead 2:14.6", the Script shows Pause (Kbd Space), Stop reading and Follow, and the current word highlighted in its scroll box',
     ...COMPANION,
   },
+  {
+    page: 'booth',
+    state: 'no-manuscript',
+    description: 'Booth with no manuscript imported (?mockNoManuscript=1): the page asks for the manuscript and keeps the rail, which a recording would hide',
+    ...REFLOW,
+  },
 ];
