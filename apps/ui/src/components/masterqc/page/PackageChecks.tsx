@@ -1,4 +1,4 @@
-import type { DeliveryProfile, MeasureFileResult } from '../../../types';
+import type { DeliveryProfile, ManuscriptChapter, MeasureFileResult } from '../../../types';
 import { Button } from '../../primitives/Button';
 import { Panel } from '../../primitives/Panel';
 import { StatusBadge } from '../../primitives/StatusBadge';
@@ -14,21 +14,23 @@ const BADGE = {
 
 /**
  * The aside "Delivery package · <profile>" (the Studio Next mock's Master page): the profile's package checks, the files that fail,
- * how many are not ready, and the way on to Delivery. The page decides where Delivery is (`onOpenDelivery`).
+ * how many chapters are not ready (the count Delivery shows), and the way on to Delivery. The page decides where Delivery is (`onOpenDelivery`).
  */
 export function PackageChecks({
   profile,
+  chapters,
   files,
   onOpenDelivery,
 }: {
   profile: DeliveryProfile | undefined;
+  chapters: readonly ManuscriptChapter[];
   files: readonly MeasureFileResult[];
   onOpenDelivery: () => void;
 }) {
-  const { failing, notReady } = packageCounts(files);
+  const { failing, notReady } = packageCounts(chapters, files);
   const items: PackageItem[] = [
     ...packageItems(profile, files),
-    ...failing.map((file): PackageItem => ({ state: 'bad', text: `${file.name} fails ${plural(file.checks, 'check', 'checks')}` })),
+    ...failing.map((text): PackageItem => ({ state: 'bad', text })),
     ...(notReady > 0 ? [{ state: 'wait', text: `${plural(notReady, 'chapter', 'chapters')} not ready` } satisfies PackageItem] : []),
   ];
   return (

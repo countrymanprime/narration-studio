@@ -4,7 +4,9 @@ import { join } from 'node:path';
 import { cleanup, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import { makeChapters } from '../../../fixtures/chapters';
 import type { DeliveryProfile, MeasureFileResult, NarrationApi } from '../../../types';
+import { chapterStates } from '../../delivery/page/chapterStates';
 import { MasterPage } from './MasterPage';
 import { ALL_PASS, CHAPTERS, PageHost, TWO_FAIL, acx, apiOf, failingTwo, jobOf, noRules, passing } from './testPage';
 
@@ -110,6 +112,40 @@ describe('Master & QC page body', () => {
     mount(ALL_PASS);
     expect(await screen.findByText('0 failing and 0 not ready.')).toBeTruthy();
     expect(screen.queryByText(/not ready$/)).toBeNull();
+  });
+
+  it('says-nothing-passes-when-nothing-is-measured: no tick, and the same not-ready count Delivery shows', async () => {
+    const api = apiOf(jobOf([]), acx, { manuscriptChapters: async () => CHAPTERS });
+    render(
+      <PageHost api={api}>
+        <MasterPage {...PROPS} onOpenDelivery={vi.fn()} openSettings={vi.fn()} />
+      </PageHost>,
+    );
+    const notReady = chapterStates(CHAPTERS, []).filter((state) => state.kind === 'wait').length;
+    expect(notReady).toBe(CHAPTERS.length);
+    const aside = within(await screen.findByRole('complementary', { name: /Delivery package/ }));
+    expect(await aside.findByText(`0 failing and ${notReady} not ready.`)).toBeTruthy();
+    expect(aside.getByText(`${notReady} chapters not ready`)).toBeTruthy();
+    expect(aside.queryByText('✓')).toBeNull();
+    expect(aside.queryByText(/^Passes: /)).toBeNull();
+  });
+
+  it('counts-failing-and-not-ready-from-the-chapters Delivery judges: one readiness source', async () => {
+    const files = [...TWO_FAIL];
+    // Six chapters, four files: two chapters have no file at all, which the files alone never count.
+    const chapters = makeChapters({ shape: 'titleAndSubtitle', count: 6 });
+    const api = apiOf(jobOf(files), acx, { manuscriptChapters: async () => chapters });
+    render(
+      <PageHost api={api}>
+        <MasterPage {...PROPS} onOpenDelivery={vi.fn()} openSettings={vi.fn()} />
+      </PageHost>,
+    );
+    const states = chapterStates(chapters, files);
+    const bad = states.filter((state) => state.kind === 'bad').length;
+    const wait = states.filter((state) => state.kind === 'wait').length;
+    expect(bad).toBeGreaterThan(0);
+    const aside = within(await screen.findByRole('complementary', { name: /Delivery package/ }));
+    expect(await aside.findByText(`${bad} failing and ${wait} not ready.`)).toBeTruthy();
   });
 
   it('the-active-profile-decides: a tighter limit flips a pass to a fail in the chart and the package list together', async () => {

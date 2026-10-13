@@ -1,9 +1,10 @@
 // The delivery package's checks on Master & QC (the Studio Next mock's `packageItems`): drawn from the profile's own rules and what was
 // measured, so a rule the profile lacks (or has turned off) has no row and nothing here is typed in by hand.
-import type { DeliveryProfile, DeliveryRule, MeasureFileResult } from '../../../types';
+import type { DeliveryProfile, DeliveryRule, ManuscriptChapter, MeasureFileResult } from '../../../types';
+import { chapterStates, readinessCounts, stateOf, type ChapterState } from '../../delivery/page/chapterStates';
+import { chapterOfFile } from '../../master/chapterFile';
 import { formatLength } from '../../master/deliveryFormat';
 import { formatBound, formatRuleValue } from '../../master/deliveryProfile';
-import { fileVerdict } from '../../master/fileVerdict';
 
 export type PackageItem = { state: 'ok' | 'bad' | 'wait'; text: string };
 
@@ -26,6 +27,7 @@ const minutes = (seconds: number): string => String(Number((seconds / 60).toFixe
 export function packageItems(profile: DeliveryProfile | undefined, files: readonly MeasureFileResult[]): PackageItem[] {
   if (!profile) return [];
   const items: PackageItem[] = [];
+  // Nothing measured: every check is waiting, never passing.
   const oneFile = ruleFor(profile, 'one_section_per_file');
   if (oneFile) items.push({ state: 'ok', text: 'Chapters are one file each' });
 
@@ -56,13 +58,28 @@ export function packageItems(profile: DeliveryProfile | undefined, files: readon
     format && formatBound(format),
   ].filter((part): part is string => !!part);
   if (parts.length > 0) items.push({ state: missed(files, [channels, rate, format]) ? 'bad' : 'ok', text: parts.join(' · ') });
-  return items;
+  return anyMeasured(files) ? items : items.map((item): PackageItem => ({ ...item, state: 'wait' }));
 }
 
-/** The files that fail, with how many of their rules were missed, and how many files have no measurement yet. */
-export function packageCounts(files: readonly MeasureFileResult[]) {
-  const failing = files
-    .filter((file) => fileVerdict(file) === 'fail')
-    .map((file) => ({ name: file.name, checks: file.rules.filter((result) => result.status === 'not_met').length }));
-  return { failing, notReady: files.filter((file) => file.status !== 'measured').length };
+/**
+ * The rows Master & QC's package card counts, from the same judgement Delivery's "Before you build" list makes: one per chapter
+ * (`chapterStates`), so a chapter with no file is not ready, plus a row per measured file no chapter claims (a file named for
+ * nothing in the manuscript still fails the package if it fails its checks).
+ */
+export function packageStates(chapters: readonly ManuscriptChapter[], files: readonly MeasureFileResult[]): ChapterState[] {
+  const stray = files.filter((file) => !isSample(file) && !chapterOfFile(file, chapters)).map((file) => stateOf({ id: file.path, name: file.name }, file));
+  return [...chapterStates(chapters, files), ...stray];
 }
+
+/** The rows that fail, with their sentence ("Chapter 04.wav fails 2 checks"), and how many are not ready. */
+export function packageCounts(chapters: readonly ManuscriptChapter[], files: readonly MeasureFileResult[]) {
+  const states = packageStates(chapters, files);
+  const { wait } = readinessCounts(states);
+  return {
+    failing: states.filter((state) => state.kind === 'bad').map((state) => `${state.name} ${state.text.toLowerCase()}`),
+    notReady: wait,
+  };
+}
+
+/** Whether any file has a measurement behind it: with none, no package check has been tried and none can read as passing. */
+export const anyMeasured = (files: readonly MeasureFileResult[]): boolean => measured(files).length > 0;
