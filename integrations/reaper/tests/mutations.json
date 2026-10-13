@@ -2236,5 +2236,59 @@
     "file": "narration_range.lua",
     "find": "if last < length - EDGE_TOLERANCE then\n        plan(math.min(last + CLICK_RAMP, length), 1)",
     "replace": "if true then\n        plan(math.min(last + CLICK_RAMP, length), 1)"
+  },
+  {
+    "name": "undo_last undoes whatever is on top, not only the kind's label",
+    "file": "narration_undo.lua",
+    "find": "  while undone < steps and on_top(label) do\n",
+    "replace": "  while undone < steps do\n"
+  },
+  {
+    "name": "undo_last reads the top label only before the first step",
+    "file": "narration_undo.lua",
+    "find": "  while undone < steps and on_top(label) do\n",
+    "replace": "  local first = on_top(label)\n  while undone < steps and first do\n"
+  },
+  {
+    "name": "undo_last matches any Narration Utils label",
+    "file": "narration_undo.lua",
+    "find": "  return reaper.Undo_CanUndo2(0) == label\n",
+    "replace": "  return (reaper.Undo_CanUndo2(0) or ''):find('Narration Utils:', 1, true) == 1\n"
+  },
+  {
+    "name": "undo_last takes a label the host sent in place of a kind",
+    "file": "narration_undo.lua",
+    "find": "local function undo_last(session_dir, run_id, kind, steps_text)\n  local label = core.undo_label(kind)\n",
+    "replace": "local function undo_last(session_dir, run_id, kind, steps_text)\n  local label = core.undo_label(kind) or kind\n"
+  },
+  {
+    "name": "undo_last undoes while REAPER records",
+    "file": "narration_undo.lua",
+    "find": "  if recording() then\n    event(session_dir, 'ERROR', run_id, RECORDING)\n    return\n  end\n",
+    "replace": "  if false then\n    event(session_dir, 'ERROR', run_id, RECORDING)\n    return\n  end\n"
+  },
+  {
+    "name": "undo_last's step bound is lifted",
+    "file": "narration_undo.lua",
+    "find": "local MAX_STEPS = 12\n",
+    "replace": "local MAX_STEPS = 1000\n"
+  },
+  {
+    "name": "undo_last counts an Undo REAPER did not make",
+    "file": "narration_undo.lua",
+    "find": "    if not done or done == 0 then\n      break\n    end\n",
+    "replace": ""
+  },
+  {
+    "name": "last_action answers this whatever is on top",
+    "file": "narration_undo.lua",
+    "find": "on_top(label) and 'this' or 'other'",
+    "replace": "'this'"
+  },
+  {
+    "name": "the undo label table answers a key it does not hold",
+    "file": "narration_bridge_core.lua",
+    "find": "  return rawget(UNDO_LABELS, kind)\n",
+    "replace": "  return rawget(UNDO_LABELS, kind) or (kind ~= '' and kind) or nil\n"
   }
 ]

@@ -386,7 +386,13 @@ end
 -- the fake keeps them.) Returns the block's label.
 function Fake:undo_last_block()
   local entry = table.remove(self.undo)
-  local shot = assert(entry and entry.snapshot, 'fake reaper: no undo block to undo')
+  assert(entry and entry.snapshot, 'fake reaper: no undo block to undo')
+  self:restore(entry.snapshot)
+  return entry.label
+end
+
+-- Puts back the tracks and items a snapshot (Fake:snapshot) holds.
+function Fake:restore(shot)
   self.tracks, self.items = shot.tracks, shot.items
   for track, state in pairs(shot.track_state) do
     track.items, track.name, track.muted, track.ext = state.items, state.name, state.muted, state.ext
@@ -409,7 +415,6 @@ function Fake:undo_last_block()
       take.volume_env.points = state.env_points
     end
   end
-  return entry.label
 end
 
 function Fake:undo_labels()
@@ -587,6 +592,26 @@ function Fake:add_project_api(api)
   end
   function api.Undo_OnStateChange(label)
     fake.undo[#fake.undo + 1] = { label = label }
+  end
+  -- The top of the undo history (narration_undo.lua). Undo_CanUndo2 names the next point's label, as REAPER 7.80 named a
+  -- block's right after it closed (S0: "Narration Utils: stamp manuscript line IDs"), and nil when there is none, as the
+  -- ReaScript reference says ("NULL if not"; not seen in a run: the QA pass, #1495). Undo_DoUndo2 undoes the top point and
+  -- answers 1, or 0 with nothing to undo; a block's point puts its tracks and items back (Fake:restore), and a point a test
+  -- pushed with no snapshot (a narrator's edit, say) only leaves the history. Each call is recorded in fake.calls.
+  function api.Undo_CanUndo2(_)
+    local top = fake.undo[#fake.undo]
+    return top and top.label or nil
+  end
+  function api.Undo_DoUndo2(_)
+    fake.calls[#fake.calls + 1] = { name = 'Undo_DoUndo2', in_block = fake.open_undo_blocks > 0 }
+    local entry = table.remove(fake.undo)
+    if not entry then
+      return 0
+    end
+    if entry.snapshot then
+      fake:restore(entry.snapshot)
+    end
+    return 1
   end
   -- Records every call in fake.calls: narration_render.lua's harness tests assert this is never invoked, since the
   -- S5 spike proved it (or a real render action's ID passed to the RENDER_STATS getter, below) can actually

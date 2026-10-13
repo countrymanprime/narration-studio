@@ -141,6 +141,19 @@ local function existing_take_marker(take, kind, srcpos)
   return nil
 end
 
+-- The undo-point label each kind of app action closes its undo block with, by the kind the host names it by
+-- (dawport's action kinds). narration_range.lua writes them and narration_undo.lua undoes only a point whose label is
+-- exactly one of them: the table is fixed here, so no string the host sends can widen what may be undone.
+local UNDO_LABELS = {
+  cut_range = 'Narration Utils: delete words',
+}
+local function undo_label(kind)
+  if type(kind) ~= 'string' then
+    return nil
+  end
+  return rawget(UNDO_LABELS, kind)
+end
+
 -- The registry maps a command name to a handler `handler(ctx, args)`: `ctx` carries the session directory, `event`
 -- (append an event to events.log) and `stop` (end the loop); `args` are the command's fields after its name. A
 -- name may be registered once, so two features cannot silently shadow each other's command.
@@ -188,5 +201,6 @@ M.color = color
 M.pipe_fields = pipe_fields
 M.marker_kind = marker_kind
 M.existing_take_marker = existing_take_marker
+M.undo_label = undo_label
 
 return M
