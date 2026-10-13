@@ -8,7 +8,7 @@ import { Panel } from '../../primitives/Panel';
 
 /**
  * The mock's "Keyboard shortcuts" panel: a read-only list of `commands` with the narrator's gestures for each, the ways told apart
- * by "or" as the "?" sheet draws them. Takes props only. Remapping stays in the kept Keyboard & pedals category.
+ * by "or" as the "?" sheet draws them. Takes props only. Remapping stays in the kept Keyboard & pedals panel.
  */
 export function KeysList({ commands, keymap }: { commands: readonly CommandDescriptor[]; keymap: Keymap }) {
   return (

@@ -51,7 +51,7 @@ export function DeliveryProfileFieldView({ state, busy = false, error, onChoose 
 
 /**
  * Settings > Delivery profile: the project's profile, saved with `deliverySelectProfile` as the Delivery page's profile card saves it.
- * The Global default, Duplicate, Edit and Delete stay in the kept Delivery category: the mock has no equivalent of them.
+ * The Global default, Duplicate, Edit and Delete stay in the kept Delivery profiles panel: the mock has no equivalent of them.
  */
 export function DeliveryProfileField() {
   const port = usePort('deliveryProfiles');

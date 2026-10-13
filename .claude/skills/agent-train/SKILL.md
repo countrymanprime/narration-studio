@@ -142,7 +142,7 @@ A lane-X stream runs with no other stream that touches the same files. Lanes hav
   - On a collision, whoever merges `main` in second takes the higher value + 1 and regenerates. Use the bump script once lane X has added it.
 - **ADR numbers:** the next free number in `docs/adr/`. Check it again at merge time, not only at write time; D52 on the retired #509 records an earlier collision.
 - **The ADR index and PRD index rows:** add-only. The coordinator resolves conflicts in them mechanically.
-- **Append-only rows:** `config/defaults.json`, `internal/settings/store.go` field rows, `Settings.tsx` rows, `internal/bridge/wire.go` event rows.
+- **Append-only rows:** `config/defaults.json`, `internal/settings/store.go` field rows, the `SettingsPage.tsx` panel list, `internal/bridge/wire.go` event rows.
 - **One at a time, train-wide:**
   - the `AppShell.tsx` navigation or header;
   - `.github/workflows/**`;
