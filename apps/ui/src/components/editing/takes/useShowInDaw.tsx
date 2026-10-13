@@ -10,7 +10,7 @@ import { registerTakeControl } from './takeControls';
 const CHECKING = 'Checking what the DAW can do.';
 
 /** Why the DAW cannot move to a line: the `navigate` capability's own sentence, or null when it can. */
-export function navigateReason(caps: DawCapabilities | null): string | null {
+function navigateReason(caps: DawCapabilities | null): string | null {
   if (!caps) return CHECKING;
   const support = caps.capabilities.navigate;
   return support?.available ? null : (support?.message ?? 'This DAW cannot move to a place in the project.');
