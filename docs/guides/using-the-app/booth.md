@@ -46,6 +46,9 @@ When the reason is one you can fix from the Booth, a box above the footer shows 
 
 - **Recording in REAPER is experimental.** Recording in a DAW starts switched off until it has been checked in that DAW.
   **Turn on Record** turns it on for this computer (Settings > DAW Integration > Record), and Record is ready at once.
+
+  ![Booth - Record disabled with the reason in the footer, and the Recording in REAPER is experimental box above it with Turn on Record and DAW settings](../../images/ui/booth-record-refused.webp)
+
 - **Connect REAPER to record** (or **REAPER is not answering**). The app records in REAPER through a small script, the
   launcher, that runs inside REAPER. Load it once: in REAPER, choose **Actions > Show action list > New action > Load
   ReaScript** and pick the launcher file the box shows (**Copy path** copies it). Load it again after you update the app,
@@ -53,6 +56,8 @@ When the reason is one you can fix from the Booth, a box above the footer shows 
   **Script: NarrationUtils_Launcher.lua**. The app connects and Record turns on. With REAPER closed, **Open in REAPER and
   connect** opens the linked project with the launcher in one go, and from then on Launch REAPER always starts it. If no
   REAPER project is linked yet, the first step links it.
+
+  ![Booth - the Connect REAPER to record box, with the two steps and Open in REAPER and connect, above the disabled Record button and its reason](../../images/ui/booth-record-setup.webp)
 
 If you stop a take in the DAW itself, the Booth sees it and says so, and Record is ready for the next take.
 
