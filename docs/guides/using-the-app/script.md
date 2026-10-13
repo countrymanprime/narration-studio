@@ -30,7 +30,7 @@ chapter list does the same from its **Chapters** button.
 An old link to the Manuscript page (`/manuscript`, with a line or chapter after `#`) still works: it opens the Script
 page at the same place, as do the links from Proof and the Story Bible.
 
-![Script - the reader on Chapter 1, the chapter list beside it and the rail on its Words tab](../../images/ui/script-reader.webp)
+![Script - the reader at the start of the book, the opening credits above Chapter 1, with the chapter list beside it and the rail on its Words tab](../../images/ui/script-reader.webp)
 
 ![Script - the chapter list, for jumping between chapters](../../images/ui/script-chapter-list.webp)
 
