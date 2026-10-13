@@ -13,6 +13,26 @@ export const settingsStates: StateEntry[] = [
   },
   {
     page: 'settings',
+    state: 'reader-text',
+    description:
+      "Settings scrolled to the Reader text panel: the Script reader's font, size, line spacing and column width over the preview quote, then the Marks pills and the Story Bible types",
+    ...REFLOW,
+  },
+  {
+    page: 'settings',
+    state: 'analysis-tools',
+    description:
+      'Settings scrolled to the Story Bible analysis panel: GLiNER, both BookNLP sizes and the local language model, each Not available yet with the host’s reason, and Offer better analysis when scanning, then Appearance',
+    ...REFLOW,
+  },
+  {
+    page: 'settings',
+    state: 'manuscript',
+    description: 'Settings scrolled to the Manuscript panel: "Imported Jan 1 · 2,672 words" and the danger Replace manuscript…, then the kept General panel',
+    ...REFLOW,
+  },
+  {
+    page: 'settings',
     state: 'marks-dialog',
     description: "Settings' Marks panel with Edit marks pressed: the Define how you mark up dialog over the page, a row per mark type",
     ...REFLOW,

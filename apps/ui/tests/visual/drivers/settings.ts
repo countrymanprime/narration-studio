@@ -10,6 +10,21 @@ export const settingsDrivers: Record<string, Driver> = {
     await page.getByRole('combobox', { name: 'Delivery profile', exact: true }).waitFor();
     await page.getByRole('radio', { name: /^Built-in recorder/ }).waitFor();
   },
+  'reader-text': async (page) => {
+    await goToPage(page, 'Settings');
+    await clickSettingsCategory(page, 'Reader text');
+    await page.getByRole('slider', { name: 'Column width' }).waitFor();
+  },
+  'analysis-tools': async (page) => {
+    await goToPage(page, 'Settings');
+    await settingsPanel(page, 'Story Bible analysis').getByText('Local language model').waitFor();
+    await clickSettingsCategory(page, 'Story Bible analysis');
+  },
+  manuscript: async (page) => {
+    await goToPage(page, 'Settings');
+    await page.getByText(/^Imported .* words$/).waitFor();
+    await clickSettingsCategory(page, 'Manuscript');
+  },
   'marks-dialog': async (page) => {
     await goToPage(page, 'Settings');
     await page.getByRole('button', { name: 'Edit marks…' }).click();

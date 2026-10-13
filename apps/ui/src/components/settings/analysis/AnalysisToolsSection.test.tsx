@@ -57,7 +57,7 @@ describe('AnalysisToolsSection', () => {
       ['booknlp-big', 'BookNLP (large)'],
       ['local-llm', 'Local language model'],
     ]) {
-      expect(within(await row(id)).getByRole('heading', { name })).toBeTruthy();
+      expect(within(await row(id)).getByRole('heading', { level: 3, name })).toBeTruthy();
     }
     const small = await row('booknlp-small');
     expect(small.getAttribute('data-status')).toBe('not-installed');
