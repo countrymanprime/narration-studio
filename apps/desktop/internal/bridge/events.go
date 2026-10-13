@@ -119,6 +119,16 @@ func (c *Client) SetLog(report func(kind, message string)) {
 	c.events.report = report
 }
 
+// report writes one line to the host log SetLog named, and nothing when none was set.
+func (c *Client) report(kind, message string) {
+	c.events.mu.Lock()
+	report := c.events.report
+	c.events.mu.Unlock()
+	if report != nil {
+		report(kind, message)
+	}
+}
+
 // reportInvalid counts and logs an event that failed its table, and tells each consumer that handles its tag and owns its run. The
 // log line names the tag and the reason (never a field value, since a field can hold the narrator's words).
 func (c *Client) reportInvalid(event Event, reason error) {

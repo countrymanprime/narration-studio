@@ -142,6 +142,20 @@
   --shadow-lg: 0 1px 2px rgba(36, 33, 28, 0.08), 0 10px 28px rgba(36, 33, 28, 0.14);
   --control-radius: 0.45rem;
   --control-height: 2.55rem;
+  /* The one layer scale, lowest first (layers.test.ts pins the order). A page panel and its scrim (a Script drawer) sit under the navigation rail,
+     so the rail stays clickable with one open and a press on it dismisses the panel. A takeover is a full-window surface (the booth's companion).
+     The slide-over, toast, menu/popover and dialog layers are the app's overlays, in that order; a Popover opened from inside a dialog sits one
+     step above it, and a hint above everything. Components name a layer with these tokens and never a bare number. */
+  --z-panel-scrim: 19;
+  --z-panel: 20;
+  --z-nav: 30;
+  --z-takeover: 40;
+  --z-slide-over-scrim: 45;
+  --z-slide-over: 50;
+  --z-toast: 52;
+  --z-popover: 55;
+  --z-dialog: 60;
+  --z-dialog-popover: 70;
   --z-tooltip: 1000;
   /* Spacing/type-size steps grounded in the values already repeated across
      styles.css and the primitives (badges, chips, table cells, form controls)

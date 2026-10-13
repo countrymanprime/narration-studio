@@ -12,7 +12,7 @@ export const POPOVER_POPUP_SELECTOR = `[${POPOVER_POPUP_ATTRIBUTE}]`;
 // the trigger, and a press outside closes it too (the read-aloud dialog's microphone device list and Settings
 // panel; ADR 0047 wraps Base UI's Popover). Unlike the hint-style popup behind Tooltip's info icon (hover/focus,
 // read-only, focus never moves in), this one is for a control a person operates. Sits above the dialog layer
-// (z-[70], between Dialog's z-[60] and a hint's z-[1000]), so it works when opened from inside a full-size dialog.
+// (--z-dialog-popover, between the dialog and a hint), so it works when opened from inside a full-size dialog.
 export function Popover({
   trigger,
   label,
@@ -41,7 +41,7 @@ export function Popover({
       <BasePopover.Trigger render={trigger} />
       <BasePopover.Portal>
         {/* Measured on read-aloud-control-bar/03 and 04: 12 px from the trigger, 16 px padding, radius 8, at least 336 px wide. */}
-        <BasePopover.Positioner side={side} align={align} sideOffset={12} collisionPadding={8} className="z-[70]">
+        <BasePopover.Positioner side={side} align={align} sideOffset={12} collisionPadding={8} className="z-[var(--z-dialog-popover)]">
           <BasePopover.Popup
             aria-label={label}
             {...{ [POPOVER_POPUP_ATTRIBUTE]: '' }}
