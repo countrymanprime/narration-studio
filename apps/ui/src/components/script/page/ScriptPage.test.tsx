@@ -93,8 +93,8 @@ describe('three-columns-from-1440-and-drawers-below', () => {
     // jsdom does not lay out, so this pins the classes; the stories at 1440, 1024 and 768 show the result.
     expect(columns().className).toContain('min-[1281px]:grid-cols-[240px_minmax(0,1fr)_380px]');
     expect(columns().className).toContain('min-[1180px]:grid-cols-[240px_minmax(0,1fr)]');
-    expect(panel('rail').className).toContain('max-[1280px]:fixed');
-    expect(panel('chapters').className).toContain('max-[1179px]:fixed');
+    expect(panel('rail').className).toContain('max-[1280px]:absolute');
+    expect(panel('chapters').className).toContain('max-[1179px]:absolute');
     expect(panel('rail').className).toContain('max-[1280px]:invisible');
     expect(within(panel('chapters')).getByRole('heading', { name: 'Chapters' })).toBeTruthy();
     expect(within(panel('rail')).getByRole('tablist', { name: 'Words, Story Bible and marks' })).toBeTruthy();

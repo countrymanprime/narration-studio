@@ -50,7 +50,7 @@ export function TooltipTarget({
         {children}
       </BaseTooltip.Trigger>
       <BaseTooltip.Portal>
-        <BaseTooltip.Positioner side="top" sideOffset={hintOffset} collisionPadding={8} className="z-[1000]">
+        <BaseTooltip.Positioner side="top" sideOffset={hintOffset} collisionPadding={8} className="z-[var(--z-tooltip)]">
           <BaseTooltip.Popup role="tooltip" {...{ [HINT_POPUP_ATTRIBUTE]: '' }} className={HINT_POPUP_CLASSES}>
             {text}
           </BaseTooltip.Popup>
@@ -117,7 +117,7 @@ export function Tooltip({ text, label = 'More information', icon = 'i' }: { text
         {icon}
       </Popover.Trigger>
       <Popover.Portal>
-        <Popover.Positioner side="top" sideOffset={hintOffset} collisionPadding={8} className="z-[1000]">
+        <Popover.Positioner side="top" sideOffset={hintOffset} collisionPadding={8} className="z-[var(--z-tooltip)]">
           {/* The text is a description, not something to move into: focus stays on the button. */}
           <Popover.Popup
             ref={popupRef}

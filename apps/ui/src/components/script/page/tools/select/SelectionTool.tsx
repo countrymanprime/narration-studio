@@ -80,7 +80,7 @@ export function SelectionTool({ selection, zoom = 1, onDismiss, onCompose, onDef
       role="toolbar"
       aria-label="Selection tools"
       onMouseDown={keep}
-      className="fixed isolate z-[65] flex items-center gap-1 rounded-[var(--radius-card)] border border-[var(--line-strong)] bg-[var(--surface)] p-1 shadow-[var(--shadow-lg)]"
+      className="fixed isolate z-[var(--z-popover)] flex items-center gap-1 rounded-[var(--radius-card)] border border-[var(--line-strong)] bg-[var(--surface)] p-1 shadow-[var(--shadow-lg)]"
     >
       {place === null ? (
         <Button variant="secondary" size="sm" disabled>
