@@ -194,9 +194,13 @@ When a phase is otherwise ready (`Depends` complete, no file collision) but bloc
 
 The Studio Next mock (`docs/research/mockups/studio-next/`) is the only spec for every page it covers (D98). The rules are in the rebuild PRD's [Which mocks are the spec](../../../docs/prds/studio-next-rebuild.prd.md#which-mocks-are-the-spec) and, for primitives and the theme, in [the design system](../../../docs/design/design-system.md#which-mocks-are-the-spec).
 
-## UI PRs show their screenshots
+## UI PRs update the how-to guide
 
-The rule and how to capture and embed the images are in [CONTRIBUTING.md](../../../CONTRIBUTING.md#ui-prs-show-their-screenshots). For the train: a UI PR without its Screenshots section has failed. The images are every catalogued state of the page(s) the PR names, light and dark, desktop and narrow, from the targeted Playwright run and the targeted Storybook run (`node scripts/dev/pr-screenshots.mjs`, which works in a cloud container), and the PR states the real-app result: Storybook states alone do not count. The worker adds the images before it says the PR is ready and pushes the commit that deletes `pr-screenshots/` once nothing else on the PR is left to change. The coordinator checks the PR body for the images at every sweep, and neither merges a UI PR without them nor counts it ready, whatever the CI result. A worker without network lists the missing mock image in the PR and the owner supplies it.
+The rule and the commands are in [CONTRIBUTING.md](../../../CONTRIBUTING.md#ui-prs-update-the-how-to-guide). For the train:
+
+- **Worker.** A UI PR updates the guide page of each app page it changes, text and screenshots (`node scripts/dev/guide-screenshots.mjs <page>...`), in the same PR, or says `No guide change: <reason>`. It looks at every catalogued state with `visual:page` and `atlas:page` and states the real-app (Playwright) and Storybook results in the body; Storybook alone does not count. It commits no other images.
+- **Coordinator.** Accepts a UI PR when its guide page and images are updated (or the body carries a specific `No guide change:` reason), the body states the real-app and Storybook results, and `Docs / Guide impact` is green. It never merges or counts ready a UI PR without them, whatever the rest of CI says.
+- **Sweep.** A periodic docs sweep runs `node scripts/dev/guide-screenshots.mjs --all` and commits what moved, as a safety net for changes to shared components.
 
 ## Owner standing rules
 
@@ -220,8 +224,9 @@ Decisions the owner made while the train ran (logged on the retired #509). D69 a
 | **D82** | Every worker owns its PRs until they merge or close (2026-09-27): it stays subscribed, and on a merge-conflict notice or a red check it merges `main` into its own branch (never rebase), fixes, re-runs its targeted checks and pushes. It keeps an hourly `send_later` check-in while a PR is open. The coordinator launches no cascade fixers; a one-PR fixer only for a PR whose own session is archived or failed. The coordinator archives the session once all its PRs are merged or closed (D78) |
 | **D91** | *(Amended by D97 below; superseded by D98 for every page the Studio Next mock covers.)* The approved mocks win, measured (2026-09-28): a screen an approved mock covers is built to that mock, captured at the mock's own size and theme with the app driven to the mock's state (the seven benchmark mocks; `pnpm --dir apps/ui mock-match`, [verification tooling](../../../docs/operations/verification-tooling.md#mock-match)). New primitives, tokens and style changes are in scope, and "the existing style is close enough" is not a reason: a difference a primitive causes is fixed in the primitive, so every consumer inherits it, never restyled locally. The 90% bar and the "reason the owner accepts" it required are gone (D97) |
 | **D96** | *(Superseded by D98.)* Only `docs/research/mockups/audiobook-studio-benchmark/` counted (2026-09-29). Every other mock is deleted from the repo and so is anything pointing at it. Keep only mocks for work actively in development, plus the current-state screenshots in `docs/images/ui/` ([Which mocks are the spec](#which-mocks-are-the-spec)) |
-| **D97** | The 90% bar is no longer a gate (2026-09-29). Match % is a diagnostic, and it scores features and styles, not pixel-exact text or sample data (the tool paints glyphs out of both images first). No D91 reasons, no region-attribution tables, no Mockup check table. Finish building the pages; the owner does a fix-up pass afterwards. The screenshots-in-PR rule stands unchanged |
+| **D97** | The 90% bar is no longer a gate (2026-09-29). Match % is a diagnostic, and it scores features and styles, not pixel-exact text or sample data (the tool paints glyphs out of both images first). No D91 reasons, no region-attribution tables, no Mockup check table. Finish building the pages; the owner does a fix-up pass afterwards. The screenshots-in-PR rule it kept is replaced by the guide rule below |
 | **D98** | The Studio Next mock is the only spec for every page it covers (2026-10-11). A product rule, now in the rebuild PRD's [Which mocks are the spec](../../../docs/prds/studio-next-rebuild.prd.md#which-mocks-are-the-spec) and [the design system](../../../docs/design/design-system.md#which-mocks-are-the-spec) |
+| **Guide** | UI images live in the how-to guide, not per pull request (2026-10-13). A PR that changes what a page draws or how it is used updates that page's guide text and screenshots in the same PR; no `pr-screenshots/` folder, no image set per PR ([UI PRs update the how-to guide](#ui-prs-update-the-how-to-guide)) |
 
 ## The coordinator's pass
 
@@ -243,7 +248,7 @@ The Routine fires every 30 minutes (two hourly Routines, 30 minutes apart; D50).
    - `Build (Windows)` and `ui-dist` succeeded on the head. A docs-only PR needs `Docs / Links (offline)` instead;
    - there is no `CHANGES_REQUESTED` review and no unresolved thread whose first comment starts with 🔴;
    - a Claude Approvals check, if present, passes;
-   - a UI PR carries its Screenshots section, and its head no longer has `pr-screenshots/` ([UI PRs show their screenshots](#ui-prs-show-their-screenshots)). There is no match % bar to check (D97);
+   - a UI PR updates its pages' guide text and images, or carries a specific `No guide change:` reason, and states the real-app and Storybook results ([UI PRs update the how-to guide](#ui-prs-update-the-how-to-guide)). There is no match % bar to check (D97);
    - the `Test ratchet` check succeeded on the head ([Safety net](#safety-net));
    - it has no `risk:high` label, or the owner has approved it on #992 for the current head ([Safety net](#safety-net));
    - an independent intent review passed on the current head ([Safety net](#safety-net)).

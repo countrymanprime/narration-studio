@@ -18,6 +18,8 @@ built-in recorder). The chip opens [Settings](settings.md). The chapter is named
 you last chose. The button at the right shows or hides the side panel; in a window 1280 pixels wide or narrower the panel is a
 drawer that starts closed.
 
+![Booth - the Text settings: font, size and spacing of the text you read](../../images/ui/booth-text-settings.webp)
+
 ![Booth - ready to record: the chapter stepper, progress and resume line on the top bar, the text with the reading position, the side panel, and Record, the levels and the key hints in the footer](../../images/ui/booth-setup.webp)
 
 The text fills the middle, with speaker chips beside the lines a character speaks, Story Bible names tinted and the words you
@@ -35,6 +37,8 @@ The footer has **Record**, the take's timer, **Levels** (the input level and the
 the recorder reports for that microphone (**Room not measured yet** until it reports one), and the keys the Booth answers, drawn
 from your keymap.
 
+![Booth - the Levels menu: the input level and the microphone the text listens to](../../images/ui/booth-levels-menu.webp)
+
 ## Recording
 
 Press **Record** (or Space, or a foot pedal mapped to Space) to start a take, and again to stop it. Record arms only the chapter's
@@ -47,6 +51,8 @@ the chapter has no track, or the DAW is already playing.
 While a take runs, Record becomes **Stop**, a **REC** pill shows beside the setup chip and the timer counts. The chapter cannot be
 changed until you stop. When listening reaches the last word of the chapter and stops, the take stops with it and a message says
 **Take saved**. Reading on past the end keeps the take running.
+
+![Booth - six seconds into a take: the text follows the voice](../../images/ui/booth-following.webp)
 
 **R** punches and rolls from the word you are on: the DAW plays in from a little before it and records from there, keeping the
 earlier audio as a take. Where the DAW would replace the audio instead (Audacity without backups), the Booth asks first ("Roll
@@ -68,9 +74,13 @@ records from when the DAW names it, and **Levels** shows its name with **Chosen 
 **Levels** lists the microphones on this computer with the DAW's reason, and the footer says **Choose the microphone the Booth listens
 to in Levels**. A microphone you chose is never replaced. The choice is remembered for every project.
 
+![Booth with no microphone listed: the footer says the text cannot follow the voice](../../images/ui/booth-no-mic.webp)
+
 If the speech model is not downloaded yet, the first take asks to download it, says how large it is and where it goes, and
 downloads nothing until you press **Download model**. While the text cannot follow (no microphone listed, or the listening failed
 to start), the footer says why; the take still records.
+
+![Booth - Record pressed with the live engine's model not installed: the take runs and the Booth asks about the model](../../images/ui/booth-model-required.webp)
 
 ## Where you stopped
 
@@ -87,6 +97,8 @@ and note, and click it to edit it. A bookmark whose line changed since it was ma
 **B** bookmarks the word you are on, with **Undo** on the message. **Alt+]** and **Alt+[** move to the next and previous bookmark,
 into another chapter when needed, but not during a take. Right-click a ribbon for **Edit bookmark** and **Delete bookmark**.
 
+![Booth - B pressed: the word being read is bookmarked, with a ribbon in the margin](../../images/ui/booth-bookmark.webp)
+
 ## A pickup session
 
 **Open N in Booth** on [Pickups](pickups.md#pickup-session) opens the Booth on the chosen lines, at the first line's chapter. A
@@ -94,6 +106,8 @@ into another chapter when needed, but not during a take. Right-click a ribbon fo
 and time; a recorded one has a tick. Click a line, or press **N** and **Shift+N**, to go to the next or previous one, in another
 chapter when needed (not during a take). A line the recording check found is tagged **Automatic**; dismissing it removes it from
 [Pickups](pickups.md) as well.
+
+![Booth opened from Pickups: the pickup session in the top bar, at the line to record](../../images/ui/booth-pickup-session.webp)
 
 When a take stops, the lines it read over are marked recorded, and the message says how many ("Take saved · 2 pickups marked
 recorded") with **Undo**.
@@ -121,6 +135,8 @@ reading session, with REAPER's playhead in its header, the script in its own scr
 that work while the panel has focus. **Full app** (or Escape twice) brings the Booth back on the same chapter. **Pickups** in the
 panel shows the [Pickups](pickups.md) list: how many are left and the one you last jumped to. The note at the playhead has its
 place in the panel and is coming later.
+
+![The Companion, the Booth's small window beside your DAW](../../images/ui/booth-companion.webp)
 
 ## Leaving the Booth
 

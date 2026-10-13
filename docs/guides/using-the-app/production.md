@@ -6,7 +6,7 @@ Production is the page a project opens on, the first item in the navigation. It 
 pace?" for the book you have open: how much finished audio there is and how much recording,
 editing and proofing is left, the open pickups, the due date and whether the pace reaches it, and
 what to work on next. Its **Chapter pipeline** has one row per chapter and one column per stage.
-The book's dates, payment and milestones are on [Schedule](#schedule), the item after Production in
+The book's dates, payment and milestones are on [Schedule](schedule.md), the item after Production in
 the navigation.
 
 ![Production - the figures, the chapter pipeline and Next up, with a stage timer running in the header](../../images/ui/production-home.webp)
@@ -14,14 +14,16 @@ the navigation.
 The header names the book's chapters, words and due date ("12 chapters · 29,189 words · delivery
 due 14 Oct (18 days)"), with the due date's tone as a word and a mark, not only a colour. The pill
 under it is the verdict for the due date (on track, tight or behind); it opens
-[Schedule](#schedule). **Export status report** (the export icon) opens the
+[Schedule](schedule.md). **Export status report** (the export icon) opens the
 [status report](#status-report), and **Start session** opens the [Booth](booth.md) on the chapter
 being recorded, or says why it cannot when the audio engine cannot record.
 
 With no manuscript imported yet, the page is the import: **Import manuscript** opens the file
 picker (see [Importing the manuscript](#importing-the-manuscript)), and the calendar icon opens
-[Schedule](#schedule) to set a due date first. To replace a manuscript later, use
+[Schedule](schedule.md) to set a due date first. To replace a manuscript later, use
 [Settings](settings.md).
+
+![Production with no manuscript imported: the page is the import](../../images/ui/production-no-manuscript.webp)
 
 When the audio engine is not running, a line at the top says progress that comes from it may be
 out of date, with **Retry** and **Use built-in recorder**.
@@ -39,7 +41,7 @@ The six figures are one card; each opens the page it counts.
   pickup session has been timed.
 - **Delivery check**: chapters that pass, fail or are not checked yet. It reads "Not measured
   yet" until the host reports a check per chapter.
-- **Due**: the due date and what the pace says about it. It opens [Schedule](#schedule).
+- **Due**: the due date and what the pace says about it. It opens [Schedule](schedule.md).
 
 Under the figures, **Where the book stands** splits the book's finished hours by stage, **This
 week** says how much was recorded this week and in the last 24 hours (from the built-in recorder's
@@ -97,6 +99,8 @@ A suggested track says it is not linked yet; a chapter two tracks look like says
 them; a linked track no longer in the saved project says it may have been deleted or the project
 saved elsewhere.
 
+![Production - a chapter's track slide-over on a confirmed link, with how the track was found](../../images/ui/production-track-panel.webp)
+
 When the panel knows the chapter's track, it can play that track's recorded audio right there -
 Play/Pause and skip 30 seconds back or forward - and **Select in REAPER** brings the track into
 view in REAPER itself. Selecting is an experimental REAPER action ([Settings](settings.md)) and
@@ -120,6 +124,8 @@ Recorded length (once its own track is linked - never an estimate), its status a
 check** button. A missing template reads "Not set up" with a link to [Settings, Credits](settings.md#credits).
 Checking credits works the same as [checking a chapter's recording](#checking-a-chapters-recording)
 below, against the credits template's rendered text rather than a manuscript chapter.
+
+![Production - the Opening credits row opened: its template, words and estimated length](../../images/ui/production-credits-panel.webp)
 
 ## Checking a chapter's recording
 
@@ -169,6 +175,8 @@ chapter on [Editing](editing.md). Misreads, false starts, retakes and a spoken c
 never count against you. The check changes nothing: it never edits the project or moves a
 chapter's status.
 
+![Production - a recording check with a skip and a short read listed as pickups](../../images/ui/production-recording-check-pickups.webp)
+
 A result goes **out of date** when the saved project changes under it (an item added, removed,
 trimmed, moved, muted or switched to another take, an audio file changed) or the chapter's text
 changes. The panel says which, keeps the old counts labelled as from then, and offers
@@ -205,12 +213,6 @@ the reason and **Try again** above the table.
 ![Production - a chapter's readiness slide-over: the evidence behind a suggestion with Confirm and Dismiss](../../images/ui/production-stage-evidence.webp)
 
 ![Production - evidence changed since you confirmed: the check that is no longer met and Revert; nothing moved on its own](../../images/ui/production-stage-evidence-changed.webp)
-
-## Schedule
-
-**Schedule**, the item after Production in the navigation, holds the book's due date, how it pays,
-the work left and how it is worked out, and its milestones. With no manuscript it asks you to import
-one first. Every change there is one step you can undo.
 
 ## Status report
 
@@ -301,4 +303,4 @@ card — with **Fill in** to reopen the same dialog for as long as a token stays
 
 ---
 
-[← Navigation](navigation.md) · [Index](README.md) · [Script →](script.md)
+[← Navigation](navigation.md) · [Index](README.md) · [Schedule →](schedule.md)

@@ -34,48 +34,44 @@ Details, including the Git hooks and CI, are in [CI and releases](docs/operation
    [Which document](docs/README.md#which-document) says where each kind of fact goes: a file the app writes and reads
    back goes in [data files](docs/reference/data-files.md), a new way untrusted data reaches the app goes in the
    [threat model](docs/architecture/threat-model.md).
-5. If your change alters what `apps/ui` draws, show it in the pull request: see
-   [UI PRs show their screenshots](#ui-prs-show-their-screenshots).
+5. If your change alters what a page draws or how it is used, update that page's guide: see
+   [UI PRs update the how-to guide](#ui-prs-update-the-how-to-guide).
 6. If you settled a decision that changes the structure, a dependency, an interface between parts or a platform and is
    costly to reverse, record it as an ADR in `docs/adr/`.
 
-## UI PRs show their screenshots
+## UI PRs update the how-to guide
 
-A permanent owner rule (2026-09-29). A pull request that changes what `apps/ui` draws shows the change as images in its
-description. Without them the owner rejects it: the owner has to see that it looks better and does not trust a number.
+An owner rule (2026-10-13). The how-to guide, [Using the app](docs/guides/using-the-app/README.md), has one page per app
+page. It shows how to use the page and its interactions, with screenshots in `docs/images/ui/`. Those are the only UI
+images the repository keeps, and a pull request does not carry a set of its own.
 
-- **What to show.** A **Screenshots** section with one row per changed state at 1440×900: the Studio Next mock page,
-  before (`main`) and after (your branch). Capture the before and after in the same state, viewport and fixture, and
-  crop or scale the mock to match. There is no match percentage for Studio Next pages; the owner looks at the images.
-- **Other viewports.** Small-desktop and tablet (and `reflow` at 390 px for Settings) as before/after pairs in a
-  collapsed `<details>`.
-- **Where the images live.** Commit them on the pull request's own branch under `pr-screenshots/<branch>/` and embed
-  them by commit SHA:
-  `https://github.com/countrymanprime/narration-utils/blob/<commit-sha>/pr-screenshots/<branch>/<file>.png?raw=true`.
-  After every push that changes the UI, regenerate them and update the SHA in the description. The last commit on the
-  branch before merge deletes `pr-screenshots/`, so the squash has no net change there and the images never reach
-  `main`. GitHub keeps every commit of a pull request reachable through its ref, so the SHA links keep rendering after
-  the merge. Do not create a separate `pr-images/*` branch; that scheme is retired. The lasting record is
-  `docs/images/ui/` (regenerated only by the guide-refresh worker, never by a feature PR) and the Playwright visual suite;
-  `apps/ui/screenshots/` stays ignored scratch.
-- **Every state of the page, both runs.** A PR that changes what `apps/ui` draws names the page or pages it touches (a `page` of
-  `apps/ui/tests/visual/state-catalog.ts`) and runs both targeted runs on them. It shows the images of **every** catalogued state
-  of those pages, not a hand-picked few: light and dark, at the viewports the catalog declares (desktop, small-desktop, tablet,
-  and the extra widths a row opts in to), narrow included. The owner uses them to see how the page behaves in each state. The PR
-  states the real-app (Playwright) result, not only Storybook's. A PR that changes a page and lacks them is not mergeable.
-- **How to capture.** From the repo root, `node scripts/dev/pr-screenshots.mjs <slice> <page>...` runs both, copies the PNGs to
-  `pr-screenshots/<slice>/<page>-<state>-<viewport>-<theme>.png` (Storybook's as `storybook-<title>-<story>-...`) and prints the
-  Markdown tables for the PR body, with `<SHA>` to replace by the commit that holds the images (`--sha`). The two runs alone:
-  - `pnpm --dir apps/ui visual:page <page>...` runs the page's rows of the real-app suite in both themes and writes
-    `apps/ui/screenshots/targeted/<theme>/<page>/<state>/<viewport>.png`. A failing state is printed with its PNG still written.
-  - `pnpm --dir apps/ui atlas:page <page-or-component>...` builds Storybook and runs the stories of those titles (`Editing`,
-    `Ribbon`), light and dark, wide and narrow, into `apps/ui/screenshots/atlas/`.
+- **What changes.** A pull request that changes what a page draws or how it is used updates that page's guide in the
+  same pull request: the text in `docs/guides/using-the-app/<page>.md` and the screenshots of the states and interactions
+  it changes. A changed image replaces the file in place, so GitHub's image diff shows before and after. A new
+  interaction gets a new image and a short how-to step. A removed one loses its image, its manifest entry and its text.
+- **How to capture.** The guide's images are listed in `apps/ui/tests/visual/doc-screenshots.json`, each a state of
+  `apps/ui/tests/visual/state-catalog.ts` at one viewport. From the repo root, `node scripts/dev/guide-screenshots.mjs <page>...`
+  runs the real app (the visual-suite drivers on the mock API) for those pages and rewrites their WebP images; an image
+  whose pixels did not change is left alone. `<page>` is a guide page (`booth`, `master-and-qc`) or a state-catalog page
+  (`storybible`); `--all` does the whole guide. A new image starts as a new manifest entry: add the state to the catalog
+  first if it is not there (`visual-catalog-sync`).
+- **Looking at every state.** The targeted runs show every catalogued state of a page, light and dark, at every
+  viewport, and are how you check the page before you push. They write to the ignored `apps/ui/screenshots/`, and CI keeps
+  the full run's PNGs as artifacts; nothing from them is committed.
+  - `pnpm --dir apps/ui visual:page <page>...` runs the page's rows of the real-app suite and prints PASS, FAIL or SKIP
+    per state.
+  - `pnpm --dir apps/ui atlas:page <page-or-component>...` builds Storybook and runs the stories of those titles.
   - In a container with its own Chromium and no `playwright install`, both find the headless shell under
-    `PLAYWRIGHT_BROWSERS_PATH` when the pinned build is missing. Set `PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH` to name another;
-    unset, Playwright uses its own browser and CI is unchanged. "Chromium does not match the pinned build" is not a reason to
-    skip the real-app run.
-  - The mock runs from `docs/research/mockups/studio-next/` (`npm ci` there, then its Playwright scripts in `e2e/`). Without
-    network, list the missing mock image in the pull request and the owner supplies it.
+    `PLAYWRIGHT_BROWSERS_PATH`; `PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH` names another.
+- **The pull request.** Its description states the real-app (Playwright) result and the Storybook result for the pages
+  it names, and links the guide diff. A change to a page that owes the guide nothing says
+  `No guide change: <specific reason>`; the `Docs / Guide impact` check fails without one of the two
+  ([Documentation gates](docs/operations/documentation-gates.md)).
+- **Compared with the mock.** A page built to the Studio Next mock (`docs/research/mockups/studio-next/`) is compared with
+  the mock's page in the same state and theme; the mock's `e2e/` Playwright scripts capture it. Put that comparison in a
+  comment on the pull request when the owner asks for it.
+- **The sweep.** `node scripts/dev/guide-screenshots.mjs --all` also runs as a periodic sweep, to catch an image that a
+  change to a shared component moved on a page it did not name.
 
 ## Licensing of contributions
 

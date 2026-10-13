@@ -1,0 +1,25 @@
+{
+  "_comment": "Which page of the how-to guide (docs/guides/using-the-app/) a change to a UI folder owes (scripts/ci/guide-impact.mjs). A rule holds when the change touches any one of its `guide` pages or any image in docs/images/ui. Folders shared by every page (primitives, devtools) have no rule. Keep it in step with the guide's pages.",
+  "exclude": ["**/*.test.ts", "**/*.test.tsx", "**/*.stories.tsx", "**/fixtures/**", "**/__snapshots__/**"],
+  "rules": [
+    { "id": "project", "paths": ["apps/ui/src/components/project/**"], "guide": ["getting-started.md"] },
+    { "id": "navigation", "paths": ["apps/ui/src/components/layout/**", "apps/ui/src/components/engine/**", "apps/ui/src/components/help/**"], "guide": ["navigation.md"] },
+    { "id": "production", "paths": ["apps/ui/src/components/production/**"], "guide": ["production.md"] },
+    { "id": "schedule", "paths": ["apps/ui/src/components/schedule/**"], "guide": ["schedule.md"] },
+    { "id": "script", "paths": ["apps/ui/src/components/script/**"], "guide": ["script.md"] },
+    { "id": "story-bible", "paths": ["apps/ui/src/components/storybible/**", "apps/ui/src/components/series/**"], "guide": ["story-bible.md"] },
+    { "id": "booth", "paths": ["apps/ui/src/components/booth/**"], "guide": ["booth.md"] },
+    { "id": "editing", "paths": ["apps/ui/src/components/editing/**"], "guide": ["editing.md"] },
+    { "id": "proof", "paths": ["apps/ui/src/components/proof/**"], "guide": ["proof.md"] },
+    { "id": "pickups", "paths": ["apps/ui/src/components/pickups/**"], "guide": ["pickups.md"] },
+    { "id": "master-and-qc", "paths": ["apps/ui/src/components/master/**", "apps/ui/src/components/masterqc/**"], "guide": ["master-and-qc.md"] },
+    { "id": "delivery", "paths": ["apps/ui/src/components/delivery/**"], "guide": ["delivery.md"] },
+    { "id": "settings", "paths": ["apps/ui/src/components/settings/**"], "guide": ["settings.md"] },
+    { "id": "manuscript-reader", "paths": ["apps/ui/src/components/manuscript/**"], "guide": ["script.md", "booth.md", "story-bible.md"] },
+    { "id": "credits", "paths": ["apps/ui/src/components/credits/**"], "guide": ["script.md", "production.md", "settings.md"] },
+    { "id": "recording-check", "paths": ["apps/ui/src/components/recordingcheck/**"], "guide": ["production.md", "proof.md", "pickups.md"] },
+    { "id": "stages", "paths": ["apps/ui/src/components/stages/**"], "guide": ["production.md", "editing.md", "proof.md", "navigation.md"] },
+    { "id": "mapping", "paths": ["apps/ui/src/components/mapping/**"], "guide": ["production.md", "editing.md", "navigation.md"] },
+    { "id": "assets", "paths": ["apps/ui/src/components/assets/**"], "guide": ["*.md"] }
+  ]
+}

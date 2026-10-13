@@ -7,6 +7,7 @@ How the repository keeps documentation current and free of filler. The decision 
 | Check | Fails when | Runs in | Way out |
 | --- | --- | --- | --- |
 | Docs impact (`scripts/ci/docs-impact.mjs`) | Code under a mapped path changed and none of its docs did | `pnpm check`, `Docs / Docs impact`, and a hook in `.claude/settings.json` | `Docs: none — <specific reason>` in the pull request description or a commit message |
+| Guide impact (`scripts/ci/guide-impact.mjs`) | A page's UI folder changed and neither its page of the [how-to guide](../guides/using-the-app/README.md) nor any image in `docs/images/ui/` did | `pnpm check`, `Docs / Guide impact` | `No guide change: <specific reason>` in the pull request description or a commit message |
 | Docs prose (`scripts/ci/docs-slop.mjs`) | Changed Markdown has an `error` phrase from `docs-slop-phrases.json` | `pnpm check`, `Docs / Docs prose` | Cut the sentence. Do not edit the list to pass |
 | Docs references (`scripts/ci/docs-references.mjs`) | A doc names, in backticks, a repo path or root `pnpm` script that does not exist | `pnpm check`, `Docs / Docs prose` | Fix the path, or say it was deleted next to the path |
 | Doc comments (`scripts/ci/doc-comments.mjs`) | The change adds a public Python name without a docstring or an exported Go name without a doc comment | Python `lint` targets, `quality.mjs go-lint` | `# noqa: D1xx` for a Python name that needs none |
@@ -23,6 +24,7 @@ The agent workflow for the same steps is the [doc-impact-check](../../.claude/sk
 
 ## Changing a gate
 
+- The guide-impact map is `scripts/ci/guide-impact-map.json`: one rule per UI folder under `apps/ui/src/components/`, naming the guide pages it owes. Its test fails on a folder with no rule.
 - The docs-impact map is `scripts/ci/docs-impact-map.json`. Add a rule when a doc starts describing a new area; its test fails when a rule names a doc or code path that does not exist. Keep the judgment map in `.claude/skills/doc-impact-check/references/map.md` in step.
 - The phrase list is `scripts/ci/docs-slop-phrases.json`. Measure a change with `node scripts/ci/docs-slop.mjs --all` and keep `error` entries to phrases with near-zero legitimate use.
 - `node scripts/ci/docs-references.mjs --all --strict` measures the whole tree.

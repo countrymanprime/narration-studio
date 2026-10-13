@@ -444,7 +444,7 @@
     "page": "delivery",
     "state": "profile-rules",
     "viewport": "desktop",
-    "docName": "master-profile-rules",
+    "docName": "delivery-profile-rules",
     "caption": "Delivery - the ACX profile's rules and their sources: what ACX requires, how the app checks it, and whether it is verified"
   },
   {
@@ -500,7 +500,357 @@
     "page": "delivery",
     "state": "measured",
     "viewport": "desktop",
-    "docName": "master-package-built",
+    "docName": "delivery-measured",
     "caption": "Delivery with the book checked: the chapters passing in Before you build, and Output waiting on the rest"
+  },
+  {
+    "page": "shell",
+    "state": "jump-menu-open",
+    "viewport": "desktop",
+    "docName": "nav-jump-menu",
+    "caption": "The jump menu open over the page: type to find a page, a chapter or a command"
+  },
+  {
+    "page": "production",
+    "state": "no-manuscript",
+    "viewport": "desktop",
+    "docName": "production-no-manuscript",
+    "caption": "Production with no manuscript imported: the page is the import"
+  },
+  {
+    "page": "production",
+    "state": "chapter-track-panel-linked",
+    "viewport": "desktop",
+    "docName": "production-track-panel",
+    "caption": "Production - a chapter's track slide-over on a confirmed link, with how the track was found"
+  },
+  {
+    "page": "production",
+    "state": "credits-panel",
+    "viewport": "desktop",
+    "docName": "production-credits-panel",
+    "caption": "Production - the Opening credits row opened: its template, words and estimated length"
+  },
+  {
+    "page": "production",
+    "state": "recording-check-pickups",
+    "viewport": "desktop",
+    "docName": "production-recording-check-pickups",
+    "caption": "Production - a recording check with a skip and a short read listed as pickups"
+  },
+  {
+    "page": "production",
+    "state": "editing-check-complete-candidates",
+    "viewport": "desktop",
+    "docName": "production-editing-check",
+    "caption": "Production - the editing check with empty space not met and its open candidates"
+  },
+  {
+    "page": "schedule",
+    "state": "no-due-date",
+    "viewport": "desktop",
+    "docName": "schedule-no-due-date",
+    "caption": "Schedule before a due date is set: the verdict and the milestones with nothing dated"
+  },
+  {
+    "page": "schedule",
+    "state": "on-pace",
+    "viewport": "desktop",
+    "docName": "schedule-on-pace",
+    "caption": "Schedule with a due date the pace meets: the verdict, how the book pays, the work left and the milestones"
+  },
+  {
+    "page": "schedule",
+    "state": "at-risk",
+    "viewport": "desktop",
+    "docName": "schedule-at-risk",
+    "caption": "Schedule with a due date the pace misses: the at-risk verdict and the work left worked out"
+  },
+  {
+    "page": "schedule",
+    "state": "milestone-dialog",
+    "viewport": "desktop",
+    "docName": "schedule-milestone-dialog",
+    "caption": "Schedule - the Add milestone dialog"
+  },
+  {
+    "page": "script",
+    "state": "rail-story-bible",
+    "viewport": "desktop",
+    "docName": "script-rail-story-bible",
+    "caption": "Script - the rail's Story Bible tab: the book's entries by kind, one opened"
+  },
+  {
+    "page": "script",
+    "state": "rail-queries",
+    "viewport": "desktop",
+    "docName": "script-rail-queries",
+    "caption": "Script - the rail's Queries tab: the chapter's questions for the author"
+  },
+  {
+    "page": "script",
+    "state": "find",
+    "viewport": "desktop",
+    "docName": "script-find",
+    "caption": "Script - Find on \"Alice\": the count, the matches lit in the text and the results list"
+  },
+  {
+    "page": "script",
+    "state": "define-marks",
+    "viewport": "desktop",
+    "docName": "script-define-marks",
+    "caption": "Script - Define how you mark up: each mark type with its name, colour and line"
+  },
+  {
+    "page": "script",
+    "state": "credits-cards",
+    "viewport": "desktop",
+    "docName": "script-credits",
+    "caption": "Script - the Opening credits card above Chapter 1, with a value still to fill in"
+  },
+  {
+    "page": "storybible",
+    "state": "search-narrowed",
+    "viewport": "desktop",
+    "docName": "storybible-search",
+    "caption": "Story Bible - a search for \"hatter\" narrowing the list by name and alias"
+  },
+  {
+    "page": "storybible",
+    "state": "entry-pronunciation-online",
+    "viewport": "desktop",
+    "docName": "storybible-pronunciation-online",
+    "caption": "Story Bible - Look up online for a name: a dictionary's respelling with Use this"
+  },
+  {
+    "page": "storybible",
+    "state": "verification-filter",
+    "viewport": "desktop",
+    "docName": "storybible-verification",
+    "caption": "Story Bible - Needs verification: the suggestions not in the Story Bible yet, each with its quote"
+  },
+  {
+    "page": "storybible",
+    "state": "import-dialog",
+    "viewport": "desktop",
+    "docName": "storybible-import",
+    "caption": "Story Bible - the Import entries dialog (CSV or JSON)"
+  },
+  {
+    "page": "storybible",
+    "state": "voice-data-panel",
+    "viewport": "desktop",
+    "docName": "storybible-voice-data",
+    "caption": "Story Bible - the Voice data slide-over: approved reference clips and Remove voice data"
+  },
+  {
+    "page": "booth",
+    "state": "following",
+    "viewport": "desktop",
+    "docName": "booth-following",
+    "caption": "Booth - six seconds into a take: the text follows the voice"
+  },
+  {
+    "page": "booth",
+    "state": "listening-no-mic",
+    "viewport": "desktop",
+    "docName": "booth-no-mic",
+    "caption": "Booth with no microphone listed: the footer says the text cannot follow the voice"
+  },
+  {
+    "page": "booth",
+    "state": "model-required",
+    "viewport": "desktop",
+    "docName": "booth-model-required",
+    "caption": "Booth - Record pressed with the live engine's model not installed: the take runs and the Booth asks about the model"
+  },
+  {
+    "page": "booth",
+    "state": "levels-menu",
+    "viewport": "desktop",
+    "docName": "booth-levels-menu",
+    "caption": "Booth - the Levels menu: the input level and the microphone the text listens to"
+  },
+  {
+    "page": "booth",
+    "state": "text-popover",
+    "viewport": "desktop",
+    "docName": "booth-text-settings",
+    "caption": "Booth - the Text settings: font, size and spacing of the text you read"
+  },
+  {
+    "page": "booth",
+    "state": "bookmarks-ribbon",
+    "viewport": "desktop",
+    "docName": "booth-bookmark",
+    "caption": "Booth - B pressed: the word being read is bookmarked, with a ribbon in the margin"
+  },
+  {
+    "page": "booth",
+    "state": "pickup-session",
+    "viewport": "desktop",
+    "docName": "booth-pickup-session",
+    "caption": "Booth opened from Pickups: the pickup session in the top bar, at the line to record"
+  },
+  {
+    "page": "booth",
+    "state": "companion-default",
+    "viewport": "desktop",
+    "docName": "booth-companion",
+    "caption": "The Companion, the Booth's small window beside your DAW"
+  },
+  {
+    "page": "editing",
+    "state": "fx-menu",
+    "viewport": "desktop",
+    "docName": "editing-fx-menu",
+    "caption": "Editing - Add FX on four selected words: the DAW's effect chains"
+  },
+  {
+    "page": "editing",
+    "state": "suggestion-step",
+    "viewport": "desktop",
+    "docName": "editing-suggestion-step",
+    "caption": "Editing - Normalise in a suggestion's steps: the takes it would bring to the same level"
+  },
+  {
+    "page": "editing",
+    "state": "drawer-effects",
+    "viewport": "desktop",
+    "docName": "editing-drawer-effects",
+    "caption": "Editing - the drawer's Effects tab: the effects on words and adding one"
+  },
+  {
+    "page": "proof",
+    "state": "chapter",
+    "viewport": "desktop",
+    "docName": "proof-chapter-linked",
+    "caption": "Proof on Chapter 1: the recording check card, the waveform and the chapter's notes"
+  },
+  {
+    "page": "proof",
+    "state": "takes-lanes",
+    "viewport": "desktop",
+    "docName": "proof-takes",
+    "caption": "Proof - a note whose spot has several takes, the playing take marked on the waveform"
+  },
+  {
+    "page": "proof",
+    "state": "check-stale",
+    "viewport": "desktop",
+    "docName": "proof-check-stale",
+    "caption": "Proof - a recording check that is out of date, with what changed"
+  },
+  {
+    "page": "proof",
+    "state": "notes-filtered",
+    "viewport": "desktop",
+    "docName": "proof-notes-filtered",
+    "caption": "Proof - the To review chip: \"Notes · 3 of 4\", the waived note left out"
+  },
+  {
+    "page": "proof",
+    "state": "find-open",
+    "viewport": "desktop",
+    "docName": "proof-find",
+    "caption": "Proof - find in notes on \"rabbit\", with the one matching note"
+  },
+  {
+    "page": "pickups",
+    "state": "list",
+    "viewport": "desktop",
+    "docName": "pickups-list",
+    "caption": "Pickups - every line to record again, by chapter, with the session panel"
+  },
+  {
+    "page": "pickups",
+    "state": "session-left-out",
+    "viewport": "desktop",
+    "docName": "pickups-left-out",
+    "caption": "Pickups - one line left out of the session: the session panel counts one fewer"
+  },
+  {
+    "page": "pickups",
+    "state": "add-popover",
+    "viewport": "desktop",
+    "docName": "pickups-add",
+    "caption": "Pickups - Add a pickup by hand: the time in the recording and the line"
+  },
+  {
+    "page": "pickups",
+    "state": "empty",
+    "viewport": "desktop",
+    "docName": "pickups-empty",
+    "caption": "Pickups with nothing queued, and the way to Proof"
+  },
+  {
+    "page": "master",
+    "state": "multi-export-selected",
+    "viewport": "desktop",
+    "docName": "master-multi-export",
+    "caption": "Master & QC - Multi-platform export with one platform checked"
+  },
+  {
+    "page": "master",
+    "state": "multi-export-results",
+    "viewport": "desktop",
+    "docName": "master-multi-export-results",
+    "caption": "Master & QC - a finished multi-platform build: a row per platform with its folder or why it was not built"
+  },
+  {
+    "page": "delivery",
+    "state": "default",
+    "viewport": "desktop",
+    "docName": "delivery-default",
+    "caption": "Delivery against ACX with nothing measured: the profile card, Output with Build off and every chapter waiting"
+  },
+  {
+    "page": "delivery",
+    "state": "custom-profile",
+    "viewport": "desktop",
+    "docName": "delivery-custom-profile",
+    "caption": "Delivery against a custom profile: the name and each limit editable on the card"
+  },
+  {
+    "page": "settings",
+    "state": "global-keyboard",
+    "viewport": "desktop",
+    "docName": "settings-keyboard",
+    "caption": "Settings - Keyboard & pedals: every command by scope, with its key or pedal"
+  },
+  {
+    "page": "settings",
+    "state": "global-keyboard-recording",
+    "viewport": "desktop",
+    "docName": "settings-keyboard-recording",
+    "caption": "Settings - Keyboard & pedals recording a new key for Record or stop"
+  },
+  {
+    "page": "settings",
+    "state": "global-booth",
+    "viewport": "desktop",
+    "docName": "settings-booth",
+    "caption": "Settings - the Booth panel: the microphone, the live engine and its model"
+  },
+  {
+    "page": "settings",
+    "state": "delivery-profile-editor",
+    "viewport": "desktop",
+    "docName": "settings-delivery-profile",
+    "caption": "Settings - a copy of ACX open in the delivery profile editor"
+  },
+  {
+    "page": "settings",
+    "state": "project-daw",
+    "viewport": "desktop",
+    "docName": "settings-daw",
+    "caption": "Settings - the DAW panel for this project: the linked DAW project"
+  },
+  {
+    "page": "settings",
+    "state": "dirty-footer",
+    "viewport": "desktop",
+    "docName": "settings-unsaved",
+    "caption": "Settings with unsaved changes: the footer with Save and Discard"
   }
 ]

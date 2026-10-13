@@ -29,7 +29,7 @@ What the train already gives (all cited from the train's procedure, then `docs/o
 | Ready list | A phase is ready when `Status` is pending, `Depends` complete, no unmet gate, no file collision, wave reached ([step 5](../SKILL.md#the-coordinators-pass)) | Computed from PRD tables the coordinator does not read in depth |
 | Worker protocol | Push after every green step; checkpoints; pause or yield; own PRs until merged (D82); `send_later` check-ins ([The worker protocol](../SKILL.md#the-worker-protocol)) | Resume depends on the PR body, which exists only after the first push |
 | Templates | Worker, resume and fixer templates ([Templates](templates.md)) | No slice fields (the mock reference in the worker template now names the Studio Next page, D98) |
-| Quality | D43 targeted checks, D44 full gate at the end; D46 and D97 benchmark mock comparison (the target becomes the Studio Next mock page); the Screenshots rule | CLAUDE.md step 4 and the `full-verification-gate` skill ask for the targeted checks for what changed, with the PR pipeline as the full gate; the train allows the same per phase. This series keeps that |
+| Quality | D43 targeted checks, D44 full gate at the end; D46 and D97 benchmark mock comparison (the target becomes the Studio Next mock page); the guide rule ([UI PRs update the how-to guide](../../../../CONTRIBUTING.md#ui-prs-update-the-how-to-guide)) | CLAUDE.md step 4 and the `full-verification-gate` skill ask for the targeted checks for what changed, with the PR pipeline as the full gate; the train allows the same per phase. This series keeps that |
 | Mock-first | D67: build against a mock that passes the schema; swap behind the port | Exactly the series' provider principle; used as is |
 | Issue forms | `.github/ISSUE_TEMPLATE/bug_report.yml`, `feature_request.yml`; blank issues off | No slice form |
 
@@ -80,7 +80,7 @@ The owner ruled on 2026-10-11 (see [Studio Next Rebuild](../../../../docs/prds/s
 | SNA-Q4 | Lane U territory adds `apps/ui/src/studio/**`, `ports/**` and `overlay/**`. | D-7. |
 | SNA-Q5 | A recommended default applies silently after 7 days for questions that do not change an accepted ADR. Superseding ADRs (A1..A17 of the overview) stay Proposed until the owner accepts them. | D-8. |
 | SNA-Q6 | Session cap per slice: 1 planned, 1 resume, 1 fixer, then escalate. | D-6. |
-| SNA-Q7 | Screenshots are compared against the Studio Next mock page (SN0-Q8). A worker with network runs the mock (`npm ci` in the mock folder) and captures it; without network the PR lists the missing image and the owner supplies it from #510. The slice is not blocked. | D-10 and the PR template. |
+| SNA-Q7 | A page is compared against the Studio Next mock page (SN0-Q8). A worker with network runs the mock (`npm ci` in the mock folder) and captures it; without network the PR says so and the owner supplies it from #510. The slice is not blocked. Since 2026-10-13 the images a UI slice commits are its page's guide screenshots, not a per-PR set. | D-10 and the PR template. |
 
 ## Users & Context
 
@@ -94,7 +94,7 @@ The coordinator session (30-minute Routine), worker sessions (Sonnet default), g
 | --- | --- |
 | Size | One PR; one lane; one reason to change; at most about 600 changed lines excluding goldens and generated bindings and at most about 25 files; finishable in one session (a few hours) |
 | Entry | Every dependency merged to `main`; every gate in its PRD answered or defaulted; `Files` and `Must not touch` declared; acceptance tests named; no running slice owns an overlapping file |
-| Exit | PR merged with `Closes #<slice>`; its tests exist and pass; for UI, the Screenshots section; ADR written if a decision was settled; the PRD's slice and phase status cells updated in the same PR; `feature-cleanup` done |
+| Exit | PR merged with `Closes #<slice>`; its tests exist and pass; for UI, the page's guide text and screenshots updated (or `No guide change: <reason>`) and the real-app and Storybook results stated; ADR written if a decision was settled; the PRD's slice and phase status cells updated in the same PR; `feature-cleanup` done |
 | Ownership | Globs in the issue header. A slice may add rows to append-only files and declare the serial point it uses; otherwise it touches only its globs |
 | Independence | Leaves `pnpm check` green on its own base; never relies on a later slice to be correct |
 | Kinds | `spike` (writes `docs/research/` only), `adr` (docs only), `seam` (port or registry with contract tests), `page` (UI under a feature folder), `swap` (route replacement, deletes the old page), `host` (Go), `lua` (bridge command; harness test first), `docs` |
@@ -111,7 +111,7 @@ Owns (globs):          Must not touch (globs):
 Spec: <the Studio Next mock page file and state under studio-next/src/pages/, the only spec>; ruling rows: <repo-compare-decisions.md bullets, register DQ rows>
 Acceptance tests (named, written first):
 Ports used: <DawClient, Pronunciation, ...>      Contracts: <schema names, golden files, wire.go rows>
-Verification commands:          Screenshots: <none | states x viewports>
+Verification commands:          Guide: <none | guide pages and images to update>
 Owner steps (to #510):          ADRs: <labels A1..A17 and numbers>
 Estimate (pw): <0.1-1>   Session cap: 1 + 1 resume + 1 fixer
 ```
@@ -138,7 +138,7 @@ The train's pass is unchanged: switches, usage, reconcile, merge, launch, housek
 1. **Pick.** The ready list is computed from labels: `slice` and `ready`, every `depends` closed by a merged PR, no open slice whose `owns` overlaps (glob intersection), no unanswered `owner-decision` blocker, the program's wave reached. Order: the train's order (contracts first, resumes, unblockers, leaf features, docs, filler).
 2. **Spawn.** `create_session` exactly as step 5.3 of the pass, with the worker template plus a `SLICE:` block that holds the issue number and says "the issue is the spec; read its Handoff comment first". Title `"N-<lane><n> SN-<code><n> <scope>"`, tags `["agent-train", "lane-<L>", "studio-next"]`.
 3. **Monitor.** `get_session` buckets as in step 3. New: a session in `working` with no push, no issue comment and no PR event for 3 hours is stalled (D-3).
-4. **Merge and queue.** The train's merge rules unchanged (not draft, mergeable, `Build (Windows)` and `ui-dist` green, no 🔴 thread, Screenshots present for UI, squash with `expectedHeadSha`). After a merge the coordinator immediately re-checks the slices that depended on it (D62) and launches in the same pass.
+4. **Merge and queue.** The train's merge rules unchanged (not draft, mergeable, `Build (Windows)` and `ui-dist` green, no 🔴 thread, for UI the guide page and images updated and the real-app and Storybook results stated, squash with `expectedHeadSha`). After a merge the coordinator immediately re-checks the slices that depended on it (D62) and launches in the same pass.
 5. **Stalls and failures.** Stalled: `interrupt_session`, then a resume session from the Handoff comment (resume template). Failed on usage: the train's pause path. Three failed CI rounds (the train's rule): draft PR, label `blocked`, one Opus fixer; a second failure goes to #510 with the failure pasted. A slice that exhausts its session cap is relabelled `blocked` and re-groomed (it was too big: split it).
 6. **Groom.** If fewer than `2 x TARGET` ready slices exist and a PRD has slices in the table without an issue, launch a groomer: it opens the issues from the PRD's table, fills the header from the code (it may read it), marks `ready` those whose dependencies are merged, and ends.
 7. **Hand-off.** Every slice issue ends with a `## Handoff` comment the worker rewrites at each checkpoint: done (SHAs), next step, failing check, commands run, files touched, decisions assumed. A fresh session needs only `CLAUDE.md`, the PRD slice row, the issue and the branch.
@@ -152,7 +152,7 @@ The train's worker template ([Worker template](templates.md#worker-template)) wi
 3. Tests first, named in the issue; mock-first behind the port (D67).
 4. Targeted checks per D43; `full-verification-gate` when the slice ends the stream (D44); look at every viewport's PNG; atlas for primitives; aria for dialogs.
 5. `design-spec-guard`, `feature-cleanup` (threat model and diagrams where a boundary moved).
-6. PR title a Conventional Commit; body: `Closes #<slice>`, `Part of #<PRD>`, what changed, checks run, **Screenshots** (mock | before | after at 1440x900, the other viewports in `<details>`, images committed under `pr-screenshots/<slice>/` and embedded by commit SHA, the folder deleted by the last commit before merge), "New ADRs for review", "Base:". Ends with the attribution lines.
+6. PR title a Conventional Commit; body: `Closes #<slice>`, `Part of #<PRD>`, what changed, checks run with the real-app (Playwright) and Storybook results, the guide diff for UI ([UI PRs update the how-to guide](../../../../CONTRIBUTING.md#ui-prs-update-the-how-to-guide)), "New ADRs for review", "Base:". Ends with the attribution lines.
 7. Subscribe; stay the owner of the PR until it merges (D82): merge `main` in on conflict, never rebase; fix red checks; answer review threads; hourly `send_later`.
 
 ### PR babysitting as a standing duty
@@ -294,4 +294,4 @@ Read: the train's procedure (then `docs/operations/agent-train.md`) in full (sta
 
 ## Visual Spec
 
-None. This PRD changes no UI. The UI slices it schedules carry the Screenshots section of [UI PRs show their screenshots](../../../../CONTRIBUTING.md#ui-prs-show-their-screenshots).
+None. This PRD changes no UI. The UI slices it schedules update their pages' guides ([UI PRs update the how-to guide](../../../../CONTRIBUTING.md#ui-prs-update-the-how-to-guide)).

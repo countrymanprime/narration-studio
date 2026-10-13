@@ -4,7 +4,7 @@
 
 Master & QC is where a book is finished: it checks your rendered chapter files against the delivery
 profile of the platform you upload to, rule by rule, says why a file fails, and masters and encodes the
-files to spec. [Delivery](#delivery), beside it in the navigation, builds the platform's package. Out of
+files to spec. [Delivery](delivery.md), beside it in the navigation, builds the platform's package. Out of
 the box every project is judged against **ACX (September 2026)**, ACX's audio submission requirements as
 the app recorded them. Your files are only read, never changed: mastering, encoding and packaging each write
 new files. Master & QC is always in the navigation, under **Finish**: it needs neither a manuscript nor a
@@ -13,7 +13,7 @@ DAW project.
 ![Master & QC before anything is checked: the ACX profile pill, Check files…, the built-in mastering chain and the delivery package](../../images/ui/master-empty.webp)
 
 The button beside the title names the profile the files are judged against (**ACX** for the built-in
-profile, a custom profile by its name); pressing it opens [Delivery](#delivery), where the profile is
+profile, a custom profile by its name); pressing it opens [Delivery](delivery.md), where the profile is
 chosen and edited. The main column holds the files and their checks, **Book consistency**, the
 [mastering chain](#the-mastering-chain), [Diagnostics](#diagnostics) and the [report](#exporting-a-report);
 the column on the right holds the [delivery package](#the-delivery-package) and
@@ -106,6 +106,8 @@ needs a different file format. Under **Build packages for**, check the box for e
 package for, then **Build N packages**; it stays off until files are mastered and encoded. This does not change which profile the page's checks are judged against (that is the project's profile,
 chosen on Delivery); the checkboxes only choose what to build packages for.
 
+![Master & QC - Multi-platform export with one platform checked](../../images/ui/master-multi-export.webp)
+
 You are asked for one folder once, and each platform's package goes into its own correctly named subfolder
 of it. Two platforms that both take the same file format (most do: MP3 at the same bitrate) share the one
 set of already-encoded files; a platform that needs a different format (an M4B audiobook file, say) is
@@ -116,43 +118,7 @@ left waiting.
 Once it finishes, each platform gets its own row: built, with its folder and how many files it wrote, or why
 it could not be built (such as a required file being missing for that platform).
 
-## Delivery
-
-**Delivery**, below Master & QC under **Finish**, chooses the profile, checks every chapter against it and
-builds the package. It needs an imported manuscript: without one its navigation entry is locked.
-
-**Delivery profile** names the project's profile in a menu: **ACX (built in)** and each custom profile.
-Choosing one makes it the project's profile; the files already checked keep the profile they were checked
-against until you check them again in Master & QC. **Checks on every chapter** lists the profile's
-measured limits (RMS, peak, noise floor, room tone at the head and tail), and **Files** its sample rate,
-longest file, MP3 format and channels. A built-in profile is marked **Built in** and is read-only. A
-custom profile's name, its limits (a lowest and a highest box each) and its longest file can be changed in
-place; the change is saved when you press Enter or leave the box, and a rule it turned off reads **Off**.
-To make a custom profile, duplicate ACX in [Settings, Delivery](settings.md); turning a rule off and
-deleting a profile are there too. If you had set your own limits before delivery profiles, they were moved
-into a custom profile named **Your limits** (or ACX, when they were ACX's numbers), so your files are judged
-the same way as before.
-
-**Profile rules**, below Output, says where the rules come from and how many of them the app checks, how many
-it does not check, how many are for you to listen for, how many are off and how many are still to verify.
-Open **Rules and their sources** for every rule with what the platform requires, how the app checks it,
-and whether that requirement was read on the platform's own page (**Verified**), is still **To verify**,
-or has **Conflicting sources** (room tone at the head of a file: ACX's page was read as 1 to 5 s, current
-guides say 0.5 to 1 s, so the app judges the looser 0.5 to 5 s). The profile is a measurement, not ACX's
-approval.
-
-![The ACX profile's rules and their sources](../../images/ui/master-profile-rules.webp)
-
-**Before you build**, on the right, counts the chapters passing and lists each chapter, named as the
-manuscript's headings name it, with **Pass**, **Fails N checks**, or **Not mastered**; pressing one opens
-Master & QC. In **Output**, **Build ACX
-package** (named for the profile) builds the package once every chapter passes, from the files mastered
-and encoded in Master & QC; until then it says how many chapters fail and how many are not ready, or that
-you must master all to spec in Master & QC first. The build asks for a folder, shows its progress with
-**Cancel**, and then lists the folder and every file written. The folder button beside the list
-(**Open the folder**) opens that folder in Explorer.
-
-![Delivery with the book checked: the chapters passing, and Output waiting on the rest](../../images/ui/master-package-built.webp)
+![Master & QC - a finished multi-platform build: a row per platform with its folder or why it was not built](../../images/ui/master-multi-export-results.webp)
 
 ## Diagnostics
 
@@ -204,4 +170,4 @@ is refused while a check or diagnostics run is running.
 
 ---
 
-[← Pickups](pickups.md) · [Index](README.md) · [Settings →](settings.md)
+[← Pickups](pickups.md) · [Index](README.md) · [Delivery →](delivery.md)

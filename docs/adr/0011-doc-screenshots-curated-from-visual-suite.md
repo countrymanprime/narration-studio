@@ -39,3 +39,11 @@ being invoked is a real (accepted) gap compared to true automated staleness dete
 Update (2026-09-19): the guide was originally one file, `docs/guides/using-the-app.md`. It is now a
 folder, `docs/guides/using-the-app/`, with an index (`README.md`) and one page per app page or large
 feature, kept consistent by `shared/ui/src/docsGuide.test.ts`. The decision above is unchanged.
+
+Update (2026-10-13, owner ruling): the guide is where the repository keeps UI images. A change to a page updates that
+page's guide text and screenshots in the same pull request; pull requests no longer commit their own image sets.
+`scripts/dev/guide-screenshots.mjs <page>` replaces the sync script: it runs the targeted real-app run for those pages
+and rewrites their images in place. `scripts/ci/guide-impact.mjs` (`Docs / Guide impact`) fails a change to a page's
+UI folder that touches neither its guide page nor an image, unless the pull request says `No guide change: <reason>`,
+which closes the gap the Consequences above accepted. The rule is in
+[CONTRIBUTING.md](../../CONTRIBUTING.md#ui-prs-update-the-how-to-guide).

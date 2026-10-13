@@ -202,6 +202,8 @@ if (mode !== 'check') {
 // Code changed without the docs that describe it (scripts/ci/docs-impact.mjs). It diffs against origin/main, so a
 // change that owes no doc says so in a commit message: `Docs: none — <reason>`. CI runs it in docs.yml with the PR body.
 run('node', ['scripts/ci/docs-impact.mjs']);
+// A page's UI changed without its how-to guide (scripts/ci/guide-impact.mjs); the opt-out is `No guide change: <reason>`.
+run('node', ['scripts/ci/guide-impact.mjs']);
 // Filler phrases and dead backticked paths in the Markdown this change touches (docs-slop.mjs, docs-references.mjs).
 run('node', ['scripts/ci/docs-slop.mjs']);
 run('node', ['scripts/ci/docs-references.mjs', '--strict']);

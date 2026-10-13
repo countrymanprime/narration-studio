@@ -72,6 +72,8 @@ the words, where the splits fall, the fades at the joins and what the DAW does: 
 the chain on the middle piece only. Nothing else moves, and one undo step in the DAW takes it off. The words with an
 effect are underlined, and the drawer's Effects tab lists them.
 
+![Editing - Add FX on four selected words: the DAW's effect chains](../../images/ui/editing-fx-menu.webp)
+
 The Effects tab shows how much of the chapter effects cover against a cap, 10% unless you change it in the tab's **Cap**
 field (a whole percent from 1 to 100, kept for the project). Over the cap the tab warns, and Add effect asks again
 before it goes ahead.
@@ -85,6 +87,8 @@ why it is suggested and the steps that would make the comparison surer: **Trim w
 **Normalise**, each asking before it changes anything in the DAW. Then each take, with its waveform, what share of the
 script it read as written, and its pause, level, noise, clarity and breaths. Play a take to hear it; **Keep take**
 (Enter) makes it the one that plays, and **Hide others** (H) hides the other takes from the lanes.
+
+![Editing - Normalise in a suggestion's steps: the takes it would bring to the same level](../../images/ui/editing-suggestion-step.webp)
 
 **How retries are kept** decides, for the line or the whole chapter, whether a line read again later in the chapter is
 stacked as a take of the first read or left where it was. With Stack, **Stack retries as takes** shows the plan before
@@ -110,6 +114,8 @@ experimental stay off until you turn them on in [Settings](settings.md).
 **Effects** lists the effects on words in this chapter and adds one. **Backups** shows only with a DAW that keeps
 backups of its project. **Timeline** shows the line the cursor is on as the chapter's audio and one lane per take on
 one time axis; on a wide window it is a strip under the text instead (S).
+
+![Editing - the drawer's Effects tab: the effects on words and adding one](../../images/ui/editing-drawer-effects.webp)
 
 ![Editing - the drawer on Timeline: the waveform and takes of the line the cursor is on](../../images/ui/editing-drawer-timeline.webp)
 

@@ -10,7 +10,8 @@ three parts side by side:
   questions for the author still open. Press a chapter to go to it. When the project has opening credits, an
   **Opening credits** row comes first, and when it has closing credits, a **Closing credits** row comes last; each goes
   to its credits card, and its dot is **Prepped** once those credits have no token left to fill in.
-- **The reader** in the middle: the whole book as one scrolling text, a card at the top of each chapter with its word
+- **The reader** in the middle: the whole book as one scrolling text. Each chapter starts with its card, after the end
+  marker of the chapter before: the chapter's title, shown once, with its word
   count, its finished audio, its marks and open queries, and **My prep**, where you set the chapter's prep state.
   Your marks are drawn in the text in their own colours, a speaker's lines carry a chip with their name, and Story Bible
   names are underlined. The header names the chapter in view and the line you are on, and has **Bookmarks**, **Find**
@@ -22,8 +23,11 @@ A bar under the reader lists its keys: select text to mark it, add a note or que
 bookmarks the line; **Alt+[** **Alt+]** go to the previous or next bookmark; **Ctrl+F** opens Find. A key you rebind
 under **Keyboard & pedals** in [Settings](settings.md) shows its new key here.
 
+![Script - Find on "Alice": the count, the matches lit in the text and the results list](../../images/ui/script-find.webp)
+
 At 1280 px and narrower the rail opens as a drawer over the text from the header's side panel button, and below 1180 px the
-chapter list does the same from its **Chapters** button.
+chapter list does the same from its **Chapters** button. A drawer opens inside the page, under the navigation, so the
+navigation stays usable; a press anywhere outside the drawer, or on the navigation, closes it.
 
 An old link to the Manuscript page (`/manuscript`, with a line or chapter after `#`) still works: it opens the Script
 page at the same place, as do the links from Proof and the Story Bible.
@@ -45,6 +49,8 @@ Select words in the reader and a toolbar appears over them:
 - **Bookmark here** (the bookmark button).
 - **Look up** opens the words in the rail: a Story Bible name on its **Story Bible** tab, any other word on **Words**.
 
+![Script - Define how you mark up: each mark type with its name, colour and line](../../images/ui/script-define-marks.webp)
+
 ![Script - the selection toolbar on one word: Mark, Story Bible, Bookmark here and Look up](../../images/ui/script-selection-popup.webp)
 
 ![Script - the mark composer after selecting text](../../images/ui/script-add-note.webp)
@@ -61,6 +67,10 @@ Select words in the reader and a toolbar appears over them:
   place in the text.
 - **Bookmarks** lists your bookmarks under their chapters, each with its line; one goes to its place, its pencil
   button edits its label and note, and its bin button deletes it. The reader's margin shows a ribbon where each one is.
+
+![Script - the rail's Queries tab: the chapter's questions for the author](../../images/ui/script-rail-queries.webp)
+
+![Script - the rail's Story Bible tab: the book's entries by kind, one opened](../../images/ui/script-rail-story-bible.webp)
 
 ![Script - a word looked up: how to say it, its source and the web look-ups in the rail's Words tab](../../images/ui/script-word-lookup.webp)
 
@@ -94,11 +104,13 @@ with no value yet stays in brackets, highlighted, and a line below lists the unr
 [Production](production.md#importing-the-manuscript) for what it asks and when. A banner above Opening credits does the same while any
 token stays unresolved and setup has not been dismissed for the project. These
 entries are read-only and are not chapters: Find does not search them, and the chapter list has a row for
-the opening credits only. Record the
+each. Record the
 credits as their own files, as ACX expects, not inside a chapter file: a chapter's Proof view compares a
 chapter's recording with that chapter's text only, so credits recorded inside it are reported as extra
 words. Each credits
 card also has a **Record in Booth** button once it has anything to read (see below).
+
+![Script - the Opening credits card above Chapter 1, with a value still to fill in](../../images/ui/script-credits.webp)
 
 The [retail sample](settings.md#retail-sample), once picked, is marked where it is: a **Retail sample**
 tag above each chapter it is in, and a bar in the margin beside each of its lines.
@@ -122,4 +134,4 @@ one tells you so instead of landing there.
 
 ---
 
-[← Production](production.md) · [Index](README.md) · [Story Bible →](story-bible.md)
+[← Schedule](schedule.md) · [Index](README.md) · [Story Bible →](story-bible.md)

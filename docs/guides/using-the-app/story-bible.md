@@ -5,6 +5,8 @@
 Story Bible tracks every character, place, and organization extracted from the manuscript,
 with pronunciation, aliases, and narration notes. Each entry is a row of two lines: its name, then its kind in the kind's colour with how many names it has and how many chapters it appears in. The kind chips over the list filter it, the search box finds an entry by any of its names, the menu beside it sorts by name, type or chapters, and the Up and Down keys move through the rows. The buttons under the title scan the manuscript, import entries, open Voice data, build or refresh the Story Bible, and add an entry; the **Entries** and **Series** tabs sit below them. With no manuscript imported the page asks for one.
 
+![Story Bible - a search for "hatter" narrowing the list by name and alias](../../images/ui/storybible-search.webp)
+
 ![Story Bible filtered to the Character kind](../../images/ui/storybible-characters.webp)
 
 Selecting an entry opens its detail panel, read-only at first: its names and how you say each, its
@@ -109,6 +111,8 @@ from your book, to Merriam-Webster, and shows its answer in Merriam-Webster's ow
 nothing and works offline ("from this computer's copy"). **Look up elsewhere** also has the name's recordings on
 Wikimedia Commons.
 
+![Story Bible - Look up online for a name: a dictionary's respelling with Use this](../../images/ui/storybible-pronunciation-online.webp)
+
 | Message | What it means | What to do |
 | --- | --- | --- |
 | "Add your own free Merriam-Webster key in Settings > Story Bible first." | No key is saved. | Save your key in Settings > Story Bible. |
@@ -123,11 +127,15 @@ asks whether to use the basic scan now, download better analysis, or import from
 until you agree. **Import entries** opens a CSV or JSON file of entries you made elsewhere and shows what it would add
 before it adds anything.
 
+![Story Bible - the Import entries dialog (CSV or JSON)](../../images/ui/storybible-import.webp)
+
 A suggestion the app is sure of is accepted on its own; one it is not sure of waits for you. **Needs verification**
 beside the filters shows only the entries with suggestions waiting, and lists above them the suggestions that have no
 entry yet. An entry with suggestions waiting shows a **Verify** pill in the list, its accepted facts, and a **Suggested**
 list where you accept, edit or reject each one, with the quote it rests on (press the quote to go to the line in the
 Script). An entry cannot be marked reviewed while it has suggestions waiting.
+
+![Story Bible - Needs verification: the suggestions not in the Story Bible yet, each with its quote](../../images/ui/storybible-verification.webp)
 
 ## Voice references and dialogue cue attribution
 
@@ -155,6 +163,8 @@ for the two things that aren't about one character: approving a reference for **
 (useful as a baseline separate from any character), and **Remove voice data**, which revokes every
 approved reference in the project - for every character and for narration - in one action, after you
 confirm. It doesn't touch the manuscript, dialogue cues, or anything else in the Story Bible.
+
+![Story Bible - the Voice data slide-over: approved reference clips and Remove voice data](../../images/ui/storybible-voice-data.webp)
 
 ## Series voice bible
 

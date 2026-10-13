@@ -7,7 +7,7 @@ paths:
 
 When fixing a visual/UI bug in `apps/ui`, do not consider it done from code review or a single manual screenshot alone. Before reporting a visual fix as complete:
 
-0. For a PR, run the whole page, not one state: `pnpm --dir apps/ui visual:page <page>` (both themes, every catalogued state, into `apps/ui/screenshots/targeted/<theme>/<page>/<state>/<viewport>.png`) and `pnpm --dir apps/ui atlas:page <page-or-component>` for its stories. The PR shows those images ([UI PRs show their screenshots](../../CONTRIBUTING.md#ui-prs-show-their-screenshots)). The steps below are the quick loop on one state.
+0. For a PR, run the whole page, not one state: `pnpm --dir apps/ui visual:page <page>` (both themes, every catalogued state, into `apps/ui/screenshots/targeted/<theme>/<page>/<state>/<viewport>.png`) and `pnpm --dir apps/ui atlas:page <page-or-component>` for its stories. The PR states both results; the images it commits are the page's guide screenshots ([UI PRs update the how-to guide](../../CONTRIBUTING.md#ui-prs-update-the-how-to-guide)). The steps below are the quick loop on one state.
 1. Run the Playwright visual suite for the affected page/state across all viewports in `apps/ui/tests/visual/viewports.ts` (desktop, small-desktop, tablet; there is no phone viewport, ADR 0037, except that the Settings states are also captured at a 390 px `reflow` width, ADR 0061, so look at `reflow.png` for those):
 
    ```bash

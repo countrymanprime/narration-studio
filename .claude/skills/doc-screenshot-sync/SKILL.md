@@ -1,62 +1,51 @@
 ---
 name: doc-screenshot-sync
-description: After the Playwright visual suite output changes, refresh docs/images/ui/ and docs/guides/using-the-app/*.md so the user-facing screenshot guide doesn't silently go stale.
+description: A change alters what an app page draws or how it is used? Update that page's how-to guide in the same change, its text in docs/guides/using-the-app/<page>.md and its screenshots in docs/images/ui/, with scripts/dev/guide-screenshots.mjs.
 ---
 
 # doc-screenshot-sync
 
 ## Why this exists
 
-`docs/guides/using-the-app/*.md` embeds screenshots of the real UI so users don't have to imagine
-what a page looks like. Those screenshots are copies, not live references — `apps/ui/screenshots/`
-is gitignored scratch output (see `.claude/rules/ui-visual-verification.md`), so committed doc images in `docs/images/ui/` only
-stay accurate if something re-copies them after the UI changes. Without this skill, the natural
-failure mode is: the UI changes, `pnpm check` still passes, and the docs keep showing last month's
-screenshot with nobody noticing until a user asks why it doesn't match.
+`docs/guides/using-the-app/` is the how-to guide: one page per app page, showing how to use it with screenshots of its
+states and interactions. The screenshots are the only UI images the repository keeps; a pull request carries no image
+set of its own ([UI PRs update the how-to guide](../../../CONTRIBUTING.md#ui-prs-update-the-how-to-guide)). They are copies
+of the real app, so they stay true only if the change that moves the page also regenerates them.
 
 ## When to use this
 
-After `apps/ui` changed and the Playwright visual suite has been (re)run — ideally right after
-`visual-catalog-sync` if that skill also ran, so the suite itself reflects current reality first.
-
-## In an agent-train worker stream
-
-A worker never regenerates `docs/images/ui/` ([worker template](../agent-train/references/templates.md#worker-template)); the final sweep regenerates the screenshots once. Do steps 1, 3, 4 and 5 for the manifest and the guide's prose, skip the sync script in step 2, and list in the PR body the manifest entries whose screenshots changed so the sweep refreshes them.
+Any change to what a page draws or how it is used, after `visual-catalog-sync` if the state catalog changed.
 
 ## What to do
 
-1. Check whether the change affected any `{page, state}` listed in
-   `apps/ui/tests/visual/doc-screenshots.json` (the curated manifest backing the guide). If
-   nothing in that list was touched, there's nothing to sync — say so and stop.
-2. If an entry's source screenshot changed, regenerate it and run the sync script:
+1. Find the guide images of the pages you changed: the entries of `apps/ui/tests/visual/doc-screenshots.json` whose
+   `page` is the state-catalog page, embedded in `docs/guides/using-the-app/<page>.md`.
+2. Regenerate them from the real app:
 
    ```bash
-   cd apps/ui
-   npx playwright test tests/visual -g "<page> / <state>"
-   node scripts/sync-doc-screenshots.mjs
+   node scripts/dev/guide-screenshots.mjs <page>...
    ```
 
-   The script compresses each screenshot to WebP into `docs/images/ui/` and reports the size
-   before/after — a large jump in output size for an unrelated entry is worth a second look
-   before committing.
-3. Re-read the surrounding prose in the `docs/guides/using-the-app/*.md` page that embeds it for each updated image. If the UI
-   change altered what the screenshot shows in a way the caption or body text no longer describes
-   accurately, update the text too — a correct picture next to stale prose is still stale
-   documentation.
-4. If the UI change removed a page/state that's in `doc-screenshots.json`, remove that manifest
-   entry, delete its `docs/images/ui/<docName>.webp`, and remove or replace its section in the
-   guide — don't leave a broken image reference or a description of a feature that no longer
-   exists.
-5. If the UI change is significant enough to warrant showing a *new* state that isn't
-   documented, add an entry to `doc-screenshots.json` (validated automatically by
-   `src/docScreenshots.test.ts` against `STATE_CATALOG` — it must already exist there, so run
-   `visual-catalog-sync` first if it doesn't), then follow step 2 and add a section to the guide.
-6. Run `pnpm --dir apps/ui test` to confirm `docScreenshots.test.ts` still passes — it fails
-   loudly if a manifest entry points at a `STATE_CATALOG` row or viewport that no longer exists.
+   `<page>` is a guide page (`booth`, `master-and-qc`) or a state-catalog page (`storybible`). It runs the targeted
+   real-app run in the light theme, converts each listed state to WebP and replaces the file in place; an image whose
+   pixels did not change is left alone. Open every image it updated or added and check it shows what its caption says.
+3. Re-read the guide text around each changed image. A correct picture beside stale text is still a stale guide.
+4. A new interaction or state: add a manifest entry (`page`, `state`, `viewport`, `docName`, `caption`; the state must
+   be in `STATE_CATALOG`), embed `../../images/ui/<docName>.webp` on its guide page with a short how-to step, and run
+   step 2.
+5. A removed state or interaction: delete its manifest entry, its image and its text. The command lists images the
+   manifest no longer names.
+6. Run `pnpm --dir apps/ui exec vitest run src/docScreenshots.test.ts src/docsGuide.test.ts`: every entry must be a
+   catalogued state and embedded on exactly one page.
+7. Link the guide diff from the PR description, or write `No guide change: <specific reason>` there; the
+   `Docs / Guide impact` check (`scripts/ci/guide-impact.mjs`) fails a page change with neither.
+
+## The sweep
+
+`node scripts/dev/guide-screenshots.mjs --all` regenerates the whole guide. Run it periodically, and after a change to
+a shared component or the theme, to catch an image that moved on a page no change named.
 
 ## What this skill is not
 
-It doesn't decide whether the visual suite itself is accurate — that's `visual-catalog-sync`,
-which should run first when a change is visual enough to need it. It also doesn't replace
-`feature-cleanup`'s general docs-staleness check for `docs/utilities/*.md` and
-`docs/workflows/*.md` — this one is specifically about the screenshot guide and its images.
+It doesn't decide whether the visual suite is accurate (`visual-catalog-sync`), and it doesn't cover
+`docs/utilities/*.md` or `docs/workflows/*.md` (`doc-impact-check`).

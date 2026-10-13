@@ -33,7 +33,11 @@ docs/operations/ runbooks that a person follows. A spike's research note has a d
 or lane header; an audit or checklist for one PR is a comment on the PR or its issue, not a file.
 BRANCHES AND PRS: first PR based on the latest main; one PR per phase, each based on the previous branch; branch
 <type>/<prd-slug>-p<N>-<slug>; PR title a Conventional Commit; body = goal, what changed, local checks run with results,
-Screenshots (any UI change; see "UI PRs show their screenshots" in CONTRIBUTING.md: name the page(s) touched, run `node scripts/dev/pr-screenshots.mjs <slice> <page>...` (the targeted Playwright and Storybook runs work in this container; never run `playwright install`), show every catalogued state of those pages, light and dark, desktop and narrow, and state the real-app Playwright result, not only Storybook's; the PR is not ready or mergeable without them; PNGs under pr-screenshots/ on this branch, embedded by commit SHA, deleted by the last commit before merge; docs/images/ui is the guide-refresh worker's), "Base: <branch>", "Closes #<slice>" for a slice,
+the real-app (Playwright) and Storybook results of the pages touched (pnpm --dir apps/ui visual:page <page> and
+atlas:page <page>; never run `playwright install`, the runs find this container's Chromium) and, for any change to what a
+page draws or how it is used, that page's guide updated in the same PR: docs/guides/using-the-app/<page>.md and its
+images (node scripts/dev/guide-screenshots.mjs <page>), linked from the body, or "No guide change: <reason>"; commit no
+other images (see "UI PRs update the how-to guide" in CONTRIBUTING.md), "Base: <branch>", "Closes #<slice>" for a slice,
 else "Part of #<PRD issue>" (find it or create it per docs/operations/github-workflow.md; the PRD's last phase says "Closes #<n>"), "New ADRs for review". Set each phase's
 Status cell in its own PR. The PR delivering a PRD's last phase writes the steady-state docs and deletes the PRD.
 METHOD: impact scan before touching shared code (list every consumer of what you change and its tests); tests first;
@@ -41,8 +45,8 @@ SOLID: depend on the ports (internal/dawport roles, provider ports, NarrationApi
 TESTING (D43, D44): targeted checks only: Go tests of changed packages plus go vet, the Lua harness for Lua, Vitest of
 changed UI, pytest of changed sidecars, lint and typecheck of touched projects, and the visual states of pages you
 changed (cd apps/ui && npx playwright test tests/visual/app.spec.ts -g "<page>.*<state>"), looking at every viewport's
-PNG. Not the full pnpm check, the full visual suite or the atlas (a primitive's own atlas story is fine), and never
-regenerate docs/images/ui or docs/ui.
+PNG. Not the full pnpm check, the full visual suite or the atlas (a primitive's own atlas story is fine). Regenerate
+only your pages' guide images (guide-screenshots.mjs <page>), never all of docs/images/ui, and never docs/ui.
 WIRE CONTRACTS: a new binding or event gets a Zod schema, a golden (UPDATE_CONTRACTS=1), a wireContracts row and a mock
 that passes it, plus a hostAPIVersion bump to main + 1. New REAPER commands: harness tests first, wire.go row,
 threat-model and SECURITY.md rows, declared as Experimental capabilities.
