@@ -61,6 +61,8 @@ import { FxMarkersContext } from '../range/fx/fxMarkers';
 import { registerSelectionAction } from '../bar/selectionActions';
 import { SelectionActionButton } from '../bar/SelectionActionButton';
 import { useShowInDaw } from '../takes/useShowInDaw';
+import { IconButton } from '../../primitives/IconButton';
+import { registerTakeControl } from '../takes/takeControls';
 import { InHost, rowOf } from './InHost';
 import { NoAudioBanner } from './NoAudioBanner';
 import { useLines } from './useLines';
@@ -279,6 +281,17 @@ export function EditingBody(props: EditingBodyProps) {
     [],
   );
   useShowInDaw(chapterId, caps);
+  // Undo choice in the footer of a line whose take was kept here.
+  useEffect(
+    () =>
+      registerTakeControl({
+        id: 'undo-choice',
+        order: 2,
+        render: ({ passage, keptId }) =>
+          keptId !== null ? <IconButton action="undo" label="Undo choice" size="sm" onClick={() => void latest.current.keep.undoKeep(passage.id)} /> : null,
+      }),
+    [],
+  );
   // The floating toolbar's "Takes of this line" (T), on a line with more than one take.
   useEffect(
     () =>

@@ -7,6 +7,7 @@ import { EnginePanelProvider } from '../engine/EnginePanelContext';
 import { providedCommands } from '../../input/commandProviders';
 import { contextItemsFor } from '../../registries/context';
 import { overlay } from '../../overlay/overlayService';
+import { createJournal } from '../../studio/journal/createJournal';
 import { createMockDawClient, type DawClient } from '../../ports/daw';
 import type { NarrationApi } from '../../types';
 import { clock } from './bar/clock';
@@ -603,6 +604,23 @@ describe('EditingPage', () => {
       fireEvent.click(await within(footer).findByRole('button', { name: 'Show in the DAW' }));
       await waitFor(() => expect(goTo).toHaveBeenCalledWith('c1', expect.any(Number)));
       await waitFor(() => expect(toast).toHaveBeenCalledWith('Moved to 1:05 in the DAW.'));
+    });
+
+    it('Undo choice takes a kept take back', async () => {
+      const journal = createJournal({ dawName: () => 'the DAW', dawLastAction: async () => 'this' });
+      render(
+        <EditingHost api={pageApi()} daw={dawFor('reaper')} journal={journal}>
+          <EditingPage hasManuscript chapterId="c1" passageId="ps-1" />
+        </EditingHost>,
+      );
+      await script();
+      await waitFor(() => expect(document.querySelectorAll('[data-takes="p1"] [data-take]')).toHaveLength(2));
+      const lines = document.querySelector<HTMLElement>('[data-takes="p1"]')!;
+      const keeps = within(lines).getAllByRole('button', { name: /^Keep / });
+      fireEvent.click(keeps[keeps.length - 1]!);
+      const undo = await within(lines).findByRole('button', { name: 'Undo choice' });
+      fireEvent.click(undo);
+      await waitFor(() => expect(within(lines).queryByRole('button', { name: 'Undo choice' })).toBeNull());
     });
 
     it('the marker after an effect selects its words and takes it off', async () => {
