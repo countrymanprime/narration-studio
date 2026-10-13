@@ -39,6 +39,7 @@ export function RenderConfigDialog({ onClose }: { onClose: () => void }) {
 
   return (
     <Dialog
+      dismissOnOutsidePress={false}
       title="Prepare chapter render"
       onClose={running ? undefined : onClose}
       escapeCloses={!running}

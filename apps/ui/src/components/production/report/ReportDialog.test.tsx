@@ -133,6 +133,23 @@ describe('ReportDialog', () => {
 });
 
 describe('openReportDialog', () => {
+  it('closes on a press outside the dialog: a preview with no input of its own (issue 1706)', async () => {
+    const api = createMockApi({ productionPlan: async () => PLAN, productionStatusReportPreview: async (i) => previewOf(i) });
+    render(
+      <ApiProvider api={api}>
+        <OverlayProvider>
+          <button type="button" onClick={() => openReportDialog({ projectName: 'Dune', asOf: '21 Sep 2026' })}>
+            Open report
+          </button>
+        </OverlayProvider>
+      </ApiProvider>,
+    );
+    await userEvent.click(screen.getByRole('button', { name: 'Open report' }));
+    await screen.findByRole('dialog', { name: 'Export status report' });
+    await userEvent.click(document.querySelector('[data-dialog-backdrop]') as HTMLElement);
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+  });
+
   it('dialog-behaviour: opens through the overlay with the title, Escape closes and focus returns to the opener', async () => {
     const api = createMockApi({ productionPlan: async () => PLAN, productionStatusReportPreview: async (i) => previewOf(i) });
     render(

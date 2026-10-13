@@ -270,8 +270,9 @@ import itself.
 Every dialog in the app can be used from the keyboard. Focus starts inside the dialog (on its
 message, outlined when you opened it with the keyboard), Tab and Shift+Tab stay inside it, and the
 page behind is hidden from a screen reader until it closes. Escape declines a confirm, and focus
-returns to the button that opened it. Clicking the dimmed background never dismisses a dialog,
-so a stray click cannot discard a decision, and a running job (such as an import) ignores Escape
+returns to the button that opened it. Clicking the dimmed background closes a dialog that only shows something (the keyboard shortcuts, a
+read-only view, a picker that applies each choice at once) and never closes a confirm or a form, so a
+stray click cannot discard a decision or typed input. A running job (such as an import) ignores Escape
 until it has finished. The red confirm button marks an action that destroys data. A step that
 cannot be cancelled (rebuilding the Story Bible, or an import while it writes to the project) says
 so at the top of its dialog, offers no button while it runs, and shows Close when it finishes.
