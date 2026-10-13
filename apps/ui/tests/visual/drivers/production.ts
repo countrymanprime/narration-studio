@@ -309,17 +309,16 @@ export const productionDrivers: Record<string, Driver> = {
   },
   'credits-panel': async (page) => {
     await productionLoaded(page);
-    await page.getByRole('button', { name: 'Open Opening credits' }).click();
+    // The credits are rows of the pipeline: the Edit cell of the Opening credits row opens the row's panel.
+    await page.getByRole('button', { name: /^Opening credits: Edit / }).click();
     await page.getByRole('dialog', { name: 'Opening credits' }).getByRole('link', { name: 'Open in Script' }).waitFor();
   },
-  'credits-panel-not-set-up': async (page) => {
+  'credits-closing-not-set-up': async (page) => {
     await page.goto('/?mockCreditsMissing=1');
     await settlePage(page);
     await productionLoaded(page);
-    await page.getByRole('button', { name: 'Open Closing credits' }).click();
-    await page
-      .getByRole('dialog', { name: 'Closing credits' })
-      .getByText(/^Not set up/)
-      .waitFor();
+    // A kind with no template has no row: the pipeline ends at the last chapter, the opening credits still before the first.
+    await page.getByRole('button', { name: /^Opening credits: Prep / }).waitFor();
+    await page.getByRole('button', { name: /^Closing credits: / }).waitFor({ state: 'detached' });
   },
 };

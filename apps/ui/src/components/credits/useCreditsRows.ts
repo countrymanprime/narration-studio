@@ -39,7 +39,7 @@ export type CreditsRow = {
 /**
  * The Production board's Opening/Closing credits rows. Reads the first template of each kind (ADR 0093), each rendered
  * with its own room tone and status from the project manifest. `template` is undefined when the library
- * has none of that kind (the row still renders, as "Not set up"). Undefined while loading or on any failure: a
+ * has none of that kind (the page draws no row for it). Undefined while loading or on any failure: a
  * credits problem leaves the rows out rather than toasting.
  *
  * `setStatus` calls the host's `setCreditsStatus` (never `manuscriptSetChapterStatus`, and it never touches stage

@@ -97,8 +97,8 @@ export const masterStates: StateEntry[] = [
   },
   {
     page: 'master',
-    state: 'report-refused',
-    description: 'Master & QC, Export report before anything was checked - the host’s refusal as an alert, and nothing written (scrolled to the Report panel)',
+    state: 'report-needs-files',
+    description: 'Master & QC, before anything was checked - Export report is off and says to check some files first (scrolled to the Report panel)',
     ...KEEPS_DESKTOP_SCROLL,
   },
   // Master & QC, "Master all to spec…" (no mock equivalent, kept as built)

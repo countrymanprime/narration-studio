@@ -305,13 +305,13 @@ export const productionStates: StateEntry[] = [
     page: 'production',
     state: 'credits-panel',
     description:
-      'Production, the Opening credits row opened from the board: its template, words and estimated length, Open in Script, its status select and why credits are not checked yet',
+      'Production, the Opening credits row opened from its Edit cell in the pipeline: its template, words and estimated length, Open in Script, its status select and why credits are not checked yet',
   },
   {
     page: 'production',
-    state: 'credits-panel-not-set-up',
+    state: 'credits-closing-not-set-up',
     description:
-      'Production, the Closing credits row opened with no closing template in the library (?mockCreditsMissing=1): "Not set up" with a link to Settings > Credits (CT5)',
+      'Production with no closing template in the library (?mockCreditsMissing=1): the pipeline has the Opening credits row and no Closing credits row (the template is added in Settings > Credits)',
   },
   {
     page: 'production',
