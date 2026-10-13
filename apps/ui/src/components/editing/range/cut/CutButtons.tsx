@@ -33,6 +33,7 @@ export function DeleteButton({
           variant="danger"
           size="sm"
           aria-label="Delete words and audio"
+          data-danger
           aria-keyshortcuts="Delete"
           aria-description={reason ? hint : undefined}
           aria-disabled={reason ? true : undefined}
