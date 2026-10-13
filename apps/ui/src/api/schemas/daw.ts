@@ -5,6 +5,9 @@ import type {
   DawBackupsFile,
   DawCapabilities,
   DawCapabilityLevel,
+  DawChoice,
+  DawChoiceSource,
+  DawChoiceState,
   DawCapabilityMode,
   DawCapabilityReason,
   DawCapabilitySupport,
@@ -47,6 +50,31 @@ export const dawCapabilitiesSchema = z.object({
   reachable: z.boolean(),
   capabilities: z.record(z.string(), dawCapabilitySupportSchema),
 }) satisfies z.ZodType<DawCapabilities>;
+
+const DAW_CHOICE_SOURCES = ['launch', 'chosen', 'linked', 'found', 'default'] as const satisfies readonly DawChoiceSource[];
+const DAW_CHOICE_STATES = ['connected', 'not_running', 'linked', 'not_linked', 'app', 'none'] as const satisfies readonly DawChoiceState[];
+const CHOOSABLE_DAWS = ['REAPER', 'Audacity', 'Built-in'] as const;
+
+/** DawChoice, DawChoose and DawLinkFound: every key always present, file names never paths. */
+export const dawChoiceSchema = z.strictObject({
+  hasProject: z.boolean(),
+  daw: z.enum(DAW_KINDS),
+  source: z.enum(DAW_CHOICE_SOURCES),
+  chosen: z.enum(CHOOSABLE_DAWS).nullable(),
+  state: z.enum(DAW_CHOICE_STATES),
+  reachable: z.boolean(),
+  linkedFile: z.string().nullable(),
+  foundFiles: z.array(z.string()),
+  launcherAutoStart: z.boolean(),
+  experimental: z.boolean(),
+  options: z.array(
+    z.strictObject({
+      daw: z.enum(CHOOSABLE_DAWS),
+      installed: z.boolean().nullable(),
+      record: dawCapabilitySupportSchema,
+    }),
+  ),
+}) satisfies z.ZodType<DawChoice>;
 
 /** daw_transport_changed: position is absent while stopped. */
 export const dawTransportSchema = z.object({

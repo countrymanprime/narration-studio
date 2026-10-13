@@ -601,6 +601,23 @@ export function DawCatalogOpenDownloadPage(id: string): $CancellablePromise<stri
 }
 
 /**
+ * DawChoice answers the project's DAW choice. It changes nothing.
+ */
+export function DawChoice(): $CancellablePromise<string> {
+    return $Call.ByID(3027148021);
+}
+
+/**
+ * DawChoose saves which engine the project records with: "REAPER", "Audacity" or "Built-in". The built-in recorder is refused
+ * where its capture row is not available; nothing changes while a take records. The choice takes effect at once (the capability
+ * report and the record path read it per call); a launch whose --daw names another DAW keeps that DAW until the app is opened
+ * another way, which the answer's source and chosen say.
+ */
+export function DawChoose(engine: string): $CancellablePromise<string> {
+    return $Call.ByID(47477823, engine);
+}
+
+/**
  * DawCompareFxRange plays the words firstToken..lastToken of chapterID's stored alignment in the DAW with the chain chainName on
  * and then bypassed, and puts the chain back as it was: the effect inspector's Compare (SN-E113). The words and chain resolve as
  * DawFxRangeParams resolves them, and the page sends no GUID or path. The answer is the DawFxRangeCompare payload: a DawResult
@@ -667,6 +684,14 @@ export function DawLastAction(kind: string): $CancellablePromise<string> {
  */
 export function DawLaunch(): $CancellablePromise<string> {
     return $Call.ByID(739370161);
+}
+
+/**
+ * DawLinkFound links the one REAPER project file in the project folder and chooses REAPER for the project. It refuses when the
+ * folder holds none or several (the narrator picks one with ProjectLinkDawFile).
+ */
+export function DawLinkFound(): $CancellablePromise<string> {
+    return $Call.ByID(3767148346);
 }
 
 /**
@@ -2059,6 +2084,15 @@ export function ProjectCreateIn(parent: string, name: string): $CancellablePromi
 }
 
 /**
+ * ProjectDefaultLocation answers {path}: the folder ProjectCreateIn uses for an empty parent (project.ResolveDir), so
+ * the New Project dialog can show where a project will go. path is empty when no home folder resolves, and
+ * ProjectCreateIn then refuses an empty parent.
+ */
+export function ProjectDefaultLocation(): $CancellablePromise<string> {
+    return $Call.ByID(3050602295);
+}
+
+/**
  * ProjectLinkDawFile is the one shared binding behind the audio engine panel
  * and Settings' DAW category: it opens a native "*.rpp" file dialog and
  * links the chosen file to the current project through the manifest storage
@@ -2270,8 +2304,9 @@ export function Ready(): $CancellablePromise<{ [_ in string]?: any }> {
 }
 
 /**
- * RecorderChooseEngine saves which engine the project records with: "daw" (REAPER, the default) or "builtin". The built-in
- * recorder is refused, with its sentence, where its capture row is not available; nothing changes while a take records.
+ * RecorderChooseEngine saves which engine the project records with: "daw" (the project's DAW, REAPER unless it records with
+ * Audacity) or "builtin". The built-in recorder is refused, with its sentence, where its capture row is not available; nothing
+ * changes while a take records. DawChoose (bindings_dawchoice.go) chooses a DAW by name; both write the same Recording.engine row.
  */
 export function RecorderChooseEngine(engine: string): $CancellablePromise<string> {
     return $Call.ByID(247123031, engine);

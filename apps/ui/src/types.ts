@@ -104,6 +104,7 @@ import type { WorkspaceApi } from './api/contracts/workspace';
 import type { PreviewApi } from './api/contracts/preview';
 import type { DawCapabilitiesApi } from './api/contracts/daw';
 import type { DawProjectStateApi } from './api/contracts/daw';
+import type { DawChoiceApi } from './api/contracts/daw';
 import type { DawHideTakesApi } from './api/contracts/daw';
 import type { DawRollApi } from './api/contracts/daw';
 import type { DawDeleteRangeApi } from './api/contracts/daw';
@@ -177,6 +178,7 @@ export interface NarrationApi
     WorkspaceApi,
     PreviewApi,
     DawCapabilitiesApi,
+    DawChoiceApi,
     DawProjectStateApi,
     DawHideTakesApi,
     DawRollApi,

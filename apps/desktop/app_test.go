@@ -44,8 +44,8 @@ func TestResourceKeyChangesWithEmbeddedContent(t *testing.T) {
 }
 
 func TestHostAPIVersionMatchesTheCurrentDesktopContract(t *testing.T) {
-	if hostAPIVersion != 132 {
-		t.Fatalf("host API version = %d, want 132; update it with apps/ui/src/hostApi.ts", hostAPIVersion)
+	if hostAPIVersion != 133 {
+		t.Fatalf("host API version = %d, want 133; update it with apps/ui/src/hostApi.ts", hostAPIVersion)
 	}
 }
 
@@ -442,6 +442,23 @@ func TestProjectCreateInDefaultsAnEmptyParentToTheProjectsDirectory(t *testing.T
 	want := filepath.Join(home, project.DefaultDirName, "Default Location Book")
 	if host.config.projectFolder != want {
 		t.Fatalf("projectFolder = %q, want %q", host.config.projectFolder, want)
+	}
+}
+
+func TestProjectDefaultLocationNamesTheFolderAnEmptyParentCreatesIn(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("USERPROFILE", home)
+	t.Setenv("HOME", home)
+	raw, err := NewHost().ProjectDefaultLocation()
+	if err != nil {
+		t.Fatal(err)
+	}
+	var result map[string]any
+	if err := json.Unmarshal([]byte(raw), &result); err != nil {
+		t.Fatal(err)
+	}
+	if want := filepath.Join(home, project.DefaultDirName); result["path"] != want {
+		t.Fatalf("path = %#v, want %q", result["path"], want)
 	}
 }
 

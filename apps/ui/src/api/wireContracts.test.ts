@@ -144,7 +144,14 @@ import {
 import { ttsCatalogSchema, ttsInstallJobSchema } from './schemas/tts';
 import { updateJobSchema, updateStatusSchema } from './schemas/update';
 import { startResultSchema, whisperCatalogSchema, whisperInstallJobSchema } from './schemas/whisper';
-import { dawLaunchResultSchema, dawLinkResultSchema, projectFolderSelectionSchema, projectSwitchResultSchema, recentProjectsSchema } from './schemas/project';
+import {
+  dawLaunchResultSchema,
+  dawLinkResultSchema,
+  projectDefaultLocationSchema,
+  projectFolderSelectionSchema,
+  projectSwitchResultSchema,
+  recentProjectsSchema,
+} from './schemas/project';
 import {
   creditsAnnouncementsSchema,
   creditsProjectValuesResultSchema,
@@ -192,6 +199,7 @@ import { cleanupToolsStartResultSchema, cleanupToolsStateSchema } from './schema
 import {
   dawBackupsFileSchema,
   dawCapabilitiesSchema,
+  dawChoiceSchema,
   dawFxRangeCompareSchema,
   dawFxRangeSettingsSchema,
   dawLastActionSchema,
@@ -1110,11 +1118,12 @@ describe('answers of the mock client for the manuscript, Story Bible and project
     expectMatches(projectFolderSelectionSchema, await api.selectProjectFolder(), 'mock folder selection');
     expectMatches(projectSwitchResultSchema, await api.switchProject('C:/Projects/Other', 'Other'), 'mock switch');
     expectMatches(projectSwitchResultSchema, await api.createProject('C:/Projects/New', 'New'), 'mock create');
+    expectMatches(projectDefaultLocationSchema, await api.projectDefaultLocation(), 'mock default location');
   });
 
-  it('the DAW link binding answers, linked and refused on a folder mismatch', async () => {
+  it('the DAW link binding answers, linked inside the project and linked from another folder', async () => {
     expectMatches(dawLinkResultSchema, await createMockApi().linkDawFile(), 'mock link');
-    expectMatches(dawLinkResultSchema, await createMockApi({}, { dawLinkMismatch: true }).linkDawFile(), 'mock link, folder mismatch');
+    expectMatches(dawLinkResultSchema, await createMockApi({}, { dawLinkOutside: true }).linkDawFile(), 'mock link, another folder');
   });
 
   it('the DAW launch binding answers', async () => {
@@ -1890,6 +1899,33 @@ describe('answers of the mock client for the settings, voice, model, transcript 
     const stale = await createMockApi({}, { mastering: { choice: 'dolby-atmos' } }).masteringProviders();
     expectMatches(masteringProvidersSchema, stale, 'mock mastering chains (a stored choice this version does not have)');
     expect(stale).toEqual(readGolden('mastering-providers-unknown-choice.json'));
+  });
+
+  it("the project's DAW choice: the mock passes the schema, lists every engine and links the one .rpp found", async () => {
+    const linked = await createMockApi().dawChoice();
+    expectMatches(dawChoiceSchema, linked, 'mock daw choice (linked, connected)');
+    expect(linked.options.map((option) => option.daw)).toEqual(['REAPER', 'Audacity', 'Built-in']);
+    const found = createMockApi({}, { dawChoice: { linkedFile: null, foundFiles: ['Alice.rpp'] }, daw: { connected: false } });
+    const before = await found.dawChoice();
+    expectMatches(dawChoiceSchema, before, 'mock daw choice (found)');
+    // The mock words the same facts as the host's golden for a folder holding one .rpp.
+    const golden = parseWire(dawChoiceSchema, readGolden('daw-choice-found.json'), ctx('daw choice'));
+    expect({ daw: before.daw, source: before.source, state: before.state, linkedFile: before.linkedFile }).toEqual({
+      daw: golden.daw,
+      source: golden.source,
+      state: golden.state,
+      linkedFile: golden.linkedFile,
+    });
+    const after = await found.dawLinkFound();
+    expectMatches(dawChoiceSchema, after, 'mock daw choice (after linking)');
+    expect({ state: after.state, linkedFile: after.linkedFile, chosen: after.chosen }).toEqual({ state: 'linked', linkedFile: 'Alice.rpp', chosen: 'REAPER' });
+    const builtin = await found.dawChoose('Built-in');
+    expect({ daw: builtin.daw, state: builtin.state }).toEqual({ daw: 'Built-in', state: 'app' });
+    expect((await found.recorderState()).engine).toBe('builtin');
+    await expect(createMockApi({}, { dawChoice: { linkedFile: null, foundFiles: ['a.rpp', 'b.rpp'] } }).dawLinkFound()).rejects.toThrow(
+      '2 REAPER project files',
+    );
+    expect(() => parseWire(dawChoiceSchema, { ...golden, path: 'C:/x.rpp' }, ctx('daw choice'))).toThrow();
   });
 
   it('the built-in recorder matches the host goldens and records a take (ADR 0455)', async () => {
@@ -3607,7 +3643,7 @@ describe('answers of the mock client for the settings, voice, model, transcript 
     expect(cleared).toMatchObject({ state: 'none' });
 
     // The two ProofingChooseRender branches the mock never produces (the dialog is not simulated): pinned directly
-    // against the schema, the same convention as ProjectLinkDawFile's untested cancel-or-mismatch shapes.
+    // against the schema, the same convention as ProjectLinkDawFile's untested cancel-or-refused shapes.
     expectMatches(proofingChooseRenderResultSchema, { status: 'cancelled' }, 'proofing choose render, cancelled');
     expectMatches(
       proofingChooseRenderResultSchema,
@@ -3782,6 +3818,9 @@ describe('answers of the mock client for the settings, voice, model, transcript 
   it('every method of the API is either checked in this file, void, or not a request', () => {
     // A new binding fails this until it has a schema and a row above (ADR 0069). The list of what is checked is kept by hand.
     const CHECKED = [
+      'dawChoice',
+      'dawChoose',
+      'dawLinkFound',
       'coverageEngines',
       'coverageGapAccept',
       'coverageGapIgnore',
@@ -3902,6 +3941,7 @@ describe('answers of the mock client for the settings, voice, model, transcript 
       'transcriptAddEquivalence',
       'transcriptSuggestHints',
       'transcriptHints',
+      'projectDefaultLocation',
       'projectRecents',
       'selectProjectFolder',
       'switchProject',

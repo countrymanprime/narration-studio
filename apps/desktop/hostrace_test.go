@@ -104,6 +104,7 @@ var stressReaders = []stressReader{
 	{"EditingAccept (unknown chapter)", func(h *Host) { _, _ = h.EditingAccept("missing", []string{"missing:0"}) }},
 	{"EditingUnaccept (unknown word)", func(h *Host) { _, _ = h.EditingUnaccept("missing", []string{"missing:0"}) }},
 	{"ProjectRecents", func(h *Host) { _, _ = h.ProjectRecents() }},
+	{"ProjectDefaultLocation", func(h *Host) { _, _ = h.ProjectDefaultLocation() }},
 	{"SystemSettingsForScope global", func(h *Host) { _, _ = h.SystemSettingsForScope("global") }},
 	{"SystemSettingsForScope project", func(h *Host) { _, _ = h.SystemSettingsForScope("project") }},
 	{"TeleprompterState", func(h *Host) { _, _ = h.TeleprompterState() }},

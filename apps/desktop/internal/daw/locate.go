@@ -86,6 +86,32 @@ func looksLikeReaper(displayName string) bool {
 	return ok && strings.HasSuffix(rest, ")")
 }
 
+// pickAudacityFromUninstallEntries is pickFromUninstallEntries for Audacity: the first entry looksLikeAudacity names whose
+// Audacity.exe exists in its InstallLocation.
+func pickAudacityFromUninstallEntries(entries []installEntry, exists func(string) bool) (string, bool) {
+	for _, entry := range entries {
+		if !looksLikeAudacity(entry.DisplayName) || entry.InstallLocation == "" {
+			continue
+		}
+		candidate := filepath.Join(entry.InstallLocation, "Audacity.exe")
+		if exists(candidate) {
+			return candidate, true
+		}
+	}
+	return "", false
+}
+
+// looksLikeAudacity matches the Audacity installer's own naming: "Audacity", or "Audacity" and a space before a version
+// ("Audacity 3.7.3"), case-insensitively; a longer name that merely starts with the word ("Audacity Portable Helper") does not.
+func looksLikeAudacity(displayName string) bool {
+	upper := strings.ToUpper(strings.TrimSpace(displayName))
+	if upper == "AUDACITY" {
+		return true
+	}
+	rest, ok := strings.CutPrefix(upper, "AUDACITY ")
+	return ok && rest != "" && rest[0] >= '0' && rest[0] <= '9'
+}
+
 // parseAssociationCommand extracts the executable from a Windows file-association
 // command string such as `"C:\Program Files\REAPER (x64)\reaper.exe" -project "%1"`
 // (the real value read from HKCR\Reaper.Project\shell\open64\command in the

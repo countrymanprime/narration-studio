@@ -1096,7 +1096,7 @@ H.test('an item deleted mid-Compare ends it and switches nothing on the gone tak
   heard(s, 15)
   local before = #switches(s)
   s.fake.reaper.DeleteTrackMediaItem(p.chapter, middle)
-  heard(s, 16)
+  heard(s, 15) -- still inside the words, so only the take being gone can end the Compare here
   H.eq(#switches(s), before, 'nothing is switched on a take that is gone')
   H.eq(s.fake:transport_calls(), { 'OnPlayButton', 'OnStopButton' }, 'the playback it started is stopped')
   s:send('stop_fx_compare', 's1')

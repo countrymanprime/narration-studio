@@ -360,6 +360,17 @@ func (h *Host) ProjectCreateIn(parent, name string) (string, error) {
 	return h.ProjectSwitch(path, name)
 }
 
+// ProjectDefaultLocation answers {path}: the folder ProjectCreateIn uses for an empty parent (project.ResolveDir), so
+// the New Project dialog can show where a project will go. path is empty when no home folder resolves, and
+// ProjectCreateIn then refuses an empty parent.
+func (h *Host) ProjectDefaultLocation() (string, error) {
+	dir, err := project.ResolveDir("")
+	if err != nil {
+		dir = ""
+	}
+	return encodeBinding(map[string]any{"path": dir}, nil)
+}
+
 func (h *Host) ProjectRecents() (string, error) {
 	if h.recents == nil {
 		return encodeBinding([]any{}, nil)

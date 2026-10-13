@@ -76,8 +76,11 @@ func PortablePaths(value any, folder, replacement string) (any, error) {
 func portable(value any, folder, replacement string) any {
 	switch typed := value.(type) {
 	case string:
-		if strings.Contains(typed, folder) {
-			return filepath.ToSlash(strings.ReplaceAll(typed, folder, replacement))
+		// An earlier call may already have slashed this string (it named another folder too), so the folder is also
+		// looked for with forward slashes.
+		slashed := strings.ReplaceAll(folder, `\`, "/")
+		if strings.Contains(typed, folder) || strings.Contains(typed, slashed) {
+			return strings.ReplaceAll(filepath.ToSlash(strings.ReplaceAll(typed, folder, replacement)), slashed, replacement)
 		}
 		return typed
 	case []any:

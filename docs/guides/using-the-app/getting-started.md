@@ -7,6 +7,13 @@ recent projects to reopen, or actions to browse to an existing folder or create 
 
 ![No project open yet - recent projects, browse, and create actions](../../images/ui/project-picker.webp)
 
+## Where new projects go
+
+**Create new…** asks for a name. **Location** shows the folder the project goes in: the default projects folder
+(`NarrationUtils` in your user folder) until you pick another with **Change location…**.
+
+![New Project - the location line shows the default projects folder, with Change location](../../images/ui/project-new-dialog.webp)
+
 ## If you record in Audacity
 
 The installer adds a second Start Menu entry, **Narration Studio for Audacity**. Pin it next to Audacity's own shortcut. It opens
