@@ -249,6 +249,10 @@ const mockPunchCapabilityOn = mockParams.has('mockPunchCapabilityOn');
 // `?mockRecordCapabilityOn=1` turns the 'record' DAW capability on directly (the same bypass), so the Booth's Record in
 // REAPER toggle, its first-time confirm and a recording's "REC 06:42" can be captured.
 const mockRecordCapabilityOn = mockParams.has('mockRecordCapabilityOn');
+// `?mockDawConnected=0` boots with REAPER declared but its bridge not connected (the app opened on its own, not from REAPER's
+// launcher action): every capability that needs the bridge answers 'standalone' once its settings allow it. With
+// `mockRecordCapabilityOn=1` too, the Booth shows its REAPER connection steps.
+const mockDawDisconnected = mockParams.get('mockDawConnected') === '0';
 // `?mockRollReplaces=1` turns 'record' and 'punch' on and declares REAPER's punch destructive, the way a DAW that replaces audio on a
 // roll declares it (Audacity without backups), so the Booth's roll asks first: the visual suite's `booth/roll-confirm`.
 const mockRollReplaces = mockParams.has('mockRollReplaces');
@@ -485,6 +489,7 @@ const mockInitial = {
   ...(mockRegionsCapabilityOn ? { daw: { toggles: { regions: 'on' as const } } } : {}),
   ...(mockPunchCapabilityOn ? { daw: { toggles: { punch: 'on' as const } } } : {}),
   ...(mockRecordCapabilityOn ? { daw: { toggles: { record: 'on' as const } } } : {}),
+  ...(mockDawDisconnected ? { daw: { connected: false, ...(mockRecordCapabilityOn ? { toggles: { record: 'on' as const } } : {}) } } : {}),
   ...(mockRollReplaces ? { daw: { toggles: { record: 'on' as const, punch: 'on' as const }, depth: { punch: { destructive: true } } } } : {}),
   ...(mockCoverage || mockCoverageRefusal || mockStages === 'mixed'
     ? {

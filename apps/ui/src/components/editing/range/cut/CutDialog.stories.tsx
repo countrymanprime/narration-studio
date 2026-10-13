@@ -17,7 +17,7 @@ const snap = (at: number) => Promise.resolve({ time: at + 0.0012, moved: 0.0012 
 /** The question as the overlay draws it: the Dialog primitive with the dialog's own body and buttons. */
 function Question({ plan, mute = false }: { plan: Acting; mute?: boolean }) {
   return (
-    <Dialog title={cutTitle(2, mute)} onClose={fn()} actions={null}>
+    <Dialog dismissOnOutsidePress={false} title={cutTitle(2, mute)} onClose={fn()} actions={null}>
       <CutDialog
         doc={doc}
         keys={keys}

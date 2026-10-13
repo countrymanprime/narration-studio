@@ -12,6 +12,7 @@ const meta = {
   args: {
     title: 'Add note',
     onClose: fn(),
+    dismissOnOutsidePress: false,
     actions: (
       <>
         <Button variant="secondary">Cancel</Button>
@@ -140,13 +141,23 @@ export const EscapeIsIgnoredWithoutOnClose: Story = {
   },
 };
 
-// A press on the scrim never dismisses: an accidental click must not discard a confirm.
+// `dismissOnOutsidePress: false` (a confirm, a form, a job): an accidental click on the scrim must not discard it (ADR 0048).
 export const BackdropPressDoesNotClose: Story = {
   play: async ({ args }) => {
     await screen.findByRole('dialog', { name: 'Add note' });
     await userEvent.click(document.querySelector('[data-dialog-backdrop]') as HTMLElement);
     await expect(args.onClose).not.toHaveBeenCalled();
     await expect(screen.getByRole('dialog', { name: 'Add note' })).toBeVisible();
+  },
+};
+
+// `dismissOnOutsidePress: true` (a reference sheet, a detail view, a picker that applies each choice at once): a press on the scrim closes it (issue 1706).
+export const BackdropPressCloses: Story = {
+  args: { dismissOnOutsidePress: true, title: 'Keyboard shortcuts', actions: null },
+  play: async ({ args }) => {
+    await screen.findByRole('dialog', { name: 'Keyboard shortcuts' });
+    await userEvent.click(document.querySelector('[data-dialog-backdrop]') as HTMLElement);
+    await expect(args.onClose).toHaveBeenCalledOnce();
   },
 };
 
@@ -170,7 +181,7 @@ function WithOpener() {
         Open dialog
       </button>
       {open && (
-        <Dialog title="Add note" onClose={() => setOpen(false)} actions={<Button variant="secondary">Cancel</Button>}>
+        <Dialog dismissOnOutsidePress={false} title="Add note" onClose={() => setOpen(false)} actions={<Button variant="secondary">Cancel</Button>}>
           <p className="text-sm">Note body</p>
         </Dialog>
       )}

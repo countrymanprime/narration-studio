@@ -94,8 +94,8 @@ export function DawPanel({ data, notify, onLinkDawFile }: { data: Bootstrap; not
             <div className="rounded-md p-3" style={{ background: 'var(--surface-2)' }}>
               <div className="font-medium">REAPER launcher</div>
               <p className="mt-1" style={{ color: 'var(--text-muted)' }}>
-                Import this action once in REAPER. If Narration Studio is moved or updated, re-import this path when prompted; the app never changes REAPER for
-                you.
+                Load this file once in REAPER (Actions, Show action list, New action, Load ReaScript), then run it with your project open to connect. Load it
+                again after Narration Studio is moved or updated: the path changes. The app never changes REAPER for you.
               </p>
               <code className="mt-2 block rounded p-2 text-xs break-all" style={{ background: 'var(--surface)' }}>
                 {launcher}

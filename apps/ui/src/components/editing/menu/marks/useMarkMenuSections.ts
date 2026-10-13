@@ -41,6 +41,7 @@ export function useMarkMenuSections(chapterId: string): void {
       addNote: (selection) => {
         const close = overlay.open({
           kind: 'dialog',
+          dismissOnOutsidePress: false,
           title: 'Add a note',
           render: ({ close: done }) =>
             createElement(NoteDialog, {

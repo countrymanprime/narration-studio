@@ -286,7 +286,7 @@ describe('a hint inside a dialog', () => {
     const onClose = vi.fn();
     const user = userEvent.setup();
     render(
-      <Dialog title="Add note" onClose={onClose} actions={<Button variant="primary">Save</Button>}>
+      <Dialog dismissOnOutsidePress={false} title="Add note" onClose={onClose} actions={<Button variant="primary">Save</Button>}>
         <Tooltip text={TEXT} />
       </Dialog>,
     );
