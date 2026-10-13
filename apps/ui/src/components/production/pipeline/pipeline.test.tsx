@@ -114,6 +114,12 @@ describe('NextUp', () => {
     expect(within(items[2]!).getByRole('button', { name: 'Inspect failed check' })).toBeTruthy();
   });
 
+  it("tints each item's disc by what it is: recording, then pickups and a failed check as danger (the mock)", () => {
+    view(<NextUp inputs={NEXT_UP_BUSY} record={record} onGo={noop} timer={timer} />);
+    const items = within(screen.getByRole('list', { name: 'Next up' })).getAllByRole('listitem');
+    expect(items.map((li) => li.querySelector('[data-tone]')?.getAttribute('data-tone'))).toEqual(['rec', 'danger', 'danger']);
+  });
+
   it('says "Nothing needs you right now." when empty', () => {
     view(<NextUp inputs={NEXT_UP_EMPTY} record={record} onGo={noop} timer={timer} />);
     expect(screen.getByText('Nothing needs you right now.')).toBeTruthy();

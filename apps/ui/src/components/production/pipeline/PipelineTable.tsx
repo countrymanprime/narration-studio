@@ -6,7 +6,17 @@ import { TooltipTarget } from '../../primitives/Tooltip';
 import type { Notify } from '../../primitives/Toast';
 import { openReadiness } from '../readiness/openReadiness';
 import { ReadinessChip } from '../readiness/ReadinessChip';
-import { cellName, COLUMN_LABEL, UNDER_WAY, type CellKind, type GoTarget, type PipelineCell, type PipelineColumn, type PipelineRow } from './pipelineRows';
+import {
+  cellName,
+  COLUMN_LABEL,
+  NOT_STARTED_PREP,
+  UNDER_WAY,
+  type CellKind,
+  type GoTarget,
+  type PipelineCell,
+  type PipelineColumn,
+  type PipelineRow,
+} from './pipelineRows';
 
 const KIND_TONE: Record<CellKind, StatusTone> = { done: 'success', progress: 'progress', open: 'danger', none: 'neutral' };
 /** Every stage column is the same width; Fin. is narrower (the mock: 80 px and 64 px). */
@@ -22,7 +32,9 @@ const underWayMark = (
     className="inline-block size-2.5 rounded-full border border-current [background:linear-gradient(90deg,currentColor_50%,transparent_50%)]"
   />
 );
-const textOf = (cell: PipelineCell) => (cell.text === UNDER_WAY ? underWayMark : cell.text);
+/** An empty circle, for prep not started. */
+const notStartedMark = <span data-not-started="" aria-hidden="true" className="inline-block size-2.5 rounded-full border border-current" />;
+const textOf = (cell: PipelineCell) => (cell.text === UNDER_WAY ? underWayMark : cell.text === NOT_STARTED_PREP ? notStartedMark : cell.text);
 
 function StageCell({ row, cell, onGo }: { row: PipelineRow; cell: PipelineCell; onGo: (target: GoTarget, chapterId: string) => void }) {
   const colors = toneColors(KIND_TONE[cell.kind]);

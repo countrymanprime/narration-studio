@@ -64,6 +64,8 @@ const DASH = '—';
 const TICK = '✓';
 /** The text of an under-way cell (a stage with no measured percent): the table draws it as a shape, not as this glyph, which many fonts lack. */
 export const UNDER_WAY = '◐';
+/** The text of a chapter whose prep is not started (the mock's empty circle), drawn as a shape like `UNDER_WAY`. */
+export const NOT_STARTED_PREP = '○';
 
 const ORDER: readonly ChapterStatus[] = ['not_started', 'recording', 'editing', 'proofing', 'finalized'];
 const past = (status: ChapterStatus, at: ChapterStatus): boolean => ORDER.indexOf(status) >= ORDER.indexOf(at);
@@ -130,7 +132,7 @@ function proofCell(chapter: ProductionChapter, notes: { cleared: number; total: 
 function prepCell(prep: 'prepped' | 'progress' | 'none' | undefined): PipelineCell {
   if (prep === 'prepped') return done('prep', 'script', 'Prepped');
   if (prep === 'progress') return underWay('prep', 'script', 'Prep in progress');
-  if (prep === 'none') return notStarted('prep', 'script');
+  if (prep === 'none') return cell('prep', 'script', 'none', NOT_STARTED_PREP, 'not started', 'Prep not started');
   return unknown('prep', 'script');
 }
 
@@ -138,7 +140,7 @@ function pickupsCell(chapter: ProductionChapter, open: number | undefined): Pipe
   // Pickups wait for a chapter recorded to the end: until then nothing is left to pick up.
   if (!past(chapter.status, 'editing')) return cell('pickups', 'pickups', 'none', DASH, 'waiting for the recording', 'Waits for the full recording', false);
   if (open === undefined) return cell('pickups', 'pickups', 'none', DASH, 'not measured yet', 'Pickups are counted for the whole project');
-  if (open === 0) return done('pickups', 'pickups', 'No open pickups');
+  if (open === 0) return cell('pickups', 'pickups', 'done', '0', 'none open', 'No open pickups');
   return cell('pickups', 'pickups', 'open', String(open), `${open} open`, `${open} open pickups`);
 }
 
