@@ -81,6 +81,12 @@ describe('ScopedSetting controls', () => {
     expect(screen.getByRole('switch', { name: 'Notify me' }).getAttribute('aria-checked')).toBe('false');
   });
 
+  it('explains the Experimental REAPER actions switch instead of the generic note', async () => {
+    renderSetting({ ...FIELD, key: 'experimental_reaper_actions', label: 'Experimental REAPER actions', kind: 'bool', choices: [], effectiveValue: 'false' });
+    fireEvent.click(screen.getByRole('button', { name: 'More information' }));
+    expect(await screen.findByText(/not yet verified in a real REAPER are refused while this is off/)).toBeTruthy();
+  });
+
   it('treats anything but "true" as off, so a value the host never validated cannot turn a switch on', () => {
     renderSetting({ ...FIELD, key: 'notify_done', label: 'Notify me', kind: 'bool', choices: [], effectiveValue: 'yes' });
     expect(screen.getByRole('switch', { name: 'Notify me' }).getAttribute('aria-checked')).toBe('false');
