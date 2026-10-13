@@ -12,6 +12,18 @@ export const boothStates: StateEntry[] = [
   },
   {
     page: 'booth',
+    state: 'daw-not-linked',
+    description:
+      'Booth for a folder holding one .rpp that is not linked (?mockDawChoice=found): the setup chip reads "REAPER · not linked" in the warning tone, its accessible name "Recording setup: REAPER, not linked" (the tooltip that names Alice.rpp is pinned by record.test.tsx, not captured)',
+  },
+  {
+    page: 'booth',
+    state: 'daw-not-running',
+    description:
+      'Booth with REAPER linked and its bridge open but not answering (?mockDawChoice=not-running): the setup chip reads "REAPER · not running" in the warning tone, its accessible name "Recording setup: REAPER, not running"',
+  },
+  {
+    page: 'booth',
     state: 'refusal',
     description:
       'Booth with the record capability switched off (the mock\'s default): Record is disabled and the footer says why in the capability\'s own sentence ("Experimental: switched off in Settings."), naming no DAW of its own; above the footer, "Recording in REAPER is experimental" with Turn on Record and DAW settings',

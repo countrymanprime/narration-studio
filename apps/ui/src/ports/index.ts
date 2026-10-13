@@ -47,7 +47,7 @@ import type { EditWordFxApi } from '../api/contracts/wordFx';
 import type { EditStacksApi } from '../api/contracts/editStacks';
 import type { WorkspaceApi } from '../api/contracts/workspace';
 import type { PreviewApi } from '../api/contracts/preview';
-import type { DawCapabilitiesApi } from '../api/contracts/daw';
+import type { DawCapabilitiesApi, DawChoiceApi } from '../api/contracts/daw';
 import type {
   DawBackupsApi,
   DawDeleteRangeApi,
@@ -203,6 +203,7 @@ export interface PortMap {
   workspace: WorkspaceApi;
   preview: PreviewApi;
   dawCapabilities: DawCapabilitiesApi;
+  dawChoice: DawChoiceApi;
   dawHideTakes: DawHideTakesApi;
   dawRoll: DawRollApi;
   dawDeleteRange: DawDeleteRangeApi;

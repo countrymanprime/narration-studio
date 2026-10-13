@@ -38,9 +38,18 @@ func (h *Host) dawResolver() (*dawport.Resolver, dawport.Runtime) {
 // dawResolverFor is dawResolver over a snapshot the caller already holds, so a caller that also reads another service
 // (bindings_daw_transport.go reads the heartbeat) sees the same project's state in both.
 func (h *Host) dawResolverFor(svc hostServices) (*dawport.Resolver, dawport.Runtime) {
-	adapter := dawDeclarationFor(h.dawLaunchKind(svc))
+	return dawResolverOver(svc, h.dawLaunchKind(svc), true)
+}
+
+// dawResolverOver is the resolver over kind's declaration-only adapter. live says whether kind is the project's own DAW, whose
+// bridge and heartbeat are svc's; any other kind (a DAW Settings > Recording lists but the project does not use) has no bridge.
+func dawResolverOver(svc hostServices, kind dawport.Kind, live bool) (*dawport.Resolver, dawport.Runtime) {
+	adapter := dawDeclarationFor(kind)
 	client, reach, store := svc.bridge, svc.reachability, svc.settings
-	runtime := dawport.Runtime{Bridge: client != nil, Reachable: reach != nil && reach.Reachable()}
+	runtime := dawport.Runtime{}
+	if live {
+		runtime = dawport.Runtime{Bridge: client != nil, Reachable: reach != nil && reach.Reachable()}
+	}
 	// An engine that is part of the app (the built-in recorder) reports its own runtime: it has no bridge to connect.
 	if own, ok := adapter.(interface{ Runtime() dawport.Runtime }); ok {
 		runtime = own.Runtime()
@@ -54,11 +63,11 @@ func (h *Host) dawResolverFor(svc hostServices) (*dawport.Resolver, dawport.Runt
 	return resolver, runtime
 }
 
-// dawLaunchKind is the one place the host reads the launch's kind for the DAW port: the --daw label's DAW, or, on a launch with
-// none, the built-in recorder when the project records with it (recordingEngine, the Recording.engine row). The choice is the
-// host's own settings row, never a label from the page (docs/architecture/threat-model.md, row 6f).
+// dawLaunchKind is the one place the host reads the project's kind for the DAW port: the --daw label's DAW as an override, else
+// the project's own choice or what its folder holds (projectDaw, projectdaw.go). The choice is the host's own settings row, never a
+// label from the page (docs/architecture/threat-model.md, row 6f).
 func (h *Host) dawLaunchKind(svc hostServices) dawport.Kind {
-	return dawport.LaunchKind(svc.config.daw, h.recordingEngine(svc) == engineBuiltin)
+	return h.projectDaw(svc).kind
 }
 
 // dawDeclarationFor is the launch's adapter, declaration only: reaper.Declaration(), audacity.Declaration() and

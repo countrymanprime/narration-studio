@@ -564,21 +564,55 @@ func TestContractProjectLinkDawFile(t *testing.T) {
 	if err := os.WriteFile(elsewhere, []byte("x"), 0o600); err != nil {
 		t.Fatal(err)
 	}
-	mismatch, err := linkDawFile(nil, folder, elsewhere)
+	outside, err := linkDawFile(nil, folder, elsewhere)
 	if err != nil {
 		t.Fatal(err)
 	}
-	stableMismatch, err := contractfile.PortablePaths(mismatch, folder, "C:/Projects/Alice")
+	stableOutside, err := contractfile.PortablePaths(outside, folder, "C:/Projects/Alice")
 	if err != nil {
 		t.Fatal(err)
 	}
-	stableMismatch, err = contractfile.PortablePaths(stableMismatch, other, "C:/Projects/Elsewhere")
+	stableOutside, err = contractfile.PortablePaths(stableOutside, other, "D:/Audio/Elsewhere")
 	if err != nil {
 		t.Fatal(err)
 	}
-	contractfile.Check(t, "daw-link-folder-mismatch", stableMismatch)
+	contractfile.Check(t, "daw-link-outside", stableOutside)
+
+	notRpp := filepath.Join(folder, "take.wav")
+	if err := os.WriteFile(notRpp, []byte("x"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	refused, err := linkDawFile(nil, folder, notRpp)
+	if err != nil {
+		t.Fatal(err)
+	}
+	stableRefused, err := contractfile.PortablePaths(refused, folder, "C:/Projects/Alice")
+	if err != nil {
+		t.Fatal(err)
+	}
+	contractfile.Check(t, "daw-link-refused", stableRefused)
 
 	contractfile.Check(t, "daw-link-cancelled", map[string]any{"selected": false, "linked": false})
+}
+
+// TestContractProjectDefaultLocation pins ProjectDefaultLocation's result shape.
+func TestContractProjectDefaultLocation(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("USERPROFILE", home)
+	t.Setenv("HOME", home)
+	raw, err := NewHost().ProjectDefaultLocation()
+	if err != nil {
+		t.Fatal(err)
+	}
+	var result map[string]any
+	if err := json.Unmarshal([]byte(raw), &result); err != nil {
+		t.Fatal(err)
+	}
+	stable, err := contractfile.PortablePaths(result, home, "C:/Users/Alice")
+	if err != nil {
+		t.Fatal(err)
+	}
+	contractfile.Check(t, "project-default-location", stable)
 }
 
 // TestContractDawLaunch pins DawLaunch's result shape.

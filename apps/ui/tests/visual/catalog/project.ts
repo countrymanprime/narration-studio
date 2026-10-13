@@ -8,4 +8,9 @@ export const projectStates: StateEntry[] = [
     state: 'picker-empty',
     description: 'No project open yet - ProjectPicker with a recent-projects list, browse, and create actions',
   },
+  {
+    page: 'project',
+    state: 'new-project-dialog',
+    description: 'Create new... opened from the picker - the New Project dialog showing the real default projects folder',
+  },
 ];

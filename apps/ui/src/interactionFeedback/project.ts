@@ -9,6 +9,7 @@ export const projectFeedback: Record<string, FeedbackRow> = {
   'src/components/project/ProjectPicker.tsx::removeRecentProject#1': row('click', 'file-io', 'disabled', 'disabled', 'ui', 'inline', 'na', 'ok', 'runAction.'),
   'src/components/project/ProjectPicker.tsx::selectProjectFolder#1': row('click', 'os-dialog', 'disabled', 'disabled', 'ui', 'inline', 'na', 'ok', 'runAction.'),
   'src/components/project/ProjectPicker.tsx::switchProject#2': row('click', 'file-io', 'disabled', 'disabled', 'ui', 'inline', 'na', 'ok', 'runAction.'),
+  'src/components/project/NewProjectDialog.tsx::projectDefaultLocation#1': row('mount', 'file-io', 'na', 'na', 'ui', 'silent', 'na', 'exempt', 'Reads the default projects folder only to show it; unreadable, the dialog names it in words and Create still uses it.'),
   'src/components/project/NewProjectDialog.tsx::selectProjectFolder#1': row(
     'click',
     'os-dialog',
