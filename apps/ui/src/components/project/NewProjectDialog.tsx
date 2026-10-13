@@ -63,6 +63,7 @@ export function NewProjectDialog({ onClose, onCreated }: Props) {
 
   return (
     <Dialog
+      dismissOnOutsidePress={false}
       title="New Project"
       onClose={busy ? undefined : onClose}
       actions={

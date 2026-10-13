@@ -54,6 +54,7 @@ export function ChapterTagsDialog({ onClose }: { onClose: () => void }) {
 
   return (
     <Dialog
+      dismissOnOutsidePress={false}
       title="Embed chapter tags"
       onClose={embedding ? undefined : onClose}
       escapeCloses={!embedding}

@@ -31,6 +31,7 @@ import { CREDITS_LABEL } from '../readerModel';
 import { BoothText } from '../reading/BoothText';
 import { wordCount } from '../reading/boothUnits';
 import { RecordControl } from '../record/RecordControl';
+import { RecordSetup, useRecordSetupFacts } from '../record/RecordSetup';
 import { SetupChip } from '../record/SetupChip';
 import { useDawChoice } from '../record/useDawChoice';
 import { ResumeOfferLine } from '../resume/ResumeOffer';
@@ -347,6 +348,7 @@ function BoothSession({ source, from, requested, adopt, data, choose, navigate, 
   const capabilities = control.capabilities;
   const dawChoice = useDawChoice();
   const roomTone = useRoomTone(measurements, session.device);
+  const setupFacts = useRecordSetupFacts(capabilities?.reachable);
   const standalone = capabilities?.daw === 'none';
   const listening = useListeningMic({
     dawRecords: !!capabilities && !standalone,
@@ -467,6 +469,15 @@ function BoothSession({ source, from, requested, adopt, data, choose, navigate, 
               />
             </PickupSessionProvider>
           </div>
+          {capabilities && !control.recording ? (
+            <RecordSetup
+              capabilities={capabilities}
+              facts={setupFacts}
+              say={(sentence, tone) => overlay.toast(sentence, tone ? { tone } : undefined)}
+              onSettings={() => void page.goTo(`${BOOTH_LINKS.settings}#daw`)}
+              onChanged={control.refresh}
+            />
+          ) : null}
           <BoothFooter
             record={<RecordControl control={control} />}
             seconds={page.seconds}

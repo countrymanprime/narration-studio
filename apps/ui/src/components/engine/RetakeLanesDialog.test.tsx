@@ -28,6 +28,14 @@ function statusOf(lineId: string, lane: number) {
 }
 
 describe('RetakeLanesDialog', () => {
+  it('closes on a press outside the dialog: a lane picker applies each pick at once, so nothing is left unsaved (issue 1706)', async () => {
+    const user = userEvent.setup();
+    const { onClose } = renderDialog();
+    await screen.findByRole('region', { name: 'line-000012 on Chapter 1' });
+    await user.click(document.querySelector('[data-dialog-backdrop]') as HTMLElement);
+    expect(onClose).toHaveBeenCalledTimes(1);
+  });
+
   it('lists each line’s retakes by lane, with what plays in the saved project', async () => {
     renderDialog();
     expect(await screen.findByRole('region', { name: 'line-000012 on Chapter 1' })).toBeTruthy();

@@ -20,6 +20,19 @@ const job = (patch: Partial<WorkJob>): WorkJob => ({
 const PHASES: WorkJob['phase'][] = ['preparing', 'running', 'committing', 'success', 'error', 'cancelled'];
 
 describe('WorkDialog', () => {
+  it('stays open when the backdrop is pressed, whatever phase the job is in: a job is ended with its own buttons (issue 1706)', () => {
+    for (const phase of PHASES) {
+      const close = vi.fn();
+      const background = vi.fn();
+      render(<WorkDialog title="Rebuild Story Bible" job={job({ phase })} close={close} cancel={vi.fn()} background={background} />);
+      fireEvent.click(document.querySelector('[data-dialog-backdrop]') as HTMLElement);
+      expect(close, phase).not.toHaveBeenCalled();
+      expect(background, phase).not.toHaveBeenCalled();
+      expect(screen.getByRole('dialog', { name: 'Rebuild Story Bible' }), phase).toBeTruthy();
+      cleanup();
+    }
+  });
+
   it('never leaves a dialog with nothing to press and nothing said about it', () => {
     // Every phase, with and without a cancel handler: a control to press, or the dialog says why there is none.
     for (const phase of PHASES) {

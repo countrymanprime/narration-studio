@@ -58,6 +58,12 @@ async function openDialog(count = 6) {
 const lastSaved = () => save.mock.calls.at(-1)![0];
 
 describe('define-marks-edits-the-types', () => {
+  it('closes on a press outside the dialog: every change is saved as it is made, so no input is lost (issue 1706)', async () => {
+    await openDialog();
+    await userEvent.click(document.querySelector('[data-dialog-backdrop]') as HTMLElement);
+    await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Define how you mark up' })).toBeNull());
+  });
+
   it('saves a colour, a line and Asks as each changes, and the swatch follows', async () => {
     const dialog = await openDialog();
     const swatch = within(dialog).getAllByTestId('mark-swatch')[0]!;

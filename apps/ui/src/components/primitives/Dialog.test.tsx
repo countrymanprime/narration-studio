@@ -11,7 +11,7 @@ import { tabInsideTrap } from './tabInsideTrap';
 
 afterEach(cleanup);
 
-// The app renders a dialog conditionally, as `{open && <Dialog ... />}`, so this harness does the same: it is the shape
+// The app renders a dialog conditionally, as `{open && <Dialog dismissOnOutsidePress={false} ... />}`, so this harness does the same: it is the shape
 // every consumer has, with no trigger element inside the dialog.
 function Harness({ dismissible = true, withAutofocus = false, keepOpener = true }: { dismissible?: boolean; withAutofocus?: boolean; keepOpener?: boolean }) {
   const [open, setOpen] = useState(false);
@@ -23,6 +23,7 @@ function Harness({ dismissible = true, withAutofocus = false, keepOpener = true 
       </main>
       {open && (
         <Dialog
+          dismissOnOutsidePress={false}
           title="Add note"
           onClose={dismissible ? () => setOpen(false) : undefined}
           actions={
@@ -104,7 +105,7 @@ describe('Dialog is a real modal', () => {
         <div>
           <button onClick={() => setOpen(true)}>Open dialog</button>
           {open && (
-            <Dialog title="Read aloud" onClose={() => setOpen(false)} actions={null}>
+            <Dialog dismissOnOutsidePress={false} title="Read aloud" onClose={() => setOpen(false)} actions={null}>
               <Popover trigger={<Button>Microphone</Button>} label="Microphone">
                 <button type="button">Refresh</button>
               </Popover>
@@ -187,7 +188,7 @@ describe('Dialog is a real modal', () => {
     const onClose = vi.fn();
     const user = userEvent.setup();
     render(
-      <Dialog title="Add note" onClose={onClose} actions={<Button variant="primary">Save</Button>}>
+      <Dialog dismissOnOutsidePress={false} title="Add note" onClose={onClose} actions={<Button variant="primary">Save</Button>}>
         <p>Body</p>
       </Dialog>,
     );
@@ -199,7 +200,7 @@ describe('Dialog is a real modal', () => {
     const onEscape = vi.fn();
     const user = userEvent.setup();
     render(
-      <Dialog title="Import manuscript" onEscape={onEscape} actions={<Button variant="primary">Done</Button>}>
+      <Dialog dismissOnOutsidePress={false} title="Import manuscript" onEscape={onEscape} actions={<Button variant="primary">Done</Button>}>
         <p>Body</p>
       </Dialog>,
     );
@@ -213,7 +214,7 @@ describe('Dialog is a real modal', () => {
     const onClose = vi.fn();
     const user = userEvent.setup();
     render(
-      <Dialog title="Downloading" onClose={onClose} escapeCloses={false} actions={<Button variant="primary">Cancel</Button>}>
+      <Dialog dismissOnOutsidePress={false} title="Downloading" onClose={onClose} escapeCloses={false} actions={<Button variant="primary">Cancel</Button>}>
         <p>Body</p>
       </Dialog>,
     );
@@ -232,7 +233,7 @@ describe('Dialog is a real modal', () => {
         <div role="status" aria-live="polite">
           Saved
         </div>
-        <Dialog title="Add note" onClose={() => undefined} actions={<Button variant="primary">Save</Button>}>
+        <Dialog dismissOnOutsidePress={false} title="Add note" onClose={() => undefined} actions={<Button variant="primary">Save</Button>}>
           <p>Body</p>
         </Dialog>
       </div>,
@@ -245,7 +246,13 @@ describe('Dialog is a real modal', () => {
 
   it('is an alertdialog described by its text when it is the alert variant', async () => {
     render(
-      <Dialog title="Delete entry" variant="alert" description="This cannot be undone." actions={<Button variant="primary">Delete</Button>}>
+      <Dialog
+        dismissOnOutsidePress={false}
+        title="Delete entry"
+        variant="alert"
+        description="This cannot be undone."
+        actions={<Button variant="primary">Delete</Button>}
+      >
         <p>Extra</p>
       </Dialog>,
     );
@@ -256,7 +263,7 @@ describe('Dialog is a real modal', () => {
 
   it('draws no action row when it has no actions, and keeps the body as the one focus target', async () => {
     render(
-      <Dialog title="Rebuild" actions={null}>
+      <Dialog dismissOnOutsidePress={false} title="Rebuild" actions={null}>
         <p>Working</p>
       </Dialog>,
     );
@@ -270,7 +277,12 @@ describe('Dialog is a real modal', () => {
   // scrolls with the body, for the read-aloud dialog's control bar.
   it('draws the footer outside the scrolling body and above actions, and draws nothing when it is absent', async () => {
     render(
-      <Dialog title="Read aloud" actions={<Button variant="primary">Close</Button>} footer={<div data-testid="bar">Reading controls</div>}>
+      <Dialog
+        dismissOnOutsidePress={false}
+        title="Read aloud"
+        actions={<Button variant="primary">Close</Button>}
+        footer={<div data-testid="bar">Reading controls</div>}
+      >
         <p>Body</p>
       </Dialog>,
     );
@@ -283,7 +295,7 @@ describe('Dialog is a real modal', () => {
 
     cleanup();
     render(
-      <Dialog title="Rebuild" actions={null}>
+      <Dialog dismissOnOutsidePress={false} title="Rebuild" actions={null}>
         <p>Working</p>
       </Dialog>,
     );
@@ -296,7 +308,7 @@ describe('Dialog is a real modal', () => {
 describe('Dialog size="full"', () => {
   it('defaults to the capped, content-sized popup', async () => {
     render(
-      <Dialog title="Add note" onClose={() => undefined} actions={<Button variant="primary">Save</Button>}>
+      <Dialog dismissOnOutsidePress={false} title="Add note" onClose={() => undefined} actions={<Button variant="primary">Save</Button>}>
         <p>Body</p>
       </Dialog>,
     );
@@ -308,7 +320,7 @@ describe('Dialog size="full"', () => {
 
   it('fills the viewport with a fixed margin and scrolls its body', async () => {
     render(
-      <Dialog title="Read aloud" onClose={() => undefined} actions={<Button variant="primary">Close</Button>} size="full">
+      <Dialog dismissOnOutsidePress={false} title="Read aloud" onClose={() => undefined} actions={<Button variant="primary">Close</Button>} size="full">
         <p>Body</p>
       </Dialog>,
     );
@@ -326,7 +338,7 @@ describe('Dialog size="full"', () => {
     render(
       <div>
         <button>Behind the dialog</button>
-        <Dialog title="Read aloud" onClose={onClose} actions={<Button variant="primary">Close</Button>} size="full">
+        <Dialog dismissOnOutsidePress={false} title="Read aloud" onClose={onClose} actions={<Button variant="primary">Close</Button>} size="full">
           <p>Body</p>
         </Dialog>
       </div>,
@@ -351,7 +363,12 @@ describe('Dialog backdrop', () => {
         <SlideOver open title="Track" onClose={() => {}}>
           <button onClick={() => setConfirming(true)}>Remove</button>
           {confirming && (
-            <Dialog title="Remove it?" onClose={() => setConfirming(false)} actions={<Button onClick={() => setConfirming(false)}>Cancel</Button>}>
+            <Dialog
+              dismissOnOutsidePress={false}
+              title="Remove it?"
+              onClose={() => setConfirming(false)}
+              actions={<Button onClick={() => setConfirming(false)}>Cancel</Button>}
+            >
               Body
             </Dialog>
           )}
@@ -374,7 +391,7 @@ describe('Dialog headerless', () => {
           <button onClick={() => setOpen(true)}>Open palette</button>
         </main>
         {open && (
-          <Dialog title="Jump menu" headerless onClose={() => setOpen(false)} actions={null}>
+          <Dialog dismissOnOutsidePress={false} title="Jump menu" headerless onClose={() => setOpen(false)} actions={null}>
             <input aria-label="Field" autoFocus />
           </Dialog>
         )}

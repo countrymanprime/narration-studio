@@ -47,6 +47,25 @@ track and starts at the end of the last item on it, so a take never records over
 disabled and the footer says why, in the DAW's own words: the DAW is not running, the record action is switched off in Settings,
 the chapter has no track, or the DAW is already playing.
 
+When the reason is one you can fix from the Booth, a box above the footer shows the steps:
+
+- **Recording in REAPER is experimental.** Recording in a DAW starts switched off until it has been checked in that DAW.
+  **Turn on Record** turns it on for this computer (Settings > DAW Integration > Record), and Record is ready at once.
+
+  ![Booth - Record disabled with the reason in the footer, and the Recording in REAPER is experimental box above it with Turn on Record and DAW settings](../../images/ui/booth-record-refused.webp)
+
+- **Connect REAPER to record** (or **REAPER is not answering**). The app records in REAPER through a small script, the
+  launcher, that runs inside REAPER. Load it once: in REAPER, choose **Actions > Show action list > New action > Load
+  ReaScript** and pick the launcher file the box shows (**Copy path** copies it). Load it again after you update the app,
+  because the file moves with each update. Then, with the chapter's project open in REAPER, run
+  **Script: NarrationUtils_Launcher.lua**. The app connects and Record turns on. With REAPER closed, **Open in REAPER and
+  connect** opens the linked project with the launcher in one go, and from then on Launch REAPER always starts it. If no
+  REAPER project is linked yet, the first step links it.
+
+  ![Booth - the Connect REAPER to record box, with the two steps and Open in REAPER and connect, above the disabled Record button and its reason](../../images/ui/booth-record-setup.webp)
+
+If you stop a take in the DAW itself, the Booth sees it and says so, and Record is ready for the next take.
+
 ![Booth - a take recording: Stop in place of Record, the REC pill beside the setup chip and the take counted in This session](../../images/ui/booth-listening.webp)
 
 While a take runs, Record becomes **Stop**, a **REC** pill shows beside the setup chip and the timer counts. The chapter cannot be

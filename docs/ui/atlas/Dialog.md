@@ -18,6 +18,7 @@ Storybook title: `Primitives/Dialog`. Source: `src/components/primitives/Dialog.
 - Escape Invokes On Close
 - Escape Is Ignored Without On Close
 - Backdrop Press Does Not Close
+- Backdrop Press Closes
 - Tab Stays Inside The Dialog
 - Returns Focus To The Opener
 - Auto Focus Child Wins

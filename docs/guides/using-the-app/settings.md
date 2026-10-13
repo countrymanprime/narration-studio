@@ -177,7 +177,8 @@ available** or **Unsupported**), the DAW's own reason when it is unavailable, ho
 warning on any action that replaces audio that cannot be brought back. A **Backups** section follows only
 for a DAW that keeps backups of the audio around an edit: how much audio either side is kept and for how
 many days. Where the app knows the launcher's path, **REAPER launcher** shows it with **Copy path**, to
-import once in REAPER as an action.
+load once in REAPER as an action (**Actions > Show action list > New action > Load ReaScript**) and load again after each
+update, since the path changes. The Booth shows the same steps when Record is waiting for REAPER ([Booth](booth.md#recording)).
 
 In **This project**, the same panel shows whether a REAPER project is linked, with **Link a REAPER
 project file** or **Change linked project file**: the same link as the pill in the

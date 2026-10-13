@@ -38,6 +38,13 @@ function renderSheet(onClose = vi.fn(), onShowAll = vi.fn(), options: { api?: Na
 }
 
 describe('ShortcutSheet', () => {
+  it('closes on a press outside the sheet: it is reference material with nothing to lose (issue 1706)', async () => {
+    const { onClose } = renderSheet();
+    await screen.findByRole('dialog', { name: 'Keyboard shortcuts' });
+    fireEvent.click(document.querySelector('[data-dialog-backdrop]') as HTMLElement);
+    expect(onClose).toHaveBeenCalledTimes(1);
+  });
+
   it('is a modal dialog named "Keyboard shortcuts"', () => {
     renderSheet();
     expect(screen.getByRole('dialog', { name: 'Keyboard shortcuts' })).toBeTruthy();
