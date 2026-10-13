@@ -579,6 +579,17 @@ describe('EditingPage', () => {
       await waitFor(() => expect(audios.some((a) => a.play.mock.calls.length > 0)).toBe(true));
     });
 
+    it("the toolbar's Takes of this line opens the line's takes", async () => {
+      mount({ chapterId: 'c1' });
+      await script();
+      await waitFor(() => expect(document.querySelector('[data-tchip="p1"]')).not.toBeNull());
+      expect(document.querySelector('[data-tchip="p1"]')!.getAttribute('aria-expanded')).toBe('false');
+      fireEvent.mouseDown(word('p1:1'), { button: 0, detail: 2 });
+      const toolbar = await screen.findByRole('toolbar', { name: 'Selection' });
+      fireEvent.click(await within(toolbar).findByRole('button', { name: 'Takes of this line' }));
+      await waitFor(() => expect(document.querySelector('[data-tchip="p1"]')!.getAttribute('aria-expanded')).toBe('true'));
+    });
+
     it('the marker after an effect selects its words and takes it off', async () => {
       const fx = {
         id: 'fx-1',

@@ -58,6 +58,8 @@ import { doubledCut, wordAt, type ChapterRead } from './chapterSource';
 import { EditingHeader } from './EditingHeader';
 import { installBackupSteps, tokensIn } from '../backups/backupBefore';
 import { FxMarkersContext } from '../range/fx/fxMarkers';
+import { registerSelectionAction } from '../bar/selectionActions';
+import { SelectionActionButton } from '../bar/SelectionActionButton';
 import { InHost, rowOf } from './InHost';
 import { NoAudioBanner } from './NoAudioBanner';
 import { useLines } from './useLines';
@@ -272,6 +274,28 @@ export function EditingBody(props: EditingBodyProps) {
         show: (line) => latest.current.setLineOpen(line.id, true),
         keep: (line, take) => void latest.current.keep.keep(line, take),
         gate: () => latest.current.gate,
+      }),
+    [],
+  );
+  // The floating toolbar's "Takes of this line" (T), on a line with more than one take.
+  useEffect(
+    () =>
+      registerSelectionAction({
+        id: 'takes.show',
+        order: 25,
+        where: 'toolbar',
+        render: ({ doc: d, keys }) => {
+          const line = lineOfKey(d, latest.current.lines.byId, keys[0]);
+          if (!line || line.takes.length < 2) return null;
+          return (
+            <SelectionActionButton
+              icon="showTakes"
+              label="Takes of this line"
+              hint="Takes of this line (T)"
+              onClick={() => latest.current.setLineOpen(line.id, true)}
+            />
+          );
+        },
       }),
     [],
   );
