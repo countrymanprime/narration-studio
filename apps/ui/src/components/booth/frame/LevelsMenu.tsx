@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import type { RecordingEngine, RecorderDevice } from '../../../api/contracts/recording';
+import type { TeleprompterDevice } from '../../../api/contracts/teleprompter';
 import { usePort } from '../../../ports/usePort';
 import { IconButton } from '../../primitives/IconButton';
 import { LevelMeter } from '../../primitives/LevelMeter';
@@ -17,6 +18,11 @@ export type LevelsMenuProps = {
   offReason?: string;
   device: string;
   onDevice: (device: string) => void;
+  /**
+   * With a DAW, the microphone the Booth listens to so the text follows the voice: the DAW's own input when it named one
+   * (`fromDaw`, ADR 0250), else the narrator's pick from the teleprompter's devices, with the host's `note` on why.
+   */
+  listen?: { devices: readonly TeleprompterDevice[]; fromDaw: boolean; note: string | null };
   level: InputLevel | null;
   error: string | null;
   open: boolean;
@@ -57,7 +63,50 @@ function Devices({ device, onDevice }: { device: string; onDevice: (device: stri
  * Recording levels and the microphone, together, in one menu at the foot of the Booth beside Record (the mock's `LevelsMenu`):
  * an icon button with a tooltip. The room tone is not repeated here; it stays in the footer.
  */
-export function LevelsMenu({ engine, dawName, reachable, offReason, device, onDevice, level, error, open, onOpenChange }: LevelsMenuProps) {
+/** The microphone the Booth listens to while a DAW records: named when the DAW chose it, else picked from the listed devices. */
+function Listening({
+  dawName,
+  device,
+  onDevice,
+  listen,
+}: {
+  dawName: string;
+  device: string;
+  onDevice: (device: string) => void;
+  listen: NonNullable<LevelsMenuProps['listen']>;
+}) {
+  if (listen.fromDaw)
+    return (
+      <div className="text-sm text-[var(--text)]">
+        <b>{device}</b>
+        <div className="text-[var(--text-muted)]">Chosen in {dawName}</div>
+      </div>
+    );
+  const note = listen.note ? <p className="text-xs text-[var(--text-muted)]">{listen.note}</p> : null;
+  if (listen.devices.length === 0)
+    return (
+      <>
+        <p role="alert" className="text-sm text-[var(--danger-text)]">
+          No microphone found
+        </p>
+        {note}
+      </>
+    );
+  const options = [
+    ...(device === '' ? [{ value: '', label: 'Choose a microphone…' }] : []),
+    ...listen.devices.map((d) => ({ value: d.name, label: d.name })),
+    ...(device !== '' && !listen.devices.some((d) => d.name === device) ? [{ value: device, label: `${device} (not found)` }] : []),
+  ];
+  return (
+    <>
+      <Select label="Microphone" fullWidth value={device} options={options} onChange={onDevice} />
+      <p className="text-xs text-[var(--text-muted)]">The Booth listens to it to follow your reading.</p>
+      {note}
+    </>
+  );
+}
+
+export function LevelsMenu({ engine, dawName, reachable, offReason, device, onDevice, listen, level, error, open, onOpenChange }: LevelsMenuProps) {
   const off = engine === 'daw' && !reachable;
   return (
     <Popover
@@ -77,7 +126,14 @@ export function LevelsMenu({ engine, dawName, reachable, offReason, device, onDe
           {engine === 'builtin' ? (
             <Devices device={device} onDevice={onDevice} />
           ) : (
-            <div className="text-sm text-[var(--text)]">{off ? <span>{offReason ?? `${dawName} is not running`}</span> : <span>Chosen in {dawName}</span>}</div>
+            <>
+              {off ? <div className="text-sm text-[var(--text)]">{offReason ?? `${dawName} is not running`}</div> : null}
+              {listen ? (
+                <Listening dawName={dawName} device={device} onDevice={onDevice} listen={listen} />
+              ) : off ? null : (
+                <div className="text-sm text-[var(--text)]">Chosen in {dawName}</div>
+              )}
+            </>
           )}
           {error ? (
             <span role="alert" className="text-xs text-[var(--danger-text)]">

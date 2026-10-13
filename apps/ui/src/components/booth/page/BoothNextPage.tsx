@@ -24,6 +24,9 @@ import { BoothTop } from '../frame/BoothTop';
 import { progressLine } from '../frame/progressLine';
 import { PickupSessionProvider, registerPickupSession } from '../pickups/PickupSession';
 import { usePickupSession } from '../pickups/usePickupSession';
+import { ListeningModelPrompt } from '../listening/ListeningModelPrompt';
+import { listeningProblem } from '../listening/listeningProblem';
+import { useListeningMic } from '../listening/useListeningMic';
 import { CREDITS_LABEL } from '../readerModel';
 import { BoothText } from '../reading/BoothText';
 import { wordCount } from '../reading/boothUnits';
@@ -349,6 +352,13 @@ function BoothSession({ source, from, requested, adopt, data, choose, navigate, 
   const capabilities = control.capabilities;
   const roomTone = useRoomTone(measurements, session.device);
   const standalone = capabilities?.daw === 'none';
+  const listening = useListeningMic({
+    dawRecords: !!capabilities && !standalone,
+    device: session.device,
+    settingsLoaded: session.settingsLoaded,
+    devices: session.devices,
+    choose: session.changeDevice,
+  });
 
   return (
     <CommandScope kind="booth">
@@ -465,6 +475,7 @@ function BoothSession({ source, from, requested, adopt, data, choose, navigate, 
             seconds={page.seconds}
             recording={control.recording}
             why={control.reason || undefined}
+            listenWhy={listeningProblem(session)}
             mic={{
               engine: standalone ? 'builtin' : 'daw',
               dawName: page.dawName,
@@ -472,6 +483,7 @@ function BoothSession({ source, from, requested, adopt, data, choose, navigate, 
               offReason: capabilities?.capabilities.record?.message,
               device: session.device,
               onDevice: session.changeDevice,
+              listen: standalone ? undefined : { devices: session.devices, fromDaw: listening.fromDaw, note: listening.note },
             }}
             roomTone={roomTone.label}
             roomToneOk={roomTone.ok}
@@ -479,6 +491,7 @@ function BoothSession({ source, from, requested, adopt, data, choose, navigate, 
             pickupSession={pickups.active}
           />
         </div>
+        <ListeningModelPrompt session={session} />
       </ContextMenuHost>
     </CommandScope>
   );

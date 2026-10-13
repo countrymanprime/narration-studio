@@ -187,7 +187,7 @@ export function CompanionShell({ session: t, follow, chapterTitle, chapterId, re
       tabIndex={-1}
       onKeyDown={onKeyDown}
       data-companion=""
-      className="fixed inset-0 z-40 flex justify-center bg-[var(--bg)] focus:outline-none"
+      className="fixed inset-0 z-[var(--z-takeover)] flex justify-center bg-[var(--bg)] focus:outline-none"
     >
       <CompactShell
         title="Companion"

@@ -24,6 +24,7 @@ function baseSession(overrides: Partial<TeleprompterSession> = {}): Teleprompter
     pause: vi.fn(),
     session: initialSession,
     device: 'USB mic',
+    settingsLoaded: true,
     devices: [],
     devicesError: null,
     devicesLoading: false,

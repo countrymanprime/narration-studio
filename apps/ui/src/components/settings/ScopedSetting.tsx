@@ -51,7 +51,8 @@ const TOOLTIP: Record<string, string> = {
   check_on_startup:
     'Once a day, when the app starts, it asks GitHub whether a newer release exists. It sends nothing about you or your projects, and it never downloads anything without your click.',
   channel: 'Release candidates are the pre-releases that come before each stable release; every release so far is one.',
-  input_device: 'The microphone the Booth listens to. Choose it from the list in the Booth; it is remembered here.',
+  input_device:
+    'The microphone the Booth listens to so the text follows your voice. With a DAW it is the one the DAW records from, when the DAW names it; otherwise choose it in the Booth’s Levels menu. It is remembered here.',
   engine:
     'Which local speech engine listens for your voice during a Booth session. Moonshine is offered on Windows only. Choosing one never downloads anything: a missing model is asked for when you start reading.',
   model: 'Which model size the live engine loads. Tiny keeps up on most computers; Small is more accurate but needs a faster one.',
