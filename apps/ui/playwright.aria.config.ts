@@ -1,4 +1,5 @@
 import { defineConfig } from '@playwright/test';
+import { chromiumExecutablePath } from './playwright.launch';
 
 // Aria-snapshot config: the role trees of the dialogs, the slide-over and the navigation (tests/aria, ADR 0065). Kept apart
 // from the visual suite (playwright.config.ts) because that suite is one screenshot per catalog state at three fixed
@@ -26,6 +27,8 @@ export default defineConfig({
   expect: { toMatchAriaSnapshot: { pathTemplate: '{testDir}/snapshots/{arg}{ext}' } },
   use: {
     baseURL: ORIGIN,
+    // Only the optional PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH: this suite has no launch args of its own, and CI sets none.
+    launchOptions: { executablePath: chromiumExecutablePath() },
     // A failing test leaves test-results/<test>/trace.zip, which the `ui-visual` job uploads with the visual suite's.
     trace: 'retain-on-failure',
     video: 'off',

@@ -81,7 +81,7 @@ func (a *Actions) ListFXChains(ctx context.Context) (FXChains, error) {
 
 // ApplyFXChain adds an FX chain, named as ListFXChains names it, to a whole track (its GUID) or the master track
 // (MasterTrack), in one undo step. Chains go only on tracks (ADR 0234, the owner's decision of 2026-09-25): a passage of
-// a take gets single plug-ins (add_take_fx, which the host no longer sends). The Lua resolves the name inside FXChains itself; this refuses a name
+// a take gets single plug-ins, not a chain. The Lua resolves the name inside FXChains itself; this refuses a name
 // that could not be one before anything is sent. A track that is gone is a *TrackStaleError.
 func (a *Actions) ApplyFXChain(ctx context.Context, track, chain string) (FXChainApplied, error) {
 	if track == "" {

@@ -578,6 +578,11 @@ function Fake:add_project_api(api)
       error('fake reaper: Undo_EndBlock2 without Undo_BeginBlock2')
     end
     fake.open_undo_blocks = fake.open_undo_blocks - 1
+    -- A block closed with no description is modelled as recording no point (assumed, not yet seen in REAPER: the QA
+    -- pass, #1495); repair_click and reduce_range_gain close that way when REAPER made no envelope.
+    if label == '' then
+      return
+    end
     fake.undo[#fake.undo + 1] = { label = label, flags = flags, snapshot = fake.open_undo_blocks == 0 and fake.block_snapshot or nil }
   end
   function api.Undo_OnStateChange(label)
@@ -598,9 +603,12 @@ function Fake:add_project_api(api)
     elseif command_id == 40693 then
       -- "Take: Toggle take volume envelope" on each selected item's active take: makes the envelope when the take has
       -- none, and otherwise shows or hides it (reduce_range_gain, from the reference; pending the QA pass, #1495).
+      -- fake.makes_no_volume_envelope models REAPER declining to make one.
       for _, item in ipairs(fake:selected_items()) do
         local take = item.takes[item.active_index or 1]
-        if take and not take.volume_env then
+        if take and not take.volume_env and fake.makes_no_volume_envelope then
+          fake.calls[#fake.calls].declined = true
+        elseif take and not take.volume_env then
           take.volume_env = { points = {}, visible = true }
         elseif take then
           take.volume_env.visible = not take.volume_env.visible
