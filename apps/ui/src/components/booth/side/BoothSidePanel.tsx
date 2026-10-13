@@ -79,8 +79,6 @@ export function BoothSidePanel({
       // A tab stop of its own, so the panel scrolls from the keyboard when it is taller than the window and holds nothing focusable.
       tabIndex={0}
       hidden={!open}
-      // It scrolls inside the window and its sections may hold nothing to focus, so the panel itself is the tab stop that lets a keyboard scroll it.
-      tabIndex={0}
       className={`flex w-80 max-w-full flex-col gap-4 overflow-y-auto border-l border-[var(--line)] bg-[var(--surface)] p-3 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-[var(--focus)] ${drawer ? 'absolute inset-y-0 right-0 z-10 shadow-lg' : ''}`}
     >
       {boothSections().map(({ id, component: Section }) => (
