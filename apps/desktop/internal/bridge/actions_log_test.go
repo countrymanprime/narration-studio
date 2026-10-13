@@ -3,6 +3,9 @@ package bridge
 import (
 	"context"
 	"errors"
+	"fmt"
+	"os"
+	"path/filepath"
 	"strings"
 	"sync"
 	"testing"
@@ -68,36 +71,52 @@ func TestARefusedByTheGateCommandIsNotLogged(t *testing.T) {
 	}
 }
 
-// A command the narrator's own request cancels leaves a line saying so, and failureKind words each error the host names for itself.
-func TestACancelledCommandIsLoggedAndFailuresAreNamedByKind(t *testing.T) {
+// A command that cannot be written, and one whose caller gave up waiting, are logged too, each with its own kind: the host log is
+// where a narrator's "nothing happened" is traced, whatever stopped it.
+func TestASendErrorAndACancelAreLogged(t *testing.T) {
 	actions, client, dir := newActionsSession(t, true)
 	var lines []string
-	client.SetLog(func(kind, message string) { lines = append(lines, kind+": "+message) })
-	startFakeReaper(t, client, dir, func([]string) [][]string { return nil })
+	var mu sync.Mutex
+	client.SetLog(func(kind, message string) {
+		mu.Lock()
+		defer mu.Unlock()
+		lines = append(lines, kind+": "+message)
+	})
+
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
 	if _, err := actions.RecordStop(ctx); !errors.Is(err, context.Canceled) {
-		t.Fatalf("RecordStop: %v, want context.Canceled", err)
+		t.Fatalf("RecordStop on a cancelled context: %v", err)
 	}
-	if len(lines) != 1 || !strings.Contains(lines[0], "record_stop") || !strings.HasSuffix(lines[0], "cancelled") {
-		t.Fatalf("lines = %q", lines)
+	if err := os.RemoveAll(filepath.Join(dir, "commands")); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := actions.RecordStop(context.Background()); err == nil || !strings.Contains(err.Error(), "could not send record_stop") {
+		t.Fatalf("RecordStop with no command folder: %v", err)
 	}
 
-	for _, c := range []struct {
+	mu.Lock()
+	defer mu.Unlock()
+	if len(lines) != 2 || !strings.HasSuffix(lines[0], ": cancelled") || !strings.HasSuffix(lines[1], ": could not send") {
+		t.Fatalf("lines = %q", lines)
+	}
+}
+
+// failureKind writes the host's own sentence for an error the host names, and never the script's.
+func TestFailureKindKeepsTheScriptsSentenceOut(t *testing.T) {
+	for _, check := range []struct {
 		err  error
 		want string
 	}{
-		{&RefusalError{Sentence: "Track \"Alice\" is locked."}, "error (the script's own sentence, not logged)"},
-		{ErrRollStopped, "error: " + ErrRollStopped.Error()},
+		{ErrNoTrackArmed, "error: " + ErrNoTrackArmed.Error()},
 		{ErrRecording, "error: " + ErrRecording.Error()},
-		{errors.New("Track \"Alice\" is gone"), "error"},
+		{fmt.Errorf("%w: %s", ErrRollStopped, "Track \"Alice\" stopped."), "error: " + ErrRollStopped.Error()},
+		{&RefusalError{Sentence: "Track \"Alice\" is locked."}, "error (the script's own sentence, not logged)"},
+		{errors.New("REAPER sent an answer this app could not read"), "error"},
 	} {
-		if got := failureKind(c.err); got != c.want {
-			t.Errorf("failureKind(%v) = %q, want %q", c.err, got, c.want)
+		if got := failureKind(check.err); got != check.want {
+			t.Errorf("failureKind(%v) = %q, want %q", check.err, got, check.want)
 		}
-	}
-	if got := (&TrackStaleError{}).Error(); got == "" {
-		t.Error("TrackStaleError has no sentence")
 	}
 }
 

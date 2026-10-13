@@ -49,6 +49,13 @@ function renderDialog(onClose = vi.fn()) {
 }
 
 describe('AuditionDialog', () => {
+  it('closes on a press outside the dialog: a detail view with nothing to save (issue 1706)', async () => {
+    const user = userEvent.setup();
+    const { onClose } = renderDialog();
+    await user.click(document.querySelector('[data-dialog-backdrop]') as HTMLElement);
+    expect(onClose).toHaveBeenCalledTimes(1);
+  });
+
   it('labels the audition as raw source with no FX or edits', () => {
     renderDialog();
 

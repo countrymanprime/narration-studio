@@ -65,7 +65,7 @@ export function MarksDialog({ saveMarkTypes, onClose }: { saveMarkTypes: SaveMar
   };
 
   return (
-    <Dialog title="Define how you mark up" onClose={onClose} actionsAlign="end" actions={<Button onClick={onClose}>Done</Button>}>
+    <Dialog dismissOnOutsidePress={true} title="Define how you mark up" onClose={onClose} actionsAlign="end" actions={<Button onClick={onClose}>Done</Button>}>
       <ul className="m-0 flex list-none flex-col gap-2 p-0">
         {types.map((type, index) => (
           <li key={type.key || `new-${index}`} className="flex flex-wrap items-center gap-2">
