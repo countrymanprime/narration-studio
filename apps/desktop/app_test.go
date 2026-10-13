@@ -445,6 +445,23 @@ func TestProjectCreateInDefaultsAnEmptyParentToTheProjectsDirectory(t *testing.T
 	}
 }
 
+func TestProjectDefaultLocationNamesTheFolderAnEmptyParentCreatesIn(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("USERPROFILE", home)
+	t.Setenv("HOME", home)
+	raw, err := NewHost().ProjectDefaultLocation()
+	if err != nil {
+		t.Fatal(err)
+	}
+	var result map[string]any
+	if err := json.Unmarshal([]byte(raw), &result); err != nil {
+		t.Fatal(err)
+	}
+	if want := filepath.Join(home, project.DefaultDirName); result["path"] != want {
+		t.Fatalf("path = %#v, want %q", result["path"], want)
+	}
+}
+
 func TestProjectCreateInRequiresANonEmptyName(t *testing.T) {
 	host := NewHost()
 	if _, err := host.ProjectCreateIn(t.TempDir(), ""); err == nil {

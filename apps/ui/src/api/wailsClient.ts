@@ -15,7 +15,14 @@ import {
   searchHitsSchema,
   workJobSchema,
 } from './schemas/manuscript';
-import { dawLaunchResultSchema, dawLinkResultSchema, projectFolderSelectionSchema, projectSwitchResultSchema, recentProjectsSchema } from './schemas/project';
+import {
+  dawLaunchResultSchema,
+  dawLinkResultSchema,
+  projectDefaultLocationSchema,
+  projectFolderSelectionSchema,
+  projectSwitchResultSchema,
+  recentProjectsSchema,
+} from './schemas/project';
 import {
   creditsAnnouncementsSchema,
   creditsProjectValuesResultSchema,
@@ -565,6 +572,7 @@ export const wailsClient: NarrationApi = {
   selectProjectFolder: () => decode(projectFolderSelectionSchema, 'ProjectSelectFolder', host.ProjectSelectFolder()),
   switchProject: (path, name) => decode(projectSwitchResultSchema, 'ProjectSwitch', host.ProjectSwitch(path, name ?? '')),
   createProject: (parent, name) => decode(projectSwitchResultSchema, 'ProjectCreateIn', host.ProjectCreateIn(parent, name)),
+  projectDefaultLocation: () => decode(projectDefaultLocationSchema, 'ProjectDefaultLocation', host.ProjectDefaultLocation()),
   removeRecentProject: (path) => decode(recentProjectsSchema, 'ProjectRemoveRecent', host.ProjectRemoveRecent(path)),
   linkDawFile: () => decode(dawLinkResultSchema, 'ProjectLinkDawFile', host.ProjectLinkDawFile()),
   launchDaw: () => decode(dawLaunchResultSchema, 'DawLaunch', host.DawLaunch()),

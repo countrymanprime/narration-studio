@@ -141,3 +141,33 @@ func TestFindByDawFileWithAnUnreadableProjectsDirIsNotOk(t *testing.T) {
 		t.Fatal("ok = true for a projects directory that cannot be listed, want false")
 	}
 }
+
+func TestFindByDawFileMatchesALinkInADeepSubfolderOfTheProject(t *testing.T) {
+	projectsDir := t.TempDir()
+	folder := filepath.Join(projectsDir, "Alice")
+	rpp := filepath.Join(folder, "REAPER", "sessions", "Alice.rpp")
+	writeFile(t, rpp, "rpp")
+	writeManifestWithLink(t, projectsDir, "Alice", rpp)
+
+	got, _, ok := FindByDawFile(nil, projectsDir, rpp)
+	if !ok || got != folder {
+		t.Fatalf("FindByDawFile() = %q, %v, want %q, true", got, ok, folder)
+	}
+}
+
+func TestFindByDawFileMatchesTheSameFileReachedThroughASymlink(t *testing.T) {
+	projectsDir := t.TempDir()
+	dawDir := t.TempDir()
+	rpp := filepath.Join(dawDir, "Book.rpp")
+	writeFile(t, rpp, "rpp")
+	folder := writeManifestWithLink(t, projectsDir, "Alice", rpp)
+	alias := filepath.Join(t.TempDir(), "alias")
+	if err := os.Symlink(dawDir, alias); err != nil {
+		t.Skipf("symlinks unavailable here: %v", err)
+	}
+
+	got, _, ok := FindByDawFile(nil, projectsDir, filepath.Join(alias, "Book.rpp"))
+	if !ok || got != folder {
+		t.Fatalf("FindByDawFile() = %q, %v, want %q, true", got, ok, folder)
+	}
+}

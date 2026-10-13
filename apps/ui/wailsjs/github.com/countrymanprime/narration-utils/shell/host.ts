@@ -2062,6 +2062,15 @@ export function ProjectCreateIn(parent: string, name: string): $CancellablePromi
 }
 
 /**
+ * ProjectDefaultLocation answers {path}: the folder ProjectCreateIn uses for an empty parent (project.ResolveDir), so
+ * the New Project dialog can show where a project will go. path is empty when no home folder resolves, and
+ * ProjectCreateIn then refuses an empty parent.
+ */
+export function ProjectDefaultLocation(): $CancellablePromise<string> {
+    return $Call.ByID(3050602295);
+}
+
+/**
  * ProjectLinkDawFile is the one shared binding behind the audio engine panel
  * and Settings' DAW category: it opens a native "*.rpp" file dialog and
  * links the chosen file to the current project through the manifest storage

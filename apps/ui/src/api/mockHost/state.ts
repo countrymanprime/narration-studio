@@ -132,8 +132,8 @@ export type MockApiSeed = {
   chapterSync?: 'ask' | 'off' | 'linked' | 'unsaved' | 'pickups' | 'activity' | 'background';
   /** Whether the mock project boots with a linked DAW project file. Defaults to true. */
   dawFileLinked?: boolean;
-  /** Makes the next `linkDawFile()` call behave like a chosen file outside the project folder: refused, not linked. */
-  dawLinkMismatch?: boolean;
+  /** Makes the next `linkDawFile()` call link a file outside the project folder (a separate DAW folder), with its note. */
+  dawLinkOutside?: boolean;
   /**
    * Simulates a live REAPER heartbeat whose open project disagrees with the linked file (ADR 0092): the
    * mock otherwise never grows a heartbeat, so `dawReachable`/`dawProjectMatches` stay false. Used by the engine

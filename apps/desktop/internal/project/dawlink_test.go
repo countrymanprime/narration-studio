@@ -86,3 +86,79 @@ func writeFile(t *testing.T, path, content string) {
 		t.Fatalf("WriteFile(%s): %v", path, err)
 	}
 }
+
+func TestBuildDawLinkInASubfolderStoresTheProjectRelativePath(t *testing.T) {
+	project := t.TempDir()
+	rpp := filepath.Join(project, "REAPER", "takes", "alice.rpp")
+	writeFile(t, rpp, "rpp")
+
+	link, err := BuildDawLink(project, rpp)
+	if err != nil {
+		t.Fatalf("BuildDawLink() error = %v", err)
+	}
+	if want := filepath.Join("REAPER", "takes", "alice.rpp"); link.Relative != want {
+		t.Fatalf("Relative = %q, want %q", link.Relative, want)
+	}
+	if !link.Inside() {
+		t.Fatal("Inside() = false for a file in a subfolder of the project")
+	}
+}
+
+func TestBuildDawLinkThroughASymlinkedProjectFolderIsStillInside(t *testing.T) {
+	real := t.TempDir()
+	rpp := filepath.Join(real, "sub", "alice.rpp")
+	writeFile(t, rpp, "rpp")
+	alias := filepath.Join(t.TempDir(), "alias")
+	if err := os.Symlink(real, alias); err != nil {
+		t.Skipf("symlinks unavailable here: %v", err)
+	}
+
+	// The project is opened through the alias; the dialog hands back the real path (and the reverse).
+	for _, tc := range []struct{ folder, file string }{{alias, rpp}, {real, filepath.Join(alias, "sub", "alice.rpp")}} {
+		link, err := BuildDawLink(tc.folder, tc.file)
+		if err != nil {
+			t.Fatalf("BuildDawLink(%q, %q) error = %v", tc.folder, tc.file, err)
+		}
+		if want := filepath.Join("sub", "alice.rpp"); link.Relative != want {
+			t.Fatalf("BuildDawLink(%q, %q).Relative = %q, want %q", tc.folder, tc.file, link.Relative, want)
+		}
+	}
+}
+
+func TestBuildDawLinkInASiblingFolderWithACommonPrefixIsOutside(t *testing.T) {
+	parent := t.TempDir()
+	project := filepath.Join(parent, "Alice")
+	if err := os.MkdirAll(project, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	rpp := filepath.Join(parent, "Alice REAPER", "alice.rpp")
+	writeFile(t, rpp, "rpp")
+
+	link, err := BuildDawLink(project, rpp)
+	if err != nil {
+		t.Fatalf("BuildDawLink() error = %v", err)
+	}
+	if link.Relative != "" || link.Inside() {
+		t.Fatalf("link = %#v, want an absolute-only link for a sibling folder", link)
+	}
+}
+
+func TestDawLinkInASubfolderSurvivesMovingTheWholeProject(t *testing.T) {
+	parent := t.TempDir()
+	project := filepath.Join(parent, "Alice")
+	rpp := filepath.Join(project, "REAPER", "alice.rpp")
+	writeFile(t, rpp, "rpp")
+	link, err := BuildDawLink(project, rpp)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	moved := filepath.Join(parent, "Moved")
+	if err := os.Rename(project, moved); err != nil {
+		t.Fatal(err)
+	}
+	resolved, ok := link.Resolve(moved)
+	if want := filepath.Join(moved, "REAPER", "alice.rpp"); !ok || resolved != want {
+		t.Fatalf("Resolve() = %q, %v, want %q", resolved, ok, want)
+	}
+}

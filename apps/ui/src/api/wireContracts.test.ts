@@ -143,7 +143,14 @@ import {
 import { ttsCatalogSchema, ttsInstallJobSchema } from './schemas/tts';
 import { updateJobSchema, updateStatusSchema } from './schemas/update';
 import { startResultSchema, whisperCatalogSchema, whisperInstallJobSchema } from './schemas/whisper';
-import { dawLaunchResultSchema, dawLinkResultSchema, projectFolderSelectionSchema, projectSwitchResultSchema, recentProjectsSchema } from './schemas/project';
+import {
+  dawLaunchResultSchema,
+  dawLinkResultSchema,
+  projectDefaultLocationSchema,
+  projectFolderSelectionSchema,
+  projectSwitchResultSchema,
+  recentProjectsSchema,
+} from './schemas/project';
 import {
   creditsAnnouncementsSchema,
   creditsProjectValuesResultSchema,
@@ -1109,11 +1116,12 @@ describe('answers of the mock client for the manuscript, Story Bible and project
     expectMatches(projectFolderSelectionSchema, await api.selectProjectFolder(), 'mock folder selection');
     expectMatches(projectSwitchResultSchema, await api.switchProject('C:/Projects/Other', 'Other'), 'mock switch');
     expectMatches(projectSwitchResultSchema, await api.createProject('C:/Projects/New', 'New'), 'mock create');
+    expectMatches(projectDefaultLocationSchema, await api.projectDefaultLocation(), 'mock default location');
   });
 
-  it('the DAW link binding answers, linked and refused on a folder mismatch', async () => {
+  it('the DAW link binding answers, linked inside the project and linked from another folder', async () => {
     expectMatches(dawLinkResultSchema, await createMockApi().linkDawFile(), 'mock link');
-    expectMatches(dawLinkResultSchema, await createMockApi({}, { dawLinkMismatch: true }).linkDawFile(), 'mock link, folder mismatch');
+    expectMatches(dawLinkResultSchema, await createMockApi({}, { dawLinkOutside: true }).linkDawFile(), 'mock link, another folder');
   });
 
   it('the DAW launch binding answers', async () => {
@@ -3590,7 +3598,7 @@ describe('answers of the mock client for the settings, voice, model, transcript 
     expect(cleared).toMatchObject({ state: 'none' });
 
     // The two ProofingChooseRender branches the mock never produces (the dialog is not simulated): pinned directly
-    // against the schema, the same convention as ProjectLinkDawFile's untested cancel-or-mismatch shapes.
+    // against the schema, the same convention as ProjectLinkDawFile's untested cancel-or-refused shapes.
     expectMatches(proofingChooseRenderResultSchema, { status: 'cancelled' }, 'proofing choose render, cancelled');
     expectMatches(
       proofingChooseRenderResultSchema,
@@ -3888,6 +3896,7 @@ describe('answers of the mock client for the settings, voice, model, transcript 
       'transcriptAddEquivalence',
       'transcriptSuggestHints',
       'transcriptHints',
+      'projectDefaultLocation',
       'projectRecents',
       'selectProjectFolder',
       'switchProject',

@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"os"
 	"path/filepath"
 	"strings"
 	"time"
@@ -63,13 +64,14 @@ func (h *Host) linkPickedDawFile(path string) (map[string]any, error) {
 // linkDawFile is ProjectLinkDawFile's pure logic, kept apart from the dialog
 // and the host so it can be unit tested directly.
 //
-// It refuses to link rppPath when it does not live directly inside
-// projectFolder: attaching a different folder's DAW project would mean
-// re-pointing the whole project (orphaning the imported manuscript), which
-// is out of scope here, so the result says folderMismatch instead. Linking
-// inside the folder always succeeds and never fails partway: BuildDawLink cannot fail once rppPath and
-// projectFolder both resolve to absolute paths, so the only remaining error
-// is Manifest.Save's own I/O failure.
+// It links any REAPER project file the narrator picks. A file inside
+// projectFolder at any depth (project.RelativeTo: symlinks, junctions, letter
+// case and short names included) is stored with its project-relative path as
+// well, so moving the whole project keeps the link; a file elsewhere (a
+// separate DAW folder, another drive) is stored by its absolute path and the
+// result carries a neutral note saying where the file and the project are. It
+// refuses only a file that is not an .rpp or does not exist, with a message.
+// The only error is the manifest's own I/O failure.
 func linkDawFile(reporter *persist.Reporter, projectFolder, rppPath string) (map[string]any, error) {
 	absFolder, err := filepath.Abs(projectFolder)
 	if err != nil {
@@ -79,17 +81,15 @@ func linkDawFile(reporter *persist.Reporter, projectFolder, rppPath string) (map
 	if err != nil {
 		return nil, fmt.Errorf("could not resolve the REAPER project file: %w", err)
 	}
-	if !strings.EqualFold(filepath.Dir(absRpp), absFolder) {
-		return map[string]any{
-			"selected":       true,
-			"linked":         false,
-			"path":           absRpp,
-			"folderMismatch": true,
-			"message": fmt.Sprintf(
-				"%s is outside this project's folder (%s). Choose a REAPER project file saved inside the project, or open that project instead.",
-				filepath.Base(absRpp), absFolder,
-			),
-		}, nil
+	name := filepath.Base(absRpp)
+	refuse := func(message string) map[string]any {
+		return map[string]any{"selected": true, "linked": false, "path": absRpp, "message": message}
+	}
+	if !strings.EqualFold(filepath.Ext(absRpp), ".rpp") {
+		return refuse(name + " is not a REAPER project file. Choose a file ending in .rpp."), nil
+	}
+	if info, err := os.Stat(absRpp); err != nil || info.IsDir() {
+		return refuse(name + " could not be found. Choose the REAPER project file again."), nil
 	}
 
 	link, err := project.BuildDawLink(absFolder, absRpp)
@@ -107,5 +107,12 @@ func linkDawFile(reporter *persist.Reporter, projectFolder, rppPath string) (map
 	if err := manifest.Save(absFolder); err != nil {
 		return nil, fmt.Errorf("could not save the DAW project link: %w", err)
 	}
-	return map[string]any{"selected": true, "linked": true, "path": absRpp}, nil
+	result := map[string]any{"selected": true, "linked": true, "path": absRpp, "insideProject": link.Inside()}
+	if !link.Inside() {
+		result["note"] = fmt.Sprintf(
+			"%s is in %s; this project's folder is %s. The link keeps working while the REAPER file stays where it is.",
+			name, filepath.Dir(absRpp), absFolder,
+		)
+	}
+	return result, nil
 }

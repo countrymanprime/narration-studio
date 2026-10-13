@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useApi } from '../../api/ApiContext';
 import { describeApiError } from '../../api/errorMessage';
 import { Button } from '../primitives/Button';
@@ -12,7 +12,7 @@ type Props = {
 };
 
 // The "Visual Studio model": a name and, optionally, a chosen location, instead of browsing to a raw folder.
-// An empty parent tells ProjectCreateIn to default to the projects directory, so this dialog never needs to know that path itself.
+// An empty parent tells ProjectCreateIn to default to the projects directory; the dialog reads that folder only to show it.
 export function NewProjectDialog({ onClose, onCreated }: Props) {
   const api = useApi();
   const [name, setName] = useState('');
@@ -20,6 +20,21 @@ export function NewProjectDialog({ onClose, onCreated }: Props) {
   const [parent, setParent] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
+  // The projects directory, shown while no other location is chosen; empty until read, or when it cannot be.
+  const [defaultLocation, setDefaultLocation] = useState('');
+
+  useEffect(() => {
+    let active = true;
+    api
+      .projectDefaultLocation()
+      .then((location) => {
+        if (active) setDefaultLocation(location.path);
+      })
+      .catch(() => undefined); // Unreadable, the dialog names the folder in words; Create still uses it.
+    return () => {
+      active = false;
+    };
+  }, [api]);
 
   const changeLocation = () =>
     void (async () => {
@@ -68,7 +83,9 @@ export function NewProjectDialog({ onClose, onCreated }: Props) {
       )}
       <Field label="Name" value={name} onChange={setName} autoFocus disabled={busy} placeholder="My New Audiobook" />
       <p className="mt-3 text-sm" style={{ color: 'var(--text-muted)' }}>
-        Location: <span className="font-['IBM_Plex_Mono',ui-monospace,monospace]">{parent ?? 'the default projects folder'}</span>
+        Location:{' '}
+        <span className="font-['IBM_Plex_Mono',ui-monospace,monospace] break-all">{parent ?? (defaultLocation || 'the default projects folder')}</span>
+        {parent === null && defaultLocation && ' (the default projects folder)'}
       </p>
       <Button variant="secondary" className="mt-2" onClick={changeLocation} disabled={busy}>
         Change location…
