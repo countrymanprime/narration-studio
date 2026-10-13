@@ -259,8 +259,11 @@ export function ProductionPage({
     proof: pipelineSources.proof,
     master: pipelineSources.master,
     pickups: pickupsByChapter,
-    // Only a credits row's Prep is read (its template's tokens); a chapter's Prep stays "Not measured yet" until a source says.
-    prep: Object.fromEntries([entries.opening, entries.closing].flatMap((entry) => (entry ? [[entry.id, entry.prep] as const] : []))),
+    // A chapter's Prep is the Script page's prep record; a credits row's is its template's tokens. Absent until read: "Not measured yet".
+    prep: {
+      ...pipelineSources.prep,
+      ...Object.fromEntries([entries.opening, entries.closing].flatMap((entry) => (entry ? [[entry.id, entry.prep] as const] : []))),
+    },
     checks: Object.fromEntries(
       narrated.map((c) => {
         const link = tools.trackLinks?.chapters.find((entry) => entry.chapterId === c.id);

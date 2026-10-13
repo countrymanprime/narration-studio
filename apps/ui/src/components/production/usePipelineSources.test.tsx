@@ -4,6 +4,7 @@ import type { ReactNode } from 'react';
 import { describe, expect, it } from 'vitest';
 import { ApiProvider } from '../../api/ApiContext';
 import type { Finding } from '../../api/contracts/findings';
+import type { ScriptPrep } from '../../api/contracts/scriptPrep';
 import { createMockApi } from '../../api/mockApi';
 import type { ManuscriptChapter, MeasureFileResult, MeasureJob, NarrationApi } from '../../types';
 import { usePipelineSources } from './usePipelineSources';
@@ -23,13 +24,20 @@ const file = (name: string, status: 'met' | 'not_met' | 'not_measurable' | 'not_
     rules: [{ ruleId: 'r', status }],
   }) as unknown as MeasureFileResult;
 
-function sources(over: { findings?: Finding[]; files?: MeasureFileResult[]; chapters?: ManuscriptChapter[]; failFindings?: boolean }) {
+function sources(over: {
+  findings?: Finding[];
+  files?: MeasureFileResult[];
+  chapters?: ManuscriptChapter[];
+  failFindings?: boolean;
+  prep?: ScriptPrep['chapters'] | 'down';
+}) {
   const api = {
     ...createMockApi(),
     findingsList: () =>
       over.failFindings ? Promise.reject(new Error('down')) : Promise.resolve({ findings: over.findings ?? [], total: over.findings?.length ?? 0 }),
     measureState: () => Promise.resolve({ phase: 'success', files: over.files ?? [] } as unknown as MeasureJob),
     manuscriptChapters: () => Promise.resolve(over.chapters ?? []),
+    scriptPrepList: () => (over.prep === 'down' ? Promise.reject(new Error('down')) : Promise.resolve({ chapters: over.prep ?? [], words: [] })),
   } as NarrationApi;
   const wrapper = ({ children }: { children: ReactNode }) => <ApiProvider api={api}>{children}</ApiProvider>;
   return renderHook(() => usePipelineSources(true, 'm'), { wrapper });
@@ -80,5 +88,22 @@ describe('usePipelineSources', () => {
     const view = sources({ chapters: [chapter('c1', 0, 'One')], files: [] });
     await waitFor(() => expect(view.result.current.proof).toEqual({}));
     expect(view.result.current.master).toBeUndefined();
+  });
+
+  it("reads each chapter's prep state from the Script page's prep record", async () => {
+    const view = sources({
+      prep: [
+        { chapterId: 'c1', state: 'prepped' },
+        { chapterId: 'c2', state: 'progress' },
+        { chapterId: 'c3', state: 'none' },
+      ],
+    });
+    await waitFor(() => expect(view.result.current.prep).toEqual({ c1: 'prepped', c2: 'progress', c3: 'none' }));
+  });
+
+  it('leaves prep absent when the prep record cannot be read', async () => {
+    const view = sources({ prep: 'down' });
+    await waitFor(() => expect(view.result.current.proof).toEqual({}));
+    expect(view.result.current.prep).toBeUndefined();
   });
 });

@@ -11,6 +11,7 @@ import type { PipelineSources } from './pipeline/pipelineRows';
 
 type Proof = NonNullable<PipelineSources['proof']>;
 type Master = NonNullable<PipelineSources['master']>;
+type Prep = NonNullable<PipelineSources['prep']>;
 
 /** The notes of the latest run per chapter: all of them, and the cleared ones (dismissed, which includes waived: ADR 0793, as `proofProgress` counts). */
 function proofByChapter(findings: readonly Finding[]): Proof {
@@ -44,14 +45,19 @@ function masterByChapter(chapters: readonly Pick<ManuscriptChapter, 'id' | 'titl
 /**
  * The Proof and Master cells' sources for the pipeline, read through the ports the Proof and Master & QC pages use. A source the host
  * cannot answer, or that has no reading for a chapter, stays absent so its cell reads "Not measured yet" (ADR 0015). It reads again when
- * `refreshKey` changes. `failing` is Next up's first chapter that fails the delivery check, from the same measured files.
+ * `refreshKey` changes. Prep is the Script page's prep record. `failing` is Next up's first chapter that fails the delivery check, from the same measured files.
  */
-export function usePipelineSources(active: boolean, refreshKey: string): Pick<PipelineSources, 'proof' | 'master'> & { failing: NextUpInputs['failing'] } {
+export function usePipelineSources(
+  active: boolean,
+  refreshKey: string,
+): Pick<PipelineSources, 'proof' | 'master' | 'prep'> & { failing: NextUpInputs['failing'] } {
   const findings = usePort('findings');
   const measure = usePort('measure');
   const manuscript = usePort('manuscript');
+  const scriptPrep = usePort('scriptPrep');
   const [proof, setProof] = useState<Proof>();
   const [master, setMaster] = useState<Master>();
+  const [prep, setPrep] = useState<Prep>();
   const [failing, setFailing] = useState<NextUpInputs['failing']>(null);
 
   useEffect(() => {
@@ -74,10 +80,14 @@ export function usePipelineSources(active: boolean, refreshKey: string): Pick<Pi
         setFailing(null);
       },
     );
+    scriptPrep.scriptPrepList().then(
+      (record) => live && setPrep(Object.fromEntries(record.chapters.map((chapter) => [chapter.chapterId, chapter.state]))),
+      () => live && setPrep(undefined),
+    );
     return () => {
       live = false;
     };
-  }, [active, refreshKey, findings, measure, manuscript]);
+  }, [active, refreshKey, findings, measure, manuscript, scriptPrep]);
 
-  return { proof, master, failing };
+  return { proof, master, prep, failing };
 }
