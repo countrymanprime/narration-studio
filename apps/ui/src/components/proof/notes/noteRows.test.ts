@@ -115,7 +115,7 @@ describe('type-and-resolution-chips-are-words-and-shapes', () => {
       'Deferred',
     ]);
   });
-  it('gives the type chip room for the longest type word', () => {
+  it('gives the type chip room for the longest category', () => {
     expect(TYPE_CHIP_CH).toBeGreaterThanOrEqual(Math.max(...FINDING_NOTE_TYPES.map((t) => t.length)));
   });
   it('names a note by the same type word the inspector shows, whatever the analyzer called its kind', () => {
