@@ -1827,7 +1827,9 @@
     "name": "a file on a network share is opened",
     "file": "narration_media_file.lua",
     "find": "  if path:match('^[\\\\/][\\\\/]') then\n    return false\n  end\n",
-    "replace": ""
+    "replace": "",
+    "equivalent_on": ["win32"],
+    "why": "no path that starts with two slashes passes the drive-letter check where the separator is a backslash"
   },
   {
     "name": "a path with a .. segment is used",

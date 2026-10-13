@@ -622,8 +622,11 @@ var ErrActionKind = errors.New("that is not a kind of action the app can read or
 type LastAction string
 
 const (
-	LastActionThis    LastAction = "this"
-	LastActionOther   LastAction = "other"
+	// LastActionThis is a next undo point that is the kind's.
+	LastActionThis LastAction = "this"
+	// LastActionOther is a next undo point of anything else, or no undo history.
+	LastActionOther LastAction = "other"
+	// LastActionUnknown is an engine that cannot tell.
 	LastActionUnknown LastAction = "unknown"
 )
 

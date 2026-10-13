@@ -3,6 +3,11 @@ source, and the harness must fail. A surviving mutation means a guard has no tes
 
 An entry whose ``find`` text no longer occurs exactly once also fails the run, so refactoring the Lua source means
 updating this file in the same change instead of quietly losing a check.
+
+An entry may name the platforms (``sys.platform`` values) where it is ``equivalent_on``, with ``why``: a guard no input
+can reach there, so no test can catch its removal (the network-share guard on Windows, where a path that starts with
+two slashes never passes the drive-letter check after it). It is still checked on every other platform, and is
+reported, not counted, where it is equivalent.
 """
 
 from __future__ import annotations
@@ -10,6 +15,7 @@ from __future__ import annotations
 import json
 import re
 import shutil
+import sys
 import tempfile
 from collections.abc import Callable
 from pathlib import Path
@@ -59,8 +65,15 @@ def run_mutations(tests_dir: Path, reaper_dir: Path, run_suite: SuiteRunner) -> 
     entries = json.loads((tests_dir / "mutations.json").read_text(encoding="utf-8"))
     scratch = Path(tempfile.mkdtemp(prefix="reaper-mutations-"))
     survivors: list[str] = []
+    equivalent = 0
     try:
         for entry in entries:
+            if sys.platform in entry.get("equivalent_on", ()):
+                if not entry.get("why"):
+                    raise ValueError(f"mutation {entry['name']!r}: equivalent_on needs a why")
+                equivalent += 1
+                print(f"  equivalent on {sys.platform}, not counted: {entry['name']} ({entry['why']})")
+                continue
             mutated = _mutated_copy(reaper_dir, scratch, entry)
             try:
                 _, failed, _ = run_suite(mutated, verbose=False, first=_own_tests(tests_dir, reaper_dir, entry["file"]), stop_at_failure=True)
@@ -75,5 +88,6 @@ def run_mutations(tests_dir: Path, reaper_dir: Path, run_suite: SuiteRunner) -> 
                 print(f"  SURVIVED: {entry['name']}")
     finally:
         shutil.rmtree(scratch, ignore_errors=True)
-    print(f"{len(entries) - len(survivors)} of {len(entries)} mutations caught")
+    checked = len(entries) - equivalent
+    print(f"{checked - len(survivors)} of {checked} mutations caught")
     return 1 if survivors else 0
