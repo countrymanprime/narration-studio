@@ -227,7 +227,9 @@ jobs:
     #   - go lint: gofmt, go vet, golangci-lint and checklocks (the `ci` configuration of the lint target). Windows, like
     #     go-test: it is the only supported platform (docs/adr/0412), and Linux's native libraries are not installed
     #     on the Linux runners. Here rather than in go-test so the tests do not wait behind it.
-    timeout-minutes: 15
+    # 25 min: the reaper step's mutation checks alone ran 12 of the 15 on Windows once the undo_last mutations joined
+    # (two cancelled runs), and go lint follows them.
+    timeout-minutes: 25
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
