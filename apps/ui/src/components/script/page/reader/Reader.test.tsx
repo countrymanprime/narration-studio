@@ -73,6 +73,15 @@ describe('continuous scroll with the spy', () => {
     expect(screen.getByText('¶ 1 of 1')).toBeTruthy();
   });
 
+  it('names the paragraph in the sticky header once the text arrives after the first draw, with no scroll', () => {
+    const late: Record<string, ManuscriptParagraph[] | undefined> = {};
+    const { rerender } = render(<Reader {...props({ paragraphsOf: (id) => late[id] })} />);
+    expect(screen.queryByText(/^¶/)).toBeNull();
+    Object.assign(late, paras);
+    rerender(<Reader {...props({ paragraphsOf: (id) => late[id] })} />);
+    expect(screen.getByText('¶ 1 of 2')).toBeTruthy();
+  });
+
   it('names the chapter in full in the sticky header, title and subtitle', () => {
     const named = [{ ...chapters[0]!, subtitle: 'Down the Rabbit-Hole' }, ...chapters.slice(1)];
     render(<Reader {...props({ chapters: named })} />);

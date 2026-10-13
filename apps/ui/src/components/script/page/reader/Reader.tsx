@@ -357,6 +357,13 @@ export function Reader(props: ReaderProps) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pendingJump, pendingPid, pendingBm, drawn]);
 
+  /* Text that arrives after a draw moves nothing, so the spy measures again: the header names the paragraph without waiting for a scroll. */
+  useLayoutEffect(() => {
+    onSpy();
+    // Only new text: the requests above measure for themselves.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [paragraphsOf]);
+
   /* Find: bring the current match into view. */
   useLayoutEffect(() => {
     const root = scroller.current;
