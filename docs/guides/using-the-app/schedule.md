@@ -3,10 +3,10 @@
 # Schedule
 
 Schedule, the item after [Production](production.md) in the navigation, holds the book's due date and whether your
-pace reaches it, how the book pays, how the work left is worked out, and the milestones. With no manuscript it asks
+pace reaches it, the recorded audio against the plan, how the book pays, how the work left is worked out, and the milestones. With no manuscript it asks
 you to import one first. Every change here is one step you can undo.
 
-![Schedule with a due date: the verdict, the contract, how the work left is worked out, and the milestones](../../images/ui/schedule-on-pace.webp)
+![Schedule with a due date: the verdict, recorded audio against the plan, the contract, how the work left is worked out, and the milestones](../../images/ui/schedule-on-pace.webp)
 
 ## The due date and the verdict
 
@@ -16,6 +16,12 @@ title the page says when the book is due and how many days are left. The pill at
 date needs. Until a due date is set, the page and the pill say **No due date set**.
 
 ![Schedule before a due date is set: no verdict, and the Final delivery milestone with no date](../../images/ui/schedule-no-due-date.webp)
+
+## Recorded audio vs plan
+
+The chart plots finished hours against dates: the dashed line is the plan from the start to the due date, the dot is
+where you are today, and the dotted line runs on at your pace to the day it would finish (**done … (est.)**). The due
+date is marked across it. Until recorded days are measured, the chart says so.
 
 ## Contract
 

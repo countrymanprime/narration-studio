@@ -75,6 +75,7 @@ describe('the-list-is-kind-chips-over-two-line-rows', () => {
     expect(lines).toHaveLength(2);
     expect(lines[0]!.textContent).toContain('Alice');
     expect(lines[1]!.textContent).toMatch(/^Character · \d+ names? · \d+ chapters?$/);
+    expect(lines[1]!.textContent).not.toMatch(/ 0 names/);
 
     await userEvent.click(within(kindGroup()).getByRole('button', { name: 'Place' }));
     expect(within(kindGroup()).getByRole('button', { name: 'Place' }).getAttribute('aria-pressed')).toBe('true');
@@ -122,5 +123,8 @@ describe('the-type-colour-tints-the-chips-and-rows', () => {
     const unsure = (await createMockApi().guideEntities()).find((row) => row.category === 'Needs Review')!;
     const row = rows().find((r) => r.textContent?.includes(unsure.canonical_name))!;
     await waitFor(() => expect(swatchOf(row)).toBe('var(--review)'));
+    // The review state is the row's badge, not the type word.
+    expect(row.querySelector('[data-line="name"]')!.textContent).toContain('Review');
+    expect(row.querySelector('[data-line="kind"]')!.textContent).toMatch(/^Type not set · 1 name · \d+ chapters?$/);
   });
 });

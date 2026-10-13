@@ -557,7 +557,7 @@
     "state": "on-pace",
     "viewport": "desktop",
     "docName": "schedule-on-pace",
-    "caption": "Schedule with a due date: the verdict, the contract, how the work left is worked out, and the milestones"
+    "caption": "Schedule with a due date: the verdict, recorded audio against the plan, the contract, how the work left is worked out, and the milestones"
   },
   {
     "page": "schedule",
@@ -851,13 +851,13 @@
     "state": "refusal",
     "viewport": "desktop",
     "docName": "booth-record-refused",
-    "caption": "Booth - Record disabled with the reason in the footer, and the Recording in REAPER is experimental box above it with Turn on Record and DAW settings"
+    "caption": "Booth - Record disabled with the reason in the footer, and the Recording in REAPER is experimental box above it"
   },
   {
     "page": "booth",
     "state": "record-connect",
     "viewport": "desktop",
     "docName": "booth-record-setup",
-    "caption": "Booth - the Connect REAPER to record box, with the two steps and Open in REAPER and connect, above the disabled Record button and its reason"
+    "caption": "Booth - the Connect REAPER to record box, with the two steps, above the disabled Record button and its reason"
   }
 ]

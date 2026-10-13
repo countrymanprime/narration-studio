@@ -95,6 +95,17 @@ describe('table-lists-the-chapters-words-with-their-status', () => {
     expect(row(words[0]!).getAttribute('aria-selected')).toBe('false');
   });
 
+  it("lists the Story Bible names in the chapter text with the entry's pronunciation, read-only, as the Booth's Coming up does", async () => {
+    mount(fakeHost());
+    const rabbit = await screen.findByRole('row', { name: named('White Rabbit') });
+    expect(within(rabbit).getByText('Set')).toBeTruthy();
+    expect(within(rabbit).getByLabelText('Source: Story Bible')).toBeTruthy();
+    expect(within(rabbit).getByText(/ˈræbɪt/)).toBeTruthy();
+    await userEvent.click(rabbit);
+    expect(rabbit.getAttribute('aria-selected')).toBeNull();
+    expect(screen.queryByRole('group', { name: 'Word: White Rabbit' })).toBeNull();
+  });
+
   it('lists only words flagged in this chapter', async () => {
     mount(fakeHost(), { chapterId: 'no-such-chapter' });
     expect(await screen.findByText('No words marked for pronunciation in this chapter.')).toBeTruthy();

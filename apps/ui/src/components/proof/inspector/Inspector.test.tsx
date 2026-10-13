@@ -46,6 +46,17 @@ describe('quotes-show-script-and-heard-with-the-diff', () => {
   });
 });
 
+describe('an-empty-quote-names-the-side-that-is-empty', () => {
+  it('says the script has nothing for extra words, and that nothing was heard for a skipped line', () => {
+    setup(inspectorFinding({ manuscript: { expected: '', recorded: 'and then some' } }));
+    expect(document.querySelector('[data-quote=script]')!.textContent).toBe('Nothing in the script');
+    expect(document.querySelector('[data-quote=heard]')!.textContent).toBe('and then some');
+    cleanup();
+    setup(inspectorFinding({ manuscript: { expected: 'a line', recorded: '' } }));
+    expect(document.querySelector('[data-quote=heard]')!.textContent).toBe('Nothing heard');
+  });
+});
+
 describe('markup-is-only-four-tags', () => {
   it('shows a tag in the evidence as text and injects no element', () => {
     setup(inspectorFinding({ manuscript: { expected: 'a <img src=x> b', recorded: 'a <img src=x> b' } }));
