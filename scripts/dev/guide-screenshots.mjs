@@ -25,7 +25,7 @@ const MANIFEST = join(UI, 'tests/visual/doc-screenshots.json');
 const CAPTURES = 'screenshots/guide';
 
 // The guide is read well under full desktop width; downscale before compressing so text-heavy pages stay small.
-export const WEBP = { quality: 80, maxWidth: 1280 };
+const WEBP = { quality: 80, maxWidth: 1280 };
 // Two encodings of the same state differ by a few anti-aliased pixels from run to run; under this share of pixels
 // changed by more than PIXEL_DELTA levels the image counts as unchanged and the committed file stays.
 const CHANGED_SHARE = 0.0005;
