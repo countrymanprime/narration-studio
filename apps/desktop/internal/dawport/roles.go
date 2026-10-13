@@ -2,6 +2,7 @@ package dawport
 
 import (
 	"context"
+	"errors"
 	"math"
 
 	"github.com/countrymanprime/narration-utils/shell/internal/bridge"
@@ -599,6 +600,44 @@ func (r ClickRepairRequest) Valid() bool {
 // to make it in several.
 type ClickRepairer interface {
 	RepairClick(ctx context.Context, request ClickRepairRequest) (Result, error)
+}
+
+// ActionKind names a kind of app action whose undo point the engine can tell from any other: what LastActionUndoer reads and
+// undoes. Each engine maps a kind to its own mark for it (REAPER: the label the command's undo block closes with); the caller never
+// names a label.
+type ActionKind string
+
+// ActionCutRange is a cut of words and their audio (RangeCutter's DeleteRange).
+const ActionCutRange ActionKind = "cut_range"
+
+// Valid is whether k is a kind this build knows.
+func (k ActionKind) Valid() bool { return k == ActionCutRange }
+
+// ErrActionKind is an ActionKind this build does not know: nothing is read or undone.
+var ErrActionKind = errors.New("that is not a kind of action the app can read or undo in the DAW")
+
+// LastAction is what the engine says of its next undo point for a kind: LastActionThis when it is that kind's, LastActionOther
+// when it is anything else or there is none, LastActionUnknown when the engine cannot tell (the capability refused, the engine not
+// answering).
+type LastAction string
+
+const (
+	LastActionThis    LastAction = "this"
+	LastActionOther   LastAction = "other"
+	LastActionUnknown LastAction = "unknown"
+)
+
+// MaxUndoLastSteps is the most undo points one UndoLast undoes, the wire schema's bound.
+const MaxUndoLastSteps = MaxUndoSteps
+
+// LastActionUndoer reads and undoes the app's own last actions in the engine's own undo history. LastAction never changes the
+// project and answers LastActionUnknown rather than an error when the engine cannot tell; its one error is ErrActionKind. UndoLast
+// undoes 1 to MaxUndoLastSteps consecutive points of kind from the top of the history, one at a time, and never one of any other
+// kind: when the top point is not kind's it is refused with nothing changed; when a later one is not, it stops there and says how
+// many it undid. Its Result's UndoSteps is 0 (an undo adds no undo point; see Result).
+type LastActionUndoer interface {
+	LastAction(ctx context.Context, kind ActionKind) (LastAction, error)
+	UndoLast(ctx context.Context, kind ActionKind, steps int) (Result, error)
 }
 
 // BackupKeeper clones the audio around an edit before it is made, so it can be put back, for an engine that keeps no takes of its

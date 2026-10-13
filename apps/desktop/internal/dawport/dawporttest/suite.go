@@ -326,4 +326,5 @@ var roleChecks = map[dawport.Capability]roleCheck{
 	dawport.CapFileReveal:      check[dawport.FileRevealer](),
 	dawport.CapRangeGain:       check[dawport.RangeGainReducer](),
 	dawport.CapClickRepair:     check[dawport.ClickRepairer](),
+	dawport.CapUndoLast:        check[dawport.LastActionUndoer](),
 }

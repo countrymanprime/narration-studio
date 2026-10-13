@@ -79,6 +79,7 @@ func NewFake(kind dawport.Kind, levels map[dawport.Capability]dawport.Level) *Fa
 		dawport.CapFileReveal:      fileRevealRole{r(dawport.CapFileReveal)},
 		dawport.CapRangeGain:       rangeGainRole{r(dawport.CapRangeGain)},
 		dawport.CapClickRepair:     clickRepairRole{r(dawport.CapClickRepair)},
+		dawport.CapUndoLast:        undoLastRole{r(dawport.CapUndoLast)},
 	}
 	return f
 }
@@ -353,6 +354,30 @@ func (r role) result(method, message string) (dawport.Result, error) {
 		return dawport.Result{}, err
 	}
 	return dawport.OK(message, true), nil
+}
+
+type undoLastRole struct{ role }
+
+// LastAction and UndoLast answer as REAPER's last_action and undo_last do when the app's own action is on top: this, and the steps
+// undone with no undo step added. An unknown kind is ErrActionKind.
+func (r undoLastRole) LastAction(_ context.Context, kind dawport.ActionKind) (dawport.LastAction, error) {
+	if err := r.do("LastAction"); err != nil {
+		return dawport.LastActionUnknown, err
+	}
+	if !kind.Valid() {
+		return dawport.LastActionUnknown, dawport.ErrActionKind
+	}
+	return dawport.LastActionThis, nil
+}
+func (r undoLastRole) UndoLast(_ context.Context, kind dawport.ActionKind, _ int) (dawport.Result, error) {
+	got, err := r.result("UndoLast", "Undid the last action.")
+	if err != nil {
+		return got, err
+	}
+	if !kind.Valid() {
+		return dawport.Result{}, dawport.ErrActionKind
+	}
+	return got.WithUndoSteps(0), nil
 }
 
 type cutRangeRole struct{ role }

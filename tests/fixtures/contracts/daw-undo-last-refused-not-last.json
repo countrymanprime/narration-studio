@@ -1,0 +1,7 @@
+{
+  "ok": false,
+  "changed": false,
+  "message": "REAPER's last action is not this one, so it was left alone. Use Edit > Undo in REAPER.",
+  "undoSteps": 0,
+  "refused": "REAPER's last action is not this one, so it was left alone. Use Edit > Undo in REAPER."
+}

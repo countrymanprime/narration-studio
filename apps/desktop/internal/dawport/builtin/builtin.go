@@ -5,8 +5,8 @@
 // It declares what the recorder does: record (Experimental until the owner's hardware pass), takes (choosing a line's take
 // marks it the keeper and hiding the others keeps their files, keeper.go in internal/recording) and cut_range (a cut is an edit
 // list the recorder plays and exports past, never a rewrite of the take file; mode "app"), the last two Experimental. It keeps no
-// saved project, so project_read is Unsupported with its own sentence. Punch and the edit rows the app has not built yet
-// (stack_takes, fx_range) are NotYetAvailable; once one has a role it declares mode "app" (Depth). Everything else is Unsupported.
+// saved project, so project_read is Unsupported with its own sentence. Punch, undo_last and the edit rows the app has not built
+// yet (stack_takes, fx_range) are NotYetAvailable; once one has a role it declares mode "app" (Depth). Everything else is Unsupported.
 //
 // Importing the package registers its factory for dawport.KindBuiltIn.
 package builtin
@@ -77,6 +77,8 @@ var declares = func() map[dawport.Capability]dawport.Level {
 		}
 	}
 	d[dawport.CapPunch] = dawport.NotYetAvailable
+	// The app would undo a built-in cut in its own edit list, which it has not built yet (#1711).
+	d[dawport.CapUndoLast] = dawport.NotYetAvailable
 	return d
 }()
 

@@ -644,6 +644,16 @@ export function DawFxRangeParams(chapterID: string, firstToken: number, lastToke
 }
 
 /**
+ * DawLastAction answers whether the DAW's next undo point is the app's own action of kind (#1711, ADR 0771 rule 4): "this", "other"
+ * (another action, or none), or "unknown" when the DAW cannot tell: the undo_last capability refused (a standalone launch, a DAW not
+ * answering, Experimental actions off, the toggle off, an engine that has not built it), no live adapter, or no answer. It never
+ * changes the project. kind is a dawport.ActionKind ("cut_range"); any other is an error, and nothing is sent.
+ */
+export function DawLastAction(kind: string): $CancellablePromise<string> {
+    return $Call.ByID(2436285480, kind);
+}
+
+/**
  * DawLaunch starts REAPER on the current project's linked DAW file: it resolves
  * reaper.exe (a Settings override always wins, otherwise auto-detect -
  * daw.Resolve / daw.LocateReaperExecutable, ADR 0092), and passes the linked
@@ -818,6 +828,18 @@ export function DawStopFxCompare(): $CancellablePromise<string> {
  */
 export function DawTrimRange(chapterID: string, itemID: string, start: number, end: number, fadeMs: number): $CancellablePromise<string> {
     return $Call.ByID(109845507, chapterID, itemID, start, end, fadeMs);
+}
+
+/**
+ * DawUndoLast undoes steps (1 to 12) consecutive undo points of the app's own action of kind from the top of the DAW's own undo
+ * history, one at a time, and never one of any other action (#1711). The answer is a DawResult (ADR 0810): the undo_last
+ * capability's own sentence when the resolver refuses it, checked first; no live adapter is refused in a sentence; the top point not
+ * being kind's is refused in the DAW's sentence with nothing changed; stopping at another point part way is changed, and its
+ * sentence says how many were undone. UndoSteps is 0: an undo adds no undo point. kind is a dawport.ActionKind ("cut_range"); any
+ * other is an error, and nothing is sent.
+ */
+export function DawUndoLast(kind: string, steps: number): $CancellablePromise<string> {
+    return $Call.ByID(2137077524, kind, steps);
 }
 
 /**

@@ -54,6 +54,9 @@ const (
 	CapRangeGain Capability = "range_gain"
 	// CapClickRepair smooths short clicks in a take (SN-E101): the one DAW change behind Clean up's Clicks.
 	CapClickRepair Capability = "click_repair"
+	// CapUndoLast reads whether the engine's next undo point is one an app action of a given kind made, and undoes such points
+	// from the top of the engine's own history (#1711): the app's Undo of a cut.
+	CapUndoLast Capability = "undo_last"
 )
 
 // Needs is what a capability needs from the running engine before it can be used.
@@ -114,6 +117,7 @@ var specs = []Spec{
 	{CapFileReveal, "Show a file in the audio engine", NeedsRunning, reflect.TypeFor[FileRevealer](), nil},
 	{CapRangeGain, "Lower stretches of a take", NeedsRunning, reflect.TypeFor[RangeGainReducer](), nil},
 	{CapClickRepair, "Repair clicks in a take", NeedsRunning, reflect.TypeFor[ClickRepairer](), nil},
+	{CapUndoLast, "Undo the app's last action", NeedsRunning, reflect.TypeFor[LastActionUndoer](), nil},
 }
 
 // Capabilities returns every capability's spec, in catalog order. The slice is the caller's own.
