@@ -1305,6 +1305,18 @@ describe('App (integration, driven through the mock NarrationApi)', () => {
     await waitFor(() => expect(screen.getByText('REAPER project linked.')).toBeTruthy());
   });
 
+  it('links a REAPER project kept in another folder and says where it is, with no error', async () => {
+    renderApp({}, { dawFileLinked: false, dawLinkOutside: true });
+    await screen.findByRole('heading', { level: 1, name: 'Production' });
+    fireEvent.click(screen.getAllByRole('button', { name: 'Settings' })[0]);
+    await screen.findByRole('heading', { name: 'Settings' });
+
+    await screen.findByText('REAPER detected');
+    fireEvent.click(screen.getByRole('button', { name: 'Link a REAPER project file' }));
+    await waitFor(() => expect(screen.getByText(/^REAPER project linked\. Elsewhere\.rpp is in D:\/Audio\/Elsewhere/)).toBeTruthy());
+    expect(screen.queryByText(/outside this project's folder/)).toBeNull();
+  });
+
   it('does not offer the DAW catalog handoff link once a REAPER project is already linked', async () => {
     renderApp();
     await screen.findByRole('heading', { level: 1, name: 'Production' });

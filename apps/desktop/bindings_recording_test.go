@@ -129,8 +129,14 @@ func TestRecorderDevicesGoldenIsCurrent(t *testing.T) {
 	contractfile.Check(t, "recorder-devices", decoded)
 }
 
+// A folder with no DAW project records in the app where the built-in recorder runs; one holding a REAPER project records with
+// REAPER until the narrator chooses the built-in recorder.
 func TestAProjectRecordsWithREAPERUntilItChoosesTheBuiltInRecorder(t *testing.T) {
 	host := recorderHost(t, &recordingtest.Fake{})
+	if state := recorderOf(t)(host.RecorderState()); state.Engine != engineBuiltin {
+		t.Fatalf("empty folder: engine = %q, want builtin", state.Engine)
+	}
+	rppFolder(t, host)
 	state := recorderOf(t)(host.RecorderState())
 	if state.Engine != engineDAW || !state.HasProject || state.Support["level"] != "experimental" || state.Support["available"] != true {
 		t.Fatalf("state = %+v", state)
@@ -151,6 +157,7 @@ func TestAProjectRecordsWithREAPERUntilItChoosesTheBuiltInRecorder(t *testing.T)
 
 func TestTheBuiltInRecorderIsRefusedWhereItsRowDoesNotRun(t *testing.T) {
 	host := recorderHost(t, &recordingtest.Fake{})
+	rppFolder(t, host)
 	host.platform = "linux"
 	if _, err := host.RecorderChooseEngine(engineBuiltin); err == nil || !strings.Contains(err.Error(), "not available") {
 		t.Fatalf("err = %v", err)
@@ -304,6 +311,7 @@ func TestRecorderSetTakeKeeperWithoutAProjectIsRefused(t *testing.T) {
 func TestTheMeterStartsAndStopsOnlyForTheBuiltInRecorder(t *testing.T) {
 	fake := &recordingtest.Fake{}
 	host := recorderHost(t, fake)
+	rppFolder(t, host)
 	if _, err := host.RecorderMeterStart("Mic"); err == nil {
 		t.Fatal("metered while the project records with REAPER")
 	}
@@ -317,4 +325,11 @@ func TestTheMeterStartsAndStopsOnlyForTheBuiltInRecorder(t *testing.T) {
 	recorderOf(t)(host.RecorderMeterStart("Mic"))
 	recorderOf(t)(host.RecorderChooseEngine(engineDAW))
 	waitRecorderIdle(t, host)
+}
+
+// rppFolder puts a REAPER project file in host's project folder, so the project's DAW is REAPER (projectdaw.go).
+func rppFolder(t *testing.T, host *Host) {
+	t.Helper()
+	writeFile(t, filepath.Join(host.config.projectFolder, "Book.rpp"), "")
+	host.dawFolder.forget()
 }

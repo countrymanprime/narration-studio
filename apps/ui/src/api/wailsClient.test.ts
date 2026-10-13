@@ -488,6 +488,14 @@ describe('wailsClient', () => {
     await expect(wailsClient.switchProject('C:/Projects/Alice')).resolves.toEqual({ switched: false, reason: 'Narration Studio is busy.' });
   });
 
+  it('reads the default projects folder through ProjectDefaultLocation', async () => {
+    const projectDefaultLocation = vi.fn().mockResolvedValue(JSON.stringify({ path: 'C:/Users/Alice/NarrationUtils' }));
+    standInHost({ ProjectDefaultLocation: projectDefaultLocation });
+
+    await expect(wailsClient.projectDefaultLocation()).resolves.toEqual({ path: 'C:/Users/Alice/NarrationUtils' });
+    expect(projectDefaultLocation).toHaveBeenCalledWith();
+  });
+
   it('creates a new project under a parent directory and a name, through ProjectCreateIn', async () => {
     const createProject = vi.fn().mockResolvedValue(JSON.stringify({ switched: true }));
     standInHost({ ProjectCreateIn: createProject });

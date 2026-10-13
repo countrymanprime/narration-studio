@@ -1,13 +1,15 @@
 export type RecentProject = { path: string; name: string; lastOpened: string };
 export type ProjectFolderSelection = { selected: boolean; path?: string };
 export type ProjectSwitchResult = { switched: boolean; reason?: string };
+/** ProjectDefaultLocation's result: the folder an empty `createProject` parent creates in; empty when no home folder resolves. */
+export type ProjectDefaultLocation = { path: string };
 /**
  * ProjectLinkDawFile's result: `selected` is false only when the narrator cancelled the file dialog, in which case
- * nothing else is set. `linked` is false when the chosen file sits outside the project folder - `folderMismatch` and
- * `message` explain why (refuse rather than silently re-pointing the project, since that would orphan the imported
- * manuscript).
+ * nothing else is set. Any existing `.rpp` links, inside the project folder at any depth or anywhere else;
+ * `insideProject` says which, and `note` (a file outside the folder only) says where the file and the project are.
+ * `linked` is false only for a file that is not an `.rpp` or no longer exists, and `message` says why.
  */
-export type DawLinkResult = { selected: boolean; linked: boolean; path?: string; folderMismatch?: boolean; message?: string };
+export type DawLinkResult = { selected: boolean; linked: boolean; path?: string; insideProject?: boolean; note?: string; message?: string };
 /**
  * DawLaunch's result: `source` names where the executable
  * path came from (`settings_override`, `uninstall_registry` or `file_association`, apps/desktop/internal/daw),
@@ -23,6 +25,8 @@ export interface ProjectApi {
   // default projects directory. name is the project's own folder name, always required:
   // the New Project dialog collects it, replacing the old full-path createProject(path, name?).
   createProject(parent: string, name: string): Promise<ProjectSwitchResult>;
+  /** The default projects folder createProject('', name) creates in, for the New Project dialog to show. */
+  projectDefaultLocation(): Promise<ProjectDefaultLocation>;
   removeRecentProject(path: string): Promise<RecentProject[]>;
   /**
    * Opens a native "*.rpp" file dialog and links the chosen file to the current project (one shared binding behind the audio engine panel

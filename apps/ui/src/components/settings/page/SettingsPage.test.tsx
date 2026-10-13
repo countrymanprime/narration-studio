@@ -90,24 +90,27 @@ describe('Settings page (SN-M52)', () => {
     expect((field as HTMLSelectElement).value).toBe(before);
   });
 
-  it('recording panel: chooses the DAW or the built-in recorder, and shows the DAW chosen while it is off', async () => {
-    const api = createMockApi();
-    const report = await api.dawCapabilities();
-    // The launch's DAW is not running: the report still names it, and the project's engine is still the DAW.
-    api.dawCapabilities = async () => ({ ...report, reachable: false });
-    const choose = vi.spyOn(api, 'recorderChooseEngine');
+  it('recording panel: lists every engine, chooses the built-in recorder or a DAW, and shows the DAW chosen while it is off', async () => {
+    const api = createMockApi({}, { daw: { connected: false } });
+    const choose = vi.spyOn(api, 'dawChoose');
     await renderPage({ api });
     const recording = panel('Recording');
     const group = await within(recording).findByRole('radiogroup', { name: 'Recording' });
     const radios = within(group).getAllByRole('radio');
-    expect(radios).toHaveLength(2);
-    expect(radios[0]!.parentElement?.textContent).toBe(`${report.daw}. Recordings live in the DAW.`);
-    expect(radios[0]!.getAttribute('aria-checked')).toBe('true');
+    expect(radios).toHaveLength(3);
+    // The project's DAW is not running: it stays chosen.
+    await waitFor(() =>
+      expect(
+        within(recording)
+          .getByRole('radio', { name: /^REAPER\./ })
+          .getAttribute('aria-checked'),
+      ).toBe('true'),
+    );
     // The panel comes first, as the mock orders it.
     expect(screen.getAllByRole('region')[0]).toBe(recording);
 
-    fireEvent.click(radios[1]!);
-    await waitFor(() => expect(choose).toHaveBeenCalledWith('builtin'));
+    fireEvent.click(within(recording).getByRole('radio', { name: /^Built-in recorder/ }));
+    await waitFor(() => expect(choose).toHaveBeenCalledWith('Built-in'));
     await waitFor(() =>
       expect(
         within(recording)
@@ -115,12 +118,12 @@ describe('Settings page (SN-M52)', () => {
           .getAttribute('aria-checked'),
       ).toBe('true'),
     );
-    fireEvent.click(within(recording).getByRole('radio', { name: /Recordings live in the DAW/ }));
-    await waitFor(() => expect(choose).toHaveBeenCalledWith('daw'));
+    fireEvent.click(within(recording).getByRole('radio', { name: /^Audacity\./ }));
+    await waitFor(() => expect(choose).toHaveBeenCalledWith('Audacity'));
     await waitFor(() =>
       expect(
         within(recording)
-          .getByRole('radio', { name: /Recordings live in the DAW/ })
+          .getByRole('radio', { name: /^Audacity\./ })
           .getAttribute('aria-checked'),
       ).toBe('true'),
     );

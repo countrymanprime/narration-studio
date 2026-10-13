@@ -23,6 +23,34 @@ export const settingsStates: StateEntry[] = [
     description: 'Settings\' Recording panel with the built-in recorder chosen: "Built-in recorder. Recordings live in the app." is the checked radio',
     ...REFLOW,
   },
+  {
+    page: 'settings',
+    state: 'recording-found',
+    description:
+      'Settings\' Recording panel for a folder holding one .rpp that is not linked (?mockDawChoice=found): REAPER chosen by the folder, every engine listed with its state (Experimental, switched off, with the DAW Integration link), "REAPER not linked", "Alice.rpp is in the project folder." and Link Alice.rpp',
+    ...REFLOW,
+  },
+  {
+    page: 'settings',
+    state: 'recording-several',
+    description:
+      'Settings\' Recording panel for a folder holding two .rpp files and none linked (?mockDawChoice=several): REAPER, "2 REAPER project files are in the project folder" and Choose a project file, no one-click link',
+    ...REFLOW,
+  },
+  {
+    page: 'settings',
+    state: 'recording-linked',
+    description:
+      'Settings\' Recording panel after Link Alice.rpp: "REAPER linked: Alice.rpp", REAPER not running with the launcher switch named, Change linked file and Start REAPER',
+    ...REFLOW,
+  },
+  {
+    page: 'settings',
+    state: 'recording-not-installed',
+    description:
+      'Settings\' Recording panel with REAPER chosen for an empty folder on a computer without it (?mockDawChoice=not-installed): "REAPER was not found on this computer" under its radio, and "No REAPER project file is in the project folder yet"',
+    ...REFLOW,
+  },
   { page: 'settings', state: 'global-general', description: 'Settings, the General panel (Global only)', ...REFLOW },
   {
     page: 'settings',

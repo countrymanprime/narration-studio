@@ -219,8 +219,8 @@ function AppRoutes() {
   }, [api, setNotice]);
 
   // The one shared "link a REAPER project file" action behind the engine panel and Settings' DAW
-  // category. Cancelling the dialog does nothing; a
-  // folder mismatch is refused with its own message rather than silently re-pointing the project. One
+  // category. Cancelling the dialog does nothing. Any .rpp links, in the project folder or elsewhere (the host's note says
+  // where a file outside the folder is); only a file that is not an .rpp or is gone is refused, with its message. One
   // `usePendingAction` ref guards all three call sites at once (ADR 0075), since the host's file dialog is native
   // and modal - a second press from any of them while it is open is refused, not just the button that shows it.
   const dawLink = usePendingAction();
@@ -234,7 +234,7 @@ function AppRoutes() {
           return;
         }
         await refreshBootstrap();
-        setNotice('REAPER project linked.');
+        setNotice(result.note ? `REAPER project linked. ${result.note}` : 'REAPER project linked.');
       } catch (error) {
         setNotice(describeApiError(error), 'error');
       }

@@ -64,23 +64,23 @@ export function createProjectMock(initial: MockApiSeed) {
     selectProjectFolder: async () => ({ selected: true, path: 'C:/Projects/Mock-Project' }),
     switchProject: async (path, name) => attachProject(path, name),
     createProject: async (parent, name) => attachProject(`${parent || DEFAULT_PROJECTS_DIRECTORY}/${name}`, name),
+    projectDefaultLocation: async () => ({ path: DEFAULT_PROJECTS_DIRECTORY }),
     removeRecentProject: async (path) => {
       recentProjects = recentProjects.filter((entry) => entry.path.toLowerCase() !== path.toLowerCase());
       return wireClone(recentProjects);
     },
     linkDawFile: async () => {
-      if (initial.dawLinkMismatch) {
-        const elsewhere = 'C:/Projects/Elsewhere/Elsewhere.rpp';
+      dawFileLinked = true;
+      if (initial.dawLinkOutside) {
         return {
           selected: true,
-          linked: false,
-          path: elsewhere,
-          folderMismatch: true,
-          message: `Elsewhere.rpp is outside this project's folder (${projectFolder}). Choose a REAPER project file saved inside the project, or open that project instead.`,
+          linked: true,
+          path: 'D:/Audio/Elsewhere/Elsewhere.rpp',
+          insideProject: false,
+          note: `Elsewhere.rpp is in D:/Audio/Elsewhere; this project's folder is ${projectFolder}. The link keeps working while the REAPER file stays where it is.`,
         };
       }
-      dawFileLinked = true;
-      return { selected: true, linked: true, path: dawRppPath };
+      return { selected: true, linked: true, path: dawRppPath, insideProject: true };
     },
     // The mock never grows a real heartbeat (dawReachable stays whatever Bootstrap already reports; the live heartbeat of
     // ADR 0092 exists only in the host and the Lua bridge): this just answers as if REAPER accepted the launch.

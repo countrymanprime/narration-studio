@@ -150,6 +150,47 @@ export interface DawCapabilitiesApi {
   subscribeDawTransport(onUpdate: (state: DawTransport) => void): () => void;
 }
 
+/** An engine the narrator can choose for a project (DawChoose). */
+export type ChoosableDaw = Exclude<DawKind, 'none'>;
+
+/** Why the project records with its engine: the launch's `--daw` (an override), the narrator's saved choice, the project's linked
+ * DAW file, a REAPER project file found in its folder, or the default for a folder with none (dawport.ProjectKind). */
+export type DawChoiceSource = 'launch' | 'chosen' | 'linked' | 'found' | 'default';
+
+/** The project's engine as the Booth's chip words it: `connected` (the DAW answers), `not_running` (its bridge was opened but it
+ * stopped answering, or a DAW with no file to link that is not answering), `linked` (its project file is linked; starting it
+ * from the app connects it), `not_linked`, `app` (the built-in recorder) or `none`. */
+export type DawChoiceState = 'connected' | 'not_running' | 'linked' | 'not_linked' | 'app' | 'none';
+
+/** One engine Settings > Recording lists: whether the app found it on this computer (null when it cannot tell) and its record
+ * capability as the resolver answers it, with the resolver's own sentence when it is not available now. */
+export type DawChoiceOption = { daw: ChoosableDaw; installed: boolean | null; record: DawCapabilitySupport };
+
+/** DawChoice, DawChoose and DawLinkFound (apps/desktop/bindings_dawchoice.go): what the project records with, why, and every
+ * engine the narrator can choose. `chosen` is the saved choice (null when none); it differs from `daw` only while a launch's
+ * `--daw` overrides it. `linkedFile` and `foundFiles` are file names in the project folder, never paths. */
+export type DawChoice = {
+  hasProject: boolean;
+  daw: DawKind;
+  source: DawChoiceSource;
+  chosen: ChoosableDaw | null;
+  state: DawChoiceState;
+  reachable: boolean;
+  linkedFile: string | null;
+  foundFiles: string[];
+  launcherAutoStart: boolean;
+  experimental: boolean;
+  options: DawChoiceOption[];
+};
+
+export interface DawChoiceApi {
+  dawChoice(): Promise<DawChoice>;
+  /** Saves the project's engine; the host refuses the built-in recorder where it cannot run, and any change while a take records. */
+  dawChoose(daw: ChoosableDaw): Promise<DawChoice>;
+  /** Links the one REAPER project file in the project folder and chooses REAPER; refused when the folder holds none or several. */
+  dawLinkFound(): Promise<DawChoice>;
+}
+
 /** The DAW project as last saved against the live one (DawProjectState and daw_project_state_changed;
  * apps/desktop/bindings_daw_projectstate.go). `savedAt` is the saved file's modification time, read by the host, as a local
  * date and time to the minute (`2026-09-26T08:40`), null when the DAW keeps no saved project or this one was never saved.
