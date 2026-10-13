@@ -6,13 +6,23 @@ import { TooltipTarget } from '../../primitives/Tooltip';
 import type { Notify } from '../../primitives/Toast';
 import { openReadiness } from '../readiness/openReadiness';
 import { ReadinessChip } from '../readiness/ReadinessChip';
-import { cellName, COLUMN_LABEL, type CellKind, type GoTarget, type PipelineCell, type PipelineColumn, type PipelineRow } from './pipelineRows';
+import { cellName, COLUMN_LABEL, UNDER_WAY, type CellKind, type GoTarget, type PipelineCell, type PipelineColumn, type PipelineRow } from './pipelineRows';
 
 const KIND_TONE: Record<CellKind, StatusTone> = { done: 'success', progress: 'progress', open: 'danger', none: 'neutral' };
 /** Every stage column is the same width; Fin. is narrower (the mock: 80 px and 64 px). */
 const STAGE_WIDTH = '5rem';
 const FIN_WIDTH = '4rem';
 const STAGE_COLUMNS: readonly PipelineColumn[] = ['prep', 'record', 'edit', 'proof', 'pickups', 'master', 'qc'];
+
+/** A disc half filled, drawn with CSS so it reads the same in every font. */
+const underWayMark = (
+  <span
+    data-under-way=""
+    aria-hidden="true"
+    className="inline-block size-2.5 rounded-full border border-current [background:linear-gradient(90deg,currentColor_50%,transparent_50%)]"
+  />
+);
+const textOf = (cell: PipelineCell) => (cell.text === UNDER_WAY ? underWayMark : cell.text);
 
 function StageCell({ row, cell, onGo }: { row: PipelineRow; cell: PipelineCell; onGo: (target: GoTarget, chapterId: string) => void }) {
   const colors = toneColors(KIND_TONE[cell.kind]);
@@ -22,7 +32,7 @@ function StageCell({ row, cell, onGo }: { row: PipelineRow; cell: PipelineCell; 
     return (
       <TooltipTarget text={cell.tip}>
         <span className={classes} style={badgeStyle(colors, look)} aria-label={cellName(row.name, cell)} role="img">
-          {cell.text}
+          {textOf(cell)}
         </span>
       </TooltipTarget>
     );
@@ -38,7 +48,7 @@ function StageCell({ row, cell, onGo }: { row: PipelineRow; cell: PipelineCell; 
         style={badgeStyle(colors, look)}
         onClick={() => onGo(cell.target, row.id)}
       >
-        <span aria-hidden="true">{cell.text}</span>
+        <span aria-hidden="true">{textOf(cell)}</span>
       </button>
     </TooltipTarget>
   );

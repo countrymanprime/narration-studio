@@ -154,7 +154,7 @@
     - paragraph: The proofer's note at REAPER's playhead, with Resolve and Waive, will show here.
   - region "Pickups":
     - heading "Pickups" [level=2]
-    - paragraph: No pickups yet
+    - paragraph: /\d+ pickups? remaining of \d+/
     - paragraph: Jump to one or mark it done on the Pickups page in the full app.
   - region "Hotkeys (while this window has focus)":
     - heading "Hotkeys (while this window has focus)" [level=2]

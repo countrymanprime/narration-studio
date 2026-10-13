@@ -102,7 +102,7 @@ export const masterStates: StateEntry[] = [
     sameAs: {
       of: 'master/multi-export-empty',
       reason: 'Both are scrolled to the end of the one-column page, where the Report and Multi-platform export panels sit together',
-      viewports: ['small-desktop', 'tablet'],
+      viewports: ['tablet'],
     },
     ...KEEPS_DESKTOP_SCROLL,
   },

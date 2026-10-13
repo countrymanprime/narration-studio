@@ -1,6 +1,7 @@
 // The pure side of the Pickups list: what the columns say, how rows group by chapter, and the pickup script. The wording is the Studio
 // Next mock's (`selectors/pickups.ts`: `srcLabel`, `typeLabel`; `state/commands/pickups.ts`: `pickupScript`).
 import type { PickupGapKind, PickupItem } from '../../../api/contracts/pickups';
+import type { StatusTone } from '../../primitives/StatusBadge';
 
 export type ChapterRef = { id: string; name: string };
 
@@ -23,7 +24,7 @@ export function groupByChapter(pickups: readonly PickupItem[], chapters: readonl
   return refs
     .map((chapter) => {
       const items = pickups.filter((pickup) => pickup.chapterId === chapter.id);
-      return { chapter, items, open: items.filter((pickup) => !pickup.done).length };
+      return { chapter, items, open: openPickups(items).length };
     })
     .filter((group) => group.items.length > 0);
 }
@@ -46,7 +47,30 @@ export function sourceLabel(pickup: PickupItem): string {
 export const sourceTitle = (pickup: PickupItem): string | undefined => (pickup.confidence === null && pickup.confReason ? pickup.confReason : undefined);
 
 /** The Type column: the kind of gap a speech check found, otherwise the kind of finding the host named. */
-export const typeLabel = (pickup: PickupItem): string => (pickup.gap && pickup.gap !== 'other' ? GAP_LABEL[pickup.gap] : pickup.type);
+export const typeLabel = (pickup: PickupItem): string => {
+  if (pickup.gap && pickup.gap !== 'other') return GAP_LABEL[pickup.gap];
+  // A note's type comes as the host wrote it ("noise", "Mouth click"): the first letter is a capital in every row.
+  return pickup.type.charAt(0).toUpperCase() + pickup.type.slice(1);
+};
+
+/** The chip's colour (the mock's `t-*` classes): a misread or a left-out line in red, a mouth or noise problem in amber, a name in blue, pacing and repeats in the accent. */
+export function typeTone(pickup: PickupItem): StatusTone {
+  if (pickup.gap === 'misread' || pickup.gap === 'missing') return 'danger';
+  if (pickup.gap === 'extra') return 'warning';
+  const type = pickup.type.toLowerCase();
+  if (/misread|skip/.test(type)) return 'danger';
+  if (/mouth|plosive|noise|breath|click/.test(type)) return 'warning';
+  if (/pron/.test(type)) return 'info';
+  if (/pacing|repeat/.test(type)) return 'accent';
+  return 'neutral';
+}
+
+/**
+ * The open pickups: the lines still to re-record, whoever left them out of the next session. This is the one definition of "open"
+ * (the Pickups page's "<n> open" per chapter, the rail's badge, Production's tile and Next up, Schedule's pickup hours all count
+ * through it), so the number a page states is the length of the list it points to.
+ */
+export const openPickups = (pickups: readonly PickupItem[]): PickupItem[] => pickups.filter((pickup) => !pickup.done);
 
 /** The pickups the next session takes: open and not left out. */
 export const sessionPickups = (pickups: readonly PickupItem[]): PickupItem[] => pickups.filter((pickup) => !pickup.done && pickup.included);

@@ -62,7 +62,8 @@ export type PipelineSources = {
 export const NOT_MEASURED = 'Not measured yet';
 const DASH = '—';
 const TICK = '✓';
-const UNDER_WAY = '◐';
+/** The text of an under-way cell (a stage with no measured percent): the table draws it as a shape, not as this glyph, which many fonts lack. */
+export const UNDER_WAY = '◐';
 
 const ORDER: readonly ChapterStatus[] = ['not_started', 'recording', 'editing', 'proofing', 'finalized'];
 const past = (status: ChapterStatus, at: ChapterStatus): boolean => ORDER.indexOf(status) >= ORDER.indexOf(at);

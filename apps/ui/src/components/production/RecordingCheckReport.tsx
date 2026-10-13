@@ -8,6 +8,8 @@ import { InsetCard } from '../primitives/InsetCard';
 import { SectionLabel } from '../primitives/SectionLabel';
 import { StatTile } from '../primitives/StatTile';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../primitives/Table';
+import { openPickups } from '../pickups/list/pickupRows';
+import { usePickupList } from '../pickups/useOpenPickups';
 import { PickupListCount } from './PickupListCount';
 import { REGION_LABEL, describePosition, describeRegion, formatAudioTime, paragraphRefs, plural, recordedTo, verdict } from './recordingCheckText';
 import { TakeReviewPickups } from './TakeReviewPickups';
@@ -74,21 +76,10 @@ export function RecordingCheckReport({
       current = false;
     };
   }, [api, chapter.id]);
-  // The proofer's pickup list, project-wide - the same figure
-  // the Pickups page shows, kept current for as long as the panel is open. It needs REAPER running (the `pickups`
-  // capability), so a background count is only started once the capability report says it is available; failing
-  // silently otherwise, like otherPickups above (SILENT_CATCHES).
+  // The Pickups page's list, project-wide: the figure is the length of the list the link opens.
   const pickupsCapability = useCapability('pickups');
-  const [pickupsRemaining, setPickupsRemaining] = useState<number>();
-  useEffect(() => {
-    if (!pickupsCapability.available) {
-      setPickupsRemaining(undefined);
-      return;
-    }
-    const unsubscribe = api.subscribePickups((state) => setPickupsRemaining(state.remaining));
-    void api.pickupsCount().catch(() => undefined);
-    return unsubscribe;
-  }, [api, pickupsCapability.available]);
+  const pickupList = usePickupList();
+  const pickupsRemaining = pickupList ? openPickups(pickupList).length : undefined;
   const to = recordedTo(report, chapter);
   const presentPercent = report.bodyTokens > 0 ? Math.round((report.presentTokens / report.bodyTokens) * 100) : 100;
   const pace = report.playedSeconds > 0 ? Math.round((report.presentTokens / report.playedSeconds) * 60) : undefined;

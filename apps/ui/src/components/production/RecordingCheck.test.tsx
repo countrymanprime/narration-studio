@@ -173,9 +173,10 @@ describe('the recording check', () => {
   });
 
   it("shows the proofer's project-wide open pickup count, the same figure the Pickups page shows", async () => {
+    // The mock's Pickups list has three open lines; the DAW's marker seed says two, and only the list counts.
     await openBoard({ pickups: 'next-success' });
     const dialog = await openCheck('Chapter 1');
-    expect(await within(dialog).findByText('Pickup list: 2 open (project-wide)')).toBeTruthy();
+    expect(await within(dialog).findByText('Pickup list: 3 open (project-wide)')).toBeTruthy();
     expect(within(dialog).getByRole('link', { name: 'Open pickups' }).getAttribute('href')).toBe('/pickups');
   });
 
