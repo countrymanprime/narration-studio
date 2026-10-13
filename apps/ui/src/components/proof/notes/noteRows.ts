@@ -1,9 +1,16 @@
 // The Proof notes list's row view model and the pure selectors over it (Studio Next mock: src/selectors/proof.ts). A row is a
 // `Finding` worded for the table; the host filters by status and sorts by `FindingsQuery.sort`, and what the query cannot say
 // (the chips that are not one status, the waveform window, find) narrows the page here.
-import { FINDING_CATEGORIES, type Finding, type FindingsQuery, type FindingSortKey } from '../../../api/contracts/findings';
+import {
+  FINDING_NOTE_TYPES,
+  shownFindingNoteType,
+  type Finding,
+  type FindingNoteType,
+  type FindingsQuery,
+  type FindingSortKey,
+} from '../../../api/contracts/findings';
 import type { StatusTone } from '../../primitives/StatusBadge';
-import { analyzerLabel, categoryLabel, evidenceKindLabel, formatTime } from '../findingFormat';
+import { analyzerLabel, formatTime } from '../findingFormat';
 import { fixKindOf, resolutionOf } from '../resolution';
 import { proofProgress } from '../proof.selectors';
 
@@ -14,7 +21,8 @@ export type NoteRow = {
   /** Project seconds, null when the analyzer gave no time. */
   seconds: number | null;
   time: string;
-  type: string;
+  /** The note's type word, the same one the inspector's select shows (misread, skip, pron…). */
+  type: FindingNoteType;
   script: string;
   heard: string;
   /** The analyzer's name; the Sources line counts by it. */
@@ -47,7 +55,7 @@ export function noteRow(finding: Finding): NoteRow {
     chapterTitle: finding.manuscript?.chapter_title || chapterId || 'No chapter',
     seconds,
     time: seconds === null ? '—' : formatTime(seconds),
-    type: evidenceKindLabel(finding),
+    type: shownFindingNoteType(finding),
     script: finding.manuscript?.expected ?? '',
     heard: finding.manuscript?.recorded ?? '',
     from: analyzerLabel(finding.analyzer),
@@ -139,6 +147,22 @@ export const sourcesText = (rows: readonly NoteRow[]): string =>
     .map(({ source, n }) => `${source} ${n}`)
     .join(' · ');
 
+/**
+ * The notes of All chapters in book order: chapter by chapter as the manuscript lists them, the host's order kept inside each chapter.
+ * A note's time is relative to its chapter, so the host's time sort alone would put Chapter 2's 0:08 above Chapter 1's 0:12; a note whose
+ * chapter the manuscript does not list goes after the listed ones.
+ */
+export function inBookOrder<T extends Pick<Finding, 'manuscript'>>(findings: readonly T[], chapterIds: readonly string[]): T[] {
+  const place = (f: T) => {
+    const at = chapterIds.indexOf(f.manuscript?.chapter_id ?? '');
+    return at < 0 ? chapterIds.length : at;
+  };
+  return findings
+    .map((f, i) => ({ f, i, at: place(f) }))
+    .sort((a, b) => a.at - b.at || a.i - b.i)
+    .map(({ f }) => f);
+}
+
 export type NoteGroup = { chapterId: string; title: string; rows: NoteRow[]; open: number };
 
 /** One group per chapter that has notes, in the order the chapters first appear; "<n> open" counts notes that are not cleared. */
@@ -153,7 +177,21 @@ export function groupByChapter(rows: readonly NoteRow[]): NoteGroup[] {
   return [...groups.values()];
 }
 
-/** Characters of the longest Type label: every type chip gets this width so a changed type never moves the cells. */
-export const TYPE_CHIP_CH = Math.max(...FINDING_CATEGORIES.map((c) => categoryLabel(c).length), 'Extra words'.length);
+/** Characters of the longest type word: every type chip gets this width so a changed type never moves the cells. */
+export const TYPE_CHIP_CH = Math.max(...FINDING_NOTE_TYPES.map((t) => t.length));
+
+/** The tone of a type's chip, as the mock colours them: errors in the danger tone, audio defects warning, pronunciation info, pacing and repeats the org tone. */
+export const TYPE_TONE: Record<FindingNoteType, StatusTone> = {
+  misread: 'danger',
+  skip: 'danger',
+  mouth: 'warning',
+  plosive: 'warning',
+  noise: 'warning',
+  breath: 'warning',
+  pron: 'info',
+  pacing: 'org',
+  repeat: 'org',
+  takes: 'accent',
+};
 /** Characters of the longest resolution word. */
 export const RESOLUTION_CHIP_CH = Math.max(...['To review', 'Needs pickup', 'Fix in edit', 'Waived', 'Deferred'].map((l) => l.length));

@@ -243,9 +243,9 @@ describe('each-row-shows-its-names-and-its-chapters-and-no-mention-counts', () =
     renderGuide();
     await screen.findAllByText('Alice');
     const alice = entryRows().find((row) => row.textContent?.includes('Alice'))!;
-    expect(alice.textContent).toMatch(/Character · 0 names/);
+    expect(alice.textContent).toMatch(/Character · 1 name · /);
     const rabbit = entryRows().find((row) => row.textContent?.includes('White Rabbit'))!;
-    expect(rabbit.textContent).toMatch(/1 name/);
+    expect(rabbit.textContent).toMatch(/2 names/);
     expect(alice.textContent).toMatch(/· \d+ chapters?$/);
     expect(alice.textContent).not.toMatch(/Occurrences|Mentions|Lines/);
   });

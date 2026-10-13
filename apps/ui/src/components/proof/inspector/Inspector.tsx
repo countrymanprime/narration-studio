@@ -1,9 +1,9 @@
 import { useState, type ReactNode } from 'react';
-import { MAX_REVIEW_NOTE_LENGTH } from '../../../api/contracts/findings';
+import { MAX_REVIEW_NOTE_LENGTH, shownFindingNoteType } from '../../../api/contracts/findings';
 import type { Finding, FindingReviewStatus } from '../../../types';
 import { Field } from '../../primitives/Field';
 import { SectionLabel } from '../../primitives/SectionLabel';
-import { categoryLabel, evidenceKindLabel, formatTime } from '../findingFormat';
+import { categoryLabel, formatTime } from '../findingFormat';
 import { fixKindOf, savedMessage } from '../resolution';
 import { DecisionButtons } from './DecisionButtons';
 import { EvidenceChangedBanner } from './EvidenceChangedBanner';
@@ -38,7 +38,11 @@ function Quote({ label, markup, which }: { label: string; markup: string; which:
         data-quote={which}
         className="rounded-[var(--radius-card)] border border-[var(--border)] bg-[var(--surface)] px-2 py-1.5 text-sm [overflow-wrap:anywhere]"
       >
-        {markup === '' ? <span className="text-[var(--text-muted)]">Nothing heard</span> : <Markup nodes={parseMarkup(markup)} />}
+        {markup === '' ? (
+          <span className="text-[var(--text-muted)]">{which === 'heard' ? 'Nothing heard' : 'Nothing in the script'}</span>
+        ) : (
+          <Markup nodes={parseMarkup(markup)} />
+        )}
       </p>
     </>
   );
@@ -101,7 +105,7 @@ export function Inspector({
         <h2 className="font-['IBM_Plex_Mono',ui-monospace,monospace] text-base font-semibold">
           {shown.time_range ? formatTime(shown.time_range.start) : categoryLabel(shown.category)}
         </h2>
-        {typeControl ?? <span className="text-sm text-[var(--text-muted)]">{evidenceKindLabel(shown)}</span>}
+        {typeControl ?? <span className="text-sm text-[var(--text-muted)]">{shownFindingNoteType(shown)}</span>}
         <span className="flex-1" />
         <NoteSteps canPrev={evidence.canPrev && !evidence.change} canNext={evidence.canNext && !evidence.change} onStep={step} />
       </div>

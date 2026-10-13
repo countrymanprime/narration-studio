@@ -3,7 +3,7 @@
 # Story Bible
 
 Story Bible tracks every character, place, and organization extracted from the manuscript,
-with pronunciation, aliases, and narration notes. Each entry is a row of two lines: its name, then its kind in the kind's colour with how many names it has and how many chapters it appears in. The kind chips over the list filter it, the search box finds an entry by any of its names, the menu beside it sorts by name, type or chapters, and the Up and Down keys move through the rows. The buttons under the title scan the manuscript, import entries, open Voice data, build or refresh the Story Bible, and add an entry; the **Entries** and **Series** tabs sit below them. With no manuscript imported the page asks for one.
+with pronunciation, aliases, and narration notes. Each entry is a row of two lines: its name, then its kind in the kind's colour (an entry whose kind the host could not tell is marked **Review**) with how many names it has (its own and each alias) and how many chapters it appears in. The kind chips over the list filter it, the search box finds an entry by any of its names, the menu beside it sorts by name, type or chapters, and the Up and Down keys move through the rows. The buttons under the title scan the manuscript, import entries, open Voice data, build or refresh the Story Bible, and add an entry; the **Entries** and **Series** tabs sit below them. With no manuscript imported the page asks for one.
 
 ![Story Bible filtered to the Character kind](../../images/ui/storybible-characters.webp)
 

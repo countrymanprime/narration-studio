@@ -13,6 +13,7 @@ import {
   type ReactNode,
 } from 'react';
 import type { ManuscriptChapter, ManuscriptParagraph } from '../../../../api/contracts/manuscript';
+import { chapterName } from '../../../../chapterName';
 import { measureLineTop } from '../../bookmarks/ui/ribbonTops';
 import { buildLayerIndex, paragraphLayers, type Layer, type LayerSources } from './layers';
 import { Para, type FindRange } from './Para';
@@ -101,7 +102,7 @@ function StickyHeader({ spy, chapters, toolbar }: { spy: SpyStore; chapters: rea
   return (
     <div className="flex items-center gap-3 border-b border-[var(--line)] bg-[var(--surface)] px-4 py-2">
       <div className="min-w-0">
-        <b className="block truncate text-xl font-semibold">{chapter?.title ?? '—'}</b>
+        <b className="block truncate text-xl font-semibold">{chapter ? chapterName(chapter) : '—'}</b>
         <div aria-live="off" className="text-sm text-[var(--text-muted)]">
           {current.para}
         </div>

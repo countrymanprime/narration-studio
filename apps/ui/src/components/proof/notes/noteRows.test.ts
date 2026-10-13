@@ -1,11 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { FINDING_CATEGORIES } from '../../../api/contracts/findings';
-import { categoryLabel } from '../findingFormat';
+import { FINDING_NOTE_TYPES, shownFindingNoteType } from '../../../api/contracts/findings';
 import {
   TYPE_CHIP_CH,
   chipCounts,
   countDigits,
   groupByChapter,
+  inBookOrder,
   inWindow,
   matchesChip,
   matchesFind,
@@ -25,7 +25,7 @@ describe('rows-are-findings-in-time-order', () => {
     const row = byId('a');
     expect(row).toMatchObject({
       time: '0:12.0',
-      type: 'Misread',
+      type: 'misread',
       script: 'I could not help it',
       heard: 'I could not help myself',
       from: 'Local AI compare',
@@ -116,6 +116,30 @@ describe('type-and-resolution-chips-are-words-and-shapes', () => {
     ]);
   });
   it('gives the type chip room for the longest category', () => {
-    expect(TYPE_CHIP_CH).toBeGreaterThanOrEqual(Math.max(...FINDING_CATEGORIES.map((c) => categoryLabel(c).length)));
+    expect(TYPE_CHIP_CH).toBeGreaterThanOrEqual(Math.max(...FINDING_NOTE_TYPES.map((t) => t.length)));
+  });
+  it('names a note by the same type word the inspector shows, whatever the analyzer called its kind', () => {
+    const base = notesFixture()[0];
+    const extra = noteRow({ ...base, category: 'transcript_discrepancy', evidence: { kind: 'extra_words' }, review: { status: 'unreviewed' } });
+    expect(extra.type).toBe(
+      shownFindingNoteType({ ...base, category: 'transcript_discrepancy', evidence: { kind: 'extra_words' }, review: { status: 'unreviewed' } }),
+    );
+    expect(FINDING_NOTE_TYPES).toContain(extra.type);
+    expect(noteRow({ ...base, category: 'entity', evidence: undefined }).type).toBe('pron');
+  });
+  it("shows the narrator's chosen type over the analyzer's", () => {
+    expect(noteRow({ ...notesFixture()[0], review: { status: 'unreviewed', type: 'repeat' } }).type).toBe('repeat');
+  });
+});
+
+describe('by-time-lists-chapters-in-book-order', () => {
+  const at = (chapter_id: string, start: number) => ({ id: `${chapter_id}-${start}`, manuscript: { chapter_id }, time_range: { start, end: start + 1 } });
+  it('puts Chapter 1 above Chapter 2 although its first note is later in its own chapter', () => {
+    const hostOrder = [at('ch2', 8.2), at('ch1', 12.4), at('ch1', 40), at('ch2', 90)];
+    expect(inBookOrder(hostOrder, ['ch1', 'ch2']).map((f) => f.id)).toEqual(['ch1-12.4', 'ch1-40', 'ch2-8.2', 'ch2-90']);
+  });
+  it('keeps the host order inside a chapter and puts an unlisted chapter last', () => {
+    const hostOrder = [at('gone', 1), at('ch2', 50), at('ch2', 5)];
+    expect(inBookOrder(hostOrder, ['ch1', 'ch2']).map((f) => f.id)).toEqual(['ch2-50', 'ch2-5', 'gone-1']);
   });
 });
