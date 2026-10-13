@@ -21,6 +21,7 @@ function setup(initial: Finding = inspectorFinding(), props: Partial<React.Compo
     findingsReview,
     findingsGet: vi.fn(async (id: string) => inspectorFinding({ id })),
     findingsGoTo: vi.fn(async () => ({ outcome: 'navigated' as const, projectTime: 1 })),
+    findingsThread: vi.fn(async (id: string) => inspectorFinding({ id })),
   };
   const handlers = { onSelect: vi.fn(), onChanged: vi.fn(), onOpenScript: vi.fn(), onOpenBooth: vi.fn() };
   const ui = (finding: Finding) => (

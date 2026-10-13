@@ -23,6 +23,11 @@ const api: InspectorHostApi = {
   findingsGet: async (id) => inspectorFinding({ id }),
   findingsReview: async (request) => inspectorFinding({ id: request.id, review: { status: request.status, note: request.note } }),
   findingsGoTo: async () => ({ outcome: 'navigated', projectTime: 134.6 }),
+  findingsThread: async (id, change) =>
+    inspectorFinding({
+      id,
+      review: { status: 'unreviewed', thread: change.op === 'add' ? [{ id: 'm1', who: change.who, text: change.text, at: '2026-10-13T10:00:00Z' }] : [] },
+    }),
 };
 
 const daw = (setup: DawSetupId): DawClient => createMockDawClient(DAW_SETUPS[setup], { chapterIds: ['chapter-1'], candidateIds: [], findingIds: ['f1'] });

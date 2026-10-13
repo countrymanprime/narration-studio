@@ -44,8 +44,8 @@ func TestResourceKeyChangesWithEmbeddedContent(t *testing.T) {
 }
 
 func TestHostAPIVersionMatchesTheCurrentDesktopContract(t *testing.T) {
-	if hostAPIVersion != 133 {
-		t.Fatalf("host API version = %d, want 133; update it with apps/ui/src/hostApi.ts", hostAPIVersion)
+	if hostAPIVersion != 134 {
+		t.Fatalf("host API version = %d, want 134; update it with apps/ui/src/hostApi.ts", hostAPIVersion)
 	}
 }
 

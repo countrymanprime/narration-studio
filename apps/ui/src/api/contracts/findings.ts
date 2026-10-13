@@ -125,12 +125,31 @@ export function shownFindingNoteType(finding: Pick<Finding, 'category' | 'eviden
   return finding.review.type ?? defaultFindingNoteType(finding);
 }
 
+/** Who wrote a note on a finding: the narrator, or a proofer's reply the narrator pasted in. */
+export const FINDING_THREAD_AUTHORS = ['you', 'proofer'] as const;
+export type FindingThreadAuthor = (typeof FINDING_THREAD_AUTHORS)[number];
+
+/** One note in a finding's thread: its id, who wrote it, its text, when it was added and, once edited, when it last was. */
+export type FindingThreadMessage = {
+  id: string;
+  who: FindingThreadAuthor;
+  text: string;
+  at: string;
+  edited_at?: string;
+};
+
+/** A change to a finding's thread (`FindingsThread`): add a note, edit or delete one, or restore a deleted one (the Undo of a delete). */
+export type FindingThreadChange =
+  { op: 'add'; who: FindingThreadAuthor; text: string } | { op: 'edit'; messageId: string; text: string } | { op: 'delete' | 'restore'; messageId: string };
+
 export type FindingReviewState = {
   status: FindingReviewStatus;
   note?: string;
   timestamp?: string;
   /** The kind the narrator chose (ADR 0844); absent until chosen, then the analyzer's own word applies. Not a decision. */
   type?: FindingNoteType;
+  /** The notes on the finding, oldest first (PF-1 part 7); absent until the first. Not a decision, and kept across a re-check. */
+  thread?: FindingThreadMessage[];
 };
 
 export type Finding = {
@@ -260,6 +279,11 @@ export interface FindingsApi {
    * (review.type absent when they chose the analyzer's own word). Not a decision: status, note and the counts stay.
    */
   findingsSetType(id: string, evidenceVersion: string, type: FindingNoteType): Promise<Finding>;
+  /**
+   * Changes the finding's thread of notes (append-only on the host) and answers the finding with `review.thread`. Not a decision and
+   * not tied to the evidence version. Rejects empty text, an unknown author or a message the thread does not have.
+   */
+  findingsThread(id: string, change: FindingThreadChange): Promise<Finding>;
   /** Counts by status and the analyzers, categories and chapters present. */
   findingsSummary(): Promise<FindingsSummary>;
   /** Whether REAPER is there for Go to and Loop; sends REAPER nothing, so the page may poll it. */

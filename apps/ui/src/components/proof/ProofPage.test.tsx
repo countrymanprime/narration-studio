@@ -229,11 +229,11 @@ describe('proof-decisions-and-undo', () => {
     const user = userEvent.setup();
     await user.click((await noteRows())[0]);
     const inspector = await screen.findByRole('complementary', { name: 'Note' });
-    await user.clear(within(inspector).getByRole('textbox'));
-    await user.type(within(inspector).getByRole('textbox'), 'kept');
+    await user.clear(within(inspector).getByRole('textbox', { name: /Note with the decision/ }));
+    await user.type(within(inspector).getByRole('textbox', { name: /Note with the decision/ }), 'kept');
     await user.click(within(inspector).getByRole('button', { name: /Defer/ }));
     expect(await within(inspector).findByRole('alert')).toBeTruthy();
-    expect((within(inspector).getByRole('textbox') as HTMLTextAreaElement).value).toBe('kept');
+    expect((within(inspector).getByRole('textbox', { name: /Note with the decision/ }) as HTMLTextAreaElement).value).toBe('kept');
   });
 
   it('right-click on a note offers the decisions', async () => {

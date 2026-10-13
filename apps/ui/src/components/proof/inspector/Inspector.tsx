@@ -7,14 +7,15 @@ import { categoryLabel, formatTime } from '../findingFormat';
 import { fixKindOf, savedMessage } from '../resolution';
 import { DecisionButtons } from './DecisionButtons';
 import { EvidenceChangedBanner } from './EvidenceChangedBanner';
+import { FindingThread, type FindingThreadApi } from './FindingThread';
 import { evidenceQuotes, parseMarkup, type MarkupNode } from './evidenceQuotes';
 import { InspectorActions, type InspectorActionsApi } from './InspectorActions';
 import { NoteSteps } from './NoteSteps';
 import { TrimGap, trimmableGap } from './TrimGap';
 import { useShownEvidence, type InspectorApi } from './useShownEvidence';
 
-/** What the Inspector asks of the host: the two reads of `useShownEvidence` and the Go to of the icon row. */
-export type InspectorHostApi = InspectorApi & InspectorActionsApi;
+/** What the Inspector asks of the host: the two reads of `useShownEvidence`, the Go to of the icon row and the thread's changes. */
+export type InspectorHostApi = InspectorApi & InspectorActionsApi & FindingThreadApi;
 
 /** The counter shows only for the last stretch of the note's limit. */
 const COUNTER_FROM = MAX_REVIEW_NOTE_LENGTH - 100;
@@ -148,6 +149,7 @@ export function Inspector({
       <p className="text-sm text-[var(--text-muted)]" title={shown.confidence == null ? shown.confidence_reason : undefined}>
         {shown.confidence == null ? `No confidence: ${shown.confidence_reason || 'the check gave none.'}` : `Confidence ${shown.confidence.toFixed(2)}`}
       </p>
+      <FindingThread finding={shown} api={api} onChanged={(next) => onChanged(next, false)} />
     </aside>
   );
 }

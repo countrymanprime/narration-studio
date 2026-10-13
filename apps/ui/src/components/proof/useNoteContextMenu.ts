@@ -1,7 +1,9 @@
 import { useMemo, useRef } from 'react';
 import type { Finding } from '../../api/contracts/findings';
 import { useContextProvider } from '../../registries/context';
+import { OTHER_FIX } from './inspector/DecisionButtons';
 import { TRIM_LABEL, trimmableGap } from './inspector/TrimGap';
+import { fixKindOf } from './resolution';
 import { DECISIONS, press } from './useProofKeys';
 
 /** The DAW the Inspector's "Show in …" names: the menu says "Go to <DAW>" as the mock does. */
@@ -46,9 +48,10 @@ export function useNoteContextMenu(menu: NoteMenu): void {
         const chapterId = note.manuscript?.chapter_id ?? '';
         const noChapter = chapterId ? undefined : 'This note names no chapter.';
         const decided = note.review.status !== 'unreviewed';
+        const fix = fixKindOf(note);
         return [
-          { key: 'note-pickup', label: 'Needs pickup', onSelect: () => press(DECISIONS.pickup) },
-          { key: 'note-edit', label: 'Fix in edit', onSelect: () => press(DECISIONS.edit) },
+          { key: 'note-pickup', label: 'Needs pickup', unavailable: fix === 'pickup' ? undefined : OTHER_FIX[fix], onSelect: () => press(DECISIONS.pickup) },
+          { key: 'note-edit', label: 'Fix in edit', unavailable: fix === 'edit' ? undefined : OTHER_FIX[fix], onSelect: () => press(DECISIONS.edit) },
           { key: 'note-waive', label: 'Waive', onSelect: () => press(DECISIONS.waive) },
           { key: 'note-defer', label: 'Defer', onSelect: () => press(DECISIONS.defer) },
           { key: 'note-reopen', label: 'Reopen', unavailable: decided ? undefined : 'Not decided yet.', onSelect: () => press('Reopen') },
