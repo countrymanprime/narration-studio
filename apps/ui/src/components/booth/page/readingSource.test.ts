@@ -45,11 +45,13 @@ describe('readingParagraphsOf', () => {
     ]);
   });
 
-  it('a corrected cue is confirmed; an unknown speaker has no name', () => {
+  it('a corrected cue is confirmed; an unknown speaker is the mock’s "?" chip, never a blank one', () => {
     const [, a] = readingParagraphsOf(paragraphs, [cue({ speaker_source: 'correction' })], [queen]);
     expect(a.phrases?.[0].confirmed).toBe(true);
     const [, b] = readingParagraphsOf(paragraphs, [cue({ speaker_entity_id: null, speaker_source: 'unknown' })], [queen]);
-    expect(b.phrases?.[0].speaker).toBe('');
+    expect(b.phrases?.[0].speaker).toBe('?');
+    const [, c] = readingParagraphsOf(paragraphs, [cue({ speaker_entity_id: 'e-gone' })], [queen]);
+    expect(c.phrases?.[0].speaker).toBe('?');
   });
 });
 
