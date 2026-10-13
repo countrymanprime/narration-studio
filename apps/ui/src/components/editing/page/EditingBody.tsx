@@ -55,6 +55,7 @@ import { useTakesGate } from '../takes/useTakesGate';
 import type { PlaylistSegment } from '../../proof/playlist';
 import { doubledCut, wordAt, type ChapterRead } from './chapterSource';
 import { EditingHeader } from './EditingHeader';
+import { installBackupSteps, tokensIn } from '../backups/backupBefore';
 import { InHost, rowOf } from './InHost';
 import { NoAudioBanner } from './NoAudioBanner';
 import { useLines } from './useLines';
@@ -245,9 +246,20 @@ export function EditingBody(props: EditingBodyProps) {
   const cut = useCutWords({ journal, chapterId, chapterName, cuts: read.cuts, locator, onCuts: props.onCuts });
   const fx = useFxWords({ journal, chapterId, chapterName, effects: read.effects, cuts: read.cuts, locator, onEffects: props.onEffects });
   const accept = useAcceptWords({ journal, chapterId, onChange: props.onAccepted });
+  // A DAW that changes the audio itself (a cut, FX or stack capability that runs `steps`) backs the words up first.
+  const backupPlaces = useRef({ chapterId, locator, doc });
+  backupPlaces.current = { chapterId, locator, doc };
+  useEffect(
+    () =>
+      installBackupSteps(daw, {
+        locator: (id) => (id === backupPlaces.current.chapterId ? backupPlaces.current.locator : null),
+        tokensIn: (id, span) => (id === backupPlaces.current.chapterId ? tokensIn(backupPlaces.current, span) : null),
+      }),
+    [daw],
+  );
 
   // The word menu: play and copy, marks, takes.
-  useEditingWordMenu();
+  useEditingWordMenu(playback.playFrom);
   useMarkMenuSections(chapterId);
   const latest = useRef({ lines, gate, keep, setLineOpen });
   latest.current = { lines, gate, keep, setLineOpen };
@@ -269,10 +281,14 @@ export function EditingBody(props: EditingBodyProps) {
   useDrawerCommands(offered, panels.drawer.openTab);
   const selectWords = useCallback((keys: string[]) => keys.length && dispatch({ type: 'select', anchor: keys[0], head: keys[keys.length - 1] }), [dispatch]);
   const cleanupDeps = useCleanupDeps({ cuts: read.cuts, onCuts: props.onCuts });
-  useEffect(() => registerCleanupSection({ journal, ...(cleanupDeps ? { deps: cleanupDeps } : {}) }), [journal, cleanupDeps]);
+  const { playing, playFrom, stop: stopPlayback } = playback;
+  const previewPlayback = useMemo(() => ({ playing, playFrom, stop: stopPlayback }), [playing, playFrom, stopPlayback]);
+  useEffect(
+    () => registerCleanupSection({ journal, playback: previewPlayback, ...(cleanupDeps ? { deps: cleanupDeps } : {}) }),
+    [journal, cleanupDeps, previewPlayback],
+  );
   // What the inspector needs to change, bypass and compare an effect through the DAW and the history, and to hear its words through the
   // page's playback (stopped while the DAW plays a Compare).
-  const { playFrom, stop: stopPlayback } = playback;
   const { onEffects } = props;
   const effectHost = useMemo(
     () => ({ chapterId, locator, journal, effects: read.effects, onEffects, play: playFrom, stop: stopPlayback }),

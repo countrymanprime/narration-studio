@@ -557,6 +557,44 @@ describe('EditingPage', () => {
     });
   });
 
+  describe('the controls reach the host', () => {
+    it("the word menu's Play selection plays the words", async () => {
+      mount();
+      await script();
+      fireEvent.mouseDown(word('p1:0'), { button: 0 });
+      fireEvent.contextMenu(word('p1:0'));
+      const menu = await screen.findByRole('menu');
+      fireEvent.click(within(menu).getByRole('menuitem', { name: /^Play selection/ }));
+      await waitFor(() => expect(audios.some((a) => a.play.mock.calls.length > 0)).toBe(true));
+    });
+
+    it("Clean up's Preview plays through the page's playback", async () => {
+      const breath = finding({ id: 'b1', start: 2, end: 2.4, cls: 'breath', db: -22 });
+      mount({ drawer: 'cleanup', api: { findingsList: async () => ({ findings: [breath], total: 1 }), editingCandidates: async () => [breath] } });
+      await script();
+      const drawer = document.querySelector<HTMLElement>('#drawer')!;
+      fireEvent.click(await within(drawer).findByRole('button', { name: /^Breaths/ }));
+      fireEvent.click(within(drawer).getByRole('button', { name: 'Preview' }));
+      expect(within(drawer).queryByText(/this page has no playback/)).toBeNull();
+      await waitFor(() => expect(audios.some((a) => a.play.mock.calls.length > 0)).toBe(true));
+    });
+
+    it('a DAW that edits in steps backs the words up before a cut', async () => {
+      const base = dawFor('audacity-backups');
+      const backupAround = vi.fn(base.backupAround);
+      mount({ daw: { ...base, backupAround } });
+      await script();
+      fireEvent.mouseDown(word('p1:0'), { button: 0 });
+      press('Delete');
+      const dialog = await screen.findByRole('dialog');
+      const go = within(dialog).getByRole('button', { name: /^Delete/ });
+      await waitFor(() => expect(go.getAttribute('aria-disabled')).not.toBe('true'));
+      fireEvent.click(go);
+      await waitFor(() => expect(backupAround).toHaveBeenCalledTimes(1));
+      expect(backupAround.mock.calls[0]![0]).toMatchObject({ chapterId: expect.any(String), firstToken: expect.any(Number) });
+    });
+  });
+
   it('axe-and-landmarks', async () => {
     for (const w of [1440, 1200]) {
       width = w;
