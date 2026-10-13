@@ -112,7 +112,6 @@ export function useChapterTools({ rows, credits, notify, go, goToScript, goToEdi
     [api, notify, onChanged],
   );
 
-  // Remove rethrows on failure so the slide-over's confirm stays open for a retry.
   // The mock's "Go to this chapter in <DAW>": selects the chapter's linked track there, the chapter track panel's Select call.
   const selectTrack = useCallback(
     async (trackGuid: string, dawName: string) => {
@@ -127,6 +126,7 @@ export function useChapterTools({ rows, credits, notify, go, goToScript, goToEdi
     [api, notify],
   );
 
+  // Remove rethrows on failure so the slide-over's confirm stays open for a retry.
   const afterKind = async () => {
     await loadChapters();
     await loadTrackLinks();

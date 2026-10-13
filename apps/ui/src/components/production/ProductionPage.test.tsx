@@ -164,6 +164,17 @@ describe('daw-banner-retry', () => {
     await waitFor(() => expect(notify).toHaveBeenCalledWith('Still not running. Start REAPER and try again.'));
     expect(dawCapabilities.mock.calls.length).toBeGreaterThanOrEqual(2);
   });
+
+  it('drops the banner on Retry once the DAW is running, and says nothing', async () => {
+    let running = false;
+    const dawCapabilities = vi.fn(async () => structuredClone(DAW_SETUPS[running ? 'reaper' : 'reaper-off']));
+    const { notify } = await renderPage({ overrides: { dawCapabilities } });
+    const retry = await screen.findByRole('button', { name: 'Retry' });
+    running = true;
+    await userEvent.click(retry);
+    await waitFor(() => expect(screen.queryByRole('button', { name: 'Retry' })).toBeNull());
+    expect(notify).not.toHaveBeenCalledWith(expect.stringMatching(/^Still not running/));
+  });
 });
 
 describe('chapter-sync-feeds-survive', () => {

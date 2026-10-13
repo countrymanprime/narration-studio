@@ -101,9 +101,21 @@ describe('usePipelineSources', () => {
     await waitFor(() => expect(view.result.current.prep).toEqual({ c1: 'prepped', c2: 'progress', c3: 'none' }));
   });
 
-  it('leaves prep absent when the prep record cannot be read', async () => {
-    const view = sources({ prep: 'down' });
-    await waitFor(() => expect(view.result.current.proof).toEqual({}));
-    expect(view.result.current.prep).toBeUndefined();
+  it('leaves prep absent when the prep record cannot be read, and drops an earlier reading', async () => {
+    let down = false;
+    const api = {
+      ...createMockApi(),
+      findingsList: () => Promise.resolve({ findings: [], total: 0 }),
+      measureState: () => Promise.resolve({ phase: 'success', files: [] } as unknown as MeasureJob),
+      manuscriptChapters: () => Promise.resolve([]),
+      scriptPrepList: () =>
+        down ? Promise.reject(new Error('down')) : Promise.resolve({ chapters: [{ chapterId: 'c1', state: 'prepped' as const }], words: [] }),
+    } as NarrationApi;
+    const wrapper = ({ children }: { children: ReactNode }) => <ApiProvider api={api}>{children}</ApiProvider>;
+    const view = renderHook(({ key }) => usePipelineSources(true, key), { wrapper, initialProps: { key: 'a' } });
+    await waitFor(() => expect(view.result.current.prep).toEqual({ c1: 'prepped' }));
+    down = true;
+    view.rerender({ key: 'b' });
+    await waitFor(() => expect(view.result.current.prep).toBeUndefined());
   });
 });
