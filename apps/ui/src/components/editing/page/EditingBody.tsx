@@ -267,11 +267,13 @@ export function EditingBody(props: EditingBodyProps) {
   const selectWords = useCallback((keys: string[]) => keys.length && dispatch({ type: 'select', anchor: keys[0], head: keys[keys.length - 1] }), [dispatch]);
   const cleanupDeps = useCleanupDeps({ cuts: read.cuts, onCuts: props.onCuts });
   useEffect(() => registerCleanupSection({ journal, ...(cleanupDeps ? { deps: cleanupDeps } : {}) }), [journal, cleanupDeps]);
-  // What the inspector needs to change an effect through the DAW and the history, and to hear its words through the page's playback.
-  const { playFrom, stop: stopPlayback, playing: isPlaying } = playback;
+  // What the inspector needs to change, bypass and compare an effect through the DAW and the history, and to hear its words through the
+  // page's playback (stopped while the DAW plays a Compare).
+  const { playFrom, stop: stopPlayback } = playback;
+  const { onEffects } = props;
   const effectHost = useMemo(
-    () => ({ chapterId, locator, journal, effects: read.effects, play: playFrom, stop: stopPlayback, playing: isPlaying }),
-    [chapterId, locator, journal, read.effects, playFrom, stopPlayback, isPlaying],
+    () => ({ chapterId, locator, journal, effects: read.effects, onEffects, play: playFrom, stop: stopPlayback }),
+    [chapterId, locator, journal, read.effects, onEffects, playFrom, stopPlayback],
   );
   useEffect(
     () =>

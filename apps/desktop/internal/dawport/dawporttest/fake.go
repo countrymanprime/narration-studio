@@ -410,6 +410,24 @@ func (r fxRangeRole) BypassFXRange(context.Context, dawport.FXRangeTarget, bool)
 	return got.WithUndoSteps(1), nil
 }
 
+// CompareFXRange and StopFXCompare answer as REAPER's fx_range_compare and stop_fx_compare do: no undo step, and each pass of a
+// Compare plays 2 seconds (SN-E113).
+func (r fxRangeRole) CompareFXRange(context.Context, dawport.FXRangeTarget) (dawport.FXRangeCompare, error) {
+	got, err := r.result("CompareFXRange", "Comparing.")
+	if err != nil || !got.OK {
+		return dawport.FXRangeCompare{Result: got}, err
+	}
+	got.Changed = false
+	return dawport.FXRangeCompare{Result: got.WithUndoSteps(0), Pass: 2}, nil
+}
+func (r fxRangeRole) StopFXCompare(context.Context) (dawport.Result, error) {
+	got, err := r.result("StopFXCompare", "Stopped comparing.")
+	if err != nil {
+		return got, err
+	}
+	return got.WithUndoSteps(0), nil
+}
+
 type stackTakesRole struct{ role }
 
 // StackTakes and UnstackTakes answer as REAPER's stack_takes and unstack_takes do: one undo step each.

@@ -391,7 +391,7 @@ const NON_TEXT_USES: Record<string, { count: number; what: string }> = {
   'components/primitives/HeaderChip.stories.tsx': { count: 1, what: "the QuietDot story's dot, the engine chip's when no DAW file is linked" },
   'components/primitives/Tooltip.tsx': { count: 1, what: 'the border of the info icon' },
   'components/settings/DawCatalogPanel.tsx': { count: 1, what: 'the not-detected DAW catalog entry dot' },
-  'components/settings/Settings.tsx': {
+  'components/settings/page/DawPanel.tsx': {
     count: 2,
     what: 'the DAW link status dot in the project-scope panel when nothing is linked, and the global-scope reachability dot when REAPER has not sent a recent heartbeat',
   },

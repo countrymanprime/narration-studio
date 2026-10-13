@@ -115,6 +115,8 @@ var commandCapability = map[string]dawport.Capability{
 	"fx_range_params":     dawport.CapFXRange,
 	"fx_range_set_param":  dawport.CapFXRange,
 	"fx_range_bypass":     dawport.CapFXRange,
+	"fx_range_compare":    dawport.CapFXRange,
+	"stop_fx_compare":     dawport.CapFXRange,
 }
 
 // Gate is bridge.Actions' gate over allowed (the resolver's Allowed): a command is sent only when its capability is allowed. A nil
@@ -735,6 +737,33 @@ func (r rangeFXApplier) BypassFXRange(ctx context.Context, target dawport.FXRang
 		return dawport.OK(target.ChainName+" bypassed in REAPER. Undo it there in one step.", true).WithUndoSteps(got.UndoPoints), nil
 	}
 	return dawport.OK(target.ChainName+" turned back on in REAPER. Undo it there in one step.", true).WithUndoSteps(got.UndoPoints), nil
+}
+
+// CompareFXRange plays the target's piece in REAPER with the chain on, then bypassed, and puts it back (bridge's
+// fx_range_compare). It adds no undo step.
+func (r rangeFXApplier) CompareFXRange(ctx context.Context, target dawport.FXRangeTarget) (dawport.FXRangeCompare, error) {
+	if refused, ok := r.refused(); ok {
+		return dawport.FXRangeCompare{Result: refused}, nil
+	}
+	piece := r.pieces.find(target)
+	got, err := r.actions.CompareFXRange(ctx, piece.item, piece.take, target.ChainName)
+	if refused, ok, err := r.fxEditRefused(piece, target.ChainName, err); ok || err != nil {
+		return dawport.FXRangeCompare{Result: refused}, err
+	}
+	message := "Playing the words in REAPER with " + target.ChainName + " on, then bypassed. It is put back as it was after."
+	return dawport.FXRangeCompare{Result: dawport.OK(message, false), Pass: got.End - got.Start}, nil
+}
+
+// StopFXCompare ends a Compare REAPER is playing and puts the chain back (bridge's stop_fx_compare).
+func (r rangeFXApplier) StopFXCompare(ctx context.Context) (dawport.Result, error) {
+	stopped, err := r.actions.StopFXCompare(ctx)
+	if refused, ok, err := fxRangeRefused(err); ok || err != nil {
+		return refused, err
+	}
+	if !stopped {
+		return dawport.OK("REAPER was not comparing an effect, so nothing changed.", false), nil
+	}
+	return dawport.OK("Stopped comparing in REAPER. The effect is as it was.", true).WithUndoSteps(0), nil
 }
 
 // fxEditRefused is fxRangeRefused for the three edits: a piece, take or chain REAPER no longer has is stale in the effect's words,

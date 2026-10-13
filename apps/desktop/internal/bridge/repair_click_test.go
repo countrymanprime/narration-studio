@@ -85,6 +85,10 @@ func TestRepairClickChecksItsArgumentsBeforeAnythingIsSent(t *testing.T) {
 			t.Errorf("%s must be refused", name)
 		}
 	}
+	_, err := actions.RepairClick(context.Background(), testItem, testTake, []Click{{4, 4.0000001}})
+	if err == nil || !strings.Contains(err.Error(), "rounds to zero length") {
+		t.Errorf("a click that rounds to zero length: err = %v, want one naming that", err)
+	}
 	time.Sleep(20 * time.Millisecond)
 	if len(fake.commands()) != 0 {
 		t.Fatalf("commands were written: %v", fake.commands())

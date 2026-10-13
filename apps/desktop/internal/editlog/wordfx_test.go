@@ -327,3 +327,47 @@ func TestWordFxWithNoProject(t *testing.T) {
 		t.Fatal("remove without a project succeeded")
 	}
 }
+
+// SN-E113: whether the narrator bypassed an effect in the DAW is kept with it, so the coverage figure counts only the effects
+// that are on. An older file with no flag reads as on.
+func TestWordFxBypassIsKeptAndAnsweredWithTheList(t *testing.T) {
+	project := t.TempDir()
+	book := aliceBook()
+	service := newService(t, project, &book)
+	if _, err := service.WordFxRecord("c-0001", polishFx()); err != nil {
+		t.Fatal(err)
+	}
+	if list, _ := service.WordFxList("c-0001"); list.Effects[0].Bypassed {
+		t.Fatal("a new effect is on")
+	}
+	change, err := service.WordFxBypass("c-0001", "fx1", true)
+	if err != nil || strings.Join(change.Changed, ",") != "fx1" || !change.Effects[0].Bypassed || len(change.Over) != 0 {
+		t.Fatalf("bypass = %+v, %v", change, err)
+	}
+	if again, err := service.WordFxBypass("c-0001", "fx1", true); err != nil || len(again.Changed) != 0 || !again.Effects[0].Bypassed {
+		t.Fatalf("bypassing again = %+v, %v", again, err)
+	}
+	reopened := newService(t, project, &book)
+	if list, _ := reopened.WordFxList("c-0001"); !list.Effects[0].Bypassed {
+		t.Fatal("the flag is not kept")
+	}
+	if on, err := reopened.WordFxBypass("c-0001", "fx1", false); err != nil || strings.Join(on.Changed, ",") != "fx1" || on.Effects[0].Bypassed {
+		t.Fatalf("turning on = %+v, %v", on, err)
+	}
+	raw, err := os.ReadFile(WordFxFile(project))
+	if err != nil || strings.Contains(string(raw), "bypassed") {
+		t.Fatalf("an effect that is on keeps no flag in the file: %s, %v", raw, err)
+	}
+	if missing, err := reopened.WordFxBypass("c-0001", "fx9", true); err != nil || len(missing.Changed) != 0 {
+		t.Fatalf("an effect that is not recorded = %+v, %v", missing, err)
+	}
+	if other, err := reopened.WordFxBypass("c-0002", "fx1", true); err != nil || len(other.Changed) != 0 {
+		t.Fatalf("another chapter's id = %+v, %v", other, err)
+	}
+	if _, err := reopened.WordFxBypass("c-0001", "", true); err == nil {
+		t.Fatal("a bypass with no id succeeded")
+	}
+	if _, err := newService(t, "", &book).WordFxBypass("c-0001", "fx1", true); err == nil {
+		t.Fatal("a bypass without a project succeeded")
+	}
+}

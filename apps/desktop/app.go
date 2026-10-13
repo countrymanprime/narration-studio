@@ -67,7 +67,7 @@ import (
 // Keep this in lockstep with apps/ui/src/hostApi.ts.  The frontend rejects
 // an older host before bootstrapping so a partial update cannot run against a
 // binding contract it does not understand.
-const hostAPIVersion = 130
+const hostAPIVersion = 131
 
 // Host is the Wails binding boundary. The frontend invokes only this bound
 // object; it never receives a loopback port or an HTTP capability.
@@ -1565,8 +1565,8 @@ var fieldSchemas = map[string][]fieldSchema{
 	// saves every DAW.capability.<name> row through this same generic mechanism.
 	// fx_favourites is the narrator's favourite REAPER effects (ADR
 	// 0234): names WorkspaceListFXChains or a future FX plug-in listing already lists, kept as one "tags" field
-	// rather than two, since a chain and a plug-in are just two shapes of name (a chain always ends ".RfxChain";
-	// ADR 0234's add_take_fx already refuses that suffix as a plug-in name, so the two are never confused). It
+	// rather than two, since a chain and a plug-in are just two shapes of name (a chain always ends ".RfxChain",
+	// so the two are never confused). It
 	// works at either scope through the same global/project layering as every other setting; there is no separate
 	// project-only or global-only rule for it (unlike Teleprompter, Keymap or Updates above).
 	"DAW": append([]fieldSchema{

@@ -8,7 +8,7 @@ import type { Scope } from '../../input/scopes';
 import { commandsFor } from '../../input/surfaces';
 import { useUserKeymap } from '../../input/useUserKeymap';
 
-// Grouped the same way the Keyboard & pedals Settings category groups them. This order is display-only, unrelated to
+// Grouped the same way the Keyboard & pedals Settings panel groups them. This order is display-only, unrelated to
 // `SCOPE_PRIORITY` (router.tsx), which orders scopes by specificity for gesture lookup, not for reading.
 const SCOPE_ORDER: readonly Scope[] = ['global', 'page', 'booth', 'dialog'];
 const SCOPE_LABEL: Record<Scope, string> = { global: 'Global', page: 'Page', booth: 'Booth', dialog: 'Dialog' };

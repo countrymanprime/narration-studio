@@ -22,7 +22,7 @@ export function ManuscriptSection({
   const { chooseButton, dialogs } = useManuscriptImport({ data, go, notify, refreshBootstrap });
   const manuscript = data.manuscript;
   return (
-    <Panel title="Manuscript" subtitle={manuscript ? `Imported ${manuscript.importedAt}` : 'No manuscript yet'} actions={chooseButton} className="mb-4">
+    <Panel title="Manuscript" subtitle={manuscript ? `Imported ${manuscript.importedAt}` : 'No manuscript yet'} actions={chooseButton}>
       {dialogs}
     </Panel>
   );

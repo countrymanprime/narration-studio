@@ -19,7 +19,7 @@ export const scriptDrivers: Record<string, Driver> = {
   },
   reader: async (page) => {
     await goToPage(page, 'Script');
-    await page.getByRole('heading', { level: 2, name: 'Chapter 1' }).first().waitFor();
+    await page.getByRole('heading', { level: 2, name: 'Down the Rabbit-Hole' }).first().waitFor();
   },
   'rail-words': async (page) => {
     await goToPage(page, 'Script');

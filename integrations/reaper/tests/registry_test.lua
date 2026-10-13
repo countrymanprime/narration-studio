@@ -48,6 +48,7 @@ H.test('the bridge registers exactly the commands the host and the docs know abo
     'export_compare_markers',
     'export_pickups',
     'fx_range_bypass',
+    'fx_range_compare',
     'fx_range_params',
     'fx_range_set_param',
     'hide_takes',
@@ -85,6 +86,7 @@ H.test('the bridge registers exactly the commands the host and the docs know abo
     'stack_takes',
     'stamp_item_lines',
     'stop_file_preview',
+    'stop_fx_compare',
     'stop_loop',
     'unstack_takes',
   })

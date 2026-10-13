@@ -496,6 +496,22 @@ type RangeFXEditor interface {
 	BypassFXRange(ctx context.Context, target FXRangeTarget, bypass bool) (Result, error)
 }
 
+// FXRangeCompare is what CompareFXRange started. Result is the call's answer (ADR 0810); Pass is how long each of the two passes
+// plays, in seconds (with the effect, then without), 0 on a refusal.
+type FXRangeCompare struct {
+	Result Result  `json:"result"`
+	Pass   float64 `json:"pass"`
+}
+
+// RangeFXComparer plays a chain RangeFXApplier put on a range in the engine, the effect inspector's Compare (SN-E113): the range
+// with the chain on, then bypassed, and the chain put back as it was. It answers once the first pass has started and adds no undo
+// point; StopFXCompare ends one early and puts the chain back (changed true when one was playing). The fx_range role implements
+// it where the engine keeps the effect live; a target whose piece, take or effect is gone is RefusedStale.
+type RangeFXComparer interface {
+	CompareFXRange(ctx context.Context, target FXRangeTarget) (FXRangeCompare, error)
+	StopFXCompare(ctx context.Context) (Result, error)
+}
+
 // TakeStacker puts the later reads of a passage on the first read's spot as takes, and moves them back. Refused when an item changed
 // since the app read it, and where the engine cannot stack.
 type TakeStacker interface {

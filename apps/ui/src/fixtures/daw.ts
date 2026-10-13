@@ -4,6 +4,7 @@ import type {
   DawCapabilityKey,
   DawCapabilitySupport,
   DawClick,
+  DawFxRangeCompare,
   DawFxRangeSettings,
   DawFxSetting,
   DawGainStretch,
@@ -568,7 +569,7 @@ export function gainOutsideAnswer(daw: string): string {
 }
 
 /** gainTakeStaleAnswer and gainOutsideAnswer for one of DAW_SETUPS, named for its DAW. */
-export function gainStaleOf(setup: DawCapabilities): { gone: string; outside: string } {
+function gainStaleOf(setup: DawCapabilities): { gone: string; outside: string } {
   return { gone: gainTakeStaleAnswer(setup.daw), outside: gainOutsideAnswer(setup.daw) };
 }
 
@@ -581,7 +582,7 @@ export function rangeGainAnswer(daw: string, count: number, db: number): string 
 
 /** What lowering `count` stretches by `db` dB answers on one of DAW_SETUPS once `range_gain` is available, by its mode: one undo step
  * where the DAW makes it as one action (REAPER), and Audacity's steps (dawport/audacity's ReduceRangeGain), one undo step per stretch. */
-export function rangeGainOf(setup: DawCapabilities, count: number, db: number): { message: string; undoSteps: number; steps?: string[] } {
+function rangeGainOf(setup: DawCapabilities, count: number, db: number): { message: string; undoSteps: number; steps?: string[] } {
   if (setup.capabilities.range_gain?.mode === 'steps') {
     return { message: `Lowered ${stretchesWord(count)} by ${db} dB in ${setup.daw}.`, undoSteps: count, steps: ['Select the stretch', `Lower it by ${db} dB`] };
   }
@@ -638,7 +639,7 @@ export function clicksInShape(clicks: readonly DawClick[]): boolean {
 /** What repairing `count` clicks answers on one of DAW_SETUPS once `click_repair` is available, by its mode: one undo step where the DAW
  * makes it as one action (REAPER), and Audacity's steps (dawport/audacity's RepairClick), one undo step per selection; the mock counts
  * each click as its own selection. */
-export function repairClickOf(setup: DawCapabilities, count: number): { message: string; undoSteps: number; steps?: string[] } {
+function repairClickOf(setup: DawCapabilities, count: number): { message: string; undoSteps: number; steps?: string[] } {
   if (setup.capabilities.click_repair?.mode === 'steps') {
     return { message: `Repaired ${clicksWord(count)} in ${setup.daw}.`, undoSteps: count, steps: ['Select around the click', 'Run Click Removal on it'] };
   }
@@ -724,6 +725,28 @@ export function fxRangeSetAnswerOf(
 export function fxRangeBypassAnswerOf(setup: DawCapabilities, chain: string, bypass: boolean): { refused: string } | { result: DawResult } {
   if (setup.capabilities.fx_range?.mode === 'steps') return { refused: DAW_ANSWERS.fxBakedIn };
   return { result: { ok: true, changed: true, message: fxBypassAnswer(chain, bypass, setup.daw), undoSteps: 1 } };
+}
+
+/** How long each pass of a mock Compare plays, in seconds: the piece of the goldens' words (1 to 1.5 s). */
+export const FX_COMPARE_PASS = 0.5;
+
+/** dawport/reaper's Compare: the words with the chain on, then bypassed, then put back, adding no undo step. */
+export function fxCompareAnswer(chain: string, daw: string): string {
+  return `Playing the words in ${daw} with ${chain} on, then bypassed. It is put back as it was after.`;
+}
+
+/** DawCompareFxRange's answer after the capability, the range and the chain name (bindings_daw_fx_compare.go): an engine that bakes the
+ * effect in refuses; otherwise two passes of FX_COMPARE_PASS seconds, with no undo step. */
+export function fxRangeCompareAnswerOf(setup: DawCapabilities, chain: string): { refused: string } | { compare: DawFxRangeCompare } {
+  if (setup.capabilities.fx_range?.mode === 'steps') return { refused: DAW_ANSWERS.fxBakedIn };
+  return { compare: { result: { ok: true, changed: false, message: fxCompareAnswer(chain, setup.daw), undoSteps: 0 }, pass: FX_COMPARE_PASS } };
+}
+
+/** DawStopFxCompare's answer once the capability is allowed: the mock plays no Compare, so there is none to stop. */
+export function fxCompareStopAnswerOf(setup: DawCapabilities): DawResult {
+  if (setup.capabilities.fx_range?.mode === 'steps')
+    return { ok: false, changed: false, message: DAW_ANSWERS.fxBakedIn, undoSteps: 0, refused: DAW_ANSWERS.fxBakedIn };
+  return { ok: true, changed: false, message: `${setup.daw} was not comparing an effect, so nothing changed.`, undoSteps: 0 };
 }
 
 /** dawport/builtin's HideTakes: the built-in recorder already plays only the kept take, so it mutes nothing. */

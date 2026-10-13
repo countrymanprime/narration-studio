@@ -39,7 +39,10 @@ func (a *Actions) RepairClick(ctx context.Context, itemGUID, takeGUID string, cl
 	parts := make([]string, len(clicks))
 	for i, click := range clicks {
 		start, end := strconv.FormatFloat(click.Start, 'f', 6, 64), strconv.FormatFloat(click.End, 'f', 6, 64)
-		if !ClickInShape(click) || start == end {
+		if ClickInShape(click) && start == end {
+			return ClicksRepaired{}, fmt.Errorf("a click must last at least 0.000001 s: this one rounds to zero length at six decimals")
+		}
+		if !ClickInShape(click) {
 			return ClicksRepaired{}, fmt.Errorf("a click must start at or after 0 seconds and end after it starts, at most %g s later", MaxClickLength)
 		}
 		parts[i] = start + ":" + end

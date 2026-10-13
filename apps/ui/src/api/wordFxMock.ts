@@ -126,6 +126,7 @@ export function createWordFxMock(ready: Promise<unknown>, chapters: () => Manusc
         at: new Date().toISOString(),
         ordinals,
         texts: picked.map((word) => word.text),
+        bypassed: false,
       };
       stored = [...stored, fx];
       return change(chapterId, [id], over);
@@ -136,6 +137,13 @@ export function createWordFxMock(ready: Promise<unknown>, chapters: () => Manusc
       const before = stored.length;
       stored = stored.filter((fx) => fx.chapterId !== chapterId || fx.id !== id);
       return change(chapterId, stored.length < before ? [id] : []);
+    },
+    editingWordFxBypass: async (chapterId, id, bypassed) => {
+      await ready;
+      if (!id) throw new Error('choose an effect first');
+      const changed = stored.some((fx) => fx.chapterId === chapterId && fx.id === id && fx.bypassed !== bypassed) ? [id] : [];
+      stored = stored.map((fx) => (fx.chapterId === chapterId && fx.id === id ? { ...fx, bypassed } : fx));
+      return change(chapterId, changed);
     },
   };
 }
