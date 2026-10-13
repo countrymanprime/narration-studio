@@ -156,6 +156,33 @@ describe('Dialog is a real modal', () => {
     expect(screen.getByRole('dialog', { name: 'Add note' })).toBeTruthy();
   });
 
+  it('closes on a backdrop press only when the dialog opts in with dismissOnOutsidePress (a palette, not a confirm)', async () => {
+    const user = userEvent.setup();
+    const onClose = vi.fn();
+    render(
+      <main>
+        <Dialog title="Palette" headerless dismissOnOutsidePress actions={null} onClose={onClose}>
+          <p>Body</p>
+        </Dialog>
+      </main>,
+    );
+    await screen.findByRole('dialog', { name: 'Palette' });
+    await user.click(document.querySelector('[data-dialog-backdrop]') as HTMLElement);
+    expect(onClose).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not close on a press inside the popup when it opts in to outside dismissal', async () => {
+    const user = userEvent.setup();
+    const onClose = vi.fn();
+    render(
+      <Dialog title="Palette" headerless dismissOnOutsidePress actions={null} onClose={onClose}>
+        <p>Body</p>
+      </Dialog>,
+    );
+    await user.click(await screen.findByText('Body'));
+    expect(onClose).not.toHaveBeenCalled();
+  });
+
   it('reports the header Close button exactly once', async () => {
     const onClose = vi.fn();
     const user = userEvent.setup();

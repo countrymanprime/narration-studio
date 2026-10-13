@@ -38,7 +38,7 @@ export function SpeakerLayer({ anchor, onClose, children }: { anchor: DOMRect; o
       ref={ref}
       role="dialog"
       aria-label="Who says this"
-      className="fixed z-50 rounded-[var(--radius-card)] border border-[var(--border)] bg-[var(--surface)] p-2 shadow-[var(--shadow-lg)]"
+      className="fixed z-[var(--z-popover)] rounded-[var(--radius-card)] border border-[var(--border)] bg-[var(--surface)] p-2 shadow-[var(--shadow-lg)]"
     >
       {children}
     </div>,

@@ -35,7 +35,7 @@ export function ContextMenu({
         {children}
       </BaseContextMenu.Trigger>
       <BaseContextMenu.Portal container={document.querySelector('main') ?? undefined}>
-        <BaseContextMenu.Positioner collisionPadding={8} className="z-[55]">
+        <BaseContextMenu.Positioner collisionPadding={8} className="z-[var(--z-popover)]">
           <BaseContextMenu.Popup className="w-64 rounded-[0.4rem] border border-[var(--line-strong)] bg-[var(--surface)] p-[0.35rem] shadow-[var(--shadow-lg)] outline-none">
             {items.map((item) => (
               <BaseContextMenu.Item

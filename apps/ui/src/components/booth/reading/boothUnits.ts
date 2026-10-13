@@ -1,6 +1,9 @@
 // The phrases of a chapter and the words of each phrase, for the Booth's text (the Studio Next mock's selectors/booth.ts).
 // Pure: who speaks each quoted phrase arrives as input (the Script reader's attribution, `speakerLabels`), it is not recomputed here.
 
+/** The speaker of a quoted phrase that nothing attributes: the mock's dashed "?" chip. */
+export const UNKNOWN_SPEAKER = '?';
+
 /** One stretch of a paragraph: narration, or a quotation with its speaker. */
 type ReadingPhrase = {
   /** Identifies the phrase to `onSetSpeaker`. */
