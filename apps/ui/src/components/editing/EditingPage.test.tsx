@@ -340,6 +340,18 @@ describe('EditingPage', () => {
     expect(drawerButton()).toBeTruthy();
   });
 
+  it('measures the window, not the page beside the rail, as the mock does', async () => {
+    // A 1440 window leaves the page root about 1150 wide; the mock still draws the full legend and the strip toggle.
+    vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockImplementation(function (this: HTMLElement) {
+      const w = this === document.documentElement ? 1440 : 1150;
+      return { width: w, height: 800, top: 0, left: 0, right: w, bottom: 800, x: 0, y: 0, toJSON: () => ({}) };
+    });
+    mount();
+    await script();
+    expect(await screen.findByRole('button', { name: 'Timeline' })).toBeTruthy();
+    expect(document.querySelector('[data-legend="extra"]')!.textContent).toBe('Not in the script · 1');
+  });
+
   it('below 1360, S opens the drawer on Timeline and closes it again', async () => {
     width = 1280;
     mount();

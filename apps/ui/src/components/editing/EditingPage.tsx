@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode, type RefObject } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useMemo, useState, type ReactNode } from 'react';
 import { chapterHeading } from '../../chapterHeading';
 import { CommandScope } from '../../input/router';
 import { useUserKeymap } from '../../input/useUserKeymap';
@@ -17,7 +17,7 @@ import { EditingHeader } from './page/EditingHeader';
 import { useChapterSource } from './page/useChapterSource';
 import { useDawStatus } from './page/useDawStatus';
 
-/** At or below this width of the page root the legend is short and the drawer lies over the text (the mock's `layout.medium`). */
+/** At or below this window width the legend is short and the drawer lies over the text (the mock's `layout.medium`). */
 const COMPACT_MAX_WIDTH = 1280;
 
 /** A chapter named as the manuscript heads it, label then title ("CHAPTER VIII. The Queen's Croquet-Ground"), as the mock's `chName`. */
@@ -45,18 +45,15 @@ export interface EditingPageProps {
   onImport?: () => void;
 }
 
-/** The width of the page root, read by a ResizeObserver (once without one). */
-function useWidth(root: RefObject<HTMLElement | null>): number {
+/** The width of the window, as the mock's `layout.width` reads it (`documentElement`), not of the page beside the rail. */
+function useWidth(): number {
   const [width, setWidth] = useState(0);
   useLayoutEffect(() => {
-    const el = root.current;
-    if (!el) return;
-    setWidth(el.getBoundingClientRect().width);
-    if (typeof ResizeObserver === 'undefined') return;
-    const ro = new ResizeObserver((entries) => setWidth(entries[0]?.contentRect.width ?? 0));
-    ro.observe(el);
-    return () => ro.disconnect();
-  }, [root]);
+    const measure = (): void => setWidth(document.documentElement.getBoundingClientRect().width);
+    measure();
+    window.addEventListener('resize', measure);
+    return () => window.removeEventListener('resize', measure);
+  }, []);
   return width;
 }
 
@@ -93,8 +90,7 @@ function EditingLoaded({ chapterId: asked, passageId, findingId, t, drawer, onCh
   const keymap = useUserKeymap();
   const daw = useDawStatus();
   const panels = usePanels(drawer);
-  const root = useRef<HTMLElement>(null);
-  const width = useWidth(root);
+  const width = useWidth();
   const [chapters, setChapters] = useState<ManuscriptChapter[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [chosen, setChosen] = useState<string | undefined>(asked);
@@ -140,7 +136,7 @@ function EditingLoaded({ chapterId: asked, passageId, findingId, t, drawer, onCh
 
   return (
     <CommandScope kind="page">
-      <section ref={root} aria-label="Script editor" className="flex h-full min-h-0 flex-col">
+      <section aria-label="Script editor" className="flex h-full min-h-0 flex-col">
         <StripRoot className="flex h-full min-h-0 flex-col">
           {error ? (
             <p role="alert" className="p-4 text-sm text-[var(--danger-text)]">
