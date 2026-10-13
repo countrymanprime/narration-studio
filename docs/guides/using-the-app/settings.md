@@ -252,7 +252,7 @@ Look up reads and the [Story Bible analysis](#settings) tools. Nothing here down
 removing one never touches your settings or projects. The page also shows how much disk the installed ones use and the folder they
 are kept in.
 
-![Settings - the Local assets panel: each optional download with its state, the Story Bible analysis tools marked Not available yet](../../images/ui/settings-local-assets.webp)
+![Settings - the Local assets panel: the disk used, and each optional download with its state and actions](../../images/ui/settings-local-assets.webp)
 
 Each entry says what it is, its exact version, who publishes it, its download and disk sizes, and links to its license, model
 card and provenance. Its state is one of:

@@ -305,7 +305,7 @@
     "state": "local-assets",
     "viewport": "desktop",
     "docName": "settings-local-assets",
-    "caption": "Settings - the Local assets panel: each optional download with its state, the Story Bible analysis tools marked Not available yet"
+    "caption": "Settings - the Local assets panel: the disk used, and each optional download with its state and actions"
   },
   {
     "page": "settings",
