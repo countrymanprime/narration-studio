@@ -1,4 +1,14 @@
-import type { DawBackup, DawCapabilities, DawClick, DawCutMode, DawFxRangeSettings, DawGainStretch, DawProjectState, DawResult } from '../api/contracts/daw';
+import type {
+  DawBackup,
+  DawCapabilities,
+  DawClick,
+  DawCutMode,
+  DawFxRangeCompare,
+  DawFxRangeSettings,
+  DawGainStretch,
+  DawProjectState,
+  DawResult,
+} from '../api/contracts/daw';
 import type { PickupMarker, PickupMarkerState, PickupsState } from '../api/contracts/pickups';
 import {
   backupLabelOk,
@@ -9,6 +19,8 @@ import {
   fxListOf,
   fxRangeOf,
   fxRangeBypassAnswerOf,
+  fxRangeCompareAnswerOf,
+  fxCompareStopAnswerOf,
   fxRangeParamsAnswerOf,
   fxRangeSetAnswerOf,
   nothingToStackOf,
@@ -159,6 +171,11 @@ export interface DawClient {
   setFxRangeParam(change: FxRangeSettingChange): Promise<DawResult>;
   /** Bypass every effect of the chain on the words, or turn them back on, in one undo step of the DAW's own. */
   bypassFxRange(target: FxRangeTarget, bypass: boolean): Promise<DawResult>;
+  /** Play the words in the DAW with the chain on, then bypassed, and put the chain back as it was: the effect's Compare. It answers once
+   * the first pass has started, with how long each pass plays (`pass`, seconds) and no undo step; the same refusals as a bypass. */
+  compareFxRange(target: FxRangeTarget): Promise<DawFxRangeCompare>;
+  /** End the Compare the DAW is playing and put the chain back as it was; with none playing, `changed: false`. */
+  stopFxCompare(): Promise<DawResult>;
   /** The DAW's own saved chains, for Add FX. Rejects when the DAW cannot list them now. */
   fxChains(): Promise<FxList>;
   /** Put the later reads of the request's passages on the first read's spot as takes, and move the audio after them up. */
@@ -213,6 +230,8 @@ export type DawHostApi = Pick<
   | 'dawFxRangeParams'
   | 'dawSetFxRangeParam'
   | 'dawBypassFxRange'
+  | 'dawCompareFxRange'
+  | 'dawStopFxCompare'
   | 'workspaceListFXChains'
   | 'dawStackTakes'
   | 'dawUnstackTakes'
@@ -396,6 +415,8 @@ export function createHostDawClient(api: DawHostApi): DawClient {
     setFxRangeParam: ({ chapterId, firstToken, lastToken, chainName, fx, index, value }) =>
       api.dawSetFxRangeParam(chapterId, firstToken, lastToken, chainName, fx, index, value),
     bypassFxRange: ({ chapterId, firstToken, lastToken, chainName }, bypass) => api.dawBypassFxRange(chapterId, firstToken, lastToken, chainName, bypass),
+    compareFxRange: ({ chapterId, firstToken, lastToken, chainName }) => api.dawCompareFxRange(chapterId, firstToken, lastToken, chainName),
+    stopFxCompare: () => api.dawStopFxCompare(),
     /** The bindings answer a DawResult already and take passage ids only: the host rebuilds the plan from what the DAW reports now. */
     stackTakes: ({ chapterId, groups }) =>
       api.dawStackTakes(
@@ -557,6 +578,16 @@ export function createMockDawClient(
       if (refusal) return refusal;
       const answer = fxRangeBypassAnswerOf(setup, target.chainName, bypass);
       return 'refused' in answer ? refused(answer.refused, 'bypassFxRange') : answer.result;
+    },
+    async compareFxRange(target) {
+      const refusal = fxTargetRefusal(setup, project, target, 'compareFxRange');
+      if (refusal) return { result: refusal, pass: 0 };
+      const answer = fxRangeCompareAnswerOf(setup, target.chainName);
+      return 'refused' in answer ? { result: refused(answer.refused, 'compareFxRange'), pass: 0 } : answer.compare;
+    },
+    async stopFxCompare() {
+      const sentence = unavailable(setup, 'fx_range', 'stopFxCompare');
+      return sentence ? refused(sentence, 'stopFxCompare') : fxCompareStopAnswerOf(setup);
     },
     stackTakes: (request) => Promise.resolve(restack(setup, project, request, false)),
     unstackTakes: (request) => Promise.resolve(restack(setup, project, request, true)),

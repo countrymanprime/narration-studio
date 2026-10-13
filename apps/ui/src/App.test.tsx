@@ -44,7 +44,8 @@ function renderApp(overrides: Parameters<typeof createMockApi>[0] = {}, initial:
 
 // The app's own toast region (`useToasts`) comes first in the document; the overlay host mounted after it draws a second pair for
 // `overlay.toast`, empty until a caller uses it (ADR 0781 decision 4 moves the call sites over one slice at a time).
-const appToasts = (role: 'status' | 'alert') => screen.getAllByRole(role)[0]!;
+// The toast region's live lists (Toast.tsx), told apart from a page's own status lines by announcing additions only.
+const appToasts = (role: 'status' | 'alert') => screen.getAllByRole(role).find((node) => node.getAttribute('aria-relevant') === 'additions')!;
 
 // A project with no imported manuscript but a manuscript file in its folder.
 const bootstrapWithCandidate = (manuscriptCandidate: { path: string; name: string }) => async () => ({
@@ -448,9 +449,7 @@ describe('App (integration, driven through the mock NarrationApi)', () => {
     renderApp({ clearProjectData });
     await screen.findByRole('heading', { level: 1, name: 'Production' });
     fireEvent.click(screen.getAllByRole('button', { name: 'Settings' })[0]);
-    fireEvent.click(await screen.findByRole('tab', { name: 'This Project' }));
-    fireEvent.click(await screen.findByRole('tab', { name: /Project data/i }));
-    fireEvent.click(await screen.findByRole('button', { name: /Clear derived project data/ }));
+    fireEvent.click(await within(await screen.findByRole('region', { name: 'Project data' })).findByRole('button', { name: /Clear derived project data/ }));
     const confirm = await screen.findByRole('button', { name: 'Clear project data' });
     fireEvent.click(confirm);
     fireEvent.click(confirm);
@@ -750,8 +749,10 @@ describe('App (integration, driven through the mock NarrationApi)', () => {
     expect(screen.getAllByRole('heading', { level: 1, name: 'Settings' })).toHaveLength(1);
     expect(await screen.findByRole('combobox', { name: 'Delivery profile' })).toBeTruthy();
     expect(screen.getByRole('radiogroup', { name: 'Theme' })).toBeTruthy();
-    expect(screen.getByRole('region', { name: 'More settings' })).toBeTruthy();
-    expect(screen.queryByRole('tab', { name: 'Appearance' })).toBeNull();
+    // One page: the kept settings are panels of the same column, with no old page, tabs or second wrapper below.
+    expect(screen.queryByRole('region', { name: 'More settings' })).toBeNull();
+    expect(screen.queryAllByRole('tab')).toHaveLength(0);
+    expect(screen.getByRole('region', { name: 'Silence cleanup' })).toBeTruthy();
     cleanup();
 
     window.history.replaceState(null, '', '/master');
@@ -809,10 +810,10 @@ describe('App (integration, driven through the mock NarrationApi)', () => {
     expect(selected[0]!.textContent).toContain(chapter.title);
   });
 
-  it('opens Settings on Silence cleanup from #cleanup and on the kept Delivery category from #delivery', async () => {
+  it('opens Settings on Silence cleanup from #cleanup and on the kept Delivery profiles panel from #delivery', async () => {
     for (const [anchor, heading] of [
       ['#cleanup', 'Silence cleanup'],
-      ['#delivery', 'Delivery'],
+      ['#delivery', 'Delivery profiles'],
       ['#credits', 'Credits'],
     ]) {
       window.history.replaceState(null, '', `/settings${anchor}`);
@@ -901,7 +902,7 @@ describe('App (integration, driven through the mock NarrationApi)', () => {
     fireEvent.click(screen.getAllByRole('button', { name: 'Settings' })[0]);
     await waitFor(() => expect(screen.getByRole('heading', { name: 'Settings' })).toBeTruthy());
 
-    const modelField = await screen.findByDisplayValue('normal');
+    const modelField = await within(screen.getByRole('region', { name: 'General' })).findByDisplayValue('normal');
     fireEvent.change(modelField, { target: { value: 'verbose' } });
     expect(screen.getByText('Unsaved changes')).toBeTruthy();
 
@@ -922,10 +923,11 @@ describe('App (integration, driven through the mock NarrationApi)', () => {
 
     // A project has no override for any Proof field until one is saved, so all of them are unset (empty) here. The
     // host rejects an empty choice or colour ("unsupported value for chunk_seconds"), so only the edited field may go.
-    fireEvent.click(screen.getByRole('tab', { name: 'This Project' }));
-    fireEvent.click(await screen.findByRole('tab', { name: 'Proof' }));
-    fireEvent.change(await screen.findByRole('combobox', { name: 'Default Whisper model' }), { target: { value: 'large-v3' } });
-    fireEvent.click(screen.getByRole('button', { name: 'Save' }));
+    const proof = screen.getByRole('region', { name: 'Proof' });
+    fireEvent.click(within(proof).getByRole('button', { name: 'This project' }));
+    await waitFor(() => expect(within(proof).getByRole('button', { name: 'This project' }).getAttribute('aria-pressed')).toBe('true'));
+    fireEvent.change(await within(proof).findByRole('combobox', { name: 'Default Whisper model' }), { target: { value: 'large-v3' } });
+    fireEvent.click(within(proof).getByRole('button', { name: 'Save' }));
 
     await waitFor(() => expect(saveSettings).toHaveBeenCalledTimes(1));
     expect(saveSettings).toHaveBeenCalledWith('TranscriptCompare', 'project', { model_size: 'large-v3' });
@@ -940,12 +942,11 @@ describe('App (integration, driven through the mock NarrationApi)', () => {
     fireEvent.click(screen.getAllByRole('button', { name: 'Settings' })[0]);
     await screen.findByRole('heading', { name: 'Settings' });
 
-    fireEvent.click(await screen.findByRole('tab', { name: 'Delivery' }));
     const choice = await screen.findByRole('combobox', { name: 'Default delivery profile' });
     expect((choice as HTMLSelectElement).value).toBe('acx@2026-09');
     expect(screen.getByText(/Built in · read-only · 13 rules · from help.acx.com, read 2026-09-20/)).toBeTruthy();
 
-    fireEvent.click(screen.getByRole('button', { name: 'Duplicate' }));
+    fireEvent.click(within(screen.getByRole('region', { name: 'Delivery profiles' })).getByRole('button', { name: 'Duplicate' }));
     const editor = await screen.findByRole('dialog', { name: 'Edit profile' });
     fireEvent.change(within(editor).getByRole('textbox', { name: 'Name' }), { target: { value: 'My ACX, tighter peak' } });
     fireEvent.change(within(editor).getByRole('textbox', { name: 'Peak, highest (dBFS)' }), { target: { value: '-3.5' } });
@@ -963,7 +964,7 @@ describe('App (integration, driven through the mock NarrationApi)', () => {
     await waitFor(() => expect(deliverySelectProfile).toHaveBeenCalledWith('global', edit.id, ''));
     expect(await screen.findByText(/Used by: Global default/)).toBeTruthy();
 
-    fireEvent.click(screen.getByRole('button', { name: 'Delete' }));
+    fireEvent.click(within(screen.getByRole('region', { name: 'Delivery profiles' })).getByRole('button', { name: 'Delete' }));
     fireEvent.click(await screen.findByRole('button', { name: 'Delete profile' }));
     await waitFor(() => expect(screen.queryByText('My ACX, tighter peak')).toBeNull());
     expect((screen.getByRole('combobox', { name: 'Default delivery profile' }) as HTMLSelectElement).value).toBe('acx@2026-09');
@@ -977,11 +978,11 @@ describe('App (integration, driven through the mock NarrationApi)', () => {
     fireEvent.click(screen.getAllByRole('button', { name: 'Settings' })[0]);
     await screen.findByRole('heading', { name: 'Settings' });
 
-    fireEvent.click(await screen.findByRole('tab', { name: 'Recording check' }));
-    expect(await screen.findByText('Proposed values, not yet calibrated')).toBeTruthy();
-    expect(screen.getByText(/at least 80% of its words read and no more than 3 words in a row/)).toBeTruthy();
-    fireEvent.change(await screen.findByRole('textbox', { name: 'Longest run of missing words allowed' }), { target: { value: '5' } });
-    fireEvent.click(screen.getByRole('button', { name: 'Save' }));
+    const check = screen.getByRole('region', { name: 'Recording check' });
+    expect(await within(check).findByText('Proposed values, not yet calibrated')).toBeTruthy();
+    expect(within(check).getByText(/at least 80% of its words read and no more than 3 words in a row/)).toBeTruthy();
+    fireEvent.change(await within(check).findByRole('textbox', { name: 'Longest run of missing words allowed' }), { target: { value: '5' } });
+    fireEvent.click(within(check).getByRole('button', { name: 'Save' }));
     await waitFor(() => expect(saveSettings).toHaveBeenCalledWith('RecordingCoverage', 'global', { max_missing_run: '5' }));
     expect(await screen.findByText(/no more than 5 words in a row/)).toBeTruthy();
   });
@@ -993,11 +994,12 @@ describe('App (integration, driven through the mock NarrationApi)', () => {
     fireEvent.click(screen.getAllByRole('button', { name: 'Settings' })[0]);
     await screen.findByRole('heading', { name: 'Settings' });
 
-    const verbosity = await screen.findByDisplayValue('normal');
+    const general = screen.getByRole('region', { name: 'General' });
+    const verbosity = await within(general).findByDisplayValue('normal');
     fireEvent.change(verbosity, { target: { value: 'verbose' } });
     fireEvent.change(verbosity, { target: { value: 'normal' } });
-    expect(screen.getByText('Unsaved changes')).toBeTruthy();
-    fireEvent.click(screen.getByRole('button', { name: 'Save' }));
+    expect(within(general).getByText('Unsaved changes')).toBeTruthy();
+    fireEvent.click(within(general).getByRole('button', { name: 'Save' }));
 
     await waitFor(() => expect(screen.queryByText('Unsaved changes')).toBeNull());
     expect(saveSettings).not.toHaveBeenCalled();
@@ -1012,47 +1014,43 @@ describe('App (integration, driven through the mock NarrationApi)', () => {
 
     // A project shows the Global value ("small") for a field it has no override for. Changing it and changing it back must
     // not pin that value in the project, or a later change to the Global default would no longer reach it.
-    fireEvent.click(screen.getByRole('tab', { name: 'This Project' }));
-    fireEvent.click(await screen.findByRole('tab', { name: 'Proof' }));
-    const model = await screen.findByRole('combobox', { name: 'Default Whisper model' });
+    const proof = screen.getByRole('region', { name: 'Proof' });
+    fireEvent.click(within(proof).getByRole('button', { name: 'This project' }));
+    await waitFor(() => expect(within(proof).getByRole('button', { name: 'This project' }).getAttribute('aria-pressed')).toBe('true'));
+    const model = await within(proof).findByRole('combobox', { name: 'Default Whisper model' });
     fireEvent.change(model, { target: { value: 'large-v3' } });
     fireEvent.change(model, { target: { value: 'small' } });
-    fireEvent.click(screen.getByRole('button', { name: 'Save' }));
+    fireEvent.click(within(proof).getByRole('button', { name: 'Save' }));
 
     await waitFor(() => expect(screen.queryByText('Unsaved changes')).toBeNull());
     expect(saveSettings).not.toHaveBeenCalled();
   });
 
-  it('names the Settings tabs and keeps the selected one while unsaved changes ask before a switch', async () => {
+  it("switches a panel's scope in its own header, and an unsaved change asks before the switch", async () => {
     renderApp();
     await waitFor(() => screen.getByRole('heading', { level: 1, name: 'Production' }));
     fireEvent.click(screen.getAllByRole('button', { name: 'Settings' })[0]);
     await screen.findByRole('heading', { name: 'Settings' });
-    expect(screen.getByRole('tablist', { name: 'Settings scope' })).toBeTruthy();
-    expect(screen.getByRole('tab', { name: 'Global' }).getAttribute('aria-selected')).toBe('true');
-    expect(screen.getByRole('tablist', { name: 'Settings categories' })).toBeTruthy();
-    expect(screen.getByRole('tab', { name: 'General' }).getAttribute('aria-selected')).toBe('true');
+    expect(screen.queryAllByRole('tablist')).toHaveLength(0);
+    // General is Global only: it offers no switch.
+    expect(within(screen.getByRole('region', { name: 'General' })).queryByRole('group', { name: 'General scope' })).toBeNull();
 
-    // A clean switch of scope happens at once, and the categories of that scope follow (General is Global only).
-    fireEvent.click(screen.getByRole('tab', { name: 'This Project' }));
-    await waitFor(() => expect(screen.getByRole('tab', { name: 'This Project' }).getAttribute('aria-selected')).toBe('true'));
-    await waitFor(() => expect(screen.queryByRole('tab', { name: 'General' })).toBeNull());
-    expect(
-      within(screen.getByRole('tablist', { name: 'Settings categories' }))
-        .getAllByRole('tab')
-        .filter((tab) => tab.getAttribute('aria-selected') === 'true'),
-    ).toHaveLength(1);
-    fireEvent.click(screen.getByRole('tab', { name: 'Global' }));
-    await waitFor(() => expect(screen.getByRole('tab', { name: 'Global' }).getAttribute('aria-selected')).toBe('true'));
+    const check = screen.getByRole('region', { name: 'Recording check' });
+    const scope = within(check).getByRole('group', { name: 'Recording check scope' });
+    expect(within(scope).getByRole('button', { name: 'Global' }).getAttribute('aria-pressed')).toBe('true');
+    // A clean switch happens at once.
+    fireEvent.click(within(scope).getByRole('button', { name: 'This project' }));
+    await waitFor(() => expect(within(scope).getByRole('button', { name: 'This project' }).getAttribute('aria-pressed')).toBe('true'));
+    fireEvent.click(within(scope).getByRole('button', { name: 'Global' }));
+    await waitFor(() => expect(within(scope).getByRole('button', { name: 'Global' }).getAttribute('aria-pressed')).toBe('true'));
 
-    fireEvent.click(screen.getByRole('tab', { name: 'General' }));
-    // With an unsaved change, a switch asks first and the selection does not move until it is confirmed.
-    fireEvent.change(await screen.findByDisplayValue('normal'), { target: { value: 'verbose' } });
-    fireEvent.click(screen.getByRole('tab', { name: 'This Project' }));
+    // With an unsaved change, a switch asks first and the scope does not move until it is confirmed.
+    fireEvent.change(await within(check).findByRole('textbox', { name: 'Longest run of missing words allowed' }), { target: { value: '5' } });
+    fireEvent.click(within(scope).getByRole('button', { name: 'This project' }));
     expect(await screen.findByText('Save or discard changes before continuing?')).toBeTruthy();
-    expect(screen.getByRole('tab', { name: 'Global', hidden: true }).getAttribute('aria-selected')).toBe('true');
+    expect(within(scope).getByRole('button', { name: 'Global', hidden: true }).getAttribute('aria-pressed')).toBe('true');
     fireEvent.click(screen.getByRole('button', { name: 'Discard & continue' }));
-    await waitFor(() => expect(screen.getByRole('tab', { name: 'This Project' }).getAttribute('aria-selected')).toBe('true'));
+    await waitFor(() => expect(within(scope).getByRole('button', { name: 'This project' }).getAttribute('aria-pressed')).toBe('true'));
   });
 
   it('keeps fast manuscript-import activity visible and refreshes the Production home without a browser reload', async () => {
@@ -1205,7 +1203,6 @@ describe('App (integration, driven through the mock NarrationApi)', () => {
     await screen.findByRole('heading', { level: 1, name: 'Production' });
     fireEvent.click(screen.getAllByRole('button', { name: 'Settings' })[0]);
     await screen.findByRole('heading', { name: 'Settings' });
-    fireEvent.click(screen.getByRole('tab', { name: 'DAW Integration' }));
 
     const launchButton = await screen.findByRole('button', { name: 'Launch REAPER' });
     expect((launchButton as HTMLButtonElement).disabled).toBe(false);
@@ -1222,7 +1219,6 @@ describe('App (integration, driven through the mock NarrationApi)', () => {
     await screen.findByRole('heading', { level: 1, name: 'Production' });
     fireEvent.click(screen.getAllByRole('button', { name: 'Settings' })[0]);
     await screen.findByRole('heading', { name: 'Settings' });
-    fireEvent.click(screen.getByRole('tab', { name: 'DAW Integration' }));
 
     const launchButton = await screen.findByRole('button', { name: 'Launch REAPER' });
     expect((launchButton as HTMLButtonElement).disabled).toBe(true);
@@ -1236,7 +1232,6 @@ describe('App (integration, driven through the mock NarrationApi)', () => {
     await screen.findByRole('heading', { level: 1, name: 'Production' });
     fireEvent.click(screen.getAllByRole('button', { name: 'Settings' })[0]);
     await screen.findByRole('heading', { name: 'Settings' });
-    fireEvent.click(screen.getByRole('tab', { name: 'DAW Integration' }));
 
     expect(await screen.findByText('REAPER detected')).toBeTruthy();
     expect(screen.queryByRole('button', { name: 'Get REAPER' })).toBeNull();
@@ -1248,7 +1243,6 @@ describe('App (integration, driven through the mock NarrationApi)', () => {
     await screen.findByRole('heading', { level: 1, name: 'Production' });
     fireEvent.click(screen.getAllByRole('button', { name: 'Settings' })[0]);
     await screen.findByRole('heading', { name: 'Settings' });
-    fireEvent.click(screen.getByRole('tab', { name: 'DAW Integration' }));
 
     expect(await screen.findByText('REAPER not detected')).toBeTruthy();
     const getButton = screen.getByRole('button', { name: 'Get REAPER' });
@@ -1264,11 +1258,10 @@ describe('App (integration, driven through the mock NarrationApi)', () => {
     await screen.findByRole('heading', { level: 1, name: 'Production' });
     fireEvent.click(screen.getAllByRole('button', { name: 'Settings' })[0]);
     await screen.findByRole('heading', { name: 'Settings' });
-    fireEvent.click(screen.getByRole('tab', { name: 'DAW Integration' }));
 
     await screen.findByText('REAPER detected');
     const calls = dawCatalogList.mock.calls.length;
-    fireEvent.click(screen.getByRole('button', { name: 'Check again' }));
+    fireEvent.click(within(screen.getByRole('region', { name: 'DAW Integration' })).getByRole('button', { name: 'Check again' }));
     await waitFor(() => expect(dawCatalogList.mock.calls.length).toBeGreaterThan(calls));
   });
 
@@ -1279,7 +1272,6 @@ describe('App (integration, driven through the mock NarrationApi)', () => {
     await screen.findByRole('heading', { level: 1, name: 'Production' });
     fireEvent.click(screen.getAllByRole('button', { name: 'Settings' })[0]);
     await screen.findByRole('heading', { name: 'Settings' });
-    fireEvent.click(screen.getByRole('tab', { name: 'DAW Integration' }));
 
     await screen.findByText('REAPER detected');
     fireEvent.click(screen.getByRole('button', { name: 'Link a REAPER project file' }));
@@ -1291,7 +1283,6 @@ describe('App (integration, driven through the mock NarrationApi)', () => {
     await screen.findByRole('heading', { level: 1, name: 'Production' });
     fireEvent.click(screen.getAllByRole('button', { name: 'Settings' })[0]);
     await screen.findByRole('heading', { name: 'Settings' });
-    fireEvent.click(screen.getByRole('tab', { name: 'DAW Integration' }));
 
     await screen.findByText('REAPER detected');
     expect(screen.queryByRole('button', { name: 'Link a REAPER project file' })).toBeNull();
@@ -1359,7 +1350,7 @@ describe('App Back and Forward', () => {
     fireEvent.click(screen.getAllByRole('button', { name: 'Settings' })[0]);
     await screen.findByRole('heading', { name: 'Settings' });
 
-    const modelField = await screen.findByDisplayValue('normal');
+    const modelField = await within(screen.getByRole('region', { name: 'General' })).findByDisplayValue('normal');
     fireEvent.change(modelField, { target: { value: 'verbose' } });
     expect(screen.getByRole('button', { name: 'Back' }).getAttribute('aria-disabled')).toBeNull();
 

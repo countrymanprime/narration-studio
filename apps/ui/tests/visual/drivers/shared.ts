@@ -257,10 +257,9 @@ export function confirmDialog(page: Page, name: string | RegExp) {
   return page.getByRole('dialog', { name }).or(page.getByRole('alertdialog', { name }));
 }
 
-// Replace manuscript has one place, Settings > Global > Manuscript (SNM-2): the Production page no longer carries it.
+// Replace manuscript has one place, the Settings page's Manuscript panel (SNM-2): the Production page no longer carries it.
 export async function clickReplaceManuscript(page: Page): Promise<void> {
   await goToPage(page, 'Settings');
-  await clickVisible(page, 'tab', 'Global');
   await clickSettingsCategory(page, 'Manuscript');
   await clickVisible(page, 'button', 'Replace manuscript');
 }
@@ -373,10 +372,21 @@ export async function openEditingCheckFromEngine(page: Page, query: string) {
 // matches both and .first() can silently click the wrong one (navigating
 // away from Settings instead of switching category). Always scope category
 // clicks to .settings-nav specifically.
-export async function clickSettingsCategory(page: Page, name: string): Promise<void> {
-  await page.locator('.settings-nav').getByRole('tab', { name, exact: true }).click();
-  // The categories sit below the page's own panels (the Studio Next mock's): bring them to the top so the category is what is photographed.
-  await scrollToTop(page, page.getByRole('region', { name: 'More settings' }));
+// Settings is one column of panels (the mock's, then the kept ones): a state shows one panel by scrolling it to the top,
+// and a panel over Global and This project picks its scope with the switch in its own header.
+export function settingsPanel(page: Page, name: string): Locator {
+  return page.getByRole('region', { name, exact: true });
+}
+export async function clickSettingsCategory(page: Page, name: string, scope: 'Global' | 'This project' = 'Global'): Promise<void> {
+  const panel = settingsPanel(page, name);
+  await panel.waitFor();
+  const scopes = panel.getByRole('group', { name: `${name} scope` });
+  if ((await scopes.count()) > 0) {
+    const choice = scopes.getByRole('button', { name: scope, exact: true });
+    if ((await choice.getAttribute('aria-pressed')) !== 'true') await choice.click();
+    await scopes.getByRole('button', { name: scope, exact: true }).and(page.locator('[aria-pressed="true"]')).waitFor();
+  }
+  await scrollToTop(page, panel);
 }
 
 // Chooses the theme the way a narrator does, with Settings' Appearance panel (the Studio Next mock's radios).
@@ -388,7 +398,6 @@ export async function chooseTheme(page: Page, theme: 'Light' | 'Dark'): Promise<
 // Settings > Story Bible with the narrator's own Merriam-Webster key saved in the mock: the panel then says Key saved.
 export async function saveOnlineDictionaryKey(page: Page): Promise<void> {
   await goToPage(page, 'Settings');
-  await clickVisible(page, 'tab', 'Global');
   await clickSettingsCategory(page, 'Story Bible');
   await page.getByLabel('Your key', { exact: true }).fill('0b5c1a3e-7d2f-4e6a-9c8b-2f1e0d9c8b7a');
   await clickVisible(page, 'button', 'Save key');
@@ -402,7 +411,6 @@ export async function openLocalAssets(page: Page, seed?: string): Promise<void> 
     await settlePage(page);
   }
   await goToPage(page, 'Settings');
-  await clickVisible(page, 'tab', 'Global');
   await clickSettingsCategory(page, 'Local assets');
   await page.getByRole('heading', { level: 3, name: 'Small', exact: true }).waitFor();
 }

@@ -4,7 +4,7 @@
  * through) and the cut list stays in the original recording's time.
  */
 import { alignToScript, normKey, type Heard } from './align';
-import { curTime, origTime, takeShift, type DocCut } from './cuts';
+import { curTime, origTime, takeLength, takeShift, type DocCut } from './cuts';
 
 type ItemState = 'ok' | 'mis' | 'miss' | 'extra';
 
@@ -204,7 +204,7 @@ export function buildDoc(input: ChapterInput): ChapterDoc {
     const trailText = take ? wordsOf(p.text.slice(take.e)).join(' ') : '';
     const leadHeard = take && lead && aligned ? eng.heard({ id: take.id + ':lead', text: leadText }) : null;
     const trailHeard = take && trailText && aligned ? eng.heard({ id: take.id + ':trail', text: trailText }) : null;
-    const takeLen = take ? take.len + cuts.filter((c) => c.mode === 'close' && c.takeId === take.id).reduce((a, c) => a + (c.b - c.a), 0) : 0;
+    const takeLen = take ? takeLength(cuts, take) : 0;
     const anchor = take ? origTime(cuts, take.start) - (leadHeard ? leadHeard.len + JOIN : 0) : null;
     const natural = take ? (leadHeard ? leadHeard.len + JOIN : 0) + takeLen + (trailHeard ? JOIN + trailHeard.len : 0) : 0;
     const recorded = !!take || before < recordedWords;
@@ -251,7 +251,7 @@ export function buildDoc(input: ChapterInput): ChapterDoc {
     if (pl.recorded && aligned) {
       if (take) {
         const heard = eng.heard({ id: take.id, text: take.text, len: pl.takeLen });
-        const base = (off: number): number => take.start + off - takeShift(cuts, take.id, off);
+        const base = (off: number): number => take.start + off - takeShift(cuts, take, off);
         const leadLen = pl.leadHeard ? pl.leadHeard.len + JOIN : 0;
         if (pl.lead) segs.push({ from: 0, to: pl.lead, heard: pl.leadHeard, abs: (o) => base(o - leadLen), rel: (o) => o - leadLen, takeId: take.id });
         segs.push({ from: pl.lead, to: pl.lead + pl.mid, heard, abs: base, rel: (o) => o, takeId: take.id });

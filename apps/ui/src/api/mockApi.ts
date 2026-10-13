@@ -86,6 +86,8 @@ import {
   fxRangeOf,
   fxRangeRemovedOf,
   fxRangeBypassAnswerOf,
+  fxRangeCompareAnswerOf,
+  fxCompareStopAnswerOf,
   fxRangeParamsAnswerOf,
   fxRangeSetAnswerOf,
   nothingToStackAnswer,
@@ -630,9 +632,21 @@ function createFxRangeMock(
       const answer = fxRangeBypassAnswerOf(checked.setup, chainName, bypass);
       return 'refused' in answer ? refusedResult(answer.refused) : answer.result;
     },
+    dawCompareFxRange: async (chapterId, firstToken, lastToken, chainName) => {
+      const checked = await checkTarget(chapterId, firstToken, lastToken, chainName);
+      if ('refused' in checked) return { result: checked.refused, pass: 0 };
+      const answer = fxRangeCompareAnswerOf(checked.setup, chainName);
+      return 'refused' in answer ? { result: refusedResult(answer.refused), pass: 0 } : answer.compare;
+    },
+    dawStopFxCompare: async () => {
+      const setup = await daw.dawCapabilities();
+      const support = setup.capabilities.fx_range;
+      if (!support?.available) return refusedResult(support?.message ?? '');
+      return fxCompareStopAnswerOf(setup);
+    },
   };
 
-  /** The checks DawFxRangeParams, DawSetFxRangeParam and DawBypassFxRange share with a removal, in the host's order. */
+  /** The checks DawFxRangeParams, DawSetFxRangeParam, DawBypassFxRange and DawCompareFxRange share with a removal, in the host's order. */
   async function checkTarget(
     chapterId: string,
     firstToken: number,

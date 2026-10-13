@@ -8,7 +8,7 @@ export const settingsStates: StateEntry[] = [
     page: 'settings',
     state: 'page-top',
     description:
-      "Settings, the top of the page (the Studio Next mock's panels): the Recording radios on the launch's DAW, the Delivery profile select on ACX, the Reader text panel (font, size, line height and the preview quote), the Marks pills with Edit marks, the Story Bible types, the Appearance theme radios, the Keyboard shortcuts list read-only and the Manuscript panel with Replace manuscript, above the kept categories",
+      "Settings, the top of the page (the Studio Next mock's panels): the Recording radios on the launch's DAW, the Delivery profile select on ACX, the Reader text panel (font, size, line height and the preview quote), the Marks pills with Edit marks, the Story Bible types, the Appearance theme radios, the Keyboard shortcuts list read-only and the Manuscript panel with Replace manuscript, above the kept panels",
     ...REFLOW,
   },
   {
@@ -23,12 +23,12 @@ export const settingsStates: StateEntry[] = [
     description: 'Settings\' Recording panel with the built-in recorder chosen: "Built-in recorder. Recordings live in the app." is the checked radio',
     ...REFLOW,
   },
-  { page: 'settings', state: 'global-general', description: 'Settings, the kept categories, Global scope / General category', ...REFLOW },
+  { page: 'settings', state: 'global-general', description: 'Settings, the General panel (Global only)', ...REFLOW },
   {
     page: 'settings',
     state: 'global-keyboard',
     description:
-      'Settings, Global scope / Keyboard & pedals category: every command grouped by scope (Global, Page, Booth), gestures as Kbd chips, and Reset all to defaults',
+      'Settings, the Keyboard & pedals panel in Global: every command grouped by scope (Global, Page, Booth), gestures as Kbd chips, and Reset all to defaults',
     ...REFLOW,
   },
   {
@@ -51,27 +51,27 @@ export const settingsStates: StateEntry[] = [
     page: 'settings',
     state: 'global-recording-check',
     description:
-      'Settings, Global scope / Recording check category (ADR 0131): the four number settings at their defaults (0.8, 3, 8, 3 words; ADR 0132), under a summary that labels them uncalibrated and states the rule they make',
+      'Settings, the Recording check panel in Global (ADR 0131): the four number settings at their defaults (0.8, 3, 8, 3 words; ADR 0132), under a summary that labels them uncalibrated and states the rule they make',
     ...REFLOW,
   },
-  { page: 'settings', state: 'global-proofing', description: 'Settings, Global scope / Proof category', ...REFLOW },
+  { page: 'settings', state: 'global-proofing', description: 'Settings, the Proof panel in Global', ...REFLOW },
   {
     page: 'settings',
     state: 'global-storybible',
-    description: 'Settings, Global scope / Story Bible category, with the online dictionary panel offering a free Merriam-Webster key',
+    description: 'Settings, the Story Bible panel in Global, with the online dictionary panel offering a free Merriam-Webster key',
     ...REFLOW,
   },
   {
     page: 'settings',
     state: 'global-storybible-key-saved',
-    description: 'Settings, Global scope / Story Bible category after the narrator saved their own Merriam-Webster key: Key saved, Replace and Remove',
+    description: 'Settings, the Story Bible panel in Global after the narrator saved their own Merriam-Webster key: Key saved, Replace and Remove',
     ...REFLOW,
   },
   {
     page: 'settings',
     state: 'global-delivery',
     description:
-      'Settings, Global scope / Delivery category (ADR 0179): the default delivery profile every project without its own choice is judged against (ACX), and the profiles, the built-in one read-only with Duplicate',
+      'Settings, the Delivery profiles panel in Global (ADR 0179): the default delivery profile every project without its own choice is judged against (ACX), and the profiles, the built-in one read-only with Duplicate',
     ...REFLOW,
   },
   {
@@ -85,50 +85,50 @@ export const settingsStates: StateEntry[] = [
     page: 'settings',
     state: 'global-daw',
     description:
-      'Settings, Global scope / DAW Integration category, with the DAW catalog panel showing REAPER detected and a REAPER project already linked, so only the "Check again" action shows (docs/architecture/daw-integration.md)',
+      'Settings, the DAW Integration panel in Global, with the DAW catalog panel showing REAPER detected and a REAPER project already linked, so only the "Check again" action shows (docs/architecture/daw-integration.md)',
     ...REFLOW,
   },
   {
     page: 'settings',
     state: 'global-daw-capabilities',
     description:
-      "Settings, Global scope / DAW Integration category, the capability section below the per-capability toggles: each capability with its level as a word and a glyph, the host's reason sentence when unavailable, the destructive warning chip and the mode phrase",
+      "Settings, the DAW Integration panel in Global, the capability section below the per-capability toggles: each capability with its level as a word and a glyph, the host's reason sentence when unavailable, the destructive warning chip and the mode phrase",
     ...REFLOW,
   },
   {
     page: 'settings',
     state: 'global-daw-not-detected',
     description:
-      'Settings, Global scope / DAW Integration category with REAPER not detected (?mockDawNotDetected=1, docs/architecture/daw-integration.md): the not-detected dot and the "Get REAPER" button that opens the vendor\'s download page',
+      'Settings, the DAW Integration panel in Global with REAPER not detected (?mockDawNotDetected=1, docs/architecture/daw-integration.md): the not-detected dot and the "Get REAPER" button that opens the vendor\'s download page',
     ...REFLOW,
   },
   {
     page: 'settings',
     state: 'global-daw-handoff',
     description:
-      'Settings, Global scope / DAW Integration category with REAPER detected but no REAPER project linked yet (?mockNoDaw=1, docs/architecture/daw-integration.md): the "Link a REAPER project file" handoff button next to the detected entry, and the "Check again" action below it',
+      'Settings, the DAW Integration panel in Global with REAPER detected but no REAPER project linked yet (?mockNoDaw=1, docs/architecture/daw-integration.md): the "Link a REAPER project file" handoff button next to the detected entry, and the "Check again" action below it',
     ...REFLOW,
   },
   {
     page: 'settings',
     state: 'global-manuscript',
-    description: 'Settings, Global scope / Manuscript category: the reader-note colour picker (the Manuscript panel itself is at the top of the page)',
+    description: 'Settings, the Note colour panel in Global: the reader-note colour picker (the Manuscript panel itself is at the top of the page)',
     ...REFLOW,
   },
   {
     page: 'settings',
     state: 'global-stage-recommendations',
-    description: 'Settings, Global scope / Stage suggestions category: the master switch and the recording signal choice (required/ignored)',
+    description: 'Settings, the Stage suggestions panel in Global: the master switch and the recording signal choice (required/ignored)',
     ...REFLOW,
   },
-  { page: 'settings', state: 'global-tts', description: 'Settings, Global scope / TTS category', ...REFLOW },
+  { page: 'settings', state: 'global-tts', description: 'Settings, the TTS panel in Global', ...REFLOW },
   {
     page: 'settings',
     state: 'global-booth',
-    description: 'Settings, Global scope / Booth category (microphone, live engine and model choice)',
+    description: 'Settings, the Booth panel in Global (microphone, live engine and model choice)',
     ...REFLOW,
   },
-  { page: 'settings', state: 'global-about', description: 'Settings, Global scope / About and updates category (the version, nothing checked yet)', ...REFLOW },
+  { page: 'settings', state: 'global-about', description: 'Settings, the About and updates panel in Global (the version, nothing checked yet)', ...REFLOW },
   {
     page: 'settings',
     state: 'about-update-available',
@@ -201,7 +201,7 @@ export const settingsStates: StateEntry[] = [
     page: 'settings',
     state: 'local-assets',
     description:
-      'Settings, Global scope / Local assets category: every voice and model with its sizes, licence and state, the folder and the total on disk (the voice is not installed, the others are)',
+      'Settings, the Local assets panel in Global: every voice and model with its sizes, licence and state, the folder and the total on disk (the voice is not installed, the others are)',
     ...REFLOW,
   },
   {
@@ -239,11 +239,11 @@ export const settingsStates: StateEntry[] = [
     page: 'settings',
     state: 'project-recording-check',
     description:
-      'Settings, Project scope / Recording check category: every setting unset in the project and inheriting its default, with the note that a blank project value uses the Global one',
+      'Settings, the Recording check panel in This project: every setting unset in the project and inheriting its default, with the note that a blank project value uses the Global one',
     ...REFLOW,
   },
-  { page: 'settings', state: 'project-proofing', description: 'Settings, Project scope / Proof category', ...REFLOW },
-  { page: 'settings', state: 'project-storybible', description: 'Settings, Project scope / Story Bible category', ...REFLOW },
+  { page: 'settings', state: 'project-proofing', description: 'Settings, the Proof panel in This project', ...REFLOW },
+  { page: 'settings', state: 'project-storybible', description: 'Settings, the Story Bible panel in This project', ...REFLOW },
   {
     page: 'settings',
     state: 'delivery-profile-custom',
@@ -254,21 +254,21 @@ export const settingsStates: StateEntry[] = [
   {
     page: 'settings',
     state: 'project-daw',
-    description: 'Settings, Project scope / DAW Integration category (new: previously global-only): "REAPER project linked" and Change linked project file',
+    description: 'Settings, the DAW Integration panel in This project (new: previously global-only): "REAPER project linked" and Change linked project file',
     ...REFLOW,
   },
   {
     page: 'settings',
     state: 'project-daw-not-linked',
     description:
-      'Settings, Project scope / DAW Integration category with no linked REAPER project file (?mockNoDaw=1): "No REAPER project linked" and Link a REAPER project file',
+      'Settings, the DAW Integration panel in This project with no linked REAPER project file (?mockNoDaw=1): "No REAPER project linked" and Link a REAPER project file',
     ...REFLOW,
   },
-  { page: 'settings', state: 'project-data', description: 'Settings, Project scope / Project data category (clear derived project data)', ...REFLOW },
+  { page: 'settings', state: 'project-data', description: 'Settings, the Project data panel in This project (clear derived project data)', ...REFLOW },
   {
     page: 'settings',
     state: 'project-credits',
-    description: 'Settings, Project scope / Credits category: template library, live preview and project credit values',
+    description: 'Settings, the Credits panel in This project: template library, live preview and project credit values',
     ...REFLOW,
   },
   {

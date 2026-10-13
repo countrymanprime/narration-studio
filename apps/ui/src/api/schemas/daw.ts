@@ -8,6 +8,7 @@ import type {
   DawCapabilityMode,
   DawCapabilityReason,
   DawCapabilitySupport,
+  DawFxRangeCompare,
   DawFxRangeSettings,
   DawFxSetting,
   DawKind,
@@ -78,7 +79,7 @@ export const dawResultSchema = z.object({
 }) satisfies z.ZodType<DawResult>;
 
 /** dawport.FXSetting: a setting whose value lies in its range, with a step of 0 or more. */
-export const dawFxSettingSchema = z
+const dawFxSettingSchema = z
   .object({
     fx: z.number().int().nonnegative(),
     fxName: z.string(),
@@ -106,6 +107,18 @@ export const dawFxRangeSettingsSchema = z
     message: 'a refused read has no settings',
     path: ['settings'],
   }) satisfies z.ZodType<DawFxRangeSettings>;
+
+/** dawport.FXRangeCompare: a Compare adds no undo step, and plays two passes of `pass` seconds only when it started. */
+export const dawFxRangeCompareSchema = z
+  .object({
+    result: dawResultSchema,
+    pass: z.number().nonnegative(),
+  })
+  .refine((answer) => answer.result.undoSteps === 0, { message: 'a Compare adds no undo step', path: ['result'] })
+  .refine((answer) => (answer.result.ok ? answer.pass > 0 : answer.pass === 0), {
+    message: 'a started Compare plays for a time, and a refused one for none',
+    path: ['pass'],
+  }) satisfies z.ZodType<DawFxRangeCompare>;
 
 /** A backup table row's text (the source track's name, the chapter id, the label): non-empty, at most 256 bytes as the host counts them, no
  * control characters (audacity.backupText). */

@@ -23,6 +23,7 @@ export type EditLogHostApi = Pick<
   | 'editingWordFxList'
   | 'editingWordFxRecord'
   | 'editingWordFxRemove'
+  | 'editingWordFxBypass'
   | 'editingStacksList'
   | 'editingStackRecord'
   | 'editingStackRemove'
@@ -42,6 +43,7 @@ export function createHostEditLog(api: EditLogHostApi): EditLogPort {
     editingWordFxList: (chapterId) => api.editingWordFxList(chapterId),
     editingWordFxRecord: (chapterId, fx) => api.editingWordFxRecord(chapterId, fx),
     editingWordFxRemove: (chapterId, id) => api.editingWordFxRemove(chapterId, id),
+    editingWordFxBypass: (chapterId, id, bypassed) => api.editingWordFxBypass(chapterId, id, bypassed),
     editingStacksList: (chapterId) => api.editingStacksList(chapterId),
     editingStackRecord: (chapterId, stack) => api.editingStackRecord(chapterId, stack),
     editingStackRemove: (chapterId, passageId, takeIds) => api.editingStackRemove(chapterId, passageId, takeIds),

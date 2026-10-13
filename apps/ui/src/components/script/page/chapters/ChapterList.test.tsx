@@ -65,6 +65,22 @@ describe('chapter list', () => {
     expect(document.activeElement).toBe(await row(/Prologue/));
   });
 
+  it('lists the closing credits last, after the final chapter, with its prep dot', async () => {
+    const onJump = vi.fn();
+    mount({ openingCredits: { state: 'none', onJump: vi.fn() }, closingCredits: { state: 'prepped', onJump } });
+    const closing = await row(/Closing credits/);
+    expect(within(closing).getByRole('img', { name: 'Prepped' })).toBeTruthy();
+    const names = screen.getAllByRole('button').map((button) => button.textContent);
+    expect(names[0]).toContain('Opening credits');
+    expect(names.at(-1)).toContain('Closing credits');
+    await userEvent.click(closing);
+    expect(onJump).toHaveBeenCalledTimes(1);
+    // End reaches it, as the list's last stop.
+    (await row(/Opening credits/)).focus();
+    await userEvent.keyboard('{End}');
+    expect(document.activeElement).toBe(closing);
+  });
+
   it('draws no second row when the manuscript has its own opening credits chapter', async () => {
     mount({ openingCredits: undefined });
     await row(/Opening Credits/);

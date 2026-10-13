@@ -51,8 +51,10 @@ export type ReaderProps = {
   activeMarkId?: string | null;
   /** The bookmark ribbons of a paragraph (the ribbon comes in through this slot). Keep the function the same between renders. */
   renderGutter?: (paragraph: ManuscriptParagraph) => ReactNode;
-  /** The chapter card under the heading (prep state, facts, record); this component draws the heading only. */
+  /** The chapter's card (the previous chapter's end marker, title, facts, prep state, record). With it the reader draws no heading of its own, so the title shows once; without it, a bare heading. */
   renderChapterCard?: (chapter: ManuscriptChapter) => ReactNode;
+  /** Drawn after the last chapter's text: the closing credits. */
+  after?: ReactNode;
   /** The sticky header's buttons. */
   toolbar?: ReactNode;
   onPickSpeaker?: (cueId: string, anchor: DOMRect) => void;
@@ -126,16 +128,21 @@ type SectionProps = {
   onPickSpeaker?: ReaderProps['onPickSpeaker'];
 };
 
-/** One chapter: its heading, then its paragraphs (or a block of the estimated height until it is near the reader). */
+/** One chapter: its card (the end of the chapter before, the title and facts), or a bare heading without one, then its paragraphs (or a block of the estimated height until it is near the reader). */
 const Section = memo(function Section(props: SectionProps) {
   const { chapter, paragraphs, drawn } = props;
   const rows = paragraphs ?? NO_PARAS;
   return (
     <Fragment>
       <div data-bound="" data-ch={chapter.id} id={`ch-${chapter.id}`} className="mt-6 first:mt-0">
-        <h2 className="m-0 text-2xl font-semibold">{chapter.title}</h2>
-        <div className="text-sm text-[var(--text-muted)]">{chapter.wordCount.toLocaleString()} words</div>
-        {props.renderChapterCard?.(chapter)}
+        {props.renderChapterCard ? (
+          props.renderChapterCard(chapter)
+        ) : (
+          <>
+            <h2 className="m-0 text-2xl font-semibold">{chapter.title}</h2>
+            <div className="text-sm text-[var(--text-muted)]">{chapter.wordCount.toLocaleString()} words</div>
+          </>
+        )}
       </div>
       {drawn ? (
         rows.map((paragraph) => (
@@ -184,6 +191,7 @@ export function Reader(props: ReaderProps) {
     activeMarkId = null,
     renderGutter,
     renderChapterCard,
+    after,
     toolbar,
     onPickSpeaker,
     onShowAnnotation,
@@ -432,6 +440,7 @@ export function Reader(props: ReaderProps) {
               onPickSpeaker={onPickSpeaker}
             />
           ))}
+          {after}
         </div>
       </div>
     </section>

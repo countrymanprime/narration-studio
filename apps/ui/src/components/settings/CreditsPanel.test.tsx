@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { ApiProvider } from '../../api/ApiContext';
 import { createMockApi } from '../../api/mockApi';
@@ -72,6 +72,46 @@ describe('CreditsPanel', () => {
     expect(screen.getByText(/Shown for Chapter 1, one of 12 chapters/)).toBeTruthy();
     fireEvent.click(screen.getByRole('button', { name: 'Save template' }));
     await waitFor(async () => expect((await api.creditsTemplates()).some((template) => template.kind === 'chapter_announcement')).toBe(true));
+  });
+});
+
+describe('Clear credits', () => {
+  const setTitle = async (value: string) => {
+    await screen.findByText(/unresolved token/);
+    fireEvent.change(screen.getByLabelText('Title'), { target: { value } });
+    await waitFor(() => expect(screen.queryByText('[Title]')).toBeNull());
+  };
+
+  it('is off while the project has no credit value saved', async () => {
+    renderPanel();
+    await screen.findByText(/unresolved token/);
+    expect(screen.getByRole('button', { name: 'Clear credits' })).toHaveProperty('disabled', true);
+  });
+
+  it('asks first, naming what it removes and what stays, and Cancel keeps the values', async () => {
+    const { api } = renderPanel();
+    await setTitle('Alice in Wonderland');
+    fireEvent.click(screen.getByRole('button', { name: 'Clear credits' }));
+    const dialog = await screen.findByRole('alertdialog', { name: "Clear this project's credits?" });
+    expect(dialog.textContent).toMatch(/Title, Subtitle, Author, Series, Book number, Copyright, Year, Copyright holder, Publisher and the Narrator override/);
+    expect(dialog.textContent).toMatch(/templates in your library stay/);
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Cancel' }));
+    await waitFor(() => expect(screen.queryByRole('alertdialog')).toBeNull());
+    expect((await api.creditsProjectValues()).values.title).toBe('Alice in Wonderland');
+  });
+
+  it("clears every one of the project's credit values once confirmed, and the preview asks for them again", async () => {
+    const { api, notify } = renderPanel();
+    await setTitle('Alice in Wonderland');
+    fireEvent.click(screen.getByRole('button', { name: 'Clear credits' }));
+    const dialog = await screen.findByRole('alertdialog', { name: "Clear this project's credits?" });
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Clear credits' }));
+    await waitFor(() => expect(screen.queryByRole('alertdialog')).toBeNull());
+    expect((screen.getByLabelText('Title') as HTMLInputElement).value).toBe('');
+    expect(await screen.findByText('[Title]')).toBeTruthy();
+    expect(Object.values((await api.creditsProjectValues()).values).filter(Boolean)).toEqual([]);
+    expect(notify).toHaveBeenCalledWith('Credits cleared for this project.');
+    expect(screen.getByRole('button', { name: 'Clear credits' })).toHaveProperty('disabled', true);
   });
 });
 

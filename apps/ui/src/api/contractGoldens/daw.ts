@@ -5,6 +5,7 @@ import type { z } from 'zod';
 import {
   dawBackupsFileSchema,
   dawCapabilitiesSchema,
+  dawFxRangeCompareSchema,
   dawFxRangeSettingsSchema,
   dawProjectStateSchema,
   dawResultSchema,
@@ -59,6 +60,11 @@ export const dawGoldens: Record<string, z.ZodType> = {
   'daw-fx-range-params-set-done.json': dawResultSchema,
   'daw-fx-range-bypass-done.json': dawResultSchema,
   'daw-fx-range-bypass-refused-stale.json': dawResultSchema,
+  // DawCompareFxRange and DawStopFxCompare (bindings_daw_fx_compare_test.go, SN-E113): a Compare started (no undo step, each pass's
+  // length), a chain no longer on the words, and a Compare stopped.
+  'daw-fx-range-compare-done.json': dawFxRangeCompareSchema,
+  'daw-fx-range-compare-refused-stale.json': dawFxRangeCompareSchema,
+  'daw-fx-range-compare-stopped.json': dawResultSchema,
   // DawStackTakes and DawUnstackTakes (bindings_daw_stack_test.go): a stack and an un-stack in REAPER (one undo step each), a stack in a
   // DAW that makes it in steps, and REAPER's stale refusal.
   'daw-stack-done.json': dawResultSchema,

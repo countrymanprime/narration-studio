@@ -142,7 +142,7 @@ A lane-X stream runs with no other stream that touches the same files. Lanes hav
   - On a collision, whoever merges `main` in second takes the higher value + 1 and regenerates. Use the bump script once lane X has added it.
 - **ADR numbers:** the next free number in `docs/adr/`. Check it again at merge time, not only at write time; D52 on the retired #509 records an earlier collision.
 - **The ADR index and PRD index rows:** add-only. The coordinator resolves conflicts in them mechanically.
-- **Append-only rows:** `config/defaults.json`, `internal/settings/store.go` field rows, `Settings.tsx` rows, `internal/bridge/wire.go` event rows.
+- **Append-only rows:** `config/defaults.json`, `internal/settings/store.go` field rows, the `SettingsPage.tsx` panel list, `internal/bridge/wire.go` event rows.
 - **One at a time, train-wide:**
   - the `AppShell.tsx` navigation or header;
   - `.github/workflows/**`;
@@ -196,7 +196,7 @@ The Studio Next mock (`docs/research/mockups/studio-next/`) is the only spec for
 
 ## UI PRs show their screenshots
 
-The rule and how to capture and embed the images are in [CONTRIBUTING.md](../../../CONTRIBUTING.md#ui-prs-show-their-screenshots). For the train: a UI PR without its Screenshots section has failed. The worker adds the images before it says the PR is ready and pushes the commit that deletes `pr-screenshots/` once nothing else on the PR is left to change. The coordinator checks the PR body for the images at every sweep, and neither merges a UI PR without them nor counts it ready, whatever the CI result. A worker without network lists the missing mock image in the PR and the owner supplies it.
+The rule and how to capture and embed the images are in [CONTRIBUTING.md](../../../CONTRIBUTING.md#ui-prs-show-their-screenshots). For the train: a UI PR without its Screenshots section has failed. The images are every catalogued state of the page(s) the PR names, light and dark, desktop and narrow, from the targeted Playwright run and the targeted Storybook run (`node scripts/dev/pr-screenshots.mjs`, which works in a cloud container), and the PR states the real-app result: Storybook states alone do not count. The worker adds the images before it says the PR is ready and pushes the commit that deletes `pr-screenshots/` once nothing else on the PR is left to change. The coordinator checks the PR body for the images at every sweep, and neither merges a UI PR without them nor counts it ready, whatever the CI result. A worker without network lists the missing mock image in the PR and the owner supplies it.
 
 ## Owner standing rules
 

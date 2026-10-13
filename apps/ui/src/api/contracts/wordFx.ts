@@ -47,6 +47,8 @@ export type WordFx = WordFxRequest & {
   paragraph: number | null;
   stale: boolean;
   staleReason?: AcceptedWordStaleReason;
+  /** The chain is bypassed in the DAW, as the app last set it (SN-E113): the coverage figure counts only the effects that are on. */
+  bypassed: boolean;
 };
 
 /** One chapter's word effects, in the original recording's time order. */
@@ -71,4 +73,7 @@ export interface EditWordFxApi {
   editingWordFxRecord(chapterId: string, fx: WordFxRequest): Promise<WordFxChange>;
   /** Forgets an effect: the inverse the journal calls when the DAW change is undone, or the record of the DAW taking it off. */
   editingWordFxRemove(chapterId: string, id: string): Promise<WordFxChange>;
+  /** Keeps that the narrator bypassed an effect in the DAW (`bypassed` true) or turned it back on, after the DAW accepted it; the inverse
+   * the journal calls when that is undone. An effect that is not recorded, or already as asked, changes nothing (`changed` empty). */
+  editingWordFxBypass(chapterId: string, id: string, bypassed: boolean): Promise<WordFxChange>;
 }

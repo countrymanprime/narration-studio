@@ -56,11 +56,26 @@ description. Without them the owner rejects it: the owner has to see that it loo
   branch before merge deletes `pr-screenshots/`, so the squash has no net change there and the images never reach
   `main`. GitHub keeps every commit of a pull request reachable through its ref, so the SHA links keep rendering after
   the merge. Do not create a separate `pr-images/*` branch; that scheme is retired. The lasting record is
-  `docs/images/ui/` and the Playwright visual suite; `apps/ui/screenshots/` stays ignored scratch.
-- **How to capture.** `cd apps/ui && npx playwright test tests/visual/app.spec.ts -g "<page>.*<state>"` writes
-  `apps/ui/screenshots/app/<page>/<state>/<viewport>.png`. The mock runs from `docs/research/mockups/studio-next/`
-  (`npm ci` there, then its Playwright scripts in `e2e/`). Without network, list the missing mock image in the pull
-  request and the owner supplies it.
+  `docs/images/ui/` (regenerated only by the guide-refresh worker, never by a feature PR) and the Playwright visual suite;
+  `apps/ui/screenshots/` stays ignored scratch.
+- **Every state of the page, both runs.** A PR that changes what `apps/ui` draws names the page or pages it touches (a `page` of
+  `apps/ui/tests/visual/state-catalog.ts`) and runs both targeted runs on them. It shows the images of **every** catalogued state
+  of those pages, not a hand-picked few: light and dark, at the viewports the catalog declares (desktop, small-desktop, tablet,
+  and the extra widths a row opts in to), narrow included. The owner uses them to see how the page behaves in each state. The PR
+  states the real-app (Playwright) result, not only Storybook's. A PR that changes a page and lacks them is not mergeable.
+- **How to capture.** From the repo root, `node scripts/dev/pr-screenshots.mjs <slice> <page>...` runs both, copies the PNGs to
+  `pr-screenshots/<slice>/<page>-<state>-<viewport>-<theme>.png` (Storybook's as `storybook-<title>-<story>-...`) and prints the
+  Markdown tables for the PR body, with `<SHA>` to replace by the commit that holds the images (`--sha`). The two runs alone:
+  - `pnpm --dir apps/ui visual:page <page>...` runs the page's rows of the real-app suite in both themes and writes
+    `apps/ui/screenshots/targeted/<theme>/<page>/<state>/<viewport>.png`. A failing state is printed with its PNG still written.
+  - `pnpm --dir apps/ui atlas:page <page-or-component>...` builds Storybook and runs the stories of those titles (`Editing`,
+    `Ribbon`), light and dark, wide and narrow, into `apps/ui/screenshots/atlas/`.
+  - In a container with its own Chromium and no `playwright install`, both find the headless shell under
+    `PLAYWRIGHT_BROWSERS_PATH` when the pinned build is missing. Set `PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH` to name another;
+    unset, Playwright uses its own browser and CI is unchanged. "Chromium does not match the pinned build" is not a reason to
+    skip the real-app run.
+  - The mock runs from `docs/research/mockups/studio-next/` (`npm ci` there, then its Playwright scripts in `e2e/`). Without
+    network, list the missing mock image in the pull request and the owner supplies it.
 
 ## Licensing of contributions
 

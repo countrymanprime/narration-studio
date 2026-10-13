@@ -292,3 +292,13 @@ func (s *steps) SetFXRangeParam(context.Context, dawport.FXRangeTarget, int, int
 func (s *steps) BypassFXRange(context.Context, dawport.FXRangeTarget, bool) (dawport.Result, error) {
 	return dawport.Refused(messageFXBakedIn), nil
 }
+
+// CompareFXRange is refused with messageFXBakedIn: there is no live effect to bypass for the second pass.
+func (s *steps) CompareFXRange(context.Context, dawport.FXRangeTarget) (dawport.FXRangeCompare, error) {
+	return dawport.FXRangeCompare{Result: dawport.Refused(messageFXBakedIn)}, nil
+}
+
+// StopFXCompare is refused with messageFXBakedIn.
+func (s *steps) StopFXCompare(context.Context) (dawport.Result, error) {
+	return dawport.Refused(messageFXBakedIn), nil
+}

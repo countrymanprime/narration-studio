@@ -1814,7 +1814,7 @@
   {
     "name": "reduce_range_gain: the undo block is never closed",
     "file": "narration_range.lua",
-    "find": "  reaper.Undo_EndBlock2(0, UNDO_REDUCE_GAIN, -1)\n",
+    "find": "  reaper.Undo_EndBlock2(0, env and UNDO_REDUCE_GAIN or '', -1)\n",
     "replace": ""
   },
   {
@@ -1982,7 +1982,7 @@
   {
     "name": "repair_click: the undo block is never closed",
     "file": "narration_range.lua",
-    "find": "  reaper.Undo_EndBlock2(0, UNDO_REPAIR_CLICKS, -1)\n",
+    "find": "  reaper.Undo_EndBlock2(0, env and UNDO_REPAIR_CLICKS or '', -1)\n",
     "replace": ""
   },
   {
@@ -1994,8 +1994,8 @@
   {
     "name": "repair_click: no envelope point is added",
     "file": "narration_range.lua",
-    "find": "      reaper.InsertEnvelopePoint(env, point[1], point[2], 0, 0, false, true)\n    end\n    reaper.Envelope_SortPoints(env)\n  end\n  reaper.UpdateItemInProject(item)\n  reaper.Undo_EndBlock2(0, UNDO_REPAIR_CLICKS",
-    "replace": "    end\n    reaper.Envelope_SortPoints(env)\n  end\n  reaper.UpdateItemInProject(item)\n  reaper.Undo_EndBlock2(0, UNDO_REPAIR_CLICKS"
+    "find": "      reaper.InsertEnvelopePoint(env, point[1], point[2], 0, 0, false, true)\n    end\n    reaper.Envelope_SortPoints(env)\n  end\n  reaper.UpdateItemInProject(item)\n  -- No envelope means nothing changed, so the block is closed with no description and records no undo point.\n  reaper.Undo_EndBlock2(0, env and UNDO_REPAIR_CLICKS",
+    "replace": "    end\n    reaper.Envelope_SortPoints(env)\n  end\n  reaper.UpdateItemInProject(item)\n  -- No envelope means nothing changed, so the block is closed with no description and records no undo point.\n  reaper.Undo_EndBlock2(0, env and UNDO_REPAIR_CLICKS"
   },
   {
     "name": "fx_range edits: a stale item GUID falls back to another item",
@@ -2080,5 +2080,161 @@
     "file": "narration_range.lua",
     "find": "      if listed_count == MAX_FX_PARAMS then",
     "replace": "      if false then"
+  },
+  {
+    "name": "fx_range_compare: the chain is not put back as it was",
+    "file": "narration_range.lua",
+    "find": "  compare_state.current = nil\n  switch_chain(current, nil)\n",
+    "replace": "  compare_state.current = nil\n"
+  },
+  {
+    "name": "fx_range_compare: the second pass plays with the chain on",
+    "file": "narration_range.lua",
+    "find": "      if not switch_chain(current, false) then",
+    "replace": "      if not switch_chain(current, true) then"
+  },
+  {
+    "name": "fx_range_compare: a stale position past the words counts as the pass heard",
+    "file": "narration_range.lua",
+    "find": "      if inside and playing() then",
+    "replace": "      if playing() then"
+  },
+  {
+    "name": "fx_range_compare: the edit cursor is not put back",
+    "file": "narration_range.lua",
+    "find": "  switch_chain(current, nil)\n  reaper.SetEditCurPos(current.cursor, false, false)\n",
+    "replace": "  switch_chain(current, nil)\n"
+  },
+  {
+    "name": "fx_range_compare: the switches are made inside an undo block",
+    "file": "narration_range.lua",
+    "find": "  switch_chain(current, true)\n  play_pass(current)\n",
+    "replace": "  reaper.Undo_BeginBlock2(0)\n  switch_chain(current, true)\n  reaper.Undo_EndBlock2(0, 'compare', -1)\n  play_pass(current)\n"
+  },
+  {
+    "name": "fx_range_compare: a running Compare is not ended before the next",
+    "file": "narration_range.lua",
+    "find": "  if playing() then\n    reaper.OnStopButton()\n  end\n  end_compare()\n  local was, guids",
+    "replace": "  if playing() then\n    reaper.OnStopButton()\n  end\n  local was, guids"
+  },
+  {
+    "name": "fx_range_compare: a recording started mid-Compare is stopped",
+    "file": "narration_range.lua",
+    "find": "    if recording() then\n      end_compare()\n      return\n    end\n",
+    "replace": ""
+  },
+  {
+    "name": "fx_range_compare: a piece that is gone is still switched",
+    "file": "narration_range.lua",
+    "find": "    if not compare_target(current) then\n      if playing() then",
+    "replace": "    if false then\n      if playing() then"
+  },
+  {
+    "name": "fx_range_compare: the chain FX are switched by their place, not their GUID",
+    "file": "narration_range.lua",
+    "find": "        slots[position] = at[guid]",
+    "replace": "        slots[position] = position - 1"
+  },
+  {
+    "name": "fx_range_compare: a change to the chain does not end a Compare first",
+    "file": "narration_range.lua",
+    "find": "  registry.register('fx_range_bypass', function(ctx, args)\n    interrupt_compare()\n",
+    "replace": "  registry.register('fx_range_bypass', function(ctx, args)\n"
+  },
+  {
+    "name": "fx_range_compare: fx_range_params answers the chain as the pass has it",
+    "file": "narration_range.lua",
+    "find": "  if comparing and comparing.take == take_guid(take) then",
+    "replace": "  if false then"
+  },
+  {
+    "name": "fx_range_compare: a Compare is started while REAPER records",
+    "file": "narration_range.lua",
+    "find": "  for _, call in ipairs(COMPARE_NEEDED) do\n    if not reaper.APIExists(call) then\n      event(session_dir, 'ERROR', run_id, COMPARE_UNSUPPORTED)\n      return\n    end\n  end\n  if recording() then",
+    "replace": "  for _, call in ipairs(COMPARE_NEEDED) do\n    if not reaper.APIExists(call) then\n      event(session_dir, 'ERROR', run_id, COMPARE_UNSUPPORTED)\n      return\n    end\n  end\n  if false then"
+  },
+  {
+    "name": "reduce_range_gain: an undo point is recorded when REAPER makes no envelope",
+    "file": "narration_range.lua",
+    "find": "env and UNDO_REDUCE_GAIN or ''",
+    "replace": "UNDO_REDUCE_GAIN"
+  },
+  {
+    "name": "reduce_range_gain: the item is found by position, not by its GUID",
+    "file": "narration_range.lua",
+    "find": "      event(session_dir, 'ERROR', run_id, 'This REAPER version cannot lower a stretch of a take.')\n      return\n    end\n  end\n  if recording() then\n    event(session_dir, 'ERROR', run_id, RECORDING)\n    return\n  end\n  local wanted_item, wanted_take = normalize_guid(item_text), normalize_guid(take_text)\n  local item = wanted_item ~= '' and find_item(wanted_item) or nil",
+    "replace": "      event(session_dir, 'ERROR', run_id, 'This REAPER version cannot lower a stretch of a take.')\n      return\n    end\n  end\n  if recording() then\n    event(session_dir, 'ERROR', run_id, RECORDING)\n    return\n  end\n  local wanted_item, wanted_take = normalize_guid(item_text), normalize_guid(take_text)\n  local item = reaper.GetMediaItem(0, 1)"
+  },
+  {
+    "name": "reduce_range_gain: the take's start offset is not subtracted",
+    "file": "narration_range.lua",
+    "find": "local spans = item_stretches(stretches, reaper.GetMediaItemTakeInfo_Value(take, 'D_STARTOFFS'))",
+    "replace": "local spans = item_stretches(stretches, 0)"
+  },
+  {
+    "name": "reduce_range_gain: the stretch is not clamped to the item's start",
+    "file": "narration_range.lua",
+    "find": "local first, last = math.max(span[1], 0), math.min(span[2], length)\n      if first > EDGE_TOLERANCE then\n        plan(math.max(first - GAIN_RAMP, 0), 1)",
+    "replace": "local first, last = span[1], math.min(span[2], length)\n      if first > EDGE_TOLERANCE then\n        plan(math.max(first - GAIN_RAMP, 0), 1)"
+  },
+  {
+    "name": "reduce_range_gain: the stretch is not clamped to the item's end",
+    "file": "narration_range.lua",
+    "find": "local first, last = math.max(span[1], 0), math.min(span[2], length)\n      if first > EDGE_TOLERANCE then\n        plan(math.max(first - GAIN_RAMP, 0), 1)",
+    "replace": "local first, last = math.max(span[1], 0), span[2]\n      if first > EDGE_TOLERANCE then\n        plan(math.max(first - GAIN_RAMP, 0), 1)"
+  },
+  {
+    "name": "reduce_range_gain: a ramp is planned before the item starts",
+    "file": "narration_range.lua",
+    "find": "if first > EDGE_TOLERANCE then\n        plan(math.max(first - GAIN_RAMP, 0), 1)",
+    "replace": "if true then\n        plan(math.max(first - GAIN_RAMP, 0), 1)"
+  },
+  {
+    "name": "reduce_range_gain: a ramp is planned after the item ends",
+    "file": "narration_range.lua",
+    "find": "if last < length - EDGE_TOLERANCE then\n        plan(math.min(last + GAIN_RAMP, length), 1)",
+    "replace": "if true then\n        plan(math.min(last + GAIN_RAMP, length), 1)"
+  },
+  {
+    "name": "repair_click: an undo point is recorded when REAPER makes no envelope",
+    "file": "narration_range.lua",
+    "find": "env and UNDO_REPAIR_CLICKS or ''",
+    "replace": "UNDO_REPAIR_CLICKS"
+  },
+  {
+    "name": "repair_click: the item is found by position, not by its GUID",
+    "file": "narration_range.lua",
+    "find": "      event(session_dir, 'ERROR', run_id, 'This REAPER version cannot repair a click in a take.')\n      return\n    end\n  end\n  if recording() then\n    event(session_dir, 'ERROR', run_id, RECORDING)\n    return\n  end\n  local wanted_item, wanted_take = normalize_guid(item_text), normalize_guid(take_text)\n  local item = wanted_item ~= '' and find_item(wanted_item) or nil",
+    "replace": "      event(session_dir, 'ERROR', run_id, 'This REAPER version cannot repair a click in a take.')\n      return\n    end\n  end\n  if recording() then\n    event(session_dir, 'ERROR', run_id, RECORDING)\n    return\n  end\n  local wanted_item, wanted_take = normalize_guid(item_text), normalize_guid(take_text)\n  local item = reaper.GetMediaItem(0, 1)"
+  },
+  {
+    "name": "repair_click: the take's start offset is not subtracted",
+    "file": "narration_range.lua",
+    "find": "local spans = item_clicks(clicks, reaper.GetMediaItemTakeInfo_Value(take, 'D_STARTOFFS'))",
+    "replace": "local spans = item_clicks(clicks, 0)"
+  },
+  {
+    "name": "repair_click: the click is not clamped to the item's start",
+    "file": "narration_range.lua",
+    "find": "local first, last = math.max(span[1], 0), math.min(span[2], length)\n      if first > EDGE_TOLERANCE then\n        plan(math.max(first - CLICK_RAMP, 0), 1)",
+    "replace": "local first, last = span[1], math.min(span[2], length)\n      if first > EDGE_TOLERANCE then\n        plan(math.max(first - CLICK_RAMP, 0), 1)"
+  },
+  {
+    "name": "repair_click: the click is not clamped to the item's end",
+    "file": "narration_range.lua",
+    "find": "local first, last = math.max(span[1], 0), math.min(span[2], length)\n      if first > EDGE_TOLERANCE then\n        plan(math.max(first - CLICK_RAMP, 0), 1)",
+    "replace": "local first, last = math.max(span[1], 0), span[2]\n      if first > EDGE_TOLERANCE then\n        plan(math.max(first - CLICK_RAMP, 0), 1)"
+  },
+  {
+    "name": "repair_click: a ramp is planned before the item starts",
+    "file": "narration_range.lua",
+    "find": "if first > EDGE_TOLERANCE then\n        plan(math.max(first - CLICK_RAMP, 0), 1)",
+    "replace": "if true then\n        plan(math.max(first - CLICK_RAMP, 0), 1)"
+  },
+  {
+    "name": "repair_click: a ramp is planned after the item ends",
+    "file": "narration_range.lua",
+    "find": "if last < length - EDGE_TOLERANCE then\n        plan(math.min(last + CLICK_RAMP, length), 1)",
+    "replace": "if true then\n        plan(math.min(last + CLICK_RAMP, length), 1)"
   }
 ]

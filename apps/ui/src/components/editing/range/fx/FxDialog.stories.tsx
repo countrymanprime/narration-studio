@@ -177,6 +177,7 @@ const effect: WordFx = {
   at: '2026-10-12T00:00:00Z',
   paragraph: 0,
   stale: false,
+  bypassed: false,
 };
 
 // The marker after the words an effect is on: its control selects the words or takes the effect off.

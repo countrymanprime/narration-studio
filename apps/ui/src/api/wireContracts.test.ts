@@ -14,6 +14,8 @@ import {
   fileRevealAnswer,
   fxChainAddedAnswer,
   fxBypassAnswer,
+  fxCompareAnswer,
+  FX_COMPARE_PASS,
   fxSettingSetAnswer,
   fxSettingsReadAnswer,
   FX_RANGE_SETTINGS,
@@ -189,6 +191,7 @@ import { cleanupToolsStartResultSchema, cleanupToolsStateSchema } from './schema
 import {
   dawBackupsFileSchema,
   dawCapabilitiesSchema,
+  dawFxRangeCompareSchema,
   dawFxRangeSettingsSchema,
   dawProjectStateSchema,
   dawResultSchema,
@@ -3045,6 +3048,44 @@ describe('answers of the mock client for the settings, voice, model, transcript 
     expect(off).toEqual(readGolden('daw-fx-range-params-refused.json'));
   });
 
+  it('dawCompareFxRange and dawStopFxCompare answer their schemas: the host goldens parse, and the mock answers as the host does', async () => {
+    const chain = 'Podcast Voice.RfxChain';
+    for (const file of ['daw-fx-range-compare-done.json', 'daw-fx-range-compare-refused-stale.json']) {
+      expectMatches(dawFxRangeCompareSchema, readGolden(file), file);
+    }
+    expectMatches(dawResultSchema, readGolden('daw-fx-range-compare-stopped.json'), 'daw-fx-range-compare-stopped.json');
+    expect(readGolden('daw-fx-range-compare-done.json')).toEqual({
+      result: { ok: true, changed: false, undoSteps: 0, message: fxCompareAnswer(chain, 'REAPER') },
+      pass: FX_COMPARE_PASS,
+    });
+    expect(readGolden('daw-fx-range-compare-refused-stale.json')).toMatchObject({ result: { ok: false, code: 'stale', undoSteps: 0 }, pass: 0 });
+    expect(readGolden('daw-fx-range-compare-stopped.json')).toMatchObject({ ok: true, changed: true, undoSteps: 0 });
+
+    // A Compare that adds an undo step, a started one that plays for no time and a refused one that plays are not payloads the host sends.
+    const done = readGolden('daw-fx-range-compare-done.json') as { result: Record<string, unknown>; pass: number };
+    expect(dawFxRangeCompareSchema.safeParse({ ...done, result: { ...done.result, changed: true, undoSteps: 1 } }).success).toBe(false);
+    expect(dawFxRangeCompareSchema.safeParse({ ...done, pass: 0 }).success).toBe(false);
+    const stale = readGolden('daw-fx-range-compare-refused-stale.json') as Record<string, unknown>;
+    expect(dawFxRangeCompareSchema.safeParse({ ...stale, pass: 1 }).success).toBe(false);
+
+    const [chapter] = await createMockApi().manuscriptChapters();
+    const api = createMockApi({}, { daw: { toggles: { fx_range: 'on' } } });
+    const compare = await api.dawCompareFxRange(chapter.id, 0, 0, chain);
+    expectMatches(dawFxRangeCompareSchema, compare, 'mock Compare of a chain on a range');
+    expect(compare).toEqual(readGolden('daw-fx-range-compare-done.json'));
+    expect((await api.dawCompareFxRange(chapter.id, 0, 0, '../x.RfxChain')).result.refused).toBe(DAW_ANSWERS.fxBadChain);
+    const unknown = await api.dawCompareFxRange('{11111111-1111-4111-8111-111111111111}', 0, 0, chain);
+    expectMatches(dawFxRangeCompareSchema, unknown, 'mock Compare, unknown chapter');
+    expect(unknown).toMatchObject({ result: { ok: false, code: 'stale', refused: DAW_ANSWERS.rangeStale }, pass: 0 });
+    const stopped = await api.dawStopFxCompare();
+    expectMatches(dawResultSchema, stopped, 'mock stop of a Compare');
+    expect(stopped).toMatchObject({ ok: true, changed: false, undoSteps: 0 });
+    const off = createMockApi();
+    const sentence = (await off.dawCapabilities()).capabilities.fx_range.message;
+    expect((await off.dawCompareFxRange(chapter.id, 0, 0, chain)).result.refused).toBe(sentence);
+    expect((await off.dawStopFxCompare()).refused).toBe(sentence);
+  });
+
   it('dawStackTakes and dawUnstackTakes answer a dawResult: the host goldens parse, and the mock refuses as the host does', async () => {
     for (const file of ['daw-stack-done.json', 'daw-stack-steps.json', 'daw-unstack-done.json', 'daw-stack-refused-stale.json']) {
       expectMatches(dawResultSchema, readGolden(file), file);
@@ -3747,6 +3788,7 @@ describe('answers of the mock client for the settings, voice, model, transcript 
       'editingWordFxList',
       'editingWordFxRecord',
       'editingWordFxRemove',
+      'editingWordFxBypass',
       'editingStacksList',
       'editingStackRecord',
       'editingStackRemove',
@@ -3907,6 +3949,8 @@ describe('answers of the mock client for the settings, voice, model, transcript 
       'dawFxRangeParams',
       'dawSetFxRangeParam',
       'dawBypassFxRange',
+      'dawCompareFxRange',
+      'dawStopFxCompare',
       'dawStackTakes',
       'dawUnstackTakes',
       'dawSplitTake',
@@ -5072,7 +5116,7 @@ describe('the word effects bindings', () => {
     guid: '{FX}',
   });
 
-  it('the mock answers EditingWordFxList, Record and Remove through their schemas, in time order, and says what an effect is over', async () => {
+  it('the mock answers EditingWordFxList, Record, Bypass and Remove through their schemas, in time order, and says what an effect is over', async () => {
     const { api, chapterId, line } = await firstLine();
     expectMatches(wordFxListSchema, await api.editingWordFxList(chapterId), 'mock word effects list (empty)');
     expectMatches(wordFxChangeSchema, await api.editingWordFxRecord(chapterId, { ...request(line.id, 20, 21), keys: [`${line.id}:2`] }), 'mock record');
@@ -5091,6 +5135,12 @@ describe('the word effects bindings', () => {
     const onTop = await api.editingWordFxRecord(chapterId, { ...request(line.id, 13, 13.5), keys: [`${line.id}:1`], chainId: 'Deesser.RfxChain' });
     expect(onTop.changed).toEqual(['fx3']);
     expect(onTop.over).toEqual(['fx2']);
+    const bypassed = await api.editingWordFxBypass(chapterId, 'fx3', true);
+    expectMatches(wordFxChangeSchema, bypassed, 'mock bypass');
+    expect(bypassed.changed).toEqual(['fx3']);
+    expect(bypassed.effects.map((fx) => fx.bypassed)).toEqual([false, true, false]);
+    expect((await api.editingWordFxBypass(chapterId, 'fx3', true)).changed).toEqual([]);
+    expect(readGolden('edit-wordfx-bypass.json')).toMatchObject({ changed: ['fx2'] });
     const removed = await api.editingWordFxRemove(chapterId, 'fx3');
     expectMatches(wordFxChangeSchema, removed, 'mock remove');
     expect(removed.changed).toEqual(['fx3']);
