@@ -200,7 +200,9 @@ export function PickupsTable({
                         {clock(pickup.time)}
                       </TableCell>
                       <TableCell>
-                        <StatusBadge tone={typeTone(pickup)} label={typeLabel(pickup)} shape="tag" />
+                        <span className="whitespace-nowrap">
+                          <StatusBadge tone={typeTone(pickup)} label={typeLabel(pickup)} shape="tag" />
+                        </span>
                       </TableCell>
                       <TableCell style={{ fontSize: 16 }}>
                         <ScriptLine text={pickup.script} />

@@ -1,4 +1,5 @@
 // @vitest-environment jsdom
+import { pickup } from '../pickups/list/pickupFixtures';
 import { act, cleanup, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
@@ -174,7 +175,14 @@ describe('CompanionShell', () => {
 
   // The section reads the Pickups page's list, read-only.
   it("reads the Pickups page's list: what is left and the pickup last jumped to, with no actions of its own", async () => {
-    renderCompanion({}, { pickupsState: async () => WIRE_PICKUPS_NEXT_SUCCESS, pickupsCount: async () => ({ status: 'started' }) });
+    renderCompanion(
+      {},
+      {
+        pickupsState: async () => WIRE_PICKUPS_NEXT_SUCCESS,
+        pickupsCount: async () => ({ status: 'started' }),
+        pickupsList: async () => ({ pickups: [pickup({ id: 'speech:a:1' }), pickup({ id: 'speech:a:2', done: false })], leftOut: [] }),
+      },
+    );
     const section = screen.getByRole('region', { name: 'Pickups' });
     expect(await within(section).findByText('2 pickups remaining of 2')).toBeTruthy();
     expect(within(section).getByText(/Mispronounced "labyrinthine"/)).toBeTruthy();
