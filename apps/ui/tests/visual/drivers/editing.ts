@@ -65,8 +65,13 @@ export const editingDrivers: Record<string, Driver> = {
     // The timeline follows the line the cursor is on: place it on the first line's second word first.
     await openEditing(page, LINKED);
     await page.locator('[data-k="p-1:1"]').click();
-    await page.getByRole('button', { name: 'Clean up and effects' }).click();
-    await page.getByRole('tab', { name: 'Timeline' }).click();
+    // From a 1360 px window the timeline is the strip under the text (the header's Timeline button); below it, a tab of the drawer.
+    if ((page.viewportSize()?.width ?? 0) >= 1360) {
+      await page.getByRole('button', { name: 'Timeline', exact: true }).click();
+    } else {
+      await page.getByRole('button', { name: 'Clean up and effects' }).click();
+      await page.getByRole('tab', { name: 'Timeline' }).click();
+    }
     await page.getByRole('region', { name: /^Waveform and takes/ }).waitFor();
     await expectTimelineLaidOut(page);
   },
