@@ -42,7 +42,13 @@ export function ShortcutSheet({ onClose, onShowAll, catalog }: { onClose: () => 
 
   return (
     <CommandScope kind="dialog">
-      <Dialog title="Keyboard shortcuts" onClose={onClose} actionsAlign="end" actions={<Button onClick={onShowAll}>Show all shortcuts</Button>}>
+      <Dialog
+        dismissOnOutsidePress={true}
+        title="Keyboard shortcuts"
+        onClose={onClose}
+        actionsAlign="end"
+        actions={<Button onClick={onShowAll}>Show all shortcuts</Button>}
+      >
         <div className="flex flex-col gap-4">
           {SCOPE_ORDER.filter((scope) => groups[scope]?.length).map((scope) => (
             <section key={scope}>

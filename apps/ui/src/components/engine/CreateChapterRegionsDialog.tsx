@@ -74,6 +74,7 @@ export function CreateChapterRegionsDialog({ tracks, onClose }: { tracks: Track[
 
   return (
     <Dialog
+      dismissOnOutsidePress={false}
       title="Create chapter regions"
       onClose={creating ? undefined : onClose}
       escapeCloses={!creating}

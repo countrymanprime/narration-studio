@@ -139,6 +139,7 @@ export function useFxWords({ journal, chapterId, chapterName, effects, cuts, loc
       const snap = (at: number) => snapEnd(alignment, chapterId, locator, at);
       overlay.open({
         kind: 'dialog',
+        dismissOnOutsidePress: false,
         title: fxTitle(sum.audible.length),
         render: ({ close }) => (
           <FxDialog

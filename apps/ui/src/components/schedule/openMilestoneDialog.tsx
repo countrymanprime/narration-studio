@@ -5,6 +5,7 @@ import { MilestoneDialog, type MilestoneDialogProps } from './MilestoneDialog';
 export function openMilestoneDialog({ onSave, ...props }: Omit<MilestoneDialogProps, 'onCancel'>): () => void {
   return overlay.open({
     kind: 'dialog',
+    dismissOnOutsidePress: false,
     title: props.existing ? 'Edit milestone' : 'Add milestone',
     render: ({ close }) => (
       <MilestoneDialog
