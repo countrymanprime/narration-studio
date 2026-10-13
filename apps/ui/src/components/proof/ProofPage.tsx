@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import type { Finding, FindingsSummary } from '../../api/contracts/findings';
+import type { PickupItem } from '../../api/contracts/pickups';
 import { describeApiError } from '../../api/errorMessage';
 import { chapterName } from '../../chapterName';
 import { footerHints } from '../../input/hints';
@@ -22,12 +23,12 @@ import { ChapterStrip, type StripChapter } from './frame/ChapterStrip';
 import type { Band, Pin } from './frame/pins';
 import { ProofHeader } from './frame/ProofHeader';
 import { WaveformWindow } from './frame/WaveformWindow';
-import { followSecond, MIN_WINDOW, type TimeWindow } from './frame/windowMath';
+import { FIRST_WINDOW, followSecond, type TimeWindow } from './frame/windowMath';
 import { Inspector } from './inspector/Inspector';
 import { TypeSelect } from './inspector/TypeSelect';
 import { NotesPanel } from './notes/NotesPanel';
 import { inBookOrder, noteRow, queryFor, type NoteSort } from './notes/noteRows';
-import { proofProgress } from './proof.selectors';
+import { openPickupsBeyondNotes, proofProgress } from './proof.selectors';
 import { ProoferSheet } from './ProoferSheet';
 import { SpotTakes } from './spot/SpotTakes';
 import { TakeLanes } from './spot/TakeLanes';
@@ -95,6 +96,7 @@ export function ProofPage({
   goToEditing: (chapterId: string, findingId?: string, passageId?: string) => void;
 }) {
   const findingsApi = usePort('findings');
+  const pickupsApi = usePort('pickups');
   const manuscriptApi = usePort('manuscript');
   const overlay = useOverlay();
   const keymap = useUserKeymap();
@@ -109,9 +111,11 @@ export function ProofPage({
   const [summary, setSummary] = useState<FindingsSummary>();
   const [sort, setSort] = useState<NoteSort>('time');
   const [reload, setReload] = useState(0);
+  // The pickups list, for the open pickups no note stands for: while one is open the head never reads 100 (ADR 0793).
+  const [pickups, setPickups] = useState<readonly PickupItem[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(params.get('finding'));
   const [current, setCurrent] = useState(() => loadLastChapter(projectFolder));
-  const [win, setWin] = useState<TimeWindow>({ start: 0, len: MIN_WINDOW });
+  const [win, setWin] = useState<TimeWindow>({ start: 0, len: FIRST_WINDOW });
   // The latest selection, set as it happens: the right-click menu reads it in the same event that selected the row.
   const selectedRef = useRef(selectedId);
   selectedRef.current = selectedId;
@@ -150,6 +154,18 @@ export function ProofPage({
       live = false;
     };
   }, [manuscriptApi, hasManuscript, overlay]);
+
+  useEffect(() => {
+    if (!hasManuscript) return;
+    let live = true;
+    pickupsApi.pickupsList().then(
+      (list) => live && setPickups(list.pickups),
+      () => live && setPickups([]),
+    );
+    return () => {
+      live = false;
+    };
+  }, [pickupsApi, hasManuscript, reload]);
 
   // The notes in scope, in the order the sort asked for, and the book's counts for the head; an answer to an older request is dropped.
   useEffect(() => {
@@ -212,7 +228,7 @@ export function ProofPage({
       if (!decided || !before) return;
       const after = order[order.indexOf(next.id) + 1];
       if (after) select(after);
-      overlay.toastUndo(`${noteRow(next).resolution.label} · ${noteRow(next).time}`, async () => {
+      overlay.toastUndo(`${noteRow(next).time} · ${noteRow(next).resolution.label}`, async () => {
         try {
           const back = await findingsApi.findingsReview({
             id: next.id,
@@ -288,10 +304,13 @@ export function ProofPage({
     [goTo, choose],
   );
   const progress = useMemo(() => {
-    if (all) return proofProgress(summary ?? { total: 0, decided: 0, cleared: 0 }, 0);
+    if (all) return proofProgress(summary ?? { total: 0, decided: 0, cleared: 0 }, openPickupsBeyondNotes(pickups));
     const rows = findings.map(noteRow);
-    return proofProgress({ total: rows.length, decided: rows.filter((r) => r.decided).length, cleared: rows.filter((r) => !r.open).length }, 0);
-  }, [all, summary, findings]);
+    return proofProgress(
+      { total: rows.length, decided: rows.filter((r) => r.decided).length, cleared: rows.filter((r) => !r.open).length },
+      openPickupsBeyondNotes(pickups, scope),
+    );
+  }, [all, summary, findings, pickups, scope]);
 
   useProofKeys({ order, selectedId, select, step, allChapters: all, toAllChapters: () => choose(ALL_CHAPTERS) });
   useNoteContextMenu({
@@ -390,18 +409,16 @@ export function ProofPage({
                 if (open && all && note && chapterOf(note)) choose(chapterOf(note));
               }}
               window={chapter && total > 0 ? { start: win.start, len: Math.min(win.len, total), total } : undefined}
-              actions={
-                <>
-                  <IconButton
-                    action="checkRecordings"
-                    label="Check recordings…"
-                    aria-haspopup="dialog"
-                    disabledReason={review.available ? undefined : review.message || 'The DAW is not reachable.'}
-                    onClick={() => openCheckRecordings(chapter ? [chapter.id] : [])}
-                  />
-                  <ProoferSheet />
-                </>
+              lead={
+                <IconButton
+                  action="checkRecordings"
+                  label="Check recordings…"
+                  aria-haspopup="dialog"
+                  disabledReason={review.available ? undefined : review.message || 'The DAW is not reachable.'}
+                  onClick={() => openCheckRecordings(chapter ? [chapter.id] : [])}
+                />
               }
+              actions={<ProoferSheet />}
               badge={(row) => {
                 const count = spots.counts.get(row.id);
                 return count ? <TakesBadge count={count} /> : null;

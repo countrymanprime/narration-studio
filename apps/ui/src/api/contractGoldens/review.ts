@@ -32,6 +32,7 @@ export const reviewGoldens: Record<string, z.ZodType> = {
   'findings-list.json': findingsPageSchema,
   'findings-review.json': findingSchema,
   'findings-retype.json': findingSchema,
+  'findings-thread.json': findingSchema,
   'findings-summary.json': findingsSummarySchema,
   'findings-reaper-status-looping.json': reaperStatusSchema,
   'findings-reaper-status-not-running.json': reaperStatusSchema,
@@ -47,6 +48,5 @@ export const reviewGoldens: Record<string, z.ZodType> = {
   'findings-navigation-not-running.json': findingNavigationSchema,
   'findings-add-marker.json': findingMarkerSchema,
   'findings-add-marker-existing.json': findingMarkerSchema,
-  'findings-add-marker-not-accepted.json': findingMarkerSchema,
   'findings-add-marker-stale.json': findingMarkerSchema,
 };

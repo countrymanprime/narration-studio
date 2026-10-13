@@ -453,6 +453,44 @@ func TestReviewHistoryIsAppendOnlyAcrossMultipleDecisions(t *testing.T) {
 	}
 }
 
+func TestDecidingWhatIsAlreadyDecidedAddsNoLine(t *testing.T) {
+	store := NewStore(t.TempDir())
+	if _, err := store.SaveAnalyzerFindings("transcript_compare", "c-0001", []Finding{testFinding("f1", "c-0001", "v1")}); err != nil {
+		t.Fatal(err)
+	}
+	if _, _, err := store.RecordDecision("f1", "v1", StatusAccepted, "pickup", "t1"); err != nil {
+		t.Fatal(err)
+	}
+	again, found, err := store.RecordDecision("f1", "v1", StatusAccepted, "pickup", "t2")
+	if err != nil || !found || again.Review.Status != StatusAccepted || again.Review.Timestamp != "t1" {
+		t.Fatalf("a repeat decision = %+v, %v, %v; want the first decision kept as it was", again.Review, found, err)
+	}
+	history, _ := store.readHistory()
+	if len(history.Decisions) != 1 {
+		t.Fatalf("history = %+v, want one line for a repeat", history.Decisions)
+	}
+}
+
+func TestTheSameDecisionWithANewNoteIsALine(t *testing.T) {
+	store := NewStore(t.TempDir())
+	if _, err := store.SaveAnalyzerFindings("transcript_compare", "c-0001", []Finding{testFinding("f1", "c-0001", "v1")}); err != nil {
+		t.Fatal(err)
+	}
+	if _, _, err := store.RecordDecision("f1", "v1", StatusAccepted, "", "t1"); err != nil {
+		t.Fatal(err)
+	}
+	if _, _, err := store.RecordDecision("f1", "v1", StatusAccepted, "a new note", "t2"); err != nil {
+		t.Fatal(err)
+	}
+	if _, _, err := store.RecordDecision("f1", "v1", StatusUnreviewed, "a new note", "t3"); err != nil {
+		t.Fatal(err)
+	}
+	history, _ := store.readHistory()
+	if len(history.Decisions) != 3 {
+		t.Fatalf("history = %+v, want a line for the new note and one for the reopen", history.Decisions)
+	}
+}
+
 func TestListOnAFreshProjectReturnsEmptyWithoutError(t *testing.T) {
 	// Nothing has ever been saved, so the findings directory does not exist
 	// yet. scopeFiles must treat that as an empty store, not an error.

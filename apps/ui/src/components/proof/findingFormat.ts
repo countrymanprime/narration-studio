@@ -64,6 +64,12 @@ export function formatTime(seconds: number): string {
   return `${minutes}:${rest < 10 ? '0' : ''}${rest.toFixed(1)}`;
 }
 
+/** A note's time on Proof as the mock writes it: mm:ss.s, minutes always two digits ("02:14.6"). */
+export function noteTime(seconds: number): string {
+  const time = formatTime(seconds);
+  return time.length < 7 ? `0${time}` : time;
+}
+
 /** The chapter a finding is in; a delivery finding is about a file, not a chapter, so it names its file. */
 export const chapterLabel = (finding: Finding): string =>
   finding.manuscript?.chapter_title || finding.manuscript?.chapter_id || (deliveryEvidence(finding) ? deliveryFileName(finding) : undefined) || 'No chapter';

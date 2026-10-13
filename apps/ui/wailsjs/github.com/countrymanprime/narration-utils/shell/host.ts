@@ -1283,9 +1283,9 @@ export function ExtractionSources(): $CancellablePromise<string> {
 }
 
 /**
- * FindingsAddMarker adds one take marker in REAPER at an accepted finding's spot, on its take, named like the marker
- * Transcript Compare's export adds (approvedMarker). A finding not accepted, one with no item or no time in its audio,
- * and a REAPER that is not listening are refused before anything is sent.
+ * FindingsAddMarker adds one take marker in REAPER at a finding's spot, on its take, named like the marker Transcript
+ * Compare's export adds (approvedMarker). A finding with no item or no time in its audio, and a REAPER that is not
+ * listening, are refused before anything is sent.
  */
 export function FindingsAddMarker(id: string): $CancellablePromise<string> {
     return $Call.ByID(1612469037, id);
@@ -1385,6 +1385,17 @@ export function FindingsStopLoop(): $CancellablePromise<string> {
  */
 export function FindingsSummary(): $CancellablePromise<string> {
     return $Call.ByID(2119633852);
+}
+
+/**
+ * FindingsThread changes a finding's thread of notes (PF-1 part 7) and answers the finding as the store now holds it, with
+ * review.thread. op is "add" (who is "you" or "proofer", text the note), "edit" (messageID and the new text), "delete" or
+ * "restore" (messageID). Each is an append-only line in the review history, so the page's Undo is the opposite change:
+ * delete for an add, the old text for an edit, restore for a delete. It is not a decision and does not depend on the
+ * evidence version: a note outlives a re-check.
+ */
+export function FindingsThread(id: string, op: string, messageID: string, who: string, text: string): $CancellablePromise<string> {
+    return $Call.ByID(1945391532, id, op, messageID, who, text);
 }
 
 /**

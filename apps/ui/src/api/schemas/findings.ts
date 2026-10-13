@@ -5,6 +5,7 @@ import type {
   FindingManuscript,
   FindingProject,
   FindingReviewState,
+  FindingThreadMessage,
   FindingSource,
   FindingSpan,
   FindingSuggestedAction,
@@ -15,7 +16,7 @@ import type {
   FindingNavigation,
   ReaperStatus,
 } from '../contracts/findings';
-import { FINDING_NOTE_TYPES } from '../contracts/findings';
+import { FINDING_NOTE_TYPES, FINDING_THREAD_AUTHORS } from '../contracts/findings';
 import { listFromNull } from './base';
 
 const findingProjectSchema = z.object({
@@ -60,11 +61,20 @@ const findingSuggestedActionSchema = z.object({
 
 const findingReviewStatusSchema = z.enum(['unreviewed', 'accepted', 'dismissed', 'deferred']);
 
+const findingThreadMessageSchema = z.object({
+  id: z.string().min(1),
+  who: z.enum(FINDING_THREAD_AUTHORS),
+  text: z.string().min(1),
+  at: z.string(),
+  edited_at: z.string().optional(),
+}) satisfies z.ZodType<FindingThreadMessage>;
+
 const findingReviewStateSchema = z.object({
   status: findingReviewStatusSchema,
   note: z.string().optional(),
   timestamp: z.string().optional(),
   type: z.enum(FINDING_NOTE_TYPES).optional(),
+  thread: z.array(findingThreadMessageSchema).optional(),
 }) satisfies z.ZodType<FindingReviewState>;
 
 export const findingSchema = z.object({
@@ -134,5 +144,5 @@ export const findingNavigationSchema = z.discriminatedUnion('outcome', [
 export const findingMarkerSchema = z.discriminatedUnion('outcome', [
   z.object({ outcome: z.literal('added'), name: z.string(), sourceTime: z.number() }),
   z.object({ outcome: z.literal('existing'), name: z.string(), sourceTime: z.number() }),
-  z.object({ outcome: z.literal('refused'), reason: z.enum([...navigationRefusals, 'not_accepted']), message: z.string() }),
+  z.object({ outcome: z.literal('refused'), reason: z.enum(navigationRefusals), message: z.string() }),
 ]) satisfies z.ZodType<FindingMarker>;

@@ -83,26 +83,11 @@ func TestAddMarkerSaysSoWhenTheTakeAlreadyHasOne(t *testing.T) {
 	}
 }
 
-// Only a finding the narrator accepted gets a marker (findings-contract.md: a finding suggests, the narrator confirms),
-// and one the host cannot place is refused: nothing is sent for either.
-func TestAddMarkerRefusesAFindingThatIsNotAcceptedOrCannotBePlacedAndSendsNothing(t *testing.T) {
+// A finding the host cannot place is refused and nothing is sent.
+func TestAddMarkerRefusesAFindingThatCannotBePlacedAndSendsNothing(t *testing.T) {
 	fake := &fakeNavigator{}
 	host := newMarkerHost(t, fake)
-	store := host.services().findings
-
-	checks := []struct{ id, reason string }{
-		{"unreviewed", refusedNotAccepted},
-		{"no-item", refusedNoItem},
-		{"no-time", refusedNoSourceTime},
-	}
-	for _, status := range []findings.Status{findings.StatusDismissed, findings.StatusDeferred} {
-		if _, err := store.SaveAnalyzerFindings("transcript-compare", string(status), []findings.Finding{markerFinding(string(status), navItem, seconds(1))}); err != nil {
-			t.Fatal(err)
-		}
-		decide(t, store, string(status), status)
-		checks = append(checks, struct{ id, reason string }{string(status), refusedNotAccepted})
-	}
-	for _, check := range checks {
+	for _, check := range []struct{ id, reason string }{{"no-item", refusedNoItem}, {"no-time", refusedNoSourceTime}} {
 		got := bindingAnswer[FindingMarker](t)(host.FindingsAddMarker(check.id))
 		if got.Outcome != "refused" || got.Reason != check.reason || got.Message == "" || got.Name != "" {
 			t.Fatalf("%s: got %+v", check.id, got)
@@ -110,6 +95,29 @@ func TestAddMarkerRefusesAFindingThatIsNotAcceptedOrCannotBePlacedAndSendsNothin
 	}
 	if sent := fake.sent(); len(sent) != 0 {
 		t.Fatalf("sent %v", sent)
+	}
+}
+
+// Any note gets a marker in one click, whatever its decision (SD-4 left the accepted-only gate out).
+func TestAddMarkerMarksANoteWhateverItsDecision(t *testing.T) {
+	fake := &fakeNavigator{marker: bridge.MarkerResult{Added: true, TakeGUID: navTake, SourceTime: 1, Name: "MISREAD: 'pink eyes' as 'pink ice'"}}
+	host := newMarkerHost(t, fake)
+	store := host.services().findings
+	ids := []string{"unreviewed"}
+	for _, status := range []findings.Status{findings.StatusDismissed, findings.StatusDeferred} {
+		if _, err := store.SaveAnalyzerFindings("transcript-compare", string(status), []findings.Finding{markerFinding(string(status), navItem, seconds(1))}); err != nil {
+			t.Fatal(err)
+		}
+		decide(t, store, string(status), status)
+		ids = append(ids, string(status))
+	}
+	for _, id := range ids {
+		if got := bindingAnswer[FindingMarker](t)(host.FindingsAddMarker(id)); got.Outcome != "added" {
+			t.Fatalf("%s: got %+v", id, got)
+		}
+	}
+	if len(fake.markers) != len(ids) {
+		t.Fatalf("sent %d markers, want %d", len(fake.markers), len(ids))
 	}
 }
 

@@ -10,7 +10,8 @@ import {
   type FindingSortKey,
 } from '../../../api/contracts/findings';
 import type { StatusTone } from '../../primitives/StatusBadge';
-import { analyzerLabel, formatTime } from '../findingFormat';
+import { analyzerLabel, noteTime } from '../findingFormat';
+import { noteIsOpen } from '../proof.selectors';
 import { fixKindOf, resolutionOf } from '../resolution';
 import { proofProgress } from '../proof.selectors';
 
@@ -37,12 +38,18 @@ export type NoteRow = {
   pickup: boolean;
 };
 
-/** The resolution words of the mock's table: a decision reads as a word, never a colour alone (ADR 0470). */
+/** The resolution words and colours of the mock's table (`RES_LABEL`, `RES_CLASS`): a decision reads as a word, never a colour alone (ADR 0470). */
 function resolutionWords(finding: Finding): { label: string; tone: StatusTone } {
-  const { status } = finding.review;
-  const base = resolutionOf(finding);
-  if (status === 'accepted') return { label: fixKindOf(finding) === 'edit' ? 'Fix in edit' : 'Needs pickup', tone: base.tone };
-  return base;
+  switch (finding.review.status) {
+    case 'accepted':
+      return fixKindOf(finding) === 'edit' ? { label: 'Fix in edit', tone: 'info' } : { label: 'Needs pickup', tone: 'accent' };
+    case 'dismissed':
+      return { label: 'Waive', tone: 'success' };
+    case 'deferred':
+      return { label: 'Defer', tone: 'neutral' };
+    default:
+      return resolutionOf(finding);
+  }
 }
 
 export function noteRow(finding: Finding): NoteRow {
@@ -54,7 +61,7 @@ export function noteRow(finding: Finding): NoteRow {
     chapterId,
     chapterTitle: finding.manuscript?.chapter_title || chapterId || 'No chapter',
     seconds,
-    time: seconds === null ? '—' : formatTime(seconds),
+    time: seconds === null ? '—' : noteTime(seconds),
     type: shownFindingNoteType(finding),
     script: finding.manuscript?.expected ?? '',
     heard: finding.manuscript?.recorded ?? '',
@@ -62,7 +69,7 @@ export function noteRow(finding: Finding): NoteRow {
     confidence: finding.confidence,
     confidenceReason: finding.confidence_reason,
     resolution: resolutionWords(finding),
-    open: status !== 'dismissed',
+    open: noteIsOpen(finding),
     decided: status !== 'unreviewed',
     pickup: status === 'accepted' && fixKindOf(finding) === 'pickup',
   };

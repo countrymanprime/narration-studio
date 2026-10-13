@@ -191,7 +191,6 @@ describe("the browser mock's REAPER adds an approved marker as the host does", (
   };
 
   it('uses the words the host sends, as its golden payloads pin them', () => {
-    expect(REAPER_MESSAGES.notAccepted).toBe(golden('findings-add-marker-not-accepted.json').message);
     expect(REAPER_MESSAGES.markerStale).toBe(golden('findings-add-marker-stale.json').message);
   });
 
@@ -206,10 +205,8 @@ describe("the browser mock's REAPER adds an approved marker as the host does", (
     );
   });
 
-  it('refuses a finding that is not accepted, then adds the marker once and says the second is already there', async () => {
+  it('marks a note that is not decided yet, adds the marker once and says the second is already there', async () => {
     const api = createFindingsMock(WIRE_FINDINGS);
-    await expect(api.findingsAddMarker('1a2b3c4d5e6f708192a3b4c5')).resolves.toMatchObject({ outcome: 'refused', reason: 'not_accepted' });
-    await accept(api, '1a2b3c4d5e6f708192a3b4c5');
     await expect(api.findingsAddMarker('1a2b3c4d5e6f708192a3b4c5')).resolves.toEqual({
       outcome: 'added',
       name: "MISREAD: 'a White Rabbit with pink eyes' as 'a white rabbit with pale eyes'",

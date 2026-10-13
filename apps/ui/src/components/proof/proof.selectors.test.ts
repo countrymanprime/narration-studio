@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { proofProgress } from './proof.selectors';
+import { openPickupsBeyondNotes, proofProgress } from './proof.selectors';
 
 describe('proofProgress (one definition of cleared, ADR 0793)', () => {
   it('reports decided, cleared and total as the host counted them, and open as what is not cleared', () => {
@@ -19,5 +19,20 @@ describe('proofProgress (one definition of cleared, ADR 0793)', () => {
 
   it('is 0 for an empty queue, without dividing by zero', () => {
     expect(proofProgress({ total: 0, decided: 0, cleared: 0 }, 0)).toEqual({ decided: 0, cleared: 0, total: 0, open: 0, percent: 0 });
+  });
+});
+
+describe('openPickupsBeyondNotes', () => {
+  const pickups = [
+    { chapterId: 'c1', done: false },
+    { chapterId: 'c1', done: false, findingId: 'f1' },
+    { chapterId: 'c1', done: true },
+    { chapterId: 'c2', done: false },
+  ];
+
+  it('counts the open pickups no note stands for, in the book or one chapter', () => {
+    expect(openPickupsBeyondNotes(pickups)).toBe(2);
+    expect(openPickupsBeyondNotes(pickups, 'c1')).toBe(1);
+    expect(openPickupsBeyondNotes(pickups, 'c3')).toBe(0);
   });
 });

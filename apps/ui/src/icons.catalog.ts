@@ -59,6 +59,7 @@ import {
   faPlus,
   faRotate,
   faRotateLeft,
+  faArrowsLeftRightToLine,
   faScissors,
   faSliders,
   faStop,
@@ -129,14 +130,15 @@ export const TOOLTIP_VERBS = [
   'Play',
   'Record',
   'Reject',
-  'Reopen',
   'Remove',
+  'Reopen',
   'Retry',
   'Save',
   'Scan',
   'Show',
   'Stop',
   'Toggle',
+  'Trim',
   'Undo',
   'Unpin',
   'Use',
@@ -221,6 +223,7 @@ export const CATALOG = {
   openInReaper: action(faArrowUpRightFromSquare, 'go to REAPER', 'Open in REAPER'),
   showInReaper: action(faArrowUpRightFromSquare, 'go to REAPER', 'Show in REAPER'),
   addMarker: action(faFlag, 'REAPER marker', 'Add a marker in REAPER'),
+  trimGap: action(faArrowsLeftRightToLine, 'trim a gap', 'Trim the gap'),
 
   // Script, Story Bible and the extraction tools (SN-B60): the actions those pages draw in the Studio Next mock. A catalogue key
   // is the action, so a row that wears an icon another action already wears shares that action's meaning (an alias).

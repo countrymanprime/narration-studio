@@ -710,6 +710,18 @@ export const wailsClient: NarrationApi = {
   findingsGet: (id) => decode(findingSchema, 'FindingsGet', host.FindingsGet(id)),
   findingsReview: ({ id, evidenceVersion, status, note }) => decode(findingSchema, 'FindingsReview', host.FindingsReview(id, evidenceVersion, status, note)),
   findingsSetType: (id, evidenceVersion, type) => decode(findingSchema, 'FindingsSetType', host.FindingsSetType(id, evidenceVersion, type)),
+  findingsThread: (id, change) =>
+    decode(
+      findingSchema,
+      'FindingsThread',
+      host.FindingsThread(
+        id,
+        change.op,
+        'messageId' in change ? change.messageId : '',
+        change.op === 'add' ? change.who : '',
+        'text' in change ? change.text : '',
+      ),
+    ),
   findingsSummary: () => decode(findingsSummarySchema, 'FindingsSummary', host.FindingsSummary()),
   findingsReaperStatus: () => decode(reaperStatusSchema, 'FindingsReaperStatus', host.FindingsReaperStatus()),
   findingsGoTo: (id) => decode(findingNavigationSchema, 'FindingsGoTo', host.FindingsGoTo(id)),
