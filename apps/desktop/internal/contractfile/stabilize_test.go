@@ -77,6 +77,18 @@ func TestPortablePathsReplacesTheFolderAndUsesForwardSlashes(t *testing.T) {
 	}
 }
 
+func TestPortablePathsFindsAFolderAnEarlierCallAlreadySlashed(t *testing.T) {
+	// The first call rewrote another folder in the same string and slashed all of it, so this Windows folder now
+	// appears with forward slashes.
+	got, err := PortablePaths(map[string]any{"note": "Book.rpp is in C:/Temp/Other; the project is D:/Audio/Book."}, `C:\Temp\Other`, "D:/Audio/Elsewhere")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if want := "Book.rpp is in D:/Audio/Elsewhere; the project is D:/Audio/Book."; got.(map[string]any)["note"] != want {
+		t.Fatalf("note = %q, want %q", got.(map[string]any)["note"], want)
+	}
+}
+
 func TestPortablePathsReportsAValueThatCannotBeEncoded(t *testing.T) {
 	if _, err := PortablePaths(make(chan int), "x", "y"); err == nil {
 		t.Fatal("expected an error")
