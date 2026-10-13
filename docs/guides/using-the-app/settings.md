@@ -29,7 +29,7 @@ the rest of the settings.
 - **Manuscript** says when the manuscript was imported (or **No manuscript yet**), with **Replace
   manuscript** (or **Import manuscript** when there is none). The replace confirm names what it clears.
 
-![Settings - the top of the page: the Recording radios, the Delivery profile select, where definitions come from and the reader text](../../images/ui/settings-appearance.webp)
+![Settings - the top of the page: the Recording radios with the linked DAW project, the Delivery profile select and where definitions come from](../../images/ui/settings-appearance.webp)
 
 ![Production in the Dark theme](../../images/ui/theme-dark.webp)
 

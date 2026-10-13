@@ -256,7 +256,7 @@
     "state": "page-top",
     "viewport": "desktop",
     "docName": "settings-appearance",
-    "caption": "Settings - the top of the page: the Recording radios, the Delivery profile select, where definitions come from and the reader text"
+    "caption": "Settings - the top of the page: the Recording radios with the linked DAW project, the Delivery profile select and where definitions come from"
   },
   {
     "page": "settings",
