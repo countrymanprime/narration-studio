@@ -182,5 +182,11 @@ export type JumpMenuOptions = Omit<JumpMenuProps, 'close'> & { service?: Overlay
 
 /** Opens the jump menu in a dialog and returns the function that closes it. The first list is drawn in the same call. */
 export function openJumpMenu({ service = overlay, ...props }: JumpMenuOptions): () => void {
-  return service.open({ kind: 'dialog', title: 'Jump menu', headerless: true, render: ({ close }) => <JumpMenu {...props} close={close} /> });
+  return service.open({
+    kind: 'dialog',
+    title: 'Jump menu',
+    headerless: true,
+    dismissOnOutsidePress: true,
+    render: ({ close }) => <JumpMenu {...props} close={close} />,
+  });
 }

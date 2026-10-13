@@ -16,6 +16,8 @@ type DialogSpec = {
   title: string;
   /** A dialog without a header row; the title still names it for assistive technology. */
   headerless?: boolean;
+  /** A press outside the dialog closes it: for a picker such as the jump menu, never for a form or a confirm. */
+  dismissOnOutsidePress?: boolean;
   render: (api: { close: () => void }) => ReactNode;
 };
 type ToastOptions = { tone?: ToastTone; action?: ToastAction };
