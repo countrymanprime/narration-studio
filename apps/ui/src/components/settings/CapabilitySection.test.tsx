@@ -8,7 +8,8 @@ import type { NarrationApi } from '../../types';
 import { ThemeProvider } from '../../theme/ThemeContext';
 import { CapabilitySection } from './CapabilitySection';
 import { registerSettingsSection } from './sections';
-import { Settings } from './Settings';
+import { SettingsPage } from './page/SettingsPage';
+import { MemoryRouter } from 'react-router-dom';
 
 afterEach(cleanup);
 
@@ -158,26 +159,28 @@ async function renderDawCategory() {
   const api = createMockApi();
   const data = await api.bootstrap();
   render(
-    <ThemeProvider>
-      <ApiProvider api={api}>
-        <Settings
-          data={data}
-          notify={vi.fn()}
-          onDirtyChange={vi.fn()}
-          registerActions={vi.fn()}
-          onProjectDataCleared={async () => undefined}
-          onLinkDawFile={vi.fn()}
-          go={vi.fn()}
-          refreshBootstrap={async () => undefined}
-          initialCategory="Daw"
-        />
-      </ApiProvider>
-    </ThemeProvider>,
+    <MemoryRouter>
+      <ThemeProvider>
+        <ApiProvider api={api}>
+          <SettingsPage
+            data={data}
+            notify={vi.fn()}
+            onDirtyChange={vi.fn()}
+            registerActions={vi.fn()}
+            onProjectDataCleared={async () => undefined}
+            onLinkDawFile={vi.fn()}
+            go={vi.fn()}
+            refreshBootstrap={async () => undefined}
+            initialCategory="Daw"
+          />
+        </ApiProvider>
+      </ThemeProvider>
+    </MemoryRouter>,
   );
 }
 
 describe('Settings renders registered sections', () => {
-  it('renders the DAW category sections in order, the capability section among them', async () => {
+  it("renders the DAW Integration panel's sections in order, the capability section among them", async () => {
     registerSettingsSection('Daw', 'test-before', () => <p>Before capabilities</p>, 5);
     registerSettingsSection('Daw', 'test-after', () => <p>After capabilities</p>, 50);
     await renderDawCategory();
@@ -188,10 +191,12 @@ describe('Settings renders registered sections', () => {
     expect(heading.compareDocumentPosition(after) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   });
 
-  it('draws no section in a category with none registered', async () => {
+  it('draws the sections in DAW Integration only, and none there in This project', async () => {
     await renderDawCategory();
-    await screen.findByRole('heading', { name: 'What the DAW can do' });
-    fireEvent.click(screen.getByRole('tab', { name: 'General' }));
-    expect(screen.queryByRole('heading', { name: 'What the DAW can do' })).toBeNull();
+    const daw = screen.getByRole('region', { name: 'DAW Integration' });
+    expect(await within(daw).findByRole('heading', { name: 'What the DAW can do' })).toBeTruthy();
+    expect(screen.getAllByRole('heading', { name: 'What the DAW can do' })).toHaveLength(1);
+    fireEvent.click(within(daw).getByRole('button', { name: 'This project' }));
+    await waitFor(() => expect(within(daw).queryByRole('heading', { name: 'What the DAW can do' })).toBeNull());
   });
 });

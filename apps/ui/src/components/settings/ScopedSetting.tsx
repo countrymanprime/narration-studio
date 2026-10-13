@@ -93,8 +93,7 @@ const pickerColor = (value: string) => {
 // One setting: the label above its control below `md`, the label beside it from `md` (Tailwind's 48rem, the app's own layout
 // breakpoint). The two-column template does not apply below `md`: a grid gives a fixed-range track (the label's
 // minmax(12rem,16rem)) its full maximum before a flexible one gets any, which left the control column 45 px at a 390 px window.
-// Between `md` and `lg` the settings panel is narrow (the category list stands beside it) so the label takes its 12rem
-// minimum and the control the rest (191 px at 768 px, not 127); from `lg` the label may grow to 16rem again.
+// Between `md` and `lg` the label takes its 12rem minimum and the control the rest; from `lg` the label may grow to 16rem again.
 const ROW_CLASSES =
   'grid grid-cols-1 gap-2 border-b border-[var(--border)] py-4 md:grid-cols-[12rem_minmax(0,1fr)] md:items-start md:gap-5 lg:grid-cols-[minmax(12rem,16rem)_minmax(0,1fr)]';
 // The controls (a select, or a swatch and a hex box) and the Reset link. The row may wrap so Reset drops under the control only

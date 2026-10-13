@@ -1,10 +1,7 @@
 // How to reach each `settings` state in STATE_CATALOG (see app.drivers.ts).
 import type { Page } from '@playwright/test';
 import { settlePage } from '../helpers/settle';
-import { type Driver, clickNav, clickSettingsCategory, clickVisible, confirmDialog, goToPage, openLocalAssets, saveOnlineDictionaryKey } from './shared';
-
-// The categories the mock does not draw, below the page's own panels.
-const keptSettings = (page: Page) => page.getByRole('region', { name: 'More settings' });
+import { type Driver, clickNav, clickSettingsCategory, settingsPanel, confirmDialog, goToPage, openLocalAssets, saveOnlineDictionaryKey } from './shared';
 
 export const settingsDrivers: Record<string, Driver> = {
   'page-top': async (page) => {
@@ -31,34 +28,28 @@ export const settingsDrivers: Record<string, Driver> = {
   },
   'global-general': async (page) => {
     await goToPage(page, 'Settings');
-    await clickVisible(page, 'tab', 'Global');
     await clickSettingsCategory(page, 'General');
   },
   'global-manuscript': async (page) => {
     await goToPage(page, 'Settings');
-    await clickVisible(page, 'tab', 'Global');
-    await clickSettingsCategory(page, 'Manuscript');
+    await clickSettingsCategory(page, 'Note colour');
   },
   'global-stage-recommendations': async (page) => {
     await goToPage(page, 'Settings');
-    await clickVisible(page, 'tab', 'Global');
     await clickSettingsCategory(page, 'Stage suggestions');
     await page.getByText('Suggest stage advances').waitFor();
   },
   'global-recording-check': async (page) => {
     await goToPage(page, 'Settings');
-    await clickVisible(page, 'tab', 'Global');
     await clickSettingsCategory(page, 'Recording check');
     await page.getByText('Proposed values, not yet calibrated').waitFor();
   },
   'global-proofing': async (page) => {
     await goToPage(page, 'Settings');
-    await clickVisible(page, 'tab', 'Global');
     await clickSettingsCategory(page, 'Proof');
   },
   'global-storybible': async (page) => {
     await goToPage(page, 'Settings');
-    await clickVisible(page, 'tab', 'Global');
     await clickSettingsCategory(page, 'Story Bible');
     await page.getByText('No key', { exact: true }).waitFor();
   },
@@ -67,14 +58,12 @@ export const settingsDrivers: Record<string, Driver> = {
   },
   'global-delivery': async (page) => {
     await goToPage(page, 'Settings');
-    await clickVisible(page, 'tab', 'Global');
-    await clickSettingsCategory(page, 'Delivery');
+    await clickSettingsCategory(page, 'Delivery profiles');
     await page.getByRole('combobox', { name: 'Default delivery profile' }).waitFor();
   },
   'delivery-profile-editor': async (page) => {
     await goToPage(page, 'Settings');
-    await clickVisible(page, 'tab', 'Global');
-    await clickSettingsCategory(page, 'Delivery');
+    await clickSettingsCategory(page, 'Delivery profiles');
     await page.getByRole('button', { name: 'Duplicate' }).click();
     const editor = page.getByRole('dialog', { name: 'Edit profile' });
     await editor.getByRole('textbox', { name: 'Peak, highest (dBFS)' }).fill('-3.5');
@@ -82,13 +71,11 @@ export const settingsDrivers: Record<string, Driver> = {
   },
   'global-daw': async (page) => {
     await goToPage(page, 'Settings');
-    await clickVisible(page, 'tab', 'Global');
     await clickSettingsCategory(page, 'DAW Integration');
     await page.getByText('REAPER detected').waitFor();
   },
   'global-daw-capabilities': async (page) => {
     await goToPage(page, 'Settings');
-    await clickVisible(page, 'tab', 'Global');
     await clickSettingsCategory(page, 'DAW Integration');
     await page.getByRole('heading', { name: 'What the DAW can do' }).waitFor();
     await page.getByRole('heading', { name: 'What the DAW can do' }).scrollIntoViewIfNeeded();
@@ -97,7 +84,6 @@ export const settingsDrivers: Record<string, Driver> = {
     await page.goto('/?mockDawNotDetected=1');
     await settlePage(page);
     await goToPage(page, 'Settings');
-    await clickVisible(page, 'tab', 'Global');
     await clickSettingsCategory(page, 'DAW Integration');
     await page.getByRole('button', { name: 'Get REAPER' }).waitFor();
   },
@@ -107,23 +93,19 @@ export const settingsDrivers: Record<string, Driver> = {
     await page.goto('/?mockNoDaw=1');
     await settlePage(page);
     await goToPage(page, 'Settings');
-    await clickVisible(page, 'tab', 'Global');
     await clickSettingsCategory(page, 'DAW Integration');
     await page.getByRole('button', { name: 'Link a REAPER project file' }).waitFor();
   },
   'global-tts': async (page) => {
     await goToPage(page, 'Settings');
-    await clickVisible(page, 'tab', 'Global');
     await clickSettingsCategory(page, 'TTS');
   },
   'global-booth': async (page) => {
     await goToPage(page, 'Settings');
-    await clickVisible(page, 'tab', 'Global');
     await clickSettingsCategory(page, 'Booth');
   },
   'global-about': async (page) => {
     await goToPage(page, 'Settings');
-    await clickVisible(page, 'tab', 'Global');
     await clickSettingsCategory(page, 'About & updates');
     await page.getByText('Not checked yet.').waitFor();
   },
@@ -160,7 +142,6 @@ export const settingsDrivers: Record<string, Driver> = {
     await page.goto('/?mockUpdate=available');
     await settlePage(page);
     await goToPage(page, 'Settings');
-    await clickVisible(page, 'tab', 'Global');
     await clickSettingsCategory(page, 'About & updates');
     await page.getByText('Version 0.2.7 is available').waitFor();
   },
@@ -168,7 +149,6 @@ export const settingsDrivers: Record<string, Driver> = {
     await page.goto('/?mockUpdate=available');
     await settlePage(page);
     await goToPage(page, 'Settings');
-    await clickVisible(page, 'tab', 'Global');
     await clickSettingsCategory(page, 'About & updates');
     await page.getByRole('button', { name: 'Download update' }).click();
     await confirmDialog(page, 'Download version 0.2.7?').waitFor();
@@ -177,7 +157,6 @@ export const settingsDrivers: Record<string, Driver> = {
     await page.goto('/?mockUpdate=downloading');
     await settlePage(page);
     await goToPage(page, 'Settings');
-    await clickVisible(page, 'tab', 'Global');
     await clickSettingsCategory(page, 'About & updates');
     await page.getByRole('button', { name: 'Download update' }).click();
     await page.getByRole('button', { name: 'Download', exact: true }).click();
@@ -191,7 +170,6 @@ export const settingsDrivers: Record<string, Driver> = {
     await page.goto('/?mockUpdate=download-fails');
     await settlePage(page);
     await goToPage(page, 'Settings');
-    await clickVisible(page, 'tab', 'Global');
     await clickSettingsCategory(page, 'About & updates');
     await page.getByRole('button', { name: 'Download update' }).click();
     await page.getByRole('button', { name: 'Download', exact: true }).click();
@@ -201,7 +179,6 @@ export const settingsDrivers: Record<string, Driver> = {
     await page.goto('/?mockUpdate=ready');
     await settlePage(page);
     await goToPage(page, 'Settings');
-    await clickVisible(page, 'tab', 'Global');
     await clickSettingsCategory(page, 'About & updates');
     await page.getByRole('button', { name: 'Install and restart' }).waitFor();
   },
@@ -209,7 +186,6 @@ export const settingsDrivers: Record<string, Driver> = {
     await page.goto('/?mockUpdate=ready');
     await settlePage(page);
     await goToPage(page, 'Settings');
-    await clickVisible(page, 'tab', 'Global');
     await clickSettingsCategory(page, 'About & updates');
     await page.getByRole('button', { name: 'Install and restart' }).click();
     await confirmDialog(page, 'Install version 0.2.7 and restart?').waitFor();
@@ -218,7 +194,6 @@ export const settingsDrivers: Record<string, Driver> = {
     await page.goto('/?mockUpdate=ready');
     await settlePage(page);
     await goToPage(page, 'Settings');
-    await clickVisible(page, 'tab', 'Global');
     await clickSettingsCategory(page, 'About & updates');
     await page.getByRole('button', { name: 'Install and restart' }).click();
     await confirmDialog(page, 'Install version 0.2.7 and restart?').getByRole('button', { name: 'Install and restart' }).click();
@@ -228,7 +203,6 @@ export const settingsDrivers: Record<string, Driver> = {
     await page.goto('/?mockUpdate=install-refused');
     await settlePage(page);
     await goToPage(page, 'Settings');
-    await clickVisible(page, 'tab', 'Global');
     await clickSettingsCategory(page, 'About & updates');
     await page.getByRole('button', { name: 'Install and restart' }).click();
     await confirmDialog(page, 'Install version 0.2.7 and restart?').getByRole('button', { name: 'Install and restart' }).click();
@@ -238,7 +212,6 @@ export const settingsDrivers: Record<string, Driver> = {
     await page.goto('/?mockUpdate=install-blocked');
     await settlePage(page);
     await goToPage(page, 'Settings');
-    await clickVisible(page, 'tab', 'Global');
     await clickSettingsCategory(page, 'About & updates');
     await page.getByRole('button', { name: 'Download update' }).click();
     await page.getByRole('button', { name: 'Download', exact: true }).click();
@@ -250,7 +223,6 @@ export const settingsDrivers: Record<string, Driver> = {
     await page.goto('/?mockUpdate=development');
     await settlePage(page);
     await goToPage(page, 'Settings');
-    await clickVisible(page, 'tab', 'Global');
     await clickSettingsCategory(page, 'About & updates');
     await page.getByText('A development build is never offered an update.').waitFor();
   },
@@ -258,19 +230,16 @@ export const settingsDrivers: Record<string, Driver> = {
     await page.goto('/?mockUpdate=failed');
     await settlePage(page);
     await goToPage(page, 'Settings');
-    await clickVisible(page, 'tab', 'Global');
     await clickSettingsCategory(page, 'About & updates');
     await page.getByText('Could not reach GitHub to check for updates.').waitFor();
   },
   'global-keyboard': async (page) => {
     await goToPage(page, 'Settings');
-    await clickVisible(page, 'tab', 'Global');
     await clickSettingsCategory(page, 'Keyboard & pedals');
     await page.getByText('Keys and pedals').waitFor();
   },
   'global-keyboard-recording': async (page) => {
     await goToPage(page, 'Settings');
-    await clickVisible(page, 'tab', 'Global');
     await clickSettingsCategory(page, 'Keyboard & pedals');
     await openKeyboardRecorder(page, 'Record or stop');
     await page.keyboard.press('KeyJ');
@@ -278,7 +247,6 @@ export const settingsDrivers: Record<string, Driver> = {
   },
   'global-keyboard-conflict': async (page) => {
     await goToPage(page, 'Settings');
-    await clickVisible(page, 'tab', 'Global');
     await clickSettingsCategory(page, 'Keyboard & pedals');
     await openKeyboardRecorder(page, 'Next paragraph');
     // ArrowRight is already "Next word"'s default, both `page` scope: a real findConflicts collision.
@@ -287,19 +255,16 @@ export const settingsDrivers: Record<string, Driver> = {
   },
   'project-recording-check': async (page) => {
     await goToPage(page, 'Settings');
-    await clickVisible(page, 'tab', 'This Project');
-    await clickSettingsCategory(page, 'Recording check');
+    await clickSettingsCategory(page, 'Recording check', 'This project');
     await page.getByText('A value left blank here uses the Global one.').waitFor();
   },
   'project-proofing': async (page) => {
     await goToPage(page, 'Settings');
-    await clickVisible(page, 'tab', 'This Project');
-    await clickSettingsCategory(page, 'Proof');
+    await clickSettingsCategory(page, 'Proof', 'This project');
   },
   'project-storybible': async (page) => {
     await goToPage(page, 'Settings');
-    await clickVisible(page, 'tab', 'This Project');
-    await clickSettingsCategory(page, 'Story Bible');
+    await clickSettingsCategory(page, 'Story Bible', 'This project');
   },
   'delivery-profile-custom': async (page) => {
     await page.goto('/?mockDeliveryProfile=custom');
@@ -310,8 +275,7 @@ export const settingsDrivers: Record<string, Driver> = {
   },
   'project-daw': async (page) => {
     await goToPage(page, 'Settings');
-    await clickVisible(page, 'tab', 'This Project');
-    await clickSettingsCategory(page, 'DAW Integration');
+    await clickSettingsCategory(page, 'DAW Integration', 'This project');
     // The header pill's own text is also "REAPER project linked" (it is a plain text node, not just its aria-label),
     // so wait on copy unique to the settings panel instead of the ambiguous status line.
     await page.getByText('Tracks and Proof read from the linked .rpp file.').waitFor();
@@ -322,28 +286,24 @@ export const settingsDrivers: Record<string, Driver> = {
     await page.goto('/?mockNoDaw=1');
     await settlePage(page);
     await goToPage(page, 'Settings');
-    await clickVisible(page, 'tab', 'This Project');
-    await clickSettingsCategory(page, 'DAW Integration');
+    await clickSettingsCategory(page, 'DAW Integration', 'This project');
     // Same ambiguity as the linked state: wait on the panel's own copy, not the header pill's identical text.
     await page.getByText('Link a REAPER project (.rpp) file to unlock Tracks and Proof.').waitFor();
   },
   'project-data': async (page) => {
     await goToPage(page, 'Settings');
-    await clickVisible(page, 'tab', 'This Project');
-    await clickSettingsCategory(page, 'Project data');
+    await clickSettingsCategory(page, 'Project data', 'This project');
   },
   'project-credits': async (page) => {
     await goToPage(page, 'Settings');
-    await clickVisible(page, 'tab', 'This Project');
-    await clickSettingsCategory(page, 'Credits');
+    await clickSettingsCategory(page, 'Credits', 'This project');
   },
   // Every empty field with a manuscript-detected candidate shows its own source caption, not just Title and Author.
   'project-credits-detected': async (page) => {
     await page.goto('/?mockCredits=detected');
     await settlePage(page);
     await goToPage(page, 'Settings');
-    await clickVisible(page, 'tab', 'This Project');
-    await clickSettingsCategory(page, 'Credits');
+    await clickSettingsCategory(page, 'Credits', 'This project');
     const detected = page.getByText('Detected from the copyright line: “1865”.');
     await detected.waitFor();
     await page.getByText(/Detected from a line ending in .Publishers.: “Macmillan” \(check this\)\./).waitFor();
@@ -356,8 +316,7 @@ export const settingsDrivers: Record<string, Driver> = {
     await page.goto('/?mockCredits=extras');
     await settlePage(page);
     await goToPage(page, 'Settings');
-    await clickVisible(page, 'tab', 'This Project');
-    await clickSettingsCategory(page, 'Credits');
+    await clickSettingsCategory(page, 'Credits', 'This project');
     await page.getByRole('combobox', { name: 'Template' }).selectOption({ label: 'Chapter announcement (Chapter announcement)' });
     await page.getByText(/Shown for Chapter 1/).waitFor();
   },
@@ -366,16 +325,14 @@ export const settingsDrivers: Record<string, Driver> = {
     await page.goto('/?mockCredits=extras');
     await settlePage(page);
     await goToPage(page, 'Settings');
-    await clickVisible(page, 'tab', 'This Project');
-    await clickSettingsCategory(page, 'Credits');
+    await clickSettingsCategory(page, 'Credits', 'This project');
     await page.getByText(/line 1 to Chapter 3 — A Caucus-Race and a Long Tale, line 3/).waitFor();
     await page.getByRole('heading', { name: 'Retail sample' }).scrollIntoViewIfNeeded();
   },
   // A range over 5 minutes (Chapter 1 to Chapter 12) is refused, and the refusal says why.
   'project-credits-retail-sample-refused': async (page) => {
     await goToPage(page, 'Settings');
-    await clickVisible(page, 'tab', 'This Project');
-    await clickSettingsCategory(page, 'Credits');
+    await clickSettingsCategory(page, 'Credits', 'This project');
     await page.getByRole('combobox', { name: 'Sample ends in' }).selectOption({ label: 'Chapter 12 — Alice’s Evidence' });
     await page.getByRole('button', { name: 'Save sample' }).click();
     await page.getByText(/at most 5 minutes/).waitFor();
@@ -383,27 +340,24 @@ export const settingsDrivers: Record<string, Driver> = {
   },
   'dirty-footer': async (page) => {
     await goToPage(page, 'Settings');
-    await clickVisible(page, 'tab', 'Global');
     await clickSettingsCategory(page, 'Proof');
     // Proof settings fields are <select> comboboxes, not pill buttons
     // (that's a Setup-page-only control) - pick a different model to dirty it.
-    await keptSettings(page).getByRole('combobox').first().selectOption('large-v3');
+    await settingsPanel(page, 'Proof').getByRole('combobox').first().selectOption('large-v3');
     // The unsaved-changes footer sits at the end of the page; bring it on screen.
-    await keptSettings(page).getByRole('button', { name: /save/i }).first().scrollIntoViewIfNeeded();
+    await settingsPanel(page, 'Proof').getByRole('button', { name: /save/i }).first().scrollIntoViewIfNeeded();
   },
   'navigate-away-confirm': async (page) => {
     await goToPage(page, 'Settings');
-    await clickVisible(page, 'tab', 'Global');
     await clickSettingsCategory(page, 'Proof');
-    await keptSettings(page).getByRole('combobox').first().selectOption('large-v3');
+    await settingsPanel(page, 'Proof').getByRole('combobox').first().selectOption('large-v3');
     // Leaving with unsaved changes asks first, so this click does not arrive at Production: it opens the confirm dialog.
     await clickNav(page, 'Production');
     await confirmDialog(page, 'Unsaved settings').waitFor();
   },
   'reset-override': async (page) => {
     await goToPage(page, 'Settings');
-    await clickVisible(page, 'tab', 'This Project');
-    await clickSettingsCategory(page, 'Proof');
+    await clickSettingsCategory(page, 'Proof', 'This project');
     // The mock starts with no project override, so make one the way a narrator does: pick a value and save it. Only a
     // field that has an override shows Reset (the model select), and its row is the one that must not squeeze.
     // exact: true: the header's zoom readout is also named "Reset

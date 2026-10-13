@@ -21,7 +21,17 @@ afterEach(() => {
   localStorage.clear();
 });
 
-async function renderPage({ api = createMockApi(), initialCategory }: { api?: NarrationApi; initialCategory?: string } = {}) {
+async function renderPage({
+  api = createMockApi(),
+  initialCategory,
+  onDirtyChange = vi.fn(),
+  registerActions = vi.fn(),
+}: {
+  api?: NarrationApi;
+  initialCategory?: string;
+  onDirtyChange?: (dirty: boolean) => void;
+  registerActions?: (actions: { save: () => Promise<void>; discard: () => Promise<void> }) => void;
+} = {}) {
   const data = await api.bootstrap();
   const view = render(
     <MemoryRouter>
@@ -30,8 +40,8 @@ async function renderPage({ api = createMockApi(), initialCategory }: { api?: Na
           <SettingsPage
             data={data}
             notify={vi.fn()}
-            onDirtyChange={vi.fn()}
-            registerActions={vi.fn()}
+            onDirtyChange={onDirtyChange}
+            registerActions={registerActions}
             onProjectDataCleared={async () => undefined}
             onLinkDawFile={vi.fn()}
             go={vi.fn()}
@@ -46,7 +56,6 @@ async function renderPage({ api = createMockApi(), initialCategory }: { api?: Na
 }
 
 const panel = (name: string) => screen.getByRole('region', { name });
-const keptSettings = () => screen.getByRole('region', { name: 'More settings' });
 
 describe('Settings page (SN-M52)', () => {
   it('the-delivery-profile-is-changed-here: a select over the profile list, saved with deliverySelectProfile', async () => {
@@ -179,64 +188,136 @@ describe('Settings page (SN-M52)', () => {
     expect(source).toMatch(/<ManuscriptSection\b/);
   });
 
-  it('capability-backups-and-analysis-sections-are-mounted-not-rewritten: registered into the kept DAW and Story Bible categories', async () => {
+  it("capability-backups-and-analysis-sections-are-mounted-not-rewritten: DAW sections in DAW Integration, analysis as the mock's own panel", async () => {
     await renderPage();
     expect(settingsSectionsFor('Daw').map(({ id }) => id)).toEqual(['capabilities', 'backups']);
-    expect(settingsSectionsFor('ManuscriptGuide').map(({ id }) => id)).toEqual(['analysis-tools']);
-
-    const kept = keptSettings();
-    fireEvent.click(within(kept).getByRole('tab', { name: 'DAW Integration' }));
-    expect(await within(kept).findByRole('heading', { name: 'What the DAW can do' })).toBeTruthy();
-    fireEvent.click(within(kept).getByRole('tab', { name: 'Story Bible' }));
-    expect(await within(kept).findByRole('heading', { name: 'Story Bible analysis' })).toBeTruthy();
+    expect(await within(panel('DAW Integration')).findByRole('heading', { name: 'What the DAW can do' })).toBeTruthy();
+    // The mock draws Story Bible analysis as its own panel, straight after Story Bible types.
+    const regions = screen.getAllByRole('region').filter((region) => region.parentElement?.closest('section') === null);
+    const names = regions.map((region) => region.querySelector('h2')?.textContent);
+    expect(names.indexOf('Story Bible analysis')).toBe(names.indexOf('Story Bible types') + 1);
+    // Its "offer better analysis" checkbox is the one control for `analysis_prompt`: the Story Bible fields leave it out.
+    expect(await within(panel('Story Bible')).findByText('spaCy model')).toBeTruthy();
+    expect(within(panel('Story Bible')).queryByText('Offer better analysis tools')).toBeNull();
+    expect(within(panel('Story Bible analysis')).getByRole('checkbox', { name: 'Offer better analysis when scanning' })).toBeTruthy();
 
     // PRD metric "Settings rows hand-written for a capability: 0": no file of the page names a capability.
-    for (const file of ['SettingsPage.tsx', 'DeliveryProfileField.tsx', 'AppearancePanel.tsx', 'KeysPanel.tsx']) {
+    for (const file of ['SettingsPage.tsx', 'DeliveryProfileField.tsx', 'AppearancePanel.tsx', 'KeysPanel.tsx', 'DawPanel.tsx']) {
       expect(readFileSync(join(__dirname, file), 'utf8'), file).not.toMatch(/capabilities\[|capability\./);
     }
   });
 
-  it('kept-categories-stay-reachable: every category of the old page is there, in both scopes', async () => {
+  it('one-page: one heading, no second page wrapper, no category tabs and no scope tabs', async () => {
     await renderPage();
-    const kept = keptSettings();
-    const global = within(kept)
-      .getAllByRole('tab')
-      .map((tab) => tab.textContent);
-    for (const label of [
+    await within(panel('General')).findByText('Log verbosity');
+    expect(screen.getAllByRole('heading', { level: 1 })).toHaveLength(1);
+    expect(screen.getAllByRole('heading', { level: 1 })[0]!.textContent).toBe('Settings');
+    expect(screen.queryByRole('region', { name: 'More settings' })).toBeNull();
+    expect(screen.queryAllByRole('tablist')).toHaveLength(0);
+    expect(screen.queryAllByRole('tab')).toHaveLength(0);
+    // Every panel sits in the one column, at most inside its anchor: no panel nests in another or in a second page.
+    const column = screen.getByRole('heading', { level: 1 }).closest('.max-w-\\[860px\\]') as HTMLElement;
+    const panels = screen.getAllByRole('region').filter((region) => region.parentElement?.closest('section') === null);
+    expect(panels.length).toBeGreaterThan(20);
+    for (const region of panels) {
+      const host = region.parentElement === column ? region : region.parentElement!;
+      expect(host.parentElement, region.querySelector('h2')?.textContent ?? '').toBe(column);
+    }
+    expect(column.querySelector('[class*="overflow-auto"], [class*="overflow-y-auto"]')).toBeNull();
+  });
+
+  it('kept-settings-stay-reachable: every setting the old page offered has its panel', async () => {
+    await renderPage();
+    for (const title of [
       'General',
+      'Keyboard & pedals',
+      'Note colour',
       'Recording check',
       'Silence cleanup',
       'Proof',
-      'Preview',
+      'Preview suggestion',
       'Stage suggestions',
       'Story Bible',
-      'Delivery',
+      'Delivery profiles',
       'DAW Integration',
       'TTS',
       'Booth',
       'Local assets',
+      'Project data',
+      'Credits',
       'About & updates',
     ]) {
-      expect(global, label).toContain(label);
+      expect(panel(title), title).toBeTruthy();
     }
-    fireEvent.click(within(kept).getByRole('tab', { name: 'This Project' }));
-    const project = within(kept)
-      .getAllByRole('tab')
-      .map((tab) => tab.textContent);
-    for (const label of ['Project data', 'Credits']) expect(project, label).toContain(label);
+    expect(await within(panel('Silence cleanup')).findByText('Hold kept at each side of a cut silence')).toBeTruthy();
+    expect(await within(panel('Booth')).findByText('Microphone')).toBeTruthy();
+    expect(await within(panel('Story Bible')).findByText('Online dictionary (Merriam-Webster)')).toBeTruthy();
+    expect(within(panel('Project data')).getByRole('button', { name: 'Clear derived project data…' })).toBeTruthy();
+    expect(await within(panel('About & updates')).findByText('Check for updates on startup')).toBeTruthy();
+    expect(await within(panel('DAW Integration')).findByRole('button', { name: 'Launch REAPER' })).toBeTruthy();
+  });
+
+  it('kept-settings-stay-reachable: a two-scope panel switches scope in its own header and saves in that scope', async () => {
+    const api = createMockApi();
+    const save = vi.spyOn(api, 'saveSettings');
+    await renderPage({ api });
+    const proof = panel('Proof');
+    const scope = within(proof).getByRole('group', { name: 'Proof scope' });
+    expect(within(scope).getByRole('button', { name: 'Global' }).getAttribute('aria-pressed')).toBe('true');
+    fireEvent.click(within(scope).getByRole('button', { name: 'This project' }));
+    await waitFor(() => expect(within(scope).getByRole('button', { name: 'This project' }).getAttribute('aria-pressed')).toBe('true'));
+    fireEvent.change(await within(proof).findByRole('combobox', { name: 'Default Whisper model' }), { target: { value: 'large-v3' } });
+    expect(within(proof).getByText('Unsaved changes')).toBeTruthy();
+    fireEvent.click(within(proof).getByRole('button', { name: 'Save' }));
+    await waitFor(() => expect(save).toHaveBeenCalledWith('TranscriptCompare', 'project', { model_size: 'large-v3' }));
+    await waitFor(() => expect(within(proof).queryByText('Unsaved changes')).toBeNull());
+  });
+
+  it('kept-settings-stay-reachable: an edit asks before its panel switches scope', async () => {
+    await renderPage();
+    const cleanupPanel = panel('Silence cleanup');
+    fireEvent.change(await within(cleanupPanel).findByRole('textbox', { name: 'Hold kept at each side of a cut silence' }), { target: { value: '0.3' } });
+    const scope = within(cleanupPanel).getByRole('group', { name: 'Silence cleanup scope' });
+    fireEvent.click(within(scope).getByRole('button', { name: 'This project' }));
+    expect(await screen.findByText('Save or discard changes before continuing?')).toBeTruthy();
+    expect(within(scope).getByRole('button', { name: 'Global', hidden: true }).getAttribute('aria-pressed')).toBe('true');
+    fireEvent.click(screen.getByRole('button', { name: 'Discard & continue' }));
+    await waitFor(() => expect(within(scope).getByRole('button', { name: 'This project' }).getAttribute('aria-pressed')).toBe('true'));
+  });
+
+  it('dirty-and-actions: edits in any panel make the page dirty, and the registered Save saves every edited panel', async () => {
+    const api = createMockApi();
+    const save = vi.spyOn(api, 'saveSettings');
+    const onDirtyChange = vi.fn();
+    let actions: { save: () => Promise<void>; discard: () => Promise<void> } | undefined;
+    await renderPage({ api, onDirtyChange, registerActions: (next) => (actions = next) });
+    fireEvent.change(await within(panel('General')).findByDisplayValue('normal'), { target: { value: 'verbose' } });
+    fireEvent.change(await within(panel('Silence cleanup')).findByRole('textbox', { name: 'Hold kept at each side of a cut silence' }), {
+      target: { value: '0.3' },
+    });
+    await waitFor(() => expect(onDirtyChange).toHaveBeenLastCalledWith(true));
+    await actions!.save();
+    expect(save).toHaveBeenCalledWith('General', 'global', { log_verbosity: 'verbose' });
+    expect(save).toHaveBeenCalledWith('Cleanup', 'global', { pad_seconds: '0.3' });
+    await waitFor(() => expect(onDirtyChange).toHaveBeenLastCalledWith(false));
   });
 
   it.each([
-    ['#credits', 'Credits'],
-    ['#delivery', 'Delivery'],
-    ['#booth', 'Booth'],
-  ])('kept-categories-stay-reachable: the %s anchor lands on %s', async (_anchor, label) => {
-    const category = { Credits: 'Credits', Delivery: 'Delivery', Booth: 'Teleprompter' }[label]!;
-    const scrolled = vi.fn();
-    Element.prototype.scrollIntoView = scrolled;
+    ['#credits', 'Credits', 'Credits'],
+    ['#delivery', 'Delivery', 'Delivery profiles'],
+    ['#cleanup', 'Cleanup', 'Silence cleanup'],
+    ['#booth', 'Teleprompter', 'Booth'],
+    ['#recording', 'Recording', 'Recording'],
+  ])('deep-links: the %s anchor scrolls to the %s panel', async (_anchor, category, title) => {
+    const scrolled: Element[] = [];
+    Element.prototype.scrollIntoView = function (this: Element) {
+      scrolled.push(this);
+    };
     await renderPage({ initialCategory: category });
-    expect(within(keptSettings()).getByRole('tab', { name: label }).getAttribute('aria-selected')).toBe('true');
-    expect(scrolled).toHaveBeenCalled();
+    expect(scrolled).toHaveLength(1);
+    expect(within(scrolled[0] as HTMLElement).getByRole('heading', { level: 2, name: title })).toBe(
+      within(panel(title)).getByRole('heading', { level: 2, name: title }),
+    );
   });
 
   it('reflow-at-390: the column has no fixed width wider than the window', () => {
