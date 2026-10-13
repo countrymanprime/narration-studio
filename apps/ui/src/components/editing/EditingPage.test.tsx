@@ -590,6 +590,21 @@ describe('EditingPage', () => {
       await waitFor(() => expect(document.querySelector('[data-tchip="p1"]')!.getAttribute('aria-expanded')).toBe('true'));
     });
 
+    it("the takes footer's Show in the DAW moves the DAW to the line", async () => {
+      const goTo = vi.fn(async () => ({ outcome: 'navigated' as const, projectTime: 65 }));
+      const toast = vi.spyOn(overlay, 'toast');
+      mount({ chapterId: 'c1', passageId: 'ps-1', api: { workspaceGoTo: goTo } as never });
+      await script();
+      const footer = await waitFor(() => {
+        const el = document.querySelector<HTMLElement>('[data-takes="p1"] [data-takes-footer]');
+        expect(el).not.toBeNull();
+        return el!;
+      });
+      fireEvent.click(await within(footer).findByRole('button', { name: 'Show in the DAW' }));
+      await waitFor(() => expect(goTo).toHaveBeenCalledWith('c1', expect.any(Number)));
+      await waitFor(() => expect(toast).toHaveBeenCalledWith('Moved to 1:05 in the DAW.'));
+    });
+
     it('the marker after an effect selects its words and takes it off', async () => {
       const fx = {
         id: 'fx-1',

@@ -60,6 +60,7 @@ import { installBackupSteps, tokensIn } from '../backups/backupBefore';
 import { FxMarkersContext } from '../range/fx/fxMarkers';
 import { registerSelectionAction } from '../bar/selectionActions';
 import { SelectionActionButton } from '../bar/SelectionActionButton';
+import { useShowInDaw } from '../takes/useShowInDaw';
 import { InHost, rowOf } from './InHost';
 import { NoAudioBanner } from './NoAudioBanner';
 import { useLines } from './useLines';
@@ -277,6 +278,7 @@ export function EditingBody(props: EditingBodyProps) {
       }),
     [],
   );
+  useShowInDaw(chapterId, caps);
   // The floating toolbar's "Takes of this line" (T), on a line with more than one take.
   useEffect(
     () =>
