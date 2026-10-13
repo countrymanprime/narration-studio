@@ -463,6 +463,13 @@
   },
   {
     "page": "proof",
+    "state": "note-thread",
+    "viewport": "desktop",
+    "docName": "proof-note-thread",
+    "caption": "Proof - Notes on this finding: a note of your own and a proofer's reply, with Proofer replied chosen for the next"
+  },
+  {
+    "page": "proof",
     "state": "empty",
     "viewport": "desktop",
     "docName": "proof-empty",

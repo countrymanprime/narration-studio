@@ -28,7 +28,7 @@ export const proofStates: StateEntry[] = [
     page: 'proof',
     state: 'takes-lanes',
     description:
-      'Proof, Chapter 1 linked, on the misread at 0:12.4 whose spot has several takes: the playing take as a band on the trace, the other takes in their lanes under it, and the takes at this spot in the Inspector',
+      'Proof, Chapter 1 linked, on the misread at 00:12.4 whose spot has several takes: the playing take as a band on the trace, the other takes in their lanes under it, and the takes at this spot in the Inspector',
     ...REFLOW,
   },
   {
@@ -49,6 +49,13 @@ export const proofStates: StateEntry[] = [
     state: 'check-checking',
     description:
       "Proof, Chapter 4 while its recording check runs (?mockCoverage=hold, started from the queue's Check recordings): the Check recordings dialog running over the page, the card behind it in its checking state",
+    ...REFLOW,
+  },
+  {
+    page: 'proof',
+    state: 'note-thread',
+    description:
+      "Proof, all chapters, the first note with a thread: a note of your own and a proofer's reply under Notes on this finding, with Proofer replied chosen for the next one",
     ...REFLOW,
   },
   {

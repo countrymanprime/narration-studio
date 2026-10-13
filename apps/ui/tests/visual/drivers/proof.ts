@@ -41,6 +41,18 @@ export const proofDrivers: Record<string, Driver> = {
       .first()
       .waitFor();
   },
+  'note-thread': async (page) => {
+    await openProof(page);
+    const thread = inspector(page).getByRole('region', { name: 'Notes on this finding' });
+    const add = async (who: 'My note' | 'Proofer replied', text: string) => {
+      await thread.getByRole('button', { name: who }).click();
+      await thread.getByRole('textbox', { name: 'Add a note' }).fill(text);
+      await thread.getByRole('button', { name: 'Add note' }).click();
+      await thread.getByText(text).waitFor();
+    };
+    await add('My note', 'Is this the room or a misread? Ask the proofer.');
+    await add('Proofer replied', 'A misread: the script says "pink eyes".');
+  },
   'chapter-no-recording': async (page) => {
     await openProof(page);
     await openChapter(page, 'Chapter 2');
