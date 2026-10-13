@@ -1,5 +1,6 @@
 // @vitest-environment jsdom
 import { act, cleanup, fireEvent, render, screen, within } from '@testing-library/react';
+import { providedCommands } from '../../../input/commandProviders';
 import axe from 'axe-core';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { ApiProvider } from '../../../api/ApiContext';
@@ -200,6 +201,16 @@ describe('the plan dialog', () => {
     fireEvent.click(passageStack('p-2')!);
     expect(text('data-stack-summary')).toBe('1 take in 1 passage move onto the first read’s spot. The audio that follows moves 10.0 s earlier.');
     expect(dialog().querySelector('[data-stack-group="p-1"]')).toBeNull();
+  });
+
+  it('the jump menu offers the chapter command while there are retries to stack, and it asks the same question', async () => {
+    mount(chapterLines());
+    await flush();
+    const command = providedCommands().find((c) => c.id === 'editing.stack.chapter');
+    expect(command?.label).toBe('Stack retries as takes');
+    act(() => command!.run());
+    expect(dialog().querySelector('[data-stack-group="p-1"]')).not.toBeNull();
+    expect(dawCalls).toEqual([]);
   });
 });
 
