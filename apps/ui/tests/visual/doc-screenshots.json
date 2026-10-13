@@ -179,7 +179,7 @@
     "state": "resume",
     "viewport": "desktop",
     "docName": "booth-waiting",
-    "caption": "Booth - Resume at ¶ 14 chosen: the reading position moved to where the recording ends"
+    "caption": "Booth - Resume at \u00b6 14 chosen: the reading position moved to where the recording ends"
   },
   {
     "page": "booth",
@@ -438,7 +438,7 @@
     "state": "empty",
     "viewport": "desktop",
     "docName": "master-empty",
-    "caption": "Master & QC - nothing checked yet: the ACX profile pill, Check files…, the built-in mastering chain as its three steps, and the delivery package aside"
+    "caption": "Master & QC - nothing checked yet: the ACX profile pill, Check files\u2026, the built-in mastering chain as its three steps, and the delivery package aside"
   },
   {
     "page": "delivery",
@@ -550,28 +550,21 @@
     "state": "no-due-date",
     "viewport": "desktop",
     "docName": "schedule-no-due-date",
-    "caption": "Schedule before a due date is set: the verdict and the milestones with nothing dated"
+    "caption": "Schedule before a due date is set: no verdict, and the Final delivery milestone with no date"
   },
   {
     "page": "schedule",
     "state": "on-pace",
     "viewport": "desktop",
     "docName": "schedule-on-pace",
-    "caption": "Schedule with a due date the pace meets: the verdict, how the book pays, the work left and the milestones"
-  },
-  {
-    "page": "schedule",
-    "state": "at-risk",
-    "viewport": "desktop",
-    "docName": "schedule-at-risk",
-    "caption": "Schedule with a due date the pace misses: the at-risk verdict and the work left worked out"
+    "caption": "Schedule with a due date: the verdict, the contract, how the work left is worked out, and the milestones"
   },
   {
     "page": "schedule",
     "state": "milestone-dialog",
     "viewport": "desktop",
     "docName": "schedule-milestone-dialog",
-    "caption": "Schedule - the Add milestone dialog"
+    "caption": "Schedule - Add milestone: its name, due date, what it measures, a note and Done"
   },
   {
     "page": "script",
@@ -746,7 +739,7 @@
     "state": "notes-filtered",
     "viewport": "desktop",
     "docName": "proof-notes-filtered",
-    "caption": "Proof - the To review chip: \"Notes · 3 of 4\", the waived note left out"
+    "caption": "Proof - the To review chip: \"Notes \u00b7 3 of 4\", the waived note left out"
   },
   {
     "page": "proof",

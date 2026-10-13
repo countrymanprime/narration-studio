@@ -3,41 +3,40 @@
 # Schedule
 
 Schedule, the item after [Production](production.md) in the navigation, holds the book's due date and whether your
-pace reaches it, how the book pays, the work left and how it is worked out, and its milestones. With no manuscript it
-asks you to import one first. Every change here is one step you can undo.
+pace reaches it, how the book pays, how the work left is worked out, and the milestones. With no manuscript it asks
+you to import one first. Every change here is one step you can undo.
 
-![Schedule with a due date the pace meets: the verdict, how the book pays, the work left and the milestones](../../images/ui/schedule-on-pace.webp)
+![Schedule with a due date: the verdict, the contract, how the work left is worked out, and the milestones](../../images/ui/schedule-on-pace.webp)
 
 ## The due date and the verdict
 
-**Delivery due** shows the due date, or **No due date set** until you set one; its pencil (**Change the due date**)
-takes a date written as `YYYY-MM-DD`. Beside it, a pill gives the verdict from your measured pace: **Early**,
-**On track**, **Tight** or **Behind**. **At your pace, done** says when the work left would be finished, and **Pace
-needed for the due date** what it would take to make it.
+The due date is the date of the **Final delivery** milestone: type it in its **Due** box as `YYYY-MM-DD`. Under the
+title the page says when the book is due and how many days are left. The pill at the top right gives the verdict
+(**Early**, **On track**, **Tight** or **Behind**) with when your pace finishes the book and the hours a day the due
+date needs. Until a due date is set, the page and the pill say **No due date set**.
 
-![Schedule before a due date is set: the verdict and the milestones with nothing dated](../../images/ui/schedule-no-due-date.webp)
+![Schedule before a due date is set: no verdict, and the Final delivery milestone with no date](../../images/ui/schedule-no-due-date.webp)
 
-![Schedule with a due date the pace misses: the at-risk verdict and the work left worked out](../../images/ui/schedule-at-risk.webp)
+## Contract
 
-## How you are paid
+**Paid** chooses how the book pays, such as **Per finished hour**, or **None or unspecified**. With a rate, **Amount**
+holds it and **Value at this rate** shows what the book is worth at that rate.
 
-**Contract** holds **How you are paid**: **Rate per finished hour**, or a fixed amount, with **How many finished
-minutes** or **How many chapters** the book is. **Change the contracted amount** edits it, and **Value at this rate**
-shows what the book is worth at that rate.
+## How this is worked out
 
-## The work left
-
-The work left is split into **Recording left**, **Editing left**, **Proofing left** and **Pickups**, from what
-[Production](production.md) measures. **How this is worked out** opens the sums behind the figures.
+**Recording left**, **Editing left**, **Proofing left** and **Pickups** add up to **Work left**, from what
+[Production](production.md) measures. **Your pace** is the hours a day you have been working, **Pace needed for the
+due date** what the due date asks, and **At your pace, done** the day the work left would be finished. The note under
+them gives the sums: how finished audio is estimated from the word count, and how many times the finished hours
+recording, editing and proofing take.
 
 ## Milestones
 
-**Milestones** lists the dates the book is measured against, such as **Contract signed**, a **Retail sample**, **All
-chapters recorded** and **Final delivery**: each with what it measures, its date, its amount when it pays, and its
-status. A row's actions mark it complete, edit it, add a note or remove it. **Add milestone** asks for a name, a date
-and **What the milestone measures** (**Whole book**, **Sample**, **Checkpoint** or **Custom**).
+**Milestones** lists the dates the book is measured against: each with what it **Measures** (the whole book, for
+example), its **Due** date and its **Status**, how many days late or early it stands. The **+** button opens **Add
+milestone**: a **Name**, a **Due** date, what it **Measures**, a **Note** and **Done** for one already reached.
 
-![Schedule - the Add milestone dialog](../../images/ui/schedule-milestone-dialog.webp)
+![Schedule - Add milestone: its name, due date, what it measures, a note and Done](../../images/ui/schedule-milestone-dialog.webp)
 
 ---
 
