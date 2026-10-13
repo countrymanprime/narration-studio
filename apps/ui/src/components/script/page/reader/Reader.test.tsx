@@ -73,6 +73,12 @@ describe('continuous scroll with the spy', () => {
     expect(screen.getByText('¶ 1 of 1')).toBeTruthy();
   });
 
+  it('names the chapter in full in the sticky header, title and subtitle', () => {
+    const named = [{ ...chapters[0]!, subtitle: 'Down the Rabbit-Hole' }, ...chapters.slice(1)];
+    render(<Reader {...props({ chapters: named })} />);
+    expect(document.querySelector('b')?.textContent).toBe('Chapter 1 — Down the Rabbit-Hole');
+  });
+
   it('tells its owner which chapter is in view, once per change', () => {
     const onChapterInView = vi.fn();
     render(<Reader {...props({ onChapterInView })} />);

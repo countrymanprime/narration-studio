@@ -54,6 +54,7 @@ export function ConfirmDialog({
     <Dialog
       title={title}
       variant="alert"
+      dismissOnOutsidePress={false}
       onClose={pending ? undefined : cancel}
       escapeCloses={escapeCancels && !pending}
       description={body}

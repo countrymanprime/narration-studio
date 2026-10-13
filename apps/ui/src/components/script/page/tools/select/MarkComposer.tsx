@@ -43,6 +43,7 @@ export function MarkComposer({ type, selection, onClose }: { type: string; selec
 
   return (
     <Dialog
+      dismissOnOutsidePress={false}
       title={composerTitle(selection.quote)}
       onClose={onClose}
       actionsAlign="end"

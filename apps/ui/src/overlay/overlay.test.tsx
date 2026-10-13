@@ -73,6 +73,25 @@ describe('overlay.confirm', () => {
     expect(screen.getByRole('alertdialog')).toBeTruthy();
   });
 
+  it('closes a dialog spec that declares dismissOnOutsidePress when the backdrop is pressed, and keeps a form that declares false (issue 1706)', async () => {
+    mount();
+    service.open({ kind: 'dialog', title: 'Detail view', dismissOnOutsidePress: true, render: () => <p>Read only</p> });
+    await screen.findByRole('dialog', { name: 'Detail view' });
+    await userEvent.click(document.querySelector('[data-dialog-backdrop]')!);
+    await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Detail view' })).toBeNull());
+
+    service.open({
+      kind: 'dialog',
+      title: 'Add milestone',
+      dismissOnOutsidePress: false,
+      render: () => <input aria-label="Name" />,
+    });
+    await screen.findByRole('dialog', { name: 'Add milestone' });
+    await userEvent.click(document.querySelector('[data-dialog-backdrop]')!);
+    await act(async () => void (await Promise.resolve()));
+    expect(screen.getByRole('dialog', { name: 'Add milestone' })).toBeTruthy();
+  });
+
   it('imperative-without-a-component: runs from a bare async function', async () => {
     mount();
     async function deleteTake(): Promise<string> {
@@ -92,7 +111,7 @@ describe('stacking and Escape order stay the primitives', () => {
         <main tabIndex={-1}>
           <button onClick={() => setOpen(true)}>Open details</button>
           {open && (
-            <Dialog title="Details" onClose={() => setOpen(false)} actions={<button onClick={() => void ask()}>Ask</button>}>
+            <Dialog dismissOnOutsidePress={false} title="Details" onClose={() => setOpen(false)} actions={<button onClick={() => void ask()}>Ask</button>}>
               <p>Body</p>
             </Dialog>
           )}
@@ -186,7 +205,7 @@ describe('overlay.open', () => {
     mount();
     let close: () => void = () => undefined;
     act(() => {
-      close = service.open({ kind: 'dialog', title: 'Voice details', render: () => <p>Narrator one</p> });
+      close = service.open({ kind: 'dialog', dismissOnOutsidePress: false, title: 'Voice details', render: () => <p>Narrator one</p> });
     });
     const dialog = await screen.findByRole('dialog', { name: 'Voice details' });
     expect(within(dialog).getByText('Narrator one')).toBeTruthy();
@@ -207,7 +226,7 @@ describe('overlay.open', () => {
 
   it('closes a Dialog on Escape and the state forgets it', async () => {
     mount();
-    act(() => void service.open({ kind: 'dialog', title: 'Voice details', render: () => <p>x</p> }));
+    act(() => void service.open({ kind: 'dialog', dismissOnOutsidePress: false, title: 'Voice details', render: () => <p>x</p> }));
     await screen.findByRole('dialog');
     await userEvent.keyboard('{Escape}');
     await waitFor(() => expect(service.getSnapshot().dialogs).toHaveLength(0));
@@ -241,12 +260,12 @@ describe('toast queue', () => {
 describe('overlay.open headerless', () => {
   it('overlay-dialog-spec-passes-headerless-through: the flag mounts the headerless Dialog, its absence the headed one', () => {
     mount();
-    act(() => void service.open({ kind: 'dialog', title: 'Bare', headerless: true, render: () => <p>x</p> }));
+    act(() => void service.open({ kind: 'dialog', dismissOnOutsidePress: false, title: 'Bare', headerless: true, render: () => <p>x</p> }));
     expect(screen.getByRole('dialog', { name: 'Bare' })).toBeTruthy();
     expect(screen.queryByRole('button', { name: 'Close' })).toBeNull();
     cleanup();
     mount();
-    act(() => void service.open({ kind: 'dialog', title: 'Headed', render: () => <p>x</p> }));
+    act(() => void service.open({ kind: 'dialog', dismissOnOutsidePress: false, title: 'Headed', render: () => <p>x</p> }));
     expect(screen.getByRole('button', { name: 'Close' })).toBeTruthy();
   });
 });

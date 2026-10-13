@@ -23,7 +23,7 @@ function Question({ how, direction = 'stack' }: { how: StackActing; direction?: 
     'stack',
   );
   return (
-    <Dialog title={stackTitle(direction)} onClose={fn()} actions={null}>
+    <Dialog dismissOnOutsidePress={false} title={stackTitle(direction)} onClose={fn()} actions={null}>
       <StackDialog direction={direction} plan={plan} lines={byId} how={how} onCancel={fn()} onConfirm={fn()} />
     </Dialog>
   );
