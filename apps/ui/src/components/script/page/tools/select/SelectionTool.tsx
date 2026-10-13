@@ -32,7 +32,7 @@ type Props = {
 
 /**
  * The small toolbar over a selection in the reader (the mock's `SelectionTool`): Mark, Story Bible and Look up, with Bookmark
- * here and Record here as icon buttons. Across paragraphs it is one disabled button saying why. It follows the selection's
+ * here and Record from here as icon buttons. Across paragraphs it is one disabled button saying why. It follows the selection's
  * rectangle, and Escape or a press elsewhere dismisses it. A press on it keeps the selection.
  */
 export function SelectionTool({ selection, zoom = 1, onDismiss, onCompose, onDefineMarks, onRecordHere }: Props) {
@@ -121,7 +121,7 @@ export function SelectionTool({ selection, zoom = 1, onDismiss, onCompose, onDef
           {onRecordHere && (
             <IconButton
               action="recordHere"
-              label="Record here"
+              label="Record from here"
               onClick={() => {
                 onDismiss();
                 onRecordHere(place);

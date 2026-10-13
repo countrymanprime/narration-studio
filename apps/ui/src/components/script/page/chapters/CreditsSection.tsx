@@ -45,7 +45,7 @@ export function CreditsSection({
           {ended && <EndOf ended={ended} />}
           <InsetCard as="section" fill aria-label={title} className="flex flex-col gap-2 font-sans">
             <div className="flex items-center justify-between gap-2">
-              <span className="font-['Barlow_Condensed',sans-serif] text-xs font-semibold tracking-[0.08em] text-[var(--text-muted)]">Credits</span>
+              <span className="font-['Barlow_Condensed',sans-serif] text-xs font-semibold tracking-[0.08em] text-[var(--text-muted)] uppercase">Credits</span>
               {onRecord && count > 0 && <IconButton action="recordInBooth" label={`Record ${title} in Booth`} onClick={onRecord} />}
             </div>
             <h2 className="font-['Barlow_Condensed',sans-serif] text-[1.625rem] font-semibold">{title}</h2>

@@ -94,15 +94,15 @@ describe('offers-mark-story-bible-and-look-up', () => {
     expect(m.onDismiss).toHaveBeenCalled();
   });
 
-  it('Record here is a prop and is omitted without it', async () => {
+  it('Record from here is a prop and is omitted without it', async () => {
     const m = mount();
     m.rerender(inside(0, 5));
-    expect(within(tool()).queryByRole('button', { name: 'Record here' })).toBeNull();
+    expect(within(tool()).queryByRole('button', { name: 'Record from here' })).toBeNull();
     cleanup();
     const onRecordHere = vi.fn();
     const again = mount({ onRecordHere });
     again.rerender(inside(0, 5));
-    await userEvent.click(within(tool()).getByRole('button', { name: 'Record here' }));
+    await userEvent.click(within(tool()).getByRole('button', { name: 'Record from here' }));
     expect(onRecordHere).toHaveBeenCalledWith(expect.objectContaining({ paragraphId: rows[0]!.id, start: 0 }));
   });
 });

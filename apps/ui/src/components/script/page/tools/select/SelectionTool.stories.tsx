@@ -36,7 +36,7 @@ export const Enabled: Story = {
   args: { onRecordHere: fn() },
   play: async ({ canvasElement }) => {
     const bar = within(canvasElement.ownerDocument.body).getByRole('toolbar', { name: 'Selection tools' });
-    for (const name of ['Mark', 'Story Bible', 'Look up', 'Bookmark here', 'Record here'])
+    for (const name of ['Mark', 'Story Bible', 'Look up', 'Bookmark here', 'Record from here'])
       await expect(within(bar).getByRole('button', { name })).toBeVisible();
   },
 };

@@ -12,13 +12,15 @@ import type { ContextProvider } from '../../../../registries/context';
 import type { ContextMenuItem } from '../../../primitives/ContextMenu';
 import { PREP_LABELS, type LineRange } from '../data/scriptCommands';
 
-/** The attributes the reader and the lists put on what can be right-clicked. The first matching selector wins, in this order. */
+/** The attributes the reader (`reader/Para.tsx`) and the lists put on what can be right-clicked. The first matching selector wins, in
+ * this order: a mark is a `data-a` span with its style (`data-st`), a flagged word a `data-w` span, a chapter a list row (`data-jump`)
+ * or a section of the reader (`data-bound`), and a word of the Words tab its row. */
 const TARGETS = {
   line: 'p[data-pid]',
-  mark: '[data-mark]',
-  flag: '[data-flag]',
+  mark: '[data-a][data-st]',
+  flag: '[data-w]',
   name: '[data-ent]',
-  chapter: '[data-jump], .bound[data-ch]',
+  chapter: '[data-jump], [data-bound][data-ch]',
   word: 'tr[data-w]',
 } as const;
 
@@ -122,8 +124,8 @@ function lineItems(target: Element, deps: ScriptMenuDeps): ContextMenuItem[] {
   const handlers = deps.handlers();
   const { commands } = deps;
   const out: ContextMenuItem[] = [];
-  const mark = lists.marks.find((row) => row.id === attr(target, TARGETS.mark, 'data-mark'));
-  const word = attr(target, TARGETS.flag, 'data-flag');
+  const mark = lists.marks.find((row) => row.id === attr(target, TARGETS.mark, 'data-a'));
+  const word = attr(target, TARGETS.flag, 'data-w');
   const entry = lists.entries.find((row) => row.id === attr(target, TARGETS.name, 'data-ent'));
   if (mark) out.push(...markItems(mark, lists, commands, handlers));
   else if (word) {

@@ -40,7 +40,8 @@ import { ScriptColumns } from './layout/ScriptColumns';
 import { CREDITS_STOP, creditsRows } from '../../credits/creditsRows';
 import { CreditsSetupBanner } from '../../credits/CreditsSetupBanner';
 import { CreditsSection } from './chapters/CreditsSection';
-import { CREDITS_LABEL, type CreditsKind } from '../../booth/readerModel';
+import { CREDITS_LABEL } from '../../booth/readerModel';
+import type { BoothTarget } from '../../booth/page/boothQuery';
 import { endedName } from '../../../chapterHeading';
 import { SpeakerLayer } from './layout/SpeakerLayer';
 import { useDeepLink } from './layout/useDeepLink';
@@ -74,8 +75,8 @@ export type ScriptPageProps = {
   focusStoryBibleEntity: (id: string) => void;
   /** The old page's "Open in Proof". The mock's chapter card has no such button, so this page draws none; kept so the swap is one line. */
   goToEditing?: (chapterId: string) => void;
-  /** Record in Booth on a chapter or the credits. Omitted, no card offers it. */
-  goToBooth?: (target: { chapter: string } | { credits: CreditsKind }) => void;
+  /** Record in Booth on a chapter or the credits, or Record from here at a selection. Omitted, nothing offers it. */
+  goToBooth?: (target: BoothTarget) => void;
 };
 
 /** How long the paragraph of a bookmark just gone to stays lit, as the mock's. */
@@ -344,6 +345,12 @@ function ScriptWorkspace({
     goToChapter(CREDITS_STOP[kind]);
     navigate('/script', { replace: true });
   }, [hash, openingRow, closingRow, goToChapter, navigate]);
+  /** Record from here: the Booth on the selection's chapter, starting at its first character. */
+  const recordFromHere = useMemo(
+    () => goToBooth && ((picked: ReaderSelection) => goToBooth({ chapter: picked.chapterId, from: { paragraphId: picked.paragraphId, offset: picked.start } })),
+    [goToBooth],
+  );
+
   /* ---------- Registrations ---------- */
 
   const lookUp = useCallback(
@@ -374,8 +381,14 @@ function ScriptWorkspace({
     copy: (text) => void navigator.clipboard?.writeText(text),
     goToChapter,
     composeMark: (type, picked) => setComposing({ type, selection: picked }),
+    recordFromHere,
     bookmarkHere: (picked) => void bookmarkAt({ chapterId: picked.chapterId, paragraphId: picked.paragraphId, offset: picked.start }),
-    recordChapter: goToBooth && ((chapterId) => goToBooth({ chapter: chapterId })),
+    recordChapter:
+      goToBooth &&
+      ((chapterId) =>
+        goToBooth(
+          chapterId === CREDITS_STOP.opening ? { credits: 'opening' } : chapterId === CREDITS_STOP.closing ? { credits: 'closing' } : { chapter: chapterId },
+        )),
   });
 
   /* ---------- Find ---------- */
@@ -587,6 +600,7 @@ function ScriptWorkspace({
                   if (mark) showMark(mark, false);
                 }}
                 onShowEntry={showEntry}
+                onShowWord={showWord}
                 onTextClick={() => setPlace((current) => (current.at ? { ...current, at: null } : current))}
               />
             </div>
@@ -600,6 +614,7 @@ function ScriptWorkspace({
         onDismiss={() => setSelection(null)}
         onCompose={(type, picked) => setComposing({ type, selection: picked })}
         onDefineMarks={() => setDefiningMarks(true)}
+        onRecordHere={recordFromHere}
       />
       {composing && <MarkComposer type={composing.type} selection={composing.selection} onClose={() => setComposing(null)} />}
       {definingMarks && <MarksDialog saveMarkTypes={saveMarkTypes} onClose={() => setDefiningMarks(false)} />}

@@ -81,11 +81,11 @@ export function useScriptRegistry(options: ScriptRegistryOptions): void {
     useMemo(
       () =>
         scriptContextProvider({
-          lists: () => ({ ...marksSnapshot, entries: entries.entries, kinds, chapters: chapterList, prepOf: prep.prepOf }),
+          lists: () => ({ ...marksSnapshot, entries: entries.entries, kinds, chapters: stops ?? chapterList, prepOf: prep.prepOf }),
           commands,
           handlers: () => latest.current,
         }),
-      [marksSnapshot, entries.entries, kinds, chapterList, prep.prepOf, commands],
+      [marksSnapshot, entries.entries, kinds, stops, chapterList, prep.prepOf, commands],
     ),
   );
 

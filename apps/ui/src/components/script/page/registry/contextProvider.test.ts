@@ -91,11 +91,11 @@ describe('context-provider-matches-the-targets', () => {
 
   it('a mark gets its thread, status, type and delete items; a note has no status item', () => {
     const asked = build({}, [mark('m1', 'query', 'open')]);
-    const items = asked.provider.items(dom('<p data-pid="p1"><mark data-mark="m1" data-t>Hi</mark></p>'));
+    const items = asked.provider.items(dom('<p data-pid="p1"><mark data-a="m1" data-st="highlight" data-t>Hi</mark></p>'));
     expect(items.map((i) => i.label)).toEqual(['Open the thread', 'Mark resolved', 'Change type: Tone', 'Change type: Query', 'Delete mark']);
     expect(items.find((i) => i.key === 'mark-type-query')?.unavailable).toBeTruthy();
     const note = build({}, [mark('m1', 'tone')]);
-    expect(note.provider.items(dom('<p data-pid="p1"><mark data-mark="m1" data-t>Hi</mark></p>')).map((i) => i.label)).toEqual([
+    expect(note.provider.items(dom('<p data-pid="p1"><mark data-a="m1" data-st="highlight" data-t>Hi</mark></p>')).map((i) => i.label)).toEqual([
       'Edit the note',
       'Change type: Tone',
       'Change type: Query',
@@ -105,7 +105,7 @@ describe('context-provider-matches-the-targets', () => {
 
   it('a resolved query offers Reopen', () => {
     const { provider } = build({}, [mark('m1', 'query', 'resolved')]);
-    expect(provider.items(dom('<p data-pid="p1"><mark data-mark="m1" data-t>Hi</mark></p>'))[1].label).toBe('Reopen');
+    expect(provider.items(dom('<p data-pid="p1"><mark data-a="m1" data-st="highlight" data-t>Hi</mark></p>'))[1].label).toBe('Reopen');
   });
 
   it('a name gets Open in the side panel and Find; the first matching target wins over the selection', () => {
@@ -120,7 +120,7 @@ describe('context-provider-matches-the-targets', () => {
     const items = provider.items(dom('<div data-jump="c1"><b data-t>One</b></div>'));
     expect(items.map((i) => i.label)).toEqual(['Go to this chapter', 'Record in Booth', 'My prep: Not started', 'My prep: In progress', 'My prep: Prepped']);
     expect(items.find((i) => i.key === 'prep-progress')?.unavailable).toBeTruthy();
-    expect(provider.items(dom('<section class="bound" data-ch="c1"><b data-t>One</b></section>'))).toHaveLength(5);
+    expect(provider.items(dom('<section data-bound="" data-ch="c1"><b data-t>One</b></section>'))).toHaveLength(5);
   });
 
   it('a word of the side panel gets Show and Remove', () => {
@@ -137,7 +137,7 @@ describe('context-provider-matches-the-targets', () => {
 describe('menu-items-run-the-hooks-commands', () => {
   it('each item calls a command or a handler with the target’s ids', () => {
     const mine = build({ selectionAt: () => selection }, [mark('m1', 'query', 'open')]);
-    const items = mine.provider.items(dom('<p data-pid="p1"><mark data-mark="m1" data-t>Hi</mark></p>'));
+    const items = mine.provider.items(dom('<p data-pid="p1"><mark data-a="m1" data-st="highlight" data-t>Hi</mark></p>'));
     const run = (key: string) => items.find((i) => i.key === key)!.onSelect();
     run('mark-open');
     run('mark-status');

@@ -212,6 +212,61 @@ describe('registers-and-unregisters', () => {
   });
 });
 
+describe('right-click-menus-reach-what-the-page-draws', () => {
+  const labels = (target: Element | null) => (target ? (contextItemsFor(target) ?? []).map((item) => item.label) : []);
+
+  it('a mark, a flagged word, a chapter row, a chapter card and a Words row each get their menu', async () => {
+    const api = createMockApi({ creditsTemplates: async () => [] });
+    const [chapter] = await api.manuscriptChapters();
+    const [line] = await api.manuscriptParagraphs(chapter!.id);
+    const types = await api.marksList();
+    await api.marksAdd(chapter!.id, line!.id, 0, 5, types.types[0]!.key, 'Check this');
+    const found = /\p{L}{6,}/u.exec(line!.text)!;
+    await api.scriptWordFlag(chapter!.id, line!.id, found.index, found.index + found[0].length);
+    mount({ api });
+    await firstHeading();
+    await waitFor(() => expect(document.querySelector('[data-pid] [data-st]')).not.toBeNull());
+    expect(labels(document.querySelector('[data-pid] [data-st]'))).toContain('Delete mark');
+    await waitFor(() => expect(document.querySelector('[data-pid] [data-w]')).not.toBeNull());
+    expect(labels(document.querySelector('[data-pid] [data-w]'))).toContain('Show in Words');
+    const row = within(panel('chapters')).getAllByRole('button')[0]!;
+    expect(labels(row)).toContain('Go to this chapter');
+    expect(labels(document.querySelector('[data-reader] [data-bound] h2'))).toContain('My prep: Prepped');
+    const wordRow = await waitFor(() => document.querySelector('#railbody tbody tr')!);
+    expect(labels(wordRow)).toContain('Remove from my words');
+  });
+});
+
+describe('record-from-here-and-flagged-words', () => {
+  it('Record from here on the selection tool and in the menu opens the Booth at the selection', async () => {
+    const { goToBooth } = mount();
+    await firstHeading();
+    await waitFor(() => expect(document.querySelector('p[data-pid="p-2"]')).not.toBeNull());
+    selectIn('p-2', 3, 6);
+    fireEvent.mouseUp(document.getElementById('reader')!);
+    fireEvent.click(await screen.findByRole('button', { name: 'Record from here' }));
+    expect(goToBooth).toHaveBeenLastCalledWith({ chapter: 'chapter-1', from: { paragraphId: 'p-2', offset: 3 } });
+    selectIn('p-2', 3, 6);
+    const menu = contextItemsFor(document.querySelector('p[data-pid="p-2"]')!)!;
+    menu.find((row) => row.label === 'Record from here')!.onSelect();
+    expect(goToBooth).toHaveBeenCalledTimes(2);
+  });
+
+  it('a click on a flagged word opens it in the Words tab', async () => {
+    const api = createMockApi({ creditsTemplates: async () => [] });
+    const [chapter] = await api.manuscriptChapters();
+    const [line] = await api.manuscriptParagraphs(chapter!.id);
+    const found = /\p{L}{6,}/u.exec(line!.text)!;
+    await api.scriptWordFlag(chapter!.id, line!.id, found.index, found.index + found[0].length);
+    mount({ api });
+    await firstHeading();
+    const word = await waitFor(() => document.querySelector<HTMLElement>('[data-pid] [data-w]')!);
+    fireEvent.click(word);
+    await waitFor(() => expect(view.tab).toBe('pron'));
+    expect(view.word).toBe(word.dataset.w);
+  });
+});
+
 describe('bookmark-flow-end-to-end', () => {
   it('Bookmark here adds a ribbon, opens its editor, lists it in the tab, and Next and Previous move between bookmarks, wrapping', async () => {
     const { api } = mount();

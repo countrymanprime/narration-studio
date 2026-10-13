@@ -45,7 +45,12 @@ export function WordsTab({ chapterId, host, selection }: { chapterId: string; ho
           <TableBody>
             {list.map((row) => (
               // A Story Bible name is read-only here: its pronunciation is the entry's, edited in the Story Bible.
-              <TableRow key={row.word} selected={word === row.word} onActivate={row.fromBible ? undefined : () => update({ word: row.word })}>
+              <TableRow
+                key={row.word}
+                data={{ 'data-w': row.word }}
+                selected={word === row.word}
+                onActivate={row.fromBible ? undefined : () => update({ word: row.word })}
+              >
                 <TableCell>
                   <b>{row.word}</b>
                 </TableCell>

@@ -89,6 +89,7 @@ export function ChapterList({
                   if (node) buttons.current.set(chapter.id, node);
                   else buttons.current.delete(chapter.id);
                 }}
+                data-jump={chapter.id}
                 tabIndex={chapter.id === stop ? 0 : -1}
                 aria-current={current || undefined}
                 onFocus={() => setFocused(chapter.id)}
@@ -154,6 +155,7 @@ function CreditsItem({
           if (node) buttons.set(id, node);
           else buttons.delete(id);
         }}
+        data-jump={id}
         tabIndex={id === stop ? 0 : -1}
         aria-current={current || undefined}
         onFocus={() => onFocus(id)}
