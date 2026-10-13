@@ -53,6 +53,15 @@ describe('overlay.confirm', () => {
 
   // ADR 0048: a press on the backdrop of a confirm never answers it, so an accidental click cannot discard the question. The issue
   // lists the backdrop beside Cancel and Escape; the primitive is the authority and the service adds no dismissal of its own.
+  it('confirm-names-its-way-out: a cancelLabel replaces Cancel ("Keep recording", the Booth\'s leave question) and still declines', async () => {
+    mount();
+    const answer = service.confirm({ title: 'Stop recording?', body: 'Leaving stops it.', confirmLabel: 'Stop and leave', cancelLabel: 'Keep recording' });
+    const dialog = await screen.findByRole('alertdialog', { name: 'Stop recording?' });
+    expect(within(dialog).queryByRole('button', { name: 'Cancel' })).toBeNull();
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Keep recording' }));
+    await expect(answer).resolves.toBe(false);
+  });
+
   it('leaves a confirm waiting when the backdrop is pressed (the primitive ignores it)', async () => {
     mount();
     let settled = false;

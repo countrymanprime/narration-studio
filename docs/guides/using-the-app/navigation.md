@@ -15,9 +15,9 @@ In the icon layout, hover the rail (or tab into it) and it opens over the page w
 
 ![Collapsed navigation rail opened over the page on hover](../../images/ui/nav-rail-open.webp)
 
-Script, Story Bible, Booth and Delivery stay locked until a manuscript has been
-[imported on Production](production.md#importing-the-manuscript). Hovering a locked entry says what is missing. Production, Schedule, Editing, Proof,
-Pickups, and Master & QC are always available; Editing says itself when there is no manuscript yet.
+No page is locked. With no manuscript yet, every page says so and offers **Import manuscript**, which goes to
+[Production](production.md#importing-the-manuscript); none opens the import or moves you by itself, and the rail shows no
+note counts, since the notes and pickups the project still holds belong to an earlier manuscript.
 
 The header runs, left to right: Back and Forward (below), the project's name, **Jump to or run…** (`Ctrl+K`), Undo and History, the timer,
 the [zoom controls](#zoom) and the engine chip. Jump to or run… opens the jump menu: type to find a page, a chapter or a command, or

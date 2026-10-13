@@ -2,7 +2,7 @@
 // It opens on Chapter 1 (the mock's last chapter read) unless a state picks otherwise. The Companion rows open `/companion`.
 import type { Page } from '@playwright/test';
 import { settlePage } from '../helpers/settle';
-import { type Driver, chooseTheme, goToPage, openBooth, selectReaderWord } from './shared';
+import { type Driver, chooseTheme, goToPage, openBooth, selectReaderWord, openWithoutManuscript } from './shared';
 
 // The record capability on, so Record is enabled (the mock's REAPER keeps it switched off by default, which is the refusal row).
 const RECORD_ON = '?mockRecordCapabilityOn=1';
@@ -81,7 +81,10 @@ export const boothDrivers: Record<string, Driver> = {
   'leave-dialog': async (page) => {
     await startTake(page);
     await page.keyboard.press('Escape');
-    await page.getByRole('alertdialog', { name: 'Stop recording?' }).waitFor();
+    const question = page.getByRole('alertdialog', { name: 'Stop recording?' });
+    await question.waitFor();
+    // The way to stay is named as the mock names it, not "Cancel".
+    await question.getByRole('button', { name: 'Keep recording' }).waitFor();
   },
   'roll-confirm': async (page) => {
     await startTake(page, '?mockRollReplaces=1');
@@ -195,5 +198,8 @@ export const boothDrivers: Record<string, Driver> = {
     await openCompanion(page, '?mockTeleprompter=listening&mockDawPlayhead=134.6');
     await page.getByText('Playhead 2:14.6').waitFor();
     await page.locator(LISTENING_WORD).waitFor();
+  },
+  'no-manuscript': async (page) => {
+    await openWithoutManuscript(page, 'Booth');
   },
 };

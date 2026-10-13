@@ -84,10 +84,20 @@ describe('ChapterStepper', () => {
     expect(onStep.mock.calls).toEqual([[-1], [1]]);
   });
 
-  it('keeps one picker width for the longest label', () => {
+  it("keeps one picker width for the longest label, up to the mock's 340 px, from a width where it fits", () => {
     setup({ allowAll: true });
     const picker = screen.getByRole('button', { name: /Change chapter/ });
-    expect(picker.style.minWidth).toBe(`${'The long road north'.length}ch`);
+    expect(picker.style.getPropertyValue('--chapter-ch')).toBe(`${'The long road north'.length}ch`);
+    expect(picker.className).toContain('min-[860px]:min-w-[min(var(--chapter-ch),21.25rem)]');
+  });
+
+  // Issue 1718: at 390 px a picker sized to the longest chapter name pushed the Booth's top bar over its own contents.
+  it('lets the picker shrink below 860 px: no minimum width, the label truncates', () => {
+    setup();
+    const picker = screen.getByRole('button', { name: /Change chapter/ });
+    expect(picker.className).not.toMatch(/(^|\s)min-w-\[/);
+    expect(picker.className).toContain('min-w-0');
+    expect(within(picker).getByText('The long road north').className).toContain('truncate');
   });
 
   it('names the keys in the arrows tips and shows none on the picker', async () => {

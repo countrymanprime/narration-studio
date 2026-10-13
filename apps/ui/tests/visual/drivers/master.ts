@@ -93,13 +93,9 @@ export const masterDrivers: Record<string, Driver> = {
     await page.getByText(/^Wrote delivery-report-/).waitFor();
     await scrollToTop(page, page.getByRole('region', { name: 'Report' }));
   },
-  'report-refused': async (page) => {
+  'report-needs-files': async (page) => {
     await openMaster(page);
-    await page.getByRole('button', { name: 'Export report', exact: true }).click();
-    await page
-      .getByRole('alert')
-      .getByText(/^The report was not written: nothing has been measured or checked/)
-      .waitFor();
+    await page.getByText(/^Check some files first: the report covers the files measured here/).waitFor();
     await scrollToTop(page, page.getByRole('region', { name: 'Report' }));
   },
   'to-spec-picked': async (page) => {

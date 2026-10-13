@@ -166,7 +166,7 @@ export function NotesPanel({
         </div>
       </div>
       <SourcesLine rows={rows} />
-      <div className="min-h-0 flex-1 overflow-auto">
+      <div className="min-h-0 flex-1 overflow-auto" tabIndex={0} role="group" aria-label="Notes scroll area">
         <NotesTable
           rows={rows}
           total={base.length}

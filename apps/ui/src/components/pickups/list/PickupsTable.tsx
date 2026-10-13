@@ -160,8 +160,8 @@ export function PickupsTable({
         </div>
       </div>
       {list.length > 0 ? (
-        <div ref={body} className="overflow-auto">
-          <Table label="Pickups">
+        <div ref={body} className="overflow-auto" tabIndex={0} role="group" aria-label="Pickups scroll area">
+          <Table label="Pickups" className="min-w-[44rem]">
             <TableHead>
               <TableRow>
                 <TableHeader hiddenLabel="Include in the session" style={{ width: 36 }} />

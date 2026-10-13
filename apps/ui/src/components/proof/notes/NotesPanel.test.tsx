@@ -47,6 +47,17 @@ function Harness({
 
 const dataRows = () => screen.queryAllByRole('row').filter((r) => r.hasAttribute('data-row'));
 
+// Issue 1718: a narrow window scrolls the table sideways inside its panel instead of squeezing Script vs heard to a word a line.
+describe('the-notes-table-scrolls-instead-of-squeezing', () => {
+  it('keeps a width of its own inside a scroll region the keyboard can reach', () => {
+    render(<Harness />);
+    const region = screen.getByRole('group', { name: 'Notes scroll area' });
+    expect(region.tabIndex).toBe(0);
+    expect(region.className).toContain('overflow-auto');
+    expect(within(region).getByRole('table', { name: 'Notes' }).className).toMatch(/min-w-\[\d+rem\]/);
+  });
+});
+
 describe('all-chapters-groups-by-chapter-with-open-count', () => {
   it('draws a group row per chapter with its open count', () => {
     render(<Harness />);

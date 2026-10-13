@@ -1,6 +1,6 @@
 // How to reach each `pickups` state (the Studio Next Pickups page) in STATE_CATALOG (see app.drivers.ts).
 import type { Locator, Page } from '@playwright/test';
-import { type Driver, goToPage } from './shared';
+import { type Driver, goToPage, openWithoutManuscript } from './shared';
 
 const list = (page: Page): Locator => page.getByRole('region', { name: 'Pickups' });
 
@@ -45,5 +45,8 @@ export const pickupsDrivers: Record<string, Driver> = {
       );
     }
     await page.getByText('No pickups queued').waitFor();
+  },
+  'no-manuscript': async (page) => {
+    await openWithoutManuscript(page, 'Pickups');
   },
 };
