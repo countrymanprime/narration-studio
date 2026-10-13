@@ -3,7 +3,7 @@
 import { existsSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
 
-export const THEMES = ['light', 'dark'];
+const THEMES = ['light', 'dark'];
 
 const escapeRegExp = (text) => text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 

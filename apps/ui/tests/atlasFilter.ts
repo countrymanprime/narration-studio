@@ -2,7 +2,7 @@
 // <name>...`). A name matches a story when it equals the story's whole title or any one '/'-separated segment of it, compared
 // as slugs: `editing` takes every `Editing/...` story, `button` takes `Primitives/Button`, `master-qc/page` takes one title.
 
-export const slugOf = (text: string): string =>
+const slugOf = (text: string): string =>
   text
     .toLowerCase()
     .replace(/[^a-z0-9/]+/g, '-')
