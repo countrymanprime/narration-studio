@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { WPH } from '../../schedule/estimates';
-import { buildPipelineRows, cellName, currentColumn, NOT_MEASURED } from './pipelineRows';
+import { buildPipelineRows, cellName, currentColumn, NOT_MEASURED, NOT_STARTED_PREP, UNDER_WAY } from './pipelineRows';
 import { chapter, MID_BOOK, MID_BOOK_SOURCES } from './pipelineFixtures';
 
 const rowsOf = (...args: Parameters<typeof buildPipelineRows>) => buildPipelineRows(...args);
@@ -37,6 +37,15 @@ describe('one-row-per-chapter-with-stage-cells', () => {
     for (const column of ['prep', 'master', 'qc'] as const) {
       expect(row!.cells[column]).toMatchObject({ text: '—', tip: NOT_MEASURED });
     }
+  });
+});
+
+describe('prep-cell-reads-the-prep-record', () => {
+  it('draws prepped as a tick, in progress as a half disc and not started as an empty circle, never a dash (the mock)', () => {
+    const rows = rowsOf([chapter('a'), chapter('b'), chapter('c')], { prep: { a: 'prepped', b: 'progress', c: 'none' } });
+    expect(rows[0]!.cells.prep).toMatchObject({ kind: 'done', text: '✓', tip: 'Prepped' });
+    expect(rows[1]!.cells.prep).toMatchObject({ kind: 'progress', text: UNDER_WAY, tip: 'Prep in progress' });
+    expect(rows[2]!.cells.prep).toMatchObject({ kind: 'none', text: NOT_STARTED_PREP, state: 'not started', tip: 'Prep not started' });
   });
 });
 
@@ -105,10 +114,10 @@ describe('pickups-cell-waits-for-a-full-recording', () => {
     expect(row!.cells.pickups).toMatchObject({ text: '—', go: false });
   });
 
-  it('then shows the open count, and a tick for none', () => {
+  it('then shows the open count, and a done 0 for none (the mock)', () => {
     const rows = rowsOf([chapter('c1', { status: 'editing' }), chapter('c2', { status: 'editing' })], { pickups: { c1: 3, c2: 0 } });
     expect(rows[0]!.cells.pickups).toMatchObject({ kind: 'open', text: '3', tip: '3 open pickups' });
-    expect(rows[1]!.cells.pickups).toMatchObject({ kind: 'done', text: '✓' });
+    expect(rows[1]!.cells.pickups).toMatchObject({ kind: 'done', text: '0', tip: 'No open pickups' });
   });
 
   it('says the count is project-wide when no per-chapter source answers', () => {
