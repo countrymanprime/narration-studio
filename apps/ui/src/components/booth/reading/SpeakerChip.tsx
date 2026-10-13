@@ -2,9 +2,7 @@ import { useMemo, useState, type CSSProperties } from 'react';
 import { Listbox, type ListboxOption } from '../../primitives/Listbox';
 import { Popover } from '../../primitives/Popover';
 import { SearchField } from '../../primitives/SearchField';
-
-/** The speaker of a phrase that nothing attributes. */
-const UNKNOWN_SPEAKER = '?';
+import { UNKNOWN_SPEAKER } from './boothUnits';
 
 type Props = {
   /** The phrase this chip belongs to; passed back to `onSetSpeaker`. */
@@ -44,18 +42,18 @@ export function SpeakerChip({ phraseKey, speaker, confirmed, colour, speakers, o
       : 'border-dashed border-current bg-transparent text-[var(--spk-t,var(--text-muted))]';
 
   const trigger = (
-    <span
-      role="button"
-      tabIndex={0}
+    // native-control-ok: the chip sits inside running text, so Button's padded chrome does not fit it
+    <button
+      type="button"
       data-speaker-chip
       data-suggested={confirmed ? undefined : ''}
       aria-label={`Speaker ${speaker}. Change speaker`}
       style={style}
       onClick={(event) => event.stopPropagation()}
-      className={`mr-[0.7em] cursor-pointer rounded-[5px] border px-[0.6em] py-[0.2em] align-[0.55em] text-[0.34em] font-bold tracking-[0.12em] whitespace-nowrap uppercase ${tone}`}
+      className={`mr-[0.7em] inline cursor-pointer rounded-[5px] border px-[0.6em] py-[0.2em] align-[0.55em] text-[0.34em] leading-normal font-bold tracking-[0.12em] whitespace-nowrap uppercase ${tone}`}
     >
       {speaker}
-    </span>
+    </button>
   );
 
   const pick = (id: string) => {

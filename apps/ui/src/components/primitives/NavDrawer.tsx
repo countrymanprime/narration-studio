@@ -32,8 +32,8 @@ export function NavDrawer({ open, onClose, children }: { open: boolean; onClose:
       }}
     >
       <Drawer.Portal>
-        <Drawer.Backdrop data-nav-drawer-backdrop className="fixed inset-0 z-[70] bg-[var(--backdrop)]" />
-        <Drawer.Viewport className="fixed inset-0 z-[70] flex items-stretch justify-start">
+        <Drawer.Backdrop data-nav-drawer-backdrop className="fixed inset-0 z-[var(--z-dialog)] bg-[var(--backdrop)]" />
+        <Drawer.Viewport className="fixed inset-0 z-[var(--z-dialog)] flex items-stretch justify-start">
           <Drawer.Popup
             finalFocus={finalFocus}
             className="relative flex h-full w-[min(17rem,86vw)] [transform:translateX(var(--drawer-swipe-movement-x,0px))] flex-col bg-[var(--surface)] shadow-[var(--shadow-lg)] outline-none"

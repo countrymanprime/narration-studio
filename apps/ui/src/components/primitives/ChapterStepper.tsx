@@ -62,7 +62,7 @@ export function ChapterStepper({
           <span aria-hidden="true">▾</span>
         </BaseMenu.Trigger>
         <BaseMenu.Portal>
-          <BaseMenu.Positioner side="bottom" align="start" sideOffset={6} collisionPadding={8} className="z-[55]">
+          <BaseMenu.Positioner side="bottom" align="start" sideOffset={6} collisionPadding={8} className="z-[var(--z-popover)]">
             <BaseMenu.Popup className="max-h-80 min-w-[var(--anchor-width)] overflow-y-auto rounded-[0.4rem] border border-[var(--line-strong)] bg-[var(--surface)] p-[0.35rem] shadow-[var(--shadow-lg)] outline-none">
               <BaseMenu.RadioGroup value={value} onValueChange={(next) => onChange(String(next))}>
                 {items.map((item) => (

@@ -36,7 +36,7 @@ export function useRoomTone(port: { roomTone(mic: string): Promise<Measured<numb
   return { label: roomToneLabel(answer), ok: answer.ok };
 }
 
-type Mic = Pick<LevelsMenuProps, 'engine' | 'dawName' | 'reachable' | 'offReason' | 'device' | 'onDevice'>;
+type Mic = Pick<LevelsMenuProps, 'engine' | 'dawName' | 'reachable' | 'offReason' | 'device' | 'onDevice' | 'listen'>;
 
 /**
  * The Booth's footer (the mock's `bfoot`): the Record control from SN-O23 as a slot, the take timer, the Levels menu, why Record
@@ -48,6 +48,7 @@ export function BoothFooter({
   seconds,
   recording,
   why,
+  listenWhy,
   mic,
   roomTone,
   roomToneOk = false,
@@ -58,6 +59,8 @@ export function BoothFooter({
   seconds: number;
   recording: boolean;
   why?: string;
+  /** Why the text cannot follow the voice (no microphone, the session's error); the take itself is not affected. */
+  listenWhy?: string;
   mic: Mic;
   roomTone: string;
   roomToneOk?: boolean;
@@ -79,6 +82,11 @@ export function BoothFooter({
         {why ? (
           <span id="brec-why" className="text-sm text-[var(--text-muted)]">
             {why}
+          </span>
+        ) : null}
+        {listenWhy ? (
+          <span id="blisten-why" role="status" className="text-sm text-[var(--warn-text)]">
+            {listenWhy}
           </span>
         ) : null}
         <LevelsInline level={level} roomTone={roomTone} roomToneOk={roomToneOk} />
