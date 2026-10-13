@@ -1557,11 +1557,24 @@ describe('App shell mounts', () => {
       },
       subscribeJobEnded: (cb) => (listeners.add(cb as never), () => void listeners.delete(cb as never)),
     });
-    await openJumpFromHeader();
-    const field = await screen.findByRole('combobox', { name: 'Jump menu' });
-    fireEvent.change(field, { target: { value: 'Go to Chapter' } });
-    // The chapters slot answers after the shell has mounted; on a loaded CI runner that is past findAll's 1 s default.
-    const before = (await screen.findAllByRole('option', { name: /^Go to Chapter/ }, { timeout: 5000 })).length;
+    // The menu asks for its commands once per open, and the chapters slot answers after the shell has mounted (later still on a
+    // loaded runner), so a menu opened first never lists them: it is reopened until it does.
+    const button = await openJumpFromHeader();
+    let before = 0;
+    await waitFor(
+      async () => {
+        const field = await screen.findByRole('combobox', { name: 'Jump menu' });
+        fireEvent.change(field, { target: { value: 'Go to Chapter' } });
+        before = screen.queryAllByRole('option', { name: /^Go to Chapter/ }).length;
+        if (before === 0) {
+          fireEvent.keyDown(field, { key: 'Escape' });
+          await waitFor(() => expect(screen.queryByRole('combobox', { name: 'Jump menu' })).toBeNull());
+          fireEvent.click(button);
+        }
+        expect(before).toBeGreaterThan(0);
+      },
+      { timeout: 5000 },
+    );
     fail = true;
     vi.spyOn(console, 'error').mockImplementation(() => undefined);
     await act(async () => ended({ id: 'j', kind: 'manuscript_import', outcome: 'success', message: '', durationMs: 1 } as never));
