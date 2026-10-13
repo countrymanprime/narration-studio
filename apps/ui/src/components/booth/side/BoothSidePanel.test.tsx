@@ -55,6 +55,15 @@ function EscExit({ onExit }: { onExit: () => void }) {
 
 const panel = () => screen.getByLabelText('Side panel', { selector: 'aside' });
 
+// The panel scrolls inside the window (a drawer shorter than its sections at a narrow width), so a keyboard can reach it (axe: scrollable-region-focusable).
+describe('the panel scrolls from the keyboard', () => {
+  it('is a tab stop, since nothing inside it need be focusable', () => {
+    matchMedia(false);
+    render(<Harness />);
+    expect(panel().tabIndex).toBe(0);
+  });
+});
+
 describe('voices nearby and the numbers', () => {
   it('lists the voices nearby with their Story Bible voice note, coming-up words and the session numbers', () => {
     matchMedia(false);
