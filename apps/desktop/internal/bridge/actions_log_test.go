@@ -67,3 +67,49 @@ func TestARefusedByTheGateCommandIsNotLogged(t *testing.T) {
 		t.Fatalf("logged %d lines", logged)
 	}
 }
+
+// A command the narrator's own request cancels leaves a line saying so, and failureKind words each error the host names for itself.
+func TestACancelledCommandIsLoggedAndFailuresAreNamedByKind(t *testing.T) {
+	actions, client, dir := newActionsSession(t, true)
+	var lines []string
+	client.SetLog(func(kind, message string) { lines = append(lines, kind+": "+message) })
+	startFakeReaper(t, client, dir, func([]string) [][]string { return nil })
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+	if _, err := actions.RecordStop(ctx); !errors.Is(err, context.Canceled) {
+		t.Fatalf("RecordStop: %v, want context.Canceled", err)
+	}
+	if len(lines) != 1 || !strings.Contains(lines[0], "record_stop") || !strings.HasSuffix(lines[0], "cancelled") {
+		t.Fatalf("lines = %q", lines)
+	}
+
+	for _, c := range []struct {
+		err  error
+		want string
+	}{
+		{&RefusalError{Sentence: "Track \"Alice\" is locked."}, "error (the script's own sentence, not logged)"},
+		{ErrRollStopped, "error: " + ErrRollStopped.Error()},
+		{ErrRecording, "error: " + ErrRecording.Error()},
+		{errors.New("Track \"Alice\" is gone"), "error"},
+	} {
+		if got := failureKind(c.err); got != c.want {
+			t.Errorf("failureKind(%v) = %q, want %q", c.err, got, c.want)
+		}
+	}
+	if got := (&TrackStaleError{}).Error(); got == "" {
+		t.Error("TrackStaleError has no sentence")
+	}
+}
+
+func TestPercentDecodeReadsEscapesAndRefusesBadOnes(t *testing.T) {
+	for in, want := range map[string]string{"plain": "plain", "%41%7a%4F": "AzO", "a%20b": "a b"} {
+		if got, err := percentDecode(in); err != nil || got != want {
+			t.Errorf("percentDecode(%q) = %q, %v; want %q", in, got, err, want)
+		}
+	}
+	for _, in := range []string{"%", "%4", "%zz", "%4G", "%G4"} {
+		if _, err := percentDecode(in); err == nil {
+			t.Errorf("percentDecode(%q) accepted a bad escape", in)
+		}
+	}
+}
