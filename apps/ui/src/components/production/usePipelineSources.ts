@@ -5,6 +5,8 @@ import { usePort } from '../../ports/usePort';
 import { fileOf } from '../master/chapterFile';
 import { fileVerdict } from '../master/fileVerdict';
 import { CREDITS_FILE_CHAPTERS } from '../credits/creditsEntries';
+import type { NextUpInputs } from './pipeline/nextUpRanking';
+import { failingChapter } from './pipeline/nextUpSources';
 import type { PipelineSources } from './pipeline/pipelineRows';
 
 type Proof = NonNullable<PipelineSources['proof']>;
@@ -42,14 +44,15 @@ function masterByChapter(chapters: readonly Pick<ManuscriptChapter, 'id' | 'titl
 /**
  * The Proof and Master cells' sources for the pipeline, read through the ports the Proof and Master & QC pages use. A source the host
  * cannot answer, or that has no reading for a chapter, stays absent so its cell reads "Not measured yet" (ADR 0015). It reads again when
- * `refreshKey` changes.
+ * `refreshKey` changes. `failing` is Next up's first chapter that fails the delivery check, from the same measured files.
  */
-export function usePipelineSources(active: boolean, refreshKey: string): Pick<PipelineSources, 'proof' | 'master'> {
+export function usePipelineSources(active: boolean, refreshKey: string): Pick<PipelineSources, 'proof' | 'master'> & { failing: NextUpInputs['failing'] } {
   const findings = usePort('findings');
   const measure = usePort('measure');
   const manuscript = usePort('manuscript');
   const [proof, setProof] = useState<Proof>();
   const [master, setMaster] = useState<Master>();
+  const [failing, setFailing] = useState<NextUpInputs['failing']>(null);
 
   useEffect(() => {
     if (!active) return;
@@ -59,13 +62,22 @@ export function usePipelineSources(active: boolean, refreshKey: string): Pick<Pi
       () => live && setProof(undefined),
     );
     Promise.all([measure.measureState(), manuscript.manuscriptChapters()]).then(
-      ([job, chapters]) => live && setMaster(job.files.length ? masterByChapter([...chapters, ...CREDITS_FILE_CHAPTERS], job.files) : undefined),
-      () => live && setMaster(undefined),
+      ([job, chapters]) => {
+        if (!live) return;
+        const paired = [...chapters, ...CREDITS_FILE_CHAPTERS];
+        setMaster(job.files.length ? masterByChapter(paired, job.files) : undefined);
+        setFailing(failingChapter(paired, job.files, job.profile ?? null));
+      },
+      () => {
+        if (!live) return;
+        setMaster(undefined);
+        setFailing(null);
+      },
     );
     return () => {
       live = false;
     };
   }, [active, refreshKey, findings, measure, manuscript]);
 
-  return { proof, master };
+  return { proof, master, failing };
 }

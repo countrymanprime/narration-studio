@@ -19,7 +19,7 @@ export const leftToCheck = (file: MeasureFileResult): number =>
   file.rules.filter((result) => result.status === 'not_checked' || result.status === 'not_measurable').length;
 
 /** A rule's value with its unit, as a sentence writes it: "−57.8 dBFS", "48 kHz", "2:04:10". */
-function valueWithUnit(rule: DeliveryRule, value: number): string {
+export function valueWithUnit(rule: Pick<DeliveryRule, 'metric' | 'unit'>, value: number): string {
   const text = formatRuleValue(rule, value);
   return rule.unit && rule.metric !== 'duration_seconds' && rule.metric !== 'sample_rate' ? `${text} ${rule.unit}` : text;
 }

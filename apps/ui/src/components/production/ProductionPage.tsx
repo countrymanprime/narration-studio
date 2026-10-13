@@ -31,6 +31,7 @@ import { WeekCard } from './overview/WeekCard';
 import { DawBanner } from './pipeline/DawBanner';
 import { NextUp } from './pipeline/NextUp';
 import { NoManuscript } from './pipeline/NoManuscript';
+import { pickupChapters } from './pipeline/nextUpSources';
 import { PageHeader } from './pipeline/PageHeader';
 import { PipelineTable } from './pipeline/PipelineTable';
 import { pipelineChapters } from './pipeline/pipelineChapters';
@@ -255,7 +256,8 @@ export function ProductionPage({
   // Open lines per chapter from the Pickups list, so a chapter's Pickups cell and the tile above add up. Nothing is claimed until the list is read.
   const pickupsByChapter = openLines ? Object.fromEntries(narrated.map((c) => [c.id, openLines.filter((line) => line.chapterId === c.id).length])) : undefined;
   const rows = buildPipelineRows(pipelineRows, {
-    ...pipelineSources,
+    proof: pipelineSources.proof,
+    master: pipelineSources.master,
     pickups: pickupsByChapter,
     // Only a credits row's Prep is read (its template's tokens); a chapter's Prep stays "Not measured yet" until a source says.
     prep: Object.fromEntries([entries.opening, entries.closing].flatMap((entry) => (entry ? [[entry.id, entry.prep] as const] : []))),
@@ -367,8 +369,8 @@ export function ProductionPage({
                               : null,
                         }
                       : null,
-                    pickups: openPickups > 0 ? { lines: openPickups, chapters: ['across the book'] } : null,
-                    failing: null,
+                    pickups: openPickups > 0 ? { lines: openPickups, chapters: pickupChapters(openLines ?? [], nameOf) } : null,
+                    failing: pipelineSources.failing,
                     changed: null,
                   }}
                   record={record}
