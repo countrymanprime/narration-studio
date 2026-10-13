@@ -117,6 +117,8 @@ export const proofDrivers: Record<string, Driver> = {
     await inspector(page)
       .getByRole('textbox', { name: /Note with the decision/ })
       .fill('Heard it twice; the second read is right.');
+    // The Inspector is taller than the window with its thread; the banner is the state, so it is what the capture shows.
+    await inspector(page).getByText('The evidence changed', { exact: true }).scrollIntoViewIfNeeded();
   },
   empty: async (page) => {
     await openProof(page, 'mockFindings=empty', false);
