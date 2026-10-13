@@ -158,8 +158,8 @@ func (a *Actions) request(ctx context.Context, command string, closing []string,
 	}
 }
 
-// logFailure writes one host-log line for a command sent that failed, with its run ID: the Lua bridge logs the same run under that ID
-// in bridge.jsonl (ADR 0253), so the two can be read together.
+// logFailure writes one host-log line for a command sent that failed, with its run ID: the command's first argument, which every event
+// the script answers it with carries too, so the line can be matched with the session folder's events.log.
 func (a *Actions) logFailure(command, runID, kind string) {
 	a.client.report("reaper_action_failed", fmt.Sprintf("%s run %s: %s", command, runID, kind))
 }

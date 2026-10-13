@@ -10,7 +10,7 @@ import (
 )
 
 // A bridge command that fails (no answer, an ERROR, a refusal) leaves one host-log line naming the command and its run ID, the ID
-// the Lua bridge logs the same run under in bridge.jsonl (ADR 0253), so a narrator's "Record did nothing" can be traced. The line
+// every event answering it carries in the session's events.log, so a narrator's "Record did nothing" can be traced. The line
 // carries the failure's kind, never the answer's text, which can hold a track's or a file's name.
 func TestAFailedCommandIsLoggedWithItsRunID(t *testing.T) {
 	actions, client, dir := newActionsSession(t, true)
