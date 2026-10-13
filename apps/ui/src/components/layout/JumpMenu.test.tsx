@@ -189,6 +189,17 @@ describe('JumpMenu', () => {
     expect(field().getAttribute('aria-activedescendant')).toBeNull();
   });
 
+  it('jump-menu-dismisses-on-outside-click: a press on the backdrop closes it, a press inside does not', async () => {
+    provide(...GO_TO);
+    const { open } = mount();
+    const user = userEvent.setup();
+    act(() => void open());
+    await user.click(field());
+    expect(screen.getByRole('dialog', { name: 'Jump menu' })).toBeTruthy();
+    await user.click(document.querySelector('[data-dialog-backdrop]') as HTMLElement);
+    expect(screen.queryByRole('dialog', { name: 'Jump menu' })).toBeNull();
+  });
+
   it('open-is-synchronous: the first list is in the DOM in the same act as the open call', () => {
     provide(...GO_TO);
     const { open } = mount();
