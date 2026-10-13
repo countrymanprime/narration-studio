@@ -39,7 +39,7 @@ import { NeedManuscript } from '../../layout/NeedManuscript';
 import { RAIL_LABEL, RailPanel, type RailTab } from './layout/RailPanel';
 import { ScriptColumns } from './layout/ScriptColumns';
 import { ScriptCredits } from './layout/ScriptCredits';
-import { creditsRows } from './chapters/creditsRows';
+import { creditsRows } from '../../credits/creditsRows';
 import { SpeakerLayer } from './layout/SpeakerLayer';
 import { useDeepLink } from './layout/useDeepLink';
 import { scriptKeyHints } from './layout/scriptKeyHints';
@@ -360,7 +360,7 @@ function ScriptWorkspace({
   /* ---------- The chapter list's credits rows ---------- */
 
   // The mock lists the opening credits above chapter 1 and the closing credits after the last chapter, each with its prep dot; here they
-  // are the cards the reader draws in the same places (`chapters/creditsRows.ts`).
+  // are the cards the reader draws in the same places (`credits/creditsRows.ts`).
   const ownsOpening = chapters.some((chapter) => chapter.contentKind === 'opening');
   const { opening: openingRow, closing: closingRow } = useMemo(
     () => creditsRows({ hasOpening: credits.hasOpening, hasClosing: credits.hasClosing, ownsOpening, previews: credits.previews }),

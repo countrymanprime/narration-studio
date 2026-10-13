@@ -40,6 +40,8 @@ function mount(
 ) {
   const api = createMockApi({
     manuscriptChapters: async () => CHAPTERS,
+    // No credits templates unless a test brings them: the rows below are the chapters'.
+    creditsTemplates: async () => [],
     measureState: async () => measureJob(files),
     exportState: async () => exported,
     packageState: async () => IDLE,
@@ -112,6 +114,37 @@ describe('DeliveryPage', () => {
         expect(rows[i]!.getAttribute('aria-label'), `${style} ${i + 1}`).toBe(`${name}: Not mastered. Open in Master & QC`);
       });
     }
+  });
+
+  // Issue 1705: the credits are deliverable files, listed with the chapters and counted in "n of N" as the mock does.
+  describe('the credits rows', () => {
+    const TEMPLATES = [
+      { id: 'o', kind: 'opening', name: 'Standard opening', body: 'x' },
+      { id: 'c', kind: 'closing', name: 'Standard closing', body: 'x' },
+    ];
+    const rowNames = () => screen.getAllByRole('button', { name: /Open in Master & QC/ }).map((row) => row.getAttribute('aria-label')?.split(':')[0]);
+
+    it('lists the opening credits first and the closing credits last, and counts them', async () => {
+      mount([...PASSING, passing('Opening credits.wav')], { creditsTemplates: async () => TEMPLATES });
+      await screen.findByText('5 of 6');
+      expect(rowNames()).toEqual(['Opening credits', 'Chapter 01', 'Chapter 02', 'Chapter 03', 'Chapter 04', 'Closing credits']);
+      expect(screen.getByRole('button', { name: 'Opening credits: Pass. Open in Master & QC' })).toBeTruthy();
+      expect(screen.getByRole('button', { name: 'Closing credits: Not mastered. Open in Master & QC' })).toBeTruthy();
+    });
+
+    it('holds the build until the credits files pass too', async () => {
+      mount(PASSING, { creditsTemplates: async () => TEMPLATES });
+      await screen.findByText('4 of 6');
+      expect(await screen.findByText('0 failing, 2 not ready')).toBeTruthy();
+      expect(screen.getByRole('button', { name: /Build .* package/ })).toHaveProperty('disabled', true);
+    });
+
+    it('draws a kind the library has no template for as no row', async () => {
+      mount(PASSING, { creditsTemplates: async () => [TEMPLATES[1]!] });
+      await screen.findByText('4 of 5');
+      expect(rowNames().at(-1)).toBe('Closing credits');
+      expect(rowNames()[0]).toBe('Chapter 01');
+    });
   });
 
   it('shows a failed package build', async () => {

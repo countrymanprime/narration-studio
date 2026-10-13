@@ -1,5 +1,8 @@
 import { useEffect, useState } from 'react';
-import type { ChapterStatus, CreditTemplate, NarrationApi, RecordedUnavailable } from '../../types';
+import type { CreditsRenderResult } from '../../api/contracts/credits';
+import type { SystemApi } from '../../api/contracts/system';
+import { usePort } from '../../ports/usePort';
+import type { ChapterStatus, CreditTemplate, RecordedUnavailable } from '../../types';
 import { estimateCreditsSeconds, roomToneSeconds } from '../../state';
 
 // The one template of a kind (ADR 0093): the first in the library.
@@ -7,9 +10,9 @@ const firstOfKind = (templates: CreditTemplate[], kind: string) => templates.fin
 
 // The room tone setting (General > "Room tone per credits file"): a secondary
 // read, 0 when it cannot be read.
-async function readRoomTone(api: NarrationApi): Promise<number> {
+async function readRoomTone(system: SystemApi): Promise<number> {
   try {
-    const settings = await api.settingsForScope('global');
+    const settings = await system.settingsForScope('global');
     return roomToneSeconds(settings.General?.find((field) => field.key === 'credits_room_tone_seconds')?.effectiveValue);
   } catch {
     return 0;
@@ -24,6 +27,8 @@ export type CreditsRow = {
   words?: number;
   estimatedSeconds?: number;
   unresolved: string[];
+  /** The template rendered: the Prepped dot of the chapter lists reads its unresolved tokens (`creditsRows`). */
+  preview?: CreditsRenderResult;
   status: ChapterStatus;
   /** The row's confirmed track's recorded audio in the saved project, in seconds: the same never-an-estimate measurement a manuscript chapter's own Recorded column shows (ADR 0193). */
   recordedSeconds?: number;
@@ -41,33 +46,35 @@ export type CreditsRow = {
  * suggestions - credits are not assessed by the stage engine) and updates the row in place on success.
  */
 export function useCreditsRows(
-  api: NarrationApi,
   refreshKey: string | undefined,
   onError: (error: unknown) => void,
 ): { rows?: Record<CreditsKind, CreditsRow>; setStatus: (kind: CreditsKind, status: ChapterStatus) => Promise<void> } {
+  const credits = usePort('credits');
+  const system = usePort('system');
   const [rows, setRows] = useState<Record<CreditsKind, CreditsRow>>();
   useEffect(() => {
     let active = true;
     (async () => {
       try {
         const [templates, statuses, roomTone, recordedLengths] = await Promise.all([
-          api.creditsTemplates(),
-          api.creditsStatuses(),
-          readRoomTone(api),
-          api.creditsRecordedLengths(),
+          credits.creditsTemplates(),
+          credits.creditsStatuses(),
+          readRoomTone(system),
+          credits.creditsRecordedLengths(),
         ]);
         const build = async (kind: CreditsKind): Promise<CreditsRow> => {
           const status = (statuses[kind] as ChapterStatus | undefined) ?? 'not_started';
           const recorded = recordedLengths[kind];
           const template = firstOfKind(templates, kind);
           if (!template) return { kind, unresolved: [], status, ...recorded };
-          const preview = await api.creditsPreview(template.body);
+          const preview = await credits.creditsPreview(template.body);
           return {
             kind,
             template,
             words: preview.words,
             estimatedSeconds: estimateCreditsSeconds([preview.words], roomTone),
             unresolved: preview.unresolved,
+            preview,
             status,
             ...recorded,
           };
@@ -81,10 +88,10 @@ export function useCreditsRows(
     return () => {
       active = false;
     };
-  }, [api, refreshKey]);
+  }, [credits, system, refreshKey]);
   const setStatus = async (kind: CreditsKind, status: ChapterStatus) => {
     try {
-      await api.setCreditsStatus(kind, status);
+      await credits.setCreditsStatus(kind, status);
       setRows((current) => (current ? { ...current, [kind]: { ...current[kind], status } } : current));
     } catch (error) {
       onError(error);

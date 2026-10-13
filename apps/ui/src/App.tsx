@@ -30,6 +30,7 @@ import { useBoothRecording } from './components/booth/useBoothRecording';
 import { ConfirmDialog } from './components/primitives/ConfirmDialog';
 import { ShortcutSheet } from './components/help/ShortcutSheet';
 import { ScriptPage } from './components/script/page/ScriptPage';
+import { creditsKindOfId } from './components/credits/creditsEntries';
 import { NeedManuscript } from './components/layout/NeedManuscript';
 import { ProjectPicker } from './components/project/ProjectPicker';
 import { Guide } from './components/storybible/Guide';
@@ -654,7 +655,12 @@ function AppRoutes() {
                       notify={setNotice}
                       goToScript={goToScript}
                       goToEditing={goToEditing}
-                      goToBooth={(chapterId) => (chapterId ? goToBooth({ chapter: chapterId }) : guardedNavigate('/booth'))}
+                      goToBooth={(chapterId) => {
+                        const credits = chapterId ? creditsKindOfId(chapterId) : undefined;
+                        if (credits) goToBooth({ credits });
+                        else if (chapterId) goToBooth({ chapter: chapterId });
+                        else guardedNavigate('/booth');
+                      }}
                       refreshBootstrap={refreshBootstrap}
                       onOverview={onProductionOverview}
                     />

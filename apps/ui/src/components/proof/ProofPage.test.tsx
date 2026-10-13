@@ -73,6 +73,29 @@ describe('proof-route-draws-the-mock-page', () => {
     expect(within(hints).queryByText('Play')).toBeNull();
   });
 
+  // Issue 1705: the mock's strip runs "Open, 1 … N, Close"; the credits tiles have no number and, with no notes of their own, a dash.
+  it('draws the strip as Open, the chapters and Close, the credits tiles unnumbered', async () => {
+    renderPage();
+    await noteRows();
+    const strip = await screen.findByRole('group', { name: 'Open notes by chapter' });
+    await waitFor(() => expect(within(strip).getAllByRole('button')[0].getAttribute('aria-label')).toBe('Opening credits: no notes'));
+    const tiles = within(strip).getAllByRole('button');
+    expect(tiles.at(-1)?.getAttribute('aria-label')).toBe('Closing credits: no notes');
+    expect(tiles[0].textContent).toBe('Open—');
+    expect(tiles.at(-1)?.textContent).toBe('Close—');
+    expect(tiles[1].textContent?.startsWith('1')).toBe(true);
+  });
+
+  it('opens the credits card in Script from a credits tile, since Proof has no chapter view for them', async () => {
+    const { goTo } = renderPage();
+    await noteRows();
+    const strip = await screen.findByRole('group', { name: 'Open notes by chapter' });
+    await waitFor(() => expect(within(strip).getAllByRole('button')[0].getAttribute('aria-label')).toBe('Opening credits: no notes'));
+    fireEvent.click(within(strip).getAllByRole('button')[0]);
+    expect(goTo).toHaveBeenCalledWith('/script#credits-opening');
+    expect(where()).toBe('/proof');
+  });
+
   it('the key hints sit at the bottom of the scrolling page', async () => {
     renderPage();
     await noteRows();

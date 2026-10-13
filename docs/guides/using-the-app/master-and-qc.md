@@ -144,7 +144,8 @@ approval.
 ![The ACX profile's rules and their sources](../../images/ui/master-profile-rules.webp)
 
 **Before you build**, on the right, counts the chapters passing and lists each chapter, named as the
-manuscript's headings name it, with **Pass**, **Fails N checks**, or **Not mastered**; pressing one opens
+manuscript's headings name it, with the opening credits first and the closing credits last (each judged by its own
+file, "Opening credits.wav"), with **Pass**, **Fails N checks**, or **Not mastered**; pressing one opens
 Master & QC. In **Output**, **Build ACX
 package** (named for the profile) builds the package once every chapter passes, from the files mastered
 and encoded in Master & QC; until then it says how many chapters fail and how many are not ready, or that

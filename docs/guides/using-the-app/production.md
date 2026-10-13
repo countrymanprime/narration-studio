@@ -112,12 +112,14 @@ bring it back with its status and any notes intact.
 
 ### The credits
 
-**Opening credits** and **Closing credits**, in the **Credits** panel below the pipeline, are not
-chapters, but the first opening and first closing template in [Settings, Credits](settings.md#credits),
-each with its own status. **Open** shows the template's name, words and estimated length (including
+**Opening credits** and **Closing credits** are the first and last rows of the pipeline, before chapter 1 and
+after the last chapter. They are not chapters, but the first opening and first closing template in
+[Settings, Credits](settings.md#credits), each with its own status; a manuscript that brings its own opening-credits chapter
+lists that chapter in the opening row's place. Prep is a tick once no token is left to fill in, Record,
+Edit and Proof follow the row's status, and a stage nothing measures yet is a dash. Right-click a credits row for **Credits…**, which shows the template's name, words and estimated length (including
 room tone), a warning for an unresolved token (`[Author]` never filled in), **Open in Script**, its
 Recorded length (once its own track is linked - never an estimate), its status and a **Recording
-check** button. A missing template reads "Not set up" with a link to [Settings, Credits](settings.md#credits).
+check** button. A kind with no template has no row; add one in [Settings, Credits](settings.md#credits).
 Checking credits works the same as [checking a chapter's recording](#checking-a-chapters-recording)
 below, against the credits template's rendered text rather than a manuscript chapter.
 

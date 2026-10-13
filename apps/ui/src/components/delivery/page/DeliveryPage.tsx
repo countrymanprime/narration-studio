@@ -2,11 +2,13 @@ import { useCallback, useEffect, useState } from 'react';
 import { apiErrorMessage } from '../../../api/errorMessage';
 import { usePort } from '../../../ports/usePort';
 import { DeliveryProfilePanel } from '../../master/DeliveryProfilePanel';
+import { creditsEntries } from '../../credits/creditsEntries';
+import { useCreditsRows } from '../../credits/useCreditsRows';
 import { NeedManuscript } from '../../layout/NeedManuscript';
 import { Heading } from '../../primitives/Heading';
 import type { DeliveryProfile, ManuscriptChapter, MeasureFileResult } from '../../../types';
 import { ProfileCard } from '../profile/ProfileCard';
-import { chapterStates, readiness } from './chapterStates';
+import { chapterStates, listedChapters, readiness } from './chapterStates';
 import { OutputPanel } from './OutputPanel';
 import { Preflight } from './Preflight';
 import { useBuildPackage } from './useBuildPackage';
@@ -34,6 +36,8 @@ export function DeliveryPage({
   const [profile, setProfile] = useState<DeliveryProfile>();
   const [built, setBuilt] = useState(true);
   const build = useBuildPackage(profile);
+  // The credits files are deliverables: the opening before chapter 1, the closing after the last, judged like a chapter.
+  const credits = useCreditsRows(undefined, (error) => setProblem(`The credits could not be read: ${apiErrorMessage(error)}`));
 
   useEffect(() => {
     if (!hasManuscript) return;
@@ -60,7 +64,11 @@ export function DeliveryPage({
 
   if (!hasManuscript) return <NeedManuscript title="Delivery" onImport={onImport} />;
 
-  const states = chapterStates(chapters, files);
+  const entries = creditsEntries(
+    credits.rows,
+    chapters.some((chapter) => chapter.contentKind === 'opening'),
+  );
+  const states = chapterStates(listedChapters(chapters, entries), files);
   const { ready, text } = readiness(states);
   return (
     <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_20rem]">

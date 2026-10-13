@@ -5,7 +5,7 @@ import { Button } from '../primitives/Button';
 import { Select } from '../primitives/Select';
 import { SlideOver } from '../primitives/SlideOver';
 import { formatLength } from './productionFormat';
-import type { CreditsRow } from './useCreditsRows';
+import type { CreditsRow } from '../credits/useCreditsRows';
 
 const MUTED = { color: 'var(--text-muted)' };
 
