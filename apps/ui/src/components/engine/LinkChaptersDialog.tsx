@@ -154,6 +154,7 @@ export function LinkChaptersDialog({ chapters, tracks, onClose }: { chapters: Ma
 
   return (
     <Dialog
+      dismissOnOutsidePress={false}
       title="Link chapters to REAPER"
       onClose={running ? undefined : onClose}
       escapeCloses={!running}

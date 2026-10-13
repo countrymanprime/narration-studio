@@ -101,6 +101,7 @@ export function CreditsSetupDialog({
 
   return (
     <Dialog
+      dismissOnOutsidePress={false}
       title="Set up the credits"
       description={`Your opening and closing credits need ${fieldCount} value${fieldCount === 1 ? '' : 's'}. We filled in what the manuscript already says; check them and save.`}
       onClose={() => void notNow()}

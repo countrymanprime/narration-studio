@@ -19,14 +19,14 @@ function Layer({ entry }: { entry: DialogEntry }) {
       />
     );
   }
-  const { title, render, headerless, dismissOnOutsidePress } = entry.spec;
-  const content = render({ close: entry.close });
-  if (entry.kind === 'slideOver')
+  const content = entry.spec.render({ close: entry.close });
+  if (entry.spec.kind === 'slideOver')
     return (
-      <SlideOver open title={title} onClose={entry.close}>
+      <SlideOver open title={entry.spec.title} onClose={entry.close}>
         {content}
       </SlideOver>
     );
+  const { title, headerless, dismissOnOutsidePress } = entry.spec;
   return (
     <Dialog title={title} headerless={headerless} dismissOnOutsidePress={dismissOnOutsidePress} onClose={entry.close} actions={null}>
       {content}

@@ -99,6 +99,7 @@ export function useCutWords({ journal, chapterId, chapterName, cuts, locator, on
       const snap = (at: number) => snapEnd(alignment, chapterId, locator, at);
       overlay.open({
         kind: 'dialog',
+        dismissOnOutsidePress: false,
         title: cutTitle(sum.audible.length, mute),
         render: ({ close }) => (
           <CutDialog

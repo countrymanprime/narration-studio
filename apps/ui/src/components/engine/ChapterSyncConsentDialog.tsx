@@ -25,6 +25,7 @@ export function ChapterSyncConsentDialog({
   const notChapters = preview ? chapterSyncNotChaptersText(preview.unmatched, preview.pickupTracks) : undefined;
   return (
     <Dialog
+      dismissOnOutsidePress={false}
       title="Sync chapters to tracks?"
       variant="alert"
       description={`${projectFile} is now linked. The app can tie each chapter to its REAPER track by name, and keep them in step as you add tracks. It only reads the saved project; nothing in REAPER changes. Chapters you linked yourself are kept.`}

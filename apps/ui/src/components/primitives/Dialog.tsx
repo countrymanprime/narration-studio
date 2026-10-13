@@ -24,9 +24,11 @@ type DialogProps = {
   // Draws no header row and no Close button, for a surface whose first row is its own field (the jump menu, D98). The title
   // still names the dialog, visually hidden; Escape closes through `onClose` or `onEscape`. The body has no padding.
   headerless?: boolean;
-  // A press on the backdrop (or anywhere outside the popup) calls `onClose`. Only for a transient picker with nothing to lose, the
-  // jump menu; a form, a confirm or a job stays put (ADR 0048), so it is off by default.
-  dismissOnOutsidePress?: boolean;
+  // Whether a press on the backdrop (or anywhere outside the popup) calls `onClose`. Required, so each dialog decides (issue 1706):
+  // true for reference or transient surfaces with nothing to lose (the shortcut sheet, a detail view, a picker that applies each
+  // choice at once, the jump menu); false for a confirm, a form with input, or a job, where a stray click must not discard
+  // anything (ADR 0048). A dialog with no `onClose` (work in flight) never dismisses either way.
+  dismissOnOutsidePress: boolean;
   // null when there is nothing to press (a running job that cannot be cancelled): no empty action row is drawn.
   actions: ReactNode;
   // WorkDialog only ever shows one action at a time - 'between' would strand
@@ -52,8 +54,8 @@ const hasContent = (node: ReactNode): boolean => node !== undefined && node !== 
 // wrapper owns the policy on top of it:
 // - Escape closes a dialog that has somewhere to go (`onClose`, or `onEscape` when there is no header button) and is
 //   ignored otherwise or when `escapeCloses` is false, so work in flight is never dismissed by a stray key.
-// - A press on the backdrop never closes it, unless the dialog opts in with `dismissOnOutsidePress` (the jump menu): an accidental
-//   click on the scrim must not discard a confirm or a form.
+// - A press on the backdrop closes it only when the dialog says so with `dismissOnOutsidePress` (a reference sheet, a picker, the jump
+//   menu); a confirm, a form or a job says false, so an accidental click on the scrim cannot discard it.
 // - Focus lands on the body region (so a screen reader reads the message first) unless a child asked for focus with
 //   `autoFocus`, and returns to the element that opened the dialog, or into the page's <main> when that is gone.
 // Dialogs are mounted conditionally (`{open && <Dialog />}`), so `open` is always true here and the parent's unmount is
@@ -67,7 +69,7 @@ export function Dialog({
   variant = 'dialog',
   size = 'default',
   headerless = false,
-  dismissOnOutsidePress = false,
+  dismissOnOutsidePress,
   actions,
   actionsAlign = 'between',
   footer,

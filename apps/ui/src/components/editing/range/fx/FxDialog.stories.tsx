@@ -29,7 +29,7 @@ const list = {
 /** The question as the overlay draws it: the Dialog primitive with the dialog's own body and buttons. */
 function Question({ plan, over = null }: { plan: Acting; over?: string | null }) {
   return (
-    <Dialog title={fxTitle(2)} onClose={fn()} actions={null}>
+    <Dialog dismissOnOutsidePress={false} title={fxTitle(2)} onClose={fn()} actions={null}>
       <FxDialog
         doc={doc}
         keys={keys}
