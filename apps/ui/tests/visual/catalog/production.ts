@@ -311,7 +311,8 @@ export const productionStates: StateEntry[] = [
     page: 'production',
     state: 'credits-closing-not-set-up',
     description:
-      'Production with no closing template in the library (?mockCreditsMissing=1): the pipeline has the Opening credits row and no Closing credits row (the template is added in Settings > Credits)',
+      'Production with no closing template in the library (?mockCreditsMissing=1): the pipeline has the Opening credits row and no Closing credits row (the template is added in Settings > Credits), scrolled to the foot of the pipeline',
+    ...KEEPS_DESKTOP_SCROLL,
   },
   {
     page: 'production',

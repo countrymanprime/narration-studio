@@ -99,6 +99,11 @@ export const masterStates: StateEntry[] = [
     page: 'master',
     state: 'report-needs-files',
     description: 'Master & QC, before anything was checked - Export report is off and says to check some files first (scrolled to the Report panel)',
+    sameAs: {
+      of: 'master/multi-export-empty',
+      reason: 'Both are scrolled to the end of the one-column page, where the Report and Multi-platform export panels sit together',
+      viewports: ['small-desktop', 'tablet'],
+    },
     ...KEEPS_DESKTOP_SCROLL,
   },
   // Master & QC, "Master all to spec…" (no mock equivalent, kept as built)

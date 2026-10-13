@@ -320,5 +320,7 @@ export const productionDrivers: Record<string, Driver> = {
     // A kind with no template has no row: the pipeline ends at the last chapter, the opening credits still before the first.
     await page.getByRole('button', { name: /^Opening credits: Prep / }).waitFor();
     await page.getByRole('button', { name: /^Closing credits: / }).waitFor({ state: 'detached' });
+    // The difference is at the foot of the pipeline, below the fold at the first viewport: show it.
+    await page.getByRole('table', { name: 'Chapter pipeline' }).getByRole('row').last().scrollIntoViewIfNeeded();
   },
 };
