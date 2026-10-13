@@ -230,6 +230,8 @@ export function useFxWords({ journal, chapterId, chapterName, effects, cuts, loc
     () => ({
       match: (target) => target.closest('[data-fx-anchor]') !== null,
       items: () => latest.current.itemsOf(latest.current.selected, null),
+      // A list of effects, not a page menu: the search items belong to the right-click menu.
+      tail: false,
     }),
     [],
   );

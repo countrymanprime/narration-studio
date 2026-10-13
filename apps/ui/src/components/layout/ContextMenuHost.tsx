@@ -1,7 +1,7 @@
 import { useRef, useState } from 'react';
 import type { MouseEvent, ReactNode } from 'react';
 import { ContextMenu, type ContextMenuItem } from '../primitives/ContextMenu';
-import { contextItemsFor } from '../../registries/context';
+import { contextItemsFor, contextTailFor } from '../../registries/context';
 
 // Elements whose own menu (cut, copy, paste, spelling) the user needs; the host leaves them to the browser.
 const TEXT_FIELDS = 'input,textarea,select,[contenteditable]:not([contenteditable="false"])';
@@ -12,7 +12,7 @@ type SwitchableEvent = MouseEvent & { preventBaseUIHandler?: () => void };
 /**
  * The one context menu of the shell: wraps the content of `<main>` in the `ContextMenu` primitive and fills it from the
  * registered providers when it opens (ADR 0780 decision 5). The first provider that matches the target supplies the items,
- * then `tail` follows; with no provider, `fallback` (the shell's empty-space menu) answers; with neither the browser's menu
+ * then `tail` follows (unless the provider opts out with `tail: false`, as a picker does); with no provider, `fallback` (the shell's empty-space menu) answers; with neither the browser's menu
  * is left alone, as it always is in a text field. The Menu key and Shift+F10 reach it as a `contextmenu` event on the
  * focused element, so it binds no key and listens to nothing on `document`.
  */
@@ -68,8 +68,9 @@ export function ContextMenuHost({
       }
     }
 
-    const matched = contextItemsFor(hit) ?? fallback?.(hit);
-    const next = matched ? [...matched, ...tail] : [];
+    const provided = contextItemsFor(hit);
+    const matched = provided ?? fallback?.(hit);
+    const next = matched ? [...matched, ...(provided && !contextTailFor(hit) ? [] : tail)] : [];
     if (next.length === 0) {
       leaveToBrowser(event);
       return;

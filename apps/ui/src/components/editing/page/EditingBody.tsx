@@ -405,7 +405,15 @@ export function EditingBody(props: EditingBodyProps) {
         const shown = line ? view(line) : null;
         const open = !!line && isOpen(pid);
         return (
-          <InHost key={pid} root={root} selector={rowOf(pid)} name={`under-${pid}`} className="col-start-2 flex flex-col items-start gap-2 pt-1" watch={doc}>
+          // What sits under a line is UI text (the mock's `.sx-tkw`, 13 px), not the 24 px reading size of the row it is drawn in.
+          <InHost
+            key={pid}
+            root={root}
+            selector={rowOf(pid)}
+            name={`under-${pid}`}
+            className="col-start-2 flex flex-col items-start gap-2 pt-1 text-[length:var(--font-size-sm)] leading-[1.4]"
+            watch={doc}
+          >
             {pid === current && doc.aligned ? <Ribbon chapterId={chapterId} pid={pid} /> : null}
             {flagPara && flagPid === pid && state.flag ? (
               <FlagCard
