@@ -66,12 +66,26 @@ export function sentenceRanges(text: string, start: number, end: number): Array<
   return ranges;
 }
 
+/** An offset inside a word moves past the end of that word and the space after it, as a sentence keeps its space; an offset between words stays. */
+export function snapToWordBoundary(text: string, offset: number): number {
+  const start = Math.max(0, Math.min(offset, text.length));
+  let at = start;
+  while (at > 0 && at < text.length && !/\s/.test(text[at - 1]) && !/\s/.test(text[at])) at += 1;
+  if (at === start) return at;
+  while (at < text.length && /\s/.test(text[at])) at += 1;
+  return at;
+}
+
 /** A narration paragraph with no quotation marks is not one jump: every phrase is cut into sentences. */
 export function boothUnits(paragraphs: readonly ReadingParagraph[]): BoothUnit[] {
   return paragraphs.flatMap((paragraph, paragraphIndex) => {
     const phrases = paragraph.phrases ?? [{ key: `${paragraph.id}:0`, start: 0, end: paragraph.text.length, quoted: false, speaker: '', confirmed: true }];
-    return phrases.flatMap((phrase) =>
-      sentenceRanges(paragraph.text, phrase.start, phrase.end).map(([start, end], k) => {
+    return phrases.flatMap((phrase) => {
+      // Speaker attribution and edited text can put a phrase offset inside a word; both ends snap the same way, so neighbours still meet.
+      const from = snapToWordBoundary(paragraph.text, phrase.start);
+      const to = snapToWordBoundary(paragraph.text, phrase.end);
+      if (to <= from && phrase.end > phrase.start) return [];
+      return sentenceRanges(paragraph.text, from, to).map(([start, end], k) => {
         const text = paragraph.text.slice(start, end);
         return {
           key: k === 0 ? phrase.key : `${phrase.key}#${start}`,
@@ -86,8 +100,8 @@ export function boothUnits(paragraphs: readonly ReadingParagraph[]): BoothUnit[]
           words: Math.max(1, wordCount(text)),
           cont: k > 0,
         };
-      }),
-    );
+      });
+    });
   });
 }
 

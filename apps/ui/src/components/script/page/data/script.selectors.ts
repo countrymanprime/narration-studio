@@ -35,6 +35,37 @@ export function markMessages(mark: Mark): MarkMessage[] {
 export const wordsInChapter = (words: readonly ScriptWord[], chapterId: string): ScriptWord[] =>
   words.filter((word) => word.flags.some((flag) => flag.chapterId === chapterId));
 
+/** One row of the Words tab: a word flagged in the chapter, or a Story Bible name found in its text. */
+export type ChapterWord = { word: string; say: string; source: string; status: WordStatus; fromBible: boolean };
+
+/**
+ * Every word the narrator will meet in a chapter with how it is said: the words flagged there, then the Story Bible names in its text
+ * that are not flagged (their pronunciation is the entry's, so Set or Not set follows it), each name once, in the order it first appears.
+ */
+export function chapterWords(
+  words: readonly ScriptWord[],
+  entries: readonly GuideEntity[],
+  chapterId: string,
+  paragraphs: readonly Pick<ManuscriptParagraph, 'text'>[],
+): ChapterWord[] {
+  const flagged: ChapterWord[] = wordsInChapter(words, chapterId).map(({ word, say, source, status }) => ({ word, say, source, status, fromBible: false }));
+  const seen = new Set(flagged.map((row) => row.word));
+  const rows: ChapterWord[] = [];
+  for (const paragraph of paragraphs) {
+    for (const mention of mentionsIn(entries, paragraph.text)) {
+      const key = wordKey(mention.text);
+      if (seen.has(key)) continue;
+      seen.add(key);
+      const entry = entries.find((row) => row.id === mention.entryId);
+      const named =
+        entry && (wordKey(entry.canonical_name) === key ? entry.pronunciation : entry.aliases.find((alias) => wordKey(alias.text) === key)?.pronunciation);
+      const say = named?.ipa.trim() ?? '';
+      rows.push({ word: mention.text, say, source: '', status: say ? 'set' : 'not_set', fromBible: true });
+    }
+  }
+  return [...flagged, ...rows];
+}
+
 /** The host's status of a word; a word the list lacks is not flagged. */
 export const pronStatus = (words: readonly ScriptWord[], text: string): WordStatus =>
   words.find((word) => word.word === wordKey(text))?.status ?? 'not_flagged';

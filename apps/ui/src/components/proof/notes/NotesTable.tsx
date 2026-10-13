@@ -3,7 +3,7 @@ import { Button } from '../../primitives/Button';
 import { StatusBadge, type StatusTone } from '../../primitives/StatusBadge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../primitives/Table';
 import { TooltipTarget } from '../../primitives/Tooltip';
-import { RESOLUTION_CHIP_CH, TYPE_CHIP_CH, groupByChapter, type NoteRow } from './noteRows';
+import { RESOLUTION_CHIP_CH, TYPE_CHIP_CH, TYPE_TONE, groupByChapter, type NoteRow } from './noteRows';
 
 /** A badge as wide as the longest word it can show, so a changed type or decision never moves the cells around it. */
 function FixedChip({ ch, tone, label, shape }: { ch: number; tone: StatusTone; label: string; shape?: 'tag' }) {
@@ -74,7 +74,7 @@ export function NotesTable({
     <TableRow key={row.id} selected={row.id === selectedId} onActivate={() => onSelect(row.id)}>
       <TableCell numeric>{row.time}</TableCell>
       <TableCell>
-        <FixedChip ch={TYPE_CHIP_CH} tone="neutral" shape="tag" label={row.type} />
+        <FixedChip ch={TYPE_CHIP_CH} tone={TYPE_TONE[row.type]} shape="tag" label={row.type} />
       </TableCell>
       <TableCell>
         <span className="[overflow-wrap:anywhere]">{[row.script, row.heard].filter(Boolean).join(' → ')}</span>

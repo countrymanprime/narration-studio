@@ -24,7 +24,7 @@ import { followSecond, MIN_WINDOW, type TimeWindow } from './frame/windowMath';
 import { Inspector } from './inspector/Inspector';
 import { TypeSelect } from './inspector/TypeSelect';
 import { NotesPanel } from './notes/NotesPanel';
-import { noteRow, queryFor, type NoteSort } from './notes/noteRows';
+import { inBookOrder, noteRow, queryFor, type NoteSort } from './notes/noteRows';
 import { proofProgress } from './proof.selectors';
 import { ProoferSheet } from './ProoferSheet';
 import { SpotTakes } from './spot/SpotTakes';
@@ -99,7 +99,7 @@ export function ProofPage({
   const review = useCapability('review');
   const [params, setParams] = useSearchParams();
   const [chapters, setChapters] = useState<ManuscriptChapter[]>([]);
-  const [findings, setFindings] = useState<Finding[]>([]);
+  const [listed, setFindings] = useState<Finding[]>([]);
   const [summary, setSummary] = useState<FindingsSummary>();
   const [sort, setSort] = useState<NoteSort>('time');
   const [reload, setReload] = useState(0);
@@ -115,6 +115,17 @@ export function ProofPage({
 
   const scope = params.get('chapter') ?? ALL_CHAPTERS;
   const all = scope === ALL_CHAPTERS;
+  // The host sorts by a chapter-relative time, so All chapters is put in book order here; the table groups by chapter and J/K must follow it.
+  const findings = useMemo(
+    () =>
+      all
+        ? inBookOrder(
+            listed,
+            chapters.map((c) => c.id),
+          )
+        : listed,
+    [all, listed, chapters],
+  );
   const chapter = all ? undefined : chapters.find((c) => c.id === scope);
   const fallback = chapters.find((c) => c.id === current) ?? chapters[0];
 
