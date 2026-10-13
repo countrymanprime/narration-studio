@@ -137,8 +137,7 @@ Under it, each finding gives its time in the file, what it is and why it was rai
 threshold that raised it, and the file and the kind of source it was measured in. Listen at those times in
 REAPER: the section plays nothing, changes nothing and saves nothing, so every finding is a candidate to
 listen to, not a verdict. When nothing reaches a threshold, the section says so without calling the file
-a pass. **Thresholds**, below it, lists every threshold the check uses, even before you check anything;
-they cannot be changed here.
+a pass. **Thresholds**, below it, lists every threshold the check uses, even before you check anything.
 
 **Silence cleanup candidates**, below that, lists the silences, breaths and clicks the same check found in
 each file, each a candidate to cut. Nothing is cut from here. Its thresholds are set in Settings, under
@@ -148,7 +147,7 @@ Silence cleanup; **Open Settings** goes there.
 
 ## Exporting a report
 
-**Export report**, in **Report** at the bottom of the page, writes the last check and the last diagnostics to two files
+**Export report**, in **Report** at the bottom of the page, is off until some files are measured, then writes the last check and the last diagnostics to two files
 in your project's `narration-utils/delivery` folder: an HTML page a reviewer can open in any browser without
 the app, and a JSON file with the same findings for tools. Each export gets its own name from the time it
 was made (`delivery-report-20260923-140000Z.html`), so an earlier report is never overwritten, and nothing

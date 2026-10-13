@@ -43,7 +43,8 @@ Details, including the Git hooks and CI, are in [CI and releases](docs/operation
 
 An owner rule (2026-10-13). The how-to guide, [Using the app](docs/guides/using-the-app/README.md), has one page per app
 page. It shows how to use the page and its interactions, with screenshots in `docs/images/ui/`. Those are the only UI
-images the repository keeps, and a pull request does not carry a set of its own.
+images the repository keeps, and a pull request does not carry a set of its own: no `pr-screenshots/` folder, no
+`pr-images/*` branch, no image links pinned to a commit.
 
 - **What changes.** A pull request that changes what a page draws or how it is used updates that page's guide in the
   same pull request: the text in `docs/guides/using-the-app/<page>.md` and the screenshots of the states and interactions

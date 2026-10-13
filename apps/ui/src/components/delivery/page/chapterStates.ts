@@ -4,12 +4,25 @@
 // reads in the manuscript's own heading style ("CHAPTER IV. — The Rabbit Sends in a Little Bill"), as Script's list does.
 import { chapterName } from '../../../chapterName';
 import type { ManuscriptChapter, MeasureFileResult } from '../../../types';
+import { CREDITS_ID, CREDITS_NAME, type CreditsEntry } from '../../credits/creditsEntries';
 import { fileOf } from '../../master/chapterFile';
 import { fileVerdict } from '../../master/fileVerdict';
 
 export type ChapterState = { id: string; name: string; kind: 'ok' | 'bad' | 'wait'; text: string };
 
-export function chapterStates(chapters: readonly ManuscriptChapter[], files: readonly MeasureFileResult[]): ChapterState[] {
+type Listed = Pick<ManuscriptChapter, 'id' | 'title' | 'subtitle' | 'index'>;
+
+/**
+ * The rows' chapters in the mock's order: the opening credits, the chapters, then the closing credits. A credits file is judged like a
+ * chapter's, paired with its measured file by name ("Opening credits.wav"); a manuscript's own opening-credits chapter is already in
+ * `chapters` and stands in for the opening entry (`creditsEntries` leaves that one out).
+ */
+export function listedChapters(chapters: readonly ManuscriptChapter[], credits: { opening?: CreditsEntry; closing?: CreditsEntry }): Listed[] {
+  const credit = (entry: CreditsEntry): Listed => ({ id: CREDITS_ID[entry.kind], title: CREDITS_NAME[entry.kind], index: -2 });
+  return [...(credits.opening ? [credit(credits.opening)] : []), ...chapters, ...(credits.closing ? [credit(credits.closing)] : [])];
+}
+
+export function chapterStates(chapters: readonly Listed[], files: readonly MeasureFileResult[]): ChapterState[] {
   return chapters.map((chapter) => {
     const base = { id: chapter.id, name: chapterName(chapter) };
     const file = fileOf(chapter, files);

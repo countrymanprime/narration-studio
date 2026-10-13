@@ -12,10 +12,10 @@ import type { MeasurementsPort } from '../../../ports/measurements';
 import { PortOverrides, usePort } from '../../../ports/usePort';
 import { dawShortName, useJournal } from '../../../studio/StudioProvider';
 import { ContextMenuHost } from '../../layout/ContextMenuHost';
-import { Button } from '../../primitives/Button';
 import type { ContextMenuItem } from '../../primitives/ContextMenu';
 import { ChapterStepper } from '../../primitives/ChapterStepper';
 import { Panel } from '../../primitives/Panel';
+import { NeedManuscript } from '../../layout/NeedManuscript';
 import { speakerColorToken } from '../../primitives/speakerColor';
 import { BookmarkRibbons } from '../bookmarks/BookmarkRibbons';
 import { useBoothBookmarks } from '../bookmarks/useBoothBookmarks';
@@ -33,6 +33,7 @@ import { wordCount } from '../reading/boothUnits';
 import { RecordControl } from '../record/RecordControl';
 import { RecordSetup, useRecordSetupFacts } from '../record/RecordSetup';
 import { SetupChip } from '../record/SetupChip';
+import { useDawChoice } from '../record/useDawChoice';
 import { ResumeOfferLine } from '../resume/ResumeOffer';
 import { saveNote } from '../resume/resumeOffer';
 import { useSuspectedPickups } from '../suspected/useSuspectedPickups';
@@ -52,6 +53,12 @@ import { useBoothPage } from './useBoothPage';
 
 /** Where the Booth's links go. The page is mounted at `/booth` (SN-O10); every one of them passes the leave guard. */
 const BOOTH_LINKS = { script: '/script', settings: '/settings', storyBible: '/story-bible', pickups: '/pickups' } as const;
+
+/**
+ * In the medium layout (1280 and below, where the side panel is a drawer) the chapter picker is the mock's 190 px
+ * (`.md .booth .chapbar .chapsel`), its name cut with an ellipsis, so the top bar fits a narrow window. Wider, it keeps the longest name's width.
+ */
+const MEDIUM_PICKER = "[&_[aria-label^='Chapter:']]:!w-[190px] [&_[aria-label^='Chapter:']]:!min-w-0";
 
 /** A chapter named as the manuscript heads it, label then title ("CHAPTER VIII. The Queen's Croquet-Ground"), as the mock's `chName`. */
 const headingName = (chapter: Parameters<typeof chapterHeading>[0]): string => {
@@ -83,21 +90,8 @@ export function BoothNextPage({ hasManuscript, navigate, onImport, exitTo = BOOT
   return (
     <>
       <h1 className="sr-only">Booth</h1>
-      {hasManuscript ? <BoothLoaded navigate={navigate} exitTo={exitTo} /> : <NeedManuscript onImport={onImport} />}
+      {hasManuscript ? <BoothLoaded navigate={navigate} exitTo={exitTo} /> : <NeedManuscript title="Booth" onImport={onImport} />}
     </>
-  );
-}
-
-function NeedManuscript({ onImport }: { onImport?: () => void }) {
-  return (
-    <div className="p-4 md:p-6">
-      <Panel title="Booth">
-        <div className="flex flex-col items-start gap-3">
-          <p>This project has no manuscript yet. Import one to begin.</p>
-          {onImport && <Button onClick={onImport}>Import manuscript</Button>}
-        </div>
-      </Panel>
-    </div>
   );
 }
 
@@ -345,6 +339,7 @@ function BoothSession({ source, from, requested, adopt, data, choose, navigate, 
   const wordsRead = units.slice(0, at.cur).reduce((sum, unit) => sum + unit.words, 0) + at.wcur;
   const progress = progressLine({ paragraph: (units[at.cur]?.paragraphIndex ?? 0) + 1, paragraphs: paragraphs.length, wordsRead, words });
   const capabilities = control.capabilities;
+  const dawChoice = useDawChoice();
   const roomTone = useRoomTone(measurements, session.device);
   const setupFacts = useRecordSetupFacts(capabilities?.reachable);
   const standalone = capabilities?.daw === 'none';
@@ -366,7 +361,7 @@ function BoothSession({ source, from, requested, adopt, data, choose, navigate, 
             <BoothTop
               chapter={
                 // The chapter cannot change during a take: a fieldset disables the picker and its arrows while one runs.
-                <fieldset disabled={control.recording} className="m-0 min-w-0 border-0 p-0">
+                <fieldset disabled={control.recording} className={`m-0 min-w-0 border-0 p-0 ${side.drawer ? MEDIUM_PICKER : ''}`}>
                   <legend className="sr-only">Chapter</legend>
                   <ChapterStepper
                     chapters={pickerChapters}
@@ -392,6 +387,7 @@ function BoothSession({ source, from, requested, adopt, data, choose, navigate, 
                     capabilities={capabilities}
                     standaloneName={dawShortName('none')}
                     project={control.project}
+                    choice={dawChoice}
                     onClick={() => void page.goTo(`${BOOTH_LINKS.settings}#recording`)}
                   />
                 ) : undefined

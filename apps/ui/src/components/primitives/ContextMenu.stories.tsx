@@ -68,7 +68,9 @@ export const KeyboardChoosesAnItem: Story = {
   })(),
   play: async ({ args, canvasElement }) => {
     fireEvent.contextMenu(within(canvasElement).getByText(/Alice was beginning/));
-    await screen.findAllByRole('menuitem');
+    const menu = await screen.findByRole('menu');
+    // The menu takes focus a moment after its items render; a key pressed before that goes to the page and is lost.
+    await waitFor(() => expect(menu.contains(document.activeElement)).toBe(true));
     await userEvent.keyboard('{ArrowDown}');
     await userEvent.keyboard('{Enter}');
     await expect(args.items[0].onSelect).toHaveBeenCalledOnce();

@@ -94,7 +94,7 @@ function ThresholdsPanel({ job }: { job: DiagnosticsJob | undefined }) {
             ))}
           </dl>
           <p className="mt-2 text-xs" style={MUTED}>
-            These are starting values, not a delivery specification, and they cannot be changed here yet. Each finding shows the threshold that raised it.
+            These are starting values, not a delivery specification. Each finding shows the threshold that raised it.
           </p>
         </>
       ) : (

@@ -10,13 +10,18 @@ export type NavCounts = { proof?: number; pickups?: number };
 /**
  * What waits on each page, read from the host: the notes still open (Proof's summary, through the one `proofProgress` selector: not cleared, which is more than unreviewed) and the pickups REAPER last reported remaining. It reads again on
  * every page move, so a decision made on a page shows on the rail as the narrator leaves it. It only reads: the pickups count
- * is what REAPER last reported, and the hook never asks REAPER to count.
+ * is what REAPER last reported, and the hook never asks REAPER to count. With no manuscript it reads nothing and gives no count.
  */
-export function useNavCounts(pathname: string): NavCounts {
+export function useNavCounts(pathname: string, hasManuscript = true): NavCounts {
   const api = useApi();
   const [counts, setCounts] = useState<NavCounts>({});
 
   useEffect(() => {
+    // With no manuscript the notes and pickups the host still holds are the previous manuscript's: no badge says they wait on anything (issue 1720).
+    if (!hasManuscript) {
+      setCounts({});
+      return;
+    }
     let active = true;
     const set = (patch: NavCounts) => active && setCounts((previous) => ({ ...previous, ...patch }));
     const clear = (key: keyof NavCounts) => () => set({ [key]: undefined });
@@ -33,7 +38,7 @@ export function useNavCounts(pathname: string): NavCounts {
       active = false;
       unsubscribe();
     };
-  }, [api, pathname]);
+  }, [api, pathname, hasManuscript]);
 
   return counts;
 }

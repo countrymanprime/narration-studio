@@ -16,7 +16,7 @@ import { Button } from '../../primitives/Button';
 import { ChapterStepper } from '../../primitives/ChapterStepper';
 import { Heading } from '../../primitives/Heading';
 import { Panel } from '../../primitives/Panel';
-import { NeedManuscript } from '../../script/page/layout/NeedManuscript';
+import { NeedManuscript } from '../../layout/NeedManuscript';
 import type { FileActions } from '../files/FileActions';
 import { FileChecks } from '../files/FileChecks';
 import { FilesTable } from '../files/FilesTable';
@@ -206,7 +206,7 @@ function MasterBody({ projectFolder, onOpenDelivery, openSettings, fileActions, 
           <MasterToSpecPanel jobs={jobs} chainLabel={chain?.label} />
           <MasteringChain providers={mastering.providers} problem={mastering.problem} />
           <DiagnosticsSection measuredPaths={run.paths} openSettings={openSettings} />
-          <ReportExportPanel busy={run.running} />
+          <ReportExportPanel busy={run.running} measured={run.files.length > 0} />
         </div>
         <div className="flex min-w-0 flex-col gap-4">
           <PackageChecks profile={profile} files={run.files} onOpenDelivery={onOpenDelivery} />

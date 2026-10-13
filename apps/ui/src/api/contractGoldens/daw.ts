@@ -5,6 +5,7 @@ import type { z } from 'zod';
 import {
   dawBackupsFileSchema,
   dawCapabilitiesSchema,
+  dawChoiceSchema,
   dawFxRangeCompareSchema,
   dawFxRangeSettingsSchema,
   dawProjectStateSchema,
@@ -17,6 +18,9 @@ export const dawGoldens: Record<string, z.ZodType> = {
   'daw-capabilities-reaper.json': dawCapabilitiesSchema,
   'daw-capabilities-audacity.json': dawCapabilitiesSchema,
   'daw-capabilities-builtin.json': dawCapabilitiesSchema,
+  'daw-choice-default.json': dawChoiceSchema,
+  'daw-choice-found.json': dawChoiceSchema,
+  'daw-choice-linked.json': dawChoiceSchema,
   'daw-transport-stopped.json': dawTransportSchema,
   'daw-transport-playing.json': dawTransportSchema,
   'daw-transport-recording.json': dawTransportSchema,

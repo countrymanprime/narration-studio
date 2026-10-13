@@ -1,11 +1,12 @@
 import type { ReactNode } from 'react';
+import { AssetFacts } from '../assets/AssetFacts';
+import { AssetInstallPrompt } from '../assets/AssetInstallPrompt';
 import { Panel } from '../primitives/Panel';
-import { ListeningModelPrompt } from './listening/ListeningModelPrompt';
 import { ReaderKey } from './ReaderKey';
 import { ReaderText } from './ReaderText';
 import type { ReaderMark } from './readerModel';
 import type { FollowCursor } from './useFollowCursor';
-import type { TeleprompterSession } from './useTeleprompterSession';
+import { ENGINE_LABELS, type TeleprompterSession } from './useTeleprompterSession';
 
 type Props = {
   session: TeleprompterSession;
@@ -85,7 +86,32 @@ export function ReadAlongView({ session: t, follow, header, marks, onOpenMark, a
             <div className={aside || hideKey ? '' : 'mt-3'}>{text}</div>
           </Panel>
         ))}
-      <ListeningModelPrompt session={t} />
+      {t.prompt && (
+        <AssetInstallPrompt
+          ask={{
+            title: `Download local ${ENGINE_LABELS[t.prompt.engine]} model?`,
+            body: `The ${t.prompt.model.displayName} ${ENGINE_LABELS[t.prompt.engine]} model listens for your voice. It is not bundled with Narration Studio and will be stored in your per-user asset cache.`,
+            confirmLabel: 'Download model',
+          }}
+          workTitle={`Downloading ${ENGINE_LABELS[t.prompt.engine]} model`}
+          install={t.modelInstall}
+          dismiss={t.closeModelPrompt}
+        >
+          <AssetFacts
+            label="Model"
+            name={t.prompt.model.displayName}
+            version={t.prompt.model.version}
+            publisher={t.prompt.model.publisher}
+            license={t.prompt.model.license}
+            licenseUrl={t.prompt.model.licenseUrl}
+            modelCardUrl={t.prompt.model.modelCardUrl}
+            provenanceUrl={t.prompt.model.provenanceUrl}
+            downloadSize={t.prompt.downloadSize}
+            diskSize={t.prompt.diskSize}
+            installPath={t.prompt.installPath}
+          />
+        </AssetInstallPrompt>
+      )}
     </div>
   );
   if (!aside) return main;

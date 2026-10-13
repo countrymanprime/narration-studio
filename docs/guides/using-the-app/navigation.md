@@ -15,9 +15,9 @@ In the icon layout, hover the rail (or tab into it) and it opens over the page w
 
 ![Collapsed navigation rail opened over the page on hover](../../images/ui/nav-rail-open.webp)
 
-Script, Story Bible, Booth and Delivery stay locked until a manuscript has been
-[imported on Production](production.md#importing-the-manuscript). Hovering a locked entry says what is missing. Production, Schedule, Editing, Proof,
-Pickups, and Master & QC are always available; Editing says itself when there is no manuscript yet.
+No page is locked. With no manuscript yet, every page says so and offers **Import manuscript**, which goes to
+[Production](production.md#importing-the-manuscript); none opens the import or moves you by itself, and the rail shows no
+note counts, since the notes and pickups the project still holds belong to an earlier manuscript.
 
 The header runs, left to right: Back and Forward (below), the project's name, **Jump to or run…** (`Ctrl+K`), Undo and History, the timer,
 the [zoom controls](#zoom) and the engine chip. Jump to or run… opens the jump menu: type to find a page, a chapter or a command, or
@@ -97,8 +97,9 @@ The panel reads the project's REAPER project file (`.rpp`) directly, so it needs
 nor an imported manuscript; its [REAPER tools](#reaper-tools) are the exception. It shows the file it read
 and, beside the heading, **Link a REAPER project file** (or **Link a different REAPER project file** once
 one is linked): the link a chapter's [Proof view](proof.md#comparing-the-recording-with-the-script) needs,
-and the same one [Settings](settings.md#daw-integration) makes. The file must be saved inside the project
-folder; one from another folder is refused with a message saying so. When REAPER has a different project
+and the same one [Settings](settings.md#daw-integration) makes. The file can be anywhere: in the project
+folder or a subfolder of it (the link then survives moving the whole project), or in a separate folder or
+drive kept for REAPER (a short note says where the file and the project are). When REAPER has a different project
 open than the linked one, the panel says so: link the open project, or switch REAPER to the linked file.
 
 If the project folder holds more than one `.rpp` file, the panel asks which one to read. Backup copies

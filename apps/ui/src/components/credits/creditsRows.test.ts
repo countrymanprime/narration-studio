@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import type { CreditsRenderResult } from '../../../../api/contracts/credits';
+import type { CreditsRenderResult } from '../../api/contracts/credits';
 import { CREDITS_STOP, chapterListStops, creditsRows } from './creditsRows';
 
 const preview = (unresolved: string[]): CreditsRenderResult => ({ text: 'x', words: 1, unresolved });

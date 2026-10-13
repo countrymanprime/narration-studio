@@ -34,6 +34,15 @@ func LocateReaperExecutable() (path, source string, err error) {
 	return "", "", ErrNotFound
 }
 
+// LocateAudacityExecutable finds Audacity.exe through the same Windows "Uninstall" registry entries. It only answers whether
+// Audacity is installed (Settings > Recording); the app never starts Audacity itself.
+func LocateAudacityExecutable() (path, source string, err error) {
+	if found, ok := pickAudacityFromUninstallEntries(readUninstallEntries(), fileExists); ok {
+		return found, SourceUninstallEntry, nil
+	}
+	return "", "", ErrNotFound
+}
+
 func readUninstallEntries() []installEntry {
 	var entries []installEntry
 	for _, root := range uninstallKeys {

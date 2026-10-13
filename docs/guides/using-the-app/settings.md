@@ -5,10 +5,10 @@
 Settings is one page of panels, one under another. It opens with the Studio Next panels, then the panels for
 the rest of the settings.
 
-- **Recording** chooses where this project's takes are recorded: in the DAW the app was started with (the DAW's
-  name, then **Recordings live in the DAW.**) or with the **Built-in recorder. Recordings live in the app.** The DAW
-  stays chosen while it is not running. A refused choice (no project open, a take running, or the built-in
-  recorder not available) says why under the radios, and the choice stays where it was.
+- **Recording** chooses where this project's takes are recorded: **REAPER**, **Audacity** or the **Built-in
+  recorder** (see [Choose REAPER](#choose-reaper)). The choice is saved with the project. A refused choice (no
+  project open, a take running, or the built-in recorder not available) says why under the radios, and the
+  choice stays where it was.
 - **Delivery profile** picks the profile this project is judged against, on [Master &
   QC](master-and-qc.md) and [Delivery](delivery.md), the same choice as Delivery's own menu.
 - **Definitions and pronunciations** chooses where the Script page's **Words** tab shows definitions from: the
@@ -135,6 +135,28 @@ removes the imported manuscript and its stored source, the Story Bible, proofing
 bookmarks, and saved comparison results for the current project, after you confirm. Its settings remain.
 
 ![Settings - Project scope, Project data category (clear derived project data)](../../images/ui/settings-project-data.webp)
+
+## Choose REAPER
+
+Each radio says whether that program was found on this computer, or what stops it (for example
+**Experimental: switched off in Settings.**, with a link to [DAW Integration](#daw-integration), where the switch
+is). A project folder holding a REAPER project file (`.rpp`) starts on REAPER; pick another radio to change it.
+
+## Link your REAPER project
+
+Under the radios is the project's REAPER file. With one `.rpp` in the project folder it reads **REAPER not
+linked** and offers **Link** with the file's name; **Choose a project file** opens a file dialog for any other
+`.rpp`.
+
+![Settings - Recording: REAPER chosen and not linked yet, with Link Alice.rpp and Choose a project file](../../images/ui/settings-recording-link.webp)
+
+The file can be in the project folder, in a subfolder of it, or anywhere else, such as a folder or drive you keep
+for REAPER. A file inside the project folder keeps working when you move the whole project. For a file elsewhere,
+a note says where the file and the project are. Only a file that is not an `.rpp`, or no longer exists, is
+refused. Linking also chooses REAPER. Once linked, the panel reads **REAPER linked** with the file's name and
+**Start REAPER**.
+
+![Settings - Recording: the REAPER project file linked, with Start REAPER](../../images/ui/settings-recording-linked.webp)
 
 ## DAW Integration
 

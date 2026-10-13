@@ -29,7 +29,7 @@ const PENDING: Record<string, Partial<Record<Shape, number>> & { owner: string }
   'src/components/proof/checkcard/CheckCard.tsx': { chip: 1, owner: 'count chip, #1119' },
   'src/components/script/bookmarks/ui/BookmarkRibbon.tsx': { dot: 1, owner: 'note dot on the ribbon, #1119' },
   // The Story Bible's kind chip (SN-B94, the mock's `.chip`): a 28 px pill with the kind's swatch, which `Pill`'s uppercase label-only look does not draw.
-  'src/components/storybible/Guide.tsx': { chip: 1, owner: 'kind chip, #1119' },
+  'src/components/storybible/FilterChip.tsx': { chip: 1, owner: 'kind chip, #1119' },
   'src/components/booth/side/Reference.tsx': { chip: 1, owner: 'category chip, #1119' },
   'src/components/booth/side/VoicesNearby.tsx': { chip: 1, owner: 'alias chip, #1119' },
   // The script document's inline insertion marker (SN-E3): a mono pill drawn inside running text, which `Badge` has no inline form for.

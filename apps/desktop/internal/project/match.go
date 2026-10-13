@@ -18,7 +18,9 @@ import (
 // dawLinkFacts does (DawLink.Resolve: whichever of the absolute/relative
 // paths currently exists on disk) and compares that against rppPath, both
 // cleaned and lower-cased for a case-insensitive match (Windows paths are not
-// case-sensitive, and this is the first platform, ADR 0030).
+// case-sensitive, and this is the first platform, ADR 0030), or as the same file
+// on disk (samePath). The link may sit at any depth inside its project or
+// outside it.
 //
 // ok is false when projectsDir cannot be listed, rppPath is empty (an unsaved
 // REAPER project has no file to match), or no project's link resolves to
@@ -43,12 +45,24 @@ func FindByDawFile(reporter *persist.Reporter, projectsDir, rppPath string) (fol
 			continue
 		}
 		resolved, exists := manifest.DawProjectFile.Resolve(candidate)
-		if !exists || normalizePath(resolved) != target {
+		if !exists || !samePath(resolved, rppPath, target) {
 			continue
 		}
 		return candidate, manifest.Name, true
 	}
 	return "", "", false
+}
+
+// samePath reports whether resolved names the same file as rppPath (whose
+// normalizePath is target): the same spelling ignoring case, or the same file
+// on disk reached another way (a symlink, a junction, a short name).
+func samePath(resolved, rppPath, target string) bool {
+	if normalizePath(resolved) == target {
+		return true
+	}
+	a, errA := os.Stat(resolved)
+	b, errB := os.Stat(rppPath)
+	return errA == nil && errB == nil && os.SameFile(a, b)
 }
 
 // normalizePath makes a path absolute (best effort; the input is kept as-is

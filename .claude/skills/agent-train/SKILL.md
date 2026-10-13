@@ -198,7 +198,7 @@ The Studio Next mock (`docs/research/mockups/studio-next/`) is the only spec for
 
 The rule and the commands are in [CONTRIBUTING.md](../../../CONTRIBUTING.md#ui-prs-update-the-how-to-guide). For the train:
 
-- **Worker.** A UI PR updates the guide page of each app page it changes, text and screenshots (`node scripts/dev/guide-screenshots.mjs <page>...`), in the same PR, or says `No guide change: <reason>`. It looks at every catalogued state with `visual:page` and `atlas:page` and states the real-app (Playwright) and Storybook results in the body; Storybook alone does not count. It commits no other images.
+- **Worker.** A UI PR updates the guide page of each app page it changes, text and screenshots (`node scripts/dev/guide-screenshots.mjs <page>...`), in the same PR, or says `No guide change: <reason>`. It looks at every catalogued state with `visual:page` and `atlas:page` and states the real-app (Playwright) and Storybook results in the body; Storybook alone does not count. It commits no other images: no `pr-screenshots/` folder in its head.
 - **Coordinator.** Accepts a UI PR when its guide page and images are updated (or the body carries a specific `No guide change:` reason), the body states the real-app and Storybook results, and `Docs / Guide impact` is green. It never merges or counts ready a UI PR without them, whatever the rest of CI says.
 - **Sweep.** A periodic docs sweep runs `node scripts/dev/guide-screenshots.mjs --all` and commits what moved, as a safety net for changes to shared components.
 

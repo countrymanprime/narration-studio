@@ -1,7 +1,7 @@
 // The credits as the old Script page drew them (D22: no equivalent in the mock, so re-homed unchanged): the setup banner, then the
 // Opening and Closing credits cards with their previews, open by default and remembered per project, and their Fill in and Record in
 // Booth. The page draws this twice: the banner and the Opening card above the first chapter's card, and the Closing card after the last
-// chapter's text, where the mock's chapter list puts them (`chapters/creditsRows.ts`). The setup dialog is the page's (`ScriptPage.tsx`),
+// chapter's text, where the mock's chapter list puts them (`credits/creditsRows.ts`). The setup dialog is the page's (`ScriptPage.tsx`),
 // so it outlives the banner that opened it. A `#credits-opening` or `#credits-closing` link (Home's credits rows) opens and shows that card.
 
 import { useCallback, useEffect, useState } from 'react';

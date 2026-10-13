@@ -116,7 +116,7 @@ export function SettingsPage({
       <div className="mx-auto flex max-w-[860px] flex-col gap-4">
         <Heading title="Settings" />
         <div id="settings-recording" className="scroll-mt-4">
-          <RecordingPanel />
+          <RecordingPanel dawFileLinked={data.dawFileLinked} onLinkDawFile={onLinkDawFile} notify={notify} />
         </div>
         <DeliveryProfileField />
         <DefinitionsPanel />
