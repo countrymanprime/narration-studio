@@ -502,5 +502,12 @@
     "viewport": "desktop",
     "docName": "master-package-built",
     "caption": "Delivery with the book checked: the chapters passing in Before you build, and Output waiting on the rest"
+  },
+  {
+    "page": "schedule",
+    "state": "on-pace",
+    "viewport": "desktop",
+    "docName": "schedule-on-pace",
+    "caption": "Schedule - the verdict, the recorded audio against the plan, how the book pays, the work left and the milestones"
   }
 ]
