@@ -8,6 +8,7 @@ updating this file in the same change instead of quietly losing a check.
 from __future__ import annotations
 
 import json
+import re
 import shutil
 import tempfile
 from collections.abc import Callable
@@ -38,12 +39,20 @@ def _mutated_copy(reaper_dir: Path, scratch: Path, entry: dict) -> Path:
     return target
 
 
-def _own_tests(lua_file: str) -> tuple[str, ...]:
-    """The test file named after a feature file (narration_transport.lua -> transport_test.lua), which almost always
-    catches a mutation of it: running it first, and stopping at the first failure, keeps the whole check fast. A
-    mutation no test catches still runs every file, so the outcome is the same as a full run."""
+def _own_tests(tests_dir: Path, reaper_dir: Path, lua_file: str) -> tuple[str, ...]:
+    """The test files that almost always catch a mutation of a feature file: the one named after it
+    (narration_transport.lua -> transport_test.lua) and every one that sends a command the file registers (the
+    stack_takes tests are in stack_test.lua, not takes_test.lua). Running them first, and stopping at the first
+    failure, keeps the whole check fast. A mutation no test catches still runs every file, so the outcome is the same
+    as a full run."""
     stem = Path(lua_file).stem.removeprefix("narration_")
-    return (f"{stem}_test.lua",)
+    commands = re.findall(r"register\('([a-z_]+)'", (reaper_dir / lua_file).read_text(encoding="utf-8"))
+    senders = [
+        test_file.name
+        for test_file in sorted(tests_dir.glob("*_test.lua"))
+        if any(re.search(rf"['\"]{command}['\"]", test_file.read_text(encoding="utf-8")) for command in commands)
+    ]
+    return (f"{stem}_test.lua", *senders)
 
 
 def run_mutations(tests_dir: Path, reaper_dir: Path, run_suite: SuiteRunner) -> int:
@@ -54,7 +63,7 @@ def run_mutations(tests_dir: Path, reaper_dir: Path, run_suite: SuiteRunner) -> 
         for entry in entries:
             mutated = _mutated_copy(reaper_dir, scratch, entry)
             try:
-                _, failed, _ = run_suite(mutated, verbose=False, first=_own_tests(entry["file"]), stop_at_failure=True)
+                _, failed, _ = run_suite(mutated, verbose=False, first=_own_tests(tests_dir, reaper_dir, entry["file"]), stop_at_failure=True)
             except (LuaError, RuntimeError) as error:  # a mutation that breaks loading is caught too
                 failed = 1
                 print(f"  caught (suite raised {type(error).__name__}): {entry['name']}")
