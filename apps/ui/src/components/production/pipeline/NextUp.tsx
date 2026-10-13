@@ -7,7 +7,7 @@ import type { GoTarget } from './pipelineRows';
 
 type Props = {
   inputs: NextUpInputs;
-  /** The record capability, from `DawClient.capabilities`: Open Booth is disabled with its own sentence beside it. No branch on which DAW. */
+  /** The record capability, from `DawClient.capabilities`: its own sentence sits beside Open Booth, which stays open to read and prepare. No branch on which DAW. */
   record: { ok: boolean; reason: string };
   onGo: (target: GoTarget, chapterId?: string) => void;
   /** Review the chapters a new manuscript changed. Absent where the host reports none. */
@@ -45,7 +45,8 @@ function Rendered({ item, record, onGo, onReviewChanges, timer }: Omit<Props, 'i
           : `${Math.round((item.share ?? 0) * 100)}% recorded · about ${hm(item.hoursLeft)} of finished audio left`;
       return (
         <Item icon="●" title={`Finish recording ${item.name}`} sub={left}>
-          <Button variant="primary" size="sm" disabled={!record.ok} onClick={() => onGo('booth', item.chapterId)}>
+          {/* Opening the Booth to read and prepare is navigation; only Record needs the capability (the Booth gates that itself). */}
+          <Button variant="primary" size="sm" onClick={() => onGo('booth', item.chapterId)}>
             Open Booth
           </Button>
           {!record.ok && <span className="text-[0.8125rem] text-[var(--text-muted)]">{record.reason}</span>}

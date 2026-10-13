@@ -113,4 +113,33 @@ describe('every pickup count comes from the Pickups list', () => {
       expect(open).toBe(OPEN);
     });
   });
+
+  it("Production's pipeline Pickups cells are the same lines, chapter by chapter", async () => {
+    const api = createMockApi({}, {});
+    const list = await api.pickupsList();
+    const open = openPickups(list.pickups);
+    expect(open.length).toBeGreaterThan(0);
+    const data = await api.bootstrap();
+    const Page = wrap(api);
+    render(
+      <Page>
+        <ProductionPage
+          data={data}
+          go={() => undefined}
+          notify={() => undefined}
+          goToScript={() => undefined}
+          goToEditing={() => undefined}
+          goToBooth={() => undefined}
+          refreshBootstrap={async () => {}}
+        />
+      </Page>,
+    );
+    const table = await screen.findByRole('table', { name: 'Chapter pipeline' });
+    const cells = await waitFor(() => {
+      const found = within(table).getAllByRole('button', { name: /: Pickups \d+ open$/ });
+      expect(found.length).toBeGreaterThan(0);
+      return found;
+    });
+    expect(cells.reduce((sum, cell) => sum + Number(cell.textContent), 0)).toBe(open.length);
+  });
 });

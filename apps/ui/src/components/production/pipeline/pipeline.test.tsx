@@ -53,6 +53,13 @@ describe('PipelineTable', () => {
     );
   });
 
+  it('draws an under-way stage as a mark that needs no font, never the half-circle glyph', () => {
+    table();
+    const cell = screen.getByRole('button', { name: 'Chapter 3: Edit in progress' });
+    expect(cell.textContent).toBe('');
+    expect(cell.querySelector('[data-under-way]')).toBeTruthy();
+  });
+
   it('readiness-chip-sits-on-the-current-stage-cell: on the stage the chapter is in and nowhere else, opening the panel', async () => {
     table();
     const chips = document.querySelectorAll('[data-rchip]');
@@ -112,10 +119,14 @@ describe('NextUp', () => {
     expect(screen.getByText('Nothing needs you right now.')).toBeTruthy();
   });
 
-  it('next-up-buttons-follow-the-daw: Open Booth is disabled with the capability sentence beside it', () => {
-    view(<NextUp inputs={NEXT_UP_BUSY} record={{ ok: false, reason: 'Recording needs a connected recorder.' }} onGo={noop} timer={timer} />);
-    expect((screen.getByRole('button', { name: 'Open Booth' }) as HTMLButtonElement).disabled).toBe(true);
+  it('open-booth-is-navigation: it stays enabled when recording is off, and the capability sentence is a note beside it (#1721)', async () => {
+    const onGo = vi.fn();
+    view(<NextUp inputs={NEXT_UP_BUSY} record={{ ok: false, reason: 'Recording needs a connected recorder.' }} onGo={onGo} timer={timer} />);
+    const open = screen.getByRole('button', { name: 'Open Booth' }) as HTMLButtonElement;
+    expect(open.disabled).toBe(false);
     expect(screen.getByText('Recording needs a connected recorder.')).toBeTruthy();
+    await userEvent.click(open);
+    expect(onGo).toHaveBeenCalledWith('booth', 'c4');
   });
 
   it('goes to the Booth, Pickups and Master', async () => {

@@ -240,8 +240,11 @@ export function ProductionPage({
   const finishedOf = (words: number) => (words / WPH) * 3600;
   const recordedHours = narrated.reduce((a, c) => a + (c.recordedSeconds ?? 0), 0) / 3600;
   const recommendations = stages.state.byChapter;
+  // Open lines per chapter from the Pickups list, so a chapter's Pickups cell and the tile above add up. Nothing is claimed until the list is read.
+  const pickupsByChapter = openLines ? Object.fromEntries(narrated.map((c) => [c.id, openLines.filter((line) => line.chapterId === c.id).length])) : undefined;
   const rows = buildPipelineRows(narrated, {
     ...pipelineSources,
+    pickups: pickupsByChapter,
     checks: Object.fromEntries(
       narrated.map((c) => {
         const link = tools.trackLinks?.chapters.find((entry) => entry.chapterId === c.id);
