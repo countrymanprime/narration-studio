@@ -123,6 +123,13 @@ actions that change the DAW (delete, mute, effects, keeping a take) wait until i
 
 ![Editing with the DAW not connected - the banner with its reason and Retry](../../images/ui/editing-daw-off.webp)
 
+## When the chapter has no audio
+
+With no track linked to the chapter there is nothing to edit yet. A banner at the top says why and opens the audio
+engine panel, the legend reads **No audio to edit**, and the script shows no word as not read.
+
+![Editing with no track linked - the banner saying why there is no audio to edit, and the legend](../../images/ui/editing-unlinked.webp)
+
 ---
 
 [← Booth](booth.md) · [Index](README.md) · [Proof →](proof.md)

@@ -33,7 +33,7 @@ export type Command<R> = {
 };
 
 /** The change a DAW entry made, as the DAW's undo history knows it: a kind the DAW port names and the undo points it left. */
-export type DawAction = { kind: string; steps: number };
+type DawAction = { kind: string; steps: number };
 
 /** What the DAW says about the head of its own undo history: whether it is this action (`undefined` for an entry that named none), another, or cannot be told. */
 export type DawLastAction = (action: DawAction | undefined) => Promise<'this' | 'other' | 'unknown'>;
