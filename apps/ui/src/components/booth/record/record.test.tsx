@@ -157,6 +157,49 @@ describe('SetupChip', () => {
   });
 });
 
+describe('SetupChip with the project DAW choice', () => {
+  const base = {
+    hasProject: true,
+    daw: 'REAPER' as const,
+    source: 'found' as const,
+    chosen: null,
+    reachable: false,
+    linkedFile: null,
+    foundFiles: ['Book.rpp'],
+    launcherAutoStart: false,
+    experimental: false,
+    options: [],
+  };
+  const tooltipOf = async () => {
+    await userEvent.hover(screen.getByRole('group'));
+    return (await screen.findByRole('tooltip')).textContent;
+  };
+
+  it('daw-chip-states: not linked, linked, not running and connected, each worded from the payload', async () => {
+    const capabilities = setupCapabilities('reaper');
+    const { rerender, unmount } = render(<SetupChip capabilities={capabilities} standaloneName="Recorder" choice={{ ...base, state: 'not_linked' }} />);
+    expect(screen.getByRole('group').getAttribute('aria-label')).toBe('Recording setup: REAPER, not linked');
+    expect(await tooltipOf()).toBe('Recording settings · REAPER not linked · link Book.rpp in Recording settings');
+    rerender(<SetupChip capabilities={capabilities} standaloneName="Recorder" choice={{ ...base, state: 'linked', linkedFile: 'Book.rpp' }} />);
+    expect(screen.getByRole('group').getAttribute('aria-label')).toBe('Recording setup: REAPER, linked');
+    rerender(<SetupChip capabilities={capabilities} standaloneName="Recorder" choice={{ ...base, state: 'not_running', linkedFile: 'Book.rpp' }} />);
+    expect(screen.getByRole('group').getAttribute('aria-label')).toBe('Recording setup: REAPER, not running');
+    unmount();
+    render(
+      <SetupChip capabilities={capabilities} standaloneName="Recorder" choice={{ ...base, state: 'connected', reachable: true, linkedFile: 'Book.rpp' }} />,
+    );
+    expect(screen.getByRole('group').getAttribute('aria-label')).toBe('Recording setup: REAPER');
+    expect(await tooltipOf()).toBe('Recording settings · REAPER linked: Book.rpp');
+  });
+
+  it('names the project choice even when the capability report names none, and the page name when it records in the app', () => {
+    const { rerender } = render(<SetupChip capabilities={setupCapabilities('builtin')} standaloneName="Recorder" choice={{ ...base, state: 'not_linked' }} />);
+    expect(screen.getByRole('group').textContent).toBe('REAPER');
+    rerender(<SetupChip capabilities={setupCapabilities('builtin')} standaloneName="Recorder" choice={{ ...base, daw: 'Built-in', state: 'app' }} />);
+    expect(screen.getByRole('group').textContent).toBe('Recorder');
+  });
+});
+
 describe('useRecordControl', () => {
   it('reads-the-daw-project-state-and-again-after-a-take', async () => {
     const client = dawClientFor('reaper');

@@ -1,4 +1,5 @@
 // The mock host (mockApi.ts): its seeds and shared state.
+import type { DawChoiceMockSeed } from '../dawChoiceMock';
 import type {
   ApprovedCharacterReference,
   ChapterStatus,
@@ -222,6 +223,8 @@ export type MockApiSeed = {
   deliveryProfile?: MockDeliveryProfileSeed;
   /** Seeds the DAW capabilities mock (which DAW, reachability, per-capability toggles), see `DawMockSeed`. */
   daw?: DawMockSeed;
+  /** The project's DAW choice and folder (`?mockDawChoice=`; dawChoiceMock.ts). */
+  dawChoice?: DawChoiceMockSeed;
   /** Seeds the provider capabilities mock (platform, installed asset counts), see `ProvidersMockSeed`. */
   providers?: ProvidersMockSeed;
   /**
