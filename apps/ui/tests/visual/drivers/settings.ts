@@ -64,7 +64,7 @@ export const settingsDrivers: Record<string, Driver> = {
   'delivery-profile-editor': async (page) => {
     await goToPage(page, 'Settings');
     await clickSettingsCategory(page, 'Delivery profiles');
-    await page.getByRole('button', { name: 'Duplicate' }).click();
+    await settingsPanel(page, 'Delivery profiles').getByRole('button', { name: 'Duplicate' }).click();
     const editor = page.getByRole('dialog', { name: 'Edit profile' });
     await editor.getByRole('textbox', { name: 'Peak, highest (dBFS)' }).fill('-3.5');
     await editor.getByText('Changed').waitFor();
