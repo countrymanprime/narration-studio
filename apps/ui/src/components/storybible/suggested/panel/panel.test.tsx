@@ -63,6 +63,18 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
+// Issue 1715: the mock draws "Needs verification" and "Needs review" as the same chip; the Pill's uppercase bordered button was the old workspace's.
+describe('the-verify-chip-is-the-lists-filter-chip', () => {
+  it('draws the same 28 px fully rounded chip as the other filters over the list, not an uppercase button', () => {
+    render(<NeedsVerificationChip count={3} on={false} onToggle={() => {}} />);
+    const chip = screen.getByRole('button', { name: 'Needs verification · 3' });
+    expect(chip.className).toContain('h-7');
+    expect(chip.className).toContain('rounded-full');
+    expect(chip.className).not.toContain('uppercase');
+    expect(chip.className).not.toContain('tracking-');
+  });
+});
+
 describe('verify-chip-filters-and-counts', () => {
   it('shows "Needs verification · N" with aria-pressed, only while N > 0 or the filter is on', async () => {
     const n = verifyCount(await api.extractionList());

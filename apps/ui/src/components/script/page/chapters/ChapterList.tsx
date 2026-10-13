@@ -9,7 +9,7 @@ import { chapterHeading } from '../../../../chapterHeading';
 import { CREDITS_LABEL, type CreditsKind } from '../../../booth/readerModel';
 import { PrepDot } from './PrepDot';
 import { PrepLegend } from './PrepLegend';
-import { CREDITS_STOP, chapterListStops } from './creditsRows';
+import { CREDITS_STOP, chapterListStops } from '../../../credits/creditsRows';
 
 const ROW_CLASS = 'flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-left text-sm';
 

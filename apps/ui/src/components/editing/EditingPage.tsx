@@ -4,10 +4,9 @@ import { CommandScope } from '../../input/router';
 import { useUserKeymap } from '../../input/useUserKeymap';
 import { usePort } from '../../ports/usePort';
 import type { ManuscriptChapter } from '../../types';
-import { Button } from '../primitives/Button';
 import { ChapterStepper } from '../primitives/ChapterStepper';
-import { Heading } from '../primitives/Heading';
 import { Panel } from '../primitives/Panel';
+import { NeedManuscript } from '../layout/NeedManuscript';
 import type { DrawerTab } from './drawer/drawerTabs';
 import { STRIP_MIN_WIDTH } from './drawer/drawerTabs';
 import { EditingPageProvider } from './script/EditingPageState';
@@ -85,22 +84,8 @@ function usePanels(initial?: DrawerTab): PanelsState {
  * bar, the key hints and the drawer. Routed at `/editing/:chapterId` (App.tsx), where it replaced Proof's chapter workspace (SN-E9).
  */
 export function EditingPage(props: EditingPageProps) {
-  if (!props.hasManuscript) return <NeedManuscript onImport={props.onImport} />;
+  if (!props.hasManuscript) return <NeedManuscript title="Editing" onImport={props.onImport} />;
   return <EditingLoaded {...props} />;
-}
-
-function NeedManuscript({ onImport }: { onImport?: () => void }) {
-  return (
-    <div className="flex flex-col gap-4 p-4 md:p-6">
-      <Heading title="Editing" />
-      <Panel>
-        <div className="flex flex-col items-start gap-3">
-          <p>This project has no manuscript yet. Import one to edit its recording against the script.</p>
-          {onImport && <Button onClick={onImport}>Import manuscript</Button>}
-        </div>
-      </Panel>
-    </div>
-  );
 }
 
 function EditingLoaded({ chapterId: asked, passageId, findingId, t, drawer, onChapter }: EditingPageProps) {

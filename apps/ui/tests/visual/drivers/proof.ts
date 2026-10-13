@@ -1,7 +1,7 @@
 // How to reach each `proof` state (the Studio Next Proof page) in STATE_CATALOG (see app.drivers.ts).
 import type { Locator, Page } from '@playwright/test';
 import { settlePage } from '../helpers/settle';
-import { type Driver, goToPage } from './shared';
+import { type Driver, goToPage, openWithoutManuscript } from './shared';
 
 const notes = (page: Page): Locator => page.getByRole('region', { name: 'Notes' });
 const inspector = (page: Page): Locator => page.getByRole('complementary', { name: 'Note' });
@@ -107,5 +107,8 @@ export const proofDrivers: Record<string, Driver> = {
   empty: async (page) => {
     await openProof(page, 'mockFindings=empty', false);
     await page.getByText('No notes yet.').waitFor();
+  },
+  'no-manuscript': async (page) => {
+    await openWithoutManuscript(page, 'Proof');
   },
 };

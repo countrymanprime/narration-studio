@@ -23,4 +23,10 @@ export const scheduleStates: StateEntry[] = [
     state: 'milestone-dialog',
     description: 'Schedule with the Add milestone dialog open',
   },
+  {
+    page: 'schedule',
+    state: 'no-manuscript',
+    description:
+      'Schedule with no manuscript imported (?mockNoManuscript=1): the page asks for the manuscript, with no estimates left over from an earlier one',
+  },
 ];

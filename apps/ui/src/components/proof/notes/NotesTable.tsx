@@ -91,7 +91,7 @@ export function NotesTable({
 
   return (
     <div ref={body}>
-      <Table label="Notes">
+      <Table label="Notes" className="min-w-[40rem]">
         <TableHead sticky>
           <TableRow>
             <TableHeader>Time</TableHeader>

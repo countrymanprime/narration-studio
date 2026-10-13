@@ -30,6 +30,8 @@ import { useBoothRecording } from './components/booth/useBoothRecording';
 import { ConfirmDialog } from './components/primitives/ConfirmDialog';
 import { ShortcutSheet } from './components/help/ShortcutSheet';
 import { ScriptPage } from './components/script/page/ScriptPage';
+import { creditsKindOfId } from './components/credits/creditsEntries';
+import { NeedManuscript } from './components/layout/NeedManuscript';
 import { ProjectPicker } from './components/project/ProjectPicker';
 import { Guide } from './components/storybible/Guide';
 import { SettingsPage } from './components/settings/page/SettingsPage';
@@ -306,7 +308,7 @@ function AppRoutes() {
   // No sound or toast interrupts a take: a toast that would fire while the
   // booth is recording queues here instead - `queuedAnnouncements` - and is shown once `boothRecording` clears
   // (below). The OS notification above is untouched; it only ever fires while the window is unfocused anyway.
-  const navCounts = useNavCounts(location.pathname);
+  const navCounts = useNavCounts(location.pathname, hasManuscript);
   const boothRecording = useBoothRecording(location.pathname === '/booth');
   const boothRecordingRef = useRef(boothRecording);
   boothRecordingRef.current = boothRecording;
@@ -571,12 +573,6 @@ function AppRoutes() {
 
   const moveTo = (next: string) => {
     const nextPath = next.split(/[?#]/)[0] || '/';
-    // A Proof chapter view reads the chapter's paragraphs and alignment, both manuscript-scoped, same as the fixed
-    // routes below (a parameterised path, so it needs its own startsWith check rather than joining the exact-match list).
-    if (!data.manuscript && (['/script', '/booth'].includes(nextPath) || nextPath.startsWith('/proof/'))) {
-      navigate('/', { replace: true });
-      return;
-    }
     if (nextPath !== location.pathname && location.pathname === '/settings' && settingsDirty) {
       setPendingMove({ kind: 'path', path: next });
       return;
@@ -663,14 +659,19 @@ function AppRoutes() {
                       notify={setNotice}
                       goToScript={goToScript}
                       goToEditing={goToEditing}
-                      goToBooth={(chapterId) => (chapterId ? goToBooth({ chapter: chapterId }) : guardedNavigate('/booth'))}
+                      goToBooth={(chapterId) => {
+                        const credits = chapterId ? creditsKindOfId(chapterId) : undefined;
+                        if (credits) goToBooth({ credits });
+                        else if (chapterId) goToBooth({ chapter: chapterId });
+                        else guardedNavigate('/booth');
+                      }}
                       refreshBootstrap={refreshBootstrap}
                       onOverview={onProductionOverview}
                     />
                   }
                 />
                 {/* The Schedule (the Studio Next mock's Schedule page): with no manuscript it says to import one first. */}
-                <Route path="/schedule" element={<SchedulePage journal={journal} onImport={() => guardedNavigate('/')} />} />
+                <Route path="/schedule" element={<SchedulePage journal={journal} hasManuscript={hasManuscript} onImport={() => guardedNavigate('/')} />} />
                 <Route
                   path="/script"
                   element={
@@ -683,7 +684,7 @@ function AppRoutes() {
                         goToBooth={goToBooth}
                       />
                     ) : (
-                      <Navigate to="/" replace />
+                      <NeedManuscript title="Script" onImport={() => guardedNavigate('/')} />
                     )
                   }
                 />
@@ -710,7 +711,7 @@ function AppRoutes() {
                         refreshKey={`${data.manuscript.id}:${data.manuscript.importedAt}`}
                       />
                     ) : (
-                      <Navigate to="/" replace />
+                      <NeedManuscript title="Proof" onImport={() => guardedNavigate('/')} />
                     )
                   }
                 />
@@ -718,7 +719,10 @@ function AppRoutes() {
                   with no manuscript the page asks for one. */}
                 <Route path="/editing" element={<EditingRoute hasManuscript={Boolean(data.manuscript)} onImport={() => guardedNavigate('/')} />} />
                 <Route path="/editing/:chapterId" element={<EditingRoute hasManuscript={Boolean(data.manuscript)} onImport={() => guardedNavigate('/')} />} />
-                <Route path="/booth" element={data.manuscript ? <BoothNextPage hasManuscript navigate={guardedNavigate} /> : <Navigate to="/" replace />} />
+                <Route
+                  path="/booth"
+                  element={<BoothNextPage hasManuscript={Boolean(data.manuscript)} navigate={guardedNavigate} onImport={() => guardedNavigate('/')} />}
+                />
                 <Route
                   path="/companion"
                   element={data.manuscript ? <CompanionPage onFixCredits={() => guardedNavigate('/settings#credits')} /> : <Navigate to="/" replace />}
@@ -776,6 +780,7 @@ function AppRoutes() {
                       <DeliveryPage
                         hasManuscript={Boolean(data.manuscript)}
                         onOpenInMaster={(chapterId) => guardedNavigate(`/master${masterHash({ file: chapterId })}`)}
+                        onImport={() => guardedNavigate('/')}
                       />
                     )
                   }

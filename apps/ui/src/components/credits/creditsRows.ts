@@ -1,9 +1,9 @@
 // Where the credits sit in the Script page's chapter list, as the mock's fixture orders them: "Opening credits" before the first chapter and
 // "Closing credits" after the last (`docs/research/mockups/studio-next/src/fixtures/alice.ts`). The reader draws the cards in the same places.
 
-import type { CreditsRenderResult } from '../../../../api/contracts/credits';
-import type { PrepState } from '../../../../api/contracts/scriptPrep';
-import type { CreditsKind } from '../../../booth/readerModel';
+import type { CreditsRenderResult } from '../../api/contracts/credits';
+import type { PrepState } from '../../api/contracts/scriptPrep';
+import type { CreditsKind } from '../booth/readerModel';
 
 /** The roving list's ids for the credits rows, which no chapter's id can be. */
 export const CREDITS_STOP: Record<CreditsKind, string> = { opening: 'credits:opening', closing: 'credits:closing' };

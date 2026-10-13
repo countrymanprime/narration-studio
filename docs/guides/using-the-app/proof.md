@@ -32,8 +32,9 @@ pickup, is decided but still open, so the ring cannot fill while a pickup is ope
 
 ### All chapters
 
-Under the title, **Open notes, by chapter** draws one tile per chapter with how many of its notes are open. Choose a tile
-to open that chapter.
+Under the title, **Open notes, by chapter** draws one tile per chapter with how many of its notes are open, with **Open** and **Close** tiles
+for the opening and closing credits at the ends. Choose a chapter's tile to open that chapter; a credits tile opens that
+credits card on [Script](script.md), since Proof has no recording view for them.
 
 ### One chapter
 

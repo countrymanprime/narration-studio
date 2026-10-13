@@ -10,7 +10,7 @@ import { useDawKind } from '../../useDawKind';
 import type { ManuscriptChapter } from '../../types';
 import { boothQuery } from '../booth/page/boothQuery';
 import { openCheckRecordings } from '../recordingcheck/openCheckRecordings';
-import { NeedManuscript } from '../script/page/layout/NeedManuscript';
+import { NeedManuscript } from '../layout/NeedManuscript';
 import { ALL_SCOPE, inScope, plainLine, type ChapterRef } from './list/pickupRows';
 import { PickupsTable, type RemoveUndo } from './list/PickupsTable';
 import { SessionPanel } from './list/SessionPanel';
@@ -131,7 +131,7 @@ export function PickupsPage({
   const dawName = !dawKind ? 'the DAW' : dawKind === 'none' ? 'the built-in recorder' : dawKind;
 
   return (
-    <div className="grid items-start gap-4 min-[1100px]:grid-cols-[minmax(0,1fr)_360px]">
+    <div className="grid items-start gap-4 min-[1180px]:grid-cols-[minmax(0,1fr)_360px]">
       <PickupsTable
         pickups={list.pickups}
         chapters={chapters}
