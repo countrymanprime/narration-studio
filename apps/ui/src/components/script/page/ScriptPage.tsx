@@ -9,7 +9,6 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import type { Bookmark } from '../../../api/contracts/bookmarks';
 import type { ManuscriptChapter } from '../../../api/contracts/manuscript';
 import type { Mark } from '../../../api/contracts/marks';
-import type { PrepState } from '../../../api/contracts/scriptPrep';
 import { chapterName } from '../../../chapterName';
 import { useLayoutClass } from '../../../hooks/useLayoutClass';
 import { CommandScope } from '../../../input/router';
@@ -40,6 +39,7 @@ import { NeedManuscript } from './layout/NeedManuscript';
 import { RAIL_LABEL, RailPanel, type RailTab } from './layout/RailPanel';
 import { ScriptColumns } from './layout/ScriptColumns';
 import { ScriptCredits } from './layout/ScriptCredits';
+import { creditsRows } from './chapters/creditsRows';
 import { SpeakerLayer } from './layout/SpeakerLayer';
 import { useDeepLink } from './layout/useDeepLink';
 import { scriptKeyHints } from './layout/scriptKeyHints';
@@ -357,19 +357,17 @@ function ScriptWorkspace({
   );
   const scroller = () => document.querySelector<HTMLElement>('section[aria-label="Reader"] [role="region"]');
 
-  /* ---------- The chapter list's credits row ---------- */
+  /* ---------- The chapter list's credits rows ---------- */
 
-  // The mock lists the opening credits above chapter 1 with the prep dot; here they are the card above the first chapter. A manuscript that
-  // imported its own opening-credits chapter lists that one instead. The card has no prep state of its own: its dot is Prepped once the
-  // preview has no [Token] left to fill in, else Not started.
+  // The mock lists the opening credits above chapter 1 and the closing credits after the last chapter, each with its prep dot; here they
+  // are the cards the reader draws in the same places (`chapters/creditsRows.ts`).
   const ownsOpening = chapters.some((chapter) => chapter.contentKind === 'opening');
-  const openingCredits = useMemo(
-    () =>
-      credits.hasOpening && !ownsOpening
-        ? { state: (credits.previews.opening?.unresolved.length === 0 ? 'prepped' : 'none') as PrepState, onJump: () => navigate('/script#credits-opening') }
-        : undefined,
-    [credits.hasOpening, credits.previews.opening, ownsOpening, navigate],
+  const { opening: openingRow, closing: closingRow } = useMemo(
+    () => creditsRows({ hasOpening: credits.hasOpening, hasClosing: credits.hasClosing, ownsOpening, previews: credits.previews }),
+    [credits.hasOpening, credits.hasClosing, credits.previews, ownsOpening],
   );
+  const openingCredits = useMemo(() => openingRow && { state: openingRow.state, onJump: () => navigate('/script#credits-opening') }, [openingRow, navigate]);
+  const closingCredits = useMemo(() => closingRow && { state: closingRow.state, onJump: () => navigate('/script#credits-closing') }, [closingRow, navigate]);
 
   /* ---------- The reader's slots ---------- */
 
@@ -381,6 +379,7 @@ function ScriptWorkspace({
         <>
           {chapter.id === firstId && (
             <ScriptCredits
+              kind="opening"
               credits={credits}
               projectFolder={projectFolder}
               notify={notify}
@@ -403,6 +402,17 @@ function ScriptWorkspace({
       );
     },
     [order, firstId, chapters, credits, projectFolder, notify, fillingIn, goToBooth, sample],
+  );
+  const closingCard = (
+    <ScriptCredits
+      kind="closing"
+      credits={credits}
+      projectFolder={projectFolder}
+      notify={notify}
+      fillingIn={fillingIn}
+      onFillIn={() => setFillingIn(true)}
+      goToBooth={goToBooth}
+    />
   );
   const renderGutter = useCallback((paragraph: Parameters<typeof BookmarkGutter>[0]['paragraph']) => <BookmarkGutter paragraph={paragraph} />, []);
 
@@ -485,6 +495,7 @@ function ScriptWorkspace({
             onJump={goToChapter}
             onClose={layout.narrow ? () => update({ drawer: null }) : undefined}
             openingCredits={openingCredits}
+            closingCredits={closingCredits}
           />
         }
         reader={
@@ -530,6 +541,7 @@ function ScriptWorkspace({
                 activeMarkId={selectedMark}
                 renderGutter={renderGutter}
                 renderChapterCard={renderChapterCard}
+                after={closingCard}
                 toolbar={toolbar}
                 onPickSpeaker={onPickSpeaker}
                 onShowAnnotation={(id) => {
