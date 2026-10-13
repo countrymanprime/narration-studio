@@ -617,6 +617,11 @@ describe('EditingPage', () => {
       mount({ api: { editingWordFxList: async (chapterId: string) => ({ chapterId, effects: [fx] }), editingWordFxRemove: removeFx } as never });
       await script();
       const [marker] = await within(await script()).findAllByRole('button', { name: 'Warm on the words. Options' });
+      // The word menu offers to take it off too.
+      fireEvent.contextMenu(word('p1:1'));
+      expect(within(await screen.findByRole('menu')).getByRole('menuitem', { name: 'Remove Warm' })).toBeTruthy();
+      fireEvent.keyDown(document.activeElement ?? document.body, { key: 'Escape' });
+      await waitFor(() => expect(screen.queryByRole('menu')).toBeNull());
       fireEvent.click(marker!);
       fireEvent.click(await screen.findByRole('menuitem', { name: 'Select the words' }));
       await waitFor(() => expect(word('p1:1').hasAttribute('data-sel')).toBe(true));
