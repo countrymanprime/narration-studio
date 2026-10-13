@@ -48,6 +48,24 @@ async function openCompanion(page: Page, query = ''): Promise<void> {
 
 export const boothDrivers: Record<string, Driver> = {
   setup: (page) => readyToRecord(page),
+  'daw-not-linked': async (page) => {
+    await openBooth(page, '?mockDawChoice=found');
+    const chip = page.getByRole('button', { name: 'Recording setup: REAPER, not linked' });
+    await chip.hover();
+    await page
+      .getByRole('tooltip')
+      .getByText(/REAPER not linked/)
+      .waitFor();
+  },
+  'daw-not-running': async (page) => {
+    await openBooth(page, '?mockDawChoice=not-running');
+    const chip = page.getByRole('button', { name: 'Recording setup: REAPER, not running' });
+    await chip.hover();
+    await page
+      .getByRole('tooltip')
+      .getByText(/not running/)
+      .waitFor();
+  },
   refusal: async (page) => {
     await openBooth(page);
     await page.getByText('Experimental: switched off in Settings.').waitFor();

@@ -65,6 +65,8 @@ for (const rows of AREAS) {
  * The list may only shrink: a new one needs a reason a reviewer accepts, and a narrator's action never belongs here.
  */
 export const SILENT_CATCHES: Record<string, string> = {
+  'src/components/project/NewProjectDialog.tsx#1':
+    'Reads the default projects folder only to show it; unreadable, the dialog names it in words, and Create still sends an empty parent the host resolves (and refuses with its own reason).',
   'src/components/proof/checkcard/CheckCard.tsx#1':
     'Seeds the card with the run in progress; a failed seed leaves the card on the stored result until the next coverage:state event.',
   'src/components/production/ChapterTrackPanel.tsx#1':

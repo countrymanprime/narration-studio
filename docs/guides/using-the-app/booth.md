@@ -18,6 +18,11 @@ built-in recorder). The chip opens [Settings](settings.md). The chapter is named
 you last chose. The button at the right shows or hides the side panel; in a window 1280 pixels wide or narrower the panel is a
 drawer that starts closed, the chapter picker is narrower, and the top bar wraps onto a second row when it runs out of room.
 
+The chip says when the project's DAW is not ready: **REAPER · not linked**, **REAPER · not running**, or REAPER on
+its own once connected. Click it to fix that in [Settings](settings.md#link-your-reaper-project).
+
+![Booth - the top-bar chip warns REAPER · not linked](../../images/ui/booth-daw-not-linked.webp)
+
 ![Booth - ready to record: the chapter stepper, progress and resume line on the top bar, the text with the reading position, the side panel, and Record, the levels and the key hints in the footer](../../images/ui/booth-setup.webp)
 
 The text fills the middle, with speaker chips beside the lines a character speaks, Story Bible names tinted and the words you

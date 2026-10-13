@@ -1,4 +1,5 @@
 // The mock host (mockApi.ts): its seeds and shared state.
+import type { DawChoiceMockSeed } from '../dawChoiceMock';
 import type {
   ApprovedCharacterReference,
   ChapterStatus,
@@ -131,8 +132,8 @@ export type MockApiSeed = {
   chapterSync?: 'ask' | 'off' | 'linked' | 'unsaved' | 'pickups' | 'activity' | 'background';
   /** Whether the mock project boots with a linked DAW project file. Defaults to true. */
   dawFileLinked?: boolean;
-  /** Makes the next `linkDawFile()` call behave like a chosen file outside the project folder: refused, not linked. */
-  dawLinkMismatch?: boolean;
+  /** Makes the next `linkDawFile()` call link a file outside the project folder (a separate DAW folder), with its note. */
+  dawLinkOutside?: boolean;
   /**
    * Simulates a live REAPER heartbeat whose open project disagrees with the linked file (ADR 0092): the
    * mock otherwise never grows a heartbeat, so `dawReachable`/`dawProjectMatches` stay false. Used by the engine
@@ -222,6 +223,8 @@ export type MockApiSeed = {
   deliveryProfile?: MockDeliveryProfileSeed;
   /** Seeds the DAW capabilities mock (which DAW, reachability, per-capability toggles), see `DawMockSeed`. */
   daw?: DawMockSeed;
+  /** The project's DAW choice and folder (`?mockDawChoice=`; dawChoiceMock.ts). */
+  dawChoice?: DawChoiceMockSeed;
   /** Seeds the provider capabilities mock (platform, installed asset counts), see `ProvidersMockSeed`. */
   providers?: ProvidersMockSeed;
   /**

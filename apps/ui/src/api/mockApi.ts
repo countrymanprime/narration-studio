@@ -14,6 +14,7 @@ import { createPreviewMock } from './previewMock';
 import { createProductionMock } from './productionMock';
 import { createStagesMock } from './stagesMock';
 import { createProofingRenderMock } from './proofingRenderMock';
+import { createDawChoiceMock } from './dawChoiceMock';
 import { createDawMock } from './dawMock';
 import { createProvidersMock } from './providersMock';
 import { createMasteringMock } from './masteringMock';
@@ -190,6 +191,7 @@ export function createMockApi(
   const mastering = createMasteringMock(initial.mastering);
   // The engine chip's `?mockEngine=builtin` flag seeds the recorder's engine, so the chip and the Booth agree (ADR 0455).
   const recording = createRecordingMock({ engine: mockEngineFromLocation(), ...initial.recording });
+  const dawChoice = createDawChoiceMock(initial.dawChoice ?? {}, { capabilities: () => daw.dawCapabilities(), recording });
   // The per-chapter editing source choice: shared between the stages mock (which signal a chapter's editing
   // check reads) and the editing mock (editingSourceChoice/editingSetSourceChoice below), so switching a chapter's
   // source there is visible on its editing signals here, the same live wiring a real host has through the same
@@ -381,6 +383,7 @@ export function createMockApi(
     ...production,
     ...findings,
     ...daw,
+    ...dawChoice,
     ...createHideTakesMock(daw, workspaceTakes),
     ...createRollMock(daw, (chapterId) => manuscriptReady.then(() => s.chapters.some((chapter) => chapter.id === chapterId))),
     ...createDeleteRangeMock(daw, (chapterId) => manuscriptReady.then(() => s.chapters.some((chapter) => chapter.id === chapterId))),

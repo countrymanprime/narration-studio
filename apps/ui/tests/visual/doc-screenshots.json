@@ -518,6 +518,34 @@
     "caption": "Delivery with the book checked: the chapters passing in Before you build, and Output waiting on the rest"
   },
   {
+    "page": "settings",
+    "state": "recording-found",
+    "viewport": "desktop",
+    "docName": "settings-recording-link",
+    "caption": "Settings > Recording - REAPER chosen, not linked yet, with Link Alice.rpp for the project file found in the folder"
+  },
+  {
+    "page": "settings",
+    "state": "recording-linked",
+    "viewport": "desktop",
+    "docName": "settings-recording-linked",
+    "caption": "Settings > Recording - the REAPER project file is linked, with Start REAPER"
+  },
+  {
+    "page": "booth",
+    "state": "daw-not-linked",
+    "viewport": "desktop",
+    "docName": "booth-daw-not-linked",
+    "caption": "The Booth - the top-bar chip warns REAPER - not linked"
+  },
+  {
+    "page": "project",
+    "state": "new-project-dialog",
+    "viewport": "desktop",
+    "docName": "project-new-dialog",
+    "caption": "New Project - the location line shows the default projects folder, with Change location"
+  },
+  {
     "page": "schedule",
     "state": "on-pace",
     "viewport": "desktop",

@@ -9,3 +9,8 @@ package daw
 func LocateReaperExecutable() (path, source string, err error) {
 	return "", "", ErrNotFound
 }
+
+// LocateAudacityExecutable is Windows-only, like LocateReaperExecutable.
+func LocateAudacityExecutable() (path, source string, err error) {
+	return "", "", ErrNotFound
+}

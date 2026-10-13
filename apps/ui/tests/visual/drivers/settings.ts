@@ -26,6 +26,32 @@ export const settingsDrivers: Record<string, Driver> = {
       .and(page.locator('[aria-checked="true"]'))
       .waitFor();
   },
+  'recording-found': async (page) => {
+    await page.goto('/?mockDawChoice=found');
+    await settlePage(page);
+    await goToPage(page, 'Settings');
+    await page.getByRole('button', { name: 'Link Alice.rpp' }).waitFor();
+  },
+  'recording-several': async (page) => {
+    await page.goto('/?mockDawChoice=several');
+    await settlePage(page);
+    await goToPage(page, 'Settings');
+    await page.getByText(/2 REAPER project files are in the project folder/).waitFor();
+  },
+  'recording-linked': async (page) => {
+    await page.goto('/?mockDawChoice=found');
+    await settlePage(page);
+    await goToPage(page, 'Settings');
+    await page.getByRole('button', { name: 'Link Alice.rpp' }).click();
+    await page.getByText('REAPER linked: Alice.rpp').waitFor();
+    await page.getByRole('button', { name: 'Start REAPER' }).waitFor();
+  },
+  'recording-not-installed': async (page) => {
+    await page.goto('/?mockDawChoice=not-installed');
+    await settlePage(page);
+    await goToPage(page, 'Settings');
+    await page.getByText(/REAPER was not found on this computer/).waitFor();
+  },
   'global-general': async (page) => {
     await goToPage(page, 'Settings');
     await clickSettingsCategory(page, 'General');

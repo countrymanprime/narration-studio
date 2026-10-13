@@ -33,6 +33,7 @@ import { wordCount } from '../reading/boothUnits';
 import { RecordControl } from '../record/RecordControl';
 import { RecordSetup, useRecordSetupFacts } from '../record/RecordSetup';
 import { SetupChip } from '../record/SetupChip';
+import { useDawChoice } from '../record/useDawChoice';
 import { ResumeOfferLine } from '../resume/ResumeOffer';
 import { saveNote } from '../resume/resumeOffer';
 import { useSuspectedPickups } from '../suspected/useSuspectedPickups';
@@ -351,6 +352,7 @@ function BoothSession({ source, from, requested, adopt, data, choose, navigate, 
   const wordsRead = units.slice(0, at.cur).reduce((sum, unit) => sum + unit.words, 0) + at.wcur;
   const progress = progressLine({ paragraph: (units[at.cur]?.paragraphIndex ?? 0) + 1, paragraphs: paragraphs.length, wordsRead, words });
   const capabilities = control.capabilities;
+  const dawChoice = useDawChoice();
   const roomTone = useRoomTone(measurements, session.device);
   const setupFacts = useRecordSetupFacts(capabilities?.reachable);
   const standalone = capabilities?.daw === 'none';
@@ -398,6 +400,7 @@ function BoothSession({ source, from, requested, adopt, data, choose, navigate, 
                     capabilities={capabilities}
                     standaloneName={dawShortName('none')}
                     project={control.project}
+                    choice={dawChoice}
                     onClick={() => void page.goTo(`${BOOTH_LINKS.settings}#recording`)}
                   />
                 ) : undefined
