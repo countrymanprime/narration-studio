@@ -75,6 +75,7 @@ export function useStartScan({ scan, onImported }: { scan: () => Promise<void>; 
     };
     overlay.open({
       kind: 'dialog',
+      dismissOnOutsidePress: false,
       title: 'Scan the manuscript',
       render: ({ close }) => <AnalysisPrompt choose={(choice, never) => void choose(choice, never, close)} />,
     });

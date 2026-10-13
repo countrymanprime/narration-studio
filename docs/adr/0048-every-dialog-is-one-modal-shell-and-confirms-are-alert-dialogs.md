@@ -1,6 +1,6 @@
 # 0048. Every dialog is one modal shell, confirms are alert dialogs, and Escape, the backdrop and focus follow one policy
 
-**Status:** Accepted
+**Status:** Accepted (amended 2026-10-13, issue 1706: the backdrop closes a dialog when it declares `dismissOnOutsidePress`, never a confirm, form or job; the rest stands)
 **Date:** 2026-09-20
 **Supersedes:**
 
@@ -20,7 +20,7 @@ There is one modal shell, `apps/ui/src/components/primitives/Dialog.tsx`, on Bas
 
 - **Modal contract (from the library).** The page behind is hidden from assistive technology and not reachable by Tab, Tab and Shift+Tab loop inside, page scroll is locked, and focus returns to the element that opened the dialog when it closes. The dialog is named by its visible title (`aria-labelledby`).
 - **Escape** closes a dialog that has somewhere to go: `onClose` (which also shows the header Close button) or `onEscape` (for a dialog with no header button). With neither it is ignored, so a job that is still running is never dismissed by a stray key. `WorkDialog` passes `onEscape` only once the job has finished, so Escape does nothing while it runs (Cancel is the deliberate action) and works as Close afterwards.
-- **The backdrop never closes a dialog** (`disablePointerDismissal`): an accidental click on the scrim must not discard a confirm.
+- **The backdrop closes a dialog only when the dialog says so** (`dismissOnOutsidePress`, a required prop; amended 2026-10-13, see the amendment note below). A confirm, a form with input and a job say no: an accidental click on the scrim must not discard them.
 - **Initial focus** lands on the scrolling body region, so a screen reader reads the message before any control, unless a child took focus with `autoFocus` (`AddNoteDialog`'s textarea), which wins. **Final focus** is the element that had focus when the dialog mounted, or, when that element is gone, the page's `<main>` (`tabIndex={-1}` in `AppShell`): Base UI sends focus to the first control inside it, or to `<main>` itself when it has none.
 - **`escapeCloses={false}`** keeps Escape from dismissing a dialog whose close would abort work in flight. `ConfirmDialog` exposes it as `escapeCancels` and the three confirms that turn into a running download (the Whisper model in Proofing and in the Teleprompter, the local preview voice in the Story Bible) pass `false` while it runs; the header Close button and Cancel remain the deliberate ways out.
 - **`ConfirmDialog` is always an `alertdialog`** (`variant="alert"`), described by its body (`aria-describedby`), and Escape declines exactly like Cancel. `body` is a `ReactNode`. A third action needs both `danger` and `dangerLabel` (the types refuse one without the other). `confirmVariant="danger"` draws the confirm button red; it is set on the six destructive confirms: Clear derived project data, Remove local preview voice, Remove local Whisper model, Delete entry, Merge and delete source, and Replace and reset (only when the import requires a reset).
@@ -36,3 +36,7 @@ There is one modal shell, `apps/ui/src/components/primitives/Dialog.tsx`, on Bas
 - `AddNoteDialog` is opened from the selection popup, which unmounts as the dialog mounts, so there is no opener to return to and focus goes into `<main>` (its first control) rather than back to the reader text. Returning it there needs the reader to be a focus target and is a follow-up.
 - A hover tooltip inside a dialog would close with Escape together with the dialog; no tooltip is inside a dialog today, and the tooltip phase handles it.
 - To change any of this (Escape or backdrop dismissal, a non-alert confirm), write a new ADR that supersedes this one.
+
+## Amendment (2026-10-13, issue 1706)
+
+The decision said the backdrop never closes a dialog. The Studio Next mock closes every non-full modal on a scrim press, and a reference sheet or a picker has nothing a stray click could lose, so the rule is now per dialog. `Dialog` takes a required `dismissOnOutsidePress`: true for a surface that only shows something or applies each choice at once (the keyboard shortcuts, a detail view, a lane picker, the jump menu), false for a confirm, a form with input and a job, which is what this ADR protected. A dialog with no `onClose` (work in flight) never dismisses either way. Escape, initial and final focus are unchanged. The per-dialog decisions are in the pull request that closed issue 1706, and `dialogChoice.guard.test.ts` fails a `<Dialog>` or a dialog overlay spec that omits the choice.

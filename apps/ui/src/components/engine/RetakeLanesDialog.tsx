@@ -126,6 +126,7 @@ export function RetakeLanesDialog({ onClose }: { onClose: () => void }) {
 
   return (
     <Dialog
+      dismissOnOutsidePress={true}
       title="Retakes on lanes"
       onClose={picking ? undefined : onClose}
       escapeCloses={!picking}

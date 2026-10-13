@@ -8,6 +8,7 @@ import type {
   DawGainStretch,
   DawProjectState,
   DawResult,
+  DawTransport,
 } from '../api/contracts/daw';
 import type { PickupMarker, PickupMarkerState, PickupsState } from '../api/contracts/pickups';
 import {
@@ -138,6 +139,12 @@ export const NOTHING_TO_CHANGE = 'Nothing to change.';
 export interface DawClient {
   /** What the launch's DAW can do now, as the host or the mock setup reports it. */
   capabilities(): Promise<DawCapabilities>;
+  /** What the DAW can do, again each time it changes (daw_capabilities_changed): a setting saved, the DAW connecting or going quiet.
+   * Absent on a client with no live source (a mock setup), whose capabilities never change. Returns the unsubscribe. */
+  subscribeCapabilities?(onUpdate: (next: DawCapabilities) => void): () => void;
+  /** The DAW's transport each time it changes (daw_transport_changed), only on a change, so a stop the narrator made in the DAW is heard.
+   * Absent on a client with no live source. Returns the unsubscribe. */
+  subscribeTransport?(onUpdate: (next: DawTransport) => void): () => void;
   /** The project as last saved, whether the DAW has unsaved changes, and the transport. `playPosition` is for display only. */
   projectState(): Promise<DawProjectState>;
   /** Start recording on the chapter's track: from the end of its last item (ADR 0791), or from `at` (project seconds) when the
@@ -248,6 +255,8 @@ export type DawHostApi = Pick<
   | 'pickupsListMarkers'
   | 'pickupsState'
   | 'subscribePickups'
+  | 'subscribeDawCapabilities'
+  | 'subscribeDawTransport'
   | 'masterPlayQuietest'
   | 'masterOpenInDaw'
 >;
@@ -384,6 +393,8 @@ function hostPickupMarkers(api: DawHostApi): Pick<DawClient, 'addPickupMarkers' 
 export function createHostDawClient(api: DawHostApi): DawClient {
   return {
     capabilities: () => api.dawCapabilities(),
+    subscribeCapabilities: (onUpdate) => api.subscribeDawCapabilities(onUpdate),
+    subscribeTransport: (onUpdate) => api.subscribeDawTransport(onUpdate),
     projectState: () => api.dawProjectState(),
     async recordStart(chapterId, at) {
       const result = await (at === undefined ? api.readAloudRecordStart(chapterId) : api.readAloudRecordStartAt(chapterId, at));
