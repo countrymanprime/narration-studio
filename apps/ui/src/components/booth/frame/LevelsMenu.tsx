@@ -90,14 +90,18 @@ export function LevelsMenu({ engine, dawName, reachable, offReason, device, onDe
   );
 }
 
-/** The meter that sits open beside Record in the footer, with the room tone. */
+/** The meter and the room tone chip at the right of the footer (the mock's `.lvl-inline`, `margin-left: auto`). */
 export function LevelsInline({ level, roomTone, roomToneOk }: { level: InputLevel | null; roomTone: string; roomToneOk: boolean }) {
   return (
-    <div role="group" aria-label="Input" className="flex items-center gap-3">
+    <div role="group" aria-label="Input" className="ml-auto flex min-w-0 items-center gap-3">
       <div className="w-28">
         <LevelMeter label="Input level" peak={level?.peak ?? null} rms={level?.rms ?? null} size="compact" />
       </div>
-      <span className={`text-xs ${roomToneOk ? 'text-[var(--ok-text)]' : 'text-[var(--text-muted)]'}`}>{roomTone}</span>
+      <span
+        className={`rounded-full border border-[var(--btn-line)] bg-[var(--surface)] px-2.5 py-0.5 text-xs font-semibold whitespace-nowrap ${roomToneOk ? 'text-[var(--ok-text)]' : 'text-[var(--text-muted)]'}`}
+      >
+        {roomTone}
+      </span>
     </div>
   );
 }

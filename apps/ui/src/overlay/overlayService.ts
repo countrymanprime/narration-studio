@@ -10,6 +10,8 @@ type ConfirmSpec = {
   body: ReactNode;
   confirmLabel: string;
   confirmVariant?: 'primary' | 'danger';
+  /** The decline button's name; "Cancel" when absent. */
+  cancelLabel?: string;
 };
 type DialogSpec = {
   kind: 'dialog' | 'slideOver';

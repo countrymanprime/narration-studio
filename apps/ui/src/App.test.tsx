@@ -1676,10 +1676,13 @@ describe('App shell mounts', () => {
     fireEvent.click(screen.getAllByRole('button', { name: 'Script' })[0]);
     await screen.findByRole('heading', { name: 'Script' });
     await waitFor(() => expect(screen.getByRole('button', { name: 'Back' }).getAttribute('aria-disabled')).toBeNull());
-    journal.setLeaveGuard(() => ({ ask: { title: 'Stop recording?', body: 'A take is recording.', confirmLabel: 'Stop and leave' } }));
+    journal.setLeaveGuard(() => ({
+      ask: { title: 'Stop recording?', body: 'A take is recording.', confirmLabel: 'Stop and leave', cancelLabel: 'Keep recording' },
+    }));
 
+    // The guard's own name for staying reaches the question.
     fireEvent.click(screen.getByRole('button', { name: 'Back' }));
-    fireEvent.click(within(await screen.findByRole('alertdialog', { name: /Stop recording/ })).getByRole('button', { name: 'Cancel' }));
+    fireEvent.click(within(await screen.findByRole('alertdialog', { name: /Stop recording/ })).getByRole('button', { name: 'Keep recording' }));
     await waitFor(() => expect(screen.queryByRole('alertdialog')).toBeNull());
     expect(screen.getByRole('heading', { name: 'Script' })).toBeTruthy();
 
@@ -1690,7 +1693,7 @@ describe('App shell mounts', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Forward' }));
     expect(await screen.findByRole('alertdialog', { name: /Stop recording/ })).toBeTruthy();
-    fireEvent.click(within(screen.getByRole('alertdialog')).getByRole('button', { name: 'Cancel' }));
+    fireEvent.click(within(screen.getByRole('alertdialog')).getByRole('button', { name: 'Keep recording' }));
     await waitFor(() => expect(screen.queryByRole('alertdialog')).toBeNull());
     expect(screen.getByRole('heading', { level: 1, name: 'Production' })).toBeTruthy();
     journal.setLeaveGuard(null);

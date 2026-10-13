@@ -20,6 +20,8 @@ type ConfirmDialogProps = {
   // voice or model, delete an entry, merge and delete the source, replace and reset).
   confirmVariant?: 'primary' | 'danger';
   cancel: () => void;
+  // The decline button's name when "Cancel" does not say what staying means ("Keep recording", the Booth's leave question).
+  cancelLabel?: string;
   // false: Escape does not decline. For a confirm that has turned into a running download, where declining aborts the
   // download: the header button and Cancel stay as the deliberate ways out.
   escapeCancels?: boolean;
@@ -43,6 +45,7 @@ export function ConfirmDialog({
   secondaryLabel,
   secondary,
   cancel,
+  cancelLabel = 'Cancel',
   escapeCancels = true,
   pending = false,
   children,
@@ -57,7 +60,7 @@ export function ConfirmDialog({
       actions={
         <>
           <Button variant="secondary" disabled={pending} onClick={cancel}>
-            Cancel
+            {cancelLabel}
           </Button>
           <div className="flex gap-2">
             {danger && (

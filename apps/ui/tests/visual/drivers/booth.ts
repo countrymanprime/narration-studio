@@ -57,7 +57,10 @@ export const boothDrivers: Record<string, Driver> = {
   'leave-dialog': async (page) => {
     await startTake(page);
     await page.keyboard.press('Escape');
-    await page.getByRole('alertdialog', { name: 'Stop recording?' }).waitFor();
+    const question = page.getByRole('alertdialog', { name: 'Stop recording?' });
+    await question.waitFor();
+    // The way to stay is named as the mock names it, not "Cancel".
+    await question.getByRole('button', { name: 'Keep recording' }).waitFor();
   },
   'roll-confirm': async (page) => {
     await startTake(page, '?mockRollReplaces=1');
