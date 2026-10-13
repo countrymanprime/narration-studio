@@ -51,7 +51,13 @@ export const boothDrivers: Record<string, Driver> = {
   refusal: async (page) => {
     await openBooth(page);
     await page.getByText('Experimental: switched off in Settings.').waitFor();
+    await page.getByRole('heading', { name: 'Recording in REAPER is experimental' }).waitFor();
     await page.getByRole('button', { name: /^Resume at ¶/ }).waitFor();
+  },
+  'record-connect': async (page) => {
+    await openBooth(page, '?mockDawConnected=0');
+    await page.getByRole('heading', { name: 'Connect REAPER to record' }).waitFor();
+    await page.getByRole('button', { name: 'Open in REAPER and connect' }).waitFor();
   },
   recording: (page) => startTake(page),
   'leave-dialog': async (page) => {
