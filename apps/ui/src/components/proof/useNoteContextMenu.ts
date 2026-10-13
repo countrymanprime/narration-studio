@@ -1,7 +1,13 @@
 import { useMemo, useRef } from 'react';
 import type { Finding } from '../../api/contracts/findings';
 import { useContextProvider } from '../../registries/context';
+import { TRIM_LABEL, trimmableGap } from './inspector/TrimGap';
 import { DECISIONS, press } from './useProofKeys';
+
+/** The DAW the Inspector's "Show in …" names: the menu says "Go to <DAW>" as the mock does. */
+const SHOW_IN = 'Show in ';
+const dawShown = (): string =>
+  document.querySelector('aside[aria-label="Note"] button[aria-label^="Show in "]')?.getAttribute('aria-label')?.slice(SHOW_IN.length) ?? 'the DAW';
 
 /** A note's row in the notes table, or its pin on the waveform. */
 const NOTE = 'section[aria-label="Notes"] tr[data-row], [data-pin]';
@@ -16,9 +22,10 @@ type NoteMenu = {
 };
 
 /**
- * The right-click menu of a note on Proof (mock `registerContext` for the Proof page): decide it, reopen it, show it in the DAW, or open
- * its chapter in Script or the Booth. The decisions and the DAW action press the Inspector's own controls, so the stale-evidence guard
- * and the DAW's capability apply to the menu as they do to the buttons. There is no Play ±3 s (not built, PRD).
+ * The right-click menu of a note on Proof (mock `registerContext` for the Proof page): decide it, reopen it, go to it in the DAW, trim
+ * a gap note's gap, or open its chapter in Script or the Booth. The decisions, the DAW action and the trim press the Inspector's own
+ * controls, so the stale-evidence guard and the DAW's capability apply to the menu as they do to the buttons. There is no Play ±3 s
+ * (not built, PRD).
  */
 export function useNoteContextMenu(menu: NoteMenu): void {
   const live = useRef(menu);
@@ -45,7 +52,8 @@ export function useNoteContextMenu(menu: NoteMenu): void {
           { key: 'note-waive', label: 'Waive', onSelect: () => press(DECISIONS.waive) },
           { key: 'note-defer', label: 'Defer', onSelect: () => press(DECISIONS.defer) },
           { key: 'note-reopen', label: 'Reopen', unavailable: decided ? undefined : 'Not decided yet.', onSelect: () => press('Reopen') },
-          { key: 'note-goto', label: 'Show in the DAW', onSelect: () => press('Show in the DAW') },
+          { key: 'note-goto', label: `Go to ${dawShown()}`, onSelect: () => press(SHOW_IN) },
+          ...(trimmableGap(note) ? [{ key: 'note-trim', label: TRIM_LABEL, onSelect: () => press(TRIM_LABEL) }] : []),
           { key: 'note-script', label: 'Open this chapter in Script', unavailable: noChapter, onSelect: () => goToScript(chapterId) },
           { key: 'note-booth', label: 'Open this chapter in Booth', unavailable: noChapter, onSelect: () => goToBooth(chapterId) },
         ];

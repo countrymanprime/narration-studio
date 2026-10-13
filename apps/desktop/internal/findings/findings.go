@@ -190,6 +190,9 @@ type ReviewState struct {
 	Timestamp string `json:"timestamp,omitempty"`
 	// Type is the narrator's chosen kind (ADR 0844); absent until chosen, then the analyzer's own word applies.
 	Type NoteType `json:"type,omitempty"`
+	// Thread is the notes on the finding, between the narrator and a proofer or with themselves (PF-1 part 7); absent
+	// until the first. It is not a decision and outlives a change of evidence.
+	Thread []ThreadMessage `json:"thread,omitempty"`
 }
 
 type Finding struct {

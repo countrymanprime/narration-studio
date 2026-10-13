@@ -128,6 +128,30 @@ func (h *Host) FindingsSetType(id, evidenceVersion, noteType string) (string, er
 	return encodeBinding(finding, err)
 }
 
+// FindingsThread changes a finding's thread of notes (PF-1 part 7) and answers the finding as the store now holds it, with
+// review.thread. op is "add" (who is "you" or "proofer", text the note), "edit" (messageID and the new text), "delete" or
+// "restore" (messageID). Each is an append-only line in the review history, so the page's Undo is the opposite change:
+// delete for an add, the old text for an edit, restore for a delete. It is not a decision and does not depend on the
+// evidence version: a note outlives a re-check.
+func (h *Host) FindingsThread(id, op, messageID, who, text string) (string, error) {
+	store, err := h.findingsStore()
+	if err != nil {
+		return "", err
+	}
+	if utf8.RuneCountInString(text) > maxReviewNoteRunes {
+		return "", fmt.Errorf("a note can be at most %d characters", maxReviewNoteRunes)
+	}
+	if _, err := existingFinding(store, id); err != nil {
+		return "", err
+	}
+	entry := findings.ThreadEntry{Op: findings.ThreadOp(op), MessageID: messageID, Who: who, Text: text}
+	finding, found, err := store.RecordThread(id, entry, time.Now().UTC().Format(time.RFC3339))
+	if err == nil && !found {
+		err = errFindingGone
+	}
+	return encodeBinding(finding, err)
+}
+
 func joinNoteTypes() string {
 	words := make([]string, 0, len(findings.NoteTypes()))
 	for _, t := range findings.NoteTypes() {

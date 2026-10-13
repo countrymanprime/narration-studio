@@ -134,5 +134,5 @@ export const findingNavigationSchema = z.discriminatedUnion('outcome', [
 export const findingMarkerSchema = z.discriminatedUnion('outcome', [
   z.object({ outcome: z.literal('added'), name: z.string(), sourceTime: z.number() }),
   z.object({ outcome: z.literal('existing'), name: z.string(), sourceTime: z.number() }),
-  z.object({ outcome: z.literal('refused'), reason: z.enum([...navigationRefusals, 'not_accepted']), message: z.string() }),
+  z.object({ outcome: z.literal('refused'), reason: z.enum(navigationRefusals), message: z.string() }),
 ]) satisfies z.ZodType<FindingMarker>;

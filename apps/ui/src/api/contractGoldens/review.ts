@@ -47,6 +47,5 @@ export const reviewGoldens: Record<string, z.ZodType> = {
   'findings-navigation-not-running.json': findingNavigationSchema,
   'findings-add-marker.json': findingMarkerSchema,
   'findings-add-marker-existing.json': findingMarkerSchema,
-  'findings-add-marker-not-accepted.json': findingMarkerSchema,
   'findings-add-marker-stale.json': findingMarkerSchema,
 };

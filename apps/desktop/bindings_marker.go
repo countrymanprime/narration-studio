@@ -11,8 +11,8 @@ import (
 	"github.com/countrymanprime/narration-utils/shell/internal/settings"
 )
 
-// The Review page's approved marker (ADR 0123): one take
-// marker in REAPER for one finding the narrator accepted, sent only after they confirm it. It goes through the same
+// The Proof page's marker (ADR 0123): one take marker in REAPER for one finding, in one click and for any finding the
+// narrator is looking at (SD-4 left the accepted-only gate and the confirm out). It goes through the same
 // navigator, the same refusals and the same "only while REAPER is listening" rule as Go to (bindings_navigation.go), and
 // it is the one REAPER action from the page that changes the project, so REAPER wraps it in one undo block. The batch
 // Export markers action stays on the Transcript page.
@@ -29,18 +29,15 @@ type FindingMarker struct {
 }
 
 const (
-	refusedNotAccepted = "not_accepted"
-
-	messageNotAccepted        = "Accept this finding first. Only a finding you accepted gets a marker in REAPER."
 	messageMarkerNoItem       = "This finding has no REAPER item to mark, because it came from an older check. Run the check again to record one."
 	messageMarkerNoSourceTime = "This finding has no time in its audio to put a marker at."
 	messageMarkerRecording    = "REAPER is recording, so no marker was added. Stop recording first."
 	messageMarkerStaleSuffix  = ", so no marker was added. Run the check again to find it where it is now."
 )
 
-// FindingsAddMarker adds one take marker in REAPER at an accepted finding's spot, on its take, named like the marker
-// Transcript Compare's export adds (approvedMarker). A finding not accepted, one with no item or no time in its audio,
-// and a REAPER that is not listening are refused before anything is sent.
+// FindingsAddMarker adds one take marker in REAPER at a finding's spot, on its take, named like the marker Transcript
+// Compare's export adds (approvedMarker). A finding with no item or no time in its audio, and a REAPER that is not
+// listening, are refused before anything is sent.
 func (h *Host) FindingsAddMarker(id string) (string, error) {
 	svc := h.services()
 	if svc.findings == nil {
@@ -52,8 +49,6 @@ func (h *Host) FindingsAddMarker(id string) (string, error) {
 	}
 	target := navigationTarget(finding)
 	switch {
-	case finding.Review.Status != findings.StatusAccepted:
-		return encodeBinding(markerRefused(refusedNotAccepted, messageNotAccepted), nil)
 	case target.ItemGUID == "":
 		return encodeBinding(markerRefused(refusedNoItem, messageMarkerNoItem), nil)
 	case target.SourceStart == nil:

@@ -42,26 +42,33 @@ const button = (name: string) => screen.getByRole('button', { name });
 const enabled = (name: string) => button(name).getAttribute('aria-disabled') !== 'true' && !(button(name) as HTMLButtonElement).disabled;
 
 describe('actions-follow-the-daw-capability', () => {
-  it('turns Show in the DAW on and calls findingsGoTo, then shows the result', async () => {
+  it('turns Show in REAPER on and calls findingsGoTo, then shows the result', async () => {
     const t = setup(placed());
-    await waitFor(() => expect(enabled('Show in the DAW')).toBe(true));
-    await userEvent.click(button('Show in the DAW'));
+    await waitFor(() => expect(enabled('Show in REAPER')).toBe(true));
+    await userEvent.click(button('Show in REAPER'));
     expect(t.api.findingsGoTo).toHaveBeenCalledWith('f1');
-    expect((await screen.findByRole('status')).textContent).toBe('Moved to 0:12.4 in the DAW.');
+    expect((await screen.findByRole('status')).textContent).toBe('Moved to 0:12.4 in REAPER.');
   });
 
   it('turns Add marker on for an accepted note and calls DawClient.addMarker', async () => {
     const t = setup(accepted());
-    await waitFor(() => expect(enabled('Add marker in the DAW')).toBe(true));
-    await userEvent.click(button('Add marker in the DAW'));
+    await waitFor(() => expect(enabled('Add marker in REAPER')).toBe(true));
+    await userEvent.click(button('Add marker in REAPER'));
     expect(t.addMarker).toHaveBeenCalledWith('f1');
     await waitFor(() => expect(screen.getByRole('status').textContent).toMatch(/Marker added/));
   });
 
-  it('keeps Add marker off for a note that is not accepted, and says why', async () => {
-    setup(placed());
-    await waitFor(() => expect(screen.getByText(/Mark this note as a pickup or an edit first/)).toBeTruthy());
-    expect(enabled('Add marker in the DAW')).toBe(false);
+  it('turns Add marker on for a note that is not accepted', async () => {
+    const t = setup(placed());
+    await waitFor(() => expect(enabled('Add marker in REAPER')).toBe(true));
+    await userEvent.click(button('Add marker in REAPER'));
+    expect(t.addMarker).toHaveBeenCalledWith('f1');
+  });
+
+  it('names the DAW the report names', async () => {
+    setup(placed(), 'audacity');
+    await waitFor(() => expect(screen.getByRole('button', { name: /^Show in Audacity/ })).toBeTruthy());
+    expect(screen.getByRole('button', { name: /^Add marker in Audacity/ })).toBeTruthy();
   });
 
   it('turns both off with the capability’s own sentence when the DAW offers neither', async () => {
@@ -75,8 +82,8 @@ describe('actions-follow-the-daw-capability', () => {
   it('shows a refusal from the DAW as an alert', async () => {
     const t = setup(placed());
     vi.mocked(t.api.findingsGoTo).mockResolvedValue({ outcome: 'refused', reason: 'no_item', message: 'Nothing to go to.' });
-    await waitFor(() => expect(enabled('Show in the DAW')).toBe(true));
-    await userEvent.click(button('Show in the DAW'));
+    await waitFor(() => expect(enabled('Show in REAPER')).toBe(true));
+    await userEvent.click(button('Show in REAPER'));
     expect((await screen.findByRole('alert')).textContent).toBe('Nothing to go to.');
   });
 });
@@ -110,7 +117,8 @@ describe('reopen-appears-only-when-decided', () => {
 describe('note-steps-and-banner-are-the-merged-ones', () => {
   it('is inert while the evidence is changed', async () => {
     const t = setup(accepted(), 'reaper', { inert: true });
-    for (const name of ['Show in the DAW', 'Add marker in the DAW', 'Open this chapter in Script', 'Reopen']) expect(enabled(name)).toBe(false);
+    await screen.findByRole('button', { name: 'Show in REAPER' });
+    for (const name of ['Show in REAPER', 'Add marker in REAPER', 'Open this chapter in Script', 'Reopen']) expect(enabled(name)).toBe(false);
     await userEvent.click(button('Open this chapter in Script'));
     expect(t.onOpenScript).not.toHaveBeenCalled();
   });

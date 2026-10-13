@@ -10,6 +10,7 @@ import { EvidenceChangedBanner } from './EvidenceChangedBanner';
 import { evidenceQuotes, parseMarkup, type MarkupNode } from './evidenceQuotes';
 import { InspectorActions, type InspectorActionsApi } from './InspectorActions';
 import { NoteSteps } from './NoteSteps';
+import { TrimGap, trimmableGap } from './TrimGap';
 import { useShownEvidence, type InspectorApi } from './useShownEvidence';
 
 /** What the Inspector asks of the host: the two reads of `useShownEvidence` and the Go to of the icon row. */
@@ -117,6 +118,7 @@ export function Inspector({
         </div>
       )}
       {spot}
+      {trimmableGap(shown) && <TrimGap finding={shown} inert={inert} onTrimmed={() => void decide('accepted')} />}
       <InspectorActions
         finding={shown}
         api={api}

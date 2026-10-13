@@ -236,8 +236,8 @@ export type FindingNavigation =
   | { outcome: 'stopped'; restored: number; kept: number }
   | { outcome: 'refused'; reason: FindingNavigationRefusal; message: string };
 
-/** Why no approved marker was added: the navigation refusals, and a finding the narrator has not accepted. */
-export type FindingMarkerRefusal = FindingNavigationRefusal | 'not_accepted';
+/** Why no marker was added: the navigation refusals. Any note can be marked, whatever its decision (SD-4). */
+export type FindingMarkerRefusal = FindingNavigationRefusal;
 
 /**
  * What adding the approved marker did (ADR 0123): `added` (REAPER added the take marker `name`, in
