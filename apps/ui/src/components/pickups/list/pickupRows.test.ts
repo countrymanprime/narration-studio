@@ -12,6 +12,7 @@ import {
   sourceLabel,
   sourceTitle,
   typeLabel,
+  typeTone,
 } from './pickupRows';
 
 describe('pickupRows', () => {
@@ -80,5 +81,22 @@ describe('pickupRows', () => {
       'Chapter 1 · The Orchard · 05:12.0: She walked past the orchard wall.\nChapter 3 · Salt · 00:12.0: Say Aoife as EE-fa.',
     );
     expect(pickupScript([], CHAPTERS)).toBe('');
+  });
+});
+
+describe('the type chip', () => {
+  it('capitalises a note type the host wrote in lower case, so every row reads alike', () => {
+    expect(typeLabel(pickup({ gap: undefined, type: 'noise' }))).toBe('Noise');
+    expect(typeLabel(pickup({ gap: undefined, type: 'misread' }))).toBe('Misread');
+  });
+
+  it('colours by the kind of fault, as the mock does', () => {
+    expect(typeTone(SPEECH)).toBe('danger');
+    expect(typeTone(NO_SCORE)).toBe('danger');
+    expect(typeTone(EXTRA)).toBe('warning');
+    expect(typeTone(pickup({ gap: undefined, type: 'noise' }))).toBe('warning');
+    expect(typeTone(pickup({ gap: undefined, type: 'Pronunciation' }))).toBe('info');
+    expect(typeTone(pickup({ gap: undefined, type: 'Pacing' }))).toBe('accent');
+    expect(typeTone(pickup({ gap: 'other', type: 'Odd' }))).toBe('neutral');
   });
 });

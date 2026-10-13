@@ -488,6 +488,20 @@ export function createReaperActionsMock(initial: MockApiSeed, projectFolder: () 
 /** The manuscript the pickups are placed on: the mock's live one, once it has loaded (the browser loads the whole book). */
 type PickupManuscript = { ready: Promise<unknown>; paragraphs: () => ManuscriptParagraph[] };
 
+/** The first sentence of a paragraph, whole. A paragraph with no sentence end gives itself. */
+function firstSentence(text: string): string {
+  return /^.*?[.!?]['"’”]?(?=\s|$)/s.exec(text.trim())?.[0] ?? text.trim();
+}
+
+/** The clause a sentence ends on, after its last comma, colon or dash, led by an ellipsis, as the mock's "…all dripping wet, cross, and uncomfortable."; the whole sentence when it is short or has none. */
+function tailClause(text: string): string {
+  const sentence = firstSentence(text);
+  if (sentence.length <= 80) return sentence;
+  const cut = [...sentence.matchAll(/(?:[,:;]\s+|\s*(?:--|—)\s*)/g)].map((m) => m.index + m[0].length).filter((at) => sentence.length - at >= 20);
+  const at = cut.length ? cut[cut.length - 1] : -1;
+  return at < 0 ? sentence : `…${sentence.slice(at)}`;
+}
+
 /**
  * The sample pickups of the Studio Next mock's fixtures (`PICKUPS` in its alice.ts), placed on chapter 3's own lines of the manuscript
  * given, so the Booth finds each one's paragraph as it does the host's. The seed's lines stand in when that chapter has none.
@@ -516,7 +530,7 @@ function samplePickups(paragraphs: readonly ManuscriptParagraph[]): PickupItem[]
       at: 131,
       type: 'misread',
       gap: 'misread',
-      script: at(0).text.slice(0, 80),
+      script: firstSentence(at(0).text),
       source: 'speech',
       confidence: 0.97,
       confReason: '',
@@ -527,7 +541,7 @@ function samplePickups(paragraphs: readonly ManuscriptParagraph[]): PickupItem[]
       at: 348.2,
       type: 'missing',
       gap: 'missing',
-      script: at(1).text.slice(0, 80),
+      script: tailClause(at(1).text),
       source: 'speech',
       confidence: 0.93,
       confReason: '',
@@ -537,7 +551,7 @@ function samplePickups(paragraphs: readonly ManuscriptParagraph[]): PickupItem[]
       time: 450.9,
       at: 450.9,
       type: 'noise',
-      script: at(3).text.slice(0, 80),
+      script: tailClause(at(3).text),
       source: 'audio',
       confidence: null,
       confReason: 'not_scored',
