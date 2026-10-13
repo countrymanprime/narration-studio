@@ -4,7 +4,14 @@ import { describe, expect, it } from 'vitest';
 
 import type { DawCapabilities, DawResult } from '../api/contracts/daw';
 import type { PickupMarker, PickupsState } from '../api/contracts/pickups';
-import { dawBackupsFileSchema, dawCapabilitiesSchema, dawFxRangeSettingsSchema, dawProjectStateSchema, dawResultSchema } from '../api/schemas/daw';
+import {
+  dawBackupsFileSchema,
+  dawCapabilitiesSchema,
+  dawFxRangeCompareSchema,
+  dawFxRangeSettingsSchema,
+  dawProjectStateSchema,
+  dawResultSchema,
+} from '../api/schemas/daw';
 import { findingMarkerSchema } from '../api/schemas/findings';
 import { pickupsStateSchema } from '../api/schemas/pickups';
 import { readAloudRecordingSchema } from '../api/schemas/teleprompter';
@@ -24,6 +31,8 @@ import {
   fxChainRemovedAnswer,
   fxChainsSource,
   fxBypassAnswer,
+  fxCompareAnswer,
+  FX_COMPARE_PASS,
   fxSettingSetAnswer,
   fxSettingsReadAnswer,
   FX_RANGE_SETTINGS,
@@ -100,6 +109,9 @@ const GOLDEN_FILES = [
   'daw-fx-range-params-set-done.json',
   'daw-fx-range-bypass-done.json',
   'daw-fx-range-bypass-refused-stale.json',
+  'daw-fx-range-compare-done.json',
+  'daw-fx-range-compare-refused-stale.json',
+  'daw-fx-range-compare-stopped.json',
   'daw-stack-done.json',
   'daw-stack-steps.json',
   'daw-unstack-done.json',
@@ -314,6 +326,16 @@ function hostApi(): DawHostApi {
       if (chainName !== 'Podcast Voice.RfxChain' || !bypass) return Promise.reject(new Error(`no golden for bypass ${bypass} of ${chainName}`));
       return Promise.resolve(read('daw-fx-range-bypass-done.json', dawResultSchema));
     },
+    // DawCompareFxRange and DawStopFxCompare on REAPER (SN-E113): the range and chain are checked as a bypass's, and Podcast Voice's
+    // Compare is the done golden. A stop answers the stopped golden.
+    dawCompareFxRange: (chapterId, firstToken, lastToken, chainName) => {
+      const none = (result: DawResult) => Promise.resolve({ result, pass: 0 });
+      if (!known.chapterIds.includes(chapterId) || firstToken < 0 || lastToken < firstToken) return none(staleRefusal(DAW_ANSWERS.rangeStale));
+      if (!plainChainName(chainName)) return none(refusal(DAW_ANSWERS.fxBadChain));
+      if (chainName !== 'Podcast Voice.RfxChain') return Promise.reject(new Error(`no golden for comparing ${chainName}`));
+      return Promise.resolve(read('daw-fx-range-compare-done.json', dawFxRangeCompareSchema));
+    },
+    dawStopFxCompare: () => Promise.resolve(read('daw-fx-range-compare-stopped.json', dawResultSchema)),
     workspaceListFXChains: () => Promise.resolve(read('workspace-fx-chains.json', workspaceFXChainsResultSchema)),
     // MasterPlayQuietest and MasterOpenInDaw (SN-M97): a file the fixture's last run does not list is the stale golden; the run's first
     // file (its quietest window at 12 s) plays and opens, and its second (no window) has no stretch to play.
@@ -613,6 +635,14 @@ const cases: ReadonlyArray<ContractCase<DawClient>> = [
     observe: (daw) => daw.setFxRangeParam({ ...FX_TARGET, fx: 0, index: 0, value: -3 }),
   },
   { name: 'fx-range-params-and-bypass: a bypass is answered alike', observe: (daw) => daw.bypassFxRange(FX_TARGET, true) },
+  { name: 'fx-compare: a Compare is answered alike', observe: (daw) => daw.compareFxRange(FX_TARGET) },
+  {
+    name: 'fx-compare: an unknown chapter and a path for a chain are refused alike',
+    observe: async (daw) => [
+      await daw.compareFxRange({ ...FX_TARGET, chapterId: 'chapter-9' }),
+      await daw.compareFxRange({ ...FX_TARGET, chainName: '../x.RfxChain' }),
+    ],
+  },
   {
     name: 'fx-range-params-and-bypass: an unknown chapter or a range read backwards is refused stale alike',
     observe: async (daw) => [
@@ -1525,5 +1555,48 @@ describe('fx-range-params-and-bypass', () => {
       message: fxBypassAnswer('Podcast Voice.RfxChain', false, 'REAPER'),
       undoSteps: 1,
     });
+  });
+});
+
+describe('fx-compare', () => {
+  it('fx-compare: the host adapter sends the words and the chain only, and answers the bindings as they are', async () => {
+    const stale = read('daw-fx-range-compare-refused-stale.json', dawFxRangeCompareSchema);
+    const stopped = read('daw-fx-range-compare-stopped.json', dawResultSchema);
+    expect(stale).toMatchObject({ result: { ok: false, code: 'stale' }, pass: 0 });
+    expect(stopped).toMatchObject({ ok: true, changed: true, undoSteps: 0 });
+    const calls: unknown[][] = [];
+    const host = createHostDawClient({
+      ...hostApi(),
+      dawCompareFxRange: (...args) => {
+        calls.push(['compare', ...args]);
+        return Promise.resolve(stale);
+      },
+      dawStopFxCompare: (...args) => {
+        calls.push(['stop', ...args]);
+        return Promise.resolve(stopped);
+      },
+    });
+    expect(await host.compareFxRange(FX_TARGET)).toEqual(stale);
+    expect(await host.stopFxCompare()).toEqual(stopped);
+    expect(calls).toEqual([['compare', 'chapter-1', 3, 3, 'Podcast Voice.RfxChain'], ['stop']]);
+  });
+
+  it("fx-compare: the mock refuses with the setup's fx_range sentence, Audacity says the effect is baked in, and REAPER plays two passes", async () => {
+    for (const id of ['reaper-off', 'builtin'] as const) {
+      const sentence = DAW_SETUPS[id].capabilities.fx_range.message ?? '';
+      const daw = createMockDawClient(DAW_SETUPS[id]);
+      expect(await daw.compareFxRange(FX_TARGET), id).toEqual({ result: refusal(sentence), pass: 0 });
+      expect(await daw.stopFxCompare(), id).toEqual(refusal(sentence));
+    }
+    const audacity = createMockDawClient(DAW_SETUPS['audacity-backups']);
+    expect(await audacity.compareFxRange(FX_TARGET)).toEqual({ result: refusal(DAW_ANSWERS.fxBakedIn), pass: 0 });
+    const reaper = createMockDawClient(DAW_SETUPS.reaper);
+    const compare = await reaper.compareFxRange(FX_TARGET);
+    expect(compare).toEqual({
+      result: { ok: true, changed: false, message: fxCompareAnswer('Podcast Voice.RfxChain', 'REAPER'), undoSteps: 0 },
+      pass: FX_COMPARE_PASS,
+    });
+    expect(dawFxRangeCompareSchema.safeParse(compare).success).toBe(true);
+    expect(await reaper.stopFxCompare()).toMatchObject({ ok: true, changed: false, undoSteps: 0 });
   });
 });

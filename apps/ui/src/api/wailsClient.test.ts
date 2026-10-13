@@ -1514,14 +1514,15 @@ describe('the word effects bindings', () => {
     daw: 'reaper',
     guid: '{FX-1}',
   } as const;
-  const fx = { ...request, id: 'fx1', chapterId: 'c-0001', words: ['Queen'], at: '2026-10-11T10:00:00Z', paragraph: 0, stale: false };
+  const fx = { ...request, id: 'fx1', chapterId: 'c-0001', words: ['Queen'], at: '2026-10-11T10:00:00Z', paragraph: 0, stale: false, bypassed: false };
   const effects = { chapterId: 'c-0001', effects: [fx] };
 
-  it('calls the three host methods with their arguments and decodes each answer', async () => {
+  it('calls the four host methods with their arguments and decodes each answer', async () => {
     const list = vi.fn().mockResolvedValue(JSON.stringify(effects));
     const record = vi.fn().mockResolvedValue(JSON.stringify({ ...effects, changed: ['fx1'], over: [] }));
     const remove = vi.fn().mockResolvedValue(JSON.stringify({ chapterId: 'c-0001', effects: [], changed: ['fx1'], over: [] }));
-    standInHost({ EditingWordFxList: list, EditingWordFxRecord: record, EditingWordFxRemove: remove });
+    const bypass = vi.fn().mockResolvedValue(JSON.stringify({ chapterId: 'c-0001', effects: [{ ...fx, bypassed: true }], changed: ['fx1'], over: [] }));
+    standInHost({ EditingWordFxList: list, EditingWordFxRecord: record, EditingWordFxRemove: remove, EditingWordFxBypass: bypass });
 
     await expect(wailsClient.editingWordFxList('c-0001')).resolves.toEqual(effects);
     expect(list).toHaveBeenCalledWith('c-0001');
@@ -1529,6 +1530,8 @@ describe('the word effects bindings', () => {
     expect(record).toHaveBeenCalledWith('c-0001', request);
     await expect(wailsClient.editingWordFxRemove('c-0001', 'fx1')).resolves.toMatchObject({ effects: [] });
     expect(remove).toHaveBeenCalledWith('c-0001', 'fx1');
+    await expect(wailsClient.editingWordFxBypass('c-0001', 'fx1', true)).resolves.toMatchObject({ effects: [{ bypassed: true }] });
+    expect(bypass).toHaveBeenCalledWith('c-0001', 'fx1', true);
   });
 
   it('refuses an answer its schema does not accept, a chain named by a path among them', async () => {

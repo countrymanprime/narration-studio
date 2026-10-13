@@ -84,6 +84,8 @@ type StoredWordFx struct {
 	GUID        string    `json:"guid"`
 	BackupID    string    `json:"backupId,omitempty"`
 	At          time.Time `json:"at"`
+	// Bypassed is set while the narrator has the chain bypassed in the DAW (SN-E113); a file written before it reads as on.
+	Bypassed bool `json:"bypassed,omitempty"`
 }
 
 // WordFx is an effect as the UI gets it: the mock's WordFx with the word texts beside the keys, where its line is now, and
@@ -109,6 +111,8 @@ type WordFx struct {
 	GUID      string    `json:"guid"`
 	BackupID  string    `json:"backupId,omitempty"`
 	At        time.Time `json:"at"`
+	// Bypassed says the chain is bypassed in the DAW, as the app last set it: the coverage figure counts only effects that are on.
+	Bypassed bool `json:"bypassed"`
 	// Paragraph is the line's index in the manuscript, or nil when the line is gone.
 	Paragraph   *int   `json:"paragraph"`
 	Stale       bool   `json:"stale"`
@@ -246,6 +250,38 @@ func (s *Service) WordFxRemove(chapterID, id string) (WordFxChange, error) {
 	return WordFxChange{WordFxList: list, Changed: changed, Over: []string{}}, nil
 }
 
+// WordFxBypass records that the narrator bypassed a chapter's effect in the DAW (bypassed true) or turned it back on: what the
+// journal records after the DAW accepted the switch, and its inverse. The DAW owns the switch; this only keeps it so the coverage
+// figure leaves a bypassed effect out. An effect that is not recorded, or already as asked, is not an error; Changed is then empty.
+func (s *Service) WordFxBypass(chapterID, id string, bypassed bool) (WordFxChange, error) {
+	if s.config.Project == "" {
+		return WordFxChange{}, errors.New("save the project first")
+	}
+	if id == "" {
+		return WordFxChange{}, errors.New("choose an effect first")
+	}
+	unlock := lockFile(WordFxFile(s.config.Project))
+	defer unlock()
+	file, err := s.readWordFx()
+	if err != nil {
+		return WordFxChange{}, err
+	}
+	changed := []string{}
+	for i, fx := range file.Effects {
+		if fx.ChapterID == chapterID && fx.ID == id && fx.Bypassed != bypassed {
+			file.Effects[i].Bypassed = bypassed
+			changed = append(changed, fx.ID)
+		}
+	}
+	if len(changed) > 0 {
+		if err := writeVersioned(WordFxFile(s.config.Project), wordFxWhat, file); err != nil {
+			return WordFxChange{}, err
+		}
+	}
+	list := WordFxList{ChapterID: chapterID, Effects: resolveWordFxs(file.Effects, chapterID, s.manuscript())}
+	return WordFxChange{WordFxList: list, Changed: changed, Over: []string{}}, nil
+}
+
 // checkWordFxRequest refuses a request the app could not have built from an accepted DAW result and a chain the DAW listed.
 func checkWordFxRequest(request WordFxRequest) error {
 	switch {
@@ -326,6 +362,7 @@ func resolveWordFx(fx StoredWordFx, book Book) WordFx {
 		ID: fx.ID, ChapterID: fx.ChapterID, ParagraphID: fx.ParagraphID, TakeID: fx.TakeID, Keys: make([]string, 0, len(fx.Words)),
 		Words: make([]string, 0, len(fx.Words)), Text: fx.Text, A: fx.A, B: fx.B, Off0: fx.Off0, Off1: fx.Off1, ChainID: fx.ChainID,
 		ChainName: fx.ChainName, Source: fx.Source, FadeMs: fx.FadeMs, Daw: fx.Daw, GUID: fx.GUID, BackupID: fx.BackupID, At: fx.At,
+		Bypassed: fx.Bypassed,
 	}
 	for _, word := range fx.Words {
 		result.Keys = append(result.Keys, keyOf(fx.ParagraphID, word.Ordinal))

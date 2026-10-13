@@ -228,6 +228,12 @@ export interface DawFxRangeApi {
   /** DawBypassFxRange (SN-E104): bypass every effect of the chain on the words, or turn them back on, in one undo step of the DAW's own;
    * a chain already as asked answers `changed: false`. */
   dawBypassFxRange(chapterId: string, firstToken: number, lastToken: number, chainName: string, bypass: boolean): Promise<DawResult>;
+  /** DawCompareFxRange (SN-E113): the effect inspector's Compare in the DAW. The DAW plays the words with the chain on, then bypassed, and
+   * puts the chain back as it was; it answers once the first pass has started, with no undo step. The same refusals as a bypass, then an
+   * engine that cannot compare, with a sentence. */
+  dawCompareFxRange(chapterId: string, firstToken: number, lastToken: number, chainName: string): Promise<DawFxRangeCompare>;
+  /** DawStopFxCompare (SN-E113): end the Compare the DAW is playing and put the chain back as it was; with none playing, `changed: false`. */
+  dawStopFxCompare(): Promise<DawResult>;
 }
 
 /** The most settings `dawFxRangeParams` lists over a chain's effects (bridge.MaxFXRangeParams); `truncated` says it stopped there. */
@@ -255,6 +261,13 @@ export type DawFxRangeSettings = {
   settings: DawFxSetting[];
   truncated: boolean;
   bypassed: boolean;
+};
+
+/** What `dawCompareFxRange` answers (dawport.FXRangeCompare): the call's DawResult, with no undo step, and how long each of the two passes
+ * plays in seconds (with the chain, then without), 0 on a refusal. */
+export type DawFxRangeCompare = {
+  result: DawResult;
+  pass: number;
 };
 
 /** DawStackTakes and DawUnstackTakes (SND-7b; apps/desktop/bindings_daw_stack.go): stack the later reads of the named passages on the

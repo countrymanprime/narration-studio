@@ -73,6 +73,8 @@ var experimentalCommands = map[string]bool{
 	"fx_range_params":     true,
 	"fx_range_set_param":  true,
 	"fx_range_bypass":     true,
+	"fx_range_compare":    true,
+	"stop_fx_compare":     true,
 	"preview_file_range":  true,
 	"stop_file_preview":   true,
 	"reveal_file":         true,
@@ -83,7 +85,8 @@ var actionTags = []string{"TRACK_STATE", "TRACK_ITEM", "TRACK_STATE_END", "TRACK
 	"ACTIVE_TAKE_SET", "TAKES_HIDDEN", "ITEM_STALE", "FX_CHAIN", "FX_CHAINS_LISTED", "FX_CHAIN_APPLIED",
 	"REGIONS_CREATED", "PLAY_POSITION", "PUNCHED", "ROLLED", "RANGE_CUT", "RANGE_FX_APPLIED", "RANGE_FX_REMOVED", "TAKES_STACKED", "TAKES_UNSTACKED", "MASTER_CHAIN_FX", "MASTER_CHAIN_READ", "TAKE_SPLIT",
 	"FILE_PREVIEW_STARTED", "FILE_PREVIEW_STOPPED", "FILE_REVEALED", "RANGE_GAIN_REDUCED", "CLICKS_REPAIRED",
-	"RANGE_FX_PARAM", "RANGE_FX_PARAMS", "RANGE_FX_PARAM_SET", "RANGE_FX_BYPASSED", "ERROR"}
+	"RANGE_FX_PARAM", "RANGE_FX_PARAMS", "RANGE_FX_PARAM_SET", "RANGE_FX_BYPASSED",
+	"RANGE_FX_COMPARE", "RANGE_FX_COMPARE_STOPPED", "ERROR"}
 
 // Gate is asked, with the command's name, before Actions sends it. nil lets the command go; an error refuses it and
 // nothing is written. A refusal matching ErrExperimentalOff (errors.Is) reaches the caller as ErrExperimentalOff itself;
