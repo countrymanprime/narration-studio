@@ -109,9 +109,12 @@ export const TimelineTab: Story = {
     await expect(within(canvasElement).getByRole('tab', { name: 'Timeline' })).toBeTruthy();
     // The drawer fills the slot the layout gives it; with little to show it must not shrink to its content (the mock's drawer is 360 px).
     const slot = canvasElement.querySelector<HTMLElement>('[data-drawer-slot]')!;
+    if (slot.getBoundingClientRect().width === 0) return;
     expect(Math.abs(canvasElement.querySelector<HTMLElement>('#drawer')!.getBoundingClientRect().width - slot.getBoundingClientRect().width)).toBeLessThan(1);
   },
 };
+
+const drawer0 = (root: HTMLElement) => root.querySelector<HTMLElement>('#drawer')!;
 
 // The timeline tab with takes, at the width the page gives it: each lane's name sits on one line above its badge, and the
 // three times under the lanes stay apart. Measured in a browser (jsdom has no layout).
@@ -120,6 +123,8 @@ export const TimelineTabWithTakes: Story = {
   render: () => frame(1280, 'timeline', false, { ...noStrip, passage: lines }),
   play: async ({ canvasElement }) => {
     await waitFor(() => expect(canvasElement.querySelectorAll('#timeline [data-lane]')).toHaveLength(5));
+    // jsdom has no layout: the measurements below are the browser run's (the atlas).
+    if (drawer0(canvasElement).getBoundingClientRect().width === 0) return;
     for (const lane of canvasElement.querySelectorAll<HTMLElement>('#timeline [data-lane^="t-"]')) {
       const name = lane.querySelector<HTMLElement>('span')!;
       const line = parseFloat(getComputedStyle(name).lineHeight) || 16;
