@@ -24,7 +24,8 @@ picker (see [Importing the manuscript](#importing-the-manuscript)), and the cale
 [Settings](settings.md).
 
 When the audio engine is not running, a line at the top says progress that comes from it may be
-out of date, with **Retry** and **Use built-in recorder**.
+out of date, with **Retry** and **Use built-in recorder**. **Retry** checks again: the line goes
+once the engine is running, and if it still is not, a message asks you to start it and try again.
 
 ## The figures
 
@@ -66,22 +67,30 @@ from.
 ## Next up
 
 **Next up** lists what to do next, ranked by the hours of work it puts at risk: finishing the
-chapter being recorded (with **Open Booth** and **Start timer**), and a pickup session when the
-Pickups list has open lines. It reads "Nothing needs you right now" when there is nothing to list.
+chapter being recorded (with **Open Booth** and **Start timer**), a pickup session when the
+Pickups list has open lines (naming the chapters they are in), and the first chapter whose
+measured file fails the delivery check, with each failed check, its value and its limit
+("noise floor −57.8 dBFS (limit ≤ −60 dBFS)") and **Inspect failed check**, which opens
+[Master & QC](master-and-qc.md). It reads "Nothing needs you right now" when there is nothing to list.
 
 ## Chapter pipeline
 
 The pipeline has one row per narration chapter. **Fin.** is the chapter's estimated finished
 length; its Record cell's tip has the measured one. **Record**, **Edit** and **Proof** show a check
 mark (✓) for a stage done, a half circle for the stage under way and a dash for one not started.
-**Prep**, **Pickups**, **Master** and **QC** read a dash with "Not measured yet" until a check
-reports them per chapter. A cell opens its stage for the chapter: Script, the Booth, the editing
+**Prep** is the chapter's prep state from [Script](script.md): a check mark when prepped, a half
+circle while in progress and an empty circle when not started. **Pickups** counts the chapter's
+open lines once it is recorded to the end (0 when none are open). **Master** and **QC** come from
+the files measured on [Master & QC](master-and-qc.md): mastered, and PASS or FAIL. A cell with nothing to
+read says "Not measured yet". A cell opens its stage for the chapter: Script, the Booth, the editing
 check, Proof, Pickups or Master & QC. The table scrolls sideways in a narrow window.
 
 The chip on the chapter's current-stage cell is its [readiness](#stage-readiness).
 
 Right-click a row (or press the Menu key or Shift+F10 on one of its cells) for the chapter's menu:
-**Open prep in Script**, **Open in Booth**, **Open Proof**, **Open Master & QC**, then the tools
+**Open prep in Script**, **Open in Booth**, **Open Proof**, **Open Master & QC**, **Go to this
+chapter in** your DAW (it selects the chapter's linked track there, and says why it is off when the
+DAW cannot select a track or no track is linked yet), then the tools
 the page kept: **Chapter track…** (see [A chapter's track](#a-chapters-track)), **Recording
 check…** (see [Checking a chapter's recording](#checking-a-chapters-recording)), **Editing
 check…**, and **Set status:** for each other status, which sets the chapter's status by hand.
