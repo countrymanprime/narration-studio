@@ -35,8 +35,9 @@ The six figures are one card; each opens the page it counts.
 - **Recording**, **Editing + proof**: the hours of work left at each stage, estimated from the
   words still to do. The info icon on **Recording** opens the target pace: the standard rate or
   your own, once enough chapters are measured.
-- **Open pickups**: the pickup lines REAPER last counted, and the booth time to redo them once a
-  pickup session has been timed.
+- **Open pickups**: the open lines of the [Pickups](pickups.md) list, and the booth time to redo
+  them once a pickup session has been timed. Each chapter's **Pickups** cell in the pipeline counts
+  the same lines, so the cells add up to the tile.
 - **Delivery check**: chapters that pass, fail or are not checked yet. It reads "Not measured
   yet" until the host reports a check per chapter.
 - **Due**: the due date and what the pace says about it. It opens [Schedule](#schedule).
@@ -65,8 +66,8 @@ from.
 ## Next up
 
 **Next up** lists what to do next, ranked by the hours of work it puts at risk: finishing the
-chapter being recorded (with **Open Booth** and **Start timer**), and a pickup session when REAPER
-counts open pickups. It reads "Nothing needs you right now" when there is nothing to list.
+chapter being recorded (with **Open Booth** and **Start timer**), and a pickup session when the
+Pickups list has open lines. It reads "Nothing needs you right now" when there is nothing to list.
 
 ## Chapter pipeline
 
@@ -163,7 +164,7 @@ end is unfinished recording, not a pickup, so it never appears in that list. Bel
 gaps, **Repeated reads (Proof)** always shows the chapter's unreviewed take-review pickups —
 repeated reads already recorded, waiting to be compared and kept or discarded — as a count with
 **Open Proof**, or "none waiting" when there are none. Under that, **Pickup list** always shows
-the proofer's REAPER pickup markers as one project-wide open count with **Open pickups**, which
+the open lines of the Pickups list as one project-wide count with **Open pickups**, which
 opens [Pickups](pickups.md), not scoped to this chapter, since attributing markers to one chapter's track span is ambiguous when
 chapter tracks share the timeline. It reads "open REAPER to count" instead of a number when REAPER
 is not running. **Paragraph detail** stays folded by default. **Open in Editing** opens the
