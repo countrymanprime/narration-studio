@@ -15,7 +15,14 @@ import {
   searchHitsSchema,
   workJobSchema,
 } from './schemas/manuscript';
-import { dawLaunchResultSchema, dawLinkResultSchema, projectFolderSelectionSchema, projectSwitchResultSchema, recentProjectsSchema } from './schemas/project';
+import {
+  dawLaunchResultSchema,
+  dawLinkResultSchema,
+  projectDefaultLocationSchema,
+  projectFolderSelectionSchema,
+  projectSwitchResultSchema,
+  recentProjectsSchema,
+} from './schemas/project';
 import {
   creditsAnnouncementsSchema,
   creditsProjectValuesResultSchema,
@@ -31,6 +38,7 @@ import { dawCatalogListSchema } from './schemas/dawCatalog';
 import {
   dawBackupsFileSchema,
   dawCapabilitiesSchema,
+  dawChoiceSchema,
   dawFxRangeCompareSchema,
   dawFxRangeSettingsSchema,
   dawProjectStateSchema,
@@ -564,6 +572,7 @@ export const wailsClient: NarrationApi = {
   selectProjectFolder: () => decode(projectFolderSelectionSchema, 'ProjectSelectFolder', host.ProjectSelectFolder()),
   switchProject: (path, name) => decode(projectSwitchResultSchema, 'ProjectSwitch', host.ProjectSwitch(path, name ?? '')),
   createProject: (parent, name) => decode(projectSwitchResultSchema, 'ProjectCreateIn', host.ProjectCreateIn(parent, name)),
+  projectDefaultLocation: () => decode(projectDefaultLocationSchema, 'ProjectDefaultLocation', host.ProjectDefaultLocation()),
   removeRecentProject: (path) => decode(recentProjectsSchema, 'ProjectRemoveRecent', host.ProjectRemoveRecent(path)),
   linkDawFile: () => decode(dawLinkResultSchema, 'ProjectLinkDawFile', host.ProjectLinkDawFile()),
   launchDaw: () => decode(dawLaunchResultSchema, 'DawLaunch', host.DawLaunch()),
@@ -618,6 +627,9 @@ export const wailsClient: NarrationApi = {
 
   dawCapabilities: () => decode(dawCapabilitiesSchema, 'DawCapabilities', host.DawCapabilities()),
   subscribeDawCapabilities: (onUpdate) => subscribeChecked('daw_capabilities_changed', dawCapabilitiesSchema, onUpdate),
+  dawChoice: () => decode(dawChoiceSchema, 'DawChoice', host.DawChoice()),
+  dawChoose: (daw) => decode(dawChoiceSchema, 'DawChoose', host.DawChoose(daw)),
+  dawLinkFound: () => decode(dawChoiceSchema, 'DawLinkFound', host.DawLinkFound()),
   providerCapabilities: () => decode(providerCapabilitiesSchema, 'ProviderCapabilities', host.ProviderCapabilities()),
   masteringProviders: () => decode(masteringProvidersSchema, 'MasteringProviders', host.MasteringProviders()),
   masteringChooseProvider: (name) => decode(masteringProvidersSchema, 'MasteringChooseProvider', host.MasteringChooseProvider(name)),

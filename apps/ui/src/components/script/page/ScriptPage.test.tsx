@@ -20,7 +20,6 @@ import { TooltipProvider } from '../../primitives/Tooltip';
 import type { ScriptViewState } from './data/scriptView';
 import { useScriptView } from './data/useScriptData';
 import { DRAWER_FOCUS_DELAY_MS } from './layout/useDrawerFocus';
-import { IMPORT_PROMPT_DELAY_MS, setImportPrompted } from './layout/NeedManuscript';
 import { ScriptPage, type ScriptPageProps } from './ScriptPage';
 
 let view: ScriptViewState;
@@ -34,7 +33,6 @@ afterEach(() => {
   cleanup();
   window.localStorage.clear();
   window.getSelection()?.removeAllRanges();
-  setImportPrompted(false);
 });
 
 type Mount = { api?: NarrationApi; at?: string; props?: Partial<ScriptPageProps> };
@@ -177,18 +175,14 @@ describe('rail-tabs-rove-and-show-the-right-body', () => {
   });
 });
 
-describe('no-manuscript-shows-the-empty-state-and-opens-the-import-once', () => {
-  it('draws the need-a-manuscript state, offers the import, and opens it by itself once only', async () => {
+describe('no-manuscript-shows-the-empty-state-and-moves-nowhere', () => {
+  it('draws the need-a-manuscript state, offers the import, and goes to Production only when asked', async () => {
     const api = createMockApi({ manuscriptChapters: async () => [] });
     mount({ api });
     expect(await screen.findByText('This project has no manuscript yet. Import one to begin.')).toBeTruthy();
     expect(document.querySelector('[data-script-columns]')).toBeNull();
-    // Opening the import goes to Production, where it lives; the second mount of the session stays put.
-    await waitFor(() => expect(screen.getByText('Production')).toBeTruthy(), { timeout: IMPORT_PROMPT_DELAY_MS + 1000 });
-    cleanup();
-    mount({ api });
-    await screen.findByText('This project has no manuscript yet. Import one to begin.');
-    await new Promise((resolve) => setTimeout(resolve, IMPORT_PROMPT_DELAY_MS + 100));
+    // Issue 1720: the page does not open the import by itself; the button goes to Production, where the import lives.
+    await new Promise((resolve) => setTimeout(resolve, 700));
     expect(screen.queryByText('Production')).toBeNull();
     fireEvent.click(screen.getByRole('button', { name: 'Import manuscript' }));
     expect(screen.getByText('Production')).toBeTruthy();

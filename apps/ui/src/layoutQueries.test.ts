@@ -16,9 +16,6 @@ const VOCABULARY = new Set(['min-[1360px]', 'max-[1359px]', 'max-[1280px]', 'min
 const OFF_VOCABULARY: Record<string, Record<string, number>> = {
   // The Production swap rewrites the page to the vocabulary. `min-[1280px]` treats exactly 1280 as not medium; the mock treats it as medium.
   'src/components/production/ProductionPage.tsx': { 'min-[1024px]': 1, 'min-[1280px]': 1 },
-  // Proof and Pickups (SN-Q9) put their side column beside the list from 1100 px; the mock's vocabulary says 1180. Moving them to `min-[1180px]` changes the 1100-1179 px layout and needs screenshots.
-  'src/components/proof/ProofPage.tsx': { 'min-[1100px]': 6 },
-  'src/components/pickups/PickupsPage.tsx': { 'min-[1100px]': 1 },
 };
 
 function sourceFiles(dir: string): string[] {

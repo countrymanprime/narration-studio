@@ -171,7 +171,8 @@ describe('the row menu keeps the features the mock has none for', () => {
   it('offers the mock items, the chapter track, the checks and the status override on a pipeline row', async () => {
     await renderPage();
     const table = await pipeline();
-    const row = within(table).getAllByRole('row')[1];
+    // The rows after the header: the opening credits, then chapter 1.
+    const row = within(table).getAllByRole('row')[2];
     await waitFor(() => expect(contextItemsFor(row)?.find((item) => item.key === 'recording')?.unavailable).toBeUndefined());
     const labels = (contextItemsFor(row) ?? []).map((item) => item.label);
     for (const label of ['Open prep in Script', 'Open in Booth', 'Open Proof', 'Open Master & QC', 'Chapter track…', 'Recording check…', 'Editing check…']) {
@@ -183,7 +184,8 @@ describe('the row menu keeps the features the mock has none for', () => {
   it('opens the recording check from the row menu', async () => {
     await renderPage();
     const table = await pipeline();
-    const row = within(table).getAllByRole('row')[1];
+    // The rows after the header: the opening credits, then chapter 1.
+    const row = within(table).getAllByRole('row')[2];
     await waitFor(() => expect(contextItemsFor(row)?.find((item) => item.key === 'recording')?.unavailable).toBeUndefined());
     act(() =>
       contextItemsFor(row)
@@ -197,6 +199,56 @@ describe('the row menu keeps the features the mock has none for', () => {
     await renderPage();
     await pipeline();
     expect(contextItemsFor(screen.getByRole('heading', { level: 1, name: 'Production' }))).toBeNull();
+  });
+});
+
+describe('the pipeline lists the credits as the mock does (issue 1705)', () => {
+  const rowNames = (table: HTMLElement) =>
+    within(table)
+      .getAllByRole('row')
+      .slice(1)
+      .map((row) => within(row).getAllByRole('cell')[0]?.textContent);
+
+  it('puts the opening credits before chapter 1 and the closing credits after the last chapter', async () => {
+    await renderPage();
+    const names = rowNames(await pipeline());
+    await waitFor(async () => expect(rowNames(await pipeline())[0]).toBe('Opening credits'));
+    expect(rowNames(await pipeline()).at(-1)).toBe('Closing credits');
+    expect(names.length).toBeGreaterThan(2);
+  });
+
+  it('draws the credits rows in the pipeline format: a cell for each stage, a dash where nothing measures it', async () => {
+    await renderPage();
+    const table = await pipeline();
+    const opening = await within(table).findByRole('row', { name: /Opening credits/ });
+    expect(within(opening).getAllByRole('cell')).toHaveLength(9);
+    expect(within(opening).getByRole('button', { name: /^Opening credits: Prep / })).toBeTruthy();
+    expect(within(opening).getByRole('button', { name: /^Opening credits: Record / })).toBeTruthy();
+  });
+
+  it('offers the credits row its own row menu: Script, Booth, the credits panel and the status override', async () => {
+    await renderPage();
+    const table = await pipeline();
+    const opening = await within(table).findByRole('row', { name: /Opening credits/ });
+    const labels = (contextItemsFor(opening) ?? []).map((item) => item.label);
+    for (const label of ['Open prep in Script', 'Open in Booth', 'Credits…']) expect(labels).toContain(label);
+    expect(labels.some((label) => label.startsWith('Set status: '))).toBe(true);
+    expect(labels).not.toContain('Chapter track…');
+  });
+
+  it('opens a credits row in Script and the Booth at the credits, not at a chapter', async () => {
+    const { goToBooth } = await renderPage();
+    const table = await pipeline();
+    const opening = await within(table).findByRole('row', { name: /Opening credits/ });
+    await userEvent.click(within(opening).getByRole('button', { name: /^Opening credits: Record / }));
+    expect(goToBooth).toHaveBeenCalledWith('credits-opening');
+  });
+
+  it('has no separate Credits list under the pipeline: the rows are where the credits are', async () => {
+    await renderPage();
+    await pipeline();
+    expect(screen.queryByRole('region', { name: 'Credits' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Open Opening credits' })).toBeNull();
   });
 });
 

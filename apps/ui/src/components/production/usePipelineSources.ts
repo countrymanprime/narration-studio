@@ -4,6 +4,7 @@ import type { ManuscriptChapter, MeasureFileResult } from '../../types';
 import { usePort } from '../../ports/usePort';
 import { fileOf } from '../master/chapterFile';
 import { fileVerdict } from '../master/fileVerdict';
+import { CREDITS_FILE_CHAPTERS } from '../credits/creditsEntries';
 import type { PipelineSources } from './pipeline/pipelineRows';
 
 type Proof = NonNullable<PipelineSources['proof']>;
@@ -24,10 +25,10 @@ function proofByChapter(findings: readonly Finding[]): Proof {
 
 /**
  * The delivery review per chapter, from the host's per-file judgement (the one rule Delivery and Master & QC pair a file with its chapter by).
- * A chapter with no measured file has no entry; a file with no verdict is not mastered and not checked. Several failing checks read as `FAIL`,
+ * The two credits files are paired the same way. A chapter with no measured file has no entry; a file with no verdict is not mastered and not checked. Several failing checks read as `FAIL`,
  * not one check's name (the mock's QC cell).
  */
-function masterByChapter(chapters: readonly ManuscriptChapter[], files: readonly MeasureFileResult[]): Master {
+function masterByChapter(chapters: readonly Pick<ManuscriptChapter, 'id' | 'title' | 'index'>[], files: readonly MeasureFileResult[]): Master {
   const byChapter: Record<string, { mastered: boolean; qc: string | null }> = {};
   for (const chapter of chapters) {
     const file = fileOf(chapter, files);
@@ -58,7 +59,7 @@ export function usePipelineSources(active: boolean, refreshKey: string): Pick<Pi
       () => live && setProof(undefined),
     );
     Promise.all([measure.measureState(), manuscript.manuscriptChapters()]).then(
-      ([job, chapters]) => live && setMaster(job.files.length ? masterByChapter(chapters, job.files) : undefined),
+      ([job, chapters]) => live && setMaster(job.files.length ? masterByChapter([...chapters, ...CREDITS_FILE_CHAPTERS], job.files) : undefined),
       () => live && setMaster(undefined),
     );
     return () => {

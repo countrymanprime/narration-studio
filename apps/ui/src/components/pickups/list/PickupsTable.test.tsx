@@ -49,6 +49,17 @@ function setup(over: Partial<Props> = {}) {
 
 const rowOf = (time: string): HTMLElement => screen.getByText(time, { selector: 'td' }).closest('tr')!;
 
+// Issue 1718: a narrow window scrolls the table sideways inside its panel instead of cutting Status and the row buttons off.
+describe('the-pickups-table-scrolls-instead-of-clipping', () => {
+  it('keeps a width of its own inside a scroll region the keyboard can reach', () => {
+    setup();
+    const region = screen.getByRole('group', { name: 'Pickups scroll area' });
+    expect(region.tabIndex).toBe(0);
+    expect(region.className).toContain('overflow-auto');
+    expect(within(region).getByRole('table', { name: 'Pickups' }).className).toMatch(/min-w-\[\d+rem\]/);
+  });
+});
+
 describe('PickupsTable', () => {
   it('rows-group-by-chapter-with-open-count', () => {
     setup();

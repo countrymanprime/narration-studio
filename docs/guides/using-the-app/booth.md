@@ -16,7 +16,12 @@ built-in recorder). The chip opens [Settings](settings.md). The chapter is named
 (`CHAPTER I. Down the Rabbit-Hole`). **Text settings** chooses the font, the same choice as the reader font on
 [Script](script.md), and the Booth's text size, 24 to 72 px; **+** and **-** change the size too, and the Booth opens at the size
 you last chose. The button at the right shows or hides the side panel; in a window 1280 pixels wide or narrower the panel is a
-drawer that starts closed.
+drawer that starts closed, the chapter picker is narrower, and the top bar wraps onto a second row when it runs out of room.
+
+The chip says when the project's DAW is not ready: **REAPER · not linked**, **REAPER · not running**, or REAPER on
+its own once connected. Click it to fix that in [Settings](settings.md#link-your-reaper-project).
+
+![Booth - the top-bar chip warns REAPER · not linked](../../images/ui/booth-daw-not-linked.webp)
 
 ![Booth - the Text settings: the font and size of the text you read](../../images/ui/booth-text-settings.webp)
 
@@ -161,7 +166,7 @@ place in the panel and is coming later.
 
 Escape (when nothing is open on top of the Booth) takes you to Script. While a take is recording, every way out asks first
 (Escape, Back, Forward, the setup chip, a link to another chapter): "Stop recording?" says the DAW is recording and leaving
-stops it. The take is held while the question is open. **Cancel** stays; **Stop and leave** stops the recording and then leaves. If the DAW was already recording
+stops it. The take is held while the question is open. **Keep recording** stays; **Stop and leave** stops the recording and then leaves. If the DAW was already recording
 when you came in, the Booth did not start that take and does not stop it, and the question says so.
 
 ![Booth - Escape during a take asks "Stop recording?", with the take held until the narrator answers](../../images/ui/booth-flag.webp)

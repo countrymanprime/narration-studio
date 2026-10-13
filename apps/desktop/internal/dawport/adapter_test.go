@@ -36,24 +36,59 @@ func TestIsREAPERLaunch(t *testing.T) {
 	}
 }
 
-// The launch's kind: a DAW the label names wins; with none, the project's choice of the built-in recorder makes it the engine.
-func TestLaunchKind(t *testing.T) {
+// project-daw-order: the launch's label wins; then the project's own Recording.engine row; then what the folder holds (a linked
+// DAW file or any .rpp means REAPER, never the built-in recorder); then the built-in recorder where its capture row runs.
+func TestProjectKind(t *testing.T) {
 	cases := []struct {
-		label   string
-		builtin bool
-		want    Kind
+		name   string
+		in     ProjectFacts
+		kind   Kind
+		source Source
 	}{
-		{"", false, KindNone},
-		{"", true, KindBuiltIn},
-		{"Standalone", true, KindBuiltIn},
-		{"REAPER", true, KindREAPER},
-		{"Audacity", true, KindAudacity},
-		{"Built-in", false, KindBuiltIn},
-		{"Pro Tools", false, KindNone},
+		{"launch REAPER beats a built-in choice", ProjectFacts{Label: "REAPER", Saved: "builtin", BuiltinAvailable: true}, KindREAPER, SourceLaunch},
+		{"launch Audacity beats an .rpp", ProjectFacts{Label: "Audacity", ProjectFiles: 1}, KindAudacity, SourceLaunch},
+		{"launch Built-in", ProjectFacts{Label: "Built-in"}, KindBuiltIn, SourceLaunch},
+		{"a picker switch is no launch", ProjectFacts{Label: "Standalone", ProjectFiles: 1}, KindREAPER, SourceFound},
+		{"an unknown label is no launch", ProjectFacts{Label: "Pro Tools"}, KindNone, SourceDefault},
+		{"chosen REAPER over an empty folder", ProjectFacts{Saved: "reaper", BuiltinAvailable: true}, KindREAPER, SourceChosen},
+		{"chosen Audacity over an .rpp", ProjectFacts{Saved: "audacity", ProjectFiles: 1}, KindAudacity, SourceChosen},
+		{"chosen built-in over an .rpp", ProjectFacts{Saved: "builtin", ProjectFiles: 1, BuiltinAvailable: true}, KindBuiltIn, SourceChosen},
+		{"built-in chosen where it cannot run falls to the folder", ProjectFacts{Saved: "builtin", ProjectFiles: 1}, KindREAPER, SourceFound},
+		{"linked file", ProjectFacts{Linked: true, BuiltinAvailable: true}, KindREAPER, SourceLinked},
+		{"one .rpp", ProjectFacts{ProjectFiles: 1, BuiltinAvailable: true}, KindREAPER, SourceFound},
+		{"several .rpp are still REAPER", ProjectFacts{ProjectFiles: 3, BuiltinAvailable: true}, KindREAPER, SourceFound},
+		{"empty folder records in the app", ProjectFacts{BuiltinAvailable: true}, KindBuiltIn, SourceDefault},
+		{"empty folder where the built-in recorder cannot run", ProjectFacts{}, KindNone, SourceDefault},
+		{"an unknown saved value is no choice", ProjectFacts{Saved: "daw", BuiltinAvailable: true}, KindBuiltIn, SourceDefault},
 	}
 	for _, c := range cases {
-		if got := LaunchKind(c.label, c.builtin); got != c.want {
-			t.Errorf("LaunchKind(%q, %v) = %v, want %v", c.label, c.builtin, got, c.want)
+		t.Run(c.name, func(t *testing.T) {
+			kind, source := ProjectKind(c.in)
+			if kind != c.kind || source != c.source {
+				t.Errorf("ProjectKind(%+v) = %v/%q, want %v/%q", c.in, kind, source, c.kind, c.source)
+			}
+		})
+	}
+}
+
+// A saved choice reads back as the same kind, and every choosable kind has one.
+func TestSavedValueRoundTrips(t *testing.T) {
+	for _, kind := range Choosable() {
+		if kind.SavedValue() == "" || Classify(kind.SavedValue()) != kind {
+			t.Errorf("%v: SavedValue %q does not classify back", kind, kind.SavedValue())
 		}
+	}
+	if KindNone.SavedValue() != "" {
+		t.Error("KindNone has a saved value")
+	}
+}
+
+// Only a move onto or off Audacity changes what the host builds at attach.
+func TestRebuildsServices(t *testing.T) {
+	if !RebuildsServices(KindREAPER, KindAudacity) || !RebuildsServices(KindAudacity, KindBuiltIn) {
+		t.Error("a move onto or off Audacity rebuilds")
+	}
+	if RebuildsServices(KindREAPER, KindBuiltIn) || RebuildsServices(KindAudacity, KindAudacity) {
+		t.Error("a move between REAPER and the built-in recorder rebuilds nothing")
 	}
 }

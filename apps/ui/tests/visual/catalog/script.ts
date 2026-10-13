@@ -69,4 +69,10 @@ export const scriptStates: StateEntry[] = [
     description:
       'Script, the inline error with Retry when the data it loads could not be read, beside the notice Home raised for the same data; navigation still works (ADR 0069, 0075)',
   },
+  {
+    page: 'script',
+    state: 'no-manuscript',
+    description:
+      'Script with no manuscript imported (?mockNoManuscript=1), opened from its rail item: the page asks for the manuscript, with Import manuscript, and does not open the import or leave for Production by itself',
+  },
 ];

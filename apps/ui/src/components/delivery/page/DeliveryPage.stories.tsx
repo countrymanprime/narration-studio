@@ -2,7 +2,7 @@ import type { Meta, StoryObj } from '@storybook/react-vite';
 import { expect, within } from 'storybook/test';
 import { ApiProvider } from '../../../api/ApiContext';
 import { createMockApi } from '../../../api/mockApi';
-import type { ExportJob, ManuscriptChapter, MeasureFileResult, MeasureJob, PackageJob } from '../../../types';
+import type { CreditTemplate, ExportJob, ManuscriptChapter, MeasureFileResult, MeasureJob, PackageJob } from '../../../types';
 import { failingTwo, passing, profile, waiting } from '../../masterqc/files/testFiles';
 import { DeliveryPage } from './DeliveryPage';
 
@@ -24,9 +24,11 @@ const builtJob: PackageJob = {
 };
 const all = ['01', '02', '03', '04'].map((n) => passing(`Chapter ${n}.wav`));
 
-const host = (files: MeasureFileResult[], job: PackageJob = idle) =>
+// No credits templates unless a story brings them: the rows are the chapters'.
+const host = (files: MeasureFileResult[], job: PackageJob = idle, creditsTemplates: () => Promise<CreditTemplate[]> = async () => []) =>
   createMockApi({
     manuscriptChapters: async () => chapters,
+    creditsTemplates,
     measureState: async () => measured(files),
     exportState: async () => encoded,
     packageState: async () => job,
@@ -86,6 +88,7 @@ export const NumberedHeadings: Story = {
   parameters: {
     api: createMockApi({
       manuscriptChapters: async () => numbered,
+      creditsTemplates: async () => [],
       measureState: async () => measured([]),
       exportState: async () => encoded,
       packageState: async () => idle,
@@ -98,10 +101,26 @@ export const NumberedHeadings: Story = {
   },
 };
 
+// The opening credits before chapter 1 and the closing credits after the last, each judged by its own file ("Opening credits.wav"), counted in "n of N".
+export const WithCredits: Story = {
+  parameters: {
+    api: host([...all, passing('Opening credits.wav')], idle, async () => [
+      { id: 'o', kind: 'opening', name: 'Standard opening', body: 'x' },
+      { id: 'c', kind: 'closing', name: 'Standard closing', body: 'x' },
+    ]),
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await expect(await canvas.findByText('5 of 6')).toBeTruthy();
+    await expect(canvas.getByRole('button', { name: 'Opening credits: Pass. Open in Master & QC' })).toBeTruthy();
+    await expect(canvas.getByRole('button', { name: 'Closing credits: Not mastered. Open in Master & QC' })).toBeTruthy();
+  },
+};
+
 export const NoManuscript: Story = {
   args: { hasManuscript: false },
   parameters: { api: host([]) },
   play: async ({ canvasElement }) => {
-    await expect(within(canvasElement).getByText(/Add the manuscript first/)).toBeTruthy();
+    await expect(within(canvasElement).getByText('This project has no manuscript yet. Import one to begin.')).toBeTruthy();
   },
 };

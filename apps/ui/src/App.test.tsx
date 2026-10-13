@@ -503,13 +503,13 @@ describe('App (integration, driven through the mock NarrationApi)', () => {
     await screen.findByRole('heading', { level: 1, name: 'Production' });
   });
 
-  it('locks manuscript-dependent navigation until a manuscript is imported, and the Production home is the import', async () => {
+  it('leaves every page open without a manuscript, and the Production home is the import', async () => {
     const source = createMockApi();
     renderApp({ bootstrap: async () => ({ ...(await source.bootstrap()), manuscript: null }) });
     await screen.findByRole('heading', { level: 1, name: 'Production' });
 
     for (const name of ['Script', 'Story Bible', 'Booth']) {
-      expect(screen.getAllByRole('button', { name }).every((button) => (button as HTMLButtonElement).disabled)).toBe(true);
+      expect(screen.getAllByRole('button', { name }).every((button) => !(button as HTMLButtonElement).disabled)).toBe(true);
     }
     expect(screen.getByRole('region', { name: 'Import your manuscript' })).toBeTruthy();
     expect(screen.getByRole('button', { name: 'Import manuscript' })).toBeTruthy();
@@ -530,7 +530,7 @@ describe('App (integration, driven through the mock NarrationApi)', () => {
     window.history.replaceState(null, '', '/');
   });
 
-  it('opens the Booth with a manuscript, and sends a direct URL to the Production home without one', async () => {
+  it('opens the Booth with a manuscript, and a direct URL without one asks for it there', async () => {
     window.history.replaceState(null, '', '/');
     renderApp();
     await screen.findByRole('heading', { level: 1, name: 'Production' });
@@ -544,8 +544,8 @@ describe('App (integration, driven through the mock NarrationApi)', () => {
     window.history.replaceState(null, '', '/booth');
     const source = createMockApi();
     renderApp({ bootstrap: async () => ({ ...(await source.bootstrap()), manuscript: null }) });
-    await screen.findByRole('heading', { level: 1, name: 'Production' });
-    expect(window.location.pathname).toBe('/');
+    await screen.findByText('This project has no manuscript yet. Import one to begin.');
+    expect(window.location.pathname).toBe('/booth');
   });
 
   it('the Story Bible route asks for a manuscript on its own page instead of sending a project without one home', async () => {
@@ -782,7 +782,7 @@ describe('App (integration, driven through the mock NarrationApi)', () => {
     const source = createMockApi();
     window.history.replaceState(null, '', '/delivery');
     renderApp({ bootstrap: async () => ({ ...(await source.bootstrap()), manuscript: null }) });
-    expect(await screen.findByText(/Add the manuscript first/)).toBeTruthy();
+    expect(await screen.findByText('This project has no manuscript yet. Import one to begin.')).toBeTruthy();
   });
 
   // An older finding link names a file: /delivery#file=… still lands on Master & QC with the anchor kept (masterLink.ts).
@@ -859,20 +859,47 @@ describe('App (integration, driven through the mock NarrationApi)', () => {
     expect(`${window.location.pathname}${window.location.search}${window.location.hash}`).toBe('/script?from=finding#x-not-a-deep-link');
   });
 
-  it('sends a /manuscript link to the Production home when there is no manuscript', async () => {
+  it('keeps a /manuscript link on the Script page, which asks for the manuscript, when there is none', async () => {
     window.history.replaceState(null, '', '/manuscript#p5');
     const source = createMockApi();
-    renderApp({ bootstrap: async () => ({ ...(await source.bootstrap()), manuscript: null }) });
-    await screen.findByRole('heading', { level: 1, name: 'Production' });
-    expect(window.location.pathname).toBe('/');
+    renderApp({ bootstrap: async () => ({ ...(await source.bootstrap()), manuscript: null }), manuscriptChapters: async () => [] });
+    await screen.findByText('This project has no manuscript yet. Import one to begin.');
+    expect(window.location.pathname).toBe('/script');
   });
 
-  it('redirects a direct manuscript-dependent URL to the Production home when no manuscript exists', async () => {
-    window.history.replaceState(null, '', '/proof/chapter-1');
+  // Issue 1720: the mock gives every page its own "import a manuscript" state and moves nowhere by itself.
+  it.each([
+    ['/proof/chapter-1', 'Proof'],
+    ['/proof', 'Proof'],
+    ['/pickups', 'Pickups'],
+    ['/master', 'Master & QC'],
+    ['/script', 'Script'],
+    ['/booth', 'Booth'],
+    ['/story-bible', 'Story Bible'],
+    ['/delivery', 'Delivery'],
+    ['/schedule', 'Schedule'],
+    ['/editing', 'Editing'],
+  ])('shows the import-a-manuscript state on %s and stays there when there is no manuscript', async (path, title) => {
+    window.history.replaceState(null, '', `${path}?mockNoManuscript=1`);
     const source = createMockApi();
-    renderApp({ bootstrap: async () => ({ ...(await source.bootstrap()), manuscript: null }) });
+    renderApp({ bootstrap: async () => ({ ...(await source.bootstrap()), manuscript: null }), manuscriptChapters: async () => [] });
+    expect((await screen.findAllByRole('heading', { name: title })).length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/no manuscript yet/i).length).toBeGreaterThan(0);
+    await new Promise((resolve) => setTimeout(resolve, 700));
+    expect(window.location.pathname).toBe(path);
+    expect(window.location.search).toBe('?mockNoManuscript=1');
+    expect(screen.queryByRole('heading', { level: 1, name: 'Production' })).toBeNull();
+  });
+
+  it('draws no Proof or Pickups count on the rail when there is no manuscript, whatever the host still holds', async () => {
+    const source = createMockApi();
+    renderApp({
+      bootstrap: async () => ({ ...(await source.bootstrap()), manuscript: null }),
+      findingsSummary: async () => ({ ...(await source.findingsSummary()), total: 3, open: 3, unreviewed: 3 }),
+    });
     await screen.findByRole('heading', { level: 1, name: 'Production' });
-    expect(window.location.pathname).toBe('/');
+    await new Promise((resolve) => setTimeout(resolve, 100));
+    expect(screen.getAllByRole('button', { name: /^Proof/ }).every((button) => !/\d/.test(button.textContent ?? ''))).toBe(true);
   });
 
   it('Story Bible has no stale detection notice, and entry actions render as icon-only buttons on one row', async () => {
@@ -1278,6 +1305,18 @@ describe('App (integration, driven through the mock NarrationApi)', () => {
     await waitFor(() => expect(screen.getByText('REAPER project linked.')).toBeTruthy());
   });
 
+  it('links a REAPER project kept in another folder and says where it is, with no error', async () => {
+    renderApp({}, { dawFileLinked: false, dawLinkOutside: true });
+    await screen.findByRole('heading', { level: 1, name: 'Production' });
+    fireEvent.click(screen.getAllByRole('button', { name: 'Settings' })[0]);
+    await screen.findByRole('heading', { name: 'Settings' });
+
+    await screen.findByText('REAPER detected');
+    fireEvent.click(screen.getByRole('button', { name: 'Link a REAPER project file' }));
+    await waitFor(() => expect(screen.getByText(/^REAPER project linked\. Elsewhere\.rpp is in D:\/Audio\/Elsewhere/)).toBeTruthy());
+    expect(screen.queryByText(/outside this project's folder/)).toBeNull();
+  });
+
   it('does not offer the DAW catalog handoff link once a REAPER project is already linked', async () => {
     renderApp();
     await screen.findByRole('heading', { level: 1, name: 'Production' });
@@ -1545,11 +1584,24 @@ describe('App shell mounts', () => {
       },
       subscribeJobEnded: (cb) => (listeners.add(cb as never), () => void listeners.delete(cb as never)),
     });
-    await openJumpFromHeader();
-    const field = await screen.findByRole('combobox', { name: 'Jump menu' });
-    fireEvent.change(field, { target: { value: 'Go to Chapter' } });
-    // The chapters slot answers after the shell has mounted; on a loaded CI runner that is past findAll's 1 s default.
-    const before = (await screen.findAllByRole('option', { name: /^Go to Chapter/ }, { timeout: 5000 })).length;
+    // The menu asks for its commands once per open, and the chapters slot answers after the shell has mounted (later still on a
+    // loaded runner), so a menu opened first never lists them: it is reopened until it does.
+    const button = await openJumpFromHeader();
+    let before = 0;
+    await waitFor(
+      async () => {
+        const field = await screen.findByRole('combobox', { name: 'Jump menu' });
+        fireEvent.change(field, { target: { value: 'Go to Chapter' } });
+        before = screen.queryAllByRole('option', { name: /^Go to Chapter/ }).length;
+        if (before === 0) {
+          fireEvent.keyDown(field, { key: 'Escape' });
+          await waitFor(() => expect(screen.queryByRole('combobox', { name: 'Jump menu' })).toBeNull());
+          fireEvent.click(button);
+        }
+        expect(before).toBeGreaterThan(0);
+      },
+      { timeout: 5000 },
+    );
     fail = true;
     vi.spyOn(console, 'error').mockImplementation(() => undefined);
     await act(async () => ended({ id: 'j', kind: 'manuscript_import', outcome: 'success', message: '', durationMs: 1 } as never));
@@ -1676,10 +1728,13 @@ describe('App shell mounts', () => {
     fireEvent.click(screen.getAllByRole('button', { name: 'Script' })[0]);
     await screen.findByRole('heading', { name: 'Script' });
     await waitFor(() => expect(screen.getByRole('button', { name: 'Back' }).getAttribute('aria-disabled')).toBeNull());
-    journal.setLeaveGuard(() => ({ ask: { title: 'Stop recording?', body: 'A take is recording.', confirmLabel: 'Stop and leave' } }));
+    journal.setLeaveGuard(() => ({
+      ask: { title: 'Stop recording?', body: 'A take is recording.', confirmLabel: 'Stop and leave', cancelLabel: 'Keep recording' },
+    }));
 
+    // The guard's own name for staying reaches the question.
     fireEvent.click(screen.getByRole('button', { name: 'Back' }));
-    fireEvent.click(within(await screen.findByRole('alertdialog', { name: /Stop recording/ })).getByRole('button', { name: 'Cancel' }));
+    fireEvent.click(within(await screen.findByRole('alertdialog', { name: /Stop recording/ })).getByRole('button', { name: 'Keep recording' }));
     await waitFor(() => expect(screen.queryByRole('alertdialog')).toBeNull());
     expect(screen.getByRole('heading', { name: 'Script' })).toBeTruthy();
 
@@ -1690,7 +1745,7 @@ describe('App shell mounts', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Forward' }));
     expect(await screen.findByRole('alertdialog', { name: /Stop recording/ })).toBeTruthy();
-    fireEvent.click(within(screen.getByRole('alertdialog')).getByRole('button', { name: 'Cancel' }));
+    fireEvent.click(within(screen.getByRole('alertdialog')).getByRole('button', { name: 'Keep recording' }));
     await waitFor(() => expect(screen.queryByRole('alertdialog')).toBeNull());
     expect(screen.getByRole('heading', { level: 1, name: 'Production' })).toBeTruthy();
     journal.setLeaveGuard(null);

@@ -6,6 +6,7 @@ import { IconButton } from '../../primitives/IconButton';
 import { LevelMeter } from '../../primitives/LevelMeter';
 import { Popover } from '../../primitives/Popover';
 import { Select } from '../../primitives/Select';
+import { Badge } from '../../primitives/StatusBadge';
 import type { InputLevel } from './useLevels';
 
 export type LevelsMenuProps = {
@@ -146,14 +147,20 @@ export function LevelsMenu({ engine, dawName, reachable, offReason, device, onDe
   );
 }
 
-/** The meter that sits open beside Record in the footer, with the room tone. */
+/** The meter and the room tone chip at the right of the footer (the mock's `.lvl-inline`, `margin-left: auto`). */
 export function LevelsInline({ level, roomTone, roomToneOk }: { level: InputLevel | null; roomTone: string; roomToneOk: boolean }) {
   return (
-    <div role="group" aria-label="Input" className="flex items-center gap-3">
+    <div role="group" aria-label="Input" className="ml-auto flex min-w-0 items-center gap-3">
       <div className="w-28">
         <LevelMeter label="Input level" peak={level?.peak ?? null} rms={level?.rms ?? null} size="compact" />
       </div>
-      <span className={`text-xs ${roomToneOk ? 'text-[var(--ok-text)]' : 'text-[var(--text-muted)]'}`}>{roomTone}</span>
+      <span className="whitespace-nowrap">
+        <Badge
+          label={roomTone}
+          look="outline"
+          colors={{ fill: 'var(--surface)', text: roomToneOk ? 'var(--ok-text)' : 'var(--text-muted)', line: 'var(--btn-line)' }}
+        />
+      </span>
     </div>
   );
 }
