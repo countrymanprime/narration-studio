@@ -289,3 +289,28 @@ H.test('repair_click refuses a REAPER without the calls it needs', function()
   s.fake:remove_api('InsertEnvelopePoint')
   H.contains(error_event(s, p, { ITEM, TAKE, '4:4.003' }), 'cannot repair')
 end)
+
+H.test('repair_click answers ERROR and records no undo point when REAPER makes no volume envelope', function()
+  local s, p = project()
+  s.fake.makes_no_volume_envelope = true
+  s:send('repair_click', 'c1', ITEM, TAKE, '4:4.003')
+  local events = s:events()
+  H.eq(#events, 1)
+  H.eq(events[1][1], 'ERROR')
+  H.contains(events[1][3], 'did not make a volume envelope')
+  H.eq(#s.fake.undo, 0, 'no undo point')
+  H.eq(s.fake.open_undo_blocks, 0, 'the block is closed')
+  H.eq(calls_named(s, 'InsertEnvelopePoint'), 0)
+  H.eq(p.intro.selected, true, 'the selection is as it was')
+  H.eq(p.take.volume_env, nil)
+end)
+
+H.test('repair_click clamps a click a hair outside the item to the item', function()
+  local s, p = project()
+  -- Source 1.9999995 is half a microsecond before the item starts; 12.0000005 is half a microsecond after it ends.
+  s:send('repair_click', 'c1', ITEM, TAKE, '1.9999995:2.002,11.997:12.0000005')
+  H.eq(s:events()[1][1], 'CLICKS_REPAIRED')
+  local list = p.take.volume_env.points
+  H.eq(list[1].time, 0, 'the first point is at the item start')
+  H.eq(list[#list].time, 10, 'the last point is at the item end')
+end)

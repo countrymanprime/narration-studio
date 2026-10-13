@@ -7,6 +7,7 @@ paths:
 
 When fixing a visual/UI bug in `apps/ui`, do not consider it done from code review or a single manual screenshot alone. Before reporting a visual fix as complete:
 
+0. For a PR, run the whole page, not one state: `pnpm --dir apps/ui visual:page <page>` (both themes, every catalogued state, into `apps/ui/screenshots/targeted/<theme>/<page>/<state>/<viewport>.png`) and `pnpm --dir apps/ui atlas:page <page-or-component>` for its stories. The PR shows those images ([UI PRs show their screenshots](../../CONTRIBUTING.md#ui-prs-show-their-screenshots)). The steps below are the quick loop on one state.
 1. Run the Playwright visual suite for the affected page/state across all viewports in `apps/ui/tests/visual/viewports.ts` (desktop, small-desktop, tablet; there is no phone viewport, ADR 0037, except that the Settings states are also captured at a 390 px `reflow` width, ADR 0061, so look at `reflow.png` for those):
 
    ```bash
@@ -20,6 +21,8 @@ When fixing a visual/UI bug in `apps/ui`, do not consider it done from code revi
 Primitives are also covered by the component atlas: every one has a `<Name>.stories.tsx`, and `pnpm --dir apps/ui atlas` builds Storybook and checks every story in light and dark at a wide and a narrow viewport (axe, `play()`, overflow, console errors). Run it too when a primitive or `styles.css` changes; `docs/ui/` is generated from it by `pnpm --dir apps/ui docs:atlas` (`apps/ui/scripts/atlas-docs.mjs`, ADR 0243).
 
 The visual suite also runs axe on every state it captures: a violation fails the capture unless `apps/ui/tests/visual/axe-debt.ts` declares it with a reason and an issue, and a declared rule that stops being reported fails too, so fix the page and delete the entry rather than add one (`UI_AXE=1` measures without failing; ADR 0064). When a dialog, slide-over or the navigation changes, also run `pnpm --dir apps/ui run aria`: it pins their role trees (ADR 0065), and a changed tree is a changed screen-reader experience, so update a snapshot only when the change is intended and read the diff (`docs/operations/verification-tooling.md`).
+
+A container whose Chromium is not the pinned build runs all of these unchanged: `visual:page` and `atlas:page` pick the installed headless shell, and for a plain `playwright test` set `PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH` to it (`apps/ui/playwright.launch.ts`). Never run `playwright install` there.
 
 `apps/ui/screenshots/` is gitignored: these are scratch verification artifacts, not committed output.
 

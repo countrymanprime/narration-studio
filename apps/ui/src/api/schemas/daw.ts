@@ -78,7 +78,7 @@ export const dawResultSchema = z.object({
 }) satisfies z.ZodType<DawResult>;
 
 /** dawport.FXSetting: a setting whose value lies in its range, with a step of 0 or more. */
-export const dawFxSettingSchema = z
+const dawFxSettingSchema = z
   .object({
     fx: z.number().int().nonnegative(),
     fxName: z.string(),

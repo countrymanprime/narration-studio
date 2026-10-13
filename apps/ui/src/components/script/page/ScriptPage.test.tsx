@@ -61,7 +61,7 @@ function mount({ api = createMockApi(), at = '/script', props = {} }: Mount = {}
   return { api, ...handlers, ...utils };
 }
 
-const firstHeading = () => screen.findByRole('heading', { level: 2, name: 'Chapter 1' }, { timeout: 3000 });
+const firstHeading = () => screen.findByRole('heading', { level: 2, name: 'Down the Rabbit-Hole' }, { timeout: 3000 });
 const columns = () => document.querySelector<HTMLElement>('[data-script-columns]')!;
 const panel = (name: 'chapters' | 'rail') => document.querySelector<HTMLElement>(`[data-panel="${name}"]`)!;
 const press = (code: string, key: string, init: KeyboardEventInit = {}) => fireEvent.keyDown(document.activeElement ?? document.body, { code, key, ...init });
@@ -281,15 +281,15 @@ describe('credits-cards-and-banner-stay', () => {
     await firstHeading();
     const opening = await screen.findByRole('heading', { name: 'Opening credits' });
     const closing = screen.getByRole('heading', { name: 'Closing credits' });
-    // The chapters' own headings, by the reader section each heads (a credits card's title is a heading too).
-    const headings = [...document.querySelectorAll<HTMLElement>('[data-ch] > h2')];
-    const chapterOne = screen.getByRole('heading', { level: 2, name: 'Chapter 1' });
-    const lastChapter = headings.at(-1)!;
-    expect(lastChapter).not.toBe(chapterOne);
-    expect(chapterOne.compareDocumentPosition(opening) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
-    // The opening card sits before chapter 2; the closing card after every chapter heading, not beside the opening card.
-    expect(opening.compareDocumentPosition(headings[1]!) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
-    expect(lastChapter.compareDocumentPosition(closing) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    // Each chapter's section in the reader, in book order.
+    const sections = [...document.querySelectorAll<HTMLElement>('[data-reader] [data-bound]')];
+    expect(sections.length).toBeGreaterThan(1);
+    const chapterOne = screen.getByRole('heading', { level: 2, name: 'Down the Rabbit-Hole' });
+    // The opening card comes before chapter 1's title; the closing card after the last chapter's section, not beside the opening card.
+    expect(chapterOne.compareDocumentPosition(opening) & Node.DOCUMENT_POSITION_PRECEDING).toBeTruthy();
+    expect(opening.compareDocumentPosition(sections[1]!) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(sections.at(-1)!.compareDocumentPosition(closing) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(sections.at(-1)!.contains(closing)).toBe(false);
     expect(await within(card('Opening credits')).findByText(/unresolved token/)).toBeTruthy();
   });
 
@@ -628,5 +628,31 @@ describe('opening-credits-row', () => {
     mount({ api: createMockApi({ creditsTemplates: async () => [] }) });
     await firstHeading();
     expect(within(panel('chapters')).queryByRole('button', { name: /Opening credits/ })).toBeNull();
+  });
+});
+
+describe('chapter-title-once-and-end-marker-after-its-chapter', () => {
+  // The mock's chapter boundary: "End of {previous}", then the card with the title, then the text. The reader's own heading used to
+  // sit above the card, so a title showed twice in the text and the new heading came before the previous chapter's end marker.
+  it('draws each chapter title once in the text, as the card heading', async () => {
+    mount();
+    await firstHeading();
+    const inText = screen.getAllByRole('heading', { level: 2, name: 'Down the Rabbit-Hole' }).filter((h) => h.closest('[data-reader]'));
+    expect(inText).toHaveLength(1);
+    expect(inText[0]!.closest('[data-chapter-id]')).not.toBeNull();
+    expect(document.querySelectorAll('[data-reader] [data-bound] > h2')).toHaveLength(0);
+  });
+
+  it('puts the end-of-chapter marker after the last paragraph of that chapter and before the next chapter title', async () => {
+    mount();
+    await firstHeading();
+    const ends = await screen.findAllByText(/^End of /);
+    const end = ends[0]!;
+    const paragraphs = Array.from(document.querySelectorAll<HTMLElement>('[data-reader] [data-para]'));
+    const chapterOne = paragraphs.filter((row) => row.dataset.ch === paragraphs[0]!.dataset.ch);
+    const last = chapterOne[chapterOne.length - 1]!;
+    expect(last.compareDocumentPosition(end) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    const next = screen.getByRole('heading', { level: 2, name: 'The Pool of Tears' });
+    expect(end.compareDocumentPosition(next) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   });
 });
