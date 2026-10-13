@@ -11,6 +11,7 @@ import {
 } from '../../../api/contracts/findings';
 import type { StatusTone } from '../../primitives/StatusBadge';
 import { analyzerLabel, noteTime } from '../findingFormat';
+import { noteIsOpen } from '../proof.selectors';
 import { fixKindOf, resolutionOf } from '../resolution';
 import { proofProgress } from '../proof.selectors';
 
@@ -68,7 +69,7 @@ export function noteRow(finding: Finding): NoteRow {
     confidence: finding.confidence,
     confidenceReason: finding.confidence_reason,
     resolution: resolutionWords(finding),
-    open: status !== 'dismissed',
+    open: noteIsOpen(finding),
     decided: status !== 'unreviewed',
     pickup: status === 'accepted' && fixKindOf(finding) === 'pickup',
   };
