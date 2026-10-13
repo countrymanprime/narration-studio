@@ -23,6 +23,7 @@ import {
   unattributed,
   wordKey,
   wordsInChapter,
+  chapterWords,
 } from './script.selectors';
 
 const TYPES: MarkType[] = [
@@ -290,5 +291,33 @@ describe('a renamed or removed alias keeps or drops its confirmed lines', () => 
         'c1',
       ),
     ).toBe(1);
+  });
+});
+
+describe('the-words-tab-lists-the-flags-and-the-story-bible-names-in-the-text', () => {
+  const alice = { ...entity('alice', 'Alice', 'Character', ['Allie']), pronunciation: { ipa: '/ˈælɪs/', source: 'cmu', confidence: 'set' } };
+  const hare = { ...entity('hare', 'March Hare', 'Character'), pronunciation: { ipa: '', source: '', confidence: 'pending' } };
+  const flagged: ScriptWord = {
+    word: 'knave',
+    say: '',
+    source: '',
+    status: 'not_set',
+    flags: [{ id: 'f', chapterId: 'c1', paragraphId: 'p', paragraph: 1, start: 0, end: 5, quote: 'knave', createdAt: '', stale: false }],
+  };
+  const text = [{ text: 'Alice met the March Hare. Alice saw a knave.' }];
+
+  it("adds each name once, with the entry's pronunciation deciding Set or Not set, after the flagged words", () => {
+    expect(chapterWords([flagged], [alice, hare], 'c1', text)).toEqual([
+      { word: 'knave', say: '', source: '', status: 'not_set', fromBible: false },
+      { word: 'Alice', say: '/ˈælɪs/', source: '', status: 'set', fromBible: true },
+      { word: 'March Hare', say: '', source: '', status: 'not_set', fromBible: true },
+    ]);
+  });
+  it('lists a flagged word once even when the Story Bible names it too', () => {
+    const both: ScriptWord = { ...flagged, word: 'alice', say: 'AL-iss', source: 'manual', status: 'set' };
+    expect(chapterWords([both], [alice], 'c1', text).filter((row) => row.word.toLowerCase() === 'alice')).toHaveLength(1);
+  });
+  it('lists nothing for a chapter with no flags and no names in its text', () => {
+    expect(chapterWords([flagged], [alice], 'c2', [{ text: 'Nothing here.' }])).toEqual([]);
   });
 });

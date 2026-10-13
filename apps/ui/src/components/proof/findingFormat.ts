@@ -126,14 +126,6 @@ export function evidenceRows(finding: Finding): Array<{ label: string; value: st
   return rows;
 }
 
-/** The Type column's chip (PF2 in the visual mockup divergence audit): the evidence's own kind when the analyzer reports
- * one (Misread, Skipped, Extra words, …), the category name otherwise (Story Bible entry, Pickup, …). */
-export function evidenceKindLabel(finding: Finding): string {
-  const kind = text(finding.evidence?.kind);
-  if (kind) return KIND_LABELS[kind] ?? humanize(kind.toLowerCase());
-  return categoryLabel(finding.category);
-}
-
 /** When the decision was recorded, in the narrator's own locale; the raw text when it is not a date. */
 export function formatDecidedAt(timestamp: string | undefined): string | undefined {
   if (!timestamp) return undefined;

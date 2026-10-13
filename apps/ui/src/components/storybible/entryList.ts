@@ -20,8 +20,11 @@ export const ENTRY_SORT_STORAGE_KEY = 'narration.storyBible.sort';
 
 const isEntrySortKey = (value: unknown): value is EntrySortKey => ENTRY_SORT_OPTIONS.some((option) => option.value === value);
 
-/** The names an entry is also known by. */
-export const aliasCount = (entry: GuideEntity): number => entry.aliases.length;
+/** The names the app links in the text for an entry, as the detail lists them: its own name and each alias (the mock's "1 name"). */
+export const nameCount = (entry: GuideEntity): number => 1 + entry.aliases.length;
+
+/** The host could not tell what type the entry is (`Needs Review` is a state, never a type): the row says so and still asks for review. */
+export const typeUnknown = (entry: GuideEntity): boolean => entry.category === 'Needs Review';
 
 /** How many chapters the entry appears in: from `appearances`, or from its evidence on a file written before appearances existed. */
 export function chapterCount(entry: GuideEntity): number {
@@ -55,7 +58,7 @@ export const reviewCount = (entries: readonly GuideEntity[], suggestions: readon
 export function reviewPill(entry: GuideEntity, suggestions: readonly ExtractionSuggestion[]): string | undefined {
   const verify = verifyOf(suggestions, entry.id);
   if (verify > 0) return `Verify · ${verify}`;
-  return entryFlagged(entry) ? 'Review' : undefined;
+  return entryFlagged(entry) || typeUnknown(entry) ? 'Review' : undefined;
 }
 
 /** The swatch each type colour is drawn with: the kind hue it names in styles.css. */

@@ -125,6 +125,8 @@ export type PrepView = ReadView<ScriptPrep> & {
   words: ScriptWord[];
   prepOf: (chapterId: string) => PrepState;
   wordsInChapter: (chapterId: string) => ScriptWord[];
+  /** The chapter's flagged words and the Story Bible names in its text, for the Words tab (`chapterWords`). */
+  chapterWords: (chapterId: string, entries: readonly GuideEntity[], paragraphs: readonly Pick<ManuscriptParagraph, 'text'>[]) => select.ChapterWord[];
   pronStatus: (word: string) => ScriptWord['status'];
   pronOfWord: (word: string) => { say: string; source: string };
 };
@@ -143,6 +145,7 @@ export function useScriptPrep(): PrepView {
       words,
       prepOf: (chapterId: string) => chapters.find((row) => row.chapterId === chapterId)?.state ?? 'none',
       wordsInChapter: (chapterId: string) => select.wordsInChapter(words, chapterId),
+      chapterWords: (chapterId, entries, paragraphs) => select.chapterWords(words, entries, chapterId, paragraphs),
       pronStatus: (word: string) => select.pronStatus(words, word),
       pronOfWord: (word: string) => select.pronOfWord(words, word),
     };

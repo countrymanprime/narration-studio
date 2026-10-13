@@ -209,8 +209,10 @@ the reason and **Try again** above the table.
 ## Schedule
 
 **Schedule**, the item after Production in the navigation, holds the book's due date, how it pays,
-the work left and how it is worked out, and its milestones. With no manuscript it asks you to import
+the recorded audio against the plan, the work left and how it is worked out, and its milestones. With no manuscript it asks you to import
 one first. Every change there is one step you can undo.
+
+![Schedule - the verdict, the recorded audio against the plan, how the book pays, the work left and the milestones](../../images/ui/schedule-on-pace.webp)
 
 ## Status report
 

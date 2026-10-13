@@ -4,7 +4,8 @@ import fc from 'fast-check';
 import type { GuideEntity, GuideType } from '../../types';
 import type { ExtractionSuggestion } from '../../api/contracts/extraction';
 import {
-  aliasCount,
+  nameCount,
+  typeUnknown,
   aliasFlagged,
   chapterCount,
   ENTRY_SORT_STORAGE_KEY,
@@ -80,7 +81,16 @@ describe('sort-by-name-type-and-chapters-with-name-as-the-tie-break', () => {
 });
 
 describe('each-row-shows-its-names-and-its-chapters-and-no-mention-counts', () => {
-  it('counts aliases', () => expect(aliasCount(entry('a', 'A', { aliases: [{ text: 'x' }, { text: 'y' }] as GuideEntity['aliases'] }))).toBe(2));
+  it("counts the entry's own name with its aliases, as the detail lists them", () => {
+    expect(nameCount(entry('a', 'A'))).toBe(1);
+    expect(nameCount(entry('a', 'A', { aliases: [{ text: 'x' }, { text: 'y' }] as GuideEntity['aliases'] }))).toBe(3);
+  });
+  it('asks for review and keeps the type word when the host could not tell the type', () => {
+    expect(typeUnknown(entry('a', 'A', { category: 'Needs Review' }))).toBe(true);
+    expect(typeUnknown(entry('a', 'A', { category: 'Character' }))).toBe(false);
+    expect(reviewPill(entry('a', 'A', { category: 'Needs Review' }), [])).toBe('Review');
+    expect(reviewPill(entry('a', 'A', { category: 'Character' }), [])).toBeUndefined();
+  });
   it('counts distinct chapters of the appearances', () => {
     expect(chapterCount(entry('a', 'A', { appearances: [...inChapters('1', '2'), { chapterId: '1', chapter: '1', sceneIndex: 5 }] }))).toBe(2);
   });

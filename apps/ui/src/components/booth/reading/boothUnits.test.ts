@@ -1,6 +1,6 @@
 // @vitest-environment node
 import { describe, expect, it } from 'vitest';
-import { boothUnits, readingParagraphs, sentenceRanges, unitWords } from './boothUnits';
+import { boothUnits, readingParagraphs, sentenceRanges, snapToWordBoundary, unitWords } from './boothUnits';
 import { backPhrase, nextPhrase, positionOf, stepWord, unitAtPosition } from './readingPosition';
 import { sampleParagraphs } from './fixture';
 
@@ -73,5 +73,31 @@ describe('unitWords', () => {
     expect(lead).toBe('');
     expect(words.map((w) => w.text)).toEqual(['The', 'garden', 'was', 'quiet.']);
     expect(words[0].gap).toBe(' ');
+  });
+});
+
+describe('a-phrase-break-never-cuts-a-word', () => {
+  const text = 'There was nothing so VERY remarkable in that.';
+  const phrase = (key: string, start: number, end: number, speaker = '') => ({ key, start, end, quoted: !!speaker, speaker, confirmed: true });
+  it('moves an offset inside a word to the end of that word and leaves one between words', () => {
+    expect(snapToWordBoundary(text, 11)).toBe(18);
+    expect(snapToWordBoundary(text, 18)).toBe(18);
+    expect(snapToWordBoundary(text, 0)).toBe(0);
+    expect(snapToWordBoundary(text, text.length)).toBe(text.length);
+  });
+  it('keeps neighbouring phrases whole, with every unit starting and ending on a word', () => {
+    const split = boothUnits([{ id: 'p', text, phrases: [phrase('p:0', 0, 11), phrase('p:1', 11, text.length, 'Hatter')] }]);
+    expect(split.map((u) => u.text)).toEqual(['There was nothing ', 'so VERY remarkable in that.']);
+    expect(split.map((u) => [u.start, u.end])).toEqual([
+      [0, 18],
+      [18, text.length],
+    ]);
+    for (const u of split)
+      expect(
+        u.text
+          .trim()
+          .split(/\s+/)
+          .every((w) => text.includes(w)),
+      ).toBe(true);
   });
 });
