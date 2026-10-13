@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useApi } from '../../api/ApiContext';
+import { openPickups } from '../pickups/list/pickupRows';
 import { proofProgress } from '../proof/proof.selectors';
 
 /** The rail's count badges (mock 05: "14" on Proof, "9" on Pickups). A key is absent when the host has no count to give, and the
@@ -8,9 +9,9 @@ import { proofProgress } from '../proof/proof.selectors';
 export type NavCounts = { proof?: number; pickups?: number };
 
 /**
- * What waits on each page, read from the host: the notes still open (Proof's summary, through the one `proofProgress` selector: not cleared, which is more than unreviewed) and the pickups REAPER last reported remaining. It reads again on
- * every page move, so a decision made on a page shows on the rail as the narrator leaves it. It only reads: the pickups count
- * is what REAPER last reported, and the hook never asks REAPER to count.
+ * What waits on each page, read from the host: the notes still open (Proof's summary, through the one `proofProgress` selector: not cleared, which is more than unreviewed) and the open lines of the Pickups page's list (`openPickups`, the same count Production and Schedule use). It reads again on
+ * every page move, so a decision made on a page shows on the rail as the narrator leaves it. It only reads the list; it never asks the DAW
+ * to count.
  */
 export function useNavCounts(pathname: string): NavCounts {
   const api = useApi();
@@ -24,11 +25,13 @@ export function useNavCounts(pathname: string): NavCounts {
       .findingsSummary()
       .then((summary) => set({ proof: proofProgress(summary, 0).open }))
       .catch(clear('proof'));
-    api
-      .pickupsState()
-      .then((state) => set({ pickups: state.remaining }))
-      .catch(clear('pickups'));
-    const unsubscribe = api.subscribePickups((state) => set({ pickups: state.remaining }));
+    const readPickups = () =>
+      api
+        .pickupsList()
+        .then((list) => set({ pickups: openPickups(list.pickups).length }))
+        .catch(clear('pickups'));
+    void readPickups();
+    const unsubscribe = api.subscribePickups(() => void readPickups());
     return () => {
       active = false;
       unsubscribe();

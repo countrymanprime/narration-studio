@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { apiErrorMessage } from '../../api/errorMessage';
 import type { ProductionMilestone, ProductionPayment, ProductionPlan } from '../../api/contracts/production';
 import { overlay } from '../../overlay/overlayService';
+import { useOpenPickups } from '../pickups/useOpenPickups';
 import { usePort } from '../../ports/usePort';
 import type { Command, Journal } from '../../studio/journal/createJournal';
 import { Button } from '../primitives/Button';
@@ -43,6 +44,7 @@ const platformIdOf = (projectProfile: string | undefined): string | undefined =>
  */
 export function SchedulePage({ journal, today, onImport }: SchedulePageProps) {
   const production = usePort('production');
+  const openLines = useOpenPickups();
   const deliveryProfiles = usePort('deliveryProfiles');
   const [state, setState] = useState<State>({ phase: 'loading' });
   const day = useMemo(() => today ?? new Date(), [today]);
@@ -110,7 +112,7 @@ export function SchedulePage({ journal, today, onImport }: SchedulePageProps) {
   const saveList = (label: string, milestones: ProductionMilestone[], undoText?: string) =>
     run(saveMilestonesCommand(production, label, plan, milestones), undoText);
 
-  const k = calc(chapters, day, plan.deadline ? parseIso(plan.deadline) : null);
+  const k = calc(chapters, day, plan.deadline ? parseIso(plan.deadline) : null, openLines?.length ?? 0);
   const bounds = { chapters: chapters.filter((c) => c.kind === 'narration').length, minutes: maxMinutes(k.words) };
   const edit = (index: number | null, focus?: 'note') => {
     const existing = index === null ? undefined : plan.milestones[index];

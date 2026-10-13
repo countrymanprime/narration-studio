@@ -23,7 +23,7 @@ export function groupByChapter(pickups: readonly PickupItem[], chapters: readonl
   return refs
     .map((chapter) => {
       const items = pickups.filter((pickup) => pickup.chapterId === chapter.id);
-      return { chapter, items, open: items.filter((pickup) => !pickup.done).length };
+      return { chapter, items, open: openPickups(items).length };
     })
     .filter((group) => group.items.length > 0);
 }
@@ -47,6 +47,13 @@ export const sourceTitle = (pickup: PickupItem): string | undefined => (pickup.c
 
 /** The Type column: the kind of gap a speech check found, otherwise the kind of finding the host named. */
 export const typeLabel = (pickup: PickupItem): string => (pickup.gap && pickup.gap !== 'other' ? GAP_LABEL[pickup.gap] : pickup.type);
+
+/**
+ * The open pickups: the lines still to re-record, whoever left them out of the next session. This is the one definition of "open"
+ * (the Pickups page's "<n> open" per chapter, the rail's badge, Production's tile and Next up, Schedule's pickup hours all count
+ * through it), so the number a page states is the length of the list it points to.
+ */
+export const openPickups = (pickups: readonly PickupItem[]): PickupItem[] => pickups.filter((pickup) => !pickup.done);
 
 /** The pickups the next session takes: open and not left out. */
 export const sessionPickups = (pickups: readonly PickupItem[]): PickupItem[] => pickups.filter((pickup) => !pickup.done && pickup.included);
