@@ -16,22 +16,42 @@ the rest of the settings.
   the same one as the Words tab's **Definitions from** menu. The local dictionary shows **Installed** or **Not
   installed** with a button to remove or download it; the online service shows **Online**, **Offline**, or **No key
   saved** until its key is saved.
+
+![Settings - the top of the page: the Recording radios with each engine's state, the linked REAPER project, the Delivery profile and Definitions and pronunciations](../../images/ui/settings-appearance.webp)
+
+- **Reader text** sets how the [Script](script.md) reader draws the text: **Font**, **Size**, **Line spacing** and
+  **Column width**, over a quote drawn in them. These are the Script's own text settings, so a change here shows
+  there and the other way round. The Booth keeps its own text size and uses the font chosen here. They are kept on
+  this computer, not in the project.
+- **Marks** lists your mark types, each with its colour, and **tracks a reply** on a type that asks for one.
+  **Edit marks…** opens the same **Define how you mark up** dialog as the Script page.
+
+![Settings - Reader text: font, size, line spacing and column width over the preview quote, then the Marks](../../images/ui/settings-reader-text.webp)
+
 - **Story Bible types** lists the kinds of [Story Bible](story-bible.md) entry, each with its name, colour, a
   **Can speak** box (entries of that type can be picked as the speaker of a quoted line) and how many entries
   it has. Rename a type in its box, change its colour, add one in **New type**, or remove one: the remove
   button stays off while entries use the type, and the last type cannot go. A refused change says why under
   the list.
+- **Story Bible analysis** lists the optional tools that make the Story Bible scan better (GLiNER, BookNLP small
+  and large, and a local language model), each with what it does, its size, where it downloads from and the
+  memory it needs, and the **Offer better analysis when scanning** box. A tool the app does not offer yet says
+  **Not available yet** with the reason, and has no **Download**. None is offered in this version. Once one is,
+  **Download** asks first, then shows progress, and **Remove** deletes it.
+
+![Settings - Story Bible analysis: the four optional tools, each Not available yet with its reason, and Offer better analysis when scanning](../../images/ui/settings-analysis-tools.webp)
+
 - **Appearance** sets the theme: **Match my system**, **Light** or **Dark**. The **Dark theme** / **Light
   theme** item at the foot of the sidebar switches it too.
-- **Story Bible analysis** lists the optional tools that make the Story Bible scan better, with **Download**,
-  progress and **Remove**, and the **Offer better analysis when scanning** box.
-- **Keyboard shortcuts** lists the keys, read-only; the **Keyboard & pedals** panel below changes them.
-- **Manuscript** says when the manuscript was imported (or **No manuscript yet**), with **Replace
-  manuscript** (or **Import manuscript** when there is none). The replace confirm names what it clears.
-
-![Settings - the top of the page: the Recording radios on the DAW, the Delivery profile select and the Story Bible types](../../images/ui/settings-appearance.webp)
 
 ![Production in the Dark theme](../../images/ui/theme-dark.webp)
+
+- **Keyboard shortcuts** lists the keys, read-only; the **Keyboard & pedals** panel below changes them.
+- **Manuscript** says when the manuscript was imported and how many words it has (or **No manuscript yet**),
+  with **Replace manuscript…** (or **Import manuscript** when there is none). The replace confirm names what it
+  clears.
+
+![Settings - the Manuscript panel: when it was imported, its word count and Replace manuscript…](../../images/ui/settings-manuscript.webp)
 
 Below them come General, Keyboard & pedals, Note colour, Recording check, Silence cleanup, Proof, Preview
 suggestion, Stage suggestions, Story Bible, Delivery profiles, DAW Integration, TTS, Booth, Local assets,
@@ -41,7 +61,7 @@ overrides for the current one (a setting left unset there uses the Global value)
 the panel shows **Unsaved changes** with **Save** and **Discard changes**. Switching its scope, or leaving
 Settings, with unsaved changes asks whether to save or discard them.
 
-![Settings, Global scope, General category](../../images/ui/settings-general.webp)
+![Settings - the General panel (Global only): log verbosity, the long-task notification, the narrator name and the credits room tone](../../images/ui/settings-general.webp)
 
 - **General** (Global only) holds **Log verbosity** (`quiet`, `normal` or `verbose`); **Notify me when a long task
   finishes while I'm away** (on by default), a Windows notification when a long job ends while the app is
@@ -95,8 +115,7 @@ Settings, with unsaved changes asks whether to save or discard them.
   pronunciation by hand for a specific entry, which always lets you pick. In Global it also holds the
   **Online dictionary (Merriam-Webster)**: an optional free key of your own (**Get a free key**, **Save
   key**, **Remove key**) that Look up online uses when no dictionary on this computer knows a name; only the
-  word you look up is sent. Under it, **Story Bible analysis** lists the optional analysis tools to
-  download or remove, with **Offer better analysis when scanning**.
+  word you look up is sent. The analysis tools are the **Story Bible analysis** panel at the top of the page.
 - **Delivery profiles** (Global only) picks the **Default delivery profile** for every project that has not chosen one (ACX
   until you change it); a project's own choice is the **Delivery profile** panel at the top of the page. A
   choice takes effect at once. The **Profiles** list shows the built-in ACX profile, read-only, and your custom profiles with
@@ -118,13 +137,11 @@ per-project preference) remembers the microphone, live engine and model you last
 its model: the Booth asks the first time you start reading with it. **Punch pre-roll (seconds)** is how far
 before the word a punch-in starts. Old links to it by its former name, Teleprompter, still open it.
 
-![Settings - Global scope, Manuscript category (note color picker)](../../images/ui/settings-manuscript.webp)
-
 The **Project data** panel is a project-only danger zone: **Clear derived project data…**
 removes the imported manuscript and its stored source, the Story Bible, proofing artifacts, reader notes and
 bookmarks, and saved comparison results for the current project, after you confirm. Its settings remain.
 
-![Settings - Project scope, Project data category (clear derived project data)](../../images/ui/settings-project-data.webp)
+![Settings - the Project data panel (This project): Clear derived project data…](../../images/ui/settings-project-data.webp)
 
 ## Choose REAPER
 
@@ -166,7 +183,7 @@ The settings under it:
   when the app starts it.
 - **Experimental REAPER actions** (off by default): the DAW actions not yet verified in REAPER stay
   refused while it is off, unless you set that action's own row below to `on`; while it is on, every one left on
-  `auto` is allowed.
+  `auto` is allowed. Its **i** says the same.
 - **Favourite effects (FX chains and plug-ins)**: the effects [Editing](editing.md#effects-on-words)
   offers first.
 - One row per DAW action (`auto`, `on` or `off`), such as **Record**, **Punch and roll** or **Chapter
@@ -230,12 +247,12 @@ replacing the manuscript keeps it; if its lines are gone, the panel says so and 
 ## Local assets
 
 The **Local assets** panel lists every optional download Narration Studio can keep on this computer: preview
-voices, Whisper models for proofing comparisons, the language model the Story Bible uses and the dictionary the Script reader's
-Look up reads. Nothing here downloads by itself, and
+voices, Whisper models for proofing comparisons, the language model the Story Bible uses, the dictionary the Script reader's
+Look up reads and the [Story Bible analysis](#settings) tools. Nothing here downloads by itself, and
 removing one never touches your settings or projects. The page also shows how much disk the installed ones use and the folder they
 are kept in.
 
-![Settings - Global scope, Local assets category](../../images/ui/settings-local-assets.webp)
+![Settings - the Local assets panel: the disk used, and each optional download with its state and actions](../../images/ui/settings-local-assets.webp)
 
 Each entry says what it is, its exact version, who publishes it, its download and disk sizes, and links to its license, model
 card and provenance. Its state is one of:
@@ -249,6 +266,8 @@ card and provenance. Its state is one of:
   to download it again.
 - **Needs repair**: some files are missing or no longer match the approved ones, so the app will not use the asset. **Repair**
   downloads it again and checks it; **Remove** deletes it instead.
+- **Not available yet**: the app lists the asset but does not offer it in this version (the Story Bible analysis tools, until
+  every file they download is checked). The entry says why and has no buttons.
 
 If a download, a check or a removal fails, the reason is written in that entry, and the entry keeps its buttons so you can try
 again.
@@ -258,7 +277,7 @@ again.
 The last panel, **About & updates**, shows which version of Narration Studio you are running and looks
 after updates.
 
-![Settings - Global scope, About and updates category with a newer version found](../../images/ui/settings-about-updates.webp)
+![Settings - the About & updates panel with a newer version found](../../images/ui/settings-about-updates.webp)
 
 - **Check for updates on startup** (on by default): once a day, when the app starts, it asks GitHub which releases exist. That
   request sends nothing about you, your projects or your computer, and it never downloads anything by itself. Switch it off

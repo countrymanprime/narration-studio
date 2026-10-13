@@ -263,42 +263,56 @@
     "state": "global-general",
     "viewport": "desktop",
     "docName": "settings-general",
-    "caption": "Settings - the kept categories, Global scope, General category"
+    "caption": "Settings - the General panel (Global only): log verbosity, the long-task notification, the narrator name and the credits room tone"
   },
   {
     "page": "settings",
     "state": "page-top",
     "viewport": "desktop",
     "docName": "settings-appearance",
-    "caption": "Settings - the top of the page: the Recording radios on the DAW, the Delivery profile select and the Story Bible types"
+    "caption": "Settings - the top of the page: the Recording radios with each engine’s state, the linked REAPER project, the Delivery profile and Definitions and pronunciations"
   },
   {
     "page": "settings",
-    "state": "global-manuscript",
+    "state": "reader-text",
+    "viewport": "desktop",
+    "docName": "settings-reader-text",
+    "caption": "Settings - Reader text: font, size, line spacing and column width over the preview quote, then the Marks"
+  },
+  {
+    "page": "settings",
+    "state": "analysis-tools",
+    "viewport": "desktop",
+    "docName": "settings-analysis-tools",
+    "caption": "Settings - Story Bible analysis: the four optional tools, each Not available yet with its reason, and Offer better analysis when scanning"
+  },
+  {
+    "page": "settings",
+    "state": "manuscript",
     "viewport": "desktop",
     "docName": "settings-manuscript",
-    "caption": "Settings - Global scope, Manuscript category (reader-note colour picker)"
+    "caption": "Settings - the Manuscript panel: when it was imported, its word count and Replace manuscript…"
   },
   {
     "page": "settings",
     "state": "about-update-available",
     "viewport": "desktop",
     "docName": "settings-about-updates",
-    "caption": "Settings - Global scope, About and updates category with a newer version found"
+    "caption": "Settings - the About & updates panel with a newer version found"
   },
   {
     "page": "settings",
     "state": "local-assets",
     "viewport": "desktop",
     "docName": "settings-local-assets",
-    "caption": "Settings - Global scope, Local assets category: a voice not installed, a Whisper model and a language model installed"
+    "caption": "Settings - the Local assets panel: the disk used, and each optional download with its state and actions"
   },
   {
     "page": "settings",
     "state": "project-data",
     "viewport": "desktop",
     "docName": "settings-project-data",
-    "caption": "Settings - Project scope, Project data category (clear derived project data)"
+    "caption": "Settings - the Project data panel (This project): Clear derived project data…"
   },
   {
     "page": "global",

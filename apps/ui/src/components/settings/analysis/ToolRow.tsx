@@ -40,7 +40,7 @@ export function ToolRow({ tool, status, job, failure, download, cancel, retry, d
   return (
     <li data-component={tool.id} data-status={status} className="flex min-w-0 flex-col gap-1 border-t border-[var(--border)] py-3 first:border-t-0 first:pt-0">
       <div className="flex min-w-0 flex-wrap items-center gap-2">
-        <h4 className="m-0 text-[0.9375rem] font-semibold">{name}</h4>
+        <h3 className="m-0 text-[0.9375rem] font-semibold">{name}</h3>
         <StatusBadge tone={tone} label={label} />
         <span className="flex-1" />
         {status === 'not-installed' && <IconButton action="download" label={`Download ${name}…`} aria-haspopup="dialog" onClick={download} />}

@@ -8,7 +8,27 @@ export const settingsStates: StateEntry[] = [
     page: 'settings',
     state: 'page-top',
     description:
-      "Settings, the top of the page (the Studio Next mock's panels): the Recording radios on the launch's DAW, the Delivery profile select on ACX, the Reader text panel (font, size, line height and the preview quote), the Marks pills with Edit marks, the Story Bible types, the Appearance theme radios, the Keyboard shortcuts list read-only and the Manuscript panel with Replace manuscript, above the kept panels",
+      "Settings, the top of the page (the Studio Next mock's panels): the Recording radios on the launch's DAW, the Delivery profile select on ACX, the Reader text panel (font, size, line spacing, column width and the preview quote), the Marks pills with Edit marks, the Story Bible types, the Appearance theme radios, the Keyboard shortcuts list read-only and the Manuscript panel with Replace manuscript, above the kept panels",
+    ...REFLOW,
+  },
+  {
+    page: 'settings',
+    state: 'reader-text',
+    description:
+      "Settings scrolled to the Reader text panel: the Script reader's font, size, line spacing and column width over the preview quote, then the Marks pills and the Story Bible types",
+    ...REFLOW,
+  },
+  {
+    page: 'settings',
+    state: 'analysis-tools',
+    description:
+      'Settings scrolled to the Story Bible analysis panel: GLiNER, both BookNLP sizes and the local language model, each Not available yet with the host’s reason, and Offer better analysis when scanning, then Appearance',
+    ...REFLOW,
+  },
+  {
+    page: 'settings',
+    state: 'manuscript',
+    description: 'Settings scrolled to the Manuscript panel: "Imported Jan 1 · 2,672 words" and the danger Replace manuscript…, then the kept General panel',
     ...REFLOW,
   },
   {

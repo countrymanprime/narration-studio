@@ -203,3 +203,18 @@ describe('mockApi guideMarkReviewed (the host refuses an entry with suggestions 
     await expect(api.guideMarkReviewed('mad-hatter')).resolves.toBeUndefined();
   });
 });
+
+describe('the mock host lists the Story Bible analysis tools as the real host does', () => {
+  it("lists the four tools not installed, each with the host's reason, and refuses to install one", async () => {
+    const api = createMockApi();
+    const analysis = (await api.assetsList()).assets.filter((asset) => asset.kind === 'analysis');
+    expect(analysis.map((tool) => [tool.id, tool.installState])).toEqual([
+      ['gliner', 'not_installed'],
+      ['booknlp-small', 'not_installed'],
+      ['booknlp-big', 'not_installed'],
+      ['local-llm', 'not_installed'],
+    ]);
+    expect(analysis.every((tool) => tool.unavailableReason)).toBe(true);
+    await expect(api.assetsInstall('analysis', 'gliner')).rejects.toThrow();
+  });
+});

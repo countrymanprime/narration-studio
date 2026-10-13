@@ -1321,7 +1321,7 @@ describe('answers of the mock client for the settings, voice, model, transcript 
     const api = createMockApi();
     const catalog = await api.assetsList();
     expectMatches(assetCatalogSchema, catalog, 'mock asset list');
-    expect(catalog.assets.map((asset) => asset.kind)).toEqual(['tts', 'whisper', 'spacy', 'dictionary']);
+    expect(catalog.assets.map((asset) => asset.kind)).toEqual(['tts', 'whisper', 'spacy', 'dictionary', 'analysis', 'analysis', 'analysis', 'analysis']);
     const voice = catalog.assets[0];
     const started = await api.assetsInstall(voice.kind, voice.id);
     for (const job of [started, await api.assetsInstallState(started.id), await api.assetsInstallState(started.id), await api.assetsInstallState(started.id)]) {

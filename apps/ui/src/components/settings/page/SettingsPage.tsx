@@ -113,7 +113,7 @@ export function SettingsPage({
 
   return (
     <SettingsFormsProvider notify={notify} onDirtyChange={onDirtyChange} registerActions={registerActions}>
-      <div className="mx-auto flex max-w-[860px] flex-col gap-4">
+      <div className="flex max-w-[860px] flex-col gap-4">
         <Heading title="Settings" />
         <div id="settings-recording" className="scroll-mt-4">
           <RecordingPanel dawFileLinked={data.dawFileLinked} onLinkDawFile={onLinkDawFile} notify={notify} />

@@ -59,6 +59,8 @@ const TOOLTIP: Record<string, string> = {
   reaper_path: 'Leave blank to auto-detect reaper.exe. Set this only when auto-detect finds the wrong install or none at all.',
   auto_start_launcher:
     'When Narration Studio starts REAPER, also pass the Narration Utils action as a startup script, so the bridge is live immediately. Off by default: REAPER is never changed automatically.',
+  experimental_reaper_actions:
+    'The DAW actions not yet verified in a real REAPER are refused while this is off, unless that action’s own row below is on. On, every action left on auto is allowed.',
   suggestions_enabled: 'Turns every stage suggestion on the Production board off at once, without changing which signals are required below.',
   'recording.text_present':
     'Whether every paragraph present in order, as the recording check measures it, must be met before the Production board suggests moving a chapter from Recording to Editing.',

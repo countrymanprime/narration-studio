@@ -26,6 +26,14 @@ function renderAssets(seed?: MockAssetSeed, overrides: Partial<NarrationApi> = {
 const rowOf = async (name: string) => (await screen.findByRole('heading', { level: 3, name })).closest('li') as HTMLElement;
 
 describe('LocalAssets', () => {
+  it('an asset the host does not offer yet says why and has no Download', async () => {
+    renderAssets();
+    const gliner = await rowOf('GLiNER');
+    expect(within(gliner).getByText('Not available yet')).toBeTruthy();
+    expect(within(gliner).getByText(/GLiNER is not yet available: its download is still being checked/)).toBeTruthy();
+    expect(within(gliner).queryByRole('button')).toBeNull();
+  });
+
   it('lists every asset with what it is, its sizes, links and state, and the folder and total on disk', async () => {
     renderAssets();
     const voice = await rowOf('LJ Speech (U.S. English)');
@@ -51,7 +59,8 @@ describe('LocalAssets', () => {
     // The three installed assets add up: 464 MB of Whisper model, 15 MB of unpacked language model and the 16 MB dictionary index.
     expect(screen.getByText(/Installed assets use 4\d\d MB of disk/)).toBeTruthy();
     expect(screen.getByText(/narration-utils.*\/assets|assets/i, { selector: 'code' })).toBeTruthy();
-    expect(screen.getAllByRole('heading', { level: 3 })).toHaveLength(4);
+    // The voice, the Whisper model, the language model, the dictionary and the four Story Bible analysis tools.
+    expect(screen.getAllByRole('heading', { level: 3 })).toHaveLength(8);
   });
 
   it('says so when nothing is installed', async () => {
