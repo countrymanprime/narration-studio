@@ -131,6 +131,8 @@ var experimentalCapability = map[string]dawport.Capability{
 	"reveal_file":         dawport.CapFileReveal,
 	"reduce_range_gain":   dawport.CapRangeGain,
 	"repair_click":        dawport.CapClickRepair,
+	"last_action":         dawport.CapUndoLast,
+	"undo_last":           dawport.CapUndoLast,
 	"fx_range_params":     dawport.CapFXRange,
 	"fx_range_set_param":  dawport.CapFXRange,
 	"fx_range_bypass":     dawport.CapFXRange,

@@ -3,6 +3,7 @@ import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testi
 import axe from 'axe-core';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { DAW_SETUPS, type DawSetupId } from '../../fixtures/daw';
+import { EnginePanelProvider } from '../engine/EnginePanelContext';
 import { providedCommands } from '../../input/commandProviders';
 import { contextItemsFor } from '../../registries/context';
 import { overlay } from '../../overlay/overlayService';
@@ -14,7 +15,7 @@ import { drawSections } from './drawer/drawerSections';
 import { useFlagActions } from './flags/flagActions';
 import { EditingPage, type EditingPageProps } from './EditingPage';
 import { useTakeControls } from './takes/takeControls';
-import { dawFor, EditingHost, FINDING, newJournal, pageApi } from './page/testPage';
+import { dawFor, EditingHost, FINDING, newJournal, noAudioApi, pageApi } from './page/testPage';
 import { buildDoc } from './model';
 import { finding } from './cleanup/cleanupFixtures';
 import { HEADING_LABELS, styledChapters, type HeadingStyle } from '../script/page/chapters/chapterFixtures';
@@ -130,6 +131,81 @@ describe('EditingPage', () => {
     expect(screen.getAllByText('Not transcribed yet').length).toBeGreaterThan(0);
     expect(screen.queryByRole('group', { name: /What is marked/ })).toBeNull();
     expect(document.querySelectorAll('[data-st="mis"], [data-st="extra"]')).toHaveLength(0);
+  });
+
+  describe('a-chapter-with-no-audio-says-why-and-where-to-fix-it', () => {
+    const unlinked = noAudioApi('unlinked');
+    const banner = () => document.querySelector<HTMLElement>('#noaudio');
+    const shown = () =>
+      waitFor(() => {
+        const note = banner();
+        expect(note).not.toBeNull();
+        return note!;
+      });
+
+    it('no track linked: the script is plain, nothing is boxed "not read", and the banner offers the audio engine panel', async () => {
+      const openPanel = vi.fn();
+      render(
+        <EditingHost api={pageApi(unlinked)} daw={dawFor('reaper')} journal={newJournal()}>
+          <EnginePanelProvider value={openPanel}>
+            <EditingPage hasManuscript />
+          </EnginePanelProvider>
+        </EditingHost>,
+      );
+      await script();
+      const note = await shown();
+      expect(note.getAttribute('role')).toBe('status');
+      expect(note.textContent).toMatch(/Chapter One is not linked to a track/);
+      expect(note.textContent).toMatch(/no audio to edit/);
+      expect(document.querySelectorAll('[data-mark="miss"]')).toHaveLength(0);
+      expect(document.querySelectorAll('[data-k]').length).toBeGreaterThan(0);
+      expect(screen.queryByRole('group', { name: /What is marked/ })).toBeNull();
+      expect(screen.queryByText('Not transcribed yet')).toBeNull();
+      expect(screen.getByText('No audio to edit')).toBeTruthy();
+      fireEvent.click(within(note).getByRole('button', { name: 'Open the audio engine panel' }));
+      expect(openPanel).toHaveBeenCalledOnce();
+    });
+
+    it.each([
+      ['missing', /linked track is not in the saved project/],
+      ['empty', /track has no audio on it/],
+    ] as const)('a linked track that is %s says so', async (kind, sentence) => {
+      mount({ api: noAudioApi(kind) });
+      await script();
+      expect((await shown()).textContent).toMatch(sentence);
+    });
+
+    it('Read again reads the chapter again, so a link made in the audio engine panel opens the chapter', async () => {
+      const whole = pageApi();
+      let linked = false;
+      mount({
+        api: {
+          chapterTrackMapList: async () => (linked ? await whole.chapterTrackMapList() : { documentId: 'd', mappings: [] }),
+          workspaceAlignment: async (chapterId: string) => (linked ? await whole.workspaceAlignment(chapterId) : await unlinked.workspaceAlignment!(chapterId)),
+        },
+      });
+      await script();
+      const note = await shown();
+      linked = true;
+      fireEvent.click(within(note).getByRole('button', { name: 'Read again' }));
+      await waitFor(() => expect(banner()).toBeNull());
+      expect(document.querySelector('[data-mark="mis"]')).not.toBeNull();
+    });
+
+    it('a chapter with its track and its words has no banner, and the words keep their marks', async () => {
+      mount();
+      await script();
+      expect(banner()).toBeNull();
+      expect(document.querySelector('[data-mark="mis"]')).not.toBeNull();
+    });
+
+    it('the built-in recorder, which has no track to link, points at recording instead', async () => {
+      mount({ setup: 'builtin', api: unlinked });
+      await script();
+      const note = await shown();
+      expect(note.textContent).toMatch(/Nothing is recorded for Chapter One yet/);
+      expect(within(note).queryByRole('button', { name: 'Open the audio engine panel' })).toBeNull();
+    });
   });
 
   describe('daw-off-banner-is-read-only-and-plays-still-work', () => {

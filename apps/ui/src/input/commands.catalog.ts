@@ -30,6 +30,8 @@ export type CommandDescriptor = {
    * shadowed row. `findConflicts` skips each named pair and still reports any other row on the gesture.
    */
   shadows?: readonly CommandId[];
+  /** A modified gesture that a text field already answers (Ctrl+Z is the field's own undo): the router leaves it to the field and runs the command from anywhere else. */
+  fieldsKeep?: true;
 };
 
 function key(code: string, modifiers: DefaultGesture['modifiers'] = [], source: GestureSource = 'keyboard'): DefaultGesture {
@@ -426,8 +428,7 @@ export const COMMAND_CATALOG: readonly CommandDescriptor[] = [
     group: 'View',
     surfaces: ['help', 'settings'],
   },
-  // The History panel (SNR-Q5): opened from the header's History button and from the jump menu. Not Mod+Z: the mock binds that to
-  // undo, but the router lets a modified gesture through a text field, so a global Mod+Z would take the field's own undo.
+  // The History panel (SNR-Q5): opened from the header's History button and from the jump menu.
   {
     id: 'history.open',
     label: 'Open the undo history',
@@ -435,6 +436,17 @@ export const COMMAND_CATALOG: readonly CommandDescriptor[] = [
     defaults: [key('KeyH', ['Mod', 'Shift'])],
     group: 'View',
     surfaces: ['jumpMenu', 'help', 'settings'],
+  },
+  // Undo the last change in the journal, as the mock's Ctrl+Z and its "Undo" jump row do. The router lets a modified gesture through a text
+  // field, which would take the field's own undo, so `fieldsKeep` makes it step aside there.
+  {
+    id: 'undo.last',
+    label: 'Undo the last change',
+    scope: 'global',
+    defaults: [key('KeyZ', ['Mod'])],
+    group: 'Edit',
+    surfaces: ['jumpMenu', 'help', 'settings'],
+    fieldsKeep: true,
   },
 ];
 

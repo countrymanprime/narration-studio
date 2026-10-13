@@ -30,6 +30,8 @@ export const editingDrivers: Record<string, Driver> = {
       .getByRole('menuitem', { name: /RfxChain$/ })
       .first()
       .waitFor();
+    // The list of effects is a picker: the page menu's search items do not belong in it.
+    if (await page.getByRole('menuitem', { name: /Jump menu|Find a page/ }).count()) throw new Error('The Add FX menu lists the page menu’s search items.');
   },
   'fx-dialog': async (page) => {
     await openEditing(page, EDITS);
@@ -43,6 +45,7 @@ export const editingDrivers: Record<string, Driver> = {
   },
   'takes-open': async (page) => {
     await openTakes(page, EDITS);
+    await expectPanelTextSize(page, 'Suggested take');
   },
   'suggestion-step': async (page) => {
     await openTakes(page, EDITS);
@@ -65,6 +68,7 @@ export const editingDrivers: Record<string, Driver> = {
     await page.getByRole('button', { name: 'Clean up and effects' }).click();
     await page.getByRole('tab', { name: 'Timeline' }).click();
     await page.getByRole('region', { name: /^Waveform and takes/ }).waitFor();
+    await expectTimelineLaidOut(page);
   },
   'never-checked': async (page) => {
     // Chapter 7 has no recorded fraction in the fixture, so it was never checked.
@@ -72,6 +76,15 @@ export const editingDrivers: Record<string, Driver> = {
     await page.getByRole('button', { name: /^Chapter: .*Change chapter$/ }).click();
     await page.getByRole('menuitemradio', { name: /^Chapter 7\b/ }).click();
     await page.getByRole('heading', { name: 'This chapter has no text yet.' }).waitFor();
+  },
+  unlinked: async (page) => {
+    await page.goto('/?mockChapterLink=none');
+    await settlePage(page);
+    await goToPage(page, 'Editing');
+    await page.getByRole('textbox', { name: 'Script with what was heard' }).waitFor();
+    await page.locator('#noaudio').waitFor();
+    // Nothing is boxed "not read" in a recording that is not there.
+    if (await page.locator('[data-mark="miss"]').count()) throw new Error('Words are marked "not read" in a chapter with no audio.');
   },
   'daw-off': async (page) => {
     await openEditing(page, `${LINKED}&mockDaw=Audacity`);
@@ -84,6 +97,45 @@ export const editingDrivers: Record<string, Driver> = {
     await page.getByRole('button', { name: 'Import manuscript' }).waitFor();
   },
 };
+
+/**
+ * The drawer's Timeline tab as the mock draws it: the drawer fills the slot the layout gives it, each take's name sits on one line, and the
+ * times under the lanes stay apart. A state that merely renders cannot tell the audit's cramped drawer from the right one, so this fails the row.
+ */
+async function expectTimelineLaidOut(page: Page): Promise<void> {
+  await page.locator('#timeline [data-lane^="t"]').first().waitFor();
+  const bad = await page.evaluate(() => {
+    const out: string[] = [];
+    const slot = document.querySelector<HTMLElement>('[data-drawer-slot]');
+    const drawer = document.querySelector<HTMLElement>('#drawer');
+    if (slot && drawer && Math.abs(slot.getBoundingClientRect().width - drawer.getBoundingClientRect().width) > 1)
+      out.push('the drawer does not fill its slot');
+    for (const lane of document.querySelectorAll<HTMLElement>('#timeline [data-lane^="t"]')) {
+      const name = lane.querySelector<HTMLElement>('span');
+      if (!name) continue;
+      const line = parseFloat(getComputedStyle(name).lineHeight) || 16;
+      if (name.getBoundingClientRect().height > line * 1.5) out.push(`"${name.textContent}" wraps`);
+      if (name.scrollWidth > name.clientWidth + 1) out.push(`"${name.textContent}" is clipped`);
+    }
+    const ticks = [...document.querySelectorAll<HTMLElement>('#timeline [aria-hidden="true"] > span')].map((t) => t.getBoundingClientRect());
+    ticks.slice(1).forEach((box, i) => box.left < ticks[i].right + 4 && out.push('the time marks run together'));
+    return out;
+  });
+  if (bad.length) throw new Error(`The timeline drawer is cramped: ${[...new Set(bad)].join('; ')}.`);
+}
+
+/**
+ * A panel under a line is UI text (the mock's `.sx-tkw` is 13 px), not the reader's script size it sits inside. Fails the row when its text
+ * is larger than body text, which a render that merely looks plausible would not.
+ */
+async function expectPanelTextSize(page: Page, region: string): Promise<void> {
+  const sizes = await page
+    .getByRole('region', { name: region })
+    .first()
+    .evaluate((card) => [card, ...card.querySelectorAll('*')].map((el) => parseFloat(getComputedStyle(el).fontSize)));
+  const largest = Math.max(...sizes);
+  if (largest > 16) throw new Error(`The ${region.toLowerCase()} card draws text at ${largest}px: it inherits the script's reading size instead of the UI's.`);
+}
 
 /** A question the overlay asks, by its title (a confirm is an alertdialog, a form a dialog). */
 const question = (page: Page, title: string | RegExp) => page.locator('[role="dialog"], [role="alertdialog"]').filter({ hasText: title }).first();

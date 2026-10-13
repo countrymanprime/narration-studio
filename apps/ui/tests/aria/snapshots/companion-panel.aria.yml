@@ -169,5 +169,5 @@
   - region "This chapter":
     - heading "This chapter" [level=2]
     - list:
-      - listitem: Recorded length not measured
+      - listitem: /Recorded \d+:\d+/
       - listitem: Finalized

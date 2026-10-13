@@ -427,6 +427,13 @@
     "caption": "Editing with the DAW not connected - the banner with its reason and Retry"
   },
   {
+    "page": "editing",
+    "state": "unlinked",
+    "viewport": "desktop",
+    "docName": "editing-unlinked",
+    "caption": "Editing with no track linked - the banner says why there is no audio to edit, and the legend says No audio to edit"
+  },
+  {
     "page": "proof",
     "state": "default",
     "viewport": "desktop",

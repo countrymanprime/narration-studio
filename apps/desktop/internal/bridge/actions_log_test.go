@@ -119,3 +119,16 @@ func TestFailureKindKeepsTheScriptsSentenceOut(t *testing.T) {
 		}
 	}
 }
+
+func TestPercentDecodeReadsEscapesAndRefusesBadOnes(t *testing.T) {
+	for in, want := range map[string]string{"plain": "plain", "%41%7a%4F": "AzO", "a%20b": "a b"} {
+		if got, err := percentDecode(in); err != nil || got != want {
+			t.Errorf("percentDecode(%q) = %q, %v; want %q", in, got, err, want)
+		}
+	}
+	for _, in := range []string{"%", "%4", "%zz", "%4G", "%G4"} {
+		if _, err := percentDecode(in); err == nil {
+			t.Errorf("percentDecode(%q) accepted a bad escape", in)
+		}
+	}
+}

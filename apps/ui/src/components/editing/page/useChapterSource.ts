@@ -5,7 +5,7 @@ import { usePort } from '../../../ports/usePort';
 import type { ChapterDoc } from '../model';
 import type { RangeLocator } from '../range/common/locate';
 import type { PlaylistSegment } from '../../proof/playlist';
-import { docOf, lengthOf, locatorOf, playlistOf, type ChapterRead } from './chapterSource';
+import { audioOf, docOf, lengthOf, locatorOf, playlistOf, type ChapterRead } from './chapterSource';
 
 type ChapterSource =
   | { status: 'loading' }
@@ -29,6 +29,8 @@ export interface ChapterSourceState {
   setEffects: (effects: WordFx[]) => void;
   /** Reads the accepted words again (after an accept or its undo). */
   reloadAccepted: () => void;
+  /** Reads everything again, as for a chapter just opened: after the narrator linked the chapter to its track elsewhere in the app. */
+  reread: () => void;
 }
 
 const why = (e: unknown): string => (e instanceof Error ? e.message : String(e));
@@ -47,6 +49,7 @@ export function useChapterSource(chapterId: string, chapterName: string): Chapte
   const trackMap = usePort('chapterTrackMap');
   const tracks = usePort('tracks');
   const [state, setState] = useState<{ chapterId: string; read: ChapterRead | null; error: string | null }>({ chapterId, read: null, error: null });
+  const [reads, setReads] = useState(0);
 
   useEffect(() => {
     let live = true;
@@ -55,10 +58,11 @@ export function useChapterSource(chapterId: string, chapterName: string): Chapte
         const [map, project] = await Promise.all([trackMap.chapterTrackMapList(), tracks.tracksList()]);
         const guid = map.mappings.find((m) => m.chapterId === chapterId)?.trackGuid;
         const track = project.tracks.find((t) => t.guid === guid);
-        return track ? { items: track.items, place: `track “${track.name}”` } : { items: [], place: chapterName };
+        const link = guid === undefined ? ('unlinked' as const) : track ? ('linked' as const) : ('missing' as const);
+        return track ? { items: track.items, place: `track “${track.name}”`, link } : { items: [], place: chapterName, link };
       } catch {
         // The saved project could not be read: the text still shows, and nothing plays.
-        return { items: [], place: chapterName };
+        return { items: [], place: chapterName, link: 'unknown' as const };
       }
     };
     Promise.all([
@@ -79,6 +83,7 @@ export function useChapterSource(chapterId: string, chapterName: string): Chapte
           accepted: accepted.words.map((w) => w.key),
           items: track.items,
           place: track.place,
+          audio: audioOf(track.link, track.items.length, ws.items.filter((item) => item.live).length),
         };
         setState({ chapterId, read, error: null });
       })
@@ -88,7 +93,7 @@ export function useChapterSource(chapterId: string, chapterName: string): Chapte
     return () => {
       live = false;
     };
-  }, [workspace, alignment, log, cutsPort, fxPort, trackMap, tracks, chapterId, chapterName]);
+  }, [workspace, alignment, log, cutsPort, fxPort, trackMap, tracks, chapterId, chapterName, reads]);
 
   const patch = useCallback((change: Partial<ChapterRead>) => setState((s) => (s.read ? { ...s, read: { ...s.read, ...change } } : s)), []);
   const setCuts = useCallback((cuts: EditCut[]) => patch({ cuts }), [patch]);
@@ -117,5 +122,7 @@ export function useChapterSource(chapterId: string, chapterName: string): Chapte
     };
   }, [read, error]);
 
-  return { source, setCuts, setEffects, reloadAccepted };
+  const reread = useCallback(() => setReads((n) => n + 1), []);
+
+  return { source, setCuts, setEffects, reloadAccepted, reread };
 }

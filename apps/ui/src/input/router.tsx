@@ -5,7 +5,7 @@ import type { GestureEvent, InputSource } from './InputSource';
 import { createKeyboardSource } from './KeyboardSource';
 import { defaultKeymap, type Keymap } from './keymap';
 import { SCOPE_PRIORITY, type Scope } from './scopes';
-import { isGuardedTarget } from './targets';
+import { EDITABLE, isGuardedTarget } from './targets';
 
 export type CommandHandlerEvent = { target: EventTarget | null };
 type CommandHandler = (event: CommandHandlerEvent) => void;
@@ -131,6 +131,8 @@ export function CommandRouter({ children, source, catalog = COMMAND_CATALOG, key
         // A row with nothing registered (its page isn't mounted) is skipped; with none registered at all the gesture is left alone.
         const command = commandsForGesture(catalogRef.current, keymapRef.current, scope, event.gesture).find((row) => handlers.current.has(row.id));
         if (!command) continue;
+        // A text field's own gesture (its undo): the field answers it, so nothing is consumed and nothing runs.
+        if (command.fieldsKeep && event.target instanceof Element && event.target.closest(EDITABLE)) return;
         const handler = handlers.current.get(command.id)!;
         event.preventDefault();
         if (command.noisy && isRecordingRef.current()) {

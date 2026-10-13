@@ -1,0 +1,6 @@
+{
+  "ok": true,
+  "changed": true,
+  "message": "Undid 2 of the 3 cuts in REAPER. The rest are no longer REAPER's last actions, so they were left alone. Use Edit > Undo in REAPER for them.",
+  "undoSteps": 0
+}

@@ -51,7 +51,7 @@ export function Drawer({ doc, chapterId, tab, tabs, counts = {}, onTab, onClose,
     <aside
       id="drawer"
       aria-label="Clean up and effects"
-      className="flex min-h-0 min-w-0 flex-col overflow-hidden rounded-[10px] border border-[var(--border)] bg-[var(--surface)]"
+      className="flex min-h-0 w-full min-w-0 flex-col overflow-hidden rounded-[10px] border border-[var(--border)] bg-[var(--surface)]"
     >
       <div className="flex items-center gap-2 px-3 py-2">
         <h2 className="m-0 flex-1 font-['Barlow_Condensed',sans-serif] text-xl font-semibold">Clean up and effects</h2>

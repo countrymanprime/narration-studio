@@ -19,12 +19,14 @@ const opensCard = (doc: ChapterDoc, key: string): boolean => {
 export interface ScriptDocProps {
   /** Why nothing was transcribed, shown beside the "Not transcribed yet" pill. */
   reason?: string | null;
+  /** The page says above why there is nothing heard (no audio to edit), so the "Not transcribed yet" strip is not drawn. */
+  explained?: boolean;
   /** Called after each paragraph that rendered, so a test can count the paragraphs a change drew. Keep its identity stable: it is a prop of every memoised paragraph. */
   onParagraphRender?: (pid: string) => void;
 }
 
 /** The script, one row for each paragraph, with what was heard marked on its words. Reads and writes the page state through `useEditingPage`. */
-export function ScriptDoc({ reason, onParagraphRender }: ScriptDocProps) {
+export function ScriptDoc({ reason, explained = false, onParagraphRender }: ScriptDocProps) {
   const { doc, state, dispatch, selected } = useEditingPage();
   const drag = useRef<string | null>(null);
   const words = useMemo(() => playable(doc), [doc]);
@@ -75,7 +77,7 @@ export function ScriptDoc({ reason, onParagraphRender }: ScriptDocProps) {
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
-      {doc.aligned ? null : (
+      {doc.aligned || explained ? null : (
         <div className="flex flex-wrap items-center gap-3 px-4 py-2" id="notaligned">
           <StatusBadge tone="neutral" label="Not transcribed yet" />
           {reason ? <span className="text-sm text-[var(--text-muted)]">{reason}</span> : null}

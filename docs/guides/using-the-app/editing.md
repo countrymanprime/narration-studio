@@ -40,8 +40,11 @@ reports one and the app is not playing its own audio. When the DAW stops, its la
 cursor.
 
 A chapter has to be linked to a track (see [Linking chapters to tracks](navigation.md#linking-chapters-to-tracks)) for
-its words to carry the times they were heard at. A chapter that was never checked has no heard words; run the check on
-Production first.
+its words to carry the times they were heard at. A chapter with no audio to edit says so in a banner over the script
+and shows the script plain, with no word marked "not read": it names the cause (no track linked, the linked track is
+not in the saved project, or the track is empty) and opens the audio engine panel, where **Link chapters…** is. With
+the built-in recorder there is no track to link, so the banner points at recording the chapter in the Booth. A chapter
+that was never checked has no heard words; run the check on Production first.
 
 ## Selecting words
 
@@ -119,6 +122,13 @@ A banner at the top says the DAW is not answering and why, with **Retry**. You c
 actions that change the DAW (delete, mute, effects, keeping a take) wait until it is back.
 
 ![Editing with the DAW not connected - the banner with its reason and Retry](../../images/ui/editing-daw-off.webp)
+
+## When the chapter has no audio
+
+With no track linked to the chapter there is nothing to edit yet. A banner at the top says why and opens the audio
+engine panel, the legend reads **No audio to edit**, and the script shows no word as not read.
+
+![Editing with no track linked - the banner saying why there is no audio to edit, and the legend](../../images/ui/editing-unlinked.webp)
 
 ---
 

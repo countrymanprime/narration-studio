@@ -37,3 +37,4 @@ What each engine declares for each capability today. The levels are the adapters
 | `file_reveal` | `FileRevealer` | Engine answering | Experimental | Not yet available | Not reachable | Unsupported |
 | `range_gain` | `RangeGainReducer` | Engine answering | Experimental | Experimental | Not reachable | Unsupported |
 | `click_repair` | `ClickRepairer` | Engine answering | Experimental | Experimental | Not reachable | Unsupported |
+| `undo_last` | `LastActionUndoer` | Engine answering | Experimental | Not yet available | Not reachable | Not yet available |

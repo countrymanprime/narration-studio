@@ -55,6 +55,7 @@ H.test('the bridge registers exactly the commands the host and the docs know abo
     'import_pickups',
     'inspect_compare_results',
     'jump_to_compare_marker',
+    'last_action',
     'launch_cleanup_tool',
     'list_fx_chains',
     'list_pickup_markers',
@@ -88,6 +89,7 @@ H.test('the bridge registers exactly the commands the host and the docs know abo
     'stop_file_preview',
     'stop_fx_compare',
     'stop_loop',
+    'undo_last',
     'unstack_takes',
   })
 end)

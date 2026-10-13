@@ -25,6 +25,7 @@ export const REAPER_FILES = [
   'narration_track_state.lua',
   'narration_transport.lua',
   'narration_ui_bridge.lua',
+  'narration_undo.lua',
   'narration_workspace.lua',
   'reaper_common_core.lua',
   'reaper_common_process.lua',

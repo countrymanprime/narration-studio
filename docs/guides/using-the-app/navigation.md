@@ -21,7 +21,7 @@ note counts, since the notes and pickups the project still holds belong to an ea
 
 The header runs, left to right: Back and Forward (below), the project's name, **Jump to or run…** (`Ctrl+K`), Undo and History, the timer,
 the [zoom controls](#zoom) and the engine chip. Jump to or run… opens the jump menu: type to find a page, a chapter or a command, or
-type `>` to list commands only. Undo takes back the last change you made in the app, and says why when it cannot; History lists
+type `>` to list commands only. Undo (`Ctrl+Z`, except in a text box, which keeps its own undo) takes back the last change you made in the app, and says why when it cannot; History lists
 the changes you can undo (`Ctrl+Shift+H`). Below the tablet width Undo and History leave the header; the jump menu opens History.
 While a [production stage timer](production.md#the-stage-timer) runs,
 the timer chip counts its time and names the chapter ("0:42:07 · timer on Chapter 6") on every page; below the

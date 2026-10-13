@@ -74,6 +74,7 @@ import type {
   DawSplitTakeApi,
   DawReduceRangeGainApi,
   DawRepairClickApi,
+  DawUndoLastApi,
 } from './contracts/daw';
 import type { WorkspaceApi } from './contracts/workspace';
 import type { TakeEvidenceApi } from './contracts/takeEvidence';
@@ -106,6 +107,7 @@ import {
   trimRangeAnswerOf,
   repairClickAnswerOf,
 } from '../fixtures/daw';
+import { knownActionKind, MOCK_DAW_UNDO_LABELS, MockUndoHistory } from '../fixtures/dawUndo';
 
 export { applyMixedManuscriptMock } from './mockHost/manuscript';
 export type { MockUpdateSeed } from './mockHost/update';
@@ -281,6 +283,8 @@ export function createMockApi(
     transcript: proofing.transcript,
     dictionaryState: assets.dictionaryState,
   });
+  // The mock DAW's undo history: the edits below leave their labels on it (recordingUndo), and DawLastAction and DawUndoLast read it.
+  const undoHistory = new MockUndoHistory();
   const base: NarrationApi = {
     ...system.bindings,
     ...manuscript.bindings,
@@ -396,6 +400,7 @@ export function createMockApi(
     ...createSplitTakeMock(daw, (chapterId) => manuscriptReady.then(() => s.chapters.some((chapter) => chapter.id === chapterId))),
     ...createReduceRangeGainMock(daw, (chapterId) => manuscriptReady.then(() => s.chapters.some((chapter) => chapter.id === chapterId))),
     ...createRepairClickMock(daw, (chapterId) => manuscriptReady.then(() => s.chapters.some((chapter) => chapter.id === chapterId))),
+    ...createUndoLastMock(daw, undoHistory),
     ...createFilesMock(daw, measurePicked),
     ...createMasterFilesMock(daw, lastRunFiles),
     ...createBackupsMock(daw, (chapterId) => manuscriptReady.then(() => s.chapters.some((chapter) => chapter.id === chapterId))),
@@ -408,7 +413,8 @@ export function createMockApi(
     ...createWorkspaceSnapMock(),
     ...createPronunciationSourcesMock(),
   };
-  const api = initial.invalidPayload ? { ...base, ...invalidPayloadOverrides(initial.invalidPayload, base) } : base;
+  const recorded: NarrationApi = { ...base, ...recordingUndo(base, undoHistory) };
+  const api = initial.invalidPayload ? { ...recorded, ...invalidPayloadOverrides(initial.invalidPayload, recorded) } : recorded;
   const final: NarrationApi = { ...api, ...overrides };
   return final;
 }
@@ -715,6 +721,67 @@ function createRepairClickMock(daw: DawCapabilitiesApi, hasChapter: (chapterId: 
       const answer = repairClickAnswerOf(setup, project, chapterId, takeId, clicks);
       if ('result' in answer) return answer.result;
       return answer.stale ? { ...refusedResult(answer.refused), code: 'stale' } : refusedResult(answer.refused);
+    },
+  };
+}
+
+/** The DAW edits that add an undo point, each answering as `api` does and leaving the label REAPER's script closes its block with on
+ * `history` when it added one (MOCK_DAW_UNDO_LABELS). */
+function recordingUndo(
+  api: NarrationApi,
+  history: MockUndoHistory,
+): Pick<
+  NarrationApi,
+  | 'workspaceHideTakes'
+  | 'dawDeleteRange'
+  | 'dawTrimRange'
+  | 'dawApplyFxToRange'
+  | 'dawRemoveFxFromRange'
+  | 'dawSetFxRangeParam'
+  | 'dawBypassFxRange'
+  | 'dawStackTakes'
+  | 'dawUnstackTakes'
+  | 'dawSplitTake'
+  | 'dawReduceRangeGain'
+  | 'dawRepairClick'
+> {
+  const labels = MOCK_DAW_UNDO_LABELS;
+  const record =
+    <A extends unknown[]>(label: string | ((...args: NoInfer<A>) => string), call: (...args: A) => Promise<DawResult>) =>
+    async (...args: A) =>
+      history.record(typeof label === 'string' ? label : label(...args), await call(...args));
+  return {
+    workspaceHideTakes: record(labels.hideTakes, api.workspaceHideTakes),
+    dawDeleteRange: record(labels.cut, api.dawDeleteRange),
+    dawTrimRange: record(labels.cut, api.dawTrimRange),
+    dawApplyFxToRange: record(labels.addChain, api.dawApplyFxToRange),
+    dawRemoveFxFromRange: record(labels.removeChain, api.dawRemoveFxFromRange),
+    dawSetFxRangeParam: record(labels.setParam, api.dawSetFxRangeParam),
+    dawBypassFxRange: record((...args: Parameters<NarrationApi['dawBypassFxRange']>) => (args[4] ? labels.bypass : labels.enable), api.dawBypassFxRange),
+    dawStackTakes: record(labels.stack, api.dawStackTakes),
+    dawUnstackTakes: record(labels.unstack, api.dawUnstackTakes),
+    dawSplitTake: record(labels.split, api.dawSplitTake),
+    dawReduceRangeGain: record(labels.reduceGain, api.dawReduceRangeGain),
+    dawRepairClick: record(labels.repairClicks, api.dawRepairClick),
+  };
+}
+
+/** DawLastAction and DawUndoLast as bindings_daw_undo_last.go answers them over the mock's undo history: a kind the host does not know
+ * rejects; the undo_last capability's refusal is `unknown` for a read and its sentence for an undo; then what REAPER answers. */
+function createUndoLastMock(daw: DawCapabilitiesApi, history: MockUndoHistory): DawUndoLastApi {
+  const unknownKind = (kind: string) => new Error(`${kind} is not a kind of action the app can read or undo in the DAW`);
+  return {
+    async dawLastAction(kind) {
+      if (!knownActionKind(kind)) throw unknownKind(kind);
+      const setup = await daw.dawCapabilities();
+      return setup.capabilities.undo_last?.available ? history.lastAction(kind) : 'unknown';
+    },
+    async dawUndoLast(kind, steps) {
+      if (!knownActionKind(kind)) throw unknownKind(kind);
+      const setup = await daw.dawCapabilities();
+      const support = setup.capabilities.undo_last;
+      if (!support?.available) return refusedResult(support?.message ?? '');
+      return history.undoLast(setup, kind, steps);
     },
   };
 }

@@ -9,6 +9,7 @@ import {
   dawCapabilitiesSchema,
   dawFxRangeCompareSchema,
   dawFxRangeSettingsSchema,
+  dawLastActionSchema,
   dawProjectStateSchema,
   dawResultSchema,
 } from '../api/schemas/daw';
@@ -64,6 +65,7 @@ import {
   takesStackedAnswer,
   takesUnstackedAnswer,
 } from '../fixtures/daw';
+import { notLastAnswer, UNDO_STEPS_ANSWER, undoneAnswer } from '../fixtures/dawUndo';
 import {
   createHostDawClient,
   createMockDawClient,
@@ -128,6 +130,12 @@ const GOLDEN_FILES = [
   'daw-repair-click-done.json',
   'daw-repair-click-refused-stale.json',
   'daw-repair-click-refused-capability.json',
+  'daw-last-action-this.json',
+  'daw-last-action-unknown.json',
+  'daw-undo-last-done.json',
+  'daw-undo-last-partial.json',
+  'daw-undo-last-refused-not-last.json',
+  'daw-undo-last-refused-capability.json',
   'daw-backup-done.json',
   'daw-backup-restored.json',
   'daw-backup-refused.json',
@@ -226,6 +234,8 @@ function pickupsHost(capabilities: DawCapabilities = DAW_SETUPS.reaper) {
 
 function hostApi(): DawHostApi {
   const known = DAW_PROJECT;
+  // DawLastAction and DawUndoLast read REAPER's undo history, which the cuts this host answered fill: how many are on top.
+  let cutsOnTop = 0;
   return {
     ...pickupsHost(read('daw-capabilities-reaper.json', dawCapabilitiesSchema)).api,
     dawCapabilities: () => Promise.resolve(read('daw-capabilities-reaper.json', dawCapabilitiesSchema)),
@@ -281,7 +291,23 @@ function hostApi(): DawHostApi {
       if (firstToken !== lastToken || fadeMs !== 12) return Promise.reject(new Error(`no golden for a cut of ${firstToken}..${lastToken} with ${fadeMs} ms`));
       if (padMs === 100 && roomTone) return Promise.resolve(read('daw-delete-range-pad-room-tone.json', dawResultSchema));
       if (padMs !== 0 || roomTone) return Promise.reject(new Error(`no golden for a cut with a ${padMs} ms pad and room tone ${roomTone}`));
+      cutsOnTop += 1;
       return Promise.resolve(read(mode === 'close' ? 'daw-delete-range-done.json' : 'daw-delete-range-gap.json', dawResultSchema));
+    },
+    // DawLastAction and DawUndoLast on REAPER (#1711): a cut on top is the this golden; with none, an undo is the not-last golden; one
+    // cut undone is the done golden and two of three the partial one. Anything else has no golden.
+    dawLastAction: (kind) => {
+      if (kind !== 'cut_range' || cutsOnTop === 0) return Promise.reject(new Error(`no golden for the last action of ${kind} with ${cutsOnTop} cuts`));
+      return Promise.resolve(read('daw-last-action-this.json', dawLastActionSchema));
+    },
+    dawUndoLast: (kind, steps) => {
+      if (kind !== 'cut_range') return Promise.reject(new Error(`${kind} is not a kind of action the app can read or undo in the DAW`));
+      if (!Number.isInteger(steps) || steps < 1 || steps > 12) return Promise.resolve(refusal(UNDO_STEPS_ANSWER));
+      if (cutsOnTop === 0) return Promise.resolve(read('daw-undo-last-refused-not-last.json', dawResultSchema));
+      const file = steps === 1 ? 'daw-undo-last-done.json' : steps === 3 && cutsOnTop === 2 ? 'daw-undo-last-partial.json' : null;
+      if (!file) return Promise.reject(new Error(`no golden for undoing ${steps} of ${cutsOnTop} cuts`));
+      cutsOnTop -= Math.min(steps, cutsOnTop);
+      return Promise.resolve(read(file, dawResultSchema));
     },
     // DawApplyFxToRange and DawRemoveFxFromRange on REAPER: the fade is checked first, an unknown chapter or a range read backwards is the
     // range's stale refusal, an apply's chain must be one workspace-fx-chains.json lists and a removal's a plain name, and one word with
@@ -428,6 +454,9 @@ const GAIN: RangeGainRequest = {
 /** A gap of the fixture project's item-twice: what the trim-range goldens' host shortened. */
 const TRIM: RangeTrimRequest = { chapterId: 'chapter-1', itemId: 'item-twice', start: 12.5, end: 14, fadeMs: 6 };
 
+/** A one-word cut in close mode with a 12 ms fade: what the delete-range done golden's host cut. */
+const CUT = { chapterId: 'chapter-1', firstToken: 3, lastToken: 3, mode: 'close', fadeMs: 12 } as const;
+
 /** Two clicks of the fixture project's take-twice: what the repair-click goldens' host repaired. */
 const CLICKS: ClickRepairRequest = {
   chapterId: 'chapter-1',
@@ -495,6 +524,7 @@ const cases: ReadonlyArray<ContractCase<DawClient>> = [
         await daw.hideTakes('chapter-1', 0, 4, 'take-1'),
         await daw.roll('chapter-1', 40),
         await daw.deleteRange({ chapterId: 'chapter-1', firstToken: 3, lastToken: 3, mode: 'close', fadeMs: 12 }),
+        await daw.undoLast('cut_range', 1),
         await daw.applyFxToRange({ chapterId: 'chapter-1', firstToken: 3, lastToken: 3, chainName: 'Podcast Voice.RfxChain', fadeMs: 10 }),
         await daw.removeFxFromRange({ chapterId: 'chapter-1', firstToken: 3, lastToken: 3, chainName: 'Podcast Voice.RfxChain' }),
         await daw.stackTakes(STACK),
@@ -727,6 +757,33 @@ const cases: ReadonlyArray<ContractCase<DawClient>> = [
     ],
   },
   { name: 'repair-click: two clicks in a take repaired are answered alike', observe: (daw) => daw.repairClick(CLICKS) },
+  {
+    name: 'undo-last: right after a cut it is the last action, and one undo is answered alike',
+    observe: async (daw) => {
+      await daw.deleteRange(CUT);
+      return [await daw.lastAction('cut_range'), await daw.undoLast('cut_range', 1)];
+    },
+  },
+  {
+    name: 'undo-last: two cuts asked three steps undo two and say so alike',
+    observe: async (daw) => {
+      await daw.deleteRange(CUT);
+      await daw.deleteRange(CUT);
+      return daw.undoLast('cut_range', 3);
+    },
+  },
+  {
+    name: "undo-last: with no cut on top the DAW's own sentence refuses alike",
+    observe: async (daw) => {
+      await daw.deleteRange(CUT);
+      await daw.undoLast('cut_range', 1);
+      return daw.undoLast('cut_range', 1);
+    },
+  },
+  {
+    name: 'undo-last: steps outside 1 to 12 are refused alike',
+    observe: async (daw) => [await daw.undoLast('cut_range', 0), await daw.undoLast('cut_range', 13), await daw.undoLast('cut_range', 1.5)],
+  },
   {
     name: 'repair-click: a take the track does not hold, an unknown chapter and a click outside the take are refused stale alike',
     observe: async (daw) => [
@@ -1278,6 +1335,57 @@ describe('the mock setups', () => {
     });
     expect(await host.repairClick(CLICKS)).toEqual(stale);
     expect(calls).toEqual([['chapter-1', 'take-twice', CLICKS.clicks]]);
+  });
+
+  it("undo-last: the mock reads and undoes only its own cuts from the top, and refuses with the setup's undo_last sentence", async () => {
+    for (const [id, setup] of Object.entries(DAW_SETUPS)) {
+      const support = setup.capabilities.undo_last;
+      if (support?.available) continue;
+      const daw = createMockDawClient(setup);
+      expect(await daw.lastAction('cut_range'), id).toBe('unknown');
+      expect(await daw.undoLast('cut_range', 1), id).toEqual(refusal(support?.message ?? ''));
+    }
+    const daw = createMockDawClient(DAW_SETUPS.reaper);
+    expect(await daw.lastAction('cut_range')).toBe('other');
+    expect(await daw.undoLast('cut_range', 1)).toEqual(refusal(notLastAnswer('REAPER')));
+    await daw.deleteRange(CUT);
+    await daw.repairClick(CLICKS);
+    expect(await daw.lastAction('cut_range'), 'another edit of the app on top').toBe('other');
+    expect(await daw.undoLast('cut_range', 1)).toEqual(refusal(notLastAnswer('REAPER')));
+    await daw.deleteRange(CUT);
+    await daw.trimRange(TRIM);
+    expect(await daw.lastAction('cut_range'), 'a trim is a cut of no words').toBe('this');
+    expect(await daw.undoLast('cut_range', 3)).toEqual({ ok: true, changed: true, message: undoneAnswer('REAPER', 'cut_range', 2, 3), undoSteps: 0 });
+    expect(await daw.lastAction('cut_range'), 'the repair under the cuts stays').toBe('other');
+    await daw.deleteRange(CUT);
+    await daw.deleteRange(CUT);
+    expect(await daw.undoLast('cut_range', 2)).toEqual({ ok: true, changed: true, message: undoneAnswer('REAPER', 'cut_range', 2, 2), undoSteps: 0 });
+    expect(undoneAnswer('REAPER', 'cut_range', 1, 1)).toBe(read('daw-undo-last-done.json', dawResultSchema).message);
+    expect(undoneAnswer('REAPER', 'cut_range', 2, 3)).toBe(read('daw-undo-last-partial.json', dawResultSchema).message);
+    expect(notLastAnswer('REAPER')).toBe(read('daw-undo-last-refused-not-last.json', dawResultSchema).refused);
+    const refusedCut = await daw.deleteRange({ ...CUT, chapterId: 'chapter-9' });
+    expect(refusedCut.ok).toBe(false);
+    expect(await daw.lastAction('cut_range'), 'a refused cut leaves nothing on the history').toBe('other');
+    await expect(daw.undoLast('fx_range' as never, 1)).rejects.toThrow();
+  });
+
+  it('undo-last: the host adapter sends the kind and steps only, and a read that fails is unknown rather than a rejection', async () => {
+    const calls: unknown[][] = [];
+    const done = read('daw-undo-last-done.json', dawResultSchema);
+    const host = createHostDawClient({
+      ...hostApi(),
+      dawLastAction: () => Promise.reject(new Error('REAPER is not answering')),
+      dawUndoLast: (...args) => {
+        calls.push(args);
+        return Promise.resolve(done);
+      },
+    });
+    expect(await host.lastAction('cut_range')).toBe('unknown');
+    expect(await host.undoLast('cut_range', 2)).toEqual(done);
+    expect(calls).toEqual([['cut_range', 2]]);
+    const unknown = read('daw-last-action-unknown.json', dawLastActionSchema);
+    expect(await createHostDawClient({ ...hostApi(), dawLastAction: () => Promise.resolve(unknown) }).lastAction('cut_range')).toBe('unknown');
+    expect(read('daw-undo-last-refused-capability.json', dawResultSchema)).toMatchObject({ ok: false, changed: false, undoSteps: 0 });
   });
 
   it("dawclient-delete-range: the mock refuses with the setup's cut_range sentence and answers undo steps by the capability's mode", async () => {

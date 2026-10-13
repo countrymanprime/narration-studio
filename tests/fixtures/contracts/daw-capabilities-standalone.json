@@ -185,6 +185,12 @@
       "level": "unsupported",
       "message": "No DAW is connected to this app. Open this app from your DAW to use it.",
       "reason": "standalone"
+    },
+    "undo_last": {
+      "available": false,
+      "level": "unsupported",
+      "message": "No DAW is connected to this app. Open this app from your DAW to use it.",
+      "reason": "standalone"
     }
   },
   "daw": "none",

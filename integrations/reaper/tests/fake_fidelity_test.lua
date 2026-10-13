@@ -123,3 +123,19 @@ H.test('a track not in fixed-lane mode reads I_FREEMODE 0 and one lane that play
   H.eq({ reaper_api.GetMediaTrackInfo_Value(lanes, 'I_FREEMODE'), reaper_api.GetMediaItemInfo_Value(item, 'I_FIXEDLANE') }, { 2, 2 })
   H.eq(reaper_api.GetMediaItemInfo_Value(item, 'C_LANEPLAYS'), 1, 'the item-level value reads its lane state')
 end)
+
+H.test('Undo_CanUndo2 names a closed block, and one Undo_DoUndo2 takes it off the history', function()
+  -- S0: the stamp block was the undo entry "Narration Utils: stamp manuscript line IDs" right after it closed, and one Undo
+  -- undid it. Nothing to undo answering nil, and Undo_DoUndo2 answering 1, are the ReaScript reference's ("NULL if not",
+  -- "nonzero if success"), not a run.
+  local reaper_api, fake = api()
+  local item = fake:add_item(fake:add_track('T'), {})
+  H.eq(reaper_api.Undo_CanUndo2(0), nil)
+  reaper_api.Undo_BeginBlock2(0)
+  reaper_api.GetSetMediaItemInfo_String(item, 'P_EXT:narration_utils_line_id', 'line-000001', true)
+  reaper_api.Undo_EndBlock2(0, 'Narration Utils: stamp manuscript line IDs', -1)
+  H.eq(reaper_api.Undo_CanUndo2(0), 'Narration Utils: stamp manuscript line IDs')
+  H.eq(reaper_api.Undo_DoUndo2(0), 1)
+  H.eq(reaper_api.Undo_CanUndo2(0), nil)
+  H.eq(reaper_api.Undo_DoUndo2(0), 0)
+end)

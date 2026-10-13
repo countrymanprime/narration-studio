@@ -3,14 +3,14 @@ import { useState } from 'react';
 import { expect, fireEvent, userEvent, waitFor, within } from 'storybook/test';
 import type { DawSetupId } from '../../fixtures/daw';
 import { EditingPage, type EditingPageProps } from './EditingPage';
-import { dawFor, EditingHost, newJournal, pageApi } from './page/testPage';
+import { dawFor, EditingHost, newJournal, noAudioApi, pageApi } from './page/testPage';
 
 // The Editing page (docs/research/mockups/studio-next/src/pages/Editing.tsx) over the mock api with a small chapter that was heard, and the
 // mock's DAW setups. No route yet: SN-E9 mounts it. Each story drives the page to one state.
-type Args = Omit<EditingPageProps, 'hasManuscript'> & { setup: DawSetupId; heard: boolean; hasManuscript: boolean };
+type Args = Omit<EditingPageProps, 'hasManuscript'> & { setup: DawSetupId; heard: boolean; hasManuscript: boolean; noAudio?: 'unlinked' | 'missing' | 'empty' };
 
-function Page({ setup, heard, ...props }: Args) {
-  const [host] = useState(() => ({ api: pageApi({ heard }), daw: dawFor(setup), journal: newJournal() }));
+function Page({ setup, heard, noAudio, ...props }: Args) {
+  const [host] = useState(() => ({ api: pageApi({ heard, ...(noAudio ? noAudioApi(noAudio) : {}) }), daw: dawFor(setup), journal: newJournal() }));
   return (
     <div className="h-[calc(100vh-2rem)]">
       <EditingHost {...host}>
@@ -105,6 +105,25 @@ export const BuiltIn: Story = { args: { setup: 'builtin' } };
 
 // Nothing transcribed yet: the "Not transcribed yet" pill where the legend goes, and the text plain.
 export const NotTranscribed: Story = { args: { heard: false } };
+
+// A chapter with no audio to edit: the banner says why and offers the audio engine panel; the script reads plain, nothing boxed "not read".
+export const NoAudioUnlinked: Story = {
+  args: { noAudio: 'unlinked' },
+  play: async ({ canvasElement }) => {
+    await script(canvasElement);
+    await within(canvasElement).findByRole('button', { name: 'Open the audio engine panel' });
+    await expect(canvasElement.querySelectorAll('[data-mark="miss"]')).toHaveLength(0);
+  },
+};
+
+// The chapter's linked track is not in the saved project.
+export const NoAudioTrackMissing: Story = { args: { noAudio: 'missing' } };
+
+// The chapter's track has nothing on it.
+export const NoAudioTrackEmpty: Story = { args: { noAudio: 'empty' } };
+
+// The built-in recorder has no track to link: the banner points at recording.
+export const NoAudioBuiltIn: Story = { args: { noAudio: 'unlinked', setup: 'builtin' } };
 
 // A chapter with no text.
 export const NoText: Story = { args: { chapterId: 'c2' } };

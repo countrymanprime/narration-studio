@@ -47,7 +47,7 @@ var declares = map[dawport.Capability]dawport.Level{
 	// bridge's experimentalCommands: chapter_track_state, select_track; arm_only, record_start, record_stop; punch_to,
 	// play_position, roll; create_regions; set_active_take, hide_takes; list_fx_chains, apply_fx_chain; master_chain_read;
 	// delete_range; apply_fx_range, remove_fx_range, fx_range_params, fx_range_set_param, fx_range_bypass; stack_takes, unstack_takes; preview_file_range, stop_file_preview, reveal_file;
-	// reduce_range_gain; repair_click (declared with the edit rows below).
+	// reduce_range_gain; repair_click; last_action, undo_last (declared with the edit rows below).
 	dawport.CapTrackState:  dawport.Experimental,
 	dawport.CapTrackSelect: dawport.Experimental,
 	dawport.CapRecord:      dawport.Experimental,
@@ -81,6 +81,9 @@ var declares = map[dawport.Capability]dawport.Level{
 	// click_repair is repair_click's (SN-E101, narration_range.lua): Experimental until the QA pass (#1495) hears a click gone and
 	// no dip in its place.
 	dawport.CapClickRepair: dawport.Experimental,
+	// undo_last is last_action's and undo_last's (#1711, narration_undo.lua): Experimental until the QA pass (#1495) sees one Undo
+	// reverse a cut whole and Undo_CanUndo2 name the cut's label.
+	dawport.CapUndoLast: dawport.Experimental,
 }
 
 // commandCapability is the capability each of bridge.Actions' commands belongs to. Actions asks its gate about a command by name, and
@@ -117,6 +120,8 @@ var commandCapability = map[string]dawport.Capability{
 	"fx_range_bypass":     dawport.CapFXRange,
 	"fx_range_compare":    dawport.CapFXRange,
 	"stop_fx_compare":     dawport.CapFXRange,
+	"last_action":         dawport.CapUndoLast,
+	"undo_last":           dawport.CapUndoLast,
 }
 
 // Gate is bridge.Actions' gate over allowed (the resolver's Allowed): a command is sent only when its capability is allowed. A nil
@@ -228,6 +233,7 @@ func New(client *bridge.Client, allowed func(dawport.Capability) error) (*Adapte
 			dawport.CapFileReveal:      actions,
 			dawport.CapRangeGain:       rangeGainReducer{actions, allowed},
 			dawport.CapClickRepair:     clickRepairer{actions, allowed},
+			dawport.CapUndoLast:        lastActionUndoer{actions, allowed},
 		},
 	}, nil
 }

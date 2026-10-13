@@ -186,6 +186,12 @@
       "level": "unsupported",
       "message": "Not available with the built-in recorder.",
       "reason": "unsupported"
+    },
+    "undo_last": {
+      "available": false,
+      "level": "not_yet_available",
+      "message": "Not available with the built-in recorder yet.",
+      "reason": "not_yet"
     }
   },
   "daw": "Built-in",

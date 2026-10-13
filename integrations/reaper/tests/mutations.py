@@ -3,12 +3,19 @@ source, and the harness must fail. A surviving mutation means a guard has no tes
 
 An entry whose ``find`` text no longer occurs exactly once also fails the run, so refactoring the Lua source means
 updating this file in the same change instead of quietly losing a check.
+
+An entry may name the platforms (``sys.platform`` values) where it is ``equivalent_on``, with ``why``: a guard no input
+can reach there, so no test can catch its removal (the network-share guard on Windows, where a path that starts with
+two slashes never passes the drive-letter check after it). It is still checked on every other platform, and is
+reported, not counted, where it is equivalent.
 """
 
 from __future__ import annotations
 
 import json
+import re
 import shutil
+import sys
 import tempfile
 from collections.abc import Callable
 from pathlib import Path
@@ -38,23 +45,38 @@ def _mutated_copy(reaper_dir: Path, scratch: Path, entry: dict) -> Path:
     return target
 
 
-def _own_tests(lua_file: str) -> tuple[str, ...]:
-    """The test file named after a feature file (narration_transport.lua -> transport_test.lua), which almost always
-    catches a mutation of it: running it first, and stopping at the first failure, keeps the whole check fast. A
-    mutation no test catches still runs every file, so the outcome is the same as a full run."""
+def _own_tests(tests_dir: Path, reaper_dir: Path, lua_file: str) -> tuple[str, ...]:
+    """The test files that almost always catch a mutation of a feature file: the one named after it
+    (narration_transport.lua -> transport_test.lua) and every one that sends a command the file registers (the
+    stack_takes tests are in stack_test.lua, not takes_test.lua). Running them first, and stopping at the first
+    failure, keeps the whole check fast. A mutation no test catches still runs every file, so the outcome is the same
+    as a full run."""
     stem = Path(lua_file).stem.removeprefix("narration_")
-    return (f"{stem}_test.lua",)
+    commands = re.findall(r"register\('([a-z_]+)'", (reaper_dir / lua_file).read_text(encoding="utf-8"))
+    senders = [
+        test_file.name
+        for test_file in sorted(tests_dir.glob("*_test.lua"))
+        if any(re.search(rf"['\"]{command}['\"]", test_file.read_text(encoding="utf-8")) for command in commands)
+    ]
+    return (f"{stem}_test.lua", *senders)
 
 
 def run_mutations(tests_dir: Path, reaper_dir: Path, run_suite: SuiteRunner) -> int:
     entries = json.loads((tests_dir / "mutations.json").read_text(encoding="utf-8"))
     scratch = Path(tempfile.mkdtemp(prefix="reaper-mutations-"))
     survivors: list[str] = []
+    equivalent = 0
     try:
         for entry in entries:
+            if sys.platform in entry.get("equivalent_on", ()):
+                if not entry.get("why"):
+                    raise ValueError(f"mutation {entry['name']!r}: equivalent_on needs a why")
+                equivalent += 1
+                print(f"  equivalent on {sys.platform}, not counted: {entry['name']} ({entry['why']})")
+                continue
             mutated = _mutated_copy(reaper_dir, scratch, entry)
             try:
-                _, failed, _ = run_suite(mutated, verbose=False, first=_own_tests(entry["file"]), stop_at_failure=True)
+                _, failed, _ = run_suite(mutated, verbose=False, first=_own_tests(tests_dir, reaper_dir, entry["file"]), stop_at_failure=True)
             except (LuaError, RuntimeError) as error:  # a mutation that breaks loading is caught too
                 failed = 1
                 print(f"  caught (suite raised {type(error).__name__}): {entry['name']}")
@@ -66,5 +88,6 @@ def run_mutations(tests_dir: Path, reaper_dir: Path, run_suite: SuiteRunner) -> 
                 print(f"  SURVIVED: {entry['name']}")
     finally:
         shutil.rmtree(scratch, ignore_errors=True)
-    print(f"{len(entries) - len(survivors)} of {len(entries)} mutations caught")
+    checked = len(entries) - equivalent
+    print(f"{checked - len(survivors)} of {checked} mutations caught")
     return 1 if survivors else 0

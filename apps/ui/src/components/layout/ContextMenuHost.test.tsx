@@ -68,6 +68,14 @@ describe('ContextMenuHost', () => {
     expect(labels).toEqual(['Add an effect', expect.stringContaining('Put an FX chain'), 'Jump menu']);
   });
 
+  it('a-picker-provider-opts-out-of-the-tail', async () => {
+    provide({ ...word(), tail: false });
+    mount({ tail });
+    expect(rightClick(screen.getByText('Alice'))).toBe(true);
+    const labels = (await screen.findAllByRole('menuitem')).map((item) => item.textContent);
+    expect(labels).toEqual(['Add an effect', expect.stringContaining('Put an FX chain')]);
+  });
+
   it('runs the chosen item', async () => {
     const onSelect = vi.fn();
     provide(word(onSelect));

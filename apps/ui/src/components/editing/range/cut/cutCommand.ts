@@ -1,4 +1,4 @@
-import type { DawResult } from '../../../../api/contracts/daw';
+import { DAW_RESULT_MAX_UNDO_STEPS, type DawResult } from '../../../../api/contracts/daw';
 import type { EditCut, EditCutsApi } from '../../../../api/contracts/editCuts';
 import type { DawClient } from '../../../../ports/daw';
 import type { Command, Result } from '../../../../studio/journal/createJournal';
@@ -62,7 +62,7 @@ export interface CutAsk {
 }
 
 export interface CutDeps {
-  daw: Pick<DawClient, 'deleteRange'>;
+  daw: Pick<DawClient, 'deleteRange' | 'undoLast'>;
   log: Pick<EditCutsApi, 'editingCutRecord' | 'editingCutRemove'>;
   /** The chapter's cuts after each record or removal, so the page strikes the words and rebuilds its times. */
   onCuts: (cuts: EditCut[]) => void;
@@ -75,6 +75,8 @@ export interface CutDone {
   message: string;
   /** Why a later range was not cut; the ranges before it stay cut and are in this entry. */
   refused?: string;
+  /** The undo points the DAW made for these cuts (one for each range it cut), which an undo asks it to take back. */
+  undoSteps: number;
 }
 
 /** The sentence added when the DAW would not lay room tone and the cut was made with silence instead. */
@@ -85,11 +87,14 @@ const refusal = (code: string, reason: string): Result<never> => ({ ok: false, r
 const failed = (e: unknown): DawResult => ({ ok: false, changed: false, message: why(e), undoSteps: 0, refused: why(e) });
 /** The words a cut record names: the script's (`pid:n`); a word said and not in the script has no key the record keeps. */
 const scriptKeys = (r: Range): string[] => r.keys.filter((k) => /:\d+$/.test(k));
+/** The kind of DAW change a cut is, in the DAW port's words (`DawActionKind`). */
+const CUT_KIND = 'cut_range';
 
 /**
  * Cuts the words and their audio, one range for each paragraph, as one history entry. The DAW is asked first for each range; only a cut it
  * accepted is recorded through the Editing records, in the recording's time before any cut. A refusal of the first range changes nothing. The
- * inverse forgets the records; for a DAW change the journal runs it only when the DAW's last action is this cut (ADR 0771 rule 4).
+ * inverse asks the DAW to undo the cuts and then forgets the records; for a DAW change the journal runs it only when the DAW's last action is
+ * these cuts (ADR 0771 rule 4).
  */
 export function cutCommand(deps: CutDeps, plan: Acting, ask: CutAsk): Command<CutDone> {
   const { chapterId, summary, options, mute, locator } = ask;
@@ -99,6 +104,10 @@ export function cutCommand(deps: CutDeps, plan: Acting, ask: CutAsk): Command<Cu
     label,
     touches: [`editing/${chapterId}/cuts`],
     daw: plan.kind !== 'recorder',
+    // The DAW's own history holds one undo point for each range it cut. More than one result reports (or none) cannot be asked for, so the entry
+    // names no action and the journal refuses its undo with the DAW's own sentence.
+    dawAction: ({ undoSteps }) =>
+      plan.kind !== 'recorder' && undoSteps >= 1 && undoSteps <= DAW_RESULT_MAX_UNDO_STEPS ? { kind: CUT_KIND, steps: undoSteps } : undefined,
     async run() {
       if (plan.kind === 'backup-then-daw') {
         if (!beforeCut.length) return refusal('no_backup', NO_BACKUP);
@@ -108,12 +117,13 @@ export function cutCommand(deps: CutDeps, plan: Acting, ask: CutAsk): Command<Cu
         }
       }
       const ids: string[] = [];
+      let undoSteps = 0;
       let message = '';
       // Room tone fills a gap that keeps its length; muting keeps the audio, so there is nothing to fill. A DAW with none refuses before changing anything.
       let roomTone = !mute && mode === 'gap';
       let silent = '';
       const partly = (reason: string): Result<CutDone> =>
-        ids.length ? { ok: true, value: { ids, message, refused: reason } } : refusal('daw_refused', reason);
+        ids.length ? { ok: true, value: { ids, message, refused: reason, undoSteps } } : refusal('daw_refused', reason);
       for (const r of summary.ranges) {
         const tokens = tokensOf(locator, r);
         if (!tokens) return partly(ONLY_SAID);
@@ -139,6 +149,7 @@ export function cutCommand(deps: CutDeps, plan: Acting, ask: CutAsk): Command<Cu
         if (!res.ok) return ids.length ? partly(res.refused ?? res.message) : refusal(res.code ?? 'daw_refused', res.refused ?? res.message);
         message ||= silent ? `${res.message} ${silent}` : res.message;
         if (!res.changed) continue;
+        undoSteps += res.undoSteps;
         try {
           const change = await deps.log.editingCutRecord(chapterId, {
             pid: r.pid,
@@ -161,9 +172,15 @@ export function cutCommand(deps: CutDeps, plan: Acting, ask: CutAsk): Command<Cu
           return partly(`${why(e)} ${plan.dawName} made the cut: undo it there (Edit > Undo).`);
         }
       }
-      return ids.length ? { ok: true, value: { ids, message } } : refusal('nothing_cut', message || CUT_ALREADY);
+      return ids.length ? { ok: true, value: { ids, message, undoSteps } } : refusal('nothing_cut', message || CUT_ALREADY);
     },
-    async undo({ ids }) {
+    async undo({ ids, undoSteps }) {
+      // A cut the DAW made is taken back there first, and only if its history still ends with these cuts (the journal asked, and the DAW checks again);
+      // the app's records are forgotten once the DAW has put the audio back, so the words never read as restored over audio that is still cut.
+      if (plan.kind !== 'recorder') {
+        const res = await deps.daw.undoLast(CUT_KIND, undoSteps).catch(failed);
+        if (!res.ok) return refusal('daw_refused', res.refused ?? res.message);
+      }
       for (const id of [...ids].reverse()) {
         try {
           deps.onCuts((await deps.log.editingCutRemove(chapterId, id)).cuts);
