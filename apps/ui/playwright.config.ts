@@ -1,11 +1,12 @@
 import { defineConfig } from '@playwright/test';
+import { launchOptions } from './playwright.launch';
 
 // Screenshot-capture config for the app's visual test suite
 // (apps/ui/tests/visual). Not a pixel-diff regression gate: it fails on
 // pages that error, overflow sideways, render blank, or render identically to
 // another state - see tests/visual/lib/validators.ts and global-setup.ts.
-// Chromium's partial raster flips a few anti-aliased pixels on rounded/shadowed fixed elements between identical runs.
-const LAUNCH = { args: ['--disable-partial-raster'] };
+// Launch args and the optional PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH live in playwright.launch.ts.
+const LAUNCH = launchOptions();
 
 // The suite screenshots the production build (mock backend, see .env.mock), served by `vite preview`,
 // not the dev server: what ships is what gets captured, and a fresh browser context per test loads a

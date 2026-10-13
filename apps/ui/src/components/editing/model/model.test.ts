@@ -17,6 +17,7 @@ import {
   stepKey,
   stepPhrase,
   summarize,
+  takeLength,
   takeShift,
   type Aligner,
   type ChapterInput,
@@ -164,6 +165,19 @@ describe('the chapter document', () => {
     expect(at(before, 'p1:3') - at(after, 'p1:3')).toBeCloseTo(0.8, 3);
     expect(at(after, 'p1:0')).toBe(at(before, 'p1:0'));
   });
+  it("words after an applied gap trim inside the take move up by the trim's length at once", () => {
+    // What Clean up's Apply on Gaps records: no words, no take, the span in the recording before any cut.
+    const trim: DocCut = { id: 'g1', keys: [], a: 10.7, b: 11.5, off0: 10.7, off1: 11.5, mode: 'close' };
+    const before = buildDoc(input());
+    const after = buildDoc(input({ cuts: [trim] }));
+    const at = (d: typeof before, k: string) => d.items.find((i) => i.key === k)?.t0 as number;
+    expect(at(before, 'p1:3') - at(after, 'p1:3')).toBeCloseTo(0.8, 3);
+    expect(at(after, 'p1:0')).toBe(at(before, 'p1:0'));
+    // The same placement as a cut of words of the same span, and a trim in another take moves nothing here.
+    expect(at(after, 'p1:3')).toBeCloseTo(at(buildDoc(input({ cuts: [cut] })), 'p1:3'), 3);
+    const elsewhere = buildDoc(input({ cuts: [{ ...trim, a: 40.7, b: 41.5, off0: 40.7, off1: 41.5 }] }));
+    expect(at(elsewhere, 'p1:3')).toBe(at(before, 'p1:3'));
+  });
 });
 
 describe('selection model', () => {
@@ -264,7 +278,17 @@ describe('cut arithmetic', () => {
       { id: 'a', keys: ['k'], a: 0, b: 2, mode: 'close', takeId: 't', off0: 3, off1: 5 },
       { id: 'b', keys: ['k'], a: 0, b: 1, mode: 'gap', takeId: 't', off0: 8, off1: 9 },
     ];
-    expect([takeShift(c, 't', 4), takeShift(c, 't', 5), takeShift(c, 't', 9), takeShift(c, 'u', 9)]).toEqual([0, 2, 2, 0]);
+    const t = { id: 't', start: 100, len: 20 };
+    expect([takeShift(c, t, 4), takeShift(c, t, 5), takeShift(c, t, 9), takeShift(c, { ...t, id: 'u' }, 9)]).toEqual([0, 2, 2, 0]);
+  });
+  it('takeShift counts a wordless cut inside the take', () => {
+    const t = { id: 't', start: 100, len: 20 };
+    const wordless = (a: number, b: number): DocCut => ({ id: `w${a}`, keys: [], a, b, off0: a, off1: b, mode: 'close' });
+    const c = [wordless(103, 105), wordless(90, 91), wordless(130, 131), wordless(113, 114)];
+    // Only the trims inside [100, 122] count (the take's 20 s now, plus the 3 s the trims in it took out), each once the word is past it.
+    expect([takeShift(c, t, 4), takeShift(c, t, 5), takeShift(c, t, 14), takeShift(c, { ...t, id: 'u' }, 14)]).toEqual([0, 2, 3, 3]);
+    expect(takeShift([{ ...wordless(103, 105), mode: 'gap' }], t, 9)).toBe(0);
+    expect(takeLength(c, t)).toBe(23);
   });
   it('cut-arithmetic-properties: origTime inverts curTime outside every cut', () => {
     // Non-overlapping cuts from sorted distinct integer-tenths boundaries; a time is kept only if it lies outside every cut.

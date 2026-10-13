@@ -1054,7 +1054,8 @@ local function reduce_range_gain(session_dir, run_id, item_text, take_text, db_t
     reaper.Envelope_SortPoints(env)
   end
   reaper.UpdateItemInProject(item)
-  reaper.Undo_EndBlock2(0, UNDO_REDUCE_GAIN, -1)
+  -- No envelope means nothing changed, so the block is closed with no description and records no undo point.
+  reaper.Undo_EndBlock2(0, env and UNDO_REDUCE_GAIN or '', -1)
   reaper.UpdateArrange()
   if not env then
     return refuse('REAPER did not make a volume envelope for that take, so nothing was lowered.')
@@ -1220,7 +1221,8 @@ local function repair_click(session_dir, run_id, item_text, take_text, clicks_te
     reaper.Envelope_SortPoints(env)
   end
   reaper.UpdateItemInProject(item)
-  reaper.Undo_EndBlock2(0, UNDO_REPAIR_CLICKS, -1)
+  -- No envelope means nothing changed, so the block is closed with no description and records no undo point.
+  reaper.Undo_EndBlock2(0, env and UNDO_REPAIR_CLICKS or '', -1)
   reaper.UpdateArrange()
   if not env then
     return refuse('REAPER did not make a volume envelope for that take, so no click was repaired.')

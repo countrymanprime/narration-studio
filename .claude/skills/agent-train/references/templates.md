@@ -33,7 +33,7 @@ docs/operations/ runbooks that a person follows. A spike's research note has a d
 or lane header; an audit or checklist for one PR is a comment on the PR or its issue, not a file.
 BRANCHES AND PRS: first PR based on the latest main; one PR per phase, each based on the previous branch; branch
 <type>/<prd-slug>-p<N>-<slug>; PR title a Conventional Commit; body = goal, what changed, local checks run with results,
-Screenshots (any UI change; see "UI PRs show their screenshots" in CONTRIBUTING.md: the PR is not ready without them; PNGs under pr-screenshots/ on this branch, embedded by commit SHA, deleted by the last commit before merge), "Base: <branch>", "Closes #<slice>" for a slice,
+Screenshots (any UI change; see "UI PRs show their screenshots" in CONTRIBUTING.md: name the page(s) touched, run `node scripts/dev/pr-screenshots.mjs <slice> <page>...` (the targeted Playwright and Storybook runs work in this container; never run `playwright install`), show every catalogued state of those pages, light and dark, desktop and narrow, and state the real-app Playwright result, not only Storybook's; the PR is not ready or mergeable without them; PNGs under pr-screenshots/ on this branch, embedded by commit SHA, deleted by the last commit before merge; docs/images/ui is the guide-refresh worker's), "Base: <branch>", "Closes #<slice>" for a slice,
 else "Part of #<PRD issue>" (find it or create it per docs/operations/github-workflow.md; the PRD's last phase says "Closes #<n>"), "New ADRs for review". Set each phase's
 Status cell in its own PR. The PR delivering a PRD's last phase writes the steady-state docs and deletes the PRD.
 METHOD: impact scan before touching shared code (list every consumer of what you change and its tests); tests first;
