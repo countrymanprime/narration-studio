@@ -16,7 +16,9 @@ describe('sections are a registry', () => {
         <BoothSidePanel data={sideData()} open drawer={false} onOpenChange={() => undefined} />
       </ApiProvider>,
     );
-    expect(boothSections().map((s) => s.id)).toEqual(['reference', 'suspected', 'voices', 'coming-up', 'numbers']);
+    expect(boothSections().map((s) => s.id)).toEqual(['reference', 'suspected', 'last-punch', 'voices', 'coming-up', 'numbers']);
+    const text = screen.getByRole('complementary', { name: 'Side panel' }).textContent ?? '';
+    expect(text.indexOf('Last punch')).toBeLessThan(text.indexOf('Voices in this scene'));
   });
 
   it('renders a section registered later at its order, with no edit here', () => {

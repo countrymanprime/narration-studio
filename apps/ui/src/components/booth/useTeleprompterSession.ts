@@ -107,6 +107,8 @@ export type UseTeleprompterSessionOptions = {
 export function useTeleprompterSession({ chapterId, chapter, credits, migrateLegacyDevice = true }: UseTeleprompterSessionOptions) {
   const api = useApi();
   const [device, setDevice] = useState('');
+  // True once the saved device (if any) has been read, so a caller that fills in a missing device never races the saved one.
+  const [settingsLoaded, setSettingsLoaded] = useState(false);
   const [devices, setDevices] = useState<TeleprompterDevice[]>([]);
   const [devicesError, setDevicesError] = useState<string | null>(null);
   const [devicesLoading, setDevicesLoading] = useState(false);
@@ -187,6 +189,7 @@ export function useTeleprompterSession({ chapterId, chapter, credits, migrateLeg
       .then((settings) => {
         if (!live) return;
         const fields = settings[SETTINGS_TOOL] ?? [];
+        setSettingsLoaded(true);
         const deviceField = fields.find((item) => item.key === INPUT_DEVICE_KEY);
         if (deviceField?.isSet) {
           setDevice(deviceField.value);
@@ -208,7 +211,7 @@ export function useTeleprompterSession({ chapterId, chapter, credits, migrateLeg
         const chosen = engineField?.effectiveValue ?? '';
         if (isEngine(chosen) && offered.some((option) => option.value === chosen)) setEngine(chosen);
       })
-      .catch(() => {});
+      .catch(() => live && setSettingsLoaded(true));
     return () => {
       live = false;
     };
@@ -307,6 +310,7 @@ export function useTeleprompterSession({ chapterId, chapter, credits, migrateLeg
     pause,
     session,
     device,
+    settingsLoaded,
     devices,
     devicesError,
     devicesLoading,
