@@ -57,10 +57,15 @@ func Classify(label string) Kind {
 type Source string
 
 const (
-	SourceLaunch  Source = "launch"
-	SourceChosen  Source = "chosen"
-	SourceLinked  Source = "linked"
-	SourceFound   Source = "found"
+	// SourceLaunch is the launch's `--daw` label, an override while that launch runs.
+	SourceLaunch Source = "launch"
+	// SourceChosen is the project's own Recording.engine row, the narrator's choice.
+	SourceChosen Source = "chosen"
+	// SourceLinked is the REAPER project file the project's manifest links.
+	SourceLinked Source = "linked"
+	// SourceFound is a REAPER project file (.rpp) directly in the project folder.
+	SourceFound Source = "found"
+	// SourceDefault is a folder with no DAW project: the built-in recorder where it runs, else none.
 	SourceDefault Source = "default"
 )
 
