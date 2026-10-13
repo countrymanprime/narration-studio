@@ -979,3 +979,112 @@ describe('the reference in the side panel', () => {
     expect(screen.queryByRole('button', { name: /Word stress/ })).toBeNull();
   });
 });
+
+describe('the text follows the voice: the listening microphone and the model', () => {
+  const noSavedDevice = async () => ({});
+  const savedDevice = (name: string) => async () => ({
+    Teleprompter: [{ key: 'input_device', label: 'Microphone', kind: 'text', value: name, effectiveValue: name, isSet: true }],
+  });
+  const reaperInput = (device?: string) => async () =>
+    device
+      ? { status: 'matched' as const, message: `REAPER records from "${device}", so "${device}" is selected.`, reaperDevice: device, device, candidates: [] }
+      : {
+          status: 'unavailable' as const,
+          reason: 'reaper_no_device' as const,
+          message: 'REAPER did not say which input device it has open. Choose the microphone yourself.',
+          candidates: [],
+        };
+  const two = async () => ({ devices: [{ name: 'USB Mic' }, { name: 'Line In' }], error: null });
+
+  it('with no microphone chosen, a take listens to the one the DAW records from and Levels names it', async () => {
+    const teleprompterStart = vi.fn(async () => ({ status: 'started' as const }));
+    const saveSettings = vi.fn(async () => {});
+    const page = renderPage({
+      api: {
+        settingsForScope: noSavedDevice,
+        teleprompterReaperInput: reaperInput('Line In'),
+        teleprompterDevices: two,
+        teleprompterStart,
+        saveSettings,
+      } as never,
+    });
+    await waitFor(() => expect(saveSettings).toHaveBeenCalledWith('Teleprompter', 'global', { input_device: 'Line In' }));
+    await record(page);
+    await waitFor(() => expect(teleprompterStart).toHaveBeenCalledWith(expect.objectContaining({ device: 'Line In', chapter: 'c1' })));
+    expect(document.getElementById('blisten-why')).toBeNull();
+    await userEvent.click(screen.getByRole('button', { name: 'Levels' }));
+    const menu = await screen.findByRole('dialog', { name: 'Levels' });
+    expect(within(menu).getByText('Line In')).toBeTruthy();
+    expect(within(menu).getByText('Chosen in REAPER')).toBeTruthy();
+    expect(within(menu).queryByRole('combobox')).toBeNull();
+  });
+
+  it('a microphone the narrator chose is kept over the DAW’s (ADR 0250)', async () => {
+    const teleprompterStart = vi.fn(async () => ({ status: 'started' as const }));
+    const page = renderPage({
+      api: { settingsForScope: savedDevice('USB Mic'), teleprompterReaperInput: reaperInput('Line In'), teleprompterDevices: two, teleprompterStart } as never,
+    });
+    await record(page);
+    await waitFor(() => expect(teleprompterStart).toHaveBeenCalledWith(expect.objectContaining({ device: 'USB Mic' })));
+  });
+
+  it('when the DAW cannot say, the footer says to choose one in Levels, and the choice is what the next take listens to', async () => {
+    const teleprompterStart = vi.fn(async () => ({ status: 'started' as const }));
+    const page = renderPage({
+      api: { settingsForScope: noSavedDevice, teleprompterReaperInput: reaperInput(), teleprompterDevices: two, teleprompterStart } as never,
+    });
+    await ready();
+    await waitFor(() =>
+      expect(document.getElementById('blisten-why')?.textContent).toBe('Choose the microphone the Booth listens to in Levels, so the text follows your voice.'),
+    );
+    await userEvent.click(screen.getByRole('button', { name: 'Levels' }));
+    const menu = await screen.findByRole('dialog', { name: 'Levels' });
+    expect(within(menu).getByText('REAPER did not say which input device it has open. Choose the microphone yourself.')).toBeTruthy();
+    await userEvent.selectOptions(within(menu).getByRole('combobox', { name: 'Microphone' }), 'USB Mic');
+    await userEvent.click(screen.getByRole('button', { name: 'Levels' }));
+    await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Levels' })).toBeNull());
+    await waitFor(() => expect(document.getElementById('blisten-why')).toBeNull());
+    await record(page);
+    await waitFor(() => expect(teleprompterStart).toHaveBeenCalledWith(expect.objectContaining({ device: 'USB Mic' })));
+  });
+
+  it('a missing model is asked for when the take starts, and nothing downloads until the narrator says so', async () => {
+    const assetsInstall = vi.fn();
+    const teleprompterStart = vi.fn(async () => ({
+      status: 'asset_required' as const,
+      engine: 'whisper' as const,
+      model: {
+        id: 'tiny',
+        displayName: 'Whisper tiny',
+        version: '1',
+        publisher: 'OpenAI',
+        license: 'MIT',
+        licenseUrl: '',
+        modelCardUrl: '',
+        provenanceUrl: '',
+      },
+      installState: 'not_installed' as const,
+      downloadSize: 1,
+      diskSize: 1,
+      installPath: 'C:/assets/whisper',
+    }));
+    const page = renderPage({ api: { settingsForScope: savedDevice('USB Mic'), teleprompterStart, assetsInstall } as never });
+    await ready();
+    await space();
+    expect(await screen.findByRole('alertdialog', { name: 'Download local Whisper model?' })).toBeTruthy();
+    expect(page.daw.recordStart).toHaveBeenCalledTimes(1);
+    expect(assetsInstall).not.toHaveBeenCalled();
+  });
+
+  it('a session that fails to start says so in the footer; the take goes on', async () => {
+    const teleprompterStart = vi.fn(async () => {
+      throw new Error('The microphone is in use by another application.');
+    });
+    const page = renderPage({ api: { settingsForScope: savedDevice('USB Mic'), teleprompterStart } as never });
+    await record(page);
+    await waitFor(() =>
+      expect(document.getElementById('blisten-why')?.textContent).toBe('The text cannot follow your voice: The microphone is in use by another application.'),
+    );
+    expect(screen.getByRole('button', { name: /^Stop$/ })).toBeTruthy();
+  });
+});

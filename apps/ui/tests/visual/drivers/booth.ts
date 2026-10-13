@@ -64,6 +64,34 @@ export const boothDrivers: Record<string, Driver> = {
     await page.keyboard.press('r');
     await page.getByRole('alertdialog', { name: /^Roll again from ¶ \d+\?$/ }).waitFor();
   },
+  // The replay moves the reading position; the clock is run on six seconds and held so every viewport shows the same place.
+  following: async (page) => {
+    await readyToRecord(page);
+    await page.clock.install({ time: REC_START });
+    await page.clock.pauseAt(REC_START + 1_000);
+    await record(page).click();
+    await page.getByRole('button', { name: /^Stop$/ }).waitFor();
+    await page.clock.runFor(6_000);
+    await page.getByText(/^¶ [2-9] of 24/).waitFor();
+    if (await page.locator('#blisten-why').count()) throw new Error('the footer says the text cannot follow during a take that follows');
+    await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
+  },
+  'listening-no-mic': async (page) => {
+    await openBooth(page, `${RECORD_ON}&mockNoDevices=1`);
+    await page.locator('#blisten-why', { hasText: 'The text cannot follow your voice: No microphone found.' }).waitFor();
+    await record(page).and(page.locator(':enabled')).waitFor();
+  },
+  'model-required': async (page) => {
+    // No resume line here: finding where the recording ends needs the same missing model.
+    await openBooth(page, `${RECORD_ON}&mockAssets=missing`);
+    await record(page).and(page.locator(':enabled')).waitFor();
+    await page.clock.install({ time: REC_START });
+    await page.clock.pauseAt(REC_START + 1_000);
+    await record(page).click();
+    // The mock host answers after its own short delays: run them, then hold the clock so the timer behind the question stays put.
+    await page.clock.runFor(2_000);
+    await page.getByRole('alertdialog', { name: /^Download local \w+ model\?$/ }).waitFor();
+  },
   resume: async (page) => {
     await readyToRecord(page);
     await page.getByRole('button', { name: /^Resume at ¶/ }).click();
@@ -72,7 +100,10 @@ export const boothDrivers: Record<string, Driver> = {
   'levels-menu': async (page) => {
     await readyToRecord(page);
     await page.getByRole('button', { name: 'Levels' }).click();
-    await page.getByText('Chosen in REAPER').waitFor();
+    const menu = page.getByRole('dialog', { name: 'Levels' });
+    await menu.getByText('Chosen in REAPER').waitFor();
+    // The microphone the DAW records from is named (the mock's first listed microphone), not left blank.
+    await menu.getByText('Microphone Array (Realtek(R) Audio)').waitFor();
   },
   'text-popover': async (page) => {
     await readyToRecord(page);

@@ -193,6 +193,32 @@ describe('the-microphone-choice-follows-the-recorder', () => {
   });
 });
 
+describe('with-a-daw-levels-names-the-microphone-the-booth-listens-to', () => {
+  it('names the DAW’s own input when it chose it, with no picker', async () => {
+    footer(api(), {
+      mic: { ...mic, engine: 'daw', device: 'Line In', listen: { devices: [{ name: 'USB Mic' }, { name: 'Line In' }], fromDaw: true, note: null } },
+    });
+    await userEvent.click(screen.getByRole('button', { name: 'Levels' }));
+    expect(await screen.findByText('Line In')).toBeTruthy();
+    expect(screen.getByText('Chosen in REAPER')).toBeTruthy();
+    expect(screen.queryByRole('combobox')).toBeNull();
+  });
+  it('offers the listed microphones with the host’s sentence when the DAW could not say, and reports the choice', async () => {
+    const onDevice = vi.fn();
+    const note = 'REAPER did not say which input device it has open. Choose the microphone yourself.';
+    footer(api(), { mic: { ...mic, engine: 'daw', device: '', onDevice, listen: { devices: [{ name: 'USB Mic' }], fromDaw: false, note } } });
+    await userEvent.click(screen.getByRole('button', { name: 'Levels' }));
+    expect(await screen.findByText(note)).toBeTruthy();
+    await userEvent.selectOptions(screen.getByRole('combobox', { name: 'Microphone' }), 'USB Mic');
+    expect(onDevice).toHaveBeenCalledWith('USB Mic');
+  });
+  it('says no microphone was found when none is listed', async () => {
+    footer(api(), { mic: { ...mic, engine: 'daw', device: '', listen: { devices: [], fromDaw: false, note: null } } });
+    await userEvent.click(screen.getByRole('button', { name: 'Levels' }));
+    expect(await screen.findByRole('alert')).toHaveProperty('textContent', 'No microphone found');
+  });
+});
+
 describe('levels-are-read-without-a-second-capture', () => {
   it('subscribes once, holds the microphone only while the menu is open, and stops on unmount', async () => {
     const a = api();

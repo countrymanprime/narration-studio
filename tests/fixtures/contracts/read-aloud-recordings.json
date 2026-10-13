@@ -2,17 +2,17 @@
   "experimental_off.arm": {
     "outcome": "refused",
     "reason": "experimental_off",
-    "message": "Reading REAPER's tracks is an experimental action. Turn on Experimental REAPER actions in Settings to use it."
+    "message": "Recording in REAPER is an experimental action. Turn on Experimental REAPER actions, or Record alone, in Settings to use it."
   },
   "experimental_off.start": {
     "outcome": "refused",
     "reason": "experimental_off",
-    "message": "Reading REAPER's tracks is an experimental action. Turn on Experimental REAPER actions in Settings to use it."
+    "message": "Recording in REAPER is an experimental action. Turn on Experimental REAPER actions, or Record alone, in Settings to use it."
   },
   "experimental_off.stop": {
     "outcome": "refused",
     "reason": "experimental_off",
-    "message": "Reading REAPER's tracks is an experimental action. Turn on Experimental REAPER actions in Settings to use it."
+    "message": "Recording in REAPER is an experimental action. Turn on Experimental REAPER actions, or Record alone, in Settings to use it."
   },
   "no_link.arm": {
     "outcome": "refused",
