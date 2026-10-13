@@ -12,7 +12,7 @@ Now in the rebuild PRD, [Which mocks are the spec](../prds/studio-next-rebuild.p
 
 ## UI PRs show their screenshots
 
-Now in [CONTRIBUTING.md](../../CONTRIBUTING.md#ui-prs-show-their-screenshots).
+Now in [CONTRIBUTING.md](../../CONTRIBUTING.md#ui-prs-show-their-screenshots), including the targeted runs every UI slice must show (`node scripts/dev/pr-screenshots.mjs`).
 
 ## Owner standing rules
 

@@ -3,6 +3,7 @@ import { expect, test, type Page } from '@playwright/test';
 import { mkdirSync, readFileSync } from 'node:fs';
 import { allowedRules } from './a11y-debt';
 import { needsFreshLoad } from './reload-debt';
+import { parseAtlasFilter, storyMatches } from '../atlasFilter';
 
 interface IndexEntry {
   id: string;
@@ -45,7 +46,13 @@ interface Variant {
 const VARIANTS: Variant[] = THEMES.flatMap((theme) => VIEWPORTS.map((viewport) => ({ theme, viewport })));
 
 const index = JSON.parse(readFileSync('storybook-static/index.json', 'utf8')) as { entries: Record<string, IndexEntry> };
-const stories = Object.values(index.entries).filter((entry) => entry.type === 'story');
+const allStories = Object.values(index.entries).filter((entry) => entry.type === 'story');
+// UI_ATLAS_FILTER=<page-or-component>[,...] runs only those stories (tests/atlasFilter.ts); unset runs all of them, as CI does.
+const filter = parseAtlasFilter(process.env.UI_ATLAS_FILTER);
+const stories = allStories.filter((entry) => storyMatches(entry.title, filter));
+if (filter.length > 0 && stories.length === 0) {
+  throw new Error(`UI_ATLAS_FILTER=${process.env.UI_ATLAS_FILTER} matches no story title; titles look like "Editing/Ribbon" (storybook-static/index.json)`);
+}
 
 // Reads the channel's last-known state for this page's current story. Storybook's channel remembers the last payload of
 // each event, so this is safe to call right after a wait that confirms a (re)render has finished.
