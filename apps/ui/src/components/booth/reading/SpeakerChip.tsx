@@ -42,6 +42,7 @@ export function SpeakerChip({ phraseKey, speaker, confirmed, colour, speakers, o
       : 'border-dashed border-current bg-transparent text-[var(--spk-t,var(--text-muted))]';
 
   const trigger = (
+    // native-control-ok: an inline chip inside the reading text, sized in em to its line; Button's fixed sizes would break the line
     <button
       type="button"
       data-speaker-chip
