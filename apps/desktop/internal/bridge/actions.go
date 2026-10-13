@@ -138,18 +138,60 @@ func (a *Actions) request(ctx context.Context, command string, closing []string,
 	runID, run, timeout := a.open(closing)
 	defer a.close(runID)
 	if _, err := a.client.Send(command, append([]string{runID}, args...)); err != nil {
+		a.logFailure(command, runID, "could not send")
 		return nil, fmt.Errorf("could not send %s to REAPER: %w", command, err)
 	}
 	timer := time.NewTimer(timeout)
 	defer timer.Stop()
 	select {
 	case got := <-run.done:
+		if got.err != nil {
+			a.logFailure(command, runID, failureKind(got.err))
+		}
 		return got.events, got.err
 	case <-timer.C:
+		a.logFailure(command, runID, "no answer within "+timeout.String())
 		return nil, ErrNoAnswer
 	case <-ctx.Done():
+		a.logFailure(command, runID, "cancelled")
 		return nil, ctx.Err()
 	}
+}
+
+// logFailure writes one host-log line for a command sent that failed, with its run ID: the Lua bridge logs the same run under that ID
+// in bridge.jsonl (ADR 0253), so the two can be read together.
+func (a *Actions) logFailure(command, runID, kind string) {
+	a.client.report("reaper_action_failed", fmt.Sprintf("%s run %s: %s", command, runID, kind))
+}
+
+// failureKind is what the host log says of an answer's error: the host's own sentence for an error it names, and never the script's
+// sentence, which can carry a track's or a file's name.
+func failureKind(err error) string {
+	var refusal *RefusalError
+	switch {
+	case errors.As(err, &refusal):
+		return "error (the script's own sentence, not logged)"
+	case errors.Is(err, ErrRollStopped):
+		return "error: " + ErrRollStopped.Error()
+	case hostSentence(err):
+		return "error: " + err.Error()
+	default:
+		return "error"
+	}
+}
+
+// hostSentence reports whether err is one of the errors the host words itself, whose text holds nothing of the narrator's.
+func hostSentence(err error) bool {
+	switch err {
+	case ErrScriptOutdated, ErrRecording, ErrPunchWhileRecording, ErrBadPunch, ErrBadRoll:
+		return true
+	}
+	for _, known := range refusals {
+		if err == known {
+			return true
+		}
+	}
+	return false
 }
 
 // allowed refuses a command its gate refuses, then any command with no bridge, before anything is written.
