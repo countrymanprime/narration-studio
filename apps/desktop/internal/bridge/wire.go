@@ -190,6 +190,10 @@ var eventSpecs = map[string]eventSpec{
 	"RANGE_FX_PARAMS":    {required: []fieldSpec{text("run"), text("itemGuid"), text("takeGuid"), text("chain"), count("count"), count("truncated"), count("bypassed")}},
 	"RANGE_FX_PARAM_SET": {required: []fieldSpec{text("run"), text("itemGuid"), text("takeGuid"), count("fx"), count("param"), number("value"), text("formatted"), count("undoPoints")}},
 	"RANGE_FX_BYPASSED":  {required: []fieldSpec{text("run"), text("itemGuid"), text("takeGuid"), text("chain"), count("bypassed"), count("undoPoints")}},
+	// fx_range_compare and stop_fx_compare (narration_range.lua, SN-E113): the piece the Compare plays, its take, the chain, the
+	// piece's project seconds and bypassed 1 when the chain was bypassed before; stopped 1 when a Compare was running.
+	"RANGE_FX_COMPARE":         {required: []fieldSpec{text("run"), text("itemGuid"), text("takeGuid"), text("chain"), number("start"), number("end"), count("bypassed")}},
+	"RANGE_FX_COMPARE_STOPPED": {required: []fieldSpec{text("run"), count("stopped")}},
 }
 
 // CheckEvent validates one decoded event line (the tag first) against the table. The error names the tag, the position and name of

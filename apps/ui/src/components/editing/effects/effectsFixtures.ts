@@ -26,6 +26,7 @@ export function wordFx(id: string, over: Partial<WordFx> = {}): WordFx {
     at: '2026-10-12T00:00:00Z',
     paragraph: 0,
     stale: false,
+    bypassed: false,
     ...over,
   };
 }
@@ -49,9 +50,9 @@ export function effectHost(effects: readonly WordFx[] = MANY, over: Partial<Effe
     locator,
     journal: createJournal({ dawName: () => 'REAPER', dawLastAction: async () => 'unknown' }),
     effects,
+    onEffects: () => {},
     play: () => {},
     stop: () => {},
-    playing: false,
     ...over,
   };
 }

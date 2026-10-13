@@ -33,6 +33,7 @@ export const wordFxSchema = z
     paragraph: z.number().int().nullable(),
     stale: z.boolean(),
     staleReason: z.enum(['paragraph_missing', 'word_missing', 'text_changed']).optional(),
+    bypassed: z.boolean(),
   })
   .strict()
   .refine((fx) => fx.b > fx.a && fx.words.length === fx.keys.length, {

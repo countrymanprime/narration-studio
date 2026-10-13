@@ -601,6 +601,18 @@ export function DawCatalogOpenDownloadPage(id: string): $CancellablePromise<stri
 }
 
 /**
+ * DawCompareFxRange plays the words firstToken..lastToken of chapterID's stored alignment in the DAW with the chain chainName on
+ * and then bypassed, and puts the chain back as it was: the effect inspector's Compare (SN-E113). The words and chain resolve as
+ * DawFxRangeParams resolves them, and the page sends no GUID or path. The answer is the DawFxRangeCompare payload: a DawResult
+ * (ADR 0810) with no undo step, since the DAW's history is left as it was, and Pass, how long each pass plays in seconds, so the
+ * page can say which one is playing. It answers once the first pass has started. The same refusals as DawBypassFxRange, then an
+ * engine that cannot compare, in a sentence.
+ */
+export function DawCompareFxRange(chapterID: string, firstToken: number, lastToken: number, chainName: string): $CancellablePromise<string> {
+    return $Call.ByID(3489565200, chapterID, firstToken, lastToken, chainName);
+}
+
+/**
  * DawDeleteRange cuts the words firstToken..lastToken of chapterID's stored alignment together with their audio (SND-6b, ADR
  * 0860 point 2; the Studio Next mock's deleteRange): the DAW splits the item at both ends of the range and moves the middle
  * piece aside, and mode "close" moves the later audio up while "gap" leaves the length. fadeMs is the fade at each seam; padMs
@@ -783,6 +795,14 @@ export function DawStackTakes(chapterID: string, passageIDs: string[]): $Cancell
  */
 export function DawStopFilePreview(): $CancellablePromise<string> {
     return $Call.ByID(1026294444);
+}
+
+/**
+ * DawStopFxCompare ends a Compare the DAW is playing and puts the chain back as it was. It changes nothing when none is playing.
+ * Refused as the Compare is when the fx_range capability is off.
+ */
+export function DawStopFxCompare(): $CancellablePromise<string> {
+    return $Call.ByID(3272647503);
 }
 
 /**
@@ -1041,6 +1061,15 @@ export function EditingState(): $CancellablePromise<string> {
  */
 export function EditingUnaccept(chapterID: string, keys: string[]): $CancellablePromise<string> {
     return $Call.ByID(4156351737, chapterID, keys);
+}
+
+/**
+ * EditingWordFxBypass records that the narrator bypassed a chapter's effect in the DAW (bypassed true) or turned it back on, after
+ * the DAW accepted the switch, and is the inverse the journal calls when the switch is undone. The coverage figure counts only
+ * the effects that are on (SN-E113). An effect that is not recorded, or already as asked, changes nothing.
+ */
+export function EditingWordFxBypass(chapterID: string, id: string, bypassed: boolean): $CancellablePromise<string> {
+    return $Call.ByID(2961154316, chapterID, id, bypassed);
 }
 
 /**

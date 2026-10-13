@@ -28,3 +28,10 @@ func (h *Host) EditingWordFxRecord(chapterID string, fx editlog.WordFxRequest) (
 func (h *Host) EditingWordFxRemove(chapterID, id string) (string, error) {
 	return encodeBinding(h.editLog().WordFxRemove(chapterID, id))
 }
+
+// EditingWordFxBypass records that the narrator bypassed a chapter's effect in the DAW (bypassed true) or turned it back on, after
+// the DAW accepted the switch, and is the inverse the journal calls when the switch is undone. The coverage figure counts only
+// the effects that are on (SN-E113). An effect that is not recorded, or already as asked, changes nothing.
+func (h *Host) EditingWordFxBypass(chapterID, id string, bypassed bool) (string, error) {
+	return encodeBinding(h.editLog().WordFxBypass(chapterID, id, bypassed))
+}

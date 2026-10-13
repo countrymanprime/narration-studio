@@ -900,3 +900,172 @@ H.test("a setting is changed on the chain's FX, not on an FX the narrator put ah
   H.eq(own.params[1].value, 4, 'the narrator FX is as it was')
   H.eq(take.fx[2].params[1].value, 2, 'the chain FX has the value')
 end)
+
+-- fx_range_compare and stop_fx_compare (SN-E113): the effect's words played in REAPER with the chain on, then with it
+-- bypassed, then the chain put back as it was. The switches are made outside any undo block, so a Compare adds nothing to
+-- REAPER's undo history, and the edit cursor goes back where it was.
+
+local COMPARE_UNSUPPORTED = 'This REAPER version cannot play an effect on words to compare it.'
+
+-- Every TakeFX_SetEnabled call so far, as { fx, enabled, in_block }.
+local function switches(s)
+  local out = {}
+  for _, call in ipairs(s.fake.calls) do
+    if call.name == 'TakeFX_SetEnabled' then
+      out[#out + 1] = { call.fx, call.enabled, call.in_block }
+    end
+  end
+  return out
+end
+
+local function enabled(take)
+  local out = {}
+  for _, fx in ipairs(take.fx) do
+    out[#out + 1] = fx.enabled ~= false
+  end
+  return out
+end
+
+-- Moves REAPER's play position to `at` and runs one defer cycle.
+local function heard(s, at)
+  s.fake.play_position2 = at
+  s:tick()
+end
+
+H.test('fx_range_compare plays the words with the chain on and then bypassed, and puts it back, adding no undo point', function()
+  local s, p = project()
+  s.fake.chain_fx_count = 2
+  local middle, take = applied_clean(s, p)
+  s.fake.cursor = 3
+  s:send('fx_range_compare', 'c1', middle.guid, take.guid, CHAIN)
+  H.eq(s:events(), { { 'RANGE_FX_COMPARE', 'c1', middle.guid, take.guid, CHAIN, '14', '16', '0' } })
+  H.eq(s.fake:transport_calls(), { 'OnPlayButton' }, 'the first pass plays')
+  H.eq(s.fake.cursor, 14, 'from the start of the piece')
+  H.eq(enabled(take), { true, true }, 'with the chain on')
+  heard(s, 14.5)
+  heard(s, 15.9)
+  H.eq(s.fake:transport_calls(), { 'OnPlayButton' }, 'the first pass is still playing')
+  heard(s, 16.01)
+  H.eq(enabled(take), { false, false }, 'the second pass has the chain bypassed')
+  H.eq(s.fake:transport_calls(), { 'OnPlayButton', 'OnStopButton', 'OnPlayButton' }, 'and plays the words again')
+  H.eq(s.fake.cursor, 14)
+  heard(s, 14.2)
+  heard(s, 16.2)
+  H.eq(s.fake:transport_calls(), { 'OnPlayButton', 'OnStopButton', 'OnPlayButton', 'OnStopButton' }, 'then stops')
+  H.eq(enabled(take), { true, true }, 'the chain is on again, as it was')
+  H.eq(s.fake.cursor, 3, 'the edit cursor is back')
+  for _, call in ipairs(switches(s)) do
+    H.eq(call[3], false, 'no switch is inside an undo block')
+  end
+  H.eq(#switches(s), 6, 'on, bypassed, then back as it was')
+  H.eq(#s.fake.undo, 0, 'a Compare adds no undo point')
+  H.eq(s.fake.open_undo_blocks, 0)
+  H.eq(s:events(), {}, 'the passes send nothing more')
+  heard(s, 20)
+  H.eq(#s.fake:transport_calls(), 4, 'the watch has ended')
+end)
+
+H.test('a chain that was bypassed is played on, then bypassed, and stays bypassed', function()
+  local s, p = project()
+  local middle, take = applied_clean(s, p)
+  take.fx[1].enabled = false
+  s:send('fx_range_compare', 'c1', middle.guid, '', CHAIN)
+  H.eq(s:events(), { { 'RANGE_FX_COMPARE', 'c1', middle.guid, take.guid, CHAIN, '14', '16', '1' } })
+  H.eq(enabled(take), { true })
+  heard(s, 15)
+  heard(s, 16)
+  H.eq(enabled(take), { false })
+  heard(s, 15)
+  heard(s, 16)
+  H.eq(enabled(take), { false })
+  H.eq(#s.fake.undo, 0)
+end)
+
+H.test('stop_fx_compare stops a Compare midway and puts the chain and the cursor back', function()
+  local s, p = project()
+  local middle, take = applied_clean(s, p)
+  s.fake.cursor = 7
+  s:send('fx_range_compare', 'c1', middle.guid, take.guid, CHAIN)
+  s:events()
+  heard(s, 15)
+  heard(s, 16)
+  H.eq(enabled(take), { false })
+  s:send('stop_fx_compare', 's1')
+  H.eq(s:events(), { { 'RANGE_FX_COMPARE_STOPPED', 's1', '1' } })
+  H.eq(enabled(take), { true })
+  H.eq(s.fake.cursor, 7)
+  H.eq(s.fake.play_state, 0)
+  H.eq(#s.fake.undo, 0)
+  s:send('stop_fx_compare', 's2')
+  H.eq(s:events(), { { 'RANGE_FX_COMPARE_STOPPED', 's2', '0' } }, 'a second stop finds nothing running')
+end)
+
+H.test('the narrator stopping playback in REAPER ends the Compare and puts the chain back', function()
+  local s, p = project()
+  local middle, take = applied_clean(s, p)
+  s:send('fx_range_compare', 'c1', middle.guid, take.guid, CHAIN)
+  s:events()
+  heard(s, 15)
+  heard(s, 16)
+  H.eq(enabled(take), { false })
+  heard(s, 14.5)
+  s.fake.play_state = 0
+  s:tick()
+  H.eq(enabled(take), { true })
+  H.eq(#s.fake:transport_calls(), 3, 'the bridge presses nothing more')
+  s:send('stop_fx_compare', 's1')
+  H.eq(s:events(), { { 'RANGE_FX_COMPARE_STOPPED', 's1', '0' } })
+end)
+
+H.test('a pass that never reaches the words gives up and puts the chain back', function()
+  local s, p = project()
+  local middle, take = applied_clean(s, p)
+  take.fx[1].enabled = false
+  s:send('fx_range_compare', 'c1', middle.guid, take.guid, CHAIN)
+  s:events()
+  -- REAPER still reports a position past the words (a stale read): the pass does not count it as over.
+  s.fake.play_position2 = 40
+  for _ = 1, 200 do
+    s:tick()
+  end
+  H.eq(enabled(take), { false }, 'back as it was')
+  H.eq(s.fake:transport_calls(), { 'OnPlayButton', 'OnStopButton' })
+end)
+
+H.test('a second Compare ends the first before it starts, and a Compare running when the script ends is put back', function()
+  local s, p = project()
+  local middle, take = applied_clean(s, p)
+  s:send('fx_range_compare', 'c1', middle.guid, take.guid, CHAIN)
+  heard(s, 15)
+  heard(s, 16)
+  H.eq(enabled(take), { false })
+  s:send('fx_range_compare', 'c2', middle.guid, take.guid, CHAIN)
+  local events = s:events()
+  H.eq(events[#events], { 'RANGE_FX_COMPARE', 'c2', middle.guid, take.guid, CHAIN, '14', '16', '0' }, 'the chain was on before the first')
+  heard(s, 15)
+  heard(s, 16)
+  H.eq(enabled(take), { false })
+  s.fake:exit()
+  H.eq(enabled(take), { true })
+end)
+
+H.test('fx_range_compare refuses a stale effect, a bad chain name, recording and an old REAPER, and plays nothing', function()
+  local s, p = project()
+  local middle, take = applied_clean(s, p)
+  s:send('fx_range_compare', 'c1', '{00000000-0000-0000-0000-000000000000}', '', CHAIN)
+  H.eq(s:events(), { { 'ITEM_STALE', 'c1', '{00000000-0000-0000-0000-000000000000}', 'item' } })
+  s:send('fx_range_compare', 'c2', middle.guid, take.guid, '..\\evil.RfxChain')
+  H.eq(s:events(), { { 'ERROR', 'c2', BAD_CHAIN } })
+  s:send('fx_range_compare', 'c3', p.later.guid, '', CHAIN)
+  H.eq(s:events(), { { 'ITEM_STALE', 'c3', p.later.guid, 'fx' } })
+  s.fake.play_state = 5
+  s:send('fx_range_compare', 'c4', middle.guid, take.guid, CHAIN)
+  H.eq(s:events(), { { 'ERROR', 'c4', 'REAPER is recording. Stop recording first.' } })
+  s.fake.play_state = 0
+  s.fake.missing_api = { GetPlayPosition2 = true }
+  s:send('fx_range_compare', 'c5', middle.guid, take.guid, CHAIN)
+  H.eq(s:events(), { { 'ERROR', 'c5', COMPARE_UNSUPPORTED } })
+  H.eq(s.fake:transport_calls(), {})
+  H.eq(#switches(s), 0)
+  H.eq(enabled(take), { true })
+end)

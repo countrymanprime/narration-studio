@@ -2080,5 +2080,41 @@
     "file": "narration_range.lua",
     "find": "      if listed_count == MAX_FX_PARAMS then",
     "replace": "      if false then"
+  },
+  {
+    "name": "fx_range_compare: the chain is not put back as it was",
+    "file": "narration_range.lua",
+    "find": "    reaper.TakeFX_SetEnabled(current.take, fx, current.was[position])\n",
+    "replace": ""
+  },
+  {
+    "name": "fx_range_compare: the second pass plays with the chain on",
+    "file": "narration_range.lua",
+    "find": "      switch_chain(current, false)\n",
+    "replace": "      switch_chain(current, true)\n"
+  },
+  {
+    "name": "fx_range_compare: a stale position past the words counts as the pass heard",
+    "file": "narration_range.lua",
+    "find": "      if inside and playing() then",
+    "replace": "      if playing() then"
+  },
+  {
+    "name": "fx_range_compare: the edit cursor is not put back",
+    "file": "narration_range.lua",
+    "find": "  reaper.SetEditCurPos(current.cursor, false, false)\n",
+    "replace": ""
+  },
+  {
+    "name": "fx_range_compare: the switches are made inside an undo block",
+    "file": "narration_range.lua",
+    "find": "  switch_chain(current, true)\n  play_pass(current)\n",
+    "replace": "  reaper.Undo_BeginBlock2(0)\n  switch_chain(current, true)\n  reaper.Undo_EndBlock2(0, 'compare', -1)\n  play_pass(current)\n"
+  },
+  {
+    "name": "fx_range_compare: a running Compare is not ended before the next",
+    "file": "narration_range.lua",
+    "find": "  if playing() then\n    reaper.OnStopButton()\n  end\n  end_compare()\n  local was, bypassed",
+    "replace": "  if playing() then\n    reaper.OnStopButton()\n  end\n  local was, bypassed"
   }
 ]

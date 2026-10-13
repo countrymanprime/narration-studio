@@ -6,4 +6,5 @@ export const wordFxGoldens: Record<string, z.ZodType> = {
   'edit-wordfx-list.json': wordFxListSchema,
   'edit-wordfx-record.json': wordFxChangeSchema,
   'edit-wordfx-remove.json': wordFxChangeSchema,
+  'edit-wordfx-bypass.json': wordFxChangeSchema,
 };

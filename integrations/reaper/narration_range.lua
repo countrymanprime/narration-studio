@@ -107,6 +107,20 @@
 --
 -- Not run in REAPER (pending the QA pass, #1495): whether TakeFX_GetParam's bounds are the plug-in's units, whether a
 -- parameter change and a bypass are each one undo step that Undo reverses, and that both are heard.
+--
+-- fx_range_compare(run, item_guid, take_guid, chain) plays the piece that chain is on in the project twice, the effect's
+-- Compare (SN-E113): first with every FX of the chain on, then with them bypassed, and then puts each FX and the edit cursor
+-- back as they were. It finds the chain as fx_range_params does, with the same refusals, and refuses while recording. It
+-- stops any playback first and ends a Compare already running. A pass is over once REAPER has played inside the piece and
+-- left it; one that never reaches the piece within COMPARE_START_WAIT defer cycles ends the Compare, as does the narrator
+-- stopping playback and the script ending. The switches are made outside any undo block, so a Compare adds no undo point.
+-- Answers RANGE_FX_COMPARE|run|itemGuid|takeGuid|chain|start|end|bypassed at once (the piece's project seconds and whether
+-- the chain was bypassed before). stop_fx_compare(run) ends a running Compare early and answers
+-- RANGE_FX_COMPARE_STOPPED|run|stopped (1 when one was running).
+--
+-- Not run in REAPER (pending the QA pass, #1495): that TakeFX_SetEnabled outside an undo block adds no undo point in a
+-- deferred script, that GetPlayPosition2 leaves the piece within a cycle of its end, that the switch between passes is heard
+-- as a short gap, and that a plug-in's tail does not carry into the bypassed pass.
 
 local core = ...
 local event = core.event
@@ -1465,6 +1479,145 @@ local function fx_range_bypass(session_dir, run_id, item_text, take_text, name, 
   event(session_dir, 'RANGE_FX_BYPASSED', run_id, item_guid(item), take_guid(take), name, on_text, 1)
 end
 
+-- fx_range_compare, stop_fx_compare ---------------------------------------------------------------------------------
+
+local COMPARE_NEEDED = { 'OnPlayButton', 'OnStopButton', 'GetPlayState', 'GetPlayPosition2', 'SetEditCurPos', 'GetCursorPosition' }
+local COMPARE_UNSUPPORTED = 'This REAPER version cannot play an effect on words to compare it.'
+-- How many defer cycles a pass waits to hear the words (about two seconds at REAPER's usual rate) before it gives up.
+local COMPARE_START_WAIT = 60
+
+-- The Compare this bridge is playing: { take, slots, was, cursor, first, last, pass, waited, heard }, or nil.
+local compare_state = { current = nil, exit_registered = false }
+
+local function playing()
+  return reaper.GetPlayState() % 2 == 1
+end
+
+local function switch_chain(current, on)
+  for _, fx in ipairs(current.slots) do
+    reaper.TakeFX_SetEnabled(current.take, fx, on)
+  end
+end
+
+-- Ends the current Compare: each FX of the chain as it was, and the edit cursor back. True when one was running.
+local function end_compare()
+  local current = compare_state.current
+  if not current then
+    return false
+  end
+  compare_state.current = nil
+  for position, fx in ipairs(current.slots) do
+    reaper.TakeFX_SetEnabled(current.take, fx, current.was[position])
+  end
+  reaper.SetEditCurPos(current.cursor, false, false)
+  reaper.UpdateArrange()
+  return true
+end
+
+local function play_pass(current)
+  current.waited, current.heard = 0, false
+  reaper.SetEditCurPos(current.first, false, false)
+  reaper.OnPlayButton()
+end
+
+-- One defer cycle of a Compare: a pass is over once REAPER has played inside the words and then left them. A pass that never
+-- reaches the words (REAPER can report the old position for a cycle or two) gives up after COMPARE_START_WAIT cycles. Playback
+-- the narrator stopped ends the Compare.
+local function watch_compare(current)
+  local function tick()
+    if compare_state.current ~= current then
+      return
+    end
+    local at = reaper.GetPlayPosition2()
+    local inside = at >= current.first - EDGE_TOLERANCE and at < current.last
+    if not current.heard then
+      if inside and playing() then
+        current.heard = true
+      else
+        current.waited = current.waited + 1
+        if current.waited >= COMPARE_START_WAIT then
+          if playing() then
+            reaper.OnStopButton()
+          end
+          end_compare()
+          return
+        end
+      end
+    elseif not playing() then
+      end_compare()
+      return
+    elseif not inside then
+      reaper.OnStopButton()
+      if current.pass == 2 then
+        end_compare()
+        return
+      end
+      current.pass = 2
+      switch_chain(current, false)
+      play_pass(current)
+    end
+    reaper.defer(tick)
+  end
+  reaper.defer(tick)
+end
+
+local function fx_range_compare(session_dir, run_id, item_text, take_text, name)
+  if not chain_parts(name) then
+    event(session_dir, 'ERROR', run_id, BAD_CHAIN)
+    return
+  end
+  if not fx_edit_supported(session_dir, run_id) then
+    return
+  end
+  for _, call in ipairs(COMPARE_NEEDED) do
+    if not reaper.APIExists(call) then
+      event(session_dir, 'ERROR', run_id, COMPARE_UNSUPPORTED)
+      return
+    end
+  end
+  if recording() then
+    event(session_dir, 'ERROR', run_id, RECORDING)
+    return
+  end
+  local item, take, slots = applied_chain(session_dir, run_id, item_text, take_text, name)
+  if not item then
+    return
+  end
+  if playing() then
+    reaper.OnStopButton()
+  end
+  end_compare()
+  local was, bypassed = {}, 1
+  for position, fx in ipairs(slots) do
+    was[position] = reaper.TakeFX_GetEnabled(take, fx) and true or false
+    if was[position] then
+      bypassed = 0
+    end
+  end
+  local first = reaper.GetMediaItemInfo_Value(item, 'D_POSITION')
+  local last = first + reaper.GetMediaItemInfo_Value(item, 'D_LENGTH')
+  local current = { take = take, slots = slots, was = was, cursor = reaper.GetCursorPosition(), first = first, last = last, pass = 1 }
+  compare_state.current = current
+  if not compare_state.exit_registered and reaper.atexit then
+    compare_state.exit_registered = true
+    -- The narrator can end the launcher script (or quit REAPER) mid-Compare: the chain is put back as it was then.
+    reaper.atexit(end_compare)
+  end
+  switch_chain(current, true)
+  play_pass(current)
+  watch_compare(current)
+  event(session_dir, 'RANGE_FX_COMPARE', run_id, item_guid(item), take_guid(take), name, num(first), num(last), bypassed)
+end
+
+local function stop_fx_compare(session_dir, run_id)
+  local running = compare_state.current ~= nil
+  if running and playing() and not recording() then
+    reaper.OnStopButton()
+  end
+  end_compare()
+  event(session_dir, 'RANGE_FX_COMPARE_STOPPED', run_id, running and 1 or 0)
+end
+
 return function(registry)
   registry.register('delete_range', function(ctx, args)
     local fade, pad, tone = cut_tail(args[6])
@@ -1491,5 +1644,11 @@ return function(registry)
   end)
   registry.register('fx_range_bypass', function(ctx, args)
     fx_range_bypass(ctx.session_dir, args[1] or '', args[2] or '', args[3] or '', args[4] or '', args[5] or '')
+  end)
+  registry.register('fx_range_compare', function(ctx, args)
+    fx_range_compare(ctx.session_dir, args[1] or '', args[2] or '', args[3] or '', args[4] or '')
+  end)
+  registry.register('stop_fx_compare', function(ctx, args)
+    stop_fx_compare(ctx.session_dir, args[1] or '')
   end)
 end
