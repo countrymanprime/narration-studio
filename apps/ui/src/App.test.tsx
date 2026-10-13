@@ -1482,6 +1482,18 @@ describe('App shell mounts', () => {
     return button;
   };
 
+  // The chapters slot answers after the shell has mounted, and a late answer can redraw the open menu. So the filter is applied again on
+  // every poll rather than once: the wait ends as soon as the chapters are listed.
+  const chapterOptions = () =>
+    waitFor(() => {
+      const field = screen.getByRole('combobox', { name: 'Jump menu' });
+      fireEvent.change(field, { target: { value: '' } });
+      fireEvent.change(field, { target: { value: 'Go to Chapter' } });
+      const options = screen.getAllByRole('option', { name: /^Go to Chapter/ });
+      expect(options.length).toBeGreaterThan(0);
+      return options;
+    });
+
   it('overlay-host-is-mounted-once: overlay.confirm from outside React shows one confirm over the page', async () => {
     const { overlay } = await import('./overlay/overlayService');
     renderApp();
@@ -1515,9 +1527,7 @@ describe('App shell mounts', () => {
   it('jump-menu-chapters-come-from-the-slot: lists "Go to <chapter>" for every chapter of the manuscript', async () => {
     renderApp();
     await openJumpFromHeader();
-    const field = await screen.findByRole('combobox', { name: 'Jump menu' });
-    fireEvent.change(field, { target: { value: 'Go to Chapter' } });
-    expect((await screen.findAllByRole('option', { name: /^Go to Chapter/ })).length).toBeGreaterThan(0);
+    expect((await chapterOptions()).length).toBeGreaterThan(0);
   });
 
   it('jump-menu-chapters-come-from-the-slot: with no manuscript the list is empty and nothing is loaded', async () => {
@@ -1562,10 +1572,7 @@ describe('App shell mounts', () => {
       subscribeJobEnded: (cb) => (listeners.add(cb as never), () => void listeners.delete(cb as never)),
     });
     await openJumpFromHeader();
-    const field = await screen.findByRole('combobox', { name: 'Jump menu' });
-    fireEvent.change(field, { target: { value: 'Go to Chapter' } });
-    // The chapters slot answers after the shell has mounted.
-    const before = (await screen.findAllByRole('option', { name: /^Go to Chapter/ })).length;
+    const before = (await chapterOptions()).length;
     fail = true;
     vi.spyOn(console, 'error').mockImplementation(() => undefined);
     await act(async () => ended({ id: 'j', kind: 'manuscript_import', outcome: 'success', message: '', durationMs: 1 } as never));
