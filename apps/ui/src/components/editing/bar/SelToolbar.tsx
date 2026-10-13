@@ -40,7 +40,7 @@ export function SelToolbar({ host, playback, hidden = false }: { host: RefObject
       />
       {actions.map((a) => (
         <span key={a.id} className="contents">
-          {a.render({ doc, keys: selected, summary, allCut })}
+          {a.render({ doc, keys: selected, summary, allCut, place: 'toolbar' })}
         </span>
       ))}
     </div>

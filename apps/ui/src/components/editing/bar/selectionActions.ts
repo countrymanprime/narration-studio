@@ -10,6 +10,9 @@ interface SelectionActionContext {
   summary: SelSummary;
   /** Every selected word is cut, so Restore takes the place of Add FX, Mute and Delete. */
   allCut: boolean;
+  /** Where the action is drawn, and whether the bar is narrow (the mock's `layout.medium`): Delete names itself in full only in the wide bar. */
+  place: 'bar' | 'toolbar';
+  narrow?: boolean;
 }
 
 export interface SelectionAction {
