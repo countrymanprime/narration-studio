@@ -54,7 +54,8 @@ function optionDescription(option: DawChoiceOption) {
     );
   }
   const { record } = option;
-  if (record.level === 'experimental') lines.push(<span key="level">Experimental. </span>);
+  // The resolver's sentence for an Experimental capability switched off already says so; one that is on is marked here.
+  if (record.level === 'experimental' && record.reason !== 'experimental_off') lines.push(<span key="level">Experimental. </span>);
   if (!record.available && record.message) {
     lines.push(
       <span key="record">
@@ -62,7 +63,7 @@ function optionDescription(option: DawChoiceOption) {
         {record.reason === 'experimental_off' && (
           <>
             {' '}
-            Turn on Experimental actions under <DawSettingsLink>DAW Integration</DawSettingsLink>.
+            Turn on the Experimental switch under <DawSettingsLink>DAW Integration</DawSettingsLink>.
           </>
         )}
       </span>,
@@ -111,7 +112,7 @@ function DawStatus({ choice, busy, onLinkFound, onPickFile, onStart, starting }:
   return (
     <div className="flex flex-col gap-2 rounded-md p-3 text-sm" style={{ background: 'var(--surface-2)' }} data-testid="recording-daw-status">
       <div className="flex items-center gap-3">
-        <Dot color={state === 'connected' ? 'var(--character)' : state === 'not_linked' ? 'var(--warning-text)' : 'var(--non-text)'} />
+        <Dot color={state === 'connected' ? 'var(--character)' : state === 'not_linked' ? 'var(--warn)' : 'var(--non-text)'} />
         <div>
           <div className="font-medium">{title}</div>
           <div style={{ color: 'var(--text-muted)' }}>{detail}</div>
