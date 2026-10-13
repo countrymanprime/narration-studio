@@ -42,7 +42,7 @@ func undoneInREAPER() dawport.Result {
 }
 
 func undonePartlyInREAPER() dawport.Result {
-	return dawport.OK("Undid 2 of the 3 cuts in REAPER. Something else was done in REAPER since the rest, so they were left alone. Use Edit > Undo in REAPER for them.", true).WithUndoSteps(0)
+	return dawport.OK("Undid 2 of the 3 cuts in REAPER. The rest are no longer REAPER's last actions, so they were left alone. Use Edit > Undo in REAPER for them.", true).WithUndoSteps(0)
 }
 
 func notLastInREAPER() dawport.Result {

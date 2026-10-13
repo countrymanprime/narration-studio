@@ -82,7 +82,7 @@ func TestUndoLastAnswersADawResult(t *testing.T) {
 	}{
 		{1, 1, dawport.OK("Undid the cut in REAPER.", true).WithUndoSteps(0)},
 		{3, 3, dawport.OK("Undid the last 3 cuts in REAPER.", true).WithUndoSteps(0)},
-		{4, 2, dawport.OK("Undid 2 of the 4 cuts in REAPER. Something else was done in REAPER since the rest, so they were left alone. Use Edit > Undo in REAPER for them.", true).WithUndoSteps(0)},
+		{4, 2, dawport.OK("Undid 2 of the 4 cuts in REAPER. The rest are no longer REAPER's last actions, so they were left alone. Use Edit > Undo in REAPER for them.", true).WithUndoSteps(0)},
 		{1, 0, dawport.Refused("REAPER's last action is not this one, so it was left alone. Use Edit > Undo in REAPER.")},
 		{5, 0, dawport.Refused("REAPER's last action is not this one, so it was left alone. Use Edit > Undo in REAPER.")},
 	} {
