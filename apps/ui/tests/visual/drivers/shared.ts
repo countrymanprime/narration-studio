@@ -447,7 +447,7 @@ export async function selectReaderWord(page: Page, word: string): Promise<void> 
 
 /** Links a chapter to its first available track from the engine panel's Chapter links table (the same real-UI path
  * 'chapter-link-confirmed' above uses), then follows its "Open in Proof" link to `/proof/:chapterId` and waits for the chapter
- * view to render: no chapter starts linked by default in the mock. */
+ * view to render: only Chapter 1 starts linked by default in the mock. */
 export async function openLinkedProofChapter(page: Page, chapterTitle: string): Promise<void> {
   await openEnginePanel(page);
   const table = page.getByRole('table', { name: 'Chapter links' });
@@ -456,8 +456,16 @@ export async function openLinkedProofChapter(page: Page, chapterTitle: string): 
   // The cell's full name may carry the chapter's subtitle after " — ", so
   // the match allows that suffix rather than requiring an exact "Chapter 1".
   const row = table.locator('tbody tr').filter({ has: page.getByRole('cell', { name: new RegExp(`^${chapterTitle}( — |$)`) }) });
-  await row.getByRole('combobox').selectOption({ index: 0 });
-  await row.getByRole('button', { name: 'Confirm' }).click();
+  // Chapter 1 boots linked (an unset ?mockChapterLink is `confirmed`), so it has no track to choose; any other chapter is linked here.
+  await row
+    .getByRole('combobox')
+    .or(row.getByRole('link', { name: 'Open in Proof' }))
+    .first()
+    .waitFor();
+  if (await row.getByRole('combobox').count()) {
+    await row.getByRole('combobox').selectOption({ index: 0 });
+    await row.getByRole('button', { name: 'Confirm' }).click();
+  }
   await row.getByRole('link', { name: 'Open in Proof' }).click();
   await page.getByRole('heading', { level: 1, name: new RegExp(`^Proof · ${chapterTitle}( — |$)`) }).waitFor();
 }
