@@ -1,6 +1,8 @@
 package findings
 
 import (
+	"os"
+	"path/filepath"
 	"testing"
 )
 
@@ -134,5 +136,53 @@ func TestTheThreadSurvivesADecisionARetypeAndARerun(t *testing.T) {
 	rerun, _ := store.SaveAnalyzerFindings("transcript_compare", "c-0001", []Finding{testFinding("f1", "c-0001", "v2")})
 	if !sameTexts(rerun[0].Review.Thread, "proofer:kept") || rerun[0].Review.Status != StatusUnreviewed {
 		t.Fatalf("after a re-run = %+v", rerun[0].Review)
+	}
+}
+
+func TestAThreadNoteCannotBeDeletedTwiceOrRestoredWhileShown(t *testing.T) {
+	store := threadStore(t)
+	added, _, err := store.RecordThread("f1", ThreadEntry{Op: ThreadAdd, Who: ThreadYou, Text: "once"}, "t1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	id := added.Review.Thread[0].ID
+	if _, _, err := store.RecordThread("f1", ThreadEntry{Op: ThreadRestore, MessageID: id}, "t2"); err == nil {
+		t.Fatal("expected a refusal: the note is not deleted")
+	}
+	if _, _, err := store.RecordThread("f1", ThreadEntry{Op: ThreadDelete, MessageID: id}, "t3"); err != nil {
+		t.Fatal(err)
+	}
+	if _, _, err := store.RecordThread("f1", ThreadEntry{Op: ThreadDelete, MessageID: id}, "t4"); err == nil {
+		t.Fatal("expected a refusal: the note is already deleted")
+	}
+}
+
+func TestAThreadNoteOnAFindingNotStoredYetIsKeptForLater(t *testing.T) {
+	store := NewStore(t.TempDir())
+	if _, found, err := store.RecordThread("later", ThreadEntry{Op: ThreadAdd, Who: ThreadYou, Text: "kept"}, "t1"); err != nil || found {
+		t.Fatalf("RecordThread = %v, %v; want recorded and not found", found, err)
+	}
+	saved, err := store.SaveAnalyzerFindings("transcript_compare", "c-0001", []Finding{testFinding("later", "c-0001", "v1")})
+	if err != nil || !sameTexts(saved[0].Review.Thread, "you:kept") {
+		t.Fatalf("a later run = %+v (%v), want the note applied", saved, err)
+	}
+}
+
+func TestRecordThreadFailsWhenTheHistoryOrTheScopeFileCannotBeWritten(t *testing.T) {
+	project := t.TempDir()
+	if err := os.MkdirAll(filepath.Join(project, "narration-utils", "findings", "review.json"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if _, _, err := NewStore(project).RecordThread("f1", ThreadEntry{Op: ThreadAdd, Who: ThreadYou, Text: "hi"}, "t"); err == nil {
+		t.Fatal("expected an error: review.json is a directory")
+	}
+
+	store := threadStore(t)
+	scopePath := filepath.Join(store.project, "narration-utils", "findings", "transcript_compare", "c-0001.json")
+	if err := os.MkdirAll(scopePath+".tmp", 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if _, _, err := store.RecordThread("f1", ThreadEntry{Op: ThreadAdd, Who: ThreadYou, Text: "hi"}, "t"); err == nil {
+		t.Fatal("expected an error: the scope file's .tmp write target is a directory")
 	}
 }
