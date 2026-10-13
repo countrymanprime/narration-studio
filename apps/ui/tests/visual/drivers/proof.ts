@@ -80,14 +80,14 @@ export const proofDrivers: Record<string, Driver> = {
     await page.getByText('Checking the recording against the script…').waitFor({ state: 'attached' });
   },
   'notes-filtered': async (page) => {
-    await openProof(page);
+    await openProof(page, 'mockChapterLink=none');
     await notes(page)
       .getByRole('button', { name: /^To review/ })
       .click();
     await notes(page).getByRole('heading', { name: /of 4$/ }).waitFor();
   },
   'find-open': async (page) => {
-    await openProof(page);
+    await openProof(page, 'mockChapterLink=none');
     await notes(page).getByRole('button', { name: 'Find in notes' }).click();
     await notes(page).getByPlaceholder('Find in notes').fill('rabbit');
     await notes(page).getByRole('heading', { name: /of 4$/ }).waitFor();

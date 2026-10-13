@@ -119,8 +119,9 @@ export function CheckCard({ chapter, onCheck }: { chapter: ManuscriptChapter; on
     };
   }, [coverage, chapterId, load]);
 
-  // A stored result is shown only for a recording that is measured: a check cannot be "up to date" against nothing.
-  const stored = hasRecording(chapter.recordedSeconds) ? loaded?.result : undefined;
+  // A check cannot be "up to date" against a recording that is not measured: that result is not shown. An out-of-date one still is, as it says so.
+  const shownResult = loaded && (hasRecording(chapter.recordedSeconds) || loaded.result.state !== 'current');
+  const stored = shownResult ? loaded.result : undefined;
   const state = cardState(stored, run !== undefined);
   const hasResult = stored?.result !== undefined && (state === 'current' || state === 'stale');
   const all = cardFindings(hasResult ? loaded?.result : undefined, loaded?.reviews ?? {}, hasResult ? (loaded?.audio ?? []) : []);
