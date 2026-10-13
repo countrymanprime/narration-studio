@@ -164,6 +164,31 @@ describe('CommandRouter', () => {
     input.remove();
   });
 
+  it('a command that leaves text fields their own gesture does not run in a field, and runs from a button or the body', () => {
+    const source = fakeSource();
+    const onFire = vi.fn();
+    const undo: CommandDescriptor = { ...GLOBAL_COMMAND, id: 'test.undo', fieldsKeep: true };
+    render(
+      <CommandRouter source={source} catalog={[undo]} keymap={{ [undo.id]: [gesture('keyboard', 'KeyZ', ['Ctrl'])] }}>
+        <Registrar id="test.undo" onFire={onFire} />
+      </CommandRouter>,
+    );
+    const field = document.createElement('textarea');
+    const button = document.createElement('button');
+    document.body.append(field, button);
+    const preventDefault = vi.fn();
+
+    act(() => source.emit({ gesture: gesture('keyboard', 'KeyZ', ['Ctrl']), target: field, preventDefault }));
+    expect(onFire).not.toHaveBeenCalled();
+    expect(preventDefault).not.toHaveBeenCalled();
+
+    act(() => source.emit({ gesture: gesture('keyboard', 'KeyZ', ['Ctrl']), target: button }));
+    act(() => source.emit({ gesture: gesture('keyboard', 'KeyZ', ['Ctrl']), target: document.body }));
+    expect(onFire).toHaveBeenCalledTimes(2);
+    field.remove();
+    button.remove();
+  });
+
   it('resolves the page-scoped command while on a plain page', () => {
     const source = fakeSource();
     const onFire = vi.fn();

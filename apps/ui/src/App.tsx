@@ -447,6 +447,11 @@ function AppRoutes() {
   });
   const dawName = () => (dawKind ? dawShortName(dawKind) : 'the DAW');
   const openHistory = () => void openHistoryPanel(overlay, journal, dawName);
+  const undoLast = async () => {
+    const [newest] = await journal.entries();
+    const result = await journal.undoLast();
+    overlay.toast(result.ok ? `Undid ${newest?.label ?? 'the last change'}` : result.refusal.reason);
+  };
   // What the jump menu's catalogue rows run: the same actions as the keys and the header's buttons. A page's own command stays its own.
   const shellCommands = useRef<Record<string, () => void>>({});
   shellCommands.current = {
@@ -457,6 +462,7 @@ function AppRoutes() {
     'zoom.reset': () => void zoom.reset(),
     'help.shortcuts': () => setShortcutsOpen(true),
     'history.open': openHistory,
+    'undo.last': () => void undoLast(),
     'companion.open': () => guardedNavigateRef.current('/companion'),
   };
   const openJump = (initialTerm?: string) => void openJumpMenu({ keymap, runCommand: (id) => shellCommands.current[id]?.(), initialTerm, service: overlay });
@@ -466,11 +472,9 @@ function AppRoutes() {
   useCommand('history.open', () => {
     if (!isModalOpen()) openHistory();
   });
-  const undoLast = async () => {
-    const [newest] = await journal.entries();
-    const result = await journal.undoLast();
-    overlay.toast(result.ok ? `Undid ${newest?.label ?? 'the last change'}` : result.refusal.reason);
-  };
+  useCommand('undo.last', () => {
+    if (!isModalOpen()) void undoLast();
+  });
   // The menu on empty space in <main> (the mock's page menu): where to go, the jump menu, view. Zoom steps are the header's own.
   const contextMenu = {
     fallback: (): ContextMenuItem[] => [

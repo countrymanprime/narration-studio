@@ -1653,6 +1653,33 @@ describe('App shell mounts', () => {
     expect(await screen.findByText('Renaming cannot be undone here.')).toBeTruthy();
   });
 
+  it('ctrl-z-undoes-the-last-change: Ctrl+Z with focus on the page body undoes the newest entry', async () => {
+    const journal = newJournal();
+    const undo = vi.fn(async () => ({ ok: true as const, value: 1 }));
+    await journal.act({ label: 'Added a bookmark', touches: ['bookmarks'], run: async () => ({ ok: true, value: 1 }), undo });
+    renderWithJournal(journal);
+    await screen.findByRole('heading', { level: 1, name: 'Production' });
+    fireEvent.keyDown(document.body, { code: 'KeyZ', key: 'z', ctrlKey: true });
+    await waitFor(() => expect(undo).toHaveBeenCalledTimes(1));
+    expect(await screen.findByText('Undid Added a bookmark')).toBeTruthy();
+  });
+
+  it('ctrl-z-undoes-the-last-change: in a text field Ctrl+Z is the field’s own undo and the journal is left alone', async () => {
+    const journal = newJournal();
+    const undo = vi.fn(async () => ({ ok: true as const, value: 1 }));
+    await journal.act({ label: 'Added a bookmark', touches: ['bookmarks'], run: async () => ({ ok: true, value: 1 }), undo });
+    renderWithJournal(journal);
+    await screen.findByRole('heading', { level: 1, name: 'Production' });
+    const field = document.createElement('input');
+    document.body.appendChild(field);
+    field.focus();
+    const notPrevented = fireEvent.keyDown(field, { code: 'KeyZ', key: 'z', ctrlKey: true });
+    expect(notPrevented).toBe(true);
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    expect(undo).not.toHaveBeenCalled();
+    field.remove();
+  });
+
   it('leave-guard-is-asked-before-navigating: a guard that asks shows the confirm; Cancel stays, Yes goes', async () => {
     const journal = createJournal({ dawName: () => 'REAPER', dawLastAction: async () => 'unknown' });
     render(

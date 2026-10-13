@@ -57,6 +57,16 @@ describe('the history row', () => {
   });
 });
 
+describe('the undo row', () => {
+  it('undo-last-row: Mod+Z, global, in the jump menu, and a text field keeps its own', () => {
+    const row = findCommand('undo.last');
+    expect(row?.scope).toBe('global');
+    expect(row?.defaults.map((gesture) => `${gesture.modifiers.join('+')}+${gesture.code}`)).toEqual(['Mod+KeyZ']);
+    expect(row?.surfaces).toEqual(['jumpMenu', 'help', 'settings']);
+    expect(row?.fieldsKeep).toBe(true);
+  });
+});
+
 describe('the Booth rows', () => {
   const codes = (id: string) => findCommand(id)?.defaults.map((gesture) => [...gesture.modifiers, gesture.code].join('+'));
 
