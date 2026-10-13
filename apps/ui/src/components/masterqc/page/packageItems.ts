@@ -66,7 +66,7 @@ export function packageItems(profile: DeliveryProfile | undefined, files: readon
  * (`chapterStates`), so a chapter with no file is not ready, plus a row per measured file no chapter claims (a file named for
  * nothing in the manuscript still fails the package if it fails its checks).
  */
-export function packageStates(chapters: readonly ManuscriptChapter[], files: readonly MeasureFileResult[]): ChapterState[] {
+function packageStates(chapters: readonly ManuscriptChapter[], files: readonly MeasureFileResult[]): ChapterState[] {
   const stray = files.filter((file) => !isSample(file) && !chapterOfFile(file, chapters)).map((file) => stateOf({ id: file.path, name: file.name }, file));
   return [...chapterStates(chapters, files), ...stray];
 }
@@ -82,4 +82,4 @@ export function packageCounts(chapters: readonly ManuscriptChapter[], files: rea
 }
 
 /** Whether any file has a measurement behind it: with none, no package check has been tried and none can read as passing. */
-export const anyMeasured = (files: readonly MeasureFileResult[]): boolean => measured(files).length > 0;
+const anyMeasured = (files: readonly MeasureFileResult[]): boolean => measured(files).length > 0;
