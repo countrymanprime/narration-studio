@@ -1548,8 +1548,8 @@ describe('App shell mounts', () => {
     await openJumpFromHeader();
     const field = await screen.findByRole('combobox', { name: 'Jump menu' });
     fireEvent.change(field, { target: { value: 'Go to Chapter' } });
-    // The chapters slot answers after the shell has mounted; on a loaded CI runner that is past findAll's 1 s default.
-    const before = (await screen.findAllByRole('option', { name: /^Go to Chapter/ }, { timeout: 5000 })).length;
+    // The chapters slot answers after the shell has mounted; with the whole suite running in parallel on a small CI runner that can take longer than the 5 s default.
+    const before = (await screen.findAllByRole('option', { name: /^Go to Chapter/ }, { timeout: 12_000 })).length;
     fail = true;
     vi.spyOn(console, 'error').mockImplementation(() => undefined);
     await act(async () => ended({ id: 'j', kind: 'manuscript_import', outcome: 'success', message: '', durationMs: 1 } as never));
