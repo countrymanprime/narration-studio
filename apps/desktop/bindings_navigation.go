@@ -21,13 +21,16 @@ import (
 
 // p5aAdapter is dawport.Adapter over the objects configureLocked already builds for the Review page's navigator and
 // the action commands (ADR 0300): it hands the same *bridge.Navigator and *bridge.Actions out as the
-// Navigate, Markers, Track state, Track select and Regions roles rather than opening a second dawport/reaper.Adapter
-// over the same client, which would race its own run IDs against h.actions' (bridge/actions.go). Its declaration
-// mirrors dawport/reaper's for exactly these five capabilities; the other REAPER capabilities stay off
-// dawPortResolver's map until a later phase moves their own consumers onto it.
+// Navigate, Markers, Track state, Track select, Regions and Record roles rather than opening a second
+// dawport/reaper.Adapter over the same client, which would race its own run IDs against h.actions' (bridge/actions.go).
+// Punch, for the Booth's punch and roll (puncherFrom), is the puncher configureLocked already took from its
+// dawport/reaper.Adapter for DawRoll. Its declaration mirrors dawport/reaper's for exactly these seven capabilities
+// (TestP5aAdapterServesRecordAndPunchAtREAPERsLevel); the other REAPER capabilities stay off dawPortResolver's map
+// until a later phase moves their own consumers onto it.
 type p5aAdapter struct {
 	navigator *bridge.Navigator
 	actions   *bridge.Actions
+	puncher   dawport.Puncher
 }
 
 func (p5aAdapter) Kind() dawport.Kind { return dawport.KindREAPER }
@@ -39,6 +42,8 @@ func (p5aAdapter) Declares() map[dawport.Capability]dawport.Level {
 		dawport.CapTrackState:  dawport.Experimental,
 		dawport.CapTrackSelect: dawport.Experimental,
 		dawport.CapRegions:     dawport.Experimental,
+		dawport.CapRecord:      dawport.Experimental,
+		dawport.CapPunch:       dawport.Experimental,
 	}
 }
 
@@ -46,8 +51,13 @@ func (a p5aAdapter) Role(c dawport.Capability) any {
 	switch c {
 	case dawport.CapNavigate, dawport.CapMarkers:
 		return a.navigator
-	case dawport.CapTrackState, dawport.CapTrackSelect, dawport.CapRegions:
+	case dawport.CapTrackState, dawport.CapTrackSelect, dawport.CapRegions, dawport.CapRecord:
 		return a.actions
+	case dawport.CapPunch:
+		if a.puncher == nil {
+			return nil
+		}
+		return a.puncher
 	default:
 		return nil
 	}
