@@ -29,10 +29,13 @@ type dawFolderFacts struct {
 
 // dawFolderCache holds one dawFolderFacts per folder for dawFolderTTL. It has its own lock, so reading it never needs h.mu.
 type dawFolderCache struct {
-	mu     sync.Mutex
+	mu sync.Mutex
+	// +checklocks:mu
 	folder string
-	at     time.Time
-	facts  dawFolderFacts
+	// +checklocks:mu
+	at time.Time
+	// +checklocks:mu
+	facts dawFolderFacts
 }
 
 // read answers folder's facts, from the cache while it is fresh.
