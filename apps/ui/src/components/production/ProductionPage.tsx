@@ -157,6 +157,16 @@ export function ProductionPage({
     daw.capabilities().then(setCaps, () => setCaps(undefined));
   }, [daw]);
   useEffect(() => readCaps(), [readCaps]);
+  // The banner's Retry reads the DAW again and, when it is still not running, says so (the mock's toast); a DAW now running drops the banner.
+  const retryDaw = useCallback(() => {
+    daw.capabilities().then(
+      (next) => {
+        setCaps(next);
+        if (!next.reachable) notify(`Still not running. Start ${next.daw} and try again.`);
+      },
+      (error: unknown) => notify(describeApiError(error), 'error'),
+    );
+  }, [daw, notify]);
 
   // The open lines of the Pickups page's list, so the tile, Next up and the pickup hours count what that page lists.
   const openLines = useOpenPickups();
@@ -212,6 +222,14 @@ export function ProductionPage({
     active: found,
     refreshKey: manuscriptKey,
     onChanged,
+    daw: {
+      name: caps && caps.daw !== 'none' ? caps.daw : 'your DAW',
+      unavailable: !caps
+        ? 'Checking the audio engine…'
+        : caps.capabilities.track_select?.available
+          ? undefined
+          : caps.capabilities.track_select?.message || 'This audio engine cannot select a track.',
+    },
   });
 
   // Chapter sync: the batch toast with Undo, and a re-read of the chapters on every later `chaptersync:state`.
@@ -280,7 +298,7 @@ export function ProductionPage({
 
   return (
     <div className="mx-auto flex max-w-[96rem] flex-col gap-4">
-      {caps && !caps.reachable && caps.daw !== 'none' && <DawBanner reachable={false} daw={caps.daw} onRetry={readCaps} onUseBuiltIn={() => go('/settings')} />}
+      {caps && !caps.reachable && caps.daw !== 'none' && <DawBanner reachable={false} daw={caps.daw} onRetry={retryDaw} onUseBuiltIn={() => go('/settings')} />}
       <PageHeader
         chapters={narrated.length}
         words={k.words}

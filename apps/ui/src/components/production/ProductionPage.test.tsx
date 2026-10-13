@@ -10,6 +10,7 @@ import { MemoryRouter } from 'react-router-dom';
 import { ApiProvider } from '../../api/ApiContext';
 import { createMockApi } from '../../api/mockApi';
 import { PRODUCTION_SCENARIOS } from '../../api/productionMock';
+import { DAW_SETUPS } from '../../fixtures/daw';
 import { overlay } from '../../overlay/overlayService';
 import { OverlayHost } from '../../overlay/OverlayHost';
 import { contextItemsFor } from '../../registries/context';
@@ -155,6 +156,16 @@ describe('timer-and-chip-still-work', () => {
   });
 });
 
+describe('daw-banner-retry', () => {
+  it('reads the DAW again on Retry and says so when it is still not running (the mock)', async () => {
+    const dawCapabilities = vi.fn(async () => structuredClone(DAW_SETUPS['reaper-off']));
+    const { notify } = await renderPage({ overrides: { dawCapabilities } });
+    await userEvent.click(await screen.findByRole('button', { name: 'Retry' }));
+    await waitFor(() => expect(notify).toHaveBeenCalledWith('Still not running. Start REAPER and try again.'));
+    expect(dawCapabilities.mock.calls.length).toBeGreaterThanOrEqual(2);
+  });
+});
+
 describe('chapter-sync-feeds-survive', () => {
   it('reads the chapters again on a later chaptersync:state', async () => {
     const { api } = await renderPage();
@@ -193,6 +204,39 @@ describe('the row menu keeps the features the mock has none for', () => {
         ?.onSelect(),
     );
     expect(await screen.findByRole('dialog', { name: /^Recording check: / })).toBeTruthy();
+  });
+
+  // REAPER with Select a track switched on.
+  const selecting = async () => {
+    const setup = structuredClone(DAW_SETUPS.reaper);
+    setup.capabilities.track_select = { level: 'experimental', available: true };
+    return setup;
+  };
+
+  it("goes to a linked chapter's track in the DAW, as the mock's Go to this chapter in REAPER", async () => {
+    const trackSelectInReaper = vi.fn(async (trackGuid: string) => ({ outcome: 'selected' as const, trackGuid }));
+    const { notify } = await renderPage({ overrides: { trackSelectInReaper, dawCapabilities: selecting }, initial: { chapterSync: 'activity' } });
+    const table = await pipeline();
+    const row = within(table).getAllByRole('row')[2];
+    const goto = () => contextItemsFor(row)?.find((item) => item.key === 'goto');
+    await waitFor(() => expect(goto()?.unavailable).toBeUndefined());
+    expect(goto()?.label).toBe('Go to this chapter in REAPER');
+    act(() => goto()?.onSelect());
+    await waitFor(() => expect(trackSelectInReaper).toHaveBeenCalledTimes(1));
+    await waitFor(() => expect(notify).toHaveBeenCalledWith('Selected in REAPER.'));
+  });
+
+  it('says why Go to this chapter is off: the DAW cannot select a track, or the chapter has no linked track', async () => {
+    await renderPage();
+    const offTable = await pipeline();
+    const offRow = within(offTable).getAllByRole('row')[2];
+    await waitFor(() => expect(contextItemsFor(offRow)?.find((item) => item.key === 'goto')?.unavailable).toMatch(/Experimental/));
+    cleanup();
+    await renderPage({ overrides: { dawCapabilities: selecting } });
+    const table = await pipeline();
+    const row = within(table).getAllByRole('row')[2];
+    await waitFor(() => expect(contextItemsFor(row)?.find((item) => item.key === 'recording')?.unavailable).toBeUndefined());
+    expect(contextItemsFor(row)?.find((item) => item.key === 'goto')?.unavailable).toMatch(/No chapter track is linked/);
   });
 
   it('matches nothing outside the pipeline', async () => {

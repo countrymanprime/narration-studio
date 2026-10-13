@@ -45,6 +45,8 @@ type Options = {
   refreshKey: string;
   /** Reads the overview and the readiness again after a status, a link or a measurement changed. */
   onChanged: () => void;
+  /** The DAW the row menu's "Go to this chapter in …" names, and why selecting a track there is off (its `track_select` capability). */
+  daw: { name: string; unavailable?: string };
 };
 
 /**
@@ -54,7 +56,7 @@ type Options = {
  * Returns the row menu's items for a target, the panels, the opener the page's Edit cell uses, and the track links the chapter-sync
  * toast names a track from.
  */
-export function useChapterTools({ rows, credits, notify, go, goToScript, goToEditing, active, refreshKey, onChanged }: Options) {
+export function useChapterTools({ rows, credits, notify, go, goToScript, goToEditing, active, refreshKey, onChanged, daw }: Options) {
   const api = useApi();
   const [chapters, setChapters] = useState<ManuscriptChapter[]>();
   const [trackLinks, setTrackLinks] = useState<ChapterTrackLinks>();
@@ -111,6 +113,20 @@ export function useChapterTools({ rows, credits, notify, go, goToScript, goToEdi
   );
 
   // Remove rethrows on failure so the slide-over's confirm stays open for a retry.
+  // The mock's "Go to this chapter in <DAW>": selects the chapter's linked track there, the chapter track panel's Select call.
+  const selectTrack = useCallback(
+    async (trackGuid: string, dawName: string) => {
+      try {
+        const result = await api.trackSelectInReaper(trackGuid);
+        if (result.outcome === 'selected') notify(`Selected in ${dawName}.`);
+        else notify(result.message || `${dawName} could not select that track.`, 'error');
+      } catch (error) {
+        notify(describeApiError(error), 'error');
+      }
+    },
+    [api, notify],
+  );
+
   const afterKind = async () => {
     await loadChapters();
     await loadTrackLinks();
@@ -148,13 +164,22 @@ export function useChapterTools({ rows, credits, notify, go, goToScript, goToEdi
   );
 
   // The items close over the latest state, read when the menu opens.
-  const latest = useRef({ rows, go, manuscriptChapter, trackLinks, setStatus, setCreditsStatus });
-  latest.current = { rows, go, manuscriptChapter, trackLinks, setStatus, setCreditsStatus };
+  const latest = useRef({ rows, go, manuscriptChapter, trackLinks, setStatus, setCreditsStatus, daw, selectTrack });
+  latest.current = { rows, go, manuscriptChapter, trackLinks, setStatus, setCreditsStatus, daw, selectTrack };
   const provider = useMemo<ContextProvider>(
     () => ({
       match: (target) => target.closest(`[${PIPELINE_AREA}] tbody tr`) !== null,
       items: (target): ContextMenuItem[] => {
-        const { rows: list, go: open_, manuscriptChapter: find, trackLinks: links, setStatus: set, setCreditsStatus: setCredits } = latest.current;
+        const {
+          rows: list,
+          go: open_,
+          manuscriptChapter: find,
+          trackLinks: links,
+          setStatus: set,
+          setCreditsStatus: setCredits,
+          daw: dawTarget,
+          selectTrack: select,
+        } = latest.current;
         const tr = target.closest('tr');
         const index = tr ? Array.from(tr.parentElement?.children ?? []).indexOf(tr) : -1;
         const row = list[index];
@@ -177,6 +202,7 @@ export function useChapterTools({ rows, credits, notify, go, goToScript, goToEdi
         const chapter = find(row.id);
         const missing = chapter ? undefined : 'The chapter list is still loading';
         const linked = links?.chapters.some((entry) => entry.chapterId === row.id);
+        const trackGuid = links?.chapters.find((entry) => entry.chapterId === row.id)?.links[0]?.trackGuid;
         return [
           // The primitive draws no heading yet, so the chapter's name is a disabled row.
           { key: 'heading', label: chapterName(row), unavailable: '', onSelect: () => {} },
@@ -184,6 +210,13 @@ export function useChapterTools({ rows, credits, notify, go, goToScript, goToEdi
           { key: 'booth', label: 'Open in Booth', onSelect: () => open_.booth(row.id) },
           { key: 'proof', label: 'Open Proof', onSelect: () => open_.proof(row.id) },
           { key: 'master', label: 'Open Master & QC', onSelect: () => open_.master() },
+          {
+            key: 'goto',
+            label: `Go to this chapter in ${dawTarget.name}`,
+            unavailable:
+              dawTarget.unavailable ?? (trackGuid ? undefined : 'No chapter track is linked to this chapter yet: link one from the audio engine panel'),
+            onSelect: () => trackGuid && void select(trackGuid, dawTarget.name),
+          },
           {
             key: 'track',
             label: 'Chapter track…',
