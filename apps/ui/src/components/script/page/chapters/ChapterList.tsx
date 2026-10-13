@@ -1,8 +1,9 @@
-import { useRef, useState, type KeyboardEvent } from 'react';
+import { useId, useRef, useState, type KeyboardEvent } from 'react';
 import type { ManuscriptChapter } from '../../../../api/contracts/manuscript';
 import type { PrepState } from '../../../../api/contracts/scriptPrep';
 import { IconButton } from '../../../primitives/IconButton';
-import { Panel } from '../../../primitives/Panel';
+import { PanelHeader } from '../../../primitives/Panel';
+import { PANEL_FRAME_CLASS } from '../../../primitives/panelStyles';
 import { StatusBadge } from '../../../primitives/StatusBadge';
 import { useMarks, useScriptPrep } from '../data/useScriptData';
 import { chapterHeading } from '../../../../chapterHeading';
@@ -14,8 +15,8 @@ import { CREDITS_STOP, chapterListStops } from '../../../credits/creditsRows';
 const ROW_CLASS = 'flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-left text-sm';
 
 // The mock's chapter list: a roving-focus list (one tab stop; Up, Down, Home and End move) with each chapter's prep dot, label and
-// title, a "?" pill where a query is open, the chapter in view marked, and the key to the dots. `onClose` is given where the list
-// is a drawer (narrow widths): it draws the close button and closes after a jump.
+// title, a "?" pill where a query is open, the chapter in view marked, and the key to the dots under the part that scrolls. `onClose`
+// is given where the list is a drawer (narrow widths): only then is the "Chapters" title drawn, with the close button, and a jump closes it.
 export function ChapterList({
   chapters,
   currentId,
@@ -63,10 +64,16 @@ export function ChapterList({
   };
 
   const rowProps = { buttons: buttons.current, stop, onFocus: setFocused, onClose };
+  const titleId = useId();
 
   return (
-    <Panel title="Chapters" titleStyle="caps" flush scroll actions={onClose && <IconButton action="close" size="sm" onClick={onClose} />} className="min-h-0">
-      <ul aria-label="Chapters" onKeyDown={onKeyDown} className="m-0 flex min-h-0 list-none flex-col gap-0.5 overflow-auto p-2">
+    <section
+      aria-labelledby={onClose ? titleId : undefined}
+      aria-label={onClose ? undefined : 'Chapters'}
+      className={`${PANEL_FRAME_CLASS} flex h-full min-h-0 flex-col overflow-hidden`}
+    >
+      {onClose && <PanelHeader title="Chapters" titleId={titleId} titleStyle="caps" actions={<IconButton action="close" size="sm" onClick={onClose} />} />}
+      <ul aria-label="Chapters" onKeyDown={onKeyDown} className="m-0 flex min-h-0 flex-1 list-none flex-col gap-0.5 overflow-auto p-2">
         {openingCredits && <CreditsItem kind="opening" row={openingCredits} {...rowProps} />}
         {chapters.map((chapter) => {
           const current = chapter.id === currentId;
@@ -110,7 +117,7 @@ export function ChapterList({
         {closingCredits && <CreditsItem kind="closing" row={closingCredits} {...rowProps} />}
       </ul>
       <PrepLegend />
-    </Panel>
+    </section>
   );
 }
 

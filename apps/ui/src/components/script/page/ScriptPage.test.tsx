@@ -94,7 +94,9 @@ describe('three-columns-from-1440-and-drawers-below', () => {
     expect(panel('rail').className).toContain('max-[1280px]:absolute');
     expect(panel('chapters').className).toContain('max-[1179px]:absolute');
     expect(panel('rail').className).toContain('max-[1280px]:invisible');
-    expect(within(panel('chapters')).getByRole('heading', { name: 'Chapters' })).toBeTruthy();
+    // At full width the list draws no title, as the mock's (its title and close button are the drawer's).
+    expect(within(panel('chapters')).getByRole('region', { name: 'Chapters' })).toBeTruthy();
+    expect(within(panel('chapters')).queryByRole('heading', { name: 'Chapters' })).toBeNull();
     expect(within(panel('rail')).getByRole('tablist', { name: 'Words, Story Bible and marks' })).toBeTruthy();
   });
 
