@@ -16,12 +16,14 @@ export const boothStates: StateEntry[] = [
     state: 'daw-not-linked',
     description:
       'Booth for a folder holding one .rpp that is not linked (?mockDawChoice=found): the setup chip reads "REAPER · not linked" in the warning tone, its accessible name "Recording setup: REAPER, not linked" (the tooltip that names Alice.rpp is pinned by record.test.tsx, not captured)',
+    ...REFLOW,
   },
   {
     page: 'booth',
     state: 'daw-not-running',
     description:
       'Booth with REAPER linked and its bridge open but not answering (?mockDawChoice=not-running): the setup chip reads "REAPER · not running" in the warning tone, its accessible name "Recording setup: REAPER, not running"',
+    ...REFLOW,
   },
   {
     page: 'booth',
