@@ -15,7 +15,6 @@ import { contextItemsFor } from '../../../registries/context';
 import { searchAll } from '../../../registries/search';
 import { StudioProvider } from '../../../studio/StudioProvider';
 import type { NarrationApi } from '../../../types';
-import { saveCreditsExpanded } from '../../manuscript/creditsExpandedStorage';
 import { TooltipProvider } from '../../primitives/Tooltip';
 import type { ScriptViewState } from './data/scriptView';
 import { useScriptView } from './data/useScriptData';
@@ -30,6 +29,7 @@ function ViewProbe() {
 
 afterEach(() => {
   vi.useRealTimers();
+  vi.restoreAllMocks();
   cleanup();
   window.localStorage.clear();
   window.getSelection()?.removeAllRanges();
@@ -47,7 +47,7 @@ function mount({ api = createMockApi(), at = '/script', props = {} }: Mount = {}
             <TooltipProvider>
               <ViewProbe />
               <Routes>
-                <Route path="/script" element={<ScriptPage {...handlers} projectFolder="/projects/alice" {...props} />} />
+                <Route path="/script" element={<ScriptPage {...handlers} {...props} />} />
                 <Route path="/" element={<p>Production</p>} />
               </Routes>
             </TooltipProvider>
@@ -272,7 +272,7 @@ describe('credits-cards-and-banner-stay', () => {
   // sample marker" and "Record in Booth" on the credits cards.
   const card = (name: string) => screen.getByRole('heading', { name }).closest('[data-credits-entry]') as HTMLElement;
 
-  it('shows the Opening credits card at the start of the book and the Closing credits card after the last chapter, open by default', async () => {
+  it('shows the Opening credits at the start of the book and the Closing credits after the last chapter', async () => {
     mount();
     await firstHeading();
     const opening = await screen.findByRole('heading', { name: 'Opening credits' });
@@ -284,8 +284,11 @@ describe('credits-cards-and-banner-stay', () => {
     // The opening card comes before chapter 1's title; the closing card after the last chapter's section, not beside the opening card.
     expect(chapterOne.compareDocumentPosition(opening) & Node.DOCUMENT_POSITION_PRECEDING).toBeTruthy();
     expect(opening.compareDocumentPosition(sections[1]!) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
-    expect(sections.at(-1)!.compareDocumentPosition(closing) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
-    expect(sections.at(-1)!.contains(closing)).toBe(false);
+    // The credits are sections of their own, as the mock's chapters: neither sits inside a chapter's.
+    const lastChapter = sections.at(-2)!;
+    expect(lastChapter.compareDocumentPosition(closing) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(lastChapter.contains(closing)).toBe(false);
+    expect(sections[1]!.contains(opening)).toBe(false);
     expect(await within(card('Opening credits')).findByText(/unresolved token/)).toBeTruthy();
   });
 
@@ -297,27 +300,28 @@ describe('credits-cards-and-banner-stay', () => {
     expect(within(list).getAllByRole('button')[0]!.textContent).toContain('Opening credits');
   });
 
-  it('collapsing a credits card hides its preview, and remembers that per project across a reload', async () => {
+  it('draws the credits as the mock draws a chapter: the card, its text, and the end of the one before', async () => {
     mount();
-    await within(await waitFor(() => card('Opening credits'))).findByText('[Title]');
-    fireEvent.click(screen.getByRole('button', { name: 'Opening credits' }));
-    await waitFor(() => expect(within(card('Opening credits')).queryByText('[Title]')).toBeNull());
-    cleanup();
-    mount();
-    await screen.findByRole('heading', { name: 'Opening credits' });
-    expect(screen.getByRole('button', { name: 'Opening credits' }).getAttribute('aria-expanded')).toBe('false');
+    const opening = await waitFor(() => card('Opening credits'));
+    expect(within(opening).getByText('Credits')).toBeTruthy();
+    expect(within(opening).getByText(/words · about \d+ min finished audio · 0 marks/)).toBeTruthy();
+    expect(within(opening).getByRole('group', { name: 'Prep state for Opening credits' })).toBeTruthy();
+    // The text the template renders, with the tokens left to fill in, as lines of the reader under the card.
+    await waitFor(() => expect(document.querySelectorAll('[data-para][data-ch="credits:opening"]').length).toBeGreaterThan(0));
+    expect(screen.queryByRole('button', { name: 'Opening credits', expanded: true })).toBeNull();
+    expect(await screen.findByText(/End of opening credits · [\d,]+ words/i)).toBeTruthy();
+    expect(within(card('Closing credits')).getByText(/End of .+ · [\d,]+ words/i)).toBeTruthy();
   });
 
-  it('collapsing one card keeps what the other card remembered', async () => {
-    mount();
-    await screen.findByRole('heading', { name: 'Closing credits' });
-    fireEvent.click(screen.getByRole('button', { name: 'Closing credits' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Opening credits' }));
-    cleanup();
-    mount();
-    await screen.findByRole('heading', { name: 'Closing credits' });
-    expect(screen.getByRole('button', { name: 'Closing credits' }).getAttribute('aria-expanded')).toBe('false');
-    expect(screen.getByRole('button', { name: 'Opening credits' }).getAttribute('aria-expanded')).toBe('false');
+  it('keeps the credits prep state on the host, as a chapter', async () => {
+    const api = createMockApi();
+    const set = vi.spyOn(api, 'scriptPrepSetChapter');
+    mount({ api });
+    const opening = await waitFor(() => card('Opening credits'));
+    fireEvent.click(within(opening).getByRole('button', { name: 'Prepped' }));
+    await waitFor(() => expect(set).toHaveBeenCalledWith('credits:opening', 'prepped'));
+    const row = await within(panel('chapters')).findByRole('button', { name: /Opening credits/ });
+    await waitFor(() => expect(within(row).getByRole('img').getAttribute('data-prep')).toBe('prepped'));
   });
 
   it('renders no credits cards when the library has no opening or closing template', async () => {
@@ -326,12 +330,15 @@ describe('credits-cards-and-banner-stay', () => {
     expect(screen.queryByRole('heading', { name: 'Opening credits' })).toBeNull();
   });
 
-  it('a "#credits-closing" link opens the closing card', async () => {
-    saveCreditsExpanded('/projects/alice', { opening: false, closing: false });
+  it('a "#credits-closing" link goes to the closing credits', async () => {
+    vi.spyOn(HTMLElement.prototype, 'offsetTop', 'get').mockImplementation(function (this: HTMLElement) {
+      return this.dataset.ch === 'credits:closing' && this.hasAttribute('data-bound') ? 5000 : 0;
+    });
+    const scrolled: number[] = [];
+    vi.spyOn(Element.prototype, 'scrollTop', 'set').mockImplementation((value: number) => void scrolled.push(value));
     mount({ at: '/script#credits-closing' });
     await screen.findByRole('heading', { name: 'Closing credits' });
-    await waitFor(() => expect(screen.getByRole('button', { name: 'Closing credits' }).getAttribute('aria-expanded')).toBe('true'));
-    expect(screen.getByRole('button', { name: 'Opening credits' }).getAttribute('aria-expanded')).toBe('false');
+    await waitFor(() => expect(scrolled).toContain(4992));
   });
 
   it('shows the banner above the cards; its Fill in opens the setup dialog and the banner steps aside; Save closes it', async () => {
@@ -446,7 +453,7 @@ describe('deep-links-from-other-pages', () => {
               <TooltipProvider>
                 <Probe />
                 <Routes>
-                  <Route path="/script" element={<ScriptPage notify={vi.fn()} focusStoryBibleEntity={vi.fn()} projectFolder="/projects/alice" />} />
+                  <Route path="/script" element={<ScriptPage notify={vi.fn()} focusStoryBibleEntity={vi.fn()} />} />
                 </Routes>
               </TooltipProvider>
             </CommandRouter>
@@ -460,15 +467,14 @@ describe('deep-links-from-other-pages', () => {
 });
 
 describe('props-match-the-old-page', () => {
-  it('takes the props the old ScriptPage took, which the /script route passes (App.tsx)', () => {
+  it('takes the props the /script route passes (App.tsx)', () => {
     type Old = {
       notify: ScriptPageProps['notify'];
       focusStoryBibleEntity: (id: string) => void;
       goToEditing?: (chapterId: string) => void;
-      projectFolder: string;
       goToBooth?: ScriptPageProps['goToBooth'];
     };
-    const same: Old = { notify: vi.fn(), focusStoryBibleEntity: vi.fn(), goToEditing: vi.fn(), projectFolder: '/p', goToBooth: vi.fn() };
+    const same: Old = { notify: vi.fn(), focusStoryBibleEntity: vi.fn(), goToEditing: vi.fn(), goToBooth: vi.fn() };
     const asNew: ScriptPageProps = same;
     const back: Old = asNew;
     expect(back).toBe(same);
@@ -504,7 +510,8 @@ describe('key-hints-under-the-reader', () => {
 describe('dictionary-download-in-place', () => {
   it('offers the dictionary download in place', async () => {
     window.localStorage.setItem('narration.script.definitions', 'local');
-    const api = createMockApi({}, { dictionary: 'missing' });
+    // No credits, so the section at the top of the reader is a chapter, whose words the tab lists.
+    const api = createMockApi({ creditsTemplates: async () => [] }, { dictionary: 'missing' });
     const install = vi.spyOn(api, 'assetsInstall');
     // A flagged word in every chapter, so the Words tab has a row to open whichever chapter the reader reports as in view.
     for (const chapter of await api.manuscriptChapters()) {
@@ -606,14 +613,21 @@ describe('opening-credits-row', () => {
     const list = within(panel('chapters'));
     const row = await list.findByRole('button', { name: /Opening credits/ });
     expect(list.getAllByRole('button')[0]).toBe(row);
-    // The card still has [Token]s to fill in, so the dot says Not started.
+    // Nothing is set yet, so the dot says Not started.
     expect(within(row).getByRole('img').getAttribute('data-prep')).toBe('none');
+    // jsdom lays nothing out: the opening credits' section is put 1000 px down, and the jump scrolls the reader to it.
+    vi.spyOn(HTMLElement.prototype, 'offsetTop', 'get').mockImplementation(function (this: HTMLElement) {
+      return this.dataset.ch === 'credits:opening' && this.hasAttribute('data-bound') ? 1000 : 0;
+    });
+    const scrolled: number[] = [];
+    vi.spyOn(Element.prototype, 'scrollTop', 'set').mockImplementation((value: number) => void scrolled.push(value));
     fireEvent.click(row);
-    await waitFor(() => expect(document.querySelector('[data-credits-entry="opening"]')).not.toBeNull());
+    await waitFor(() => expect(scrolled).toContain(992));
   });
 
-  it('draws the credits row prepped once the opening credits have nothing left to fill in', async () => {
-    const api = createMockApi({ creditsPreview: async () => ({ text: 'Alice, written by Carroll.', words: 4, unresolved: [] }) });
+  it('draws the credits row from the credits own prep state', async () => {
+    const api = createMockApi();
+    await api.scriptPrepSetChapter('credits:opening', 'prepped');
     mount({ api });
     await firstHeading();
     const row = await within(panel('chapters')).findByRole('button', { name: /Opening credits/ });

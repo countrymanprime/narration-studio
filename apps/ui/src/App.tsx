@@ -676,13 +676,7 @@ function AppRoutes() {
                   path="/script"
                   element={
                     data.manuscript ? (
-                      <ScriptPage
-                        notify={setNotice}
-                        focusStoryBibleEntity={goToStoryBible}
-                        goToEditing={goToEditing}
-                        projectFolder={data.projectFolder}
-                        goToBooth={goToBooth}
-                      />
+                      <ScriptPage notify={setNotice} focusStoryBibleEntity={goToStoryBible} goToEditing={goToEditing} goToBooth={goToBooth} />
                     ) : (
                       <NeedManuscript title="Script" onImport={() => guardedNavigate('/')} />
                     )

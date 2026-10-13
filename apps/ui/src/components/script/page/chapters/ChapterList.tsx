@@ -13,6 +13,8 @@ import { PrepLegend } from './PrepLegend';
 import { CREDITS_STOP, chapterListStops } from '../../../credits/creditsRows';
 
 const ROW_CLASS = 'flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-left text-sm';
+const CURRENT_CLASS = (current: boolean) =>
+  current ? 'bg-[var(--accent-soft)] font-semibold text-[var(--accent-strong)]' : 'text-[var(--text)] hover:bg-[var(--surface-2)]';
 
 // The mock's chapter list: a roving-focus list (one tab stop; Up, Down, Home and End move) with each chapter's prep dot, label and
 // title, a "?" pill where a query is open, the chapter in view marked, and the key to the dots under the part that scrolls. `onClose`
@@ -43,7 +45,7 @@ export function ChapterList({
     chapters.map((chapter) => chapter.id),
     { opening: openingCredits, closing: closingCredits },
   );
-  const stop = stops.includes(focused ?? '') ? focused : chapters.some((chapter) => chapter.id === currentId) ? currentId : (stops[0] ?? null);
+  const stop = stops.includes(focused ?? '') ? focused : currentId !== null && stops.includes(currentId) ? currentId : (stops[0] ?? null);
 
   const onKeyDown = (event: KeyboardEvent<HTMLUListElement>) => {
     const at = stops.findIndex((id) => id === stop);
@@ -63,7 +65,7 @@ export function ChapterList({
     buttons.current.get(stops[to])?.focus();
   };
 
-  const rowProps = { buttons: buttons.current, stop, onFocus: setFocused, onClose };
+  const rowProps = { buttons: buttons.current, stop, currentId, onFocus: setFocused, onClose };
   const titleId = useId();
 
   return (
@@ -94,7 +96,7 @@ export function ChapterList({
                   onJump(chapter.id);
                   onClose?.();
                 }}
-                className={`${ROW_CLASS} ${current ? 'bg-[var(--accent-soft)] font-semibold text-[var(--accent-strong)]' : 'text-[var(--text)] hover:bg-[var(--surface-2)]'}`}
+                className={`${ROW_CLASS} ${CURRENT_CLASS(current)}`}
               >
                 <PrepDot state={prep.prepOf(chapter.id)} />
                 <span className="flex min-w-0 flex-1 flex-col">
@@ -129,6 +131,7 @@ function CreditsItem({
   row,
   buttons,
   stop,
+  currentId,
   onFocus,
   onClose,
 }: {
@@ -136,10 +139,12 @@ function CreditsItem({
   row: CreditsRow;
   buttons: Map<string, HTMLButtonElement>;
   stop: string | null;
+  currentId: string | null;
   onFocus: (id: string) => void;
   onClose?: () => void;
 }) {
   const id = CREDITS_STOP[kind];
+  const current = id === currentId;
   return (
     <li>
       {/* native-control-ok: a roving-focus list row (prep dot, title) that Button's padded chrome does not fit */}
@@ -150,12 +155,13 @@ function CreditsItem({
           else buttons.delete(id);
         }}
         tabIndex={id === stop ? 0 : -1}
+        aria-current={current || undefined}
         onFocus={() => onFocus(id)}
         onClick={() => {
           row.onJump();
           onClose?.();
         }}
-        className={`${ROW_CLASS} text-[var(--text)] hover:bg-[var(--surface-2)]`}
+        className={`${ROW_CLASS} ${CURRENT_CLASS(current)}`}
       >
         <PrepDot state={row.state} />
         <span className="min-w-0 flex-1">{CREDITS_LABEL[kind]}</span>

@@ -54,8 +54,12 @@ export type ReaderProps = {
   renderGutter?: (paragraph: ManuscriptParagraph) => ReactNode;
   /** The chapter's card (the previous chapter's end marker, title, facts, prep state, record). With it the reader draws no heading of its own, so the title shows once; without it, a bare heading. */
   renderChapterCard?: (chapter: ManuscriptChapter) => ReactNode;
+  /** Drawn before the first chapter: the opening credits. */
+  before?: ReactNode;
   /** Drawn after the last chapter's text: the closing credits. */
   after?: ReactNode;
+  /** The header's name for a section in `before` or `after` that is a boundary of its own (`data-bound`), by its `data-ch`. */
+  sectionNames?: ReadonlyMap<string, string>;
   /** The sticky header's buttons. */
   toolbar?: ReactNode;
   onPickSpeaker?: (cueId: string, anchor: DOMRect) => void;
@@ -96,13 +100,24 @@ function createSpyStore() {
 }
 type SpyStore = ReturnType<typeof createSpyStore>;
 
-function StickyHeader({ spy, chapters, toolbar }: { spy: SpyStore; chapters: readonly ManuscriptChapter[]; toolbar?: ReactNode }) {
+function StickyHeader({
+  spy,
+  chapters,
+  names,
+  toolbar,
+}: {
+  spy: SpyStore;
+  chapters: readonly ManuscriptChapter[];
+  names?: ReadonlyMap<string, string>;
+  toolbar?: ReactNode;
+}) {
   const current = useSyncExternalStore(spy.subscribe, spy.get);
+  const section = current.chapterId ? names?.get(current.chapterId) : undefined;
   const chapter = chapters.find((c) => c.id === current.chapterId) ?? chapters[0];
   return (
     <div className="flex items-center gap-3 border-b border-[var(--line)] bg-[var(--surface)] px-4 py-2">
       <div className="min-w-0">
-        <b className="block truncate text-xl font-semibold">{chapter ? chapterName(chapter) : '—'}</b>
+        <b className="block truncate text-xl font-semibold">{section ?? (chapter ? chapterName(chapter) : '—')}</b>
         <div aria-live="off" className="text-sm text-[var(--text-muted)]">
           {current.para}
         </div>
@@ -192,7 +207,9 @@ export function Reader(props: ReaderProps) {
     activeMarkId = null,
     renderGutter,
     renderChapterCard,
+    before,
     after,
+    sectionNames,
     toolbar,
     onPickSpeaker,
     onShowAnnotation,
@@ -328,8 +345,11 @@ export function Reader(props: ReaderProps) {
     if (!root) return;
     if (pendingJump) {
       const at = indexOf.get(pendingJump);
-      if (at === undefined) onHandled?.('chapter');
-      else if (reach(at)) {
+      if (at === undefined) {
+        // A section outside the chapters (the credits) is always drawn.
+        scrollToChapter(pendingJump);
+        onHandled?.('chapter');
+      } else if (reach(at)) {
         scrollToChapter(pendingJump);
         onHandled?.('chapter');
       }
@@ -402,7 +422,7 @@ export function Reader(props: ReaderProps) {
 
   return (
     <section aria-label="Reader" className="flex h-full min-h-0 flex-col bg-[var(--surface)] text-[var(--text)]">
-      <StickyHeader spy={spy} chapters={chapters} toolbar={toolbar} />
+      <StickyHeader spy={spy} chapters={chapters} names={sectionNames} toolbar={toolbar} />
       <div
         ref={scroller}
         role="region"
@@ -430,6 +450,7 @@ export function Reader(props: ReaderProps) {
           }}
           onClick={onClick}
         >
+          {before}
           {chapters.map((chapter, i) => (
             <Section
               key={chapter.id}

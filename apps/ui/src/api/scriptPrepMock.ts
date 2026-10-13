@@ -4,7 +4,7 @@
 // say-value is one line within the cap from a known source (none means the narrator typed it), the value is dropped with the
 // word's last flag, the status is worked out here rather than by a page, and a flag whose line is gone, whose range no longer
 // fits or whose words changed comes back stale.
-import { PREP_STATES, SCRIPT_SAY_MANUAL_SOURCE, SCRIPT_SAY_MAX, SCRIPT_WORD_MAX } from './contracts/scriptPrep';
+import { PREP_STATES, SCRIPT_PREP_CREDITS_IDS, SCRIPT_SAY_MANUAL_SOURCE, SCRIPT_SAY_MAX, SCRIPT_WORD_MAX } from './contracts/scriptPrep';
 import type { ManuscriptChapter, ManuscriptParagraph, PrepState, ScriptPrep, ScriptPrepApi, ScriptWord, ScriptWordFlag } from '../types';
 import { wireClone } from './mockFixtures';
 
@@ -60,7 +60,13 @@ export function createScriptPrepMock(ready: Promise<unknown>, chapters: () => Ma
     const keyOf = new Map(flags.map((flag) => [flag.id, flag.word]));
     const order = inReadingOrder(flags.map(resolve)).map((flag) => keyOf.get(flag.id) ?? '');
     return wireClone({
-      chapters: chapters().map((chapter) => ({ chapterId: chapter.id, state: states.get(chapter.id) ?? 'none' })),
+      chapters: [
+        ...chapters().map((chapter) => ({ chapterId: chapter.id, state: states.get(chapter.id) ?? 'none' })),
+        ...SCRIPT_PREP_CREDITS_IDS.flatMap((id) => {
+          const state = states.get(id);
+          return state ? [{ chapterId: id, state }] : [];
+        }),
+      ],
       words: [...new Set(order)].map(wordOf),
     });
   };
@@ -73,7 +79,7 @@ export function createScriptPrepMock(ready: Promise<unknown>, chapters: () => Ma
     scriptPrepSetChapter: async (chapterId, state) => {
       await ready;
       if (!(PREP_STATES as readonly string[]).includes(state)) throw new Error('that is not a prep state');
-      if (!hasChapter(chapterId)) throw new Error('that chapter is not in the manuscript');
+      if (!SCRIPT_PREP_CREDITS_IDS.includes(chapterId) && !hasChapter(chapterId)) throw new Error('that chapter is not in the manuscript');
       if (state === 'none') states.delete(chapterId);
       else states.set(chapterId, state);
       return { chapterId, state };

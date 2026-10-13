@@ -17,7 +17,8 @@ func (h *Host) ScriptPrepList() (string, error) {
 	return encodeBinding(h.scriptPrep().List())
 }
 
-// ScriptPrepSetChapter stores one chapter's prep state: none, progress or prepped. A chapter the manuscript lacks is refused.
+// ScriptPrepSetChapter stores one chapter's prep state: none, progress or prepped. A chapter the manuscript lacks is refused; the
+// opening and closing credits (credits:opening, credits:closing) are kept like a chapter.
 func (h *Host) ScriptPrepSetChapter(chapterID, state string) (string, error) {
 	return encodeBinding(h.scriptPrep().SetChapter(chapterID, state))
 }
