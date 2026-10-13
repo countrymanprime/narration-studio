@@ -9,16 +9,18 @@ three parts side by side:
   (**Not started**, **In progress** or **Prepped**; the key is under the list). A **?** beside a chapter means it has
   questions for the author still open. Press a chapter to go to it. When the project has opening credits, an
   **Opening credits** row comes first, and when it has closing credits, a **Closing credits** row comes last; each goes
-  to its credits card, and its dot is **Prepped** once those credits have no token left to fill in.
-- **The reader** in the middle: the whole book as one scrolling text, a card at the top of each chapter with its word
-  count, its finished audio, its marks and open queries, and **My prep**, where you set the chapter's prep state.
+  to those credits in the reader, and its dot is the prep state you set on them.
+- **The reader** in the middle: the whole book as one scrolling text. Each chapter starts with a dashed line that ends
+  the one before ("End of chapter 1 · 2,140 words"), then a card with the chapter's label and title, its word count,
+  its finished audio, its marks and open queries, and **My prep**, where you set the chapter's prep state.
   Your marks are drawn in the text in their own colours, a speaker's lines carry a chip with their name, and Story Bible
   names are underlined. The header names the chapter in view and the line you are on, and has **Bookmarks**, **Find**
   (Ctrl+F) and the **text settings** (font, size, line spacing and column width).
 - **The rail** on the right, with five tabs: **Words**, **Story Bible**, **Notes**, **Queries** and **Bookmarks**.
 
 A bar under the reader lists its keys: select text to mark it, add a note or query, or look it up; **↑** **↓** scroll;
-**←** **→** change the prep state of the chapter in view; **Alt+↑** **Alt+↓** go to the previous or next chapter; **B**
+**←** **→** change the prep state of the chapter in view; **Alt+↑** **Alt+↓** go to the previous or next chapter (the
+credits included); **B**
 bookmarks the line; **Alt+[** **Alt+]** go to the previous or next bookmark; **Ctrl+F** opens Find. A key you rebind
 under **Keyboard & pedals** in [Settings](settings.md) shows its new key here.
 
@@ -41,11 +43,20 @@ Select words in the reader and a toolbar appears over them:
 - **Mark** puts one of your marks on them, with a note (a query for the author is a mark too), marks a word for its
   pronunciation (**Pronunciation (a word)**), or opens **Define marks…**, where you name your marks and choose each
   one's colour and line.
-- **Story Bible** makes a new entry of the kind you choose from the words.
+- **Story Bible** makes a new entry of the kind you choose from the words; the kinds are the Story Bible's own types,
+  including any you added there.
 - **Bookmark here** (the bookmark button).
+- **Record from here** (the record button) opens the [Booth](booth.md) on the chapter, starting at the words you selected.
 - **Look up** opens the words in the rail: a Story Bible name on its **Story Bible** tab, any other word on **Words**.
+  A word you have not marked yet gets **Add to my words** on its card, which marks the word you selected.
 
-![Script - the selection toolbar on one word: Mark, Story Bible, Bookmark here and Look up](../../images/ui/script-selection-popup.webp)
+Right-click the text for the same actions, and more where you click: on a speaker's line, **Speaker: …** to change who
+speaks it; on one of your marks, open it, change its type, resolve or reopen a query, or delete it; on a marked word,
+**Show in Words** or **Remove from my words**. Right-click a chapter in the list or its card in the reader to go to it,
+record it in the Booth or set its prep state, and a word on the **Words** tab to show it or remove it. Click a marked
+word in the text to open it on the **Words** tab.
+
+![Script - the selection toolbar on one word: Mark, Story Bible, Bookmark here, Record from here and Look up](../../images/ui/script-selection-popup.webp)
 
 ![Script - the mark composer after selecting text](../../images/ui/script-add-note.webp)
 
@@ -88,19 +99,16 @@ import log says so. Re-import a manuscript (Replace manuscript on [Production](p
 
 **Opening credits** sit above the first chapter and **Closing credits** after the last chapter's text, when the
 credit template library (Settings, This Project, [Credits](settings.md#credits)) has an opening or a
-closing template. Each shows its word count and a read time, and opens and closes the same way a
-chapter card does — press anywhere on its header, not just the title — with a chevron showing which
-way it is set. Both are open by default, and the project remembers whether you left each open or closed. Open one to read the credits with the project's values filled in. A token
-with no value yet stays in brackets, highlighted, and a line below lists the unresolved tokens, with a
-**Fill in** next to it that opens the same "Set up the credits" dialog Production offers — see
-[Production](production.md#importing-the-manuscript) for what it asks and when. A banner above Opening credits does the same while any
-token stays unresolved and setup has not been dismissed for the project. These
-entries are read-only and are not chapters: Find does not search them, and the chapter list has a row for
-the opening credits only. Record the
+closing template. The reader draws them as it draws a chapter: a dashed line ending what comes before, a
+**Credits** card with the word count, the finished audio and **My prep** (kept with the project like a
+chapter's), then the credits text with the project's values filled in. A token with no value yet stays in
+brackets, highlighted, and the card lists the unresolved tokens with a **Fill in** that opens the same "Set up
+the credits" dialog Production offers — see [Production](production.md#importing-the-manuscript) for what it asks
+and when. A banner above Opening credits does the same while any token stays unresolved and setup has not been
+dismissed for the project. The credits are read-only and are not chapters: Find does not search them. Record the
 credits as their own files, as ACX expects, not inside a chapter file: a chapter's Proof view compares a
 chapter's recording with that chapter's text only, so credits recorded inside it are reported as extra
-words. Each credits
-card also has a **Record in Booth** button once it has anything to read (see below).
+words. Each credits card has a **Record in Booth** button once it has anything to read (see below).
 
 The [retail sample](settings.md#retail-sample), once picked, is marked where it is: a **Retail sample**
 tag above each chapter it is in, and a bar in the margin beside each of its lines.
