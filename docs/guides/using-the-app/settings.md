@@ -184,6 +184,8 @@ announcement, and the retail sample.
 - **Project values**: Title, Subtitle, Author, Series, Book number, Copyright, Year, Copyright holder,
   Publisher, and a Narrator that overrides the global default from General for this project only. A value
   is saved as you type. Where the manuscript suggests a title or author, **Use suggestion** fills it in.
+- **Clear credits** empties every project value at once, after asking. The templates in your library stay,
+  so the credits show their tokens in brackets again until you fill them in.
 
 The first opening and closing templates appear in the [Script](script.md) reader and as the
 credits rows on [Production](production.md#the-credits).
