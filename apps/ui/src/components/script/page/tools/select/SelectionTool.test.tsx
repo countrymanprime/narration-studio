@@ -166,6 +166,19 @@ describe('add-to-the-story-bible-as-a-kind', () => {
   });
 });
 
+describe('story-bible-kinds-are-the-hosts', () => {
+  it('offers a type the narrator added in the Story Bible, as the mock reads its types', async () => {
+    const types = await api.guideTypes();
+    vi.spyOn(api, 'guideTypes').mockResolvedValue([...types, { ...types[0]!, name: 'Ship', speaks: false }]);
+    const m = mount();
+    m.rerender(inside(10, 19));
+    await waitFor(async () => {
+      await userEvent.click(within(tool()).getByRole('button', { name: 'Story Bible' }));
+      expect(await screen.findByRole('menuitem', { name: 'Ship' })).toBeTruthy();
+    });
+  });
+});
+
 describe('look-up-opens-the-words-tab', () => {
   it('shows the word card for a single word', async () => {
     const m = mount();

@@ -5,7 +5,7 @@ import { IconButton } from '../../../../primitives/IconButton';
 import { TooltipTarget } from '../../../../primitives/Tooltip';
 import { useBookmarks } from '../../../bookmarks/model/useBookmarks';
 import { useEntries, useMarks, useScriptCommands, useScriptView } from '../../data/useScriptData';
-import { BIBLE_KINDS } from '../../rail/bible/kinds';
+import { useBibleKinds } from '../../rail/bible/kinds';
 import type { ReaderSelection } from '../../registry/contextProvider';
 import type { ToolSelection } from './getSelection';
 import { KindMenu } from './KindMenu';
@@ -39,6 +39,7 @@ export function SelectionTool({ selection, zoom = 1, onDismiss, onCompose, onDef
   const ref = useRef<HTMLDivElement>(null);
   const { types } = useMarks();
   const { entries } = useEntries();
+  const kinds = useBibleKinds();
   const commands = useScriptCommands();
   const bookmarks = useBookmarks();
   const [, updateView] = useScriptView(() => null);
@@ -104,7 +105,7 @@ export function SelectionTool({ selection, zoom = 1, onDismiss, onCompose, onDef
             }}
           />
           <KindMenu
-            kinds={BIBLE_KINDS}
+            kinds={kinds}
             onChoose={(kind) => {
               onDismiss();
               void commands.createEntryFrom(kind, place.quote).then((entryId) => entryId && updateView({ tab: 'bible', entryId, miss: null, missSel: null }));

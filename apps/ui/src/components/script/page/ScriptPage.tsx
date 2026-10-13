@@ -50,7 +50,7 @@ import { useLoadedParagraphs } from './layout/useLoadedParagraphs';
 import { Reader } from './reader/Reader';
 import { readFindQuery } from './scriptQuery';
 import { BibleTab } from './rail/bible/BibleTab';
-import { BIBLE_KINDS } from './rail/bible/kinds';
+import { useBibleKinds } from './rail/bible/kinds';
 import { ThreadsTab } from './rail/threads/ThreadsTab';
 import { WordsTab } from './rail/words/WordsTab';
 import type { ReaderSelection } from './registry/contextProvider';
@@ -127,6 +127,7 @@ function ScriptWorkspace({
   const marks = useMarks();
   const prep = useScriptPrep();
   const entries = useEntries();
+  const kinds = useBibleKinds();
   const speakers = useSpeakers();
   const commands = useScriptCommands();
   const bookmarks = useBookmarks();
@@ -366,7 +367,7 @@ function ScriptWorkspace({
   );
   useScriptRegistry({
     lines,
-    kinds: BIBLE_KINDS,
+    kinds,
     currentChapterId: () => inViewRef.current,
     stops,
     selectionAt: () => {
