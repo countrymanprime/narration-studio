@@ -31,7 +31,7 @@ const VERIFY_RESULT: Record<AssetItem['installState'], string> = {
   not_installed: 'Nothing is installed any more: the files are gone.',
 };
 
-type RowState = 'starting' | 'downloading' | 'verifying' | 'installed' | 'needs_repair' | 'not_installed';
+type RowState = 'starting' | 'downloading' | 'verifying' | 'installed' | 'needs_repair' | 'not_installed' | 'unavailable';
 
 /**
  * One asset of Settings > Local assets: what it is, its sizes and links, whether it is on this computer, and what can be done about it.
@@ -94,7 +94,10 @@ export function LocalAssetRow({ item, onChanged, notify }: { item: AssetItem; on
         ? 'installed'
         : item.installState === 'verification_failed'
           ? 'needs_repair'
-          : 'not_installed';
+          : // A row the host lists but does not offer yet (an analysis tool whose files are not all pinned) has nothing to download.
+            item.unavailableReason
+            ? 'unavailable'
+            : 'not_installed';
   const failure = running ? '' : install.failure || actionFailure || (job?.phase === 'error' ? job.error || job.message : '');
   const detail = job ? bytesProgress(job) : undefined;
 
@@ -150,6 +153,7 @@ export function LocalAssetRow({ item, onChanged, notify }: { item: AssetItem; on
     installed: 'Installed',
     needs_repair: 'Needs repair',
     not_installed: 'Not installed',
+    unavailable: 'Not available yet',
   };
 
   return (
@@ -228,37 +232,43 @@ export function LocalAssetRow({ item, onChanged, notify }: { item: AssetItem; on
           {failure || `The download could not be stopped: ${cancelFailure}`}
         </p>
       )}
-      <div className="mt-3 flex flex-wrap gap-2">
-        {state === 'starting' || state === 'verifying' ? (
-          <Button ref={firstButton} variant="secondary" pending aria-label={`${state === 'starting' ? 'Starting the download of' : 'Verifying'} ${subject}`}>
-            {state === 'starting' ? 'Starting' : 'Verifying'}
-          </Button>
-        ) : state === 'downloading' ? (
-          <Button ref={firstButton} variant="secondary" aria-label={`Cancel the download of ${subject}`} onClick={() => void install.cancel()}>
-            Cancel
-          </Button>
-        ) : state === 'installed' ? (
-          <Button
-            ref={firstButton}
-            variant="secondary"
-            aria-label={`Verify ${subject}`}
-            pending={actions.isPending('verify')}
-            disabled={actions.isBlockedFor('verify')}
-            onClick={verify}
-          >
-            Verify
-          </Button>
-        ) : (
-          <Button ref={firstButton} aria-label={`${state === 'needs_repair' ? 'Repair' : 'Download'} ${subject}`} onClick={startDownload}>
-            {state === 'needs_repair' ? 'Repair' : 'Download'}
-          </Button>
-        )}
-        {(state === 'installed' || state === 'needs_repair') && (
-          <Button variant="danger" aria-label={`Remove ${subject}`} disabled={actions.isBlockedFor('remove')} onClick={() => setConfirmingRemove(true)}>
-            Remove
-          </Button>
-        )}
-      </div>
+      {state === 'unavailable' ? (
+        <p className="mt-2 text-xs" style={{ color: 'var(--text-muted)' }}>
+          {item.unavailableReason}
+        </p>
+      ) : (
+        <div className="mt-3 flex flex-wrap gap-2">
+          {state === 'starting' || state === 'verifying' ? (
+            <Button ref={firstButton} variant="secondary" pending aria-label={`${state === 'starting' ? 'Starting the download of' : 'Verifying'} ${subject}`}>
+              {state === 'starting' ? 'Starting' : 'Verifying'}
+            </Button>
+          ) : state === 'downloading' ? (
+            <Button ref={firstButton} variant="secondary" aria-label={`Cancel the download of ${subject}`} onClick={() => void install.cancel()}>
+              Cancel
+            </Button>
+          ) : state === 'installed' ? (
+            <Button
+              ref={firstButton}
+              variant="secondary"
+              aria-label={`Verify ${subject}`}
+              pending={actions.isPending('verify')}
+              disabled={actions.isBlockedFor('verify')}
+              onClick={verify}
+            >
+              Verify
+            </Button>
+          ) : (
+            <Button ref={firstButton} aria-label={`${state === 'needs_repair' ? 'Repair' : 'Download'} ${subject}`} onClick={startDownload}>
+              {state === 'needs_repair' ? 'Repair' : 'Download'}
+            </Button>
+          )}
+          {(state === 'installed' || state === 'needs_repair') && (
+            <Button variant="danger" aria-label={`Remove ${subject}`} disabled={actions.isBlockedFor('remove')} onClick={() => setConfirmingRemove(true)}>
+              Remove
+            </Button>
+          )}
+        </div>
+      )}
       {confirmingRemove && (
         <ConfirmDialog
           title={`Remove ${subject}?`}

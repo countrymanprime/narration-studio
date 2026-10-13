@@ -330,4 +330,9 @@ describe('Settings page (SN-M52)', () => {
     expect(source).toMatch(/max-w-\[860px\]/);
     expect(source).not.toMatch(/(?<!max-)\b(min-)?w-\[\d/);
   });
+
+  it("the column starts at the left of the content area, as the mock's `.page` does (no auto margins)", () => {
+    const source = readFileSync(join(__dirname, 'SettingsPage.tsx'), 'utf8');
+    expect(source).not.toMatch(/\bmx-auto\b/);
+  });
 });
