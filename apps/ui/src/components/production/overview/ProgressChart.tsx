@@ -24,10 +24,12 @@ type Props = {
   series: Measured<Array<[number, number]>>;
   /** The fixed height in px; the chart draws to the width it is given. */
   height?: number;
+  /** The panel's title: Production says "Recorded vs plan", the Schedule page "Recorded audio vs plan" (the mock). */
+  title?: string;
 };
 
 /** "Recorded vs plan": the plan dashed, the recorded days solid, the projection dotted, with the due line, today and the estimated finish. */
-export function ProgressChart({ k, wph, start, today, due, recordedHours, series, height = 200 }: Props) {
+export function ProgressChart({ k, wph, start, today, due, recordedHours, series, height = 200, title = 'Recorded vs plan' }: Props) {
   const box = useRef<HTMLDivElement>(null);
   const [width, setWidth] = useState(520);
   const describedBy = useId();
@@ -56,7 +58,7 @@ export function ProgressChart({ k, wph, start, today, due, recordedHours, series
   const summary = `Plan starts ${fmtD(start)}${due ? `, due ${fmtD(due)}` : ', no due date'}. Today is ${fmtD(today)}, ${recordedHours.toFixed(1)} of ${finishedHours.toFixed(1)} finished hours recorded. Estimated finish ${fmtD(k.finish)}.`;
 
   return (
-    <Panel title="Recorded vs plan" className="min-w-0">
+    <Panel title={title} className="min-w-0">
       <div ref={box} className="w-full overflow-hidden" style={{ height }}>
         <svg
           viewBox={`0 0 ${width} ${height}`}

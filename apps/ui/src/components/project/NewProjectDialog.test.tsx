@@ -56,6 +56,24 @@ describe('NewProjectDialog', () => {
     await waitFor(() => expect(createProject).toHaveBeenCalledWith('', 'Alice'));
   });
 
+  it('shows the real default projects folder until another location is chosen', async () => {
+    renderDialog({ projectDefaultLocation: async () => ({ path: 'C:/Users/Alice/NarrationUtils' }) });
+
+    expect(await screen.findByText('C:/Users/Alice/NarrationUtils')).toBeTruthy();
+    expect(screen.getByText(/default projects folder/)).toBeTruthy();
+  });
+
+  it('still offers Change location when the default folder cannot be read', async () => {
+    const projectDefaultLocation = vi.fn(async () => {
+      throw new Error('no home');
+    });
+    renderDialog({ projectDefaultLocation });
+
+    await waitFor(() => expect(projectDefaultLocation).toHaveBeenCalled());
+    expect(screen.getByText('the default projects folder')).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Change location…' })).toBeTruthy();
+  });
+
   it('uses the folder chosen through Change location as the parent', async () => {
     const createProject = vi.fn(async () => ({ switched: true }));
     const selectProjectFolder = vi.fn(async () => ({ selected: true, path: 'C:/Elsewhere' }));

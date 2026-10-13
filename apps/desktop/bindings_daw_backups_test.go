@@ -144,11 +144,11 @@ func TestDawBackupsRefuseWithTheResolversSentenceAndCreateNothing(t *testing.T) 
 		toggle string
 		reason dawport.Reason
 	}{
-		"REAPER":                  {"REAPER", true, "on", dawport.ReasonNotYet},
-		"standalone":              {"", true, "on", dawport.ReasonStandalone},
-		"Audacity, not connected": {"Audacity", false, "on", dawport.ReasonStandalone},
-		"experimental off":        {"Audacity", true, "", dawport.ReasonExperimentalOff},
-		"backups turned off":      {"Audacity", true, "off", dawport.ReasonTurnedOff},
+		"REAPER": {"REAPER", true, "on", dawport.ReasonNotYet},
+		"no --daw, the folder's .rpp makes it REAPER": {"", true, "on", dawport.ReasonNotYet},
+		"Audacity, not connected":                     {"Audacity", false, "on", dawport.ReasonStandalone},
+		"experimental off":                            {"Audacity", true, "", dawport.ReasonExperimentalOff},
+		"backups turned off":                          {"Audacity", true, "off", dawport.ReasonTurnedOff},
 	} {
 		t.Run(name, func(t *testing.T) {
 			role := &fakeBackupKeeper{answer: backedUpInAudacity()}

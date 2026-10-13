@@ -43,6 +43,8 @@ type Setup = {
   source?: DefinitionSource;
   local?: DictionaryLookupResult;
   offline?: boolean;
+  /** A Story Bible with no entries, so no name of it shows in the table (the chapter text names some by default). */
+  noBible?: boolean;
 };
 
 function Show({ word }: { word: string | null }) {
@@ -51,11 +53,12 @@ function Show({ word }: { word: string | null }) {
   return null;
 }
 
-function Seeded({ words, say = false, show = 'first', source = 'web', local, offline = false }: Setup) {
+function Seeded({ words, say = false, show = 'first', source = 'web', local, offline = false, noBible = false }: Setup) {
   const api = useMemo(() => {
     const base = createMockApi();
-    return local ? { ...base, systemLookup: async () => local } : base;
-  }, [local]);
+    const quiet = noBible ? { ...base, guideEntities: async () => [] } : base;
+    return local ? { ...quiet, systemLookup: async () => local } : quiet;
+  }, [local, noBible]);
   const [state, setState] = useState<{ first: string | null; spare: LineSpare | null } | null>(null);
   useEffect(() => {
     void (async () => {
@@ -129,7 +132,7 @@ export const SeveralWords: Story = {
 };
 
 export const NoWordsMarked: Story = {
-  args: { words: 0 },
+  args: { words: 0, noBible: true },
   play: async ({ canvasElement }) => {
     await expect(await within(canvasElement).findByText('No words marked for pronunciation in this chapter.')).toBeTruthy();
   },

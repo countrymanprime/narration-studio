@@ -114,6 +114,23 @@ describe('the verdict for each deadline', () => {
   });
 });
 
+describe('the recorded audio against the plan', () => {
+  it('draws the chart the mock shows top left, with the plan, today and the estimated finish', async () => {
+    await mount({ seed: { deadline: '2026-10-14' } });
+    const chart = await screen.findByRole('img', { name: 'Recorded audio versus plan' });
+    expect(screen.getByRole('heading', { name: 'Recorded audio vs plan' })).toBeTruthy();
+    expect(chart.querySelector('[data-line="plan"]')).not.toBeNull();
+    expect(chart.querySelector('[data-marker="today"]')).not.toBeNull();
+    expect(chart.textContent).toMatch(/due Oct 14/);
+    expect(chart.textContent).toMatch(/done .* \(est\.\)/);
+  });
+  it('draws the chart for a book with nothing recorded, with no due line when no date is set', async () => {
+    await mount({ seed: { deadline: null } });
+    const chart = await screen.findByRole('img', { name: 'Recorded audio versus plan' });
+    expect(chart.querySelector('[data-line="due"]')).toBeNull();
+  });
+});
+
 describe('with no chapters', () => {
   it('asks for a manuscript first and draws no table', async () => {
     await mount({ statuses: [] });

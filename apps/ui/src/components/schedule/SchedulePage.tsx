@@ -4,7 +4,11 @@ import type { ProductionMilestone, ProductionPayment, ProductionPlan } from '../
 import { overlay } from '../../overlay/overlayService';
 import { useOpenPickups } from '../pickups/useOpenPickups';
 import { usePort } from '../../ports/usePort';
+import type { Measured } from '../../api/schemas/base';
+import type { TakeLogEntry } from '../../fixtures/measurements';
 import type { Command, Journal } from '../../studio/journal/createJournal';
+import { planStart, recordedSeries } from '../production/measured/measured.selectors';
+import { ProgressChart } from '../production/overview/ProgressChart';
 import { Button } from '../primitives/Button';
 import { Heading } from '../primitives/Heading';
 import { IconButton } from '../primitives/IconButton';
@@ -15,6 +19,7 @@ import { milestoneFromDraft } from './draft';
 import { maxMinutes } from './measures';
 import { MilestoneTable } from './MilestoneTable';
 import { openMilestoneDialog } from './openMilestoneDialog';
+import { WPH } from './estimates';
 import { calc, scheduleChapters, type ScheduleChapter } from './progress';
 import { saveMilestonesCommand, setAmountCommand, setDueDateCommand, setPaymentCommand } from './scheduleCommands';
 import { VerdictPill } from './VerdictPill';
@@ -31,31 +36,42 @@ export type SchedulePageProps = {
   onImport?: () => void;
 };
 
-type Loaded = { plan: ProductionPlan; chapters: ScheduleChapter[]; profileId: string | undefined };
+type Loaded = {
+  plan: ProductionPlan;
+  chapters: ScheduleChapter[];
+  profileId: string | undefined;
+  /** Finished hours recorded so far, summed over the narrated chapters whose length was measured. */
+  recordedHours: number;
+  /** The take log, or why it could not be read: the chart's recorded line is drawn from it. */
+  takeLog: Measured<TakeLogEntry[]>;
+};
 type State = { phase: 'loading' } | { phase: 'error'; message: string } | ({ phase: 'ready' } & Loaded);
 
 /** The platform a delivery profile key ("acx@2026-09") names. */
 const platformIdOf = (projectProfile: string | undefined): string | undefined => projectProfile?.split('@')[0] || undefined;
 
 /**
- * The Schedule page body (the mock's Schedule): the verdict for the due date, how the book pays, the work left and how it is worked out, and
- * the milestones. Every change is one journalled command, so one
+ * The Schedule page body (the mock's Schedule): the verdict for the due date, the recorded audio against the plan, how the book pays, the work left and how it is worked out,
+ * and the milestones. Every change is one journalled command, so one
  * undo step; a refusal from the host is shown as its own sentence and nothing is changed.
  */
 export function SchedulePage({ journal, today, onImport }: SchedulePageProps) {
   const production = usePort('production');
   const openLines = useOpenPickups();
   const deliveryProfiles = usePort('deliveryProfiles');
+  const measurements = usePort('measurements');
   const [state, setState] = useState<State>({ phase: 'loading' });
   const day = useMemo(() => today ?? new Date(), [today]);
 
   const load = useCallback(async (): Promise<void> => {
     try {
-      const [plan, overview, profiles] = await Promise.all([
+      const [plan, overview, profiles, log] = await Promise.all([
         production.productionPlan(),
         production.productionOverview(),
         // The profile only decides which measures are offered; if it cannot be read the neutral profile applies.
         Promise.allSettled([deliveryProfiles.deliveryProfiles()]),
+        // The take log only draws the chart's recorded line; a refused read leaves the line out with its reason.
+        measurements.takeLog().catch((error: unknown): Measured<TakeLogEntry[]> => ({ ok: false, reason: apiErrorMessage(error) })),
       ]);
       const read = profiles[0];
       setState({
@@ -63,11 +79,13 @@ export function SchedulePage({ journal, today, onImport }: SchedulePageProps) {
         plan,
         chapters: scheduleChapters(overview.chapters),
         profileId: platformIdOf(read.status === 'fulfilled' ? read.value.projectProfile : undefined),
+        recordedHours: overview.chapters.filter((c) => c.contentKind !== 'reference').reduce((a, c) => a + (c.recordedSeconds ?? 0), 0) / 3600,
+        takeLog: log,
       });
     } catch (error) {
       setState({ phase: 'error', message: `The schedule could not be read: ${apiErrorMessage(error)}` });
     }
-  }, [production, deliveryProfiles]);
+  }, [production, deliveryProfiles, measurements]);
   useEffect(() => void load(), [load]);
 
   if (state.phase === 'loading') return <p role="status">Loading the schedule…</p>;
@@ -80,8 +98,8 @@ export function SchedulePage({ journal, today, onImport }: SchedulePageProps) {
         </Button>
       </div>
     );
-  const { plan, chapters, profileId } = state;
-  const keep = (next: ProductionPlan) => setState({ phase: 'ready', plan: next, chapters, profileId });
+  const { plan, chapters, profileId, recordedHours, takeLog } = state;
+  const keep = (next: ProductionPlan) => setState({ ...state, plan: next });
 
   if (chapters.length === 0)
     return (
@@ -162,13 +180,26 @@ export function SchedulePage({ journal, today, onImport }: SchedulePageProps) {
         <VerdictPill k={k} today={day} due={plan.deadline ? parseIso(plan.deadline) : null} />
       </div>
       <div className="grid items-stretch gap-4 md:grid-cols-2">
-        <ContractPanel
-          plan={plan}
-          words={k.words}
-          onPayment={(payment: ProductionPayment) => void run(setPaymentCommand(production, plan, payment))}
-          onAmount={(amount) => void run(setAmountCommand(production, plan, amount))}
+        <ProgressChart
+          title="Recorded audio vs plan"
+          height={280}
+          k={k}
+          wph={WPH}
+          start={planStart(day)}
+          today={day}
+          due={plan.deadline ? parseIso(plan.deadline) : null}
+          recordedHours={recordedHours}
+          series={recordedSeries(takeLog, planStart(day))}
         />
-        <WorkedOut k={k} />
+        <div className="flex min-w-0 flex-col gap-4">
+          <ContractPanel
+            plan={plan}
+            words={k.words}
+            onPayment={(payment: ProductionPayment) => void run(setPaymentCommand(production, plan, payment))}
+            onAmount={(amount) => void run(setAmountCommand(production, plan, amount))}
+          />
+          <WorkedOut k={k} />
+        </div>
       </div>
       <Panel title="Milestones" flush actions={<IconButton action="add" label="Add milestone" onClick={() => edit(null)} />}>
         <MilestoneTable

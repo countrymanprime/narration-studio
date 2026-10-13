@@ -1,0 +1,46 @@
+{
+  "chosen": "REAPER",
+  "daw": "REAPER",
+  "experimental": false,
+  "foundFiles": [
+    "Book.rpp"
+  ],
+  "hasProject": true,
+  "launcherAutoStart": false,
+  "linkedFile": "Book.rpp",
+  "options": [
+    {
+      "daw": "REAPER",
+      "installed": true,
+      "record": {
+        "available": false,
+        "level": "experimental",
+        "message": "Experimental: switched off in Settings.",
+        "reason": "experimental_off"
+      }
+    },
+    {
+      "daw": "Audacity",
+      "installed": false,
+      "record": {
+        "available": false,
+        "level": "not_yet_available",
+        "message": "Audacity support is not available yet. This version can't read audio from Audacity or add labels to it, so open the project from REAPER to compare it.",
+        "reason": "not_yet"
+      }
+    },
+    {
+      "daw": "Built-in",
+      "installed": true,
+      "record": {
+        "available": false,
+        "level": "experimental",
+        "message": "Experimental: switched off in Settings.",
+        "reason": "experimental_off"
+      }
+    }
+  ],
+  "reachable": false,
+  "source": "chosen",
+  "state": "linked"
+}

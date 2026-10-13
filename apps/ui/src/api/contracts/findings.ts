@@ -120,6 +120,11 @@ export function defaultFindingNoteType(finding: Pick<Finding, 'category' | 'evid
   }
 }
 
+/** The type a note shows everywhere (the table's Type column and the inspector's select): the narrator's choice, else the analyzer's mapped word (ADR 0844). */
+export function shownFindingNoteType(finding: Pick<Finding, 'category' | 'evidence' | 'review'>): FindingNoteType {
+  return finding.review.type ?? defaultFindingNoteType(finding);
+}
+
 export type FindingReviewState = {
   status: FindingReviewStatus;
   note?: string;

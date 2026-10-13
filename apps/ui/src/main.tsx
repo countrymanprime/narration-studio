@@ -1,3 +1,4 @@
+import { DAW_CHOICE_MOCK_SEEDS, type DawChoiceMockName } from './api/dawChoiceMock';
 import React from 'react';
 import { createRoot } from 'react-dom/client';
 import { App } from './App';
@@ -67,6 +68,10 @@ const mockDawExperimentalOn = mockParams.has('mockDawExperimentalOn');
 // leaves out REAPER's take management (Go to/Loop/Add marker, take review, take comparison), which has no
 // Audacity analog, while everything else about a finding works the same.
 const mockDawAudacity = mockParams.get('mockDaw') === 'Audacity';
+// `?mockDawChoice=found|several|linked|not-running|not-installed` seeds the project's DAW choice (dawChoiceMock.ts) and, for every
+// one, a REAPER that is not answering: Settings > Recording's link and start rows and the Booth chip's states, without a host.
+const mockDawChoiceName = mockParams.get('mockDawChoice');
+const mockDawChoice = mockDawChoiceName && mockDawChoiceName in DAW_CHOICE_MOCK_SEEDS ? (mockDawChoiceName as DawChoiceMockName) : undefined;
 // `?mockCreditsMissing=1` drops the closing credit templates: Home's chapter table shows the
 // Closing credits row as "Not set up" with a link to Settings > Credits.
 const mockCreditsMissing = mockParams.has('mockCreditsMissing');
@@ -538,6 +543,12 @@ const mockInitial = {
   ...(mockProofingRenderStale ? { proofingRender: { [WIRE_CHAPTERS[8].id]: { state: 'stale' as const } } } : {}),
   ...(mockDawExperimentalOn ? { daw: { experimentalOn: true } } : {}),
   ...(mockDawAudacity ? { daw: { daw: 'Audacity' as const } } : {}),
+  ...(mockDawChoice
+    ? {
+        dawChoice: DAW_CHOICE_MOCK_SEEDS[mockDawChoice],
+        daw: mockDawChoice === 'not-running' ? { connected: true, reachable: false } : { connected: false },
+      }
+    : {}),
   ...(Number.isFinite(mockDawPlayhead) ? { daw: { transport: { playing: true, recording: false, position: mockDawPlayhead } } } : {}),
 };
 const api = import.meta.env.VITE_USE_MOCK_API === '1' ? createMockApi(window.__NARRATION_MOCK_OVERRIDES__, mockInitial) : wailsClient;

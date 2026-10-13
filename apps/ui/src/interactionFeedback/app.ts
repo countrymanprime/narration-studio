@@ -57,7 +57,7 @@ export const appFeedback: Record<string, FeedbackRow> = {
     'toast',
     'yes',
     'ok',
-    'The one shared binding behind the pill, Tracks and Settings\' DAW category: a single usePendingAction ref guards all three call sites, not just the one whose button visibly disables. A folder mismatch is its own toast, not an unhandled rejection; the linked file persists in the project manifest, so it survives navigation.',
+    'The one shared binding behind the pill, Tracks and Settings\' DAW category: a single usePendingAction ref guards all three call sites, not just the one whose button visibly disables. A refused file (not an .rpp, or gone) is its own toast, not an unhandled rejection, and a file in another folder links with a note saying where it is; the linked file persists in the project manifest, so it survives navigation.',
   ),
 
   // useCapability.ts: one capability's live entry from the DAW port's capability report, for any

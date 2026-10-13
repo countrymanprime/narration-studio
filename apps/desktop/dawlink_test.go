@@ -1,7 +1,11 @@
 package main
 
 import (
+	"os"
+	"os/exec"
 	"path/filepath"
+	"runtime"
+	"strings"
 	"testing"
 	"time"
 
@@ -20,8 +24,8 @@ func TestLinkDawFileWithAFileInsideTheProjectFolderLinksIt(t *testing.T) {
 	if result["selected"] != true || result["linked"] != true {
 		t.Fatalf("result = %#v, want selected and linked true", result)
 	}
-	if result["folderMismatch"] != nil {
-		t.Fatalf("result = %#v, want no folderMismatch key when it linked", result)
+	if result["insideProject"] != true || result["note"] != nil || result["message"] != nil {
+		t.Fatalf("result = %#v, want insideProject true and no note or message", result)
 	}
 
 	manifest, ok, err := project.Load(nil, folder)
@@ -37,7 +41,7 @@ func TestLinkDawFileWithAFileInsideTheProjectFolderLinksIt(t *testing.T) {
 	}
 }
 
-func TestLinkDawFileWithAFileOutsideTheProjectFolderRefusesWithoutLinking(t *testing.T) {
+func TestLinkDawFileWithAFileOutsideTheProjectFolderLinksItByItsAbsolutePath(t *testing.T) {
 	folder := t.TempDir()
 	other := t.TempDir()
 	rpp := filepath.Join(other, "Elsewhere.rpp")
@@ -47,11 +51,112 @@ func TestLinkDawFileWithAFileOutsideTheProjectFolderRefusesWithoutLinking(t *tes
 	if err != nil {
 		t.Fatal(err)
 	}
-	if result["selected"] != true || result["linked"] != false || result["folderMismatch"] != true {
-		t.Fatalf("result = %#v, want selected true, linked false, folderMismatch true", result)
+	if result["selected"] != true || result["linked"] != true || result["insideProject"] != false {
+		t.Fatalf("result = %#v, want selected and linked true, insideProject false", result)
+	}
+	if result["message"] != nil {
+		t.Fatalf("result = %#v, want no refusal message", result)
+	}
+	note, _ := result["note"].(string)
+	if !strings.Contains(note, other) || !strings.Contains(note, folder) {
+		t.Fatalf("note = %q, want it to name where the file and the project are", note)
+	}
+	manifest, ok, err := project.Load(nil, folder)
+	if err != nil || !ok || manifest.DawProjectFile == nil {
+		t.Fatalf("manifest not saved: ok=%v err=%v", ok, err)
+	}
+	if got := *manifest.DawProjectFile; got.Absolute != rpp || got.Relative != "" {
+		t.Fatalf("DawProjectFile = %#v, want the absolute path only", got)
+	}
+}
+
+func TestLinkDawFileInASubfolderStoresAProjectRelativePathThatSurvivesAMove(t *testing.T) {
+	parent := t.TempDir()
+	folder := filepath.Join(parent, "Alice")
+	rpp := filepath.Join(folder, "REAPER", "Alice.rpp")
+	writeFile(t, rpp, "x")
+
+	result, err := linkDawFile(nil, folder, rpp)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if result["linked"] != true || result["insideProject"] != true || result["note"] != nil {
+		t.Fatalf("result = %#v, want linked inside the project with no note", result)
+	}
+	moved := filepath.Join(parent, "Moved")
+	if err := os.Rename(folder, moved); err != nil {
+		t.Fatal(err)
+	}
+	manifest, ok, err := project.Load(nil, moved)
+	if err != nil || !ok || manifest.DawProjectFile == nil {
+		t.Fatalf("manifest not reloaded: ok=%v err=%v", ok, err)
+	}
+	if manifest.DawProjectFile.Relative != filepath.Join("REAPER", "Alice.rpp") {
+		t.Fatalf("Relative = %q, want REAPER/Alice.rpp", manifest.DawProjectFile.Relative)
+	}
+	if resolved, ok := manifest.DawProjectFile.Resolve(moved); !ok || resolved != filepath.Join(moved, "REAPER", "Alice.rpp") {
+		t.Fatalf("Resolve() = %q, %v after the move", resolved, ok)
+	}
+}
+
+func TestLinkDawFileThroughASymlinkedProjectFolderIsInside(t *testing.T) {
+	real := t.TempDir()
+	rpp := filepath.Join(real, "Book.rpp")
+	writeFile(t, rpp, "x")
+	alias := filepath.Join(t.TempDir(), "alias")
+	aliasFolder(t, real, alias)
+
+	result, err := linkDawFile(nil, alias, rpp)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if result["linked"] != true || result["insideProject"] != true || result["note"] != nil {
+		t.Fatalf("result = %#v, want linked inside the project with no note", result)
+	}
+}
+
+func TestLinkDawFileAcceptsAnUpperCaseRppExtension(t *testing.T) {
+	folder := t.TempDir()
+	rpp := filepath.Join(folder, "BOOK.RPP")
+	writeFile(t, rpp, "x")
+
+	result, err := linkDawFile(nil, folder, rpp)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if result["linked"] != true {
+		t.Fatalf("result = %#v, want linked", result)
+	}
+}
+
+func TestLinkDawFileRefusesAFileThatIsNotAReaperProject(t *testing.T) {
+	folder := t.TempDir()
+	wav := filepath.Join(folder, "take.wav")
+	writeFile(t, wav, "x")
+
+	result, err := linkDawFile(nil, folder, wav)
+	if err != nil {
+		t.Fatal(err)
+	}
+	message, _ := result["message"].(string)
+	if result["linked"] != false || !strings.Contains(message, ".rpp") || strings.Contains(message, "outside") {
+		t.Fatalf("result = %#v, want a refusal naming .rpp", result)
 	}
 	if _, ok, _ := project.Load(nil, folder); ok {
-		t.Fatal("a manifest was written even though the folders did not match")
+		t.Fatal("a manifest was written for a refused file")
+	}
+}
+
+func TestLinkDawFileRefusesAFileThatDoesNotExist(t *testing.T) {
+	folder := t.TempDir()
+
+	result, err := linkDawFile(nil, folder, filepath.Join(folder, "Gone.rpp"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	message, _ := result["message"].(string)
+	if result["linked"] != false || !strings.Contains(message, "Gone.rpp") || strings.Contains(message, "outside") {
+		t.Fatalf("result = %#v, want a refusal naming the missing file", result)
 	}
 }
 
@@ -122,5 +227,21 @@ func TestProjectLinkDawFileRefusesWithNoHostContext(t *testing.T) {
 	host.config.projectFolder = t.TempDir()
 	if _, err := host.ProjectLinkDawFile(); err == nil {
 		t.Fatal("want an error when the desktop host has no window context yet")
+	}
+}
+
+// aliasFolder makes alias point at target: a symlink, or on Windows without the symlink privilege a directory
+// junction (mklink /J needs none), which is the case a narrator's redirected folder most often is.
+func aliasFolder(t *testing.T, target, alias string) {
+	t.Helper()
+	err := os.Symlink(target, alias)
+	if err == nil {
+		return
+	}
+	if runtime.GOOS != "windows" {
+		t.Fatalf("could not make a symlink: %v", err)
+	}
+	if out, junctionErr := exec.Command("cmd", "/c", "mklink", "/J", alias, target).CombinedOutput(); junctionErr != nil {
+		t.Fatalf("could not make a symlink (%v) or a junction (%v: %s)", err, junctionErr, out)
 	}
 }

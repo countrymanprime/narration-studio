@@ -4,6 +4,7 @@ import (
 	"errors"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 )
 
@@ -138,5 +139,24 @@ func writeEmptyFile(t *testing.T, path string) {
 	t.Helper()
 	if err := os.WriteFile(path, nil, 0o644); err != nil {
 		t.Fatal(err)
+	}
+}
+
+func TestLooksLikeAudacityMatchesTheInstallerNameAndVersion(t *testing.T) {
+	for name, want := range map[string]bool{"Audacity 3.7.3": true, "audacity": true, " Audacity 2.4.2 ": true, "Audacity Portable Helper": false, "Audacity": true, "Not Audacity 3": false, "": false} {
+		if got := looksLikeAudacity(name); got != want {
+			t.Errorf("looksLikeAudacity(%q) = %v, want %v", name, got, want)
+		}
+	}
+}
+
+func TestPickAudacityFromUninstallEntriesNeedsTheExecutable(t *testing.T) {
+	entries := []installEntry{{DisplayName: "REAPER (x64)", InstallLocation: `C:\REAPER`}, {DisplayName: "Audacity 3.7.3", InstallLocation: `C:\Program Files\Audacity`}}
+	got, ok := pickAudacityFromUninstallEntries(entries, func(path string) bool { return strings.HasSuffix(path, "Audacity.exe") })
+	if !ok || !strings.HasSuffix(got, "Audacity.exe") {
+		t.Fatalf("got %q, %v", got, ok)
+	}
+	if _, ok := pickAudacityFromUninstallEntries(entries, func(string) bool { return false }); ok {
+		t.Fatal("found an Audacity whose executable is missing")
 	}
 }
