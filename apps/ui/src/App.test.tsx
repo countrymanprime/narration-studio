@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import { act, cleanup, configure, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { App } from './App';
 import { chapterName } from './chapterName';
@@ -26,6 +26,10 @@ beforeEach(() => {
   window.history.replaceState(null, '', '/');
 });
 afterEach(cleanup);
+
+// This file mounts the whole app. On a small CI runner with the suite running in parallel that takes longer than the 5 s
+// default of test-setup.ts, so its waits get more room (still under `testTimeout`, 15 s). A wait ends as soon as it holds.
+configure({ asyncUtilTimeout: 12_000 });
 
 function renderApp(overrides: Parameters<typeof createMockApi>[0] = {}, initial: Parameters<typeof createMockApi>[1] = {}) {
   const api = createMockApi(overrides, initial);
@@ -1548,8 +1552,8 @@ describe('App shell mounts', () => {
     await openJumpFromHeader();
     const field = await screen.findByRole('combobox', { name: 'Jump menu' });
     fireEvent.change(field, { target: { value: 'Go to Chapter' } });
-    // The chapters slot answers after the shell has mounted; with the whole suite running in parallel on a small CI runner that can take longer than the 5 s default.
-    const before = (await screen.findAllByRole('option', { name: /^Go to Chapter/ }, { timeout: 12_000 })).length;
+    // The chapters slot answers after the shell has mounted.
+    const before = (await screen.findAllByRole('option', { name: /^Go to Chapter/ })).length;
     fail = true;
     vi.spyOn(console, 'error').mockImplementation(() => undefined);
     await act(async () => ended({ id: 'j', kind: 'manuscript_import', outcome: 'success', message: '', durationMs: 1 } as never));
