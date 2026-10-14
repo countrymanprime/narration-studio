@@ -6,9 +6,9 @@ require (
 	github.com/bogem/id3v2/v2 v2.1.4
 	github.com/giraffesyo/pdf v0.7.0
 	github.com/wailsapp/wails/v3 v3.0.0-beta.26
-	golang.org/x/net v0.60.0
+	golang.org/x/net v0.61.0
 	golang.org/x/sys v0.49.0
-	golang.org/x/text v0.42.0
+	golang.org/x/text v0.43.0
 )
 
 require (
