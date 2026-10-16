@@ -150,6 +150,8 @@ type Deps = {
   /** `?mockReaperInput=`: what `teleprompterReaperInput` answers; unset, REAPER records from the first microphone listed. */
   reaperInput?: MockReaperInputSeed;
   /** The mock DAW's record gate (dawMock.ts): a start or stop it refuses is refused here with its sentence; one it allows moves the transport. */
+  /** Whether the mock DAW is recording, whoever started it: the host's `recording_elsewhere` answers for any take. */
+  dawRecording?: () => boolean;
   dawRecord?: (kind: 'start' | 'stop') => { reason: 'standalone' | 'experimental_off' | 'unlinked' | 'unavailable'; message: string } | null;
 };
 
@@ -683,6 +685,7 @@ export function createTeleprompterMock(deps: Deps): TeleprompterApi {
       await deps.ready;
       const chapter = findChapter(chapterId);
       if (!chapter) throw new Error('that chapter is not part of the current manuscript');
+      if (deps.dawRecording?.()) return mockReaperState('recording_elsewhere', chapterDisplayTitle(chapter));
       return mockReaperState(deps.reaper ?? 'ready', chapterDisplayTitle(chapter));
     },
     readAloudArmOnly: async (chapterId) => {

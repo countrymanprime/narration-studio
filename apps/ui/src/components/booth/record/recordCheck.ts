@@ -5,12 +5,14 @@ export type ChapterRecordState = {
   /** `unread` until the host has answered; Record is then left to the host's own refusal at the press. */
   tracks: 'unread' | 'none' | 'one' | 'several';
   message: string;
+  /** The DAW is already recording a take this app did not start (`recording_elsewhere`): a second start would fight it, so Record says so first. */
+  elsewhere?: boolean;
 };
 
 /** Whether the project the DAW has open is the one linked here. `unknown` while nothing is linked or the DAW has not been heard (the host reports no match then). */
 export type OpenProject = 'same' | 'different' | 'unknown';
 
-export type RecordRefusal = { code: 'capability' | 'wrong_project' | 'no_track' | 'several_tracks'; reason: string };
+export type RecordRefusal = { code: 'capability' | 'wrong_project' | 'recording_elsewhere' | 'no_track' | 'several_tracks'; reason: string };
 
 /**
  * Why Record cannot start in this chapter, or null. Every sentence is the capability's own or the host's refusal, none is
@@ -31,6 +33,10 @@ export function recordCheck(capabilities: DawCapabilities, chapter: ChapterRecor
       code: 'wrong_project',
       reason: `${name} has a different project open than the one linked here. Open the linked project in ${name}, or link the open one in Settings.`,
     };
+  }
+  if (chapter.elsewhere) {
+    const name = capabilities.daw === 'none' ? 'The DAW' : capabilities.daw;
+    return { code: 'recording_elsewhere', reason: `${name} is already recording. Stop it in ${name} before recording here.` };
   }
   if (!capabilities.capabilities.track_state?.available) return null;
   if (chapter.tracks === 'none') return { code: 'no_track', reason: chapter.message };

@@ -172,6 +172,7 @@ export function createMockApi(
     ...(initial.reaperInput ? { reaperInput: initial.reaperInput } : {}),
     resume: initial.resume,
     dawRecord: (kind) => dawControl.record(kind),
+    dawRecording: () => dawControl.recording(),
   });
   const {
     withMeasurement,

@@ -26,6 +26,8 @@ export type RecordControlState = {
   disabled: boolean;
   /** Start or stop a take (the `reading.toggle` command). A start that a precondition stops says why through `notify` and starts nothing. */
   toggle: () => Promise<void>;
+  /** The take was stopped by another path (the leave guard's "Stop and leave"): the Booth stops holding it now, not when the DAW's next heartbeat says so. */
+  stopped: () => void;
   /** Read the capabilities again, after a setting the Booth itself changed. */
   refresh: () => void;
   /** The visible Check again: a fresh read now, whatever a timer or an event last said. */
@@ -133,7 +135,11 @@ export function useRecordControl({ chapterId, notify }: { chapterId: string; not
       live = false;
     };
   }, [system, reads, reachable]);
-  const unready = !capabilities || !!capabilities.capabilities.record?.available === false || readFailed;
+  // Record is refused for the chapter's own track, or by a take running in the DAW that this app did not start: a notice is up for something the
+  // narrator fixes in the DAW, so it is read again on the timer as well.
+  const takeElsewhere = !recording && project?.playState === 'recording';
+  const refusedForChapter = takeElsewhere || (match?.chapterId === chapterId && (match.tracks === 'none' || match.tracks === 'several'));
+  const unready = !capabilities || !!capabilities.capabilities.record?.available === false || readFailed || refusedForChapter;
   useEffect(() => {
     const again = () => setReads((n) => n + 1);
     const onVisible = () => document.visibilityState === 'visible' && again();
@@ -206,16 +212,27 @@ export function useRecordControl({ chapterId, notify }: { chapterId: string; not
     };
   }, [daw, recording, notify]);
 
+  // The transport is pushed on a change: a take the narrator starts or stops in the DAW itself is heard here at once, not at the next read.
+  useEffect(
+    () =>
+      daw.subscribeTransport?.((transport) =>
+        setProject((last) => (last ? { ...last, playState: transport.recording ? 'recording' : transport.playing ? 'playing' : 'stopped' } : last)),
+      ),
+    [daw],
+  );
+
+  // Read with every capability read too (focus, Check again, the timer), so what the DAW last saved is never older than the window's last focus.
   useEffect(() => {
     let current = true;
     daw
       .projectState()
+      // A failed read keeps the last answer: the saved time is a note beside the take, and the notice about a quiet DAW is the capability read's.
       .then((state) => current && setProject(state))
-      .catch(() => current && setProject(null));
+      .catch(() => current && setProject((last) => last));
     return () => {
       current = false;
     };
-  }, [daw, recording]);
+  }, [daw, recording, reads]);
 
   useEffect(() => {
     if (!readsTracks) return;
@@ -223,13 +240,16 @@ export function useRecordControl({ chapterId, notify }: { chapterId: string; not
     teleprompter
       .readAloudReaperState(chapterId)
       .then(({ status, reason, message }) => current && setMatch({ chapterId, message, tracks: tracksOf(status, reason) }))
+      // A failed read leaves the tracks unknown, as before the first read: Record then says what the host says at the press.
       .catch(() => current && setMatch(null));
     return () => {
       current = false;
     };
-  }, [teleprompter, chapterId, readsTracks]);
+  }, [teleprompter, chapterId, readsTracks, reads, recording]);
 
-  const chapter: ChapterRecordState = match?.chapterId === chapterId ? match : { tracks: 'unread', message: '' };
+  // The DAW reports a take this app did not start (the narrator pressed Record there): a second start would fight it, so Record says so first.
+  const base: ChapterRecordState = match?.chapterId === chapterId ? match : { tracks: 'unread', message: '' };
+  const chapter: ChapterRecordState = { ...base, elsewhere: takeElsewhere };
   const check = capabilities ? recordCheck(capabilities, chapter, link.open) : null;
   const shown = refused?.chapterId === chapterId ? refused.sentence : '';
   // Never read at all: Record is off, not silently on. Read once and quiet since: the last answer stands but is not given as fact.
@@ -270,10 +290,16 @@ export function useRecordControl({ chapterId, notify }: { chapterId: string; not
     }
   }, [daw, chapterId, notify]);
 
+  const stopped = useCallback(() => {
+    heardRecording.current = false;
+    setRecording(false);
+  }, []);
+
   return {
     capabilities,
     project,
     recording,
+    stopped,
     startedByApp: true,
     reason,
     disabled: !recording && (!!check || blind),

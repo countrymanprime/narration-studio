@@ -391,10 +391,14 @@ export interface DawMockControl {
   openProject(which: 'linked' | 'other'): void;
   /** The narrator pressed Stop inside the DAW. */
   stopInDaw(): void;
+  /** The narrator pressed Record inside the DAW: a take this app did not start. */
+  startInDaw(): void;
+  /** Whether the DAW is recording, whoever started it (the host's `recording_elsewhere` is true for the app's own take too). */
+  recording(): boolean;
   /** While true, events (capabilities, transport, project state) are not delivered; reads still answer. */
   dropEvents(on: boolean): void;
-  /** The next record press is refused with this sentence. */
-  refuseNextRecord(sentence: string): void;
+  /** The next record start (or stop) is refused with this sentence, as a full disk or a locked file would. */
+  refuseNextRecord(sentence: string, kind?: 'start' | 'stop'): void;
   /** What the mock DAW holds now, for a driver to assert on. */
   state(): {
     daw: DawKind;
@@ -416,6 +420,9 @@ export interface DawMockControl {
 
 export type DawMock = DawCapabilitiesApi & DawProjectStateApi & { control: DawMockControl };
 
+/** How long after a record start or stop the DAW's next heartbeat reports it: the host pushes the transport on a tick, never inside the call. */
+const HEARTBEAT_MS = 250;
+
 const LAUNCH_MS: Record<DawMockScript, number> = { live: 1200, late: 8000, quiet: 0, different: 1200, refuse: 0, restart: 1200, busy: 0 };
 
 export function createDawMock(seed: DawMockSeed = {}, script?: DawMockScript): DawMock {
@@ -424,7 +431,7 @@ export function createDawMock(seed: DawMockSeed = {}, script?: DawMockScript): D
   let open: 'linked' | 'other' = script === 'different' ? 'other' : 'linked';
   const isRecording = () => !!live.transport?.recording;
   let dropped = false;
-  let refuseRecord: string | null = null;
+  let refuseRecord: { sentence: string; kind: 'start' | 'stop' } | null = null;
   const timers = new Set<ReturnType<typeof setTimeout>>();
   const later = (ms: number, work: () => void) => {
     const timer = setTimeout(() => {
@@ -501,11 +508,16 @@ export function createDawMock(seed: DawMockSeed = {}, script?: DawMockScript): D
       live.transport = { playing: false, recording: false };
       publish();
     },
+    startInDaw: () => {
+      live.transport = { playing: true, recording: true, position: 0 };
+      publish();
+    },
+    recording: () => isRecording() && !!currentCapabilities(live).reachable,
     dropEvents: (on) => {
       dropped = on;
     },
-    refuseNextRecord: (sentence) => {
-      refuseRecord = sentence;
+    refuseNextRecord: (sentence, kind = 'start') => {
+      refuseRecord = { sentence, kind };
     },
     state: () => ({
       daw: live.daw ?? home,
@@ -535,23 +547,23 @@ export function createDawMock(seed: DawMockSeed = {}, script?: DawMockScript): D
     record: (kind) => {
       const caps = currentCapabilities(live);
       const record = caps.capabilities.record;
+      if (refuseRecord?.kind === kind) {
+        const message = refuseRecord.sentence;
+        refuseRecord = null;
+        return { reason: 'unavailable', message };
+      }
       if (kind === 'stop') {
         if (!isRecording() && !caps.reachable) return { reason: 'standalone', message: record?.message ?? MESSAGE_NOT_RUNNING_REAPER };
         live.transport = { playing: false, recording: false };
-        publish();
+        later(HEARTBEAT_MS, publish);
         return null;
-      }
-      if (refuseRecord) {
-        const message = refuseRecord;
-        refuseRecord = null;
-        return { reason: 'unavailable', message };
       }
       if (!record?.available) {
         const reason = record?.reason === 'experimental_off' ? 'experimental_off' : record?.reason === 'standalone' ? 'standalone' : 'unavailable';
         return { reason, message: record?.message ?? MESSAGE_NO_ENGINE };
       }
       live.transport = { playing: true, recording: true, position: 0 };
-      publish();
+      later(HEARTBEAT_MS, publish);
       return null;
     },
     facts: () => {

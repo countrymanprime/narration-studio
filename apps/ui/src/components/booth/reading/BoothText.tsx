@@ -1,4 +1,4 @@
-import { Fragment, memo, useMemo, useRef, type CSSProperties, type ReactNode, type Ref } from 'react';
+import { Fragment, memo, useCallback, useMemo, useRef, type CSSProperties, type ReactNode, type Ref } from 'react';
 import {
   boothUnits,
   readingParagraphs,
@@ -156,11 +156,24 @@ export function BoothText({
   const text = useRef<HTMLDivElement>(null);
   const { onWheel } = useBrowseView({ box, text, cur: at.cur, wcur: at.wcur, browse, onBrowse, viewRef });
 
-  const seekWord = (unit: BoothUnit, word: number): number => positionOf(paragraphs, units, { cur: units.indexOf(unit), wcur: word })?.word ?? 0;
-  const seek = (paragraphId: string, word: number) => {
-    onBrowse(false);
-    onSeek(paragraphId, word);
-  };
+  // Every sentence is a memoised view: a step moves the reading position and must re-render the two sentences it touches, not every word of the
+  // chapter. So what each sentence is given stays the same between renders: the callbacks read the latest props through a ref, and the list of
+  // speakers is the same array until a name in it changes.
+  const latest = useRef({ paragraphs, units, onBrowse, onSeek, onSetSpeaker });
+  latest.current = { paragraphs, units, onBrowse, onSeek, onSetSpeaker };
+  const seekWord = useCallback(
+    (unit: BoothUnit, word: number): number =>
+      positionOf(latest.current.paragraphs, latest.current.units, { cur: latest.current.units.indexOf(unit), wcur: word })?.word ?? 0,
+    [],
+  );
+  const seek = useCallback((paragraphId: string, word: number) => {
+    latest.current.onBrowse(false);
+    latest.current.onSeek(paragraphId, word);
+  }, []);
+  const setSpeaker = useCallback((phraseKey: string, speaker: string) => latest.current.onSetSpeaker(phraseKey, speaker), []);
+  const speakersKey = speakers.join('\u0000');
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- the names are the key: a new array with the same names is the same list
+  const speakerList = useMemo(() => speakers, [speakersKey]);
 
   let index = -1;
   return (
@@ -201,10 +214,10 @@ export function BoothText({
                       words={words[own]}
                       paragraph={paragraph}
                       from={own === punchAt}
-                      speakers={speakers}
+                      speakers={speakerList}
                       colour={speakerColour?.(unit.speaker)}
                       onSeek={seek}
-                      onSetSpeaker={onSetSpeaker}
+                      onSetSpeaker={setSpeaker}
                       seekWord={seekWord}
                     />
                   );

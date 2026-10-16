@@ -1,5 +1,6 @@
 import { DAW_CHOICE_MOCK_SEEDS, type DawChoiceMockName } from './api/dawChoiceMock';
-import { DAW_MOCK_SCRIPTS, type DawMockControl } from './api/dawMock';
+import { DAW_MOCK_SCRIPTS, type DawMockControl, type DawMockSeed } from './api/dawMock';
+import { BOOTH_STRESS, MIC_STRESS, boothStressSeed, micStressDevices } from './fixtures/boothStress';
 import React from 'react';
 import { createRoot } from 'react-dom/client';
 import { App } from './App';
@@ -125,6 +126,11 @@ const mockRemoved = mockParams.get('mockRemoved') === '1';
 const mockChapterSync = (['ask', 'off', 'linked', 'unsaved', 'pickups', 'activity', 'background'] as const).find(
   (seed) => seed === mockParams.get('mockChapterSync'),
 );
+// `?mockBooth=huge-chapter|many-chapters|emoji|rtl|odd-titles` replaces the manuscript with the Booth's worst cases (fixtures/boothStress.ts): a
+// 100,000-word chapter, 5000 chapters, all-emoji, right-to-left and hostile titles and text. `?mockMics=0|1|50|weird|long` lists that many microphones,
+// or ones with quotes, newlines, right-to-left text and emoji in their names, to the teleprompter and the built-in recorder.
+const mockBoothStress = BOOTH_STRESS.find((name) => name === mockParams.get('mockBooth'));
+const mockMicsStress = MIC_STRESS.find((name) => name === mockParams.get('mockMics'));
 // `?mockNoDevices=1` boots the teleprompter with an empty device listing, so the
 // blocked "No microphone found" state (no typed fallback) can be seen without a host.
 const mockNoDevices = mockParams.has('mockNoDevices');
@@ -397,6 +403,21 @@ const mockScenario = scenarioFromParams(mockParams);
 // The chapter link the mock boots with: the seed, else Chapter 1 linked to its track. The consent and suggestion seeds show the flow that makes the
 // first link, so they start from none.
 const chapterLink = mockChapterLinkSeed ?? (mockChapterSync || mockChapterSuggestion ? 'none' : 'confirmed');
+/** The DAW seed every `mockDaw*` and `mock*CapabilityOn` param adds to, merged: a later param adds to what an earlier one set (their toggles and
+ * depths together) instead of replacing it. */
+function mergeDawSeeds(...parts: Array<DawMockSeed | undefined>): DawMockSeed | undefined {
+  const present = parts.filter((part): part is DawMockSeed => part !== undefined);
+  if (present.length === 0) return undefined;
+  return present.reduce<DawMockSeed>(
+    (merged, part) => ({
+      ...merged,
+      ...part,
+      toggles: { ...merged.toggles, ...part.toggles },
+      depth: { ...merged.depth, ...part.depth },
+    }),
+    {},
+  );
+}
 const mockInitial = {
   ...(mockScenario ? mockScenario.seed : {}),
   ...(mockFidelity ? MOCK_FIDELITY[mockFidelity] : {}),
@@ -443,6 +464,16 @@ const mockInitial = {
     : {}),
   ...(mockTeleprompter ? { teleprompter: mockTeleprompter } : {}),
   ...(mockNoDevices ? { teleprompterDevices: [] } : {}),
+  ...(mockBoothStress ? boothStressSeed(mockBoothStress) : {}),
+  ...(mockMicsStress
+    ? {
+        teleprompterDevices: micStressDevices(mockMicsStress),
+        recording: {
+          deviceNames: micStressDevices(mockMicsStress).map((device) => device.name),
+          ...(mockMicsStress === '0' ? { devices: 'none' as const } : {}),
+        },
+      }
+    : {}),
   ...(mockLevel === undefined ? {} : { teleprompterLevel: mockLevel }),
   ...(mockZoom === undefined ? {} : { zoom: mockZoom }),
   ...(mockReaperState ? { reaperState: mockReaperState } : {}),
@@ -503,11 +534,6 @@ const mockInitial = {
   ...(mockChapterTags ? { chapterTags: mockChapterTags } : {}),
   ...(mockChapterTagsEmbedError ? { chapterTagsEmbedAlwaysErrors: true } : {}),
   ...(mockRegionsCreateError ? { regionsCreateAlwaysErrors: true } : {}),
-  ...(mockRegionsCapabilityOn ? { daw: { toggles: { regions: 'on' as const } } } : {}),
-  ...(mockPunchCapabilityOn ? { daw: { toggles: { punch: 'on' as const } } } : {}),
-  ...(mockRecordCapabilityOn ? { daw: { toggles: { record: 'on' as const } } } : {}),
-  ...(mockDawDisconnected ? { daw: { connected: false, ...(mockRecordCapabilityOn ? { toggles: { record: 'on' as const } } : {}) } } : {}),
-  ...(mockRollReplaces ? { daw: { toggles: { record: 'on' as const, punch: 'on' as const }, depth: { punch: { destructive: true } } } } : {}),
   ...(mockCoverage || mockCoverageRefusal || mockStages === 'mixed'
     ? {
         coverage: {
@@ -553,16 +579,21 @@ const mockInitial = {
   ...(mockProofingStages ? { stages: { proofing: { [WIRE_CHAPTERS[8].id]: 'met' as const, [WIRE_CHAPTERS[9].id]: 'not_met' as const } } } : {}),
   ...(mockProofingSignal ? { stages: { proofing: { [WIRE_CHAPTERS[8].id]: { unknown: 'unmapped_track' as StageUnknownCause } } } } : {}),
   ...(mockProofingRenderStale ? { proofingRender: { [WIRE_CHAPTERS[8].id]: { state: 'stale' as const } } } : {}),
-  ...(mockDawExperimentalOn ? { daw: { experimentalOn: true } } : {}),
-  ...(mockDawAudacity ? { daw: { daw: 'Audacity' as const } } : {}),
-  ...(mockDawScript ? { dawScript: mockDawScript, daw: { connected: false }, dawFileLinked: false } : {}),
-  ...(mockDawChoice
-    ? {
-        dawChoice: DAW_CHOICE_MOCK_SEEDS[mockDawChoice],
-        daw: mockDawChoice === 'not-running' ? { connected: true, reachable: false } : { connected: false },
-      }
-    : {}),
-  ...(Number.isFinite(mockDawPlayhead) ? { daw: { transport: { playing: true, recording: false, position: mockDawPlayhead } } } : {}),
+  ...(mockDawScript ? { dawScript: mockDawScript, dawFileLinked: false } : {}),
+  ...(mockDawChoice ? { dawChoice: DAW_CHOICE_MOCK_SEEDS[mockDawChoice] } : {}),
+  daw: mergeDawSeeds(
+    mockScenario?.seed.daw,
+    mockDawExperimentalOn ? { experimentalOn: true } : undefined,
+    mockDawAudacity ? { daw: 'Audacity' } : undefined,
+    mockDawScript ? { connected: false } : undefined,
+    mockRegionsCapabilityOn ? { toggles: { regions: 'on' } } : undefined,
+    mockPunchCapabilityOn ? { toggles: { punch: 'on' } } : undefined,
+    mockRecordCapabilityOn ? { toggles: { record: 'on' } } : undefined,
+    mockDawDisconnected ? { connected: false } : undefined,
+    mockRollReplaces ? { toggles: { record: 'on', punch: 'on' }, depth: { punch: { destructive: true } } } : undefined,
+    mockDawChoice ? (mockDawChoice === 'not-running' ? { connected: true, reachable: false } : { connected: false }) : undefined,
+    Number.isFinite(mockDawPlayhead) ? { transport: { playing: true, recording: false, position: mockDawPlayhead } } : undefined,
+  ),
 };
 const api = import.meta.env.VITE_USE_MOCK_API === '1' ? createMockApi(window.__NARRATION_MOCK_OVERRIDES__, mockInitial) : wailsClient;
 

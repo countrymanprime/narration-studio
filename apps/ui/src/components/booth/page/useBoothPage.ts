@@ -285,13 +285,16 @@ export function useBoothPage(options: BoothPageOptions) {
   }, [recording, paused]);
 
   // Leaving. The question holds the take while it is open; Yes stops the recording the app started and the listening with it.
+  const markStopped = control.stopped;
   const stopRecording = useCallback(async (): Promise<DawResult> => {
     const result = await daw.recordStop();
+    // The take is over now: the leave guard that asked is waiting to go, and it must not see a take still running until the DAW's next heartbeat.
+    if (result.ok) markStopped();
     if (result.ok && latest.current.session.active) latest.current.session.stop();
     // Stopped on the way out: the pickups it read over are marked without a toast, as the page is going.
     if (result.ok) void tellStopped(true);
     return result;
-  }, [daw, tellStopped]);
+  }, [daw, tellStopped, markStopped]);
   const askedByShell = useRef(false);
   const shellGuard = useMemo<Pick<LeaveGuardStore, 'setLeaveGuard'>>(
     () => ({
