@@ -169,3 +169,75 @@ func TestFindByDawFileMatchesTheSameFileReachedThroughASymlink(t *testing.T) {
 		t.Fatalf("FindByDawFile() = %q, %v, want %q, true", got, ok, folder)
 	}
 }
+
+// A project created outside the projects directory (ProjectCreateIn takes any absolute parent) holds its own link, and the
+// DAW's project inside it must still be recognised: the directory scan alone never lists it.
+func TestFindByDawFileAmongFindsAProjectOutsideTheProjectsDirectory(t *testing.T) {
+	projectsDir := t.TempDir()
+	elsewhere := t.TempDir()
+	rpp := filepath.Join(elsewhere, "Book", "Book.rpp")
+	writeFile(t, rpp, "rpp")
+	want := writeManifestWithLink(t, elsewhere, "Book", rpp)
+
+	if _, _, ok := FindByDawFile(nil, projectsDir, rpp); ok {
+		t.Fatal("the directory scan found a project that is not in the projects directory")
+	}
+	folder, name, ok := FindByDawFileAmong(nil, projectsDir, rpp, []string{want})
+	if !ok || folder != want || name != "Book" {
+		t.Fatalf("FindByDawFileAmong = (%q, %q, %v), want (%q, \"Book\", true)", folder, name, ok, want)
+	}
+}
+
+// The shared path cases of the definition of done: every spelling the DAW may report the same file under still matches.
+func TestFindByDawFileAmongPathFixtures(t *testing.T) {
+	cases := map[string]string{
+		"spaces":  "My Book (draft)",
+		"unicode": "Köln – 本 – 📖",
+		"rtl":     "كتاب",
+		"long":    strings.Repeat("a", 100),
+	}
+	for label, dir := range cases {
+		t.Run(label, func(t *testing.T) {
+			root := t.TempDir()
+			rpp := filepath.Join(root, dir, "Take One.rpp")
+			writeFile(t, rpp, "rpp")
+			want := writeManifestWithLink(t, root, dir, rpp)
+			if _, _, ok := FindByDawFileAmong(nil, t.TempDir(), rpp, []string{want}); !ok {
+				t.Fatalf("no match for %q", rpp)
+			}
+			upper := filepath.Join(root, strings.ToUpper(dir), "TAKE ONE.RPP")
+			if _, _, ok := FindByDawFileAmong(nil, t.TempDir(), upper, []string{want}); !ok {
+				t.Fatalf("no match for the same file spelled %q", upper)
+			}
+		})
+	}
+}
+
+func TestFindByDawFileAmongToleratesBadCandidates(t *testing.T) {
+	rpp := filepath.Join(t.TempDir(), "Book.rpp")
+	writeFile(t, rpp, "rpp")
+	missing := filepath.Join(t.TempDir(), "gone")
+	notAProject := t.TempDir()
+	for _, candidates := range [][]string{nil, {}, {""}, {missing}, {notAProject}, {missing, "", notAProject}} {
+		if _, _, ok := FindByDawFileAmong(nil, "", rpp, candidates); ok {
+			t.Fatalf("matched with candidates %q", candidates)
+		}
+	}
+	if _, _, ok := FindByDawFileAmong(nil, "", "", []string{notAProject}); ok {
+		t.Fatal("an empty rpp path matched")
+	}
+}
+
+// A linked file that was moved or deleted must not match by name alone.
+func TestFindByDawFileAmongIgnoresALinkWhoseFileIsMissing(t *testing.T) {
+	root := t.TempDir()
+	rpp := filepath.Join(root, "Book", "Book.rpp")
+	writeFile(t, rpp, "rpp")
+	folder := writeManifestWithLink(t, root, "Book", rpp)
+	if err := os.Remove(rpp); err != nil {
+		t.Fatal(err)
+	}
+	if _, _, ok := FindByDawFileAmong(nil, "", rpp, []string{folder}); ok {
+		t.Fatal("matched a link whose file is gone")
+	}
+}

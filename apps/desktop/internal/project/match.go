@@ -27,10 +27,29 @@ import (
 // rppPath. Callers that get ok=false fall back to their existing behaviour
 // (the picker, or the rpp's own folder) unchanged.
 func FindByDawFile(reporter *persist.Reporter, projectsDir, rppPath string) (folder, name string, ok bool) {
-	if projectsDir == "" || rppPath == "" {
+	return FindByDawFileAmong(reporter, projectsDir, rppPath, nil)
+}
+
+// FindByDawFileAmong is FindByDawFile that also looks in folders: project folders that may sit anywhere, outside projectsDir (a
+// project can be created at any absolute location, so listing projectsDir alone never finds it). The caller passes the open
+// project and the recent projects; an empty, missing or non-project entry is skipped. folders are tried first, in order, so the
+// open project wins over a scan hit.
+func FindByDawFileAmong(reporter *persist.Reporter, projectsDir, rppPath string, folders []string) (folder, name string, ok bool) {
+	if rppPath == "" {
 		return "", "", false
 	}
 	target := normalizePath(rppPath)
+	for _, candidate := range folders {
+		if candidate == "" {
+			continue
+		}
+		if name, matched := linkedTo(reporter, candidate, rppPath, target); matched {
+			return candidate, name, true
+		}
+	}
+	if projectsDir == "" {
+		return "", "", false
+	}
 	entries, err := os.ReadDir(projectsDir)
 	if err != nil {
 		return "", "", false
@@ -40,17 +59,24 @@ func FindByDawFile(reporter *persist.Reporter, projectsDir, rppPath string) (fol
 			continue
 		}
 		candidate := filepath.Join(projectsDir, entry.Name())
-		manifest, loaded, loadErr := Load(reporter, candidate)
-		if loadErr != nil || !loaded || manifest == nil || manifest.DawProjectFile == nil {
-			continue
+		if name, matched := linkedTo(reporter, candidate, rppPath, target); matched {
+			return candidate, name, true
 		}
-		resolved, exists := manifest.DawProjectFile.Resolve(candidate)
-		if !exists || !samePath(resolved, rppPath, target) {
-			continue
-		}
-		return candidate, manifest.Name, true
 	}
 	return "", "", false
+}
+
+// linkedTo is whether the project in candidate links rppPath (whose normalizePath is target), and the project's name.
+func linkedTo(reporter *persist.Reporter, candidate, rppPath, target string) (string, bool) {
+	manifest, loaded, err := Load(reporter, candidate)
+	if err != nil || !loaded || manifest == nil || manifest.DawProjectFile == nil {
+		return "", false
+	}
+	resolved, exists := manifest.DawProjectFile.Resolve(candidate)
+	if !exists || !samePath(resolved, rppPath, target) {
+		return "", false
+	}
+	return manifest.Name, true
 }
 
 // samePath reports whether resolved names the same file as rppPath (whose

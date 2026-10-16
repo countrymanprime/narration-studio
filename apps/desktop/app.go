@@ -1231,11 +1231,14 @@ func hasArgument(arguments []string, wanted string) bool {
 // existing behaviour keeps working: an existing REAPER session with no link
 // still attaches the rpp's own folder, and an unsaved project (empty
 // projectFolder too) still falls through to the picker.
-func resolveProjectFile(reporter *persist.Reporter, projectsDir string, next config) config {
+//
+// known are project folders to look in besides projectsDir (the open project and the recent ones): a project created outside
+// projectsDir is only ever found through them.
+func resolveProjectFile(reporter *persist.Reporter, projectsDir string, next config, known ...string) config {
 	if next.projectFile == "" {
 		return next
 	}
-	folder, name, ok := project.FindByDawFile(reporter, projectsDir, next.projectFile)
+	folder, name, ok := project.FindByDawFileAmong(reporter, projectsDir, next.projectFile, known)
 	if !ok {
 		return next
 	}
@@ -1247,14 +1250,23 @@ func resolveProjectFile(reporter *persist.Reporter, projectsDir string, next con
 // resolveProjectFileLocked resolves the real projects directory and applies
 // resolveProjectFile. A failure to resolve the projects directory (an
 // unresolvable home folder) is non-fatal here too, matching every other use
-// of project.ResolveDir: next is returned unchanged and the caller's existing
+// of project.ResolveDir: the projects directory is then not scanned, and the open and recent
+// projects still are. With no match, next is returned unchanged and the caller's existing
 // fallback takes over.
 func (h *Host) resolveProjectFileLocked(next config) config {
 	projectsDir, err := project.ResolveDir("")
 	if err != nil {
-		return next
+		projectsDir = ""
 	}
-	return resolveProjectFile(h.persist, projectsDir, next)
+	known := []string{h.config.projectFolder}
+	if h.recents != nil {
+		if entries, listErr := h.recents.List(); listErr == nil {
+			for _, entry := range entries {
+				known = append(known, entry.Path)
+			}
+		}
+	}
+	return resolveProjectFile(h.persist, projectsDir, next, known...)
 }
 
 // unresolvedLaunchReason reports what to tell the narrator when a REAPER launch (--daw REAPER, set unconditionally by
