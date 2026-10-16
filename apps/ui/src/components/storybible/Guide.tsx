@@ -401,7 +401,11 @@ function GuideLoaded({ notify, goToManuscript }: Pick<GuideProps, 'notify' | 'go
 
   return (
     <CommandScope kind="page">
-      <Tabs value={tab} onChange={setTab} className="mx-auto flex h-[calc(100dvh-6.5rem)] max-w-6xl flex-col gap-4 overflow-hidden max-md:h-auto">
+      <Tabs
+        value={tab}
+        onChange={setTab}
+        className="mx-auto flex h-[calc(100dvh-6.5rem)] max-w-6xl flex-col gap-4 overflow-hidden max-lg:h-auto max-lg:overflow-visible"
+      >
         {tab === SERIES_TAB && (
           <div className="flex-none space-y-4">
             <Heading title="Story Bible" />
@@ -413,7 +417,7 @@ function GuideLoaded({ notify, goToManuscript }: Pick<GuideProps, 'notify' | 'go
             <SeriesTab notify={notify} />
           </Panel>
         ) : (
-          <div className="grid min-h-0 flex-1 gap-4 max-md:h-auto lg:grid-cols-[20rem_minmax(0,1fr)] [&>*]:max-md:min-h-96">
+          <div className="grid min-h-0 flex-1 gap-4 max-lg:h-auto lg:grid-cols-[20rem_minmax(0,1fr)] [&>*]:max-lg:min-h-96">
             <TabPanel value={tab} className={`${PANEL_FRAME_CLASS} flex min-h-0 flex-col overflow-hidden`}>
               <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 px-4 pt-3">
                 <Heading title="Story Bible" />
