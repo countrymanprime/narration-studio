@@ -2,7 +2,7 @@
 
 Written before the fixes, per [the definition of done](../../.claude/rules/definition-of-done.md), and updated as cells were tested. Each cell is **T** (tested, naming where), **P** (probed by hand in dev:mock, by the PR's own run or the independent narrator), **NT** (not tested, with the reason) or **n/a** (cannot happen, with the reason).
 
-Test files: `PickupsPage.test.tsx` (page), `PickupsTable.test.tsx` (table), `AddPickup.test.tsx`, `SessionPanel.test.tsx`, `pickupRows.test.ts`, `tests/visual/pickups-edges.spec.ts` (overlays, real app), `tests/visual/app.spec.ts` rows `pickups / *`.
+Test files: `PickupsPage.test.tsx` (page), `PickupsTable.test.tsx` (table), `AddPickup.test.tsx`, `SessionPanel.test.tsx`, `pickupRows.test.ts`, `tests/visual/overlays/pickups.ts` and `pickups-edges.spec.ts` (overlays, real app), `tests/visual/app.spec.ts` rows `pickups / *`.
 
 | Area | Empty | One | Many / huge | Loading | Refused | Failed | Stale | Long / RTL / emoji | Rapid double-fire | Reload / leave mid-action |
 | - | - | - | - | - | - | - | - | - | - | - |
@@ -13,7 +13,7 @@ Test files: `PickupsPage.test.tsx` (page), `PickupsTable.test.tsx` (table), `Add
 | Add by hand | T empty line | T | n/a | T pending button | T host refusal keeps text | T | n/a | T RTL, emoji, 501 chars, whitespace; absurd times `-1`, `5:99`, `1e3`, `∞`, `99999999:00` | T double press adds one; T repeat line is refused in words | NT: the popover is not persisted |
 | Chapter stepper / scope | T "No pickups queued" | T | T | n/a | n/a | n/a | T scope on a chapter that left falls back to all (derived in `PickupsPage.tsx`); **NT** as a rendered test | T mixed manuscript headings | n/a | P |
 | Alt+Up / Alt+Down | n/a | n/a | T | n/a | n/a | n/a | n/a | n/a | n/a | n/a |
-| Check recordings | n/a | n/a | n/a | n/a | T off with the DAW's sentence | n/a | n/a | n/a | P one run for two quick clicks | P Escape returns focus; dialog Cancel and Check on screen at 1440x900, 1100x560, 760x620 (`pickups-edges.spec.ts`) |
+| Check recordings | n/a | n/a | n/a | n/a | T off with the DAW's sentence | n/a | n/a | n/a | P one run for two quick clicks | P Escape returns focus; dialog Cancel and Check on screen at 1440x900, 1100x560, 760x620 (`pickups-edges.spec.ts`, shared guard) |
 | Open N in Booth / row hand-off | T 0 lines: button off with a reason | T | T 2000 ids survive the address in order | n/a | n/a | n/a | NT: the Booth owns what it does with an id the list no longer has (gap reported, Booth is another owner's) | T | T | P Back and Forward return |
 | Add N as markers | T off with reason | T | T | n/a | T refusal toast | T | n/a | n/a | T one run for ten presses | P |
 | Copy the pickup script | T says nothing to copy, button state | T | T order by chapter then time | n/a | n/a | T clipboard failure sentence | n/a | T typed text copied exactly | n/a | n/a |
@@ -34,9 +34,9 @@ Test files: `PickupsPage.test.tsx` (page), `PickupsTable.test.tsx` (table), `Add
 | Restarts mid-session | **NT**: not drivable in the mock; the next read after the restart shows the markers' truth |
 | Booth hand-off with a pickup id the Booth no longer finds | **NT**, reported as a gap: the Booth is not touched here |
 
-## Overlays (real app, `pickups-edges.spec.ts`, three window sizes)
+## Overlays (real app)
 
-Row menu at the row's four corners, first and last row; Add popover; stepper menu; Check recordings dialog (and its footer buttons); a tooltip on the last row icon; a toast; the row menu over an open Add popover; the row menu beside the focused, expanded nav rail. Each is topmost by `elementFromPoint` at its corners and centre and fully on screen; a self-check proves the guard fails when a layer covers it, and the dialog check fails without the sticky footer. The shared overlay guard (#1756) had not merged, so this is done by hand.
+The shared overlay guard (`tests/visual/overlays.spec.ts`, list in `tests/visual/overlays/pickups.ts`) opens each Pickups overlay at every window edge and corner, beside the sidebar and the top bar, over scrolled content, at 360x500 and 320x300 and over another overlay, and asserts it is topmost by `elementFromPoint` and fully on screen: the context menu on a line (also over the Add popover), the Add popover, the chapter stepper's menu, the Check recordings dialog and the hint on a line's Remove icon, plus the shell's own overlays on this page. `tests/visual/pickups-edges.spec.ts` adds what the guard does not measure: the dialog's Cancel and Check stay on screen and topmost down to 700x400. An earlier hand-written guard for this page was replaced by the shared one once #1756 merged.
 
 ## Independent narrator rounds
 
