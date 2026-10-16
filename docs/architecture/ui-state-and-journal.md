@@ -8,7 +8,7 @@
 | --- | --- | --- |
 | Read-model store | `apps/ui/src/studio/store/createStudioStore.ts` | Holds one parsed copy of each cross-page read model (a slot). Never holds the book. |
 | Slot registry | `apps/ui/src/studio/slots.ts` | Names the slots, how each loads and what makes it stale. |
-| Hooks | `apps/ui/src/studio/store/react.tsx` | `useStudio(selector)` over `useSyncExternalStore`. |
+| Hooks | `apps/ui/src/studio/store/react.tsx` | `bindStudio` produces `useStudio(selector)` over `useSyncExternalStore`; callers import `useStudio` from `studio/StudioProvider`. |
 | Selectors | `apps/ui/src/studio/selectors/createSelector.ts` | Memoised pure functions of state. |
 | Copy-on-write helpers | `apps/ui/src/studio/store/copyOnWrite.ts` | `getIn` and `setIn` for UI-only slices. |
 | Command journal | `apps/ui/src/studio/journal/createJournal.ts` | `act`, `undo`, `undoLast`, `entries`, `clear`. |
