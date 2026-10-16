@@ -32,8 +32,10 @@ export const storyBibleCases: OverlayCase[] = [
     kind: 'menu',
     scrolled: false,
     open: async (page) => {
-      await page.getByRole('button', { name: 'Edit this entry' }).click();
-      await page
+      // The kind chips in the list carry the same names, so look inside the entry's own panel (its heading is the entry's name).
+      const entry = page.locator('section', { has: page.getByRole('button', { name: 'Find in the manuscript' }) });
+      await entry.getByRole('button', { name: 'Edit this entry' }).click();
+      await entry
         .getByRole('button', { name: /^(Character|Place|Organization|Lore|Item|Event)\b/ })
         .first()
         .click();

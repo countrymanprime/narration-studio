@@ -80,15 +80,16 @@ All in `suggested/import/import.states.test.tsx` (52 cases) unless it says other
 
 ## Overlays (each topmost at its own points and fully on screen)
 
-Written by hand, because the shared guard on `fix/booth-resiliency` had not merged to `main`: `apps/ui/tests/overlays/` (`pnpm --dir apps/ui overlays:page`). It checks the centre, four corner insets and four edge midpoints with `elementFromPoint`, and that the box is inside the viewport, at 1440x900, 1024x768 and 800x600, in the light theme only. 462 cases: 384 pass, 3 fail, 75 not applicable.
+The shared overlay guard (`apps/ui/tests/visual/overlays.spec.ts`, from #1756) runs this page's overlays: `tests/visual/overlays/storybible.ts` lists them, and the shell's own overlays run on the page too. For each overlay and each of seven window sizes (the visual suite's sizes plus 360x500 and 320x300) it opens the overlay at every window edge and corner and beside the sidebar and the top bar where it follows the pointer, over content scrolled halfway and to the end, and checks with `elementFromPoint` that it is topmost and fully on screen. 101 Story Bible cases pass in the real mock build, light theme.
 
 | Overlay | Status |
 | --- | --- |
-| header tooltips, entry kind menu, pronunciation source menu | pass at every window edge and corner, beside the rail |
-| Import dialog, Delete confirm, language-model prompt, rebuild work dialog, preview-voice prompt, Voice data panel, review slide-over | pass, also while another overlay is open |
-| row context menu | pass where a menu opens (4 of 9 pointer spots; the rest open nothing) |
-| Sort and speaker-colour selects | not tested: native `<select>`; the browser draws the popup outside the page, so `elementFromPoint` cannot see it. The spec fails if either becomes a custom popup |
-| toast raised while a dialog or slide-over is open | **FAIL, not fixed here**: see the PR body, "Found, not fixed" |
+| hints on Scan, Import entries, Voice data, Build / refresh and Add entity; the entry row's right-click menu; the kind menu of an entry in Edit | tested |
+| Import dialog, Delete confirm, language-model prompt, preview-voice prompt, rebuild work dialog, Voice data panel, Remove voice data confirm | tested (opened by the catalog's own state drivers) |
+| the shell's overlays on this page (context menu, top bar hints, Jump to, History, navigation drawer and rail) | tested |
+| Sort and speaker-colour selects | not tested: native `<select>`; the browser draws the popup outside the page, so `elementFromPoint` cannot see it |
+| pronunciation source menu, review slide-over, a menu or tooltip over another overlay | not tested: each needs a chain of steps the mock reaches only inside a driver |
+| toast raised while a dialog or slide-over is open | **found by a hand-written check earlier in this PR, not kept as a test**: the toast is drawn under the dialog (see the PR body, "Found, not fixed"); a test would fail until that is decided |
 | dark theme, a real host | not tested |
 
 ## Host failures
