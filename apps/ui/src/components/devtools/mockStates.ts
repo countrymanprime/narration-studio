@@ -55,6 +55,15 @@ export const MOCK_GROUPS: readonly MockGroup[] = [
     options: [
       { ...DEFAULT, label: 'REAPER' },
       { value: 'audacity', label: 'Audacity', set: { mockDaw: 'Audacity' } },
+      // A fresh machine (REAPER not connected, no project file linked) with a DAW that moves like the host's (src/api/dawMock.ts): what REAPER does
+      // once the app starts it. A driver plays the rest through window.__NARRATION_MOCK_DAW__.
+      { value: 'live', label: 'Fresh machine: REAPER answers after the launch', set: { mockDaw: 'live' } },
+      { value: 'late', label: 'Fresh machine: REAPER answers 8 s after the launch', set: { mockDaw: 'late' } },
+      { value: 'quiet', label: 'Fresh machine: REAPER opens its bridge and never answers', set: { mockDaw: 'quiet' } },
+      { value: 'different', label: 'Fresh machine: REAPER has another project open', set: { mockDaw: 'different' } },
+      { value: 'refuse', label: 'Fresh machine: the launch is refused', set: { mockDaw: 'refuse' } },
+      { value: 'restart', label: 'Fresh machine: REAPER answers, goes quiet, returns', set: { mockDaw: 'restart' } },
+      { value: 'busy', label: 'Fresh machine: the busy app turns the project away', set: { mockDaw: 'busy' } },
     ],
   },
   {

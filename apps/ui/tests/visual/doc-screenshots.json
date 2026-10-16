@@ -210,6 +210,13 @@
     "caption": "Booth - the Connect REAPER to record box, with the two steps and Open in REAPER and connect, above the disabled Record button and its reason"
   },
   {
+    "page": "booth",
+    "state": "record-turned-away",
+    "viewport": "desktop",
+    "docName": "booth-record-turned-away",
+    "caption": "Booth - REAPER started from the Connect box, but the app was busy and turned its project away: the box says so and what to do"
+  },
+  {
     "page": "engine",
     "state": "default",
     "viewport": "desktop",
