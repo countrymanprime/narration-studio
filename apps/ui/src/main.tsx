@@ -37,6 +37,8 @@ declare global {
   interface Window {
     __NARRATION_MOCK_OVERRIDES__?: Parameters<typeof createMockApi>[0];
     __NARRATION_MOCK_DAW__?: DawMockControl;
+    /** The mock microphone's side: unplug it mid-session (teleprompterMock.ts). */
+    __NARRATION_MOCK_TELEPROMPTER__?: { failListening: (message: string) => void };
   }
 }
 // Production is a native Wails window. Browser use is supported only through

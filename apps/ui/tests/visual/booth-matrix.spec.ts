@@ -212,6 +212,21 @@ test.describe('with a take running', () => {
     expect(errors).toEqual([]);
   });
 
+  test('the microphone is unplugged mid-take: the footer says the text cannot follow, and the take goes on and stops', async ({ page }) => {
+    const errors = watch(page);
+    await takeRunning(page);
+    await page.waitForTimeout(600);
+    await page.evaluate(() => window.__NARRATION_MOCK_TELEPROMPTER__?.failListening('Microphone Array (Realtek(R) Audio) was unplugged.'));
+    await expect(page.locator('#blisten-why')).toContainText('The text cannot follow your voice: ');
+    await expect(page.locator('#blisten-why')).toContainText('was unplugged');
+    await expect(stop(page)).toBeVisible();
+    expect((await daw(page))?.recording).toBe(true);
+    await page.keyboard.press('Space');
+    await expect(record(page)).toBeVisible();
+    expect((await daw(page))?.recording).toBe(false);
+    expect(errors).toEqual([]);
+  });
+
   test('a full disk refuses the start in a sentence and starts nothing', async ({ page }) => {
     const errors = watch(page);
     await openBooth(page);
@@ -278,6 +293,49 @@ test.describe('with a take running', () => {
     await expect(page.getByText(/already recording/).first()).toBeVisible({ timeout: 10_000 });
     await page.evaluate(() => window.__NARRATION_MOCK_DAW__?.stopInDaw());
     await expect(record(page)).toBeEnabled({ timeout: 10_000 });
+    expect(errors).toEqual([]);
+  });
+});
+
+test.describe('the other controls', () => {
+  test('the credits: chosen from the picker, read, and a take on them runs and stops', async ({ page }) => {
+    const errors = watch(page);
+    await openBooth(page, `${RECORD_ON}&mockCredits=filled`);
+    await page.getByRole('button', { name: /^Chapter: / }).click();
+    await page.getByRole('menuitemradio', { name: 'Opening credits' }).click();
+    await expect(page.getByRole('button', { name: /^Chapter: Opening credits/ })).toBeVisible();
+    await expect(record(page)).toBeEnabled();
+    await record(page).click();
+    await expect(stop(page)).toBeVisible();
+    await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
+    await page.keyboard.press('b');
+    await page.keyboard.press('r');
+    await stop(page).click();
+    await expect(record(page)).toBeVisible();
+    expect((await daw(page))?.recording).toBe(false);
+    expect(errors).toEqual([]);
+  });
+
+  test('the speech model is not installed: the download question comes first, and No leaves the take unstarted', async ({ page }) => {
+    const errors = watch(page);
+    await openBooth(page, `${RECORD_ON}&mockAssets=missing`);
+    await record(page).click();
+    const question = page.getByRole('alertdialog', { name: /^Download local \w+ model\?$/ });
+    await expect(question).toBeVisible({ timeout: 10_000 });
+    await page.keyboard.press('Escape');
+    await expect(question).toBeHidden();
+    expect(errors).toEqual([]);
+  });
+
+  test('a long, narrow, emoji-heavy Text size 72 view still stops a take', async ({ page }) => {
+    const errors = watch(page);
+    await page.setViewportSize({ width: 400, height: 700 });
+    await takeRunning(page, `${RECORD_ON}&mockBooth=emoji`);
+    for (let i = 0; i < 14; i++) await page.keyboard.press('Equal');
+    await page.keyboard.press('ArrowDown');
+    expect(await noHorizontalScroll(page)).toBe(true);
+    await stop(page).click();
+    await expect(record(page)).toBeVisible();
     expect(errors).toEqual([]);
   });
 });

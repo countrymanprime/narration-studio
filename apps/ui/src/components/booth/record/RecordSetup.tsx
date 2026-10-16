@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import type { DawCapabilities } from '../../../api/contracts/daw';
-import { describeApiError } from '../../../api/errorMessage';
+import { apiErrorMessage } from '../../../api/errorMessage';
 import { useMediaQuery } from '../../../hooks/useMediaQuery';
 import { usePort } from '../../../ports/usePort';
 import { Button } from '../../primitives/Button';
@@ -136,7 +136,7 @@ function TurnOn({
         say(`Record in ${plan.dawName} is on. You can turn it off again in Settings, DAW Integration.`);
         onChanged();
       } catch (error) {
-        say(`Record could not be turned on: ${describeApiError(error)}`, 'error');
+        say(`Record could not be turned on: ${apiErrorMessage(error)}`, 'error');
       }
     });
   return (
@@ -210,7 +210,7 @@ function Connect({
         say(`${name} is starting (${started.path}). Record turns on here once it connects.`);
         onChanged();
       } catch (error) {
-        say(`${name} could not be started: ${describeApiError(error)}`, 'error');
+        say(`${name} could not be started: ${apiErrorMessage(error)}`, 'error');
       }
     });
   const linkStep = factsFailed ? (

@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import type { DawCapabilities, DawProjectState } from '../../../api/contracts/daw';
 import type { ReadAloudReaperReason, ReadAloudReaperStatus } from '../../../api/contracts/teleprompter';
 import { usePort } from '../../../ports/usePort';
-import { describeApiError } from '../../../api/errorMessage';
+import { apiErrorMessage } from '../../../api/errorMessage';
 import { recordCheck, type ChapterRecordState, type OpenProject } from './recordCheck';
 import type { RecordSetupFacts } from './recordSetup';
 
@@ -284,7 +284,7 @@ export function useRecordControl({ chapterId, notify }: { chapterId: string; not
     } catch (error) {
       // A host call that failed (not a refusal): nothing changed that this app knows of, and the narrator is told so.
       const what = starting ? 'Record did not start' : 'Stop did not go through';
-      setRefused({ chapterId, sentence: `${what}: ${describeApiError(error)}. Check ${capabilitiesRef.current?.daw ?? 'the DAW'} before pressing again.` });
+      setRefused({ chapterId, sentence: `${what}: ${apiErrorMessage(error)}. Check ${capabilitiesRef.current?.daw ?? 'the DAW'} before pressing again.` });
     } finally {
       busy.current = false;
     }

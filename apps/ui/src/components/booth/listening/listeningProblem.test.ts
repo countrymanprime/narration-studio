@@ -15,6 +15,15 @@ describe('listeningProblem', () => {
       'Choose the microphone the Booth listens to in Levels, so the text follows your voice.',
     );
   });
+  it('says so when the session itself ended in an error, as when the microphone is unplugged mid-take', () => {
+    expect(listeningProblem({ ...base, host: { phase: 'error', message: 'Microphone Array was unplugged.' } })).toBe(
+      'The text cannot follow your voice: Microphone Array was unplugged.',
+    );
+    expect(listeningProblem({ ...base, host: { phase: 'error', message: '  ' } })).toBe(
+      'The text cannot follow your voice: the listening session ended with an error.',
+    );
+    expect(listeningProblem({ ...base, host: { phase: 'running', message: 'Listening' } })).toBeUndefined();
+  });
   it('passes on the session’s own reason and error', () => {
     expect(listeningProblem({ ...base, canStart: false, startReason: 'No microphone found.' })).toBe('The text cannot follow your voice: No microphone found.');
     expect(listeningProblem({ ...base, error: 'The model failed to load.' })).toBe('The text cannot follow your voice: The model failed to load.');
