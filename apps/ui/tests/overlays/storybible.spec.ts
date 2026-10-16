@@ -447,6 +447,7 @@ for (const vp of VIEWPORTS) {
       await park(page);
       // Over scrolled content: the last row of the list after the list has scrolled to its end.
       await scrollEverythingToEnd(page);
+      await entryRows(page).last().scrollIntoViewIfNeeded();
       const last = await entryRows(page).last().boundingBox();
       await rightClickAt(last!.x + last!.width / 2, last!.y + last!.height / 2);
       await judge(page, name, 'right-click the last row (list scrolled to its end)', menu);
