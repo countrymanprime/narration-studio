@@ -132,7 +132,9 @@ export function createMockApi(
   const { endJob } = s;
   const update = createUpdateMock(initial);
   // The mock DAW is stateful (dawMock.ts): the project's launch, the saved settings, the engine choice and the Booth's take all move it.
-  const dawMock = createDawMock(initial.daw, initial.dawScript);
+  // A project that records in the app is a project whose engine is the built-in recorder, as the host reports it (`?mockEngine=builtin`).
+  const dawSeed = mockEngineFromLocation() === 'builtin' && !initial.daw?.daw ? { ...initial.daw, daw: 'Built-in' as const } : initial.daw;
+  const dawMock = createDawMock(dawSeed, initial.dawScript);
   const { control: dawControl, ...daw } = dawMock;
   const project = createProjectMock(initial, {
     launch: () => dawControl.launch(),
