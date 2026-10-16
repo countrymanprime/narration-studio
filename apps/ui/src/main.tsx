@@ -280,6 +280,9 @@ const mockDawDisconnected = mockParams.get('mockDawConnected') === '0';
 const mockRollReplaces = mockParams.has('mockRollReplaces');
 // `?mockDawPlayhead=134.6` seeds the DAW port's live transport (daw_transport_changed) as playing at that project time, for
 // the companion panel's playhead badge. Without it, the transport is stopped.
+// `?mockDawRecording=1` boots with the DAW already recording a take this app did not start: the Booth after a reload mid-take, the take still running
+// in REAPER (the reload lost this page's own memory of it).
+const mockDawRecording = mockParams.has('mockDawRecording');
 const mockDawPlayhead = Number.parseFloat(mockParams.get('mockDawPlayhead') ?? '');
 // `?mockCoverage=hold|stale|pickups|cascade|recheck-required` holds a started recording check at its last
 // transcribing step (so the running dialog can be seen), makes Chapter 4's stored check read stale (an item was
@@ -595,6 +598,7 @@ const mockInitial = {
     mockRollReplaces ? { toggles: { record: 'on', punch: 'on' }, depth: { punch: { destructive: true } } } : undefined,
     mockDawChoice ? (mockDawChoice === 'not-running' ? { connected: true, reachable: false } : { connected: false }) : undefined,
     Number.isFinite(mockDawPlayhead) ? { transport: { playing: true, recording: false, position: mockDawPlayhead } } : undefined,
+    mockDawRecording ? { transport: { playing: true, recording: true, position: 12 } } : undefined,
   ),
 };
 const api = import.meta.env.VITE_USE_MOCK_API === '1' ? createMockApi(window.__NARRATION_MOCK_OVERRIDES__, mockInitial) : wailsClient;

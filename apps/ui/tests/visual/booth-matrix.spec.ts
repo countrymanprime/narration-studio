@@ -284,6 +284,16 @@ test.describe('with a take running', () => {
     expect(errors).toEqual([]);
   });
 
+  test('a reload mid-take: the take still runs in the DAW, and the Booth says so instead of offering a second start', async ({ page }) => {
+    const errors = watch(page);
+    await openBooth(page, `${RECORD_ON}&mockDawRecording=1`, false);
+    await expect(page.getByText(/REAPER is already recording\. Stop it in REAPER before recording here\./).first()).toBeVisible();
+    await expect(record(page)).toBeDisabled();
+    await page.evaluate(() => window.__NARRATION_MOCK_DAW__?.stopInDaw());
+    await expect(record(page)).toBeEnabled({ timeout: 10_000 });
+    expect(errors).toEqual([]);
+  });
+
   test('the same, with the event lost: the next read still tells the story', async ({ page }) => {
     const errors = watch(page);
     await openBooth(page);
