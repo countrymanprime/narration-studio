@@ -23,5 +23,6 @@ Rules for one area live in `.claude/rules/` and load when Claude reads or edits 
 | `.claude/rules/ui-visual-verification.md` | Visual bug fixes require screenshot verification; the atlas, axe, aria and visual-suite gate rules |
 | `.claude/rules/wire-contracts.md` | Wire contracts |
 | `.claude/rules/reaper-bridge.md` | The harness and in-REAPER checks for steps 2 and 4 |
+| `.claude/rules/definition-of-done.md` | What "done" requires: class-wide guards, an independent narrator walkthrough, a state matrix, what was not tested |
 
 A rule loads on a Read, Write or Edit of a matching file, not on a `grep` or a PR description. Read `ui-spec-and-screenshots.md` before writing a PR that changes what `apps/ui` draws (it needs a **Screenshots** section, or the owner rejects it) and `wire-contracts.md` before changing anything that crosses a binding, event, sidecar output or file the host reads back.
