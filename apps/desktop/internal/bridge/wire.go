@@ -198,6 +198,8 @@ var eventSpecs = map[string]eventSpec{
 	// "other"); the kind, the steps asked for and the points undone. Neither carries a label read from the project.
 	"LAST_ACTION": {required: []fieldSpec{text("run"), text("kind"), text("answer")}},
 	"UNDONE_LAST": {required: []fieldSpec{text("run"), text("kind"), count("steps"), count("undone")}},
+	// monitor_level (narration_levels.lua): the monitor level now held, a whole number from 0 to 100, read back after a set.
+	"MONITOR_LEVEL": {required: []fieldSpec{text("run"), count("level")}},
 }
 
 // CheckEvent validates one decoded event line (the tag first) against the table. The error names the tag, the position and name of

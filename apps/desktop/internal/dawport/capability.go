@@ -57,6 +57,12 @@ const (
 	// CapUndoLast reads whether the engine's next undo point is one an app action of a given kind made, and undoes such points
 	// from the top of the engine's own history (#1711): the app's Undo of a cut.
 	CapUndoLast Capability = "undo_last"
+	// CapMonitorLevel reads and sets the level the narrator hears the project at, a 0 to 100 whole number the engine maps to its own
+	// monitoring output. It is not the level of the delivered audio.
+	CapMonitorLevel Capability = "monitor_level"
+	// CapInputLevel would set the level an audio interface records at. No engine can: it is declared so every engine says so in its
+	// own sentence, and the narrator is sent to the interface's control panel.
+	CapInputLevel Capability = "input_level"
 )
 
 // Needs is what a capability needs from the running engine before it can be used.
@@ -118,6 +124,8 @@ var specs = []Spec{
 	{CapRangeGain, "Lower stretches of a take", NeedsRunning, reflect.TypeFor[RangeGainReducer](), nil},
 	{CapClickRepair, "Repair clicks in a take", NeedsRunning, reflect.TypeFor[ClickRepairer](), nil},
 	{CapUndoLast, "Undo the app's last action", NeedsRunning, reflect.TypeFor[LastActionUndoer](), nil},
+	{CapMonitorLevel, "Set the monitor level", NeedsRunning, reflect.TypeFor[MonitorLeveler](), nil},
+	{CapInputLevel, "Set the input level", NeedsRunning, reflect.TypeFor[InputLeveler](), nil},
 }
 
 // Capabilities returns every capability's spec, in catalog order. The slice is the caller's own.

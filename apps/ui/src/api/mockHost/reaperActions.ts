@@ -480,7 +480,7 @@ export function createReaperActionsMock(initial: MockApiSeed, projectFolder: () 
       if (chapterTagsEmbedAlwaysErrors) throw new Error('could not write chapter tags to the new copy');
       return wireClone(WIRE_CHAPTER_TAGS_EMBED_SUCCESS);
     },
-    ...createPickupListMock(manuscript),
+    ...createPickupListMock(manuscript, initial.pickupList),
   } satisfies Partial<NarrationApi>;
   return { bindings };
 }
@@ -567,6 +567,7 @@ const PICKUP_LINE_MAX = 500;
  * chapter, a time zero or more. With no DAW in the mock, a done state is kept, as the host keeps it while the DAW is away. */
 function createPickupListMock(
   manuscript?: PickupManuscript,
+  unreadable?: MockApiSeed['pickupList'],
 ): Pick<NarrationApi, 'pickupsList' | 'pickupsAdd' | 'pickupsRemove' | 'pickupsSetIncluded' | 'pickupsSetDone'> {
   const lines = () => manuscript?.paragraphs() ?? WIRE_PARAGRAPHS;
   let items = samplePickups(WIRE_PARAGRAPHS);
@@ -594,6 +595,7 @@ function createPickupListMock(
   return {
     pickupsList: async () => {
       await placed;
+      if (unreadable) throw new Error('the project folder could not be read');
       return list();
     },
     pickupsAdd: async (chapterId, time, line) => {

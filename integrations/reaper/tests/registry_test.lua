@@ -61,6 +61,7 @@ H.test('the bridge registers exactly the commands the host and the docs know abo
     'list_pickup_markers',
     'loop_context',
     'master_chain_read',
+    'monitor_level',
     'navigate_item',
     'next_pickup',
     'pick_retake_lane',

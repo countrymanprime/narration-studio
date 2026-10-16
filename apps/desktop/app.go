@@ -67,7 +67,7 @@ import (
 // Keep this in lockstep with apps/ui/src/hostApi.ts.  The frontend rejects
 // an older host before bootstrapping so a partial update cannot run against a
 // binding contract it does not understand.
-const hostAPIVersion = 134
+const hostAPIVersion = 135
 
 // Host is the Wails binding boundary. The frontend invokes only this bound
 // object; it never receives a loopback port or an HTTP capability.
@@ -243,6 +243,9 @@ type Host struct {
 	// DawUndoLast (bindings_daw_undo_last.go) ask it to read and undo the app's own last action. Nil with no bridge client or no such
 	// role.
 	lastActionUndoer dawport.LastActionUndoer
+	// monitorLeveler is the DAW port's monitor_level role over the same adapter as takeCreator (ADR 0300): DawMonitorLevel and
+	// DawSetMonitorLevel (bindings_daw_levels.go) ask it to read and set the monitor level. Nil with no bridge client or no such role.
+	monitorLeveler dawport.MonitorLeveler
 	// backupKeeper is the DAW port's backups role (ADR 0863): on an Audacity launch with a project open, the Audacity adapter's,
 	// over its own scripting pipe client, opened on the first request and closed when the next project replaces the role.
 	// DawBackupAround and DawRestoreBackup (bindings_daw_backups.go) ask it to clone and restore audio, and the host prunes it
@@ -713,9 +716,11 @@ func (h *Host) configureLocked(next config) {
 		h.rangeGain, _ = dawAdapter.Role(dawport.CapRangeGain).(dawport.RangeGainReducer)
 		h.clickRepairer, _ = dawAdapter.Role(dawport.CapClickRepair).(dawport.ClickRepairer)
 		h.lastActionUndoer, _ = dawAdapter.Role(dawport.CapUndoLast).(dawport.LastActionUndoer)
+		h.monitorLeveler, _ = dawAdapter.Role(dawport.CapMonitorLevel).(dawport.MonitorLeveler)
 	} else {
 		h.takeCreator, h.takeSelector, h.puncher, h.rangeCutter, h.rangeFX, h.takeStacker = nil, nil, nil, nil, nil, nil
 		h.filePreviewer, h.fileRevealer, h.rangeGain, h.clickRepairer, h.lastActionUndoer = nil, nil, nil, nil, nil
+		h.monitorLeveler = nil
 	}
 	if previous, ok := h.backupKeeper.(audacityBackups); ok {
 		previous.closePipe()

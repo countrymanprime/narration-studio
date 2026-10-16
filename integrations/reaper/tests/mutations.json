@@ -2292,5 +2292,101 @@
     "file": "narration_bridge_core.lua",
     "find": "  return rawget(UNDO_LABELS, kind)\n",
     "replace": "  return rawget(UNDO_LABELS, kind) or (kind ~= '' and kind) or nil\n"
+  },
+  {
+    "name": "monitor_level's scale above unity is steeper",
+    "file": "narration_levels.lua",
+    "find": "    db = (level - UNITY) * 0.2\n",
+    "replace": "    db = (level - UNITY) * 0.25\n"
+  },
+  {
+    "name": "monitor_level's scale below unity is off",
+    "file": "narration_levels.lua",
+    "find": "    db = -(UNITY - level) * (60 / 70)\n",
+    "replace": "    db = -(UNITY - level) * (60 / 71)\n"
+  },
+  {
+    "name": "monitor_level reads a level by truncating, not rounding",
+    "file": "narration_levels.lua",
+    "find": "  level = math.floor(level + 0.5)\n",
+    "replace": "  level = math.floor(level)\n"
+  },
+  {
+    "name": "monitor_level reads a level above 100",
+    "file": "narration_levels.lua",
+    "find": "  return math.max(0, math.min(MAX_LEVEL, level))\n",
+    "replace": "  return math.max(0, level)\n"
+  },
+  {
+    "name": "monitor_level accepts a level above 100",
+    "file": "narration_levels.lua",
+    "find": "  if level > MAX_LEVEL then\n    return nil\n  end\n",
+    "replace": "  if level > 1000 then\n    return nil\n  end\n"
+  },
+  {
+    "name": "monitor_level sets a level that is not plain digits",
+    "file": "narration_levels.lua",
+    "find": "  if type(text) ~= 'string' or not text:match('^%d+$') or #text > 6 then\n",
+    "replace": "  if type(text) ~= 'string' then\n"
+  },
+  {
+    "name": "monitor_level treats an empty level as a bad level, not a read",
+    "file": "narration_levels.lua",
+    "find": "  if level_text ~= nil and level_text ~= '' then\n",
+    "replace": "  if level_text ~= nil then\n"
+  },
+  {
+    "name": "monitor_level goes on with no hardware output on the master",
+    "file": "narration_levels.lua",
+    "find": "  if not master or reaper.GetTrackNumSends(master, 1) < 1 then\n",
+    "replace": "  if not master or reaper.GetTrackNumSends(master, 1) < 0 then\n"
+  },
+  {
+    "name": "monitor_level takes the first track, not the master",
+    "file": "narration_levels.lua",
+    "find": "  local master = reaper.GetMasterTrack(0)\n",
+    "replace": "  local master = reaper.GetTrack(0, 0)\n"
+  },
+  {
+    "name": "monitor_level sets a send, not a hardware output",
+    "file": "narration_levels.lua",
+    "find": "reaper.SetTrackSendInfo_Value(master, 1, 0, 'D_VOL', level_to_gain(wanted))",
+    "replace": "reaper.SetTrackSendInfo_Value(master, 0, 0, 'D_VOL', level_to_gain(wanted))"
+  },
+  {
+    "name": "monitor_level sets the second hardware output",
+    "file": "narration_levels.lua",
+    "find": "reaper.SetTrackSendInfo_Value(master, 1, 0, 'D_VOL', level_to_gain(wanted))",
+    "replace": "reaper.SetTrackSendInfo_Value(master, 1, 1, 'D_VOL', level_to_gain(wanted))"
+  },
+  {
+    "name": "monitor_level ignores a set REAPER refused",
+    "file": "narration_levels.lua",
+    "find": "  if wanted and not reaper.SetTrackSendInfo_Value(master, 1, 0, 'D_VOL', level_to_gain(wanted)) then\n",
+    "replace": "  reaper.SetTrackSendInfo_Value(master, 1, 0, 'D_VOL', level_to_gain(wanted))\n  if false then\n"
+  },
+  {
+    "name": "monitor_level writes on a read",
+    "file": "narration_levels.lua",
+    "find": "  if wanted and not reaper.SetTrackSendInfo_Value(",
+    "replace": "  if not reaper.SetTrackSendInfo_Value("
+  },
+  {
+    "name": "monitor_level sets silence as a tiny gain, not zero",
+    "file": "narration_levels.lua",
+    "find": "  if level <= 0 then\n    return 0.0\n  end\n",
+    "replace": ""
+  },
+  {
+    "name": "monitor_level answers the level asked for, not the one read back",
+    "file": "narration_levels.lua",
+    "find": "gain_to_level(reaper.GetTrackSendInfo_Value(master, 1, 0, 'D_VOL'))",
+    "replace": "wanted or gain_to_level(reaper.GetTrackSendInfo_Value(master, 1, 0, 'D_VOL'))"
+  },
+  {
+    "name": "monitor_level opens an undo block",
+    "file": "narration_levels.lua",
+    "find": "  local master = master_with_output()\n",
+    "replace": "  reaper.Undo_BeginBlock2(0)\n  reaper.Undo_EndBlock2(0, 'Narration Utils: monitor level', -1)\n  local master = master_with_output()\n"
   }
 ]

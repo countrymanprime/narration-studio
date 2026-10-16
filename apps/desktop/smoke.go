@@ -73,6 +73,7 @@ var smokeReaperFiles = []string{
 	"narration_cleanup.lua",
 	"narration_compare.lua",
 	"narration_level_normalize.lua",
+	"narration_levels.lua",
 	"narration_line_identity.lua",
 	"narration_master_render.lua",
 	"narration_media_file.lua",
