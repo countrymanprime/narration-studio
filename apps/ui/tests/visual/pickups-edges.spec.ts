@@ -30,7 +30,8 @@ async function expectTopmostAndOnScreen(page: Page, overlay: Locator, what: stri
   expect(box.y, `${what}: top edge on screen`).toBeGreaterThanOrEqual(0);
   expect(box.x + box.width, `${what}: right edge on screen`).toBeLessThanOrEqual(size.width + 0.5);
   expect(box.y + box.height, `${what}: bottom edge on screen`).toBeLessThanOrEqual(size.height + 0.5);
-  const inset = 3;
+  // Inside the rounded corners: a point 3 px in from a rounded dialog's corner is outside its curve, over the backdrop.
+  const inset = 14;
   const points = [
     [box.x + inset, box.y + inset],
     [box.x + box.width - inset, box.y + inset],
