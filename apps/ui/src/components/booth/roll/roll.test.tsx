@@ -168,6 +168,14 @@ describe('useRoll', () => {
     expect(actions.roll).not.toHaveBeenCalled();
   });
 
+  it('r-says-why-record-cannot-start-in-the-record-controls-own-sentence', async () => {
+    const { hook, actions } = setup(SETUPS.reaper, { recording: false, recordRefusal: 'Experimental: switched off in Settings.' });
+    await act(() => hook.result.current.punchAndRoll());
+    expect(actions.notify).toHaveBeenCalledWith('Experimental: switched off in Settings.');
+    expect(actions.notify).not.toHaveBeenCalledWith('Start recording first.');
+    expect(actions.roll).not.toHaveBeenCalled();
+  });
+
   it('r rolls from the phrase chosen with Start from here', async () => {
     const { hook, actions } = setup(SETUPS.reaper, { punchAt: 1 });
     await act(() => hook.result.current.punchAndRoll());

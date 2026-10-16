@@ -465,6 +465,44 @@ describe('start-from-here-and-record-from-here', () => {
   });
 });
 
+describe('rapid-chapter-steps-are-not-dropped', () => {
+  const shown = () => screen.getByRole('button', { name: /^Chapter: / }).getAttribute('aria-label');
+
+  it('three presses of Next in one tick move three chapters, not one', async () => {
+    renderPage();
+    await ready();
+    const start = shown();
+    const next = screen.getByRole('button', { name: 'Next chapter' });
+    act(() => {
+      fireEvent.click(next);
+      fireEvent.click(next);
+      fireEvent.click(next);
+    });
+    await waitFor(() => expect(shown()).not.toBe(start));
+    await settle();
+    const rapid = shown();
+    // The same three presses made one at a time end on the same chapter.
+    cleanup();
+    renderPage();
+    await ready();
+    for (let i = 0; i < 3; i++) {
+      await userEvent.click(screen.getByRole('button', { name: 'Next chapter' }));
+      await settle();
+    }
+    expect(rapid).toBe(shown());
+  });
+
+  it('Next then Previous before the chapter loads lands back where it began', async () => {
+    renderPage();
+    await ready();
+    const start = shown();
+    act(() => void fireEvent.click(screen.getByRole('button', { name: 'Next chapter' })));
+    act(() => void fireEvent.click(screen.getByRole('button', { name: 'Previous chapter' })));
+    await settle();
+    await waitFor(() => expect(shown()).toBe(start));
+  });
+});
+
 describe('the-chapter-cannot-change-during-a-take', () => {
   it('the picker and its arrows are disabled while recording', async () => {
     const page = renderPage();
@@ -472,9 +510,26 @@ describe('the-chapter-cannot-change-during-a-take', () => {
     const picker = screen.getByRole('button', { name: /Chapter: .*Change chapter/ });
     expect((picker as HTMLButtonElement).disabled).toBe(false);
     await record(page);
-    // A disabled fieldset disables every control in it.
-    expect(picker.matches(':disabled')).toBe(true);
-    expect(screen.getByRole('button', { name: 'Next chapter' }).matches(':disabled')).toBe(true);
+    // The stepper is off, not a fieldset full of dead buttons: the arrows stay focusable and say why (aria-disabled), and a press changes nothing.
+    const next = screen.getByRole('button', { name: 'Next chapter' });
+    expect(picker.matches(':disabled') || picker.getAttribute('aria-disabled') === 'true' || picker.hasAttribute('data-disabled')).toBe(true);
+    expect(next.getAttribute('aria-disabled')).toBe('true');
+    expect(screen.getByRole('button', { name: 'Previous chapter' }).getAttribute('aria-disabled')).toBe('true');
+    const before = picker.getAttribute('aria-label');
+    await userEvent.click(next);
+    await settle();
+    expect(screen.getByRole('button', { name: /Chapter: .*Change chapter/ }).getAttribute('aria-label')).toBe(before);
+  });
+
+  it('the arrows promise no shortcut the Booth does not have, and say why they are off', async () => {
+    const page = renderPage();
+    await ready();
+    await userEvent.hover(screen.getByRole('button', { name: 'Next chapter' }));
+    expect(await screen.findByRole('tooltip')).toHaveProperty('textContent', 'Next chapter');
+    await userEvent.unhover(screen.getByRole('button', { name: 'Next chapter' }));
+    await record(page);
+    await userEvent.hover(screen.getByRole('button', { name: 'Next chapter' }));
+    await waitFor(() => expect(screen.getByRole('tooltip').textContent).toBe('Not while recording. Stop the take first.'));
   });
 });
 

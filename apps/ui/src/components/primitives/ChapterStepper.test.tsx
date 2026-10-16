@@ -19,6 +19,40 @@ function setup(props: Partial<React.ComponentProps<typeof ChapterStepper>> = {})
   return { onChange, onStep, user: userEvent.setup() };
 }
 
+describe('ChapterStepper tips', () => {
+  const tip = async (user: ReturnType<typeof userEvent.setup>, name: string) => {
+    await user.hover(screen.getByRole('button', { name }));
+    return (await screen.findByRole('tooltip')).textContent;
+  };
+
+  it('names the key when the page binds one, and only the name when it binds none', async () => {
+    const keyed = setup();
+    expect(await tip(keyed.user, 'Next chapter')).toBe('Next chapter (→)');
+    cleanup();
+    const bare = setup({ stepKeys: undefined });
+    expect(await tip(bare.user, 'Next chapter')).toBe('Next chapter');
+  });
+
+  it('says why an arrow is off at either end, in place of the key', async () => {
+    const first = setup({ value: '1' });
+    expect(await tip(first.user, 'Previous chapter')).toBe('This is the first chapter');
+    cleanup();
+    const last = setup({ value: '3' });
+    expect(await tip(last.user, 'Next chapter')).toBe('This is the last chapter');
+  });
+
+  it('a disabled stepper says why on both arrows, presses change nothing and the picker does not open', async () => {
+    const { onStep, onChange, user } = setup({ disabled: 'Not while recording.' });
+    expect(await tip(user, 'Next chapter')).toBe('Not while recording.');
+    await user.click(screen.getByRole('button', { name: 'Next chapter' }));
+    await user.click(screen.getByRole('button', { name: 'Previous chapter' }));
+    await user.click(screen.getByRole('button', { name: /Change chapter/ }));
+    expect(onStep).not.toHaveBeenCalled();
+    expect(onChange).not.toHaveBeenCalled();
+    expect(screen.queryByRole('menu')).toBeNull();
+  });
+});
+
 describe('ChapterStepper', () => {
   it('renders previous, picker and next as one group', () => {
     setup();

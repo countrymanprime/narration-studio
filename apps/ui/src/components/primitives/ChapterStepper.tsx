@@ -17,6 +17,7 @@ export function ChapterStepper({
   value,
   allowAll = false,
   stepKeys,
+  disabled,
   onChange,
   onStep,
 }: {
@@ -25,8 +26,11 @@ export function ChapterStepper({
   value: string;
   // Adds "All chapters" on top of the list.
   allowAll?: boolean;
-  // The keys the page binds to previous and next, named in the arrows' tips: `['←', '→']` on Proof, `['Alt+↑', 'Alt+↓']` elsewhere.
-  stepKeys: readonly [string, string];
+  // The keys the page binds to previous and next, named in the arrows' tips: `['←', '→']` on Proof, `['Alt+↑', 'Alt+↓']` elsewhere. A page
+  // that binds none (the Booth) leaves it out, and the tips name no key: a tip never promises a shortcut that does nothing.
+  stepKeys?: readonly [string, string];
+  // Why the whole control is off right now (a take is running): the arrows and the picker are disabled and the tip says why instead of the key.
+  disabled?: string;
   onChange: (id: string) => void;
   onStep: (direction: -1 | 1) => void;
 }) {
@@ -37,18 +41,22 @@ export function ChapterStepper({
   const width = Math.max(...labels.map((text) => text.length));
   const items = [...(allowAll ? [{ id: ALL_CHAPTERS, name: 'All chapters' }] : []), ...chapters];
 
-  const arrow = (direction: -1 | 1, name: string, icon: 'previousChapter' | 'nextChapter', key: string, atEnd: boolean) => (
-    <TooltipTarget text={`${name} (${key})`}>
-      <IconButton label={name} disabledReason={atEnd ? name : undefined} onClick={() => onStep(direction)}>
-        <Icon name={icon} />
-      </IconButton>
-    </TooltipTarget>
-  );
+  const arrow = (direction: -1 | 1, name: string, icon: 'previousChapter' | 'nextChapter', key: string | undefined, atEnd: boolean) => {
+    // The tip says why the arrow is off, or the key that does the same; with neither it is just the name.
+    const reason = disabled ?? (atEnd ? (direction === -1 ? 'This is the first chapter' : 'This is the last chapter') : undefined);
+    return (
+      <TooltipTarget text={reason ?? (key ? `${name} (${key})` : name)}>
+        <IconButton label={name} disabledReason={reason} onClick={() => onStep(direction)}>
+          <Icon name={icon} />
+        </IconButton>
+      </TooltipTarget>
+    );
+  };
 
   return (
     <div role="group" aria-label="Chapter" className="flex max-w-full min-w-0 items-center gap-1">
-      {arrow(-1, 'Previous chapter', 'previousChapter', stepKeys[0], !isAll && index <= 0)}
-      <BaseMenu.Root modal={false}>
+      {arrow(-1, 'Previous chapter', 'previousChapter', stepKeys?.[0], !isAll && index <= 0)}
+      <BaseMenu.Root modal={false} disabled={disabled !== undefined}>
         <BaseMenu.Trigger
           render={
             <Button
@@ -82,7 +90,7 @@ export function ChapterStepper({
           </BaseMenu.Positioner>
         </BaseMenu.Portal>
       </BaseMenu.Root>
-      {arrow(1, 'Next chapter', 'nextChapter', stepKeys[1], !isAll && index >= chapters.length - 1)}
+      {arrow(1, 'Next chapter', 'nextChapter', stepKeys?.[1], !isAll && index >= chapters.length - 1)}
     </div>
   );
 }

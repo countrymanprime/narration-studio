@@ -118,6 +118,7 @@ export function useBoothBookmarks(options: BoothBookmarksOptions): BoothBookmark
     onHere,
     stepFrom,
     onNone: () => overlay.toast('No bookmarks yet.'),
+    onWrapped: (dir) => overlay.toast(dir > 0 ? 'That was the last bookmark: back to the first.' : 'That was the first bookmark: on to the last.'),
   });
 
   const menuItems = useCallback(

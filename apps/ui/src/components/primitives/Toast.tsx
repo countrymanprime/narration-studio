@@ -66,7 +66,7 @@ function ToastItem({ message, dismiss }: { message: ToastMessage; dismiss: (id: 
 // assistive technology except live regions carrying `aria-live`, and an error raised from inside a dialog is announced here.
 export function ToastRegion({ messages, dismiss }: { messages: readonly ToastMessage[]; dismiss: (id: number) => void }) {
   return (
-    <div className="fixed right-5 bottom-5 z-[var(--z-toast)] flex max-w-[min(28rem,calc(100vw-2.5rem))] flex-col items-end gap-2">
+    <div className="fixed right-5 bottom-[calc(1.25rem+var(--toast-clear,0px))] z-[var(--z-toast)] flex max-w-[min(28rem,calc(100vw-2.5rem))] flex-col items-end gap-2">
       <div role="alert" aria-live="assertive" aria-atomic="false" aria-relevant="additions" className="flex flex-col items-end gap-2">
         {messages
           .filter((message) => message.tone === 'error')

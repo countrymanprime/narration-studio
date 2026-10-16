@@ -1,7 +1,8 @@
-import { useEffect, useState, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import type { Measured } from '../../../api/schemas/base';
 import type { Keymap } from '../../../input/keymap';
 import { footerHints } from '../../../input/hints';
+import { useToastClearance } from '../../../hooks/useToastClearance';
 import { KeyHints } from '../../primitives/KeyHints';
 import { LevelsInline, LevelsMenu, type LevelsMenuProps } from './LevelsMenu';
 import { timerText } from './progressLine';
@@ -71,8 +72,11 @@ export function BoothFooter({
   // One reading for the menu and the inline meter; the capture runs only while the menu is open or a take runs.
   const { level, error } = useLevels(mic.device, { active: recording, enabled: open });
   const hints = footerHints('booth', keymap, undefined, undefined, new Set(pickupSession ? ['pickupSession' as const] : []));
+  // A message rises above the whole footer, so it never covers the chips (room tone, meter) or the key hints.
+  const bar = useRef<HTMLDivElement>(null);
+  useToastClearance(bar);
   return (
-    <div className="flex flex-col">
+    <div ref={bar} className="flex flex-col">
       <div className="flex flex-wrap items-center gap-3 border-t border-[var(--border)] bg-[var(--surface)] px-5 py-2.5">
         {record}
         <span id="btimer" className="font-mono text-lg text-[var(--text)]">

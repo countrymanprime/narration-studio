@@ -26,6 +26,8 @@ export type RollSession = {
   recordedEnd: number;
   /** Seconds into the running take. */
   takeSeconds: number;
+  /** Why Record cannot start right now, in the Record control's own sentence; '' when it can. A key that needs a take says this, not a guess. */
+  recordRefusal?: string;
 };
 
 /** What the Booth does when a command settles. */
@@ -103,7 +105,7 @@ export function useRoll(session: RollSession, actions: RollActions, { overlay }:
   /** R: roll again from the phrase chosen with Start from here, otherwise from the current one. */
   const punchAndRoll = useCallback(async () => {
     const s = sessionRef.current;
-    if (!s.recording) return actionsRef.current.notify('Start recording first.');
+    if (!s.recording) return actionsRef.current.notify(s.recordRefusal || 'Start recording first.');
     return rollFrom(s.punchAt ?? s.phrase);
   }, [rollFrom]);
 

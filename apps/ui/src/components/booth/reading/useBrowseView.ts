@@ -18,6 +18,13 @@ type Options = {
 
 const LINE_PX = 40;
 const REST = 0.4;
+/** The gap kept between the word being read and the edge of the box when the box is too short for the word to rest 40% down. */
+const EDGE_PX = 8;
+
+/** How far down a box `areaHeight` high the word `wordHeight` high being read rests: 40% down, or higher when the box is too short for it to show whole. */
+export function restAt(areaHeight: number, wordHeight: number): number {
+  return Math.max(0, Math.min(areaHeight * REST, areaHeight - wordHeight - EDGE_PX));
+}
 
 // The wheel moves the view by the pixels it is given, with no easing; the Page keys ease. Neither moves the reading position
 // (DQ-17): only a click on a word, a step or a new take does, and that puts the view back on it. The distance from the reading
@@ -32,7 +39,9 @@ export function useBrowseView({ box, text, cur, wcur, browse, onBrowse, viewRef 
     if (!area || !content || !unit) return null;
     const words = unit.querySelectorAll<HTMLElement>('[data-word]');
     const word = words[Math.max(0, Math.min(words.length - 1, wcur))] ?? unit;
-    return -(word.offsetTop - area.clientHeight * REST);
+    // 40% down the box, unless the box is so short (a small window, a notice above the footer, a large Text size) that the word would run past
+    // its bottom: then as high as it needs to be to show whole. The word being read is never under what sits below the text.
+    return -(word.offsetTop - restAt(area.clientHeight, word.offsetHeight));
   }, [box, text, cur, wcur]);
 
   const clampY = useCallback(

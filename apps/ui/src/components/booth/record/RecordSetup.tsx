@@ -1,6 +1,7 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useState, type ReactNode } from 'react';
 import type { DawCapabilities } from '../../../api/contracts/daw';
 import { describeApiError } from '../../../api/errorMessage';
+import { useMediaQuery } from '../../../hooks/useMediaQuery';
 import { usePort } from '../../../ports/usePort';
 import { Button } from '../../primitives/Button';
 import { InsetCard } from '../../primitives/InsetCard';
@@ -45,6 +46,24 @@ function CheckLine({
     </div>
   );
 }
+
+/** A window short enough that the notice gives way to the text (the same height the explanation hides at). */
+const SHORT_WINDOW = '(max-height: 760px)';
+
+/** The connection steps: a numbered list, or in a short window one folded line ("Steps to connect") that opens to the same list. */
+function Steps({ short, linked, children }: { short: boolean; linked: boolean; children: ReactNode }) {
+  const list = <ol className="list-decimal space-y-2 pl-5 text-[var(--text-muted)]">{children}</ol>;
+  if (!short) return list;
+  return (
+    <details key="short" className="text-[var(--text-muted)]">
+      <summary className="cursor-pointer text-[var(--text)]">{linked ? 'Steps to connect' : 'Steps to connect (the project file is not linked yet)'}</summary>
+      <div className="mt-2">{list}</div>
+    </details>
+  );
+}
+
+/** The notice shares the window with the text: it never takes more than 45% of its height, and scrolls inside when it needs more. */
+const NOTICE_CLASS = 'mx-5 mb-2 flex max-h-[45%] flex-col gap-2 overflow-y-auto text-sm';
 
 type Say = (sentence: string, tone?: 'error') => void;
 
@@ -133,11 +152,12 @@ function TurnOn({
       }
     });
   return (
-    <InsetCard as="section" tone="warn" fill id="brec-setup" aria-labelledby="brec-setup-title" className="mx-5 mb-2 flex flex-col gap-2 text-sm">
+    <InsetCard as="section" tone="warn" fill id="brec-setup" aria-labelledby="brec-setup-title" className={NOTICE_CLASS}>
       <h3 id="brec-setup-title" className="font-medium text-[var(--text)]">
         Recording in {plan.dawName} is experimental
       </h3>
-      <p className="text-[var(--text-muted)]">
+      {/* The explanation gives way first in a short window: the heading, the buttons and what the notice waits for stay. */}
+      <p className="text-[var(--text-muted)] [@media(max-height:760px)]:hidden">
         It is built and tested in this app, but not yet checked in every {plan.dawName} setup, so it starts switched off. Turn it on to record this chapter; the
         take goes on the chapter&apos;s own track, after what is already there.
       </p>
@@ -176,6 +196,8 @@ function Connect({
   const [busy, run] = useBusy();
   const { guide } = plan;
   const name = guide.dawName;
+  // In a short window the steps fold into one line the narrator opens, so the notice leaves the text its room.
+  const short = useMediaQuery(SHORT_WINDOW, false);
   const copy = () =>
     void navigator.clipboard
       .writeText(plan.launcherPath)
@@ -193,11 +215,11 @@ function Connect({
       }
     });
   return (
-    <InsetCard as="section" tone="warn" fill id="brec-setup" aria-labelledby="brec-setup-title" className="mx-5 mb-2 flex flex-col gap-2 text-sm">
+    <InsetCard as="section" tone="warn" fill id="brec-setup" aria-labelledby="brec-setup-title" className={NOTICE_CLASS}>
       <h3 id="brec-setup-title" className="font-medium text-[var(--text)]">
         {plan.notAnswering ? `${name} is not answering` : `Connect ${name} to record`}
       </h3>
-      <ol className="list-decimal space-y-2 pl-5 text-[var(--text-muted)]">
+      <Steps short={short} linked={plan.linked}>
         {!plan.linked && factsFailed && <li>Could not read whether a project file is linked. Press Check again.</li>}
         {!plan.linked && !factsFailed && (
           <li>
@@ -221,12 +243,15 @@ function Connect({
           <span className="mt-1 block">{guide.installAgain}</span>
         </li>
         <li>{guide.run}</li>
-      </ol>
+      </Steps>
       <div className="flex flex-wrap items-center gap-2">
         <Button variant="secondary" onClick={() => void openAndConnect()} pending={busy} disabled={!plan.linked}>
           {guide.launch.label}
         </Button>
-        <span className="text-[var(--text-muted)]">{plan.linked ? guide.launch.note : 'Link the project file first.'}</span>
+        {/* What the button does gives way in a short window; why it is off ("Link the project file first.") never does. */}
+        <span className={`text-[var(--text-muted)] ${plan.linked ? '[@media(max-height:760px)]:hidden' : ''}`}>
+          {plan.linked ? guide.launch.note : 'Link the project file first.'}
+        </span>
       </div>
       {check.onCheckAgain && (
         <CheckLine
