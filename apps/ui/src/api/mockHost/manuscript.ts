@@ -131,6 +131,7 @@ export function createManuscriptMock(
   });
   let importJob: WorkJob = { id: null, kind: 'manuscript_import', phase: 'idle', message: 'Ready to import.', percent: 0, logs: [], elapsed: 0 };
   // Choosing a file and accepting the offer of one both begin the same job; the preview it will answer is `initial.importPreview`.
+  let imported = false;
   const startImport = () => {
     importJob = {
       id: 'mock-import',
@@ -160,7 +161,19 @@ export function createManuscriptMock(
       };
       return wireClone(importJob);
     },
-    manuscriptImportCommit: async () => {
+    manuscriptImportCommit: async (_jobId, { confirmedReset }) => {
+      // Like the host (`manuscript/service.go`): a project that already holds a manuscript answers the first commit with
+      // `requiresReset` and writes nothing until the narrator confirms the replace.
+      if ((!initial.noManuscript || imported) && !confirmedReset) {
+        importJob = {
+          ...importJob,
+          phase: 'ready',
+          requiresReset: true,
+          message: 'Replacing a manuscript clears its derived review data. Confirm to continue.',
+        };
+        return wireClone(importJob);
+      }
+      imported = true;
       const sourceName = importJob.preview?.sourceName ?? 'Alice.docx';
       const format = importJob.preview?.format ?? 'docx';
       importJob = {

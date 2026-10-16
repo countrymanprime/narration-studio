@@ -164,6 +164,36 @@ describe('the import review dialog, as the narrator meets it', () => {
     expect(commit.mock.calls[0]?.[1].confirmedReset).toBe(true);
   });
 
+  it('Replace manuscript names what it clears before the first confirm, whatever the host flag says (#1777)', async () => {
+    const api = createMockApi({}, { importPreview: 'docx' });
+    const commit = vi.spyOn(api, 'manuscriptImportCommit');
+    const data: Bootstrap = await api.bootstrap();
+    expect(data.manuscript).toBeTruthy();
+    render(
+      <MemoryRouter>
+        <ApiProvider api={api}>
+          <ImportHarness data={data} go={() => {}} notify={() => {}} refreshBootstrap={async () => {}} />
+        </ApiProvider>
+      </MemoryRouter>,
+    );
+    fireEvent.click(await screen.findByRole('button', { name: 'Replace manuscript…' }));
+    const dialog = within(await screen.findByRole('alertdialog', { name: /^Import Alice\./ }));
+    expect(dialog.getByText(/This replaces the active manuscript and clears Story Bible, notes, bookmarks, statuses/)).toBeTruthy();
+    expect(dialog.queryByRole('button', { name: 'Import' })).toBeNull();
+    fireEvent.click(dialog.getByRole('button', { name: 'Replace and reset' }));
+    await waitFor(() => expect(commit).toHaveBeenCalled());
+    expect(commit.mock.calls[0]?.[1].confirmedReset).toBe(true);
+  });
+
+  it('the mock host, like the real one, writes nothing on the first commit over an existing manuscript', async () => {
+    const api = createMockApi({}, { importPreview: 'docx' });
+    const { jobId } = await api.selectManuscript();
+    await api.manuscriptImportPreview(jobId!, {});
+    const first = await api.manuscriptImportCommit(jobId!, { confirmedReset: false });
+    expect({ phase: first.phase, requiresReset: first.requiresReset }).toEqual({ phase: 'ready', requiresReset: true });
+    expect((await api.manuscriptImportCommit(jobId!, { confirmedReset: true })).phase).toBe('success');
+  });
+
   it('cancelling asks the host to drop the job and closes the dialog', async () => {
     let cancel = vi.fn();
     const { dialog } = await openReview((api) => void (cancel = vi.spyOn(api, 'manuscriptImportCancel')));
