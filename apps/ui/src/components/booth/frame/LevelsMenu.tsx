@@ -79,7 +79,7 @@ function Listening({
   if (listen.fromDaw)
     return (
       <div className="text-sm text-[var(--text)]">
-        <b>{device}</b>
+        <b className="[overflow-wrap:anywhere]">{device}</b>
         <div className="text-[var(--text-muted)]">Chosen in {dawName}</div>
       </div>
     );
@@ -117,7 +117,7 @@ export function LevelsMenu({ engine, dawName, reachable, offReason, device, onDe
       onOpenChange={onOpenChange}
       trigger={<IconButton action="levels" label="Levels" id="blevels" aria-haspopup="dialog" />}
     >
-      <div className="flex min-w-72 flex-col gap-3">
+      <div className="flex w-max max-w-[min(26rem,calc(100vw-4rem))] min-w-72 flex-col gap-3">
         <div className="flex flex-col gap-1.5">
           <span className="text-xs font-semibold text-[var(--text-muted)] uppercase">Input</span>
           <LevelMeter label="Input level" peak={off ? null : (level?.peak ?? null)} rms={off ? null : (level?.rms ?? null)} size="regular" />

@@ -27,6 +27,7 @@ import { usePickupSession } from '../pickups/usePickupSession';
 import { ListeningModelPrompt } from '../listening/ListeningModelPrompt';
 import { listeningProblem } from '../listening/listeningProblem';
 import { useListeningMic } from '../listening/useListeningMic';
+import { useListeningModelState } from '../listening/useListeningModelState';
 import { CREDITS_LABEL } from '../readerModel';
 import { BoothText } from '../reading/BoothText';
 import { wordCount } from '../reading/boothUnits';
@@ -351,6 +352,7 @@ function BoothSession({ source, from, requested, adopt, data, choose, navigate, 
   const progress = progressLine({ paragraph: (units[at.cur]?.paragraphIndex ?? 0) + 1, paragraphs: paragraphs.length, wordsRead, words });
   const capabilities = control.capabilities;
   const dawChoice = useDawChoice();
+  const modelState = useListeningModelState(session.engine, session.model, session.modelInstall.job?.phase);
   useStaleToasts(overlay, { ready: !!capabilities && !control.disabled, reason: control.reason });
   const roomTone = useRoomTone(measurements, session.device);
   const standalone = capabilities?.daw === 'none';
@@ -491,7 +493,7 @@ function BoothSession({ source, from, requested, adopt, data, choose, navigate, 
             seconds={page.seconds}
             recording={control.recording}
             why={control.reason || undefined}
-            listenWhy={listeningProblem(session)}
+            listenWhy={listeningProblem({ ...session, modelNotInstalled: modelState === 'missing' })}
             mic={{
               engine: standalone ? 'builtin' : 'daw',
               dawName: page.dawName,

@@ -56,7 +56,7 @@ export const stoppedInDaw = (daw: string | undefined) =>
   `${daw && daw !== 'none' ? daw : 'The DAW'} stopped recording. The take ended there; press Record to start the next one.`;
 
 /** What the Booth says when the DAW stopped answering during a take: it did not say the take ended, and may still be recording. */
-export const lostInDaw = (daw: string | undefined) => {
+const lostInDaw = (daw: string | undefined) => {
   const name = daw && daw !== 'none' ? daw : 'The DAW';
   return `${name} stopped answering, so the Booth can't tell whether the take is still running. Check ${name}; press Record for the next take once it answers.`;
 };

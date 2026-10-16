@@ -189,7 +189,7 @@ export function BoothText({
       <div
         ref={text}
         style={{ fontSize: `${textSizePx(size)}px`, fontFamily: font, '--tsize': `${textSizePx(size)}px` } as CSSProperties}
-        className="relative mx-auto max-w-[26em] py-[30vh] leading-[1.5] transition-transform duration-300"
+        className="relative mx-auto max-w-[26em] py-[30vh] leading-[1.5] [overflow-wrap:anywhere] transition-transform duration-300"
       >
         {paragraphs.map((paragraph, paragraphIndex) => {
           const pickup = pickupLines.find((line) => line.paragraphId === paragraph.id);

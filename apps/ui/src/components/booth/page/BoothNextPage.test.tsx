@@ -565,7 +565,10 @@ describe('the-chapter-cannot-change-during-a-take', () => {
     await record(page);
     // The stepper is off, not a fieldset full of dead buttons: the arrows stay focusable and say why (aria-disabled), and a press changes nothing.
     const next = screen.getByRole('button', { name: 'Next chapter' });
-    expect(picker.matches(':disabled') || picker.getAttribute('aria-disabled') === 'true' || picker.hasAttribute('data-disabled')).toBe(true);
+    // The picker is a new element while it is off (its hint's wrapper is the tab stop and says why), so it is read again.
+    const off = screen.getByRole('button', { name: /Chapter: .*Change chapter/ });
+    expect(off.matches(':disabled') || off.getAttribute('aria-disabled') === 'true' || off.hasAttribute('data-disabled')).toBe(true);
+    expect(screen.getByRole('group', { name: 'Not while recording. Stop the take first.' }).tabIndex).toBe(0);
     expect(next.getAttribute('aria-disabled')).toBe('true');
     expect(screen.getByRole('button', { name: 'Previous chapter' }).getAttribute('aria-disabled')).toBe('true');
     const before = picker.getAttribute('aria-label');

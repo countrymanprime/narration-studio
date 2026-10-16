@@ -7,7 +7,7 @@ import { makeChapters, makeParagraphs } from './chapters';
 
 export const BOOTH_STRESS = ['long-chapter', 'huge-chapter', 'many-chapters', 'emoji', 'rtl', 'odd-titles'] as const;
 export type BoothStress = (typeof BOOTH_STRESS)[number];
-export const MIC_STRESS = ['0', '1', '50', 'weird', 'long'] as const;
+export const MIC_STRESS = ['0', '1', '50', 'weird', 'long', 'unbroken'] as const;
 export type MicStress = (typeof MIC_STRESS)[number];
 
 type Book = { chapters: ManuscriptChapter[]; paragraphs: ManuscriptParagraph[] };
@@ -91,7 +91,7 @@ export function boothStressSeed(name: BoothStress): Book {
   }
 }
 
-/** The microphones a machine can list: none, one, fifty, names with quotes, newlines, right-to-left text and emoji, and one of 300 characters. */
+/** The microphones a machine can list: none, one, fifty, names with quotes, newlines, right-to-left text and emoji, and one of 300 characters with spaces and one of 300 with none. */
 export function micStressDevices(name: MicStress): TeleprompterDevice[] {
   switch (name) {
     case '0':
@@ -110,5 +110,7 @@ export function micStressDevices(name: MicStress): TeleprompterDevice[] {
       ];
     case 'long':
       return [{ name: `Long ${'microphone name '.repeat(19)}end` }];
+    case 'unbroken':
+      return [{ name: `Mic${'WithNoSpacesAtAll'.repeat(18)}` }];
   }
 }
