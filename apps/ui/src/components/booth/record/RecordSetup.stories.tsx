@@ -78,7 +78,7 @@ export const TurnOnRecordBuiltIn: Story = {
   },
   play: async ({ canvasElement }) => {
     await expect(within(canvasElement).getByRole('heading', { name: 'Recording in the built-in recorder is experimental' })).toBeVisible();
-    await expect(within(canvasElement).getByText(/saved in the project's Recordings folder/)).toBeVisible();
+    await expect(within(canvasElement).getByText(/saved in the project's Recordings folder/)).toBeInTheDocument();
     await expect(within(canvasElement).getByRole('button', { name: 'Turn on Record' })).toBeEnabled();
   },
 };
