@@ -9,7 +9,8 @@
 // and a fixer slice removes them, then deletes the line here and the entry in the ratchet.
 
 const COMPANION = 'the Companion window has no page in the mock and stays as built (DQ-13, SN0-Q5, ADR 0381)';
-const VOICE_BIBLE = 'the series voice bible has no page in the mock and stays as built (DQ-12, SN0-Q5)';
+const VOICE_BIBLE =
+  'a Story Bible feature the mock does not draw (series voice bible, properties, dialogue cues, Commons and online pronunciation lookup), kept as built (DQ-12, SN0-Q5)';
 const ENGINE = 'the engine panel (DAW link, chapter sync, render) has no page in the mock and stays as built';
 const PICKER = 'the project picker and the start-up screens come before any Studio Next page and stay as built';
 const CREDITS = 'the credits cards stay in the Script page and the manuscript import (the SN-B8 default)';
