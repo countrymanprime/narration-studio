@@ -136,6 +136,8 @@ export function CommandRouter({ children, source, catalog = COMMAND_CATALOG, key
         !KEY_ROLE_TARGET(event.target) &&
         !['Space', 'Enter'].includes(event.gesture.code);
       if (event.gesture.modifiers.length === 0 && isGuardedTarget(event.target) && !onlyButton) return;
+      // A key a button's own list already used (the Story Bible's rows walk with the arrows) is not also the page's.
+      if (event.gesture.modifiers.length === 0 && isGuardedTarget(event.target) && event.consumed?.()) return;
 
       // A popup that owns the keyboard (a popover, a menu, a dialog) is on top of the page: a key meant for it, a foot pedal's Space
       // included, must never reach the page behind it. Only a command of the `dialog` scope, or one with Ctrl, Alt or Meta held, still runs.

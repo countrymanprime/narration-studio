@@ -78,14 +78,15 @@ jobs:
       # and the reverse.
       - if: steps.scope.outputs.affected == 'true' && matrix.shard == 1 && !cancelled()
         run: pnpm --dir apps/ui run aria
-      # `.run` is a hidden directory, which upload-artifact leaves out unless told.
+      # `.run` is a hidden directory, which upload-artifact leaves out unless told. A shard that drew only the overlay guard's tests
+      # (they capture no screenshots, so write no records) has nothing to upload; the whole-run check judges the other shards' records.
       - if: steps.scope.outputs.affected == 'true' && !cancelled()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: ui-visual-records-${{ matrix.shard }}
           path: apps/ui/screenshots/.run
           include-hidden-files: true
-          if-no-files-found: error
+          if-no-files-found: ignore
           retention-days: 1
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         if: always()

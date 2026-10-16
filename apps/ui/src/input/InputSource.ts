@@ -6,6 +6,8 @@ export type GestureEvent = {
   gesture: Gesture;
   target: EventTarget | null;
   preventDefault: () => void;
+  /** Whether something nearer the target already took the key (a list that walks its own rows with the arrows). Keyboard only. */
+  consumed?: () => boolean;
 };
 
 /**

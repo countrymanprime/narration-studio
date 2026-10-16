@@ -20,6 +20,7 @@ export function createKeyboardSource(target: Pick<Document, 'addEventListener' |
           gesture: gestureFromKeyboardEvent(keyboardEvent),
           target: keyboardEvent.target,
           preventDefault: () => keyboardEvent.preventDefault(),
+          consumed: () => keyboardEvent.defaultPrevented,
         });
       };
       target.addEventListener('keydown', onKeyDown);
