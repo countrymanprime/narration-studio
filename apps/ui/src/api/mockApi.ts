@@ -138,6 +138,7 @@ export function createMockApi(
   const { control: dawControl, ...daw } = dawMock;
   const project = createProjectMock(initial, {
     launch: () => dawControl.launch(),
+    relinked: () => dawControl.linkedOpenProject(),
     linked: initial.dawChoice ? (initial.dawChoice.linkedFile === undefined ? true : initial.dawChoice.linkedFile !== null) : undefined,
   });
   const settings = createSettingsMock(

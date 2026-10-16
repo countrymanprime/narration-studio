@@ -215,6 +215,9 @@ const (
 	messageTurnedOff       = "Turned off in Settings."
 	messageExperimentalOff = "Experimental: switched off in Settings."
 	messageNoEngine        = "No DAW is connected to this app. Open this app from your DAW to use it."
+	// messageNoInputLevel is input_level's refusal on every engine, %s being the engine's name: an interface's input gain is its
+	// driver's, not the DAW's.
+	messageNoInputLevel = "%s cannot set an audio interface's input gain. Set it in your interface's own control panel."
 )
 
 func (r *Resolver) message(c Capability, reason Reason) string {
@@ -239,6 +242,11 @@ func (r *Resolver) message(c Capability, reason Reason) string {
 		return fmt.Sprintf("%s is not answering. Check that %s is open, then try again.", daw, daw)
 	case ReasonNotYet:
 		return fmt.Sprintf("%s is not available with %s yet.", label, daw)
+	case ReasonUnsupported:
+		if c == CapInputLevel {
+			return fmt.Sprintf(messageNoInputLevel, daw)
+		}
+		return fmt.Sprintf("%s is not something %s can do.", label, daw)
 	default:
 		return fmt.Sprintf("%s is not something %s can do.", label, daw)
 	}

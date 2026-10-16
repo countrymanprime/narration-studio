@@ -78,6 +78,7 @@ func TestDeclaresOnlyWhatTheRecorderDoes(t *testing.T) {
 		dawport.CapCutRange:    dawport.Experimental,
 		dawport.CapFXRange:     dawport.NotYetAvailable,
 		dawport.CapUndoLast:    dawport.NotYetAvailable,
+		dawport.CapInputLevel:  dawport.Unsupported,
 	}
 	for _, spec := range dawport.Capabilities() {
 		c := spec.Capability

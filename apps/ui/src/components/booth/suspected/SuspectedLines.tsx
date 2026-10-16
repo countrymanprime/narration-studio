@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { describeApiError } from '../../../api/errorMessage';
+import { apiErrorMessage } from '../../../api/errorMessage';
 import { overlay } from '../../../overlay/overlayService';
 import { usePort } from '../../../ports/usePort';
 import { IconButton } from '../../primitives/IconButton';
@@ -39,7 +39,7 @@ export function SuspectedLines({ chapterId, flags: given }: { chapterId: string;
   // Reading the same place again changes nothing: the host answers each flag with its stored decision.
   useEffect(() => {
     if (flags.length === 0) return;
-    keep(flags, new Set()).catch((reason) => overlay.toast(describeApiError(reason), { tone: 'error' }));
+    keep(flags, new Set()).catch((reason) => overlay.toast(apiErrorMessage(reason), { tone: 'error' }));
   }, [flags, keep]);
 
   const dismiss = async (flag: SuspectedFlag) => {
@@ -47,7 +47,7 @@ export function SuspectedLines({ chapterId, flags: given }: { chapterId: string;
     try {
       await keep(flags, new Set([...dismissed, key]));
     } catch (reason) {
-      overlay.toast(describeApiError(reason), { tone: 'error' });
+      overlay.toast(apiErrorMessage(reason), { tone: 'error' });
       return;
     }
     overlay.toastUndo('Dismissed.', async () => {
@@ -65,7 +65,7 @@ export function SuspectedLines({ chapterId, flags: given }: { chapterId: string;
         setDismissed((current) => new Set([...current].filter((entry) => entry !== key)));
         return { ok: true };
       } catch (reason) {
-        return { ok: false, refusal: { reason: describeApiError(reason) } };
+        return { ok: false, refusal: { reason: apiErrorMessage(reason) } };
       }
     });
   };

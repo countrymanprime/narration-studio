@@ -217,6 +217,13 @@
     "caption": "Booth - REAPER started from the Connect box, but the app was busy and turned its project away: the box says so and what to do"
   },
   {
+    "page": "booth",
+    "state": "record-other-project",
+    "viewport": "desktop",
+    "docName": "booth-record-other-project",
+    "caption": "Booth - REAPER has a different project open: the box offers Link the open project, DAW settings and Check again"
+  },
+  {
     "page": "engine",
     "state": "default",
     "viewport": "desktop",

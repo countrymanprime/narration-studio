@@ -14,6 +14,11 @@ const CASES: Case[] = [
   { name: 'connect notice at 1440x500', width: 1440, height: 500, larger: 0, query: '?mockDawConnected=0&mockRecordCapabilityOn=1' },
   { name: 'connect notice at 400x700', width: 400, height: 700, larger: 0, query: '?mockDawConnected=0&mockRecordCapabilityOn=1' },
   { name: 'connect notice at 400x700, Text size 72', width: 400, height: 700, larger: 14, query: '?mockDawConnected=0&mockRecordCapabilityOn=1' },
+  // The DAW answers with another project open (the heartbeat's project is not the linked file): the open-project notice (Booth pass 3).
+  { name: 'open-project notice at 1440x500', width: 1440, height: 500, larger: 0, query: '?mockDawMismatch=1&mockRecordCapabilityOn=1' },
+  { name: 'open-project notice at 800x600', width: 800, height: 600, larger: 0, query: '?mockDawMismatch=1&mockRecordCapabilityOn=1' },
+  { name: 'open-project notice at 400x700', width: 400, height: 700, larger: 0, query: '?mockDawMismatch=1&mockRecordCapabilityOn=1' },
+  { name: 'open-project notice at 400x700, Text size 72', width: 400, height: 700, larger: 14, query: '?mockDawMismatch=1&mockRecordCapabilityOn=1' },
 ];
 
 /** Rects (viewport px) of the word being read, the text scroller and the notice. */
@@ -55,5 +60,43 @@ for (const c of CASES) {
     // The notice leaves room to read: the text area keeps at least the line being read and a share of the window.
     expect(scroller.height, 'the text area keeps room to read').toBeGreaterThanOrEqual(Math.min(cursor.bottom - cursor.top + 24, g.vh * 0.3));
     expect(notice.height, 'the notice stays below half the window').toBeLessThanOrEqual(g.vh * 0.5 + 1);
+  });
+}
+
+// A message rises above the notice and never covers it, in the windows where the notice is nearly all there is (walkthrough 4 item 12).
+for (const c of [
+  { width: 800, height: 600 },
+  { width: 400, height: 700 },
+  { width: 1440, height: 500 },
+]) {
+  test(`a toast sits above the notice, not over it: ${c.width}x${c.height}`, async ({ page }) => {
+    await page.setViewportSize(c);
+    await page.goto('/?mockDawMismatch=1&mockRecordCapabilityOn=1');
+    await settlePage(page);
+    await goToPage(page, 'Booth');
+    await page.getByRole('button', { name: /^Resume at ¶/ }).waitFor();
+    await expect(page.locator('#brec-setup')).toBeVisible();
+    // Space cannot record while the notice is up: it says why, as a toast.
+    await page.keyboard.press('Space');
+    const toast = page
+      .getByRole('status')
+      .getByText(/different project open/)
+      .first();
+    await expect(toast).toBeVisible();
+    const notice = (await page.locator('#brec-setup').boundingBox())!;
+    const hit = (await toast.boundingBox())!;
+    expect(hit.y + hit.height, 'the toast ends where the notice begins').toBeLessThanOrEqual(notice.y + 1);
+    const topmost = await page.evaluate(() => {
+      const el = document.querySelector('#brec-setup')!;
+      const r = el.getBoundingClientRect();
+      const points = [
+        [r.left + 8, r.top + 8],
+        [r.right - 8, r.top + 8],
+        [r.left + 8, r.bottom - 8],
+        [r.right - 8, r.bottom - 8],
+      ];
+      return points.every(([x, y]) => el.contains(document.elementFromPoint(x, y)));
+    });
+    expect(topmost, 'nothing is drawn over the notice at its corners').toBe(true);
   });
 }

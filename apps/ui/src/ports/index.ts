@@ -60,6 +60,7 @@ import type {
   DawReduceRangeGainApi,
   DawRepairClickApi,
   DawUndoLastApi,
+  DawLevelsApi,
   DawStackTakesApi,
   MasterFilesApi,
 } from '../api/contracts/daw';
@@ -139,6 +140,7 @@ export type {
   DawReduceRangeGainApi,
   DawRepairClickApi,
   DawUndoLastApi,
+  DawLevelsApi,
   DawBackupsApi,
   DawFilesApi,
   MasterFilesApi,
@@ -215,6 +217,7 @@ export interface PortMap {
   dawReduceRangeGain: DawReduceRangeGainApi;
   dawRepairClick: DawRepairClickApi;
   dawUndoLast: DawUndoLastApi;
+  dawLevels: DawLevelsApi;
   dawBackups: DawBackupsApi;
   dawFiles: DawFilesApi;
   masterFiles: MasterFilesApi;

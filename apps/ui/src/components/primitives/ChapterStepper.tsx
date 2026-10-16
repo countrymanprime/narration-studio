@@ -53,24 +53,30 @@ export function ChapterStepper({
     );
   };
 
+  // A natively disabled picker takes no hover and no focus: the hint's wrapper becomes the tab stop and carries the reason.
+  const trigger = (
+    <BaseMenu.Trigger
+      disabled={disabled !== undefined}
+      render={
+        <Button
+          variant="secondary"
+          aria-label={`Chapter: ${label}. Change chapter`}
+          // One width for the longest label, up to the mock's 340 px, once there is room for it; below 860 px the picker takes what is left.
+          className="max-w-full min-w-0 justify-between gap-2 min-[860px]:min-w-[min(var(--chapter-ch),21.25rem)]"
+          style={{ '--chapter-ch': `${width}ch` } as CSSProperties}
+        />
+      }
+    >
+      <span className="min-w-0 truncate">{label}</span>
+      <span aria-hidden="true">▾</span>
+    </BaseMenu.Trigger>
+  );
+
   return (
     <div role="group" aria-label="Chapter" className="flex max-w-full min-w-0 items-center gap-1">
       {arrow(-1, 'Previous chapter', 'previousChapter', stepKeys?.[0], !isAll && index <= 0)}
       <BaseMenu.Root modal={false} disabled={disabled !== undefined}>
-        <BaseMenu.Trigger
-          render={
-            <Button
-              variant="secondary"
-              aria-label={`Chapter: ${label}. Change chapter`}
-              // One width for the longest label, up to the mock's 340 px, once there is room for it; below 860 px the picker takes what is left.
-              className="max-w-full min-w-0 justify-between gap-2 min-[860px]:min-w-[min(var(--chapter-ch),21.25rem)]"
-              style={{ '--chapter-ch': `${width}ch` } as CSSProperties}
-            />
-          }
-        >
-          <span className="min-w-0 truncate">{label}</span>
-          <span aria-hidden="true">▾</span>
-        </BaseMenu.Trigger>
+        {disabled === undefined ? trigger : <TooltipTarget text={disabled}>{trigger}</TooltipTarget>}
         <BaseMenu.Portal>
           <BaseMenu.Positioner side="bottom" align="start" sideOffset={6} collisionPadding={8} className="z-[var(--z-popover)]">
             <BaseMenu.Popup className="max-h-[min(20rem,var(--available-height))] min-w-[var(--anchor-width)] overflow-y-auto rounded-[0.4rem] border border-[var(--line-strong)] bg-[var(--surface)] p-[0.35rem] shadow-[var(--shadow-lg)] outline-none">

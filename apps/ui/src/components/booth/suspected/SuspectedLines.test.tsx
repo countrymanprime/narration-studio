@@ -174,7 +174,7 @@ describe('suspected lines feed Pickups', () => {
       expect(await result.current.takeStopped(read('p9'))).toBe(0);
     });
     expect(review).not.toHaveBeenCalled();
-    expect(toast).toHaveBeenCalledWith(expect.stringContaining('no project is open'), { tone: 'error' });
+    expect(toast).toHaveBeenCalledWith('no project is open', { tone: 'error' });
   });
 
   it('after pickups were marked recorded, its toast does not say the take was saved again', async () => {

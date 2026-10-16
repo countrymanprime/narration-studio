@@ -19,7 +19,7 @@ function basename(path: string): string {
 /** The project bindings: the open project, the recent list, the linked DAW project file and the DAW catalog. */
 export function createProjectMock(
   initial: MockApiSeed,
-  daws: { launch: () => Promise<'started' | 'busy'>; linked?: boolean } = { launch: async () => 'started' },
+  daws: { launch: () => Promise<'started' | 'busy'>; linked?: boolean; relinked?: () => void } = { launch: async () => 'started' },
 ) {
   let projectFolder = initial.projectFolder ?? DEFAULT_PROJECT_FOLDER;
   let projectName = initial.projectFolder === undefined ? DEFAULT_PROJECT_NAME : basename(projectFolder);
@@ -76,6 +76,8 @@ export function createProjectMock(
     },
     linkDawFile: async () => {
       dawFileLinked = true;
+      // The picker offers the project the DAW has open (the Booth's "Link the open project"): that file is the linked one now.
+      daws.relinked?.();
       if (initial.dawLinkOutside) {
         return {
           selected: true,

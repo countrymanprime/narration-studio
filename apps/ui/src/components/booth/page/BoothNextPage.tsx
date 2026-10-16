@@ -27,11 +27,13 @@ import { usePickupSession } from '../pickups/usePickupSession';
 import { ListeningModelPrompt } from '../listening/ListeningModelPrompt';
 import { listeningProblem } from '../listening/listeningProblem';
 import { useListeningMic } from '../listening/useListeningMic';
+import { useListeningModelState } from '../listening/useListeningModelState';
 import { CREDITS_LABEL } from '../readerModel';
 import { BoothText } from '../reading/BoothText';
 import { wordCount } from '../reading/boothUnits';
 import { RecordControl } from '../record/RecordControl';
 import { RecordSetup } from '../record/RecordSetup';
+import { useStaleToasts } from './useStaleToasts';
 import { SetupChip } from '../record/SetupChip';
 import { useDawChoice } from '../record/useDawChoice';
 import { ResumeOfferLine } from '../resume/ResumeOffer';
@@ -350,6 +352,8 @@ function BoothSession({ source, from, requested, adopt, data, choose, navigate, 
   const progress = progressLine({ paragraph: (units[at.cur]?.paragraphIndex ?? 0) + 1, paragraphs: paragraphs.length, wordsRead, words });
   const capabilities = control.capabilities;
   const dawChoice = useDawChoice();
+  const modelState = useListeningModelState(session.engine, session.model, session.modelInstall.job?.phase);
+  useStaleToasts(overlay, { ready: !!capabilities && !control.disabled, reason: control.reason, recording: control.recording });
   const roomTone = useRoomTone(measurements, session.device);
   const standalone = capabilities?.daw === 'none';
   const listening = useListeningMic({
@@ -479,7 +483,7 @@ function BoothSession({ source, from, requested, adopt, data, choose, navigate, 
               checkedAt={control.checkedAt}
               readFailed={control.readFailed}
               onCheckAgain={control.checkAgain}
-              say={(sentence, tone) => overlay.toast(sentence, tone ? { tone } : undefined)}
+              say={(sentence, tone, topic) => overlay.toast(sentence, { ...(tone ? { tone } : {}), ...(topic ? { topic } : {}) })}
               onSettings={() => void page.goTo(`${BOOTH_LINKS.settings}#daw`)}
               onChanged={control.refresh}
             />
@@ -489,7 +493,7 @@ function BoothSession({ source, from, requested, adopt, data, choose, navigate, 
             seconds={page.seconds}
             recording={control.recording}
             why={control.reason || undefined}
-            listenWhy={listeningProblem(session)}
+            listenWhy={listeningProblem({ ...session, modelNotInstalled: modelState === 'missing', recording: control.recording })}
             mic={{
               engine: standalone ? 'builtin' : 'daw',
               dawName: page.dawName,
@@ -498,6 +502,7 @@ function BoothSession({ source, from, requested, adopt, data, choose, navigate, 
               device: session.device,
               onDevice: session.changeDevice,
               listen: standalone ? undefined : { devices: session.devices, fromDaw: listening.fromDaw, note: listening.note },
+              levels: capabilities ? { monitor: capabilities.capabilities.monitor_level, input: capabilities.capabilities.input_level } : undefined,
             }}
             roomTone={roomTone.label}
             roomToneOk={roomTone.ok}

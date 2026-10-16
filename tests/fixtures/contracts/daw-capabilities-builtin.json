@@ -55,6 +55,12 @@
       "message": "Not available with the built-in recorder.",
       "reason": "unsupported"
     },
+    "input_level": {
+      "available": false,
+      "level": "unsupported",
+      "message": "The built-in recorder cannot set an audio interface's input gain. Set it in your interface's own control panel.",
+      "reason": "unsupported"
+    },
     "item_gain": {
       "available": false,
       "level": "unsupported",
@@ -80,6 +86,12 @@
       "reason": "unsupported"
     },
     "master_chain_read": {
+      "available": false,
+      "level": "unsupported",
+      "message": "Not available with the built-in recorder.",
+      "reason": "unsupported"
+    },
+    "monitor_level": {
       "available": false,
       "level": "unsupported",
       "message": "Not available with the built-in recorder.",

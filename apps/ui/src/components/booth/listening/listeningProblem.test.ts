@@ -21,6 +21,23 @@ describe('listeningProblem', () => {
     );
     expect(listeningProblem({ ...base, modelMissing: true, prompt: {} })).toBeUndefined();
   });
+  it('does not tell a narrator mid-take to press Space to be asked again, because Space stops the take', () => {
+    const said = listeningProblem({ ...base, modelMissing: true, recording: true });
+    expect(said).toContain('The take is still recording');
+    expect(said).not.toMatch(/press space/i);
+  });
+  it('says before Record that the speech model is not downloaded, in words that do not claim the narrator was asked', () => {
+    expect(listeningProblem({ ...base, modelNotInstalled: true })).toBe(
+      'The text cannot follow your voice yet: the speech model is not downloaded. Download it in Settings, or press Space and you will be asked.',
+    );
+  });
+  it('says that only while nothing else explains it: not while the question is open, and the asked-again sentence wins once it was asked', () => {
+    expect(listeningProblem({ ...base, modelNotInstalled: true, prompt: {} })).toBeUndefined();
+    expect(listeningProblem({ ...base, modelNotInstalled: true, modelMissing: true })).toMatch(/Press Space to be asked again/);
+    expect(listeningProblem({ ...base, modelNotInstalled: true, error: 'The microphone is busy.' })).toBe(
+      'The text cannot follow your voice: The microphone is busy.',
+    );
+  });
   it('says so when the session itself ended in an error, as when the microphone is unplugged mid-take', () => {
     expect(listeningProblem({ ...base, host: { phase: 'error', message: 'Microphone Array was unplugged.' } })).toBe(
       'The text cannot follow your voice: Microphone Array was unplugged.',

@@ -13,8 +13,8 @@ import type { NarrationApi } from '../../../types';
 import { dawClientFor } from './fixtures';
 import { REAPER_LAUNCHER_ACTION as LAUNCHER_ACTION } from '../../engine/dawConnectGuide';
 import { RecordSetup } from './RecordSetup';
-import { recordSetupFor } from './recordSetup';
-import { stoppedInDaw, useRecordControl, forgetAppTake } from './useRecordControl';
+import { recordSetupFor, type RecordSetupFacts } from './recordSetup';
+import { stoppedInDaw, TAKE_TOPIC, useRecordControl, forgetAppTake } from './useRecordControl';
 
 // A take one test leaves running is not the next test's.
 beforeEach(() => forgetAppTake());
@@ -34,6 +34,23 @@ function recordRefused(reason: 'experimental_off' | 'turned_off' | 'standalone' 
     capabilities: { ...base.capabilities, record: { level: 'experimental', available: false, reason, message: `refused: ${reason}` } },
   };
 }
+
+describe('recordSetupFor the project the DAW has open', () => {
+  it('offers the open-project notice when Record could start but the DAW has another project open', () => {
+    expect(recordSetupFor(DAW_SETUPS.reaper, { ...LINKED, openProject: 'different' })).toEqual({ kind: 'other-project', dawName: 'REAPER' });
+  });
+
+  it('offers it for no other reading of the open project: the same one, or one that cannot be told', () => {
+    expect(recordSetupFor(DAW_SETUPS.reaper, { ...LINKED, openProject: 'same' })).toBeNull();
+    expect(recordSetupFor(DAW_SETUPS.reaper, { ...LINKED, openProject: 'unknown' })).toBeNull();
+    expect(recordSetupFor(DAW_SETUPS.reaper, LINKED)).toBeNull();
+  });
+
+  it('puts what stops Record altogether first: a switched-off Record or a DAW that is not answering is not a wrong-project problem', () => {
+    expect(recordSetupFor(recordRefused('experimental_off'), { ...LINKED, openProject: 'different' })).toMatchObject({ kind: 'turn-on' });
+    expect(recordSetupFor(recordRefused('not_running'), { ...LINKED, openProject: 'different' })).toMatchObject({ kind: 'connect' });
+  });
+});
 
 describe('recordSetupFor', () => {
   it('offers nothing while Record is available', () => {
@@ -67,7 +84,7 @@ describe('recordSetupFor', () => {
   });
 });
 
-function mount(capabilities: DawCapabilities, facts = LINKED, overrides: Partial<NarrationApi> = {}) {
+function mount(capabilities: DawCapabilities, facts: RecordSetupFacts = LINKED, overrides: Partial<NarrationApi> = {}) {
   const api = createMockApi(overrides);
   const say = vi.fn();
   const onSettings = vi.fn();
@@ -99,11 +116,14 @@ describe('RecordSetup when the app turns the launch away', () => {
     const attach = mountWithAttach();
     expect(screen.queryByRole('alert')).toBeNull();
     attach({ attached: false, reason: 'Narration Studio is busy, so the current project was left unchanged.' });
+    // The headline says what happened, not "not answering" (REAPER did start): walkthrough M15.
+    expect(screen.getByRole('heading', { name: 'REAPER started, but its project was turned away' })).toBeTruthy();
     const alert = screen.getByRole('alert');
     expect(alert.textContent).toContain('Narration Studio is busy');
     expect(alert.textContent).toContain('Finish or cancel what is running, then press Open in REAPER and connect again.');
     attach({ attached: true });
     expect(screen.queryByRole('alert')).toBeNull();
+    expect(screen.getByRole('heading', { name: 'Connect REAPER to record' })).toBeTruthy();
     attach({ attached: false, reason: 'busy again' });
     expect(screen.getByRole('alert')).toBeTruthy();
     await userEvent.click(screen.getByRole('button', { name: 'Check again' }));
@@ -189,7 +209,7 @@ describe('RecordSetup', () => {
     const { say } = mount(recordRefused('standalone'), LINKED, { launchDaw } as Partial<NarrationApi>);
     await userEvent.click(screen.getByRole('button', { name: 'Open in REAPER and connect' }));
     await waitFor(() => expect(say).toHaveBeenCalled());
-    expect(say.mock.calls[0]).toEqual([expect.stringMatching(/^REAPER could not be started: .*not found/), 'error']);
+    expect(say.mock.calls[0]).toEqual([expect.stringMatching(/^REAPER could not be started: .*not found/), 'error', 'daw-start']);
   });
 
   it('draws nothing while Record is available', () => {
@@ -242,7 +262,7 @@ describe('useRecordControl follows the DAW live', () => {
     act(() => transport({ playing: true, recording: true, position: 3 }));
     act(() => transport({ playing: false, recording: false }));
     await waitFor(() => expect(result.current.recording).toBe(false));
-    expect(notify).toHaveBeenCalledWith(stoppedInDaw('REAPER'));
+    expect(notify).toHaveBeenCalledWith(stoppedInDaw('REAPER'), TAKE_TOPIC);
   });
 });
 
@@ -306,5 +326,104 @@ describe('RecordSetup says what it waits for and when it last looked', () => {
   it('turn-on-also-offers-check-again', () => {
     mountChecked(recordRefused('experimental_off'));
     expect(screen.getByRole('button', { name: 'Check again' })).toBeTruthy();
+  });
+});
+
+describe('RecordSetup when the DAW has a different project open', () => {
+  const different = { ...LINKED, openProject: 'different' as const };
+  const linkResult = { selected: true, linked: true, path: 'D:/Audio/Open.rpp', insideProject: false };
+
+  it("says what is wrong in the narrator's words and offers to link the open one, to open Settings and to check again", () => {
+    mount(DAW_SETUPS.reaper, different);
+    expect(screen.getByRole('heading', { name: 'REAPER has a different project open' })).toBeTruthy();
+    expect(screen.getByRole('region', { name: 'REAPER has a different project open' }).textContent).toContain('would not land in the project linked here');
+    expect(screen.getByRole('button', { name: 'Link the open project' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'DAW settings' })).toBeTruthy();
+  });
+
+  it('shows what it waits for and when it last looked, with Check again', async () => {
+    const onCheckAgain = vi.fn();
+    render(
+      <ApiProvider api={createMockApi()}>
+        <RecordSetup
+          capabilities={DAW_SETUPS.reaper}
+          facts={different}
+          say={vi.fn()}
+          onSettings={vi.fn()}
+          onChanged={vi.fn()}
+          checkedAt={Date.now() - 7000}
+          onCheckAgain={onCheckAgain}
+        />
+      </ApiProvider>,
+    );
+    expect(screen.getByText('Waiting for REAPER to open the linked project.')).toBeTruthy();
+    expect(screen.getByText('Last checked 7 s ago.')).toBeTruthy();
+    await userEvent.click(screen.getByRole('button', { name: 'Check again' }));
+    expect(onCheckAgain).toHaveBeenCalledTimes(1);
+  });
+
+  it('says it cannot tell, not the last answer, when the last read failed', () => {
+    render(
+      <ApiProvider api={createMockApi()}>
+        <RecordSetup
+          capabilities={DAW_SETUPS.reaper}
+          facts={different}
+          say={vi.fn()}
+          onSettings={vi.fn()}
+          onChanged={vi.fn()}
+          readFailed
+          onCheckAgain={vi.fn()}
+        />
+      </ApiProvider>,
+    );
+    expect(screen.getByText("Can't tell whether REAPER has the linked project open.")).toBeTruthy();
+  });
+
+  it('link-the-open-project opens the project picker once, however fast it is pressed, and reads the link facts again when it links', async () => {
+    let finish: (value: typeof linkResult) => void = () => {};
+    const linkDawFile = vi.fn(() => new Promise<typeof linkResult>((resolve) => (finish = resolve)));
+    const { say, onChanged } = mount(DAW_SETUPS.reaper, different, { linkDawFile } as Partial<NarrationApi>);
+    const button = screen.getByRole('button', { name: 'Link the open project' });
+    await userEvent.dblClick(button);
+    await userEvent.click(button);
+    expect(linkDawFile).toHaveBeenCalledTimes(1);
+    await act(async () => finish(linkResult));
+    await waitFor(() => expect(onChanged).toHaveBeenCalledTimes(1));
+    expect(say).toHaveBeenCalledWith('REAPER project linked.');
+  });
+
+  it("says the host's note when it links a file outside the project folder", async () => {
+    const linkDawFile = vi.fn(async () => ({ ...linkResult, note: 'Open.rpp is in D:/Audio.' }));
+    const { say } = mount(DAW_SETUPS.reaper, different, { linkDawFile } as Partial<NarrationApi>);
+    await userEvent.click(screen.getByRole('button', { name: 'Link the open project' }));
+    await waitFor(() => expect(say).toHaveBeenCalledWith('REAPER project linked. Open.rpp is in D:/Audio.'));
+  });
+
+  it('a picker the narrator closes changes and says nothing; a file that cannot be linked says why', async () => {
+    const linkDawFile = vi.fn(async () => ({ selected: false, linked: false }));
+    const { say, onChanged } = mount(DAW_SETUPS.reaper, different, { linkDawFile } as Partial<NarrationApi>);
+    await userEvent.click(screen.getByRole('button', { name: 'Link the open project' }));
+    await waitFor(() => expect(linkDawFile).toHaveBeenCalled());
+    expect(say).not.toHaveBeenCalled();
+    expect(onChanged).not.toHaveBeenCalled();
+    cleanup();
+    const refused = vi.fn(async () => ({ selected: true, linked: false, message: 'That is not a REAPER project file.' }));
+    const second = mount(DAW_SETUPS.reaper, different, { linkDawFile: refused } as Partial<NarrationApi>);
+    await userEvent.click(screen.getByRole('button', { name: 'Link the open project' }));
+    await waitFor(() => expect(second.say).toHaveBeenCalledWith('That is not a REAPER project file.', 'error'));
+  });
+
+  it('a host that throws says so, and the button is pressable again', async () => {
+    const linkDawFile = vi.fn().mockRejectedValueOnce(new Error('the dialog failed')).mockResolvedValue(linkResult);
+    const { say, onChanged } = mount(DAW_SETUPS.reaper, different, { linkDawFile } as Partial<NarrationApi>);
+    await userEvent.click(screen.getByRole('button', { name: 'Link the open project' }));
+    await waitFor(() => expect(say).toHaveBeenCalledWith(expect.stringContaining('the dialog failed'), 'error'));
+    await userEvent.click(screen.getByRole('button', { name: 'Link the open project' }));
+    await waitFor(() => expect(onChanged).toHaveBeenCalled());
+  });
+
+  it('is not drawn once the open project is the linked one', () => {
+    mount(DAW_SETUPS.reaper, { ...LINKED, openProject: 'same' });
+    expect(screen.queryByRole('heading')).toBeNull();
   });
 });

@@ -39,6 +39,9 @@ func TestTheDeclarationIsWhatIsBuilt(t *testing.T) {
 		if built(c) {
 			want = dawport.Experimental
 		}
+		if c == dawport.CapInputLevel {
+			want = dawport.Unsupported // an interface's input gain is its driver's: no version of this app can set it
+		}
 		if got := declared[c]; got != want {
 			t.Errorf("%s is declared %v, want %v", c, got, want)
 		}
@@ -234,6 +237,12 @@ func TestWhatIsNotBuiltKeepsADR0144sSentence(t *testing.T) {
 			resolver := resolverFor(adapter, rt, dawport.ToggleOn)
 			for c, s := range resolver.All() {
 				if built(c) {
+					continue
+				}
+				if c == dawport.CapInputLevel {
+					if s.Available || s.Reason != dawport.ReasonUnsupported || s.Message != "Audacity cannot set an audio interface's input gain. Set it in your interface's own control panel." {
+						t.Errorf("%T %+v: input_level = %+v, want unsupported with its own sentence", adapter, rt, s)
+					}
 					continue
 				}
 				if s.Available || s.Reason != dawport.ReasonNotYet || s.Message != string(ErrNotAvailable) {

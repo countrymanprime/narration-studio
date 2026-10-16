@@ -53,6 +53,25 @@ describe('ChapterStepper tips', () => {
   });
 });
 
+describe('a stepper that is off says why on the picker too (Booth pass 3, walkthrough 4 item 13)', () => {
+  it('the picker is a tab stop named by the reason, and hovering it shows the reason; it does not open', async () => {
+    const { user, onChange } = setup({ disabled: 'Not while recording. Stop the take first.' });
+    const stop = screen.getByRole('group', { name: 'Not while recording. Stop the take first.' });
+    expect(stop.tabIndex).toBe(0);
+    await user.hover(stop);
+    expect((await screen.findByRole('tooltip')).textContent).toBe('Not while recording. Stop the take first.');
+    await user.click(stop);
+    expect(screen.queryByRole('menu')).toBeNull();
+    expect(onChange).not.toHaveBeenCalled();
+  });
+
+  it('is the ordinary picker, with no wrapper and no extra tip, while the stepper is on', () => {
+    setup();
+    expect(screen.queryByRole('group', { name: /recording/ })).toBeNull();
+    expect(screen.getByRole('button', { name: /^Chapter: The long road north/ }).getAttribute('disabled')).toBeNull();
+  });
+});
+
 describe('ChapterStepper', () => {
   it('renders previous, picker and next as one group', () => {
     setup();

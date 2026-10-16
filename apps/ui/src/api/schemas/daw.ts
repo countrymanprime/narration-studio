@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { DAW_BACKUPS_MAX, DAW_FX_RANGE_MAX_SETTINGS, DAW_LAST_ACTIONS, DAW_REFUSAL_CODES, DAW_RESULT_MAX_UNDO_STEPS } from '../contracts/daw';
+import { DAW_BACKUPS_MAX, DAW_LEVEL_MAX, DAW_FX_RANGE_MAX_SETTINGS, DAW_LAST_ACTIONS, DAW_REFUSAL_CODES, DAW_RESULT_MAX_UNDO_STEPS } from '../contracts/daw';
 import type {
   DawBackup,
   DawBackupsFile,
@@ -16,6 +16,7 @@ import type {
   DawFxSetting,
   DawKind,
   DawLastAction,
+  DawMonitorLevel,
   DawPlayState,
   DawProjectState,
   DawResult,
@@ -106,6 +107,11 @@ export const dawResultSchema = z.object({
   code: optionalFromNull(z.enum(DAW_REFUSAL_CODES)),
   steps: optionalFromNull(z.array(z.string())),
 }) satisfies z.ZodType<DawResult>;
+
+/** DawMonitorLevel's answer (bindings_daw_levels.go): a level inside the slider's range, and a sentence exactly when the call was refused. */
+export const dawMonitorLevelSchema = z
+  .object({ ok: z.boolean(), level: z.number().int().min(0).max(DAW_LEVEL_MAX), message: z.string() })
+  .refine((answer) => answer.ok === (answer.message === ''), 'a refusal carries its sentence, an answer has none') satisfies z.ZodType<DawMonitorLevel>;
 
 /** dawport.LastAction, DawLastAction's answer: one of DAW_LAST_ACTIONS. */
 export const dawLastActionSchema = z.enum(DAW_LAST_ACTIONS) satisfies z.ZodType<DawLastAction>;
