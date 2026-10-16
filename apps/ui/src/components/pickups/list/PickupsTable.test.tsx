@@ -26,12 +26,14 @@ function setup(over: Partial<Props> = {}) {
     onOpenInBooth: vi.fn(),
     onOpenInScript: vi.fn(),
     onGoToProof: vi.fn(),
+    onReload: vi.fn(),
   };
   render(
     <TooltipProvider>
       <OverlayProvider service={service}>
         <PickupsTable
           pickups={MIXED}
+          read={{ kind: 'ready', readAt: 0 }}
           chapters={CHAPTERS}
           scope="all"
           currentChapterId="c1"
@@ -164,7 +166,7 @@ describe('PickupsTable', () => {
     const { onSetDone, user, toasts } = setup();
     onSetDone.mockRejectedValueOnce(new Error('Stale: that marker has moved.'));
     await user.click(within(rowOf('05:12.0')).getByRole('button', { name: 'Mark recorded' }));
-    await waitFor(() => expect(toasts().map((t) => t.text)).toEqual(['Error: Stale: that marker has moved.']));
+    await waitFor(() => expect(toasts().map((t) => t.text)).toEqual(['Stale: that marker has moved.']));
     expect(toasts()[0].tone).toBe('error');
   });
 
@@ -233,18 +235,32 @@ describe('PickupsTable', () => {
       'Go to the note in Proof',
     ]);
     expect(items.every((i) => !i.unavailable)).toBe(true);
-    items[0].onSelect();
-    items[1].onSelect();
-    items[2].onSelect();
-    items[3].onSelect();
-    items[4].onSelect();
-    items[5].onSelect();
+    // A change to a line that is still being answered is ignored (rapid-double-fire below), so each action is let to settle.
+    for (const item of items) {
+      item.onSelect();
+      await new Promise((resolve) => setTimeout(resolve, 0));
+    }
     expect(onSetIncluded).toHaveBeenCalledWith(PROOF.id, false);
     expect(onOpenInBooth).toHaveBeenCalledWith([PROOF]);
     expect(onOpenInScript).toHaveBeenCalledWith('c3');
     expect(onSetDone).toHaveBeenCalledWith(PROOF.id, true);
     await waitFor(() => expect(onRemove).toHaveBeenCalledWith(PROOF.id));
     expect(onGoToProof).toHaveBeenCalledWith('f9');
+  });
+
+  it('rapid-double-fire: a second Remove, Mark recorded or include on a line still being answered is ignored', async () => {
+    let answer: () => void = () => {};
+    const held = new Promise<undefined>((resolve) => (answer = () => resolve(undefined)));
+    const onRemove = vi.fn().mockReturnValue(held);
+    const onSetDone = vi.fn().mockReturnValue(held);
+    const { user } = setup({ onRemove, onSetDone });
+    const row = within(rowOf('00:12.0'));
+    await user.dblClick(row.getByRole('button', { name: 'Remove from pickups' }));
+    await user.dblClick(row.getByRole('button', { name: 'Mark recorded' }));
+    expect(onRemove).toHaveBeenCalledTimes(1);
+    expect(onSetDone).not.toHaveBeenCalled();
+    answer();
+    await waitFor(() => expect(onRemove).toHaveBeenCalledTimes(1));
   });
 
   it('context-menu-rows: a pickup with no note cannot go to Proof, and a recorded one cannot be included', () => {

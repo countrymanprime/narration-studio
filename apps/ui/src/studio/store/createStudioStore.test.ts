@@ -234,3 +234,71 @@ describe('store-is-throwaway', () => {
     expect(store.getState().slots.a).toEqual({ count: 1 });
   });
 });
+
+describe('publish-refreshes-the-slots-that-list-the-topic', () => {
+  const counted = () => {
+    let n = 0;
+    return { load: vi.fn(async () => ({ count: ++n })), reads: () => n };
+  };
+
+  it('reads the slots that list the topic, and only those, with no start() and no host subscription', async () => {
+    const chapters = counted();
+    const other = counted();
+    const { store, events } = make({
+      chapters: { schema: isCount, load: chapters.load, topics: ['manuscript:changed'] },
+      other: { schema: isCount, load: other.load, topics: ['other:changed'] },
+    });
+    store.publish('manuscript:changed');
+    await flush();
+    expect(chapters.reads()).toBe(1);
+    expect(other.reads()).toBe(0);
+    expect(store.getState().slots.chapters).toEqual({ count: 1 });
+    expect(events.listeners('manuscript:changed')).toBe(0);
+  });
+
+  it('ignores a topic no slot lists, and a host event of the same name does not stand in for it', async () => {
+    const chapters = counted();
+    const { store, events } = make({ chapters: { schema: isCount, load: chapters.load, topics: ['manuscript:changed'] } });
+    store.start();
+    store.publish('nobody:listens');
+    events.emit('manuscript:changed');
+    await flush();
+    expect(chapters.reads()).toBe(0);
+  });
+
+  it('a lost publish costs nothing: the next focus still reads, and a duplicate publish ends on the newest answer', async () => {
+    const first = deferred<unknown>();
+    const second = deferred<unknown>();
+    const answers = [first, second];
+    const load = vi.fn(() => answers.shift()!.promise);
+    const { store } = make({ chapters: { schema: isCount, load, topics: ['t'], refreshOnFocus: true } });
+    store.publish('t');
+    store.publish('t');
+    second.resolve({ count: 2 });
+    await flush();
+    first.resolve({ count: 1 });
+    await flush();
+    expect(store.getState().slots.chapters).toEqual({ count: 2 });
+  });
+
+  it('a failed read is recorded and reported, keeps the last good value and throws nothing', async () => {
+    const load = vi.fn().mockResolvedValueOnce({ count: 1 }).mockRejectedValueOnce(new Error('host down'));
+    const { store, onError } = make({ chapters: { schema: isCount, load, topics: ['t'] } });
+    await store.load('chapters');
+    expect(() => store.publish('t')).not.toThrow();
+    await flush();
+    expect(onError).toHaveBeenCalledTimes(1);
+    expect(store.getState().slots.chapters).toEqual({ count: 1 });
+    expect(store.getState().errors.chapters).toBeInstanceOf(Error);
+  });
+
+  it('a publish that is answered after the project switched writes nothing', async () => {
+    const late = deferred<unknown>();
+    const { store } = make({ chapters: { schema: isCount, load: () => late.promise, topics: ['t'] } });
+    store.publish('t');
+    store.reset();
+    late.resolve({ count: 9 });
+    await flush();
+    expect(store.getState().slots.chapters).toBeUndefined();
+  });
+});

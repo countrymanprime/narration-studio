@@ -179,7 +179,7 @@
     "state": "resume",
     "viewport": "desktop",
     "docName": "booth-waiting",
-    "caption": "Booth - Resume at \u00b6 14 chosen: the reading position moved to where the recording ends"
+    "caption": "Booth - Resume at ¶ 14 chosen: the reading position moved to where the recording ends"
   },
   {
     "page": "booth",
@@ -277,14 +277,14 @@
     "state": "page-top",
     "viewport": "desktop",
     "docName": "settings-appearance",
-    "caption": "Settings - the top of the page: the Recording radios with each engine\u2019s state, the linked REAPER project, the Delivery profile and Definitions and pronunciations"
+    "caption": "Settings - the top of the page: the Recording radios with each engine’s state, the linked REAPER project, the Delivery profile and Definitions and pronunciations"
   },
   {
     "page": "settings",
     "state": "manuscript",
     "viewport": "desktop",
     "docName": "settings-manuscript",
-    "caption": "Settings - the Manuscript panel: when it was imported, its word count and Replace manuscript\u2026"
+    "caption": "Settings - the Manuscript panel: when it was imported, its word count and Replace manuscript…"
   },
   {
     "page": "settings",
@@ -466,7 +466,7 @@
     "state": "empty",
     "viewport": "desktop",
     "docName": "master-empty",
-    "caption": "Master & QC - nothing checked yet: the ACX profile pill, Check files\u2026, the built-in mastering chain as its three steps, and the delivery package aside"
+    "caption": "Master & QC - nothing checked yet: the ACX profile pill, Check files…, the built-in mastering chain as its three steps, and the delivery package aside"
   },
   {
     "page": "delivery",
@@ -795,7 +795,7 @@
     "state": "notes-filtered",
     "viewport": "desktop",
     "docName": "proof-notes-filtered",
-    "caption": "Proof - the To review chip: \"Notes \u00b7 3 of 4\", the waived note left out"
+    "caption": "Proof - the To review chip: \"Notes · 3 of 4\", the waived note left out"
   },
   {
     "page": "proof",
@@ -809,7 +809,7 @@
     "state": "list",
     "viewport": "desktop",
     "docName": "pickups-list",
-    "caption": "Pickups - every line to record again, by chapter, with the session panel"
+    "caption": "Pickups - all chapters: the lines grouped by chapter and the Pickup session panel"
   },
   {
     "page": "pickups",
@@ -823,14 +823,28 @@
     "state": "add-popover",
     "viewport": "desktop",
     "docName": "pickups-add",
-    "caption": "Pickups - Add a pickup by hand: the time in the recording and the line"
+    "caption": "Pickups - Add a pickup by hand: the time in the recording and the line to re-record"
   },
   {
     "page": "pickups",
     "state": "empty",
     "viewport": "desktop",
     "docName": "pickups-empty",
-    "caption": "Pickups with nothing queued, and the way to Proof"
+    "caption": "Pickups - no pickups queued, with the way to Proof"
+  },
+  {
+    "page": "pickups",
+    "state": "unreadable",
+    "viewport": "desktop",
+    "docName": "pickups-unreadable",
+    "caption": "Pickups - the list could not be read: the reason and Check again"
+  },
+  {
+    "page": "pickups",
+    "state": "marked-recorded",
+    "viewport": "desktop",
+    "docName": "pickups-recorded-waiting",
+    "caption": "Pickups - a line marked recorded while the DAW has not taken the change yet"
   },
   {
     "page": "master",
