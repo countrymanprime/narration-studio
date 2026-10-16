@@ -9,6 +9,8 @@ const MIN_WIDTH = 280;
 const DAY = 86_400_000;
 const PAD = { left: 40, right: 12, top: 14, bottom: 28 };
 const MONO = 'IBM Plex Mono, monospace';
+/** The least room, in px, between two date labels on the axis. */
+const TICK_GAP = 72;
 
 type Props = {
   k: Calc;
@@ -53,8 +55,9 @@ export function ProgressChart({ k, wph, start, today, due, recordedHours, series
   const nowDay = diffDays(today, start);
   const actual: Array<[number, number]> = series.ok ? [...series.value.filter((p) => p[0] < nowDay), [nowDay, recordedHours]] : [];
   const weeks: number[] = [];
-  // A week apart, or wider when the plan runs for years: a due date far away must not draw a tick for every week of it.
-  const step = Math.max(7, Math.ceil(span / 8 / 7) * 7);
+  // A week apart, or wider when the labels would touch (a narrow card) or the plan runs for years: a due date far away must not draw a tick for every week of it.
+  const pxPerDay = (width - PAD.left - PAD.right) / span;
+  const step = Math.max(7, Math.ceil(TICK_GAP / pxPerDay / 7) * 7);
   for (let d = 0; d <= span; d += step) weeks.push(d);
   const rows = Array.from({ length: yMax + 1 }, (_, v) => v).slice(0, 4);
   const summary = `Plan starts ${fmtD(start)}${due ? `, due ${fmtD(due)}` : ', no due date'}. Today is ${fmtD(today)}, ${recordedHours.toFixed(1)} of ${finishedHours.toFixed(1)} finished hours recorded. Estimated finish ${fmtD(k.finish)}.`;
@@ -107,7 +110,7 @@ export function ProgressChart({ k, wph, start, today, due, recordedHours, series
               points={actual.map((p) => `${x(addDays(start, p[0]))},${y(p[1])}`).join(' ')}
             />
           )}
-          {!series.ok && <text x={PAD.left + 8} y={PAD.top + 10} fontSize="11" fill="var(--text-muted)">{`Recorded days ${NOT_MEASURED}`}</text>}
+          {!series.ok && <text x={PAD.left + 8} y={PAD.top + 26} fontSize="11" fill="var(--text-muted)">{`Recorded days ${NOT_MEASURED}`}</text>}
           <line
             x1={x(today)}
             y1={y(recordedHours)}

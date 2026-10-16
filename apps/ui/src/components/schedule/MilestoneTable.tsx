@@ -97,7 +97,8 @@ export function MilestoneTable({ milestones, chapters, today, due, onToggleDone,
             <b>Final delivery</b>
           </TableCell>
           <TableCell muted>Whole book</TableCell>
-          <TableCell>
+          {/* The mock's 152 px column: a long milestone name must not take the room the date field needs. */}
+          <TableCell className="min-w-[9.5rem]">
             <DueField value={due ?? ''} onCommit={onDueChange} />
           </TableCell>
           <TableCell>{final ? <StatusCell status={final} /> : null}</TableCell>
