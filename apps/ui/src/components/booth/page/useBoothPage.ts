@@ -24,6 +24,7 @@ import { useRoll } from '../roll/useRoll';
 import type { TeleprompterSession } from '../useTeleprompterSession';
 import { estimatedSpans, positionAtOffset, positionInScript, scriptWordAt, secondsBefore, suspectedFrom } from './readingSource';
 import type { BoothStart } from './boothQuery';
+import { useTakeClock } from './useTakeClock';
 import { useTextChoices } from './useTextChoices';
 
 const START: UnitPosition = { cur: 0, wcur: 0 };
@@ -99,7 +100,9 @@ export function useBoothPage(options: BoothPageOptions) {
 
   const control = useRecordControl({ chapterId: recordId, notify });
   const { recording, toggle: recordToggle } = control;
-  const [seconds, setSeconds] = useState(0);
+  // The take's length is the wall clock's (`useTakeClock`): a question that holds the reading never holds the clock, the DAW records on.
+  const takeClock = useTakeClock(recording);
+  const { seconds } = takeClock;
   const [paused, setPaused] = useState(false);
   const [recorded, setRecorded] = useState(0);
   const [punches, setPunches] = useState<Punch[]>([]);
@@ -116,8 +119,8 @@ export function useBoothPage(options: BoothPageOptions) {
   // The take is stopping because the reading reached the end of the chapter: its stop says the take is saved.
   const endOfChapter = useRef(false);
 
-  const latest = useRef({ at, position, units, paragraphs, spans, listening, seconds, session, recording });
-  latest.current = { at, position, units, paragraphs, spans, listening, seconds, session, recording };
+  const latest = useRef({ at, position, units, paragraphs, spans, listening, session, recording, elapsed: takeClock.read });
+  latest.current = { at, position, units, paragraphs, spans, listening, session, recording, elapsed: takeClock.read };
 
   /** Puts the reading position on a sentence and word; a listening session is moved there too. */
   const moveTo = useCallback((next: UnitPosition) => {
@@ -180,7 +183,7 @@ export function useBoothPage(options: BoothPageOptions) {
     chapterId: recordId,
     current: () => ({
       at: placeOf(latest.current.paragraphs, latest.current.units, latest.current.at) ?? { pid: '', word: 0 },
-      elapsed: latest.current.seconds,
+      elapsed: latest.current.elapsed(),
     }),
     notify,
   });
@@ -208,7 +211,7 @@ export function useBoothPage(options: BoothPageOptions) {
       recordRefusal: control.disabled ? control.reason : '',
     },
     {
-      roll: (_phrase, { confirmed }) => daw.roll(recordId, takeAt.current + latest.current.seconds, { confirmed }),
+      roll: (_phrase, { confirmed }) => daw.roll(recordId, takeAt.current + latest.current.elapsed(), { confirmed }),
       pause,
       resume: resumeTake,
       beginTake: (punch) => {
@@ -224,7 +227,7 @@ export function useBoothPage(options: BoothPageOptions) {
         const now = latest.current;
         const to = placeOf(now.paragraphs, now.units, { cur: phrase, wcur: 0 });
         const prev = placeOf(now.paragraphs, now.units, now.at);
-        if (to && prev) writer.roll(to, prev, now.seconds);
+        if (to && prev) writer.roll(to, prev, now.elapsed());
         moveTo({ cur: phrase, wcur: 0 });
       },
       logPunch: (punch) => setPunches((list) => [...list, punch]),
@@ -242,7 +245,6 @@ export function useBoothPage(options: BoothPageOptions) {
     const now = latest.current;
     const place = placeOf(now.paragraphs, now.units, now.at);
     if (recording) {
-      setSeconds(0);
       setPaused(false);
       setBrowse(false);
       takeBegan.current = now.at.cur;
@@ -250,7 +252,7 @@ export function useBoothPage(options: BoothPageOptions) {
       if (!now.session.active && now.session.canStart) void now.session.start();
       return;
     }
-    if (place) void writer.stop(place, now.seconds);
+    if (place) void writer.stop(place, now.elapsed());
     if (now.session.active) now.session.stop();
     const said = endOfChapter.current;
     endOfChapter.current = false;
@@ -258,7 +260,7 @@ export function useBoothPage(options: BoothPageOptions) {
       // A take that marked or added pickups says it was saved in that toast.
       if (said && marked === 0) notify(TAKE_SAVED);
     });
-    setRecorded((total) => total + now.seconds);
+    setRecorded((total) => total + now.elapsed());
     if (now.position) setKept({ paragraphId: now.position.paragraphId, word: now.position.word });
   }, [recording, writer, tellStopped, notify]);
 
@@ -279,12 +281,6 @@ export function useBoothPage(options: BoothPageOptions) {
     endOfChapter.current = true;
     void recordToggle();
   }, [session.active, recordToggle]);
-
-  useEffect(() => {
-    if (!recording || paused) return;
-    const timer = setInterval(() => setSeconds((s) => s + 1), 1000);
-    return () => clearInterval(timer);
-  }, [recording, paused]);
 
   // Leaving. The question holds the take while it is open; Yes stops the recording the app started and the listening with it.
   const markStopped = control.stopped;

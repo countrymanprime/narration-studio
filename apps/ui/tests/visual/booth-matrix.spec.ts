@@ -156,7 +156,7 @@ test.describe('with a take running', () => {
     await takeRunning(page);
     await page.locator('[data-word]').nth(40).click({ button: 'right' });
     await expect(page.getByRole('menu').last()).toBeVisible();
-    await expect(page.getByText('REC paused', { exact: true })).toBeVisible();
+    await expect(page.getByText('REC · reading paused', { exact: true })).toBeVisible();
     await page.keyboard.press('Escape');
     await expect(page.getByRole('menu')).toHaveCount(0);
     await expect(page.getByText('REC', { exact: true })).toBeVisible();

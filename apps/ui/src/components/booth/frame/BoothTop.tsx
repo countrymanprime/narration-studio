@@ -87,7 +87,7 @@ export function BoothTop({
       </span>
       {resume}
       <span className="flex-1" />
-      {recording ? <Badge shape="booth" label={paused ? 'REC paused' : 'REC'} colors={REC_COLORS} /> : null}
+      {recording ? <Badge shape="booth" label={paused ? 'REC · reading paused' : 'REC'} colors={REC_COLORS} /> : null}
       {setup}
       {text ? <TextPopover {...text} /> : null}
       <IconButton
