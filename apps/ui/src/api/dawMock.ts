@@ -477,7 +477,7 @@ export function createDawMock(seed: DawMockSeed = {}, script?: DawMockScript): D
 
   const control: DawMockControl = {
     launch: async () => {
-      if (script === 'refuse') throw new Error('REAPER could not be started: the program did not open.');
+      if (script === 'refuse') throw new Error('the program did not open.');
       // The bridge opens at once; whether a heartbeat follows is the script's.
       live.connected = true;
       live.reachable = false;

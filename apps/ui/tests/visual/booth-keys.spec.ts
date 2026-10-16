@@ -192,3 +192,42 @@ for (const overlay of OVERLAYS) {
     });
   });
 }
+
+// The independent walkthrough's blocker: closing an overlay returns focus to the button that opened it, a focused button took the pedal's Space, and the
+// pedal went dead until the narrator clicked something.
+test.describe('the pedal works after an overlay closes', () => {
+  const dawRecording = (page: Page) => page.evaluate(() => window.__NARRATION_MOCK_DAW__?.state().recording);
+
+  test('leave question, Escape, Escape (Keep recording), Space stops the take', async ({ page }) => {
+    await openBooth(page);
+    await record(page).click();
+    await page.getByRole('button', { name: /^Stop$/ }).waitFor();
+    await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
+    await page.keyboard.press('Escape');
+    await page.keyboard.press('Escape');
+    await expect(page.getByRole('alertdialog')).toHaveCount(0);
+    await page.keyboard.press('Space');
+    await expect(record(page)).toBeVisible();
+    expect(await dawRecording(page)).toBe(false);
+  });
+
+  test('Levels, Escape, Space toggles the take instead of opening Levels again', async ({ page }) => {
+    await openBooth(page);
+    await page.getByRole('button', { name: 'Levels' }).click();
+    await page.keyboard.press('Escape');
+    await page.keyboard.press('Space');
+    await expect(page.getByRole('button', { name: /^Stop$/ })).toBeVisible();
+    await expect(page.getByRole('dialog', { name: 'Levels' })).toHaveCount(0);
+    await page.keyboard.press('Space');
+    await expect(record(page)).toBeVisible();
+  });
+
+  test('Escape with a toolbar button focused still asks during a take', async ({ page }) => {
+    await openBooth(page);
+    await record(page).click();
+    await page.getByRole('button', { name: /^Stop$/ }).waitFor();
+    await page.getByRole('button', { name: 'Toggle the side panel' }).focus();
+    await page.keyboard.press('Escape');
+    await expect(page.getByRole('alertdialog', { name: 'Stop recording?' })).toBeVisible();
+  });
+});

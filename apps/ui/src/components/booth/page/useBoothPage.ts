@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { DawResult } from '../../../api/contracts/daw';
+import { usePedalSpace } from '../../../input/usePedalSpace';
 import { useCommand } from '../../../input/useCommand';
 import type { OverlayService } from '../../../overlay/overlayService';
 import type { DawClient } from '../../../ports/daw';
@@ -380,6 +381,7 @@ export function useBoothPage(options: BoothPageOptions) {
   // The keys: every one is a catalogue command; the router keeps a field's own keys and any modified press away from them.
   const toggleTake = useCallback(() => (latest.current.recording ? control.toggle() : roll.startTake()), [control, roll]);
   useCommand('reading.toggle', () => void toggleTake());
+  usePedalSpace(toggleTake);
   useCommand('booth.phrase.next', () => moveTo(nextPhrase(latest.current.units, latest.current.at)));
   useCommand('booth.phrase.prev', () => moveTo(backPhrase(latest.current.at)));
   useCommand('booth.word.next', () => moveTo(stepWord(latest.current.units, latest.current.at, 1)));
