@@ -45,7 +45,7 @@ export function Popover({
           <BasePopover.Popup
             aria-label={label}
             {...{ [POPOVER_POPUP_ATTRIBUTE]: '' }}
-            className="w-max max-w-[calc(100vw-1rem)] min-w-[min(21rem,calc(100vw-1rem))] rounded-[var(--radius-card)] border border-[var(--line-strong)] bg-[var(--surface)] p-4 shadow-[var(--shadow-lg)] outline-none"
+            className="max-h-[var(--available-height)] w-max max-w-[calc(100vw-1rem)] min-w-[min(21rem,calc(100vw-1rem))] overflow-y-auto rounded-[var(--radius-card)] border border-[var(--line-strong)] bg-[var(--surface)] p-4 shadow-[var(--shadow-lg)] outline-none"
           >
             {children}
           </BasePopover.Popup>
