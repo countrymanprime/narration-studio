@@ -58,7 +58,7 @@ describe('the Relationships table', () => {
     fireEvent.change(screen.getByRole('textbox', { name: 'Relationship' }), { target: { value: 'pours tea for' } });
     expect((screen.getByRole('textbox', { name: 'Relationship' }) as HTMLInputElement).value).toBe('pours tea for');
     // The picker searches the entries, and never offers the entry being edited.
-    const search = screen.getByRole('combobox', { name: 'Search entries' });
+    const search = screen.getByRole('combobox', { name: 'Search entries to relate to' });
     fireEvent.change(search, { target: { value: 'hat' } });
     const options = within(screen.getByRole('listbox', { name: 'Matching entries' })).getAllByRole('option');
     expect(options.map((option) => option.textContent)).toEqual(expect.arrayContaining([expect.stringContaining('Hatter')]));

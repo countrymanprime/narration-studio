@@ -199,7 +199,7 @@ describe('the lists at their edges', () => {
   it('a type with nothing to type in the relationship picker offers no match and no crash', async () => {
     mount(hatter());
     edit();
-    const search = screen.getByRole('combobox', { name: 'Search entries' });
+    const search = screen.getByRole('combobox', { name: 'Search entries to relate to' });
     await userEvent.type(search, 'zzzzzz');
     expect(await screen.findByText('No entries match.')).toBeTruthy();
   });

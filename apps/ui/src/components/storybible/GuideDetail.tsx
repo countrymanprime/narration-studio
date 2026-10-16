@@ -1106,7 +1106,7 @@ export function GuideDetail({
                 ) : (
                   <>
                     <TextField
-                      label="Search entries"
+                      label="Search entries to relate to"
                       role="combobox"
                       aria-expanded={relationMatches.length > 0}
                       aria-controls={relationMatches.length > 0 ? RELATION_MATCHES_ID : undefined}
