@@ -253,10 +253,10 @@ export function PickupsTable({
                       </TableCell>
                       <TableCell>
                         <span title={pickup.done && pickup.waiting ? WAITING : undefined}>
-                          <StatusBadge
-                            tone={pickup.done ? 'success' : 'neutral'}
-                            label={pickup.done ? (pickup.waiting ? 'Recorded, not in the DAW yet' : 'Recorded') : 'Open'}
-                          />
+                          <StatusBadge tone={pickup.done ? 'success' : 'neutral'} label={pickup.done ? 'Recorded' : 'Open'} />
+                          {pickup.done && pickup.waiting && (
+                            <span className="mt-1 block text-[0.75rem] leading-tight text-[var(--text-muted)]">Not in the DAW yet</span>
+                          )}
                         </span>
                       </TableCell>
                       <TableCell>

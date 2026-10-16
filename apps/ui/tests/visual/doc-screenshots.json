@@ -579,5 +579,40 @@
     "viewport": "desktop",
     "docName": "schedule-on-pace",
     "caption": "Schedule - the verdict, the recorded audio against the plan, how the book pays, the work left and the milestones"
+  },
+  {
+    "page": "pickups",
+    "state": "list",
+    "viewport": "desktop",
+    "docName": "pickups-list",
+    "caption": "Pickups - all chapters: the lines grouped by chapter and the Pickup session panel"
+  },
+  {
+    "page": "pickups",
+    "state": "add-popover",
+    "viewport": "desktop",
+    "docName": "pickups-add",
+    "caption": "Pickups - Add a pickup by hand: the time in the recording and the line to re-record"
+  },
+  {
+    "page": "pickups",
+    "state": "empty",
+    "viewport": "desktop",
+    "docName": "pickups-empty",
+    "caption": "Pickups - no pickups queued, with the way to Proof"
+  },
+  {
+    "page": "pickups",
+    "state": "unreadable",
+    "viewport": "desktop",
+    "docName": "pickups-unreadable",
+    "caption": "Pickups - the list could not be read: the reason and Check again"
+  },
+  {
+    "page": "pickups",
+    "state": "marked-recorded",
+    "viewport": "desktop",
+    "docName": "pickups-recorded-waiting",
+    "caption": "Pickups - a line marked recorded while the DAW has not taken the change yet"
   }
 ]

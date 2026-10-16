@@ -78,6 +78,8 @@ const mockCreditsMissing = mockParams.has('mockCreditsMissing');
 // `?mockNoManuscript=1` boots a project with no manuscript imported yet, so
 // Home shows its manuscript-not-found banner and Proofing/Story Bible are locked.
 const mockNoManuscript = mockParams.has('mockNoManuscript');
+// `?mockPickupList=unreadable` makes every read of the Pickups list fail, to see the page's reason and Check again without a host.
+const mockPickupList = mockParams.get('mockPickupList') === 'unreadable' ? ('unreadable' as const) : undefined;
 // `?mockManuscriptCandidate=1` boots a project with no imported manuscript but a
 // manuscript.docx in its folder, so Home shows the import offer.
 const mockManuscriptCandidate = mockParams.has('mockManuscriptCandidate');
@@ -416,6 +418,7 @@ const mockInitial = {
   ...(mockHoldEdits ? { holdEdits: true } : {}),
   ...(mockInvalidPayload ? { invalidPayload: mockInvalidPayload } : {}),
   ...(mockNoManuscript ? { noManuscript: true } : {}),
+  ...(mockPickupList ? { pickupList: mockPickupList } : {}),
   ...(mockNoDaw ? { dawFileLinked: false } : {}),
   ...(mockDawMismatch ? { dawEngineMismatch: true } : {}),
   ...(mockDawNotDetected ? { dawCatalogInstalled: false } : {}),

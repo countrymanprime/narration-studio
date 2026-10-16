@@ -41,4 +41,17 @@ export const pickupsStates: StateEntry[] = [
       'Pickups with no manuscript imported (?mockNoManuscript=1): the page asks for the manuscript, the rail shows no count, and nothing moves to Production',
     ...REFLOW,
   },
+  {
+    page: 'pickups',
+    state: 'marked-recorded',
+    description: 'Pickups after Mark recorded on a line: its status reads Recorded with "Not in the DAW yet" under it, and the session counts one line fewer',
+    ...REFLOW,
+  },
+  {
+    page: 'pickups',
+    state: 'unreadable',
+    description:
+      'Pickups with the host unable to read the list (?mockPickupList=unreadable): the reason and Check again, not "No pickups queued"; the session panel counts none',
+    ...REFLOW,
+  },
 ];

@@ -156,7 +156,7 @@ describe('the-recorded-state-the-daw-has-not-taken', () => {
   it('says a recorded line is not in the DAW yet while the host holds it back', async () => {
     const waiting = { ...LIST, pickups: LIST.pickups.map((p, index) => (index === 0 ? { ...p, done: true, waiting: true } : p)) };
     renderPage(createMockApi({ pickupsList: () => Promise.resolve(waiting) }));
-    expect(await screen.findByText('Recorded, not in the DAW yet')).toBeTruthy();
+    expect(await screen.findByText('Not in the DAW yet')).toBeTruthy();
   });
 });
 
