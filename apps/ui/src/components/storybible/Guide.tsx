@@ -409,7 +409,7 @@ function GuideLoaded({ notify, goToManuscript }: Pick<GuideProps, 'notify' | 'go
       <Tabs
         value={tab}
         onChange={setTab}
-        className="mx-auto flex h-[calc(100dvh-6.5rem)] max-w-6xl flex-col gap-4 overflow-hidden max-lg:h-auto max-lg:overflow-visible"
+        className="mx-auto flex h-[calc(100dvh-6.5rem)] max-w-6xl flex-col gap-4 overflow-hidden max-md:h-auto [@media(max-width:1023px)_and_(max-height:899px)]:h-auto [@media(max-width:1023px)_and_(max-height:899px)]:overflow-visible"
       >
         {tab === SERIES_TAB && (
           <div className="flex-none space-y-4">
@@ -422,7 +422,7 @@ function GuideLoaded({ notify, goToManuscript }: Pick<GuideProps, 'notify' | 'go
             <SeriesTab notify={notify} />
           </Panel>
         ) : (
-          <div className="grid min-h-0 flex-1 gap-4 max-lg:h-auto lg:grid-cols-[20rem_minmax(0,1fr)] [&>*]:max-lg:min-h-96">
+          <div className="grid min-h-0 flex-1 gap-4 max-md:h-auto lg:grid-cols-[20rem_minmax(0,1fr)] [&>*]:max-md:min-h-96 [@media(max-width:1023px)_and_(max-height:899px)]:h-auto [&>*]:[@media(max-width:1023px)_and_(max-height:899px)]:min-h-96">
             <TabPanel value={tab} className={`${PANEL_FRAME_CLASS} flex min-h-0 flex-col overflow-hidden`}>
               <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 px-4 pt-3">
                 <Heading title="Story Bible" />
@@ -501,7 +501,8 @@ function GuideLoaded({ notify, goToManuscript }: Pick<GuideProps, 'notify' | 'go
                           onClick={() => {
                             selectRow(row.id);
                             // Below the two-column width the entry opens under the list: bring it into view so the click visibly does something.
-                            if (window.matchMedia?.('(max-width: 1023px)').matches) detailRef.current?.scrollIntoView?.({ block: 'start' });
+                            if (window.matchMedia?.('(max-width: 1023px) and (max-height: 899px)').matches)
+                              detailRef.current?.scrollIntoView?.({ block: 'start' });
                           }}
                           className={`flex w-full flex-col gap-0.5 rounded-lg px-2.5 py-2 text-left ${open ? 'bg-[var(--accent-soft)] text-[var(--accent-strong)]' : 'text-[var(--text)] hover:bg-[var(--surface-2)]'}`}
                         >
