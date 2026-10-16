@@ -22,10 +22,14 @@ const SRC = `# T
 
 - parked
 `;
-const ctx = { sliceIds: new Set(['SNB-1']), testExists: (name) => name === 'real test' };
+const ctx = { sliceIds: new Set(['SNB-1']), testExists: (name) => name === 'a real test name' };
 const rowsFor = (src, existing = []) => buildRows(parseSource(src), existing);
 // Rows as a finished index has them: every agreed row names a test.
-const namedRows = (src) => rowsFor(src).map((row) => (row.status === 'agreed' || row.status === 'agreed-with-conditions' ? { ...row, test: 'real test' } : row));
+const namedRows = (src) =>
+  rowsFor(src).map((row) => {
+    if (row.status === 'agreed' || row.status === 'agreed-with-conditions') return { ...row, test: 'a real test name' };
+    return row.status === 'deferred' || row.status === 'rejected' ? { ...row, pointer: 'SNC-Q3' } : row;
+  });
 
 test('every-bullet-has-a-row: ids are stable and a missing row fails with the bullet text', () => {
   const rows = namedRows(SRC);
@@ -75,7 +79,7 @@ test('owning-slice-exists and named-test-exists', () => {
   assert.ok(errors.some((e) => e.includes('SNX-9')));
   assert.ok(errors.some((e) => e.includes('"nowhere"')));
   rows[0].slice = 'SNB-1';
-  rows[1].test = 'real test';
+  rows[1].test = 'a real test name';
   assert.deepEqual(checkIndex(parseSource(SRC), rows, ctx).errors, []);
 });
 
@@ -94,6 +98,8 @@ test('a ruling with no behaviour to test says so: "n/a: <reason>" counts as a na
   assert.ok(checkIndex(parseSource(SRC), rows, ctx).errors.some((e) => e.includes('BO-1') && e.includes('reason')));
   rows[0].test = 'n/a: later';
   assert.ok(checkIndex(parseSource(SRC), rows, ctx).errors.some((e) => e.includes('BO-1') && e.includes('reason')));
+  rows[0].test = 'n/a: xxxxxxxxxxxxxx';
+  assert.ok(checkIndex(parseSource(SRC), rows, ctx).errors.some((e) => e.includes('BO-1') && e.includes('reason')), 'a reason is words, not filler');
 });
 
 test('deferred and rejected rows need slice none; a missing pointer is listed', () => {
@@ -133,4 +139,17 @@ test('the real index is complete and current, and --write is idempotent', () => 
   assert.ok(rows.length > 100, `${rows.length} rows`);
   assert.ok(rows.every((r) => STATUSES.includes(r.status)));
   assert.ok(readFileSync(SOURCE, 'utf8').length > 0);
+});
+
+test('a test name is a name: a one-letter cell is refused even where it would be found', () => {
+  const rows = namedRows(SRC);
+  rows[0].test = 'a';
+  const found = { ...ctx, testExists: () => true };
+  assert.ok(checkIndex(parseSource(SRC), rows, found).errors.some((e) => e.includes('BO-1') && e.includes('too short')));
+});
+
+test('a deferred or rejected row with no pointer is an error, not only a count', () => {
+  const rows = namedRows(SRC).map((row) => (row.status === 'deferred' ? { ...row, slice: 'none', pointer: '' } : row));
+  const { errors } = checkIndex(parseSource(SRC), rows, ctx);
+  assert.ok(errors.some((e) => e.includes('CO-1') && e.includes('pointer')));
 });

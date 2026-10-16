@@ -3,7 +3,10 @@ import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { join, relative, sep } from 'node:path';
 import ts from 'typescript';
 import { describe, expect, test } from 'vitest';
-import { GAPS, KEPT, REBUILT_DIRS, unexplained } from './ratchetReasons';
+import { GAPS, KEPT, unexplained } from './ratchetReasons';
+
+// The gaps SN-C4 found (#1217). Lower it with every fix; raising it needs the owner.
+const MAX_GAPS = 42;
 
 // ADR 0053 (and ADR 0056 for the table parts): a page builds a control from a primitive (`IconButton`, `TextField`, `SearchField`, `Select`, `Field`, ...) and
 // not from the native element, so every control looks and behaves one way. This scan counts the native elements written in
@@ -236,16 +239,13 @@ describe('native controls stay inside the primitives (ADR 0053)', () => {
     expect(unexplained(entries), 'a file with an entry needs a line in KEPT (a feature the mock lacks) or GAPS (a swap left it behind)').toEqual([]);
   });
 
-  test('ratchet-reasons: every line names a file that exists, a file is kept or a gap and not both, a gap is in a rebuilt folder', () => {
+  test('ratchet-reasons: every line names a file that exists, a file is kept or a gap and not both, and the gap count only falls', () => {
     expect(
       [...Object.keys(KEPT), ...GAPS].filter((file) => !existsSync(join(uiRoot, file))),
       'a deleted file takes its line in ratchetReasons.ts with it',
     ).toEqual([]);
     expect(GAPS.filter((file) => file in KEPT)).toEqual([]);
-    expect(
-      GAPS.filter((file) => !REBUILT_DIRS.some((dir) => file.startsWith(dir))),
-      'GAPS holds only files in a rebuilt folder',
-    ).toEqual([]);
+    expect(GAPS.length, 'GAPS only shrinks: a fix deletes its line and lowers MAX_GAPS; a new offender is fixed, not listed').toBe(MAX_GAPS);
     expect(unexplained(['src/components/schedule/NewThing.tsx', 'src/components/proof/Old.tsx']), 'a new offender in a rebuilt folder is caught').toEqual([
       'src/components/schedule/NewThing.tsx',
       'src/components/proof/Old.tsx',

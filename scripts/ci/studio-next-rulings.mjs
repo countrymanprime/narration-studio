@@ -27,6 +27,8 @@ import { fileURLToPath } from 'node:url';
 const ENFORCE_TEST_NAMES = true;
 const NO_TEST = 'n/a:';
 const MIN_NO_TEST_REASON = 12;
+const MIN_NO_TEST_WORDS = 3;
+const MIN_TEST_NAME = 10;
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 export const SOURCE = 'docs/research/mockups/studio-next/research/repo-compare-decisions.md';
@@ -223,8 +225,12 @@ export function checkIndex(lines, rows, { sliceIds, testExists }) {
     if (!STATUSES.includes(row.status)) errors.push(`${row.id}: unknown status "${row.status}"`);
     if (row.slice && row.slice !== 'none' && !sliceIds.has(row.slice)) errors.push(`${row.id}: slice "${row.slice}" is in no studio-next PRD Slices table`);
     if (row.test.startsWith(NO_TEST)) {
-      if (row.test.slice(NO_TEST.length).trim().length < MIN_NO_TEST_REASON) errors.push(`${row.id}: "n/a:" needs a reason of at least ${MIN_NO_TEST_REASON} characters`);
+      const reason = row.test.slice(NO_TEST.length).trim();
+      if (reason.length < MIN_NO_TEST_REASON || reason.split(/\s+/).length < MIN_NO_TEST_WORDS) {
+        errors.push(`${row.id}: "n/a:" needs a reason of at least ${MIN_NO_TEST_REASON} characters and ${MIN_NO_TEST_WORDS} words`);
+      }
     } else if (row.test === 'n/a') errors.push(`${row.id}: "n/a" needs a reason after the colon`);
+    else if (row.test && row.test.length < MIN_TEST_NAME) errors.push(`${row.id}: test "${row.test}" is too short to be a test name`);
     else if (row.test && !testExists(row.test)) errors.push(`${row.id}: test "${row.test}" is found nowhere in apps/, sidecars/, integrations/ or tests/`);
     if ((row.status === 'deferred' || row.status === 'rejected') && row.slice !== 'none') errors.push(`${row.id}: a ${row.status} row needs slice "none"`);
   }
@@ -232,6 +238,7 @@ export function checkIndex(lines, rows, { sliceIds, testExists }) {
   const agreedWithoutTest = agreed.filter((row) => !row.test).length;
   if (ENFORCE_TEST_NAMES) for (const row of agreed.filter((r) => !r.test)) errors.push(`${row.id}: ${row.status} row has no test name (or "n/a: <reason>")`);
   const needPointer = rows.filter((row) => (row.status === 'deferred' || row.status === 'rejected') && !row.pointer).map((row) => row.id);
+  for (const id of needPointer) errors.push(`${id}: a deferred or rejected row ends its ruling with " => " and a pointer`);
   return { errors, agreedWithoutTest, needPointer };
 }
 
