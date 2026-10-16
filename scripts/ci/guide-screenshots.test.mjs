@@ -1,10 +1,9 @@
 import assert from 'node:assert/strict';
 import { mkdirSync, mkdtempSync, readdirSync, statSync, writeFileSync } from 'node:fs';
-import { createRequire } from 'node:module';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { test } from 'node:test';
-import { captureSource, guidePages, main, orphans, samePicture, selectEntries } from '../dev/guide-screenshots.mjs';
+import { captureSource, guidePages, loadSharp, main, orphans, samePicture, selectEntries } from '../dev/guide-screenshots.mjs';
 
 const manifest = [
   { page: 'booth', state: 'setup', viewport: 'desktop', docName: 'booth-setup' },
@@ -52,8 +51,7 @@ test('samePicture ignores a few anti-aliased pixels and catches a real change', 
 // guide tool: reading the PNG a run left for each entry, writing the converted image, and the exit code on failure.
 // Removed with no successor: prImageName and markdownFor (a PR no longer carries a named image set or a SHA-pinned
 // table) and collectAtlas (the Storybook atlas images are no longer staged for a PR).
-const require = createRequire(new URL('../../apps/ui/package.json', import.meta.url));
-const sharp = require('sharp');
+const sharp = loadSharp();
 
 async function workspace() {
   const root = mkdtempSync(join(tmpdir(), 'guide-shots-'));
