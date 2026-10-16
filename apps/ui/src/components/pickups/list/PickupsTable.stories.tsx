@@ -10,6 +10,8 @@ const meta = {
   component: PickupsTable,
   args: {
     pickups: MIXED,
+    read: { kind: 'ready', readAt: 0 },
+    onReload: fn(),
     chapters: CHAPTERS,
     scope: 'all',
     currentChapterId: 'c1',

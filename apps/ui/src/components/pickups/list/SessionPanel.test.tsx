@@ -96,6 +96,6 @@ describe('SessionPanel', () => {
     const { user, toasts } = setup();
     vi.spyOn(navigator.clipboard, 'writeText').mockRejectedValue(new Error('no'));
     await user.click(screen.getByRole('button', { name: 'Copy the pickup script' }));
-    await waitFor(() => expect(toasts()).toEqual(['Copy failed.']));
+    await waitFor(() => expect(toasts()).toEqual([expect.stringContaining('could not be copied')]));
   });
 });

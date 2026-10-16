@@ -1,3 +1,4 @@
+import { useRef, useState } from 'react';
 import type { PickupItem } from '../../../api/contracts/pickups';
 import { describeApiError } from '../../../api/errorMessage';
 import type { Measured } from '../../../api/schemas/base';
@@ -48,8 +49,23 @@ export function SessionPanel({
       await navigator.clipboard.writeText(pickupScript(picked, chapters));
       overlay.toast('Copied.');
     } catch {
-      overlay.toast('Copy failed.');
+      overlay.toast('The script could not be copied: this window may not allow the clipboard. Try again after clicking in the page.', { tone: 'error' });
     }
+  };
+
+  /* A second press while the markers are being written would add them twice. */
+  const [adding, setAdding] = useState(false);
+  const addingNow = useRef(false);
+  const addMarkers = () => {
+    if (addingNow.current) return;
+    addingNow.current = true;
+    setAdding(true);
+    onAddMarkers(picked)
+      .catch((error: unknown) => overlay.toast(describeApiError(error), { tone: 'error' }))
+      .finally(() => {
+        addingNow.current = false;
+        setAdding(false);
+      });
   };
 
   return (
@@ -67,12 +83,7 @@ export function SessionPanel({
           Open {count} in Booth
         </Button>
         <div>
-          <IconButton
-            action="addMarker"
-            label={`Add ${count} as markers in ${dawName}`}
-            disabledReason={markersReason}
-            onClick={() => void onAddMarkers(picked).catch((error: unknown) => overlay.toast(describeApiError(error), { tone: 'error' }))}
-          />
+          <IconButton action="addMarker" label={`Add ${count} as markers in ${dawName}`} disabledReason={markersReason} pending={adding} onClick={addMarkers} />
         </div>
         {!markers.available && <p className="text-[0.8125rem] text-[var(--text-muted)]">{markersReason}</p>}
       </div>

@@ -3,6 +3,7 @@ import type { PickupItem } from '../../../api/contracts/pickups';
 import { describeApiError } from '../../../api/errorMessage';
 import { useOverlay } from '../../../overlay/OverlayProvider';
 import type { OverlayService } from '../../../overlay/overlayService';
+import { Button } from '../../primitives/Button';
 import { Checkbox } from '../../primitives/Checkbox';
 import { ChapterStepper } from '../../primitives/ChapterStepper';
 import { Heading } from '../../primitives/Heading';
@@ -19,11 +20,16 @@ import { PICKUP_ROW, usePickupsContextMenu } from './usePickupsContextMenu';
 /** What a removal gives back to undo it: the page's journal entry. */
 export type RemoveUndo = () => Promise<{ ok: true } | { ok: false; refusal: { reason: string } }>;
 
+/** Where the host's list stands: being read, read (with the reason a later read failed, if one did) or not readable at all. */
+export type PickupsRead = { kind: 'loading' } | { kind: 'ready'; readAt: number; trouble?: string } | { kind: 'failed'; message: string };
+
 /** The DAW as the head needs it: whether the recording check can run, and the host's sentence when it cannot. */
 export type DawGate = { available: boolean; message?: string };
 
 /** Why Play is off: the app has no player for the original recording around a line yet (the Booth plays a take, the Editing page a chapter). */
 const PLAY_OFF = 'Playing the original around a line is not available here yet. Open the line in the Booth to hear and re-record it.';
+/** Why a recorded line says it is not in the DAW yet. */
+const WAITING = 'The line is recorded here. The DAW did not take the change yet; it is written to the pickup marker the next time the DAW answers.';
 const MONO = "font-['IBM_Plex_Mono',ui-monospace,monospace]";
 /** A control inside a row has its own key handling; the row's keys are for the row itself. */
 const OWN_KEYS = 'button, a, input, textarea, select, [role="checkbox"]';
@@ -44,6 +50,8 @@ async function said(overlay: OverlayService, run: () => unknown): Promise<void> 
  */
 export function PickupsTable({
   pickups,
+  read,
+  onReload,
   chapters,
   scope,
   currentChapterId,
@@ -62,6 +70,9 @@ export function PickupsTable({
 }: {
   /** Every pickup the host lists. */
   pickups: readonly PickupItem[];
+  read: PickupsRead;
+  /** Reads the list again now (Check again). */
+  onReload: () => void;
   chapters: readonly ChapterRef[];
   /** The stepper's value: a chapter id, or `ALL_SCOPE`. */
   scope: string;
@@ -93,22 +104,30 @@ export function PickupsTable({
   const tabbable = list.some((pickup) => pickup.id === selected) ? selected : (list[0]?.id ?? null);
   const addTo = chapters.find((chapter) => chapter.id === currentChapterId) ?? chapters[0];
 
-  const setIncluded = (id: string, included: boolean) => void said(overlay, () => onSetIncluded(id, included));
-  const setDone = (id: string, done: boolean) => void said(overlay, () => onSetDone(id, done));
-  const remove = async (pickup: PickupItem) => {
-    let undo: RemoveUndo | undefined;
-    await said(overlay, async () => {
-      undo = await onRemove(pickup.id);
-    });
-    if (undo) overlay.toastUndo(`Removed ${clock(pickup.time)} from pickups.`, undo);
+  /* A press on a line whose last change has not been answered is ignored: a second Remove would be refused ("not in the list") and a second Mark recorded would flip the first back. */
+  const inFlight = useRef(new Set<string>());
+  const once = (id: string, run: () => Promise<void>): void => {
+    if (inFlight.current.has(id)) return;
+    inFlight.current.add(id);
+    void run().finally(() => inFlight.current.delete(id));
   };
+  const setIncluded = (id: string, included: boolean) => once(id, () => said(overlay, () => onSetIncluded(id, included)));
+  const setDone = (id: string, done: boolean) => once(id, () => said(overlay, () => onSetDone(id, done)));
+  const remove = (pickup: PickupItem) =>
+    once(pickup.id, async () => {
+      let undo: RemoveUndo | undefined;
+      await said(overlay, async () => {
+        undo = await onRemove(pickup.id);
+      });
+      if (undo) overlay.toastUndo(`Removed ${clock(pickup.time)} from pickups.`, undo);
+    });
 
   usePickupsContextMenu(list, {
     onSetIncluded: setIncluded,
     onSetDone: setDone,
     onRemove: (id) => {
       const pickup = list.find((p) => p.id === id);
-      if (pickup) void remove(pickup);
+      if (pickup) remove(pickup);
     },
     onOpenInBooth,
     onOpenInScript,
@@ -159,7 +178,30 @@ export function PickupsTable({
           </Popover>
         </div>
       </div>
-      {list.length > 0 ? (
+      {read.kind === 'ready' && read.trouble && (
+        <div
+          role="status"
+          className="flex flex-wrap items-center justify-between gap-2 border-b border-[var(--line)] bg-[var(--surface-2)] px-4 py-2 text-[0.875rem]"
+        >
+          <span>
+            Can’t tell if this list is current. {read.trouble} Last read at {new Date(read.readAt).toLocaleTimeString()}.
+          </span>
+          <Button variant="secondary" size="sm" onClick={onReload}>
+            Check again
+          </Button>
+        </div>
+      )}
+      {read.kind === 'loading' ? (
+        <div role="status" className="p-6 text-center text-[var(--text-muted)]">
+          Reading the pickup list…
+        </div>
+      ) : read.kind === 'failed' ? (
+        <div role="alert" className="flex flex-col items-center gap-2 p-6 text-center">
+          <h2 className="font-semibold">The pickup list could not be read</h2>
+          <span className="text-[var(--text-muted)]">{read.message}</span>
+          <Button onClick={onReload}>Check again</Button>
+        </div>
+      ) : list.length > 0 ? (
         <div ref={body} className="overflow-auto" tabIndex={0} role="group" aria-label="Pickups scroll area">
           <Table label="Pickups" className="min-w-[44rem]">
             <TableHead>
@@ -211,7 +253,12 @@ export function PickupsTable({
                         <span title={sourceTitle(pickup)}>{sourceLabel(pickup)}</span>
                       </TableCell>
                       <TableCell>
-                        <StatusBadge tone={pickup.done ? 'success' : 'neutral'} label={pickup.done ? 'Recorded' : 'Open'} />
+                        <span title={pickup.done && pickup.waiting ? WAITING : undefined}>
+                          <StatusBadge
+                            tone={pickup.done ? 'success' : 'neutral'}
+                            label={pickup.done ? (pickup.waiting ? 'Recorded, not in the DAW yet' : 'Recorded') : 'Open'}
+                          />
+                        </span>
                       </TableCell>
                       <TableCell>
                         <div className="flex flex-nowrap items-center justify-end gap-1">
@@ -223,7 +270,7 @@ export function PickupsTable({
                             size="sm"
                             onClick={() => setDone(pickup.id, !pickup.done)}
                           />
-                          <IconButton action="remove" label="Remove from pickups" size="sm" variant="danger" onClick={() => void remove(pickup)} />
+                          <IconButton action="remove" label="Remove from pickups" size="sm" variant="danger" onClick={() => remove(pickup)} />
                         </div>
                       </TableCell>
                     </tr>
