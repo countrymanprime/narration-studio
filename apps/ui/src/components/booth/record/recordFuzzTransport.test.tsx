@@ -11,7 +11,10 @@ import type { DawClient } from '../../../ports/daw';
 import { PortOverrides } from '../../../ports/usePort';
 import type { NarrationApi } from '../../../types';
 import { dawClientFor } from './fixtures';
-import { POLL_MS, useRecordControl } from './useRecordControl';
+import { POLL_MS, useRecordControl, forgetAppTake } from './useRecordControl';
+
+// A take one test leaves running is not the next test's.
+beforeEach(() => forgetAppTake());
 
 // The Booth's whole take state machine against a DAW whose truth the test owns: events that are lost, repeated, late or out of order, reads that
 // fail, a take started or stopped in the DAW itself, a stop from the leave guard, and the press. After every step Record is never off without a

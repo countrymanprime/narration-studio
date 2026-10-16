@@ -138,12 +138,29 @@ describe('useBoothLeaveGuard', () => {
     act(() => dialog()!.answer(true));
     await flush();
     await flush();
-    expect(dialog()?.spec.body).toBe('REAPER would not stop.');
+    expect(dialog()?.spec.body).toContain('REAPER would not stop.');
+    expect(dialog()?.spec.confirmLabel).toBe('Leave anyway');
     expect(go).not.toHaveBeenCalled();
     act(() => dialog()!.answer(false));
     await act(() => done);
     expect(stopRecording).toHaveBeenCalledTimes(1);
     expect(go).not.toHaveBeenCalled();
+  });
+
+  it('a refused stop does not trap the narrator: Leave anyway goes without a second stop', async () => {
+    const refusal: DawResult = { ok: false, changed: false, message: 'REAPER is not answering.', undoSteps: 0, refused: 'REAPER is not answering.' };
+    const { go, hook, dialog, stopRecording } = setup({}, async () => refusal);
+    let done: Promise<void> = Promise.resolve();
+    act(() => {
+      done = hook.result.current.leave('/script', go);
+    });
+    act(() => dialog()!.answer(true));
+    await flush();
+    await flush();
+    act(() => dialog()!.answer(true));
+    await act(() => done);
+    expect(stopRecording).toHaveBeenCalledTimes(1);
+    expect(go).toHaveBeenCalledWith('/script');
   });
 
   it('asked-once: a second exit does not stack a dialog', async () => {

@@ -2,7 +2,7 @@
 import { act, cleanup, render, renderHook, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import type { ReactNode } from 'react';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi, beforeEach } from 'vitest';
 import { ApiProvider } from '../../../api/ApiContext';
 import type { DawCapabilities, DawTransport } from '../../../api/contracts/daw';
 import { createMockApi } from '../../../api/mockApi';
@@ -14,7 +14,10 @@ import { dawClientFor } from './fixtures';
 import { REAPER_LAUNCHER_ACTION as LAUNCHER_ACTION } from '../../engine/dawConnectGuide';
 import { RecordSetup } from './RecordSetup';
 import { recordSetupFor } from './recordSetup';
-import { stoppedInDaw, useRecordControl } from './useRecordControl';
+import { stoppedInDaw, useRecordControl, forgetAppTake } from './useRecordControl';
+
+// A take one test leaves running is not the next test's.
+beforeEach(() => forgetAppTake());
 
 afterEach(cleanup);
 

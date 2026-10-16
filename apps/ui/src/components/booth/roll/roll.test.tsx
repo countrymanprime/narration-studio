@@ -225,6 +225,12 @@ describe('useRoll', () => {
       expect(actions.clearStart).toHaveBeenCalledTimes(1);
       expect(actions.beginTake).toHaveBeenCalledWith();
     });
+    it('Start from here before a take, with a DAW that cannot punch, arms nothing and says where the take will start', async () => {
+      const { hook, actions } = setup(SETUPS.reaperOff, { recording: false });
+      await act(() => hook.result.current.startFromHere(1));
+      expect(actions.chooseStart).not.toHaveBeenCalled();
+      expect(actions.notify).toHaveBeenCalledWith(expect.stringContaining('The next take starts from the end of what is already there, not from ¶ 1.'));
+    });
     it('isPunch and clampPhrase', () => {
       expect(isPunch({ phrase: 2, seconds: 29.6, recordedEnd: 30 })).toBe(false);
       expect(isPunch({ phrase: 2, seconds: 29.4, recordedEnd: 30 })).toBe(true);

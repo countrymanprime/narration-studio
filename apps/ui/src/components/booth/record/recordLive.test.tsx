@@ -10,7 +10,10 @@ import type { DawClient } from '../../../ports/daw';
 import { PortOverrides } from '../../../ports/usePort';
 import type { NarrationApi } from '../../../types';
 import { dawClientFor } from './fixtures';
-import { POLL_MS, useRecordControl } from './useRecordControl';
+import { POLL_MS, useRecordControl, forgetAppTake } from './useRecordControl';
+
+// A take one test leaves running is not the next test's.
+beforeEach(() => forgetAppTake());
 
 // Step 0 of the Booth resiliency pass: the launcher notice stayed up, Record stayed off, and nothing said why. These drive the live
 // plumbing under it with a DAW whose answers the test controls, one dependency state at a time (definition-of-done, "Talking to an integration").

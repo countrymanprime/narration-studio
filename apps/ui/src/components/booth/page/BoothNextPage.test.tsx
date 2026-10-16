@@ -2,7 +2,7 @@
 import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi, beforeEach } from 'vitest';
 
 const host = vi.hoisted(() => ({ toggleFullscreen: vi.fn(async () => true), exitFullscreen: vi.fn(async () => {}) }));
 vi.mock('../../../api/hostWindow', () => host);
@@ -26,6 +26,10 @@ import { TEXT_PREFS_STORAGE_KEY } from '../../script/page/tools/text/readerText'
 import { BoothNextPage } from './BoothNextPage';
 import { BOOTH_SIZE_STORAGE_KEY } from './useTextChoices';
 import { BoothHost, dawFor, LOCATED, newJournal, pageApi } from './testPage';
+import { forgetAppTake } from '../record/useRecordControl';
+
+// A take one test leaves running is not the next test's.
+beforeEach(() => forgetAppTake());
 
 afterEach(() => {
   cleanup();
@@ -585,7 +589,8 @@ describe('a refused stop keeps the take and the question', () => {
     await record(page);
     await press('Escape');
     await act(async () => page.dialog()!.answer(true));
-    await waitFor(() => expect(page.dialog()?.spec.body).toBe('Not now.'));
+    await waitFor(() => expect(page.dialog()?.spec.body).toContain('Not now.'));
+    expect(page.dialog()?.spec.confirmLabel).toBe('Leave anyway');
     expect(page.navigate).not.toHaveBeenCalled();
   });
 });

@@ -4,7 +4,7 @@ import { join } from 'node:path';
 import { act, cleanup, render, renderHook, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import type { ReactNode } from 'react';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi, beforeEach } from 'vitest';
 import { ApiProvider } from '../../../api/ApiContext';
 import type { DawClient } from '../../../ports/daw';
 import { PortOverrides } from '../../../ports/usePort';
@@ -15,7 +15,10 @@ import { apiWithTracks, dawClientFor, REFUSALS, setupCapabilities, type TrackKin
 import { RecordControl } from './RecordControl';
 import { recordCheck } from './recordCheck';
 import { SetupChip } from './SetupChip';
-import { useRecordControl } from './useRecordControl';
+import { useRecordControl, forgetAppTake } from './useRecordControl';
+
+// A take one test leaves running is not the next test's.
+beforeEach(() => forgetAppTake());
 
 afterEach(cleanup);
 

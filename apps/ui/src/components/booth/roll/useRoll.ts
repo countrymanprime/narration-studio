@@ -116,6 +116,12 @@ export function useRoll(session: RollSession, actions: RollActions, { overlay }:
     async (unit: number) => {
       const s = sessionRef.current;
       const to = clampPhrase(unit, s.phraseCount);
+      // Before a take, a start the DAW could not punch to is not armed: the narrator is told now, not after Space, where the take will start.
+      const plan = rollPlan(s.capabilities);
+      if (!s.recording && plan.kind === 'refused' && isPunch({ phrase: to, seconds: s.secondsOf(to), recordedEnd: s.recordedEnd })) {
+        actionsRef.current.notify(`${plan.reason} The next take starts from the end of what is already there, not from ¶ ${s.paragraphOf(to) + 1}.`);
+        return;
+      }
       actionsRef.current.chooseStart(to, !s.recording);
       if (s.recording) return rollFrom(to);
       actionsRef.current.notify(`Starting from ¶ ${s.paragraphOf(to) + 1}`);

@@ -11,7 +11,10 @@ import type { DawClient } from '../../../ports/daw';
 import { PortOverrides } from '../../../ports/usePort';
 import type { NarrationApi } from '../../../types';
 import { dawClientFor } from './fixtures';
-import { POLL_MS, useRecordControl } from './useRecordControl';
+import { POLL_MS, useRecordControl, forgetAppTake } from './useRecordControl';
+
+// A take one test leaves running is not the next test's.
+beforeEach(() => forgetAppTake());
 
 // Random sequences of everything that can happen to the Record control, with the invariants that must hold after every step: Record is
 // never off without a reason, the narrator can always stop a take, and a take is never lost (or invented) without a sentence saying so.

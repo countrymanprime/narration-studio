@@ -24,7 +24,7 @@ type Deps = {
  * Registers the Booth's leave guard while a take records and returns `leave`, the one way out the Booth's own exits take
  * (Escape, the setup chip, a chapter opened in Script). `leave(next, go)` asks "Stop recording?" once, holds the take until
  * the narrator answers, stops the recording the app started, flushes the passage map's run, and only then calls `go` with the same destination. Keep
- * recording changes nothing. A refused stop keeps the question open with the host's sentence. The guard is removed when
+ * recording changes nothing. A refused stop keeps the question open with the host's sentence and offers "Leave anyway". The guard is removed when
  * the recording ends or the Booth unmounts.
  */
 export function useBoothLeaveGuard(session: BoothLeaveSession, { guard, overlay }: Deps) {
@@ -54,16 +54,25 @@ export function useBoothLeaveGuard(session: BoothLeaveSession, { guard, overlay 
       const run = async () => {
         const startedByApp = now.startedByApp ?? true;
         let spec = stopRecordingSpec(now.daw.name, startedByApp);
+        let refusedOnce = false;
         for (;;) {
           if (!(await overlay.confirm(spec))) return;
-          if (!startedByApp) break;
+          // The stop was refused and the narrator chose to leave anyway: a DAW that does not answer must not hold them in the Booth.
+          if (!startedByApp || refusedOnce) break;
           const result = await sessionRef.current.stopRecording();
           if (result.ok) {
             await sessionRef.current.flush?.();
             break;
           }
-          // The stop was refused: nothing changed, so the take still runs and the question stays, now with the host's sentence.
-          spec = { ...spec, body: result.refused ?? (result.message || spec.body) };
+          // The stop was refused: nothing changed, so the take still runs. The question stays, now with the host's sentence and a way out.
+          refusedOnce = true;
+          const sentence = result.refused ?? (result.message || '');
+          spec = {
+            ...spec,
+            title: 'Could not stop the take',
+            body: `${sentence} You can leave anyway, but it may keep recording.`.trim(),
+            confirmLabel: 'Leave anyway',
+          };
         }
         go(next);
       };

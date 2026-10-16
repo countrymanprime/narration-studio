@@ -60,6 +60,15 @@ export const stoppedInDaw = (daw: string | undefined) =>
  * guard (`useBoothLeaveGuard`) owns that question. The project's saved state is read when the Booth opens and again after each take
  * starts or stops, the moments its unsaved changes are likely to change.
  */
+// A take this app started and has not seen end. The Booth can be left without its leave question (the mouse's Back button, a window that
+// reloads its page): the take goes on in the DAW, and when the Booth is opened again that take is still the app's own to stop. A take the app
+// never started (the DAW was already recording when the app opened) is not claimed, and a page reload forgets this, as it should (ADR 0232).
+let appTakeRunning = false;
+/** Forgets a take the app started; for tests that share the module. */
+export const forgetAppTake = (): void => {
+  appTakeRunning = false;
+};
+
 export function useRecordControl({ chapterId, notify }: { chapterId: string; notify: (sentence: string) => void }): RecordControlState {
   const daw = usePort('daw');
   const system = usePort('system');
@@ -137,7 +146,22 @@ export function useRecordControl({ chapterId, notify }: { chapterId: string; not
   }, [system, reads, reachable]);
   // Record is refused for the chapter's own track, or by a take running in the DAW that this app did not start: a notice is up for something the
   // narrator fixes in the DAW, so it is read again on the timer as well.
-  const takeElsewhere = !recording && project?.playState === 'recording';
+  // The app's own take, still running in the DAW after the Booth was left and opened again, is taken back; any other take is "elsewhere".
+  const adopt = !recording && appTakeRunning && project?.playState === 'recording';
+  const wasRecording = useRef(false);
+  // In this order: a take that just ended clears the flag before the next effect asks whether to take one back.
+  useEffect(() => {
+    if (recording) appTakeRunning = true;
+    else if (wasRecording.current) appTakeRunning = false;
+    wasRecording.current = recording;
+  }, [recording]);
+  useEffect(() => {
+    if (!recording && appTakeRunning && project?.playState === 'recording') {
+      heardRecording.current = true;
+      setRecording(true);
+    }
+  }, [recording, project?.playState]);
+  const takeElsewhere = !recording && !adopt && project?.playState === 'recording';
   const refusedForChapter = takeElsewhere || (match?.chapterId === chapterId && (match.tracks === 'none' || match.tracks === 'several'));
   const unready = !capabilities || !!capabilities.capabilities.record?.available === false || readFailed || refusedForChapter;
   useEffect(() => {

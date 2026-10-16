@@ -55,6 +55,20 @@ test.describe('Booth with a moving mock DAW', () => {
     expect((await dawState(page))?.recording).toBe(false);
   });
 
+  test("leaving the Booth with the mouse Back button mid-take: coming back finds the take still the Booth's to stop", async ({ page }) => {
+    await toRecordReady(page);
+    await record(page).click();
+    await expect(stop(page)).toBeVisible();
+    await page.goBack();
+    await expect(page.locator('[data-booth-text]')).toHaveCount(0);
+    expect((await dawState(page))?.recording).toBe(true);
+    await page.goForward();
+    await page.getByRole('button', { name: /^Stop$/ }).waitFor();
+    await stop(page).click();
+    await expect(record(page)).toBeVisible();
+    expect((await dawState(page))?.recording).toBe(false);
+  });
+
   test('a REAPER that opens its bridge but never answers keeps the notice up, says so, and Check again does not fake it', async ({ page }) => {
     await openLive(page, 'quiet');
     await turnOnRecord(page);
