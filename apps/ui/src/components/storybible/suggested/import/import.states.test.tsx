@@ -678,11 +678,13 @@ describe('the dialog as a dialog', () => {
     const { u, dialog } = await open();
     for (let i = 0; i < 25; i++) {
       await u.tab();
-      expect(stays(dialog)).toBe(true);
+      // Base UI's focus guards hand focus back on the next task, which a loaded machine delays.
+      await waitFor(() => expect(stays(dialog)).toBe(true));
     }
     for (let i = 0; i < 3; i++) {
       await u.tab({ shift: true });
-      expect(stays(dialog)).toBe(true);
+      // Base UI's focus guards hand focus back on the next task, which a loaded machine delays.
+      await waitFor(() => expect(stays(dialog)).toBe(true));
     }
   });
 

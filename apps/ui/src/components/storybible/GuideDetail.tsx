@@ -1142,14 +1142,17 @@ export function GuideDetail({
                   </>
                 )}
               </div>
-              <IconButton
-                label="Add relationship"
-                disabled={editingDisabled || waiting('relate')}
-                pending={mutation.isPending('relate')}
-                onClick={() => void addRelationship()}
-              >
-                <FontAwesomeIcon icon={faPlus} />
-              </IconButton>
+              <TooltipTarget text={relationOtherId && relationLabel.trim() ? 'Add relationship' : 'Choose an entry and write the relationship first.'}>
+                <IconButton
+                  label="Add relationship"
+                  disabled={editingDisabled || waiting('relate')}
+                  disabledReason={!relationOtherId || !relationLabel.trim() ? 'Choose an entry and write the relationship first.' : undefined}
+                  pending={mutation.isPending('relate')}
+                  onClick={() => void addRelationship()}
+                >
+                  <FontAwesomeIcon icon={faPlus} />
+                </IconButton>
+              </TooltipTarget>
             </div>
           )}
         </div>

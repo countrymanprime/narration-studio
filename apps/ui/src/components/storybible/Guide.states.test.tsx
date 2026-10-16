@@ -179,6 +179,14 @@ describe('a new entry', () => {
     expect(document.activeElement).toBe(field);
   });
 
+  it('numbers a second default name from the first free number, not from the row count', async () => {
+    const api = createMockApi();
+    vi.spyOn(api, 'guideEntities').mockResolvedValue([entry('a', 'New entity'), entry('b', 'New entity 2'), entry('c', 'New entity 3'), entry('d', 'Zed')]);
+    mount(api);
+    await vi.waitFor(() => expect(rows()).toHaveLength(4));
+    expect((await addEntity()).value).toBe('New entity 4');
+  });
+
   it('pressing Add twice leaves one draft, not two', async () => {
     const api = createMockApi();
     mount(api);

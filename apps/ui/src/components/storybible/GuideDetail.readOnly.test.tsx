@@ -40,4 +40,13 @@ describe('the read-only entry', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Edit this entry' }));
     expect(kind().querySelector('svg')).not.toBeNull();
   });
+
+  it('Add relationship says what it is waiting for instead of doing nothing', () => {
+    open('mad-hatter');
+    fireEvent.click(screen.getByRole('button', { name: 'Edit this entry' }));
+    const add = screen.getByRole('button', { name: 'Add relationship' });
+    expect(add.getAttribute('aria-disabled')).toBe('true');
+    fireEvent.focus(add);
+    expect(document.body.textContent).toContain('Choose an entry and write the relationship first.');
+  });
 });

@@ -116,6 +116,7 @@ function GuideLoaded({ notify, goToManuscript }: Pick<GuideProps, 'notify' | 'go
   const [types, setTypes] = useState<GuideType[]>([]);
   const [focusedId, setFocusedId] = useState<string>();
   const rowButtons = useRef(new Map<string, HTMLButtonElement>());
+  const detailRef = useRef<HTMLDivElement>(null);
   const [voiceDataOpen, setVoiceDataOpen] = useState(false);
   const [sort, setSort] = useState<EntrySortKey>(loadEntrySort);
   // The suggestions the host lists (SN-X42): an entry with one still to verify needs review, and cannot be marked reviewed (SNB-3b).
@@ -284,7 +285,11 @@ function GuideLoaded({ notify, goToManuscript }: Pick<GuideProps, 'notify' | 'go
   // a "doesn't exist until saved" model instead of create-then-delete.
   const addEntity = () => {
     const base = 'New entity';
-    const name = rows.some((row) => row.canonical_name.toLowerCase() === base.toLowerCase()) ? `${base} ${rows.length + 1}` : base;
+    const taken = (text: string) => rows.some((row) => row.canonical_name.toLowerCase() === text.toLowerCase());
+    // The first number nobody has used, not one past the row count (which skipped numbers once entries had been deleted).
+    let next = 2;
+    while (taken(`${base} ${next}`)) next += 1;
+    const name = taken(base) ? `${base} ${next}` : base;
     setPendingNewEntity({ name });
   };
   const selectRow = (id?: string) => {
@@ -493,7 +498,11 @@ function GuideLoaded({ notify, goToManuscript }: Pick<GuideProps, 'notify' | 'go
                           tabIndex={row.id === stopId ? 0 : -1}
                           aria-current={open || undefined}
                           onFocus={() => setFocusedId(row.id)}
-                          onClick={() => selectRow(row.id)}
+                          onClick={() => {
+                            selectRow(row.id);
+                            // Below the two-column width the entry opens under the list: bring it into view so the click visibly does something.
+                            if (window.matchMedia?.('(max-width: 1023px)').matches) detailRef.current?.scrollIntoView?.({ block: 'start' });
+                          }}
                           className={`flex w-full flex-col gap-0.5 rounded-lg px-2.5 py-2 text-left ${open ? 'bg-[var(--accent-soft)] text-[var(--accent-strong)]' : 'text-[var(--text)] hover:bg-[var(--surface-2)]'}`}
                         >
                           <span data-line="name" className="flex w-full min-w-0 items-center gap-2 text-sm font-semibold">
@@ -521,7 +530,7 @@ function GuideLoaded({ notify, goToManuscript }: Pick<GuideProps, 'notify' | 'go
                 </ul>
               </div>
             </TabPanel>
-            <div className="flex min-h-0 min-w-0">
+            <div ref={detailRef} className="flex min-h-0 min-w-0">
               {looseChosen ? (
                 <Panel title={summaryOf(looseChosen.payload)} scroll className="min-h-0 flex-1">
                   <SuggestionList title="Suggested" suggestions={[looseChosen]} sources={found.sources} onChanged={decided} {...links} />
