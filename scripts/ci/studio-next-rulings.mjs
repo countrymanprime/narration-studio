@@ -236,6 +236,12 @@ export function checkIndex(lines, rows, { sliceIds, testExists }) {
   }
   const agreed = rows.filter((row) => row.status === 'agreed' || row.status === 'agreed-with-conditions');
   const agreedWithoutTest = agreed.filter((row) => !row.test).length;
+  if (ENFORCE_TEST_NAMES) {
+    for (const row of agreed) {
+      if (!row.slice) errors.push(`${row.id}: ${row.status} row has no owning slice`);
+      else if (row.slice === 'none' && !row.test.startsWith(NO_TEST)) errors.push(`${row.id}: slice "none" is for a ruling with no behaviour: say "n/a: <reason>" as its test`);
+    }
+  }
   if (ENFORCE_TEST_NAMES) for (const row of agreed.filter((r) => !r.test)) errors.push(`${row.id}: ${row.status} row has no test name (or "n/a: <reason>")`);
   const needPointer = rows.filter((row) => (row.status === 'deferred' || row.status === 'rejected') && !row.pointer).map((row) => row.id);
   for (const id of needPointer) errors.push(`${id}: a deferred or rejected row ends its ruling with " => " and a pointer`);

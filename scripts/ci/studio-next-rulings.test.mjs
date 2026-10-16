@@ -27,7 +27,7 @@ const rowsFor = (src, existing = []) => buildRows(parseSource(src), existing);
 // Rows as a finished index has them: every agreed row names a test.
 const namedRows = (src) =>
   rowsFor(src).map((row) => {
-    if (row.status === 'agreed' || row.status === 'agreed-with-conditions') return { ...row, test: 'a real test name' };
+    if (row.status === 'agreed' || row.status === 'agreed-with-conditions') return { ...row, slice: 'SNB-1', test: 'a real test name' };
     return row.status === 'deferred' || row.status === 'rejected' ? { ...row, pointer: 'SNC-Q3' } : row;
   });
 
@@ -152,4 +152,14 @@ test('a deferred or rejected row with no pointer is an error, not only a count',
   const rows = namedRows(SRC).map((row) => (row.status === 'deferred' ? { ...row, slice: 'none', pointer: '' } : row));
   const { errors } = checkIndex(parseSource(SRC), rows, ctx);
   assert.ok(errors.some((e) => e.includes('CO-1') && e.includes('pointer')));
+});
+
+test('an agreed row needs an owning slice: blank is refused, and none only goes with n/a', () => {
+  const rows = namedRows(SRC);
+  rows[0].slice = '';
+  assert.ok(checkIndex(parseSource(SRC), rows, ctx).errors.some((e) => e.includes('BO-1') && e.includes('slice')));
+  rows[0].slice = 'none';
+  assert.ok(checkIndex(parseSource(SRC), rows, ctx).errors.some((e) => e.includes('BO-1') && e.includes('slice')));
+  rows[0].test = 'n/a: a process rule, nothing to run';
+  assert.deepEqual(checkIndex(parseSource(SRC), rows, ctx).errors, []);
 });
