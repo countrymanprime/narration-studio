@@ -1,5 +1,5 @@
-import { vi } from 'vitest';
-import { configure } from '@testing-library/react';
+import { afterEach, vi } from 'vitest';
+import { cleanup, configure } from '@testing-library/react';
 import fc from 'fast-check';
 
 // Testing Library's findBy* and waitFor give up after 1 s by default. Vitest runs test files in parallel workers, and a
@@ -9,6 +9,12 @@ import fc from 'fast-check';
 // on a passing run and only lets a slow one finish; it stays below `testTimeout` (15 s, vite.config.ts) so a real
 // hang still fails on the wait's own message rather than as a bare test timeout.
 configure({ asyncUtilTimeout: 5_000 });
+
+// Testing Library unmounts what a test rendered on its own only when the runner's `afterEach` is a global, and this one's is not (`globals`
+// is off). A file that forgot `afterEach(cleanup)` (useZoom.test.ts was one of 36) left its hooks mounted: a debounce timer then fired
+// after jsdom was torn down and failed an unrelated file with "window is not defined" (quality / js on a654df8a). Unmounting after every
+// test here clears each hook's timers and listeners, so no file has to remember.
+afterEach(() => cleanup());
 
 // Vitest 4's jsdom compat layer wraps URL.createObjectURL and reads a private
 // `_buffer` field off jsdom's Blob implementation, which jsdom 30 no longer
