@@ -11,9 +11,9 @@ import { verifyOf } from './suggested/row/selectors';
 export type EntrySortKey = 'name' | 'type' | 'chapters';
 
 export const ENTRY_SORT_OPTIONS: readonly { value: EntrySortKey; label: string }[] = [
-  { value: 'name', label: 'Name' },
-  { value: 'type', label: 'Type' },
-  { value: 'chapters', label: 'Chapters' },
+  { value: 'name', label: 'By name' },
+  { value: 'type', label: 'By type' },
+  { value: 'chapters', label: 'By chapters' },
 ];
 
 export const ENTRY_SORT_STORAGE_KEY = 'narration.storyBible.sort';
