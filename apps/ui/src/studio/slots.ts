@@ -8,15 +8,22 @@ import { bookmarksSchema } from '../api/schemas/bookmarks';
 import { chaptersSchema } from '../api/schemas/manuscript';
 import { bindStudio } from './store/react';
 
+/**
+ * The in-app topic for a change to the manuscript's chapters that is not a job (a chapter's status or kind). The page that makes the
+ * change calls `publish(MANUSCRIPT_CHANGED)`; the chapter list every other page reads is read again. An import is a job, and
+ * `job:ended` already covers it.
+ */
+export const MANUSCRIPT_CHANGED = 'manuscript:changed';
+
 export type HostEventApi = Pick<SystemApi, 'subscribeJobEnded'>;
 
 /**
- * The chapter list: stale when a job ends (an import, a re-split) and reloaded when the window regains focus. The bookmarks:
+ * The chapter list: stale when a job ends (an import, a re-split) or a page publishes `MANUSCRIPT_CHANGED`, and reloaded when the window regains focus. The bookmarks:
  * every bookmark in reading order, reloaded on focus and by the bookmark commands after each change and each undo.
  */
 export function createSlots(api: Pick<ManuscriptApi, 'manuscriptChapters'>, bookmarks: Pick<BookmarksApi, 'bookmarksList'>) {
   return {
-    chapters: { schema: chaptersSchema, load: () => api.manuscriptChapters(), events: ['job:ended'], refreshOnFocus: true },
+    chapters: { schema: chaptersSchema, load: () => api.manuscriptChapters(), events: ['job:ended'], topics: [MANUSCRIPT_CHANGED], refreshOnFocus: true },
     bookmarks: { schema: bookmarksSchema, load: () => bookmarks.bookmarksList(), refreshOnFocus: true },
   };
 }

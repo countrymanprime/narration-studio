@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { ManuscriptChapter } from '../../../../api/contracts/manuscript';
-import { deepLinkTarget } from './useDeepLink';
+import { deepLinkTarget, isDeepLinkShaped } from './useDeepLink';
 
 const chapter = (id: string, title: string, paragraphs: Array<[string, number]>, contentKind?: ManuscriptChapter['contentKind']): ManuscriptChapter =>
   ({ id, title, contentKind, paragraphIds: paragraphs.map(([pid, index]) => ({ id: pid, index })) }) as ManuscriptChapter;
@@ -34,5 +34,17 @@ describe('deep-links-land-on-the-new-page', () => {
     expect(deepLinkTarget('#p99', CHAPTERS)).toBeNull();
     expect(deepLinkTarget('#pfive', CHAPTERS)).toBeNull();
     expect(deepLinkTarget('#x-not-a-deep-link', CHAPTERS)).toBeNull();
+  });
+});
+
+describe('a malformed or stale link', () => {
+  it('a malformed escape names nothing instead of throwing', () => {
+    expect(deepLinkTarget('#c%', CHAPTERS)).toBeNull();
+    expect(deepLinkTarget('#c%E0%A4%A', CHAPTERS)).toBeNull();
+  });
+
+  it('knows which hashes are shaped like a chapter or line link', () => {
+    for (const hash of ['#p12', '#cc1', '#c%', '#cgone']) expect(isDeepLinkShaped(hash)).toBe(true);
+    for (const hash of ['', '#', '#credits-opening', '#x', '#pfive', '#p-1']) expect(isDeepLinkShaped(hash)).toBe(false);
   });
 });
