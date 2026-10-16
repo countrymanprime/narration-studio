@@ -73,6 +73,12 @@ func (h *Host) linkPickedDawFile(path string) (map[string]any, error) {
 // refuses only a file that is not an .rpp or does not exist, with a message.
 // The only error is the manifest's own I/O failure.
 func linkDawFile(reporter *persist.Reporter, projectFolder, rppPath string) (map[string]any, error) {
+	if projectFolder == "" {
+		return nil, fmt.Errorf("open a project before linking a REAPER project file")
+	}
+	if info, err := os.Stat(projectFolder); err != nil || !info.IsDir() {
+		return nil, fmt.Errorf("the project folder could not be found, so the REAPER project file was not linked")
+	}
 	absFolder, err := filepath.Abs(projectFolder)
 	if err != nil {
 		return nil, fmt.Errorf("could not resolve the project folder: %w", err)

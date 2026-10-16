@@ -81,12 +81,25 @@ func scanRppFiles(folder string) []string {
 		return found
 	}
 	for _, entry := range entries {
-		if entry.Type().IsRegular() && strings.EqualFold(filepath.Ext(entry.Name()), ".rpp") {
+		if strings.EqualFold(filepath.Ext(entry.Name()), ".rpp") && isProjectFile(folder, entry) {
 			found = append(found, entry.Name())
 		}
 	}
 	sort.Strings(found)
 	return found
+}
+
+// isProjectFile reports whether entry, in folder, is a file: a regular file, or a link or cloud-sync placeholder that leads to one.
+// A folder named like a project file is not.
+func isProjectFile(folder string, entry os.DirEntry) bool {
+	if entry.Type().IsRegular() {
+		return true
+	}
+	if entry.IsDir() {
+		return false
+	}
+	info, err := os.Stat(filepath.Join(folder, entry.Name()))
+	return err == nil && !info.IsDir()
 }
 
 // projectDaw is the project's engine, where it came from, and the folder facts behind it.

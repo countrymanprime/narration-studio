@@ -83,10 +83,13 @@ func (s *Store) ForProject(project string) (Series, bool, error) {
 	if err != nil {
 		return Series{}, false, err
 	}
-	clean := filepath.Clean(project)
+	if strings.TrimSpace(project) == "" {
+		return Series{}, false, nil
+	}
+	clean := normalize(project)
 	for _, one := range list {
 		for _, member := range one.MemberProjectPaths {
-			if strings.EqualFold(filepath.Clean(member), clean) {
+			if samePath(member, clean) {
 				return one, true, nil
 			}
 		}
@@ -154,21 +157,44 @@ func (s *Store) Delete(id string) error {
 // (first occurrence wins), so a narrator's chosen book order in a series survives a save.
 func cleanPaths(paths []string) []string {
 	out := make([]string, 0, len(paths))
-	seen := map[string]bool{}
 	for _, path := range paths {
 		path = strings.TrimSpace(path)
 		if path == "" {
 			continue
 		}
-		clean := filepath.Clean(path)
-		key := strings.ToLower(clean)
-		if seen[key] {
-			continue
+		clean := normalize(path)
+		duplicate := false
+		for _, kept := range out {
+			if samePath(kept, clean) {
+				duplicate = true
+				break
+			}
 		}
-		seen[key] = true
-		out = append(out, clean)
+		if !duplicate {
+			out = append(out, clean)
+		}
 	}
 	return out
+}
+
+// normalize makes path absolute and clean, so a member means the same folder after the working directory changes (path is
+// returned cleaned but relative when the working directory cannot be read).
+func normalize(path string) string {
+	if absolute, err := filepath.Abs(path); err == nil {
+		return absolute
+	}
+	return filepath.Clean(path)
+}
+
+// samePath reports whether two paths name the same project folder: the same spelling ignoring case (Windows is not case-sensitive,
+// matching recents.Store.Touch), or the same folder on disk reached another way (a junction, a symlink, a short name).
+func samePath(a, b string) bool {
+	if strings.EqualFold(a, b) {
+		return true
+	}
+	infoA, errA := os.Stat(a)
+	infoB, errB := os.Stat(b)
+	return errA == nil && errB == nil && os.SameFile(infoA, infoB)
 }
 
 func (s *Store) readLocked() (seriesFile, error) {

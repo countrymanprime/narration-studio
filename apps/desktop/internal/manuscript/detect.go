@@ -30,7 +30,7 @@ func DetectSource(project string) string {
 	}
 	found := map[string]string{}
 	for _, entry := range entries {
-		if !entry.Type().IsRegular() {
+		if !isFile(project, entry) {
 			continue
 		}
 		extension := strings.ToLower(filepath.Ext(entry.Name()))
@@ -59,8 +59,35 @@ func (s *Service) Detect() string {
 // begin an import from an arbitrary location.
 func (s *Service) BeginDetected(path string) (ImportJob, error) {
 	detected := s.Detect()
-	if detected == "" || filepath.Clean(detected) != filepath.Clean(path) {
+	if detected == "" || !sameManuscript(detected, path) {
 		return ImportJob{}, fmt.Errorf("that file is not a manuscript waiting to be imported in this project")
 	}
 	return s.Begin(detected), nil
+}
+
+// sameManuscript reports whether path names the detected file: the same cleaned spelling, or the same file on disk reached
+// another way (a letter case, a junction, a relative or absolute spelling). It never accepts a file that is not the detected one.
+func sameManuscript(detected, path string) bool {
+	if path == "" {
+		return false
+	}
+	if filepath.Clean(detected) == filepath.Clean(path) {
+		return true
+	}
+	a, errA := os.Stat(detected)
+	b, errB := os.Stat(path)
+	return errA == nil && errB == nil && os.SameFile(a, b)
+}
+
+// isFile reports whether entry, in folder, is a file the importer can read: a regular file, or a link or other reparse point (a
+// cloud-synced placeholder, a symlink) that leads to one. A folder, even one named like a manuscript, is not.
+func isFile(folder string, entry os.DirEntry) bool {
+	if entry.Type().IsRegular() {
+		return true
+	}
+	if entry.IsDir() {
+		return false
+	}
+	info, err := os.Stat(filepath.Join(folder, entry.Name()))
+	return err == nil && !info.IsDir()
 }

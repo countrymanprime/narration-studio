@@ -480,27 +480,37 @@ func commit(project, source string, draft importer.Draft, kinds map[string]strin
 	if report == nil {
 		report = func(int, string) {}
 	}
+	if project == "" {
+		return nil, fmt.Errorf("no project folder to store the manuscript in")
+	}
 	name := filepath.Base(source)
-	if info, err := os.Stat(source); err == nil {
-		report(15, fmt.Sprintf("Copying %s (%d KB) into the project and computing its checksum", name, info.Size()/1024))
+	info, err := os.Stat(source)
+	if err != nil {
+		return nil, fmt.Errorf("could not open the selected manuscript: %w", err)
 	}
-	sourceDir := filepath.Join(project, "narration-utils", "manuscript", "sources", newID())
-	if err := os.MkdirAll(sourceDir, 0o755); err != nil {
-		return nil, fmt.Errorf("could not create manuscript storage: %w", err)
+	if info.IsDir() {
+		return nil, fmt.Errorf("the selected manuscript %s is a folder, not a file", name)
 	}
-	stored := filepath.Join(sourceDir, name)
 	input, err := os.Open(source)
 	if err != nil {
 		return nil, fmt.Errorf("could not open the selected manuscript: %w", err)
 	}
 	defer func() { _ = input.Close() }() // read-only source
+	report(15, fmt.Sprintf("Copying %s (%d KB) into the project and computing its checksum", name, info.Size()/1024))
+	sourceDir := filepath.Join(project, "narration-utils", "manuscript", "sources", newID())
+	if err := os.MkdirAll(sourceDir, 0o755); err != nil {
+		return nil, fmt.Errorf("could not create manuscript storage: %w", err)
+	}
+	stored := filepath.Join(sourceDir, name)
 	output, err := os.OpenFile(stored, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0o600)
 	if err != nil {
+		_ = os.Remove(sourceDir) // nothing was stored; do not leave the empty folder
 		return nil, fmt.Errorf("could not store the selected manuscript: %w", err)
 	}
 	digest := sha256.New()
 	if _, err = io.Copy(io.MultiWriter(output, digest), input); err != nil {
 		_ = output.Close() // the copy already failed; report that error
+		_ = os.RemoveAll(sourceDir)
 		return nil, fmt.Errorf("could not store the selected manuscript: %w", err)
 	}
 	if err = output.Close(); err != nil {
