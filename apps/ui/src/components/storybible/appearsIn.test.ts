@@ -20,6 +20,13 @@ describe('pure-selector-properties', () => {
     expect(chaptersOf({}, manuscript)).toBeUndefined();
     expect(chaptersOf({ appearances: [] }, manuscript)).toEqual([]);
   });
+  it('reads a file without appearances from the chapters its evidence names, by id or by title', () => {
+    const line = (chapter: string, chapterId?: string) => ({ chapter, chapterId, paragraph: 0, excerpt: '' });
+    const entity = { occurrences: [line('Three', 'c3'), line('One'), line('Ghost', 'gone')] };
+    expect(chaptersOf(entity, manuscript)?.map((c) => c.id)).toEqual(['c1', 'c3']);
+    expect(chaptersOf({ occurrences: [] }, manuscript)).toBeUndefined();
+    expect(chaptersOf({ occurrences: [line('Ghost', 'gone')] }, manuscript)).toBeUndefined();
+  });
   it('never mutates its input and gives the same answer twice', () => {
     fc.assert(
       fc.property(fc.array(fc.constantFrom('c1', 'c2', 'c3', 'zz')), (ids) => {

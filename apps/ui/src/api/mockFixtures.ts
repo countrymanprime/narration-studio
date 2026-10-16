@@ -248,7 +248,7 @@ const pronunciation = (ipa: string) => ({ ipa, source: ipa ? 'Piper' : 'not gene
 const occurrence = (chapter: number, paragraph: number) => {
   const index = paragraphIndex(chapter, paragraph);
   const row = WIRE_PARAGRAPHS[index];
-  return { chapter: row.chapter, paragraph: row.index, sourceLine: row.sourceLine, excerpt: row.text };
+  return { chapter: row.chapter, chapterId: row.chapterId, paragraph: row.index, sourceLine: row.sourceLine, excerpt: row.text };
 };
 export const WIRE_ENTITIES: GuideEntity[] = [
   {
