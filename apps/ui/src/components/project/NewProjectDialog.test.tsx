@@ -46,6 +46,17 @@ describe('NewProjectDialog', () => {
     await waitFor(() => expect(onCreated).toHaveBeenCalledWith({ switched: true }));
   });
 
+  it('creates the project when Enter is pressed in the Name field, and not while the name is empty (#1778)', async () => {
+    const createProject = vi.fn(async () => ({ switched: true }));
+    const { onCreated } = renderDialog({ createProject });
+    fireEvent.submit(screen.getByLabelText('Name').closest('form')!);
+    expect(createProject).not.toHaveBeenCalled();
+    fireEvent.change(screen.getByLabelText('Name'), { target: { value: 'Alice' } });
+    fireEvent.submit(screen.getByLabelText('Name').closest('form')!);
+    await waitFor(() => expect(onCreated).toHaveBeenCalled());
+    expect(createProject).toHaveBeenCalledWith('', 'Alice');
+  });
+
   it('trims surrounding whitespace from the name before creating', async () => {
     const createProject = vi.fn(async () => ({ switched: true }));
     renderDialog({ createProject });

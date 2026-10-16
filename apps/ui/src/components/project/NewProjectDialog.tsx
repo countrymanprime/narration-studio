@@ -82,7 +82,15 @@ export function NewProjectDialog({ onClose, onCreated }: Props) {
           {error}
         </p>
       )}
-      <Field label="Name" value={name} onChange={setName} autoFocus disabled={busy} placeholder="My New Audiobook" />
+      {/* A form around the one field, so Enter creates the project like the Create button does. */}
+      <form
+        onSubmit={(event) => {
+          event.preventDefault();
+          if (name.trim() && !busy) create();
+        }}
+      >
+        <Field label="Name" value={name} onChange={setName} autoFocus disabled={busy} placeholder="My New Audiobook" />
+      </form>
       <p className="mt-3 text-sm" style={{ color: 'var(--text-muted)' }}>
         Location:{' '}
         <span className="font-['IBM_Plex_Mono',ui-monospace,monospace] break-all">{parent ?? (defaultLocation || 'the default projects folder')}</span>

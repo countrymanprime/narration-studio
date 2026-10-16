@@ -12,6 +12,12 @@ import { Highlight } from '../primitives/Highlight';
 import type { Notify } from '../primitives/Toast';
 
 const KIND_LABEL: Record<string, string> = { opening: 'Opening', closing: 'Closing', chapter_announcement: 'Chapter announcement' };
+
+/** The picker's label: the name with its kind, unless the name already ends in it ("ACX minimum (opening)"). */
+function templateLabel(template: { name: string; kind: string }): string {
+  const kind = KIND_LABEL[template.kind] ?? template.kind;
+  return template.name.toLowerCase().endsWith(`(${kind.toLowerCase()})`) ? template.name : `${template.name} (${kind})`;
+}
 const KIND_OPTIONS = [
   { value: 'opening', label: 'Opening' },
   { value: 'closing', label: 'Closing' },
@@ -243,7 +249,7 @@ export function CreditsPanel({ notify }: { notify: Notify }) {
             value={selectedId}
             onChange={setSelectedId}
             fullWidth
-            options={templates.map((template) => ({ value: template.id, label: `${template.name} (${KIND_LABEL[template.kind] ?? template.kind})` }))}
+            options={templates.map((template) => ({ value: template.id, label: templateLabel(template) }))}
           />
           <Button variant="secondary" type="button" disabled={busy} onClick={newTemplate}>
             New
