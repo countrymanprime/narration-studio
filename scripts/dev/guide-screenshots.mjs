@@ -66,9 +66,21 @@ export function samePicture(a, b) {
   return changed / (a.info.width * a.info.height) < CHANGED_SHARE;
 }
 
+/** The PNG the targeted run leaves for a manifest entry (light theme, under the capture folder of the UI project). */
+export function captureSource(ui, entry) {
+  return join(ui, CAPTURES, 'light', entry.page, entry.state, `${entry.viewport}.png`);
+}
+
+/** Runs the targeted real-app capture for the given state-catalog pages; true when it passed. */
+function runCapture(catalogPages) {
+  return spawnSync('pnpm', ['--dir', UI, 'visual:page', ...catalogPages, '--themes', 'light', '--out', CAPTURES], { cwd: ROOT, stdio: 'inherit' }).status === 0;
+}
+
 const kb = (bytes) => `${(bytes / 1024).toFixed(0)}KB`;
 
-async function main(argv) {
+/** Exit code: 0 all converted, 1 a capture run failed or an entry has no capture, 2 bad arguments. `env` swaps the folders and the capture run for tests. */
+export async function main(argv, env = {}) {
+  const { ui = UI, guide = GUIDE, images: imagesDir = IMAGES, manifest: manifestPath = MANIFEST, capture = runCapture } = env;
   const all = argv.includes('--all');
   const skipRun = argv.includes('--skip-run');
   const names = argv.filter((arg) => !arg.startsWith('--'));
@@ -77,17 +89,16 @@ async function main(argv) {
     return 2;
   }
   const sharp = createRequire(join(UI, 'package.json'))('sharp');
-  const manifest = JSON.parse(readFileSync(MANIFEST, 'utf8'));
-  const guideFiles = readdirSync(GUIDE)
+  const manifest = JSON.parse(readFileSync(manifestPath, 'utf8'));
+  const guideFiles = readdirSync(guide)
     .filter((file) => file.endsWith('.md'))
-    .map((file) => [file, readFileSync(join(GUIDE, file), 'utf8')]);
+    .map((file) => [file, readFileSync(join(guide, file), 'utf8')]);
   const entries = all ? manifest : selectEntries(manifest, guidePages(guideFiles), names);
   const catalogPages = [...new Set(entries.map((entry) => entry.page))];
 
   let failed = false;
   if (!skipRun) {
-    const run = spawnSync('pnpm', ['--dir', UI, 'visual:page', ...catalogPages, '--themes', 'light', '--out', CAPTURES], { cwd: ROOT, stdio: 'inherit' });
-    if (run.status !== 0) {
+    if (!capture(catalogPages)) {
       failed = true;
       console.error('\nvisual:page failed: a failing state still wrote its PNG; look at it before you commit the image.');
     }
@@ -96,12 +107,12 @@ async function main(argv) {
   const counts = { updated: 0, added: 0, unchanged: 0 };
   const missing = [];
   for (const entry of entries) {
-    const source = join(UI, CAPTURES, 'light', entry.page, entry.state, `${entry.viewport}.png`);
+    const source = captureSource(ui, entry);
     if (!existsSync(source)) {
       missing.push(`${entry.page}/${entry.state}/${entry.viewport} (${entry.docName})`);
       continue;
     }
-    const target = join(IMAGES, `${entry.docName}.webp`);
+    const target = join(imagesDir, `${entry.docName}.webp`);
     const webp = await sharp(source).resize({ width: WEBP.maxWidth, withoutEnlargement: true }).webp({ quality: WEBP.quality }).toBuffer();
     const before = existsSync(target) ? readFileSync(target) : undefined;
     if (before) {
@@ -116,8 +127,8 @@ async function main(argv) {
     console.log(`${before ? 'updated' : 'added  '} ${entry.docName}.webp ${before ? `${kb(before.length)} -> ` : ''}${kb(webp.length)}`);
   }
 
-  const images = readdirSync(IMAGES);
-  const total = images.reduce((sum, file) => sum + statSync(join(IMAGES, file)).size, 0);
+  const images = readdirSync(imagesDir);
+  const total = images.reduce((sum, file) => sum + statSync(join(imagesDir, file)).size, 0);
   console.log(`\n${counts.updated} updated, ${counts.added} added, ${counts.unchanged} unchanged; docs/images/ui holds ${images.length} files, ${kb(total)}.`);
   for (const file of orphans(images, manifest)) console.log(`not in doc-screenshots.json: docs/images/ui/${file} (delete it, or list and embed it)`);
   if (missing.length > 0) {
