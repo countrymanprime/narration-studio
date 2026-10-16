@@ -1,4 +1,4 @@
-import { expect, type Locator, type Page } from '@playwright/test';
+import { type Locator, type Page } from '@playwright/test';
 
 // The overlay guard (definition of done, rule 1, "Overlays"): an overlay is the topmost element at its own points and fully on
 // screen. This file is the part with no opinion about the app: it measures one open overlay (`overlayProblems`,
@@ -14,7 +14,7 @@ export interface Point {
   y: number;
 }
 
-export interface OverlayCheckOptions {
+interface OverlayCheckOptions {
   /** Names the overlay in a failure message. */
   label?: string;
   /** How far inside the box the sampled points sit, so a rounded corner or a border is not mistaken for a gap. Default 8 px. */
@@ -142,7 +142,7 @@ async function settledBox(root: Locator): Promise<void> {
  * per problem (empty when the overlay is fine); a sentence names the element that covers the overlay and its stacking chain, which
  * is where the cause is.
  */
-export async function overlayProblems(root: Locator, options: OverlayCheckOptions = {}): Promise<string[]> {
+async function overlayProblems(root: Locator, options: OverlayCheckOptions = {}): Promise<string[]> {
   const label = options.label ?? 'overlay';
   const inset = options.insetPx ?? 8;
   try {
@@ -255,14 +255,6 @@ export async function overlayProblemsWhileOpen(page: Page, open: () => Promise<v
     await options.close?.();
     await closeOverlays(page);
   }
-}
-
-/**
- * The guard in one call: opens the overlay with `open`, fails the test when it is covered at any sampled point or leaves the
- * window, and closes it. `options.root` is the element that is the overlay.
- */
-export async function assertOverlayIsTopmost(page: Page, open: () => Promise<void>, options: OpenedOverlayOptions): Promise<void> {
-  expect(await overlayProblemsWhileOpen(page, open, options), `${options.label ?? 'overlay'} must be topmost and fully on screen`).toEqual([]);
 }
 
 /** Closes whatever is open with Escape (a popup first, then what it sat on), up to `presses` times, until no overlay is left. */

@@ -43,7 +43,7 @@ export type RecordControlState = {
 };
 
 /** The sentence for a DAW that has gone quiet: what the Booth can and cannot tell, and the way out. */
-export function cantTell(daw: string | undefined, checkedAt: number | null, now: number): string {
+function cantTell(daw: string | undefined, checkedAt: number | null, now: number): string {
   const name = daw && daw !== 'none' ? daw : 'the DAW';
   const heard = checkedAt === null ? 'not heard yet' : `last heard ${Math.max(0, Math.round((now - checkedAt) / 1000))} s ago`;
   return `Can't tell whether ${name} is ready (${heard}). Press Check again.`;
