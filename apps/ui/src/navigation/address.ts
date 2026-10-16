@@ -11,10 +11,10 @@ export const MAX_PICKUPS = 500;
 /** The largest paragraph index, character offset or second an address may name. */
 export const MAX_ADDRESS_NUMBER = 1_000_000_000;
 
-export type DrawerName = 'cleanup' | 'effects' | 'backups' | 'timeline';
-export const DRAWER_NAMES: readonly DrawerName[] = ['cleanup', 'effects', 'backups', 'timeline'];
+type DrawerName = 'cleanup' | 'effects' | 'backups' | 'timeline';
+const DRAWER_NAMES: readonly DrawerName[] = ['cleanup', 'effects', 'backups', 'timeline'];
 
-export type SettingsAnchor = 'recording' | 'credits' | 'delivery' | 'cleanup' | 'booth' | 'teleprompter';
+type SettingsAnchor = 'recording' | 'credits' | 'delivery' | 'cleanup' | 'booth' | 'teleprompter';
 
 /** Every address a page hands the narrator to, by destination. */
 export type Address =
@@ -30,7 +30,7 @@ export type Address =
 
 export type AddressPage = Address['page'];
 
-export type AddressProblemReason =
+type AddressProblemReason =
   'malformed-encoding' | 'too-long' | 'empty' | 'not-a-number' | 'out-of-range' | 'duplicate' | 'unknown-value' | 'control-characters';
 
 export type AddressRead =
@@ -79,7 +79,7 @@ export function addressPagePath(page: AddressPage): string {
 }
 
 /** What a page says when it will not act on an address, in words the narrator can use. */
-export function describeBadAddress(page: AddressPage, reason: AddressProblemReason): string {
+function describeBadAddress(page: AddressPage, reason: AddressProblemReason): string {
   return `This ${PAGE_NAME[page]} link cannot be opened: ${REASON_TEXT[reason]}.`;
 }
 
