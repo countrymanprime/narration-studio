@@ -6,6 +6,7 @@ import { Select } from '../primitives/Select';
 import { SlideOver } from '../primitives/SlideOver';
 import { formatLength } from './productionFormat';
 import type { CreditsRow } from '../credits/useCreditsRows';
+import { addressPath } from '../../navigation/address';
 
 const MUTED = { color: 'var(--text-muted)' };
 
@@ -63,7 +64,7 @@ export function CreditsRowPanel({
             {warning}
           </p>
         )}
-        <Link className="font-semibold underline" to={`/script#credits-${row.kind}`}>
+        <Link className="font-semibold underline" to={addressPath({ page: 'script', credits: row.kind })}>
           Open in Script
         </Link>
         <Select

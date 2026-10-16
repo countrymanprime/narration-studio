@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { DawResult } from '../../../api/contracts/daw';
+import { usePedalSpace } from '../../../input/usePedalSpace';
 import { useCommand } from '../../../input/useCommand';
 import type { OverlayService } from '../../../overlay/overlayService';
 import type { DawClient } from '../../../ports/daw';
@@ -204,6 +205,7 @@ export function useBoothPage(options: BoothPageOptions) {
       secondsOf: (phrase) => secondsBefore(units, phrase),
       recordedEnd,
       takeSeconds: seconds,
+      recordRefusal: control.disabled ? control.reason : '',
     },
     {
       roll: (_phrase, { confirmed }) => daw.roll(recordId, takeAt.current + latest.current.seconds, { confirmed }),
@@ -213,6 +215,7 @@ export function useBoothPage(options: BoothPageOptions) {
         takeAt.current = punch ?? recordedEnd;
         return control.toggle();
       },
+      clearStart: () => setPunchAt(null),
       chooseStart: (phrase, move) => {
         setPunchAt(phrase);
         if (move) moveTo({ cur: phrase, wcur: 0 });
@@ -284,13 +287,16 @@ export function useBoothPage(options: BoothPageOptions) {
   }, [recording, paused]);
 
   // Leaving. The question holds the take while it is open; Yes stops the recording the app started and the listening with it.
+  const markStopped = control.stopped;
   const stopRecording = useCallback(async (): Promise<DawResult> => {
     const result = await daw.recordStop();
+    // The take is over now: the leave guard that asked is waiting to go, and it must not see a take still running until the DAW's next heartbeat.
+    if (result.ok) markStopped();
     if (result.ok && latest.current.session.active) latest.current.session.stop();
     // Stopped on the way out: the pickups it read over are marked without a toast, as the page is going.
     if (result.ok) void tellStopped(true);
     return result;
-  }, [daw, tellStopped]);
+  }, [daw, tellStopped, markStopped]);
   const askedByShell = useRef(false);
   const shellGuard = useMemo<Pick<LeaveGuardStore, 'setLeaveGuard'>>(
     () => ({
@@ -376,6 +382,7 @@ export function useBoothPage(options: BoothPageOptions) {
   // The keys: every one is a catalogue command; the router keeps a field's own keys and any modified press away from them.
   const toggleTake = useCallback(() => (latest.current.recording ? control.toggle() : roll.startTake()), [control, roll]);
   useCommand('reading.toggle', () => void toggleTake());
+  usePedalSpace(toggleTake);
   useCommand('booth.phrase.next', () => moveTo(nextPhrase(latest.current.units, latest.current.at)));
   useCommand('booth.phrase.prev', () => moveTo(backPhrase(latest.current.at)));
   useCommand('booth.word.next', () => moveTo(stepWord(latest.current.units, latest.current.at, 1)));
