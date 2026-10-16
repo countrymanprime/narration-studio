@@ -262,5 +262,8 @@ describe('a lost transport event does not leave the REC pill wrong', () => {
     await act(() => daw.result.current.toggle());
     await act(() => vi.advanceTimersByTimeAsync(POLL_MS * 5));
     expect(daw.result.current.recording).toBe(true);
+    // Said once, after three failures in a row, not at every tick.
+    const said = daw.notify.mock.calls.filter(([sentence]) => /Can't tell whether REAPER is still recording/.test(sentence));
+    expect(said).toHaveLength(1);
   });
 });

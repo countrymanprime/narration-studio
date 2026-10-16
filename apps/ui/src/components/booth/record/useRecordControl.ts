@@ -172,11 +172,13 @@ export function useRecordControl({ chapterId, notify }: { chapterId: string; not
     if (!recording) return;
     let current = true;
     let misses = 0;
+    let failures = 0;
     const timer = window.setInterval(() => {
       daw
         .projectState()
         .then((state) => {
           if (!current) return;
+          failures = 0;
           if (state.playState === 'recording') {
             heardRecording.current = true;
             misses = 0;
@@ -189,7 +191,14 @@ export function useRecordControl({ chapterId, notify }: { chapterId: string; not
             notify(stoppedInDaw(capabilitiesRef.current?.daw));
           }
         })
-        .catch(() => {});
+        // The take stays: a read that fails says nothing about it. Said once, after three in a row, so a narrator is not left trusting a pill nothing can vouch for.
+        .catch(() => {
+          failures += 1;
+          if (current && failures === 3) {
+            const name = capabilitiesRef.current?.daw;
+            notify(`Can't tell whether ${name && name !== 'none' ? name : 'the DAW'} is still recording. Check it there before you rely on this take.`);
+          }
+        });
     }, POLL_MS);
     return () => {
       current = false;
