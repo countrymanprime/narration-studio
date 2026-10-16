@@ -55,6 +55,36 @@ export const boothStates: StateEntry[] = [
   },
   {
     page: 'booth',
+    state: 'builtin-setup',
+    description:
+      'Booth for a project that records with the built-in recorder (?mockEngine=builtin, the record capability on): the setup chip reads "Built-in", Record is enabled with no track to link, and the footer\'s Levels lists the computer\'s microphones to choose from',
+    ...REFLOW,
+  },
+  {
+    page: 'booth',
+    state: 'builtin-refusal',
+    description:
+      'Booth for a project that records with the built-in recorder while Experimental actions are off (?mockEngine=builtin): Record is disabled and the footer says why in the capability\'s own sentence; above the footer, "Recording in the built-in recorder is experimental" says the take is saved in the project\'s Recordings folder, with Turn on Record and DAW settings',
+    ...REFLOW,
+  },
+  {
+    page: 'booth',
+    state: 'builtin-recording',
+    description:
+      'Booth, a take running with the built-in recorder (Record pressed, the page clock paused so the timer reads 00:00): Stop in place of Record, the REC pill beside the "Built-in" chip, and the session section counting the take',
+    ...FREEZES_THE_CLOCK,
+    ...REFLOW,
+  },
+  {
+    page: 'booth',
+    state: 'builtin-take-ended',
+    description:
+      "Booth after the built-in recorder's take ended by itself (the microphone stopped delivering audio, ?mockRecorder=failed): Record is back, and a message says why it stopped and that the audio before it is kept in the project's Recordings folder",
+    ...FREEZES_THE_CLOCK,
+    ...REFLOW,
+  },
+  {
+    page: 'booth',
     state: 'recording',
     description:
       'Booth, a take running (Record pressed, the page clock paused so the timer reads 00:00): Stop in place of Record, the REC pill beside the setup chip, the resume line gone, and the session section counting the take',

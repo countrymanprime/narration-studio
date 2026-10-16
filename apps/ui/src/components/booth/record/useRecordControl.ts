@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import type { DawCapabilities, DawProjectState } from '../../../api/contracts/daw';
+import type { DawCapabilities, DawKind, DawProjectState } from '../../../api/contracts/daw';
 import type { ReadAloudReaperReason, ReadAloudReaperStatus } from '../../../api/contracts/teleprompter';
 import { usePort } from '../../../ports/usePort';
+import { recorderName, recorderNameCapital, recordsInApp } from '../../../studio/dawNames';
 import { apiErrorMessage } from '../../../api/errorMessage';
 import { recordCheck, type ChapterRecordState, type OpenProject } from './recordCheck';
 import type { RecordSetupFacts } from './recordSetup';
@@ -47,25 +48,29 @@ export type RecordControlState = {
 };
 
 /** The sentence for a DAW that has gone quiet: what the Booth can and cannot tell, and the way out. */
-function cantTell(daw: string | undefined, checkedAt: number | null, now: number): string {
-  const name = daw && daw !== 'none' ? daw : 'the DAW';
+function cantTell(daw: DawKind | undefined, checkedAt: number | null, now: number): string {
   const heard = checkedAt === null ? 'not heard yet' : `last heard ${Math.max(0, Math.round((now - checkedAt) / 1000))} s ago`;
-  return `Can't tell whether ${name} is ready (${heard}). Press Check again.`;
+  return `Can't tell whether ${recorderName(daw)} is ready (${heard}). Press Check again.`;
 }
 
-/** What the Booth says when the DAW answered that a take this app started has stopped: the narrator's own Stop there. */
-export const stoppedInDaw = (daw: string | undefined) =>
-  `${daw && daw !== 'none' ? daw : 'The DAW'} stopped recording. The take ended there; press Record to start the next one.`;
+/**
+ * What the Booth says when the DAW answered that a take this app started has stopped: the narrator's own Stop there. The app's own
+ * recorder has no other place to stop a take, so its take ended by itself: `why` is the recorder's own sentence for it, if it has one.
+ */
+export const stoppedInDaw = (daw: DawKind | undefined, why = '') =>
+  recordsInApp(daw)
+    ? `${why ? `${why.replace(/[.\s]+$/, '')}. ` : ''}The take ended and the audio before it is kept in the project's Recordings folder; press Record to start the next one.`
+    : `${recorderNameCapital(daw)} stopped recording. The take ended there; press Record to start the next one.`;
 
 /** What the Booth says once a DAW that went quiet during a take answers again: its own take ended when it went quiet, and what the DAW did with the audio is for the narrator to check. */
-const backInDaw = (daw: string | undefined) => {
-  const name = daw && daw !== 'none' ? daw : 'The DAW';
+const backInDaw = (daw: DawKind | undefined) => {
+  const name = recorderNameCapital(daw);
   return `${name} answers again. This window ended its take when ${name} went quiet; check in ${name} whether that take was kept.`;
 };
 
 /** What the Booth says when the DAW stopped answering during a take: it did not say the take ended, and may still be recording. */
-const lostInDaw = (daw: string | undefined) => {
-  const name = daw && daw !== 'none' ? daw : 'The DAW';
+const lostInDaw = (daw: DawKind | undefined) => {
+  const name = recorderNameCapital(daw);
   return `${name} stopped answering, so the Booth can't tell whether the take is still running. Check ${name}; press Record for the next take once it answers.`;
 };
 
@@ -89,6 +94,7 @@ export function useRecordControl({ chapterId, notify }: { chapterId: string; not
   const daw = usePort('daw');
   const system = usePort('system');
   const teleprompter = usePort('teleprompter');
+  const recorder = usePort('recording');
   const [capabilities, setCapabilities] = useState<DawCapabilities | null>(null);
   const [project, setProject] = useState<DawProjectState | null>(null);
   const [match, setMatch] = useState<{ chapterId: string; tracks: ChapterRecordState['tracks']; message: string } | null>(null);
@@ -109,6 +115,17 @@ export function useRecordControl({ chapterId, notify }: { chapterId: string; not
   const lostTake = useRef(false);
   const notifyRef = useRef(notify);
   notifyRef.current = notify;
+  // A take the recorder ended by itself (the microphone unplugged, the disk full): its own sentence says why, read when the end is heard.
+  const recorderRef = useRef(recorder);
+  recorderRef.current = recorder;
+  const announceEnd = (name: DawKind | undefined) => {
+    if (!recordsInApp(name)) return void notifyRef.current(stoppedInDaw(name), TAKE_TOPIC);
+    void recorderRef.current
+      .recorderState()
+      .then((state) => state.message)
+      .catch(() => '')
+      .then((why) => notifyRef.current(stoppedInDaw(name, why), TAKE_TOPIC));
+  };
   const hearAgain = (next: DawCapabilities) => {
     if (next.reachable && lostTake.current) {
       lostTake.current = false;
@@ -183,21 +200,29 @@ export function useRecordControl({ chapterId, notify }: { chapterId: string; not
   // Record is refused for the chapter's own track, or by a take running in the DAW that this app did not start: a notice is up for something the
   // narrator fixes in the DAW, so it is read again on the timer as well.
   // The app's own take, still running in the DAW after the Booth was left and opened again, is taken back; any other take is "elsewhere".
-  const adopt = !recording && appTakeRunning && project?.playState === 'recording';
+  // The app's own recorder's take is always the app's: nothing else starts one, so a take it reports when the Booth opens is taken back too.
+  // Only then: a take this window started and ended is over, whatever the project state it has not yet re-read still says.
+  const inApp = recordsInApp(capabilities?.daw);
+  const recordedHere = useRef(false);
+  const adopt = !recording && (appTakeRunning || (inApp && !recordedHere.current)) && project?.playState === 'recording';
   const wasRecording = useRef(false);
   // In this order: a take that just ended clears the flag before the next effect asks whether to take one back.
   useEffect(() => {
-    if (recording) appTakeRunning = true;
-    else if (wasRecording.current) appTakeRunning = false;
+    if (recording) {
+      appTakeRunning = true;
+      recordedHere.current = true;
+    } else if (wasRecording.current) appTakeRunning = false;
     wasRecording.current = recording;
   }, [recording]);
   useEffect(() => {
-    if (!recording && appTakeRunning && project?.playState === 'recording') {
+    // Read here, after the effect above has run: a take that just ended has cleared its flag by now.
+    if (!recording && (appTakeRunning || (inApp && !recordedHere.current)) && project?.playState === 'recording') {
       heardRecording.current = true;
       setRecording(true);
     }
-  }, [recording, project?.playState]);
-  const takeElsewhere = !recording && !adopt && project?.playState === 'recording';
+  }, [recording, project?.playState, inApp]);
+  // Nothing but this app starts a take of its own recorder, so none is "elsewhere".
+  const takeElsewhere = !recording && !adopt && !inApp && project?.playState === 'recording';
   const refusedForChapter = takeElsewhere || (match?.chapterId === chapterId && (match.tracks === 'none' || match.tracks === 'several'));
   const unready = !capabilities || !!capabilities.capabilities.record?.available === false || readFailed || refusedForChapter || link.open === 'different';
   useEffect(() => {
@@ -228,7 +253,8 @@ export function useRecordControl({ chapterId, notify }: { chapterId: string; not
         setRecording(false);
         // A stop pushed after the heartbeat went is the DAW going quiet, not the DAW saying the take ended.
         if (reachableRef.current === false) lostTake.current = true;
-        notify(reachableRef.current === false ? lostInDaw(capabilities?.daw) : stoppedInDaw(capabilities?.daw), TAKE_TOPIC);
+        if (reachableRef.current === false) notify(lostInDaw(capabilities?.daw), TAKE_TOPIC);
+        else announceEnd(capabilities?.daw);
       }
     });
   }, [daw, recording, notify, capabilities?.daw]);
@@ -268,7 +294,8 @@ export function useRecordControl({ chapterId, notify }: { chapterId: string; not
               })
               .then(() => {
                 if (reachableRef.current === false) lostTake.current = true;
-                notify(reachableRef.current === false ? lostInDaw(daw_) : stoppedInDaw(daw_), TAKE_TOPIC);
+                if (reachableRef.current === false) notify(lostInDaw(daw_), TAKE_TOPIC);
+                else announceEnd(daw_);
               });
           }
         })
@@ -276,8 +303,7 @@ export function useRecordControl({ chapterId, notify }: { chapterId: string; not
         .catch(() => {
           failures += 1;
           if (current && failures === 3) {
-            const name = capabilitiesRef.current?.daw;
-            notify(`Can't tell whether ${name && name !== 'none' ? name : 'the DAW'} is still recording. Check it there before you rely on this take.`);
+            notify(`Can't tell whether ${recorderName(capabilitiesRef.current?.daw)} is still recording. Check it there before you rely on this take.`);
           }
         });
     }, POLL_MS);

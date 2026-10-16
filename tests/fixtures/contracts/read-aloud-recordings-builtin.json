@@ -1,0 +1,43 @@
+{
+  "choose a microphone": {
+    "outcome": "refused",
+    "reason": "choose_microphone",
+    "message": "Choose the microphone in Levels, then press Record."
+  },
+  "device will not open": {
+    "outcome": "refused",
+    "reason": "failed",
+    "message": "Windows has blocked this app from the microphone."
+  },
+  "experimental off": {
+    "outcome": "refused",
+    "reason": "experimental_off",
+    "message": "Experimental: switched off in Settings."
+  },
+  "no microphone": {
+    "outcome": "refused",
+    "reason": "no_microphone",
+    "message": "No microphone found. Plug one in, then press Record again."
+  },
+  "punch": {
+    "outcome": "refused",
+    "reason": "not_yet",
+    "message": "Not available with the built-in recorder yet."
+  },
+  "record switched off": {
+    "outcome": "refused",
+    "reason": "turned_off",
+    "message": "Turned off in Settings."
+  },
+  "start": {
+    "outcome": "started"
+  },
+  "stop": {
+    "outcome": "stopped"
+  },
+  "stop with no take": {
+    "outcome": "refused",
+    "reason": "not_recording",
+    "message": "The built-in recorder is not recording, so nothing was stopped."
+  }
+}

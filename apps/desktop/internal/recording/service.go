@@ -369,6 +369,14 @@ func (s *Service) Busy() bool {
 	return s.current != nil && s.current.kind == takeRun
 }
 
+// Recording reports whether a take is recording and has not been asked to stop: the transport the Booth hears. A meter is not
+// a take, and a take that is finishing its file has already stopped as far as the narrator is concerned.
+func (s *Service) Recording() bool {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return s.current != nil && s.current.kind == takeRun && !s.current.stopping
+}
+
 func (s *Service) level(level Level) {
 	if s.emitLevel != nil {
 		s.emitLevel(level)

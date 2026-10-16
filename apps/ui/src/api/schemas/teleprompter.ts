@@ -329,6 +329,12 @@ export const readAloudRecordingSchema = z.object({
       'not_our_recording',
       'timeout',
       'bad_time',
+      'turned_off',
+      'unsupported',
+      'not_yet',
+      'no_microphone',
+      'choose_microphone',
+      'not_recording',
     ])
     .optional(),
   message: z.string().optional(),
