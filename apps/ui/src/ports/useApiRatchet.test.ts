@@ -2,6 +2,7 @@
 import { readdirSync, readFileSync } from 'node:fs';
 import { join, relative, sep } from 'node:path';
 import { describe, expect, it } from 'vitest';
+import { unexplained } from '../ratchetReasons';
 
 // ADR 0770: a feature declares the one port it uses with `usePort`, not the whole `NarrationApi` facade with `useApi()`.
 // This scan counts, per source file outside `src/api/` and `src/ports/` (tests and stories excluded), how many times it
@@ -91,73 +92,7 @@ function sources(dir: string): string[] {
 }
 
 function actual(): Record<string, number> {
-  const counts: Record<string, number> = {
-    'src/App.tsx': 1,
-    'src/components/assets/LocalAssetRow.tsx': 1,
-    'src/components/assets/LocalAssets.tsx': 1,
-    'src/components/booth/CompanionShell.tsx': 2,
-    'src/components/booth/CompanionThisChapter.tsx': 1,
-    'src/components/booth/ResumePrompt.tsx': 1,
-    'src/components/booth/useBoothRecording.ts': 1,
-    'src/components/booth/useRecordInReaper.ts': 1,
-    'src/components/booth/useRecorder.ts': 1,
-    'src/components/booth/useResumeLocate.ts': 1,
-    'src/components/booth/useTeleprompterSession.ts': 1,
-    'src/components/credits/CreditsSetupBanner.tsx': 1,
-    'src/components/credits/CreditsSetupDialog.tsx': 1,
-    'src/components/editing/CleanupAction.tsx': 1,
-    'src/components/editing/EditingCheckPanel.tsx': 2,
-    'src/components/editing/takes/prep/usePrepSteps.tsx': 1,
-    'src/components/engine/ChapterLinksTable.tsx': 1,
-    'src/components/engine/ChapterSyncPanel.tsx': 1,
-    'src/components/engine/ChapterTagsDialog.tsx': 1,
-    'src/components/engine/CleanupToolsDialog.tsx': 1,
-    'src/components/engine/CreateChapterRegionsDialog.tsx': 1,
-    'src/components/engine/EnginePanel.tsx': 1,
-    'src/components/engine/LinkChaptersDialog.tsx': 1,
-    'src/components/engine/RenderConfigDialog.tsx': 1,
-    'src/components/engine/RetakeLanesDialog.tsx': 1,
-    'src/components/layout/useNavCounts.ts': 1,
-    'src/components/master/DiagnosticsSection.tsx': 1,
-    'src/components/master/MasteringChain.tsx': 1,
-    'src/components/master/ReportExportPanel.tsx': 1,
-    'src/components/master/useExportJobs.ts': 1,
-    'src/components/pickups/usePickupsState.ts': 1,
-    'src/components/production/ChapterTrackPanel.tsx': 1,
-    'src/components/production/ManuscriptImport.tsx': 1,
-    'src/components/production/RecordingCheck.tsx': 2,
-    'src/components/production/RecordingCheckReport.tsx': 1,
-    'src/components/production/useChapterTools.tsx': 1,
-    'src/components/project/NewProjectDialog.tsx': 1,
-    'src/components/project/ProjectPicker.tsx': 1,
-    'src/components/proof/AuditionDialog.tsx': 1,
-    'src/components/proof/CompareRun.tsx': 1,
-    'src/components/proof/NativeTakesPanel.tsx': 2,
-    'src/components/proof/PreviewPanel.tsx': 1,
-    'src/components/proof/ProofChapterPage.tsx': 1,
-    'src/components/proof/useProofingRender.ts': 1,
-    'src/components/series/SeriesTab.tsx': 1,
-    'src/components/settings/CreditsPanel.tsx': 1,
-    'src/components/settings/DawCatalogPanel.tsx': 1,
-    'src/components/settings/DeliveryProfilesPanel.tsx': 1,
-    'src/components/settings/KeyboardPanel.tsx': 1,
-    'src/components/settings/OnlineDictionaryPanel.tsx': 1,
-    'src/components/settings/RetailSamplePanel.tsx': 1,
-    'src/components/settings/UpdateDownloadDialog.tsx': 1,
-    'src/components/settings/UpdatesPanel.tsx': 1,
-    'src/components/stages/useStageRecommendations.ts': 1,
-    'src/components/storybible/CommonsAudioLookup.tsx': 1,
-    'src/components/storybible/DialogueCueAttribution.tsx': 1,
-    'src/components/storybible/Guide.tsx': 1,
-    'src/components/storybible/GuideDetail.tsx': 1,
-    'src/components/storybible/OnlinePronunciationLookup.tsx': 1,
-    'src/components/storybible/VoiceDataPanel.tsx': 1,
-    'src/components/storybible/VoiceReferencesSection.tsx': 1,
-    'src/components/storybible/source/NamePronunciation.tsx': 1,
-    'src/input/useDawRecording.ts': 1,
-    'src/useCapability.ts': 1,
-    'src/useDawKind.ts': 1,
-  };
+  const counts: Record<string, number> = {};
   for (const file of sources(SRC)) {
     const rel = relative(process.cwd(), file).split(sep).join('/');
     if (rel.startsWith('src/api/') || rel.startsWith('src/ports/')) continue;
@@ -171,6 +106,12 @@ function actual(): Record<string, number> {
 }
 
 describe('whole-facade useApi() ratchet', () => {
+  it('series-folders-have-no-ceiling: every remaining entry says what keeps it (ratchetReasons.ts)', () => {
+    expect(unexplained(Object.keys(CEILING)), 'a file with an entry needs a line in KEPT (a feature the mock lacks) or GAPS (a swap left it behind)').toEqual(
+      [],
+    );
+  });
+
   it('whole-facade-ratchet-lists-every-caller: no new caller, no higher count, no stale entry', () => {
     const real = actual();
     const problems: string[] = [];

@@ -1,8 +1,12 @@
 // @vitest-environment node
-import { readdirSync, readFileSync } from 'node:fs';
+import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { join, relative, sep } from 'node:path';
 import ts from 'typescript';
 import { describe, expect, test } from 'vitest';
+import { GAPS, KEPT, unexplained } from './ratchetReasons';
+
+// The gaps SN-C4 found (#1217). Lower it with every fix; raising it needs the owner.
+const MAX_GAPS = 43;
 
 // ADR 0053 (and ADR 0056 for the table parts): a page builds a control from a primitive (`IconButton`, `TextField`, `SearchField`, `Select`, `Field`, ...) and
 // not from the native element, so every control looks and behaves one way. This scan counts the native elements written in
@@ -72,7 +76,29 @@ const ZERO_DIRS = [
   'src/components/production/readiness/',
   'src/components/production/pipeline/',
   'src/components/production/overview/',
+  'src/components/production/report/',
+  'src/components/production/target/',
   'src/components/proof/checkcard/',
+  'src/components/proof/notes/',
+  'src/components/proof/spot/',
+  'src/components/script/',
+  'src/components/delivery/',
+  'src/components/masterqc/',
+  'src/components/editing/page/',
+  'src/components/editing/range/',
+  'src/components/editing/takes/',
+  'src/components/editing/cleanup/',
+  'src/components/editing/effects/',
+  'src/components/editing/script/',
+  'src/components/booth/page/',
+  'src/components/booth/record/',
+  'src/components/booth/side/',
+  'src/components/booth/reading/',
+  'src/components/booth/suspected/',
+  'src/components/pickups/',
+  'src/components/settings/page/',
+  'src/components/storybible/source/',
+  'src/components/storybible/suggested/',
 ];
 
 const MARKER = 'native-control-ok:';
@@ -206,6 +232,24 @@ describe('native controls stay inside the primitives (ADR 0053)', () => {
       ZERO_DIRS.filter((dir) => !files.some((file) => file.startsWith(dir))),
       'a deleted folder takes its ZERO_DIRS line with it',
     ).toEqual([]);
+  });
+
+  test('series-folders-have-no-ceiling: every remaining entry says what keeps it (ratchetReasons.ts)', () => {
+    const entries = NATIVE_TAGS.flatMap((tag) => Object.keys(CEILING[tag]));
+    expect(unexplained(entries), 'a file with an entry needs a line in KEPT (a feature the mock lacks) or GAPS (a swap left it behind)').toEqual([]);
+  });
+
+  test('ratchet-reasons: every line names a file that exists, a file is kept or a gap and not both, and the gap count only falls', () => {
+    expect(
+      [...Object.keys(KEPT), ...GAPS].filter((file) => !existsSync(join(uiRoot, file))),
+      'a deleted file takes its line in ratchetReasons.ts with it',
+    ).toEqual([]);
+    expect(GAPS.filter((file) => file in KEPT)).toEqual([]);
+    expect(GAPS.length, 'GAPS only shrinks: a fix deletes its line and lowers MAX_GAPS; a new offender is fixed, not listed').toBe(MAX_GAPS);
+    expect(unexplained(['src/components/schedule/NewThing.tsx', 'src/components/proof/Old.tsx']), 'a new offender in a rebuilt folder is caught').toEqual([
+      'src/components/schedule/NewThing.tsx',
+      'src/components/proof/Old.tsx',
+    ]);
   });
 
   test('no page pastes the icon-button look', () => {
