@@ -117,6 +117,31 @@ describe('scroll requests', () => {
     expect(onHandled).toHaveBeenCalledTimes(1);
   });
 
+  it('keeps a jumped-to chapter at the top when text above it arrives after the jump', () => {
+    const late: Record<string, ManuscriptParagraph[] | undefined> = {};
+    const onHandled = vi.fn();
+    const { rerender } = render(<Reader {...props({ paragraphsOf: (id) => late[id], pendingJump: 'c3', onHandled })} />);
+    const bound = document.querySelector('[data-bound][data-ch="c3"]') as HTMLElement;
+    expect(scrolls.get(scroller())).toBe(bound.offsetTop - 8);
+    // The text of the chapters above arrives and pushes the chapter down.
+    Object.assign(late, paras);
+    tops.set(bound, 8000);
+    rerender(<Reader {...props({ paragraphsOf: (id) => late[id], pendingJump: null, onHandled })} />);
+    expect(scrolls.get(scroller())).toBe(8000 - 8);
+  });
+
+  it('lets go of a jumped-to chapter once the narrator scrolls by hand', () => {
+    const late: Record<string, ManuscriptParagraph[] | undefined> = {};
+    const { rerender } = render(<Reader {...props({ paragraphsOf: (id) => late[id], pendingJump: 'c3' })} />);
+    const bound = document.querySelector('[data-bound][data-ch="c3"]') as HTMLElement;
+    fireEvent.wheel(scroller());
+    scrollTo(123);
+    Object.assign(late, paras);
+    tops.set(bound, 8000);
+    rerender(<Reader {...props({ paragraphsOf: (id) => late[id], pendingJump: null })} />);
+    expect(scrolls.get(scroller())).toBe(123);
+  });
+
   it('scrolls to a paragraph a little below the top', () => {
     const onHandled = vi.fn();
     render(<Reader {...props({ pendingPid: 'p5', onHandled })} />);
