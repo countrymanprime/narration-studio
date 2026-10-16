@@ -116,11 +116,14 @@ describe('RecordSetup when the app turns the launch away', () => {
     const attach = mountWithAttach();
     expect(screen.queryByRole('alert')).toBeNull();
     attach({ attached: false, reason: 'Narration Studio is busy, so the current project was left unchanged.' });
+    // The headline says what happened, not "not answering" (REAPER did start): walkthrough M15.
+    expect(screen.getByRole('heading', { name: 'REAPER started, but its project was turned away' })).toBeTruthy();
     const alert = screen.getByRole('alert');
     expect(alert.textContent).toContain('Narration Studio is busy');
     expect(alert.textContent).toContain('Finish or cancel what is running, then press Open in REAPER and connect again.');
     attach({ attached: true });
     expect(screen.queryByRole('alert')).toBeNull();
+    expect(screen.getByRole('heading', { name: 'Connect REAPER to record' })).toBeTruthy();
     attach({ attached: false, reason: 'busy again' });
     expect(screen.getByRole('alert')).toBeTruthy();
     await userEvent.click(screen.getByRole('button', { name: 'Check again' }));
@@ -353,7 +356,7 @@ describe('RecordSetup when the DAW has a different project open', () => {
         />
       </ApiProvider>,
     );
-    expect(screen.getByText('Waiting for REAPER to have the linked project open.')).toBeTruthy();
+    expect(screen.getByText('Waiting for REAPER to open the linked project.')).toBeTruthy();
     expect(screen.getByText('Last checked 7 s ago.')).toBeTruthy();
     await userEvent.click(screen.getByRole('button', { name: 'Check again' }));
     expect(onCheckAgain).toHaveBeenCalledTimes(1);

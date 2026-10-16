@@ -12,11 +12,13 @@ import type {
   DawCapabilitySupport,
   DawCapabilitiesApi,
   DawKind,
+  DawLevelsApi,
+  DawMonitorLevel,
   DawProjectState,
   DawProjectStateApi,
   DawTransport,
 } from './contracts/daw';
-import { DAW_CAPABILITIES } from './contracts/daw';
+import { DAW_CAPABILITIES, DAW_LEVEL_MAX } from './contracts/daw';
 import { wireClone } from './mockFixtures';
 
 /** Mirrors dawport.Needs (capability.go): what a capability needs from the running engine before it can be used. */
@@ -56,6 +58,9 @@ const REAPER_DECLARATION: Record<DawCapabilityKey, DawCapabilityLevel> = {
   range_gain: 'experimental',
   click_repair: 'experimental',
   undo_last: 'experimental',
+  monitor_level: 'experimental',
+  // No DAW the app talks to can set an audio interface's input gain.
+  input_level: 'unsupported',
 };
 
 const CAPABILITY_NEEDS: Record<DawCapabilityKey, DawMockNeeds> = {
@@ -91,7 +96,11 @@ const CAPABILITY_NEEDS: Record<DawCapabilityKey, DawMockNeeds> = {
   range_gain: 'running',
   click_repair: 'running',
   undo_last: 'running',
+  monitor_level: 'running',
+  input_level: 'running',
 };
+
+const MESSAGE_NO_INPUT_LEVEL = (daw: string) => `${daw} cannot set an audio interface's input gain. Set it in your interface's own control panel.`;
 
 /** The host's own wording for a REAPER that is not connected or not answering, and the resolver's generic wording for
  * every other refusal (apps/desktop/internal/dawport/resolver.go, apps/desktop/internal/dawport/reaper/reaper.go). */
@@ -187,7 +196,10 @@ function declarationFor(daw: DawKind): Record<string, DawCapabilityLevel> {
   if (daw === 'REAPER') return REAPER_DECLARATION;
   if (daw === 'Audacity') {
     return Object.fromEntries(
-      DAW_CAPABILITIES.map(({ key }) => [key, AUDACITY_EXPERIMENTAL.has(key) ? ('experimental' as const) : ('not_yet_available' as const)]),
+      DAW_CAPABILITIES.map(({ key }) => [
+        key,
+        key === 'input_level' ? ('unsupported' as const) : AUDACITY_EXPERIMENTAL.has(key) ? ('experimental' as const) : ('not_yet_available' as const),
+      ]),
     );
   }
   if (daw === 'Built-in') {
@@ -202,6 +214,8 @@ function declarationFor(daw: DawKind): Record<string, DawCapabilityLevel> {
 }
 
 function explain(daw: DawKind, key: DawCapabilityKey, reason: DawCapabilitySupport['reason'], pipe = false): string {
+  // The one thing no engine can do, and the way out: the narrator's own audio interface sets its input gain.
+  if (key === 'input_level' && reason === 'unsupported' && daw !== 'Built-in' && daw !== 'none') return MESSAGE_NO_INPUT_LEVEL(daw);
   if (daw === 'Audacity') {
     if (reason === 'not_yet') return MESSAGE_AUDACITY_NOT_YET;
     if (reason === 'standalone' || reason === 'not_running') return pipe ? MESSAGE_AUDACITY_NOT_REACHABLE : MESSAGE_AUDACITY_NOT_CONNECTED;
@@ -393,6 +407,8 @@ export interface DawMockControl {
   linkedOpenProject(): void;
   /** The narrator pressed Stop inside the DAW. */
   stopInDaw(): void;
+  /** The next monitor-level call fails with this sentence (the DAW did not take the change), as a bridge that answers an error would. */
+  refuseNextLevel(sentence: string): void;
   /** The narrator pressed Record inside the DAW: a take this app did not start. */
   startInDaw(): void;
   /** Whether the DAW is recording, whoever started it (the host's `recording_elsewhere` is true for the app's own take too). */
@@ -408,6 +424,7 @@ export interface DawMockControl {
     reachable: boolean;
     openProject: 'linked' | 'other';
     recording: boolean;
+    monitorLevel: number;
     toggles: Partial<Record<DawCapabilityKey, DawToggle>>;
   };
   /** A setting the host saved (`saveSettings`): the capability toggles and the Experimental switch. */
@@ -420,7 +437,7 @@ export interface DawMockControl {
   facts(): { reachable: boolean; projectMatches: boolean; bridge: boolean };
 }
 
-export type DawMock = DawCapabilitiesApi & DawProjectStateApi & { control: DawMockControl };
+export type DawMock = DawCapabilitiesApi & DawProjectStateApi & DawLevelsApi & { control: DawMockControl };
 
 /** How long after a record start or stop the DAW's next heartbeat reports it: the host pushes the transport on a tick, never inside the call. */
 const HEARTBEAT_MS = 250;
@@ -434,6 +451,9 @@ export function createDawMock(seed: DawMockSeed = {}, script?: DawMockScript): D
   const isRecording = () => !!live.transport?.recording;
   let dropped = false;
   let refuseRecord: { sentence: string; kind: 'start' | 'stop' } | null = null;
+  // The monitor level the DAW holds, on the page's 0 to 100 scale (the mock's own starting value for its slider).
+  let monitorLevel = 60;
+  let refuseLevel: string | null = null;
   const timers = new Set<ReturnType<typeof setTimeout>>();
   const later = (ms: number, work: () => void) => {
     const timer = setTimeout(() => {
@@ -446,6 +466,17 @@ export function createDawMock(seed: DawMockSeed = {}, script?: DawMockScript): D
   const capSubs = new Set<(state: DawCapabilities) => void>();
   const transportSubs = new Set<(state: DawTransport) => void>();
   const stateSubs = new Set<(state: DawProjectState) => void>();
+
+  const levelAnswer = (): DawMonitorLevel => {
+    const support = currentCapabilities(live).capabilities.monitor_level;
+    if (!support?.available) return { ok: false, level: 0, message: support?.message ?? MESSAGE_NO_ENGINE };
+    if (refuseLevel !== null) {
+      const message = refuseLevel;
+      refuseLevel = null;
+      return { ok: false, level: 0, message };
+    }
+    return { ok: true, level: monitorLevel, message: '' };
+  };
 
   const snapshot = () => {
     const capabilities = currentCapabilities(live);
@@ -525,12 +556,16 @@ export function createDawMock(seed: DawMockSeed = {}, script?: DawMockScript): D
     refuseNextRecord: (sentence, kind = 'start') => {
       refuseRecord = { sentence, kind };
     },
+    refuseNextLevel: (sentence) => {
+      refuseLevel = sentence;
+    },
     state: () => ({
       daw: live.daw ?? home,
       bridge: bridgeOpen(),
       reachable: currentCapabilities(live).reachable,
       openProject: open,
       recording: isRecording(),
+      monitorLevel,
       toggles: live.toggles ?? {},
     }),
     settingsSaved: (tool, values) => {
@@ -591,6 +626,15 @@ export function createDawMock(seed: DawMockSeed = {}, script?: DawMockScript): D
       transportSubs.add(onUpdate);
       onUpdate(wireClone(snapshot().transport));
       return () => transportSubs.delete(onUpdate);
+    },
+    // The host's answers (bindings_daw_levels.go): the capability's own sentence when it refuses, else the level the DAW holds.
+    dawMonitorLevel: async () => levelAnswer(),
+    dawSetMonitorLevel: async (level) => {
+      if (!Number.isInteger(level) || level < 0 || level > DAW_LEVEL_MAX) throw new Error(`the monitor level is 0 to ${DAW_LEVEL_MAX}, not ${level}`);
+      const answer = levelAnswer();
+      if (!answer.ok) return answer;
+      monitorLevel = level;
+      return levelAnswer();
     },
     dawProjectState: async () => wireClone(snapshot().projectState),
     subscribeDawProjectState: (onUpdate) => {

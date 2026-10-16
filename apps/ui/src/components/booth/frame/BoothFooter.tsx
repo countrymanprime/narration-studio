@@ -37,7 +37,7 @@ export function useRoomTone(port: { roomTone(mic: string): Promise<Measured<numb
   return { label: roomToneLabel(answer), ok: answer.ok };
 }
 
-type Mic = Pick<LevelsMenuProps, 'engine' | 'dawName' | 'reachable' | 'offReason' | 'device' | 'onDevice' | 'listen'>;
+type Mic = Pick<LevelsMenuProps, 'engine' | 'dawName' | 'reachable' | 'offReason' | 'device' | 'onDevice' | 'listen' | 'levels'>;
 
 /**
  * The Booth's footer (the mock's `bfoot`): the Record control from SN-O23 as a slot, the take timer, the Levels menu, why Record

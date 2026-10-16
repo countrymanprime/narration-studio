@@ -66,6 +66,8 @@ const REAPER_LEVELS: Record<DawCapabilityKey, DawCapabilitySupport['level']> = {
   range_gain: 'experimental',
   click_repair: 'experimental',
   undo_last: 'experimental',
+  monitor_level: 'experimental',
+  input_level: 'unsupported',
 };
 
 type Rows = Partial<Record<DawCapabilityKey, DawCapabilitySupport>>;
@@ -73,6 +75,14 @@ type Rows = Partial<Record<DawCapabilityKey, DawCapabilitySupport>>;
 /** One row per catalogue capability: `rows` where given, `otherwise` for the rest. */
 const everyCapability = (otherwise: (key: DawCapabilityKey) => DawCapabilitySupport, rows: Rows = {}): DawCapabilities['capabilities'] =>
   Object.fromEntries(DAW_CAPABILITIES.map(({ key }) => [key, rows[key] ?? otherwise(key)]));
+
+/** The one thing no engine can do, and the way out; the sentence the host's `input_level` capability carries (dawport). */
+const noInputLevel = (daw: string): DawCapabilitySupport => ({
+  level: 'unsupported',
+  available: false,
+  reason: 'unsupported',
+  message: `${daw} cannot set an audio interface's input gain. Set it in your interface's own control panel.`,
+});
 
 const macroUnsupported: DawCapabilitySupport = { level: 'unsupported', available: false, reason: 'unsupported', message: MACRO_UNSUPPORTED };
 
@@ -100,6 +110,7 @@ const REAPER_DEPTH: Rows = {
 
 const REAPER_CAPABILITIES = everyCapability((key) => ({ level: REAPER_LEVELS[key], available: true }), {
   macro_render: macroUnsupported,
+  input_level: noInputLevel('REAPER'),
   ...REAPER_NOT_YET,
   ...REAPER_DEPTH,
 });
@@ -110,6 +121,7 @@ const REAPER_OFF_CAPABILITIES = everyCapability(
   {
     project_read: { level: 'supported', available: true },
     macro_render: macroUnsupported,
+    input_level: noInputLevel('REAPER'),
     ...REAPER_NOT_YET,
     punch: { level: 'experimental', available: false, reason: 'not_running', message: REAPER_NOT_RUNNING, mode: 'native' },
     cut_range: { level: 'experimental', available: false, reason: 'not_running', message: REAPER_NOT_RUNNING, mode: 'native' },
@@ -135,6 +147,7 @@ const audacityCapabilities = (backups: boolean): DawCapabilities['capabilities']
       ? { ...audacityExperimental, ...(mode ? { mode } : {}) }
       : { level: 'experimental', available: false, reason: 'turned_off', message: needsBackups(what), ...(mode ? { mode } : {}) };
   return everyCapability(() => notYet(AUDACITY_NOT_YET), {
+    input_level: noInputLevel('Audacity'),
     markers: audacityExperimental,
     navigate: audacityExperimental,
     macro_render: audacityExperimental,

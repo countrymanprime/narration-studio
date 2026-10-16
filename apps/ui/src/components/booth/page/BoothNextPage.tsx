@@ -502,6 +502,7 @@ function BoothSession({ source, from, requested, adopt, data, choose, navigate, 
               device: session.device,
               onDevice: session.changeDevice,
               listen: standalone ? undefined : { devices: session.devices, fromDaw: listening.fromDaw, note: listening.note },
+              levels: capabilities ? { monitor: capabilities.capabilities.monitor_level, input: capabilities.capabilities.input_level } : undefined,
             }}
             roomTone={roomTone.label}
             roomToneOk={roomTone.ok}

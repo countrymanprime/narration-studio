@@ -29,7 +29,7 @@ The record path (the built-in recorder, the record gating in the DAW, the microp
 | 11 | Click a word | The reading position moves to it | Playwright | Pass | Pass |
 | 12 | Wheel and Page Down | The view moves; the reading position stays | Playwright | Pass | Pass |
 | 13 | Text settings (font, size) | They apply at once and are the same after a reload | Playwright | Pass | Pass (the size survives a reload) |
-| 14 | Levels menu | Input meter, the microphone, input and monitor level | Playwright | **Fail**: no microphone name; the mock's two level sliders are missing | Microphone named; the sliders are still missing | **Partial.** The meter and the named microphone pass. The mock's two sliders (Input level, Monitor level) are not built: the app has no host call that sets the DAW's input or monitor level, so a slider would move and do nothing. An owner decision, not a fix |
+| 14 | Levels menu | Input meter, the microphone, input and monitor level | Playwright | **Fail**: no microphone name; the mock's two level sliders are missing | Microphone named; the sliders are still missing | Pass in pass 3. The meter, the named microphone and both sliders are there (`booth-matrix.spec.ts`, `LevelsSliders.test.tsx`). **Monitor level (output)** sets REAPER's first hardware output (the `monitor_level` command, Experimental); **Input level** is off with the capability's sentence, because no DAW can set an audio interface's input gain. Real REAPER: pending (owner) |
 | 15 | Side panel | Reference, Pickups, Suspected, Last punch, Voices in this scene, Coming up, This session, in the mock's order; the toggle hides and shows it | Playwright | **Fail**: Voices and Coming up come before Last punch | Pass | Pass |
 | 16 | Suspected flags | Shown while reading; Dismiss removes one | Playwright | Pass | Pass (the one pressed is the one that goes; the mock's session keeps raising flags while it listens) |
 | 17 | A Story Bible name or a marked word | Its reference in the side panel | Playwright | Pass | Pass |
@@ -65,7 +65,7 @@ Found by capturing the mock (`docs/research/mockups/studio-next`, `npx vite`) an
 
 | Where | Mock | App on `main` 13ca3b55 |
 | - | - | - | - |
-| Levels menu | The microphone's name with "Chosen in REAPER"; Input level and Monitor level sliders | "Chosen in REAPER" with no name; no sliders |
+| Levels menu | The microphone's name with "Chosen in REAPER"; Input level and Monitor level (output) sliders | "Chosen in REAPER" with no name; no sliders (`main` 13ca3b55). Pass 3 draws both; Input level is off with its reason |
 | Side panel order | Reference, Pickups, Suspected, Last punch, Voices in this scene, Coming up, This session | Voices and Coming up before Last punch |
 | Side panel rows | Plain rows; speaker chips in their colour with a play button | Bordered boxes; the speaker as plain text |
 | Footer | The meter and the room tone (a chip, green when measured) on the right | Both on the left, the room tone as text |

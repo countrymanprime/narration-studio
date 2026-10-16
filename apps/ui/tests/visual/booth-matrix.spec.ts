@@ -102,6 +102,44 @@ test.describe('with a take running', () => {
     expect(errors).toEqual([]);
   });
 
+  test("Levels: Input level is off and says why; Monitor level moves the DAW's level, and a refusal puts it back with the DAW's sentence", async ({ page }) => {
+    const errors = watch(page);
+    await openBooth(page, `${RECORD_ON}&mockDawExperimentalOn=1`);
+    await page.getByRole('button', { name: 'Levels' }).click();
+    const popup = page.getByRole('dialog', { name: 'Levels' });
+    const input = popup.getByRole('slider', { name: 'Input level' });
+    await expect(input).toBeDisabled();
+    await expect(popup.getByText(/cannot set an audio interface's input gain/)).toBeVisible();
+    const monitor = popup.getByRole('slider', { name: 'Monitor level (output)' });
+    await expect(monitor).toBeEnabled();
+    await expect(monitor).toHaveValue('60');
+    await monitor.focus();
+    for (let i = 0; i < 3; i++) await page.keyboard.press('ArrowRight');
+    await expect.poll(async () => (await daw(page))?.monitorLevel).toBe(63);
+    await page.evaluate(() => window.__NARRATION_MOCK_DAW__?.refuseNextLevel('REAPER has no hardware output to set.'));
+    await page.keyboard.press('ArrowRight');
+    await expect(popup.getByRole('alert')).toHaveText('REAPER has no hardware output to set.');
+    expect((await daw(page))?.monitorLevel).toBe(63);
+    expect(await noHorizontalScroll(page)).toBe(true);
+    expect(errors).toEqual([]);
+  });
+
+  test('R pressed ten times in a moment rolls once, not ten times', async ({ page }) => {
+    const errors = watch(page);
+    await takeRunning(page, `${RECORD_ON}&mockPunchCapabilityOn=1`);
+    for (let i = 0; i < 10; i++) await page.keyboard.press('r');
+    await expect(toast(page, /Rolling again from ¶/)).toBeVisible();
+    await page.waitForTimeout(300);
+    expect(
+      await page
+        .getByRole('status')
+        .getByText(/Rolling again from ¶/)
+        .count(),
+    ).toBe(1);
+    expect((await daw(page))?.recording).toBe(true);
+    expect(errors).toEqual([]);
+  });
+
   test('B bookmarks the place and says so; Alt+[ and Alt+] then step, and say when they go round', async ({ page }) => {
     const errors = watch(page);
     await takeRunning(page);
@@ -426,7 +464,24 @@ test.describe('the worst inputs', () => {
     });
   }
 
-  for (const mics of ['0', '1', '50', 'weird', 'long'] as const) {
+  test('a word of 276 characters with no break wraps inside the text instead of being clipped', async ({ page }) => {
+    const errors = watch(page);
+    await openBooth(page, `${RECORD_ON}&mockBooth=odd-titles`);
+    for (let i = 0; i < 4; i++) await page.keyboard.press('ArrowDown');
+    const overflow = await page.evaluate(() => {
+      const box = document.querySelector('[data-booth-text]')!.getBoundingClientRect();
+      const word = [...document.querySelectorAll<HTMLElement>('[data-word]')].find((w) => (w.textContent ?? '').includes('longwordwithoutanybreaks'));
+      if (!word) return { found: false, past: 0 };
+      const past = Math.max(...[...word.getClientRects()].map((r) => r.right - box.right));
+      return { found: true, past };
+    });
+    expect(overflow.found, 'the long word is on the page').toBe(true);
+    expect(overflow.past, 'no part of the long word runs past the text box').toBeLessThanOrEqual(1);
+    expect(await noHorizontalScroll(page)).toBe(true);
+    expect(errors).toEqual([]);
+  });
+
+  for (const mics of ['0', '1', '50', 'weird', 'long', 'unbroken'] as const) {
     test(`${mics} microphone(s) in Levels: listed or explained, inside the window, and the popover closes`, async ({ page }) => {
       const errors = watch(page);
       await openBooth(page, `${RECORD_ON}&mockMics=${mics}`);
@@ -440,6 +495,8 @@ test.describe('the worst inputs', () => {
       expect(box!.x + box!.width).toBeLessThanOrEqual(viewport.width + 1);
       expect(box!.y + box!.height).toBeLessThanOrEqual(viewport.height + 1);
       if (mics === '0') await expect(popup.getByText(/No microphone found/)).toBeVisible();
+      // A name of any length leaves the popover its own width (walkthrough M8): it does not stretch to the window.
+      expect(box!.width, 'the Levels popover keeps a bounded width').toBeLessThanOrEqual(Math.min(26 * 16 + 48, viewport.width - 32));
       await page.keyboard.press('Escape');
       await expect(popup).toBeHidden();
       expect(await noHorizontalScroll(page)).toBe(true);

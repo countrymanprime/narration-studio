@@ -61,7 +61,14 @@ function NoticeFrame({ title, titleId = 'brec-setup-title', children }: { title:
   useToastClearance(bar);
   return (
     <div ref={bar} className="mx-5 mb-2 flex max-h-[45%] flex-col">
-      <InsetCard as="section" tone="warn" fill id="brec-setup" aria-labelledby={titleId} className="flex min-h-0 flex-col gap-2 overflow-y-auto text-sm">
+      <InsetCard
+        as="section"
+        tone="warn"
+        fill
+        id="brec-setup"
+        aria-labelledby={titleId}
+        className="flex min-h-0 flex-col gap-2 overflow-y-auto text-sm [@media(max-height:760px)]:gap-1"
+      >
         <h3 id={titleId} className="font-medium text-[var(--text)]">
           {title}
         </h3>
@@ -224,7 +231,8 @@ function OtherProject({
     });
   return (
     <NoticeFrame title={`${dawName === 'the DAW' ? 'The DAW' : dawName} has a different project open`} titleId="brec-setup-title">
-      <p className="text-[var(--text-muted)]">
+      {/* The explanation gives way first in a short window, as the other notices' do: the title, the buttons and what the notice waits for stay. */}
+      <p className="text-[var(--text-muted)] [@media(max-height:760px)]:hidden">
         A take would not land in the project linked here. Open the linked project in {dawName}, or link the one that is open now.
       </p>
       <div className="flex flex-wrap items-center gap-2">
@@ -237,7 +245,7 @@ function OtherProject({
         <span className="text-[var(--text-muted)] [@media(max-height:760px)]:hidden">Choose the project file {dawName} has open.</span>
       </div>
       {check.onCheckAgain && (
-        <CheckLine waiting={`Waiting for ${dawName} to have the linked project open`} unknown={`${dawName} has the linked project open`} {...check} />
+        <CheckLine waiting={`Waiting for ${dawName} to open the linked project`} unknown={`${dawName} has the linked project open`} {...check} />
       )}
     </NoticeFrame>
   );
@@ -318,7 +326,9 @@ function Connect({
     </li>
   );
   return (
-    <NoticeFrame title={plan.notAnswering ? `${name} is not answering` : `Connect ${name} to record`}>
+    <NoticeFrame
+      title={turnedAway ? `${name} started, but its project was turned away` : plan.notAnswering ? `${name} is not answering` : `Connect ${name} to record`}
+    >
       {turnedAway && (
         <p role="alert" className="text-[var(--danger-text)]">
           {name} started, but this app turned its project away: {turnedAway} Finish or cancel what is running, then press {guide.launch.label} again.

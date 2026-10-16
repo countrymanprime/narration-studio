@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import type { DawCapabilitySupport } from '../../../api/contracts/daw';
 import type { RecordingEngine, RecorderDevice } from '../../../api/contracts/recording';
 import type { TeleprompterDevice } from '../../../api/contracts/teleprompter';
 import { usePort } from '../../../ports/usePort';
@@ -6,8 +7,10 @@ import { IconButton } from '../../primitives/IconButton';
 import { LevelMeter } from '../../primitives/LevelMeter';
 import { Popover } from '../../primitives/Popover';
 import { Select } from '../../primitives/Select';
+import { Slider } from '../../primitives/Slider';
 import { Badge } from '../../primitives/StatusBadge';
 import type { InputLevel } from './useLevels';
+import { useMonitorLevel } from './useMonitorLevel';
 
 export type LevelsMenuProps = {
   /** Which engine records: with a DAW the microphone is chosen in the DAW, with the built-in recorder here. */
@@ -24,6 +27,11 @@ export type LevelsMenuProps = {
    * (`fromDaw`, ADR 0250), else the narrator's pick from the teleprompter's devices, with the host's `note` on why.
    */
   listen?: { devices: readonly TeleprompterDevice[]; fromDaw: boolean; note: string | null };
+  /**
+   * What the DAW says about setting the levels (its `monitor_level` and `input_level` capabilities): the two sliders the mock's menu has. Absent until
+   * the capabilities are read, and then there are no sliders to show.
+   */
+  levels?: { monitor: DawCapabilitySupport | undefined; input: DawCapabilitySupport | undefined };
   level: InputLevel | null;
   error: string | null;
   open: boolean;
@@ -107,7 +115,73 @@ function Listening({
   );
 }
 
-export function LevelsMenu({ engine, dawName, reachable, offReason, device, onDevice, listen, level, error, open, onOpenChange }: LevelsMenuProps) {
+/** One slider of the menu: its name, the level it shows (or a dash), and the sentence that says why it is off or what went wrong. */
+function LevelRow({
+  label,
+  value,
+  shown,
+  onChange,
+  disabled,
+  note,
+  alert = false,
+}: {
+  label: string;
+  value: number;
+  shown: string;
+  onChange?: (value: number) => void;
+  disabled: boolean;
+  note?: string;
+  alert?: boolean;
+}) {
+  return (
+    <div className="flex flex-col gap-1">
+      <Slider label={label} valueText={shown} value={value} onValueChange={onChange ?? (() => undefined)} disabled={disabled} />
+      {note ? (
+        <span
+          role={alert ? 'alert' : undefined}
+          className={`text-xs [overflow-wrap:anywhere] ${alert ? 'text-[var(--danger-text)]' : 'text-[var(--text-muted)]'}`}
+        >
+          {note}
+        </span>
+      ) : null}
+    </div>
+  );
+}
+
+/** The monitor level while the DAW can set it: read when the menu opens, sent when the drag rests, refused in the DAW's own sentence. */
+function MonitorLevelRow() {
+  const { state, set } = useMonitorLevel();
+  if (state.kind === 'loading') return <LevelRow label="Monitor level (output)" value={0} shown="…" disabled note="Reading the level from the DAW…" />;
+  if (state.kind === 'ready')
+    return <LevelRow label="Monitor level (output)" value={state.level} shown={String(state.level)} onChange={set} disabled={false} />;
+  return (
+    <LevelRow
+      label="Monitor level (output)"
+      value={state.level ?? 0}
+      shown={state.level === null ? '—' : String(state.level)}
+      disabled
+      note={state.message}
+      alert
+    />
+  );
+}
+
+/** The mock's two sliders under the microphone: Input level and Monitor level (output), each off with the reason when the DAW cannot set it. */
+function LevelSliders({ levels }: { levels: NonNullable<LevelsMenuProps['levels']> }) {
+  const { monitor, input } = levels;
+  return (
+    <div className="flex flex-col gap-3">
+      <LevelRow label="Input level" value={0} shown="—" disabled note={input?.message ?? 'The input level cannot be set from here.'} />
+      {monitor?.available ? (
+        <MonitorLevelRow />
+      ) : (
+        <LevelRow label="Monitor level (output)" value={0} shown="—" disabled note={monitor?.message ?? 'The monitor level cannot be set from here.'} />
+      )}
+    </div>
+  );
+}
+
+export function LevelsMenu({ engine, dawName, reachable, offReason, device, onDevice, listen, levels, level, error, open, onOpenChange }: LevelsMenuProps) {
   const off = engine === 'daw' && !reachable;
   return (
     <Popover
@@ -142,6 +216,7 @@ export function LevelsMenu({ engine, dawName, reachable, offReason, device, onDe
             </span>
           ) : null}
         </div>
+        {levels ? <LevelSliders levels={levels} /> : null}
       </div>
     </Popover>
   );
