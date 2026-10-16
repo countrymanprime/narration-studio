@@ -95,7 +95,7 @@ for (const size of WIDTHS) {
         }
         return null;
       });
-      test.skip(at === null, 'the picker covers the whole first row at this size; nothing to right-click');
+      expect(at, 'a point of the first row the picker leaves uncovered').not.toBeNull();
       if (at) await page.mouse.click(at.x, at.y, { button: 'right' });
       await expectTopmost(page.getByRole('menu').last(), 'row menu opened while the chapter picker was open');
       expect(await page.getByRole('menu').count(), 'the picker closes when the row menu opens').toBe(1);
