@@ -50,6 +50,7 @@ import { SuggestionList } from './suggested/row/SuggestionList';
 import { reviewable, summaryOf, unattached, verifyCount, verifyOf } from './suggested/row/selectors';
 import { useStartScan } from './suggested/scan/useStartScan';
 import { GuideDetail } from './GuideDetail';
+import { ReadNotice } from './ReadNotice';
 import { VoiceDataPanel } from './VoiceDataPanel';
 import { SeriesTab } from '../series/SeriesTab';
 import { WorkDialog } from '../primitives/WorkDialog';
@@ -122,6 +123,10 @@ function GuideLoaded({ notify, goToManuscript }: Pick<GuideProps, 'notify' | 'go
   // A suggestion with no entry yet, chosen from the loose rows above the entries: the detail shows its row instead of an entry.
   const [looseId, setLooseId] = useState<string | null>(null);
   const [chapters, setChapters] = useState<ManuscriptChapter[]>([]);
+  // A read of the chapters or the types that failed: said in the list panel with Check again, never dropped (the page works on without them).
+  const [chaptersFailed, setChaptersFailed] = useState(false);
+  const [typesFailed, setTypesFailed] = useState(false);
+  const [readNonce, setReadNonce] = useState(0);
   // The start call is quick, but the button says it was heard and a second press cannot start a second rebuild (ADR 0075).
   const starting = usePendingAction();
   // The build needs a language model, an asset: when it is not installed the host says so instead of starting, and the narrator chooses to
@@ -204,27 +209,35 @@ function GuideLoaded({ notify, goToManuscript }: Pick<GuideProps, 'notify' | 'go
       active = false;
     };
   }, [api, notify, setBuildJob]);
-  // The chapters, for Appears in and for where a suggestion's quote is; without them those sections stay empty.
+  // The chapters, for Appears in and for where a suggestion's quote is; without them those sections stay empty and the list panel says so.
   useEffect(() => {
     let live = true;
     api.manuscriptChapters().then(
-      (list) => live && setChapters(list),
-      () => undefined,
+      (list) => {
+        if (!live) return;
+        setChapters(list);
+        setChaptersFailed(false);
+      },
+      () => live && setChaptersFailed(true),
     );
     return () => {
       live = false;
     };
-  }, [api]);
+  }, [api, readNonce]);
   useEffect(() => {
     let live = true;
     api.guideTypes().then(
-      (list) => live && setTypes(list),
-      () => undefined,
+      (list) => {
+        if (!live) return;
+        setTypes(list);
+        setTypesFailed(false);
+      },
+      () => live && setTypesFailed(true),
     );
     return () => {
       live = false;
     };
-  }, [api]);
+  }, [api, readNonce]);
   // A decision changes the list here at once, and an accepted suggestion can change an entry, so the entries are read again.
   const { changed } = found;
   const decided = useCallback(
@@ -377,6 +390,24 @@ function GuideLoaded({ notify, goToManuscript }: Pick<GuideProps, 'notify' | 'go
                   </div>
                 )}
               </div>
+              {(typesFailed || chaptersFailed) && (
+                <div className="flex flex-col gap-1 px-4 pb-2">
+                  {typesFailed && (
+                    <ReadNotice
+                      what="the entry types"
+                      effect="The kind chips are hidden and every entry is drawn in one colour."
+                      checkAgain={() => setReadNonce((n) => n + 1)}
+                    />
+                  )}
+                  {chaptersFailed && (
+                    <ReadNotice
+                      what="the chapters"
+                      effect="Appears in is empty and a quote cannot open its line."
+                      checkAgain={() => setReadNonce((n) => n + 1)}
+                    />
+                  )}
+                </div>
+              )}
               <div className="guide-list-scroll min-h-0 overflow-y-auto p-2">
                 {loose.length > 0 && (
                   <ul aria-label="Suggestions not in the Story Bible yet" className="m-0 mb-2 list-none p-0">
