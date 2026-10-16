@@ -315,20 +315,21 @@ func builders() []builder {
 		{"read-only-file", ReadOnlyFile, func(t *testing.T, root string) Place {
 			place := usablePlace(t, filepath.Join(root, "Project"), rppFile)
 			for _, file := range []string{place.RPP, place.Manuscript} {
-				if err := os.Chmod(file, 0o444); err != nil {
+				if err := os.Chmod(file, 0o400); err != nil {
 					t.Fatal(err)
 				}
 			}
-			t.Cleanup(func() { _ = os.Chmod(place.RPP, 0o644); _ = os.Chmod(place.Manuscript, 0o644) })
+			t.Cleanup(func() { _ = os.Chmod(place.RPP, 0o600); _ = os.Chmod(place.Manuscript, 0o600) })
 			place.FileReadOnly = writeRefused(place.RPP)
 			return place
 		}},
 		{"read-only-folder", ReadOnlyFolder, func(t *testing.T, root string) Place {
 			place := usablePlace(t, filepath.Join(root, "Project"), rppFile)
-			if err := os.Chmod(place.Dir, 0o555); err != nil {
+			err := os.Chmod(place.Dir, 0o555) //nolint:gosec // a read-only folder still needs its search bit, or nothing in it can be opened
+			if err != nil {
 				t.Fatal(err)
 			}
-			t.Cleanup(func() { _ = os.Chmod(place.Dir, 0o755) })
+			t.Cleanup(func() { _ = os.Chmod(place.Dir, 0o700) }) //nolint:gosec // a folder needs its search bit so the temp dir can be removed
 			place.DirReadOnly = createRefused(place.Dir)
 			return place
 		}},
@@ -403,7 +404,7 @@ func raw(parts ...string) string { return strings.Join(parts, string(filepath.Se
 
 func writeFile(t *testing.T, path string, content []byte) {
 	t.Helper()
-	if err := os.WriteFile(path, content, 0o644); err != nil {
+	if err := os.WriteFile(path, content, 0o600); err != nil {
 		t.Fatalf("cannot create the fixture file %q: %v", path, err)
 	}
 }
@@ -411,7 +412,8 @@ func writeFile(t *testing.T, path string, content []byte) {
 // makeLink makes link a symlink to target, or on Windows a junction (which needs no privilege, unlike a symlink).
 func makeLink(target, link string) error {
 	if runtime.GOOS == "windows" {
-		out, err := exec.Command("cmd", "/c", "mklink", "/J", link, target).CombinedOutput()
+		command := exec.Command("cmd", "/c", "mklink", "/J", link, target) //nolint:gosec // the arguments are fixture paths made by the test
+		out, err := command.CombinedOutput()
 		if err != nil {
 			return &linkError{string(out), err}
 		}
