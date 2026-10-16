@@ -300,6 +300,11 @@ export function Reader(props: ReaderProps) {
     bounds.forEach((bound, i) => {
       if (bound.offsetTop - root.scrollTop <= 70) at = i;
     });
+    // The last section (the closing credits) is short, so a jump to it stops at the bottom with its heading still below the top.
+    if (root.scrollHeight > root.clientHeight && root.scrollTop + root.clientHeight >= root.scrollHeight - 2) {
+      const last = bounds[bounds.length - 1]!;
+      if (last.offsetTop - root.scrollTop < root.clientHeight) at = bounds.length - 1;
+    }
     const chapterId = bounds[at].dataset.ch as string;
     const rows = Array.from(root.querySelectorAll<HTMLElement>('[data-para]')).filter((row) => row.dataset.ch === chapterId);
     let n = 0;

@@ -107,6 +107,20 @@ describe('continuous scroll with the spy', () => {
   });
 });
 
+describe('the spy at the bottom', () => {
+  it('names the last section when the reader is scrolled to the end and its heading is in view', () => {
+    render(<Reader {...props()} />);
+    const root = scroller();
+    Object.defineProperty(root, 'scrollHeight', { configurable: true, value: 1000 });
+    Object.defineProperty(root, 'clientHeight', { configurable: true, value: 400 });
+    scrollTo(600);
+    expect(document.querySelector('b')?.textContent).toBe('Chapter 3');
+    // Chapter 2's heading is the last one at or above the top at 350, yet the end of the book shows chapter 3's.
+    scrollTo(350);
+    expect(document.querySelector('b')?.textContent).toBe('Chapter 2');
+  });
+});
+
 describe('scroll requests', () => {
   it('scrolls to a chapter and clears the request once', () => {
     const onHandled = vi.fn();
