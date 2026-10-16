@@ -1,73 +1,96 @@
 # Story Bible page: state matrix
 
-Written before the code, per [the definition of done](../../.claude/rules/definition-of-done.md) rule 3. Spec: the Studio Next mock's Story Bible page (`docs/research/mockups/studio-next/src/pages/Bible.tsx` and `bible/`), by ADR 0760. Every cell is **tested** (names the test), **walked** (seen in the real app with dev:mock, no automated test), or **not tested** with a reason. This file is updated as the cells fill in; a cell that still says `open` when the PR is called ready is a bug in the PR.
+Written before the code, per [the definition of done](../../.claude/rules/definition-of-done.md) rule 3, and filled in as the work landed. Spec: the Studio Next mock's Story Bible page (`docs/research/mockups/studio-next/src/pages/Bible.tsx` and `bible/`), by ADR 0760. Every cell is **tested** (names the test file and case), **walked** (seen in the real app with dev:mock, no automated test), or **not tested** with a reason. The tests are under `apps/ui/src/components/storybible/` unless a path says otherwise.
 
-Legend: `open` = not yet done. Nothing is marked tested until a named test passes.
+All of it ran against the mock host. Nothing was checked against a real host, a real manuscript or a real DAW.
 
 ## Controls
 
-| Control | Host call | Cell | Status |
-| --- | --- | --- | --- |
-| Entry list | `guideEntities` | empty (no entries) | open |
-| | | one entry | open |
-| | | many (200) | open |
-| | | huge (5,000 entries, 20,000 relationships): list stays responsive, no per-row work in render | open |
-| | | loading (first load) | open |
-| | | failed first load: inline sentence and Retry | open |
-| | | failed reload: toast sentence, rows stay | open |
-| | | stale (an entry deleted elsewhere while open) | open |
-| | | long, RTL and emoji names; names with only whitespace | open |
-| | | duplicate names, names that differ in case or Unicode form | open |
-| | | arrow keys, Home, End, one tab stop | open |
-| Search | none (local) | empty, no match, matches an alias, emoji, RTL, regex characters, 10,000 characters | open |
-| Sort | ui state | each key; unknown stored key falls back to name | open |
-| Kind chips | `guideTypes` | no types, a type removed in Settings while selected, 40 types wrapping | open |
-| Needs review / verification chips | `extractionSuggestions` | zero, one, many; chip kept while count is zero and the filter is on | open |
-| Scan | `extractionScan*` | no answer, late, refused, failed, double-fire, leave mid-scan | open |
-| Import entries | `extractionImport*` | see Import below | open |
-| Build / refresh | `guideBuild` | model missing, build running on arrival, double-fire, failed, leave mid-build | open |
-| Voice data | `guideVoice*` | not in the mock's page: left as built, listed in the PR | open |
-| New entry | local draft, `guideCreate` | name taken, empty, 10,000 characters, double-fire, leave with an unsaved draft | open |
-| Entry editor | `guideUpdate*` | read-only, Edit, Save, Cancel, Save fails, Save while a rescan runs, double-fire | open |
-| Names | `guideAlias*` | add with Enter, duplicate, collides with another entry (merge offer), remove last name refused, 500 names | open |
-| Pronunciation per name | `guidePronunciation*` | no source answers, source answers late, source refuses | open |
-| Relationships | `guideRelationship*` | circular (A to A, A to B to A), duplicate, to a deleted entry, incoming marked, 20,000 on one entry | open |
-| Delete | `guideDelete` | confirm, cancel, fails, entry already gone, relationships removed | open |
-| Mark reviewed | `guideMarkReviewed` | blocked by pending suggestions, Undo, double-fire | open |
-| Find in the manuscript | navigation | name with query characters | open |
-| Appears in | local | zero, one, 400 chapters, chapter missing | open |
-| Speaker colour | `guideSetColour` | Character only, back to Automatic, fails | open |
-| Series tab | as built | left as built (SN0-Q5) | open |
+| Control | Cell | Status |
+| --- | --- | --- |
+| Entry list | empty | tested: `Guide.states.test.tsx` "no entries says so" |
+| | one entry | tested: `Guide.states.test.tsx` "one entry is drawn with its singular counts" |
+| | many (3,000 entries) | tested: `Guide.states.test.tsx` "a huge book" |
+| | huge, 20,000 relationships | not tested: 1,000 relationships and 500 names are tested (`GuideDetail.states.test.tsx`); jsdom cannot show whether 20,000 stays responsive |
+| | loading | not tested: the page draws nothing until the first read answers; no loading state exists to assert |
+| | failed first load | tested: `Guide.states.test.tsx` "the first load failing" (sentence and Retry) |
+| | failed reload | tested: `Guide.states.test.tsx` "a reload failing keeps the rows" |
+| | stale (entry gone on the next read) | tested: `Guide.states.test.tsx` "an entry the host no longer has" |
+| | long, RTL, emoji, markup names | tested: `Guide.states.test.tsx` "long, right-to-left, emoji and duplicate names" |
+| | duplicate names | tested: same test (two rows named Twin); the detail refuses a taken name on Save |
+| | arrow keys, one tab stop | tested: `Guide.keys.test.tsx` (already on main) |
+| | row right-click menu | tested: `Guide.contextMenu.test.tsx` (8 cases) |
+| Search | no match, regex characters, emoji, 10,000 characters | tested: `Guide.states.test.tsx` "a search of regular-expression characters" |
+| Sort | each key | tested: `GuideDetail.actions.test.tsx` (on main) |
+| Kind chips | types fail to read | tested: `Guide.states.test.tsx` "the types failing says so" |
+| | a type removed while selected, 40 types | not tested: no test removes a type mid-session; 40 chips not drawn |
+| Needs review / verification chips | count and filter | tested: `GuideDetail.actions.test.tsx` (on main) |
+| Scan | start, refused, failed | tested: `suggested/scan` tests (on main); not re-tested here: late and no-answer cases |
+| Import | see the Import table | tested |
+| Build / refresh | double-fire | tested: `Guide.states.test.tsx` "pressing Build twice" |
+| | leave mid-build | tested: `Guide.states.test.tsx` "leaving the page while an action is still running" |
+| | model missing, failed, running on arrival | tested: `GuideDetail.actions.test.tsx` and the visual states `language-model-*`, `rebuild-running` (on main) |
+| Voice data | as built | not touched: it has no equivalent in the mock (left as built); covered by `VoiceDataPanel.test.tsx` (on main) |
+| New entry | name empty, taken, 9,000 characters, markup | tested: `Guide.states.test.tsx` "a new entry" |
+| | create refused by the host | tested: same, sentence and the draft stays |
+| | Add pressed twice | tested: same |
+| | default name numbering | tested: same (first free number) |
+| | leave with an unsaved draft | tested: `GuideDetail.actions.test.tsx` (on main) |
+| Entry editor | Save with empty or taken name | tested: `GuideDetail.states.test.tsx` "Save" |
+| | Save refused by the host | tested: same, stays in Edit and keeps the typing |
+| | Save pressed three times | tested: same, one write |
+| | Save slow, another entry opened meanwhile | tested: same, the page is not pulled back |
+| | read-only shows no add controls | tested: `GuideDetail.readOnly.test.tsx` and `GuideDetail.names.test.tsx` |
+| Names | add with Enter, duplicate, collision merge offer | tested: `GuideDetail.names.test.tsx`, `GuideDetail.merge.test.tsx` (on main) |
+| | 500 names | tested: `GuideDetail.states.test.tsx` |
+| | removing the last name | tested: `GuideDetail.names.test.tsx` |
+| Pronunciation per name | source refuses or does not answer | tested: `source/source.test.tsx` (on main) |
+| Relationships | circular, self, to a gone entry | tested: `GuideDetail.states.test.tsx` "the lists at their edges" |
+| | 1,000 on one entry | tested: same |
+| | Add with nothing chosen | tested: `GuideDetail.readOnly.test.tsx` (says what it waits for) |
+| | picker finds nothing | tested: `GuideDetail.states.test.tsx` |
+| Delete | confirm, cancel, twice, host refuses, already gone | tested: `GuideDetail.states.test.tsx` "Delete"; from the row menu: `Guide.contextMenu.test.tsx` |
+| Mark reviewed | blocked by suggestions, Undo | tested: `GuideDetail.test.tsx` (on main); from the row menu: `Guide.contextMenu.test.tsx` |
+| Find in the manuscript | name with query characters | tested: `Guide.contextMenu.test.tsx`; `GuideDetail.find.test.tsx` (on main) |
+| Appears in | zero, one, 400 chapters | not tested here: `AppearsIn.test.tsx` (on main) covers names and the jump; 400 not drawn |
+| Speaker colour | Character only, fails | tested: `SpeakerColourField.test.tsx` (on main) |
+| Series tab | as built | not touched (SN0-Q5) |
+| Narrow window | list keeps its height, entry brought into view | walked at 800x700 (dark); `Guide.tsx` scrolls the entry into view; no automated test |
 
 ## Import (a file from someone else: trust boundary)
 
+All in `suggested/import/import.states.test.tsx` (52 cases) unless it says otherwise.
+
 | Cell | Status |
 | --- | --- |
-| no file chosen, cancel the picker | open |
-| empty file; whitespace only | open |
-| 0 rows, 1 row, 10,000 rows, 50 MB | open |
-| malformed CSV (unterminated quote), malformed JSON, a binary file renamed .csv | open |
-| wrong version / unknown format hint; unknown columns; missing required column | open |
-| formula-leading cells (`=`, `+`, `-`, `@`) | open |
-| entry names with control characters, RTL, emoji, 10,000 characters | open |
-| a file from someone else naming ids that exist locally | open |
-| host never answers; answers late after the dialog closed; fails partway | open |
-| double-click Add; reload mid-import; leave mid-import | open |
-| Undo after import, Undo after later edits, Undo after the entries were deleted | open |
+| picker cancelled, empty file, whitespace only | tested |
+| zero rows, one row, 10,000 rows (drawn capped; host refusal sentence) | tested |
+| 50 MB file, file at the limit, pasted text over the limit | tested: the page refuses before reading, falls back to the documented 2 MiB when the host limit is not yet known |
+| malformed JSON, malformed CSV, binary renamed .csv, NUL byte | tested; the host's own parsing of quoted CSV is the Go importer's (`internal/extraction/importer`, fuzzed) |
+| wrong or unknown format hint, missing column | tested |
+| formula cells (`=`, `+`, `-`, `@`) | tested: stay text, nothing evaluated or opened |
+| control characters, RTL, emoji, 10,000-character names, bidi-override file names | tested |
+| host never answers, answers late after close (success and failure), answers out of order | tested |
+| commit refused, journal throws, double click, close mid-commit | tested |
+| reload or remount mid-import | tested as a remount; a real reload persists nothing, so nothing is lost |
+| Undo after import, after later edits, host refuses, twice | tested |
+| focus, Escape, Tab trap | tested |
+| a real 50 MB file through the OS picker, glyph shaping | not tested: jsdom has no picker or shaping |
+| trust boundary row | `docs/architecture/threat-model.md` row 6zb re-read: the page still sends text only, never a path; the new size guard narrows what the page reads. No row change owed |
 
 ## Overlays (each topmost at its own points and fully on screen)
 
-Menus, popovers, tooltips and dialogs of this page: entry-row context menu, Sort select, Kind select, relationship entry picker, speaker colour select, pronunciation source menu, name-collision merge offer, delete confirm, Import dialog, language-model prompt, work dialogs, Voice data panel, toasts.
+Written by hand, because the shared guard on `fix/booth-resiliency` had not merged to `main`: `apps/ui/tests/overlays/` (`pnpm --dir apps/ui overlays:page`). It checks the centre, four corner insets and four edge midpoints with `elementFromPoint`, and that the box is inside the viewport, at 1440x900, 1024x768 and 800x600, in the light theme only. 462 cases: 384 pass, 3 fail, 75 not applicable.
 
-| Position | Status |
+| Overlay | Status |
 | --- | --- |
-| each window corner and edge, at 1440x900 and narrow | open |
-| beside the sidebar and the nav | open |
-| over scrolled content | open |
-| while another overlay is open | open |
-
-The shared overlay guard on `fix/booth-resiliency` had not merged to `main` when this work started, so the overlay assertions for this page are written by hand in this PR.
+| header tooltips, entry kind menu, pronunciation source menu | pass at every window edge and corner, beside the rail |
+| Import dialog, Delete confirm, language-model prompt, rebuild work dialog, preview-voice prompt, Voice data panel, review slide-over | pass, also while another overlay is open |
+| row context menu | pass where a menu opens (4 of 9 pointer spots; the rest open nothing) |
+| Sort and speaker-colour selects | not tested: native `<select>`; the browser draws the popup outside the page, so `elementFromPoint` cannot see it. The spec fails if either becomes a custom popup |
+| toast raised while a dialog or slide-over is open | **FAIL, not fixed here**: see the PR body, "Found, not fixed" |
+| dark theme, a real host | not tested |
 
 ## Host failures
 
-Every failed host call on the page shows a sentence the narrator can read. The table of calls and their sentence is in the PR body.
+Every failed host call on the page now shows a sentence the narrator can read. The two reads that were silent (`guideTypes`, `manuscriptChapters`) now say so with Check again; their feedback rows are `inline` and `ok`.
