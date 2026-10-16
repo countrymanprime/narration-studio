@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import type { DawCapabilities } from '../../../api/contracts/daw';
 import { describeApiError } from '../../../api/errorMessage';
 import { useMediaQuery } from '../../../hooks/useMediaQuery';
@@ -49,18 +49,6 @@ function CheckLine({
 
 /** A window short enough that the notice gives way to the text (the same height the explanation hides at). */
 const SHORT_WINDOW = '(max-height: 760px)';
-
-/** The connection steps: a numbered list, or in a short window one folded line ("Steps to connect") that opens to the same list. */
-function Steps({ short, linked, children }: { short: boolean; linked: boolean; children: ReactNode }) {
-  const list = <ol className="list-decimal space-y-2 pl-5 text-[var(--text-muted)]">{children}</ol>;
-  if (!short) return list;
-  return (
-    <details key="short" className="text-[var(--text-muted)]">
-      <summary className="cursor-pointer text-[var(--text)]">{linked ? 'Steps to connect' : 'Steps to connect (the project file is not linked yet)'}</summary>
-      <div className="mt-2">{list}</div>
-    </details>
-  );
-}
 
 /** The notice shares the window with the text: it never takes more than 45% of its height, and scrolls inside when it needs more. */
 const NOTICE_CLASS = 'mx-5 mb-2 flex max-h-[45%] flex-col gap-2 overflow-y-auto text-sm';
@@ -214,36 +202,55 @@ function Connect({
         say(`${name} could not be started: ${describeApiError(error)}`, 'error');
       }
     });
+  const linkStep = factsFailed ? (
+    'Could not read whether a project file is linked. Press Check again.'
+  ) : (
+    <>
+      {guide.link}{' '}
+      <Button variant="secondary" size="sm" onClick={onSettings}>
+        Link in Settings
+      </Button>
+    </>
+  );
+  const installStep = (
+    <li>
+      {guide.install}
+      {plan.launcherPath ? ':' : `: ${guide.installFile}.`}
+      {plan.launcherPath && (
+        <span className="mt-1 flex flex-wrap items-center gap-2">
+          <code className="rounded bg-[var(--surface)] px-2 py-1 text-xs break-all text-[var(--text)]">{plan.launcherPath}</code>
+          <Button variant="secondary" size="sm" onClick={copy}>
+            Copy path
+          </Button>
+        </span>
+      )}
+      <span className="mt-1 block">{guide.installAgain}</span>
+    </li>
+  );
   return (
     <InsetCard as="section" tone="warn" fill id="brec-setup" aria-labelledby="brec-setup-title" className={NOTICE_CLASS}>
       <h3 id="brec-setup-title" className="font-medium text-[var(--text)]">
         {plan.notAnswering ? `${name} is not answering` : `Connect ${name} to record`}
       </h3>
-      <Steps short={short} linked={plan.linked}>
-        {!plan.linked && factsFailed && <li>Could not read whether a project file is linked. Press Check again.</li>}
-        {!plan.linked && !factsFailed && (
-          <li>
-            {guide.link}{' '}
-            <Button variant="secondary" size="sm" onClick={onSettings}>
-              Link in Settings
-            </Button>
-          </li>
-        )}
-        <li>
-          {guide.install}
-          {plan.launcherPath ? ':' : `: ${guide.installFile}.`}
-          {plan.launcherPath && (
-            <span className="mt-1 flex flex-wrap items-center gap-2">
-              <code className="rounded bg-[var(--surface)] px-2 py-1 text-xs break-all text-[var(--text)]">{plan.launcherPath}</code>
-              <Button variant="secondary" size="sm" onClick={copy}>
-                Copy path
-              </Button>
-            </span>
-          )}
-          <span className="mt-1 block">{guide.installAgain}</span>
-        </li>
-        <li>{guide.run}</li>
-      </Steps>
+      {short ? (
+        // In a short window the steps fold into one line the narrator opens; the one that needs a button now (the link) stays out in the open.
+        <>
+          {!plan.linked && <p className="text-[var(--text-muted)]">{linkStep}</p>}
+          <details key="short" className="text-[var(--text-muted)]">
+            <summary className="cursor-pointer text-[var(--text)]">Steps to connect</summary>
+            <ol className="mt-2 list-decimal space-y-2 pl-5">
+              {installStep}
+              <li>{guide.run}</li>
+            </ol>
+          </details>
+        </>
+      ) : (
+        <ol className="list-decimal space-y-2 pl-5 text-[var(--text-muted)]">
+          {!plan.linked && <li>{linkStep}</li>}
+          {installStep}
+          <li>{guide.run}</li>
+        </ol>
+      )}
       <div className="flex flex-wrap items-center gap-2">
         <Button variant="secondary" onClick={() => void openAndConnect()} pending={busy} disabled={!plan.linked}>
           {guide.launch.label}

@@ -122,6 +122,23 @@ test.describe('Booth with a moving mock DAW', () => {
     await expect(record(page)).toBeEnabled({ timeout: 20_000 });
   });
 
+  test('Settings, the navigation chip and the Booth tell one story about whether REAPER answers', async ({ page }) => {
+    await toRecordReady(page);
+    await page.keyboard.press('Escape');
+    await goToPage(page, 'Settings');
+    const chip = page.getByRole('button', { name: /^REAPER: / });
+    await expect(chip).toHaveAccessibleName('REAPER: Linked');
+    await expect(page.getByText('REAPER is reachable')).toBeVisible();
+    await expect(page.getByText('REAPER is not reachable')).toHaveCount(0);
+    await page.evaluate(() => window.__NARRATION_MOCK_DAW__?.quiet());
+    await expect(page.getByText('REAPER is not reachable')).toBeVisible();
+    await expect(chip).toHaveAccessibleName('REAPER: Not running');
+    await expect(page.getByText('REAPER is reachable')).toHaveCount(0);
+    await page.evaluate(() => window.__NARRATION_MOCK_DAW__?.heartbeat());
+    await expect(page.getByText('REAPER is reachable')).toBeVisible();
+    await expect(chip).toHaveAccessibleName('REAPER: Linked');
+  });
+
   test('choosing the built-in recorder moves the DAW port: the REAPER notice goes', async ({ page }) => {
     await openLive(page, 'live');
     await notice(page).getByRole('button', { name: 'DAW settings' }).click();

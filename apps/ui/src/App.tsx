@@ -77,6 +77,9 @@ const SETTINGS_ANCHORS: Record<string, string> = {
 
 const NO_CHAPTERS: ManuscriptChapter[] = [];
 
+/** The least time between two re-reads of the DAW's facts that a window focus may cause. */
+const DAW_FACTS_FOCUS_MS = 2_000;
+
 const LIVE_UPDATES_DEGRADED = 'Some live updates from the desktop host could not be read, so what you see may be out of date. Reopen the page to refresh it.';
 
 // `nav.back`/`nav.forward`'s dialog check: only the shortcut sheet wraps its content in
@@ -216,6 +219,31 @@ function AppRoutes() {
       setNotice(describeApiError(error), 'error');
     }
   }, [api, setNotice]);
+
+  // The DAW's reachability and its open project are a live heartbeat, but bootstrap is a snapshot taken at startup: the navigation's pill,
+  // Settings' DAW Integration and the engine panel read it, so it is read again whenever the DAW starts or stops answering and when the
+  // window is focused again. One picture of the DAW for every panel, never one panel saying "reachable" while another says "not reachable".
+  const bootstrapRef = useRef(data);
+  bootstrapRef.current = data;
+  useEffect(() => {
+    let lastRead = 0;
+    const again = () => {
+      lastRead = Date.now();
+      void refreshBootstrap();
+    };
+    const unsubscribe = api.subscribeDawCapabilities((caps) => {
+      const held = bootstrapRef.current;
+      if (held && caps.daw === 'REAPER' && caps.reachable !== held.dawReachable) again();
+    });
+    const onFocus = () => {
+      if (bootstrapRef.current && Date.now() - lastRead > DAW_FACTS_FOCUS_MS) again();
+    };
+    window.addEventListener('focus', onFocus);
+    return () => {
+      unsubscribe();
+      window.removeEventListener('focus', onFocus);
+    };
+  }, [api, refreshBootstrap]);
 
   // The one shared "link a REAPER project file" action behind the engine panel and Settings' DAW
   // category. Cancelling the dialog does nothing. Any .rpp links, in the project folder or elsewhere (the host's note says

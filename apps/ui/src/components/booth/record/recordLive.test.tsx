@@ -160,6 +160,9 @@ describe('Record follows the DAW through every way the heartbeat can go wrong', 
   it('stops asking on a timer once Record is available, so a working Booth does not poll', async () => {
     const daw = mount(CONNECTED);
     await waitFor(() => expect(daw.result.current.disabled).toBe(false));
+    // Let the effects that follow the render run (the timer of the unready state is cleared in one of them) before counting: on a busy machine
+    // the state is seen before they have, and the first tick could fire in between.
+    await act(async () => {});
     const settled = daw.reads.count;
     await act(() => vi.advanceTimersByTimeAsync(POLL_MS * 5));
     expect(daw.reads.count).toBe(settled);
