@@ -4,6 +4,7 @@ import (
 	"errors"
 	"os"
 	"path/filepath"
+	"strings"
 )
 
 // DawLink is a project's link to its DAW (REAPER) project file, stored both as
@@ -34,9 +35,41 @@ func BuildDawLink(projectFolder, rppPath string) (DawLink, error) {
 	}
 	link := DawLink{Absolute: absolute}
 	if relative, inside := RelativeTo(projectFolder, absolute); inside {
-		link.Relative = relative
+		link.Relative = onDiskCase(projectFolder, relative)
 	}
 	return link, nil
+}
+
+// onDiskCase respells relative, a path under folder, with the casing the file system holds. On a case-insensitive file system
+// (Windows) the narrator or the launcher may spell the file any way ("SHOW.RPP"); the link keeps the name the file really has,
+// so it also resolves if the project is later moved to a case-sensitive place. A component that is not found, or a folder
+// that cannot be listed, is kept as given, and where names are case-sensitive an exact match is always taken first, so
+// nothing changes there.
+func onDiskCase(folder, relative string) string {
+	parts := strings.Split(relative, string(filepath.Separator))
+	current := folder
+	for index, part := range parts {
+		entries, err := os.ReadDir(current)
+		if err != nil {
+			break
+		}
+		name := ""
+		for _, entry := range entries {
+			if entry.Name() == part {
+				name = part
+				break
+			}
+			if name == "" && strings.EqualFold(entry.Name(), part) {
+				name = entry.Name()
+			}
+		}
+		if name == "" {
+			break
+		}
+		parts[index] = name
+		current = filepath.Join(current, name)
+	}
+	return strings.Join(parts, string(filepath.Separator))
 }
 
 // Inside reports whether the linked file was inside the project folder when it

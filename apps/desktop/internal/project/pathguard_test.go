@@ -246,6 +246,33 @@ func TestPathGuardManifestLoadSave(t *testing.T) {
 	})
 }
 
+// The link keeps the name the file has on disk, whatever case the caller spelled; an exact match always wins, and a name that
+// is not there is kept as given.
+func TestPathGuardOnDiskCase(t *testing.T) {
+	folder := t.TempDir()
+	if err := os.MkdirAll(filepath.Join(folder, "Sub Folder"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	for _, name := range []string{"Show.rpp", filepath.Join("Sub Folder", "Deep.rpp"), "exact.rpp", "EXACT.rpp"} {
+		if err := os.WriteFile(filepath.Join(folder, name), []byte("x"), 0o600); err != nil {
+			t.Fatal(err)
+		}
+	}
+	for _, tc := range []struct{ in, want string }{
+		{"SHOW.RPP", "Show.rpp"},
+		{"Show.rpp", "Show.rpp"},
+		{filepath.Join("SUB FOLDER", "DEEP.RPP"), filepath.Join("Sub Folder", "Deep.rpp")},
+		{"EXACT.rpp", "EXACT.rpp"},
+		{"exact.rpp", "exact.rpp"},
+		{"Missing.rpp", "Missing.rpp"},
+		{filepath.Join("Nope", "Show.rpp"), filepath.Join("Nope", "Show.rpp")},
+	} {
+		if got := onDiskCase(folder, tc.in); got != tc.want {
+			t.Errorf("onDiskCase(%q) = %q, want %q", tc.in, got, tc.want)
+		}
+	}
+}
+
 func TestPathGuardValidateName(t *testing.T) {
 	for _, fixture := range pathfixtures.Names() {
 		t.Run(fixture.Name, func(t *testing.T) {
