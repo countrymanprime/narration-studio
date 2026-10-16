@@ -135,7 +135,7 @@ export const productionDrivers: Record<string, Driver> = {
     // default): uncheck it so the import dialog stays open with "Manuscript imported" instead of closing itself
     // into a second dialog.
     await clickVisible(page, 'checkbox', 'Build the Story Bible after import');
-    await clickVisible(page, 'button', 'Import');
+    await clickVisible(page, 'button', 'Replace and reset');
     await page.getByText('Manuscript imported', { exact: true }).first().waitFor();
   },
   'import-build-running': async (page) => {
@@ -143,7 +143,7 @@ export const productionDrivers: Record<string, Driver> = {
     await page.goto('/?mockBuild=hold');
     await settlePage(page);
     await clickReplaceManuscript(page);
-    await clickVisible(page, 'button', 'Import');
+    await clickVisible(page, 'button', 'Replace and reset');
     await page.getByRole('dialog', { name: 'Build the Story Bible' }).getByText('Extracting names and terms').first().waitFor();
   },
   'import-build-failed': async (page) => {
@@ -151,7 +151,7 @@ export const productionDrivers: Record<string, Driver> = {
     await page.goto('/?mockBuild=fails');
     await settlePage(page);
     await clickReplaceManuscript(page);
-    await clickVisible(page, 'button', 'Import');
+    await clickVisible(page, 'button', 'Replace and reset');
     await page
       .getByRole('dialog', { name: 'Build the Story Bible' })
       .getByText(/model folder is missing its config\.cfg/)
