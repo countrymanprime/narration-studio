@@ -25,7 +25,9 @@ Press **Check files…** and pick one or more rendered chapter files. Only WAV f
 a file in another format, or one that cannot be read, is listed with the reason and does not stop the
 others. The bar shows how much of the audio has been read so far, with the file being measured, and
 **Cancel** stops the check: files already measured keep their results. You can leave the page while it
-runs; Master & QC shows the last check when you come back. Once files are checked the button reads
+runs; Master & QC shows the last check when you come back. If the app stops hearing how the check is going,
+the page says **Can't tell how the measurement is going, last heard N s ago** with a **Check again** button, and keeps
+trying every couple of seconds; the check itself keeps running. Once files are checked the button reads
 **Re-check 3 files** and measures the same files again (after a new render, say); **Choose other files…**
 picks others.
 
@@ -51,7 +53,9 @@ beside the heading, **Check the files again** (the circular arrow) measures the 
 without adding anything to the project, and **Open in** your DAW shows the file in the DAW's own file browser without
 importing it. Both are Experimental: they stay off, with the reason on hover, until you turn on **Play part of a file**
 and **Show a file in the audio engine** in Settings. A file with no quiet stretch says so, and a file from an earlier
-check asks you to check the files again.
+check asks you to check the files again. Pressing either button twice while the DAW has not answered sends one request. The buttons
+follow the DAW as it connects or changes, and when the window regains focus; if the app cannot read what the DAW can do, the buttons stay
+off and the page says **Can't tell what your DAW can do right now**, with **Check again**.
 
 Under it, the same file against the profile rule by rule: the result (**Met**, **Not met**, or why it was
 not judged), this file's value, what the platform requires, and the source: whether that requirement was
@@ -74,7 +78,12 @@ nothing measured it says **No measured files yet** rather than a zero.
 file each, every file under the profile's longest length, the channels, sample rate and MP3 format), the files that
 fail and how many checks each fails, and how many chapters are not ready (the same count Delivery's **Before you
 build** gives). A rule the profile lacks or
-has turned off has no row. **Open Delivery** goes on to build the package.
+has turned off has no row. The MP3 format cannot be judged from a WAV render, so that row waits (with "the MP3
+format is checked on the MP3 you upload") instead of showing a tick. **Open Delivery** goes on to build the package.
+
+A link from another page can name a file. If that file is not in the check (or nothing is measured yet), the page
+says so in a **Link not found** note with **Show the first file instead**, and a link followed while the page is open
+moves the selection to the file it names.
 
 ![Master & QC judged by a custom profile based on ACX, named on the profile button](../../images/ui/master-custom-profile.webp)
 
@@ -107,8 +116,6 @@ needs a different file format. Under **Build packages for**, check the box for e
 package for, then **Build N packages**; it stays off until files are mastered and encoded. This does not change which profile the page's checks are judged against (that is the project's profile,
 chosen on Delivery); the checkboxes only choose what to build packages for.
 
-![Master & QC - Multi-platform export with one platform checked](../../images/ui/master-multi-export.webp)
-
 You are asked for one folder once, and each platform's package goes into its own correctly named subfolder
 of it. Two platforms that both take the same file format (most do: MP3 at the same bitrate) share the one
 set of already-encoded files; a platform that needs a different format (an M4B audiobook file, say) is
@@ -118,8 +125,6 @@ left waiting.
 
 Once it finishes, each platform gets its own row: built, with its folder and how many files it wrote, or why
 it could not be built (such as a required file being missing for that platform).
-
-![Master & QC - a finished multi-platform build: a row per platform with its folder or why it was not built](../../images/ui/master-multi-export-results.webp)
 
 ## Diagnostics
 

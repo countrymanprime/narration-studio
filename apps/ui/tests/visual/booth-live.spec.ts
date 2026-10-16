@@ -123,7 +123,9 @@ test.describe('Booth with a moving mock DAW', () => {
     await page.evaluate(() => window.__NARRATION_MOCK_DAW__?.quiet());
     // A DAW that stopped answering has no take any more: the Booth says so instead of keeping a REC pill it cannot vouch for,
     // and Record is off with the way forward.
-    await expect(page.getByText(/REAPER stopped recording/).first()).toBeVisible();
+    // It did not say the take ended: it went quiet, and the Booth says it cannot tell.
+    await expect(page.getByText(/REAPER stopped answering, so the Booth can't tell whether the take is still running/).first()).toBeVisible();
+    await expect(page.getByText(/The take ended there/)).toHaveCount(0);
     await expect(stop(page)).toHaveCount(0);
     await expect(record(page)).toBeDisabled();
     await expect(notice(page).getByRole('heading', { name: 'REAPER is not answering' })).toBeVisible();
@@ -171,5 +173,149 @@ test.describe('Booth with a moving mock DAW', () => {
     await page.getByRole('radio', { name: /Built-in/ }).check();
     await goToPage(page, 'Booth');
     await expect(notice(page).getByRole('heading', { name: /REAPER/ })).toHaveCount(0);
+  });
+
+  // Booth pass 3, the notice for another project open in the DAW (S4, M4, M15, walkthrough 4 items 9 and 10).
+  const differentNotice = (page: Page) => notice(page).getByRole('heading', { name: 'REAPER has a different project open' });
+
+  test('another project open: the notice says so with a way to link the open one and to check again, and the right project clears it', async ({ page }) => {
+    await openLive(page, 'different');
+    await turnOnRecord(page);
+    await linkProject(page);
+    await page.getByRole('button', { name: 'Open in REAPER and connect' }).click();
+    await expect(differentNotice(page)).toBeVisible({ timeout: 15_000 });
+    await expect(notice(page).getByRole('button', { name: 'Link the open project' })).toBeVisible();
+    await expect(notice(page).getByRole('button', { name: 'DAW settings' })).toBeVisible();
+    await expect(notice(page).getByText(/Last checked \d+ s ago/)).toBeVisible();
+    await expect(record(page)).toBeDisabled();
+    // The narrator opens the linked project in REAPER, then presses Check again.
+    await page.evaluate(() => window.__NARRATION_MOCK_DAW__?.openProject('linked'));
+    await notice(page).getByRole('button', { name: 'Check again' }).click();
+    await expect(notice(page)).toHaveCount(0);
+    await expect(record(page)).toBeEnabled();
+  });
+
+  test('link the open project: one press opens the picker once, says it linked, and the notice goes', async ({ page }) => {
+    await openLive(page, 'different');
+    await turnOnRecord(page);
+    await linkProject(page);
+    await page.getByRole('button', { name: 'Open in REAPER and connect' }).click();
+    await expect(differentNotice(page)).toBeVisible({ timeout: 15_000 });
+    await notice(page).getByRole('button', { name: 'Link the open project' }).dblclick();
+    await expect(page.getByText('REAPER project linked.').first()).toBeVisible();
+    await expect(notice(page)).toHaveCount(0);
+    await expect(record(page)).toBeEnabled();
+  });
+
+  test('the DAW opens another project while Record is ready and no event says so: focus, Check again and the timer find it', async ({ page }) => {
+    await toRecordReady(page);
+    await page.evaluate(() => window.__NARRATION_MOCK_DAW__?.openProject('other'));
+    await page.evaluate(() => window.dispatchEvent(new Event('focus')));
+    await expect(differentNotice(page)).toBeVisible();
+    await expect(record(page)).toBeDisabled();
+    await page.evaluate(() => window.__NARRATION_MOCK_DAW__?.openProject('linked'));
+    await notice(page).getByRole('button', { name: 'Check again' }).click();
+    await expect(notice(page)).toHaveCount(0);
+    // And with no press at all: the Booth reads again by itself while the notice is up.
+    await page.evaluate(() => window.__NARRATION_MOCK_DAW__?.openProject('other'));
+    await page.evaluate(() => window.dispatchEvent(new Event('focus')));
+    await expect(differentNotice(page)).toBeVisible();
+    await page.evaluate(() => window.__NARRATION_MOCK_DAW__?.openProject('linked'));
+    await expect(notice(page)).toHaveCount(0, { timeout: 12_000 });
+  });
+
+  test('another project opened mid-take: the take goes on and the footer says what changed', async ({ page }) => {
+    await toRecordReady(page);
+    await record(page).click();
+    await expect(stop(page)).toBeVisible();
+    await page.evaluate(() => window.__NARRATION_MOCK_DAW__?.openProject('other'));
+    await page.evaluate(() => window.dispatchEvent(new Event('focus')));
+    await expect(page.locator('#brec-why')).toContainText('has a different project open than the one linked here', { timeout: 12_000 });
+    await expect(stop(page)).toBeVisible();
+    expect((await dawState(page))?.recording).toBe(true);
+    await stop(page).click();
+    await expect(record(page)).toBeVisible();
+  });
+
+  test('a toast never covers the setup notice, and the same sentence is one toast however often it is asked for', async ({ page }) => {
+    await openLive(page, 'quiet');
+    await turnOnRecord(page);
+    await linkProject(page);
+    await page.getByRole('button', { name: 'Open in REAPER and connect' }).click();
+    const toasts = page.getByRole('status').filter({ hasText: /./ });
+    await expect(page.getByText(/REAPER is starting/).first()).toBeVisible();
+    // Space while Record cannot start says why, as a toast; ten presses are one message.
+    for (let i = 0; i < 10; i++) await page.keyboard.press('Space');
+    const sentence = page.getByRole('status').getByText(/REAPER is not answering/);
+    await expect(sentence.first()).toBeVisible();
+    expect(await sentence.count()).toBe(1);
+    // The notice is above the toasts: neither covers the other, and the notice is topmost at its own points.
+    const box = await notice(page).boundingBox();
+    const toast = await page
+      .getByRole('status')
+      .getByText(/REAPER is starting/)
+      .first()
+      .boundingBox();
+    expect(box && toast).toBeTruthy();
+    expect(toast!.y + toast!.height, 'the toast sits above the notice').toBeLessThanOrEqual(box!.y + 1);
+    const topmost = await page.evaluate(() => {
+      const el = document.querySelector('#brec-setup')!;
+      const r = el.getBoundingClientRect();
+      const hit = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
+      return !!hit && el.contains(hit);
+    });
+    expect(topmost).toBe(true);
+    void toasts;
+  });
+
+  test('the "starting" message goes once REAPER answers', async ({ page }) => {
+    await openLive(page, 'live');
+    await turnOnRecord(page);
+    await linkProject(page);
+    await page.getByRole('button', { name: 'Open in REAPER and connect' }).click();
+    await expect(page.getByText(/REAPER is starting/).first()).toBeVisible();
+    await expect(notice(page)).toHaveCount(0, { timeout: 15_000 });
+    await expect(page.getByText(/REAPER is starting/)).toHaveCount(0);
+  });
+
+  test('the window slept during a take: the timer shows the true time on return', async ({ page }) => {
+    await toRecordReady(page);
+    await record(page).click();
+    await expect(stop(page)).toBeVisible();
+    await page.clock.install();
+    await page.clock.fastForward('01:05:00');
+    await page.evaluate(() => window.dispatchEvent(new Event('focus')));
+    await expect(page.locator('#btimer')).toHaveText(/^1:0[45]:\d\d$/);
+  });
+
+  test('Space right after another project is opened, before any read: the press asks first and no take starts', async ({ page }) => {
+    await toRecordReady(page);
+    await page.evaluate(() => window.__NARRATION_MOCK_DAW__?.openProject('other'));
+    await page.keyboard.press('Space');
+    await expect(page.getByText(/has a different project open than the one linked here/).first()).toBeVisible();
+    expect((await dawState(page))?.recording).toBe(false);
+    await expect(record(page)).toBeVisible();
+  });
+
+  test('REAPER restarts mid-take: once it answers again the Booth says the take was ended here and where to check', async ({ page }) => {
+    await toRecordReady(page);
+    await record(page).click();
+    await expect(stop(page)).toBeVisible();
+    // The DAW's next heartbeat reports the take running (HEARTBEAT_MS); REAPER goes quiet during the take, not before it was heard.
+    await page.waitForTimeout(600);
+    await page.evaluate(() => window.__NARRATION_MOCK_DAW__?.restart(3000));
+    await expect(page.getByText(/answers again\. This window ended its take when REAPER went quiet/).first()).toBeVisible({ timeout: 20_000 });
+  });
+
+  test('a take that ended without Stop is not still announced once the next take runs', async ({ page }) => {
+    await toRecordReady(page);
+    await record(page).click();
+    await expect(stop(page)).toBeVisible();
+    await page.evaluate(() => window.__NARRATION_MOCK_DAW__?.stopInDaw());
+    await expect(page.getByText(/stopped recording\. The take ended there/).first()).toBeVisible();
+    await expect(record(page)).toBeEnabled();
+    await record(page).click();
+    await expect(stop(page)).toBeVisible();
+    await expect(page.getByText(/The take ended there/)).toHaveCount(0);
   });
 });

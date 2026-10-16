@@ -193,3 +193,19 @@ describe('the panel can be hidden', () => {
     expect(panel().hidden).toBe(false);
   });
 });
+
+// Booth pass 3, M14: a walkthrough looked for "set" buttons in the side panel's Tab order. The mock draws "set" and "not set" beside a name in
+// Coming up as plain status text, not as controls (docs/research/mockups/studio-next, SidePanel.tsx), so nothing is missing from the Tab order;
+// this pins that, and that nothing in the panel that can be pressed is left out of it.
+describe('the side panel Tab order', () => {
+  it('"set" and "not set" are status text, not buttons, and every control in the panel can take focus', () => {
+    matchMedia(false);
+    render(<Harness />);
+    const panel = screen.getByRole('complementary', { hidden: true }) ?? document.body;
+    for (const word of within(panel).queryAllByText(/^(set|not set)$/)) {
+      expect(word.closest('button,[role="button"]')).toBeNull();
+    }
+    const controls = panel.querySelectorAll<HTMLElement>('button,[role="button"],a[href],input,select,textarea');
+    for (const control of controls) expect(control.tabIndex, control.outerHTML).toBeGreaterThanOrEqual(0);
+  });
+});

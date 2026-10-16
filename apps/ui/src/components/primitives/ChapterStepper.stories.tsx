@@ -29,6 +29,8 @@ export const FirstChapter: Story = { args: { value: '1' } };
 export const MiddleChapter: Story = {};
 export const LastChapter: Story = { args: { value: '4' } };
 export const AllSelected: Story = { args: { allowAll: true, value: ALL_CHAPTERS } };
+/** A take is running: the arrows and the picker are off, each says why, and the picker's hint is reachable by keyboard. */
+export const OffWhileRecording: Story = { args: { disabled: 'Not while recording. Stop the take first.' } };
 export const AltKeys: Story = { args: { stepKeys: ['Alt+↑', 'Alt+↓'] } };
 export const VeryLongChapterName: Story = {
   args: { chapters: [...chapters, { id: '5', name: 'An exceedingly long chapter name that goes on well past any sensible width for a picker' }], value: '5' },

@@ -643,6 +643,28 @@ type LastActionUndoer interface {
 	UndoLast(ctx context.Context, kind ActionKind, steps int) (Result, error)
 }
 
+// MaxLevel is the top of the level scale MonitorLeveler and InputLeveler share: a whole number from 0 (silence) to MaxLevel, with
+// UnityLevel the engine's unity (0 dB). The engine maps it to its own gain, so the caller never names a decibel.
+const (
+	MaxLevel   = bridge.MaxMonitorLevel
+	UnityLevel = 70
+)
+
+// MonitorLeveler reads and sets the level the narrator monitors the project at, as a whole number from 0 to MaxLevel. It is the
+// engine's monitoring output, not a fader the delivery files are rendered through. SetMonitorLevel returns the level the engine now
+// holds, read back after the set (it may differ from level by rounding); a level outside 0 to MaxLevel is an error with nothing
+// sent. Neither adds an undo step. A refusal is a capability refusal error (RefusedFrom) or the engine's own sentence.
+type MonitorLeveler interface {
+	MonitorLevel(ctx context.Context) (int, error)
+	SetMonitorLevel(ctx context.Context, level int) (int, error)
+}
+
+// InputLeveler would set the level the audio interface records at, as a whole number from 0 to MaxLevel. No engine has it: the
+// level lives in the interface's own driver. The role exists so the capability has a conformance case and a sentence.
+type InputLeveler interface {
+	SetInputLevel(ctx context.Context, level int) (int, error)
+}
+
 // BackupKeeper clones the audio around an edit before it is made, so it can be put back, for an engine that keeps no takes of its
 // own. RestoreBackup is refused when the engine has no backup with that id.
 type BackupKeeper interface {

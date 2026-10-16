@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import type { ExtractionImportPlan, ImportFormat } from '../../../../api/contracts/extraction';
 import { overlay } from '../../../../overlay/overlayService';
 import { usePort } from '../../../../ports/usePort';
@@ -9,7 +9,18 @@ import { StatusBadge } from '../../../primitives/StatusBadge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../../primitives/Table';
 import { ToggleGroup } from '../../../primitives/ToggleGroup';
 import { importEntries } from './commands';
-import { ACTION_LABEL, LIST_CAP, addLabel, becomes, countsOf, hintFromName, tooBigSentence } from './importModel';
+import {
+  ACTION_LABEL,
+  IMPORT_MAX_BYTES,
+  LIST_CAP,
+  addLabel,
+  becomes,
+  countsOf,
+  displayName,
+  hintFromName,
+  readableFailure,
+  tooBigSentence,
+} from './importModel';
 import { useImportPreview } from './useImportPreview';
 import { useImportPrompts } from './useImportPrompts';
 
@@ -60,6 +71,11 @@ function Preview({ plan }: { plan: ExtractionImportPlan }) {
         <StatusBadge tone={counts.verify ? 'warning' : 'neutral'} label={`${counts.verify} to verify`} />
         <StatusBadge tone={counts.errors ? 'danger' : 'neutral'} label={`${counts.errors} ${counts.errors === 1 ? 'error' : 'errors'}`} />
       </div>
+      {plan.lines.length === 0 && plan.errors.length === 0 && (
+        <p className="text-sm" style={MUTED}>
+          There are no entries in this file to add.
+        </p>
+      )}
       {plan.lines.length > 0 && (
         <div className="max-h-64 overflow-auto" role="region" aria-label="What will be added" tabIndex={0}>
           <Table label="What will be added">
@@ -140,25 +156,43 @@ export function ImportDialog({ onClose, onChanged }: ImportDialogProps) {
   const [adding, setAdding] = useState(false);
   const [addProblem, setAddProblem] = useState<string>();
   const fileInput = useRef<HTMLInputElement>(null);
-  const { plan, waiting, problem } = useImportPreview(text, hint);
+  const alive = useRef(true);
+  const reading = useRef(0);
+  const committing = useRef(false);
+  const limit = prompts.json?.maxBytes ?? IMPORT_MAX_BYTES;
+  // Every character is at least one byte, so text longer than the limit is over it; it never goes to the host.
+  const oversize = text.length > limit;
+  const { plan, waiting, problem } = useImportPreview(oversize ? '' : text, hint);
   const env = useMemo(() => ({ journal, port, changed: onChanged }), [journal, port, onChanged]);
-  const offered = text.trim() && plan ? plan.offered : 0;
+  const offered = !oversize && text.trim() && plan ? plan.offered : 0;
+  useEffect(() => {
+    alive.current = true;
+    return () => {
+      alive.current = false;
+    };
+  }, []);
   const example = prompts[exampleFormat]?.example ?? '';
 
   const choose = async (file: File) => {
+    const mine = ++reading.current;
     setFileProblem(undefined);
-    const maxBytes = prompts.json?.maxBytes;
-    if (maxBytes !== undefined && file.size > maxBytes) {
-      setFileProblem(tooBigSentence(maxBytes));
+    if (file.size > limit) {
+      setFileProblem(tooBigSentence(limit));
       return;
     }
     try {
       const read = await readText(file);
+      // A newer file, or typing, since this one began: its text is not wanted any more.
+      if (mine !== reading.current || !alive.current) return;
+      if (!read.trim()) {
+        setFileProblem(read ? 'That file has only blank space in it.' : 'That file is empty.');
+        return;
+      }
       setText(read);
       setHint(hintFromName(file.name));
-      setFileName(file.name);
+      setFileName(displayName(file.name));
     } catch {
-      setFileProblem('That file could not be read.');
+      if (mine === reading.current && alive.current) setFileProblem('That file could not be read.');
     }
   };
 
@@ -170,16 +204,26 @@ export function ImportDialog({ onClose, onChanged }: ImportDialogProps) {
   };
 
   const add = async () => {
-    if (!offered || adding || waiting) return;
+    if (!offered || waiting || committing.current) return;
+    committing.current = true;
     setAdding(true);
     setAddProblem(undefined);
-    const result = await importEntries(env, text, hint);
-    setAdding(false);
-    if (!result.ok) {
-      setAddProblem(result.refusal.reason);
+    let failure: string | undefined;
+    try {
+      const result = await importEntries(env, text, hint);
+      if (!result.ok) failure = `Nothing was added: ${result.refusal.reason}`;
+    } catch (error) {
+      failure = `The import may not have finished (${readableFailure(error, 'the host did not say why')}). Check the Story Bible before adding again.`;
+    }
+    committing.current = false;
+    if (!alive.current) {
+      // The dialog was closed while the host worked: a failure has nowhere to be shown but a toast, and there is nothing to close.
+      if (failure) overlay.toast(failure, { tone: 'error' });
       return;
     }
-    onClose();
+    setAdding(false);
+    if (failure) setAddProblem(failure);
+    else onClose();
   };
 
   return (
@@ -248,12 +292,23 @@ export function ImportDialog({ onClose, onChanged }: ImportDialogProps) {
         value={text}
         spellCheck={false}
         onChange={(event) => {
+          reading.current += 1;
           setText(event.target.value);
           setHint(undefined);
           setFileName('');
         }}
         className="box-border min-h-24 w-full resize-y rounded-[var(--control-radius)] border border-[var(--line-strong)] bg-[var(--surface)] px-3 py-2 font-mono text-xs leading-[1.35] text-[var(--text)]"
       />
+      {oversize && (
+        <p role="alert" className="text-sm" style={DANGER}>
+          {tooBigSentence(limit)}
+        </p>
+      )}
+      {!oversize && text.trim() && waiting && !problem && (
+        <p role="status" className="text-sm" style={MUTED}>
+          Checking the text with the host…
+        </p>
+      )}
       {problem && (
         <p role="alert" className="text-sm" style={DANGER}>
           The preview could not be made: {problem}
@@ -262,7 +317,7 @@ export function ImportDialog({ onClose, onChanged }: ImportDialogProps) {
       {text.trim() && plan && <Preview plan={plan} />}
       {addProblem && (
         <p role="alert" className="text-sm" style={DANGER}>
-          Nothing was added: {addProblem}
+          {addProblem}
         </p>
       )}
       <div className="flex justify-end gap-2">

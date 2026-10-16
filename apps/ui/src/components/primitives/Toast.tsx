@@ -2,11 +2,12 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import type { IconDefinition } from '@fortawesome/fontawesome-svg-core';
 import { faCircleExclamation, faXmark } from '@fortawesome/free-solid-svg-icons';
 import { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 
 export type ToastTone = 'info' | 'error';
 /** A toast's one action (for example Undo): its own label, run when pressed, which also dismisses the toast. */
 export type ToastAction = { label: string; onAction: () => void };
-export type ToastMessage = { id: number; text: string; tone: ToastTone; action?: ToastAction; icon?: IconDefinition };
+export type ToastMessage = { id: number; text: string; tone: ToastTone; action?: ToastAction; icon?: IconDefinition; topic?: string };
 /** How a page or a component tells the narrator something. An error is announced at once and stays until it is dismissed (ADR 0075).
  * `action` adds one button (for example Undo) before the dismiss button; pressing it runs the action and dismisses the toast.
  * `icon` leads an information message with the glyph of what it is about (the track glyph for a chapter sync); an error always
@@ -65,8 +66,13 @@ function ToastItem({ message, dismiss }: { message: ToastMessage; dismiss: (id: 
 // later: errors interrupt (alert), everything else waits its turn (status). Base UI hides everything outside an open dialog from
 // assistive technology except live regions carrying `aria-live`, and an error raised from inside a dialog is announced here.
 export function ToastRegion({ messages, dismiss }: { messages: readonly ToastMessage[]; dismiss: (id: number) => void }) {
-  return (
-    <div className="fixed right-5 bottom-[calc(1.25rem+var(--toast-clear,0px))] z-[var(--z-toast)] flex max-w-[min(28rem,calc(100vw-2.5rem))] flex-col items-end gap-2">
+  // Portalled to <body>: #root is an isolated stacking context (index.html), so a region inside it never beats the dialogs and slide-overs
+  // the primitives portal to <body>, and a toast raised from one was drawn underneath it.
+  return createPortal(
+    <div
+      data-toast-region
+      className="fixed right-5 bottom-[calc(1.25rem+var(--toast-clear,0px))] z-[var(--z-toast)] flex max-w-[min(28rem,calc(100vw-2.5rem))] flex-col items-end gap-2"
+    >
       <div role="alert" aria-live="assertive" aria-atomic="false" aria-relevant="additions" className="flex flex-col items-end gap-2">
         {messages
           .filter((message) => message.tone === 'error')
@@ -81,6 +87,7 @@ export function ToastRegion({ messages, dismiss }: { messages: readonly ToastMes
             <ToastItem key={message.id} message={message} dismiss={dismiss} />
           ))}
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }

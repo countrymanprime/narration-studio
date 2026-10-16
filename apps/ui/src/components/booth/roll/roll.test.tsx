@@ -277,3 +277,39 @@ describe('createTakeHold', () => {
     expect(resume).toHaveBeenCalledTimes(1);
   });
 });
+
+describe('rapid R (Booth pass 3, M12)', () => {
+  it('ten presses in a few milliseconds roll the DAW once', async () => {
+    const roll = vi.fn(async (): Promise<DawResult> => ok);
+    const { hook, actions } = setup(SETUPS.reaper, {}, roll);
+    await act(async () => {
+      for (let i = 0; i < 10; i++) void hook.result.current.punchAndRoll();
+    });
+    await settle();
+    expect(roll).toHaveBeenCalledTimes(1);
+    expect(actions.logPunch).toHaveBeenCalledTimes(1);
+    expect(actions.notify.mock.calls.filter(([sentence]) => /^Rolling again/.test(sentence as string))).toHaveLength(1);
+  });
+
+  it('a press after the pause rolls again: the guard is a pause, not a lock', async () => {
+    vi.useFakeTimers({ toFake: ['Date'] });
+    try {
+      const roll = vi.fn(async (): Promise<DawResult> => ok);
+      const { hook } = setup(SETUPS.reaper, {}, roll);
+      await act(async () => void hook.result.current.punchAndRoll());
+      vi.setSystemTime(Date.now() + 2000);
+      await act(async () => void hook.result.current.punchAndRoll());
+      expect(roll).toHaveBeenCalledTimes(2);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('a roll the DAW refused does not hold the next press back', async () => {
+    const roll = vi.fn(async (): Promise<DawResult> => ({ ok: false, changed: false, message: 'busy', undoSteps: 0, refused: 'REAPER is busy.' }));
+    const { hook } = setup(SETUPS.reaper, {}, roll);
+    await act(async () => void hook.result.current.punchAndRoll());
+    await act(async () => void hook.result.current.punchAndRoll());
+    expect(roll).toHaveBeenCalledTimes(2);
+  });
+});

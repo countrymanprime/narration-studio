@@ -22,6 +22,7 @@ import { pickupsFeedback } from './interactionFeedback/pickups';
 import { proofFeedback } from './interactionFeedback/proof';
 import { editingFeedback } from './interactionFeedback/editing';
 import { masterFeedback } from './interactionFeedback/master';
+import { deliveryFeedback } from './interactionFeedback/delivery';
 import { productionFeedback } from './interactionFeedback/production';
 import { creditsFeedback } from './interactionFeedback/credits';
 import { recordingFeedback } from './interactionFeedback/recording';
@@ -44,6 +45,7 @@ const AREAS: Array<Record<string, FeedbackRow>> = [
   proofFeedback,
   editingFeedback,
   masterFeedback,
+  deliveryFeedback,
   productionFeedback,
   creditsFeedback,
   recordingFeedback,
@@ -65,6 +67,8 @@ for (const rows of AREAS) {
  * The list may only shrink: a new one needs a reason a reviewer accepts, and a narrator's action never belongs here.
  */
 export const SILENT_CATCHES: Record<string, string> = {
+  'src/components/schedule/SchedulePage.tsx#1':
+    'Keeps the write queue going after a change failed: the change already showed its refusal in a toast, and this catch only stops the failure from holding up the next write.',
   'src/components/project/NewProjectDialog.tsx#1':
     'Reads the default projects folder only to show it; unreadable, the dialog names it in words, and Create still sends an empty parent the host resolves (and refuses with its own reason).',
   'src/components/proof/checkcard/CheckCard.tsx#1':

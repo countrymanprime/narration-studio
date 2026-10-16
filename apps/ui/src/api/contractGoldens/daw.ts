@@ -9,6 +9,7 @@ import {
   dawFxRangeCompareSchema,
   dawFxRangeSettingsSchema,
   dawLastActionSchema,
+  dawMonitorLevelSchema,
   dawProjectStateSchema,
   dawResultSchema,
   dawTransportSchema,
@@ -98,6 +99,9 @@ export const dawGoldens: Record<string, z.ZodType> = {
   'daw-undo-last-partial.json': dawResultSchema,
   'daw-undo-last-refused-not-last.json': dawResultSchema,
   'daw-undo-last-refused-capability.json': dawResultSchema,
+  // DawMonitorLevel and DawSetMonitorLevel (bindings_daw_levels_test.go): the level the DAW holds, and the monitor_level capability's refusal.
+  'daw-monitor-level-ok.json': dawMonitorLevelSchema,
+  'daw-monitor-level-refused.json': dawMonitorLevelSchema,
   // narration-utils/backups.json, the file the host reads back (backups_contract_test.go): an empty table and one with two rows.
   'daw-backups-empty.json': dawBackupsFileSchema,
   'daw-backups-two.json': dawBackupsFileSchema,

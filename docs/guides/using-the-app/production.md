@@ -23,8 +23,6 @@ picker (see [Importing the manuscript](#importing-the-manuscript)), and the cale
 [Schedule](schedule.md) to set a due date first. To replace a manuscript later, use
 [Settings](settings.md).
 
-![Production with no manuscript imported: the page is the import](../../images/ui/production-no-manuscript.webp)
-
 When the audio engine is not running, a line at the top says progress that comes from it may be
 out of date, with **Retry** and **Use built-in recorder**. **Retry** checks again: the line goes
 once the engine is running, and if it still is not, a message asks you to start it and try again.
@@ -109,8 +107,6 @@ A suggested track says it is not linked yet; a chapter two tracks look like says
 them; a linked track no longer in the saved project says it may have been deleted or the project
 saved elsewhere.
 
-![Production - a chapter's track slide-over on a confirmed link, with how the track was found](../../images/ui/production-track-panel.webp)
-
 When the panel knows the chapter's track, it can play that track's recorded audio right there -
 Play/Pause and skip 30 seconds back or forward - and **Select in REAPER** brings the track into
 view in REAPER itself. Selecting is an experimental REAPER action ([Settings](settings.md)) and
@@ -136,8 +132,6 @@ Recorded length (once its own track is linked - never an estimate), its status a
 check** button. A kind with no template has no row; add one in [Settings, Credits](settings.md#credits).
 Checking credits works the same as [checking a chapter's recording](#checking-a-chapters-recording)
 below, against the credits template's rendered text rather than a manuscript chapter.
-
-![Production - the Opening credits row opened: its template, words and estimated length](../../images/ui/production-credits-panel.webp)
 
 ## Checking a chapter's recording
 
@@ -187,8 +181,6 @@ chapter on [Editing](editing.md). Misreads, false starts, retakes and a spoken c
 never count against you. The check changes nothing: it never edits the project or moves a
 chapter's status.
 
-![Production - a recording check with a skip and a short read listed as pickups](../../images/ui/production-recording-check-pickups.webp)
-
 A result goes **out of date** when the saved project changes under it (an item added, removed,
 trimmed, moved, muted or switched to another take, an audio file changed) or the chapter's text
 changes. The panel says which, keeps the old counts labelled as from then, and offers
@@ -226,6 +218,10 @@ the reason and **Try again** above the table.
 
 ![Production - evidence changed since you confirmed: the check that is no longer met and Revert; nothing moved on its own](../../images/ui/production-stage-evidence-changed.webp)
 
+## Schedule
+
+**Schedule**, the item after Production in the navigation, holds the book's due date, how it pays, the recorded audio against the plan, the work left and its milestones: see [Schedule](schedule.md).
+
 ## Status report
 
 **Export status report** opens the report dialog: a preview of the host's own report, the format
@@ -252,7 +248,7 @@ goes back into the chapter's text so it is narrated (the row says it "is read as
 **Read a heading's second line as its subtitle** option in Import options does the same for every
 row at once; a row you changed by hand keeps your choice.
 
-![The import manuscript dialog: format, paragraph and chapter preview](../../images/ui/production-import-confirm.webp)
+![Production - import manuscript confirm dialog with format/paragraph/chapter preview](../../images/ui/production-import-confirm.webp)
 
 The message at the top says what was found: the format, the number of paragraphs and of narration
 chapters, then how many front matter and reference sections, character suggestions and repairs the
@@ -300,7 +296,7 @@ Once you confirm, importing runs in the background and reports what it is actual
 the source into the project, writing the manuscript, adding checked characters to the Story Bible —
 in a live activity log, so the progress bar and log always match the real work.
 
-![A finished manuscript import with its step-by-step activity log](../../images/ui/production-import-activity.webp)
+![Production - a finished manuscript import with its real, step-by-step activity log](../../images/ui/production-import-activity.webp)
 
 Once a manuscript is imported you can read it on the [Script](script.md) page.
 

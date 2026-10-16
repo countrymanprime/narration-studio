@@ -1,5 +1,5 @@
 import { useCallback, useRef } from 'react';
-import { describeApiError } from '../../../api/errorMessage';
+import { apiErrorMessage } from '../../../api/errorMessage';
 import { useOverlay } from '../../../overlay/OverlayProvider';
 import { usePort } from '../../../ports/usePort';
 import { suspectedLines, toFlagSave, type SuspectedFlag } from './suspectedLines';
@@ -41,7 +41,7 @@ export function useSuspectedPickups({ chapterId, flags }: { chapterId: string; f
           added.push({ id: answer.id, evidenceVersion: answer.evidence_version ?? '' });
         }
       } catch (reason) {
-        refused = describeApiError(reason);
+        refused = apiErrorMessage(reason);
       }
       if (refused) overlay.toast(refused, { tone: 'error' });
       if (added.length === 0 || quiet) return added.length;
@@ -50,7 +50,7 @@ export function useSuspectedPickups({ chapterId, flags }: { chapterId: string; f
           for (const item of added) await findings.findingsReview({ ...item, status: 'unreviewed', note: '' });
           return { ok: true };
         } catch (reason) {
-          return { ok: false, refusal: { reason: describeApiError(reason) } };
+          return { ok: false, refusal: { reason: apiErrorMessage(reason) } };
         }
       });
       return added.length;

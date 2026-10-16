@@ -61,6 +61,9 @@ var declares = func() map[dawport.Capability]dawport.Level {
 	for _, spec := range dawport.Capabilities() {
 		d[spec.Capability] = dawport.NotYetAvailable
 	}
+	// input_level is Unsupported, not NotYetAvailable: an audio interface's input gain is its driver's, so no Audacity version of this
+	// app can add it. monitor_level stays NotYetAvailable like the rest: Audacity's monitoring output is not built.
+	d[dawport.CapInputLevel] = dawport.Unsupported
 	d[dawport.CapNavigate] = dawport.Experimental
 	d[dawport.CapMarkers] = dawport.Experimental
 	d[dawport.CapMacroRender] = dawport.Experimental

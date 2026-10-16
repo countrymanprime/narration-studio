@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo, useRef } from 'react';
 import type { DawResult } from '../../../api/contracts/daw';
 import { apiErrorMessage } from '../../../api/errorMessage';
 import { overlay } from '../../../overlay/overlayService';
@@ -6,8 +6,8 @@ import { usePort } from '../../../ports/usePort';
 import type { FileActions } from '../files/FileActions';
 
 /** The DAW's answer as a toast: what it did, or its own refusal as an error. A call that throws says why, as an error. */
-function show(call: Promise<DawResult>): void {
-  call.then(
+function show(call: Promise<DawResult>, done: () => void): void {
+  call.finally(done).then(
     (result) => (result.ok ? overlay.toast(result.message) : overlay.toast(result.refused ?? result.message, { tone: 'error' })),
     (error: unknown) => overlay.toast(apiErrorMessage(error), { tone: 'error' }),
   );
@@ -19,11 +19,18 @@ function show(call: Promise<DawResult>): void {
  */
 export function useFileActions(): Pick<FileActions, 'onPlayQuietest' | 'onOpenInDaw'> {
   const daw = usePort('daw');
-  return useMemo(
-    () => ({
-      onPlayQuietest: (fileId: string) => show(daw.playQuietest(fileId)),
-      onOpenInDaw: (fileId: string) => show(daw.openFile(fileId)),
-    }),
-    [daw],
-  );
+  // One call per action and file at a time (ADR 0075): a second press while the DAW has not answered is ignored, so a double press never
+  // plays or reveals twice. The key frees when the call settles, and a call that never settles keeps only its own file's action busy.
+  const inFlight = useRef(new Set<string>());
+  return useMemo(() => {
+    const once = (key: string, call: () => Promise<DawResult>) => {
+      if (inFlight.current.has(key)) return;
+      inFlight.current.add(key);
+      show(call(), () => inFlight.current.delete(key));
+    };
+    return {
+      onPlayQuietest: (fileId: string) => once(`play ${fileId}`, () => daw.playQuietest(fileId)),
+      onOpenInDaw: (fileId: string) => once(`open ${fileId}`, () => daw.openFile(fileId)),
+    };
+  }, [daw]);
 }

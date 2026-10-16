@@ -41,7 +41,8 @@ export const Queue: Story = {
 export const WithAction: Story = {
   args: { messages: [{ ...info(1, 'Linked track “Ch. 11” to Chapter 11.'), action: { label: 'Undo', onAction: fn() }, icon: faLayerGroup }] },
   play: async ({ canvasElement, args }) => {
-    const canvas = within(canvasElement);
+    // The region is portalled to <body>, outside the story's canvas.
+    const canvas = within(canvasElement.ownerDocument.body);
     const button = canvas.getByRole('button', { name: 'Undo' });
     await expect(button).toBeInTheDocument();
     await userEvent.click(button);
@@ -65,7 +66,8 @@ export const LongMessage: Story = {
 export const LiveRegions: Story = {
   args: { messages: [failure(1, 'Could not save.'), info(2, 'Saved.')] },
   play: async ({ canvasElement }) => {
-    const canvas = within(canvasElement);
+    // The region is portalled to <body>, outside the story's canvas.
+    const canvas = within(canvasElement.ownerDocument.body);
     await expect(within(canvas.getByRole('alert')).getByText('Could not save.')).toBeInTheDocument();
     await expect(within(canvas.getByRole('status')).getByText('Saved.')).toBeInTheDocument();
   },
@@ -80,7 +82,8 @@ function DismissableToasts() {
 export const DismissRemovesOne: Story = {
   render: () => <DismissableToasts />,
   play: async ({ canvasElement }) => {
-    const canvas = within(canvasElement);
+    // The region is portalled to <body>, outside the story's canvas.
+    const canvas = within(canvasElement.ownerDocument.body);
     const first = canvas.getByText('First failure.').closest('[data-tone]') as HTMLElement;
     await userEvent.click(within(first).getByRole('button', { name: 'Dismiss message' }));
     await expect(canvas.queryByText('First failure.')).toBeNull();

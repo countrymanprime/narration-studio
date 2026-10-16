@@ -54,6 +54,12 @@
       "message": "No DAW is connected to this app. Open this app from your DAW to use it.",
       "reason": "standalone"
     },
+    "input_level": {
+      "available": false,
+      "level": "unsupported",
+      "message": "No DAW is connected to this app. Open this app from your DAW to use it.",
+      "reason": "standalone"
+    },
     "item_gain": {
       "available": false,
       "level": "unsupported",
@@ -79,6 +85,12 @@
       "reason": "standalone"
     },
     "master_chain_read": {
+      "available": false,
+      "level": "unsupported",
+      "message": "No DAW is connected to this app. Open this app from your DAW to use it.",
+      "reason": "standalone"
+    },
+    "monitor_level": {
       "available": false,
       "level": "unsupported",
       "message": "No DAW is connected to this app. Open this app from your DAW to use it.",

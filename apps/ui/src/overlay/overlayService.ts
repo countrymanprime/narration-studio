@@ -29,7 +29,8 @@ type DialogSpec =
       title: string;
       render: (api: { close: () => void }) => ReactNode;
     };
-type ToastOptions = { tone?: ToastTone; action?: ToastAction };
+/** `topic` names what a message is about: a newer message on a topic replaces the one before it, and `dismissTopic` takes it away once it is no longer true. */
+type ToastOptions = { tone?: ToastTone; action?: ToastAction; topic?: string };
 
 /** An open layer. The primitive that draws it owns focus, stacking and Escape (ADR 0048, 0172, 0630); this is only what to draw and who to tell. */
 export type DialogEntry =
@@ -53,6 +54,8 @@ export type OverlayService = {
   announce: (text: string) => void;
   open: (spec: DialogSpec) => () => void;
   dismissToast: (id: number) => void;
+  /** Takes away the message on a topic, for a message that has stopped being true ("REAPER is starting" once REAPER answers). */
+  dismissTopic: (topic: string) => void;
   subscribe: (listener: () => void) => () => void;
   getSnapshot: () => OverlaySnapshot;
 };
@@ -77,8 +80,13 @@ export function createOverlayService(): OverlayService {
 
   const toast = (text: string, options: ToastOptions = {}) => {
     if (!text) return;
-    const message: ToastMessage = { id: ++lastId, text, tone: options.tone ?? 'info', action: options.action };
-    const queue = [...snapshot.toasts, message];
+    const tone = options.tone ?? 'info';
+    const message: ToastMessage = { id: ++lastId, text, tone, action: options.action, topic: options.topic };
+    // A message that says what one on screen already says is that message again, and one on the same topic is its newer word: either
+    // replaces the old one (its timer starts again), so a repeated press or a lost-and-found DAW never stacks the same sentence.
+    const again = (old: ToastMessage) =>
+      (options.topic !== undefined && old.topic === options.topic) || (!options.action && !old.action && old.text === text && old.tone === tone);
+    const queue = [...snapshot.toasts.filter((old) => !again(old)), message];
     while (queue.length > OVERLAY_TOAST_LIMIT) {
       const info = queue.slice(0, -1).findIndex((m) => m.tone === 'info');
       queue.splice(info >= 0 ? info : 0, 1);
@@ -120,6 +128,9 @@ export function createOverlayService(): OverlayService {
       return close;
     },
     dismissToast: (id) => update({ toasts: snapshot.toasts.filter((message) => message.id !== id) }),
+    dismissTopic: (topic) => {
+      if (snapshot.toasts.some((message) => message.topic === topic)) update({ toasts: snapshot.toasts.filter((message) => message.topic !== topic) });
+    },
     subscribe: (listener) => {
       listeners.add(listener);
       return () => void listeners.delete(listener);

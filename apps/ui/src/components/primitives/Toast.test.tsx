@@ -14,6 +14,14 @@ const info = (id: number, text = `Message ${id}`): ToastMessage => ({ id, text, 
 const failure = (id: number, text = `Failure ${id}`): ToastMessage => ({ id, text, tone: 'error' });
 
 describe('ToastRegion', () => {
+  it('is drawn in <body>, outside the isolated #root, so it stacks above a dialog or slide-over raised from the page', () => {
+    const { container } = render(<ToastRegion messages={[info(1)]} dismiss={vi.fn()} />);
+    const region = screen.getByText('Message 1').closest('[data-toast-region]') as HTMLElement;
+    expect(region.parentElement).toBe(document.body);
+    expect(container.contains(region)).toBe(false);
+    expect(region.className).toContain('z-[var(--z-toast)]');
+  });
+
   it('keeps two live regions mounted, so a message that arrives later is announced', () => {
     render(<ToastRegion messages={[]} dismiss={vi.fn()} />);
     expect(screen.getByRole('status').getAttribute('aria-live')).toBe('polite');

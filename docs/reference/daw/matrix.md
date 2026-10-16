@@ -38,3 +38,5 @@ What each engine declares for each capability today. The levels are the adapters
 | `range_gain` | `RangeGainReducer` | Engine answering | Experimental | Experimental | Not reachable | Unsupported |
 | `click_repair` | `ClickRepairer` | Engine answering | Experimental | Experimental | Not reachable | Unsupported |
 | `undo_last` | `LastActionUndoer` | Engine answering | Experimental | Not yet available | Not reachable | Not yet available |
+| `monitor_level` | `MonitorLeveler` | Engine answering | Experimental | Not yet available | Not reachable | Unsupported |
+| `input_level` | `InputLeveler` | Engine answering | Unsupported | Unsupported | Not reachable | Unsupported |

@@ -17,15 +17,22 @@ const refused = (reason: 'experimental_off' | 'standalone' | 'not_running', mess
   capabilities: { ...DAW_SETUPS.reaper.capabilities, record: { level: 'experimental', available: false, reason, message } },
 });
 
-type Args = { capabilities: DawCapabilities; linked: boolean; say: (sentence: string) => void; onSettings: () => void; onChanged: () => void };
+type Args = {
+  capabilities: DawCapabilities;
+  linked: boolean;
+  open?: 'same' | 'different';
+  say: (sentence: string) => void;
+  onSettings: () => void;
+  onChanged: () => void;
+};
 
-function Strip({ capabilities, linked, say, onSettings, onChanged }: Args) {
+function Strip({ capabilities, linked, open, say, onSettings, onChanged }: Args) {
   return (
     <ApiProvider api={createMockApi()}>
       <div className="max-w-full bg-[var(--surface)] py-2">
         <RecordSetup
           capabilities={capabilities}
-          facts={{ dawFileLinked: linked, launcherPath: LAUNCHER }}
+          facts={{ dawFileLinked: linked, launcherPath: LAUNCHER, openProject: open }}
           say={say}
           onSettings={onSettings}
           onChanged={onChanged}
@@ -69,5 +76,15 @@ export const NoProjectLinked: Story = {
   args: { capabilities: refused('standalone', 'No DAW is connected to this app. Open this app from your DAW to use it.'), linked: false },
   play: async ({ canvasElement }) => {
     await expect(within(canvasElement).getByRole('button', { name: 'Open in REAPER and connect' })).toBeDisabled();
+  },
+};
+
+/** Record could start, but the DAW has another project open than the one linked: link the open one, or open the linked one and check again. */
+export const OtherProjectOpen: Story = {
+  args: { capabilities: DAW_SETUPS.reaper, open: 'different' },
+  play: async ({ canvasElement }) => {
+    await expect(within(canvasElement).getByRole('heading', { name: 'REAPER has a different project open' })).toBeVisible();
+    await expect(within(canvasElement).getByRole('button', { name: 'Link the open project' })).toBeEnabled();
+    await expect(within(canvasElement).getByRole('button', { name: 'DAW settings' })).toBeEnabled();
   },
 };

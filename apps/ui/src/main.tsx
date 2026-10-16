@@ -8,7 +8,7 @@ import { ApiProvider } from './api/ApiContext';
 import { wailsClient } from './api/wailsClient';
 import type { RecordingMockSeed } from './api/recordingMock';
 import { createMockApi } from './api/mockApi';
-import { PRODUCTION_SCENARIOS } from './api/productionMock';
+import { scenarioFromToday } from './api/productionMock';
 import { MOCK_FIDELITY, mockFidelityFrom } from './api/mockHost/mockFidelity';
 import { WIRE_CHAPTERS, WIRE_FINDINGS, WIRE_TRACKS_PROJECT, editingCandidateFor, takeReviewPickupFor } from './api/mockFixtures';
 import { COVERAGE_REFUSAL_REASONS } from './api/schemas/coverage';
@@ -385,6 +385,10 @@ const mockRenderExportHold = mockParams.get('mockRenderExport') === 'running';
 // packages from).
 const mockPackageMultiHold = mockParams.get('mockPackageMulti') === 'running';
 const mockDeliveryProfile = mockParams.get('mockDeliveryProfile') === 'custom' ? ('custom' as const) : undefined;
+// `?mockDelivery=ready|building|fails|quiet` boots Delivery with every chapter and both credits files measured and passing and the files
+// mastered and encoded, so Build is on: `ready` waits for a press (which builds at once), `building` holds a started build running,
+// `fails` ends it with the host's refusal, `quiet` holds it running and then stops answering the job's reads.
+const mockDelivery = (['ready', 'building', 'fails', 'quiet'] as const).find((seed) => seed === mockParams.get('mockDelivery'));
 // `?mockProduction=on-pace|at-risk` seeds the Production page with a time log, a running timer (on-pace only), a deadline and a
 // contracted amount; with none, nothing is logged or set yet.
 const mockProduction = (['on-pace', 'at-risk'] as const).find((seed) => seed === mockParams.get('mockProduction'));
@@ -431,10 +435,11 @@ const mockInitial = {
   ...(mockRecorder ? { recording: mockRecorder } : {}),
   ...(mockMeasure ? { measure: mockMeasure === 'running' ? ('hold' as const) : mockMeasure === 'spread' ? ('spread' as const) : ('fails' as const) } : {}),
   ...(mockDiagnostics ? { diagnostics: mockDiagnostics === 'running' ? ('hold' as const) : ('fails' as const) } : {}),
+  ...(mockDelivery ? { measure: 'delivery-ready' as const, renderExport: mockDelivery } : {}),
   ...(mockRenderExportHold ? { renderExport: 'hold' as const } : {}),
   ...(mockPackageMultiHold ? { renderPackageMulti: 'hold' as const } : {}),
   ...(mockDeliveryProfile ? { deliveryProfile: mockDeliveryProfile } : {}),
-  ...(mockProduction ? { production: PRODUCTION_SCENARIOS[mockProduction] } : {}),
+  ...(mockProduction ? { production: scenarioFromToday(mockProduction) } : {}),
   ...(mockTakeReviewScanHold ? { takeReviewScanHold: true } : {}),
   ...(mockTakeComparisonHold ? { takeComparisonHold: true } : {}),
   ...(mockReaper ? { reaper: mockReaper } : {}),

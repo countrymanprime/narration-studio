@@ -46,6 +46,9 @@ export type RollActions = TakeControls & {
   notify: (sentence: string) => void;
 };
 
+/** How long after a roll went through another is ignored (milliseconds). */
+const ROLL_PAUSE_MS = 700;
+
 /**
  * Roll again, Start from here and a punch-in over the DAW's roll. One plan (`rollPlan`) decides every path: a roll the DAW keeps as a
  * take just runs, a destructive one asks once with the take held, a refused one
@@ -75,18 +78,29 @@ export function useRoll(session: RollSession, actions: RollActions, { overlay }:
     [overlay],
   );
 
+  // One roll at a time, and a short pause after one went through: a key that repeats, or a narrator pressing R again to be sure, must not
+  // stop and restart the DAW's take ten times in a second. A roll the DAW refused leaves no pause: the next press may try again.
+  const rolling = useRef(false);
+  const lastRollAt = useRef(0);
   const doRoll = useCallback(async (to: number, confirmed: boolean) => {
     const s = sessionRef.current;
     if (!s.recording) return;
-    const seconds = s.takeSeconds;
-    const result = await actionsRef.current.roll(to, { confirmed });
-    if (!result.ok) {
-      actionsRef.current.notify(result.refused ?? result.message);
-      return;
+    if (rolling.current || Date.now() - lastRollAt.current < ROLL_PAUSE_MS) return;
+    rolling.current = true;
+    try {
+      const seconds = s.takeSeconds;
+      const result = await actionsRef.current.roll(to, { confirmed });
+      if (!result.ok) {
+        actionsRef.current.notify(result.refused ?? result.message);
+        return;
+      }
+      lastRollAt.current = Date.now();
+      actionsRef.current.logPunch({ paragraph: s.paragraphOf(to), seconds });
+      actionsRef.current.moveTo(to);
+      actionsRef.current.notify(`Rolling again from ¶ ${s.paragraphOf(to) + 1}`);
+    } finally {
+      rolling.current = false;
     }
-    actionsRef.current.logPunch({ paragraph: s.paragraphOf(to), seconds });
-    actionsRef.current.moveTo(to);
-    actionsRef.current.notify(`Rolling again from ¶ ${s.paragraphOf(to) + 1}`);
   }, []);
 
   const rollFrom = useCallback(

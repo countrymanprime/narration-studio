@@ -86,7 +86,9 @@ export type DawCapabilityKey =
   | 'file_reveal'
   | 'range_gain'
   | 'click_repair'
-  | 'undo_last';
+  | 'undo_last'
+  | 'monitor_level'
+  | 'input_level';
 
 export type DawCapabilities = {
   daw: DawKind;
@@ -132,6 +134,8 @@ export const DAW_CAPABILITIES: ReadonlyArray<{ key: DawCapabilityKey; label: str
   { key: 'range_gain', label: 'Lower stretches of a take' },
   { key: 'click_repair', label: 'Repair clicks in a take' },
   { key: 'undo_last', label: "Undo the app's last action" },
+  { key: 'monitor_level', label: 'Set the monitor level' },
+  { key: 'input_level', label: 'Set the input level' },
 ];
 
 /** The DAW's transport as of its last heartbeat (daw_transport_changed, ADR 0305;
@@ -393,6 +397,24 @@ export interface DawUndoLastApi {
    * A capability refusal carries the `undo_last` capability's sentence; steps out of bounds and the DAW recording are refused with a
    * sentence. A kind the host does not know rejects. */
   dawUndoLast(kind: DawActionKind, steps: number): Promise<DawResult>;
+}
+
+/** What `dawMonitorLevel` and `dawSetMonitorLevel` answer (apps/desktop/bindings_daw_levels.go): the DAW's monitor (output) level as the page's
+ * 0 to 100 slider shows it, 70 being unity. `ok` false is a refusal with its sentence in `message` (the `monitor_level` capability's own, a DAW
+ * not answering, no live DAW) and `level` 0 that means nothing; `ok` true has an empty `message`. */
+export type DawMonitorLevel = { ok: boolean; level: number; message: string };
+
+/** The slider's top (its bottom is 0); 70 is unity gain (0 dB) in the DAW. */
+export const DAW_LEVEL_MAX = 100;
+
+/** DawMonitorLevel and DawSetMonitorLevel (Booth pass 3; apps/desktop/bindings_daw_levels.go): read and set the DAW's monitor (output)
+ * level, the Levels menu's second slider. The first (the input level) has no call: no DAW the app talks to can set an audio interface's
+ * input gain, and the `input_level` capability says so in its own sentence. */
+export interface DawLevelsApi {
+  /** The monitor level the DAW holds. A capability refusal, a DAW not answering and no live DAW are `ok` false with the sentence. */
+  dawMonitorLevel(): Promise<DawMonitorLevel>;
+  /** Sets it (0 to DAW_LEVEL_MAX) and answers the level the DAW now holds, which may differ by rounding. A level outside the range rejects. */
+  dawSetMonitorLevel(level: number): Promise<DawMonitorLevel>;
 }
 
 /** DawBackupAround, DawRestoreBackup and DawBackups (SN-D82, ADR 0863; apps/desktop/bindings_daw_backups.go): clone the audio around a

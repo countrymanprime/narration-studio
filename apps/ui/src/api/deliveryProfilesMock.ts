@@ -17,7 +17,7 @@ import type {
 import { wireClone } from './mockFixtures';
 
 /** The key the host names a profile by (deliveryprofile.Profile.Key). */
-const deliveryProfileKey = (profile: DeliveryProfile) => (profile.builtIn ? `${profile.id}@${profile.version}` : `${profile.id}@r${profile.revision}`);
+export const deliveryProfileKey = (profile: DeliveryProfile) => (profile.builtIn ? `${profile.id}@${profile.version}` : `${profile.id}@r${profile.revision}`);
 
 const ACX_URL = 'https://help.acx.com/s/article/what-are-the-acx-audio-submission-requirements';
 const source = (requirement: string, readOn: string, quoted = false): DeliverySource => ({

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { PickupItem, PickupList } from '../../../api/contracts/pickups';
-import { describeApiError } from '../../../api/errorMessage';
+import { apiErrorMessage } from '../../../api/errorMessage';
 import { useCommand } from '../../../input/useCommand';
 import { useOverlay } from '../../../overlay/OverlayProvider';
 import { usePort } from '../../../ports/usePort';
@@ -60,7 +60,7 @@ export function usePickupSession(options: PickupSessionOptions): PickupSessionMo
     pickups
       .pickupsList()
       .then((answer) => live && setList(answer.pickups))
-      .catch((reason) => live && overlay.toast(describeApiError(reason), { tone: 'error' }));
+      .catch((reason) => live && overlay.toast(apiErrorMessage(reason), { tone: 'error' }));
     return () => {
       live = false;
     };
@@ -101,7 +101,7 @@ export function usePickupSession(options: PickupSessionOptions): PickupSessionMo
         for (const id of targets) take(await pickups.pickupsSetDone(id, done));
         return null;
       } catch (reason) {
-        return describeApiError(reason);
+        return apiErrorMessage(reason);
       }
     },
     [pickups, take],
@@ -134,7 +134,7 @@ export function usePickupSession(options: PickupSessionOptions): PickupSessionMo
         take(await pickups.pickupsRemove(id));
         overlay.toast('Dismissed.');
       } catch (reason) {
-        overlay.toast(describeApiError(reason), { tone: 'error' });
+        overlay.toast(apiErrorMessage(reason), { tone: 'error' });
       }
     },
     [pickups, overlay, take],

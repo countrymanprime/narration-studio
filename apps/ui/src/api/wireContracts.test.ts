@@ -203,6 +203,7 @@ import {
   dawFxRangeCompareSchema,
   dawFxRangeSettingsSchema,
   dawLastActionSchema,
+  dawMonitorLevelSchema,
   dawProjectStateSchema,
   dawResultSchema,
   dawTransportSchema,
@@ -3291,6 +3292,34 @@ describe('answers of the mock client for the settings, voice, model, transcript 
     expect(off.refused).toBe((await createMockApi().dawCapabilities()).capabilities.click_repair.message);
   });
 
+  it('dawMonitorLevel and dawSetMonitorLevel answer a level or a refusal in a sentence: the host goldens parse, and the mock answers as the host does', async () => {
+    expectMatches(dawMonitorLevelSchema, readGolden('daw-monitor-level-ok.json'), 'daw-monitor-level-ok.json');
+    expectMatches(dawMonitorLevelSchema, readGolden('daw-monitor-level-refused.json'), 'daw-monitor-level-refused.json');
+    expect(readGolden('daw-monitor-level-ok.json')).toMatchObject({ ok: true, message: '' });
+    expect(readGolden('daw-monitor-level-refused.json')).toMatchObject({ ok: false, level: 0 });
+    // A refusal carries its sentence, an answer has none, and a level outside the slider is not an answer.
+    expect(dawMonitorLevelSchema.safeParse({ ok: false, level: 0, message: '' }).success).toBe(false);
+    expect(dawMonitorLevelSchema.safeParse({ ok: true, level: 50, message: 'x' }).success).toBe(false);
+    expect(dawMonitorLevelSchema.safeParse({ ok: true, level: 101, message: '' }).success).toBe(false);
+    expect(dawMonitorLevelSchema.safeParse({ ok: true, level: 1.5, message: '' }).success).toBe(false);
+
+    const api = createMockApi({}, { daw: { toggles: { monitor_level: 'on' } } });
+    const held = await api.dawMonitorLevel();
+    expectMatches(dawMonitorLevelSchema, held, 'mock monitor level');
+    expect(held).toEqual({ ok: true, level: 60, message: '' });
+    expect(await api.dawSetMonitorLevel(70)).toEqual(readGolden('daw-monitor-level-ok.json'));
+    expect(await api.dawMonitorLevel()).toEqual({ ok: true, level: 70, message: '' });
+    await expect(api.dawSetMonitorLevel(101)).rejects.toThrow();
+    await expect(api.dawSetMonitorLevel(-1)).rejects.toThrow();
+    await expect(api.dawSetMonitorLevel(1.5)).rejects.toThrow();
+
+    const off = createMockApi();
+    const refused = await off.dawMonitorLevel();
+    expectMatches(dawMonitorLevelSchema, refused, 'mock monitor level, experimental off');
+    expect(refused).toEqual({ ok: false, level: 0, message: (await off.dawCapabilities()).capabilities.monitor_level.message });
+    expect(await off.dawSetMonitorLevel(40)).toEqual(refused);
+  });
+
   it('dawLastAction and dawUndoLast answer a dawLastAction and a dawResult: the host goldens parse, and the mock answers as the host does', async () => {
     expect(dawLastActionSchema.parse(readGolden('daw-last-action-this.json'))).toBe('this');
     expect(dawLastActionSchema.parse(readGolden('daw-last-action-unknown.json'))).toBe('unknown');
@@ -4048,6 +4077,8 @@ describe('answers of the mock client for the settings, voice, model, transcript 
       'dawRepairClick',
       'dawLastAction',
       'dawUndoLast',
+      'dawMonitorLevel',
+      'dawSetMonitorLevel',
       'dawBackupAround',
       'dawRestoreBackup',
       'dawBackups',

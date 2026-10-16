@@ -191,7 +191,7 @@ describe('every-way-out-asks-while-recording', () => {
     expect(page.dialog()?.spec.title).toBe('Stop recording?');
     expect(page.dialog()?.spec.body).toBe('REAPER is recording. Leaving the Booth stops it.');
     // The question holds the take while it is open.
-    expect(screen.getByText('REC paused')).toBeTruthy();
+    expect(screen.getByText('REC · reading paused')).toBeTruthy();
     await act(async () => page.dialog()!.answer(false));
     await settle();
     expect(page.daw.recordStop).not.toHaveBeenCalled();
@@ -378,6 +378,54 @@ describe('escape-closes-the-drawer-then-a-popover-then-exits', () => {
   });
 });
 
+describe('the-take-timer-follows-the-clock', () => {
+  const timer = () => document.getElementById('btimer')?.textContent;
+  const jump = (seconds: number) => {
+    vi.setSystemTime(Date.now() + seconds * 1000);
+    act(() => void window.dispatchEvent(new Event('focus')));
+  };
+
+  it('keeps counting while the Stop recording question holds the reading, and says only the reading is paused', async () => {
+    vi.useFakeTimers({ toFake: ['Date'] });
+    const page = renderPage();
+    await record(page);
+    expect(timer()).toBe('00:00');
+    jump(65);
+    expect(timer()).toBe('01:05');
+    await press('Escape');
+    expect(page.dialog()?.spec.title).toBe('Stop recording?');
+    expect(screen.getByText('REC · reading paused')).toBeTruthy();
+    jump(10);
+    // REAPER records on while the question is open: the clock does not stop with the reading.
+    expect(timer()).toBe('01:15');
+    await act(async () => page.dialog()!.answer(false));
+    await settle();
+    expect(screen.getByText('REC')).toBeTruthy();
+    expect(timer()).toBe('01:15');
+  });
+
+  it('shows the true time after the window slept for an hour', async () => {
+    vi.useFakeTimers({ toFake: ['Date'] });
+    const page = renderPage();
+    await record(page);
+    jump(3725);
+    expect(timer()).toBe('1:02:05');
+  });
+
+  it('the next take starts from 00:00', async () => {
+    vi.useFakeTimers({ toFake: ['Date'] });
+    const page = renderPage();
+    await record(page);
+    jump(30);
+    await space();
+    await waitFor(() => expect(page.daw.recordStop).toHaveBeenCalledTimes(1));
+    await waitFor(() => expect(screen.getByRole('button', { name: /^Record$/ })).toBeTruthy());
+    await space();
+    await waitFor(() => expect(page.daw.recordStart).toHaveBeenCalledTimes(2));
+    expect(timer()).toBe('00:00');
+  });
+});
+
 describe('the-take-is-held-while-a-menu-or-the-confirm-is-open', () => {
   const openMenu = async () => {
     const word = document.querySelector('[data-unit="1"] [data-word]')!;
@@ -391,7 +439,7 @@ describe('the-take-is-held-while-a-menu-or-the-confirm-is-open', () => {
     const page = renderPage();
     await record(page);
     const menu = await openMenu();
-    await waitFor(() => expect(screen.getByText('REC paused')).toBeTruthy());
+    await waitFor(() => expect(screen.getByText('REC · reading paused')).toBeTruthy());
     await userEvent.keyboard('{Escape}');
     await waitFor(() => expect(menu.isConnected).toBe(false));
     await waitFor(() => expect(screen.getByText('REC')).toBeTruthy());
@@ -418,7 +466,7 @@ describe('the-take-is-held-while-a-menu-or-the-confirm-is-open', () => {
     const page = renderPage();
     await ready();
     await openMenu();
-    expect(screen.queryByText('REC paused')).toBeNull();
+    expect(screen.queryByText('REC · reading paused')).toBeNull();
     expect(page.daw.recordStart).not.toHaveBeenCalled();
   });
 
@@ -428,7 +476,7 @@ describe('the-take-is-held-while-a-menu-or-the-confirm-is-open', () => {
     await press('r', 'KeyR');
     await waitFor(() => expect(page.dialog()?.spec.title).toBe('Roll again from ¶ 1?'));
     expect(page.dialog()?.spec.body).toBe('Audacity will record over the audio from here, and what it replaces is not kept as a take.');
-    expect(screen.getByText('REC paused')).toBeTruthy();
+    expect(screen.getByText('REC · reading paused')).toBeTruthy();
     await act(async () => page.dialog()!.answer(false));
     await waitFor(() => expect(screen.getByText('REC')).toBeTruthy());
     expect(page.daw.roll).not.toHaveBeenCalled();
@@ -517,7 +565,10 @@ describe('the-chapter-cannot-change-during-a-take', () => {
     await record(page);
     // The stepper is off, not a fieldset full of dead buttons: the arrows stay focusable and say why (aria-disabled), and a press changes nothing.
     const next = screen.getByRole('button', { name: 'Next chapter' });
-    expect(picker.matches(':disabled') || picker.getAttribute('aria-disabled') === 'true' || picker.hasAttribute('data-disabled')).toBe(true);
+    // The picker is a new element while it is off (its hint's wrapper is the tab stop and says why), so it is read again.
+    const off = screen.getByRole('button', { name: /Chapter: .*Change chapter/ });
+    expect(off.matches(':disabled') || off.getAttribute('aria-disabled') === 'true' || off.hasAttribute('data-disabled')).toBe(true);
+    expect(screen.getByRole('group', { name: 'Not while recording. Stop the take first.' }).tabIndex).toBe(0);
     expect(next.getAttribute('aria-disabled')).toBe('true');
     expect(screen.getByRole('button', { name: 'Previous chapter' }).getAttribute('aria-disabled')).toBe('true');
     const before = picker.getAttribute('aria-label');

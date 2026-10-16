@@ -1,11 +1,15 @@
 import { overlayGuardFor } from './helpers/overlayGuardFor';
+import { deliveryCases } from './overlays/delivery';
 import { editingCases } from './overlays/editing';
+import { masterCases } from './overlays/master';
 import { pickupsCases } from './overlays/pickups';
 import { productionCases } from './overlays/production';
 import { proofCases } from './overlays/proof';
+import { scheduleCases } from './overlays/schedule';
 import { scriptCases } from './overlays/script';
 import { settingsCases } from './overlays/settings';
 import { shellCases } from './overlays/shell';
+import { storyBibleCases } from './overlays/storybible';
 
 // The overlay guard (definition of done, rule 1): every overlay of a page is the topmost element at its own points and fully on
 // screen, opened at every window edge and corner, beside the sidebar and the top bar, over scrolled content, at narrow sizes and
@@ -19,8 +23,7 @@ overlayGuardFor('Settings', shellCases, settingsCases);
 overlayGuardFor('Proof', shellCases, proofCases);
 overlayGuardFor('Editing', shellCases, editingCases);
 overlayGuardFor('Pickups', shellCases, pickupsCases);
-// The other pages with the sidebar adopt it with the shell's overlays only, until their own are listed.
-overlayGuardFor('Schedule', shellCases);
-overlayGuardFor('Story Bible', shellCases);
-overlayGuardFor('Master & QC', shellCases);
-overlayGuardFor('Delivery', shellCases);
+overlayGuardFor('Master & QC', shellCases, masterCases);
+overlayGuardFor('Story Bible', shellCases, storyBibleCases);
+overlayGuardFor('Delivery', shellCases, deliveryCases);
+overlayGuardFor('Schedule', shellCases, scheduleCases);

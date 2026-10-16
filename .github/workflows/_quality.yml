@@ -43,8 +43,10 @@ jobs:
     # (Playwright --shard): one job took 9.4 min. The checks that need the whole run (blank, undeclared duplicate, stale
     # sameAs) cannot run in a shard (UI_VISUAL_SHARDED=1 defers them), so each shard uploads its capture records and the
     # `ui-visual` job below judges them together.
+    # 20 minutes: shards 1 and 2 ran 12.7 to 14.5 minutes of a 15 minute limit and then timed out once the overlay guard
+    # (a test per overlay, window size and position, for every page that adopts it) grew; shard 3 takes about 9.
     name: ui-visual (shard ${{ matrix.shard }}/3)
-    timeout-minutes: 15
+    timeout-minutes: 20
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false

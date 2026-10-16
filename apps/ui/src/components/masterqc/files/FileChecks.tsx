@@ -1,3 +1,4 @@
+import { Button } from '../../primitives/Button';
 import { IconButton } from '../../primitives/IconButton';
 import { Panel } from '../../primitives/Panel';
 import { StatusBadge } from '../../primitives/StatusBadge';
@@ -34,6 +35,14 @@ export function FileChecks({ row, chapterLabel, actions }: { row: FileRow | unde
         </div>
       }
     >
+      {gates.readProblem && (
+        <p role="status" className="mb-2 flex flex-wrap items-center gap-2 text-sm text-[var(--text-muted)]">
+          <span>{gates.readProblem}</span>
+          <Button variant="ghost" size="sm" onClick={gates.checkAgain}>
+            Check again
+          </Button>
+        </p>
+      )}
       {!row ? (
         <p className="text-sm text-[var(--text-muted)]">Not mastered yet.</p>
       ) : row.waiting ? (

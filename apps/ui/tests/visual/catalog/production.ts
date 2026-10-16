@@ -13,6 +13,7 @@ export const productionStates: StateEntry[] = [
   {
     page: 'production',
     state: 'on-pace',
+    reloadPerViewport: true,
     description:
       'Production with a time log, a delivery date 18 days out and a contracted amount (?mockProduction=on-pace) - hours by stage, PFH and the effective rate from logged hours and measured audio only, the running timer on Chapter 6 with Stop timer, and no Start timer while it runs',
   },
@@ -26,6 +27,7 @@ export const productionStates: StateEntry[] = [
   {
     page: 'production',
     state: 'at-risk',
+    reloadPerViewport: true,
     description:
       'Production 3 days from its delivery date with chapters unfinished (?mockProduction=at-risk) - the delivery date as a warning, a higher PFH from more hours logged, and Next up led by the chapters whose stage is held back',
   },

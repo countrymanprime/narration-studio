@@ -125,7 +125,7 @@ function measuredResult(file: MeasureFileResult, index: number, seed?: MockMeasu
   };
 }
 
-export type MockMeasureSeed = 'hold' | 'fails' | 'spread' | 'mock-05';
+export type MockMeasureSeed = 'hold' | 'fails' | 'spread' | 'mock-05' | 'delivery-ready';
 
 const BROKE = 'runtime error: index out of range [4] with length 4';
 
@@ -169,9 +169,15 @@ function spreadPaths(): string[] {
   return SPREAD_LEVELS.map((_, index) => `C:/Users/Narrator/Renders/Alice/Chapter ${String(index + 1).padStart(2, '0')}.wav`);
 }
 
+/** Every chapter of the mock book and both credits files: what `?mockDelivery=` boots with, so "Before you build" has nothing left to wait for. */
+function deliveryReadyPaths(): string[] {
+  const dir = 'C:/Users/Narrator/Renders/Alice';
+  const chapters = Array.from({ length: 12 }, (_, index) => `${dir}/Chapter ${String(index + 1).padStart(2, '0')}.wav`);
+  return [`${dir}/Opening credits.wav`, ...chapters, `${dir}/Closing credits.wav`];
+}
+
 /** The already-ended job `?mockMeasure=spread` boots with: every chapter measured, none picked through the picker. */
-function spreadJob(): MeasureJob {
-  const paths = spreadPaths();
+function spreadJob(paths: string[] = spreadPaths()): MeasureJob {
   const files: MeasureFileResult[] = paths.map((path, index) => ({
     path,
     name: baseName(path),
@@ -210,9 +216,10 @@ export function createMeasureMock(
 ): MeasureApi & { resaveReview: () => void; lastRunFiles: () => readonly MeasureFileResult[] } {
   const hold = seed === 'hold';
   if (seed === 'spread') spreadPaths().forEach((path) => picked.add(path));
+  if (seed === 'delivery-ready') deliveryReadyPaths().forEach((path) => picked.add(path));
   let job: MeasureJob =
-    seed === 'spread'
-      ? spreadJob()
+    seed === 'spread' || seed === 'delivery-ready'
+      ? spreadJob(seed === 'spread' ? undefined : deliveryReadyPaths())
       : {
           id: null,
           kind: 'measurement',

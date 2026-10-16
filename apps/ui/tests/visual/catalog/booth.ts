@@ -48,6 +48,13 @@ export const boothStates: StateEntry[] = [
   },
   {
     page: 'booth',
+    state: 'record-other-project',
+    description:
+      'Booth after REAPER was started from its connect notice and answered with another project open (?mockDaw=different, Record turned on and the project linked first): above the footer, "REAPER has a different project open" says a take would not land in the linked project, with Link the open project, DAW settings, what it waits for and when it last checked, and Check again; Record stays off and the footer gives the same reason in its own sentence',
+    ...REFLOW,
+  },
+  {
+    page: 'booth',
     state: 'recording',
     description:
       'Booth, a take running (Record pressed, the page clock paused so the timer reads 00:00): Stop in place of Record, the REC pill beside the setup chip, the resume line gone, and the session section counting the take',

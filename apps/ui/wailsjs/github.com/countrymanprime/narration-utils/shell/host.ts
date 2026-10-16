@@ -695,6 +695,15 @@ export function DawLinkFound(): $CancellablePromise<string> {
 }
 
 /**
+ * DawMonitorLevel reads the level the narrator monitors the project at, a whole number from 0 to 100 (the Booth's output slider).
+ * The answer is a MonitorLevelResult: the monitor_level capability's own sentence when the resolver refuses it, checked first; no live
+ * adapter, the DAW not answering and no answer in time are refused in a sentence. It changes nothing.
+ */
+export function DawMonitorLevel(): $CancellablePromise<string> {
+    return $Call.ByID(2167912414);
+}
+
+/**
  * DawPreviewFileRange plays length seconds of the file at path from start (the file's own seconds) through the DAW's preview,
  * never through the project, stopping a preview this app started before. The resolver's file_preview sentence comes first,
  * then the stretch, then the path; nothing is sent to the DAW on any refusal.
@@ -792,6 +801,16 @@ export function DawRoll(chapterID: string, at: number, confirmed: boolean): $Can
  */
 export function DawSetFxRangeParam(chapterID: string, firstToken: number, lastToken: number, chainName: string, fx: number, index: number, value: number): $CancellablePromise<string> {
     return $Call.ByID(3554935570, chapterID, firstToken, lastToken, chainName, fx, index, value);
+}
+
+/**
+ * DawSetMonitorLevel sets the level the narrator monitors the project at to level, a whole number from 0 to 100, and answers the
+ * level the DAW holds afterwards (it can differ from level only by rounding). A level outside 0 to 100 is an error and nothing is
+ * sent; every other refusal is as DawMonitorLevel's, with the DAW untouched. In REAPER the level is the master track's first
+ * hardware output volume, so the delivery files are not changed.
+ */
+export function DawSetMonitorLevel(level: number): $CancellablePromise<string> {
+    return $Call.ByID(1071723846, level);
 }
 
 /**

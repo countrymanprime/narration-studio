@@ -65,9 +65,9 @@ describe('rec-shows-only-while-recording', () => {
     expect(pill.style.background).toBe('var(--rec-fill)');
     expect(pill.style.color).toBe('var(--rec-text)');
   });
-  it('says paused while a take is paused', () => {
+  it('says only the reading is paused while a take is held (the DAW records on)', () => {
     top({ recording: true, paused: true });
-    expect(screen.getByText('REC paused')).toBeTruthy();
+    expect(screen.getByText('REC · reading paused')).toBeTruthy();
   });
 });
 

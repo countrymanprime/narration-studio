@@ -104,6 +104,14 @@ function Fake:new_track(name, selected)
   return { name = name or 'Track', selected = selected or false, items = {}, guid = self:new_guid(), armed = false, muted = false, ext = {} }
 end
 
+-- Adds a hardware output send (volume as a linear gain, 1.0 by default) to a track, the master by default.
+function Fake:add_hw_output(volume, track)
+  track = track or self.master
+  track.hw_outs = track.hw_outs or {}
+  track.hw_outs[#track.hw_outs + 1] = { vol = volume or 1.0 }
+  return track.hw_outs[#track.hw_outs]
+end
+
 function Fake:add_track(name, selected)
   local track = self:new_track(name, selected)
   self.tracks[#self.tracks + 1] = track
@@ -804,6 +812,30 @@ function Fake:add_item_api(api)
   end
   function api.GetMasterTrack(_)
     return fake.master
+  end
+  -- Hardware output sends (narration_levels.lua): category 1 of GetTrackNumSends / GetTrackSendInfo_Value /
+  -- SetTrackSendInfo_Value, kept as track.hw_outs = { { vol = gain }, ... } (Fake:add_hw_output). Modelled on the ReaScript
+  -- reference text (category < 0 receives, 0 sends, 1 hardware outputs; D_VOL a linear gain, 1.0 = 0 dB), not on a run in
+  -- REAPER (pending the QA pass, #1495). Set answers false for an index that does not exist, or when fake.send_set_fails.
+  -- Every Set is recorded in fake.calls.
+  function api.GetTrackNumSends(track, category)
+    if category == 1 then
+      return #(track.hw_outs or {})
+    end
+    return 0
+  end
+  function api.GetTrackSendInfo_Value(track, category, index, param)
+    local send = category == 1 and param == 'D_VOL' and (track.hw_outs or {})[index + 1] or nil
+    return send and send.vol or 0.0
+  end
+  function api.SetTrackSendInfo_Value(track, category, index, param, value)
+    fake.calls[#fake.calls + 1] = { name = 'SetTrackSendInfo_Value', category = category, index = index, param = param, value = value }
+    local send = category == 1 and param == 'D_VOL' and (track.hw_outs or {})[index + 1] or nil
+    if not send or fake.send_set_fails then
+      return false
+    end
+    send.vol = value
+    return true
   end
   -- Track FX (apply_fx_chain): a chain adds fake.chain_fx_count FX (1 unless set); fake.fx_load_fails refuses it.
   function api.TrackFX_AddByName(track, name, rec_fx, instantiate)

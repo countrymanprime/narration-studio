@@ -133,6 +133,7 @@ var experimentalCapability = map[string]dawport.Capability{
 	"repair_click":        dawport.CapClickRepair,
 	"last_action":         dawport.CapUndoLast,
 	"undo_last":           dawport.CapUndoLast,
+	"monitor_level":       dawport.CapMonitorLevel,
 	"fx_range_params":     dawport.CapFXRange,
 	"fx_range_set_param":  dawport.CapFXRange,
 	"fx_range_bypass":     dawport.CapFXRange,
@@ -233,6 +234,8 @@ func TestTheDeclarationMatchesTodaysGating(t *testing.T) {
 	want[dawport.CapFXRange] = dawport.Experimental
 	want[dawport.CapStackTakes] = dawport.Experimental
 	want[dawport.CapBackups] = dawport.NotYetAvailable
+	// input_level: ReaScript cannot set an audio interface's input gain.
+	want[dawport.CapInputLevel] = dawport.Unsupported
 	if !maps.Equal(declared, want) {
 		t.Errorf("Declares() = %v, want %v", declared, want)
 	}
