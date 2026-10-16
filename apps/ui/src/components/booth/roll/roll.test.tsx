@@ -31,6 +31,7 @@ function setup(capabilities: DawCapabilities | null, over: Partial<RollSession> 
     resume: vi.fn(),
     beginTake: vi.fn(),
     chooseStart: vi.fn(),
+    clearStart: vi.fn(),
     moveTo: vi.fn(),
     logPunch: vi.fn(),
     notify: vi.fn(),
@@ -168,6 +169,14 @@ describe('useRoll', () => {
     expect(actions.roll).not.toHaveBeenCalled();
   });
 
+  it('r-says-why-record-cannot-start-in-the-record-controls-own-sentence', async () => {
+    const { hook, actions } = setup(SETUPS.reaper, { recording: false, recordRefusal: 'Experimental: switched off in Settings.' });
+    await act(() => hook.result.current.punchAndRoll());
+    expect(actions.notify).toHaveBeenCalledWith('Experimental: switched off in Settings.');
+    expect(actions.notify).not.toHaveBeenCalledWith('Start recording first.');
+    expect(actions.roll).not.toHaveBeenCalled();
+  });
+
   it('r rolls from the phrase chosen with Start from here', async () => {
     const { hook, actions } = setup(SETUPS.reaper, { punchAt: 1 });
     await act(() => hook.result.current.punchAndRoll());
@@ -209,11 +218,18 @@ describe('useRoll', () => {
       expect(dialog()).toBeUndefined();
       expect(actions.beginTake).toHaveBeenCalledWith();
     });
-    it('a punch the DAW cannot do says why and starts nothing', async () => {
+    it('a punch the DAW cannot do says why, forgets the chosen start and takes from the end', async () => {
       const { hook, actions } = setup(SETUPS.reaperOff, { recording: false, punchAt: 1 });
       await act(() => hook.result.current.startTake());
-      expect(actions.notify).toHaveBeenCalledWith(SETUPS.reaperOff.capabilities.punch.message);
-      expect(actions.beginTake).not.toHaveBeenCalled();
+      expect(actions.notify).toHaveBeenCalledWith(`${SETUPS.reaperOff.capabilities.punch.message} Recording from the end of what is already there instead.`);
+      expect(actions.clearStart).toHaveBeenCalledTimes(1);
+      expect(actions.beginTake).toHaveBeenCalledWith();
+    });
+    it('Start from here before a take, with a DAW that cannot punch, arms nothing and says where the take will start', async () => {
+      const { hook, actions } = setup(SETUPS.reaperOff, { recording: false });
+      await act(() => hook.result.current.startFromHere(1));
+      expect(actions.chooseStart).not.toHaveBeenCalled();
+      expect(actions.notify).toHaveBeenCalledWith(expect.stringContaining('The next take starts from the end of what is already there, not from ¶ 1.'));
     });
     it('isPunch and clampPhrase', () => {
       expect(isPunch({ phrase: 2, seconds: 29.6, recordedEnd: 30 })).toBe(false);

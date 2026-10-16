@@ -5,7 +5,10 @@ import { wireClone, wireSettings } from '../mockFixtures';
 export type MockSettings = Record<Scope, Record<string, ScopedSettingField[]>>;
 
 /** The settings bindings. Saving answers with a fresh bootstrap, as the host does. */
-export function createSettingsMock(bootstrap: NarrationApi['bootstrap']) {
+export function createSettingsMock(
+  bootstrap: NarrationApi['bootstrap'],
+  onSaved: (tool: string, scope: Scope, values: Record<string, string | null>) => void = () => {},
+) {
   const globalSettings = wireSettings();
   const settings: MockSettings = {
     global: globalSettings,
@@ -39,6 +42,7 @@ export function createSettingsMock(bootstrap: NarrationApi['bootstrap']) {
             }
           : field,
       );
+      onSaved(tool, scope, values);
       return bootstrap();
     },
     settingsForScope: async (scope) => wireClone(settings[scope]),
