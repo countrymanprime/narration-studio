@@ -442,7 +442,8 @@ describe('golden payloads written by the Go host and the Python sidecars', () =>
   it("every mock arm, record start and record stop passes the schema and agrees with the host's golden for the same REAPER state", async () => {
     const golden = z.record(z.string(), readAloudRecordingSchema).parse(readGolden('read-aloud-recordings.json'));
     for (const seed of MOCK_REAPER_SEEDS) {
-      const api = createMockApi({}, { reaperState: seed });
+      // Record is switched on in the mock DAW, so the seed alone decides what the host would answer.
+      const api = createMockApi({}, { reaperState: seed, daw: { toggles: { record: 'on' } } });
       const [chapter] = await api.manuscriptChapters();
       const armed = await api.readAloudArmOnly(chapter.id);
       const started = await api.readAloudRecordStart(chapter.id);
@@ -463,7 +464,7 @@ describe('golden payloads written by the Go host and the Python sidecars', () =>
     const golden = z.record(z.string(), readAloudRecordingSchema).parse(readGolden('readaloud-record-start-at.json'));
     Object.entries(golden).forEach(([name, result]) => expectMatches(readAloudRecordingSchema, result, `host record start at ${name}`));
 
-    const api = createMockApi();
+    const api = createMockApi({}, { daw: { toggles: { record: 'on' } } });
     const [chapter] = await api.manuscriptChapters();
     const started = await api.readAloudRecordStartAt(chapter.id, 30);
     expectMatches(readAloudRecordingSchema, started, 'mock record start at');
@@ -471,7 +472,7 @@ describe('golden payloads written by the Go host and the Python sidecars', () =>
     for (const at of [-1, Number.NaN, Number.POSITIVE_INFINITY]) {
       expect(await api.readAloudRecordStartAt(chapter.id, at)).toEqual(golden.bad_time);
     }
-    const unlinked = await createMockApi({}, { reaperState: 'no_link' }).readAloudRecordStartAt(chapter.id, 30);
+    const unlinked = await createMockApi({}, { reaperState: 'no_link', daw: { toggles: { record: 'on' } } }).readAloudRecordStartAt(chapter.id, 30);
     expect([unlinked.outcome, unlinked.reason]).toEqual([golden.no_link.outcome, golden.no_link.reason]);
   });
 

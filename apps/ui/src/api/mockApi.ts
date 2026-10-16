@@ -16,6 +16,7 @@ import { createStagesMock } from './stagesMock';
 import { createProofingRenderMock } from './proofingRenderMock';
 import { createDawChoiceMock } from './dawChoiceMock';
 import { createDawMock } from './dawMock';
+import type { RecordingApi } from './contracts/recording';
 import { createProvidersMock } from './providersMock';
 import { createMasteringMock } from './masteringMock';
 import { createRecordingMock } from './recordingMock';
@@ -130,8 +131,17 @@ export function createMockApi(
   const s = createMockState(initial);
   const { endJob } = s;
   const update = createUpdateMock(initial);
-  const project = createProjectMock(initial);
-  const settings = createSettingsMock(() => base.bootstrap());
+  // The mock DAW is stateful (dawMock.ts): the project's launch, the saved settings, the engine choice and the Booth's take all move it.
+  const dawMock = createDawMock(initial.daw, initial.dawScript);
+  const { control: dawControl, ...daw } = dawMock;
+  const project = createProjectMock(initial, {
+    launch: () => dawControl.launch(),
+    linked: initial.dawChoice ? (initial.dawChoice.linkedFile === undefined ? true : initial.dawChoice.linkedFile !== null) : undefined,
+  });
+  const settings = createSettingsMock(
+    () => base.bootstrap(),
+    (tool, _scope, values) => dawControl.settingsSaved(tool, values),
+  );
   const manuscript = createManuscriptMock(s, initial, { withMeasurement: (chapter) => withMeasurement(chapter) });
   const { manuscriptReady } = manuscript;
   const credits = createCreditsMock(s, initial, { settings: settings.settings, manuscriptReady });
@@ -161,6 +171,7 @@ export function createMockApi(
     ...(initial.reaperState ? { reaper: initial.reaperState } : {}),
     ...(initial.reaperInput ? { reaperInput: initial.reaperInput } : {}),
     resume: initial.resume,
+    dawRecord: (kind) => dawControl.record(kind),
   });
   const {
     withMeasurement,
@@ -188,12 +199,25 @@ export function createMockApi(
   };
   const workspace = createWorkspaceMock(workspaceDeps);
   const preview = createPreviewMock({ chapters: () => s.chapters, paragraphs: () => s.paragraphs }, initial.preview);
-  const daw = createDawMock(initial.daw);
   const providers = createProvidersMock(initial.providers);
   const mastering = createMasteringMock(initial.mastering);
   // The engine chip's `?mockEngine=builtin` flag seeds the recorder's engine, so the chip and the Booth agree (ADR 0455).
-  const recording = createRecordingMock({ engine: mockEngineFromLocation(), ...initial.recording });
-  const dawChoice = createDawChoiceMock(initial.dawChoice ?? {}, { capabilities: () => daw.dawCapabilities(), recording });
+  const recorder = createRecordingMock({ engine: mockEngineFromLocation(), ...initial.recording });
+  // Choosing the built-in recorder or a DAW moves the DAW port too, as the host's Recording.engine does.
+  const recording: RecordingApi = {
+    ...recorder,
+    recorderChooseEngine: async (engine) => {
+      const state = await recorder.recorderChooseEngine(engine);
+      dawControl.engineChosen(engine);
+      return state;
+    },
+  };
+  const dawChoice = createDawChoiceMock(initial.dawChoice ?? {}, {
+    capabilities: () => daw.dawCapabilities(),
+    recording,
+    link: { linked: () => project.dawFileLinked(), set: (linked) => project.setDawFileLinked(linked) },
+    bridge: () => dawControl.facts().bridge,
+  });
   // The per-chapter editing source choice: shared between the stages mock (which signal a chapter's editing
   // check reads) and the editing mock (editingSourceChoice/editingSetSourceChoice below), so switching a chapter's
   // source there is visible on its editing signals here, the same live wiring a real host has through the same
@@ -282,6 +306,7 @@ export function createMockApi(
     project,
     transcript: proofing.transcript,
     dictionaryState: assets.dictionaryState,
+    dawFacts: () => dawControl.facts(),
   });
   // The mock DAW's undo history: the edits below leave their labels on it (recordingUndo), and DawLastAction and DawUndoLast read it.
   const undoHistory = new MockUndoHistory();
@@ -416,6 +441,8 @@ export function createMockApi(
   const recorded: NarrationApi = { ...base, ...recordingUndo(base, undoHistory) };
   const api = initial.invalidPayload ? { ...recorded, ...invalidPayloadOverrides(initial.invalidPayload, recorded) } : recorded;
   const final: NarrationApi = { ...api, ...overrides };
+  // A driver (Playwright, a console) plays REAPER's side of the mock DAW from here: kill it, restart it, open another project.
+  if (typeof window !== 'undefined') window.__NARRATION_MOCK_DAW__ = dawControl;
   return final;
 }
 

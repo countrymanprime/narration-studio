@@ -149,6 +149,8 @@ type Deps = {
   reaper?: MockReaperSeed;
   /** `?mockReaperInput=`: what `teleprompterReaperInput` answers; unset, REAPER records from the first microphone listed. */
   reaperInput?: MockReaperInputSeed;
+  /** The mock DAW's record gate (dawMock.ts): a start or stop it refuses is refused here with its sentence; one it allows moves the transport. */
+  dawRecord?: (kind: 'start' | 'stop') => { reason: 'standalone' | 'experimental_off' | 'unlinked' | 'unavailable'; message: string } | null;
 };
 
 const MOCK_REAPER_TRACK = '{11111111-1111-4111-8111-111111111111}';
@@ -693,6 +695,8 @@ export function createTeleprompterMock(deps: Deps): TeleprompterApi {
       await deps.ready;
       const chapter = findChapter(chapterId);
       if (!chapter) throw new Error('that chapter is not part of the current manuscript');
+      const gate = deps.dawRecord?.('start');
+      if (gate) return { outcome: 'refused', reason: gate.reason === 'unavailable' ? 'failed' : gate.reason, message: gate.message };
       return mockReadAloudRecording(deps.reaper ?? 'ready', 'start', chapterDisplayTitle(chapter));
     },
     // ReadAloudRecordStartAt checks the time before anything else, then answers as a start does, from the punch.
@@ -701,11 +705,15 @@ export function createTeleprompterMock(deps: Deps): TeleprompterApi {
       if (!Number.isFinite(at) || at < 0) return { outcome: 'refused', reason: 'bad_time', message: DAW_ANSWERS.recordBadTime };
       const chapter = findChapter(chapterId);
       if (!chapter) throw new Error('that chapter is not part of the current manuscript');
+      const gate = deps.dawRecord?.('start');
+      if (gate) return { outcome: 'refused', reason: gate.reason === 'unavailable' ? 'failed' : gate.reason, message: gate.message };
       const started = mockReadAloudRecording(deps.reaper ?? 'ready', 'start', chapterDisplayTitle(chapter));
       return started.outcome === 'started' ? { ...started, position: at, message: recordingFromAnswer(at) } : started;
     },
     readAloudRecordStop: async () => {
       await deps.ready;
+      const gate = deps.dawRecord?.('stop');
+      if (gate) return { outcome: 'refused', reason: gate.reason === 'unavailable' ? 'failed' : gate.reason, message: gate.message };
       return mockReadAloudRecording(deps.reaper ?? 'ready', 'stop', '');
     },
     teleprompterLocate: async (chapterId, options) => {

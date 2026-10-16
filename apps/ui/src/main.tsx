@@ -1,4 +1,5 @@
 import { DAW_CHOICE_MOCK_SEEDS, type DawChoiceMockName } from './api/dawChoiceMock';
+import { DAW_MOCK_SCRIPTS, type DawMockControl } from './api/dawMock';
 import React from 'react';
 import { createRoot } from 'react-dom/client';
 import { App } from './App';
@@ -34,6 +35,7 @@ const commandInputSource = combineSources(createKeyboardSource(), midiSource, hi
 declare global {
   interface Window {
     __NARRATION_MOCK_OVERRIDES__?: Parameters<typeof createMockApi>[0];
+    __NARRATION_MOCK_DAW__?: DawMockControl;
   }
 }
 // Production is a native Wails window. Browser use is supported only through
@@ -68,6 +70,11 @@ const mockDawExperimentalOn = mockParams.has('mockDawExperimentalOn');
 // leaves out REAPER's take management (Go to/Loop/Add marker, take review, take comparison), which has no
 // Audacity analog, while everything else about a finding works the same.
 const mockDawAudacity = mockParams.get('mockDaw') === 'Audacity';
+// `?mockDaw=live|late|quiet|different|refuse|restart` boots a fresh machine (REAPER not connected, no project file linked) with a mock DAW that
+// moves like the host's: linking, the launcher, a saved setting, the engine choice, a heartbeat and a take each change what the Booth sees. The
+// value is what REAPER does once the app starts it (dawMock.ts). A Playwright driver plays the rest through window.__NARRATION_MOCK_DAW__.
+const mockDawScriptParam = mockParams.get('mockDaw');
+const mockDawScript = DAW_MOCK_SCRIPTS.find((script) => script === mockDawScriptParam);
 // `?mockDawChoice=found|several|linked|not-running|not-installed` seeds the project's DAW choice (dawChoiceMock.ts) and, for every
 // one, a REAPER that is not answering: Settings > Recording's link and start rows and the Booth chip's states, without a host.
 const mockDawChoiceName = mockParams.get('mockDawChoice');
@@ -548,6 +555,7 @@ const mockInitial = {
   ...(mockProofingRenderStale ? { proofingRender: { [WIRE_CHAPTERS[8].id]: { state: 'stale' as const } } } : {}),
   ...(mockDawExperimentalOn ? { daw: { experimentalOn: true } } : {}),
   ...(mockDawAudacity ? { daw: { daw: 'Audacity' as const } } : {}),
+  ...(mockDawScript ? { dawScript: mockDawScript, daw: { connected: false }, dawFileLinked: false } : {}),
   ...(mockDawChoice
     ? {
         dawChoice: DAW_CHOICE_MOCK_SEEDS[mockDawChoice],

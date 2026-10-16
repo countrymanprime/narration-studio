@@ -15,7 +15,7 @@ function basename(path: string): string {
 }
 
 /** The project bindings: the open project, the recent list, the linked DAW project file and the DAW catalog. */
-export function createProjectMock(initial: MockApiSeed) {
+export function createProjectMock(initial: MockApiSeed, daws: { launch: () => Promise<void>; linked?: boolean } = { launch: async () => {} }) {
   let projectFolder = initial.projectFolder ?? DEFAULT_PROJECT_FOLDER;
   let projectName = initial.projectFolder === undefined ? DEFAULT_PROJECT_NAME : basename(projectFolder);
   let daw = 'REAPER';
@@ -23,7 +23,7 @@ export function createProjectMock(initial: MockApiSeed) {
   // computes this from the manifest, not the label. Defaults to true so the existing default-linked mock scenarios
   // (App.test.tsx clicking into Proofing) keep working; attaching a different project resets it, like a fresh
   // project would have no link yet.
-  let dawFileLinked = initial.dawFileLinked ?? true;
+  let dawFileLinked = initial.dawFileLinked ?? daws.linked ?? true;
   let dawRppPath = `${projectFolder}/${basename(projectFolder)}.rpp`;
   // Independent of dawFileLinked/dawReachable: a detection fact about the machine, not about this
   // project's link (docs/architecture/daw-integration.md). Defaults to true so the default capture shows
@@ -82,9 +82,11 @@ export function createProjectMock(initial: MockApiSeed) {
       }
       return { selected: true, linked: true, path: dawRppPath, insideProject: true };
     },
-    // The mock never grows a real heartbeat (dawReachable stays whatever Bootstrap already reports; the live heartbeat of
-    // ADR 0092 exists only in the host and the Lua bridge): this just answers as if REAPER accepted the launch.
-    launchDaw: async () => ({ launched: true, path: 'C:/Program Files/REAPER (x64)/reaper.exe', source: 'uninstall_registry' }),
+    // The launch hands over to the mock DAW (dawMock.ts), whose script decides whether and when a heartbeat follows (`?mockDaw=`).
+    launchDaw: async () => {
+      await daws.launch();
+      return { launched: true, path: 'C:/Program Files/REAPER (x64)/reaper.exe', source: 'uninstall_registry' };
+    },
     dawCatalogList: async () => wireClone(DAW_CATALOG),
     dawCatalogOpenDownloadPage: async (id) => {
       if (!DAW_CATALOG.some((entry) => entry.id === id)) throw new Error(`Unknown DAW catalog entry "${id}"`);
@@ -98,6 +100,9 @@ export function createProjectMock(initial: MockApiSeed) {
     projectName: () => projectName,
     daw: () => daw,
     dawFileLinked: () => dawFileLinked,
+    setDawFileLinked: (linked: boolean) => {
+      dawFileLinked = linked;
+    },
   };
 }
 
