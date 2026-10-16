@@ -879,6 +879,7 @@ export function GuideDetail({
                 aria-controls={aliasMatches.length > 0 ? ALIAS_MATCHES_ID : undefined}
                 aria-activedescendant={aliasMatches[aliasActiveIndex] ? listboxOptionId(ALIAS_MATCHES_ID, aliasMatches[aliasActiveIndex].id) : undefined}
                 disabled={editingDisabled}
+                className="disabled:cursor-not-allowed disabled:opacity-60"
                 value={aliasQuery}
                 onChange={(value) => {
                   setAliasQuery(value);
