@@ -3,7 +3,8 @@ import type { DawCapabilities, DawProjectState } from '../../../api/contracts/da
 import type { ReadAloudReaperReason, ReadAloudReaperStatus } from '../../../api/contracts/teleprompter';
 import { usePort } from '../../../ports/usePort';
 import { describeApiError } from '../../../api/errorMessage';
-import { recordCheck, type ChapterRecordState } from './recordCheck';
+import { recordCheck, type ChapterRecordState, type OpenProject } from './recordCheck';
+import type { RecordSetupFacts } from './recordSetup';
 
 /** How often the Booth asks the DAW again while Record cannot start or the last read failed: a lost event must not leave a notice up for ever. */
 export const POLL_MS = 4000;
@@ -33,8 +34,10 @@ export type RecordControlState = {
   checkedAt: number | null;
   /** True while the last read failed: the picture above is then the last one heard, not the DAW's answer now. */
   readFailed: boolean;
-  /** How many reads have been asked for; things that depend on the same facts (the link state) read again when it changes. */
-  reads: number;
+  /** The host's link facts for the setup steps (whether a project file is linked, where the launcher file is), read with the capabilities. */
+  facts: RecordSetupFacts;
+  /** True while the last read of those facts failed; `facts` is then the last heard, and nothing is concluded from it. */
+  factsFailed: boolean;
 };
 
 /** The sentence for a DAW that has gone quiet: what the Booth can and cannot tell, and the way out. */
@@ -57,6 +60,7 @@ export const stoppedInDaw = (daw: string | undefined) =>
  */
 export function useRecordControl({ chapterId, notify }: { chapterId: string; notify: (sentence: string) => void }): RecordControlState {
   const daw = usePort('daw');
+  const system = usePort('system');
   const teleprompter = usePort('teleprompter');
   const [capabilities, setCapabilities] = useState<DawCapabilities | null>(null);
   const [project, setProject] = useState<DawProjectState | null>(null);
@@ -104,6 +108,31 @@ export function useRecordControl({ chapterId, notify }: { chapterId: string; not
     };
   }, [daw, reads]);
   const refresh = useCallback(() => setReads((n) => n + 1), []);
+
+  // The link facts the setup steps and the wrong-project refusal read, re-read with every capability read and when the DAW's reachability changes.
+  const [link, setLink] = useState<{ facts: RecordSetupFacts; open: OpenProject; failed: boolean }>({
+    facts: { dawFileLinked: false, launcherPath: '' },
+    open: 'unknown',
+    failed: false,
+  });
+  const reachable = capabilities?.reachable;
+  useEffect(() => {
+    let live = true;
+    system
+      .bootstrap()
+      .then((data) => {
+        if (!live) return;
+        const facts = { dawFileLinked: data.dawFileLinked, launcherPath: data.runtime.Reaper?.launcherPath ?? '' };
+        // The host reports "does not match" as false while nothing is linked or the DAW is silent: only a linked, heard DAW that disagrees is a refusal.
+        const open: OpenProject = !data.dawFileLinked || !data.dawReachable ? 'unknown' : data.dawProjectMatches ? 'same' : 'different';
+        setLink({ facts, open, failed: false });
+      })
+      // A failed read keeps what was last heard and says it failed: it never turns a linked project into "not linked" or a refusal.
+      .catch(() => live && setLink((last) => ({ ...last, failed: true })));
+    return () => {
+      live = false;
+    };
+  }, [system, reads, reachable]);
   const unready = !capabilities || !!capabilities.capabilities.record?.available === false || readFailed;
   useEffect(() => {
     const again = () => setReads((n) => n + 1);
@@ -160,7 +189,7 @@ export function useRecordControl({ chapterId, notify }: { chapterId: string; not
   }, [teleprompter, chapterId, readsTracks]);
 
   const chapter: ChapterRecordState = match?.chapterId === chapterId ? match : { tracks: 'unread', message: '' };
-  const check = capabilities ? recordCheck(capabilities, chapter) : null;
+  const check = capabilities ? recordCheck(capabilities, chapter, link.open) : null;
   const shown = refused?.chapterId === chapterId ? refused.sentence : '';
   // Never read at all: Record is off, not silently on. Read once and quiet since: the last answer stands but is not given as fact.
   const blind = !capabilities && readFailed;
@@ -212,6 +241,7 @@ export function useRecordControl({ chapterId, notify }: { chapterId: string; not
     checkAgain: refresh,
     checkedAt,
     readFailed,
-    reads,
+    facts: link.facts,
+    factsFailed: link.failed,
   };
 }

@@ -7,16 +7,27 @@ export type ChapterRecordState = {
   message: string;
 };
 
-export type RecordRefusal = { code: 'capability' | 'no_track' | 'several_tracks'; reason: string };
+/** Whether the project the DAW has open is the one linked here. `unknown` while nothing is linked or the DAW has not been heard (the host reports no match then). */
+export type OpenProject = 'same' | 'different' | 'unknown';
+
+export type RecordRefusal = { code: 'capability' | 'wrong_project' | 'no_track' | 'several_tracks'; reason: string };
 
 /**
  * Why Record cannot start in this chapter, or null. Every sentence is the capability's own or the host's refusal, none is
  * worded here. A chapter has to have exactly one track only when the setup reads tracks (`track_state`); a setup that records
  * without a project has no track to count. A new refusal is another capability or another host sentence, not a new branch.
  */
-export function recordCheck(capabilities: DawCapabilities, chapter: ChapterRecordState): RecordRefusal | null {
+export function recordCheck(capabilities: DawCapabilities, chapter: ChapterRecordState, openProject: OpenProject = 'unknown'): RecordRefusal | null {
   const record = capabilities.capabilities.record;
   if (!record?.available) return { code: 'capability', reason: record?.message ?? '' };
+  // A take goes into the project the DAW has open: if that is not the linked one it would land in the wrong project, so say so before it does.
+  if (openProject === 'different') {
+    const name = capabilities.daw === 'none' ? 'The DAW' : capabilities.daw;
+    return {
+      code: 'wrong_project',
+      reason: `${name} has a different project open than the one linked here. Open the linked project in ${name}, or link the open one in Settings.`,
+    };
+  }
   if (!capabilities.capabilities.track_state?.available) return null;
   if (chapter.tracks === 'none') return { code: 'no_track', reason: chapter.message };
   if (chapter.tracks === 'several') return { code: 'several_tracks', reason: chapter.message };

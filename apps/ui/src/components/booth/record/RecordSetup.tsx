@@ -6,32 +6,6 @@ import { Button } from '../../primitives/Button';
 import { InsetCard } from '../../primitives/InsetCard';
 import { recordSetupFor, type RecordSetupFacts, type RecordSetupPlan } from './recordSetup';
 
-const NO_FACTS: RecordSetupFacts = { dawFileLinked: false, launcherPath: '' };
-
-export type RecordSetupFactsRead = { facts: RecordSetupFacts; failed: boolean };
-
-/**
- * The host's link facts for the setup steps: whether an .rpp is linked and where the launcher file is. They are read when the Booth
- * opens and again whenever the DAW's reachability changes or `reads` does (a Check again, a focus, a timed read), since a project linked
- * or the app attached by the DAW changes them. A read that fails keeps the facts last heard and says it failed: it never turns a linked
- * project into "not linked".
- */
-export function useRecordSetupFacts(reachable: boolean | undefined, reads = 0): RecordSetupFactsRead {
-  const system = usePort('system');
-  const [read, setRead] = useState<RecordSetupFactsRead>({ facts: NO_FACTS, failed: false });
-  useEffect(() => {
-    let live = true;
-    system
-      .bootstrap()
-      .then((data) => live && setRead({ facts: { dawFileLinked: data.dawFileLinked, launcherPath: data.runtime.Reaper?.launcherPath ?? '' }, failed: false }))
-      .catch(() => live && setRead((last) => ({ facts: last.facts, failed: true })));
-    return () => {
-      live = false;
-    };
-  }, [system, reachable, reads]);
-  return read;
-}
-
 /** Seconds since `at`, re-rendered every second while mounted; null when there is no time. */
 function useSecondsSince(at: number | null | undefined): number | null {
   const [now, setNow] = useState(() => Date.now());

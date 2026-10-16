@@ -8,6 +8,7 @@ import { createMockApi } from '../../../api/mockApi';
 import { DAW_SETUPS } from '../../../fixtures/daw';
 import type { DawClient } from '../../../ports/daw';
 import { PortOverrides } from '../../../ports/usePort';
+import type { NarrationApi } from '../../../types';
 import { dawClientFor } from './fixtures';
 import { POLL_MS, useRecordControl } from './useRecordControl';
 
@@ -49,11 +50,11 @@ function liveDaw(initial: DawCapabilities | 'fail') {
   return { client, reads, set: (next: DawCapabilities | 'fail') => (truth = next), emit: (next: DawCapabilities) => emit(next) };
 }
 
-function mount(initial: DawCapabilities | 'fail') {
+function mount(initial: DawCapabilities | 'fail', api = createMockApi()) {
   const daw = liveDaw(initial);
   const notify = vi.fn();
   const wrapper = ({ children }: { children: ReactNode }) => (
-    <ApiProvider api={createMockApi()}>
+    <ApiProvider api={api}>
       <PortOverrides clients={{ daw: daw.client }}>{children}</PortOverrides>
     </ApiProvider>
   );
@@ -162,5 +163,60 @@ describe('Record follows the DAW through every way the heartbeat can go wrong', 
     const settled = daw.reads.count;
     await act(() => vi.advanceTimersByTimeAsync(POLL_MS * 5));
     expect(daw.reads.count).toBe(settled);
+  });
+});
+
+describe('Record against the project the DAW has open', () => {
+  beforeEach(() => vi.useFakeTimers({ shouldAdvanceTime: true }));
+
+  const link = async (facts: { dawFileLinked: boolean; dawReachable: boolean; dawProjectMatches: boolean }) => ({
+    ...(await createMockApi().bootstrap()),
+    ...facts,
+  });
+  const apiWith = (facts: Parameters<typeof link>[0] | 'fail') =>
+    createMockApi({ bootstrap: async () => (facts === 'fail' ? Promise.reject(new Error('no answer')) : link(facts)) } as Partial<NarrationApi>);
+
+  it('a different project open in the DAW than the linked one: Record is off and says so, naming the way out', async () => {
+    const daw = mount(CONNECTED, apiWith({ dawFileLinked: true, dawReachable: true, dawProjectMatches: false }));
+    await waitFor(() => expect(daw.result.current.disabled).toBe(true));
+    expect(daw.result.current.reason).toMatch(/different project/i);
+    expect(daw.result.current.reason).toMatch(/link|open/i);
+  });
+
+  it('the linked project is the open one: Record is on', async () => {
+    const daw = mount(CONNECTED, apiWith({ dawFileLinked: true, dawReachable: true, dawProjectMatches: true }));
+    await waitFor(() => expect(daw.result.current.facts.dawFileLinked).toBe(true));
+    expect(daw.result.current.disabled).toBe(false);
+  });
+
+  it('nothing is linked or the DAW is not heard yet: "does not match" is unknown, not a refusal', async () => {
+    for (const facts of [
+      { dawFileLinked: false, dawReachable: true, dawProjectMatches: false },
+      { dawFileLinked: true, dawReachable: false, dawProjectMatches: false },
+    ]) {
+      const daw = mount(CONNECTED, apiWith(facts));
+      await waitFor(() => expect(daw.result.current.capabilities).not.toBeNull());
+      await act(() => vi.advanceTimersByTimeAsync(20));
+      expect(daw.result.current.disabled).toBe(false);
+      daw.unmount();
+    }
+  });
+
+  it('the link state cannot be read: Record is not refused for it, and the failure is exposed', async () => {
+    const daw = mount(CONNECTED, apiWith('fail'));
+    await waitFor(() => expect(daw.result.current.factsFailed).toBe(true));
+    expect(daw.result.current.disabled).toBe(false);
+  });
+
+  it('the narrator opens the right project: the next read lifts the refusal', async () => {
+    let matches = false;
+    const api = createMockApi({
+      bootstrap: async () => link({ dawFileLinked: true, dawReachable: true, dawProjectMatches: matches }),
+    } as Partial<NarrationApi>);
+    const daw = mount(CONNECTED, api);
+    await waitFor(() => expect(daw.result.current.disabled).toBe(true));
+    matches = true;
+    act(() => daw.result.current.checkAgain());
+    await waitFor(() => expect(daw.result.current.disabled).toBe(false));
   });
 });

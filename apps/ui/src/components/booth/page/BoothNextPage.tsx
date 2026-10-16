@@ -31,7 +31,7 @@ import { CREDITS_LABEL } from '../readerModel';
 import { BoothText } from '../reading/BoothText';
 import { wordCount } from '../reading/boothUnits';
 import { RecordControl } from '../record/RecordControl';
-import { RecordSetup, useRecordSetupFacts } from '../record/RecordSetup';
+import { RecordSetup } from '../record/RecordSetup';
 import { SetupChip } from '../record/SetupChip';
 import { useDawChoice } from '../record/useDawChoice';
 import { ResumeOfferLine } from '../resume/ResumeOffer';
@@ -341,7 +341,6 @@ function BoothSession({ source, from, requested, adopt, data, choose, navigate, 
   const capabilities = control.capabilities;
   const dawChoice = useDawChoice();
   const roomTone = useRoomTone(measurements, session.device);
-  const setupFacts = useRecordSetupFacts(capabilities?.reachable, control.reads);
   const standalone = capabilities?.daw === 'none';
   const listening = useListeningMic({
     dawRecords: !!capabilities && !standalone,
@@ -465,8 +464,8 @@ function BoothSession({ source, from, requested, adopt, data, choose, navigate, 
           {capabilities && !control.recording ? (
             <RecordSetup
               capabilities={capabilities}
-              facts={setupFacts.facts}
-              factsFailed={setupFacts.failed}
+              facts={control.facts}
+              factsFailed={control.factsFailed}
               checkedAt={control.checkedAt}
               readFailed={control.readFailed}
               onCheckAgain={control.checkAgain}
