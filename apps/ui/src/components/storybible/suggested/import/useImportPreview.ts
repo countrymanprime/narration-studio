@@ -1,8 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import type { ExtractionImportPlan, ImportFormat } from '../../../../api/contracts/extraction';
-import { apiErrorMessage } from '../../../../api/errorMessage';
 import { usePort } from '../../../../ports/usePort';
-import { PREVIEW_DEBOUNCE_MS } from './importModel';
+import { PREVIEW_DEBOUNCE_MS, readableFailure } from './importModel';
 
 export type ImportPreview = {
   plan?: ExtractionImportPlan;
@@ -26,9 +25,16 @@ export function useImportPreview(text: string, hint?: ImportFormat): ImportPrevi
       port
         .extractionImportPreview(text, hint)
         .then((plan) => ask === latest.current && setState({ plan, for: text + '\u0000' + (hint ?? '') }))
-        .catch((error: unknown) => ask === latest.current && setState({ problem: apiErrorMessage(error), for: text + '\u0000' + (hint ?? '') }));
+        .catch(
+          (error: unknown) =>
+            ask === latest.current && setState({ problem: readableFailure(error, 'The host did not say why.'), for: text + '\u0000' + (hint ?? '') }),
+        );
     }, PREVIEW_DEBOUNCE_MS);
-    return () => clearTimeout(timer);
+    return () => {
+      clearTimeout(timer);
+      // Closing the dialog (or typing on) leaves any answer still on its way with nowhere to land.
+      latest.current += 1;
+    };
   }, [port, text, hint, blank]);
 
   if (blank) return { waiting: false };

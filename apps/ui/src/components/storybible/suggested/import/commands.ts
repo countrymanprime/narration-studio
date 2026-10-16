@@ -4,6 +4,7 @@
 
 import type { ExtractionApi, ExtractionImportResult, ImportFormat } from '../../../../api/contracts/extraction';
 import type { Journal, Result } from '../../../../studio/journal/createJournal';
+import { readableFailure } from './importModel';
 
 export type ImportEnv = {
   journal: Pick<Journal, 'act'>;
@@ -14,7 +15,7 @@ export type ImportEnv = {
 
 const refusal = (error: unknown, fallback: string): { ok: false; refusal: { code: string; reason: string } } => ({
   ok: false,
-  refusal: { code: 'host-refused', reason: error instanceof Error ? error.message : fallback },
+  refusal: { code: 'host-refused', reason: readableFailure(error, fallback) },
 });
 
 /** Adds what the host's plan of `text` adds or merges. Only the text and the format hint cross; never a file name or path. */
