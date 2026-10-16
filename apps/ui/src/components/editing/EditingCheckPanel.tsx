@@ -17,6 +17,7 @@ import { formatWhen } from '../production/recordingCheckText';
 import { formatAge, SIGNAL_STATE_LABEL } from '../stages/stageText';
 import { CleanupAction } from './CleanupAction';
 import { EDITING_CLASSES, EDITING_CLASS_LABEL, EDITING_SIGNAL_ID, PROCESSED_AUDIO_CAVEAT, candidateClass } from './editingCheckText';
+import { addressPath } from '../../navigation/address';
 
 /** The host's own refusal sentences (apps/desktop/internal/editing/service.go), for a reason the mapping prompt
  * below does not already explain in place. */
@@ -344,7 +345,7 @@ export function EditingCheckPanel({ chapter, notify, close }: { chapter: Manuscr
         </div>
 
         <p>
-          <Link className="font-semibold underline" to={`/editing/${encodeURIComponent(chapter.id)}?drawer=cleanup`} onClick={close}>
+          <Link className="font-semibold underline" to={addressPath({ page: 'editing', chapter: chapter.id, drawer: 'cleanup' })} onClick={close}>
             Clean up in Editing
           </Link>{' '}
           <span style={{ color: 'var(--text-muted)' }}>to hear each candidate and trim, keep or skip it.</span>

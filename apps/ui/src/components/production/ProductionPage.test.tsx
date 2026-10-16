@@ -26,7 +26,11 @@ afterEach(() => {
 
 type Initial = Parameters<typeof createMockApi>[1];
 
-async function renderPage({ overrides = {}, initial = {} }: { overrides?: Partial<NarrationApi>; initial?: Initial } = {}) {
+async function renderPage({
+  overrides = {},
+  initial = {},
+  onManuscriptChanged,
+}: { overrides?: Partial<NarrationApi>; initial?: Initial; onManuscriptChanged?: () => void } = {}) {
   const api = createMockApi(overrides, initial);
   const data = await api.bootstrap();
   const onOverview = vi.fn();
@@ -46,6 +50,7 @@ async function renderPage({ overrides = {}, initial = {} }: { overrides?: Partia
             goToBooth={goToBooth}
             refreshBootstrap={async () => {}}
             onOverview={onOverview}
+            onManuscriptChanged={onManuscriptChanged}
           />
         </TooltipProvider>
         <OverlayHost />
@@ -201,6 +206,21 @@ describe('the row menu keeps the features the mock has none for', () => {
       expect(labels).toContain(label);
     }
     expect(labels.some((label) => label.startsWith('Set status: '))).toBe(true);
+  });
+
+  it('says the manuscript changed after a chapter status is set, so other pages read the chapter list again', async () => {
+    const onManuscriptChanged = vi.fn();
+    await renderPage({ onManuscriptChanged });
+    const table = await pipeline();
+    const row = within(table).getAllByRole('row')[2];
+    await waitFor(() => expect(contextItemsFor(row)?.find((item) => item.label.startsWith('Set status: '))).toBeTruthy());
+    const baseline = onManuscriptChanged.mock.calls.length;
+    await act(async () =>
+      contextItemsFor(row)
+        ?.find((item) => item.label.startsWith('Set status: '))
+        ?.onSelect(),
+    );
+    await waitFor(() => expect(onManuscriptChanged.mock.calls.length).toBeGreaterThan(baseline));
   });
 
   it('opens the recording check from the row menu', async () => {

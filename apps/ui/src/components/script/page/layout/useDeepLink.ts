@@ -9,6 +9,17 @@ import { isListableChapter } from '../../../../state';
 
 type Target = { chapterId: string; paragraphId?: string } | 'reference' | null;
 
+const safeDecode = (text: string): string | null => {
+  try {
+    return decodeURIComponent(text);
+  } catch {
+    return null;
+  }
+};
+
+/** Whether a hash is shaped like a paragraph or chapter link (and not the credits cards' or another anchor). */
+export const isDeepLinkShaped = (hash: string): boolean => /^#p\d+$/.test(hash) || (hash.startsWith('#c') && !hash.startsWith('#credits-'));
+
 /** What a hash points at among every chapter the host lists, reference chapters included; null for a hash that is not a deep link. */
 export function deepLinkTarget(hash: string, chapters: readonly ManuscriptChapter[]): Target {
   let chapter: ManuscriptChapter | undefined;
@@ -18,8 +29,8 @@ export function deepLinkTarget(hash: string, chapters: readonly ManuscriptChapte
     chapter = chapters.find((item) => item.paragraphIds?.some((row) => row.index === index));
     paragraphId = chapter?.paragraphIds?.find((row) => row.index === index)?.id;
   } else if (hash.startsWith('#c') && !hash.startsWith('#credits-')) {
-    const wanted = decodeURIComponent(hash.slice(2));
-    chapter = chapters.find((item) => item.id === wanted) ?? chapters.find((item) => item.title === wanted);
+    const wanted = safeDecode(hash.slice(2));
+    if (wanted !== null) chapter = chapters.find((item) => item.id === wanted) ?? chapters.find((item) => item.title === wanted);
   }
   if (!chapter) return null;
   if (!isListableChapter(chapter)) return 'reference';
@@ -46,7 +57,15 @@ export function useDeepLink({
     }
     if (handled.current === hash) return;
     const target = deepLinkTarget(hash, chapters);
-    if (target === null) return;
+    if (target === null) {
+      // A link shaped like a chapter or line that the manuscript lacks (removed since the link was made) is said so, once the list is read:
+      // before then an empty list would call every link stale.
+      if (!isDeepLinkShaped(hash) || chapters.length === 0) return;
+      handled.current = hash;
+      notify("That link points to a chapter or line that isn't in this manuscript.");
+      navigate('/script', { replace: true });
+      return;
+    }
     handled.current = hash;
     if (target === 'reference') notify("That link points to reference material, which isn't shown in the manuscript reader.");
     else goTo(target);

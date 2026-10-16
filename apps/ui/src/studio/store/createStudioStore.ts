@@ -13,6 +13,11 @@ export type SlotConfig<S extends StandardSchemaV1 = StandardSchemaV1> = {
   load: () => Promise<unknown>;
   /** Host event names that make this slot stale. */
   events?: readonly string[];
+  /**
+   * In-app change topics that make this slot stale: a page that changed what this slot holds says so with `publish(topic)`, and every
+   * other page learns through the slot instead of through a patch of its own. Unlike `events`, nothing subscribes to the host for them.
+   */
+  topics?: readonly string[];
   /** Reload when the window regains focus. */
   refreshOnFocus?: boolean;
 };
@@ -43,6 +48,11 @@ export type StudioStore<R extends SlotRegistry> = {
   load(slot: keyof R & string): Promise<void>;
   /** Wires the host events and window focus to the slots; returns the stop function. */
   start(): () => void;
+  /**
+   * Says that something this app changed makes the slots listing `topic` stale, and reads each again now. A topic no slot lists does
+   * nothing. It needs no `start()`; a failed read is recorded and reported like any other, never thrown.
+   */
+  publish(topic: string): void;
   /** Empties every slot and drops loads still in flight (a project switch). */
   reset(): void;
 };
@@ -112,6 +122,9 @@ export function createStudioStore<R extends SlotRegistry>(options: StudioStoreOp
       return () => void listeners.delete(listener);
     },
     load,
+    publish(topic) {
+      for (const name of Object.keys(registry) as Array<keyof R & string>) if (registry[name]!.topics?.includes(topic)) refresh(name);
+    },
     start() {
       const byEvent = new Map<string, Array<keyof R & string>>();
       const onFocus: Array<keyof R & string> = [];

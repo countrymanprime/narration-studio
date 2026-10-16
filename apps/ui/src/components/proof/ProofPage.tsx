@@ -37,6 +37,7 @@ import { useSpotTakes } from './spot/useSpotTakes';
 import { useChapterTimeline } from './useChapterTimeline';
 import { useProofKeys } from './useProofKeys';
 import { useNoteContextMenu } from './useNoteContextMenu';
+import { addressPath } from '../../navigation/address';
 
 /** A pin's ink by the kind of note: a misread or a skip in red, a pickup or a repeat in amber, a name in blue, the rest muted. */
 const PIN_COLOUR: Record<string, string> = {
@@ -298,7 +299,7 @@ export function ProofPage({
   const chooseTile = useCallback(
     (id: string) => {
       const kind = creditsKindOfId(id);
-      if (kind) goTo(`/script#credits-${kind}`);
+      if (kind) goTo(addressPath({ page: 'script', credits: kind }));
       else choose(id);
     },
     [goTo, choose],

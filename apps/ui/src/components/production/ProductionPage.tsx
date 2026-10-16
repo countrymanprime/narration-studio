@@ -43,13 +43,14 @@ import { TargetInfoButton } from './target/TargetInfoButton';
 import { PIPELINE_AREA, useChapterTools } from './useChapterTools';
 import { useChapterSyncToast } from './useChapterSyncToast';
 import { usePipelineSources } from './usePipelineSources';
+import { addressPath } from '../../navigation/address';
 
 const DANGER = { color: 'var(--danger-text)' };
 
 type Load = { status: 'loading' } | { status: 'ready'; overview: ProductionOverview } | { status: 'error'; message: string };
 
 /** Proof on one chapter's notes (`?chapter=`), or on all of them. */
-const proofAt = (chapterId?: string) => (chapterId ? `/proof?chapter=${encodeURIComponent(chapterId)}` : '/proof');
+const proofAt = (chapterId?: string) => addressPath({ page: 'proof', chapter: chapterId });
 
 const isNarration = (chapter: { contentKind?: string }) => !chapter.contentKind || chapter.contentKind === 'narration';
 
@@ -111,6 +112,7 @@ export function ProductionPage({
   goToBooth,
   refreshBootstrap,
   onOverview,
+  onManuscriptChanged,
 }: {
   data: Bootstrap;
   go: (page: string) => void;
@@ -123,6 +125,8 @@ export function ProductionPage({
   refreshBootstrap: () => Promise<void>;
   /** Every overview this page reads, for the header's running-timer chip. */
   onOverview?: (overview: ProductionOverview) => void;
+  /** Says a chapter's status or kind changed here, so the chapter list other pages read is read again (`MANUSCRIPT_CHANGED`). */
+  onManuscriptChanged?: () => void;
 }) {
   const production = usePort('production');
   const chapterSyncPort = usePort('chapterSync');
@@ -192,12 +196,13 @@ export function ProductionPage({
   const onChanged = useCallback(() => {
     void read();
     void refreshStages();
-  }, [read, refreshStages]);
+    onManuscriptChanged?.();
+  }, [read, refreshStages, onManuscriptChanged]);
 
   const onGo = (target: GoTarget | OverviewTarget, chapterId?: string) => {
     // A credits row is not a chapter: Script opens its card, the Booth reads it, Editing's check is the credits panel, and Proof has no chapter for it.
     const credits = chapterId ? creditsKindOfId(chapterId) : undefined;
-    if (target === 'script') return credits ? go(`/script#credits-${credits}`) : chapterId ? goToScript(chapterId) : go('/script');
+    if (target === 'script') return credits ? go(addressPath({ page: 'script', credits })) : chapterId ? goToScript(chapterId) : go('/script');
     if (target === 'booth') return goToBooth(chapterId);
     if (target === 'editing') return credits ? tools.openCredits(credits) : chapterId ? tools.openEditingCheck(chapterId) : go('/editing');
     if (target === 'proof') return go(proofAt(credits ? undefined : chapterId));

@@ -10,6 +10,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '.
 import type { Notify } from '../primitives/Toast';
 import { chapterTrackRows, type ChapterLinkState } from './chapterTrackRows';
 import type { ManuscriptChapter, Track, TrackMapping } from '../../types';
+import { addressPath } from '../../navigation/address';
 
 const STATE_LABEL: Record<ChapterLinkState, string> = {
   linked: 'Linked',
@@ -106,7 +107,7 @@ export function ChapterLinksTable({ tracks, refreshKey, notify }: { tracks: Trac
                 {/* Editing is where a linked chapter is heard and edited; Proof's chapter view keeps its compare run and stage panels. */}
                 {row.state === 'linked' && (
                   <span className="flex flex-wrap gap-x-3">
-                    <Link className="text-sm font-semibold underline" to={`/editing/${encodeURIComponent(row.chapter.id)}`}>
+                    <Link className="text-sm font-semibold underline" to={addressPath({ page: 'editing', chapter: row.chapter.id })}>
                       Open in Editing
                     </Link>
                     <Link className="text-sm font-semibold underline" to={`/proof/${encodeURIComponent(row.chapter.id)}`}>

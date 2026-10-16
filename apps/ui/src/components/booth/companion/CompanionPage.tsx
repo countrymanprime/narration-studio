@@ -2,11 +2,11 @@ import { useEffect, useMemo, useState } from 'react';
 import { Navigate, useNavigate, useSearchParams } from 'react-router-dom';
 import { useApi } from '../../../api/ApiContext';
 import type { CreditsRenderResult, GuideEntity, ManuscriptChapter, ManuscriptNote } from '../../../types';
-import { boothQuery } from '../page/boothQuery';
 import type { BoothSource } from '../page/useBoothData';
 import type { CreditsKind } from '../readerModel';
 import { ACTIVE_PHASES } from '../useTeleprompterSession';
 import { CompanionHost } from './CompanionHost';
+import { addressPath } from '../../../navigation/address';
 
 const CREDITS_KINDS: CreditsKind[] = ['opening', 'closing'];
 const NO_ENTITIES: GuideEntity[] = [];
@@ -86,7 +86,7 @@ export function CompanionPage({ onFixCredits }: Props) {
     ? credits && { kind: 'credits', credits: creditsKind, preview: credits }
     : { kind: 'chapter', chapter: chapter! };
   if (!source) return null;
-  const toBooth = () => navigate(`/booth${boothQuery(creditsKind ? { credits: creditsKind } : { chapter: chapter!.id })}`);
+  const toBooth = () => navigate(addressPath({ page: 'booth', target: creditsKind ? { credits: creditsKind } : { chapter: chapter!.id } }));
   return (
     <div className="flex size-full flex-col">
       <CompanionHost
