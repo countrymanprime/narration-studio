@@ -389,6 +389,8 @@ export interface DawMockControl {
   restart(ms?: number): void;
   /** Which project the DAW has open: the linked one, another, or none. */
   openProject(which: 'linked' | 'other'): void;
+  /** The narrator linked a project file through the picker, which offers the project the DAW has open: that is the linked one now. */
+  linkedOpenProject(): void;
   /** The narrator pressed Stop inside the DAW. */
   stopInDaw(): void;
   /** The narrator pressed Record inside the DAW: a take this app did not start. */
@@ -502,6 +504,10 @@ export function createDawMock(seed: DawMockSeed = {}, script?: DawMockScript): D
     },
     openProject: (which) => {
       open = which;
+      publish();
+    },
+    linkedOpenProject: () => {
+      open = 'linked';
       publish();
     },
     stopInDaw: () => {

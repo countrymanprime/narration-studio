@@ -33,7 +33,7 @@ import { BoothText } from '../reading/BoothText';
 import { wordCount } from '../reading/boothUnits';
 import { RecordControl } from '../record/RecordControl';
 import { RecordSetup } from '../record/RecordSetup';
-import { SETUP_TOPIC, useStaleToasts } from './useStaleToasts';
+import { useStaleToasts } from './useStaleToasts';
 import { SetupChip } from '../record/SetupChip';
 import { useDawChoice } from '../record/useDawChoice';
 import { ResumeOfferLine } from '../resume/ResumeOffer';
@@ -483,7 +483,7 @@ function BoothSession({ source, from, requested, adopt, data, choose, navigate, 
               checkedAt={control.checkedAt}
               readFailed={control.readFailed}
               onCheckAgain={control.checkAgain}
-              say={(sentence, tone) => overlay.toast(sentence, { ...(tone ? { tone } : {}), topic: SETUP_TOPIC })}
+              say={(sentence, tone, topic) => overlay.toast(sentence, { ...(tone ? { tone } : {}), ...(topic ? { topic } : {}) })}
               onSettings={() => void page.goTo(`${BOOTH_LINKS.settings}#daw`)}
               onChanged={control.refresh}
             />

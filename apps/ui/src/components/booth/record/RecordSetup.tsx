@@ -71,7 +71,11 @@ function NoticeFrame({ title, titleId = 'brec-setup-title', children }: { title:
   );
 }
 
-type Say = (sentence: string, tone?: 'error') => void;
+/** What a notice says as a toast. `topic` names what the message is about, so a newer message on it replaces the old and Record becoming ready takes it away. */
+type Say = (sentence: string, tone?: 'error', topic?: string) => void;
+
+/** The topic of the messages about the DAW starting: true only until it answers or fails, so they go as soon as Record is ready. */
+export const START_TOPIC = 'daw-start';
 
 /**
  * The Booth's one-time recording setup, shown beside the Record control only while Record is unavailable for a reason the narrator
@@ -282,10 +286,10 @@ function Connect({
       try {
         await system.saveSettings('DAW', 'global', guide.launch.settings);
         const started = await project.launchDaw();
-        say(`${name} is starting (${started.path}). Record turns on here once it connects.`);
+        say(`${name} is starting (${started.path}). Record turns on here once it connects.`, undefined, START_TOPIC);
         onChanged();
       } catch (error) {
-        say(`${name} could not be started: ${apiErrorMessage(error)}`, 'error');
+        say(`${name} could not be started: ${apiErrorMessage(error)}`, 'error', START_TOPIC);
       }
     });
   const linkStep = factsFailed ? (

@@ -2,6 +2,7 @@
 import { act, renderHook } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 import { createOverlayService } from '../../../overlay/overlayService';
+import { START_TOPIC } from '../record/RecordSetup';
 import { useStaleToasts } from './useStaleToasts';
 
 const texts = (service: ReturnType<typeof createOverlayService>) => service.getSnapshot().toasts.map((t) => t.text);
@@ -9,16 +10,16 @@ const texts = (service: ReturnType<typeof createOverlayService>) => service.getS
 // A message the Booth said about Record that stopped being true must not sit on the screen: "REAPER is starting" after REAPER answered,
 // or a refusal after Record came back (Booth pass 3, items M2, M3 and 9).
 describe('useStaleToasts', () => {
-  it('takes away what the setup notice said once Record is ready', () => {
+  it('takes away what was said about REAPER starting once Record is ready, and not what confirms a step the narrator took', () => {
     const overlay = createOverlayService();
     const { rerender } = renderHook(({ ready, reason }) => useStaleToasts(overlay, { ready, reason }), {
       initialProps: { ready: false, reason: 'REAPER is not answering.' },
     });
-    act(() => overlay.toast('REAPER is starting (C:\\reaper.exe). Record turns on here once it connects.', { topic: 'daw-setup' }));
-    act(() => overlay.toast('Something unrelated.'));
+    act(() => overlay.toast('REAPER is starting (C:\\reaper.exe). Record turns on here once it connects.', { topic: START_TOPIC }));
+    act(() => overlay.toast('REAPER project linked.'));
     expect(texts(overlay)).toHaveLength(2);
     rerender({ ready: true, reason: '' });
-    expect(texts(overlay)).toEqual(['Something unrelated.']);
+    expect(texts(overlay)).toEqual(['REAPER project linked.']);
   });
 
   it('takes away a refusal the narrator was shown once that refusal is gone, and only that refusal', () => {

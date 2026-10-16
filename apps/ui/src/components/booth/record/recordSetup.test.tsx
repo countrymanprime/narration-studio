@@ -206,7 +206,7 @@ describe('RecordSetup', () => {
     const { say } = mount(recordRefused('standalone'), LINKED, { launchDaw } as Partial<NarrationApi>);
     await userEvent.click(screen.getByRole('button', { name: 'Open in REAPER and connect' }));
     await waitFor(() => expect(say).toHaveBeenCalled());
-    expect(say.mock.calls[0]).toEqual([expect.stringMatching(/^REAPER could not be started: .*not found/), 'error']);
+    expect(say.mock.calls[0]).toEqual([expect.stringMatching(/^REAPER could not be started: .*not found/), 'error', 'daw-start']);
   });
 
   it('draws nothing while Record is available', () => {

@@ -202,3 +202,47 @@ describe('text-size-and-font-are-props', () => {
     expect(text.style.fontFamily).toBe('Verdana');
   });
 });
+
+// Booth pass 3, the 100,000-word chapter: a step cost 0.8 s because the browser painted, hit-tested and walked 300,000 nodes on every frame,
+// the ones far off screen included. The paragraphs away from the reading position are left to the browser to skip until they near the view.
+describe('paragraphs away from the reading position are skipped by the browser until they are near the view', () => {
+  const paragraphOf = (el: Element) => el.closest('p')!;
+
+  it('the paragraph being read is drawn in full; every other one is skipped until it is near, with a size to hold its place', () => {
+    setup();
+    const all = [...document.querySelectorAll<HTMLElement>('[data-booth-text] p')];
+    const current = paragraphOf(document.querySelector('[data-state="cur"]')!);
+    expect(current.className).toContain('[content-visibility:visible]');
+    const others = all.filter((p) => p !== current);
+    expect(others.length).toBeGreaterThan(0);
+    for (const p of others) {
+      expect(p.className).toContain('[content-visibility:auto]');
+      expect(p.style.getPropertyValue('--est')).toMatch(/^[\d.]+em$/);
+    }
+  });
+
+  it('the one drawn in full follows the reading position', () => {
+    const { rerender, props } = setup({ position: { paragraphId: 'p1', word: 0 } });
+    expect(paragraphOf(document.querySelector('[data-state="cur"]')!).className).toContain('[content-visibility:visible]');
+    rerender(<BoothText {...props} position={{ paragraphId: 'p3', word: 0 }} />);
+    const visible = [...document.querySelectorAll('[data-booth-text] p')].filter((p) => p.className.includes('[content-visibility:visible]'));
+    expect(visible).toHaveLength(1);
+    expect(visible[0].contains(document.querySelector('[data-state="cur"]'))).toBe(true);
+  });
+
+  it('a longer paragraph holds a taller place than a shorter one, and an empty one still holds a line', () => {
+    const long = 'word '.repeat(300).trim();
+    setup({
+      paragraphs: [
+        { ...sampleParagraphs[0], id: 'a', text: 'Short one.' },
+        { ...sampleParagraphs[0], id: 'b', text: long },
+        { ...sampleParagraphs[0], id: 'c', text: '' },
+      ],
+      position: { paragraphId: 'a', word: 0 },
+    });
+    const est = (id: string) =>
+      parseFloat([...document.querySelectorAll<HTMLElement>('[data-booth-text] p')].find((p) => p.dataset.paragraph === id)!.style.getPropertyValue('--est'));
+    expect(est('b')).toBeGreaterThan(est('a') * 5);
+    expect(est('c')).toBeGreaterThanOrEqual(1.5);
+  });
+});

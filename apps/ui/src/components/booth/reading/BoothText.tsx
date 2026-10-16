@@ -127,6 +127,11 @@ const UnitView = memo(function UnitView({ unit, index, mode, wcur, words, paragr
 // The Booth's teleprompter text (the Studio Next mock's Teleprompter): the sentence being read is lit, the ones read are dimmed, the
 // word being read is marked (an accent tint with a caret, ADR 0655), and the line stays 40% down the box. The wheel and Page keys
 // move the view by pixels and leave the reading position alone (DQ-17). Everything it shows arrives as props; it stores nothing.
+/** About how tall a paragraph is in ems: lines of about 45 characters at a line height of 1.5, and a line at least. */
+function estimatedEm(text: string): number {
+  return Math.max(1, Math.ceil(text.length / 45)) * 1.5;
+}
+
 export function BoothText({
   paragraphs: given,
   position,
@@ -151,6 +156,13 @@ export function BoothText({
   const units = useMemo(() => boothUnits(paragraphs), [paragraphs]);
   const words = useMemo(() => units.map((unit) => unitWords(paragraphs[unit.paragraphIndex], unit, decorations)), [units, paragraphs, decorations]);
   const at = (position && unitAtPosition(paragraphs, units, position)) ?? { cur: 0, wcur: 0 };
+  // The sentences of each paragraph, grouped once: a paragraph looking for its own among all of them each render is paragraphs × sentences.
+  const unitsOf = useMemo(() => {
+    const byParagraph: BoothUnit[][] = paragraphs.map(() => []);
+    for (const unit of units) byParagraph[unit.paragraphIndex]?.push(unit);
+    return byParagraph;
+  }, [paragraphs, units]);
+  const readingParagraph = units[at.cur]?.paragraphIndex ?? -1;
 
   const box = useRef<HTMLDivElement>(null);
   const text = useRef<HTMLDivElement>(null);
@@ -197,32 +209,35 @@ export function BoothText({
             <p
               key={paragraph.id}
               dir="auto"
+              data-paragraph={paragraph.id}
+              // The browser skips painting and hit-testing a paragraph that is far from the view until it comes near (`content-visibility`), holding its place at
+              // an estimated height: a 100,000-word chapter is 300,000 nodes, and a step used to repaint them all. The paragraph being read is drawn in
+              // full, since its caret and glow reach past the paragraph's box, which a skipped paragraph would clip.
+              style={{ '--est': `${estimatedEm(paragraph.text)}em` } as CSSProperties}
               data-pickup={pickup ? (pickup.done ? 'done' : 'open') : undefined}
-              className={`mb-[0.9em] ${pickup ? `-ml-5 border-l-4 pl-4 ${pickup.done ? 'border-[var(--ok)]' : 'border-[var(--accent)]'}` : ''}`}
+              className={`mb-[0.9em] [contain-intrinsic-size:auto_var(--est)] ${paragraphIndex === readingParagraph ? '[content-visibility:visible]' : '[content-visibility:auto]'} ${pickup ? `-ml-5 border-l-4 pl-4 ${pickup.done ? 'border-[var(--ok)]' : 'border-[var(--accent)]'}` : ''}`}
             >
-              {units
-                .filter((unit) => unit.paragraphIndex === paragraphIndex)
-                .map((unit) => {
-                  index++;
-                  const own = index;
-                  return (
-                    <UnitView
-                      key={unit.key}
-                      unit={unit}
-                      index={own}
-                      mode={own === at.cur ? 'cur' : own < at.cur ? 'done' : 'next'}
-                      wcur={own === at.cur ? at.wcur : -1}
-                      words={words[own]}
-                      paragraph={paragraph}
-                      from={own === punchAt}
-                      speakers={speakerList}
-                      colour={speakerColour?.(unit.speaker)}
-                      onSeek={seek}
-                      onSetSpeaker={setSpeaker}
-                      seekWord={seekWord}
-                    />
-                  );
-                })}
+              {unitsOf[paragraphIndex].map((unit) => {
+                index++;
+                const own = index;
+                return (
+                  <UnitView
+                    key={unit.key}
+                    unit={unit}
+                    index={own}
+                    mode={own === at.cur ? 'cur' : own < at.cur ? 'done' : 'next'}
+                    wcur={own === at.cur ? at.wcur : -1}
+                    words={words[own]}
+                    paragraph={paragraph}
+                    from={own === punchAt}
+                    speakers={speakerList}
+                    colour={speakerColour?.(unit.speaker)}
+                    onSeek={seek}
+                    onSetSpeaker={setSpeaker}
+                    seekWord={seekWord}
+                  />
+                );
+              })}
               {notes
                 .filter((note) => note.paragraphId === paragraph.id)
                 .map((note) => (

@@ -352,22 +352,34 @@ test.describe('the other controls', () => {
 
 test.describe('the worst inputs', () => {
   test('a 100,000-word chapter opens, follows the reading position and records', async ({ page }) => {
-    // A traced 100,000-word page is the slowest thing in the suite, and a loaded shared runner doubled it once: the test gets room, the limits below stay.
-    test.setTimeout(240_000);
+    test.setTimeout(90_000);
     const errors = watch(page);
-    // The limits are loose on purpose: the run is traced (a DOM snapshot of 100,000 words per action) and on a shared runner. Measured without
-    // the trace, a step in a 12,000-word chapter takes about 0.1 s and in this one about 0.5 s (docs/operations/booth-acceptance.md).
+    // A step in this chapter cost 0.8 s: the browser painted and hit-tested all 300,000 nodes on every frame. The paragraphs away from the reading
+    // position are now skipped by the browser (`content-visibility`, BoothText), and a step costs about 0.1 s (docs/operations/booth-acceptance.md).
+    // The steps are timed inside the page: Playwright's trace snapshots the 300,000-node DOM at every action it takes, which costs more than the step does.
     const started = Date.now();
     await openBooth(page, `${RECORD_ON}&mockBooth=huge-chapter`);
-    expect(Date.now() - started, 'the Booth opens in under 40 s').toBeLessThan(40_000);
-    const pressed = Date.now();
-    await page.keyboard.press('ArrowDown');
-    await page.keyboard.press('ArrowRight');
-    expect(Date.now() - pressed, 'a step answers in under 30 s').toBeLessThan(30_000);
+    const opened = Date.now() - started;
+    const steps = await page.evaluate(async () => {
+      const frames = () => new Promise<void>((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => resolve())));
+      const timings: number[] = [];
+      for (const key of ['ArrowDown', 'ArrowRight', 'ArrowRight', 'ArrowDown', 'ArrowRight', 'ArrowRight', 'ArrowDown']) {
+        const began = performance.now();
+        document.body.dispatchEvent(new KeyboardEvent('keydown', { key, code: key, bubbles: true }));
+        await frames();
+        timings.push(Math.round(performance.now() - began));
+      }
+      return timings;
+    });
+    const median = [...steps].sort((a, b) => a - b)[Math.floor(steps.length / 2)];
+    test.info().annotations.push({ type: 'timing', description: `opened (traced) in ${opened} ms; seven steps took ${steps.join(', ')} ms` });
+    expect(await page.locator('[data-state="cur"]').count(), 'the steps moved the reading position').toBe(1);
+    expect(median, `the median of seven steps (${steps.join(', ')} ms) is under 250 ms`).toBeLessThan(250);
+    expect(opened, 'the Booth opens in under 30 s, traced').toBeLessThan(30_000);
     await record(page).click();
-    await expect(stop(page)).toBeVisible({ timeout: 60_000 });
+    await expect(stop(page)).toBeVisible({ timeout: 20_000 });
     await stop(page).click();
-    await expect(record(page)).toBeVisible({ timeout: 60_000 });
+    await expect(record(page)).toBeVisible({ timeout: 20_000 });
     expect(errors).toEqual([]);
   });
 
