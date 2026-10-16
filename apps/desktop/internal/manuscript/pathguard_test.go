@@ -164,8 +164,11 @@ func TestPathGuardDetectSourceFollowsALinkedManuscript(t *testing.T) {
 	if err := os.WriteFile(real, []byte("PK"), 0o644); err != nil {
 		t.Fatal(err)
 	}
+	// A symlink where the machine allows one; where it does not (an unprivileged Windows account), a hard link is the same "a name for a file elsewhere".
 	if err := os.Symlink(real, filepath.Join(project, "manuscript.docx")); err != nil {
-		t.Skip("this machine cannot create a symlink here: " + err.Error())
+		if err := os.Link(real, filepath.Join(project, "manuscript.docx")); err != nil {
+			t.Fatalf("could not make a linked manuscript by symlink or hard link: %v", err)
+		}
 	}
 	if found := DetectSource(project); found == "" {
 		t.Fatal("a manuscript.docx that is a link to a file was not offered")

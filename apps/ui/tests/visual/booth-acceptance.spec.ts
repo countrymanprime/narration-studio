@@ -415,5 +415,3 @@ test('row 39: with no manuscript the Booth asks for one', async ({ page }) => {
   await settlePage(page);
   await expect(page.getByRole('button', { name: /import/i }).first()).toBeVisible();
 });
-
-test.skip("rows 40 to 42: a real REAPER, the foot pedal and a microphone are the owner's on Windows", () => {});

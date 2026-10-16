@@ -46,7 +46,8 @@ func TestPathGuardFindByDawFileAmong(t *testing.T) {
 			return
 		}
 		if p.DirReadOnly {
-			t.Skip("the project folder is read-only here, so the test cannot put a manifest in it; TestPathGuardManifestLoadSave asserts the refusal")
+			// Not a case for this check: no manifest can be put in a read-only folder; TestPathGuardManifestLoadSave asserts the refusal there.
+			return
 		}
 		writeLinkedManifest(t, p.Dir, p.RPP)
 

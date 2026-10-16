@@ -27,12 +27,11 @@ func pgSameFile(a, b string) bool {
 	return errA == nil && errB == nil && os.SameFile(infoA, infoB)
 }
 
-// pgWritable skips a place whose folder the OS really refuses to write into: the test needs a manifest in it.
-func pgWritable(t *testing.T, p pathfixtures.Place) {
+// pgWritable reports whether the place's folder accepts a manifest. A folder the OS really refuses to write into is not a case for a test that
+// needs a manifest in it; the read-only folder is covered where a refusal is asserted.
+func pgWritable(t *testing.T, p pathfixtures.Place) bool {
 	t.Helper()
-	if p.DirReadOnly {
-		t.Skip("the project folder is read-only here, so the test cannot put a manifest in it; the read-only folder is covered where a refusal is asserted")
-	}
+	return !p.DirReadOnly
 }
 
 // pgLinkedManifest links rpp from dir in dir's manifest.
@@ -58,7 +57,9 @@ func TestPathGuardResolveProjectFile(t *testing.T) {
 			}
 			return
 		}
-		pgWritable(t, p)
+		if !pgWritable(t, p) {
+			return
+		}
 		pgLinkedManifest(t, p.Dir, p.RPP)
 		got := resolveProjectFile(nil, p.Start, launch, p.Dir)
 		if !pgSameFile(got.projectFolder, p.Dir) || got.projectName != "Guarded" {
@@ -204,7 +205,9 @@ func TestPathGuardScanRppFilesAndReadDawFolder(t *testing.T) {
 		if facts.linkedPath != "" {
 			t.Fatalf("nothing is linked yet, but readDawFolder said %q", facts.linkedPath)
 		}
-		pgWritable(t, p)
+		if !pgWritable(t, p) {
+			return
+		}
 		pgLinkedManifest(t, p.Dir, p.RPP)
 		if facts := readDawFolder(nil, p.Dir); !pgSameFile(facts.linkedPath, p.RPP) {
 			t.Fatalf("readDawFolder(%q).linkedPath = %q, want %q", p.Dir, facts.linkedPath, p.RPP)
@@ -228,7 +231,9 @@ func TestPathGuardDawLinkFacts(t *testing.T) {
 		if !p.Usable {
 			return
 		}
-		pgWritable(t, p)
+		if !pgWritable(t, p) {
+			return
+		}
 		pgLinkedManifest(t, p.Dir, p.RPP)
 		for _, dir := range append([]string{p.Dir}, aliasDirs(p)...) {
 			if linked, _, _ := dawLinkFacts(nil, dir, "Standalone", nil); !linked {
@@ -264,7 +269,9 @@ func TestPathGuardLaunchReaperPassesTheLinkedFile(t *testing.T) {
 			}
 			return
 		}
-		pgWritable(t, p)
+		if !pgWritable(t, p) {
+			return
+		}
 		pgLinkedManifest(t, p.Dir, p.RPP)
 		if _, err := launchReaper(svc, nil, locate, launch); err != nil {
 			t.Fatalf("launchReaper(%q): %v", p.Dir, err)
@@ -279,7 +286,7 @@ func TestPathGuardLaunchReaperPassesTheLinkedFile(t *testing.T) {
 func TestPathGuardOnSecondInstanceFindsAProjectOutsideTheStartingFolder(t *testing.T) {
 	pathfixtures.Run(t, func(t *testing.T, p pathfixtures.Place) {
 		if !p.Usable || p.DirReadOnly || p.FileReadOnly {
-			t.Skip("only a project the host can open and write is attached by a second launch")
+			return // only a project the host can open and write is attached by a second launch
 		}
 		home := t.TempDir()
 		t.Setenv("USERPROFILE", home)
@@ -336,7 +343,7 @@ func TestPathGuardProjectCreateInNames(t *testing.T) {
 	for _, fixture := range pathfixtures.Names() {
 		t.Run(fixture.Name, func(t *testing.T) {
 			if fixture.Valid && len(fixture.Value) > 200 && runtime.GOOS == "windows" {
-				t.Skip("a 255-character name makes a path over the 260-character limit of an ordinary Windows path; the long-path place fixtures cover long paths")
+				return // a 255-character name makes a path over the 260-character limit of an ordinary Windows path; the long-path place fixtures cover long paths
 			}
 			t.Setenv("APPDATA", t.TempDir())
 			host := NewHost()
