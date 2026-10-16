@@ -4,7 +4,7 @@ Written before the code ([definition of done](../../.claude/rules/definition-of-
 
 **Left out on purpose, with its reason (ADR 0440):** the mock's **Clicks** and **Text** columns. Nothing measures mouth clicks or text coverage per rendered file, so a column would be a number the app made up. **Play the quietest 5 s** and **Open in the DAW** are built over the DAW port's `playQuietest` and `openFile`.
 
-Each cell is a test name (`unit` = Vitest in `apps/ui/src/components/masterqc/`, `e2e` = the Playwright spec `apps/ui/tests/visual/master-matrix.spec.ts`) or **not tested: reason**. This table is the plan; the PR body repeats the final state of every cell.
+Each cell is a test name (`unit` = Vitest in `apps/ui/src/components/masterqc/`, `e2e` = the Playwright spec `apps/ui/tests/visual/master-matrix.spec.ts`) or **not tested: reason**. Updated at the end of the work: a cell names the test that drives it or says **not tested** and why. `matrix` is `masterqc/page/Matrix.test.tsx`; `e2e` is `apps/ui/tests/visual/master-matrix.spec.ts`; `go` is `apps/desktop/master_paths_test.go`.
 
 ## Controls
 
@@ -25,88 +25,66 @@ Each cell is a test name (`unit` = Vitest in `apps/ui/src/components/masterqc/`,
 
 ## The states, per control
 
-Legend for the DAW and sidecar columns: **never answers** (the call never settles), **late** (the answer arrives after the narrator moved on), **out of order**, **lost event**, **repeated event**, **wrong project open**, **restart mid-session**.
-
-### C1 Chapter bar
+### C1 Chapter bar (a shared primitive: `ChapterStepper`)
 
 | State | Result |
 | - | - |
-| empty (no chapters) | unit `the chapter bar is absent when the manuscript has no narration chapters` |
-| one | unit `a one-chapter book disables both arrows` |
-| many / huge (200 chapters) | unit `a 200-chapter book steps and picks` |
-| loading (chapters not read yet) | unit `chapters.read-late: the bar appears when the list arrives, the table is usable before` |
-| failed (chapters cannot be read) | exists: `chaptersProblem` alert; unit `a failed chapter read says so and keeps the file names` |
-| stale (a chapter removed after the page opened) | not tested: the chapter list is read once per visit; a removal in Production shows on the next visit (the page remounts) |
-| long / RTL / emoji heading | unit `a long, a right-to-left and an emoji chapter heading stay inside the bar` and the e2e overlay run opens the picker with each |
-| rapid double-fire | unit `two quick Next presses move two chapters, not one and not a loop` |
-| reload mid-action | unit `the chapter comes back from the shared chapter after a reload` |
-| leave mid-action | not tested: the bar holds no pending work |
+| empty, one, many, huge (chapter count) | existing `ChapterStepper.test.tsx` and stories (first, middle, last, all). **Not tested** at 200 chapters: the list scrolls inside its popup, which `e2e` covers at four window sizes |
+| loading, failed (chapters not read) | existing: the bar is absent until chapters arrive; a failed read shows "The chapters could not be read" (`Page.test.tsx`) |
+| stale (a chapter removed after the page opened) | **not tested**: the list is read once per visit; the page remounts on the next visit |
+| long, right-to-left, emoji heading | `ChapterStepper` story "Very long chapter name"; the picker's size is guarded by `e2e` `the chapter picker is topmost and on screen`. RTL and emoji headings are **not tested** in the picker |
+| rapid double-fire, reload mid-action, leave mid-action | **not tested**: the bar holds no pending work; the choice is only the selected file |
+| overlay (picker at four window sizes, over the row menu) | `e2e`. **Found and fixed:** the picker ran 78 px below a 360 px-high window; it is now capped to the room left (`--available-height`) |
 
 ### C3, C4, C5, C10 Measuring
 
 | State | Result |
 | - | - |
-| empty (nothing picked: dialog cancelled) | unit `cancelling the file dialog changes nothing and shows no error` |
-| one / many / huge (300 files) | unit `300 files list, select and scroll`; one: existing |
-| loading (running) | exists: progress, Cancel |
-| refused (the host refuses to start: a measurement already running) | unit `a refused start says why and leaves the page usable` |
-| failed (a file cannot be read) | exists: the row says why; the others continue |
-| stale (files changed on disk after the check) | unit `a file the host says changed since the check shows "check the files again", not its old numbers` (host refusal text shown) |
-| long / RTL / emoji / Unicode file names | unit `file names with spaces, Unicode, emoji, right-to-left and 250 characters render without overflow` and the path set below |
-| rapid double-fire (Re-check twice) | unit `Re-check pressed twice starts one measurement` |
-| reload mid-action | exists: the host's job is read on mount; unit `a running measurement is shown again after a remount` |
-| leave mid-action | exists in the guide; unit `leaving and returning during a run shows the run` |
-| host never answers `measureState` | unit `a poll that never answers shows "can't tell, last heard N s ago" with Check again` |
-| host answers late (after Cancel pressed) | unit `a state read that arrives after Cancel does not bring the progress bar back` |
-| host answers out of order | unit `an older state answer after a newer one is dropped` |
-| lost event | the page polls; a lost answer is a missed poll: unit `one failed poll does not stop the polling` |
-| repeated event | unit `the same state twice changes nothing` |
-| wrong project open | not tested: the measurement is of files the narrator picked, not of the project; no project is read |
-| restart mid-session | unit `a host restart (state idle) after a running state clears the progress and says the check stopped` |
+| empty (file dialog cancelled) | `matrix` `cancelling the file dialog changes nothing and shows no error` |
+| one, many, huge (300 files) | existing; `matrix` `300 files list, with spaces, Unicode, emoji, right-to-left and a 250-character name` |
+| loading | existing: `the-run-controls-are-kept-above-the-table` |
+| refused (a run already going) | `matrix` `a refused start says why and leaves the page usable` |
+| failed (a file cannot be read) | existing: the row says why; the others continue |
+| stale (file changed on disk after the check) | host answers a refusal sentence (`TestMasterPlayQuietestAndOpenInDawRefuseAFileNotInTheLastRun`); not re-tested in the UI |
+| long, Unicode, emoji, right-to-left, spaces names | `matrix` (300-file test) |
+| rapid double-fire | `matrix` `Re-check pressed twice starts one measurement` |
+| reload or leave mid-action | `matrix` `a measurement already running when the page opens is shown again` |
+| host never answers, or a read fails | `matrix` `one failed poll does not stop the polling…` (says "Can't tell how the measurement is going, last heard N s ago", Check again, retries every 2 s). **Found and fixed:** a failed poll used to end the polling and leave the bar frozen with no way on |
+| host answers late | `matrix` `a state read that arrives after Cancel does not bring the progress bar back`. **Found and fixed** (numbered reads) |
+| out of order | same mechanism as the late answer (an older answer is dropped); not driven separately |
+| lost event | the page polls and has no event for this; covered by the failed-poll test |
+| repeated event | **not tested**: an identical state set twice is a no-op render |
+| wrong project open | **not tested**: the measurement is of files the narrator picked, not of the project |
+| restart mid-session | `matrix` `a host restart (idle) after a running state clears the progress bar` |
+| window regains focus | **not tested in the UI** for the measurement read (the listener is the same one the capability read tests); `matrix` covers focus for the capability read |
 
 ### C6, C7 Rows and the menu
 
 | State | Result |
 | - | - |
-| empty | exists: "Nothing measured yet" |
-| one / many | exists |
-| huge | covered by the 300-file cell above |
-| failed row / waiting row | exists |
-| long / RTL / emoji name | covered above |
-| rapid double-fire (Enter twice, double click) | unit `selecting the same file twice changes nothing` |
-| context menu on a waiting row | exists: Play disabled with the reason |
-| context menu over each window edge and corner, beside the sidebar and the nav, over scrolled content, at narrow widths, while another overlay is open | e2e `overlay guard: Master & QC` |
+| empty, one, many, waiting, failing | existing (`Files.test.tsx`) |
+| long, Unicode, emoji, RTL names | `matrix` (300-file test) selects the right-to-left one |
+| rapid double-fire (Enter twice, double click) | **not tested**: selecting the same file twice sets the same state |
+| context menu at every window edge and corner, beside the sidebar, at four window sizes, over scrolled content, while the picker is open | `e2e` (a real right-click for the stacked case) |
+| tooltips of the icon buttons | `e2e` |
 
 ### C8, C9 DAW actions
 
 | State | Result |
 | - | - |
-| gate off (capability absent) | exists: disabled with the capability's sentence |
-| capability report never arrives | unit `a capability read that never answers shows "can't tell what your DAW can do" with Check again, not "Checking" forever` |
-| capability report fails | same cell |
-| capability changes while the page is open | unit `a daw_capabilities_changed event enables the buttons without a reload` |
-| window regains focus | unit `focus reads the capabilities again` |
-| refused | exists: the DAW's own sentence as an error toast |
-| the call never answers | unit `a call that never answers keeps the button busy, and Escape/leave does not leave a ghost` (the button is disabled while a call is in flight, with a visible "Asking the DAW…") |
-| rapid double-fire | unit `Play pressed twice sends one call` |
-| late answer after leaving | unit `an answer after the page closed shows no toast on another page` |
-| wrong project open / restart | the host words the refusal; shown as the DAW's sentence (exists) |
+| gate off | existing: disabled with the capability's sentence |
+| capability read fails or never answers | `matrix` `a capability read that fails says it cannot tell and offers Check again`. **Found and fixed:** the gates read "Checking" for ever with no exit. A read that never settles shows the same "Checking…" sentence: **not tested** (a hung promise is not distinguishable from a slow one without a timer; the bridge times calls out host-side) |
+| capability changes while open, window focus | `matrix` `a daw_capabilities_changed event…`, `the window regaining focus reads the capabilities again`. **Found and fixed:** the page read the report once |
+| refused | existing (`useFileActions.test.tsx`) |
+| the call never answers | `matrix` `a DAW call that never answers…` (Open still works) |
+| rapid double-fire | `matrix` `Play pressed twice…`. **Found and fixed:** two presses sent two calls |
+| late answer after leaving | **not tested**: a toast from a call that settles after the page closed still shows, by design (the DAW did the thing) |
+| wrong project open, restart | the host words the refusal; shown as the DAW's sentence (existing) |
 
-### C2, C11 Delivery links
+### C2, C11 Delivery links, C12 read-only drawings
 
-| State | Result |
-| - | - |
-| each | exists: `the-profile-pill-and-open-delivery-go-to-delivery`; e2e opens Delivery from each |
-| no profile read | unit `the pill is absent and the profile problem is shown when profiles cannot be read` (exists for the problem line) |
-
-### C12 Read-only drawings
-
-| State | Result |
-| - | - |
-| empty / one / many / huge | exists / unit (300 files draw one tick each) |
-| a value the profile has no rule for | exists |
-| long profile name | unit `a 200-character custom profile name wraps in the pill and the panel title` |
+Existing (`Page.test.tsx`: the pill and Open Delivery, the package counts, the chart, a profile that lacks a rule). **Not tested:** a 200-character profile name in the pill.
 
 ## Path fixtures
 
-Every file path Master & QC resolves (a picked file measured by the host; a `#file=` link) runs the fixture set in the host's measurement code: `apps/desktop/master_paths_test.go` `TestMasterPathFixtures` over: outside the starting folder, nested, spaces, Unicode, very long (over 260), UNC, different case, trailing dots and spaces, read-only, missing. Cells that cannot run on a Linux CI (UNC, trailing dots, case) are **not tested on Linux: Windows owner check**, listed in the PR.
+Every path Master & QC resolves (the picker's answer, the measurement, and the host's last-run lookup behind Play and Open in the DAW) runs `go` `TestMasterPathFixtures`: outside the starting folder, nested, spaces, Unicode, emoji and right-to-left, long (about 190 characters), read-only, missing, a path nobody picked (refused) and a dot-dot detour to a picked file. The Windows-only cells (different case, trailing dots and spaces, UNC, a path over 260 characters) are **not tested on Linux**: the Go package does not build here (GTK), so the test was vetted for Windows (`GOOS=windows go vet`) and runs in the `go-test` Windows job. Windows owner checks are listed in the PR.

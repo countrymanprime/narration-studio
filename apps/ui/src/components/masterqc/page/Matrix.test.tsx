@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 // The state matrix of docs/research/master-qc-state-matrix.md: the cells about an integration that goes quiet, answers late or is pressed twice.
-import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { ApiProvider } from '../../../api/ApiContext';
@@ -174,5 +174,30 @@ describe('Master & QC: the measurement host goes quiet', () => {
     await userEvent.click(await screen.findByRole('button', { name: 'Check files…' }));
     expect(await screen.findByText(/a measurement is already running/)).toBeTruthy();
     expect(screen.getByRole('button', { name: 'Check files…' })).toBeTruthy();
+  });
+});
+
+describe('Master & QC: what the narrator can name and how many', () => {
+  it('300 files list, with spaces, Unicode, emoji, right-to-left and a 250-character name, each selectable by its own path', async () => {
+    const odd = ['my chapter  with spaces.wav', '書籍 📚.wav', 'פרק 1 🎧 كتاب.wav', `${'x'.repeat(246)}.wav`];
+    const files = [...odd.map((name) => passing(name)), ...Array.from({ length: 296 }, (_, i) => passing(`Chapter ${String(i + 5).padStart(3, '0')}.wav`))];
+    mount(files);
+    const grid = await screen.findByRole('grid', { name: 'Per-file checks' });
+    expect(grid.querySelectorAll('tbody tr').length).toBe(300);
+    for (const name of odd) expect(screen.getAllByText((_, element) => element?.tagName === 'TD' && element.textContent === name).length).toBe(1);
+    await userEvent.click(within(grid).getByText('פרק 1 🎧 كتاب.wav', { exact: false }));
+    expect(await screen.findByRole('heading', { name: /פרק 1 🎧 كتاب\.wav · / })).toBeTruthy();
+  });
+
+  it('Re-check pressed twice starts one measurement', async () => {
+    let finish: (job: MeasureJob) => void = () => undefined;
+    const analyze = vi.fn(() => new Promise<MeasureJob>((resolve) => (finish = resolve)));
+    const files = [passing('Chapter 01.wav')];
+    mount(files, { measureAnalyze: analyze });
+    const button = await screen.findByRole('button', { name: /^Re-check 1 file$/ });
+    await userEvent.click(button);
+    await userEvent.click(button);
+    expect(analyze).toHaveBeenCalledTimes(1);
+    await act(async () => finish(jobOf(files)));
   });
 });

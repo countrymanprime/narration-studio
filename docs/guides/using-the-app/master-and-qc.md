@@ -25,7 +25,9 @@ Press **Check files…** and pick one or more rendered chapter files. Only WAV f
 a file in another format, or one that cannot be read, is listed with the reason and does not stop the
 others. The bar shows how much of the audio has been read so far, with the file being measured, and
 **Cancel** stops the check: files already measured keep their results. You can leave the page while it
-runs; Master & QC shows the last check when you come back. Once files are checked the button reads
+runs; Master & QC shows the last check when you come back. If the app stops hearing how the check is going,
+the page says **Can't tell how the measurement is going, last heard N s ago** with a **Check again** button, and keeps
+trying every couple of seconds; the check itself keeps running. Once files are checked the button reads
 **Re-check 3 files** and measures the same files again (after a new render, say); **Choose other files…**
 picks others.
 
@@ -51,7 +53,9 @@ beside the heading, **Check the files again** (the circular arrow) measures the 
 without adding anything to the project, and **Open in** your DAW shows the file in the DAW's own file browser without
 importing it. Both are Experimental: they stay off, with the reason on hover, until you turn on **Play part of a file**
 and **Show a file in the audio engine** in Settings. A file with no quiet stretch says so, and a file from an earlier
-check asks you to check the files again.
+check asks you to check the files again. Pressing either button twice while the DAW has not answered sends one request. The buttons
+follow the DAW as it connects or changes, and when the window regains focus; if the app cannot read what the DAW can do, the buttons stay
+off and the page says **Can't tell what your DAW can do right now**, with **Check again**.
 
 Under it, the same file against the profile rule by rule: the result (**Met**, **Not met**, or why it was
 not judged), this file's value, what the platform requires, and the source: whether that requirement was
