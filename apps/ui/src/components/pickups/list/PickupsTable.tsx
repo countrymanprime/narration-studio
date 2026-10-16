@@ -51,6 +51,7 @@ export function PickupsTable({
   pickups,
   read,
   onReload,
+  checking = false,
   chapters,
   scope,
   currentChapterId,
@@ -72,6 +73,8 @@ export function PickupsTable({
   read: PickupsRead;
   /** Reads the list again now (Check again). */
   onReload: () => void;
+  /** A Check again is being answered. */
+  checking?: boolean;
   chapters: readonly ChapterRef[];
   /** The stepper's value: a chapter id, or `ALL_SCOPE`. */
   scope: string;
@@ -173,7 +176,11 @@ export function PickupsTable({
             onClick={() => onCheck([...chaptersToCheck])}
           />
           <Popover label="Add a pickup by hand" open={adding} onOpenChange={setAdding} trigger={<IconButton action="add" label="Add a pickup by hand" />}>
-            {addTo && <AddPickup chapterId={addTo.id} chapterName={addTo.name} onAdd={onAdd} onDone={() => setAdding(false)} />}
+            {addTo ? (
+              <AddPickup chapterId={addTo.id} chapterName={addTo.name} onAdd={onAdd} onDone={() => setAdding(false)} />
+            ) : (
+              <p className="m-0 max-w-[18rem] text-[var(--text-muted)]">A pickup can be added once the list has been read. Use Check again.</p>
+            )}
           </Popover>
         </div>
       </div>
@@ -185,7 +192,7 @@ export function PickupsTable({
           <span>
             Can’t tell if this list is current. {read.trouble} Last read at {new Date(read.readAt).toLocaleTimeString()}.
           </span>
-          <Button variant="secondary" size="sm" onClick={onReload}>
+          <Button variant="secondary" size="sm" pending={checking} onClick={onReload}>
             Check again
           </Button>
         </div>
@@ -198,7 +205,9 @@ export function PickupsTable({
         <div role="alert" className="flex flex-col items-center gap-2 p-6 text-center">
           <h2 className="font-semibold">The pickup list could not be read</h2>
           <span className="text-[var(--text-muted)]">{read.message}</span>
-          <Button onClick={onReload}>Check again</Button>
+          <Button pending={checking} onClick={onReload}>
+            Check again
+          </Button>
         </div>
       ) : list.length > 0 ? (
         <div ref={body} className="overflow-auto" tabIndex={0} role="group" aria-label="Pickups scroll area">

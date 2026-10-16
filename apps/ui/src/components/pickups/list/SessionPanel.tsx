@@ -19,6 +19,7 @@ export function SessionPanel({
   pickups,
   chapters,
   seconds,
+  unreadable = false,
   dawName,
   markers,
   onOpenInBooth,
@@ -29,6 +30,8 @@ export function SessionPanel({
   chapters: readonly ChapterRef[];
   /** The recording time those lines take, from the measurements, or the reason there is none. */
   seconds: Measured<number>;
+  /** The list could not be read: the session is unknown, not empty. */
+  unreadable?: boolean;
   /** The DAW's name for the marker icon's tip. */
   dawName: string;
   markers: Gate;
@@ -44,6 +47,10 @@ export function SessionPanel({
   const markersReason = !markers.available ? markers.message || `${dawName} cannot add markers now.` : count === 0 ? 'No lines in the session.' : undefined;
 
   const copy = async () => {
+    if (picked.length === 0) {
+      overlay.toast(unreadable ? 'The list could not be read, so there is nothing to copy yet.' : 'No lines in the session to copy.');
+      return;
+    }
     try {
       await navigator.clipboard.writeText(pickupScript(picked, chapters));
       overlay.toast('Copied.');
@@ -84,7 +91,11 @@ export function SessionPanel({
         <div>
           <IconButton action="addMarker" label={`Add ${count} as markers in ${dawName}`} disabledReason={markersReason} pending={adding} onClick={addMarkers} />
         </div>
-        {count === 0 && <p className="text-[0.8125rem] text-[var(--text-muted)]">No lines in the session: tick a line to include it.</p>}
+        {count === 0 && (
+          <p className="text-[0.8125rem] text-[var(--text-muted)]">
+            {unreadable ? 'The list could not be read, so the session is not known yet.' : 'No lines in the session: tick a line to include it.'}
+          </p>
+        )}
         {!markers.available && <p className="text-[0.8125rem] text-[var(--text-muted)]">{markersReason}</p>}
       </div>
     </Panel>

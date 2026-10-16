@@ -6,7 +6,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { ApiProvider } from '../../api/ApiContext';
 import type { PickupList } from '../../api/contracts/pickups';
 import { createMockApi } from '../../api/mockApi';
-import { CommandRouter, CommandScope } from '../../input/router';
+import { CommandRouter } from '../../input/router';
 import { OverlayHost } from '../../overlay/OverlayHost';
 import type { NarrationApi } from '../../types';
 import { TooltipProvider } from '../primitives/Tooltip';
@@ -35,9 +35,7 @@ function renderPage(
       <ApiProvider api={api}>
         <TooltipProvider>
           <CommandRouter>
-            <CommandScope kind="page">
-              <PickupsPage hasManuscript goTo={goTo} goToScript={goToScript} />
-            </CommandScope>
+            <PickupsPage hasManuscript goTo={goTo} goToScript={goToScript} />
           </CommandRouter>
           <OverlayHost />
         </TooltipProvider>
@@ -265,5 +263,43 @@ describe('narrator-walkthrough-fixes', () => {
     expect(await screen.findByText('<b>x</b> and <i>y</i>')).toBeTruthy();
     const times = [...document.querySelectorAll('tr[data-pk] td:nth-child(2)')].map((cell) => cell.textContent);
     expect(times).toEqual(['00:01.0', '00:05.0']);
+  });
+});
+
+describe('narrator-walkthrough-fixes-2', () => {
+  const unreadable = () => createMockApi({ pickupsList: () => Promise.reject(new Error('nope')) });
+
+  it('an unreadable list says the session is not known, not that it is empty, and offers no add form', async () => {
+    renderPage(unreadable());
+    await screen.findByText('The pickup list could not be read');
+    expect(screen.getByText('The list could not be read, so the session is not known yet.')).toBeTruthy();
+    expect(screen.queryByText(/tick a line to include it/)).toBeNull();
+    const user = userEvent.setup();
+    await user.click(screen.getByRole('button', { name: 'Add a pickup by hand' }));
+    expect(await screen.findByText(/A pickup can be added once the list has been read/)).toBeTruthy();
+    expect(screen.queryByRole('textbox', { name: 'Line to re-record' })).toBeNull();
+  });
+
+  it('copy with nothing in the session says so and leaves the clipboard alone', async () => {
+    const write = vi.spyOn(navigator.clipboard, 'writeText').mockResolvedValue();
+    renderPage(unreadable());
+    await screen.findByText('The pickup list could not be read');
+    await userEvent.setup().click(screen.getByRole('button', { name: 'Copy the pickup script' }));
+    expect(await screen.findByText('The list could not be read, so there is nothing to copy yet.')).toBeTruthy();
+    expect(write).not.toHaveBeenCalled();
+  });
+
+  it('Check again shows it is working', async () => {
+    let finish: () => void = () => {};
+    let attempt = 0;
+    renderPage(
+      createMockApi({
+        pickupsList: () => (++attempt === 1 ? Promise.reject(new Error('nope')) : new Promise<PickupList>((resolve) => (finish = () => resolve(LIST)))),
+      }),
+    );
+    const again = await screen.findByRole('button', { name: 'Check again' });
+    await userEvent.setup().click(again);
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Check again' }).getAttribute('aria-busy')).toBe('true'));
+    finish();
   });
 });

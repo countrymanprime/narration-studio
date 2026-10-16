@@ -158,75 +158,77 @@ export function CheckRecordingsDialog({ preselected, close }: { preselected: rea
     });
 
   return (
-    <div className="flex flex-col gap-4">
-      <p className="m-0 text-[var(--text-muted)]">Checking recordings runs speech recognition over the audio and compares it with the manuscript.</p>
-      <div className="grid gap-5 sm:grid-cols-2">
-        <div className="flex min-w-0 flex-col gap-3">
-          <label className="flex flex-col gap-1">
-            <span className="text-[length:var(--font-size-sm)] font-semibold uppercase">Speech model</span>
-            <Select
-              label="Speech model"
-              fullWidth
-              value={model}
-              onChange={setModel}
-              options={loaded.engines.map((candidate) => ({ value: candidate.id, label: engineOptionLabel(candidate) }))}
-            />
-          </label>
-          {problem ? (
-            <p role="status" className="m-0 text-[var(--text-muted)]">
-              {problem}
-            </p>
-          ) : null}
-          <dl className="m-0 flex flex-col gap-2 border-t border-[var(--line)] pt-3">
-            <div className="flex justify-between gap-3">
-              <dt>Audio to check</dt>
-              <dd className="m-0 font-mono">{audio.seconds === 0 && audio.unmeasured > 0 ? 'Not measured' : formatAudio(audio.seconds)}</dd>
-            </div>
-            {note ? <p className="m-0 text-[var(--text-muted)]">{note}</p> : null}
-            <div className="flex justify-between gap-3">
-              <dt>Estimated time</dt>
-              <dd className="m-0 font-mono">Not measured yet</dd>
-            </div>
-          </dl>
-        </div>
-        <div className="flex min-w-0 flex-col gap-2">
-          <div className="flex items-center gap-2">
-            <span className="flex-1 text-[length:var(--font-size-sm)] font-semibold uppercase">Chapters</span>
-            <Button variant="ghost" size="sm" onClick={() => setTicked(new Set(chapters.map((chapter) => chapter.id)))}>
-              All
-            </Button>
-            <Button variant="ghost" size="sm" onClick={() => setTicked(new Set())}>
-              None
-            </Button>
+    <div className="flex max-h-[calc(100dvh-14rem)] min-h-0 flex-col gap-3">
+      <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto">
+        <p className="m-0 text-[var(--text-muted)]">Checking recordings runs speech recognition over the audio and compares it with the manuscript.</p>
+        <div className="grid gap-5 sm:grid-cols-2">
+          <div className="flex min-w-0 flex-col gap-3">
+            <label className="flex flex-col gap-1">
+              <span className="text-[length:var(--font-size-sm)] font-semibold uppercase">Speech model</span>
+              <Select
+                label="Speech model"
+                fullWidth
+                value={model}
+                onChange={setModel}
+                options={loaded.engines.map((candidate) => ({ value: candidate.id, label: engineOptionLabel(candidate) }))}
+              />
+            </label>
+            {problem ? (
+              <p role="status" className="m-0 text-[var(--text-muted)]">
+                {problem}
+              </p>
+            ) : null}
+            <dl className="m-0 flex flex-col gap-2 border-t border-[var(--line)] pt-3">
+              <div className="flex justify-between gap-3">
+                <dt>Audio to check</dt>
+                <dd className="m-0 font-mono">{audio.seconds === 0 && audio.unmeasured > 0 ? 'Not measured' : formatAudio(audio.seconds)}</dd>
+              </div>
+              {note ? <p className="m-0 text-[var(--text-muted)]">{note}</p> : null}
+              <div className="flex justify-between gap-3">
+                <dt>Estimated time</dt>
+                <dd className="m-0 font-mono">Not measured yet</dd>
+              </div>
+            </dl>
           </div>
-          {chapters.length === 0 ? (
-            <p className="m-0 text-[var(--text-muted)]">No chapter has a recording to check yet.</p>
-          ) : (
-            <ul className="m-0 flex max-h-[min(19rem,40vh)] list-none flex-col gap-2 overflow-y-auto p-0">
-              {chapters.map((chapter) => {
-                const result = loaded.results[chapter.id];
-                const last = lastResultSentence(result);
-                const refused = run.messages[chapter.id];
-                return (
-                  <li key={chapter.id}>
-                    <Checkbox checked={ticked.has(chapter.id)} onChange={(on) => toggle(chapter.id, on)}>
-                      <span className="block">{chapterName(chapter)}</span>
-                      <span className="block text-[var(--text-muted)]">{checkStateLabel(result)}</span>
-                      {last ? <span className="block text-[var(--text-muted)]">{last}</span> : null}
-                    </Checkbox>
-                    {refused ? (
-                      <p role="alert" className="m-0 pl-6 text-[var(--danger-text)]">
-                        {refused}
-                      </p>
-                    ) : null}
-                  </li>
-                );
-              })}
-            </ul>
-          )}
+          <div className="flex min-w-0 flex-col gap-2">
+            <div className="flex items-center gap-2">
+              <span className="flex-1 text-[length:var(--font-size-sm)] font-semibold uppercase">Chapters</span>
+              <Button variant="ghost" size="sm" onClick={() => setTicked(new Set(chapters.map((chapter) => chapter.id)))}>
+                All
+              </Button>
+              <Button variant="ghost" size="sm" onClick={() => setTicked(new Set())}>
+                None
+              </Button>
+            </div>
+            {chapters.length === 0 ? (
+              <p className="m-0 text-[var(--text-muted)]">No chapter has a recording to check yet.</p>
+            ) : (
+              <ul className="m-0 flex list-none flex-col gap-2 overflow-y-auto p-0">
+                {chapters.map((chapter) => {
+                  const result = loaded.results[chapter.id];
+                  const last = lastResultSentence(result);
+                  const refused = run.messages[chapter.id];
+                  return (
+                    <li key={chapter.id}>
+                      <Checkbox checked={ticked.has(chapter.id)} onChange={(on) => toggle(chapter.id, on)}>
+                        <span className="block">{chapterName(chapter)}</span>
+                        <span className="block text-[var(--text-muted)]">{checkStateLabel(result)}</span>
+                        {last ? <span className="block text-[var(--text-muted)]">{last}</span> : null}
+                      </Checkbox>
+                      {refused ? (
+                        <p role="alert" className="m-0 pl-6 text-[var(--danger-text)]">
+                          {refused}
+                        </p>
+                      ) : null}
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
+          </div>
         </div>
       </div>
-      <div className="sticky bottom-0 z-10 -mx-[1.1rem] -mb-[1.1rem] flex flex-wrap items-center gap-3 border-t border-[var(--line)] bg-[var(--surface)] px-[1.1rem] pt-3 pb-[1.1rem]">
+      <div className="flex shrink-0 flex-wrap items-center gap-3 border-t border-[var(--line)] pt-3">
         <span className="mr-auto text-[var(--text-muted)]">Skipped, changed or unclear lines become pickups.</span>
         <Button variant="secondary" onClick={close}>
           Cancel

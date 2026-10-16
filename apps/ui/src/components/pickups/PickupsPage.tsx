@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { PickupItem, PickupList } from '../../api/contracts/pickups';
 import type { Measured } from '../../api/schemas/base';
 import { chapterHeading } from '../../chapterHeading';
+import { CommandScope } from '../../input/router';
 import { useCommand } from '../../input/useCommand';
 import { useOverlay } from '../../overlay/OverlayProvider';
 import { usePort } from '../../ports/usePort';
@@ -70,6 +71,7 @@ export function PickupsPage({
   const started = useRef(0);
   const shown = useRef(0);
   const showing = useRef(false);
+  const [checking, setChecking] = useState(false);
   const alive = useRef(true);
   useEffect(() => {
     alive.current = true;
@@ -203,36 +205,43 @@ export function PickupsPage({
   const dawName = !dawKind ? 'the DAW' : dawKind === 'none' ? 'the built-in recorder' : dawKind;
 
   return (
-    <div className="grid items-start gap-4 min-[1180px]:grid-cols-[minmax(0,1fr)_360px]">
-      <PickupsTable
-        pickups={list.pickups}
-        read={read}
-        onReload={() => void load()}
-        chapters={chapters}
-        scope={scope}
-        currentChapterId={current || chapters[0]?.id || ''}
-        chaptersToCheck={list.leftOut.map((chapter) => chapter.chapterId)}
-        daw={{ available: review.available, message: review.message }}
-        onScope={choose}
-        onStep={step}
-        onCheck={(ids) => openCheckRecordings(ids)}
-        onAdd={add}
-        onSetIncluded={(id, included) => changing(pickupsApi.pickupsSetIncluded(id, included))}
-        onSetDone={(id, done) => changing(pickupsApi.pickupsSetDone(id, done))}
-        onRemove={remove}
-        onOpenInBooth={openInBooth}
-        onOpenInScript={goToScript}
-        onGoToProof={(findingId) => goTo(findingId ? `/proof?finding=${encodeURIComponent(findingId)}` : '/proof')}
-      />
-      <SessionPanel
-        pickups={inView}
-        chapters={chapters}
-        seconds={seconds}
-        dawName={dawName}
-        markers={{ available: markers.available, message: markers.message }}
-        onOpenInBooth={openInBooth}
-        onAddMarkers={addMarkers}
-      />
-    </div>
+    <CommandScope kind="page">
+      <div className="grid items-start gap-4 min-[1180px]:grid-cols-[minmax(0,1fr)_360px]">
+        <PickupsTable
+          pickups={list.pickups}
+          read={read}
+          checking={checking}
+          onReload={() => {
+            setChecking(true);
+            void load().finally(() => alive.current && setChecking(false));
+          }}
+          chapters={chapters}
+          scope={scope}
+          currentChapterId={current || chapters[0]?.id || ''}
+          chaptersToCheck={list.leftOut.map((chapter) => chapter.chapterId)}
+          daw={{ available: review.available, message: review.message }}
+          onScope={choose}
+          onStep={step}
+          onCheck={(ids) => openCheckRecordings(ids)}
+          onAdd={add}
+          onSetIncluded={(id, included) => changing(pickupsApi.pickupsSetIncluded(id, included))}
+          onSetDone={(id, done) => changing(pickupsApi.pickupsSetDone(id, done))}
+          onRemove={remove}
+          onOpenInBooth={openInBooth}
+          onOpenInScript={goToScript}
+          onGoToProof={(findingId) => goTo(findingId ? `/proof?finding=${encodeURIComponent(findingId)}` : '/proof')}
+        />
+        <SessionPanel
+          pickups={inView}
+          chapters={chapters}
+          unreadable={read.kind === 'failed'}
+          seconds={seconds}
+          dawName={dawName}
+          markers={{ available: markers.available, message: markers.message }}
+          onOpenInBooth={openInBooth}
+          onAddMarkers={addMarkers}
+        />
+      </div>
+    </CommandScope>
   );
 }
