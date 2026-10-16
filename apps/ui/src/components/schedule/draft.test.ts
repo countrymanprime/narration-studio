@@ -21,6 +21,17 @@ describe('a milestone draft', () => {
     expect(draftOf({ name: 'A', dueDate: '2026-10-05', measure: 'min20' })).toMatchObject({ measure: 'minN', minutes: 20 });
   });
 
+  it('takes a date typed with spaces around it as written without them', () => {
+    expect(milestoneFromDraft({ ...blankDraft(), name: 'A', date: ' 2026-10-25 ' }, undefined, BOUNDS)).toMatchObject({ milestone: { dueDate: '2026-10-25' } });
+  });
+
+  it('refuses a name or note over the host limit in a sentence of its own', () => {
+    const long = { ...blankDraft(), name: 'A', date: '2026-10-05' };
+    expect(milestoneFromDraft({ ...long, name: 'x'.repeat(201) }, undefined, BOUNDS)).toEqual({ refusal: 'The name is 201 characters; the most is 200.' });
+    expect(milestoneFromDraft({ ...long, note: '😀'.repeat(2001) }, undefined, BOUNDS)).toEqual({ refusal: 'The note is 2001 characters; the most is 2000.' });
+    expect(milestoneFromDraft({ ...long, name: '😀'.repeat(200), note: 'y'.repeat(2000) }, undefined, BOUNDS)).toHaveProperty('milestone');
+  });
+
   it('refuses an empty name or no real date, and says so', () => {
     expect(milestoneFromDraft({ ...blankDraft(), name: '  ', date: '2026-10-05' }, undefined, BOUNDS)).toEqual({ refusal: MISSING_NAME });
     expect(milestoneFromDraft({ ...blankDraft(), name: 'A', date: '' }, undefined, BOUNDS)).toEqual({ refusal: MISSING_DATE });

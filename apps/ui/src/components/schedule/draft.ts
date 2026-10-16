@@ -29,6 +29,10 @@ export const blankDraft = (): MilestoneDraft => ({
 
 export const MISSING_NAME = 'Give the milestone a name.';
 export const MISSING_DATE = 'Give the milestone a due date, written YYYY-MM-DD.';
+/** The most the host keeps of a milestone's name and note (the mock mirrors them), counted in characters. */
+const MAX_NAME = 200;
+const MAX_NOTE = 2000;
+
 /** Why a typed date cannot be a milestone's: nothing written, or something that is not a real date. */
 const badDate = (text: string): string => (text.trim() === '' ? MISSING_DATE : `${text.trim()} is not a real date. Write it YYYY-MM-DD.`);
 
@@ -53,14 +57,17 @@ export function milestoneFromDraft(
 ): { milestone: ProductionMilestone } | { refusal: string } {
   const name = draft.name.trim();
   if (!name) return { refusal: MISSING_NAME };
-  if (!isIsoDate(draft.date)) return { refusal: badDate(draft.date) };
+  if ([...name].length > MAX_NAME) return { refusal: `The name is ${[...name].length} characters; the most is ${MAX_NAME}.` };
+  const date = draft.date.trim();
+  if (!isIsoDate(date)) return { refusal: badDate(date) };
   const measure = storedMeasure(draft, bounds);
   const keepEstimate = existing?.estimate !== undefined && measOf(measure) !== 'custom' && existing.measure === measure;
   const note = draft.note.trim();
+  if ([...note].length > MAX_NOTE) return { refusal: `The note is ${[...note].length} characters; the most is ${MAX_NOTE}.` };
   return {
     milestone: {
       name,
-      dueDate: draft.date,
+      dueDate: date,
       ...(measure === 'custom' ? {} : { measure }),
       ...(note ? { note } : {}),
       ...(draft.done ? { done: true } : {}),
