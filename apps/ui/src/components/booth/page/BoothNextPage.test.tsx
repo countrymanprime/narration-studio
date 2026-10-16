@@ -83,7 +83,8 @@ function renderPage({ setup = 'reaper', daw: given, search, api: over = {}, hasM
       <Driver />
     </BoothHost>,
   );
-  const dialog = () => overlay.getSnapshot().dialogs[0] as { spec: { title: string; body: string }; answer: (yes: boolean) => void } | undefined;
+  const dialog = () =>
+    overlay.getSnapshot().dialogs[0] as { spec: { title: string; body: string; confirmLabel: string }; answer: (yes: boolean) => void } | undefined;
   return { view, daw, journal, overlay, navigate, dialog, passageMapRecordRun, teleprompterStop };
 }
 
