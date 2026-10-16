@@ -62,7 +62,7 @@ export const appFeedback: Record<string, FeedbackRow> = {
 
   // useCapability.ts: one capability's live entry from the DAW port's capability report, for any
   // caller wrapping a control in CapabilityGate.
-  'src/useCapability.ts::dawCapabilities#1': row('mount', 'file-io', 'na', 'na', 'event', 'silent', 'na', 'exempt', 'Seeds the entry useCapability exposes before the very next daw_capabilities_changed event takes over; a failed seed just leaves the capability unsupported/unavailable a moment longer, the same as an unknown capability.'),
+  'src/useCapability.ts::dawCapabilities#1': row('mount', 'file-io', 'na', 'na', 'event', 'silent', 'na', 'exempt', 'Seeds the entry useCapability exposes before the very next daw_capabilities_changed event takes over; a failed seed leaves the capability unsupported/unavailable and is retried on a timer and on window focus until the DAW answers or an event arrives.'),
   'src/useCapability.ts::subscribeDawCapabilities#1': subscription("The DAW port's capability report: every caller of useCapability for the same or a different capability reads this one subscription."),
 
   // useDawKind.ts: the session's DAW kind, for the take-management gating.
