@@ -1,13 +1,12 @@
 import { useRef, useState } from 'react';
 import type { PickupItem } from '../../../api/contracts/pickups';
-import { describeApiError } from '../../../api/errorMessage';
 import type { Measured } from '../../../api/schemas/base';
 import { useOverlay } from '../../../overlay/OverlayProvider';
 import { Button } from '../../primitives/Button';
 import { IconButton } from '../../primitives/IconButton';
 import { Panel } from '../../primitives/Panel';
 import { NOT_MEASURED, sessionMinutes } from '../../production/measured/measured.selectors';
-import { pickupScript, sessionPickups, type ChapterRef } from './pickupRows';
+import { pickupScript, reasonSentence, sessionPickups, type ChapterRef } from './pickupRows';
 
 /** What the DAW's capability setup says about one thing the panel does (`useCapability('markers')`): whether it can, and the host's sentence when it cannot. */
 export type Gate = { available: boolean; message?: string };
@@ -61,7 +60,7 @@ export function SessionPanel({
     addingNow.current = true;
     setAdding(true);
     onAddMarkers(picked)
-      .catch((error: unknown) => overlay.toast(describeApiError(error), { tone: 'error' }))
+      .catch((error: unknown) => overlay.toast(reasonSentence(error), { tone: 'error' }))
       .finally(() => {
         addingNow.current = false;
         setAdding(false);

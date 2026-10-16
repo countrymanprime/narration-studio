@@ -1,5 +1,6 @@
 // The pure side of the Pickups list: what the columns say, how rows group by chapter, and the pickup script. The wording is the Studio
 // Next mock's (`selectors/pickups.ts`: `srcLabel`, `typeLabel`; `state/commands/pickups.ts`: `pickupScript`).
+import { apiErrorMessage } from '../../../api/errorMessage';
 import type { PickupGapKind, PickupItem } from '../../../api/contracts/pickups';
 import type { StatusTone } from '../../primitives/StatusBadge';
 
@@ -84,10 +85,16 @@ export function clock(seconds: number | null): string {
   return `${minutes}:${rest}.${tenths % 10}`;
 }
 
-/** "5:12", "05:12" or "05:12.5" to seconds; null for anything else. */
+/** "5:12", "05:12" or "05:12.5" to seconds; null for anything else, including seconds past 59 ("5:99"). */
 export function parseClock(text: string): number | null {
-  const match = /^(\d+):(\d{2})(?:\.(\d))?$/.exec(text.trim());
+  const match = /^(\d{1,5}):([0-5]\d)(?:\.(\d))?$/.exec(text.trim());
   return match ? Number(match[1]) * 60 + Number(match[2]) + (match[3] ? Number(match[3]) / 10 : 0) : null;
+}
+
+/** A host reason as a sentence a narrator can read: no "Error: " prefix, a capital, and a full stop. */
+export function reasonSentence(error: unknown): string {
+  const text = apiErrorMessage(error).trim() || 'The host gave no reason.';
+  return `${text.charAt(0).toUpperCase()}${text.slice(1)}${/[.!?]$/.test(text) ? '' : '.'}`;
 }
 
 export type ScriptPart = { kind: 'text' | 'b' | 'i'; text: string };

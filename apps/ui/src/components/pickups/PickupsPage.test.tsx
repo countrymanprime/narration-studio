@@ -20,10 +20,11 @@ afterEach(() => {
 
 const LIST: PickupList = { pickups: MIXED, leftOut: [{ chapterId: 'c2', state: 'stale', reasons: [] }] };
 
-function renderPage(api: NarrationApi = createMockApi({ pickupsList: () => Promise.resolve(LIST) })) {
-  vi.spyOn(api, 'manuscriptChapters').mockResolvedValue(
-    CHAPTERS.map((chapter, index) => ({ id: chapter.id, title: chapter.name, index, wordCount: 100, status: 'recording' }) as never),
-  );
+function renderPage(
+  api: NarrationApi = createMockApi({ pickupsList: () => Promise.resolve(LIST) }),
+  chapters: readonly object[] = CHAPTERS.map((chapter, index) => ({ id: chapter.id, title: chapter.name, index, wordCount: 100, status: 'recording' })),
+) {
+  vi.spyOn(api, 'manuscriptChapters').mockResolvedValue(chapters as never);
   const goTo = vi.fn();
   const goToScript = vi.fn();
   render(
@@ -155,5 +156,36 @@ describe('the-recorded-state-the-daw-has-not-taken', () => {
     const waiting = { ...LIST, pickups: LIST.pickups.map((p, index) => (index === 0 ? { ...p, done: true, waiting: true } : p)) };
     renderPage(createMockApi({ pickupsList: () => Promise.resolve(waiting) }));
     expect(await screen.findByText('Recorded, not in the DAW yet')).toBeTruthy();
+  });
+});
+
+describe('names-a-chapter-as-the-manuscript-heads-it', () => {
+  it('draws the group row with the heading label, then the title', async () => {
+    const chapters = CHAPTERS.map((chapter, index) => ({
+      id: chapter.id,
+      title: `CHAPTER ${index + 1}`,
+      subtitle: `Title ${index + 1}`,
+      index,
+      wordCount: 100,
+      status: 'recording',
+    }));
+    renderPage(createMockApi({ pickupsList: () => Promise.resolve(LIST) }), chapters);
+    expect(await screen.findByText('CHAPTER 1 Title 1')).toBeTruthy();
+  });
+});
+
+describe('absurd-text-in-a-line', () => {
+  it('draws right-to-left, emoji and 500 unbroken characters in the line without markup or overflow classes missing', async () => {
+    const odd = [
+      { ...MIXED[0], id: 'you:rtl', script: 'مرحبا بالعالم 🦎🍺 שלום' },
+      { ...MIXED[1], id: 'you:long', script: 'x'.repeat(500) },
+      { ...MIXED[2], id: 'you:tags', script: '<script>alert(1)</script> <b>ok</b>' },
+    ];
+    renderPage(createMockApi({ pickupsList: () => Promise.resolve({ ...LIST, pickups: odd }) }));
+    const rtl = await screen.findByText('مرحبا بالعالم 🦎🍺 שלום');
+    expect(rtl.getAttribute('dir')).toBe('auto');
+    expect(screen.getByText('x'.repeat(500)).className).toContain('overflow-wrap');
+    expect(document.querySelector('script')).toBeNull();
+    expect(screen.getByText(/<script>alert\(1\)<\/script>/)).toBeTruthy();
   });
 });

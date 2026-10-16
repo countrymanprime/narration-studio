@@ -51,9 +51,45 @@ describe('AddPickup', () => {
     await user.type(screen.getByRole('textbox', { name: 'Time in the recording' }), '99:00');
     await user.type(screen.getByRole('textbox', { name: 'Line to re-record' }), 'A line');
     await user.click(screen.getByRole('button', { name: 'Add pickup' }));
-    await waitFor(() => expect(toasts()).toEqual(['Error: That time is outside the chapter.']));
+    await waitFor(() => expect(toasts()).toEqual(['That time is outside the chapter.']));
     expect(onDone).not.toHaveBeenCalled();
     expect((screen.getByRole('textbox', { name: 'Line to re-record' }) as HTMLInputElement).value).toBe('A line');
     expect((screen.getByRole('textbox', { name: 'Time in the recording' }) as HTMLInputElement).value).toBe('99:00');
+  });
+
+  it.each(['-1', '0', '5:99', '05:12.55', '1e3', '∞', 'Infinity', '5:12 pm', '', '   ', '１２:００', '99999999:00'])(
+    'absurd time %j is refused with the way to type it, and nothing is sent',
+    async (text) => {
+      const { onAdd, user, toasts } = setup();
+      const box = screen.getByRole('textbox', { name: 'Time in the recording' });
+      if (text.trim()) await user.type(box, text);
+      await user.type(screen.getByRole('textbox', { name: 'Line to re-record' }), 'A line');
+      await user.click(screen.getByRole('button', { name: 'Add pickup' }));
+      expect(toasts()).toEqual(['Type the time like 05:12.0.']);
+      expect(onAdd).not.toHaveBeenCalled();
+    },
+  );
+
+  it.each(['مرحبا بالعالم', 'שלום עולם', '🦎 asks for a 🍺', 'a pop tart in the floppy drive', 'x'.repeat(501)])(
+    'the line %j goes to the host as typed; the host decides what is too much',
+    async (line) => {
+      const { onAdd, user } = setup();
+      await user.type(screen.getByRole('textbox', { name: 'Time in the recording' }), '00:00');
+      await user.click(screen.getByRole('textbox', { name: 'Line to re-record' }));
+      await user.paste(line);
+      await user.click(screen.getByRole('button', { name: 'Add pickup' }));
+      expect(onAdd).toHaveBeenCalledWith('c1', 0, line);
+    },
+  );
+
+  it('a double press while the host is answering adds one line', async () => {
+    let answer: () => void = () => {};
+    const held = new Promise<void>((resolve) => (answer = resolve));
+    const { onAdd, user } = setup(vi.fn().mockReturnValue(held));
+    await user.type(screen.getByRole('textbox', { name: 'Time in the recording' }), '01:00');
+    await user.type(screen.getByRole('textbox', { name: 'Line to re-record' }), 'Once');
+    await user.dblClick(screen.getByRole('button', { name: 'Add pickup' }));
+    expect(onAdd).toHaveBeenCalledTimes(1);
+    answer();
   });
 });

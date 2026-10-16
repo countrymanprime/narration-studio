@@ -166,7 +166,7 @@ describe('PickupsTable', () => {
     const { onSetDone, user, toasts } = setup();
     onSetDone.mockRejectedValueOnce(new Error('Stale: that marker has moved.'));
     await user.click(within(rowOf('05:12.0')).getByRole('button', { name: 'Mark recorded' }));
-    await waitFor(() => expect(toasts().map((t) => t.text)).toEqual(['Error: Stale: that marker has moved.']));
+    await waitFor(() => expect(toasts().map((t) => t.text)).toEqual(['Stale: that marker has moved.']));
     expect(toasts()[0].tone).toBe('error');
   });
 

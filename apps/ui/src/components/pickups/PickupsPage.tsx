@@ -1,8 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { PickupItem, PickupList } from '../../api/contracts/pickups';
 import type { Measured } from '../../api/schemas/base';
-import { apiErrorMessage, describeApiError } from '../../api/errorMessage';
-import { chapterName } from '../../chapterName';
+import { chapterHeading } from '../../chapterHeading';
 import { useOverlay } from '../../overlay/OverlayProvider';
 import { usePort } from '../../ports/usePort';
 import { useCapability } from '../../useCapability';
@@ -11,17 +10,18 @@ import type { ManuscriptChapter } from '../../types';
 import { boothQuery } from '../booth/page/boothQuery';
 import { openCheckRecordings } from '../recordingcheck/openCheckRecordings';
 import { NeedManuscript } from '../layout/NeedManuscript';
-import { ALL_SCOPE, inScope, plainLine, type ChapterRef } from './list/pickupRows';
+import { ALL_SCOPE, inScope, plainLine, reasonSentence, type ChapterRef } from './list/pickupRows';
 import { PickupsTable, type PickupsRead, type RemoveUndo } from './list/PickupsTable';
 import { SessionPanel } from './list/SessionPanel';
 
+/** A chapter named as the manuscript heads it, label then title ("Chapter 3 A Caucus-Race and a Long Tale"), as the mock's `chName` and the Editing page. */
+function headingName(chapter: Parameters<typeof chapterHeading>[0]): string {
+  const { label, title } = chapterHeading(chapter);
+  return label ? `${label} ${title}` : title;
+}
+
 const isNarration = (chapter: ManuscriptChapter) => (chapter.contentKind ?? 'narration') === 'narration';
 const LOADING: Measured<number> = { ok: false, reason: 'Reading the recording times…' };
-/** A reason as a sentence a narrator can read: a capital, and a full stop. */
-const sentence = (reason: string): string => {
-  const text = reason.trim() || 'The host gave no reason.';
-  return `${text.charAt(0).toUpperCase()}${text.slice(1)}${/[.!?]$/.test(text) ? '' : '.'}`;
-};
 /** How often a list that could not be read is tried again. */
 const RETRY_MS = 10_000;
 
@@ -84,12 +84,12 @@ export function PickupsPage({
       if (!alive.current || mine < shown.current) return;
       shown.current = mine;
       showing.current = true;
-      setChapters(all.filter(isNarration).map((chapter) => ({ id: chapter.id, name: chapterName(chapter) })));
+      setChapters(all.filter(isNarration).map((chapter) => ({ id: chapter.id, name: headingName(chapter) })));
       setList(answer);
       setRead({ kind: 'ready', readAt: Date.now() });
     } catch (error) {
       if (!alive.current || mine < shown.current) return;
-      const message = sentence(apiErrorMessage(error));
+      const message = reasonSentence(error);
       setRead((before) => (showing.current && before.kind === 'ready' ? { ...before, trouble: message } : { kind: 'failed', message }));
     }
   }, [manuscriptApi, pickupsApi]);
@@ -126,7 +126,7 @@ export function PickupsPage({
     let live = true;
     measurements.pickupSessionSeconds(sessionKey ? sessionKey.split('\n') : []).then(
       (answer) => live && setSeconds(answer),
-      (error: unknown) => live && setSeconds({ ok: false, reason: describeApiError(error) }),
+      (error: unknown) => live && setSeconds({ ok: false, reason: reasonSentence(error) }),
     );
     return () => {
       live = false;
@@ -167,7 +167,7 @@ export function PickupsPage({
         await changing(pickupsApi.pickupsAdd(chapterId, time, plainLine(script)));
         return { ok: true };
       } catch (error) {
-        return { ok: false, refusal: { reason: describeApiError(error) } };
+        return { ok: false, refusal: { reason: reasonSentence(error) } };
       }
     };
   };

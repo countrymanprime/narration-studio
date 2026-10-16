@@ -1,6 +1,5 @@
 import { useRef, useState, type KeyboardEvent, type ReactNode } from 'react';
 import type { PickupItem } from '../../../api/contracts/pickups';
-import { describeApiError } from '../../../api/errorMessage';
 import { useOverlay } from '../../../overlay/OverlayProvider';
 import type { OverlayService } from '../../../overlay/overlayService';
 import { Button } from '../../primitives/Button';
@@ -13,7 +12,7 @@ import { Popover } from '../../primitives/Popover';
 import { StatusBadge } from '../../primitives/StatusBadge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../primitives/Table';
 import { AddPickup } from './AddPickup';
-import { clock, groupByChapter, inScope, sourceLabel, sourceTitle, typeLabel, typeTone, ALL_SCOPE, type ChapterRef } from './pickupRows';
+import { clock, groupByChapter, reasonSentence, inScope, sourceLabel, sourceTitle, typeLabel, typeTone, ALL_SCOPE, type ChapterRef } from './pickupRows';
 import { ScriptLine } from './ScriptLine';
 import { PICKUP_ROW, usePickupsContextMenu } from './usePickupsContextMenu';
 
@@ -39,7 +38,7 @@ async function said(overlay: OverlayService, run: () => unknown): Promise<void> 
   try {
     await run();
   } catch (error) {
-    overlay.toast(describeApiError(error), { tone: 'error' });
+    overlay.toast(reasonSentence(error), { tone: 'error' });
   }
 }
 

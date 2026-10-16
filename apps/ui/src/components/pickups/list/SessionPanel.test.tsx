@@ -72,7 +72,7 @@ describe('SessionPanel', () => {
     const { onAddMarkers, user, toasts } = setup();
     onAddMarkers.mockRejectedValueOnce(new Error('REAPER refused.'));
     await user.click(screen.getByRole('button', { name: /^Add \d as markers in REAPER/ }));
-    await waitFor(() => expect(toasts()).toEqual(['Error: REAPER refused.']));
+    await waitFor(() => expect(toasts()).toEqual(['REAPER refused.']));
   });
 
   it('the markers icon is off without the capability, with its sentence', async () => {
