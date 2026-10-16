@@ -9,6 +9,8 @@ const MIN_WIDTH = 280;
 const DAY = 86_400_000;
 const PAD = { left: 40, right: 12, top: 14, bottom: 28 };
 const MONO = 'IBM Plex Mono, monospace';
+/** The least room, in px, between two date labels on the axis. */
+const TICK_GAP = 72;
 
 type Props = {
   k: Calc;
@@ -24,19 +26,26 @@ type Props = {
   series: Measured<Array<[number, number]>>;
   /** The fixed height in px; the chart draws to the width it is given. */
   height?: number;
+  /** Fill the card's height (the Schedule's chart stretches beside the Contract and the work left); `height` is then the least it takes. */
+  fill?: boolean;
   /** The panel's title: Production says "Recorded vs plan", the Schedule page "Recorded audio vs plan" (the mock). */
   title?: string;
 };
 
 /** "Recorded vs plan": the plan dashed, the recorded days solid, the projection dotted, with the due line, today and the estimated finish. */
-export function ProgressChart({ k, wph, start, today, due, recordedHours, series, height = 200, title = 'Recorded vs plan' }: Props) {
+export function ProgressChart({ k, wph, start, today, due, recordedHours, series, height: minHeight = 200, fill = false, title = 'Recorded vs plan' }: Props) {
   const box = useRef<HTMLDivElement>(null);
   const [width, setWidth] = useState(520);
+  const [boxHeight, setBoxHeight] = useState(minHeight);
+  const height = fill ? Math.max(minHeight, boxHeight) : minHeight;
   const describedBy = useId();
   useEffect(() => {
     const el = box.current;
     if (!el) return;
-    const measure = (): void => setWidth(Math.max(MIN_WIDTH, Math.round(el.clientWidth)));
+    const measure = (): void => {
+      setWidth(Math.max(MIN_WIDTH, Math.round(el.clientWidth)));
+      setBoxHeight(Math.round(el.clientHeight));
+    };
     measure();
     if (typeof ResizeObserver === 'undefined') return;
     const observer = new ResizeObserver(measure);
@@ -53,18 +62,22 @@ export function ProgressChart({ k, wph, start, today, due, recordedHours, series
   const nowDay = diffDays(today, start);
   const actual: Array<[number, number]> = series.ok ? [...series.value.filter((p) => p[0] < nowDay), [nowDay, recordedHours]] : [];
   const weeks: number[] = [];
-  for (let d = 0; d <= span; d += 7) weeks.push(d);
+  // A week apart, or wider when the labels would touch (a narrow card) or the plan runs for years: a due date far away must not draw a tick for every week of it.
+  const pxPerDay = (width - PAD.left - PAD.right) / span;
+  const step = Math.max(7, Math.ceil(TICK_GAP / pxPerDay / 7) * 7);
+  for (let d = 0; d <= span; d += step) weeks.push(d);
   const rows = Array.from({ length: yMax + 1 }, (_, v) => v).slice(0, 4);
   const summary = `Plan starts ${fmtD(start)}${due ? `, due ${fmtD(due)}` : ', no due date'}. Today is ${fmtD(today)}, ${recordedHours.toFixed(1)} of ${finishedHours.toFixed(1)} finished hours recorded. Estimated finish ${fmtD(k.finish)}.`;
 
   return (
-    <Panel title={title} className="min-w-0">
-      <div ref={box} className="w-full overflow-hidden" style={{ height }}>
+    <Panel title={title} className="min-w-0" fill={fill}>
+      {/* Filling, the svg is laid over the box so what it draws never sets the card's height: the cell does. */}
+      <div ref={box} className={fill ? 'relative size-full overflow-hidden' : 'w-full overflow-hidden'} style={fill ? { minHeight } : { height }}>
         <svg
           viewBox={`0 0 ${width} ${height}`}
           width={width}
           height={height}
-          className="block"
+          className={fill ? 'absolute inset-0 block' : 'block'}
           role="img"
           aria-label="Recorded audio versus plan"
           aria-describedby={describedBy}
@@ -83,17 +96,26 @@ export function ProgressChart({ k, wph, start, today, due, recordedHours, series
           {due && (
             <>
               <line x1={x(due)} x2={x(due)} y1={PAD.top} y2={height - PAD.bottom} stroke="var(--danger)" strokeDasharray="2 4" data-line="due" />
-              <text x={x(due) - 4} y={PAD.top + 10} textAnchor="end" fontSize="11" fill="var(--danger-text)">{`due ${fmtD(due)}`}</text>
-              <line
-                x1={x(start)}
-                y1={y(0)}
-                x2={x(due)}
-                y2={y(finishedHours)}
-                stroke="var(--text-muted)"
-                strokeWidth="2"
-                strokeDasharray="6 5"
-                data-line="plan"
-              />
+              <text
+                x={x(due) + (x(due) < 96 ? 4 : -4)}
+                y={PAD.top + 10}
+                textAnchor={x(due) < 96 ? 'start' : 'end'}
+                fontSize="11"
+                fill="var(--danger-text)"
+              >{`due ${fmtD(due)}`}</text>
+              {/* A due date on or before the plan's first day leaves no plan to draw. */}
+              {diffDays(due, start) > 0 && (
+                <line
+                  x1={x(start)}
+                  y1={y(0)}
+                  x2={x(due)}
+                  y2={y(finishedHours)}
+                  stroke="var(--text-muted)"
+                  strokeWidth="2"
+                  strokeDasharray="6 5"
+                  data-line="plan"
+                />
+              )}
             </>
           )}
           {actual.length > 0 && (
@@ -105,7 +127,7 @@ export function ProgressChart({ k, wph, start, today, due, recordedHours, series
               points={actual.map((p) => `${x(addDays(start, p[0]))},${y(p[1])}`).join(' ')}
             />
           )}
-          {!series.ok && <text x={PAD.left + 8} y={PAD.top + 10} fontSize="11" fill="var(--text-muted)">{`Recorded days ${NOT_MEASURED}`}</text>}
+          {!series.ok && <text x={PAD.left + 8} y={PAD.top + 26} fontSize="11" fill="var(--text-muted)">{`Recorded days ${NOT_MEASURED}`}</text>}
           <line
             x1={x(today)}
             y1={y(recordedHours)}
@@ -121,7 +143,13 @@ export function ProgressChart({ k, wph, start, today, due, recordedHours, series
           <text x={x(today)} y={y(recordedHours) - 10} textAnchor="middle" fontSize="11" fill="var(--text)">
             today
           </text>
-          <text x={x(k.finish)} y={y(finishedHours) - 8} textAnchor="end" fontSize="11" fill="var(--text)">{`done ${fmtD(k.finish)} (est.)`}</text>
+          <text
+            x={x(k.finish)}
+            y={y(finishedHours) - 8}
+            textAnchor={x(k.finish) < 130 ? 'start' : 'end'}
+            fontSize="11"
+            fill="var(--text)"
+          >{`done ${fmtD(k.finish)} (est.)`}</text>
         </svg>
       </div>
       <p id={describedBy} className="sr-only">

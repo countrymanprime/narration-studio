@@ -588,6 +588,20 @@
     "caption": "Schedule - the verdict, the recorded audio against the plan, how the book pays, the work left and the milestones"
   },
   {
+    "page": "schedule",
+    "state": "overdue",
+    "viewport": "desktop",
+    "docName": "schedule-overdue",
+    "caption": "Schedule - a due date that has passed: how many days overdue, Behind, and when the work would finish at your pace"
+  },
+  {
+    "page": "schedule",
+    "state": "milestone-dialog",
+    "viewport": "desktop",
+    "docName": "schedule-milestone-dialog",
+    "caption": "Schedule - the Add milestone dialog: name, due date, what it measures, a note and Done"
+  },
+  {
     "page": "pickups",
     "state": "list",
     "viewport": "desktop",

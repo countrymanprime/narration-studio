@@ -26,7 +26,11 @@ import type { StageRecommendations } from './contracts/stages';
 type SeedLog = 'on-pace' | 'at-risk' | 'mock-fidelity-01';
 
 /** A plan to start from, and optionally a seeded time log (`log`). */
-export type ProductionSeed = Partial<ProductionPlan> & { log?: SeedLog };
+export type ProductionSeed = Partial<ProductionPlan> & {
+  log?: SeedLog;
+  /** Whole days the seeded log and the mock's today are moved later than the fixture's own dates (see `scenarioFromToday`). Default 0. */
+  shiftDays?: number;
+};
 
 type Deps = {
   chapters: () => Promise<ManuscriptChapter[]>;
@@ -45,6 +49,22 @@ export const PRODUCTION_SCENARIOS: Record<SeedLog, ProductionSeed> = {
 
 // The mock's today, so the days left to a seeded deadline are the same on every run (the host counts from the real date).
 const MOCK_TODAY = '2026-09-26';
+const DAY_MS = 86_400_000;
+
+const dayKey = (date: Date) => `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+const addDays = (isoDate: string, days: number) => new Date(Date.parse(`${isoDate}T00:00:00Z`) + days * DAY_MS).toISOString().slice(0, 10);
+
+/**
+ * A `?mockProduction=` scenario moved so that the mock's day is the real day: the due date, the seeded time log and the days left all
+ * move by the same whole days, so `on-pace` is on pace and `at-risk` is at risk on any day the app is opened (the fixture's own dates
+ * are absolute and aged into "behind", "-14 days left"). Where the clock is pinned to the mock's day the shift is 0 and nothing moves.
+ */
+export function scenarioFromToday(name: SeedLog, now: Date = new Date()): ProductionSeed {
+  const seed = PRODUCTION_SCENARIOS[name];
+  const shiftDays = Math.round((Date.parse(`${dayKey(now)}T00:00:00Z`) - Date.parse(`${MOCK_TODAY}T00:00:00Z`)) / DAY_MS);
+  if (shiftDays === 0) return seed;
+  return { ...seed, deadline: seed.deadline ? addDays(seed.deadline, shiftDays) : seed.deadline, shiftDays };
+}
 
 const NEXT_UP_LIMIT = 5;
 const TIMEABLE: readonly ChapterStatus[] = ['not_started', 'recording', 'editing', 'proofing', 'finalized'];
@@ -139,11 +159,18 @@ function answer(stored: StoredPlan): ProductionPlan {
   };
 }
 
+// The host's bounds (internal/production/plan.go): what one save can put on the manifest.
+const MAX_MILESTONES = 100;
+const MAX_MILESTONE_NAME = 200;
+const MAX_MILESTONE_NOTE = 2000;
+
 /** One milestone as production.CleanMilestones saves it, or a refusal naming it. */
 function cleanMilestone(milestone: ProductionMilestone, index: number): ProductionMilestone {
   const name = milestone.name.trim();
   if (!name) throw new Error(`milestone ${index + 1} needs a name`);
+  if ([...name].length > MAX_MILESTONE_NAME) throw new Error(`milestone ${index + 1}'s name is longer than ${MAX_MILESTONE_NAME} characters`);
   const note = milestone.note?.trim();
+  if (note && [...note].length > MAX_MILESTONE_NOTE) throw new Error(`milestone ${index + 1}'s note is longer than ${MAX_MILESTONE_NOTE} characters`);
   const measure = milestone.measure?.trim() ?? '';
   const estimate = milestone.estimate?.trim() ?? '';
   const template = milestone.template?.trim() ?? '';
@@ -170,12 +197,13 @@ function cleanMilestone(milestone: ProductionMilestone, index: number): Producti
   };
 }
 
-const daysLeft = (date: string) => Math.round((Date.parse(`${date}T00:00:00Z`) - Date.parse(`${MOCK_TODAY}T00:00:00Z`)) / 86_400_000);
+const daysLeft = (date: string, shiftDays: number) =>
+  Math.round((Date.parse(`${date}T00:00:00Z`) - Date.parse(`${addDays(MOCK_TODAY, shiftDays)}T00:00:00Z`)) / DAY_MS);
 
-function seededSessions(log: SeededLog): ProductionSession[] {
+function seededSessions(log: SeededLog, shiftDays: number): ProductionSession[] {
   const scale = log.hoursScale;
   const sessions: ProductionSession[] = [];
-  let start = Date.parse('2026-09-01T09:00:00Z');
+  let start = Date.parse('2026-09-01T09:00:00Z') + shiftDays * DAY_MS;
   for (const [chapterId, hours] of Object.entries(log.hours)) {
     for (const stage of TIMEABLE) {
       const length = hours[stage];
@@ -263,7 +291,7 @@ export function createProductionMock(deps: Deps): ProductionApi & { applyProfile
     milestones: (seed.milestones ?? []).map((milestone) => ({ ...milestone })),
   };
   const log = seed.log ? LOGS[seed.log] : undefined;
-  const sessions: ProductionSession[] = log ? seededSessions(log) : [];
+  const sessions: ProductionSession[] = log ? seededSessions(log, seed.shiftDays ?? 0) : [];
   // The seeded running session began 42 minutes before the mock was made, so the header's timer chip reads like a real session
   // (0:42:00 and counting) rather than days on from a fixed date.
   if (log?.running) {
@@ -321,7 +349,7 @@ export function createProductionMock(deps: Deps): ProductionApi & { applyProfile
         contractedAmount,
         effectiveRate: contractedAmount !== null && hoursLogged > 0 ? contractedAmount / hoursLogged : null,
       },
-      deadline: plan.deadline === null ? null : { date: plan.deadline, daysLeft: daysLeft(plan.deadline) },
+      deadline: plan.deadline === null ? null : { date: plan.deadline, daysLeft: daysLeft(plan.deadline, seed.shiftDays ?? 0) },
       running: running(),
       nextUp: nextUp(chapters),
     };
@@ -356,6 +384,7 @@ export function createProductionMock(deps: Deps): ProductionApi & { applyProfile
       return answer(plan);
     },
     saveProductionMilestones: async (milestones) => {
+      if (milestones.length > MAX_MILESTONES) throw new Error(`a book can have at most ${MAX_MILESTONES} milestones`);
       const cleaned = milestones.map(cleanMilestone);
       plan = { ...plan, milestones: cleaned };
       return answer(plan);

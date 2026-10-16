@@ -1,6 +1,6 @@
 import type { ChapterStatus, ManuscriptContentKind } from '../../api/contracts/manuscript';
 import type { ProductionMilestone } from '../../api/contracts/production';
-import { addDays, diffDays, fmtD, parseIso } from './dates';
+import { addDays, diffDays, fmtD, isIsoDate, parseIso } from './dates';
 import { PACE, PICKUP_HOURS, RATIO, WARN_DAYS, WPH } from './estimates';
 import { CHECKPOINT_MEASURE, chaptersOf, measOf, minutesOf } from './measures';
 
@@ -143,6 +143,7 @@ export function milestoneStatus(
 ): MilestoneStatus {
   if (m.done) return { kind: 'done', sentence: 'Done', short: '✓' };
   if (measOf(m.measure) === 'custom') return { kind: 'none', sentence: 'Not estimated', short: '—' };
+  if (!isIsoDate(m.dueDate)) return { kind: 'none', sentence: `Not estimated: ${m.dueDate || 'no date'} is not a real date`, short: '—' };
   const projected = addDays(today, Math.ceil(remainFor(chapters, m.measure ?? '') / PACE));
   const est = fmtD(projected);
   const late = diffDays(projected, parseIso(m.dueDate));
