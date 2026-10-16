@@ -70,6 +70,7 @@ function MasterBody({ projectFolder, onOpenDelivery, openSettings, fileActions, 
   const manuscript = usePort('manuscript');
   const [chapters, setChapters] = useState<ManuscriptChapter[]>([]);
   const [chaptersProblem, setChaptersProblem] = useState<string>();
+  const [chaptersRead, setChaptersRead] = useState(false);
   const profilesPort = usePort('deliveryProfiles');
   const run = useMeasureRun();
   const jobs = useExportJobs();
@@ -79,6 +80,10 @@ function MasterBody({ projectFolder, onOpenDelivery, openSettings, fileActions, 
   const [profileProblem, setProfileProblem] = useState<string>();
   // A file's path, or a chapter's id when that chapter has no file yet. The chapter bar is read off it.
   const [picked, setPicked] = useState<string | undefined>(focusFile);
+  // A link that arrives while the page is open (the narrator follows another one) moves the selection too.
+  useEffect(() => {
+    if (focusFile !== undefined) setPicked(focusFile);
+  }, [focusFile]);
   // The file whose every-rule list the narrator closed; selecting another file shows its list again.
   const [rulesClosed, setRulesClosed] = useState<string>();
 
@@ -102,8 +107,8 @@ function MasterBody({ projectFolder, onOpenDelivery, openSettings, fileActions, 
   useEffect(() => {
     let live = true;
     manuscript.manuscriptChapters().then(
-      (list) => live && setChapters(list),
-      (error) => live && setChaptersProblem(apiErrorMessage(error)),
+      (list) => live && (setChapters(list), setChaptersRead(true)),
+      (error) => live && (setChaptersProblem(apiErrorMessage(error)), setChaptersRead(true)),
     );
     return () => {
       live = false;
@@ -120,6 +125,18 @@ function MasterBody({ projectFolder, onOpenDelivery, openSettings, fileActions, 
     return (chapter && fileOf(chapter, run.files)?.path) ?? picked;
   }, [picked, chapters, run.files]);
   const current = rows.find((row) => row.id === selected);
+  // A link that names neither a file of this check nor a chapter (a stale or mistyped address) is said so, with a way out; it is never
+  // drawn as an empty "Not mastered" panel. Judged only once the files and the chapter list are both known.
+  const staleLink =
+    picked !== undefined &&
+    run.lastHeard !== undefined &&
+    !run.running &&
+    chaptersRead &&
+    !chaptersProblem &&
+    !current &&
+    !chapters.some((chapter) => chapter.id === picked)
+      ? picked
+      : undefined;
   const chapterOfSelection = useMemo(() => {
     const file = run.files.find((candidate) => candidate.path === selected);
     return (file && chapterOfFile(file, chapters)) ?? chapters.find((candidate) => candidate.id === selected);
@@ -184,11 +201,23 @@ function MasterBody({ projectFolder, onOpenDelivery, openSettings, fileActions, 
               The chapters could not be read, so the files keep their file names: {chaptersProblem}
             </p>
           )}
+          {staleLink !== undefined && (
+            <div role="status" aria-label="Link not found" className="flex flex-wrap items-center gap-2 text-sm" style={MUTED}>
+              <span>
+                {run.files.length === 0
+                  ? `The link names ${staleLink}, but no files are measured yet. Check files to measure them.`
+                  : `The link names ${staleLink}, which this check does not include. It may have been renamed, moved or not measured yet.`}
+              </span>
+              <Button variant="secondary" size="sm" onClick={() => setPicked(undefined)}>
+                Show the first file instead
+              </Button>
+            </div>
+          )}
           <MeasureProgress run={run} />
           {profile && run.files.length > 0 ? (
             <>
               <FilesTable files={files} profile={profile} selected={selected} onSelect={select} actions={actions} />
-              <FileChecks row={current} chapterLabel={chapterOfSelection && chapterName(chapterOfSelection)} actions={actions} />
+              {staleLink === undefined && <FileChecks row={current} chapterLabel={chapterOfSelection && chapterName(chapterOfSelection)} actions={actions} />}
               {profile && currentFile && rulesClosed !== currentFile.path && (
                 <FileRulesPanel file={currentFile} profile={profile} onClose={() => setRulesClosed(currentFile.path)} />
               )}
