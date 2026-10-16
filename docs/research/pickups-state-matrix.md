@@ -37,3 +37,7 @@ Test files: `PickupsPage.test.tsx` (page), `PickupsTable.test.tsx` (table), `Add
 ## Overlays (real app, `pickups-edges.spec.ts`, three window sizes)
 
 Row menu at the row's four corners, first and last row; Add popover; stepper menu; Check recordings dialog (and its footer buttons); a tooltip on the last row icon; a toast; the row menu over an open Add popover; the row menu beside the focused, expanded nav rail. Each is topmost by `elementFromPoint` at its corners and centre and fully on screen; a self-check proves the guard fails when a layer covers it, and the dialog check fails without the sticky footer. The shared overlay guard (#1756) had not merged, so this is done by hand.
+
+## Independent narrator rounds
+
+Two fresh-context walkthroughs found 16 and 13 defects; the PR body holds both reports and what each round fixed or left. Cells they moved: "Alt+Up / Alt+Down" (now tested in the real app), "Opening the list / Failed" (the session panel, Add popover and Copy now say the list is unreadable), "Check recordings" (footer reachable at short heights).
