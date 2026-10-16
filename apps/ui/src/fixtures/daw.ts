@@ -176,6 +176,7 @@ const BUILTIN_CAPABILITIES = everyCapability(() => ({ level: 'unsupported', avai
   fx_range: notYet(BUILTIN_NOT_YET),
   stack_takes: notYet(BUILTIN_NOT_YET),
   undo_last: notYet(BUILTIN_NOT_YET),
+  input_level: noInputLevel('The built-in recorder'),
 });
 
 export const DAW_SETUPS: Readonly<Record<DawSetupId, DawCapabilities>> = {

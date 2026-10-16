@@ -3,15 +3,15 @@
 # The two toast live regions stay in the tree on purpose: Base UI leaves live regions exposed behind a modal, so an error raised
 # from inside a dialog is still announced. They are empty here, and they are the only thing under <main>.
 - main:
-  - alert
-  - status
+    - alert
+    - status
 # The overlay host's own live regions (the toast pair and the announcer) stay exposed behind a modal for the same reason.
 - alert
 - status
 - status
 - alertdialog "Delete entry":
-  - heading "Delete entry" [level=2]
-  - button "Close"
-  - paragraph: /Delete “Alice”/
-  - button "Cancel"
-  - button "Delete entry"
+    - heading "Delete entry" [level=2]
+    - button "Close"
+    - paragraph: /Delete “Alice”/
+    - button "Cancel"
+    - button "Delete entry"

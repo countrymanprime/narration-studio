@@ -100,7 +100,7 @@ const CAPABILITY_NEEDS: Record<DawCapabilityKey, DawMockNeeds> = {
   input_level: 'running',
 };
 
-const MESSAGE_NO_INPUT_LEVEL = (daw: string) => `${daw} cannot set an audio interface's input gain. Set it in your interface's own control panel.`;
+const MESSAGE_NO_INPUT_LEVEL = (who: string) => `${who} cannot set an audio interface's input gain. Set it in your interface's own control panel.`;
 
 /** The host's own wording for a REAPER that is not connected or not answering, and the resolver's generic wording for
  * every other refusal (apps/desktop/internal/dawport/resolver.go, apps/desktop/internal/dawport/reaper/reaper.go). */
@@ -215,7 +215,7 @@ function declarationFor(daw: DawKind): Record<string, DawCapabilityLevel> {
 
 function explain(daw: DawKind, key: DawCapabilityKey, reason: DawCapabilitySupport['reason'], pipe = false): string {
   // The one thing no engine can do, and the way out: the narrator's own audio interface sets its input gain.
-  if (key === 'input_level' && reason === 'unsupported' && daw !== 'Built-in' && daw !== 'none') return MESSAGE_NO_INPUT_LEVEL(daw);
+  if (key === 'input_level' && reason === 'unsupported' && daw !== 'none') return MESSAGE_NO_INPUT_LEVEL(daw === 'Built-in' ? 'The built-in recorder' : daw);
   if (daw === 'Audacity') {
     if (reason === 'not_yet') return MESSAGE_AUDACITY_NOT_YET;
     if (reason === 'standalone' || reason === 'not_running') return pipe ? MESSAGE_AUDACITY_NOT_REACHABLE : MESSAGE_AUDACITY_NOT_CONNECTED;

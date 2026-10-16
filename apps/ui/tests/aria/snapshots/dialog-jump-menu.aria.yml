@@ -1,19 +1,19 @@
 # The jump menu (ADR 0780 decision 6), opened from the header: a modal dialog holding one combobox field that names the active option and
 # a listbox. Opened with nothing typed it lists one row per command group, the first selected. The live regions behind it are the page's and the overlay host's.
 - main:
-  - group "Zoom"
-  - alert
-  - status
+    - group "Zoom"
+    - alert
+    - status
 - alert
 - status
 - status
 - dialog "Jump menu":
-  - heading "Jump menu" [level=2]
-  - combobox "Jump menu" [expanded]
-  - listbox "Jump menu results":
-    - text: Commands
-    - option /Go to \d+ ›/ [selected]
-    - option "Zoom 3 ›"
-    - option "Booth 1 ›"
-    - option "View 2 ›"
-    - option /Chapters \d+ ›/
+    - heading "Jump menu" [level=2]
+    - combobox "Jump menu" [expanded]
+    - listbox "Jump menu results":
+        - text: Commands
+        - option /Go to \d+ ›/ [selected]
+        - option "Zoom 3 ›"
+        - option "Booth 1 ›"
+        - option "View 2 ›"
+        - option /Chapters \d+ ›/
