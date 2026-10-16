@@ -53,7 +53,9 @@ export function ProgressChart({ k, wph, start, today, due, recordedHours, series
   const nowDay = diffDays(today, start);
   const actual: Array<[number, number]> = series.ok ? [...series.value.filter((p) => p[0] < nowDay), [nowDay, recordedHours]] : [];
   const weeks: number[] = [];
-  for (let d = 0; d <= span; d += 7) weeks.push(d);
+  // A week apart, or wider when the plan runs for years: a due date far away must not draw a tick for every week of it.
+  const step = Math.max(7, Math.ceil(span / 8 / 7) * 7);
+  for (let d = 0; d <= span; d += step) weeks.push(d);
   const rows = Array.from({ length: yMax + 1 }, (_, v) => v).slice(0, 4);
   const summary = `Plan starts ${fmtD(start)}${due ? `, due ${fmtD(due)}` : ', no due date'}. Today is ${fmtD(today)}, ${recordedHours.toFixed(1)} of ${finishedHours.toFixed(1)} finished hours recorded. Estimated finish ${fmtD(k.finish)}.`;
 

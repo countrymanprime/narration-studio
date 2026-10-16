@@ -1,11 +1,8 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
-import { apiErrorMessage } from '../../api/errorMessage';
+import { useRef } from 'react';
 import type { ProductionMilestone, ProductionPayment, ProductionPlan } from '../../api/contracts/production';
 import { overlay } from '../../overlay/overlayService';
 import { useOpenPickups } from '../pickups/useOpenPickups';
 import { usePort } from '../../ports/usePort';
-import type { Measured } from '../../api/schemas/base';
-import type { TakeLogEntry } from '../../fixtures/measurements';
 import type { Command, Journal } from '../../studio/journal/createJournal';
 import { planStart, recordedSeries } from '../production/measured/measured.selectors';
 import { ProgressChart } from '../production/overview/ProgressChart';
@@ -15,13 +12,14 @@ import { Heading } from '../primitives/Heading';
 import { IconButton } from '../primitives/IconButton';
 import { Panel } from '../primitives/Panel';
 import { ContractPanel } from './ContractPanel';
-import { fmtD, isIsoDate, parseIso } from './dates';
+import { agoText, daysText, dueDateProblem, fmtD, isIsoDate, parseIso } from './dates';
 import { milestoneFromDraft } from './draft';
 import { maxMinutes } from './measures';
 import { MilestoneTable } from './MilestoneTable';
 import { openMilestoneDialog } from './openMilestoneDialog';
 import { WPH } from './estimates';
-import { calc, scheduleChapters, type ScheduleChapter } from './progress';
+import { calc } from './progress';
+import { useScheduleReading } from './useScheduleReading';
 import { saveMilestonesCommand, setAmountCommand, setDueDateCommand, setPaymentCommand } from './scheduleCommands';
 import { VerdictPill } from './VerdictPill';
 import { WorkedOut } from './WorkedOut';
@@ -39,20 +37,6 @@ export type SchedulePageProps = {
   onImport?: () => void;
 };
 
-type Loaded = {
-  plan: ProductionPlan;
-  chapters: ScheduleChapter[];
-  profileId: string | undefined;
-  /** Finished hours recorded so far, summed over the narrated chapters whose length was measured. */
-  recordedHours: number;
-  /** The take log, or why it could not be read: the chart's recorded line is drawn from it. */
-  takeLog: Measured<TakeLogEntry[]>;
-};
-type State = { phase: 'loading' } | { phase: 'error'; message: string } | ({ phase: 'ready' } & Loaded);
-
-/** The platform a delivery profile key ("acx@2026-09") names. */
-const platformIdOf = (projectProfile: string | undefined): string | undefined => projectProfile?.split('@')[0] || undefined;
-
 /**
  * The Schedule page body (the mock's Schedule): the verdict for the due date, the recorded audio against the plan, how the book pays, the work left and how it is worked out,
  * and the milestones. Every change is one journalled command, so one
@@ -61,74 +45,76 @@ const platformIdOf = (projectProfile: string | undefined): string | undefined =>
 export function SchedulePage({ journal, today, hasManuscript = true, onImport }: SchedulePageProps) {
   const production = usePort('production');
   const openLines = useOpenPickups();
-  const deliveryProfiles = usePort('deliveryProfiles');
-  const measurements = usePort('measurements');
-  const [state, setState] = useState<State>({ phase: 'loading' });
-  const day = useMemo(() => today ?? new Date(), [today]);
-
-  const load = useCallback(async (): Promise<void> => {
-    try {
-      const [plan, overview, profiles, log] = await Promise.all([
-        production.productionPlan(),
-        production.productionOverview(),
-        // The profile only decides which measures are offered; if it cannot be read the neutral profile applies.
-        Promise.allSettled([deliveryProfiles.deliveryProfiles()]),
-        // The take log only draws the chart's recorded line; a refused read leaves the line out with its reason.
-        measurements.takeLog().catch((error: unknown): Measured<TakeLogEntry[]> => ({ ok: false, reason: apiErrorMessage(error) })),
-      ]);
-      const read = profiles[0];
-      setState({
-        phase: 'ready',
-        plan,
-        chapters: scheduleChapters(overview.chapters),
-        profileId: platformIdOf(read.status === 'fulfilled' ? read.value.projectProfile : undefined),
-        recordedHours: overview.chapters.filter((c) => c.contentKind !== 'reference').reduce((a, c) => a + (c.recordedSeconds ?? 0), 0) / 3600,
-        takeLog: log,
-      });
-    } catch (error) {
-      setState({ phase: 'error', message: `The schedule could not be read: ${apiErrorMessage(error)}` });
-    }
-  }, [production, deliveryProfiles, measurements]);
-  useEffect(() => void load(), [load]);
+  const { state, refreshFailure, day, reload, keepPlan, latestPlan, now } = useScheduleReading(today);
+  // Writes go one after another, each built from the newest plan, so two quick changes never start from the same old list.
+  const queue = useRef<Promise<unknown>>(Promise.resolve());
 
   if (state.phase === 'loading') return <p role="status">Loading the schedule…</p>;
   if (state.phase === 'error')
     return (
       <div role="alert" className="flex flex-col items-start gap-3">
         <p style={{ color: 'var(--danger-text)' }}>{state.message}</p>
-        <Button variant="secondary" onClick={() => void load()}>
+        <Button variant="secondary" onClick={() => void reload()}>
           Try again
         </Button>
       </div>
     );
-  const { plan, chapters, profileId, recordedHours, takeLog } = state;
-  const keep = (next: ProductionPlan) => setState({ ...state, plan: next });
+  const { plan, chapters, profileId, recordedHours, takeLog, readAt } = state;
 
   if (!hasManuscript || chapters.length === 0) return <NeedManuscript title="Schedule" onImport={onImport} />;
 
-  /** Runs a change as one journal entry. A refusal shows the host's sentence and changes nothing; the answer is the plan it left. */
-  const run = async (command: Command<ProductionPlan>, undoText?: string): Promise<string | undefined> => {
-    const result = await journal.act(command);
-    if (!result.ok) {
-      overlay.toast(result.refusal.reason, { tone: 'error' });
-      return result.refusal.reason;
-    }
-    keep(result.value.value);
-    if (undoText)
-      overlay.toastUndo(undoText, async () => {
-        const undone = await journal.undo(result.value.id);
-        await load();
-        return undone;
-      });
-    return undefined;
+  /**
+   * Runs a change as one journal entry, after the ones before it. `build` gets the newest plan; `stale` may refuse when what the narrator
+   * acted on has changed since it was drawn. A refusal shows the host's sentence and changes nothing; the answer is the plan it left.
+   */
+  const run = (
+    build: (latest: ProductionPlan) => Command<ProductionPlan>,
+    undoText?: string,
+    stale?: (latest: ProductionPlan) => string | undefined,
+  ): Promise<string | undefined> => {
+    const task = queue.current.then(async (): Promise<string | undefined> => {
+      const latest = latestPlan() ?? plan;
+      const changed = stale?.(latest);
+      if (changed) {
+        overlay.toast(changed, { tone: 'error' });
+        return changed;
+      }
+      const result = await journal.act(build(latest));
+      if (!result.ok) {
+        overlay.toast(result.refusal.reason, { tone: 'error' });
+        return result.refusal.reason;
+      }
+      keepPlan(result.value.value);
+      if (undoText)
+        overlay.toastUndo(undoText, async () => {
+          const undone = await journal.undo(result.value.id);
+          await reload();
+          return undone;
+        });
+      return undefined;
+    });
+    queue.current = task.catch(() => undefined);
+    return task;
   };
-  const saveList = (label: string, milestones: ProductionMilestone[], undoText?: string) =>
-    run(saveMilestonesCommand(production, label, plan, milestones), undoText);
+  const saveList = (
+    label: string,
+    milestones: (latest: ProductionMilestone[]) => ProductionMilestone[],
+    undoText?: string,
+    stale?: (latest: ProductionPlan) => string | undefined,
+  ) => run((latest) => saveMilestonesCommand(production, label, latest, milestones(latest.milestones)), undoText, stale);
 
-  const k = calc(chapters, day, plan.deadline ? parseIso(plan.deadline) : null, openLines?.length ?? 0);
+  // A plan edited by hand can hold a date that is not one; the page treats it as no due date and says so.
+  const due = plan.deadline && isIsoDate(plan.deadline) ? parseIso(plan.deadline) : null;
+  const k = calc(chapters, day, due, openLines?.length ?? 0);
   const bounds = { chapters: chapters.filter((c) => c.kind === 'narration').length, minutes: maxMinutes(k.words) };
+  const same = (a: ProductionMilestone | undefined, b: ProductionMilestone | undefined) => JSON.stringify(a) === JSON.stringify(b);
+  const sameList = (a: readonly ProductionMilestone[], b: readonly ProductionMilestone[]) => a.length === b.length && a.every((m, i) => same(m, b[i]));
+  const CHANGED = 'The milestones changed since this was shown. Look at them again and redo it.';
+  /** The row the narrator acted on is still at its place in the newest list, as it was drawn. */
+  const rowMoved = (index: number, shown: ProductionMilestone) => (latest: ProductionPlan) => (same(latest.milestones[index], shown) ? undefined : CHANGED);
   const edit = (index: number | null, focus?: 'note') => {
-    const existing = index === null ? undefined : plan.milestones[index];
+    const opened = plan.milestones;
+    const existing = index === null ? undefined : opened[index];
     openMilestoneDialog({
       existing,
       profileId,
@@ -137,8 +123,14 @@ export function SchedulePage({ journal, today, hasManuscript = true, onImport }:
       onSave: async (draft) => {
         const made = milestoneFromDraft(draft, existing, bounds);
         if ('refusal' in made) return made.refusal;
-        const list = index === null ? [...plan.milestones, made.milestone] : plan.milestones.map((m, i) => (i === index ? made.milestone : m));
-        return saveList(index === null ? 'Add milestone' : 'Edit milestone', list, index === null ? 'Milestone added.' : undefined);
+        // An edit saves the whole list, so one that changed since the dialog opened would be overwritten: refuse it. An add only appends.
+        const stale = index === null ? undefined : (latest: ProductionPlan) => (sameList(latest.milestones, opened) ? undefined : CHANGED);
+        return saveList(
+          index === null ? 'Add milestone' : 'Edit milestone',
+          (list) => (index === null ? [...list, made.milestone] : list.map((m, i) => (i === index ? made.milestone : m))),
+          index === null ? 'Milestone added.' : undefined,
+          stale,
+        );
       },
     });
   };
@@ -149,30 +141,46 @@ export function SchedulePage({ journal, today, hasManuscript = true, onImport }:
     if (!next.done) delete next.done;
     void saveList(
       m.done ? `Mark ${m.name} open again` : `Mark ${m.name} done`,
-      plan.milestones.map((x, i) => (i === index ? next : x)),
+      (list) => list.map((x, i) => (i === index ? next : x)),
+      undefined,
+      rowMoved(index, m),
     );
   };
   const remove = (index: number) => {
     const m = plan.milestones[index];
-    void saveList(
-      `Remove ${m.name}`,
-      plan.milestones.filter((_, i) => i !== index),
-      `Removed ${m.name}.`,
-    );
+    void saveList(`Remove ${m.name}`, (list) => list.filter((_, i) => i !== index), `Removed ${m.name}.`, rowMoved(index, m));
   };
-  const changeDue = (date: string) => {
-    if (!isIsoDate(date)) return void overlay.toast('Write the due date as YYYY-MM-DD.', { tone: 'error' });
-    void run(setDueDateCommand(production, plan, date));
+  const changeDue = async (text: string): Promise<boolean> => {
+    const problem = dueDateProblem(text);
+    if (problem) {
+      overlay.toast(problem, { tone: 'error' });
+      return false;
+    }
+    return (await run((latest) => setDueDateCommand(production, latest, text.trim()))) === undefined;
   };
 
   return (
     <div className="flex flex-col gap-4">
+      {refreshFailure && (
+        <div role="status" className="flex flex-wrap items-center gap-3 text-[0.88rem]" style={{ color: 'var(--danger-text)' }}>
+          <span>{`Couldn't read the schedule again: ${refreshFailure}. This is what was read ${agoText(now - readAt)}.`}</span>
+          <Button variant="secondary" onClick={() => void reload()}>
+            Check again
+          </Button>
+        </div>
+      )}
       <div className="flex flex-wrap items-start gap-3">
         <div className="flex flex-col gap-1.5">
-          <Heading title="Schedule">{plan.deadline ? `Due ${fmtD(parseIso(plan.deadline))} · ${k.daysLeft} days left` : 'No due date set'}</Heading>
+          <Heading title="Schedule">
+            {due && k.daysLeft !== null
+              ? `Due ${fmtD(due)} · ${daysText(k.daysLeft)}`
+              : plan.deadline
+                ? `The plan's due date, ${plan.deadline}, is not a real date`
+                : 'No due date set'}
+          </Heading>
         </div>
         <span className="flex-1" />
-        <VerdictPill k={k} today={day} due={plan.deadline ? parseIso(plan.deadline) : null} />
+        <VerdictPill k={k} today={day} due={due} />
       </div>
       <div className="grid items-stretch gap-4 md:grid-cols-2">
         <ProgressChart
@@ -182,7 +190,7 @@ export function SchedulePage({ journal, today, hasManuscript = true, onImport }:
           wph={WPH}
           start={planStart(day)}
           today={day}
-          due={plan.deadline ? parseIso(plan.deadline) : null}
+          due={due}
           recordedHours={recordedHours}
           series={recordedSeries(takeLog, planStart(day))}
         />
@@ -190,8 +198,9 @@ export function SchedulePage({ journal, today, hasManuscript = true, onImport }:
           <ContractPanel
             plan={plan}
             words={k.words}
-            onPayment={(payment: ProductionPayment) => void run(setPaymentCommand(production, plan, payment))}
-            onAmount={(amount) => void run(setAmountCommand(production, plan, amount))}
+            onPayment={(payment: ProductionPayment) => void run((latest) => setPaymentCommand(production, latest, payment))}
+            onRefuse={(sentence) => overlay.toast(sentence, { tone: 'error' })}
+            onAmount={(amount) => void run((latest) => setAmountCommand(production, latest, amount))}
           />
           <WorkedOut k={k} />
         </div>
