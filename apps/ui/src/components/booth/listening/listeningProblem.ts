@@ -6,6 +6,8 @@ type Session = Pick<TeleprompterSession, 'error' | 'canStart' | 'startReason' | 
   /** The catalog of downloads says the speech model is not on this computer, before any start has asked for it. */
   modelNotInstalled?: boolean;
   prompt?: unknown;
+  /** A take is running: Space would stop it, not ask about the model again. */
+  recording?: boolean;
   /** The host's own state of the session: a session that ended in an error (a microphone unplugged mid-take) says so here, not in `error`. */
   host?: Pick<TeleprompterSession['host'], 'phase' | 'message'>;
 };
@@ -20,6 +22,8 @@ export function listeningProblem(session: Session): string | undefined {
   if (session.error) return `The text cannot follow your voice: ${session.error}`;
   if (session.host?.phase === 'error')
     return `The text cannot follow your voice: ${session.host.message.trim() || 'the listening session ended with an error.'}`;
+  if (session.modelMissing && !session.prompt && session.recording)
+    return 'The text cannot follow your voice: the speech model is not downloaded. The take is still recording; the next take asks again, or download it in Settings.';
   if (session.modelMissing && !session.prompt)
     return 'The text cannot follow your voice: the speech model is not downloaded. Press Space to be asked again, or download it in Settings.';
   if (session.modelNotInstalled && !session.prompt)

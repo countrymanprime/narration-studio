@@ -493,7 +493,7 @@ function BoothSession({ source, from, requested, adopt, data, choose, navigate, 
             seconds={page.seconds}
             recording={control.recording}
             why={control.reason || undefined}
-            listenWhy={listeningProblem({ ...session, modelNotInstalled: modelState === 'missing' })}
+            listenWhy={listeningProblem({ ...session, modelNotInstalled: modelState === 'missing', recording: control.recording })}
             mic={{
               engine: standalone ? 'builtin' : 'daw',
               dawName: page.dawName,

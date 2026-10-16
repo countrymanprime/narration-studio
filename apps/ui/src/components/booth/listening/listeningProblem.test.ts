@@ -21,6 +21,11 @@ describe('listeningProblem', () => {
     );
     expect(listeningProblem({ ...base, modelMissing: true, prompt: {} })).toBeUndefined();
   });
+  it('does not tell a narrator mid-take to press Space to be asked again, because Space stops the take', () => {
+    const said = listeningProblem({ ...base, modelMissing: true, recording: true });
+    expect(said).toContain('The take is still recording');
+    expect(said).not.toMatch(/press space/i);
+  });
   it('says before Record that the speech model is not downloaded, in words that do not claim the narrator was asked', () => {
     expect(listeningProblem({ ...base, modelNotInstalled: true })).toBe(
       'The text cannot follow your voice yet: the speech model is not downloaded. Download it in Settings, or press Space and you will be asked.',
