@@ -33,8 +33,10 @@ function CheckLine({
   const seconds = useSecondsSince(checkedAt);
   const last = seconds === null ? 'Not checked yet' : `Last checked ${seconds} s ago`;
   return (
-    <div className="flex flex-wrap items-center gap-2 text-[var(--text-muted)]" role="status">
-      <span>{readFailed ? `Can't tell whether ${unknown} (${last.toLowerCase()}).` : `${waiting}. ${last}.`}</span>
+    <div className="flex flex-wrap items-center gap-2 text-[var(--text-muted)]">
+      {/* Only the sentence that changes with the state is announced; the seconds tick every second and are not. */}
+      <span role="status">{readFailed ? `Can't tell whether ${unknown}.` : `${waiting}.`}</span>
+      <span>{last}.</span>
       {onCheckAgain && (
         <Button variant="secondary" size="sm" onClick={onCheckAgain}>
           Check again

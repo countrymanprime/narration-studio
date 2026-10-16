@@ -234,6 +234,14 @@ describe('RecordSetup says what it waits for and when it last looked', () => {
     expect(onCheckAgain).toHaveBeenCalledTimes(1);
   });
 
+  it('the-ticking-last-checked-time-is-not-in-a-live-region-a-screen-reader-would-repeat-every-second', () => {
+    mountChecked(recordRefused('standalone'));
+    const ticking = screen.getByText(/Last checked \d+ s ago/);
+    expect(ticking.closest('[aria-live],[role="status"],[role="alert"]')).toBeNull();
+    expect(screen.getByRole('status').textContent).toMatch(/Waiting for REAPER to connect/);
+    expect(screen.getByRole('status').textContent).not.toMatch(/\d+ s ago/);
+  });
+
   it('not-answering-says-the-heartbeat-went-quiet', () => {
     mountChecked(recordRefused('not_running'));
     expect(screen.getByText(/Waiting for REAPER to answer/)).toBeTruthy();
