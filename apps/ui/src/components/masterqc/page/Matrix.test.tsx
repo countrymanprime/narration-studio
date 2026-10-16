@@ -201,3 +201,26 @@ describe('Master & QC: what the narrator can name and how many', () => {
     await act(async () => finish(jobOf(files)));
   });
 });
+
+describe('Master & QC: what the table shows is what is judged', () => {
+  it('the Peak column shows the figure the profile rule judges (the sample peak for ACX), not the true peak beside it', async () => {
+    const file = passing('Chapter 01.wav');
+    const report = file.report!;
+    expect(report.sample_peak_dbfs).not.toBe(report.true_peak_dbtp);
+    mount([file]);
+    const grid = await screen.findByRole('grid', { name: 'Per-file checks' });
+    const row = within(grid).getByText('Chapter 01.wav').closest('tr')!;
+    const text = row.textContent!.replace(/−/g, '-');
+    expect(text).toContain(report.sample_peak_dbfs!.toFixed(1));
+  });
+
+  it('a button the DAW cannot serve says why on keyboard focus, not only in the right-click menu', async () => {
+    const file = passing('Chapter 01.wav');
+    mount([file], {}, createMockDawClient(DAW_SETUPS['reaper-off'], { chapterIds: [], candidateIds: [], findingIds: [], measuredFiles: [file] }));
+    const button = await screen.findByRole('button', { name: 'Play the quietest 5 s' });
+    await userEvent.tab();
+    button.focus();
+    expect(await screen.findByRole('tooltip')).toBeTruthy();
+    expect(screen.getByRole('tooltip').textContent).not.toBe('Play the quietest 5 s');
+  });
+});

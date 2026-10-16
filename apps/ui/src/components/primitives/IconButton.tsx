@@ -86,6 +86,7 @@ export function IconButton({
       )}
     </button>
   );
-  // An action brings its own hint (the tooltip, then its shortcut). A button with only a `label` keeps the caller's composition.
-  return action === undefined ? button : <TooltipTarget text={label ?? tooltipFor(action)}>{button}</TooltipTarget>;
+  // An action brings its own hint (the tooltip, then its shortcut); a gated button's hint is its reason, so the narrator who hovers or tabs to
+  // it learns why it is off. A button with only a `label` keeps the caller's composition.
+  return action === undefined ? button : <TooltipTarget text={disabledReason ?? label ?? tooltipFor(action)}>{button}</TooltipTarget>;
 }
