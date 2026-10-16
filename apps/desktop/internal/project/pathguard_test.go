@@ -259,15 +259,28 @@ func TestPathGuardOnDiskCase(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
-	for _, tc := range []struct{ in, want string }{
+	cases := []struct{ in, want string }{
 		{"SHOW.RPP", "Show.rpp"},
 		{"Show.rpp", "Show.rpp"},
 		{filepath.Join("SUB FOLDER", "DEEP.RPP"), filepath.Join("Sub Folder", "Deep.rpp")},
-		{"EXACT.rpp", "EXACT.rpp"},
-		{"exact.rpp", "exact.rpp"},
 		{"Missing.rpp", "Missing.rpp"},
 		{filepath.Join("Nope", "Show.rpp"), filepath.Join("Nope", "Show.rpp")},
-	} {
+	}
+	// Two files that differ only by case exist only where names are case-sensitive; on Windows the second write is the first file.
+	entries, err := os.ReadDir(folder)
+	if err != nil {
+		t.Fatal(err)
+	}
+	pair := 0
+	for _, entry := range entries {
+		if strings.EqualFold(entry.Name(), "exact.rpp") {
+			pair++
+		}
+	}
+	if pair == 2 {
+		cases = append(cases, struct{ in, want string }{"EXACT.rpp", "EXACT.rpp"}, struct{ in, want string }{"exact.rpp", "exact.rpp"})
+	}
+	for _, tc := range cases {
 		if got := onDiskCase(folder, tc.in); got != tc.want {
 			t.Errorf("onDiskCase(%q) = %q, want %q", tc.in, got, tc.want)
 		}
