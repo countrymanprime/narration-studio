@@ -1422,7 +1422,10 @@ describe('App Back and Forward', () => {
     act(() => window.history.back());
 
     expect(await screen.findByText('Save or discard changes before leaving Settings?')).toBeTruthy();
-    expect(window.location.pathname).toBe('/settings');
+    await waitFor(() => expect(window.location.pathname).toBe('/settings'));
+    // Settings never unmounted, so Cancel leaves the edit where it was.
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+    expect(within(screen.getByRole('region', { name: 'General' })).getByDisplayValue('verbose')).toBeTruthy();
   });
 
   it('Back from a Proof chapter view with a run resets the transcript run, like the nav', async () => {

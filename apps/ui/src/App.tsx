@@ -528,6 +528,41 @@ function AppRoutes() {
     ] satisfies ContextMenuItem[],
   };
 
+  // A `popstate` the app did not start (the keyboard's or the system's Back) from dirty Settings is stopped before the router sees it:
+  // once the route changed, Settings would unmount and its edits be gone before any prompt. History is put back to where it was, and the
+  // same "Unsaved settings" prompt asks. Registered in the capture phase so it runs ahead of the router's own listener.
+  const popGuardRef = useRef({ dirty: false, pathname: location.pathname, idx: 0, swallow: false, isOwnPop: (): boolean => false });
+  popGuardRef.current.dirty = settingsDirty;
+  popGuardRef.current.pathname = location.pathname;
+  popGuardRef.current.isOwnPop = history.isOwnPop;
+  useEffect(() => {
+    const guard = popGuardRef.current;
+    const idxOf = () => (window.history.state as { idx?: number } | null)?.idx ?? 0;
+    guard.idx = idxOf();
+    const onPop = (event: PopStateEvent) => {
+      if (guard.swallow) {
+        guard.swallow = false;
+        event.stopImmediatePropagation();
+        return;
+      }
+      const next = idxOf();
+      if (guard.isOwnPop() || !guard.dirty || guard.pathname !== '/settings' || window.location.pathname.endsWith('/settings')) {
+        guard.idx = next;
+        return;
+      }
+      event.stopImmediatePropagation();
+      const delta = next - guard.idx;
+      guard.swallow = true;
+      window.history.go(-delta);
+      setPendingMove({ kind: 'delta', direction: delta < 0 ? -1 : 1 });
+    };
+    window.addEventListener('popstate', onPop, true);
+    return () => window.removeEventListener('popstate', onPop, true);
+  }, []);
+  useEffect(() => {
+    popGuardRef.current.idx = (window.history.state as { idx?: number } | null)?.idx ?? 0;
+  }, [location.key]);
+
   // Recovery for a `popstate` the app did not start (a mouse-button gesture WebView2 acts on
   // despite `preventDefault`, if that happens). The move already took effect; if it left
   // Settings dirty, push Settings back and ask, so the change is not lost silently. Leaving a Proof chapter view with

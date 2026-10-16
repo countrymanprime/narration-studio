@@ -308,8 +308,8 @@ export function AppShell({
               </TooltipTarget>
             </div>
             {timer && <TimerChip timer={timer} />}
-            {/* The zoom group (ADR 0407): after a running timer chip, before the engine chip. */}
-            <div className="flex flex-none items-center gap-1" role="group" aria-label="Zoom">
+            {/* The zoom group (ADR 0407): after a running timer chip, before the engine chip. Below `md` a running timer takes its room (Ctrl+wheel and the shortcuts still zoom). */}
+            <div className={`flex flex-none items-center gap-1 ${timer ? 'max-md:hidden' : ''}`} role="group" aria-label="Zoom">
               <TooltipTarget text={zoomOutTooltip}>
                 <IconButton label="Zoom out" disabledReason={zoom.canZoomOut ? undefined : zoomOutTooltip} onClick={zoom.zoomOut}>
                   <FontAwesomeIcon icon={faMinus} />
