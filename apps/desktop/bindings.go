@@ -269,6 +269,13 @@ func (h *Host) ProjectSwitch(path, name string) (string, error) {
 	if name == "" {
 		name = filepath.Base(path)
 	}
+	// A path that is not a folder (gone since the recent list was drawn, a file, an empty string) is no project to attach.
+	if info, err := os.Stat(path); err != nil || !info.IsDir() {
+		h.mu.RLock()
+		ctx := h.ctx
+		h.mu.RUnlock()
+		return reportAttach(ctx, false, "The project folder could not be found, so the current project was left unchanged.")
+	}
 	h.mu.Lock()
 	ctx := h.ctx
 	next := h.config

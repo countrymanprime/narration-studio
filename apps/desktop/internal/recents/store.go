@@ -38,6 +38,36 @@ func New(path string) *Store { return &Store{path: path} }
 // SetPersist says where to log a recents file that cannot be read (ADR 0069). It is disposable: it heals and is not shown to the narrator.
 func (s *Store) SetPersist(reporter *persist.Reporter) { s.persist.Store(reporter) }
 
+// normalize makes path absolute and clean, so an entry means the same folder after the working directory changes. An empty path
+// is refused: filepath.Abs("") is the working directory, which is not a project the narrator chose.
+func normalize(path string) (string, error) {
+	if path == "" {
+		return "", fmt.Errorf("there is no project folder to record")
+	}
+	absolute, err := filepath.Abs(path)
+	if err != nil {
+		return "", err
+	}
+	return filepath.Clean(absolute), nil
+}
+
+// samePath reports whether two entries name the same folder: the same spelling ignoring case (Windows paths are not
+// case-sensitive), or the same folder on disk reached another way (a junction, a symlink, a short name).
+func samePath(a, b string) bool {
+	if strings.EqualFold(a, b) {
+		return true
+	}
+	infoA, errA := os.Stat(a)
+	infoB, errB := os.Stat(b)
+	return errA == nil && errB == nil && os.SameFile(infoA, infoB)
+}
+
+// isFolder reports whether path is a folder that exists: a missing path and a file are both stale.
+func isFolder(path string) bool {
+	info, err := os.Stat(path)
+	return err == nil && info.IsDir()
+}
+
 // Touch records path/name as the most recently opened project, deduping any
 // existing entry for the same path (case-insensitively, since Windows
 // filesystems are case-insensitive), dropping entries whose folder no longer
@@ -46,7 +76,10 @@ func (s *Store) SetPersist(reporter *persist.Reporter) { s.persist.Store(reporte
 func (s *Store) Touch(path, name string) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	cleaned := filepath.Clean(path)
+	cleaned, err := normalize(path)
+	if err != nil {
+		return err
+	}
 	entries, err := s.readLocked()
 	if err != nil {
 		return err
@@ -54,10 +87,10 @@ func (s *Store) Touch(path, name string) error {
 	next := make([]Entry, 0, len(entries)+1)
 	next = append(next, Entry{Path: cleaned, Name: name, LastOpened: time.Now()})
 	for _, entry := range entries {
-		if strings.EqualFold(entry.Path, cleaned) {
+		if samePath(entry.Path, cleaned) {
 			continue
 		}
-		if _, err := os.Stat(entry.Path); err != nil {
+		if !isFolder(entry.Path) {
 			continue
 		}
 		next = append(next, entry)
@@ -73,14 +106,17 @@ func (s *Store) Touch(path, name string) error {
 func (s *Store) Remove(path string) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	cleaned := filepath.Clean(path)
+	cleaned, err := normalize(path)
+	if err != nil {
+		return nil // nothing that names no folder can be in the list
+	}
 	entries, err := s.readLocked()
 	if err != nil {
 		return err
 	}
 	next := make([]Entry, 0, len(entries))
 	for _, entry := range entries {
-		if strings.EqualFold(entry.Path, cleaned) {
+		if samePath(entry.Path, cleaned) {
 			continue
 		}
 		next = append(next, entry)
@@ -99,7 +135,7 @@ func (s *Store) List() ([]Entry, error) {
 	}
 	result := make([]Entry, 0, len(entries))
 	for _, entry := range entries {
-		if _, err := os.Stat(entry.Path); err != nil {
+		if !isFolder(entry.Path) {
 			continue
 		}
 		result = append(result, entry)

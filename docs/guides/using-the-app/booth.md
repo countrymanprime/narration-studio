@@ -64,12 +64,28 @@ When the reason is one you can fix from the Booth, a box above the footer shows 
 
   ![Booth - the Connect REAPER to record box, with the two steps and Open in REAPER and connect, above the disabled Record button and its reason](../../images/ui/booth-record-setup.webp)
 
-If you stop a take in the DAW itself, the Booth sees it and says so, and Record is ready for the next take.
+  Both boxes say what they are waiting for ("Waiting for REAPER to connect") and when the app last looked ("Last checked 4 s
+  ago"). The Booth asks again by itself every few seconds while it waits, when you come back to its window, and when you press
+  **Check again**. If REAPER stops answering, the box says so instead of showing an old answer as fact. In a short window the
+  steps fold into one line, **Steps to connect**, so the text keeps room to read.
+
+  If the app is busy (an import, a build or a download is running) when REAPER starts and hands over its project, the app
+  keeps the project it has and says so, in the box and in a message that stays until you dismiss it. Finish or cancel what is
+  running, then press **Open in REAPER and connect** again.
+
+  ![Booth - REAPER started from the Connect box, but the app was busy and turned its project away: the box says so and what to do](../../images/ui/booth-record-turned-away.webp)
+
+  Record also says why when REAPER already has a take running that the app did not start ("REAPER is already recording. Stop
+  it in REAPER before recording here."), when REAPER has another project open than the linked one, and when REAPER does not
+  answer. It is ready again as soon as that is fixed, without a restart.
+
+If you stop a take in the DAW itself, the Booth sees it and says so, and Record is ready for the next take. If REAPER stops
+answering mid-take, the Booth says the take is over there instead of keeping a REC pill it cannot vouch for.
 
 ![Booth - a take recording: Stop in place of Record, the REC pill beside the setup chip and the take counted in This session](../../images/ui/booth-listening.webp)
 
 While a take runs, Record becomes **Stop**, a **REC** pill shows beside the setup chip and the timer counts. The chapter cannot be
-changed until you stop. When listening reaches the last word of the chapter and stops, the take stops with it and a message says
+changed until you stop, and the chapter arrows say so when you hover them. When listening reaches the last word of the chapter and stops, the take stops with it and a message says
 **Take saved**. Reading on past the end keeps the take running.
 
 **R** punches and rolls from the word you are on: the DAW plays in from a little before it and records from there, keeping the
@@ -82,6 +98,8 @@ Click a word to start from it. **↑** and **↓** move by phrase, **←** and *
 Right-click the text for **Start from here** (on a phrase), **Bookmark here** (on a word), **Next phrase**, **Back one phrase**,
 **Punch and roll**, **Larger text**, **Smaller text** and **Exit Booth**. **Start from here** marks where the next take starts;
 during a take it rolls again from that phrase, as **R** does. A take is held while the menu is open.
+
+While a popover, a menu or a question is open (Levels, Text settings, a speaker, the chapter list, the jump menu, "Stop recording?"), no key reaches the Booth behind it: a foot pedal's Space cannot start or stop a take until it is closed. Escape closes the one on top and returns you to the control that opened it.
 
 The engine and model the Booth listens with are chosen in [Settings](settings.md) › Booth. Nothing you say is sent anywhere.
 

@@ -5,7 +5,12 @@ import type { GestureEvent, InputSource } from './InputSource';
 import { createKeyboardSource } from './KeyboardSource';
 import { defaultKeymap, type Keymap } from './keymap';
 import { SCOPE_PRIORITY, type Scope } from './scopes';
-import { EDITABLE, isGuardedTarget } from './targets';
+import { EDITABLE, isGuardedTarget, keyLayerOpen, KEY_WIDGET_ROLES } from './targets';
+
+const KEY_ROLE_TARGET = (target: Element): boolean => {
+  const role = target.getAttribute('role');
+  return Boolean(role && KEY_WIDGET_ROLES.has(role));
+};
 
 export type CommandHandlerEvent = { target: EventTarget | null };
 type CommandHandler = (event: CommandHandlerEvent) => void;
@@ -123,11 +128,24 @@ export function CommandRouter({ children, source, catalog = COMMAND_CATALOG, key
   useEffect(() => {
     const activeSource = source ?? createKeyboardSource();
     return activeSource.subscribe((event: GestureEvent) => {
-      if (event.gesture.modifiers.length === 0 && isGuardedTarget(event.target)) return;
+      // A focused button owns Space and Enter (they press it) and nothing else: Escape, B or an arrow pressed with focus on a toolbar button still
+      // reach the page. Fields and widgets keep every plain key.
+      const onlyButton =
+        event.target instanceof Element &&
+        !event.target.closest(EDITABLE) &&
+        !KEY_ROLE_TARGET(event.target) &&
+        !['Space', 'Enter'].includes(event.gesture.code);
+      if (event.gesture.modifiers.length === 0 && isGuardedTarget(event.target) && !onlyButton) return;
+      // A key a button's own list already used (the Story Bible's rows walk with the arrows) is not also the page's.
+      if (event.gesture.modifiers.length === 0 && isGuardedTarget(event.target) && event.consumed?.()) return;
 
+      // A popup that owns the keyboard (a popover, a menu, a dialog) is on top of the page: a key meant for it, a foot pedal's Space
+      // included, must never reach the page behind it. Only a command of the `dialog` scope, or one with Ctrl, Alt or Meta held, still runs.
+      const behindLayer = keyLayerOpen() && !event.gesture.modifiers.some((modifier) => modifier !== 'Shift');
       const active = activeScopes(scopeStack.current);
       for (const scope of SCOPE_PRIORITY) {
         if (!active.has(scope)) continue;
+        if (behindLayer && scope !== 'dialog') continue;
         // A row with nothing registered (its page isn't mounted) is skipped; with none registered at all the gesture is left alone.
         const command = commandsForGesture(catalogRef.current, keymapRef.current, scope, event.gesture).find((row) => handlers.current.has(row.id));
         if (!command) continue;
