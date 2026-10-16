@@ -1682,30 +1682,6 @@
       "a11yDebt": false
     },
     {
-      "title": "Primitives/MeterBar",
-      "name": "MeterBar",
-      "source": "src/components/primitives/MeterBar.tsx",
-      "stories": [
-        "Partial Finished First",
-        "Partial Chronological",
-        "Empty",
-        "Nothing Started",
-        "Single Segment Partial",
-        "Full",
-        "Thin Segments",
-        "With Caption And Legend",
-        "Is Named By Its Label And Segments",
-        "Segments Render In Caller Order",
-        "Chronological Order Is The Mirror Image",
-        "Empty Draws No Segments",
-        "Updates When Progress Changes"
-      ],
-      "consumers": [
-        "src/components/home/AudiobookEstimatePanel.tsx"
-      ],
-      "a11yDebt": false
-    },
-    {
       "title": "Schedule/MilestoneDialog",
       "name": "MilestoneDialog",
       "source": "src/components/schedule/MilestoneDialog.tsx",
