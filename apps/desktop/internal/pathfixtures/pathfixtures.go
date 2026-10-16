@@ -293,13 +293,14 @@ func builders() []builder {
 			place.Aliases = append(place.Aliases, Alias{"upper-case", upper, filepath.Join(upper, "SHOW.RPP"), filepath.Join(upper, "MANUSCRIPT.MD")})
 			return place
 		}},
-		{"trailing-dot-and-space-names", TrailingDotSpace, func(t *testing.T, root string) Place {
-			if runtime.GOOS == "windows" {
-				// Win32 strips a trailing dot or space from a name: "Book." is the folder "Book". A project made that way must still
-				// resolve by the spelling the narrator gave.
-				return usablePlace(t, filepath.Join(root, "Trailing dot."), rppFile)
-			}
-			return usablePlace(t, filepath.Join(root, "Trailing dot. "), rppFile)
+		{"trailing-dot-name", TrailingDotSpace, func(t *testing.T, root string) Place {
+			// Win32 strips a trailing dot from a name: "Book." is made as the folder "Book". The project must still resolve by the
+			// spelling the narrator gave.
+			return usablePlace(t, filepath.Join(root, "Trailing dot."), rppFile)
+		}},
+		{"trailing-space-name", TrailingDotSpace, func(t *testing.T, root string) Place {
+			t.Skip("Win32 strips a trailing space from a name, so the supported platform cannot make such a folder; the pure-string trailing-space cases cover the text")
+			return Place{}
 		}},
 		{"junction-or-symlink", Junction, func(t *testing.T, root string) Place {
 			real := usablePlace(t, filepath.Join(root, "Real Project"), rppFile)
