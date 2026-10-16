@@ -34,6 +34,7 @@ The host never pushes an event for these; the page re-reads on its own (focus, t
 | focus returns / 60 s timer | one re-read, not one per focus event (throttled) | T:reread |
 | clock moves past midnight while open | "today" and every day count move on the next tick | T:reread "moves to the next day" |
 | app closed and reopened across the deadline | a fresh mount reads the real date: overdue instead of days left | T:reread "reopened after the deadline" |
+| the mock's seeded dates opened long after they were written (`?mockProduction=` fixtures are dated 2026-09) | the seeds move to the real day: `on-pace` reads On track and `at-risk` Behind with days left, on any day | T:productionMockSeed.test.ts (days left and logged days stay the same across a month, a year end and a leap day); real clock checked in the app |
 | plan with a hand-edited bad date (host wrote `2026-13-45`) | the row shows the raw text, never "Invalid Date" or NaN; page does not crash | T:SchedulePage.dates.test.tsx |
 | reload mid-action / leave mid-action | writes are one host call each; nothing is held in the page that is lost by leaving (the dialog draft is lost on leave: NT, the mock's too) | NT:a draft in an open dialog is not kept across a reload, same as the mock |
 | wrong project open / restart mid-session | the page reads the project the host has open at each re-read; a project switch remounts the page | NT:project switching is the shell's, covered by App tests |
