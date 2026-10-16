@@ -1,7 +1,8 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
 import type { DawCapabilities } from '../../../api/contracts/daw';
 import { apiErrorMessage } from '../../../api/errorMessage';
 import { useMediaQuery } from '../../../hooks/useMediaQuery';
+import { useToastClearance } from '../../../hooks/useToastClearance';
 import { usePort } from '../../../ports/usePort';
 import { Button } from '../../primitives/Button';
 import { InsetCard } from '../../primitives/InsetCard';
@@ -50,8 +51,25 @@ function CheckLine({
 /** A window short enough that the notice gives way to the text (the same height the explanation hides at). */
 const SHORT_WINDOW = '(max-height: 760px)';
 
-/** The notice shares the window with the text: it never takes more than 45% of its height, and scrolls inside when it needs more. */
-const NOTICE_CLASS = 'mx-5 mb-2 flex max-h-[45%] flex-col gap-2 overflow-y-auto text-sm';
+/**
+ * The notice's frame. It shares the window with the text: it never takes more than 45% of its height, and scrolls inside when it needs more.
+ * It is also a bar along the bottom, so a message rises above it (`useToastClearance`): a toast never covers the notice, the notice stays
+ * visible above the toasts.
+ */
+function NoticeFrame({ title, titleId = 'brec-setup-title', children }: { title: ReactNode; titleId?: string; children: ReactNode }) {
+  const bar = useRef<HTMLDivElement>(null);
+  useToastClearance(bar);
+  return (
+    <div ref={bar} className="mx-5 mb-2 flex max-h-[45%] flex-col">
+      <InsetCard as="section" tone="warn" fill id="brec-setup" aria-labelledby={titleId} className="flex min-h-0 flex-col gap-2 overflow-y-auto text-sm">
+        <h3 id={titleId} className="font-medium text-[var(--text)]">
+          {title}
+        </h3>
+        {children}
+      </InsetCard>
+    </div>
+  );
+}
 
 type Say = (sentence: string, tone?: 'error') => void;
 
@@ -91,11 +109,9 @@ export function RecordSetup({
   const plan = recordSetupFor(capabilities, facts);
   if (!plan) return null;
   const check = { checkedAt, readFailed, onCheckAgain };
-  return plan.kind === 'turn-on' ? (
-    <TurnOn plan={plan} say={say} onSettings={onSettings} onChanged={onChanged} check={check} />
-  ) : (
-    <Connect plan={plan} say={say} onSettings={onSettings} onChanged={onChanged} check={check} factsFailed={factsFailed} />
-  );
+  if (plan.kind === 'turn-on') return <TurnOn plan={plan} say={say} onSettings={onSettings} onChanged={onChanged} check={check} />;
+  if (plan.kind === 'other-project') return <OtherProject plan={plan} say={say} onSettings={onSettings} onChanged={onChanged} check={check} />;
+  return <Connect plan={plan} say={say} onSettings={onSettings} onChanged={onChanged} check={check} factsFailed={factsFailed} />;
 }
 
 type CheckProps = { checkedAt?: number | null; readFailed?: boolean; onCheckAgain?: () => void };
@@ -140,10 +156,7 @@ function TurnOn({
       }
     });
   return (
-    <InsetCard as="section" tone="warn" fill id="brec-setup" aria-labelledby="brec-setup-title" className={NOTICE_CLASS}>
-      <h3 id="brec-setup-title" className="font-medium text-[var(--text)]">
-        Recording in {plan.dawName} is experimental
-      </h3>
+    <NoticeFrame title={`Recording in ${plan.dawName} is experimental`}>
       {/* The explanation gives way first in a short window: the heading, the buttons and what the notice waits for stay. */}
       <p className="text-[var(--text-muted)] [@media(max-height:760px)]:hidden">
         It is built and tested in this app, but not yet checked in every {plan.dawName} setup, so it starts switched off. Turn it on to record this chapter; the
@@ -160,7 +173,69 @@ function TurnOn({
       {check.onCheckAgain && (
         <CheckLine waiting={`Waiting for Record to be turned on in ${plan.dawName}`} unknown={`Record is on in ${plan.dawName}`} {...check} />
       )}
-    </InsetCard>
+    </NoticeFrame>
+  );
+}
+
+/**
+ * The DAW has another project open than the one linked here, so a take would not land where the book expects it. The narrator links the
+ * open project (the project picker, the same action as Settings' link of a different project file; the app writes no path the DAW
+ * reports, the narrator chooses the file), or opens the linked one in the DAW; either way the next read clears this.
+ */
+function OtherProject({
+  plan,
+  say,
+  onSettings,
+  onChanged,
+  check,
+}: {
+  plan: Extract<RecordSetupPlan, { kind: 'other-project' }>;
+  say: Say;
+  onSettings: () => void;
+  onChanged: () => void;
+  check: CheckProps;
+}) {
+  const project = usePort('project');
+  const [busy, run] = useBusy();
+  const { dawName } = plan;
+  const linkOpen = () =>
+    run(async () => {
+      try {
+        const result = await project.linkDawFile();
+        // A closed picker is not a failure: nothing was asked for, so nothing is said.
+        if (!result.selected) return;
+        if (!result.linked) {
+          say(result.message || 'That project file could not be linked.', 'error');
+          return;
+        }
+        say(
+          result.note
+            ? `${dawName === 'the DAW' ? 'The' : dawName} project linked. ${result.note}`
+            : `${dawName === 'the DAW' ? 'The' : dawName} project linked.`,
+        );
+        onChanged();
+      } catch (error) {
+        say(`The project could not be linked: ${apiErrorMessage(error)}`, 'error');
+      }
+    });
+  return (
+    <NoticeFrame title={`${dawName === 'the DAW' ? 'The DAW' : dawName} has a different project open`} titleId="brec-setup-title">
+      <p className="text-[var(--text-muted)]">
+        A take would not land in the project linked here. Open the linked project in {dawName}, or link the one that is open now.
+      </p>
+      <div className="flex flex-wrap items-center gap-2">
+        <Button variant="secondary" onClick={() => void linkOpen()} pending={busy}>
+          Link the open project
+        </Button>
+        <Button variant="secondary" onClick={onSettings}>
+          DAW settings
+        </Button>
+        <span className="text-[var(--text-muted)] [@media(max-height:760px)]:hidden">Choose the project file {dawName} has open.</span>
+      </div>
+      {check.onCheckAgain && (
+        <CheckLine waiting={`Waiting for ${dawName} to have the linked project open`} unknown={`${dawName} has the linked project open`} {...check} />
+      )}
+    </NoticeFrame>
   );
 }
 
@@ -239,10 +314,7 @@ function Connect({
     </li>
   );
   return (
-    <InsetCard as="section" tone="warn" fill id="brec-setup" aria-labelledby="brec-setup-title" className={NOTICE_CLASS}>
-      <h3 id="brec-setup-title" className="font-medium text-[var(--text)]">
-        {plan.notAnswering ? `${name} is not answering` : `Connect ${name} to record`}
-      </h3>
+    <NoticeFrame title={plan.notAnswering ? `${name} is not answering` : `Connect ${name} to record`}>
       {turnedAway && (
         <p role="alert" className="text-[var(--danger-text)]">
           {name} started, but this app turned its project away: {turnedAway} Finish or cancel what is running, then press {guide.launch.label} again.
@@ -287,6 +359,6 @@ function Connect({
           }}
         />
       )}
-    </InsetCard>
+    </NoticeFrame>
   );
 }

@@ -255,6 +255,36 @@ describe('toast queue', () => {
     for (const n of [1, 2, 3, 4]) service.toast(`info ${n}`);
     expect(service.getSnapshot().toasts.map((t) => t.text)).toEqual(['boom', 'info 2', 'info 3', 'info 4']);
   });
+
+  it('a message that says what one on screen already says replaces it: thirty presses make one toast, and its timer starts again', () => {
+    for (let n = 0; n < 30; n += 1) service.toast('REAPER is not answering.');
+    const toasts = service.getSnapshot().toasts;
+    expect(toasts.map((t) => t.text)).toEqual(['REAPER is not answering.']);
+    service.toast('Something else.');
+    service.toast('REAPER is not answering.');
+    expect(service.getSnapshot().toasts.map((t) => t.text)).toEqual(['Something else.', 'REAPER is not answering.']);
+  });
+
+  it('the same words as an error and as information are two messages; one with an action is never merged away', () => {
+    service.toast('Saved.');
+    service.toast('Saved.', { tone: 'error' });
+    expect(service.getSnapshot().toasts.map((t) => t.tone)).toEqual(['info', 'error']);
+    const undo = () => undefined;
+    service.toast('Moved.', { action: { label: 'Undo', onAction: undo } });
+    service.toast('Moved.', { action: { label: 'Undo', onAction: undo } });
+    expect(service.getSnapshot().toasts.filter((t) => t.text === 'Moved.')).toHaveLength(2);
+  });
+
+  it('a topic holds one message: the newest replaces the one before it, and dismissTopic takes it away', () => {
+    service.toast('REAPER is starting. Record turns on here once it connects.', { topic: 'daw-start' });
+    service.toast('Unrelated.');
+    service.toast('REAPER could not be started: the program did not open.', { tone: 'error', topic: 'daw-start' });
+    expect(service.getSnapshot().toasts.map((t) => t.text)).toEqual(['Unrelated.', 'REAPER could not be started: the program did not open.']);
+    service.dismissTopic('daw-start');
+    expect(service.getSnapshot().toasts.map((t) => t.text)).toEqual(['Unrelated.']);
+    service.dismissTopic('daw-start');
+    expect(service.getSnapshot().toasts).toHaveLength(1);
+  });
 });
 
 describe('overlay.open headerless', () => {

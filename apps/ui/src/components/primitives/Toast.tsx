@@ -6,7 +6,7 @@ import { useEffect, useState } from 'react';
 export type ToastTone = 'info' | 'error';
 /** A toast's one action (for example Undo): its own label, run when pressed, which also dismisses the toast. */
 export type ToastAction = { label: string; onAction: () => void };
-export type ToastMessage = { id: number; text: string; tone: ToastTone; action?: ToastAction; icon?: IconDefinition };
+export type ToastMessage = { id: number; text: string; tone: ToastTone; action?: ToastAction; icon?: IconDefinition; topic?: string };
 /** How a page or a component tells the narrator something. An error is announced at once and stays until it is dismissed (ADR 0075).
  * `action` adds one button (for example Undo) before the dismiss button; pressing it runs the action and dismisses the toast.
  * `icon` leads an information message with the glyph of what it is about (the track glyph for a chapter sync); an error always

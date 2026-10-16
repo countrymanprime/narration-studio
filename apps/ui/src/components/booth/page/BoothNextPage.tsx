@@ -32,6 +32,7 @@ import { BoothText } from '../reading/BoothText';
 import { wordCount } from '../reading/boothUnits';
 import { RecordControl } from '../record/RecordControl';
 import { RecordSetup } from '../record/RecordSetup';
+import { SETUP_TOPIC, useStaleToasts } from './useStaleToasts';
 import { SetupChip } from '../record/SetupChip';
 import { useDawChoice } from '../record/useDawChoice';
 import { ResumeOfferLine } from '../resume/ResumeOffer';
@@ -350,6 +351,7 @@ function BoothSession({ source, from, requested, adopt, data, choose, navigate, 
   const progress = progressLine({ paragraph: (units[at.cur]?.paragraphIndex ?? 0) + 1, paragraphs: paragraphs.length, wordsRead, words });
   const capabilities = control.capabilities;
   const dawChoice = useDawChoice();
+  useStaleToasts(overlay, { ready: !!capabilities && !control.disabled, reason: control.reason });
   const roomTone = useRoomTone(measurements, session.device);
   const standalone = capabilities?.daw === 'none';
   const listening = useListeningMic({
@@ -479,7 +481,7 @@ function BoothSession({ source, from, requested, adopt, data, choose, navigate, 
               checkedAt={control.checkedAt}
               readFailed={control.readFailed}
               onCheckAgain={control.checkAgain}
-              say={(sentence, tone) => overlay.toast(sentence, tone ? { tone } : undefined)}
+              say={(sentence, tone) => overlay.toast(sentence, { ...(tone ? { tone } : {}), topic: SETUP_TOPIC })}
               onSettings={() => void page.goTo(`${BOOTH_LINKS.settings}#daw`)}
               onChanged={control.refresh}
             />
