@@ -295,11 +295,18 @@ export function GuideDetail({
     setRelationLabel('');
   }, [entity?.id]);
   // A new entry opens with its name ready to type over (the mock's NameBox); starting another one while it is open does the same.
+  // The field holds the draft's name only once the draft has been set from the entry, a render after this one, so the name is selected then.
+  const selectName = useRef(false);
   useEffect(() => {
     if (!isNewDraft) return;
     nameField.current?.focus();
-    nameField.current?.select();
+    selectName.current = true;
   }, [isNewDraft, entity]);
+  useEffect(() => {
+    if (!selectName.current || !nameField.current || nameField.current.value !== (entity?.canonical_name ?? '')) return;
+    selectName.current = false;
+    nameField.current.select();
+  }, [isNewDraft, entity, draft.name]);
   useEffect(() => {
     setAliasQuery('');
     setAliasSelectedId(undefined);
