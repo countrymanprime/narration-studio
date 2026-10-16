@@ -258,7 +258,7 @@ describe('every-way-out-asks-while-recording', () => {
 describe('a-built-in-take-is-guarded-too', () => {
   // The built-in recorder records through the DAW port like any engine (the host answers recordStart with the recorder behind it), so the
   // page asks the port once and needs no track; what the recorder does with a microphone is the host's tests'.
-  it('records through the port with no track; leaving asks, and unmounting without the answer does not stop the take', async () => {
+  it('records with the built-in recorder; leaving asks, and unmounting without the answer does not stop the take', async () => {
     const page = renderPage({ setup: 'builtin' });
     await ready();
     await space();
