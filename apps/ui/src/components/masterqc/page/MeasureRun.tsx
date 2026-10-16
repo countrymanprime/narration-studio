@@ -1,6 +1,6 @@
 // The run controls Master & QC keeps above the files table (not in the mock's grid): pick files, read the measurement while it runs
 // (ADR 0015 progress), cancel, and check again. The logic is the old page's, copied because that page is deleted by the swap.
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { apiErrorMessage } from '../../../api/errorMessage';
 import { usePort } from '../../../ports/usePort';
 import type { MeasureJob } from '../../../types';
@@ -9,6 +9,8 @@ import { ProgressBar } from '../../primitives/ProgressBar';
 
 /** How often a running measurement is read. */
 const POLL_MS = 500;
+/** How often a read that failed is tried again. */
+const RETRY_MS = 2000;
 
 const DANGER = { color: 'var(--danger-text)' };
 
@@ -18,36 +20,54 @@ export function useMeasureRun() {
   const measure = usePort('measure');
   const [job, setJob] = useState<MeasureJob>();
   const [jobError, setJobError] = useState<string>();
+  const [lastHeard, setLastHeard] = useState<number>();
   const [problem, setProblem] = useState<string>();
   const [checking, setChecking] = useState(false);
-
+  // Every read and every start or cancel takes a number when it is sent; an answer older than one already shown is dropped, so a read that
+  // arrives late (after Cancel, or after a newer read) never brings an old state back.
+  const sent = useRef(0);
+  const shown = useRef(0);
+  const live = useRef(true);
   useEffect(() => {
-    let active = true;
-    measure.measureState().then(
-      (state) => active && setJob(state),
-      (error) => active && setJobError(apiErrorMessage(error)),
-    );
+    live.current = true;
     return () => {
-      active = false;
+      live.current = false;
     };
-  }, [measure]);
+  }, []);
+  const accept = useCallback((seq: number, next: MeasureJob) => {
+    if (!live.current || seq < shown.current) return false;
+    shown.current = seq;
+    setJob(next);
+    setJobError(undefined);
+    setLastHeard(Date.now());
+    return true;
+  }, []);
+  const read = useCallback(() => {
+    const seq = ++sent.current;
+    return measure.measureState().then(
+      (state) => void accept(seq, state),
+      (error) => {
+        if (live.current) setJobError(apiErrorMessage(error));
+      },
+    );
+  }, [measure, accept]);
 
-  // A running measurement is read until it ends; an answer after the page closed is dropped.
+  // The host's job is read when the page opens (a run that started before is shown again) and when the window regains focus.
+  useEffect(() => {
+    void read();
+    const again = () => void read();
+    window.addEventListener('focus', again);
+    return () => window.removeEventListener('focus', again);
+  }, [read]);
+
+  // A running measurement is read until it ends, and a read that failed or never answered is tried again: one lost answer does not
+  // freeze the bar. An answer after the page closed is dropped.
   const running = job?.phase === 'running';
   useEffect(() => {
     if (!running) return;
-    let active = true;
-    const timer = setTimeout(() => {
-      measure.measureState().then(
-        (next) => active && setJob(next),
-        (error) => active && setJobError(apiErrorMessage(error)),
-      );
-    }, POLL_MS);
-    return () => {
-      active = false;
-      clearTimeout(timer);
-    };
-  }, [measure, running, job]);
+    const timer = setTimeout(() => void read(), jobError ? RETRY_MS : POLL_MS);
+    return () => clearTimeout(timer);
+  }, [read, running, job, jobError]);
 
   const files = job?.files ?? [];
   const ended = job !== undefined && (job.phase === 'success' || job.phase === 'cancelled' || job.phase === 'error');
@@ -55,8 +75,8 @@ export function useMeasureRun() {
   const paths = ended ? files.map((file) => file.path) : [];
 
   const analyze = async (picked: string[]) => {
-    setJob(await measure.measureAnalyze(picked));
-    setJobError(undefined);
+    const seq = ++sent.current;
+    accept(seq, await measure.measureAnalyze(picked));
   };
   const run = async (reuse: boolean) => {
     setChecking(true);
@@ -71,9 +91,28 @@ export function useMeasureRun() {
       setChecking(false);
     }
   };
-  const cancel = () => void measure.measureCancel().then(setJob, (error) => setProblem(apiErrorMessage(error)));
+  const cancel = () => {
+    const seq = ++sent.current;
+    void measure.measureCancel().then(
+      (next) => void accept(seq, next),
+      (error) => setProblem(apiErrorMessage(error)),
+    );
+  };
 
-  return { job, files, running, paths, checking, jobError, problem, check: () => run(true), chooseOther: () => run(false), cancel };
+  return {
+    job,
+    files,
+    running,
+    paths,
+    checking,
+    jobError,
+    lastHeard,
+    checkAgain: () => void read(),
+    problem,
+    check: () => run(true),
+    chooseOther: () => run(false),
+    cancel,
+  };
 }
 export type MeasureRun = ReturnType<typeof useMeasureRun>;
 
@@ -100,7 +139,11 @@ export function MeasureProgress({ run }: { run: MeasureRun }) {
     <>
       {run.jobError && (
         <p role="alert" className="text-sm" style={DANGER}>
-          The measurement could not be read: {run.jobError}
+          Can't tell how the measurement is going{run.lastHeard ? `, last heard ${Math.max(0, Math.round((Date.now() - run.lastHeard) / 1000))} s ago` : ''}:{' '}
+          {run.jobError}{' '}
+          <Button variant="ghost" size="sm" onClick={run.checkAgain}>
+            Check again
+          </Button>
         </p>
       )}
       {run.problem && (
