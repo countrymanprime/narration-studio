@@ -36,7 +36,10 @@ export function ContextMenu({
       </BaseContextMenu.Trigger>
       <BaseContextMenu.Portal container={document.querySelector('main') ?? undefined}>
         <BaseContextMenu.Positioner collisionPadding={8} className="z-[var(--z-popover)]">
-          <BaseContextMenu.Popup className="max-h-[var(--available-height)] w-64 overflow-y-auto rounded-[0.4rem] border border-[var(--line-strong)] bg-[var(--surface)] p-[0.35rem] shadow-[var(--shadow-lg)] outline-none">
+          <BaseContextMenu.Popup
+            tabIndex={0}
+            className="max-h-[var(--available-height)] w-64 overflow-y-auto rounded-[0.4rem] border border-[var(--line-strong)] bg-[var(--surface)] p-[0.35rem] shadow-[var(--shadow-lg)] outline-none"
+          >
             {items.map((item) => (
               <BaseContextMenu.Item
                 key={item.key}
