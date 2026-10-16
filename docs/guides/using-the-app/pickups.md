@@ -36,8 +36,6 @@ manuscript heads them. The lines are grouped by chapter, each group with how man
 Right-click a line for the same actions, **Open this chapter in Script**, and **Go to the note in Proof** for a line that
 came from a note. Up and Down move between lines.
 
-![Pickups - every line to record again, by chapter, with the session panel](../../images/ui/pickups-list.webp)
-
 A line is recorded once its pickup marker in the DAW says so: the marker is the record of what is done, and marking a
 line recorded renames its marker. While the DAW is not answering, the app keeps the change and the line reads
 **Recorded** with **Not in the DAW yet** under it; it writes the change to the marker the next time it reads the list with the DAW
@@ -68,14 +66,10 @@ line the app cannot use says how to type it, and the form keeps what you typed.
 
 ![Pickups - Add a pickup by hand: the time in the recording and the line to re-record](../../images/ui/pickups-add.webp)
 
-![Pickups - Add a pickup by hand: the time in the recording and the line](../../images/ui/pickups-add.webp)
-
 With no lines at all, the page says **No pickups queued**, with the way to Proof; a chapter with none says **No pickups
 for this chapter**. If a chapter you were viewing is no longer in the manuscript, the page shows every chapter.
 
 ![Pickups - no pickups queued, with the way to Proof](../../images/ui/pickups-empty.webp)
-
-![Pickups with nothing queued, and the way to Proof](../../images/ui/pickups-empty.webp)
 
 ## Pickup session
 
