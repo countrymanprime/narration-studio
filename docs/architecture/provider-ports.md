@@ -100,3 +100,5 @@ The steps for adding an engine are in the docstring of `libs/python/narration_co
 - Python ports are `typing.Protocol`s with plain registries filled at import, not ABCs or entry-point plugins: existing classes and fakes fit as they are, and plugins would widen the trust boundary.
 
 The trust-boundary side (the engine and pronunciation-source checks before a sidecar starts) is row 4a of the [threat model](threat-model.md).
+
+The UI side of a port (the typed client, `usePort`, the fixtures and the contract kit every provider registers with) is in [UI state and the command journal](ui-state-and-journal.md). The extraction port's tiers and thresholds are in [extraction tiers](extraction-tiers.md).
