@@ -15,6 +15,7 @@ import { usePendingAction } from '../../hooks/usePendingAction';
 import { useWorkJob } from '../../hooks/useWorkJob';
 import { AssetFacts } from '../assets/AssetFacts';
 import { AssetInstallPrompt } from '../assets/AssetInstallPrompt';
+import { Button } from '../primitives/Button';
 import { Heading } from '../primitives/Heading';
 import { Panel } from '../primitives/Panel';
 import { NeedManuscript } from '../layout/NeedManuscript';
@@ -53,7 +54,7 @@ import { useStartScan } from './suggested/scan/useStartScan';
 import { GuideDetail, type EntryCommand } from './GuideDetail';
 import { ReadNotice } from './ReadNotice';
 import { useContextProvider, type ContextProvider } from '../../registries/context';
-import { findQuery } from '../script/page/scriptQuery';
+import { addressPath, readAddress } from '../../navigation/address';
 import { VoiceDataPanel } from './VoiceDataPanel';
 import { SeriesTab } from '../series/SeriesTab';
 import { WorkDialog } from '../primitives/WorkDialog';
@@ -102,7 +103,12 @@ function GuideLoaded({ notify, goToManuscript }: Pick<GuideProps, 'notify' | 'go
   const api = useApi();
   const location = useLocation();
   const routerNavigate = useNavigate();
-  const entityId = location.hash ? decodeURIComponent(location.hash.slice(1)) : undefined;
+  // The entry a hand-off asked for (`#<entity id>`), read by the typed address module. A malformed address is the route gate's to show;
+  // here it asks for nothing.
+  const asked = useMemo(() => readAddress('story-bible', { search: location.search, hash: location.hash }), [location.search, location.hash]);
+  const entityId = asked.kind === 'address' && asked.address.page === 'story-bible' ? asked.address.entity : undefined;
+  // An entry the address named that the list does not have: said with a way out instead of opening a different entry unannounced.
+  const [unknownEntity, setUnknownEntity] = useState<string>();
   const [rows, setRows] = useState<GuideEntity[]>([]);
   // The first load failing leaves the page with nothing to show, so it gets an inline error and Retry; a later reload failing
   // keeps the rows on screen and is a toast, as before.
@@ -150,6 +156,8 @@ function GuideLoaded({ notify, goToManuscript }: Pick<GuideProps, 'notify' | 'go
         loadedOnce.current = true;
         setLoadError(undefined);
         setRows(next);
+        // Only a load that was asked for an entry decides this: the reload that follows the hash being dropped must not clear it.
+        if (selectId !== undefined) setUnknownEntity(next.some((row) => row.id === selectId) ? undefined : selectId);
         setSelectedId((current) => (next.find((row) => row.id === (selectId ?? current)) || next.find((row) => row.category !== 'Draft'))?.id);
       } catch (error) {
         if (loadedOnce.current) notify(describeApiError(error), 'error');
@@ -304,7 +312,7 @@ function GuideLoaded({ notify, goToManuscript }: Pick<GuideProps, 'notify' | 'go
     rows,
     suggestions,
     selectRow,
-    find: (name: string) => routerNavigate(`/script${findQuery(name)}`),
+    find: (name: string) => routerNavigate(addressPath({ page: 'script', find: name })),
     ask: (id: string, kind: EntryCommand['kind']) => {
       selectRow(id);
       setCommand({ id, kind, nonce: Math.random() });
@@ -314,7 +322,7 @@ function GuideLoaded({ notify, goToManuscript }: Pick<GuideProps, 'notify' | 'go
     rows,
     suggestions,
     selectRow,
-    find: (name) => routerNavigate(`/script${findQuery(name)}`),
+    find: (name) => routerNavigate(addressPath({ page: 'script', find: name })),
     ask: (id, kind) => {
       selectRow(id);
       setCommand({ id, kind, nonce: Math.random() });
@@ -457,6 +465,17 @@ function GuideLoaded({ notify, goToManuscript }: Pick<GuideProps, 'notify' | 'go
                   </div>
                 )}
               </div>
+              {unknownEntity !== undefined && (
+                <div role="alert" aria-label="Link not opened" className="mx-4 mb-2 flex flex-col gap-2 rounded border border-[var(--border)] p-3 text-sm">
+                  <p className="m-0">
+                    This link points to an entry that is not in the Story Bible. It may have been deleted or merged since the link was made.
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    <Button onClick={() => setUnknownEntity(undefined)}>Dismiss</Button>
+                    <Button onClick={() => routerNavigate('/', { replace: true })}>Go to Production</Button>
+                  </div>
+                </div>
+              )}
               {(typesFailed || chaptersFailed) && (
                 <div className="flex flex-col gap-1 px-4 pb-2">
                   {typesFailed && (

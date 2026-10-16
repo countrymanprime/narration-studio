@@ -161,12 +161,7 @@ describe('deleting an entry', () => {
       </MemoryRouter>,
     );
     await screen.findByRole('heading', { name: 'Alice' });
-    // On a loaded runner a late read of the entries can put the entry back to read-only just after Edit, so press Edit again until Delete shows.
-    await waitFor(() => {
-      const edit = screen.queryByRole('button', { name: 'Edit this entry' });
-      if (edit) fireEvent.click(edit);
-      expect(screen.getByRole('button', { name: 'Delete entity' })).toBeTruthy();
-    });
+    fireEvent.click(screen.getByRole('button', { name: 'Edit this entry' }));
     fireEvent.click(screen.getByRole('button', { name: 'Delete entity' }));
     fireEvent.click(within(await screen.findByRole('alertdialog', { name: 'Delete entry' })).getByRole('button', { name: 'Delete entry' }));
     await waitFor(() => expect(rowNames()).not.toContain('Alice'));

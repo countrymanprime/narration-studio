@@ -46,7 +46,7 @@ import { nameRows } from './source/pronunciationRows';
 import { usePronunciationSources } from './source/usePronunciationSources';
 import { AppearsIn } from './AppearsIn';
 import type { ChapterRef } from './appearsIn';
-import { findQuery } from '../script/page/scriptQuery';
+import { addressPath } from '../../navigation/address';
 import { aliasFlagged, entryFlagged, reviewFlags } from './entryList';
 import { EntryText } from './EntryText';
 import { ReadNotice } from './ReadNotice';
@@ -162,7 +162,7 @@ function FindInManuscript({ name }: { name: string }) {
   const navigate = useNavigate();
   return (
     <TooltipTarget text="Find in the manuscript">
-      <IconButton label="Find in the manuscript" onClick={() => navigate(`/script${findQuery(name)}`)}>
+      <IconButton label="Find in the manuscript" onClick={() => navigate(addressPath({ page: 'script', find: name }))}>
         <Icon name="find" />
       </IconButton>
     </TooltipTarget>
@@ -279,7 +279,13 @@ export function GuideDetail({
 
   // Selecting a different entry always starts read-only; a reload of the same
   // entry (after Save, an alias change, ...) keeps its mode.
-  useEffect(() => setEditing(false), [entity?.id]);
+  // Done while rendering, not in an effect: an effect also runs on mount, after React may have flushed a click on Edit that came in
+  // right after the entry first drew, and it would turn that edit mode off again.
+  const [shownId, setShownId] = useState(entity?.id);
+  if (shownId !== entity?.id) {
+    setShownId(entity?.id);
+    setEditing(false);
+  }
   // What was half done for one entry (an offer to merge, a relationship being written) is not carried to the next.
   useEffect(() => {
     setNameNote(undefined);
