@@ -404,9 +404,8 @@ export interface DawUndoLastApi {
  * not answering, no live DAW) and `level` 0 that means nothing; `ok` true has an empty `message`. */
 export type DawMonitorLevel = { ok: boolean; level: number; message: string };
 
-/** The slider's range, and the value that is unity gain (0 dB) in the DAW. */
+/** The slider's top (its bottom is 0); 70 is unity gain (0 dB) in the DAW. */
 export const DAW_LEVEL_MAX = 100;
-export const DAW_LEVEL_UNITY = 70;
 
 /** DawMonitorLevel and DawSetMonitorLevel (Booth pass 3; apps/desktop/bindings_daw_levels.go): read and set the DAW's monitor (output)
  * level, the Levels menu's second slider. The first (the input level) has no call: no DAW the app talks to can set an audio interface's
