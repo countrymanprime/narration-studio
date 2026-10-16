@@ -9,8 +9,13 @@ Storybook title: `Delivery/Page`. Source: `src/components/delivery/page/Delivery
 - Ready
 - Blocked
 - Built
+- Numbered Headings
+- With Credits
 - No Manuscript
+- Building
+- Build Failed
+- Cannot Tell
 
 ## Used by
 
-- nothing outside its own stories and tests yet
+- `src/App.tsx`

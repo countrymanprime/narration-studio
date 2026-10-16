@@ -8,9 +8,11 @@ Storybook title: `Master & QC/Page`. Source: `src/components/masterqc/page/Maste
 
 - Measured
 - Partly Waiting
+- Chapter Bar
+- No Manuscript
 - All Passing
 - Nothing Measured
 
 ## Used by
 
-- nothing outside its own stories and tests yet
+- `src/App.tsx`

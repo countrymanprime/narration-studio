@@ -20,12 +20,12 @@ Storybook title: `Primitives/ToggleGroup`. Source: `src/components/primitives/To
 - `src/components/editing/cleanup/CleanupInspector.tsx`
 - `src/components/editing/stack/RetryBar.tsx`
 - `src/components/master/DiagnosticsSection.tsx`
-- `src/components/master/MasterQcPage.tsx`
 - `src/components/production/report/ReportDialog.tsx`
 - `src/components/production/target/TargetPopover.tsx`
 - `src/components/proof/CompareRun.tsx`
+- `src/components/proof/inspector/FindingThread.tsx`
 - `src/components/script/page/chapters/PrepSegment.tsx`
 - `src/components/script/page/rail/threads/NoteCard.tsx`
 - `src/components/script/page/rail/threads/ThreadsPanel.tsx`
-- `src/components/settings/Settings.tsx`
+- `src/components/settings/page/ScopedFieldsPanel.tsx`
 - `src/components/storybible/suggested/import/ImportDialog.tsx`

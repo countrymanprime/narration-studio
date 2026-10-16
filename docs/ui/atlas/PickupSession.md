@@ -13,4 +13,4 @@ Storybook title: `Booth/PickupSession`. Source: `src/components/booth/pickups/Pi
 
 ## Used by
 
-- nothing outside its own stories and tests yet
+- `src/components/booth/page/BoothNextPage.tsx`

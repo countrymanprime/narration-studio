@@ -148,7 +148,9 @@
         "With A Stale One",
         "Flashing After A Jump"
       ],
-      "consumers": [],
+      "consumers": [
+        "src/components/booth/page/BoothNextPage.tsx"
+      ],
       "a11yDebt": false
     },
     {
@@ -194,8 +196,10 @@
         "No Text"
       ],
       "consumers": [
+        "src/components/booth/frame/BoothTop.tsx",
         "src/components/booth/page/BoothNextPage.tsx",
-        "src/components/booth/page/useBoothPage.ts"
+        "src/components/booth/page/useBoothPage.ts",
+        "src/components/booth/page/useTextChoices.ts"
       ],
       "a11yDebt": false
     },
@@ -207,7 +211,8 @@
         "Ready",
         "Recording",
         "Refused",
-        "Drawer"
+        "Drawer",
+        "Text Settings"
       ],
       "consumers": [
         "src/components/booth/page/BoothNextPage.tsx"
@@ -245,24 +250,27 @@
         "src/components/booth/CompanionShell.tsx",
         "src/components/booth/ResumePrompt.tsx",
         "src/components/booth/UnresolvedCreditsWarning.tsx",
-        "src/components/booth/page/BoothNextPage.tsx",
         "src/components/booth/pickups/PickupSession.tsx",
         "src/components/booth/record/RecordControl.tsx",
+        "src/components/booth/record/RecordSetup.tsx",
         "src/components/credits/CreditsSetupBanner.tsx",
         "src/components/credits/CreditsSetupDialog.tsx",
         "src/components/delivery/page/OutputPanel.tsx",
         "src/components/delivery/page/Preflight.tsx",
+        "src/components/delivery/profile/ProfileCard.tsx",
         "src/components/devtools/MockStatesPanel.tsx",
         "src/components/editing/CleanupAction.tsx",
         "src/components/editing/EditingCheckPanel.tsx",
-        "src/components/editing/EditingPage.tsx",
         "src/components/editing/cleanup/CleanupInspector.tsx",
         "src/components/editing/drawer/FoundList.tsx",
         "src/components/editing/effects/AddEffect.tsx",
         "src/components/editing/effects/EffectInspector.tsx",
+        "src/components/editing/effects/EffectSettings.tsx",
         "src/components/editing/effects/EffectsList.tsx",
         "src/components/editing/flags/FlagCard.tsx",
         "src/components/editing/menu/marks/NoteDialog.tsx",
+        "src/components/editing/page/NoAudioBanner.tsx",
+        "src/components/editing/range/cut/CutButtons.tsx",
         "src/components/editing/range/cut/CutDialog.tsx",
         "src/components/editing/range/fx/FxDialog.tsx",
         "src/components/editing/stack/RetryBar.tsx",
@@ -270,6 +278,7 @@
         "src/components/editing/stack/StackDialog.tsx",
         "src/components/editing/strip/TimelineStrip.tsx",
         "src/components/editing/takes/TakeChip.tsx",
+        "src/components/editing/takes/TakeCompare.tsx",
         "src/components/editing/takes/prep/PrepControls.tsx",
         "src/components/editing/takes/split/SplitButton.tsx",
         "src/components/engine/ChapterLinksTable.tsx",
@@ -284,26 +293,25 @@
         "src/components/engine/RenderConfigDialog.tsx",
         "src/components/engine/RetakeLanesDialog.tsx",
         "src/components/help/ShortcutSheet.tsx",
+        "src/components/layout/AddressGate.tsx",
         "src/components/layout/AppShell.tsx",
         "src/components/layout/HistoryPanel.tsx",
         "src/components/layout/LoadError.tsx",
+        "src/components/layout/NeedManuscript.tsx",
+        "src/components/layout/NotFoundPage.tsx",
         "src/components/layout/StartupScreen.tsx",
-        "src/components/manuscript/CreditsEntry.tsx",
-        "src/components/manuscript/ReaderCard.tsx",
         "src/components/mapping/MappingConfirm.tsx",
-        "src/components/master/DeliveryPackagePanel.tsx",
-        "src/components/master/DeliveryProfilePanel.tsx",
         "src/components/master/DiagnosticsSection.tsx",
         "src/components/master/FileRulesPanel.tsx",
-        "src/components/master/MasterQcPage.tsx",
         "src/components/master/MasterToSpecPanel.tsx",
         "src/components/master/MultiPlatformExportPanel.tsx",
         "src/components/master/ReportExportPanel.tsx",
-        "src/components/master/WhyItFails.tsx",
+        "src/components/masterqc/files/FileChecks.tsx",
         "src/components/masterqc/page/MasterPage.tsx",
         "src/components/masterqc/page/MeasureRun.tsx",
         "src/components/masterqc/page/PackageChecks.tsx",
         "src/components/pickups/list/AddPickup.tsx",
+        "src/components/pickups/list/PickupsTable.tsx",
         "src/components/pickups/list/SessionPanel.tsx",
         "src/components/primitives/ChapterStepper.tsx",
         "src/components/primitives/ConfirmDialog.tsx",
@@ -321,7 +329,6 @@
         "src/components/production/pipeline/PageHeader.tsx",
         "src/components/production/readiness/ReadinessPanel.tsx",
         "src/components/production/report/ReportDialog.tsx",
-        "src/components/production/useChapterTools.tsx",
         "src/components/project/NewProjectDialog.tsx",
         "src/components/project/ProjectPicker.tsx",
         "src/components/proof/AuditionDialog.tsx",
@@ -333,6 +340,7 @@
         "src/components/proof/checkcard/FindingRow.tsx",
         "src/components/proof/inspector/DecisionButtons.tsx",
         "src/components/proof/inspector/EvidenceChangedBanner.tsx",
+        "src/components/proof/inspector/FindingThread.tsx",
         "src/components/proof/inspector/InspectorActions.tsx",
         "src/components/proof/notes/NotesTable.tsx",
         "src/components/recordingcheck/CheckRecordingsDialog.tsx",
@@ -340,7 +348,7 @@
         "src/components/schedule/MilestoneDialog.tsx",
         "src/components/schedule/SchedulePage.tsx",
         "src/components/script/dictionaryInstall.tsx",
-        "src/components/script/page/layout/NeedManuscript.tsx",
+        "src/components/script/page/chapters/CreditsSection.tsx",
         "src/components/script/page/rail/threads/MessageEditor.tsx",
         "src/components/script/page/rail/threads/NoteCard.tsx",
         "src/components/script/page/rail/threads/ThreadsTab.tsx",
@@ -364,16 +372,21 @@
         "src/components/settings/OnlineDictionaryPanel.tsx",
         "src/components/settings/RetailSamplePanel.tsx",
         "src/components/settings/ScopedSetting.tsx",
-        "src/components/settings/Settings.tsx",
         "src/components/settings/UpdatesPanel.tsx",
         "src/components/settings/analysis/AnalysisToolsSection.tsx",
         "src/components/settings/analysis/ConsentDialog.tsx",
+        "src/components/settings/page/DawPanel.tsx",
+        "src/components/settings/page/LocalModelCard.tsx",
+        "src/components/settings/page/ProjectDataPanel.tsx",
+        "src/components/settings/page/RecordingPanel.tsx",
+        "src/components/settings/page/ScopedFieldsPanel.tsx",
         "src/components/stages/StageEvidence.tsx",
         "src/components/stages/StageSuggestion.tsx",
         "src/components/storybible/CommonsAudioLookup.tsx",
         "src/components/storybible/Guide.tsx",
         "src/components/storybible/GuideDetail.tsx",
         "src/components/storybible/OnlinePronunciationLookup.tsx",
+        "src/components/storybible/ReadNotice.tsx",
         "src/components/storybible/VoiceDataPanel.tsx",
         "src/components/storybible/VoiceReferencesSection.tsx",
         "src/components/storybible/source/PronSourceTag.tsx",
@@ -416,7 +429,7 @@
         "No Capabilities"
       ],
       "consumers": [
-        "src/components/settings/Settings.tsx"
+        "src/components/settings/page/SettingsPage.tsx"
       ],
       "a11yDebt": false
     },
@@ -433,7 +446,8 @@
         "Review Banner"
       ],
       "consumers": [
-        "src/components/script/page/ScriptPage.tsx"
+        "src/components/script/page/ScriptPage.tsx",
+        "src/components/script/page/chapters/CreditsSection.tsx"
       ],
       "a11yDebt": false
     },
@@ -462,6 +476,7 @@
         "Middle Chapter",
         "Last Chapter",
         "All Selected",
+        "Off While Recording",
         "Alt Keys",
         "Very Long Chapter Name",
         "Choosing A Chapter"
@@ -469,6 +484,7 @@
       "consumers": [
         "src/components/booth/page/BoothNextPage.tsx",
         "src/components/editing/EditingPage.tsx",
+        "src/components/masterqc/page/MasterPage.tsx",
         "src/components/pickups/list/PickupsTable.tsx",
         "src/components/proof/ProofPage.tsx"
       ],
@@ -483,14 +499,17 @@
         "Checked",
         "Disabled",
         "Press Toggles",
-        "Space Toggles"
+        "Space Toggles",
+        "Indeterminate",
+        "Label Less",
+        "Label Less Indeterminate"
       ],
       "consumers": [
         "src/components/credits/CreditsSetupDialog.tsx",
         "src/components/devtools/MockStatesPanel.tsx",
         "src/components/editing/backups/BackupsInspector.tsx",
         "src/components/editing/cleanup/CleanupList.tsx",
-        "src/components/editing/effects/EffectInspector.tsx",
+        "src/components/editing/effects/EffectSettings.tsx",
         "src/components/editing/range/cut/CutDialog.tsx",
         "src/components/engine/ChapterTagsDialog.tsx",
         "src/components/engine/CreateChapterRegionsDialog.tsx",
@@ -575,8 +594,11 @@
         "Inspector Noise",
         "Inspector Noise Not Measured",
         "Inspector Daw Off",
+        "Inspector Breaths Applies",
         "Inspector No Daw Command",
         "Preview",
+        "Preview Playing",
+        "Preview No Playback",
         "Tab"
       ],
       "consumers": [],
@@ -638,10 +660,13 @@
         "src/components/editing/CleanupAction.tsx",
         "src/components/production/ManuscriptImport.tsx",
         "src/components/production/RemoveFromRecordingDialog.tsx",
+        "src/components/settings/CreditsPanel.tsx",
         "src/components/settings/DeliveryProfilesPanel.tsx",
-        "src/components/settings/Settings.tsx",
         "src/components/settings/UpdatesPanel.tsx",
         "src/components/settings/analysis/AnalysisToolsSection.tsx",
+        "src/components/settings/page/LocalModelCard.tsx",
+        "src/components/settings/page/ProjectDataPanel.tsx",
+        "src/components/settings/page/ScopedFieldsPanel.tsx",
         "src/components/storybible/GuideDetail.tsx",
         "src/components/storybible/VoiceDataPanel.tsx",
         "src/overlay/OverlayHost.tsx"
@@ -676,6 +701,8 @@
       "consumers": [
         "src/App.tsx",
         "src/components/booth/bookmarks/useBoothBookmarks.ts",
+        "src/components/booth/page/BoothNextPage.tsx",
+        "src/components/booth/page/useBoothPage.ts",
         "src/components/editing/menu/marks/markMenuSections.ts",
         "src/components/editing/menu/playAndCopySections.ts",
         "src/components/editing/menu/useEditingWordMenu.ts",
@@ -698,6 +725,7 @@
       "source": "src/components/editing/range/cut/CutDialog.stories.tsx",
       "stories": [
         "Delete",
+        "Pad And Room Tone",
         "Mute",
         "Audacity",
         "Recorder",
@@ -721,6 +749,21 @@
       "a11yDebt": false
     },
     {
+      "title": "Settings/Page/DefinitionsPanel",
+      "name": "DefinitionsPanel",
+      "source": "src/components/settings/page/DefinitionsPanel.tsx",
+      "stories": [
+        "Installed",
+        "Not Installed Offline",
+        "Downloading",
+        "No Key Refused"
+      ],
+      "consumers": [
+        "src/components/settings/page/SettingsPage.tsx"
+      ],
+      "a11yDebt": false
+    },
+    {
       "title": "Delivery/Page",
       "name": "DeliveryPage",
       "source": "src/components/delivery/page/DeliveryPage.tsx",
@@ -728,9 +771,16 @@
         "Ready",
         "Blocked",
         "Built",
-        "No Manuscript"
+        "Numbered Headings",
+        "With Credits",
+        "No Manuscript",
+        "Building",
+        "Build Failed",
+        "Cannot Tell"
       ],
-      "consumers": [],
+      "consumers": [
+        "src/App.tsx"
+      ],
       "a11yDebt": false
     },
     {
@@ -765,6 +815,7 @@
         "Escape Invokes On Close",
         "Escape Is Ignored Without On Close",
         "Backdrop Press Does Not Close",
+        "Backdrop Press Closes",
         "Tab Stays Inside The Dialog",
         "Returns Focus To The Opener",
         "Auto Focus Child Wins",
@@ -822,6 +873,7 @@
         "Effects",
         "Backups",
         "Timeline Tab",
+        "Timeline Tab With Takes",
         "Overlay",
         "Column"
       ],
@@ -845,8 +897,13 @@
         "Strip Over",
         "Strip Far Over",
         "Strip Narrow",
+        "Strip Cap Lowered",
+        "Strip Cap Read Only",
         "On Words Many",
         "Inspector Reaper",
+        "Inspector Settings",
+        "Inspector Bypassed",
+        "Inspector Settings Narrow",
         "Inspector Recorder",
         "Inspector Narrow",
         "Add No Selection",
@@ -922,6 +979,7 @@
         "src/components/pickups/list/AddPickup.tsx",
         "src/components/production/ImportReview.tsx",
         "src/components/project/NewProjectDialog.tsx",
+        "src/components/proof/inspector/FindingThread.tsx",
         "src/components/proof/inspector/Inspector.tsx",
         "src/components/schedule/MilestoneDialog.tsx",
         "src/components/script/page/tools/select/MarkComposer.tsx",
@@ -1087,11 +1145,12 @@
       ],
       "consumers": [
         "src/components/delivery/page/DeliveryPage.tsx",
-        "src/components/editing/EditingPage.tsx",
         "src/components/editing/page/EditingHeader.tsx",
+        "src/components/layout/AddressGate.tsx",
         "src/components/layout/LoadError.tsx",
+        "src/components/layout/NeedManuscript.tsx",
+        "src/components/layout/NotFoundPage.tsx",
         "src/components/layout/StartupScreen.tsx",
-        "src/components/master/MasterQcPage.tsx",
         "src/components/masterqc/page/MasterPage.tsx",
         "src/components/pickups/list/PickupsTable.tsx",
         "src/components/production/pipeline/NoManuscript.tsx",
@@ -1100,7 +1159,6 @@
         "src/components/proof/ProofChapterPage.tsx",
         "src/components/proof/frame/ProofHeader.tsx",
         "src/components/schedule/SchedulePage.tsx",
-        "src/components/settings/Settings.tsx",
         "src/components/settings/page/SettingsPage.tsx",
         "src/components/storybible/Guide.tsx"
       ],
@@ -1155,8 +1213,9 @@
         "src/components/booth/record/RecordControl.tsx",
         "src/components/editing/bar/SelectionActionButton.tsx",
         "src/components/editing/flags/FlagCard.tsx",
+        "src/components/editing/range/cut/CutButtons.tsx",
+        "src/components/editing/range/fx/FxButtons.tsx",
         "src/components/editing/takes/TakeChip.tsx",
-        "src/components/pickups/list/PickupsTable.tsx",
         "src/components/primitives/ChapterStepper.tsx",
         "src/components/primitives/IconButton.tsx",
         "src/components/production/overview/CheckCountsCard.tsx",
@@ -1198,16 +1257,22 @@
         "src/components/booth/side/BoothSidePanel.tsx",
         "src/components/booth/side/Reference.tsx",
         "src/components/booth/suspected/SuspectedLines.tsx",
+        "src/components/delivery/page/OutputPanel.tsx",
+        "src/components/delivery/page/Preflight.tsx",
         "src/components/editing/backups/BackupsInspector.tsx",
         "src/components/editing/backups/BackupsList.tsx",
         "src/components/editing/bar/SelToolbar.tsx",
         "src/components/editing/bar/SelectionActionButton.tsx",
         "src/components/editing/bar/SelectionBar.tsx",
+        "src/components/editing/cleanup/CleanupList.tsx",
         "src/components/editing/drawer/Drawer.tsx",
         "src/components/editing/effects/OnWords.tsx",
         "src/components/editing/page/DawOffBanner.tsx",
+        "src/components/editing/page/EditingBody.tsx",
         "src/components/editing/page/EditingHeader.tsx",
+        "src/components/editing/takes/TakeCompare.tsx",
         "src/components/editing/takes/TakeLines.tsx",
+        "src/components/editing/takes/useShowInDaw.tsx",
         "src/components/layout/AppShell.tsx",
         "src/components/manuscript/EntitySummary.tsx",
         "src/components/masterqc/files/FileChecks.tsx",
@@ -1231,8 +1296,10 @@
         "src/components/proof/ProoferSheet.tsx",
         "src/components/proof/checkcard/CheckCard.tsx",
         "src/components/proof/frame/WaveformWindow.tsx",
+        "src/components/proof/inspector/FindingThread.tsx",
         "src/components/proof/inspector/InspectorActions.tsx",
         "src/components/proof/inspector/NoteSteps.tsx",
+        "src/components/proof/inspector/TrimGap.tsx",
         "src/components/proof/notes/NotesPanel.tsx",
         "src/components/proof/spot/SpotTakes.tsx",
         "src/components/schedule/MilestoneTable.tsx",
@@ -1242,6 +1309,7 @@
         "src/components/script/page/ScriptPage.tsx",
         "src/components/script/page/chapters/ChapterCard.tsx",
         "src/components/script/page/chapters/ChapterList.tsx",
+        "src/components/script/page/chapters/CreditsSection.tsx",
         "src/components/script/page/layout/RailPanel.tsx",
         "src/components/script/page/rail/bible/BiblePanel.tsx",
         "src/components/script/page/rail/bible/EntryCard.tsx",
@@ -1252,6 +1320,8 @@
         "src/components/script/page/tools/select/SelectionTool.tsx",
         "src/components/script/page/tools/text/TextSettings.tsx",
         "src/components/settings/analysis/ToolRow.tsx",
+        "src/components/settings/page/DefinitionsPanel.tsx",
+        "src/components/settings/page/MarksPanel.tsx",
         "src/components/settings/page/StoryBibleTypesPanel.tsx",
         "src/components/storybible/AppearsIn.tsx",
         "src/components/storybible/Guide.tsx",
@@ -1306,6 +1376,7 @@
       ],
       "consumers": [
         "src/components/booth/ResumePrompt.tsx",
+        "src/components/booth/record/RecordSetup.tsx",
         "src/components/editing/EditingCheckPanel.tsx",
         "src/components/editing/range/common/Strips.tsx",
         "src/components/editing/range/fx/FxPieces.tsx",
@@ -1321,11 +1392,13 @@
         "src/components/proof/AuditionDialog.tsx",
         "src/components/proof/PreviewPanel.tsx",
         "src/components/script/page/chapters/ChapterCard.tsx",
+        "src/components/script/page/chapters/CreditsSection.tsx",
         "src/components/script/page/rail/words/DefinitionBlock.tsx",
         "src/components/script/page/rail/words/WordCard.tsx",
         "src/components/series/SeriesTab.tsx",
         "src/components/settings/KeyboardPanel.tsx",
         "src/components/settings/OnlineDictionaryPanel.tsx",
+        "src/components/settings/page/ReaderTextPanel.tsx",
         "src/components/stages/StageEvidence.tsx",
         "src/components/storybible/DialogueCueAttribution.tsx",
         "src/components/storybible/VoiceReferencesSection.tsx"
@@ -1513,7 +1586,6 @@
         "No Manuscript"
       ],
       "consumers": [
-        "src/components/settings/Settings.tsx",
         "src/components/settings/page/SettingsPage.tsx"
       ],
       "a11yDebt": false
@@ -1554,7 +1626,21 @@
         "Types"
       ],
       "consumers": [
-        "src/components/script/page/ScriptPage.tsx"
+        "src/components/script/page/ScriptPage.tsx",
+        "src/components/settings/page/MarksPanel.tsx"
+      ],
+      "a11yDebt": false
+    },
+    {
+      "title": "Settings/Page/MarksPanel",
+      "name": "MarksPanel",
+      "source": "src/components/settings/page/MarksPanel.tsx",
+      "stories": [
+        "Default Types",
+        "Tracks A Reply"
+      ],
+      "consumers": [
+        "src/components/settings/page/SettingsPage.tsx"
       ],
       "a11yDebt": false
     },
@@ -1565,10 +1651,14 @@
       "stories": [
         "Measured",
         "Partly Waiting",
+        "Chapter Bar",
+        "No Manuscript",
         "All Passing",
         "Nothing Measured"
       ],
-      "consumers": [],
+      "consumers": [
+        "src/App.tsx"
+      ],
       "a11yDebt": false
     },
     {
@@ -1588,30 +1678,6 @@
         "src/components/script/page/tools/select/KindMenu.tsx",
         "src/components/script/page/tools/select/MarkMenu.tsx",
         "src/components/storybible/GuideDetail.tsx"
-      ],
-      "a11yDebt": false
-    },
-    {
-      "title": "Primitives/MeterBar",
-      "name": "MeterBar",
-      "source": "src/components/primitives/MeterBar.tsx",
-      "stories": [
-        "Partial Finished First",
-        "Partial Chronological",
-        "Empty",
-        "Nothing Started",
-        "Single Segment Partial",
-        "Full",
-        "Thin Segments",
-        "With Caption And Legend",
-        "Is Named By Its Label And Segments",
-        "Segments Render In Caller Order",
-        "Chronological Order Is The Mirror Image",
-        "Empty Draws No Segments",
-        "Updates When Progress Changes"
-      ],
-      "consumers": [
-        "src/components/home/AudiobookEstimatePanel.tsx"
       ],
       "a11yDebt": false
     },
@@ -1745,8 +1811,7 @@
         "One Row Selected"
       ],
       "consumers": [
-        "src/components/proof/ProofPage.tsx",
-        "src/components/proof/notes/NotesList.tsx"
+        "src/components/proof/ProofPage.tsx"
       ],
       "a11yDebt": false
     },
@@ -1765,7 +1830,9 @@
       ],
       "consumers": [
         "src/components/editing/backups/BackupsInspector.tsx",
-        "src/components/editing/cleanup/CleanupInspector.tsx"
+        "src/components/editing/cleanup/CleanupInspector.tsx",
+        "src/components/editing/effects/CoverageStrip.tsx",
+        "src/components/editing/effects/EffectSettings.tsx"
       ],
       "a11yDebt": false
     },
@@ -1780,7 +1847,11 @@
         "Leave Dialog",
         "Roll Confirm",
         "Resume",
-        "Drawer"
+        "Unsaved Changes",
+        "Drawer",
+        "Bookmarked",
+        "Pickup Session",
+        "Room Tone Measured"
       ],
       "consumers": [],
       "a11yDebt": false
@@ -1799,6 +1870,10 @@
         "Daw Off",
         "Built In",
         "Not Transcribed",
+        "No Audio Unlinked",
+        "No Audio Track Missing",
+        "No Audio Track Empty",
+        "No Audio Built In",
         "No Text",
         "No Manuscript"
       ],
@@ -1841,6 +1916,7 @@
         "Leading And Rich Subtitle",
         "Review Tone",
         "Scrolling Body",
+        "Fills Its Cell",
         "Header On Its Own",
         "Caps Title"
       ],
@@ -1855,18 +1931,18 @@
         "src/components/engine/ChapterLinksTable.tsx",
         "src/components/engine/ChapterSyncPanel.tsx",
         "src/components/engine/EnginePanel.tsx",
+        "src/components/layout/AddressGate.tsx",
         "src/components/layout/LoadError.tsx",
+        "src/components/layout/NeedManuscript.tsx",
+        "src/components/layout/NotFoundPage.tsx",
         "src/components/layout/StartupScreen.tsx",
-        "src/components/master/DeliveryPackagePanel.tsx",
         "src/components/master/DeliveryProfilePanel.tsx",
         "src/components/master/DiagnosticsSection.tsx",
         "src/components/master/FileRulesPanel.tsx",
-        "src/components/master/MasterQcPage.tsx",
         "src/components/master/MasterToSpecPanel.tsx",
         "src/components/master/MasteringChain.tsx",
         "src/components/master/MultiPlatformExportPanel.tsx",
         "src/components/master/ReportExportPanel.tsx",
-        "src/components/master/WhyItFails.tsx",
         "src/components/masterqc/files/FileChecks.tsx",
         "src/components/masterqc/files/FilesTable.tsx",
         "src/components/masterqc/page/MasterPage.tsx",
@@ -1879,7 +1955,6 @@
         "src/components/production/overview/StageBar.tsx",
         "src/components/production/overview/WeekCard.tsx",
         "src/components/production/pipeline/NoManuscript.tsx",
-        "src/components/production/useChapterTools.tsx",
         "src/components/project/ProjectPicker.tsx",
         "src/components/proof/CompareRun.tsx",
         "src/components/proof/NativeTakesPanel.tsx",
@@ -1890,13 +1965,19 @@
         "src/components/schedule/SchedulePage.tsx",
         "src/components/schedule/WorkedOut.tsx",
         "src/components/script/page/chapters/ChapterList.tsx",
-        "src/components/script/page/layout/NeedManuscript.tsx",
         "src/components/script/page/tools/find/FindBar.tsx",
         "src/components/settings/ManuscriptSection.tsx",
-        "src/components/settings/Settings.tsx",
+        "src/components/settings/analysis/AnalysisToolsSection.tsx",
         "src/components/settings/page/AppearancePanel.tsx",
+        "src/components/settings/page/DefinitionsPanel.tsx",
         "src/components/settings/page/DeliveryProfileField.tsx",
         "src/components/settings/page/KeysPanel.tsx",
+        "src/components/settings/page/MarksPanel.tsx",
+        "src/components/settings/page/ProjectDataPanel.tsx",
+        "src/components/settings/page/ReaderTextPanel.tsx",
+        "src/components/settings/page/RecordingPanel.tsx",
+        "src/components/settings/page/ScopedFieldsPanel.tsx",
+        "src/components/settings/page/SettingsPage.tsx",
         "src/components/settings/page/StoryBibleTypesPanel.tsx",
         "src/components/storybible/Guide.tsx",
         "src/components/storybible/GuideDetail.tsx"
@@ -1932,7 +2013,9 @@
         "All Recorded",
         "No Session"
       ],
-      "consumers": [],
+      "consumers": [
+        "src/components/booth/page/BoothNextPage.tsx"
+      ],
       "a11yDebt": false
     },
     {
@@ -1967,8 +2050,7 @@
       "consumers": [
         "src/components/primitives/ToggleGroup.tsx",
         "src/components/proof/checkcard/CheckCard.tsx",
-        "src/components/proof/notes/NotesPanel.tsx",
-        "src/components/storybible/suggested/panel/NeedsVerificationChip.tsx"
+        "src/components/proof/notes/NotesPanel.tsx"
       ],
       "a11yDebt": false
     },
@@ -1980,7 +2062,8 @@
         "Mid Book",
         "Finished",
         "Nothing Recorded",
-        "Long Chapter Name"
+        "Long Chapter Name",
+        "With Credits"
       ],
       "consumers": [
         "src/components/production/ProductionPage.tsx"
@@ -1998,6 +2081,7 @@
         "Inside A Dialog"
       ],
       "consumers": [
+        "src/components/booth/frame/BoothTop.tsx",
         "src/components/booth/frame/LevelsMenu.tsx",
         "src/components/booth/reading/SpeakerChip.tsx",
         "src/components/pickups/list/PickupsTable.tsx",
@@ -2060,9 +2144,7 @@
         "src/components/assets/LocalAssetRow.tsx",
         "src/components/delivery/page/OutputPanel.tsx",
         "src/components/editing/EditingCheckPanel.tsx",
-        "src/components/master/DeliveryPackagePanel.tsx",
         "src/components/master/DiagnosticsSection.tsx",
-        "src/components/master/MasterQcPage.tsx",
         "src/components/master/MasterToSpecPanel.tsx",
         "src/components/master/MultiPlatformExportPanel.tsx",
         "src/components/masterqc/page/MeasureRun.tsx",
@@ -2088,7 +2170,8 @@
         "Nothing Recorded"
       ],
       "consumers": [
-        "src/components/production/ProductionPage.tsx"
+        "src/components/production/ProductionPage.tsx",
+        "src/components/schedule/SchedulePage.tsx"
       ],
       "a11yDebt": false
     },
@@ -2117,13 +2200,17 @@
       "stories": [
         "Default",
         "Click Selects",
-        "Arrow Keys Move"
+        "Arrow Keys Move",
+        "Disabled Option",
+        "Standalone"
       ],
       "consumers": [
         "src/components/devtools/MockStatesPanel.tsx",
         "src/components/editing/range/cut/CutDialog.tsx",
         "src/components/production/RemoveFromRecordingDialog.tsx",
-        "src/components/settings/page/AppearancePanel.tsx"
+        "src/components/settings/page/AppearancePanel.tsx",
+        "src/components/settings/page/DefinitionsPanel.tsx",
+        "src/components/settings/page/RecordingPanel.tsx"
       ],
       "a11yDebt": false
     },
@@ -2137,6 +2224,19 @@
       ],
       "consumers": [
         "src/components/script/page/ScriptPage.tsx"
+      ],
+      "a11yDebt": false
+    },
+    {
+      "title": "Settings/Page/ReaderTextPanel",
+      "name": "ReaderTextPanel",
+      "source": "src/components/settings/page/ReaderTextPanel.tsx",
+      "stories": [
+        "Defaults",
+        "Large Serif"
+      ],
+      "consumers": [
+        "src/components/settings/page/SettingsPage.tsx"
       ],
       "a11yDebt": false
     },
@@ -2186,6 +2286,45 @@
       ],
       "consumers": [
         "src/components/booth/page/BoothNextPage.tsx"
+      ],
+      "a11yDebt": false
+    },
+    {
+      "title": "Settings/Page/RecordingPanel",
+      "name": "RecordingPanel",
+      "source": "src/components/settings/page/RecordingPanel.tsx",
+      "stories": [
+        "Found Not Linked",
+        "Several Found",
+        "Linked Not Started",
+        "Connected",
+        "Not Running",
+        "Not Installed",
+        "Built In Chosen",
+        "Chooses Built In",
+        "Launch Overrides",
+        "Refused",
+        "Reading"
+      ],
+      "consumers": [
+        "src/components/settings/page/SettingsPage.tsx"
+      ],
+      "a11yDebt": false
+    },
+    {
+      "title": "Booth/RecordSetup",
+      "name": "RecordSetup",
+      "source": "src/components/booth/record/RecordSetup.stories.tsx",
+      "stories": [
+        "Turn On Record",
+        "Connect Reaper",
+        "Reaper Not Answering",
+        "No Project Linked",
+        "Other Project Open"
+      ],
+      "consumers": [
+        "src/components/booth/page/BoothNextPage.tsx",
+        "src/components/booth/page/useStaleToasts.ts"
       ],
       "a11yDebt": false
     },
@@ -2320,6 +2459,7 @@
         "src/components/editing/effects/AddEffect.tsx",
         "src/components/editing/effects/CoverageStrip.tsx",
         "src/components/editing/effects/EffectInspector.tsx",
+        "src/components/editing/effects/EffectSettings.tsx",
         "src/components/editing/effects/EffectsList.tsx",
         "src/components/editing/effects/OnWords.tsx",
         "src/components/editing/range/common/Strips.tsx",
@@ -2330,8 +2470,6 @@
         "src/components/engine/ChapterSyncConsentDialog.tsx",
         "src/components/engine/ChapterSyncPanel.tsx",
         "src/components/engine/EnginePanel.tsx",
-        "src/components/manuscript/ReaderCard.tsx",
-        "src/components/master/DeliveryPackagePanel.tsx",
         "src/components/master/MultiPlatformExportPanel.tsx",
         "src/components/pickups/PickupsCompanionSummary.tsx",
         "src/components/primitives/StatTile.tsx",
@@ -2345,9 +2483,11 @@
         "src/components/proof/NativeTakesPanel.tsx",
         "src/components/proof/ProofChapterPage.tsx",
         "src/components/proof/inspector/EvidenceChangedBanner.tsx",
+        "src/components/proof/inspector/FindingThread.tsx",
         "src/components/proof/inspector/Inspector.tsx",
         "src/components/proof/spot/SpotTakes.tsx",
         "src/components/script/page/chapters/ChapterCard.tsx",
+        "src/components/script/page/chapters/CreditsSection.tsx",
         "src/components/script/page/rail/bible/BiblePanel.tsx",
         "src/components/script/page/rail/bible/EntryCard.tsx",
         "src/components/script/page/rail/words/WordCard.tsx",
@@ -2355,8 +2495,8 @@
         "src/components/settings/BackupsSection.tsx",
         "src/components/settings/CapabilitySection.tsx",
         "src/components/settings/KeyboardPanel.tsx",
-        "src/components/settings/analysis/AnalysisToolsSection.tsx",
         "src/components/settings/analysis/ConsentDialog.tsx",
+        "src/components/settings/page/DefinitionsPanel.tsx",
         "src/components/storybible/suggested/row/AcceptedClaims.tsx",
         "src/components/storybible/suggested/row/SuggestionList.tsx",
         "src/components/storybible/suggested/row/SuggestionRow.tsx"
@@ -2372,16 +2512,19 @@
         "Full Width",
         "Disabled",
         "With Placeholder Option",
+        "With Placeholder",
         "Choosing Reports The Value",
         "Keyboard Reaches It"
       ],
       "consumers": [
+        "src/components/booth/frame/BoothTop.tsx",
         "src/components/booth/frame/LevelsMenu.tsx",
         "src/components/delivery/ImportProfileField.tsx",
         "src/components/delivery/profile/ProfileMenu.tsx",
         "src/components/editing/menu/marks/NoteDialog.tsx",
         "src/components/editing/range/cut/CutDialog.tsx",
         "src/components/editing/range/fx/FxDialog.tsx",
+        "src/components/editing/takes/TakeCompare.tsx",
         "src/components/engine/ChapterSyncPanel.tsx",
         "src/components/engine/CreateChapterRegionsDialog.tsx",
         "src/components/engine/LinkChaptersDialog.tsx",
@@ -2460,6 +2603,22 @@
       "a11yDebt": false
     },
     {
+      "title": "Booth/SetupChip",
+      "name": "SetupChip",
+      "source": "src/components/booth/record/SetupChip.tsx",
+      "stories": [
+        "Connected",
+        "Not Linked",
+        "Linked Not Started",
+        "Not Running",
+        "Records In The App"
+      ],
+      "consumers": [
+        "src/components/booth/page/BoothNextPage.tsx"
+      ],
+      "a11yDebt": false
+    },
+    {
       "title": "Primitives/SlideOver",
       "name": "SlideOver",
       "source": "src/components/primitives/SlideOver.tsx",
@@ -2501,6 +2660,9 @@
         "Disabled"
       ],
       "consumers": [
+        "src/components/booth/frame/BoothTop.tsx",
+        "src/components/booth/frame/LevelsMenu.tsx",
+        "src/components/editing/effects/EffectSettings.tsx",
         "src/components/script/page/tools/text/TextSettings.tsx"
       ],
       "a11yDebt": false
@@ -2694,12 +2856,14 @@
         "src/components/booth/CompanionShell.tsx",
         "src/components/booth/CompanionThisChapter.tsx",
         "src/components/booth/frame/BoothTop.tsx",
+        "src/components/booth/frame/LevelsMenu.tsx",
         "src/components/credits/CreditsSetupBanner.tsx",
         "src/components/delivery/page/OutputPanel.tsx",
         "src/components/delivery/page/Preflight.tsx",
         "src/components/delivery/profile/ProfileCard.tsx",
         "src/components/editing/backups/BackupsList.tsx",
         "src/components/editing/bar/SelectionBar.tsx",
+        "src/components/editing/cleanup/CleanupList.tsx",
         "src/components/editing/effects/CoverageStrip.tsx",
         "src/components/editing/flags/FlagCard.tsx",
         "src/components/editing/flags/Legend.tsx",
@@ -2713,12 +2877,13 @@
         "src/components/engine/EnginePanel.tsx",
         "src/components/layout/HistoryPanel.tsx",
         "src/components/manuscript/EntitySummary.tsx",
-        "src/components/manuscript/ReaderCard.tsx",
         "src/components/master/MasteringChain.tsx",
         "src/components/master/RuleBadges.tsx",
         "src/components/masterqc/files/FileChecks.tsx",
         "src/components/masterqc/files/FilesTable.tsx",
         "src/components/masterqc/page/PackageChecks.tsx",
+        "src/components/pickups/list/PickupsTable.tsx",
+        "src/components/pickups/list/pickupRows.ts",
         "src/components/primitives/CapabilityGate.tsx",
         "src/components/primitives/HeaderChip.tsx",
         "src/components/primitives/SpeakerTag.tsx",
@@ -2748,8 +2913,11 @@
         "src/components/settings/DawCatalogPanel.tsx",
         "src/components/settings/KeyboardPanel.tsx",
         "src/components/settings/OnlineDictionaryPanel.tsx",
-        "src/components/settings/Settings.tsx",
         "src/components/settings/analysis/ToolRow.tsx",
+        "src/components/settings/page/DawPanel.tsx",
+        "src/components/settings/page/DefinitionsPanel.tsx",
+        "src/components/settings/page/MarksPanel.tsx",
+        "src/components/settings/page/RecordingPanel.tsx",
         "src/components/stages/StageSuggestion.tsx",
         "src/components/storybible/Guide.tsx",
         "src/components/storybible/GuideDetail.tsx",
@@ -2805,7 +2973,8 @@
       "stories": [
         "None",
         "Two Open",
-        "One Dismissed"
+        "One Dismissed",
+        "Added To Pickups"
       ],
       "consumers": [
         "src/components/booth/side/builtinSections.tsx"
@@ -2829,7 +2998,9 @@
         "src/components/script/page/tools/select/KindMenu.tsx",
         "src/components/script/page/tools/select/MarkMenu.tsx",
         "src/components/script/page/tools/speaker/SpeakerPicker.tsx",
+        "src/components/settings/page/MarksPanel.tsx",
         "src/components/settings/page/StoryBibleTypesPanel.tsx",
+        "src/components/storybible/FilterChip.tsx",
         "src/components/storybible/Guide.tsx",
         "src/components/storybible/SpeakerColourField.tsx",
         "src/components/storybible/entryList.ts"
@@ -2877,7 +3048,6 @@
         "src/components/master/DiagnosticsTables.tsx",
         "src/components/master/FileRulesPanel.tsx",
         "src/components/master/MasterToSpecPanel.tsx",
-        "src/components/master/PerFileChecks.tsx",
         "src/components/masterqc/files/FilesTable.tsx",
         "src/components/pickups/list/PickupsTable.tsx",
         "src/components/production/RecordingCheckReport.tsx",
@@ -2911,7 +3081,6 @@
       "consumers": [
         "src/components/editing/drawer/Drawer.tsx",
         "src/components/script/page/layout/RailPanel.tsx",
-        "src/components/settings/Settings.tsx",
         "src/components/storybible/Guide.tsx"
       ],
       "a11yDebt": false
@@ -2947,7 +3116,9 @@
         "Partly Measured",
         "Not Comparable",
         "Narrow Kept",
-        "Daw Cannot"
+        "Daw Cannot",
+        "Compare Two Takes",
+        "Compare Take Cannot Be Heard"
       ],
       "consumers": [],
       "a11yDebt": false
@@ -2974,7 +3145,8 @@
         "All Pass",
         "Two Fail",
         "Waiting Row",
-        "No File For The Chapter"
+        "No File For The Chapter",
+        "Chapter Labels"
       ],
       "consumers": [
         "src/components/masterqc/page/testPage.tsx"
@@ -2991,6 +3163,8 @@
         "Disabled",
         "Monospace",
         "Colour Picker",
+        "Small",
+        "Small With Width Class",
         "Read Only",
         "Typing Reports The Text",
         "Disabled Takes No Input"
@@ -3031,7 +3205,8 @@
         "In Popover"
       ],
       "consumers": [
-        "src/components/script/page/ScriptPage.tsx"
+        "src/components/script/page/ScriptPage.tsx",
+        "src/components/settings/page/ReaderTextPanel.tsx"
       ],
       "a11yDebt": false
     },
@@ -3082,7 +3257,6 @@
         "Narrow"
       ],
       "consumers": [
-        "src/components/editing/EditingPage.tsx",
         "src/components/editing/drawer/Drawer.tsx",
         "src/components/editing/page/EditingBody.tsx",
         "src/components/editing/page/EditingHeader.tsx"
@@ -3104,7 +3278,6 @@
         "Renders Both Parts"
       ],
       "consumers": [
-        "src/components/manuscript/ReaderCard.tsx",
         "src/components/production/ImportReview.tsx"
       ],
       "a11yDebt": false
@@ -3149,7 +3322,6 @@
         "src/components/proof/RenderAssociationSection.tsx",
         "src/components/proof/useProofingRender.ts",
         "src/components/script/page/ScriptPage.tsx",
-        "src/components/script/page/layout/ScriptCredits.tsx",
         "src/components/series/SeriesTab.tsx",
         "src/components/settings/CreditsPanel.tsx",
         "src/components/settings/DawCatalogPanel.tsx",
@@ -3158,7 +3330,12 @@
         "src/components/settings/ManuscriptSection.tsx",
         "src/components/settings/OnlineDictionaryPanel.tsx",
         "src/components/settings/RetailSamplePanel.tsx",
-        "src/components/settings/Settings.tsx",
+        "src/components/settings/page/DawPanel.tsx",
+        "src/components/settings/page/LocalModelCard.tsx",
+        "src/components/settings/page/ProjectDataPanel.tsx",
+        "src/components/settings/page/RecordingPanel.tsx",
+        "src/components/settings/page/ScopedFieldsPanel.tsx",
+        "src/components/settings/page/SettingsPage.tsx",
         "src/components/stages/useStageRecommendations.ts",
         "src/components/storybible/DialogueCueAttribution.tsx",
         "src/components/storybible/Guide.tsx",
@@ -3192,14 +3369,14 @@
         "src/components/editing/cleanup/CleanupInspector.tsx",
         "src/components/editing/stack/RetryBar.tsx",
         "src/components/master/DiagnosticsSection.tsx",
-        "src/components/master/MasterQcPage.tsx",
         "src/components/production/report/ReportDialog.tsx",
         "src/components/production/target/TargetPopover.tsx",
         "src/components/proof/CompareRun.tsx",
+        "src/components/proof/inspector/FindingThread.tsx",
         "src/components/script/page/chapters/PrepSegment.tsx",
         "src/components/script/page/rail/threads/NoteCard.tsx",
         "src/components/script/page/rail/threads/ThreadsPanel.tsx",
-        "src/components/settings/Settings.tsx",
+        "src/components/settings/page/ScopedFieldsPanel.tsx",
         "src/components/storybible/suggested/import/ImportDialog.tsx"
       ],
       "a11yDebt": false
@@ -3252,6 +3429,7 @@
         "src/components/booth/resume/ResumeOffer.tsx",
         "src/components/editing/bar/SelectionActionButton.tsx",
         "src/components/editing/page/EditingHeader.tsx",
+        "src/components/editing/range/cut/CutButtons.tsx",
         "src/components/editing/stack/RetryBar.tsx",
         "src/components/editing/stack/StackControls.tsx",
         "src/components/editing/takes/prep/PrepControls.tsx",
@@ -3259,8 +3437,6 @@
         "src/components/layout/AppShell.tsx",
         "src/components/layout/EngineChip.tsx",
         "src/components/manuscript/EntitySummary.tsx",
-        "src/components/manuscript/ReaderCard.tsx",
-        "src/components/master/MasterQcPage.tsx",
         "src/components/primitives/CapabilityGate.tsx",
         "src/components/primitives/ChapterStepper.tsx",
         "src/components/primitives/IconButton.tsx",

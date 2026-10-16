@@ -10,6 +10,7 @@ Storybook title: `Editing/Drawer`. Source: `src/components/editing/drawer/Drawer
 - Effects
 - Backups
 - Timeline Tab
+- Timeline Tab With Takes
 - Overlay
 - Column
 

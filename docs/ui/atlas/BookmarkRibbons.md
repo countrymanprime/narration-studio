@@ -13,4 +13,4 @@ Storybook title: `Booth/BookmarkRibbons`. Source: `src/components/booth/bookmark
 
 ## Used by
 
-- nothing outside its own stories and tests yet
+- `src/components/booth/page/BoothNextPage.tsx`

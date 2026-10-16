@@ -26,7 +26,6 @@ Storybook title: `Primitives/Table`. Source: `src/components/primitives/Table.ts
 - `src/components/master/DiagnosticsTables.tsx`
 - `src/components/master/FileRulesPanel.tsx`
 - `src/components/master/MasterToSpecPanel.tsx`
-- `src/components/master/PerFileChecks.tsx`
 - `src/components/masterqc/files/FilesTable.tsx`
 - `src/components/pickups/list/PickupsTable.tsx`
 - `src/components/production/RecordingCheckReport.tsx`

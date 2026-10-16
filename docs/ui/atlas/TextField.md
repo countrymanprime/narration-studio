@@ -11,6 +11,8 @@ Storybook title: `Primitives/TextField`. Source: `src/components/primitives/Text
 - Disabled
 - Monospace
 - Colour Picker
+- Small
+- Small With Width Class
 - Read Only
 - Typing Reports The Text
 - Disabled Takes No Input

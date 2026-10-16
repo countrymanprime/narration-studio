@@ -10,6 +10,7 @@ Storybook title: `Booth/Frame`. Source: `src/components/booth/frame/BoothTop.tsx
 - Recording
 - Refused
 - Drawer
+- Text Settings
 
 ## Used by
 

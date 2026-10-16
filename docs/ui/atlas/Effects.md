@@ -16,8 +16,13 @@ Storybook title: `Editing/Effects`. Source: `src/components/editing/effects/Effe
 - Strip Over
 - Strip Far Over
 - Strip Narrow
+- Strip Cap Lowered
+- Strip Cap Read Only
 - On Words Many
 - Inspector Reaper
+- Inspector Settings
+- Inspector Bypassed
+- Inspector Settings Narrow
 - Inspector Recorder
 - Inspector Narrow
 - Add No Selection

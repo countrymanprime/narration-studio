@@ -21,6 +21,7 @@ Storybook title: `Primitives/SectionLabel`. Source: `src/components/primitives/S
 - `src/components/editing/effects/AddEffect.tsx`
 - `src/components/editing/effects/CoverageStrip.tsx`
 - `src/components/editing/effects/EffectInspector.tsx`
+- `src/components/editing/effects/EffectSettings.tsx`
 - `src/components/editing/effects/EffectsList.tsx`
 - `src/components/editing/effects/OnWords.tsx`
 - `src/components/editing/range/common/Strips.tsx`
@@ -31,8 +32,6 @@ Storybook title: `Primitives/SectionLabel`. Source: `src/components/primitives/S
 - `src/components/engine/ChapterSyncConsentDialog.tsx`
 - `src/components/engine/ChapterSyncPanel.tsx`
 - `src/components/engine/EnginePanel.tsx`
-- `src/components/manuscript/ReaderCard.tsx`
-- `src/components/master/DeliveryPackagePanel.tsx`
 - `src/components/master/MultiPlatformExportPanel.tsx`
 - `src/components/pickups/PickupsCompanionSummary.tsx`
 - `src/components/primitives/StatTile.tsx`
@@ -46,9 +45,11 @@ Storybook title: `Primitives/SectionLabel`. Source: `src/components/primitives/S
 - `src/components/proof/NativeTakesPanel.tsx`
 - `src/components/proof/ProofChapterPage.tsx`
 - `src/components/proof/inspector/EvidenceChangedBanner.tsx`
+- `src/components/proof/inspector/FindingThread.tsx`
 - `src/components/proof/inspector/Inspector.tsx`
 - `src/components/proof/spot/SpotTakes.tsx`
 - `src/components/script/page/chapters/ChapterCard.tsx`
+- `src/components/script/page/chapters/CreditsSection.tsx`
 - `src/components/script/page/rail/bible/BiblePanel.tsx`
 - `src/components/script/page/rail/bible/EntryCard.tsx`
 - `src/components/script/page/rail/words/WordCard.tsx`
@@ -56,8 +57,8 @@ Storybook title: `Primitives/SectionLabel`. Source: `src/components/primitives/S
 - `src/components/settings/BackupsSection.tsx`
 - `src/components/settings/CapabilitySection.tsx`
 - `src/components/settings/KeyboardPanel.tsx`
-- `src/components/settings/analysis/AnalysisToolsSection.tsx`
 - `src/components/settings/analysis/ConsentDialog.tsx`
+- `src/components/settings/page/DefinitionsPanel.tsx`
 - `src/components/storybible/suggested/row/AcceptedClaims.tsx`
 - `src/components/storybible/suggested/row/SuggestionList.tsx`
 - `src/components/storybible/suggested/row/SuggestionRow.tsx`

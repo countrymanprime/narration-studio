@@ -42,7 +42,6 @@ Storybook title: `Primitives/Toast`. Source: `src/components/primitives/Toast.ts
 - `src/components/proof/RenderAssociationSection.tsx`
 - `src/components/proof/useProofingRender.ts`
 - `src/components/script/page/ScriptPage.tsx`
-- `src/components/script/page/layout/ScriptCredits.tsx`
 - `src/components/series/SeriesTab.tsx`
 - `src/components/settings/CreditsPanel.tsx`
 - `src/components/settings/DawCatalogPanel.tsx`
@@ -51,7 +50,12 @@ Storybook title: `Primitives/Toast`. Source: `src/components/primitives/Toast.ts
 - `src/components/settings/ManuscriptSection.tsx`
 - `src/components/settings/OnlineDictionaryPanel.tsx`
 - `src/components/settings/RetailSamplePanel.tsx`
-- `src/components/settings/Settings.tsx`
+- `src/components/settings/page/DawPanel.tsx`
+- `src/components/settings/page/LocalModelCard.tsx`
+- `src/components/settings/page/ProjectDataPanel.tsx`
+- `src/components/settings/page/RecordingPanel.tsx`
+- `src/components/settings/page/ScopedFieldsPanel.tsx`
+- `src/components/settings/page/SettingsPage.tsx`
 - `src/components/stages/useStageRecommendations.ts`
 - `src/components/storybible/DialogueCueAttribution.tsx`
 - `src/components/storybible/Guide.tsx`

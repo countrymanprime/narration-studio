@@ -11,6 +11,9 @@ Storybook title: `Primitives/Checkbox`. Source: `src/components/primitives/Check
 - Disabled
 - Press Toggles
 - Space Toggles
+- Indeterminate
+- Label Less
+- Label Less Indeterminate
 
 ## Used by
 
@@ -18,7 +21,7 @@ Storybook title: `Primitives/Checkbox`. Source: `src/components/primitives/Check
 - `src/components/devtools/MockStatesPanel.tsx`
 - `src/components/editing/backups/BackupsInspector.tsx`
 - `src/components/editing/cleanup/CleanupList.tsx`
-- `src/components/editing/effects/EffectInspector.tsx`
+- `src/components/editing/effects/EffectSettings.tsx`
 - `src/components/editing/range/cut/CutDialog.tsx`
 - `src/components/engine/ChapterTagsDialog.tsx`
 - `src/components/engine/CreateChapterRegionsDialog.tsx`

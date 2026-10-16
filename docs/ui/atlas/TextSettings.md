@@ -13,3 +13,4 @@ Storybook title: `Script/TextSettings`. Source: `src/components/script/page/tool
 ## Used by
 
 - `src/components/script/page/ScriptPage.tsx`
+- `src/components/settings/page/ReaderTextPanel.tsx`

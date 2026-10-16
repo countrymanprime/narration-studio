@@ -10,6 +10,7 @@ Storybook title: `Primitives/ChapterStepper`. Source: `src/components/primitives
 - Middle Chapter
 - Last Chapter
 - All Selected
+- Off While Recording
 - Alt Keys
 - Very Long Chapter Name
 - Choosing A Chapter
@@ -18,5 +19,6 @@ Storybook title: `Primitives/ChapterStepper`. Source: `src/components/primitives
 
 - `src/components/booth/page/BoothNextPage.tsx`
 - `src/components/editing/EditingPage.tsx`
+- `src/components/masterqc/page/MasterPage.tsx`
 - `src/components/pickups/list/PickupsTable.tsx`
 - `src/components/proof/ProofPage.tsx`

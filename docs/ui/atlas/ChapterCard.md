@@ -16,3 +16,4 @@ Storybook title: `Script/ChapterCard`. Source: `src/components/script/page/chapt
 ## Used by
 
 - `src/components/script/page/ScriptPage.tsx`
+- `src/components/script/page/chapters/CreditsSection.tsx`

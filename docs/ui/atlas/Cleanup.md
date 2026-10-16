@@ -18,8 +18,11 @@ Storybook title: `Editing/Cleanup`. Source: `src/components/editing/cleanup/Clea
 - Inspector Noise
 - Inspector Noise Not Measured
 - Inspector Daw Off
+- Inspector Breaths Applies
 - Inspector No Daw Command
 - Preview
+- Preview Playing
+- Preview No Playback
 - Tab
 
 ## Used by

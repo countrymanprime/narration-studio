@@ -13,6 +13,7 @@ Storybook title: `Primitives/Popover`. Source: `src/components/primitives/Popove
 
 ## Used by
 
+- `src/components/booth/frame/BoothTop.tsx`
 - `src/components/booth/frame/LevelsMenu.tsx`
 - `src/components/booth/reading/SpeakerChip.tsx`
 - `src/components/pickups/list/PickupsTable.tsx`

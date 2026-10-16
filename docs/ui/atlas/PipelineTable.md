@@ -10,6 +10,7 @@ Storybook title: `Production/PipelineTable`. Source: `src/components/production/
 - Finished
 - Nothing Recorded
 - Long Chapter Name
+- With Credits
 
 ## Used by
 

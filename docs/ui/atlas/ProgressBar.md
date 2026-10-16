@@ -19,9 +19,7 @@ Storybook title: `Primitives/ProgressBar`. Source: `src/components/primitives/Pr
 - `src/components/assets/LocalAssetRow.tsx`
 - `src/components/delivery/page/OutputPanel.tsx`
 - `src/components/editing/EditingCheckPanel.tsx`
-- `src/components/master/DeliveryPackagePanel.tsx`
 - `src/components/master/DiagnosticsSection.tsx`
-- `src/components/master/MasterQcPage.tsx`
 - `src/components/master/MasterToSpecPanel.tsx`
 - `src/components/master/MultiPlatformExportPanel.tsx`
 - `src/components/masterqc/page/MeasureRun.tsx`

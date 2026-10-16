@@ -4,7 +4,7 @@
 
 **Builds on:** the delivered primitives ([ADR 0047](../adr/0047-the-ui-primitives-wrap-base-ui-and-app-code-never-imports-it.md), [ADR 0360](../adr/0360-studio-primitives-land-as-flat-leaf-files-after-one-token-batch-and-capability-gating-is-a-primitive.md), [ADR 0620](../adr/0620-kbd-draws-plex-mono-caps-in-two-sizes-with-a-pressed-bottom-edge-and-keyhint-composes-one-with-its-action.md), [ADR 0595](../adr/0595-button-has-two-measured-sizes-a-surface-filled-secondary-and-a-link-and-owns-its-look.md), [ADR 0600](../adr/0600-every-pill-tag-and-status-dot-is-one-badge-primitive-with-a-pill-a-tag-and-a-booth-shape.md)), [the design system](../design/design-system.md), the zero-new-global-CSS rule ([ADR 0009](../adr/0009-complete-tailwind-migration.md), [ADR 0017](../adr/0017-no-legacy-css-shadowing-tailwind.md)) and the visual-suite viewports ([ADR 0037](../adr/0037-visual-suite-captures-no-phone-viewport.md), [ADR 0061](../adr/0061-settings-states-are-also-captured-at-a-390px-reflow-width.md)).
 
-**Status (2026-10-11):** draft; the owner's rulings of 2026-10-11 are applied. Tokens, primitive sizes and layouts come from the Studio Next mock (`studio-next/src/styles/`, `studio-next/src/ui/`), not from the benchmark mocks. Slice SNF-2 is a train-wide serial point (the token batch runs alone).
+**Status (2026-10-16):** done; all eight phases are merged, the atlas docs by SN-F82. The owner's rulings of 2026-10-11 are applied. Tokens, primitive sizes and layouts come from the Studio Next mock (`studio-next/src/styles/`, `studio-next/src/ui/`), not from the benchmark mocks. Slice SNF-2 is a train-wide serial point (the token batch runs alone).
 
 ## Problem Statement
 
@@ -118,14 +118,14 @@ On conflict this PRD, and the ADR written when its phase lands, is the source of
 
 | # | Phase | Description | Status | Parallel | Depends | Est. (pw) | PRP Plan |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| 1 | Base ADRs | A1 and A16 as Proposed (A1 needs no owner answer); token and primitive diff note in `docs/research/` | in review | 2 | SN0-1 | 0.5 | - |
-| 2 | Token batch | Add missing tokens, `PAIRS` rows, dark values; runs alone | in review | - | 1 | 0.8 | - |
-| 3 | Icon wrapper and catalogue | `Icon`, `icons.catalog.ts`, ratchet test, stories | in review | 4, 5 | 1 | 0.9 | - |
-| 4 | Key caps and hints | `KeyCap`, `KeyChord`, `KeyHints` footer, stories | in review | 3, 5 | 1 | 0.8 | - |
-| 5 | Form primitives | `Slider`, `NumberInput`, `Swatch` (three parallel slices) | pending | 3, 4 | 2 | 1.5 | - |
-| 6 | Layout rules | Container and media queries, rail collapse, `useLayoutClass` if needed, visual rows | pending | 5 | 2 | 0.9 | - |
-| 7 | Raw-control gate | `native-control-ok` mechanism and per-page ceilings to zero as pages swap | pending | - | 5 | 0.4 | - |
-| 8 | Close-out | `design-system.md` rows, atlas docs regenerated once | in progress (design-system rows done; atlas docs in SN-F82) | - | 2 to 7 | 0.4 | - |
+| 1 | Base ADRs | A1 and A16 as Proposed (A1 needs no owner answer); token and primitive diff note in `docs/research/` | done | 2 | SN0-1 | 0.5 | - |
+| 2 | Token batch | Add missing tokens, `PAIRS` rows, dark values; runs alone | done | - | 1 | 0.8 | - |
+| 3 | Icon wrapper and catalogue | `Icon`, `icons.catalog.ts`, ratchet test, stories | done | 4, 5 | 1 | 0.9 | - |
+| 4 | Key caps and hints | `KeyCap`, `KeyChord`, `KeyHints` footer, stories | done | 3, 5 | 1 | 0.8 | - |
+| 5 | Form primitives | `Slider`, `NumberInput`, `Swatch` (three parallel slices) | done | 3, 4 | 2 | 1.5 | - |
+| 6 | Layout rules | Container and media queries, rail collapse, `useLayoutClass` if needed, visual rows | done | 5 | 2 | 0.9 | - |
+| 7 | Raw-control gate | `native-control-ok` mechanism and per-page ceilings to zero as pages swap | done | - | 5 | 0.4 | - |
+| 8 | Close-out | `design-system.md` rows, atlas docs regenerated once | done | - | 2 to 7 | 0.4 | - |
 
 ### Phase Details
 
@@ -154,7 +154,7 @@ Phases 3, 4 are independent of 2; Phase 5 needs the tokens. Phase 6 follows the 
 | Slice | Scope | Depends on | Parallel-safe | Verification |
 | --- | --- | --- | --- | --- |
 | SNF-1 | Phase 1 | SN0-1 | yes | Docs link check; ADR index generated |
-| SNF-2 | Phase 2 (in review) | SNF-1 | no (serial point) | `pnpm check`; full visual suite and atlas read |
+| SNF-2 | Phase 2 | SNF-1 | no (serial point) | `pnpm check`; full visual suite and atlas read |
 | SNF-3 | Phase 3 | SNF-1 | yes | `Icon` tests; ratchet test; atlas |
 | SNF-4 | Phase 4 | SNF-1 | yes | Port of `studio-next/tests/d2-keycaps.test.tsx`; atlas; axe |
 | SNF-5a | Slider | SNF-2 | yes | Story, tests, atlas, a11y |
@@ -162,7 +162,7 @@ Phases 3, 4 are independent of 2; Phase 5 needs the tokens. Phase 6 follows the 
 | SNF-5c | Swatch | SNF-2 | yes | Same |
 | SNF-6 | Phase 6 | SNF-2 | yes | Visual rows at 1440, 1024, 768; overflow checks |
 | SNF-7 | Phase 7 | SNF-5a | yes | `rawNatives.test.ts` |
-| SNF-8 | Phase 8 | SNF-2..7 | no | `docs:atlas` regenerated; `pnpm check` |
+| SNF-8 | Phase 8 (done) | SNF-2..7 | no | `docs:atlas` regenerated; `pnpm check` |
 
 ## Decisions Log
 
