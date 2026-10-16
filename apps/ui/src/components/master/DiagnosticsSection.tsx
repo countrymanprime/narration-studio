@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react';
 import { useApi } from '../../api/ApiContext';
 import { apiErrorMessage } from '../../api/errorMessage';
+import { dawShortName } from '../../studio/StudioProvider';
+import { useDawKind } from '../../useDawKind';
 import type { DiagnosticsJob, DiagnosticsSourceKind } from '../../types';
 import { Button } from '../primitives/Button';
 import { Panel } from '../primitives/Panel';
@@ -20,6 +22,12 @@ const SOURCE_KINDS = [
   { value: 'raw_recording', label: 'Raw recordings' },
 ] as const;
 
+/** The DAW this session talks to, by name; "the DAW" until the first answer or with only the built-in recorder (the page is DAW-neutral). */
+function useDawName(): string {
+  const daw = useDawKind();
+  return !daw || daw === 'none' ? 'the DAW' : dawShortName(daw);
+}
+
 const plural = (count: number, one: string, many: string) => `${count} ${count === 1 ? one : many}`;
 
 /**
@@ -29,6 +37,7 @@ const plural = (count: number, one: string, many: string) => `${count} ${count =
  * applies a cut, because acting on a candidate in REAPER is not built here.
  */
 function CleanupSection({ job, openSettings }: { job: DiagnosticsJob | undefined; openSettings: () => void }) {
+  const dawName = useDawName();
   const files = job?.files ?? [];
   const candidates = files.flatMap((file) => file.cleanupFindings);
   const anyChecked = files.some((file) => file.status === 'checked');
@@ -36,8 +45,7 @@ function CleanupSection({ job, openSettings }: { job: DiagnosticsJob | undefined
   return (
     <Panel title="Silence cleanup candidates">
       <p className="mt-2 text-sm" style={MUTED}>
-        Silences, breaths and clicks the same check found while reading each file, each a candidate to cut, never applied here: cutting a candidate needs the
-        REAPER actions this app does not yet run from here. Nothing is saved, played or changed.
+        {`Silences, breaths and clicks the same check found while reading each file, each a candidate to cut, never applied here: cutting a candidate needs the ${dawName} actions this app does not yet run from here. Nothing is saved, played or changed.`}
       </p>
       {candidates.length > 0 ? (
         <div
@@ -116,6 +124,7 @@ function ThresholdsPanel({ job }: { job: DiagnosticsJob | undefined }) {
  * cleanup candidates (ADR 0238) apart from these findings; `openSettings` opens Settings > Silence cleanup.
  */
 export function DiagnosticsSection({ measuredPaths, openSettings }: { measuredPaths: readonly string[]; openSettings: () => void }) {
+  const dawName = useDawName();
   const api = useApi();
   const [job, setJob] = useState<DiagnosticsJob>();
   const [jobError, setJobError] = useState<string>();
@@ -198,8 +207,7 @@ export function DiagnosticsSection({ measuredPaths, openSettings }: { measuredPa
         }
       >
         <p className="text-sm" style={MUTED}>
-          Clipping, level shifts, room-tone changes and long pauses, each with its time in the file and the threshold that raised it. Listen at those times in
-          REAPER: nothing here is saved, played or changed.
+          {`Clipping, level shifts, room-tone changes and long pauses, each with its time in the file and the threshold that raised it. Listen at those times in ${dawName}: nothing here is saved, played or changed.`}
         </p>
         <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-2 text-sm">
           <span aria-hidden="true">The files are</span>
