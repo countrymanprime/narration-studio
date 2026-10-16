@@ -17,6 +17,7 @@ What `pnpm check` and CI verify beyond "it lints and the example tests pass", ho
 | Playwright traces on a failing visual test (`trace: 'retain-on-failure'`, uploaded when a `ui-visual` step fails) | `ui-visual` | see [CI and releases](ci-and-releases.md) |
 | Axe on every app state, with a declared, capped debt list | `ui-visual` (the visual suite) | `pnpm --dir apps/ui screenshots`, or `UI_AXE=1` to measure |
 | Aria snapshots: the role trees of the dialogs, the slide-over and the navigation | `ui-visual`, after the screenshots | `pnpm --dir apps/ui run aria` |
+| Overlay guard: every menu, popover, hint, dialog and drawer of a page is the topmost element at its own points and fully on screen | `ui-visual` (the visual suite) | `pnpm --dir apps/ui exec playwright test tests/visual/overlays.spec.ts` |
 
 ## Go lint and the race detector
 
@@ -69,6 +70,16 @@ pnpm --dir apps/ui run aria --update-snapshots    # rewrite the files with the f
 ```
 
 Snapshots live in `tests/aria/snapshots/*.aria.yml`, hand-trimmed and commented. Reach a new state with a driver in `tests/visual/app.drivers.ts` (the visual suite needs it anyway) and add a test to `tests/aria/dialogs.spec.ts`. A red run uploads the traces with the visual suite's (`test-results/aria`).
+
+## Overlay guard
+
+`apps/ui/tests/visual/overlays.spec.ts` is the guard for the overlay rule of [the definition of done](../../.claude/rules/definition-of-done.md): an overlay is the topmost element at its own points and fully on screen. It is part of the visual suite (same mock build, same shards) and captures no screenshots, so the whole-run checks ignore it. `helpers/overlayGuard.ts` measures one open overlay: it samples the box's corners, edge midpoints and centre with `document.elementFromPoint`, fails where the element found is not the overlay or inside it (the failure names the covering element and its stacking chain), and fails when the box leaves the window. `helpers/overlayGuardFor.ts` turns a page's list of `OverlayCase`s into one test per case and viewport (the suite's three sizes, 360x500 and 320x300). Each case runs as opened, over content scrolled halfway and to the end, and, for a case with `over`, with that other overlay already open. A context menu is opened with the pointer at each window corner and edge midpoint and just beside the sidebar and under the top bar.
+
+A page with the sidebar adopts it with one line in `overlays.spec.ts`: `overlayGuardFor('Pickups', shellCases)` runs the overlays the shell draws on it (the content context menu, the top bar's hints, Jump to, History, the navigation drawer and the rail). A second list adds the page's own, in `tests/visual/overlays/<page>.ts`, with `fromState` (an overlay the catalog's driver already reaches), `clickCase`, `hoverCase` or `contextMenuCase`. Below the 390 px reflow width a driver-reached overlay is opened at 390 px and the window is then narrowed with it open.
+
+```bash
+pnpm --dir apps/ui exec playwright test tests/visual/overlays.spec.ts -g "Script"   # one page
+```
 
 ## Mock match
 

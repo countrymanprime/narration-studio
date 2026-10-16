@@ -44,13 +44,19 @@ export function bookmarkTip(bookmark: Bookmark, lineText: LineText): string {
 const spotOf = (b: Bookmark): Spot => ({ chapterId: b.chapterId, paragraph: b.paragraph, offset: b.offset });
 
 /**
- * The bookmark after (`dir` 1) or before (-1) `from`, wrapping round the book. It never answers the place `from` already is, and
- * skips stale ones (they have no place to go to). With no `from`, the first (or last). Null when there is nowhere else to go.
+ * The bookmark after (`dir` 1) or before (-1) `from`, wrapping round the book, and whether it wrapped (went past the last to the first,
+ * or back from the first to the last). It never answers the place `from` already is, and skips stale ones (they have no place to go to).
+ * With no `from`, the first (or last), which is not a wrap. Null when there is nowhere else to go.
  */
-export function stepBookmarks(list: readonly Bookmark[], chapters: readonly { id: string }[], dir: 1 | -1, from: Spot | null): Bookmark | null {
+export function stepBookmarksWrapped(
+  list: readonly Bookmark[],
+  chapters: readonly { id: string }[],
+  dir: 1 | -1,
+  from: Spot | null,
+): { bookmark: Bookmark; wrapped: boolean } | null {
   const live = list.filter((b) => !b.stale && b.paragraph !== null);
   if (live.length === 0) return null;
-  if (!from) return dir > 0 ? live[0] : live[live.length - 1];
+  if (!from) return { bookmark: dir > 0 ? live[0] : live[live.length - 1], wrapped: false };
   const chapterAt = new Map(chapters.map((c, i) => [c.id, i]));
   const key = (s: Spot): [number, number, number] => [chapterAt.get(s.chapterId) ?? -1, s.paragraph ?? -1, s.offset];
   const cmp = (a: Spot, b: Spot): number => {
@@ -61,5 +67,10 @@ export function stepBookmarks(list: readonly Bookmark[], chapters: readonly { id
   const others = live.filter((b) => cmp(spotOf(b), from) !== 0);
   if (others.length === 0) return null;
   const ahead = dir > 0 ? others.find((b) => cmp(spotOf(b), from) > 0) : [...others].reverse().find((b) => cmp(spotOf(b), from) < 0);
-  return ahead ?? (dir > 0 ? others[0] : others[others.length - 1]);
+  return ahead ? { bookmark: ahead, wrapped: false } : { bookmark: dir > 0 ? others[0] : others[others.length - 1], wrapped: true };
+}
+
+/** `stepBookmarksWrapped` without the wrap: the bookmark after or before `from`, or null. */
+export function stepBookmarks(list: readonly Bookmark[], chapters: readonly { id: string }[], dir: 1 | -1, from: Spot | null): Bookmark | null {
+  return stepBookmarksWrapped(list, chapters, dir, from)?.bookmark ?? null;
 }

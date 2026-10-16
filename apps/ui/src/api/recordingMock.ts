@@ -47,6 +47,8 @@ export type RecordingMockSeed = {
   lastTakeFailed?: boolean;
   /** The device list: two devices (default), none, or a listing error. */
   devices?: 'ok' | 'none' | 'error';
+  /** The device names listed instead of the two defaults (`?mockMics=`). */
+  deviceNames?: readonly string[];
   /** Start is refused with the sidecar's sentence (a device that will not open). */
   startFails?: boolean;
 };
@@ -117,7 +119,7 @@ export function createRecordingMock(seed: RecordingMockSeed = {}): RecordingApi 
     recorderDevices: async (): Promise<RecorderDevicesResult> => {
       if (seed.devices === 'error') return { devices: [], error: 'The built-in recorder cannot list devices here: PortAudio library not found' };
       if (seed.devices === 'none') return { devices: [], error: null };
-      return { devices: DEVICES.map((name) => ({ name })), error: null };
+      return { devices: (seed.deviceNames ?? DEVICES).map((name) => ({ name })), error: null };
     },
     recorderMeterStart: async (device) => {
       builtin();

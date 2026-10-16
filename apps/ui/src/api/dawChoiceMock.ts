@@ -68,9 +68,17 @@ function idleRecord(daw: ChoosableDaw, experimental: boolean): DawCapabilitySupp
 
 export function createDawChoiceMock(
   seed: DawChoiceMockSeed,
-  deps: { capabilities: () => Promise<DawCapabilities>; recording: Pick<RecordingApi, 'recorderState' | 'recorderChooseEngine'> },
+  deps: {
+    capabilities: () => Promise<DawCapabilities>;
+    recording: Pick<RecordingApi, 'recorderState' | 'recorderChooseEngine'>;
+    /** Whether the project has a linked DAW file: the host's one fact, shared with bootstrap's `dawFileLinked`. */
+    link?: { linked: () => boolean; set: (linked: boolean) => void };
+    /** Whether the DAW's bridge was opened (the launcher ran), live; falls back to the seed. */
+    bridge?: () => boolean;
+  },
 ): DawChoiceApi {
   let linkedFile = seed.linkedFile === undefined ? 'Alice.rpp' : seed.linkedFile;
+  const linkedName = () => (deps.link ? (deps.link.linked() ? (linkedFile ?? foundFiles[0] ?? 'Alice.rpp') : null) : linkedFile);
   const foundFiles = seed.foundFiles ?? (linkedFile ? [linkedFile] : []);
   let chosen: ChoosableDaw | null = seed.chosen ?? null;
 
@@ -79,13 +87,13 @@ export function createDawChoiceMock(
     const experimental = capabilities.capabilities.record?.reason !== 'experimental_off';
     const inApp = recorder.engine === 'builtin' && chosen !== 'REAPER' && chosen !== 'Audacity';
     const daw = inApp ? 'Built-in' : (chosen ?? (capabilities.daw === 'none' || capabilities.daw === 'Built-in' ? 'REAPER' : capabilities.daw));
-    const source: DawChoiceSource = chosen ? 'chosen' : inApp ? 'default' : linkedFile ? 'linked' : foundFiles.length > 0 ? 'found' : 'default';
+    const source: DawChoiceSource = chosen ? 'chosen' : inApp ? 'default' : linkedName() ? 'linked' : foundFiles.length > 0 ? 'found' : 'default';
     const reachable = daw === capabilities.daw && capabilities.reachable && !inApp;
     let state: DawChoiceState;
     if (daw === 'Built-in') state = 'app';
     else if (reachable) state = 'connected';
-    else if (daw !== 'REAPER' || seed.bridge) state = 'not_running';
-    else state = linkedFile ? 'linked' : 'not_linked';
+    else if (daw !== 'REAPER' || (deps.bridge ? deps.bridge() : seed.bridge)) state = 'not_running';
+    else state = linkedName() ? 'linked' : 'not_linked';
     return wireClone({
       hasProject: true,
       daw,
@@ -93,7 +101,7 @@ export function createDawChoiceMock(
       chosen,
       state,
       reachable,
-      linkedFile,
+      linkedFile: linkedName(),
       foundFiles,
       launcherAutoStart: seed.launcherAutoStart ?? false,
       experimental,
@@ -119,6 +127,7 @@ export function createDawChoiceMock(
       if (foundFiles.length === 0) throw new Error("this project's folder holds no REAPER project file (.rpp): save one there from REAPER, or choose one");
       if (foundFiles.length > 1) throw new Error(`this project's folder holds ${foundFiles.length} REAPER project files: choose the one to link`);
       linkedFile = foundFiles[0];
+      deps.link?.set(true);
       await deps.recording.recorderChooseEngine('daw');
       chosen = 'REAPER';
       return current();

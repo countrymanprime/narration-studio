@@ -31,7 +31,7 @@ import { CREDITS_LABEL } from '../readerModel';
 import { BoothText } from '../reading/BoothText';
 import { wordCount } from '../reading/boothUnits';
 import { RecordControl } from '../record/RecordControl';
-import { RecordSetup, useRecordSetupFacts } from '../record/RecordSetup';
+import { RecordSetup } from '../record/RecordSetup';
 import { SetupChip } from '../record/SetupChip';
 import { useDawChoice } from '../record/useDawChoice';
 import { ResumeOfferLine } from '../resume/ResumeOffer';
@@ -85,6 +85,9 @@ type Props = {
  * follows the voice, the side panel's sections, and the footer with Record, the timer, the levels and the key hints. What it reads is in
  * the address (`?chapter=`, `?credits=`, `&para=&at=` for Record from here, and `&pickups=` for a pickup session opened from Pickups).
  */
+/** How long a chapter asked for counts as the place the next step starts from, if it never arrives. */
+const PENDING_STEP_MS = 2000;
+
 export function BoothNextPage({ hasManuscript, navigate, onImport, exitTo = BOOTH_LINKS.script }: Props) {
   // The page title is visually hidden: the reading surface is the page (as the old Booth's).
   return (
@@ -299,12 +302,17 @@ function BoothSession({ source, from, requested, adopt, data, choose, navigate, 
         if (!moved) now.choose(now.current);
       });
   }, [requestedQuery]);
+  // The chapter last asked for and not shown yet: a second press of Next lands one past it, so presses made while a chapter loads are
+  // queued in order instead of every one stepping from the chapter still on screen and all but the first being lost.
+  const asked = useRef<{ id: string; at: number } | null>(null);
   const changeChapter = (target: BoothTarget) => {
-    if (sameSource(target, current)) return;
+    // Back onto the chapter on screen while another is still loading is a request too: the address has to go back to it.
+    if (sameSource(target, current) && !asked.current) return;
     if (control.recording) {
       overlay.toast('Stop recording first.');
       return;
     }
+    asked.current = { id: 'credits' in target ? `credits:${target.credits}` : target.chapter, at: Date.now() };
     choose(target);
   };
 
@@ -330,8 +338,10 @@ function BoothSession({ source, from, requested, adopt, data, choose, navigate, 
   const pickerValue = source.kind === 'credits' ? `credits:${source.credits}` : source.chapter.id;
   const targetOf = (id: string): BoothTarget =>
     id === 'credits:opening' || id === 'credits:closing' ? { credits: id.slice(8) as 'opening' | 'closing' } : { chapter: id };
+  if (asked.current && (asked.current.id === pickerValue || Date.now() - asked.current.at > PENDING_STEP_MS)) asked.current = null;
   const step = (direction: -1 | 1) => {
-    const next = pickerChapters[pickerChapters.findIndex((item) => item.id === pickerValue) + direction];
+    const from = asked.current?.id ?? pickerValue;
+    const next = pickerChapters[pickerChapters.findIndex((item) => item.id === from) + direction];
     if (next) changeChapter(targetOf(next.id));
   };
 
@@ -341,7 +351,6 @@ function BoothSession({ source, from, requested, adopt, data, choose, navigate, 
   const capabilities = control.capabilities;
   const dawChoice = useDawChoice();
   const roomTone = useRoomTone(measurements, session.device);
-  const setupFacts = useRecordSetupFacts(capabilities?.reachable);
   const standalone = capabilities?.daw === 'none';
   const listening = useListeningMic({
     dawRecords: !!capabilities && !standalone,
@@ -360,13 +369,13 @@ function BoothSession({ source, from, requested, adopt, data, choose, navigate, 
           <div data-booth-side-keep="">
             <BoothTop
               chapter={
-                // The chapter cannot change during a take: a fieldset disables the picker and its arrows while one runs.
-                <fieldset disabled={control.recording} className={`m-0 min-w-0 border-0 p-0 ${side.drawer ? MEDIUM_PICKER : ''}`}>
+                // The chapter cannot change during a take: the stepper is off while one runs and its tips say so. The Booth binds no key to it.
+                <fieldset className={`m-0 min-w-0 border-0 p-0 ${side.drawer ? MEDIUM_PICKER : ''}`}>
                   <legend className="sr-only">Chapter</legend>
                   <ChapterStepper
                     chapters={pickerChapters}
                     value={pickerValue}
-                    stepKeys={['Alt+↑', 'Alt+↓']}
+                    disabled={control.recording ? 'Not while recording. Stop the take first.' : undefined}
                     onChange={(id) => changeChapter(targetOf(id))}
                     onStep={step}
                   />
@@ -465,7 +474,11 @@ function BoothSession({ source, from, requested, adopt, data, choose, navigate, 
           {capabilities && !control.recording ? (
             <RecordSetup
               capabilities={capabilities}
-              facts={setupFacts}
+              facts={control.facts}
+              factsFailed={control.factsFailed}
+              checkedAt={control.checkedAt}
+              readFailed={control.readFailed}
+              onCheckAgain={control.checkAgain}
               say={(sentence, tone) => overlay.toast(sentence, tone ? { tone } : undefined)}
               onSettings={() => void page.goTo(`${BOOTH_LINKS.settings}#daw`)}
               onChanged={control.refresh}
