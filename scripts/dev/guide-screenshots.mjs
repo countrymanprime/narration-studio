@@ -66,6 +66,11 @@ export function samePicture(a, b) {
   return changed / (a.info.width * a.info.height) < CHANGED_SHARE;
 }
 
+/** The image library, which lives in the UI project's dependencies. */
+export function loadSharp() {
+  return createRequire(join(UI, 'package.json'))('sharp');
+}
+
 /** The PNG the targeted run leaves for a manifest entry (light theme, under the capture folder of the UI project). */
 export function captureSource(ui, entry) {
   return join(ui, CAPTURES, 'light', entry.page, entry.state, `${entry.viewport}.png`);
@@ -88,7 +93,7 @@ export async function main(argv, env = {}) {
     console.error('usage: node scripts/dev/guide-screenshots.mjs <page>... | --all [--skip-run]');
     return 2;
   }
-  const sharp = createRequire(join(UI, 'package.json'))('sharp');
+  const sharp = loadSharp();
   const manifest = JSON.parse(readFileSync(manifestPath, 'utf8'));
   const guideFiles = readdirSync(guide)
     .filter((file) => file.endsWith('.md'))
