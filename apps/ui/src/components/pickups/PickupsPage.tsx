@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { PickupItem, PickupList } from '../../api/contracts/pickups';
 import type { Measured } from '../../api/schemas/base';
 import { chapterHeading } from '../../chapterHeading';
+import { useCommand } from '../../input/useCommand';
 import { useOverlay } from '../../overlay/OverlayProvider';
 import { usePort } from '../../ports/usePort';
 import { useCapability } from '../../useCapability';
@@ -10,7 +11,8 @@ import type { ManuscriptChapter } from '../../types';
 import { boothQuery } from '../booth/page/boothQuery';
 import { openCheckRecordings } from '../recordingcheck/openCheckRecordings';
 import { NeedManuscript } from '../layout/NeedManuscript';
-import { ALL_SCOPE, inScope, plainLine, reasonSentence, type ChapterRef } from './list/pickupRows';
+import { ALL_SCOPE, inScope, lineText, reasonSentence, type ChapterRef } from './list/pickupRows';
+import { announcePickupListChanged } from './pickupListChanged';
 import { PickupsTable, type PickupsRead, type RemoveUndo } from './list/PickupsTable';
 import { SessionPanel } from './list/SessionPanel';
 
@@ -87,6 +89,7 @@ export function PickupsPage({
       setChapters(all.filter(isNarration).map((chapter) => ({ id: chapter.id, name: headingName(chapter) })));
       setList(answer);
       setRead({ kind: 'ready', readAt: Date.now() });
+      announcePickupListChanged();
     } catch (error) {
       if (!alive.current || mine < shown.current) return;
       const message = reasonSentence(error);
@@ -141,6 +144,7 @@ export function PickupsPage({
     showing.current = true;
     setList(answer);
     setRead((before) => (before.kind === 'ready' ? { kind: 'ready', readAt: Date.now() } : before));
+    announcePickupListChanged();
   }, []);
   const choose = (next: string) => {
     setScope(next);
@@ -156,6 +160,9 @@ export function PickupsPage({
     if (next) choose(next.id);
   };
 
+  useCommand('editing.chapter.next', () => step(1), hasManuscript);
+  useCommand('editing.chapter.prev', () => step(-1), hasManuscript);
+
   // A line added by hand can be put back; the host keeps an automatic line off once removed, so it has no Undo.
   const remove = async (id: string): Promise<RemoveUndo | undefined> => {
     const pickup = list.pickups.find((p) => p.id === id);
@@ -164,7 +171,7 @@ export function PickupsPage({
     const { chapterId, time, script } = pickup;
     return async () => {
       try {
-        await changing(pickupsApi.pickupsAdd(chapterId, time, plainLine(script)));
+        await changing(pickupsApi.pickupsAdd(chapterId, time, script));
         return { ok: true };
       } catch (error) {
         return { ok: false, refusal: { reason: reasonSentence(error) } };
@@ -172,9 +179,19 @@ export function PickupsPage({
     };
   };
 
+  /* The host keeps one pickup per chapter and line: a repeat comes back as the same list, which the narrator would see as nothing happening. */
+  const add = async (chapterId: string, time: number, line: string) => {
+    const before = list.pickups.length;
+    const answer = await pickupsApi.pickupsAdd(chapterId, time, line);
+    if (answer.pickups.length <= before) {
+      throw new Error('That line is already in this chapter’s list.');
+    }
+    await changing(Promise.resolve(answer));
+  };
+
   const addMarkers = async (picked: PickupItem[]) => {
     const placed = picked.filter((p): p is PickupItem & { at: number } => p.at !== null);
-    const result = await daw.addPickupMarkers(placed.map((p) => ({ ref: p.id, start: p.at, tag: p.type, note: plainLine(p.script) })));
+    const result = await daw.addPickupMarkers(placed.map((p) => ({ ref: p.id, start: p.at, tag: p.type, note: lineText(p) })));
     if (!result.ok) throw new Error(result.message);
     overlay.toast(result.message);
     await changing(pickupsApi.pickupsList());
@@ -199,7 +216,7 @@ export function PickupsPage({
         onScope={choose}
         onStep={step}
         onCheck={(ids) => openCheckRecordings(ids)}
-        onAdd={(chapterId, time, line) => changing(pickupsApi.pickupsAdd(chapterId, time, line))}
+        onAdd={add}
         onSetIncluded={(id, included) => changing(pickupsApi.pickupsSetIncluded(id, included))}
         onSetDone={(id, done) => changing(pickupsApi.pickupsSetDone(id, done))}
         onRemove={remove}

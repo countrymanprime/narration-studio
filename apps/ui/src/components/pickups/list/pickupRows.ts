@@ -18,13 +18,16 @@ const GAP_LABEL: Record<Exclude<PickupGapKind, 'other'>, string> = { missing: 'L
 export const inScope = (pickups: readonly PickupItem[], scope: string): PickupItem[] =>
   scope === ALL_SCOPE ? [...pickups] : pickups.filter((pickup) => pickup.chapterId === scope);
 
+/** Earlier in the recording first; a line with no time after the rest, in the order the host gave. Stable. */
+const byTime = (a: PickupItem, b: PickupItem): number => (a.time ?? Infinity) - (b.time ?? Infinity) || 0;
+
 /** A group per chapter that has pickups, in chapter order. A pickup whose chapter is not in `chapters` still shows, under its id, after the rest. */
 export function groupByChapter(pickups: readonly PickupItem[], chapters: readonly ChapterRef[]): PickupGroup[] {
   const known = new Set(chapters.map((chapter) => chapter.id));
   const refs = [...chapters, ...[...new Set(pickups.map((pickup) => pickup.chapterId))].filter((id) => !known.has(id)).map((id) => ({ id, name: id }))];
   return refs
     .map((chapter) => {
-      const items = pickups.filter((pickup) => pickup.chapterId === chapter.id);
+      const items = pickups.filter((pickup) => pickup.chapterId === chapter.id).sort(byTime);
       return { chapter, items, open: openPickups(items).length };
     })
     .filter((group) => group.items.length > 0);
@@ -116,8 +119,18 @@ export const plainLine = (line: string): string =>
     .map((part) => part.text)
     .join('');
 
-/** The session as text for the clipboard, one line per pickup: "<chapter> · <time>: <line>". */
+/** The line as it reads: a line the narrator typed is exactly what they typed, markup and all; any other carries `<b>` and `<i>` from a note. */
+export const lineText = (pickup: Pick<PickupItem, 'source' | 'script'>): string => (pickup.source === 'you' ? pickup.script : plainLine(pickup.script));
+
+/** The session as text for the clipboard, one line per pickup in the order the screen lists them: "<chapter> · <time>: <line>". */
 export function pickupScript(pickups: readonly PickupItem[], chapters: readonly ChapterRef[]): string {
   const name = (id: string): string => chapters.find((chapter) => chapter.id === id)?.name ?? id;
-  return pickups.map((pickup) => `${name(pickup.chapterId)} · ${clock(pickup.time)}: ${plainLine(pickup.script)}`).join('\n');
+  const rank = (id: string): number => {
+    const at = chapters.findIndex((chapter) => chapter.id === id);
+    return at < 0 ? chapters.length : at;
+  };
+  return [...pickups]
+    .sort((a, b) => rank(a.chapterId) - rank(b.chapterId) || byTime(a, b))
+    .map((pickup) => `${name(pickup.chapterId)} · ${clock(pickup.time)}: ${lineText(pickup)}`)
+    .join('\n');
 }

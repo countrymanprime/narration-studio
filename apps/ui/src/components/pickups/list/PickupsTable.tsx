@@ -246,7 +246,7 @@ export function PickupsTable({
                         </span>
                       </TableCell>
                       <TableCell style={{ fontSize: 16 }}>
-                        <ScriptLine text={pickup.script} />
+                        <ScriptLine text={pickup.script} plain={pickup.source === 'you'} />
                       </TableCell>
                       <TableCell muted>
                         <span title={sourceTitle(pickup)}>{sourceLabel(pickup)}</span>

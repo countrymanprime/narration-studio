@@ -6,10 +6,12 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { ApiProvider } from '../../api/ApiContext';
 import type { PickupList } from '../../api/contracts/pickups';
 import { createMockApi } from '../../api/mockApi';
+import { CommandRouter, CommandScope } from '../../input/router';
 import { OverlayHost } from '../../overlay/OverlayHost';
 import type { NarrationApi } from '../../types';
 import { TooltipProvider } from '../primitives/Tooltip';
 import * as checkRecordings from '../recordingcheck/openCheckRecordings';
+import { onPickupListChanged } from './pickupListChanged';
 import { readBoothQuery, readPickupIds } from '../booth/page/boothQuery';
 import { CHAPTERS, MIXED, pickup } from './list/pickupFixtures';
 import { boothSessionPath, PickupsPage } from './PickupsPage';
@@ -32,7 +34,11 @@ function renderPage(
     <MemoryRouter>
       <ApiProvider api={api}>
         <TooltipProvider>
-          <PickupsPage hasManuscript goTo={goTo} goToScript={goToScript} />
+          <CommandRouter>
+            <CommandScope kind="page">
+              <PickupsPage hasManuscript goTo={goTo} goToScript={goToScript} />
+            </CommandScope>
+          </CommandRouter>
           <OverlayHost />
         </TooltipProvider>
       </ApiProvider>
@@ -216,4 +222,48 @@ describe('a-huge-list', () => {
     expect(document.querySelectorAll('tr[data-pk][tabindex="0"]')).toHaveLength(1);
     expect(screen.getByRole('button', { name: 'Open 300 in Booth' })).toBeTruthy();
   }, 30000);
+});
+
+describe('narrator-walkthrough-fixes', () => {
+  it('Alt+Down and Alt+Up step the chapter, as the stepper tips say', async () => {
+    renderPage();
+    await screen.findAllByRole('button', { name: 'Open in Booth at this line' });
+    const user = userEvent.setup();
+    await user.keyboard('{Alt>}{ArrowDown}{/Alt}');
+    await screen.findByRole('button', { name: /^Chapter: Chapter 1/ });
+    await user.keyboard('{Alt>}{ArrowDown}{/Alt}');
+    await screen.findByRole('button', { name: /^Chapter: Chapter 2/ });
+    await user.keyboard('{Alt>}{ArrowUp}{/Alt}');
+    await screen.findByRole('button', { name: /^Chapter: Chapter 1/ });
+  });
+
+  it('tells the rail when the list changes, so its badge follows the page', async () => {
+    const heard = vi.fn();
+    const stop = onPickupListChanged(heard);
+    renderPage();
+    await screen.findAllByRole('button', { name: 'Open in Booth at this line' });
+    expect(heard).toHaveBeenCalled();
+    stop();
+  });
+
+  it('a line already in the chapter is refused in words, not closed in silence', async () => {
+    const api = createMockApi({ pickupsList: () => Promise.resolve(LIST), pickupsAdd: () => Promise.resolve(LIST) });
+    renderPage(api);
+    const user = userEvent.setup();
+    await user.click(await screen.findByRole('button', { name: 'Add a pickup by hand' }));
+    await user.type(screen.getByRole('textbox', { name: 'Time in the recording' }), '01:00');
+    await user.type(screen.getByRole('textbox', { name: 'Line to re-record' }), 'Again');
+    await user.click(screen.getByRole('button', { name: 'Add pickup' }));
+    expect(await screen.findByText('That line is already in this chapter’s list.')).toBeTruthy();
+    expect(screen.getByRole('textbox', { name: 'Line to re-record' })).toBeTruthy();
+  });
+
+  it('a line the narrator typed shows and copies exactly as typed, and lines list by time', async () => {
+    const typed = pickup({ id: 'you:t', source: 'you', script: '<b>x</b> and <i>y</i>', time: 5 });
+    const early = pickup({ id: 'you:e', source: 'you', script: 'Early', time: 1 });
+    renderPage(createMockApi({ pickupsList: () => Promise.resolve({ pickups: [typed, early], leftOut: [] }) }));
+    expect(await screen.findByText('<b>x</b> and <i>y</i>')).toBeTruthy();
+    const times = [...document.querySelectorAll('tr[data-pk] td:nth-child(2)')].map((cell) => cell.textContent);
+    expect(times).toEqual(['00:01.0', '00:05.0']);
+  });
 });

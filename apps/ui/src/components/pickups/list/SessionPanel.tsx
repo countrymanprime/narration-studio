@@ -84,6 +84,7 @@ export function SessionPanel({
         <div>
           <IconButton action="addMarker" label={`Add ${count} as markers in ${dawName}`} disabledReason={markersReason} pending={adding} onClick={addMarkers} />
         </div>
+        {count === 0 && <p className="text-[0.8125rem] text-[var(--text-muted)]">No lines in the session: tick a line to include it.</p>}
         {!markers.available && <p className="text-[0.8125rem] text-[var(--text-muted)]">{markersReason}</p>}
       </div>
     </Panel>

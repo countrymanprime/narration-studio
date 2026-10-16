@@ -9,6 +9,7 @@ import { afterEach, describe, expect, it } from 'vitest';
 import { ApiProvider } from '../../api/ApiContext';
 import { createMockApi } from '../../api/mockApi';
 import type { PickupList } from '../../api/contracts/pickups';
+import { CommandRouter, CommandScope } from '../../input/router';
 import { createJournal } from '../../studio/journal/createJournal';
 import type { NarrationApi } from '../../types';
 import { useNavCounts } from '../layout/useNavCounts';
@@ -42,7 +43,11 @@ const wrap = (api: NarrationApi) =>
     return (
       <MemoryRouter>
         <ApiProvider api={api}>
-          <TooltipProvider>{children}</TooltipProvider>
+          <TooltipProvider>
+            <CommandRouter>
+              <CommandScope kind="page">{children}</CommandScope>
+            </CommandRouter>
+          </TooltipProvider>
         </ApiProvider>
       </MemoryRouter>
     );

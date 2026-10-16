@@ -202,7 +202,7 @@ export function CheckRecordingsDialog({ preselected, close }: { preselected: rea
           {chapters.length === 0 ? (
             <p className="m-0 text-[var(--text-muted)]">No chapter has a recording to check yet.</p>
           ) : (
-            <ul className="m-0 flex max-h-[19rem] list-none flex-col gap-2 overflow-y-auto p-0">
+            <ul className="m-0 flex max-h-[min(19rem,40vh)] list-none flex-col gap-2 overflow-y-auto p-0">
               {chapters.map((chapter) => {
                 const result = loaded.results[chapter.id];
                 const last = lastResultSentence(result);
@@ -226,7 +226,7 @@ export function CheckRecordingsDialog({ preselected, close }: { preselected: rea
           )}
         </div>
       </div>
-      <div className="flex flex-wrap items-center gap-3">
+      <div className="sticky bottom-0 z-10 -mx-[1.1rem] -mb-[1.1rem] flex flex-wrap items-center gap-3 border-t border-[var(--line)] bg-[var(--surface)] px-[1.1rem] pt-3 pb-[1.1rem]">
         <span className="mr-auto text-[var(--text-muted)]">Skipped, changed or unclear lines become pickups.</span>
         <Button variant="secondary" onClick={close}>
           Cancel

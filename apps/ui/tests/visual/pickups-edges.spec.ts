@@ -93,6 +93,28 @@ for (const size of SIZES) {
       await expectTopmostAndOnScreen(page, page.getByRole('tooltip').last(), "tooltip on the row's last icon");
     });
 
+    test('the Check recordings dialog keeps Cancel and Check reachable on screen', async ({ page }) => {
+      await page
+        .getByRole('region', { name: 'Pickups' })
+        .getByRole('button', { name: /Check recordings/ })
+        .click();
+      const dialog = page.getByRole('dialog').last();
+      await dialog.waitFor();
+      for (const name of [/^Cancel$/, /^Check \d+ chapters?$/i]) {
+        const button = dialog.getByRole('button', { name });
+        const box = (await button.boundingBox())!;
+        expect(box.y + box.height, `${name} is above the bottom edge`).toBeLessThanOrEqual(size.height);
+        expect(
+          await button.evaluate((el) => {
+            const r = el.getBoundingClientRect();
+            const top = document.elementFromPoint(r.x + r.width / 2, r.y + r.height / 2);
+            return top !== null && el.contains(top);
+          }),
+          `${name} is topmost`,
+        ).toBe(true);
+      }
+    });
+
     test('a menu opened while the Add popover is open is on top of it', async ({ page }) => {
       const list = page.getByRole('region', { name: 'Pickups' });
       await list.getByRole('button', { name: 'Add a pickup by hand' }).click();
