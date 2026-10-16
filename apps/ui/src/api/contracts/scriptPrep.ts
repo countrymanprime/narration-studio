@@ -21,6 +21,9 @@ export const SCRIPT_SAY_MANUAL_SOURCE = 'manual';
 
 export type ScriptWordStaleReason = 'paragraph_missing' | 'range_out_of_range' | 'text_changed';
 
+/** The opening and closing credits' prep ids: no manuscript chapter, but kept and listed (after the chapters, once set) like one. */
+export const SCRIPT_PREP_CREDITS_IDS: readonly string[] = ['credits:opening', 'credits:closing'];
+
 export type ScriptPrepChapter = { chapterId: string; state: PrepState };
 
 /** One flagged range of one line. */

@@ -31,7 +31,6 @@ const CEILING: Record<NativeTag, Record<string, number>> = {
     'src/components/layout/AppShell.tsx': 1,
     // The card's whole-header toggle (the bookmark toggle went with SN-C382). `CreditsEntry.tsx`
     // renders through this and has no raw button of its own (ceiling 0 below).
-    'src/components/manuscript/ReaderCard.tsx': 1,
     // The recent-project card (a card that is a button). Its Remove and Create new clones became IconButton and Button (ADR 0595).
     'src/components/project/ProjectPicker.tsx': 1,
     // The click-to-seek word ("Start here" / "Go back to here"):

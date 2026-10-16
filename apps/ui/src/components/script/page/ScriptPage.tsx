@@ -15,7 +15,6 @@ import { CommandScope } from '../../../input/router';
 import { useUserKeymap } from '../../../input/useUserKeymap';
 import { overlay } from '../../../overlay/overlayService';
 import { isListableChapter } from '../../../state';
-import type { CreditsKind } from '../../booth/readerModel';
 import { CreditsSetupDialog } from '../../credits/CreditsSetupDialog';
 import { LoadError } from '../../layout/LoadError';
 import { retailSampleRange } from '../../manuscript/retailSampleRange';
@@ -38,8 +37,12 @@ import { BookmarkGutter, GutterContext, type GutterState } from './layout/Bookma
 import { NeedManuscript } from '../../layout/NeedManuscript';
 import { RAIL_LABEL, RailPanel, type RailTab } from './layout/RailPanel';
 import { ScriptColumns } from './layout/ScriptColumns';
-import { ScriptCredits } from './layout/ScriptCredits';
-import { creditsRows } from '../../credits/creditsRows';
+import { CREDITS_STOP, creditsRows } from '../../credits/creditsRows';
+import { CreditsSetupBanner } from '../../credits/CreditsSetupBanner';
+import { CreditsSection } from './chapters/CreditsSection';
+import { CREDITS_LABEL } from '../../booth/readerModel';
+import type { BoothTarget } from '../../booth/page/boothQuery';
+import { endedName } from '../../../chapterHeading';
 import { SpeakerLayer } from './layout/SpeakerLayer';
 import { useDeepLink } from './layout/useDeepLink';
 import { scriptKeyHints } from './layout/scriptKeyHints';
@@ -47,7 +50,7 @@ import { useLoadedParagraphs } from './layout/useLoadedParagraphs';
 import { Reader } from './reader/Reader';
 import { readFindQuery } from './scriptQuery';
 import { BibleTab } from './rail/bible/BibleTab';
-import { BIBLE_KINDS } from './rail/bible/kinds';
+import { useBibleKinds } from './rail/bible/kinds';
 import { ThreadsTab } from './rail/threads/ThreadsTab';
 import { WordsTab } from './rail/words/WordsTab';
 import type { ReaderSelection } from './registry/contextProvider';
@@ -72,10 +75,8 @@ export type ScriptPageProps = {
   focusStoryBibleEntity: (id: string) => void;
   /** The old page's "Open in Proof". The mock's chapter card has no such button, so this page draws none; kept so the swap is one line. */
   goToEditing?: (chapterId: string) => void;
-  /** Keys the credits cards' remembered open state: a project's own choice. */
-  projectFolder: string;
-  /** Record in Booth on a chapter or the credits. Omitted, no card offers it. */
-  goToBooth?: (target: { chapter: string } | { credits: CreditsKind }) => void;
+  /** Record in Booth on a chapter or the credits, or Record from here at a selection. Omitted, nothing offers it. */
+  goToBooth?: (target: BoothTarget) => void;
 };
 
 /** How long the paragraph of a bookmark just gone to stays lit, as the mock's. */
@@ -119,7 +120,6 @@ function ScriptWorkspace({
   allChapters,
   notify,
   focusStoryBibleEntity,
-  projectFolder,
   goToBooth,
 }: ScriptPageProps & { chapters: readonly ManuscriptChapter[]; allChapters: readonly ManuscriptChapter[] }) {
   const navigate = useNavigate();
@@ -127,6 +127,7 @@ function ScriptWorkspace({
   const marks = useMarks();
   const prep = useScriptPrep();
   const entries = useEntries();
+  const kinds = useBibleKinds();
   const speakers = useSpeakers();
   const commands = useScriptCommands();
   const bookmarks = useBookmarks();
@@ -219,7 +220,7 @@ function ScriptWorkspace({
   useDeepLink({ chapters: allChapters, goTo: goToLink, notify });
 
   // `/script?find=<text>` opens Find on that text once (the Story Bible's Find button), then leaves the address as `/script`.
-  const { search } = useLocation();
+  const { search, hash } = useLocation();
   useEffect(() => {
     const text = readFindQuery(new URLSearchParams(search));
     if (text === null) return;
@@ -310,12 +311,54 @@ function ScriptWorkspace({
     [byParagraph, lineText, place.flash, sample, bookmarks.update, bookmarks.remove],
   );
 
+  /* ---------- The chapter list's credits rows ---------- */
+
+  // The mock lists the opening credits above chapter 1 and the closing credits after the last chapter as chapters, each with its prep dot;
+  // the reader draws them as sections of their own in the same places (`chapters/CreditsSection.tsx`, `credits/creditsRows.ts`).
+  const ownsOpening = chapters.some((chapter) => chapter.contentKind === 'opening');
+  const { opening: openingRow, closing: closingRow } = useMemo(
+    () => creditsRows({ hasOpening: credits.hasOpening, hasClosing: credits.hasClosing, ownsOpening, previews: credits.previews }),
+    [credits.hasOpening, credits.hasClosing, credits.previews, ownsOpening],
+  );
+  const openingCredits = useMemo(
+    () => openingRow && { state: prep.prepOf(CREDITS_STOP.opening), onJump: () => goToChapter(CREDITS_STOP.opening) },
+    [openingRow, prep, goToChapter],
+  );
+  const closingCredits = useMemo(
+    () => closingRow && { state: prep.prepOf(CREDITS_STOP.closing), onJump: () => goToChapter(CREDITS_STOP.closing) },
+    [closingRow, prep, goToChapter],
+  );
+  const sectionNames = useMemo(() => new Map(Object.entries(CREDITS_STOP).map(([kind, id]) => [id, CREDITS_LABEL[kind as keyof typeof CREDITS_STOP]])), []);
+  const stops = useMemo(
+    () => [
+      ...(openingRow ? [{ id: CREDITS_STOP.opening, title: CREDITS_LABEL.opening }] : []),
+      ...chapters,
+      ...(closingRow ? [{ id: CREDITS_STOP.closing, title: CREDITS_LABEL.closing }] : []),
+    ],
+    [openingRow, closingRow, chapters],
+  );
+
+  // `#credits-opening` and `#credits-closing` (Production's credits rows) go to that section once the templates are read and it is drawn,
+  // then leave the address as `/script`.
+  useEffect(() => {
+    const kind = hash === '#credits-opening' ? 'opening' : hash === '#credits-closing' ? 'closing' : null;
+    if (!kind || !(kind === 'opening' ? openingRow : closingRow)) return;
+    goToChapter(CREDITS_STOP[kind]);
+    navigate('/script', { replace: true });
+  }, [hash, openingRow, closingRow, goToChapter, navigate]);
+  /** Record from here: the Booth on the selection's chapter, starting at its first character. */
+  const recordFromHere = useMemo(
+    () => goToBooth && ((picked: ReaderSelection) => goToBooth({ chapter: picked.chapterId, from: { paragraphId: picked.paragraphId, offset: picked.start } })),
+    [goToBooth],
+  );
+
   /* ---------- Registrations ---------- */
 
   const lookUp = useCallback(
     (text: string, picked: ReaderSelection) => {
       const target = lookupTarget(text, entries.entries);
-      if (target.tab === 'pron') update({ tab: 'pron', word: target.word });
+      // The selection goes with a single word, so its card can offer Add to my words for a word not flagged yet.
+      if (target.tab === 'pron') update({ tab: 'pron', word: target.word, missSel: picked });
       else if ('entryId' in target) update({ tab: 'bible', entryId: target.entryId, miss: null, missSel: null });
       else update({ tab: 'bible', entryId: null, miss: target.miss, missSel: picked });
       openRailIfDrawer();
@@ -324,8 +367,9 @@ function ScriptWorkspace({
   );
   useScriptRegistry({
     lines,
-    kinds: BIBLE_KINDS,
+    kinds,
     currentChapterId: () => inViewRef.current,
+    stops,
     selectionAt: () => {
       const picked = getSelection();
       return picked && !picked.multi ? picked : null;
@@ -339,8 +383,15 @@ function ScriptWorkspace({
     copy: (text) => void navigator.clipboard?.writeText(text),
     goToChapter,
     composeMark: (type, picked) => setComposing({ type, selection: picked }),
+    recordFromHere,
+    pickSpeaker: (cueId, anchor) => setPicking({ cueId, anchor }),
     bookmarkHere: (picked) => void bookmarkAt({ chapterId: picked.chapterId, paragraphId: picked.paragraphId, offset: picked.start }),
-    recordChapter: goToBooth && ((chapterId) => goToBooth({ chapter: chapterId })),
+    recordChapter:
+      goToBooth &&
+      ((chapterId) =>
+        goToBooth(
+          chapterId === CREDITS_STOP.opening ? { credits: 'opening' } : chapterId === CREDITS_STOP.closing ? { credits: 'closing' } : { chapter: chapterId },
+        )),
   });
 
   /* ---------- Find ---------- */
@@ -357,37 +408,15 @@ function ScriptWorkspace({
   );
   const scroller = () => document.querySelector<HTMLElement>('section[aria-label="Reader"] [role="region"]');
 
-  /* ---------- The chapter list's credits rows ---------- */
-
-  // The mock lists the opening credits above chapter 1 and the closing credits after the last chapter, each with its prep dot; here they
-  // are the cards the reader draws in the same places (`credits/creditsRows.ts`).
-  const ownsOpening = chapters.some((chapter) => chapter.contentKind === 'opening');
-  const { opening: openingRow, closing: closingRow } = useMemo(
-    () => creditsRows({ hasOpening: credits.hasOpening, hasClosing: credits.hasClosing, ownsOpening, previews: credits.previews }),
-    [credits.hasOpening, credits.hasClosing, credits.previews, ownsOpening],
-  );
-  const openingCredits = useMemo(() => openingRow && { state: openingRow.state, onJump: () => navigate('/script#credits-opening') }, [openingRow, navigate]);
-  const closingCredits = useMemo(() => closingRow && { state: closingRow.state, onJump: () => navigate('/script#credits-closing') }, [closingRow, navigate]);
-
   /* ---------- The reader's slots ---------- */
 
   const firstId = chapters[0]!.id;
+  const openingWords = credits.previews.opening?.words ?? 0;
   const renderChapterCard = useCallback(
     (chapter: ManuscriptChapter) => {
       const at = order.indexOf(chapter.id);
       return (
         <>
-          {chapter.id === firstId && (
-            <ScriptCredits
-              kind="opening"
-              credits={credits}
-              projectFolder={projectFolder}
-              notify={notify}
-              fillingIn={fillingIn}
-              onFillIn={() => setFillingIn(true)}
-              goToBooth={goToBooth}
-            />
-          )}
           {sample?.chapterIds.has(chapter.id) && (
             <span className="mb-1 inline-flex w-fit items-center rounded-[var(--radius-tag)] border border-[var(--accent)] px-1.5 py-0.5 font-sans text-xs font-semibold text-[var(--accent-strong)]">
               Retail sample
@@ -396,22 +425,45 @@ function ScriptWorkspace({
           <ChapterCard
             chapter={chapter}
             previous={at > 0 ? chapters[at - 1] : undefined}
+            ended={
+              chapter.id === firstId && openingRow
+                ? { name: endedName({ title: CREDITS_LABEL.opening, contentKind: 'opening' }), words: openingWords }
+                : undefined
+            }
             onRecord={goToBooth && isNarration(chapter) ? (chapterId) => goToBooth({ chapter: chapterId }) : undefined}
           />
         </>
       );
     },
-    [order, firstId, chapters, credits, projectFolder, notify, fillingIn, goToBooth, sample],
+    [order, firstId, chapters, openingRow, openingWords, goToBooth, sample],
   );
-  const closingCard = (
-    <ScriptCredits
+  const onFillIn = credits.setup ? () => setFillingIn(true) : undefined;
+  const banner = credits.setup?.banner && !fillingIn && (
+    <div className="py-3 font-sans">
+      <CreditsSetupBanner state={credits.setup} notify={notify} onDone={credits.setSetup} onFillIn={() => setFillingIn(true)} />
+    </div>
+  );
+  const openingSection = (
+    <>
+      {banner}
+      {openingRow && (
+        <CreditsSection
+          kind="opening"
+          preview={credits.previews.opening}
+          onRecord={goToBooth && (() => goToBooth({ credits: 'opening' }))}
+          onFillIn={onFillIn}
+        />
+      )}
+    </>
+  );
+  const last = chapters[chapters.length - 1]!;
+  const closingCard = closingRow && (
+    <CreditsSection
       kind="closing"
-      credits={credits}
-      projectFolder={projectFolder}
-      notify={notify}
-      fillingIn={fillingIn}
-      onFillIn={() => setFillingIn(true)}
-      goToBooth={goToBooth}
+      preview={credits.previews.closing}
+      ended={{ name: endedName(last), words: last.wordCount }}
+      onRecord={goToBooth && (() => goToBooth({ credits: 'closing' }))}
+      onFillIn={onFillIn}
     />
   );
   const renderGutter = useCallback((paragraph: Parameters<typeof BookmarkGutter>[0]['paragraph']) => <BookmarkGutter paragraph={paragraph} />, []);
@@ -541,7 +593,9 @@ function ScriptWorkspace({
                 activeMarkId={selectedMark}
                 renderGutter={renderGutter}
                 renderChapterCard={renderChapterCard}
+                before={openingSection}
                 after={closingCard}
+                sectionNames={sectionNames}
                 toolbar={toolbar}
                 onPickSpeaker={onPickSpeaker}
                 onShowAnnotation={(id) => {
@@ -549,6 +603,7 @@ function ScriptWorkspace({
                   if (mark) showMark(mark, false);
                 }}
                 onShowEntry={showEntry}
+                onShowWord={showWord}
                 onTextClick={() => setPlace((current) => (current.at ? { ...current, at: null } : current))}
               />
             </div>
@@ -562,6 +617,7 @@ function ScriptWorkspace({
         onDismiss={() => setSelection(null)}
         onCompose={(type, picked) => setComposing({ type, selection: picked })}
         onDefineMarks={() => setDefiningMarks(true)}
+        onRecordHere={recordFromHere}
       />
       {composing && <MarkComposer type={composing.type} selection={composing.selection} onClose={() => setComposing(null)} />}
       {definingMarks && <MarksDialog saveMarkTypes={saveMarkTypes} onClose={() => setDefiningMarks(false)} />}

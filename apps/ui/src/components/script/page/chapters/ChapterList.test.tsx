@@ -107,6 +107,27 @@ describe('chapter list', () => {
     ).toEqual(['Not started', 'In progress', 'Prepped']);
   });
 
+  it('keeps the legend under the list, outside the part that scrolls, as the mock does', async () => {
+    mount();
+    const legend = await screen.findByRole('list', { name: 'Prep key' });
+    const list = screen.getByRole('list', { name: 'Chapters' });
+    expect(list.className).toContain('overflow-auto');
+    expect(list.contains(legend)).toBe(false);
+    expect(legend.closest('.overflow-auto, .overflow-y-auto')).toBeNull();
+  });
+
+  it('draws no title at full width, and the title with a close button where the list is a drawer', async () => {
+    mount();
+    expect(await screen.findByRole('region', { name: 'Chapters' })).toBeTruthy();
+    expect(screen.queryByRole('heading', { name: 'Chapters' })).toBeNull();
+    cleanup();
+    const onClose = vi.fn();
+    mount({ onClose });
+    expect(await screen.findByRole('heading', { name: 'Chapters' })).toBeTruthy();
+    await userEvent.setup().click(screen.getByRole('button', { name: 'Close' }));
+    expect(onClose).toHaveBeenCalled();
+  });
+
   it('shows the "?" pill, titled Open queries, only on a chapter with an open query', async () => {
     mount();
     await vi.waitFor(async () => expect(within(await row(/Chapter 2/)).getByTitle('Open queries').textContent).toBe('?'));

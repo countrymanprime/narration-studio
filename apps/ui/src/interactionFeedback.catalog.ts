@@ -133,8 +133,6 @@ export const SILENT_CATCHES: Record<string, string> = {
   'src/components/booth/useTeleprompterSession.ts#2': 'Hydrates a session that was already running; the state event follows anyway.',
   'src/components/booth/useTeleprompterSession.ts#3':
     'The one-time browser-storage-to-settings migration write; a failure leaves the device in local state for this visit and the migration is retried next load since the settings value never got marked set.',
-  'src/components/manuscript/creditsExpandedStorage.ts#1':
-    "Remembering a credits card's open state per project in localStorage; the choice lasts for this visit only when storage is disabled.",
   'src/components/masterqc/page/sharedChapter.ts#1':
     'Remembering the chapter Master & QC is on, under the key Proof reads (ADR 0750), in localStorage; with storage unavailable the choice lasts for this visit only.',
   'src/components/proof/ProofPage.tsx#1':

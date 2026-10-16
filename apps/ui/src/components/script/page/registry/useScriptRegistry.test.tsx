@@ -220,7 +220,7 @@ describe('registrations', () => {
     expect(hook.result.current.view.find.open).toBe(true);
   });
 
-  it('keys-follow-the-mock: Escape leaves Find open while a menu or popover is open (it closes itself), and still closes a drawer', () => {
+  it('keys-follow-the-mock: Escape leaves Find open while a menu or popover is open (it closes itself), and closes the drawer only once it is gone', () => {
     const { hook, press } = setup();
     act(() => hook.result.current.update({ find: { open: true, q: 'x', i: 0, list: true } }));
     document.body.innerHTML = '<div role="menu"><span id="item">Copy</span></div>';
@@ -229,6 +229,10 @@ describe('registrations', () => {
     press('Escape', [], document.getElementById('page'));
     expect(hook.result.current.view.find.open).toBe(true);
     act(() => hook.result.current.update({ drawer: 'ch' }));
+    // One layer per Escape: the popover on top owns this one (the router keeps page commands away while a popup shows), the drawer takes the next.
+    press('Escape', [], document.getElementById('page'));
+    expect(hook.result.current.view.drawer).toBe('ch');
+    document.body.innerHTML = '<div id="page"></div>';
     press('Escape', [], document.getElementById('page'));
     expect(hook.result.current.view.drawer).toBeNull();
     expect(hook.result.current.view.find.open).toBe(true);

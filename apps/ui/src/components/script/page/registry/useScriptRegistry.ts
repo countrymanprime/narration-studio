@@ -11,6 +11,7 @@ import { useCommand } from '../../../../input/useCommand';
 import { POPOVER_POPUP_SELECTOR } from '../../../primitives/Popover';
 import { useContextProvider } from '../../../../registries/context';
 import { useSearchSource } from '../../../../registries/search';
+import type { ChapterNameInput } from '../../../../chapterName';
 import type { ScriptViewState } from '../data/scriptView';
 import { useChapters, useEntries, useMarks, useScriptCommands, useScriptPrep, useScriptView } from '../data/useScriptData';
 import { closeFind, escapeClosesFind, openFind } from '../tools/find/findState';
@@ -24,6 +25,9 @@ export type ScriptRegistryOptions = MenuHandlers & {
   kinds: readonly string[];
   /** The chapter at the top of the reader. */
   currentChapterId: () => string | null;
+  /** What Alt+Up and Alt+Down step through and Left and Right step the prep of, in reading order, when the page draws more than the
+   * chapters (the credits); the chapters alone when omitted. */
+  stops?: ReadonlyArray<ChapterNameInput & { id: string }>;
 };
 
 /** A menu or a popover that takes Escape for itself: one is showing, or the key was pressed inside one. */
@@ -51,7 +55,7 @@ export function useScriptRegistry(options: ScriptRegistryOptions): void {
   const prep = useScriptPrep();
   const commands = useScriptCommands();
   const [, updateView] = useScriptView((state) => state.find);
-  const { lines, kinds, currentChapterId, ...handlers } = options;
+  const { lines, kinds, currentChapterId, stops, ...handlers } = options;
   // The sources and the provider read the latest handlers, so a new function from the page does not register them again.
   const latest = useRef(handlers);
   latest.current = handlers;
@@ -77,19 +81,20 @@ export function useScriptRegistry(options: ScriptRegistryOptions): void {
     useMemo(
       () =>
         scriptContextProvider({
-          lists: () => ({ ...marksSnapshot, entries: entries.entries, kinds, chapters: chapterList, prepOf: prep.prepOf }),
+          lists: () => ({ ...marksSnapshot, entries: entries.entries, kinds, chapters: stops ?? chapterList, prepOf: prep.prepOf }),
           commands,
           handlers: () => latest.current,
         }),
-      [marksSnapshot, entries.entries, kinds, chapterList, prep.prepOf, commands],
+      [marksSnapshot, entries.entries, kinds, stops, chapterList, prep.prepOf, commands],
     ),
   );
 
   // Alt+Down, Alt+Up and Ctrl+F carry a modifier, so the router lets them through a field; the check is repeated here.
   const step = (delta: 1 | -1, target: EventTarget | null) => {
     if (typing(target)) return;
-    const at = chapterList.findIndex((row) => row.id === currentChapterId());
-    const next = chapterList[Math.max(0, Math.min(chapterList.length - 1, Math.max(0, at) + delta))];
+    const order = stops ?? chapterList;
+    const at = order.findIndex((row) => row.id === currentChapterId());
+    const next = order[Math.max(0, Math.min(order.length - 1, Math.max(0, at) + delta))];
     if (next) latest.current.goToChapter(next.id);
   };
   useCommand('editing.chapter.next', (e) => step(1, e.target));
@@ -103,7 +108,8 @@ export function useScriptRegistry(options: ScriptRegistryOptions): void {
   // The chapter in view, or the first, as the reader's own key handling has it.
   const stepPrep = (delta: 1 | -1, target: EventTarget | null) => {
     if (!isReader(target)) return;
-    const chapter = chapterList.find((row) => row.id === currentChapterId()) ?? chapterList[0];
+    const order = stops ?? chapterList;
+    const chapter = order.find((row) => row.id === currentChapterId()) ?? order[0];
     if (chapter) void commands.stepPrep(chapter, delta);
   };
   useCommand('script.prep.prev', (e) => stepPrep(-1, e.target));

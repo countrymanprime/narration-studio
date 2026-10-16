@@ -862,3 +862,84 @@ func TestSettingsFxCapDefaultsToTenAndRefusesAValueOutOfRange(t *testing.T) {
 	}
 	contractfile.Check(t, "settings-fx-cap-set", map[string]any{"Editing": editing()})
 }
+
+// TestResolveProjectFileFindsAProjectOutsideTheProjectsDirectoryThroughKnownFolders pins the owner's find: a project created outside
+// the starting folder (ProjectCreateIn takes any absolute parent) did not recognise the REAPER project inside it, because only the
+// projects directory was scanned and the launcher's guess (the rpp's own folder) won instead.
+func TestResolveProjectFileFindsAProjectOutsideTheProjectsDirectoryThroughKnownFolders(t *testing.T) {
+	projectsDir := t.TempDir()
+	outside := filepath.Join(t.TempDir(), "My Book")
+	if err := os.MkdirAll(outside, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	rpp := filepath.Join(outside, "reaper", "Book.rpp")
+	if err := os.MkdirAll(filepath.Dir(rpp), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(rpp, []byte("x"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	link, err := project.BuildDawLink(outside, rpp)
+	if err != nil {
+		t.Fatal(err)
+	}
+	manifest := project.New("My Book", time.Now())
+	manifest.DawProjectFile = &link
+	if err := manifest.Save(outside); err != nil {
+		t.Fatal(err)
+	}
+	launch := config{projectFile: rpp, projectFolder: filepath.Dir(rpp), projectName: "Book"}
+
+	if got := resolveProjectFile(nil, projectsDir, launch); got.projectFolder != filepath.Dir(rpp) {
+		t.Fatalf("without the known folders the launcher's guess is kept, got %q", got.projectFolder)
+	}
+	got := resolveProjectFile(nil, projectsDir, launch, outside)
+	if got.projectFolder != outside || got.projectName != "My Book" {
+		t.Fatalf("resolved to (%q, %q), want the linked project (%q, \"My Book\")", got.projectFolder, got.projectName, outside)
+	}
+}
+
+// TestResolveProjectFileLockedSearchesTheOpenAndTheRecentProjects pins where the host gets its known folders from.
+func TestResolveProjectFileLockedSearchesTheOpenAndTheRecentProjects(t *testing.T) {
+	t.Setenv("USERPROFILE", t.TempDir())
+	t.Setenv("HOME", t.TempDir())
+	linked := func(root, name string) (folder, rpp string) {
+		folder = filepath.Join(root, name)
+		rpp = filepath.Join(folder, name+".rpp")
+		if err := os.MkdirAll(folder, 0o755); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(rpp, []byte("x"), 0o600); err != nil {
+			t.Fatal(err)
+		}
+		link, err := project.BuildDawLink(folder, rpp)
+		if err != nil {
+			t.Fatal(err)
+		}
+		manifest := project.New(name, time.Now())
+		manifest.DawProjectFile = &link
+		if err := manifest.Save(folder); err != nil {
+			t.Fatal(err)
+		}
+		return folder, rpp
+	}
+	root := t.TempDir()
+	openFolder, openRpp := linked(root, "Open")
+	recentFolder, recentRpp := linked(root, "Recent")
+	recent := recents.New(filepath.Join(t.TempDir(), "recents.json"))
+	if err := recent.Touch(recentFolder, "Recent"); err != nil {
+		t.Fatal(err)
+	}
+	host := &Host{config: config{projectFolder: openFolder}, recents: recent}
+
+	for _, tc := range []struct{ rpp, want string }{{openRpp, openFolder}, {recentRpp, recentFolder}} {
+		got := host.resolveProjectFileLocked(config{projectFile: tc.rpp, projectFolder: filepath.Dir(tc.rpp)})
+		if got.projectFolder != tc.want {
+			t.Fatalf("%s resolved to %q, want %q", tc.rpp, got.projectFolder, tc.want)
+		}
+	}
+	other := filepath.Join(root, "Unlinked", "Unlinked.rpp")
+	if got := host.resolveProjectFileLocked(config{projectFile: other, projectFolder: filepath.Dir(other)}); got.projectFolder != filepath.Dir(other) {
+		t.Fatalf("an unlinked rpp resolved to %q, want the launcher's guess", got.projectFolder)
+	}
+}

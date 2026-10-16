@@ -57,6 +57,15 @@ const (
 	PrepPrepped  = "prepped"
 )
 
+// The opening and closing credits are no manuscript chapter, but the Script page lists them with a prep state, as the mock does: their
+// state is kept under these two ids beside the chapters', and listed after them once set.
+const (
+	CreditsOpening = "credits:opening"
+	CreditsClosing = "credits:closing"
+)
+
+func isCredits(id string) bool { return id == CreditsOpening || id == CreditsClosing }
+
 // A word's pronunciation status, the mock's pronStatus: Set, Not set, Not flagged.
 const (
 	StatusSet        = "set"
@@ -224,7 +233,7 @@ func (s *Service) SetChapter(chapterID, state string) (Chapter, error) {
 	if state != PrepNone && state != PrepProgress && state != PrepPrepped {
 		return Chapter{}, errors.New("that is not a prep state")
 	}
-	if !hasChapter(s.manuscript(), chapterID) {
+	if !isCredits(chapterID) && !hasChapter(s.manuscript(), chapterID) {
 		return Chapter{}, errors.New("that chapter is not in the manuscript")
 	}
 	unlock := lockFile(File(s.config.Project))
@@ -590,6 +599,11 @@ func answer(file prepFile, book Book) ScriptPrep {
 			state = PrepNone
 		}
 		result.Chapters = append(result.Chapters, Chapter{ChapterID: chapterID, State: state})
+	}
+	for _, id := range []string{CreditsOpening, CreditsClosing} {
+		if state := file.Chapters[id]; state != "" {
+			result.Chapters = append(result.Chapters, Chapter{ChapterID: id, State: state})
+		}
 	}
 	all := make([]ResolvedFlag, 0, len(file.Flags))
 	wordByID := make(map[string]string, len(file.Flags))

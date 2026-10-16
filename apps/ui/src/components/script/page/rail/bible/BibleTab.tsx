@@ -3,7 +3,7 @@ import { overlay } from '../../../../../overlay/overlayService';
 import { usePronunciationSources } from '../../../../storybible/source/usePronunciationSources';
 import { useEntries, useParagraphs, useScriptCommands, useScriptView } from '../../data/useScriptData';
 import { BiblePanel } from './BiblePanel';
-import { BIBLE_KINDS } from './kinds';
+import { useBibleKinds } from './kinds';
 
 export type BibleTabProps = {
   chapterId: string;
@@ -14,6 +14,7 @@ export type BibleTabProps = {
 /** The Story Bible tab of the Script rail: the chapter's entries and one entry read-only, over the page's data layer. */
 export function BibleTab({ chapterId, onOpenStoryBible }: BibleTabProps) {
   const entries = useEntries();
+  const kinds = useBibleKinds();
   const paragraphs = useParagraphs(chapterId);
   const commands = useScriptCommands();
   const { sources } = usePronunciationSources();
@@ -27,7 +28,7 @@ export function BibleTab({ chapterId, onOpenStoryBible }: BibleTabProps) {
       entry={entries.entryById(entryId)}
       canSpeak={entries.canSpeak}
       missing={miss}
-      kinds={BIBLE_KINDS}
+      kinds={kinds}
       entries={inChapter}
       sources={sources}
       onPick={(id) => update({ entryId: id, miss: null, missSel: null })}

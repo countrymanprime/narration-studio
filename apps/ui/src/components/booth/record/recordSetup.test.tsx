@@ -2,7 +2,7 @@
 import { act, cleanup, render, renderHook, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import type { ReactNode } from 'react';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi, beforeEach } from 'vitest';
 import { ApiProvider } from '../../../api/ApiContext';
 import type { DawCapabilities, DawTransport } from '../../../api/contracts/daw';
 import { createMockApi } from '../../../api/mockApi';
@@ -14,7 +14,10 @@ import { dawClientFor } from './fixtures';
 import { REAPER_LAUNCHER_ACTION as LAUNCHER_ACTION } from '../../engine/dawConnectGuide';
 import { RecordSetup } from './RecordSetup';
 import { recordSetupFor } from './recordSetup';
-import { stoppedInDaw, useRecordControl } from './useRecordControl';
+import { stoppedInDaw, useRecordControl, forgetAppTake } from './useRecordControl';
+
+// A take one test leaves running is not the next test's.
+beforeEach(() => forgetAppTake());
 
 afterEach(cleanup);
 
@@ -76,6 +79,43 @@ function mount(capabilities: DawCapabilities, facts = LINKED, overrides: Partial
   );
   return { say, onSettings, onChanged };
 }
+
+describe('RecordSetup when the app turns the launch away', () => {
+  /** A mock api whose attach event the test sends by hand, as the host does when REAPER hands its project to a busy app. */
+  function mountWithAttach() {
+    let send: (state: { attached: boolean; reason?: string }) => void = () => {};
+    const api = createMockApi({
+      subscribeProjectAttach: (listener: (state: { attached: boolean; reason?: string }) => void) => ((send = listener), () => {}),
+    } as Partial<NarrationApi>);
+    render(
+      <ApiProvider api={api}>
+        <RecordSetup capabilities={recordRefused('standalone')} facts={LINKED} say={vi.fn()} onSettings={vi.fn()} onChanged={vi.fn()} onCheckAgain={vi.fn()} />
+      </ApiProvider>,
+    );
+    return (state: { attached: boolean; reason?: string }) => act(() => send(state));
+  }
+
+  it('says the project was turned away and what to do, until it is taken or the narrator checks again', async () => {
+    const attach = mountWithAttach();
+    expect(screen.queryByRole('alert')).toBeNull();
+    attach({ attached: false, reason: 'Narration Studio is busy, so the current project was left unchanged.' });
+    const alert = screen.getByRole('alert');
+    expect(alert.textContent).toContain('Narration Studio is busy');
+    expect(alert.textContent).toContain('Finish or cancel what is running, then press Open in REAPER and connect again.');
+    attach({ attached: true });
+    expect(screen.queryByRole('alert')).toBeNull();
+    attach({ attached: false, reason: 'busy again' });
+    expect(screen.getByRole('alert')).toBeTruthy();
+    await userEvent.click(screen.getByRole('button', { name: 'Check again' }));
+    expect(screen.queryByRole('alert')).toBeNull();
+  });
+
+  it('a refusal with no reason says nothing it cannot back', () => {
+    const attach = mountWithAttach();
+    attach({ attached: false });
+    expect(screen.queryByRole('alert')).toBeNull();
+  });
+});
 
 describe('RecordSetup', () => {
   it('turn-on-saves-only-records-own-toggle-and-says-so', async () => {
@@ -203,5 +243,68 @@ describe('useRecordControl follows the DAW live', () => {
     act(() => transport({ playing: false, recording: false }));
     await waitFor(() => expect(result.current.recording).toBe(false));
     expect(notify).toHaveBeenCalledWith(stoppedInDaw('REAPER'));
+  });
+});
+
+describe('RecordSetup says what it waits for and when it last looked', () => {
+  function mountChecked(capabilities: DawCapabilities, extra: Partial<React.ComponentProps<typeof RecordSetup>> = {}) {
+    const onCheckAgain = vi.fn();
+    render(
+      <ApiProvider api={createMockApi()}>
+        <RecordSetup
+          capabilities={capabilities}
+          facts={LINKED}
+          say={vi.fn()}
+          onSettings={vi.fn()}
+          onChanged={vi.fn()}
+          checkedAt={Date.now() - 7000}
+          onCheckAgain={onCheckAgain}
+          {...extra}
+        />
+      </ApiProvider>,
+    );
+    return { onCheckAgain };
+  }
+
+  it('connect-names-what-it-waits-for-and-the-last-check-and-offers-check-again', async () => {
+    const { onCheckAgain } = mountChecked(recordRefused('standalone'));
+    expect(screen.getByText(/Waiting for REAPER to connect/)).toBeTruthy();
+    expect(screen.getByText(/Last checked \d+ s ago/)).toBeTruthy();
+    await userEvent.click(screen.getByRole('button', { name: 'Check again' }));
+    expect(onCheckAgain).toHaveBeenCalledTimes(1);
+  });
+
+  it('the-ticking-last-checked-time-is-not-in-a-live-region-a-screen-reader-would-repeat-every-second', () => {
+    mountChecked(recordRefused('standalone'));
+    const ticking = screen.getByText(/Last checked \d+ s ago/);
+    expect(ticking.closest('[aria-live],[role="status"],[role="alert"]')).toBeNull();
+    expect(screen.getByRole('status').textContent).toMatch(/Waiting for REAPER to connect/);
+    expect(screen.getByRole('status').textContent).not.toMatch(/\d+ s ago/);
+  });
+
+  it('not-answering-says-the-heartbeat-went-quiet', () => {
+    mountChecked(recordRefused('not_running'));
+    expect(screen.getByText(/Waiting for REAPER to answer/)).toBeTruthy();
+  });
+
+  it('says-so-when-it-has-not-checked-yet', () => {
+    mountChecked(recordRefused('standalone'), { checkedAt: null });
+    expect(screen.getByText(/Not checked yet/)).toBeTruthy();
+  });
+
+  it('a-quiet-read-says-it-cannot-tell-instead-of-the-last-answer', () => {
+    mountChecked(recordRefused('standalone'), { readFailed: true });
+    expect(screen.getByText(/Can.t tell whether REAPER is connected/)).toBeTruthy();
+  });
+
+  it('does-not-claim-the-project-is-unlinked-when-the-link-state-could-not-be-read', () => {
+    mountChecked(recordRefused('standalone'), { facts: { dawFileLinked: false, launcherPath: '' }, factsFailed: true });
+    expect(screen.queryByRole('button', { name: 'Link in Settings' })).toBeNull();
+    expect(screen.getByText(/Could not read whether a project file is linked/)).toBeTruthy();
+  });
+
+  it('turn-on-also-offers-check-again', () => {
+    mountChecked(recordRefused('experimental_off'));
+    expect(screen.getByRole('button', { name: 'Check again' })).toBeTruthy();
   });
 });

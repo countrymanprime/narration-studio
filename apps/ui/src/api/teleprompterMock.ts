@@ -149,6 +149,10 @@ type Deps = {
   reaper?: MockReaperSeed;
   /** `?mockReaperInput=`: what `teleprompterReaperInput` answers; unset, REAPER records from the first microphone listed. */
   reaperInput?: MockReaperInputSeed;
+  /** The mock DAW's record gate (dawMock.ts): a start or stop it refuses is refused here with its sentence; one it allows moves the transport. */
+  /** Whether the mock DAW is recording, whoever started it: the host's `recording_elsewhere` answers for any take. */
+  dawRecording?: () => boolean;
+  dawRecord?: (kind: 'start' | 'stop') => { reason: 'standalone' | 'experimental_off' | 'unlinked' | 'unavailable'; message: string } | null;
 };
 
 const MOCK_REAPER_TRACK = '{11111111-1111-4111-8111-111111111111}';
@@ -494,6 +498,17 @@ export function createTeleprompterMock(deps: Deps): TeleprompterApi {
 
   const clone = (): TeleprompterState => JSON.parse(JSON.stringify(state));
   const publish = () => stateSubscribers.forEach((notify) => notify(clone()));
+  // A driver unplugs the microphone the session listens to: the session ends in an error with the sidecar's sentence. The take itself is the DAW's.
+  if (typeof window !== 'undefined') {
+    window.__NARRATION_MOCK_TELEPROMPTER__ = {
+      failListening: (message) => {
+        cancelAutoStop();
+        cancelReplay();
+        state = { ...state, phase: 'error', message };
+        publish();
+      },
+    };
+  }
   const emit = (event: TeleprompterEvent) => {
     if (event.type === 'script') state = { ...state, script: event, position: null };
     if (event.type === 'position') state = { ...state, position: event };
@@ -534,6 +549,14 @@ export function createTeleprompterMock(deps: Deps): TeleprompterApi {
     emit({ type: 'meter_stopped', error: null });
   };
   const findChapter = (query: string) => deps.chapters().find((chapter) => chapter.id === query || chapter.title === query);
+  // What the record calls take for a chapter: a chapter of the manuscript, or one of the two credits, which record on a track of their own
+  // (the Booth passes `credits-opening` and `credits-closing`, as the host's coverage ids them).
+  const recordTarget = (chapterId: string): { title: string } | null => {
+    const chapter = findChapter(chapterId);
+    if (chapter) return { title: chapterDisplayTitle(chapter) };
+    const credits = /^credits-(opening|closing)$/.exec(chapterId);
+    return credits ? { title: CREDITS_LABEL[credits[1] === 'opening' ? 'opening' : 'closing'] } : null;
+  };
   type Planned = { id: string; built: ReturnType<typeof buildScript> };
   const planChapter = (query: string): Planned => {
     const chapter = findChapter(query);
@@ -679,33 +702,40 @@ export function createTeleprompterMock(deps: Deps): TeleprompterApi {
       ),
     readAloudReaperState: async (chapterId) => {
       await deps.ready;
-      const chapter = findChapter(chapterId);
-      if (!chapter) throw new Error('that chapter is not part of the current manuscript');
-      return mockReaperState(deps.reaper ?? 'ready', chapterDisplayTitle(chapter));
+      const target = recordTarget(chapterId);
+      if (!target) throw new Error('that chapter is not part of the current manuscript');
+      if (deps.dawRecording?.()) return mockReaperState('recording_elsewhere', target.title);
+      return mockReaperState(deps.reaper ?? 'ready', target.title);
     },
     readAloudArmOnly: async (chapterId) => {
       await deps.ready;
-      const chapter = findChapter(chapterId);
-      if (!chapter) throw new Error('that chapter is not part of the current manuscript');
-      return mockReadAloudRecording(deps.reaper ?? 'ready', 'arm', chapterDisplayTitle(chapter));
+      const target = recordTarget(chapterId);
+      if (!target) throw new Error('that chapter is not part of the current manuscript');
+      return mockReadAloudRecording(deps.reaper ?? 'ready', 'arm', target.title);
     },
     readAloudRecordStart: async (chapterId) => {
       await deps.ready;
-      const chapter = findChapter(chapterId);
-      if (!chapter) throw new Error('that chapter is not part of the current manuscript');
-      return mockReadAloudRecording(deps.reaper ?? 'ready', 'start', chapterDisplayTitle(chapter));
+      const target = recordTarget(chapterId);
+      if (!target) throw new Error('that chapter is not part of the current manuscript');
+      const gate = deps.dawRecord?.('start');
+      if (gate) return { outcome: 'refused', reason: gate.reason === 'unavailable' ? 'failed' : gate.reason, message: gate.message };
+      return mockReadAloudRecording(deps.reaper ?? 'ready', 'start', target.title);
     },
     // ReadAloudRecordStartAt checks the time before anything else, then answers as a start does, from the punch.
     readAloudRecordStartAt: async (chapterId, at) => {
       await deps.ready;
       if (!Number.isFinite(at) || at < 0) return { outcome: 'refused', reason: 'bad_time', message: DAW_ANSWERS.recordBadTime };
-      const chapter = findChapter(chapterId);
-      if (!chapter) throw new Error('that chapter is not part of the current manuscript');
-      const started = mockReadAloudRecording(deps.reaper ?? 'ready', 'start', chapterDisplayTitle(chapter));
+      const target = recordTarget(chapterId);
+      if (!target) throw new Error('that chapter is not part of the current manuscript');
+      const gate = deps.dawRecord?.('start');
+      if (gate) return { outcome: 'refused', reason: gate.reason === 'unavailable' ? 'failed' : gate.reason, message: gate.message };
+      const started = mockReadAloudRecording(deps.reaper ?? 'ready', 'start', target.title);
       return started.outcome === 'started' ? { ...started, position: at, message: recordingFromAnswer(at) } : started;
     },
     readAloudRecordStop: async () => {
       await deps.ready;
+      const gate = deps.dawRecord?.('stop');
+      if (gate) return { outcome: 'refused', reason: gate.reason === 'unavailable' ? 'failed' : gate.reason, message: gate.message };
       return mockReadAloudRecording(deps.reaper ?? 'ready', 'stop', '');
     },
     teleprompterLocate: async (chapterId, options) => {
