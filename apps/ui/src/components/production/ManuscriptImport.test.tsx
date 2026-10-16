@@ -188,7 +188,7 @@ describe('the import review dialog, as the narrator meets it', () => {
   it('the mock host, like the real one, writes nothing on the first commit over an existing manuscript', async () => {
     const api = createMockApi({}, { importPreview: 'docx' });
     const { jobId } = await api.selectManuscript();
-    await api.manuscriptImportPreview(jobId!, {});
+    await api.manuscriptImportPreview(jobId!, { markdownHeadingLevel: 1 });
     const first = await api.manuscriptImportCommit(jobId!, { confirmedReset: false });
     expect({ phase: first.phase, requiresReset: first.requiresReset }).toEqual({ phase: 'ready', requiresReset: true });
     expect((await api.manuscriptImportCommit(jobId!, { confirmedReset: true })).phase).toBe('success');

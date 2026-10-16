@@ -127,7 +127,8 @@ export function ProgressChart({ k, wph, start, today, due, recordedHours, series
               points={actual.map((p) => `${x(addDays(start, p[0]))},${y(p[1])}`).join(' ')}
             />
           )}
-          {!series.ok && <text x={PAD.left + 8} y={PAD.top + 26} fontSize="11" fill="var(--text-muted)">{`Recorded days ${NOT_MEASURED}`}</text>}
+          {/* Mid-height at the left, clear of the "done" label at the top right and the "today" marker at the bottom. */}
+          {!series.ok && <text x={PAD.left + 8} y={(PAD.top + y(0)) / 2} fontSize="11" fill="var(--text-muted)">{`Recorded days ${NOT_MEASURED}`}</text>}
           <line
             x1={x(today)}
             y1={y(recordedHours)}
