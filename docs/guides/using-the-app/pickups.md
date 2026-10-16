@@ -8,7 +8,7 @@ move the DAW's cursor. Each line opens in the Booth, where you record it.
 
 ## Where the lines come from
 
-The list is built each time the page opens, from four places. The **From** column says which:
+The list is built each time the page opens, and again whenever you come back to the window, from four places. The **From** column says which:
 
 - **Speech**: a gap the [recording check](proof.md#one-chapter) found in a chapter (a missing passage, extra words, a
   misread), with the check's score, or **no score** and why. Only a chapter whose check is current adds lines; an unread
@@ -22,8 +22,10 @@ exported on [Proof](proof.md#the-notes).
 
 ## The list
 
-The chapter stepper at the top shows every chapter or one (Alt+Up and Alt+Down step it). The lines are grouped by
-chapter, each group with how many lines are open, and each line has:
+![Pickups - all chapters: the chapter stepper, Check recordings and Add a pickup by hand in the head, the lines grouped by chapter, and the Pickup session panel](../../images/ui/pickups-list.webp)
+
+The chapter stepper at the top shows every chapter or one (Alt+Up and Alt+Down step it). Chapters are named as the
+manuscript heads them. The lines are grouped by chapter, each group with how many lines are open, and each line has:
 
 - a box that includes it in the next session, or leaves it out (Space on a selected line does the same);
 - its time in the recording, its type, the line to re-record, where it came from and its status (**Open** or
@@ -35,19 +37,39 @@ Right-click a line for the same actions, **Open this chapter in Script**, and **
 came from a note. Up and Down move between lines.
 
 A line is recorded once its pickup marker in the DAW says so: the marker is the record of what is done, and marking a
-line recorded renames its marker. While the DAW is not answering, the app keeps the change and writes it to the marker
-the next time it reads the list with the DAW answering.
+line recorded renames its marker. While the DAW is not answering, the app keeps the change and the line reads
+**Recorded** with **Not in the DAW yet** under it; it writes the change to the marker the next time it reads the list with the DAW
+answering.
+
+![Pickups - a line marked recorded while the DAW has not taken the change yet](../../images/ui/pickups-recorded-waiting.webp)
+
+Pressing a line's button again before the first press is answered does nothing, so a line is never removed or
+flipped twice. A refusal appears as a sentence in a message at the bottom of the window.
 
 Removing a line hides it from this list only; its note or check keeps its own record. A line you added by hand can be put
 back with **Undo** on the message that follows; a line from a check or a note cannot.
 
+### When the list cannot be read
+
+If the list cannot be read, the page says why and offers **Check again**; it never shows "No pickups queued" for a list
+it could not read. If a later read fails while a list is showing, the list stays and a line above it says **Can’t tell if
+this list is current**, with the reason and when it was last read. The page tries again by itself every few seconds
+while it cannot read, and whenever you return to the window.
+
+![Pickups - the list could not be read: the reason and Check again](../../images/ui/pickups-unreadable.webp)
+
 **Check recordings** opens the recording check on the chapters whose check is not current, so their gaps can join the
 list. It is off, with the reason, when the DAW is not reachable. **Add a pickup by hand** asks for the time in the
-recording (`05:12.0`) and the line to re-record, and adds it to the chapter in view (with every chapter shown, the
-last chapter you stepped to, or the first).
+recording (`05:12.0`, or `5:12`; seconds run 00 to 59) and the line to re-record (one line, up to 500 characters), and
+adds it to the chapter in view (with every chapter shown, the last chapter you stepped to, or the first). A time or
+line the app cannot use says how to type it, and the form keeps what you typed.
+
+![Pickups - Add a pickup by hand: the time in the recording and the line to re-record](../../images/ui/pickups-add.webp)
 
 With no lines at all, the page says **No pickups queued**, with the way to Proof; a chapter with none says **No pickups
-for this chapter**.
+for this chapter**. If a chapter you were viewing is no longer in the manuscript, the page shows every chapter.
+
+![Pickups - no pickups queued, with the way to Proof](../../images/ui/pickups-empty.webp)
 
 ## Pickup session
 
@@ -59,7 +81,11 @@ figure). From there:
   [A pickup session](booth.md#a-pickup-session)).
 - **Add N as markers in** the DAW puts a pickup marker at each line's place. It is off, with the reason, when the DAW
   cannot add markers.
-- **Copy the pickup script** copies the lines, one per line as "chapter · time: line", to paste elsewhere.
+- **Copy the pickup script** copies the lines, one per line as "chapter · time: line", to paste elsewhere. If the window
+  does not allow the clipboard, it says so.
+
+**Play the original around this line** is off, with its reason: the app has no player for the original recording around
+a line yet. Open the line in the Booth to hear and re-record it.
 
 ## In the Booth's companion panel
 

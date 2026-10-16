@@ -1,12 +1,12 @@
+import { useRef, useState } from 'react';
 import type { PickupItem } from '../../../api/contracts/pickups';
-import { describeApiError } from '../../../api/errorMessage';
 import type { Measured } from '../../../api/schemas/base';
 import { useOverlay } from '../../../overlay/OverlayProvider';
 import { Button } from '../../primitives/Button';
 import { IconButton } from '../../primitives/IconButton';
 import { Panel } from '../../primitives/Panel';
 import { NOT_MEASURED, sessionMinutes } from '../../production/measured/measured.selectors';
-import { pickupScript, sessionPickups, type ChapterRef } from './pickupRows';
+import { pickupScript, reasonSentence, sessionPickups, type ChapterRef } from './pickupRows';
 
 /** What the DAW's capability setup says about one thing the panel does (`useCapability('markers')`): whether it can, and the host's sentence when it cannot. */
 export type Gate = { available: boolean; message?: string };
@@ -19,6 +19,7 @@ export function SessionPanel({
   pickups,
   chapters,
   seconds,
+  unreadable = false,
   dawName,
   markers,
   onOpenInBooth,
@@ -29,6 +30,8 @@ export function SessionPanel({
   chapters: readonly ChapterRef[];
   /** The recording time those lines take, from the measurements, or the reason there is none. */
   seconds: Measured<number>;
+  /** The list could not be read: the session is unknown, not empty. */
+  unreadable?: boolean;
   /** The DAW's name for the marker icon's tip. */
   dawName: string;
   markers: Gate;
@@ -44,12 +47,31 @@ export function SessionPanel({
   const markersReason = !markers.available ? markers.message || `${dawName} cannot add markers now.` : count === 0 ? 'No lines in the session.' : undefined;
 
   const copy = async () => {
+    if (picked.length === 0) {
+      overlay.toast(unreadable ? 'The list could not be read, so there is nothing to copy yet.' : 'No lines in the session to copy.');
+      return;
+    }
     try {
       await navigator.clipboard.writeText(pickupScript(picked, chapters));
       overlay.toast('Copied.');
     } catch {
-      overlay.toast('Copy failed.');
+      overlay.toast('The script could not be copied: this window may not allow the clipboard. Try again after clicking in the page.', { tone: 'error' });
     }
+  };
+
+  /* A second press while the markers are being written would add them twice. */
+  const [adding, setAdding] = useState(false);
+  const addingNow = useRef(false);
+  const addMarkers = () => {
+    if (addingNow.current) return;
+    addingNow.current = true;
+    setAdding(true);
+    onAddMarkers(picked)
+      .catch((error: unknown) => overlay.toast(reasonSentence(error), { tone: 'error' }))
+      .finally(() => {
+        addingNow.current = false;
+        setAdding(false);
+      });
   };
 
   return (
@@ -67,13 +89,13 @@ export function SessionPanel({
           Open {count} in Booth
         </Button>
         <div>
-          <IconButton
-            action="addMarker"
-            label={`Add ${count} as markers in ${dawName}`}
-            disabledReason={markersReason}
-            onClick={() => void onAddMarkers(picked).catch((error: unknown) => overlay.toast(describeApiError(error), { tone: 'error' }))}
-          />
+          <IconButton action="addMarker" label={`Add ${count} as markers in ${dawName}`} disabledReason={markersReason} pending={adding} onClick={addMarkers} />
         </div>
+        {count === 0 && (
+          <p className="text-[0.8125rem] text-[var(--text-muted)]">
+            {unreadable ? 'The list could not be read, so the session is not known yet.' : 'No lines in the session: tick a line to include it.'}
+          </p>
+        )}
         {!markers.available && <p className="text-[0.8125rem] text-[var(--text-muted)]">{markersReason}</p>}
       </div>
     </Panel>
