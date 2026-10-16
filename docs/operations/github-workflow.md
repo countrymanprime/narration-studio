@@ -41,6 +41,7 @@ remove it when a maintainer has looked at the issue.
 - The title is the squash commit and must be a Conventional Commit (see [CI and releases](ci-and-releases.md)).
 - Put `Closes #<issue>` in the description so merging closes the issue and moves its board card to Done.
 - The template lists the verification gates from `CLAUDE.md`; tick only what applies.
+- A PR that changes behaviour has an "Exercised" and a "Not exercised" section, and for a page or an integration the independent walkthrough's report ([definition of done](../../.claude/rules/definition-of-done.md)). Anything not exercised is "unverified", not "done".
 
 ## Project board
 
