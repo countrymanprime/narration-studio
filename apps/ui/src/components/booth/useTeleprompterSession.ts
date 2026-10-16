@@ -120,6 +120,8 @@ export function useTeleprompterSession({ chapterId, chapter, credits, migrateLeg
   const [loaded, setLoaded] = useState<{ chapterId: string; paragraphs: ManuscriptParagraph[] }>();
   const [error, setError] = useState('');
   const [prompt, setPrompt] = useState<ModelPrompt>();
+  // The last start found the speech model missing: kept after the question is answered, so a narrator who declined is still told why the text does not follow.
+  const [modelMissing, setModelMissing] = useState(false);
   // Where the next Start begins (the read-aloud dialog's resume card):
   // null is the top. Passed to the host as `startWord` (start at a word), so a resumed session
   // never reads from the top first.
@@ -244,10 +246,12 @@ export function useTeleprompterSession({ chapterId, chapter, credits, migrateLeg
 
   const start = async () => {
     setError('');
+    setModelMissing(false);
     try {
       const source = creditsKind ? { credits: creditsKind } : { chapter: chapterId };
       const result = await api.teleprompterStart({ ...source, device: device.trim(), engine, model, ...(startWord === null ? {} : { startWord }) });
       if (result.status === 'asset_required') {
+        setModelMissing(true);
         modelInstall.reset();
         setPrompt(result);
       }
@@ -327,6 +331,7 @@ export function useTeleprompterSession({ chapterId, chapter, credits, migrateLeg
     status,
     error,
     prompt,
+    modelMissing,
     modelInstall,
     start,
     stop,

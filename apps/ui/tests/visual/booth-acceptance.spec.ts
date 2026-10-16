@@ -81,6 +81,15 @@ test('row 7: with the speech model missing, a take asks before anything download
   await expect(page.getByRole('alertdialog', { name: /^Download local \w+ model\?$/ })).toBeVisible({ timeout: 10_000 });
 });
 
+test('row 7: declining the model download leaves a footer line saying the text is not following', async ({ page }) => {
+  await open(page, `${RECORD_ON}&mockAssets=missing`);
+  await record(page).click();
+  const ask = page.getByRole('alertdialog', { name: /^Download local \w+ model\?$/ });
+  await ask.waitFor({ timeout: 10_000 });
+  await ask.getByRole('button', { name: /^Cancel$/ }).click();
+  await expect(page.locator('#blisten-why')).toContainText('the speech model is not downloaded');
+});
+
 test('row 8: with no microphone listed, the Booth says the text cannot follow and why', async ({ page }) => {
   await open(page, `${RECORD_ON}&mockNoDevices=1`);
   await expect(page.locator('#blisten-why')).toContainText('The text cannot follow your voice: No microphone found.');

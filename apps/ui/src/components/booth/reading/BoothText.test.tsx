@@ -58,6 +58,12 @@ describe('one-phrase-is-lit-the-ones-read-are-dimmed-and-one-word-is-marked', ()
     expect(now[0].nextSibling?.textContent).toMatch(/^\s*$/);
   });
 
+  it('lets each paragraph take its own direction, so Hebrew and Arabic read from the right', () => {
+    const { container } = setup();
+    const paragraphs = container.querySelectorAll('[data-booth-text] p');
+    expect(paragraphs.length).toBeGreaterThan(0);
+    for (const paragraph of paragraphs) expect(paragraph.getAttribute('dir')).toBe('auto');
+  });
   it('gives the current word a text alternative', () => {
     setup();
     expect(document.querySelector('[data-current]')!.getAttribute('aria-description')).toBe('Current word');

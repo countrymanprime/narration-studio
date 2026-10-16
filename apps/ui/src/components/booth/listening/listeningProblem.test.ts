@@ -15,6 +15,12 @@ describe('listeningProblem', () => {
       'Choose the microphone the Booth listens to in Levels, so the text follows your voice.',
     );
   });
+  it('keeps saying the speech model is missing once the question about it is answered, and not while it is open', () => {
+    expect(listeningProblem({ ...base, modelMissing: true })).toBe(
+      'The text cannot follow your voice: the speech model is not downloaded. Press Space to be asked again, or download it in Settings.',
+    );
+    expect(listeningProblem({ ...base, modelMissing: true, prompt: {} })).toBeUndefined();
+  });
   it('says so when the session itself ended in an error, as when the microphone is unplugged mid-take', () => {
     expect(listeningProblem({ ...base, host: { phase: 'error', message: 'Microphone Array was unplugged.' } })).toBe(
       'The text cannot follow your voice: Microphone Array was unplugged.',
