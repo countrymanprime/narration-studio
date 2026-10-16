@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 // The Schedule page's dates (state matrix: docs/research/schedule-page-state-matrix.md, "Due date and the verdict"): none, past, today, far
 // away, impossible, mistyped, cleared, refused by the host, committed twice, and a plan edited by hand to hold something that is not a date.
-import { fireEvent, screen, waitFor } from '@testing-library/react';
+import { cleanup, fireEvent, screen, waitFor } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import { REC, mountSchedule, stored, toasts, installKit } from './scheduleKit.test';
 
@@ -59,7 +59,7 @@ describe('what the header and the verdict say about the days', () => {
       await dueField();
       expect(document.body.textContent).not.toMatch(/Infinity|NaN|Invalid/);
       expect(document.body.textContent).toMatch(/Behind/);
-      document.body.innerHTML = '';
+      cleanup();
     }
   });
 
