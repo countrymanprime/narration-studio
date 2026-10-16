@@ -33,7 +33,11 @@ export const scheduleDrivers: Record<string, Driver> = {
     await confirmDialog(page, /milestone/i).waitFor();
   },
   overdue: async (page) => {
-    await openSchedule(page, '?mockProduction=on-pace', new Date(2026, 9, 20, 9, 0, 0));
+    // The seed moves to the day the app opens on, so it is opened on the mock's day and the clock then moves past its due date
+    // (the page re-reads on its minute timer and moves "today" with it).
+    await openSchedule(page, '?mockProduction=on-pace');
+    await page.clock.setSystemTime(new Date(2026, 9, 20, 9, 0, 0));
+    await page.clock.runFor(61_000);
     await page
       .getByText(/days overdue/)
       .first()
