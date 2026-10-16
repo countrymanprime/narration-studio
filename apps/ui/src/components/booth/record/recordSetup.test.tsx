@@ -77,6 +77,43 @@ function mount(capabilities: DawCapabilities, facts = LINKED, overrides: Partial
   return { say, onSettings, onChanged };
 }
 
+describe('RecordSetup when the app turns the launch away', () => {
+  /** A mock api whose attach event the test sends by hand, as the host does when REAPER hands its project to a busy app. */
+  function mountWithAttach() {
+    let send: (state: { attached: boolean; reason?: string }) => void = () => {};
+    const api = createMockApi({
+      subscribeProjectAttach: (listener: (state: { attached: boolean; reason?: string }) => void) => ((send = listener), () => {}),
+    } as Partial<NarrationApi>);
+    render(
+      <ApiProvider api={api}>
+        <RecordSetup capabilities={recordRefused('standalone')} facts={LINKED} say={vi.fn()} onSettings={vi.fn()} onChanged={vi.fn()} onCheckAgain={vi.fn()} />
+      </ApiProvider>,
+    );
+    return (state: { attached: boolean; reason?: string }) => act(() => send(state));
+  }
+
+  it('says the project was turned away and what to do, until it is taken or the narrator checks again', async () => {
+    const attach = mountWithAttach();
+    expect(screen.queryByRole('alert')).toBeNull();
+    attach({ attached: false, reason: 'Narration Studio is busy, so the current project was left unchanged.' });
+    const alert = screen.getByRole('alert');
+    expect(alert.textContent).toContain('Narration Studio is busy');
+    expect(alert.textContent).toContain('Finish or cancel what is running, then press Open in REAPER and connect again.');
+    attach({ attached: true });
+    expect(screen.queryByRole('alert')).toBeNull();
+    attach({ attached: false, reason: 'busy again' });
+    expect(screen.getByRole('alert')).toBeTruthy();
+    await userEvent.click(screen.getByRole('button', { name: 'Check again' }));
+    expect(screen.queryByRole('alert')).toBeNull();
+  });
+
+  it('a refusal with no reason says nothing it cannot back', () => {
+    const attach = mountWithAttach();
+    attach({ attached: false });
+    expect(screen.queryByRole('alert')).toBeNull();
+  });
+});
+
 describe('RecordSetup', () => {
   it('turn-on-saves-only-records-own-toggle-and-says-so', async () => {
     const saveSettings = vi.fn(async () => createMockApi().bootstrap());

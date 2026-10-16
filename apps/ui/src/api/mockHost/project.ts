@@ -3,6 +3,8 @@ import type { DawCatalogEntry, NarrationApi, ProjectAttachState, RecentProject }
 import { wireClone } from '../mockFixtures';
 import type { MockApiSeed } from './state';
 
+/** The host's words for a project handed over while this app is busy (apps/desktop/app.go's attachBusyReason). */
+const ATTACH_BUSY_REASON = 'Narration Studio is busy, so the current project was left unchanged.';
 const DEFAULT_PROJECT_FOLDER = 'C:/Projects/Alice-in-Wonderland';
 const DEFAULT_PROJECT_NAME = 'Alice’s Adventures in Wonderland';
 // Mirrors the Go host's default (`~/NarrationUtils`, project.DefaultDirName): what an empty parent
@@ -15,7 +17,10 @@ function basename(path: string): string {
 }
 
 /** The project bindings: the open project, the recent list, the linked DAW project file and the DAW catalog. */
-export function createProjectMock(initial: MockApiSeed, daws: { launch: () => Promise<void>; linked?: boolean } = { launch: async () => {} }) {
+export function createProjectMock(
+  initial: MockApiSeed,
+  daws: { launch: () => Promise<'started' | 'busy'>; linked?: boolean } = { launch: async () => 'started' },
+) {
   let projectFolder = initial.projectFolder ?? DEFAULT_PROJECT_FOLDER;
   let projectName = initial.projectFolder === undefined ? DEFAULT_PROJECT_NAME : basename(projectFolder);
   let daw = 'REAPER';
@@ -84,7 +89,11 @@ export function createProjectMock(initial: MockApiSeed, daws: { launch: () => Pr
     },
     // The launch hands over to the mock DAW (dawMock.ts), whose script decides whether and when a heartbeat follows (`?mockDaw=`).
     launchDaw: async () => {
-      await daws.launch();
+      const outcome = await daws.launch();
+      // The launch started REAPER, which handed its project to this app; a busy app turns it away, as the host's second-instance attach does.
+      if (outcome === 'busy') {
+        projectAttachSubscribers.forEach((fn) => fn({ attached: false, reason: ATTACH_BUSY_REASON }));
+      }
       return { launched: true, path: 'C:/Program Files/REAPER (x64)/reaper.exe', source: 'uninstall_registry' };
     },
     dawCatalogList: async () => wireClone(DAW_CATALOG),

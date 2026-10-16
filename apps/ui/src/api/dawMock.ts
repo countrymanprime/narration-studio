@@ -369,14 +369,16 @@ function currentProjectState(seed: DawMockSeed, capabilities: DawCapabilities, t
 
 /** How the scripted mock DAW behaves when the app starts it (`?mockDaw=`): the owner's sequence, and each way it can go wrong.
  * `live` answers its heartbeat a moment after the launch; `late` answers after 8 s; `quiet` opens the bridge but never answers;
- * `different` answers with another project open; `refuse` fails the launch; `restart` answers, then goes quiet and returns on its own. */
-export type DawMockScript = 'live' | 'late' | 'quiet' | 'different' | 'refuse' | 'restart';
-export const DAW_MOCK_SCRIPTS: readonly DawMockScript[] = ['live', 'late', 'quiet', 'different', 'refuse', 'restart'];
+ * `different` answers with another project open; `refuse` fails the launch; `restart` answers, then goes quiet and returns on its own;
+ * `busy` starts REAPER but the app is busy, so the project it hands over is refused (the host's `system:attached` with a reason). */
+export type DawMockScript = 'live' | 'late' | 'quiet' | 'different' | 'refuse' | 'restart' | 'busy';
+export const DAW_MOCK_SCRIPTS: readonly DawMockScript[] = ['live', 'late', 'quiet', 'different', 'refuse', 'restart', 'busy'];
 
 /** What a page, a test or a Playwright driver can do to the mock DAW from outside, as REAPER's own user and the OS could. */
 export interface DawMockControl {
-  /** The app started the DAW (the launcher ran): the script decides what the heartbeat does next. Rejects for `refuse`. */
-  launch(): Promise<void>;
+  /** The app started the DAW (the launcher ran): the script decides what the heartbeat does next. Rejects for `refuse`; answers `busy` when the
+   * app turns the launch's project away because it is busy. */
+  launch(): Promise<'started' | 'busy'>;
   /** The narrator ran the launcher action inside the DAW by hand: the bridge opens and answers. */
   connect(): void;
   /** The DAW answers its heartbeat now (and has the linked project open unless `openProject` said otherwise). */
@@ -414,7 +416,7 @@ export interface DawMockControl {
 
 export type DawMock = DawCapabilitiesApi & DawProjectStateApi & { control: DawMockControl };
 
-const LAUNCH_MS: Record<DawMockScript, number> = { live: 1200, late: 8000, quiet: 0, different: 1200, refuse: 0, restart: 1200 };
+const LAUNCH_MS: Record<DawMockScript, number> = { live: 1200, late: 8000, quiet: 0, different: 1200, refuse: 0, restart: 1200, busy: 0 };
 
 export function createDawMock(seed: DawMockSeed = {}, script?: DawMockScript): DawMock {
   const live: DawMockSeed = { ...seed, toggles: { ...seed.toggles } };
@@ -473,7 +475,8 @@ export function createDawMock(seed: DawMockSeed = {}, script?: DawMockScript): D
       live.connected = true;
       live.reachable = false;
       publish();
-      if (script === 'quiet') return;
+      if (script === 'busy') return 'busy';
+      if (script === 'quiet') return 'started';
       later(LAUNCH_MS[script ?? 'live'], () => {
         reach(true);
         if (script === 'restart') {
@@ -481,6 +484,7 @@ export function createDawMock(seed: DawMockSeed = {}, script?: DawMockScript): D
           later(9000, () => reach(true));
         }
       });
+      return 'started';
     },
     connect: () => reach(true),
     heartbeat: () => reach(true),

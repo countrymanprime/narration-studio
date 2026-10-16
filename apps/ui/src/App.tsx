@@ -388,7 +388,7 @@ function AppRoutes() {
       if (state.attached) {
         history.resetFloor();
         void refreshBootstrap();
-      } else if (state.reason) setNotice(state.reason);
+      } else if (state.reason) setNotice(state.reason, 'error');
     });
   }, [api, hasBootstrap, history, refreshBootstrap, setNotice]);
 

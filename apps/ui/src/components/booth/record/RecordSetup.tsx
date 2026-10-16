@@ -184,6 +184,17 @@ function Connect({
   const [busy, run] = useBusy();
   const { guide } = plan;
   const name = guide.dawName;
+  // A launch hands its project to this app, which turns it away while it is busy (the host's `system:attached` with a reason). Nothing else on the
+  // page would say why the notice is still here, so the notice says it, and what to do, until a project is taken or the narrator checks again.
+  const [turnedAway, setTurnedAway] = useState<string | null>(null);
+  useEffect(
+    () =>
+      system.subscribeProjectAttach((state) => {
+        if (state.attached) setTurnedAway(null);
+        else if (state.reason) setTurnedAway(state.reason);
+      }),
+    [system],
+  );
   // In a short window the steps fold into one line the narrator opens, so the notice leaves the text its room.
   const short = useMediaQuery(SHORT_WINDOW, false);
   const copy = () =>
@@ -232,6 +243,11 @@ function Connect({
       <h3 id="brec-setup-title" className="font-medium text-[var(--text)]">
         {plan.notAnswering ? `${name} is not answering` : `Connect ${name} to record`}
       </h3>
+      {turnedAway && (
+        <p role="alert" className="text-[var(--danger-text)]">
+          {name} started, but this app turned its project away: {turnedAway} Finish or cancel what is running, then press {guide.launch.label} again.
+        </p>
+      )}
       {short ? (
         // In a short window the steps fold into one line the narrator opens; the one that needs a button now (the link) stays out in the open.
         <>
@@ -265,6 +281,10 @@ function Connect({
           waiting={`Waiting for ${name} to ${plan.notAnswering ? 'answer' : 'connect'}`}
           unknown={`${name} is ${plan.notAnswering ? 'answering' : 'connected'}`}
           {...check}
+          onCheckAgain={() => {
+            setTurnedAway(null);
+            check.onCheckAgain?.();
+          }}
         />
       )}
     </InsetCard>
