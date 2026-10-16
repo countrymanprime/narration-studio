@@ -10,7 +10,8 @@ import { OverlayHost } from '../../overlay/OverlayHost';
 import type { NarrationApi } from '../../types';
 import { TooltipProvider } from '../primitives/Tooltip';
 import * as checkRecordings from '../recordingcheck/openCheckRecordings';
-import { CHAPTERS, MIXED } from './list/pickupFixtures';
+import { readBoothQuery, readPickupIds } from '../booth/page/boothQuery';
+import { CHAPTERS, MIXED, pickup } from './list/pickupFixtures';
 import { boothSessionPath, PickupsPage } from './PickupsPage';
 
 afterEach(() => {
@@ -188,4 +189,31 @@ describe('absurd-text-in-a-line', () => {
     expect(document.querySelector('script')).toBeNull();
     expect(screen.getByText(/<script>alert\(1\)<\/script>/)).toBeTruthy();
   });
+});
+
+describe('the-booth-hand-off-address', () => {
+  it('no lines is the Booth with no session; one line names its chapter and id', () => {
+    expect(boothSessionPath([])).toBe('/booth');
+    const params = new URLSearchParams(boothSessionPath([pickup({ id: 'finding:f-1', chapterId: 'c9' })]).split('?')[1]);
+    expect(readBoothQuery(params)).toEqual({ chapter: 'c9' });
+    expect(readPickupIds(params)).toEqual(['finding:f-1']);
+  });
+
+  it("two thousand lines survive the address in order, and the chapter is the first line's", () => {
+    const many = Array.from({ length: 2000 }, (_, index) => pickup({ id: `speech:c${index % 7}:g${index}`, chapterId: `c${index % 7}` }));
+    const params = new URLSearchParams(boothSessionPath(many).split('?')[1]);
+    expect(readPickupIds(params)).toEqual(many.map((p) => p.id));
+    expect(readBoothQuery(params)).toEqual({ chapter: 'c0' });
+  });
+});
+
+describe('a-huge-list', () => {
+  it('300 lines draw, with one row in the tab order and the session counting every open one', async () => {
+    const huge = Array.from({ length: 300 }, (_, index) => pickup({ id: `you:c1-${index}`, chapterId: 'c1', time: index, script: `Line ${index}` }));
+    renderPage(createMockApi({ pickupsList: () => Promise.resolve({ pickups: huge, leftOut: [] }) }));
+    await screen.findByText('Line 299', undefined, { timeout: 15000 });
+    expect(document.querySelectorAll('tr[data-pk]')).toHaveLength(300);
+    expect(document.querySelectorAll('tr[data-pk][tabindex="0"]')).toHaveLength(1);
+    expect(screen.getByRole('button', { name: 'Open 300 in Booth' })).toBeTruthy();
+  }, 30000);
 });
