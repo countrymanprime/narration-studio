@@ -40,6 +40,10 @@ test.describe('cross-page hand-offs', () => {
     ['an offset that is not a number', '/booth?chapter=chapter-1&para=p1&at=NaN', 'Booth'],
     ['a name longer than any id', `/booth?chapter=${'x'.repeat(600)}`, 'Booth'],
     ['a chapter named in emoji and right-to-left text', `/booth?chapter=${encodeURIComponent('🦎 مرحبا')}`, 'Booth'],
+    ['a line that is not in the chapter', '/booth?chapter=chapter-1&para=nope', 'Booth'],
+    ['a Proof chapter that does not exist', '/proof?chapter=nope', 'Proof'],
+    ['a Master file named twice', '/master#file=a.wav&file=b.wav', 'Master & QC'],
+    ['a Script line link that is not a number', '/script#p-1', 'Script'],
     ['an Editing chapter that does not exist', '/editing/nope', 'Editing'],
     ['an Editing time that is not a number', '/editing/chapter-1?t=abc', 'Editing'],
     ['a malformed escape in a Script link', '/script#c%E0%A4%A', 'Script'],
@@ -67,6 +71,13 @@ test.describe('cross-page hand-offs', () => {
     await h1(page, 'Production').waitFor();
     await page.goBack();
     await expect(blocked(page)).toHaveCount(0);
+  });
+
+  test('a path no page owns shows a message and Go to Production', async ({ page }) => {
+    await open(page, '/script/chapter-7');
+    await page.getByRole('heading', { level: 2, name: 'This address does not open a page' }).waitFor();
+    await page.getByRole('button', { name: 'Go to Production' }).click();
+    await h1(page, 'Production').waitFor();
   });
 
   test('Escape on the message leaves it and the address where they are', async ({ page }) => {

@@ -65,6 +65,20 @@ const ARRIVALS: Arrival[] = [
     address: `/booth?chapter=${encodeURIComponent('🦎 مرحبا')}`,
     shows: () => blocked('Booth'),
   },
+  { seam: 'S1', what: 'Booth, a line that is not in the chapter', address: '/booth?chapter=chapter-1&para=nope&at=0', shows: () => blocked('Booth') },
+  { seam: 'S1', what: 'Booth, a line with no chapter', address: '/booth?para=p-5', shows: () => blocked('Booth') },
+  { seam: 'S6', what: 'Script, a line link that is not a number', address: '/script#p-1', shows: () => blocked('Script') },
+  { seam: 'S6', what: 'Script, a credits link that is not the opening or closing', address: '/script#credits-bogus', shows: () => blocked('Script') },
+  { seam: 'S12', what: 'Proof, a chapter the manuscript does not have', address: '/proof?chapter=nope', shows: () => blocked('Proof') },
+  { seam: 'S12', what: 'Proof, the chapter named twice', address: '/proof?chapter=chapter-1&chapter=chapter-2', shows: () => blocked('Proof') },
+  { seam: 'S13', what: 'Master & QC, a file named twice', address: '/master#file=a.wav&file=b.wav', shows: () => blocked('Master & QC') },
+  { seam: 'S13', what: 'Master & QC, a blank file', address: '/master#file=', shows: () => blocked('Master & QC') },
+  {
+    seam: 'S0',
+    what: 'An address no page owns shows a message and a way out',
+    address: '/script/chapter-7',
+    shows: () => screen.findByRole('heading', { level: 2, name: 'This address does not open a page' }),
+  },
   { seam: 'S4', what: 'Booth with a pickup session', address: '/booth?chapter=chapter-1&pickups=k1,k2', shows: () => heading('Booth') },
   { seam: 'S6', what: 'Script at a line', address: '/script#p5', shows: () => heading('Script'), leavesAt: '/script' },
   { seam: 'S6', what: 'Script at a chapter by id', address: '/script#cchapter-2', shows: () => heading('Script'), leavesAt: '/script' },
@@ -124,7 +138,7 @@ describe('cross-page matrix: where an address lands the narrator', () => {
 
   it('has a row for every seam the inventory lists as arriving by address', () => {
     const covered = new Set(ARRIVALS.map((row) => row.seam));
-    for (const seam of ['S1', 'S4', 'S6', 'S7', 'S8', 'S9', 'S12', 'S13', 'S14', 'S16']) expect(covered.has(seam), seam).toBe(true);
+    for (const seam of ['S0', 'S1', 'S4', 'S6', 'S7', 'S8', 'S9', 'S12', 'S13', 'S14', 'S16']) expect(covered.has(seam), seam).toBe(true);
   });
 });
 

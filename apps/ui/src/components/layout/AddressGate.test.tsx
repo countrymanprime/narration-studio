@@ -14,7 +14,7 @@ const Where = () => {
   return <span data-testid="where">{pathname + search + hash}</span>;
 };
 
-type Chapters = readonly { id: string }[] | null;
+type Chapters = readonly { id: string; paragraphIds?: readonly { id: string }[] }[] | null;
 
 function mount(options: { at: string; page: AddressPage; chapters?: Chapters | null; reload?: () => Promise<void>; route?: string; param?: string }) {
   const reload = options.reload ?? vi.fn().mockResolvedValue(undefined);
@@ -111,5 +111,28 @@ describe('AddressGate', () => {
     await waitFor(() => expect(screen.getByText('the page')).toBeTruthy());
     view.rerender([{ id: 'c1' }]);
     await waitFor(() => expect(reload).toHaveBeenCalledTimes(2));
+  });
+
+  it('says the line is not in the chapter when the chapter is there and the line is not, after one re-read', async () => {
+    const chapters = [
+      { id: 'c1', paragraphIds: [{ id: 'p1' }] },
+      { id: 'c2', paragraphIds: [{ id: 'p2' }] },
+    ];
+    const view = mount({ at: '/booth?chapter=c1&para=p2&at=0', page: 'booth', chapters });
+    await waitFor(() => expect(screen.getByRole('alert').textContent).toContain('a line that is not in that chapter'));
+    expect(view.reload).toHaveBeenCalledTimes(1);
+    cleanup();
+    mount({ at: '/booth?chapter=c1&para=p1&at=0', page: 'booth', chapters });
+    expect(screen.getByText('the page')).toBeTruthy();
+  });
+
+  it('does not judge a line when the chapter lists none', () => {
+    mount({ at: '/booth?chapter=c1&para=whatever', page: 'booth', chapters: [{ id: 'c1' }] });
+    expect(screen.getByText('the page')).toBeTruthy();
+  });
+
+  it('checks the Proof chapter too', async () => {
+    mount({ at: '/proof?chapter=nope', page: 'proof', route: '/proof' });
+    await waitFor(() => expect(screen.getByRole('alert').textContent).toContain('Proof link points to a chapter'));
   });
 });

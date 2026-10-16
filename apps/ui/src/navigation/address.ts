@@ -224,12 +224,15 @@ function readScript(params: URLSearchParams, hash: string): AddressRead {
     // The chapter is not in the address: the destination finds the paragraph's chapter. `chapter: ''` says "any".
     return index <= MAX_ADDRESS_NUMBER ? { kind: 'address', address: { page: 'script', chapter: '', paragraph: index } } : bad('script', 'out-of-range');
   }
-  if (hash.startsWith('#c')) {
+  if (hash.startsWith('#c') && !hash.startsWith('#credits-')) {
     const chapter = safeDecode(hash.slice(2));
     if (chapter === null) return bad('script', 'malformed-encoding');
     const problem = checkText(chapter);
     return problem ? bad('script', problem) : { kind: 'address', address: { page: 'script', chapter } };
   }
+  // Shaped like a line or credits link but not one the page has (#p-1, #pNaN, #p, #credits-bogus), or not decodable at all.
+  if (safeDecode(hash.slice(1)) === null) return bad('script', 'malformed-encoding');
+  if (hash.startsWith('#p') || hash.startsWith('#credits-')) return bad('script', 'unknown-value');
   return { kind: 'none' };
 }
 
@@ -275,6 +278,8 @@ function readBooth(params: URLSearchParams): AddressRead {
   if (para.reason) return bad('booth', para.reason);
   const at = numberParam(params, 'at');
   if (typeof at === 'string') return bad('booth', at);
+  // A line is a place in a chapter: one named with no chapter is not an address the page can open.
+  if (chapter.value === undefined && params.get('credits') === null && (para.value !== undefined || at !== undefined)) return bad('booth', 'unknown-value');
   const credits = params.get('credits');
   if (credits !== null && credits !== 'opening' && credits !== 'closing') return bad('booth', 'unknown-value');
   const pickupText = params.get('pickups');

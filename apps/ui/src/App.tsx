@@ -41,6 +41,7 @@ import { type BoothTarget } from './components/booth/page/boothQuery';
 import { addressPath, type AddressPage } from './navigation/address';
 import { scriptPath } from './navigation/scriptPath';
 import { AddressGate } from './components/layout/AddressGate';
+import { NotFoundPage } from './components/layout/NotFoundPage';
 import { CompanionPage } from './components/booth/companion/CompanionPage';
 import { EnginePanel } from './components/engine/EnginePanel';
 import { EnginePanelProvider } from './components/engine/EnginePanelContext';
@@ -754,7 +755,8 @@ function AppRoutes() {
                 <Route path="/teleprompter" element={<RedirectKeepingLocation to="/booth" />} />
                 <Route
                   path="/proof"
-                  element={
+                  element={gated(
+                    'proof',
                     <ProofPage
                       hasManuscript={Boolean(data.manuscript)}
                       projectFolder={data.projectFolder}
@@ -762,8 +764,8 @@ function AppRoutes() {
                       goToScript={(chapterId) => goToScript(chapterId)}
                       goToBooth={(chapterId) => goToBooth({ chapter: chapterId })}
                       goToEditing={goToEditing}
-                    />
-                  }
+                    />,
+                  )}
                 />
                 {/* Pickups replaces the Tracks page's Pickups dialog, which had no route. */}
                 <Route
@@ -783,7 +785,8 @@ function AppRoutes() {
                 {/* Master & QC and Delivery are two pages (ADR 0802); without a manuscript Delivery asks for one itself. */}
                 <Route
                   path="/master"
-                  element={
+                  element={gated(
+                    'master',
                     <MasterPage
                       hasManuscript={Boolean(data.manuscript)}
                       projectFolder={data.projectFolder}
@@ -791,8 +794,8 @@ function AppRoutes() {
                       onOpenDelivery={() => guardedNavigate('/delivery')}
                       openSettings={() => guardedNavigate(addressPath({ page: 'settings', anchor: 'cleanup' }))}
                       focusFile={parseMasterHash(location.hash)?.file}
-                    />
-                  }
+                    />,
+                  )}
                 />
                 {/* An older finding link (`/delivery#file=…`, masterLink.ts) still lands on Master & QC, anchor kept. */}
                 <Route
@@ -830,6 +833,7 @@ function AppRoutes() {
                     />
                   }
                 />
+                <Route path="*" element={<NotFoundPage />} />
               </Routes>
             </ErrorBoundary>
             <ToastRegion messages={messages} dismiss={dismissMessage} />

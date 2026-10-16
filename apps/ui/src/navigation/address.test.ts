@@ -97,6 +97,7 @@ describe('readAddress on bad addresses', () => {
   it('reads an address that asks for nothing as none', () => {
     expect(readAddress('script', { search: '', hash: '' })).toEqual({ kind: 'none' });
     expect(readAddress('script', { search: '', hash: '#bookmark-3' })).toEqual({ kind: 'none' });
+    expect(readAddress('script', { search: '', hash: '#credits-opening' }).kind).toBe('address');
     expect(readAddress('booth', { search: '?from=bookmark', hash: '' })).toEqual({ kind: 'none' });
     expect(readAddress('editing', { search: '', hash: '' })).toEqual({ kind: 'none' });
     expect(readAddress('story-bible', { search: '', hash: '#' })).toEqual({ kind: 'none' });
@@ -110,8 +111,9 @@ describe('readAddress on bad addresses', () => {
   });
 
   it('a paragraph that is not a plain number is not a paragraph', () => {
-    expect(readAddress('script', { search: '', hash: '#p-1' })).toEqual({ kind: 'none' });
-    expect(readAddress('script', { search: '', hash: '#pNaN' })).toEqual({ kind: 'none' });
+    for (const hash of ['#p-1', '#pNaN', '#p', '#p1e999', '#credits-bogus'])
+      expect(readAddress('script', { search: '', hash })).toEqual(bad('script', 'unknown-value'));
+    expect(readAddress('script', { search: '', hash: '#%E0%A4%A' })).toEqual(bad('script', 'malformed-encoding'));
     expect(readAddress('script', { search: '', hash: `#p${'9'.repeat(400)}` })).toEqual(bad('script', 'out-of-range'));
     expect(readAddress('script', { search: '', hash: `#p${MAX_ADDRESS_NUMBER + 1}` })).toEqual(bad('script', 'out-of-range'));
     expect(readAddress('script', { search: '', hash: `#p${MAX_ADDRESS_NUMBER}` }).kind).toBe('address');
@@ -133,6 +135,12 @@ describe('readAddress on bad addresses', () => {
     expect(readAddress('booth', { search: '?chapter=', hash: '' })).toEqual(bad('booth', 'empty'));
     expect(readAddress('editing', { search: '?finding=a%00b', hash: '' })).toEqual(bad('editing', 'control-characters'));
     expect(readAddress('story-bible', { search: '', hash: '#a%0Ab' })).toEqual(bad('story-bible', 'control-characters'));
+  });
+
+  it('a line or an offset with no chapter names nothing the Booth can open', () => {
+    expect(readAddress('booth', { search: '?para=p1', hash: '' })).toEqual(bad('booth', 'unknown-value'));
+    expect(readAddress('booth', { search: '?at=3', hash: '' })).toEqual(bad('booth', 'unknown-value'));
+    expect(readAddress('booth', { search: '?credits=opening&at=3', hash: '' }).kind).toBe('address');
   });
 
   it('a name given twice is ambiguous, in query and in hash', () => {
