@@ -1,5 +1,6 @@
 // How to reach each `pickups` state (the Studio Next Pickups page) in STATE_CATALOG (see app.drivers.ts).
 import type { Locator, Page } from '@playwright/test';
+import { settlePage } from '../helpers/settle';
 import { type Driver, goToPage, openWithoutManuscript } from './shared';
 
 const list = (page: Page): Locator => page.getByRole('region', { name: 'Pickups' });
@@ -20,7 +21,7 @@ export const pickupsDrivers: Record<string, Driver> = {
     await list(page)
       .getByRole('button', { name: /^Chapter: .*\. Change chapter$/ })
       .click();
-    await page.getByRole('menuitemradio', { name: /^Chapter 1( — |$)/ }).click();
+    await page.getByRole('menuitemradio', { name: /^Chapter 1( |$)/ }).click();
     await page.getByText('No pickups for this chapter').waitFor();
   },
   'session-left-out': async (page) => {
@@ -32,6 +33,17 @@ export const pickupsDrivers: Record<string, Driver> = {
     await openPickups(page);
     await list(page).getByRole('button', { name: 'Add a pickup by hand' }).click();
     await page.getByRole('textbox', { name: 'Line to re-record' }).waitFor();
+  },
+  'marked-recorded': async (page) => {
+    await openPickups(page);
+    await list(page).getByRole('button', { name: 'Mark recorded' }).first().click();
+    await page.getByText('Not in the DAW yet').first().waitFor();
+  },
+  unreadable: async (page) => {
+    await page.goto('/?mockPickupList=unreadable');
+    await settlePage(page);
+    await goToPage(page, 'Pickups');
+    await page.getByText('The pickup list could not be read').waitFor();
   },
   empty: async (page) => {
     await openPickups(page);

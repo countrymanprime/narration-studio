@@ -1,9 +1,8 @@
 import { useState } from 'react';
-import { describeApiError } from '../../../api/errorMessage';
 import { useOverlay } from '../../../overlay/OverlayProvider';
 import { Button } from '../../primitives/Button';
 import { Field } from '../../primitives/Field';
-import { parseClock } from './pickupRows';
+import { parseClock, reasonSentence } from './pickupRows';
 
 /**
  * The popover form of "Add a pickup by hand" (mock `AddPickup`): the time in the recording and the line to re-record, for the chapter in view.
@@ -41,7 +40,7 @@ export function AddPickup({
       await onAdd(chapterId, seconds, line.trim());
       onDone();
     } catch (error) {
-      overlay.toast(describeApiError(error), { tone: 'error' });
+      overlay.toast(reasonSentence(error), { tone: 'error' });
     } finally {
       setBusy(false);
     }

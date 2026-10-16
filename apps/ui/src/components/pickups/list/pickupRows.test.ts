@@ -100,3 +100,22 @@ describe('the type chip', () => {
     expect(typeTone(pickup({ gap: 'other', type: 'Odd' }))).toBe('neutral');
   });
 });
+
+describe('the copied script', () => {
+  const chapters = [
+    { id: 'a', name: 'Chapter A' },
+    { id: 'b', name: 'Chapter B' },
+  ];
+  it('lists chapters in manuscript order and lines by time, a typed line as typed, a note line without its tags', () => {
+    const lines = [
+      pickup({ id: '1', chapterId: 'b', time: 1, script: 'Later chapter' }),
+      pickup({ id: '2', chapterId: 'a', time: 9, source: 'you', script: '<b>raw</b>' }),
+      pickup({ id: '3', chapterId: 'a', time: 2, script: 'the <b>word</b>' }),
+    ];
+    expect(pickupScript(lines, chapters).split('\n')).toEqual([
+      'Chapter A · 00:02.0: the word',
+      'Chapter A · 00:09.0: <b>raw</b>',
+      'Chapter B · 00:01.0: Later chapter',
+    ]);
+  });
+});
