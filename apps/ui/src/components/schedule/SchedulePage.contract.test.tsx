@@ -81,6 +81,14 @@ describe('an amount as typed', () => {
     await waitFor(() => expect(toasts().join(' ')).not.toMatch(/Write a decimal with a point/));
   });
 
+  it('takes the refusal away when the stored amount is typed again', async () => {
+    await mountSchedule();
+    await commit('1,5');
+    await waitFor(() => expect(toasts().join(' ')).toMatch(/Write a decimal with a point/));
+    await commit('250.0');
+    await waitFor(() => expect(toasts().join(' ')).not.toMatch(/Write a decimal with a point/));
+  });
+
   it("shows the host's sentence and the stored amount when the host refuses it", async () => {
     await mountSchedule({
       wrap: () => ({

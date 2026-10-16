@@ -229,6 +229,7 @@ export function SchedulePage({ journal, today, hasManuscript = true, onImport }:
             words={k.words}
             onPayment={(payment: ProductionPayment) => void run((latest) => setPaymentCommand(production, latest, payment))}
             onRefuse={(sentence) => overlay.toast(sentence, { tone: 'error', topic: REFUSAL })}
+            onAccepted={() => overlay.dismissTopic(REFUSAL)}
             onAmount={(amount) => void run((latest) => setAmountCommand(production, latest, amount))}
           />
           <WorkedOut k={k} />

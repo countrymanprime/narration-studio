@@ -15,13 +15,15 @@ export type ContractPanelProps = {
   onAmount: (amount: number | null) => void;
   /** Called with the sentence when the typed amount is not a number of zero or more; nothing is sent. */
   onRefuse: (sentence: string) => void;
+  /** Called when what was typed is a good amount (or empty), written or already stored: an earlier refusal is no longer true. */
+  onAccepted?: () => void;
 };
 
 /**
  * How the narrator is paid (the mock's Contract panel). Only a rate per finished hour carries an amount; a royalty share or no payment is a
  * label, and with no rate there is no figure (ADR 0800 decision 2, SNP-Q4).
  */
-export function ContractPanel({ plan, words, onPayment, onAmount, onRefuse }: ContractPanelProps) {
+export function ContractPanel({ plan, words, onPayment, onAmount, onRefuse, onAccepted }: ContractPanelProps) {
   const payment = paymentOf(plan);
   const [typed, setTyped] = useState<string | null>(null);
   const value = contractValue(plan, words);
@@ -29,7 +31,10 @@ export function ContractPanel({ plan, words, onPayment, onAmount, onRefuse }: Co
     if (typed === null) return;
     const text = typed.trim();
     setTyped(null);
-    if (text === '') return onAmount(null);
+    if (text === '') {
+      onAccepted?.();
+      return onAmount(null);
+    }
     const amount = parseAmount(text);
     if (amount === null)
       return onRefuse(
@@ -39,6 +44,7 @@ export function ContractPanel({ plan, words, onPayment, onAmount, onRefuse }: Co
             ? `${text} could mean 1.5 or 15. Write a decimal with a point, and use commas only for thousands, such as 1,250.50.`
             : 'Write the rate as a number of zero or more, such as 250 or 1,250.50.',
       );
+    onAccepted?.();
     if (amount !== plan.contractedAmount) onAmount(amount);
   };
   return (
