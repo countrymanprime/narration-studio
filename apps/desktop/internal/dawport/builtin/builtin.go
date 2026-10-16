@@ -49,6 +49,8 @@ const (
 	MessageNoSavedProject = "The built-in recorder keeps no saved project."
 	// MessageUnsupported is every capability the built-in recorder has no part in (the Studio Next mock's wording).
 	MessageUnsupported = "Not available with the built-in recorder."
+	// MessageNoInputLevel is input_level's: the level an audio interface records at is its driver's, in no recorder's reach.
+	MessageNoInputLevel = "The built-in recorder cannot set an audio interface's input gain. Set it in your interface's own control panel."
 	// MessageNotYet is a capability the app will make itself and has not built yet.
 	MessageNotYet = "Not available with the built-in recorder yet."
 	// MessageNoSplit is the takes role's answer to a split: the recorder lists every take file in its folder, so cutting one
@@ -98,6 +100,8 @@ func explain(c dawport.Capability, r dawport.Reason) string {
 	switch {
 	case c == dawport.CapProjectRead && r == dawport.ReasonUnsupported:
 		return MessageNoSavedProject
+	case c == dawport.CapInputLevel && r == dawport.ReasonUnsupported:
+		return MessageNoInputLevel
 	case r == dawport.ReasonUnsupported:
 		return MessageUnsupported
 	case r == dawport.ReasonNotYet:

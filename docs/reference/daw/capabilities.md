@@ -348,3 +348,26 @@ Facts about REAPER, Audacity and the built-in recorder are copied from the pages
 - **Built-in recorder:** not yet available; a cut there is an entry in the recorder's edit list, which the app would undo itself.
 - **Binding:** `DawLastAction(kind)` (`apps/desktop/bindings_daw_undo_last.go`) answers `"this"`, `"other"` or `"unknown"`, and `DawUndoLast(kind, steps)` a `DawResult`; the UI's API calls them as `dawLastAction` and `dawUndoLast`, and `DawClient.lastAction` and `DawClient.undoLast`. A capability refusal is `unknown` for `DawLastAction` and the capability's sentence for `DawUndoLast`.
 - **Checked:** harness (`undo_test.lua`); nothing run in REAPER. S0 saw REAPER 7.80's `Undo_CanUndo2` name a bridge block's label right after it closed and one Undo undo it ([S0](../../research/reaper-spike-s0-item-extension-data.md)). Expected result is row C17 of [the verification pass](../../operations/reaper-verification-pass.md#part-c-the-studio-next-daw-commands-not-scripted-yet); the QA pass ([#1495](https://github.com/countrymanprime/narration-utils/issues/1495)) checks it.
+
+### `monitor_level`
+
+- **Intent:** let the narrator set, from the Booth, the level they hear the project at, without touching the level the delivery files are rendered at.
+- **Role:** `MonitorLeveler`, synchronous. `MonitorLevel()` reads and `SetMonitorLevel(level)` sets, `level` a whole number from 0 (silence) to 100, with 70 the engine's unity (0 dB). The caller never names a decibel: each engine maps the number to its own gain.
+- **Result:** both answer the level the engine now holds, a whole number from 0 to 100, read back after a set (so it can differ from the one sent only by rounding). A set adds no undo point and changes nothing else. A level outside 0 to 100 is an error and nothing is sent. Setting the level it already holds changes nothing.
+- **Refusals:** the engine has no monitoring output to set (in the engine's sentence); the engine refuses the set; the capability is off or not usable now (the capability's own sentence).
+- **REAPER:** `monitor_level`, Experimental (`narration_levels.lua`). The level is the volume of the master track's first hardware output send, not a fader: faders are rendered into the delivery files and a hardware output send is not. The script maps the number to a gain: 70 is 0 dB; from 70 to 100 it is 0.2 dB a step (100 is +6 dB); below 70 it is 60/70 dB a step (35 is -30 dB); 0 is gain 0. Reading inverts that, rounds to the nearest whole level and clamps to 0 to 100. With no hardware output on the master the answer is an `ERROR` sentence. The calls are `GetMasterTrack(0)`, `GetTrackNumSends(master, 1)` and `GetTrackSendInfo_Value` / `SetTrackSendInfo_Value(master, 1, 0, 'D_VOL')`.
+- **Audacity:** not yet available.
+- **Built-in recorder:** unsupported, the default for what the recorder does not do: "Not available with the built-in recorder."
+- **Binding:** `DawMonitorLevel()` and `DawSetMonitorLevel(level)` (`apps/desktop/bindings_daw_levels.go`) answer `{"ok": bool, "level": int, "message": string}`. A refusal is `ok` false, `level` 0 and the sentence in `message`.
+- **Checked:** harness (`levels_test.lua`: a round trip of every level from 0 to 100). Nothing run in REAPER: that those calls count and set the hardware outputs, that a set answers true, and whether the first hardware output is the one the narrator monitors on are row C18 of [the verification pass](../../operations/reaper-verification-pass.md#part-c-the-studio-next-daw-commands-not-scripted-yet), pending with the owner.
+
+### `input_level`
+
+- **Intent:** let the Booth's input slider set the level an audio interface records at.
+- **Role:** `InputLeveler`, synchronous: `SetInputLevel(level)`, `level` 0 to 100. No engine implements it, so the role exists only for the conformance suite.
+- **Result:** none. The capability is declared Unsupported on every engine, so the resolver refuses it with the sentence "*Engine* cannot set an audio interface's input gain. Set it in your interface's own control panel." (the built-in recorder says "The built-in recorder cannot set ..."). It is Unsupported, not Not yet available: the level lives in the interface's driver, and no later version of the app can reach it through the engine.
+- **REAPER:** unsupported. ReaScript has no call that sets an audio interface's input gain. The app does not offer a track's own volume in its place: that is not the interface's gain.
+- **Audacity:** unsupported.
+- **Built-in recorder:** unsupported.
+- **Binding:** none.
+- **Checked:** the declaration and the sentence, by tests in `dawport`, `dawport/reaper`, `dawport/audacity` and `dawport/builtin`.

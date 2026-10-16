@@ -80,6 +80,8 @@ func NewFake(kind dawport.Kind, levels map[dawport.Capability]dawport.Level) *Fa
 		dawport.CapRangeGain:       rangeGainRole{r(dawport.CapRangeGain)},
 		dawport.CapClickRepair:     clickRepairRole{r(dawport.CapClickRepair)},
 		dawport.CapUndoLast:        undoLastRole{r(dawport.CapUndoLast)},
+		dawport.CapMonitorLevel:    monitorLevelRole{r(dawport.CapMonitorLevel)},
+		dawport.CapInputLevel:      inputLevelRole{r(dawport.CapInputLevel)},
 	}
 	return f
 }
@@ -379,6 +381,40 @@ func (r undoLastRole) UndoLast(_ context.Context, kind dawport.ActionKind, _ int
 	}
 	return got.WithUndoSteps(0), nil
 }
+
+type monitorLevelRole struct{ role }
+
+// MonitorLevel answers unity and SetMonitorLevel the level it was given, as REAPER's monitor_level does when the send holds it; a level
+// outside 0 to dawport.MaxLevel is an error with nothing set.
+func (r monitorLevelRole) MonitorLevel(context.Context) (int, error) {
+	if err := r.do("MonitorLevel"); err != nil {
+		return 0, err
+	}
+	return dawport.UnityLevel, nil
+}
+func (r monitorLevelRole) SetMonitorLevel(_ context.Context, level int) (int, error) {
+	if err := r.do("SetMonitorLevel"); err != nil {
+		return 0, err
+	}
+	if level < 0 || level > dawport.MaxLevel {
+		return 0, errLevel
+	}
+	return level, nil
+}
+
+type inputLevelRole struct{ role }
+
+func (r inputLevelRole) SetInputLevel(_ context.Context, level int) (int, error) {
+	if err := r.do("SetInputLevel"); err != nil {
+		return 0, err
+	}
+	if level < 0 || level > dawport.MaxLevel {
+		return 0, errLevel
+	}
+	return level, nil
+}
+
+var errLevel = errors.New("the level is 0 to 100")
 
 type cutRangeRole struct{ role }
 
