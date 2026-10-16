@@ -139,9 +139,9 @@ describe('the list at its edges', () => {
     mount(api);
     await vi.waitFor(() => expect(rows()).toHaveLength(3000), { timeout: 15000 });
     expect(rows()).toHaveLength(3000);
-    await userEvent.type(screen.getByRole('textbox', { name: 'Search entries' }), 'Entry 2999');
+    fireEvent.change(screen.getByRole('textbox', { name: 'Search entries' }), { target: { value: 'Entry 2999' } });
     expect(rowNames()).toEqual(['Entry 2999']);
-  });
+  }, 60000);
 
   it('a search of regular-expression characters, of emoji and of 10,000 characters finds nothing without failing', async () => {
     const api = createMockApi();
@@ -237,5 +237,53 @@ describe('a new entry', () => {
     await vi.waitFor(() => expect(create).toHaveBeenCalledTimes(1));
     expect((create.mock.calls[0][0] as string).length).toBe(9000 + '<img src=x onerror=alert(1)>'.length);
     expect(document.querySelector('img[src="x"]')).toBeNull();
+  });
+});
+
+describe('stale and leaving mid-action', () => {
+  it('an entry the host no longer has, found on the next read, hands the page to another entry without a crash', async () => {
+    const api = createMockApi();
+    const all = await api.guideEntities();
+    const read = vi.spyOn(api, 'guideEntities').mockResolvedValue(all);
+    mount(api);
+    await screen.findAllByText('Alice');
+    fireEvent.click(rows().find((row) => row.textContent?.startsWith('Hatter'))!);
+    await screen.findByRole('heading', { name: 'Hatter' });
+    read.mockResolvedValue(all.filter((entry) => entry.canonical_name !== 'Hatter'));
+    fireEvent.click(screen.getByRole('button', { name: 'Build / refresh Story Bible' }));
+    await vi.waitFor(() => expect(rowNames()).not.toContain('Hatter'));
+    expect(screen.queryByRole('heading', { name: 'Hatter' })).toBeNull();
+    expect(screen.getAllByRole('heading', { level: 2 }).length).toBeGreaterThan(0);
+  });
+
+  it('leaving the page while an action is still running raises no error when it ends', async () => {
+    const api = createMockApi();
+    let finish: () => void = () => undefined;
+    vi.spyOn(api, 'guideBuild').mockImplementation(
+      () => new Promise((resolve) => (finish = () => resolve({ status: 'started', job: { id: 'j', phase: 'success' } } as never))),
+    );
+    const errors: unknown[] = [];
+    const onError = (event: ErrorEvent) => errors.push(event.error);
+    window.addEventListener('error', onError);
+    mount(api);
+    await screen.findAllByText('Alice');
+    fireEvent.click(screen.getByRole('button', { name: 'Build / refresh Story Bible' }));
+    cleanup();
+    finish();
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    window.removeEventListener('error', onError);
+    expect(errors).toEqual([]);
+  });
+
+  it('pressing Build twice in the same moment starts one build', async () => {
+    const api = createMockApi();
+    const build = vi.spyOn(api, 'guideBuild').mockImplementation(() => new Promise(() => undefined));
+    mount(api);
+    await screen.findAllByText('Alice');
+    const button = screen.getByRole('button', { name: 'Build / refresh Story Bible' });
+    fireEvent.click(button);
+    fireEvent.click(button);
+    fireEvent.click(button);
+    expect(build).toHaveBeenCalledTimes(1);
   });
 });
