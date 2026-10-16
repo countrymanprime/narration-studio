@@ -18,11 +18,7 @@ import { settlePage } from './settle';
 export type OverlayPage = 'Production' | 'Schedule' | 'Script' | 'Story Bible' | 'Editing' | 'Proof' | 'Pickups' | 'Master & QC' | 'Delivery' | 'Settings';
 
 /** The widths and heights an overlay is checked at: the suite's own matrix, and two windows far smaller than the product ships in. */
-export const OVERLAY_VIEWPORTS: Viewport[] = [
-  ...VIEWPORTS,
-  { name: 'narrow-360x500', width: 360, height: 500 },
-  { name: 'tiny-320x300', width: 320, height: 300 },
-];
+const OVERLAY_VIEWPORTS: Viewport[] = [...VIEWPORTS, { name: 'narrow-360x500', width: 360, height: 500 }, { name: 'tiny-320x300', width: 320, height: 300 }];
 
 export interface OverlayCase {
   /** Unique within the page; part of the test title. */
@@ -53,7 +49,7 @@ export interface OverlayCase {
  * Thrown by a case's `open` when the product deliberately did not open the overlay (a right click in a text field or on something
  * with no menu leaves the browser's own menu). The point is skipped, counted, and a case that never opened anywhere fails.
  */
-export class NotOpened extends Error {}
+class NotOpened extends Error {}
 
 /** The context menu: a right click at the pointer's position. */
 export function contextMenuCase(name: string, options: Partial<Pick<OverlayCase, 'over' | 'viewports'>> = {}): OverlayCase {

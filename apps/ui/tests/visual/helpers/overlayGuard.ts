@@ -14,7 +14,7 @@ export interface Point {
   y: number;
 }
 
-export interface OverlayCheckOptions {
+interface OverlayCheckOptions {
   /** Names the overlay in a failure message. */
   label?: string;
   /** How far inside the box the sampled points sit, so a rounded corner or a border is not mistaken for a gap. Default 8 px. */
