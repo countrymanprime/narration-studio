@@ -205,3 +205,58 @@ describe('useRecordControl follows the DAW live', () => {
     expect(notify).toHaveBeenCalledWith(stoppedInDaw('REAPER'));
   });
 });
+
+describe('RecordSetup says what it waits for and when it last looked', () => {
+  function mountChecked(capabilities: DawCapabilities, extra: Partial<React.ComponentProps<typeof RecordSetup>> = {}) {
+    const onCheckAgain = vi.fn();
+    render(
+      <ApiProvider api={createMockApi()}>
+        <RecordSetup
+          capabilities={capabilities}
+          facts={LINKED}
+          say={vi.fn()}
+          onSettings={vi.fn()}
+          onChanged={vi.fn()}
+          checkedAt={Date.now() - 7000}
+          onCheckAgain={onCheckAgain}
+          {...extra}
+        />
+      </ApiProvider>,
+    );
+    return { onCheckAgain };
+  }
+
+  it('connect-names-what-it-waits-for-and-the-last-check-and-offers-check-again', async () => {
+    const { onCheckAgain } = mountChecked(recordRefused('standalone'));
+    expect(screen.getByText(/Waiting for REAPER to connect/)).toBeTruthy();
+    expect(screen.getByText(/Last checked \d+ s ago/)).toBeTruthy();
+    await userEvent.click(screen.getByRole('button', { name: 'Check again' }));
+    expect(onCheckAgain).toHaveBeenCalledTimes(1);
+  });
+
+  it('not-answering-says-the-heartbeat-went-quiet', () => {
+    mountChecked(recordRefused('not_running'));
+    expect(screen.getByText(/Waiting for REAPER to answer/)).toBeTruthy();
+  });
+
+  it('says-so-when-it-has-not-checked-yet', () => {
+    mountChecked(recordRefused('standalone'), { checkedAt: null });
+    expect(screen.getByText(/Not checked yet/)).toBeTruthy();
+  });
+
+  it('a-quiet-read-says-it-cannot-tell-instead-of-the-last-answer', () => {
+    mountChecked(recordRefused('standalone'), { readFailed: true });
+    expect(screen.getByText(/Can.t tell whether REAPER is connected/)).toBeTruthy();
+  });
+
+  it('does-not-claim-the-project-is-unlinked-when-the-link-state-could-not-be-read', () => {
+    mountChecked(recordRefused('standalone'), { facts: { dawFileLinked: false, launcherPath: '' }, factsFailed: true });
+    expect(screen.queryByRole('button', { name: 'Link in Settings' })).toBeNull();
+    expect(screen.getByText(/Could not read whether a project file is linked/)).toBeTruthy();
+  });
+
+  it('turn-on-also-offers-check-again', () => {
+    mountChecked(recordRefused('experimental_off'));
+    expect(screen.getByRole('button', { name: 'Check again' })).toBeTruthy();
+  });
+});

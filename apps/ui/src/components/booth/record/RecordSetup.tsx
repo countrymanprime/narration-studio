@@ -8,25 +8,66 @@ import { recordSetupFor, type RecordSetupFacts, type RecordSetupPlan } from './r
 
 const NO_FACTS: RecordSetupFacts = { dawFileLinked: false, launcherPath: '' };
 
+export type RecordSetupFactsRead = { facts: RecordSetupFacts; failed: boolean };
+
 /**
  * The host's link facts for the setup steps: whether an .rpp is linked and where the launcher file is. They are read when the Booth
- * opens and again whenever the DAW's reachability changes, since a project linked or the app attached by the DAW changes them.
+ * opens and again whenever the DAW's reachability changes or `reads` does (a Check again, a focus, a timed read), since a project linked
+ * or the app attached by the DAW changes them. A read that fails keeps the facts last heard and says it failed: it never turns a linked
+ * project into "not linked".
  */
-export function useRecordSetupFacts(reachable: boolean | undefined): RecordSetupFacts {
+export function useRecordSetupFacts(reachable: boolean | undefined, reads = 0): RecordSetupFactsRead {
   const system = usePort('system');
-  const [facts, setFacts] = useState<RecordSetupFacts>(NO_FACTS);
+  const [read, setRead] = useState<RecordSetupFactsRead>({ facts: NO_FACTS, failed: false });
   useEffect(() => {
     let live = true;
     system
       .bootstrap()
-      .then((data) => live && setFacts({ dawFileLinked: data.dawFileLinked, launcherPath: data.runtime.Reaper?.launcherPath ?? '' }))
-      // Without the facts the steps still show, with the link step and no path to copy: the safe side of both.
-      .catch(() => live && setFacts(NO_FACTS));
+      .then((data) => live && setRead({ facts: { dawFileLinked: data.dawFileLinked, launcherPath: data.runtime.Reaper?.launcherPath ?? '' }, failed: false }))
+      .catch(() => live && setRead((last) => ({ facts: last.facts, failed: true })));
     return () => {
       live = false;
     };
-  }, [system, reachable]);
-  return facts;
+  }, [system, reachable, reads]);
+  return read;
+}
+
+/** Seconds since `at`, re-rendered every second while mounted; null when there is no time. */
+function useSecondsSince(at: number | null | undefined): number | null {
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    const timer = window.setInterval(() => setNow(Date.now()), 1000);
+    return () => window.clearInterval(timer);
+  }, []);
+  return at == null ? null : Math.max(0, Math.round((now - at) / 1000));
+}
+
+/** What the notice is waiting for and when it last looked, with the Check again that forces a fresh read. */
+function CheckLine({
+  waiting,
+  unknown,
+  checkedAt,
+  readFailed,
+  onCheckAgain,
+}: {
+  waiting: string;
+  unknown: string;
+  checkedAt?: number | null;
+  readFailed?: boolean;
+  onCheckAgain?: () => void;
+}) {
+  const seconds = useSecondsSince(checkedAt);
+  const last = seconds === null ? 'Not checked yet' : `Last checked ${seconds} s ago`;
+  return (
+    <div className="flex flex-wrap items-center gap-2 text-[var(--text-muted)]" role="status">
+      <span>{readFailed ? `Can't tell whether ${unknown} (${last.toLowerCase()}).` : `${waiting}. ${last}.`}</span>
+      {onCheckAgain && (
+        <Button variant="secondary" size="sm" onClick={onCheckAgain}>
+          Check again
+        </Button>
+      )}
+    </div>
+  );
 }
 
 type Say = (sentence: string, tone?: 'error') => void;
@@ -43,6 +84,10 @@ export function RecordSetup({
   say,
   onSettings,
   onChanged,
+  checkedAt,
+  readFailed,
+  factsFailed,
+  onCheckAgain,
 }: {
   capabilities: DawCapabilities;
   facts: RecordSetupFacts;
@@ -51,15 +96,26 @@ export function RecordSetup({
   onSettings: () => void;
   /** Read the capabilities again after a setting the host changed. */
   onChanged: () => void;
+  /** When the DAW last answered (ms since the epoch); null before it has. Shown as "Last checked N s ago". */
+  checkedAt?: number | null;
+  /** The last read of the DAW failed, so the notice says it cannot tell instead of giving the last answer as fact. */
+  readFailed?: boolean;
+  /** The link state could not be read, so the link step is not claimed missing. */
+  factsFailed?: boolean;
+  /** The visible Check again: a fresh read now. */
+  onCheckAgain?: () => void;
 }) {
   const plan = recordSetupFor(capabilities, facts);
   if (!plan) return null;
+  const check = { checkedAt, readFailed, onCheckAgain };
   return plan.kind === 'turn-on' ? (
-    <TurnOn plan={plan} say={say} onSettings={onSettings} onChanged={onChanged} />
+    <TurnOn plan={plan} say={say} onSettings={onSettings} onChanged={onChanged} check={check} />
   ) : (
-    <Connect plan={plan} say={say} onSettings={onSettings} onChanged={onChanged} />
+    <Connect plan={plan} say={say} onSettings={onSettings} onChanged={onChanged} check={check} factsFailed={factsFailed} />
   );
 }
+
+type CheckProps = { checkedAt?: number | null; readFailed?: boolean; onCheckAgain?: () => void };
 
 function useBusy(): [boolean, (work: () => Promise<void>) => Promise<void>] {
   const [busy, setBusy] = useState(false);
@@ -79,11 +135,13 @@ function TurnOn({
   say,
   onSettings,
   onChanged,
+  check,
 }: {
   plan: Extract<RecordSetupPlan, { kind: 'turn-on' }>;
   say: Say;
   onSettings: () => void;
   onChanged: () => void;
+  check: CheckProps;
 }) {
   const system = usePort('system');
   const [busy, run] = useBusy();
@@ -115,6 +173,9 @@ function TurnOn({
           DAW settings
         </Button>
       </div>
+      {check.onCheckAgain && (
+        <CheckLine waiting={`Waiting for Record to be turned on in ${plan.dawName}`} unknown={`Record is on in ${plan.dawName}`} {...check} />
+      )}
     </InsetCard>
   );
 }
@@ -124,11 +185,15 @@ function Connect({
   say,
   onSettings,
   onChanged,
+  check,
+  factsFailed,
 }: {
   plan: Extract<RecordSetupPlan, { kind: 'connect' }>;
   say: Say;
   onSettings: () => void;
   onChanged: () => void;
+  check: CheckProps;
+  factsFailed?: boolean;
 }) {
   const system = usePort('system');
   const project = usePort('project');
@@ -157,7 +222,8 @@ function Connect({
         {plan.notAnswering ? `${name} is not answering` : `Connect ${name} to record`}
       </h3>
       <ol className="list-decimal space-y-2 pl-5 text-[var(--text-muted)]">
-        {!plan.linked && (
+        {!plan.linked && factsFailed && <li>Could not read whether a project file is linked. Press Check again.</li>}
+        {!plan.linked && !factsFailed && (
           <li>
             {guide.link}{' '}
             <Button variant="secondary" size="sm" onClick={onSettings}>
@@ -186,6 +252,13 @@ function Connect({
         </Button>
         <span className="text-[var(--text-muted)]">{plan.linked ? guide.launch.note : 'Link the project file first.'}</span>
       </div>
+      {check.onCheckAgain && (
+        <CheckLine
+          waiting={`Waiting for ${name} to ${plan.notAnswering ? 'answer' : 'connect'}`}
+          unknown={`${name} is ${plan.notAnswering ? 'answering' : 'connected'}`}
+          {...check}
+        />
+      )}
     </InsetCard>
   );
 }

@@ -341,7 +341,7 @@ function BoothSession({ source, from, requested, adopt, data, choose, navigate, 
   const capabilities = control.capabilities;
   const dawChoice = useDawChoice();
   const roomTone = useRoomTone(measurements, session.device);
-  const setupFacts = useRecordSetupFacts(capabilities?.reachable);
+  const setupFacts = useRecordSetupFacts(capabilities?.reachable, control.reads);
   const standalone = capabilities?.daw === 'none';
   const listening = useListeningMic({
     dawRecords: !!capabilities && !standalone,
@@ -465,7 +465,11 @@ function BoothSession({ source, from, requested, adopt, data, choose, navigate, 
           {capabilities && !control.recording ? (
             <RecordSetup
               capabilities={capabilities}
-              facts={setupFacts}
+              facts={setupFacts.facts}
+              factsFailed={setupFacts.failed}
+              checkedAt={control.checkedAt}
+              readFailed={control.readFailed}
+              onCheckAgain={control.checkAgain}
               say={(sentence, tone) => overlay.toast(sentence, tone ? { tone } : undefined)}
               onSettings={() => void page.goTo(`${BOOTH_LINKS.settings}#daw`)}
               onChanged={control.refresh}

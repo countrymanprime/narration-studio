@@ -2,7 +2,11 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import type { DawCapabilities, DawProjectState } from '../../../api/contracts/daw';
 import type { ReadAloudReaperReason, ReadAloudReaperStatus } from '../../../api/contracts/teleprompter';
 import { usePort } from '../../../ports/usePort';
+import { describeApiError } from '../../../api/errorMessage';
 import { recordCheck, type ChapterRecordState } from './recordCheck';
+
+/** How often the Booth asks the DAW again while Record cannot start or the last read failed: a lost event must not leave a notice up for ever. */
+export const POLL_MS = 4000;
 
 function tracksOf(status: ReadAloudReaperStatus, reason?: ReadAloudReaperReason): ChapterRecordState['tracks'] {
   if (status !== 'no_link') return 'one';
@@ -23,7 +27,22 @@ export type RecordControlState = {
   toggle: () => Promise<void>;
   /** Read the capabilities again, after a setting the Booth itself changed. */
   refresh: () => void;
+  /** The visible Check again: a fresh read now, whatever a timer or an event last said. */
+  checkAgain: () => void;
+  /** When (ms since the epoch) the DAW last answered, by a read or an event; null until it has. */
+  checkedAt: number | null;
+  /** True while the last read failed: the picture above is then the last one heard, not the DAW's answer now. */
+  readFailed: boolean;
+  /** How many reads have been asked for; things that depend on the same facts (the link state) read again when it changes. */
+  reads: number;
 };
+
+/** The sentence for a DAW that has gone quiet: what the Booth can and cannot tell, and the way out. */
+export function cantTell(daw: string | undefined, checkedAt: number | null, now: number): string {
+  const name = daw && daw !== 'none' ? daw : 'the DAW';
+  const heard = checkedAt === null ? 'not heard yet' : `last heard ${Math.max(0, Math.round((now - checkedAt) / 1000))} s ago`;
+  return `Can't tell whether ${name} is ready (${heard}). Press Check again.`;
+}
 
 /** What the Booth says when the DAW stopped a take this app started: the narrator's own Stop there, or the DAW closing. */
 export const stoppedInDaw = (daw: string | undefined) =>
@@ -47,26 +66,57 @@ export function useRecordControl({ chapterId, notify }: { chapterId: string; not
   const busy = useRef(false);
   const readsTracks = !!capabilities?.capabilities.track_state?.available;
 
-  // Read on open and on refresh(), then kept current by daw_capabilities_changed: turning Record on, or the DAW connecting, while the
-  // Booth is open enables Record without leaving the page. A read that resolves after an event is dropped as stale (useCapability's guard).
+  // Read on open, on refresh() and checkAgain(), when the window is focused again, and on a timer while Record cannot start or the last read
+  // failed; kept current by daw_capabilities_changed. An event that arrives while a read is out wins: that read is dropped as stale.
   const [reads, setReads] = useState(0);
+  const [checkedAt, setCheckedAt] = useState<number | null>(null);
+  const [readFailed, setReadFailed] = useState(false);
+  const events = useRef(0);
   useEffect(() => {
     let current = true;
-    let heard = false;
     const unsubscribe = daw.subscribeCapabilities?.((next) => {
-      heard = true;
-      if (current) setCapabilities(next);
+      events.current += 1;
+      if (!current) return;
+      setCapabilities(next);
+      setReadFailed(false);
+      setCheckedAt(Date.now());
     });
-    daw
-      .capabilities()
-      .then((c) => current && !heard && setCapabilities(c))
-      .catch(() => current && !heard && setCapabilities(null));
     return () => {
       current = false;
       unsubscribe?.();
     };
+  }, [daw]);
+  useEffect(() => {
+    let current = true;
+    const heard = events.current;
+    daw
+      .capabilities()
+      .then((c) => {
+        if (!current || heard !== events.current) return;
+        setCapabilities(c);
+        setReadFailed(false);
+        setCheckedAt(Date.now());
+      })
+      // The last picture stays, marked as not current: the narrator is told the Booth cannot tell, never shown a stale answer as fact.
+      .catch(() => current && heard === events.current && setReadFailed(true));
+    return () => {
+      current = false;
+    };
   }, [daw, reads]);
   const refresh = useCallback(() => setReads((n) => n + 1), []);
+  const unready = !capabilities || !!capabilities.capabilities.record?.available === false || readFailed;
+  useEffect(() => {
+    const again = () => setReads((n) => n + 1);
+    const onVisible = () => document.visibilityState === 'visible' && again();
+    window.addEventListener('focus', again);
+    document.addEventListener('visibilitychange', onVisible);
+    const timer = unready ? window.setInterval(again, POLL_MS) : undefined;
+    return () => {
+      window.removeEventListener('focus', again);
+      document.removeEventListener('visibilitychange', onVisible);
+      if (timer !== undefined) window.clearInterval(timer);
+    };
+  }, [unready]);
 
   // A take the narrator stopped in the DAW itself ends here too, once the DAW has been heard recording: the transport is pushed only on
   // a change, so the stopped state the subscription hears first, from before the take started, is not taken for its end (ADR 0232).
@@ -112,22 +162,28 @@ export function useRecordControl({ chapterId, notify }: { chapterId: string; not
   const chapter: ChapterRecordState = match?.chapterId === chapterId ? match : { tracks: 'unread', message: '' };
   const check = capabilities ? recordCheck(capabilities, chapter) : null;
   const shown = refused?.chapterId === chapterId ? refused.sentence : '';
-  const reason = check?.reason ?? shown;
+  // Never read at all: Record is off, not silently on. Read once and quiet since: the last answer stands but is not given as fact.
+  const blind = !capabilities && readFailed;
+  const quiet = readFailed ? cantTell(capabilities?.daw, checkedAt, Date.now()) : '';
+  const reason = check?.reason ?? (shown || quiet);
 
-  const checkRef = useRef(check);
-  checkRef.current = check;
+  const gate = check?.reason ?? (blind ? quiet : '');
+  const gateRef = useRef(gate);
+  gateRef.current = gate;
+  const capabilitiesRef = useRef(capabilities);
+  capabilitiesRef.current = capabilities;
   const recordingRef = useRef(recording);
   recordingRef.current = recording;
 
   const toggle = useCallback(async () => {
     if (busy.current) return;
-    if (!recordingRef.current && checkRef.current) {
-      notify(checkRef.current.reason);
+    if (!recordingRef.current && gateRef.current) {
+      notify(gateRef.current);
       return;
     }
     busy.current = true;
+    const starting = !recordingRef.current;
     try {
-      const starting = !recordingRef.current;
       const result = await (starting ? daw.recordStart(chapterId) : daw.recordStop());
       if (result.ok) {
         setRefused(null);
@@ -135,10 +191,27 @@ export function useRecordControl({ chapterId, notify }: { chapterId: string; not
       } else {
         setRefused({ chapterId, sentence: result.refused ?? result.message });
       }
+    } catch (error) {
+      // A host call that failed (not a refusal): nothing changed that this app knows of, and the narrator is told so.
+      const what = starting ? 'Record did not start' : 'Stop did not go through';
+      setRefused({ chapterId, sentence: `${what}: ${describeApiError(error)}. Check ${capabilitiesRef.current?.daw ?? 'the DAW'} before pressing again.` });
     } finally {
       busy.current = false;
     }
   }, [daw, chapterId, notify]);
 
-  return { capabilities, project, recording, startedByApp: true, reason, disabled: !recording && !!check, toggle, refresh };
+  return {
+    capabilities,
+    project,
+    recording,
+    startedByApp: true,
+    reason,
+    disabled: !recording && (!!check || blind),
+    toggle,
+    refresh,
+    checkAgain: refresh,
+    checkedAt,
+    readFailed,
+    reads,
+  };
 }
