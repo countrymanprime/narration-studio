@@ -39,3 +39,14 @@ export function isGuardedTarget(target: EventTarget | null): boolean {
   const role = target.getAttribute('role');
   return Boolean(role && KEY_WIDGET_ROLES.has(role));
 }
+
+/**
+ * A popup that owns the keyboard while it shows: a popover, a menu, a list of choices, a dialog or an alert dialog (a Base UI
+ * popover's popup is a `dialog`). A tooltip is not one: it is a read-only note and never takes the keys.
+ */
+export const KEY_LAYER = '[role="dialog"], [role="alertdialog"], [role="menu"], [role="listbox"], [data-popover-popup]';
+
+/** Whether a popup that owns the keyboard is on screen (not hidden, inert or aria-hidden). */
+export function keyLayerOpen(root: ParentNode = document): boolean {
+  return Array.from(root.querySelectorAll(KEY_LAYER)).some((layer) => !layer.closest('[hidden], [inert], [aria-hidden="true"]'));
+}

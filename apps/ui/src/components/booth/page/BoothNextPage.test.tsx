@@ -166,10 +166,21 @@ describe('space-records-and-stops-and-nothing-else-records', () => {
 });
 
 describe('every-way-out-asks-while-recording', () => {
-  it('Escape asks "Stop recording?" once; Keep recording changes nothing', async () => {
+  it('Escape asks "Stop recording?"; Escape again with the question open answers it, Keep recording, and the take goes on', async () => {
     const page = renderPage();
     await record(page);
     await press('Escape');
+    expect(page.overlay.getSnapshot().dialogs).toHaveLength(1);
+    await press('Escape');
+    await settle();
+    expect(page.overlay.getSnapshot().dialogs).toHaveLength(0);
+    expect(page.daw.recordStop).not.toHaveBeenCalled();
+    expect(screen.getByText('REC')).toBeTruthy();
+  });
+
+  it('Escape asks "Stop recording?"; Keep recording changes nothing', async () => {
+    const page = renderPage();
+    await record(page);
     await press('Escape');
     expect(page.overlay.getSnapshot().dialogs).toHaveLength(1);
     expect(page.dialog()?.spec.title).toBe('Stop recording?');

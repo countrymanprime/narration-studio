@@ -37,7 +37,8 @@ export function Popover({
   children: ReactNode;
 }) {
   return (
-    <BasePopover.Root open={open} defaultOpen={defaultOpen} onOpenChange={onOpenChange}>
+    // Focus stays inside while it is open (Tab cycles, it never walks out to a page that would keep the popover up); the page behind stays clickable.
+    <BasePopover.Root open={open} defaultOpen={defaultOpen} onOpenChange={onOpenChange} modal="trap-focus">
       <BasePopover.Trigger render={trigger} />
       <BasePopover.Portal>
         {/* Measured on read-aloud-control-bar/03 and 04: 12 px from the trigger, 16 px padding, radius 8, at least 336 px wide. */}
