@@ -49,7 +49,7 @@ export function ChapterCard({
   return (
     <div data-chapter-id={chapter.id} className="flex flex-col">
       {previous ? <EndOf ended={{ name: endedName(previous), words: previous.wordCount }} /> : ended && <EndOf ended={ended} />}
-      <InsetCard as="section" fill aria-label={chapterName(chapter)} className="flex flex-col gap-2 font-sans">
+      <InsetCard as="section" fill aria-label={`${chapterName(chapter)}, chapter card`} className="flex flex-col gap-2 font-sans">
         <div className="flex items-center justify-between gap-2">
           <SectionLabel>{cardLabel(chapter)}</SectionLabel>
           {onRecord && <IconButton action="recordInBooth" onClick={() => onRecord(chapter.id)} />}
