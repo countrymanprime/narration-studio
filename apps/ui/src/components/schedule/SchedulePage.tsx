@@ -1,4 +1,5 @@
 import { useRef } from 'react';
+import { apiErrorMessage } from '../../api/errorMessage';
 import type { ProductionMilestone, ProductionPayment, ProductionPlan } from '../../api/contracts/production';
 import { overlay } from '../../overlay/overlayService';
 import { useOpenPickups } from '../pickups/useOpenPickups';
@@ -24,6 +25,9 @@ import { saveMilestonesCommand, setAmountCommand, setDueDateCommand, setPaymentC
 import { VerdictPill } from './VerdictPill';
 import { WorkedOut } from './WorkedOut';
 
+/** How long a write waits for the one before it to be answered, before it goes ahead anyway. */
+export const WRITE_WAIT_MS = 15_000;
+
 /** What the page needs of the command journal: run a change as one entry, and take an entry back. */
 type ScheduleJournal = Pick<Journal, 'act' | 'undo'>;
 
@@ -45,9 +49,11 @@ export type SchedulePageProps = {
 export function SchedulePage({ journal, today, hasManuscript = true, onImport }: SchedulePageProps) {
   const production = usePort('production');
   const openLines = useOpenPickups();
-  const { state, refreshFailure, day, reload, keepPlan, latestPlan, now } = useScheduleReading(today);
+  const { state, refreshFailure, day, reload, keepPlan, now } = useScheduleReading(today);
   // Writes go one after another, each built from the newest plan, so two quick changes never start from the same old list.
   const queue = useRef<Promise<unknown>>(Promise.resolve());
+  // The rows whose change is on its way to the host: a second press on the same row while one is pending is the same press.
+  const pending = useRef(new Set<string>());
 
   if (state.phase === 'loading') return <p role="status">Loading the schedule…</p>;
   if (state.phase === 'error')
@@ -72,27 +78,38 @@ export function SchedulePage({ journal, today, hasManuscript = true, onImport }:
     undoText?: string,
     stale?: (latest: ProductionPlan) => string | undefined,
   ): Promise<string | undefined> => {
-    const task = queue.current.then(async (): Promise<string | undefined> => {
-      const latest = latestPlan() ?? plan;
-      const changed = stale?.(latest);
-      if (changed) {
-        overlay.toast(changed, { tone: 'error' });
-        return changed;
-      }
-      const result = await journal.act(build(latest));
-      if (!result.ok) {
-        overlay.toast(result.refusal.reason, { tone: 'error' });
-        return result.refusal.reason;
-      }
-      keepPlan(result.value.value);
-      if (undoText)
-        overlay.toastUndo(undoText, async () => {
-          const undone = await journal.undo(result.value.id);
-          await reload();
-          return undone;
-        });
-      return undefined;
-    });
+    // A host that never answers one write must not hold every later one forever: after a wait the next write goes ahead.
+    const task = Promise.race([queue.current, new Promise((resolve) => window.setTimeout(resolve, WRITE_WAIT_MS))]).then(
+      async (): Promise<string | undefined> => {
+        // Every write starts from what the host holds now, not from what the page last drew: a list saved whole would otherwise overwrite another writer's.
+        let latest: ProductionPlan;
+        try {
+          latest = await production.productionPlan();
+        } catch (error) {
+          const reason = `The schedule could not be read before the change, so nothing was changed: ${apiErrorMessage(error)}`;
+          overlay.toast(reason, { tone: 'error' });
+          return reason;
+        }
+        const changed = stale?.(latest);
+        if (changed) {
+          overlay.toast(changed, { tone: 'error' });
+          return changed;
+        }
+        const result = await journal.act(build(latest));
+        if (!result.ok) {
+          overlay.toast(result.refusal.reason, { tone: 'error' });
+          return result.refusal.reason;
+        }
+        keepPlan(result.value.value);
+        if (undoText)
+          overlay.toastUndo(undoText, async () => {
+            const undone = await journal.undo(result.value.id);
+            await reload();
+            return undone;
+          });
+        return undefined;
+      },
+    );
     queue.current = task.catch(() => undefined);
     return task;
   };
@@ -134,6 +151,12 @@ export function SchedulePage({ journal, today, hasManuscript = true, onImport }:
       },
     });
   };
+  /** Runs a row's change unless the same row's is still pending. */
+  const once = (key: string, change: () => Promise<unknown>) => {
+    if (pending.current.has(key)) return;
+    pending.current.add(key);
+    void change().finally(() => pending.current.delete(key));
+  };
   const toggleDone = (index: number) => {
     const m = plan.milestones[index];
     // A milestone that is not done carries no flag, as the host writes it.
@@ -148,7 +171,7 @@ export function SchedulePage({ journal, today, hasManuscript = true, onImport }:
   };
   const remove = (index: number) => {
     const m = plan.milestones[index];
-    void saveList(`Remove ${m.name}`, (list) => list.filter((_, i) => i !== index), `Removed ${m.name}.`, rowMoved(index, m));
+    once(`remove:${index}`, () => saveList(`Remove ${m.name}`, (list) => list.filter((_, i) => i !== index), `Removed ${m.name}.`, rowMoved(index, m)));
   };
   const changeDue = async (text: string): Promise<boolean> => {
     const problem = dueDateProblem(text);

@@ -3,7 +3,7 @@
 import { fireEvent, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
-import { mountSchedule, stored, toasts, installKit } from './scheduleTestKit';
+import { mountSchedule, stored, toasts, installKit } from './scheduleKit.test';
 import { parseAmount, plainNumber } from './payment';
 
 installKit();

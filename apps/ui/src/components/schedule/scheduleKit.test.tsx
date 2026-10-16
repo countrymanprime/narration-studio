@@ -1,7 +1,7 @@
 // A shared harness for the Schedule page's behaviour tests: the page mounted on the mock host, with the host's calls wrapped so a test can
 // count them, hold them, fail them or answer them late.
 import { act, cleanup, render, screen } from '@testing-library/react';
-import { afterEach, beforeEach } from 'vitest';
+import { afterEach, beforeEach, expect, it } from 'vitest';
 import { ApiProvider } from '../../api/ApiContext';
 import type { ChapterStatus } from '../../api/contracts/manuscript';
 import type { ProductionMilestone, ProductionOverview, ProductionPlan } from '../../api/contracts/production';
@@ -56,6 +56,7 @@ export function installKit(): void {
   });
   afterEach(() => {
     cleanup();
+    overlay.getSnapshot().toasts.forEach((t) => overlay.dismissToast(t.id));
     act(() => overlay.getSnapshot().dialogs.forEach((entry) => ('close' in entry ? entry.close() : entry.answer(false))));
   });
 }
@@ -100,3 +101,7 @@ export async function mountSchedule({ seed = {}, statuses = ['not_started', 'not
 
 export const stored = (): Promise<ProductionPlan> => kit.api.productionPlan();
 export const toasts = () => overlay.getSnapshot().toasts.map((t) => t.text);
+
+it('builds an overview with one narrated chapter per status', () => {
+  expect(overview(['not_started', 'finalized']).chapters.map((c) => c.status)).toEqual(['not_started', 'finalized']);
+});

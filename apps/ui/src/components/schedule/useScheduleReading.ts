@@ -38,8 +38,6 @@ export type ScheduleReading = {
   reload: () => Promise<void>;
   /** Puts a plan the host just answered on screen, and makes any read already under way give way to it. */
   keepPlan: (plan: ProductionPlan) => void;
-  /** The newest plan the page holds, for a write that must start from it, not from what a render captured. */
-  latestPlan: () => ProductionPlan | null;
   /** The time now, for a notice that says how long ago the reading was. Moves with the tick. */
   now: number;
 };
@@ -136,7 +134,6 @@ export function useScheduleReading(fixedToday: Date | undefined): ScheduleReadin
     day: fixedToday ?? new Date(clock),
     reload,
     keepPlan,
-    latestPlan: () => plan.current,
     now: clock,
   };
 }

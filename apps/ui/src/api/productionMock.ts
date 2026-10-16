@@ -139,11 +139,18 @@ function answer(stored: StoredPlan): ProductionPlan {
   };
 }
 
+// The host's bounds (internal/production/plan.go): what one save can put on the manifest.
+const MAX_MILESTONES = 100;
+const MAX_MILESTONE_NAME = 200;
+const MAX_MILESTONE_NOTE = 2000;
+
 /** One milestone as production.CleanMilestones saves it, or a refusal naming it. */
 function cleanMilestone(milestone: ProductionMilestone, index: number): ProductionMilestone {
   const name = milestone.name.trim();
   if (!name) throw new Error(`milestone ${index + 1} needs a name`);
+  if ([...name].length > MAX_MILESTONE_NAME) throw new Error(`milestone ${index + 1}'s name is longer than ${MAX_MILESTONE_NAME} characters`);
   const note = milestone.note?.trim();
+  if (note && [...note].length > MAX_MILESTONE_NOTE) throw new Error(`milestone ${index + 1}'s note is longer than ${MAX_MILESTONE_NOTE} characters`);
   const measure = milestone.measure?.trim() ?? '';
   const estimate = milestone.estimate?.trim() ?? '';
   const template = milestone.template?.trim() ?? '';
@@ -356,6 +363,7 @@ export function createProductionMock(deps: Deps): ProductionApi & { applyProfile
       return answer(plan);
     },
     saveProductionMilestones: async (milestones) => {
+      if (milestones.length > MAX_MILESTONES) throw new Error(`a book can have at most ${MAX_MILESTONES} milestones`);
       const cleaned = milestones.map(cleanMilestone);
       plan = { ...plan, milestones: cleaned };
       return answer(plan);

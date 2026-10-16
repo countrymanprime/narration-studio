@@ -3,7 +3,7 @@
 // away, impossible, mistyped, cleared, refused by the host, committed twice, and a plan edited by hand to hold something that is not a date.
 import { fireEvent, screen, waitFor } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
-import { REC, mountSchedule, stored, toasts, installKit } from './scheduleTestKit';
+import { REC, mountSchedule, stored, toasts, installKit } from './scheduleKit.test';
 
 installKit();
 
