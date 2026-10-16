@@ -1,11 +1,11 @@
 // @vitest-environment jsdom
 import { act, renderHook, waitFor } from '@testing-library/react';
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { createElement, type ReactNode } from 'react';
 import { ApiProvider } from './api/ApiContext';
 import { createDawMock, type DawMockSeed } from './api/dawMock';
 import type { DawCapabilities } from './api/contracts/daw';
-import { useCapability } from './useCapability';
+import { CAPABILITY_RETRY_MS, useCapability } from './useCapability';
 import type { NarrationApi } from './types';
 
 function wrapper(api: Pick<NarrationApi, 'dawCapabilities' | 'subscribeDawCapabilities'>) {
@@ -70,5 +70,68 @@ describe('useCapability', () => {
     await waitFor(() => expect(result.current.available).toBe(true));
     unmount();
     expect(unsubscribed).toBe(true);
+  });
+});
+
+describe('useCapability heals itself when the first answer or an event is lost', () => {
+  afterEach(() => vi.useRealTimers());
+  const available: DawCapabilities = { daw: 'REAPER', reachable: true, capabilities: { punch: { level: 'experimental', available: true } } };
+
+  it('a failed first read is retried on a timer until the DAW answers', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    let calls = 0;
+    const api = {
+      dawCapabilities: async () => {
+        calls += 1;
+        if (calls < 3) throw new Error('not yet');
+        return available;
+      },
+      subscribeDawCapabilities: () => () => {},
+    };
+    const { result } = renderHook(() => useCapability('punch'), { wrapper: wrapper(api) });
+    await act(() => vi.advanceTimersByTimeAsync(CAPABILITY_RETRY_MS * 3));
+    await waitFor(() => expect(result.current.available).toBe(true));
+    expect(calls).toBe(3);
+  });
+
+  it('re-reads when the window is focused again, so a lost event does not leave a stale answer', async () => {
+    let truth: DawCapabilities = {
+      daw: 'REAPER',
+      reachable: false,
+      capabilities: { punch: { level: 'experimental', available: false, reason: 'not_running', message: 'REAPER is not answering.' } },
+    };
+    const api = { dawCapabilities: async () => truth, subscribeDawCapabilities: () => () => {} };
+    const { result } = renderHook(() => useCapability('punch'), { wrapper: wrapper(api) });
+    await waitFor(() => expect(result.current.message).toBe('REAPER is not answering.'));
+    truth = available;
+    act(() => void window.dispatchEvent(new Event('focus')));
+    await waitFor(() => expect(result.current.available).toBe(true));
+  });
+
+  it('does not poll once it has an answer', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    let calls = 0;
+    const api = { dawCapabilities: async () => (calls++, available), subscribeDawCapabilities: () => () => {} };
+    const { result } = renderHook(() => useCapability('punch'), { wrapper: wrapper(api) });
+    await waitFor(() => expect(result.current.available).toBe(true));
+    const settled = calls;
+    await act(() => vi.advanceTimersByTimeAsync(CAPABILITY_RETRY_MS * 5));
+    expect(calls).toBe(settled);
+  });
+
+  it('a slow read that answers after an event does not undo the event', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    let release: (value: DawCapabilities) => void = () => {};
+    let emit: (next: DawCapabilities) => void = () => {};
+    const api = {
+      dawCapabilities: () => new Promise<DawCapabilities>((resolve) => (release = resolve)),
+      subscribeDawCapabilities: (fn: (next: DawCapabilities) => void) => ((emit = fn), () => {}),
+    };
+    const { result } = renderHook(() => useCapability('punch'), { wrapper: wrapper(api) });
+    act(() => emit(available));
+    await waitFor(() => expect(result.current.available).toBe(true));
+    release({ daw: 'REAPER', reachable: false, capabilities: { punch: { level: 'experimental', available: false, reason: 'not_running' } } });
+    await act(() => vi.advanceTimersByTimeAsync(10));
+    expect(result.current.available).toBe(true);
   });
 });

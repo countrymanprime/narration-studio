@@ -3,7 +3,12 @@ package project
 import (
 	"fmt"
 	"strings"
+	"unicode/utf16"
 )
+
+// maxNameUnits is the longest a single folder name can be on Windows: 255 UTF-16 code units. A longer name fails at
+// MkdirAll; refusing it here says why before anything is created.
+const maxNameUnits = 255
 
 // invalidNameChars are characters Windows refuses in a file or path segment name (control characters 0-31
 // are checked separately below), plus the two path separators, so a name can never smuggle in a path
@@ -39,11 +44,19 @@ func ValidateName(name string) error {
 			return fmt.Errorf("a project name cannot contain control characters")
 		}
 	}
+	// Win32 drops a trailing dot from a name, so "Book." would be created as "Book" while every path the app kept said "Book.".
+	if strings.HasSuffix(trimmed, ".") {
+		return fmt.Errorf("a project name cannot end with a period")
+	}
+	if len(utf16.Encode([]rune(trimmed))) > maxNameUnits {
+		return fmt.Errorf("a project name can be at most %d characters", maxNameUnits)
+	}
 	base := trimmed
 	if dot := strings.IndexByte(base, '.'); dot >= 0 {
 		base = base[:dot]
 	}
-	if reservedNames[strings.ToUpper(base)] {
+	// "CON .txt" is still the CON device: Windows ignores the spaces before the extension.
+	if reservedNames[strings.ToUpper(strings.TrimRight(base, " "))] {
 		return fmt.Errorf("%q is a reserved name and cannot be used", trimmed)
 	}
 	return nil

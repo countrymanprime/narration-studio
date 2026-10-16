@@ -116,6 +116,9 @@ func Path(projectFolder string) string {
 // decoded is kept aside and reported rather than silently discarded (ADR 0069),
 // matching every other narrator-data file in this codebase (settings, notes).
 func Load(reporter *persist.Reporter, projectFolder string) (*Manifest, bool, error) {
+	if projectFolder == "" {
+		return nil, false, nil // no folder is not "the working directory"
+	}
 	var loaded *Manifest
 	outcome := reporter.ReadJSON(Path(projectFolder), "project", persist.NarratorData, func(bytes []byte) error {
 		var decoded Manifest
@@ -142,6 +145,9 @@ func Load(reporter *persist.Reporter, projectFolder string) (*Manifest, bool, er
 // write-to-temp-then-rename pattern as settings.Store.Save and the manuscript
 // notes writer, so a crash mid-write never leaves a half-written manifest.
 func (m *Manifest) Save(projectFolder string) error {
+	if projectFolder == "" {
+		return fmt.Errorf("no project folder to save the project manifest in")
+	}
 	path := Path(projectFolder)
 	if err := persist.CanOverwrite(path, "project"); err != nil {
 		return err

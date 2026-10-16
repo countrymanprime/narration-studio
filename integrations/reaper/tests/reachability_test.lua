@@ -117,3 +117,42 @@ H.test('a moving play position alone does not break the throttle', function()
   s:tick() -- elapsed 1 < 1.5, the state is unchanged
   H.eq(#s:all_events(), 0, 'only a change of state, not the moving position, sends early')
 end)
+
+-- The Booth refuses Record when the project REAPER has open is not the linked one, and recovers when the narrator opens the right one.
+-- Both depend on the heartbeat following the open project, so these pin that it does, and that it survives what a real session does.
+
+H.test('opening another project is reported on the next heartbeat, by its own path', function()
+  local s = H.session({ project_path = 'C:\\Projects\\Book\\Book.rpp' })
+  s:tick()
+  H.eq(only_event(s)[3], 'C:\\Projects\\Book\\Book.rpp')
+  s.fake.project_path = 'D:\\Other\\Elsewhere.rpp'
+  s:tick() -- throttled
+  s:tick()
+  H.eq(only_event(s)[3], 'D:\\Other\\Elsewhere.rpp', 'the host compares this path with the linked file, so it must follow the open project')
+end)
+
+H.test('a project path with spaces, Unicode, a network share or a very long name is sent whole', function()
+  local long = 'C:\\' .. string.rep('long folder ', 25) .. 'Book.rpp'
+  for _, path in ipairs({ 'C:\\My Books\\Café – 本.rpp', '\\\\server\\share\\Book.rpp', long }) do
+    local s = H.session({ project_path = path })
+    s:tick()
+    H.eq(only_event(s)[3], path)
+  end
+end)
+
+H.test('a project that is closed (no project handle) heartbeats as unsaved with an empty path, and keeps heartbeating', function()
+  local s = H.session({ project_path = '' })
+  s:tick()
+  H.eq(only_event(s)[3], '')
+  s:tick()
+  s:tick()
+  H.eq(only_event(s)[1], 'PROJECT_STATUS', 'a REAPER with nothing open is still a REAPER that answers')
+end)
+
+H.test('a bridge that starts again after REAPER restarted sends its heartbeat on its very first tick', function()
+  for _ = 1, 2 do
+    local s = H.session({ project_path = 'C:\\Projects\\Book\\Book.rpp' })
+    s:tick()
+    H.eq(only_event(s)[1], 'PROJECT_STATUS', 'the host must hear a restarted REAPER at once, not after one interval')
+  end
+end)
