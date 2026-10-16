@@ -57,7 +57,14 @@ export function packageItems(profile: DeliveryProfile | undefined, files: readon
     rate && formatBound(rate),
     format && formatBound(format),
   ].filter((part): part is string => !!part);
-  if (parts.length > 0) items.push({ state: missed(files, [channels, rate, format]) ? 'bad' : 'ok', text: parts.join(' · ') });
+  // The MP3's format cannot be judged from a WAV render: a format the host never judged is waiting, not passing.
+  const judged = (statuses: readonly string[]) =>
+    files.some((file) => file.rules.some((result) => result.ruleId === format?.id && statuses.includes(result.status)));
+  const formatUnjudged = !!format && judged(['not_checked', 'not_measurable']) && !judged(['met', 'not_met']);
+  if (parts.length > 0) {
+    const state = missed(files, [channels, rate, format]) ? 'bad' : formatUnjudged ? 'wait' : 'ok';
+    items.push({ state, text: parts.join(' · ') + (state === 'wait' ? ' (the MP3 format is checked on the MP3 you upload)' : '') });
+  }
   return anyMeasured(files) ? items : items.map((item): PackageItem => ({ ...item, state: 'wait' }));
 }
 
