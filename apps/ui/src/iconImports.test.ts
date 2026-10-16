@@ -3,6 +3,7 @@ import { readdirSync, readFileSync } from 'node:fs';
 import { join, relative, sep } from 'node:path';
 import ts from 'typescript';
 import { describe, expect, test } from 'vitest';
+import { unexplained } from './ratchetReasons';
 
 // ADR 0761 (A16): a page asks `Icon` or `IconButton` for an action in `icons.catalog.ts` and does not pick a Font Awesome glyph, so
 // one action cannot be drawn two ways. Files outside `components/primitives/` still import `FontAwesomeIcon` or an icon from
@@ -94,6 +95,12 @@ describe('direct Font Awesome imports only fall (ADR 0761)', () => {
   test('direct-imports-only-fall: no ceiling is above the real count', () => {
     const stale = Object.entries(CEILING).filter(([file, allowed]) => (counts[file] ?? 0) < allowed);
     expect(stale, 'a file lost a direct icon import: lower its ceiling (delete the entry at zero)').toEqual([]);
+  });
+
+  test('series-folders-have-no-ceiling: every remaining entry says what keeps it (ratchetReasons.ts)', () => {
+    expect(unexplained(Object.keys(CEILING)), 'a file with an entry needs a line in KEPT (a feature the mock lacks) or GAPS (a swap left it behind)').toEqual(
+      [],
+    );
   });
 
   test('the primitives are not counted', () => {

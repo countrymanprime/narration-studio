@@ -26,7 +26,7 @@ const PERMANENT: Record<string, Reason> = {
 };
 
 // Temporary: a command listener not yet migrated onto `useCommand`. Each entry names what migrates it and is
-// deleted in the pull request that migrates it.
+// deleted in the pull request that migrates it. SN-C4 (#1217) leaves one: a gap, not a decision.
 const TEMPORARY: Record<string, Reason> = {
   'src/components/proof/notes/NotesPanel.tsx': {
     note: "Ctrl+F opens the notes find row (SN-Q41, #1324); migrates to a page-scoped catalog command once the notes list owns a find command next to the Script page's, #1119",

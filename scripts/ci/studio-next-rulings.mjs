@@ -23,8 +23,10 @@ import { readFileSync, writeFileSync, readdirSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-/** Flip to true in SNC-4: an agreed row must then name a test. */
-const ENFORCE_TEST_NAMES = false;
+/** An agreed row must name a test (SNC-4 turned this on), or say `n/a: <reason>` when the ruling has no behaviour to run. */
+const ENFORCE_TEST_NAMES = true;
+const NO_TEST = 'n/a:';
+const MIN_NO_TEST_REASON = 12;
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 export const SOURCE = 'docs/research/mockups/studio-next/research/repo-compare-decisions.md';
@@ -170,7 +172,7 @@ const INTRO = `# Studio Next ruling index
 
 A working document built from \`${SOURCE}\`, deleted with the mock at cutover (SNC-6), so each row carries the ruling's full text. One row per ruling line of that file; \`deferred\` and \`rejected\` rows get no successor PRD (SNC-Q3). The register's rulings DQ-1 to DQ-18 and SN0-Q1 to Q9 are not lines of that file and are not here; the parity audit and SNC-Q4 check them against the ADRs.
 
-Regenerate with \`node scripts/ci/studio-next-rulings.mjs --write\`: it rewrites the id, section, status and ruling columns and keeps \`slice\` and \`test\`. Fill those two by hand: \`slice\` is the owning slice id from a \`docs/prds/studio-next-*.prd.md\` Slices table (\`none\` for a deferred or rejected row), \`test\` is the name of the test in the real app that proves the ruling. A deferred or rejected row ends its ruling text with \` => \` and a pointer to the ADR, PRD or register row that records it.
+Regenerate with \`node scripts/ci/studio-next-rulings.mjs --write\`: it rewrites the id, section, status and ruling columns and keeps \`slice\` and \`test\`. Fill those two by hand: \`slice\` is the owning slice id from a \`docs/prds/studio-next-*.prd.md\` Slices table (\`none\` for a deferred or rejected row), \`test\` is the name of the test in the real app that proves the ruling, or \`n/a: <reason>\` (at least 12 characters) for a ruling with no behaviour to run: a process rule, a deferral, a research or licence decision. A deferred or rejected row ends its ruling text with \` => \` and a pointer to the ADR, PRD or register row that records it.
 
 `;
 
@@ -220,12 +222,15 @@ export function checkIndex(lines, rows, { sliceIds, testExists }) {
     if (source && source.status !== row.status) errors.push(`${row.id}: status ${row.status}, heading says ${source.status}`);
     if (!STATUSES.includes(row.status)) errors.push(`${row.id}: unknown status "${row.status}"`);
     if (row.slice && row.slice !== 'none' && !sliceIds.has(row.slice)) errors.push(`${row.id}: slice "${row.slice}" is in no studio-next PRD Slices table`);
-    if (row.test && !testExists(row.test)) errors.push(`${row.id}: test "${row.test}" is found nowhere in apps/, sidecars/, integrations/ or tests/`);
+    if (row.test.startsWith(NO_TEST)) {
+      if (row.test.slice(NO_TEST.length).trim().length < MIN_NO_TEST_REASON) errors.push(`${row.id}: "n/a:" needs a reason of at least ${MIN_NO_TEST_REASON} characters`);
+    } else if (row.test === 'n/a') errors.push(`${row.id}: "n/a" needs a reason after the colon`);
+    else if (row.test && !testExists(row.test)) errors.push(`${row.id}: test "${row.test}" is found nowhere in apps/, sidecars/, integrations/ or tests/`);
     if ((row.status === 'deferred' || row.status === 'rejected') && row.slice !== 'none') errors.push(`${row.id}: a ${row.status} row needs slice "none"`);
   }
   const agreed = rows.filter((row) => row.status === 'agreed' || row.status === 'agreed-with-conditions');
   const agreedWithoutTest = agreed.filter((row) => !row.test).length;
-  if (ENFORCE_TEST_NAMES) for (const row of agreed.filter((r) => !r.test)) errors.push(`${row.id}: ${row.status} row has no test name`);
+  if (ENFORCE_TEST_NAMES) for (const row of agreed.filter((r) => !r.test)) errors.push(`${row.id}: ${row.status} row has no test name (or "n/a: <reason>")`);
   const needPointer = rows.filter((row) => (row.status === 'deferred' || row.status === 'rejected') && !row.pointer).map((row) => row.id);
   return { errors, agreedWithoutTest, needPointer };
 }

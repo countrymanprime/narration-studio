@@ -12,9 +12,9 @@ import { describe, expect, test } from 'vitest';
 const SRC = join(__dirname);
 const VOCABULARY = new Set(['min-[1360px]', 'max-[1359px]', 'max-[1280px]', 'min-[1281px]', 'max-[1179px]', 'min-[1180px]', 'max-[859px]', 'min-[860px]']);
 
-// Today's off-vocabulary uses. Each entry is deleted by the swap slice named in its comment.
+// The off-vocabulary uses left after the page swaps. Each entry is a gap with a reason (SN-C4, #1217); the fix deletes it.
 const OFF_VOCABULARY: Record<string, Record<string, number>> = {
-  // The Production swap rewrites the page to the vocabulary. `min-[1280px]` treats exactly 1280 as not medium; the mock treats it as medium.
+  // GAP (#1217): the Production page still lays out at 1024 and 1280, not the mock's widths. `min-[1280px]` treats exactly 1280 as not medium; the mock treats it as medium.
   'src/components/production/ProductionPage.tsx': { 'min-[1024px]': 1, 'min-[1280px]': 1 },
 };
 

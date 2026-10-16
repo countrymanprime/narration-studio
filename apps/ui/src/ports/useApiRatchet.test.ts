@@ -2,6 +2,7 @@
 import { readdirSync, readFileSync } from 'node:fs';
 import { join, relative, sep } from 'node:path';
 import { describe, expect, it } from 'vitest';
+import { unexplained } from '../ratchetReasons';
 
 // ADR 0770: a feature declares the one port it uses with `usePort`, not the whole `NarrationApi` facade with `useApi()`.
 // This scan counts, per source file outside `src/api/` and `src/ports/` (tests and stories excluded), how many times it
@@ -171,6 +172,12 @@ function actual(): Record<string, number> {
 }
 
 describe('whole-facade useApi() ratchet', () => {
+  it('series-folders-have-no-ceiling: every remaining entry says what keeps it (ratchetReasons.ts)', () => {
+    expect(unexplained(Object.keys(CEILING)), 'a file with an entry needs a line in KEPT (a feature the mock lacks) or GAPS (a swap left it behind)').toEqual(
+      [],
+    );
+  });
+
   it('whole-facade-ratchet-lists-every-caller: no new caller, no higher count, no stale entry', () => {
     const real = actual();
     const problems: string[] = [];
