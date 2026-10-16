@@ -124,6 +124,52 @@ test.describe('with a take running', () => {
     expect(errors).toEqual([]);
   });
 
+  for (const size of [
+    { width: 1440, height: 900 },
+    { width: 400, height: 700 },
+    { width: 360, height: 500 },
+    { width: 320, height: 300 },
+  ]) {
+    test(`Levels with its two sliders is the topmost layer and fully on screen at ${size.width}x${size.height}`, async ({ page }) => {
+      const errors = watch(page);
+      await page.setViewportSize(size);
+      await openBooth(page, `${RECORD_ON}&mockDawExperimentalOn=1`);
+      await page.getByRole('button', { name: 'Levels' }).click();
+      const popup = page.getByRole('dialog', { name: 'Levels' });
+      await expect(popup.getByRole('slider', { name: 'Monitor level (output)' })).toBeVisible();
+      const result = await page.evaluate(() => {
+        const el = document.querySelector('[role="dialog"][aria-label="Levels"], [role="dialog"]')!;
+        const dialogs = [...document.querySelectorAll<HTMLElement>('[role="dialog"]')].find((d) => d.textContent?.includes('Monitor level'))!;
+        const r = (dialogs ?? el).getBoundingClientRect();
+        const points = [
+          [r.left + 4, r.top + 4],
+          [r.right - 4, r.top + 4],
+          [r.left + 4, Math.min(r.bottom, innerHeight) - 4],
+          [r.right - 4, Math.min(r.bottom, innerHeight) - 4],
+        ];
+        const top = points.every(([x, y]) => dialogs.contains(document.elementFromPoint(x, y)));
+        return {
+          top,
+          left: r.left,
+          topEdge: r.top,
+          right: r.right,
+          bottom: r.bottom,
+          vw: innerWidth,
+          vh: innerHeight,
+          scrolls: dialogs.scrollHeight > dialogs.clientHeight,
+        };
+      });
+      expect(result.top, 'nothing is drawn over the popover at its corners').toBe(true);
+      expect(result.left).toBeGreaterThanOrEqual(-1);
+      expect(result.topEdge).toBeGreaterThanOrEqual(-1);
+      expect(result.right).toBeLessThanOrEqual(result.vw + 1);
+      expect(result.bottom).toBeLessThanOrEqual(result.vh + 1);
+      await page.keyboard.press('Escape');
+      await expect(popup).toBeHidden();
+      expect(errors).toEqual([]);
+    });
+  }
+
   test('R pressed ten times in a moment rolls once, not ten times', async ({ page }) => {
     const errors = watch(page);
     await takeRunning(page, `${RECORD_ON}&mockPunchCapabilityOn=1`);
