@@ -12,7 +12,7 @@ const layer = (name: string): number => {
 
 // The one layer scale (styles.css). Lowest first. Page panels sit under the navigation rail, so the rail stays clickable with one open;
 // everything the app draws in a portal sits above the rail, the modal layers above their popups' anchors, and the dialog above every menu.
-const ORDER = ['panel-scrim', 'panel', 'nav', 'slide-over-scrim', 'slide-over', 'toast', 'popover', 'dialog', 'dialog-popover', 'tooltip'] as const;
+const ORDER = ['panel-scrim', 'panel', 'nav', 'slide-over-scrim', 'slide-over', 'popover', 'dialog', 'dialog-popover', 'toast', 'tooltip'] as const;
 
 describe('the layer scale', () => {
   it('is strictly increasing in the documented order', () => {

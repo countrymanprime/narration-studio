@@ -202,7 +202,16 @@ export async function overlayProblems(root: Locator, options: OverlayCheckOption
         // A point outside the window has no element: that is the on-screen check's finding, not an occlusion.
         const inWindow = x >= 0 && y >= 0 && x < viewport.width && y < viewport.height;
         const hit = inWindow ? document.elementFromPoint(x, y) : null;
-        return { label: name, x: Math.round(x), y: Math.round(y), inside: !inWindow || (hit !== null && element.contains(hit)), occluder: describe(hit) };
+        // A toast (ToastRegion, portalled to <body> above every overlay) is the one thing allowed to sit over an overlay: it is a transient,
+        // dismissible message raised from the page, and drawing it under the dialog it came from hid it (the Settings profile editor).
+        const underToast = hit !== null && hit.closest('[data-toast-region]') !== null;
+        return {
+          label: name,
+          x: Math.round(x),
+          y: Math.round(y),
+          inside: !inWindow || underToast || (hit !== null && element.contains(hit)),
+          occluder: describe(hit),
+        };
       });
       return {
         rect: { left: rect.left, top: rect.top, right: rect.right, bottom: rect.bottom, width: rect.width, height: rect.height },

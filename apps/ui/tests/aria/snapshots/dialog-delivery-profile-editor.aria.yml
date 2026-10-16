@@ -5,12 +5,17 @@
 - /children: equal
 # The two toast live regions stay in the tree on purpose (see dialog-mark-composer.aria.yml); Duplicate's toast is in the status one.
 - main:
-  - alert
-  - status
-# The overlay host's own live regions (the toast pair and the announcer) stay exposed behind a modal for the same reason.
+  - group "Zoom"
+  - region "Credits":
+    - region "Retail sample":
+      - paragraph: No retail sample picked yet.
+- status
 - alert
 - status
-- status
+- alert
+- status:
+  - text: /Duplicated as "ACX \(September \d+\) copy"\./
+  - button "Dismiss message"
 - dialog "Edit profile":
   - heading "Edit profile" [level=2]
   - button "Close"

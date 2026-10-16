@@ -1,12 +1,10 @@
 # Leaving the Booth during a take: the page behind the confirm is aria-hidden, so <body> holds the alert dialog and what
-# Base UI leaves exposed on purpose - the live regions inside the page's main, so the footer's status is still announced.
+# Base UI leaves exposed on purpose - the live regions (the page's and the overlay host's toast pairs, the first portalled to <body> by Toast.tsx, and the announcer).
 - /children: equal
-- main:
-  - alert
-  - status
-# The overlay host's own live regions (the toast pair and the announcer) stay exposed behind a modal for the same reason.
+- status
 - alert
 - status
+- alert
 - status
 - alertdialog "Stop recording?":
   - heading "Stop recording?" [level=2]

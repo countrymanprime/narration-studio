@@ -100,6 +100,13 @@ const ARRIVALS: Arrival[] = [
   { seam: 'S6', what: 'Script, an absurd line number', address: `/script#p${'9'.repeat(400)}`, shows: () => blocked('Script') },
   { seam: 'S7', what: 'Script with Find open on a name', address: '/script?find=Alice', shows: () => screen.findByDisplayValue('Alice'), leavesAt: '/script' },
   { seam: 'S8', what: 'Story Bible at an entry', address: '/story-bible#entity-1', shows: () => heading('Story Bible'), leavesAt: '/story-bible' },
+  {
+    seam: 'S8',
+    what: 'Story Bible, an entry that is not in the Story Bible',
+    address: '/story-bible#no-such-entry',
+    shows: () => screen.findByText(/This link points to an entry that is not in the Story Bible/),
+    leavesAt: '/story-bible',
+  },
   { seam: 'S8', what: 'Story Bible, a malformed escape', address: '/story-bible#%', shows: () => blocked('Story Bible') },
   { seam: 'S9', what: 'Editing at a chapter', address: '/editing/chapter-2', shows: () => heading('Editing') },
   { seam: 'S9', what: 'Editing, a chapter that is not in the manuscript', address: '/editing/nope', shows: () => blocked('Editing') },
