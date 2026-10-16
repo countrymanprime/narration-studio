@@ -165,6 +165,38 @@ export function useRecordControl({ chapterId, notify }: { chapterId: string; not
     });
   }, [daw, recording, notify, capabilities?.daw]);
 
+  // The transport is pushed only on a change, so one lost event would leave the REC pill wrong for ever. While a take runs the project's
+  // play state is read on a timer too: a DAW that says it is not recording after having said it was (or three times running, for a take
+  // whose start and stop were both missed) ends the take here, in the same sentence as the event would have.
+  useEffect(() => {
+    if (!recording) return;
+    let current = true;
+    let misses = 0;
+    const timer = window.setInterval(() => {
+      daw
+        .projectState()
+        .then((state) => {
+          if (!current) return;
+          if (state.playState === 'recording') {
+            heardRecording.current = true;
+            misses = 0;
+            return;
+          }
+          misses += 1;
+          if (heardRecording.current || misses >= 3) {
+            heardRecording.current = false;
+            setRecording(false);
+            notify(stoppedInDaw(capabilitiesRef.current?.daw));
+          }
+        })
+        .catch(() => {});
+    }, POLL_MS);
+    return () => {
+      current = false;
+      window.clearInterval(timer);
+    };
+  }, [daw, recording, notify]);
+
   useEffect(() => {
     let current = true;
     daw

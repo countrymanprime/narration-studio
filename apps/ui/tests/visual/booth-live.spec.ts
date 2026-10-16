@@ -18,23 +18,28 @@ async function openLive(page: Page, script: string, extra = ''): Promise<void> {
 /** What the mock DAW holds, read through the handle a driver plays REAPER's side with. */
 const dawState = (page: Page) => page.evaluate(() => window.__NARRATION_MOCK_DAW__?.state());
 
-// The owner's exact sequence: link, set up the launcher, the heartbeat arrives, the notice clears, Record enables, a take runs.
-async function toRecordReady(page: Page): Promise<void> {
-  await openLive(page, 'live');
-  await expect(notice(page).getByRole('heading', { name: 'Connect REAPER to record' })).toBeVisible();
-  await expect(record(page)).toBeDisabled();
-  // Link the project (Settings > Recording's one-click link), then come back.
-  await page.evaluate(() => window.__NARRATION_MOCK_DAW__?.state());
-  await goToPage(page, 'Settings');
+// Settings is one step from the Booth's notice: its "Link in Settings" button. The one-click link there is the narrator's, then back.
+async function linkProject(page: Page): Promise<void> {
+  await notice(page).getByRole('button', { name: 'Link in Settings' }).click();
   await page.getByRole('button', { name: /^Link Alice\.rpp/ }).click();
   await goToPage(page, 'Booth');
   await page.getByRole('button', { name: /^Resume at ¶/ }).waitFor();
-  // Set up the launcher: Open in REAPER and connect saves the launcher setting, starts REAPER, and its heartbeat follows.
-  await page.getByRole('button', { name: 'Open in REAPER and connect' }).click();
-  // The connection steps give way to the one Experimental switch, then to a Record that works.
-  await expect(notice(page).getByRole('heading', { name: 'Recording in REAPER is experimental' })).toBeVisible({ timeout: 15_000 });
+}
+
+async function turnOnRecord(page: Page): Promise<void> {
+  await expect(notice(page).getByRole('heading', { name: 'Recording in REAPER is experimental' })).toBeVisible();
+  await expect(record(page)).toBeDisabled();
   await notice(page).getByRole('button', { name: 'Turn on Record' }).click();
-  await expect(notice(page)).toHaveCount(0, { timeout: 10_000 });
+  await expect(notice(page).getByRole('heading', { name: 'Connect REAPER to record' })).toBeVisible();
+}
+
+// The owner's exact sequence: Record on, link, set up the launcher, the heartbeat arrives, the notice clears, Record enables.
+async function toRecordReady(page: Page): Promise<void> {
+  await openLive(page, 'live');
+  await turnOnRecord(page);
+  await linkProject(page);
+  await page.getByRole('button', { name: 'Open in REAPER and connect' }).click();
+  await expect(notice(page)).toHaveCount(0, { timeout: 15_000 });
   await expect(record(page)).toBeEnabled();
 }
 
@@ -52,9 +57,8 @@ test.describe('Booth with a moving mock DAW', () => {
 
   test('a REAPER that opens its bridge but never answers keeps the notice up, says so, and Check again does not fake it', async ({ page }) => {
     await openLive(page, 'quiet');
-    await goToPage(page, 'Settings');
-    await page.getByRole('button', { name: /^Link Alice\.rpp/ }).click();
-    await goToPage(page, 'Booth');
+    await turnOnRecord(page);
+    await linkProject(page);
     await page.getByRole('button', { name: 'Open in REAPER and connect' }).click();
     await expect(notice(page).getByRole('heading', { name: 'REAPER is not answering' })).toBeVisible({ timeout: 10_000 });
     await notice(page).getByRole('button', { name: 'Check again' }).click();
@@ -62,14 +66,14 @@ test.describe('Booth with a moving mock DAW', () => {
     await expect(record(page)).toBeDisabled();
     // The heartbeat arrives late, by hand: the notice moves on without a reload.
     await page.evaluate(() => window.__NARRATION_MOCK_DAW__?.heartbeat());
-    await expect(notice(page).getByRole('heading', { name: 'Recording in REAPER is experimental' })).toBeVisible();
+    await expect(notice(page)).toHaveCount(0);
+    await expect(record(page)).toBeEnabled();
   });
 
   test('a launch that is refused says so and leaves a way to try again', async ({ page }) => {
     await openLive(page, 'refuse');
-    await goToPage(page, 'Settings');
-    await page.getByRole('button', { name: /^Link Alice\.rpp/ }).click();
-    await goToPage(page, 'Booth');
+    await turnOnRecord(page);
+    await linkProject(page);
     await page.getByRole('button', { name: 'Open in REAPER and connect' }).click();
     await expect(page.getByText(/REAPER could not be started/)).toBeVisible();
     await expect(page.getByRole('button', { name: 'Open in REAPER and connect' })).toBeEnabled();
@@ -91,10 +95,14 @@ test.describe('Booth with a moving mock DAW', () => {
     await record(page).click();
     await expect(stop(page)).toBeVisible();
     await page.evaluate(() => window.__NARRATION_MOCK_DAW__?.quiet());
-    await expect(stop(page)).toBeEnabled();
-    await stop(page).click();
-    await expect(record(page)).toBeVisible();
-    await expect(page.getByText(/Can't tell whether REAPER is ready|REAPER is not answering|stopped recording/).first()).toBeVisible();
+    // A DAW that stopped answering has no take any more: the Booth says so instead of keeping a REC pill it cannot vouch for,
+    // and Record is off with the way forward.
+    await expect(page.getByText(/REAPER stopped recording/).first()).toBeVisible();
+    await expect(stop(page)).toHaveCount(0);
+    await expect(record(page)).toBeDisabled();
+    await expect(notice(page).getByRole('heading', { name: 'REAPER is not answering' })).toBeVisible();
+    await page.evaluate(() => window.__NARRATION_MOCK_DAW__?.heartbeat());
+    await expect(record(page)).toBeEnabled();
   });
 
   test('a stop pressed inside REAPER ends the take here; a lost transport event is healed by the next read', async ({ page }) => {
@@ -114,9 +122,9 @@ test.describe('Booth with a moving mock DAW', () => {
     await expect(record(page)).toBeEnabled({ timeout: 20_000 });
   });
 
-  test('choosing the built-in recorder moves Record: the REAPER notice goes and a take can run', async ({ page }) => {
+  test('choosing the built-in recorder moves the DAW port: the REAPER notice goes', async ({ page }) => {
     await openLive(page, 'live');
-    await goToPage(page, 'Settings');
+    await notice(page).getByRole('button', { name: 'DAW settings' }).click();
     await page.getByRole('radio', { name: /Built-in/ }).check();
     await goToPage(page, 'Booth');
     await expect(notice(page).getByRole('heading', { name: /REAPER/ })).toHaveCount(0);

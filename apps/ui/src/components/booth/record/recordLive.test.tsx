@@ -220,3 +220,47 @@ describe('Record against the project the DAW has open', () => {
     await waitFor(() => expect(daw.result.current.disabled).toBe(false));
   });
 });
+
+describe('a lost transport event does not leave the REC pill wrong', () => {
+  beforeEach(() => vi.useFakeTimers({ shouldAdvanceTime: true }));
+
+  it('the DAW says recording, then stopped, with no event: the take ends here with the stopped-in-DAW sentence', async () => {
+    let state: 'recording' | 'stopped' = 'recording';
+    const daw = mount(CONNECTED);
+    daw.client.recordStart = async () => ({ ok: true, changed: false, message: '', undoSteps: 0 });
+    daw.client.projectState = async () => ({ savedAt: null, unsavedChanges: false, playState: state, playPosition: 3 });
+    await waitFor(() => expect(daw.result.current.disabled).toBe(false));
+    await act(() => daw.result.current.toggle());
+    expect(daw.result.current.recording).toBe(true);
+    await act(() => vi.advanceTimersByTimeAsync(POLL_MS + 50));
+    expect(daw.result.current.recording).toBe(true);
+    state = 'stopped';
+    await act(() => vi.advanceTimersByTimeAsync(POLL_MS + 50));
+    await waitFor(() => expect(daw.result.current.recording).toBe(false));
+    expect(daw.notify).toHaveBeenCalledWith(expect.stringMatching(/stopped recording/));
+  });
+
+  it('a take whose start and stop were both missed (never heard recording) ends after three quiet reads, not at the first', async () => {
+    const daw = mount(CONNECTED);
+    daw.client.recordStart = async () => ({ ok: true, changed: false, message: '', undoSteps: 0 });
+    daw.client.projectState = async () => ({ savedAt: null, unsavedChanges: false, playState: 'stopped', playPosition: 0 });
+    await waitFor(() => expect(daw.result.current.disabled).toBe(false));
+    await act(() => daw.result.current.toggle());
+    await act(() => vi.advanceTimersByTimeAsync(POLL_MS + 50));
+    expect(daw.result.current.recording).toBe(true);
+    await act(() => vi.advanceTimersByTimeAsync(POLL_MS * 2 + 100));
+    await waitFor(() => expect(daw.result.current.recording).toBe(false));
+  });
+
+  it('a failed project-state read changes nothing: the take stays', async () => {
+    const daw = mount(CONNECTED);
+    daw.client.recordStart = async () => ({ ok: true, changed: false, message: '', undoSteps: 0 });
+    daw.client.projectState = async () => {
+      throw new Error('no answer');
+    };
+    await waitFor(() => expect(daw.result.current.disabled).toBe(false));
+    await act(() => daw.result.current.toggle());
+    await act(() => vi.advanceTimersByTimeAsync(POLL_MS * 5));
+    expect(daw.result.current.recording).toBe(true);
+  });
+});
