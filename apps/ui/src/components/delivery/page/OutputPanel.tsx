@@ -5,15 +5,17 @@ import { Panel } from '../../primitives/Panel';
 import { ProgressBar } from '../../primitives/ProgressBar';
 import { SectionLabel } from '../../primitives/SectionLabel';
 import { StatusBadge } from '../../primitives/StatusBadge';
-import type { BuildPackage } from './useBuildPackage';
+import type { DeliveryBuild } from './useDeliveryBuild';
+import { heardText } from './useHostRead';
 
 const MUTED = { color: 'var(--text-muted)' };
 const DANGER = { color: 'var(--danger-text)' };
 
 /**
  * The mock's second panel: the folder the package goes to, "Build <profile> package" (disabled until every chapter passes, saying how many
- * do not), and once built "<n> files in <folder>", the button that opens that folder, and a Written pill per file. The host asks for the folder when the build starts, so the
- * folder shown is the one its job reports.
+ * do not), and once built "<n> files in <folder>", the button that opens that folder, and a Written pill per file. The host asks for the
+ * folder with the operating system's own picker when the build starts and never takes a typed path, so the folder shown is the one its
+ * job reports, and before a build it says the host will ask.
  */
 export function OutputPanel({
   profile,
@@ -25,23 +27,30 @@ export function OutputPanel({
   profile: DeliveryProfile;
   ready: boolean;
   waiting: string;
-  build: BuildPackage;
+  build: DeliveryBuild;
   /** False after a profile change or while the chapters stop passing: the built list goes away. */
   showBuilt: boolean;
 }) {
   const built = showBuilt && ready ? build.built : undefined;
   const canBuild = ready && build.encoded > 0 && !build.busy;
+  const why = !ready
+    ? waiting
+    : build.encoded === 0
+      ? 'Master all to spec in Master & QC first.'
+      : build.exportRunning
+        ? 'Master & QC is still preparing the files.'
+        : waiting;
   return (
     <Panel title="Output">
       <div className="flex flex-col gap-3">
         <div className="flex flex-col gap-1">
           <SectionLabel>Folder</SectionLabel>
-          <p className="font-mono text-sm [overflow-wrap:anywhere]" style={build.folder ? undefined : MUTED}>
-            {build.folder ?? 'Chosen when you build'}
+          <p dir="auto" className="font-mono text-sm [overflow-wrap:anywhere]" style={build.folder ? undefined : MUTED}>
+            {build.starting ? 'Choose a folder in the window that opened…' : (build.folder ?? 'Chosen when you build')}
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <Button onClick={build.build} disabled={!canBuild} pending={build.running}>
+          <Button onClick={() => void build.build()} disabled={!canBuild} pending={build.starting}>
             Build {profile.name} package
           </Button>
           {build.running && (
@@ -50,13 +59,26 @@ export function OutputPanel({
             </Button>
           )}
           <span className="text-sm" style={MUTED}>
-            {ready && build.encoded === 0 ? 'Master all to spec in Master & QC first.' : waiting}
+            {why}
           </span>
         </div>
         {build.running && <ProgressBar label="Building the package" value={null} running />}
+        {build.quiet !== undefined && (
+          <p role="alert" className="text-sm" style={DANGER}>
+            Can't tell how the build is going, {heardText(build.lastHeard)}: {build.quiet}{' '}
+            <Button variant="ghost" size="sm" onClick={build.checkAgain}>
+              Check again
+            </Button>
+          </p>
+        )}
         {(build.problem || build.failed) && (
           <p role="alert" className="text-sm" style={DANGER}>
             {build.problem ?? build.failed?.error ?? build.failed?.message}
+          </p>
+        )}
+        {(build.notice || build.cancelled) && (
+          <p role="status" className="text-sm" style={MUTED}>
+            {build.notice ?? build.cancelled?.message}
           </p>
         )}
         {built && (
@@ -64,7 +86,9 @@ export function OutputPanel({
             <div className="flex flex-wrap items-center gap-2 text-sm">
               <StatusBadge tone="success" label="Built" />
               <b>{built.files.length} files</b>
-              <span style={MUTED}>in {built.outputDir}</span>
+              <span dir="auto" style={MUTED}>
+                in {built.outputDir}
+              </span>
               <span className="flex-1" />
               <IconButton action="openFolder" onClick={build.openFolder} pending={build.opening} />
             </div>
@@ -76,7 +100,9 @@ export function OutputPanel({
             <ul className="flex flex-col gap-1">
               {built.files.map((file) => (
                 <li key={file.destPath} className="flex items-center justify-between gap-2 text-sm">
-                  <span className="min-w-0 truncate">{file.name}</span>
+                  <span dir="auto" title={file.name} className="min-w-0 truncate">
+                    {file.name}
+                  </span>
                   <StatusBadge tone="success" label="Written" />
                 </li>
               ))}

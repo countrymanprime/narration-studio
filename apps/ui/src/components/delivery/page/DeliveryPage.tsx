@@ -1,17 +1,17 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useState } from 'react';
 import { apiErrorMessage } from '../../../api/errorMessage';
-import { usePort } from '../../../ports/usePort';
 import { DeliveryProfilePanel } from '../../master/DeliveryProfilePanel';
 import { creditsEntries } from '../../credits/creditsEntries';
 import { useCreditsRows } from '../../credits/useCreditsRows';
 import { NeedManuscript } from '../../layout/NeedManuscript';
 import { Heading } from '../../primitives/Heading';
-import type { DeliveryProfile, ManuscriptChapter, MeasureFileResult } from '../../../types';
+import type { DeliveryProfile } from '../../../types';
 import { ProfileCard } from '../profile/ProfileCard';
 import { chapterStates, listedChapters, readiness } from './chapterStates';
 import { OutputPanel } from './OutputPanel';
 import { Preflight } from './Preflight';
-import { useBuildPackage } from './useBuildPackage';
+import { useDeliveryBuild } from './useDeliveryBuild';
+import { useDeliveryChecks } from './useDeliveryChecks';
 
 /**
  * Delivery (the Studio Next mock's page): the profile card, the Output panel and the "Before you build" aside. Chapters are judged by the
@@ -21,70 +21,80 @@ import { useBuildPackage } from './useBuildPackage';
 export function DeliveryPage({
   hasManuscript,
   onOpenInMaster,
+  onOpenMaster,
   onImport,
 }: {
   hasManuscript: boolean;
+  /** Opens a chapter's file in Master & QC. */
   onOpenInMaster: (chapterId: string) => void;
+  /** Opens Master & QC itself, on no file. */
+  onOpenMaster?: () => void;
   /** Goes to the import, from the need-a-manuscript state. */
   onImport?: () => void;
 }) {
-  const manuscript = usePort('manuscript');
-  const measure = usePort('measure');
-  const [chapters, setChapters] = useState<ManuscriptChapter[]>([]);
-  const [files, setFiles] = useState<MeasureFileResult[]>([]);
-  const [problem, setProblem] = useState<string>();
+  if (!hasManuscript) return <NeedManuscript title="Delivery" onImport={onImport} />;
+  return <LoadedDelivery onOpenInMaster={onOpenInMaster} onOpenMaster={onOpenMaster} />;
+}
+
+function LoadedDelivery({ onOpenInMaster, onOpenMaster }: { onOpenInMaster: (chapterId: string) => void; onOpenMaster?: () => void }) {
+  const checks = useDeliveryChecks();
   const [profile, setProfile] = useState<DeliveryProfile>();
   const [built, setBuilt] = useState(true);
-  const build = useBuildPackage(profile);
+  const [creditsProblem, setCreditsProblem] = useState<string>();
+  const build = useDeliveryBuild(profile);
   // The credits files are deliverables: the opening before chapter 1, the closing after the last, judged like a chapter.
-  const credits = useCreditsRows(undefined, (error) => setProblem(`The credits could not be read: ${apiErrorMessage(error)}`));
-
-  useEffect(() => {
-    if (!hasManuscript) return;
-    let live = true;
-    Promise.all([manuscript.manuscriptChapters(), measure.measureState()])
-      .then(([list, job]) => {
-        if (!live) return;
-        setChapters(list);
-        setFiles(job.files);
-      })
-      .catch((failure) => live && setProblem(`The chapters could not be checked: ${apiErrorMessage(failure)}`));
-    return () => {
-      live = false;
-    };
-  }, [hasManuscript, manuscript, measure]);
+  const credits = useCreditsRows(undefined, (error) => setCreditsProblem(`The credits could not be read: ${apiErrorMessage(error)}`));
 
   const onProfile = useCallback((next: DeliveryProfile) => setProfile(next), []);
   // A profile change or edit drops the built list; a new build shows it again.
   const onChange = useCallback(() => setBuilt(false), []);
-  const start = () => {
+  const start = async () => {
     setBuilt(true);
-    build.build();
+    await build.build();
   };
 
-  if (!hasManuscript) return <NeedManuscript title="Delivery" onImport={onImport} />;
-
+  const { chapters, job } = checks;
+  // Nothing is judged until both the chapters and the measurement have been read at least once.
+  const known = chapters !== undefined && job !== undefined;
   const entries = creditsEntries(
     credits.rows,
-    chapters.some((chapter) => chapter.contentKind === 'opening'),
+    (chapters ?? []).some((chapter) => chapter.contentKind === 'opening'),
   );
-  const states = chapterStates(listedChapters(chapters, entries), files);
-  const { ready, text } = readiness(states);
+  const states = known ? chapterStates(listedChapters(chapters, entries), job.files) : [];
+  const { ready, text } = known ? readiness(states) : { ready: false, text: "Can't tell which chapters pass yet." };
+  const measuring = job?.phase === 'running' ? job : undefined;
   return (
     <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_20rem]">
       <div className="flex min-w-0 flex-col gap-4">
         {/* The mock's page title, "Delivery": the page heading every page opens with. */}
         <Heading title="Delivery" />
         <ProfileCard onChange={onChange} onProfile={onProfile} />
-        {profile && <OutputPanel profile={profile} ready={ready} waiting={text} build={{ ...build, build: start }} showBuilt={built} />}
+        {profile && (
+          <OutputPanel
+            profile={profile}
+            ready={ready && !measuring}
+            waiting={measuring ? 'Measuring the files in Master & QC.' : text}
+            build={{ ...build, build: start }}
+            showBuilt={built}
+          />
+        )}
         {profile && <DeliveryProfilePanel profile={profile} />}
-        {problem && (
+        {creditsProblem && (
           <p role="alert" className="text-sm" style={{ color: 'var(--danger-text)' }}>
-            {problem}
+            {creditsProblem}
           </p>
         )}
       </div>
-      <Preflight states={states} onOpen={onOpenInMaster} />
+      <Preflight
+        states={states}
+        known={known}
+        measuring={measuring}
+        problem={checks.jobError ?? checks.chaptersError}
+        lastHeard={checks.lastHeard}
+        onCheckAgain={checks.checkAgain}
+        onOpen={onOpenInMaster}
+        onOpenMaster={onOpenMaster}
+      />
     </div>
   );
 }

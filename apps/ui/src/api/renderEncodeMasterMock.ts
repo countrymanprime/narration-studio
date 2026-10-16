@@ -20,7 +20,7 @@ import type {
   PackageRequest,
   RenderEncodeMasterApi,
 } from '../types';
-import { MOCK_ACX } from './deliveryProfilesMock';
+import { MOCK_ACX, deliveryProfileKey } from './deliveryProfilesMock';
 import { wireClone } from './mockFixtures';
 
 /** What the mock's picker chooses: two chapters, opening and closing credits, and a retail sample. */
@@ -292,7 +292,7 @@ export function createRenderEncodeMasterMock(
         kind: 'render_package',
         phase: 'running',
         message: `Building the ${profile().name} package.`,
-        profile: profile().id,
+        profile: deliveryProfileKey(profile()),
         outputDir: 'C:\\Users\\Narrator\\Desktop\\Wonderland ACX',
         files: [],
         checklist,
