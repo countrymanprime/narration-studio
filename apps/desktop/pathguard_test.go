@@ -279,7 +279,7 @@ func aliasDirs(p pathfixtures.Place) []string {
 
 func TestPathGuardLaunchReaperPassesTheLinkedFile(t *testing.T) {
 	pathfixtures.Run(t, func(t *testing.T, p pathfixtures.Place) {
-		t.Setenv("APPDATA", t.TempDir()) // never touch the real machine's global-settings.json
+		t.Setenv("APPDATA", pgSettledTempDir(t)) // never touch the real machine's global-settings.json
 		locate := func() (string, string, error) { return "C:/REAPER/reaper.exe", "uninstall_registry", nil }
 		var args []string
 		launch := func(program string, got []string) error { args = got; return nil }
@@ -312,7 +312,7 @@ func TestPathGuardOnSecondInstanceFindsAProjectOutsideTheStartingFolder(t *testi
 		home := t.TempDir()
 		t.Setenv("USERPROFILE", home)
 		t.Setenv("HOME", home)
-		t.Setenv("APPDATA", t.TempDir())
+		t.Setenv("APPDATA", pgSettledTempDir(t))
 		pgLinkedManifest(t, p.Dir, p.RPP)
 		host := NewHost()
 		host.recents = recents.New(filepath.Join(t.TempDir(), "recent-projects.json"))
@@ -330,7 +330,7 @@ func TestPathGuardOnSecondInstanceFindsAProjectOutsideTheStartingFolder(t *testi
 
 func TestPathGuardProjectSwitch(t *testing.T) {
 	pathfixtures.Run(t, func(t *testing.T, p pathfixtures.Place) {
-		t.Setenv("APPDATA", t.TempDir())
+		t.Setenv("APPDATA", pgSettledTempDir(t))
 		host := NewHost()
 		host.recents = recents.New(filepath.Join(t.TempDir(), "recent-projects.json"))
 		before := host.config.projectFolder
@@ -366,9 +366,9 @@ func TestPathGuardProjectCreateInNames(t *testing.T) {
 			if fixture.Valid && len(fixture.Value) > 200 && runtime.GOOS == "windows" {
 				return // a 255-character name makes a path over the 260-character limit of an ordinary Windows path; the long-path place fixtures cover long paths
 			}
-			t.Setenv("APPDATA", t.TempDir())
+			t.Setenv("APPDATA", pgSettledTempDir(t))
 			host := NewHost()
-			host.recents = recents.New(filepath.Join(t.TempDir(), "recent-projects.json"))
+			host.recents = recents.New(filepath.Join(pgSettledTempDir(t), "recent-projects.json"))
 			parent := pgSettledTempDir(t)
 			raw, err := host.ProjectCreateIn(parent, fixture.Value)
 			created, _ := os.ReadDir(parent)
@@ -396,7 +396,7 @@ func TestPathGuardProjectCreateInParents(t *testing.T) {
 		home := t.TempDir()
 		t.Setenv("USERPROFILE", home)
 		t.Setenv("HOME", home)
-		t.Setenv("APPDATA", t.TempDir())
+		t.Setenv("APPDATA", pgSettledTempDir(t))
 		host := NewHost()
 		host.recents = recents.New(filepath.Join(t.TempDir(), "recent-projects.json"))
 		raw, err := host.ProjectCreateIn(p.Dir, "New Book")
