@@ -130,6 +130,27 @@ describe('D2 Profile name', () => {
     expect(box).toHaveProperty('value', 'My ACX, tighter peak');
   });
 
+  it('blank: says the name was kept, because a profile needs one', async () => {
+    mount();
+    const user = userEvent.setup();
+    const box = await screen.findByRole('textbox', { name: 'Profile name' });
+    await user.clear(box);
+    await user.type(box, '  {Enter}');
+    expect((await screen.findByRole('alert')).textContent).toBe('A profile needs a name, so the name was left as it was.');
+  });
+
+  it('locked while a build runs: no name or limit boxes, and the menu is off', async () => {
+    const api = createMockApi({ deliveryProfiles: async () => stateOf(mockCustomProfile()) });
+    render(
+      <ApiProvider api={api}>
+        <ProfileCard locked />
+      </ApiProvider>,
+    );
+    expect(await screen.findByText('Locked while it builds')).toBeTruthy();
+    expect(screen.queryByRole('textbox')).toBeNull();
+    expect(screen.getByRole('combobox')).toHaveProperty('disabled', true);
+  });
+
   it('long, right-to-left and emoji: saved as typed, surrounding spaces trimmed', async () => {
     const save = vi.fn(async () => mockCustomProfile());
     mount({ deliverySaveProfile: save });

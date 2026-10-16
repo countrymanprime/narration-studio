@@ -75,7 +75,7 @@ function LoadedDelivery({ onOpenInMaster, onOpenMaster }: { onOpenInMaster: (cha
       <div className="flex min-w-0 flex-col gap-4">
         {/* The mock's page title, "Delivery": the page heading every page opens with. */}
         <Heading title="Delivery" />
-        <ProfileCard onChange={onChange} onProfile={onProfile} />
+        <ProfileCard onChange={onChange} onProfile={onProfile} locked={build.running || build.starting} />
         {profile && (
           <OutputPanel
             profile={profile}

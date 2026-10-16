@@ -4,6 +4,7 @@ import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testi
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { ApiProvider } from '../../../api/ApiContext';
+import { MOCK_ACX, mockCustomProfile } from '../../../api/deliveryProfilesMock';
 import { createMockApi } from '../../../api/mockApi';
 import { StudioProvider } from '../../../studio/StudioProvider';
 import type { ExportJob, JobEnded, ManuscriptChapter, MeasureFileResult, MeasureJob, NarrationApi, PackageJob } from '../../../types';
@@ -356,6 +357,35 @@ describe('D5 focus and the profile', () => {
     const before = measureState.mock.calls.length;
     await userEvent.selectOptions(await screen.findByRole('combobox'), 'acx@2026-09');
     await waitFor(() => expect(measureState.mock.calls.length).toBeGreaterThan(before));
+  });
+});
+
+describe('D5 and the profile while it builds', () => {
+  it('a refusal belongs to the profile it was made with: changing the profile drops it', async () => {
+    const custom = mockCustomProfile();
+    const profiles = {
+      profiles: [MOCK_ACX, custom],
+      globalDefault: { id: MOCK_ACX.id },
+      hasProject: true,
+      projectChoice: null,
+      projectProfile: 'acx@2026-09',
+    };
+    mount({
+      deliveryProfiles: async () => profiles,
+      deliverySelectProfile: async () => ({ ...profiles, projectProfile: `${custom.id}@r${custom.revision}` }),
+      packageStart: async () => Promise.reject(new Error('access is denied')),
+    });
+    await screen.findByText(READY);
+    await userEvent.click(await buildButton());
+    expect((await screen.findByRole('alert')).textContent).toContain('access is denied');
+    await userEvent.selectOptions(await screen.findByRole('combobox'), `${custom.id}@r${custom.revision}`);
+    await waitFor(() => expect(screen.queryByText(/access is denied/)).toBeNull());
+  });
+
+  it('the profile cannot be changed while a build runs under it', async () => {
+    mount({ packageState: async () => RUNNING });
+    await screen.findByRole('button', { name: 'Cancel' });
+    expect(await screen.findByRole('combobox')).toHaveProperty('disabled', true);
   });
 });
 

@@ -53,7 +53,13 @@ export function OutputPanel({
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <Button ref={buildButton} onClick={() => void build.build()} disabled={!canBuild} pending={build.starting || build.busy}>
+          <Button
+            className="max-w-full text-left [overflow-wrap:anywhere] whitespace-normal"
+            ref={buildButton}
+            onClick={() => void build.build()}
+            disabled={!canBuild}
+            pending={build.starting || build.busy}
+          >
             Build {profile.name} package
           </Button>
           {build.running && (
@@ -81,12 +87,13 @@ export function OutputPanel({
             </Button>
           </p>
         )}
-        {(build.problem || build.failed) && (
+        {/* What the last attempt came to belongs to the profile and limits it was made with: a change drops it, as it drops the built list. */}
+        {showBuilt && (build.problem || build.failed) && (
           <p role="alert" className="text-sm" style={DANGER}>
             {build.problem ?? build.failed?.error ?? build.failed?.message}
           </p>
         )}
-        {(build.notice || build.cancelled) && (
+        {showBuilt && (build.notice || build.cancelled) && (
           <p role="status" className="text-sm" style={MUTED}>
             {build.notice ?? build.cancelled?.message}
           </p>

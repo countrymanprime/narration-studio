@@ -24,7 +24,16 @@ const activeProfile = (state: DeliveryProfilesState): DeliveryProfile | undefine
  * `deliverySaveProfile` with the host's own rule ids. `onChange` fires after a choice or an edit so the page can drop its built list, and
  * `onProfile` gives the page the profile and its `limits` (the same numbers Master & QC reads).
  */
-export function ProfileCard({ onChange, onProfile }: { onChange?: () => void; onProfile?: (profile: DeliveryProfile, limits: Limit[]) => void }) {
+export function ProfileCard({
+  onChange,
+  onProfile,
+  locked = false,
+}: {
+  onChange?: () => void;
+  onProfile?: (profile: DeliveryProfile, limits: Limit[]) => void;
+  /** A build is running under this profile: it cannot be changed or edited until the build ends. */
+  locked?: boolean;
+}) {
   const port = usePort('deliveryProfiles');
   // Read when the page opens and when the window regains focus (a profile edited or deleted in Settings is picked up), and again every two
   // seconds while a read has failed. An answer from a choice or an edit is numbered like a read, so a slower read cannot undo it.
@@ -37,6 +46,7 @@ export function ProfileCard({ onChange, onProfile }: { onChange?: () => void; on
   const [busy, setBusy] = useState(false);
   // A second choice or edit sent before the host answered the first is dropped, whatever the menu's state on screen.
   const working = useRef(false);
+  const menu = useRef<HTMLSelectElement>(null);
   const profile = state && activeProfile(state);
   useEffect(() => {
     if (profile) onProfile?.(profile, limitsOf(profile));
@@ -57,6 +67,8 @@ export function ProfileCard({ onChange, onProfile }: { onChange?: () => void; on
       } finally {
         working.current = false;
         setBusy(false);
+        // A select that was disabled while the host answered has lost focus; the keyboard narrator gets it back.
+        if (menu.current && document.activeElement === document.body) setTimeout(() => menu.current?.focus(), 0);
       }
     },
     [onChange],
@@ -87,7 +99,7 @@ export function ProfileCard({ onChange, onProfile }: { onChange?: () => void; on
       await port.deliverySaveProfile(edit);
       read.set(await port.deliveryProfiles());
     });
-  const readOnly = profile.builtIn;
+  const readOnly = profile.builtIn || locked;
   const declined = (rule: { label: string }) => setError(`${rule.label}: that is not a number, so the limit was left as it was.`);
 
   return (
@@ -95,15 +107,19 @@ export function ProfileCard({ onChange, onProfile }: { onChange?: () => void; on
       title="Delivery profile"
       actions={
         <span className="flex min-w-0 flex-wrap items-center justify-end gap-2">
-          <ProfileMenu profiles={state.profiles} current={profile} disabled={busy} onSelect={(next) => void choose(next)} />
-          {readOnly ? (
+          <ProfileMenu profiles={state.profiles} current={profile} disabled={busy || locked} selectRef={menu} onSelect={(next) => void choose(next)} />
+          {profile.builtIn ? (
             <StatusBadge tone="neutral" label="Built in" />
+          ) : locked ? (
+            <StatusBadge tone="neutral" label="Locked while it builds" />
           ) : (
             <CommitBox
               label="Profile name"
               className="max-w-full min-w-[10rem]"
               value={profile.name}
-              onCommit={(name) => name.trim() !== '' && void save(editOf(profile, { name: name.trim() }))}
+              onCommit={(name) =>
+                name.trim() === '' ? setError('A profile needs a name, so the name was left as it was.') : void save(editOf(profile, { name: name.trim() }))
+              }
             />
           )}
         </span>
