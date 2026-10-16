@@ -90,6 +90,9 @@ type hostServices struct {
 	// lastActionUndoer is the DAW port's undo_last role over the same bridge client; nil (a true nil interface) with no bridge
 	// client or no such role.
 	lastActionUndoer dawport.LastActionUndoer
+	// monitorLeveler is the DAW port's monitor_level role over the same bridge client; nil (a true nil interface) with no bridge
+	// client or no such role.
+	monitorLeveler dawport.MonitorLeveler
 	// backupKeeper is the DAW port's backups role; nil (a true nil interface) with no Audacity launch or no project.
 	backupKeeper dawport.BackupKeeper
 	// dawPortResolver is the DAW port's resolver for the roles bindings_navigation.go, readaloudreaper.go,
@@ -167,6 +170,7 @@ func (h *Host) services() hostServices {
 		rangeGain:        h.rangeGain,
 		clickRepairer:    h.clickRepairer,
 		lastActionUndoer: h.lastActionUndoer,
+		monitorLeveler:   h.monitorLeveler,
 		backupKeeper:     h.backupKeeper,
 		dawPortResolver:  h.dawPortResolver,
 	}

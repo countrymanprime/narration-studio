@@ -601,6 +601,34 @@
       "kind": "choice",
       "label": "Undo the app's last action",
       "value": ""
+    },
+    {
+      "choices": [
+        "auto",
+        "on",
+        "off"
+      ],
+      "effectiveSource": "repo_default",
+      "effectiveValue": "auto",
+      "isSet": false,
+      "key": "capability.monitor_level",
+      "kind": "choice",
+      "label": "Set the monitor level",
+      "value": ""
+    },
+    {
+      "choices": [
+        "auto",
+        "on",
+        "off"
+      ],
+      "effectiveSource": "repo_default",
+      "effectiveValue": "auto",
+      "isSet": false,
+      "key": "capability.input_level",
+      "kind": "choice",
+      "label": "Set the input level",
+      "value": ""
     }
   ],
   "Editing": [

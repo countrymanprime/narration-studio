@@ -57,6 +57,12 @@
       "message": "REAPER is not connected to this app. Open this app from the Narration Utils action in REAPER.",
       "reason": "standalone"
     },
+    "input_level": {
+      "available": false,
+      "level": "unsupported",
+      "message": "REAPER cannot set an audio interface's input gain. Set it in your interface's own control panel.",
+      "reason": "unsupported"
+    },
     "item_gain": {
       "available": false,
       "level": "experimental",
@@ -82,6 +88,12 @@
       "reason": "standalone"
     },
     "master_chain_read": {
+      "available": false,
+      "level": "experimental",
+      "message": "Experimental: switched off in Settings.",
+      "reason": "experimental_off"
+    },
+    "monitor_level": {
       "available": false,
       "level": "experimental",
       "message": "Experimental: switched off in Settings.",

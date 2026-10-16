@@ -57,6 +57,12 @@
       "message": "Audacity support is not available yet. This version can't read audio from Audacity or add labels to it, so open the project from REAPER to compare it.",
       "reason": "not_yet"
     },
+    "input_level": {
+      "available": false,
+      "level": "unsupported",
+      "message": "Audacity cannot set an audio interface's input gain. Set it in your interface's own control panel.",
+      "reason": "unsupported"
+    },
     "item_gain": {
       "available": false,
       "level": "not_yet_available",
@@ -82,6 +88,12 @@
       "reason": "experimental_off"
     },
     "master_chain_read": {
+      "available": false,
+      "level": "not_yet_available",
+      "message": "Audacity support is not available yet. This version can't read audio from Audacity or add labels to it, so open the project from REAPER to compare it.",
+      "reason": "not_yet"
+    },
+    "monitor_level": {
       "available": false,
       "level": "not_yet_available",
       "message": "Audacity support is not available yet. This version can't read audio from Audacity or add labels to it, so open the project from REAPER to compare it.",
