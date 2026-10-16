@@ -2,6 +2,7 @@ import type { Meta, StoryObj } from '@storybook/react-vite';
 import { expect, within } from 'storybook/test';
 import { ApiProvider } from '../../../api/ApiContext';
 import { createMockApi } from '../../../api/mockApi';
+import { StudioProvider } from '../../../studio/StudioProvider';
 import type { CreditTemplate, ExportJob, ManuscriptChapter, MeasureFileResult, MeasureJob, PackageJob } from '../../../types';
 import { failingTwo, passing, profile, waiting } from '../../masterqc/files/testFiles';
 import { DeliveryPage } from './DeliveryPage';
@@ -9,7 +10,7 @@ import { DeliveryPage } from './DeliveryPage';
 // The Delivery page body (docs/research/mockups/studio-next/src/pages/Delivery.tsx): the profile card, Output and "Before you build", mounted at
 // `/delivery`.
 const chapters = [1, 2, 3, 4].map(
-  (index) => ({ id: `c${index}`, title: `Chapter 0${index}`, index, wordCount: 100, status: 'ready' }) as unknown as ManuscriptChapter,
+  (index) => ({ id: `c${index}`, title: `Chapter 0${index}`, index, wordCount: 100, status: 'not_started' }) as unknown as ManuscriptChapter,
 );
 const measured = (files: MeasureFileResult[]) => ({ phase: 'success', files, profile, bookRules: [] }) as unknown as MeasureJob;
 const encoded = { phase: 'success', files: [{ status: 'done', kind: 'chapter', title: 'Chapter 01', encodedPath: 'C:/enc/01.mp3' }] } as unknown as ExportJob;
@@ -19,6 +20,8 @@ const builtJob: PackageJob = {
   id: 'p1',
   phase: 'success',
   message: 'Built',
+  // The host names the profile a package was built with by its key.
+  profile: 'acx@2026-09',
   outputDir: 'C:/Deliver/ACX',
   files: chapters.map((c) => ({ kind: 'chapter', name: `${c.title}.mp3`, destPath: `C:/Deliver/ACX/${c.title}.mp3`, tagged: true })),
 };
@@ -37,13 +40,15 @@ const host = (files: MeasureFileResult[], job: PackageJob = idle, creditsTemplat
 const meta = {
   title: 'Delivery/Page',
   component: DeliveryPage,
-  args: { hasManuscript: true, onOpenInMaster: () => undefined },
+  args: { hasManuscript: true, onOpenInMaster: () => undefined, onOpenMaster: () => undefined },
   decorators: [
     (Story, { parameters }) => (
       <ApiProvider api={parameters.api}>
-        <div className="max-w-[80rem] bg-[var(--bg)] p-4">
-          <Story />
-        </div>
+        <StudioProvider>
+          <div className="max-w-[80rem] bg-[var(--bg)] p-4">
+            <Story />
+          </div>
+        </StudioProvider>
       </ApiProvider>
     ),
   ],
@@ -81,7 +86,7 @@ export const Built: Story = {
 
 // A manuscript whose headings are numbered ("1." over the chapter's own name): each row is named in that style.
 const numbered = ['Down the Rabbit-Hole', 'The Pool of Tears', 'A Caucus-Race', 'Pig and Pepper'].map(
-  (subtitle, i) => ({ id: `n${i + 1}`, title: `${i + 1}.`, subtitle, index: i + 1, wordCount: 100, status: 'ready' }) as unknown as ManuscriptChapter,
+  (subtitle, i) => ({ id: `n${i + 1}`, title: `${i + 1}.`, subtitle, index: i + 1, wordCount: 100, status: 'not_started' }) as unknown as ManuscriptChapter,
 );
 
 export const NumberedHeadings: Story = {
@@ -122,5 +127,55 @@ export const NoManuscript: Story = {
   parameters: { api: host([]) },
   play: async ({ canvasElement }) => {
     await expect(within(canvasElement).getByText('This project has no manuscript yet. Import one to begin.')).toBeTruthy();
+  },
+};
+
+const running = {
+  ...idle,
+  id: 'p2',
+  phase: 'running',
+  message: 'Building the ACX package.',
+  profile: 'acx@2026-09',
+  outputDir: 'C:/Deliver/ACX',
+} as PackageJob;
+
+// A build started: the busy Build button, Cancel and the bar.
+export const Building: Story = {
+  parameters: { api: host(all, running) },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await expect(await canvas.findByRole('button', { name: 'Cancel' })).toBeTruthy();
+    await expect(canvas.getByRole('progressbar', { name: 'Building the package' })).toBeTruthy();
+  },
+};
+
+// The host refused the build: its reason under Build, and nothing listed as written.
+export const BuildFailed: Story = {
+  parameters: {
+    api: host(all, { ...running, phase: 'error', error: 'could not create "C:/Deliver/ACX": access is denied', message: 'The package could not be built.' }),
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await expect((await canvas.findByRole('alert')).textContent).toContain('access is denied');
+    await expect(canvas.queryByText('Written')).toBeNull();
+  },
+};
+
+// The measurement cannot be read: the page says it cannot tell, and offers Check again, rather than calling every chapter "Not mastered".
+export const CannotTell: Story = {
+  parameters: {
+    api: createMockApi({
+      manuscriptChapters: async () => chapters,
+      creditsTemplates: async () => [],
+      measureState: async () => Promise.reject(new Error('the host did not answer')),
+      exportState: async () => encoded,
+      packageState: async () => idle,
+    }),
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await expect((await canvas.findAllByText(/Can't tell which chapters pass/))[0]).toBeTruthy();
+    await expect(canvas.getAllByRole('button', { name: 'Check again' }).length).toBeGreaterThan(0);
+    await expect(canvas.queryByText('Not mastered')).toBeNull();
   },
 };

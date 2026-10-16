@@ -22,6 +22,7 @@ import { pickupsFeedback } from './interactionFeedback/pickups';
 import { proofFeedback } from './interactionFeedback/proof';
 import { editingFeedback } from './interactionFeedback/editing';
 import { masterFeedback } from './interactionFeedback/master';
+import { deliveryFeedback } from './interactionFeedback/delivery';
 import { productionFeedback } from './interactionFeedback/production';
 import { creditsFeedback } from './interactionFeedback/credits';
 import { recordingFeedback } from './interactionFeedback/recording';
@@ -44,6 +45,7 @@ const AREAS: Array<Record<string, FeedbackRow>> = [
   proofFeedback,
   editingFeedback,
   masterFeedback,
+  deliveryFeedback,
   productionFeedback,
   creditsFeedback,
   recordingFeedback,

@@ -10,7 +10,7 @@ the rest of the settings.
   project open, a take running, or the built-in recorder not available) says why under the radios, and the
   choice stays where it was.
 - **Delivery profile** picks the profile this project is judged against, on [Master &
-  QC](master-and-qc.md) and [Delivery](master-and-qc.md#delivery), the same choice as Delivery's own menu.
+  QC](master-and-qc.md) and [Delivery](delivery.md), the same choice as Delivery's own menu.
 - **Definitions and pronunciations** chooses where the Script page's **Words** tab shows definitions from: the
   web page (the default), the local dictionary or the online service. The choice is saved for every project and is
   the same one as the Words tab's **Definitions from** menu. The local dictionary shows **Installed** or **Not
@@ -302,4 +302,4 @@ If Narration Studio will not start after an update and the program file is missi
 
 ---
 
-[← Master & QC](master-and-qc.md) · [Index](README.md)
+[← Delivery](delivery.md) · [Index](README.md)

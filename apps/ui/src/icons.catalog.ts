@@ -165,6 +165,7 @@ export const CATALOG = {
   openInBooth: pageLink(faMicrophone, 'booth', 'Open in Booth'),
   manageTakes: pageLink(faScissors, 'editing', 'Manage takes in Editing'),
   openSchedule: pageLink(faCalendarDays, 'schedule', 'Open the schedule'),
+  openInMaster: pageLink(faGauge, 'master', 'Open in Master & QC'),
 
   // Finding and moving.
   find: action(faMagnifyingGlass, 'find', 'Find in the manuscript', 'Ctrl+F'),

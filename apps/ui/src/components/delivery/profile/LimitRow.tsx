@@ -8,7 +8,18 @@ const MUTED = { color: 'var(--text-muted)' };
  * One check on every chapter: the rule's name and its limit. A built-in's limit is read-only text; a custom profile's is a lowest and
  * a highest box (or "no lowest" / "no highest" where the rule has one bound) with the unit. A box takes a number; anything else is ignored.
  */
-export function LimitRow({ rule, readOnly, onEdit }: { rule: DeliveryRule; readOnly: boolean; onEdit: (side: 'min' | 'max', value: number) => void }) {
+export function LimitRow({
+  rule,
+  readOnly,
+  onEdit,
+  onDeclined,
+}: {
+  rule: DeliveryRule;
+  readOnly: boolean;
+  onEdit: (side: 'min' | 'max', value: number) => void;
+  /** The text typed is not a number: the box goes back to what it was. */
+  onDeclined?: (rule: DeliveryRule) => void;
+}) {
   const box = (side: 'min' | 'max') => {
     const bound = rule[side];
     const word = side === 'min' ? 'lowest' : 'highest';
@@ -21,7 +32,8 @@ export function LimitRow({ rule, readOnly, onEdit }: { rule: DeliveryRule; readO
         className="w-24!"
         onCommit={(text) => {
           const value = fromShown(rule, text);
-          if (value !== undefined) onEdit(side, value);
+          if (value === undefined) onDeclined?.(rule);
+          else onEdit(side, value);
         }}
       />
     );

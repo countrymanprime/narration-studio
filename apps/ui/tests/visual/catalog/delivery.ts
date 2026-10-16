@@ -1,6 +1,6 @@
 // The `delivery` rows of STATE_CATALOG (see state-catalog.ts), in the order they are captured. Delivery is the Studio Next mock's
-// Delivery page (SN-M5, ADR 0802): the profile card, Output, the profile's rules and the "Before you build" aside. A built package has
-// no row: the mock host measures six of the book's twelve chapters, so Build never turns on.
+// Delivery page (SN-M5, ADR 0802): the profile card, Output, the profile's rules and the "Before you build" aside. `?mockDelivery=` boots
+// every chapter measured and passing with the files mastered and encoded, so Build is on and the build's own states can be captured.
 import type { StateEntry } from '../lib/types';
 import { KEEPS_DESKTOP_SCROLL } from './shared';
 
@@ -31,6 +31,34 @@ export const deliveryStates: StateEntry[] = [
     ...KEEPS_DESKTOP_SCROLL,
   },
 
+  {
+    page: 'delivery',
+    state: 'ready',
+    description:
+      'Delivery with every chapter and both credits files passing and the files mastered and encoded (?mockDelivery=ready) - "Every chapter passes.", Build ACX package on and the folder to be chosen when it builds',
+  },
+  {
+    page: 'delivery',
+    state: 'built',
+    description:
+      'Delivery after Build ACX package, the host having chosen the folder - the Built pill, "n files in <folder>", Open the folder and a Written pill per file',
+  },
+  {
+    page: 'delivery',
+    state: 'building',
+    description: 'Delivery with a started build still running (?mockDelivery=building) - the busy Build button, Cancel and the progress bar',
+  },
+  {
+    page: 'delivery',
+    state: 'build-failed',
+    description: "Delivery after the host refused the build (?mockDelivery=fails) - the refusal in the host's words under Build, nothing listed as written",
+  },
+  {
+    page: 'delivery',
+    state: 'host-quiet',
+    description:
+      'Delivery with a build running and the host no longer answering (?mockDelivery=quiet) - "Can\'t tell how the build is going, last heard N s ago" with Check again, Cancel still offered',
+  },
   {
     page: 'delivery',
     state: 'no-manuscript',

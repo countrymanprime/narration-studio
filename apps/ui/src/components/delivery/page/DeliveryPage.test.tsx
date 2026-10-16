@@ -8,12 +8,13 @@ import type { ExportJob, ManuscriptChapter, MeasureFileResult, MeasureJob, Narra
 import { chapterName } from '../../../chapterName';
 import { failingTwo, passing, profile, waiting } from '../../masterqc/files/testFiles';
 import { styledChapters, type HeadingStyle } from '../../script/page/chapters/chapterFixtures';
+import { StudioProvider } from '../../../studio/StudioProvider';
 import { DeliveryPage } from './DeliveryPage';
 
 afterEach(cleanup);
 
 const chapter = (index: number, title: string): ManuscriptChapter =>
-  ({ id: `c${index}`, title, index, wordCount: 100, status: 'ready' }) as unknown as ManuscriptChapter;
+  ({ id: `c${index}`, title, index, wordCount: 100, status: 'not_started' }) as unknown as ManuscriptChapter;
 const CHAPTERS = [chapter(1, 'Chapter 01'), chapter(2, 'Chapter 02'), chapter(3, 'Chapter 03'), chapter(4, 'Chapter 04')];
 const PASSING = [passing('Chapter 01.wav'), passing('Chapter 02.wav'), passing('Chapter 03.wav'), passing('Chapter 04.wav')];
 const BLOCKED = [passing('Chapter 01.wav'), passing('Chapter 02.wav'), waiting('Chapter 03.wav'), failingTwo('Chapter 04.wav')];
@@ -25,7 +26,8 @@ const PACKAGE_DONE = {
   kind: 'render_package',
   phase: 'success',
   message: 'Built',
-  profile: 'ACX',
+  // The host names the profile a package was built with by its key (deliveryprofile.Profile.Key).
+  profile: 'acx@2026-09',
   outputDir: 'C:/Deliver/ACX',
   files: [1, 2, 3, 4].map((n) => ({ kind: 'chapter', name: `0${n}.mp3`, destPath: `C:/Deliver/ACX/0${n}.mp3`, tagged: true })),
   checklist: [],
@@ -49,7 +51,9 @@ function mount(
   });
   render(
     <ApiProvider api={api}>
-      <DeliveryPage hasManuscript={props.hasManuscript ?? true} onOpenInMaster={props.onOpenInMaster ?? (() => undefined)} />
+      <StudioProvider>
+        <DeliveryPage hasManuscript={props.hasManuscript ?? true} onOpenInMaster={props.onOpenInMaster ?? (() => undefined)} />
+      </StudioProvider>
     </ApiProvider>,
   );
   return api;

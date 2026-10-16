@@ -19,6 +19,7 @@ import (
 	"path/filepath"
 	"runtime"
 	"strings"
+	"unicode/utf16"
 
 	"github.com/countrymanprime/narration-utils/shell/internal/deliveryprofile"
 	"github.com/countrymanprime/narration-utils/shell/internal/encodeport"
@@ -28,6 +29,9 @@ import (
 // invalidTitleChars are characters Windows refuses in a file or path segment name, so a chapter title can never
 // smuggle in a path segment of its own (mirrors internal/project's own project-name validation).
 const invalidTitleChars = `<>:"/\|?*`
+
+// maxNameUnits is the longest file name a Windows folder holds, counted in UTF-16 code units (an emoji is two).
+const maxNameUnits = 255
 
 // Kind is what a delivery item is, for its place in the package and its checklist rule.
 type Kind string
@@ -114,6 +118,13 @@ var ErrMissingRequiredItem = errors.New("packager: a required delivery item is m
 // an earlier package.
 var ErrDestinationExists = errors.New("packager: a file already exists at the destination")
 
+// ErrNameTooLong is Assemble's refusal when a chapter's file name would be longer than Windows allows a name to be.
+var ErrNameTooLong = errors.New("packager: a file name would be too long")
+
+// ErrUnusableSource is Assemble's refusal when an encoded file is gone, is a folder or is empty: copying it would ship a
+// package with a hole in it, so it names the file and writes nothing.
+var ErrUnusableSource = errors.New("packager: an encoded file cannot be packaged")
+
 // ErrSameFile is Assemble's refusal when a planned destination is the item's own source file.
 var ErrSameFile = errors.New("packager: the packaged file would replace its own source")
 
@@ -146,22 +157,55 @@ func Assemble(ctx context.Context, req Request) (Manifest, error) {
 		return Manifest{}, err
 	}
 
+	if info, err := os.Stat(req.OutputDir); err == nil && !info.IsDir() {
+		return Manifest{}, fmt.Errorf("the output folder %q is a file, not a folder", req.OutputDir)
+	}
+	created := missingAncestors(req.OutputDir)
 	if err := os.MkdirAll(req.OutputDir, 0o755); err != nil {
 		return Manifest{}, fmt.Errorf("could not create %q: %w", req.OutputDir, err)
 	}
 
 	manifest := Manifest{OutputDir: req.OutputDir, Checklist: checklist}
+	// A package that stops half way (a cancel, a full disk, a folder deleted under it) leaves nothing: the files this call wrote are
+	// removed, and so are the folders it made, because the next build refuses a name that is already there and the narrator would be
+	// stuck. A file that was in the folder before is never touched (every planned name was checked absent first).
+	stop := func(err error) (Manifest, error) {
+		for _, file := range manifest.Files {
+			_ = os.Remove(file.DestPath)
+		}
+		for _, dir := range created {
+			_ = os.Remove(dir) // only an empty folder goes
+		}
+		return Manifest{}, err
+	}
 	for _, p := range pending {
 		if err := ctx.Err(); err != nil {
-			return Manifest{}, err
+			return stop(err)
 		}
 		file, err := writeItem(ctx, req, p)
 		if err != nil {
-			return Manifest{}, err
+			return stop(err)
 		}
 		manifest.Files = append(manifest.Files, file)
 	}
 	return manifest, nil
+}
+
+// missingAncestors lists the folders on the way to dir that do not exist yet, deepest first: the ones MkdirAll is about to make.
+func missingAncestors(dir string) []string {
+	var missing []string
+	for current := filepath.Clean(dir); current != "" && current != "."; {
+		if _, err := os.Stat(current); err == nil || !errors.Is(err, os.ErrNotExist) {
+			break
+		}
+		missing = append(missing, current)
+		parent := filepath.Dir(current)
+		if parent == current {
+			break
+		}
+		current = parent
+	}
+	return missing
 }
 
 // checklistFor judges every book-scope rule of req.Profile against what req carries: off, included, missing, or not
@@ -238,11 +282,28 @@ func plan(req Request) ([]plannedFile, error) {
 		if p.Item.Path == "" {
 			return nil, fmt.Errorf("packager: %s has no source file", p.Kind)
 		}
+		if err := checkSource(p); err != nil {
+			return nil, err
+		}
 		if err := checkDestination(req.OutputDir, p); err != nil {
 			return nil, err
 		}
 	}
 	return pending, nil
+}
+
+// checkSource refuses an encoded file that is gone, is a folder or is empty, naming it, before anything is written.
+func checkSource(p plannedFile) error {
+	info, err := os.Stat(p.Item.Path)
+	switch {
+	case err != nil:
+		return fmt.Errorf("%w: %s (%s) cannot be read: %v", ErrUnusableSource, p.Name, p.Item.Path, err)
+	case info.IsDir():
+		return fmt.Errorf("%w: %s (%s) is a folder, not an encoded file", ErrUnusableSource, p.Name, p.Item.Path)
+	case info.Size() == 0:
+		return fmt.Errorf("%w: %s (%s) is empty (0 bytes); encode it again", ErrUnusableSource, p.Name, p.Item.Path)
+	}
+	return nil
 }
 
 func checkDestination(outputDir string, p plannedFile) error {
@@ -281,7 +342,11 @@ func chapterFileName(number int, title, extension string) (string, error) {
 			return "", fmt.Errorf("packager: chapter %d's title cannot hold control characters", number)
 		}
 	}
-	return fmt.Sprintf("%02d - %s%s", number, title, extension), nil
+	name := fmt.Sprintf("%02d - %s%s", number, title, extension)
+	if units := len(utf16.Encode([]rune(name))); units > maxNameUnits {
+		return "", fmt.Errorf("%w: chapter %d's file name would be %d characters and a file name can hold %d; shorten its title", ErrNameTooLong, number, units, maxNameUnits)
+	}
+	return name, nil
 }
 
 // writeItem writes one already-planned item: tagged through a Packager port row when one matches its format and

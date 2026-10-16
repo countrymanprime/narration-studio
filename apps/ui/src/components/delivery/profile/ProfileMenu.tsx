@@ -15,11 +15,14 @@ export function ProfileMenu({
   profiles,
   current,
   disabled,
+  selectRef,
   onSelect,
 }: {
   profiles: readonly DeliveryProfile[];
   current: DeliveryProfile;
   disabled?: boolean;
+  /** The select itself, so the card can give it focus back after the host answers (a disabled select drops it). */
+  selectRef?: React.Ref<HTMLSelectElement>;
   onSelect: (profile: DeliveryProfile) => void;
 }) {
   const list = orderedProfiles(profiles);
@@ -28,6 +31,8 @@ export function ProfileMenu({
       label={`Delivery profile: ${current.name}`}
       value={deliveryProfileKey(current)}
       disabled={disabled}
+      ref={selectRef}
+      className="max-w-[16rem] min-w-0 truncate"
       options={list.map((profile) => ({ value: deliveryProfileKey(profile), label: profileMenuLabel(profile) }))}
       onChange={(key) => {
         const next = list.find((profile) => deliveryProfileKey(profile) === key);

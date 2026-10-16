@@ -43,5 +43,6 @@ export function readinessCounts(states: readonly ChapterState[]): { bad: number;
 /** What the build button says it is waiting on: "2 failing, 1 not ready", or that every chapter passes. */
 export function readiness(states: readonly ChapterState[]): { ready: boolean; text: string } {
   const { bad, wait } = readinessCounts(states);
-  return bad + wait === 0 && states.length > 0 ? { ready: true, text: 'Every chapter passes.' } : { ready: false, text: `${bad} failing, ${wait} not ready` };
+  if (states.length === 0) return { ready: false, text: 'There are no chapters to check.' };
+  return bad + wait === 0 ? { ready: true, text: 'Every chapter passes.' } : { ready: false, text: `${bad} failing, ${wait} not ready` };
 }

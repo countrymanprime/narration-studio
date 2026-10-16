@@ -20,7 +20,7 @@ import type {
   PackageRequest,
   RenderEncodeMasterApi,
 } from '../types';
-import { MOCK_ACX } from './deliveryProfilesMock';
+import { MOCK_ACX, deliveryProfileKey } from './deliveryProfilesMock';
 import { wireClone } from './mockFixtures';
 
 /** What the mock's picker chooses: two chapters, opening and closing credits, and a retail sample. */
@@ -41,7 +41,55 @@ export const MOCK_EXPORT_ITEMS: ExportItem[] = [
   { kind: 'retail_sample', title: '', path: MOCK_EXPORT_PATHS[4] },
 ];
 
-export type MockExportSeed = 'hold';
+/**
+ * `hold` holds a started export part way through. The delivery seeds (`?mockDelivery=`) boot with a finished export of every chapter, both credits
+ * and a retail sample, so the Delivery page's Build is on: `ready` leaves the package unbuilt, `building` holds a started build running,
+ * `fails` ends it with the host's refusal, `quiet` holds it running and then stops answering the job's reads.
+ */
+export type MockExportSeed = 'hold' | 'ready' | 'building' | 'fails' | 'quiet';
+
+/** The finished export the delivery seeds boot with: the opening credits, the book's twelve chapters, the closing credits and a retail sample, all encoded. */
+function deliveryExport(): ExportJob {
+  const dir = 'C:/Users/Narrator/Renders/Alice';
+  const titles = [
+    'Down the Rabbit-Hole',
+    'The Pool of Tears',
+    'A Caucus-Race and a Long Tale',
+    'The Rabbit Sends in a Little Bill',
+    'Advice from a Caterpillar',
+    'Pig and Pepper',
+    'A Mad Tea-Party',
+    "The Queen's Croquet-Ground",
+    "The Mock Turtle's Story",
+    'The Lobster Quadrille',
+    'Who Stole the Tarts?',
+    "Alice's Evidence",
+  ];
+  const items = [
+    { kind: 'credits_opening' as const, title: 'Opening credits', path: `${dir}/Opening credits.wav` },
+    ...titles.map((title, index) => ({ kind: 'chapter' as const, title, path: `${dir}/Chapter ${String(index + 1).padStart(2, '0')}.wav` })),
+    { kind: 'credits_closing' as const, title: 'Closing credits', path: `${dir}/Closing credits.wav` },
+    { kind: 'retail_sample' as const, title: 'Retail sample', path: `${dir}/Retail sample.wav` },
+  ];
+  const message = `Prepared ${files(items.length)}.`;
+  return {
+    id: 'export-ready',
+    kind: 'render_export',
+    phase: 'success',
+    message,
+    percent: 100,
+    master: true,
+    format: 'mp3',
+    logs: [message],
+    elapsed: items.length * 3,
+    files: items.map((item, index) => ({
+      ...item,
+      status: 'done' as const,
+      masteredPath: `C:/Users/Narrator/Wonderland/narration-utils/render-encode-master/mastered/${index + 1}.wav`,
+      encodedPath: `C:/Users/Narrator/Wonderland/narration-utils/render-encode-master/encoded/${index + 1}.mp3`,
+    })),
+  };
+}
 
 const baseName = (path: string): string => path.split(/[\\/]/).pop() ?? path;
 const extOf = (path: string): string => path.slice(path.lastIndexOf('.'));
@@ -114,7 +162,10 @@ export function createRenderEncodeMasterMock(
   profiles: () => DeliveryProfile[] = () => [MOCK_ACX],
   multiPackageSeed?: MockExportSeed,
 ): RenderEncodeMasterApi {
-  const hold = seed === 'hold';
+  const delivery = seed === 'ready' || seed === 'building' || seed === 'fails' || seed === 'quiet';
+  const hold = seed === 'hold' || seed === 'building' || seed === 'quiet';
+  let silent = false;
+  let packageCount = 0;
   const multiHold = multiPackageSeed === 'hold';
   const picked = new Set<string>();
   const encoded = new Set<string>();
@@ -130,6 +181,10 @@ export function createRenderEncodeMasterMock(
     elapsed: 0,
     files: [],
   };
+  if (delivery) {
+    exportJob = deliveryExport();
+    for (const file of exportJob.files) if (file.encodedPath) encoded.add(file.encodedPath);
+  }
   let packageJob: PackageJob = {
     id: null,
     kind: 'render_package',
@@ -288,11 +343,11 @@ export function createRenderEncodeMasterMock(
       const checklist = checklistFor(profile(), req.items);
       const missing = checklist.filter((item) => item.status === 'missing');
       packageJob = {
-        id: 'package-1',
+        id: `package-${++packageCount}`,
         kind: 'render_package',
         phase: 'running',
         message: `Building the ${profile().name} package.`,
-        profile: profile().id,
+        profile: deliveryProfileKey(profile()),
         outputDir: 'C:\\Users\\Narrator\\Desktop\\Wonderland ACX',
         files: [],
         checklist,
@@ -307,20 +362,32 @@ export function createRenderEncodeMasterMock(
         publish({ id: packageJob.id ?? '', kind: 'render_package', outcome: 'error', message: packageJob.message, durationMs: 900 });
         return wireClone(packageJob);
       }
-      const outputFiles = req.items.map((item, index) => ({
-        kind: item.kind,
-        name: packageNameFor(item, index),
-        destPath: `${packageJob.outputDir}\\${packageNameFor(item, index)}`,
-        tagged: false,
-      }));
+      // The host numbers the chapters among themselves (packager.chapterFileName), not among every item.
+      let chapterNumber = 0;
+      const outputFiles = req.items.map((item) => {
+        const name = packageNameFor(item, item.kind === 'chapter' ? chapterNumber++ : 0);
+        return { kind: item.kind, name, destPath: `${packageJob.outputDir}\\${name}`, tagged: false };
+      });
+      if (seed === 'fails') {
+        const error = `could not create "${packageJob.outputDir}": access is denied`;
+        packageJob = { ...packageJob, phase: 'error', error, message: `The package could not be built: ${error}` };
+        publish({ id: packageJob.id ?? '', kind: 'render_package', outcome: 'error', message: packageJob.message, durationMs: 300 });
+        return wireClone(packageJob);
+      }
+      // The host stops answering the job's reads once the build has started, so the page's quiet-host state can be looked at.
+      if (seed === 'quiet') silent = true;
       if (!hold) {
-        packageJob = { ...packageJob, phase: 'success', files: outputFiles, message: `Built the ${profile().id} package with ${outputFiles.length} files.` };
+        packageJob = { ...packageJob, phase: 'success', files: outputFiles, message: `Built the ${profile().name} package with ${outputFiles.length} files.` };
         publish({ id: packageJob.id ?? '', kind: 'render_package', outcome: 'success', message: packageJob.message, durationMs: 1200 });
       }
       return wireClone(packageJob);
     },
-    packageState: async (): Promise<PackageJob> => wireClone(packageJob),
+    packageState: async (): Promise<PackageJob> => {
+      if (silent) throw new Error('the host did not answer');
+      return wireClone(packageJob);
+    },
     packageCancel: async (): Promise<PackageJob> => {
+      silent = false;
       if (packageJob.phase === 'running') {
         packageJob = { ...packageJob, phase: 'cancelled', message: 'Packaging cancelled.' };
         publish({ id: packageJob.id ?? '', kind: 'render_package', outcome: 'cancelled', message: packageJob.message, durationMs: 500 });

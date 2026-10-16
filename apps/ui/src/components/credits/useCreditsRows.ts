@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { apiErrorMessage } from '../../api/errorMessage';
 import type { CreditsRenderResult } from '../../api/contracts/credits';
 import type { SystemApi } from '../../api/contracts/system';
 import { usePort } from '../../ports/usePort';
@@ -48,10 +49,16 @@ export type CreditsRow = {
 export function useCreditsRows(
   refreshKey: string | undefined,
   onError: (error: unknown) => void,
-): { rows?: Record<CreditsKind, CreditsRow>; setStatus: (kind: CreditsKind, status: ChapterStatus) => Promise<void> } {
+): {
+  rows?: Record<CreditsKind, CreditsRow>;
+  /** Why the rows could not be read, when they could not; a page that must not guess without them (Delivery) says so. */
+  failure?: string;
+  setStatus: (kind: CreditsKind, status: ChapterStatus) => Promise<void>;
+} {
   const credits = usePort('credits');
   const system = usePort('system');
   const [rows, setRows] = useState<Record<CreditsKind, CreditsRow>>();
+  const [failure, setFailure] = useState<string>();
   useEffect(() => {
     let active = true;
     (async () => {
@@ -80,9 +87,15 @@ export function useCreditsRows(
           };
         };
         const [opening, closing] = await Promise.all([build('opening'), build('closing')]);
-        if (active) setRows({ opening, closing });
-      } catch {
-        if (active) setRows(undefined);
+        if (active) {
+          setRows({ opening, closing });
+          setFailure(undefined);
+        }
+      } catch (error) {
+        if (active) {
+          setRows(undefined);
+          setFailure(apiErrorMessage(error));
+        }
       }
     })();
     return () => {
@@ -97,5 +110,5 @@ export function useCreditsRows(
       onError(error);
     }
   };
-  return { rows, setStatus };
+  return { rows, failure, setStatus };
 }

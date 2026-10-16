@@ -21,7 +21,7 @@ Read them in order the first time, or jump straight to the page you need.
 | [Proof](proof.md) | Every check's notes in one list, all chapters or one, with the chapter's recording check and waveform, the evidence and your pickup, edit, waive or defer decision on each; and the chapter view, for comparing the recording to the manuscript. |
 | [Pickups](pickups.md) | Every line to record again, from the recording check, your Proof notes and lines you add, grouped by chapter, with the pickup session that opens them in the Booth. |
 | [Master & QC](master-and-qc.md) | Finish: checking rendered files against a platform's delivery profile, why a file fails, the book's consistency, the mastering chain, mastering and encoding to spec, building packages for several platforms, diagnostics, and exporting a report. |
-| [Delivery](master-and-qc.md#delivery) | Finish: choosing and editing the project's delivery profile, its rules and their sources, which chapters pass, and building the platform's package. Documented with Master & QC. |
+| [Delivery](delivery.md) | Finish: choosing and editing the project's delivery profile, its rules and their sources, which chapters pass, building the platform's package, and what Delivery says when a build stops or the host does not answer. |
 | [Settings](settings.md) | Global and per-project settings, appearance, and clearing project data. |
 
 ---

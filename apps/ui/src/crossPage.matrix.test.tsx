@@ -122,6 +122,8 @@ const ARRIVALS: Arrival[] = [
     shows: () => heading('Master & QC'),
     leavesAt: '/master#file=C%3A%2Fa.wav',
   },
+  { seam: 'S17', what: 'Delivery, as Master & QC opens it', address: '/delivery', shows: () => heading('Delivery') },
+  { seam: 'S17', what: 'Delivery, an address with a query it does not read', address: '/delivery?chapter=nope&file=x', shows: () => heading('Delivery') },
   { seam: 'S14', what: 'Settings on the Credits category', address: '/settings#credits', shows: () => heading('Settings') },
   {
     seam: 'S16',
@@ -145,7 +147,7 @@ describe('cross-page matrix: where an address lands the narrator', () => {
 
   it('has a row for every seam the inventory lists as arriving by address', () => {
     const covered = new Set(ARRIVALS.map((row) => row.seam));
-    for (const seam of ['S0', 'S1', 'S4', 'S6', 'S7', 'S8', 'S9', 'S12', 'S13', 'S14', 'S16']) expect(covered.has(seam), seam).toBe(true);
+    for (const seam of ['S0', 'S1', 'S4', 'S6', 'S7', 'S8', 'S9', 'S12', 'S13', 'S14', 'S16', 'S17']) expect(covered.has(seam), seam).toBe(true);
   });
 });
 
@@ -202,6 +204,45 @@ describe('cross-page matrix: a bad address always has a way out', () => {
     first.unmount();
     mountApp(here());
     await blocked('Booth');
+  });
+});
+
+describe("cross-page matrix: Delivery's two ways into Master & QC (S13)", () => {
+  const ready = { measure: 'delivery-ready', renderExport: 'ready' } as const;
+
+  it('a chapter row opens Master & QC on that chapter, and Back returns to Delivery', async () => {
+    mountApp('/delivery', ready);
+    await heading('Delivery');
+    fireEvent.click(await screen.findByRole('button', { name: /^Chapter 2 — The Pool of Tears: Pass/ }));
+    await heading('Master & QC');
+    expect(here()).toBe('/master#file=chapter-2');
+    act(() => window.history.back());
+    await heading('Delivery');
+  });
+
+  it('a credits row opens Master & QC on the credits file', async () => {
+    mountApp('/delivery', ready);
+    await heading('Delivery');
+    fireEvent.click(await screen.findByRole('button', { name: /^Closing credits: Pass/ }));
+    await heading('Master & QC');
+    expect(here()).toBe('/master#file=credits-closing');
+  });
+
+  it("the header's button opens Master & QC on no file", async () => {
+    mountApp('/delivery', ready);
+    await heading('Delivery');
+    fireEvent.click(await screen.findByRole('button', { name: 'Open in Master & QC', hidden: false }));
+    await heading('Master & QC');
+    expect(here()).toBe('/master');
+  });
+
+  it('a reload on Delivery lands on Delivery again', async () => {
+    const first = mountApp('/delivery', ready);
+    await heading('Delivery');
+    first.unmount();
+    mountApp(here(), ready);
+    await heading('Delivery');
+    expect(here()).toBe('/delivery');
   });
 });
 

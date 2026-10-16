@@ -38,7 +38,7 @@ import { Guide } from './components/storybible/Guide';
 import { SettingsPage } from './components/settings/page/SettingsPage';
 import { BoothNextPage } from './components/booth/page/BoothNextPage';
 import { type BoothTarget } from './components/booth/page/boothQuery';
-import { addressPath, type AddressPage } from './navigation/address';
+import { addressPagePath, addressPath, type AddressPage } from './navigation/address';
 import { scriptPath } from './navigation/scriptPath';
 import { AddressGate } from './components/layout/AddressGate';
 import { NotFoundPage } from './components/layout/NotFoundPage';
@@ -835,6 +835,7 @@ function AppRoutes() {
                       <DeliveryPage
                         hasManuscript={Boolean(data.manuscript)}
                         onOpenInMaster={(chapterId) => guardedNavigate(addressPath({ page: 'master', file: chapterId }))}
+                        onOpenMaster={() => guardedNavigate(addressPagePath('master'))}
                         onImport={() => guardedNavigate('/')}
                       />
                     )
