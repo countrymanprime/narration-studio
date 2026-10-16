@@ -84,7 +84,9 @@ function optionsFor(choice: DawChoice, disabled: boolean): RadioOption<Choosable
 
 /** The project's DAW and its project file: linked, found in the folder, or missing, with the one action that moves it on. */
 function DawStatus({ choice, busy, onLinkFound, onPickFile, onStart, starting }: Omit<RecordingPanelViewProps, 'onChoose' | 'error'> & { choice: DawChoice }) {
-  const { daw, state, linkedFile, foundFiles } = choice;
+  // The project file is REAPER's (.rpp); another engine has none to name.
+  const { daw, state, foundFiles } = choice;
+  const linkedFile = daw === 'REAPER' ? choice.linkedFile : null;
   if (state === 'app' || state === 'none') return null;
   const linkable = state === 'not_linked' || linkedFile !== null;
   let title: string;

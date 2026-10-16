@@ -91,7 +91,7 @@ describe('Settings page (SN-M52)', () => {
   });
 
   it('recording panel: lists every engine, chooses the built-in recorder or a DAW, and shows the DAW chosen while it is off', async () => {
-    const api = createMockApi({}, { daw: { connected: false } });
+    const api = createMockApi({}, { daw: { connected: false, experimentalOn: true } });
     const choose = vi.spyOn(api, 'dawChoose');
     await renderPage({ api });
     const recording = panel('Recording');

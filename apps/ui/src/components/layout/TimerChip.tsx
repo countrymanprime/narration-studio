@@ -42,8 +42,8 @@ export function TimerChip({ timer }: { timer: RunningTimer }) {
       <FontAwesomeIcon icon={faStopwatch} aria-hidden="true" style={{ color: 'var(--text-muted)' }} />
       {/* The digits in Plex Mono 13 px 500, as mock 01 sets them beside the Barlow text. */}
       <span className="font-['IBM_Plex_Mono',ui-monospace,monospace] text-[0.8125rem] font-medium tracking-normal">{clock}</span>
-      {/* Below `md` the chip keeps its clock; the chapter stays in the accessible name above. */}
-      <span className="truncate max-md:hidden">· timer on {timer.chapterTitle}</span>
+      {/* Below `xl` the chip keeps its clock; the chapter stays in the accessible name above. */}
+      <span className="truncate max-xl:hidden">· timer on {timer.chapterTitle}</span>
     </HeaderChip>
   );
 }

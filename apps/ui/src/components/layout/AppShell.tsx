@@ -270,7 +270,7 @@ export function AppShell({
               </TooltipTarget>
             </div>
             {/* Left-aligned after the history buttons, as the mocks draw it; it takes the free width and truncates first. */}
-            <div className="flex min-w-0 flex-1 items-center gap-2">
+            <div className="flex min-w-16 flex-1 items-center gap-2">
               {/* Below `md` the two history buttons leave less room: the label and
                   folder icon drop first, and the project name is left to truncate on its own. */}
               <span className="section-label max-md:hidden">Project</span>
@@ -284,18 +284,18 @@ export function AppShell({
                 onClick={onOpenJump}
                 aria-label="Jump to or run…"
                 aria-keyshortcuts="Control+K"
-                className="flex h-8 min-w-0 flex-none cursor-pointer items-center gap-2 rounded-[var(--radius-button)] border border-[var(--border)] bg-[var(--bg)] px-2.5 text-[length:var(--font-size-sm)] text-[var(--text-muted)] hover:bg-[var(--surface-2)] max-md:size-8 max-md:justify-center max-md:px-0"
+                className="flex h-8 min-w-0 flex-none cursor-pointer items-center gap-2 rounded-[var(--radius-button)] border border-[var(--border)] bg-[var(--bg)] px-2.5 text-[length:var(--font-size-sm)] text-[var(--text-muted)] hover:bg-[var(--surface-2)] max-lg:size-8 max-lg:justify-center max-lg:px-0"
               >
                 <FontAwesomeIcon icon={iconFor('jumpTo')} />
-                <span className="max-md:hidden">Jump to or run…</span>
-                <span className="max-lg:hidden">
+                <span className="max-lg:hidden">Jump to or run…</span>
+                <span className="max-xl:hidden">
                   <KeyChord keys={['Ctrl', 'K']} />
                 </span>
               </button>
             </TooltipTarget>
             {/* Below `md` there is no room for these two beside the zoom group at 390 px: the jump menu lists "Open the undo history" there, and each
-                history row has its own Undo. */}
-            <div className="flex flex-none items-center gap-1 max-md:hidden" role="group" aria-label="Undo history">
+                history row has its own Undo. While a timer chip runs the pair also drops below `lg`, so the project name keeps room. */}
+            <div className={`flex flex-none items-center gap-1 ${timer ? 'max-lg:hidden' : 'max-md:hidden'}`} role="group" aria-label="Undo history">
               <TooltipTarget text={undo.disabledReason ?? 'Undo the last change'}>
                 <IconButton label="Undo" disabledReason={undo.disabledReason} onClick={undo.run}>
                   <FontAwesomeIcon icon={faRotateLeft} />
@@ -321,7 +321,7 @@ export function AppShell({
                   aria-label={`Reset zoom to 100% (now ${zoom.percent}%)`}
                   aria-disabled={zoomAtDefault || undefined}
                   onClick={zoomAtDefault ? (event) => event.preventDefault() : zoom.reset}
-                  className="h-8 min-w-14 justify-center px-2 py-0 font-['IBM_Plex_Mono',ui-monospace,monospace] text-[0.8rem] font-normal tracking-normal normal-case aria-disabled:pointer-events-none aria-disabled:opacity-40"
+                  className="h-8 min-w-14 justify-center px-2 py-0 font-['IBM_Plex_Mono',ui-monospace,monospace] text-[0.8rem] font-normal tracking-normal normal-case aria-disabled:pointer-events-none aria-disabled:opacity-40 max-md:hidden"
                 >
                   {zoom.percent}%
                 </Button>

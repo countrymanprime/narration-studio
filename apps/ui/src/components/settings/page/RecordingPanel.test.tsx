@@ -48,8 +48,24 @@ describe('RecordingPanel', () => {
     expect(onLinkDawFile).toHaveBeenCalled();
   });
 
-  it('saves the built-in recorder and reads the answer back', async () => {
+  it('says why the built-in recorder cannot be chosen while it is switched off, and keeps the engine it had (#1777)', async () => {
     const api = createMockApi({}, foundSeed);
+    mount(api);
+    await waitFor(() => expect(screen.getByRole('radio', { name: /^REAPER\./ }).getAttribute('aria-checked')).toBe('true'));
+    fireEvent.click(await screen.findByRole('radio', { name: /^Built-in recorder/ }));
+    expect((await screen.findByRole('alert')).textContent).toContain('Experimental: switched off in Settings.');
+    expect(screen.getByRole('radio', { name: /^REAPER\./ }).getAttribute('aria-checked')).toBe('true');
+    expect((await api.recorderState()).engine).not.toBe('builtin');
+  });
+
+  it('names no .rpp file under Audacity (#1777)', async () => {
+    mount(createMockApi({}, { dawChoice: { chosen: 'Audacity' }, daw: { daw: 'Audacity' } }));
+    await screen.findByTestId('recording-daw-status');
+    expect(screen.getByTestId('recording-daw-status').textContent).not.toMatch(/\.rpp/);
+  });
+
+  it('saves the built-in recorder and reads the answer back', async () => {
+    const api = createMockApi({}, { ...foundSeed, daw: { connected: false, experimentalOn: true } });
     mount(api);
     fireEvent.click(await screen.findByRole('radio', { name: /^Built-in recorder/ }));
     await waitFor(() => expect(screen.getByRole('radio', { name: /^Built-in recorder/ }).getAttribute('aria-checked')).toBe('true'));
