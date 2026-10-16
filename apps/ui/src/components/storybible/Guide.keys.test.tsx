@@ -35,6 +35,17 @@ async function renderGuide() {
   return out;
 }
 
+describe('home-and-end-go-to-the-ends-of-the-list', () => {
+  it('Home focuses the first entry and End the last, from a focused row', async () => {
+    const rows = await renderGuide();
+    rows[2]!.focus();
+    await userEvent.keyboard('{End}');
+    expect(document.activeElement).toBe(rows[rows.length - 1]);
+    await userEvent.keyboard('{Home}');
+    expect(document.activeElement).toBe(rows[0]);
+  });
+});
+
 describe('arrow-keys-move-through-the-list', () => {
   it('arrow keys move through the list', async () => {
     const rows = await renderGuide();

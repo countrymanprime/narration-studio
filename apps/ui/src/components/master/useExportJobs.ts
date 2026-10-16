@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useApi } from '../../api/ApiContext';
 import { apiErrorMessage } from '../../api/errorMessage';
 import type { DeliveryProfile, ExportItem, ExportJob, MultiPackageJob, PackageItem, PackageJob } from '../../types';
+import { kindFromFileName } from './packageKind';
 
 /** How often a running export or package job is read. */
 const POLL_MS = 500;
@@ -106,7 +107,9 @@ export function useExportJobs() {
       if (picked.paths.length === 0) return;
       setItems((current) => {
         const existing = new Set(current.map((item) => item.path));
-        const added = picked.paths.filter((path) => !existing.has(path)).map((path): ExportItem => ({ kind: 'chapter', title: titleFromPath(path), path }));
+        const added = picked.paths
+          .filter((path) => !existing.has(path))
+          .map((path): ExportItem => ({ kind: kindFromFileName(fileName(path)), title: titleFromPath(path), path }));
         return [...current, ...added];
       });
     } catch (error) {

@@ -38,6 +38,14 @@ describe('chapter card', () => {
     );
   });
 
+  it('names its region by number and title, so two chapters with one title are two landmarks', () => {
+    mount();
+    expect(screen.getByRole('region', { name: /^Chapter 2/ }).getAttribute('aria-label')).toMatch(/The Salt Marsh/);
+    cleanup();
+    mount({ chapter: { ...TWO, id: 'other', index: 7 }, previous: undefined });
+    expect(screen.getByRole('region', { name: /The Salt Marsh/ }).getAttribute('aria-label')).not.toBe('The Salt Marsh');
+  });
+
   it('labels a credits chapter "Credits" and names it in lower case at the boundary after it', () => {
     mount({ chapter: CREDITS, previous: undefined });
     expect(screen.getByText('Credits')).toBeTruthy();

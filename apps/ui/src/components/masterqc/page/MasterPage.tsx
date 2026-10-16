@@ -3,6 +3,8 @@ import { apiErrorMessage } from '../../../api/errorMessage';
 import { usePort } from '../../../ports/usePort';
 import { chapterName } from '../../../chapterName';
 import type { DeliveryProfile, ManuscriptChapter } from '../../../types';
+import { creditsEntries } from '../../credits/creditsEntries';
+import { useCreditsRows } from '../../credits/useCreditsRows';
 import { chapterOfFile, fileOf } from '../../master/chapterFile';
 import { deliveryProfileKey } from '../../master/deliveryProfile';
 import { DiagnosticsSection } from '../../master/DiagnosticsSection';
@@ -73,6 +75,16 @@ function MasterBody({ projectFolder, onOpenDelivery, openSettings, fileActions, 
   const [chaptersRead, setChaptersRead] = useState(false);
   const profilesPort = usePort('deliveryProfiles');
   const run = useMeasureRun();
+  // The credits files count toward the package like a chapter, as Delivery's list counts them, so the two pages say the same number.
+  const creditRows = useCreditsRows('master', () => undefined);
+  const credits = useMemo(
+    () =>
+      creditsEntries(
+        creditRows.rows,
+        chapters.some((chapter) => chapter.contentKind === 'opening'),
+      ),
+    [creditRows.rows, chapters],
+  );
   const jobs = useExportJobs();
   const mastering = useMasteringProviders();
   const [all, setAll] = useState<DeliveryProfile[]>([]);
@@ -238,7 +250,7 @@ function MasterBody({ projectFolder, onOpenDelivery, openSettings, fileActions, 
           <ReportExportPanel busy={run.running} measured={run.files.length > 0} />
         </div>
         <div className="flex min-w-0 flex-col gap-4">
-          <PackageChecks profile={profile} chapters={chapters} files={run.files} onOpenDelivery={onOpenDelivery} />
+          <PackageChecks profile={profile} chapters={chapters} credits={credits} files={run.files} onOpenDelivery={onOpenDelivery} />
           <MultiPlatformExportPanel profiles={all} jobs={jobs} />
         </div>
       </div>

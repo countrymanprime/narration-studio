@@ -26,6 +26,9 @@ const mount = (files: readonly MeasureFileResult[], profile: DeliveryProfile = a
 const package_ = () => screen.getByRole('complementary', { name: /Delivery package/ });
 const chart = () => screen.getByRole('img', { name: /RMS by file/ });
 
+/** The mock's opening and closing credits, which Delivery lists after and before the chapters. */
+const CREDITS_FILES = 2;
+
 describe('Master & QC page body', () => {
   const withChapters = (files: readonly MeasureFileResult[], props: Partial<React.ComponentProps<typeof MasterPage>> = {}) => {
     const api = apiOf(jobOf(files, acx), acx, { manuscriptChapters: async () => CHAPTERS });
@@ -152,13 +155,13 @@ describe('Master & QC page body', () => {
   it('counts-failing-and-not-ready-from-the-files', async () => {
     mount(TWO_FAIL);
     const aside = within(await screen.findByRole('complementary', { name: /Delivery package/ }));
-    expect(aside.getByText('1 failing and 1 not ready.')).toBeTruthy();
+    // Behaviour change: the opening and closing credits files count as chapters, as Delivery counts them, so each is one more not ready.
+    expect(aside.getByText(`1 failing and ${1 + CREDITS_FILES} not ready.`)).toBeTruthy();
     expect(aside.getByText('Chapter 04.wav fails 2 checks')).toBeTruthy();
-    expect(aside.getByText('1 chapter not ready')).toBeTruthy();
+    expect(aside.getByText(`${1 + CREDITS_FILES} chapters not ready`)).toBeTruthy();
     cleanup();
     mount(ALL_PASS);
-    expect(await screen.findByText('0 failing and 0 not ready.')).toBeTruthy();
-    expect(screen.queryByText(/not ready$/)).toBeNull();
+    expect(await screen.findByText(`0 failing and ${CREDITS_FILES} not ready.`)).toBeTruthy();
   });
 
   it('says-nothing-passes-when-nothing-is-measured: no tick, and the same not-ready count Delivery shows', async () => {
@@ -168,8 +171,8 @@ describe('Master & QC page body', () => {
         <MasterPage {...PROPS} onOpenDelivery={vi.fn()} openSettings={vi.fn()} />
       </PageHost>,
     );
-    const notReady = chapterStates(CHAPTERS, []).filter((state) => state.kind === 'wait').length;
-    expect(notReady).toBe(CHAPTERS.length);
+    const notReady = chapterStates(CHAPTERS, []).filter((state) => state.kind === 'wait').length + CREDITS_FILES;
+    expect(notReady).toBe(CHAPTERS.length + CREDITS_FILES);
     const aside = within(await screen.findByRole('complementary', { name: /Delivery package/ }));
     expect(await aside.findByText(`0 failing and ${notReady} not ready.`)).toBeTruthy();
     expect(aside.getByText(`${notReady} chapters not ready`)).toBeTruthy();
@@ -189,7 +192,7 @@ describe('Master & QC page body', () => {
     );
     const states = chapterStates(chapters, files);
     const bad = states.filter((state) => state.kind === 'bad').length;
-    const wait = states.filter((state) => state.kind === 'wait').length;
+    const wait = states.filter((state) => state.kind === 'wait').length + CREDITS_FILES;
     expect(bad).toBeGreaterThan(0);
     const aside = within(await screen.findByRole('complementary', { name: /Delivery package/ }));
     expect(await aside.findByText(`${bad} failing and ${wait} not ready.`)).toBeTruthy();

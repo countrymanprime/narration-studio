@@ -33,7 +33,7 @@ export const Measured: Story = {
 export const PartlyWaiting: Story = {
   parameters: { files: TWO_FAIL },
   play: async ({ canvasElement }) => {
-    await expect(await within(canvasElement).findByText('1 chapter not ready')).toBeTruthy();
+    await expect(await within(canvasElement).findByText('3 chapters not ready')).toBeTruthy();
   },
 };
 
@@ -55,7 +55,7 @@ export const NoManuscript: Story = {
 export const AllPassing: Story = {
   parameters: { files: ALL_PASS },
   play: async ({ canvasElement }) => {
-    await expect(await within(canvasElement).findByText('0 failing and 0 not ready.')).toBeTruthy();
+    await expect(await within(canvasElement).findByText('0 failing and 2 not ready.')).toBeTruthy();
   },
 };
 

@@ -300,6 +300,11 @@ export function Reader(props: ReaderProps) {
     bounds.forEach((bound, i) => {
       if (bound.offsetTop - root.scrollTop <= 70) at = i;
     });
+    // The last section (the closing credits) is short, so a jump to it stops at the bottom with its heading still below the top.
+    if (root.scrollHeight > root.clientHeight && root.scrollTop + root.clientHeight >= root.scrollHeight - 2) {
+      const last = bounds[bounds.length - 1]!;
+      if (last.offsetTop - root.scrollTop < root.clientHeight) at = bounds.length - 1;
+    }
     const chapterId = bounds[at].dataset.ch as string;
     const rows = Array.from(root.querySelectorAll<HTMLElement>('[data-para]')).filter((row) => row.dataset.ch === chapterId);
     let n = 0;
@@ -324,6 +329,11 @@ export function Reader(props: ReaderProps) {
     const root = scroller.current;
     const bound = root?.querySelector<HTMLElement>(`[data-bound][data-ch="${chapterId}"]`);
     if (root && bound) root.scrollTop = bound.offsetTop - 8;
+  };
+  /** Text above the chapter that arrives after the jump (the chapters drawn on the way) would push it out of view, so it is held at the top like the first draw. */
+  const jumpTo = (chapterId: string): void => {
+    scrollToChapter(chapterId);
+    held.current = { chapterId, offset: -8 };
   };
   /** Where the first draw put the reader, held until the narrator scrolls or a request scrolls it. */
   const held = useRef<{ chapterId: string; offset: number } | null>(null);
@@ -364,10 +374,10 @@ export function Reader(props: ReaderProps) {
       const at = indexOf.get(pendingJump);
       if (at === undefined) {
         // A section outside the chapters (the credits) is always drawn.
-        scrollToChapter(pendingJump);
+        jumpTo(pendingJump);
         onHandled?.('chapter');
       } else if (reach(at)) {
-        scrollToChapter(pendingJump);
+        jumpTo(pendingJump);
         onHandled?.('chapter');
       }
     }
@@ -407,6 +417,7 @@ export function Reader(props: ReaderProps) {
     if (!root || !findState.currentPid) return;
     const at = chapterOf(findState.currentPid);
     if (at < 0 || !reach(at)) return;
+    release();
     const match = root.querySelector<HTMLElement>('.a-find-cur');
     if (match) root.scrollTop += (match.getBoundingClientRect().top - root.getBoundingClientRect().top) / zoom - root.clientHeight / 3;
     // Only a different current match moves the reader.

@@ -107,6 +107,20 @@ describe('continuous scroll with the spy', () => {
   });
 });
 
+describe('the spy at the bottom', () => {
+  it('names the last section when the reader is scrolled to the end and its heading is in view', () => {
+    render(<Reader {...props()} />);
+    const root = scroller();
+    Object.defineProperty(root, 'scrollHeight', { configurable: true, value: 1000 });
+    Object.defineProperty(root, 'clientHeight', { configurable: true, value: 400 });
+    scrollTo(600);
+    expect(document.querySelector('b')?.textContent).toBe('Chapter 3');
+    // Chapter 2's heading is the last one at or above the top at 350, yet the end of the book shows chapter 3's.
+    scrollTo(350);
+    expect(document.querySelector('b')?.textContent).toBe('Chapter 2');
+  });
+});
+
 describe('scroll requests', () => {
   it('scrolls to a chapter and clears the request once', () => {
     const onHandled = vi.fn();
@@ -115,6 +129,31 @@ describe('scroll requests', () => {
     expect(onHandled).toHaveBeenCalledWith('chapter');
     rerender(<Reader {...props({ pendingJump: null, onHandled })} />);
     expect(onHandled).toHaveBeenCalledTimes(1);
+  });
+
+  it('keeps a jumped-to chapter at the top when text above it arrives after the jump', () => {
+    const late: Record<string, ManuscriptParagraph[] | undefined> = {};
+    const onHandled = vi.fn();
+    const { rerender } = render(<Reader {...props({ paragraphsOf: (id) => late[id], pendingJump: 'c3', onHandled })} />);
+    const bound = document.querySelector('[data-bound][data-ch="c3"]') as HTMLElement;
+    expect(scrolls.get(scroller())).toBe(bound.offsetTop - 8);
+    // The text of the chapters above arrives and pushes the chapter down.
+    Object.assign(late, paras);
+    tops.set(bound, 8000);
+    rerender(<Reader {...props({ paragraphsOf: (id) => late[id], pendingJump: null, onHandled })} />);
+    expect(scrolls.get(scroller())).toBe(8000 - 8);
+  });
+
+  it('lets go of a jumped-to chapter once the narrator scrolls by hand', () => {
+    const late: Record<string, ManuscriptParagraph[] | undefined> = {};
+    const { rerender } = render(<Reader {...props({ paragraphsOf: (id) => late[id], pendingJump: 'c3' })} />);
+    const bound = document.querySelector('[data-bound][data-ch="c3"]') as HTMLElement;
+    fireEvent.wheel(scroller());
+    scrollTo(123);
+    Object.assign(late, paras);
+    tops.set(bound, 8000);
+    rerender(<Reader {...props({ paragraphsOf: (id) => late[id], pendingJump: null })} />);
+    expect(scrolls.get(scroller())).toBe(123);
   });
 
   it('scrolls to a paragraph a little below the top', () => {

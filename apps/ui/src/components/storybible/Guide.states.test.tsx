@@ -177,6 +177,8 @@ describe('a new entry', () => {
     const field = await addEntity();
     expect(field.value).toMatch(/^New entity \d+$/);
     expect(document.activeElement).toBe(field);
+    // Ready to type over: the whole default name is selected, so the first letter replaces it.
+    await vi.waitFor(() => expect([field.selectionStart, field.selectionEnd]).toEqual([0, field.value.length]));
   });
 
   it('numbers a second default name from the first free number, not from the row count', async () => {

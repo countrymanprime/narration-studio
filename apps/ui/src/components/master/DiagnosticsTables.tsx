@@ -104,7 +104,7 @@ export function FindingsTable({ files, sourceKind }: { files: readonly Diagnosti
             <TableCell numeric align="left">
               {timeRangeText(finding)}
             </TableCell>
-            <TableCell className="min-w-[14rem]">
+            <TableCell className="min-w-[11rem]">
               <span className="font-medium">{findingKindLabel(finding)}</span>
               <span className="ml-2 text-[0.75rem] font-semibold tracking-[0.03em] uppercase" style={finding.severity === 'info' ? MUTED : undefined}>
                 {severityLabel(finding.severity)}
@@ -113,8 +113,8 @@ export function FindingsTable({ files, sourceKind }: { files: readonly Diagnosti
                 {finding.confidence_reason}
               </span>
             </TableCell>
-            <TableCell className="min-w-[10rem] font-['IBM_Plex_Mono',ui-monospace,monospace] text-[0.8rem]">{measuredText(finding)}</TableCell>
-            <TableCell className="min-w-[10rem] text-[0.8rem]">{thresholdText(finding)}</TableCell>
+            <TableCell className="min-w-[6rem] font-['IBM_Plex_Mono',ui-monospace,monospace] text-[0.8rem]">{measuredText(finding)}</TableCell>
+            <TableCell className="min-w-[7rem] text-[0.8rem]">{thresholdText(finding)}</TableCell>
             <TableCell className="min-w-[9rem] [overflow-wrap:anywhere]">
               <span className="font-medium">{file.name}</span>
               <span className="block text-[0.75rem]" style={MUTED}>{`${sourceKindLabel(findingSourceKind(finding, sourceKind))}, whole file`}</span>

@@ -21,6 +21,17 @@ export const contractValue = (plan: ProductionPlan, words: number): number | nul
  * "1,5" must not become 15, and "1e3", "0x10", "Infinity", a minus sign, other scripts' digits and emoji are not amounts.
  */
 export function parseAmount(text: string): number | null {
+  const amount = amountOf(text);
+  return amount !== null && amount <= MAX_AMOUNT ? amount : null;
+}
+
+/** The largest rate the page takes: past it the digits no longer fit the box and the worked-out value is not a sum a narrator could be owed. */
+export const MAX_AMOUNT = 1_000_000_000_000;
+
+/** Whether the text is an amount in the right shape that is more than `MAX_AMOUNT`: its own sentence, not "write a number". */
+export const isTooLarge = (text: string): boolean => (amountOf(text) ?? 0) > MAX_AMOUNT;
+
+function amountOf(text: string): number | null {
   const t = text.trim();
   if (!/^(\d+|\d{1,3}(,\d{3})+)(\.\d+)?$/.test(t)) return null;
   const amount = Number(t.replace(/,/g, ''));

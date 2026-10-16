@@ -200,6 +200,20 @@ describe('edit-then-accept-is-one-step', () => {
   });
 });
 
+describe('accepting-says-so-and-offers-undo', () => {
+  it('toasts "Accepted" with an Undo that takes the decision back, and says nothing for a refusal', async () => {
+    const u = userEvent.setup();
+    const toastUndo = vi.spyOn(overlay, 'toastUndo');
+    const needs = one((s) => s.payload.kind === 'alias' && s.payload.alias === 'Rabbit');
+    renderRow(needs);
+    await u.click(screen.getByRole('button', { name: 'Accept this suggestion' }));
+    await waitFor(() => expect(toastUndo).toHaveBeenCalledWith('Accepted', expect.any(Function)));
+    expect(await statusOf(needs.id)).toBe('accepted');
+    await toastUndo.mock.calls[0]![1]();
+    expect(await statusOf(needs.id)).toBe('needs-verification');
+  });
+});
+
 describe('decisions-are-journal-entries', () => {
   it('Accept, Reject and Review each journal one entry with their label, and Undo is extractionReopen', async () => {
     const u = userEvent.setup();

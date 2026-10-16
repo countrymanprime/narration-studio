@@ -7,7 +7,7 @@ import { ProgressBar } from '../../primitives/ProgressBar';
 import { SectionLabel } from '../../primitives/SectionLabel';
 import { StatusBadge } from '../../primitives/StatusBadge';
 import type { DeliveryBuild } from './useDeliveryBuild';
-import { heardText } from './useHostRead';
+import { askedText, heardText } from './useHostRead';
 
 const MUTED = { color: 'var(--text-muted)' };
 const DANGER = { color: 'var(--danger-text)' };
@@ -81,7 +81,7 @@ export function OutputPanel({
         {build.running && <ProgressBar label="Building the package" value={null} running />}
         {build.quiet !== undefined && (
           <p role="alert" className="text-sm" style={DANGER}>
-            Can't tell how the build is going, {heardText(build.lastHeard)}: {build.quiet}{' '}
+            Can't tell how the build is going, {heardText(build.lastHeard)}: {build.quiet} ({askedText(build.lastAsked)}).{' '}
             <Button variant="ghost" size="sm" onClick={build.checkAgain}>
               Check again
             </Button>

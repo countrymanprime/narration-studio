@@ -4,6 +4,7 @@ import { join } from 'node:path';
 import { cleanup, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import { DAW_SETUPS } from '../../fixtures/daw';
 import { createMockApi } from '../../api/mockApi';
 import { diagnosticsJobSchema } from '../../api/schemas/diagnostics';
 import type { DiagnosticsJob, NarrationApi } from '../../types';
@@ -47,6 +48,15 @@ const rowOf = (table: HTMLElement, text: string) => {
   if (!row) throw new Error(`no row with ${text}`);
   return row;
 };
+
+describe('Master & QC, Diagnostics wording', () => {
+  it('names the DAW in use, never REAPER by default', async () => {
+    await openDiagnostics({ initial: { daw: DAW_SETUPS.audacity } });
+    await waitFor(() => expect(screen.getByText(/Listen at those times in Audacity: nothing here is saved/)).toBeTruthy());
+    expect(screen.getByText(/needs the Audacity actions this app does not yet run/)).toBeTruthy();
+    expect(screen.queryByText(/REAPER/)).toBeNull();
+  });
+});
 
 describe('Master & QC, Diagnostics', () => {
   it('shows every threshold before anything is checked, and says nothing is checked yet', async () => {
