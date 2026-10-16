@@ -96,17 +96,26 @@ export function ProgressChart({ k, wph, start, today, due, recordedHours, series
           {due && (
             <>
               <line x1={x(due)} x2={x(due)} y1={PAD.top} y2={height - PAD.bottom} stroke="var(--danger)" strokeDasharray="2 4" data-line="due" />
-              <text x={x(due) - 4} y={PAD.top + 10} textAnchor="end" fontSize="11" fill="var(--danger-text)">{`due ${fmtD(due)}`}</text>
-              <line
-                x1={x(start)}
-                y1={y(0)}
-                x2={x(due)}
-                y2={y(finishedHours)}
-                stroke="var(--text-muted)"
-                strokeWidth="2"
-                strokeDasharray="6 5"
-                data-line="plan"
-              />
+              <text
+                x={x(due) + (x(due) < 96 ? 4 : -4)}
+                y={PAD.top + 10}
+                textAnchor={x(due) < 96 ? 'start' : 'end'}
+                fontSize="11"
+                fill="var(--danger-text)"
+              >{`due ${fmtD(due)}`}</text>
+              {/* A due date on or before the plan's first day leaves no plan to draw. */}
+              {diffDays(due, start) > 0 && (
+                <line
+                  x1={x(start)}
+                  y1={y(0)}
+                  x2={x(due)}
+                  y2={y(finishedHours)}
+                  stroke="var(--text-muted)"
+                  strokeWidth="2"
+                  strokeDasharray="6 5"
+                  data-line="plan"
+                />
+              )}
             </>
           )}
           {actual.length > 0 && (
@@ -134,7 +143,13 @@ export function ProgressChart({ k, wph, start, today, due, recordedHours, series
           <text x={x(today)} y={y(recordedHours) - 10} textAnchor="middle" fontSize="11" fill="var(--text)">
             today
           </text>
-          <text x={x(k.finish)} y={y(finishedHours) - 8} textAnchor="end" fontSize="11" fill="var(--text)">{`done ${fmtD(k.finish)} (est.)`}</text>
+          <text
+            x={x(k.finish)}
+            y={y(finishedHours) - 8}
+            textAnchor={x(k.finish) < 130 ? 'start' : 'end'}
+            fontSize="11"
+            fill="var(--text)"
+          >{`done ${fmtD(k.finish)} (est.)`}</text>
         </svg>
       </div>
       <p id={describedBy} className="sr-only">

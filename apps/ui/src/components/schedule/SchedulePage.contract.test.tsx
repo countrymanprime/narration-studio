@@ -57,7 +57,7 @@ describe('an amount as typed', () => {
     const calls = vi.fn();
     await mountSchedule({ wrap: (base) => ({ setProductionDeadline: async (d, a) => (calls(d, a), base.setProductionDeadline(d, a)) }) });
     await commit(text);
-    await waitFor(() => expect(toasts().join(' ')).toMatch(/Write the rate as a number/));
+    await waitFor(() => expect(toasts().join(' ')).toMatch(/Write the rate as a number|Write a decimal with a point/));
     expect(calls).not.toHaveBeenCalled();
     expect((await amountField()).value).toBe('250');
   });
@@ -91,6 +91,16 @@ describe('an amount as typed', () => {
     expect(parseAmount(' 7 ')).toBe(7);
     expect(plainNumber(1e21)).toBe('1000000000000000000000');
     expect(plainNumber(0.1)).toBe('0.1');
+  });
+});
+
+describe('clearing the amount', () => {
+  it('keeps a per-finished-hour book per finished hour when its payment was never stored, and Undo brings the amount back', async () => {
+    await mountSchedule({ seed: { payment: undefined } });
+    await commit('');
+    await waitFor(async () => expect((await stored()).contractedAmount).toBeNull());
+    expect((await stored()).payment).toBe('per_finished_hour');
+    expect(await screen.findByRole('textbox', { name: 'Rate per finished hour' })).toBeTruthy();
   });
 });
 

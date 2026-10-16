@@ -31,7 +31,12 @@ export function ContractPanel({ plan, words, onPayment, onAmount, onRefuse }: Co
     setTyped(null);
     if (text === '') return onAmount(null);
     const amount = parseAmount(text);
-    if (amount === null) return onRefuse('Write the rate as a number of zero or more, such as 250 or 1,250.50.');
+    if (amount === null)
+      return onRefuse(
+        text.includes(',') && !text.includes('.')
+          ? `${text} could mean 1.5 or 15. Write a decimal with a point, and use commas only for thousands, such as 1,250.50.`
+          : 'Write the rate as a number of zero or more, such as 250 or 1,250.50.',
+      );
     if (amount !== plan.contractedAmount) onAmount(amount);
   };
   return (

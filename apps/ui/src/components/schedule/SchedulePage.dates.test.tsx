@@ -19,15 +19,38 @@ describe('what the header and the verdict say about the days', () => {
   it.each([
     ['2026-10-09', /Due Oct 9 · 8 days left/],
     ['2026-10-02', /Due Oct 2 · 1 day left/],
-    ['2026-10-01', /Due Oct 1 · Due today/],
+    ['2026-10-01', /Due Oct 1 · today/],
     ['2026-09-30', /Due Sep 30 · 1 day overdue/],
     ['2026-09-29', /Due Sep 29 · 2 days overdue/],
-    ['2025-10-01', /Due Oct 1 · 365 days overdue/],
+    ['2025-10-01', /Due Oct 1, 2025 · 365 days overdue/],
   ])('says %s plainly, never "-2 days left"', async (deadline, said) => {
     await mountSchedule({ seed: { deadline }, statuses: ['not_started'] });
     await dueField();
     expect(subtitle()).toMatch(said);
     expect(subtitle()).not.toMatch(/-\d/);
+  });
+
+  it('shows the year of a date that is not this year, so 2031 is not read as 2026', async () => {
+    await mountSchedule({
+      seed: {
+        deadline: '2031-10-16',
+        milestones: [
+          { name: 'Far', dueDate: '2020-01-01' },
+          { name: 'Near', dueDate: '2026-11-01' },
+        ],
+      },
+    });
+    await dueField();
+    expect(subtitle()).toMatch(/Due Oct 16, 2031/);
+    expect(screen.getByText('Far').closest('tr')?.textContent).toContain('Jan 1, 2020');
+    expect(screen.getByText('Near').closest('tr')?.textContent).toMatch(/Nov 1(?!,)/);
+  });
+
+  it('draws a chart without a plan line when the due date is before the plan starts', async () => {
+    await mountSchedule({ seed: { deadline: '2026-09-20' } });
+    await dueField();
+    expect(document.querySelector('[data-line="plan"]')).toBeNull();
+    expect(document.querySelector('[data-line="due"]')).not.toBeNull();
   });
 
   it('never says Infinity: a date that is today or past is answered with how late, not a pace', async () => {
@@ -43,7 +66,7 @@ describe('what the header and the verdict say about the days', () => {
   it('reads a far future and a far past date without overflow or exponent text', async () => {
     await mountSchedule({ seed: { deadline: '9999-12-31' } });
     await dueField();
-    expect(subtitle()).toMatch(/Due Dec 31 · 2,9\d\d,\d{3} days left/);
+    expect(subtitle()).toMatch(/Due Dec 31, 9999 · 2,9\d\d,\d{3} days left/);
     expect(document.body.textContent).not.toMatch(/Infinity|NaN|e\+/);
   });
 

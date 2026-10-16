@@ -312,4 +312,4 @@ card — with **Fill in** to reopen the same dialog for as long as a token stays
 
 ---
 
-[← Navigation](navigation.md) · [Index](README.md) · [Script →](script.md)
+[← Navigation](navigation.md) · [Index](README.md) · [Schedule →](schedule.md)

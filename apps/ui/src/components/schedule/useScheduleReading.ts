@@ -11,7 +11,7 @@ export const REREAD_EVERY_MS = 60_000;
 /** Coming back to the window re-reads at most this often, so a burst of focus events is one read. */
 export const REREAD_FOCUS_GAP_MS = 30_000;
 
-export type Reading = {
+type Reading = {
   plan: ProductionPlan;
   chapters: ScheduleChapter[];
   profileId: string | undefined;
@@ -44,10 +44,10 @@ export type ScheduleReading = {
 
 /**
  * What the Schedule reads from the host and keeps fresh: the plan, the chapters the estimates come from, the delivery profile and the take
- * log. It reads when the page opens, when the window is focused again (at most every 30 s), every minute while open, and on `reload`.
+ * log. It reads when the page opens, when the window is focused again (at most every 30 s), every minute while open, when the journal changes, and on `reload`.
  * A failed re-read keeps the last reading and says so; a first read that fails is an error with Try again.
  */
-export function useScheduleReading(fixedToday: Date | undefined): ScheduleReading {
+export function useScheduleReading(fixedToday: Date | undefined, journal: { subscribe: (listener: () => void) => () => void }): ScheduleReading {
   const production = usePort('production');
   const deliveryProfiles = usePort('deliveryProfiles');
   const measurements = usePort('measurements');
@@ -121,6 +121,9 @@ export function useScheduleReading(fixedToday: Date | undefined): ScheduleReadin
       document.removeEventListener('visibilitychange', back);
     };
   }, [reload]);
+
+  // An entry taken back from the history panel changes the plan without this page: read it again, so the page shows what the host holds.
+  useEffect(() => journal.subscribe(() => void reload()), [journal, reload]);
 
   const keepPlan = useCallback((next: ProductionPlan) => {
     writes.current += 1;

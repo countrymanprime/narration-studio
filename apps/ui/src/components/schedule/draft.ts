@@ -27,7 +27,10 @@ export const blankDraft = (): MilestoneDraft => ({
   done: false,
 });
 
-export const MISSING_NAME_OR_DATE = 'Give the milestone a name and a date.';
+export const MISSING_NAME = 'Give the milestone a name.';
+export const MISSING_DATE = 'Give the milestone a due date, written YYYY-MM-DD.';
+/** Why a typed date cannot be a milestone's: nothing written, or something that is not a real date. */
+const badDate = (text: string): string => (text.trim() === '' ? MISSING_DATE : `${text.trim()} is not a real date. Write it YYYY-MM-DD.`);
 
 /** How far an N may go: the chapters the book has and the finished minutes it runs. */
 export type DraftBounds = { chapters: number; minutes: number };
@@ -40,7 +43,7 @@ function storedMeasure(draft: MilestoneDraft, bounds: DraftBounds): string {
 }
 
 /**
- * The milestone a draft saves as, or why it cannot be: a name and a real date are needed. A custom milestone has no estimate (ADR 0800),
+ * The milestone a draft saves as, or why it cannot be: a name and a real date are needed, and the refusal says which is missing. A custom milestone has no estimate (ADR 0800),
  * so a stored one is kept only while the measure stays what it was; the template it came from is kept.
  */
 export function milestoneFromDraft(
@@ -49,7 +52,8 @@ export function milestoneFromDraft(
   bounds: DraftBounds,
 ): { milestone: ProductionMilestone } | { refusal: string } {
   const name = draft.name.trim();
-  if (!name || !isIsoDate(draft.date)) return { refusal: MISSING_NAME_OR_DATE };
+  if (!name) return { refusal: MISSING_NAME };
+  if (!isIsoDate(draft.date)) return { refusal: badDate(draft.date) };
   const measure = storedMeasure(draft, bounds);
   const keepEstimate = existing?.estimate !== undefined && measOf(measure) !== 'custom' && existing.measure === measure;
   const note = draft.note.trim();

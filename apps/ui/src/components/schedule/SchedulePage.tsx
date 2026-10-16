@@ -13,7 +13,7 @@ import { Heading } from '../primitives/Heading';
 import { IconButton } from '../primitives/IconButton';
 import { Panel } from '../primitives/Panel';
 import { ContractPanel } from './ContractPanel';
-import { agoText, daysText, dueDateProblem, fmtD, isIsoDate, parseIso } from './dates';
+import { agoText, daysText, dueDateProblem, fmtDY, isIsoDate, parseIso } from './dates';
 import { milestoneFromDraft } from './draft';
 import { maxMinutes } from './measures';
 import { MilestoneTable } from './MilestoneTable';
@@ -28,8 +28,8 @@ import { WorkedOut } from './WorkedOut';
 /** How long a write waits for the one before it to be answered, before it goes ahead anyway. */
 export const WRITE_WAIT_MS = 15_000;
 
-/** What the page needs of the command journal: run a change as one entry, and take an entry back. */
-type ScheduleJournal = Pick<Journal, 'act' | 'undo'>;
+/** What the page needs of the command journal: run a change as one entry, take an entry back, and hear of a change made from elsewhere (the history panel's Undo). */
+type ScheduleJournal = Pick<Journal, 'act' | 'undo' | 'subscribe'>;
 
 export type SchedulePageProps = {
   journal: ScheduleJournal;
@@ -49,7 +49,7 @@ export type SchedulePageProps = {
 export function SchedulePage({ journal, today, hasManuscript = true, onImport }: SchedulePageProps) {
   const production = usePort('production');
   const openLines = useOpenPickups();
-  const { state, refreshFailure, day, reload, keepPlan, now } = useScheduleReading(today);
+  const { state, refreshFailure, day, reload, keepPlan, now } = useScheduleReading(today, journal);
   // Writes go one after another, each built from the newest plan, so two quick changes never start from the same old list.
   const queue = useRef<Promise<unknown>>(Promise.resolve());
   // The rows whose change is on its way to the host: a second press on the same row while one is pending is the same press.
@@ -196,7 +196,7 @@ export function SchedulePage({ journal, today, hasManuscript = true, onImport }:
         <div className="flex flex-col gap-1.5">
           <Heading title="Schedule">
             {due && k.daysLeft !== null
-              ? `Due ${fmtD(due)} · ${daysText(k.daysLeft)}`
+              ? `Due ${fmtDY(due, day)} · ${daysText(k.daysLeft)}`
               : plan.deadline
                 ? `The plan's due date, ${plan.deadline}, is not a real date`
                 : 'No due date set'}

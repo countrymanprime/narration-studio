@@ -74,7 +74,7 @@ export function MilestoneTable({ milestones, chapters, today, due, onToggleDone,
             <TableCell>
               <span data-measure={index}>{measureText(m.measure)}</span>
             </TableCell>
-            <TableCell numeric>{fmtIso(m.dueDate)}</TableCell>
+            <TableCell numeric>{fmtIso(m.dueDate, today)}</TableCell>
             <TableCell>
               <StatusCell status={milestoneStatus(m, chapters, today)} />
             </TableCell>

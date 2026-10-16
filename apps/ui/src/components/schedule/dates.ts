@@ -29,12 +29,16 @@ export const hm = (h: number): string => {
 
 export const num = (n: number): string => n.toLocaleString('en-US');
 
-/** "Oct 14", or the text as written when it is not a real date (a hand-edited plan), never "Invalid Date". */
-export const fmtIso = (s: string): string => (isIsoDate(s) ? fmtD(parseIso(s)) : s);
+/** "Oct 14" in the year of `ref`, "Oct 14, 2031" in any other, so a date years away is not read as this year's. */
+export const fmtDY = (d: Date, ref: Date): string =>
+  d.getFullYear() === ref.getFullYear() ? fmtD(d) : d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 
-/** What the days to the due date say: "8 days left", "1 day left", "Due today", "2 days overdue". */
+/** "Oct 14", or the text as written when it is not a real date (a hand-edited plan), never "Invalid Date". */
+export const fmtIso = (s: string, ref: Date): string => (isIsoDate(s) ? fmtDY(parseIso(s), ref) : s);
+
+/** What the days to the due date say, after "Due Oct 14 ·": "8 days left", "1 day left", "today", "2 days overdue". */
 export const daysText = (daysLeft: number): string => {
-  if (daysLeft === 0) return 'Due today';
+  if (daysLeft === 0) return 'today';
   if (daysLeft === 1) return '1 day left';
   if (daysLeft > 1) return `${num(daysLeft)} days left`;
   return daysLeft === -1 ? '1 day overdue' : `${num(-daysLeft)} days overdue`;

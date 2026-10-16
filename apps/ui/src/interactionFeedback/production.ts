@@ -29,6 +29,7 @@ export const productionFeedback: Record<string, FeedbackRow> = {
   'src/components/schedule/scheduleCommands.ts::setProductionDeadline#5': row('click', 'file-io', 'none', 'none', 'toast', 'toast', 'yes', 'ok', 'Undo of a payment change that cleared the amount: the second step, putting the amount back after the earlier payment type is set.'),
   'src/components/schedule/scheduleCommands.ts::setProductionPayment#1': row('input', 'file-io', 'none', 'none', 'ui', 'toast', 'yes', 'ok', 'How you are paid; a royalty share or none clears the amount and drops the value figure, and a refusal is a toast.'),
   'src/components/schedule/scheduleCommands.ts::setProductionPayment#2': row('click', 'file-io', 'none', 'none', 'toast', 'toast', 'yes', 'ok', 'Undo of a payment change: sets the earlier payment type back.'),
+  'src/components/schedule/scheduleCommands.ts::setProductionPayment#3': row('input', 'file-io', 'none', 'none', 'ui', 'toast', 'yes', 'ok', 'Clearing the contracted amount of a per-finished-hour book states that payment type first, so the host does not read the book as unpaid once the amount is gone; a refusal is a toast.'),
   // Status report export
   // Home's surfaces, opened from the board
   'src/components/production/useChapterTools.tsx::manuscriptChapters#1': row('mount', 'file-io', 'na', 'na', 'ui', 'toast', 'na', 'ok', 'A failed load empties the estimate and says why, instead of reading as a manuscript with no chapters; also re-read when the window regains focus (throttled), sharing the same failure handling.'),

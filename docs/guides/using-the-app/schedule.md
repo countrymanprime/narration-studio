@@ -16,7 +16,7 @@ are behind, the daily pace the due date needs. The days left to the due date set
 on track, with less than three it is tight, and once the work needs more days than are left it is behind. A book whose chapters
 are all delivered reads **Finished**, whatever the date.
 
-The line under the title reads the days plainly: **8 days left**, **1 day left**, **Due today**, **2 days overdue**. Once the due
+The line under the title reads the days plainly: **8 days left**, **1 day left**, **today** (after the date), **2 days overdue**. Once the due
 date is today or past, no daily pace can reach it, so the pill says how late instead of a pace.
 
 ![Schedule - a due date that has passed: how many days overdue, Behind, and when the work would finish at your pace](../../images/ui/schedule-overdue.webp)
@@ -69,3 +69,7 @@ made elsewhere, and the day turning over at midnight, show up without a reload. 
 had and says so: **Couldn't read the schedule again**, why, how long ago it was read, and **Check again**. Every change
 starts from what the project holds at that moment: a change to a row that was edited somewhere else since you saw it is refused with a
 message instead of overwriting it, and two quick presses on the same row are one change.
+
+---
+
+[← Production](production.md) · [Index](README.md) · [Script →](script.md)

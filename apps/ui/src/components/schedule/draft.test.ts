@@ -1,7 +1,7 @@
 // @vitest-environment node
 import { describe, expect, it } from 'vitest';
 import type { ProductionMilestone } from '../../api/contracts/production';
-import { blankDraft, draftOf, MISSING_NAME_OR_DATE, milestoneFromDraft } from './draft';
+import { blankDraft, draftOf, MISSING_DATE, MISSING_NAME, milestoneFromDraft } from './draft';
 
 const BOUNDS = { chapters: 12, minutes: 600 };
 const existing: ProductionMilestone = { name: 'All chapters recorded', dueDate: '2026-10-05', measure: 'rec', estimate: '2026-10-04', template: 'acx' };
@@ -22,9 +22,11 @@ describe('a milestone draft', () => {
   });
 
   it('refuses an empty name or no real date, and says so', () => {
-    expect(milestoneFromDraft({ ...blankDraft(), name: '  ', date: '2026-10-05' }, undefined, BOUNDS)).toEqual({ refusal: MISSING_NAME_OR_DATE });
-    expect(milestoneFromDraft({ ...blankDraft(), name: 'A', date: '' }, undefined, BOUNDS)).toEqual({ refusal: MISSING_NAME_OR_DATE });
-    expect(milestoneFromDraft({ ...blankDraft(), name: 'A', date: '2026-02-30' }, undefined, BOUNDS)).toEqual({ refusal: MISSING_NAME_OR_DATE });
+    expect(milestoneFromDraft({ ...blankDraft(), name: '  ', date: '2026-10-05' }, undefined, BOUNDS)).toEqual({ refusal: MISSING_NAME });
+    expect(milestoneFromDraft({ ...blankDraft(), name: 'A', date: '' }, undefined, BOUNDS)).toEqual({ refusal: MISSING_DATE });
+    expect(milestoneFromDraft({ ...blankDraft(), name: 'A', date: '2026-02-30' }, undefined, BOUNDS)).toEqual({
+      refusal: '2026-02-30 is not a real date. Write it YYYY-MM-DD.',
+    });
   });
 
   it('stores every detail: name, date, measure with its N, note and done', () => {

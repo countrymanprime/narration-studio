@@ -132,6 +132,20 @@ describe('answers that arrive in the wrong order', () => {
   });
 });
 
+describe('an entry taken back from the history panel', () => {
+  it('shows what the host holds after the undo, not the value the page last drew', async () => {
+    await mountSchedule({ today: null });
+    const due = (await screen.findByRole('textbox', { name: 'Delivery due' })) as HTMLInputElement;
+    fireEvent.change(due, { target: { value: '2026-12-01' } });
+    fireEvent.blur(due);
+    await screen.findByText(/Due Dec 1/);
+    const [entry] = await kit.journal.entries();
+    await act(async () => void (await kit.journal.undo(entry.id)));
+    await screen.findByText(/Due Oct 31/);
+    expect(((await screen.findByRole('textbox', { name: 'Delivery due' })) as HTMLInputElement).value).toBe('2026-10-31');
+  });
+});
+
 describe('a milestone dialog open while the list changes', () => {
   it('refuses saving an edit over a list that changed since it opened, and overwrites nothing', async () => {
     await mountSchedule({ today: null });

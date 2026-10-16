@@ -7,14 +7,14 @@ import { expect, type Locator } from '@playwright/test';
 // the points are read and put back after. The points are the four corners (inset 14 px, inside the rounded corners), the middle of each side and the
 // centre of the overlay's box.
 
-export type OverlayCheck = {
+type OverlayCheck = {
   name: string;
   box: { x: number; y: number; width: number; height: number };
   viewport: { width: number; height: number };
   covered: string[];
 };
 
-export async function measureOverlay(overlay: Locator, name: string): Promise<OverlayCheck> {
+async function measureOverlay(overlay: Locator, name: string): Promise<OverlayCheck> {
   return overlay.evaluate((root, label) => {
     const rect = root.getBoundingClientRect();
     const viewport = { width: window.innerWidth, height: window.innerHeight };
