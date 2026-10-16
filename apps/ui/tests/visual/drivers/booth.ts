@@ -77,6 +77,17 @@ export const boothDrivers: Record<string, Driver> = {
     await page.getByRole('heading', { name: 'Connect REAPER to record' }).waitFor();
     await page.getByRole('button', { name: 'Open in REAPER and connect' }).waitFor();
   },
+  'record-turned-away': async (page) => {
+    await openBooth(page, '?mockDaw=busy');
+    const notice = page.locator('#brec-setup');
+    await notice.getByRole('button', { name: 'Turn on Record' }).click();
+    await notice.getByRole('heading', { name: 'Connect REAPER to record' }).waitFor();
+    await notice.getByRole('button', { name: 'Link in Settings' }).click();
+    await page.getByRole('button', { name: /^Link Alice\.rpp/ }).click();
+    await goToPage(page, 'Booth');
+    await page.getByRole('button', { name: 'Open in REAPER and connect' }).click();
+    await notice.getByRole('alert').waitFor();
+  },
   recording: (page) => startTake(page),
   'leave-dialog': async (page) => {
     await startTake(page);

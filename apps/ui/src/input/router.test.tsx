@@ -400,3 +400,103 @@ describe('useCommand', () => {
     expect(() => render(<Registrar id="test.global" onFire={vi.fn()} />)).toThrow('useCommand() called outside a <CommandRouter>.');
   });
 });
+
+describe('a popup that owns the keyboard keeps the page behind it from acting', () => {
+  // Every popup the app shows with real content: a popover (a `dialog` with the popup attribute), a menu, a list of choices, a dialog.
+  const LAYERS: Array<[string, string]> = [
+    ['a popover', '<div role="dialog" aria-label="Levels" data-popover-popup></div>'],
+    ['a menu', '<div role="menu"></div>'],
+    ['a list of choices', '<div role="listbox"></div>'],
+    ['a dialog', '<div role="dialog"></div>'],
+    ['an alert dialog', '<div role="alertdialog"></div>'],
+  ];
+  const mountLayer = (html: string) => {
+    const host = document.createElement('div');
+    host.innerHTML = html;
+    document.body.appendChild(host);
+    return host;
+  };
+
+  function renderBooth(source: ReturnType<typeof fakeSource>, onFire: () => void) {
+    render(
+      <CommandRouter source={source} catalog={[BOOTH_COMMAND]} keymap={keymapFor(BOOTH_COMMAND)}>
+        <CommandScope kind="booth">
+          <Registrar id="test.booth" onFire={onFire} />
+        </CommandScope>
+      </CommandRouter>,
+    );
+  }
+
+  it.each(LAYERS)('with %s open a plain key (the foot pedal) does nothing and is left to the popup', (_name, html) => {
+    const source = fakeSource();
+    const onFire = vi.fn();
+    const preventDefault = vi.fn();
+    renderBooth(source, onFire);
+    const host = mountLayer(html);
+    act(() => source.emit({ gesture: gesture('keyboard', 'KeyP'), target: host.firstElementChild, preventDefault }));
+    // From the page behind it too, not only from inside the popup (focus can sit on the body).
+    act(() => source.emit({ gesture: gesture('keyboard', 'KeyP'), target: document.body, preventDefault }));
+    act(() => source.emit({ gesture: gesture('keyboard', 'KeyP', ['Shift']), target: document.body, preventDefault }));
+    host.remove();
+    expect(onFire).not.toHaveBeenCalled();
+    expect(preventDefault).not.toHaveBeenCalled();
+  });
+
+  it('a MIDI or HID press is a plain key too', () => {
+    const source = fakeSource();
+    const onFire = vi.fn();
+    const midi: Keymap = { 'test.booth': [gesture('midi', 'cc/1/64')] };
+    render(
+      <CommandRouter source={source} catalog={[BOOTH_COMMAND]} keymap={midi}>
+        <CommandScope kind="booth">
+          <Registrar id="test.booth" onFire={onFire} />
+        </CommandScope>
+      </CommandRouter>,
+    );
+    const host = mountLayer(LAYERS[0][1]);
+    act(() => source.emit({ gesture: gesture('midi', 'cc/1/64'), target: null }));
+    host.remove();
+    expect(onFire).not.toHaveBeenCalled();
+    act(() => source.emit({ gesture: gesture('midi', 'cc/1/64'), target: null }));
+    expect(onFire).toHaveBeenCalledTimes(1);
+  });
+
+  it('a hidden popup does not count, and the key works again the moment the popup is gone', () => {
+    const source = fakeSource();
+    const onFire = vi.fn();
+    renderBooth(source, onFire);
+    const hidden = mountLayer('<div hidden><div role="dialog"></div></div>');
+    act(() => source.emit({ gesture: gesture('keyboard', 'KeyP'), target: document.body }));
+    hidden.remove();
+    const open = mountLayer(LAYERS[1][1]);
+    act(() => source.emit({ gesture: gesture('keyboard', 'KeyP'), target: document.body }));
+    expect(onFire).toHaveBeenCalledTimes(1);
+    open.remove();
+    act(() => source.emit({ gesture: gesture('keyboard', 'KeyP'), target: document.body }));
+    expect(onFire).toHaveBeenCalledTimes(2);
+  });
+
+  it('a gesture with Ctrl, Alt or Meta still reaches its command, and a dialog-scope command still runs', () => {
+    const source = fakeSource();
+    const onFire = vi.fn();
+    const onDialog = vi.fn();
+    const DIALOG_COMMAND: CommandDescriptor = { id: 'test.dialog', label: 'Dialog test', scope: 'dialog', defaults: [] };
+    const keymap: Keymap = { 'test.booth': [gesture('keyboard', 'KeyP', ['Ctrl'])], 'test.dialog': [gesture('keyboard', 'KeyD')] };
+    render(
+      <CommandRouter source={source} catalog={[BOOTH_COMMAND, DIALOG_COMMAND]} keymap={keymap}>
+        <CommandScope kind="booth">
+          <CommandScope kind="dialog">
+            <Registrar id="test.booth" onFire={onFire} />
+            <Registrar id="test.dialog" onFire={onDialog} />
+          </CommandScope>
+        </CommandScope>
+      </CommandRouter>,
+    );
+    const host = mountLayer(LAYERS[3][1]);
+    act(() => source.emit({ gesture: gesture('keyboard', 'KeyP', ['Ctrl']), target: document.body }));
+    act(() => source.emit({ gesture: gesture('keyboard', 'KeyD'), target: document.body }));
+    host.remove();
+    expect(onFire).toHaveBeenCalledTimes(1);
+    expect(onDialog).toHaveBeenCalledTimes(1);
+  });
+});

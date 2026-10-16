@@ -45,7 +45,7 @@ import type { CleanupActionSeed } from '../cleanupActionMock';
 import type { ProductionSeed } from '../productionMock';
 import type { MockAssetSeed } from '../assetInstallMock';
 import type { MockUpdateSeed } from './update';
-import type { DawMockSeed } from '../dawMock';
+import type { DawMockScript, DawMockSeed } from '../dawMock';
 import type { ProvidersMockSeed } from '../providersMock';
 import type { MasteringMockSeed } from '../masteringMock';
 import type { RecordingMockSeed } from '../recordingMock';
@@ -58,6 +58,8 @@ export type MockApiSeed = {
   projectFolder?: string;
   tracksCandidates?: string[];
   noManuscript?: boolean;
+  /** The Pickups list cannot be read: every read is refused with a reason. */
+  pickupList?: 'unreadable';
   /** Replaces the Alice chapters at boot (fixtures/scenario.ts); the bundled manuscript then does not load over them. */
   chapters?: ManuscriptChapter[];
   /** Replaces the Alice paragraphs at boot; seed it with `chapters`. */
@@ -223,6 +225,8 @@ export type MockApiSeed = {
   deliveryProfile?: MockDeliveryProfileSeed;
   /** Seeds the DAW capabilities mock (which DAW, reachability, per-capability toggles), see `DawMockSeed`. */
   daw?: DawMockSeed;
+  /** How the mock DAW behaves once the app starts it (`?mockDaw=live|late|quiet|different|refuse|restart`; dawMock.ts). Unset: it answers shortly after the launch. */
+  dawScript?: DawMockScript;
   /** The project's DAW choice and folder (`?mockDawChoice=`; dawChoiceMock.ts). */
   dawChoice?: DawChoiceMockSeed;
   /** Seeds the provider capabilities mock (platform, installed asset counts), see `ProvidersMockSeed`. */

@@ -1,9 +1,9 @@
 // The mock's DAW port capabilities: a stand-in for the host's dawport.Resolver, over the same
 // three inputs (a declaration per DAW kind, the narrator's per-capability toggles, and reachability) and the same
 // refusal order (declaration, then toggle, then what a capability requires, then runtime) as
-// apps/desktop/internal/dawport/resolver.go. It has no
-// action of its own to trigger a live update from - it always answers the seeded picture - so subscribeDawCapabilities
-// only emits once, on subscribe, like every other subscribe-based mock that has nothing pending.
+// apps/desktop/internal/dawport/resolver.go. It is stateful like the host: a saved setting, an engine choice, a launch, a
+// heartbeat that stops or returns, and a take each change the picture and push it (daw_capabilities_changed,
+// daw_transport_changed), and `DawMockControl` lets a test or a Playwright driver play REAPER's side (`?mockDaw=`, window.__NARRATION_MOCK_DAW__).
 import type {
   DawCapabilities,
   DawCapabilityKey,
@@ -367,26 +367,230 @@ function currentProjectState(seed: DawMockSeed, capabilities: DawCapabilities, t
   };
 }
 
-export function createDawMock(seed: DawMockSeed = {}): DawCapabilitiesApi & DawProjectStateApi {
-  const current = currentCapabilities(seed);
-  const transport = currentTransport(seed, current);
-  const projectState = currentProjectState(seed, current, transport);
+/** How the scripted mock DAW behaves when the app starts it (`?mockDaw=`): the owner's sequence, and each way it can go wrong.
+ * `live` answers its heartbeat a moment after the launch; `late` answers after 8 s; `quiet` opens the bridge but never answers;
+ * `different` answers with another project open; `refuse` fails the launch; `restart` answers, then goes quiet and returns on its own;
+ * `busy` starts REAPER but the app is busy, so the project it hands over is refused (the host's `system:attached` with a reason). */
+export type DawMockScript = 'live' | 'late' | 'quiet' | 'different' | 'refuse' | 'restart' | 'busy';
+export const DAW_MOCK_SCRIPTS: readonly DawMockScript[] = ['live', 'late', 'quiet', 'different', 'refuse', 'restart', 'busy'];
+
+/** What a page, a test or a Playwright driver can do to the mock DAW from outside, as REAPER's own user and the OS could. */
+export interface DawMockControl {
+  /** The app started the DAW (the launcher ran): the script decides what the heartbeat does next. Rejects for `refuse`; answers `busy` when the
+   * app turns the launch's project away because it is busy. */
+  launch(): Promise<'started' | 'busy'>;
+  /** The narrator ran the launcher action inside the DAW by hand: the bridge opens and answers. */
+  connect(): void;
+  /** The DAW answers its heartbeat now (and has the linked project open unless `openProject` said otherwise). */
+  heartbeat(): void;
+  /** The DAW goes quiet (killed, frozen, closed): no heartbeat, the transport unknown. A take that was running is over. */
+  quiet(): void;
+  /** The DAW goes quiet and answers again after `ms`. */
+  restart(ms?: number): void;
+  /** Which project the DAW has open: the linked one, another, or none. */
+  openProject(which: 'linked' | 'other'): void;
+  /** The narrator pressed Stop inside the DAW. */
+  stopInDaw(): void;
+  /** The narrator pressed Record inside the DAW: a take this app did not start. */
+  startInDaw(): void;
+  /** Whether the DAW is recording, whoever started it (the host's `recording_elsewhere` is true for the app's own take too). */
+  recording(): boolean;
+  /** While true, events (capabilities, transport, project state) are not delivered; reads still answer. */
+  dropEvents(on: boolean): void;
+  /** The next record start (or stop) is refused with this sentence, as a full disk or a locked file would. */
+  refuseNextRecord(sentence: string, kind?: 'start' | 'stop'): void;
+  /** What the mock DAW holds now, for a driver to assert on. */
+  state(): {
+    daw: DawKind;
+    bridge: boolean;
+    reachable: boolean;
+    openProject: 'linked' | 'other';
+    recording: boolean;
+    toggles: Partial<Record<DawCapabilityKey, DawToggle>>;
+  };
+  /** A setting the host saved (`saveSettings`): the capability toggles and the Experimental switch. */
+  settingsSaved(tool: string, values: Record<string, string | null>): void;
+  /** The project's recording engine changed (`recorderChooseEngine`). */
+  engineChosen(engine: 'daw' | 'builtin'): void;
+  /** A record start or stop as the host answers it: a refusal sentence and its reason, or null once the transport changed. */
+  record(kind: 'start' | 'stop'): { reason: 'standalone' | 'experimental_off' | 'unlinked' | 'unavailable'; message: string } | null;
+  /** The facts the host puts in bootstrap. */
+  facts(): { reachable: boolean; projectMatches: boolean; bridge: boolean };
+}
+
+export type DawMock = DawCapabilitiesApi & DawProjectStateApi & { control: DawMockControl };
+
+/** How long after a record start or stop the DAW's next heartbeat reports it: the host pushes the transport on a tick, never inside the call. */
+const HEARTBEAT_MS = 250;
+
+const LAUNCH_MS: Record<DawMockScript, number> = { live: 1200, late: 8000, quiet: 0, different: 1200, refuse: 0, restart: 1200, busy: 0 };
+
+export function createDawMock(seed: DawMockSeed = {}, script?: DawMockScript): DawMock {
+  const live: DawMockSeed = { ...seed, toggles: { ...seed.toggles } };
+  const home: DawKind = seed.daw ?? 'REAPER';
+  let open: 'linked' | 'other' = script === 'different' ? 'other' : 'linked';
+  const isRecording = () => !!live.transport?.recording;
+  let dropped = false;
+  let refuseRecord: { sentence: string; kind: 'start' | 'stop' } | null = null;
+  const timers = new Set<ReturnType<typeof setTimeout>>();
+  const later = (ms: number, work: () => void) => {
+    const timer = setTimeout(() => {
+      timers.delete(timer);
+      work();
+    }, ms);
+    timers.add(timer);
+  };
+  const bridgeOpen = () => live.connected ?? home === 'REAPER';
+  const capSubs = new Set<(state: DawCapabilities) => void>();
+  const transportSubs = new Set<(state: DawTransport) => void>();
+  const stateSubs = new Set<(state: DawProjectState) => void>();
+
+  const snapshot = () => {
+    const capabilities = currentCapabilities(live);
+    const transport = currentTransport(live, capabilities);
+    return { capabilities, transport, projectState: currentProjectState(live, capabilities, transport) };
+  };
+  let lastCaps = JSON.stringify(snapshot().capabilities);
+  let lastTransport = JSON.stringify(snapshot().transport);
+  let lastState = JSON.stringify(snapshot().projectState);
+  /** Push what changed, as the host does: the first tick on subscribe, then only on a change. */
+  const publish = () => {
+    const now = snapshot();
+    const caps = JSON.stringify(now.capabilities);
+    const transport = JSON.stringify(now.transport);
+    const state = JSON.stringify(now.projectState);
+    const changed = { caps: caps !== lastCaps, transport: transport !== lastTransport, state: state !== lastState };
+    lastCaps = caps;
+    lastTransport = transport;
+    lastState = state;
+    if (dropped) return;
+    if (changed.caps) capSubs.forEach((fn) => fn(wireClone(now.capabilities)));
+    if (changed.transport) transportSubs.forEach((fn) => fn(wireClone(now.transport)));
+    if (changed.state) stateSubs.forEach((fn) => fn(wireClone(now.projectState)));
+  };
+  const reach = (on: boolean) => {
+    live.connected = true;
+    live.reachable = on;
+    if (!on) live.transport = { playing: false, recording: false };
+    publish();
+  };
+
+  const control: DawMockControl = {
+    launch: async () => {
+      if (script === 'refuse') throw new Error('the program did not open.');
+      // The bridge opens at once; whether a heartbeat follows is the script's.
+      live.connected = true;
+      live.reachable = false;
+      publish();
+      if (script === 'busy') return 'busy';
+      if (script === 'quiet') return 'started';
+      later(LAUNCH_MS[script ?? 'live'], () => {
+        reach(true);
+        if (script === 'restart') {
+          later(3000, () => reach(false));
+          later(9000, () => reach(true));
+        }
+      });
+      return 'started';
+    },
+    connect: () => reach(true),
+    heartbeat: () => reach(true),
+    quiet: () => reach(false),
+    restart: (ms = 4000) => {
+      reach(false);
+      later(ms, () => reach(true));
+    },
+    openProject: (which) => {
+      open = which;
+      publish();
+    },
+    stopInDaw: () => {
+      live.transport = { playing: false, recording: false };
+      publish();
+    },
+    startInDaw: () => {
+      live.transport = { playing: true, recording: true, position: 0 };
+      publish();
+    },
+    recording: () => isRecording() && !!currentCapabilities(live).reachable,
+    dropEvents: (on) => {
+      dropped = on;
+    },
+    refuseNextRecord: (sentence, kind = 'start') => {
+      refuseRecord = { sentence, kind };
+    },
+    state: () => ({
+      daw: live.daw ?? home,
+      bridge: bridgeOpen(),
+      reachable: currentCapabilities(live).reachable,
+      openProject: open,
+      recording: isRecording(),
+      toggles: live.toggles ?? {},
+    }),
+    settingsSaved: (tool, values) => {
+      if (tool !== 'DAW') return;
+      for (const [key, value] of Object.entries(values)) {
+        if (key.startsWith('capability.')) {
+          const capability = DAW_CAPABILITIES.find((c) => c.key === key.slice('capability.'.length))?.key;
+          if (!capability) continue;
+          if (value === 'on' || value === 'off') live.toggles = { ...live.toggles, [capability]: value };
+          else delete live.toggles?.[capability];
+        } else if (key === 'experimental_reaper_actions') live.experimentalOn = value === 'true';
+      }
+      publish();
+    },
+    engineChosen: (engine) => {
+      live.daw = engine === 'builtin' ? 'Built-in' : home === 'Built-in' ? 'REAPER' : home;
+      live.transport = { playing: false, recording: false };
+      publish();
+    },
+    record: (kind) => {
+      const caps = currentCapabilities(live);
+      const record = caps.capabilities.record;
+      if (refuseRecord?.kind === kind) {
+        const message = refuseRecord.sentence;
+        refuseRecord = null;
+        return { reason: 'unavailable', message };
+      }
+      if (kind === 'stop') {
+        if (!isRecording() && !caps.reachable) return { reason: 'standalone', message: record?.message ?? MESSAGE_NOT_RUNNING_REAPER };
+        live.transport = { playing: false, recording: false };
+        later(HEARTBEAT_MS, publish);
+        return null;
+      }
+      if (!record?.available) {
+        const reason = record?.reason === 'experimental_off' ? 'experimental_off' : record?.reason === 'standalone' ? 'standalone' : 'unavailable';
+        return { reason, message: record?.message ?? MESSAGE_NO_ENGINE };
+      }
+      live.transport = { playing: true, recording: true, position: 0 };
+      later(HEARTBEAT_MS, publish);
+      return null;
+    },
+    facts: () => {
+      const caps = currentCapabilities(live);
+      return { reachable: caps.reachable && caps.daw === 'REAPER', projectMatches: caps.reachable && open === 'linked', bridge: bridgeOpen() };
+    },
+  };
+
   return {
-    dawCapabilities: async () => wireClone(current),
+    control,
+    dawCapabilities: async () => wireClone(snapshot().capabilities),
     subscribeDawCapabilities: (onUpdate) => {
-      onUpdate(wireClone(current));
-      return () => {};
+      capSubs.add(onUpdate);
+      onUpdate(wireClone(snapshot().capabilities));
+      return () => capSubs.delete(onUpdate);
     },
-    // Like the host's first tick after launch: the seeded transport once, on subscribe.
+    // Like the host's first tick after launch: the current transport once, on subscribe.
     subscribeDawTransport: (onUpdate) => {
-      onUpdate(wireClone(transport));
-      return () => {};
+      transportSubs.add(onUpdate);
+      onUpdate(wireClone(snapshot().transport));
+      return () => transportSubs.delete(onUpdate);
     },
-    dawProjectState: async () => wireClone(projectState),
-    // Like the host's first tick after launch: the seeded project state once, on subscribe.
+    dawProjectState: async () => wireClone(snapshot().projectState),
     subscribeDawProjectState: (onUpdate) => {
-      onUpdate(wireClone(projectState));
-      return () => {};
+      stateSubs.add(onUpdate);
+      onUpdate(wireClone(snapshot().projectState));
+      return () => stateSubs.delete(onUpdate);
     },
   };
 }

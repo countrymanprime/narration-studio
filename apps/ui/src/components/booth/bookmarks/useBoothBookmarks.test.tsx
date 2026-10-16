@@ -204,6 +204,25 @@ describe('next-and-previous-move-the-reading-position', () => {
     expect(seek).toHaveBeenLastCalledWith(paragraphs[1].id, 1);
   });
 
+  it('says so when [ goes back round the book instead of wrapping silently, and not for an ordinary step', async () => {
+    const toast = vi.spyOn(overlay, 'toast');
+    await withTwo();
+    press('BracketRight', ['Alt']);
+    expect(toast).not.toHaveBeenCalledWith(expect.stringMatching(/last bookmark|first bookmark/));
+    // Nothing is behind the reading position, so [ goes round to the last one.
+    press('BracketLeft', ['Alt']);
+    expect(toast).toHaveBeenCalledWith('That was the first bookmark: on to the last.');
+  });
+
+  it('says so when ] goes past the last bookmark round to the first', async () => {
+    const toast = vi.spyOn(overlay, 'toast');
+    const hook = await setup({}, { paragraphId: paragraphs[1].id, word: 6 });
+    const add = hook.result.current.add;
+    await act(async () => void (await add({ chapterId: chapters[0].id, paragraphId: paragraphs[0].id, offset: wordStart(paragraphs[0].text, 5) })));
+    press('BracketRight', ['Alt']);
+    expect(toast).toHaveBeenCalledWith('That was the last bookmark: back to the first.');
+  });
+
   it('steps into another chapter by asking the page to change it', async () => {
     const spot = { chapterId: chapters[1].id, paragraphId: 'q1', offset: 3 };
     await setup({}, undefined, [held('x', spot.chapterId, 'q1', 99, 3)]);

@@ -4,7 +4,7 @@ import { EDITABLE } from '../../../../input/targets';
 import { useCommand } from '../../../../input/useCommand';
 import { useCommandProvider, type ProvidedCommand } from '../../../../input/commandProviders';
 import { useSearchSource, type SearchHit, type SearchSource } from '../../../../registries/search';
-import { bookmarkSnippet, bookmarkTitle, stepBookmarks, type LineText, type Spot } from './selectors';
+import { bookmarkSnippet, bookmarkTitle, stepBookmarksWrapped, type LineText, type Spot } from './selectors';
 
 const BOOKMARKS_GROUP = 'Bookmarks';
 
@@ -20,6 +20,8 @@ export type BookmarkCommandsOptions = {
   stepFrom?: () => Spot | null;
   /** Said when a step finds no bookmark. */
   onNone?: () => void;
+  /** Said when a step went round the book: past the last bookmark to the first (`1`), or back from the first to the last (`-1`). */
+  onWrapped?: (dir: 1 | -1) => void;
 };
 
 /**
@@ -28,16 +30,17 @@ export type BookmarkCommandsOptions = {
  * the handlers for them.
  */
 export function useBookmarkCommands(options: BookmarkCommandsOptions): void {
-  const { bookmarks, chapters, lineText, onGoTo, onHere, stepFrom, onNone } = options;
+  const { bookmarks, chapters, lineText, onGoTo, onHere, stepFrom, onNone, onWrapped } = options;
   const canStep = stepFrom !== undefined;
 
   const step = useCallback(
     (dir: 1 | -1) => {
-      const found = stepBookmarks(bookmarks, chapters, dir, stepFrom?.() ?? null);
-      if (found) onGoTo(found);
-      else onNone?.();
+      const found = stepBookmarksWrapped(bookmarks, chapters, dir, stepFrom?.() ?? null);
+      if (!found) return onNone?.();
+      onGoTo(found.bookmark);
+      if (found.wrapped) onWrapped?.(dir);
     },
-    [bookmarks, chapters, stepFrom, onGoTo, onNone],
+    [bookmarks, chapters, stepFrom, onGoTo, onNone, onWrapped],
   );
 
   // The router keeps a plain key out of a field; Alt+[ and Alt+] carry a modifier, so the check is repeated here.

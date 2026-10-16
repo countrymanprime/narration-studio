@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState, type ReactElement } from 'react';
 import { BrowserRouter, Navigate, Route, Routes, useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import type { Bootstrap } from './types';
 import { useApi } from './api/ApiContext';
@@ -10,6 +10,7 @@ import { useJournalEntries } from './components/layout/useJournalEntries';
 import { OverlayProvider, useOverlay } from './overlay/OverlayProvider';
 import { dawShortName, StudioProvider, useJournal, useStoreHandle, useStudio } from './studio/StudioProvider';
 import type { Journal } from './studio/journal/createJournal';
+import { MANUSCRIPT_CHANGED } from './studio/slots';
 import type { ContextMenuItem } from './components/primitives/ContextMenu';
 import type { ManuscriptChapter } from './api/contracts/manuscript';
 import { useDawKind } from './useDawKind';
@@ -36,7 +37,11 @@ import { ProjectPicker } from './components/project/ProjectPicker';
 import { Guide } from './components/storybible/Guide';
 import { SettingsPage } from './components/settings/page/SettingsPage';
 import { BoothNextPage } from './components/booth/page/BoothNextPage';
-import { boothQuery, type BoothTarget } from './components/booth/page/boothQuery';
+import { type BoothTarget } from './components/booth/page/boothQuery';
+import { addressPath, type AddressPage } from './navigation/address';
+import { scriptPath } from './navigation/scriptPath';
+import { AddressGate } from './components/layout/AddressGate';
+import { NotFoundPage } from './components/layout/NotFoundPage';
 import { CompanionPage } from './components/booth/companion/CompanionPage';
 import { EnginePanel } from './components/engine/EnginePanel';
 import { EnginePanelProvider } from './components/engine/EnginePanelContext';
@@ -50,7 +55,7 @@ import { RedirectKeepingLocation } from './components/layout/RedirectKeepingLoca
 import { leavesCompareRun } from './components/proof/leavesCompareRun';
 import { MasterPage } from './components/masterqc/page/MasterPage';
 import { DeliveryPage } from './components/delivery/page/DeliveryPage';
-import { masterHash, parseMasterHash } from './components/master/masterLink';
+import { parseMasterHash } from './components/master/masterLink';
 import { ProductionPage } from './components/production/ProductionPage';
 import { SchedulePage } from './components/schedule/SchedulePage';
 import { runningTimerOf, type RunningTimer } from './components/layout/TimerChip';
@@ -76,6 +81,9 @@ const SETTINGS_ANCHORS: Record<string, string> = {
 };
 
 const NO_CHAPTERS: ManuscriptChapter[] = [];
+
+/** The least time between two re-reads of the DAW's facts that a window focus may cause. */
+const DAW_FACTS_FOCUS_MS = 2_000;
 
 const LIVE_UPDATES_DEGRADED = 'Some live updates from the desktop host could not be read, so what you see may be out of date. Reopen the page to refresh it.';
 
@@ -216,6 +224,31 @@ function AppRoutes() {
       setNotice(describeApiError(error), 'error');
     }
   }, [api, setNotice]);
+
+  // The DAW's reachability and its open project are a live heartbeat, but bootstrap is a snapshot taken at startup: the navigation's pill,
+  // Settings' DAW Integration and the engine panel read it, so it is read again whenever the DAW starts or stops answering and when the
+  // window is focused again. One picture of the DAW for every panel, never one panel saying "reachable" while another says "not reachable".
+  const bootstrapRef = useRef(data);
+  bootstrapRef.current = data;
+  useEffect(() => {
+    let lastRead = 0;
+    const again = () => {
+      lastRead = Date.now();
+      void refreshBootstrap();
+    };
+    const unsubscribe = api.subscribeDawCapabilities((caps) => {
+      const held = bootstrapRef.current;
+      if (held && caps.daw === 'REAPER' && caps.reachable !== held.dawReachable) again();
+    });
+    const onFocus = () => {
+      if (bootstrapRef.current && Date.now() - lastRead > DAW_FACTS_FOCUS_MS) again();
+    };
+    window.addEventListener('focus', onFocus);
+    return () => {
+      unsubscribe();
+      window.removeEventListener('focus', onFocus);
+    };
+  }, [api, refreshBootstrap]);
 
   // The one shared "link a REAPER project file" action behind the engine panel and Settings' DAW
   // category. Cancelling the dialog does nothing. Any .rpp links, in the project folder or elsewhere (the host's note says
@@ -360,7 +393,7 @@ function AppRoutes() {
       if (state.attached) {
         history.resetFloor();
         void refreshBootstrap();
-      } else if (state.reason) setNotice(state.reason);
+      } else if (state.reason) setNotice(state.reason, 'error');
     });
   }, [api, hasBootstrap, history, refreshBootstrap, setNotice]);
 
@@ -541,18 +574,24 @@ function AppRoutes() {
   // chapter with no specific line, and "#<entityId>" at a Story Bible entry.
   // See components/script/page/ScriptPage.tsx and Guide.tsx for where these are consumed. The pages that call it still name the prop
   // `goToManuscript` (it opens the manuscript's text on the Script page).
-  const goToScript = (chapter: string, paragraph?: number) =>
-    guardedNavigate(`/script#${paragraph !== undefined ? `p${paragraph}` : `c${encodeURIComponent(chapter)}`}`);
-  const goToStoryBible = (entityId: string) => guardedNavigate(`/story-bible#${encodeURIComponent(entityId)}`);
+  const goToScript = (chapter: string, paragraph?: number) => guardedNavigate(scriptPath(chapter, paragraph));
+  const goToStoryBible = (entityId: string) => guardedNavigate(addressPath({ page: 'story-bible', entity: entityId }));
   // The Editing page at a chapter: from Proof's takes at a spot, the Production board's recording check and Proof's chapter view. findingId is the
   // deep link's ?finding=, so the page opens with the flagged word that finding names selected (Navigation and deep links); passageId is
   // ?passage=, which opens that passage's takes under its line.
-  const goToEditing = (chapterId: string, findingId?: string, passageId?: string) => {
-    const query = new URLSearchParams({ ...(findingId ? { finding: findingId } : {}), ...(passageId ? { passage: passageId } : {}) }).toString();
-    guardedNavigate(`/editing/${encodeURIComponent(chapterId)}${query ? `?${query}` : ''}`);
-  };
+  const goToEditing = (chapterId: string, findingId?: string, passageId?: string) =>
+    guardedNavigate(addressPath({ page: 'editing', chapter: chapterId, finding: findingId, passage: passageId }));
   // A Manuscript card's "Record in Booth": the Booth on that chapter or credits.
-  const goToBooth = (target: BoothTarget) => guardedNavigate(`/booth${boothQuery(target)}`);
+  const goToBooth = (target: BoothTarget) => guardedNavigate(addressPath({ page: 'booth', target }));
+  // A hand-off address that cannot be acted on says so with a way out (`AddressGate`). The chapter list it checks a named chapter
+  // against is the store's slot, re-read once before an address is called stale; with no manuscript, or before the first read, the page decides.
+  const gateChapters = hasManuscript ? (slotChapters ?? null) : null;
+  const reloadChapters = () => studio.load('chapters');
+  const gated = (page: AddressPage, element: ReactElement, chapterParam?: string) => (
+    <AddressGate page={page} chapterParam={chapterParam} chapters={gateChapters} reloadChapters={reloadChapters}>
+      {element}
+    </AddressGate>
+  );
 
   // A page may stop a move and ask first (the Booth does while a take is recording): the journal's leave guard answers, the overlay asks,
   // and only Yes goes on to the move's own guards below. A guard that answers 'allow', or none, leaves navigation as it was.
@@ -666,6 +705,7 @@ function AppRoutes() {
                       }}
                       refreshBootstrap={refreshBootstrap}
                       onOverview={onProductionOverview}
+                      onManuscriptChanged={() => studio.publish(MANUSCRIPT_CHANGED)}
                     />
                   }
                 />
@@ -675,7 +715,7 @@ function AppRoutes() {
                   path="/script"
                   element={
                     data.manuscript ? (
-                      <ScriptPage notify={setNotice} focusStoryBibleEntity={goToStoryBible} goToEditing={goToEditing} goToBooth={goToBooth} />
+                      gated('script', <ScriptPage notify={setNotice} focusStoryBibleEntity={goToStoryBible} goToEditing={goToEditing} goToBooth={goToBooth} />)
                     ) : (
                       <NeedManuscript title="Script" onImport={() => guardedNavigate('/')} />
                     )
@@ -684,9 +724,10 @@ function AppRoutes() {
                 <Route path="/manuscript" element={<RedirectKeepingLocation to="/script" />} />
                 <Route
                   path="/story-bible"
-                  element={
-                    <Guide notify={setNotice} goToManuscript={goToScript} hasManuscript={Boolean(data.manuscript)} onImport={() => guardedNavigate('/')} />
-                  }
+                  element={gated(
+                    'story-bible',
+                    <Guide notify={setNotice} goToManuscript={goToScript} hasManuscript={Boolean(data.manuscript)} onImport={() => guardedNavigate('/')} />,
+                  )}
                 />
                 {/* Retired by the engine panel: lands on Proof, where a chapter
                   is heard, with the panel open over it, since the Tracks page's REAPER tools live there. */}
@@ -710,20 +751,40 @@ function AppRoutes() {
                 />
                 {/* Editing (the Studio Next mock's Editing page, ADR 0804): the chapter's script is the editor. `/editing` opens the first chapter;
                   with no manuscript the page asks for one. */}
-                <Route path="/editing" element={<EditingRoute hasManuscript={Boolean(data.manuscript)} onImport={() => guardedNavigate('/')} />} />
-                <Route path="/editing/:chapterId" element={<EditingRoute hasManuscript={Boolean(data.manuscript)} onImport={() => guardedNavigate('/')} />} />
+                <Route
+                  path="/editing"
+                  element={gated('editing', <EditingRoute hasManuscript={Boolean(data.manuscript)} onImport={() => guardedNavigate('/')} />)}
+                />
+                <Route
+                  path="/editing/:chapterId"
+                  element={
+                    <EditingGate gated={gated}>
+                      <EditingRoute hasManuscript={Boolean(data.manuscript)} onImport={() => guardedNavigate('/')} />
+                    </EditingGate>
+                  }
+                />
                 <Route
                   path="/booth"
-                  element={<BoothNextPage hasManuscript={Boolean(data.manuscript)} navigate={guardedNavigate} onImport={() => guardedNavigate('/')} />}
+                  element={gated(
+                    'booth',
+                    <BoothNextPage hasManuscript={Boolean(data.manuscript)} navigate={guardedNavigate} onImport={() => guardedNavigate('/')} />,
+                  )}
                 />
                 <Route
                   path="/companion"
-                  element={data.manuscript ? <CompanionPage onFixCredits={() => guardedNavigate('/settings#credits')} /> : <Navigate to="/" replace />}
+                  element={
+                    data.manuscript ? (
+                      <CompanionPage onFixCredits={() => guardedNavigate(addressPath({ page: 'settings', anchor: 'credits' }))} />
+                    ) : (
+                      <Navigate to="/" replace />
+                    )
+                  }
                 />
                 <Route path="/teleprompter" element={<RedirectKeepingLocation to="/booth" />} />
                 <Route
                   path="/proof"
-                  element={
+                  element={gated(
+                    'proof',
                     <ProofPage
                       hasManuscript={Boolean(data.manuscript)}
                       projectFolder={data.projectFolder}
@@ -731,8 +792,8 @@ function AppRoutes() {
                       goToScript={(chapterId) => goToScript(chapterId)}
                       goToBooth={(chapterId) => goToBooth({ chapter: chapterId })}
                       goToEditing={goToEditing}
-                    />
-                  }
+                    />,
+                  )}
                 />
                 {/* Pickups replaces the Tracks page's Pickups dialog, which had no route. */}
                 <Route
@@ -752,16 +813,17 @@ function AppRoutes() {
                 {/* Master & QC and Delivery are two pages (ADR 0802); without a manuscript Delivery asks for one itself. */}
                 <Route
                   path="/master"
-                  element={
+                  element={gated(
+                    'master',
                     <MasterPage
                       hasManuscript={Boolean(data.manuscript)}
                       projectFolder={data.projectFolder}
                       onImport={() => guardedNavigate('/')}
                       onOpenDelivery={() => guardedNavigate('/delivery')}
-                      openSettings={() => guardedNavigate('/settings#cleanup')}
+                      openSettings={() => guardedNavigate(addressPath({ page: 'settings', anchor: 'cleanup' }))}
                       focusFile={parseMasterHash(location.hash)?.file}
-                    />
-                  }
+                    />,
+                  )}
                 />
                 {/* An older finding link (`/delivery#file=…`, masterLink.ts) still lands on Master & QC, anchor kept. */}
                 <Route
@@ -772,7 +834,7 @@ function AppRoutes() {
                     ) : (
                       <DeliveryPage
                         hasManuscript={Boolean(data.manuscript)}
-                        onOpenInMaster={(chapterId) => guardedNavigate(`/master${masterHash({ file: chapterId })}`)}
+                        onOpenInMaster={(chapterId) => guardedNavigate(addressPath({ page: 'master', file: chapterId }))}
                         onImport={() => guardedNavigate('/')}
                       />
                     )
@@ -799,6 +861,7 @@ function AppRoutes() {
                     />
                   }
                 />
+                <Route path="*" element={<NotFoundPage />} />
               </Routes>
             </ErrorBoundary>
             <ToastRegion messages={messages} dismiss={dismissMessage} />
@@ -879,6 +942,18 @@ function AppRoutes() {
  * other pages open it with). Stepping to another chapter replaces the address, so Back leaves Editing rather than walking its chapters.
  */
 const DRAWER_TABS: readonly string[] = ['cleanup', 'effects', 'backups', 'timeline'] satisfies DrawerTab[];
+
+/** The Editing route's chapter, read from the address for the gate that checks it. */
+function EditingGate({
+  gated,
+  children,
+}: {
+  gated: (page: AddressPage, element: ReactElement, chapterParam?: string) => ReactElement;
+  children: ReactElement;
+}) {
+  const { chapterId } = useParams<{ chapterId: string }>();
+  return gated('editing', children, chapterId);
+}
 
 function EditingRoute({ hasManuscript, onImport }: { hasManuscript: boolean; onImport: () => void }) {
   const { chapterId } = useParams<{ chapterId: string }>();

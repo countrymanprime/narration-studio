@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useApi } from '../../api/ApiContext';
 import { openPickups } from '../pickups/list/pickupRows';
+import { onPickupListChanged } from '../pickups/pickupListChanged';
 import { proofProgress } from '../proof/proof.selectors';
 
 /** The rail's count badges (mock 05: "14" on Proof, "9" on Pickups). A key is absent when the host has no count to give, and the
@@ -37,9 +38,11 @@ export function useNavCounts(pathname: string, hasManuscript = true): NavCounts 
         .catch(clear('pickups'));
     void readPickups();
     const unsubscribe = api.subscribePickups(() => void readPickups());
+    const unlisten = onPickupListChanged(() => void readPickups());
     return () => {
       active = false;
       unsubscribe();
+      unlisten();
     };
   }, [api, pathname, hasManuscript]);
 

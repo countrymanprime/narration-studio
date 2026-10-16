@@ -36,7 +36,7 @@ export function NavDrawer({ open, onClose, children }: { open: boolean; onClose:
         <Drawer.Viewport className="fixed inset-0 z-[var(--z-dialog)] flex items-stretch justify-start">
           <Drawer.Popup
             finalFocus={finalFocus}
-            className="relative flex h-full w-[min(17rem,86vw)] [transform:translateX(var(--drawer-swipe-movement-x,0px))] flex-col bg-[var(--surface)] shadow-[var(--shadow-lg)] outline-none"
+            className="relative flex h-full w-[min(17rem,86vw)] [transform:translateX(var(--drawer-swipe-movement-x,0px))] flex-col overflow-y-auto bg-[var(--surface)] shadow-[var(--shadow-lg)] outline-none"
           >
             <Drawer.Title className="sr-only">Navigation</Drawer.Title>
             <IconButton label="Close navigation" onClick={onClose} className="absolute top-3 right-3">
