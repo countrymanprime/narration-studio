@@ -8,9 +8,9 @@ import { settlePage } from './helpers/settle';
 // overlay guard (branch fix/booth-resiliency) had not merged when this was written, so this runs the same check for this page by hand.
 
 const SIZES = [
-  { name: 'wide', width: 1440, height: 900 },
-  { name: 'short', width: 1100, height: 560 },
-  { name: 'narrow', width: 760, height: 620 },
+  { name: 'wide', width: 1440, height: 900, navBesidePage: true },
+  { name: 'short', width: 1100, height: 560, navBesidePage: true },
+  { name: 'narrow', width: 760, height: 620, navBesidePage: false },
 ];
 
 async function open(page: Page, width: number, height: number): Promise<void> {
@@ -104,27 +104,28 @@ for (const size of SIZES) {
       await expectTopmostAndOnScreen(page, menu, 'row menu over the Add popover');
     });
 
-    test('a row menu opened beside the expanded nav is on top, and the check itself fails on a covered overlay', async ({ page }) => {
-      // The nav rail stays open while focus is in it and is drawn over the page; a menu opened right at its edge must still be on top.
-      const item = page
-        .locator('nav')
-        .getByRole('button', { name: /Pickups/ })
-        .first();
-      test.skip(!(await item.isVisible()), 'the nav is a drawer at this width: it is not open beside the page');
-      await item.focus();
-      const nav = (await page.locator('nav').first().boundingBox())!;
-      const row = rows(page).first();
-      const box = (await row.boundingBox())!;
-      await page.mouse.click(Math.max(nav.x + nav.width, box.x) + 4, box.y + 12, { button: 'right' });
-      const menu = page.getByRole('menu').last();
-      await expectTopmostAndOnScreen(page, menu, 'row menu beside the nav');
-      await page.evaluate(() => {
-        const cover = document.createElement('div');
-        cover.style.cssText = 'position:fixed;inset:0;z-index:2147483647';
-        document.body.append(cover);
+    // At the narrow size the nav is a drawer, not a rail beside the page, so there is no edge to open beside.
+    if (size.navBesidePage)
+      test('a row menu opened beside the expanded nav is on top, and the check itself fails on a covered overlay', async ({ page }) => {
+        // The nav rail stays open while focus is in it and is drawn over the page; a menu opened right at its edge must still be on top.
+        const item = page
+          .locator('nav')
+          .getByRole('button', { name: /Pickups/ })
+          .first();
+        await item.focus();
+        const nav = (await page.locator('nav').first().boundingBox())!;
+        const row = rows(page).first();
+        const box = (await row.boundingBox())!;
+        await page.mouse.click(Math.max(nav.x + nav.width, box.x) + 4, box.y + 12, { button: 'right' });
+        const menu = page.getByRole('menu').last();
+        await expectTopmostAndOnScreen(page, menu, 'row menu beside the nav');
+        await page.evaluate(() => {
+          const cover = document.createElement('div');
+          cover.style.cssText = 'position:fixed;inset:0;z-index:2147483647';
+          document.body.append(cover);
+        });
+        await expect(expectTopmostAndOnScreen(page, menu, 'covered menu')).rejects.toThrow(/topmost/);
       });
-      await expect(expectTopmostAndOnScreen(page, menu, 'covered menu')).rejects.toThrow(/topmost/);
-    });
 
     test('a toast is fully on screen and on top', async ({ page }) => {
       await page
