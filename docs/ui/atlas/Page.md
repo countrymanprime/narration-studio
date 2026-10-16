@@ -12,7 +12,11 @@ Storybook title: `Booth/Page`. Source: `src/components/booth/page/BoothNextPage.
 - Leave Dialog
 - Roll Confirm
 - Resume
+- Unsaved Changes
 - Drawer
+- Bookmarked
+- Pickup Session
+- Room Tone Measured
 
 ## Used by
 

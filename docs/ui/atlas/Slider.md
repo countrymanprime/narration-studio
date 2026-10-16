@@ -14,4 +14,7 @@ Storybook title: `Primitives/Slider`. Source: `src/components/primitives/Slider.
 
 ## Used by
 
+- `src/components/booth/frame/BoothTop.tsx`
+- `src/components/booth/frame/LevelsMenu.tsx`
+- `src/components/editing/effects/EffectSettings.tsx`
 - `src/components/script/page/tools/text/TextSettings.tsx`

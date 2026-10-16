@@ -10,17 +10,20 @@ Storybook title: `Primitives/Select`. Source: `src/components/primitives/Select.
 - Full Width
 - Disabled
 - With Placeholder Option
+- With Placeholder
 - Choosing Reports The Value
 - Keyboard Reaches It
 
 ## Used by
 
+- `src/components/booth/frame/BoothTop.tsx`
 - `src/components/booth/frame/LevelsMenu.tsx`
 - `src/components/delivery/ImportProfileField.tsx`
 - `src/components/delivery/profile/ProfileMenu.tsx`
 - `src/components/editing/menu/marks/NoteDialog.tsx`
 - `src/components/editing/range/cut/CutDialog.tsx`
 - `src/components/editing/range/fx/FxDialog.tsx`
+- `src/components/editing/takes/TakeCompare.tsx`
 - `src/components/engine/ChapterSyncPanel.tsx`
 - `src/components/engine/CreateChapterRegionsDialog.tsx`
 - `src/components/engine/LinkChaptersDialog.tsx`

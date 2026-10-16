@@ -7,6 +7,7 @@ Storybook title: `Editing/CutDialog`. Source: `src/components/editing/range/cut/
 ## Stories
 
 - Delete
+- Pad And Room Tone
 - Mute
 - Audacity
 - Recorder

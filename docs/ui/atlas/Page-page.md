@@ -15,6 +15,10 @@ Storybook title: `Editing/Page`. Source: `src/components/editing/EditingPage.sto
 - Daw Off
 - Built In
 - Not Transcribed
+- No Audio Unlinked
+- No Audio Track Missing
+- No Audio Track Empty
+- No Audio Built In
 - No Text
 - No Manuscript
 

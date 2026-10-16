@@ -37,6 +37,7 @@ Storybook title: `Primitives/Field`. Source: `src/components/primitives/Field.ts
 - `src/components/pickups/list/AddPickup.tsx`
 - `src/components/production/ImportReview.tsx`
 - `src/components/project/NewProjectDialog.tsx`
+- `src/components/proof/inspector/FindingThread.tsx`
 - `src/components/proof/inspector/Inspector.tsx`
 - `src/components/schedule/MilestoneDialog.tsx`
 - `src/components/script/page/tools/select/MarkComposer.tsx`

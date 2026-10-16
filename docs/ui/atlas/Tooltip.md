@@ -31,6 +31,7 @@ Storybook title: `Primitives/Tooltip`. Source: `src/components/primitives/Toolti
 - `src/components/booth/resume/ResumeOffer.tsx`
 - `src/components/editing/bar/SelectionActionButton.tsx`
 - `src/components/editing/page/EditingHeader.tsx`
+- `src/components/editing/range/cut/CutButtons.tsx`
 - `src/components/editing/stack/RetryBar.tsx`
 - `src/components/editing/stack/StackControls.tsx`
 - `src/components/editing/takes/prep/PrepControls.tsx`
@@ -38,8 +39,6 @@ Storybook title: `Primitives/Tooltip`. Source: `src/components/primitives/Toolti
 - `src/components/layout/AppShell.tsx`
 - `src/components/layout/EngineChip.tsx`
 - `src/components/manuscript/EntitySummary.tsx`
-- `src/components/manuscript/ReaderCard.tsx`
-- `src/components/master/MasterQcPage.tsx`
 - `src/components/primitives/CapabilityGate.tsx`
 - `src/components/primitives/ChapterStepper.tsx`
 - `src/components/primitives/IconButton.tsx`

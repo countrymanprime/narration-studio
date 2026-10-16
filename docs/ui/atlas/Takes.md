@@ -11,6 +11,8 @@ Storybook title: `Editing/Takes`. Source: `src/components/editing/takes/TakeLine
 - Not Comparable
 - Narrow Kept
 - Daw Cannot
+- Compare Two Takes
+- Compare Take Cannot Be Heard
 
 ## Used by
 

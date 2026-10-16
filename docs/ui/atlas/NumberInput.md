@@ -18,3 +18,5 @@ Storybook title: `Primitives/NumberInput`. Source: `src/components/primitives/Nu
 
 - `src/components/editing/backups/BackupsInspector.tsx`
 - `src/components/editing/cleanup/CleanupInspector.tsx`
+- `src/components/editing/effects/CoverageStrip.tsx`
+- `src/components/editing/effects/EffectSettings.tsx`

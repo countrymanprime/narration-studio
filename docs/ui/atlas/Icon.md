@@ -16,8 +16,9 @@ Storybook title: `Primitives/Icon`. Source: `src/components/primitives/Icon.tsx`
 - `src/components/booth/record/RecordControl.tsx`
 - `src/components/editing/bar/SelectionActionButton.tsx`
 - `src/components/editing/flags/FlagCard.tsx`
+- `src/components/editing/range/cut/CutButtons.tsx`
+- `src/components/editing/range/fx/FxButtons.tsx`
 - `src/components/editing/takes/TakeChip.tsx`
-- `src/components/pickups/list/PickupsTable.tsx`
 - `src/components/primitives/ChapterStepper.tsx`
 - `src/components/primitives/IconButton.tsx`
 - `src/components/production/overview/CheckCountsCard.tsx`

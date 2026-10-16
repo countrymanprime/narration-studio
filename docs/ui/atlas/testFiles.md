@@ -10,6 +10,7 @@ Storybook title: `Master & QC/Files`. Source: `src/components/masterqc/files/tes
 - Two Fail
 - Waiting Row
 - No File For The Chapter
+- Chapter Labels
 
 ## Used by
 

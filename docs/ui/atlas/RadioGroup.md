@@ -9,6 +9,8 @@ Storybook title: `Primitives/RadioGroup`. Source: `src/components/primitives/Rad
 - Default
 - Click Selects
 - Arrow Keys Move
+- Disabled Option
+- Standalone
 
 ## Used by
 
@@ -16,3 +18,5 @@ Storybook title: `Primitives/RadioGroup`. Source: `src/components/primitives/Rad
 - `src/components/editing/range/cut/CutDialog.tsx`
 - `src/components/production/RemoveFromRecordingDialog.tsx`
 - `src/components/settings/page/AppearancePanel.tsx`
+- `src/components/settings/page/DefinitionsPanel.tsx`
+- `src/components/settings/page/RecordingPanel.tsx`

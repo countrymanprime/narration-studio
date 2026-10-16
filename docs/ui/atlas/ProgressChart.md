@@ -14,3 +14,4 @@ Storybook title: `Production/ProgressChart`. Source: `src/components/production/
 ## Used by
 
 - `src/components/production/ProductionPage.tsx`
+- `src/components/schedule/SchedulePage.tsx`
