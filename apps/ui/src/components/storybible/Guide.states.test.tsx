@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 // The Story Bible page's state matrix (docs/research/story-bible-page-state-matrix.md): what the entry list does when a read fails, when
 // there are none, many or huge, and when names and searches are awkward.
-import { cleanup, render, screen, within } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import { afterEach, describe, expect, it, vi } from 'vitest';
@@ -156,5 +156,86 @@ describe('the list at its edges', () => {
     }
     await userEvent.clear(box);
     expect(rowNames()).toContain('Alice');
+  });
+});
+
+describe('a new entry', () => {
+  const addEntity = async () => {
+    await userEvent.click(await screen.findByRole('button', { name: 'Add entity' }));
+    return (await screen.findByDisplayValue(/New entity/)) as HTMLInputElement;
+  };
+  const chooseCharacter = async () => {
+    fireEvent.click(screen.getByRole('button', { name: 'Choose category' }));
+    fireEvent.click(await screen.findByRole('menuitem', { name: /Character/ }));
+  };
+
+  it('opens with its name ready to type over, and a taken default name gets a number', async () => {
+    const api = createMockApi();
+    vi.spyOn(api, 'guideEntities').mockResolvedValue([entry('x', 'New entity')]);
+    mount(api);
+    await vi.waitFor(() => expect(rowNames()).toEqual(['New entity']));
+    const field = await addEntity();
+    expect(field.value).toMatch(/^New entity \d+$/);
+    expect(document.activeElement).toBe(field);
+  });
+
+  it('pressing Add twice leaves one draft, not two', async () => {
+    const api = createMockApi();
+    mount(api);
+    await screen.findAllByText('Alice');
+    const add = await screen.findByRole('button', { name: 'Add entity' });
+    await userEvent.dblClick(add);
+    expect(screen.getAllByDisplayValue(/New entity/)).toHaveLength(1);
+  });
+
+  it('an empty name is refused in a sentence and creates nothing', async () => {
+    const api = createMockApi();
+    const create = vi.spyOn(api, 'guideCreate');
+    mount(api);
+    await screen.findAllByText('Alice');
+    const field = await addEntity();
+    await userEvent.clear(field);
+    await chooseCharacter();
+    expect(await screen.findByText('Give this entry a name.')).toBeTruthy();
+    expect(create).not.toHaveBeenCalled();
+  });
+
+  it('a name another entry has is refused naming that entry', async () => {
+    const api = createMockApi();
+    const create = vi.spyOn(api, 'guideCreate');
+    mount(api);
+    await screen.findAllByText('Alice');
+    const field = await addEntity();
+    await userEvent.clear(field);
+    await userEvent.type(field, 'ALICE');
+    await chooseCharacter();
+    expect(await screen.findByText('“ALICE” is already a name of Alice.')).toBeTruthy();
+    expect(create).not.toHaveBeenCalled();
+  });
+
+  it('a host that refuses the create says why in a sentence and keeps the draft', async () => {
+    const api = createMockApi();
+    vi.spyOn(api, 'guideCreate').mockRejectedValue(new Error('The Story Bible file is locked by another program.'));
+    const notify = mount(api);
+    await screen.findAllByText('Alice');
+    await addEntity();
+    await chooseCharacter();
+    await vi.waitFor(() => expect(notify).toHaveBeenCalledWith(expect.stringContaining('locked by another program'), 'error'));
+    expect(screen.getByDisplayValue(/New entity/)).toBeTruthy();
+  });
+
+  it('a very long name is sent whole and a markup name is stored as text', async () => {
+    const api = createMockApi();
+    const create = vi.spyOn(api, 'guideCreate');
+    mount(api);
+    await screen.findAllByText('Alice');
+    const field = await addEntity();
+    await userEvent.clear(field);
+    await userEvent.click(field);
+    await userEvent.paste(`<img src=x onerror=alert(1)>${'N'.repeat(9000)}`);
+    await chooseCharacter();
+    await vi.waitFor(() => expect(create).toHaveBeenCalledTimes(1));
+    expect((create.mock.calls[0][0] as string).length).toBe(9000 + '<img src=x onerror=alert(1)>'.length);
+    expect(document.querySelector('img[src="x"]')).toBeNull();
   });
 });
