@@ -23,6 +23,8 @@ picker (see [Importing the manuscript](#importing-the-manuscript)), and the cale
 [Schedule](schedule.md) to set a due date first. To replace a manuscript later, use
 [Settings](settings.md).
 
+![Production with no manuscript imported: the page is the import](../../images/ui/production-no-manuscript.webp)
+
 When the audio engine is not running, a line at the top says progress that comes from it may be
 out of date, with **Retry** and **Use built-in recorder**. **Retry** checks again: the line goes
 once the engine is running, and if it still is not, a message asks you to start it and try again.
@@ -112,6 +114,8 @@ Play/Pause and skip 30 seconds back or forward - and **Select in REAPER** brings
 view in REAPER itself. Selecting is an experimental REAPER action ([Settings](settings.md)) and
 changes nothing else: no undo point, and REAPER's own selection is all it touches.
 
+![Production - a chapter's track slide-over on a confirmed link, with how the track was found](../../images/ui/production-track-panel.webp)
+
 **Remove from recording…**, under **Chapter**, takes a mis-imported heading (a part title, an
 epigraph, or front matter that was read in as a chapter) out of the pipeline, the totals, the reader
 and the Booth. Choose **Not a chapter** to hide it from navigation too, or **Front matter** to keep
@@ -132,6 +136,8 @@ Recorded length (once its own track is linked - never an estimate), its status a
 check** button. A kind with no template has no row; add one in [Settings, Credits](settings.md#credits).
 Checking credits works the same as [checking a chapter's recording](#checking-a-chapters-recording)
 below, against the credits template's rendered text rather than a manuscript chapter.
+
+![Production - the Opening credits row opened: its template, words and estimated length](../../images/ui/production-credits-panel.webp)
 
 ## Checking a chapter's recording
 
@@ -180,6 +186,8 @@ is not running. **Paragraph detail** stays folded by default. **Open in Editing*
 chapter on [Editing](editing.md). Misreads, false starts, retakes and a spoken chapter title
 never count against you. The check changes nothing: it never edits the project or moves a
 chapter's status.
+
+![Production - a recording check with a skip and a short read listed as pickups](../../images/ui/production-recording-check-pickups.webp)
 
 A result goes **out of date** when the saved project changes under it (an item added, removed,
 trimmed, moved, muted or switched to another take, an audio file changed) or the chapter's text
