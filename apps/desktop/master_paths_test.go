@@ -11,7 +11,7 @@ import (
 // TestMasterPathFixtures runs the shared path fixture set (definition of done, rule 1, "Paths") through the one place Master & QC
 // resolves a file: the picker's answer, the measurement, and the host's last-run lookup that Play the quietest and Open in the DAW use.
 // A file is always found again by the path the picker gave, whatever the path looks like; a missing one fails with a named reason.
-// UNC, different-case and trailing-dot paths need Windows (the owner's checks list them).
+// Different-case and trailing-dot paths run on Windows only; UNC is an owner check.
 func TestMasterPathFixtures(t *testing.T) {
 	start := t.TempDir()
 	elsewhere := t.TempDir() // a folder outside the starting one
@@ -38,7 +38,7 @@ func TestMasterPathFixtures(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			if !tc.missing {
 				if err := os.MkdirAll(filepath.Dir(tc.path), 0o755); err != nil {
-					t.Skipf("this system cannot make the path: %v", err)
+					t.Fatalf("this system cannot make the path: %v", err)
 				}
 				writeToneWAV(t, tc.path)
 				if tc.prepare != nil {
@@ -94,9 +94,10 @@ func TestMasterPathFixtures(t *testing.T) {
 		waitForMeasurement(t, host)
 	})
 
-	t.Run("windows only: different case, trailing dots and spaces, UNC", func(t *testing.T) {
+	// Not run on Linux: Windows owner check (case-insensitive names, trailing dots and spaces, UNC shares).
+	t.Run("windows only: different case, trailing dots and spaces", func(t *testing.T) {
 		if runtime.GOOS != "windows" {
-			t.Skip("not tested on Linux: Windows owner check (case-insensitive names, trailing dots and spaces, UNC shares)")
+			return
 		}
 		path := filepath.Join(start, "Case Test.wav")
 		writeToneWAV(t, path)
