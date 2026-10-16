@@ -169,8 +169,9 @@ test.describe('Booth with a moving mock DAW', () => {
 
   test('choosing the built-in recorder moves the DAW port: the REAPER notice goes', async ({ page }) => {
     // The built-in recorder is refused while Experimental is off, so this run turns it on.
-    await openLive(page, 'live', '&mockDawExperimentalOn=1');
-    await notice(page).getByRole('button', { name: 'DAW settings' }).click();
+    await page.goto('/?mockDaw=live&mockDawExperimentalOn=1');
+    await settlePage(page);
+    await goToPage(page, 'Settings');
     await page.getByRole('radio', { name: /Built-in/ }).check();
     await goToPage(page, 'Booth');
     await expect(notice(page).getByRole('heading', { name: /REAPER/ })).toHaveCount(0);

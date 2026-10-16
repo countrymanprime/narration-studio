@@ -321,7 +321,7 @@ export function AppShell({
                   aria-label={`Reset zoom to 100% (now ${zoom.percent}%)`}
                   aria-disabled={zoomAtDefault || undefined}
                   onClick={zoomAtDefault ? (event) => event.preventDefault() : zoom.reset}
-                  className="h-8 min-w-14 justify-center px-2 py-0 font-['IBM_Plex_Mono',ui-monospace,monospace] text-[0.8rem] font-normal tracking-normal normal-case aria-disabled:pointer-events-none aria-disabled:opacity-40 max-md:hidden"
+                  className="h-8 min-w-14 justify-center px-2 py-0 font-['IBM_Plex_Mono',ui-monospace,monospace] text-[0.8rem] font-normal tracking-normal normal-case aria-disabled:pointer-events-none aria-disabled:opacity-40"
                 >
                   {zoom.percent}%
                 </Button>
