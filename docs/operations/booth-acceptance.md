@@ -76,7 +76,7 @@ Found by capturing the mock (`docs/research/mockups/studio-next`, `npx vite`) an
 
 ## What the Booth depends on, and how it recovers
 
-Every Booth control that depends on a DAW or other integration, the input it reads, how the Booth learns it changed, and what the narrator sees. "Re-read" is a fresh read of the same host call. The rules are those of the "Talking to an integration" rules of the definition of done ([PR #1755](https://github.com/countrymanprime/narration-utils/pull/1755), `.claude/rules/definition-of-done.md`, not yet on `main`). Rows marked **gap** are known not to meet them yet.
+Every Booth control that depends on a DAW or other integration, the input it reads, how the Booth learns it changed, and what the narrator sees. "Re-read" is a fresh read of the same host call. The rules are those of the "Talking to an integration" rules of the definition of done ([PR #1755](https://github.com/countrymanprime/narration-utils/pull/1755), not yet on `main`). Rows marked **gap** are known not to meet them yet.
 
 | Control | Depends on | How the Booth learns it changed | Unknown (not heard) | Ok | Quiet or stale | Refused | Failed | Recovery |
 | - | - | - | - | - | - | - | - | - |
