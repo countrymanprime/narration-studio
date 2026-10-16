@@ -27,6 +27,27 @@ func pgSameFile(a, b string) bool {
 	return errA == nil && errB == nil && os.SameFile(infoA, infoB)
 }
 
+// pgSettledTempDir is a temporary folder whose removal waits out the work attaching a project starts in the background (chapter sync
+// writes into the project folder after the call returns), which on Windows makes t.TempDir's one-shot RemoveAll fail with "not empty".
+func pgSettledTempDir(t *testing.T) string {
+	t.Helper()
+	dir, err := os.MkdirTemp("", "pathguard")
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() {
+		deadline := time.Now().Add(5 * time.Second)
+		for {
+			err := os.RemoveAll(dir)
+			if err == nil || time.Now().After(deadline) {
+				return
+			}
+			time.Sleep(50 * time.Millisecond)
+		}
+	})
+	return dir
+}
+
 // pgWritable reports whether the place's folder accepts a manifest. A folder the OS really refuses to write into is not a case for a test that
 // needs a manifest in it; the read-only folder is covered where a refusal is asserted.
 func pgWritable(t *testing.T, p pathfixtures.Place) bool {
@@ -348,7 +369,7 @@ func TestPathGuardProjectCreateInNames(t *testing.T) {
 			t.Setenv("APPDATA", t.TempDir())
 			host := NewHost()
 			host.recents = recents.New(filepath.Join(t.TempDir(), "recent-projects.json"))
-			parent := t.TempDir()
+			parent := pgSettledTempDir(t)
 			raw, err := host.ProjectCreateIn(parent, fixture.Value)
 			created, _ := os.ReadDir(parent)
 			if !fixture.Valid {

@@ -85,7 +85,8 @@ func linkDawFile(reporter *persist.Reporter, projectFolder, rppPath string) (map
 	}
 	absRpp, err := filepath.Abs(rppPath)
 	if err != nil {
-		return nil, fmt.Errorf("could not resolve the REAPER project file: %w", err)
+		// A text Windows cannot read as a path (an embedded NUL, only spaces) is not a file that can be linked: refused, not an I/O failure.
+		return map[string]any{"selected": true, "linked": false, "path": rppPath, "message": "That is not a path to a REAPER project file. Choose a file ending in .rpp."}, nil
 	}
 	name := filepath.Base(absRpp)
 	refuse := func(message string) map[string]any {
