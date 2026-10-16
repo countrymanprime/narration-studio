@@ -14,9 +14,13 @@ const selectRabbit = async (page: Page) => {
 };
 const textSettings = (page: Page) => page.getByRole('button', { name: /^Text settings: / });
 const RAIL = 'Words, Story Bible and marks';
-// A drawer is a panel of the page, not a dialog: it takes Escape while focus is inside it (ScriptColumns.tsx).
+// A drawer is a panel of the page, not a dialog: it takes Escape while focus is inside it, and a press on its scrim otherwise
+// (ScriptColumns.tsx). The scrim's top-left corner is clear of a drawer, which sits 8 px in from its side.
 const closeDrawer = async (page: Page) => {
-  if ((await page.locator('[data-script-columns][data-drawer]').count()) > 0) await page.keyboard.press('Escape');
+  const open = page.locator('[data-script-columns][data-drawer]');
+  if ((await open.count()) === 0) return;
+  await page.keyboard.press('Escape');
+  if ((await open.count()) > 0) await page.locator('[data-scrim]').click({ position: { x: 2, y: 2 } });
 };
 
 export const scriptCases: OverlayCase[] = [

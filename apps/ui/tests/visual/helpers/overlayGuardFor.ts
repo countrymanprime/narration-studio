@@ -1,7 +1,7 @@
 import { expect, test, type Locator, type Page } from '@playwright/test';
 import { APP_DRIVERS } from '../app.drivers';
 import { type Driver, goToPage } from '../drivers/shared';
-import { VIEWPORTS, type Viewport } from '../viewports';
+import { REFLOW_VIEWPORT, VIEWPORTS, type Viewport } from '../viewports';
 import { closeOverlays, defaultRoot, overlayProblemsWhileOpen, pointerPlan, scrollContent, type OverlayKind, type Point } from './overlayGuard';
 import { settlePage } from './settle';
 
@@ -143,7 +143,12 @@ function runCase(pageName: OverlayPage, overlay: OverlayCase, viewport: Viewport
     const problems: string[] = [];
     let opened = 0;
     const leftToBrowser: string[] = [];
-    await startFresh(page, viewport, pageName, start);
+    // The catalog's drivers reach their states at the sizes the suite captures (down to the 390 px reflow width). Below that, a
+    // state-driven overlay is reached at 390 px and the window is then narrowed with the overlay open, which is also what a person
+    // who shrinks the window does.
+    const narrowedAfterOpen = start === 'fresh' && viewport.width < REFLOW_VIEWPORT.width;
+    const loadAt = narrowedAfterOpen ? REFLOW_VIEWPORT : viewport;
+    await startFresh(page, loadAt, pageName, start);
 
     const scenario = async (title: string, at?: Point) => {
       const label = `${overlay.name} ${title}`;
@@ -156,14 +161,18 @@ function runCase(pageName: OverlayPage, overlay: OverlayCase, viewport: Viewport
       try {
         const { close } = overlay;
         const closing = close ? () => close(page) : undefined;
-        problems.push(...(await overlayProblemsWhileOpen(page, () => overlay.open(page, at), { root: rootOf(page), label, close: closing })));
+        const open = async () => {
+          await overlay.open(page, at);
+          if (narrowedAfterOpen) await page.setViewportSize({ width: viewport.width, height: viewport.height });
+        };
+        problems.push(...(await overlayProblemsWhileOpen(page, open, { root: rootOf(page), label, close: closing })));
         opened += 1;
       } catch (error) {
         if (error instanceof NotOpened) leftToBrowser.push(`${label}: ${error.message}`);
         else problems.push(`${label}: did not open: ${message(error)}`);
       }
       // Whatever a scenario left open must not carry into the next: close it, or load the page again.
-      if (!(await closeOverlays(page))) await startFresh(page, viewport, pageName, start);
+      if (!(await closeOverlays(page))) await startFresh(page, loadAt, pageName, start);
     };
 
     const pass = async (suffix: string) => {

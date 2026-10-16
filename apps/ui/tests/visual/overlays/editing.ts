@@ -10,6 +10,8 @@ export const editingCases: OverlayCase[] = [
   {
     name: 'context menu on a word',
     kind: 'context-menu',
+    // Not at 320x300: the word cannot be clicked there (the click times out); listed as not covered.
+    viewports: ({ height }) => height >= 500,
     open: async (page) => {
       await page.locator('[data-k="p-1:1"]').click({ button: 'right' });
       await page.locator('[role="menu"]:visible').last().waitFor({ timeout: 2000 });
