@@ -223,7 +223,7 @@ type Fixed = {
   open: (page: Page) => Promise<void>;
   root: (page: Page) => Locator;
   /** Opens a second overlay above this one, and returns its root. */
-  stacked?: { name: string; open: (page: Page) => Promise<void>; root: (page: Page) => Locator };
+  stacked?: { name: string; open: (page: Page) => Promise<void>; root: (page: Page) => Locator }[];
   /** Look for hints inside the open overlay (a hint opened while another overlay is open). */
   hintsInside?: boolean;
 };
@@ -250,9 +250,12 @@ async function runFixed(page: Page, vp: (typeof VIEWPORTS)[number], overlay: Fix
 
   add(name, 'window edges and corners', 'n/a', 'fixed layer with no anchor: it is placed by the window, not by a trigger');
 
-  if (overlay.stacked) {
-    await overlay.stacked.open(page);
-    await judge(page, overlay.stacked.name, `above ${name}`, overlay.stacked.root(page));
+  for (const above of overlay.stacked ?? []) {
+    await load(page, vp, overlay.query);
+    await overlay.prep?.(page);
+    await overlay.open(page);
+    await above.open(page);
+    await judge(page, above.name, `above ${name}`, above.root(page));
   }
 
   if (overlay.hintsInside) {
@@ -359,13 +362,25 @@ const FIXED: Fixed[] = [
       await page.getByRole('button', { name: 'Voice data' }).click();
     },
     root: (page) => page.getByRole('dialog', { name: 'Voice data' }),
-    stacked: {
-      name: 'Remove voice data confirm',
-      open: async (page) => {
-        await page.getByRole('button', { name: 'Remove voice data…' }).click();
+    stacked: [
+      {
+        name: 'Remove voice data confirm',
+        open: async (page) => {
+          await page.getByRole('button', { name: 'Remove voice data…' }).click();
+        },
+        root: (page) => confirmDialog(page, 'Remove voice data'),
       },
-      root: (page) => confirmDialog(page, 'Remove voice data'),
-    },
+      {
+        // Approving a region tells the narrator through a toast while the panel is still open.
+        name: 'Toast (raised from inside Voice data panel)',
+        open: async (page) => {
+          const panel = page.getByRole('dialog', { name: 'Voice data' });
+          await panel.getByRole('combobox', { name: 'Approve a region for Narration' }).selectOption({ index: 1 });
+          await panel.getByRole('button', { name: 'Approve as reference' }).click();
+        },
+        root: (page) => page.locator('[data-tone]'),
+      },
+    ],
     hintsInside: true,
   },
   {
@@ -414,20 +429,57 @@ for (const vp of VIEWPORTS) {
     }
 
     test('entry-list row context menu', async ({ page }) => {
-      await load(page, vp);
-      await entryRows(page).first().click({ button: 'right' });
-      await page.waitForTimeout(300);
+      const name = 'Entry-list row context menu';
       const menu = page.getByRole('menu');
+      const rightClickAt = async (x: number, y: number) => {
+        await park(page);
+        await page.mouse.click(x, y, { button: 'right' });
+        await settleFrames(page);
+      };
+      await load(page, vp);
+      const first = await entryRows(page).first().boundingBox();
+      await rightClickAt(first!.x + first!.width / 2, first!.y + first!.height / 2);
       if ((await menu.count()) === 0) {
-        add(
-          'Entry-list row context menu',
-          'right-click a row',
-          'n/a',
-          'the page registers no context provider (registerContextProvider is used only by Edit and Production), so no menu opens',
-        );
-      } else {
-        await judge(page, 'Entry-list row context menu', 'right-click a row', menu);
+        add(name, 'right-click a row', 'n/a', 'no menu opens on a row');
+        return;
       }
+      await judge(page, name, 'right-click a row (natural)', menu);
+      await park(page);
+      // Over scrolled content: the last row of the list after the list has scrolled to its end.
+      await scrollEverythingToEnd(page);
+      const last = await entryRows(page).last().boundingBox();
+      await rightClickAt(last!.x + last!.width / 2, last!.y + last!.height / 2);
+      await judge(page, name, 'right-click the last row (list scrolled to its end)', menu);
+      // Window edges and corners: the pointer is 2 px from the edge. Where nothing opens a menu there (the rail, the page edge), say so.
+      const { width, height } = vp;
+      const spots: [string, number, number][] = [
+        ['top-left', 2, 2],
+        ['top', width / 2, 2],
+        ['top-right', width - 3, 2],
+        ['right', width - 3, height / 2],
+        ['bottom-right', width - 3, height - 3],
+        ['bottom', width / 2, height - 3],
+        ['bottom-left', 2, height - 3],
+        ['left', 2, height / 2],
+        ['just right of the rail', (await rail(page).boundingBox())!.width + 6, height / 2],
+      ];
+      for (const [where, x, y] of spots) {
+        await rightClickAt(x, y);
+        if ((await menu.count()) === 0) add(name, `pointer at window ${where}`, 'n/a', 'no menu opens at this point (no context target there)');
+        else await judge(page, name, `pointer at window ${where}`, menu);
+      }
+      // While another overlay is open: the (non-modal) kind menu, then a right-click on a row.
+      await load(page, vp);
+      await enterEditMode(page, 'Alice');
+      await page.locator('main button[aria-haspopup="menu"]').first().click();
+      await page.getByRole('menuitem').first().waitFor();
+      const row = await entryRows(page).last().boundingBox();
+      await page.mouse.click(row!.x + row!.width / 2, row!.y + row!.height / 2, { button: 'right' });
+      await settleFrames(page);
+      const menus = page.getByRole('menu');
+      const shown = await menus.count();
+      if (shown === 0) add(name, 'right-click a row while the kind menu is open', 'n/a', 'the open kind menu closed and no context menu opened');
+      else for (let i = 0; i < shown; i++) await judge(page, name, `right-click a row while the kind menu is open (menu ${i + 1} of ${shown})`, menus.nth(i));
     });
 
     test('select popups (native)', async ({ page }) => {
