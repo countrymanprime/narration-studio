@@ -4,33 +4,33 @@
 - /children: equal
 # The two toast live regions stay in the tree on purpose (see dialog-mark-composer.aria.yml); empty here.
 - main:
-    - alert
-    - status
+  - alert
+  - status
 # The overlay host's own live regions (the toast pair and the announcer) stay exposed behind a modal for the same reason.
 - alert
 - status
 - status
 - dialog "Create chapter regions":
-    - heading "Create chapter regions" [level=2]
-    - button "Close"
-    - paragraph: /Plan one REAPER region per chapter with a confirmed track link/
-    - combobox "Opening credits track":
-        - option "None"
-        - option "Chapter 2" [selected]
-    - combobox "Closing credits track":
-        - option "None" [selected]
-    - table "Chapter regions":
-        - rowgroup:
-            - row "Region Track Start End Status"
-        - rowgroup:
-            - row /^Opening credits Chapter 2/:
-                - cell "New region"
-            - row /^Chapter 1 Chapter 1/:
-                - cell "New region"
-    - paragraph: Not planned
-    - list:
-        - listitem: 'Chapter 2: No track is linked to this chapter.'
-    - checkbox "Move an existing region that shares a chapter’s title, instead of adding a second one"
-    - button "Cancel"
-    - button "Create 2 regions"
-    - text: Experimental
+  - heading "Create chapter regions" [level=2]
+  - button "Close"
+  - paragraph: /Plan one REAPER region per chapter with a confirmed track link/
+  - combobox "Opening credits track":
+    - option "None"
+    - option "Chapter 2" [selected]
+  - combobox "Closing credits track":
+    - option "None" [selected]
+  - table "Chapter regions":
+    - rowgroup:
+      - row "Region Track Start End Status"
+    - rowgroup:
+      - row /^Opening credits Chapter 2/:
+        - cell "New region"
+      - row /^Chapter 1 Chapter 1/:
+        - cell "New region"
+  - paragraph: Not planned
+  - list:
+    - listitem: "Chapter 2: No track is linked to this chapter."
+  - checkbox "Move an existing region that shares a chapter’s title, instead of adding a second one"
+  - button "Cancel"
+  - button "Create 2 regions"
+  - text: Experimental

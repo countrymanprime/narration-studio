@@ -3,19 +3,19 @@
 # and Dismiss. The times are left out (the basis is a date, and its age depends on the day the suite runs).
 - /children: equal
 - main:
-    - group "Zoom"
-    - alert
-    - status
+  - group "Zoom"
+  - alert
+  - status
 # The overlay host's own live regions (the toast pair and the announcer) stay exposed behind a modal for the same reason.
 - alert
 - status
 - status
 - dialog "Stage readiness":
-    - heading "Stage readiness" [level=3]
-    - button "Close"
-    - heading "Chapter 4" [level=4]
-    - heading "Ready to move to Editing" [level=5]
-    - list:
-        - listitem: /^Every paragraph of the chapter’s text is in the recording, in order Text present:/
-    - button "Dismiss"
-    - button "Confirm"
+  - heading "Stage readiness" [level=3]
+  - button "Close"
+  - heading "Chapter 4" [level=4]
+  - heading "Ready to move to Editing" [level=5]
+  - list:
+    - listitem: /^Every paragraph of the chapter’s text is in the recording, in order Text present:/
+  - button "Dismiss"
+  - button "Confirm"

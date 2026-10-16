@@ -2,35 +2,35 @@
 # holding the navigation landmark of grouped buttons, so a group heading is read as text even while its label is hidden by size.
 # The page list is pinned exactly and in order (ADR 0407 item 3). A count badge is spoken with the name ("Proof, 3"); the number is the host's, so it is matched.
 - complementary "Primary navigation":
-    - navigation:
-        - /children: equal
-        - group "Production":
-            - /children: equal
-            - text: Production
-            - button "Production"
-            - button "Schedule"
-        - group "Prep":
-            - /children: equal
-            - text: Prep
-            - button "Script"
-            - button "Story Bible"
-        - group "Record":
-            - /children: equal
-            - text: Record
-            - button "Booth"
-        - group "Edit":
-            - /children: equal
-            - text: Edit
-            - button "Editing"
-        - group "Review":
-            - /children: equal
-            - text: Review
-            - button /Proof, \d+/
-            - button /Pickups, \d+/
-        - group "Finish":
-            - /children: equal
-            - text: Finish
-            - button "Master & QC"
-            - button "Delivery"
-    - button "Dark theme"
-    - button "Settings"
+  - navigation:
+    - /children: equal
+    - group "Production":
+      - /children: equal
+      - text: Production
+      - button "Production"
+      - button "Schedule"
+    - group "Prep":
+      - /children: equal
+      - text: Prep
+      - button "Script"
+      - button "Story Bible"
+    - group "Record":
+      - /children: equal
+      - text: Record
+      - button "Booth"
+    - group "Edit":
+      - /children: equal
+      - text: Edit
+      - button "Editing"
+    - group "Review":
+      - /children: equal
+      - text: Review
+      - button /Proof, \d+/
+      - button /Pickups, \d+/
+    - group "Finish":
+      - /children: equal
+      - text: Finish
+      - button "Master & QC"
+      - button "Delivery"
+  - button "Dark theme"
+  - button "Settings"

@@ -1,5 +1,5 @@
 # Back and Forward at the left of the header. Both start
 # disabled on the first page of a project; enabling on a move is exercised by the visual suite, not pinned here.
 - group "Page history":
-    - button "Back" [disabled]
-    - button "Forward" [disabled]
+  - button "Back" [disabled]
+  - button "Forward" [disabled]

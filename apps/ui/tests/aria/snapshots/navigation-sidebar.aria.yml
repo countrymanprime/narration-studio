@@ -5,35 +5,35 @@
 # its accessible name (aria-labelledby), so the heading text itself is listed as the group's first child.
 # The Production page is the Production group's item at `/`, in place of Home.
 - complementary:
-    - navigation:
-        - /children: equal
-        - group "Production":
-            - /children: equal
-            - text: Production
-            - button "Production"
-            - button "Schedule"
-        - group "Prep":
-            - /children: equal
-            - text: Prep
-            - button "Script"
-            - button "Story Bible"
-        - group "Record":
-            - /children: equal
-            - text: Record
-            - button "Booth"
-        - group "Edit":
-            - /children: equal
-            - text: Edit
-            - button "Editing"
-        - group "Review":
-            - /children: equal
-            - text: Review
-            - button /Proof, \d+/
-            - button /Pickups, \d+/
-        - group "Finish":
-            - /children: equal
-            - text: Finish
-            - button "Master & QC"
-            - button "Delivery"
-    - button "Dark theme"
-    - button "Settings"
+  - navigation:
+    - /children: equal
+    - group "Production":
+      - /children: equal
+      - text: Production
+      - button "Production"
+      - button "Schedule"
+    - group "Prep":
+      - /children: equal
+      - text: Prep
+      - button "Script"
+      - button "Story Bible"
+    - group "Record":
+      - /children: equal
+      - text: Record
+      - button "Booth"
+    - group "Edit":
+      - /children: equal
+      - text: Edit
+      - button "Editing"
+    - group "Review":
+      - /children: equal
+      - text: Review
+      - button /Proof, \d+/
+      - button /Pickups, \d+/
+    - group "Finish":
+      - /children: equal
+      - text: Finish
+      - button "Master & QC"
+      - button "Delivery"
+  - button "Dark theme"
+  - button "Settings"

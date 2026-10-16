@@ -2,20 +2,20 @@
 # something is read. The page behind it is aria-hidden; the live regions stay exposed (see dialog-mark-composer.aria.yml).
 - /children: equal
 - main:
-    - group "Zoom"
-    - alert
-    - status
+  - group "Zoom"
+  - alert
+  - status
 - alert
 - status
 - status
 - dialog "Import entries":
-    - heading "Import entries" [level=2]
-    - button "Close"
-    - paragraph: A CSV or JSON file, or a JSON blob from any LLM you ran the manuscript through.
-    - button "Choose a file…"
-    - button "Copy the prompt for your own LLM"
-    - button "Show the format example"
-    - textbox "Paste JSON or CSV":
-        - /placeholder: Or paste JSON (or CSV) here
-    - button "Cancel"
-    - button "Add to the Story Bible" [disabled]
+  - heading "Import entries" [level=2]
+  - button "Close"
+  - paragraph: A CSV or JSON file, or a JSON blob from any LLM you ran the manuscript through.
+  - button "Choose a file…"
+  - button "Copy the prompt for your own LLM"
+  - button "Show the format example"
+  - textbox "Paste JSON or CSV":
+    - /placeholder: Or paste JSON (or CSV) here
+  - button "Cancel"
+  - button "Add to the Story Bible" [disabled]

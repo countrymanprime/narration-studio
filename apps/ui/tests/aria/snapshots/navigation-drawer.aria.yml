@@ -3,44 +3,44 @@
 # The two toast live regions stay in the tree on purpose: Base UI leaves live regions exposed behind a modal, so an error raised
 # from inside a dialog is still announced. They are empty here, and they are the only thing under <main>.
 - main:
-    - group "Zoom"
-    - alert
-    - status
+  - group "Zoom"
+  - alert
+  - status
 # The overlay host's own live regions (the toast pair and the announcer) stay exposed behind a modal for the same reason.
 - alert
 - status
 - status
 - dialog "Navigation":
-    - heading "Navigation" [level=2]
-    - button "Close navigation"
-    - navigation:
-        - /children: equal
-        - group "Production":
-            - /children: equal
-            - text: Production
-            - button "Production"
-            - button "Schedule"
-        - group "Prep":
-            - /children: equal
-            - text: Prep
-            - button "Script"
-            - button "Story Bible"
-        - group "Record":
-            - /children: equal
-            - text: Record
-            - button "Booth"
-        - group "Edit":
-            - /children: equal
-            - text: Edit
-            - button "Editing"
-        - group "Review":
-            - /children: equal
-            - text: Review
-            - button /Proof, \d+/
-            - button /Pickups, \d+/
-        - group "Finish":
-            - /children: equal
-            - text: Finish
-            - button "Master & QC"
-            - button "Delivery"
-    - button "Settings"
+  - heading "Navigation" [level=2]
+  - button "Close navigation"
+  - navigation:
+    - /children: equal
+    - group "Production":
+      - /children: equal
+      - text: Production
+      - button "Production"
+      - button "Schedule"
+    - group "Prep":
+      - /children: equal
+      - text: Prep
+      - button "Script"
+      - button "Story Bible"
+    - group "Record":
+      - /children: equal
+      - text: Record
+      - button "Booth"
+    - group "Edit":
+      - /children: equal
+      - text: Edit
+      - button "Editing"
+    - group "Review":
+      - /children: equal
+      - text: Review
+      - button /Proof, \d+/
+      - button /Pickups, \d+/
+    - group "Finish":
+      - /children: equal
+      - text: Finish
+      - button "Master & QC"
+      - button "Delivery"
+  - button "Settings"

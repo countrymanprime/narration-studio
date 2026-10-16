@@ -7,26 +7,26 @@
 - /children: equal
 # The two toast live regions stay in the tree on purpose (see dialog-mark-composer.aria.yml).
 - main:
-    - alert
-    - status
+  - alert
+  - status
 # The overlay host's own live regions (the toast pair and the announcer) stay exposed behind a modal for the same reason.
 - alert
 - status
 - status
 - 'dialog "Recording check: Chapter 4 — The Rabbit Sends in a Little Bill"':
-    - 'heading "Recording check: Chapter 4 — The Rabbit Sends in a Little Bill" [level=3]'
-    - button "Close"
-    - paragraph: /Based on the saved REAPER project, file modified Sep \d+, \d+, \d+:\d+ AM\./
-    - paragraph: /Checked Sep \d+, \d+, \d+:\d+ AM with the small Whisper model\./
-    - 'heading /Not complete: paragraphs \d+ to \d+: \d+ words not read\./ [level=3]'
-    - paragraph: /Recorded to paragraph \d+ of \d+ \(\d+ words left\)\./
-    - text: /Text present \d+% \d+,\d+ of \d+,\d+ words Paragraphs \d+ of \d+ fully read Audio checked \d+:\d+ in 1 item Pace about \d+\/min/
-    - button "Check again"
-    - button "Open in Editing"
-    - region "Pickups (0)":
-        - heading "Pickups (0)" [level=3]
-        - paragraph: None from this check.
-        - text: 'Repeated reads (Proof): none waiting'
-        - link "Open Proof":
-            - /url: /proof
-    - button /Paragraph detail \d+ of \d+ fully recorded/
+  - 'heading "Recording check: Chapter 4 — The Rabbit Sends in a Little Bill" [level=3]'
+  - button "Close"
+  - paragraph: /Based on the saved REAPER project, file modified Sep \d+, \d+, \d+:\d+ AM\./
+  - paragraph: /Checked Sep \d+, \d+, \d+:\d+ AM with the small Whisper model\./
+  - 'heading /Not complete: paragraphs \d+ to \d+: \d+ words not read\./ [level=3]'
+  - paragraph: /Recorded to paragraph \d+ of \d+ \(\d+ words left\)\./
+  - text: /Text present \d+% \d+,\d+ of \d+,\d+ words Paragraphs \d+ of \d+ fully read Audio checked \d+:\d+ in 1 item Pace about \d+\/min/
+  - button "Check again"
+  - button "Open in Editing"
+  - region "Pickups (0)":
+    - heading "Pickups (0)" [level=3]
+    - paragraph: None from this check.
+    - text: "Repeated reads (Proof): none waiting"
+    - link "Open Proof":
+      - /url: /proof
+  - button /Paragraph detail \d+ of \d+ fully recorded/
