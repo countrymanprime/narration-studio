@@ -58,6 +58,8 @@ Every folder above that has a `project.json` is an Nx project (all except `docs/
   `github.com/countrymanprime/narration-utils/shell`; nothing imports it.
 - `apps/ui/` is the React application. It communicates only through the
   typed API facade; feature components do not import HTTP transport code.
+- Inside `apps/ui/src/`, the shell and state folders each have an architecture page. `input/`, `registries/`, `overlay/` and `components/layout/` hold the commands, keys, jump menu, search sources, context menus, overlays and the rail ([studio shell and registries](studio-shell-and-registries.md)). `studio/`, `ports/` and `fixtures/` hold the read-model store, the command journal, the UI's ports with their contract suites, and the sample data ([UI state and the command journal](ui-state-and-journal.md)).
+- `apps/desktop/internal/dawport` is the one port every DAW action goes through ([DAW integration](daw-integration.md)). `apps/desktop/internal/extraction`, `extractionport` and `analysistools` run the Story Bible suggestion tiers ([extraction tiers](extraction-tiers.md)).
 - `sidecars/*/core/` remain stable Python CLI entrypoints for DAW integrations.
 - `integrations/reaper/` is the REAPER-only bridge. Its field order and protocol are
   compatibility contracts. A checkout finds the sidecars, catalogs and launcher relative to

@@ -91,6 +91,10 @@ The steps for adding an engine are in the docstring of `libs/python/narration_co
 | `BrowserLookup` rows (web pronunciation lookups the narrator's browser opens) | The `browse` mode is declared on `PronunciationSource` and no source takes it; the one-click lookup pages are built by `internal/pronunciationlookup` instead, and the app never fetches them |
 | CoreAudio (macOS) capture | Not built: Windows is the only supported platform ([ADR 0412](../adr/0412-windows-is-the-only-supported-platform-for-now.md), which supersedes [ADR 0402](../adr/0402-coreaudio-capture-is-a-pyav-avfoundation-sidecar-backend-addressed-by-device-name.md)). A `coreaudio` row was built and removed; git history has it |
 
+## UI ports
+
+The UI has its own seam over the host: `usePort(name)` in `apps/ui/src/ports/`, with a mock and a host adapter that one contract suite checks. It is a separate layer from the backend ports above; [UI state and the command journal](ui-state-and-journal.md) describes it, the read-model store, the journal and the fixtures.
+
 ## Design choices
 
 - One Go package per port (`asrport`, `ttsport`, `pronunciationport`, `captureport`, `encodeport`, `masteringport`, `extractionport`), like `dawport`, so parallel work touched disjoint folders.
