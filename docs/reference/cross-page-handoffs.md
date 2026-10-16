@@ -2,7 +2,7 @@
 
 Every way one page sends the narrator to another, how the destination is addressed, and what the destination does with a bad address. Surveyed 2026-10-16 against `main` at `05f6233`. A page owner adds a row here when a page adds a seam ([checklist](../operations/page-owner-handoff-checklist.md)).
 
-"Coverage" names the test that drives each side. **none** means no test drives it. The typed layer is `apps/ui/src/navigation/` (planned in this change; rows say what it replaces).
+"Coverage" names the test that drives each side, as of the survey. **none** means no test drove it. The "today" cells describe `main` at the survey; [What the contract does](#what-the-contract-does) says what changed.
 
 ## Seams
 
@@ -37,9 +37,22 @@ One owner per seam: the destination page owns reading the address; the source pa
 | T4 | Findings | Proof, Editing, take review | Proof, Editing, Pickups, Production | Each page re-reads on mount. No shared invalidation. | per page |
 | T5 | Notices and toasts | `setNotice` in `App.tsx` | `ToastRegion` | Held in `App`, outlive a route change. | `App.test.tsx` |
 
-## Findings that need a fix
+## What the contract does
 
-- S1–S5: an unknown chapter in a Booth address renders nothing. The Booth is owned by the `fix/booth-resiliency` worker; this change does not touch it. It is reported in the PR.
-- S6, S8: a malformed percent escape in the hash crashes the page to its error boundary.
-- S6: an unknown chapter or paragraph in the hash does nothing and says nothing.
-- S9: an unknown chapter in an Editing address opens the first chapter without saying so.
+**Addresses.** `apps/ui/src/navigation/address.ts` builds and reads every hand-off address except the Pickups and Story Bible pages' own (those two pages are in flight; their call sites move to it when they merge). `addressPath(address)` never throws, whatever text it is given. `readAddress(page, location)` returns `address`, `none` (the address asks for nothing) or `bad` with a reason and a sentence for the narrator. The limits are `MAX_ADDRESS_TEXT` (512 characters per name), `MAX_PICKUPS` and `MAX_ADDRESS_NUMBER`. A value named twice, a number that is not a whole non-negative number, a drawer or credits kind the page lacks, a control character and a malformed percent escape are `bad`. The Booth's own shape (ADR 0388) is built by `boothQuery` and read by `readBoothQuery`, unchanged; the module wraps them.
+
+**Bad and stale addresses.** `AddressGate` (`components/layout/AddressGate.tsx`) wraps the Script, Story Bible, Editing and Booth routes in `App.tsx`. A `bad` read shows the message with **Open <page>** and **Go to Production**, both replacing the entry so Back does not return to it. A named chapter the chapter list lacks is checked by reading the list once more before the address is called stale; a failed re-read, no manuscript, or a list not yet read leaves the page to decide. The Script page says, once, when a `#c…` or `#p…` link names a chapter or line the manuscript lacks.
+
+**Shared state.** The chapter list other pages show is the store's `chapters` slot (ADR 0770): stale on `job:ended`, on focus, and now on the in-app topic `MANUSCRIPT_CHANGED` (`studio/slots.ts`). A page that changes a chapter's status or kind outside a job calls `publish(MANUSCRIPT_CHANGED)`; Production does, through `onManuscriptChanged` in `App.tsx`. A topic reads the slot again, ignores a topic no slot lists, and drops an answer that arrives after a project switch. The pages that read `manuscriptChapters()` themselves (the list above) re-read on mount and are not told of a change while open; moving one onto the slot is that page owner's change.
+
+**Tests.** `navigation/address.test.ts` (round trips and absurd addresses), `components/layout/AddressGate.test.tsx`, `studio/store/createStudioStore.test.ts` (`publish`), `src/crossPage.matrix.test.tsx` (the real `App` over the mock host, one row per arrival, bad address, reload and invalidation; it lists the seams it does not drive and why) and `tests/visual/crossPage.spec.ts` (a real browser: history, reload, Escape, the click from Production to the Booth).
+
+## Findings
+
+- S1–S5: an unknown chapter in a Booth address rendered nothing. The gate now shows the message; `BoothNextPage` still returns `null` for it if reached another way, and belongs to the `fix/booth-resiliency` worker.
+- S6, S8: a malformed percent escape in the hash threw `URIError` and showed the error boundary. The gate stops it before the page; `useDeepLink` no longer throws. `Guide.tsx` still calls `decodeURIComponent` and belongs to the Story Bible page owner.
+- S6: an unknown chapter or paragraph in the hash did nothing and said nothing. It now says so.
+- S6: Production's credits rows wrote `/script#ccredits-opening`, which names no chapter. `scriptPath` writes `/script#credits-opening`.
+- S9: an unknown chapter in an Editing address opened the first chapter without saying so. The gate now shows the message.
+- S14: the Booth sends `/settings#daw`, which `SETTINGS_ANCHORS` does not list. Not changed here: which category it should open is the Settings owner's call.
+- T1: Booth, Editing and the other pages that call `manuscriptChapters()` directly do not use the slot.
