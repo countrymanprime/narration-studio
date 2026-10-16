@@ -15,6 +15,6 @@
 - alertdialog "Import Alice.docx":
   - heading "Import Alice.docx" [level=2]
   - button "Close"
-  - paragraph: /DOCX · \d+ paragraphs/
+  - paragraph: /DOCX · \d+ paragraphs.*This replaces the active manuscript and clears Story Bible/
   - button "Cancel"
-  - button "Import"
+  - button "Replace and reset"
