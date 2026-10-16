@@ -19,7 +19,11 @@ export type RecordRefusal = { code: 'capability' | 'wrong_project' | 'no_track' 
  */
 export function recordCheck(capabilities: DawCapabilities, chapter: ChapterRecordState, openProject: OpenProject = 'unknown'): RecordRefusal | null {
   const record = capabilities.capabilities.record;
-  if (!record?.available) return { code: 'capability', reason: record?.message ?? '' };
+  // The capability's own sentence; a host that sends none (or no `record` entry at all, an older one) still gets a reason, never a silent Record.
+  if (!record?.available) {
+    const name = capabilities.daw === 'none' ? 'the DAW' : capabilities.daw;
+    return { code: 'capability', reason: record?.message || `Recording is not available in ${name} right now.` };
+  }
   // A take goes into the project the DAW has open: if that is not the linked one it would land in the wrong project, so say so before it does.
   if (openProject === 'different') {
     const name = capabilities.daw === 'none' ? 'The DAW' : capabilities.daw;
