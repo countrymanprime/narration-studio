@@ -198,6 +198,40 @@ describe('Record with the built-in recorder', () => {
     expect(result.current.reason).toBe('');
   });
 
+  it('the transport push a deliberate Stop causes is not a take that ended by itself', async () => {
+    let push: (t: DawTransport) => void = () => {};
+    const { result, notify, transport } = hook(BUILTIN, createMockApi(), {
+      recordStop: async () => {
+        push({ playing: false, recording: false });
+        return { ok: true, changed: true, message: '', undoSteps: 0 };
+      },
+    });
+    push = transport;
+    await waitFor(() => expect(result.current.disabled).toBe(false));
+    await act(() => result.current.toggle());
+    act(() => transport({ playing: false, recording: true }));
+    await act(() => result.current.toggle());
+    expect(result.current.recording).toBe(false);
+    expect(notify).not.toHaveBeenCalled();
+  });
+
+  it('a refused Stop ("not recording") ends the take here instead of leaving Stop up', async () => {
+    const { result } = hook(BUILTIN, createMockApi(), {
+      recordStop: async () => ({
+        ok: false,
+        changed: false,
+        message: 'not recording',
+        undoSteps: 0,
+        refused: 'The built-in recorder is not recording, so nothing was stopped.',
+      }),
+    });
+    await waitFor(() => expect(result.current.disabled).toBe(false));
+    await act(() => result.current.toggle());
+    await act(() => result.current.toggle());
+    expect(result.current.recording).toBe(false);
+    expect(result.current.reason).toMatch(/not recording/);
+  });
+
   it('keeps the take while the host says it is recording, however long it runs', async () => {
     vi.useFakeTimers({ shouldAdvanceTime: true });
     const { result, setState } = hook(BUILTIN);

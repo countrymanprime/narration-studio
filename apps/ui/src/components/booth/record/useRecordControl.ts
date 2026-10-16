@@ -248,7 +248,8 @@ export function useRecordControl({ chapterId, notify }: { chapterId: string; not
     }
     return daw.subscribeTransport?.((transport) => {
       if (transport.recording) heardRecording.current = true;
-      else if (heardRecording.current) {
+      // A press is being answered: the stop it asks for pushes this very event before its own answer, and that is the narrator's Stop, not a take that ended.
+      else if (heardRecording.current && !busy.current) {
         heardRecording.current = false;
         setRecording(false);
         // A stop pushed after the heartbeat went is the DAW going quiet, not the DAW saying the take ended.
@@ -392,6 +393,8 @@ export function useRecordControl({ chapterId, notify }: { chapterId: string; not
         setRecording(starting);
       } else {
         setRefused({ chapterId, sentence: result.refused ?? result.message });
+        // The app's own recorder refuses a stop only when no take is recording: the take is over, so the Booth stops holding it.
+        if (!starting && recordsInApp(capabilitiesRef.current?.daw)) setRecording(false);
       }
     } catch (error) {
       // A host call that failed (not a refusal): nothing changed that this app knows of, and the narrator is told so.

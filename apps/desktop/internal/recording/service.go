@@ -219,6 +219,9 @@ func (s *Service) reserve(refuseMessage string) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	if a := s.current; a != nil && a.kind == takeRun {
+		if a.stopping {
+			return errors.New("the last take is still being saved; try again in a moment")
+		}
 		return errors.New(refuseMessage)
 	}
 	if s.starting {
