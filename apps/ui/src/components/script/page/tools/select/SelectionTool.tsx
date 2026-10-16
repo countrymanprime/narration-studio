@@ -5,7 +5,7 @@ import { IconButton } from '../../../../primitives/IconButton';
 import { TooltipTarget } from '../../../../primitives/Tooltip';
 import { useBookmarks } from '../../../bookmarks/model/useBookmarks';
 import { useEntries, useMarks, useScriptCommands, useScriptView } from '../../data/useScriptData';
-import { BIBLE_KINDS } from '../../rail/bible/kinds';
+import { useBibleKinds } from '../../rail/bible/kinds';
 import type { ReaderSelection } from '../../registry/contextProvider';
 import type { ToolSelection } from './getSelection';
 import { KindMenu } from './KindMenu';
@@ -32,13 +32,14 @@ type Props = {
 
 /**
  * The small toolbar over a selection in the reader (the mock's `SelectionTool`): Mark, Story Bible and Look up, with Bookmark
- * here and Record here as icon buttons. Across paragraphs it is one disabled button saying why. It follows the selection's
+ * here and Record from here as icon buttons. Across paragraphs it is one disabled button saying why. It follows the selection's
  * rectangle, and Escape or a press elsewhere dismisses it. A press on it keeps the selection.
  */
 export function SelectionTool({ selection, zoom = 1, onDismiss, onCompose, onDefineMarks, onRecordHere }: Props) {
   const ref = useRef<HTMLDivElement>(null);
   const { types } = useMarks();
   const { entries } = useEntries();
+  const kinds = useBibleKinds();
   const commands = useScriptCommands();
   const bookmarks = useBookmarks();
   const [, updateView] = useScriptView(() => null);
@@ -104,7 +105,7 @@ export function SelectionTool({ selection, zoom = 1, onDismiss, onCompose, onDef
             }}
           />
           <KindMenu
-            kinds={BIBLE_KINDS}
+            kinds={kinds}
             onChoose={(kind) => {
               onDismiss();
               void commands.createEntryFrom(kind, place.quote).then((entryId) => entryId && updateView({ tab: 'bible', entryId, miss: null, missSel: null }));
@@ -121,7 +122,7 @@ export function SelectionTool({ selection, zoom = 1, onDismiss, onCompose, onDef
           {onRecordHere && (
             <IconButton
               action="recordHere"
-              label="Record here"
+              label="Record from here"
               onClick={() => {
                 onDismiss();
                 onRecordHere(place);
@@ -135,7 +136,7 @@ export function SelectionTool({ selection, zoom = 1, onDismiss, onCompose, onDef
               onClick={() => {
                 onDismiss();
                 const target = lookupTarget(place.quote, entries);
-                if (target.tab === 'pron') updateView({ tab: 'pron', word: target.word });
+                if (target.tab === 'pron') updateView({ tab: 'pron', word: target.word, missSel: place });
                 else if ('entryId' in target) updateView({ tab: 'bible', entryId: target.entryId, miss: null, missSel: null });
                 else updateView({ tab: 'bible', entryId: null, miss: target.miss, missSel: place });
               }}

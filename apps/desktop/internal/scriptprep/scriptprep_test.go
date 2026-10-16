@@ -62,6 +62,33 @@ func TestChapterPrepStateRoundtrip(t *testing.T) {
 	}
 }
 
+// The opening and closing credits are not manuscript chapters, but the Script page lists them with a prep state as the mock does: their
+// two ids are kept like a chapter's, and listed after the chapters once one has been set.
+func TestCreditsPrepState(t *testing.T) {
+	project := t.TempDir()
+	current := book()
+	svc := service(t, project, &current)
+	for _, id := range []string{CreditsOpening, CreditsClosing} {
+		chapter, err := svc.SetChapter(id, PrepProgress)
+		if err != nil || chapter.ChapterID != id || chapter.State != PrepProgress {
+			t.Fatalf("set %s = %+v, %v", id, chapter, err)
+		}
+	}
+	if _, err := svc.SetChapter(CreditsClosing, PrepNone); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := svc.SetChapter("credits:middle", PrepPrepped); err == nil {
+		t.Fatal("an id that is neither a chapter nor the credits was saved")
+	}
+	list, err := service(t, project, &current).List()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(list.Chapters) != 3 || list.Chapters[2].ChapterID != CreditsOpening || list.Chapters[2].State != PrepProgress {
+		t.Fatalf("chapters with the opening credits in progress = %+v", list.Chapters)
+	}
+}
+
 func TestFlagAWordInTheText(t *testing.T) {
 	project := t.TempDir()
 	current := book()

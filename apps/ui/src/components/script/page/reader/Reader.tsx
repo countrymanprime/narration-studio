@@ -54,12 +54,18 @@ export type ReaderProps = {
   renderGutter?: (paragraph: ManuscriptParagraph) => ReactNode;
   /** The chapter's card (the previous chapter's end marker, title, facts, prep state, record). With it the reader draws no heading of its own, so the title shows once; without it, a bare heading. */
   renderChapterCard?: (chapter: ManuscriptChapter) => ReactNode;
+  /** Drawn before the first chapter: the opening credits. */
+  before?: ReactNode;
   /** Drawn after the last chapter's text: the closing credits. */
   after?: ReactNode;
+  /** The header's name for a section in `before` or `after` that is a boundary of its own (`data-bound`), by its `data-ch`. */
+  sectionNames?: ReadonlyMap<string, string>;
   /** The sticky header's buttons. */
   toolbar?: ReactNode;
   onPickSpeaker?: (cueId: string, anchor: DOMRect) => void;
   onShowAnnotation?: (id: string) => void;
+  /** A click on a flagged word: its key. */
+  onShowWord?: (word: string) => void;
   onShowEntry?: (id: string) => void;
   /** A click in the text puts the bookmark keys back to going from where the narrator is. */
   onTextClick?: () => void;
@@ -96,13 +102,24 @@ function createSpyStore() {
 }
 type SpyStore = ReturnType<typeof createSpyStore>;
 
-function StickyHeader({ spy, chapters, toolbar }: { spy: SpyStore; chapters: readonly ManuscriptChapter[]; toolbar?: ReactNode }) {
+function StickyHeader({
+  spy,
+  chapters,
+  names,
+  toolbar,
+}: {
+  spy: SpyStore;
+  chapters: readonly ManuscriptChapter[];
+  names?: ReadonlyMap<string, string>;
+  toolbar?: ReactNode;
+}) {
   const current = useSyncExternalStore(spy.subscribe, spy.get);
+  const section = current.chapterId ? names?.get(current.chapterId) : undefined;
   const chapter = chapters.find((c) => c.id === current.chapterId) ?? chapters[0];
   return (
     <div className="flex items-center gap-3 border-b border-[var(--line)] bg-[var(--surface)] px-4 py-2">
       <div className="min-w-0">
-        <b className="block truncate text-xl font-semibold">{chapter ? chapterName(chapter) : '—'}</b>
+        <b className="block truncate text-xl font-semibold">{section ?? (chapter ? chapterName(chapter) : '—')}</b>
         <div aria-live="off" className="text-sm text-[var(--text-muted)]">
           {current.para}
         </div>
@@ -192,10 +209,13 @@ export function Reader(props: ReaderProps) {
     activeMarkId = null,
     renderGutter,
     renderChapterCard,
+    before,
     after,
+    sectionNames,
     toolbar,
     onPickSpeaker,
     onShowAnnotation,
+    onShowWord,
     onShowEntry,
     onTextClick,
     onStepPrep,
@@ -305,6 +325,17 @@ export function Reader(props: ReaderProps) {
     const bound = root?.querySelector<HTMLElement>(`[data-bound][data-ch="${chapterId}"]`);
     if (root && bound) root.scrollTop = bound.offsetTop - 8;
   };
+  /** Where the first draw put the reader, held until the narrator scrolls or a request scrolls it. */
+  const held = useRef<{ chapterId: string; offset: number } | null>(null);
+  const hold = (): void => {
+    const root = scroller.current;
+    const place = held.current;
+    const bound = place && root?.querySelector<HTMLElement>(`[data-bound][data-ch="${place.chapterId}"]`);
+    if (root && place && bound && root.scrollTop !== Math.max(0, bound.offsetTop + place.offset)) root.scrollTop = Math.max(0, bound.offsetTop + place.offset);
+  };
+  const release = (): void => {
+    held.current = null;
+  };
   const rowOf = (paragraphId: string): HTMLElement | null =>
     Array.from(scroller.current?.querySelectorAll<HTMLElement>('[data-para]') ?? []).find((row) => row.dataset.para === paragraphId) ?? null;
 
@@ -313,23 +344,29 @@ export function Reader(props: ReaderProps) {
     if (restored.current) return;
     restored.current = true;
     const root = scroller.current;
-    if (!root || pendingJump || pendingPid || pendingBm) return;
-    if (remembered && startChapter === remembered.chapterId) {
-      const bound = root.querySelector<HTMLElement>(`[data-bound][data-ch="${startChapter}"]`);
-      if (bound) root.scrollTop = bound.offsetTop + remembered.offset;
-    } else if (startChapter) scrollToChapter(startChapter);
+    if (!root || pendingJump || pendingPid || pendingBm || !startChapter) return;
+    held.current = { chapterId: startChapter, offset: remembered && startChapter === remembered.chapterId ? remembered.offset : -8 };
+    hold();
     // The first draw only.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  /* A section drawn above that place after the first draw (the credits, read after the chapters) does not push it down: the reader
+     stays there until the narrator moves it or a request scrolls it. */
+  useLayoutEffect(hold);
 
   /* Later: honour each request to scroll once. A target outside the drawn text is drawn first and the request waits for it. */
   useLayoutEffect(() => {
     const root = scroller.current;
     if (!root) return;
+    if (pendingJump || pendingPid || pendingBm) release();
     if (pendingJump) {
       const at = indexOf.get(pendingJump);
-      if (at === undefined) onHandled?.('chapter');
-      else if (reach(at)) {
+      if (at === undefined) {
+        // A section outside the chapters (the credits) is always drawn.
+        scrollToChapter(pendingJump);
+        onHandled?.('chapter');
+      } else if (reach(at)) {
         scrollToChapter(pendingJump);
         onHandled?.('chapter');
       }
@@ -356,6 +393,13 @@ export function Reader(props: ReaderProps) {
     onSpy();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pendingJump, pendingPid, pendingBm, drawn]);
+
+  /* Text that arrives after a draw moves nothing, so the spy measures again: the header names the paragraph without waiting for a scroll. */
+  useLayoutEffect(() => {
+    onSpy();
+    // Only new text: the requests above measure for themselves.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [paragraphsOf]);
 
   /* Find: bring the current match into view. */
   useLayoutEffect(() => {
@@ -389,13 +433,15 @@ export function Reader(props: ReaderProps) {
     const mark = target.closest<HTMLElement>('[data-a]');
     const name = target.closest<HTMLElement>('[data-ent]');
     if ((!mark && !name) || !(window.getSelection()?.isCollapsed ?? true)) return;
-    if (mark) onShowAnnotation?.(mark.dataset.a as string);
+    // A flagged word is a `data-a` span too, with its word (`data-w`): it opens in the Words tab, as the mock's pronunciation marks do.
+    if (mark?.dataset.w !== undefined) onShowWord?.(mark.dataset.w);
+    else if (mark) onShowAnnotation?.(mark.dataset.a as string);
     else onShowEntry?.(name!.dataset.ent as string);
   };
 
   return (
     <section aria-label="Reader" className="flex h-full min-h-0 flex-col bg-[var(--surface)] text-[var(--text)]">
-      <StickyHeader spy={spy} chapters={chapters} toolbar={toolbar} />
+      <StickyHeader spy={spy} chapters={chapters} names={sectionNames} toolbar={toolbar} />
       <div
         ref={scroller}
         role="region"
@@ -403,6 +449,10 @@ export function Reader(props: ReaderProps) {
         aria-label="Script reader. Up and down arrows scroll. Left and right arrows change the prep state of the chapter in view."
         className="relative min-h-0 flex-1 overflow-y-auto focus-visible:outline-2 focus-visible:outline-[var(--focus)]"
         onScroll={onScroll}
+        onWheel={release}
+        onPointerDown={release}
+        onTouchStart={release}
+        onKeyDownCapture={release}
         onKeyDown={(event) => {
           if (event.target !== event.currentTarget || (event.key !== 'ArrowRight' && event.key !== 'ArrowLeft')) return;
           const id = spy.get().chapterId ?? chapters[0]?.id;
@@ -423,6 +473,7 @@ export function Reader(props: ReaderProps) {
           }}
           onClick={onClick}
         >
+          {before}
           {chapters.map((chapter, i) => (
             <Section
               key={chapter.id}

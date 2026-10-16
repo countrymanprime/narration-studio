@@ -36,9 +36,8 @@ import { ProjectPicker } from './components/project/ProjectPicker';
 import { Guide } from './components/storybible/Guide';
 import { SettingsPage } from './components/settings/page/SettingsPage';
 import { BoothNextPage } from './components/booth/page/BoothNextPage';
-import { boothQuery } from './components/booth/page/boothQuery';
+import { boothQuery, type BoothTarget } from './components/booth/page/boothQuery';
 import { CompanionPage } from './components/booth/companion/CompanionPage';
-import type { CreditsKind } from './components/booth/readerModel';
 import { EnginePanel } from './components/engine/EnginePanel';
 import { EnginePanelProvider } from './components/engine/EnginePanelContext';
 import { RetiredTracksRoute } from './components/engine/RetiredTracksRoute';
@@ -553,7 +552,7 @@ function AppRoutes() {
     guardedNavigate(`/editing/${encodeURIComponent(chapterId)}${query ? `?${query}` : ''}`);
   };
   // A Manuscript card's "Record in Booth": the Booth on that chapter or credits.
-  const goToBooth = (target: { chapter: string } | { credits: CreditsKind }) => guardedNavigate(`/booth${boothQuery(target)}`);
+  const goToBooth = (target: BoothTarget) => guardedNavigate(`/booth${boothQuery(target)}`);
 
   // A page may stop a move and ask first (the Booth does while a take is recording): the journal's leave guard answers, the overlay asks,
   // and only Yes goes on to the move's own guards below. A guard that answers 'allow', or none, leaves navigation as it was.
@@ -676,13 +675,7 @@ function AppRoutes() {
                   path="/script"
                   element={
                     data.manuscript ? (
-                      <ScriptPage
-                        notify={setNotice}
-                        focusStoryBibleEntity={goToStoryBible}
-                        goToEditing={goToEditing}
-                        projectFolder={data.projectFolder}
-                        goToBooth={goToBooth}
-                      />
+                      <ScriptPage notify={setNotice} focusStoryBibleEntity={goToStoryBible} goToEditing={goToEditing} goToBooth={goToBooth} />
                     ) : (
                       <NeedManuscript title="Script" onImport={() => guardedNavigate('/')} />
                     )

@@ -73,6 +73,15 @@ describe('continuous scroll with the spy', () => {
     expect(screen.getByText('¶ 1 of 1')).toBeTruthy();
   });
 
+  it('names the paragraph in the sticky header once the text arrives after the first draw, with no scroll', () => {
+    const late: Record<string, ManuscriptParagraph[] | undefined> = {};
+    const { rerender } = render(<Reader {...props({ paragraphsOf: (id) => late[id] })} />);
+    expect(screen.queryByText(/^¶/)).toBeNull();
+    Object.assign(late, paras);
+    rerender(<Reader {...props({ paragraphsOf: (id) => late[id] })} />);
+    expect(screen.getByText('¶ 1 of 2')).toBeTruthy();
+  });
+
   it('names the chapter in full in the sticky header, title and subtitle', () => {
     const named = [{ ...chapters[0]!, subtitle: 'Down the Rabbit-Hole' }, ...chapters.slice(1)];
     render(<Reader {...props({ chapters: named })} />);
@@ -148,6 +157,35 @@ describe('the remembered position', () => {
   it('opens at the given chapter when nothing is remembered', () => {
     render(<Reader {...props({ initialChapterId: 'c3' })} />);
     expect(scrolls.get(scroller())).toBe(592);
+  });
+
+  it('stays at that chapter when a section is drawn above it after the first draw, until the narrator scrolls', () => {
+    const above = <div data-bound="" data-ch="credits:opening" />;
+    const { rerender } = render(<Reader {...props({ initialChapterId: 'c3' })} />);
+    expect(scrolls.get(scroller())).toBe(592);
+    // A row drawn above moves every row down; the fake layout is read again on the next render's measure.
+    const relaid = vi.spyOn(HTMLElement.prototype, 'offsetTop', 'get').mockImplementation(function (this: HTMLElement) {
+      const rows = Array.from(document.querySelectorAll('[data-bound], [data-para]'));
+      return rows.indexOf(this) * 100;
+    });
+    rerender(<Reader {...props({ initialChapterId: 'c3', before: above })} />);
+    expect(scrolls.get(scroller())).toBe(692);
+    fireEvent.wheel(scroller());
+    rerender(
+      <Reader
+        {...props({
+          initialChapterId: 'c3',
+          before: (
+            <>
+              {above}
+              <div data-bound="" data-ch="x" />
+            </>
+          ),
+        })}
+      />,
+    );
+    expect(scrolls.get(scroller())).toBe(692);
+    relaid.mockRestore();
   });
 
   it('renders when storage throws', () => {

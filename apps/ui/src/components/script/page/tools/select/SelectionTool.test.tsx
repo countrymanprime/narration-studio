@@ -94,15 +94,15 @@ describe('offers-mark-story-bible-and-look-up', () => {
     expect(m.onDismiss).toHaveBeenCalled();
   });
 
-  it('Record here is a prop and is omitted without it', async () => {
+  it('Record from here is a prop and is omitted without it', async () => {
     const m = mount();
     m.rerender(inside(0, 5));
-    expect(within(tool()).queryByRole('button', { name: 'Record here' })).toBeNull();
+    expect(within(tool()).queryByRole('button', { name: 'Record from here' })).toBeNull();
     cleanup();
     const onRecordHere = vi.fn();
     const again = mount({ onRecordHere });
     again.rerender(inside(0, 5));
-    await userEvent.click(within(tool()).getByRole('button', { name: 'Record here' }));
+    await userEvent.click(within(tool()).getByRole('button', { name: 'Record from here' }));
     expect(onRecordHere).toHaveBeenCalledWith(expect.objectContaining({ paragraphId: rows[0]!.id, start: 0 }));
   });
 });
@@ -163,6 +163,19 @@ describe('add-to-the-story-bible-as-a-kind', () => {
     await waitFor(() => expect(create).toHaveBeenCalledWith('beginning', 'Place', []));
     await waitFor(() => expect(view.tab).toBe('bible'));
     expect(view.entryId).toBeTruthy();
+  });
+});
+
+describe('story-bible-kinds-are-the-hosts', () => {
+  it('offers a type the narrator added in the Story Bible, as the mock reads its types', async () => {
+    const types = await api.guideTypes();
+    vi.spyOn(api, 'guideTypes').mockResolvedValue([...types, { ...types[0]!, name: 'Ship', speaks: false }]);
+    const m = mount();
+    m.rerender(inside(10, 19));
+    await waitFor(async () => {
+      await userEvent.click(within(tool()).getByRole('button', { name: 'Story Bible' }));
+      expect(await screen.findByRole('menuitem', { name: 'Ship' })).toBeTruthy();
+    });
   });
 });
 

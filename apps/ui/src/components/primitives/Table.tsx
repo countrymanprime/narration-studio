@@ -45,9 +45,12 @@ export function TableRow({
   emphasis,
   className = '',
   style,
+  data,
   children,
 }: {
   onActivate?: () => void;
+  /** `data-*` attributes for the row, such as the key a right-click menu reads (`data-w` on the Script page's Words rows). */
+  data?: Record<`data-${string}`, string>;
   selected?: boolean;
   emphasis?: keyof typeof ROW_EMPHASIS;
   className?: string;
@@ -57,7 +60,7 @@ export function TableRow({
   const emphasisClass = emphasis ? ROW_EMPHASIS[emphasis] : '';
   if (!onActivate) {
     return (
-      <tr className={`${emphasisClass} ${className}`} style={style}>
+      <tr {...data} className={`${emphasisClass} ${className}`} style={style}>
         {children}
       </tr>
     );
@@ -75,6 +78,7 @@ export function TableRow({
   };
   return (
     <tr
+      {...data}
       data-row=""
       tabIndex={0}
       aria-selected={selected}

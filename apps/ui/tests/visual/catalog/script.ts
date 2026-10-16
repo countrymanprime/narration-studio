@@ -49,12 +49,13 @@ export const scriptStates: StateEntry[] = [
   {
     page: 'script',
     state: 'credits-cards',
-    description: 'Script, the Opening credits card expanded above Chapter 1 with an unresolved-token chip (kept as built: the mock has no credits)',
+    description:
+      'Script, the Opening credits drawn as the mock draws a chapter above Chapter 1: the Credits card with My prep and its unresolved tokens, then the credits text',
   },
   {
     page: 'script',
     state: 'credits-setup-banner',
-    description: 'Script, the credits-setup banner above the credits cards and the card’s own Fill in (?mockCredits=setup, kept as built)',
+    description: 'Script, the credits-setup banner above the Opening credits and the card’s own Fill in (?mockCredits=setup, kept as built)',
   },
   {
     page: 'script',

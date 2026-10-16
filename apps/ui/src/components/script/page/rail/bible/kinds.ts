@@ -1,3 +1,5 @@
+import { useMemo } from 'react';
+import { useEntries } from '../../data/useScriptData';
 import { toneColors, type BadgeColors } from '../../../../primitives/StatusBadge';
 import type { SwatchColour } from '../../../../primitives/Swatch';
 
@@ -20,4 +22,13 @@ export function kindColours(kind: string): BadgeColors {
   const hue = hueOf(kind);
   if (!hue) return toneColors('neutral');
   return { fill: `color-mix(in srgb, var(--${hue}) 18%, var(--surface))`, text: `var(--${hue}-text)`, line: `var(--${hue})` };
+}
+
+/**
+ * The kinds a selection can be added to the Story Bible as: the host's own types (`GuideTypes`, so a type the narrator added in the
+ * Story Bible is offered too), as the mock reads `bibleTypes`; the built-in six until they are read.
+ */
+export function useBibleKinds(): readonly string[] {
+  const { types } = useEntries();
+  return useMemo(() => (types.length ? types.map((type) => type.name) : BIBLE_KINDS), [types]);
 }
