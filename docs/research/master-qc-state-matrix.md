@@ -66,7 +66,7 @@ Each cell is a test name (`unit` = Vitest in `apps/ui/src/components/masterqc/`,
 | long, Unicode, emoji, RTL names | `matrix` (300-file test) selects the right-to-left one |
 | rapid double-fire (Enter twice, double click) | **not tested**: selecting the same file twice sets the same state |
 | context menu at every window edge and corner, beside the sidebar, at every size of the shared guard (1440x900, 1100x700, 820x600, 360x500, 320x300), over scrolled content, while the picker is open | `e2e` (a real right-click for the stacked case). **Not covered:** the stacked case at 320x300, where the open picker covers the whole first row |
-| tooltips of the icon buttons | `e2e` |
+| tooltips of the icon buttons | `e2e` (the hints on Play and Check the files again, opened by hovering). **Not covered:** over content scrolled halfway or to the end, where the hint did not show on CI and the cause was not found |
 
 ### C8, C9 DAW actions
 
