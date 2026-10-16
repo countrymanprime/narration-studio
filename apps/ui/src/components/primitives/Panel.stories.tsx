@@ -366,6 +366,30 @@ export const ScrollingBody: Story = {
   },
 };
 
+// A card beside a taller one takes the row's height, and its body takes what the header leaves (the Schedule's chart beside the Contract).
+export const FillsItsCell: Story = {
+  render: () => (
+    <div className="grid items-stretch gap-4 md:grid-cols-2">
+      <Panel title="Recorded audio" fill>
+        <div className="h-full min-h-20 rounded border border-dashed border-[var(--border)]" data-testid="fill-body">
+          Fills the card
+        </div>
+      </Panel>
+      <Panel title="Contract">
+        <p className="h-48 text-sm">A taller neighbour sets the row.</p>
+      </Panel>
+    </div>
+  ),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    if (!(await laidOut(canvasElement))) return;
+    const body = canvas.getByTestId('fill-body');
+    const [mine, theirs] = canvas.getAllByRole('region').map((el) => el.getBoundingClientRect());
+    // Stacked (narrow), nothing stretches the card; side by side, the body grows to the taller neighbour.
+    if (Math.abs(mine.top - theirs.top) < 1) await expect(body.getBoundingClientRect().height).toBeGreaterThan(150);
+  },
+};
+
 // A card that is not a section of its own (a TabPanel drawn as a card) takes the header row on its own, with the eyebrow
 // label and an inset card inside the body.
 export const HeaderOnItsOwn: Story = {

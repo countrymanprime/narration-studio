@@ -2,7 +2,7 @@
 
 # Navigation
 
-The sidebar on the left is grouped by production stage, the way a narrator's week runs: **Production** ([Production](production.md), [Schedule](production.md#schedule)),
+The sidebar on the left is grouped by production stage, the way a narrator's week runs: **Production** ([Production](production.md), [Schedule](schedule.md)),
 **Prep** ([Script](script.md), [Story Bible](story-bible.md)), **Record** ([Booth](booth.md)), **Edit** ([Editing](editing.md)),
 **Review** ([Proof](proof.md), [Pickups](pickups.md)) and **Finish** ([Master & QC](master-and-qc.md), [Delivery](delivery.md)).
 From 1360 px wide each group shows as a heading over its pages. Below that the rail shrinks to icons, grouped by a thin line,

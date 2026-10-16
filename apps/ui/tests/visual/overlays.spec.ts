@@ -5,6 +5,7 @@ import { masterCases } from './overlays/master';
 import { pickupsCases } from './overlays/pickups';
 import { productionCases } from './overlays/production';
 import { proofCases } from './overlays/proof';
+import { scheduleCases } from './overlays/schedule';
 import { scriptCases } from './overlays/script';
 import { settingsCases } from './overlays/settings';
 import { shellCases } from './overlays/shell';
@@ -25,5 +26,4 @@ overlayGuardFor('Pickups', shellCases, pickupsCases);
 overlayGuardFor('Master & QC', shellCases, masterCases);
 overlayGuardFor('Story Bible', shellCases, storyBibleCases);
 overlayGuardFor('Delivery', shellCases, deliveryCases);
-// The other pages with the sidebar adopt it with the shell's overlays only, until their own are listed.
-overlayGuardFor('Schedule', shellCases);
+overlayGuardFor('Schedule', shellCases, scheduleCases);

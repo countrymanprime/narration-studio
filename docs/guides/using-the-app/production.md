@@ -6,7 +6,7 @@ Production is the page a project opens on, the first item in the navigation. It 
 pace?" for the book you have open: how much finished audio there is and how much recording,
 editing and proofing is left, the open pickups, the due date and whether the pace reaches it, and
 what to work on next. Its **Chapter pipeline** has one row per chapter and one column per stage.
-The book's dates, payment and milestones are on [Schedule](#schedule), the item after Production in
+The book's dates, payment and milestones are on [Schedule](schedule.md), the item after Production in
 the navigation.
 
 ![Production - the figures, the chapter pipeline and Next up, with a stage timer running in the header](../../images/ui/production-home.webp)
@@ -14,13 +14,13 @@ the navigation.
 The header names the book's chapters, words and due date ("12 chapters · 29,189 words · delivery
 due 14 Oct (18 days)"), with the due date's tone as a word and a mark, not only a colour. The pill
 under it is the verdict for the due date (on track, tight or behind); it opens
-[Schedule](#schedule). **Export status report** (the export icon) opens the
+[Schedule](schedule.md). **Export status report** (the export icon) opens the
 [status report](#status-report), and **Start session** opens the [Booth](booth.md) on the chapter
 being recorded, or says why it cannot when the audio engine cannot record.
 
 With no manuscript imported yet, the page is the import: **Import manuscript** opens the file
 picker (see [Importing the manuscript](#importing-the-manuscript)), and the calendar icon opens
-[Schedule](#schedule) to set a due date first. To replace a manuscript later, use
+[Schedule](schedule.md) to set a due date first. To replace a manuscript later, use
 [Settings](settings.md).
 
 When the audio engine is not running, a line at the top says progress that comes from it may be
@@ -41,7 +41,7 @@ The six figures are one card; each opens the page it counts.
   the same lines, so the cells add up to the tile.
 - **Delivery check**: chapters that pass, fail or are not checked yet. It reads "Not measured
   yet" until the host reports a check per chapter.
-- **Due**: the due date and what the pace says about it. It opens [Schedule](#schedule).
+- **Due**: the due date and what the pace says about it. It opens [Schedule](schedule.md).
 
 Under the figures, **Where the book stands** splits the book's finished hours by stage, **This
 week** says how much was recorded this week and in the last 24 hours (from the built-in recorder's
@@ -220,11 +220,7 @@ the reason and **Try again** above the table.
 
 ## Schedule
 
-**Schedule**, the item after Production in the navigation, holds the book's due date, how it pays,
-the recorded audio against the plan, the work left and how it is worked out, and its milestones. With no manuscript it asks you to import
-one first. Every change there is one step you can undo.
-
-![Schedule - the verdict, the recorded audio against the plan, how the book pays, the work left and the milestones](../../images/ui/schedule-on-pace.webp)
+**Schedule**, the item after Production in the navigation, holds the book's due date, how it pays, the recorded audio against the plan, the work left and its milestones: see [Schedule](schedule.md).
 
 ## Status report
 
@@ -316,4 +312,4 @@ card — with **Fill in** to reopen the same dialog for as long as a token stays
 
 ---
 
-[← Navigation](navigation.md) · [Index](README.md) · [Script →](script.md)
+[← Navigation](navigation.md) · [Index](README.md) · [Schedule →](schedule.md)
