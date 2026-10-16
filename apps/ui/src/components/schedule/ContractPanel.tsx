@@ -4,7 +4,7 @@ import { Panel } from '../primitives/Panel';
 import { Select } from '../primitives/Select';
 import { TextField } from '../primitives/TextField';
 import { num } from './dates';
-import { contractValue, parseAmount, PAYMENT_TYPES, paymentOf, plainNumber } from './payment';
+import { contractValue, isTooLarge, MAX_AMOUNT, parseAmount, PAYMENT_TYPES, paymentOf, plainNumber } from './payment';
 
 export type ContractPanelProps = {
   plan: ProductionPlan;
@@ -33,9 +33,11 @@ export function ContractPanel({ plan, words, onPayment, onAmount, onRefuse }: Co
     const amount = parseAmount(text);
     if (amount === null)
       return onRefuse(
-        text.includes(',') && !text.includes('.')
-          ? `${text} could mean 1.5 or 15. Write a decimal with a point, and use commas only for thousands, such as 1,250.50.`
-          : 'Write the rate as a number of zero or more, such as 250 or 1,250.50.',
+        isTooLarge(text)
+          ? `That rate is too large. Write it as ${MAX_AMOUNT.toLocaleString('en-US')} or less.`
+          : text.includes(',') && !text.includes('.')
+            ? `${text} could mean 1.5 or 15. Write a decimal with a point, and use commas only for thousands, such as 1,250.50.`
+            : 'Write the rate as a number of zero or more, such as 250 or 1,250.50.',
       );
     if (amount !== plan.contractedAmount) onAmount(amount);
   };

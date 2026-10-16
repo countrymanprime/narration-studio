@@ -29,6 +29,9 @@ import { WorkedOut } from './WorkedOut';
 export const WRITE_WAIT_MS = 15_000;
 
 /** What the page needs of the command journal: run a change as one entry, take an entry back, and hear of a change made from elsewhere (the history panel's Undo). */
+/** The topic of the page's refusals: a newer one replaces the old, and a change that goes through takes it away. */
+const REFUSAL = 'schedule-refusal';
+
 type ScheduleJournal = Pick<Journal, 'act' | 'undo' | 'subscribe'>;
 
 export type SchedulePageProps = {
@@ -87,20 +90,22 @@ export function SchedulePage({ journal, today, hasManuscript = true, onImport }:
           latest = await production.productionPlan();
         } catch (error) {
           const reason = `The schedule could not be read before the change, so nothing was changed: ${apiErrorMessage(error)}`;
-          overlay.toast(reason, { tone: 'error' });
+          overlay.toast(reason, { tone: 'error', topic: REFUSAL });
           return reason;
         }
         const changed = stale?.(latest);
         if (changed) {
-          overlay.toast(changed, { tone: 'error' });
+          overlay.toast(changed, { tone: 'error', topic: REFUSAL });
           return changed;
         }
         const result = await journal.act(build(latest));
         if (!result.ok) {
-          overlay.toast(result.refusal.reason, { tone: 'error' });
+          overlay.toast(result.refusal.reason, { tone: 'error', topic: REFUSAL });
           return result.refusal.reason;
         }
         keepPlan(result.value.value);
+        // A refusal is about the change before: once one goes through, it is no longer true.
+        overlay.dismissTopic(REFUSAL);
         if (undoText)
           overlay.toastUndo(undoText, async () => {
             const undone = await journal.undo(result.value.id);
@@ -176,7 +181,7 @@ export function SchedulePage({ journal, today, hasManuscript = true, onImport }:
   const changeDue = async (text: string): Promise<boolean> => {
     const problem = dueDateProblem(text);
     if (problem) {
-      overlay.toast(problem, { tone: 'error' });
+      overlay.toast(problem, { tone: 'error', topic: REFUSAL });
       return false;
     }
     return (await run((latest) => setDueDateCommand(production, latest, text.trim()))) === undefined;
@@ -223,7 +228,7 @@ export function SchedulePage({ journal, today, hasManuscript = true, onImport }:
             plan={plan}
             words={k.words}
             onPayment={(payment: ProductionPayment) => void run((latest) => setPaymentCommand(production, latest, payment))}
-            onRefuse={(sentence) => overlay.toast(sentence, { tone: 'error' })}
+            onRefuse={(sentence) => overlay.toast(sentence, { tone: 'error', topic: REFUSAL })}
             onAmount={(amount) => void run((latest) => setAmountCommand(production, latest, amount))}
           />
           <WorkedOut k={k} />
