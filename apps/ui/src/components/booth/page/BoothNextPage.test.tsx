@@ -178,7 +178,7 @@ describe('every-way-out-asks-while-recording', () => {
     expect(screen.getByText('REC')).toBeTruthy();
   });
 
-  it('Escape asks "Stop recording?"; Keep recording changes nothing', async () => {
+  it('Escape asks "Stop recording?" once; Keep recording changes nothing', async () => {
     const page = renderPage();
     await record(page);
     await press('Escape');
