@@ -26,6 +26,15 @@ describe('CreditsPanel', () => {
     expect(select.value).toBeTruthy();
   });
 
+  it('names each template once: its kind is not added when the name already ends in it (#1777)', async () => {
+    renderPanel();
+    const select = (await screen.findByRole('combobox', { name: 'Template' })) as HTMLSelectElement;
+    await waitFor(() => expect(select.options.length).toBeGreaterThanOrEqual(3));
+    const labels = [...select.options].map((option) => option.textContent ?? '');
+    expect(labels).toContain('ACX minimum (opening)');
+    expect(labels.some((label) => /\(opening\) \(Opening\)/i.test(label))).toBe(false);
+  });
+
   it('previews the selected template with an unresolved-token chip and count before any project value is set', async () => {
     renderPanel();
     expect(await screen.findByText(/unresolved token/)).toBeTruthy();

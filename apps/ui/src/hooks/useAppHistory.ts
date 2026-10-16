@@ -55,6 +55,8 @@ export function useAppHistory() {
     mountedRef.current = true;
   }, [location.key, navigationType]);
 
+  /** True while a pop this hook itself started is in flight. */
+  const isOwnPop = useCallback(() => ownPopRef.current, []);
   const resetFloor = useCallback(() => setFloor(currentIdx()), []);
   const clearUnexpectedPop = useCallback(() => setUnexpectedPop(false), []);
 
@@ -74,6 +76,7 @@ export function useAppHistory() {
     back,
     forward,
     resetFloor,
+    isOwnPop,
     /** True once a `popstate` moved history without going through this hook's own `back()`/`forward()`. */
     unexpectedPop,
     clearUnexpectedPop,

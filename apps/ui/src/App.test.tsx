@@ -1410,6 +1410,24 @@ describe('App Back and Forward', () => {
     expect(saveSettings).toHaveBeenCalledWith('General', 'global', expect.objectContaining({ log_verbosity: 'verbose' }));
   });
 
+  it('a browser Back the app did not start, from dirty Settings, restores Settings and asks (#1779)', async () => {
+    renderApp();
+    await screen.findByRole('heading', { level: 1, name: 'Production' });
+    fireEvent.click(screen.getAllByRole('button', { name: 'Settings' })[0]);
+    await screen.findByRole('heading', { name: 'Settings' });
+    const modelField = await within(screen.getByRole('region', { name: 'General' })).findByDisplayValue('normal');
+    fireEvent.change(modelField, { target: { value: 'verbose' } });
+
+    // A popstate the app's own guarded Back did not start (a mouse-button gesture, history.back()).
+    act(() => window.history.back());
+
+    expect(await screen.findByText('Save or discard changes before leaving Settings?')).toBeTruthy();
+    await waitFor(() => expect(window.location.pathname).toBe('/settings'));
+    // Settings never unmounted, so Cancel leaves the edit where it was.
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+    expect(within(screen.getByRole('region', { name: 'General' })).getByDisplayValue('verbose')).toBeTruthy();
+  });
+
   it('Back from a Proof chapter view with a run resets the transcript run, like the nav', async () => {
     const transcriptReset = vi.fn(createMockApi().transcriptReset);
     renderApp({ transcriptReset });

@@ -33,6 +33,9 @@ export const settingsDrivers: Record<string, Driver> = {
     await dialog.getByLabel('Mark name').first().waitFor();
   },
   'recording-builtin': async (page) => {
+    // The host refuses the built-in recorder while the Experimental switch is off, so this state turns it on.
+    await page.goto('/?mockDawExperimentalOn=1');
+    await settlePage(page);
     await goToPage(page, 'Settings');
     const builtin = page.getByRole('radio', { name: /^Built-in recorder/ });
     await builtin.click();
