@@ -5,7 +5,7 @@
 Delivery is the last step of finishing a book. It names the delivery profile the project is judged against,
 checks every chapter against it, and builds the platform's package from the files you mastered and encoded in
 [Master & QC](master-and-qc.md). It sits under **Finish**, after Master & QC, and needs an imported
-manuscript: without one its navigation entry is locked and the page asks you to import one.
+manuscript: without one the page asks you to import one.
 
 ![Delivery judged against ACX with nothing measured: the profile, its checks and files, Output with Build off, and Before you build with every chapter waiting](../../images/ui/delivery-default.webp)
 
@@ -83,7 +83,7 @@ is a chapter whose title makes a file name longer than Windows allows.
 ![Delivery after the host refused the build: its reason under Build, and nothing written](../../images/ui/delivery-build-failed.webp)
 
 If the host stops answering while a build runs, Delivery says "Can't tell how the build is going", when it last
-heard, and offers **Check again**; the build keeps running on the host and **Cancel** is still there.
+heard and when it last asked (**asked again just now** after **Check again**, which reads again at once); the build keeps running on the host and **Cancel** is still there.
 
 ![Delivery with a running build and a host that no longer answers: the message with Check again](../../images/ui/delivery-host-quiet.webp)
 

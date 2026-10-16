@@ -36,8 +36,8 @@ the app can read them (otherwise it says why it cannot), today, and the estimate
 **Paid** is how the book pays: per finished hour, a royalty share, or none or unspecified. Only a rate per finished hour carries
 an amount. Type it in the **Amount** box and press Enter or leave the box; **Value at this rate** is the rate times the book's finished
 hours. An empty box clears the amount. An amount is digits with an optional decimal part, and thousands commas only in groups
-of three (`1,250.50`). Anything else, such as `-5`, `1e3` or `1,5` (which could mean 15), is refused with a message and the
-box goes back to the stored amount. Choosing a royalty share or none clears the amount.
+of three (`1,250.50`), up to 1,000,000,000,000. Anything else, such as `-5`, `1e3`, `1,5` (which could mean 15) or a rate larger than that, is
+refused with a message and the box goes back to the stored amount. A refusal's message goes away when a later change is saved. Choosing a royalty share or none clears the amount.
 
 ## Milestones
 
