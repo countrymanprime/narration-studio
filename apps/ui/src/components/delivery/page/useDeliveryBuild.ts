@@ -100,7 +100,8 @@ export function useDeliveryBuild(profile: DeliveryProfile | undefined) {
     built: finished?.phase === 'success' && profile && finished.profile === deliveryProfileKey(profile) ? finished : undefined,
     failed: finished?.phase === 'error' ? finished : undefined,
     cancelled: finished?.phase === 'cancelled' ? finished : undefined,
-    folder: job?.outputDir || undefined,
+    // The folder this profile's last build used; a build for another profile has its own, not this one's.
+    folder: job && profile && job.profile === deliveryProfileKey(profile) ? job.outputDir || undefined : undefined,
     build,
     cancel,
     /** The host did not answer the latest read of the jobs: what it said, and when it last did. */

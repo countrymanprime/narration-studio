@@ -1,11 +1,13 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { apiErrorMessage } from '../../../api/errorMessage';
 import { usePort } from '../../../ports/usePort';
 import type { DeliveryProfile, DeliveryProfilesState } from '../../../types';
 import { deliveryProfileKey } from '../../master/deliveryProfile';
+import { Button } from '../../primitives/Button';
 import { Panel } from '../../primitives/Panel';
 import { SectionLabel } from '../../primitives/SectionLabel';
 import { StatusBadge } from '../../primitives/StatusBadge';
+import { heardText, useHostRead } from '../page/useHostRead';
 import { CommitBox } from './CommitBox';
 import { FormatRows } from './FormatRows';
 import { LimitRow } from './LimitRow';
@@ -24,27 +26,26 @@ const activeProfile = (state: DeliveryProfilesState): DeliveryProfile | undefine
  */
 export function ProfileCard({ onChange, onProfile }: { onChange?: () => void; onProfile?: (profile: DeliveryProfile, limits: Limit[]) => void }) {
   const port = usePort('deliveryProfiles');
-  const [state, setState] = useState<DeliveryProfilesState>();
+  // Read when the page opens and when the window regains focus (a profile edited or deleted in Settings is picked up), and again every two
+  // seconds while a read has failed. An answer from a choice or an edit is numbered like a read, so a slower read cannot undo it.
+  const read = useHostRead<DeliveryProfilesState>(
+    () => port.deliveryProfiles(),
+    () => false,
+  );
+  const state = read.value;
   const [error, setError] = useState<string>();
   const [busy, setBusy] = useState(false);
+  // A second choice or edit sent before the host answered the first is dropped, whatever the menu's state on screen.
+  const working = useRef(false);
   const profile = state && activeProfile(state);
-
-  useEffect(() => {
-    let live = true;
-    port
-      .deliveryProfiles()
-      .then((next) => live && setState(next))
-      .catch((failure) => live && setError(`The delivery profiles could not be read: ${apiErrorMessage(failure)}`));
-    return () => {
-      live = false;
-    };
-  }, [port]);
   useEffect(() => {
     if (profile) onProfile?.(profile, limitsOf(profile));
   }, [profile, onProfile]);
 
   const run = useCallback(
     async (action: () => Promise<void>) => {
+      if (working.current) return;
+      working.current = true;
       setBusy(true);
       try {
         await action();
@@ -53,6 +54,7 @@ export function ProfileCard({ onChange, onProfile }: { onChange?: () => void; on
       } catch (failure) {
         setError(apiErrorMessage(failure));
       } finally {
+        working.current = false;
         setBusy(false);
       }
     },
@@ -62,18 +64,27 @@ export function ProfileCard({ onChange, onProfile }: { onChange?: () => void; on
   if (!state || !profile) {
     return (
       <Panel title="Delivery profile">
-        <p role={error ? 'alert' : undefined} className="text-sm" style={{ color: error ? 'var(--danger-text)' : 'var(--text-muted)' }}>
-          {error ?? 'Reading the delivery profiles…'}
-        </p>
+        {read.error ? (
+          <p role="alert" className="text-sm" style={{ color: 'var(--danger-text)' }}>
+            The delivery profiles could not be read, {heardText(read.lastHeard)}: {read.error}{' '}
+            <Button variant="ghost" size="sm" onClick={read.again}>
+              Check again
+            </Button>
+          </p>
+        ) : (
+          <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
+            Reading the delivery profiles…
+          </p>
+        )}
       </Panel>
     );
   }
 
-  const choose = (next: DeliveryProfile) => run(async () => setState(await port.deliverySelectProfile('project', next.id, next.builtIn ? next.version : '')));
+  const choose = (next: DeliveryProfile) => run(async () => read.set(await port.deliverySelectProfile('project', next.id, next.builtIn ? next.version : '')));
   const save = (edit: ReturnType<typeof editOf>) =>
     run(async () => {
       await port.deliverySaveProfile(edit);
-      setState(await port.deliveryProfiles());
+      read.set(await port.deliveryProfiles());
     });
   const readOnly = profile.builtIn;
 
@@ -104,6 +115,14 @@ export function ProfileCard({ onChange, onProfile }: { onChange?: () => void; on
           ))}
         </div>
         <FormatRows rules={formatRules(profile)} readOnly={readOnly} onEdit={(id, side, value) => void save(editOf(profile, { rule: { id, side, value } }))} />
+        {read.error && (
+          <p role="alert" className="text-sm" style={{ color: 'var(--danger-text)' }}>
+            Can't tell whether this is still the project's profile, {heardText(read.lastHeard)}: {read.error}{' '}
+            <Button variant="ghost" size="sm" onClick={read.again}>
+              Check again
+            </Button>
+          </p>
+        )}
         {(error || state.notice) && (
           <p role={error ? 'alert' : 'status'} className="text-sm" style={{ color: error ? 'var(--danger-text)' : 'var(--warn-text)' }}>
             {error ?? state.notice}

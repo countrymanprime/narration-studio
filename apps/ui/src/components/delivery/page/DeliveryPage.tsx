@@ -1,5 +1,4 @@
 import { useCallback, useState } from 'react';
-import { apiErrorMessage } from '../../../api/errorMessage';
 import { DeliveryProfilePanel } from '../../master/DeliveryProfilePanel';
 import { creditsEntries } from '../../credits/creditsEntries';
 import { useCreditsRows } from '../../credits/useCreditsRows';
@@ -40,10 +39,13 @@ function LoadedDelivery({ onOpenInMaster, onOpenMaster }: { onOpenInMaster: (cha
   const checks = useDeliveryChecks();
   const [profile, setProfile] = useState<DeliveryProfile>();
   const [built, setBuilt] = useState(true);
-  const [creditsProblem, setCreditsProblem] = useState<string>();
+  // Bumped by Check again, so the credits are read again with the chapters and the measurement.
+  const [creditsRead, setCreditsRead] = useState(0);
   const build = useDeliveryBuild(profile);
-  // The credits files are deliverables: the opening before chapter 1, the closing after the last, judged like a chapter.
-  const credits = useCreditsRows(undefined, (error) => setCreditsProblem(`The credits could not be read: ${apiErrorMessage(error)}`));
+  // The credits files are deliverables: the opening before chapter 1, the closing after the last, judged like a chapter. Nothing is judged
+  // until they have been read, or the page would say "Every chapter passes" and then add two rows that do not. Delivery changes no
+  // credits status, so the call's own error handler has nothing to report.
+  const credits = useCreditsRows(String(creditsRead), () => undefined);
 
   const onProfile = useCallback((next: DeliveryProfile) => setProfile(next), []);
   // A profile change or edit drops the built list; a new build shows it again.
@@ -54,8 +56,8 @@ function LoadedDelivery({ onOpenInMaster, onOpenMaster }: { onOpenInMaster: (cha
   };
 
   const { chapters, job } = checks;
-  // Nothing is judged until both the chapters and the measurement have been read at least once.
-  const known = chapters !== undefined && job !== undefined;
+  // Nothing is judged until the chapters, the credits and the measurement have each been read.
+  const known = chapters !== undefined && job !== undefined && credits.rows !== undefined;
   const entries = creditsEntries(
     credits.rows,
     (chapters ?? []).some((chapter) => chapter.contentKind === 'opening'),
@@ -79,19 +81,17 @@ function LoadedDelivery({ onOpenInMaster, onOpenMaster }: { onOpenInMaster: (cha
           />
         )}
         {profile && <DeliveryProfilePanel profile={profile} />}
-        {creditsProblem && (
-          <p role="alert" className="text-sm" style={{ color: 'var(--danger-text)' }}>
-            {creditsProblem}
-          </p>
-        )}
       </div>
       <Preflight
         states={states}
         known={known}
         measuring={measuring}
-        problem={checks.jobError ?? checks.chaptersError}
+        problem={checks.jobError ?? checks.chaptersError ?? (credits.failure && `The credits could not be read: ${credits.failure}`)}
         lastHeard={checks.lastHeard}
-        onCheckAgain={checks.checkAgain}
+        onCheckAgain={() => {
+          setCreditsRead((count) => count + 1);
+          checks.checkAgain();
+        }}
         onOpen={onOpenInMaster}
         onOpenMaster={onOpenMaster}
       />

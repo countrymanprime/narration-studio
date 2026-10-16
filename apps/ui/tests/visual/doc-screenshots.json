@@ -493,7 +493,7 @@
     "page": "delivery",
     "state": "profile-rules",
     "viewport": "desktop",
-    "docName": "master-profile-rules",
+    "docName": "delivery-profile-rules",
     "caption": "Delivery - the ACX profile's rules and their sources: what ACX requires, how the app checks it, and whether it is verified"
   },
   {
@@ -549,8 +549,57 @@
     "page": "delivery",
     "state": "measured",
     "viewport": "desktop",
-    "docName": "master-package-built",
+    "docName": "delivery-measured",
     "caption": "Delivery with the book checked: the chapters passing in Before you build, and Output waiting on the rest"
+  },
+  {
+    "page": "delivery",
+    "state": "default",
+    "viewport": "desktop",
+    "docName": "delivery-default",
+    "caption": "Delivery judged against ACX with nothing measured: the profile, its checks and files, Output with Build off, and Before you build with every chapter waiting"
+  },
+  {
+    "page": "delivery",
+    "state": "custom-profile",
+    "viewport": "desktop",
+    "docName": "delivery-custom-profile",
+    "caption": "Delivery judged against a custom profile: its name and each limit can be edited in place"
+  },
+  {
+    "page": "delivery",
+    "state": "ready",
+    "viewport": "desktop",
+    "docName": "delivery-ready",
+    "caption": "Delivery with every chapter passing and the files encoded: Build ACX package is on"
+  },
+  {
+    "page": "delivery",
+    "state": "building",
+    "viewport": "desktop",
+    "docName": "delivery-building",
+    "caption": "Delivery with a started build running: the busy Build button, Cancel and the progress bar"
+  },
+  {
+    "page": "delivery",
+    "state": "built",
+    "viewport": "desktop",
+    "docName": "delivery-built",
+    "caption": "Delivery after Build ACX package: Built, 15 files in the folder the host chose, and each file Written"
+  },
+  {
+    "page": "delivery",
+    "state": "build-failed",
+    "viewport": "desktop",
+    "docName": "delivery-build-failed",
+    "caption": "Delivery after the host refused the build: its reason under Build, and nothing written"
+  },
+  {
+    "page": "delivery",
+    "state": "host-quiet",
+    "viewport": "desktop",
+    "docName": "delivery-host-quiet",
+    "caption": "Delivery with a running build and a host that no longer answers: the message with Check again"
   },
   {
     "page": "settings",

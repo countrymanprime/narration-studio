@@ -2,11 +2,11 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { apiErrorMessage } from '../../../api/errorMessage';
 
 /** How often a read of something that is still running is repeated. */
-export const POLL_MS = 500;
+const POLL_MS = 500;
 /** How often a read that failed is tried again, for as long as its notice is up. */
-export const RETRY_MS = 2000;
+const RETRY_MS = 2000;
 
-export type HostRead<T> = {
+type HostRead<T> = {
   /** What the host last answered; kept (not emptied) when a later read fails, so the page can say it is out of date. */
   value: T | undefined;
   /** Why the latest read failed, or nothing once one has succeeded. */

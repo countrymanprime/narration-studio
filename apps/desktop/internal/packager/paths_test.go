@@ -202,10 +202,10 @@ func TestAHugeEncodedFileIsCopiedWhole(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	// A sparse 300 MiB file: a long audiobook chapter's size without writing it.
-	const size = 300 << 20
+	// 64 MiB: far larger than any other fixture, and copied in one pass without being held in memory.
+	const size = 64 << 20
 	if err := handle.Truncate(size); err != nil {
-		t.Skipf("this filesystem cannot make a sparse file: %v", err)
+		t.Fatalf("cannot make a %d-byte file: %v", size, err)
 	}
 	_ = handle.Close()
 	req.Chapters[0].Path = big
