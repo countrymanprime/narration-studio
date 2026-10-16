@@ -101,6 +101,29 @@ describe('Master & QC page body', () => {
     expect(screen.queryByRole('status', { name: 'Link not found' })).toBeNull();
   });
 
+  it('says what a #file= link needs when nothing is measured yet', async () => {
+    withChapters([], { focusFile: 'C:/Renders/Chapter 02.wav' });
+    const note = await screen.findByRole('status', { name: 'Link not found' });
+    expect(note.textContent).toContain('C:/Renders/Chapter 02.wav');
+    expect(note.textContent).toContain('no files are measured yet');
+  });
+
+  it('follows a #file= link that arrives while the page is open', async () => {
+    const api = apiOf(jobOf(TWO_FAIL, acx), acx);
+    const view = render(
+      <PageHost api={api}>
+        <MasterPage {...PROPS} onOpenDelivery={vi.fn()} openSettings={vi.fn()} focusFile="C:/Renders/Chapter 04.wav" />
+      </PageHost>,
+    );
+    expect(await screen.findByRole('heading', { name: 'Chapter 04.wav · Why it fails' })).toBeTruthy();
+    view.rerender(
+      <PageHost api={api}>
+        <MasterPage {...PROPS} onOpenDelivery={vi.fn()} openSettings={vi.fn()} focusFile="C:/Renders/Chapter 02.wav" />
+      </PageHost>,
+    );
+    expect(await screen.findByRole('heading', { name: 'Chapter 02.wav · Checks' })).toBeTruthy();
+  });
+
   it('does not call a link stale when it names a measured file or a chapter', async () => {
     withChapters(TWO_FAIL, { focusFile: 'C:/Renders/Chapter 02.wav' });
     expect(await screen.findByRole('heading', { name: /· (Checks|Why it fails)$/ })).toBeTruthy();
@@ -115,7 +138,15 @@ describe('Master & QC page body', () => {
     const list = within(package_());
     expect(list.getByText('Chapters are one file each')).toBeTruthy();
     expect(list.getByText('Every file under 120 min')).toBeTruthy();
-    expect(list.getByText('mono or stereo · 44.1 kHz · 192 kbps+ CBR')).toBeTruthy();
+    // Behaviour change: the MP3 format is not judged on a WAV render, so this line waits instead of ticking.
+    expect(list.getByText('mono or stereo · 44.1 kHz · 192 kbps+ CBR (the MP3 format is checked on the MP3 you upload)')).toBeTruthy();
+  });
+
+  it('does not tick the MP3 format the host did not judge on a WAV render', async () => {
+    mount(ALL_PASS);
+    const list = within(await screen.findByRole('complementary', { name: /Delivery package/ }));
+    const item = list.getByText(/the MP3 format is checked on the MP3 you upload/).closest('li')!;
+    expect(item.textContent).not.toMatch(/^Pass/);
   });
 
   it('counts-failing-and-not-ready-from-the-files', async () => {

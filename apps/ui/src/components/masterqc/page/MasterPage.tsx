@@ -80,6 +80,10 @@ function MasterBody({ projectFolder, onOpenDelivery, openSettings, fileActions, 
   const [profileProblem, setProfileProblem] = useState<string>();
   // A file's path, or a chapter's id when that chapter has no file yet. The chapter bar is read off it.
   const [picked, setPicked] = useState<string | undefined>(focusFile);
+  // A link that arrives while the page is open (the narrator follows another one) moves the selection too.
+  useEffect(() => {
+    if (focusFile !== undefined) setPicked(focusFile);
+  }, [focusFile]);
   // The file whose every-rule list the narrator closed; selecting another file shows its list again.
   const [rulesClosed, setRulesClosed] = useState<string>();
 
@@ -125,7 +129,7 @@ function MasterBody({ projectFolder, onOpenDelivery, openSettings, fileActions, 
   // drawn as an empty "Not mastered" panel. Judged only once the files and the chapter list are both known.
   const staleLink =
     picked !== undefined &&
-    run.job !== undefined &&
+    run.lastHeard !== undefined &&
     !run.running &&
     chaptersRead &&
     !chaptersProblem &&
@@ -199,7 +203,11 @@ function MasterBody({ projectFolder, onOpenDelivery, openSettings, fileActions, 
           )}
           {staleLink !== undefined && (
             <div role="status" aria-label="Link not found" className="flex flex-wrap items-center gap-2 text-sm" style={MUTED}>
-              <span>The link names {staleLink}, which this check does not include. It may have been renamed, moved or not measured yet.</span>
+              <span>
+                {run.files.length === 0
+                  ? `The link names ${staleLink}, but no files are measured yet. Check files to measure them.`
+                  : `The link names ${staleLink}, which this check does not include. It may have been renamed, moved or not measured yet.`}
+              </span>
               <Button variant="secondary" size="sm" onClick={() => setPicked(undefined)}>
                 Show the first file instead
               </Button>
