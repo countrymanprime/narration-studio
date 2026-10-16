@@ -1,6 +1,7 @@
 package project
 
 import (
+	"errors"
 	"os"
 	"path/filepath"
 )
@@ -23,6 +24,10 @@ type DawLink struct {
 // folder, another spelling of the same path or a different drive are all
 // judged by what is on disk rather than by the text of the paths.
 func BuildDawLink(projectFolder, rppPath string) (DawLink, error) {
+	if rppPath == "" {
+		// filepath.Abs("") is the working directory, which would be recorded as the DAW project file.
+		return DawLink{}, errors.New("there is no REAPER project file to link")
+	}
 	absolute, err := filepath.Abs(rppPath)
 	if err != nil {
 		return DawLink{}, err
