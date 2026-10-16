@@ -4,7 +4,7 @@ Written before the code ([definition of done](../../.claude/rules/definition-of-
 
 **Left out on purpose, with its reason (ADR 0440):** the mock's **Clicks** and **Text** columns. Nothing measures mouth clicks or text coverage per rendered file, so a column would be a number the app made up. **Play the quietest 5 s** and **Open in the DAW** are built over the DAW port's `playQuietest` and `openFile`.
 
-Each cell is a test name (`unit` = Vitest in `apps/ui/src/components/masterqc/`, `e2e` = the Playwright spec `apps/ui/tests/visual/master-matrix.spec.ts`) or **not tested: reason**. Updated at the end of the work: a cell names the test that drives it or says **not tested** and why. `matrix` is `masterqc/page/Matrix.test.tsx`; `e2e` is `apps/ui/tests/visual/master-matrix.spec.ts`; `go` is `apps/desktop/master_paths_test.go`.
+Each cell is a test name (`unit` = Vitest in `apps/ui/src/components/masterqc/`, `e2e` = the shared overlay guard's Master & QC cases, `apps/ui/tests/visual/overlays/master.ts`, run by `overlays.spec.ts`) or **not tested: reason**. Updated at the end of the work: a cell names the test that drives it or says **not tested** and why. `matrix` is `masterqc/page/Matrix.test.tsx`; `e2e` is `apps/ui/tests/visual/overlays/master.ts`; `go` is `apps/desktop/master_paths_test.go`.
 
 ## Controls
 
@@ -29,12 +29,12 @@ Each cell is a test name (`unit` = Vitest in `apps/ui/src/components/masterqc/`,
 
 | State | Result |
 | - | - |
-| empty, one, many, huge (chapter count) | existing `ChapterStepper.test.tsx` and stories (first, middle, last, all). **Not tested** at 200 chapters: the list scrolls inside its popup, which `e2e` covers at four window sizes |
+| empty, one, many, huge (chapter count) | existing `ChapterStepper.test.tsx` and stories (first, middle, last, all). **Not tested** at 200 chapters: the list scrolls inside its popup, which `e2e` covers at every size of the shared guard (1440x900, 1100x700, 820x600, 360x500, 320x300) |
 | loading, failed (chapters not read) | existing: the bar is absent until chapters arrive; a failed read shows "The chapters could not be read" (`Page.test.tsx`) |
 | stale (a chapter removed after the page opened) | **not tested**: the list is read once per visit; the page remounts on the next visit |
-| long, right-to-left, emoji heading | `ChapterStepper` story "Very long chapter name"; the picker's size is guarded by `e2e` `the chapter picker is topmost and on screen`. RTL and emoji headings are **not tested** in the picker |
+| long, right-to-left, emoji heading | `ChapterStepper` story "Very long chapter name"; the picker's size is guarded by `e2e` case `chapter picker`. RTL and emoji headings are **not tested** in the picker |
 | rapid double-fire, reload mid-action, leave mid-action | **not tested**: the bar holds no pending work; the choice is only the selected file |
-| overlay (picker at four window sizes, over the row menu) | `e2e`. **Found and fixed:** the picker ran 78 px below a 360 px-high window; it is now capped to the room left (`--available-height`) |
+| overlay (picker at every size of the shared guard (1440x900, 1100x700, 820x600, 360x500, 320x300), over the row menu) | `e2e`. **Found and fixed:** the picker ran 78 px below a 360 px-high window; it is now capped to the room left (`--available-height`) |
 
 ### C3, C4, C5, C10 Measuring
 
@@ -65,7 +65,7 @@ Each cell is a test name (`unit` = Vitest in `apps/ui/src/components/masterqc/`,
 | empty, one, many, waiting, failing | existing (`Files.test.tsx`) |
 | long, Unicode, emoji, RTL names | `matrix` (300-file test) selects the right-to-left one |
 | rapid double-fire (Enter twice, double click) | **not tested**: selecting the same file twice sets the same state |
-| context menu at every window edge and corner, beside the sidebar, at four window sizes, over scrolled content, while the picker is open | `e2e` (a real right-click for the stacked case) |
+| context menu at every window edge and corner, beside the sidebar, at every size of the shared guard (1440x900, 1100x700, 820x600, 360x500, 320x300), over scrolled content, while the picker is open | `e2e` (a real right-click for the stacked case). **Not covered:** the stacked case at 320x300, where the open picker covers the whole first row |
 | tooltips of the icon buttons | `e2e` |
 
 ### C8, C9 DAW actions

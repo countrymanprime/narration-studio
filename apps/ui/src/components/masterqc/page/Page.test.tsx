@@ -91,6 +91,22 @@ describe('Master & QC page body', () => {
     expect(await screen.findByRole('heading', { name: 'Chapter 02.wav · Checks' })).toBeTruthy();
   });
 
+  it('says so when a #file= link names a file this check does not include, and offers the way out', async () => {
+    const user = userEvent.setup();
+    withChapters(TWO_FAIL, { focusFile: 'C:/Renders/Gone.wav' });
+    const note = await screen.findByRole('status', { name: 'Link not found' });
+    expect(note.textContent).toContain('C:/Renders/Gone.wav');
+    expect(screen.queryByRole('heading', { name: /Not mastered/ })).toBeNull();
+    await user.click(within(note).getByRole('button', { name: 'Show the first file instead' }));
+    expect(screen.queryByRole('status', { name: 'Link not found' })).toBeNull();
+  });
+
+  it('does not call a link stale when it names a measured file or a chapter', async () => {
+    withChapters(TWO_FAIL, { focusFile: 'C:/Renders/Chapter 02.wav' });
+    expect(await screen.findByRole('heading', { name: /· (Checks|Why it fails)$/ })).toBeTruthy();
+    expect(screen.queryByRole('status', { name: 'Link not found' })).toBeNull();
+  });
+
   it('shows-book-consistency-and-the-package-checks-drawn-from-the-profile', async () => {
     mount(ALL_PASS);
     expect(await screen.findByText(/Spread \d+\.\d dB across 2 files/)).toBeTruthy();
