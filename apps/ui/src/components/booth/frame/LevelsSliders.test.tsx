@@ -88,7 +88,10 @@ describe('the Levels menu sliders', () => {
     fireEvent.keyDown(monitor, { key: 'ArrowRight' });
     const alert = await within(popup()).findByRole('alert');
     expect(alert.textContent).toBe('REAPER has no hardware output to set.');
-    expect((within(popup()).getByRole('slider', { name: 'Monitor level (output)' }) as HTMLInputElement).value).toBe('60');
+    const slider = within(popup()).getByRole('slider', { name: 'Monitor level (output)' }) as HTMLInputElement;
+    expect(slider.value).toBe('60');
+    // Still usable (walkthrough 5): the next press sends again.
+    expect(slider.disabled).toBe(false);
   });
 
   it('a very long sentence from the DAW wraps instead of widening the menu', async () => {

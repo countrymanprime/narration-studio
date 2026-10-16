@@ -8,8 +8,8 @@ const SEND_AFTER_MS = 120;
 export type MonitorLevelState =
   /** The DAW has not answered the first read. */
   | { kind: 'loading' }
-  /** The DAW's level; `saving` while a change is on its way. */
-  | { kind: 'ready'; level: number; saving: boolean }
+  /** The DAW's level; `saving` while a change is on its way; `problem` is why the last change did not take (the slider stays usable). */
+  | { kind: 'ready'; level: number; saving: boolean; problem?: string }
   /** The DAW refused or cannot be asked, with its own sentence; the last level it held is kept when there was one. */
   | { kind: 'off'; message: string; level: number | null }
   /** A read or a change failed to reach the DAW: the last level it confirmed, and why. */
@@ -33,7 +33,10 @@ export function useMonitorLevel(): { state: MonitorLevelState; set: (level: numb
 
   const failWith = useCallback((kind: 'off' | 'failed', message: string) => {
     wanted.current = null;
-    setState({ kind, message, level: confirmed.current });
+    // A change that did not take leaves the slider where the DAW confirmed it, usable again, with the reason beside it. Only a level the DAW never
+    // gave (a first read that failed) leaves nothing to show.
+    if (confirmed.current !== null) setState({ kind: 'ready', level: confirmed.current, saving: false, problem: message });
+    else setState({ kind, message, level: null });
   }, []);
 
   const read = useCallback(() => {

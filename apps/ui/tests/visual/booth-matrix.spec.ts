@@ -120,6 +120,11 @@ test.describe('with a take running', () => {
     await page.keyboard.press('ArrowRight');
     await expect(popup.getByRole('alert')).toHaveText('REAPER has no hardware output to set.');
     expect((await daw(page))?.monitorLevel).toBe(63);
+    // The slider is still usable after a refusal (walkthrough 5): the next press goes through.
+    await expect(monitor).toBeEnabled();
+    await monitor.focus();
+    await page.keyboard.press('ArrowRight');
+    await expect.poll(async () => (await daw(page))?.monitorLevel).toBe(64);
     expect(await noHorizontalScroll(page)).toBe(true);
     expect(errors).toEqual([]);
   });

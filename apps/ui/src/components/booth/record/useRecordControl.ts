@@ -8,6 +8,8 @@ import type { RecordSetupFacts } from './recordSetup';
 
 /** How often the Booth asks the DAW again while Record cannot start or the last read failed: a lost event must not leave a notice up for ever. */
 export const POLL_MS = 4000;
+/** The topic of what the Booth says about how a take ended without the narrator's own Stop: gone once the next take starts. */
+export const TAKE_TOPIC = 'daw-take';
 /** How often the Booth asks again while Record is ready and idle: another project can be opened in the DAW with no event to say so. */
 export const READY_POLL_MS = 15_000;
 
@@ -55,6 +57,12 @@ function cantTell(daw: string | undefined, checkedAt: number | null, now: number
 export const stoppedInDaw = (daw: string | undefined) =>
   `${daw && daw !== 'none' ? daw : 'The DAW'} stopped recording. The take ended there; press Record to start the next one.`;
 
+/** What the Booth says once a DAW that went quiet during a take answers again: its own take ended when it went quiet, and what the DAW did with the audio is for the narrator to check. */
+const backInDaw = (daw: string | undefined) => {
+  const name = daw && daw !== 'none' ? daw : 'The DAW';
+  return `${name} answers again. This window ended its take when ${name} went quiet; check in ${name} whether that take was kept.`;
+};
+
 /** What the Booth says when the DAW stopped answering during a take: it did not say the take ended, and may still be recording. */
 const lostInDaw = (daw: string | undefined) => {
   const name = daw && daw !== 'none' ? daw : 'The DAW';
@@ -77,7 +85,7 @@ export const forgetAppTake = (): void => {
   appTakeRunning = false;
 };
 
-export function useRecordControl({ chapterId, notify }: { chapterId: string; notify: (sentence: string) => void }): RecordControlState {
+export function useRecordControl({ chapterId, notify }: { chapterId: string; notify: (sentence: string, topic?: string) => void }): RecordControlState {
   const daw = usePort('daw');
   const system = usePort('system');
   const teleprompter = usePort('teleprompter');
@@ -97,12 +105,23 @@ export function useRecordControl({ chapterId, notify }: { chapterId: string; not
   const events = useRef(0);
   // Whether the DAW answered the last time it was heard, kept apart from state so a transport event in the same tick sees it.
   const reachableRef = useRef<boolean | null>(null);
+  // Set when a take ended because the DAW went quiet: the next time it answers, the narrator is told what became of the take.
+  const lostTake = useRef(false);
+  const notifyRef = useRef(notify);
+  notifyRef.current = notify;
+  const hearAgain = (next: DawCapabilities) => {
+    if (next.reachable && lostTake.current) {
+      lostTake.current = false;
+      notifyRef.current(backInDaw(next.daw), TAKE_TOPIC);
+    }
+  };
   useEffect(() => {
     let current = true;
     const unsubscribe = daw.subscribeCapabilities?.((next) => {
       events.current += 1;
       if (!current) return;
       reachableRef.current = next.reachable;
+      hearAgain(next);
       setCapabilities(next);
       setReadFailed(false);
       setCheckedAt(Date.now());
@@ -120,6 +139,7 @@ export function useRecordControl({ chapterId, notify }: { chapterId: string; not
       .then((c) => {
         if (!current || heard !== events.current) return;
         reachableRef.current = c.reachable;
+        hearAgain(c);
         setCapabilities(c);
         setReadFailed(false);
         setCheckedAt(Date.now());
@@ -207,7 +227,8 @@ export function useRecordControl({ chapterId, notify }: { chapterId: string; not
         heardRecording.current = false;
         setRecording(false);
         // A stop pushed after the heartbeat went is the DAW going quiet, not the DAW saying the take ended.
-        notify(reachableRef.current === false ? lostInDaw(capabilities?.daw) : stoppedInDaw(capabilities?.daw));
+        if (reachableRef.current === false) lostTake.current = true;
+        notify(reachableRef.current === false ? lostInDaw(capabilities?.daw) : stoppedInDaw(capabilities?.daw), TAKE_TOPIC);
       }
     });
   }, [daw, recording, notify, capabilities?.daw]);
@@ -245,7 +266,10 @@ export function useRecordControl({ chapterId, notify }: { chapterId: string; not
               .catch(() => {
                 reachableRef.current = false;
               })
-              .then(() => notify(reachableRef.current === false ? lostInDaw(daw_) : stoppedInDaw(daw_)));
+              .then(() => {
+                if (reachableRef.current === false) lostTake.current = true;
+                notify(reachableRef.current === false ? lostInDaw(daw_) : stoppedInDaw(daw_), TAKE_TOPIC);
+              });
           }
         })
         // The take stays: a read that fails says nothing about it. Said once, after three in a row, so a narrator is not left trusting a pill nothing can vouch for.
@@ -325,6 +349,17 @@ export function useRecordControl({ chapterId, notify }: { chapterId: string; not
     busy.current = true;
     const starting = !recordingRef.current;
     try {
+      // Another project can be opened in the DAW with no event to say so, and the last read may be seconds old: a start asks once more first, so a
+      // take never begins in a project that is not the linked one. A read that fails claims nothing and the start goes on.
+      if (starting && capabilitiesRef.current) {
+        const fresh = await system.bootstrap().catch(() => null);
+        if (fresh && fresh.dawFileLinked && fresh.dawReachable && !fresh.dawProjectMatches) {
+          setLink((last) => ({ ...last, open: 'different' }));
+          const wrong = recordCheck(capabilitiesRef.current, { tracks: 'unread', message: '' }, 'different');
+          if (wrong) notify(wrong.reason);
+          return;
+        }
+      }
       const result = await (starting ? daw.recordStart(chapterId) : daw.recordStop());
       if (result.ok) {
         setRefused(null);
@@ -339,7 +374,7 @@ export function useRecordControl({ chapterId, notify }: { chapterId: string; not
     } finally {
       busy.current = false;
     }
-  }, [daw, chapterId, notify]);
+  }, [daw, system, chapterId, notify]);
 
   const stopped = useCallback(() => {
     heardRecording.current = false;

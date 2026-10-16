@@ -353,7 +353,7 @@ function BoothSession({ source, from, requested, adopt, data, choose, navigate, 
   const capabilities = control.capabilities;
   const dawChoice = useDawChoice();
   const modelState = useListeningModelState(session.engine, session.model, session.modelInstall.job?.phase);
-  useStaleToasts(overlay, { ready: !!capabilities && !control.disabled, reason: control.reason });
+  useStaleToasts(overlay, { ready: !!capabilities && !control.disabled, reason: control.reason, recording: control.recording });
   const roomTone = useRoomTone(measurements, session.device);
   const standalone = capabilities?.daw === 'none';
   const listening = useListeningMic({

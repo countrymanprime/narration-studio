@@ -153,7 +153,9 @@ function MonitorLevelRow() {
   const { state, set } = useMonitorLevel();
   if (state.kind === 'loading') return <LevelRow label="Monitor level (output)" value={0} shown="…" disabled note="Reading the level from the DAW…" />;
   if (state.kind === 'ready')
-    return <LevelRow label="Monitor level (output)" value={state.level} shown={String(state.level)} onChange={set} disabled={false} />;
+    return (
+      <LevelRow label="Monitor level (output)" value={state.level} shown={String(state.level)} onChange={set} disabled={false} note={state.problem} alert />
+    );
   return (
     <LevelRow
       label="Monitor level (output)"

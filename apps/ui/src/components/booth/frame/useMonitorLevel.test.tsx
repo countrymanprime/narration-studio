@@ -89,7 +89,7 @@ describe('useMonitorLevel', () => {
     control.refuse = 'REAPER is not answering. Check that REAPER is open, then try again.';
     act(() => hook.result.current.set(90));
     await act(() => vi.advanceTimersByTimeAsync(200));
-    await waitFor(() => expect(hook.result.current.state).toEqual({ kind: 'off', message: control.refuse, level: 55 }));
+    await waitFor(() => expect(hook.result.current.state).toEqual({ kind: 'ready', level: 55, saving: false, problem: control.refuse }));
   });
 
   it('a call that fails is said, with the level it last confirmed, and the next try is not blocked', async () => {
@@ -99,7 +99,12 @@ describe('useMonitorLevel', () => {
     act(() => hook.result.current.set(90));
     await act(() => vi.advanceTimersByTimeAsync(200));
     await waitFor(() =>
-      expect(hook.result.current.state).toEqual({ kind: 'failed', message: 'The monitor level could not be changed: the bridge went away', level: 55 }),
+      expect(hook.result.current.state).toEqual({
+        kind: 'ready',
+        level: 55,
+        saving: false,
+        problem: 'The monitor level could not be changed: the bridge went away',
+      }),
     );
     control.fail = null;
     act(() => hook.result.current.set(80));

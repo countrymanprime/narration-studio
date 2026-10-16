@@ -287,4 +287,35 @@ test.describe('Booth with a moving mock DAW', () => {
     await page.evaluate(() => window.dispatchEvent(new Event('focus')));
     await expect(page.locator('#btimer')).toHaveText(/^1:0[45]:\d\d$/);
   });
+
+  test('Space right after another project is opened, before any read: the press asks first and no take starts', async ({ page }) => {
+    await toRecordReady(page);
+    await page.evaluate(() => window.__NARRATION_MOCK_DAW__?.openProject('other'));
+    await page.keyboard.press('Space');
+    await expect(page.getByText(/has a different project open than the one linked here/).first()).toBeVisible();
+    expect((await dawState(page))?.recording).toBe(false);
+    await expect(record(page)).toBeVisible();
+  });
+
+  test('REAPER restarts mid-take: once it answers again the Booth says the take was ended here and where to check', async ({ page }) => {
+    await toRecordReady(page);
+    await record(page).click();
+    await expect(stop(page)).toBeVisible();
+    // The DAW's next heartbeat reports the take running (HEARTBEAT_MS); REAPER goes quiet during the take, not before it was heard.
+    await page.waitForTimeout(600);
+    await page.evaluate(() => window.__NARRATION_MOCK_DAW__?.restart(3000));
+    await expect(page.getByText(/answers again\. This window ended its take when REAPER went quiet/).first()).toBeVisible({ timeout: 20_000 });
+  });
+
+  test('a take that ended without Stop is not still announced once the next take runs', async ({ page }) => {
+    await toRecordReady(page);
+    await record(page).click();
+    await expect(stop(page)).toBeVisible();
+    await page.evaluate(() => window.__NARRATION_MOCK_DAW__?.stopInDaw());
+    await expect(page.getByText(/stopped recording\. The take ended there/).first()).toBeVisible();
+    await expect(record(page)).toBeEnabled();
+    await record(page).click();
+    await expect(stop(page)).toBeVisible();
+    await expect(page.getByText(/The take ended there/)).toHaveCount(0);
+  });
 });

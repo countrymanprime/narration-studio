@@ -81,7 +81,7 @@ export function useBoothPage(options: BoothPageOptions) {
   const { recordId, title, credits, paragraphs, session, daw, guard, overlay, from, navigate, exitTo } = options;
   const extras = useRef({ onTakeStopped: options.onTakeStopped, menuItems: options.menuItems });
   extras.current = { onTakeStopped: options.onTakeStopped, menuItems: options.menuItems };
-  const notify = useCallback((sentence: string) => overlay.toast(sentence), [overlay]);
+  const notify = useCallback((sentence: string, topic?: string) => overlay.toast(sentence, topic ? { topic } : undefined), [overlay]);
   const units = useMemo(() => boothUnits(paragraphs), [paragraphs]);
   const script = session.session.script;
   const listening = session.active && !!script;

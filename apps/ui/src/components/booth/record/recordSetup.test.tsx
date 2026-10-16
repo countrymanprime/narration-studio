@@ -14,7 +14,7 @@ import { dawClientFor } from './fixtures';
 import { REAPER_LAUNCHER_ACTION as LAUNCHER_ACTION } from '../../engine/dawConnectGuide';
 import { RecordSetup } from './RecordSetup';
 import { recordSetupFor, type RecordSetupFacts } from './recordSetup';
-import { stoppedInDaw, useRecordControl, forgetAppTake } from './useRecordControl';
+import { stoppedInDaw, TAKE_TOPIC, useRecordControl, forgetAppTake } from './useRecordControl';
 
 // A take one test leaves running is not the next test's.
 beforeEach(() => forgetAppTake());
@@ -262,7 +262,7 @@ describe('useRecordControl follows the DAW live', () => {
     act(() => transport({ playing: true, recording: true, position: 3 }));
     act(() => transport({ playing: false, recording: false }));
     await waitFor(() => expect(result.current.recording).toBe(false));
-    expect(notify).toHaveBeenCalledWith(stoppedInDaw('REAPER'));
+    expect(notify).toHaveBeenCalledWith(stoppedInDaw('REAPER'), TAKE_TOPIC);
   });
 });
 

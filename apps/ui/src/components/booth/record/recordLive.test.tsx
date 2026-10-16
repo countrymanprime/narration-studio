@@ -10,7 +10,7 @@ import type { DawClient } from '../../../ports/daw';
 import { PortOverrides } from '../../../ports/usePort';
 import type { NarrationApi } from '../../../types';
 import { dawClientFor } from './fixtures';
-import { POLL_MS, READY_POLL_MS, useRecordControl, forgetAppTake } from './useRecordControl';
+import { POLL_MS, READY_POLL_MS, TAKE_TOPIC, useRecordControl, forgetAppTake } from './useRecordControl';
 
 // A take one test leaves running is not the next test's.
 beforeEach(() => forgetAppTake());
@@ -245,7 +245,7 @@ describe('a lost transport event does not leave the REC pill wrong', () => {
     state = 'stopped';
     await act(() => vi.advanceTimersByTimeAsync(POLL_MS + 50));
     await waitFor(() => expect(daw.result.current.recording).toBe(false));
-    expect(daw.notify).toHaveBeenCalledWith(expect.stringMatching(/stopped recording/));
+    expect(daw.notify).toHaveBeenCalledWith(expect.stringMatching(/stopped recording/), TAKE_TOPIC);
   });
 
   it('a take whose start and stop were both missed (never heard recording) ends after three quiet reads, not at the first', async () => {
@@ -319,11 +319,35 @@ describe('a DAW that went quiet is not said to have ended the take', () => {
     expect(said.some((sentence) => /The take ended there/.test(sentence))).toBe(false);
   });
 
+  it('when the DAW answers again, the narrator is told once what became of the take: this window ended it, and the DAW is where to check', async () => {
+    const { daw, transport } = await running();
+    daw.set(refused('not_running'));
+    daw.emit(refused('not_running'));
+    transport({ playing: false, recording: false });
+    await waitFor(() => expect(daw.result.current.recording).toBe(false));
+    daw.set(CONNECTED);
+    act(() => daw.emit(CONNECTED));
+    const said = () => daw.notify.mock.calls.map(([sentence]) => sentence as string).filter((sentence) => /answers again/.test(sentence));
+    await waitFor(() =>
+      expect(said()).toEqual(['REAPER answers again. This window ended its take when REAPER went quiet; check in REAPER whether that take was kept.']),
+    );
+    act(() => daw.emit(CONNECTED));
+    expect(said()).toHaveLength(1);
+  });
+
+  it('a DAW that never went quiet during a take says nothing when it answers', async () => {
+    const { daw, transport } = await running();
+    transport({ playing: false, recording: false });
+    await waitFor(() => expect(daw.result.current.recording).toBe(false));
+    act(() => daw.emit(CONNECTED));
+    expect(daw.notify.mock.calls.some(([sentence]) => /answers again/.test(sentence as string))).toBe(false);
+  });
+
   it('a DAW that is heard and says it stopped still ends the take with the stopped sentence', async () => {
     const { daw, transport } = await running();
     transport({ playing: false, recording: false });
     await waitFor(() => expect(daw.result.current.recording).toBe(false));
-    expect(daw.notify).toHaveBeenCalledWith(expect.stringMatching(/stopped recording\. The take ended there/));
+    expect(daw.notify).toHaveBeenCalledWith(expect.stringMatching(/stopped recording\. The take ended there/), TAKE_TOPIC);
   });
 });
 
@@ -372,5 +396,45 @@ describe('another project opened in the DAW while Record is ready or a take runs
     await waitFor(() => expect(daw.result.current.facts.openProject).toBe('different'));
     expect(daw.result.current.recording).toBe(true);
     expect(daw.result.current.reason).toMatch(/different project open/);
+  });
+
+  it('Space between two reads, with another project just opened: the press asks first, starts nothing and says why', async () => {
+    const { open, daw } = withOpenProject();
+    const started = vi.fn(async () => ({ ok: true, changed: false, message: '', undoSteps: 0 }));
+    daw.client.recordStart = started;
+    await waitFor(() => expect(daw.result.current.disabled).toBe(false));
+    open.matches = false;
+    await act(() => daw.result.current.toggle());
+    expect(started).not.toHaveBeenCalled();
+    expect(daw.result.current.recording).toBe(false);
+    expect(daw.notify).toHaveBeenCalledWith(expect.stringMatching(/different project open than the one linked here/));
+    await waitFor(() => expect(daw.result.current.facts.openProject).toBe('different'));
+  });
+
+  it('a press while the open project is the linked one starts the take as before', async () => {
+    const { daw } = withOpenProject();
+    const started = vi.fn(async () => ({ ok: true, changed: false, message: '', undoSteps: 0 }));
+    daw.client.recordStart = started;
+    await waitFor(() => expect(daw.result.current.disabled).toBe(false));
+    await act(() => daw.result.current.toggle());
+    expect(started).toHaveBeenCalledTimes(1);
+  });
+
+  it('a press when the project facts cannot be read starts the take: a failed read claims nothing', async () => {
+    const base = createMockApi();
+    let fail = false;
+    const api = createMockApi({
+      bootstrap: async () => {
+        if (fail) throw new Error('no answer');
+        return { ...(await base.bootstrap()), dawFileLinked: true, dawReachable: true, dawProjectMatches: true };
+      },
+    } as Partial<NarrationApi>);
+    const daw = mount(CONNECTED, api);
+    const started = vi.fn(async () => ({ ok: true, changed: false, message: '', undoSteps: 0 }));
+    daw.client.recordStart = started;
+    await waitFor(() => expect(daw.result.current.disabled).toBe(false));
+    fail = true;
+    await act(() => daw.result.current.toggle());
+    expect(started).toHaveBeenCalledTimes(1);
   });
 });

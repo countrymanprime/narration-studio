@@ -3,6 +3,7 @@ import { act, renderHook } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 import { createOverlayService } from '../../../overlay/overlayService';
 import { START_TOPIC } from '../record/RecordSetup';
+import { TAKE_TOPIC } from '../record/useRecordControl';
 import { useStaleToasts } from './useStaleToasts';
 
 const texts = (service: ReturnType<typeof createOverlayService>) => service.getSnapshot().toasts.map((t) => t.text);
@@ -55,5 +56,14 @@ describe('useStaleToasts', () => {
     rerender({ ready: false, reason: 'REAPER is not answering.' });
     act(() => overlay.toast('REAPER is not answering.'));
     expect(texts(overlay)).toEqual(['REAPER is not answering.']);
+  });
+
+  it("a take that ended without the narrator's Stop is said once, and a new take takes that sentence away", () => {
+    const overlay = createOverlayService();
+    const { rerender } = renderHook(({ recording }) => useStaleToasts(overlay, { ready: true, reason: '', recording }), { initialProps: { recording: false } });
+    act(() => overlay.toast("REAPER stopped answering, so the Booth can't tell whether the take is still running.", { topic: TAKE_TOPIC }));
+    act(() => overlay.toast('Something else.'));
+    rerender({ recording: true });
+    expect(texts(overlay)).toEqual(['Something else.']);
   });
 });
