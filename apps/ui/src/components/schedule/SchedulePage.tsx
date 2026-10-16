@@ -209,6 +209,7 @@ export function SchedulePage({ journal, today, hasManuscript = true, onImport }:
         <ProgressChart
           title="Recorded audio vs plan"
           height={280}
+          fill
           k={k}
           wph={WPH}
           start={planStart(day)}

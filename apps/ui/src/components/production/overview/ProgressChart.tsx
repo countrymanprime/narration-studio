@@ -26,19 +26,26 @@ type Props = {
   series: Measured<Array<[number, number]>>;
   /** The fixed height in px; the chart draws to the width it is given. */
   height?: number;
+  /** Fill the card's height (the Schedule's chart stretches beside the Contract and the work left); `height` is then the least it takes. */
+  fill?: boolean;
   /** The panel's title: Production says "Recorded vs plan", the Schedule page "Recorded audio vs plan" (the mock). */
   title?: string;
 };
 
 /** "Recorded vs plan": the plan dashed, the recorded days solid, the projection dotted, with the due line, today and the estimated finish. */
-export function ProgressChart({ k, wph, start, today, due, recordedHours, series, height = 200, title = 'Recorded vs plan' }: Props) {
+export function ProgressChart({ k, wph, start, today, due, recordedHours, series, height: minHeight = 200, fill = false, title = 'Recorded vs plan' }: Props) {
   const box = useRef<HTMLDivElement>(null);
   const [width, setWidth] = useState(520);
+  const [boxHeight, setBoxHeight] = useState(minHeight);
+  const height = fill ? Math.max(minHeight, boxHeight) : minHeight;
   const describedBy = useId();
   useEffect(() => {
     const el = box.current;
     if (!el) return;
-    const measure = (): void => setWidth(Math.max(MIN_WIDTH, Math.round(el.clientWidth)));
+    const measure = (): void => {
+      setWidth(Math.max(MIN_WIDTH, Math.round(el.clientWidth)));
+      setBoxHeight(Math.round(el.clientHeight));
+    };
     measure();
     if (typeof ResizeObserver === 'undefined') return;
     const observer = new ResizeObserver(measure);
@@ -63,13 +70,14 @@ export function ProgressChart({ k, wph, start, today, due, recordedHours, series
   const summary = `Plan starts ${fmtD(start)}${due ? `, due ${fmtD(due)}` : ', no due date'}. Today is ${fmtD(today)}, ${recordedHours.toFixed(1)} of ${finishedHours.toFixed(1)} finished hours recorded. Estimated finish ${fmtD(k.finish)}.`;
 
   return (
-    <Panel title={title} className="min-w-0">
-      <div ref={box} className="w-full overflow-hidden" style={{ height }}>
+    <Panel title={title} className="min-w-0" fill={fill}>
+      {/* Filling, the svg is laid over the box so what it draws never sets the card's height: the cell does. */}
+      <div ref={box} className={fill ? 'relative size-full overflow-hidden' : 'w-full overflow-hidden'} style={fill ? { minHeight } : { height }}>
         <svg
           viewBox={`0 0 ${width} ${height}`}
           width={width}
           height={height}
-          className="block"
+          className={fill ? 'absolute inset-0 block' : 'block'}
           role="img"
           aria-label="Recorded audio versus plan"
           aria-describedby={describedBy}
