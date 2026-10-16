@@ -137,6 +137,9 @@ function AppRoutes() {
   const guardedBackRef = useRef<() => void>(() => {});
   const guardedForwardRef = useRef<() => void>(() => {});
   const prevPathnameRef = useRef(location.pathname);
+  // The page the last move left. `unexpectedPop` is set one render after the location changes, by which time
+  // `prevPathnameRef` already holds the new page.
+  const leftPathnameRef = useRef(location.pathname);
   // The compare run's phase, read by the pop-recovery effect below without resubscribing it on every transcript event.
   const transcriptPhaseRef = useRef<string>('idle');
   const [data, setData] = useState<Bootstrap>();
@@ -531,7 +534,7 @@ function AppRoutes() {
   // a run still resets the run either way.
   useEffect(() => {
     if (history.unexpectedPop) {
-      const leftPathname = prevPathnameRef.current;
+      const leftPathname = leftPathnameRef.current;
       history.clearUnexpectedPop();
       if (leftPathname === '/settings' && settingsDirty) {
         const landedAt = location.pathname + location.hash;
@@ -541,6 +544,7 @@ function AppRoutes() {
         void api.transcriptReset().catch(() => {});
       }
     }
+    if (prevPathnameRef.current !== location.pathname) leftPathnameRef.current = prevPathnameRef.current;
     prevPathnameRef.current = location.pathname;
   }, [location.pathname, location.hash, history, settingsDirty, api, navigate]);
 
