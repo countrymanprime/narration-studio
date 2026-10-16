@@ -324,6 +324,19 @@ test('row 31: right-click offers Start from here, Bookmark here, roll, text size
   for (const item of [/Start from here/, /Bookmark here/, /Exit/]) await expect(menu.getByRole('menuitem', { name: item }).first()).toBeVisible();
 });
 
+test('row 31: Start from here with the punch switch off still records on Space, from the end, and forgets the chosen start', async ({ page }) => {
+  await open(page);
+  await page.locator('[data-booth-text] [data-word]').nth(40).click({ button: 'right' });
+  await page
+    .getByRole('menuitem', { name: /Start from here/ })
+    .first()
+    .click();
+  await expect(page.getByText(/Next roll starts from ¶/)).toBeVisible();
+  await page.keyboard.press('Space');
+  await expect(page.getByRole('button', { name: /^Stop$/ })).toBeVisible();
+  await expect(page.getByText(/Next roll starts from ¶/)).toHaveCount(0);
+});
+
 test('row 32: Escape with no take leaves the Booth', async ({ page }) => {
   await open(page);
   await page.keyboard.press('Escape');

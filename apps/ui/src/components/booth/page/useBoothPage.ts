@@ -215,6 +215,7 @@ export function useBoothPage(options: BoothPageOptions) {
         takeAt.current = punch ?? recordedEnd;
         return control.toggle();
       },
+      clearStart: () => setPunchAt(null),
       chooseStart: (phrase, move) => {
         setPunchAt(phrase);
         if (move) moveTo({ cur: phrase, wcur: 0 });

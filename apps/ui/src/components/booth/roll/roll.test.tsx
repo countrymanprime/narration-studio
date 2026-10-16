@@ -31,6 +31,7 @@ function setup(capabilities: DawCapabilities | null, over: Partial<RollSession> 
     resume: vi.fn(),
     beginTake: vi.fn(),
     chooseStart: vi.fn(),
+    clearStart: vi.fn(),
     moveTo: vi.fn(),
     logPunch: vi.fn(),
     notify: vi.fn(),
@@ -217,11 +218,12 @@ describe('useRoll', () => {
       expect(dialog()).toBeUndefined();
       expect(actions.beginTake).toHaveBeenCalledWith();
     });
-    it('a punch the DAW cannot do says why and starts nothing', async () => {
+    it('a punch the DAW cannot do says why, forgets the chosen start and takes from the end', async () => {
       const { hook, actions } = setup(SETUPS.reaperOff, { recording: false, punchAt: 1 });
       await act(() => hook.result.current.startTake());
-      expect(actions.notify).toHaveBeenCalledWith(SETUPS.reaperOff.capabilities.punch.message);
-      expect(actions.beginTake).not.toHaveBeenCalled();
+      expect(actions.notify).toHaveBeenCalledWith(`${SETUPS.reaperOff.capabilities.punch.message} Recording from the end of what is already there instead.`);
+      expect(actions.clearStart).toHaveBeenCalledTimes(1);
+      expect(actions.beginTake).toHaveBeenCalledWith();
     });
     it('isPunch and clampPhrase', () => {
       expect(isPunch({ phrase: 2, seconds: 29.6, recordedEnd: 30 })).toBe(false);
