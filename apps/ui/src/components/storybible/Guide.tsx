@@ -27,6 +27,7 @@ import {
   typeUnknown,
   chapterCount,
   ENTRY_SORT_OPTIONS,
+  entryFlagged,
   entryNeedsReview,
   kindSwatch,
   loadEntrySort,
@@ -49,8 +50,10 @@ import { AcceptedClaims } from './suggested/row/AcceptedClaims';
 import { SuggestionList } from './suggested/row/SuggestionList';
 import { reviewable, summaryOf, unattached, verifyCount, verifyOf } from './suggested/row/selectors';
 import { useStartScan } from './suggested/scan/useStartScan';
-import { GuideDetail } from './GuideDetail';
+import { GuideDetail, type EntryCommand } from './GuideDetail';
 import { ReadNotice } from './ReadNotice';
+import { useContextProvider, type ContextProvider } from '../../registries/context';
+import { findQuery } from '../script/page/scriptQuery';
 import { VoiceDataPanel } from './VoiceDataPanel';
 import { SeriesTab } from '../series/SeriesTab';
 import { WorkDialog } from '../primitives/WorkDialog';
@@ -289,6 +292,61 @@ function GuideLoaded({ notify, goToManuscript }: Pick<GuideProps, 'notify' | 'go
     setLooseId(null);
     setSelectedId(id);
   };
+  // The right-click menu of an entry row (the mock's registerContext for the Bible page): Open, Find in the manuscript, Mark reviewed and
+  // Delete entry. The last two go to the open entry, which does what its own buttons do (its pending and its Undo included).
+  const [command, setCommand] = useState<EntryCommand>();
+  const live = useRef({
+    rows,
+    suggestions,
+    selectRow,
+    find: (name: string) => routerNavigate(`/script${findQuery(name)}`),
+    ask: (id: string, kind: EntryCommand['kind']) => {
+      selectRow(id);
+      setCommand({ id, kind, nonce: Math.random() });
+    },
+  });
+  live.current = {
+    rows,
+    suggestions,
+    selectRow,
+    find: (name) => routerNavigate(`/script${findQuery(name)}`),
+    ask: (id, kind) => {
+      selectRow(id);
+      setCommand({ id, kind, nonce: Math.random() });
+    },
+  };
+  const entryMenu = useMemo<ContextProvider>(() => {
+    const rowOf = (target: Element) => live.current.rows.find((row) => row.id === target.closest<HTMLElement>('[data-entry-id]')?.dataset.entryId);
+    return {
+      match: (target) => rowOf(target) !== undefined,
+      items: (target) => {
+        const row = rowOf(target)!;
+        const { suggestions: found, selectRow: open, find, ask } = live.current;
+        const flagged = entryFlagged(row);
+        return [
+          { key: 'entry-open', label: 'Open', onSelect: () => open(row.id) },
+          { key: 'entry-find', label: 'Find in the manuscript', onSelect: () => find(row.canonical_name) },
+          ...(flagged
+            ? [
+                {
+                  key: 'entry-reviewed',
+                  label: 'Mark reviewed',
+                  unavailable: verifyOf(found, row.id) > 0 ? 'Verify or reject its suggestions first.' : undefined,
+                  onSelect: () => ask(row.id, 'review'),
+                },
+              ]
+            : []),
+          {
+            key: 'entry-delete',
+            label: 'Delete entry',
+            unavailable: row.locked ? 'A locked entry cannot be deleted. Unlock it first.' : undefined,
+            onSelect: () => ask(row.id, 'delete'),
+          },
+        ];
+      },
+    };
+  }, []);
+  useContextProvider(entryMenu);
 
   // Up and Down step focus through the entries. The router leaves a key to a focused button (targets.ts), so the list takes it itself while a row
   // has focus (`onKeyDown` below); the catalogue's page-scope rows, rebindable and listed on the sheet, step from the entry open when focus is elsewhere.
@@ -427,6 +485,7 @@ function GuideLoaded({ notify, goToManuscript }: Pick<GuideProps, 'notify' | 'go
                             if (node) rowButtons.current.set(row.id, node);
                             else rowButtons.current.delete(row.id);
                           }}
+                          data-entry-id={row.id}
                           tabIndex={row.id === stopId ? 0 : -1}
                           aria-current={open || undefined}
                           onFocus={() => setFocusedId(row.id)}
@@ -469,6 +528,8 @@ function GuideLoaded({ notify, goToManuscript }: Pick<GuideProps, 'notify' | 'go
                   key={newEntityDraft ? 'new-draft' : (selected?.id ?? 'none')}
                   entity={newEntityDraft ?? selected}
                   isNewDraft={Boolean(newEntityDraft)}
+                  command={command}
+                  onCommandTaken={() => setCommand(undefined)}
                   onDiscardNewDraft={() => setPendingNewEntity(undefined)}
                   onCreatedNewDraft={(id) => {
                     setPendingNewEntity(undefined);

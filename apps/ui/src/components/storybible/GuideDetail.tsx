@@ -169,6 +169,9 @@ function FindInManuscript({ name }: { name: string }) {
   );
 }
 
+/** What the entry list's right-click menu asks the open entry to do. `nonce` makes the same command twice two commands. */
+export type EntryCommand = { id: string; kind: 'review' | 'delete'; nonce: number };
+
 const NO_CHAPTERS: readonly ChapterRef[] = [];
 const NO_PRONUNCIATION_REASON = 'No pronunciation exists for this name yet.';
 const VERIFY_FIRST_REASON = 'Verify or reject its suggestions first.';
@@ -185,6 +188,8 @@ export function GuideDetail({
   toVerify = 0,
   chapters = NO_CHAPTERS,
   suggested,
+  command,
+  onCommandTaken,
 }: {
   entity?: GuideEntity;
   // A brand-new entity with no backend record yet - see Guide.tsx's
@@ -205,6 +210,10 @@ export function GuideDetail({
   chapters?: readonly ChapterRef[];
   /** The entry's accepted claims and the suggestions to verify (the mock's EntryEditor), built by the page that holds the suggestion list. */
   suggested?: ReactNode;
+  /** A command from the entry list's right-click menu for this entry: Mark reviewed runs the button's own action, Delete opens its confirm. */
+  command?: EntryCommand;
+  /** The command has been taken, so the page can drop it. */
+  onCommandTaken?: () => void;
 }) {
   const api = useApi();
   const { types, failed: typesFailed, checkAgain: checkTypesAgain } = useGuideTypes(entities);
@@ -304,6 +313,16 @@ export function GuideDetail({
     draftEntity.current = entity;
     setDraft(draftOf(entity, speaks));
   }, [entity, speaks]);
+
+  // The entry list's menu asked this entry to do something: it does what its own button does, once per command.
+  const commandRun = useRef<(kind: EntryCommand['kind']) => void>(undefined);
+  const takenCommand = useRef<number>(undefined);
+  useEffect(() => {
+    if (!command || !entity || command.id !== entity.id || isNewDraft || takenCommand.current === command.nonce) return;
+    takenCommand.current = command.nonce;
+    commandRun.current?.(command.kind);
+    onCommandTaken?.();
+  });
 
   if (!entity) return <Panel>No matching entities. Build the guide to discover names and terms.</Panel>;
   const locked = entity.locked;
@@ -587,6 +606,12 @@ export function GuideDetail({
       if (!aliasSelectedId && aliasMatches.length > 0 && !typedOwner()) setAliasSelectedId(aliasMatches[aliasActiveIndex].id);
       else if (!aliasSelectedId) addAliasFromQuery();
     }
+  };
+
+  // What the list's menu can ask of this entry, set once the handlers exist; the effect above the early return calls it.
+  commandRun.current = (kind) => {
+    if (kind === 'delete' && !locked) setConfirmation('delete');
+    if (kind === 'review' && entryFlagged(entity) && toVerify === 0) void markReviewed();
   };
 
   return (
