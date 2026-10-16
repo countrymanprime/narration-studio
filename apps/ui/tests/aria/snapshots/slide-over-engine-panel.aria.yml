@@ -3,11 +3,11 @@
 # page, so it follows the page's <h1>), and each part of what the Tracks page held is a named region under its own heading.
 - /children: equal
 - main:
-  - alert
-  - status
-# The overlay host's own live regions (the toast pair and the announcer) stay exposed behind a modal for the same reason.
+  - group "Zoom"
+- status
 - alert
 - status
+- alert
 - status
 - dialog "Audio engine":
   - heading "Audio engine" [level=2]

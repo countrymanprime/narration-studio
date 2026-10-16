@@ -15,6 +15,7 @@ import { usePendingAction } from '../../hooks/usePendingAction';
 import { useWorkJob } from '../../hooks/useWorkJob';
 import { AssetFacts } from '../assets/AssetFacts';
 import { AssetInstallPrompt } from '../assets/AssetInstallPrompt';
+import { Button } from '../primitives/Button';
 import { Heading } from '../primitives/Heading';
 import { Panel } from '../primitives/Panel';
 import { NeedManuscript } from '../layout/NeedManuscript';
@@ -27,6 +28,7 @@ import {
   typeUnknown,
   chapterCount,
   ENTRY_SORT_OPTIONS,
+  entryFlagged,
   entryNeedsReview,
   kindSwatch,
   loadEntrySort,
@@ -49,7 +51,10 @@ import { AcceptedClaims } from './suggested/row/AcceptedClaims';
 import { SuggestionList } from './suggested/row/SuggestionList';
 import { reviewable, summaryOf, unattached, verifyCount, verifyOf } from './suggested/row/selectors';
 import { useStartScan } from './suggested/scan/useStartScan';
-import { GuideDetail } from './GuideDetail';
+import { GuideDetail, type EntryCommand } from './GuideDetail';
+import { ReadNotice } from './ReadNotice';
+import { useContextProvider, type ContextProvider } from '../../registries/context';
+import { addressPath, readAddress } from '../../navigation/address';
 import { VoiceDataPanel } from './VoiceDataPanel';
 import { SeriesTab } from '../series/SeriesTab';
 import { WorkDialog } from '../primitives/WorkDialog';
@@ -98,7 +103,12 @@ function GuideLoaded({ notify, goToManuscript }: Pick<GuideProps, 'notify' | 'go
   const api = useApi();
   const location = useLocation();
   const routerNavigate = useNavigate();
-  const entityId = location.hash ? decodeURIComponent(location.hash.slice(1)) : undefined;
+  // The entry a hand-off asked for (`#<entity id>`), read by the typed address module. A malformed address is the route gate's to show;
+  // here it asks for nothing.
+  const asked = useMemo(() => readAddress('story-bible', { search: location.search, hash: location.hash }), [location.search, location.hash]);
+  const entityId = asked.kind === 'address' && asked.address.page === 'story-bible' ? asked.address.entity : undefined;
+  // An entry the address named that the list does not have: said with a way out instead of opening a different entry unannounced.
+  const [unknownEntity, setUnknownEntity] = useState<string>();
   const [rows, setRows] = useState<GuideEntity[]>([]);
   // The first load failing leaves the page with nothing to show, so it gets an inline error and Retry; a later reload failing
   // keeps the rows on screen and is a toast, as before.
@@ -112,6 +122,7 @@ function GuideLoaded({ notify, goToManuscript }: Pick<GuideProps, 'notify' | 'go
   const [types, setTypes] = useState<GuideType[]>([]);
   const [focusedId, setFocusedId] = useState<string>();
   const rowButtons = useRef(new Map<string, HTMLButtonElement>());
+  const detailRef = useRef<HTMLDivElement>(null);
   const [voiceDataOpen, setVoiceDataOpen] = useState(false);
   const [sort, setSort] = useState<EntrySortKey>(loadEntrySort);
   // The suggestions the host lists (SN-X42): an entry with one still to verify needs review, and cannot be marked reviewed (SNB-3b).
@@ -122,6 +133,10 @@ function GuideLoaded({ notify, goToManuscript }: Pick<GuideProps, 'notify' | 'go
   // A suggestion with no entry yet, chosen from the loose rows above the entries: the detail shows its row instead of an entry.
   const [looseId, setLooseId] = useState<string | null>(null);
   const [chapters, setChapters] = useState<ManuscriptChapter[]>([]);
+  // A read of the chapters or the types that failed: said in the list panel with Check again, never dropped (the page works on without them).
+  const [chaptersFailed, setChaptersFailed] = useState(false);
+  const [typesFailed, setTypesFailed] = useState(false);
+  const [readNonce, setReadNonce] = useState(0);
   // The start call is quick, but the button says it was heard and a second press cannot start a second rebuild (ADR 0075).
   const starting = usePendingAction();
   // The build needs a language model, an asset: when it is not installed the host says so instead of starting, and the narrator chooses to
@@ -141,6 +156,8 @@ function GuideLoaded({ notify, goToManuscript }: Pick<GuideProps, 'notify' | 'go
         loadedOnce.current = true;
         setLoadError(undefined);
         setRows(next);
+        // Only a load that was asked for an entry decides this: the reload that follows the hash being dropped must not clear it.
+        if (selectId !== undefined) setUnknownEntity(next.some((row) => row.id === selectId) ? undefined : selectId);
         setSelectedId((current) => (next.find((row) => row.id === (selectId ?? current)) || next.find((row) => row.category !== 'Draft'))?.id);
       } catch (error) {
         if (loadedOnce.current) notify(describeApiError(error), 'error');
@@ -204,27 +221,35 @@ function GuideLoaded({ notify, goToManuscript }: Pick<GuideProps, 'notify' | 'go
       active = false;
     };
   }, [api, notify, setBuildJob]);
-  // The chapters, for Appears in and for where a suggestion's quote is; without them those sections stay empty.
+  // The chapters, for Appears in and for where a suggestion's quote is; without them those sections stay empty and the list panel says so.
   useEffect(() => {
     let live = true;
     api.manuscriptChapters().then(
-      (list) => live && setChapters(list),
-      () => undefined,
+      (list) => {
+        if (!live) return;
+        setChapters(list);
+        setChaptersFailed(false);
+      },
+      () => live && setChaptersFailed(true),
     );
     return () => {
       live = false;
     };
-  }, [api]);
+  }, [api, readNonce]);
   useEffect(() => {
     let live = true;
     api.guideTypes().then(
-      (list) => live && setTypes(list),
-      () => undefined,
+      (list) => {
+        if (!live) return;
+        setTypes(list);
+        setTypesFailed(false);
+      },
+      () => live && setTypesFailed(true),
     );
     return () => {
       live = false;
     };
-  }, [api]);
+  }, [api, readNonce]);
   // A decision changes the list here at once, and an accepted suggestion can change an entry, so the entries are read again.
   const { changed } = found;
   const decided = useCallback(
@@ -268,7 +293,11 @@ function GuideLoaded({ notify, goToManuscript }: Pick<GuideProps, 'notify' | 'go
   // a "doesn't exist until saved" model instead of create-then-delete.
   const addEntity = () => {
     const base = 'New entity';
-    const name = rows.some((row) => row.canonical_name.toLowerCase() === base.toLowerCase()) ? `${base} ${rows.length + 1}` : base;
+    const taken = (text: string) => rows.some((row) => row.canonical_name.toLowerCase() === text.toLowerCase());
+    // The first number nobody has used, not one past the row count (which skipped numbers once entries had been deleted).
+    let next = 2;
+    while (taken(`${base} ${next}`)) next += 1;
+    const name = taken(base) ? `${base} ${next}` : base;
     setPendingNewEntity({ name });
   };
   const selectRow = (id?: string) => {
@@ -276,6 +305,61 @@ function GuideLoaded({ notify, goToManuscript }: Pick<GuideProps, 'notify' | 'go
     setLooseId(null);
     setSelectedId(id);
   };
+  // The right-click menu of an entry row (the mock's registerContext for the Bible page): Open, Find in the manuscript, Mark reviewed and
+  // Delete entry. The last two go to the open entry, which does what its own buttons do (its pending and its Undo included).
+  const [command, setCommand] = useState<EntryCommand>();
+  const live = useRef({
+    rows,
+    suggestions,
+    selectRow,
+    find: (name: string) => routerNavigate(addressPath({ page: 'script', find: name })),
+    ask: (id: string, kind: EntryCommand['kind']) => {
+      selectRow(id);
+      setCommand({ id, kind, nonce: Math.random() });
+    },
+  });
+  live.current = {
+    rows,
+    suggestions,
+    selectRow,
+    find: (name) => routerNavigate(addressPath({ page: 'script', find: name })),
+    ask: (id, kind) => {
+      selectRow(id);
+      setCommand({ id, kind, nonce: Math.random() });
+    },
+  };
+  const entryMenu = useMemo<ContextProvider>(() => {
+    const rowOf = (target: Element) => live.current.rows.find((row) => row.id === target.closest<HTMLElement>('[data-entry-id]')?.dataset.entryId);
+    return {
+      match: (target) => rowOf(target) !== undefined,
+      items: (target) => {
+        const row = rowOf(target)!;
+        const { suggestions: found, selectRow: open, find, ask } = live.current;
+        const flagged = entryFlagged(row);
+        return [
+          { key: 'entry-open', label: 'Open', onSelect: () => open(row.id) },
+          { key: 'entry-find', label: 'Find in the manuscript', onSelect: () => find(row.canonical_name) },
+          ...(flagged
+            ? [
+                {
+                  key: 'entry-reviewed',
+                  label: 'Mark reviewed',
+                  unavailable: verifyOf(found, row.id) > 0 ? 'Verify or reject its suggestions first.' : undefined,
+                  onSelect: () => ask(row.id, 'review'),
+                },
+              ]
+            : []),
+          {
+            key: 'entry-delete',
+            label: 'Delete entry',
+            unavailable: row.locked ? 'A locked entry cannot be deleted. Unlock it first.' : undefined,
+            onSelect: () => ask(row.id, 'delete'),
+          },
+        ];
+      },
+    };
+  }, []);
+  useContextProvider(entryMenu);
 
   // Up and Down step focus through the entries. The router leaves a key to a focused button (targets.ts), so the list takes it itself while a row
   // has focus (`onKeyDown` below); the catalogue's page-scope rows, rebindable and listed on the sheet, step from the entry open when focus is elsewhere.
@@ -330,7 +414,11 @@ function GuideLoaded({ notify, goToManuscript }: Pick<GuideProps, 'notify' | 'go
 
   return (
     <CommandScope kind="page">
-      <Tabs value={tab} onChange={setTab} className="mx-auto flex h-[calc(100dvh-6.5rem)] max-w-6xl flex-col gap-4 overflow-hidden max-md:h-auto">
+      <Tabs
+        value={tab}
+        onChange={setTab}
+        className="mx-auto flex h-[calc(100dvh-6.5rem)] max-w-6xl flex-col gap-4 overflow-hidden max-md:h-auto [@media(max-width:1023px)_and_(max-height:899px)]:h-auto [@media(max-width:1023px)_and_(max-height:899px)]:overflow-visible"
+      >
         {tab === SERIES_TAB && (
           <div className="flex-none space-y-4">
             <Heading title="Story Bible" />
@@ -342,7 +430,7 @@ function GuideLoaded({ notify, goToManuscript }: Pick<GuideProps, 'notify' | 'go
             <SeriesTab notify={notify} />
           </Panel>
         ) : (
-          <div className="grid min-h-0 flex-1 gap-4 max-md:h-auto lg:grid-cols-[20rem_minmax(0,1fr)] [&>*]:max-md:min-h-96">
+          <div className="grid min-h-0 flex-1 gap-4 max-md:h-auto lg:grid-cols-[20rem_minmax(0,1fr)] [&>*]:max-md:min-h-96 [@media(max-width:1023px)_and_(max-height:899px)]:h-auto [&>*]:[@media(max-width:1023px)_and_(max-height:899px)]:min-h-96">
             <TabPanel value={tab} className={`${PANEL_FRAME_CLASS} flex min-h-0 flex-col overflow-hidden`}>
               <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 px-4 pt-3">
                 <Heading title="Story Bible" />
@@ -377,6 +465,35 @@ function GuideLoaded({ notify, goToManuscript }: Pick<GuideProps, 'notify' | 'go
                   </div>
                 )}
               </div>
+              {unknownEntity !== undefined && (
+                <div role="alert" aria-label="Link not opened" className="mx-4 mb-2 flex flex-col gap-2 rounded border border-[var(--border)] p-3 text-sm">
+                  <p className="m-0">
+                    This link points to an entry that is not in the Story Bible. It may have been deleted or merged since the link was made.
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    <Button onClick={() => setUnknownEntity(undefined)}>Dismiss</Button>
+                    <Button onClick={() => routerNavigate('/', { replace: true })}>Go to Production</Button>
+                  </div>
+                </div>
+              )}
+              {(typesFailed || chaptersFailed) && (
+                <div className="flex flex-col gap-1 px-4 pb-2">
+                  {typesFailed && (
+                    <ReadNotice
+                      what="the entry types"
+                      effect="The kind chips are hidden and every entry is drawn in one colour."
+                      checkAgain={() => setReadNonce((n) => n + 1)}
+                    />
+                  )}
+                  {chaptersFailed && (
+                    <ReadNotice
+                      what="the chapters"
+                      effect="Appears in is empty and a quote cannot open its line."
+                      checkAgain={() => setReadNonce((n) => n + 1)}
+                    />
+                  )}
+                </div>
+              )}
               <div className="guide-list-scroll min-h-0 overflow-y-auto p-2">
                 {loose.length > 0 && (
                   <ul aria-label="Suggestions not in the Story Bible yet" className="m-0 mb-2 list-none p-0">
@@ -396,10 +513,16 @@ function GuideLoaded({ notify, goToManuscript }: Pick<GuideProps, 'notify' | 'go
                             if (node) rowButtons.current.set(row.id, node);
                             else rowButtons.current.delete(row.id);
                           }}
+                          data-entry-id={row.id}
                           tabIndex={row.id === stopId ? 0 : -1}
                           aria-current={open || undefined}
                           onFocus={() => setFocusedId(row.id)}
-                          onClick={() => selectRow(row.id)}
+                          onClick={() => {
+                            selectRow(row.id);
+                            // Below the two-column width the entry opens under the list: bring it into view so the click visibly does something.
+                            if (window.matchMedia?.('(max-width: 1023px) and (max-height: 899px)').matches)
+                              detailRef.current?.scrollIntoView?.({ block: 'start' });
+                          }}
                           className={`flex w-full flex-col gap-0.5 rounded-lg px-2.5 py-2 text-left ${open ? 'bg-[var(--accent-soft)] text-[var(--accent-strong)]' : 'text-[var(--text)] hover:bg-[var(--surface-2)]'}`}
                         >
                           <span data-line="name" className="flex w-full min-w-0 items-center gap-2 text-sm font-semibold">
@@ -427,7 +550,7 @@ function GuideLoaded({ notify, goToManuscript }: Pick<GuideProps, 'notify' | 'go
                 </ul>
               </div>
             </TabPanel>
-            <div className="flex min-h-0 min-w-0">
+            <div ref={detailRef} className="flex min-h-0 min-w-0">
               {looseChosen ? (
                 <Panel title={summaryOf(looseChosen.payload)} scroll className="min-h-0 flex-1">
                   <SuggestionList title="Suggested" suggestions={[looseChosen]} sources={found.sources} onChanged={decided} {...links} />
@@ -438,6 +561,8 @@ function GuideLoaded({ notify, goToManuscript }: Pick<GuideProps, 'notify' | 'go
                   key={newEntityDraft ? 'new-draft' : (selected?.id ?? 'none')}
                   entity={newEntityDraft ?? selected}
                   isNewDraft={Boolean(newEntityDraft)}
+                  command={command}
+                  onCommandTaken={() => setCommand(undefined)}
                   onDiscardNewDraft={() => setPendingNewEntity(undefined)}
                   onCreatedNewDraft={(id) => {
                     setPendingNewEntity(undefined);

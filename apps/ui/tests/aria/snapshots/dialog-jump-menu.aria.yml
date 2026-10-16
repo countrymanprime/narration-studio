@@ -2,10 +2,10 @@
 # a listbox. Opened with nothing typed it lists one row per command group, the first selected. The live regions behind it are the page's and the overlay host's.
 - main:
   - group "Zoom"
-  - alert
-  - status
+- status
 - alert
 - status
+- alert
 - status
 - dialog "Jump menu":
   - heading "Jump menu" [level=2]

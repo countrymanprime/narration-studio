@@ -69,7 +69,8 @@ describe('invisible-by-default', () => {
 
   it('adds nothing without ?mockPanel=1', async () => {
     await boot('');
-    expect([...document.body.children].map((el) => el.id)).toEqual(['root']);
+    // The toast region is portalled to <body> (Toast.tsx) and is not the panel.
+    expect([...document.body.children].filter((el) => !el.hasAttribute('data-toast-region')).map((el) => el.id)).toEqual(['root']);
   });
 
   it('adds a "Mock states" button with ?mockPanel=1', async () => {

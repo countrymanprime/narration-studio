@@ -49,7 +49,11 @@ function renderApp(overrides: Parameters<typeof createMockApi>[0] = {}, initial:
 // The app's own toast region (`useToasts`) comes first in the document; the overlay host mounted after it draws a second pair for
 // `overlay.toast`, empty until a caller uses it (ADR 0781 decision 4 moves the call sites over one slice at a time).
 // The toast region's live lists (Toast.tsx), told apart from a page's own status lines by announcing additions only.
-const appToasts = (role: 'status' | 'alert') => screen.getAllByRole(role).find((node) => node.getAttribute('aria-relevant') === 'additions')!;
+// The toast regions are portalled to <body> (the app's and the overlay host's, in that order of mounting): the one showing messages, else the first.
+const appToasts = (role: 'status' | 'alert') => {
+  const regions = screen.getAllByRole(role).filter((node) => node.getAttribute('aria-relevant') === 'additions');
+  return regions.find((node) => node.childElementCount > 0) ?? regions[0]!;
+};
 
 // A project with no imported manuscript but a manuscript file in its folder.
 const bootstrapWithCandidate = (manuscriptCandidate: { path: string; name: string }) => async () => ({
@@ -445,7 +449,8 @@ describe('App (integration, driven through the mock NarrationApi)', () => {
     renderApp({ selectManuscript: () => Promise.reject(new Error('the file dialog could not open')), bootstrap: noManuscript });
     await screen.findByRole('heading', { level: 1, name: 'Production' });
     fireEvent.click(screen.getByRole('button', { name: 'Import manuscript' }));
-    expect(await within(appToasts('alert')).findByText(/the file dialog could not open/)).toBeTruthy();
+    // The region that shows it is only known once the message is there, so look again on each try.
+    await waitFor(() => expect(within(appToasts('alert')).getByText(/the file dialog could not open/)).toBeTruthy());
   });
 
   it('Clear derived project data stays open and busy while it runs and cannot be confirmed twice', async () => {

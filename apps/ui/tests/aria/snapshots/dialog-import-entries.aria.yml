@@ -3,10 +3,10 @@
 - /children: equal
 - main:
   - group "Zoom"
-  - alert
-  - status
+- status
 - alert
 - status
+- alert
 - status
 - dialog "Import entries":
   - heading "Import entries" [level=2]

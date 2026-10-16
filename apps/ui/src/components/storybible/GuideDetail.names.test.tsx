@@ -53,4 +53,26 @@ describe('the Names box', () => {
     }
     expect(guideEdit).not.toHaveBeenCalled();
   });
+
+  it('draws the add-a-name box only while editing, as the mock does; Rescan stays in both', () => {
+    const api = createMockApi();
+    render(
+      <ApiProvider api={api}>
+        <GuideDetail
+          entity={entry('mad-hatter')}
+          entities={WIRE_ENTITIES}
+          reload={vi.fn().mockResolvedValue(undefined)}
+          notify={vi.fn()}
+          goToManuscript={vi.fn()}
+        />
+      </ApiProvider>,
+    );
+    expect(screen.queryByRole('combobox', { name: 'Add an alias or find a matching entry' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Add alias' })).toBeNull();
+    expect(screen.getByRole('button', { name: 'Rescan occurrences' })).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: 'Edit this entry' }));
+    expect(box()).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Add alias' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Rescan occurrences' })).toBeTruthy();
+  });
 });

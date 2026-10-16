@@ -4,10 +4,10 @@
 - main:
   - group "Zoom"
   - region "Reader": /¶ 1 of \d+/
-  - alert
-  - status
+- status
 - alert
 - status
+- alert
 - status
 - dialog "Define how you mark up":
   - heading "Define how you mark up" [level=2]

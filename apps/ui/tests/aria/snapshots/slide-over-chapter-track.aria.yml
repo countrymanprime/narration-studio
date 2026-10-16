@@ -1,6 +1,10 @@
 - main:
-  - alert
-  - status
+  - group "Zoom"
+- status
+- alert
+- status
+- alert
+- status
 - 'dialog "Track: Chapter 1 — Down the Rabbit-Hole"':
   - 'heading "Track: Chapter 1 — Down the Rabbit-Hole" [level=3]'
   - button "Close"
