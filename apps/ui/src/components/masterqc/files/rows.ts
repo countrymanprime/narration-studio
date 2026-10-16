@@ -85,6 +85,16 @@ function checkRows(file: MeasureFileResult, profile: DeliveryProfile): CheckRow[
   });
 }
 
+/**
+ * The Peak column shows the figure the profile's rule judges: the true peak when the rule is on it, else the sample peak (ACX's rule is on
+ * the sample peak). Showing the other one drew a file over the limit as a Pass.
+ */
+function peakCell(report: MeasureReport, file: MeasureFileResult, profile: DeliveryProfile): Cell {
+  const rule = profile.rules.find((candidate) => candidate.scope === 'file' && ['true_peak_dbtp', 'sample_peak_dbfs'].includes(candidate.metric));
+  const sample = rule?.metric === 'sample_peak_dbfs';
+  return cell(sample ? report.sample_peak_dbfs : report.true_peak_dbtp, resultFor(file, profile, ['true_peak_dbtp', 'sample_peak_dbfs']), formatLevel);
+}
+
 function measuredRow(file: MeasureFileResult, profile: DeliveryProfile, report: MeasureReport): FileRow {
   return {
     id: file.path,
@@ -92,7 +102,7 @@ function measuredRow(file: MeasureFileResult, profile: DeliveryProfile, report: 
     verdict: fileVerdict(file),
     length: formatLength(report.duration_seconds),
     rms: cell(report.rms_dbfs, resultFor(file, profile, ['rms_dbfs']), formatLevel),
-    peak: cell(report.true_peak_dbtp, resultFor(file, profile, ['true_peak_dbtp', 'sample_peak_dbfs']), formatLevel),
+    peak: peakCell(report, file, profile),
     noiseFloor: cell(report.noise_floor_dbfs, resultFor(file, profile, ['noise_floor_dbfs']), formatLevel),
     head: cell(report.head_room_tone_seconds, resultFor(file, profile, ['head_room_tone_seconds']), (n) => n.toFixed(1)),
     tail: cell(report.tail_room_tone_seconds, resultFor(file, profile, ['tail_room_tone_seconds']), (n) => n.toFixed(1)),

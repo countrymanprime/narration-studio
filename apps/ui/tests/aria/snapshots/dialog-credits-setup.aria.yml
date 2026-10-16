@@ -5,11 +5,11 @@
 - /children: equal
 # The two toast live regions stay in the tree on purpose (see dialog-mark-composer.aria.yml).
 - main:
-  - alert
-  - status
-# The overlay host's own live regions (the toast pair and the announcer) stay exposed behind a modal for the same reason.
+  - group "Zoom"
+- status
 - alert
 - status
+- alert
 - status
 - dialog "Set up the credits":
   - heading "Set up the credits" [level=2]

@@ -11,6 +11,8 @@ type PanelLook = {
   scroll?: boolean;
   // A panel asking for the narrator's attention: its frame takes the review colour.
   tone?: 'review';
+  // The card takes the height its cell gives it (a grid row stretched to a taller neighbour) and the body takes what the header leaves, so a chart can fill it.
+  fill?: boolean;
   // Layout only (width, flex, margin): the look is the panel's own.
   className?: string;
 };
@@ -27,9 +29,22 @@ type PanelProps = PanelLook &
 // A card around a group of content (ADR 0058, the look ADR 0640). With a `title` it is a named region: the title is a
 // level-2 heading (a panel sits beneath the page's level-1 heading) in a header row with a divider under it, and the
 // section is labelled by it, so a screen reader can list and jump to it. Without one it is the bare card.
-export function Panel({ title, titleStyle, subtitle, leading, actions, label, flush = false, scroll = false, tone, className = '', children }: PanelProps) {
+export function Panel({
+  title,
+  titleStyle,
+  subtitle,
+  leading,
+  actions,
+  label,
+  flush = false,
+  scroll = false,
+  fill = false,
+  tone,
+  className = '',
+  children,
+}: PanelProps) {
   const titleId = useId();
-  const layout = scroll ? 'flex flex-col overflow-hidden' : '';
+  const layout = scroll ? 'flex flex-col overflow-hidden' : fill ? 'flex flex-col' : '';
   return (
     <section
       aria-labelledby={title ? titleId : undefined}
@@ -39,7 +54,7 @@ export function Panel({ title, titleStyle, subtitle, leading, actions, label, fl
     >
       {title && <PanelHeader title={title} titleId={titleId} titleStyle={titleStyle} subtitle={subtitle} leading={leading} actions={actions} />}
       <div
-        className={`${flush ? '[--panel-pad:0px]' : PANEL_BODY_CLASS} ${scroll ? 'min-h-0 flex-1 overflow-y-auto' : ''}`}
+        className={`${flush ? '[--panel-pad:0px]' : PANEL_BODY_CLASS} ${scroll ? 'min-h-0 flex-1 overflow-y-auto' : fill ? 'min-h-0 flex-1' : ''}`}
         // A scrolling body is a tab stop, so the keyboard can scroll it when nothing inside it takes focus.
         {...(scroll ? { tabIndex: 0, role: 'group', 'aria-labelledby': title ? titleId : undefined, 'aria-label': title ? undefined : label } : {})}
       >

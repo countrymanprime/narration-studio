@@ -31,7 +31,7 @@ export const EditWithChapterCount: Story = {
 // The checkpoint is a stored measure here, so it stays an option although the neutral profile does not offer it.
 export const StoredMeasureTheProfileDoesNotOffer: Story = { args: { profileId: 'none', existing: STORY_MILESTONES[2] } };
 export const Refused: Story = {
-  args: { onSave: fn(async (): Promise<string | undefined> => 'Give the milestone a name and a date.') },
+  args: { onSave: fn(async (): Promise<string | undefined> => 'Give the milestone a name.') },
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
     canvas.getByRole('button', { name: 'Add milestone' }).click();

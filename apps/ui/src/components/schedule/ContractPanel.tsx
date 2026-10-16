@@ -4,7 +4,7 @@ import { Panel } from '../primitives/Panel';
 import { Select } from '../primitives/Select';
 import { TextField } from '../primitives/TextField';
 import { num } from './dates';
-import { contractValue, PAYMENT_TYPES, paymentOf } from './payment';
+import { contractValue, parseAmount, PAYMENT_TYPES, paymentOf, plainNumber } from './payment';
 
 export type ContractPanelProps = {
   plan: ProductionPlan;
@@ -13,23 +13,31 @@ export type ContractPanelProps = {
   onPayment: (payment: ProductionPayment) => void;
   /** An amount of zero or more, or null to clear it. */
   onAmount: (amount: number | null) => void;
+  /** Called with the sentence when the typed amount is not a number of zero or more; nothing is sent. */
+  onRefuse: (sentence: string) => void;
 };
 
 /**
  * How the narrator is paid (the mock's Contract panel). Only a rate per finished hour carries an amount; a royalty share or no payment is a
  * label, and with no rate there is no figure (ADR 0800 decision 2, SNP-Q4).
  */
-export function ContractPanel({ plan, words, onPayment, onAmount }: ContractPanelProps) {
+export function ContractPanel({ plan, words, onPayment, onAmount, onRefuse }: ContractPanelProps) {
   const payment = paymentOf(plan);
   const [typed, setTyped] = useState<string | null>(null);
   const value = contractValue(plan, words);
   const commit = () => {
     if (typed === null) return;
-    const text = typed.trim().replace(/,/g, '');
+    const text = typed.trim();
     setTyped(null);
     if (text === '') return onAmount(null);
-    const amount = Number(text);
-    if (Number.isFinite(amount) && amount >= 0) onAmount(amount);
+    const amount = parseAmount(text);
+    if (amount === null)
+      return onRefuse(
+        text.includes(',') && !text.includes('.')
+          ? `${text} could mean 1.5 or 15. Write a decimal with a point, and use commas only for thousands, such as 1,250.50.`
+          : 'Write the rate as a number of zero or more, such as 250 or 1,250.50.',
+      );
+    if (amount !== plan.contractedAmount) onAmount(amount);
   };
   return (
     <Panel title="Contract">
@@ -54,7 +62,7 @@ export function ContractPanel({ plan, words, onPayment, onAmount }: ContractPane
                 mono
                 inputMode="decimal"
                 className="w-[7.5rem]!"
-                value={typed ?? (plan.contractedAmount === null ? '' : String(plan.contractedAmount))}
+                value={typed ?? (plan.contractedAmount === null ? '' : plainNumber(plan.contractedAmount))}
                 onChange={setTyped}
                 onBlur={commit}
                 onKeyDown={(event) => {

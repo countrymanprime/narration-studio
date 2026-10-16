@@ -46,7 +46,12 @@ export function setAmountCommand(api: ScheduleApi, before: ProductionPlan, amoun
   return {
     label: 'Change the contracted amount',
     touches: TOUCHES,
-    run: () => write(() => api.setProductionDeadline(before.deadline ?? '', amount)),
+    run: () =>
+      write(async () => {
+        // A plan that never stored a payment type reads as "none" the moment its amount is cleared, so a per-finished-hour book says so first.
+        if (amount === null && before.payment === 'per_finished_hour') await api.setProductionPayment('per_finished_hour');
+        return api.setProductionDeadline(before.deadline ?? '', amount);
+      }),
     undo: undoWith(() => api.setProductionDeadline(before.deadline ?? '', before.contractedAmount)),
   };
 }

@@ -46,9 +46,10 @@ import { nameRows } from './source/pronunciationRows';
 import { usePronunciationSources } from './source/usePronunciationSources';
 import { AppearsIn } from './AppearsIn';
 import type { ChapterRef } from './appearsIn';
-import { findQuery } from '../script/page/scriptQuery';
+import { addressPath } from '../../navigation/address';
 import { aliasFlagged, entryFlagged, reviewFlags } from './entryList';
 import { EntryText } from './EntryText';
+import { ReadNotice } from './ReadNotice';
 import {
   draftFrom,
   NO_TALK,
@@ -86,21 +87,31 @@ const draftOf = (entity: GuideEntity, speaks: boolean): Draft => ({
 const NO_TYPES: GuideType[] = [];
 
 /** The Story Bible's types, read again whenever the entries are (a reload after a change); none until read or when the read fails,
- * so nothing speaks then. */
-function useGuideTypes(entities: readonly GuideEntity[]): GuideType[] {
+ * so nothing speaks then, and `failed` says so for the entry to show. */
+function useGuideTypes(entities: readonly GuideEntity[]): { types: GuideType[]; failed: boolean; checkAgain: () => void } {
   const storyBible = usePort('storyBible');
   const [types, setTypes] = useState<GuideType[]>(NO_TYPES);
+  const [failed, setFailed] = useState(false);
+  const [nonce, setNonce] = useState(0);
   useEffect(() => {
     let current = true;
     storyBible.guideTypes().then(
-      (read) => current && setTypes(read),
-      () => current && setTypes(NO_TYPES),
+      (read) => {
+        if (!current) return;
+        setTypes(read);
+        setFailed(false);
+      },
+      () => {
+        if (!current) return;
+        setTypes(NO_TYPES);
+        setFailed(true);
+      },
     );
     return () => {
       current = false;
     };
-  }, [storyBible, entities]);
-  return types;
+  }, [storyBible, entities, nonce]);
+  return { types, failed, checkAgain: () => setNonce((n) => n + 1) };
 }
 
 // The matches of the relationship picker's search box, named by the text box that drives it.
@@ -151,12 +162,15 @@ function FindInManuscript({ name }: { name: string }) {
   const navigate = useNavigate();
   return (
     <TooltipTarget text="Find in the manuscript">
-      <IconButton label="Find in the manuscript" onClick={() => navigate(`/script${findQuery(name)}`)}>
+      <IconButton label="Find in the manuscript" onClick={() => navigate(addressPath({ page: 'script', find: name }))}>
         <Icon name="find" />
       </IconButton>
     </TooltipTarget>
   );
 }
+
+/** What the entry list's right-click menu asks the open entry to do. `nonce` makes the same command twice two commands. */
+export type EntryCommand = { id: string; kind: 'review' | 'delete'; nonce: number };
 
 const NO_CHAPTERS: readonly ChapterRef[] = [];
 const NO_PRONUNCIATION_REASON = 'No pronunciation exists for this name yet.';
@@ -174,6 +188,8 @@ export function GuideDetail({
   toVerify = 0,
   chapters = NO_CHAPTERS,
   suggested,
+  command,
+  onCommandTaken,
 }: {
   entity?: GuideEntity;
   // A brand-new entity with no backend record yet - see Guide.tsx's
@@ -194,9 +210,13 @@ export function GuideDetail({
   chapters?: readonly ChapterRef[];
   /** The entry's accepted claims and the suggestions to verify (the mock's EntryEditor), built by the page that holds the suggestion list. */
   suggested?: ReactNode;
+  /** A command from the entry list's right-click menu for this entry: Mark reviewed runs the button's own action, Delete opens its confirm. */
+  command?: EntryCommand;
+  /** The command has been taken, so the page can drop it. */
+  onCommandTaken?: () => void;
 }) {
   const api = useApi();
-  const types = useGuideTypes(entities);
+  const { types, failed: typesFailed, checkAgain: checkTypesAgain } = useGuideTypes(entities);
   const speaks = entity ? canSpeak(types, entity.category) : false;
   // The Find button navigates, so it needs the router every page has; a detail drawn outside one (a story, a unit test) has none.
   const inRouter = useInRouterContext();
@@ -259,7 +279,13 @@ export function GuideDetail({
 
   // Selecting a different entry always starts read-only; a reload of the same
   // entry (after Save, an alias change, ...) keeps its mode.
-  useEffect(() => setEditing(false), [entity?.id]);
+  // Done while rendering, not in an effect: an effect also runs on mount, after React may have flushed a click on Edit that came in
+  // right after the entry first drew, and it would turn that edit mode off again.
+  const [shownId, setShownId] = useState(entity?.id);
+  if (shownId !== entity?.id) {
+    setShownId(entity?.id);
+    setEditing(false);
+  }
   // What was half done for one entry (an offer to merge, a relationship being written) is not carried to the next.
   useEffect(() => {
     setNameNote(undefined);
@@ -293,6 +319,16 @@ export function GuideDetail({
     draftEntity.current = entity;
     setDraft(draftOf(entity, speaks));
   }, [entity, speaks]);
+
+  // The entry list's menu asked this entry to do something: it does what its own button does, once per command.
+  const commandRun = useRef<(kind: EntryCommand['kind']) => void>(undefined);
+  const takenCommand = useRef<number>(undefined);
+  useEffect(() => {
+    if (!command || !entity || command.id !== entity.id || isNewDraft || takenCommand.current === command.nonce) return;
+    takenCommand.current = command.nonce;
+    commandRun.current?.(command.kind);
+    onCommandTaken?.();
+  });
 
   if (!entity) return <Panel>No matching entities. Build the guide to discover names and terms.</Panel>;
   const locked = entity.locked;
@@ -578,6 +614,12 @@ export function GuideDetail({
     }
   };
 
+  // What the list's menu can ask of this entry, set once the handlers exist; the effect above the early return calls it.
+  commandRun.current = (kind) => {
+    if (kind === 'delete' && !locked) setConfirmation('delete');
+    if (kind === 'review' && entryFlagged(entity) && toVerify === 0) void markReviewed();
+  };
+
   return (
     <Panel
       title={entity.canonical_name || 'New entity'}
@@ -598,7 +640,9 @@ export function GuideDetail({
               },
             }))}
           >
-            {categoryLabel(entity.category)} <FontAwesomeIcon icon={faChevronDown} />
+            {categoryLabel(entity.category)}
+            {/* The mock's read-only kind is a plain pill: the chevron promises a menu only while the kind can change. */}
+            {!locked && (editing || isNewDraft) && <FontAwesomeIcon icon={faChevronDown} />}
           </Menu>
           {(entryFlagged(entity) || toVerify > 0) && <StatusBadge tone="warning" label="Needs review" />}
         </div>
@@ -686,6 +730,13 @@ export function GuideDetail({
             Locked entries cannot be deleted or used as merge sources.
           </p>
         )}
+        {typesFailed && (
+          <ReadNotice
+            what="which entries can speak"
+            effect="How they talk, act and know, the speaker colour and dialogue cues are hidden for now."
+            checkAgain={checkTypesAgain}
+          />
+        )}
         {entity.category === 'Draft' && (
           <p className="rounded px-3 py-1.5 text-xs" style={{ background: 'var(--accent-soft)', color: 'var(--accent-strong)' }}>
             Choose a category above to finish setting up this entry.
@@ -715,7 +766,22 @@ export function GuideDetail({
         )}
 
         <div>
-          <div className="mb-1.5 text-[0.82rem] font-medium text-[var(--text-muted)]">Names the app links in the text, and how I say each</div>
+          <div className="mb-1.5 flex items-center justify-between gap-2 text-[0.82rem] font-medium text-[var(--text-muted)]">
+            <span>Names the app links in the text, and how I say each</span>
+            {/* Rescan has no mock equivalent and stays as built; while editing it sits beside Add alias. */}
+            {editingDisabled && !isNewDraft && (
+              <TooltipTarget text="Rescan occurrences for this entry">
+                <IconButton
+                  label="Rescan occurrences"
+                  disabled={waiting('rescan')}
+                  pending={mutation.isPending('rescan')}
+                  onClick={() => void rescanOccurrences()}
+                >
+                  <FontAwesomeIcon icon={faRotate} />
+                </IconButton>
+              </TooltipTarget>
+            )}
+          </div>
           <ul aria-label="Names" className="m-0 list-none space-y-3 p-0">
             {nameRows(entity).map((row) => {
               const { aliasIndex, name, pronunciation } = row;
@@ -797,113 +863,115 @@ export function GuideDetail({
               );
             })}
           </ul>
-          <div className="mt-3">
-            <TextField
-              label="Add an alias or find a matching entry"
-              role="combobox"
-              aria-expanded={aliasMatches.length > 0}
-              aria-controls={aliasMatches.length > 0 ? ALIAS_MATCHES_ID : undefined}
-              aria-activedescendant={aliasMatches[aliasActiveIndex] ? listboxOptionId(ALIAS_MATCHES_ID, aliasMatches[aliasActiveIndex].id) : undefined}
-              disabled={editingDisabled}
-              value={aliasQuery}
-              onChange={(value) => {
-                setAliasQuery(value);
-                setAliasSelectedId(undefined);
-                setAliasActiveIndex(0);
-                setNameNote(undefined);
-              }}
-              onKeyDown={onAliasKeyDown}
-              placeholder="Add an alias or find a matching entry…"
-            />
-            {nameNote && (
-              <div className="mt-2 flex flex-wrap items-center gap-2">
-                <span role="status" className="text-xs" style={{ color: 'var(--text-muted)' }}>
-                  {nameNote.ownerId
-                    ? `“${nameNote.text}” is already a name of ${entities.find((row) => row.id === nameNote.ownerId)?.canonical_name ?? 'another entry'}.`
-                    : `“${nameNote.text}” is already a name of this entry.`}
-                </span>
-                {nameNote.ownerId && mergeButton(entities.find((row) => row.id === nameNote.ownerId))}
-              </div>
-            )}
-            {selectedAliasMatch ? (
-              <div className="mt-2 flex flex-wrap items-center gap-2">
-                <span className="text-xs" style={{ color: 'var(--text-muted)' }}>
-                  Selected match: <strong>{selectedAliasMatch.canonical_name}</strong>
-                  {selectedAliasMatch.locked ? ' · locked' : ''}
-                </span>
-                <Button variant="secondary" onClick={() => setReviewOverlayId(selectedAliasMatch.id)}>
-                  Review entry
-                </Button>
-                {mergeButton(selectedAliasMatch)}
-                <Button variant="secondary" onClick={clearAliasMatch}>
-                  Clear selection
-                </Button>
-              </div>
-            ) : aliasQuery ? (
-              <div className="mt-1">
-                <Listbox
-                  id={ALIAS_MATCHES_ID}
-                  label="Matching Story Bible entries"
-                  options={aliasMatches.map((match) => ({
-                    id: match.id,
-                    label: match.canonical_name,
-                    description: categoryLabel(match.category),
-                    leading: <Dot color={CAT_DOT_BG[categoryCssName(match.category)]} />,
-                  }))}
-                  activeIndex={aliasActiveIndex}
-                  onPick={setAliasSelectedId}
-                  empty="No matching Story Bible entries."
-                  footer={
-                    <div data-alias-actions className="flex items-center justify-between p-2">
-                      <TooltipTarget text="Add alias">
-                        <IconButton
-                          label="Add alias"
-                          disabled={editingDisabled || waiting('alias')}
-                          pending={mutation.isPending('alias')}
-                          onClick={addAliasFromQuery}
-                        >
-                          <FontAwesomeIcon icon={faPlus} />
-                        </IconButton>
-                      </TooltipTarget>
-                      <TooltipTarget text="Rescan occurrences for this entry">
-                        <IconButton
-                          label="Rescan occurrences"
-                          disabled={isNewDraft || waiting('rescan')}
-                          pending={mutation.isPending('rescan')}
-                          onClick={() => void rescanOccurrences()}
-                        >
-                          <FontAwesomeIcon icon={faRotate} />
-                        </IconButton>
-                      </TooltipTarget>
-                    </div>
-                  }
-                />
-              </div>
-            ) : (
-              <div data-alias-actions className="mt-2 flex items-center justify-between">
-                <TooltipTarget text="Add alias">
-                  <IconButton
-                    label="Add alias"
-                    disabled={editingDisabled || waiting('alias')}
-                    pending={mutation.isPending('alias')}
-                    onClick={addAliasFromQuery}
-                  >
-                    <FontAwesomeIcon icon={faPlus} />
-                  </IconButton>
-                </TooltipTarget>
-                <TooltipTarget text="Rescan occurrences for this entry">
-                  <IconButton
-                    label="Rescan occurrences"
-                    disabled={isNewDraft || waiting('rescan')}
-                    pending={mutation.isPending('rescan')}
-                    onClick={() => void rescanOccurrences()}
-                  >
-                    <FontAwesomeIcon icon={faRotate} />
-                  </IconButton>
-                </TooltipTarget>
-              </div>
-            )}
-          </div>
+          {editingDisabled && !isNewDraft ? null : (
+            <div className="mt-3">
+              <TextField
+                label="Add an alias or find a matching entry"
+                role="combobox"
+                aria-expanded={aliasMatches.length > 0}
+                aria-controls={aliasMatches.length > 0 ? ALIAS_MATCHES_ID : undefined}
+                aria-activedescendant={aliasMatches[aliasActiveIndex] ? listboxOptionId(ALIAS_MATCHES_ID, aliasMatches[aliasActiveIndex].id) : undefined}
+                disabled={editingDisabled}
+                value={aliasQuery}
+                onChange={(value) => {
+                  setAliasQuery(value);
+                  setAliasSelectedId(undefined);
+                  setAliasActiveIndex(0);
+                  setNameNote(undefined);
+                }}
+                onKeyDown={onAliasKeyDown}
+                placeholder="Add an alias or find a matching entry…"
+              />
+              {nameNote && (
+                <div className="mt-2 flex flex-wrap items-center gap-2">
+                  <span role="status" className="text-xs" style={{ color: 'var(--text-muted)' }}>
+                    {nameNote.ownerId
+                      ? `“${nameNote.text}” is already a name of ${entities.find((row) => row.id === nameNote.ownerId)?.canonical_name ?? 'another entry'}.`
+                      : `“${nameNote.text}” is already a name of this entry.`}
+                  </span>
+                  {nameNote.ownerId && mergeButton(entities.find((row) => row.id === nameNote.ownerId))}
+                </div>
+              )}
+              {selectedAliasMatch ? (
+                <div className="mt-2 flex flex-wrap items-center gap-2">
+                  <span className="text-xs" style={{ color: 'var(--text-muted)' }}>
+                    Selected match: <strong>{selectedAliasMatch.canonical_name}</strong>
+                    {selectedAliasMatch.locked ? ' · locked' : ''}
+                  </span>
+                  <Button variant="secondary" onClick={() => setReviewOverlayId(selectedAliasMatch.id)}>
+                    Review entry
+                  </Button>
+                  {mergeButton(selectedAliasMatch)}
+                  <Button variant="secondary" onClick={clearAliasMatch}>
+                    Clear selection
+                  </Button>
+                </div>
+              ) : aliasQuery ? (
+                <div className="mt-1">
+                  <Listbox
+                    id={ALIAS_MATCHES_ID}
+                    label="Matching Story Bible entries"
+                    options={aliasMatches.map((match) => ({
+                      id: match.id,
+                      label: match.canonical_name,
+                      description: categoryLabel(match.category),
+                      leading: <Dot color={CAT_DOT_BG[categoryCssName(match.category)]} />,
+                    }))}
+                    activeIndex={aliasActiveIndex}
+                    onPick={setAliasSelectedId}
+                    empty="No matching Story Bible entries."
+                    footer={
+                      <div data-alias-actions className="flex items-center justify-between p-2">
+                        <TooltipTarget text="Add alias">
+                          <IconButton
+                            label="Add alias"
+                            disabled={editingDisabled || waiting('alias')}
+                            pending={mutation.isPending('alias')}
+                            onClick={addAliasFromQuery}
+                          >
+                            <FontAwesomeIcon icon={faPlus} />
+                          </IconButton>
+                        </TooltipTarget>
+                        <TooltipTarget text="Rescan occurrences for this entry">
+                          <IconButton
+                            label="Rescan occurrences"
+                            disabled={isNewDraft || waiting('rescan')}
+                            pending={mutation.isPending('rescan')}
+                            onClick={() => void rescanOccurrences()}
+                          >
+                            <FontAwesomeIcon icon={faRotate} />
+                          </IconButton>
+                        </TooltipTarget>
+                      </div>
+                    }
+                  />
+                </div>
+              ) : (
+                <div data-alias-actions className="mt-2 flex items-center justify-between">
+                  <TooltipTarget text="Add alias">
+                    <IconButton
+                      label="Add alias"
+                      disabled={editingDisabled || waiting('alias')}
+                      pending={mutation.isPending('alias')}
+                      onClick={addAliasFromQuery}
+                    >
+                      <FontAwesomeIcon icon={faPlus} />
+                    </IconButton>
+                  </TooltipTarget>
+                  <TooltipTarget text="Rescan occurrences for this entry">
+                    <IconButton
+                      label="Rescan occurrences"
+                      disabled={isNewDraft || waiting('rescan')}
+                      pending={mutation.isPending('rescan')}
+                      onClick={() => void rescanOccurrences()}
+                    >
+                      <FontAwesomeIcon icon={faRotate} />
+                    </IconButton>
+                  </TooltipTarget>
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
         <EntryText label="Description" value={draft.description} editing={!editingDisabled} onChange={(description) => setDraft({ ...draft, description })} />
@@ -998,14 +1066,16 @@ export function GuideDetail({
                   </TableCell>
                   <TableCell>{row.otherName}</TableCell>
                   <TableCell align="right">
-                    <IconButton
-                      label="Remove relationship"
-                      disabled={editingDisabled || waiting(`unrelate:${row.key}`)}
-                      pending={mutation.isPending(`unrelate:${row.key}`)}
-                      onClick={() => void removeRelationship(row)}
-                    >
-                      <FontAwesomeIcon icon={faXmark} />
-                    </IconButton>
+                    {!editingDisabled && (
+                      <IconButton
+                        label="Remove relationship"
+                        disabled={editingDisabled || waiting(`unrelate:${row.key}`)}
+                        pending={mutation.isPending(`unrelate:${row.key}`)}
+                        onClick={() => void removeRelationship(row)}
+                      >
+                        <FontAwesomeIcon icon={faXmark} />
+                      </IconButton>
+                    )}
                   </TableCell>
                 </TableRow>
               ))}
@@ -1018,73 +1088,79 @@ export function GuideDetail({
               )}
             </TableBody>
           </Table>
-          <div className="mt-3 grid items-start gap-3" style={{ gridTemplateColumns: '1fr 1fr auto' }}>
-            <TextField
-              label="Relationship"
-              disabled={editingDisabled}
-              value={relationLabel}
-              onChange={setRelationLabel}
-              placeholder="Relationship, e.g. located in"
-            />
-            <div>
-              {pickedEntity ? (
-                <div
-                  data-picked
-                  className="flex min-h-[var(--control-height)] items-center justify-between gap-2 rounded-[var(--control-radius)] border border-[var(--line-strong)] px-3"
+          {/* The mock draws the add-a-relationship row only while editing. */}
+          {!editingDisabled && (
+            <div className="mt-3 grid items-start gap-3" style={{ gridTemplateColumns: '1fr 1fr auto' }}>
+              <TextField
+                label="Relationship"
+                disabled={editingDisabled}
+                value={relationLabel}
+                onChange={setRelationLabel}
+                placeholder="Relationship, e.g. located in"
+              />
+              <div>
+                {pickedEntity ? (
+                  <div
+                    data-picked
+                    className="flex min-h-[var(--control-height)] items-center justify-between gap-2 rounded-[var(--control-radius)] border border-[var(--line-strong)] px-3"
+                  >
+                    <span className="truncate">{pickedEntity.canonical_name}</span>
+                    <IconButton label="Choose another entry" disabled={editingDisabled} onClick={() => setRelationOtherId('')}>
+                      <FontAwesomeIcon icon={faXmark} />
+                    </IconButton>
+                  </div>
+                ) : (
+                  <>
+                    <TextField
+                      label="Search entries to relate to"
+                      role="combobox"
+                      aria-expanded={relationMatches.length > 0}
+                      aria-controls={relationMatches.length > 0 ? RELATION_MATCHES_ID : undefined}
+                      aria-activedescendant={
+                        relationMatches[relationActiveIndex] ? listboxOptionId(RELATION_MATCHES_ID, relationMatches[relationActiveIndex].id) : undefined
+                      }
+                      disabled={editingDisabled}
+                      value={relationQuery}
+                      onChange={(value) => {
+                        setRelationQuery(value);
+                        setRelationActiveIndex(0);
+                      }}
+                      onKeyDown={onRelationKeyDown}
+                      placeholder="Search entries…"
+                    />
+                    {relationQuery.trim() && !editingDisabled && (
+                      <div className="mt-1">
+                        <Listbox
+                          id={RELATION_MATCHES_ID}
+                          label="Matching entries"
+                          options={relationMatches.map((match) => ({
+                            id: match.id,
+                            label: match.canonical_name,
+                            description: categoryLabel(match.category),
+                            leading: <Dot color={CAT_DOT_BG[categoryCssName(match.category)]} />,
+                          }))}
+                          activeIndex={relationActiveIndex}
+                          onPick={pickRelated}
+                          empty="No entries match."
+                        />
+                      </div>
+                    )}
+                  </>
+                )}
+              </div>
+              <TooltipTarget text={relationOtherId && relationLabel.trim() ? 'Add relationship' : 'Choose an entry and write the relationship first.'}>
+                <IconButton
+                  label="Add relationship"
+                  disabled={editingDisabled || waiting('relate')}
+                  disabledReason={!relationOtherId || !relationLabel.trim() ? 'Choose an entry and write the relationship first.' : undefined}
+                  pending={mutation.isPending('relate')}
+                  onClick={() => void addRelationship()}
                 >
-                  <span className="truncate">{pickedEntity.canonical_name}</span>
-                  <IconButton label="Choose another entry" disabled={editingDisabled} onClick={() => setRelationOtherId('')}>
-                    <FontAwesomeIcon icon={faXmark} />
-                  </IconButton>
-                </div>
-              ) : (
-                <>
-                  <TextField
-                    label="Search entries"
-                    role="combobox"
-                    aria-expanded={relationMatches.length > 0}
-                    aria-controls={relationMatches.length > 0 ? RELATION_MATCHES_ID : undefined}
-                    aria-activedescendant={
-                      relationMatches[relationActiveIndex] ? listboxOptionId(RELATION_MATCHES_ID, relationMatches[relationActiveIndex].id) : undefined
-                    }
-                    disabled={editingDisabled}
-                    value={relationQuery}
-                    onChange={(value) => {
-                      setRelationQuery(value);
-                      setRelationActiveIndex(0);
-                    }}
-                    onKeyDown={onRelationKeyDown}
-                    placeholder="Search entries…"
-                  />
-                  {relationQuery.trim() && !editingDisabled && (
-                    <div className="mt-1">
-                      <Listbox
-                        id={RELATION_MATCHES_ID}
-                        label="Matching entries"
-                        options={relationMatches.map((match) => ({
-                          id: match.id,
-                          label: match.canonical_name,
-                          description: categoryLabel(match.category),
-                          leading: <Dot color={CAT_DOT_BG[categoryCssName(match.category)]} />,
-                        }))}
-                        activeIndex={relationActiveIndex}
-                        onPick={pickRelated}
-                        empty="No entries match."
-                      />
-                    </div>
-                  )}
-                </>
-              )}
+                  <FontAwesomeIcon icon={faPlus} />
+                </IconButton>
+              </TooltipTarget>
             </div>
-            <IconButton
-              label="Add relationship"
-              disabled={editingDisabled || waiting('relate')}
-              pending={mutation.isPending('relate')}
-              onClick={() => void addRelationship()}
-            >
-              <FontAwesomeIcon icon={faPlus} />
-            </IconButton>
-          </div>
+          )}
         </div>
 
         <AppearsIn entity={entity} manuscript={chapters} onGo={(chapterId) => goToManuscript(chapterId)} />

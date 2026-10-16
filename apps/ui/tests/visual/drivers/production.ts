@@ -14,12 +14,17 @@ import {
   productionLoaded,
 } from './shared';
 
+// The mock's own day: the `?mockProduction=` seeds are dated against it and move to the real day when the app opens, so a state that
+// names a date (or counts days) reads the same on every run with the clock pinned here. The clock keeps ticking.
+const MOCK_DAY = new Date(2026, 8, 26, 9, 0, 0);
+
 export const productionDrivers: Record<string, Driver> = {
   'no-data': async (page) => {
     await openProduction(page);
     await page.getByText('Set a due date').waitFor();
   },
   'on-pace': async (page) => {
+    await page.clock.install({ time: MOCK_DAY });
     await openProduction(page, '?mockProduction=on-pace');
     await page.getByRole('timer', { name: /^Timer running on Chapter 6/ }).waitFor();
   },
@@ -28,6 +33,7 @@ export const productionDrivers: Record<string, Driver> = {
     await page.getByRole('timer', { name: /^Timer running on Chapter 7/ }).waitFor();
   },
   'at-risk': async (page) => {
+    await page.clock.install({ time: MOCK_DAY });
     await openProduction(page, '?mockProduction=at-risk');
     await page
       .getByRole('list', { name: 'Production figures' })

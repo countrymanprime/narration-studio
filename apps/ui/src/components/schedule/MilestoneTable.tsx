@@ -6,7 +6,7 @@ import { StatusBadge, type StatusTone } from '../primitives/StatusBadge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../primitives/Table';
 import { TextField } from '../primitives/TextField';
 import { TooltipTarget } from '../primitives/Tooltip';
-import { fmtD, parseIso } from './dates';
+import { fmtIso } from './dates';
 import { measureText } from './measures';
 import { milestoneStatus, type MilestoneStatus, type ScheduleChapter } from './progress';
 
@@ -32,8 +32,8 @@ export type MilestoneTableProps = {
   onToggleDone: (index: number) => void;
   onEdit: (index: number, focus?: 'note') => void;
   onRemove: (index: number) => void;
-  /** Called with the date the narrator committed (Enter or leaving the field). */
-  onDueChange: (date: string) => void;
+  /** Called with the text the narrator committed (Enter or leaving the field); an empty one clears the due date. */
+  onDueChange: (date: string) => void | Promise<unknown>;
 };
 
 /**
@@ -67,12 +67,14 @@ export function MilestoneTable({ milestones, chapters, today, due, onToggleDone,
               </IconButton>
             </TableCell>
             <TableCell>
-              <b data-name={index}>{m.name}</b>
+              <b data-name={index} dir="auto" className="[overflow-wrap:anywhere]">
+                {m.name}
+              </b>
             </TableCell>
             <TableCell>
               <span data-measure={index}>{measureText(m.measure)}</span>
             </TableCell>
-            <TableCell numeric>{fmtD(parseIso(m.dueDate))}</TableCell>
+            <TableCell numeric>{fmtIso(m.dueDate, today)}</TableCell>
             <TableCell>
               <StatusCell status={milestoneStatus(m, chapters, today)} />
             </TableCell>
@@ -95,7 +97,8 @@ export function MilestoneTable({ milestones, chapters, today, due, onToggleDone,
             <b>Final delivery</b>
           </TableCell>
           <TableCell muted>Whole book</TableCell>
-          <TableCell>
+          {/* The mock's 152 px column: a long milestone name must not take the room the date field needs. */}
+          <TableCell className="min-w-[9.5rem]">
             <DueField value={due ?? ''} onCommit={onDueChange} />
           </TableCell>
           <TableCell>{final ? <StatusCell status={final} /> : null}</TableCell>
@@ -107,7 +110,7 @@ export function MilestoneTable({ milestones, chapters, today, due, onToggleDone,
 }
 
 /** The due date, committed when focus leaves or on Enter. It is written "YYYY-MM-DD", as the plan stores it. */
-function DueField({ value, onCommit }: { value: string; onCommit: (date: string) => void }) {
+function DueField({ value, onCommit }: { value: string; onCommit: (date: string) => void | Promise<unknown> }) {
   const [draft, setDraft] = useState<string | null>(null);
   const commit = () => {
     if (draft !== null && draft.trim() !== value) onCommit(draft.trim());

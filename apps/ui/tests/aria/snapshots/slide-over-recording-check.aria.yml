@@ -7,11 +7,11 @@
 - /children: equal
 # The two toast live regions stay in the tree on purpose (see dialog-mark-composer.aria.yml).
 - main:
-  - alert
-  - status
-# The overlay host's own live regions (the toast pair and the announcer) stay exposed behind a modal for the same reason.
+  - group "Zoom"
+- status
 - alert
 - status
+- alert
 - status
 - 'dialog "Recording check: Chapter 4 — The Rabbit Sends in a Little Bill"':
   - 'heading "Recording check: Chapter 4 — The Rabbit Sends in a Little Bill" [level=3]'

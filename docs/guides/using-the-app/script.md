@@ -132,4 +132,4 @@ one tells you so instead of landing there.
 
 ---
 
-[← Production](production.md) · [Index](README.md) · [Story Bible →](story-bible.md)
+[← Schedule](schedule.md) · [Index](README.md) · [Story Bible →](story-bible.md)
