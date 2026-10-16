@@ -11,10 +11,12 @@ export function FormatRows({
   rules,
   readOnly,
   onEdit,
+  onDeclined,
 }: {
   rules: DeliveryRule[];
   readOnly: boolean;
   onEdit: (id: string, side: 'min' | 'max', value: number) => void;
+  onDeclined?: (rule: DeliveryRule) => void;
 }) {
   if (rules.length === 0) return null;
   return (
@@ -27,7 +29,7 @@ export function FormatRows({
             <span className="font-mono">{limitText(rule)}</span>
           </div>
         ) : (
-          <LimitRow key={rule.id} rule={rule} readOnly={readOnly} onEdit={(side, value) => onEdit(rule.id, side, value)} />
+          <LimitRow key={rule.id} rule={rule} readOnly={readOnly} onEdit={(side, value) => onEdit(rule.id, side, value)} onDeclined={onDeclined} />
         ),
       )}
     </div>

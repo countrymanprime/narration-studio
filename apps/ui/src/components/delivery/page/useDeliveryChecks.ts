@@ -36,6 +36,8 @@ export function useDeliveryChecks() {
     job: job.value,
     jobError: job.error,
     lastHeard: job.lastHeard,
+    /** Reads the measurement again: the host judges it against the profile as it is now, so a profile change or edit needs this. */
+    reread: again,
     /** Reads the chapters and the measurement now. */
     checkAgain: () => {
       void studio.load('chapters').catch(recorded);

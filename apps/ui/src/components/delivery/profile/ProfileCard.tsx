@@ -45,6 +45,7 @@ export function ProfileCard({ onChange, onProfile }: { onChange?: () => void; on
   const run = useCallback(
     async (action: () => Promise<void>) => {
       if (working.current) return;
+      setError(undefined);
       working.current = true;
       setBusy(true);
       try {
@@ -87,17 +88,23 @@ export function ProfileCard({ onChange, onProfile }: { onChange?: () => void; on
       read.set(await port.deliveryProfiles());
     });
   const readOnly = profile.builtIn;
+  const declined = (rule: { label: string }) => setError(`${rule.label}: that is not a number, so the limit was left as it was.`);
 
   return (
     <Panel
       title="Delivery profile"
       actions={
-        <span className="flex items-center gap-2">
+        <span className="flex min-w-0 flex-wrap items-center justify-end gap-2">
           <ProfileMenu profiles={state.profiles} current={profile} disabled={busy} onSelect={(next) => void choose(next)} />
           {readOnly ? (
             <StatusBadge tone="neutral" label="Built in" />
           ) : (
-            <CommitBox label="Profile name" value={profile.name} onCommit={(name) => name.trim() !== '' && void save(editOf(profile, { name: name.trim() }))} />
+            <CommitBox
+              label="Profile name"
+              className="max-w-full min-w-[10rem]"
+              value={profile.name}
+              onCommit={(name) => name.trim() !== '' && void save(editOf(profile, { name: name.trim() }))}
+            />
           )}
         </span>
       }
@@ -111,10 +118,16 @@ export function ProfileCard({ onChange, onProfile }: { onChange?: () => void; on
               rule={rule}
               readOnly={readOnly}
               onEdit={(side, value) => void save(editOf(profile, { rule: { id: rule.id, side, value } }))}
+              onDeclined={declined}
             />
           ))}
         </div>
-        <FormatRows rules={formatRules(profile)} readOnly={readOnly} onEdit={(id, side, value) => void save(editOf(profile, { rule: { id, side, value } }))} />
+        <FormatRows
+          rules={formatRules(profile)}
+          readOnly={readOnly}
+          onDeclined={declined}
+          onEdit={(id, side, value) => void save(editOf(profile, { rule: { id, side, value } }))}
+        />
         {read.error && (
           <p role="alert" className="text-sm" style={{ color: 'var(--danger-text)' }}>
             Can't tell whether this is still the project's profile, {heardText(read.lastHeard)}: {read.error}{' '}

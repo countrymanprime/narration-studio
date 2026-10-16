@@ -49,7 +49,12 @@ function LoadedDelivery({ onOpenInMaster, onOpenMaster }: { onOpenInMaster: (cha
 
   const onProfile = useCallback((next: DeliveryProfile) => setProfile(next), []);
   // A profile change or edit drops the built list; a new build shows it again.
-  const onChange = useCallback(() => setBuilt(false), []);
+  // The host judges the measurement against the profile as it is now, so it is read again too.
+  const { reread } = checks;
+  const onChange = useCallback(() => {
+    setBuilt(false);
+    reread();
+  }, [reread]);
   const start = async () => {
     setBuilt(true);
     await build.build();

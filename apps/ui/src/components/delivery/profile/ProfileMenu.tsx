@@ -28,6 +28,7 @@ export function ProfileMenu({
       label={`Delivery profile: ${current.name}`}
       value={deliveryProfileKey(current)}
       disabled={disabled}
+      className="max-w-[16rem] min-w-0 truncate"
       options={list.map((profile) => ({ value: deliveryProfileKey(profile), label: profileMenuLabel(profile) }))}
       onChange={(key) => {
         const next = list.find((profile) => deliveryProfileKey(profile) === key);

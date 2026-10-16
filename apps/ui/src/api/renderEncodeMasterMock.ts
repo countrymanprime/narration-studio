@@ -165,6 +165,7 @@ export function createRenderEncodeMasterMock(
   const delivery = seed === 'ready' || seed === 'building' || seed === 'fails' || seed === 'quiet';
   const hold = seed === 'hold' || seed === 'building' || seed === 'quiet';
   let silent = false;
+  let packageCount = 0;
   const multiHold = multiPackageSeed === 'hold';
   const picked = new Set<string>();
   const encoded = new Set<string>();
@@ -342,7 +343,7 @@ export function createRenderEncodeMasterMock(
       const checklist = checklistFor(profile(), req.items);
       const missing = checklist.filter((item) => item.status === 'missing');
       packageJob = {
-        id: 'package-1',
+        id: `package-${++packageCount}`,
         kind: 'render_package',
         phase: 'running',
         message: `Building the ${profile().name} package.`,
@@ -376,7 +377,7 @@ export function createRenderEncodeMasterMock(
       // The host stops answering the job's reads once the build has started, so the page's quiet-host state can be looked at.
       if (seed === 'quiet') silent = true;
       if (!hold) {
-        packageJob = { ...packageJob, phase: 'success', files: outputFiles, message: `Built the ${profile().id} package with ${outputFiles.length} files.` };
+        packageJob = { ...packageJob, phase: 'success', files: outputFiles, message: `Built the ${profile().name} package with ${outputFiles.length} files.` };
         publish({ id: packageJob.id ?? '', kind: 'render_package', outcome: 'success', message: packageJob.message, durationMs: 1200 });
       }
       return wireClone(packageJob);
@@ -386,6 +387,7 @@ export function createRenderEncodeMasterMock(
       return wireClone(packageJob);
     },
     packageCancel: async (): Promise<PackageJob> => {
+      silent = false;
       if (packageJob.phase === 'running') {
         packageJob = { ...packageJob, phase: 'cancelled', message: 'Packaging cancelled.' };
         publish({ id: packageJob.id ?? '', kind: 'render_package', outcome: 'cancelled', message: packageJob.message, durationMs: 500 });

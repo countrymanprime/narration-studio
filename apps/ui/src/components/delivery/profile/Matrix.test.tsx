@@ -177,6 +177,20 @@ describe('D3 and D4 Limits and the longest file', () => {
     expect(fromShown({ metric: 'duration_seconds', unit: 's' } as never, '90')).toBe(5400);
   });
 
+  it('text that is not a number says so, and an earlier refusal does not stay up', async () => {
+    const save = vi.fn().mockRejectedValueOnce(new Error('RMS: the lowest (-10) is above the highest (-18)')).mockResolvedValue(mockCustomProfile());
+    mount({ deliverySaveProfile: save });
+    const user = userEvent.setup();
+    const box = await screen.findByRole('textbox', { name: 'RMS lowest' });
+    await user.clear(box);
+    await user.type(box, '-10{Enter}');
+    expect((await screen.findByRole('alert')).textContent).toContain('the lowest (-10)');
+    await user.clear(box);
+    await user.type(box, 'abc{Enter}');
+    expect((await screen.findByRole('alert')).textContent).toBe('RMS: that is not a number, so the limit was left as it was.');
+    expect(box).toHaveProperty('value', '-24');
+  });
+
   it('zero, negative and huge numbers are sent as typed for the host to judge', async () => {
     const save = vi.fn(async () => mockCustomProfile());
     mount({ deliverySaveProfile: save });

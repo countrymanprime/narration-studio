@@ -1,3 +1,4 @@
+import { useRef } from 'react';
 import type { DeliveryProfile } from '../../../types';
 import { Button } from '../../primitives/Button';
 import { IconButton } from '../../primitives/IconButton';
@@ -32,7 +33,9 @@ export function OutputPanel({
   showBuilt: boolean;
 }) {
   const built = showBuilt && ready ? build.built : undefined;
-  const canBuild = ready && build.encoded > 0 && !build.busy;
+  // Busy is shown with `pending`, not `disabled`, so the Build button keeps keyboard focus while it works.
+  const canBuild = ready && build.encoded > 0;
+  const buildButton = useRef<HTMLButtonElement>(null);
   const why = !ready
     ? waiting
     : build.encoded === 0
@@ -50,11 +53,18 @@ export function OutputPanel({
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <Button onClick={() => void build.build()} disabled={!canBuild} pending={build.starting}>
+          <Button ref={buildButton} onClick={() => void build.build()} disabled={!canBuild} pending={build.starting || build.busy}>
             Build {profile.name} package
           </Button>
           {build.running && (
-            <Button variant="secondary" onClick={build.cancel}>
+            <Button
+              variant="secondary"
+              onClick={() => {
+                build.cancel();
+                // Cancel goes away when the job ends; keyboard focus goes back to Build, which stays.
+                buildButton.current?.focus();
+              }}
+            >
               Cancel
             </Button>
           )}

@@ -135,7 +135,8 @@ describe('D5 Build: what it waits for', () => {
   it('the export is still running elsewhere: says so, and Build stays off', async () => {
     mount({ exportState: async () => exportJob('running', 2) });
     expect(await screen.findByText('Master & QC is still preparing the files.')).toBeTruthy();
-    expect(await buildButton()).toHaveProperty('disabled', true);
+    // Busy, not disabled: the button keeps keyboard focus while it works, and a press does nothing.
+    expect((await buildButton()).getAttribute('aria-busy')).toBe('true');
   });
 
   it('a measurement that is running: says so with its progress, and Build stays off', async () => {
@@ -242,7 +243,7 @@ describe('D5 and D6 a running build', () => {
     mount({ packageState: async () => (++calls < 3 ? RUNNING : BUILT) });
     expect(await screen.findByRole('button', { name: 'Cancel' })).toBeTruthy();
     expect(screen.getByRole('progressbar', { name: 'Building the package' })).toBeTruthy();
-    expect(await buildButton()).toHaveProperty('disabled', true);
+    expect((await buildButton()).getAttribute('aria-busy')).toBe('true');
     await act(async () => vi.advanceTimersByTimeAsync(1200));
     expect(await screen.findByText('4 files')).toBeTruthy();
     expect(screen.queryByRole('button', { name: 'Cancel' })).toBeNull();
@@ -334,6 +335,27 @@ describe('D5 and D6 a running build', () => {
     await waitFor(() => expect(screen.queryByRole('button', { name: 'Cancel' })).toBeNull());
     expect(screen.queryByRole('alert')).toBeNull();
     expect(await buildButton()).toHaveProperty('disabled', false);
+  });
+});
+
+describe('D5 focus and the profile', () => {
+  it('Cancel puts keyboard focus back on Build, which stays on the page', async () => {
+    mount({
+      packageState: async () => RUNNING,
+      packageCancel: async () => ({ ...RUNNING, phase: 'cancelled', message: 'Packaging cancelled.' }) as PackageJob,
+    });
+    const build = await buildButton();
+    await userEvent.click(await screen.findByRole('button', { name: 'Cancel' }));
+    expect(document.activeElement).toBe(build);
+  });
+
+  it('a profile change reads the measurement again, so the verdicts follow the profile', async () => {
+    const measureState = vi.fn(async () => measureJob(PASSING));
+    mount({ measureState });
+    await screen.findByText('4 of 4');
+    const before = measureState.mock.calls.length;
+    await userEvent.selectOptions(await screen.findByRole('combobox'), 'acx@2026-09');
+    await waitFor(() => expect(measureState.mock.calls.length).toBeGreaterThan(before));
   });
 });
 
