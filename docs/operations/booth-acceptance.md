@@ -92,3 +92,25 @@ Every Booth control that depends on a DAW or other integration, the input it rea
 | Pickups, flags, resume offer | DAW markers and the REAPER follow | Not covered by this pass | | | | | | |
 
 The shared `useCapability` (every capability gate on every page) now also re-reads on window focus, and on a timer while nothing has been heard.
+
+## Pass 3 state matrix (written before the code)
+
+The controls and overlays pass 3 adds or changes. Each cell names its test, or says "not tested" with the reason beside it. Cells are filled in as the tests land; a cell still reading "planned" at merge is unverified. Spec numbers are the item numbers of PR #1756's tables (S, M and walkthrough-4 numbers).
+
+| Control | Items | Empty / one / many / huge | Loading | Refused / failed | Stale / quiet | Long, RTL, emoji | Rapid double-fire | Reload / leave mid-action |
+| - | - | - | - | - | - | - | - | - |
+| Take timer | S2, M10 | planned: a take that just began reads 00:00; a 3-hour take reads 3:00:00 | planned: the first second | n/a: no host call | planned: a window asleep or hidden shows the true time on return; a clock that jumps back never shows a negative | n/a: digits | planned: stop then start restarts from 0 | planned: leaving and returning keeps the app's own take running (the clock restarts at 0, said in the matrix as a known limit); a reload forgets the take |
+| REC pill while a question holds the take | S2 | planned | n/a | n/a | planned: the DAW keeps recording and the timer keeps running; the pill says only that reading is paused | n/a | planned: open and close the question quickly | planned: Escape, Keep recording, Stop and leave |
+| Other-project notice (link the open one, Check again) | S4, M4, M11, M15, 10 | planned: no project linked; one linked; the open one is another | planned: the first read | planned: the link dialog refused or cancelled; the file is not a project | planned: DAW goes quiet while the notice is up | planned: long, RTL and emoji project file names, wrapped | planned: two presses of the link action make one dialog | planned: reload with the notice up; leave and return |
+| Setup notice above toasts | M1, M2, M3, 9 | planned | n/a | planned: a refusal toast while the notice is up | planned: a stale "starting" toast is gone once the DAW answers | planned: a long toast | planned: ten identical toasts make one | planned |
+| Toasts (stacked, stale) | M2, M3, 9 | planned: none, one, three distinct, thirty identical | n/a | planned | planned: the toast that was true a minute ago is replaced, not stacked | planned | planned | planned |
+| "Can't tell" copy when the DAW went quiet mid-take | 10 | n/a | n/a | n/a | planned: quiet mid-take says "can't tell whether the take is still running"; a DAW that says it stopped says "stopped" | n/a | planned | planned |
+| Speech-model footer notice before Record | S3 | planned: model present, missing, downloading | planned | planned: download failed | planned: model deleted while the Booth is open | n/a | planned | planned |
+| Levels popover microphone name | M8 | planned: 0, 1, 50 microphones | n/a | n/a | n/a | planned: a 300-character name, RTL, emoji, no spaces | n/a | n/a |
+| Reader text | M9 | planned | n/a | n/a | n/a | planned: a 500-character word with no break, RTL, emoji | n/a | n/a |
+| Rapid R (Punch and roll) | M12 | n/a | n/a | n/a | n/a | n/a | planned: ten presses in 100 ms make one roll | planned |
+| Side-panel set buttons | M14 | planned | n/a | n/a | n/a | n/a | n/a | n/a |
+| Chapter picker while recording | 13 | planned | n/a | n/a | n/a | planned | n/a | n/a |
+| Narrow window with the notice | 12 | planned: 400×700, 800×600, 1440×500, Text size 24 and 72 | n/a | n/a | n/a | n/a | n/a | n/a |
+
+The DAW-facing rows also cover, each by the mock DAW's own control (`window.__NARRATION_MOCK_DAW__`): never answers (`quiet`), answers late (`late`), out of order (`dropEvents`, repeated heartbeats), loses an event, repeats an event, the wrong project open (`different`, `openProject('other')` at any moment), the wrong version (a capability report with no `record` entry), and restarts mid-session (`restart`). The planned tests for each are in `booth-live.spec.ts`, `recordLive.test.tsx` and `recordFuzzTransport.test.tsx`.
