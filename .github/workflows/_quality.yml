@@ -173,7 +173,8 @@ jobs:
   quick-ubuntu:
     # The sub-minute Linux checks, one step each on one runner (their own jobs spent more on setup than on checking).
     # `!cancelled()` on every step: a red step does not hide the ones after it.
-    #   - repo-scripts: the plain-Node scripts (GitHub metadata, release, the layout guard). `always`: the layout and
+    #   - repo-scripts: the plain-Node scripts (GitHub metadata, release, the layout guard, the guide-screenshots tests,
+    #     which need the UI project's `sharp`, so it installs too). `always`: the layout and
     #     project guards read every tracked file.
     #   - docs-site (tools/docs-site, ADR 0083): unit tests only while GitHub Pages is paused (D75, ADR 0415) - the
     #     strict MkDocs build and its link check over the built HTML are redundant with Docs / Links (offline)
@@ -193,7 +194,7 @@ jobs:
           need-wails-tools: 'false'
           need-linux-native-deps: 'false'
           python-sync-args: --group docs
-          pnpm-filter: narration-utils
+          pnpm-filter: narration-utils narration-utils-ui
       - name: repo-scripts
         if: ${{ !cancelled() }}
         uses: ./.github/actions/nx-run
