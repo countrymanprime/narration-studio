@@ -131,7 +131,7 @@ Script). An entry cannot be marked reviewed while it has suggestions waiting.
 
 ## Voice references and dialogue cue attribution
 
-An entry whose type can speak (Character, unless the type list says otherwise) has two more sections below
+An entry whose type can speak (Character, unless you change it under **Story Bible types** in [Settings](settings.md)) has two more sections below
 Personality notes: **Reference clips** and **Dialogue cues**. Neither judges your reading - they only track what you've approved and who a line of
 dialogue is attributed to; there is no acoustic comparison or "drift" flag in the app yet.
 

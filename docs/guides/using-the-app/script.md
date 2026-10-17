@@ -95,7 +95,7 @@ contents and back matter (endnotes, glossary, and the like) are recognized from 
 markup and kept out of the narration chapters, the same as a Word document's front matter. A
 plain-text file with no chapter markings, or an EPUB with no table of contents or headings,
 still imports as one narration chapter rather than failing or importing nothing narratable — the
-import log says so. Re-import a manuscript (Replace manuscript on [Production](production.md#importing-the-manuscript)) to pick this up in an older project.
+import log says so. Replace the manuscript (**Replace manuscript…** under Manuscript in [Settings](settings.md)) to pick this up in an older project.
 
 **Opening credits** sit above the first chapter and **Closing credits** after the last chapter's text, when the
 credit template library (Settings, This Project, [Credits](settings.md#credits)) has an opening or a

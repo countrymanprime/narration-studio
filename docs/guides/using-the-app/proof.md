@@ -155,8 +155,7 @@ why.
 
 The footer lists them, and you can change them in [Settings](settings.md). Space is not a Proof key.
 
-Proof has no decision history list and no **Play ±3 s**. Finding the lines you recorded more than
-once and comparing their takes are not on Proof: choosing a take is on [Editing](editing.md).
+Choosing between takes is on [Editing](editing.md), not here.
 
 ## Delivery checks
 
@@ -231,8 +230,7 @@ marker [Add marker in the DAW](#going-to-a-note-in-the-daw) adds for one accepte
 mark a spot twice. **New comparison** starts over. **Last narrated take: …**, at the top of the setup, reopens the last completed
 comparison; Export markers is off while you review it.
 
-Leaving the chapter view while a run is under way or showing results resets the run, the same way
-leaving used to reset the Proofing page's own run.
+Leaving the chapter view while a run is under way or showing results resets the run.
 
 Below the compare run, the Preview panel suggests up to three five-minute excerpts from the manuscript
 — one per chapter — so you don't have to scan the whole book to find a stretch worth listening to or

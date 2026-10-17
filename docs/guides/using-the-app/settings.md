@@ -2,8 +2,8 @@
 
 # Settings
 
-Settings is one page of panels, one under another. It opens with the Studio Next panels, then the panels for
-the rest of the settings.
+Settings is one page of panels, one under another: Recording, Delivery profile, the reader and Story Bible
+panels and Appearance come first, then the panels for the rest of the settings.
 
 - **Recording** chooses where this project's takes are recorded: **REAPER**, **Audacity** or the **Built-in
   recorder** (see [Choose REAPER](#choose-reaper)). The choice is saved with the project. A refused choice (no
@@ -29,10 +29,12 @@ the rest of the settings.
 ![Settings - Reader text: font, size, line spacing and column width over the preview quote, then the Marks](../../images/ui/settings-reader-text.webp)
 
 - **Story Bible types** lists the kinds of [Story Bible](story-bible.md) entry, each with its name, colour, a
-  **Can speak** box (entries of that type can be picked as the speaker of a quoted line) and how many entries
-  it has. Rename a type in its box, change its colour, add one in **New type**, or remove one: the remove
-  button stays off while entries use the type, and the last type cannot go. A refused change says why under
-  the list.
+  **Can speak** box (entries of that type can be picked as the speaker of a quoted line, and the next Story Bible
+  build attributes dialogue to them) and how many entries it has. A type you add with **New type** does not speak
+  until you tick the box. Rename a type in its box and every entry of it moves with it; change its colour; or
+  remove one: the remove button stays off while entries use the type, and the last type cannot go. A taken or
+  reserved name is refused. A refused change says why under the list. The Story Bible's list and kind chips, its
+  kind menu and the Script's speaker choices follow the list at once.
 - **Story Bible analysis** lists the optional tools that make the Story Bible scan better (GLiNER, BookNLP small
   and large, and a local language model), each with what it does, its size, where it downloads from and the
   memory it needs, and the **Offer better analysis when scanning** box. A tool the app does not offer yet says
