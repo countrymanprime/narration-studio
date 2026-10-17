@@ -104,13 +104,32 @@ func TestAReportWithNoStoredAlignmentAnswersNeedsAlignAgain(t *testing.T) {
 	}
 }
 
-func TestAlignmentOfAChapterNeverCheckedAnswersNever(t *testing.T) {
+// Behaviour change (issue 1807): a chapter never checked used to answer no paragraphs, so the Editing page said the chapter had no
+// text. It now carries the chapter's script, with nothing heard: tokens, extras and items stay empty.
+func TestAlignmentOfAChapterNeverCheckedAnswersNeverWithItsScript(t *testing.T) {
 	p := newTestProject(t)
 	service := p.service(&fakeSidecar{})
 
 	view := alignmentOf(t, service)
 
-	if view.State != evidence.StateNever || len(view.Paragraphs) != 0 || len(view.Items) != 0 {
+	if view.State != evidence.StateNever || len(view.Items) != 0 || len(view.Tokens) != 0 || len(view.Extras) != 0 {
+		t.Fatalf("view = %+v", view)
+	}
+	if len(view.Paragraphs) != 1 || view.Paragraphs[0] != (AlignmentParagraph{ID: "p-000001", Text: "Alice was beginning to get very tired."}) {
+		t.Fatalf("a never-checked chapter still reads its script: %+v", view.Paragraphs)
+	}
+}
+
+func TestAlignmentOfAChapterTheManuscriptLacksIsNeverWithNoScriptAndNoError(t *testing.T) {
+	p := newTestProject(t)
+	service := p.service(&fakeSidecar{})
+
+	view, err := service.Alignment("c-9999", DefaultAlignmentParams)
+
+	if err != nil {
+		t.Fatalf("Alignment: %v", err)
+	}
+	if view.State != evidence.StateNever || len(view.Paragraphs) != 0 {
 		t.Fatalf("view = %+v", view)
 	}
 }

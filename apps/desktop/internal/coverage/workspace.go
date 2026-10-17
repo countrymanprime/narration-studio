@@ -181,6 +181,11 @@ func (s *Service) Alignment(chapterID string, alignment AlignmentParams) (Alignm
 		view.Basis = &BasisView{Label: result.Basis.Label, ModifiedAt: result.Basis.ProjectFile.ModTime, Stale: result.Basis.Stale}
 	}
 	if result.Result == nil {
+		// Nothing was checked, but the chapter still has its script: the Editing page shows it with nothing heard. A manuscript
+		// that cannot be read leaves the script out; it does not fail the answer, which already says why nothing is known.
+		if paragraphs, err := s.chapterParagraphs(chapterID); err == nil {
+			view.Paragraphs = paragraphs
+		}
 		return view, nil
 	}
 	report := result.Result.Report

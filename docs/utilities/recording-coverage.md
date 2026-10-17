@@ -94,7 +94,8 @@ flowchart LR
   - one `COVERAGE_EXTRA` per run of heard words the chapter does not account for.
 
   `--align-only` re-aligns from the cached words files and never transcribes. The host reads them through the `WorkspaceAlignment` binding
-  (`apps/desktop/bindings_coverage.go`, `coverage.AlignmentView`).
+  (`apps/desktop/bindings_coverage.go`, `coverage.AlignmentView`). A chapter with no stored result answers state `never` with the
+  chapter's paragraphs and no tokens, extras or items, so the Editing page can show the script before any check has run.
   Every run writes one ledger record
   (`complete`, `partial` on cancel, or `failed`). A complete run's report is stored under
   `narration-utils/analysis/coverage/results/` with a hash of the chapter's text. The host applies the thresholds when

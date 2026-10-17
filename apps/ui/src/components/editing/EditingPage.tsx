@@ -43,6 +43,8 @@ export interface EditingPageProps {
   onChapter?: (id: string) => void;
   /** Opens the import flow, from the need-a-manuscript state. */
   onImport?: () => void;
+  /** Opens the manuscript text at a paragraph of a chapter (the recording check's passage links). */
+  onGoToParagraph?: (chapterId: string, index: number) => void;
 }
 
 /** The strip and the drawer: page state that a chapter change keeps. */
@@ -73,7 +75,7 @@ export function EditingPage(props: EditingPageProps) {
   return <EditingLoaded {...props} />;
 }
 
-function EditingLoaded({ chapterId: asked, passageId, findingId, t, drawer, onChapter }: EditingPageProps) {
+function EditingLoaded({ chapterId: asked, passageId, findingId, t, drawer, onChapter, onGoToParagraph }: EditingPageProps) {
   const manuscript = usePort('manuscript');
   const keymap = useUserKeymap();
   const daw = useDawStatus();
@@ -143,6 +145,8 @@ function EditingLoaded({ chapterId: asked, passageId, findingId, t, drawer, onCh
               keymap={keymap}
               width={width}
               step={step}
+              checkChapter={chapters?.find((c) => c.id === chapter.id)}
+              onGoToParagraph={(index) => onGoToParagraph?.(chapter.id, index)}
             />
           ) : chapters ? (
             <Panel title="This manuscript has no chapters to edit">
@@ -166,10 +170,25 @@ type ChapterProps = {
   keymap: ReturnType<typeof useUserKeymap>;
   width: number;
   step: (d: 1 | -1) => void;
+  checkChapter?: ManuscriptChapter;
+  onGoToParagraph: (index: number) => void;
 };
 
 /** One chapter on the page. Keyed by it, so a chapter change starts with no cursor, selection, card or playhead. */
-function EditingChapter({ chapterId, chapterName: name, link, stepper, banner, panels, caps, keymap, width, step }: ChapterProps) {
+function EditingChapter({
+  chapterId,
+  chapterName: name,
+  link,
+  stepper,
+  banner,
+  panels,
+  caps,
+  keymap,
+  width,
+  step,
+  checkChapter,
+  onGoToParagraph,
+}: ChapterProps) {
   const { source, setCuts, setEffects, reloadAccepted, reread } = useChapterSource(chapterId, name);
   const stripFits = width >= STRIP_MIN_WIDTH;
   if (source.status !== 'ready') {
@@ -210,6 +229,8 @@ function EditingChapter({ chapterId, chapterName: name, link, stepper, banner, p
         onEffects={setEffects}
         onAccepted={reloadAccepted}
         onReread={reread}
+        checkChapter={checkChapter}
+        onGoToParagraph={onGoToParagraph}
         caps={caps}
         keymap={keymap}
         stripFits={stripFits}
