@@ -10,7 +10,6 @@ import (
 	"time"
 
 	"github.com/countrymanprime/narration-utils/shell/internal/daw"
-	"github.com/countrymanprime/narration-utils/shell/internal/dawport"
 )
 
 // The app connects to the REAPER the narrator already has open without a click. A project that records with REAPER and has its
@@ -79,7 +78,7 @@ func (h *Host) autoConnectOnce(lastLaunch time.Time) time.Time {
 	pd := h.projectDaw(svc)
 	facts := autoConnectFacts{
 		Now: time.Now(), LastLaunch: lastLaunch, HasProject: true,
-		ReaperProject: pd.kind == dawport.KindREAPER, Linked: pd.folder.linkedPath != "",
+		ReaperProject: pd.kind.LinksProjectFile(), Linked: pd.folder.linkedPath != "",
 		Reachable: svc.reachability != nil && svc.reachability.Reachable(),
 	}
 	if svc.config.sessionDir != "" {
