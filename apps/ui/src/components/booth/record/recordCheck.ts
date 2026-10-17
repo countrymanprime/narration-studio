@@ -1,4 +1,5 @@
 import type { DawCapabilities } from '../../../api/contracts/daw';
+import { recorderName, recorderNameCapital } from '../../../studio/dawNames';
 
 /** What the host says of the chapter's track (`readAloudReaperState`): how many it has, and its own sentence for the ones that stop a take. */
 export type ChapterRecordState = {
@@ -23,19 +24,18 @@ export function recordCheck(capabilities: DawCapabilities, chapter: ChapterRecor
   const record = capabilities.capabilities.record;
   // The capability's own sentence; a host that sends none (or no `record` entry at all, an older one) still gets a reason, never a silent Record.
   if (!record?.available) {
-    const name = capabilities.daw === 'none' ? 'the DAW' : capabilities.daw;
-    return { code: 'capability', reason: record?.message || `Recording is not available in ${name} right now.` };
+    return { code: 'capability', reason: record?.message || `Recording is not available in ${recorderName(capabilities.daw)} right now.` };
   }
   // A take goes into the project the DAW has open: if that is not the linked one it would land in the wrong project, so say so before it does.
   if (openProject === 'different') {
-    const name = capabilities.daw === 'none' ? 'The DAW' : capabilities.daw;
+    const name = recorderNameCapital(capabilities.daw);
     return {
       code: 'wrong_project',
       reason: `${name} has a different project open than the one linked here. Open the linked project in ${name}, or link the open one in Settings.`,
     };
   }
   if (chapter.elsewhere) {
-    const name = capabilities.daw === 'none' ? 'The DAW' : capabilities.daw;
+    const name = recorderNameCapital(capabilities.daw);
     return { code: 'recording_elsewhere', reason: `${name} is already recording. Stop it in ${name} before recording here.` };
   }
   if (!capabilities.capabilities.track_state?.available) return null;

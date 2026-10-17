@@ -23,6 +23,10 @@ func (h *Host) DawProjectState() (string, error) {
 
 func (h *Host) dawProjectState() dawport.ProjectState {
 	svc := h.services()
+	if h.recordsInApp(svc) {
+		h.observeUnsaved("", time.Time{}, 0, false)
+		return dawport.NewProjectState(dawport.ProjectStateInput{Transport: dawport.Transport{Recording: svc.recorder.Recording()}, HasTransport: true})
+	}
 	resolver, _ := h.dawResolverFor(svc)
 	in := dawport.ProjectStateInput{KeepsSavedProject: true}
 	if svc.reachability == nil || !resolver.Support(dawport.CapHeartbeat).Available || !svc.reachability.Reachable() {

@@ -461,6 +461,20 @@ describe('golden payloads written by the Go host and the Python sidecars', () =>
     }
   });
 
+  it("the host's built-in recorder answers pass the schema, and the mock answers a start, a stop and each refusal alike", async () => {
+    const golden = z.record(z.string(), readAloudRecordingSchema).parse(readGolden('read-aloud-recordings-builtin.json'));
+    Object.entries(golden).forEach(([name, result]) => expectMatches(readAloudRecordingSchema, result, `host built-in record ${name}`));
+
+    const api = createMockApi({}, { daw: { daw: 'Built-in', toggles: { record: 'on' } }, recording: { engine: 'builtin' } });
+    const started = await api.readAloudRecordStart('chapter-1');
+    expectMatches(readAloudRecordingSchema, started, 'mock built-in record start');
+    expect(started).toEqual(golden.start);
+    expect(await api.readAloudRecordStop()).toEqual(golden.stop);
+    const idle = await api.readAloudRecordStop();
+    expectMatches(readAloudRecordingSchema, idle, 'mock built-in record stop with no take');
+    expect(idle).toEqual(golden['stop with no take']);
+  });
+
   it("the host's record starts at a punch all pass the schema, and the mock answers a start, a bad time and no link alike", async () => {
     const golden = z.record(z.string(), readAloudRecordingSchema).parse(readGolden('readaloud-record-start-at.json'));
     Object.entries(golden).forEach(([name, result]) => expectMatches(readAloudRecordingSchema, result, `host record start at ${name}`));
@@ -2020,6 +2034,9 @@ describe('answers of the mock client for the settings, voice, model, transcript 
     const quiet = { playing: false, recording: false };
     const recording = { playing: true, recording: true, position: 1 };
     expect(seen({ daw: { daw: 'none', transport: recording } })[0]).toEqual(quiet);
+    // The built-in recorder is its own transport: it is recording while a take records, whatever a heartbeat would say.
+    expect(seen({ daw: { daw: 'Built-in', transport: recording } })[0]).toEqual(readGolden('daw-transport-builtin-recording.json'));
+    expect(seen({ daw: { daw: 'Built-in' } })[0]).toEqual(quiet);
     expect(seen({ daw: { connected: true, reachable: false, transport: recording } })[0]).toEqual(quiet);
     expect(seen({ daw: { toggles: { heartbeat: 'off' }, transport: recording } })[0]).toEqual(quiet);
   });
@@ -2044,12 +2061,15 @@ describe('answers of the mock client for the settings, voice, model, transcript 
     expect(await read({ daw: { savedAt, transport: { playing: true, recording: true, position: 40.25 } } })).toEqual(
       readGolden('daw-project-state-recording.json'),
     );
-    // With no heartbeat to read (no DAW, the built-in recorder, REAPER not answering, the capability off) it is the idle payload.
+    // The built-in recorder keeps no saved project, and a take it records is the play state.
+    expect(await read({ daw: { daw: 'Built-in', savedAt, unsavedChanges: true, transport: { playing: false, recording: true, position: 1 } } })).toEqual({
+      ...(readGolden('daw-project-state-builtin-recording.json') as object),
+    });
+    // With no heartbeat to read (no DAW, REAPER not answering, the capability off) it is the idle payload.
     const idle = readGolden('daw-project-state-idle.json');
     const live = { savedAt, unsavedChanges: true, transport: { playing: true, recording: true, position: 1 } };
     for (const daw of [
       { daw: 'none' as const, ...live },
-      { daw: 'Built-in' as const, ...live },
       { daw: 'Audacity' as const, ...live },
       { reachable: false, ...live },
       { toggles: { heartbeat: 'off' as const }, ...live },

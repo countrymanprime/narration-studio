@@ -261,6 +261,11 @@ func putArmsBack(recorder dawport.Recorder) {
 
 func (h *Host) ReadAloudRecordStart(chapterID string) (string, error) {
 	svc := h.services()
+	if h.recordsInApp(svc) {
+		ctx, cancel := context.WithTimeout(context.Background(), recorderDevicesTimeout)
+		defer cancel()
+		return encodeBinding(h.builtinRecordStart(ctx, svc), nil)
+	}
 	recorder := recorderFrom(svc)
 	ctx, cancel := context.WithTimeout(context.Background(), readAloudRecordStartTimeout)
 	defer cancel()
@@ -288,6 +293,9 @@ func puncherFrom(svc hostServices) dawport.Puncher {
 // track GUID (threat-model row 5k). ReadAloudRecordStart, with no time, keeps starting at the end of the last item.
 func (h *Host) ReadAloudRecordStartAt(chapterID string, at float64) (string, error) {
 	svc := h.services()
+	if h.recordsInApp(svc) {
+		return encodeBinding(builtinPunchRefusal(svc, at), nil)
+	}
 	recorder := recorderFrom(svc)
 	ctx, cancel := context.WithTimeout(context.Background(), readAloudRecordStartTimeout)
 	defer cancel()
@@ -315,6 +323,9 @@ func readAloudRecordStopIn(ctx context.Context, name string, recorder dawport.Re
 
 func (h *Host) ReadAloudRecordStop() (string, error) {
 	svc := h.services()
+	if h.recordsInApp(svc) {
+		return encodeBinding(builtinRecordStop(svc), nil)
+	}
 	result, err := readAloudRecordStopIn(context.Background(), readAloudAdapterName(svc), recorderFrom(svc))
 	h.clearReadAloudRecording()
 	return encodeBinding(result, err)

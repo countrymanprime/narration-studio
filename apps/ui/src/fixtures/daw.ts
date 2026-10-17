@@ -166,7 +166,7 @@ const builtinExperimental: DawCapabilitySupport = { level: 'experimental', avail
 
 /** The built-in recorder as the host declares it (dawport/builtin, tests/fixtures/contracts/daw-capabilities-builtin.json): it
  * records, keeps takes and cuts a range by an edit list (Experimental, switched on here as the Audacity setups are), keeps no
- * saved project, and will make punch and the other edits itself later. `daw` stays `none` until the Booth's setup chip names the 'Built-in' kind (the Booth slice). */
+ * saved project, and will make punch and the other edits itself later. */
 const BUILTIN_CAPABILITIES = everyCapability(() => ({ level: 'unsupported', available: false, reason: 'unsupported', message: BUILTIN_UNSUPPORTED }), {
   record: builtinExperimental,
   takes: builtinExperimental,
@@ -182,7 +182,7 @@ const BUILTIN_CAPABILITIES = everyCapability(() => ({ level: 'unsupported', avai
 export const DAW_SETUPS: Readonly<Record<DawSetupId, DawCapabilities>> = {
   reaper: { daw: 'REAPER', reachable: true, capabilities: REAPER_CAPABILITIES },
   'reaper-off': { daw: 'REAPER', reachable: false, capabilities: REAPER_OFF_CAPABILITIES },
-  builtin: { daw: 'none', reachable: true, capabilities: BUILTIN_CAPABILITIES },
+  builtin: { daw: 'Built-in', reachable: true, capabilities: BUILTIN_CAPABILITIES },
   audacity: { daw: 'Audacity', reachable: true, capabilities: audacityCapabilities(false) },
   'audacity-backups': { daw: 'Audacity', reachable: true, capabilities: audacityCapabilities(true) },
 };

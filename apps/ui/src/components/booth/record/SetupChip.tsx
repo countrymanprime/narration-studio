@@ -1,4 +1,5 @@
 import type { DawCapabilities, DawChoice, DawProjectState } from '../../../api/contracts/daw';
+import { recordsInApp } from '../../../studio/dawNames';
 import { HeaderChip } from '../../primitives/HeaderChip';
 import { TooltipTarget } from '../../primitives/Tooltip';
 
@@ -47,7 +48,7 @@ export function SetupChip({
   choice?: DawChoice | null;
   onClick?: () => void;
 }) {
-  const standalone = choice ? choice.state === 'app' || choice.state === 'none' : capabilities.daw === 'none';
+  const standalone = choice ? choice.state === 'app' || choice.state === 'none' : capabilities.daw === 'none' || recordsInApp(capabilities.daw);
   const name = standalone ? standaloneName : (choice?.daw ?? capabilities.daw);
   const ready = choice ? choice.state === 'connected' || choice.state === 'app' : capabilities.reachable;
   const tone = !ready ? 'warning' : standalone ? 'neutral' : 'success';

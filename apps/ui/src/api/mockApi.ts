@@ -19,6 +19,7 @@ import { createDawMock } from './dawMock';
 import type { RecordingApi } from './contracts/recording';
 import { createProvidersMock } from './providersMock';
 import { createMasteringMock } from './masteringMock';
+import { createBuiltinBoothRecordMock } from './builtinBoothMock';
 import { createRecordingMock } from './recordingMock';
 import { createFindingsMock } from './findingsMock';
 import { createTakeReviewScanMock } from './takeReviewMock';
@@ -436,6 +437,18 @@ export function createMockApi(
     ...providers,
     ...mastering,
     ...recording,
+    // The Booth's Record with the built-in recorder: the recorder and the DAW's transport answer together (bindings_booth_record.go).
+    ...createBuiltinBoothRecordMock({
+      delegate: teleprompter,
+      capabilities: () => daw.dawCapabilities(),
+      control: dawControl,
+      recorder: recording,
+      chosenMicrophone: async () => {
+        const fields = (await settings.bindings.settingsForScope('global')).Teleprompter ?? [];
+        const device = fields.find((field) => field.key === 'input_device');
+        return device?.isSet ? device.value : '';
+      },
+    }),
     ...createPronunciationLookupMock(),
     ...createPronunciationCommonsAudioMock(),
     ...createPronunciationOnlineMock(),
@@ -446,7 +459,16 @@ export function createMockApi(
   const api = initial.invalidPayload ? { ...recorded, ...invalidPayloadOverrides(initial.invalidPayload, recorded) } : recorded;
   const final: NarrationApi = { ...api, ...overrides };
   // A driver (Playwright, a console) plays REAPER's side of the mock DAW from here: kill it, restart it, open another project.
-  if (typeof window !== 'undefined') window.__NARRATION_MOCK_DAW__ = dawControl;
+  // A take the narrator stops inside the DAW is over in the recorder too when the app's own recorder is the engine (its device failed).
+  const control = {
+    ...dawControl,
+    stopInDaw: () => {
+      const builtinTake = dawControl.state().daw === 'Built-in';
+      dawControl.stopInDaw();
+      if (builtinTake) void recording.recorderStop();
+    },
+  };
+  if (typeof window !== 'undefined') window.__NARRATION_MOCK_DAW__ = control;
   return final;
 }
 

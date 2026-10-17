@@ -17,6 +17,9 @@ import (
 // not answering, or an older bridge script), it is neither playing nor recording.
 func (h *Host) dawTransport() map[string]any {
 	svc := h.services()
+	if h.recordsInApp(svc) {
+		return builtinTransportPayload(svc.recorder.Recording())
+	}
 	resolver, _ := h.dawResolverFor(svc)
 	var heartbeat dawport.Heartbeat
 	if svc.reachability != nil {

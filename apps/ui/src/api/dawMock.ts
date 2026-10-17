@@ -360,18 +360,25 @@ function currentCapabilities(seed: DawMockSeed): DawCapabilities {
   return { daw, reachable, capabilities };
 }
 
+/** Whether the transport can be read: a DAW through its heartbeat, the built-in recorder through the recorder itself (bindings_daw_transport.go). */
+const hearsTransport = (capabilities: DawCapabilities): boolean => capabilities.daw === 'Built-in' || !!capabilities.capabilities.heartbeat?.available;
+
 function currentTransport(seed: DawMockSeed, capabilities: DawCapabilities): DawTransport {
-  if (!capabilities.reachable || !capabilities.capabilities.heartbeat?.available || !seed.transport) return { playing: false, recording: false };
+  if (!capabilities.reachable || !hearsTransport(capabilities) || !seed.transport) return { playing: false, recording: false };
   const { playing, recording, position } = seed.transport;
+  // The built-in recorder only records, and keeps no timeline to report a position from (bindings_daw_transport.go).
+  if (capabilities.daw === 'Built-in') return { playing: false, recording };
   return playing || recording ? { playing, recording, ...(position === undefined ? {} : { position }) } : { playing, recording };
 }
 
 /** Like the host's: idle without a heartbeat to read, and the position only while playing or recording. */
 function currentProjectState(seed: DawMockSeed, capabilities: DawCapabilities, transport: DawTransport): DawProjectState {
-  if (!capabilities.reachable || !capabilities.capabilities.heartbeat?.available) {
+  if (!capabilities.reachable || !hearsTransport(capabilities)) {
     return { savedAt: null, unsavedChanges: false, playState: 'stopped', playPosition: 0 };
   }
-  const savedAt = seed.savedAt ?? null;
+  // The built-in recorder keeps no saved project: nothing is saved and nothing is unsaved (bindings_daw_projectstate.go).
+  const keepsProject = capabilities.daw !== 'Built-in';
+  const savedAt = keepsProject ? (seed.savedAt ?? null) : null;
   const playState = transport.recording ? 'recording' : transport.playing ? 'playing' : 'stopped';
   return {
     savedAt,
