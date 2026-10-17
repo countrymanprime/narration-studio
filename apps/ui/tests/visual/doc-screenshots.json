@@ -15,6 +15,20 @@
   },
   {
     "page": "global",
+    "state": "nav-rail-collapsed",
+    "viewport": "small-desktop",
+    "docName": "nav-rail-collapsed",
+    "caption": "Primary navigation - the collapsed rail at rest: icons centred, a thin rule between the groups"
+  },
+  {
+    "page": "global",
+    "state": "nav-rail-collapsed-dark",
+    "viewport": "small-desktop",
+    "docName": "nav-rail-collapsed-dark",
+    "caption": "Primary navigation - the collapsed rail at rest in the Dark theme"
+  },
+  {
+    "page": "global",
     "state": "nav-rail-open",
     "viewport": "small-desktop",
     "docName": "nav-rail-open",
