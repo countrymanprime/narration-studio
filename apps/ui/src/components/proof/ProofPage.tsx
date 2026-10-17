@@ -15,7 +15,7 @@ import { ALL_CHAPTERS, ChapterStepper } from '../primitives/ChapterStepper';
 import { IconButton } from '../primitives/IconButton';
 import { KeyHints } from '../primitives/KeyHints';
 import { openCheckRecordings } from '../recordingcheck/openCheckRecordings';
-import { creditsEntries, creditsKindOfId } from '../credits/creditsEntries';
+import { creditsEntries, creditsKindOfId, ownsOpeningCredits } from '../credits/creditsEntries';
 import { useCreditsRows } from '../credits/useCreditsRows';
 import { NeedManuscript } from '../layout/NeedManuscript';
 import { CheckCard } from './checkcard/CheckCard';
@@ -148,7 +148,7 @@ export function ProofPage({
       .then((list) => {
         if (!live) return;
         setChapters(list.filter(isNarration));
-        setOwnsOpening(list.some((c) => c.contentKind === 'opening'));
+        setOwnsOpening(ownsOpeningCredits(list));
       })
       .catch((error: unknown) => overlay.toast(describeApiError(error), { tone: 'error' }));
     return () => {

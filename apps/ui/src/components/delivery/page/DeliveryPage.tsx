@@ -1,6 +1,6 @@
 import { useCallback, useState } from 'react';
 import { DeliveryProfilePanel } from '../../master/DeliveryProfilePanel';
-import { creditsEntries } from '../../credits/creditsEntries';
+import { creditsEntries, ownsOpeningCredits } from '../../credits/creditsEntries';
 import { useCreditsRows } from '../../credits/useCreditsRows';
 import { NeedManuscript } from '../../layout/NeedManuscript';
 import { Heading } from '../../primitives/Heading';
@@ -63,10 +63,7 @@ function LoadedDelivery({ onOpenInMaster, onOpenMaster }: { onOpenInMaster: (cha
   const { chapters, job } = checks;
   // Nothing is judged until the chapters, the credits and the measurement have each been read.
   const known = chapters !== undefined && job !== undefined && credits.rows !== undefined;
-  const entries = creditsEntries(
-    credits.rows,
-    (chapters ?? []).some((chapter) => chapter.contentKind === 'opening'),
-  );
+  const entries = creditsEntries(credits.rows, ownsOpeningCredits(chapters));
   const states = known ? chapterStates(listedChapters(chapters, entries), job.files) : [];
   const { ready, text } = known ? readiness(states) : { ready: false, text: "Can't tell which chapters pass yet." };
   const measuring = job?.phase === 'running' ? job : undefined;

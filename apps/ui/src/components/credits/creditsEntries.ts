@@ -27,6 +27,18 @@ export const CREDITS_FILE_CHAPTERS: readonly { id: string; title: string; index:
   { id: CREDITS_ID.closing, title: CREDITS_NAME.closing, index: -2 },
 ];
 
+/**
+ * Whether the manuscript imported its own opening-credits chapter: an `opening` chapter titled "Opening Credits" or "Intro Credits". Front
+ * matter is also `opening` but is not the credits, so a copyright page or dedication leaves the Opening credits entry drawn.
+ */
+export function ownsOpeningCredits(chapters: readonly { title: string; contentKind?: string }[] | undefined): boolean {
+  return Boolean(
+    chapters?.some(
+      (chapter) => chapter.contentKind === 'opening' && /^(opening|intro)\s+credits$/i.test(chapter.title.replace(/[^\p{L}\p{N}\s]/gu, '').trim()),
+    ),
+  );
+}
+
 export type CreditsEntry = {
   kind: CreditsKind;
   id: string;
@@ -40,7 +52,7 @@ export type CreditsEntry = {
 };
 
 /**
- * The credits entries to draw. `ownsOpening` is true when the manuscript imported its own opening-credits chapter: that chapter stands in
+ * The credits entries to draw. `ownsOpening` is true when the manuscript imported its own opening-credits chapter (`ownsOpeningCredits`): that chapter stands in
  * for the opening entry, as on the Script page. Empty until the rows are read, or when reading them failed.
  */
 export function creditsEntries(rows: Record<CreditsKind, CreditsRow> | undefined, ownsOpening: boolean): { opening?: CreditsEntry; closing?: CreditsEntry } {

@@ -224,8 +224,8 @@ type chapterStart struct {
 // for a document that carries no epub:type or an unrecognized one.
 var epubTypeKindTable = map[string]string{
 	"cover": "opening", "titlepage": "opening", "frontmatter": "opening",
-	"dedication": "opening", "epigraph": "opening", "copyright-page": "opening",
-	"toc": "reference", "acknowledgments": "reference", "glossary": "reference",
+	"copyright-page": "opening", "dedication": "narration", "epigraph": "narration", "acknowledgments": "narration",
+	"toc": "reference", "glossary": "reference",
 	"index": "reference", "bibliography": "reference", "endnotes": "reference",
 	"footnotes": "reference", "backmatter": "reference",
 	"bodymatter": "narration", "chapter": "narration", "prologue": "narration", "epilogue": "narration",

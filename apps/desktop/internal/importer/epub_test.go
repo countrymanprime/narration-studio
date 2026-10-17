@@ -284,11 +284,12 @@ func TestEPUBOversizedEntryIsRejected(t *testing.T) {
 	}
 }
 
-// TestEPUBBodyEpubTypeClassifiesDedicationAsOpening pins the Architecture
+// TestEPUBBodyEpubTypeClassifiesDedicationAsNarration pins the Architecture
 // notes' "Classification" table: epub:type takes
 // precedence over the title-text classifier, so a dedication page titled
-// something that does not itself read as front matter still lands "opening".
-func TestEPUBBodyEpubTypeClassifiesDedicationAsOpening(t *testing.T) {
+// something the classifier does not know still lands as narration, since an
+// audiobook reads its dedication.
+func TestEPUBBodyEpubTypeClassifiesDedicationAsNarration(t *testing.T) {
 	files := baseEPUBFiles(
 		`<item id="ded" href="ded.xhtml" media-type="application/xhtml+xml"/>`+
 			`<item id="ch1" href="ch1.xhtml" media-type="application/xhtml+xml"/>`,
@@ -303,8 +304,8 @@ func TestEPUBBodyEpubTypeClassifiesDedicationAsOpening(t *testing.T) {
 		t.Fatal(err)
 	}
 	dedication := sectionNamed(t, draft, "For My Mother")
-	if dedication.ContentKind != "opening" {
-		t.Fatalf("dedication content kind = %q, want opening", dedication.ContentKind)
+	if dedication.ContentKind != "narration" {
+		t.Fatalf("dedication content kind = %q, want narration", dedication.ContentKind)
 	}
 }
 
