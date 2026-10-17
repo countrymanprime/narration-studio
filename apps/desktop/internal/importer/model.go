@@ -128,8 +128,28 @@ func isReferenceHeading(value string) bool {
 		return true
 	}
 	switch normalizedHeading(value) {
-	case "table of contents", "contents", "glossary", "pronunciation guide", "acknowledgements", "acknowledgments", "about the author", "reading group guide", "discussion questions", "family tree", "maps":
+	case "table of contents", "contents", "glossary", "pronunciation guide", "reading group guide", "discussion questions", "family tree", "maps":
 		return true
+	}
+	return false
+}
+
+// isFrontMatterHeading matches the headings of preliminary pages an audiobook does not read: the importer's own "Cover" and
+// "Front Matter" groups, a half title, title page, copyright page, "Praise for..." and "Also by..." lists, and an "Opening
+// Credits" page (the credits are generated, not narrated from the manuscript). They are kind "opening" (ADR 0004), so they
+// are left out of the narration totals and are not recorded as chapters. What an audiobook does read stays narration, however
+// early it sits: dedication, epigraph, foreword, preface, introduction, prologue (ADR 0865).
+func isFrontMatterHeading(value string) bool {
+	v := normalizedHeading(value)
+	switch v {
+	case "cover", "opening pages", "front matter", "title page", "half title", "half title page", "copyright", "copyright page",
+		"opening credits", "intro credits":
+		return true
+	}
+	for _, prefix := range []string{"praise for ", "also by ", "other books by ", "books by ", "more books by "} {
+		if strings.HasPrefix(v, prefix) {
+			return true
+		}
 	}
 	return false
 }
@@ -314,7 +334,7 @@ func newDraft(format, sourceName string, paragraphs []Paragraph, titles []string
 		// group that never had its own heading paragraph) falls back to the narrative-marker check.
 		endsCharacterScope := characterListActive && ((hasLevel && level <= charactersLevel) || (!hasLevel && narrative))
 		contentKind := "narration"
-		if normalizedHeading(group.title) == "cover" || normalizedHeading(group.title) == "opening pages" || normalizedHeading(group.title) == "front matter" {
+		if isFrontMatterHeading(group.title) {
 			contentKind = "opening"
 		} else if isReferenceHeading(group.title) || (characterListActive && !endsCharacterScope) {
 			contentKind = "reference"
