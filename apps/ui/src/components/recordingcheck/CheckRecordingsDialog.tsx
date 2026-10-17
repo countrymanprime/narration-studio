@@ -173,12 +173,12 @@ export function CheckRecordingsDialog({ preselected, close }: { preselected: rea
                 <dt>Audio to check</dt>
                 <dd className="m-0 font-mono">{audio.seconds === 0 && audio.unmeasured > 0 ? 'Not measured' : formatAudio(audio.seconds)}</dd>
               </div>
-              {note ? <p className="m-0 text-[var(--text-muted)]">{note}</p> : null}
               <div className="flex justify-between gap-3">
                 <dt>Estimated time</dt>
                 <dd className="m-0 font-mono">Not measured yet</dd>
               </div>
             </dl>
+            {note ? <p className="m-0 text-[var(--text-muted)]">{note}</p> : null}
           </div>
           <div className="flex min-w-0 flex-col gap-2">
             <div className="flex items-center gap-2">

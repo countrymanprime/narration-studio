@@ -162,6 +162,8 @@ A chapter's recording check panel has the same choices under **Check options**, 
 what they show. **Chapters at once** is how many chapters may be checked together when this one starts, itself included: with the default of 1 the
 button waits for a chapter being checked elsewhere, and says so, and above 1 it starts beside them.
 
+![Production - a chapter's recording check with Check options open](../../images/ui/production-recording-check-options.webp)
+
 **Check recordings** (the card's icon) lets you set up the run before it starts. **Speech model** is the
 first pass. **Look again with a larger model** adds a second pass: the **Larger model** transcribes again only
 the passages that are missing and the words Whisper scored under the **Also look again at words scored under**
@@ -170,6 +172,8 @@ many Whisper copies work on the pieces at once (each holds the whole model in me
 much neighbouring pieces overlap, so a word on an edge is whole in one of them. A line under the choices says
 what will run, in words. **Chapters at once** checks that many of the ticked chapters together, each with its own share of the processors, and starts the next as each ends. The boxes start at the values in Settings, and the check runs exactly what the dialog
 shows, so the same chapter is checked the same way wherever you start it, including in the background.
+
+![Proof - the Check recordings dialog before a run, with the options shared with every page](../../images/ui/proof-check-recordings-dialog.webp)
 
 With Settings' **Two-pass check** turned on ([Settings](settings.md)), a check instead runs a fast
 first pass, then re-checks only whatever it reports missing with a stronger model: the progress

@@ -46,6 +46,13 @@ export const proofStates: StateEntry[] = [
   },
   {
     page: 'proof',
+    state: 'check-recordings-dialog',
+    description:
+      "Proof, Chapter 4, the queue's Check recordings dialog before a run: the chapters to check and the shared options (speech model, larger model, chunk length, parallel processes, crossover, chapters at once)",
+    ...REFLOW,
+  },
+  {
+    page: 'proof',
     state: 'check-checking',
     description:
       "Proof, Chapter 4 while its recording check runs (?mockCoverage=hold, started from the queue's Check recordings): the Check recordings dialog running over the page, the card behind it in its checking state",

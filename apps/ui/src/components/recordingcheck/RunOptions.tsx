@@ -45,7 +45,7 @@ export function RunOptions({
   const blocker = findProblem(choices, engines);
   const problem = blocker && (showInstallProblems || !blocker.needsInstall) ? blocker.message : undefined;
   return (
-    <div className="flex min-w-0 flex-col gap-3">
+    <div className="@container flex min-w-0 flex-col gap-3">
       <label className="flex flex-col gap-1">
         <span className={LABEL}>Speech model</span>
         <Select label="Speech model" fullWidth value={choices.model} onChange={(model) => onChange({ model })} options={engineOptions(engines.engines)} />
@@ -81,7 +81,7 @@ export function RunOptions({
           </label>
         </div>
       ) : null}
-      <fieldset className="m-0 grid min-w-0 grid-cols-3 gap-3 border-0 border-t border-[var(--line)] p-0 pt-3">
+      <fieldset className="m-0 grid min-w-0 grid-cols-1 gap-3 border-0 border-t border-[var(--line)] p-0 pt-3 @sm:grid-cols-3">
         <legend className="sr-only">Long recordings</legend>
         <label className="flex flex-col gap-1">
           <span className={LABEL}>Chunk length</span>
@@ -118,7 +118,7 @@ export function RunOptions({
             options={withChoice(OVERLAP_SECONDS, choices.overlapSeconds).map((seconds) => ({ value: String(seconds), label: `${seconds} s` }))}
           />
         </label>
-        <p className="col-span-3 m-0 text-[var(--text-muted)]">
+        <p className="m-0 text-[var(--text-muted)] @sm:col-span-3">
           Chunks overlap by the crossover so a word on an edge is whole in one of them; each process transcribes its own chunks.
         </p>
         <label className="flex flex-col gap-1">
@@ -131,7 +131,7 @@ export function RunOptions({
             options={withChoice(CHAPTERS_AT_ONCE, choices.chapters).map((count) => ({ value: String(count), label: String(count) }))}
           />
         </label>
-        <p className="col-span-2 m-0 self-end text-[var(--text-muted)]">Chapters share the processors, so more at once means fewer processes for each.</p>
+        <p className="m-0 self-end text-[var(--text-muted)] @sm:col-span-2">Chapters share the processors, so more at once means fewer processes for each.</p>
       </fieldset>
       <p className="m-0">{runSummary(choices, engines)}</p>
       {problem ? (
