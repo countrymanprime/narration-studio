@@ -85,7 +85,7 @@ Each file in `.github/workflows`, what starts it, and the checks it shows on a p
 | `ci.yml` (`CI`) | pull request that is not docs- or Markdown-only; manual | `quality / *` and `ui-dist / build` (the reusable `_quality.yml` and `_ui-dist.yml`), `Build (Windows)`, `CI passed` | no ruleset requires it |
 | `prerelease.yml` (`Prerelease`) | push to `main` that is not docs- or Markdown-only; manual | `ui-dist / build`, `version`, `Windows build` (needs `ui-dist` and `version`) and `Windows release` (needs the build); no quality jobs, the pull request's `CI` run is the quality gate ([#544](https://github.com/countrymanprime/narration-utils/issues/544) tracks making it a required one); both run only when `version` found a releasable change. A manual run can tick `cold-freeze` to freeze the sidecars without the [freeze cache](#the-sidecar-freeze-cache) | not a pull request check |
 | `promote-release.yml` | manual, with an RC tag; behind the `production` environment | `promote` | not a pull request check |
-| `docs.yml` (`Docs`) | every pull request (no path filter), weekly (Monday 07:17 UTC), manual | `Markdown lint (changed files)` (pull requests only), `Docs impact` and `Docs prose` (pull requests only, [below](#the-docs-impact-check)), `Links (offline)` (pull requests and manual) and `Links (online, advisory)` (weekly and manual) ([below](#the-docs-link-check)) | the offline link job, the changed-file Markdown lint job and the docs-impact and docs-prose jobs all **fail the run** on a finding; no ruleset requires any of them (owner-only setting) |
+| `docs.yml` (`Docs`) | every pull request (no path filter), weekly (Monday 07:17 UTC), manual | `Markdown lint (changed files)` (pull requests only), `Docs impact`, `Guide impact` and `Docs prose` (pull requests only, [below](#the-docs-impact-check)), `Links (offline)` (pull requests and manual) and `Links (online, advisory)` (weekly and manual) ([below](#the-docs-link-check)) | the offline link job, the changed-file Markdown lint job and the docs-impact, guide-impact and docs-prose jobs all **fail the run** on a finding; no ruleset requires any of them (owner-only setting) |
 | `zizmor.yml` | every pull request, push to `main`, manual | `zizmor` | advisory in GitHub terms (not required); a finding at the `regular` persona fails the run |
 | `security.yml` (`Security scan`) | every pull request, push to `main`, weekly (Tuesday 06:41 UTC), manual | `govulncheck`, `osv-scanner (pull request)` (only for a same-repository pull request that is not Dependabot's) or `osv-scanner` (every other trigger) | advisory: neither fails on a finding |
 | `codeql.yml` (`CodeQL`) | pull request to `main` that is not docs- or Markdown-only (same-repository, not Dependabot), push to `main`, weekly (Monday 05:23 UTC), manual | `Analyze (go)`, `Analyze (javascript-typescript)`, `Analyze (python)` | advisory |
@@ -422,7 +422,7 @@ The baseline on 2026-09-21: 0 dead repository links; 7 external links rotted or 
 
 ## The docs-impact check
 
-[Documentation gates](documentation-gates.md) is the one-page map of this check and the three after it. This section and the next two give how each is wired.
+[Documentation gates](documentation-gates.md) is the one-page map of this check and the four after it. This section and the next three give how each is wired.
 
 A change to code that `docs/` describes has to touch one of those docs, or say why none is owed (issue #943). `scripts/ci/docs-impact.mjs` reads `scripts/ci/docs-impact-map.json`: each rule lists code paths, paths to leave out (tests, stories), and the docs that describe them. A rule fails when the change touches its code and none of its docs. The map is a starting set of ten rules, not every doc in the tree; add a rule when a doc starts describing a new area. `scripts/ci/docs-impact.test.mjs` fails when a rule names a doc or a code path that no longer exists.
 
@@ -430,6 +430,10 @@ A change to code that `docs/` describes has to touch one of those docs, or say w
 - **Where it runs.** `Docs / Docs impact` runs on every pull request, with no path filter and on `edited` too, so adding the opt-out line re-runs it. `pnpm check` runs the same script against `origin/main` first.
 - **Hook.** `.claude/settings.json` also runs it when a coding session stops; [`.claude/skills/README.md`](../../.claude/skills/README.md#hooks) describes how.
 - **Limits.** It compares paths, so an empty edit to a mapped doc satisfies it. Review judges whether the doc changed in substance. A rule over a wide folder fails a refactor that changes no documented behaviour; that is what the opt-out is for.
+
+### The guide-impact check
+
+`Docs / Guide impact` runs `scripts/ci/guide-impact.mjs` the same way: on every pull request and on `edited`, and in `pnpm check` against `origin/main`. `scripts/ci/guide-impact-map.json` maps each folder under `apps/ui/src/components/` to the pages of the how-to guide it draws. A change to a folder's code (tests, stories and fixtures aside) fails when it touches neither one of those pages nor any image in `docs/images/ui/`. The opt-out is a line `No guide change: <reason>`, with the same length and vagueness rules as `Docs: none`. `primitives` and `devtools` have no rule; the periodic guide sweep catches what a shared component moves ([UI PRs update the how-to guide](../../CONTRIBUTING.md#ui-prs-update-the-how-to-guide)).
 
 ### The docs prose checks
 

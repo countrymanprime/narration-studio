@@ -21,7 +21,11 @@ note counts, since the notes and pickups the project still holds belong to an ea
 
 The header runs, left to right: Back and Forward (below), the project's name, **Jump to or run…** (`Ctrl+K`), Undo and History, the timer,
 the [zoom controls](#zoom) and the engine chip. Jump to or run… opens the jump menu: type to find a page, a chapter or a command, or
-type `>` to list commands only. Undo (`Ctrl+Z`, except in a text box, which keeps its own undo) takes back the last change you made in the app, and says why when it cannot; History lists
+type `>` to list commands only. Escape, or a press anywhere outside the menu, closes it.
+
+![The jump menu open over the page: type to find a page, a chapter or a command](../../images/ui/nav-jump-menu.webp)
+
+Undo (`Ctrl+Z`, except in a text box, which keeps its own undo) takes back the last change you made in the app, and says why when it cannot; History lists
 the changes you can undo (`Ctrl+Shift+H`). Below the tablet width Undo and History leave the header; the jump menu opens History.
 While a [production stage timer](production.md#the-stage-timer) runs,
 the timer chip counts its time and names the chapter ("0:42:07 · timer on Chapter 6") on every page; below the
@@ -211,6 +215,8 @@ found. **Check editing** (**Check again** once one has run) runs the scan with r
 **Cancel**; items already checked are cached, so re-checking after a small edit is fast. Every
 result carries the caveat "Analysis of source audio; take FX, item gain and fades are not
 applied", since REAPER's own processing isn't part of what's analyzed.
+
+![Production - the editing check with empty space not met and its open candidates](../../images/ui/production-editing-check.webp)
 
 A chapter's analysis source is your choice: **Items on this chapter's track** (the default) or
 **The rendered file**, a toggle near the top of the panel. Editing happens on items, so items stay

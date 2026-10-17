@@ -87,6 +87,8 @@ figure). From there:
 **Play the original around this line** is off, with its reason: the app has no player for the original recording around
 a line yet. Open the line in the Booth to hear and re-record it.
 
+![Pickups - one line left out of the session: the session panel counts one fewer](../../images/ui/pickups-left-out.webp)
+
 ## In the Booth's companion panel
 
 The companion panel's **Pickups** section shows how many of the DAW's pickup markers are still open, out of the total. It

@@ -11,7 +11,8 @@ name: Docs
 # links, which rot on their own, so it runs weekly and by hand and only reports: it never blocks a pull request.
 on:
   pull_request:
-    # `edited` re-runs the docs-impact job when the description gains a `Docs: none — <reason>` line.
+    # `edited` re-runs the docs-impact and guide-impact jobs when the description gains a `Docs: none — <reason>` or
+    # `No guide change: <reason>` line.
     types: [opened, synchronize, reopened, edited]
   schedule:
     - cron: '17 7 * * 1'
@@ -72,6 +73,32 @@ jobs:
           # The description may carry the `Docs: none — <reason>` opt-out. Read through env, never interpolated into the script.
           PR_BODY: ${{ github.event.pull_request.body }}
         run: node scripts/ci/docs-impact.mjs --summary
+  guide-impact:
+    name: Guide impact
+    # Needs a pull request description and a base to diff; the schedule and a manual run have neither.
+    if: github.event_name == 'pull_request'
+    timeout-minutes: 5
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # scripts/ci/guide-impact.mjs diffs against the merge base with the pull request's base branch.
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: ./.github/actions/setup-toolchain
+        with:
+          need-pnpm: 'false'
+          need-go: 'false'
+          need-python: 'false'
+          need-wails-tools: 'false'
+          need-stylua: 'false'
+          need-linux-native-deps: 'false'
+      - name: Fail when a page's UI changed and its how-to guide did not
+        env:
+          GITHUB_BASE_REF: ${{ github.base_ref }}
+          # The description may carry the `No guide change: <reason>` opt-out. Read through env, never interpolated into the script.
+          PR_BODY: ${{ github.event.pull_request.body }}
+        run: node scripts/ci/guide-impact.mjs --summary
   docs-prose:
     name: Docs prose
     # Needs a base to diff; the schedule and a manual run have none.

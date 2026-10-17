@@ -5,7 +5,7 @@ import docScreenshots from '../tests/visual/doc-screenshots.json';
 
 // The docs/guides/using-the-app/ pages embed a curated subset of
 // STATE_CATALOG, listed in tests/visual/doc-screenshots.json and synced into
-// docs/images/ui/ by scripts/sync-doc-screenshots.mjs (see the
+// docs/images/ui/ by scripts/dev/guide-screenshots.mjs at the repo root (see the
 // doc-screenshot-sync skill). This test is the cheap, deterministic half of
 // "keep the docs in sync": if a page/state referenced there is renamed or
 // removed from STATE_CATALOG, this fails loudly instead of leaving the docs

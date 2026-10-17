@@ -62,6 +62,8 @@ Type the date in the **Final delivery** row as `YYYY-MM-DD` and press Enter or l
 due date set**. A due date in the plan that is not a real date (the file was edited by hand) is named in the header and treated as no
 due date.
 
+![Schedule before a due date is set: no verdict, and the Final delivery milestone with no date](../../images/ui/schedule-no-due-date.webp)
+
 ## Staying current
 
 The page reads again when you switch back to the app (at most every 30 seconds) and every minute while it is open, so a change

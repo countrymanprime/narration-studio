@@ -79,6 +79,8 @@ the chain on the middle piece only. Nothing else moves, and one undo step in the
 effect are underlined and end with an effects marker: click it to select the words or remove the effect. The word
 menu offers **Remove** with the chain's name too, and the drawer's Effects tab lists them.
 
+![Editing - Add FX on four selected words: the DAW's effect chains](../../images/ui/editing-fx-menu.webp)
+
 The Effects tab shows how much of the chapter effects cover against a cap, 10% unless you change it in the tab's **Cap**
 field (a whole percent from 1 to 100, kept for the project). Over the cap the tab warns, and Add effect asks again
 before it goes ahead.
@@ -93,6 +95,8 @@ why it is suggested and the steps that would make the comparison surer: **Trim w
 script it read as written, and its pause, level, noise, clarity and breaths. Play a take to hear it; **Keep take**
 (Enter) makes it the one that plays, and **Hide others** (H) hides the other takes from the lanes. **Show in the DAW**
 moves the DAW to the line, on a DAW that can move to a place in the project.
+
+![Editing - Normalise from a suggestion's steps: the question says what it will change in the DAW](../../images/ui/editing-suggestion-step.webp)
 
 **How retries are kept** decides, for the line or the whole chapter, whether a line read again later in the chapter is
 stacked as a take of the first read or left where it was. With Stack, **Stack retries as takes** shows the plan before
@@ -122,14 +126,17 @@ stack, and refuses the edit if the backup fails. **Timeline** shows the line the
 and one lane per take on one time axis. On a window 1360 px wide or more it is a strip under the text, which the header's
 **Timeline** button (S) shows and hides; on a narrower window it is a tab of the drawer.
 
+![Editing - the Clean up and effects panel on Effects: no effects yet, and Add effect waiting for a selection](../../images/ui/editing-drawer-effects.webp)
+
 ![Editing - the Timeline strip under the text: the waveform and takes of the line the cursor is on](../../images/ui/editing-drawer-timeline.webp)
 
 ## When the DAW is not connected
 
-A banner at the top says the DAW is not answering and why, with **Retry**. You can still read, select and play; the
+A banner at the top says the DAW is not answering, or that the chosen DAW is not supported here yet, and why, with
+**Retry**. You can still read, select and play; the
 actions that change the DAW (delete, mute, effects, keeping a take) wait until it is back.
 
-![Editing with the DAW not connected - the banner with its reason and Retry](../../images/ui/editing-daw-off.webp)
+![Editing - the banner when the chosen DAW is not supported yet, with its reason and Retry](../../images/ui/editing-daw-off.webp)
 
 ## When the chapter has no audio
 

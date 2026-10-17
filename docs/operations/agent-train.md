@@ -10,9 +10,9 @@ The headings below stay so that older links keep resolving. Delete this file onc
 
 Now in the rebuild PRD, [Which mocks are the spec](../prds/studio-next-rebuild.prd.md#which-mocks-are-the-spec), and in [the design system](../design/design-system.md#which-mocks-are-the-spec).
 
-## UI PRs show their screenshots
+## UI PRs update the how-to guide
 
-Now in [CONTRIBUTING.md](../../CONTRIBUTING.md#ui-prs-show-their-screenshots), including the targeted runs every UI slice must show (`node scripts/dev/pr-screenshots.mjs`).
+Now in [CONTRIBUTING.md](../../CONTRIBUTING.md#ui-prs-update-the-how-to-guide), including the command that regenerates a page's guide images (`node scripts/dev/guide-screenshots.mjs`).
 
 ## Owner standing rules
 

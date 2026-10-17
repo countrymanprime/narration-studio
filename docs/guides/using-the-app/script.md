@@ -24,8 +24,11 @@ credits included); **B**
 bookmarks the line; **Alt+[** **Alt+]** go to the previous or next bookmark; **Ctrl+F** opens Find. A key you rebind
 under **Keyboard & pedals** in [Settings](settings.md) shows its new key here.
 
+![Script - Find on "Alice": the count, the matches lit in the text and the results list](../../images/ui/script-find.webp)
+
 At 1280 px and narrower the rail opens as a drawer over the text from the header's side panel button, and below 1180 px the
-chapter list does the same from its **Chapters** button.
+chapter list does the same from its **Chapters** button. A drawer opens inside the page, under the navigation, so the
+navigation stays usable; a press anywhere outside the drawer, or on the navigation, closes it.
 
 An old link to the Manuscript page (`/manuscript`, with a line or chapter after `#`) still works: it opens the Script
 page at the same place, as do the links from Proof and the Story Bible.
@@ -49,6 +52,8 @@ Select words in the reader and a toolbar appears over them:
 - **Record from here** (the record button) opens the [Booth](booth.md) on the chapter, starting at the words you selected.
 - **Look up** opens the words in the rail: a Story Bible name on its **Story Bible** tab, any other word on **Words**.
   A word you have not marked yet gets **Add to my words** on its card, which marks the word you selected.
+
+![Script - Define how you mark up: each mark type with its name, colour and line](../../images/ui/script-define-marks.webp)
 
 Right-click the text for the same actions, and more where you click: on a speaker's line, **Speaker: …** to change who
 speaks it; on one of your marks, open it, change its type, resolve or reopen a query, or delete it; on a marked word,
@@ -75,7 +80,11 @@ word in the text to open it on the **Words** tab.
 
 A Story Bible name met in the chapter is listed on **Words** too, marked with the Story Bible icon and read-only there: its pronunciation is the entry's, edited in the Story Bible.
 
-![Script - a word looked up: how to say it, its source and the web look-ups in the rail's Words tab](../../images/ui/script-word-lookup.webp)
+![Script - the rail's Queries tab, with no queries in this chapter](../../images/ui/script-rail-queries.webp)
+
+![Script - the rail's Story Bible tab: the entries met in this chapter](../../images/ui/script-rail-story-bible.webp)
+
+![Script - a word looked up in the rail's Words tab: a box for how to say it, its source and the web look-ups](../../images/ui/script-word-lookup.webp)
 
 ![Script - the rail's Notes tab](../../images/ui/script-note-sidebar.webp)
 
@@ -109,6 +118,8 @@ dismissed for the project. The credits are read-only and are not chapters: Find 
 credits as their own files, as ACX expects, not inside a chapter file: a chapter's Proof view compares a
 chapter's recording with that chapter's text only, so credits recorded inside it are reported as extra
 words. Each credits card has a **Record in Booth** button once it has anything to read (see below).
+
+![Script - the Opening credits card, folded, above Chapter 1](../../images/ui/script-credits.webp)
 
 The [retail sample](settings.md#retail-sample), once picked, is marked where it is: a **Retail sample**
 tag above each chapter it is in, and a bar in the margin beside each of its lines.

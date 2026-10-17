@@ -116,12 +116,16 @@ needs a different file format. Under **Build packages for**, check the box for e
 package for, then **Build N packages**; it stays off until files are mastered and encoded. This does not change which profile the page's checks are judged against (that is the project's profile,
 chosen on Delivery); the checkboxes only choose what to build packages for.
 
+![Master & QC - Multi-platform export with one platform checked](../../images/ui/master-multi-export.webp)
+
 You are asked for one folder once, and each platform's package goes into its own correctly named subfolder
 of it. Two platforms that both take the same file format (most do: MP3 at the same bitrate) share the one
 set of already-encoded files; a platform that needs a different format (an M4B audiobook file, say) is
 encoded for just that once, however many platforms need it, not once per platform. Cancel stops the build
 before its next platform starts; platforms already built keep their packages, and one not yet reached is
 left waiting.
+
+![Master & QC - a finished multi-platform build: a row per platform with its folder or why it was not built](../../images/ui/master-multi-export-results.webp)
 
 Once it finishes, each platform gets its own row: built, with its folder and how many files it wrote, or why
 it could not be built (such as a required file being missing for that platform).

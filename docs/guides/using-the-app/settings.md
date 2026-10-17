@@ -61,6 +61,8 @@ overrides for the current one (a setting left unset there uses the Global value)
 the panel shows **Unsaved changes** with **Save** and **Discard changes**. Switching its scope, or leaving
 Settings, with unsaved changes asks whether to save or discard them.
 
+![Settings with unsaved changes: the footer with Save and Discard](../../images/ui/settings-unsaved.webp)
+
 ![Settings - the General panel (Global only): log verbosity, the long-task notification, the narrator name and the credits room tone](../../images/ui/settings-general.webp)
 
 - **General** (Global only) holds **Log verbosity** (`quiet`, `normal` or `verbose`); **Notify me when a long task
@@ -137,6 +139,14 @@ per-project preference) remembers the microphone, live engine and model you last
 its model: the Booth asks the first time you start reading with it. **Punch pre-roll (seconds)** is how far
 before the word a punch-in starts. Old links to it by its former name, Teleprompter, still open it.
 
+![Settings - Keyboard & pedals: every command by scope, with its key or pedal](../../images/ui/settings-keyboard.webp)
+
+![Settings - Keyboard & pedals recording a new key for Record or stop](../../images/ui/settings-keyboard-recording.webp)
+
+![Settings - the Booth panel: the microphone, the live engine and its model](../../images/ui/settings-booth.webp)
+
+![Settings - a copy of ACX open in the delivery profile editor](../../images/ui/settings-delivery-profile.webp)
+
 The **Project data** panel is a project-only danger zone: **Clear derived project data…**
 removes the imported manuscript and its stored source, the Story Bible, proofing artifacts, reader notes and
 bookmarks, and saved comparison results for the current project, after you confirm. Its settings remain.
@@ -200,6 +210,8 @@ update, since the path changes. The Booth shows the same steps when Record is wa
 In **This project**, the same panel shows whether a REAPER project is linked, with **Link a REAPER
 project file** or **Change linked project file**: the same link as the pill in the
 [header](navigation.md).
+
+![Settings - the DAW panel for this project: the linked DAW project](../../images/ui/settings-daw.webp)
 
 ## Credits
 
