@@ -198,6 +198,8 @@ If the chapter hasn't been checked yet, the chapter view says so and offers **Ch
 Under the heading "Proof · <chapter name>" the header names the check's state (current, or stale if an item changed
 since) and **as of last save**: the check reads the DAW project as it was last saved, not whatever is open live in
 the DAW right now. **Check again** runs the check once more.
+The check panel has a closed **Check options** section with the same choices as [Check recordings](production.md#checking-a-chapters-recording): the speech
+model, a second look with a larger model, chunk length, parallel processes, crossover and **Chapters at once**. **Check again** runs exactly what they show.
 
 ![Proof chapter view - the recording check's state with Check again, above the compare run](../../images/ui/proof-chapter-default.webp)
 

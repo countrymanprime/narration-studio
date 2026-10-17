@@ -11,7 +11,13 @@ the notes still open and **Pickups** the open lines of the Pickups list; a zero,
 
 ![Primary navigation sidebar at desktop width](../../images/ui/nav-sidebar-desktop.webp)
 
-In the icon layout, hover the rail (or tab into it) and it opens over the page with every label; nothing moves.
+In the icon layout the rail shows only the icons, centred, with a thin line where each group's heading would be.
+
+![Collapsed navigation rail at rest: icons centred, a thin line between the groups](../../images/ui/nav-rail-collapsed.webp)
+
+![The same rail in the Dark theme](../../images/ui/nav-rail-collapsed-dark.webp)
+
+Hover the rail (or tab into it) and it opens over the page with every label; nothing moves.
 
 ![Collapsed navigation rail opened over the page on hover](../../images/ui/nav-rail-open.webp)
 

@@ -4,7 +4,7 @@ import { chunkLabel, runProblem, runSummary, startChoices, startOptions, withCho
 
 const engines: CoverageEngines = {
   default: 'small',
-  defaults: { recheck: false, recheckModel: 'large-v3-turbo', recheckBelow: 0.5, workers: 0, chunkSeconds: 300, overlapSeconds: 6 },
+  defaults: { recheck: false, recheckModel: 'large-v3-turbo', recheckBelow: 0.5, workers: 0, chunkSeconds: 300, overlapSeconds: 6, chapters: 1 },
   engines: [
     { id: 'tiny', label: 'Tiny', family: 'whisper', installState: 'installed' },
     { id: 'small', label: 'Small', family: 'whisper', installState: 'installed' },
@@ -24,13 +24,14 @@ describe('startChoices', () => {
       workers: 0,
       chunkSeconds: 300,
       overlapSeconds: 6,
+      chapters: 1,
     });
   });
 });
 
 describe('startOptions', () => {
   it('names every choice so the host runs what the dialog showed', () => {
-    expect(startOptions(base)).toEqual({ model: 'small', recheck: false, workers: 0, chunkSeconds: 300, overlapSeconds: 6 });
+    expect(startOptions(base)).toEqual({ model: 'small', recheck: false, workers: 0, chunkSeconds: 300, overlapSeconds: 6, chapters: 1 });
   });
 
   it('adds the second pass only when it is on', () => {
@@ -42,6 +43,7 @@ describe('startOptions', () => {
       workers: 0,
       chunkSeconds: 300,
       overlapSeconds: 6,
+      chapters: 1,
     });
   });
 
@@ -105,6 +107,10 @@ describe('runSummary', () => {
     expect(runSummary(base, engines)).toBe('Small in 5 min chunks that overlap by 6 s, as many at a time as the model allows.');
     expect(runSummary({ ...base, chunkSeconds: 0 }, engines)).toBe('Small over each recording whole, one process.');
     expect(runSummary({ ...base, workers: 1 }, engines)).toBe('Small in 5 min chunks that overlap by 6 s, one at a time.');
+  });
+
+  it('says how many chapters go at once', () => {
+    expect(runSummary({ ...base, workers: 2, chapters: 3 }, engines)).toBe('Small in 5 min chunks that overlap by 6 s, 2 at a time. Up to 3 chapters at once.');
   });
 
   it('adds the second pass with what it takes', () => {

@@ -22,6 +22,7 @@ describe('coverageStartOptions', () => {
         workers: 3,
         chunkSeconds: 120,
         overlapSeconds: 8,
+        chapters: 2,
       }),
     ).toEqual({
       model: 'tiny',
@@ -31,6 +32,7 @@ describe('coverageStartOptions', () => {
       workers: '3',
       chunkSeconds: '120',
       overlapSeconds: '8',
+      chapters: '2',
     });
   });
 

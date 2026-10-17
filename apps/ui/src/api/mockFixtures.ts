@@ -869,6 +869,7 @@ export const wireSettings = (): Record<string, ScopedSettingField[]> => ({
     recordingCheck('parallel_workers', 'Parallel Whisper processes (0 = chosen from the model)', '0', { min: 0, max: 32, step: 1, unit: 'processes' }),
     choice('chunk_seconds', 'Chunk length in seconds (0 = each item whole)', ['0', '60', '120', '300', '600', '900'], '300'),
     recordingCheck('chunk_overlap_seconds', 'Crossover between neighbouring chunks', '6', { min: 0, max: 60, step: 1, unit: 's' }),
+    recordingCheck('parallel_chapters', 'Chapters checked at once', '1', { min: 1, max: 8, step: 1, unit: 'chapters' }),
   ],
   // The silence cleanup analyzer's five thresholds (ADR 0238 decision 4), mirroring the host's fieldSchemas and numberSpecs:
   // measure.DefaultCleanupOptions' own starting values, all still unset at every scope (repo default only) the way a fresh install reads them.

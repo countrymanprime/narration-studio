@@ -56,7 +56,7 @@ describe('wailsClient', () => {
     const engines = {
       engines: [{ id: 'small', label: 'Small', family: 'whisper', installState: 'installed' }],
       default: 'small',
-      defaults: { recheck: false, recheckModel: 'small', recheckBelow: 0.5, workers: 0, chunkSeconds: 300, overlapSeconds: 6 },
+      defaults: { recheck: false, recheckModel: 'small', recheckBelow: 0.5, workers: 0, chunkSeconds: 300, overlapSeconds: 6, chapters: 1 },
     };
     const start = vi.fn().mockResolvedValue(JSON.stringify({ status: 'refused', reason: 'busy', message: 'A check is already running.' }));
     standInHost({ CoverageEngines: () => Promise.resolve(JSON.stringify(engines)), CoverageStart: start });

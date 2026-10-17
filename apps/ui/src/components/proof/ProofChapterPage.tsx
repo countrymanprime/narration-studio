@@ -10,7 +10,8 @@ import { Heading } from '../primitives/Heading';
 import { Panel } from '../primitives/Panel';
 import { SectionLabel } from '../primitives/SectionLabel';
 import type { Notify } from '../primitives/Toast';
-import type { CoverageState, ManuscriptChapter, TranscriptState } from '../../types';
+import type { ManuscriptChapter, TranscriptState } from '../../types';
+import { useCoverageRuns } from '../recordingcheck/useCoverageRuns';
 import type { WorkspaceAlignmentResult } from '../../api/contracts/workspace';
 import { CommandScope } from '../../input/router';
 import { CompareRun } from './CompareRun';
@@ -54,7 +55,6 @@ function ChapterView({ chapterId, notify, transcript, dawFileLinked, goToManuscr
   const [linkedTrackGuid, setLinkedTrackGuid] = useState<string>();
   const [alignment, setAlignment] = useState<WorkspaceAlignmentResult>();
   const [loadError, setLoadError] = useState('');
-  const [coverage, setCoverage] = useState<CoverageState>({ phase: 'idle', percent: 0, message: '' });
   const [checking, setChecking] = useState(false);
   const [lastCompleted, setLastCompleted] = useState<TranscriptState>();
   const [reviewingLast, setReviewingLast] = useState(false);
@@ -68,7 +68,7 @@ function ChapterView({ chapterId, notify, transcript, dawFileLinked, goToManuscr
       .catch(() => {});
   }, [api]);
 
-  useEffect(() => api.subscribeCoverage(setCoverage), [api]);
+  const runs = useCoverageRuns();
 
   // The check's state for the header; read again after Check again closes.
   useEffect(() => {
@@ -173,7 +173,8 @@ function ChapterView({ chapterId, notify, transcript, dawFileLinked, goToManuscr
         {checking && (
           <RecordingCheck
             chapter={chapter}
-            coverage={coverage}
+            coverage={runs.forChapter(chapterId)}
+            othersRunning={runs.othersRunning(chapterId)}
             notify={notify}
             close={() => {
               setChecking(false);

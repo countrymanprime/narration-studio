@@ -126,6 +126,16 @@ describe('AppShell grouped navigation', () => {
     }
   });
 
+  // The icon rail draws a rule in place of each heading (components.css `.icon-rail`, the mock's `.rail-c .grp::before`), which needs the rail
+  // panel's class and a positioned heading to hang from. Geometry is measured in tests/visual/navRail.spec.ts.
+  it('marks the rail panel and positions every group heading for the icon rail rules', () => {
+    const { container } = renderShell();
+    expect(container.querySelector('aside > div')?.classList.contains('icon-rail')).toBe(true);
+    for (const label of ['Production', 'Prep', 'Record', 'Edit', 'Review', 'Finish']) {
+      expect(container.querySelector(`#nav-group-${label.toLowerCase()}`)?.classList.contains('relative')).toBe(true);
+    }
+  });
+
   // The Production home replaced Home at `/`, as the Production group's one item, active on `/` and nowhere else.
   it("has Production, not Home, as the Production group's item, active at /", () => {
     renderShell({ pathname: '/' });

@@ -40,7 +40,7 @@ func TestTheRecordingCoverageFieldsAreTheCoverageSettings(t *testing.T) {
 	}
 	keys := []string{
 		coverage.SettingMinParagraphPresent, coverage.SettingMaxMissingRun, coverage.SettingMaxMisreadRun, coverage.SettingMinAnchorRun,
-		coverage.SettingCascadeUnsureBelow, coverage.SettingParallelWorkers, coverage.SettingChunkOverlapSeconds,
+		coverage.SettingCascadeUnsureBelow, coverage.SettingParallelWorkers, coverage.SettingChunkOverlapSeconds, coverage.SettingParallelChapters,
 	}
 	sort.Strings(fields)
 	sort.Strings(keys)
@@ -164,6 +164,7 @@ func TestAParallelOrDoubtSettingOutsideItsRangeIsRefused(t *testing.T) {
 		coverage.SettingParallelWorkers:     "33",
 		coverage.SettingChunkOverlapSeconds: "61",
 		coverage.SettingChunkSeconds:        "10",
+		coverage.SettingParallelChapters:    "9",
 	} {
 		if err := host.saveSettings(coverage.SettingsTool, "global", map[string]*string{key: ptr(value)}); err == nil {
 			t.Errorf("%s = %q was saved", key, value)
