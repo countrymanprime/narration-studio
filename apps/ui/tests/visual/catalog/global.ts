@@ -39,8 +39,9 @@ export const globalStates: StateEntry[] = [
       'Primary navigation - the collapsed rail at rest (below 1360 px): icons centred in the rail, a thin rule between the groups; at desktop width the rail is already open, so this is the same page',
     sameAs: {
       of: 'production/no-data',
-      reason: 'Only the collapsed rail shows icons alone; the wide rail is always open.',
-      viewports: ['desktop'],
+      reason:
+        'The Production home at rest is already this picture: the wide rail at desktop and the collapsed rail below it. The row exists to name the guide image, and to capture the rail-only and medium-only widths the home is not captured at.',
+      viewports: ['desktop', 'small-desktop', 'tablet'],
     },
     ...LAYOUT_BANDS,
   },
@@ -50,8 +51,9 @@ export const globalStates: StateEntry[] = [
     description: 'Primary navigation - the collapsed rail at rest in the Dark theme (selected in Settings > Appearance), as nav-rail-collapsed',
     sameAs: {
       of: 'global/theme-dark',
-      reason: 'Only the collapsed rail shows icons alone; the wide rail is always open and is the Production home in Dark.',
-      viewports: ['desktop'],
+      reason:
+        'The Production home in Dark at rest is already this picture: the wide rail at desktop and the collapsed rail below it. The row exists to name the guide image, and to capture the rail-only and medium-only widths the home is not captured at.',
+      viewports: ['desktop', 'small-desktop', 'tablet'],
     },
     ...LAYOUT_BANDS,
   },
