@@ -12,7 +12,7 @@ The decisions in [the index](README.md) grouped by what they govern, so a plan c
 | [Wire contracts and host bindings](#wire-contracts-and-bindings) | 10 |
 | [Accessibility and interaction feedback](#accessibility-and-interaction) | 9 |
 | [Visual testing and mock fidelity](#visual-testing-and-mock-fidelity) | 14 |
-| [Release, CI and supply chain](#release-ci-and-supply-chain) | 19 |
+| [Release, CI and supply chain](#release-ci-and-supply-chain) | 20 |
 | [Documentation and process](#docs-and-process) | 8 |
 | [Ports and providers](#ports-and-providers) | 15 |
 | [DAW integration (REAPER and Audacity)](#daw-integration) | 33 |
@@ -156,8 +156,9 @@ Windows build, installer, in-app update, provenance, pinned actions, notices, li
 | [0411](0411-the-release-pipeline-splits-build-from-publish-and-caches-only-pure-function-build-outputs-never-test-verdicts.md) | The release pipeline splits build from publish, and caches only pure-function build outputs, never test verdicts | Accepted |
 | [0412](0412-windows-is-the-only-supported-platform-for-now.md) | Windows is the only supported platform for now | Accepted |
 | [0413](0413-what-stays-of-the-other-platforms-when-windows-is-the-only-one.md) | What stays of the other platforms when Windows is the only one | Proposed |
-| [0755](0755-the-product-is-named-narration-studio-to-the-user-and-narration-utils-stays-on-every-name-a-file-a-key-or-reaper-holds.md) | The product is named Narration Studio to the user, and `narration-utils` stays on every name a file, a key or REAPER holds | Accepted |
+| [0755](0755-the-product-is-named-narration-studio-to-the-user-and-narration-utils-stays-on-every-name-a-file-a-key-or-reaper-holds.md) | The product is named Narration Studio to the user, and `narration-utils` stays on every name a file, a key or REAPER holds | Accepted; |
 | [0757](0757-the-daw-reference-is-reference-docs-pinned-to-the-ports-declarations-by-a-generated-matrix-and-a-section-test.md) | The DAW reference is reference docs pinned to the port's declarations by a generated matrix and a section test | Proposed |
+| [0865](0865-the-narrationutils-names-are-phased-out-by-shipping-narrationstudio-names-beside-them-and-retiring-the-old-ones-later.md) | The `NarrationUtils` names are phased out: `NarrationStudio` names ship beside them, and the old ones are retired later | Accepted |
 
 <a id="docs-and-process"></a>
 
@@ -261,7 +262,6 @@ First-use downloads, the asset registry, models and licences, and what ships ins
 | [0841](0841-a-recording-check-lists-the-approved-whisper-models-as-its-engines-and-a-start-may-name-one-to-run-alone.md) | A recording check lists the approved Whisper models as its engines, and a start may name one to run alone | Proposed |
 | [0843](0843-the-status-report-preview-is-the-hosts-own-document-built-from-the-model-the-export-writes.md) | The status report preview is the host's own document, built from the model the export writes | Proposed |
 | [0864](0864-a-long-recording-is-checked-in-overlapping-chunks-by-parallel-whisper-processes-and-whisper-word-scores-choose-the-passages-a-larger-model-looks-at-again.md) | A long recording is checked in overlapping chunks by parallel Whisper processes, and Whisper's word scores choose the passages a larger model looks at again | Proposed |
-| [0865](0865-the-narrationutils-names-are-phased-out-by-shipping-narrationstudio-names-beside-them-and-retiring-the-old-ones-later.md) | The `NarrationUtils` names are phased out: `NarrationStudio` names ship beside them, and the old ones are retired later | Accepted |
 
 <a id="mastering-delivery-and-production"></a>
 
