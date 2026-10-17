@@ -11,6 +11,11 @@ export const globalDrivers: Record<string, Driver> = {
     // TooltipTarget shows its tooltip 1s after hover - wait for it, don't race it.
     await page.getByRole('tooltip').waitFor();
   },
+  // The collapsed rail at rest: the pointer is parked mid-page, off the rail, so it stays icons-only (it opens on hover or focus).
+  'nav-rail-collapsed': async (page) => {
+    const viewport = page.viewportSize();
+    if (viewport) await page.mouse.move(viewport.width / 2, viewport.height / 2);
+  },
   // The collapsed rail (below 1360 CSS px) opens over the page on hover, with its labels and group headings; at 1360 and above the wide
   // rail is already open, so there is nothing to hover and the state is the page as it was.
   'nav-rail-open': async (page) => {

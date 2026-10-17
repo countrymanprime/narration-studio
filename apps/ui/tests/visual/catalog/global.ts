@@ -34,6 +34,18 @@ export const globalStates: StateEntry[] = [
   },
   {
     page: 'global',
+    state: 'nav-rail-collapsed',
+    description:
+      'Primary navigation - the collapsed rail at rest (below 1360 px): icons centred in the rail, a thin rule between the groups; at desktop width the rail is already open, so this is the same page',
+    sameAs: {
+      of: 'production/no-data',
+      reason: 'Only the collapsed rail shows icons alone; the wide rail is always open.',
+      viewports: ['desktop'],
+    },
+    ...LAYOUT_BANDS,
+  },
+  {
+    page: 'global',
     state: 'nav-rail-open',
     description:
       'Primary navigation - hovering the collapsed rail opens it over the page with the labels and group headings; at desktop width the rail is already open, so this is a no-op there',
