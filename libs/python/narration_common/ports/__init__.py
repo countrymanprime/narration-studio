@@ -1,4 +1,4 @@
-"""The provider ports' kit (ADR 0301): the Python mirror of the host's ``internal/port``.
+"""The provider ports' kit: the Python mirror of the host's ``internal/port``.
 
 Each provider kind (speech recognition, text to speech, pronunciation, capture, extraction) gets a ``typing.Protocol`` beside this kit, a
 ``Registry`` of its implementations keyed by the name the setting stores, and a conformance suite built from ``conformance``.

@@ -18,7 +18,7 @@ Researched 2026-10-12 for the owner, on `main` at `5ee0877`. Tracking issue: [#1
 
 **The test for proposing a rename** is that the name misleads a reader about what the thing does today. A name that is only narrow, old-fashioned or inconsistent is listed as fine.
 
-This note changes nothing. No rename here records an architecturally significant decision under [When to write an ADR](../adr/README.md#when-to-write-an-adr), so none needs an ADR. The section [Never rename](#never-rename-persisted-names) applies [ADR 0755](../adr/0755-the-product-is-named-narration-studio-to-the-user-and-narration-utils-stays-on-every-name-a-file-a-key-or-reaper-holds.md) rather than making a new decision.
+This note changes nothing. No rename here records an architecturally significant decision under [When to write an ADR](../adr/README.md#when-to-write-one), so none needs an ADR. The section [Never rename](#never-rename-persisted-names) applies [Codebase map](../architecture/codebase-map.md) rather than making a new decision.
 
 ## Headline
 
@@ -27,7 +27,7 @@ This note changes nothing. No rename here records an architecturally significant
 | Sidecars | 2 (`manuscript-guide`, `manuscript-teleprompter`) | 1 (`transcript-compare`) | |
 | Go packages | 7 | 83 | |
 | UI folders and components | 4, plus 1 that the Master swap fixes | the rest | |
-| REAPER Lua files | 3 | 21 | the launcher (ADR 0755) |
+| REAPER Lua files | 3 | 21 | the launcher (`docs/architecture/codebase-map.md`) |
 | REAPER commands | 0 | 43 | |
 | Docs files | 4 | the rest | |
 | Scripts, Nx | 0 misnamed; 3 misplaced `scripts/ci` tools | the rest | |
@@ -62,8 +62,8 @@ Bindings are generated only for `Host` (`main.go:42`). Their `$Call.ByID` hashes
 
 **Fine as is**, grouped:
 - **Adapters and catalogs named after what they adapt or install:** `spacy`, `whisper`, `moonshine`, `wiktextract`, `ffmpeg`, `audacitybridge`, `dawport/{reaper,audacity,builtin}`, `extractionport/{gliner,rules}`, `pronunciationonline/merriamwebster`.
-- **The port family:** `port` plus the `*port` packages, the [ADR 0301](../adr/0301-providers-sit-behind-small-ports-with-a-registry-and-a-capability-descriptor.md) convention. `extraction` vs `extractionport` and `mastering` vs `masteringport` are core vs port.
-- **Feature and domain names that still match the code:** `manuscript`, `importer`, `marks`, `bookmarks`, the `scriptprep`, `prepmarkup` and `prepcompleteness` trio, `teleprompter` (the live session, the same name as its events), `liveflags`, `recording`, `passagemap`, `passagetakes`, `production`, `productionreport`, `delivery*`, `stages`, `proofing`, `editing`, `findings`, `gapreview`, `pickuplist`, `series`, `credits`, `analysistools`, `takereview`, `takecompare`, `repeats`, `retakelanes`, `lineidentity`, `renderconfig`, `cleanuptools`, `projectstate`, the `chapter*` packages, `measure`, `levelnormalize`, `zerocross`, `evidence` ([ADR 0100](../adr/0100-analysis-evidence-is-two-hash-keys-one-ledger-record-per-run-and-a-narrator-confirmed-track-map.md)).
+- **The port family:** `port` plus the `*port` packages, the [Provider ports](../architecture/provider-ports.md) convention. `extraction` vs `extractionport` and `mastering` vs `masteringport` are core vs port.
+- **Feature and domain names that still match the code:** `manuscript`, `importer`, `marks`, `bookmarks`, the `scriptprep`, `prepmarkup` and `prepcompleteness` trio, `teleprompter` (the live session, the same name as its events), `liveflags`, `recording`, `passagemap`, `passagetakes`, `production`, `productionreport`, `delivery*`, `stages`, `proofing`, `editing`, `findings`, `gapreview`, `pickuplist`, `series`, `credits`, `analysistools`, `takereview`, `takecompare`, `repeats`, `retakelanes`, `lineidentity`, `renderconfig`, `cleanuptools`, `projectstate`, the `chapter*` packages, `measure`, `levelnormalize`, `zerocross`, `evidence` ([fingerprint.go](../../apps/desktop/internal/evidence/fingerprint.go)).
 - **Narrow or ambiguous, but not wrong:**
   - `coverage` measures recording coverage. The UI says "Recording check", and the persisted folder `narration-utils/coverage/` stays.
   - `transcript` is the Transcript Compare state machine.
@@ -72,7 +72,7 @@ Bindings are generated only for `Host` (`main.go:42`). Their `$Call.ByID` hashes
   - `packager` assembles the book package, and its doc tells it apart from `encodeport.Packager`.
   - `preview` is the Proof preview window; it matches the `Preview*` bindings.
 - **Infrastructure:** `assets`, `persist`, `hostlog`, `runlog`, `settings`, `recents`, `project`, `credentialstore`, `contractfile`, `update`, `latency`, `dictionary`, `pronunciationlookup`, `pronunciationonline`, `process`.
-- **The module path `.../shell` and the Nx project `narration-utils-shell`** are kept by [ADR 0200](../adr/0200-the-desktop-shell-runs-on-wails-v3-beta-pinned-at-v3-0-0-beta-25.md) and ADR 0755. Renaming them would change every binding hash.
+- **The module path `.../shell` and the Nx project `narration-utils-shell`** are kept by [ADR 0001](../adr/0001-the-host-is-go-on-a-wails-v3-shell.md) and `docs/architecture/codebase-map.md`. Renaming them would change every binding hash.
 
 Not names, but found on the way:
 - **Stale doc comments.** `process` (`supervisor.go:1`) still says "the two retained Python analysis sidecars". `transcript` still cites `dawadapter.Review`.
@@ -82,12 +82,12 @@ These belong to a cleanup slice, not to a rename.
 
 ## UI components and labels
 
-The component folders already use the mock's page keys: `production`, `schedule`, `script`, `storybible` (the mock's key is `bible`, the label "Story Bible"), `booth`, `editing`, `proof`, `pickups`, `master`, `delivery`, `settings`. [ADR 0407](../adr/0407-a-new-page-replaces-its-old-counterpart-in-the-same-change-and-the-navigation-is-grouped-by-production-stage.md) and `AppShell.tsx:61` say "a page is renamed only in the change that ships its replacement". So any mismatch between a page and its label belongs to that page's swap slice, not to a rename slice. Renaming a folder changes no screenshot: visual-suite names come from the `page` keys in `apps/ui/tests/visual/catalog/*.ts`, and Storybook titles are hand-written. A folder rename does change the `src/components/<f>/...` keys in `apps/ui/src/interactionFeedback/*.ts`, so rewrite them with the path map.
+The component folders already use the mock's page keys: `production`, `schedule`, `script`, `storybible` (the mock's key is `bible`, the label "Story Bible"), `booth`, `editing`, `proof`, `pickups`, `master`, `delivery`, `settings`. [Design principles](../architecture/principles.md) and `AppShell.tsx:61` say "a page is renamed only in the change that ships its replacement". So any mismatch between a page and its label belongs to that page's swap slice, not to a rename slice. Renaming a folder changes no screenshot: visual-suite names come from the `page` keys in `apps/ui/tests/visual/catalog/*.ts`, and Storybook titles are hand-written. A folder rename does change the `src/components/<f>/...` keys in `apps/ui/src/interactionFeedback/*.ts`, so rewrite them with the path map.
 
 | Current | What it is now | Proposed | Blast radius | Risk |
 | --- | --- | --- | --- | --- |
 | `components/manuscript/` | No longer a page. It holds the shared reader parts (ParagraphView, ChapterNav, ReaderCard, SelectionMenu, WordLookup, MarkupDialog). Script, Booth and Story Bible import them. | `reader/` | 9 importers, 26 path literals, 9 ADRs | normal |
-| `Pill` primitive | A toggle chip, or one segment of `ToggleGroup look="segmented"` (`Pill.tsx:7-31`). The mock's `Pill` is a status pill with a dot, which is the app's `StatusBadge` ([ADR 0600](../adr/0600-every-pill-tag-and-status-dot-is-one-badge-primitive-with-a-pill-a-tag-and-a-booth-shape.md)). Code ported from the mock reads it the wrong way. | `ToggleChip` or `Segment` | 5 consumers, 7 ADRs, `docs/design/design-system.md`, generated atlas pages | normal; run `design-spec-guard` |
+| `Pill` primitive | A toggle chip, or one segment of `ToggleGroup look="segmented"` (`Pill.tsx:7-31`). The mock's `Pill` is a status pill with a dot, which is the app's `StatusBadge` ([Design system reference](../design/design-system.md)). Code ported from the mock reads it the wrong way. | `ToggleChip` or `Segment` | 5 consumers, 7 ADRs, `docs/design/design-system.md`, generated atlas pages | normal; run `design-spec-guard` |
 | `ChapterStepper` primitive | The mock's `ChapterBar` (its own doc comment says so, `ChapterStepper.tsx:12`). | `ChapterBar` | 1 consumer, design system | normal |
 | `Guide` component (`storybible/Guide.tsx`) | The Story Bible page. | `StoryBiblePage` | `App.tsx` and 2 tests. Leave `GuideEntity` and `GuideDetail`: they follow the wire type | normal |
 | `master/` holds the routed `MasterQcPage`; `masterqc/` holds the new `MasterPage` | The two names are swapped. | No rename slice. The Master swap (SNM-5) moves the new page into `master/`, moves the delivery-profile model (`deliveryProfile.ts`, `deliveryFormat.ts`, `fileVerdict.ts`, `masterLink.ts`) out, and deletes `masterqc/` | 2 importers on the `masterqc` side | normal |
@@ -104,7 +104,7 @@ The component folders already use the mock's page keys: `production`, `schedule`
 
 ## REAPER Lua
 
-The 43 bridge commands use neutral verbs. The neutral layer is `dawport`'s role names, so the command names are adapter-internal and **fine as is**. That includes `master_chain_read`: its capability id is a persisted settings key (`config/defaults.json`, DAW section), which costs more than the reversed verb order is worth. `NarrationUtils_Launcher.lua` and its action keep their names under ADR 0755.
+The 43 bridge commands use neutral verbs. The neutral layer is `dawport`'s role names, so the command names are adapter-internal and **fine as is**. That includes `master_chain_read`: its capability id is a persisted settings key (`config/defaults.json`, DAW section), which costs more than the reversed verb order is worth. `NarrationUtils_Launcher.lua` and its action keep their names under `docs/architecture/codebase-map.md`.
 
 | Current | What it does now | Proposed | Lists that name it | Risk |
 | --- | --- | --- | --- | --- |
@@ -157,7 +157,7 @@ There is no generic file, folder or settings-key rename mechanism. A grep for `m
 | Findings analyzer `"transcript-compare"`; job kind `"transcript_compare"` (`jobs.go:31`) | | The analyzer feeds `findings.StableID` (`findings.go:296`), so renaming it changes every finding id and orphans the narrator's reviews. The job kind is in the run log and the `job:ended` contract |
 | Settings sections `ManuscriptGuide`, `Teleprompter`, `Piper`, `RecordingCoverage`; `DAW.experimental_reaper_actions`; `DAW.capability.master_chain_read` (`settings/store.go:66-71,180`, `config/defaults.json`) | Story Bible, Booth, the TTS provider choice, Recording check, the DAW-neutral resolver | They are stored in every user's `global-settings.json` and project `settings.json`, and Python reads them through `sidecars/` (high) |
 
-This applies the reasoning of ADR 0755: keep the names that a file, a key or REAPER holds, and change only the label the user sees. The labels already say Story Bible, Booth and Recording check.
+This applies the reasoning of `docs/architecture/codebase-map.md`: keep the names that a file, a key or REAPER holds, and change only the label the user sees. The labels already say Story Bible, Booth and Recording check.
 
 One change costs nothing now and avoids a later rename. The extraction store (`internal/extraction/store/store.go:27`) put the new `suggestions.json` under `ManuscriptGuide/`. A new persisted file should go under `narration-utils/` instead of extending a legacy folder. This is a recommendation for later slices, not a rename.
 
@@ -195,7 +195,7 @@ The cutover's steady-state docs step (cutover PRD, step 7) runs after the rename
 | # | Slice row (lane X, kind `seam` unless noted) | Contents | Risk |
 | --- | --- | --- | --- |
 | R1 | Docs and scripts | The 2 standalone doc renames; the `scripts/ci` → `scripts/dev` moves | normal |
-| R2 | UI internals | `manuscript/` → `reader/`, `Guide` → `StoryBiblePage`, `ChapterStepper` → `ChapterBar`, `Pill` → `ToggleChip` (run `design-spec-guard`; ADR 0600 keeps the old name as a record) | normal |
+| R2 | UI internals | `manuscript/` → `reader/`, `Guide` → `StoryBiblePage`, `ChapterStepper` → `ChapterBar`, `Pill` → `ToggleChip` (run `design-spec-guard`; `docs/design/design-system.md` keeps the old name as a record) | normal |
 | R3 | Go internals, normal | `tracks` → `rpp`, `character` → `voiceref`, `tts` → `piper`, `guide` → `storybible` | normal |
 | R4 | Go internals, REAPER | `bridge` → `reaperbridge`, `daw` → `reaperhost`, `pickups` → `pickupmarkers`, with the depguard rules, threat-model rows 5a and 9a, and the `.claude` rule and skills that name them | high |
 | R5 (kind `lua`) | Lua files | the 3 file renames with `FEATURE_FILES`, `reaper-files.mjs`, `smoke.go`, `mutations.json`, and an in-REAPER load check | high |

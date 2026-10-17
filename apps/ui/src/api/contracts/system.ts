@@ -34,7 +34,7 @@ export type Bootstrap = {
   /** Whether the project's manifest records a DAW project file that still resolves to a file on disk. */
   dawFileLinked: boolean;
   /**
-   * Whether a running DAW can be confirmed reachable right now, from the bridge's live heartbeat (ADR 0092). `false`
+   * Whether a running DAW can be confirmed reachable right now, from the bridge's live heartbeat. `false`
    * means "unknown", including when no heartbeat has arrived.
    */
   dawReachable: boolean;
@@ -43,7 +43,7 @@ export type Bootstrap = {
    */
   dawProjectMatches: boolean;
   manuscript: { id: string; format: string; sourceName: string; importedAt: string; narratableWordCount: number; narratableChapterCount: number } | null;
-  /** A manuscript file found in the project folder that has not been imported yet. Offered, never imported automatically (ADR-0019). */
+  /** A manuscript file found in the project folder that has not been imported yet. Offered, never imported automatically. */
   manuscriptCandidate?: { path: string; name: string } | null;
   runtime: Record<string, Record<string, string>>;
   transcript: TranscriptState;
@@ -51,7 +51,7 @@ export type Bootstrap = {
 export type HostReady = { apiVersion: number; diagnosticId: string };
 export type ProjectAttachState = { attached: boolean; reason?: string };
 /**
- * A host job that just ended, sent once per job on the `job:ended` event (ADR 0076). `kind` is `story_bible`, `manuscript_import`, `tts_install`,
+ * A host job that just ended, sent once per job on the `job:ended` event. `kind` is `story_bible`, `manuscript_import`, `tts_install`,
  * `whisper_install`, `app_update`, `transcript_compare`, `recording_coverage` or `take_review` (a newer host may add more, so it is a string). `message` is a sentence for the narrator: the
  * failure text for an error. `durationMs` is how long the job ran, for the notification work to decide whether the narrator was waiting.
  */
@@ -90,17 +90,17 @@ export interface SystemApi {
    * nothing has run yet this session. */
   systemCopyDiagnostics(scope: 'last_run' | 'last_30_minutes'): Promise<CopyDiagnosticsResult>;
   /** Narrows the app's one window to the companion width and pins it always-on-top, remembering its size and position
-   * (ADR 0401: never a second window). Entering twice keeps the first
+   * (apps/desktop/bindings_companion.go: never a second window). Entering twice keeps the first
    * saved bounds. */
   companionModeEnter(): Promise<void>;
   /** Puts the window back where `companionModeEnter` found it and un-pins it; a no-op when companion mode is not on. */
   companionModeExit(): Promise<void>;
-  /** Reads the window's current real zoom level (ADR 0201 item 3):
+  /** Reads the window's current real zoom level (docs/guides/using-the-app/navigation.md#zoom item 3):
    * the UI calls this when it sees the page's own zoom change (a devicePixelRatio or resize event), since Wails v3
    * surfaces no zoom-changed callback on Windows. */
   windowZoom(): Promise<WindowZoom>;
   /** Sets the window's zoom, snapped to the nearest of the header's steps and clamped to [1.0, 2.0] host-side
-   * regardless of what factor is sent (ADR 0201). Called from the header's buttons, Ctrl+=/-/0, reset, and the
+   * regardless of what factor is sent. Called from the header's buttons, Ctrl+=/-/0, reset, and the
    * "set back to 200%" clamp the UI runs when it sees an external (Ctrl+wheel or pinch) zoom above the ceiling. */
   windowSetZoom(factor: number): Promise<WindowZoom>;
   /** Persists the window's zoom level so the next launch opens at it

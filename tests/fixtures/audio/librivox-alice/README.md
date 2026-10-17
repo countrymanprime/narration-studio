@@ -4,7 +4,7 @@ Public-domain LibriVox readings of *Alice's Adventures in Wonderland*, the same 
 manuscript (`apps/ui/src/api/fixtures/alice-in-wonderland.txt`), plus the tools that cut and mix them into test corpora
 with known defects. The recordings are downloaded from archive.org when they are used; the repository holds where every
 paragraph and sentence sits in them and the recipes for each test state
-([ADR 0416](../../../../docs/adr/0416-librivox-readings-of-the-demo-script-are-fetched-from-archive-org-and-only-their-markers-and-recipes-are-committed.md)).
+([LibriVox Alice: real narration of the demo script](README.md)).
 
 ## What is here
 
@@ -42,9 +42,9 @@ deterministic: the same recordings give byte-identical files.
 
 ## What each corpus is for
 
-### `coverage/`: the recording check on real speech ([#425](https://github.com/countrymanprime/narration-utils/issues/425) item 3, ADR 0125, ADR 0132)
+### `coverage/`: the recording check on real speech ([#425](https://github.com/countrymanprime/narration-utils/issues/425) item 3)
 
-14 cases in ADR 0125's layout, 9 `tune` (Kara) and 5 `held_out` (Kara's Chapter X and all of Leach): complete chapters,
+14 cases in `docs/utilities/recording-coverage.md`'s layout, 9 `tune` (Kara) and 5 `held_out` (Kara's Chapter X and all of Leach): complete chapters,
 a skipped paragraph, a skipped sentence, a pickup read at the end, a truncated tail, a late start, a false start and
 retake, three items, a paragraph replaced by another chapter's text, and a whole chapter whose script has editorial
 notes the reader's edition does not (`notRead`). Every item keeps its LibriVox preamble or closing credit, which is
@@ -74,7 +74,7 @@ uv run --no-project --with numpy --with praat-parselmouth python run_trial.py ..
 
 Results are in [character-continuity-acoustic-trial.md](../../../../docs/research/character-continuity-acoustic-trial.md#real-speech-re-run-librivox-2026-09-27).
 
-### `signal/`: the audio diagnostics on real narration (ADRs 0158, 0236, 0238)
+### `signal/`: the audio diagnostics on real narration (`docs/architecture/codebase-map.md, apps/desktop/internal/measure/edges.go, apps/desktop/internal/measure/cleanup.go`)
 
 11 cases over the first 20 paragraphs of Kara's Chapter IX (3.8 minutes): an unedited control and one defect each.
 `labels.json` gives every defect's time in the built file, and `<id>.words.json` the transcript words for pacing.

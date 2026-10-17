@@ -1,5 +1,4 @@
-"""Control channel for the Manuscript Teleprompter (see script_tracker.py;
-ADR 0104, ADR 0248). The desktop host tells a running sidecar to move the
+"""Control channel for the Manuscript Teleprompter (see script_tracker.py). The desktop host tells a running sidecar to move the
 tracker to a chosen script word, or to pause and resume listening, by
 appending one JSON object per line to a plain sentinel file
 (`--control-file PATH`):
@@ -8,7 +7,7 @@ appending one JSON object per line to a plain sentinel file
     {"cmd": "pause"}
     {"cmd": "resume"}
 
-This is the same sentinel-file pattern `--stop-file` already uses (ADR 0022:
+This is the same sentinel-file pattern `--stop-file` already uses (docs/architecture/manuscript-teleprompter.md:
 no loopback server, no port): the host appends, and this module tails the
 file from a saved byte offset every time it is polled, which `live_asr.py`
 does once per chunk of its existing capture loop (CHUNK_SECONDS apart), so a

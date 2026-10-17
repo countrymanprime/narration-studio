@@ -31,7 +31,7 @@ export function docTimeAt(playlist: readonly PlaylistSegment[], at: SourcePoint)
   return seg ? seg.elapsedStart + (at.sourceTime - seg.sourceStart) : null;
 }
 
-/** The word heard at a document time: the one `playingKey` finds (ADR 0265), only while the time is inside it. */
+/** The word heard at a document time: the one `playingKey` finds, only while the time is inside it. */
 function wordIn(doc: ChapterDoc, t: number): string | null {
   const key = playingKey(playable(doc), t);
   const it = key ? doc.items[doc.index.get(key) ?? -1] : undefined;

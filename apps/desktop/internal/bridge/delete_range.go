@@ -7,7 +7,7 @@ import (
 	"strconv"
 )
 
-// Cut words and their audio (ADR 0860 point 2; delete_range in narration_range.lua). Experimental (actions.go) until the
+// Cut words and their audio (docs/reference/daw/capabilities.md point 2; delete_range in narration_range.lua). Experimental (actions.go) until the
 // QA pass has run it in a real REAPER (#1495).
 
 // CutMode is what happens to the time a cut leaves behind, as delete_range takes it.

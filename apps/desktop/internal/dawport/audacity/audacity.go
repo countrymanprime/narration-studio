@@ -1,18 +1,18 @@
-// Package audacity is the DAW port's Audacity adapter (ADR 0300, ADR 0355). It drives
+// Package audacity is the DAW port's Audacity adapter. It drives
 // Audacity over its scripting pipe (internal/audacitybridge), which only Audacity 3.x with mod-script-pipe enabled has: Audacity 4.0
 // has no scripting interface, so there every request reports that Audacity is not reachable.
 //
 // It declares Experimental exactly what it builds, until the owner's verification pass confirms it
 // (docs/operations/audacity-verification-pass.md): the port's navigate role (go to and loop a time), markers role (add a label),
-// macro_render role (the mastering port's Audacity row, ADR 0306, ADR 0460: import a rendered WAV as its own track, apply the
-// narrator's chosen macro to it, export the result; macrorender.go), and backups role (ADR 0863: clone a window of audio to a
+// macro_render role (the mastering port's Audacity row, docs/architecture/provider-ports.md, docs/reference/daw/capabilities.md#macro_render: import a rendered WAV as its own track, apply the
+// narrator's chosen macro to it, export the result; macrorender.go), and backups role (docs/reference/daw/audacity-3.md: clone a window of audio to a
 // muted track of its own before an edit and put it back on request, with a table in the project folder; backups.go; the host prunes
 // the table when the project opens, through Backups). Takes, punch, stack_takes, cut_range and fx_range exist in Audacity only
 // with backups on (the Studio Next mock's capabilitiesFor, PRD DQ-18): the adapter declares them Experimental and requires backups
 // for each (a dawport.Requirer), a roll destructive until backups make it safe and the three edits made in steps (a
 // dawport.Describer). Their role makes each edit as a listed series of pipe commands after a backup (steps.go). Session
 // carries the Audacity-only operations the port has no capability for yet (import findings as labels, read them back, mark one
-// reviewed, export a chapter, write a hand-off label file). Every other capability stays NotYetAvailable with ADR 0144's
+// reviewed, export a chapter, write a hand-off label file). Every other capability stays NotYetAvailable with docs/architecture/daw-integration.md#audacity-boundary's
 // sentence; the review workflow's session on an Audacity launch still refuses every request with it (UnavailableReview).
 //
 // Importing the package registers its factory for dawport.KindAudacity.
@@ -33,7 +33,7 @@ type NotAvailableError string
 
 func (e NotAvailableError) Error() string { return string(e) }
 
-// ErrNotAvailable is what every capability the adapter does not build answers (ADR 0144), and what the review workflow's session
+// ErrNotAvailable is what every capability the adapter does not build answers, and what the review workflow's session
 // answers on an Audacity launch.
 const ErrNotAvailable = NotAvailableError("Audacity support is not available yet. This version can't read audio from Audacity or add labels to it, so open the project from REAPER to compare it.")
 
@@ -55,7 +55,7 @@ func (unavailableReview) ExportFindings(string, string, dawport.MarkerColors) er
 }
 
 // declares is the adapter's static declaration. Promoting a capability once the owner's pass has confirmed it is moving it to
-// Supported here, in the PR that records the pass (ADR 0355).
+// Supported here, in the PR that records the pass.
 var declares = func() map[dawport.Capability]dawport.Level {
 	d := map[dawport.Capability]dawport.Level{}
 	for _, spec := range dawport.Capabilities() {
@@ -195,7 +195,7 @@ func (a *Adapter) ExplainRequirement(c, required dawport.Capability, r dawport.R
 	return explainRequirement(c, required, r)
 }
 
-// Session is the Audacity-only operations over the same client (ADR 0355 point 4).
+// Session is the Audacity-only operations over the same client (ADR 0004).
 func (a *Adapter) Session() *Session { return a.session }
 
 // Backups is the backups role itself, for what the host does beyond BackupKeeper: read the table for the narrator's list and prune
@@ -207,7 +207,7 @@ func (a *Adapter) Runtime() dawport.Runtime {
 	return dawport.Runtime{Bridge: true, Reachable: a.client.Reachable()}
 }
 
-// Explain words a pipe that is missing or silent, and ADR 0144's sentence for what is not built.
+// Explain words a pipe that is missing or silent, and docs/architecture/daw-integration.md#audacity-boundary's sentence for what is not built.
 func (a *Adapter) Explain(_ dawport.Capability, r dawport.Reason) string {
 	switch r {
 	case dawport.ReasonNotYet:

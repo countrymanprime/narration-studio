@@ -10,7 +10,7 @@ import (
 // numberSpec is the range of a "number" setting: an inclusive minimum and maximum, a step the value must sit on
 // (counted from the minimum, or from zero when there is none), and the unit the page shows beside the box. A nil bound
 // or step is unbounded. It is kept beside fieldSchemas, keyed by tool and key, rather than in fieldSchema itself, so
-// adding the kind did not rewrite every existing field literal (ADR 0155);
+// adding the kind did not rewrite every existing field literal;
 // TestEveryNumberFieldHasARangeAndEveryRangeAField keeps the two in step.
 type numberSpec struct {
 	min, max, step *float64
@@ -27,7 +27,7 @@ var numberSpecs = map[string]map[string]numberSpec{
 		"max_missing_run":       {min: bound(0), max: bound(200), step: bound(1), unit: "words"},
 		"max_misread_run":       {min: bound(0), max: bound(200), step: bound(1), unit: "words"},
 		"min_anchor_run":        {min: bound(1), max: bound(50), step: bound(1), unit: "words"},
-		// The cascade's doubt line and the parallel run (ADR 0864): a word score is a share from 0 (off) to 1; a worker is
+		// The cascade's doubt line and the parallel run: a word score is a share from 0 (off) to 1; a worker is
 		// a whole process, up to the 32 CoverageStart accepts; the crossover is whole seconds, under the 60 it accepts.
 		"cascade_unsure_below":  {min: bound(0), max: bound(1), step: bound(0.05)},
 		"parallel_workers":      {min: bound(0), max: bound(maxCoverageWorkers), step: bound(1), unit: "processes"},
@@ -68,13 +68,13 @@ var numberSpecs = map[string]map[string]numberSpec{
 	"Teleprompter": {
 		"punch_preroll_seconds": {min: bound(0), max: bound(10), step: bound(0.5), unit: "s"},
 	},
-	// The Audacity backups (ADR 0863): the Studio Next mock's ranges (BackupsTab.tsx), a window of 10 to 300 s either side of the
+	// The Audacity backups: the Studio Next mock's ranges (BackupsTab.tsx), a window of 10 to 300 s either side of the
 	// edit on a 10 s step and a retention of 1 to 365 whole days.
 	"DAW": {
 		"backups.window_seconds": {min: bound(10), max: bound(300), step: bound(10), unit: "s"},
 		"backups.retention_days": {min: bound(1), max: bound(365), step: bound(1), unit: "days"},
 	},
-	// The silence cleanup analyzer's five thresholds (ADR 0238): the ranges mirror measure.CleanupOptions.resolve's own per-field bounds (cleanup.go), so a value this
+	// The silence cleanup analyzer's five thresholds: the ranges mirror measure.CleanupOptions.resolve's own per-field bounds (cleanup.go), so a value this
 	// page accepts is one cleanupSettings (cleanup_settings.go) never has to fall back from. pad_seconds keeps
 	// resolve's 0-2 s; min/max_breath_seconds start just above 0 (resolve requires min strictly positive) up to
 	// resolve's ceiling of 5 s; the two dB thresholds start just above 0 (resolve requires them strictly positive)

@@ -1,6 +1,6 @@
 # The Audacity verification pass
 
-The Audacity adapter was built from Audacity's published scripting spec and tested against a fake pipe server. It was not tested against a running Audacity ([ADR 0355](../adr/0355-audacity-is-driven-over-its-scripting-pipe-built-from-the-published-spec-and-verified-by-the-owners-pass.md), [the spec note](../research/audacity-4-scripting-spec.md)). This pass is the owner's check of what only a real Audacity can show. It works the way the REAPER checks do ([ADR 0066](../adr/0066-the-lua-bridge-is-tested-by-a-harness-under-lua-5-4-and-reaper-api-behaviour-is-checked-in-reaper.md)). Until it passes, every Audacity capability stays **Experimental**, and it is tracked on [#510](https://github.com/countrymanprime/narration-utils/issues/510).
+The Audacity adapter was built from Audacity's published scripting spec and tested against a fake pipe server. It was not tested against a running Audacity ([ADR 0004](../adr/0004-every-daw-is-reached-through-one-port.md), [the spec note](../research/audacity-4-scripting-spec.md)). This pass is the owner's check of what only a real Audacity can show. It works the way the REAPER checks do ([ADR 0004](../adr/0004-every-daw-is-reached-through-one-port.md)). Until it passes, every Audacity capability stays **Experimental**, and it is tracked on [#510](https://github.com/countrymanprime/narration-utils/issues/510).
 
 - **Part A** runs unattended in about a minute and writes a results file.
 - **Part B** is five short checks by eye and ear.
@@ -12,7 +12,7 @@ Paste all three into #510.
 
 - **A Windows machine** with this repository checked out and bootstrapped. Part A is a Go test, so it needs the Go toolchain that `scripts/cloud/session-start.sh` or the bootstrap installs.
 - **An Audacity with a scripting pipe.** Write down the version from Help > About Audacity; the results file asks for it.
-  - **Audacity 4.0.x has no scripting pipe.** Part A will stop at A1 with "not reachable", and that is the expected result on 4.0 ([ADR 0355](../adr/0355-audacity-is-driven-over-its-scripting-pipe-built-from-the-published-spec-and-verified-by-the-owners-pass.md)). If a later Audacity 4 release notes mention a scripting pipe or script host, run the pass on it and say so on #510.
+  - **Audacity 4.0.x has no scripting pipe.** Part A will stop at A1 with "not reachable", and that is the expected result on 4.0 ([ADR 0004](../adr/0004-every-daw-is-reached-through-one-port.md)). If a later Audacity 4 release notes mention a scripting pipe or script host, run the pass on it and say so on #510.
   - **Audacity 3.x:** Edit > Preferences > Modules, set **mod-script-pipe** to **Enabled**, then restart Audacity. Reopen Preferences > Modules and check that it now says Enabled.
 - **A scratch project, never a real one.** In Audacity, File > New, so that one empty project window is open and no other Audacity window is. Part A refuses to run on a project that already has tracks or labels.
 - **A scratch folder**, for example `C:\Temp\nu-audacity-pass`. Part A writes a test tone, one exported WAV, a label file and its results there.
@@ -84,7 +84,7 @@ By ear, after the run: the tone is silent from 4 to 4.5 s (C2's gap), and the au
 
 ## Backups (pending: not in Part A yet)
 
-The `backups` role ([ADR 0863](../adr/0863-an-audacity-backup-is-a-muted-track-in-the-project-and-a-row-in-a-table-beside-it-and-a-restore-never-deletes.md)) sends the commands spike 1g sends ([run sheet](daw-spike-run-sheet.md#1g-audacity-backups-snd-s7)), so the 1g result answers the first three checks below. Part A does not run `BackupAround` or `RestoreBackup` on their own (`pass_live_test.go`, 2026-10-12): the bindings merged in SN-D82 ([#1567](https://github.com/countrymanprime/narration-utils/pull/1567)) without a pass step, and Part C runs a backup only as the first step of each edit. Until a step is added, each check below is an unchecked line on the QA pass ([#1495](https://github.com/countrymanprime/narration-utils/issues/1495)), and none has run.
+The `backups` role ([Audacity 3.x: what the app relies on](../reference/daw/audacity-3.md)) sends the commands spike 1g sends ([run sheet](daw-spike-run-sheet.md#1g-audacity-backups-snd-s7)), so the 1g result answers the first three checks below. Part A does not run `BackupAround` or `RestoreBackup` on their own (`pass_live_test.go`, 2026-10-12): the bindings merged in SN-D82 ([#1567](https://github.com/countrymanprime/narration-utils/pull/1567)) without a pass step, and Part C runs a backup only as the first step of each edit. Until a step is added, each check below is an unchecked line on the QA pass ([#1495](https://github.com/countrymanprime/narration-utils/issues/1495)), and none has run.
 
 | Check | Expected |
 | --- | --- |
@@ -105,6 +105,6 @@ Comment on #510, headed "Audacity 4 pass results", with:
 
 ## What happens with the results
 
-- **Everything passes:** a follow-up PR promotes `navigate` and `markers` from Experimental to Supported in `apps/desktop/internal/dawport/audacity/audacity.go`, records the pass in `docs/research/`, and updates [ADR 0355](../adr/0355-audacity-is-driven-over-its-scripting-pipe-built-from-the-published-spec-and-verified-by-the-owners-pass.md) to Accepted.
-- **A step fails or behaves differently:** fix the client or adapter. Correct the fake (`apps/desktop/internal/audacitybridge/audacitybridgetest`) to match what Audacity really did, and add a test, as ADR 0066 does for REAPER. Then run the pass again.
-- **A1 fails on Audacity 4:** nothing to fix. The owner's version decision on #510 (ADR 0355) decides whether to support Audacity 3.x now or wait for Audacity 4's script host.
+- **Everything passes:** a follow-up PR promotes `navigate` and `markers` from Experimental to Supported in `apps/desktop/internal/dawport/audacity/audacity.go`, records the pass in `docs/research/`, and updates [ADR 0004](../adr/0004-every-daw-is-reached-through-one-port.md) to Accepted.
+- **A step fails or behaves differently:** fix the client or adapter. Correct the fake (`apps/desktop/internal/audacitybridge/audacitybridgetest`) to match what Audacity really did, and add a test, as ADR 0004 does for REAPER. Then run the pass again.
+- **A1 fails on Audacity 4:** nothing to fix. The owner's version decision on #510 (ADR 0004) decides whether to support Audacity 3.x now or wait for Audacity 4's script host.

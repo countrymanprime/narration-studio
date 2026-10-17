@@ -2,9 +2,9 @@ package main
 
 import "github.com/countrymanprime/narration-utils/shell/internal/deliveryprofile"
 
-// The measurement bindings (ADR 0156). The job is in
+// The measurement bindings. The job is in
 // measure_job.go; the wire-contract schema, golden payloads and mock are in apps/ui/src/api. The job reads no project
-// service; each answer is judged against the current project's delivery profile when it is read (judgeMeasure, ADR 0179).
+// service; each answer is judged against the current project's delivery profile when it is read (judgeMeasure).
 
 // MeasurePickFiles opens the operating system's picker for the audio files to measure and answers the chosen paths
 // (none when the narrator closes it). Only paths chosen here can be measured.
@@ -44,7 +44,6 @@ func (h *Host) DeliveryExportReport(includePaths bool) (string, error) {
 
 // DeliveryProfiles answers every delivery profile the narrator can choose (the built-ins first, then their custom
 // profiles), the Global default, the current project's own choice and the profile it is judged against
-// (ADR 0179).
 func (h *Host) DeliveryProfiles() (string, error) {
 	return encodeBinding(h.deliveryProfilesState())
 }

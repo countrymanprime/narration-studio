@@ -9,8 +9,8 @@ import (
 	"sort"
 )
 
-// Punch and roll's word-to-time anchors (ADR 0246: live anchors first,
-// offline alignment as the fallback, alignword.go and ADR 0560). While a live session reads a chapter, the host
+// Punch and roll's word-to-time anchors (integrations/reaper/narration_punch.lua: live anchors first,
+// offline alignment as the fallback, alignword.go and docs/architecture/manuscript-teleprompter.md#punch-from-here-where-a-words-time-comes-from). While a live session reads a chapter, the host
 // polls REAPER's play position (bridge.Puncher.PlayPosition, from apps/desktop's own poll loop, never from this
 // DAW-agnostic package) and pairs it with the word the reader is on, appending an Anchor here. "Punch from here" on a
 // flag then asks ResolveWordTime for that word's project time before moving the cursor.
@@ -143,7 +143,7 @@ func DropAnchorsFrom(project, chapterID string, word int) error {
 }
 
 // A punch time's three sources, as the UI shows them next to the resolved time and pre-roll
-// (ADR 0560): SourceAnchor is ResolveWordTime's exact or bracketed answer from the live anchors;
+// SourceAnchor is ResolveWordTime's exact or bracketed answer from the live anchors;
 // SourceAlignment is the offline word-time alignment over the recording (AlignWord, the fallback when no anchor
 // brackets the word); SourceEstimate is ResolveWordTime's extrapolation from the anchors' pace, the last resort when
 // the recording cannot be aligned (no model installed, nothing recorded yet, or the word not in the stretch decoded).

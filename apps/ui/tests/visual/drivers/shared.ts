@@ -97,9 +97,9 @@ export async function askForThePreviewVoice(page: Page, url: string): Promise<vo
 const navItemName = (name: string) => new RegExp(`^${name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(, \\d+)?$`);
 
 export async function clickNav(page: Page, name: AppPage): Promise<void> {
-  // Below `md` the navigation is behind an "Open navigation" button (the reflow viewport, ADR 0061): open the drawer, pick
+  // Below `md` the navigation is behind an "Open navigation" button (the reflow viewport): open the drawer, pick
   // the item, and wait for the drawer to close so the page behind it is the one photographed. Only when the menu button
-  // is what the layout shows, never on a timeout guess (ADR 0037).
+  // is what the layout shows, never on a timeout guess.
   const menuButton = page.getByRole('button', { name: 'Open navigation' });
   if (await menuButton.isVisible()) {
     await menuButton.click();
@@ -113,7 +113,7 @@ export async function clickNav(page: Page, name: AppPage): Promise<void> {
     .first()
     .getByRole('button', { name: navItemName(name) })
     .click();
-  // Below 1360 px the rail opens over the page while the pointer is on it (ADR 0761): leave it, so it does not cover the page it just opened.
+  // Below 1360 px the rail opens over the page while the pointer is on it: leave it, so it does not cover the page it just opened.
   const viewport = page.viewportSize();
   if (viewport) await page.mouse.move(viewport.width - 1, viewport.height - 1);
 }
@@ -227,7 +227,7 @@ export async function diagnosticsEnded(page: Page, message: string | RegExp): Pr
 }
 
 // Waits for the measurement to end with `message` on the page (the unheld mock reads three files in twelve polls, about six
-// seconds), then dismisses the toast the same end raises (job:ended, ADR 0076), which would otherwise race the screenshot.
+// seconds), then dismisses the toast the same end raises (job:ended), which would otherwise race the screenshot.
 export async function measurementEnded(page: Page, message: string | RegExp): Promise<void> {
   await page.getByText(message).first().waitFor({ timeout: 15_000 });
   const dismissToast = page.getByRole('button', { name: 'Dismiss message' });
@@ -239,7 +239,7 @@ export async function measurementEnded(page: Page, message: string | RegExp): Pr
 // heading) is there before a state that adds nothing of its own is photographed.
 export async function productionLoaded(page: Page): Promise<void> {
   await PAGE_CONTENT.Production?.(page).first().waitFor();
-  // A fresh page has its pointer at 0,0, on the rail, which opens over the board's first column below 1360 px (ADR 0761) and then
+  // A fresh page has its pointer at 0,0, on the rail, which opens over the board's first column below 1360 px and then
   // intercepts the click on a row's Chapter cell. Park the pointer mid-page.
   const viewport = page.viewportSize();
   if (viewport) await page.mouse.move(viewport.width / 2, viewport.height / 2);
@@ -260,7 +260,7 @@ async function rowMenu(page: Page, chapter: string, item: string): Promise<void>
   await page.getByRole('menuitem', { name: item }).click();
 }
 
-// ConfirmDialog is an alertdialog (Base UI AlertDialog, ADR 0048) and every other dialog is a role="dialog". Wait for
+// ConfirmDialog is an alertdialog (Base UI AlertDialog) and every other dialog is a role="dialog". Wait for
 // either, so a state driver does not care which family its dialog is in.
 export function confirmDialog(page: Page, name: string | RegExp) {
   return page.getByRole('dialog', { name }).or(page.getByRole('alertdialog', { name }));
@@ -287,7 +287,7 @@ export async function openImportReview(page: Page, preview?: 'markdown' | 'repai
   return dialog;
 }
 
-// Opens a chapter's recording check from its Record cell on the Production board (docs/utilities/recording-coverage.md, ADR 0130), optionally booted with a mock seed (main.tsx), and waits until the stored
+// Opens a chapter's recording check from its Record cell on the Production board (docs/utilities/recording-coverage.md), optionally booted with a mock seed (main.tsx), and waits until the stored
 // result has been read into the slide-over. A chapter still recording has Record as its current stage, whose cell opens the stage
 // slide-over instead: its "Recording check" button is the way on. Returns the slide-over.
 export async function openRecordingCheck(page: Page, chapter: string, seed?: string) {

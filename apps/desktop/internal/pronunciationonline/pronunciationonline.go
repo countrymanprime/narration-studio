@@ -1,10 +1,10 @@
 // Package pronunciationonline is the one pronunciation source that fetches: the online role of the PronunciationSource
-// port (ADR 0405 point 2, ADR 0356). Its only adapter is Merriam-Webster's Dictionary API
+// port (ADR 0006). Its only adapter is Merriam-Webster's Dictionary API
 // (the merriamwebster subpackage, the only code here allowed to import net); tests and the demo build use the fake in
 // pronunciationonlinetest. This package holds the port, the privacy rule and the local cache, and imports no network
 // code itself.
 //
-// The privacy rule (ADR 0405) is enforced here, not left to the callers:
+// The privacy rule is enforced here, not left to the callers:
 //   - a lookup sends one word, checked by CheckWord (never a passage, a file name or a project id), and the request
 //     is built by the adapter from that word and the key alone;
 //   - a lookup is the narrator's own press (Lookup), one word at a time;

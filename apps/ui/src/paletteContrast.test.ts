@@ -4,7 +4,7 @@ import { join, relative, sep } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { countRootRules, forcedThemeRules, parseThemes, resolveContrast, rootRules, type Theme, type TokenMap } from './tokenContrast';
 
-// The palette guard (ADR 0059). It reads the tokens out of styles.css, in both themes, and asserts that every colour pair
+// The palette guard. It reads the tokens out of styles.css, in both themes, and asserts that every colour pair
 // the app draws meets WCAG 2.x: 4.5:1 for text (SC 1.4.3) and 3:1 for the marks that carry meaning without being text
 // (SC 1.4.11: the highlight underline, category dots, icons). A pair is one foreground and, where there is one, the fill it
 // sits on, measured over every surface it can appear on and composited the way the browser paints it (a `color-mix(...
@@ -15,8 +15,8 @@ import { countRootRules, forcedThemeRules, parseThemes, resolveContrast, rootRul
 
 const CSS = readFileSync(join(__dirname, 'styles.css'), 'utf8');
 const THEMES = parseThemes(CSS);
-// The app has exactly two themes, and every surface draws with the active one (ADR 0365, which superseded the booth's own
-// forced-dark booth block of ADR 0360): the booth and the companion are checked by the same pairs, in both themes.
+// The app has exactly two themes, and every surface draws with the active one (which superseded the booth's own
+// forced-dark booth block of ADR 0008): the booth and the companion are checked by the same pairs, in both themes.
 const THEME_NAMES: Theme[] = ['light', 'dark'];
 
 // --row-selected is a table row's fill, so everything a row holds is measured on it; --reading-bg is the booth's
@@ -92,12 +92,7 @@ const PAIRS: PairSpec[] = [
   text('warn-on-accent-soft', 'SKIPPED word in the inline diff: warn text on accent-soft', 'var(--warn-text)', ['surface-2'], 'var(--accent-soft)'),
   text('info', 'the text-safe info colour on the page', 'var(--info-text)', PAGE_SURFACES),
   text('ok', 'a rule met on Master & QC: the text-safe ok colour', 'var(--ok-text)', PAGE_SURFACES),
-  text(
-    'experimental',
-    'the text-safe experimental colour: an ADR 0300 capability the host reports as experimental (ADR 0360)',
-    'var(--experimental-text)',
-    PAGE_SURFACES,
-  ),
+  text('experimental', 'the text-safe experimental colour: an ADR 0004 capability the host reports as experimental', 'var(--experimental-text)', PAGE_SURFACES),
   text('info-on-place-soft', 'EXTRA word in the inline diff: info text on place-soft', 'var(--info-text)', ['surface-2'], 'var(--place-soft)'),
   ...KINDS.map((kind) =>
     text(
@@ -145,7 +140,7 @@ const PAIRS: PairSpec[] = [
   mark('meter-body', 'LevelMeter: the safe recording zone', 'var(--meter-body)', ['surface']),
   mark('meter-hot', 'LevelMeter: the zone approaching the peak ceiling', 'var(--meter-hot)', ['surface']),
   mark('meter-over', 'LevelMeter: the zone at or over the peak ceiling', 'var(--meter-over)', ['surface']),
-  // The 14% badge tint left (ADR 0362, 0600): the tone's -text colour on its own tint of that tone.
+  // The 14% badge tint left: the tone's -text colour on its own tint of that tone.
   text(
     'badge-experimental-fill',
     "StatusBadge (experimental): experimental text on the badge's own 14% tint",
@@ -153,7 +148,7 @@ const PAIRS: PairSpec[] = [
     ['surface'],
     'var(--badge-experimental-fill)',
   ),
-  // The status soft fills (Studio Next token batch, ADR 0760)
+  // The status soft fills (Studio Next token batch)
   // are opaque, so a pill in a selected row is measured there as well as on the card.
   ...(
     [
@@ -171,7 +166,7 @@ const PAIRS: PairSpec[] = [
       `var(--${tone}-soft)`,
     ),
   ),
-  // The Studio Next token batch (SN-F2, ADR 0760): the pairs the new tokens create. The soft status fills are measured above
+  // The Studio Next token batch (SN-F2): the pairs the new tokens create. The soft status fills are measured above
   // (`<tone>-soft`); these are the two border weights and the focus ring, which are marks, not text.
   mark('line-strong', 'the control, segmented-group, chip and kbd border on the card', 'var(--line-strong)', ['surface']),
   mark('btn-line', 'the default button outline on the card', 'var(--btn-line)', ['surface']),
@@ -181,7 +176,7 @@ const PAIRS: PairSpec[] = [
   text('toast-tokens', 'Toast: the inverted pair', 'var(--toast-text)', ['surface'], 'var(--toast-bg)'),
   mark('waveform', "Proof's waveform bars on the card", 'var(--waveform)', ['surface']),
   mark('ok-zone-tick', "Master's book-consistency band: an accent chapter tick on the ok target zone", 'var(--accent)', ['surface'], 'var(--ok-zone)'),
-  // Per-speaker dialogue colours (ADR 0367): --speaker-1..7 alias the seven entity-kind tokens above, so these
+  // Per-speaker dialogue colours: --speaker-1..7 alias the seven entity-kind tokens above, so these
   // rows are already covered by the highlight-<kind> pairs; a dedicated row per alias protects SpeakerTag/Highlight's
   // speaker use specifically, the same reasoning as the meter-zone rows above.
   ...([1, 2, 3, 4, 5, 6, 7] as const).map((n) =>
@@ -230,7 +225,7 @@ describe('the token parser sees every :root rule of styles.css', () => {
     expect(THEMES.dark.surface).not.toBe(THEMES.light.surface);
   });
 
-  it('finds no rule outside the two theme blocks that forces a colour scheme or repaints a theme colour (ADR 0365)', () => {
+  it('finds no rule outside the two theme blocks that forces a colour scheme or repaints a theme colour', () => {
     // A scoped palette (the booth's old `[data-surface='booth']` block) would be drawn whatever the narrator's theme is,
     // and no pair below would measure it.
     expect(forcedThemeRules(CSS)).toEqual([]);

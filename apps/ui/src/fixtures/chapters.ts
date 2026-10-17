@@ -1,8 +1,8 @@
 import type { ManuscriptChapter, ManuscriptParagraph } from '../types';
 import { sampleSpeakers } from './speakers';
 
-// Builders for the chapter lists a test, a story or a mock adapter needs (ADR 0770). They are pure and deterministic: no
-// clock, no random value. A chapter's name is `title` and `subtitle` formatted by one rule (ADR 0191, chapterName.ts), so
+// Builders for the chapter lists a test, a story or a mock adapter needs. They are pure and deterministic: no
+// clock, no random value. A chapter's name is `title` and `subtitle` formatted by one rule (chapterName.ts), so
 // the shapes are the three the importers produce and tests/fixtures/chapter-names.json pins.
 export const CHAPTER_SHAPES = ['titleAndSubtitle', 'titleOnly', 'legacyNewline'] as const;
 export type ChapterShape = (typeof CHAPTER_SHAPES)[number];

@@ -42,13 +42,13 @@ The proof-of-concept (`apps/desktop/cmd/spike-globalhotkeys/main.go`) is a stand
 **Yes, a follow-up phase in the future companion-panel PRD is worth building — on Windows, this app's only currently-shipped target.** The mechanism already exists in the exact pinned Wails version, costs nothing extra to build (no cgo, no elevation, no permission dialog, no new dependency), and answers the benchmark's Booth UX need directly: a footswitch or hotkey that reaches the app while REAPER holds focus.
 
 Concretely, for whoever writes that PRD:
-1. Reuse `app.GlobalShortcut` from `apps/desktop/wailsapp.go`, matching this codebase's existing "every call into Wails goes through this one file" pattern ([ADR 0200](../adr/0200-the-desktop-shell-runs-on-wails-v3-beta-pinned-at-v3-0-0-beta-25.md)) — the same file that already wraps `application.Get()` for `emitEvent`, dialogs and the window.
+1. Reuse `app.GlobalShortcut` from `apps/desktop/wailsapp.go`, matching this codebase's existing "every call into Wails goes through this one file" pattern ([ADR 0001](../adr/0001-the-host-is-go-on-a-wails-v3-shell.md)) — the same file that already wraps `application.Get()` for `emitEvent`, dialogs and the window.
 2. Feed a fired global shortcut into the same `apps/ui/src/input/` command registry (Phase 1) that keyboard, MIDI and HID presses already go through, as a host-originated event, rather than a second dispatch path. The keymap row (Phase 5, complete) already stores the binding; nothing about this mechanism changes what that row's shape needs to be.
 3. Check any chosen accelerator against the narrator's REAPER keymap before shipping a default, per the [ownership caveat](#a-cost-the-prd-didnt-ask-about-hotkey-ownership-is-exclusive) above — an OS-level grab is exclusive, not additive.
 4. Treat macOS and Linux support as available-if-needed rather than blocking: the same API covers them (Carbon on macOS needs no Accessibility permission either; Linux needs the X11 or Wayland-portal path already described), but this app ships Windows-only today, so there is no forcing reason to spend companion-panel budget verifying platforms this app does not yet build for.
 5. **A real Windows machine must still confirm the live behaviour** (see [Pending with the owner](#pending-with-the-owner)) before that phase calls itself done — this spike raises confidence from "unknown" to "expected to work, unverified live," not to "verified."
 
-**No Proposed ADR from this spike.** It doesn't reverse any existing decision (ADR 0361's registry design already treats device sources as pluggable, and this fits that shape); it only informs a PRD that doesn't exist yet, the same precedent [Phase 8's spike](web-midi-hid-webview-spike.md#recommendations) set for this same PRD.
+**No Proposed ADR from this spike.** It doesn't reverse any existing decision (`docs/architecture/studio-shell-and-registries.md`'s registry design already treats device sources as pluggable, and this fits that shape); it only informs a PRD that doesn't exist yet, the same precedent [Phase 8's spike](web-midi-hid-webview-spike.md#recommendations) set for this same PRD.
 
 ## Pending with the owner
 

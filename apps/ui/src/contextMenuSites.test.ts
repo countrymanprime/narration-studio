@@ -4,7 +4,7 @@ import { join, relative, sep } from 'node:path';
 import ts from 'typescript';
 import { describe, expect, test } from 'vitest';
 
-// ADR 0780 decision 5: context menus come from providers (`registerContextProvider`), and one `ContextMenuHost` in `<main>` shows
+// docs/architecture/studio-shell-and-registries.md#command-providers-and-go-to decision 5: context menus come from providers (`registerContextProvider`), and one `ContextMenuHost` in `<main>` shows
 // them. No page writes its own `<ContextMenu items={...}>`, and nothing listens for `contextmenu` privately (the PRD's "What We're
 // NOT Building" bans a global listener on `document`). This scan counts `<ContextMenu>` JSX elements per file outside the
 // primitive and the host, and `onContextMenu` attributes and `addEventListener('contextmenu', ...)` calls outside the same two
@@ -81,7 +81,7 @@ function under(counts: Record<string, number>, ceiling: Record<string, number>):
     .map(([file]) => file);
 }
 
-describe('context menus come from providers (ADR 0780)', () => {
+describe('context menus come from providers', () => {
   const menus = countsOf((found) => found.menus, EXEMPT_MENU);
   const handlers = countsOf((found) => found.handlers, EXEMPT_HANDLER);
 

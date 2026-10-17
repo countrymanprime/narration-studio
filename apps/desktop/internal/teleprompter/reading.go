@@ -16,12 +16,12 @@ import (
 // version reads as absent.
 const readingSchemaVersion = 1
 
-// Reading is where the prompter last was in a chapter (ADR 0205): the last position event's Read (the index space of
+// Reading is where the prompter last was in a chapter: the last position event's Read (the index space of
 // locate's Word) out of Tokens script words, written when a chapter session
 // ends. ScriptHash is a hash of the manuscript document and the chapter's text,
 // so a reading is dropped rather than misplaced once the chapter is edited or
 // the manuscript re-imported. It is one word index, never a word-to-time
-// anchor (ADR 0111 decision 1 stands). The host reads it back, so its shape is
+// anchor (docs/architecture/manuscript-teleprompter.md#resume-where-reaper-is-and-where-the-prompter-was decision 1 stands). The host reads it back, so its shape is
 // a wire contract (tests/fixtures/contracts/teleprompter-reading.json).
 type Reading struct {
 	Version    int       `json:"version"`

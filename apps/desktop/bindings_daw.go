@@ -9,7 +9,7 @@ import (
 	"github.com/countrymanprime/narration-utils/shell/internal/dawport/reaper"
 )
 
-// DawCapabilities and its live event daw_capabilities_changed (ADR 0300) are the UI's one picture of what the
+// DawCapabilities and its live event daw_capabilities_changed are the UI's one picture of what the
 // launch's DAW can do right now: the adapter's declaration, the bridge's reachability, and the narrator's DAW.capability.<name>
 // toggles, combined by a dawport.Resolver the same way h.actions' gate already is. The wire schema, golden payloads,
 // wireContracts row and mock live in apps/ui/src/api (docs/architecture/wire-contracts.md).

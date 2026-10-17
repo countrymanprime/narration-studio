@@ -19,7 +19,7 @@ Moving a type or file between packages, extracting a new `internal/<name>` packa
 2. Read `apps/desktop/.golangci.yml`. The depguard rules are ADR rules (no networking outside `internal/assets`, `internal/update` and `media.go`; analyzers do not touch the manuscript store, the Story Bible, settings, recents, the REAPER bridge or process launching). A package that moves into or out of a fenced area changes which rule applies: update the rule and its `desc`, do not suppress it.
 3. Prefer the existing port pattern: define the interface in the consuming package (or an `internal/*port` package), keep the adapter separate, and put test doubles in an `*port/*test` subpackage.
 4. Move in small commits, each green: first move the tests with the code, then the code. Keep the exported names the bindings use unless the change is the point.
-5. Locks: a moved type that holds a mutex keeps its `checklocks` annotations; run `checklocks -test=false ./...`. The race detector is scoped by ADR 0171, so run it where the moved code has concurrency.
+5. Locks: a moved type that holds a mutex keeps its `checklocks` annotations; run `checklocks -test=false ./...`. The race detector is scoped by `docs/operations/verification-tooling.md#go-lint-and-the-race-detector`, so run it where the moved code has concurrency.
 6. Update `scripts/ci/coverage-floors.json` for a new logic directory (it starts at 80; a lower floor needs a written reason; floors only go up).
 7. Run `full-verification-gate`; re-run `solid-design-review` pass 2 on the result.
 

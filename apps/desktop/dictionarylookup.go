@@ -6,7 +6,7 @@ import (
 	"github.com/countrymanprime/narration-utils/shell/internal/dictionary"
 )
 
-// SystemLookup looks one word from the manuscript reader up in the offline dictionary (ADR 0097: the Open English WordNet, read from Go in
+// SystemLookup looks one word from the manuscript reader up in the offline dictionary (docs/architecture/dictionary-thesaurus-integration.md: the Open English WordNet, read from Go in
 // this process; no cloud API and no server). The answer is one of:
 //
 //   - "ok": the word the lookup used (normalised: lower case, surrounding punctuation removed), one entry per headword and part of speech

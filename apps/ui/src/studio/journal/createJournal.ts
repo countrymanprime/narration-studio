@@ -1,4 +1,4 @@
-// The command journal (ADR 0771). Every change a page makes goes through `act`, which runs a command and, when the host
+// The command journal. Every change a page makes goes through `act`, which runs a command and, when the host
 // accepts it, records one entry: the label, the read-model keys it touched and how to take it back. `undo(id)` runs the
 // entry's inverse unless a refusal rule applies, and shows the host's own sentence when the host refuses. Entries live in
 // memory, the newest 40, and `clear()` empties them for a project switch. Redo is not built (rule 8).
@@ -16,7 +16,7 @@ export type Result<R> = { ok: true; value: R } | { ok: false; refusal: Refusal }
 export type Command<R> = {
   /** The sentence the history list and the refusals show ("Added a bookmark"). */
   label: string;
-  /** Read-model keys the change touches, as `domain/id` or a whole `domain` (ADR 0771 rule 3). */
+  /** Read-model keys the change touches, as `domain/id` or a whole `domain` (docs/architecture/ui-state-and-journal.md#the-journal-and-undo rule 3). */
   touches: string[];
   /** The change is made in the DAW too (rule 4). */
   daw?: boolean;
@@ -67,7 +67,7 @@ export type Journal = LeaveGuardStore & {
   subscribe(listener: () => void): () => void;
 };
 
-/** ADR 0771 rule 2. */
+/** docs/architecture/ui-state-and-journal.md#the-journal-and-undo rule 2. */
 const JOURNAL_LIMIT = 40;
 
 type Entry = {
@@ -111,7 +111,7 @@ export function createJournal(options: JournalOptions): Journal {
       ? `This change was made in ${dawName()} and the app cannot undo it. Use Edit > Undo in ${dawName()}.`
       : 'This change cannot be undone in the app.');
 
-  // Every refusal that does not need to ask the DAW, in the order ADR 0771 gives them.
+  // Every refusal that does not need to ask the DAW, in the order docs/architecture/ui-state-and-journal.md#the-journal-and-undo gives them.
   function staticRefusal(entry: Entry): Refusal | null {
     if (!entry.inverse) return { code: 'not-undoable', reason: entry.notUndoableReason };
     const later = entries.slice(entries.findIndex((e) => e.id === entry.id) + 1);

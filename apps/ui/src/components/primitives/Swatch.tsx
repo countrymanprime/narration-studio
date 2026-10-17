@@ -1,6 +1,6 @@
 /**
  * The hues a swatch can be filled from, each a custom property declared in `styles.css` (the Swatch test reads the file
- * and fails a name it does not declare): the entity-kind hues, the seven speaker hues that alias them (ADR 0367) and the
+ * and fails a name it does not declare): the entity-kind hues, the seven speaker hues that alias them and the
  * status hues.
  */
 export const SWATCH_COLOURS = [

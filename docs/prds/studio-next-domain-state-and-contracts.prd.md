@@ -2,7 +2,7 @@
 
 **Source:** owner request of 2026-10-10 ([Studio Next Rebuild](studio-next-rebuild.prd.md)); the mock's `studio-next/src/state/`, `studio-next/src/selectors/`, `studio-next/src/domain/` and `studio-next/src/fixtures/`; the owner's rulings of 2026-10-11 (see Decisions).
 
-**Builds on:** [ADR 0069](../adr/0069-payloads-are-validated-with-zod-behind-parsewire-and-a-wrong-shape-fails-loudly.md) (Zod behind `parseWire`), [wire contracts](../architecture/wire-contracts.md), [ADR 0041](../adr/0041-host-bindings-read-project-services-through-one-snapshot-accessor.md) (host bindings read services through one accessor), the `NarrationApi` split into per-domain interfaces (`apps/ui/src/types.ts`) and the mock host (`apps/ui/src/api/mockApi.ts`), [ADR 0067](../adr/0067-bridge-commands-are-registered-by-name-and-each-feature-lives-in-its-own-lua-file.md).
+**Builds on:** [ADR 0005](../adr/0005-every-boundary-is-a-typed-contract.md) (Zod behind `parseWire`), [wire contracts](../architecture/wire-contracts.md), [The rule](../architecture/host-binding-concurrency.md#the-rule) (host bindings read services through one accessor), the `NarrationApi` split into per-domain interfaces (`apps/ui/src/types.ts`) and the mock host (`apps/ui/src/api/mockApi.ts`), [ADR 0004](../adr/0004-every-daw-is-reached-through-one-port.md).
 
 **Status (2026-10-11):** draft; the owner's rulings of 2026-10-11 are applied. The store is a read-model cache plus a command journal (SN0-Q3); A5 and A6 record that and the undo rules, and are the first slices.
 
@@ -15,8 +15,8 @@ The mock has one place where every change goes (`act`), one history of undoable 
 - **Mock store.** `studio-next/src/state/store.ts`: `update(fn)`, `act(label, fn, {daw, restoreUi})` records inverse patches for the book (`data`) and for listed UI paths, `undoEntry` refuses when a later entry touches the same paths or when a DAW entry is no longer last, `setChangeGuard` for leave guards, `useStudio(selector)` over `useSyncExternalStore`, history capped at 40.
 - **Mock domain.** `studio-next/src/domain/schemas.ts` (767 lines of Zod: chapters, paragraphs, notes, pickups, marks, bible, bookmarks, milestones, contract, stage decisions, cuts, word FX, backups), `studio-next/src/domain/daw.ts`, `studio-next/src/domain/extraction.ts`, `studio-next/src/domain/components.ts`.
 - **Mock selectors and fixtures.** 30 modules in `studio-next/src/selectors/` (pure functions of the book); `studio-next/src/fixtures/` holds all sample data and `makeBook({headingStyle, chapters})`; `studio-next/tests/scenarios.test.tsx` renders every page with three heading styles and 40 chapters; `studio-next/tests/no-hardcoded-speakers.test.ts` fails on a literal in a component.
-- **Real app.** Domain state lives in Go services and sidecar files ([ADR 0041](../adr/0041-host-bindings-read-project-services-through-one-snapshot-accessor.md)); the UI reads it through bindings checked by `parseWire`; pages keep state in hooks (for example `components/production/ProductionPage.tsx`, `components/proof/ProofPage.tsx`); `useApi()` returns the whole `NarrationApi` facade; mocks are per-domain files under `apps/ui/src/api/` and `api/mockHost/`; one Vitest file (`apps/ui/src/api/wireContracts.test.ts`, 3,103 lines) holds the contract rows.
-- **Real undo.** `toast` Undo buttons per feature; auto links are undoable ([ADR 0202](../adr/0202-a-confident-two-way-match-is-a-real-link-labelled-auto-undoable-and-never-over-a-manual-one.md)); REAPER commands add one undo block each ([ADR 0233](../adr/0233-the-app-may-make-a-take-active-by-guid-in-one-undo-step.md)); the findings store keeps an append-only decision history ([ADR 0120](../adr/0120-findings-are-read-and-decided-through-four-generic-bindings-and-a-decision-carries-the-evidence-version-it-was-made-against.md)). Nothing spans them.
+- **Real app.** Domain state lives in Go services and sidecar files ([The rule](../architecture/host-binding-concurrency.md#the-rule)); the UI reads it through bindings checked by `parseWire`; pages keep state in hooks (for example `components/production/ProductionPage.tsx`, `components/proof/ProofPage.tsx`); `useApi()` returns the whole `NarrationApi` facade; mocks are per-domain files under `apps/ui/src/api/` and `api/mockHost/`; one Vitest file (`apps/ui/src/api/wireContracts.test.ts`, 3,103 lines) holds the contract rows.
+- **Real undo.** `toast` Undo buttons per feature; auto links are undoable ([Chapter sync](../guides/using-the-app/navigation.md#chapter-sync)); REAPER commands add one undo block each ([The workspace's take and FX actions (`narration_workspace.lua`)](../architecture/reaper-bridge.md#the-workspaces-take-and-fx-actions-narration_workspacelua)); the findings store keeps an append-only decision history ([Shared Findings Contract](../architecture/findings-contract.md)). Nothing spans them.
 
 ## Proposed Solution
 
@@ -55,7 +55,7 @@ Owner rulings of 2026-10-11; none is open.
 
 | Id | Ruling | Consequence here |
 | --- | --- | --- |
-| SN0-Q3 | The UI store is a read-model cache plus a command journal; the Go host stays the source of truth ([ADR 0041](../adr/0041-host-bindings-read-project-services-through-one-snapshot-accessor.md)) | A5 records it; the mock's whole-book store is not adopted |
+| SN0-Q3 | The UI store is a read-model cache plus a command journal; the Go host stays the source of truth ([The rule](../architecture/host-binding-concurrency.md#the-rule)) | A5 records it; the mock's whole-book store is not adopted |
 | SN0-Q2 / DQ-2 | Replace, one PR, no flag | The store lands unused; pages adopt it in their swap slices |
 | SNS-Q2 | No immer; journal entries hold inverse host commands and UI-only slices use small copy-on-write helpers (default taken, standing instruction) | A5 |
 | SNS-Q3 | The journal holds 40 entries in memory, as the mock, and is cleared on project switch (default taken) | SNS-3 |
@@ -94,11 +94,11 @@ On conflict this PRD, and the ADR written when its phase lands, is the source of
 
 | ADR | Class | Note |
 | --- | --- | --- |
-| [ADR 0041](../adr/0041-host-bindings-read-project-services-through-one-snapshot-accessor.md) | KEEP | Host is the truth; the mock's whole-book store is not adopted (A5) |
-| [ADR 0069](../adr/0069-payloads-are-validated-with-zod-behind-parsewire-and-a-wrong-shape-fails-loudly.md) | EXTEND | Shared `Refusal` and `Measured` schemas |
-| [ADR 0062](../adr/0062-ui-import-rules-are-a-dependency-cruiser-config-and-a-mark-scan-that-name-their-adr.md), [ADR 0046](../adr/0046-architecture-rules-taken-from-adrs-are-lint-and-test-rules.md) | EXTEND | Import rules for `studio/`, `ports/`, `fixtures/` |
-| [ADR 0202](../adr/0202-a-confident-two-way-match-is-a-real-link-labelled-auto-undoable-and-never-over-a-manual-one.md), [ADR 0120](../adr/0120-findings-are-read-and-decided-through-four-generic-bindings-and-a-decision-carries-the-evidence-version-it-was-made-against.md), [ADR 0233](../adr/0233-the-app-may-make-a-take-active-by-guid-in-one-undo-step.md) | KEEP | Existing undo and audit mechanisms are journal targets, not replaced |
-| [ADR 0044](../adr/0044-property-and-fuzz-tests-are-deterministic-in-the-gate.md) | KEEP | Deterministic property tests |
+| [The rule](../architecture/host-binding-concurrency.md#the-rule) | KEEP | Host is the truth; the mock's whole-book store is not adopted (A5) |
+| [ADR 0005](../adr/0005-every-boundary-is-a-typed-contract.md) | EXTEND | Shared `Refusal` and `Measured` schemas |
+| [Verification and code-health tooling](../operations/verification-tooling.md), [Verification and code-health tooling](../operations/verification-tooling.md) | EXTEND | Import rules for `studio/`, `ports/`, `fixtures/` |
+| [Chapter sync](../guides/using-the-app/navigation.md#chapter-sync), [Shared Findings Contract](../architecture/findings-contract.md), [The workspace's take and FX actions (`narration_workspace.lua`)](../architecture/reaper-bridge.md#the-workspaces-take-and-fx-actions-narration_workspacelua) | KEEP | Existing undo and audit mechanisms are journal targets, not replaced |
+| [Property tests and fuzzing](../operations/verification-tooling.md#property-tests-and-fuzzing) | KEEP | Deterministic property tests |
 | Undo across the DAW | KEEP | A DAW entry is undoable only when it is the last entry and the DAW reports it is still its last action; otherwise the refusal names the DAW's own Edit > Undo (A6) |
 
 ## Technical Approach
@@ -107,7 +107,7 @@ On conflict this PRD, and the ADR written when its phase lands, is the source of
 
 **Contracts.** New shared schemas `refusalSchema`, `measuredSchema(valueSchema)` in `apps/ui/src/api/schemas/base.ts`; per-domain additions are in the other PRDs and each follows the six-step wire rule. `hostAPIVersion` bumps happen in the slice that adds a binding.
 
-**Test plan.** Unit tests for journal rules (ported from `studio-next/tests/daw.test.ts` and `foundations.test.ts`); property tests for "undo then redo equals original" on UI-only slices (fast-check, deterministic per [ADR 0044](../adr/0044-property-and-fuzz-tests-are-deterministic-in-the-gate.md)); contract suites; scan tests; a scenario render per page; no visual change in SNS slices.
+**Test plan.** Unit tests for journal rules (ported from `studio-next/tests/daw.test.ts` and `foundations.test.ts`); property tests for "undo then redo equals original" on UI-only slices (fast-check, deterministic per [Property tests and fuzzing](../operations/verification-tooling.md#property-tests-and-fuzzing)); contract suites; scan tests; a scenario render per page; no visual change in SNS slices.
 
 **Rollout.** Layer strangling: the store lands unused; the first adopters are chapter selection and preferences, then history for bookmarks (Script), then page-by-page. No flag.
 
@@ -119,7 +119,7 @@ On conflict this PRD, and the ADR written when its phase lands, is the source of
 
 | # | Phase | Description | Status | Parallel | Depends | Est. (pw) | PRP Plan |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| 1 | ADRs | A5 and A6 as Proposed, with the mock-command to inverse-command table | in review (ADR 0770, ADR 0771) | - | SN0-1 | 0.8 | - |
+| 1 | ADRs | A5 and A6 as Proposed, with the mock-command to inverse-command table | in review (`docs/architecture/ui-state-and-journal.md#the-store-host-reads-cached, docs/architecture/ui-state-and-journal.md#the-journal-and-undo`) | - | SN0-1 | 0.8 | - |
 | 2 | Store core | `studio/` store, selectors helpers, hydration by events | in review (feat/sn-s2-store-core) | 3 | 1 | 1.5 | - |
 | 3 | Journal and undo | `act`, `undo`, refusals, leave guard, tests | in review (feat/sn-s3-command-journal) | 2 | 1 | 1.5 | - |
 | 4 | Contract kit | `describeProviderContract`, `Refusal`, `Measured`, registration test | in review (#1031) | 5 | 1 | 1.0 | - |
@@ -163,14 +163,14 @@ On conflict this PRD, and the ADR written when its phase lands, is the source of
 
 | Decision | Choice | Alternatives | Rationale |
 | --- | --- | --- | --- |
-| Host is the truth (owner, SN0-Q3) | Read models plus a command journal | Whole-book store | [ADR 0041](../adr/0041-host-bindings-read-project-services-through-one-snapshot-accessor.md); one persistence path |
+| Host is the truth (owner, SN0-Q3) | Read models plus a command journal | Whole-book store | [The rule](../architecture/host-binding-concurrency.md#the-rule); one persistence path |
 | No immer (SNS-Q2) | Inverse commands | Patches | Patches over host data have no inverse |
 | ISP at the feature (proposed) | `usePort` | Keep the facade | Enforceable and testable |
 | Parity kit (proposed) | One suite, two adapters | Separate mock and real tests | Liskov: a mock may not be more permissive than the host |
 
 ## Research Summary
 
-Read: the mock store, domain, selectors list, fixtures list, test names; the repo's `types.ts`, `ApiContext.tsx`, `mockApi.ts`, `wire-contracts.md`, ADR 0069. Not done: no inventory of every `act` in the mock yet (Phase 1); no measurement of how many real inverses exist.
+Read: the mock store, domain, selectors list, fixtures list, test names; the repo's `types.ts`, `ApiContext.tsx`, `mockApi.ts`, `wire-contracts.md`, ADR 0005. Not done: no inventory of every `act` in the mock yet (Phase 1); no measurement of how many real inverses exist.
 
 ## Visual Spec
 

@@ -32,16 +32,16 @@ type AlignmentItem struct {
 	Length      float64 `json:"length,omitempty"`
 }
 
-// AlignmentView is a chapter's stored word alignment (ADR 0242) as the WorkspaceAlignment binding sends it: the same
+// AlignmentView is a chapter's stored word alignment as the WorkspaceAlignment binding sends it: the same
 // state, reasons and basis CoverageResult answers (an alignment is only ever
 // as current as the coverage result it was written with), the chapter's
 // paragraphs, the per-token alignment and extra runs, and each analyzed
 // item's current played range. NeedsAlignAgain is set when the newest current
 // or stale result has no stored alignment yet; align-again re-aligns from
-// cached words alone, without running the check again (ADR 0242). Engine names
+// cached words alone, without running the check again. Engine names
 // the recogniser whose words the alignment came from, and is nil when there is
 // no alignment. On the wire each token also carries a score and each extra run
-// its words (MarshalJSON, ADR 0855).
+// its words (MarshalJSON).
 type AlignmentView struct {
 	ChapterID       string                  `json:"chapterId"`
 	State           evidence.EvaluatorState `json:"state"`
@@ -62,7 +62,7 @@ type AlignmentEngine struct {
 	Name string `json:"name"`
 }
 
-// How an added word's times were found (ADR 0855). A stored extra run keeps
+// How an added word's times were found. A stored extra run keeps
 // only its two ends, so its words are spread evenly between them; a run whose
 // ends are on two items has no one source timeline, so its words sit at its
 // start with no duration.
@@ -73,8 +73,8 @@ const (
 
 // HeardToken is a token as the wire sends it: the stored line plus its score.
 // Conf is always nil with ConfNoWordScores: the words file carries Whisper's word
-// probabilities, but they only choose passages to re-check (ADR 0864) and no calibrated
-// mapping scores a heard word for the narrator (ADR 0830, ADR 0855).
+// probabilities, but they only choose passages to re-check and no calibrated
+// mapping scores a heard word for the narrator.
 type HeardToken struct {
 	TokenLine
 	Conf       *float64 `json:"conf"`
@@ -249,7 +249,7 @@ func alignmentItems(items []ItemLine, project tracks.Project) []AlignmentItem {
 }
 
 // ChapterTrackGUID is the REAPER track the chapter's newest coverage run covered (its ledger record's scope), or "" when
-// the chapter was never checked. The workspace puts an FX chain on this track (ADR 0234): the page never names a track, so it cannot be steered to another one.
+// the chapter was never checked. The workspace puts an FX chain on this track: the page never names a track, so it cannot be steered to another one.
 func (s *Service) ChapterTrackGUID(chapterID string) string {
 	record, err := s.latestRecord(chapterID)
 	if err != nil || record == nil {

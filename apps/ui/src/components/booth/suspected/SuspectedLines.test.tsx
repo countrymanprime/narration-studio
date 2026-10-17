@@ -126,7 +126,7 @@ describe('suspected lines feed Pickups', () => {
     await act(async () => {
       added = await result.current.takeStopped(read('p9'));
     });
-    // The live speech check's finding, accepted: the host's shared pickup list carries it from here (ADR 0840).
+    // The live speech check's finding, accepted: the host's shared pickup list carries it from here.
     expect(added).toBe(1);
     expect(review).toHaveBeenCalledExactlyOnceWith({ id: 'c8:p9:skipped:2-5', evidenceVersion: 'v1', status: 'accepted', note: '' });
     expect([...accepted]).toEqual(['c8:p9:skipped:2-5']);

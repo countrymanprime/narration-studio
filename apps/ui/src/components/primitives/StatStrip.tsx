@@ -17,7 +17,7 @@ export type StatStripItem = {
  * one card, its tiles divided by a 1 px `--border` rule, not one bordered card per figure. `StatStrip` is that one card:
  * a labelled list of `StatTile`s, ≈195 px each with 16 px padding, whichever consumer supplies the figures.
  *
- * It wraps into full rows by the width its card has (ADR 0645): every tile in one row from 64 rem, half of them a row from
+ * It wraps into full rows by the width its card has: every tile in one row from 64 rem, half of them a row from
  * 36 rem, two from 22 rem, one below that. Each tile draws the rule on its left and top, and the card clips the ones on its
  * own edges, so a rule runs between every two tiles in any arrangement and a short last row leaves plain surface.
  */

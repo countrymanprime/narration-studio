@@ -188,7 +188,7 @@ func experimentalCommandsInSource(t *testing.T) []string {
 // The declaration is today's behaviour exactly: a capability is Experimental when bridge.Actions gates its
 // commands behind the old switch, plus the one client that was built but never wired; everything else is Supported. This is
 // also the guard that keeps record, punch, regions and item_gain (plus track_state, takes and fx_chains) from
-// silently drifting from bridge.Experimental before any of them is promoted (ADR 0400).
+// silently drifting from bridge.Experimental before any of them is promoted.
 func TestTheDeclarationMatchesTodaysGating(t *testing.T) {
 	inSource := experimentalCommandsInSource(t)
 	if mapped := slices.Sorted(maps.Keys(experimentalCapability)); !slices.Equal(inSource, mapped) {
@@ -221,11 +221,11 @@ func TestTheDeclarationMatchesTodaysGating(t *testing.T) {
 	}
 	// Built, never wired, so never gated: declared Experimental so it stays off by default.
 	want[dawport.CapItemGain] = dawport.Experimental
-	// The mastering port's DAW row (ADR 0306): render_with_fx is not one of bridge.Actions'
+	// The mastering port's DAW row: render_with_fx is not one of bridge.Actions'
 	// commands (it answers through the fan-out), so it is not gated by bridge.Actions; like every Experimental capability, the
 	// resolver hands its role out only when the narrator's settings allow it. master_chain_read is gated above.
 	want[dawport.CapRenderWithFX] = dawport.Experimental
-	// macro_render is the mastering port's Audacity row (ADR 0306, ADR 0460): REAPER has no macro manager, so it is Unsupported,
+	// macro_render is the mastering port's Audacity row: REAPER has no macro manager, so it is Unsupported,
 	// not Supported like everything else this loop defaults to.
 	want[dawport.CapMacroRender] = dawport.Unsupported
 	// cut_range is delete_range's (SN-D62), fx_range apply_fx_range's and remove_fx_range's (SN-D63), and stack_takes
@@ -268,7 +268,7 @@ func TestTheSynchronousRolesAreTodaysTypes(t *testing.T) {
 
 func typeName(v any) string { return fmt.Sprintf("%T", v) }
 
-// bridge.Actions' gating is the resolver's (ADR 0304): with nothing allowed, an experimental command is refused before anything
+// bridge.Actions' gating is the resolver's: with nothing allowed, an experimental command is refused before anything
 // is written, as it was behind the old switch.
 func TestActionsWithNothingAllowedWriteNothing(t *testing.T) {
 	adapter, dir := newAdapter(t, nil)
@@ -544,7 +544,7 @@ func TestHideTakesIsGatedByTheResolver(t *testing.T) {
 }
 
 // split_take is the takes capability's second role (dawport.TakeSplitter): Experimental with takes, gated by takes, one
-// undo step when it cut, and every refusal a DawResult in a whole sentence (ADR 0810).
+// undo step when it cut, and every refusal a DawResult in a whole sentence.
 func TestSplitTakeIsExperimentalAndAnswersADawResult(t *testing.T) {
 	if declares[dawport.CapTakes] != dawport.Experimental || !bridge.Experimental("split_take") || commandCapability["split_take"] != dawport.CapTakes {
 		t.Fatalf("split_take must be an Experimental command of the takes capability")
@@ -600,7 +600,6 @@ func TestSplitTakeIsExperimentalAndAnswersADawResult(t *testing.T) {
 
 // reduce_range_gain is the range_gain capability's role (dawport.RangeGainReducer): Experimental, gated by range_gain, one undo
 // step when it lowered, a request out of shape refused before anything is sent, and every refusal a DawResult in a whole sentence
-// (ADR 0810).
 func TestReduceRangeGainIsExperimentalAndAnswersADawResult(t *testing.T) {
 	if declares[dawport.CapRangeGain] != dawport.Experimental || !bridge.Experimental("reduce_range_gain") ||
 		commandCapability["reduce_range_gain"] != dawport.CapRangeGain || depthOf(dawport.CapRangeGain).Destructive {
@@ -676,7 +675,6 @@ func TestReduceRangeGainIsExperimentalAndAnswersADawResult(t *testing.T) {
 
 // repair_click is the click_repair capability's role (dawport.ClickRepairer): Experimental, gated by click_repair, one undo step
 // when it repaired, a request out of shape refused before anything is sent, and every refusal a DawResult in a whole sentence
-// (ADR 0810).
 func TestRepairClickIsExperimentalAndAnswersADawResult(t *testing.T) {
 	if declares[dawport.CapClickRepair] != dawport.Experimental || !bridge.Experimental("repair_click") ||
 		commandCapability["repair_click"] != dawport.CapClickRepair || depthOf(dawport.CapClickRepair).Destructive {
@@ -762,7 +760,7 @@ func puncherAnswering(t *testing.T, answer func(command []string) [][]string) da
 	return adapter.Role(dawport.CapPunch).(dawport.Puncher)
 }
 
-// A roll is a change with no undo point of its own (ADR 0860 point 1): the points for the recorded media are REAPER's.
+// A roll is a change with no undo point of its own (docs/reference/daw/capabilities.md point 1): the points for the recorded media are REAPER's.
 func TestRollKeepsTheEarlierAudioAndAddsNoUndoPointOfItsOwn(t *testing.T) {
 	punch := puncherAnswering(t, func(command []string) [][]string {
 		return [][]string{{"ROLLED", command[1], rollTrack, "62.250000", "0"}}
@@ -868,7 +866,7 @@ func cutRequest(words int, mode dawport.CutMode) dawport.DeleteRangeRequest {
 	}
 }
 
-// A cut is one undo step (ADR 0860 point 5), and the command gets the request's item, range, mode and fade.
+// A cut is one undo step (docs/reference/daw/capabilities.md point 5), and the command gets the request's item, range, mode and fade.
 func TestDeleteRangeCutsTheWordsInOneUndoStep(t *testing.T) {
 	var sent []string
 	cut := rangeCutterAnswering(t, func(command []string) [][]string {
@@ -963,7 +961,7 @@ func fxRangeRequest(words int) dawport.FXRangeRequest {
 	}
 }
 
-// A chain on a range is one undo step (ADR 0860 point 5), and the command gets the request's item, range, chain and fade.
+// A chain on a range is one undo step (docs/reference/daw/capabilities.md point 5), and the command gets the request's item, range, chain and fade.
 func TestApplyFXToRangePutsTheChainOnInOneUndoStep(t *testing.T) {
 	var sent []string
 	fx := rangeFXApplierAnswering(t, func(command []string) [][]string {
@@ -1099,7 +1097,7 @@ func stackTakesRequest(shift float64, from, to float64) dawport.StackRequest {
 	}
 }
 
-// A stack and an un-stack are one undo step each (ADR 0860 point 5), and the payload carries the request's GUIDs and times.
+// A stack and an un-stack are one undo step each (docs/reference/daw/capabilities.md point 5), and the payload carries the request's GUIDs and times.
 func TestStackAndUnstackTakesAreOneUndoStepAndSendThePayload(t *testing.T) {
 	var commands, payloads []string
 	stacker := takeStackerAnswering(t, func(command []string, payload string) [][]string {

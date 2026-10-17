@@ -22,8 +22,8 @@ export function defaultKeymap(catalog: readonly CommandDescriptor[] = COMMAND_CA
 }
 
 /** A `Keymap.overrides` document's `bindings`: only the commands that differ from their default, each
- * as its serialised gestures. The wire shape itself lives in `api/schemas/keymap.ts` (ADR 0069's boundary); this stays
- * a plain `Record` so `src/input/` never depends on `src/api/` (ADR 0062: input is a lower layer than the API client). */
+ * as its serialised gestures. The wire shape itself lives in `api/schemas/keymap.ts` (ADR 0005's boundary); this stays
+ * a plain `Record` so `src/input/` never depends on `src/api/` (docs/operations/verification-tooling.md: input is a lower layer than the API client). */
 export type KeymapBindings = Record<CommandId, string[]>;
 
 /**

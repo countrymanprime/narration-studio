@@ -2,7 +2,7 @@
 // (240 px), the reader, and the rail (380 px). At 1280 px and below the rail is a drawer over the text; below 1180 px the chapter list
 // is one too. A drawer slides in from its side with a scrim behind it, both drawn inside the columns (never fixed to the window) and on
 // the panel layers, which sit under the navigation rail (`--z-panel`, styles.css): the rail stays clickable, and a press anywhere
-// outside the drawer closes it. A closed drawer is hidden from the keyboard and screen readers. The widths are the mock's (`src/layoutBreakpoints.ts`), so this supersedes ADR 0393's
+// outside the drawer closes it. A closed drawer is hidden from the keyboard and screen readers. The widths are the mock's (`src/layoutBreakpoints.ts`), so this supersedes docs/design/design-system.md's
 // 1280/1440 where they differ (the Script PRD's DQ-1).
 
 import { useEffect, useRef, type KeyboardEvent, type ReactNode, type RefObject } from 'react';

@@ -122,7 +122,7 @@ export function thresholdRows(thresholds: DiagnosticsThresholds): Array<{ label:
   ];
 }
 
-/** Every silence cleanup threshold a check uses (ADR 0238 decision 4), for the panel above the candidate list. */
+/** Every silence cleanup threshold a check uses (apps/desktop/internal/measure/cleanup.go decision 4), for the panel above the candidate list. */
 export function cleanupThresholdRows(thresholds: DiagnosticsCleanupThresholds): Array<{ label: string; value: string }> {
   return [
     { label: 'Hold kept at each side', value: seconds(thresholds.pad_seconds) },

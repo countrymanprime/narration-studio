@@ -256,7 +256,7 @@ export function GuideDetail({
     },
   });
   const resetVoiceInstall = voiceInstall.reset;
-  // Every action that changes the Story Bible goes through this (ADR 0075): one at a time, the control that started it says so, and the others
+  // Every action that changes the Story Bible goes through this: one at a time, the control that started it says so, and the others
   // wait. Each is a Python process that rewrites the same file, so two at once could lose an update.
   const mutation = usePendingAction();
   const pronunciationSources = usePronunciationSources();
@@ -339,7 +339,7 @@ export function GuideDetail({
 
   if (!entity) return <Panel>No matching entities. Build the guide to discover names and terms.</Panel>;
   const locked = entity.locked;
-  // Entries open read-only (ADR-0018): Edit reveals the form controls and Save.
+  // Entries open read-only: Edit reveals the form controls and Save.
   // A locked entry cannot be edited at all, and a brand-new draft is created by
   // choosing its category rather than through the edit form.
   const canEdit = !locked && !isNewDraft;
@@ -669,7 +669,7 @@ export function GuideDetail({
               </Button>
             ))}
           {inRouter && <FindInManuscript name={entity.canonical_name} />}
-          {/* Lock/Unlock is read-view only (ADR 0087): it can never be pressed mid-edit, so an edit is never silently discarded by a lock. */}
+          {/* Lock/Unlock is read-view only: it can never be pressed mid-edit, so an edit is never silently discarded by a lock. */}
           {!isNewDraft && !editing && (
             <TooltipTarget text={locked ? 'Unlock entry' : 'Lock entry'}>
               <IconButton
@@ -707,8 +707,8 @@ export function GuideDetail({
                   <FontAwesomeIcon icon={faXmark} />
                 </IconButton>
               </TooltipTarget>
-              {/* Delete only exists in edit mode (ADR 0087): unreachable from the read view, and set off from Save/Cancel by a divider
-                  so it cannot be mis-clicked beside them (B5). A locked entry never reaches edit mode (ADR 0007), so it never has one. */}
+              {/* Delete only exists in edit mode: unreachable from the read view, and set off from Save/Cancel by a divider
+                  so it cannot be mis-clicked beside them (B5). A locked entry never reaches edit mode, so it never has one. */}
               <div className="ml-1 border-l pl-2" style={{ borderColor: 'var(--border)' }}>
                 <TooltipTarget text="Delete entity">
                   <IconButton label="Delete entity" variant="danger" disabled={mutation.isBusy} onClick={() => setConfirmation('delete')}>
@@ -809,7 +809,7 @@ export function GuideDetail({
                       notify={notify}
                     />
                     {flagged && <StatusBadge tone="warning" label="Needs review" />}
-                    {/* A note from before pronunciation statuses were removed (ADR 0792): kept readable, no longer edited. */}
+                    {/* A note from before pronunciation statuses were removed: kept readable, no longer edited. */}
                     {pronunciation.note && <p className="m-0 text-xs text-[var(--text-muted)]">Note: {pronunciation.note}</p>}
                   </div>
                   <TooltipTarget

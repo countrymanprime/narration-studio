@@ -13,7 +13,7 @@ import (
 	"github.com/countrymanprime/narration-utils/shell/internal/pronunciationport"
 )
 
-// The narrator's pronunciation sources and one source's candidate for one word (SNB-2b, ADR 0792 decision 1, ADR 0405). Both
+// The narrator's pronunciation sources and one source's candidate for one word (SNB-2b, docs/guides/using-the-app/story-bible.md#how-you-say-each-name decision 1). Both
 // bindings take a word and a source id and nothing else: no path, no passage, no project id, and no batch form. The sources
 // come from three places that each know theirs - the port registry (the sidecar's sources), the online service (the keyed
 // Merriam-Webster one) and the Story Bible setting (the default) - and this file only joins them.
@@ -48,7 +48,7 @@ type PronunciationSourceList struct {
 }
 
 // PronunciationSources lists the sources and the default. The default is the narrator's setting when that source is available,
-// otherwise the first available source in registry order (ADR 0405); never an unavailable one, and never manual.
+// otherwise the first available source in registry order; never an unavailable one, and never manual.
 func (h *Host) PronunciationSources() (string, error) {
 	return encodeBinding(h.pronunciationSourceList(), nil)
 }

@@ -166,7 +166,7 @@ func TestMeasureReportsWhereTheQuietestWindowStarts(t *testing.T) {
 	}
 	within(t, "ranged quietest window start", ranged.NoiseFloorStartSeconds, 1, 1e-9)
 
-	// With no window to find (digital silence), there is no start either: never an invented time (ADR 0015).
+	// With no window to find (digital silence), there is no start either: never an invented time.
 	silent := analyzeBytes(t, encodeWAV(t, 1, rate, 16, false, silence(rate, 2)))
 	if silent.NoiseFloorStartSeconds != nil {
 		t.Fatalf("quietest window start of silence = %v, want null", *silent.NoiseFloorStartSeconds)

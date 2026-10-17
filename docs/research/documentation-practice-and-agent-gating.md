@@ -6,7 +6,7 @@ Researched 2026-10-10 for a plan to add documentation skills and gates for agent
 
 | Concern | Existing mechanism | Gap |
 | --- | --- | --- |
-| Markdown style | `markdownlint-cli2` on changed files ([ADR 0415](../adr/0415-while-pages-is-paused-docs-are-checked-by-lychee-and-a-changed-file-markdownlint-not-by-building-the-site.md)) | No prose or slop rules |
+| Markdown style | `markdownlint-cli2` on changed files ([CI and releases](../operations/ci-and-releases.md)) | No prose or slop rules |
 | Links and anchors | `lychee --offline` on every PR (`.github/workflows/docs.yml`) | Does not check backticked file paths or identifiers |
 | Index and diagram integrity | `adr-index`, `prd-references`, `mermaid-diagrams`, `layout` scripts in `pnpm check` | None found |
 | Docs follow code | `feature-cleanup` step 4 (prose advice), PR template (no docs checkbox), `doc-screenshot-sync` | Nothing fails when code changes and docs do not |
@@ -16,7 +16,7 @@ Researched 2026-10-10 for a plan to add documentation skills and gates for agent
 Stale items in existing skills, found while reading them:
 
 - `doc-screenshot-sync` and `feature-cleanup` name `docs/guides/using-the-app.md`. That path is now the folder `docs/guides/using-the-app/`.
-- `full-verification-gate` step 3 says the Lua directory has no automated tests. `CLAUDE.md` and [ADR 0066](../adr/0066-the-lua-bridge-is-tested-by-a-harness-under-lua-5-4-and-reaper-api-behaviour-is-checked-in-reaper.md) say the bridge harness covers it.
+- `full-verification-gate` step 3 says the Lua directory has no automated tests. `CLAUDE.md` and [ADR 0004](../adr/0004-every-daw-is-reached-through-one-port.md) say the bridge harness covers it.
 
 ## Best practice by stack
 

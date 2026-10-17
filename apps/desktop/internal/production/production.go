@@ -1,6 +1,6 @@
 // Package production implements production tracking: a stage timer the narrator
 // starts and stops by hand, the project-scoped log of the sessions it records,
-// PFH and the effective rate over that log (pfh.go, ADR 0320), the checks on
+// PFH and the effective rate over that log (pfh.go), the checks on
 // the deadline, amount and milestones kept on the manifest (plan.go), and the
 // read model of the Production page (overview.go, burndown.go). A session
 // exists only because the narrator started and stopped a timer: nothing here

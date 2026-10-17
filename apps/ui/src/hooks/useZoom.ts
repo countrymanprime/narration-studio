@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import type { SystemApi } from '../api/contracts/system';
 import { useDebouncedValue } from './useDebouncedValue';
 
-// Mirrors apps/desktop/bindings_window.go's zoomSteps (ADR 0201): the header's buttons and Ctrl+=/-/0 step
+// Mirrors apps/desktop/bindings_window.go's zoomSteps: the header's buttons and Ctrl+=/-/0 step
 // through these six levels; the host snaps and clamps to the same list defensively, so a value this file computes
 // from it is never rejected.
 const ZOOM_STEPS = [1.0, 1.1, 1.25, 1.5, 1.75, 2.0];
@@ -11,7 +11,7 @@ const ZOOM_MAX = ZOOM_STEPS[ZOOM_STEPS.length - 1];
 const ANNOUNCE_DEBOUNCE_MS = 500;
 
 /** The step in ZOOM_STEPS closest to level; a level outside the list (only reachable by Ctrl+wheel/pinch below 100%,
- * ADR 0201 item 2) reads as its nearest end. */
+ * docs/guides/using-the-app/navigation.md#zoom item 2) reads as its nearest end. */
 function nearestStepIndex(level: number): number {
   let nearest = 0;
   for (let index = 1; index < ZOOM_STEPS.length; index++) {
@@ -22,13 +22,13 @@ function nearestStepIndex(level: number): number {
 
 /**
  * The header's zoom group: reads and sets the window's real
- * webview zoom through the `windowZoom`/`windowSetZoom` binding. `zoomIn`/`zoomOut` step through ADR 0201's six
+ * webview zoom through the `windowZoom`/`windowSetZoom` binding. `zoomIn`/`zoomOut` step through docs/guides/using-the-app/navigation.md#zoom's six
  * levels from the current one's nearest step; `reset` always sets 100%, from any level.
  *
- * Ctrl+wheel and pinch move the level outside this hook entirely (they are WebView2's own, ADR 0201), so the only
+ * Ctrl+wheel and pinch move the level outside this hook entirely (they are WebView2's own), so the only
  * signal that one of them changed anything is the `resize` a zoom change fires (it changes the CSS viewport); Wails
- * v3 surfaces no zoom-changed event on Windows (ADR 0201). A level found above the 200% ceiling that way is
- * set back to it; one under 100% is only shown, per ADR 0201 item 2 ("kept, because a smaller page cramps nothing").
+ * v3 surfaces no zoom-changed event on Windows. A level found above the 200% ceiling that way is
+ * set back to it; one under 100% is only shown, per docs/guides/using-the-app/navigation.md#zoom item 2 ("kept, because a smaller page cramps nothing").
  *
  * `announcement` is the debounced, polite text a run of wheel notches or clicks should announce once, at the level
  * the narrator settles on, not on every wheel notch.
@@ -86,7 +86,7 @@ export function useZoom(api: Pick<SystemApi, 'windowZoom' | 'windowSetZoom' | 'w
       api
         .windowZoom()
         .then((result) => {
-          // ADR 0201 item 2: a level above the ceiling (Ctrl+wheel/pinch) is set back to it; under the floor is kept.
+          // docs/guides/using-the-app/navigation.md#zoom item 2: a level above the ceiling (Ctrl+wheel/pinch) is set back to it; under the floor is kept.
           if (result.level > ZOOM_MAX) return apply(ZOOM_MAX);
           setLevel(result.level);
           return undefined;

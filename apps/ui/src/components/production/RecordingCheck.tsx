@@ -34,7 +34,7 @@ const WORK_PHASE: Record<CoverageState['phase'], WorkJob['phase']> = {
   failed: 'error',
 };
 
-/** A check's live state as the shared work dialog shows it: the host's own percent and messages (ADR 0015), and the seconds since it started. */
+/** A check's live state as the shared work dialog shows it: the host's own percent and messages, and the seconds since it started. */
 function coverageWorkJob(state: CoverageState, logs: string[], now: number): WorkJob {
   const started = state.startedAt ? Date.parse(state.startedAt) : NaN;
   const ended = state.completedAt ? Date.parse(state.completedAt) : now;
@@ -54,7 +54,7 @@ function coverageWorkJob(state: CoverageState, logs: string[], now: number): Wor
 }
 
 /**
- * One chapter's recording check (docs/utilities/recording-coverage.md, ADR 0130): the stored result (current, stale or never, with
+ * One chapter's recording check (docs/utilities/recording-coverage.md): the stored result (current, stale or never, with
  * its reasons and the saved-project basis), the check itself on demand (never on its own) with real progress and Cancel in the shared
  * work dialog, the Whisper model's first-use question when it is not installed (the download is never silent), and the chapter-track link
  * right in the panel when the check needs one.
@@ -130,7 +130,7 @@ export function RecordingCheck({
     return () => clearInterval(clock);
   }, [live?.phase]);
 
-  // A finished check replaces the progress with its result at once; the app's job:ended toast says it too (ADR 0076).
+  // A finished check replaces the progress with its result at once; the app's job:ended toast says it too.
   useEffect(() => {
     if (live?.phase !== 'complete') return;
     setWatching(undefined);
@@ -271,7 +271,7 @@ export function RecordingCheck({
         title={`Checking ${chapterName(chapter, 'short')}`}
         job={coverageWorkJob(live, logs, now)}
         cancel={cancel}
-        // The check ends with a job:ended event the app announces wherever the narrator is (ADR 0076), and the board's Record cell keeps its percent.
+        // The check ends with a job:ended event the app announces wherever the narrator is, and the board's Record cell keeps its percent.
         background={close}
         close={() => {
           setWatching(undefined);

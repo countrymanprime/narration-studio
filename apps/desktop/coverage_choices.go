@@ -47,7 +47,7 @@ type coverageChoices struct {
 
 // resolveCoverageChoices applies options over the settings. An option that is present and not valid is an error, never
 // quietly replaced: a narrator who asked for 5 workers must not be told 1 ran. Without "recheck", the second pass follows the
-// cascade setting, and a named "model" still runs alone (ADR 0841) unless the run asks for the second pass too.
+// cascade setting, and a named "model" still runs alone unless the run asks for the second pass too.
 func resolveCoverageChoices(store *settings.Store, options map[string]string) (coverageChoices, error) {
 	all := coverageSettings(store)
 	cascade := all.Cascade

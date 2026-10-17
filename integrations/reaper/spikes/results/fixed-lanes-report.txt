@@ -188,7 +188,7 @@ set P_LANENAME:2 true Retake 3
     chunk: YPOS 0.285714 0.142857 2
     chunk: YPOS 0 0.142857 2
 
-== E. Takes and lanes (the take-review path, ADR 0098): one item with two takes ==
+== E. Takes and lanes (the take-review path): one item with two takes ==
 [E1 before] track "E1 - takes, then I_FREEMODE=2" I_FREEMODE=0 I_NUMFIXEDLANES=1 C_LANESETTINGS=9 C_LANESCOLLAPSED=0 C_ALLLANESPLAY=1 C_LANEPLAYS:0..=1 P_LANENAME:0..=""
     item 0 pos=0 len=3 I_FIXEDLANE=0 C_LANEPLAYS=1 B_FIXEDLANE_HIDDEN=0 I_CURTAKE=0 line_id="line-000006" guid={97E61A71-95A2-47DD-8D30-02ED8E359E87} takes=["target (active)", "candidate"{finding=finding-0001}]
 set I_FREEMODE=2 -> returned true; undo label now "spike: I_FREEMODE=2 on a multi-take item"

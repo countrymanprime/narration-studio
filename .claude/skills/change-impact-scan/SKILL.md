@@ -33,7 +33,7 @@ Skip it for changes fully contained inside one tool's own directory (e.g. `sidec
    - Python consumers → look for a corresponding test in `libs/python/tests/` or the sidecar's own `tests/`.
    - UI consumers → look for a vitest unit test or a Playwright spec under `apps/ui/tests/`.
    - Go consumers → look for a `_test.go` in the same package or a contract test.
-   - Lua consumers → the bridge harness in `integrations/reaper/tests` covers bridge commands ([ADR 0066](../../../docs/adr/0066-the-lua-bridge-is-tested-by-a-harness-under-lua-5-4-and-reaper-api-behaviour-is-checked-in-reaper.md)). Find the harness tests for every command the consumer touches; a consumer with none is **zero coverage**. REAPER's own API behaviour is never covered by the fake.
+   - Lua consumers → the bridge harness in `integrations/reaper/tests` covers bridge commands ([ADR 0004](../../../docs/adr/0004-every-daw-is-reached-through-one-port.md)). Find the harness tests for every command the consumer touches; a consumer with none is **zero coverage**. REAPER's own API behaviour is never covered by the fake.
 4. Report the impact before writing code: list each consumer, whether it has coverage, and which consumers have none. Don't proceed silently past a zero-coverage consumer — say so explicitly and ask whether to add a regression test first or accept manual verification later (via `full-verification-gate`). If the change widens an interface or adds a dependency across a package or port, run `solid-design-review` pass 1 on the plan.
 5. If the consumer list turns out to be empty (change is genuinely isolated), say that too — it's a valid finding, not a reason to skip the scan.
 

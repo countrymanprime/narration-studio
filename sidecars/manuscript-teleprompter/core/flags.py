@@ -1,5 +1,5 @@
 """
-Suspected reading errors for the Manuscript Teleprompter (ADR 0105). The script
+Suspected reading errors for the Manuscript Teleprompter. The script
 tracker (script_tracker.py) already aligns what the narrator said with the
 script; this module reads that alignment once a segment closes and reports
 what did not line up as `flag` events, after the tracker's `position` events:
@@ -22,7 +22,7 @@ favour precision over recall (a doubtful discrepancy is dropped, not flagged):
 - confirmed words only, judged once the segment has closed;
 - a discrepancy is judged only between two matched script words, never at a
   segment's ragged edges, and never with a heard word among its first
-  SEGMENT_HEAD_WORDS words (where both engines revise most, ADR 0021);
+  SEGMENT_HEAD_WORDS words (where both engines revise most);
 - a heard reading that says the same thing in other spelling (numbers,
   hyphenation, homophones, possessives: narration_common.spoken_forms, the
   forms Transcript Compare forgives too) is not a misread or an extra;
@@ -178,7 +178,7 @@ def _gap_flag(gap: _Gap, script: Sequence[str], written: Sequence[str]) -> Flag 
 
 
 def _echoes(times: Sequence[tuple[float, float] | None], matched: int) -> bool:
-    """Whether the heard word after `matched` starts before `matched` ended. Word times are advisory (ADR 0021), so they are
+    """Whether the heard word after `matched` starts before `matched` ended. Word times are advisory, so they are
     only ever used to withhold a flag, never to raise one."""
     if matched + 1 >= len(times) or times[matched] is None or times[matched + 1] is None:
         return False

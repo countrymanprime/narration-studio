@@ -56,11 +56,11 @@ type (
 	Transport = daw.Transport
 )
 
-// The mastering port's DAW row (ADR 0306) exchanges values the bridge has no command for yet, so they are dawport's own types rather
+// The mastering port's DAW row exchanges values the bridge has no command for yet, so they are dawport's own types rather
 // than aliases: the REAPER phase that builds render_with_fx and master_chain_read gives the bridge matching shapes.
 
 // MacroRender asks the engine to apply one named effect macro to the narrator's audio and export the result (the mastering port's
-// Audacity row, ADR 0306, ADR 0460). Unlike FXRender it names no region and no per-track chain: Audacity's macros are opaque, one
+// Audacity row). Unlike FXRender it names no region and no per-track chain: Audacity's macros are opaque, one
 // named chain the narrator built in its own Macro Manager, not a list of plugins this app can read back.
 type MacroRender struct {
 	// Source is the WAV to master, imported into the engine before the macro runs.
@@ -128,7 +128,7 @@ type FXSlot struct {
 type Trace struct{ RunID, Level string }
 
 // Events is how a role that answers later reports back: consumers subscribe for the tags they own, and Dispatch delivers what the
-// engine has reported since the last call, in order, once. The event vocabulary is part of the contract (ADR 0143): another engine
+// engine has reported since the last call, in order, once. The event vocabulary is part of the contract: another engine
 // reports the same tags and fields.
 type Events interface {
 	Subscribe(sub Subscription) (unsubscribe func())
@@ -142,7 +142,7 @@ type MarkerColors struct{ Misread, Skipped, Extra string }
 // Asynchronous roles: each request method only asks, returns an error only when the request could not be handed to the engine, and
 // the answer arrives through Events tagged with runID. They mirror the commands their services send today, one method per command.
 
-// ReviewSession is the review workflow's role (ADR 0143's original dawadapter.Review): prepare, inspect, navigate to and export
+// ReviewSession is the review workflow's role (ADR 0004's original dawadapter.Review): prepare, inspect, navigate to and export
 // findings.
 //
 // Take management (take creation, pickups, line identity, render setup) is deliberately not here: it has no Audacity equivalent
@@ -214,7 +214,7 @@ type TakeCreator interface {
 	CreateTake(runID, payloadPath string) error
 }
 
-// FXRenderer renders regions through the project's own FX into a folder the host chose (the mastering port's DAW row, ADR 0306).
+// FXRenderer renders regions through the project's own FX into a folder the host chose (the mastering port's DAW row).
 // It is the one role that makes the engine render: each request carries the narrator's approval and runs only on their action.
 // The answer arrives through Events tagged with runID (a FXRendered).
 type FXRenderer interface {
@@ -238,7 +238,7 @@ type MarkerWriter interface {
 }
 
 // Heartbeat is what the host knows of the engine without asking it: whether it is answering, which project it has open, that
-// project's change count, and whether the engine is playing or recording (ADR 0305). It reads; a request that
+// project's change count, and whether the engine is playing or recording. It reads; a request that
 // waits for an answer is ProjectStateReader. Transport's ok is false when the engine is not answering or does not report it.
 type Heartbeat interface {
 	Reachable() bool
@@ -290,7 +290,7 @@ type Puncher interface {
 	PunchTo(ctx context.Context, wordTime, preRoll float64) (float64, error)
 	PlayPosition(ctx context.Context) (PlayPosition, error)
 	// Roll stops the recording the app started on trackGUID and records again from at (project seconds), keeping the
-	// earlier audio (ADR 0860 point 1). An engine where that replaces audio declares punch destructive and the page asks
+	// earlier audio (docs/reference/daw/capabilities.md point 1). An engine where that replaces audio declares punch destructive and the page asks
 	// first; the call itself never asks. A recording the app did not start, or a setting that would not keep the
 	// earlier audio, is Refused in a whole sentence; a track that is gone is RefusedStale.
 	Roll(ctx context.Context, trackGUID string, at float64) (Result, error)
@@ -335,7 +335,7 @@ type MasterChainReader interface {
 	ReadMasterChain(ctx context.Context) (MasterChain, error)
 }
 
-// MacroRenderer applies one named effect macro and exports the result (the mastering port's Audacity row, ADR 0306, ADR 0460). It
+// MacroRenderer applies one named effect macro and exports the result (the mastering port's Audacity row). It
 // is synchronous, unlike FXRenderer: the engine it drives answers a scripting command directly, with no separate event log to poll.
 // It is the one role that makes the engine render, so each call carries the narrator's approval and runs only on their action.
 type MacroRenderer interface {
@@ -344,7 +344,7 @@ type MacroRenderer interface {
 
 // The edit roles (SND-3) change the audio of the project the engine has open. Their requests are dawport's own values: no bridge
 // command takes them yet, and the command slices adapt them to their arguments. A request names items, takes and times as the app
-// last read them, never a file. Each method answers a Result (ADR 0810): a refusal (an item that changed since the app read it, an
+// last read them, never a file. Each method answers a Result: a refusal (an item that changed since the app read it, an
 // engine that cannot make the edit) is a refused Result that changed nothing; the error is only a call that never reached the engine.
 
 // CutMode is what happens to the time a cut leaves behind.
@@ -475,7 +475,7 @@ type FXSetting struct {
 	Formatted string  `json:"formatted"`
 }
 
-// FXRangeSettings is what FXRangeParams read. Result is the call's answer (ADR 0810): a refusal has no settings. Truncated says the
+// FXRangeSettings is what FXRangeParams read. Result is the call's answer: a refusal has no settings. Truncated says the
 // engine listed only the first MaxFXRangeSettings; Bypassed says every effect of the chain is bypassed.
 type FXRangeSettings struct {
 	Result    Result      `json:"result"`
@@ -497,7 +497,7 @@ type RangeFXEditor interface {
 	BypassFXRange(ctx context.Context, target FXRangeTarget, bypass bool) (Result, error)
 }
 
-// FXRangeCompare is what CompareFXRange started. Result is the call's answer (ADR 0810); Pass is how long each of the two passes
+// FXRangeCompare is what CompareFXRange started. Result is the call's answer; Pass is how long each of the two passes
 // plays, in seconds (with the effect, then without), 0 on a refusal.
 type FXRangeCompare struct {
 	Result Result  `json:"result"`

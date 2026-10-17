@@ -15,7 +15,7 @@ import (
 
 // steps is the role of each capability Audacity has only with backups on (takes, punch, stack_takes, cut_range, fx_range,
 // range_gain, click_repair; PRD DQ-18). Audacity keeps no takes and its edits change the audio itself, so each edit is a listed series of scripting commands
-// made after BackupAround has cloned the audio around it (ADR 0863): a roll (steps_roll.go), a cut and an effect on a range
+// made after BackupAround has cloned the audio around it: a roll (steps_roll.go), a cut and an effect on a range
 // (steps_range.go), a stack and an un-stack (steps_stack.go), lowered stretches (ReduceRangeGain, below) and repaired clicks (RepairClick, below). Each answers a Result whose Steps are the edits in the order
 // they were sent and whose UndoSteps counts the ones that add an Audacity undo point (selecting and copying add none); how many
 // Audacity really adds is checked on the owner's pass (docs/operations/audacity-verification-pass.md).
@@ -26,7 +26,7 @@ import (
 // refuse with the capability's sentence and send nothing, and a roll records over the audio, as the destructive capability the
 // page confirmed says. Whether the narrator turned backups on is the resolver's to enforce. Audacity's track id is its name (ADR
 // 0863 point 3), so an item, track or take GUID in a request is the name of an Audacity track. Setting the active take,
-// hiding takes, punching in and reading the play position are not built for Audacity and answer ADR 0144's sentence.
+// hiding takes, punching in and reading the play position are not built for Audacity and answer docs/architecture/daw-integration.md#audacity-boundary's sentence.
 type steps struct {
 	client  *audacitybridge.Client
 	backups *Backups
@@ -261,7 +261,7 @@ func (s *steps) RepairClick(ctx context.Context, request dawport.ClickRepairRequ
 	return e.done("Repaired " + what + " in Audacity."), nil
 }
 
-// What is not built for Audacity: ADR 0144's sentence, and nothing sent.
+// What is not built for Audacity: docs/architecture/daw-integration.md#audacity-boundary's sentence, and nothing sent.
 
 func (*steps) PunchTo(context.Context, float64, float64) (float64, error) { return 0, ErrNotAvailable }
 func (*steps) PlayPosition(context.Context) (dawport.PlayPosition, error) {

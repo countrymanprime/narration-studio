@@ -1,5 +1,5 @@
 // Package chaptersync is the host side of the DAW chapter-track auto-sync
-// (ADR 0202). It holds Build, a pure planner that answers "what should be
+// It holds Build, a pure planner that answers "what should be
 // linked" from the manuscript's chapters, the saved REAPER project, the stored
 // links and the last sync's snapshot, and Store, which keeps that snapshot in
 // narration-utils/chapter-sync.json. Nothing here writes a link: the sync
@@ -138,7 +138,7 @@ func (p Plan) Requests() []evidence.AutoLinkRequest {
 	return requests
 }
 
-// Build plans one sync. It is pure. The rules (ADR 0202):
+// Build plans one sync. It is pure. The rules:
 //   - A stored link, of either origin, is never replaced or removed; its
 //     track and chapter take part in nothing else.
 //   - A previous link (a re-import) comes back first when its remembered

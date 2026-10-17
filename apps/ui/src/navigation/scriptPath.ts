@@ -1,5 +1,5 @@
 // The Script address for "open this chapter or line", as the pages that hand off to it name them (App.tsx `goToScript`). A credits
-// row's synthetic chapter (ADR 0333) is the credits section, not a chapter: its id would otherwise be written as a chapter named
+// row's synthetic chapter is the credits section, not a chapter: its id would otherwise be written as a chapter named
 // "credits-opening", which the Script page does not find.
 
 import { creditsKindOfId } from '../components/credits/creditsEntries';

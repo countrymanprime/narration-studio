@@ -1,4 +1,4 @@
-// ADR 0069, rule 4: every payload the Go host and the Python sidecars write to tests/fixtures/contracts/ is checked by the
+// ADR 0005: every payload the Go host and the Python sidecars write to tests/fixtures/contracts/ is checked by the
 // schema the app runs (wireContracts.test.ts). One row per committed file, in the file for its feature area: a new golden
 // file with no row fails that test, and so does a row whose file is missing. A file named in two feature areas fails here.
 import type { z } from 'zod';

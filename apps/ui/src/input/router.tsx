@@ -29,7 +29,7 @@ type PushScope = (kind: Scope) => () => void;
 const ScopeStackContext = createContext<PushScope | undefined>(undefined);
 
 /**
- * Which scopes are active for the current stack of mounted `CommandScope` boundaries (ADR 0361
+ * Which scopes are active for the current stack of mounted `CommandScope` boundaries (docs/architecture/studio-shell-and-registries.md
  * decision 4). `dialog`, `booth` and `page` are the three ways a screen can claim the surface, and a screen
  * claims at most one of them: `booth` is the Booth page, a dialog can sit on top of it, and either way it takes the surface from `page` the same way `dialog` does
  * (`scopes.ts` explains why `page` and `booth` must stay mutually exclusive here for the default catalog to have
@@ -71,12 +71,12 @@ export type CommandRouterProps = {
   catalog?: readonly CommandDescriptor[];
   /** Defaults to the platform default keymap; a test passes a fixed one so it does not depend on `navigator`. */
   keymap?: Keymap;
-  /** While this returns true, a `noisy` command's handler does not run (ADR 0361 decision 7). Defaults to never recording. */
+  /** While this returns true, a `noisy` command's handler does not run (docs/architecture/studio-shell-and-registries.md decision 7). Defaults to never recording. */
   isRecording?: () => boolean;
 };
 
 /**
- * Mounted once at the root (`main.tsx`), replacing the hand-written `keydown` listeners. Per gesture (ADR 0361):
+ * Mounted once at the root (`main.tsx`), replacing the hand-written `keydown` listeners. Per gesture:
  * 1. Resolves the active scopes from the mounted `CommandScope` boundaries (`activeScopes` above).
  * 2. For a gesture with no modifier held, applies the target guard (`targets.ts`) - a field or widget that owns the
  *    key keeps it, whatever scope is active.
@@ -85,7 +85,7 @@ export type CommandRouterProps = {
  *    other, so off the shadowing row's page the gesture falls through to the shadowed row.
  * 4. If a `noisy` command is found while `isRecording()` is true, the gesture is still consumed (so nothing else
  *    reacts to it) but the handler does not run. A suppressed press posts "Not while recording." to a status
- *    region instead (ADR 0361 decision 7), so a narrator who cannot see the screen still gets feedback.
+ *    region instead (docs/architecture/studio-shell-and-registries.md decision 7), so a narrator who cannot see the screen still gets feedback.
  * 5. A gesture no command takes, and one whose catalog rows have nothing registered yet, are left untouched.
  */
 export function CommandRouter({ children, source, catalog = COMMAND_CATALOG, keymap, isRecording = () => false }: CommandRouterProps) {

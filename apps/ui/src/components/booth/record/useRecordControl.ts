@@ -24,7 +24,7 @@ export type RecordControlState = {
   /** The DAW project as last saved and whether it has unsaved changes; null until the DAW port answers. */
   project: DawProjectState | null;
   recording: boolean;
-  /** False when the DAW was already recording and this app did not start the take; the leave guard reads it (ADR 0232). */
+  /** False when the DAW was already recording and this app did not start the take; the leave guard reads it. */
   startedByApp: boolean;
   /** Why Record cannot start, or the host's refusal of the last press; '' when nothing stops it. */
   reason: string;
@@ -85,7 +85,7 @@ const lostInDaw = (daw: DawKind | undefined) => {
  */
 // A take this app started and has not seen end. The Booth can be left without its leave question (the mouse's Back button, a window that
 // reloads its page): the take goes on in the DAW, and when the Booth is opened again that take is still the app's own to stop. A take the app
-// never started (the DAW was already recording when the app opened) is not claimed, and a page reload forgets this, as it should (ADR 0232).
+// never started (the DAW was already recording when the app opened) is not claimed, and a page reload forgets this, as it should.
 let appTakeRunning = false;
 /** Forgets a take the app started; for tests that share the module. */
 export const forgetAppTake = (): void => {
@@ -241,7 +241,7 @@ export function useRecordControl({ chapterId, notify }: { chapterId: string; not
   }, [unready, recording]);
 
   // A take the narrator stopped in the DAW itself ends here too, once the DAW has been heard recording: the transport is pushed only on
-  // a change, so the stopped state the subscription hears first, from before the take started, is not taken for its end (ADR 0232).
+  // a change, so the stopped state the subscription hears first, from before the take started, is not taken for its end.
   const heardRecording = useRef(false);
   useEffect(() => {
     if (!recording) {

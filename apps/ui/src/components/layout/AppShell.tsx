@@ -39,7 +39,7 @@ import type { NavCounts } from './useNavCounts';
 // The Production stage's page: the Production home at `/`, which replaced Home.
 // Not gated: with no manuscript it is where the import is.
 const PRODUCTION = { name: 'Production', path: '/', icon: faHouse, requiresManuscript: false, requiresDaw: false };
-// The Schedule (the Studio Next mock's rail, ADR 0802): the due date, how the book pays and the milestones. Not gated: with no
+// The Schedule (the Studio Next mock's rail): the due date, how the book pays and the milestones. Not gated: with no
 // manuscript the page asks for one.
 const SCHEDULE = { name: 'Schedule', path: '/schedule', icon: iconFor('calendar'), requiresManuscript: false, requiresDaw: false };
 const SCRIPT = { name: 'Script', path: '/script', icon: faFileLines, requiresManuscript: false, requiresDaw: false };
@@ -47,7 +47,7 @@ const STORY_BIBLE = { name: 'Story Bible', path: '/story-bible', icon: faBookOpe
 // The Record stage's one page: it replaced the Teleprompter page. Its
 // icon is a record dot, as the stage-nav mocks draw it (audit SH12).
 const BOOTH = { name: 'Booth', path: '/booth', icon: faCircleDot, requiresManuscript: false, requiresDaw: false };
-// Editing (the Studio Next mock's Editing page, ADR 0804): the chapter's script as the editor, at /editing and /editing/:chapterId. It took the
+// Editing (the Studio Next mock's Editing page): the chapter's script as the editor, at /editing and /editing/:chapterId. It took the
 // chapter workspace out of Proof. Not gated: with no manuscript the page asks for one, as the mock's does.
 const EDITING = { name: 'Editing', path: '/editing', icon: iconFor('scissors'), requiresManuscript: false, requiresDaw: false };
 // Proof: the book's notes at /proof and a chapter's view at /proof/:chapterId,
@@ -60,11 +60,11 @@ const PROOF = { name: 'Proof', path: '/proof', icon: faWaveSquare, requiresManus
 // Pickups dialog. Not gated: its import, export and jumps talk to REAPER and each says itself when REAPER is not there.
 const PICKUPS = { name: 'Pickups', path: '/pickups', icon: faRotateLeft, requiresManuscript: false, requiresDaw: false };
 const MASTER_QC = { name: 'Master & QC', path: '/master', icon: faGaugeHigh, requiresManuscript: false, requiresDaw: false };
-// Delivery (the Studio Next mock's rail, ADR 0802): the profile card, the package build and what is left before it. Not gated: with no
+// Delivery (the Studio Next mock's rail): the profile card, the package build and what is left before it. Not gated: with no
 // manuscript the page asks for one, as the mock's does.
 const DELIVERY = { name: 'Delivery', path: '/delivery', icon: iconFor('delivery'), requiresManuscript: false, requiresDaw: false };
 
-// Grouped by production stage (ADR 0407): Production, Prep, Record, Edit (the Studio Next mock's own group for Editing, ADR 0804), Review,
+// Grouped by production stage: Production, Prep, Record, Edit (the Studio Next mock's own group for Editing), Review,
 // Finish, with Settings pinned at the foot (below, not a group). A page is renamed only in the change that ships its
 // replacement. The Production page is the home at `/` (`/production` redirects there).
 type NavItem = typeof PRODUCTION;
@@ -113,13 +113,13 @@ export function AppShell({
   projectName: string;
   hasManuscript: boolean;
   dawFileLinked: boolean;
-  /** Whether a live REAPER heartbeat has been seen recently (ADR 0092); false also covers "unknown". */
+  /** Whether a live REAPER heartbeat has been seen recently; false also covers "unknown". */
   dawReachable?: boolean;
   /** Whether that heartbeat's open project is the linked file; only meaningful when dawReachable is true. */
   dawProjectMatches?: boolean;
   /** Opens the engine panel from the header's engine chip. */
   onOpenEnginePanel: () => void;
-  /** True while the shared DAW-link binding is running for any of its three call sites (ADR 0075's ref guard). */
+  /** True while the shared DAW-link binding is running for any of its three call sites (docs/architecture/interaction-feedback.md#the-standard's ref guard). */
   linkingDawFile?: boolean;
   /** Which engine the header's chip shows; UI-only until native recording picks 'builtin'. */
   engine?: EngineState;
@@ -141,7 +141,7 @@ export function AppShell({
   undo: { disabledReason?: string; run: () => void };
   /** The foot's Theme item (the mock's rail): absent draws none. */
   theme?: { dark: boolean; toggle: () => void };
-  /** The menu on empty space in `<main>`, then the items every menu ends with (ADR 0780 decision 5). */
+  /** The menu on empty space in `<main>`, then the items every menu ends with (docs/architecture/studio-shell-and-registries.md#command-providers-and-go-to decision 5). */
   contextMenu?: { fallback: (target: Element) => ContextMenuItem[]; tail: ContextMenuItem[] };
   children: ReactNode;
 }) {
@@ -187,7 +187,7 @@ export function AppShell({
       <nav className="flex-1 px-2 pt-[0.5625rem] pb-2">
         {NAV_GROUPS.map((group) => (
           <div key={group.label} role="group" aria-labelledby={groupHeadingId(group.label)} className="flex flex-col gap-[0.1875rem]">
-            {/* Every group is headed (ADR 0407): 10 px capitals at x 19, 29 px deep with the gap above the group's first
+            {/* Every group is headed: 10 px capitals at x 19, 29 px deep with the gap above the group's first
                 item, so a heading sits 32 px between two items. */}
             <div
               id={groupHeadingId(group.label)}
@@ -239,7 +239,7 @@ export function AppShell({
     <div className="flex h-full flex-col overflow-hidden bg-[var(--bg)]">
       <DemoBanner />
       <div className="flex min-h-0 flex-1 overflow-hidden">
-        {/* One rail at md and up (the mock's `.rail`): 216 px from 1360 CSS px, 64 px of icons below it (ADR 0761). Below 1360 the panel inside
+        {/* One rail at md and up (the mock's `.rail`): 216 px from 1360 CSS px, 64 px of icons below it. Below 1360 the panel inside
             is taken out of the flow, so it opens over the page on hover or keyboard focus without moving anything; the labels stay in the
             markup, hidden by size, so every item keeps its name. */}
         <aside className="relative z-[var(--z-nav)] hidden w-16 flex-none min-[1360px]:w-54 md:flex" aria-label="Primary navigation">
@@ -308,7 +308,7 @@ export function AppShell({
               </TooltipTarget>
             </div>
             {timer && <TimerChip timer={timer} />}
-            {/* The zoom group (ADR 0407): after a running timer chip, before the engine chip. Below `md` a running timer takes its room (Ctrl+wheel and the shortcuts still zoom). */}
+            {/* The zoom group: after a running timer chip, before the engine chip. Below `md` a running timer takes its room (Ctrl+wheel and the shortcuts still zoom). */}
             <div className={`flex flex-none items-center gap-1 ${timer ? 'max-md:hidden' : ''}`} role="group" aria-label="Zoom">
               <TooltipTarget text={zoomOutTooltip}>
                 <IconButton label="Zoom out" disabledReason={zoom.canZoomOut ? undefined : zoomOutTooltip} onClick={zoom.zoomOut}>

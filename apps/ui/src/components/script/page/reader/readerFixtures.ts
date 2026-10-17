@@ -1,5 +1,5 @@
 // Synthetic Script data for the reader's tests and stories. The names are made up on purpose: the reader names no sample
-// speaker (ADR 0770, `sampleLiterals.test.ts`), and a story draws what these builders give it.
+// speaker (`sampleLiterals.test.ts`), and a story draws what these builders give it.
 
 import type { ManuscriptChapter, ManuscriptParagraph } from '../../../../api/contracts/manuscript';
 import type { Mark, MarkType } from '../../../../api/contracts/marks';

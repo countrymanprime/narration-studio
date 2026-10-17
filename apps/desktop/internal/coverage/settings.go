@@ -7,7 +7,7 @@ import (
 )
 
 // SettingsTool is the settings.Store tool the recording check's four settings
-// live under (docs/utilities/recording-coverage.md Q3, ADR 0131), layered project
+// live under (docs/utilities/recording-coverage.md Q3), layered project
 // over global over the built-in defaults in config/defaults.json like every
 // other tool.
 const SettingsTool = "RecordingCoverage"

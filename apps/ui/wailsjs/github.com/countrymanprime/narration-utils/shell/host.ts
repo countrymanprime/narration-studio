@@ -90,7 +90,7 @@ export function BookmarksRemove(id: string): $CancellablePromise<string> {
 }
 
 /**
- * BookmarksUpdate replaces a bookmark's label and note, both plain text within the limits ADR 0820 states.
+ * BookmarksUpdate replaces a bookmark's label and note, both plain text within the limits docs/reference/data-files.md states.
  */
 export function BookmarksUpdate(id: string, label: string, note: string): $CancellablePromise<string> {
     return $Call.ByID(3562503062, id, label, note);
@@ -122,7 +122,7 @@ export function ChapterRegionsPreview(openingTrackGUID: string, closingTrackGUID
 /**
  * ChapterSuggestion suggests the chapter the narrator is recording from the
  * selected .rpp's record-armed (else selected) track as of its last save
- * (ADR 0113): the matcher's
+ * the matcher's
  * other direction, track to chapter, with the same statuses. Read-only.
  */
 export function ChapterSuggestion(): $CancellablePromise<string> {
@@ -152,7 +152,7 @@ export function ChapterSyncState(): $CancellablePromise<string> {
 }
 
 /**
- * ChapterSyncUndo removes one automatic link and remembers the pair so no later sync makes it again (ADR 0203). A
+ * ChapterSyncUndo removes one automatic link and remembers the pair so no later sync makes it again. A
  * manual link is refused. It returns the new state.
  */
 export function ChapterSyncUndo(trackGUID: string): $CancellablePromise<string> {
@@ -200,7 +200,7 @@ export function ChapterTrackMapList(): $CancellablePromise<string> {
 
 /**
  * ChapterTrackMatch finds the track holding chapterID and where its recorded
- * audio ends (ADR 0110): a
+ * audio ends: a
  * confirmed link first, then the shared chapter-to-track matcher over track
  * and region names. It only reads; it never creates a track or a link.
  */
@@ -225,7 +225,7 @@ export function ChapterTrackUnlink(chapterID: string): $CancellablePromise<strin
 }
 
 /**
- * ChaptersForTracks is ForTrack (ADR 0113) run over every GUID in guids: the
+ * ChaptersForTracks is ForTrack run over every GUID in guids: the
  * Review page's chapter grouping for findings that carry only a track, item or take GUID
  * rather than a manuscript-anchored chapter. One GUID the project no longer
  * has is reported as an error alongside the others, never as a failed call.
@@ -295,7 +295,7 @@ export function CleanupToolsState(): $CancellablePromise<string> {
 
 /**
  * CompanionModeEnter narrows the app's one window to the companion width and pins it always-on-top, saving its prior
- * size and position so CompanionModeExit can restore them. It never opens a second window (ADR 0401).
+ * size and position so CompanionModeExit can restore them. It never opens a second window.
  */
 export function CompanionModeEnter(): $CancellablePromise<void> {
     return $Call.ByID(3310293519);
@@ -318,7 +318,7 @@ export function CoverageCancel(): $CancellablePromise<string> {
 
 /**
  * CoverageEngines lists the engines a recording check can run: the approved Whisper models, in catalog order, each with
- * its install state, and the id of the one a start that names none would use (SN-Q62, ADR 0841). It reads the catalog
+ * its install state, and the id of the one a start that names none would use (SN-Q62). It reads the catalog
  * and the settings, not a project, so the Check recordings dialog can offer the list before one is open. A start
  * may name any listed id in options["model"] (CoverageStart).
  */
@@ -362,7 +362,7 @@ export function CoverageResult(chapterID: string): $CancellablePromise<string> {
  * the narrator's Transcript Compare model; with it on, the two cascade settings (MC2). options["skipRecheck"] ==
  * "true" starts a cascade-enabled chapter with the first pass alone - the narrator's "Check with tiny only" choice
  * (MC4) when the re-check model is not installed; nil or without that key is the ordinary start. options["model"] names
- * an approved Whisper model (CoverageEngines lists them) to run alone, replacing the cascade for this run (ADR 0841);
+ * an approved Whisper model (CoverageEngines lists them) to run alone, replacing the cascade for this run;
  * an unknown id is an error and nothing starts. It answers
  * {status: "started", state}; {status: "refused", reason, message} when the chapter cannot be measured as the saved
  * project stands (nothing was run or written); {status: "asset_required", ...} when the first-pass model is not
@@ -431,8 +431,8 @@ export function CreditsProjectValues(): $CancellablePromise<string> {
 /**
  * CreditsRecordedLengths is a credits row's "actual recorded": the same
  * track-based measurement every manuscript chapter gets (recordedLengthsFor), read
- * for the two credits ids. Never an estimate (ADR 0193): a credits id has its own confirmed link, or none, in the
- * same chapter-track-map.json every manuscript chapter uses (ADR 0333), so this reads it directly rather than
+ * for the two credits ids. Never an estimate: a credits id has its own confirmed link, or none, in the
+ * same chapter-track-map.json every manuscript chapter uses, so this reads it directly rather than
  * through manuscript.Service's own RecordedLengths hook, which only ever sees the manuscript's own chapter ids.
  */
 export function CreditsRecordedLengths(): $CancellablePromise<string> {
@@ -522,12 +522,12 @@ export function CreditsTemplates(): $CancellablePromise<string> {
 
 /**
  * DawApplyFxToRange puts one of the narrator's saved FX chains on the words firstToken..lastToken of chapterID's stored
- * alignment (SND-6c, ADR 0860 point 3; the Studio Next mock's applyFxToRange): the DAW splits the item at both ends of the
+ * alignment (SND-6c, docs/reference/daw/capabilities.md point 3; the Studio Next mock's applyFxToRange): the DAW splits the item at both ends of the
  * range and puts the chain on the middle piece, with fadeMs at each new seam. The page sends a chapter id, two token
  * indices, a chain name and the fade, never a GUID, a time or a path: the item and its project seconds are resolved here
- * from the stored alignment and the saved project (ADR 0242; threat model row 5f), one item per request (ADR 0705), and
+ * from the stored alignment and the saved project (threat model row 5f), one item per request, and
  * the chain must be one the DAW's own list (WorkspaceListFXChains, the list the Add FX menu shows) names. The answer is a
- * DawResult (ADR 0810): the fx_range capability's own sentence when the resolver refuses it, checked first; then a fade
+ * DawResult: the fx_range capability's own sentence when the resolver refuses it, checked first; then a fade
  * apply_fx_range does not take; then the range's refusals (words not heard, two items, and a range or item that is stale
  * with code stale); then a chain the DAW does not list. Nothing is sent to the DAW on any of them.
  */
@@ -537,10 +537,10 @@ export function DawApplyFxToRange(chapterID: string, firstToken: number, lastTok
 
 /**
  * DawBackupAround clones the audio around the words firstToken..lastToken of chapterID before an edit, so it can be put back
- * (SN-D82, ADR 0863; the Studio Next mock's backupAround). The page sends a chapter id, two token indices and the label the
+ * (SN-D82, docs/reference/daw/audacity-3.md; the Studio Next mock's backupAround). The page sends a chapter id, two token indices and the label the
  * Backups list shows ("Roll at ¶ 3"), never a track, a time or a path: the words' project seconds are resolved here from the
  * stored alignment (passagetakes.ResolveRange) and the track is the chapter's one linked track, and the DAW adds the narrator's
- * window either side (DAW.backups.window_seconds). The answer is a DawResult (ADR 0810): the backups capability's own sentence when
+ * window either side (DAW.backups.window_seconds). The answer is a DawResult: the backups capability's own sentence when
  * the resolver refuses it (REAPER, the built-in recorder, a standalone launch, Audacity not connected, the toggle off), checked
  * first; then a label that is not plain text; then the range's and the link's own refusals. Nothing is sent to the DAW on any of
  * them. A backup changes no audio, so it answers changed false and no undo step.
@@ -550,7 +550,7 @@ export function DawBackupAround(chapterID: string, firstToken: number, lastToken
 }
 
 /**
- * DawBackups answers the project's backups table, newest first, in the file's own shape ({schemaVersion, backups}, ADR 0863), for
+ * DawBackups answers the project's backups table, newest first, in the file's own shape ({schemaVersion, backups}), for
  * the Backups list. It reads the file only and asks the DAW nothing, so it answers on any launch; a project with no table has none.
  * A table written by a newer app, or one that cannot be read, rejects with its sentence.
  */
@@ -621,7 +621,7 @@ export function DawChoose(engine: string): $CancellablePromise<string> {
  * DawCompareFxRange plays the words firstToken..lastToken of chapterID's stored alignment in the DAW with the chain chainName on
  * and then bypassed, and puts the chain back as it was: the effect inspector's Compare (SN-E113). The words and chain resolve as
  * DawFxRangeParams resolves them, and the page sends no GUID or path. The answer is the DawFxRangeCompare payload: a DawResult
- * (ADR 0810) with no undo step, since the DAW's history is left as it was, and Pass, how long each pass plays in seconds, so the
+ * with no undo step, since the DAW's history is left as it was, and Pass, how long each pass plays in seconds, so the
  * page can say which one is playing. It answers once the first pass has started. The same refusals as DawBypassFxRange, then an
  * engine that cannot compare, in a sentence.
  */
@@ -636,8 +636,8 @@ export function DawCompareFxRange(chapterID: string, firstToken: number, lastTok
  * (0 to 500) cuts that much less at each end of the words' audio; roomTone (gap only) fills the gap with the chapter's room
  * tone, which an engine with none refuses, cutting nothing (SN-E97). The page sends a chapter id, two token indices, and the
  * mode, fade, pad and room-tone choice, never a GUID or a time: the item and its project seconds are resolved here from the
- * stored alignment and the saved project (ADR 0242; threat model row 5f), and one request is one item (ADR 0705). The answer is
- * a DawResult (ADR 0810): the cut_range capability's own sentence when the resolver refuses it (a standalone launch, a DAW not
+ * stored alignment and the saved project (threat model row 5f), and one request is one item. The answer is
+ * a DawResult: the cut_range capability's own sentence when the resolver refuses it (a standalone launch, a DAW not
  * answering, Experimental actions off, the toggle off, an engine that cannot cut yet), checked first; then a mode, fade or pad
  * delete_range does not take, or room tone with "close"; then the range's own refusals (passagetakes.ResolveRange: words not
  * heard, two items, and a range or item that is stale with code stale); words every one of which the edit log already holds as
@@ -653,7 +653,7 @@ export function DawDeleteRange(chapterID: string, firstToken: number, lastToken:
  * (SN-E104; the mock's effect inspector), resolved as DawApplyFxToRange resolves them: the DAW finds the piece the chain went on
  * from the answer it gave the apply, or, after the chapter is checked again, from the item the words resolve to. The page sends a
  * chapter id, two token indices and a chain name, never a GUID or a path. The answer is the DawFxRangeParams payload: a DawResult
- * (ADR 0810) with the settings, whether the list was cut short and whether the chain is bypassed; a refusal has no settings. The
+ * with the settings, whether the list was cut short and whether the chain is bypassed; a refusal has no settings. The
  * same capability and range refusals as DawRemoveFxFromRange, then a chain the DAW no longer has on those words, with code stale.
  */
 export function DawFxRangeParams(chapterID: string, firstToken: number, lastToken: number, chainName: string): $CancellablePromise<string> {
@@ -661,7 +661,7 @@ export function DawFxRangeParams(chapterID: string, firstToken: number, lastToke
 }
 
 /**
- * DawLastAction answers whether the DAW's next undo point is the app's own action of kind (#1711, ADR 0771 rule 4): "this", "other"
+ * DawLastAction answers whether the DAW's next undo point is the app's own action of kind (#1711, docs/architecture/ui-state-and-journal.md#the-journal-and-undo rule 4): "this", "other"
  * (another action, or none), or "unknown" when the DAW cannot tell: the undo_last capability refused (a standalone launch, a DAW not
  * answering, Experimental actions off, the toggle off, an engine that has not built it), no live adapter, or no answer. It never
  * changes the project. kind is a dawport.ActionKind ("cut_range"); any other is an error, and nothing is sent.
@@ -673,10 +673,10 @@ export function DawLastAction(kind: string): $CancellablePromise<string> {
 /**
  * DawLaunch starts REAPER on the current project's linked DAW file: it resolves
  * reaper.exe (a Settings override always wins, otherwise auto-detect -
- * daw.Resolve / daw.LocateReaperExecutable, ADR 0092), and passes the linked
+ * daw.Resolve / daw.LocateReaperExecutable), and passes the linked
  * .rpp, plus, when the DAW.auto_start_launcher setting is on (default off), the
  * launcher script too - the exact `reaper.exe "<project.rpp>" "<script.lua>"`
- * form spike S6 confirmed REAPER runs automatically at startup (ADR 0092), so
+ * form spike S6 confirmed REAPER runs automatically at startup, so
  * the bridge is live without the narrator running the action by hand. The
  * launch is detached (daw.Launch): never through the sidecar supervisor's
  * kill-on-close job object (internal/process/job_windows.go), so REAPER
@@ -725,7 +725,7 @@ export function DawProjectState(): $CancellablePromise<string> {
  * (SN-E100: Clean up's Breaths, Plosives and Noise, "Reduce by N dB"). Each stretch is in the take's own seconds, the time in its
  * audio file. takeID is the take's id as the DAW reports it on the chapter's one linked track now (chapter_track_state): the host
  * looks it up there, checks every stretch is inside the part of the file the take plays, and sends the item and take it read
- * itself, so an id is never sent to the DAW as given (threat model row 5f). The answer is a DawResult (ADR 0810): the range_gain
+ * itself, so an id is never sent to the DAW as given (threat model row 5f). The answer is a DawResult: the range_gain
  * capability's own sentence when the resolver refuses it (a standalone launch, a DAW not answering, Experimental actions off, the
  * toggle off), checked first; no live adapter is refused in a sentence; a reduction or stretches out of bounds are refused; a take
  * the track no longer holds or a stretch outside it is refused with code stale. Nothing is sent to the DAW on any of them. A take
@@ -752,7 +752,7 @@ export function DawRemoveFxFromRange(chapterID: string, firstToken: number, last
  * (SN-E101: Clean up's Clicks, "Repair the click"). Each click is in the take's own seconds, the time in its audio file. takeID is
  * the take's id as the DAW reports it on the chapter's one linked track now (chapter_track_state): the host looks it up there,
  * checks every click is inside the part of the file the take plays, and sends the item and take it read itself, so an id is never
- * sent to the DAW as given (threat model row 5f). The answer is a DawResult (ADR 0810): the click_repair capability's own sentence
+ * sent to the DAW as given (threat model row 5f). The answer is a DawResult: the click_repair capability's own sentence
  * when the resolver refuses it (a standalone launch, a DAW not answering, Experimental actions off, the toggle off), checked first;
  * no live adapter is refused in a sentence; clicks out of bounds are refused; a take the track no longer holds or a click outside
  * it is refused with code stale. Nothing is sent to the DAW on any of them. A take that changed between the read and the DAW's own
@@ -782,9 +782,9 @@ export function DawRevealFile(path: string): $CancellablePromise<string> {
 
 /**
  * DawRoll stops the recording this app started on chapterID's linked track and records again from at (project seconds),
- * keeping the earlier audio as a take (SND-6a, ADR 0860 point 1; the Studio Next mock's roll). The page sends the chapter
+ * keeping the earlier audio as a take (SND-6a, docs/reference/daw/capabilities.md point 1; the Studio Next mock's roll). The page sends the chapter
  * id, a time and whether the narrator confirmed, never a GUID: the track is the chapter's link, read here
- * (docs/architecture/threat-model.md, row 5f). The answer is a DawResult (ADR 0810): the punch capability's own sentence
+ * (docs/architecture/threat-model.md, row 5f). The answer is a DawResult: the punch capability's own sentence
  * when the resolver refuses it (a standalone launch, a DAW not answering, Experimental actions off, the toggle off),
  * checked first; a time that is not a number of seconds or is past where the DAW records now; the confirmation sentence
  * when the capability is destructive and confirmed is false; and a gone track as the role's stale refusal. Nothing is sent
@@ -818,7 +818,7 @@ export function DawSetMonitorLevel(level: number): $CancellablePromise<string> {
  * chapter, in one undo step of the DAW's own (SN-E94; the Studio Next mock's splitTake, the page's splitCommand). takeID is the
  * take's id as the DAW reports it on the chapter's one linked track now (chapter_track_state): the host looks it up there,
  * checks the cut is inside that take, and sends the item and take it read itself, so an id is never sent to the DAW as given
- * (threat model row 5f). The answer is a DawResult (ADR 0810): the takes capability's own sentence when the resolver refuses it
+ * (threat model row 5f). The answer is a DawResult: the takes capability's own sentence when the resolver refuses it
  * (a standalone launch, a DAW not answering, Experimental actions off, the toggle off), checked first; an engine whose takes role
  * cannot split, or no live adapter, is refused in a sentence; a time that is not one, a take the track no longer holds or a cut
  * outside it is refused (code stale for the last two). Nothing is sent to the DAW on any of them. A take that changed between the
@@ -830,11 +830,11 @@ export function DawSplitTake(chapterID: string, takeID: string, at: number): $Ca
 
 /**
  * DawStackTakes puts the later reads of the passages passageIDs of chapterID on the first read's spot as takes of its item,
- * and moves the audio after them up (SND-7b, ADR 0860 point 4; the Studio Next mock's stackTakes). The page sends a chapter
+ * and moves the audio after them up (SND-7b, docs/reference/daw/capabilities.md point 4; the Studio Next mock's stackTakes). The page sends a chapter
  * id and passage ids, never a GUID, a time or a path: the host rebuilds the plan itself (passagetakes.StackPlan) from the
  * Booth's passage map, which names the items each passage was read into, and the chapter's one linked track as the DAW
  * reports it now (chapter_track_state), so a GUID-shaped id is looked up like any other and the plan the page showed is
- * never an input (threat model row 5f). The answer is a DawResult (ADR 0810): the stack_takes capability's own sentence
+ * never an input (threat model row 5f). The answer is a DawResult: the stack_takes capability's own sentence
  * when the resolver refuses it (a standalone launch, a DAW not answering, Experimental actions off, the toggle off, an
  * engine that cannot stack), checked first; then too many passages; then a passage id the chapter does not list or a track
  * that is gone (code stale); then a kept take, reads two passages share and nothing to move. Nothing is sent to the DAW on
@@ -866,7 +866,7 @@ export function DawStopFxCompare(): $CancellablePromise<string> {
  * is the item's id as the finding recorded it: the host looks it up on the chapter's one linked track as the DAW reports it now
  * (chapter_track_state), checks the gap is inside it, and sends the item it read itself, so an id is never sent to the DAW as
  * given (threat model row 5f). A trim splits its item, so the page sends a chapter's trims latest first. The answer is a DawResult
- * (ADR 0810): the cut_range capability's own sentence when the resolver refuses it, checked first; no live adapter is refused in a
+ * the cut_range capability's own sentence when the resolver refuses it, checked first; no live adapter is refused in a
  * sentence; times or a fade out of bounds are refused; an item the track no longer holds or a gap outside it is refused with code
  * stale. Nothing is sent to the DAW on any of them.
  */
@@ -876,7 +876,7 @@ export function DawTrimRange(chapterID: string, itemID: string, start: number, e
 
 /**
  * DawUndoLast undoes steps (1 to 12) consecutive undo points of the app's own action of kind from the top of the DAW's own undo
- * history, one at a time, and never one of any other action (#1711). The answer is a DawResult (ADR 0810): the undo_last
+ * history, one at a time, and never one of any other action (#1711). The answer is a DawResult: the undo_last
  * capability's own sentence when the resolver refuses it, checked first; no live adapter is refused in a sentence; the top point not
  * being kind's is refused in the DAW's sentence with nothing changed; stopping at another point part way is changed, and its
  * sentence says how many were undone. UndoSteps is 0: an undo adds no undo point. kind is a dawport.ActionKind ("cut_range"); any
@@ -935,7 +935,6 @@ export function DeliveryOpenPackageFolder(): $CancellablePromise<string> {
 /**
  * DeliveryProfiles answers every delivery profile the narrator can choose (the built-ins first, then their custom
  * profiles), the Global default, the current project's own choice and the profile it is judged against
- * (ADR 0179).
  */
 export function DeliveryProfiles(): $CancellablePromise<string> {
     return $Call.ByID(1745272024);
@@ -1105,7 +1104,7 @@ export function EditingStacksList(chapterID: string): $CancellablePromise<string
 /**
  * EditingStart starts an editing-readiness scan of one chapter: played-range
  * empty-space (and, cached alongside it, click/breath candidates - always
- * unknown until their gate opens, ADR 0510). It answers {status: "started",
+ * unknown until their gate opens). It answers {status: "started",
  * state} or {status: "refused", reason, message} when the chapter cannot be
  * resolved to exactly one confirmed track and its items in the saved
  * project (nothing was run or written); any other error is a rejected
@@ -1362,7 +1361,7 @@ export function FindingsLoopRead(id: string, read: number): $CancellablePromise<
 
 /**
  * FindingsReaperStatus answers whether REAPER is there for Go to and Loop, without sending REAPER anything: it reads
- * the heartbeat REAPER's script already broadcasts (daw.Reachability, ADR 0092), so the page can poll it.
+ * the heartbeat REAPER's script already broadcasts (daw.Reachability), so the page can poll it.
  */
 export function FindingsReaperStatus(): $CancellablePromise<string> {
     return $Call.ByID(1717933253);
@@ -1380,7 +1379,7 @@ export function FindingsReview(id: string, evidenceVersion: string, status: stri
 }
 
 /**
- * FindingsSetType records the kind the narrator says a finding is (ADR 0844), made against evidenceVersion
+ * FindingsSetType records the kind the narrator says a finding is, made against evidenceVersion
  * like a decision, and answers the finding as the store now holds it (review.type set, or absent when the
  * narrator chose the analyzer's own word). noteType is one of findings.NoteTypes. It is not a decision:
  * status, note and the review counts stay as they were. A stale evidenceVersion is refused as FindingsReview
@@ -1432,7 +1431,7 @@ export function GuideBuildState(): $CancellablePromise<string> {
 /**
  * GuideCorrectCue records the narrator's own attribution for one dialogue
  * cue. speakerEntityID "unknown" or "" clears the cue back to unknown; a
- * rebuild never overwrites a correction (mirroring ADR 0007's lock guard).
+ * rebuild never overwrites a correction (mirroring sidecars/manuscript-guide/core/manuscript_guide.py's lock guard).
  */
 export function GuideCorrectCue(cueID: string, speakerEntityID: string): $CancellablePromise<string> {
     return $Call.ByID(2882621287, cueID, speakerEntityID);
@@ -1512,7 +1511,7 @@ export function GuideSetLocked(id: string, locked: boolean): $CancellablePromise
 }
 
 /**
- * GuideSetSpeakerColor sets a character's speaker colour, 1 to 7 (--speaker-N, ADR 0367), which wins over the stable pick; nil or 0
+ * GuideSetSpeakerColor sets a character's speaker colour, 1 to 7 (--speaker-N), which wins over the stable pick; nil or 0
  * puts it back to automatic. A category that cannot speak is refused.
  */
 export function GuideSetSpeakerColor(id: string, index: number | null): $CancellablePromise<string> {
@@ -2038,14 +2037,14 @@ export function ProductionSaveMilestones(milestones: project$0.Milestone[]): $Ca
 /**
  * ProductionSetDeadline sets the book's delivery date ("YYYY-MM-DD"; empty clears it) and contracted amount (a number
  * of zero or more in the narrator's own currency; nil clears it). An invalid date or amount is refused and nothing is
- * written, and so is an amount while the payment type is royalty share or none, which carry no figure (ADR 0800).
+ * written, and so is an amount while the payment type is royalty share or none, which carry no figure.
  */
 export function ProductionSetDeadline(deadline: string, contractedAmount: number | null): $CancellablePromise<string> {
     return $Call.ByID(3757504551, deadline, contractedAmount);
 }
 
 /**
- * ProductionSetPayment sets how the book pays: "per_finished_hour", "royalty_share" or "none" (ADR 0800). Royalty
+ * ProductionSetPayment sets how the book pays: "per_finished_hour", "royalty_share" or "none". Royalty
  * share and none carry no figure, so choosing either clears the contracted amount; per finished hour keeps it. An
  * unknown type is refused and nothing is written.
  */
@@ -2083,7 +2082,7 @@ export function ProductionStatusReport(includeContractedAmount: boolean): $Cance
 
 /**
  * ProductionStatusReportPreview answers the document ProductionStatusReport would write, without writing anything
- * (ADR 0843). includeContractedAmount is the same opt-in as the export's.
+ * includeContractedAmount is the same opt-in as the export's.
  */
 export function ProductionStatusReportPreview(includeContractedAmount: boolean): $CancellablePromise<string> {
     return $Call.ByID(1952080667, includeContractedAmount);
@@ -2258,7 +2257,7 @@ export function PronunciationOnlineSignUpOpen(): $CancellablePromise<string> {
 
 /**
  * PronunciationSources lists the sources and the default. The default is the narrator's setting when that source is available,
- * otherwise the first available source in registry order (ADR 0405); never an unavailable one, and never manual.
+ * otherwise the first available source in registry order; never an unavailable one, and never manual.
  */
 export function PronunciationSources(): $CancellablePromise<string> {
     return $Call.ByID(3097763591);
@@ -2374,7 +2373,7 @@ export function RecorderSetTakeKeeper(takeName: string, keeper: boolean): $Cance
 }
 
 /**
- * RecorderSetTakeLine assigns takeName the manuscript paragraph or chapter entityId as its line identity (ADR 0485), so
+ * RecorderSetTakeLine assigns takeName the manuscript paragraph or chapter entityId as its line identity, so
  * it joins the review pipeline the same way a REAPER item's stamped line id does. entityId "" clears the assignment.
  * The manuscript's current source checksum is read here, never sent by the caller, so a stale UI can never stamp a
  * wrong one.
@@ -2558,7 +2557,7 @@ export function SystemCopyDiagnostics(scope: string): $CancellablePromise<string
 }
 
 /**
- * SystemLookup looks one word from the manuscript reader up in the offline dictionary (ADR 0097: the Open English WordNet, read from Go in
+ * SystemLookup looks one word from the manuscript reader up in the offline dictionary (docs/architecture/dictionary-thesaurus-integration.md: the Open English WordNet, read from Go in
  * this process; no cloud API and no server). The answer is one of:
  * 
  *   - "ok": the word the lookup used (normalised: lower case, surrounding punctuation removed), one entry per headword and part of speech
@@ -2616,7 +2615,7 @@ export function TakeComparisonCancel(): $CancellablePromise<string> {
 }
 
 /**
- * TakeComparisonStart compares the takes of one take-review group as a job (ADR 0165): findingID
+ * TakeComparisonStart compares the takes of one take-review group as a job: findingID
  * names the group; the reads, their audio and the manuscript span all come from the store and the saved project. It
  * answers the job; TakeComparisonState reports its real progress and TakeComparisonCancel stops it. The comparison is a
  * take_comparison finding, read and decided through the generic findings bindings.
@@ -2634,7 +2633,7 @@ export function TakeComparisonState(): $CancellablePromise<string> {
 
 /**
  * TakeReviewCreateTake adds a narrator-approved candidate's source range as a
- * new take on the target item (ADR 0098): findingID is the
+ * new take on the target item: findingID is the
  * finding this candidate came from (provenance); targetItemGUID
  * is the item the narrator explicitly chose (never preselected);
  * candidateItemGUID is the candidate's own item GUID when it has one (empty
@@ -2657,8 +2656,8 @@ export function TakeReviewScanCancel(): $CancellablePromise<string> {
 /**
  * TakeReviewScanStart starts a pickup and duplicate scan of scope as a job: the chapter track's
  * items and takes, plus at most one pickup track or time range. It answers the job; TakeReviewScanState reports
- * its real progress (ADR 0015) and TakeReviewScanCancel stops it. The findings it saves are read and decided through
- * the Review page's generic findings bindings (ADR 0120), like every other analyzer's.
+ * its real progress and TakeReviewScanCancel stops it. The findings it saves are read and decided through
+ * the Review page's generic findings bindings, like every other analyzer's.
  */
 export function TakeReviewScanStart(scope: $models.TakeReviewScanScope): $CancellablePromise<string> {
     return $Call.ByID(2149397544, scope);
@@ -2683,9 +2682,9 @@ export function TeleprompterDevices(): $CancellablePromise<string> {
 }
 
 /**
- * TeleprompterLocate finds where to resume reading chapterID from what is already recorded (ADR 0111): the chapter's track (the
+ * TeleprompterLocate finds where to resume reading chapterID from what is already recorded: the chapter's track (the
  * matcher's confident track, or trackGUID when the narrator picked one), where on it REAPER is now (the edit cursor on its recorded audio, else the end of that audio,
- * ADR 0349) or, when REAPER cannot say, where its audio ends as of the .rpp's last
+ * docs/architecture/manuscript-teleprompter.md#resume-where-reaper-is-and-where-the-prompter-was) or, when REAPER cannot say, where its audio ends as of the .rpp's last
  * save, and the last teleprompter.DefaultTailSeconds before that time transcribed and placed in the
  * chapter by the sidecar. While REAPER records onto the track it answers recording and locates nothing. model is the
  * Whisper model id ("" for the teleprompter's default); like TeleprompterStart it answers asset_required instead of
@@ -2715,7 +2714,7 @@ export function TeleprompterMeterStop(): $CancellablePromise<string> {
 
 /**
  * TeleprompterPause stops (true) or restarts (false) a running session's listening without ending it
- * (ADR 0248): the microphone stays open and its level still shows, the recognizer
+ * the microphone stays open and its level still shows, the recognizer
  * hears nothing and the tracker holds its word. The state keeps phase "running" with `paused` set. It errors when no
  * session is running.
  */
@@ -2756,7 +2755,7 @@ export function TeleprompterReaperInput(): $CancellablePromise<string> {
 }
 
 /**
- * TeleprompterResumeFollow starts following REAPER for chapterID's resume prompt (ADR 0353),
+ * TeleprompterResumeFollow starts following REAPER for chapterID's resume prompt,
  * replacing any follow already running. trackGUID is the track the prompt's locate read ("" for the chapter's
  * matched track); like TeleprompterLocate, a picked track must be one of the selected project's. It answers whether it
  * follows: not with no track to follow or no way to ask REAPER, which is an answer, not an error.
@@ -2775,7 +2774,7 @@ export function TeleprompterResumeUnfollow(): $CancellablePromise<string> {
 
 /**
  * TeleprompterSaveFlags writes a read-aloud session's suspected flags into the project's findings store as unreviewed
- * findings (ADR 0117): a misread, extra or skip as a
+ * findings: a misread, extra or skip as a
  * transcript_discrepancy, a restart as a pickup. The dialog calls it when a session ends and when it closes, so it is
  * idempotent: a finding's id comes from the manuscript words, a repeat is one finding, and a flag the narrator dismissed
  * is recorded once as a dismissed decision, never deleted. It answers one finding per flag, in order, as stored, so the
@@ -2988,7 +2987,7 @@ export function WindowSaveZoom(level: number): $CancellablePromise<string> {
 /**
  * WindowSetZoom sets the window's zoom to the nearest of zoomSteps, clamped to [zoomMin, zoomMax] regardless of what
  * factor the caller sends - the defensive floor and ceiling behind the header's own disabled-at-100%/never-past-200%
- * promise (ADR 0201). The UI calls this from the header's buttons, Ctrl+=/-/0, reset, and the "set back to 200%"
+ * promise. The UI calls this from the header's buttons, Ctrl+=/-/0, reset, and the "set back to 200%"
  * clamp it runs itself when it sees an external (Ctrl+wheel or pinch) zoom above the ceiling; Ctrl+wheel and pinch
  * never call it directly.
  */
@@ -2997,7 +2996,7 @@ export function WindowSetZoom(factor: number): $CancellablePromise<string> {
 }
 
 /**
- * WindowZoom reads the window's current zoom level (ADR 0201 item 3): the UI asks for this when it sees the page's
+ * WindowZoom reads the window's current zoom level (docs/guides/using-the-app/navigation.md#zoom item 3): the UI asks for this when it sees the page's
  * own zoom change (a devicePixelRatio or resize event), since Wails v3 surfaces no zoom-changed callback on Windows.
  */
 export function WindowZoom(): $CancellablePromise<string> {
@@ -3005,10 +3004,10 @@ export function WindowZoom(): $CancellablePromise<string> {
 }
 
 /**
- * WorkspaceAlignment reads a chapter's stored word alignment (ADR 0242) joined
+ * WorkspaceAlignment reads a chapter's stored word alignment joined
  * with its current paragraphs and its items' current played ranges (coverage.AlignmentView). It never runs anything
  * (Q14), exactly like CoverageResult, whose state, reasons and basis it shares. A stored report from before the
- * sidecar wrote alignment lines answers needsAlignAgain: true (align-again re-aligns from cached words only, ADR 0242).
+ * sidecar wrote alignment lines answers needsAlignAgain: true (align-again re-aligns from cached words only).
  */
 export function WorkspaceAlignment(chapterID: string): $CancellablePromise<string> {
     return $Call.ByID(2240146208, chapterID);
@@ -3028,7 +3027,7 @@ export function WorkspaceGoTo(chapterID: string, tokenIndex: number): $Cancellab
  * keeping keepCandidateID, one of the ids WorkspaceTakes offers (SND-5b; the Studio Next mock's hideTakes). Nothing is
  * deleted, and REAPER adds one undo step when anything changed. As for WorkspaceUseTake, the page sends ids and token
  * indices only: the item and kept take GUIDs are read here from the saved project, and an id the host does not offer is
- * refused as stale (docs/architecture/reaper-navigation.md). The answer is a DawResult (ADR 0810): the takes capability's own sentence when
+ * refused as stale (docs/architecture/reaper-navigation.md). The answer is a DawResult: the takes capability's own sentence when
  * the resolver refuses it (a standalone launch, a DAW not answering, Experimental actions off, the toggle off), checked
  * before the passage is read, and nothing is sent to REAPER on any refusal. A token range outside the alignment is an
  * error, as for WorkspaceTakes.
@@ -3040,7 +3039,7 @@ export function WorkspaceHideTakes(chapterID: string, firstToken: number, lastTo
 /**
  * WorkspaceListFXChains lists the narrator's FX chains from REAPER's FXChains folder (list_fx_chains), by relative
  * name, sorted, capped. It changes nothing and is refused (bridge.ErrUnavailable) offline or before the DAW port's
- * FX chains capability is on, exactly as list_fx_chains itself already is (ADR 0230, ADR 0234).
+ * FX chains capability is on, exactly as list_fx_chains itself already is.
  */
 export function WorkspaceListFXChains(): $CancellablePromise<string> {
     return $Call.ByID(2672396379);
@@ -3073,7 +3072,7 @@ export function WorkspaceSnap(chapterID: string, itemGUID: string, sourceTime: n
  * share of the passage's script words it read as written (from the stored alignment of its range), what its own
  * source range measures (the longest pause, level, noise floor and breaths, each a value or a reason; clarity is not
  * measured) and where its place came from ("map" for a take the Booth's passage map stamped over the passage, "aligned"
- * for one recorded elsewhere; ADR 0140). It reads only and starts no job; a take whose file
+ * for one recorded elsewhere). It reads only and starts no job; a take whose file
  * cannot be read has reasons, not an error. A passage WorkspaceTakes refuses is refused with the same sentence.
  */
 export function WorkspaceTakeEvidence(chapterID: string, firstToken: number, lastToken: number): $CancellablePromise<string> {
@@ -3091,7 +3090,7 @@ export function WorkspaceTakes(chapterID: string, firstToken: number, lastToken:
 }
 
 /**
- * WorkspaceTakesCompareStart compares the passage's usable takes as the one take comparison job (ADR 0165, ADR 0700):
+ * WorkspaceTakesCompareStart compares the passage's usable takes as the one take comparison job:
  * the same sidecar mode, state and cancel as a take-review group's comparison (TakeComparisonState and
  * TakeComparisonCancel answer for it, with the passage's id as the job's FindingID), with a manifest built from the
  * saved project. It saves one take_comparison finding whose id is computable from the passage, so the panel reads it back.
@@ -3101,7 +3100,7 @@ export function WorkspaceTakesCompareStart(chapterID: string, firstToken: number
 }
 
 /**
- * WorkspaceUseTake makes a take of the passage the one that plays (EP7, ADR 0233, ADR 0700). candidateID is one of the
+ * WorkspaceUseTake makes a take of the passage the one that plays (EP7). candidateID is one of the
  * ids WorkspaceTakes just offered: the host re-reads the alternates from the saved project and refuses an id it does
  * not offer, so nothing but a listed take can be chosen. What happens depends on where the take came from: another take
  * of the item is made active (set_active_take, one undo step); another retake on a fixed-lane track becomes the lane

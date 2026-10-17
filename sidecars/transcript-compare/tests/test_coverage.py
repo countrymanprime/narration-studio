@@ -1,5 +1,5 @@
 """Tests for the recording-coverage model (`core/recording_coverage.py`), "What counts as read" made
-executable: docs/utilities/recording-coverage.md, ADR 0126, Q1, Q3 and Q11."""
+executable: docs/utilities/recording-coverage.md, docs/utilities/recording-coverage.md, Q1, Q3 and Q11."""
 
 import difflib
 

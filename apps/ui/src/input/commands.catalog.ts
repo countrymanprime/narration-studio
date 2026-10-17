@@ -3,11 +3,11 @@ import type { Scope } from './scopes';
 
 export type CommandId = string;
 
-/** Where a static row is listed: the jump menu, the shortcut sheet, the Settings key list (ADR 0780 decision 1). */
+/** Where a static row is listed: the jump menu, the shortcut sheet, the Settings key list (docs/architecture/studio-shell-and-registries.md#command-providers-and-go-to decision 1). */
 export type CommandSurface = 'jumpMenu' | 'help' | 'settings';
 
 /**
- * One command a narrator can run, as static data (ADR 0361 decision 1): an id, its scope, whether
+ * One command a narrator can run, as static data (docs/architecture/studio-shell-and-registries.md decision 1): an id, its scope, whether
  * it is `noisy` (suppressed while the DAW reports recording) and its default gestures. A feature attaches
  * behaviour at runtime with `useCommand(id, handler, enabled)` and never listens for a key itself.
  */
@@ -15,10 +15,10 @@ export type CommandDescriptor = {
   id: CommandId;
   label: string;
   scope: Scope;
-  /** Plays or previews audio, so it is silenced while the DAW records (ADR 0361 decision 7). Absent means not noisy. */
+  /** Plays or previews audio, so it is silenced while the DAW records (docs/architecture/studio-shell-and-registries.md decision 7). Absent means not noisy. */
   noisy?: true;
   defaults: DefaultGesture[];
-  /** The jump menu heading the row sits under (ADR 0780 decision 1). */
+  /** The jump menu heading the row sits under (docs/architecture/studio-shell-and-registries.md#command-providers-and-go-to decision 1). */
   group?: string;
   /** A short note the jump menu shows beside the label. */
   hint?: string;
@@ -39,8 +39,8 @@ function key(code: string, modifiers: DefaultGesture['modifiers'] = [], source: 
 }
 
 /**
- * Every shortcut the app binds by default, gathered from the three hand-written listeners the router replaced (ADR 0361,
- * ADR 0196). `code` is `Mod` where the shortcut is Cmd on macOS (`resolveGesture` turns it into `Meta` or `Ctrl`);
+ * Every shortcut the app binds by default, gathered from the three hand-written listeners the router replaced (
+ * docs/design/design-system.md). `code` is `Mod` where the shortcut is Cmd on macOS (`resolveGesture` turns it into `Meta` or `Ctrl`);
  * F13-F24 stay unbound by default so a programmable pedal can use them with no conflict.
  *
  * Each row names its jump menu `group` and the `surfaces` it shows on. Page and booth commands are keys that act on
@@ -363,7 +363,7 @@ export const COMMAND_CATALOG: readonly CommandDescriptor[] = [
     surfaces: ['help', 'settings'],
   },
   // Not noisy: it starts or pauses the live listening/transcription session (`useTeleprompterSession`), which plays
-  // no audio of its own - unlike `workspace.play`, a recorded-audio player (ADR 0361 decision 7).
+  // no audio of its own - unlike `workspace.play`, a recorded-audio player (docs/architecture/studio-shell-and-registries.md decision 7).
   // The Booth's keys (mock `Booth.tsx` `registerKeys('booth')`). They act on the open page, so they list in the sheet and Settings
   // and not the jump menu. Handlers come from `useCommand` in the Booth; until then these rows are inert. There is no F or P
   // binding (nothing is flagged or sent to Pickups from the Booth) and no Ctrl or Meta default, so a modified press is never theirs.
@@ -419,7 +419,7 @@ export const COMMAND_CATALOG: readonly CommandDescriptor[] = [
     surfaces: ['jumpMenu', 'help', 'settings'],
   },
   // Ctrl+K opens the jump menu everywhere; Ctrl+F opens it on every page but Script and Proof, where `script.find` and `proof.find` shadow it and wins by
-  // scope priority (SNR-Q1, ADR 0780 decision 6). Not in `jumpMenu`: the menu would list the command that opened it.
+  // scope priority (SNR-Q1, docs/architecture/studio-shell-and-registries.md#command-providers-and-go-to decision 6). Not in `jumpMenu`: the menu would list the command that opened it.
   {
     id: 'jump.open',
     label: 'Open the jump menu',

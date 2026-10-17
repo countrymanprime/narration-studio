@@ -1,4 +1,4 @@
-// Colour arithmetic for the palette contrast guard (paletteContrast.test.ts, ADR 0059). It reads the design tokens out of
+// Colour arithmetic for the palette contrast guard (paletteContrast.test.ts). It reads the design tokens out of
 // styles.css and evaluates the few colour forms the tokens use (hex, transparent, rgba, var(), and color-mix in sRGB), so a
 // contrast ratio is computed from the CSS that ships and not from a copy of its values. Anything else throws: a pair the
 // guard cannot evaluate must not pass by being skipped.
@@ -43,8 +43,8 @@ export function rootRules(css: string): RootRule[] {
 }
 
 // Light values are every `:root` block in order; dark is the light set overlaid with `:root[data-theme='dark']`, which wins
-// on specificity wherever it sits in the file (ADR 0010). Inline overrides from the user's colour settings are not tokens
-// here: they replace a value at run time and are out of the guard's reach (ADR 0059).
+// on specificity wherever it sits in the file. Inline overrides from the user's colour settings are not tokens
+// here: they replace a value at run time and are out of the guard's reach.
 export function parseThemes(css: string): Record<Theme, TokenMap> {
   const light: TokenMap = {};
   const darkOverrides: TokenMap = {};
@@ -60,7 +60,7 @@ export function countRootRules(css: string): number {
   return (stripComments(css).match(/:root[^{}]*\{/g) ?? []).length;
 }
 
-// The theme is one app-wide setting (ADR 0365, which superseded ADR 0360's forced-dark booth block): no page or surface
+// The theme is one app-wide setting: no page or surface
 // may force light or dark. This names every rule, other than the two theme blocks, that pins a `color-scheme` or redeclares
 // a colour token the dark theme sets - a scoped palette like that is drawn whatever the narrator's theme is, and the pairs
 // in paletteContrast.test.ts never measure it. A token neither theme varies (a size, a derived alias) may still be scoped.

@@ -65,7 +65,7 @@ function isChanged(keymap: Keymap, defaults: Keymap, commandId: CommandId): bool
 }
 
 // The "Changed" badge is THE pill's warn
-// outline (StatusBadge, ADR 0600), the dark sets' "CHANGED".
+// outline (StatusBadge), the dark sets' "CHANGED".
 
 function GestureChips({ gestures }: { gestures: Gesture[] }) {
   if (gestures.length === 0) {

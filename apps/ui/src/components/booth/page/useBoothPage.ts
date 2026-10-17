@@ -145,7 +145,7 @@ export function useBoothPage(options: BoothPageOptions) {
     setPunchAt(unit.cur);
   }, [from, paragraphs, units]);
 
-  // The next listening session starts at the reading position (ADR 0112: a choice only sets where Start begins).
+  // The next listening session starts at the reading position (docs/guides/using-the-app/booth.md#where-you-stopped: a choice only sets where Start begins).
   const startWord = position && !listening ? scriptWordAt(spans, paragraphs, position) : null;
   const { setStartWord } = session;
   useEffect(() => {
@@ -265,7 +265,7 @@ export function useBoothPage(options: BoothPageOptions) {
     if (now.position) setKept({ paragraphId: now.position.paragraphId, word: now.position.word });
   }, [recording, writer, tellStopped, notify]);
 
-  // The end of the chapter (BO-1 item 2): the listening session heard the last word ("done") and then stopped itself (ADR 0106), and
+  // The end of the chapter (BO-1 item 2): the listening session heard the last word ("done") and then stopped itself, and
   // the take stops with it, through the Record control's own stop. Reading on past the end clears "done", and a session that stops
   // any other way leaves the take running.
   const reachedEnd = useRef(false);
@@ -358,7 +358,7 @@ export function useBoothPage(options: BoothPageOptions) {
     [],
   );
 
-  // Exit Booth. A take asks "Stop recording?" (the leave guard); a session that only listens asks "Stop reading?" and stops it (ADR 0388:
+  // Exit Booth. A take asks "Stop recording?" (the leave guard); a session that only listens asks "Stop reading?" and stops it (docs/guides/using-the-app/booth.md:
   // leaving by the nav keeps it running, Exit and Escape stop it).
   const exit = useCallback(() => {
     if (latest.current.recording || !latest.current.session.active) {

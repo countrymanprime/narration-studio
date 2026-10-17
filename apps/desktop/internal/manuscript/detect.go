@@ -9,14 +9,14 @@ import (
 
 // detectableExtensions are the formats the importer accepts, in the order they
 // are preferred when a project folder holds more than one. .epub and .txt
-// were added by ADR 0103,
-// which amends this list from ADR 0019's original .docx/.md/.markdown.
+// were added by apps/desktop/internal/manuscript/detect.go,
+// which amends this list from ADR 0006's original .docx/.md/.markdown.
 var detectableExtensions = []string{".docx", ".epub", ".md", ".markdown", ".txt"}
 
 // DetectSource finds a manuscript waiting to be imported: a file named
 // "manuscript" in a supported format sitting directly in the project folder,
 // when no manuscript has been imported yet. It only ever suggests; nothing is
-// imported until the user agrees (ADR-0019).
+// imported until the user agrees.
 func DetectSource(project string) string {
 	if project == "" {
 		return ""

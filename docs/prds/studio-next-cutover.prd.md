@@ -2,7 +2,7 @@
 
 **Source:** owner request of 2026-10-10 ([Studio Next Rebuild](studio-next-rebuild.prd.md)); the mock's lifecycle ("this folder is deleted when the real app matches it", `studio-next/README.md`) and the "Which mocks are the spec" section of [`.claude/rules/ui-spec-and-screenshots.md`](../../.claude/rules/ui-spec-and-screenshots.md).
 
-**Builds on:** [Which mocks are the spec](studio-next-rebuild.prd.md#which-mocks-are-the-spec), [ADR 0028](../adr/0028-planned-work-is-specified-as-prds-and-deleted-when-built.md) (planned work is deleted when built), [ADR 0407](../adr/0407-a-new-page-replaces-its-old-counterpart-in-the-same-change-and-the-navigation-is-grouped-by-production-stage.md) (replacement rule), the lifecycle in [the PRD README](README.md#lifecycle-of-a-prd).
+**Builds on:** [Which mocks are the spec](studio-next-rebuild.prd.md#which-mocks-are-the-spec), [Lifecycle of a PRD](README.md#lifecycle-of-a-prd) (planned work is deleted when built), [Design principles](../architecture/principles.md) (replacement rule), the lifecycle in [the PRD README](README.md#lifecycle-of-a-prd).
 
 **Status (2026-10-11):** draft; every owner question is decided (see Decisions). Runs last; its first two slices (the ruling index and the owner QA list) start early so the index fills as pages land.
 
@@ -16,7 +16,7 @@
 - The repo already checks contract coverage by test (`apps/ui/src/api/wireContracts.test.ts` fails on an unmapped binding) and has ratchets (`apps/ui/src/rawNatives.test.ts`, Knip at zero, atlas coverage); there is no ruling index.
 - The mock folder is named by the PRD README, `knip.jsonc` (an `ignore` entry) and `tools/docs-site/mkdocs.yml` (an `exclude_docs` entry), and the rule file above is path-scoped to `docs/research/mockups/**`.
 - The benchmark mocks are `docs/research/mockups/audiobook-studio-benchmark/01-*.webp` to `07-*.webp`, scored by `apps/ui/tests/visual/mock-match/` (`pnpm --dir apps/ui mock-match`, `mocks.ts`); `06-series-voice-bible.webp` and `07-daw-companion.webp` map to pages the Studio Next mock lacks.
-- PRDs are deleted by the PR that completes their last phase ([ADR 0028](../adr/0028-planned-work-is-specified-as-prds-and-deleted-when-built.md)); the series has 15 PRDs and a cross-reference web that must not dangle.
+- PRDs are deleted by the PR that completes their last phase ([Lifecycle of a PRD](README.md#lifecycle-of-a-prd)); the series has 15 PRDs and a cross-reference web that must not dangle.
 
 ## Proposed Solution
 
@@ -24,7 +24,7 @@
 2. **Parity audit per page.** For each page the mock's tests (`studio-next/tests/*`) are mapped to real tests; an unported test needs a reason (not applicable: mock-only, or covered by X).
 3. **Owner QA list on #992.** The steps only the owner can do: Shift+F10 in the WebView, REAPER undo behaviour of each new command, a real record with the pedal, Audacity backups, extraction on a real manuscript, the carried-over verification passes.
 4. **Final ratchets.** `rawNatives` ceilings for series pages at zero; direct `FontAwesomeIcon` imports outside `Icon` at zero for migrated pages; every port has a contract suite; no `registerKeys`-style handlers; no bridge imports outside adapters.
-5. **Delete the mock and the old specs.** Remove `docs/research/mockups/studio-next/`, the `knip.jsonc` and `mkdocs.yml` entries, the PRD README lines, the "Which mocks are the spec" section of the rule file and the train's mock-spec section (D96, replaced by the Studio Next ruling of SN0-Q1 while the series runs and by nothing once the mock is gone), and the screenshots helper. Also remove the benchmark mocks and the mock-match tooling (`apps/ui/tests/visual/mock-match/`, the `mock-match` script, ADR 0585 and 0740's scoring), except the mock files, `mocks.ts` entries and report code that the Series voice bible and Companion pages still need: those two pages have no Studio Next equivalent and stay as built (SN0-Q5, DQ-13), so their reference mock stays.
+5. **Delete the mock and the old specs.** Remove `docs/research/mockups/studio-next/`, the `knip.jsonc` and `mkdocs.yml` entries, the PRD README lines, the "Which mocks are the spec" section of the rule file and the train's mock-spec section (D96, replaced by the Studio Next ruling of SN0-Q1 while the series runs and by nothing once the mock is gone), and the screenshots helper. Also remove the benchmark mocks and the mock-match tooling (`apps/ui/tests/visual/mock-match/`, the `mock-match` script, `docs/operations/verification-tooling.md#mock-match`'s scoring), except the mock files, `mocks.ts` entries and report code that the Series voice bible and Companion pages still need: those two pages have no Studio Next equivalent and stay as built (SN0-Q5, DQ-13), so their reference mock stays.
 6. **Confirm the old equivalents are gone.** Each swap already deleted the old page and every old equivalent of what the mock's page covers ([Deletions the rulings imply](#deletions-the-rulings-imply)); the parity audit checks that none remains.
 7. **Steady-state docs.** New or updated: `docs/architecture/` (shell and registries; UI state and the command journal; DAW capabilities and results; extraction tiers), `docs/design/design-system.md` (new primitives, icon vocabulary, layout rules), `docs/guides/using-the-app/*` (each page), `docs/architecture/threat-model.md` and `SECURITY.md` rows, diagrams naming moved files, and the ADRs that landed.
 8. **Delete the series PRDs** in the PR that completes the last phase of each, then this one; update the PRD index.
@@ -87,7 +87,7 @@ A swap slice deletes the old page and every old equivalent of what the mock's pa
 | The old page for each Studio Next page, its route, state-catalogue rows, drivers, aria snapshots, guide and doc screenshots | That page's swap slice (SNB-8, SNP-8, SNQ-9, SNO-10, SNM-5, SNE-9) | SN0-Q2 |
 | Benchmark-measured tokens and primitive sizes that differ from the mock | The token batch (SNF-2) and each swap | DQ-1 |
 | The Proof chapter page's workspace (word-level player, flags, takes panel, FX on a passage) | The Editing swap (SNE-9) | SN0-Q2, A15 |
-| The split-and-delete apply path for cleanup trims (ADR 0262); trims go to the muted Cuts track | The Editing swap | DQ-8 |
+| The split-and-delete apply path for cleanup trims; trims go to the muted Cuts track | The Editing swap | DQ-8 |
 | `pickupsPunch`, the Punch on the Pickups page | The Pickups swap (SNQ-9) | DQ-6 |
 | The pronunciation query status, the author query CSV export and import, and the rail badge counting open queries | The Story Bible swap (SNB-8) | DQ-11 |
 | The Schedule panel of Production and the Delivery panel of Master & QC | The Production swap (SNP-8) and the Master swap (SNM-5) | DQ-14 |
@@ -101,10 +101,10 @@ On conflict this PRD, and the ADR written when its phase lands, is the source of
 
 | ADR | Class | Note |
 | --- | --- | --- |
-| [ADR 0028](../adr/0028-planned-work-is-specified-as-prds-and-deleted-when-built.md) | KEEP | Delete when built |
-| [ADR 0407](../adr/0407-a-new-page-replaces-its-old-counterpart-in-the-same-change-and-the-navigation-is-grouped-by-production-stage.md) | KEEP decision 1 (DQ-2), SUPERSEDE decision 5 (DQ-14) | No old route or panel left; Schedule and Delivery are pages |
-| [ADR 0585](../adr/0585-mock-fidelity-is-a-pixel-match-at-the-mocks-own-size-and-theme-scored-by-a-tool-that-reports-and-does-not-gate.md), [ADR 0740](../adr/0740-mock-match-is-text-blind-and-a-diagnostic-and-only-the-benchmark-mocks-are-kept.md) | SUPERSEDE (DQ-1) | The scoring tool's source list shrinks to the Series voice bible and Companion mocks |
-| [ADR 0045](../adr/0045-dead-code-is-gated-at-zero-with-reasoned-ignores.md), [ADR 0046](../adr/0046-architecture-rules-taken-from-adrs-are-lint-and-test-rules.md) | KEEP | Dead code and rules stay at zero |
+| [Lifecycle of a PRD](README.md#lifecycle-of-a-prd) | KEEP | Delete when built |
+| [Design principles](../architecture/principles.md) | KEEP decision 1 (DQ-2), SUPERSEDE decision 5 (DQ-14) | No old route or panel left; Schedule and Delivery are pages |
+| [Mock match](../operations/verification-tooling.md#mock-match), [Mock match](../operations/verification-tooling.md#mock-match) | SUPERSEDE (DQ-1) | The scoring tool's source list shrinks to the Series voice bible and Companion mocks |
+| [Dead code (Knip)](../operations/verification-tooling.md#dead-code-knip), [Verification and code-health tooling](../operations/verification-tooling.md) | KEEP | Dead code and rules stay at zero |
 
 ## Technical Approach
 

@@ -47,7 +47,7 @@ function renderApp(overrides: Parameters<typeof createMockApi>[0] = {}, initial:
 }
 
 // The app's own toast region (`useToasts`) comes first in the document; the overlay host mounted after it draws a second pair for
-// `overlay.toast`, empty until a caller uses it (ADR 0781 decision 4 moves the call sites over one slice at a time).
+// `overlay.toast`, empty until a caller uses it (docs/architecture/studio-shell-and-registries.md#overlay-service decision 4 moves the call sites over one slice at a time).
 // The toast region's live lists (Toast.tsx), told apart from a page's own status lines by announcing additions only.
 // The toast regions are portalled to <body> (the app's and the overlay host's, in that order of mounting): the one showing messages, else the first.
 const appToasts = (role: 'status' | 'alert') => {
@@ -140,7 +140,7 @@ describe('App (integration, driven through the mock NarrationApi)', () => {
   it('shows the Script page an inline error with Retry when its chapters cannot be read, beside the notice Home raised for the same data', async () => {
     renderApp({}, { invalidPayload: 'manuscript' });
     await waitFor(() => screen.getByRole('heading', { level: 1, name: 'Production' }));
-    // Home's audiobook estimate reads the same chapters, so it tells the narrator at once, and the notice stays (ADR 0075) ...
+    // Home's audiobook estimate reads the same chapters, so it tells the narrator at once, and the notice stays ...
     const message = 'The app received data it could not read.';
     await waitFor(() => expect(screen.getAllByText(message)).toHaveLength(1));
     fireEvent.click(screen.getAllByRole('button', { name: 'Script' })[0]);
@@ -232,7 +232,7 @@ describe('App (integration, driven through the mock NarrationApi)', () => {
     fireEvent.click(screen.getByRole('menuitem', { name: /Character/ }));
     await waitFor(() => expect(guideCreate).toHaveBeenCalledTimes(1));
     expect(guideCreate).toHaveBeenCalledWith(expect.stringMatching(/New entity/), 'Character', []);
-    // Delete only exists in edit mode (ADR 0087): the new entry opens read-only, like any other.
+    // Delete only exists in edit mode: the new entry opens read-only, like any other.
     fireEvent.click(await screen.findByRole('button', { name: 'Edit this entry' }));
     expect(await screen.findByRole('button', { name: 'Delete entity' })).toBeTruthy();
   });
@@ -570,7 +570,7 @@ describe('App (integration, driven through the mock NarrationApi)', () => {
     expect(window.location.pathname).toBe('/');
   });
 
-  // ADR 0407: the retired Teleprompter route lands on the Booth with its
+  // docs/architecture/principles.md: the retired Teleprompter route lands on the Booth with its
   // query and hash, and replaces the entry so Back never returns to the redirect.
   it('redirects /teleprompter to /booth, keeping the query and hash', async () => {
     window.history.replaceState(null, '', '/teleprompter?chapter=chapter-2#x');
@@ -581,7 +581,7 @@ describe('App (integration, driven through the mock NarrationApi)', () => {
     expect(window.location.hash).toBe('#x');
   });
 
-  // ADR 0407: the Production page moved to `/`, so its old address lands there
+  // docs/architecture/principles.md: the Production page moved to `/`, so its old address lands there
   // with its query and hash.
   it('redirects /production to the Production home at /, keeping the query and hash', async () => {
     window.history.replaceState(null, '', '/production?mockProduction=on-pace#plan');
@@ -608,7 +608,7 @@ describe('App (integration, driven through the mock NarrationApi)', () => {
     }
   });
 
-  // ADR 0407: the engine panel replaces the Tracks page. It opens from the
+  // docs/architecture/principles.md: the engine panel replaces the Tracks page. It opens from the
   // header's engine chip on any page, with or without a manuscript, and lists the mock project's tracks.
   it('opens the engine panel from the engine chip, without a manuscript, with the project and its tracks', async () => {
     const source = createMockApi();
@@ -666,7 +666,7 @@ describe('App (integration, driven through the mock NarrationApi)', () => {
     await screen.findByRole('heading', { name: 'Proof' });
   });
 
-  // ADR 0407: the retired routes land on Proof, query and hash kept.
+  // docs/architecture/principles.md: the retired routes land on Proof, query and hash kept.
   it.each([
     ['/review?from=bookmark#top', '/proof', '?from=bookmark', '#top'],
     ['/proofing', '/proof', '', ''],
@@ -750,7 +750,7 @@ describe('App (integration, driven through the mock NarrationApi)', () => {
     expect(window.location.pathname).toBe(`/editing/${WIRE_CHAPTERS[0].id}`);
   });
 
-  // SN-M5 (ADR 0802): /settings, /master and /delivery mount the Studio Next pages; /delivery is a page again, not a redirect.
+  // SN-M5: /settings, /master and /delivery mount the Studio Next pages; /delivery is a page again, not a redirect.
   it('the-three-routes-mount-the-new-pages: Settings, Master & QC and Delivery each mount the mock page', async () => {
     window.history.replaceState(null, '', '/settings');
     renderApp();
@@ -851,7 +851,7 @@ describe('App (integration, driven through the mock NarrationApi)', () => {
     expect(idleReset).not.toHaveBeenCalled();
   });
 
-  // ADR 0407: Script replaced the Manuscript page, and an old link still lands, hash and query included.
+  // docs/architecture/principles.md: Script replaced the Manuscript page, and an old link still lands, hash and query included.
   it.each(['/manuscript', '/manuscript#p5', '/manuscript#credits-closing'])('redirects %s to the Script page, which handles its hash', async (from) => {
     window.history.replaceState(null, '', from);
     renderApp();
@@ -1505,14 +1505,14 @@ describe('App shortcut sheet', () => {
 
     fireEvent.keyDown(document, { key: '?', code: 'Slash', shiftKey: true });
     fireEvent.keyDown(document, { key: 'ArrowLeft', code: 'ArrowLeft', altKey: true });
-    // The page behind an open dialog is `aria-hidden` (ADR 0047/0048, `dialogs.spec.ts`'s isolation check), so the route is what shows
+    // The page behind an open dialog is `aria-hidden` (`dialogs.spec.ts`'s isolation check), so the route is what shows
     // Script never left, only the sheet covers it, which is what "Alt+Left did nothing" means here.
     expect(window.location.pathname).toBe('/script');
     expect(screen.getByRole('dialog', { name: 'Keyboard shortcuts' })).toBeTruthy();
   });
 });
 
-// SN-R8: the shell mounts the overlay host, the jump menu, the context menu host and the journal (ADR 0780, 0781).
+// SN-R8: the shell mounts the overlay host, the jump menu, the context menu host and the journal.
 describe('App shell mounts', () => {
   // The overlay service is the app's one module-level store, so a layer a test leaves open would show in the next test's host.
   afterEach(async () => {

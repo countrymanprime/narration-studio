@@ -1,4 +1,4 @@
-"""The extraction port (ADR 0301): what every Story Bible extraction source is to its callers.
+"""The extraction port: what every Story Bible extraction source is to its callers.
 
 A source has one role, ``extract``: ``extractor()`` gives an object whose ``extract(book)`` looks at the manuscript (and, for
 an imported file, its text) and offers ``RawSuggestion``s: a payload, a confidence or ``None``, the quotes behind it, and an

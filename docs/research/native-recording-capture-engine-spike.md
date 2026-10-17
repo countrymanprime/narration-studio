@@ -1,12 +1,12 @@
 # Native Recording Capture Engine Spike: WASAPI Through PortAudio in the Sidecar
 
-**Status:** spike report, 2026-09-28. **Issue:** [#842](https://github.com/countrymanprime/narration-utils/issues/842). The decision it informs is [ADR 0357](../adr/0357-the-built-in-recorders-capture-engine-is-a-wasapi-shared-mode-row-of-the-capture-port-through-portaudio-in-the-sidecar.md). The numbers below are from CI's Windows runner and a synthetic source. **Every real-microphone result is owner-pending** (D65): the exact check is at the end and on [#992](https://github.com/countrymanprime/narration-utils/issues/992#issuecomment-6116098217).
+**Status:** spike report, 2026-09-28. **Issue:** [#842](https://github.com/countrymanprime/narration-utils/issues/842). The decision it informs is [capture_wasapi.py](../../sidecars/manuscript-teleprompter/core/capture_wasapi.py). The numbers below are from CI's Windows runner and a synthetic source. **Every real-microphone result is owner-pending** (D65): the exact check is at the end and on [#992](https://github.com/countrymanprime/narration-utils/issues/992#issuecomment-6116098217).
 
 **Question (PRD Q3 and Q7):** Can this stack capture a narrator's microphone to a correct WAV file with no dropouts, at an acceptable cost, and which engine should do it? What does that mean for monitoring?
 
 **Short answer.**
 
-- **Yes, for everything a machine without a microphone can prove.** The engine is WASAPI in shared mode through PortAudio (`sounddevice`), as the capture port's Experimental `wasapi` row in the teleprompter sidecar (ADR 0357).
+- **Yes, for everything a machine without a microphone can prove.** The engine is WASAPI in shared mode through PortAudio (`sounddevice`), as the capture port's Experimental `wasapi` row in the teleprompter sidecar (`sidecars/manuscript-teleprompter/core/capture_wasapi.py`).
 - **The soak was clean.** A 30-minute, wall-clock-paced 48 kHz / 24-bit take on the Windows runner had no dropout and was bit-exact against its source. It used 2.3 % of one core.
 - **One writer stall.** The writer once stalled for 0.9 s, and the recorder's 4-second queue absorbed it without a lost sample.
 - **Not measured yet: latency and a real device.** The runner has no audio endpoint, so latency and real-device dropouts wait for the owner's check.
@@ -83,7 +83,7 @@ This run deliberately overloads the recorder: the generator never waits. It chec
 
 ## What this means for the open questions
 
-- **Q3, the engine.** Answered as ADR 0357 records.
+- **Q3, the engine.** Answered as `sidecars/manuscript-teleprompter/core/capture_wasapi.py` records.
   - **CGo is out.** The Windows build is `CGO_ENABLED=0`, so a CGo binding would disrupt it, as the PRD's risk table foresaw.
   - **No hand-written COM calls.** A pure-Go binding would mean writing them ourselves, and the PRD advises against that.
   - **PortAudio is proven and already locked.** It runs in the sidecar the capture port already lives in.
@@ -107,4 +107,4 @@ On the owner's Windows machine, with the microphone they narrate with, from a ch
    - `lagMs.max` is under 4,000.
    - Note `latencyMs` (PortAudio's reported input latency) and `sampleRate` for Phase 2.
 3. **Listen.** Play `device-0.wav` in any player, and scrub to a few points. Pass when there are no clicks or gaps and it sounds like the microphone.
-4. **Post the `device` entry on #992.** When the check passes, the `wasapi` row moves from Experimental to Supported in a follow-up (ADR 0357).
+4. **Post the `device` entry on #992.** When the check passes, the `wasapi` row moves from Experimental to Supported in a follow-up (`sidecars/manuscript-teleprompter/core/capture_wasapi.py`).

@@ -23,7 +23,7 @@ type Options = {
 /**
  * The one poll loop for a host `WorkJob` shown in a `WorkDialog` (a Story Bible build, a manuscript import). Holding a job in a polled
  * phase polls the host at once and then every interval, and shows each answer; the percent and log are only ever what the host reported
- * (ADR 0015). A failed poll becomes an error on the job in the words the narrator reads. Unmounting stops the loop and drops a late answer.
+ * A failed poll becomes an error on the job in the words the narrator reads. Unmounting stops the loop and drops a late answer.
  * The job itself is plain state, so a page sets it from whatever started the job.
  */
 export function useWorkJob({ poll, pollingPhases = RUNNING_PHASES, intervalMs = DEFAULT_POLL_MS, onSuccess }: Options) {

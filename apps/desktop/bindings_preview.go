@@ -141,7 +141,7 @@ func (h *Host) PreviewCandidates() (string, error) {
 // serves both "recorded" and "mapping current") and MapParagraphsToTime. It never runs
 // anything (the same rule CoverageResult already follows, docs/utilities/recording-coverage.md Q14): a chapter
 // whose recording has not been checked yet, or whose coverage service is unavailable, reads as AudioUnknown, never as met or not_met. The diagnostics
-// pass's windowed findings are never given here (ADR 0327: they carry no chapter anchor and are not persisted, so
+// pass's windowed findings are never given here (docs/architecture/preview-suggestion.md: they carry no chapter anchor and are not persisted, so
 // there is nothing this binding could read without starting a new measurement, which this binding never does).
 func previewAudioEvidence(svc hostServices, chapters []preview.Chapter, manuscriptService *manuscript.Service) map[string]preview.ChapterAudioEvidence {
 	if svc.coverage == nil || len(chapters) == 0 {

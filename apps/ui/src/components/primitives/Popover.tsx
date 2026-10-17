@@ -10,7 +10,7 @@ export const POPOVER_POPUP_SELECTOR = `[${POPOVER_POPUP_ATTRIBUTE}]`;
 
 // An interactive popup over other content: a click opens it, focus moves into it, Escape closes it and returns focus to
 // the trigger, and a press outside closes it too (the read-aloud dialog's microphone device list and Settings
-// panel; ADR 0047 wraps Base UI's Popover). Unlike the hint-style popup behind Tooltip's info icon (hover/focus,
+// panel; ADR 0008 wraps Base UI's Popover). Unlike the hint-style popup behind Tooltip's info icon (hover/focus,
 // read-only, focus never moves in), this one is for a control a person operates. Sits above the dialog layer
 // (--z-dialog-popover, between the dialog and a hint), so it works when opened from inside a full-size dialog.
 export function Popover({

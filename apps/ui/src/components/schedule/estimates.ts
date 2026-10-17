@@ -1,5 +1,5 @@
 /**
- * The fixed inputs behind every estimate on the Schedule (ADR 0801). They stand in for the narrator's own numbers until the app can
+ * The fixed inputs behind every estimate on the Schedule. They stand in for the narrator's own numbers until the app can
  * measure them, so they live here and nowhere else; nothing derives them from a time log. The Production plan chart and the
  * target-pace popover import them from here instead of copying them.
  */

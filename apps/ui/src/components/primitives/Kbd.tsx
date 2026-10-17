@@ -1,6 +1,6 @@
 // A key cap for a hotkey hint (a toolbar label, a shortcut sheet). No platform logic lives here: the input registry (ADR
 // 0361) resolves Mod to Meta or Ctrl and hands this component the caps to draw. A chord has no single spoken word, so, like
-// `MeterBar` (ADR 0050), it is one image named by its own text - `label` overrides that name for a symbol key (⌫) whose
+// `MeterBar`, it is one image named by its own text - `label` overrides that name for a symbol key (⌫) whose
 // glyph alone would read as a stray character instead of "Backspace".
 export type KbdSize = 'md' | 'sm';
 

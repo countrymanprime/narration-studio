@@ -283,7 +283,7 @@ func TestLocatedStatusFollowsTheSidecarsConfidence(t *testing.T) {
 	}
 }
 
-// TeleprompterLocate's payloads (ADR 0111): a found resume word, a
+// TeleprompterLocate's payloads: a found resume word, a
 // chapter with no confident track, a picked track with nothing recorded, and a missing source. The project folder
 // and the model's install path are made portable; the .rpp's save time is stabilized by contractfile.
 func TestContractTeleprompterLocate(t *testing.T) {
@@ -327,7 +327,7 @@ func TestContractTeleprompterLocate(t *testing.T) {
 	contractfile.Check(t, "teleprompter-locate-source-missing", stable)
 }
 
-// writeLastReading stores that the prompter stopped at word read of chapterID (ADR 0205), as a session end does.
+// writeLastReading stores that the prompter stopped at word read of chapterID, as a session end does.
 func (f locateHost) writeLastReading(t *testing.T, chapterID string, read int) {
 	t.Helper()
 	folder := f.host.config.projectFolder

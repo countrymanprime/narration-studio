@@ -1,5 +1,5 @@
 // This file is a Go harness computing per-class recall, precision and a
-// sensitivity sweep on a tuning half and a held-out half (ADR 0329). It
+// sensitivity sweep on a tuning half and a held-out half. It
 // scores the shipped cleanup detector (measure.CleanupFindings' own
 // candidates, apps/desktop/internal/measure/cleanup.go) against a labeled
 // corpus (labels_test.go's format), on whichever corpus is at hand: the
@@ -212,7 +212,7 @@ const scoringTolerance = 0.05
 // every checkout has. It is a regression guard on the shipped detector and
 // this harness's own matching, not a calibration: a recall target is scored
 // on real audio once the corpus plan in
-// docs/research/editing-corpus-and-harness.md has material (ADR 0364).
+// docs/research/editing-corpus-and-harness.md has material.
 func TestClassRecallPrecisionOnSyntheticCorpus(t *testing.T) {
 	dir := t.TempDir()
 	labels := writeSyntheticCorpus(t, dir)

@@ -2,7 +2,7 @@
 
 **Source:** owner request of 2026-10-10 ([Studio Next Rebuild](studio-next-rebuild.prd.md)); "Proof rulings" and "Pickups and speech check rulings" in `studio-next/research/repo-compare-decisions.md`; the mock's `studio-next/src/pages/Proof.tsx`, `studio-next/src/pages/Pickups.tsx`, `studio-next/src/pages/proof/`, `studio-next/src/pages/pickups/`.
 
-**Builds on:** the delivered Proof and Review work ([ADR 0120](../adr/0120-findings-are-read-and-decided-through-four-generic-bindings-and-a-decision-carries-the-evidence-version-it-was-made-against.md), [ADR 0470](../adr/0470-proof-follows-mock-04-pickup-edit-waived-are-words-over-the-stored-status-and-the-chapter-view-leads-with-its-notes.md), [ADR 0525](../adr/0525-proofing-is-met-by-a-current-zero-open-pickup-source-and-every-required-delivery-check-confirmed-through-the-shared-stage-engine.md), [ADR 0650](../adr/0650-proofs-notes-card-composes-table-flush-statusbadge-and-panels-header-and-the-filters-move-behind-a-popover.md) to [ADR 0652](../adr/0652-a-book-level-waveform-and-a-denser-notes-list-measurably-lower-mock-04s-score-so-adr-0651-stands.md), [ADR 0715](../adr/0715-proofs-book-level-waveform-card-belongs-to-the-chapter-its-selector-names.md)), the recording check ([ADR 0126](../adr/0126-recording-coverage-reads-the-take-markers-sequencematcher-alignment-and-folds-chance-matches-into-gaps.md) to [ADR 0132](../adr/0132-the-recording-check-ships-0-8-3-8-3-chosen-on-synthetic-fixtures-and-labelled-uncalibrated.md), [ADR 0264](../adr/0264-the-recording-check-summary-moves-into-a-slide-over-opened-from-the-rows-own-status-and-the-check-button-retires.md)), the workspace takes panel ([ADR 0700](../adr/0700-the-takes-panel-lists-a-passages-takes-from-the-saved-project-and-chooses-one-by-an-id-the-host-offered.md)), the Pickups page, take review ([ADR 0124](../adr/0124-take-review-groups-are-reviewed-on-the-review-page-each-read-is-navigated-by-its-index-and-the-scan-is-a-cancellable-job.md), [ADR 0165](../adr/0165-a-take-comparison-is-one-finding-per-group-over-its-one-span-built-from-the-saved-project-and-never-ranked.md)). It carries over the unfinished REAPER checks of the old review-dashboard PRD (overview table). The word-level script editor moves to [Script-Based Editing](studio-next-script-based-editing.prd.md); this PRD keeps the Proof notes page and the Pickups page.
+**Builds on:** the delivered Proof and Review work ([Shared Findings Contract](../architecture/findings-contract.md), [A note and your decision](../guides/using-the-app/proof.md#a-note-and-your-decision), [pickups.go](../../apps/desktop/internal/proofing/pickups.go), to), the recording check ([Recording Check (recording coverage)](../utilities/recording-coverage.md) to [Settings](../utilities/recording-coverage.md#settings), [Checking a chapter's recording](../guides/using-the-app/production.md#checking-a-chapters-recording)), the workspace takes panel ([From the Takes panel](../architecture/reaper-bridge.md#from-the-takes-panel)), the Pickups page, take review ([Take review](../utilities/take-review.md), [Codebase map](../architecture/codebase-map.md)). It carries over the unfinished REAPER checks of the old review-dashboard PRD (overview table). The word-level script editor moves to [Script-Based Editing](studio-next-script-based-editing.prd.md); this PRD keeps the Proof notes page and the Pickups page.
 
 **Status (2026-10-10):** draft.
 
@@ -17,15 +17,15 @@ The owner ruled that Proof counts two things (decided and cleared), that a note 
 
 | Ruling | Real today |
 | --- | --- |
-| Decided and cleared counters; open until fixed, waived, dismissed | `unreviewed/accepted/dismissed/deferred` statuses; open = all but dismissed ([ADR 0525](../adr/0525-proofing-is-met-by-a-current-zero-open-pickup-source-and-every-required-delivery-check-confirmed-through-the-shared-stage-engine.md)); the summary has `unreviewed` |
-| Stale decision guard with before/now in the Inspector | Decision carries the evidence version ([ADR 0120](../adr/0120-findings-are-read-and-decided-through-four-generic-bindings-and-a-decision-carries-the-evidence-version-it-was-made-against.md)); Inspector display to verify |
+| Decided and cleared counters; open until fixed, waived, dismissed | `unreviewed/accepted/dismissed/deferred` statuses; open = all but dismissed ([pickups.go](../../apps/desktop/internal/proofing/pickups.go)); the summary has `unreviewed` |
+| Stale decision guard with before/now in the Inspector | Decision carries the evidence version ([Shared Findings Contract](../architecture/findings-contract.md)); Inspector display to verify |
 | Decision history list | Store keeps it; UI display to verify |
-| Sort by time, confidence, severity; Sources line | Filters behind a popover ([ADR 0650](../adr/0650-proofs-notes-card-composes-table-flush-statusbadge-and-panels-header-and-the-filters-move-behind-a-popover.md)) |
+| Sort by time, confidence, severity; Sources line | Filters behind a popover |
 | Recording check card (states none, checking, current, stale) | `RecordingCheckCard` exists |
 | Takes at a flagged spot | `TakesPanel` (passage takes) in the workspace |
-| Gap taxonomy; confidence null with reason; unfinished is not a pickup | Regions with counts; "misreads count as read" ([ADR 0126](../adr/0126-recording-coverage-reads-the-take-markers-sequencematcher-alignment-and-folds-chance-matches-into-gaps.md)) |
+| Gap taxonomy; confidence null with reason; unfinished is not a pickup | Regions with counts; "misreads count as read" ([Recording Check (recording coverage)](../utilities/recording-coverage.md)) |
 | Engine picker lists what the host reports | Whisper models in settings; picker to verify |
-| Add marker through `DawResult` with a kind prefix | `add_finding_marker` ([ADR 0123](../adr/0123-the-approved-marker-is-one-take-marker-for-an-accepted-finding-named-like-transcript-compares-in-one-undo-point.md)) |
+| Add marker through `DawResult` with a kind prefix | `add_finding_marker` ([Adding the approved marker](../architecture/reaper-navigation.md#adding-the-approved-marker)) |
 
 ## Proposed Solution
 
@@ -42,7 +42,7 @@ The owner ruled that Proof counts two things (decided and cleared), that a note 
 
 ## Key Hypothesis
 
-If "open" and "cleared" have one definition in one selector, the page, the rail and Production cannot disagree. We are wrong if the stage engine's "proofing met" ([ADR 0525](../adr/0525-proofing-is-met-by-a-current-zero-open-pickup-source-and-every-required-delivery-check-confirmed-through-the-shared-stage-engine.md)) and the new counters diverge for the same chapter.
+If "open" and "cleared" have one definition in one selector, the page, the rail and Production cannot disagree. We are wrong if the stage engine's "proofing met" ([pickups.go](../../apps/desktop/internal/proofing/pickups.go)) and the new counters diverge for the same chapter.
 
 ## What We're NOT Building
 
@@ -66,15 +66,15 @@ If "open" and "cleared" have one definition in one selector, the page, the rail 
 
 Decided by the owner on 2026-10-11; nothing here waits for an answer, so G0 has no question for the owner.
 
-- **SN0-Q1 / DQ-1.** The Studio Next Proof and Pickups pages (`studio-next/src/pages/Proof.tsx`, `Pickups.tsx`) are the spec, including layout and sizes. [ADR 0650](../adr/0650-proofs-notes-card-composes-table-flush-statusbadge-and-panels-header-and-the-filters-move-behind-a-popover.md) to [ADR 0652](../adr/0652-a-book-level-waveform-and-a-denser-notes-list-measurably-lower-mock-04s-score-so-adr-0651-stands.md), [ADR 0651](../adr/0651-proofs-book-level-draws-no-waveform-header-because-its-notes-span-more-than-one-chapter.md) and [ADR 0715](../adr/0715-proofs-book-level-waveform-card-belongs-to-the-chapter-its-selector-names.md) are superseded where they differ; benchmark mock 04 stops being a spec.
+- **SN0-Q1 / DQ-1.** The Studio Next Proof and Pickups pages (`studio-next/src/pages/Proof.tsx`, `Pickups.tsx`) are the spec, including layout and sizes. to are superseded where they differ; benchmark mock 04 stops being a spec.
 - **SN0-Q2 / DQ-2.** Replace. Seams and components land with no route; one PR (SNQ-9) swaps the Proof and Pickups routes and deletes the old pages.
 - **DQ-6.** Pickups only points to the Booth. The existing Punch on the Pickups page is removed in SNQ-9.
-- **DQ-9.** No conflict; [ADR 0414](../adr/0414-the-teleprompter-default-engine-stays-whisper-tiny-until-a-real-time-ab-evaluation-runs.md) is unchanged.
-- **DQ-15.** Evidence first, a suggested take with an honest (possibly null) confidence, never auto-applied; [ADR 0165](../adr/0165-a-take-comparison-is-one-finding-per-group-over-its-one-span-built-from-the-saved-project-and-never-ranked.md) is superseded to that extent.
-- **DQ-16.** The mock's Proof percent with its two counters, decided and cleared; [ADR 0525](../adr/0525-proofing-is-met-by-a-current-zero-open-pickup-source-and-every-required-delivery-check-confirmed-through-the-shared-stage-engine.md) is superseded to that extent.
-- **DQ-18.** Capability-driven take management for Audacity, as in the mock; [ADR 0660](../adr/0660-audacitys-finding-detail-hides-reapers-take-management-instead-of-disabling-it-through-capabilitygate.md) is superseded to that extent.
+- **DQ-9.** No conflict; [Manuscript Teleprompter](../architecture/manuscript-teleprompter.md) is unchanged.
+- **DQ-15.** Evidence first, a suggested take with an honest (possibly null) confidence, never auto-applied; [Codebase map](../architecture/codebase-map.md) is superseded to that extent.
+- **DQ-16.** The mock's Proof percent with its two counters, decided and cleared; [pickups.go](../../apps/desktop/internal/proofing/pickups.go) is superseded to that extent.
+- **DQ-18.** Capability-driven take management for Audacity, as in the mock; is superseded to that extent.
 - **SN0-Q8.** Screenshots are compared against the Studio Next mock page.
-- **Applied by the SN-Q9 swap (2026-10-12).** The Studio Next mock replaced the old pages: [ADR 0650](../adr/0650-proofs-notes-card-composes-table-flush-statusbadge-and-panels-header-and-the-filters-move-behind-a-popover.md), [ADR 0651](../adr/0651-proofs-book-level-draws-no-waveform-header-because-its-notes-span-more-than-one-chapter.md), [ADR 0652](../adr/0652-a-book-level-waveform-and-a-denser-notes-list-measurably-lower-mock-04s-score-so-adr-0651-stands.md) and [ADR 0715](../adr/0715-proofs-book-level-waveform-card-belongs-to-the-chapter-its-selector-names.md) (DQ-1), [ADR 0525](../adr/0525-proofing-is-met-by-a-current-zero-open-pickup-source-and-every-required-delivery-check-confirmed-through-the-shared-stage-engine.md) (DQ-16), [ADR 0165](../adr/0165-a-take-comparison-is-one-finding-per-group-over-its-one-span-built-from-the-saved-project-and-never-ranked.md) (DQ-15) and [ADR 0660](../adr/0660-audacitys-finding-detail-hides-reapers-take-management-instead-of-disabling-it-through-capabilitygate.md) (DQ-18) are superseded by the mock to the extent above. The proofer CSV import and export stay on Proof's notes, by the owner's "all defaults" ruling on #992.
+- **Applied by the SN-Q9 swap (2026-10-12).** The Studio Next mock replaced the old pages: (DQ-1), [pickups.go](../../apps/desktop/internal/proofing/pickups.go) (DQ-16), [Codebase map](../architecture/codebase-map.md) (DQ-15) and (DQ-18) are superseded by the mock to the extent above. The proofer CSV import and export stay on Proof's notes, by the owner's "all defaults" ruling on #992.
 - **Process defaults, taken as recommended (2026-10-11).** "Waived" maps to `dismissed` with reason `waived` (no new status, no migration); "as of last save" is the DAW's `savedAt` ([DAW Ports and Capabilities](studio-next-daw-ports-and-capabilities.prd.md)).
 
 ## Users & Context
@@ -102,17 +102,17 @@ On conflict this PRD, and the ADR written when its phase lands, is the source of
 
 | ADR | Class | Note |
 | --- | --- | --- |
-| [ADR 0120](../adr/0120-findings-are-read-and-decided-through-four-generic-bindings-and-a-decision-carries-the-evidence-version-it-was-made-against.md) | EXTEND | History and guard UI |
-| [ADR 0470](../adr/0470-proof-follows-mock-04-pickup-edit-waived-are-words-over-the-stored-status-and-the-chapter-view-leads-with-its-notes.md), [ADR 0525](../adr/0525-proofing-is-met-by-a-current-zero-open-pickup-source-and-every-required-delivery-check-confirmed-through-the-shared-stage-engine.md) | EXTEND; 0525 SUPERSEDE to the extent of DQ-16 | Cleared versus decided (A18 working title: Proof counters) |
-| [ADR 0650](../adr/0650-proofs-notes-card-composes-table-flush-statusbadge-and-panels-header-and-the-filters-move-behind-a-popover.md) to [ADR 0652](../adr/0652-a-book-level-waveform-and-a-denser-notes-list-measurably-lower-mock-04s-score-so-adr-0651-stands.md), [ADR 0715](../adr/0715-proofs-book-level-waveform-card-belongs-to-the-chapter-its-selector-names.md) | SUPERSEDE (DQ-1) | The Studio Next Proof page decides the notes card and waveform scope |
-| [ADR 0126](../adr/0126-recording-coverage-reads-the-take-markers-sequencematcher-alignment-and-folds-chance-matches-into-gaps.md) to [ADR 0132](../adr/0132-the-recording-check-ships-0-8-3-8-3-chosen-on-synthetic-fixtures-and-labelled-uncalibrated.md), [ADR 0264](../adr/0264-the-recording-check-summary-moves-into-a-slide-over-opened-from-the-rows-own-status-and-the-check-button-retires.md) | EXTEND | Gap taxonomy and nullable confidence |
-| [ADR 0700](../adr/0700-the-takes-panel-lists-a-passages-takes-from-the-saved-project-and-chooses-one-by-an-id-the-host-offered.md) | EXTEND | Takes at a spot on Proof |
-| [ADR 0165](../adr/0165-a-take-comparison-is-one-finding-per-group-over-its-one-span-built-from-the-saved-project-and-never-ranked.md) | SUPERSEDE (DQ-15) | Take suggestion (Editing) |
-| [ADR 0123](../adr/0123-the-approved-marker-is-one-take-marker-for-an-accepted-finding-named-like-transcript-compares-in-one-undo-point.md) | EXTEND | Marker kind prefix |
-| [ADR 0246](../adr/0246-punch-and-roll-moves-only-the-edit-cursor-and-anchors-words-by-a-polled-play-position.md) | SUPERSEDE (roll) | DAW PRD |
-| [ADR 0660](../adr/0660-audacitys-finding-detail-hides-reapers-take-management-instead-of-disabling-it-through-capabilitygate.md) | SUPERSEDE (DQ-18) | Capability-driven take UI |
-| [ADR 0107](../adr/0107-moonshine-ships-inside-the-windows-teleprompter-sidecar-and-runs-only-from-a-verified-catalog-install.md), [ADR 0414](../adr/0414-the-teleprompter-default-engine-stays-whisper-tiny-until-a-real-time-ab-evaluation-runs.md) | KEEP (DQ-9) | Engines |
-| [ADR 0725](../adr/0725-the-rail-draws-a-count-badge-only-from-a-count-the-host-reports-and-the-product-is-named-studio.md) | EXTEND | Proof badge reads the same cleared selector |
+| [Shared Findings Contract](../architecture/findings-contract.md) | EXTEND | History and guard UI |
+| [A note and your decision](../guides/using-the-app/proof.md#a-note-and-your-decision), [pickups.go](../../apps/desktop/internal/proofing/pickups.go) | EXTEND; 0525 SUPERSEDE to the extent of DQ-16 | Cleared versus decided (A18 working title: Proof counters) |
+| to | SUPERSEDE (DQ-1) | The Studio Next Proof page decides the notes card and waveform scope |
+| [Recording Check (recording coverage)](../utilities/recording-coverage.md) to [Settings](../utilities/recording-coverage.md#settings), [Checking a chapter's recording](../guides/using-the-app/production.md#checking-a-chapters-recording) | EXTEND | Gap taxonomy and nullable confidence |
+| [From the Takes panel](../architecture/reaper-bridge.md#from-the-takes-panel) | EXTEND | Takes at a spot on Proof |
+| [Codebase map](../architecture/codebase-map.md) | SUPERSEDE (DQ-15) | Take suggestion (Editing) |
+| [Adding the approved marker](../architecture/reaper-navigation.md#adding-the-approved-marker) | EXTEND | Marker kind prefix |
+| [narration_punch.lua](../../integrations/reaper/narration_punch.lua) | SUPERSEDE (roll) | DAW PRD |
+| | SUPERSEDE (DQ-18) | Capability-driven take UI |
+| [Manuscript Teleprompter](../architecture/manuscript-teleprompter.md), [Manuscript Teleprompter](../architecture/manuscript-teleprompter.md) | KEEP (DQ-9) | Engines |
+| [useNavCounts.ts](../../apps/ui/src/components/layout/useNavCounts.ts) | EXTEND | Proof badge reads the same cleared selector |
 
 ## Technical Approach
 
@@ -136,7 +136,7 @@ On conflict this PRD, and the ADR written when its phase lands, is the source of
 
 | # | Phase | Description | Status | Parallel | Depends | Est. (pw) | PRP Plan |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| 1 | ADRs and audit | ADRs; audit of what exists and of each old file's consumers | in review (ADR 0793; audit: docs/sn-q1-proof-audit) | - | SN0-1 | 0.4 | - |
+| 1 | ADRs and audit | ADRs; audit of what exists and of each old file's consumers | in review (audit: docs/sn-q1-proof-audit) | - | SN0-1 | 0.4 | - |
 | 2 | Counters | `cleared` in the summary; selector; rail and Production read it | done (SN-Q2, [#1130](https://github.com/countrymanprime/narration-utils/pull/1130)) | 3 | 1 | 0.8 | - |
 | 3 | Guard and history UI | Inspector before/now, typed note kept, history list | done (SN-Q3, [#1089](https://github.com/countrymanprime/narration-utils/pull/1089); the history list is not built, owner default) | 2 | 1 | 0.9 | - |
 | 4 | Notes polish | Sort, sources line, takes badge | done (SN-Q40 [#1291](https://github.com/countrymanprime/narration-utils/pull/1291), SN-Q41 [#1324](https://github.com/countrymanprime/narration-utils/pull/1324), SN-Q42 [#1366](https://github.com/countrymanprime/narration-utils/pull/1366), SN-Q44 [#1340](https://github.com/countrymanprime/narration-utils/pull/1340)) | 5 | 2 | 0.6 | - |
@@ -144,7 +144,7 @@ On conflict this PRD, and the ADR written when its phase lands, is the source of
 | 6 | Check card and engines | Card states, accept/ignore, host engine list | done (SN-Q61 [#1116](https://github.com/countrymanprime/narration-utils/pull/1116), SN-Q62 [#1374](https://github.com/countrymanprime/narration-utils/pull/1374), SN-Q63 [#1389](https://github.com/countrymanprime/narration-utils/pull/1389), SN-Q64 [#1405](https://github.com/countrymanprime/narration-utils/pull/1405), SN-Q65 [#1390](https://github.com/countrymanprime/narration-utils/pull/1390)) | - | 5, SNS-4 | 1.0 | - |
 | 7 | Takes at a spot | Lanes in the Inspector | done (SN-Q7, [#1376](https://github.com/countrymanprime/narration-utils/pull/1376)) | - | 2 | 0.6 | - |
 | 8 | Pickups | Source list, done write-through, to chapter, auto-mark recorded, points to Booth | done (SN-Q81 [#1442](https://github.com/countrymanprime/narration-utils/pull/1442), SN-Q82 [#1449](https://github.com/countrymanprime/narration-utils/pull/1449)) | - | SND-4, 5 | 1.0 | - |
-| 9 | Swap and close-out | Route swap, delete the old Proof and Pickups pages (Punch included), rows, guides, carried-over owner checks | done ([#1306](https://github.com/countrymanprime/narration-utils/issues/1306); supersedes ADR 0650, 0651, 0652 and 0715 by DQ-1, ADR 0525 to the extent of DQ-16, ADR 0165 to the extent of DQ-15 and ADR 0660 by DQ-18) | - | 2 to 8, SNO-8 | 0.5 | - |
+| 9 | Swap and close-out | Route swap, delete the old Proof and Pickups pages (Punch included), rows, guides, carried-over owner checks | done ([#1306](https://github.com/countrymanprime/narration-utils/issues/1306); supersedes by DQ-1, `apps/desktop/internal/proofing/pickups.go` to the extent of DQ-16, `docs/architecture/codebase-map.md` to the extent of DQ-15 and by DQ-18) | - | 2 to 8, SNO-8 | 0.5 | - |
 
 ### Phase Details
 
@@ -189,7 +189,7 @@ On conflict this PRD, and the ADR written when its phase lands, is the source of
 
 ## Research Summary
 
-Read: the mock's proof, pickups and check files and tests; the rulings; the real proof and pickups file lists, `findings/store.go` header, ADRs 0120, 0525, 0700. Not done: no audit of the Inspector for before/now; the old review-dashboard PRD phases 6 to 8 were taken from its status table.
+Read: the mock's proof, pickups and check files and tests; the rulings; the real proof and pickups file lists, `findings/store.go` header, `docs/architecture/findings-contract.md, apps/desktop/internal/proofing/pickups.go, docs/architecture/reaper-bridge.md#from-the-takes-panel`. Not done: no audit of the Inspector for before/now; the old review-dashboard PRD phases 6 to 8 were taken from its status table.
 
 ## Visual Spec
 

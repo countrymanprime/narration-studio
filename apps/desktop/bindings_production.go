@@ -33,7 +33,7 @@ func (h *Host) ProductionPlan() (string, error) {
 
 // ProductionSetDeadline sets the book's delivery date ("YYYY-MM-DD"; empty clears it) and contracted amount (a number
 // of zero or more in the narrator's own currency; nil clears it). An invalid date or amount is refused and nothing is
-// written, and so is an amount while the payment type is royalty share or none, which carry no figure (ADR 0800).
+// written, and so is an amount while the payment type is royalty share or none, which carry no figure.
 func (h *Host) ProductionSetDeadline(deadline string, contractedAmount *float64) (string, error) {
 	if deadline != "" {
 		checked, err := production.CheckDate(deadline)
@@ -59,7 +59,7 @@ func (h *Host) ProductionSetDeadline(deadline string, contractedAmount *float64)
 	})
 }
 
-// ProductionSetPayment sets how the book pays: "per_finished_hour", "royalty_share" or "none" (ADR 0800). Royalty
+// ProductionSetPayment sets how the book pays: "per_finished_hour", "royalty_share" or "none". Royalty
 // share and none carry no figure, so choosing either clears the contracted amount; per finished hour keeps it. An
 // unknown type is refused and nothing is written.
 func (h *Host) ProductionSetPayment(payment string) (string, error) {

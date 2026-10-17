@@ -73,7 +73,7 @@ export const globalStates: StateEntry[] = [
   },
 
   // Theme smoke check (the Production home only, not the full page/state matrix - see
-  // ADR 0010) - explicit Light/Dark selected via Settings > Appearance,
+  // docs/design/design-system.md#theme) - explicit Light/Dark selected via Settings > Appearance,
   // captured on the Production home across every viewport.
   {
     page: 'global',

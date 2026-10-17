@@ -1,6 +1,6 @@
 // Package transcript owns the asynchronous Transcript Compare state machine.
 // It reaches the DAW only through dawport.ReviewSession (today the versioned
-// file bridge; ADR 0143's dawadapter.Review, which it
+// file bridge; ADR 0004's dawadapter.Review, which it
 // replaced); browser polling and SSE are deliberately absent.
 package transcript
 
@@ -77,7 +77,7 @@ func NewWithReview(config Config, review dawport.ReviewSession, store *settings.
 	return s
 }
 
-// SetPersist says where to log a last-comparison file that cannot be read (ADR 0069). It is derived data and heals.
+// SetPersist says where to log a last-comparison file that cannot be read. It is derived data and heals.
 func (s *Service) SetPersist(reporter *persist.Reporter) { s.files.Store(reporter) }
 
 // SetFindings opts this service into producing findings.Finding records on

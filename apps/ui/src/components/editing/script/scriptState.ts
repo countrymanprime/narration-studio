@@ -1,6 +1,6 @@
 /**
  * The Editing page's own state: where the cursor is, what is selected, which word has its card open and what the playhead says. It is page state,
- * not cached host data (ADR 0770), so it lives in one pure reducer here; the bar and the key rows read it through `useEditingPage`.
+ * not cached host data, so it lives in one pure reducer here; the bar and the key rows read it through `useEditingPage`.
  */
 import { rangeKeys, type ChapterDoc, type Sel } from '../model';
 

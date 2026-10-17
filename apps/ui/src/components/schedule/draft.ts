@@ -47,7 +47,7 @@ function storedMeasure(draft: MilestoneDraft, bounds: DraftBounds): string {
 }
 
 /**
- * The milestone a draft saves as, or why it cannot be: a name and a real date are needed, and the refusal says which is missing. A custom milestone has no estimate (ADR 0800),
+ * The milestone a draft saves as, or why it cannot be: a name and a real date are needed, and the refusal says which is missing. A custom milestone has no estimate,
  * so a stored one is kept only while the measure stays what it was; the template it came from is kept.
  */
 export function milestoneFromDraft(

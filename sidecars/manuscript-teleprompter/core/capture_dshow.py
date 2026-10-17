@@ -1,4 +1,4 @@
-"""The capture port's dshow adapter (ADR 0301): what `devices.py`'s device listing and the old
+"""The capture port's dshow adapter: what `devices.py`'s device listing and the old
 `iter_microphone_chunks` become as the `dshow` row of `narration_common.ports.capture.BACKENDS`. Everything a Windows
 DirectShow microphone needs - listing devices and opening one as chunks of mono audio - was already here; this only
 gives it the port's shape, so `live_asr.py`'s two capture callers (the session and the level meter) can ask the

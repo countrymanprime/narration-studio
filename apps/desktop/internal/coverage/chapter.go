@@ -1,11 +1,11 @@
 // Package coverage is the recording-coverage analysis Go service
-// (docs/utilities/recording-coverage.md, ADR 0128). For one
+// (docs/utilities/recording-coverage.md). For one
 // manuscript chapter and its narrator-confirmed track, it builds the list of
 // played items from the saved REAPER project only (never live REAPER state),
 // seeds each item's words from the analysis evidence cache, runs the Transcript
-// Compare sidecar's --coverage mode (ADR 0127) with real progress and cancel,
+// Compare sidecar's --coverage mode with real progress and cancel,
 // stores the words the run produced back into the cache, and writes one
-// analysis ledger record per run (ADR 0100). The sidecar reports counts; this
+// analysis ledger record per run. The sidecar reports counts; this
 // package reads them back and applies the narrator's thresholds on read.
 //
 // It never changes the project, the manuscript or a chapter status: it reads
@@ -89,7 +89,7 @@ func findChapter(data map[string]any, chapterID string) (map[string]any, bool) {
 }
 
 // CreditsChapterID is the id a credits row's check runs and reads under: "credits-opening" or "credits-closing",
-// matching the teleprompter's own credits script id (ADR 0150) and the row id the chapter table renders.
+// matching the teleprompter's own credits script id and the row id the chapter table renders.
 func CreditsChapterID(kind string) string { return "credits-" + kind }
 
 // CreditsKind reports the credits kind a chapterID names ("opening" or "closing"), and whether it is one at all - the
@@ -106,7 +106,7 @@ func CreditsKind(chapterID string) (kind string, ok bool) {
 }
 
 // creditsBasis is a credits row's basis, the rendered text rather than manuscript paragraphs: title and text
-// are the same first-of-kind template render the Home row and the teleprompter show (ADR 0093, ADR 0150), so a
+// are the same first-of-kind template render the Home row and the teleprompter show, so a
 // template edit that changes either changes the hash and makes a stored result stale, exactly as an edited
 // manuscript paragraph does for chapterBasis. documentID is the current manuscript's own documentId, not a fixed
 // "credits" placeholder: a credits row's confirmed track link lives in the same chapter-track-map.json as every

@@ -8,7 +8,7 @@ import (
 	"time"
 )
 
-// roll (ADR 0860 point 1, narration_roll.lua): the answers as integrations/reaper/tests/roll_test.lua pins them.
+// roll (docs/reference/daw/capabilities.md point 1, narration_roll.lua): the answers as integrations/reaper/tests/roll_test.lua pins them.
 
 func TestRollIsExperimentalAndRefusedWhileTheSettingIsOff(t *testing.T) {
 	actions, client, dir := newActionsSession(t, false)

@@ -3,7 +3,7 @@ import { readdirSync, readFileSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
-// ADR-0017: unlayered legacy CSS silently beats Tailwind utilities, and class
+// docs/design/design-system.md#css-layering-gotcha: unlayered legacy CSS silently beats Tailwind utilities, and class
 // names whose CSS was deleted silently render unstyled. These guards fail the
 // build when either comes back.
 
@@ -18,7 +18,7 @@ const REMOVED_CLASSES = [
   'alias-match-',
   'progress-segment',
 ];
-// Reviewed exceptions from ADR-0009 that may stay as plain (unlayered) class rules.
+// Reviewed exceptions from ADR 0008 that may stay as plain (unlayered) class rules.
 const UNLAYERED_ALLOW_LIST = new Set([
   'manuscript-reader',
   'scroll-chrome-hidden',
@@ -58,7 +58,7 @@ function unlayeredCss(css: string): string {
   return out;
 }
 
-describe('legacy CSS guards (ADR-0017)', () => {
+describe('legacy CSS guards', () => {
   it('no source file references a removed legacy class name', () => {
     const offenders = sourceFiles(SRC)
       .filter((file) => !file.endsWith('legacyCss.test.ts'))
@@ -81,7 +81,7 @@ describe('legacy CSS guards (ADR-0017)', () => {
 
   it('components.css declares no motion: a legacy rule would beat the motion-safe: utilities that guard it', () => {
     // components.css is imported into the utilities layer and its selectors are more specific than a single utility class,
-    // so a `transition` here runs even for people who asked for reduced motion (ADR 0057). Motion is a `motion-safe:` utility.
+    // so a `transition` here runs even for people who asked for reduced motion. Motion is a `motion-safe:` utility.
     const css = readFileSync(join(SRC, 'components.css'), 'utf8').replace(/\/\*[\s\S]*?\*\//g, '');
     expect(css.match(/(^|[\s;{])(transition|animation)(-[a-z-]+)?\s*:/g) ?? []).toEqual([]);
   });

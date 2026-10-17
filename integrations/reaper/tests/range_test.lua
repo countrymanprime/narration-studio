@@ -1,4 +1,4 @@
--- delete_range (narration_range.lua, ADR 0860 point 2): split an item at both ends of a range of words and move the
+-- delete_range (narration_range.lua, docs/reference/daw/capabilities.md point 2): split an item at both ends of a range of words and move the
 -- middle piece to the project's muted Cuts track, in one undo block. `close` moves the later items on the same track up
 -- by the cut's length; `gap` moves nothing, so the cut is silence (the command has no room-tone source). Nothing is
 -- deleted.

@@ -17,7 +17,7 @@ const (
 	undoLastNotDoneSentence  = "%s could not undo the app's last action: %s."
 )
 
-// DawLastAction answers whether the DAW's next undo point is the app's own action of kind (#1711, ADR 0771 rule 4): "this", "other"
+// DawLastAction answers whether the DAW's next undo point is the app's own action of kind (#1711, docs/architecture/ui-state-and-journal.md#the-journal-and-undo rule 4): "this", "other"
 // (another action, or none), or "unknown" when the DAW cannot tell: the undo_last capability refused (a standalone launch, a DAW not
 // answering, Experimental actions off, the toggle off, an engine that has not built it), no live adapter, or no answer. It never
 // changes the project. kind is a dawport.ActionKind ("cut_range"); any other is an error, and nothing is sent.
@@ -49,7 +49,7 @@ func dawLastActionIn(ctx context.Context, support dawport.Support, undoer dawpor
 }
 
 // DawUndoLast undoes steps (1 to 12) consecutive undo points of the app's own action of kind from the top of the DAW's own undo
-// history, one at a time, and never one of any other action (#1711). The answer is a DawResult (ADR 0810): the undo_last
+// history, one at a time, and never one of any other action (#1711). The answer is a DawResult: the undo_last
 // capability's own sentence when the resolver refuses it, checked first; no live adapter is refused in a sentence; the top point not
 // being kind's is refused in the DAW's sentence with nothing changed; stopping at another point part way is changed, and its
 // sentence says how many were undone. UndoSteps is 0: an undo adds no undo point. kind is a dawport.ActionKind ("cut_range"); any

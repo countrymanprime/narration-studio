@@ -8,7 +8,7 @@ export interface Viewport {
 // just one fixed layout) gets checked systematically - see the Settings-page
 // "doesn't respond to larger sizes" complaint this suite exists to catch.
 // No phone size: this is a DAW companion app, used on a tablet or larger, so the
-// mobile layout (nav drawer) is not captured (ADR 0037).
+// mobile layout (nav drawer) is not captured.
 export const VIEWPORTS: Viewport[] = [
   { name: 'desktop', width: 1440, height: 900 },
   { name: 'small-desktop', width: 1024, height: 768 },
@@ -18,21 +18,21 @@ export const VIEWPORTS: Viewport[] = [
 // The width at which a layout that stacks below `md` (48rem, 768px) must still be usable: 390px, a phone and also what a
 // desktop window shows at 400% browser zoom (WCAG 1.4.10 Reflow asks for 320). It is not part of the matrix above: a state
 // opts in with `extraViewports: [REFLOW_VIEWPORT]` in state-catalog.ts, so the suite pays for it only where a row's layout
-// changes there (the Settings rows, ADR 0061). The desktop shell's minimum window is 960px, so this is reached by zoom, not
+// changes there (the Settings rows). The desktop shell's minimum window is 960px, so this is reached by zoom, not
 // by resizing.
 export const REFLOW_VIEWPORT: Viewport = { name: 'reflow', width: 390, height: 844 };
 
-// Companion mode's window (ADR 0401): the host narrows the app's one window
+// Companion mode's window: the host narrows the app's one window
 // to 380 px (apps/desktop/bindings_companion.go's companionModeWidth) and pins it beside the DAW, so the companion rows are
 // judged at that width too, the way the narrator actually sees them. Not part of the matrix: rows opt in with `COMPANION`.
 export const COMPANION_VIEWPORT: Viewport = { name: 'companion', width: 380, height: 900 };
 
-// The Script page's full mock-02 layout (ADR 0393, superseding ADR
+// The Script page's full mock-02 layout (superseding ADR
 // 0392): the chapter list, the reader and the rail show side by side from 1440 px (D85 on issue #509 - mock 02's own
 // capture width), so the matrix's `desktop` width already shows it; the rail rows also opt in here, an even wider check.
 export const WIDE_VIEWPORT: Viewport = { name: 'wide', width: 1680, height: 1050 };
 
-// The two layout bands the matrix never draws (ADR 0761 decision 1; `src/layoutBreakpoints.ts`): the rail collapsed but the
+// The two layout bands the matrix never draws (docs/design/design-system.md#layout-rules decision 1; `src/layoutBreakpoints.ts`): the rail collapsed but the
 // layout not yet medium (1281 to 1359 px), and medium but not narrow (1180 to 1280 px). Rows opt in with `LAYOUT_BANDS`.
 export const RAIL_ONLY_VIEWPORT: Viewport = { name: 'rail-only', width: 1300, height: 900 };
 export const MEDIUM_ONLY_VIEWPORT: Viewport = { name: 'medium-only', width: 1230, height: 900 };

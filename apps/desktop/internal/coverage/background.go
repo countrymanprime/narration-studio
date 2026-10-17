@@ -7,7 +7,7 @@ import (
 	"github.com/countrymanprime/narration-utils/shell/internal/evidence"
 )
 
-// Background recording checks (ADR 0211). NextBackground decides, from what the host
+// Background recording checks. NextBackground decides, from what the host
 // knows at one moment, whether a check of a changed chapter may start now and which one. It only decides: the host starts the check through the same Start as a narrator's press, so progress, the ledger record and
 // job:ended are the same. It is pure, so every rule is a table test.
 
@@ -16,7 +16,7 @@ import (
 const BackgroundQuiet = 3 * time.Minute
 
 // Power is whether the computer runs on mains power. Only PowerMains allows a background check (never on
-// battery, ADR 0211); a power state the host cannot read counts as battery.
+// battery); a power state the host cannot read counts as battery.
 type Power string
 
 const (

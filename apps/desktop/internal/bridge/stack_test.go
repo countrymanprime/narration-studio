@@ -12,7 +12,7 @@ import (
 	"time"
 )
 
-// stack_takes and unstack_takes (ADR 0860 point 4, narration_takes.lua): the payload the host writes and the answers as
+// stack_takes and unstack_takes (docs/reference/daw/capabilities.md point 4, narration_takes.lua): the payload the host writes and the answers as
 // integrations/reaper/tests/stack_test.lua pins them.
 
 const (

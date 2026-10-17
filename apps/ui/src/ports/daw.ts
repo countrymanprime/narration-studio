@@ -48,7 +48,7 @@ import {
 import { knownActionKind, MOCK_DAW_UNDO_LABELS, MockUndoHistory } from '../fixtures/dawUndo';
 import type { NarrationApi } from '../types';
 
-// The DAW port (ADR 0770, ADR 0810): what the app asks of the DAW and what it answers, one `DawResult` per call. A refusal
+// The DAW port: what the app asks of the DAW and what it answers, one `DawResult` per call. A refusal
 // carries the capability's or the host's own sentence in `refused` and `message`; this file never words one for the DAW and
 // never branches on which DAW it is talking to, so behaviour differs only through the capability fields. A later DAW slice
 // adds its method here together with its command (ISP).
@@ -150,7 +150,7 @@ export interface DawClient {
   subscribeTransport?(onUpdate: (next: DawTransport) => void): () => void;
   /** The project as last saved, whether the DAW has unsaved changes, and the transport. `playPosition` is for display only. */
   projectState(): Promise<DawProjectState>;
-  /** Start recording on the chapter's track: from the end of its last item (ADR 0791), or from `at` (project seconds) when the
+  /** Start recording on the chapter's track: from the end of its last item, or from `at` (project seconds) when the
    * narrator chose a punch. A time that is not a finite, non-negative number of seconds is refused before anything changes. */
   recordStart(chapterId: string, at?: number): Promise<DawResult>;
   /** Stop a recording this app started. */
@@ -201,7 +201,7 @@ export interface DawClient {
   /** Smooth the request's clicks in a take, in one undo step of the DAW's own where it can; the recorded audio is left as it was where the
    * DAW can (a volume envelope). The DAW refuses a take that is gone or a click outside it (code `stale`). */
   repairClick(request: ClickRepairRequest): Promise<DawResult>;
-  /** Whether the DAW's next undo point is the app's own action of `kind` (ADR 0771 rule 4): `this`, `other` (another action, or none),
+  /** Whether the DAW's next undo point is the app's own action of `kind` (docs/architecture/ui-state-and-journal.md#the-journal-and-undo rule 4): `this`, `other` (another action, or none),
    * or `unknown` when the DAW cannot tell. It never changes the project and never rejects: the `undo_last` capability refused, a DAW not
    * answering and a call that failed are all `unknown`. */
   lastAction(action: DawActionKind): Promise<DawLastAction>;
@@ -344,7 +344,7 @@ function pickupsCsv(items: readonly DawPickupItem[]): string {
   return ['start,note,tag', ...items.map((item) => [String(item.start), cell(item.note), cell(item.tag)].join(','))].join('\n') + '\n';
 }
 
-/** A refused call changed nothing; `refused` holds the sentence and `message` repeats it. `stale` adds the one code (ADR 0861). */
+/** A refused call changed nothing; `refused` holds the sentence and `message` repeats it. `stale` adds the one code. */
 function refused(sentence: string | undefined, call: string, stale = false): DawResult {
   if (!sentence) throw new Error(`${call} was refused with no sentence to show`);
   const result: DawResult = { ok: false, changed: false, message: sentence, undoSteps: 0, refused: sentence };

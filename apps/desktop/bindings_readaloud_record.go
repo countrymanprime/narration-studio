@@ -45,7 +45,7 @@ func readAloudRefused(reason, message string) ReadAloudRecording {
 	return ReadAloudRecording{Outcome: "refused", Reason: reason, Message: message}
 }
 
-// recorderFrom asks svc's DAW port resolver for the Record role (ADR 0300), the same seam trackStateReaderFrom uses:
+// recorderFrom asks svc's DAW port resolver for the Record role, the same seam trackStateReaderFrom uses:
 // nil when there is no resolver, no adapter, the capability is toggled off, or REAPER is not reachable right now.
 func recorderFrom(svc hostServices) dawport.Recorder {
 	if svc.dawPortResolver == nil {
@@ -61,7 +61,7 @@ func recorderFrom(svc hostServices) dawport.Recorder {
 // readAloudAdapterName is the display name of the DAW adapter the refusals speak of: what the resolver drives, or
 // REAPER, the one adapter with a bridge, while there is no resolver. It is the only place in this file that spells a
 // DAW's name (TestRecordRefusalsNameTheAdapterNotReaper scans for it), so a second adapter words its refusals without
-// touching Go (ADR 0791).
+// touching Go.
 func readAloudAdapterName(svc hostServices) string {
 	if svc.dawPortResolver != nil {
 		if name := svc.dawPortResolver.Kind().String(); name != "none" {
@@ -100,7 +100,7 @@ func readAloudConnectionRefusal(name, connection string) ReadAloudRecording {
 }
 
 // readAloudExperimentalOffRefusal is the refusal while the record (or, for a punch, the punch) capability is switched off: it
-// speaks of recording, which is what the narrator pressed, and names both switches that turn it on (ADR 0230).
+// speaks of recording, which is what the narrator pressed, and names both switches that turn it on.
 func readAloudExperimentalOffRefusal(name string) ReadAloudRecording {
 	return readAloudRefused(readAloudExperimentalOff, fmt.Sprintf("Recording in %s is an experimental action. Turn on Experimental %s actions, or Record alone, in Settings to use it.", name, name))
 }
@@ -168,7 +168,7 @@ func (h *Host) ReadAloudArmOnly(chapterID string) (string, error) {
 }
 
 // readAloudRecordStartIn is Record: it arms chapterID's linked track alone (the narrator's other arms are remembered
-// and come back on stop, ADR 0232), then starts recording at the end of the track's last item, and waits for ctx's
+// and come back on stop), then starts recording at the end of the track's last item, and waits for ctx's
 // deadline for the DAW to confirm. A precondition that fails first - playing, already recording - refuses before
 // anything is armed or moved; reader is the track-state role that reads them, nil when it is not available. Another
 // track being armed is no longer a refusal. Sent only from Play with the Record toggle on (the Booth's reading control bar) and
@@ -179,7 +179,7 @@ func readAloudRecordStartIn(ctx context.Context, svc hostServices, recorder dawp
 
 // readAloudRecordStartAtIn is Record at a punch: the same arms, preconditions and refusals as readAloudRecordStartIn,
 // but the DAW records from at (project seconds) instead of the end of the track's last item. The edit cursor is placed
-// there with puncher (punch_to, no pre-roll) once the track is armed, and recording starts from the cursor; ADR 0791's
+// there with puncher (punch_to, no pre-roll) once the track is armed, and recording starts from the cursor; docs/guides/using-the-app/booth.md#recording's
 // end-of-track default stays for a start without a time. A time that is not a finite, non-negative number of seconds
 // is refused before anything is read, armed or moved (threat-model row 5k). puncher is nil when the punch capability
 // is not available, which refuses the same way as the record capability being off.

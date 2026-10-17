@@ -1,6 +1,6 @@
-// Package reaper is the DAW port's REAPER adapter (ADR 0300). It wraps what exists and rewrites nothing: the
+// Package reaper is the DAW port's REAPER adapter. It wraps what exists and rewrites nothing: the
 // synchronous roles are bridge.Navigator, bridge.Actions, bridge.LevelMatchClient and
-// daw.Reachability as they are, the review session (review.go, ADR 0143) sends the bridge commands transcript.Service sent
+// daw.Reachability as they are, the review session (review.go) sends the bridge commands transcript.Service sent
 // before the extraction, the offline reader is tracks.Parse, and each asynchronous role writes the bridge command its service
 // writes. A capability is declared Experimental when bridge.Actions gates its commands behind the "Experimental REAPER
 // actions" switch (bridge's experimentalCommands), and Supported otherwise, except level matching, which is not wired to a
@@ -29,7 +29,7 @@ func init() { dawport.Register(dawport.KindREAPER, Factory) }
 var ErrNoSession = errors.New("REAPER is not connected to this app: there is no REAPER session to talk to")
 
 // declares is the adapter's static declaration. Promoting a command once the owner's REAPER verification pass has confirmed it
-// (ADR 0400) is moving its capability from Experimental to Supported here, in the same PR that takes the
+// is moving its capability from Experimental to Supported here, in the same PR that takes the
 // command off bridge's experimentalCommands.
 var declares = map[dawport.Capability]dawport.Level{
 	dawport.CapReview:       dawport.Supported,
@@ -57,12 +57,12 @@ var declares = map[dawport.Capability]dawport.Level{
 	dawport.CapFXChains:    dawport.Experimental,
 	// Built, never wired to a binding, so never gated: Experimental keeps it off until it is verified.
 	dawport.CapItemGain: dawport.Experimental,
-	// The mastering port's DAW row (ADR 0306, masterrender.go): Experimental until the owner's
+	// The mastering port's DAW row (masterrender.go): Experimental until the owner's
 	// REAPER pass. master_chain_read is one of bridge.Actions' gated commands; render_with_fx answers through the fan-out, and each
 	// request carries the narrator's approval for that one render, which the bridge uses up.
 	dawport.CapRenderWithFX:    dawport.Experimental,
 	dawport.CapMasterChainRead: dawport.Experimental,
-	// macro_render is the mastering port's Audacity row (ADR 0306, ADR 0460): REAPER has no macro manager, so this is Unsupported,
+	// macro_render is the mastering port's Audacity row: REAPER has no macro manager, so this is Unsupported,
 	// not NotYetAvailable (port.go's own example is exactly this shape, the other way around: "Audacity has no punch-and-roll").
 	dawport.CapMacroRender: dawport.Unsupported,
 	// The edit rows (SND-3): cut_range is delete_range's (SN-D62) and fx_range apply_fx_range's and remove_fx_range's (SN-D63), both in
@@ -261,7 +261,7 @@ func (a *Adapter) Role(c dawport.Capability) any {
 // Depth is what REAPER declares about how a capability acts, the same with REAPER up or down.
 func (a *Adapter) Depth(c dawport.Capability) dawport.Depth { return depthOf(c) }
 
-// depthOf: a roll keeps the earlier audio as a take (ADR 0860 point 1), so punch is not destructive, and REAPER makes it
+// depthOf: a roll keeps the earlier audio as a take (docs/reference/daw/capabilities.md point 1), so punch is not destructive, and REAPER makes it
 // itself. That rests on the overlapping-recording setting the roll command reads and refuses without; the QA pass (#1495)
 // confirms that setting keeps the audio. A cut moves the middle piece to the muted Cuts track and deletes nothing (point 2),
 // so cut_range is not destructive either, and a chain on a range is take FX on a split piece, which leaves the audio as it
@@ -301,7 +301,7 @@ type ProjectReader struct{}
 
 func (ProjectReader) ReadProject(path string) (dawport.Project, error) { return tracks.Parse(path) }
 
-// takeSelector is the takes role: bridge.Actions' SetActiveTake as it is, and HideTakes answering a dawport.Result (ADR 0810),
+// takeSelector is the takes role: bridge.Actions' SetActiveTake as it is, and HideTakes answering a dawport.Result,
 // which bridge cannot import.
 type takeSelector struct {
 	*bridge.Actions
@@ -369,7 +369,7 @@ func (t takeSelector) SplitTake(ctx context.Context, itemGUID, takeGUID string, 
 const messageRollStopped = "REAPER stopped recording for the roll but did not record again. The earlier audio is kept; press record to go on."
 
 // puncher is the punch role: bridge.Actions' PunchTo and PlayPosition as they are, and Roll answering a dawport.Result
-// (ADR 0810), which bridge cannot import.
+// which bridge cannot import.
 type puncher struct {
 	*bridge.Actions
 	allowed func(dawport.Capability) error
@@ -422,7 +422,7 @@ func hiddenMessage(got bridge.TakesHidden) string {
 	}
 }
 
-// rangeCutter is the cut_range role over bridge's delete_range, answering a dawport.Result (ADR 0810), which bridge cannot import.
+// rangeCutter is the cut_range role over bridge's delete_range, answering a dawport.Result, which bridge cannot import.
 type rangeCutter struct {
 	actions *bridge.Actions
 	allowed func(dawport.Capability) error
@@ -477,7 +477,7 @@ func cutMessage(words int) string {
 	}
 }
 
-// rangeGainReducer is the range_gain role over bridge's reduce_range_gain, answering a dawport.Result (ADR 0810).
+// rangeGainReducer is the range_gain role over bridge's reduce_range_gain, answering a dawport.Result.
 type rangeGainReducer struct {
 	actions *bridge.Actions
 	allowed func(dawport.Capability) error
@@ -533,7 +533,7 @@ func gainMessage(stretches int, db float64) string {
 	return fmt.Sprintf("Lowered %s by %s dB in REAPER. Undo it there in one step.", what, strconv.FormatFloat(db, 'f', -1, 64))
 }
 
-// clickRepairer is the click_repair role over bridge's repair_click, answering a dawport.Result (ADR 0810).
+// clickRepairer is the click_repair role over bridge's repair_click, answering a dawport.Result.
 type clickRepairer struct {
 	actions *bridge.Actions
 	allowed func(dawport.Capability) error
@@ -589,7 +589,7 @@ func clickMessage(clicks int) string {
 	return fmt.Sprintf("Repaired %s in REAPER. Undo it there in one step.", what)
 }
 
-// rangeFXApplier is the fx_range role over bridge's apply_fx_range and remove_fx_range, answering a dawport.Result (ADR 0810),
+// rangeFXApplier is the fx_range role over bridge's apply_fx_range and remove_fx_range, answering a dawport.Result,
 // and over fx_range_params, fx_range_set_param and fx_range_bypass as its dawport.RangeFXEditor (SN-E104). REAPER lists a chain by
 // one name, its path relative to FXChains, which is both the chain's id and its name; every command sends the request's ChainName.
 type rangeFXApplier struct {
@@ -840,7 +840,7 @@ func chainAddedMessage(chain string, words int) string {
 	}
 }
 
-// takeStacker is the stack_takes role over bridge's stack_takes and unstack_takes, answering a dawport.Result (ADR 0810).
+// takeStacker is the stack_takes role over bridge's stack_takes and unstack_takes, answering a dawport.Result.
 type takeStacker struct {
 	actions *bridge.Actions
 	allowed func(dawport.Capability) error

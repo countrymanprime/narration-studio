@@ -1,6 +1,6 @@
 # The import review dialog
 
-**Status: implemented.** When a narrator chooses a manuscript (or accepts the offer of one in the project folder), the host reads it into a draft and the app shows a review dialog, "Import <file>", before anything is written. This page is how that dialog is built and what it promises. The decisions are [ADR 0135](../adr/0135-a-subtitle-turned-off-in-the-import-review-joins-the-title-or-returns-to-the-text-by-where-its-line-came-from.md) (correcting a subtitle), [ADR 0086](../adr/0086-the-import-review-is-grouped-by-what-each-section-will-be-and-reports-repairs-instead-of-a-log.md) (the grouping, the subtitle, the repairs), [ADR 0015](../adr/0015-real-progress-only.md) (real progress only), [ADR 0019](../adr/0019-detected-manuscript-is-offered-not-imported.md) (one review, offered never silent), [ADR 0001](../adr/0001-import-dialog-max-width-and-overflow.md) (width, no sideways scroll) and [ADR 0005](../adr/0005-reference-material-excluded-from-chapter-nav.md) (reference material is filtered at the listing layer only).
+**Status: implemented.** When a narrator chooses a manuscript (or accepts the offer of one in the project folder), the host reads it into a draft and the app shows a review dialog, "Import <file>", before anything is written. This page is how that dialog is built and what it promises. The decisions are [Correcting a subtitle](import-review.md#correcting-a-subtitle) (correcting a subtitle), [The import review dialog](import-review.md) (the grouping, the subtitle, the repairs), [Design principles](principles.md) (real progress only), [ADR 0006](../adr/0006-local-first-and-the-narrator-consents.md) (one review, offered never silent), [Primitive components](../design/design-system.md#primitive-components) (width, no sideways scroll) and [state.ts](../../apps/ui/src/state.ts) (reference material is filtered at the listing layer only).
 
 ## What the dialog shows
 
@@ -13,7 +13,7 @@ What the narrator sees and does in the dialog (the summary lines, the groups, th
 
 ## Correcting a subtitle
 
-The importer reads every line after a heading's first as its subtitle, which is wrong for a title the author wrapped onto two lines and for an epigraph straight under a plain-text heading ([the heading misreads note](../research/import-heading-misreads.md), cases F1 and F3). The narrator corrects it before anything is written ([ADR 0135](../adr/0135-a-subtitle-turned-off-in-the-import-review-joins-the-title-or-returns-to-the-text-by-where-its-line-came-from.md)):
+The importer reads every line after a heading's first as its subtitle, which is wrong for a title the author wrapped onto two lines and for an epigraph straight under a plain-text heading ([the heading misreads note](../research/import-heading-misreads.md), cases F1 and F3). The narrator corrects it before anything is written ([Correcting a subtitle](import-review.md#correcting-a-subtitle)):
 
 - **The default**, "Read a heading's second line as its subtitle", is on (the importer's guess). Turned off, every row's subtitle is off, except a row the narrator set by hand, which keeps its own answer.
 - **Each row with a subtitle** has a checkbox named for its line ("Subtitle — Down the Rabbit-Hole"), starting from the default.
@@ -26,11 +26,11 @@ The preview job (`ManuscriptImportPreview`, `apps/ui/src/api/contracts/manuscrip
 
 - `sections[]`: `id`, `title`, `subtitle?`, `subtitleOff?` (`title` or `body`, with every subtitle: where its line goes when it is turned off), `contentKind`, `paragraphCount`. The subtitle is the **first paragraph's** (`DraftSection.Subtitle`, `apps/desktop/internal/importer/model.go`), which is the paragraph `manuscript.canonicalize` writes the chapter from, so the review shows exactly what the chapter will be called. A repeated title is merged into its first section and takes its first subtitle; a heading with no text has none (see [import quirks](docx-import-quirks.md#where-the-subtitle-shows)).
 - `characterCandidates[]`.
-- `notices?`: the importer's repairs (a title and subtitle that were run together and had to be split, [ADR 0013](../adr/0013-import-preserves-structural-whitespace.md)), as sentences, only when there are some (`previewPayload`, `apps/desktop/internal/manuscript/service.go`).
+- `notices?`: the importer's repairs (a title and subtitle that were run together and had to be split, [Manuscript import: formatting quirks and how they are handled](docx-import-quirks.md)), as sentences, only when there are some (`previewPayload`, `apps/desktop/internal/manuscript/service.go`).
 
 `subtitleOff` and `notices` are optional and additive, so they need no `hostAPIVersion` bump. They are in the Zod schema (`schemas/manuscript.ts`) and in the golden files the Go contract tests write (`manuscript-import-preview.json`, and `manuscript-import-preview-repaired.json` for a Word file whose heading had to be repaired), so the mock cannot send a shape the host does not.
 
-The preview log ("Preview activity") is not on the review screen; the commit dialog keeps its own progress bar and log. The host still reports every stage as it happens (ADR 0015).
+The preview log ("Preview activity") is not on the review screen; the commit dialog keeps its own progress bar and log. The host still reports every stage as it happens (`docs/architecture/principles.md`).
 
 ## How it is built
 
@@ -44,7 +44,7 @@ The preview log ("Preview activity") is not on the review screen; the commit dia
 
 Reclassifying a row moves it to the group of its new kind. The select is put back in focus in its new place (so a keyboard narrator keeps their place), and the group it moved into opens.
 
-**"Build the Story Bible after import".** `ImportReview` takes an optional `buildStoryBible: { checked, onChange }` and, when it is given, draws a checkbox "Build the Story Bible after import" in the Import options group. `useManuscriptImport` passes it, pre-checked from the `ManuscriptGuide.build_after_import` setting (on by default, owner decision D8). On a successful import the import dialog closes itself and `ManuscriptImport` starts `api.guideBuild({})`, followed in its own "Build the Story Bible" `WorkDialog` by the same `useWorkJob` hook the Story Bible page uses; like that page's rebuild it can go on in the background (ADR 0076), and a build that fails never unmakes the reported import. Measured (p50 of 5, `en_core_web_sm`, Windows dev venv), the build is most of the wait: about 6 s for the Alice fixture and the full 26,000-word book, about 15 s for a 79,000-word novel-length manuscript, against 0.05 s for the import itself and about 0.5 s per checked character suggestion ([Story Bible build after import](story-bible-concurrent-build.md)).
+**"Build the Story Bible after import".** `ImportReview` takes an optional `buildStoryBible: { checked, onChange }` and, when it is given, draws a checkbox "Build the Story Bible after import" in the Import options group. `useManuscriptImport` passes it, pre-checked from the `ManuscriptGuide.build_after_import` setting (on by default, owner decision D8). On a successful import the import dialog closes itself and `ManuscriptImport` starts `api.guideBuild({})`, followed in its own "Build the Story Bible" `WorkDialog` by the same `useWorkJob` hook the Story Bible page uses; like that page's rebuild it can go on in the background (`docs/architecture/interaction-feedback.md#job-end-events`), and a build that fails never unmakes the reported import. Measured (p50 of 5, `en_core_web_sm`, Windows dev venv), the build is most of the wait: about 6 s for the Alice fixture and the full 26,000-word book, about 15 s for a 79,000-word novel-length manuscript, against 0.05 s for the import itself and about 0.5 s per checked character suggestion ([Story Bible build after import](story-bible-concurrent-build.md)).
 
 ## Tests and states
 

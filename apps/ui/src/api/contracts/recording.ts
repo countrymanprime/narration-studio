@@ -1,6 +1,6 @@
-// The built-in recorder (ADR 0455): the Booth records with REAPER or with the built-in
+// The built-in recorder: the Booth records with REAPER or with the built-in
 // recorder, which records a take of the chosen input device into the project's Recordings folder through the capture port's
-// wasapi row (Experimental, ADR 0357). Mirrors apps/desktop/bindings_recording.go's RecorderState exactly.
+// wasapi row (Experimental). Mirrors apps/desktop/bindings_recording.go's RecorderState exactly.
 import type { DawCapabilitySupport } from './daw';
 
 /** Which engine the project records with: REAPER (the default) or the built-in recorder. It sets the engine chip. */

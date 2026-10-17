@@ -34,7 +34,7 @@ func contractDiagnosed(path string) measure.Diagnostics {
 			Evidence:     measure.Evidence{Status: measure.StatusUnavailable, Reason: "no transcript timing for this audio"},
 			PauseOptions: measure.DefaultPauseOptions(),
 		},
-		// One of each cleanup class (ADR 0238), so the golden exercises CleanupFindings apart from
+		// One of each cleanup class, so the golden exercises CleanupFindings apart from
 		// Findings above: a silence past the hold, a breath below speech level, and a click between two silences.
 		Cleanup: measure.CleanupDiagnostics{
 			Options:         measure.DefaultCleanupOptions(),
@@ -96,7 +96,7 @@ func pinDiagnosticsJob(t *testing.T, name string, job DiagnosticsJob) {
 }
 
 func TestContractDiagnosticsBindings(t *testing.T) {
-	t.Setenv("APPDATA", t.TempDir()) // never read the real machine's global-settings.json (cleanupSettings, ADR 0238)
+	t.Setenv("APPDATA", t.TempDir()) // never read the real machine's global-settings.json (cleanupSettings)
 	pinDiagnosticsJob(t, "diagnostics-idle", NewHost().diagnosticsState())
 
 	running := contractDiagnosticsJob()

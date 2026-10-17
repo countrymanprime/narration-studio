@@ -12,7 +12,7 @@ import (
 	"github.com/countrymanprime/narration-utils/shell/internal/process"
 )
 
-// exitCancelled is the sidecar's cancel exit code (ADR 0127).
+// exitCancelled is the sidecar's cancel exit code.
 const exitCancelled = 2
 
 // stage is which sidecar invocation a job is running now. Only a first pass that reports
@@ -24,7 +24,7 @@ const (
 	// stageFirstPass is every run's own first sidecar launch: today's single-pass check.
 	stageFirstPass stage = iota
 	// stageRecheckWindows re-checks the planned windows and splices them into the same words
-	// (coverage_mode.run_recheck, ADR 0341); it writes no results file.
+	// (coverage_mode.run_recheck); it writes no results file.
 	stageRecheckWindows
 	// stageRecheckWhole replaces the windows with one whole-chapter pass under the re-check model,
 	// when the windows would have covered too much of the chapter (MC3) to be worth splicing.
@@ -178,7 +178,7 @@ func (s *Service) launchStage(running *job, next stage) bool {
 
 // readProgress applies the progress file's last line. Percent never moves
 // backwards (a CANCELLED line reports 0), and a malformed line is ignored and
-// logged, never read as 0 (ADR 0015, ADR 0069).
+// logged, never read as 0.
 func (s *Service) readProgress(running *job) {
 	raw, err := os.ReadFile(running.progressPath)
 	if err != nil {

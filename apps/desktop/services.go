@@ -49,7 +49,7 @@ type hostServices struct {
 	production   *production.Service
 	editing      *editing.Service
 	character    *character.Service
-	// reachability tracks the current bridge client's PROJECT_STATUS heartbeat (ADR 0092), behind the
+	// reachability tracks the current bridge client's PROJECT_STATUS heartbeat, behind the
 	// DAW port's Heartbeat role. Never a true nil interface: with no bridge client configureLocked
 	// still sets it to an always-unreachable stand-in.
 	reachability dawport.Heartbeat
@@ -96,7 +96,7 @@ type hostServices struct {
 	// backupKeeper is the DAW port's backups role; nil (a true nil interface) with no Audacity launch or no project.
 	backupKeeper dawport.BackupKeeper
 	// dawPortResolver is the DAW port's resolver for the roles bindings_navigation.go, readaloudreaper.go,
-	// teleprompterinput.go and chapterregions.go ask for (ADR 0300); nil with no bridge client.
+	// teleprompterinput.go and chapterregions.go ask for; nil with no bridge client.
 	dawPortResolver *dawport.Resolver
 }
 

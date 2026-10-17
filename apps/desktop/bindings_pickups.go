@@ -7,7 +7,7 @@ import (
 )
 
 // The bindings for the pickup list: CSV parse
-// and validation live in internal/pickups (never trust external data, ADR 0069's rule for anything that crosses
+// and validation live in internal/pickups (never trust external data, ADR 0005's rule for anything that crosses
 // into the UI applies just as much to what a narrator hands the app from disk), and h.emitPickups (app.go)
 // relays every state change as the "pickups:state" live event, the way h.emitLineIdentity does for line
 // identity. The wire-contract schema, golden payloads and mock live in apps/ui/src/api.

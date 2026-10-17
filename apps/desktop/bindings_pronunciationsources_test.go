@@ -75,7 +75,7 @@ func TestPronunciationDefaultIsTheNarratorsSettingNeverAnUnavailableSource(t *te
 	host, _, _ := onlineHost(t)
 	withoutWiktextract(host)
 	if got := sourcesOf(t, host).Default; got != "cmu" {
-		t.Fatalf("unset default = %q, want cmu (ADR 0405 order)", got)
+		t.Fatalf("unset default = %q, want cmu (ADR 0006 order)", got)
 	}
 	set := func(value string) {
 		t.Helper()

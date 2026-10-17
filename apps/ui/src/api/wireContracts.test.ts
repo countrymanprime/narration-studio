@@ -221,7 +221,7 @@ import { parseWire, parseWireJson, type WireContext } from './wire/parseWire';
 import { WireError } from './wire/WireError';
 import { creditsRows } from '../components/booth/readerModel';
 
-// ADR 0069, rule 4: the fixtures are the contract. Every payload the Go host and the Python sidecars write to
+// ADR 0005: the fixtures are the contract. Every payload the Go host and the Python sidecars write to
 // tests/fixtures/contracts/ is validated here by the same schemas the app runs, and so is every answer the mock client gives;
 // both are also checked strictly, so a key the schema does not declare fails here even though the app itself would ignore it.
 const GOLDEN_DIR = fileURLToPath(new URL('../../../../tests/fixtures/contracts/', import.meta.url));
@@ -259,7 +259,7 @@ describe('golden payloads written by the Go host and the Python sidecars', () =>
     expect([...COVERAGE_EVALUATOR_REASONS]).toEqual(declared.evaluator);
   });
 
-  it('the recording check engines: the golden parses, the mock answers the same engines and refuses the same unknown model (ADR 0841)', async () => {
+  it('the recording check engines: the golden parses, the mock answers the same engines and refuses the same unknown model', async () => {
     const golden = readGolden('coverage-engines.json');
     const parsed = parseWire(coverageEnginesSchema, golden, ctx('coverage engines'));
     expect(parsed.engines.map((engine) => engine.id)).toContain(parsed.default);
@@ -279,7 +279,7 @@ describe('golden payloads written by the Go host and the Python sidecars', () =>
     expect((await api.coverageStart(chapter.id, { model: mocked.default })).status).toBe('started');
   });
 
-  it('a recording check gap review: the goldens parse, the mock answers the same shapes and refuses what the host refuses (ADR 0842)', async () => {
+  it('a recording check gap review: the goldens parse, the mock answers the same shapes and refuses what the host refuses', async () => {
     const note = parseWire(findingSchema, readGolden('coverage-gap-review-accepted.json'), ctx('accepted gap'));
     expect(note).toMatchObject({ analyzer: 'recording-check', category: 'pickup', confidence: null, review: { status: 'accepted' } });
     const reviews = parseWire(coverageGapReviewsSchema, readGolden('coverage-gap-review-reviews.json'), ctx('gap reviews'));
@@ -326,7 +326,7 @@ describe('golden payloads written by the Go host and the Python sidecars', () =>
     expect((await api.findingsSummary()).total).toBe(before + 1);
   });
 
-  it('a coverage region keeps its bounds, and a missing bound reads as absent (ADR 0168)', () => {
+  it('a coverage region keeps its bounds, and a missing bound reads as absent', () => {
     const current = parseWire(coverageResultSchema, readGolden('coverage-result-current.json'), ctx('coverage result'));
     const [tail] = current.result?.regions ?? [];
     expect(tail.before).toEqual({ itemIndex: 1, itemGuid: '{ITEM-B}', sourceTime: 0.3 });
@@ -341,7 +341,7 @@ describe('golden payloads written by the Go host and the Python sidecars', () =>
     expect([oldTail.before, oldTail.after]).toEqual([undefined, undefined]);
   });
 
-  it('a coverage report carries the gap taxonomy; a result stored before it reads as no gaps (ADR 0830)', () => {
+  it('a coverage report carries the gap taxonomy; a result stored before it reads as no gaps', () => {
     for (const name of ['coverage-result-current.json', 'coverage-result-stale.json', 'coverage-result-cascade.json']) {
       const report = parseWire(coverageResultSchema, readGolden(name), ctx('coverage result')).result;
       expect(report?.gaps).toEqual([]);
@@ -353,7 +353,7 @@ describe('golden payloads written by the Go host and the Python sidecars', () =>
     expect([parsed.result?.gaps, parsed.result?.unfinished]).toEqual([[], { start: 0, end: 0 }]);
   });
 
-  it('a gap has a known kind and a confidence that is null or comes with its reason (ADR 0830)', () => {
+  it('a gap has a known kind and a confidence that is null or comes with its reason', () => {
     const golden = z.looseObject({ result: z.looseObject({}) }).parse(readGolden('coverage-result-current.json'));
     const gap = {
       id: 'missing:p-1:0',
@@ -371,7 +371,7 @@ describe('golden payloads written by the Go host and the Python sidecars', () =>
     expect(() => parseWire(coverageResultSchema, withGap({ confidence: 0.9, confReason: undefined }), ctx('coverage result'))).toThrow();
   });
 
-  it("a coverage result carries the host's judgement, and the mock judges its reports by the same rule (ADR 0204)", () => {
+  it("a coverage result carries the host's judgement, and the mock judges its reports by the same rule", () => {
     for (const name of ['coverage-result-current.json', 'coverage-result-stale.json']) {
       const golden = parseWire(coverageResultSchema, readGolden(name), ctx('coverage result'));
       expect(golden.judgement).toBeDefined();
@@ -1119,7 +1119,7 @@ describe('answers of the mock client for the manuscript, Story Bible and project
     expectMatches(windowZoomSchema, zoomed, 'mock window zoom, set to 125%');
     expect(zoomed.level).toBe(1.25);
     expect((await api.windowZoom()).level).toBe(1.25);
-    // Defensively clamped, the same range the real host's `nearestZoomStep` promises (ADR 0201).
+    // Defensively clamped, the same range the real host's `nearestZoomStep` promises.
     expect((await api.windowSetZoom(5)).level).toBe(2.0);
     expect((await api.windowSetZoom(0.1)).level).toBe(1.0);
     const seeded = await createMockApi({}, { zoom: 1.5 }).windowZoom();
@@ -1793,7 +1793,7 @@ describe('answers of the mock client for the settings, voice, model, transcript 
     const disconnectedReaper = await createMockApi({}, { daw: { daw: 'REAPER', connected: false } }).dawCapabilities();
     expectMatches(dawCapabilitiesSchema, disconnectedReaper, 'mock daw capabilities (REAPER, not connected)');
     expect(disconnectedReaper).toEqual(readGolden('daw-capabilities-reaper.json'));
-    // REAPER's Describer: punch is native and not destructive whether REAPER answers or not (ADR 0860).
+    // REAPER's Describer: punch is native and not destructive whether REAPER answers or not.
     expect(disconnectedReaper.capabilities.punch).toMatchObject({ mode: 'native' });
     expect(disconnectedReaper.capabilities.punch?.destructive).toBeUndefined();
     expect((await api.dawCapabilities()).capabilities.punch).toMatchObject({ mode: 'native' });
@@ -1828,7 +1828,7 @@ describe('answers of the mock client for the settings, voice, model, transcript 
     expect(turnedOff.capabilities.punch).toMatchObject({ available: false, reason: 'turned_off' });
   });
 
-  // SN-D2 (ADR 0810): the call result and the capability depth fields.
+  // SN-D2: the call result and the capability depth fields.
   it('dawResult parses the host goldens and rejects an undo count outside 0..12', () => {
     expectMatches(dawResultSchema, readGolden('daw-result-ok.json'), 'daw-result-ok.json');
     expectMatches(dawResultSchema, readGolden('daw-result-refused-stale.json'), 'daw-result-refused-stale.json');
@@ -1839,7 +1839,7 @@ describe('answers of the mock client for the settings, voice, model, transcript 
     expect(dawResultSchema.safeParse({ ...ok, undoSteps: 1.5 }).success).toBe(false);
   });
 
-  // SN-D42 (ADR 0861): one refusal code, `stale`, beside the sentence.
+  // SN-D42: one refusal code, `stale`, beside the sentence.
   it('schema-accepts-the-code-and-nothing-else: dawResult takes code "stale" and rejects any other code', () => {
     const golden = dawResultSchema.parse(readGolden('daw-result-refused-stale.json'));
     expect(golden.code).toBe('stale');
@@ -1890,7 +1890,7 @@ describe('answers of the mock client for the settings, voice, model, transcript 
     expect(state.pronunciation.cmu?.asset).toBeUndefined();
   });
 
-  it('masteringProviders and masteringChooseProvider match the host goldens (mastering port, ADR 0306)', async () => {
+  it('masteringProviders and masteringChooseProvider match the host goldens (mastering port)', async () => {
     const none = await createMockApi({}, { mastering: { hasProject: false } }).masteringProviders();
     expectMatches(masteringProvidersSchema, none, 'mock mastering chains (no project)');
     expect(none).toEqual(readGolden('mastering-providers-no-project.json'));
@@ -1903,7 +1903,7 @@ describe('answers of the mock client for the settings, voice, model, transcript 
     const daw = await api.masteringChooseProvider('daw');
     expectMatches(masteringProvidersSchema, daw, 'mock mastering chains (daw chosen)');
     expect(daw).toEqual(readGolden('mastering-providers-daw-chosen.json'));
-    // The Audacity row is Experimental too (ADR 0460): it can be chosen the same way.
+    // The Audacity row is Experimental too: it can be chosen the same way.
     const audacity = await api.masteringChooseProvider('audacity');
     expectMatches(masteringProvidersSchema, audacity, 'mock mastering chains (audacity chosen)');
     expect(audacity).toEqual(readGolden('mastering-providers-audacity-chosen.json'));
@@ -1948,7 +1948,7 @@ describe('answers of the mock client for the settings, voice, model, transcript 
     expect(() => parseWire(dawChoiceSchema, { ...golden, path: 'C:/x.rpp' }, ctx('daw choice'))).toThrow();
   });
 
-  it('the built-in recorder matches the host goldens and records a take (ADR 0455)', async () => {
+  it('the built-in recorder matches the host goldens and records a take', async () => {
     const none = await createMockApi({}, { recording: { hasProject: false } }).recorderState();
     expectMatches(recorderStateSchema, none, 'mock recorder (no project)');
     expect(none).toEqual(readGolden('recorder-state-no-project.json'));
@@ -2699,7 +2699,7 @@ describe('answers of the mock client for the settings, voice, model, transcript 
     expect(unknown).toMatchObject({ state: 'never', paragraphs: [], tokens: [] });
   });
 
-  it('the heard words (ADR 0855): a score is null with a reason, only an extra run is added, and the mock carries both', async () => {
+  it('the heard words: a score is null with a reason, only an extra run is added, and the mock carries both', async () => {
     const golden = JSON.parse(readFileSync(`${GOLDEN_DIR}workspace-alignment-added-words.json`, 'utf8'));
     const parsed = workspaceAlignmentResultSchema.parse(golden);
     expect(parsed.engine).toEqual({ id: 'whisper:small', name: 'Whisper small' });
@@ -3835,7 +3835,7 @@ describe('answers of the mock client for the settings, voice, model, transcript 
     expect(productionPlanSchema.safeParse({ deadline: null, contractedAmount: null, milestones: [], rateBasis: 'fast' }).success).toBe(false);
   });
 
-  it('the pickup list (ADR 0840): the host goldens parse, and the mock answers the same shape with the same refusals', async () => {
+  it('the pickup list: the host goldens parse, and the mock answers the same shape with the same refusals', async () => {
     for (const name of ['pickups-list-empty.json', 'pickups-list-merged.json']) expectMatches(pickupListSchema, readGolden(name), `host ${name}`);
     const merged = readGolden('pickups-list-merged.json') as { pickups: Array<Record<string, unknown>>; leftOut: unknown[] };
     expect(new Set(merged.pickups.map((pickup) => pickup.source))).toEqual(new Set(['speech', 'proof', 'audio', 'you']));
@@ -3873,7 +3873,7 @@ describe('answers of the mock client for the settings, voice, model, transcript 
   });
 
   it('every method of the API is either checked in this file, void, or not a request', () => {
-    // A new binding fails this until it has a schema and a row above (ADR 0069). The list of what is checked is kept by hand.
+    // A new binding fails this until it has a schema and a row above. The list of what is checked is kept by hand.
     const CHECKED = [
       'dawChoice',
       'dawChoose',
@@ -4337,7 +4337,7 @@ describe('one deliberately broken sample per boundary fails with a specific mess
   });
 });
 
-// The sidecar's credits script (chapter_script.text_script, ADR 0150) and the reader's `creditsRows` split the same text the
+// The sidecar's credits script (chapter_script.text_script) and the reader's `creditsRows` split the same text the
 // same way: every span of the golden lands on a line of the text the Python test built it from, with every word tracked.
 describe('the credits script the sidecar sends', () => {
   it('lays over the reader rows of the same text with no drift', () => {
@@ -4423,7 +4423,7 @@ describe('the production tracking mock', () => {
   });
 });
 
-// The pronunciation sources and candidate (SNB-2b, ADR 0792): the mock answers through the same schemas as the host's goldens.
+// The pronunciation sources and candidate (SNB-2b): the mock answers through the same schemas as the host's goldens.
 describe('the pronunciation sources bindings', () => {
   it('the mock lists the sources and answers a candidate from fixture data, offline, through the schemas', async () => {
     const api = createMockApi();
@@ -4478,7 +4478,7 @@ describe('the pronunciation sources bindings', () => {
   });
 });
 
-// The evidence of a passage's takes (SNE-5a, ADR 0140): the host's goldens parse, a figure is a value or a reason and never
+// The evidence of a passage's takes (SNE-5a): the host's goldens parse, a figure is a value or a reason and never
 // both, the answer names no file or GUID field, and the mock answers through the same schema.
 describe('the take evidence binding', () => {
   it('the schema parses the host goldens and refuses a figure that is both or neither, and a field the host never sends', () => {
@@ -4557,7 +4557,7 @@ describe('the take evidence binding', () => {
   });
 });
 
-// The narrator's bookmarks (ADR 0820): the mock answers through the same schemas as the host's goldens, and the schemas refuse
+// The narrator's bookmarks: the mock answers through the same schemas as the host's goldens, and the schemas refuse
 // what the host never sends.
 describe('the bookmarks bindings', () => {
   it('the mock answers BookmarksList, Add, Update and Remove through their schemas, in reading order', async () => {
@@ -4695,7 +4695,7 @@ describe('the passage map bindings', () => {
   });
 });
 
-// The narrator's accepted words (ADR 0856): the mock answers through the same schemas as the host's goldens, refuses what the
+// The narrator's accepted words: the mock answers through the same schemas as the host's goldens, refuses what the
 // host refuses, and the schemas refuse what the host never sends.
 describe('the accepted words bindings', () => {
   const firstWords = async () => {
@@ -4755,7 +4755,7 @@ describe('the accepted words bindings', () => {
   });
 });
 
-// The narrator's cuts (ADR 0856): the mock answers through the same schemas as the host's goldens, refuses what the host
+// The narrator's cuts: the mock answers through the same schemas as the host's goldens, refuses what the host
 // refuses, and the schemas refuse what the host never sends.
 describe('the cuts bindings', () => {
   const firstLine = async () => {
@@ -5236,7 +5236,7 @@ describe('the extraction bindings', () => {
   });
 });
 
-// The narrator's word effects (ADR 0856): the mock answers through the same schemas as the host's goldens, refuses what the
+// The narrator's word effects: the mock answers through the same schemas as the host's goldens, refuses what the
 // host refuses, and the schemas refuse what the host never sends, a chain named by a path among them.
 describe('the word effects bindings', () => {
   const firstLine = async () => {
@@ -5331,7 +5331,7 @@ describe('the word effects bindings', () => {
   });
 });
 
-// The stack record and the retry choice (ADR 0858): the mock answers through the same schemas as the host's goldens, refuses
+// The stack record and the retry choice: the mock answers through the same schemas as the host's goldens, refuses
 // what the host refuses, and the schemas refuse what the host never sends, a path for an id among them.
 describe('the stack record and retry mode bindings', () => {
   const stack = (): EditStackRecordRequest => ({

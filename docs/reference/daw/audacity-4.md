@@ -16,8 +16,8 @@ As of 2026-09-28 (the date of the research) Audacity 4 has no scripting interfac
 | Which capabilities work on Audacity 4.0? | None. The matrix shows "Not reachable" in every row of its Audacity 4.x column |
 | Does `macro_render` work? | No: its scripting pipe and Macro Manager are both on the not-available list |
 | What does the app do on an Audacity 4 install? | The adapter reports not reachable; the narrator is told that Audacity 4.0 has no scripting pipe |
-| What would change this? | A published 4.x scripting interface. It would be a new `Transport` for the same client, and possibly a new command dialect ([ADR 0355](../../adr/0355-audacity-is-driven-over-its-scripting-pipe-built-from-the-published-spec-and-verified-by-the-owners-pass.md)) |
-| Can the launcher still start Audacity? | The Start Menu entry starts the app with `--daw Audacity`; nothing Audacity loads can start a program ([ADR 0145](../../adr/0145-the-audacity-launcher-is-an-installer-start-menu-entry-and-a-picker-switch-keeps-an-audacity-launch.md), [launcher feasibility](../../research/audacity-launcher-feasibility.md)) |
+| What would change this? | A published 4.x scripting interface. It would be a new `Transport` for the same client, and possibly a new command dialect ([ADR 0004](../../adr/0004-every-daw-is-reached-through-one-port.md)) |
+| Can the launcher still start Audacity? | The Start Menu entry starts the app with `--daw Audacity`; nothing Audacity loads can start a program ([Audacity boundary](../../architecture/daw-integration.md#audacity-boundary), [launcher feasibility](../../research/audacity-launcher-feasibility.md)) |
 
 ## Not verified
 

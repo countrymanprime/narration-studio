@@ -1,4 +1,4 @@
-// This file holds the render-sourced signal and evidence (ADR 0550). It
+// This file holds the render-sourced signal and evidence. It
 // mirrors signals.go's own item-path shape - a pure decision function over
 // already-gathered input, no decode, no store access - but judges the
 // chapter's rendered file instead: proofing.EvaluateRender owns whether the render is still the chapter's own, current association; this

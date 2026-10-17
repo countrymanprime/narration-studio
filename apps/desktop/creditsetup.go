@@ -10,7 +10,7 @@ import (
 	"github.com/countrymanprime/narration-utils/shell/internal/project"
 )
 
-// The credits setup prompt's host half (ADR 0208):
+// The credits setup prompt's host half:
 // whether the project needs its credits set up, what to ask for with what prefilled, "Not now" and "Don't ask", and
 // a save that only fills empty values. It keys on state (a manuscript is imported and the credits the app reads have
 // unresolved tokens), not on an app or manifest version, so the first open, an upgraded project, an import and a

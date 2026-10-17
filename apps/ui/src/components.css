@@ -1,7 +1,7 @@
 /* Component classes. Imported into Tailwind's utilities layer (ahead of the generated
    utilities) so specificity decides conflicts between these rules and utility classes,
    the way it did before Tailwind 4 put components in a layer below all utilities. */
-/* The eyebrow label: SectionLabel's look (ADR 0640), kept for the files a later phase migrates (sectionLabelCopies.test.ts). */
+/* The eyebrow label: SectionLabel's look, kept for the files a later phase migrates (sectionLabelCopies.test.ts). */
 .section-label {
   font-family: 'Barlow Condensed', sans-serif;
   font-weight: 600;

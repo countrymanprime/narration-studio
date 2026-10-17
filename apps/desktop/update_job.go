@@ -23,7 +23,7 @@ const (
 	updatePhaseCancelled   = "cancelled"
 )
 
-// updateJob is one download of one release. Its bytes are the real bytes received (ADR 0015).
+// updateJob is one download of one release. Its bytes are the real bytes received.
 type updateJob struct {
 	mu sync.RWMutex
 	// id is set when the job is made and never changes, so it is read without mu.
@@ -67,7 +67,7 @@ func newUpdateStager() *update.Stager {
 }
 
 // startUpdateDownload starts downloading the release the last check found, when there is one that this program can install. It never
-// starts on its own: the only caller is the narrator's explicit click (ADR 0072).
+// starts on its own: the only caller is the narrator's explicit click.
 func (h *Host) startUpdateDownload() (map[string]any, error) {
 	if !h.updates.Platform.SelfReplace {
 		return nil, update.UserError("This platform does not update itself. Open the release notes to download the update from the release page.")

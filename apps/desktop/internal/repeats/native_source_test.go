@@ -7,7 +7,7 @@ import (
 )
 
 // TestToFindingsAcceptsNativeTakesTheSameAsReaperTakes is the contract test that the
-// same analyzer suite passes on a native take and an equivalent REAPER take (ADR 0485): ToFindings is the shared
+// same analyzer suite passes on a native take and an equivalent REAPER take: ToFindings is the shared
 // adapter every pickup/duplicate_read finding goes through (internal/takereview, "take review inputs"), and it must produce an equally valid finding whether a Member's identity came from a REAPER item/take
 // GUID pair or, for a native take (recording.Take.Source), from a bare source file with no GUIDs at all.
 func TestToFindingsAcceptsNativeTakesTheSameAsReaperTakes(t *testing.T) {
@@ -74,7 +74,7 @@ func TestToFindingsAcceptsNativeTakesTheSameAsReaperTakes(t *testing.T) {
 // 0s - fold to the *same* key despite coming from different take files. Nothing in this codebase constructs a
 // Member with an empty GUID today (internal/takereview.buildManifest only ever reads a REAPER tracks.Project), so
 // this is not yet reachable in production; it is recorded here, deliberately left unfixed, for whoever wires
-// native takes into the take-review scan (ADR 0545 keeps them out of it for now) to settle - a per-member native
+// native takes into the take-review scan (docs/guides/using-the-app/proof.md#the-chapter-view keeps them out of it for now) to settle - a per-member native
 // take id (e.g. the take's own file name, which is stable and never reused) - before an ID-scheme change that would
 // also reshape every *existing* REAPER-sourced take-review finding's id and evidence_version, and orphan its stored review decisions (findings-contract.md:
 // "A decision survives ... a re-run with unchanged evidence"). That blast radius is why the gap is documented

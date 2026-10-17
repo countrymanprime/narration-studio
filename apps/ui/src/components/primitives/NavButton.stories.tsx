@@ -20,7 +20,7 @@ export default meta;
 type Story = StoryObj<typeof meta>;
 
 export const Inactive: Story = {};
-// The current page: accent-strong text on --accent-soft (ADR 0059, ADR 0635), exposed as aria-current="page".
+// The current page: accent-strong text on --accent-soft, exposed as aria-current="page".
 export const Active: Story = { args: { active: true } };
 export const Disabled: Story = { args: { icon: faFileLines, children: 'Manuscript', disabled: true, disabledReason: MANUSCRIPT_REQUIRED_REASON } };
 
@@ -36,7 +36,7 @@ export const IconOnly: Story = {
 };
 
 // The full-width sidebar (>= 1400px in AppShell): icon + label, unavailable pages disabled. The 216 px rail and its 8 px
-// inset, as mock 01 draws it (ADR 0635).
+// inset, as mock 01 draws it.
 export const Sidebar: Story = {
   render: () => (
     <nav className="flex w-54 flex-col gap-[0.1875rem] border-r border-[var(--border)] bg-[var(--surface)] p-2" aria-label="Primary navigation">

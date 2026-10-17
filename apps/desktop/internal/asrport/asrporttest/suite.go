@@ -1,4 +1,4 @@
-// Package asrporttest is the conformance suite every speech engine row must pass (ADR 0301), and a fake engine it runs against.
+// Package asrporttest is the conformance suite every speech engine row must pass, and a fake engine it runs against.
 // The asrport test runs it over every registered row, so a new row cannot skip it:
 //
 //	for _, entry := range asrport.Engines.Entries() {

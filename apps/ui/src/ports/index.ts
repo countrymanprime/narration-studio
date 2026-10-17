@@ -1,4 +1,4 @@
-// The per-domain interfaces `NarrationApi` composes, and the `PortName` to interface map `usePort` reads (ADR 0770: ports are narrower than the facade).
+// The per-domain interfaces `NarrationApi` composes, and the `PortName` to interface map `usePort` reads (docs/architecture/ui-state-and-journal.md#the-store-host-reads-cached: ports are narrower than the facade).
 // A page declares the one port it uses, `usePort('production')`, and sees `ProductionApi` only. This file only re-exports and maps, so it is not a
 // port file for the provider-contract registration test.
 

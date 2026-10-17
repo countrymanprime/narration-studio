@@ -207,7 +207,7 @@ func (s *Service) Notes(chapterID string) []map[string]any {
 }
 
 // ReaderState sends the reader's place: the active chapter and source line and the expanded chapters. A file the old reader
-// wrote may also hold chapter and line bookmarks; they stay in the file and are not sent (SN-C383, ADR 0820 replaced them).
+// wrote may also hold chapter and line bookmarks; they stay in the file and are not sent (SN-C383, docs/reference/data-files.md replaced them).
 func (s *Service) ReaderState() map[string]any {
 	stored := object(s.loadNotes()["readerState"])
 	return map[string]any{"activeChapter": stored["activeChapter"], "activeSourceLine": stored["activeSourceLine"], "expandedChapters": stored["expandedChapters"]}
@@ -221,7 +221,7 @@ func (s *Service) loadNotes() map[string]any {
 		return emptyNotes()
 	}
 	// The notes, reader state and chapter statuses are the narrator's own work: a file that cannot be read is kept aside, the
-	// narrator is told, and a fresh one is started, so the next note never replaces it without a trace (ADR 0069).
+	// narrator is told, and a fresh one is started, so the next note never replaces it without a trace.
 	var raw map[string]any
 	s.persist.Load().ReadJSON(filepath.Join(project, "narration-utils", "manuscript-notes.json"), "notes", persist.NarratorData, func(bytes []byte) error {
 		var decoded map[string]any
@@ -324,7 +324,7 @@ func paragraphPayload(paragraph map[string]any) map[string]any {
 }
 
 // chapterPayload is one chapter as the reader contract sends it. recordedFraction is present only for a chapter the
-// recording coverage measured (recorded, from RecordedFractions): never a guess from the status (ADR 0015).
+// recording coverage measured (recorded, from RecordedFractions): never a guess from the status.
 func chapterPayload(chapter, notes map[string]any, recorded map[string]float64, paragraphs []map[string]any, includeParagraphs bool) map[string]any {
 	status := "not_started"
 	if stored, ok := object(notes["chapterStatus"])[text(chapter, "id")].(string); ok {
@@ -335,7 +335,7 @@ func chapterPayload(chapter, notes map[string]any, recorded map[string]float64, 
 		result["subtitle"] = subtitle
 	}
 	// A chapter reclassified after import (SetChapterKind) says when; one imported as narration and now another kind
-	// was removed from recording and is listed for Restore (ADR 0207).
+	// was removed from recording and is listed for Restore.
 	if changed := text(chapter, "kindChangedAt"); changed != "" {
 		result["kindChangedAt"] = changed
 		if text(chapter, "importedKind") == "narration" && !isNarration(chapter) {

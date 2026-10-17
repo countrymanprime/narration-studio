@@ -97,7 +97,7 @@ function savedLabel(savedAt: string): string {
 
 const LIVE_LABEL = 'in REAPER now';
 
-/** When the track was read (ADR 0349): REAPER's live answer, or the saved project. */
+/** When the track was read: REAPER's live answer, or the saved project. */
 function dawLabel(result: Located): string {
   return result.dawSource === 'live' ? LIVE_LABEL : savedLabel(result.match.savedAt);
 }
@@ -274,7 +274,7 @@ function Actions({ children, buttons }: { children: ReactNode; buttons: ReactNod
           text rather than squeezing the text to a word per line. */}
       <div className="min-w-[min(100%,16rem)] flex-1 space-y-1.5">{children}</div>
       {/* Shrinks to its line (never wider than it) so the buttons wrap inside a narrow column - the companion panel's 380 px
-          (ADR 0401) - instead of running off its edge. */}
+ - instead of running off its edge. */}
       <div className="flex max-w-full min-w-0 flex-wrap items-center gap-2">{buttons}</div>
     </>
   );
@@ -474,9 +474,9 @@ function unreadableText(result: Located): string {
 }
 
 /**
- * The read-aloud dialog's resume prompt (superseding ADR 0112 decisions 5 and 6): a compact one-line
+ * The read-aloud dialog's resume prompt (superseding docs/guides/using-the-app/booth.md#where-you-stopped decisions 5 and 6): a compact one-line
  * notice, or a compact choice with the matched sentence, for where the chapter's recording ends (`TeleprompterLocate`,
- * ADR 0111). It never starts reading by itself: a choice only sets where Start begins.
+ * docs/architecture/manuscript-teleprompter.md#resume-where-reaper-is-and-where-the-prompter-was). It never starts reading by itself: a choice only sets where Start begins.
  *
  * It settles - and stays gone - the moment the narrator makes any choice or a session starts, for as long as this dialog
  * stays open: it does not come back after a session ends, so a finished session's next Start begins at the top with no
@@ -493,8 +493,8 @@ export function ResumePrompt({ chapterId, model, active, onStartWord }: Props) {
   const shown = !settled && !active;
   const preset = useRef(false);
 
-  // REAPER starting to play or record makes the prompt go away (ADR 0353):
-  // the narrator is working in REAPER. The heartbeat's transport push (ADR 0305) says so within a tick, with no request;
+  // REAPER starting to play or record makes the prompt go away:
+  // the narrator is working in REAPER. The heartbeat's transport push says so within a tick, with no request;
   // the host's follow below says so too when that push is not there (an older bridge script). Nothing is chosen, so Start
   // reading keeps whatever it had.
   useEffect(() => {
@@ -547,7 +547,7 @@ export function ResumePrompt({ chapterId, model, active, onStartWord }: Props) {
   };
 
   return (
-    // A compact bordered notice, not a Panel (ADR 0187).
+    // A compact bordered notice, not a Panel.
     <InsetCard role="region" aria-label="Where you stopped" className="flex flex-wrap items-start gap-x-3 gap-y-2 text-sm">
       <PromptBody state={lookup.state} onChoose={choose} onRetry={lookup.retry} onAskForModel={lookup.askForModel} />
       {lookup.prompt && (

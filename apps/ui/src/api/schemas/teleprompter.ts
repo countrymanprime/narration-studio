@@ -28,7 +28,7 @@ import type {
 import { chapterTrackMatchSchema, recordedEndSchema } from './chapterTrackMap';
 import { modelAssetRequiredSchema } from './whisper';
 
-// The live event stream (ADR 0021, ADR 0022): the sidecar prints one JSON object per line and the host relays each unchanged, so
+// The live event stream: the sidecar prints one JSON object per line and the host relays each unchanged, so
 // these schemas are the only place the shape is checked between the Python `live_asr.py` and the reader.
 
 const spanSchema = z.object({
@@ -55,7 +55,7 @@ const teleprompterPositionSchema = z.object({
   skipped: z.tuple([z.number(), z.number()]).nullable(),
 }) satisfies z.ZodType<TeleprompterPosition>;
 
-// A suspected flag (flags.py, ADR 0115): `start`/`end` are script word indices, equal for an extra.
+// A suspected flag (flags.py): `start`/`end` are script word indices, equal for an extra.
 const teleprompterFlagSchema = z
   .object({
     type: z.literal('flag'),
@@ -156,7 +156,7 @@ export const teleprompterLocatedSchema = z.object({
   heardText: z.string(),
 }) satisfies z.ZodType<TeleprompterLocated>;
 
-/** The host's per-chapter reading file (`<project>/narration-utils/teleprompter/<chapter>.reading.json`, ADR 0205). */
+/** The host's per-chapter reading file (`<project>/narration-utils/teleprompter/<chapter>.reading.json`). */
 export const teleprompterReadingSchema = z
   .object({
     version: z.literal(1),
@@ -212,7 +212,7 @@ export const teleprompterLocateResultSchema = z.union([
   }),
 ]) satisfies z.ZodType<TeleprompterLocateResult>;
 
-/** `TeleprompterResumeFollow` and `TeleprompterResumeUnfollow` (`apps/desktop/resumefollow.go`, ADR 0353). */
+/** `TeleprompterResumeFollow` and `TeleprompterResumeUnfollow` (`apps/desktop/resumefollow.go`). */
 export const teleprompterResumeFollowSchema = z
   .object({ following: z.boolean(), reason: z.enum(['unavailable', 'no_track']).optional() })
   .refine((answer) => !(answer.following && answer.reason), {
@@ -231,7 +231,7 @@ export const teleprompterResumeFollowEventSchema = z
 const flagKindSchema = z.enum(['misread', 'extra', 'skipped', 'restart']);
 
 /**
- * A kept flag as `TeleprompterSaveFlags` answers it (`apps/desktop/internal/liveflags`, ADR 0117): a findings record
+ * A kept flag as `TeleprompterSaveFlags` answers it (`apps/desktop/internal/liveflags`): a findings record
  * (docs/architecture/findings-contract.md) in the contract's snake_case. It is always suspected, so its confidence is null.
  */
 const teleprompterFlagFindingSchema = z.object({
@@ -295,7 +295,7 @@ export const teleprompterPunchResultSchema = z
     path: ['cursor'],
   }) satisfies z.ZodType<TeleprompterPunchResult>;
 
-/** `ReadAloudReaperState` (`apps/desktop/readaloudreaper.go`, ADR 0249): REAPER's arms against the chapter's linked track. */
+/** `ReadAloudReaperState` (`apps/desktop/readaloudreaper.go`): REAPER's arms against the chapter's linked track. */
 export const readAloudReaperStateSchema = z.object({
   status: z.enum(['ready', 'not_armed', 'other_armed', 'several_armed', 'no_link', 'recording_elsewhere', 'unavailable']),
   reason: z.enum(['unlinked', 'several_links', 'track_missing', 'standalone', 'not_running', 'experimental_off', 'failed']).optional(),
@@ -346,7 +346,7 @@ export const readAloudRecordingSchema = z.object({
   kept: z.number().int().nonnegative().optional(),
 }) satisfies z.ZodType<ReadAloudRecording>;
 
-/** `TeleprompterReaperInput` (`apps/desktop/teleprompterinput.go`, ADR 0250): a device to preselect only when `matched`. */
+/** `TeleprompterReaperInput` (`apps/desktop/teleprompterinput.go`): a device to preselect only when `matched`. */
 export const teleprompterReaperInputSchema = z
   .object({
     status: z.enum(['matched', 'uncertain', 'no_match', 'unavailable']),

@@ -6,7 +6,7 @@ export type TrackMapping = {
   chapterId: string;
   chapterTitle: string;
   confirmedAt: string;
-  /** Who made the link (ADR 0202): the narrator, or chapter sync once the narrator
+  /** Who made the link: the narrator, or chapter sync once the narrator
    * consented for the project. Both are links. The host always sends it; it is optional here only so hand-built fixtures that
    * predate it still type-check, and a missing one means `manual`. */
   origin?: TrackLinkOrigin;
@@ -29,7 +29,7 @@ export type ChapterTrackMapping = {
   mappings: TrackMapping[];
 };
 
-/** How sure the chapter-to-track matcher is of a chapter's track (ADR 0110): a narrator-confirmed link, a confident name
+/** How sure the chapter-to-track matcher is of a chapter's track: a narrator-confirmed link, a confident name
  * match, a guess the narrator must confirm, a tie, or nothing. */
 export type ChapterTrackMatchStatus = 'confirmed' | 'matched' | 'uncertain' | 'ambiguous' | 'none';
 
@@ -80,7 +80,7 @@ export type ChapterTrackMatch = {
   recordedEnd: RecordedEnd | null;
 };
 
-/** One chapter a track may hold (the matcher's track-to-chapter direction, ADR 0113). */
+/** One chapter a track may hold (the matcher's track-to-chapter direction). */
 export type ChapterCandidate = {
   chapterId: string;
   chapterTitle: string;
@@ -92,7 +92,7 @@ export type ChapterCandidate = {
 /** Which saved tracks a suggestion was read from: the record-armed ones, else the selected ones, else none. */
 export type ChapterSuggestionBasis = 'armed' | 'selected' | 'none';
 
-/** ChapterSuggestion's answer (ADR 0113): the chapter the narrator is most likely recording, read from the selected .rpp
+/** ChapterSuggestion's answer: the chapter the narrator is most likely recording, read from the selected .rpp
  * as of its last save. `chapter` is set only when `status` is
  * confirmed or matched; otherwise `candidates` are choices to offer, never to preselect. `track` is the one track read,
  * or null when several were (or none). */
@@ -234,7 +234,7 @@ export type ChapterRegionPlan = {
   skipped: ChapterRegionSkip[];
 };
 
-/** ChapterRegionsCreate's answer: the rows sent and REAPER's counts (create_regions, ADR 0235). */
+/** ChapterRegionsCreate's answer: the rows sent and REAPER's counts (create_regions). */
 export type ChapterRegionsCreated = {
   sent: number;
   created: number;

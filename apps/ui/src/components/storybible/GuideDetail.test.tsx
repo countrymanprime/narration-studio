@@ -73,7 +73,7 @@ describe('Story Bible locked entries', () => {
   });
 });
 
-describe('Story Bible read-only entries (ADR-0018)', () => {
+describe('Story Bible read-only entries', () => {
   const unlocked = () => {
     const entity = WIRE_ENTITIES.find((row) => !row.locked);
     if (!entity) throw new Error('fixture must include an unlocked entity');
@@ -319,7 +319,7 @@ describe('Story Bible delete confirmation', () => {
     if (!entity) throw new Error('fixture must include an unlocked entity');
     const user = userEvent.setup();
     renderDetail(entity);
-    // Delete only exists in edit mode (ADR 0087).
+    // Delete only exists in edit mode.
     await user.click(screen.getByRole('button', { name: 'Edit this entry' }));
     const opener = screen.getByRole('button', { name: 'Delete entity' });
     await user.click(opener);

@@ -1,7 +1,7 @@
 // Package gliner is the extraction port's GLiNER source (SN-X71): it starts the Manuscript Guide sidecar's
 // `suggest --source gliner` command through the process supervisor and turns the JSON lines it prints into raw suggestions.
 // GLiNER is an optional download: the source is unavailable ("GLiNER is not downloaded.") until the asset registry says the
-// tool is installed and verified, and the sidecar is given the install folder and reads nothing else (ADR 0848).
+// tool is installed and verified, and the sidecar is given the install folder and reads nothing else.
 //
 // The sidecar's output is checked as untrusted, as the rules source checks its own: the whole output, each line and each
 // field have a byte cap; a line must have exactly the fields of the format, the source gliner, an entry payload with no

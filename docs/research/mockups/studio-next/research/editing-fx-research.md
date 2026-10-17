@@ -11,8 +11,8 @@ Tags: **[V]** verified from a source I read this session (named inline). **[K]**
 Everything else is from web-search snippets. Those are labelled "[V, snippet]" and are weaker than a full read. Vendor UI behaviour for Logic, Pro Tools, Studio One, FL, Hindenburg, Waves and Slate is mostly [K].
 
 **Two findings to read first**
-1. **The owner's new request reverses a recorded decision.** ADR 0234 (`/home/user/narration-utils/docs/adr/0234-fx-chains-go-on-tracks-and-a-passage-of-a-take-gets-one-plug-in-at-a-time.md`) (repo, accepted 2026-09-25) says: *chains go only on tracks and the master track; takes and items get single plug-ins, one at a time, never a chain.* The owner now wants to see FX on master, track and take items and to apply saved chains. Applying a chain to a take is not allowed today. This needs an explicit owner ruling and a new ADR (see risks, #1).
-2. **The bridge already covers more than the Studio mock assumes.** `list_fx_chains`, `apply_fx_chain` (track or `master`), `list_fx`, `add_take_fx`, `set_active_take`, `pick_retake_lane` and `master_chain_read` exist, all experimental per ADR 0230 [V, repo]. The big gap is READ: nothing reports the FX on a track, on takes, or input FX, with enabled/offline state, apart from `master_chain_read`, which prints names plus enabled for every track and the master.
+1. **The owner's new request reverses a recorded decision.** `docs/architecture/reaper-bridge.md#the-workspaces-take-and-fx-actions-narration_workspacelua` (`/home/user/narration-utils/docs/architecture/reaper-bridge.md#the-workspaces-take-and-fx-actions-narration_workspacelua`) (repo, accepted 2026-09-25) says: *chains go only on tracks and the master track; takes and items get single plug-ins, one at a time, never a chain.* The owner now wants to see FX on master, track and take items and to apply saved chains. Applying a chain to a take is not allowed today. This needs an explicit owner ruling and a new ADR (see risks, #1).
+2. **The bridge already covers more than the Studio mock assumes.** `list_fx_chains`, `apply_fx_chain` (track or `master`), `list_fx`, `add_take_fx`, `set_active_take`, `pick_retake_lane` and `master_chain_read` exist, all experimental per `docs/architecture/reaper-bridge.md` [V, repo]. The big gap is READ: nothing reports the FX on a track, on takes, or input FX, with enabled/offline state, apart from `master_chain_read`, which prints names plus enabled for every track and the master.
 
 ---
 
@@ -52,14 +52,14 @@ Everything else is from web-search snippets. Those are labelled "[V, snippet]" a
 ### A3. Write-side
 
 - **Add a single FX:** `TrackFX_AddByName(track, fxname, recFX, instantiate)` and `TakeFX_AddByName(take, fxname, instantiate)`. Negative `instantiate` always creates a new instance, 0 queries, positive adds only if absent. Returns -1 on failure [V].
-- **Add a saved chain by file:** pass the full `.RfxChain` path as `fxname`. The API text for **TakeFX_AddByName** says verbatim "This allows also adding .FXChain-files. Just provide the full path+filename" [V]. So the API documents chain files on takes as well as tracks. The **repo's EP0 spike deliberately did not test the take case** because ADR 0234 forbade it, and the track/master case (row A8) is the first evidence for the path load [V, repo `docs/research/edit-and-proof-spike-ep0.md`]. Whether a multi-FX chain returns the first new index, and how a missing plug-in inside a chain is reported, is **unknown** until a real run [V, repo doc says so].
+- **Add a saved chain by file:** pass the full `.RfxChain` path as `fxname`. The API text for **TakeFX_AddByName** says verbatim "This allows also adding .FXChain-files. Just provide the full path+filename" [V]. So the API documents chain files on takes as well as tracks. The **repo's EP0 spike deliberately did not test the take case** because `docs/architecture/reaper-bridge.md#the-workspaces-take-and-fx-actions-narration_workspacelua` forbade it, and the track/master case (row A8) is the first evidence for the path load [V, repo `docs/research/edit-and-proof-spike-ep0.md`]. Whether a multi-FX chain returns the first new index, and how a missing plug-in inside a chain is reported, is **unknown** until a real run [V, repo doc says so].
 - **Reorder / copy / move:** `TrackFX_CopyToTrack` (src=dest to reorder), `TakeFX_CopyToTake`, `TrackFX_CopyToTake`, `TakeFX_CopyToTrack` [V].
 - **Bypass / offline:** `*_SetEnabled`, `*_SetOffline` [V].
 - **Presets:** `TrackFX_SetPreset`, `TrackFX_SetPresetByIndex`, `TrackFX_NavigatePresets` [V names]. Preset names are per plug-in.
 - **Save a chain:** no function for it in the API list I read [V by absence]. Options: (a) chunk route: `GetTrackStateChunk`/`SetTrackStateChunk` with `<FXCHAIN>` text, which the repo's spike used to produce chain text from REAPER's own output [V, repo]; (b) let the user press "Save FX chain" in REAPER. Chunk edits can drop unknown fields and reset undo state [V, repo research doc]; prefer API calls.
-- **Undo:** wrap each Apply in `Undo_BeginBlock2`/`Undo_EndBlock2`; the repo already does this with labels like "Narration Utils: apply FX chain <name> to <track>" [V, repo ADR 0234]. `PreventUIRefresh` for bulk edits [K].
+- **Undo:** wrap each Apply in `Undo_BeginBlock2`/`Undo_EndBlock2`; the repo already does this with labels like "Narration Utils: apply FX chain <name> to <track>" [V, repo `docs/architecture/reaper-bridge.md#the-workspaces-take-and-fx-actions-narration_workspacelua`]. `PreventUIRefresh` for bulk edits [K].
 - **Track templates (.RTrackTemplate):** `Main_openProject("….RTrackTemplate")` or `InsertTrackAtIndex` + `SetTrackStateChunk` [V, repo `reaper-automation-surface.md`]. A template carries FX *and* routing, so it is the wrong unit for "just the voice FX". Prefer `.RfxChain`.
-- **Render with FX / apply FX to items:** action 40209 "apply track/take FX to items" [V, repo]; repo's `render_with_fx` exists (ADR 0435).
+- **Render with FX / apply FX to items:** action 40209 "apply track/take FX to items" [V, repo]; repo's `render_with_fx` exists (`docs/architecture/reaper-bridge.md`).
 
 ### A4. Gotchas
 
@@ -86,7 +86,7 @@ Read from `/home/user/narration-utils/integrations/reaper` [V]:
 | Partial | `master_chain_read` | events `MASTER_CHAIN_FX(guid, trackName, fxName, enabled)` for every track then master; no take FX, no input FX, no offline, no preset, no FX GUID, no latency, no containers |
 | Spike evidence | `spike_ep0_workspace.lua` A8 | track+master chain load, undo points, reject `../reaper.ini` |
 
-**To add** (each needs a harness test first per CLAUDE.md and ADR 0066, plus a Zod schema + golden fixture + `wireContracts.test.ts` row per the wire-contract rule; each is a new REAPER event in `wire.go`):
+**To add** (each needs a harness test first per CLAUDE.md and ADR 0004, plus a Zod schema + golden fixture + `wireContracts.test.ts` row per the wire-contract rule; each is a new REAPER event in `wire.go`):
 
 | New command | Purpose | Notes |
 |---|---|---|
@@ -94,7 +94,7 @@ Read from `/home/user/narration-utils/integrations/reaper` [V]:
 | `fx_read_takes(passage)` | For each candidate take (stacked takes and fixed-lane items): {itemGuid, takeGuid, isActive, lane, plays, fxCount, fx names, bypass} | Feeds take picker with FX badges |
 | `fx_set_enabled / fx_set_offline / fx_remove / fx_move` | Bypass, offline, delete, reorder by FX GUID | One undo block each; refuse while recording |
 | `fx_set_param` (later) | Macro knobs | `TrackFX_SetParamNormalized`; envelopes need care |
-| `apply_take_fx_chain` (**needs owner ruling**) | `TakeFX_AddByName(take, chainPath, -1)` | API documents it [V]; unverified in practice; conflicts with ADR 0234 |
+| `apply_take_fx_chain` (**needs owner ruling**) | `TakeFX_AddByName(take, chainPath, -1)` | API documents it [V]; unverified in practice; conflicts with `docs/architecture/reaper-bridge.md#the-workspaces-take-and-fx-actions-narration_workspacelua` |
 | `fx_installed_info` | Add vendor/format/path to `list_fx` using `ident` | `ident` is path+filename [V] so format is derivable from extension [A] |
 | `fx_chain_save` (later) | Save selected FX as `.RfxChain` | No API function [V by absence]; chunk route or ask user to save in REAPER |
 
@@ -135,7 +135,7 @@ Read from `/home/user/narration-utils/integrations/reaper` [V]:
 
 - **v1: no mapping.** The unit is "a saved REAPER chain" (opaque file the app applies by name). It works only in REAPER and only if its plug-ins are installed [A].
 - **Later:** an app-level portable chain = ordered list of {plug-in identity (format + vendor + name + VST3 class ID), state blob (`vst_chunk`/`clap_chunk`), enabled}. Identity matches across DAWs more reliably than state. State blobs are plug-in-specific and not guaranteed to load across versions [K]. Compatibility states: *supported* (all identities installed and recognised by the target DAW), *partial* (some missing, or format differs, e.g. only VST2 present), *unsupported* (target DAW has no bridge), *missing plug-in* (named but not installed) [A].
-- Audacity 4 supports LV2, VST3, AU and integrates MuseHub [V snippet <https://www.musehub.com/de-de/app/audacity>], so a portable chain model eventually has a second target. The repo says Audacity launches open no REAPER bridge (ADR 0144/0660) [V, repo names].
+- Audacity 4 supports LV2, VST3, AU and integrates MuseHub [V snippet <https://www.musehub.com/de-de/app/audacity>], so a portable chain model eventually has a second target. The repo says Audacity launches open no REAPER bridge (`docs/architecture/daw-integration.md#audacity-boundary`) [V, repo names].
 
 ---
 
@@ -250,7 +250,7 @@ Tabs: **Saved chains** | **Plug-ins** | **Presets** | **Favourites** | **Recent*
 - **Saved chains**: `list_fx_chains` (folders as groups). Each shows plug-in names inside, if we can read the `.RfxChain` text. Reading the file text is a plain file read, not a REAPER call [A]. Compat per chain = all inner plug-ins exist in `list_fx` (supported) or not (missing, with names).
 - **Plug-ins**: `list_fx`/`EnumInstalledFX`, filtered by format, vendor, category; search box; "Rescan in REAPER" button points to REAPER Preferences (we cannot trigger a rescan through the documented API [V by absence]).
 - **Presets**: v1 hidden. Later: `TrackFX_GetPresetIndex`/`SetPresetByIndex`.
-- **Favourites/Recent**: ours, stored in project/app settings (ADR 0234 says favourites are a Settings row [V repo]).
+- **Favourites/Recent**: ours, stored in project/app settings (`docs/architecture/reaper-bridge.md#the-workspaces-take-and-fx-actions-narration_workspacelua` says favourites are a Settings row [V repo]).
 - Row actions: *Add to master | Add to track | Add to this take* with the disabled reasons spelled out; *Open in REAPER*.
 
 ### D5. Apply / create flow
@@ -261,16 +261,16 @@ Tabs: **Saved chains** | **Plug-ins** | **Presets** | **Favourites** | **Recent*
 4. Rules by level (v1 proposal, **owner to confirm**):
    - Master: add/remove allowed but behind a confirm ("changes every chapter"); default read-only [A].
    - Track: chain files and single plug-ins allowed.
-   - Take: single plug-ins always; **chain files only if owner lifts ADR 0234**.
+   - Take: single plug-ins always; **chain files only if owner lifts `docs/architecture/reaper-bridge.md#the-workspaces-take-and-fx-actions-narration_workspacelua`**.
 5. "Create new FX" in v1 = add a plug-in (any compat=supported), then adjust in REAPER's own window; "Save as chain" = deferred (no API [V by absence]).
 
 ### D6. Safeguards
 
 - Coverage cap check per apply ("takes coverage from 4.2% to 11.8%") from the earlier doc [V, earlier doc as proposal]. Track/master = 100%/100% and that row is amber by default.
-- Never run plug-ins we do not list; reject paths ([V repo ADR 0234] already refuses non-FXChains paths and `../reaper.ini`).
+- Never run plug-ins we do not list; reject paths ([V repo `docs/architecture/reaper-bridge.md#the-workspaces-take-and-fx-actions-narration_workspacelua`] already refuses non-FXChains paths and `../reaper.ini`).
 - Refuse while REAPER records [V repo].
 - Show bypass/offline separately; a bypassed FX does not count toward coverage but stays in the list.
-- All writes through undoable blocks; Undo happens in REAPER, the app re-reads after (ADR 0210 says sync watches saved .rpp and the edit counter and sends REAPER nothing [V repo name]).
+- All writes through undoable blocks; Undo happens in REAPER, the app re-reads after (`apps/desktop/chaptersync_watch.go` says sync watches saved .rpp and the edit counter and sends REAPER nothing [V repo name]).
 
 ### D7. Empty / error states
 
@@ -278,8 +278,8 @@ Tabs: **Saved chains** | **Plug-ins** | **Presets** | **Favourites** | **Recent*
 - **Built-in recorder (no DAW):** hide Master/Track levels; show "FX are applied in REAPER. Your recording keeps the original." Offer the app's own presets (pitch/de-ess/etc., `source: clip`) with the existing `reaper-off` path. [A, current mock behaviour]
 - **Chain refers to missing plug-in:** `missing` pill, lists which; Apply disabled for that chain unless user chooses *Apply what is available* [A].
 - **Nothing on this level:** "No FX on this take. Take 3 inherits the track chain (3 FX) and the master chain (2 FX)." with link buttons.
-- **Experimental switch off (ADR 0230):** "FX commands need the experimental switch" [V repo ADR 0230 title].
-- **Audacity:** bridge absent [V repo ADR 0144]; show "Audacity does not expose FX through the bridge" [A].
+- **Experimental switch off (`docs/architecture/reaper-bridge.md`):** "FX commands need the experimental switch" [V repo `docs/architecture/reaper-bridge.md` title].
+- **Audacity:** bridge absent [V repo `docs/architecture/daw-integration.md#audacity-boundary`]; show "Audacity does not expose FX through the bridge" [A].
 
 ### D8. Wireframes (plain text)
 
@@ -346,7 +346,7 @@ Tabs: **Saved chains** | **Plug-ins** | **Presets** | **Favourites** | **Recent*
 
 ## E. Risks and open questions for the owner (ranked)
 
-1. **ADR 0234 conflict.** Owner said "FX chain... on the specific take items". ADR says chains never go on takes. Decide: (a) keep it (take = single plug-ins only), or (b) allow `.RfxChain` on a take. The API documents (b) [V], but the repo has no evidence of how REAPER behaves with it (e.g. missing plug-in inside; what is returned). Needs a spike row (A8c).
+1. **`docs/architecture/reaper-bridge.md#the-workspaces-take-and-fx-actions-narration_workspacelua` conflict.** Owner said "FX chain... on the specific take items". ADR says chains never go on takes. Decide: (a) keep it (take = single plug-ins only), or (b) allow `.RfxChain` on a take. The API documents (b) [V], but the repo has no evidence of how REAPER behaves with it (e.g. missing plug-in inside; what is returned). Needs a spike row (A8c).
 2. **Is master/track write allowed from this page?** Changing master changes every chapter and the ACX mastering (Master & QC page). Default proposal: master is read-only here, editable only from Master & QC.
 3. **Take FX vs "which take plays".** If the narrator picks a different take, the take FX change. Is that the wanted behaviour, or should the chosen FX follow the passage? (Copying FX to the new take is possible via `TakeFX_CopyToTake` [V name].)
 4. **Source of truth.** The page will read FX from REAPER every time. If REAPER is off, do we show a last snapshot or nothing? (Proposed: snapshot marked stale.)
@@ -364,7 +364,7 @@ Tabs: **Saved chains** | **Plug-ins** | **Presets** | **Favourites** | **Recent*
 - Splitting an item with take FX: behaviour unverified in the repo (spike lists it as a question) [V]; the apply flow for "section" scope depends on it.
 - Heavy reads on projects with many tracks: page and cap (existing 500 FX cap in `master_chain_read`) [V].
 - Plug-in names are not unique across formats (VST2 vs VST3 of the same plug-in); use `fx_ident` (path) plus `fx_type` as identity, not display name [V fields exist; uniqueness is A].
-- Any new REAPER command ships with a harness test first, golden fixture, Zod schema, `wire.go` table row, threat-model re-check (row 5h for FX chain/plug-in code running in REAPER) [V repo CLAUDE.md and ADR 0234].
+- Any new REAPER command ships with a harness test first, golden fixture, Zod schema, `wire.go` table row, threat-model re-check (row 5h for FX chain/plug-in code running in REAPER) [V repo CLAUDE.md and `docs/architecture/reaper-bridge.md#the-workspaces-take-and-fx-actions-narration_workspacelua`].
 - UI PRs need before/after screenshots against the benchmark mock (CLAUDE.md rule).
 
 ---

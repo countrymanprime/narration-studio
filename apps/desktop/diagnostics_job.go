@@ -14,8 +14,8 @@ import (
 )
 
 // The Diagnostics view's job. It runs the windowed analyzers
-// (measure.DiagnoseFile, ADR 0158) over files the narrator chose in the measurement picker this session (the same
-// allowlist as MeasureAnalyze, ADR 0156), one after another, with progress from the audio bytes really read (ADR 0015)
+// (measure.DiagnoseFile) over files the narrator chose in the measurement picker this session (the same
+// allowlist as MeasureAnalyze), one after another, with progress from the audio bytes really read
 // and a cancel that stops mid-file. Each file answers a summary and its findings, every one with the thresholds that
 // raised it and whether the audio is a raw recording or a processed render. It is read-only: the files are opened
 // read-only, nothing is saved (so every finding is unreviewed), and nothing runs or plays in REAPER.
@@ -31,7 +31,7 @@ const (
 
 // DiagnosticsFileResult is one file of a check. Summary and Findings are set once it is checked (Findings is empty, not
 // null, when nothing crossed a threshold); Error says why a failed file could not be checked. CleanupFindings are the
-// silence cleanup analyzer's own candidates (measure.Diagnostics.CleanupFindings, ADR 0238 decision 3): apart from
+// silence cleanup analyzer's own candidates (measure.Diagnostics.CleanupFindings, apps/desktop/internal/measure/cleanup.go decision 3): apart from
 // Findings, so the Diagnostics tab's list is unchanged and a caller lists them only where the narrator asked for
 // cleanup. Read-only, like every other finding here: nothing is applied.
 type DiagnosticsFileResult struct {
@@ -66,7 +66,7 @@ type DiagnosticsJob struct {
 
 type diagnoseFileFunc func(ctx context.Context, path string, in measure.DiagnosticInput) (measure.Diagnostics, error)
 
-// diagnosticThresholds are the thresholds a check uses: ADR 0158's starting values. The narrator's settings do not change
+// diagnosticThresholds are the thresholds a check uses: docs/architecture/codebase-map.md's starting values. The narrator's settings do not change
 // them; only the silence cleanup thresholds are settable (cleanup_settings.go).
 func diagnosticThresholds() measure.DiagnosticOptions {
 	return measure.DefaultDiagnosticOptions()
@@ -226,7 +226,7 @@ func parseSourceKind(value string) (measure.SourceKind, error) {
 }
 
 // startDiagnostics checks the picked files in the background, one at a time; only one check runs at once. It refuses
-// what MeasureAnalyze refuses (ADR 0156) and a source kind that is not raw_recording or processed_render.
+// what MeasureAnalyze refuses and a source kind that is not raw_recording or processed_render.
 func (h *Host) startDiagnostics(requested []string, sourceKind string) (DiagnosticsJob, error) {
 	kind, err := parseSourceKind(sourceKind)
 	if err != nil {
@@ -272,7 +272,7 @@ func (h *Host) startDiagnostics(requested []string, sourceKind string) (Diagnost
 	return job.snapshot(), nil
 }
 
-// runDiagnostics checks each file in turn, then records how the check ended and says so (ADR 0076). A panic in the
+// runDiagnostics checks each file in turn, then records how the check ended and says so. A panic in the
 // analyzers ends the job as an error instead of taking the app down.
 func (h *Host) runDiagnostics(ctx context.Context, job *diagnosticsJob, paths []string, diagnose diagnoseFileFunc) {
 	defer job.cancel()

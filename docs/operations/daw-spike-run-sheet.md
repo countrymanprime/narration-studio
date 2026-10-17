@@ -162,7 +162,7 @@ Each spike's Lua starts with `local c = dofile(os.getenv('NARRATION_UTILS_SPIKE_
 | Result | What it changes in the PRD |
 | --- | --- |
 | Yes | Roll ships as one command (`roll`, SND-6a). Record the recording mode that worked; the command refuses with that mode named when the project is in another, and never changes preferences. |
-| No | SND-6a is dropped from the Booth and ADR 0246's cursor-only roll stays; the PRD row "Roll as one command (A8)" is reopened. |
+| No | SND-6a is dropped from the Booth and `integrations/reaper/narration_punch.lua`'s cursor-only roll stays; the PRD row "Roll as one command (A8)" is reopened. |
 | Partly | Roll ships only for the recording mode(s) that kept the audio, refusing otherwise; list which modes, and any extra undo points the narrator would see. |
 
 ### 1a-fake: scripted, no device (run first)
@@ -323,12 +323,12 @@ Expected: after words: items at 0 (3 s), 3 (1 s), 4 (the 1 s tail, moved from 5)
 
 **Needs:** REAPER 7.80 on a copy; ReaEQ (it ships with REAPER).
 
-**Expected (hypothesis):** ADR 0234 holds that chains go on tracks and `TrackFX_AddByName` takes a chain's full path (`edit-and-proof-spike-ep0.md`, row A8); this spike tests whether the take-level call accepts the same. It may add nothing.
+**Expected (hypothesis):** `docs/architecture/reaper-bridge.md#the-workspaces-take-and-fx-actions-narration_workspacelua` holds that chains go on tracks and `TrackFX_AddByName` takes a chain's full path (`edit-and-proof-spike-ep0.md`, row A8); this spike tests whether the take-level call accepts the same. It may add nothing.
 
 | Result | What it changes in the PRD |
 | --- | --- |
 | Yes | `apply_fx_range` (SND-6c) loads the saved chain onto the middle piece; record the exact name form that worked and whether the undo is one point. |
-| No | SND-6c keeps ADR 0234's one plug-in at a time on a passage; ADR 0705's chain-on-range part is not superseded. |
+| No | SND-6c keeps `docs/architecture/reaper-bridge.md#the-workspaces-take-and-fx-actions-narration_workspacelua`'s one plug-in at a time on a passage; 's chain-on-range part is not superseded. |
 | Partly | Some name form works but the count or order of FX differs from the chain's: SND-6c applies the chain by splitting it into single `TakeFX_AddByName` calls, or refuses chains with more than one FX. Record the counts. |
 
 Save as `$root\lua\spike_1c_chain.lua`:
@@ -558,8 +558,8 @@ Expected: a label line for the mouse move (REAPER's own wording, for example a m
 
 | Result | What it changes in the PRD |
 | --- | --- |
-| Yes | The Booth anchors words with the position that stayed within one poll interval of the wall clock, at the bounded poll rate; ADR 0246's polled anchor stands. |
-| No | Neither position is steady over the polled bridge: the Booth's resume anchor falls back to the cursor, and ADR 0246's polled anchor is reopened. |
+| Yes | The Booth anchors words with the position that stayed within one poll interval of the wall clock, at the bounded poll rate; `integrations/reaper/narration_punch.lua`'s polled anchor stands. |
+| No | Neither position is steady over the polled bridge: the Booth's resume anchor falls back to the cursor, and `integrations/reaper/narration_punch.lua`'s polled anchor is reopened. |
 | Partly | One of the two is usable: name which, and the Booth uses it with the stated error bound; or the error is bounded only above some buffer size, which goes in the notes. |
 
 Use the kept `cfg-device` folder from 1a-real (set the interface there once). Save as `$root\lua\spike_1f_playpos.lua`:
@@ -618,7 +618,7 @@ Playback is audible for 8 seconds (three tones). Expected: the CSV shows both po
 
 **Question (PRD, verbatim):** Can the scripting pipe clone a time range to a backups track and restore it, and what does two minutes cost?
 
-**Needs:** Audacity 3 with `mod-script-pipe` enabled (Edit > Preferences > Modules > mod-script-pipe > Enabled, then restart Audacity). Audacity 4.0 has no scripting pipe ([ADR 0355](../adr/0355-audacity-is-driven-over-its-scripting-pipe-built-from-the-published-spec-and-verified-by-the-owners-pass.md)); there the spike reports "not reachable", which is the answer for 4.0 and goes in the table. Write the version from Help > About Audacity in the table.
+**Needs:** Audacity 3 with `mod-script-pipe` enabled (Edit > Preferences > Modules > mod-script-pipe > Enabled, then restart Audacity). Audacity 4.0 has no scripting pipe ([ADR 0004](../adr/0004-every-daw-is-reached-through-one-port.md)); there the spike reports "not reachable", which is the answer for 4.0 and goes in the table. Write the version from Help > About Audacity in the table.
 
 **Expected (hypothesis):** copy a time range from the audio track, paste it on a second "Backups" track, damage the original, copy back, and the restored audio hashes equal to the original. The command names below come from the Audacity manual and are not verified here; a `Failed!` reply is a result, so keep the report.
 
@@ -632,87 +632,107 @@ Open Audacity with a new empty project (File > New) and no other project window.
 
 ```python
 """Spike 1g: clone a range to a Backups track over mod-script-pipe, damage the original, restore, compare. Usage: python audacity_backups.py <out folder>"""
+
 import hashlib, json, math, struct, sys, time, wave
 from pathlib import Path
 
-TO, FROM = r'\\.\pipe\ToSrvPipe', r'\\.\pipe\FromSrvPipe'
-out = Path(sys.argv[1]); out.mkdir(parents=True, exist_ok=True)
-tone = out / 'tone-300s.wav'
+TO, FROM = r"\\.\pipe\ToSrvPipe", r"\\.\pipe\FromSrvPipe"
+out = Path(sys.argv[1])
+out.mkdir(parents=True, exist_ok=True)
+tone = out / "tone-300s.wav"
 RATE, SECONDS = 8000, 300
-with wave.open(str(tone), 'wb') as w:
-    w.setnchannels(1); w.setsampwidth(2); w.setframerate(RATE)
-    w.writeframes(b''.join(struct.pack('<h', int(9000 * math.sin(2 * math.pi * 220 * i / RATE))) for i in range(RATE * SECONDS)))
+with wave.open(str(tone), "wb") as w:
+    w.setnchannels(1)
+    w.setsampwidth(2)
+    w.setframerate(RATE)
+    w.writeframes(b"".join(struct.pack("<h", int(9000 * math.sin(2 * math.pi * 220 * i / RATE))) for i in range(RATE * SECONDS)))
 
-report = {'steps': [], 'result': None}
-def note(**kw): report['steps'].append(kw)
+report = {"steps": [], "result": None}
+
+
+def note(**kw):
+    report["steps"].append(kw)
+
+
 def save():
-    (out / 'spike-1g-report.json').write_text(json.dumps(report, indent=2))
+    (out / "spike-1g-report.json").write_text(json.dumps(report, indent=2))
+
 
 try:
-    to = open(TO, 'w'); frm = open(FROM, 'r')   # ToSrvPipe first, then FromSrvPipe
+    to = open(TO, "w")
+    frm = open(FROM, "r")  # ToSrvPipe first, then FromSrvPipe
 except OSError as e:
-    report['result'] = f'not reachable: {e}'; save(); print(report['result']); sys.exit(1)
+    report["result"] = f"not reachable: {e}"
+    save()
+    print(report["result"])
+    sys.exit(1)
+
 
 def send(cmd):
     t0 = time.perf_counter()
-    to.write(cmd + '\r\n\0'); to.flush()
+    to.write(cmd + "\r\n\0")
+    to.flush()
     body = []
     while True:
         line = frm.readline()
-        if line == '': raise RuntimeError('pipe closed during: ' + cmd)
-        line = line.rstrip('\r\n')
-        if line.startswith('BatchCommand finished:'):
-            frm.readline()                      # the empty line after the terminator
-            ok = line.endswith('OK')
+        if line == "":
+            raise RuntimeError("pipe closed during: " + cmd)
+        line = line.rstrip("\r\n")
+        if line.startswith("BatchCommand finished:"):
+            frm.readline()  # the empty line after the terminator
+            ok = line.endswith("OK")
             seconds = time.perf_counter() - t0
-            note(cmd=cmd, ok=ok, seconds=round(seconds, 3), reply=' '.join(body)[:300])
-            return ok, '\n'.join(body), seconds
+            note(cmd=cmd, ok=ok, seconds=round(seconds, 3), reply=" ".join(body)[:300])
+            return ok, "\n".join(body), seconds
         body.append(line)
 
+
 def pcm_hash(path):
-    with wave.open(str(path), 'rb') as w:
+    with wave.open(str(path), "rb") as w:
         return hashlib.sha256(w.readframes(w.getnframes())).hexdigest()
+
 
 def export_mix(name):
     path = (out / name).as_posix()
     ok, _, _ = send(f'Export2: Filename="{path}" NumChannels=1')
     return out / name if ok else None
 
+
 try:
-    send('GetInfo: Type=Tracks Format=JSON')
+    send("GetInfo: Type=Tracks Format=JSON")
     send(f'Import2: Filename="{tone.as_posix()}"')
-    before = export_mix('mix-before.wav')
+    before = export_mix("mix-before.wav")
 
     # Clone 30 s to 270 s (two minutes either side of 150 s) to a Backups track.
-    ok, _, clone_s = send('Select: Start=30 End=270 RelativeTo=ProjectStart Track=0 TrackCount=1 Mode=Set')
-    send('Copy:')
-    send('NewMonoTrack:')
-    send('SetTrack: Track=1 Name=Backups')
-    send('Select: Start=30 End=30 RelativeTo=ProjectStart Track=1 TrackCount=1 Mode=Set')
-    ok_paste, _, paste_s = send('Paste:')
-    send('SetTrackAudio: Track=1 Mute=1')       # keep the backup out of the mix
-    send('GetInfo: Type=Tracks Format=JSON')
+    ok, _, clone_s = send("Select: Start=30 End=270 RelativeTo=ProjectStart Track=0 TrackCount=1 Mode=Set")
+    send("Copy:")
+    send("NewMonoTrack:")
+    send("SetTrack: Track=1 Name=Backups")
+    send("Select: Start=30 End=30 RelativeTo=ProjectStart Track=1 TrackCount=1 Mode=Set")
+    ok_paste, _, paste_s = send("Paste:")
+    send("SetTrackAudio: Track=1 Mute=1")  # keep the backup out of the mix
+    send("GetInfo: Type=Tracks Format=JSON")
 
     # Damage 100 s to 140 s of the original, then restore the whole cloned range.
-    send('Select: Start=100 End=140 RelativeTo=ProjectStart Track=0 TrackCount=1 Mode=Set')
-    send('SilenceAudio:')
-    damaged = export_mix('mix-damaged.wav')
-    send('Select: Start=30 End=270 RelativeTo=ProjectStart Track=1 TrackCount=1 Mode=Set')
-    send('Copy:')
-    send('Select: Start=30 End=270 RelativeTo=ProjectStart Track=0 TrackCount=1 Mode=Set')
-    ok_restore, _, restore_s = send('Paste:')
-    restored = export_mix('mix-restored.wav')
+    send("Select: Start=100 End=140 RelativeTo=ProjectStart Track=0 TrackCount=1 Mode=Set")
+    send("SilenceAudio:")
+    damaged = export_mix("mix-damaged.wav")
+    send("Select: Start=30 End=270 RelativeTo=ProjectStart Track=1 TrackCount=1 Mode=Set")
+    send("Copy:")
+    send("Select: Start=30 End=270 RelativeTo=ProjectStart Track=0 TrackCount=1 Mode=Set")
+    ok_restore, _, restore_s = send("Paste:")
+    restored = export_mix("mix-restored.wav")
 
-    h = {k: (pcm_hash(v) if v else None) for k, v in (('before', before), ('damaged', damaged), ('restored', restored))}
-    report['hashes'] = h
-    report['seconds'] = {'clone_select_to_paste': round(clone_s + paste_s, 3), 'restore_paste': round(restore_s, 3)}
-    report['damage_detected'] = bool(h['before'] and h['damaged'] and h['before'] != h['damaged'])
-    report['restore_equals_original'] = bool(h['before'] and h['before'] == h['restored'])
-    report['result'] = 'finished'
+    h = {k: (pcm_hash(v) if v else None) for k, v in (("before", before), ("damaged", damaged), ("restored", restored))}
+    report["hashes"] = h
+    report["seconds"] = {"clone_select_to_paste": round(clone_s + paste_s, 3), "restore_paste": round(restore_s, 3)}
+    report["damage_detected"] = bool(h["before"] and h["damaged"] and h["before"] != h["damaged"])
+    report["restore_equals_original"] = bool(h["before"] and h["before"] == h["restored"])
+    report["result"] = "finished"
 except Exception as e:
-    report['result'] = f'error: {e}'
+    report["result"] = f"error: {e}"
 save()
-print(json.dumps({k: report.get(k) for k in ('result', 'hashes', 'seconds', 'damage_detected', 'restore_equals_original')}, indent=2))
+print(json.dumps({k: report.get(k) for k in ("result", "hashes", "seconds", "damage_detected", "restore_equals_original")}, indent=2))
 ```
 
 ```powershell

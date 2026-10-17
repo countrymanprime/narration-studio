@@ -95,7 +95,7 @@ function resolveMockCreditValues(values: CreditValues, narratorGlobal: string): 
   };
 }
 
-// A JS mirror of apps/desktop/internal/credits.MeasureSample (ADR 0152): the range start..end of the paragraphs in
+// A JS mirror of apps/desktop/internal/credits.MeasureSample: the range start..end of the paragraphs in
 // book order, its lines within each chapter, and its length at 9,300 words per finished hour, refused over 5 minutes.
 const MOCK_WORDS_PER_FINISHED_HOUR = 9300;
 const MOCK_MAX_RETAIL_SAMPLE_SECONDS = 300;
@@ -237,7 +237,7 @@ export function createCreditsMock(
       candidates: detected,
     };
   };
-  // The credits text a teleprompter session reads (ADR 0150): the first template of the kind (ADR 0093), rendered
+  // The credits text a teleprompter session reads: the first template of the kind, rendered
   // as `creditsPreview` renders it, as the host's creditsScript does.
   const mockCreditsText = (kind: 'opening' | 'closing') => {
     const template = creditTemplates.find((item) => item.kind === kind);

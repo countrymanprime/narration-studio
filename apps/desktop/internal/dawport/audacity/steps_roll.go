@@ -18,7 +18,7 @@ const (
 )
 
 // Roll stops the recording, backs up the track's audio from at to its end, and records again from at with Audacity's Punch and
-// Roll, which records over the audio from there on (ADR 0860 point 1: the earlier audio is kept, here in Backups). trackGUID is
+// Roll, which records over the audio from there on (docs/reference/daw/capabilities.md point 1: the earlier audio is kept, here in Backups). trackGUID is
 // the track's name. With no backups it records over without one: the capability is destructive then, and the page has asked
 // first (SN-D64). The recording's undo point is Audacity's, added when it stops, so UndoSteps is 0. Audacity's scripting cannot
 // say who started a recording, so a roll is not refused for one the app did not start; the page offers a roll only while its own

@@ -41,7 +41,7 @@ and exit codes).
 this process has actually registered in ENGINES (batch ASR), e.g.
 {"type": "capabilities", "asr": {"whisper": {"label": "Whisper (faster-whisper)",
 "platforms": [], "modes": ["batch"], "asset": "whisper", "loadable": null}}} -
-registration only, never verified (ADR 0403).
+registration only, never verified.
 --manuscript is still required by argparse (as it is for --coverage and
 --take-divergence too) but unused here; the packaged app's smoke test
 (checkCompareCapabilities) reads this to catch a batch ASR row Go declares
@@ -90,7 +90,7 @@ PAUSE_GAP_SECONDS = 0.6
 EXCERPT_TAIL_BUFFER_SENTENCES = 2
 
 # NUMBER_WORDS, FILLER_WORDS, the homophone canon and merge_number_words live in
-# narration_common.spoken_forms, shared with the teleprompter's live flags (ADR 0105).
+# narration_common.spoken_forms, shared with the teleprompter's live flags.
 
 
 def format_time(seconds):
@@ -219,7 +219,7 @@ def tokenize(text):
     identically for any word, so this is a general rule rather than a
     homophone-list entry. All of that but the custom list is
     narration_common.spoken_forms.canonical_tokens, which the teleprompter's
-    live flags share (ADR 0105)."""
+    live flags share."""
     return [_CUSTOM_CANON.get(t, t) for t in canonical_tokens(text)]
 
 
@@ -425,7 +425,7 @@ def locate_in_segments(concat_time, segments):
 
 
 def transcribe(audio_array, model_size, language, device="cpu", progress_path=None, hotwords=None, return_info=False, model_dir=None):
-    """Transcribes ``audio_array`` with the ASR port's Whisper engine (``asr_batch.FasterWhisperEngine``, ADR 0301).
+    """Transcribes ``audio_array`` with the ASR port's Whisper engine (``asr_batch.FasterWhisperEngine``).
 
     A thin wrapper: it only translates this call's arguments to and from ``BatchRequest``/``BatchResult`` and turns
     ``progress_path``'s file-based reporting and cancellation into the request's ``progress`` callback. The engine itself
@@ -820,7 +820,7 @@ def display_title(title):
 
 
 def chapter_name(chapter):
-    """A chapter's name for logs and headings: "Title — Subtitle" by the app's one rule (ADR 0191)."""
+    """A chapter's name for logs and headings: "Title — Subtitle" by the app's one rule."""
     return chapter_display_name(chapter["title"], chapter.get("subtitle"))
 
 
@@ -837,7 +837,7 @@ def normalized_tokens(s):
     return tokens
 
 
-# --- Chapter label pre-pass (ADR 0175) ---
+# --- Chapter label pre-pass ---
 # The same pass as apps/desktop/internal/chaptermatch/label.go's LabelTokens: a track named "Ch. 6", "Ch6", "06",
 # "Sixth Chapter", "Chapter VI" or "Chapter 6 v2" reads as the chapter label it is before find_chapter_by_track_name
 # compares it, headings alike. tests/fixtures/chapter-track-match/parity-cases.json's labelTokens cases pin the two.
@@ -1915,7 +1915,7 @@ def run(args):
 def _capability_row(descriptor) -> dict:
     """One row of a --capabilities report: a Descriptor's label, platforms and modes, plus its asset kind when it
     has one (AsrDescriptor only). "loadable" is always null: this reports registration only, never whether the row
-    actually loads (ADR 0403) - the same shape live_asr.py's --capabilities uses."""
+    actually loads - the same shape live_asr.py's --capabilities uses."""
     row = {"label": descriptor.label, "platforms": list(descriptor.platforms), "modes": list(descriptor.modes), "loadable": None}
     asset_kind = getattr(descriptor, "asset_kind", "")
     if asset_kind:
@@ -2021,7 +2021,7 @@ def main():
     ap.add_argument(
         "--recheck",
         default=None,
-        help="With --coverage, instead of a full check (the cascade's second pass, ADR 0344): transcribe only the windows named in this JSON "
+        help="With --coverage, instead of a full check (the cascade's second pass): transcribe only the windows named in this JSON "
         "file with --model, one model load for the run, and splice the new words into each affected words file in --words-dir; "
         "writes no --out report",
     )
@@ -2081,7 +2081,7 @@ def main():
 
 def _main_coverage(ap, args):
     """--coverage: check its own arguments, then run core/coverage_mode.py. --recheck (the cascade's
-    second pass, ADR 0344) is a separate, windows-only mode: it takes only --words-dir and --model,
+    second pass) is a separate, windows-only mode: it takes only --words-dir and --model,
     never a manifest, chapter or --out, and is mutually exclusive with --align-only."""
     if args.find_repeats:
         ap.error("--find-repeats cannot be used with --coverage")

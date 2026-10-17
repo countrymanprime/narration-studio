@@ -13,7 +13,7 @@
 
 So Phase 10 as first written, "a saved Audacity macro that launches the app's executable with `--daw Audacity` and the project folder", cannot be built.
 
-**Outcome (owner, 2026-09-23):** alternative 1 below. The launcher is the installer's "Narration Utils for Audacity" Start Menu entry, no Audacity-side artifact ships, and the integration targets Audacity 3.x only for now ([ADR 0145](../adr/0145-the-audacity-launcher-is-an-installer-start-menu-entry-and-a-picker-switch-keeps-an-audacity-launch.md), the PRD's revised Questions 3 and 7).
+**Outcome (owner, 2026-09-23):** alternative 1 below. The launcher is the installer's "Narration Utils for Audacity" Start Menu entry, no Audacity-side artifact ships, and the integration targets Audacity 3.x only for now ([Audacity boundary](../architecture/daw-integration.md#audacity-boundary), the PRD's revised Questions 3 and 7).
 
 ## Evidence
 

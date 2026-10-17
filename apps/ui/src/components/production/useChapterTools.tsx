@@ -258,7 +258,7 @@ export function useChapterTools({ rows, credits, notify, go, goToScript, goToEdi
           othersRunning={runs.othersRunning(open.chapter.id)}
           notify={notify}
           close={close}
-          // A credits row's synthetic chapter (ADR 0333) opens the Manuscript credits entry, never the Editing page or a paragraph.
+          // A credits row's synthetic chapter opens the Manuscript credits entry, never the Editing page or a paragraph.
           goToParagraph={checkingCredits ? () => goToScript(`credits-${checkingCredits}`) : (paragraph) => goToScript(open.chapter.id, paragraph)}
           openWorkspace={checkingCredits ? undefined : () => goToEditing(open.chapter.id)}
         />

@@ -1,4 +1,4 @@
--- apply_fx_range and remove_fx_range (narration_range.lua, ADR 0860 point 3): one of the narrator's saved chains, named
+-- apply_fx_range and remove_fx_range (narration_range.lua, docs/reference/daw/capabilities.md point 3): one of the narrator's saved chains, named
 -- as list_fx_chains lists it, on the middle piece of a range of words, and taken off again with the piece joined back to
 -- its neighbours. Each change is one undo block; nothing is deleted from the project but the pieces a join folds back.
 

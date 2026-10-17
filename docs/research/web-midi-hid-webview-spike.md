@@ -1,6 +1,6 @@
 # Spike: Web MIDI and WebHID availability and permission behaviour in WebView2, WKWebView and WebKitGTK 6.0
 
-**Status: done (desk research only), 2026-09-26.** Issue: [#646](https://github.com/countrymanprime/narration-utils/issues/646). Answers the questions the PRD's Technical Approach and [ADR 0361](../adr/0361-app-commands-go-through-one-registry-and-keyboard-midi-and-hid-are-input-sources-bound-by-a-remappable-keymap.md) leave open before any `MidiSource` (Phase 9) or `HidSource` (Phase 11) work starts. **No live Wails v3 build was run** — see [Method](#method) and [Not done, and why](#not-done-and-why).
+**Status: done (desk research only), 2026-09-26.** Issue: [#646](https://github.com/countrymanprime/narration-utils/issues/646). Answers the questions the PRD's Technical Approach and [Studio shell and registries](../architecture/studio-shell-and-registries.md) leave open before any `MidiSource` (Phase 9) or `HidSource` (Phase 11) work starts. **No live Wails v3 build was run** — see [Method](#method) and [Not done, and why](#not-done-and-why).
 
 ## What it settles
 
@@ -20,12 +20,12 @@ This is desk research, run from a cloud container with no Windows/macOS/GTK desk
 Research used:
 - **`WebSearch`**, which returned synthesized, citation-backed results even when direct fetches failed (see below).
 - **Direct fetches of GitHub-hosted content** (issues and discussions on `MicrosoftEdge/WebView2Feedback`, source files in `mdn/content`), which succeeded — `github.com` is reachable from this container.
-- **This repository's own PRD, ADR 0361 and `wails-v3-migration.prd.md`**, which already record verified facts about the exact Wails v3 beta.25 / WebView2 / WKWebView / WebKitGTK 6.0 stack this app builds against.
+- **This repository's own PRD, `docs/architecture/studio-shell-and-registries.md` and `wails-v3-migration.prd.md`**, which already record verified facts about the exact Wails v3 beta.25 / WebView2 / WKWebView / WebKitGTK 6.0 stack this app builds against.
 
 Research could **not** use:
 - Direct fetches to `webkit.org`, `bugs.webkit.org`, `caniuse.com`, `developer.mozilla.org` or `learn.microsoft.com` — every one returned `EGRESS_BLOCKED` from this session's network egress proxy. Per `/root/.ccr/README.md`, that is an organization-level policy denial, not a transient failure, and is reported here rather than retried or worked around.
 
-Where a finding rests only on a WebSearch synthesis or a single secondary source (a community bug report, not a vendor statement), it is marked **Low** confidence above and listed under [Pending with the owner](#pending-with-the-owner) rather than asserted as settled. Findings marked **High** are corroborated by multiple independent sources agreeing (WebKit's non-support of Web MIDI and WebHID is well documented across the Web MIDI API's own MDN browser-support notes, general "Chromium-only capability API" commentary, and this PRD's own Research Summary, which already states the same thing) and match this repository's existing (already-Accepted) ADR 0361 text.
+Where a finding rests only on a WebSearch synthesis or a single secondary source (a community bug report, not a vendor statement), it is marked **Low** confidence above and listed under [Pending with the owner](#pending-with-the-owner) rather than asserted as settled. Findings marked **High** are corroborated by multiple independent sources agreeing (WebKit's non-support of Web MIDI and WebHID is well documented across the Web MIDI API's own MDN browser-support notes, general "Chromium-only capability API" commentary, and this PRD's own Research Summary, which already states the same thing) and match this repository's existing (already-Accepted) `docs/architecture/studio-shell-and-registries.md` text.
 
 ## Results
 
@@ -56,10 +56,10 @@ Where a finding rests only on a WebSearch synthesis or a single secondary source
 
 ## Recommendations
 
-1. **Keep Phase 9 (MidiSource) Windows-first and feature-detected**, exactly as the PRD's risk table already anticipates: gate on `'requestMIDIAccess' in navigator` so macOS and Linux builds simply report the source unavailable, with no per-OS branching in `src/input/`. This needs no ADR change — it sharpens ADR 0361's existing "may be Windows-only" language rather than reversing it.
+1. **Keep Phase 9 (MidiSource) Windows-first and feature-detected**, exactly as the PRD's risk table already anticipates: gate on `'requestMIDIAccess' in navigator` so macOS and Linux builds simply report the source unavailable, with no per-OS branching in `src/input/`. This needs no ADR change — it sharpens `docs/architecture/studio-shell-and-registries.md`'s existing "may be Windows-only" language rather than reversing it.
 2. **Do not start Phase 11 (HidSource) implementation before a real Wails v3 WebView2 build confirms `navigator.hid.requestDevice()` actually renders a chooser and returns a device.** The one piece of direct-ish evidence found here (a community bug report, not a vendor statement) suggests it currently does not. If a real check confirms that, Phase 11 closes as won't-do exactly the way the PRD phase table already allows ("Otherwise the phase closes as won't-do with the spike's reason") — no new ADR needed either way, since the PRD already carries that contingency.
 3. **File the permission-plumbing and device-chooser questions with the owner** (below) rather than guess further from here; they need a Windows machine running the actual pinned Wails v3 beta.25 / WebView2 combination, plus a MIDI controller and a HID device to press.
-4. **No Proposed ADR from this spike.** Nothing here reverses a decision ADR 0361 already made; it only firms up the risk the PRD's Technical Approach and Risks table already named.
+4. **No Proposed ADR from this spike.** Nothing here reverses a decision `docs/architecture/studio-shell-and-registries.md` already made; it only firms up the risk the PRD's Technical Approach and Risks table already named.
 
 ## Not done, and why
 

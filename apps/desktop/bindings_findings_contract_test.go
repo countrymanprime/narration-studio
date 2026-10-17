@@ -85,7 +85,7 @@ func contractReviewHost(t *testing.T) *Host {
 	return host
 }
 
-// What FindingsList, FindingsReview and FindingsSummary send (ADR 0120): a decided
+// What FindingsList, FindingsReview and FindingsSummary send: a decided
 // finding, the evidence shapes the store holds today, and a finding not in the latest run. FindingsGet sends the
 // same record as FindingsReview, so it has no file of its own.
 func TestContractFindingsReviewBindings(t *testing.T) {
@@ -144,7 +144,7 @@ func checkBindingContract(t *testing.T, name, payload string) {
 	contractfile.Check(t, name, stable)
 }
 
-// TestFindingsSummaryClearedAgreesWithTheStageEngineForOneChapter settles ADR 0793 point 6 for findings: the stage
+// TestFindingsSummaryClearedAgreesWithTheStageEngineForOneChapter settles docs/guides/using-the-app/proof.md point 6 for findings: the stage
 // engine's proofing.pickups (proofing.PickupItem.Open) treats a finding as open unless it is dismissed, and the
 // summary's cleared counts exactly the dismissed ones, so for one chapter the open count the rail shows
 // (total - cleared) equals the engine's open items. They can still differ in two ways this test does not close: the

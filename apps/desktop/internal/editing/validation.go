@@ -1,8 +1,8 @@
 // This file holds the click and breath validation: the detector versions the
 // click and breath records are stamped with, the recorded held-out runs of
 // those versions, the gate that lets a class signal say met only for a
-// version with a qualifying run (ADR 0510), the per-class signal itself, and
-// the scan defaults the tuning half chose (ADR 0511). The runs are produced by validationrun_test.go, which also fails if a
+// version with a qualifying run, the per-class signal itself, and
+// the scan defaults the tuning half chose. The runs are produced by validationrun_test.go, which also fails if a
 // recorded number stops matching what the detector does now, so no number
 // here stands without the run behind it. The method and the numbers are in
 // docs/research/editing-click-breath-validation.md.
@@ -27,7 +27,7 @@ const (
 	BreathAnalyzerVersion = "editing-breath-v1"
 )
 
-// RecallTarget is the proposed recall per class (ADR 0510; an assumption to
+// RecallTarget is the proposed recall per class (an assumption to
 // calibrate, not a measured fact). A detector version is
 // validated only when its held-out recall reaches it overall and in every
 // recording condition of the run.
@@ -42,7 +42,7 @@ const RecallTarget = 0.9
 // dropped plosive false positives at the same recall, which the selection
 // rule never trades for sensitivity (a precision gain measured on synthetic
 // audio is no reason to raise fewer candidates on real audio). Provisional
-// (ADR 0364): chosen on synthetic audio.
+// chosen on synthetic audio.
 func DefaultScanOptions() ScanOptions {
 	cleanup := measure.DefaultCleanupOptions()
 	cleanup.BreathBelowSpeechDB = 8
@@ -51,7 +51,7 @@ func DefaultScanOptions() ScanOptions {
 
 // CorpusKind is what a validation run was scored on. Only a permissioned
 // narrator corpus can validate a detector; synthetic audio is a regression
-// guard (ADR 0364).
+// guard.
 type CorpusKind string
 
 const (

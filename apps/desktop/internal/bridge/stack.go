@@ -11,7 +11,7 @@ import (
 	"time"
 )
 
-// Stack the later reads of passages on the first read's spot as takes, and move them back (ADR 0860 point 4;
+// Stack the later reads of passages on the first read's spot as takes, and move them back (docs/reference/daw/capabilities.md point 4;
 // stack_takes and unstack_takes in narration_takes.lua). Experimental (actions.go) until the QA pass has run them in a
 // real REAPER (#1495).
 

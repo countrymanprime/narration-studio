@@ -18,7 +18,7 @@ import (
 )
 
 // Repository is the only place the app looks for a newer version. It is compiled in on purpose: no setting, argument or response
-// can point the updater somewhere else (ADR 0072).
+// can point the updater somewhere else.
 const Repository = "countrymanprime/narration-utils"
 
 // APIBase is GitHub's REST API. A test points a Checker at a fake server instead.
@@ -336,7 +336,7 @@ type Available struct {
 	Size        int64  `json:"size"`
 	PublishedAt string `json:"publishedAt"`
 	// Replaces is whether this platform can replace itself with it; where it cannot, the narrator is told and linked. Windows, the
-	// only platform with a release (docs/adr/0412), always can; the field stays because it is part of the wire contract.
+	// only platform with a release, always can; the field stays because it is part of the wire contract.
 	Replaces bool `json:"replaces"`
 }
 

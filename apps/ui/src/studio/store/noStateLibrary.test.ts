@@ -3,7 +3,7 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
-// ADR 0770 decision 4 (SNS-Q2): the app takes no immer, Redux or Zustand. Taking one needs a new ADR that supersedes it.
+// docs/architecture/ui-state-and-journal.md#the-store-host-reads-cached decision 4 (SNS-Q2): the app takes no immer, Redux or Zustand. Taking one needs a new ADR that supersedes it.
 const repoRoot = join(__dirname, '..', '..', '..', '..', '..');
 const BANNED = ['immer', 'redux', 'zustand', '@reduxjs/toolkit', 'react-redux'];
 

@@ -6,7 +6,7 @@
 
 | Question | Answer | Unblocks |
 | --- | --- | --- |
-| Is `P_EXT` on an item stored in the `.rpp`, and does it survive save and reload? | Yes. Item level is an `<EXTI` block, take level an `<EXT` block, inside the item chunk. Values round-trip through save, reload and `read_line_ids`, including quotes, backslashes, non-ASCII and a 3,000-character value. | [ADR 0026](../adr/0026-manuscript-line-identity-in-item-extension-data.md) is confirmed by evidence; PRD phases 6 and 7 (line identity) |
+| Is `P_EXT` on an item stored in the `.rpp`, and does it survive save and reload? | Yes. Item level is an `<EXTI` block, take level an `<EXT` block, inside the item chunk. Values round-trip through save, reload and `read_line_ids`, including quotes, backslashes, non-ASCII and a 3,000-character value. | [Manuscript line identity in the REAPER project](../architecture/manuscript-line-identity.md) is confirmed by evidence; PRD phases 6 and 7 (line identity) |
 | Can a reader parse it without REAPER? | Yes: one `key value` line per key, with four value forms (below), the same across every save, reload, split and duplicate tried in 7.80. | PRD Open Question 9 answered: phase 14 (static read of line IDs) is feasible; it needs a real chunk reader, not a regex |
 | What do split, duplicate, copy and undo do to a stamp? | Split: both halves keep it (the right half gets a new GUID). Duplicate: the copy keeps it. A state-chunk copy (what a paste serializes) keeps it. Undo removes the stamp exactly and redo restores it. | Line identity survives the edits a narrator makes |
 | Does stamping disturb the rest of a project? | No. On a copy of a real 41-item project, stamping five items added exactly five `<EXTI` blocks (21 lines) and changed the header save time; nothing else. | The "no unreviewed edits" success metric |
@@ -22,7 +22,7 @@
 
 ## Extension data in the saved file
 
-```
+```text
 <ITEM
   ...
   IGUID {86C04508-9091-445A-964E-F53883A33A97}
@@ -65,7 +65,7 @@ On the real project copy an unchanged save to a new folder changed the header ti
 
 ## Where the harness fake was wrong
 
-The harness fake ([ADR 0066](../adr/0066-the-lua-bridge-is-tested-by-a-harness-under-lua-5-4-and-reaper-api-behaviour-is-checked-in-reaper.md)) had been written from the API documentation and the bridge's own calls. The real REAPER showed:
+The harness fake ([ADR 0004](../adr/0004-every-daw-is-reached-through-one-port.md)) had been written from the API documentation and the bridge's own calls. The real REAPER showed:
 
 | Behaviour | Fake before | Real REAPER 7.80 | Result |
 | --- | --- | --- | --- |

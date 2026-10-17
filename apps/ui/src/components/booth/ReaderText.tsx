@@ -14,7 +14,7 @@ const NO_SKIPPED: SkippedRange[] = [];
 // The row is `whitespace-pre-line`, so a line break in the source text is kept as one and any other gap is a single space.
 const separator = (gap: string): string => (gap.includes('\n') ? '\n' : ' ');
 
-// Every mark goes through `Highlight` (ADR 0016/0017): an entity in its Story Bible category colour, a note in the note
+// Every mark goes through `Highlight`: an entity in its Story Bible category colour, a note in the note
 // colour, exactly as the Manuscript reader draws them, and a suspected flag in the flag kind of the same name.
 const FLAG_HIGHLIGHT: Record<TeleprompterFlagKind, HighlightKind> = { misread: 'Misread', extra: 'Extra', skipped: 'Skipped', restart: 'Restart' };
 function markHighlight(target: ReaderMarkTarget): HighlightKind {
@@ -97,7 +97,7 @@ function renderWord(row: RowWordsProps, index: number, seekable: boolean, withGa
 
 // A run of words under one or more marks. Only the innermost (shortest) mark is the control; the marks around it are drawn
 // but not buttons, so overlapping marks never nest one button in another (the Manuscript reader's open #155). An outer mark
-// is still a control on its own words outside the overlap, and every entry is also listed in the rail (ADR 0116).
+// is still a control on its own words outside the overlap, and every entry is also listed in the rail.
 // The gap after the last word sits inside the marks that carry on into the next segment and outside the ones that end here,
 // so a tint runs on unbroken ("White Rabbit" around its alias "Rabbit", a note around a name) and stops where its mark
 // stops. Layers are outermost first and nest, so the ones carrying on are a leading run of them.
@@ -118,7 +118,7 @@ function renderMarkedSegment(
         {child}
       </Highlight>
     );
-    // A flag that is the control also shows what was heard as a hint (ADR 0049), flowing with the line it sits in.
+    // A flag that is the control also shows what was heard as a hint, flowing with the line it sits in.
     if (!hint || !control) return highlight;
     return (
       <TooltipTarget key={mark.id} text={hint} inline>
@@ -292,7 +292,7 @@ export function ReaderText({
             </div>
           );
         return row.kind === 'title' ? (
-          // Source casing, never CSS capitals (ADR 0191): what is read aloud is
+          // Source casing, never CSS capitals: what is read aloud is
           // what is shown. Stacked, like TitleSubtitle's own layout: the subtitle is a muted line under the title,
           // with a visually hidden " — " between them so the two lines still read as one name to a screen reader.
           <h2 key={row.key} className={`font-['Barlow_Condensed',sans-serif] leading-tight tracking-[0.02em] normal-case ${gutter ? 'lg:pl-[8.25rem]' : ''}`}>

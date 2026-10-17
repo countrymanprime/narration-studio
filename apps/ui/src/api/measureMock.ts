@@ -5,7 +5,7 @@
 // render of digital silence whose levels are all unavailable (null, never a number), and a file that is not a WAV.
 // `mock-05` (`?mockFidelity=05`) picks the six files benchmark mock 05 draws. `hold` keeps a started measurement part way through; `fails` breaks it at its first poll the way
 // tests/fixtures/contracts/measure-error.json pins (the file being read fails, the rest are cancelled). Every answer is
-// judged against the project's delivery profile as it is when it is read, rule by rule (ADR 0179), and `onJudged` is given
+// judged against the project's delivery profile as it is when it is read, rule by rule, and `onJudged` is given
 // the judged job when it ends, for the Review page's delivery findings (deliveryReviewMock.ts).
 import type { DeliveryProfile, DiagnosticsJob, JobEnded, MeasureApi, MeasureFileResult, MeasureJob, MeasureReport } from '../types';
 import { evaluateMockBook, evaluateMockFile, MOCK_ACX } from './deliveryProfilesMock';
@@ -202,7 +202,7 @@ function spreadJob(paths: string[] = spreadPaths()): MeasureJob {
 }
 
 /**
- * `picked` is the picker's allowlist, shared with the diagnostics mock the way the host shares it (ADR 0156); `profile` reads
+ * `picked` is the picker's allowlist, shared with the diagnostics mock the way the host shares it; `profile` reads
  * the profile the project is judged against as it is now; `checked` is the diagnostics check as it stands, which the report
  * export covers too.
  */

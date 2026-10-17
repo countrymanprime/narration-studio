@@ -3,7 +3,7 @@ import type { CommandId } from './commands.catalog';
 import { useCommandRegistry, type CommandHandlerEvent } from './router';
 
 /**
- * Attaches behaviour to a catalog command (Solution Detail, ADR 0361 decision 1): a feature calls this instead of
+ * Attaches behaviour to a catalog command (Solution Detail, docs/architecture/studio-shell-and-registries.md decision 1): a feature calls this instead of
  * adding its own `keydown` listener. `enabled` mirrors the old per-listener conditions (`playPauseDisabled`, and so
  * on) without the feature ever touching the event itself. Throws for an id its `<CommandRouter>` does not carry - a
  * typo here is a bug, not a shortcut that silently never fires. Checked against the enclosing router's own catalog

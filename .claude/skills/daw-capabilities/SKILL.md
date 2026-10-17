@@ -28,7 +28,7 @@ Load only the page the question needs.
 | Which engine supports X, at what level? | [matrix](../../../docs/reference/daw/matrix.md) |
 | What should X return, and when must it refuse? | [capabilities](../../../docs/reference/daw/capabilities.md), the section for X |
 | How does REAPER or Audacity actually behave? | [REAPER](../../../docs/reference/daw/reaper.md), [Audacity 3.x](../../../docs/reference/daw/audacity-3.md), [Audacity 4.x](../../../docs/reference/daw/audacity-4.md) |
-| Why is a level what it is? | The ADR linked in the capability's section ([ADR 0300](../../../docs/adr/0300-every-daw-is-reached-through-one-port-of-small-role-interfaces-and-callers-ask-a-resolver-what-it-supports.md)) |
+| Why is a level what it is? | The ADR linked in the capability's section ([ADR 0004](../../../docs/adr/0004-every-daw-is-reached-through-one-port.md)) |
 
 ### Design a change
 

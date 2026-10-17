@@ -36,7 +36,7 @@ type DeliveryReportExport struct {
 }
 
 // judgeMeasureJob adds the host's judgement of every measured file against the delivery profile in force
-// (deliveryprofile.EvaluateFile, ADR 0179): each file's result per rule and its delivery_qc findings, with the IDs a
+// (deliveryprofile.EvaluateFile): each file's result per rule and its delivery_qc findings, with the IDs a
 // report carries, and the book rules over every measured file. It judges on every read, so choosing another profile
 // re-judges a measurement without measuring again.
 func judgeMeasureJob(job MeasureJob, profile deliveryprofile.Profile, notice string) MeasureJob {

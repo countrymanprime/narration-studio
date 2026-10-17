@@ -5,7 +5,7 @@ import { Panel } from './Panel';
 import { SectionLabel } from './SectionLabel';
 
 // The eyebrow over a section, a KPI tile or a nav group: Barlow Condensed 13 px, semibold, uppercase, tracked 0.1 em,
-// muted (benchmark mock 05's "BOOK CONSISTENCY · RMS BY CHAPTER" and "OUTPUTS", ADR 0640). `as` picks the element.
+// muted (benchmark mock 05's "BOOK CONSISTENCY · RMS BY CHAPTER" and "OUTPUTS"). `as` picks the element.
 const meta = {
   title: 'Primitives/SectionLabel',
   component: SectionLabel,

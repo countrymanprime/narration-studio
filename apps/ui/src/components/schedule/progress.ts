@@ -4,7 +4,7 @@ import { addDays, diffDays, fmtD, isIsoDate, parseIso } from './dates';
 import { PACE, PICKUP_HOURS, RATIO, WARN_DAYS, WPH } from './estimates';
 import { CHECKPOINT_MEASURE, chaptersOf, measOf, minutesOf } from './measures';
 
-/** A chapter as the estimates see it: its words and the stage it is in. Only real progress goes in (ADR 0015); a stage in progress is not yet done. */
+/** A chapter as the estimates see it: its words and the stage it is in. Only real progress goes in; a stage in progress is not yet done. */
 export type ScheduleChapter = { words: number; status: ChapterStatus; kind: ManuscriptContentKind | '' };
 
 /** The chapters that are narrated: a reference chapter is not recorded, so it is no work. */
@@ -46,7 +46,7 @@ export type Calc = {
   finished: boolean;
 };
 
-/** The work left and what it means for the due date, from the fixed inputs (ADR 0801 decision 2). `wph` is the words per finished hour of the chosen schedule basis; it defaults to the standard. */
+/** The work left and what it means for the due date, from the fixed inputs (apps/ui/src/components/schedule/progress.ts decision 2). `wph` is the words per finished hour of the chosen schedule basis; it defaults to the standard. */
 export function calc(chapters: readonly ScheduleChapter[], today: Date, due: Date | null, openPickups = 0, wph: number = WPH): Calc {
   const words = chapters.reduce((a, c) => a + c.words, 0);
   const left = (stage: keyof typeof DONE_AT): number => (chapters.filter((c) => !stageDone(c, stage)).reduce((a, c) => a + c.words, 0) / wph) * RATIO[stage];
@@ -77,7 +77,7 @@ export function calc(chapters: readonly ScheduleChapter[], today: Date, due: Dat
 }
 
 /**
- * How the due date reads (ADR 0801 decisions 3 and 4). The days left set it: neutral beyond a week, a warning within a week while
+ * How the due date reads (apps/ui/src/components/schedule/progress.ts decisions 3 and 4). The days left set it: neutral beyond a week, a warning within a week while
  * unfinished, danger once past, success when finished. The projection can only make it worse, and only when there is work left.
  */
 export function deadlineTone(k: Calc): Tone {

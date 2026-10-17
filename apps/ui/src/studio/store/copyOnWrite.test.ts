@@ -55,7 +55,7 @@ function leafPaths(value: unknown, prefix: Array<string | number> = []): Array<s
   return Object.entries(value).flatMap(([k, v]) => leafPaths(v, [...prefix, k]));
 }
 
-describe('setIn properties (ADR 0044: deterministic)', () => {
+describe('setIn properties (docs/operations/verification-tooling.md#property-tests-and-fuzzing: deterministic)', () => {
   it('setting a path and then setting the old value back equals the original, and the untouched branches keep their identity', () => {
     fc.assert(
       fc.property(tree, fc.nat(), fc.oneof(fc.integer(), fc.string()), (obj, pick, replacement) => {

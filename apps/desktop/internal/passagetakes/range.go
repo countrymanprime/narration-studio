@@ -7,7 +7,7 @@ import (
 	"github.com/countrymanprime/narration-utils/shell/internal/dawport"
 )
 
-// Sentences ResolveRange refuses with. The stale ones carry dawport.CodeStale (ADR 0861).
+// Sentences ResolveRange refuses with. The stale ones carry dawport.CodeStale.
 const (
 	rangeNotInAlignmentSentence = "That selection is not in this chapter's alignment any more, so nothing was changed. Reload the chapter and select the words again."
 	rangeCrossesItemsSentence   = "These words cross two REAPER items. Select words from one item at a time."
@@ -35,10 +35,10 @@ type CutRange struct {
 }
 
 // ResolveRange joins tokens first..last of chapterID's stored alignment to one item and the project seconds the words were
-// heard at, from the alignment and the item as the saved project has it (ADR 0242): the page sends token indices only,
+// heard at, from the alignment and the item as the saved project has it: the page sends token indices only,
 // never a GUID or a time (threat model row 5f). It refuses, as a Result and never an error, because these are the
 // narrator's selection: a range outside the alignment or read backwards (stale: the page's copy is out of date), words
-// heard on two items (one item per request, ADR 0705), a word nothing was heard for, a word with no time, and an item the
+// heard on two items (one item per request), a word nothing was heard for, a word with no time, and an item the
 // saved project no longer has or that no longer covers the words (both stale).
 func ResolveRange(view coverage.AlignmentView, chapterID string, first, last int) (CutRange, *dawport.Result) {
 	refuse := func(result dawport.Result) (CutRange, *dawport.Result) { return CutRange{}, &result }

@@ -1,4 +1,4 @@
-// What the profile card writes for a delivery profile's rules (ADR 0179): which rules are a per-chapter limit and which are a
+// What the profile card writes for a delivery profile's rules: which rules are a per-chapter limit and which are a
 // file-format row, how a bound reads as text or as an edit box, and the edit the host expects back. The wording and numbers come
 // from `master/deliveryProfile.ts`; nothing here judges a file.
 import type { DeliveryProfile, DeliveryProfileEdit, DeliveryRule } from '../../../types';

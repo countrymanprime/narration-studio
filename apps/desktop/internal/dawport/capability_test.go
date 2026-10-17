@@ -86,7 +86,7 @@ func TestReasonsKeepTodaysWireValues(t *testing.T) {
 
 func TestCatalogueHasTheFourEditRowsInOrderAfterMacroRender(t *testing.T) {
 	// SND-3: cutting, an effect on a range, stacking takes and backups follow macro_render, each its own role whose methods
-	// answer a Result (ADR 0810).
+	// answer a Result.
 	want := []struct {
 		c       Capability
 		label   string

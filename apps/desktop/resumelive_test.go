@@ -17,7 +17,7 @@ import (
 	"github.com/countrymanprime/narration-utils/shell/internal/tracks"
 )
 
-// The live half of the resume locate (ADR 0349): REAPER's edit cursor on the
+// The live half of the resume locate: REAPER's edit cursor on the
 // chapter track's recorded audio, or the live end of that audio, mapped to a place in a source file.
 
 func liveItem(guid string, position, length, offset, rate float64, file string) dawport.TrackItem {

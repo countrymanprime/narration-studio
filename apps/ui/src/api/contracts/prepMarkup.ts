@@ -1,5 +1,5 @@
-// The old script markup layer's span (ADR 0382): stress, pause and character-tag spans on the reader's text. The host no longer reads
-// or writes them (marks replaced them, ADR 0792); the type stays for the Booth's side panel, which draws spans until its swap (SNO-10).
+// The old script markup layer's span: stress, pause and character-tag spans on the reader's text. The host no longer reads
+// or writes them (marks replaced them); the type stays for the Booth's side panel, which draws spans until its swap (SNO-10).
 
 export type PrepMarkupKind = 'stress' | 'pause' | 'character_tag';
 

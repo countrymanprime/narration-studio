@@ -4,7 +4,7 @@ import { join, relative, sep } from 'node:path';
 import ts from 'typescript';
 import { describe, expect, test } from 'vitest';
 
-// ADR 0595: `Button` owns its look, measured from the approved mocks: its height (`size`), padding,
+// docs/design/design-system.md: `Button` owns its look, measured from the approved mocks: its height (`size`), padding,
 // type, radius and border. A page picks a `variant` and a `size` and uses `className` for layout only (margin, width, flex,
 // visibility). Before this, about 30 call sites shrank the button through `className` in 7 different recipes, so no two small
 // buttons matched. This scan reads every `<Button>` outside `components/primitives/` and counts, per file, the ones whose
@@ -89,7 +89,7 @@ function tsxFiles(dir: string): string[] {
   });
 }
 
-describe('Button owns its look (ADR 0595)', () => {
+describe('Button owns its look', () => {
   const scans = tsxFiles(join(uiRoot, 'src'))
     .map((path) => relative(uiRoot, path))
     .filter((file) => !file.startsWith(primitivesDir + sep))

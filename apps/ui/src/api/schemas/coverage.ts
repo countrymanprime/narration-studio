@@ -17,7 +17,7 @@ import type {
 import { listFromNull, optionalFromNull } from './base';
 import { modelAssetRequiredSchema, whisperInstallStateSchema } from './whisper';
 
-// The recording coverage payloads (docs/utilities/recording-coverage.md, ADR 0129). The reason lists are pinned
+// The recording coverage payloads (docs/utilities/recording-coverage.md). The reason lists are pinned
 // against the host by tests/fixtures/contracts/coverage-reasons.json, which a Go test writes from coverage.RefusalReasons.
 
 export const COVERAGE_REFUSAL_REASONS = [
@@ -87,7 +87,7 @@ const coverageEngineSchema = z.strictObject({
   installState: whisperInstallStateSchema,
 }) satisfies z.ZodType<CoverageEngine>;
 
-/** The engines a recording check can run (ADR 0841); the golden is tests/fixtures/contracts/coverage-engines.json. */
+/** The engines a recording check can run; the golden is tests/fixtures/contracts/coverage-engines.json. */
 export const coverageEnginesSchema = z.strictObject({
   engines: listFromNull(coverageEngineSchema),
   default: z.string(),
@@ -102,7 +102,7 @@ export const coverageEnginesSchema = z.strictObject({
   }),
 }) satisfies z.ZodType<CoverageEngines>;
 
-/** The reviews of a chapter's current check by gap id (ADR 0842); the golden is tests/fixtures/contracts/coverage-gap-review-reviews.json.
+/** The reviews of a chapter's current check by gap id; the golden is tests/fixtures/contracts/coverage-gap-review-reviews.json.
  * The answer of an accept is a Finding (findingSchema; its golden is coverage-gap-review-accepted.json). */
 export const coverageGapReviewsSchema = z.record(
   z.string(),
@@ -143,7 +143,7 @@ const regionSchema = z.object({
   firstWord: z.string(),
   lastWord: z.string(),
   position: optionalFromNull(regionPositionSchema),
-  // The region's bounds (ADR 0168): null at a chapter edge, and absent from a result stored before them.
+  // The region's bounds: null at a chapter edge, and absent from a result stored before them.
   before: optionalFromNull(regionPositionSchema),
   after: optionalFromNull(regionPositionSchema),
 }) satisfies z.ZodType<CoverageRegion>;
@@ -159,7 +159,7 @@ const gapSchema = z.object({
   position: optionalFromNull(regionPositionSchema),
   before: optionalFromNull(regionPositionSchema),
   after: optionalFromNull(regionPositionSchema),
-  // A number or null, and always with the reason (ADR 0830): a score without one is not accepted.
+  // A number or null, and always with the reason: a score without one is not accepted.
   confidence: z.number().min(0).max(1).nullable(),
   confReason: z.string().min(1),
 }) satisfies z.ZodType<CoverageGap>;
@@ -179,7 +179,7 @@ const reportSchema = z.object({
   items: listFromNull(itemSchema),
   paragraphs: listFromNull(z.object({ id: z.string(), tokens: z.number(), present: z.number(), longestMissingRun: z.number() })),
   regions: listFromNull(regionSchema),
-  // Absent from a result stored before the taxonomy (ADR 0830): no gaps, nothing unfinished.
+  // Absent from a result stored before the taxonomy: no gaps, nothing unfinished.
   gaps: listFromNull(gapSchema),
   unfinished: z.object({ start: z.number().int().nonnegative(), end: z.number().int().nonnegative() }).default({ start: 0, end: 0 }),
   recheck: optionalFromNull(recheckSchema),

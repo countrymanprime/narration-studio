@@ -1,7 +1,7 @@
-// This file holds one tri-state signal per delivery check (ADR 0525), from the
+// This file holds one tri-state signal per delivery check, from the
 // stored measurement of the chapter's chosen render (renders.go) and the
 // delivery profile the project is judged against now (internal/deliveryprofile,
-// ADR 0179). Judging goes through deliveryprofile.EvaluateFile rule by rule,
+// docs/reference/acx-delivery-requirements.md). Judging goes through deliveryprofile.EvaluateFile rule by rule,
 // never through findings alone, because an empty findings list cannot tell
 // "met" from "not evaluated". Limits are applied on read, so changing one never
 // forces a re-measure.

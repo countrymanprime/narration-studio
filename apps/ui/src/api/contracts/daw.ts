@@ -1,4 +1,4 @@
-// The DAW port's capability payload (ADR 0300): what the launch's DAW can do right now, computed by
+// The DAW port's capability payload: what the launch's DAW can do right now, computed by
 // the host's dawport.Resolver from the adapter's declaration, the bridge's reachability and the narrator's
 // DAW.capability.<name> settings. apps/desktop/bindings_daw.go is the binding and the daw_capabilities_changed event;
 // apps/desktop/internal/dawport/capability.go is the capability catalog this file's DAW_CAPABILITIES mirrors.
@@ -20,7 +20,7 @@ export type DawCapabilityMode = 'native' | 'app' | 'steps';
 /** One capability's answer. `reason` and `message` are set only when `available` is false; `message` is a whole sentence
  * for the narrator, worded by the resolver or the adapter (dawport.Explainer), never by the UI. `destructive` (sent only
  * when true: using it replaces audio that cannot be brought back, so ask first) and `mode` are what the adapter declares
- * (dawport.Describer), sent whether or not the capability is available now (ADR 0810). */
+ * (dawport.Describer), sent whether or not the capability is available now. */
 export type DawCapabilitySupport = {
   level: DawCapabilityLevel;
   available: boolean;
@@ -33,14 +33,14 @@ export type DawCapabilitySupport = {
 /** The most undo points one DawResult reports (dawport.MaxUndoSteps in Go). */
 export const DAW_RESULT_MAX_UNDO_STEPS = 12;
 
-/** The refusal codes a page branches on (dawport.CodeStale in Go, ADR 0861). `stale`: the call named an item, track or finding
+/** The refusal codes a page branches on (dawport.CodeStale in Go). `stale`: the call named an item, track or finding
  * the DAW no longer has where the app read it, so read the project again. A later ADR adds a value. */
 export const DAW_REFUSAL_CODES = ['stale'] as const;
 export type DawRefusalCode = (typeof DAW_REFUSAL_CODES)[number];
 
-/** What one call to the DAW answered (dawport.Result in Go, ADR 0810). A refused call changed nothing: `refused` holds the
+/** What one call to the DAW answered (dawport.Result in Go). A refused call changed nothing: `refused` holds the
  * reason and `message` repeats it. `undoSteps` is 0 for a cursor move and 1 for one command; `steps` lists, in order, the
- * edits a multi-step change made. `code` is set only on a refusal the page branches on, never instead of the sentence (ADR 0861). */
+ * edits a multi-step change made. `code` is set only on a refusal the page branches on, never instead of the sentence. */
 export type DawResult = {
   ok: boolean;
   changed: boolean;
@@ -138,7 +138,7 @@ export const DAW_CAPABILITIES: ReadonlyArray<{ key: DawCapabilityKey; label: str
   { key: 'input_level', label: 'Set the input level' },
 ];
 
-/** The DAW's transport as of its last heartbeat (daw_transport_changed, ADR 0305;
+/** The DAW's transport as of its last heartbeat (daw_transport_changed, docs/architecture/reaper-bridge.md;
  * apps/desktop/bindings_daw_transport.go). `recording` counts a paused recording too; `playing` is REAPER's play bit, so it
  * is also true while recording. `position` (project seconds, moving on about every 1.5 s) is sent only while playing or
  * recording. With no DAW, a DAW not answering, or a bridge script too old to report it, both are false. */
@@ -221,7 +221,7 @@ export interface DawHideTakesApi {
 }
 
 /** DawRoll (SND-6a; apps/desktop/bindings_daw_roll.go): stop the recording this app started on the chapter's linked track and record
- * again from `at` (project seconds), keeping the earlier audio as a take (ADR 0860). The host reads the track itself and checks `at`;
+ * again from `at` (project seconds), keeping the earlier audio as a take. The host reads the track itself and checks `at`;
  * where the `punch` capability is `destructive` it refuses until `confirmed`, and elsewhere `confirmed` is ignored. A capability refusal
  * carries the capability's sentence and a gone track code `stale`. A chapter the manuscript does not have rejects. */
 export interface DawRollApi {
@@ -232,7 +232,7 @@ export interface DawRollApi {
 export type DawCutMode = 'close' | 'gap';
 
 /** DawDeleteRange (SND-6b; apps/desktop/bindings_daw_range.go): cut the words between the two tokens of the chapter's stored alignment
- * together with their audio (ADR 0860 point 2), with `fadeMs` (0 to 500) at each seam. `padMs` (0 to 500) cuts that much less at each end,
+ * together with their audio (docs/reference/daw/capabilities.md point 2), with `fadeMs` (0 to 500) at each seam. `padMs` (0 to 500) cuts that much less at each end,
  * and `roomTone` (mode `gap` only) fills the gap with the chapter's room tone, which a DAW with none refuses, cutting nothing (SN-E97).
  * The host resolves the item and its project seconds itself, one item per request. A capability refusal carries the capability's
  * sentence; a mode, fade or pad it does not take, room tone with `close`, words not heard and words across two items are refused with a
@@ -257,7 +257,7 @@ export interface DawDeleteRangeApi {
 
 /** DawApplyFxToRange and DawRemoveFxFromRange (SND-6c; apps/desktop/bindings_daw_fx_range.go): put one of the narrator's saved FX chains
  * on the words between the two tokens of the chapter's stored alignment, with `fadeMs` (0 to 500) at each new seam, and take it off again
- * (ADR 0860 point 3). The host resolves the item and its project seconds itself, one item per request; an apply's chain must be one
+ * (docs/reference/daw/capabilities.md point 3). The host resolves the item and its project seconds itself, one item per request; an apply's chain must be one
  * `workspaceListFXChains` lists, and a removal's a plain chain name. A capability refusal carries the capability's sentence; a fade it does
  * not take, words not heard, words across two items and a chain REAPER does not list are refused with a sentence; a range outside the
  * alignment (a chapter with none included) or a gone item is code `stale`. A removal from an item that does not carry the chain answers
@@ -318,7 +318,7 @@ export type DawFxRangeCompare = {
 };
 
 /** DawStackTakes and DawUnstackTakes (SND-7b; apps/desktop/bindings_daw_stack.go): stack the later reads of the named passages on the
- * first read's spot as takes, and move them back (ADR 0860 point 4). The page sends a chapter id and passage ids only: the host rebuilds
+ * first read's spot as takes, and move them back (docs/reference/daw/capabilities.md point 4). The page sends a chapter id and passage ids only: the host rebuilds
  * the groups, moves and shift itself from the Booth's passage map, the chapter's track as the DAW reports it now and, to move back, the
  * offsets the saved project's stacked takes recorded, so the plan a dialog showed is never sent. A capability refusal carries the
  * capability's sentence; a passage id the chapter does not list, a track that is gone, and an item that changed since the host read it
@@ -384,7 +384,7 @@ export type DawLastAction = 'this' | 'other' | 'unknown';
 export const DAW_LAST_ACTIONS = ['this', 'other', 'unknown'] as const satisfies readonly DawLastAction[];
 
 /** DawLastAction and DawUndoLast (#1711; apps/desktop/bindings_daw_undo_last.go): read and undo the app's own last action in the DAW's own
- * undo history, so the page's Undo reaches it (ADR 0771 rule 4). */
+ * undo history, so the page's Undo reaches it (docs/architecture/ui-state-and-journal.md#the-journal-and-undo rule 4). */
 export interface DawUndoLastApi {
   /** Whether the DAW's next undo point is the app's action of `kind`. It never changes the project; a capability refusal, a DAW not
    * answering and no live DAW are `unknown`. A kind the host does not know rejects. */
@@ -417,7 +417,7 @@ export interface DawLevelsApi {
   dawSetMonitorLevel(level: number): Promise<DawMonitorLevel>;
 }
 
-/** DawBackupAround, DawRestoreBackup and DawBackups (SN-D82, ADR 0863; apps/desktop/bindings_daw_backups.go): clone the audio around a
+/** DawBackupAround, DawRestoreBackup and DawBackups (SN-D82, docs/reference/daw/audacity-3.md; apps/desktop/bindings_daw_backups.go): clone the audio around a
  * chapter's words before an edit, put a backup back, and list the backups. The page sends a chapter id, two token indices and the label
  * the list shows, or a backup id DawBackups listed; the host resolves the words' times and the chapter's track itself, and the DAW adds
  * the narrator's window either side. A capability refusal carries the capability's sentence; a backup changes no audio (`changed:
@@ -457,7 +457,7 @@ export interface DawProjectStateApi {
 /** The most rows `narration-utils/backups.json` holds (`audacity.MaxBackups`). */
 export const DAW_BACKUPS_MAX = 500;
 
-/** One row of the Audacity backups table (SN-D81, ADR 0863; apps/desktop/internal/dawport/audacity/backups_store.go): a window of a
+/** One row of the Audacity backups table (SN-D81, docs/reference/daw/audacity-3.md; apps/desktop/internal/dawport/audacity/backups_store.go): a window of a
  * track's audio the adapter cloned to its own muted track, named for `id`, before an edit. `id` is a GUID in braces; `guid` is the
  * source track as the request named it (Audacity reports no track ids, so its name); `start` and `end` are the window in project
  * seconds; `createdAt` is when it was made, in UTC. `label` says what it was made for ("Roll at ¶ 3") and `restored` is when it was last
@@ -473,7 +473,7 @@ export type DawBackup = {
   restored?: string;
 };
 
-/** `narration-utils/backups.json` in the app's project folder (ADR 0863). */
+/** `narration-utils/backups.json` in the app's project folder. */
 export type DawBackupsFile = {
   schemaVersion: number;
   backups: DawBackup[];

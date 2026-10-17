@@ -27,7 +27,7 @@ func nextUpIDs(overview Overview) []string {
 	return ids
 }
 
-// The expected order of "Next up" on a fixture book (ADR 0404): a chapter held back by a known problem first, then the
+// The expected order of "Next up" on a fixture book: a chapter held back by a known problem first, then the
 // other chapters in progress with the least advanced first, then the ones ready to move on, then the ones not started
 // in book order. Finalized chapters and non-narration content never show.
 func TestNextUpOrdersChaptersByTheRiskTheyPutOnTheDeadline(t *testing.T) {
@@ -84,7 +84,7 @@ func TestNextUpIsEmptyWhenEveryChapterIsFinalized(t *testing.T) {
 }
 
 // PFH and the rate on the overview are exactly pfh.go's, measured only: an unmeasured chapter has no PFH and adds
-// nothing to the recorded total, and a book with no contracted amount has no rate (ADR 0320).
+// nothing to the recorded total, and a book with no contracted amount has no rate.
 func TestTheOverviewsFiguresComeOnlyFromLoggedHoursAndMeasuredTime(t *testing.T) {
 	measured := chapter("c1", stages.StageEditing, stages.VerdictUnknown)
 	measured.RecordedSeconds = seconds(1800)
@@ -170,7 +170,7 @@ func TestTheOverviewKeepsEachChaptersStatusAndReadinessAsGiven(t *testing.T) {
 	}
 }
 
-// ProductionOverview's payload on a small fixture book (ADR 0069): the UI's schema and mock are checked against it.
+// ProductionOverview's payload on a small fixture book: the UI's schema and mock are checked against it.
 func TestContractProductionOverview(t *testing.T) {
 	amount := 2400.0
 	due := "2026-10-14"
