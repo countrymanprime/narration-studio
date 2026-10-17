@@ -58,7 +58,7 @@ Code: `apps/desktop/internal/importer/` (`docx.go`, `markdown.go`, `markdown_inl
 | Chapters not in the spine order alone | A nav document (EPUB 3) or `toc.ncx` (EPUB 2) whose targets may point mid-file, or span several files | The TOC drives chapters (nav first, NCX fallback); a chapter runs from one target to the next across files, every depth | `TestEPUBNavTOCDrivesChapters`, `TestEPUBNCXFallbackWhenNoNav` |
 | No usable TOC | Missing nav and NCX, or neither matches any spine document | Each spine document starting with its own `h1`/`h2` becomes a chapter instead, with a notice | `TestEPUBSpineFallbackWhenTOCIsMissing` |
 | No chapter markup at all | No TOC and no headings | One `narration` chapter titled from the file name, with a notice - same T4 divergence as TXT | `TestEPUBNoTOCAndNoHeadingsBecomesOneChapter` |
-| `epub:type` on a spine document's `<body>` | `cover`/`titlepage`/`frontmatter`/`dedication`/`epigraph`/`copyright-page`, `toc`/`acknowledgments`/`glossary`/`index`/`bibliography`/`endnotes`/`footnotes`/`backmatter`, `bodymatter`/`chapter`/`prologue`/`epilogue` | Forces the section's `contentKind` to `opening`/`reference`/`narration` respectively, overriding the title-text classifier (ADR 0102) | `TestEPUBBodyEpubTypeClassifiesDedicationAsOpening`, `TestEPUBBodyEpubTypeClassifiesEndnotesAsReference` |
+| `epub:type` on a spine document's `<body>` | `cover`/`titlepage`/`frontmatter`/`copyright-page`, `toc`/`glossary`/`index`/`bibliography`/`endnotes`/`footnotes`/`backmatter`, `dedication`/`epigraph`/`acknowledgments`/`bodymatter`/`chapter`/`prologue`/`epilogue` | Forces the section's `contentKind` to `opening`/`reference`/`narration` respectively, overriding the title-text classifier (an audiobook reads a dedication, an epigraph and the acknowledgements) | `TestEPUBBodyEpubTypeClassifiesDedicationAsNarration`, `TestEPUBBodyEpubTypeClassifiesEndnotesAsReference` |
 | Glued heading | Same shape as DOCX/Markdown/TXT | `splitGluedHeading` repairs it and reports the split in `Notices` | `TestEPUBGluedHeadingIsSplitAndReported` |
 | Non-linear spine items | `<itemref linear="no">` | Skipped, counted in a `Notices` line | `TestEPUBNonLinearItemIsSkippedAndReported` |
 | Footnote reference markers | An inline `epub:type="noteref"` element | Its own text is dropped ("the end.1" reads "the end."); a note *body* is classified `reference` only when it occupies its own whole spine document | `TestEPUBNoteReferenceMarkerIsDropped` |
@@ -94,3 +94,14 @@ same notice and the same "only `chapterTitles` changes" apply, through the one s
 Turned off in the review, such a subtitle returns to the text. An EPUB heading that starts no chapter and is not a subtitle is kept as text. The glued-heading repair also splits a two-word number ("Twenty OneThe Storm") and a one-letter "A"/"I" glued to a number written in words ("TwoA Night"), never a lone letter after a roman numeral.
 
 How to add a quirk is in the package comment of `apps/desktop/internal/importer/importer.go`.
+
+## What an audiobook reads
+
+A section's `contentKind` decides what is recorded, timed, proofed and delivered, so the importer sorts headings by what a narrator reads aloud. Anything typically read in an audiobook is `narration`, however early it sits; what is skipped is decided by ACX and Audible practice, which asks for the opening credits and then the book from the first page that has text meant to be heard.
+
+- **Front matter, kind `opening`, not narrated:** cover, half title, title page, copyright / copyright page, "Praise for …", "Also by …", "Other / More Books by …", the importer's own "Front Matter" group, and a page headed "Opening Credits" or "Intro Credits" (`isFrontMatterHeading`, `importer/model.go`).
+- **Narration:** dedication, epigraph, foreword, preface, introduction, prologue, epilogue, acknowledgements, about the author.
+- **Reference, kept out of the recording:** contents, glossary, characters, pronunciation guide, reading group guide, discussion questions, family tree, maps (`isReferenceHeading`).
+- **The narrator has the last word.** Any section can be reclassified in the import review and afterwards.
+- **Opening credits are generated, never imported as a chapter.** A manuscript owns its opening credits only when an `opening` chapter is itself titled Opening Credits or Intro Credits (`ownsOpeningCredits`, `apps/ui/src/components/credits/creditsEntries.ts`), the one check the chapter-list pages share. Other front matter leaves the Opening credits row drawn.
+- Moving a heading between the lists is a one-line change in `model.go` and a test row; the `epub:type` table above is the other place to keep in step. Existing projects keep their stored kinds until the manuscript is replaced.

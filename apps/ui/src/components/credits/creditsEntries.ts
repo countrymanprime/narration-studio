@@ -29,7 +29,7 @@ export const CREDITS_FILE_CHAPTERS: readonly { id: string; title: string; index:
 
 /**
  * Whether the manuscript imported its own opening-credits chapter: an `opening` chapter titled "Opening Credits" or "Intro Credits". Front
- * matter is also `opening` (ADR 0004) but is not the credits, so a copyright page or dedication leaves the Opening credits entry drawn.
+ * matter is also `opening` but is not the credits, so a copyright page or dedication leaves the Opening credits entry drawn.
  */
 export function ownsOpeningCredits(chapters: readonly { title: string; contentKind?: string }[] | undefined): boolean {
   return Boolean(

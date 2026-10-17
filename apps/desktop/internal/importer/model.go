@@ -136,9 +136,9 @@ func isReferenceHeading(value string) bool {
 
 // isFrontMatterHeading matches the headings of preliminary pages an audiobook does not read: the importer's own "Cover" and
 // "Front Matter" groups, a half title, title page, copyright page, "Praise for..." and "Also by..." lists, and an "Opening
-// Credits" page (the credits are generated, not narrated from the manuscript). They are kind "opening" (ADR 0004), so they
+// Credits" page (the credits are generated, not narrated from the manuscript). They are kind "opening", so they
 // are left out of the narration totals and are not recorded as chapters. What an audiobook does read stays narration, however
-// early it sits: dedication, epigraph, foreword, preface, introduction, prologue (ADR 0865).
+// early it sits: dedication, epigraph, foreword, preface, introduction, prologue.
 func isFrontMatterHeading(value string) bool {
 	v := normalizedHeading(value)
 	switch v {
