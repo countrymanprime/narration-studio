@@ -51,6 +51,8 @@ This folder documents a local-first audiobook narration toolkit: how it is built
    [Documentation gates](operations/documentation-gates.md).
 1. For issues, labels, milestones, and the project board, use
    [Tracking work on GitHub](operations/github-workflow.md).
+   For the checks the recent Studio Next work could not run off Windows (recording, linking a project, delivery),
+   use the [Windows QA checklist](operations/windows-qa-checklist.md).
    Before switching on a REAPER bridge command that ships behind the Experimental REAPER actions switch, run
    [the REAPER verification pass](operations/reaper-verification-pass.md); the calls each command makes are in
    [the ReaScript calls behind the planned commands](research/reaper-api-for-planned-commands.md).
