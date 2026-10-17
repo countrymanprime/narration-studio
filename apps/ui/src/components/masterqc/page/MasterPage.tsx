@@ -3,7 +3,7 @@ import { apiErrorMessage } from '../../../api/errorMessage';
 import { usePort } from '../../../ports/usePort';
 import { chapterName } from '../../../chapterName';
 import type { DeliveryProfile, ManuscriptChapter } from '../../../types';
-import { creditsEntries } from '../../credits/creditsEntries';
+import { creditsEntries, ownsOpeningCredits } from '../../credits/creditsEntries';
 import { useCreditsRows } from '../../credits/useCreditsRows';
 import { chapterOfFile, fileOf } from '../../master/chapterFile';
 import { deliveryProfileKey } from '../../master/deliveryProfile';
@@ -77,14 +77,7 @@ function MasterBody({ projectFolder, onOpenDelivery, openSettings, fileActions, 
   const run = useMeasureRun();
   // The credits files count toward the package like a chapter, as Delivery's list counts them, so the two pages say the same number.
   const creditRows = useCreditsRows('master', () => undefined);
-  const credits = useMemo(
-    () =>
-      creditsEntries(
-        creditRows.rows,
-        chapters.some((chapter) => chapter.contentKind === 'opening'),
-      ),
-    [creditRows.rows, chapters],
-  );
+  const credits = useMemo(() => creditsEntries(creditRows.rows, ownsOpeningCredits(chapters)), [creditRows.rows, chapters]);
   const jobs = useExportJobs();
   const mastering = useMasteringProviders();
   const [all, setAll] = useState<DeliveryProfile[]>([]);
