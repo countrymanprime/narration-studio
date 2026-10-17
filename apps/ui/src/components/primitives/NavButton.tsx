@@ -29,7 +29,7 @@ export function NavButton({
   children: string;
   onClick: () => void;
   iconOnly?: boolean;
-  /** Off, not removed (ADR 0865): the button stays focusable with `aria-disabled`, keeps its name, never runs `onClick`, and a press opens a note with `disabledReason`. */
+  /** Off, not removed: the button stays focusable with `aria-disabled`, keeps its name, never runs `onClick`, and a press opens a note with `disabledReason`. */
   disabled?: boolean;
   /** What unlocks the page: the item's description, its hint on hover and focus, and the text of the note a press opens. */
   disabledReason?: string;

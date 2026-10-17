@@ -226,7 +226,7 @@ describe('JumpMenu', () => {
     expect(field().getAttribute('aria-activedescendant')).toBe(screen.getAllByRole('option')[0]?.id);
   });
 
-  // ADR 0865: a page the project cannot use yet is listed off with its reason, and choosing it runs nothing.
+  // A page the project cannot use yet is listed off with its reason, and choosing it runs nothing.
   it('lists an off command with its reason, marks it unavailable, and runs nothing on Enter or a click while the menu stays open', async () => {
     const run = vi.fn();
     const off: ProvidedCommand = { ...command('t.proof', 'Go to', 'Go to Proof', run), disabledReason: 'Import a manuscript to unlock this page.' };

@@ -79,7 +79,7 @@ describe('NavButton', () => {
     expect(screen.getByRole('tooltip').textContent).toBe('Home');
   });
 
-  describe('off (aria-disabled, ADR 0865)', () => {
+  describe('off (aria-disabled)', () => {
     const REASON = 'Import a manuscript to unlock this page.';
     const renderOff = (props: { active?: boolean; iconOnly?: boolean; onClick?: () => void } = {}) =>
       render(

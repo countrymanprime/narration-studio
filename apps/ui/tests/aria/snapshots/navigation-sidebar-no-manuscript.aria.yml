@@ -1,4 +1,4 @@
-# ADR 0865: with no manuscript the nine pages that need one are off buttons ([disabled] is aria-disabled) that keep their names and stay in
+# With no manuscript the nine pages that need one are off buttons ([disabled] is aria-disabled) that keep their names and stay in
 # the list; Production, the theme item and Settings are on. Each off item is followed by the reason it is described by.
 # Partial on purpose (no `children: equal`): the page list and order are pinned by navigation-sidebar.aria.yml.
 - complementary "Primary navigation":

@@ -22,7 +22,7 @@ afterEach(() => {
   while (getOverlay().modals.length) closeTopModal()
 })
 
-describe('Rail with no manuscript (ADR 0865)', () => {
+describe('Rail with no manuscript', () => {
   it('the table gates the nine pages and never Production or Settings', () => {
     expect(navReason('production', false)).toBeUndefined()
     expect(navReason('settings', false)).toBeUndefined()

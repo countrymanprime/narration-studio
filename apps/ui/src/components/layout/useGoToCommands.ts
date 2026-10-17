@@ -5,7 +5,7 @@ import { registerCommandProvider, type ProvidedCommand } from '../../input/comma
 export type GoToPage = {
   id: string;
   label: string;
-  /** Set when the page is off: "Go to" is listed with this reason and does not open it (ADR 0865). */ disabledReason?: string;
+  /** Set when the page is off: "Go to" is listed with this reason and does not open it. */ disabledReason?: string;
 };
 export type GoToChapter = ChapterNameInput & { id: string };
 

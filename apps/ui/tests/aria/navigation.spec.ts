@@ -37,7 +37,7 @@ test('the header names its zoom group, with zoom out, the reset readout and zoom
   await expect(page.getByRole('group', { name: 'Zoom' })).toMatchAriaSnapshot({ name: 'navigation-header-zoom.aria.yml' });
 });
 
-// ADR 0865: with no manuscript the nine pages that need one are still buttons in the list, with their names, but off; Production and
+// With no manuscript the nine pages that need one are still buttons in the list, with their names, but off; Production and
 // Settings are not. An off item stays in the tab order, so this tree has the same buttons as the sidebar above, not fewer.
 test('with no manuscript the sidebar lists the pages that need one as off buttons that keep their names', async ({ page }) => {
   await openApp(page, DESKTOP);

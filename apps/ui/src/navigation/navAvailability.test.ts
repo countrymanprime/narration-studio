@@ -5,7 +5,7 @@ const NEEDS_MANUSCRIPT = ['/schedule', '/script', '/story-bible', '/booth', '/ed
 const NEVER_GATED = ['/', '/settings'];
 const REASON = 'Import a manuscript to unlock this page.';
 
-describe('navAvailability (ADR 0865)', () => {
+describe('navAvailability', () => {
   it('turns the nine pages that need a manuscript off with its reason when there is none', () => {
     for (const path of NEEDS_MANUSCRIPT) {
       expect(navAvailability(path, { hasManuscript: false, dawFileLinked: false }), path).toEqual({ disabled: true, reason: REASON });

@@ -136,7 +136,7 @@ const PAGE_PATH: Record<AppPage, string> = {
   Settings: '/settings',
 };
 
-// A project with no manuscript (`?mockNoManuscript=1`), opened by its address: its rail item is off (ADR 0865), so a press on it opens a
+// A project with no manuscript (`?mockNoManuscript=1`), opened by its address: its rail item is off, so a press on it opens a
 // note instead. The page draws its own "import a manuscript" state, the one every page that needs the manuscript draws, and nothing
 // redirects.
 export async function openWithoutManuscript(page: Page, name: AppPage): Promise<void> {

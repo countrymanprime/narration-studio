@@ -7,7 +7,7 @@ export type Precondition = 'manuscript' | 'dawFile';
 export type NavFacts = { hasManuscript: boolean; dawFileLinked: boolean };
 
 /**
- * What each rail page needs (ADR 0865), the one place that says so. The rail, the drawer and the jump menu read it through
+ * What each rail page needs, the one place that says so. The rail, the drawer and the jump menu read it through
  * `navAvailability`; no item carries a condition of its own. A page reached any other way still draws its own "import a
  * manuscript" state, so this table decides what is offered, not what can be opened.
  */

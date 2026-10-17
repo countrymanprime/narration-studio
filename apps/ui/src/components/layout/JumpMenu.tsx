@@ -21,7 +21,7 @@ type Entry = {
   keys?: string[];
   /** A group row or the back row: choosing it changes the list and leaves the menu open. */
   keepOpen?: boolean;
-  /** Why the command cannot run now: it stays listed, off, with this reason (ADR 0865). */
+  /** Why the command cannot run now: it stays listed, off, with this reason. */
   disabledReason?: string;
   run: () => void;
 };

@@ -66,7 +66,7 @@ describe('AppShell nav gating', () => {
   const REASON = 'Import a manuscript to unlock this page.';
   const railItem = (name: string) => within(screen.getByRole('complementary', { name: 'Primary navigation' })).getByRole('button', { name });
 
-  // ADR 0865: the mock's rail draws these off with no manuscript (the mock changed first), and each page still asks for the manuscript itself.
+  // The mock's rail draws these off with no manuscript (the mock changed first), and each page still asks for the manuscript itself.
   it('turns the nine pages that need a manuscript off with no manuscript: focusable, named, and saying why', () => {
     renderShell({ hasManuscript: false, dawFileLinked: false });
     for (const name of GATED) {
@@ -474,7 +474,7 @@ describe('AppShell rail', () => {
     expect(screen.queryByRole('button', { name: /^Pickups, / })).toBeNull();
   });
 
-  // SN-M5 (ADR 0802): Delivery sits beside Master & QC in Finish, as the mock draws it.
+  // SN-M5: Delivery sits beside Master & QC in Finish, as the mock draws it.
   it('the-delivery-rail-item: Finish is Master & QC then Delivery, and Delivery opens /delivery', () => {
     const navigate = vi.fn();
     renderShell({ navigate });

@@ -60,7 +60,7 @@ export const shellStates: StateEntry[] = [
     pointer: 'keep',
     ...LAYOUT_BANDS,
   },
-  // ADR 0865: with no manuscript the rail shows the pages that need one off. A press on one opens a note with the reason; the jump menu lists the same pages off.
+  // With no manuscript the rail shows the pages that need one off. A press on one opens a note with the reason; the jump menu lists the same pages off.
   {
     page: 'shell',
     state: 'nav-off-note',

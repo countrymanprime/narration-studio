@@ -57,7 +57,7 @@ describe('useGoToCommands', () => {
     expect(new Set(ids).size).toBe(ids.length);
   });
 
-  it("passes a page's reason through, so the jump menu lists it off (ADR 0865)", () => {
+  it("passes a page's reason through, so the jump menu lists it off", () => {
     const off: GoToPage[] = [
       { id: 'proof', label: 'Proof', disabledReason: 'Import a manuscript to unlock this page.' },
       { id: 'production', label: 'Production' },

@@ -632,7 +632,7 @@ body.booth-on .mockbtn:hover,body.cmp-on .mockbtn:hover,.mockbtn:focus-visible{o
 .cf-row.done{opacity:.65}
 .cf-text{flex:1 1 180px;min-width:0}
 
-/* A rail item that needs the manuscript (ADR 0865): off but focusable. Text stays at the muted AA colour; a small lock, no hover fill and a plain pointer set it apart. */
+/* A rail item that needs the manuscript: off but focusable. Text stays at the muted AA colour; a small lock, no hover fill and a plain pointer set it apart. */
 .nav[aria-disabled="true"]{color:var(--muted);cursor:default}
 .nav .lk{margin-left:auto;font-size:11px;color:var(--faint)}
 .rail-c .nav .lk{position:absolute;top:3px;right:5px;margin:0;font-size:9px}

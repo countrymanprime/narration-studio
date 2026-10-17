@@ -33,23 +33,23 @@ import { EngineChip, type EngineState } from './EngineChip';
 import { TimerChip, type RunningTimer } from './TimerChip';
 import type { NavCounts } from './useNavCounts';
 
-// The rail's items. What each one needs is not here: `navAvailability` (ADR 0865) is the one table the rail, the drawer and the jump menu read.
+// The rail's items. What each one needs is not here: `navAvailability` is the one table the rail, the drawer and the jump menu read.
 const PRODUCTION = { name: 'Production', path: '/', icon: faHouse };
-// The Schedule (the Studio Next mock's rail, ADR 0802): the due date, how the book pays and the milestones.
+// The Schedule (the Studio Next mock's rail): the due date, how the book pays and the milestones.
 const SCHEDULE = { name: 'Schedule', path: '/schedule', icon: iconFor('calendar') };
 const SCRIPT = { name: 'Script', path: '/script', icon: faFileLines };
 const STORY_BIBLE = { name: 'Story Bible', path: '/story-bible', icon: faBookOpen };
 // The Record stage's one page: it replaced the Teleprompter page. Its
 // icon is a record dot, as the stage-nav mocks draw it (audit SH12).
 const BOOTH = { name: 'Booth', path: '/booth', icon: faCircleDot };
-// Editing (the Studio Next mock's Editing page, ADR 0804): the chapter's script as the editor, at /editing and /editing/:chapterId.
+// Editing (the Studio Next mock's Editing page): the chapter's script as the editor, at /editing and /editing/:chapterId.
 const EDITING = { name: 'Editing', path: '/editing', icon: iconFor('scissors') };
 // Proof: the book's notes at /proof and a chapter's view at /proof/:chapterId, replacing Review and Proofing.
 const PROOF = { name: 'Proof', path: '/proof', icon: faWaveSquare };
 // Pickups: the proofer's pickup list, replacing the Tracks page's Pickups dialog.
 const PICKUPS = { name: 'Pickups', path: '/pickups', icon: faRotateLeft };
 const MASTER_QC = { name: 'Master & QC', path: '/master', icon: faGaugeHigh };
-// Delivery (the Studio Next mock's rail, ADR 0802): the profile card, the package build and what is left before it.
+// Delivery (the Studio Next mock's rail): the profile card, the package build and what is left before it.
 const DELIVERY = { name: 'Delivery', path: '/delivery', icon: iconFor('delivery') };
 
 // Grouped by production stage (ADR 0407): Production, Prep, Record, Edit (the Studio Next mock's own group for Editing, ADR 0804), Review,
@@ -65,7 +65,7 @@ const NAV_GROUPS: { label: string; items: NavItem[] }[] = [
   { label: 'Review', items: [PROOF, PICKUPS] },
   { label: 'Finish', items: [MASTER_QC, DELIVERY] },
 ];
-/** The pages "Go to <page>" lists: the rail's items and Settings. One the project cannot use yet is listed off, with the reason (ADR 0865). */
+/** The pages "Go to <page>" lists: the rail's items and Settings. One the project cannot use yet is listed off, with the reason. */
 export function shellPages(facts: NavFacts): { id: string; label: string; disabledReason?: string }[] {
   return [...NAV_GROUPS.flatMap((group) => group.items), { name: 'Settings', path: '/settings' }].map((item) => ({
     id: item.path,

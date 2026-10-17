@@ -120,7 +120,7 @@ export const InactiveIsNotCurrent: Story = {
   },
 };
 
-// An off item is not actionable, but it is still the button keyboard users reach (aria-disabled, ADR 0865): it keeps its name, shows the
+// An off item is not actionable, but it is still the button keyboard users reach (aria-disabled): it keeps its name, shows the
 // reason as a hint on focus, and a press opens a note with the reason instead of running the handler.
 export const DisabledIsInert: Story = {
   args: { icon: faFileLines, children: 'Manuscript', disabled: true, disabledReason: MANUSCRIPT_REQUIRED_REASON },

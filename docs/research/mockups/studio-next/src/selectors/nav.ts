@@ -1,7 +1,7 @@
 import type { Page } from '@/state/types'
 
 /**
- * What the rail needs before it offers a page (ADR 0865). One table, read by the rail and the jump menu: a page that needs
+ * What the rail needs before it offers a page. One table, read by the rail and the jump menu: a page that needs
  * the manuscript is shown but off, with the reason, until one is imported. Production (where the import lives) and Settings
  * need nothing. Every page still draws its own "import a manuscript" state when it is reached any other way.
  */
