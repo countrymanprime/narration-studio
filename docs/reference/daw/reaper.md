@@ -63,6 +63,7 @@ What the bridge does with these: `narration_track_state.lua` reads `GetMediaSour
 
 ## Takes
 
+- **A take carries its provenance in `P_EXT`.** `narration_utils_take_finding_id`, `narration_utils_take_source_file` and `narration_utils_take_source_range` record which finding produced the take, the candidate's source file and the matched range in it; never item notes or take names.
 - **Hide is a volume of 0, not a mute.** ReaScript has no per-take mute, so `hide_takes` saves a take's `D_VOL` in its `P_EXT` (`narration_utils_take_hidden_volume`) and sets `D_VOL` to 0; keeping that take later gives the volume back. Nothing is deleted ([the bridge](../../architecture/reaper-bridge.md#commands)).
 - **Undo.** The hide is one undo block, labelled "Narration Utils: hide other takes"; nothing to hide opens none. That one REAPER Undo brings every hidden take back is what the harness models, not a run.
 - **Checked:** not checked; expected result is row C1 of [the verification pass](../../operations/reaper-verification-pass.md#part-c-the-studio-next-daw-commands-not-scripted-yet). The owner's run confirms that a take at `D_VOL` 0 is silent with "play all takes" on and off, that the `P_EXT` key is saved with the project, that clearing it with an empty value leaves no stale key that reads as hidden, and that one Undo restores every take's volume and the active take.

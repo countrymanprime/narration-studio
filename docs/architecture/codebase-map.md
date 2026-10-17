@@ -48,6 +48,10 @@ Every folder above that has a `project.json` is an Nx project (all except `docs/
 `lint`, `format`, `test` and `build` targets, and CI runs only the projects a change affects. See
 [Nx projects and the quality gate](../operations/ci-and-releases.md#nx-projects-and-the-quality-gate).
 
+## Product and technical names
+
+The user-facing name is Narration Studio: the window title, About, Settings, update messages, installer texts, reports and docs. The name `narration-utils` stays wherever a file, key or host already holds it: the executable and release asset names, module paths, config and data folders, settings file names, the `NarrationUtils` uninstall key, notification ids, REAPER's `NarrationUtils_Launcher.lua` and its undo labels, and the Audacity label track named "Narration Utils" (`LabelTrackName`), which projects look up by name. Renaming any of those would orphan installed copies or existing projects.
+
 ## Stable boundaries
 
 - `apps/desktop/` is the Go/Wails desktop host, on Wails v3 beta ([ADR 0200](../adr/0200-the-desktop-shell-runs-on-wails-v3-beta-pinned-at-v3-0-0-beta-25.md)). It exposes generated, typed Wails

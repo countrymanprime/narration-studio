@@ -708,7 +708,7 @@ Playwright's Chromium download (keyed on the Playwright version) are restored by
 the workflows; they never cache `node_modules`, `.venv`, test results or release assets. The one build output that is
 cached is the [sidecar freeze](#the-sidecar-freeze-cache).
 `setup-node`, `setup-python`, and `setup-go` provision the exact pinned Node,
-Python, and Go versions. The Wails v3 CLI, `wails3` v3.0.0-beta.25 (built with `CGO_ENABLED=0`, [ADR 0200](../adr/0200-the-desktop-shell-runs-on-wails-v3-beta-pinned-at-v3-0-0-beta-25.md)), is installed only in jobs that run a
+Python, and Go versions. The Wails v3 CLI, `wails3` v3.0.0-beta.28 (built with `CGO_ENABLED=0`, [ADR 0200](../adr/0200-the-desktop-shell-runs-on-wails-v3-beta-pinned-at-v3-0-0-beta-25.md)), is installed only in jobs that run a
 native build, and on Linux `setup-toolchain` installs GTK 4 and WebKitGTK 6.0, which Wails v3 links through cgo, only for CodeQL's Go
 compile (a Linux host for analysis, not a Linux build; [ADR 0413](../adr/0413-what-stays-of-the-other-platforms-when-windows-is-the-only-one.md)), golangci-lint v2.14.0 (built with the pinned Go, config in `apps/desktop/.golangci.yml`) only in the Go quality job, and the standalone
 StyLua v2.1.0 binary where needed, as declared in `scripts/toolchain.json`; none
