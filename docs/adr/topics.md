@@ -7,7 +7,7 @@ The decisions in [the index](README.md) grouped by what they govern, so a plan c
 | Topic | ADRs |
 | --- | --- |
 | [Consent and safety](#consent-and-safety) | 7 |
-| [Local-first and privacy](#local-first-and-privacy) | 6 |
+| [Local-first and privacy](#local-first-and-privacy) | 7 |
 | [Verification and code health](#verification-and-code-health) | 7 |
 | [Wire contracts and host bindings](#wire-contracts-and-bindings) | 10 |
 | [Accessibility and interaction feedback](#accessibility-and-interaction) | 9 |
@@ -54,6 +54,7 @@ Analysis stays on the machine; what leaves it, what is logged, and how keys and 
 | [0356](0356-the-merriam-webster-key-is-sealed-in-its-own-per-user-file-and-the-online-lookup-is-a-go-only-port-with-a-single-word-rule.md) | The Merriam-Webster key is sealed in its own per-user file, and the online lookup is a Go-only port with a single-word rule | Proposed |
 | [0405](0405-pronunciation-stays-local-first-behind-cmu-wiktextract-and-espeak-with-merriam-webster-as-the-one-narrator-keyed-online-source.md) | Pronunciation stays local-first behind CMU, Wiktextract and eSpeak, with Merriam-Webster as the one narrator-keyed online source | Proposed |
 | [0406](0406-the-status-report-leaves-out-the-contracted-amount-and-effective-rate-unless-the-narrator-opts-in.md) | The status report leaves out the contracted amount and effective rate unless the narrator opts in | Proposed |
+| [0870](0870-an-allow-listed-activity-trace-records-how-the-app-behaves-off-by-default-and-never-records-content.md) | An allow-listed activity trace records how the app behaves, off by default, and never records content | Proposed |
 
 <a id="verification-and-code-health"></a>
 
