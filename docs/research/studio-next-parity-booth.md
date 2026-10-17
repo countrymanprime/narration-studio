@@ -120,7 +120,7 @@ Method: each mock case is a row below, mapped to a real test by name, and by rea
 | booth-daw.test.tsx | `shows the suspected lines in the side panel, where each can be dismissed` | ported | apps/ui/src/components/booth/suspected/SuspectedLines.test.tsx::each-line-can-be-dismissed-with-undo: records one dismissed decision, reads Dismissed and offers Undo | No manual flag: Z "has no key handler and no add or flag control". |
 | booth-daw.test.tsx | `reading the same place again does not add it twice, and a dismissed one stays dismissed` | ported | apps/ui/src/components/booth/suspected/SuspectedLines.test.tsx::the-key-is-stable-and-a-dismissed-line-stays-dismissed: a re-read comes back dismissed, once |  |
 | booth-daw.test.tsx | `feeds Pickups: the line is in the shared pickup list and reads "Speech"` | mock-only |  | GAP G11: no test shows a suspected line in the shared pickup list, reading "Speech". |
-| booth-daw.test.tsx | `a take that does not reach a flagged place adds nothing` | ported | apps/ui/src/components/booth/suspected/suspectedLines.test.ts::a-take-that-does-not-reach-a-flagged-place-adds-nothing: flags outside the take are not listed |  |
+| booth-daw.test.tsx | `a take that does not reach a flagged place adds nothing` | ported | apps/ui/src/components/booth/suspected/suspectedLinesModel.test.ts::a-take-that-does-not-reach-a-flagged-place-adds-nothing: flags outside the take are not listed |  |
 | booth-daw.test.tsx | `the provider decides: another provider's flags are the ones that appear` | mock-only |  | The mock swaps its speech provider to show another provider's flags. The real app has one flag source, the Teleprompter sidecar, whose engine is a Settings > Booth choice (PRD phase 9 dropped the Booth engine picker). |
 | booth-daw.test.tsx | `F11 takes the whole screen and gives it back; it is in the jump menu and the footer` | covered | apps/ui/src/components/booth/useFullscreenKey.test.tsx::toggles fullscreen on F11 | GAP G12: useFullscreenKey.ts has no importer; the page binds `booth.fullscreen` itself (useBoothPage.ts) and no test presses F11 on it. pageScan.test.ts only lists the command name. The footer hint and the jump menu come from the catalogue. |
 | booth-daw.test.tsx | `a pedal only starts and stops: Space is the one recording key and nothing else records, rolls or flags` | covered | apps/ui/src/components/booth/page/BoothNextPage.test.tsx::a pedal only starts and stops: no other key records, rolls or flags | The pedal sends Space; the hardware step is on #1495. |
@@ -287,7 +287,7 @@ cd apps/ui && pnpm exec vitest run \
   src/components/booth/roll/roll.test.tsx
   src/components/booth/side/BoothSidePanel.test.tsx
   src/components/booth/suspected/SuspectedLines.test.tsx
-  src/components/booth/suspected/suspectedLines.test.ts
+  src/components/booth/suspected/suspectedLinesModel.test.ts
   src/components/booth/useFullscreenKey.test.tsx
   src/components/primitives/KeyHints.test.tsx
   src/ports/daw.contract.test.ts
