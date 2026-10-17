@@ -255,3 +255,80 @@ func TestDeliveryOpenPackageFolderOpensTheLastBuiltFolderAndRefusesWithoutOne(t 
 
 	contractfile.Check(t, "delivery-open-folder", PackageFolderResult{Folder: `C:\Users\Narrator\Desktop\Wonderland ACX`})
 }
+
+// TestInSidecarTreeComparesResolvedPaths is the state matrix for the sidecar-tree refusal: every spelling of the
+// project's narration-utils folder that names the same place is refused, and a sibling that only shares a prefix is not.
+func TestInSidecarTreeComparesResolvedPaths(t *testing.T) {
+	project := t.TempDir()
+	sidecar := filepath.Join(project, "narration-utils")
+	if err := os.MkdirAll(filepath.Join(sidecar, "package"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.MkdirAll(filepath.Join(project, "narration-utils-copy"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	elsewhere := t.TempDir()
+
+	linkTo := func(t *testing.T, target string) string {
+		t.Helper()
+		link := filepath.Join(elsewhere, "link")
+		if err := os.Symlink(target, link); err != nil {
+			t.Skipf("cannot create a symlink here: %v", err)
+		}
+		return link
+	}
+	cases := []struct {
+		name string
+		dir  func(t *testing.T) string
+		want bool
+	}{
+		{"the sidecar folder", func(*testing.T) string { return sidecar }, true},
+		{"inside it", func(*testing.T) string { return filepath.Join(sidecar, "package") }, true},
+		{"inside it, not made yet", func(*testing.T) string { return filepath.Join(sidecar, "new", "deeper") }, true},
+		{"spelled with dot segments", func(*testing.T) string { return filepath.Join(project, "x", "..", "narration-utils", "package") }, true},
+		{"through a symlink to it", func(t *testing.T) string { return linkTo(t, sidecar) }, true},
+		{"through a symlink to it, not made yet", func(t *testing.T) string { return filepath.Join(linkTo(t, sidecar), "new") }, true},
+		{"through a symlink to the project", func(t *testing.T) string { return filepath.Join(linkTo(t, project), "narration-utils", "package") }, true},
+		{"the project folder", func(*testing.T) string { return project }, false},
+		{"a sibling sharing the prefix", func(*testing.T) string { return filepath.Join(project, "narration-utils-copy") }, false},
+		{"a symlink to a sibling", func(t *testing.T) string { return linkTo(t, filepath.Join(project, "narration-utils-copy")) }, false},
+		{"another folder", func(*testing.T) string { return elsewhere }, false},
+		{"a folder that does not exist", func(*testing.T) string { return filepath.Join(elsewhere, "nope", "deeper") }, false},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			if got := inSidecarTree(project, tc.dir(t)); got != tc.want {
+				t.Fatalf("inSidecarTree(project, %q) = %v, want %v", tc.dir(t), got, tc.want)
+			}
+		})
+	}
+	t.Run("a sidecar folder that is itself a symlink", func(t *testing.T) {
+		realProject, realSidecar := t.TempDir(), t.TempDir()
+		if err := os.Symlink(realSidecar, filepath.Join(realProject, "narration-utils")); err != nil {
+			t.Skipf("cannot create a symlink here: %v", err)
+		}
+		if !inSidecarTree(realProject, filepath.Join(realSidecar, "package")) {
+			t.Fatal("the real folder behind a linked narration-utils was not refused")
+		}
+	})
+	t.Run("no open project", func(t *testing.T) {
+		if inSidecarTree("", sidecar) {
+			t.Fatal("refused with no project open")
+		}
+	})
+}
+
+func TestStripExtendedPrefix(t *testing.T) {
+	for in, want := range map[string]string{
+		`\\?\C:\Users\me\Book`:      `C:\Users\me\Book`,
+		`\\?\UNC\server\share\Book`: `\\server\share\Book`,
+		`C:\Users\me`:               `C:\Users\me`,
+		`\\server\share`:            `\\server\share`,
+		`\\.\C:\x`:                  `\\.\C:\x`,
+		``:                          ``,
+	} {
+		if got := stripExtendedPrefix(in); got != want {
+			t.Errorf("stripExtendedPrefix(%q) = %q, want %q", in, got, want)
+		}
+	}
+}

@@ -85,6 +85,7 @@ func TestChapterFileNamesAreWhatWindowsAccepts(t *testing.T) {
 		{"accented", "Café Résumé", "01 - Café Résumé.mp3"},
 		{"emoji", "Down the Rabbit-Hole 🐇", "01 - Down the Rabbit-Hole 🐇.mp3"},
 		{"right-to-left", "الفصل الأول פרק א", "01 - الفصل الأول פרק א.mp3"},
+		{"trailing dot before an extension", "Chapter 1.", "01 - Chapter 1..mp3"},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
@@ -320,5 +321,76 @@ func TestTheFoldersThePackageMadeAreRemovedWhenItStops(t *testing.T) {
 	}
 	if _, err := os.Stat(top); err == nil {
 		t.Fatalf("a package that stopped left the folders it made behind: %q", top)
+	}
+}
+
+func TestAChapterNameWindowsWouldRewriteIsRefused(t *testing.T) {
+	// With no extension the name ends in the title, and Windows drops a trailing dot or space: the file would not be where the manifest says.
+	for name, title := range map[string]string{"a trailing dot": "Chapter 1.", "dots": "..."} {
+		t.Run(name, func(t *testing.T) {
+			if got, err := chapterFileName(1, title, ""); err == nil {
+				t.Fatalf("chapterFileName(%q, no extension) = %q, want a refusal", title, got)
+			}
+		})
+	}
+	if got, err := chapterFileName(1, "Chapter 1", ""); err != nil || got != "01 - Chapter 1" {
+		t.Fatalf("got %q, %v", got, err)
+	}
+}
+
+// appearingPackager stands for another program (a sync client restoring an older package) creating a destination after
+// plan checked it absent: on its n-th file it writes a file at path, then tags like a Packager row.
+type appearingPackager struct {
+	calls  *int
+	at     int
+	path   string
+	inside string
+}
+
+func (a appearingPackager) Name() string { return "appearing" }
+
+func (a appearingPackager) Package(_ context.Context, file string, _ []encodeport.Chapter, _ encodeport.Tags) (string, error) {
+	*a.calls++
+	if *a.calls == a.at {
+		if err := os.WriteFile(a.path, []byte(a.inside), 0o600); err != nil {
+			return "", err
+		}
+	}
+	out := strings.TrimSuffix(file, filepath.Ext(file)) + ".packaged" + filepath.Ext(file)
+	return out, os.WriteFile(out, []byte("tagged"), 0o600)
+}
+
+func TestAFileThatAppearsAfterThePlanIsNeverOverwrittenOrRemoved(t *testing.T) {
+	// Files are written in order: opening credits (1), chapters (2, 3), closing credits (4), sample (5).
+	for name, at := range map[string]int{"the first file": 1, "a chapter mid-copy": 3, "the last file": 5} {
+		t.Run(name, func(t *testing.T) {
+			req := acxRequest(t)
+			pending, err := plan(req)
+			if err != nil {
+				t.Fatal(err)
+			}
+			late := filepath.Join(req.OutputDir, pending[at-1].Name)
+			req.Tags = encodeport.Tags{"title": "My Book"}
+			var calls int
+			req.Packagers = registryWith(appearingPackager{calls: &calls, at: at, path: late, inside: "the narrator's own"})
+			if err := os.MkdirAll(req.OutputDir, 0o755); err != nil {
+				t.Fatal(err)
+			}
+			_, err = Assemble(context.Background(), req)
+			if !errors.Is(err, ErrDestinationExists) {
+				t.Fatalf("got %v, want ErrDestinationExists", err)
+			}
+			if !strings.Contains(err.Error(), pending[at-1].Name) {
+				t.Fatalf("the refusal does not name the file: %v", err)
+			}
+			body, readErr := os.ReadFile(late)
+			if readErr != nil || string(body) != "the narrator's own" {
+				t.Fatalf("the file that appeared was overwritten or removed: %q, %v", body, readErr)
+			}
+			// Everything this call wrote is gone; only the file that appeared is left.
+			if got := entriesOf(t, req.OutputDir); len(got) != 1 || got[0] != filepath.Base(late) {
+				t.Fatalf("the folder holds %v, want only %s", got, filepath.Base(late))
+			}
+		})
 	}
 }
