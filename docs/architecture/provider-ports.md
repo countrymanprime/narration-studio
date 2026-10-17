@@ -35,11 +35,11 @@ A Story Bible suggestion records the source it came from. The host's rows and Py
 
 | Source | Label | Icon | Runs | Assets | Available today |
 | --- | --- | --- | --- | --- | --- |
-| `rules` | Rules | `auto` | yes | none | not yet: it has no adapter |
-| `imported` | Imported file | `import` | no | none | not yet: it has no adapter |
+| `rules` | Rules | `auto` | yes | none | built: `internal/extractionport/rules` runs the sidecar's `suggest --source rules` |
+| `imported` | Imported file | `import` | no | none | built in the host only (`internal/extraction/importer`); a scan never runs it |
 | `local-model` | Local model | `globe` | yes | none | never on this build: "No local model is installed." |
-| `gliner` | GLiNER | `locate` | yes | `gliner` | not yet; "GLiNER is not downloaded." until its asset is installed |
-| `booknlp` | BookNLP | `dictionary` | yes | `booknlp-small`, `booknlp-big` | not yet; "BookNLP is not downloaded." until either asset is installed |
+| `gliner` | GLiNER | `locate` | yes | `gliner` | adapter built, not installable yet; "GLiNER is not downloaded." until its asset is installed |
+| `booknlp` | BookNLP | `dictionary` | yes | `booknlp-small`, `booknlp-big` | adapter built, not installable yet; "BookNLP is not downloaded." until either asset is installed |
 
 - **Runs** says whether the narrator can start the source from the Story Bible; an imported file arrives through the import dialog instead. The first row is the default.
 - **Assets** are the downloads a source runs from, any one of which is enough. `AvailableNow(name, installed)` checks them before asking the source itself.
@@ -100,3 +100,5 @@ The steps for adding an engine are in the docstring of `libs/python/narration_co
 - Python ports are `typing.Protocol`s with plain registries filled at import, not ABCs or entry-point plugins: existing classes and fakes fit as they are, and plugins would widen the trust boundary.
 
 The trust-boundary side (the engine and pronunciation-source checks before a sidecar starts) is row 4a of the [threat model](threat-model.md).
+
+The UI side of a port (the typed client, `usePort`, the fixtures and the contract kit every provider registers with) is in [UI state and the command journal](ui-state-and-journal.md). The extraction port's tiers and thresholds are in [extraction tiers](extraction-tiers.md).
