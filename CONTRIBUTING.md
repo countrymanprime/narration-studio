@@ -40,7 +40,7 @@ Details, including the Git hooks and CI, are in [CI and releases](docs/operation
 5. If your change alters what a page draws or how it is used, update that page's guide: see
    [UI PRs update the how-to guide](#ui-prs-update-the-how-to-guide).
 6. Record the reason for a choice in the document that describes the current state. An ADR is only for a decision that
-   reshapes the whole repo; there are two, and a pull request that adds one is unusual (`docs/adr/README.md`).
+   reshapes the whole repo; and a pull request that adds one is unusual (`docs/adr/README.md`).
 
 ## UI PRs update the how-to guide
 

@@ -65,7 +65,7 @@ This folder documents a local-first audiobook narration toolkit: how it is built
 
 | If you are recording ... | Put it in | Not in |
 | --- | --- | --- |
-| A decision that reshapes the whole repo (the language the app is written in, local models and tools over paid online ones); there are two, and a pull request that adds one is unusual | an ADR ([adr/](adr/README.md)) | |
+| A decision that reshapes the whole repo (the language the app is written in, local models and tools over paid online ones); a pull request that adds one is unusual | an ADR ([adr/](adr/README.md)) | |
 | A CI gate, test strategy or release-pipeline choice every contributor must follow | the how-to in [operations/](operations/) | an ADR |
 | What a page, dialog or control does, its copy, its shortcut | while it is being built: the PRD; once built: the [user guide](guides/using-the-app/README.md) page, and a test | an ADR |
 | A token value, size, colour or component look | [the design system](design/design-system.md) | an ADR |

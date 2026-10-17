@@ -2,7 +2,7 @@
 
 The rules the app's design shares, each with the document or code that makes it a rule and the question that tests a design against it. The two [ADRs](../adr/README.md) are the whole-repo decisions behind them; where this page and an ADR disagree, the ADR holds and this page is corrected.
 
-A design that breaks a principle for good is recorded in the document that describes the current state. It is an ADR only if it reverses one of the two ([when to write one](../adr/README.md#when-to-write-one)).
+A design that breaks a principle for good is recorded in the document that describes the current state. It is an ADR only if it reverses an existing ADR ([when to write one](../adr/README.md#when-to-write-one)).
 
 ## The principles
 

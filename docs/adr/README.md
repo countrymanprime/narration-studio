@@ -1,8 +1,8 @@
 # Architecture decision records (ADRs)
 
-An ADR records a decision that changed the whole shape of the app and would be expensive to undo: the language the app is written in, or the choice to use local models and tools so the app is free to run. It says why, so a later change, by a person or an agent, sees the reason before reversing it.
+An ADR records a decision that changed the whole shape of the app and would be expensive to undo: for example the language the app is written in, or the choice to use local models and tools so the app is free to run. It says why, so a later change, by a person or an agent, sees the reason before reversing it.
 
-There are two. That is the point: most things that feel like decisions are timing, convenience or standard practice, and those belong in the documents that describe how the app works.
+Few things qualify. That is the point: most things that feel like decisions are timing, convenience or standard practice, and those belong in the documents that describe how the app works.
 
 Most pull requests have no ADR. If one in ten does, that is unusual. If several open pull requests add ADRs, or their numbers clash, ADRs are being written for things that are not decisions of this size, and the work is being recorded in the wrong place.
 
@@ -67,4 +67,4 @@ What becomes easier, what becomes harder, and what it takes to override this dec
 
 ## History
 
-On 2026-10-17 the folder was rebuilt. The 375 earlier records were mostly page behaviour, token values, thresholds and process rules that had been filed as ADRs. Each rule that still holds now lives in the document that describes the current state (the user guide, the design system, the architecture pages, the data-files reference, a doc comment or a test). Two decisions were kept as ADRs. The old files remain in git history at commit `9be197f`, the last commit before this rebuild.
+On 2026-10-17 the folder was rebuilt. The 375 earlier records were mostly page behaviour, token values, thresholds and process rules that had been filed as ADRs. Each rule that still holds now lives in the document that describes the current state (the user guide, the design system, the architecture pages, the data-files reference, a doc comment or a test). The decisions that qualified were kept as ADRs and are listed in the index. The old files remain in git history at commit `9be197f`, the last commit before this rebuild.

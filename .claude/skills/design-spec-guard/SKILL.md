@@ -24,7 +24,7 @@ Also invoke mid-refactor if a diff is about to touch one of those files and you'
 2. Find the tests that pin what the change touches: the visual suite, the atlas and the aria snapshots (`.claude/rules/ui-visual-verification.md`), and the component's own Vitest file. A change those tests would fail is a contradiction even if no document names it.
 3. Read `docs/design/design-system.md#base-ui-wrappers` for how the primitives wrap Base UI. Widths, alignments, keys and looks are in the design system and the tests, not in ADRs.
 4. Compare the proposed change against what you just read. For each convention, test or ADR the change would contradict:
-   - If the change is **explicitly listed** in an approved plan file (the plan the user is executing), it's allowed — the plan itself is the record of an intentional change. Afterwards, update the design system, the user guide or the test to match. Supersede an ADR only if the change reverses one of the two.
+   - If the change is **explicitly listed** in an approved plan file (the plan the user is executing), it's allowed — the plan itself is the record of an intentional change. Afterwards, update the design system, the user guide or the test to match. Supersede an ADR only if the change reverses an existing ADR.
    - If it is **not** listed in an approved plan, stop and surface the conflict to the user before proceeding: name the document, test or ADR, quote the specific line it contradicts, and ask whether this is an intentional change or an accidental regression (in which case don't make the change).
 5. Never silently "fix" a change to match a recorded decision without telling the user — the point is visibility, not auto-correction.
 
