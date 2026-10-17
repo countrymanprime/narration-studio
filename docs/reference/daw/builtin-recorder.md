@@ -24,8 +24,19 @@ The recorder is part of the app, so it is always there and answering (`reachable
 
 `record`, `takes` and `cut_range` stay Experimental until the owner's microphone pass on [#510](https://github.com/countrymanprime/narration-utils/issues/510). Nothing it declares is destructive. The edit list is what the recorder plays and exports past; the export reading takes through it is not part of this change, so a cut is stored and shown on the take but not yet applied to an exported file.
 
+## How the Booth records with it
+
+The Booth asks the same two bindings it asks for a DAW, `ReadAloudRecordStart` and `ReadAloudRecordStop`; when the project's engine is the built-in recorder (`recordsInApp`, `apps/desktop/bindings_booth_record.go`) they go to the recorder and none of REAPER's preconditions apply (no bridge, no linked or armed track).
+
+- **Start** goes through the `record` role (`builtin.RecordStart`), so a refusal is the capability's own sentence: "Experimental: switched off in Settings." or "Turned off in Settings." It then picks the microphone: the global `Teleprompter.input_device` row (what Levels saves), else the project's `Recording.device` row, else the only device listed. Several listed and none chosen is "Choose the microphone in Levels, then press Record."; none is "No microphone found." with the sidecar's reason. The device is remembered as `Recording.device`. The chapter id is not used: the take is a file, assigned to a line afterwards (`RecorderSetTakeLine`).
+- **Stop** is not gated by the capability report, so turning Experimental off during a take cannot strand it. With no take recording it answers `not_recording`.
+- **A punch** (`ReadAloudRecordStartAt`) answers the `punch` capability's own refusal, "Not available with the built-in recorder yet."
+- **The transport** (`daw_transport_changed`, `DawProjectState`) reads the recorder, not a heartbeat: `recording` is true while a take records and not asked to stop, with no position, and the project state has no saved time and no unsaved changes. A take that ends by itself (the device failed, the disk filled) therefore ends the Booth's take too, and `recording:state` carries the recorder's sentence for why. Each state change of the recorder pushes both events at once.
+- The answers are pinned by `tests/fixtures/contracts/read-aloud-recordings-builtin.json`, `daw-transport-builtin-recording.json` and `daw-project-state-builtin-recording.json`.
+
 ## Checked
 
 - The conformance suite (`dawporttest.Run`) passes over a closed recorder and over none (`builtin_test.go`).
 - The host golden and the UI mock agree (`apps/ui/src/api/wireContracts.test.ts`), and the mock setup `builtin` matches the golden's levels and sentences (`apps/ui/src/fixtures/daw.test.ts`).
+- The Booth's start, stop, refusals and transport run over a fake engine (`bindings_booth_record_test.go`).
 - Not checked with a device: the recorder's own run with a microphone is the owner's pass.

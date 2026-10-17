@@ -1,6 +1,7 @@
 import type { DawCapabilities } from '../../../api/contracts/daw';
 import { dawConnectGuide, type DawConnectGuide } from '../../engine/dawConnectGuide';
 import type { OpenProject } from './recordCheck';
+import { recorderName, recordsInApp } from '../../../studio/dawNames';
 
 /** What the Booth's setup steps need from the host's bootstrap: whether the DAW's project file is linked, and the launcher's file. */
 export type RecordSetupFacts = {
@@ -19,7 +20,7 @@ export type RecordSetupFacts = {
  * wrong project; the narrator links the open one, or opens the linked one in the DAW.
  */
 export type RecordSetupPlan =
-  | { kind: 'turn-on'; dawName: string }
+  | { kind: 'turn-on'; dawName: string; inApp: boolean }
   | { kind: 'connect'; guide: DawConnectGuide; notAnswering: boolean; linked: boolean; launcherPath: string }
   | { kind: 'other-project'; dawName: string };
 
@@ -27,13 +28,13 @@ export function recordSetupFor(capabilities: DawCapabilities, facts: RecordSetup
   const record = capabilities.capabilities.record;
   // What stops Record altogether comes first; a wrong project is only the problem once Record could start.
   if (record?.available && facts.openProject === 'different') {
-    return { kind: 'other-project', dawName: capabilities.daw === 'none' ? 'the DAW' : capabilities.daw };
+    return { kind: 'other-project', dawName: recorderName(capabilities.daw) };
   }
   if (!record || record.available) return null;
   switch (record.reason) {
     case 'experimental_off':
     case 'turned_off':
-      return { kind: 'turn-on', dawName: capabilities.daw === 'none' ? 'the DAW' : capabilities.daw };
+      return { kind: 'turn-on', dawName: recorderName(capabilities.daw), inApp: recordsInApp(capabilities.daw) };
     case 'standalone':
     case 'not_running': {
       const guide = dawConnectGuide(capabilities.daw);

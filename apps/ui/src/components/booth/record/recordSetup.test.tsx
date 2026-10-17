@@ -58,7 +58,7 @@ describe('recordSetupFor', () => {
   });
 
   it('offers the one-click turn-on for the experimental switch and for record turned off', () => {
-    expect(recordSetupFor(recordRefused('experimental_off'), LINKED)).toEqual({ kind: 'turn-on', dawName: 'REAPER' });
+    expect(recordSetupFor(recordRefused('experimental_off'), LINKED)).toEqual({ kind: 'turn-on', dawName: 'REAPER', inApp: false });
     expect(recordSetupFor(recordRefused('turned_off'), LINKED)).toMatchObject({ kind: 'turn-on' });
   });
 

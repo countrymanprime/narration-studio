@@ -415,3 +415,60 @@ test('row 39: with no manuscript the Booth asks for one', async ({ page }) => {
   await settlePage(page);
   await expect(page.getByRole('button', { name: /import/i }).first()).toBeVisible();
 });
+
+// The built-in recorder, rows 43 to 47: the same Record and Stop, answered by the app's own recorder (the mock's `?mockEngine=builtin`).
+const BUILTIN = '?mockEngine=builtin&mockRecordCapabilityOn=1';
+
+test('row 43: with the built-in recorder Space starts a take and Stop ends it, with no track and no DAW', async ({ page }) => {
+  await open(page, BUILTIN);
+  await page.keyboard.press('Space');
+  await expect(stop(page)).toBeVisible();
+  await expect(page.getByText('REC', { exact: true })).toBeVisible();
+  await stop(page).click();
+  await expect(record(page)).toBeEnabled();
+  await expect(page.getByText('REC', { exact: true })).toHaveCount(0);
+});
+
+test('row 44: the built-in recorder with Experimental off says so, and Turn on Record makes Record ready', async ({ page }) => {
+  await open(page, '?mockEngine=builtin', false);
+  await expect(record(page)).toBeDisabled();
+  await expect(page.locator('#brec-why')).toHaveText('Experimental: switched off in Settings.');
+  await page.locator('#brec-setup').getByRole('heading', { name: 'Recording in the built-in recorder is experimental' }).waitFor();
+  await page.locator('#brec-setup').getByRole('button', { name: 'Turn on Record' }).click();
+  await expect(record(page)).toBeEnabled();
+});
+
+test('row 45: with several microphones and none chosen, none listed, or one that will not open, Record says why and records nothing', async ({ page }) => {
+  await open(page, `${BUILTIN}&mockRecorder=empty`);
+  await record(page).click();
+  await expect(page.getByText('Choose the microphone in Levels, then press Record.').first()).toBeVisible();
+  await expect(stop(page)).toHaveCount(0);
+
+  await open(page, `${BUILTIN}&mockRecorder=no-devices`);
+  await record(page).click();
+  await expect(page.getByText(/No microphone found/).first()).toBeVisible();
+  await expect(stop(page)).toHaveCount(0);
+
+  await open(page, `${BUILTIN}&mockRecorder=start-fails`);
+  await record(page).click();
+  await expect(page.getByText(/the device is in use by another application/).first()).toBeVisible();
+  await expect(stop(page)).toHaveCount(0);
+});
+
+test("row 46: a take that ends by itself ends the Booth's take, says the audio is kept, and Record is ready again", async ({ page }) => {
+  await take(page, BUILTIN);
+  await page.waitForTimeout(600);
+  await page.evaluate(() => window.__NARRATION_MOCK_DAW__?.stopInDaw());
+  await expect(page.getByText(/kept in the project's Recordings folder/).first()).toBeVisible();
+  await expect(record(page)).toBeEnabled();
+});
+
+test('row 47: leaving during a built-in take asks, and Stop and leave stops the take and goes', async ({ page }) => {
+  await take(page, BUILTIN);
+  await page.keyboard.press('Escape');
+  const question = page.getByRole('alertdialog', { name: 'Stop recording?' });
+  await expect(question).toBeVisible();
+  await expect(question).toContainText('The built-in recorder is recording');
+  await question.getByRole('button', { name: /^Stop and leave/ }).click();
+  expect(await page.evaluate(() => window.__NARRATION_MOCK_DAW__?.state().recording)).toBe(false);
+});

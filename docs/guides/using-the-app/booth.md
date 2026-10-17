@@ -91,6 +91,41 @@ When the reason is one you can fix from the Booth, a box above the footer shows 
   A message is never drawn over these boxes: it rises above them. The same sentence is one message however often it is asked
   for, and a message about REAPER starting goes as soon as Record is ready.
 
+### Recording without a DAW
+
+A project can record with the built-in recorder instead of a DAW: choose it in [Settings](settings.md) > Recording. It records on
+Windows only. The setup chip reads **Built-in**, Record needs no track or DAW project, and each take is saved as a new audio file
+in the project's `Recordings` folder (`Take 001.wav`, `Take 002.wav`, …); an earlier take is never overwritten.
+
+![Booth - a project that records with the built-in recorder: the chip reads Built-in, and Record is ready with no track to link](../../images/ui/booth-builtin-setup.webp)
+
+- **Experimental.** Like recording in a DAW, it starts switched off until it has been checked on your microphone. The box above
+  the footer says so and **Turn on Record** turns it on, the same switch as in Settings > DAW Integration > Record.
+
+  ![Booth - the built-in recorder with Experimental actions off: Record disabled with the reason, and the Recording in the built-in recorder is experimental box above it with Turn on Record](../../images/ui/booth-builtin-refusal.webp)
+
+- **The microphone.** The take records on the microphone you chose in **Levels**. With none chosen it uses the one the project
+  last recorded with, then the only one the computer lists. With several listed and none chosen, Record says **Choose the
+  microphone in Levels, then press Record**; with none listed it says **No microphone found** and why. A microphone Windows
+  will not let the app open (another program has it, or the privacy setting blocks it) is refused in the recorder's own words and
+  nothing records.
+- **A take.** Record becomes **Stop** and the **REC** pill shows, as with a DAW.
+
+  ![Booth - a take recording with the built-in recorder: Stop in place of Record and the REC pill beside the Built-in chip](../../images/ui/booth-builtin-listening.webp)
+
+- **A take that ends by itself.** If the microphone is unplugged or the disk fills, the take stops and a message says why and
+  that the audio before it is kept in the `Recordings` folder (a take cut short keeps a `.partial` name and is listed as
+  unfinished). Record is ready for the next take.
+
+  ![Booth - the built-in recorder's take ended by itself: Record is back and a message says the audio before it is kept in the Recordings folder](../../images/ui/booth-builtin-take-ended.webp)
+
+- **Leaving.** Leaving the Booth during a take asks "Stop recording?", as with a DAW. Reloading the window during a take picks the
+  take up again, and Stop still stops it. Turning Experimental off during a take does not stop the take, and Stop still works.
+- **Not yet.** **R** (punch and roll) is not available with the built-in recorder, and the footer's Levels cannot set an audio
+  interface's input gain: set it in the interface's own control panel.
+- **Where the takes go.** The Booth does not link a take to its chapter. Assign it in the native takes of the
+  [chapter view of Proof](proof.md#the-chapter-view), which is also where the keeper is chosen.
+
 If you stop a take in the DAW itself, the Booth sees it and says so, and Record is ready for the next take. If REAPER stops
 answering mid-take, the Booth says it can't tell whether the take is still running, and to check REAPER, instead of keeping a REC
 pill it cannot vouch for. Another project opened in REAPER mid-take does not stop the take; the footer says what changed.

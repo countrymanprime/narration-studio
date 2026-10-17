@@ -170,8 +170,9 @@ function TurnOn({
     <NoticeFrame title={`Recording in ${plan.dawName} is experimental`}>
       {/* The explanation gives way first in a short window: the heading, the buttons and what the notice waits for stay. */}
       <p className="text-[var(--text-muted)] [@media(max-height:760px)]:hidden">
-        It is built and tested in this app, but not yet checked in every {plan.dawName} setup, so it starts switched off. Turn it on to record this chapter; the
-        take goes on the chapter&apos;s own track, after what is already there.
+        {plan.inApp
+          ? "It is built and tested in this app, but not yet checked on every microphone and computer, so it starts switched off. Turn it on to record; the take is saved in the project's Recordings folder."
+          : `It is built and tested in this app, but not yet checked in every ${plan.dawName} setup, so it starts switched off. Turn it on to record this chapter; the take goes on the chapter's own track, after what is already there.`}
       </p>
       <div className="flex flex-wrap gap-2">
         <Button onClick={() => void turnOn()} pending={busy}>

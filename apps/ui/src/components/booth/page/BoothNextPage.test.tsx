@@ -12,7 +12,6 @@ import type { DawCapabilities, DawResult } from '../../../api/contracts/daw';
 import type { ManuscriptChapter } from '../../../api/contracts/manuscript';
 import type { Mark, Marks } from '../../../api/contracts/marks';
 import type { PickupItem, PickupList } from '../../../api/contracts/pickups';
-import type { RecorderState } from '../../../api/contracts/recording';
 import { DAW_SETUPS, type DawSetupId } from '../../../fixtures/daw';
 import { createOverlayService } from '../../../overlay/overlayService';
 import { createMockDawClient, type DawClient } from '../../../ports/daw';
@@ -257,35 +256,32 @@ describe('every-way-out-asks-while-recording', () => {
 });
 
 describe('a-built-in-take-is-guarded-too', () => {
-  const recorder = () => {
-    let phase: RecorderState['phase'] = 'idle';
-    const state = () => ({ phase, device: 'USB Mic', message: '', engine: 'builtin' }) as RecorderState;
-    return {
-      recorderState: vi.fn(async () => state()),
-      recorderStart: vi.fn(async () => {
-        phase = 'recording';
-        return state();
-      }),
-      recorderStop: vi.fn(async () => {
-        phase = 'idle';
-        return state();
-      }),
-    };
-  };
-
+  // The built-in recorder records through the DAW port like any engine (the host answers recordStart with the recorder behind it), so the
+  // page asks the port once and needs no track; what the recorder does with a microphone is the host's tests'.
   it('records with the built-in recorder; leaving asks, and unmounting without the answer does not stop the take', async () => {
-    const r = recorder();
-    const page = renderPage({ setup: 'builtin', api: r });
+    const page = renderPage({ setup: 'builtin' });
     await ready();
     await space();
-    await waitFor(() => expect(r.recorderStart).toHaveBeenCalledWith('USB Mic'));
     await waitFor(() => expect(screen.getByRole('button', { name: /^Stop$/ })).toBeTruthy());
+    expect(page.daw.recordStart).toHaveBeenCalledTimes(1);
+    expect(page.daw.recordStart).toHaveBeenCalledWith('c1');
     await press('Escape');
     expect(page.dialog()?.spec.body).toBe('The built-in recorder is recording. Leaving the Booth stops it.');
     await act(async () => page.dialog()!.answer(false));
     page.view.unmount();
     await settle();
-    expect(r.recorderStop).not.toHaveBeenCalled();
+    expect(page.daw.recordStop).not.toHaveBeenCalled();
+  });
+
+  it('"Stop and leave" stops the take through the port before the Booth goes', async () => {
+    const page = renderPage({ setup: 'builtin' });
+    await ready();
+    await space();
+    await waitFor(() => expect(screen.getByRole('button', { name: /^Stop$/ })).toBeTruthy());
+    await press('Escape');
+    await act(async () => page.dialog()!.answer(true));
+    await waitFor(() => expect(page.daw.recordStop).toHaveBeenCalledTimes(1));
+    await waitFor(() => expect(page.navigate).toHaveBeenCalled());
   });
 });
 
