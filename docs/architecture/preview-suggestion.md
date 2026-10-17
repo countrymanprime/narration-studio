@@ -55,7 +55,7 @@ The narrator may pin one candidate to keep it, and move its edges by one paragra
 
 - **One pin per book** (`preview.PinStore`, `store.go`): setting a new pin replaces whatever was pinned before, in
   any chapter. The sidecar is `<project>/narration-utils/preview-pin.json`, an atomic write (temp file, rename)
-  like `chaptersync` and `prepmarkup`'s own sidecars, and disposable like a reader bookmark - a file that cannot be
+  like `chaptersync`'s own sidecar, and disposable like a reader bookmark - a file that cannot be
   read is treated as no pin, never surfaced as an error.
 - **Staleness** (`CheckStale`, `pin.go`): the pin stores each pinned paragraph's text at pin (or last adjustment)
   time; a read compares it against the paragraph's current text. `text_changed` (still recomputes evidence, marked
