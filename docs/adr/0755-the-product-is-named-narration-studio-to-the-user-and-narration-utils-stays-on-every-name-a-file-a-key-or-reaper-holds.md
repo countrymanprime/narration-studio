@@ -1,6 +1,6 @@
 # 0755. The product is named Narration Studio to the user, and `narration-utils` stays on every name a file, a key or REAPER holds
 
-**Status:** Accepted (owner ruling D101, 2026-09-29; stream N-F3 on [#509](https://github.com/countrymanprime/narration-utils/issues/509))
+**Status:** Accepted; its REAPER launcher name and default projects folder are superseded by [ADR 0865](0865-the-narrationutils-names-are-phased-out-by-shipping-narrationstudio-names-beside-them-and-retiring-the-old-ones-later.md) (owner ruling D101, 2026-09-29; stream N-F3 on [#509](https://github.com/countrymanprime/narration-utils/issues/509))
 **Date:** 2026-09-29
 
 ## Context

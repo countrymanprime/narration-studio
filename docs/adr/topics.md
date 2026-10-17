@@ -261,6 +261,7 @@ First-use downloads, the asset registry, models and licences, and what ships ins
 | [0841](0841-a-recording-check-lists-the-approved-whisper-models-as-its-engines-and-a-start-may-name-one-to-run-alone.md) | A recording check lists the approved Whisper models as its engines, and a start may name one to run alone | Proposed |
 | [0843](0843-the-status-report-preview-is-the-hosts-own-document-built-from-the-model-the-export-writes.md) | The status report preview is the host's own document, built from the model the export writes | Proposed |
 | [0864](0864-a-long-recording-is-checked-in-overlapping-chunks-by-parallel-whisper-processes-and-whisper-word-scores-choose-the-passages-a-larger-model-looks-at-again.md) | A long recording is checked in overlapping chunks by parallel Whisper processes, and Whisper's word scores choose the passages a larger model looks at again | Proposed |
+| [0865](0865-the-narrationutils-names-are-phased-out-by-shipping-narrationstudio-names-beside-them-and-retiring-the-old-ones-later.md) | The `NarrationUtils` names are phased out: `NarrationStudio` names ship beside them, and the old ones are retired later | Accepted |
 
 <a id="mastering-delivery-and-production"></a>
 
