@@ -20,7 +20,7 @@ voice-following teleprompter; no public implementation, but its documented
 behavior validates this shape): keep a sliding window of upcoming manuscript
 words (current paragraph plus the next), fuzzy-match incoming recognized
 words against that window using the same word-diff primitive already used
-offline in `InlineDiffRow.tsx` / `compare.py`, and:
+offline in `sidecars/transcript-compare/core/compare.py`, and:
 
 1. Match nearby in the window → advance the cursor, extend the window.
 2. No match for a short debounce → pause (status → "Waiting…"), hold the last
@@ -427,8 +427,8 @@ redirects here keeping its query and hash. What the narrator sees and does on it
   takes no argument: the narrow width and always-on-top are fixed in the host, a second Enter keeps the first saved
   bounds, an Exit with nothing saved does nothing, and the narrowed window is clamped on-screen when the screen it was
   on is gone (`bindings_companion_test.go`).
-- **The highlight.** The current word is the `Cursor` kind of `Highlight`. The text does not reuse `ParagraphView`,
-  which renders character-offset annotations, not words
+- **The highlight.** The current word is the `Cursor` kind of `Highlight`. The text does not reuse the Script page's `Para`
+  (`components/script/page/reader/Para.tsx`), which renders character-offset layers, not words
   ([ADR 0024](../adr/0024-teleprompter-highlight-follows-the-sidecars-spans.md)).
 - **Mock mode.** In the browser mock, Start replays a position stream recorded from the real tracker
   (`spikes/record_mock_stream.py`), and `?mockTeleprompter=listening|waiting|done|flagged|ended` boots part-way through

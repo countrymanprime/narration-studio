@@ -21,10 +21,11 @@ click, and it is registered as the `dictionary` provider in the one asset/provid
    ([codebase map](codebase-map.md)'s standing "no Python server" rule). `Host.SystemLookup`
    (`apps/desktop/dictionarylookup.go`) answers `asset_required` (never downloads on its own) or `ok`; measured p95
    is 1.0-1.5ms on the real release, well under the 250ms budget.
-3. "Look up" appears in `SelectionMenu.tsx` for a one-word selection only (the host's own `Normalize` rule). The
-   answer opens a `SlideOver` ("Look up: <word>") in `apps/ui/src/components/manuscript/WordLookup.tsx`: every part of
-   speech, numbered definitions, examples, synonyms and antonyms, all rendered as plain text (never as markup — the
-   dataset is data, not HTML), with the CC BY 4.0 attribution under every answer, found or not.
+3. "Look up" is in the Script page's selection toolbar (`SelectionTool.tsx`) and context menu. For a single word that no
+   Story Bible entry names, `lookupTarget` sends the narrator to the rail's Words tab (`rail/words/WordsTab.tsx`). With
+   "Local dictionary" chosen as the definition source, `DefinitionBlock.tsx` shows each part of speech with its first
+   definition, rendered as plain text (never as markup — the dataset is data, not HTML), and the dictionary's attribution
+   (CC BY 4.0) under the entries.
 4. `asset_required` opens the standard first-use question; a damaged index (failed its own check) is asked as "Repair
    the dictionary?" instead, still never downloading before the narrator's click. A successful download answers the
    lookup that asked for it.
@@ -32,8 +33,7 @@ click, and it is registered as the `dictionary` provider in the one asset/provid
 ## Tests
 
 Go: `apps/desktop/internal/dictionary` package tests (index build, lookup latency, a corrupted index reported as
-damaged, not silently empty). Vitest: `WordLookup.test.tsx` (found, not-found, not-installed, damaged, and the
-CC BY credit on every branch). Visual: `script/word-lookup-definition`, `-not-found`, `-not-installed`, `-damaged` and
-`selection-popup`, reviewed at desktop, small-desktop and tablet (the suite has no phone viewport,
+damaged, not silently empty). Vitest: `WordsTab.test.tsx` (the local dictionary's definition with its attribution,
+and the not-installed notice with the download prompt). Visual: `script/rail-words` and `script/selection-tools`, reviewed at desktop, small-desktop and tablet (the suite has no phone viewport,
 [ADR 0037](../adr/0037-visual-suite-captures-no-phone-viewport.md)); aria snapshots pin the panel and the question's
 role tree.

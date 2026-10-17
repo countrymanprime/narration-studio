@@ -33,7 +33,7 @@ starts (`Pronounce`'s `CheckPronounce`).
   Play button, calling `Host.GuidePronounce` (which asks `pronounce_source()` for exactly the named source and raises
   when it has nothing for the name, unlike the automatic fallback) and marking the result `chosen: true` so a rebuild
   never silently replaces it (`merge_locked`). The narrator's own typed pronunciation
-  (`PronunciationWork`, [ADR 0346](../adr/0346-a-pronunciation-carries-a-status-and-note-and-the-narrators-own-sits-beside-the-dictionarys-as-the-alternate.md))
+  ([ADR 0346](../adr/0346-a-pronunciation-carries-a-status-and-note-and-the-narrators-own-sits-beside-the-dictionarys-as-the-alternate.md))
   and the kept alternate work the same way for an alias as for the entity — `GuidePronounce`,
   `GuidePronounceUser`, `GuidePronunciationUseAlternate` and `GuidePronunciationSetStatus` each take an
   optional alias index.
@@ -64,6 +64,5 @@ Python: `sidecars/manuscript-guide/tests/test_providers.py` (the fallback order,
 first and ignored when unregistered, each source's conformance suite) and `test_pronunciation_preview.py` (chosen vs.
 unchosen, the pronounce-then-rebuild-then-preview round trip). Go: `apps/desktop/internal/guide/service_test.go` (the
 default-source argument reaches build/alias-edit/create and only those) and `preview_test.go` (the cache key). Vitest:
-`GuideDetail.pronunciation.test.tsx`, `GuideDetail.aliasPronunciation.test.tsx` and
-`GuideDetail.pronunciationWork.test.tsx`. Visual: `storybible/entry-pronunciation-missing`,
-`entry-pronunciation-work`, `entry-pronunciation-online` and `alias-pronunciation-editing`.
+`GuideDetail.pronunciation.test.tsx` and `GuideDetail.aliasPronunciation.test.tsx`. Visual: `storybible/entry-pronunciation-missing`,
+`entry-pronunciation-online` and `alias-pronunciation-editing`.
