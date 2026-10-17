@@ -51,7 +51,7 @@ Only the owner or the coordinator edits these. The last three rows are the Studi
 | `WEEKLY_RESET` | from `resetsAt` | The next weekly reset. The coordinator fills it from the first `seven_day` `resetsAt` it sees; until then, 22:00 America/New_York (D45) |
 | `SN_HOLD` | off | Stops launching Studio Next slices only (D-5). Merges, fixes and other work continue |
 | `SN_DAILY_CAP` | 12 | Slices launched per UTC day (D-4). A resume or a fixer for a launched slice doesn't count. At the cap, nothing new launches until the next UTC day |
-| Session cap per slice | 1 + 1 resume + 1 fixer | D-6. A `spike` slice, or an `adr` slice already open, gets 1 session. A slice that uses its cap is relabelled `blocked` and re-groomed; it was too big |
+| Session cap per slice | 1 + 1 resume + 1 fixer | D-6. A `spike` slice gets 1 session. A slice that uses its cap is relabelled `blocked` and re-groomed; it was too big |
 
 ## Usage and autoscaling
 
@@ -132,7 +132,7 @@ A lane is a territory of files. Two workers may share a lane only when their sli
 | **D: documents** | PRDs, steady-state docs, ADR bookkeeping, PRD close-outs | Sonnet for PRDs, Haiku for bookkeeping |
 | **X: exclusive** | Refactors of shared files (see [Serial points](#serial-points)) | Opus |
 
-A lane-X stream runs with no other stream that touches the same files. Lanes have no ADR blocks: an ADR takes the next free number (see [Serial points](#serial-points)).
+A lane-X stream runs with no other stream that touches the same files. Lanes have no ADR blocks: a slice does not write an ADR.
 
 ## Serial points
 
@@ -140,8 +140,7 @@ A lane-X stream runs with no other stream that touches the same files. Lanes hav
   - It lives in `apps/desktop/app.go`, `app_test.go` and `apps/ui/src/hostApi.ts`, and the bindings `Host.*` are regenerated from it.
   - A PR that adds a binding takes `main`'s value + 1.
   - On a collision, whoever merges `main` in second takes the higher value + 1 and regenerates. Use the bump script once lane X has added it.
-- **ADR numbers:** the next free number in `docs/adr/`. Check it again at merge time, not only at write time; D52 on the retired #509 records an earlier collision.
-- **The ADR index and PRD index rows:** add-only. The coordinator resolves conflicts in them mechanically.
+- **The PRD index rows:** add-only. The coordinator resolves conflicts in them mechanically.
 - **Append-only rows:** `config/defaults.json`, `internal/settings/store.go` field rows, the `SettingsPage.tsx` panel list, `internal/bridge/wire.go` event rows.
 - **One at a time, train-wide:**
   - the `AppShell.tsx` navigation or header;
@@ -158,7 +157,7 @@ The [Studio Next series](../../../docs/prds/studio-next-rebuild.prd.md) is deliv
 - **The header.** A fenced `slice-meta` block with `id`, `lane`, `kind`, `depends`, `owns` and `serial`, checked by `scripts/dev/slice-lint.mjs`. The issue form is `.github/ISSUE_TEMPLATE/slice.yml`. The coordinator reads the header and the labels, never the code.
 - **Labels:** `slice`, `lane:<L>`, `prd:<code>`, and one of `ready`, `blocked` or `owner-decision`.
 - **Ready.** A slice is ready when every issue in its `depends` is closed and no other slice in progress has an overlapping `owns`. A slice waiting on an unanswered `owner-decision` is not ready.
-- **Slice kinds.** The groomer cuts no new `adr` slices: an ADR is written by the slice that settles the decision, numbered per [Serial points](#serial-points). An `adr` slice already open runs as groomed.
+- **Slice kinds.** The groomer cuts no `adr` slices. An open product question is answered in the PRD's decisions log or put to the owner on the decisions register; the whole-repo decisions are the eight in `docs/adr/` and a slice does not add one.
 - **A spike slice** writes a research note in `docs/research/` only when its findings outlast the slice. The note carries a date, the question, the method and the findings, and no slice, stream or lane header; the slice issue links the note, not the other way round. Findings that only the slice needs go in the slice issue.
 - **An audit or checklist for one PR** is a comment on that PR or its issue, not a file.
 - **A swap slice** replaces its page and deletes the old page and what only it used, in the same PR with no flag (D98). Its `owns` lists the files it deletes.
@@ -254,7 +253,7 @@ The Routine fires every 30 minutes (two hourly Routines, 30 minutes apart; D50).
    - an independent intent review passed on the current head ([Safety net](#safety-net)).
 
    Merge with `squash` and `expectedHeadSha`, then delete the branch. Don't update the other bottom PRs' branches after a merge (D73); only a PR that no longer merges cleanly gets `main` merged in.
-   - **A conflict:** start one **fixer**. Use Sonnet for mechanical files (`hostAPIVersion`, ADR or PRD index rows, status cells, regenerated `Host.*`) and Opus otherwise.
+   - **A conflict:** start one **fixer**. Use Sonnet for mechanical files (`hostAPIVersion`, PRD index rows, status cells, regenerated `Host.*`) and Opus otherwise.
    - **A merge turns `main` red:** tick `HOLD`, start an Opus fixer aimed at `main`, and log it.
    - **A merge just unblocked other phases (D62, owner-directed):** don't wait for the next scheduled Routine firing to act on it. The moment a merge lands, re-check every PRD whose `Depends` named the phase that just completed, and if step 5 below would now add something to the ready list, run step 5 immediately, in the same pass. A phase sitting ready while nothing launches until the next tick is exactly the latency this rule removes.
 5. **Launch.** Skip this step on `HOLD`, `HOLD-UNTIL-RESET`, AMBER-5H before its `resetsAt`, or when running ≥ `TARGET`.

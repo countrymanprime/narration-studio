@@ -34,7 +34,7 @@ This folder documents a local-first audiobook narration toolkit: how it is built
 
 1. Start with the [roadmap](roadmap.md).
 1. For a screenshot walkthrough of the app itself, see [Using the app](guides/using-the-app/README.md).
-1. Before changing anything in `apps/ui/src/components/primitives/`, `apps/ui/src/styles.css`, or a behavior an ADR names, read the [ADR index](adr/README.md) and the [design system reference](design/design-system.md).
+1. Before changing anything in `apps/ui/src/components/primitives/` or `apps/ui/src/styles.css`, read the [design system reference](design/design-system.md).
 1. Before planning a feature or choosing between designs, read the [design principles](architecture/principles.md) the ADRs add up to.
 1. Read the [findings contract](architecture/findings-contract.md) before adding any analyzer or dashboard action, and the [stage recommendations signal contract](architecture/stage-recommendations.md) before building a signal that suggests a chapter's next stage.
 1. Use the workflow documents to understand how utilities combine: [manuscript/editorial](workflows/manuscript-and-editorial-review.md), [recording/comping](workflows/recording-and-comping.md), [character continuity](workflows/character-continuity.md), [technical QC/handoff](workflows/technical-qc-and-handoff.md), and [chapter stage progression](workflows/chapter-stage-progression.md).
@@ -65,8 +65,8 @@ This folder documents a local-first audiobook narration toolkit: how it is built
 
 | If you are recording ... | Put it in | Not in |
 | --- | --- | --- |
-| A choice that changes the structure, a dependency, an interface between parts, a platform, a persistence strategy or a quality attribute, and is costly to reverse | an ADR ([adr/](adr/README.md)) | |
-| A CI gate, test strategy or release-pipeline choice every contributor must follow | an ADR, plus the how-to in [operations/](operations/) | |
+| A decision that reshapes the whole repo (the host language, the platform, the process model, the persistence strategy, the UI stack); there are eight, and a pull request that adds one is unusual | an ADR ([adr/](adr/README.md)) | |
+| A CI gate, test strategy or release-pipeline choice every contributor must follow | the how-to in [operations/](operations/) | an ADR |
 | What a page, dialog or control does, its copy, its shortcut | while it is being built: the PRD; once built: the [user guide](guides/using-the-app/README.md) page, and a test | an ADR |
 | A token value, size, colour or component look | [the design system](design/design-system.md) | an ADR |
 | A threshold, default, field, error code or one function's rule | a doc comment and a test beside the code; a reference page if another component or a user depends on it | an ADR |

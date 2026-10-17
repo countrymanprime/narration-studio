@@ -8,8 +8,8 @@ It never edits audio or text automatically; see the [product boundary](docs/road
 - Check the [documentation index](docs/README.md) and the [roadmap](docs/roadmap.md).
 - Open an issue first for anything beyond a small fix, using the bug or feature form.
   [Tracking work on GitHub](docs/operations/github-workflow.md) explains labels, milestones, and the project board.
-- If your change touches the UI primitives, `styles.css`, or a behaviour an ADR names, read the
-  [ADR index](docs/adr/README.md) first.
+- If your change touches the UI primitives or `styles.css`, read the
+  [design system](docs/design/design-system.md) first, and skim the [ADRs](docs/adr/README.md).
 
 ## Setting up
 
@@ -36,8 +36,8 @@ Details, including the Git hooks and CI, are in [CI and releases](docs/operation
    [threat model](docs/architecture/threat-model.md).
 5. If your change alters what a page draws or how it is used, update that page's guide: see
    [UI PRs update the how-to guide](#ui-prs-update-the-how-to-guide).
-6. If you settled a decision that changes the structure, a dependency, an interface between parts or a platform and is
-   costly to reverse, record it as an ADR in `docs/adr/`.
+6. Record the reason for a choice in the document that describes the current state. An ADR is only for a decision that
+   reshapes the whole repo; there are eight, and a pull request that adds one is unusual (`docs/adr/README.md`).
 
 ## UI PRs update the how-to guide
 
@@ -76,7 +76,7 @@ images the repository keeps, and a pull request does not carry a set of its own:
 
 ## Licensing of contributions
 
-The project is licensed under AGPL-3.0-or-later ([ADR 0039](docs/adr/0039-the-project-is-licensed-agpl-3-or-later.md)).
+The project is licensed under AGPL-3.0-or-later (see `LICENSE`).
 By opening a pull request you agree that your contribution is licensed under the same terms. There is no
 contributor license agreement.
 

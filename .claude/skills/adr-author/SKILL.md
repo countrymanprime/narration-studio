@@ -1,48 +1,28 @@
 ---
 name: adr-author
-description: Scaffolds a new numbered ADR for an architecturally significant decision from the repo's template and handles the bookkeeping when a new decision supersedes an old one.
+description: Decide whether a change needs an ADR (almost never) and, if the owner agrees it does, write or supersede one. Load before creating any file in docs/adr/.
 ---
 
 # adr-author
 
-## When to use this
+## Start by assuming there is no ADR
 
-When an architecturally significant decision has just been made and applied to the code (a plan was approved and executed, or the user explicitly asked to record a decision). Significant means reversing it would restructure code across modules, or change a dependency, an interface between parts, a platform, a persistence strategy, a quality attribute or a construction technique every contributor follows (a CI gate, a test strategy, the release pipeline). The owner's examples: Go over Rust because Rust toolchain downloads made builds slow; pinning the Wails v3 beta because v3 has features v2 lacks.
+`docs/adr/` holds eight decisions that reshaped the whole repo: the host language and shell, the platform, the process model, the DAW port, typed boundaries, local-first consent, files-beside-the-project storage and the UI stack. Of ten pull requests, one adding an ADR is unusual; two open pull requests that both add one, or whose numbers clash, mean ADRs are being written for things that are not decisions of this size.
 
-If you cannot fill the template's **Significance** line, do not write an ADR. Record the decision where `docs/adr/README.md`, "When to write an ADR", sends it:
+A new page, control, setting, threshold, token, sidecar mode, asset, gate, workflow or refactor is **not** an ADR. `docs/adr/README.md`, "When to write one", has the table of where each belongs. Record it there, with a test, and stop.
 
-- What a page, dialog or control does, its copy, its shortcut: the PRD while it is being built, then the user guide page, plus a test.
-- A token value, size, colour or component look: `docs/design/design-system.md`.
-- A file the app writes and reads back: `docs/reference/data-files.md`.
-- A threshold, default, field, error code or one function's rule: a doc comment and a test beside the code.
-- The docs workflow, the agent train, repo housekeeping: `CONTRIBUTING.md`, `docs/operations/`, or `.claude/`.
+## The test
 
-Do not use this for a decision that's only proposed/being discussed — write it after the code change lands, not before. Proposals belong in a PRD.
+Can you finish this sentence about something that is not already in the eight? "Reversing this means rebuilding ___ across the whole repo." If the blank is a page, a package or a feature, it is not an ADR. If it is the language of the host, a platform, the database, the UI framework or the process model, it is.
 
-## In an agent-train worker stream
+If it passes, **ask the owner before writing**. State the sentence and the candidate. Do not open a Proposed ADR to get an answer: an ADR is written after the code lands, never as a proposal. Proposals belong in a PRD.
 
-An open product question in a PRD is answered in the PRD's Decisions Log (the PRD's recommendation, marked as defaulted). Write a Proposed ADR only when the question is architecturally significant; then comment on the decisions register [#993](https://github.com/countrymanprime/narration-utils/issues/993) so the owner can accept or change it. The Decision section still states what the code does, not what is hoped.
+## Writing one (with the owner's agreement)
 
-## Creating a new ADR
+1. Read `docs/adr/README.md` for the template and take the next four-digit number. Check it again before you push; if another pull request took it, one of the two should not be an ADR.
+2. Write the file `docs/adr/NNNN-title-that-states-the-decision.md`. The Significance line names the whole-repo thing that changes. Context ends with the options considered and why each lost. Decision names concrete files. Consequences are honest about what it costs.
+3. Add its row to the index in `docs/adr/README.md`. There is no generator.
 
-1. Read `docs/adr/README.md`'s index table to find the next available number (zero-padded, four digits, sequential — do not reuse or skip numbers). Check it again before your last push and take the next free number on a clash ([the agent train's serial points](../agent-train/SKILL.md#serial-points)).
-2. Read `docs/adr/template.md` for the section structure.
-3. Write the new file at `docs/adr/NNNN-short-kebab-title.md` using that structure. The Significance line names what the decision changes and why reversing it is costly. The Context section states what was actually observed (a bug, a user request, a constraint hit during implementation) — link to it if there's a source — and ends with the Considered options line: each option weighed and why it lost. The Decision section names concrete files/components, not just the abstract principle. The Consequences section is honest about tradeoffs, not just upside.
-4. Add a row to the index table in `docs/adr/README.md`, in numeric order. Run `node scripts/ci/adr-index.mjs --write` and `node scripts/ci/adr-topics.mjs --write`; if the topics check says no topic claims the ADR, add a title pattern or a pin in `scripts/ci/adr-topics.json`.
-5. Never backdate or renumber an existing ADR to "make room" — new decisions always get the next number.
+## Superseding
 
-## Superseding an existing ADR
-
-1. Identify the ADR being superseded and confirm its Decision genuinely conflicts with the new one (if it doesn't conflict, this might be a new, independent ADR instead — don't supersede something you don't need to).
-2. Create the new ADR as above, adding `**Supersedes:** ADR-NNNN` under its front matter (right after the Date line).
-3. Edit **only** the old ADR's `**Status:**` line, changing it to `Superseded by ADR-MMMM`. Do not touch its Context/Decision/Consequences — those stay as the historical record of what was decided and why, even though it no longer applies.
-4. Update both ADRs' rows in the `docs/adr/README.md` index table (old one's Status column, new row for the new one).
-
-## Marking an ADR as moved
-
-Only in the owner's ADR audit. When an ADR's content has been copied to its proper home (the design system, a user guide page, `docs/reference/data-files.md`, a doc comment), edit **only** its `**Status:**` line to `Moved to <path>` (with an anchor where one exists), then run `node scripts/ci/adr-index.mjs --write` and `node scripts/ci/adr-topics.mjs --write`. The file stays: code and docs link to it.
-
-## Constraints
-
-- Never edit an ADR's Decision or Consequences text after it's Accepted, for any reason other than fixing a typo that doesn't change meaning. A change of mind is always a new, superseding ADR.
-- Keep each ADR to one decision. If asked to record two unrelated decisions from the same session, write two ADRs.
+An accepted ADR is never edited to reflect a changed mind: that erases the reason for the old choice. Write a new ADR with `**Supersedes:** ADR-NNNN` under its Date, and change only the old ADR's `**Status:**` line to `Superseded by ADR-MMMM`. Update both rows of the index. Everything about how the app works today lives in the other documents, which are rewritten freely.

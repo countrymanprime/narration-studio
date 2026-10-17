@@ -11,7 +11,7 @@ description: Moving code out of the apps/desktop root package or splitting a gro
 
 ## When to use this
 
-Moving a type or file between packages, extracting a new `internal/<name>` package, or splitting a file past the 800-line ceiling. Whether to split at all is a design call: use `solid-design-review` first, and write an ADR (`adr-author`) when the split changes where a recorded rule applies.
+Moving a type or file between packages, extracting a new `internal/<name>` package, or splitting a file past the 800-line ceiling. Whether to split at all is a design call: use `solid-design-review` first.
 
 ## What to do
 

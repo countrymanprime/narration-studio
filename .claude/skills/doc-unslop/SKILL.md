@@ -33,7 +33,7 @@ On every Markdown file the change adds or edits (`docs/`, READMEs, ADRs, PRDs, s
    - Text that explains what the code already shows.
    - A section that copies a generated or linked source. Replace it with a link.
    - "Currently", "now", "recently" with no date or version.
-   - A "why" paragraph with no ADR behind it. Propose `adr-author` or cut.
+   - A "why" paragraph with no source behind it. Cut it, or move the reason to a doc comment beside the code.
 6. **Cut, do not rewrite.** Do not add a fact, name, number or citation. If a sentence needs a source you do not have, mark it `unverified` in your report and leave the choice to the author.
 7. **Leave alone:** code blocks, file paths, link targets, YAML front matter, quotations, ADR titles, product names, and a term the repo defines.
 8. **Report** each cut as `file:line — pattern — action`, then the net lines removed. Restrict findings to inaccuracy, unverifiable claims, redundancy and filler. Do not report style preference.

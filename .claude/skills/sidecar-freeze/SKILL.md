@@ -42,4 +42,4 @@ The release carries each Python sidecar as a PyInstaller `--onedir` freeze. A fr
 
 ## What this skill is not
 
-It does not add a sidecar (`sidecar-add`), choose a model (the asset registry and `adr-author` do), or change what the sidecar writes to the host (`wire-contract-change`). It does not repeat the PyInstaller manual: read the pinned version's docs for an argument you have not used here.
+It does not add a sidecar (`sidecar-add`), choose a model (the asset registry does), or change what the sidecar writes to the host (`wire-contract-change`). It does not repeat the PyInstaller manual: read the pinned version's docs for an argument you have not used here.

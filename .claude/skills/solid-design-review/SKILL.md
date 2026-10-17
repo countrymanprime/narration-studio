@@ -33,7 +33,7 @@ Add a table to the plan with one row per planned file or package and a status fo
 
 ## Waivers
 
-A valid waiver names the principle, the concrete cost of complying and what would make us revisit. Put it in a **Design waivers** table in the PR body. A structural or permanent exception becomes an ADR (`adr-author`). The review is advisory: depguard and dependency-cruiser fail the build, a judgement finding needs a fix or a waiver.
+A valid waiver names the principle, the concrete cost of complying and what would make us revisit. Put it in a **Design waivers** table in the PR body. A permanent exception is recorded in the document that describes the structure; it is an ADR only if it meets `docs/adr/README.md`. The review is advisory: depguard and dependency-cruiser fail the build, a judgement finding needs a fix or a waiver.
 
 ## What this skill is not
 
