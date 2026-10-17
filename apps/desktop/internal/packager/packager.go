@@ -19,7 +19,6 @@ import (
 	"path/filepath"
 	"runtime"
 	"strings"
-	"unicode/utf16"
 
 	"github.com/countrymanprime/narration-utils/shell/internal/deliveryprofile"
 	"github.com/countrymanprime/narration-utils/shell/internal/encodeport"
@@ -343,7 +342,10 @@ func chapterFileName(number int, title, extension string) (string, error) {
 		}
 	}
 	name := fmt.Sprintf("%02d - %s%s", number, title, extension)
-	if units := len(utf16.Encode([]rune(name))); units > maxNameUnits {
+	if trimTrailing(name) != name {
+		return "", fmt.Errorf("packager: chapter %d's file name would end in a dot or a space, which Windows drops; change its title", number)
+	}
+	if units := NameUnits(name); units > maxNameUnits {
 		return "", fmt.Errorf("%w: chapter %d's file name would be %d characters and a file name can hold %d; shorten its title", ErrNameTooLong, number, units, maxNameUnits)
 	}
 	return name, nil
@@ -396,15 +398,20 @@ func formatOf(path string) string {
 	return strings.ToLower(strings.TrimPrefix(filepath.Ext(path), "."))
 }
 
-// copyFile writes a new file at dst from src's bytes. src is opened read-only and is never changed; a failure part
-// way through removes whatever copyFile itself had started writing at dst.
+// copyFile writes a new file at dst from src's bytes, refusing with ErrDestinationExists when dst is already there. src
+// is opened read-only and is never changed; a failure part way through removes what copyFile itself created at dst.
 func copyFile(src, dst string) error {
 	in, err := os.Open(src)
 	if err != nil {
 		return err
 	}
 	defer func() { _ = in.Close() }() // read-only
-	out, err := os.Create(dst)
+	// O_EXCL: plan checked dst absent long before this copy, and a name that has appeared since belongs to someone else.
+	// On any failure below, only the file this call created is removed.
+	out, err := os.OpenFile(dst, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0o600)
+	if errors.Is(err, os.ErrExist) {
+		return fmt.Errorf("%w: %s", ErrDestinationExists, filepath.Base(dst))
+	}
 	if err != nil {
 		return err
 	}

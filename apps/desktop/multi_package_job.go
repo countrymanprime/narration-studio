@@ -7,7 +7,6 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
-	"strings"
 	"sync"
 	"time"
 
@@ -49,34 +48,18 @@ func requiredFormat(profile deliveryprofile.Profile) string {
 	return "mp3"
 }
 
-// invalidFolderChars mirrors internal/packager's own invalidTitleChars: characters Windows refuses in a path segment
-// name. packager.go keeps its own unexported copy rather than exporting one, so this is a light copy of the same
-// character set, applied here to a profile's platform name instead of a chapter title.
-const invalidFolderChars = `<>:"/\|?*`
-
-// sanitizeFolderName turns a profile's own title into a folder name safe on every platform: the characters Windows
-// refuses in a path segment, and control characters, become "_"; an empty result (a title of only such characters)
-// falls back to "package" rather than naming a folder after nothing.
+// sanitizeFolderName turns a profile's own title into a folder name safe on every platform (packager.SafeSegment, the
+// helper the packager's own file-name checks share): Windows-illegal characters and control characters become "_",
+// trailing dots and spaces go, a device name (CON, NUL.txt, COM1) gets a "_", the name is cut to 255 UTF-16 units, and
+// a name with nothing left (only dots, only spaces) falls back to "package".
 //
 // A custom profile's own name has no character restriction beyond its length (internal/deliveryprofile/store.go's
 // validateProfile), so it is a narrator-controlled string reaching filepath.Join for the first time here (a single
 // PackageStart's own OutputDir always comes straight from the folder picker, never a joined-on name). Replacing every
-// path separator leaves at most one path segment, but that one segment can still be "." or ".." outright - a name of
-// exactly that, with nothing else - which would join to a no-op or to the *parent* of the narrator's chosen root
-// instead of a subfolder of it. Both are refused the same way an all-invalid-characters name already is.
-func sanitizeFolderName(name string) string {
-	name = strings.TrimSpace(name)
-	replaced := strings.Map(func(r rune) rune {
-		if r < 0x20 || strings.ContainsRune(invalidFolderChars, r) {
-			return '_'
-		}
-		return r
-	}, name)
-	if strings.Trim(replaced, ".") == "" {
-		return "package"
-	}
-	return replaced
-}
+// path separator leaves at most one path segment, but that one segment can still be "." or ".." outright, which
+// would join to a no-op or to the *parent* of the narrator's chosen root: trimming trailing dots leaves such a name
+// empty, and an empty name falls back.
+func sanitizeFolderName(name string) string { return packager.SafeSegment(name) }
 
 // ProfileSelection is one platform the narrator checked to build a package for.
 type ProfileSelection struct {

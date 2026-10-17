@@ -402,7 +402,7 @@ func TestRequiredFormatIgnoresABookScopeFormatLikeRule(t *testing.T) {
 }
 
 func TestSanitizeFolderNameReplacesInvalidCharacters(t *testing.T) {
-	if got := sanitizeFolderName(`Kobo: "Books"/2026`); strings.ContainsAny(got, invalidFolderChars) {
+	if got := sanitizeFolderName(`Kobo: "Books"/2026`); strings.ContainsAny(got, `<>:"/\|?*`) {
 		t.Fatalf("expected no invalid characters left, got %q", got)
 	}
 	if got := sanitizeFolderName("   "); got != "package" {
@@ -431,5 +431,44 @@ func TestSanitizeFolderNameRejectsPathEscapingDotSegments(t *testing.T) {
 	}
 	if filepath.Dir(joined) != absRoot {
 		t.Fatalf("expected the sanitized name to stay a subfolder of %q, got %q", absRoot, joined)
+	}
+}
+
+// TestSanitizeFolderNameIsSafeOnWindows covers what Windows does to a folder name that the dot-segment guard does not:
+// device names (alone or with an extension), a trailing dot or space it drops, and a segment over 255 UTF-16 units.
+func TestSanitizeFolderNameIsSafeOnWindows(t *testing.T) {
+	for in, want := range map[string]string{
+		"CON":              "CON_",
+		"nul":              "nul_",
+		"NUL.txt":          "NUL_.txt",
+		"COM1":             "COM1_",
+		"LPT9.mp3":         "LPT9_.mp3",
+		"PRN":              "PRN_",
+		"AUX":              "AUX_",
+		"CON.":             "CON_",
+		"Foo.":             "Foo",
+		"Foo. .":           "Foo",
+		"Foo ":             "Foo",
+		"Foo .":            "Foo",
+		"Kobo":             "Kobo",
+		"Books \U0001F407": "Books \U0001F407",
+		"\u05e1\u05e4\u05e8 \u0627\u0644\u0643\u062a\u0627\u0628": "\u05e1\u05e4\u05e8 \u0627\u0644\u0643\u062a\u0627\u0628",
+	} {
+		if got := sanitizeFolderName(in); got != want {
+			t.Errorf("sanitizeFolderName(%q) = %q, want %q", in, got, want)
+		}
+	}
+	for name, in := range map[string]string{
+		"300 letters": strings.Repeat("a", 300),
+		"200 emoji":   strings.Repeat("\U0001F407", 200),
+		"300 CJK":     strings.Repeat("\u672c", 300),
+	} {
+		if got := sanitizeFolderName(in); packager.NameUnits(got) > 255 || got == "" {
+			t.Errorf("%s: sanitizeFolderName is %d units, want 1..255", name, packager.NameUnits(got))
+		}
+	}
+	// "Foo" and "Foo." are one folder to Windows, so they must not be two different names here.
+	if sanitizeFolderName("Foo") != sanitizeFolderName("Foo.") {
+		t.Error("Foo and Foo. name different folders, but Windows treats them as one")
 	}
 }

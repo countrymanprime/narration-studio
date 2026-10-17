@@ -334,16 +334,59 @@ func inSidecarTree(projectFolder, dir string) bool {
 	if projectFolder == "" {
 		return false
 	}
-	sidecar, err := filepath.Abs(filepath.Join(projectFolder, "narration-utils"))
-	if err != nil {
+	sidecar, ok := resolvedPath(filepath.Join(projectFolder, "narration-utils"))
+	if !ok {
 		return false
 	}
-	target, err := filepath.Abs(dir)
-	if err != nil {
+	target, ok := resolvedPath(dir)
+	if !ok {
 		return false
 	}
 	if runtime.GOOS == "windows" {
 		sidecar, target = strings.ToLower(sidecar), strings.ToLower(target)
 	}
 	return target == sidecar || strings.HasPrefix(target, sidecar+string(filepath.Separator))
+}
+
+// resolvedPath is path made absolute with every symlink, junction and 8.3 short name followed, so two spellings of one
+// folder compare equal. A path that does not exist yet (a package folder about to be made) is resolved from its longest
+// existing ancestor, with the rest appended as written. On Windows a leading \\?\ is dropped first, because EvalSymlinks
+// and Abs return the two spellings of one drive path differently. false means the path could not be made absolute.
+func resolvedPath(path string) (string, bool) {
+	if runtime.GOOS == "windows" {
+		path = stripExtendedPrefix(path)
+	}
+	abs, err := filepath.Abs(path)
+	if err != nil {
+		return "", false
+	}
+	tail := ""
+	for current := abs; ; {
+		if resolved, err := filepath.EvalSymlinks(current); err == nil {
+			if runtime.GOOS == "windows" {
+				resolved = stripExtendedPrefix(resolved)
+			}
+			return filepath.Join(resolved, tail), true
+		}
+		parent := filepath.Dir(current)
+		if parent == current {
+			return abs, true // nothing on the way exists: the lexical path is all there is
+		}
+		tail = filepath.Join(filepath.Base(current), tail)
+		current = parent
+	}
+}
+
+// stripExtendedPrefix turns a Windows extended-length path into the ordinary spelling of the same place: \\?\C:\x
+// becomes C:\x and \\?\UNC\server\share becomes \\server\share. Any other path, the \\.\ device form included, is
+// returned unchanged.
+func stripExtendedPrefix(path string) string {
+	const prefix, uncPrefix = `\\?\`, `\\?\UNC\`
+	switch {
+	case strings.HasPrefix(path, uncPrefix):
+		return `\\` + path[len(uncPrefix):]
+	case strings.HasPrefix(path, prefix):
+		return path[len(prefix):]
+	}
+	return path
 }
