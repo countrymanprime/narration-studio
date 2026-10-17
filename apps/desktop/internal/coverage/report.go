@@ -104,6 +104,18 @@ type RegionLine struct {
 	After        *RegionPosition `json:"after"`
 }
 
+// UnsureLine is one COVERAGE_UNSURE line: a passage whose words Whisper was not sure of, in one item's source seconds
+// (the sidecar's --unsure-below). It is read only to plan the second pass, so a Report keeps it out of what is stored
+// and sent.
+type UnsureLine struct {
+	ItemIndex int     `json:"itemIndex"`
+	ItemGUID  string  `json:"itemGuid"`
+	Start     float64 `json:"start"`
+	End       float64 `json:"end"`
+	Words     int     `json:"words"`
+	MinScore  float64 `json:"minScore"`
+}
+
 // Report is a whole results file.
 type Report struct {
 	Summary    Summary         `json:"summary"`
@@ -115,6 +127,8 @@ type Report struct {
 	// file written before the sidecar carried them (HasAlignment).
 	Tokens []TokenLine `json:"tokens"`
 	Extras []ExtraLine `json:"extras"`
+	// Unsure is what the first pass doubted; only the planner reads it, and no stored report or payload carries it.
+	Unsure []UnsureLine `json:"-"`
 }
 
 // PresentFraction is the chapter's share of body words read: what fills
@@ -174,6 +188,9 @@ func parseReport(raw []byte, chapterID string) (Report, error) {
 		case "COVERAGE_REGION":
 			report.Regions = append(report.Regions, RegionLine{})
 			target = &report.Regions[len(report.Regions)-1]
+		case "COVERAGE_UNSURE":
+			report.Unsure = append(report.Unsure, UnsureLine{})
+			target = &report.Unsure[len(report.Unsure)-1]
 		case "COVERAGE_TOKEN":
 			report.Tokens = append(report.Tokens, TokenLine{})
 			target = &report.Tokens[len(report.Tokens)-1]

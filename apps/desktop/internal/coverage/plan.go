@@ -51,11 +51,11 @@ type recheckPlan struct {
 func (p recheckPlan) needed() bool { return p.WholeChapter || len(p.Windows) > 0 }
 
 // planRecheck plans the second pass from the first pass's report and the items the run played.
-// recheckModel empty (the cascade is off for this run) or a report with no
-// regions (the first pass called the chapter complete) both mean nothing to plan: there is
-// no second pass when nothing is missing.
+// recheckModel empty (the cascade is off for this run) or a report with neither a missing region nor a
+// passage the first pass was unsure of (it called the chapter complete, and was sure of every word)
+// both mean nothing to plan: there is no second pass when nothing is missing or in doubt.
 func planRecheck(report Report, items []plannedItem, recheckModel string) recheckPlan {
-	if recheckModel == "" || len(report.Regions) == 0 {
+	if recheckModel == "" || (len(report.Regions) == 0 && len(report.Unsure) == 0) {
 		return recheckPlan{}
 	}
 	var ordered []plannedItem
@@ -77,6 +77,15 @@ func planRecheck(report Report, items []plannedItem, recheckModel string) rechec
 	var raw []window
 	for _, region := range report.Regions {
 		raw = append(raw, regionWindows(region, ordered)...)
+	}
+	byIndex := make(map[int]plannedItem, len(ordered))
+	for _, item := range ordered {
+		byIndex[item.Index] = item
+	}
+	for _, passage := range report.Unsure {
+		if item, known := byIndex[passage.ItemIndex]; known && passage.End > passage.Start {
+			raw = append(raw, window{ItemIndex: item.Index, ItemGUID: item.ItemGUID, SourceFile: item.SourceFile, WordsFile: item.WordsFile, Start: passage.Start, End: passage.End})
+		}
 	}
 	if len(raw) == 0 {
 		return recheckPlan{}

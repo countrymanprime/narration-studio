@@ -144,6 +144,7 @@ var builtinDefaults = map[string]Values{
 	"RecordingCoverage": {
 		"min_paragraph_present": "0.8", "max_missing_run": "3", "max_misread_run": "8", "min_anchor_run": "3", "background_checks": "true",
 		"cascade_enabled": "false", "cascade_first_pass_model": "tiny", "cascade_recheck_model": "large-v3-turbo",
+		"cascade_unsure_below": "0.5", "parallel_workers": "0", "chunk_seconds": "300", "chunk_overlap_seconds": "6",
 	},
 	// StageRecommendations defaults every signal to required and suggestions on
 	// (docs/architecture/stage-recommendations.md): a narrator who never opens this settings page gets the engine's

@@ -1,5 +1,13 @@
 {
   "default": "small",
+  "defaults": {
+    "chunkSeconds": 300,
+    "overlapSeconds": 6,
+    "recheck": false,
+    "recheckBelow": 0.5,
+    "recheckModel": "large-v3-turbo",
+    "workers": 0
+  },
   "engines": [
     {
       "family": "whisper",

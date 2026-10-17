@@ -546,3 +546,41 @@ func TestStateAndCancelAreSafeWhileARunIsInFlight(t *testing.T) {
 		t.Fatalf("phase = %s", phase)
 	}
 }
+
+func TestTheSidecarIsToldHowToSplitTheAudioAndWhichWordsToDoubtOnTheFirstPassOnly(t *testing.T) {
+	p := newTestProject(t)
+	sidecar := &fakeSidecar{}
+	service := p.service(sidecar)
+	request := testRequest()
+	request.Parallel = Parallel{Workers: 3, ChunkSeconds: 120, OverlapSeconds: 8}
+	request.UnsureBelow = 0.55
+
+	run(t, service, request)
+
+	sidecar.mu.Lock()
+	launch := sidecar.launches[0]
+	sidecar.mu.Unlock()
+	args := flags(launch)
+	if args["--parallel-workers"] != "3" || args["--chunk-seconds"] != "120" || args["--chunk-overlap-seconds"] != "8" || args["--unsure-below"] != "0.55" {
+		t.Fatalf("args = %v", args)
+	}
+}
+
+func TestNoUnsureFlagIsSentWhenNoDoubtIsAsked(t *testing.T) {
+	p := newTestProject(t)
+	sidecar := &fakeSidecar{}
+	service := p.service(sidecar)
+
+	run(t, service, testRequest())
+
+	sidecar.mu.Lock()
+	launch := sidecar.launches[0]
+	sidecar.mu.Unlock()
+	args := flags(launch)
+	if _, given := args["--unsure-below"]; given {
+		t.Fatalf("args = %v", args)
+	}
+	if _, given := args["--chunk-seconds"]; given {
+		t.Fatalf("a zero Parallel is the sidecar's own default, so nothing is sent: %v", args)
+	}
+}

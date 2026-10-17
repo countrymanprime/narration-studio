@@ -95,8 +95,15 @@ Settings, with unsaved changes asks whether to save or discard them.
   missing)**, off by default. On, a **First-pass Whisper model** and a **Re-check Whisper model**
   pick which model runs each pass ([how it works](../../utilities/recording-coverage.md#the-model-cascade)):
   a fast pass (`tiny` by default) transcribes the whole chapter, and a stronger one (`large-v3-turbo`
-  by default) re-checks only what it reports missing. Turning it on does not change the model the
-  **Proof** panel sets.
+  by default) re-checks only what it reports missing, and **Also re-check passages Whisper is unsure of**
+  (0.5) sends the stronger model the passages whose words Whisper scored under that share too, even when
+  the text is all there (0 turns it off). Turning the two-pass check on does not change the model the
+  **Proof** panel sets. Three more settings decide how a long chapter is transcribed
+  ([long chapters](../../utilities/recording-coverage.md#long-chapters)): **Parallel Whisper processes**
+  (0 lets the app choose from the model), **Chunk length in seconds** (300; 0 transcribes each recording
+  whole) and **Crossover between neighbouring chunks** (6 s). They change how fast the check runs, not what
+  it finds, so changing one does not make earlier checks out of date. **Check recordings** starts from these
+  values and lets you change them for one run.
 - **Silence cleanup** holds the thresholds the silence cleanup analysis uses when a
   [diagnostics](master-and-qc.md#diagnostics) check runs: the **Hold kept at each side of a cut silence**,
   the **Shortest run read as a breath** and **Longest run read as a breath**, **How far below speech level a

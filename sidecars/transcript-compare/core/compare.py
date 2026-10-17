@@ -1961,6 +1961,18 @@ def main():
     )
     ap.add_argument("--parallel-workers", type=int, default=0, help="Max chunk workers to run at once when chunked (0 = auto, based on model size)")
     ap.add_argument(
+        "--chunk-overlap-seconds",
+        type=float,
+        default=None,
+        help="With --coverage and chunking: how many seconds neighbouring chunks overlap, the crossover where their words are joined (default 6)",
+    )
+    ap.add_argument(
+        "--unsure-below",
+        type=float,
+        default=None,
+        help="With --coverage: report passages whose words Whisper gave a probability under this (0 to 1) as COVERAGE_UNSURE lines (default: none)",
+    )
+    ap.add_argument(
         "--capabilities",
         action="store_true",
         help="Print every row this process has registered in ENGINES (batch ASR), by name (one JSON object: "
@@ -2071,9 +2083,14 @@ def _main_coverage(ap, args):
     """--coverage: check its own arguments, then run core/coverage_mode.py. --recheck (the cascade's
     second pass, ADR 0344) is a separate, windows-only mode: it takes only --words-dir and --model,
     never a manifest, chapter or --out, and is mutually exclusive with --align-only."""
-    for flag, given in [("--find-repeats", args.find_repeats), ("--chunk-seconds", args.chunk_seconds)]:
-        if given:
-            ap.error(f"{flag} cannot be used with --coverage")
+    if args.find_repeats:
+        ap.error("--find-repeats cannot be used with --coverage")
+    if args.unsure_below is not None and not 0 <= args.unsure_below <= 1:
+        ap.error("--unsure-below must be from 0 to 1")
+    if args.chunk_overlap_seconds is not None and args.chunk_overlap_seconds < 0:
+        ap.error("--chunk-overlap-seconds cannot be negative")
+    if args.chunk_seconds < 0 or args.parallel_workers < 0:
+        ap.error("--chunk-seconds and --parallel-workers cannot be negative")
 
     if args.recheck:
         if args.align_only:
@@ -2138,4 +2155,5 @@ def _run_and_exit(args, mode):
 
 
 if __name__ == "__main__":
+    multiprocessing.freeze_support()  # a frozen build's worker processes start here, and must not run main()
     main()

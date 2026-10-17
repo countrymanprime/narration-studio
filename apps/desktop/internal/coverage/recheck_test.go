@@ -249,3 +249,42 @@ func TestWordsCacheKeySeparatesACascadesWordsFromAPlainCheck(t *testing.T) {
 		t.Fatalf("a plain check must not reuse a cascade run's words (a different cache key): transcribed %v, want both items again", got)
 	}
 }
+
+func TestModelCascadeReChecksAPassageTheFirstPassWasUnsureOfEvenWhenNothingIsMissing(t *testing.T) {
+	p := newTestProject(t)
+	sidecar := &fakeSidecar{unsure: true} // the chapter is complete, but one word scored under the line
+	service := p.service(sidecar)
+	request := cascadeRequest()
+	request.UnsureBelow = 0.5
+
+	state := run(t, service, request)
+
+	if state.Phase != PhaseComplete {
+		t.Fatalf("state = %+v", state)
+	}
+	if first := flags(sidecar.launches[0]); first["--unsure-below"] != "0.5" {
+		t.Fatalf("the first pass must be asked for its doubts: %v", first)
+	}
+	if len(sidecar.launches) != 3 || len(sidecar.rechecks()) != 1 {
+		t.Fatalf("want a first pass, a windowed re-check of the doubted passage and a realign: %d launches, %v re-checked", len(sidecar.launches), sidecar.rechecks())
+	}
+	if again := flags(sidecar.launches[2]); again["--unsure-below"] != "" {
+		t.Fatalf("only the first pass reports doubts: %v", again)
+	}
+	result := currentResult(t, service, DefaultAlignmentParams)
+	if result.Result.Recheck == nil || result.Result.Recheck.Windows != 1 {
+		t.Fatalf("Recheck = %+v, want the doubted passage's window counted", result.Result.Recheck)
+	}
+}
+
+func TestModelCascadeIgnoresDoubtsWhenNoLineWasAsked(t *testing.T) {
+	p := newTestProject(t)
+	sidecar := &fakeSidecar{unsure: true}
+	service := p.service(sidecar)
+
+	run(t, service, cascadeRequest())
+
+	if len(sidecar.launches) != 1 {
+		t.Fatalf("without a doubt line the first pass reports none and nothing is re-checked: %d launches", len(sidecar.launches))
+	}
+}

@@ -443,10 +443,14 @@ export function createCoverageMock(deps: Deps): CoverageApi & {
       if (options?.model && !deps.engines().engines.some((engine) => engine.id === options.model)) {
         throw new Error('the selected Whisper model is not in the approved catalog');
       }
+      if (options?.recheckModel && !deps.engines().engines.some((engine) => engine.id === options.recheckModel)) {
+        throw new Error('the selected re-check Whisper model is not in the approved catalog');
+      }
       if (deps.seed?.refusal) return refuse(deps.seed.refusal);
       const required = deps.assetRequired();
       if (required) return required;
-      if (deps.seed?.recheckAssetRequired && !options?.skipRecheck && !options?.model) {
+      // A second pass is wanted when the run asks for one, or, naming nothing, when the cascade setting does (the mock's seed stands in for it).
+      if (deps.seed?.recheckAssetRequired && !options?.skipRecheck && (options?.recheck ?? !options?.model)) {
         return {
           status: 'recheck_asset_required',
           model: mockRecheckModelIdentity,

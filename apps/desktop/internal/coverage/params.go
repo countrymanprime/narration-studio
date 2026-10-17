@@ -23,7 +23,11 @@ const (
 	// still reads without them, so this is a clean one-time invalidation, not a
 	// correctness fix.
 	wordsAnalyzerID = "recording-coverage-words"
-	wordsVersion    = "2"
+	//
+	// Raised again, to 3, when a words file began to carry Whisper's probability for each word (ADR 0864): the
+	// reader still takes a file without them, but a chapter checked before would otherwise never show a doubted
+	// passage, so every words file is made again once.
+	wordsVersion = "3"
 	// vadFilter records that the sidecar always transcribes with Whisper's voice
 	// activity filter (coverage_mode.WhisperTranscriber); it shapes the words.
 	vadFilter = "vad=1"
@@ -117,4 +121,17 @@ func hashParts(parts ...string) string {
 		_, _ = fmt.Fprintf(hash, "%d:%s", len(part), part)
 	}
 	return hex.EncodeToString(hash.Sum(nil))
+}
+
+// args are the sidecar flags for p: only what was set, so the zero value leaves the sidecar's own defaults.
+func (p Parallel) args() []string {
+	var args []string
+	if p.Workers > 0 {
+		args = append(args, "--parallel-workers", strconv.Itoa(p.Workers))
+	}
+	if p.ChunkSeconds > 0 {
+		args = append(args, "--chunk-seconds", strconv.Itoa(p.ChunkSeconds))
+		args = append(args, "--chunk-overlap-seconds", strconv.Itoa(p.OverlapSeconds))
+	}
+	return args
 }

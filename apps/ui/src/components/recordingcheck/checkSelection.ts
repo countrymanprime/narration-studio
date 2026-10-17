@@ -79,11 +79,5 @@ export function stoppedToast(finished: number): string {
     : `Stopped. ${plural(finished, 'chapter', 'chapters')} finished and kept; the one in progress stored nothing.`;
 }
 
-/** The engine a start would use: the one the narrator chose, else the host's default. Disabled with the reason when it is not installed. */
-export function engineProblem(engine: CoverageEngine | undefined): string | undefined {
-  if (!engine) return 'Choose a speech model.';
-  return engine.installState === 'installed' ? undefined : 'Download it in Settings';
-}
-
 export const engineOptionLabel = (engine: CoverageEngine): string =>
   engine.installState === 'installed' ? engine.label : `${engine.label} (Download it in Settings)`;

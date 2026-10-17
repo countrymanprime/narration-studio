@@ -1087,6 +1087,71 @@
       "kind": "choice",
       "label": "Re-check Whisper model",
       "value": ""
+    },
+    {
+      "choices": null,
+      "effectiveSource": "repo_default",
+      "effectiveValue": "0.5",
+      "isSet": false,
+      "key": "cascade_unsure_below",
+      "kind": "number",
+      "label": "Also re-check passages Whisper is unsure of (word score under; 0 = off)",
+      "number": {
+        "max": 1,
+        "min": 0,
+        "step": 0.05,
+        "unit": ""
+      },
+      "value": ""
+    },
+    {
+      "choices": null,
+      "effectiveSource": "repo_default",
+      "effectiveValue": "0",
+      "isSet": false,
+      "key": "parallel_workers",
+      "kind": "number",
+      "label": "Parallel Whisper processes (0 = chosen from the model)",
+      "number": {
+        "max": 32,
+        "min": 0,
+        "step": 1,
+        "unit": "processes"
+      },
+      "value": ""
+    },
+    {
+      "choices": [
+        "0",
+        "60",
+        "120",
+        "300",
+        "600",
+        "900"
+      ],
+      "effectiveSource": "repo_default",
+      "effectiveValue": "300",
+      "isSet": false,
+      "key": "chunk_seconds",
+      "kind": "choice",
+      "label": "Chunk length in seconds (0 = each item whole)",
+      "value": ""
+    },
+    {
+      "choices": null,
+      "effectiveSource": "repo_default",
+      "effectiveValue": "6",
+      "isSet": false,
+      "key": "chunk_overlap_seconds",
+      "kind": "number",
+      "label": "Crossover between neighbouring chunks",
+      "number": {
+        "max": 60,
+        "min": 0,
+        "step": 1,
+        "unit": "s"
+      },
+      "value": ""
     }
   ],
   "Script": [

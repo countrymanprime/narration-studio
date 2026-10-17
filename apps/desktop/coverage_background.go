@@ -94,7 +94,7 @@ func (h *Host) backgroundCheckTick(now time.Time) coverage.BackgroundDecision {
 	if svc.coverage == nil || folder == "" {
 		return coverage.BackgroundDecision{}
 	}
-	transcription, modelReady := h.coverageTranscription(svc)
+	_, modelReady := h.backgroundRequest(svc, "")
 	var power coverage.Power
 	if h.powerState != nil {
 		power = h.powerState()
@@ -156,9 +156,10 @@ func (h *Host) backgroundCheckTick(now time.Time) coverage.BackgroundDecision {
 	b.mu.Unlock()
 
 	if decision.ChapterID != "" {
-		_, err := svc.coverage.Start(coverage.Request{
-			ChapterID: decision.ChapterID, Transcription: transcription, Alignment: coverageSettings(svc.settings).Alignment, Background: true,
-		})
+		var err error
+		if request, ready := h.backgroundRequest(svc, decision.ChapterID); ready {
+			_, err = svc.coverage.Start(request)
+		}
 		if err != nil && h.log != nil {
 			_ = h.log.Report("background_check_failed", decision.ChapterID+": "+err.Error())
 		}
@@ -170,20 +171,34 @@ func (h *Host) backgroundCheckTick(now time.Time) coverage.BackgroundDecision {
 	return decision
 }
 
-// coverageTranscription is the narrator's Transcript Compare model for a check, and false when it is not installed
-// (a background check never downloads one).
-func (h *Host) coverageTranscription(svc hostServices) (coverage.Transcription, bool) {
+// backgroundRequest is the check a background run starts: the same choices a press with no options would make
+// (resolveCoverageChoices), so a chapter changed in REAPER is re-checked the way the narrator has set the check up. It never
+// downloads a model: a first-pass model that is not installed is false (the check waits), and a second-pass model
+// that is not installed is dropped, so the first pass still runs alone.
+func (h *Host) backgroundRequest(svc hostServices, chapterID string) (coverage.Request, bool) {
 	models := h.registry().whisper
 	if models == nil {
-		return coverage.Transcription{}, false
+		return coverage.Request{}, false
 	}
-	modelID := resolveWhisperModelID(svc.settings, nil)
-	if _, known := models.Model(modelID); !known {
-		return coverage.Transcription{}, false
-	}
-	modelDir, err := models.Dir(modelID)
+	choices, err := resolveCoverageChoices(svc.settings, nil)
 	if err != nil {
-		return coverage.Transcription{}, false
+		return coverage.Request{}, false
 	}
-	return coverage.Transcription{Model: modelID, ModelDir: modelDir}, true
+	if _, known := models.Model(choices.FirstPass); !known {
+		return coverage.Request{}, false
+	}
+	modelDir, err := models.Dir(choices.FirstPass)
+	if err != nil {
+		return coverage.Request{}, false
+	}
+	request := coverage.Request{
+		ChapterID: chapterID, Transcription: coverage.Transcription{Model: choices.FirstPass, ModelDir: modelDir},
+		Alignment: coverageSettings(svc.settings).Alignment, Parallel: choices.Parallel, Background: true,
+	}
+	if choices.Recheck != "" {
+		if recheck, required, err := resolveCoverageRecheck(models, choices.Recheck); err == nil && required == nil {
+			request.Recheck, request.UnsureBelow = recheck, choices.UnsureBelow
+		}
+	}
+	return request, true
 }

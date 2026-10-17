@@ -119,6 +119,12 @@ type Request struct {
 	// whole-chapter pass with Recheck's model in its place. The zero value keeps today's
 	// single-pass behaviour; the host resolves it from settings (MC1, MC2, off by default).
 	Recheck Transcription
+	// Parallel is how the first pass (and a whole-chapter re-check) cuts an item up and how many processes
+	// transcribe the pieces. The zero value sends nothing: the sidecar transcribes each item whole, in one process.
+	Parallel Parallel
+	// UnsureBelow, above 0, has the first pass report the passages whose words Whisper scored under it, so the
+	// re-check can take them as well as what is missing. 0 reports none.
+	UnsureBelow float64
 }
 
 // Service runs one coverage analysis at a time and reads results back.
@@ -398,6 +404,10 @@ func (s *Service) sidecarArgs(running *job, transcription Transcription) []strin
 	}
 	if transcription.Language != "" {
 		args = append(args, "--language", transcription.Language)
+	}
+	args = append(args, running.request.Parallel.args()...)
+	if running.stage == stageFirstPass && running.request.UnsureBelow > 0 {
+		args = append(args, "--unsure-below", strconv.FormatFloat(running.request.UnsureBelow, 'f', -1, 64))
 	}
 	if s.config.Backend != "" {
 		args = append([]string{s.config.Backend}, args...)

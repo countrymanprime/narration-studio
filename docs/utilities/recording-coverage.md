@@ -3,9 +3,9 @@
 **Status: Implemented.** The Production board's check, the stored result, the measured recorded length and the `recording` stage
 signal all work. The four settings ship with values chosen on synthetic fixtures and are labelled uncalibrated on real
 narration ([ADR 0132](../adr/0132-the-recording-check-ships-0-8-3-8-3-chosen-on-synthetic-fixtures-and-labelled-uncalibrated.md)).
-The model cascade (a fast first pass, then a stronger re-check of only what it reports missing) also ships, opt-in
+The model cascade (a fast first pass, then a stronger re-check of what it reports missing and, with a score line set, of the passages it was unsure of) also ships, opt-in
 and off by default until a real corpus confirms the first pass never gives a false "met" (see
-[The model cascade](#the-model-cascade)).
+[The model cascade](#the-model-cascade)). A long chapter is transcribed in overlapping chunks by parallel processes ([Long chapters](#long-chapters)).
 
 ## User problem
 
@@ -146,7 +146,8 @@ flowchart LR
   | any other kind | `other` |
 
   An extra run between the first and last read word is an `extra` gap. Every gap has `confidence: null` and
-  `confReason: "no_word_scores"`, since the check never reads Whisper word probabilities.
+  `confReason: "no_word_scores"`: the words file keeps Whisper's word probabilities, but they only choose passages to re-check
+  ([ADR 0864](../adr/0864-a-long-recording-is-checked-in-overlapping-chunks-by-parallel-whisper-processes-and-whisper-word-scores-choose-the-passages-a-larger-model-looks-at-again.md)), and no calibrated mapping scores a gap from them.
 - **A chapter is complete** when every paragraph has at least `min_paragraph_present` of its words present, and no run
   of missing words, counted across paragraph boundaries and including the head and tail, is longer than
   `max_missing_run`.
@@ -165,6 +166,10 @@ The `RecordingCoverage` settings tool, layered project over global over the buil
 | `cascade_enabled` | off | switch | Turns the model cascade on (MC1). Off, `CoverageStart` reads `TranscriptCompare.model_size` exactly as it always has |
 | `cascade_first_pass_model` | `tiny` | Whisper model, cascade only | The fast first pass's own model (MC2), independent of `TranscriptCompare.model_size` |
 | `cascade_recheck_model` | `large-v3-turbo` | Whisper model, cascade only | The model that re-checks anything the first pass reports missing (MC2) |
+| `cascade_unsure_below` | 0.5 | number, cascade only | The Whisper word score under which a passage is re-checked even when its text is all there (ADR 0864). 0 re-checks only what is missing |
+| `parallel_workers` | 0 | number | Whisper processes working on a long item's chunks. 0 takes the model's own memory cap; a named number is kept up to the computer's processors |
+| `chunk_seconds` | 300 | choice | Each chunk's length. 0 transcribes an item whole, in one process |
+| `chunk_overlap_seconds` | 6 | number | The crossover: how much neighbouring chunks overlap, where their words are joined |
 
 The Settings page labels them **Proposed values, not yet calibrated**. They were chosen by a calibration:
 the synthetic fixtures run through the shipped path, 600 candidates, and five levels of simulated transcriber error.
@@ -200,7 +205,7 @@ flowchart LR
 
 - **The first pass** runs `cascade_first_pass_model` (default `tiny`) over the whole chapter, exactly like a plain
   check. A chapter it calls complete is stored as-is: no second pass ever runs over a chapter with nothing missing.
-- **The window planner** (`internal/coverage/plan.go`, pure, no I/O) turns every reported region into a window
+- **The window planner** (`internal/coverage/plan.go`, pure, no I/O) turns every reported region, and every passage the first pass was unsure of ([Long chapters](#long-chapters)), into a window
   bounded by ADR 0168's `before`/`after` points, padded past each bound and up to a minimum size, merged when two
   windows of the same item are close together, and replaced by one whole-chapter pass when the windows would cover
   most of the chapter's played audio (MC3's constants: pad 3 s, minimum 25 s, merge under 20 s apart, whole-chapter
@@ -229,9 +234,49 @@ flowchart LR
   a cascade's spliced words are never silently reused by, or reused from, a plain check of the same first-pass
   model (ADR 0344).
 
+## Long chapters
+
+**Status: Implemented** (ADR 0864). A chapter an hour long used to take about an hour to check: one Whisper decode of each item's whole
+played range, on one model, in one process. The sidecar now cuts the range into chunks, transcribes them in several processes and, when asked,
+lets a larger model look again at the passages the first pass was not sure of.
+
+```mermaid
+flowchart LR
+  item["Item's played range"] --> cut["plan_chunks: chunk_seconds, overlapping by the crossover"]
+  cut --> first["Chunk 1 alone: loads the model, settles the language"]
+  first --> pool["Worker processes: the other chunks"]
+  pool --> join["merge_chunks: cut at the middle of each overlap"]
+  join --> words["Words file: [text, start, end, score]"]
+  words --> pass["First pass: regions and COVERAGE_UNSURE lines"]
+  pass --> windows["planRecheck: windows for both"]
+  windows --> large["Larger model, spliced into the words"]
+```
+
+- **Chunks and crossover** (`core/coverage_chunks.py`). `plan_chunks` makes chunks of `chunk_seconds` that overlap by the crossover; an item no
+  longer than one chunk, or `chunk_seconds` 0, is one chunk, and a tail too short to be worth its own joins the last chunk. A crossover of half
+  the chunk or more is shrunk to a quarter of it. `merge_chunks` cuts at the middle of each overlap and keeps a word in the chunk its midpoint falls in,
+  so no word is repeated or lost, and each chunk's edge (where Whisper is least reliable) is half the crossover from the cut.
+- **Parallel processes.** Chunks are handed to a pool of spawned processes, each loading its own copy of the model and given its share of the
+  processors as `cpu_threads`. `parallel_workers` 0 takes `compare.MAX_WORKERS_BY_MODEL` (`tiny` 8, `small` 4, `medium` and `large-v3-turbo` 2, `large-v3` 1); a
+  named number is kept up to the processors and the chunks; a GPU runs one. The first chunk runs alone in the sidecar's process, so the model is read
+  once before the workers race for the same files and, with no forced language, every other chunk uses the language the first one heard.
+  Progress is the seconds of the item the finished chunks account for. A cancel, or one chunk failing, ends every worker at once, and each chunk also looks for
+  the cancel file between its segments, so a cancel does not wait for a whole chunk. An item that is one chunk goes to the plain transcriber, which reports
+  progress and sees a cancel segment by segment, exactly as before.
+- **Word scores and doubt.** The words file keeps Whisper's probability for each word as a fourth element. With `--unsure-below` the first pass writes one
+  `COVERAGE_UNSURE` line for each passage of words scored under it: a run of at least two such words, or one word under half the line, joined across up to two
+  confident words. `planRecheck` adds a window for each, bounded to the item's played range, beside the windows of the missing regions, and merges and pads
+  them by the same rules (MC3). A word with no score (a file written before scores) is never doubted. Scores never score a gap.
+- **One decision about what runs.** `resolveCoverageChoices` (`apps/desktop/coverage_choices.go`) reads the settings and the run's options once. The
+  Check recordings dialog, a press from a chapter's panel and a background check all call it, so the same chapter is checked the same way wherever it
+  is started. The dialog shows the host's `defaults` (`CoverageEngines`) and sends every choice; a background check uses the settings alone and
+  never downloads a model.
+- **What is not measured.** The chunked path is tested with real spawned processes and a fake model; no real-speech timing or accuracy was measured, so the
+  shipped 5 min, 6 s and 0.5 are provisional like the other numbers. The words files made before scores are made again once (cache version 3).
+
 ## Decisions
 
-This table is the key to the labels that code comments, tests and the text above cite: D and Q for the recording check, MC1 to MC7 for the model cascade. Where an ADR records one, the row links it.
+This table is the key to the labels that code comments, tests and the text above cite: D and Q for the recording check, MC1 to MC7 for the model cascade and LC1 to LC4 for long chapters. Where an ADR records one, the row links it.
 
 | Label | Decision |
 | --- | --- |
@@ -261,6 +306,10 @@ This table is the key to the labels that code comments, tests and the text above
 | MC5 | The result names both models and how many windows were re-checked (`Recheck`); every pickup still listed on a cascade result was confirmed by the re-check model |
 | MC6 | Spot-checking "met" paragraphs is not in this delivery; revisit with a real corpus |
 | MC7 | The model cascade keeps Q13 (model and language outside the parameter hash): the label says which models made a result |
+| LC1 | A long item is cut into overlapping chunks and transcribed by parallel processes; the join is at the middle of each overlap ([ADR 0864](../adr/0864-a-long-recording-is-checked-in-overlapping-chunks-by-parallel-whisper-processes-and-whisper-word-scores-choose-the-passages-a-larger-model-looks-at-again.md)) |
+| LC2 | Word scores choose passages to re-check; they never score a gap, whose confidence stays null |
+| LC3 | One resolver decides what a check runs; an option that is present and not valid is an error, never replaced |
+| LC4 | Chunk length, workers and crossover are outside the parameter hash: they change speed, not which words count |
 
 ## Tests and tooling
 
@@ -277,6 +326,10 @@ This table is the key to the labels that code comments, tests and the text above
   fallback, muted items) and `recheck_test.go` (the cascade end to end with a fake sidecar: no second pass when
   nothing is missing, a windowed re-check and realign, the whole-chapter fallback, cancel and failure in each
   stage, the words-cache-key separation, `Recheck`'s own fields and `State`'s pass/model/window fields).
+- Long chapters: `tests/test_coverage_chunks.py` (chunk planning, the join, the worker count, the transcriber with a thread pool and with real spawned
+  processes), `tests/test_coverage_unsure.py` (scores in a words file, the splice, doubted passages, the transcriber chosen), `internal/coverage`'s
+  `plan_test.go`, `recheck_test.go` and `settings_test.go`, and the host's `coverage_choices_test.go` (the resolver, the options sent, the defaults the
+  engines answer reports, the background request).
 - UI: `RecordingCheck.test.tsx` (including the re-check gate and "Check with tiny only"),
   `recordingCheckText.test.ts` (`passLabel`, `recheckLabel`), `RecordingCheckSummary.test.tsx`, the wire contracts
   for `coverage:state`, `CoverageStartResult` and `CoverageReport.recheck`

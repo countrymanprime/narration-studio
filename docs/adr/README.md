@@ -415,4 +415,5 @@ The table is generated from each ADR's heading and Status line ([ADR 0410](0410-
 | [0861](0861-a-refused-daw-call-carries-one-code-stale-beside-its-sentence.md) | A refused DAW call carries one code, `stale`, beside its sentence | Proposed |
 | [0862](0862-story-bible-types-are-a-stored-editable-list-with-a-colour-and-a-can-speak-flag-and-the-fixed-categories-are-its-defaults.md) | Story Bible types are a stored, editable list with a colour and a Can speak flag, and the fixed categories are its defaults | Proposed |
 | [0863](0863-an-audacity-backup-is-a-muted-track-in-the-project-and-a-row-in-a-table-beside-it-and-a-restore-never-deletes.md) | An Audacity backup is a muted track in the project and a row in a table beside it, and a restore never deletes | Proposed |
+| [0864](0864-a-long-recording-is-checked-in-overlapping-chunks-by-parallel-whisper-processes-and-whisper-word-scores-choose-the-passages-a-larger-model-looks-at-again.md) | A long recording is checked in overlapping chunks by parallel Whisper processes, and Whisper's word scores choose the passages a larger model looks at again | Proposed |
 <!-- adr-index:end -->

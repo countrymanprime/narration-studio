@@ -83,6 +83,7 @@ import { takeComparisonJobSchema, takeReviewCreateTakeResultSchema, takeReviewSc
 import { deliveryReportExportSchema, measureJobSchema, measurePickResultSchema } from './schemas/measure';
 import { deliveryProfileSchema, deliveryProfilesStateSchema } from './schemas/deliveryProfiles';
 import { diagnosticsJobSchema } from './schemas/diagnostics';
+import { coverageStartOptions } from './coverageOptions';
 import { coverageEnginesSchema, coverageGapReviewsSchema, coverageResultSchema, coverageStartResultSchema, coverageStateSchema } from './schemas/coverage';
 import { editingCandidatesSchema, editingSourceChoiceSchema, editingStartResultSchema, editingStateSchema } from './schemas/editing';
 import {
@@ -466,12 +467,7 @@ export const wailsClient: NarrationApi = {
   editingRetryModeSet: (level, chapterId, passageId, mode) =>
     decode(retryModeAnswerSchema, 'EditingRetryModeSet', host.EditingRetryModeSet(level, chapterId, passageId, mode)),
   subscribeTranscript: (onUpdate) => subscribeChecked('transcript:state', transcriptStateSchema, onUpdate),
-  coverageStart: (chapterId, options) =>
-    decode(
-      coverageStartResultSchema,
-      'CoverageStart',
-      host.CoverageStart(chapterId, { ...(options?.skipRecheck ? { skipRecheck: 'true' } : {}), ...(options?.model ? { model: options.model } : {}) }),
-    ),
+  coverageStart: (chapterId, options) => decode(coverageStartResultSchema, 'CoverageStart', host.CoverageStart(chapterId, coverageStartOptions(options))),
   coverageGapAccept: (chapterId, gapId) => decode(findingSchema, 'CoverageGapAccept', host.CoverageGapAccept(chapterId, gapId)),
   coverageGapIgnore: (chapterId, gapId) => decode(voidResult, 'CoverageGapIgnore', host.CoverageGapIgnore(chapterId, gapId)),
   coverageGapReviews: (chapterId) => decode(coverageGapReviewsSchema, 'CoverageGapReviews', host.CoverageGapReviews(chapterId)),

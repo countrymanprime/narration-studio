@@ -95,13 +95,40 @@ export type CoverageStartResult =
 /** CoverageStart's own options: skipRecheck starts a cascade-enabled chapter with the first pass alone -
  * "Check with tiny only" - regardless of what the re-check settings or its install state are. model names one of
  * the engines coverageEngines lists to run alone, replacing the cascade for that run (ADR 0841). */
-export type CoverageStartOptions = { skipRecheck?: boolean; model?: string };
+export type CoverageStartOptions = {
+  skipRecheck?: boolean;
+  model?: string;
+  /** Turns the second pass on or off whatever the cascade setting says; with recheckModel and recheckBelow it is ADR 0864. */
+  recheck?: boolean;
+  /** The larger model of the second pass: one of the engines coverageEngines lists. */
+  recheckModel?: string;
+  /** Also re-check passages whose words Whisper scored under this share (0 to 1), not only what is missing. */
+  recheckBelow?: number;
+  /** Whisper processes working on a long item's chunks; 0 lets the host choose from the model. */
+  workers?: number;
+  /** Each chunk's length in seconds; 0 transcribes an item whole. */
+  chunkSeconds?: number;
+  /** How many seconds neighbouring chunks overlap, where their words are joined. */
+  overlapSeconds?: number;
+};
 
 /** One engine a recording check can run: an approved Whisper model (ADR 0841). Moonshine is the Booth's, not offered. */
 export type CoverageEngine = { id: string; label: string; family: 'whisper'; installState: WhisperInstallState };
 
-/** The engines a recording check can run, in catalog order, and the id a start naming none would use (always listed). */
-export type CoverageEngines = { engines: CoverageEngine[]; default: string };
+/** What a start naming no option would do besides the first-pass model: the second pass, the passages it takes and how a long
+ * item is cut up (ADR 0864). `recheckModel` is always one of the listed engines. */
+export type CoverageRunDefaults = {
+  recheck: boolean;
+  recheckModel: string;
+  recheckBelow: number;
+  workers: number;
+  chunkSeconds: number;
+  overlapSeconds: number;
+};
+
+/** The engines a recording check can run, in catalog order, the id a start naming none would use (always listed) and
+ * what else such a start would do. */
+export type CoverageEngines = { engines: CoverageEngine[]; default: string; defaults: CoverageRunDefaults };
 
 export type CoverageAlignment = { maxMisreadRun: number; minAnchorRun: number };
 
