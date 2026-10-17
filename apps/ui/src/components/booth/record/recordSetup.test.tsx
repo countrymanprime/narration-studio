@@ -13,7 +13,7 @@ import type { NarrationApi } from '../../../types';
 import { dawClientFor } from './fixtures';
 import { REAPER_LAUNCHER_ACTION as LAUNCHER_ACTION } from '../../engine/dawConnectGuide';
 import { RecordSetup } from './RecordSetup';
-import { recordSetupFor, type RecordSetupFacts } from './recordSetup';
+import { recordSetupFor, type RecordSetupFacts } from './recordSetupModel';
 import { stoppedInDaw, TAKE_TOPIC, useRecordControl, forgetAppTake } from './useRecordControl';
 
 // A take one test leaves running is not the next test's.

@@ -38,7 +38,7 @@ import { useStaleToasts } from './useStaleToasts';
 import { SetupChip } from '../record/SetupChip';
 import { useDawChoice } from '../record/useDawChoice';
 import { ResumeOfferLine } from '../resume/ResumeOffer';
-import { saveNote } from '../resume/resumeOffer';
+import { saveNote } from '../resume/resumeOfferModel';
 import { useSuspectedPickups } from '../suspected/useSuspectedPickups';
 import { BoothSidePanel, useBoothSideOpen } from '../side/BoothSidePanel';
 import { boothDecorations, markAtWord, markNote } from '../side/decorations';

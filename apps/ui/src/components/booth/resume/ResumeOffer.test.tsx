@@ -6,7 +6,7 @@ import { ApiProvider } from '../../../api/ApiContext';
 import { createMockApi } from '../../../api/mockApi';
 import type { NarrationApi, TeleprompterLocateResult, TeleprompterResumePlace, TeleprompterResumeVerdict, TeleprompterSpan } from '../../../types';
 import { ResumeOffer } from './ResumeOffer';
-import { resumeOfferFor, paragraphAt, saveNote } from './resumeOffer';
+import { resumeOfferFor, paragraphAt, saveNote } from './resumeOfferModel';
 
 afterEach(cleanup);
 

@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { usePort } from '../../../ports/usePort';
 import type { TeleprompterLocateResult, TeleprompterSpan } from '../../../types';
-import { resumeOfferFor, type KeptResume, type ResumeOfferState } from './resumeOffer';
+import { resumeOfferFor, type KeptResume, type ResumeOfferState } from './resumeOfferModel';
 
 const NONE: ResumeOfferState = { kind: 'none' };
 

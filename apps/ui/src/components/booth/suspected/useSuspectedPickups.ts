@@ -2,7 +2,7 @@ import { useCallback, useRef } from 'react';
 import { apiErrorMessage } from '../../../api/errorMessage';
 import { useOverlay } from '../../../overlay/OverlayProvider';
 import { usePort } from '../../../ports/usePort';
-import { suspectedLines, toFlagSave, type SuspectedFlag } from './suspectedLines';
+import { suspectedLines, toFlagSave, type SuspectedFlag } from './suspectedLinesModel';
 
 /** A take that stopped: the paragraphs it read. `quiet`: the narrator is leaving, no toast. `saidSaved`: another toast already said the take is saved. */
 export type SuspectedTake = { paragraphIds: ReadonlySet<string>; quiet?: boolean; saidSaved?: boolean };

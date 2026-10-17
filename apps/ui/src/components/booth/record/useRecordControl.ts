@@ -5,7 +5,7 @@ import { usePort } from '../../../ports/usePort';
 import { recorderName, recorderNameCapital, recordsInApp } from '../../../studio/dawNames';
 import { apiErrorMessage } from '../../../api/errorMessage';
 import { recordCheck, type ChapterRecordState, type OpenProject } from './recordCheck';
-import type { RecordSetupFacts } from './recordSetup';
+import type { RecordSetupFacts } from './recordSetupModel';
 
 /** How often the Booth asks the DAW again while Record cannot start or the last read failed: a lost event must not leave a notice up for ever. */
 export const POLL_MS = 4000;

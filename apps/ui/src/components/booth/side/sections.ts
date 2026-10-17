@@ -1,6 +1,6 @@
 import type { ComponentType } from 'react';
 import type { GuideEntity } from '../../../api/contracts/storyBible';
-import type { SuspectedFlag } from '../suspected/suspectedLines';
+import type { SuspectedFlag } from '../suspected/suspectedLinesModel';
 import type { ComingUpWord, NearbyVoice } from './nearby';
 
 /** What the narrator clicked in the text: a Story Bible entry and/or a note on a marked word, shown read-only. */

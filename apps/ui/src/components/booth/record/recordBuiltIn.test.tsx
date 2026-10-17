@@ -12,7 +12,7 @@ import { PortOverrides } from '../../../ports/usePort';
 import type { NarrationApi } from '../../../types';
 import { apiWithTracks, dawClientFor } from './fixtures';
 import { RecordSetup } from './RecordSetup';
-import { recordSetupFor } from './recordSetup';
+import { recordSetupFor } from './recordSetupModel';
 import { POLL_MS, stoppedInDaw, TAKE_TOPIC, useRecordControl, forgetAppTake } from './useRecordControl';
 
 // The Booth records with the app's own recorder through the DAW port. These drive the control over a port whose answers the test
