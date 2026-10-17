@@ -126,7 +126,7 @@ export const SecondLookWithParallelChunks: Story = {
     const canvas = within(canvasElement);
     await expect(
       await canvas.findByText(
-        'Whisper tiny in 10 min chunks that overlap by 10 s, 4 at a time. Then Whisper small re-checks what is missing and words scored under 40%.',
+        'Whisper tiny in 10 min chunks that overlap by 10 s, 4 at a time. Up to 2 chapters at once. Then Whisper small re-checks what is missing and words scored under 40%.',
       ),
     ).toBeTruthy();
     await expect(canvas.getByRole('combobox', { name: 'Larger model' })).toBeTruthy();
