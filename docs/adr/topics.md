@@ -7,7 +7,7 @@ The decisions in [the index](README.md) grouped by what they govern, so a plan c
 | Topic | ADRs |
 | --- | --- |
 | [Consent and safety](#consent-and-safety) | 7 |
-| [Local-first and privacy](#local-first-and-privacy) | 7 |
+| [Local-first and privacy](#local-first-and-privacy) | 6 |
 | [Verification and code health](#verification-and-code-health) | 7 |
 | [Wire contracts and host bindings](#wire-contracts-and-bindings) | 10 |
 | [Accessibility and interaction feedback](#accessibility-and-interaction) | 9 |
@@ -20,7 +20,7 @@ The decisions in [the index](README.md) grouped by what they govern, so a plan c
 | [Mastering, delivery and production](#mastering-delivery-and-production) | 26 |
 | [Recording check, takes and proofing](#recording-check-and-takes) | 57 |
 | [Teleprompter, Booth and read-aloud](#teleprompter-and-read-aloud) | 28 |
-| [Manuscript import and the Story Bible](#manuscript-import-and-story-bible) | 51 |
+| [Manuscript import and the Story Bible](#manuscript-import-and-story-bible) | 52 |
 | [Persistence and project files](#persistence-and-project-files) | 9 |
 | [UI primitives and the design system](#ui-primitives-and-design-system) | 64 |
 
@@ -54,7 +54,6 @@ Analysis stays on the machine; what leaves it, what is logged, and how keys and 
 | [0356](0356-the-merriam-webster-key-is-sealed-in-its-own-per-user-file-and-the-online-lookup-is-a-go-only-port-with-a-single-word-rule.md) | The Merriam-Webster key is sealed in its own per-user file, and the online lookup is a Go-only port with a single-word rule | Proposed |
 | [0405](0405-pronunciation-stays-local-first-behind-cmu-wiktextract-and-espeak-with-merriam-webster-as-the-one-narrator-keyed-online-source.md) | Pronunciation stays local-first behind CMU, Wiktextract and eSpeak, with Merriam-Webster as the one narrator-keyed online source | Proposed |
 | [0406](0406-the-status-report-leaves-out-the-contracted-amount-and-effective-rate-unless-the-narrator-opts-in.md) | The status report leaves out the contracted amount and effective rate unless the narrator opts in | Proposed |
-| [0870](0870-an-allow-listed-activity-trace-records-how-the-app-behaves-off-by-default-and-never-records-content.md) | An allow-listed activity trace records how the app behaves, off by default, and never records content | Proposed |
 
 <a id="verification-and-code-health"></a>
 
@@ -261,7 +260,7 @@ First-use downloads, the asset registry, models and licences, and what ships ins
 | [0136](0136-an-asset-may-keep-only-a-file-built-at-install-from-its-verified-archive.md) | An asset may keep only a file built at install from its verified archive | Proposed |
 | [0841](0841-a-recording-check-lists-the-approved-whisper-models-as-its-engines-and-a-start-may-name-one-to-run-alone.md) | A recording check lists the approved Whisper models as its engines, and a start may name one to run alone | Proposed |
 | [0843](0843-the-status-report-preview-is-the-hosts-own-document-built-from-the-model-the-export-writes.md) | The status report preview is the host's own document, built from the model the export writes | Proposed |
-| [0864](0864-a-long-recording-is-checked-in-overlapping-chunks-by-parallel-whisper-processes-and-whisper-word-scores-choose-the-passages-a-larger-model-looks-at-again.md) | A long recording is checked in overlapping chunks by parallel Whisper processes, and Whisper's word scores choose the passages a larger model looks at again | Proposed |
+| [0864](0864-a-long-recording-is-checked-in-overlapping-chunks-by-parallel-whisper-processes-and-whisper-word-scores-choose-the-passages-a-larger-model-looks-at-again.md) | A long recording is checked in overlapping chunks by parallel Whisper processes, and Whisper's word scores choose the passages a larger model looks at again | Accepted |
 
 <a id="mastering-delivery-and-production"></a>
 
@@ -460,6 +459,7 @@ How a manuscript is read, split into chapters and credits, and how entities and 
 | [0846](0846-extraction-suggestions-are-kept-in-a-project-file-beside-the-story-bible-and-a-rejected-one-stays-as-a-tombstone.md) | Extraction suggestions are kept in a project file beside the Story Bible, and a rejected one stays as a tombstone | Proposed |
 | [0849](0849-script-prep-states-and-flagged-words-are-kept-in-a-project-sidecar-keyed-by-word-checked-on-read-and-cleared-when-the-manuscript-is-replaced.md) | Script prep states and flagged words are kept in a project sidecar keyed by word, checked on read and cleared when the manuscript is replaced | Proposed |
 | [0862](0862-story-bible-types-are-a-stored-editable-list-with-a-colour-and-a-can-speak-flag-and-the-fixed-categories-are-its-defaults.md) | Story Bible types are a stored, editable list with a colour and a Can speak flag, and the fixed categories are its defaults | Proposed |
+| [0865](0865-several-chapters-are-checked-at-once-by-separate-runs-and-every-page-that-starts-a-check-offers-the-same-options.md) | Several chapters are checked at once by separate runs, and every page that starts a check offers the same options | Proposed |
 
 <a id="persistence-and-project-files"></a>
 
