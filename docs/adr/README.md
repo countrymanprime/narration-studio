@@ -69,4 +69,4 @@ What becomes easier, what becomes harder, and what it takes to override this dec
 
 ## History
 
-On 2026-10-17 the folder was rebuilt. The 375 earlier records were mostly page behaviour, token values, thresholds and process rules that had been filed as ADRs. Each rule that still holds now lives in the document that describes the current state (the user guide, the design system, the architecture pages, the data-files reference, a doc comment or a test), and the eight decisions above restate what was fundamental. The old files remain in git history at the commit before this rebuild.
+On 2026-10-17 the folder was rebuilt. The 375 earlier records were mostly page behaviour, token values, thresholds and process rules that had been filed as ADRs. Each rule that still holds now lives in the document that describes the current state (the user guide, the design system, the architecture pages, the data-files reference, a doc comment or a test), and the eight decisions above restate what was fundamental. The old files remain in git history at commit `9be197f`, the last commit before this rebuild.
