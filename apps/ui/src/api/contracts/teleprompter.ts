@@ -324,7 +324,14 @@ export type ReadAloudRecordReason =
   | 'did_not_start'
   | 'not_our_recording'
   | 'timeout'
-  | 'bad_time';
+  | 'bad_time'
+  // The built-in recorder's (bindings_booth_record.go): the capability's own refusals and the microphone's.
+  | 'turned_off'
+  | 'unsupported'
+  | 'not_yet'
+  | 'no_microphone'
+  | 'choose_microphone'
+  | 'not_recording';
 export type ReadAloudRecording = {
   outcome: ReadAloudRecordOutcome;
   reason?: ReadAloudRecordReason;

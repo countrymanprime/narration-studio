@@ -9,7 +9,8 @@ import { useUserKeymap } from '../../../input/useUserKeymap';
 import { CommandScope } from '../../../input/router';
 import { useOverlay } from '../../../overlay/OverlayProvider';
 import type { MeasurementsPort } from '../../../ports/measurements';
-import { PortOverrides, usePort } from '../../../ports/usePort';
+import { usePort } from '../../../ports/usePort';
+import { recordsInApp } from '../../../studio/dawNames';
 import { dawShortName, useJournal } from '../../../studio/StudioProvider';
 import { ContextMenuHost } from '../../layout/ContextMenuHost';
 import type { ContextMenuItem } from '../../primitives/ContextMenu';
@@ -47,7 +48,6 @@ import { useBoothMarks } from '../side/useBoothMarks';
 import { useBoothReference, type ReferenceTarget } from '../side/useBoothReference';
 import { useTeleprompterSession } from '../useTeleprompterSession';
 import { boothQuery, readBoothQuery, readPickupIds, type BoothStart, type BoothTarget } from './boothQuery';
-import { withBuiltinRecorder } from './builtinRecorder';
 import { CreditsWarning } from './CreditsWarning';
 import { creditsParagraphs, entityAtWord, readingParagraphsOf } from './readingSource';
 import { useBoothData, type BoothSource } from './useBoothData';
@@ -111,10 +111,6 @@ function BoothLoaded({ navigate, exitTo }: { navigate: (next: string) => void; e
   // What the page shows; it follows the address unless a take runs, when the session asks first (`BoothSession`).
   const [shown, setShown] = useState(asked);
   const data = useBoothData(shown);
-  const dawPort = usePort('daw');
-  const recording = usePort('recording');
-  const daw = useMemo(() => withBuiltinRecorder(dawPort, recording), [dawPort, recording]);
-  // Read here, outside the session's own port overrides (which hold only the DAW client).
   const measurements = usePort('measurements');
   // A chapter is changed in the address (replacing it, so Back leaves the Booth rather than stepping through chapters).
   const choose = useCallback(
@@ -140,7 +136,7 @@ function BoothLoaded({ navigate, exitTo }: { navigate: (next: string) => void; e
   if (!source) return null;
   const key = source.kind === 'credits' ? `credits:${source.credits}` : source.chapter.id;
   return (
-    <PortOverrides clients={{ daw }}>
+    <>
       <BoothSession
         key={key}
         source={source}
@@ -156,7 +152,7 @@ function BoothLoaded({ navigate, exitTo }: { navigate: (next: string) => void; e
         onPick={setPickAt}
         measurements={measurements}
       />
-    </PortOverrides>
+    </>
   );
 }
 
@@ -355,7 +351,8 @@ function BoothSession({ source, from, requested, adopt, data, choose, navigate, 
   const modelState = useListeningModelState(session.engine, session.model, session.modelInstall.job?.phase);
   useStaleToasts(overlay, { ready: !!capabilities && !control.disabled, reason: control.reason, recording: control.recording });
   const roomTone = useRoomTone(measurements, session.device);
-  const standalone = capabilities?.daw === 'none';
+  // The app's own recorder is what records (the project chose it, or no DAW is linked): the microphone is chosen here, not in a DAW.
+  const standalone = capabilities?.daw === 'none' || recordsInApp(capabilities?.daw);
   const listening = useListeningMic({
     dawRecords: !!capabilities && !standalone,
     device: session.device,

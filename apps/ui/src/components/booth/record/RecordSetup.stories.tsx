@@ -64,6 +64,25 @@ export const TurnOnRecord: Story = {
   },
 };
 
+/** The app's own recorder with Experimental off: no DAW setup and no track, and the take goes in the project's Recordings folder. */
+export const TurnOnRecordBuiltIn: Story = {
+  args: {
+    capabilities: {
+      ...DAW_SETUPS.builtin,
+      capabilities: {
+        ...DAW_SETUPS.builtin.capabilities,
+        record: { level: 'experimental', available: false, reason: 'experimental_off', message: 'Experimental: switched off in Settings.' },
+      },
+    },
+    linked: false,
+  },
+  play: async ({ canvasElement }) => {
+    await expect(within(canvasElement).getByRole('heading', { name: 'Recording in the built-in recorder is experimental' })).toBeVisible();
+    await expect(within(canvasElement).getByText(/saved in the project's Recordings folder/)).toBeInTheDocument();
+    await expect(within(canvasElement).getByRole('button', { name: 'Turn on Record' })).toBeEnabled();
+  },
+};
+
 export const ConnectReaper: Story = {
   args: { capabilities: refused('standalone', 'REAPER is not connected to this app. Open this app from REAPER to use it.') },
 };

@@ -169,6 +169,34 @@
   },
   {
     "page": "booth",
+    "state": "builtin-setup",
+    "viewport": "desktop",
+    "docName": "booth-builtin-setup",
+    "caption": "Booth - a project that records with the built-in recorder: the chip reads Built-in, and Record is ready with no track to link"
+  },
+  {
+    "page": "booth",
+    "state": "builtin-refusal",
+    "viewport": "desktop",
+    "docName": "booth-builtin-refusal",
+    "caption": "Booth - the built-in recorder with Experimental actions off: Record disabled with the reason, and the Recording in the built-in recorder is experimental box above it with Turn on Record"
+  },
+  {
+    "page": "booth",
+    "state": "builtin-recording",
+    "viewport": "desktop",
+    "docName": "booth-builtin-listening",
+    "caption": "Booth - a take recording with the built-in recorder: Stop in place of Record and the REC pill beside the Built-in chip"
+  },
+  {
+    "page": "booth",
+    "state": "builtin-take-ended",
+    "viewport": "desktop",
+    "docName": "booth-builtin-take-ended",
+    "caption": "Booth - the built-in recorder's take ended by itself: Record is back and a message says the audio before it is kept in the Recordings folder"
+  },
+  {
+    "page": "booth",
     "state": "recording",
     "viewport": "desktop",
     "docName": "booth-listening",

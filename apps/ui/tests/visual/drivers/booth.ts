@@ -100,6 +100,34 @@ export const boothDrivers: Record<string, Driver> = {
     await notice.getByRole('heading', { name: 'REAPER has a different project open' }).waitFor({ timeout: 15_000 });
     await notice.getByText(/Last checked \d+ s ago/).waitFor();
   },
+  // The app's own recorder: the chip names it, Record needs no track, and what stops a take is said in its own words.
+  'builtin-setup': async (page) => {
+    await openBooth(page, `?mockEngine=builtin&mockRecordCapabilityOn=1`);
+    await page
+      .getByRole('button', { name: /^Recording setup: / })
+      .filter({ hasText: /Built-in/ })
+      .waitFor();
+    await record(page).and(page.locator(':enabled')).waitFor();
+  },
+  'builtin-refusal': async (page) => {
+    await openBooth(page, '?mockEngine=builtin');
+    await page.getByRole('heading', { name: 'Recording in the built-in recorder is experimental' }).waitFor();
+    await page.getByText('Experimental: switched off in Settings.').waitFor();
+  },
+  'builtin-recording': (page) => startTake(page, '?mockEngine=builtin&mockRecordCapabilityOn=1'),
+  'builtin-take-ended': async (page) => {
+    await startTake(page, '?mockEngine=builtin&mockRecordCapabilityOn=1&mockRecorder=failed');
+    // The Booth hears the take on the mock DAW's next heartbeat; a stop heard before that is not the take's end.
+    await page.clock.runFor(1_000);
+    await page.evaluate(() => window.__NARRATION_MOCK_DAW__?.stopInDaw());
+    // The mock DAW pushes the stopped transport on its next heartbeat, which the paused page clock holds back.
+    await page.clock.runFor(1_000);
+    await page
+      .getByText(/kept in the project's Recordings folder/)
+      .first()
+      .waitFor();
+    await record(page).and(page.locator(':enabled')).waitFor();
+  },
   recording: (page) => startTake(page),
   'leave-dialog': async (page) => {
     await startTake(page);

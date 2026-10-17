@@ -8,6 +8,7 @@ import { usePort } from '../../../ports/usePort';
 import { useContextProvider } from '../../../registries/context';
 import type { ContextMenuItem } from '../../primitives/ContextMenu';
 import type { LeaveGuardStore } from '../../../studio/journal/leaveGuard';
+import { recordsInApp } from '../../../studio/dawNames';
 import { dawShortName } from '../../../studio/StudioProvider';
 import type { TeleprompterLocateResult } from '../../../types';
 import { useBoothLeaveGuard } from '../leave/useBoothLeaveGuard';
@@ -323,7 +324,7 @@ export function useBoothPage(options: BoothPageOptions) {
   // The question names what records from the capability report; the shell's short name for no DAW ("Built-in") names the app's recorder.
   const dawName = !control.capabilities
     ? 'the DAW'
-    : control.capabilities.daw === 'none'
+    : control.capabilities.daw === 'none' || recordsInApp(control.capabilities.daw)
       ? `the ${dawShortName('none').toLowerCase()} recorder`
       : control.capabilities.daw;
   const { leave } = useBoothLeaveGuard(
