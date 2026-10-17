@@ -207,7 +207,7 @@ Large model doesn't support Auto).
 
 Vocabulary hints teach the transcription model unusual names it's likely to mis-hear. The pills box is
 the input: type a name and press Enter or a comma to add it, click elsewhere to commit whatever you were
-typing, or press Backspace in an empty box to remove the most recently added term. Pasting a list with
+typing, or press Backspace in an empty box to remove the last term added. Pasting a list with
 commas or line breaks adds every name in it at once. A name already there in any case is not added twice,
 and a term over 64 characters is capped. The sparkle icon inside the box, "Suggest from manuscript",
 proposes candidates from the [Story Bible](story-bible.md); accepted hints render as solid pills,
