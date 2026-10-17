@@ -29,7 +29,7 @@ flowchart LR
 | A page declares the port it uses; `useApi()` calls only fall | per-file ceilings in the test | `ports/useApiRatchet.test.ts` |
 | Every entry left in the `useApi()` ratchet says why | `ratchetReasons.ts` (`KEPT`, `GAPS`) | `ports/useApiRatchet.test.ts` calls `unexplained()` |
 | Every port file has a contract suite that calls the kit | `ports/*.contract.test.ts` | `ports/providerContractRegistration.test.ts` |
-| Sample chapter titles, subtitles and speaker names are not literals in `components/` or `hooks/`; a file's count only falls | `fixtures/`, `api/mockFixtures.ts` | `sampleLiterals.test.ts` ([ADR 0053](../adr/0053-icon-buttons-text-fields-and-selects-wrap-the-native-controls.md) style) |
+| Sample chapter titles, subtitles and speaker names are not literals in `components/` or `hooks/`; a file's count only falls | `fixtures/`, `api/mockFixtures.ts` | `sampleLiterals.test.ts` (a per-file ceiling, the pattern of `rawNatives.test.ts`, [ADR 0053](../adr/0053-icon-buttons-text-fields-and-selects-wrap-the-native-controls.md)) |
 | `renderScenario` is imported by tests only | `fixtures/renderScenario.tsx` | `fixtures/scenario.test.ts` (`helper-is-test-only`) |
 
 A rule taken from an ADR is a lint or test rule that names its ADR ([ADR 0046](../adr/0046-architecture-rules-taken-from-adrs-are-lint-and-test-rules.md)).

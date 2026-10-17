@@ -89,7 +89,7 @@ Two histories exist. Page history (`hooks/useAppHistory.ts`) is Back and Forward
 | Review | Proof, Pickups |
 | Finish | Master & QC, Delivery |
 
-`shellPages` feeds the "Go to" commands from the same list. The Proof and Pickups items show a count badge only when `useNavCounts` has a count from the host ([ADR 0725](../adr/0725-the-rail-draws-a-count-badge-only-from-a-count-the-host-reports-and-the-product-is-named-studio.md)); a missing or zero count draws none. An item can be gated on a manuscript or a linked DAW file (`requiresManuscript`, `requiresDaw`); none is gated now. The Booth route replaces the whole shell with a bare `<main>` when a manuscript exists.
+`shellPages` feeds the "Go to" commands from the same list. The Proof and Pickups items show a count badge only when `useNavCounts` has a count from the host ([ADR 0725](../adr/0725-the-rail-draws-a-count-badge-only-from-a-count-the-host-reports-and-the-product-is-named-studio.md)); a missing or zero count draws none. An item can be gated on a manuscript or a linked DAW file (`requiresManuscript`, `requiresDaw`); no item sets either. The Booth route replaces the whole shell with a bare `<main>` when a manuscript exists.
 
 The header holds Back and Forward, the project name, the jump menu button, Undo and History, a running timer chip, the zoom group and the engine chip.
 
@@ -104,7 +104,7 @@ The header holds Back and Forward, the project name, the jump menu button, Undo 
 | `narrow` | width below 1180 (`NARROW_BELOW`) |
 | `tiny` | width below 860 (`TINY_BELOW`) |
 
-At 1360 and wider the rail is 216 px with labels. Below that it is 64 px of icons and opens over the page on hover or keyboard focus. Below Tailwind's `md` width the rail is replaced by `NavDrawer`, opened from a header button. `useLayoutClass` follows `LAYOUT_QUERIES` through `matchMedia`; where there is none (jsdom) it returns `FULL_LAYOUT`. Booth and Script use it. CSS cannot read a constant inside a class name, so pages write the width variants out (`min-[1360px]`, `max-[1359px]`) and a test holds them to this vocabulary.
+At 1360 and wider the rail is 216 px with labels. Below that it is 64 px of icons and opens over the page on hover or keyboard focus. Below Tailwind's `md` width the rail is replaced by `NavDrawer`, opened from a header button. `useLayoutClass` follows `LAYOUT_QUERIES` through `matchMedia`; where there is none (jsdom) it returns `FULL_LAYOUT`. Booth and Script call it. CSS cannot read a constant inside a class name, so pages write the width variants out (`min-[1360px]`, `max-[1359px]`) and a test holds them to this vocabulary.
 
 ## Rules and the tests that enforce them
 

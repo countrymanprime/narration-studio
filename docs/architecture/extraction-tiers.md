@@ -13,7 +13,7 @@ The registry order is `rules`, `imported`, `local-model`, `gliner`, `booknlp` (`
 | Rules baseline | `rules` | Built. Needs no download. A scan always includes it first (`extractionScanOrder`). | Manuscript Guide sidecar, `suggest` mode with no `--source` (`extraction_rules.py`) |
 | Optional download | `gliner` | Built. Runs only when its asset `gliner` is installed. | Manuscript Guide sidecar, `suggest --source gliner` (`extraction_gliner.py`) |
 | Optional download | `booknlp` | Built. Runs when `booknlp-small` or `booknlp-big` is installed; the larger one ranks higher. | Manuscript Guide sidecar, `suggest --source booknlp` (`extraction_booknlp.py`) |
-| Local LLM, later | `local-model` | **Not built.** The row exists with no extractor and answers "No local model is installed." The asset catalog has a `local-llm` row with no files and an `unavailable` sentence. | Nowhere |
+| Local model | `local-model` | **Not built.** The row exists with no extractor and answers "No local model is installed." The asset catalog has a `local-llm` row with no files and an `unavailable` sentence. | Nowhere |
 | Bring your own | `imported` | Built. Not started from a scan (`Runs()` is false); the narrator pastes a file. | In the Go host, `internal/extraction/importer` |
 
 Each source offers `extractionport.Raw` values: a payload, a confidence or none, the quotes behind it, a chapter and an optional `duplicate` flag. A source sets no id, offset, status or fingerprint; `internal/extraction` and `internal/extraction/store` compute those, so a provider cannot decide what is accepted. `extractionporttest.Run` runs a shared suite over every registered row, and `TestARawSuggestionHasNoOffsetStatusOrFingerprint` pins the shape.
@@ -22,13 +22,13 @@ Each source offers `extractionport.Raw` values: a payload, a confidence or none,
 
 GLiNER and BookNLP are catalog entries of the asset registry, kind `analysis` (`config/analysis-assets.json`, `internal/analysistools`). Their consent screen, install, verification and removal follow the one flow in [first-use dependency provisioning](first-use-dependency-provisioning.md#the-story-bible-analysis-tools); this page does not repeat it. Three facts bear on extraction:
 
-- `extractionport.AvailableNow` answers "`<label>` is not downloaded." until one of the source's asset ids is installed. `Host.analysisToolInstall` also requires the row to be pinned and verified.
+- `extractionport.AvailableNow` answers "`<label>` is not downloaded." until one of the source's asset ids is installed. `Host.analysisToolInstall` also requires the catalog row to be available (`analysistools.Tool.Available`: files pinned, no `unavailable` note) and its state to be `installed`.
 - A scan skips a source that is not available and says why in the job's messages (`runExtractionScan`). The rules still run.
-- A catalog row is refused before any request when a file is `PENDING` or the row has a `pending` note (`analysistools.Tool.Available`). In the catalog on 2026-10-16 the `gliner`, `booknlp-small` and `booknlp-big` rows carry such a note, so the host refuses to install them until the owner pins the files.
+- A catalog row is refused before any request when a file is `PENDING` or the row has a `pending` note (`analysistools.Tool.Available`). The `gliner`, `booknlp-small` and `booknlp-big` rows carry such a note in `config/analysis-assets.json`, so the host refuses to install them while it stays.
 
 ### The local model
 
-Nothing in the host runs a language model for extraction. `extractionport.LocalModel` is a registry row that never has an extractor, and `local-llm` in the analysis catalog cannot be installed. What exists is the place a model would plug in: one more `port.Entry` with an `Extractor`, which needs no change in any caller (`TestANewSourceIsOneRowAndNeedsNoChangeInAnyCaller`).
+Nothing in the host runs a language model for extraction. `extractionport.LocalModel` is a registry row that never has an extractor, and `local-llm` in the analysis catalog cannot be installed. A source is one `port.Entry` with an `Extractor`, and adding one changes no caller (`TestANewSourceIsOneRowAndNeedsNoChangeInAnyCaller`).
 
 ## The 75% threshold
 
