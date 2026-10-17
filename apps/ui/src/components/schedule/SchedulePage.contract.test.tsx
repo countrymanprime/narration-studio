@@ -29,11 +29,21 @@ describe('an amount as typed', () => {
     await waitFor(async () => expect((await stored()).contractedAmount).toBe(amount));
   });
 
-  it('shows a huge amount as digits and its value with separators, never an exponent or Infinity', async () => {
+  it('refuses an amount too large to be a rate, with its own sentence, and keeps the stored one', async () => {
+    const calls = vi.fn();
+    await mountSchedule({ wrap: (base) => ({ setProductionDeadline: async (d, a) => (calls(d, a), base.setProductionDeadline(d, a)) }) });
+    await commit('99999999999999999999');
+    await waitFor(() => expect(toasts().join(' ')).toMatch(/too large\. Write it as 1,000,000,000,000 or less/));
+    expect(calls).not.toHaveBeenCalled();
+    expect((await amountField()).value).toBe('250');
+    expect(document.body.textContent).not.toMatch(/Infinity|e\+|NaN/);
+  });
+
+  it('shows the largest amount as digits and its value with separators, never an exponent', async () => {
     await mountSchedule();
-    await commit('1000000000000000000000');
+    await commit('1000000000000');
     await waitFor(() => expect(value()).toMatch(/^[\d,]+$/));
-    expect((await amountField()).value).toBe('1000000000000000000000');
+    expect((await amountField()).value).toBe('1000000000000');
     expect(document.body.textContent).not.toMatch(/Infinity|e\+|NaN/);
   });
 
@@ -60,6 +70,23 @@ describe('an amount as typed', () => {
     await waitFor(() => expect(toasts().join(' ')).toMatch(/Write the rate as a number|Write a decimal with a point/));
     expect(calls).not.toHaveBeenCalled();
     expect((await amountField()).value).toBe('250');
+  });
+
+  it('takes the refusal away once a later amount is stored', async () => {
+    await mountSchedule();
+    await commit('1,5');
+    await waitFor(() => expect(toasts().join(' ')).toMatch(/Write a decimal with a point/));
+    await commit('1000');
+    await waitFor(async () => expect((await stored()).contractedAmount).toBe(1000));
+    await waitFor(() => expect(toasts().join(' ')).not.toMatch(/Write a decimal with a point/));
+  });
+
+  it('takes the refusal away when the stored amount is typed again', async () => {
+    await mountSchedule();
+    await commit('1,5');
+    await waitFor(() => expect(toasts().join(' ')).toMatch(/Write a decimal with a point/));
+    await commit('250.0');
+    await waitFor(() => expect(toasts().join(' ')).not.toMatch(/Write a decimal with a point/));
   });
 
   it("shows the host's sentence and the stored amount when the host refuses it", async () => {

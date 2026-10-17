@@ -93,6 +93,39 @@ const LIVE_UPDATES_DEGRADED = 'Some live updates from the desktop host could not
 // dialogs claim the scope generically.
 const isModalOpen = () => Boolean(document.querySelector('[role="dialog"], [role="alertdialog"]'));
 
+// A `popstate` the app did not start (the keyboard's or the system's Back) from dirty Settings is stopped before the router sees it: once
+// the route changed, Settings would unmount and its edits be gone before any prompt. History is put back where it was and the same
+// "Unsaved settings" prompt asks. The listener is added when this module loads, ahead of the router's own, which React Router adds
+// when it mounts: listeners of one event run in the order they were added.
+const popGuard = {
+  dirty: false,
+  pathname: '',
+  idx: 0,
+  swallow: false,
+  isOwnPop: (): boolean => false,
+  ask: null as ((direction: 1 | -1) => void) | null,
+};
+const historyIdx = () => (window.history.state as { idx?: number } | null)?.idx ?? 0;
+if (typeof window !== 'undefined') {
+  window.addEventListener('popstate', (event) => {
+    if (popGuard.swallow) {
+      popGuard.swallow = false;
+      event.stopImmediatePropagation();
+      return;
+    }
+    const next = historyIdx();
+    if (!popGuard.ask || popGuard.isOwnPop() || !popGuard.dirty || popGuard.pathname !== '/settings' || window.location.pathname.endsWith('/settings')) {
+      popGuard.idx = next;
+      return;
+    }
+    event.stopImmediatePropagation();
+    const delta = next - popGuard.idx;
+    popGuard.swallow = true;
+    window.history.go(-delta);
+    popGuard.ask(delta < 0 ? -1 : 1);
+  });
+}
+
 export function App({ journal }: { journal?: Journal } = {}) {
   // Every build except the demo serves from the site root (base: '/', vite.config.ts), so this is a
   // no-op basename there. The demo serves under /narration-utils/demo/: without a matching basename
@@ -137,6 +170,9 @@ function AppRoutes() {
   const guardedBackRef = useRef<() => void>(() => {});
   const guardedForwardRef = useRef<() => void>(() => {});
   const prevPathnameRef = useRef(location.pathname);
+  // The page the last move left. `unexpectedPop` is set one render after the location changes, by which time
+  // `prevPathnameRef` already holds the new page.
+  const leftPathnameRef = useRef(location.pathname);
   // The compare run's phase, read by the pop-recovery effect below without resubscribing it on every transcript event.
   const transcriptPhaseRef = useRef<string>('idle');
   const [data, setData] = useState<Bootstrap>();
@@ -525,13 +561,28 @@ function AppRoutes() {
     ] satisfies ContextMenuItem[],
   };
 
+  popGuard.dirty = settingsDirty;
+  popGuard.pathname = location.pathname;
+  popGuard.isOwnPop = history.isOwnPop;
+  useEffect(() => {
+    popGuard.ask = (direction) => setPendingMove({ kind: 'delta', direction });
+    popGuard.idx = historyIdx();
+    return () => {
+      popGuard.ask = null;
+      popGuard.dirty = false;
+    };
+  }, []);
+  useEffect(() => {
+    popGuard.idx = historyIdx();
+  }, [location.key]);
+
   // Recovery for a `popstate` the app did not start (a mouse-button gesture WebView2 acts on
   // despite `preventDefault`, if that happens). The move already took effect; if it left
   // Settings dirty, push Settings back and ask, so the change is not lost silently. Leaving a Proof chapter view with
   // a run still resets the run either way.
   useEffect(() => {
     if (history.unexpectedPop) {
-      const leftPathname = prevPathnameRef.current;
+      const leftPathname = leftPathnameRef.current;
       history.clearUnexpectedPop();
       if (leftPathname === '/settings' && settingsDirty) {
         const landedAt = location.pathname + location.hash;
@@ -541,6 +592,7 @@ function AppRoutes() {
         void api.transcriptReset().catch(() => {});
       }
     }
+    if (prevPathnameRef.current !== location.pathname) leftPathnameRef.current = prevPathnameRef.current;
     prevPathnameRef.current = location.pathname;
   }, [location.pathname, location.hash, history, settingsDirty, api, navigate]);
 

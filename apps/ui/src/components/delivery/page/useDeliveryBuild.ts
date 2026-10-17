@@ -107,6 +107,8 @@ export function useDeliveryBuild(profile: DeliveryProfile | undefined) {
     /** The host did not answer the latest read of the jobs: what it said, and when it last did. */
     quiet: packaged.error ?? exported.error,
     lastHeard: packaged.error !== undefined ? packaged.lastHeard : exported.lastHeard,
+    /** When the host was last asked, answered or not: the proof that Check again read afresh. */
+    lastAsked: packaged.error !== undefined ? packaged.lastAsked : exported.lastAsked,
     checkAgain: () => {
       readExport();
       readPackage();

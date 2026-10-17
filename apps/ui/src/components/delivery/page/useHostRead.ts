@@ -13,6 +13,8 @@ type HostRead<T> = {
   error: string | undefined;
   /** When the host last answered, in ms since the epoch. */
   lastHeard: number | undefined;
+  /** When the host was last asked, answered or not, in ms since the epoch: what tells a narrator a fresh read was made. */
+  lastAsked: number | undefined;
   /** Reads now. The one function behind Check again, the window regaining focus and the host's own events. */
   again: () => void;
   /** Shows an answer a start or a cancel brought back, numbered like a read so a slower read cannot undo it. */
@@ -29,6 +31,7 @@ export function useHostRead<T>(read: () => Promise<T>, running: (value: T) => bo
   const [value, setValue] = useState<T>();
   const [error, setError] = useState<string>();
   const [lastHeard, setLastHeard] = useState<number>();
+  const [lastAsked, setLastAsked] = useState<number>();
   // A counter, not the message: two failures with the same words must still schedule the next try.
   const [failures, setFailures] = useState(0);
   const sent = useRef(0);
@@ -49,6 +52,7 @@ export function useHostRead<T>(read: () => Promise<T>, running: (value: T) => bo
     setValue(next);
     setError(undefined);
     setLastHeard(Date.now());
+    setLastAsked(Date.now());
   }, []);
   const again = useCallback(() => {
     const seq = ++sent.current;
@@ -57,6 +61,7 @@ export function useHostRead<T>(read: () => Promise<T>, running: (value: T) => bo
       (failure) => {
         if (!live.current || seq < shown.current) return;
         setError(apiErrorMessage(failure));
+        setLastAsked(Date.now());
         setFailures((count) => count + 1);
       },
     );
@@ -76,10 +81,16 @@ export function useHostRead<T>(read: () => Promise<T>, running: (value: T) => bo
     return () => clearTimeout(timer);
   }, [going, error, again, value, failures, lastHeard]);
 
-  return { value, error, lastHeard, again, set };
+  return { value, error, lastHeard, lastAsked, again, set };
 }
 
 /** "last heard 12 s ago", or "not heard yet". */
 export function heardText(lastHeard: number | undefined, now = Date.now()): string {
   return lastHeard === undefined ? 'not heard yet' : `last heard ${Math.max(0, Math.round((now - lastHeard) / 1000))} s ago`;
+}
+
+/** "asked again just now" or "asked again 4 s ago": the answer to a press of Check again that found the host still quiet. */
+export function askedText(lastAsked: number | undefined, now = Date.now()): string {
+  const seconds = lastAsked === undefined ? undefined : Math.max(0, Math.round((now - lastAsked) / 1000));
+  return seconds === undefined ? 'not asked yet' : seconds === 0 ? 'asked again just now' : `asked again ${seconds} s ago`;
 }

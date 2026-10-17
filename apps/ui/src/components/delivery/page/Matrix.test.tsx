@@ -312,6 +312,19 @@ describe('D5 and D6 a running build', () => {
     await waitFor(() => expect(screen.queryByText(/Can't tell how the build is going/)).toBeNull());
   });
 
+  it('Check again against a host that is still quiet says it asked again, and when', async () => {
+    const packageState = vi.fn(async () => {
+      throw new Error('the host did not answer');
+    });
+    mount({ packageState });
+    const alert = await screen.findByRole('alert');
+    expect(alert.textContent).toMatch(/asked again (just now|\d+ s ago)/);
+    const calls = packageState.mock.calls.length;
+    await userEvent.click(within(screen.getByRole('alert')).getByRole('button', { name: 'Check again' }), { advanceTimers: vi.advanceTimersByTime });
+    expect(packageState.mock.calls.length).toBeGreaterThan(calls);
+    await waitFor(() => expect(screen.getByRole('alert').textContent).toMatch(/asked again just now/));
+  });
+
   it('late and out of order: an answer to an older read never replaces the Cancel answer', async () => {
     const slow = deferred<PackageJob>();
     let calls = 0;

@@ -9,7 +9,7 @@ export function AppearsIn({
   manuscript,
   onGo,
 }: {
-  entity: Pick<GuideEntity, 'appearances'>;
+  entity: Pick<GuideEntity, 'appearances'> & Partial<Pick<GuideEntity, 'occurrences'>>;
   manuscript: readonly ChapterRef[];
   onGo: (chapterId: string) => void;
 }) {

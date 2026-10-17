@@ -7,10 +7,12 @@ import type { ExtractionApi, ExtractionDecision } from '../../../../api/contract
 import type { Journal, Result } from '../../../../studio/journal/createJournal';
 
 export type DecisionEnv = {
-  journal: Pick<Journal, 'act'>;
+  journal: Pick<Journal, 'act' | 'undo'>;
   port: ExtractionApi;
   /** Called with what a decision, or the undo of one, did, so the page can show the suggestion as it is now. */
   changed?: (decision: ExtractionDecision) => void;
+  /** Called after a decision that said something to the narrator ("Accepted"), with the way to take it back. */
+  said?: (text: string, undo: () => Promise<Result<unknown>>) => void;
 };
 
 /** The host's sentence as the refusal; the mock and the Wails client both reject with an `Error` carrying it. */
@@ -23,7 +25,13 @@ async function attempt(call: () => Promise<ExtractionDecision>): Promise<Result<
 }
 
 /** Runs one decision as one journal entry. A decision touches the suggestion, and the Story Bible entries the host says it changed. */
-async function decide(env: DecisionEnv, id: string, label: string, call: () => Promise<ExtractionDecision>): Promise<Result<ExtractionDecision>> {
+async function decide(
+  env: DecisionEnv,
+  id: string,
+  label: string,
+  call: () => Promise<ExtractionDecision>,
+  says?: string,
+): Promise<Result<ExtractionDecision>> {
   const touches = [`extraction/${id}`];
   const result = await env.journal.act<ExtractionDecision>({
     label,
@@ -41,12 +49,13 @@ async function decide(env: DecisionEnv, id: string, label: string, call: () => P
   });
   if (!result.ok) return result;
   env.changed?.(result.value.value);
+  if (says) env.said?.(says, () => env.journal.undo(result.value.id));
   return { ok: true, value: result.value.value };
 }
 
 /** Accepts a suggestion; `text`, when given, is what the narrator edited it to (Save and accept). */
 export const acceptSuggestion = (env: DecisionEnv, id: string, text?: string): Promise<Result<ExtractionDecision>> =>
-  decide(env, id, 'Accepted a suggestion', () => env.port.extractionAccept(id, text));
+  decide(env, id, 'Accepted a suggestion', () => env.port.extractionAccept(id, text), 'Accepted');
 
 export const rejectSuggestion = (env: DecisionEnv, id: string): Promise<Result<ExtractionDecision>> =>
   decide(env, id, 'Rejected a suggestion', () => env.port.extractionReject(id));

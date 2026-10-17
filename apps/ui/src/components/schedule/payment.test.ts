@@ -1,7 +1,7 @@
 // @vitest-environment node
 import { describe, expect, it } from 'vitest';
 import { productionPlanSchema } from '../../api/schemas/production';
-import { contractValue, PAYMENT_TYPES, paymentOf } from './payment';
+import { contractValue, isTooLarge, parseAmount, PAYMENT_TYPES, paymentOf } from './payment';
 
 describe('payment types', () => {
   it('are the wire names the host merged, read as they are', () => {
@@ -30,5 +30,18 @@ describe('the value of a contract', () => {
     expect(contractValue(plan('per_finished_hour', null), 9300)).toBeNull();
     expect(contractValue(plan('royalty_share', null), 9300)).toBeNull();
     expect(contractValue(plan('none', null), 9300)).toBeNull();
+  });
+});
+
+describe('the largest amount', () => {
+  it('takes the limit itself and refuses more, however it is written', () => {
+    expect(parseAmount('1000000000000')).toBe(1_000_000_000_000);
+    expect(parseAmount('1,000,000,000,000')).toBe(1_000_000_000_000);
+    expect(parseAmount('1000000000000.01')).toBeNull();
+    expect(parseAmount('99999999999999999999')).toBeNull();
+    expect(isTooLarge('99999999999999999999')).toBe(true);
+    expect(isTooLarge('1,5')).toBe(false);
+    expect(isTooLarge('abc')).toBe(false);
+    expect(isTooLarge('1000000000000')).toBe(false);
   });
 });

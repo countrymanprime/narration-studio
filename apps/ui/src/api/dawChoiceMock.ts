@@ -119,6 +119,10 @@ export function createDawChoiceMock(
   return {
     dawChoice: current,
     dawChoose: async (daw) => {
+      // The host refuses the built-in recorder where it cannot record (`chooseProjectDaw`): here, while the Experimental switch is off.
+      if (daw === 'Built-in' && (await deps.capabilities()).capabilities.record?.reason === 'experimental_off') {
+        throw new Error(`${EXPERIMENTAL_OFF.message} Turn on the Experimental switch under DAW Integration to record in the app.`);
+      }
       await deps.recording.recorderChooseEngine(daw === 'Built-in' ? 'builtin' : 'daw');
       chosen = daw;
       return current();

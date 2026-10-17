@@ -374,6 +374,12 @@ function GuideLoaded({ notify, goToManuscript }: Pick<GuideProps, 'notify' | 'go
   useCommand('storybible.entry.prev', () => moveFocus(-1));
   const onListKeyDown = (event: KeyboardEvent<HTMLUListElement>) => {
     if (event.altKey || event.ctrlKey || event.metaKey || event.shiftKey) return;
+    if (event.key === 'Home' || event.key === 'End') {
+      event.preventDefault();
+      const edge = event.key === 'Home' ? sorted[0] : sorted[sorted.length - 1];
+      if (edge) rowButtons.current.get(edge.id)?.focus();
+      return;
+    }
     if (event.key !== 'ArrowDown' && event.key !== 'ArrowUp') return;
     event.preventDefault();
     moveFocus(event.key === 'ArrowDown' ? 1 : -1);

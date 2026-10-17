@@ -7,8 +7,8 @@ profile of the platform you upload to, rule by rule, says why a file fails, and 
 files to spec. [Delivery](delivery.md), beside it in the navigation, builds the platform's package. Out of
 the box every project is judged against **ACX (September 2026)**, ACX's audio submission requirements as
 the app recorded them. Your files are only read, never changed: mastering, encoding and packaging each write
-new files. Master & QC is always in the navigation, under **Finish**: it needs neither a manuscript nor a
-DAW project.
+new files. Master & QC is always in the navigation, under **Finish**, and needs no DAW project. It needs an imported
+manuscript: without one the page says **This project has no manuscript yet** and offers to import one.
 
 ![Master & QC before anything is checked: the ACX profile pill, Check files…, the built-in mastering chain and the delivery package](../../images/ui/master-empty.webp)
 
@@ -77,7 +77,7 @@ nothing measured it says **No measured files yet** rather than a zero.
 **Delivery package** on the right lists the package checks drawn from the profile's rules (chapters as one
 file each, every file under the profile's longest length, the channels, sample rate and MP3 format), the files that
 fail and how many checks each fails, and how many chapters are not ready (the same count Delivery's **Before you
-build** gives). A rule the profile lacks or
+build** gives: the opening and closing credits files count like a chapter). A rule the profile lacks or
 has turned off has no row. The MP3 format cannot be judged from a WAV render, so that row waits (with "the MP3
 format is checked on the MP3 you upload") instead of showing a tick. **Open Delivery** goes on to build the package.
 

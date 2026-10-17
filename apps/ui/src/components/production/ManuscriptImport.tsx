@@ -44,6 +44,8 @@ export function useManuscriptImport({
 }): { chooseButton: ReactNode; dialogs: ReactNode; creditsBanner: ReactNode } {
   const api = useApi();
   const found = Boolean(data.manuscript);
+  // A project that holds a manuscript is replaced, not imported into: the review says what that clears before it asks, not after.
+  const replacing = found;
   // The import's own job is polled while the host prepares or commits it; its success stays set, for the effect below to act on once.
   const [importJob, setImportJob] = useWorkJob({
     poll: (job) => api.manuscriptImportState(job.id!),
@@ -181,7 +183,7 @@ export function useManuscriptImport({
       // stages, or it is still 'ready' with requiresReset asking for a confirm.
       setImportJob(
         await api.manuscriptImportCommit(importJob.id, {
-          confirmedReset: Boolean(importJob.requiresReset),
+          confirmedReset: replacing || Boolean(importJob.requiresReset),
           selection: {
             sectionKinds: importSelection.sectionKinds,
             characterCandidateIds: selectedCharacterCandidateIds,
@@ -247,9 +249,9 @@ export function useManuscriptImport({
       {importJob?.phase === 'ready' && importJob.preview && (
         <ConfirmDialog
           title={`Import ${importJob.preview.sourceName}`}
-          body={<ImportSummary preview={importJob.preview} selection={importSelection} requiresReset={Boolean(importJob.requiresReset)} />}
-          confirmLabel={importJob.requiresReset ? 'Replace and reset' : 'Import'}
-          confirmVariant={importJob.requiresReset ? 'danger' : 'primary'}
+          body={<ImportSummary preview={importJob.preview} selection={importSelection} requiresReset={replacing || Boolean(importJob.requiresReset)} />}
+          confirmLabel={replacing || importJob.requiresReset ? 'Replace and reset' : 'Import'}
+          confirmVariant={replacing || importJob.requiresReset ? 'danger' : 'primary'}
           confirm={() => void commitImport()}
           cancel={() =>
             void api

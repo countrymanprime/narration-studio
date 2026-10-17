@@ -1921,9 +1921,13 @@ describe('answers of the mock client for the settings, voice, model, transcript 
     const after = await found.dawLinkFound();
     expectMatches(dawChoiceSchema, after, 'mock daw choice (after linking)');
     expect({ state: after.state, linkedFile: after.linkedFile, chosen: after.chosen }).toEqual({ state: 'linked', linkedFile: 'Alice.rpp', chosen: 'REAPER' });
-    const builtin = await found.dawChoose('Built-in');
+    // The host refuses the built-in recorder where it cannot record; here the Experimental switch is off, and the choice stays.
+    await expect(found.dawChoose('Built-in')).rejects.toThrow('Experimental: switched off in Settings.');
+    expect((await found.dawChoice()).daw).toBe('REAPER');
+    const experimental = createMockApi({}, { dawChoice: { linkedFile: null, foundFiles: ['Alice.rpp'] }, daw: { connected: false, experimentalOn: true } });
+    const builtin = await experimental.dawChoose('Built-in');
     expect({ daw: builtin.daw, state: builtin.state }).toEqual({ daw: 'Built-in', state: 'app' });
-    expect((await found.recorderState()).engine).toBe('builtin');
+    expect((await experimental.recorderState()).engine).toBe('builtin');
     await expect(createMockApi({}, { dawChoice: { linkedFile: null, foundFiles: ['a.rpp', 'b.rpp'] } }).dawLinkFound()).rejects.toThrow(
       '2 REAPER project files',
     );
