@@ -273,7 +273,7 @@ func TestInSidecarTreeComparesResolvedPaths(t *testing.T) {
 		t.Helper()
 		link := filepath.Join(elsewhere, "link")
 		if err := os.Symlink(target, link); err != nil {
-			t.Skipf("cannot create a symlink here: %v", err)
+			t.Fatalf("cannot create a symlink (Windows needs Developer Mode or an elevated shell): %v", err)
 		}
 		return link
 	}
@@ -305,7 +305,7 @@ func TestInSidecarTreeComparesResolvedPaths(t *testing.T) {
 	t.Run("a sidecar folder that is itself a symlink", func(t *testing.T) {
 		realProject, realSidecar := t.TempDir(), t.TempDir()
 		if err := os.Symlink(realSidecar, filepath.Join(realProject, "narration-utils")); err != nil {
-			t.Skipf("cannot create a symlink here: %v", err)
+			t.Fatalf("cannot create a symlink (Windows needs Developer Mode or an elevated shell): %v", err)
 		}
 		if !inSidecarTree(realProject, filepath.Join(realSidecar, "package")) {
 			t.Fatal("the real folder behind a linked narration-utils was not refused")
