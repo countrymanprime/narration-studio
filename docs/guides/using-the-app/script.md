@@ -35,7 +35,7 @@ page at the same place, as do the links from Proof and the Story Bible.
 
 ![Script - the reader on Chapter 1, the chapter list beside it and the rail on its Words tab](../../images/ui/script-reader.webp)
 
-![Script - the chapter list, for jumping between chapters](../../images/ui/script-chapter-list.webp)
+![Script - the chapter list beside the reader, with the chapter being read highlighted](../../images/ui/script-chapter-list.webp)
 
 ![Script - the text settings: font, size, line spacing and column width](../../images/ui/script-reader-large.webp)
 
@@ -119,7 +119,7 @@ credits as their own files, as ACX expects, not inside a chapter file: a chapter
 chapter's recording with that chapter's text only, so credits recorded inside it are reported as extra
 words. Each credits card has a **Record in Booth** button once it has anything to read (see below).
 
-![Script - the Opening credits card, folded, above Chapter 1](../../images/ui/script-credits.webp)
+![Script - the Opening credits card with its unresolved-tokens notice and Fill in button, above Chapter 1](../../images/ui/script-credits.webp)
 
 The [retail sample](settings.md#retail-sample), once picked, is marked where it is: a **Retail sample**
 tag above each chapter it is in, and a bar in the margin beside each of its lines.

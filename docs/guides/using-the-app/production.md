@@ -256,7 +256,7 @@ goes back into the chapter's text so it is narrated (the row says it "is read as
 **Read a heading's second line as its subtitle** option in Import options does the same for every
 row at once; a row you changed by hand keeps your choice.
 
-![Production - import manuscript confirm dialog with format/paragraph/chapter preview](../../images/ui/production-import-confirm.webp)
+![Import manuscript confirm dialog (Replace and reset) with the format, paragraph and chapter preview](../../images/ui/production-import-confirm.webp)
 
 The message at the top says what was found: the format, the number of paragraphs and of narration
 chapters, then how many front matter and reference sections, character suggestions and repairs the

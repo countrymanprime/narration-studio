@@ -117,7 +117,7 @@ A decision is always made on the evidence you are looking at. If the check ran a
 evidence changed, the decision is not saved: **The evidence changed** shows what you saw (**Before**) and what the check
 hears **Now**, and keeps your note. Press **Use the new evidence**, look again and decide.
 
-![Proof - a decision refused because the evidence changed since the note was shown: before and now, with the typed note kept](../../images/ui/proof-evidence-changed.webp)
+![Proof - a decision refused because the evidence changed since the note was shown: with Before, Now and the Use the new evidence button](../../images/ui/proof-evidence-changed.webp)
 
 Right-click a note in the table, or its pin, for the same actions: the four decisions (the one that does not fit the note
 says why), **Reopen**, **Go to** your DAW, **Trim the gap** on a gap note, and open its chapter in Script or the Booth.
@@ -213,7 +213,7 @@ Model, chunk length, and worker count are independent selections — picking a s
 accurate model can force other settings to adjust (here, workers dropped to 1 because the
 Large model doesn't support Auto).
 
-![Proof chapter view - a different model, chunk length, and worker count selected](../../images/ui/proof-chapter-compare-setup-alt.webp)
+![Proof chapter view - a different model and worker count selected](../../images/ui/proof-chapter-compare-setup-alt.webp)
 
 Vocabulary hints teach the transcription model unusual names it's likely to mis-hear. The pills box is
 the input: type a name and press Enter or a comma to add it, click elsewhere to commit whatever you were

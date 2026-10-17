@@ -132,11 +132,11 @@ and one lane per take on one time axis. On a window 1360 px wide or more it is a
 
 ## When the DAW is not connected
 
-A banner at the top says the DAW is not answering, or that the chosen DAW is not supported here yet, and why, with
-**Retry**. You can still read, select and play; the
+A banner at the top says the DAW is not answering, or that the chosen DAW is not supported here yet, and why, with a
+**Retry** button (the circular arrow). You can still read, select and play; the
 actions that change the DAW (delete, mute, effects, keeping a take) wait until it is back.
 
-![Editing - the banner when the chosen DAW is not supported yet, with its reason and Retry](../../images/ui/editing-daw-off.webp)
+![Editing with Audacity chosen - the banner saying Audacity support is not available yet, with its reason and the Retry button](../../images/ui/editing-daw-off.webp)
 
 ## When the chapter has no audio
 

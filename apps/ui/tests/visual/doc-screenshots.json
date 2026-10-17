@@ -46,7 +46,7 @@
     "state": "chapter-list",
     "viewport": "desktop",
     "docName": "script-chapter-list",
-    "caption": "Script - the chapter list, for jumping between chapters"
+    "caption": "Script - the chapter list beside the reader, with the chapter being read highlighted"
   },
   {
     "page": "script",
@@ -102,7 +102,7 @@
     "state": "import-confirm",
     "viewport": "desktop",
     "docName": "production-import-confirm",
-    "caption": "Production - import manuscript confirm dialog with format/paragraph/chapter preview"
+    "caption": "Import manuscript confirm dialog (Replace and reset) with the format, paragraph and chapter preview"
   },
   {
     "page": "proof-chapter",
@@ -123,7 +123,7 @@
     "state": "compare-setup-alt",
     "viewport": "desktop",
     "docName": "proof-chapter-compare-setup-alt",
-    "caption": "Proof chapter view - a different model, chunk length, and worker count selected"
+    "caption": "Proof chapter view - a different model and worker count selected"
   },
   {
     "page": "proof-chapter",
@@ -200,7 +200,7 @@
     "state": "recording",
     "viewport": "desktop",
     "docName": "booth-listening",
-    "caption": "Booth - a take recording: Stop in place of Record, the REC pill beside the setup chip and the take counted in This session"
+    "caption": "Booth - a take recording: Stop in place of Record and the REC pill beside the setup chip"
   },
   {
     "page": "booth",
@@ -466,7 +466,7 @@
     "state": "daw-off",
     "viewport": "desktop",
     "docName": "editing-daw-off",
-    "caption": "Editing with the DAW not connected - the banner with its reason and Retry"
+    "caption": "Editing with Audacity chosen - the banner saying Audacity support is not available yet, with its reason and the Retry button"
   },
   {
     "page": "editing",
@@ -487,7 +487,7 @@
     "state": "evidence-changed",
     "viewport": "desktop",
     "docName": "proof-evidence-changed",
-    "caption": "Proof - a decision refused because the evidence changed since the note was shown: before and now, with the typed note kept"
+    "caption": "Proof - a decision refused because the evidence changed since the note was shown: with Before, Now and the Use the new evidence button"
   },
   {
     "page": "proof",
@@ -739,7 +739,7 @@
     "state": "credits-cards",
     "viewport": "desktop",
     "docName": "script-credits",
-    "caption": "Script - the Opening credits card, folded, above Chapter 1"
+    "caption": "Script - the Opening credits card with its unresolved-tokens notice and Fill in button, above Chapter 1"
   },
   {
     "page": "storybible",

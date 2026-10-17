@@ -136,7 +136,7 @@ If you stop a take in the DAW itself, the Booth sees it and says so, and Record 
 answering mid-take, the Booth says it can't tell whether the take is still running, and to check REAPER, instead of keeping a REC
 pill it cannot vouch for. Another project opened in REAPER mid-take does not stop the take; the footer says what changed.
 
-![Booth - a take recording: Stop in place of Record, the REC pill beside the setup chip and the take counted in This session](../../images/ui/booth-listening.webp)
+![Booth - a take recording: Stop in place of Record, and the REC pill beside the setup chip](../../images/ui/booth-listening.webp)
 
 While a take runs, Record becomes **Stop**, a **REC** pill shows beside the setup chip and the timer counts. The timer is the
 clock's: a window that slept or sat in the background shows the true time when you look at it again. A question that holds the
