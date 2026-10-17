@@ -15,6 +15,8 @@ In the icon layout the rail shows only the icons, centred, with a thin line wher
 
 ![Collapsed navigation rail at rest: icons centred, a thin line between the groups](../../images/ui/nav-rail-collapsed.webp)
 
+![The same rail in the Dark theme](../../images/ui/nav-rail-collapsed-dark.webp)
+
 Hover the rail (or tab into it) and it opens over the page with every label; nothing moves.
 
 ![Collapsed navigation rail opened over the page on hover](../../images/ui/nav-rail-open.webp)

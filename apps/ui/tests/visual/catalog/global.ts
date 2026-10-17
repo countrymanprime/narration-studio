@@ -46,6 +46,17 @@ export const globalStates: StateEntry[] = [
   },
   {
     page: 'global',
+    state: 'nav-rail-collapsed-dark',
+    description: 'Primary navigation - the collapsed rail at rest in the Dark theme (selected in Settings > Appearance), as nav-rail-collapsed',
+    sameAs: {
+      of: 'global/theme-dark',
+      reason: 'Only the collapsed rail shows icons alone; the wide rail is always open and is the Production home in Dark.',
+      viewports: ['desktop'],
+    },
+    ...LAYOUT_BANDS,
+  },
+  {
+    page: 'global',
     state: 'nav-rail-open',
     description:
       'Primary navigation - hovering the collapsed rail opens it over the page with the labels and group headings; at desktop width the rail is already open, so this is a no-op there',
