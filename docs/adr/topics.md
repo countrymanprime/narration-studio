@@ -10,7 +10,7 @@ The decisions in [the index](README.md) grouped by what they govern, so a plan c
 | [Local-first and privacy](#local-first-and-privacy) | 6 |
 | [Verification and code health](#verification-and-code-health) | 7 |
 | [Wire contracts and host bindings](#wire-contracts-and-bindings) | 10 |
-| [Accessibility and interaction feedback](#accessibility-and-interaction) | 9 |
+| [Accessibility and interaction feedback](#accessibility-and-interaction) | 10 |
 | [Visual testing and mock fidelity](#visual-testing-and-mock-fidelity) | 14 |
 | [Release, CI and supply chain](#release-ci-and-supply-chain) | 19 |
 | [Documentation and process](#docs-and-process) | 8 |
@@ -107,6 +107,7 @@ WCAG, axe, ARIA snapshots, focus, and the 100 ms acknowledgement and real-progre
 | [0065](0065-aria-snapshots-pin-the-role-trees-of-the-dialogs-the-slide-over-and-the-navigation.md) | Aria snapshots pin the role trees of the dialogs, the slide-over and the navigation | Accepted |
 | [0075](0075-every-action-that-leaves-the-interface-acknowledges-within-100-ms-cannot-be-fired-twice-and-tells-the-narrator-when-it-ends.md) | Every action that leaves the interface acknowledges within 100 ms, cannot be fired twice, and tells the narrator when it ends | Accepted |
 | [0076](0076-a-host-job-ends-with-one-job-ended-event-the-app-announces-it-and-the-story-bible-rebuild-may-continue-in-the-background.md) | A host job ends with one `job:ended` event, the app announces it, and the Story Bible rebuild may continue in the background | Accepted |
+| [0865](0865-a-rail-page-that-needs-a-manuscript-is-shown-off-with-its-reason-until-one-is-imported.md) | A rail page that needs a manuscript is shown off with its reason until one is imported | Accepted |
 
 <a id="visual-testing-and-mock-fidelity"></a>
 
