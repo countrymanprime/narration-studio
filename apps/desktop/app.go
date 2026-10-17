@@ -74,7 +74,8 @@ const hostAPIVersion = 136
 // object; it never receives a loopback port or an HTTP capability.
 type Host struct {
 	// dawStateLogged is the last DAW state written to the run log, so a poll that finds nothing new writes nothing (dawlog.go).
-	dawStateLogMu  sync.Mutex
+	dawStateLogMu sync.Mutex
+	// +checklocks:dawStateLogMu
 	dawStateLogged string
 
 	mu sync.RWMutex
