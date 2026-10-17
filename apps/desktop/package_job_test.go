@@ -271,7 +271,7 @@ func TestInSidecarTreeComparesResolvedPaths(t *testing.T) {
 
 	linkTo := func(t *testing.T, target string) string {
 		t.Helper()
-		link := filepath.Join(elsewhere, "link")
+		link := filepath.Join(t.TempDir(), "link")
 		if err := os.Symlink(target, link); err != nil {
 			t.Fatalf("cannot create a symlink (Windows needs Developer Mode or an elevated shell): %v", err)
 		}
@@ -297,8 +297,9 @@ func TestInSidecarTreeComparesResolvedPaths(t *testing.T) {
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			if got := inSidecarTree(project, tc.dir(t)); got != tc.want {
-				t.Fatalf("inSidecarTree(project, %q) = %v, want %v", tc.dir(t), got, tc.want)
+			dir := tc.dir(t)
+			if got := inSidecarTree(project, dir); got != tc.want {
+				t.Fatalf("inSidecarTree(project, %q) = %v, want %v", dir, got, tc.want)
 			}
 		})
 	}
