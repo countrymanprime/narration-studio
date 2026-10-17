@@ -13,13 +13,14 @@ What a sample must survive is set by what narrators and the app do to a project:
 
 **Considered options:**
 
-- **Reference only** (source file, range, hash): no disk, and the sample dies or plays the wrong audio when the raw file is archived, re-recorded over or moved, and its playback needs `/media` to authorize a source by path.
+- **Reference only** (source file, range, hash): no disk, and the shape the `daw` setting keeps when the DAW label is the record, and the sample dies or plays the wrong audio when the raw file is archived, re-recorded over or moved, and its playback needs `/media` to authorize a source by path.
 - **Copy plus live source**: survives everything the copy does and keeps two playback paths and a state matrix for which one played. Rejected for cost without a benefit the copy lacks.
 - **A rendered clip through the DAW** (an item range rendered with its FX): sounds as the DAW played it, is REAPER-only and slow, and fails with the DAW closed. Left as a later option ([PRD](../prds/character-voice-samples.prd.md), open question 5).
-- **Copy, source as provenance** (chosen).
+- **Copy, source as provenance** (chosen as the default, beside the setting above).
 
 ## Decision
 
+0. **Where a sample is kept is a setting, and this ADR decides the default.** The owner decided on 2026-10-17 that the choice depends on the DAW: REAPER can label items, which makes the DAW the record and visible outside the app, while Audacity 3's labels are too limited and a copy in the project is better there, and a narrator may want the copy in REAPER too so that playing a sample never moves their place in the project. `VoiceSamples.storage` is `project` (the default and the only value built first), `daw` or `both`, layered like other settings, and the DAW values are offered only where the DAW can label an item. The `daw` and `both` values, the label's shape and the DAW as the record are not decided here: they need a REAPER spike and their own ADR ([PRD](../prds/character-voice-samples.prd.md), phase 6). Rules 1 to 8 below are the `project` storage and the clip in `both`.
 1. **A sample is a clip file the host writes into the project.** `<project>/narration-utils/voice-samples/clips/<id>.wav` holds the marked stretch, copied from the source WAV in the source's own format (no resampling, dithering or fades), with a 150 ms handle each side clamped to the item's played range and both ends snapped to the nearest zero crossing. A clip is 0.5 to 30 s.
 2. **The record is `samples.json`** beside it (`schemaVersion` 1): `id` (32 lowercase hex), `characterId` (a Story Bible entity id or `narration`, opaque as in `character.Reference`), `label` (60 UTF-16 units), `note` (500), `primary`, `createdAt`, the clip's `bytes`, `durationMs`, format and `sha256`, and a `source` block. At most one record per `characterId` is primary.
 3. **The source block is provenance and is never opened.** It names the chapter, the first and last word keys with their text, the item and take GUIDs, the source file and the range. Playback, listing and serving read the clip only. The host derives the clip's file name from `id` and ignores any file name in the record, so a hand edit cannot make it open another path.
