@@ -87,7 +87,7 @@ effect are underlined and end with an effects marker: click it to select the wor
 menu offers **Remove** with the chain's name too, and the drawer's Effects tab lists them.
 
 The Effects tab shows how much of the chapter effects cover against a cap, 10% unless you change it in the tab's **Cap**
-field (a whole percent from 1 to 100, kept for the project). Over the cap the tab warns, and Add effect asks again
+field (a whole percent from 1 to 100, kept for the project). Over the cap the tab warns, and the button reads **Add anyway**
 before it goes ahead.
 
 ![Editing - an FX chain chosen for four words: how the item is split around the words](../../images/ui/editing-fx-dialog.webp)

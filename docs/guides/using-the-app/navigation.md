@@ -38,7 +38,7 @@ project's `.rpp` file is linked or changed:
 - **Amber dot, "A different project is open"**: the DAW has another project open than the linked one. Link the open project instead,
   or switch the DAW to the linked file.
 - **Quiet dot, "Open the engine panel to link a project file"**: nothing is linked yet.
-- **Built-in**: the project records in the app. Nothing chooses this yet; it appears once a future update adds a built-in recorder.
+- **Built-in**: the project records in the app. Choose it under Settings, Recording (the setup notice on Production also offers **Use built-in recorder**).
 
 ## Moving around: Back and Forward
 
@@ -70,7 +70,7 @@ follows them and stays the reset button. A level pushed above 200% by Ctrl+scrol
 200% automatically, since layouts below the app's minimum window width get cramped past that point. A change is
 announced once, for a screen reader, after the level settles — not on every wheel notch.
 
-Zoom is one setting for the whole app, not a page or a project. It is not [Script](script.md)'s own Text size,
+Zoom is one setting for the whole app, not a page or a project. It is not [Script](script.md)'s own **Size** (under Text settings),
 which stays independent and multiplies with app zoom.
 
 The level is remembered across launches: quit at 125% and the app opens at 125% next time, with no flash at

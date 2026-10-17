@@ -33,8 +33,7 @@ Script lists them too.
 
 ![Story Bible - an entry in edit mode, with Save and Cancel shown](../../images/ui/storybible-entry-editing.webp)
 
-Entries the build isn't sure what kind they are show **Needs Review** as their kind, in the review colour, and
-**Type not set** in the list; choose the right kind from the menu beside the name. An entry or a name the build flagged shows a
+Entries the build isn't sure what kind they are show **Type not set** in the list; choose the right kind from the menu beside the name. An entry or a name the build flagged shows a
 **Review** pill in the list and **Needs review** with a **Mark reviewed** button in its header. The
 **Needs review** chip under the kind chips shows only these entries and the ones with suggestions waiting.
 
@@ -125,7 +124,7 @@ before it adds anything.
 
 A suggestion the app is sure of is accepted on its own; one it is not sure of waits for you. **Needs verification**
 beside the filters shows only the entries with suggestions waiting, and lists above them the suggestions that have no
-entry yet. An entry with suggestions waiting shows a **Verify** pill in the list, its accepted facts, and a **Suggested**
+entry yet. An entry with suggestions waiting shows a **Verify · N** pill in the list (N is the number waiting), its accepted facts, and a **Suggested**
 list where you accept, edit or reject each one, with the quote it rests on (press the quote to go to the line in the
 Script). An entry cannot be marked reviewed while it has suggestions waiting.
 
