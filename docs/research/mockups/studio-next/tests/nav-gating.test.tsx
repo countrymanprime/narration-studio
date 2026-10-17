@@ -103,7 +103,7 @@ describe('Jump menu with no manuscript', () => {
     const u = userEvent.setup()
     await u.type(document.querySelector<HTMLInputElement>('#pq')!, 'Go to')
     for (const name of GATED) {
-      const row = screen.getByRole('option', { name: new RegExp('^Go to ' + name.replace('&', '\\&')) })
+      const row = screen.getByRole('option', { name: new RegExp('^Go to ' + name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')) })
       expect(row.getAttribute('aria-disabled'), name).toBe('true')
       expect(row.getAttribute('data-tip'), name).toBe(MANUSCRIPT_REASON)
     }
