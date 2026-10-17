@@ -188,7 +188,7 @@ ends; nothing starts until you press Record.
 The chapter's [bookmarks](script.md) show as ribbons in the right margin of the text, beside their words; hover one for its label
 and note, and click it to edit it. A bookmark whose line changed since it was made is a warning mark at the top of the margin.
 **B** bookmarks the word you are on, with **Undo** on the message. **Alt+]** and **Alt+[** move to the next and previous bookmark,
-into another chapter when needed, but not during a take. Right-click a ribbon for **Edit bookmark** and **Delete bookmark**.
+into another chapter when needed; during a take they move only within the chapter, and a bookmark in another chapter waits until you stop recording. Right-click a ribbon for **Edit bookmark** and **Delete bookmark**.
 
 ![Booth - B pressed: the word being read is bookmarked, with a ribbon in the margin](../../images/ui/booth-bookmark.webp)
 

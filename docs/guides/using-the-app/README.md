@@ -6,7 +6,7 @@ are generated from the same mock data used by the app's Playwright visual test s
 
 ## Pages
 
-Read them in order the first time, or jump straight to the page you need.
+Read them in order the first time, or jump straight to the page you need. They follow the sidebar's groups: Production (Production, Schedule), Prep (Script, Story Bible), Record (Booth), Edit (Editing), Review (Proof, Pickups) and Finish (Master & QC, Delivery), with Settings below them.
 
 | Page | What it covers |
 | --- | --- |

@@ -25,7 +25,7 @@ date is today or past, no daily pace can reach it, so the pill says how late ins
 
 **How this is worked out** lists the recording, editing and proofing left, the pickups still open, and their sum, **Work left**.
 The numbers behind it are fixed, not measured from your sessions: finished audio is words ÷ 9,300 per hour, recording takes 3×
-the finished hours, editing 2.1× and proofing 0.94×, a pickup takes about 4 minutes, and your pace is 1.5 hours a day. **At your
+the finished hours, editing 2.1× and proofing 0.94×, a pickup takes 0.06 hours (3.6 minutes), and your pace is 1.5 hours a day. **At your
 pace, done** is today plus the work left divided by that pace.
 
 The chart, **Recorded audio vs plan**, draws the plan as a dashed line to the due date, the recorded days as a solid line when

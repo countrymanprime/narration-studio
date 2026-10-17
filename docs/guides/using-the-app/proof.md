@@ -165,8 +165,7 @@ why.
 
 The footer lists them, and you can change them in [Settings](settings.md). Space is not a Proof key.
 
-Proof has no decision history list and no **Play ±3 s**. Finding the lines you recorded more than
-once and comparing their takes are not on Proof: choosing a take is on [Editing](editing.md).
+Choosing between takes is on [Editing](editing.md), not here.
 
 ## Delivery checks
 
@@ -218,7 +217,7 @@ Large model doesn't support Auto).
 
 Vocabulary hints teach the transcription model unusual names it's likely to mis-hear. The pills box is
 the input: type a name and press Enter or a comma to add it, click elsewhere to commit whatever you were
-typing, or press Backspace in an empty box to remove the most recently added term. Pasting a list with
+typing, or press Backspace in an empty box to remove the last term added. Pasting a list with
 commas or line breaks adds every name in it at once. A name already there in any case is not added twice,
 and a term over 64 characters is capped. The sparkle icon inside the box, "Suggest from manuscript",
 proposes candidates from the [Story Bible](story-bible.md); accepted hints render as solid pills,
@@ -241,8 +240,7 @@ marker [Add marker in the DAW](#going-to-a-note-in-the-daw) adds for one accepte
 mark a spot twice. **New comparison** starts over. **Last narrated take: …**, at the top of the setup, reopens the last completed
 comparison; Export markers is off while you review it.
 
-Leaving the chapter view while a run is under way or showing results resets the run, the same way
-leaving used to reset the Proofing page's own run.
+Leaving the chapter view while a run is under way or showing results resets the run.
 
 Below the compare run, the Preview panel suggests up to three five-minute excerpts from the manuscript
 — one per chapter — so you don't have to scan the whole book to find a stretch worth listening to or
