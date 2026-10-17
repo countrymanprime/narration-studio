@@ -66,7 +66,7 @@ especially welcome:
   Cuts track, or that cuts an item it was not named; an `apply_fx_range` that loads a chain from a path rather than a name REAPER's
   `FXChains` listing holds, or a `remove_fx_range` that joins pieces that do not play the same audio; a `stack_takes` or
   `unstack_takes` that opens a file other than the payload the app wrote in the session folder, reads past its size and count
-  bounds, deletes a read rather than moving it to the Cuts track, or removes a take it did not stack), changing a REAPER preference, or stopping or restarting a recording the
+  bounds, deletes a read rather than moving it to the Cuts track, or removes a take it did not stack; a `reduce_range_gain` or `repair_click` that runs any action but the one fixed take-volume-envelope action or changes a source file, an item or another take; an `undo_last` that undoes a point whose label is not the app's own cut), changing a REAPER preference, or stopping or restarting a recording the
   app did not start (`roll`); a `preview_file_range` or `reveal_file` that plays or shows a file the narrator did not pick, opens a
   network share, adds the file to the project, makes an undo point, or plays longer than its stretch; a `monitor_level` that sets anything but the master track's first hardware output send, or a value outside 0 to 100; or a route that serves a file
   the project does not name (rows 5a to 5o, 5r, 6b, 6e and 6f).
