@@ -158,6 +158,15 @@ own, in the background, once REAPER has been quiet for a few minutes and the app
 busy (Settings' **Check changed chapters in the background**); pressing **Check recording**
 yourself always pre-empts it.
 
+**Check recordings** (the card's icon) lets you set up the run before it starts. **Speech model** is the
+first pass. **Look again with a larger model** adds a second pass: the **Larger model** transcribes again only
+the passages that are missing and the words Whisper scored under the **Also look again at words scored under**
+share. For a long chapter, **Chunk length** cuts each recording into pieces, **Parallel processes** is how
+many Whisper copies work on the pieces at once (each holds the whole model in memory), and **Crossover** is how
+much neighbouring pieces overlap, so a word on an edge is whole in one of them. A line under the choices says
+what will run, in words. The boxes start at the values in Settings, and the check runs exactly what the dialog
+shows, so the same chapter is checked the same way wherever you start it, including in the background.
+
 With Settings' **Two-pass check** turned on ([Settings](settings.md)), a check instead runs a fast
 first pass, then re-checks only whatever it reports missing with a stronger model: the progress
 names each pass ("First pass (tiny)", then "Re-checking 3 passages (large-v3-turbo)"), and the

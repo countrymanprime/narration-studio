@@ -1626,6 +1626,13 @@ var fieldSchemas = map[string][]fieldSchema{
 		{"cascade_enabled", "Two-pass check (fast first pass, then re-check what's missing)", "bool", nil},
 		{"cascade_first_pass_model", "First-pass Whisper model", "choice", []string{"tiny", "small", "medium", "large-v3-turbo", "large-v3"}},
 		{"cascade_recheck_model", "Re-check Whisper model", "choice", []string{"tiny", "small", "medium", "large-v3-turbo", "large-v3"}},
+		// Also re-check passages whose words Whisper scored under this (ADR 0864); 0 re-checks only what is missing.
+		{"cascade_unsure_below", "Also re-check passages Whisper is unsure of (word score under; 0 = off)", "number", nil},
+		// How a long item is cut up and how many Whisper processes work on the pieces (ADR 0864). They change how fast
+		// the same words are made, not which ones count, so changing one never makes a result stale.
+		{"parallel_workers", "Parallel Whisper processes (0 = chosen from the model)", "number", nil},
+		{"chunk_seconds", "Chunk length in seconds (0 = each item whole)", "choice", []string{"0", "60", "120", "300", "600", "900"}},
+		{"chunk_overlap_seconds", "Crossover between neighbouring chunks", "number", nil},
 	},
 	// StageRecommendations (see docs/architecture/stage-recommendations.md) chooses which signals must be
 	// met for a stage suggestion: one choice field per signal id a provider declares (apps/desktop/bindings_stages.go's

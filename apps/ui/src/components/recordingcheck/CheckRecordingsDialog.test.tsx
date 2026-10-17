@@ -1,9 +1,9 @@
 // @vitest-environment jsdom
 import { act, cleanup, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { ApiProvider } from '../../api/ApiContext';
-import type { CoverageEngines, CoverageResult, CoverageState } from '../../api/contracts/coverage';
+import type { CoverageEngines, CoverageResult, CoverageStartOptions, CoverageState } from '../../api/contracts/coverage';
 import type { DawCapabilities } from '../../api/contracts/daw';
 import type { ManuscriptChapter } from '../../api/contracts/manuscript';
 import { createMockApi } from '../../api/mockApi';
@@ -25,6 +25,7 @@ const chapter = (id: string, extra: Partial<ManuscriptChapter> = {}): Manuscript
 });
 const engines: CoverageEngines = {
   default: 'small',
+  defaults: { recheck: false, recheckModel: 'large', recheckBelow: 0.5, workers: 0, chunkSeconds: 300, overlapSeconds: 6 },
   engines: [
     { id: 'tiny', label: 'Whisper tiny', family: 'whisper', installState: 'installed' },
     { id: 'small', label: 'Whisper small', family: 'whisper', installState: 'installed' },
@@ -49,6 +50,7 @@ const never = (chapterId: string): CoverageResult => ({ chapterId, state: 'never
 function host(overrides: Partial<NarrationApi> = {}) {
   let listener: (state: CoverageState) => void = () => undefined;
   const starts: Array<{ id: string; model?: string }> = [];
+  const sent: Array<CoverageStartOptions | undefined> = [];
   const results: Record<string, CoverageResult> = {};
   let runs = 0;
   const api = createMockApi({
@@ -66,6 +68,7 @@ function host(overrides: Partial<NarrationApi> = {}) {
     },
     coverageStart: async (id, options) => {
       starts.push({ id, model: options?.model });
+      sent.push(options);
       const runId = `run-${++runs}`;
       return { status: 'started', state: { runId, chapterId: id, phase: 'running', percent: 0, message: '' } };
     },
@@ -73,7 +76,7 @@ function host(overrides: Partial<NarrationApi> = {}) {
     ...overrides,
   });
   const emit = (state: Partial<CoverageState> & { runId: string; phase: CoverageState['phase'] }) => act(() => listener({ percent: 0, message: '', ...state }));
-  return { api, starts, results, emit };
+  return { api, starts, sent, results, emit };
 }
 
 function open(api: NarrationApi, preselected: string[] = [], opener = true) {
@@ -104,7 +107,7 @@ describe('CheckRecordingsDialog', () => {
     expect(select.value).toBe('small');
     expect(screen.queryByText(/moonshine/i)).toBeNull();
     await userEvent.selectOptions(select, 'large');
-    expect(screen.getByText('Download it in Settings')).toBeTruthy();
+    expect(screen.getByText('Download Whisper large in Settings first.')).toBeTruthy();
     await userEvent.click(screen.getByRole('button', { name: 'All' }));
     expect((screen.getByRole('button', { name: /^Check \d/ }) as HTMLButtonElement).disabled).toBe(true);
   });
@@ -245,5 +248,90 @@ describe('CheckRecordingsDialog', () => {
     await userEvent.keyboard('{Escape}');
     expect(await screen.findByRole('alertdialog')).toBeTruthy();
     expect(service.getSnapshot().dialogs.filter((d) => d.kind !== 'confirm')).toHaveLength(1);
+  });
+
+  describe('how a run is made', () => {
+    beforeEach(() => vi.stubGlobal('navigator', { ...navigator, hardwareConcurrency: 8 }));
+    afterEach(() => vi.unstubAllGlobals());
+    const option = (name: string) => screen.findByRole('combobox', { name });
+
+    it('begins at what the host would do and says it in words', async () => {
+      const { api } = host();
+      open(api, ['a']);
+      expect(((await option('Parallel processes')) as HTMLSelectElement).value).toBe('0');
+      expect((screen.getByRole('combobox', { name: 'Chunk length' }) as HTMLSelectElement).value).toBe('300');
+      expect((screen.getByRole('combobox', { name: 'Crossover' }) as HTMLSelectElement).value).toBe('6');
+      expect((screen.getByRole('checkbox', { name: /Look again with a larger model/ }) as HTMLInputElement).getAttribute('aria-checked')).toBe('false');
+      expect(screen.getByText('Whisper small in 5 min chunks that overlap by 6 s, as many at a time as the model allows.')).toBeTruthy();
+      expect(screen.queryByRole('combobox', { name: 'Larger model' })).toBeNull();
+    });
+
+    it('sends every choice, so the host runs what the dialog showed', async () => {
+      const { api, sent } = host();
+      open(api, ['a']);
+      await userEvent.selectOptions(await option('Parallel processes'), '3');
+      await userEvent.selectOptions(screen.getByRole('combobox', { name: 'Chunk length' }), '120');
+      await userEvent.selectOptions(screen.getByRole('combobox', { name: 'Crossover' }), '10');
+      await userEvent.click(screen.getByRole('button', { name: 'Check 1 chapter' }));
+      await waitFor(() => expect(sent).toHaveLength(1));
+      expect(sent[0]).toEqual({ model: 'small', recheck: false, workers: 3, chunkSeconds: 120, overlapSeconds: 10 });
+    });
+
+    it('a second look names the larger model and the score under which a passage is looked at again', async () => {
+      const { api, sent } = host();
+      open(api, ['a']);
+      await userEvent.click(await screen.findByRole('checkbox', { name: /Look again with a larger model/ }));
+      const larger = (await option('Larger model')) as HTMLSelectElement;
+      expect(larger.value).toBe('large');
+      expect(screen.getByText('Download Whisper large in Settings first.')).toBeTruthy();
+      expect((screen.getByRole('button', { name: 'Check 1 chapter' }) as HTMLButtonElement).disabled).toBe(true);
+      await userEvent.selectOptions(larger, 'tiny');
+      await userEvent.selectOptions(screen.getByRole('combobox', { name: 'Also look again at words scored under' }), '0.4');
+      expect(screen.getByText(/Then Whisper tiny re-checks what is missing and words scored under 40%\./)).toBeTruthy();
+      await userEvent.click(screen.getByRole('button', { name: 'Check 1 chapter' }));
+      await waitFor(() => expect(sent).toHaveLength(1));
+      expect(sent[0]).toMatchObject({ model: 'small', recheck: true, recheckModel: 'tiny', recheckBelow: 0.4 });
+    });
+
+    it('a second look by the same model is refused in words', async () => {
+      const { api } = host();
+      open(api, ['a']);
+      await userEvent.click(await screen.findByRole('checkbox', { name: /Look again with a larger model/ }));
+      await userEvent.selectOptions(await option('Larger model'), 'small');
+      expect(screen.getByText('Choose a different model to re-check with.')).toBeTruthy();
+      expect((screen.getByRole('button', { name: 'Check 1 chapter' }) as HTMLButtonElement).disabled).toBe(true);
+    });
+
+    it('an item taken whole has one process and no crossover to choose', async () => {
+      const { api, sent } = host();
+      open(api, ['a']);
+      await userEvent.selectOptions(await option('Parallel processes'), '4');
+      await userEvent.selectOptions(screen.getByRole('combobox', { name: 'Chunk length' }), '0');
+      expect((screen.getByRole('combobox', { name: 'Parallel processes' }) as HTMLSelectElement).disabled).toBe(true);
+      expect((screen.getByRole('combobox', { name: 'Crossover' }) as HTMLSelectElement).disabled).toBe(true);
+      expect(screen.getByText('Whisper small over each recording whole, one process.')).toBeTruthy();
+      await userEvent.click(screen.getByRole('button', { name: 'Check 1 chapter' }));
+      await waitFor(() => expect(sent).toHaveLength(1));
+      expect(sent[0]).toMatchObject({ workers: 1, chunkSeconds: 0 });
+    });
+
+    it('shows a setting the list does not offer instead of silently changing it', async () => {
+      const odd: CoverageEngines = { ...engines, defaults: { ...engines.defaults, chunkSeconds: 240, overlapSeconds: 7, workers: 5, recheckBelow: 0.45 } };
+      const { api } = host({ coverageEngines: async () => odd });
+      open(api, ['a']);
+      expect(((await option('Chunk length')) as HTMLSelectElement).value).toBe('240');
+      expect((screen.getByRole('combobox', { name: 'Crossover' }) as HTMLSelectElement).value).toBe('7');
+      expect((screen.getByRole('combobox', { name: 'Parallel processes' }) as HTMLSelectElement).value).toBe('5');
+    });
+
+    it('the settings default of a second look starts checked', async () => {
+      const on: CoverageEngines = { ...engines, defaults: { ...engines.defaults, recheck: true, recheckModel: 'tiny' } };
+      const { api, sent } = host({ coverageEngines: async () => on });
+      open(api, ['a']);
+      expect(((await option('Larger model')) as HTMLSelectElement).value).toBe('tiny');
+      await userEvent.click(screen.getByRole('button', { name: 'Check 1 chapter' }));
+      await waitFor(() => expect(sent).toHaveLength(1));
+      expect(sent[0]).toMatchObject({ recheck: true, recheckModel: 'tiny' });
+    });
   });
 });

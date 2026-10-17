@@ -16,7 +16,7 @@ The decisions in [the index](README.md) grouped by what they govern, so a plan c
 | [Documentation and process](#docs-and-process) | 8 |
 | [Ports and providers](#ports-and-providers) | 15 |
 | [DAW integration (REAPER and Audacity)](#daw-integration) | 33 |
-| [Assets, models and downloads](#assets-and-downloads) | 10 |
+| [Assets, models and downloads](#assets-and-downloads) | 11 |
 | [Mastering, delivery and production](#mastering-delivery-and-production) | 26 |
 | [Recording check, takes and proofing](#recording-check-and-takes) | 57 |
 | [Teleprompter, Booth and read-aloud](#teleprompter-and-read-aloud) | 28 |
@@ -260,6 +260,7 @@ First-use downloads, the asset registry, models and licences, and what ships ins
 | [0136](0136-an-asset-may-keep-only-a-file-built-at-install-from-its-verified-archive.md) | An asset may keep only a file built at install from its verified archive | Proposed |
 | [0841](0841-a-recording-check-lists-the-approved-whisper-models-as-its-engines-and-a-start-may-name-one-to-run-alone.md) | A recording check lists the approved Whisper models as its engines, and a start may name one to run alone | Proposed |
 | [0843](0843-the-status-report-preview-is-the-hosts-own-document-built-from-the-model-the-export-writes.md) | The status report preview is the host's own document, built from the model the export writes | Proposed |
+| [0864](0864-a-long-recording-is-checked-in-overlapping-chunks-by-parallel-whisper-processes-and-whisper-word-scores-choose-the-passages-a-larger-model-looks-at-again.md) | A long recording is checked in overlapping chunks by parallel Whisper processes, and Whisper's word scores choose the passages a larger model looks at again | Proposed |
 
 <a id="mastering-delivery-and-production"></a>
 

@@ -12,7 +12,8 @@ skipped, Q5 and Q10), this mode:
    heading tokens (Q11);
 3. writes the measurements, never a verdict (the narrator's thresholds are applied later, on
    read, by the host), as tagged lines with one JSON object each: `COVERAGE|` (the chapter),
-   `COVERAGE_ITEM|` (one per manifest item), `COVERAGE_PARAGRAPH|` and `COVERAGE_REGION|`; then
+   `COVERAGE_ITEM|` (one per manifest item), `COVERAGE_PARAGRAPH|`, `COVERAGE_REGION|` and, with `--unsure-below`, `COVERAGE_UNSURE|` (a passage
+   Whisper was not sure of, which the host may re-check with a larger model); then
    the word alignment the edit and proof workspace reads (ADR 0242): one
    `COVERAGE_TOKEN|` per chapter token and one `COVERAGE_EXTRA|` per run of words heard that the
    chapter does not account for. The results file is written atomically, so it exists only when
@@ -54,6 +55,7 @@ from dataclasses import dataclass, replace
 from pathlib import Path
 from types import ModuleType
 
+import coverage_chunks
 import recording_coverage as coverage_model
 
 MANIFEST_SCHEMA_VERSION = 1
@@ -76,6 +78,7 @@ _MANIFEST_ITEM_KEYS = frozenset({"index", "itemGuid", "sourceFile", "startOffset
 _WINDOW_KEYS = frozenset({"itemIndex", "itemGuid", "sourceFile", "wordsFile", "start", "end"})
 
 Word = tuple[str, float, float]
+Score = float | None
 
 
 class ManifestError(ValueError):
@@ -133,6 +136,18 @@ class ItemWords:
     language: str | None
     hotwords_hash: str | None
     spans: tuple[Span, ...] = ()
+    scores: tuple[Score, ...] = ()
+    """Whisper's probability for each word, parallel to `words`; empty when none was recorded (a file
+    written before scores existed, or an engine that gave none). A word with no score is never
+    called unsure: unknown stays unknown."""
+
+    def __post_init__(self):
+        if self.scores and len(self.scores) != len(self.words):
+            raise ValueError(f"A words file has {len(self.words)} words but {len(self.scores)} scores")
+
+    def score_of(self, position: int) -> Score:
+        """The probability of the word at `position`, or None when none was recorded."""
+        return self.scores[position] if position < len(self.scores) else None
 
     def spans_or_default(self) -> tuple[Span, ...]:
         return self.spans or (Span(self.source_start, self.source_end, self.model),)
@@ -219,7 +234,15 @@ def _parse_words(data: object) -> ItemWords | None:
         return None
     if not isinstance(transcription.get("model"), str):
         return None
-    if not all(isinstance(word, list) and len(word) == 3 and isinstance(word[0], str) and _number(word[1]) and _number(word[2]) for word in words):
+    if not all(
+        isinstance(word, list)
+        and len(word) in (3, 4)
+        and isinstance(word[0], str)
+        and _number(word[1])
+        and _number(word[2])
+        and (len(word) == 3 or word[3] is None or _number(word[3]))
+        for word in words
+    ):
         return None
     spans_raw = data.get("spans", [])
     if not isinstance(spans_raw, list) or not all(
@@ -236,7 +259,14 @@ def _parse_words(data: object) -> ItemWords | None:
         language if isinstance(language, str) else None,
         hotwords if isinstance(hotwords, str) else None,
         tuple(Span(float(s["start"]), float(s["end"]), s["model"]) for s in spans_raw),
+        _parsed_scores(words),
     )
+
+
+def _parsed_scores(words: list) -> tuple[Score, ...]:
+    """The fourth element of each word, or () when no word has one."""
+    scores = tuple(float(word[3]) if len(word) == 4 and word[3] is not None else None for word in words)
+    return scores if any(score is not None for score in scores) else ()
 
 
 def read_words_file(path: str | os.PathLike) -> ItemWords | None:
@@ -260,7 +290,7 @@ def write_words_file(path: str | os.PathLike, words: ItemWords) -> None:
         "schemaVersion": WORDS_SCHEMA_VERSION,
         "sourceStart": words.source_start,
         "sourceEnd": words.source_end,
-        "words": [list(word) for word in words.words],
+        "words": [list(word) + ([words.scores[n]] if words.scores else []) for n, word in enumerate(words.words)],
         "transcription": {"model": words.model, "language": words.language, "hotwordsHash": words.hotwords_hash, "vadFilter": True},
     }
     if words.spans:
@@ -286,13 +316,19 @@ def played_words(words: ItemWords, item: ManifestItem) -> list[Word]:
 # transcription
 
 
-def _load_whisper_model(model_size: str, model_dir: str | None, device: str):  # pragma: no cover - needs a Whisper model
+def load_whisper_model(model_size: str, model_dir: str | None, device: str, cpu_threads: int = 0):  # pragma: no cover - needs a Whisper model
+    """The faster-whisper model. `cpu_threads` 0 leaves the thread count to faster-whisper; a run with several
+    workers gives each its share of the CPUs so they do not fight over them."""
     from faster_whisper import WhisperModel
 
     # model_dir is the host's hash-verified asset directory; local_files_only keeps faster-whisper
     # off the network, as compare.transcribe does (threat-model row 1a).
     compute_type = "int8" if device == "cpu" else "float16"
-    return WhisperModel(model_dir or model_size, device=device, compute_type=compute_type, local_files_only=bool(model_dir))
+    return WhisperModel(model_dir or model_size, device=device, compute_type=compute_type, local_files_only=bool(model_dir), cpu_threads=cpu_threads)
+
+
+_load_whisper_model = load_whisper_model
+"""The name the calibration harness and older callers use."""
 
 
 class WhisperTranscriber:
@@ -313,11 +349,15 @@ class WhisperTranscriber:
             self._model = self._factory()
         segments, info = self._model.transcribe(audio, language=self._language, word_timestamps=True, vad_filter=True, hotwords=self._hotwords or None)
         words: list[Word] = []
+        scores: list[Score] = []
         for segment in segments:
             for word in segment.words or ():
                 words.append((word.word.strip(), round(item.start_offset + word.start, 3), round(item.start_offset + word.end, 3)))
+                probability = getattr(word, "probability", None)
+                scores.append(None if probability is None else round(float(probability), 3))
             on_seconds(min(segment.end, item.length))
-        return ItemWords(tuple(words), item.start_offset, item.end, self._model_size, info.language, text_hash(self._hotwords))
+        recorded = tuple(scores) if any(score is not None for score in scores) else ()
+        return ItemWords(tuple(words), item.start_offset, item.end, self._model_size, info.language, text_hash(self._hotwords), scores=recorded)
 
 
 # ---------------------------------------------------------------------------
@@ -480,6 +520,59 @@ def _line(tag: str, payload: dict) -> str:
     return f"{tag}|{json.dumps(payload, ensure_ascii=False, sort_keys=True, separators=(',', ':'))}\n"
 
 
+UNSURE_GAP_WORDS = 2
+"""Confident words allowed between two unsure ones before they are separate passages."""
+
+UNSURE_MIN_WORDS = 2
+"""Unsure words a passage needs to be reported, unless one of them is far below the line."""
+
+UNSURE_FAR_BELOW = 0.5
+"""A single word under this share of the threshold is reported on its own."""
+
+
+def unsure_runs(result: _ItemResult, below: float) -> list[dict]:
+    """The passages of an analyzed item whose words Whisper was not sure of: runs of played words with a
+    probability under `below`, joined across up to `UNSURE_GAP_WORDS` confident words. A run needs at
+    least `UNSURE_MIN_WORDS` unsure words, or one far below the line. Words with no score are never unsure.
+    Each is `{itemIndex, itemGuid, start, end, words, minScore}`, in the item's source seconds."""
+    words = result.words
+    if words is None or not words.scores or below <= 0:
+        return []
+    played = [
+        (position, word, words.scores[position])
+        for position, word in enumerate(words.words)
+        if result.item.start_offset <= (word[1] + word[2]) / 2 <= result.item.end
+    ]
+    runs: list[list[tuple[int, Word, Score]]] = []
+    quiet = UNSURE_GAP_WORDS + 1
+    for entry in played:
+        score = entry[2]
+        if score is not None and score < below:
+            if runs and quiet <= UNSURE_GAP_WORDS:
+                runs[-1].append(entry)
+            else:
+                runs.append([entry])
+            quiet = 0
+        else:
+            quiet += 1
+    out = []
+    for run in runs:
+        lowest = min(score for _p, _w, score in run if score is not None)
+        if len(run) < UNSURE_MIN_WORDS and lowest >= below * UNSURE_FAR_BELOW:
+            continue
+        out.append(
+            {
+                "itemIndex": result.item.index,
+                "itemGuid": result.item.item_guid,
+                "start": run[0][1][1],
+                "end": run[-1][1][2],
+                "words": len(run),
+                "minScore": lowest,
+            }
+        )
+    return out
+
+
 def _item_line(result: _ItemResult) -> dict:
     words = result.words
     return {
@@ -495,7 +588,13 @@ def _item_line(result: _ItemResult) -> dict:
 
 
 def _report(
-    chapter: dict, coverage: coverage_model.ChapterCoverage, results: Sequence[_ItemResult], alignment: dict, timeline: _Timeline, analysis: dict
+    chapter: dict,
+    coverage: coverage_model.ChapterCoverage,
+    results: Sequence[_ItemResult],
+    alignment: dict,
+    timeline: _Timeline,
+    analysis: dict,
+    unsure: Sequence[dict] = (),
 ) -> str:
     analyzed = [result for result in results if result.source is not None]
     summary = {
@@ -535,6 +634,7 @@ def _report(
             "after": after,
         }
         lines.append(_line("COVERAGE_REGION", payload))
+    lines += [_line("COVERAGE_UNSURE", passage) for passage in unsure]
     return "".join(lines)
 
 
@@ -614,9 +714,25 @@ def _default_transcriber(engine: ModuleType, args) -> Transcriber:
         engine.write_progress(progress_path, "LOAD", TRANSCRIBE_START_PCT, f"Loading Whisper model '{args.model}'...")
         return _load_whisper_model(args.model, args.model_dir, args.device)
 
-    return WhisperTranscriber(
-        engine, model_size=args.model, language=args.language, hotwords=engine.load_vocabulary_hints(args.manuscript), model_factory=factory
-    )
+    hotwords = engine.load_vocabulary_hints(args.manuscript)
+    plain = WhisperTranscriber(engine, model_size=args.model, language=args.language, hotwords=hotwords, model_factory=factory)
+    chunk_seconds = getattr(args, "chunk_seconds", 0) or 0
+    workers = getattr(args, "parallel_workers", 0) or 0
+    if chunk_seconds > 0 or workers > 1:
+        return coverage_chunks.ChunkedTranscriber(
+            engine,
+            model_size=args.model,
+            model_dir=args.model_dir,
+            device=args.device,
+            language=args.language,
+            hotwords=hotwords,
+            chunk_seconds=chunk_seconds or coverage_chunks.DEFAULT_CHUNK_SECONDS,
+            overlap_seconds=getattr(args, "chunk_overlap_seconds", None) or coverage_chunks.DEFAULT_OVERLAP_SECONDS,
+            workers=workers,
+            progress_path=args.progress,
+            plain=plain,
+        )
+    return plain
 
 
 def run(args, engine: ModuleType, transcriber: Transcriber | None = None) -> None:
@@ -648,7 +764,9 @@ def run(args, engine: ModuleType, transcriber: Transcriber | None = None) -> Non
     engine.check_cancelled(args.progress)
     engine.write_progress(args.progress, "WRITE", WRITE_PCT, "Writing results...")
     analysis = {"model": args.model, "language": args.language, "equivalencesHash": _file_hash(equivalences) if equivalences else None}
-    report = _report(chapter, coverage, results, alignment, timeline, analysis) + "".join(_alignment_lines(aligned, alignment, timeline, words, params))
+    below = getattr(args, "unsure_below", None) or 0.0
+    unsure = [passage for result in results for passage in unsure_runs(result, below)]
+    report = _report(chapter, coverage, results, alignment, timeline, analysis, unsure) + "".join(_alignment_lines(aligned, alignment, timeline, words, params))
     _write_atomically(out, report)
     engine.log(f"Wrote the coverage of chapter {chapter['id']} to {out}")
     engine.write_progress(args.progress, "DONE", 100, "Finished")
@@ -715,19 +833,6 @@ def read_windows(path: str | os.PathLike) -> tuple[Window, ...]:
     return tuple(_window(raw, position) for position, raw in enumerate(raw_windows))
 
 
-def _drop_edge_words(words: Sequence[Word], start: float, end: float) -> list[Word]:
-    """A window's own newly transcribed words, dropping any whose start or end touches the
-    window's edge: the window's own decode may have cut such a word short, so it is never trusted
-    over what was already there."""
-    return [word for word in words if word[1] > start and word[2] < end]
-
-
-def _drop_replaced_words(words: Sequence[Word], start: float, end: float) -> list[Word]:
-    """A words file's existing words, dropping those a window replaces: whichever midpoint falls
-    inside `[start, end]`, the same membership rule `played_words` uses for an item's range."""
-    return [word for word in words if not (start <= (word[1] + word[2]) / 2 <= end)]
-
-
 def _overwrite_spans(spans: Sequence[Span], start: float, end: float, model: str) -> tuple[Span, ...]:
     """`spans`, a file's existing per-range model attribution, with `[start, end]` reassigned to
     `model`: a span the window covers wholly is dropped, one it straddles is split at the window's
@@ -745,15 +850,20 @@ def _overwrite_spans(spans: Sequence[Span], start: float, end: float, model: str
     return tuple(sorted(kept, key=lambda span: span.start))
 
 
-def splice_window(existing: ItemWords, window: Window, new_words: Sequence[Word], model: str) -> ItemWords:
+def splice_window(existing: ItemWords, window: Window, new: Sequence[Word] | ItemWords, model: str) -> ItemWords:
     """`existing` with `window`'s range re-checked: the words it replaced are gone, the window's
     own new words stand in for them (edge words dropped), and the range is reattributed to `model`
-    in `spans`. `existing.model` is left as it was, for compatibility."""
-    kept = _drop_replaced_words(existing.words, window.start, window.end)
-    added = _drop_edge_words(new_words, window.start, window.end)
-    words = tuple(sorted(kept + added, key=lambda word: word[1]))
+    in `spans`. `existing.model` is left as it was, for compatibility. `new` may be the re-check's
+    `ItemWords`, whose scores then come along with the words; plain words have none."""
+    new_words = new.words if isinstance(new, ItemWords) else tuple(new)
+    new_scores = new.scores if isinstance(new, ItemWords) else ()
+    kept = [(word, existing.score_of(position)) for position, word in enumerate(existing.words) if not (window.start <= (word[1] + word[2]) / 2 <= window.end)]
+    added = [(word, new_scores[position] if new_scores else None) for position, word in enumerate(new_words) if window.start < word[1] and word[2] < window.end]
+    merged = sorted(kept + added, key=lambda pair: pair[0][1])
+    words = tuple(word for word, _score in merged)
+    scores = tuple(score for _word, score in merged) if any(score is not None for _word, score in merged) else ()
     spans = _overwrite_spans(existing.spans_or_default(), window.start, window.end, model)
-    return replace(existing, words=words, spans=spans)
+    return replace(existing, words=words, spans=spans, scores=scores)
 
 
 def run_recheck(args, engine: ModuleType, transcriber: Transcriber | None = None) -> None:
@@ -790,7 +900,7 @@ def run_recheck(args, engine: ModuleType, transcriber: Transcriber | None = None
                 progress.transcribed(_start + done, f"Re-checking {_label}... {engine.format_time(done)} / {engine.format_time(_length)}")
 
             result = transcribe(item, on_seconds)
-            existing = splice_window(existing, window, result.words, args.model)
+            existing = splice_window(existing, window, result, args.model)
             progress.done = start + window.length
             progress.transcribed(progress.done, f"Re-checked {label}")
         write_words_file(path, existing)

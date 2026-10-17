@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'react';
-import type { CoverageEngine, CoverageResult } from '../../api/contracts/coverage';
+import type { CoverageEngine, CoverageEngines, CoverageResult } from '../../api/contracts/coverage';
 import type { ManuscriptChapter } from '../../api/contracts/manuscript';
 import { describeApiError } from '../../api/errorMessage';
 import { chapterName } from '../../chapterName';
@@ -13,7 +13,6 @@ import {
   audioToCheck,
   checkStateLabel,
   engineOptionLabel,
-  engineProblem,
   finishedToast,
   formatAudio,
   lastResultSentence,
@@ -24,9 +23,24 @@ import {
   unmeasuredNote,
 } from './checkSelection';
 import { idleRun, runReducer } from './checkRun';
+import {
+  CHUNK_SECONDS,
+  DOUBT_SHARES,
+  OVERLAP_SECONDS,
+  chunkLabel,
+  runProblem,
+  runSummary,
+  startChoices,
+  startOptions,
+  withChoice,
+  workerChoices,
+} from './runChoices';
+import type { RunChoices } from './runChoices';
 import { RunningView } from './RunningView';
 
-type Loaded = { chapters: ManuscriptChapter[]; results: Record<string, CoverageResult>; engines: CoverageEngine[] };
+const engineOptions = (engines: readonly CoverageEngine[]) => engines.map((candidate) => ({ value: candidate.id, label: engineOptionLabel(candidate) }));
+
+type Loaded = { chapters: ManuscriptChapter[]; results: Record<string, CoverageResult>; engines: CoverageEngines };
 
 /**
  * Check recordings (mock pickups/CheckRecordings.tsx): the speech model, the recorded chapters with their check state and last result,
@@ -40,7 +54,7 @@ export function CheckRecordingsDialog({ preselected, close }: { preselected: rea
   const capability = useCapability('review');
   const [loaded, setLoaded] = useState<Loaded>();
   const [loadError, setLoadError] = useState('');
-  const [model, setModel] = useState('');
+  const [choices, setChoices] = useState<RunChoices>();
   const [ticked, setTicked] = useState<ReadonlySet<string>>(() => new Set(preselected));
   const [run, dispatch] = useReducer(runReducer, idleRun);
   const startedFor = useRef('');
@@ -56,8 +70,8 @@ export function CheckRecordingsDialog({ preselected, close }: { preselected: rea
           await Promise.all(chapters.map(async (chapter) => [chapter.id, await coverage.coverageResult(chapter.id)] as const)),
         );
         if (!active) return;
-        setLoaded({ chapters, results, engines: engines.engines });
-        setModel(engines.default);
+        setLoaded({ chapters, results, engines });
+        setChoices(startChoices(engines));
         setTicked((current) => new Set([...current].filter((id) => chapters.some((chapter) => chapter.id === id))));
       } catch (error) {
         if (active) setLoadError(describeApiError(error));
@@ -87,11 +101,12 @@ export function CheckRecordingsDialog({ preselected, close }: { preselected: rea
     const key = `${run.ids.join(',')}:${run.index}`;
     if (startedFor.current === key) return;
     startedFor.current = key;
-    void coverage.coverageStart(id, { model }).then(
+    if (!choices) return;
+    void coverage.coverageStart(id, startOptions(choices)).then(
       (answer) => dispatch({ type: 'answered', answer, id }),
       (error: unknown) => dispatch({ type: 'answered', id, answer: { status: 'refused', reason: 'busy', message: describeApiError(error) } }),
     );
-  }, [run.step, run.index, run.ids, coverage, model]);
+  }, [run.step, run.index, run.ids, coverage, choices]);
 
   // A finished or stopped run reports from the stored results, not from the run. It closes unless a chapter was refused: the host's words stay in its row.
   useEffect(() => {
@@ -137,17 +152,21 @@ export function CheckRecordingsDialog({ preselected, close }: { preselected: rea
   }, [running, overlay]);
 
   const chapters = useMemo(() => loaded?.chapters ?? [], [loaded]);
-  const engine = loaded?.engines.find((candidate) => candidate.id === model);
-  const problem = loaded ? engineProblem(engine) : undefined;
+  const model = choices?.model ?? '';
+  const engine = loaded?.engines.engines.find((candidate) => candidate.id === model);
+  const problem = loaded && choices ? runProblem(choices, loaded.engines) : undefined;
   const ids = useMemo(() => selectedIds(chapters, ticked), [chapters, ticked]);
   const audio = audioToCheck(chapters, ticked);
   const note = unmeasuredNote(audio.unmeasured);
   const blockedByDaw = !capability.available && !!capability.message;
 
   if (loadError) return <p role="alert">{loadError}</p>;
-  if (!loaded) return <p aria-live="polite">Loading…</p>;
+  if (!loaded || !choices) return <p aria-live="polite">Loading…</p>;
   if (running) return <RunningView chapters={chapters} run={run} model={engine?.label ?? model} onStop={stop} />;
 
+  const change = (patch: Partial<RunChoices>) => setChoices((current) => current && { ...current, ...patch });
+  const whole = choices.chunkSeconds === 0;
+  const cpus = typeof navigator === 'undefined' ? 4 : navigator.hardwareConcurrency || 4;
   const label = `Check ${ids.length} ${ids.length === 1 ? 'chapter' : 'chapters'}`;
   const toggle = (id: string, on: boolean) =>
     setTicked((current) => {
@@ -158,7 +177,7 @@ export function CheckRecordingsDialog({ preselected, close }: { preselected: rea
     });
 
   return (
-    <div className="flex max-h-[calc(100dvh-14rem)] min-h-0 flex-col gap-3">
+    <div className="flex max-h-[calc(80dvh-8rem)] min-h-0 flex-col gap-3">
       <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto">
         <p className="m-0 text-[var(--text-muted)]">Checking recordings runs speech recognition over the audio and compares it with the manuscript.</p>
         <div className="grid gap-5 sm:grid-cols-2">
@@ -169,10 +188,85 @@ export function CheckRecordingsDialog({ preselected, close }: { preselected: rea
                 label="Speech model"
                 fullWidth
                 value={model}
-                onChange={setModel}
-                options={loaded.engines.map((candidate) => ({ value: candidate.id, label: engineOptionLabel(candidate) }))}
+                onChange={(value) => change({ model: value })}
+                options={engineOptions(loaded.engines.engines)}
               />
             </label>
+            <Checkbox checked={choices.recheck} onChange={(recheck) => change({ recheck })}>
+              Look again with a larger model
+              <span className="block text-[var(--text-muted)]">
+                Only the passages that are missing or that Whisper was unsure of are transcribed a second time.
+              </span>
+            </Checkbox>
+            {choices.recheck ? (
+              <div className="flex flex-col gap-3 pl-6">
+                <label className="flex flex-col gap-1">
+                  <span className="text-[length:var(--font-size-sm)] font-semibold uppercase">Larger model</span>
+                  <Select
+                    label="Larger model"
+                    fullWidth
+                    value={choices.recheckModel}
+                    onChange={(recheckModel) => change({ recheckModel })}
+                    options={engineOptions(loaded.engines.engines)}
+                  />
+                </label>
+                <label className="flex flex-col gap-1">
+                  <span className="text-[length:var(--font-size-sm)] font-semibold uppercase">Also look again at words scored under</span>
+                  <Select
+                    label="Also look again at words scored under"
+                    fullWidth
+                    value={String(choices.recheckBelow)}
+                    onChange={(value) => change({ recheckBelow: Number(value) })}
+                    options={withChoice(DOUBT_SHARES, choices.recheckBelow).map((share) => ({
+                      value: String(share),
+                      label: share === 0 ? 'Never: only what is missing' : `${Math.round(share * 100)}%`,
+                    }))}
+                  />
+                </label>
+              </div>
+            ) : null}
+            <fieldset className="m-0 grid min-w-0 grid-cols-3 gap-3 border-0 border-t border-[var(--line)] p-0 pt-3">
+              <legend className="sr-only">Long recordings</legend>
+              <label className="flex flex-col gap-1">
+                <span className="text-[length:var(--font-size-sm)] font-semibold uppercase">Chunk length</span>
+                <Select
+                  label="Chunk length"
+                  fullWidth
+                  value={String(choices.chunkSeconds)}
+                  onChange={(value) => change({ chunkSeconds: Number(value) })}
+                  options={withChoice(CHUNK_SECONDS, choices.chunkSeconds).map((seconds) => ({ value: String(seconds), label: chunkLabel(seconds) }))}
+                />
+              </label>
+              <label className="flex flex-col gap-1">
+                <span className="text-[length:var(--font-size-sm)] font-semibold uppercase">Parallel processes</span>
+                <Select
+                  label="Parallel processes"
+                  fullWidth
+                  disabled={whole}
+                  value={String(whole ? 1 : choices.workers)}
+                  onChange={(value) => change({ workers: Number(value) })}
+                  options={withChoice(workerChoices(cpus), whole ? 1 : choices.workers).map((count) => ({
+                    value: String(count),
+                    label: count === 0 ? 'Automatic' : String(count),
+                  }))}
+                />
+              </label>
+              <label className="flex flex-col gap-1">
+                <span className="text-[length:var(--font-size-sm)] font-semibold uppercase">Crossover</span>
+                <Select
+                  label="Crossover"
+                  fullWidth
+                  disabled={whole}
+                  value={String(choices.overlapSeconds)}
+                  onChange={(value) => change({ overlapSeconds: Number(value) })}
+                  options={withChoice(OVERLAP_SECONDS, choices.overlapSeconds).map((seconds) => ({ value: String(seconds), label: `${seconds} s` }))}
+                />
+              </label>
+              <p className="col-span-3 m-0 text-[var(--text-muted)]">
+                Chunks overlap by the crossover so a word on an edge is whole in one of them; each process transcribes its own chunks.
+              </p>
+            </fieldset>
+            <p className="m-0">{runSummary(choices, loaded.engines)}</p>
             {problem ? (
               <p role="status" className="m-0 text-[var(--text-muted)]">
                 {problem}

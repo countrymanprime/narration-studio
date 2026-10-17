@@ -72,8 +72,9 @@ const (
 )
 
 // HeardToken is a token as the wire sends it: the stored line plus its score.
-// Conf is always nil with ConfNoWordScores while the words file carries no
-// Whisper word probabilities (ADR 0830, ADR 0855).
+// Conf is always nil with ConfNoWordScores: the words file carries Whisper's word
+// probabilities, but they only choose passages to re-check (ADR 0864) and no calibrated
+// mapping scores a heard word for the narrator (ADR 0830, ADR 0855).
 type HeardToken struct {
 	TokenLine
 	Conf       *float64 `json:"conf"`

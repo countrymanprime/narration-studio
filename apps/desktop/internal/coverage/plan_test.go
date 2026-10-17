@@ -242,3 +242,62 @@ func TestWriteWindowsFileMatchesTheSidecarsSixKeysExactly(t *testing.T) {
 		}
 	}
 }
+
+func TestPlanRecheckWindowsAnUnsurePassageEvenWhenNothingIsMissing(t *testing.T) {
+	items := planItems()
+	report := Report{Unsure: []UnsureLine{{ItemIndex: 1, ItemGUID: itemGUID(1), Start: 100, End: 104, Words: 5, MinScore: 0.2}}}
+
+	plan := planRecheck(report, items, "large-v3-turbo")
+
+	if plan.WholeChapter || len(plan.Windows) != 1 {
+		t.Fatalf("plan = %+v", plan)
+	}
+	w := plan.Windows[0]
+	if w.ItemIndex != 1 || w.WordsFile != wordsFileFor(1) || w.SourceFile != sourceFile(1) {
+		t.Fatalf("window = %+v", w)
+	}
+	// 4 s of speech padded 3 s a side is 10 s, then up to the 25 s minimum around the same middle.
+	if w.Start > 100 || w.End < 104 || w.length() < windowMinSeconds {
+		t.Fatalf("window bounds = [%g,%g]", w.Start, w.End)
+	}
+}
+
+func TestPlanRecheckMergesAnUnsurePassageWithANearbyMissingRegion(t *testing.T) {
+	items := planItems()
+	report := Report{
+		Regions: []RegionLine{{Kind: "skip", Before: pos(0, itemGUID(0), 100), After: pos(0, itemGUID(0), 102)}},
+		Unsure:  []UnsureLine{{ItemIndex: 0, ItemGUID: itemGUID(0), Start: 110, End: 113, Words: 3, MinScore: 0.3}},
+	}
+
+	plan := planRecheck(report, items, "large-v3-turbo")
+
+	if len(plan.Windows) != 1 || plan.Windows[0].Start > 100 || plan.Windows[0].End < 113 {
+		t.Fatalf("one merged window was wanted: %+v", plan)
+	}
+}
+
+func TestPlanRecheckIgnoresAnUnsurePassageOfAnItemItDoesNotKnow(t *testing.T) {
+	report := Report{Unsure: []UnsureLine{{ItemIndex: 9, ItemGUID: "{GONE}", Start: 1, End: 2, Words: 3}}}
+	if plan := planRecheck(report, planItems(), "large-v3-turbo"); plan.needed() {
+		t.Fatalf("plan = %+v", plan)
+	}
+}
+
+func TestPlanRecheckWithoutAModelIgnoresUnsurePassages(t *testing.T) {
+	report := Report{Unsure: []UnsureLine{{ItemIndex: 0, ItemGUID: itemGUID(0), Start: 1, End: 2, Words: 3}}}
+	if plan := planRecheck(report, planItems(), ""); plan.needed() {
+		t.Fatalf("plan = %+v", plan)
+	}
+}
+
+func TestPlanRecheckFallsBackToTheWholeChapterWhenDoubtIsEverywhere(t *testing.T) {
+	var unsure []UnsureLine
+	for item := range 3 {
+		for start := 0.0; start < planItemLength; start += 30 {
+			unsure = append(unsure, UnsureLine{ItemIndex: item, ItemGUID: itemGUID(item), Start: start, End: start + 5, Words: 4, MinScore: 0.2})
+		}
+	}
+	if plan := planRecheck(Report{Unsure: unsure}, planItems(), "large-v3-turbo"); !plan.WholeChapter {
+		t.Fatalf("plan = %+v", plan)
+	}
+}

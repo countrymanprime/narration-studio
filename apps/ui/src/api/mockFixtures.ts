@@ -859,6 +859,16 @@ export const wireSettings = (): Record<string, ScopedSettingField[]> => ({
     bool('cascade_enabled', "Two-pass check (fast first pass, then re-check what's missing)", 'false'),
     choice('cascade_first_pass_model', 'First-pass Whisper model', ['tiny', 'small', 'medium', 'large-v3-turbo', 'large-v3'], 'tiny'),
     choice('cascade_recheck_model', 'Re-check Whisper model', ['tiny', 'small', 'medium', 'large-v3-turbo', 'large-v3'], 'large-v3-turbo'),
+    // Also re-check passages Whisper scored under this, and how a long item is cut up (ADR 0864).
+    recordingCheck('cascade_unsure_below', 'Also re-check passages Whisper is unsure of (word score under; 0 = off)', '0.5', {
+      min: 0,
+      max: 1,
+      step: 0.05,
+      unit: '',
+    }),
+    recordingCheck('parallel_workers', 'Parallel Whisper processes (0 = chosen from the model)', '0', { min: 0, max: 32, step: 1, unit: 'processes' }),
+    choice('chunk_seconds', 'Chunk length in seconds (0 = each item whole)', ['0', '60', '120', '300', '600', '900'], '300'),
+    recordingCheck('chunk_overlap_seconds', 'Crossover between neighbouring chunks', '6', { min: 0, max: 60, step: 1, unit: 's' }),
   ],
   // The silence cleanup analyzer's five thresholds (ADR 0238 decision 4), mirroring the host's fieldSchemas and numberSpecs:
   // measure.DefaultCleanupOptions' own starting values, all still unset at every scope (repo default only) the way a fresh install reads them.

@@ -12,13 +12,14 @@ import (
 )
 
 // nonNumberRecordingCoverageFields are the RecordingCoverage fields coverage.ResolveSettings reads that are not one
-// of the four numbers: background checks (ADR 0211) and the model cascade's own three
-// (docs/utilities/recording-coverage.md, MC1 and MC2).
+// of its numbers: background checks (ADR 0211), the model cascade's own three
+// (docs/utilities/recording-coverage.md, MC1 and MC2) and the chunk length (ADR 0864).
 var nonNumberRecordingCoverageFields = map[string]string{
 	settingBackgroundChecks:               "bool",
 	coverage.SettingCascadeEnabled:        "bool",
 	coverage.SettingCascadeFirstPassModel: "choice",
 	coverage.SettingCascadeRecheckModel:   "choice",
+	coverage.SettingChunkSeconds:          "choice",
 }
 
 // The recording check's settings (docs/utilities/recording-coverage.md Q3, ADR 0131; MC1, MC2) are exactly the keys
@@ -37,7 +38,10 @@ func TestTheRecordingCoverageFieldsAreTheCoverageSettings(t *testing.T) {
 		}
 		fields = append(fields, schema.key)
 	}
-	keys := []string{coverage.SettingMinParagraphPresent, coverage.SettingMaxMissingRun, coverage.SettingMaxMisreadRun, coverage.SettingMinAnchorRun}
+	keys := []string{
+		coverage.SettingMinParagraphPresent, coverage.SettingMaxMissingRun, coverage.SettingMaxMisreadRun, coverage.SettingMinAnchorRun,
+		coverage.SettingCascadeUnsureBelow, coverage.SettingParallelWorkers, coverage.SettingChunkOverlapSeconds,
+	}
 	sort.Strings(fields)
 	sort.Strings(keys)
 	if strings.Join(fields, ",") != strings.Join(keys, ",") {
@@ -151,4 +155,18 @@ func TestAChecksStartAndItsReadBothUseTheAlignmentSettings(t *testing.T) {
 func hasFlag(args []string, flag, value string) bool {
 	index := slices.Index(args, flag)
 	return index >= 0 && index+1 < len(args) && args[index+1] == value
+}
+
+func TestAParallelOrDoubtSettingOutsideItsRangeIsRefused(t *testing.T) {
+	host := newTestHostForDeliverySettings(t, t.TempDir())
+	for key, value := range map[string]string{
+		coverage.SettingCascadeUnsureBelow:  "1.5",
+		coverage.SettingParallelWorkers:     "33",
+		coverage.SettingChunkOverlapSeconds: "61",
+		coverage.SettingChunkSeconds:        "10",
+	} {
+		if err := host.saveSettings(coverage.SettingsTool, "global", map[string]*string{key: ptr(value)}); err == nil {
+			t.Errorf("%s = %q was saved", key, value)
+		}
+	}
 }

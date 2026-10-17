@@ -31,12 +31,36 @@ const (
 	SettingCascadeRecheckModel   = "cascade_recheck_model"
 )
 
+// How a long item is transcribed, and which words the first pass doubts. Parallel workers, chunk length and crossover
+// change how fast the same words are made, not which ones count, so they are not in a result's parameter hash.
+const (
+	SettingParallelWorkers     = "parallel_workers"
+	SettingChunkSeconds        = "chunk_seconds"
+	SettingChunkOverlapSeconds = "chunk_overlap_seconds"
+	SettingCascadeUnsureBelow  = "cascade_unsure_below"
+)
+
+// minChunkSeconds is the shortest chunk a narrator can ask for: under it the crossover would be most of the chunk.
+const minChunkSeconds = 30
+
+// Parallel is how a long item is cut up and how many Whisper processes work on the pieces (docs/utilities/recording-coverage.md,
+// "Long chapters"). The zero value is the sidecar's own default: the whole item, one process.
+type Parallel struct {
+	// Workers is the number of worker processes; 0 lets the sidecar choose from the model's memory cost.
+	Workers int
+	// ChunkSeconds is each piece's length; 0 transcribes an item whole.
+	ChunkSeconds int
+	// OverlapSeconds is the crossover: how much neighbouring pieces overlap, where their words are joined.
+	OverlapSeconds int
+}
+
 // Settings are everything the narrator sets for the recording check: how the
 // transcript is aligned to the text, and when a chapter counts as recorded.
 type Settings struct {
 	Alignment  AlignmentParams
 	Thresholds Thresholds
 	Cascade    CascadeSettings
+	Parallel   Parallel
 }
 
 // CascadeSettings is the model cascade's own settings (MC1, MC2).
@@ -49,6 +73,9 @@ type CascadeSettings struct {
 	// recommendation); nothing here enforces that - it is the narrator's own choice in Settings.
 	FirstPassModel string
 	RecheckModel   string
+	// UnsureBelow is the Whisper word probability under which a passage is re-checked with RecheckModel even when
+	// the text is all there; 0 re-checks only what the first pass reports missing.
+	UnsureBelow float64
 }
 
 // DefaultSettings are 0.8, 3, 8 and 3, chosen by running the synthetic
@@ -59,7 +86,8 @@ type CascadeSettings struct {
 var DefaultSettings = Settings{
 	Alignment:  DefaultAlignmentParams,
 	Thresholds: DefaultThresholds,
-	Cascade:    CascadeSettings{Enabled: false, FirstPassModel: "tiny", RecheckModel: "large-v3-turbo"},
+	Cascade:    CascadeSettings{Enabled: false, FirstPassModel: "tiny", RecheckModel: "large-v3-turbo", UnsureBelow: 0.5},
+	Parallel:   Parallel{Workers: 0, ChunkSeconds: 300, OverlapSeconds: 6},
 }
 
 func (t Thresholds) validate() error {
@@ -89,6 +117,12 @@ func ResolveSettings(lookup func(key string) string) Settings {
 			Enabled:        boolSetting(lookup(SettingCascadeEnabled), defaults.Cascade.Enabled),
 			FirstPassModel: stringSetting(lookup(SettingCascadeFirstPassModel), defaults.Cascade.FirstPassModel),
 			RecheckModel:   stringSetting(lookup(SettingCascadeRecheckModel), defaults.Cascade.RecheckModel),
+			UnsureBelow:    shareSetting(lookup(SettingCascadeUnsureBelow), defaults.Cascade.UnsureBelow),
+		},
+		Parallel: Parallel{
+			Workers:        wholeSetting(lookup(SettingParallelWorkers), 0, defaults.Parallel.Workers),
+			ChunkSeconds:   chunkSetting(lookup(SettingChunkSeconds), defaults.Parallel.ChunkSeconds),
+			OverlapSeconds: wholeSetting(lookup(SettingChunkOverlapSeconds), 0, defaults.Parallel.OverlapSeconds),
 		},
 	}
 }
@@ -114,6 +148,15 @@ func stringSetting(raw, fallback string) string {
 		return fallback
 	}
 	return raw
+}
+
+// chunkSetting reads a chunk length: 0 (chunking off) or at least minChunkSeconds; anything else is the fallback.
+func chunkSetting(raw string, fallback int) int {
+	value, err := strconv.Atoi(raw)
+	if err != nil || value < 0 || (value > 0 && value < minChunkSeconds) {
+		return fallback
+	}
+	return value
 }
 
 func wholeSetting(raw string, minimum, fallback int) int {

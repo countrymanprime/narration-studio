@@ -149,6 +149,8 @@ func TestStageRecommendationsOverTheCoverageCorpus(t *testing.T) {
 		Thresholds: Thresholds{MinParagraphPresent: corpus.Settings.MinParagraphPresent, MaxMissingRun: corpus.Settings.MaxMissingRun},
 		// The corpus predates the model cascade: every case was made with it off, at its own defaults.
 		Cascade: DefaultSettings.Cascade,
+		// How an item is cut up changes how fast the same words are made, not which ones, so it is the shipped default.
+		Parallel: DefaultSettings.Parallel,
 	}
 	if settings != DefaultSettings {
 		t.Fatalf("the corpus results were made at %+v, not the shipped %+v", settings, DefaultSettings)

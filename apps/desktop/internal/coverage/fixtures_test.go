@@ -208,6 +208,7 @@ type fakeSidecar struct {
 	present      int      // present tokens of 10 (default 10)
 	results      []string // when set, the results file's lines as the real sidecar wrote them (corpus_test.go)
 	during       func()   // called after the items, before the results are written
+	unsure       bool     // report the last item's word as one Whisper was unsure of, when the run is asked to (--unsure-below)
 
 	// pauseAfter > 0 pauses after that many transcriptions until resume is closed.
 	pauseAfter int
@@ -389,6 +390,10 @@ func (f *fakeSidecar) run(args []string) int {
 			results += fmt.Sprintf(`COVERAGE_REGION|{"kind":"tail","paragraphIds":["p-000001"],"tokenCount":%d,"firstWord":"very","lastWord":"tired.","position":%s,"before":%s,"after":null}`+"\n",
 				10-present, end, end)
 		}
+	}
+	if _, asked := values["--unsure-below"]; asked && f.unsure && last != nil && len(f.results) == 0 {
+		results += fmt.Sprintf(`COVERAGE_UNSURE|{"itemIndex":%d,"itemGuid":%q,"start":%g,"end":%g,"words":1,"minScore":0.1}`+"\n",
+			last.Index, last.ItemGUID, last.StartOffset, last.StartOffset+0.3)
 	}
 	if err := writeAtomically(values["--out"], []byte(results)); err != nil {
 		return 1

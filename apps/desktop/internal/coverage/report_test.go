@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"os"
 	"path/filepath"
+	"reflect"
 	"strings"
 	"testing"
 )
@@ -164,5 +165,24 @@ func TestAResultWrittenBeforeRegionBoundsStillReads(t *testing.T) {
 	}
 	if region := result.Report.Regions[0]; region.Before != nil || region.After != nil || region.Kind != "tail" {
 		t.Fatalf("stored region = %+v", region)
+	}
+}
+
+func TestUnsurePassagesAreReadFromTheResultsButNeverStoredOrSent(t *testing.T) {
+	results := sampleResults + `COVERAGE_UNSURE|{"end":18.4,"itemGuid":"{A}","itemIndex":0,"minScore":0.21,"start":16.2,"words":4}` + "\n"
+	report, err := parseReport([]byte(results), "c-0001")
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := []UnsureLine{{ItemIndex: 0, ItemGUID: "{A}", Start: 16.2, End: 18.4, Words: 4, MinScore: 0.21}}
+	if !reflect.DeepEqual(report.Unsure, want) {
+		t.Fatalf("Unsure = %+v, want %+v", report.Unsure, want)
+	}
+	encoded, err := json.Marshal(report)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if strings.Contains(string(encoded), "nsure") {
+		t.Fatalf("a stored or sent report must not carry the unsure passages: %s", encoded)
 	}
 }

@@ -3,7 +3,6 @@ package coverage
 import (
 	"encoding/json"
 	"math"
-	"os"
 	"strings"
 	"testing"
 
@@ -239,15 +238,6 @@ func TestEveryWordScoreIsNullWithAReason(t *testing.T) {
 	raw, _ := json.Marshal(view.WireTokens()[0])
 	if !strings.Contains(string(raw), `"conf":null`) || !strings.Contains(string(raw), `"confReason":"no_word_scores"`) {
 		t.Fatalf("wire = %s", raw)
-	}
-	// The same guard ADR 0830 added for gaps (TestNoGapScoreExistsWhileTheWordsFileCarriesNoProbabilities): a sidecar
-	// that starts writing probabilities must be met by a deliberate change here, not by a number nobody reads.
-	source, err := os.ReadFile("../../../../sidecars/transcript-compare/core/coverage_mode.py")
-	if err != nil {
-		t.Fatal(err)
-	}
-	if strings.Contains(string(source), "probability") {
-		t.Fatal("the words file now carries probabilities: score heard words from them and amend ADR 0855")
 	}
 }
 

@@ -91,6 +91,14 @@ const coverageEngineSchema = z.strictObject({
 export const coverageEnginesSchema = z.strictObject({
   engines: listFromNull(coverageEngineSchema),
   default: z.string(),
+  defaults: z.strictObject({
+    recheck: z.boolean(),
+    recheckModel: z.string(),
+    recheckBelow: z.number(),
+    workers: z.number(),
+    chunkSeconds: z.number(),
+    overlapSeconds: z.number(),
+  }),
 }) satisfies z.ZodType<CoverageEngines>;
 
 /** The reviews of a chapter's current check by gap id (ADR 0842); the golden is tests/fixtures/contracts/coverage-gap-review-reviews.json.

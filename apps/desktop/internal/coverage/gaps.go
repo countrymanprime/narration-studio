@@ -19,8 +19,9 @@ const (
 	GapOther   GapKind = "other"
 )
 
-// ConfNoWordScores is the reason every gap's confidence is null: the words file
-// carries no Whisper word probabilities, so a score would be made up (ADR 0830).
+// ConfNoWordScores is the reason every gap's confidence is null: no score exists for the gap. The words file
+// carries Whisper's word probabilities, but they only choose passages to re-check (ADR 0864), and no calibrated
+// mapping from them to a gap's confidence exists, so a number would be made up (ADR 0830).
 const ConfNoWordScores = "no_word_scores"
 
 // gapKinds maps a sidecar region kind to a gap kind. head and tail are not
