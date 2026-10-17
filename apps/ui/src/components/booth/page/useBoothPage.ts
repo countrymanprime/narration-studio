@@ -20,7 +20,7 @@ import { TEXT_SIZE } from '../reading/BoothText';
 import { backPhrase, nextPhrase, positionOf, stepWord, unitAtPosition, type ReadingPosition, type UnitPosition } from '../reading/readingPosition';
 import type { BrowseView } from '../reading/useBrowseView';
 import { useRecordControl } from '../record/useRecordControl';
-import { resumeOfferFor, type KeptResume, type ResumeTarget } from '../resume/resumeOffer';
+import { resumeOfferFor, type KeptResume, type ResumeTarget } from '../resume/resumeOfferModel';
 import { useRoll } from '../roll/useRoll';
 import type { TeleprompterSession } from '../useTeleprompterSession';
 import { estimatedSpans, positionAtOffset, positionInScript, scriptWordAt, secondsBefore, suspectedFrom } from './readingSource';

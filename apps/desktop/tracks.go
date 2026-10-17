@@ -2,10 +2,14 @@ package main
 
 import (
 	"fmt"
+	"os"
 	"path/filepath"
+	"sort"
 
 	"github.com/countrymanprime/narration-utils/shell/internal/dawport"
 	"github.com/countrymanprime/narration-utils/shell/internal/dawport/reaper"
+	"github.com/countrymanprime/narration-utils/shell/internal/persist"
+	"github.com/countrymanprime/narration-utils/shell/internal/project"
 	"github.com/countrymanprime/narration-utils/shell/internal/settings"
 	"github.com/countrymanprime/narration-utils/shell/internal/tracks"
 )
@@ -28,9 +32,10 @@ func discoverTracks(svc hostServices) (map[string]any, error) {
 	return map[string]any{"candidates": candidates, "selected": selected}, nil
 }
 
-// discoverProjectFiles lists the *.rpp files directly in folder and resolves
-// the selected one (the narrator's saved choice, or the only candidate), ""
-// when the choice is ambiguous.
+// discoverProjectFiles lists the *.rpp files directly in folder, plus the file the project's manifest links when that file
+// exists (it may live in another folder, since REAPER keeps its projects wherever the narrator saved them), and resolves
+// the selected one: the linked file, else the narrator's saved choice, else the only candidate, "" when the choice is
+// ambiguous.
 func discoverProjectFiles(folder string, store *settings.Store) (candidates []string, selected string, err error) {
 	if folder == "" {
 		return nil, "", fmt.Errorf("open a project before viewing tracks")
@@ -39,12 +44,44 @@ func discoverProjectFiles(folder string, store *settings.Store) (candidates []st
 	if err != nil {
 		return nil, "", fmt.Errorf("could not look for a REAPER project file: %w", err)
 	}
+	linked := linkedProjectFile(store.Reporter(), folder)
+	if linked != "" {
+		candidates = withLinkedFile(candidates, linked)
+		return candidates, linked, nil
+	}
 	if saved, ok := store.Project("Tracks")["selectedRpp"]; ok && contains(candidates, saved) {
 		selected = saved
 	} else if len(candidates) == 1 {
 		selected = candidates[0]
 	}
 	return candidates, selected, nil
+}
+
+// linkedProjectFile is the REAPER project file folder's manifest links, as it is on disk now ("" when there is no link or the
+// file is gone).
+func linkedProjectFile(reporter *persist.Reporter, folder string) string {
+	manifest, ok, err := project.Load(reporter, folder)
+	if err != nil || !ok || manifest == nil || manifest.DawProjectFile == nil {
+		return ""
+	}
+	path, _ := manifest.DawProjectFile.Resolve(folder)
+	return path
+}
+
+// withLinkedFile returns candidates with linked in it exactly once, in path order. A candidate that is the same file as linked
+// (another spelling of its path) is replaced by it, so the linked spelling is the one selected.
+func withLinkedFile(candidates []string, linked string) []string {
+	merged := make([]string, 0, len(candidates)+1)
+	linkedInfo, linkedErr := os.Stat(linked)
+	for _, candidate := range candidates {
+		if info, err := os.Stat(candidate); linkedErr == nil && err == nil && os.SameFile(info, linkedInfo) {
+			continue
+		}
+		merged = append(merged, candidate)
+	}
+	merged = append(merged, linked)
+	sort.Strings(merged)
+	return merged
 }
 
 // selectedProjectFile is the saved .rpp the analyses read (the recording

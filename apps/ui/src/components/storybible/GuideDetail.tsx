@@ -45,7 +45,7 @@ import { NamePronunciation } from './source/NamePronunciation';
 import { nameRows } from './source/pronunciationRows';
 import { usePronunciationSources } from './source/usePronunciationSources';
 import { AppearsIn } from './AppearsIn';
-import type { ChapterRef } from './appearsIn';
+import type { ChapterRef } from './appearsInModel';
 import { addressPath } from '../../navigation/address';
 import { aliasFlagged, entryFlagged, reviewFlags } from './entryList';
 import { EntryText } from './EntryText';

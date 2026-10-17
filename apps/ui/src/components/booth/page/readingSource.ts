@@ -3,7 +3,7 @@ import { WPH } from '../../schedule/estimates';
 import type { CreditsKind } from '../readerModel';
 import { UNKNOWN_SPEAKER, wordCount, type BoothUnit, type ReadingParagraph, type WordDecoration } from '../reading/boothUnits';
 import type { ReadingPosition } from '../reading/readingPosition';
-import type { SuspectedFlag } from '../suspected/suspectedLines';
+import type { SuspectedFlag } from '../suspected/suspectedLinesModel';
 
 // What the Booth text reads, built from the host's data: the chapter's paragraphs cut at the Story Bible's dialogue cues, or the
 // rendered credits, and the mapping between the host's script words (its `read` index) and a paragraph and word. Pure.

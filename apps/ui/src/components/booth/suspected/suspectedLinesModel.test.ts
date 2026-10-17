@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { suspectedCount, suspectedKey, suspectedLines, type SuspectedFlag } from './suspectedLines';
+import { suspectedCount, suspectedKey, suspectedLines, type SuspectedFlag } from './suspectedLinesModel';
 
 const flag = (over: Partial<SuspectedFlag> = {}): SuspectedFlag => ({
   chapterId: 'c8',

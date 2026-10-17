@@ -6,7 +6,7 @@ import { useToastClearance } from '../../../hooks/useToastClearance';
 import { usePort } from '../../../ports/usePort';
 import { Button } from '../../primitives/Button';
 import { InsetCard } from '../../primitives/InsetCard';
-import { recordSetupFor, type RecordSetupFacts, type RecordSetupPlan } from './recordSetup';
+import { recordSetupFor, type RecordSetupFacts, type RecordSetupPlan } from './recordSetupModel';
 
 /** Seconds since `at`, re-rendered every second while mounted; null when there is no time. */
 function useSecondsSince(at: number | null | undefined): number | null {

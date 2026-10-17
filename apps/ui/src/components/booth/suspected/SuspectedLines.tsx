@@ -3,7 +3,7 @@ import { apiErrorMessage } from '../../../api/errorMessage';
 import { overlay } from '../../../overlay/overlayService';
 import { usePort } from '../../../ports/usePort';
 import { IconButton } from '../../primitives/IconButton';
-import { KIND_LABELS, suspectedCount, suspectedKey, suspectedLines, toFlagSave, type SuspectedFlag } from './suspectedLines';
+import { KIND_LABELS, suspectedCount, suspectedKey, suspectedLines, toFlagSave, type SuspectedFlag } from './suspectedLinesModel';
 
 /**
  * The Booth side panel's "Suspected" section (Studio Next mock `pages/booth/SidePanel.tsx`). The host's live check lists lines it

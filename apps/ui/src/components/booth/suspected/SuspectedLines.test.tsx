@@ -10,7 +10,7 @@ import { createMockApi } from '../../../api/mockApi';
 import type { TeleprompterFlagFinding, TeleprompterFlagSave } from '../../../api/contracts/teleprompter';
 import { overlay } from '../../../overlay/overlayService';
 import { SuspectedLines } from './SuspectedLines';
-import type { SuspectedFlag } from './suspectedLines';
+import type { SuspectedFlag } from './suspectedLinesModel';
 import { useSuspectedPickups } from './useSuspectedPickups';
 
 afterEach(() => {

@@ -7,7 +7,7 @@ import type { TeleprompterFlagFinding, TeleprompterFlagSave } from '../../../api
 import { OverlayProvider } from '../../../overlay/OverlayProvider';
 import { createOverlayService } from '../../../overlay/overlayService';
 import { SuspectedLines } from './SuspectedLines';
-import type { SuspectedFlag } from './suspectedLines';
+import type { SuspectedFlag } from './suspectedLinesModel';
 import { useSuspectedPickups } from './useSuspectedPickups';
 
 const skipped: SuspectedFlag = {

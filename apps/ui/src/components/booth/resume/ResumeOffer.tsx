@@ -2,7 +2,7 @@ import { HeaderChip } from '../../primitives/HeaderChip';
 import { TooltipTarget } from '../../primitives/Tooltip';
 import type { DawProjectState } from '../../../api/contracts/daw';
 import type { TeleprompterSpan } from '../../../types';
-import { saveNote, sourceText, type KeptResume, type ResumeOfferState, type ResumeTarget } from './resumeOffer';
+import { saveNote, sourceText, type KeptResume, type ResumeOfferState, type ResumeTarget } from './resumeOfferModel';
 import { useResumeOffer } from './useResumeOffer';
 
 /**

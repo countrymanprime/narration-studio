@@ -51,7 +51,8 @@ no DAW can set an audio interface's input gain, so set it in your interface's ow
 Press **Record** (or Space, or a foot pedal mapped to Space) to start a take, and again to stop it. Record arms only the chapter's
 track and starts at the end of the last item on it, so a take never records over an earlier one. When Record cannot start it is
 disabled and the footer says why, in the DAW's own words: the DAW is not running, the record action is switched off in Settings,
-the chapter has no track, or the DAW is already playing.
+the chapter has no track, or the DAW is already playing. When the reason is a missing or doubled track link, the footer also
+offers **Open the audio engine panel**, where **Chapter links** sets the chapter's track.
 
 ![Booth - six seconds into a take: the text follows the voice](../../images/ui/booth-following.webp)
 

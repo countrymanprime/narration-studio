@@ -1,7 +1,7 @@
 import type { GuideEntity } from '../../types';
 import { chapterName } from '../../chapterName';
 import { IconButton } from '../primitives/IconButton';
-import { chaptersOf, type ChapterRef } from './appearsIn';
+import { chaptersOf, type ChapterRef } from './appearsInModel';
 
 /** "Appears in · N chapters": one row per chapter the entry is in, each with a button that opens the chapter in Script. */
 export function AppearsIn({
