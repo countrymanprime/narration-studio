@@ -1,7 +1,7 @@
 import type { CoverageStartResult } from '../../api/contracts/coverage';
 
 /** One chapter that has been handed to the host: waiting for its start to be answered, or running with the run id that names its events. */
-export type ActiveRun = { phase: 'starting' | 'running'; runId?: string; percent: number };
+type ActiveRun = { phase: 'starting' | 'running'; runId?: string; percent: number };
 
 /** A run's end, kept when it arrives before the start's answer does (the host sends the state event first). */
 type EarlyEnd = { phase: 'complete' | 'cancelled' | 'failed'; message: string };
