@@ -1,6 +1,6 @@
 // Package transcript owns the asynchronous Transcript Compare state machine.
 // It reaches the DAW only through dawport.ReviewSession (today the versioned
-// file bridge; ADR 0004's dawadapter.Review, which it
+// file bridge; docs/architecture/daw-integration.md#the-daw-port's dawadapter.Review, which it
 // replaced); browser polling and SSE are deliberately absent.
 package transcript
 

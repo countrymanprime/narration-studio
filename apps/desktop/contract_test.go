@@ -771,7 +771,7 @@ func TestContractCreditsRecordedLengths(t *testing.T) {
 }
 
 // The take-review findings as the Review page lists them (FindingsList filtered to the take-review analyzer,
-// ADR 0005): one partial pickup (a read below full coverage) and one near-identical
+// docs/architecture/wire-contracts.md): one partial pickup (a read below full coverage) and one near-identical
 // duplicate_read (full coverage, both reads above the quality bar), each with its reads in evidence.members, which
 // the page decodes with its own schema. Built from internal/repeats.ToFindings, the adapter the scan job saves
 // through, into a real findings store: no sidecar, no REAPER project.

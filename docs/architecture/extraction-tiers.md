@@ -18,7 +18,7 @@ The registry order above is the scan order. `NewRegistry` in `apps/desktop/inter
 
 ## The 75% rule
 
-[The 75% rule](extraction-tiers.md#the-75-rule) sets the rule. It is written once, in `apps/desktop/internal/extraction/rule.go`.
+The 75% rule sets the rule. It is written once, in `apps/desktop/internal/extraction/rule.go`.
 
 | Piece | Identifier | Behaviour |
 | --- | --- | --- |
@@ -37,7 +37,7 @@ The four statuses are `accepted-auto`, `needs-verification`, `accepted` and `rej
 
 Enforced by `TestThresholdLivesInOnePlace` (no other non-test file in the package holds the literal), `TestExactlyThreeQuartersIsAcceptedAuto`, `TestReasonsFollowTheMock` and `TestStatusFollowsReasons` in `apps/desktop/internal/extraction/rule_test.go`. The import planner and the store both take their status from `AutoStatus` (`TestStatusFollowsTheSharedRule` in `importer/importer_test.go`, `TestStoredStatusFollowsTheRuleAtIngest` in `store/store_test.go`). Per [Verification and code-health tooling](../operations/verification-tooling.md), a rule that can be checked by reading code is a test that names its ADR.
 
-[The 75% rule](extraction-tiers.md#the-75-rule) supersedes [Story Bible entity-extraction accuracy](story-bible-entity-accuracy.md) and [service.go](../../apps/desktop/internal/guide/service.go) where it reaches; the Story Bible build keeps writing entries as `docs/architecture/story-bible-entity-accuracy.md` describes, and the rules source proposes only what the Story Bible does not already say.
+The 75% rule supersedes [Story Bible entity-extraction accuracy](story-bible-entity-accuracy.md) and [service.go](../../apps/desktop/internal/guide/service.go) where it reaches; the Story Bible build keeps writing entries as `docs/architecture/story-bible-entity-accuracy.md` describes, and the rules source proposes only what the Story Bible does not already say.
 
 ## The evidence check
 
@@ -102,4 +102,4 @@ The downloads are catalogue entries of the one asset registry ([The asset regist
 | BookNLP small, large | `booknlp-small`, `booknlp-big` | same | Refused, same reason |
 | Local language model | `local-llm` | none; no files | Not built; the row carries an `unavailable` sentence |
 
-Nothing downloads without the narrator's confirmation, and with nothing installed the scan runs the rules ([The 75% rule](extraction-tiers.md#the-75-rule), decision 5).
+Nothing downloads without the narrator's confirmation, and with nothing installed the scan runs the rules.

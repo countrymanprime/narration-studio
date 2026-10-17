@@ -27,7 +27,7 @@ The stack payload file is checked by the Lua (size, group and move bounds, GUID 
 
 ## Audacity 3.x
 
-Built from the published scripting spec and tested over a fake pipe ([ADR 0004](../adr/0004-every-daw-is-reached-through-one-port.md)); `go test ./internal/dawport/audacity/` passes (2026-10-12). Test counts are `func Test` in each file.
+Built from the published scripting spec and tested over a fake pipe ([The DAW port](../architecture/daw-integration.md#the-daw-port)); `go test ./internal/dawport/audacity/` passes (2026-10-12). Test counts are `func Test` in each file.
 
 | Capability | Declared in `audacity.go` | Tests | Check still owed | Promoted by |
 | --- | --- | --- | --- | --- |

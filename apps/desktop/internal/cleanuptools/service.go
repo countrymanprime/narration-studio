@@ -57,7 +57,7 @@ type Service struct {
 	state map[string]any
 }
 
-// New builds the service over launcher and gainAdjuster (ADR 0004: cleanup tools depend on the roles they
+// New builds the service over launcher and gainAdjuster (docs/architecture/daw-integration.md#the-daw-port: cleanup tools depend on the roles they
 // use, never a concrete bridge client). When there is a launcher it subscribes to CLEANUP_LAUNCHED and ERROR
 // events for its own run (or, with no run, a session-level problem while a launch is in flight); gainAdjuster is
 // a synchronous role (roles.go) and needs no subscription of its own.

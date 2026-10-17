@@ -195,7 +195,7 @@ func (a *Adapter) ExplainRequirement(c, required dawport.Capability, r dawport.R
 	return explainRequirement(c, required, r)
 }
 
-// Session is the Audacity-only operations over the same client (ADR 0004).
+// Session is the Audacity-only operations over the same client.
 func (a *Adapter) Session() *Session { return a.session }
 
 // Backups is the backups role itself, for what the host does beyond BackupKeeper: read the table for the narrator's list and prune

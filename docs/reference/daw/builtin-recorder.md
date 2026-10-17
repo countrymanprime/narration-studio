@@ -1,6 +1,6 @@
 # Built-in recorder: what the app declares for it
 
-The app's own recorder ([Built-in recorder: what the app declares for it](builtin-recorder.md), `apps/desktop/internal/recording`) is an engine of the DAW port with the kind `Built-in`. Its adapter is `apps/desktop/internal/dawport/builtin`, as of 2026-10-11.
+The app's own recorder (`apps/desktop/internal/recording`) is an engine of the DAW port with the kind `Built-in`. Its adapter is `apps/desktop/internal/dawport/builtin`, as of 2026-10-11.
 
 ## When it is the launch's engine
 

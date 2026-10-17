@@ -59,7 +59,7 @@ catalog, integrity, UX, migration, and acceptance criteria.
 
 ### Deferred work
 
-- macOS and Linux support: removed for now by an owner decision ([ADR 0002](adr/0002-windows-x64-is-the-only-supported-platform.md)), until the app is steadier or someone uses those systems.
+- macOS and Linux support: removed for now by an owner decision ([Supported platforms](../README.md#supported-platforms)), until the app is steadier or someone uses those systems.
 - Languages beyond US English.
 - Team collaboration, cloud analysis, or shared project services.
 - Manuscript Teleprompter beyond what has shipped (listening on a chosen microphone with a local Whisper model, or Moonshine on Windows, word highlighting, and reviewable suspected misreads, skips, extra words and restarts in the Booth): a default engine chosen by evaluating both, following live REAPER state, and punch-in from a word; it never edits text or audio automatically. See the [Manuscript Teleprompter brief](architecture/manuscript-teleprompter.md) for the resolved design questions.
@@ -67,7 +67,7 @@ catalog, integrity, UX, migration, and acceptance criteria.
 
 ## Audacity adapter
 
-Unscheduled on this roadmap, like the chapter stage recommendations set, but no longer deferred behind the REAPER workflow: it runs as its own parallel stack, spike-gated on its own scripting surface (`mod-script-pipe`) rather than on any REAPER milestone. See [ADR 0004](adr/0004-every-daw-is-reached-through-one-port.md) and the [DAW integration boundary](architecture/daw-integration.md#audacity-boundary).
+Unscheduled on this roadmap, like the chapter stage recommendations set, but no longer deferred behind the REAPER workflow: it runs as its own parallel stack, spike-gated on its own scripting surface (`mod-script-pipe`) rather than on any REAPER milestone. See [The DAW port](architecture/daw-integration.md#the-daw-port) and the [DAW integration boundary](architecture/daw-integration.md#audacity-boundary).
 
 ## Dependency trial order
 

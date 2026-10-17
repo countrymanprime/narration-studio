@@ -26,4 +26,4 @@ A new directory under `sidecars/`, or a new mode, argument or output format on a
 
 ## What this skill is not
 
-It does not pick ML models or decide whether the work belongs in Python or Go; that is the owner's call, and already settles that model and audio work runs in Python sidecars.
+It does not pick ML models or decide whether the work belongs in Python or Go; that is the owner's call (model and audio work runs in Python sidecars today for convenience; see [the sidecar boundary](../../../docs/architecture/codebase-map.md#sidecar-boundary)).

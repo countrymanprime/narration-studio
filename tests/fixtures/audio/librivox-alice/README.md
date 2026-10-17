@@ -4,7 +4,7 @@ Public-domain LibriVox readings of *Alice's Adventures in Wonderland*, the same 
 manuscript (`apps/ui/src/api/fixtures/alice-in-wonderland.txt`), plus the tools that cut and mix them into test corpora
 with known defects. The recordings are downloaded from archive.org when they are used; the repository holds where every
 paragraph and sentence sits in them and the recipes for each test state
-([LibriVox Alice: real narration of the demo script](README.md)).
+.
 
 ## What is here
 

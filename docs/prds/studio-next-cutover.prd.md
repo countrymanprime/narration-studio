@@ -103,7 +103,7 @@ On conflict this PRD, and the ADR written when its phase lands, is the source of
 | --- | --- | --- |
 | [Lifecycle of a PRD](README.md#lifecycle-of-a-prd) | KEEP | Delete when built |
 | [Design principles](../architecture/principles.md) | KEEP decision 1 (DQ-2), SUPERSEDE decision 5 (DQ-14) | No old route or panel left; Schedule and Delivery are pages |
-| [Mock match](../operations/verification-tooling.md#mock-match), [Mock match](../operations/verification-tooling.md#mock-match) | SUPERSEDE (DQ-1) | The scoring tool's source list shrinks to the Series voice bible and Companion mocks |
+| [Mock match](../operations/verification-tooling.md#mock-match) | SUPERSEDE (DQ-1) | The scoring tool's source list shrinks to the Series voice bible and Companion mocks |
 | [Dead code (Knip)](../operations/verification-tooling.md#dead-code-knip), [Verification and code-health tooling](../operations/verification-tooling.md) | KEEP | Dead code and rules stay at zero |
 
 ## Technical Approach

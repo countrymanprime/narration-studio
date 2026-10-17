@@ -2,7 +2,7 @@
 
 **Source:** owner request of 2026-10-10 ([Studio Next Rebuild](studio-next-rebuild.prd.md)); the mock's `studio-next/src/state/`, `studio-next/src/selectors/`, `studio-next/src/domain/` and `studio-next/src/fixtures/`; the owner's rulings of 2026-10-11 (see Decisions).
 
-**Builds on:** [ADR 0005](../adr/0005-every-boundary-is-a-typed-contract.md) (Zod behind `parseWire`), [wire contracts](../architecture/wire-contracts.md), [The rule](../architecture/host-binding-concurrency.md#the-rule) (host bindings read services through one accessor), the `NarrationApi` split into per-domain interfaces (`apps/ui/src/types.ts`) and the mock host (`apps/ui/src/api/mockApi.ts`), [ADR 0004](../adr/0004-every-daw-is-reached-through-one-port.md).
+**Builds on:** [Wire contracts: how data is checked where it crosses a boundary](../architecture/wire-contracts.md) (Zod behind `parseWire`), [wire contracts](../architecture/wire-contracts.md), [The rule](../architecture/host-binding-concurrency.md#the-rule) (host bindings read services through one accessor), the `NarrationApi` split into per-domain interfaces (`apps/ui/src/types.ts`) and the mock host (`apps/ui/src/api/mockApi.ts`), [The DAW port](../architecture/daw-integration.md#the-daw-port).
 
 **Status (2026-10-11):** draft; the owner's rulings of 2026-10-11 are applied. The store is a read-model cache plus a command journal (SN0-Q3); A5 and A6 record that and the undo rules, and are the first slices.
 
@@ -95,8 +95,8 @@ On conflict this PRD, and the ADR written when its phase lands, is the source of
 | ADR | Class | Note |
 | --- | --- | --- |
 | [The rule](../architecture/host-binding-concurrency.md#the-rule) | KEEP | Host is the truth; the mock's whole-book store is not adopted (A5) |
-| [ADR 0005](../adr/0005-every-boundary-is-a-typed-contract.md) | EXTEND | Shared `Refusal` and `Measured` schemas |
-| [Verification and code-health tooling](../operations/verification-tooling.md), [Verification and code-health tooling](../operations/verification-tooling.md) | EXTEND | Import rules for `studio/`, `ports/`, `fixtures/` |
+| [Wire contracts: how data is checked where it crosses a boundary](../architecture/wire-contracts.md) | EXTEND | Shared `Refusal` and `Measured` schemas |
+| [Verification and code-health tooling](../operations/verification-tooling.md) | EXTEND | Import rules for `studio/`, `ports/`, `fixtures/` |
 | [Chapter sync](../guides/using-the-app/navigation.md#chapter-sync), [Shared Findings Contract](../architecture/findings-contract.md), [The workspace's take and FX actions (`narration_workspace.lua`)](../architecture/reaper-bridge.md#the-workspaces-take-and-fx-actions-narration_workspacelua) | KEEP | Existing undo and audit mechanisms are journal targets, not replaced |
 | [Property tests and fuzzing](../operations/verification-tooling.md#property-tests-and-fuzzing) | KEEP | Deterministic property tests |
 | Undo across the DAW | KEEP | A DAW entry is undoable only when it is the last entry and the DAW reports it is still its last action; otherwise the refusal names the DAW's own Edit > Undo (A6) |
@@ -170,7 +170,7 @@ On conflict this PRD, and the ADR written when its phase lands, is the source of
 
 ## Research Summary
 
-Read: the mock store, domain, selectors list, fixtures list, test names; the repo's `types.ts`, `ApiContext.tsx`, `mockApi.ts`, `wire-contracts.md`, ADR 0005. Not done: no inventory of every `act` in the mock yet (Phase 1); no measurement of how many real inverses exist.
+Read: the mock store, domain, selectors list, fixtures list, test names; the repo's `types.ts`, `ApiContext.tsx`, `mockApi.ts`, `wire-contracts.md`, `docs/architecture/wire-contracts.md`. Not done: no inventory of every `act` in the mock yet (Phase 1); no measurement of how many real inverses exist.
 
 ## Visual Spec
 

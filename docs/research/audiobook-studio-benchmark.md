@@ -224,7 +224,7 @@ tool-run-logging (deleted PRD `tool-run-logging`) marks P1–P4 and P7 as pendin
 **Where this app is ahead of the field:**
 - A two-way bridge addressed by GUID: go to, loop and mark findings, stamp chapters, work through pickups. Competitors export
   marker files.
-- Evidence-versioned findings with narrator decisions. Analyzers never change audio (ADR 0006). This fits the distrust of fully
+- Evidence-versioned findings with narrator decisions. Analyzers never change audio (ADR 0002). This fits the distrust of fully
   automatic editing [L37].
 - Local AI with downloads the narrator agrees to.
 - A REAPER project can be read and played without REAPER running.

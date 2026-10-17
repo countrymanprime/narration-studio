@@ -19,7 +19,7 @@ type DialogProps = {
   // 'default': capped at 70vw wide and 80dvh tall, sized to its content. 'full': fills the viewport with a
   // fixed 1rem margin on every side and scrolls its body, for a surface that needs the whole window (the teleprompter
   // reading modal). Modality (focus trap, Escape, initial focus,
-  // hidden siblings) is unchanged by size: both variants are the one shell ADR 0008 describes.
+  // hidden siblings) is unchanged by size: both variants are the one shell docs/design/design-system.md#base-ui-wrappers describes.
   size?: 'default' | 'full';
   // Draws no header row and no Close button, for a surface whose first row is its own field (the jump menu, D98). The title
   // still names the dialog, visually hidden; Escape closes through `onClose` or `onEscape`. The body has no padding.

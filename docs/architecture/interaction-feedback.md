@@ -1,6 +1,6 @@
 # Interaction feedback: what an action owes the narrator
 
-**Status: implemented.** Every place the UI calls the Go host has a row in a catalog with a verdict against a written standard, a test keeps that inventory honest, the Story Bible actions acknowledge and cannot overlap, and a host job that ends tells the narrator wherever they are. The decisions are [The standard](interaction-feedback.md#the-standard) (the standard, the tiers, the catalog) and [Job-end events](interaction-feedback.md#job-end-events) (job-end events, the toast queue, the rebuild in the background). The measurements are in the [latency baseline](../research/interaction-latency-baseline.md).
+**Status: implemented.** Every place the UI calls the Go host has a row in a catalog with a verdict against a written standard, a test keeps that inventory honest, the Story Bible actions acknowledge and cannot overlap, and a host job that ends tells the narrator wherever they are. The decisions are The standard (the standard, the tiers, the catalog) and Job-end events (job-end events, the toast queue, the rebuild in the background). The measurements are in the [latency baseline](../research/interaction-latency-baseline.md).
 
 ## The standard
 

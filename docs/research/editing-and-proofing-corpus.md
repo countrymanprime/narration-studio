@@ -1,6 +1,6 @@
 # Editing and proofing: a synthetic signal-level corpus, provisional
 
-**Status: provisional, 2026-09-27.** The stage recommendation verdict for editing and proofing ([stage recommendations](../architecture/stage-recommendations.md)) needs validating end to end against a narrator's own stage labels (D12), and neither a real editing corpus nor a real proofing corpus exists: both need permissioned, annotated audio. The two tests below are a synthetic, signal-level stand-in, so the false-"done" invariant has some end-to-end proof; they are replaced, not extended, once a real permissioned corpus lands ([Editing and proofing: a synthetic signal-level corpus, provisional](editing-and-proofing-corpus.md)). The re-run on a permissioned project is pending with the owner on [#992](https://github.com/countrymanprime/narration-utils/issues/992).
+**Status: provisional, 2026-09-27.** The stage recommendation verdict for editing and proofing ([stage recommendations](../architecture/stage-recommendations.md)) needs validating end to end against a narrator's own stage labels (D12), and neither a real editing corpus nor a real proofing corpus exists: both need permissioned, annotated audio. The two tests below are a synthetic, signal-level stand-in, so the false-"done" invariant has some end-to-end proof; they are replaced, not extended, once a real permissioned corpus lands. The re-run on a permissioned project is pending with the owner on [#992](https://github.com/countrymanprime/narration-utils/issues/992).
 
 ## What is here
 

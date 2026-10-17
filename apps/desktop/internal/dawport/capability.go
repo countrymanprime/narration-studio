@@ -90,7 +90,7 @@ type Spec struct {
 }
 
 // specs is the catalog, in the order the UI lists capabilities. Adding a capability is a row here, a role interface in roles.go and
-// a conformance case; it is a normal change under ADR 0004.
+// a conformance case; it is a normal change under docs/architecture/daw-integration.md#the-daw-port.
 var specs = []Spec{
 	{CapReview, "Compare the recording with the manuscript", NeedsRunning, reflect.TypeFor[ReviewSession](), nil},
 	{CapNavigate, "Go to and loop findings", NeedsRunning, reflect.TypeFor[Navigator](), nil},

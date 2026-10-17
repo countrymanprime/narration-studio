@@ -93,7 +93,7 @@ On conflict this PRD, and the ADR written when its phase lands, is the source of
 | [The asset registry (implemented)](../architecture/first-use-dependency-provisioning.md#the-asset-registry-implemented), [The local assets page (implemented)](../architecture/first-use-dependency-provisioning.md#the-local-assets-page-implemented), [The asset registry (implemented)](../architecture/first-use-dependency-provisioning.md#the-asset-registry-implemented), [First-Use Dependency Provisioning](../architecture/first-use-dependency-provisioning.md), [The asset manager (implemented)](../architecture/first-use-dependency-provisioning.md#the-asset-manager-implemented) | EXTEND | Tools are registry assets; no second installer |
 | [guidegate.go](../../apps/desktop/guidegate.go) | EXTEND | The language model asset becomes a tier |
 | [Provider ports](../architecture/provider-ports.md) | EXTEND | Extraction becomes a provider port |
-| [ADR 0006](../adr/0006-local-first-and-the-narrator-consents.md) | KEEP | Analysis is local and suggests; the narrator accepts |
+| [ADR 0002](../adr/0002-local-models-and-tools-come-first-so-the-app-is-free-to-use.md) | KEEP | Analysis is local and suggests; the narrator accepts |
 | [Design principles](../architecture/principles.md) | KEEP | Real progress (the mock's paced fake progress is a mock adapter only) |
 
 ## Technical Approach

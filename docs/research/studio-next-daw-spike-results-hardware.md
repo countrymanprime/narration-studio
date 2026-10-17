@@ -2,7 +2,7 @@
 
 **Status: results pending, structure written 2026-10-11.** The owner has not returned spikes 1f and 1g of [the spike runbook](../operations/daw-spike-run-sheet.md), so neither has a result. A "pending" cell is not a failure: it means no table row has come back. A worker has no audio interface, no REAPER and no Audacity, so nothing here is a guess. Tracking: issue #1146, part of #1016.
 
-Spikes SND-S6 and SND-S7 of [the DAW PRD](../prds/studio-next-daw-ports-and-capabilities.prd.md). Style and limits follow [REAPER spike S6](reaper-spike-s6-daw-reachability.md) and [ADR 0004](../adr/0004-every-daw-is-reached-through-one-port.md).
+Spikes SND-S6 and SND-S7 of [the DAW PRD](../prds/studio-next-daw-ports-and-capabilities.prd.md). Style and limits follow [REAPER spike S6](reaper-spike-s6-daw-reachability.md) and [The DAW port](../architecture/daw-integration.md#the-daw-port).
 
 ## How to fill this note
 
@@ -34,7 +34,7 @@ What each outcome would change in the DAW PRD (from the runbook's 1f table): see
 | Audacity 3 version and date | pending |
 | Cloned to a Backups track and restored | pending |
 | Clone seconds, restore seconds (tested window) | pending |
-| Audacity 4 | Not applicable: 4.0 has no scripting pipe (ADR 0004). The runbook records "not reachable" for it. |
+| Audacity 4 | Not applicable: 4.0 has no scripting pipe (`docs/architecture/daw-integration.md#the-daw-port`). The runbook records "not reachable" for it. |
 | Not proved | pending |
 
 Consequence: pending. SN-D81 (Audacity backups) is built on this section. If 1g says the pipe cannot clone and restore a range, comment on SN-D81 and #989 instead of building it. See the runbook's 1g table for each outcome.

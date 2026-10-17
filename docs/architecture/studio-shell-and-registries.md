@@ -1,6 +1,6 @@
 # Studio shell and registries
 
-**Status: implemented.** The app shell draws the rail and header, and a page adds a command, a search source, a context menu or an overlay by calling one registry or service, never by editing the shell. The decisions are [Command providers and "Go to"](studio-shell-and-registries.md#command-providers-and-go-to) (catalogue, providers, jump menu, context menus, help), [Overlay service](studio-shell-and-registries.md#overlay-service) (overlay service) and [Layout rules](../design/design-system.md#layout-rules) (widths, icons, key caps). [Studio shell and registries](studio-shell-and-registries.md) set the command model they extend and [Verification and code-health tooling](../operations/verification-tooling.md) the rule that an import boundary is a lint or test rule that names its ADR.
+**Status: implemented.** The app shell draws the rail and header, and a page adds a command, a search source, a context menu or an overlay by calling one registry or service, never by editing the shell. The decisions are Command providers and "Go to" (catalogue, providers, jump menu, context menus, help), (overlay service) and [Layout rules](../design/design-system.md#layout-rules) (widths, icons, key caps). Studio shell and registries set the command model they extend and [Verification and code-health tooling](../operations/verification-tooling.md) the rule that an import boundary is a lint or test rule that names its ADR.
 
 All paths are under `apps/ui/src/`.
 
@@ -128,7 +128,7 @@ Tests: `components/help/ShortcutSheet.test.tsx` (the sheet lists exactly `comman
 | `overlay.announce(text)` | Writes the one polite live region |
 | `overlay.dismissToast(id)`, `overlay.dismissTopic(topic)` | Remove a toast, or a message that stopped being true |
 
-`overlay/OverlayHost.tsx` renders the snapshot in the primitives (`ConfirmDialog`, `Dialog`, `SlideOver`, `ToastRegion`) and the `aria-live` region outside any dialog. `overlay/OverlayProvider.tsx` mounts the host and gives components `useOverlay()`; `App.tsx` mounts it once. Focus return, stacking and Escape order stay in the primitives ([ADR 0008](../adr/0008-the-ui-is-react-and-tailwind-over-base-ui-primitives.md), [Design system reference](../design/design-system.md), [Design system reference](../design/design-system.md)). The jump menu, the history panel and the Booth leave guard's confirm all open through it.
+`overlay/OverlayHost.tsx` renders the snapshot in the primitives (`ConfirmDialog`, `Dialog`, `SlideOver`, `ToastRegion`) and the `aria-live` region outside any dialog. `overlay/OverlayProvider.tsx` mounts the host and gives components `useOverlay()`; `App.tsx` mounts it once. Focus return, stacking and Escape order stay in the primitives ([Base UI wrappers](../design/design-system.md#base-ui-wrappers), [Design system reference](../design/design-system.md)). The jump menu, the history panel and the Booth leave guard's confirm all open through it.
 
 | Rule | Enforced by |
 | --- | --- |
@@ -138,7 +138,7 @@ Tests: `components/help/ShortcutSheet.test.tsx` (the sheet lists exactly `comman
 
 ## Registry import direction
 
-`registries/` takes `components/primitives/` types, `input/` and itself, and no feature folder; features import registries. `.dependency-cruiser.mjs` rule `registries-import-no-feature` enforces it, and `architectureRules.test.ts` proves the rule fires ([Verification and code-health tooling](../operations/verification-tooling.md)). `JumpMenu` and `ContextMenuHost` are built from the `Dialog`, `Listbox` and `ContextMenu` primitives, so Base UI is imported only inside the primitives ([ADR 0008](../adr/0008-the-ui-is-react-and-tailwind-over-base-ui-primitives.md), `baseUiBoundary.test.ts`).
+`registries/` takes `components/primitives/` types, `input/` and itself, and no feature folder; features import registries. `.dependency-cruiser.mjs` rule `registries-import-no-feature` enforces it, and `architectureRules.test.ts` proves the rule fires ([Verification and code-health tooling](../operations/verification-tooling.md)). `JumpMenu` and `ContextMenuHost` are built from the `Dialog`, `Listbox` and `ContextMenu` primitives, so Base UI is imported only inside the primitives ([Base UI wrappers](../design/design-system.md#base-ui-wrappers), `baseUiBoundary.test.ts`).
 
 ## History panel and leave guard
 

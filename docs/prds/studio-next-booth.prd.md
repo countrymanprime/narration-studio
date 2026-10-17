@@ -65,7 +65,7 @@ If every refusal comes from a capability or a check and every exit passes the le
 
 Decided by the owner on 2026-10-11; nothing here waits for an answer, so G0 has no question for the owner.
 
-- **SN0-Q1 / DQ-1.** The Studio Next Booth page (`studio-next/src/pages/Booth.tsx`) is the spec, including tokens, sizes and layout; the benchmark's measured values and the ADRs measured to it are superseded where they differ ([Mock match](../operations/verification-tooling.md#mock-match), [Mock match](../operations/verification-tooling.md#mock-match)).
+- **SN0-Q1 / DQ-1.** The Studio Next Booth page (`studio-next/src/pages/Booth.tsx`) is the spec, including tokens, sizes and layout; the benchmark's measured values and the ADRs measured to it are superseded where they differ ([Mock match](../operations/verification-tooling.md#mock-match)).
 - **SN0-Q2 / DQ-2.** Replace. Seams and components land with no route; one PR (SNO-10) swaps the route and deletes the old Booth.
 - **DQ-5.** Record arms only the chapter's track, starts at the end of the last item, Space stays one action, a failed precondition shows the capability's refusal reason. [app.go](../../apps/desktop/app.go) is superseded to that extent.
 - **DQ-6.** Pickups only points to the Booth; the Booth pickup session is SNO-8.
@@ -104,13 +104,13 @@ On conflict this PRD, and the ADR written when its phase lands, is the source of
 | [app.go](../../apps/desktop/app.go) | SUPERSEDE (DQ-5) | Arming is not a separate click |
 | [narration_punch.lua](../../integrations/reaper/narration_punch.lua) | SUPERSEDE (roll) | In the DAW PRD |
 | [Punch from here: where a word's time comes from](../architecture/manuscript-teleprompter.md#punch-from-here-where-a-words-time-comes-from) | EXTEND | Passage map avoids alignment for Booth takes |
-| [Resume: where REAPER is and where the prompter was](../architecture/manuscript-teleprompter.md#resume-where-reaper-is-and-where-the-prompter-was), [Where you stopped](../guides/using-the-app/booth.md#where-you-stopped), [Data files](../reference/data-files.md), [Manuscript Teleprompter](../architecture/manuscript-teleprompter.md), [Resume: where REAPER is and where the prompter was](../architecture/manuscript-teleprompter.md#resume-where-reaper-is-and-where-the-prompter-was), [Resume: where REAPER is and where the prompter was](../architecture/manuscript-teleprompter.md#resume-where-reaper-is-and-where-the-prompter-was) | EXTEND | Resume shown with source |
+| [Resume: where REAPER is and where the prompter was](../architecture/manuscript-teleprompter.md#resume-where-reaper-is-and-where-the-prompter-was), [Where you stopped](../guides/using-the-app/booth.md#where-you-stopped), [Data files](../reference/data-files.md), [Manuscript Teleprompter](../architecture/manuscript-teleprompter.md), [Resume: where REAPER is and where the prompter was](../architecture/manuscript-teleprompter.md#resume-where-reaper-is-and-where-the-prompter-was) | EXTEND | Resume shown with source |
 | [Flags](../architecture/manuscript-teleprompter.md#flags), [Shared Findings Contract](../architecture/findings-contract.md), [readerFlags.ts](../../apps/ui/src/components/booth/readerFlags.ts) | EXTEND | Dismissible with a stable key |
 | [useFollowCursor.ts](../../apps/ui/src/components/booth/useFollowCursor.ts) | SUPERSEDE except identical behaviour (DQ-17) | The mock's wheel browse |
-| [Manuscript Teleprompter](../architecture/manuscript-teleprompter.md), [Manuscript Teleprompter](../architecture/manuscript-teleprompter.md) | KEEP (DQ-9) | Engine default unchanged |
+| [Manuscript Teleprompter](../architecture/manuscript-teleprompter.md) | KEEP (DQ-9) | Engine default unchanged |
 | [Design system reference](../design/design-system.md), [The page](../guides/using-the-app/booth.md#the-page), [Design system reference](../design/design-system.md), [Colour and contrast](../design/colour-and-contrast.md) | KEEP | Space; full window; styles |
 | [Companion mode](../guides/using-the-app/booth.md#companion-mode), [bindings_companion.go](../../apps/desktop/bindings_companion.go) | KEEP (DQ-13) | Companion untouched |
-| [Mock match](../operations/verification-tooling.md#mock-match), [Mock match](../operations/verification-tooling.md#mock-match) | SUPERSEDE (DQ-1) | The Studio Next mock is the spec; benchmark mock 03 is deleted at cutover |
+| [Mock match](../operations/verification-tooling.md#mock-match) | SUPERSEDE (DQ-1) | The Studio Next mock is the spec; benchmark mock 03 is deleted at cutover |
 
 ## Technical Approach
 

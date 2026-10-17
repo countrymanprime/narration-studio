@@ -42,7 +42,7 @@ export default {
       to: { path: 'node_modules/@wailsio/runtime/' },
     },
     {
-      // A second guard for ADR 0008. The first is baseUiBoundary.test.ts, which also sees dynamic imports, vi.mock and
+      // A second guard for docs/design/design-system.md#base-ui-wrappers. The first is baseUiBoundary.test.ts, which also sees dynamic imports, vi.mock and
       // declare module; this one is the plain import graph, so an import that resolves to the package is flagged with
       // the file it came from.
       name: 'base-ui-only-in-primitives',
@@ -52,7 +52,7 @@ export default {
       to: { path: 'node_modules/@base-ui/' },
     },
     {
-      // ADR 0005. Zod is the validation library behind `parseWire`, and only the API layer (schemas, the client, the mock
+      // docs/architecture/wire-contracts.md. Zod is the validation library behind `parseWire`, and only the API layer (schemas, the client, the mock
       // and their tests) knows it. A component asks for a value the API already parsed and never validates one itself,
       // and the library stays replaceable because `parseWire` is typed on Standard Schema.
       name: 'zod-only-in-api',

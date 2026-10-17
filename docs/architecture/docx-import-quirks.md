@@ -1,6 +1,6 @@
 # Manuscript import: formatting quirks and how they are handled
 
-**Status: living catalogue.** Word, Markdown, plain-text and EPUB documents encode the same visible text in many ways. Several import regressions ("CHAPTER ONEBad Ideas Look Great in Neon", paragraphs that lost their line breaks) came from one of these encodings, were fixed, and came back because the reason was never written down. Each row below is a known hazard, what the document looks like, what the importer does, and where the test lives. Add a row (and a test) whenever a new one is found. The governing decision is [Manuscript import: formatting quirks and how they are handled](docx-import-quirks.md); formatting spans are [Manuscript import: formatting quirks and how they are handled](docx-import-quirks.md); TXT and EPUB's own decisions are [TXT](docx-import-quirks.md#txt), [Manuscript import: formatting quirks and how they are handled](docx-import-quirks.md), [Manuscript import: formatting quirks and how they are handled](docx-import-quirks.md) and [detect.go](../../apps/desktop/internal/manuscript/detect.go).
+**Status: living catalogue.** Word, Markdown, plain-text and EPUB documents encode the same visible text in many ways. Several import regressions ("CHAPTER ONEBad Ideas Look Great in Neon", paragraphs that lost their line breaks) came from one of these encodings, were fixed, and came back because the reason was never written down. Each row below is a known hazard, what the document looks like, what the importer does, and where the test lives. Add a row (and a test) whenever a new one is found. The governing decision is Manuscript import: formatting quirks and how they are handled; formatting spans are Manuscript import: formatting quirks and how they are handled; TXT and EPUB's own decisions are TXT, and [detect.go](../../apps/desktop/internal/manuscript/detect.go).
 
 Code: `apps/desktop/internal/importer/` (`docx.go`, `markdown.go`, `markdown_inline.go`, `richtext.go`, `headings.go`, `txt.go`, `epub.go`, `epub_toc.go`, `epub_xhtml.go`, `epub_css.go`). Tests: `docx_test.go`, `markdown_test.go`, `txt_test.go`, `epub_test.go`, `epub_css_test.go`.
 
@@ -44,7 +44,7 @@ Code: `apps/desktop/internal/importer/` (`docx.go`, `markdown.go`, `markdown_inl
 | CRLF/CR line endings | A Windows or classic-Mac export | Normalized to `\n` before blocks are split | `TestTxtCRLFAndCRLineEndingsNormalize` |
 | Chapter headings with no markup | A line (or two, the second a subtitle) matching `isNarrativeMarker` or a bare numeral/roman numeral/number word | Recognized conservatively; ALL-CAPS alone is never a heading | `TestTxtTwoLineHeadingHasSubtitle`, `TestTxtBareRomanNumeralIsAHeading`, `TestTxtBareNumberWordIsAHeading`, `TestTxtAllCapsAloneIsNotAHeading` |
 | A `Contents` block | A block of many short lines listing every chapter | Read as reference text, never as a list of chapter headings | `TestTxtContentsBlockIsReferenceNotChapterList` |
-| No chapter markup at all | A short story or excerpt with no heading line | One `narration` chapter titled from the file name, with a notice (`docs/architecture/docx-import-quirks.md#txt`) - diverges from Word/Markdown's `opening`-only chapterless behavior | `TestTxtChapterlessImportBecomesOneNarrationChapterWithNotice` |
+| No chapter markup at all | A short story or excerpt with no heading line | One `narration` chapter titled from the file name, with a notice - diverges from Word/Markdown's `opening`-only chapterless behavior | `TestTxtChapterlessImportBecomesOneNarrationChapterWithNotice` |
 | Hard-wrapped source lines | Gutenberg-style text wrapped at about 70 columns | Detected (45-100 character, 70%-majority band) and joined with a space; short-line blocks (verse, addresses) and single long-line blocks with no blank lines keep their own line breaks | `TestTxtHardWrapDetectionJoinsWrappedLinesWithASpace`, `TestTxtShortLinesStayAsLineBreaksVerse`, `TestTxtNoBlankLinesAndLongLinesBecomeOneParagraphPerLine` |
 | Gutenberg boilerplate | `*** START OF ... ***` / `*** END OF ... ***` markers | Stripped when both are present, reported in `Notices` | `TestTxtGutenbergBoilerplateIsStrippedAndReported` |
 | Underscore italics | `_word_`, word-bounded | Becomes an italic span; `snake_case` and a lone underscore stay literal | `TestTxtUnderscoreItalicsBecomeSpans`, `TestTxtSnakeCaseAndLoneUnderscoresStayLiteral` |
@@ -73,7 +73,7 @@ A heading's subtitle is kept on every paragraph under it (`Paragraph.ChapterSubt
 ## Table of contents authority
 
 A docx's own table of contents can become the authoritative, ordered chapter list instead of the heading heuristic
-([Table of contents authority](docx-import-quirks.md#table-of-contents-authority)). Entries are
+. Entries are
 read from `"TOC N"`-styled paragraphs; each is matched to a heading the heuristic already found, in order, by the `"_Toc"`
 bookmark its own `w:hyperlink` cites, then by normalised heading text, then by position among whatever is left unmatched. Only
 once **80%** or more of the TOC's own entries matched something does it win - and only the exposed `chapterTitles` changes when it
@@ -81,13 +81,13 @@ does; `Sections`/paragraph grouping are computed exactly as before and are never
 chapter list is kept, and a notice ("The table of contents listed N entries; M matched a chapter in the manuscript.") is added
 whenever the counts differ either way. No real user manuscript with a Word TOC field has been tried (as of 2026-09-21); it is
 verified against a hand-built OOXML fixture with real `_Toc` bookmarks (`docx_test.go`), not a real one - treat it as **awaiting a
-real manuscript**. Markdown reads its own table of contents the same way ([Manuscript import: formatting quirks and how they are handled](docx-import-quirks.md),
+real manuscript**. Markdown reads its own table of contents the same way (
 `markdown_toc.go`). The TOC is the first list of two or more items that are each one link to an in-file anchor
 (`- [Chapter One](#chapter-one)`), read at its outermost level. Its anchors are matched to the headings' GitHub-style slugs
 (lower-cased, punctuation dropped, spaces to hyphens, `-1`/`-2` on a repeat) in place of Word's bookmarks. The same 80% rule, the
 same notice and the same "only `chapterTitles` changes" apply, through the one shared `applyTableOfContents`.
 
-**A subtitle set apart from its heading** ([Manuscript import: formatting quirks and how they are handled](docx-import-quirks.md), #387, #388). DOCX, Markdown and EPUB read a chapter's subtitle from a line after the heading, not only from inside it, in two cases:
+**A subtitle set apart from its heading** (#387, #388). DOCX, Markdown and EPUB read a chapter's subtitle from a line after the heading, not only from inside it, in two cases:
 - a deeper heading met before any of the chapter's text, when it is the only heading of its level in the chapter and the chapter heading is level 1 or deeper, not a Part or Book heading and not a reference section;
 - Word's own "Subtitle" paragraph style, or an EPUB `class="subtitle"` block.
 

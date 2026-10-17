@@ -3,7 +3,7 @@ import { join, relative, sep } from 'node:path';
 import ts from 'typescript';
 import { describe, expect, test } from 'vitest';
 
-// ADR 0008: Base UI is an implementation detail of the primitives. Pages, feature components, tests and the stories that
+// docs/design/design-system.md#base-ui-wrappers: Base UI is an implementation detail of the primitives. Pages, feature components, tests and the stories that
 // sit outside `components/primitives/` reach it only through a primitive, so the library can be upgraded or replaced by
 // editing that folder alone. Every way of naming the package counts: an import (a type import too, because a Base UI
 // type in a page's props would leak the library and the primitives export their own prop types), an `export ... from`,

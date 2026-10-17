@@ -73,7 +73,7 @@ func (s source) Kind() string               { return s.kind }
 func (s source) NeedsLocalDictionary() bool { return s.localDictionary }
 func (s source) NeedsNetwork() bool         { return false }
 
-// NewRegistry is a registry holding the built-in rows in the build-time fallback's order, CMU first as the default (ADR 0006
+// NewRegistry is a registry holding the built-in rows in the build-time fallback's order, CMU first as the default (ADR 0002
 // puts Wiktextract between CMU and eSpeak). A test registers a fake on its own copy.
 func NewRegistry() *port.Registry[Source] {
 	r := &port.Registry[Source]{Kind: "pronunciation source"}

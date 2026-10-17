@@ -65,7 +65,7 @@ On the real project copy an unchanged save to a new folder changed the header ti
 
 ## Where the harness fake was wrong
 
-The harness fake ([ADR 0004](../adr/0004-every-daw-is-reached-through-one-port.md)) had been written from the API documentation and the bridge's own calls. The real REAPER showed:
+The harness fake ([The DAW port](../architecture/daw-integration.md#the-daw-port)) had been written from the API documentation and the bridge's own calls. The real REAPER showed:
 
 | Behaviour | Fake before | Real REAPER 7.80 | Result |
 | --- | --- | --- | --- |

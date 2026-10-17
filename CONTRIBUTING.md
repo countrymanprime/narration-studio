@@ -10,6 +10,9 @@ It never edits audio or text automatically; see the [product boundary](docs/road
   [Tracking work on GitHub](docs/operations/github-workflow.md) explains labels, milestones, and the project board.
 - If your change touches the UI primitives or `styles.css`, read the
   [design system](docs/design/design-system.md) first, and skim the [ADRs](docs/adr/README.md).
+- Help wanted: macOS and Linux. The app ships for Windows only because the owner has no Mac or Linux machine to test on, not
+  because the design rules them out. If you can test and fix bugs there, say so in an issue
+  ([supported platforms](README.md#supported-platforms)).
 
 ## Setting up
 
@@ -37,7 +40,7 @@ Details, including the Git hooks and CI, are in [CI and releases](docs/operation
 5. If your change alters what a page draws or how it is used, update that page's guide: see
    [UI PRs update the how-to guide](#ui-prs-update-the-how-to-guide).
 6. Record the reason for a choice in the document that describes the current state. An ADR is only for a decision that
-   reshapes the whole repo; there are eight, and a pull request that adds one is unusual (`docs/adr/README.md`).
+   reshapes the whole repo; there are two, and a pull request that adds one is unusual (`docs/adr/README.md`).
 
 ## UI PRs update the how-to guide
 

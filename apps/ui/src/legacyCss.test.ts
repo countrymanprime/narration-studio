@@ -18,7 +18,7 @@ const REMOVED_CLASSES = [
   'alias-match-',
   'progress-segment',
 ];
-// Reviewed exceptions from ADR 0008 that may stay as plain (unlayered) class rules.
+// Reviewed exceptions from docs/design/design-system.md#base-ui-wrappers that may stay as plain (unlayered) class rules.
 const UNLAYERED_ALLOW_LIST = new Set([
   'manuscript-reader',
   'scroll-chrome-hidden',

@@ -111,7 +111,7 @@ On conflict this PRD, and the ADR written when its phase lands, is the source of
 | [Adding the approved marker](../architecture/reaper-navigation.md#adding-the-approved-marker) | EXTEND | Marker kind prefix |
 | [narration_punch.lua](../../integrations/reaper/narration_punch.lua) | SUPERSEDE (roll) | DAW PRD |
 | | SUPERSEDE (DQ-18) | Capability-driven take UI |
-| [Manuscript Teleprompter](../architecture/manuscript-teleprompter.md), [Manuscript Teleprompter](../architecture/manuscript-teleprompter.md) | KEEP (DQ-9) | Engines |
+| [Manuscript Teleprompter](../architecture/manuscript-teleprompter.md) | KEEP (DQ-9) | Engines |
 | [useNavCounts.ts](../../apps/ui/src/components/layout/useNavCounts.ts) | EXTEND | Proof badge reads the same cleared selector |
 
 ## Technical Approach

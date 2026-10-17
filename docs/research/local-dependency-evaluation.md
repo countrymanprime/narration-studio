@@ -90,7 +90,7 @@ manifest), under the per-user cache `<user cache>/narration-utils/assets/<kind>/
 all of them:** none automatic. Each is pinned in the catalog to a commit or tag, an exact size and
 a SHA-256; a newer version needs a reviewed catalog change, a new hash, a license recheck and a
 release, and never replaces an installed asset by itself. The app's own update check
-([ADR 0006](../adr/0006-local-first-and-the-narrator-consents.md))
+([ADR 0002](../adr/0002-local-models-and-tools-come-first-so-the-app-is-free-to-use.md))
 reads release metadata only and downloads no asset. The files were checked against the live
 upstream when they were pinned; where a host publishes no digest (GitHub release assets), the
 SHA-256 is the hash of the first download and is the pin.
@@ -673,7 +673,7 @@ Phase 7 and the UI Phase 8, both delivered).
 | --- | --- | --- | --- |
 | Princeton WordNet 3.1 | A custom, permissive "WordNet License" (BSD-like; commercial use allowed with the copyright notice retained) | Last major release 2011; effectively unmaintained | Rejected: same licence class as OEWN but stale data (11+ years of missing senses and corrections) |
 | **Open English WordNet (OEWN)** | **CC BY 4.0** ([globalwordnet/english-wordnet](https://github.com/globalwordnet/english-wordnet)) | Actively maintained, annual editions (2025 Edition, December 2025) | **Adopted**: an actively-maintained fork of Princeton WordNet's data with the same synset/definition/antonym structure, distributed under an unambiguous attribution licence |
-| Wiktionary-derived extracts | Share-alike terms (CC BY-SA), not one of the four classes in [License classes](#license-classes) | Actively maintained upstream, but no single reviewed extract artifact | Deferred for this feature (the reader's word lookup): share-alike is not yet a reviewed class in this policy; would need its own policy decision before adoption, not folded into this one. **Update (2026-09-27):** that policy decision was made, scoped narrowly to a different feature's displayed IPA data only — [ADR 0006](../adr/0006-local-first-and-the-narrator-consents.md), prep-depth Phase 8. It does not reopen this row: the reader's word lookup still has no Wiktionary/Wiktextract source, and would need its own ADR to add one |
+| Wiktionary-derived extracts | Share-alike terms (CC BY-SA), not one of the four classes in [License classes](#license-classes) | Actively maintained upstream, but no single reviewed extract artifact | Deferred for this feature (the reader's word lookup): share-alike is not yet a reviewed class in this policy; would need its own policy decision before adoption, not folded into this one. **Update (2026-09-27):** that policy decision was made, scoped narrowly to a different feature's displayed IPA data only — [ADR 0002](../adr/0002-local-models-and-tools-come-first-so-the-app-is-free-to-use.md), prep-depth Phase 8. It does not reopen this row: the reader's word lookup still has no Wiktionary/Wiktextract source, and would need its own ADR to add one |
 
 **Licence check against this project's policy.** CC BY 4.0 is the **Attribution** class in [License classes](#license-classes):
 "Allowed. Display and retain the exact required attribution and model card." AGPL-3.0-or-later (this project's own licence,

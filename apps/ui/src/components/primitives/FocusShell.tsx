@@ -6,7 +6,7 @@ export type FocusShellProps = {
   statusLabel?: string;
   // Side panel: last punch, voices in scene, coming up, this session (mock 03). Omitted, or `railCollapsed`, and the
   // main region takes the freed width - the shell only lays out what it is given; a toggle control (and where its state
-  // lives) is the feature's, not this primitive's (ADR 0008: layout only, no Escape or exit logic of its own).
+  // lives) is the feature's, not this primitive's (docs/design/design-system.md#base-ui-wrappers: layout only, no Escape or exit logic of its own).
   rail?: ReactNode;
   railLabel?: string;
   railCollapsed?: boolean;

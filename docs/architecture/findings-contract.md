@@ -5,8 +5,8 @@
 - The measurement analyzer ([Codebase map](codebase-map.md)).
 - Transcript Compare's Go adapter ([`apps/desktop/internal/transcript/findings_adapter.go`](../../apps/desktop/internal/transcript/findings_adapter.go)). It reads `results_<run>.txt` directly for `confidence`/`timing_gap_seconds` (never forwarded by the Lua bridge) and joins those to the bridge-built rows by the same `<item_index>@<srcpos>` id the bridge uses, saving on `COMPARE_INSPECTED`. Each row also carries the item, take and track GUIDs the bridge appends to `COMPARE_MARKER`, which the adapter puts in `source`.
 - Manuscript Guide's Go adapter ([`apps/desktop/internal/guide/findings_adapter.go`](../../apps/desktop/internal/guide/findings_adapter.go)): `entity` and `pronunciation` findings from the Story Bible.
-- The read-aloud dialog's live flags ([`apps/desktop/internal/liveflags`](../../apps/desktop/internal/liveflags), analyzer `teleprompter`, [Shared Findings Contract](findings-contract.md)): suspected, `confidence: null`, anchored to the manuscript span until a take is known.
-- The delivery profile's adapter ([`apps/desktop/internal/deliveryprofile/findings_adapter.go`](../../apps/desktop/internal/deliveryprofile/findings_adapter.go), analyzer `measure`, [Shared Findings Contract](findings-contract.md)): `delivery_qc` findings, one per rule a measured file did not meet or could not be measured for, saved per file (one scope each) when a measurement ends or the project's profile changes, with no manuscript position or time. Their `evidence_version` is the audio's fingerprint and the rule's bound, and the Review page opens them on Master & QC instead of the manuscript.
+- The read-aloud dialog's live flags ([`apps/desktop/internal/liveflags`](../../apps/desktop/internal/liveflags), analyzer `teleprompter`): suspected, `confidence: null`, anchored to the manuscript span until a take is known.
+- The delivery profile's adapter ([`apps/desktop/internal/deliveryprofile/findings_adapter.go`](../../apps/desktop/internal/deliveryprofile/findings_adapter.go), analyzer `measure`): `delivery_qc` findings, one per rule a measured file did not meet or could not be measured for, saved per file (one scope each) when a measurement ends or the project's profile changes, with no manuscript position or time. Their `evidence_version` is the audio's fingerprint and the rule's bound, and the Review page opens them on Master & QC instead of the manuscript.
 - Take review, take comparison, diagnostics and character continuity (analyzers `take-review`, `take-comparison`, `diagnostics`, `character-continuity`), described under the categories below.
 
 ## Required finding shape
@@ -24,7 +24,7 @@ Each analyzer writes a versioned JSON finding record (schema v1) with these fiel
 | `evidence` | Measurements, transcript alignment, reference IDs, excerpts, or file references supporting the claim. |
 | `evidence_version` | A hash of the audio-side evidence a decision was made against (recorded text, source file identity, timing beyond a tolerance). The store keeps a decision only while `id` and `evidence_version` both match; a changed `evidence_version` returns the finding to `unreviewed` but keeps the narrator's earlier note. |
 | `suggested_action` | A reversible proposed operation, its parameters, and whether explicit confirmation is required. |
-| `review` | `unreviewed`, `accepted`, `dismissed`, or `deferred`, with optional narrator note and timestamp, and an optional `type`: the one of ten words (`misread`, `skip`, `mouth`, `pron`, `pacing`, `repeat`, `plosive`, `noise`, `takes`, `breath`) the narrator chose for the kind of problem, absent until chosen ([Shared Findings Contract](findings-contract.md)). |
+| `review` | `unreviewed`, `accepted`, `dismissed`, or `deferred`, with optional narrator note and timestamp, and an optional `type`: the one of ten words (`misread`, `skip`, `mouth`, `pron`, `pacing`, `repeat`, `plosive`, `noise`, `takes`, `breath`) the narrator chose for the kind of problem, absent until chosen. |
 | `not_in_latest_run` | Set only by the store's merge, never by an analyzer: true when the latest run did not reproduce this finding. It is kept, not deleted, for audit. |
 
 ### What the review states mean for "is anything still open"
@@ -46,7 +46,7 @@ Only the Go host writes to the project's findings sidecar; REAPER Lua and the Py
 
 ## Reading and deciding findings
 
-The UI reads and decides every analyzer's findings through six bindings in `apps/desktop/bindings_findings.go` ([Shared Findings Contract](findings-contract.md)); none of them names an analyzer, so an analyzer that saves into the store needs no binding of its own:
+The UI reads and decides every analyzer's findings through six bindings in `apps/desktop/bindings_findings.go`; none of them names an analyzer, so an analyzer that saves into the store needs no binding of its own:
 
 - `FindingsList(query)` answers `{findings, total}`: one page of the matches, filtered, sorted and paged in Go by `findings.Query` (`apps/desktop/internal/findings/query.go`). Filters are analyzer, category, severity, review status, chapter id, a minimum confidence and whether to include findings not in the latest run; sort keys are `chapter` (the default), `time`, `confidence` and `severity`, and a finding with no value for the key sorts last either way. A filter the store cannot answer fails the call.
 - `FindingsGet(id)` answers one finding, or fails when the project no longer has it.

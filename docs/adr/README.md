@@ -1,12 +1,16 @@
 # Architecture decision records (ADRs)
 
-An ADR records a decision that changed the whole shape of the app and would be expensive to undo: the language of the host, the platform, the process model, how the pieces talk, how data is stored, the UI stack. It says why, so a later change, by a person or an agent, sees the reason before reversing it.
+An ADR records a decision that changed the whole shape of the app and would be expensive to undo: the language the app is written in, or the choice to use local models and tools so the app is free to run. It says why, so a later change, by a person or an agent, sees the reason before reversing it.
+
+There are two. That is the point: most things that feel like decisions are timing, convenience or standard practice, and those belong in the documents that describe how the app works.
 
 Most pull requests have no ADR. If one in ten does, that is unusual. If several open pull requests add ADRs, or their numbers clash, ADRs are being written for things that are not decisions of this size, and the work is being recorded in the wrong place.
 
 ## When to write one
 
-Write an ADR only when reversing the decision would restructure code across the whole repo, or change a language, a platform, a process boundary, an interface that every feature crosses, a persistence strategy or a quality attribute every feature must keep. The test is the examples below: rebuilding the host in another language, dropping a platform, replacing the database or the UI framework. If you cannot name something at that scale that changes, it is not an ADR.
+Write an ADR only when reversing the decision would restructure the whole repo or change what the app is: rewriting it in another language, or moving analysis from local models to paid online services. If you cannot name something at that scale that changes, it is not an ADR.
+
+Examples of decisions that were once ADRs here and are not, with the reason: **which platforms ship** (timing and maturity: there is no Mac or Linux machine to test on, and it can change when someone helps); **which language runs a model** (convenience; anything that runs the model and speaks the contract can replace a Python sidecar); **ports, resolvers and typed contracts** (standard interface and substitution design, SOLID); **where project data is stored** (standard persistence behind interfaces); **the UI component library and CSS** (a standard atomic-component pattern; React is the framework, and the styling layer is replaceable).
 
 These are not ADRs. Record them where they belong, and keep that document describing the current state:
 
@@ -58,15 +62,9 @@ What becomes easier, what becomes harder, and what it takes to override this dec
 
 | # | Decision | Status |
 | --- | --- | --- |
-| [0001](0001-the-host-is-go-on-a-wails-v3-shell.md) | The host is Go on a Wails v3 shell | Accepted |
-| [0002](0002-windows-x64-is-the-only-supported-platform.md) | Windows x64 is the only supported platform | Accepted |
-| [0003](0003-ml-and-audio-work-runs-in-python-sidecars.md) | ML and audio work runs in Python sidecars | Accepted |
-| [0004](0004-every-daw-is-reached-through-one-port.md) | Every DAW is reached through one port | Accepted |
-| [0005](0005-every-boundary-is-a-typed-contract.md) | Every boundary is a typed contract | Accepted |
-| [0006](0006-local-first-and-the-narrator-consents.md) | The app is local-first and the narrator consents | Accepted |
-| [0007](0007-project-state-lives-in-files-beside-the-project.md) | Project state lives in files beside the project | Accepted |
-| [0008](0008-the-ui-is-react-and-tailwind-over-base-ui-primitives.md) | The UI is React and Tailwind over Base UI primitives | Accepted |
+| [0001](0001-the-app-is-written-in-go.md) | The app is written in Go | Accepted |
+| [0002](0002-local-models-and-tools-come-first-so-the-app-is-free-to-use.md) | Local models and tools come first, so the app is free to use | Accepted |
 
 ## History
 
-On 2026-10-17 the folder was rebuilt. The 375 earlier records were mostly page behaviour, token values, thresholds and process rules that had been filed as ADRs. Each rule that still holds now lives in the document that describes the current state (the user guide, the design system, the architecture pages, the data-files reference, a doc comment or a test), and the eight decisions above restate what was fundamental. The old files remain in git history at commit `9be197f`, the last commit before this rebuild.
+On 2026-10-17 the folder was rebuilt. The 375 earlier records were mostly page behaviour, token values, thresholds and process rules that had been filed as ADRs. Each rule that still holds now lives in the document that describes the current state (the user guide, the design system, the architecture pages, the data-files reference, a doc comment or a test). Two decisions were kept as ADRs. The old files remain in git history at commit `9be197f`, the last commit before this rebuild.

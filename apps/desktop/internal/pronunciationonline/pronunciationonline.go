@@ -1,5 +1,5 @@
 // Package pronunciationonline is the one pronunciation source that fetches: the online role of the PronunciationSource
-// port (ADR 0006). Its only adapter is Merriam-Webster's Dictionary API
+// port. Its only adapter is Merriam-Webster's Dictionary API
 // (the merriamwebster subpackage, the only code here allowed to import net); tests and the demo build use the fake in
 // pronunciationonlinetest. This package holds the port, the privacy rule and the local cache, and imports no network
 // code itself.

@@ -1,6 +1,6 @@
 # ACX delivery requirements
 
-The rules of the built-in ACX delivery profile, `acx@2026-09` (`apps/desktop/internal/deliveryprofile/acx.go`, [ACX delivery requirements](acx-delivery-requirements.md)): each requirement, how the app checks it and how it was verified. The Go table test `TestTheACXProfileHoldsEveryRequirementOfTheCheckedInTable` (`apps/desktop/internal/deliveryprofile/profile_test.go`) holds the same rows as the table below; change both together.
+The rules of the built-in ACX delivery profile, `acx@2026-09` (`apps/desktop/internal/deliveryprofile/acx.go`): each requirement, how the app checks it and how it was verified. The Go table test `TestTheACXProfileHoldsEveryRequirementOfTheCheckedInTable` (`apps/desktop/internal/deliveryprofile/profile_test.go`) holds the same rows as the table below; change both together.
 
 Pending the owner: reading ACX's page, and the comparison with Audacity's ACX Check.
 
@@ -21,7 +21,7 @@ Because only paraphrases were recorded (except the credits line), the profile ma
 | Rule | Requirement (paraphrase unless quoted) | Scope | How the app checks it | Verification | What is left |
 | --- | --- | --- | --- | --- | --- |
 | `acx.rms` | Each file between −23 dB and −18 dB RMS | file | Measured: `rms_dbfs` −23 to −18 | to verify | RMS definition: the app measures the whole file, silences included, over every channel; compare with ACX Check |
-| `acx.peak` | Peak values no higher than −3 dB | file | Measured: `sample_peak_dbfs` at most −3; true peak above −3 dBTP shown as advice (`docs/reference/acx-delivery-requirements.md`) | to verify | Whether ACX means sample or true peak |
+| `acx.peak` | Peak values no higher than −3 dB | file | Measured: `sample_peak_dbfs` at most −3; true peak above −3 dBTP shown as advice | to verify | Whether ACX means sample or true peak |
 | `acx.noise_floor` | Noise floor no higher than −60 dB RMS | file | Measured: `noise_floor_dbfs` at most −60 (quietest 0.5 s window, digital silence excluded) | to verify | Window definition; compare with ACX Check |
 | `acx.sample_rate` | 44.1 kHz | file | Measured on the WAV render: `sample_rate` = 44100 | verified (2026-09-23) | Checked on the MP3 as well |
 | `acx.file_length` | Each file 120 minutes or shorter | file | Measured: `duration_seconds` at most 7200 | verified (2026-09-20) | |

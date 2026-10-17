@@ -3,7 +3,7 @@ import { join, relative, sep } from 'node:path';
 import ts from 'typescript';
 import { describe, expect, test } from 'vitest';
 
-// ADR 0005: a value that crossed a boundary is checked by a schema through `parseWire`, and never asserted with `as` or
+// docs/architecture/wire-contracts.md: a value that crossed a boundary is checked by a schema through `parseWire`, and never asserted with `as` or
 // trusted after `JSON.parse`. Non-test code under src/api may not contain a type assertion (other than `as const`) or a
 // `JSON.parse` outside `wire/`, except the entries in ALLOWED below, each with the reason it is not a boundary payload. The
 // list can only shrink: an entry that no longer matches anything fails, so a removed cast has to be removed from it too.

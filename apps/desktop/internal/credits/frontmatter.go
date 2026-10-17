@@ -21,7 +21,7 @@ const (
 )
 
 // Candidate is one detected credits token value, with where it came from and how sure the detector is. Nothing here is
-// ever written to the manifest on its own: it is only ever offered (ADR 0006's "detected is offered, not imported").
+// ever written to the manifest on its own: it is only ever offered (ADR 0002's "detected is offered, not imported").
 type Candidate struct {
 	Token      string     `json:"token"`
 	Value      string     `json:"value"`

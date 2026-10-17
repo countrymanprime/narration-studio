@@ -1,6 +1,6 @@
 # The import review dialog
 
-**Status: implemented.** When a narrator chooses a manuscript (or accepts the offer of one in the project folder), the host reads it into a draft and the app shows a review dialog, "Import <file>", before anything is written. This page is how that dialog is built and what it promises. The decisions are [Correcting a subtitle](import-review.md#correcting-a-subtitle) (correcting a subtitle), [The import review dialog](import-review.md) (the grouping, the subtitle, the repairs), [Design principles](principles.md) (real progress only), [ADR 0006](../adr/0006-local-first-and-the-narrator-consents.md) (one review, offered never silent), [Primitive components](../design/design-system.md#primitive-components) (width, no sideways scroll) and [state.ts](../../apps/ui/src/state.ts) (reference material is filtered at the listing layer only).
+**Status: implemented.** When a narrator chooses a manuscript (or accepts the offer of one in the project folder), the host reads it into a draft and the app shows a review dialog, "Import <file>", before anything is written. This page is how that dialog is built and what it promises. The decisions are Correcting a subtitle (correcting a subtitle), (the grouping, the subtitle, the repairs), [Design principles](principles.md) (real progress only), [ADR 0002](../adr/0002-local-models-and-tools-come-first-so-the-app-is-free-to-use.md) (one review, offered never silent), [Primitive components](../design/design-system.md#primitive-components) (width, no sideways scroll) and [state.ts](../../apps/ui/src/state.ts) (reference material is filtered at the listing layer only).
 
 ## What the dialog shows
 
@@ -13,7 +13,7 @@ What the narrator sees and does in the dialog (the summary lines, the groups, th
 
 ## Correcting a subtitle
 
-The importer reads every line after a heading's first as its subtitle, which is wrong for a title the author wrapped onto two lines and for an epigraph straight under a plain-text heading ([the heading misreads note](../research/import-heading-misreads.md), cases F1 and F3). The narrator corrects it before anything is written ([Correcting a subtitle](import-review.md#correcting-a-subtitle)):
+The importer reads every line after a heading's first as its subtitle, which is wrong for a title the author wrapped onto two lines and for an epigraph straight under a plain-text heading ([the heading misreads note](../research/import-heading-misreads.md), cases F1 and F3). The narrator corrects it before anything is written:
 
 - **The default**, "Read a heading's second line as its subtitle", is on (the importer's guess). Turned off, every row's subtitle is off, except a row the narrator set by hand, which keeps its own answer.
 - **Each row with a subtitle** has a checkbox named for its line ("Subtitle — Down the Rabbit-Hole"), starting from the default.

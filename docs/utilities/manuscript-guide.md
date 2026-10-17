@@ -55,7 +55,7 @@ chosen source for a candidate and then calls `GuidePronounce` with that source (
 `candidate --word=<text> --source cmu|espeak|wiktextract` prints one JSON line, `{"ok":true,"say":...}` or `{"ok":false,"reason":...}`, and changes nothing; a word over 80 characters, or with a newline or NUL, is refused. The host calls it through `guide.Service.Candidate`.
 
 A narrator can also keep their own pronunciation
-([Manuscript Guide](manuscript-guide.md)):
+:
 `pronounce-user --ipa=<text>` sets one with source `manual` (a file written earlier says `user`; it reads as `manual`) that never asks a dictionary, and keeps the dictionary's answer beside
 it as `alternate`; `pronunciation-use-alternate` swaps the two back, losslessly and without a lookup. Since
 [How you say each name](../guides/using-the-app/story-bible.md#how-you-say-each-name)

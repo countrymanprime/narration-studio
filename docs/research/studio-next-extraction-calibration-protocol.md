@@ -93,4 +93,4 @@ The imported file is produced from the app's own prompt template. The books are 
 
 Results calibrated on public-domain or synthetic data are provisional, and a re-run on the owner's own material goes on the owner queue as a QA item before it ships to users (D70, D65). The item for #992:
 
-> **QA, pending:** re-run the extraction calibration protocol (`docs/research/studio-next-extraction-calibration-protocol.md`) on the owner's own manuscript, with a gold set of at least 40 entries and 100 speaker lines checked by the owner, and compare its confidence table and confident-but-wrong share with the public-domain result. It does not block a merge or a launch.
+> **QA, pending:** re-run the extraction calibration protocol on the owner's own manuscript, with a gold set of at least 40 entries and 100 speaker lines checked by the owner, and compare its confidence table and confident-but-wrong share with the public-domain result. It does not block a merge or a launch.

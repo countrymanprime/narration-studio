@@ -1,12 +1,12 @@
 # Dictionary look-up
 
 A "Look up" action on a selected word in the manuscript reader, answered from a local dictionary index the host reads
-directly (never a Python server or a cloud API). The dataset is a downloadable asset (`docs/architecture/dictionary-thesaurus-integration.md`); the licensing and
+directly (never a Python server or a cloud API). The dataset is a downloadable asset; the licensing and
 scope decisions are recorded below and in that ADR.
 
 ## The dataset
 
-**Open English WordNet (OEWN), 2025 Edition, CC BY 4.0** ([Dictionary look-up](dictionary-thesaurus-integration.md)),
+**Open English WordNet (OEWN), 2025 Edition, CC BY 4.0**,
 chosen over Princeton WordNet (same permissive license class, stale since 2011) and Wiktionary extracts (share-alike,
 not a reviewed license class for this purpose). `config/dictionary-assets.json` pins the release
 (`english-wordnet-2025-json.zip`), its SHA-256 (downloaded and verified against GitHub's own digest) and size,

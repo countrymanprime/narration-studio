@@ -142,7 +142,7 @@ type MarkerColors struct{ Misread, Skipped, Extra string }
 // Asynchronous roles: each request method only asks, returns an error only when the request could not be handed to the engine, and
 // the answer arrives through Events tagged with runID. They mirror the commands their services send today, one method per command.
 
-// ReviewSession is the review workflow's role (ADR 0004's original dawadapter.Review): prepare, inspect, navigate to and export
+// ReviewSession is the review workflow's role (docs/architecture/daw-integration.md#the-daw-port's original dawadapter.Review): prepare, inspect, navigate to and export
 // findings.
 //
 // Take management (take creation, pickups, line identity, render setup) is deliberately not here: it has no Audacity equivalent

@@ -30,7 +30,7 @@ func CommonsAudioURL(filename string) (string, error) {
 
 // pathSegmentEscape percent-encodes s for use as one URL path segment, byte for byte the same as the standard
 // library's net/url.PathEscape - reimplemented locally because the Go host's depguard rule denies net's subpackages,
-// net/url included, everywhere outside the download flow (ADR 0006, docs/architecture/threat-model.md; .golangci.yml
+// net/url included, everywhere outside the download flow (docs/architecture/threat-model.md; .golangci.yml
 // no-network-outside-the-download-flow), even though net/url itself never makes a network call. Unreserved: letters,
 // digits, and "-_.~$&+:=@"; everything else becomes an uppercase %XX per byte, so a multi-byte UTF-8 character (an
 // accent) becomes one %XX triplet per byte. Mirrors apps/desktop/internal/pronunciationlookup's own copy: the two

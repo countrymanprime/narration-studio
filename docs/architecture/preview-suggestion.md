@@ -44,14 +44,14 @@ Two optional layers compose onto a candidate before it is ranked:
   `internal/tracks/testdata/reaper/line-identity.rpp`), and no windowed audio-quality finding falls inside it.
   Unknown never counts as good ([Design principles](principles.md)); a DX-4 windowed finding
   cannot be read from a real chapter (as of 2026-09-27) for reasons unrelated to this package
-  ([The preview suggestion: engine, evidence and the narrator's pin](preview-suggestion.md)),
+,
   so every candidate reports pace evidence (`ChapterPace`/`EstimateErrorFraction`) but never the
   audio-checked label in production.
 
 ## The narrator's pin
 
 The narrator may pin one candidate to keep it, and move its edges by one paragraph at a time
-([The narrator's pin](preview-suggestion.md#the-narrators-pin)):
+:
 
 - **One pin per book** (`preview.PinStore`, `store.go`): setting a new pin replaces whatever was pinned before, in
   any chapter. The sidecar is `<project>/narration-utils/preview-pin.json`, an atomic write (temp file, rename)

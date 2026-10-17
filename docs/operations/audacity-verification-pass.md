@@ -1,6 +1,6 @@
 # The Audacity verification pass
 
-The Audacity adapter was built from Audacity's published scripting spec and tested against a fake pipe server. It was not tested against a running Audacity ([ADR 0004](../adr/0004-every-daw-is-reached-through-one-port.md), [the spec note](../research/audacity-4-scripting-spec.md)). This pass is the owner's check of what only a real Audacity can show. It works the way the REAPER checks do ([ADR 0004](../adr/0004-every-daw-is-reached-through-one-port.md)). Until it passes, every Audacity capability stays **Experimental**, and it is tracked on [#510](https://github.com/countrymanprime/narration-utils/issues/510).
+The Audacity adapter was built from Audacity's published scripting spec and tested against a fake pipe server. It was not tested against a running Audacity ([The DAW port](../architecture/daw-integration.md#the-daw-port), [the spec note](../research/audacity-4-scripting-spec.md)). This pass is the owner's check of what only a real Audacity can show. It works the way the REAPER checks do ([The DAW port](../architecture/daw-integration.md#the-daw-port)). Until it passes, every Audacity capability stays **Experimental**, and it is tracked on [#510](https://github.com/countrymanprime/narration-utils/issues/510).
 
 - **Part A** runs unattended in about a minute and writes a results file.
 - **Part B** is five short checks by eye and ear.
@@ -12,7 +12,7 @@ Paste all three into #510.
 
 - **A Windows machine** with this repository checked out and bootstrapped. Part A is a Go test, so it needs the Go toolchain that `scripts/cloud/session-start.sh` or the bootstrap installs.
 - **An Audacity with a scripting pipe.** Write down the version from Help > About Audacity; the results file asks for it.
-  - **Audacity 4.0.x has no scripting pipe.** Part A will stop at A1 with "not reachable", and that is the expected result on 4.0 ([ADR 0004](../adr/0004-every-daw-is-reached-through-one-port.md)). If a later Audacity 4 release notes mention a scripting pipe or script host, run the pass on it and say so on #510.
+  - **Audacity 4.0.x has no scripting pipe.** Part A will stop at A1 with "not reachable", and that is the expected result on 4.0 ([The DAW port](../architecture/daw-integration.md#the-daw-port)). If a later Audacity 4 release notes mention a scripting pipe or script host, run the pass on it and say so on #510.
   - **Audacity 3.x:** Edit > Preferences > Modules, set **mod-script-pipe** to **Enabled**, then restart Audacity. Reopen Preferences > Modules and check that it now says Enabled.
 - **A scratch project, never a real one.** In Audacity, File > New, so that one empty project window is open and no other Audacity window is. Part A refuses to run on a project that already has tracks or labels.
 - **A scratch folder**, for example `C:\Temp\nu-audacity-pass`. Part A writes a test tone, one exported WAV, a label file and its results there.
@@ -105,6 +105,6 @@ Comment on #510, headed "Audacity 4 pass results", with:
 
 ## What happens with the results
 
-- **Everything passes:** a follow-up PR promotes `navigate` and `markers` from Experimental to Supported in `apps/desktop/internal/dawport/audacity/audacity.go`, records the pass in `docs/research/`, and updates [ADR 0004](../adr/0004-every-daw-is-reached-through-one-port.md) to Accepted.
-- **A step fails or behaves differently:** fix the client or adapter. Correct the fake (`apps/desktop/internal/audacitybridge/audacitybridgetest`) to match what Audacity really did, and add a test, as ADR 0004 does for REAPER. Then run the pass again.
-- **A1 fails on Audacity 4:** nothing to fix. The owner's version decision on #510 (ADR 0004) decides whether to support Audacity 3.x now or wait for Audacity 4's script host.
+- **Everything passes:** a follow-up PR promotes `navigate` and `markers` from Experimental to Supported in `apps/desktop/internal/dawport/audacity/audacity.go`, records the pass in `docs/research/`, and updates [The DAW port](../architecture/daw-integration.md#the-daw-port) to Accepted.
+- **A step fails or behaves differently:** fix the client or adapter. Correct the fake (`apps/desktop/internal/audacitybridge/audacitybridgetest`) to match what Audacity really did, and add a test, as `docs/architecture/daw-integration.md#the-daw-port` does for REAPER. Then run the pass again.
+- **A1 fails on Audacity 4:** nothing to fix. The owner's version decision on #510 (`docs/architecture/daw-integration.md#the-daw-port`) decides whether to support Audacity 3.x now or wait for Audacity 4's script host.

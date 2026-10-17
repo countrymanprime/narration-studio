@@ -16,7 +16,7 @@ Researched 2026-10-10 for a plan to add documentation skills and gates for agent
 Stale items in existing skills, found while reading them:
 
 - `doc-screenshot-sync` and `feature-cleanup` name `docs/guides/using-the-app.md`. That path is now the folder `docs/guides/using-the-app/`.
-- `full-verification-gate` step 3 says the Lua directory has no automated tests. `CLAUDE.md` and [ADR 0004](../adr/0004-every-daw-is-reached-through-one-port.md) say the bridge harness covers it.
+- `full-verification-gate` step 3 says the Lua directory has no automated tests. `CLAUDE.md` and [The DAW port](../architecture/daw-integration.md#the-daw-port) say the bridge harness covers it.
 
 ## Best practice by stack
 

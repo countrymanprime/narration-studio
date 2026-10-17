@@ -86,7 +86,7 @@ Read from `/home/user/narration-utils/integrations/reaper` [V]:
 | Partial | `master_chain_read` | events `MASTER_CHAIN_FX(guid, trackName, fxName, enabled)` for every track then master; no take FX, no input FX, no offline, no preset, no FX GUID, no latency, no containers |
 | Spike evidence | `spike_ep0_workspace.lua` A8 | track+master chain load, undo points, reject `../reaper.ini` |
 
-**To add** (each needs a harness test first per CLAUDE.md and ADR 0004, plus a Zod schema + golden fixture + `wireContracts.test.ts` row per the wire-contract rule; each is a new REAPER event in `wire.go`):
+**To add** (each needs a harness test first per CLAUDE.md and `docs/architecture/daw-integration.md#the-daw-port`, plus a Zod schema + golden fixture + `wireContracts.test.ts` row per the wire-contract rule; each is a new REAPER event in `wire.go`):
 
 | New command | Purpose | Notes |
 |---|---|---|

@@ -117,7 +117,7 @@ On conflict this PRD, and the ADR written when its phase lands, is the source of
 
 **Contracts.** Extend `productionPlanSchema` (additive: `payment`, milestone `measure`, `estimate`, `done`, `template`); new `measurementsSchema`; goldens in `tests/fixtures/contracts/`; `wireContracts.test.ts` rows; mocks pass; `hostAPIVersion` bump if a binding is added. Go: `internal/production/plan.go` and the manifest; no new network.
 
-**Architecture.** Selectors in `components/production/*.selectors.ts` over read models; dialogs through the overlay service; the table uses `Table`; the popover uses `Popover` ([ADR 0008](../adr/0008-the-ui-is-react-and-tailwind-over-base-ui-primitives.md)); no new primitive.
+**Architecture.** Selectors in `components/production/*.selectors.ts` over read models; dialogs through the overlay service; the table uses `Table`; the popover uses `Popover` ([Base UI wrappers](../design/design-system.md#base-ui-wrappers)); no new primitive.
 
 **Test plan.** Port the mock's tests; Go tests for the plan round trip and old-manifest migration (missing fields read as defaults); visual rows for Production at all viewports (plan panel, milestones modal, readiness slide-over, popover open); aria for the slide-over and modal; axe.
 

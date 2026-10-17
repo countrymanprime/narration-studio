@@ -8,7 +8,7 @@ import (
 	"github.com/countrymanprime/narration-utils/shell/internal/pronunciationonline/merriamwebster"
 )
 
-// The online pronunciation lookup (ADR 0006): Merriam-Webster, on the narrator's own key, one word at
+// The online pronunciation lookup: Merriam-Webster, on the narrator's own key, one word at
 // a time, cached. This file is the composition root's only mention of the adapter (pronunciationonlineguard_test.go);
 // every binding below talks to the port's Service.
 //

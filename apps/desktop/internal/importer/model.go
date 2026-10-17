@@ -72,7 +72,7 @@ type Draft struct {
 // SourceMetadata is document-level title/subtitle/author/series structure read directly from the source's own
 // markup, never guessed from plain text. It becomes another candidate source for internal/credits.Detect;
 // nothing here is ever written to a project's
-// credits values on its own (ADR 0006: detected is offered, not imported).
+// credits values on its own (ADR 0002: detected is offered, not imported).
 type SourceMetadata struct {
 	Title    string `json:"title,omitempty"`
 	Subtitle string `json:"subtitle,omitempty"`

@@ -68,7 +68,7 @@ export function countSubtitleReads(source: string, fileName = 'probe.tsx'): numb
   return count;
 }
 
-describe('a chapter name is drawn through chapterName()/TitleSubtitle, not a raw .subtitle read (ADR 0008-style ratchet)', () => {
+describe('a chapter name is drawn through chapterName()/TitleSubtitle, not a raw .subtitle read (docs/design/design-system.md#base-ui-wrappers-style ratchet)', () => {
   const files = sourceFiles(componentsRoot)
     .map((file) => relative(uiRoot, file))
     .filter((file) => !ALLOW_LIST.has(file));

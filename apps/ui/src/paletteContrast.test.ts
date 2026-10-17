@@ -16,7 +16,7 @@ import { countRootRules, forcedThemeRules, parseThemes, resolveContrast, rootRul
 const CSS = readFileSync(join(__dirname, 'styles.css'), 'utf8');
 const THEMES = parseThemes(CSS);
 // The app has exactly two themes, and every surface draws with the active one (which superseded the booth's own
-// forced-dark booth block of ADR 0008): the booth and the companion are checked by the same pairs, in both themes.
+// forced-dark booth block of docs/design/design-system.md#base-ui-wrappers): the booth and the companion are checked by the same pairs, in both themes.
 const THEME_NAMES: Theme[] = ['light', 'dark'];
 
 // --row-selected is a table row's fill, so everything a row holds is measured on it; --reading-bg is the booth's
@@ -92,7 +92,12 @@ const PAIRS: PairSpec[] = [
   text('warn-on-accent-soft', 'SKIPPED word in the inline diff: warn text on accent-soft', 'var(--warn-text)', ['surface-2'], 'var(--accent-soft)'),
   text('info', 'the text-safe info colour on the page', 'var(--info-text)', PAGE_SURFACES),
   text('ok', 'a rule met on Master & QC: the text-safe ok colour', 'var(--ok-text)', PAGE_SURFACES),
-  text('experimental', 'the text-safe experimental colour: an ADR 0004 capability the host reports as experimental', 'var(--experimental-text)', PAGE_SURFACES),
+  text(
+    'experimental',
+    'the text-safe experimental colour: an docs/architecture/daw-integration.md#the-daw-port capability the host reports as experimental',
+    'var(--experimental-text)',
+    PAGE_SURFACES,
+  ),
   text('info-on-place-soft', 'EXTRA word in the inline diff: info text on place-soft', 'var(--info-text)', ['surface-2'], 'var(--place-soft)'),
   ...KINDS.map((kind) =>
     text(

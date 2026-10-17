@@ -618,7 +618,7 @@ Playback is audible for 8 seconds (three tones). Expected: the CSV shows both po
 
 **Question (PRD, verbatim):** Can the scripting pipe clone a time range to a backups track and restore it, and what does two minutes cost?
 
-**Needs:** Audacity 3 with `mod-script-pipe` enabled (Edit > Preferences > Modules > mod-script-pipe > Enabled, then restart Audacity). Audacity 4.0 has no scripting pipe ([ADR 0004](../adr/0004-every-daw-is-reached-through-one-port.md)); there the spike reports "not reachable", which is the answer for 4.0 and goes in the table. Write the version from Help > About Audacity in the table.
+**Needs:** Audacity 3 with `mod-script-pipe` enabled (Edit > Preferences > Modules > mod-script-pipe > Enabled, then restart Audacity). Audacity 4.0 has no scripting pipe ([The DAW port](../architecture/daw-integration.md#the-daw-port)); there the spike reports "not reachable", which is the answer for 4.0 and goes in the table. Write the version from Help > About Audacity in the table.
 
 **Expected (hypothesis):** copy a time range from the audio track, paste it on a second "Backups" track, damage the original, copy back, and the restored audio hashes equal to the original. The command names below come from the Audacity manual and are not verified here; a `Failed!` reply is a result, so keep the report.
 

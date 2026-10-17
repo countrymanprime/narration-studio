@@ -72,7 +72,7 @@ Bindings are generated only for `Host` (`main.go:42`). Their `$Call.ByID` hashes
   - `packager` assembles the book package, and its doc tells it apart from `encodeport.Packager`.
   - `preview` is the Proof preview window; it matches the `Preview*` bindings.
 - **Infrastructure:** `assets`, `persist`, `hostlog`, `runlog`, `settings`, `recents`, `project`, `credentialstore`, `contractfile`, `update`, `latency`, `dictionary`, `pronunciationlookup`, `pronunciationonline`, `process`.
-- **The module path `.../shell` and the Nx project `narration-utils-shell`** are kept by [ADR 0001](../adr/0001-the-host-is-go-on-a-wails-v3-shell.md) and `docs/architecture/codebase-map.md`. Renaming them would change every binding hash.
+- **The module path `.../shell` and the Nx project `narration-utils-shell`** are kept by [ADR 0001](../adr/0001-the-app-is-written-in-go.md) and `docs/architecture/codebase-map.md`. Renaming them would change every binding hash.
 
 Not names, but found on the way:
 - **Stale doc comments.** `process` (`supervisor.go:1`) still says "the two retained Python analysis sidecars". `transcript` still cites `dawadapter.Review`.

@@ -7,7 +7,7 @@ description: Touching the Wails v3 desktop shell (apps/desktop)? How this repo c
 
 ## Why this exists
 
-Wails v3 is a beta, and this repo pins it ([ADR 0001](../../../docs/adr/0001-the-host-is-go-on-a-wails-v3-shell.md)). Its API moves between betas and several defaults differ from v2. An agent that writes v3 code from memory, or from the v2 docs, produces calls that do not exist, bypass the one file that wraps Wails, or break under `go test` where there is no running application.
+Wails v3 is a beta, and this repo pins it ([ADR 0001](../../../docs/adr/0001-the-app-is-written-in-go.md)). Its API moves between betas and several defaults differ from v2. An agent that writes v3 code from memory, or from the v2 docs, produces calls that do not exist, bypass the one file that wraps Wails, or break under `go test` where there is no running application.
 
 ## When to use this
 
@@ -29,7 +29,7 @@ Any change under `apps/desktop` that calls into `github.com/wailsapp/wails/v3`, 
 10. **Window options are deliberate.** `mainWindowOptions` in `main.go` sets `ZoomControlEnabled: true` and `DefaultContextMenuDisabled: true` to keep v2's behaviour, and `wailsapp_test.go` holds them. Do not drop either while tidying options.
 11. **Zoom on Windows:** `SetZoom` floors at 1.0 and v3 sends no zoom-changed event, so the page reads the level back from the window ([Zoom](../../../docs/guides/using-the-app/navigation.md#zoom), Proposed).
 12. **A Wails bump is its own reviewed change of three pins** (ADR 0001): `apps/desktop/go.mod`, `@wailsio/runtime` in `apps/ui/package.json` (exact version), and the CLI in `scripts/toolchain.json` plus `.github/actions/setup-toolchain`. Regenerate the bindings, then run the full gate. A new beta needs a note in the ADR or a superseding one.
-13. **Build and run:** `pnpm --dir apps/desktop run build` runs `scripts/release/wails-build.mjs` (no Taskfile). There is no hot reload; use `pnpm --dir apps/ui dev:mock` for UI work and `pnpm --dir apps/desktop dev` to run the app. Windows is the only supported platform ([ADR 0002](../../../docs/adr/0002-windows-x64-is-the-only-supported-platform.md)).
+13. **Build and run:** `pnpm --dir apps/desktop run build` runs `scripts/release/wails-build.mjs` (no Taskfile). There is no hot reload; use `pnpm --dir apps/ui dev:mock` for UI work and `pnpm --dir apps/desktop dev` to run the app. Windows is the only supported platform ([Supported platforms](../../../README.md#supported-platforms)).
 14. `full-verification-gate`, then `feature-cleanup`.
 
 ## What this skill is not

@@ -798,7 +798,7 @@ describe('wailsClient', () => {
   });
 });
 
-describe('live events (ADR 0005: dropped and counted, never thrown inside the callback)', () => {
+describe('live events (docs/architecture/wire-contracts.md: dropped and counted, never thrown inside the callback)', () => {
   type Listener = (payload: unknown) => void;
 
   // A fresh module per test: the live-event counter is the client's own, and one test's drops must not degrade the next.

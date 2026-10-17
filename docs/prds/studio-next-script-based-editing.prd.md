@@ -110,10 +110,10 @@ On conflict this PRD, and the ADR written when its phase lands, is the source of
 | [takemetrics.go](../../apps/desktop/internal/measure/takemetrics.go) | EXTEND | Per-take measurements |
 | | SUPERSEDE (DQ-8) | Trims hide or mute; nothing is deleted |
 | [narration_level_normalize.lua](../../integrations/reaper/narration_level_normalize.lua) | EXTEND | Clause split using persisted word times |
-| [ADR 0006](../adr/0006-local-first-and-the-narrator-consents.md) | KEEP | Narrator-triggered, one undo step, nothing auto-applied |
+| [ADR 0002](../adr/0002-local-models-and-tools-come-first-so-the-app-is-free-to-use.md) | KEEP | Narrator-triggered, one undo step, nothing auto-applied |
 | [workspace.go](../../apps/desktop/internal/coverage/workspace.go), [Recording Check (recording coverage)](../utilities/recording-coverage.md), [playing.ts](../../apps/ui/src/components/editing/script/playing.ts), [cache.go](../../apps/desktop/internal/measure/cache.go) | KEEP / EXTEND | Alignment, highlighting, peaks reused |
 | | SUPERSEDE (DQ-18) | Audacity takes through backups |
-| [Mock match](../operations/verification-tooling.md#mock-match), [Mock match](../operations/verification-tooling.md#mock-match) | SUPERSEDE (DQ-1) | The Studio Next mock is the only spec; no benchmark mock exists for Editing |
+| [Mock match](../operations/verification-tooling.md#mock-match) | SUPERSEDE (DQ-1) | The Studio Next mock is the only spec; no benchmark mock exists for Editing |
 
 ## Technical Approach
 

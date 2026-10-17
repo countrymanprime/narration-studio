@@ -208,7 +208,7 @@ Other threat-model findings:
 - **The Status line is a change log.** It is 2,730 words recording 88 row additions and extensions with dates, bindings and host API numbers. A change history belongs in version control (section 1.7); the document needs only its last review date.
 - **Rows carry implementation inventories.** Row 6za lists every binding, every limit (200 UTF-16 units, 4 MiB, the source-id regex) and the package. Validation limits are the data file's reference or the code's doc comment; the threat row needs the threat, the control in one line, and a pointer.
 - **Rows are added per feature, not per boundary.** Practice models data flows across trust boundaries (section 1.5). All 14 data-file rows are one flow: "a file in the project folder is read back by the host". One row covers it, with the generic control (schema check, size limit, never a path or markup, stale reported not guessed) and a link to the data-files reference. Row 6m (a file that names a path the host opens) is the one variant that needs its own line, because the file drives a file open.
-- **Consent rows are product principles.** "The app moves REAPER when the narrator did not ask" (5f) is a correctness and consent property with no attacker. It belongs with the consent principles ([ADR 0006](../adr/0006-local-first-and-the-narrator-consents.md), the `design-principles` skill) and the tests that pin it. The forged-command half of the same rows (another process writes a command file) is already 5a.
+- **Consent rows are product principles.** "The app moves REAPER when the narrator did not ask" (5f) is a correctness and consent property with no attacker. It belongs with the consent principles ([ADR 0002](../adr/0002-local-models-and-tools-come-first-so-the-app-is-free-to-use.md), the `design-principles` skill) and the tests that pin it. The forged-command half of the same rows (another process writes a command file) is already 5a.
 
 ### 2.5 Project data files
 
@@ -472,7 +472,7 @@ Categories as in section 2.2. "Suggested home" is where the content would go if 
 | 0006 | VISUAL | N | Accepted | design-system.md (MeterBar) | Segment order of a progress bar; visual presentation only |
 | [0007](../../sidecars/manuscript-guide/core/manuscript_guide.py) | ARCH | N | Accepted | keep | Lock enforcement authoritative in backend, UI only advisory; security/authority boundary |
 | [0008](../utilities/transcript-compare.md#alignment-and-confidence) | ARCH | N | Accepted | keep | Defers forced-alignment model dependency; keeps diff approach plus timing confidence heuristic |
-| [0009](../adr/0008-the-ui-is-react-and-tailwind-over-base-ui-primitives.md) | ARCH | N | Accepted | keep | Completes migration to Tailwind, retires legacy CSS system; styling framework choice |
+| [0009](../design/design-system.md#base-ui-wrappers) | ARCH | N | Accepted | keep | Completes migration to Tailwind, retires legacy CSS system; styling framework choice |
 | [0010](../design/design-system.md#theme) | UX | N | Accepted | PRD settings / design-system.md (theming) | Light/Dark/System theme feature and its persistence; product behaviour |
 | [0011](../../CONTRIBUTING.md#ui-prs-update-the-how-to-guide) | PROCESS | N | Accepted | docs/operations/docs-workflow.md | How doc screenshots are curated and synced; documentation workflow |
 | [0012](../architecture/threat-model.md) | ARCH | N | Accepted | keep | Audio streamed via Wails asset-server route not base64 bindings; IPC shape and trust boundary |
@@ -482,7 +482,7 @@ Categories as in section 2.2. "Suggested home" is where the content would go if 
 | [0016](../design/design-system.md#primitive-components) | VISUAL | N | Accepted | design-system.md (Highlight) | Single Highlight component, tints and underline styles; component look |
 | [0017](../design/design-system.md#css-layering-gotcha) | IMPL | Y | Accepted | design-system.md (CSS rules) / lint rule | CSS cascade coding rules plus SlideOver and ternary class conventions; coding standards |
 | [0018](../guides/using-the-app/story-bible.md) | UX | N | Accepted | PRD story-bible / user guide | Entries read-only until Edit pressed; interaction behaviour |
-| [0019](../adr/0006-local-first-and-the-narrator-consents.md) | UX | N | Accepted | PRD manuscript-import | Offer detected manuscript, never auto-import; product behaviour and detection rule |
+| [0019](../adr/0002-local-models-and-tools-come-first-so-the-app-is-free-to-use.md) | UX | N | Accepted | PRD manuscript-import | Offer detected manuscript, never auto-import; product behaviour and detection rule |
 | [0020](../architecture/story-bible-entity-accuracy.md) | IMPL | N | Accepted | sidecar README / code comments in manuscript_guide.py | Extraction heuristics tuned for precision; algorithm thresholds |
 | [0021](../architecture/manuscript-teleprompter.md#prototype-findings-and-live-engine-direction) | ARCH | N | Accepted | keep | Speech engines interchangeable behind one engine-independent event contract; module/interface boundary |
 | [0022](../architecture/manuscript-teleprompter.md) | ARCH | N | Accepted | keep | Streaming sidecar relay over Wails events, stop-file shutdown; process IPC design |
@@ -490,12 +490,12 @@ Categories as in section 2.2. "Suggested home" is where the content would go if 
 | [0024](../../apps/ui/src/components/booth/usePacedCursor.ts) | UX | N | Accepted | PRD teleprompter / reader component doc | How the teleprompter highlight renders and catches up; UI behaviour |
 | [0025](../architecture/codebase-map.md) | ARCH | Y | Superseded | keep | Loudness measured in Go not REAPER, bundled with no-distributor-profile product call |
 | [0026](../architecture/manuscript-line-identity.md) | ARCH | N | Accepted | keep | Line identity persisted in REAPER item P_EXT via bridge; persistence/integration strategy |
-| [0027](../adr/0002-windows-x64-is-the-only-supported-platform.md) | ENG | N | Accepted | keep | Windows-only CI gate and release job; CI/release pipeline construction |
+| [0027](../../README.md#supported-platforms) | ENG | N | Accepted | keep | Windows-only CI gate and release job; CI/release pipeline construction |
 | [0028](../prds/README.md#lifecycle-of-a-prd) | PROCESS | N | Accepted | CONTRIBUTING / docs/prds/README.md | PRDs kept apart from ADRs and deleted when built; docs process |
 | [0029](../operations/github-workflow.md) | PROCESS | N | Accepted | docs/operations/github-workflow.md | Issue/label/milestone tracking on GitHub; project management process |
 | [0030](../architecture/standalone-launch.md) | ARCH | N | Accepted | keep | Standalone launch with no project, project switch path; entry-point/lifecycle structure |
-| [0031](../adr/0004-every-daw-is-reached-through-one-port.md) | ARCH | N | Accepted | keep | REAPER integration stays Lua file bridge, no sockets or native extension; integration approach |
-| [0032](../adr/0006-local-first-and-the-narrator-consents.md) | ARCH | N | Accepted | keep | Analyzers report findings only, execution owned by REAPER adapter; responsibility boundary enforced by lint |
+| [0031](../architecture/daw-integration.md#the-daw-port) | ARCH | N | Accepted | keep | REAPER integration stays Lua file bridge, no sockets or native extension; integration approach |
+| [0032](../adr/0002-local-models-and-tools-come-first-so-the-app-is-free-to-use.md) | ARCH | N | Accepted | keep | Analyzers report findings only, execution owned by REAPER adapter; responsibility boundary enforced by lint |
 | [0033](../architecture/manuscript-teleprompter.md) | IMPL | N | Accepted | docs/architecture/teleprompter.md + script_tracker.py comments | Tracker alignment algorithm and its parameters (MAX_SKIP); algorithm design inside one module |
 | [0034](../architecture/manuscript-teleprompter.md) | ARCH | N | Accepted | keep | Unconstrained recognition, closed-grammar engines like Vosk excluded; recognizer approach and dependency choice |
 | [0035](../../sidecars/manuscript-teleprompter/core/live_asr.py) | ARCH | N | Accepted | keep | Re-implement WhisperLive/whisper_streaming techniques, no dependency or server; dependency and licensing |
@@ -510,13 +510,13 @@ Categories as in section 2.2. "Suggested home" is where the content would go if 
 | [0044](../operations/verification-tooling.md#property-tests-and-fuzzing) | ENG | N | Accepted | keep | Property and fuzz tests deterministic in the gate; test strategy |
 | [0045](../operations/verification-tooling.md#dead-code-knip) | ENG | N | Accepted | keep | Knip dead-code gate at zero findings; CI gate |
 | [0046](../operations/verification-tooling.md) | ENG | N | Accepted | keep | ADR import rules enforced by depguard/pytest; fitness-function construction technique |
-| [0047](../adr/0008-the-ui-is-react-and-tailwind-over-base-ui-primitives.md) | ARCH | N | Accepted | keep | Primitives built on Base UI, app code never imports it; library choice and boundary |
-| [0048](../adr/0008-the-ui-is-react-and-tailwind-over-base-ui-primitives.md) | UX | N | Accepted | design-system.md (Dialog) | Modal, Escape, backdrop and focus policy for dialogs; interaction/a11y behaviour |
-| [0049](../adr/0008-the-ui-is-react-and-tailwind-over-base-ui-primitives.md) | UX | N | Accepted | design-system.md (Tooltip/Popover) | Tooltip timing, offsets and info-icon popover; interaction/a11y spec |
+| [0047](../design/design-system.md#base-ui-wrappers) | ARCH | N | Accepted | keep | Primitives built on Base UI, app code never imports it; library choice and boundary |
+| [0048](../design/design-system.md#base-ui-wrappers) | UX | N | Accepted | design-system.md (Dialog) | Modal, Escape, backdrop and focus policy for dialogs; interaction/a11y behaviour |
+| [0049](../design/design-system.md#base-ui-wrappers) | UX | N | Accepted | design-system.md (Tooltip/Popover) | Tooltip timing, offsets and info-icon popover; interaction/a11y spec |
 | [0050](../design/design-system.md) | UX | Y | Accepted | design-system.md (MeterBar, Field) | Accessible naming of meter and Field hint/error wiring; two unrelated primitives |
 | [0051](../design/design-system.md) | UX | N | Accepted | design-system.md (SlideOver, NavDrawer) | Drawers become modal with focus trap and Escape; interaction/a11y behaviour |
 | [0052](../design/design-system.md) | UX | Y | Accepted | design-system.md (primitives) | Five widgets replaced by Base UI primitives; per-component behaviour specs |
-| [0053](../adr/0008-the-ui-is-react-and-tailwind-over-base-ui-primitives.md) | VISUAL | Y | Accepted | design-system.md (form controls) | IconButton, TextField, Select primitives and no native controls in pages; component system rules |
+| [0053](../design/design-system.md#base-ui-wrappers) | VISUAL | Y | Accepted | design-system.md (form controls) | IconButton, TextField, Select primitives and no native controls in pages; component system rules |
 | [0054](../design/design-system.md) | UX | N | Accepted | design-system.md (Tabs, ToggleGroup) | Tab and toggle-group semantics and keyboard behaviour; component a11y spec |
 | [0055](../design/design-system.md) | UX | N | Accepted | design-system.md (TagInput) | TagInput component behaviour and focus handling; component spec |
 | [0056](../design/design-system.md) | VISUAL | N | Accepted | design-system.md (Table) | Presentational Table primitive replaces dtable class; component look and row keyboard |
@@ -529,13 +529,13 @@ Categories as in section 2.2. "Suggested home" is where the content would go if 
 | 0063 | IMPL | N | Accepted | comment in apps/ui/src/highlightBoundary.test.ts | Clarifies `docs/design/design-system.md#primitive-components` scope for one component's mark element; allowlist reason |
 | [0064](../operations/ci-and-releases.md) | ENG | N | Accepted | keep | Axe on every app state with debt ratchet; accessibility test gate |
 | [0065](../operations/verification-tooling.md) | ENG | N | Accepted | docs/operations/visual-suite.md | Aria snapshot run pins role trees; test strategy addition |
-| [0066](../adr/0004-every-daw-is-reached-through-one-port.md) | ENG | N | Accepted | keep | Lua bridge harness under Lua 5.4 plus in-REAPER checks; test strategy |
-| [0067](../adr/0004-every-daw-is-reached-through-one-port.md) | ARCH | N | Accepted | keep | Bridge command registry and per-feature Lua files; module structure of integration |
-| [0068](../adr/0004-every-daw-is-reached-through-one-port.md) | ARCH | N | Accepted | keep | Single event reader fanning out to subscribers by tag and run; IPC design |
-| [0069](../adr/0005-every-boundary-is-a-typed-contract.md) | ARCH | N | Accepted | keep | Zod runtime validation behind parseWire at all wire boundaries; library and interface contract |
+| [0066](../architecture/daw-integration.md#the-daw-port) | ENG | N | Accepted | keep | Lua bridge harness under Lua 5.4 plus in-REAPER checks; test strategy |
+| [0067](../architecture/daw-integration.md#the-daw-port) | ARCH | N | Accepted | keep | Bridge command registry and per-feature Lua files; module structure of integration |
+| [0068](../architecture/daw-integration.md#the-daw-port) | ARCH | N | Accepted | keep | Single event reader fanning out to subscribers by tag and run; IPC design |
+| [0069](../architecture/wire-contracts.md) | ARCH | N | Accepted | keep | Zod runtime validation behind parseWire at all wire boundaries; library and interface contract |
 | [0070](../operations/ci-and-releases.md) | ENG | N | Accepted | keep | Actions pinned to SHAs, zizmor gates workflows; supply-chain practice |
 | [0071](../operations/ci-and-releases.md) | ENG | N | Accepted | keep | Build provenance attestations and promote verification; release pipeline security |
-| [0072](../adr/0006-local-first-and-the-narrator-consents.md) | ARCH | N | Accepted | keep | Self-update from GitHub releases with click-to-install; security architecture and external integration |
+| [0072](../adr/0002-local-models-and-tools-come-first-so-the-app-is-free-to-use.md) | ARCH | N | Accepted | keep | Self-update from GitHub releases with click-to-install; security architecture and external integration |
 | [0073](../operations/ci-and-releases.md#the-version-inside-the-program) | ENG | Y | Accepted | docs/operations/ci-and-releases.md | Executable rename and embedded version; packaging details bundled with launcher lookup |
 | [0074](../architecture/in-app-update.md#the-install-and-the-rollback) | IMPL | N | Accepted | docs/architecture/in-app-update.md + comments in internal/update | Rename-swap sequence of one install function; mechanism detail within one package |
 | [0075](../architecture/interaction-feedback.md#the-standard) | UX | N | Accepted | docs/architecture/interaction-feedback.md | 100ms acknowledgement, no double fire, completion notice; interaction rules |
@@ -597,7 +597,7 @@ Categories as in section 2.2. "Suggested home" is where the content would go if 
 | [0136](../architecture/first-use-dependency-provisioning.md#the-asset-manager-implemented) | ARCH | N | Proposed | keep | Asset pipeline gains a Derive step changing what verified installs persist and how they are verified. |
 | [0140](../../apps/desktop/internal/measure/takemetrics.go) | IMPL | Y | Proposed | reference measure doc / code comments | Range API shape and clipping metric inside the measure package. |
 | [0141](../../sidecars/transcript-compare/core/take_divergence_mode.py) | ARCH | N | Proposed | keep | Rejects forced-alignment dependency (PyTorch/Kaldi); keeps Whisper-timestamp approach for divergence. |
-| [0143](../adr/0004-every-daw-is-reached-through-one-port.md) | ARCH | N | Proposed | keep | Introduces DAW adapter interface seam and makes the event vocabulary part of its contract. |
+| [0143](../architecture/daw-integration.md#the-daw-port) | ARCH | N | Proposed | keep | Introduces DAW adapter interface seam and makes the event vocabulary part of its contract. |
 | [0144](../architecture/daw-integration.md#audacity-boundary) | ARCH | N | Proposed | keep | Launch-argument DAW classification decides which process bridges and services start. |
 | [0145](../architecture/daw-integration.md#audacity-boundary) | ENG | Y | Proposed | docs/operations release/installer doc | Installer creates an Audacity Start Menu entry; bundles project-picker UX rule. |
 | [0146](../../integrations/reaper/narration_cleanup.lua) | ARCH | N | Proposed | keep | Security architecture: host and Lua allow-lists of tool keys across the REAPER trust boundary. |
@@ -625,7 +625,7 @@ Categories as in section 2.2. "Suggested home" is where the content would go if 
 | [0193](../../apps/desktop/recordedlengths.go) | UX | N | Accepted | PRD home page | What one table column shows and from which source. |
 | [0196](../design/design-system.md) | UX | Y | Proposed | PRD read-aloud + design-system.md | Dialog footer slot plus Space-key shortcut: unrelated UI choices. |
 | [0197](../operations/ci-and-releases.md) | ENG | N | Accepted | docs/operations/release.md | Release pipeline asset naming convention. |
-| [0200](../adr/0001-the-host-is-go-on-a-wails-v3-shell.md) | ARCH | N | Accepted | keep | Framework choice and version pin: Wails v3 beta for the desktop shell. |
+| [0200](../adr/0001-the-app-is-written-in-go.md) | ARCH | N | Accepted | keep | Framework choice and version pin: Wails v3 beta for the desktop shell. |
 | [0201](../guides/using-the-app/navigation.md#zoom) | UX | N | Proposed | PRD app shell / zoom | Zoom range and Ctrl+wheel behaviour. |
 | [0202](../guides/using-the-app/navigation.md#chapter-sync) | UX | N | Accepted | PRD chapter sync | Product default to auto-link confident matches, with undo and manual precedence. |
 | [0203](../../apps/desktop/internal/evidence/mapping.go) | UX | N | Proposed | PRD chapter sync | Unlink and re-import relinking behaviour. |
@@ -670,10 +670,10 @@ Categories as in section 2.2. "Suggested home" is where the content would go if 
 | [0265](../../apps/ui/src/components/editing/script/playing.ts) | IMPL | Y | Accepted | code comment in apps/ui/src/components/proof/playlist.ts | Binary-search highlighting and flag grouping are algorithm details; also bundles a playlist builder. |
 | [0266](../guides/using-the-app/navigation.md#editing-check) | UX | N | Proposed | PRD editing check panel | Which signals a panel shows and inline progress placement: panel behaviour. |
 | [0267](../../apps/ui/tests/atlas/atlas.spec.ts) | IMPL | N | Accepted | code comment in apps/ui/tests/atlas/atlas.spec.ts | Test-runner optimisation (one page load per story); harness detail. |
-| [0300](../adr/0004-every-daw-is-reached-through-one-port.md) | ARCH | N | Accepted | keep | Single DAW port of role interfaces plus resolver: core module boundary for every engine. |
+| [0300](../architecture/daw-integration.md#the-daw-port) | ARCH | N | Accepted | keep | Single DAW port of role interfaces plus resolver: core module boundary for every engine. |
 | [0301](../architecture/provider-ports.md) | ARCH | N | Accepted | keep | Provider ports, registry and capability descriptor: cross-language extension architecture. |
 | [0302](../../apps/desktop/internal/dawport/resolver.go) | ARCH | N | Proposed | keep | Port interface shape (type aliases, one method per async command) defines the DAW interface. |
-| [0303](../../apps/desktop/internal/dawport/registry.go) | IMPL | N | Proposed | package doc in apps/desktop/internal/dawport | Factory signature and registry panics refine ADR 0004; wiring detail. |
+| [0303](../../apps/desktop/internal/dawport/registry.go) | IMPL | N | Proposed | package doc in apps/desktop/internal/dawport | Factory signature and registry panics refine `docs/architecture/daw-integration.md#the-daw-port`; wiring detail. |
 | [0304](../../apps/desktop/internal/dawport/resolver.go) | IMPL | N | Proposed | package doc in apps/desktop/internal/bridge | Gate closure wiring between Actions and resolver; internal plumbing. |
 | [0305](../architecture/reaper-bridge.md) | IMPL | N | Accepted | reference/wire contracts (REAPER events) | Two optional heartbeat fields and a send-on-change rule; contract detail, not protocol shape. |
 | [0306](../architecture/provider-ports.md) | ARCH | N | Proposed | keep | Mastering becomes a provider port with registry and conformance suite: module boundary. |
@@ -700,10 +700,10 @@ Categories as in section 2.2. "Suggested home" is where the content would go if 
 | 0352 | IMPL | N | Superseded | delete (feature removed by 0792) | CSV re-import matching keys and blank-note handling. |
 | [0353](../architecture/manuscript-teleprompter.md#resume-where-reaper-is-and-where-the-prompter-was) | UX | N | Proposed | PRD teleprompter resume | When a prompt dismisses and how long a poll follows: feature behaviour. |
 | [0354](../../apps/desktop/internal/continuity/baseline.go) | IMPL | N | Accepted | reference/continuity.md | Leave-one-out percentile baseline and outlier rule: algorithm parameters. |
-| [0355](../adr/0004-every-daw-is-reached-through-one-port.md) | ARCH | N | Proposed | keep | Integration approach for Audacity via mod-script-pipe behind a Transport interface. |
-| [0356](../adr/0006-local-first-and-the-narrator-consents.md) | ARCH | Y | Proposed | keep | Credential storage and secret handling (security architecture), bundled with port and single-word rule. |
+| [0355](../architecture/daw-integration.md#the-daw-port) | ARCH | N | Proposed | keep | Integration approach for Audacity via mod-script-pipe behind a Transport interface. |
+| [0356](../adr/0002-local-models-and-tools-come-first-so-the-app-is-free-to-use.md) | ARCH | Y | Proposed | keep | Credential storage and secret handling (security architecture), bundled with port and single-word rule. |
 | [0357](../../sidecars/manuscript-teleprompter/core/capture_wasapi.py) | ARCH | N | Proposed | keep | Capture library choice (PortAudio/WASAPI shared) and placement in the sidecar. |
-| [0360](../adr/0008-the-ui-is-react-and-tailwind-over-base-ui-primitives.md) | VISUAL | Y | Accepted | design-system.md | Token batch sequencing, flat primitive files and gating primitive bundled; design-system rules. |
+| [0360](../design/design-system.md#base-ui-wrappers) | VISUAL | Y | Accepted | design-system.md | Token batch sequencing, flat primitive files and gating primitive bundled; design-system rules. |
 | [0361](../architecture/studio-shell-and-registries.md) | ARCH | N | Accepted | keep | One command registry and input-source/keymap layering: UI module boundary. |
 | [0362](../design/colour-and-contrast.md#derived-and-status-tokens) | VISUAL | N | Proposed | design-system.md | Meter and badge colour token aliases and tint percentages. |
 | [0363](../../apps/ui/src/components/primitives/TagInput.tsx) | UX | N | Proposed | code comment in TagInput primitive | A single keyboard interaction of one component. |
@@ -724,13 +724,13 @@ Categories as in section 2.2. "Suggested home" is where the content would go if 
 | 0402 | ARCH | N | Superseded | keep (superseded by 0412) | CoreAudio capture backend library choice for macOS. |
 | [0403](../../sidecars/manuscript-teleprompter/core/live_asr.py) | IMPL | N | Accepted | sidecar CLI reference | Semantics of one CLI flag and the smoke check comparison. |
 | [0404](../../apps/desktop/internal/production/overview.go) | UX | N | Proposed | PRD production overview | Ranking order for a Next up list; projection part superseded. |
-| [0405](../adr/0006-local-first-and-the-narrator-consents.md) | ARCH | N | Proposed | keep | Local-first pronunciation sources and one online provider: external integration and privacy. |
+| [0405](../adr/0002-local-models-and-tools-come-first-so-the-app-is-free-to-use.md) | ARCH | N | Proposed | keep | Local-first pronunciation sources and one online provider: external integration and privacy. |
 | [0406](../guides/using-the-app/production.md#status-report) | UX | N | Proposed | PRD status report | Privacy default of a report field, opt-in checkbox. |
 | [0407](../architecture/principles.md) | PROCESS | Y | Accepted | CONTRIBUTING / docs/operations | Page-replacement PR rule and nav grouping bundled. |
 | 0410 | PROCESS | N | Proposed | docs/operations/adr-workflow.md | Generated ADR index and its gate: docs workflow. |
 | [0411](../operations/ci-and-releases.md) | ENG | N | Accepted | keep | Release pipeline split and caching policy: supply chain and build construction. |
-| [0412](../adr/0002-windows-x64-is-the-only-supported-platform.md) | ARCH | N | Accepted | keep | Platform support narrowed to Windows x64. |
-| [0413](../adr/0002-windows-x64-is-the-only-supported-platform.md) | IMPL | N | Proposed | fold into ADR 0002 / platform notes | Follow-up bookkeeping of what platform code remains. |
+| [0412](../../README.md#supported-platforms) | ARCH | N | Accepted | keep | Platform support narrowed to Windows x64. |
+| [0413](../../README.md#supported-platforms) | IMPL | N | Proposed | fold into `README.md#supported-platforms` / platform notes | Follow-up bookkeeping of what platform code remains. |
 | [0414](../architecture/manuscript-teleprompter.md) | IMPL | N | Proposed | comment in config/defaults.json or issue | Keeps a default model value pending evaluation. |
 | [0415](../operations/ci-and-releases.md) | ENG | N | Accepted | docs/operations/ci.md | Temporary docs CI checks while Pages paused. |
 | [0416](../../tests/fixtures/audio/librivox-alice/README.md) | ENG | N | Proposed | tests/fixtures README | Fixture sourcing strategy: fetched audio, committed markers. |
@@ -738,7 +738,7 @@ Categories as in section 2.2. "Suggested home" is where the content would go if 
 | [0431](../guides/using-the-app/story-bible.md) | UX | N | Accepted | PRD character review | Feature scope of a UI release. |
 | [0435](../architecture/reaper-bridge.md) | IMPL | Y | Proposed | reference/reaper-bridge commands | Lua render command mechanics, token rule and settings restore bundled. |
 | [0440](../guides/using-the-app/master-and-qc.md#the-mastering-chain) | UX | N | Proposed | PRD master-and-qc | Tabs as profile choice and page sections: page layout. |
-| [0450](../adr/0007-project-state-lives-in-files-beside-the-project.md) | ARCH | Y | Accepted | keep | Per-user series persistence and read-only cross-project isolation; bundles shared-data scope. |
+| [0450](../reference/data-files.md) | ARCH | Y | Accepted | keep | Per-user series persistence and read-only cross-project isolation; bundles shared-data scope. |
 | [0455](../reference/daw/builtin-recorder.md) | ARCH | N | Proposed | keep | Recorder engine port and sidecar adapter: module boundary for built-in recording. |
 | [0460](../reference/daw/capabilities.md#macro_render) | IMPL | N | Proposed | package doc in internal/masteringport | A registry row and its macro flow within existing ports. |
 | [0465](../design/design-system.md) | IMPL | N | Proposed | code comment in apps/ui/tests/visual/catalog/shell.ts | Extra viewport for three visual test states. |

@@ -248,7 +248,7 @@ Files: `studio/src/pages/script/*` (Reader, ChapterList, Rail, WordsTab, BibleTa
 - ` / 0393` Script prep status = names to confirm; three columns from 1440 px; reader card keys off its own width.
 - `docs/guides/using-the-app/script.md` reference chapters hidden from the reader.
 - `docs/architecture/interaction-feedback.md#the-standard` acknowledge actions within 100 ms (irrelevant to a local mock, relevant if our DAW adapter calls go async).
-- `ADR 0005` payloads Zod-checked on arrival.
+- `docs/architecture/wire-contracts.md` payloads Zod-checked on arrival.
 - CLAUDE.md: a UI change ships with benchmark-mock before/after screenshots; build UI towards `docs/research/mockups/audiobook-studio-benchmark/` only (mock 02 for Script, mock 06 for series voices, there is no Story Bible mock other than 06's concept).
 
 ## 5. Where the benchmark mocks sit relative to both

@@ -21,7 +21,7 @@ Skip it for a typo, a doc-only change or a one-line fix.
 
 1. Read [the principles](../../../docs/architecture/principles.md) and pick the ones the change touches. Most changes touch two to four.
 2. For each, answer its question in the plan. Add a **Principles check** table next to the Design check: one row per principle touched, **met**, **at risk** (with the fix) or **waived** (with the reason and what would make you revisit), as `solid-design-review` does.
-3. Read the ADRs in `docs/adr/` (there are eight, one screen each) and check the change against them. A principle is a summary; the ADR is the rule.
+3. Read the ADRs in `docs/adr/` (there are two, one screen each) and check the change against them. A principle is a summary; the ADR is the rule.
 4. If a principle has to be broken, that is a decision: write the waiver in the PR, and record a permanent change in the document that describes the current state. It is an ADR only if it meets the bar in `docs/adr/README.md`.
 5. If a plan needs a rule that is not on that page and is not an ADR, say so. A rule that three plans have needed is a candidate for an ADR.
 

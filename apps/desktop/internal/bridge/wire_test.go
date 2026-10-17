@@ -226,7 +226,7 @@ func TestARequiredNumberThatIsEmptyIsAnErrorButAnOptionalOneMayBeEmpty(t *testin
 }
 
 func TestAnErrorEventOfTheOlderShapeIsStillReadable(t *testing.T) {
-	// ERROR|<message> (no run id) is the shape before ADR 0004; the transcript service ignores it, so the table must not make it a
+	// ERROR|<message> (no run id) is the shape before docs/architecture/daw-integration.md#the-daw-port; the transcript service ignores it, so the table must not make it a
 	// second, louder kind of failure.
 	if err := CheckEvent([]string{"ERROR", "Unsupported hub protocol"}); err != nil {
 		t.Fatal(err)

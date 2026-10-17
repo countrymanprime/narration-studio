@@ -4,7 +4,7 @@ Engine facts the REAPER adapter depends on, as of 2026-10-12. The last version a
 
 ## How the app reaches REAPER
 
-- **A file protocol, not a server.** The Lua bridge polls a `commands/` folder from a `reaper.defer` loop and appends results to `events.log`. There is no loopback port ([the bridge](../../architecture/reaper-bridge.md#the-file-protocol), [ADR 0004](../../adr/0004-every-daw-is-reached-through-one-port.md)).
+- **A file protocol, not a server.** The Lua bridge polls a `commands/` folder from a `reaper.defer` loop and appends results to `events.log`. There is no loopback port ([the bridge](../../architecture/reaper-bridge.md#the-file-protocol), [The DAW port](../../architecture/daw-integration.md#the-daw-port)).
 - **One action starts everything.** The narrator imports `NarrationUtils_Launcher.lua` into REAPER's action list. It starts the app with the session folder, project and `--daw REAPER` ([DAW integration](../../architecture/daw-integration.md#reaper-rules)).
 - **The Lua can be older or newer than the app.** The narrator imports it, so a request the older script cannot serve comes back to the narrator as the host's `script_outdated` refusal, and `ping` reports whether the script knows the navigation commands ([going to and looping a finding](../../architecture/reaper-navigation.md)).
 - **The saved project needs no running REAPER.** The Go `tracks` package parses the `.rpp` directly ([Tracks](../../utilities/tracks.md)).
@@ -12,7 +12,7 @@ Engine facts the REAPER adapter depends on, as of 2026-10-12. The last version a
 
 ## Behaviour that a fake cannot prove
 
-The harness runs the bridge against a fake `reaper` table under Lua 5.4 ([ADR 0004](../../adr/0004-every-daw-is-reached-through-one-port.md)). These facts come from runs in REAPER:
+The harness runs the bridge against a fake `reaper` table under Lua 5.4 ([The DAW port](../../architecture/daw-integration.md#the-daw-port)). These facts come from runs in REAPER:
 
 | Fact | Where it was found |
 | --- | --- |

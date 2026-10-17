@@ -8,7 +8,7 @@ import { GAPS, KEPT, unexplained } from './ratchetReasons';
 // The gaps SN-C4 found (#1217). Lower it with every fix; raising it needs the owner.
 const MAX_GAPS = 43;
 
-// ADR 0008 (and docs/design/design-system.md for the table parts): a page builds a control from a primitive (`IconButton`, `TextField`, `SearchField`, `Select`, `Field`, ...) and
+// docs/design/design-system.md#base-ui-wrappers (and docs/design/design-system.md for the table parts): a page builds a control from a primitive (`IconButton`, `TextField`, `SearchField`, `Select`, `Field`, ...) and
 // not from the native element, so every control looks and behaves one way. This scan counts the native elements written in
 // JSX outside `components/primitives/`, per file, and a file's count may only go down: a ceiling that is higher than the real
 // count fails, so the entry is lowered (or deleted at zero) in the same change, and a file with no entry may have none. The
@@ -27,7 +27,7 @@ const MAX_GAPS = 43;
 const NATIVE_TAGS = ['button', 'select', 'input', 'textarea', 'table', 'thead', 'tbody', 'tr', 'th', 'td'] as const;
 type NativeTag = (typeof NATIVE_TAGS)[number];
 
-// Native elements written in JSX per file, outside the primitives, at the time of ADR 0008 (no native select, input, textarea or table part is left).
+// Native elements written in JSX per file, outside the primitives, at the time of docs/design/design-system.md#base-ui-wrappers (no native select, input, textarea or table part is left).
 const CEILING: Record<NativeTag, Record<string, number>> = {
   button: {
     // The header's "Jump to or run…" field (the mock's top bar): a search-shaped trigger with a label and a key chord, which Button's
@@ -58,7 +58,7 @@ const CEILING: Record<NativeTag, Record<string, number>> = {
   },
   select: {},
   // Proof's "Import proofer sheet" (`ProoferSheet.tsx`) is a hidden native `<input type="file">` triggered by an `IconButton`
-  // (ADR 0008's own escape hatch for file-choosing, since a file picker's OS chrome cannot be restyled the way a text input or
+  // (docs/design/design-system.md#base-ui-wrappers's own escape hatch for file-choosing, since a file picker's OS chrome cannot be restyled the way a text input or
   // select can - the same reason `ManuscriptSelectFile` uses a native OS dialog).
   input: { 'src/components/proof/ProoferSheet.tsx': 1 },
   textarea: {},

@@ -27,7 +27,7 @@ func newTestHostForDawCapabilities(t *testing.T, daw string) *Host {
 // without a real REAPER session: no DAW at all (every capability unsupported, standalone), REAPER declared but not
 // connected (its Supported/Experimental declaration, refused standalone or experimental_off, except the offline
 // project_read capability, which needs no bridge, and the edit rows cut_range, fx_range, stack_takes and backups, not_yet_available
-// until their commands land), and Audacity (navigate, markers, macro_render and backups experimental and switched off, ADR 0004,
+// until their commands land), and Audacity (navigate, markers, macro_render and backups experimental and switched off, docs/architecture/daw-integration.md#the-daw-port,
 // docs/reference/daw/capabilities.md#macro_render, docs/reference/daw/audacity-3.md; takes, punch, stack_takes, cut_range and fx_range experimental and switched off too, each requiring backups,
 // punch destructive while backups are unavailable and the three edits in steps, SN-D83; every other capability
 // not_yet_available, docs/architecture/daw-integration.md#audacity-boundary's sentence). UPDATE_CONTRACTS=1

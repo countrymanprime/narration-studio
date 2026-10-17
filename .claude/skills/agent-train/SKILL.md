@@ -157,7 +157,7 @@ The [Studio Next series](../../../docs/prds/studio-next-rebuild.prd.md) is deliv
 - **The header.** A fenced `slice-meta` block with `id`, `lane`, `kind`, `depends`, `owns` and `serial`, checked by `scripts/dev/slice-lint.mjs`. The issue form is `.github/ISSUE_TEMPLATE/slice.yml`. The coordinator reads the header and the labels, never the code.
 - **Labels:** `slice`, `lane:<L>`, `prd:<code>`, and one of `ready`, `blocked` or `owner-decision`.
 - **Ready.** A slice is ready when every issue in its `depends` is closed and no other slice in progress has an overlapping `owns`. A slice waiting on an unanswered `owner-decision` is not ready.
-- **Slice kinds.** The groomer cuts no `adr` slices. An open product question is answered in the PRD's decisions log or put to the owner on the decisions register; the whole-repo decisions are the eight in `docs/adr/` and a slice does not add one.
+- **Slice kinds.** The groomer cuts no `adr` slices. An open product question is answered in the PRD's decisions log or put to the owner on the decisions register; the whole-repo decisions are the two in `docs/adr/` and a slice does not add one.
 - **A spike slice** writes a research note in `docs/research/` only when its findings outlast the slice. The note carries a date, the question, the method and the findings, and no slice, stream or lane header; the slice issue links the note, not the other way round. Findings that only the slice needs go in the slice issue.
 - **An audit or checklist for one PR** is a comment on that PR or its issue, not a file.
 - **A swap slice** replaces its page and deletes the old page and what only it used, in the same PR with no flag (D98). Its `owns` lists the files it deletes.

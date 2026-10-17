@@ -1,6 +1,6 @@
 """Adapters for the guide sidecar's providers (the wiktextract row): Piper as the ``TtsEngine`` row, CMU, Wiktextract and eSpeak as the ``PronunciationSource`` rows. Each adapter wraps
 exactly the code ``manuscript_guide.py`` called directly before the ports existed; importing this module (which
-``manuscript_guide.py`` does at load time) registers all four, in the offline precedence order ADR 0006 records: CMU (the
+``manuscript_guide.py`` does at load time) registers all four, in the offline precedence order ADR 0002 records: CMU (the
 existing default), then Wiktextract (broader dictionary coverage than CMU alone), then eSpeak (a letter-to-sound guess for
 anything neither dictionary has).
 

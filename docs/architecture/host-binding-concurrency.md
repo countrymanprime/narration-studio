@@ -1,6 +1,6 @@
 # Host binding concurrency
 
-How the desktop host keeps a project switch from racing the Wails bindings. Implemented in `apps/desktop/services.go`, enforced by `apps/desktop/hostguard_test.go` and `apps/desktop/hostrace_test.go`; the decision is [The rule](host-binding-concurrency.md#the-rule).
+How the desktop host keeps a project switch from racing the Wails bindings. Implemented in `apps/desktop/services.go`, enforced by `apps/desktop/hostguard_test.go` and `apps/desktop/hostrace_test.go`; the decision is The rule.
 
 ## The problem it solves
 

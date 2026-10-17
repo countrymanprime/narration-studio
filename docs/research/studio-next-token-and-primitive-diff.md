@@ -116,7 +116,7 @@ The mock's primitives are in `docs/research/mockups/studio-next/src/ui/primitive
 | `Radio`, `RadioGroup` | `RadioGroup.tsx` | Present |
 | `Input` | `TextField.tsx` (and `SearchField.tsx` for search) | Present; raw `input` use is ratcheted by `rawNatives.test.ts` |
 | `Textarea` | `Field.tsx` with `textarea` | Present as a mode of `Field`, not a leaf |
-| `Select` | `Select.tsx` | Present; the repo wraps the native element ([ADR 0008](../adr/0008-the-ui-is-react-and-tailwind-over-base-ui-primitives.md)), the mock's wraps Base UI |
+| `Select` | `Select.tsx` | Present; the repo wraps the native element ([Base UI wrappers](../design/design-system.md#base-ui-wrappers)), the mock's wraps Base UI |
 | `Slider` | **missing** | SNF-5a, wraps Base UI (SNF-Q4) |
 | `NumberInput` | **missing** | SNF-5b, wraps Base UI (SNF-Q4) |
 | `FieldRow` | `Field.tsx` | Closest; the Settings row layout is page-level in the repo |

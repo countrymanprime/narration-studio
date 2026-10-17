@@ -73,8 +73,10 @@ The layout and its test rule are recorded in
 
 ## Supported platforms
 
-Windows x64 only, for now. macOS and Linux builds were removed until the app is steadier or someone uses those systems
-([ADR 0002](docs/adr/0002-windows-x64-is-the-only-supported-platform.md)).
+Windows x64 only, for now. That is about timing and maturity, not a design limit: the app is still changing quickly, and the
+owner has no Mac or Linux machine to test on, so macOS and Linux builds were removed rather than shipped untested. The Go code still
+builds on Linux as a development host. If you use macOS or Linux and want to help find and fix bugs there, say so in an issue:
+with someone testing on those systems, non-Windows builds can come back.
 
 ## Install on Windows
 

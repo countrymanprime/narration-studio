@@ -2,7 +2,7 @@
 
 **Status: Part A is scripted and its run on the owner's machine is pending; Part B has not run.** The owner runs it. Until it has run, every command below stays Experimental: the host refuses to send it unless the narrator turns its capability on, with its own `DAW.capability.<name>` setting or, for one left on `auto`, the **Experimental REAPER actions** switch (`DAW.experimental_reaper_actions`, off by default; owner decision D38, [resolver.go](../../apps/desktop/internal/dawport/resolver.go)).
 
-The harness ([ADR 0004](../adr/0004-every-daw-is-reached-through-one-port.md), `integrations/reaper/tests`) proves each command's logic, refusals and events against a fake REAPER. It cannot prove what REAPER itself does with a call. This pass checks that, command by command, in a real REAPER. The calls and what the reference leaves open are in [the ReaScript calls behind the planned commands](../research/reaper-api-for-planned-commands.md).
+The harness ([The DAW port](../architecture/daw-integration.md#the-daw-port), `integrations/reaper/tests`) proves each command's logic, refusals and events against a fake REAPER. It cannot prove what REAPER itself does with a call. This pass checks that, command by command, in a real REAPER. The calls and what the reference leaves open are in [the ReaScript calls behind the planned commands](../research/reaper-api-for-planned-commands.md).
 
 ## Rules
 
@@ -122,7 +122,7 @@ A command passes when every row that names it passes and the report is recorded.
 Then, in one PR:
 
 1. Record the run here (a "Verification record" section: date, REAPER version, OS, the report, every value that differed from the fake) and correct the fake to match.
-2. Take the command off the host's experimental list (`experimentalCommands` in `apps/desktop/internal/bridge/actions.go`) and move its capability's declaration in `apps/desktop/internal/dawport/reaper/reaper.go` to Supported, in the same PR ([The REAPER verification pass](reaper-verification-pass.md)), so it no longer needs to be turned on. A command whose row failed stays on the list,, with the finding recorded here.
+2. Take the command off the host's experimental list (`experimentalCommands` in `apps/desktop/internal/bridge/actions.go`) and move its capability's declaration in `apps/desktop/internal/dawport/reaper/reaper.go` to Supported, in the same PR, so it no longer needs to be turned on. A command whose row failed stays on the list,, with the finding recorded here.
 3. Update the threat model rows that say "pending" for it.
 
 `pickups` is Supported already, so C8 and C9 promote nothing: a failure there is a bug to fix. Which command is promoted when is in [the promotion plan](../research/studio-next-daw-promotion-plan.md).

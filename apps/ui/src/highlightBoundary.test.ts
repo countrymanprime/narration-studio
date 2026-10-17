@@ -10,7 +10,7 @@ import { describe, expect, test } from 'vitest';
 // as JSX. A tag held in a variable (`const Tag = 'mark'`) or passed as a prop (`as="mark"`) is not seen.
 //
 // A test and not an ESLint `no-restricted-syntax` rule: the config-protection hook of the tooling refuses edits
-// to `eslint.config.js`, and ADR 0008 already keeps the Base UI boundary in this style, with a
+// to `eslint.config.js`, and docs/design/design-system.md#base-ui-wrappers already keeps the Base UI boundary in this style, with a
 // bad fixture per form of the violation. Should the lint rule be wanted later, the selector is
 // `JSXOpeningElement[name.name='mark']`.
 const HOME = 'src/components/primitives/Highlight.tsx';
