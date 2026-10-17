@@ -40,6 +40,7 @@ import { activePid } from '../ribbon/ribbonLayout';
 import { useEditingPage } from '../script/EditingPageState';
 import { NO_TEXT, ScriptDoc } from '../script/ScriptDoc';
 import type { StackLine } from '../stack/types';
+import type { ManuscriptChapter } from '../../../types';
 import { useStackRetries } from '../stack/useStackRetries';
 import { TimelineStrip, type TimelineStripProps } from '../strip/TimelineStrip';
 import { useKeepTakes } from '../takes/keepTake';
@@ -65,6 +66,7 @@ import { IconButton } from '../../primitives/IconButton';
 import { registerTakeControl } from '../takes/takeControls';
 import { InHost, rowOf } from './InHost';
 import { NoAudioBanner } from './NoAudioBanner';
+import { useRecordingCheck } from './useRecordingCheck';
 import { useLines } from './useLines';
 
 /** The page state a chapter change keeps: the strip and the drawer stay as the narrator left them. */
@@ -100,8 +102,12 @@ export interface EditingBodyProps {
   onCuts: Parameters<typeof useCutWords>[0]['onCuts'];
   onEffects: Parameters<typeof useFxWords>[0]['onEffects'];
   onAccepted: () => void;
-  /** Reads the chapter again (the no-audio banner's Read again). */
+  /** Reads the chapter again (the no-audio banner's Read again, and when the recording check closes). */
   onReread: () => void;
+  /** The chapter's manuscript record, which the recording check needs; absent until the chapter list is read. */
+  checkChapter?: ManuscriptChapter;
+  /** Opens the manuscript text at a paragraph (the recording check's passage links). */
+  onGoToParagraph: (index: number) => void;
   caps: DawCapabilities | null;
   keymap: Keymap;
   /** The window is 1360 px or wider: the strip fits and the timeline is not a drawer tab. */
@@ -147,6 +153,7 @@ export function EditingBody(props: EditingBodyProps) {
   const root = useRef<HTMLDivElement>(null);
   const scriptBox = useRef<HTMLElement | null>(null);
   const lines = useLines(chapterId, read.workspace);
+  const check = useRecordingCheck({ chapter: props.checkChapter, onClosed: props.onReread, goToParagraph: props.onGoToParagraph });
 
   // Playback: the chapter on the document's clock, and a take on its own.
   const playback = useScriptPlayback({ playlist, mediaUrl: tracks.mediaUrl });
@@ -452,7 +459,7 @@ export function EditingBody(props: EditingBodyProps) {
             <ScriptHost box={scriptBox} root={root}>
               {doc.paras.length ? (
                 <FxMarkersContext.Provider value={fxMarkers}>
-                  <ScriptDoc reason={reason} explained={read.audio.kind !== 'ready'} />
+                  <ScriptDoc reason={reason} explained={read.audio.kind !== 'ready'} onCheckRecording={check.open} />
                 </FxMarkersContext.Provider>
               ) : (
                 // The page's own empty state, so its heading sits under the page's h1.
@@ -461,6 +468,7 @@ export function EditingBody(props: EditingBodyProps) {
                 </div>
               )}
             </ScriptHost>
+            {check.panel}
             {panels.strip.open && stripFits ? <TimelineStrip {...stripProps} /> : null}
             <SelectionBar playback={playback} end={total} narrow={compact} />
             <div className="sticky bottom-0 z-[5]">

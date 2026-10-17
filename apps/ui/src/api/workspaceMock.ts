@@ -240,8 +240,10 @@ export function createWorkspaceMock(deps: Deps): Omit<WorkspaceApi, 'workspaceTa
         items: [],
       };
       const chapter = deps.chapters().find((candidate) => candidate.id === chapterId);
-      if (!chapter || result.state === 'never') return base;
+      if (!chapter) return base;
       const chapterParagraphs = deps.paragraphs().filter((paragraph) => paragraph.chapterId === chapterId);
+      // Nothing checked yet: the chapter still reads its script, with nothing heard (as the host answers).
+      if (result.state === 'never') return { ...base, paragraphs: chapterParagraphs.map(({ id, text }) => ({ id, text })) };
       const liveItem = mockLiveItem(deps, chapterId);
       const { tokens, extras } = mockTokens(chapterParagraphs, result.result, liveItem?.index);
       const resolvedExtras = extras.map((extra) => ({

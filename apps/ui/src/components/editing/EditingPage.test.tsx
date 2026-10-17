@@ -134,6 +134,19 @@ describe('EditingPage', () => {
     expect(document.querySelectorAll('[data-st="mis"], [data-st="extra"]')).toHaveLength(0);
   });
 
+  it('a-chapter-never-checked-offers-to-check-its-recording-and-reads-again-when-the-check-closes', async () => {
+    const api = pageApi({ heard: false });
+    const workspaceAlignment = vi.spyOn(api, 'workspaceAlignment');
+    mount({ api });
+    await script();
+    const first = workspaceAlignment.mock.calls.length;
+    fireEvent.click(await screen.findByRole('button', { name: 'Check recording' }));
+    const panel = await screen.findByRole('dialog');
+    expect(panel).toBeTruthy();
+    fireEvent.click(within(panel).getByRole('button', { name: /close/i }));
+    await waitFor(() => expect(workspaceAlignment.mock.calls.length).toBeGreaterThan(first));
+  });
+
   describe('a-chapter-with-no-audio-says-why-and-where-to-fix-it', () => {
     const unlinked = noAudioApi('unlinked');
     const banner = () => document.querySelector<HTMLElement>('#noaudio');

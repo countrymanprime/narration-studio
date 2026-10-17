@@ -80,7 +80,9 @@ export const editingDrivers: Record<string, Driver> = {
     await openEditing(page, LINKED);
     await page.getByRole('button', { name: /^Chapter: .*Change chapter$/ }).click();
     await page.getByRole('menuitemradio', { name: /^Chapter 7\b/ }).click();
-    await page.getByRole('heading', { name: 'This chapter has no text yet.' }).waitFor();
+    // Nothing was checked and the fixture leaves the chapter without a track: the script still reads, plain, under the no-audio banner.
+    await page.getByRole('textbox', { name: 'Script with what was heard' }).waitFor();
+    await page.locator('#noaudio').waitFor();
   },
   unlinked: async (page) => {
     await page.goto('/?mockChapterLink=none');

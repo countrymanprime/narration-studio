@@ -8,7 +8,12 @@
   "extras": null,
   "items": null,
   "needsAlignAgain": false,
-  "paragraphs": null,
+  "paragraphs": [
+    {
+      "id": "p-000001",
+      "text": "Alice was beginning to get very tired."
+    }
+  ],
   "reasons": [],
   "state": "never",
   "tokens": null

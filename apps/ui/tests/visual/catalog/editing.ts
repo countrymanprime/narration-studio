@@ -66,7 +66,7 @@ export const editingStates: StateEntry[] = [
     page: 'editing',
     state: 'never-checked',
     description:
-      'Editing on Chapter 7, never checked - the alignment of a chapter never checked carries no paragraphs (the host’s as well as the mock’s), so the page says the chapter has no text yet; the bar stays',
+      'Editing on Chapter 7, never checked - the alignment of a chapter never checked carries the chapter’s paragraphs and nothing heard (the host’s as well as the mock’s), so the script reads plain; the fixture also leaves Chapter 7 without a track, so the no-audio banner shows and the bar stays',
   },
   {
     page: 'editing',

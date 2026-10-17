@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { act, cleanup, fireEvent, render, screen } from '@testing-library/react';
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { EditingPageProvider, useEditingPage } from './EditingPageState';
 import { NO_TEXT, ScriptDoc, type ScriptDocProps } from './ScriptDoc';
 import { docFromHeard } from './docFromHeard';
@@ -86,6 +86,24 @@ describe('not-transcribed-state', () => {
   it('shows no pill once words were heard', () => {
     show(marksDoc());
     expect(screen.queryByText('Not transcribed yet')).toBeNull();
+  });
+  it('offers Check recording beside the pill, and a press asks the page to check', () => {
+    const onCheckRecording = vi.fn();
+    const answer = notTranscribed();
+    show(docFromHeard(PARAS, answer), { reason: answer.heard ? null : answer.reason, onCheckRecording });
+    fireEvent.click(screen.getByRole('button', { name: 'Check recording' }));
+    expect(onCheckRecording).toHaveBeenCalledTimes(1);
+  });
+  it('offers no check without a way to run one, once words were heard, or when the page already says there is no audio', () => {
+    const answer = notTranscribed();
+    show(docFromHeard(PARAS, answer));
+    expect(screen.queryByRole('button', { name: 'Check recording' })).toBeNull();
+    cleanup();
+    show(marksDoc(), { onCheckRecording: vi.fn() });
+    expect(screen.queryByRole('button', { name: 'Check recording' })).toBeNull();
+    cleanup();
+    show(docFromHeard(PARAS, answer), { explained: true, onCheckRecording: vi.fn() });
+    expect(screen.queryByRole('button', { name: 'Check recording' })).toBeNull();
   });
 });
 
