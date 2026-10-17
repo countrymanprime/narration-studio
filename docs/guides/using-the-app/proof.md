@@ -14,7 +14,7 @@ the Inspector on the right for the selected note. The keys you can press are lis
 
 ![Proof - all chapters: the cleared ring, the chapter strip of open notes, the notes queue grouped by chapter and the Inspector on the first note](../../images/ui/proof-default.webp)
 
-Proof is always in the navigation. Until a manuscript is imported it asks you to import one. Until a check has found
+Proof is always in the navigation, with a count of the notes still open beside it. Until a manuscript is imported it asks you to import one. Until a check has found
 something, there is no ring, every chapter in the strip is empty and the Inspector says **No notes yet**.
 
 ![Proof - no notes yet](../../images/ui/proof-empty.webp)
@@ -155,8 +155,7 @@ why.
 
 The footer lists them, and you can change them in [Settings](settings.md). Space is not a Proof key.
 
-Proof has no decision history list and no **Play ±3 s**. Finding the lines you recorded more than
-once and comparing their takes are not on Proof: choosing a take is on [Editing](editing.md).
+Choosing between takes is on [Editing](editing.md), not on Proof.
 
 ## Delivery checks
 
@@ -173,11 +172,10 @@ last measurement again, and the list follows it.
 
 ## The chapter view
 
-A chapter's Proof view, at `/proof/:chapterId`, holds what the chapter page had besides its workspace, which the
-[Editing](editing.md) page replaced: the recording check's state, the comparison with the manuscript, the Preview
+A chapter's Proof view, at `/proof/<chapter>`, holds the recording check's state, the comparison with the manuscript, the Preview
 panel, the readiness panel and, with the built-in recorder, the native takes. It has no nav item of its own; open it from a
-linked chapter's **Open in Proof** link in the [audio engine panel](navigation.md#linking-chapters-to-tracks), a chapter's
-Proof cell or **Open Proof** in its row's menu on [Production](production.md). Its
+linked chapter's **Open in Proof** link in the [audio engine panel](navigation.md#linking-chapters-to-tracks), **Open Proof** in a
+chapter row's menu on [Production](production.md). Its
 notes and its recording check card are on [Proof](#one-chapter); listening to the chapter against its script, its flags, effects and
 takes are on [Editing](editing.md).
 
@@ -208,7 +206,7 @@ Large model doesn't support Auto).
 
 Vocabulary hints teach the transcription model unusual names it's likely to mis-hear. The pills box is
 the input: type a name and press Enter or a comma to add it, click elsewhere to commit whatever you were
-typing, or press Backspace in an empty box to remove the most recently added term. Pasting a list with
+typing, or press Backspace in an empty box to remove the last term you added. Pasting a list with
 commas or line breaks adds every name in it at once. A name already there in any case is not added twice,
 and a term over 64 characters is capped. The sparkle icon inside the box, "Suggest from manuscript",
 proposes candidates from the [Story Bible](story-bible.md); accepted hints render as solid pills,
@@ -231,8 +229,7 @@ marker [Add marker in the DAW](#going-to-a-note-in-the-daw) adds for one accepte
 mark a spot twice. **New comparison** starts over. **Last narrated take: …**, at the top of the setup, reopens the last completed
 comparison; Export markers is off while you review it.
 
-Leaving the chapter view while a run is under way or showing results resets the run, the same way
-leaving used to reset the Proofing page's own run.
+Leaving the chapter view while a run is under way or showing results resets the run.
 
 Below the compare run, the Preview panel suggests up to three five-minute excerpts from the manuscript
 — one per chapter — so you don't have to scan the whole book to find a stretch worth listening to or

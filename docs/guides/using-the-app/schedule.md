@@ -12,9 +12,10 @@ step you can undo from the toast that follows it or from the undo history.
 ## The verdict
 
 The pill at the top right says **On track**, **Tight** or **Behind**, with when the work would finish at your pace and, when you
-are behind, the daily pace the due date needs. The days left to the due date set it: with three days to spare or more it is
-on track, with less than three it is tight, and once the work needs more days than are left it is behind. A book whose chapters
-are all delivered reads **Finished**, whatever the date.
+are behind, the daily pace the due date needs. It compares the days to the due date with the days of work left at your pace. With
+three days to spare or more it is on track, with less than three it is tight, and once the work needs more days than are left it is
+behind. A due date within seven days of an unfinished book never reads better than tight. A book whose chapters are all delivered
+reads **Finished**, whatever the date.
 
 The line under the title reads the days plainly: **8 days left**, **1 day left**, **today** (after the date), **2 days overdue**. Once the due
 date is today or past, no daily pace can reach it, so the pill says how late instead of a pace.
@@ -25,7 +26,7 @@ date is today or past, no daily pace can reach it, so the pill says how late ins
 
 **How this is worked out** lists the recording, editing and proofing left, the pickups still open, and their sum, **Work left**.
 The numbers behind it are fixed, not measured from your sessions: finished audio is words ÷ 9,300 per hour, recording takes 3×
-the finished hours, editing 2.1× and proofing 0.94×, a pickup takes about 4 minutes, and your pace is 1.5 hours a day. **At your
+the finished hours, editing 2.1× and proofing 0.94×, a pickup takes 0.06 hours (3.6 minutes), and your pace is 1.5 hours a day. **At your
 pace, done** is today plus the work left divided by that pace.
 
 The chart, **Recorded audio vs plan**, draws the plan as a dashed line to the due date, the recorded days as a solid line when
@@ -33,8 +34,8 @@ the app can read them (otherwise it says why it cannot), today, and the estimate
 
 ## Contract
 
-**Paid** is how the book pays: per finished hour, a royalty share, or none or unspecified. Only a rate per finished hour carries
-an amount. Type it in the **Amount** box and press Enter or leave the box; **Value at this rate** is the rate times the book's finished
+**Paid** (the **How you are paid** menu) is how the book pays: per finished hour, a royalty share, or none or unspecified. Only a rate per finished hour carries
+an amount. Type it in the **Amount** box (named **Rate per finished hour**) and press Enter or leave the box; **Value at this rate** is the rate times the book's finished
 hours. An empty box clears the amount. An amount is digits with an optional decimal part, and thousands commas only in groups
 of three (`1,250.50`), up to 1,000,000,000,000. Anything else, such as `-5`, `1e3`, `1,5` (which could mean 15) or a rate larger than that, is
 refused with a message and the box goes back to the stored amount. A refusal's message goes away when a later change is saved. Choosing a royalty share or none clears the amount.
@@ -45,8 +46,8 @@ The table lists your milestones by date, with the **Final delivery** row, the bo
 
 - a **done** toggle. A done milestone reads **Done** and is never estimated.
 - a name, what it **measures** (a custom milestone measures nothing), and its date.
-- a status cell: **Late by 3 d**, **At risk** or **On track** with the estimated date, or **Not estimated** for a custom one.
-  Hover or focus it for the full sentence.
+- a status cell: a check for a done milestone, **+3 d** when the estimate is 3 days late, the estimated date when the milestone is on track or at risk (within a day of its date), or a dash for a custom one.
+  Hover or focus it for the full sentence ("Late by 3 d (est. Oct 24)", "At risk", "On track", "Not estimated").
 - a note button (hover it to read the note; with no note it offers to add one), **Edit** and **Remove**. Removing offers Undo.
 
 ![Schedule - the Add milestone dialog: name, due date, what it measures, a note and Done](../../images/ui/schedule-milestone-dialog.webp)
@@ -57,7 +58,7 @@ milestones, a name is at most 200 characters and a note 2,000; when a save is re
 
 ## The due date
 
-Type the date in the **Final delivery** row as `YYYY-MM-DD` and press Enter or leave the box. It must be a real date in the years
+Type the date in the **Final delivery** row's **Delivery due** box as `YYYY-MM-DD` and press Enter or leave the box. It must be a real date in the years
 1000 to 9999: `2026-02-30` and `10/14/2026` are refused with a message. Emptying the box clears the due date, and the page says **No
 due date set**. A due date in the plan that is not a real date (the file was edited by hand) is named in the header and treated as no
 due date.

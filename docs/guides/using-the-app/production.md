@@ -20,12 +20,13 @@ being recorded, or says why it cannot when the audio engine cannot record.
 
 With no manuscript imported yet, the page is the import: **Import manuscript** opens the file
 picker (see [Importing the manuscript](#importing-the-manuscript)), and the calendar icon opens
-[Schedule](schedule.md) to set a due date first. To replace a manuscript later, use
-[Settings](settings.md).
+[Schedule](schedule.md) to set a due date first. To replace a manuscript later, use **Replace manuscript…** in the Manuscript panel
+of [Settings](settings.md).
 
 When the audio engine is not running, a line at the top says progress that comes from it may be
 out of date, with **Retry** and **Use built-in recorder**. **Retry** checks again: the line goes
 once the engine is running, and if it still is not, a message asks you to start it and try again.
+**Use built-in recorder** opens [Settings](settings.md).
 
 ## The figures
 
@@ -52,7 +53,7 @@ A figure with nothing honest to work from says "Not measured yet" and why, rathe
 
 ## The stage timer
 
-The stage timer stays as it was. **Start timer**, on the Next up item of the chapter being
+**Start timer**, on the Next up item of the chapter being
 recorded, starts timing that chapter's current stage. While a timer runs, a chip in the header of
 every page counts its time and names the chapter ("0:42:07 · timer on Chapter 6"), and **Stop
 timer** is in this page's header. Only one timer runs at a time: stop it before you start
@@ -68,7 +69,7 @@ from.
 
 **Next up** lists what to do next, ranked by the hours of work it puts at risk: finishing the
 chapter being recorded (with **Open Booth** and **Start timer**), a pickup session when the
-Pickups list has open lines (naming the chapters they are in), and the first chapter whose
+Pickups list has open lines (naming the chapters they are in, with **Review pickups**, which opens [Pickups](pickups.md)), and the first chapter whose
 measured file fails the delivery check, with each failed check, its value and its limit
 ("noise floor −57.8 dBFS (limit ≤ −60 dBFS)") and **Inspect failed check**, which opens
 [Master & QC](master-and-qc.md). It reads "Nothing needs you right now" when there is nothing to list.

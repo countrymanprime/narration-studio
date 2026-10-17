@@ -21,7 +21,7 @@ A custom profile's name, its limits (a lowest and a highest box each) and its lo
 place; the change is saved when you press Enter or leave the box, and a rule it turned off reads **Off**. A
 blank name or a limit that is not a number is ignored and the box shows the saved value again. If the lowest
 is above the highest, or the host refuses the change for another reason, its sentence appears under the card
-and the box shows the saved value again. To make a custom profile, duplicate ACX in [Settings, Delivery](settings.md);
+and the box shows the saved value again. To make a custom profile, duplicate ACX in [Settings, Delivery profiles](settings.md);
 turning a rule off and deleting a profile are there too. If you had set your own limits before delivery
 profiles, they were moved into a custom profile named **Your limits** (or ACX, when they were ACX's numbers),
 so your files are judged the same way as before.

@@ -135,7 +135,7 @@ per-project preference) remembers the microphone, live engine and model you last
 [Booth](booth.md), and changing them here changes what the Booth starts with. The engine is Whisper
 (the default) or Moonshine; the model is `tiny` or `small` for either. Choosing Moonshine does not download
 its model: the Booth asks the first time you start reading with it. **Punch pre-roll (seconds)** is how far
-before the word a punch-in starts. Old links to it by its former name, Teleprompter, still open it.
+before the word a punch and roll starts.
 
 The **Project data** panel is a project-only danger zone: **Clear derived project data…**
 removes the imported manuscript and its stored source, the Story Bible, proofing artifacts, reader notes and
@@ -248,7 +248,7 @@ replacing the manuscript keeps it; if its lines are gone, the panel says so and 
 
 The **Local assets** panel lists every optional download Narration Studio can keep on this computer: preview
 voices, Whisper models for proofing comparisons, the language model the Story Bible uses, the dictionary the Script reader's
-Look up reads and the [Story Bible analysis](#settings) tools. Nothing here downloads by itself, and
+Look up reads and the Story Bible analysis tools. Nothing here downloads by itself, and
 removing one never touches your settings or projects. The page also shows how much disk the installed ones use and the folder they
 are kept in.
 
@@ -288,8 +288,8 @@ after updates.
   checks it against the release's checksum. You can cancel while it downloads; the checks and unpacking after it cannot be
   cancelled, and the dialog says so.
 - **Install and restart** asks again, then closes Narration Studio and starts it again on the new version with the same
-  project. It will not install while an import, a Story Bible build, a download, a comparison or a teleprompter session is
-  running: finish or stop it and try again. If the new version does not start, the previous one comes back by itself.
+  project. It will not install while an import, a Story Bible build, a download, a comparison or a Booth listening session
+  (the message calls it a teleprompter session) is running: finish or stop it and try again. If the new version does not start, the previous one comes back by itself.
 - If Narration Studio is installed somewhere it is not allowed to change (for example under Program Files) it says so and
   offers **Show the downloaded file**, so you can replace the program yourself. It never asks for administrator rights.
 - **Release notes** opens the release page in your browser.

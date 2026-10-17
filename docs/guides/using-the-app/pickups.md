@@ -3,8 +3,8 @@
 # Pickups
 
 Pickups lists every line to record again, so you can gather them into one session in the [Booth](booth.md). It sits
-under **Review** in the sidebar, after [Proof](proof.md). The page records nothing itself: it has no punch and does not
-move the DAW's cursor. Each line opens in the Booth, where you record it.
+under **Review** in the sidebar, after [Proof](proof.md). The page records nothing itself: each line opens in the Booth,
+where you record it. The count beside Pickups in the navigation is the number of lines still open.
 
 ## Where the lines come from
 

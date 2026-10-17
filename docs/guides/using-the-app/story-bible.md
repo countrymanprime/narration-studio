@@ -3,7 +3,7 @@
 # Story Bible
 
 Story Bible tracks every character, place, and organization extracted from the manuscript,
-with pronunciation, aliases, and narration notes. Each entry is a row of two lines: its name, then its kind in the kind's colour (an entry whose kind the host could not tell is marked **Review**) with how many names it has (its own and each alias) and how many chapters it appears in. The kind chips over the list filter it, the search box finds an entry by any of its names, the menu beside it sorts by name, type or chapters, and the Up and Down keys move through the rows. Right-click a row (or press the Menu key on it) for **Open**, **Find in the manuscript**, **Mark reviewed** (when the entry needs it) and **Delete entry**; Delete asks first, and a locked entry says it has to be unlocked. The buttons under the title scan the manuscript, import entries, open Voice data, build or refresh the Story Bible, and add an entry; the **Entries** and **Series** tabs sit below them. With no manuscript imported the page asks for one. If the list of kinds or the chapters cannot be read, a line under the filters says so with **Check again**, and an entry that cannot tell whether its type speaks says the same; the rest of the page keeps working.
+with pronunciation, aliases, and narration notes. Each entry is a row of two lines: its name, then its kind in the kind's colour (an entry whose kind the host could not tell reads **Type not set** and carries a **Review** pill) with how many names it has (its own and each alias) and how many chapters it appears in. The kind chips over the list filter it, the search box finds an entry by any of its names, the menu beside it sorts by name, type or chapters, and the Up and Down keys move through the rows. Right-click a row (or press the Menu key on it) for **Open**, **Find in the manuscript**, **Mark reviewed** (when the entry needs it) and **Delete entry**; Delete asks first, and a locked entry says it has to be unlocked. The buttons beside the title are **Scan the manuscript for suggestions**, **Import entries (CSV or JSON)**, **Voice data**, **Build / refresh Story Bible** and **Add entity**; the **Entries** and **Series** tabs sit below them. With no manuscript imported the page asks for one. If the list of kinds or the chapters cannot be read, a line under the filters says so with **Check again**, and an entry that cannot tell whether its type speaks says the same; the rest of the page keeps working.
 
 ![Story Bible filtered to the Character kind](../../images/ui/storybible-characters.webp)
 
@@ -14,7 +14,7 @@ button that opens it in the [Script](script.md). The kind beside the name is a p
 magnifier button opens the Script's Find on the name. Press Edit (the pencil) to change the entry, then Save
 (or Cancel). Read-only, the entry shows no add-a-name box and no add-a-relationship row; Edit brings them in. Locked entries can't be edited until
 unlocked. Rebuilding is deliberately strict: it favors missing a name over listing ordinary
-words, so add unusual names by hand with the + button.
+words, so add unusual names by hand with **Add entity** (the + button).
 
 ![Story Bible entity detail panel](../../images/ui/storybible-entity.webp)
 
@@ -33,8 +33,8 @@ Script lists them too.
 
 ![Story Bible - an entry in edit mode, with Save and Cancel shown](../../images/ui/storybible-entry-editing.webp)
 
-Entries the build isn't sure what kind they are get the **Needs Review** kind, in the review colour;
-choose the right kind from the menu beside the name. An entry or a name the build flagged shows a
+Entries the build isn't sure what kind they are show **Needs Review** as their kind, in the review colour, and
+**Type not set** in the list; choose the right kind from the menu beside the name. An entry or a name the build flagged shows a
 **Review** pill in the list and **Needs review** with a **Mark reviewed** button in its header. The
 **Needs review** chip under the kind chips shows only these entries and the ones with suggestions waiting.
 
@@ -169,12 +169,10 @@ There is no acoustic comparison here either - no drift evidence against another 
 audition. It's the same reference-clip bookkeeping as the Character entry's own Reference clips
 section, just pooled across the books that share a character.
 
-| Message | What it means | What to do |
-| --- | --- | --- |
-| "... could not be spoken: the voice produced no audio for it" | The name is only punctuation or symbols, so the voice has nothing to say. | Preview an alias that has letters in it, or ignore the preview for this name. |
-| "The preview voice could not be loaded" | The downloaded voice is damaged or missing files. | In Settings, under TTS, choose "Remove local voice", then press play to download it again. |
-| "The preview took longer than 2m0s and was stopped" | The helper that speaks the name did not finish. | Try again. If it keeps happening, restart the app. |
-| "configure the Manuscript Guide executable" | The helper that builds the Story Bible was not found. | Reinstall the app. A build run from source needs its Manuscript Guide sidecar built first. |
+## When a build does not start
+
+A build that says "configure the Manuscript Guide executable" could not find the helper that builds the Story Bible. Reinstall the
+app. A build run from source needs its Manuscript Guide sidecar built first.
 
 ---
 

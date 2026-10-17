@@ -39,7 +39,8 @@ profile needs could not be measured), or **Waiting** / **Not measured**. A value
 profile's rule is red with a cross; a value the app could not measure (a silent render, or a file too
 short) is a dash, never a number, and never counted as met. A file not measured yet, or one that could not
 be read, says so in place of its values. The table opens on the first file that fails; the arrow keys move
-between files and Enter selects one. Right-click a row for the same actions as the buttons below it.
+between files and Enter selects one. Right-click a row for the same actions as the buttons below it. Next to the title, the chapter
+stepper (previous and next arrows, and the chapter list) moves the selection to the file of another chapter.
 
 ![Three files checked against ACX: a 48 kHz render selected with why it fails](../../images/ui/master-measured.webp)
 
@@ -92,8 +93,7 @@ moves the selection to the file it names.
 **Mastering chain** shows the chain the book masters with, as its steps in order: the built-in chain's
 **EQ** (a high-pass at 80 Hz), **Limiter** (peaks held 0.5 dB under the platform's peak limit) and **Gain**
 (toward the platform's RMS target). It is one chain for the book, the same for every platform, with each
-platform's own numbers. It is fixed and cannot be edited. The app does not yet play a file raw and mastered
-side by side.
+platform's own numbers. It is fixed and cannot be edited.
 
 ## Mastering to spec
 

@@ -12,7 +12,7 @@ three parts side by side:
   to those credits in the reader, and its dot is the prep state you set on them.
 - **The reader** in the middle: the whole book as one scrolling text. Each chapter starts with a dashed line that ends
   the one before ("End of chapter 1 · 2,140 words"), then a card with the chapter's label and title, its word count,
-  its finished audio, its marks and open queries, and **My prep**, where you set the chapter's prep state.
+  its finished audio, its marks, open queries and words without a pronunciation, and **My prep**, where you set the chapter's prep state.
   Your marks are drawn in the text in their own colours, a speaker's lines carry a chip with their name, and Story Bible
   names are underlined. The header names the chapter in view and the line you are on, and has **Bookmarks**, **Find**
   (Ctrl+F) and the **text settings** (font, size, line spacing and column width).
@@ -24,7 +24,7 @@ credits included); **B**
 bookmarks the line; **Alt+[** **Alt+]** go to the previous or next bookmark; **Ctrl+F** opens Find. A key you rebind
 under **Keyboard & pedals** in [Settings](settings.md) shows its new key here.
 
-At 1280 px and narrower the rail opens as a drawer over the text from the header's side panel button, and below 1180 px the
+At 1280 px and narrower the rail opens as a drawer over the text from the header's **Words, Story Bible and marks** button, and below 1180 px the
 chapter list does the same from its **Chapters** button.
 
 An old link to the Manuscript page (`/manuscript`, with a line or chapter after `#`) still works: it opens the Script
@@ -95,7 +95,7 @@ contents and back matter (endnotes, glossary, and the like) are recognized from 
 markup and kept out of the narration chapters, the same as a Word document's front matter. A
 plain-text file with no chapter markings, or an EPUB with no table of contents or headings,
 still imports as one narration chapter rather than failing or importing nothing narratable — the
-import log says so. Re-import a manuscript (Replace manuscript on [Production](production.md#importing-the-manuscript)) to pick this up in an older project.
+import log says so. Re-import a manuscript (**Replace manuscript…** in the Manuscript panel of [Settings](settings.md); the dialog is described under [Importing the manuscript](production.md#importing-the-manuscript)) to pick this up in an older project.
 
 **Opening credits** sit above the first chapter and **Closing credits** after the last chapter's text, when the
 credit template library (Settings, This Project, [Credits](settings.md#credits)) has an opening or a

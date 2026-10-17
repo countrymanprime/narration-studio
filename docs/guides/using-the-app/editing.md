@@ -61,6 +61,13 @@ clears the mark (with Undo in the message that confirms it).
 
 ![Editing - four words selected: the floating toolbar under them, the bar naming the selection with its times, and the line's audio](../../images/ui/editing-selection.webp)
 
+## Turning on the editing actions
+
+**Delete words and audio**, **Add FX** and **Mute** change the DAW's project, and REAPER's versions of them are
+Experimental. They start switched off: the buttons are dimmed, and their tips read "Experimental: switched off in
+Settings." To use them, open [Settings](settings.md#daw-integration), choose **DAW Integration** and turn on **Experimental
+REAPER actions**, or set the rows you want, such as **Cut words and audio** and **Add an effect to words**, to `on`.
+
 ## Deleting words and their audio
 
 **Delete words and audio** (Delete) asks first. The question names the words, where the cut starts and ends (moved to

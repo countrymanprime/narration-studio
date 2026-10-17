@@ -177,12 +177,12 @@ Credits settings. You can still record.
 The Companion is a narrow panel pinned beside your DAW. Open it with **Open Companion** in the jump menu (its key is in the shortcut sheet): the
 reading session, with REAPER's playhead in its header, the script in its own scroll box, the reading controls and the hotkeys
 that work while the panel has focus. **Full app** (or Escape twice) brings the Booth back on the same chapter. **Pickups** in the
-panel shows the [Pickups](pickups.md) list: how many are left and the one you last jumped to. The note at the playhead has its
-place in the panel and is coming later.
+panel shows how many [Pickups](pickups.md) are left ("2 pickups remaining of 3"); you jump to one or mark it done on the Pickups page. The
+panel also has a **Note at playhead** section, which reads **Coming soon**.
 
 ## Leaving the Booth
 
-Escape (when nothing is open on top of the Booth) takes you to Script. While a take is recording, every way out asks first
+Escape (when nothing is open on top of the Booth) takes you to Script, or to [Pickups](pickups.md) when the Booth was opened on a pickup session. While a take is recording, every way out asks first
 (Escape, Back, Forward, the setup chip, a link to another chapter): "Stop recording?" says the DAW is recording and leaving
 stops it. The take is held while the question is open. **Keep recording** stays; **Stop and leave** stops the recording and then leaves. If the DAW was already recording
 when you came in, the Booth did not start that take and does not stop it, and the question says so.
