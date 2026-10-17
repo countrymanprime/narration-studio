@@ -38,7 +38,7 @@ project's `.rpp` file is linked or changed:
 - **Amber dot, "A different project is open"**: the DAW has another project open than the linked one. Link the open project instead,
   or switch the DAW to the linked file.
 - **Quiet dot, "Open the engine panel to link a project file"**: nothing is linked yet.
-- **Built-in**: the project records in the app. Choose it with the **Recording** radios in [Settings](settings.md), where it is offered only when the app can capture audio.
+- **Built-in**: the project records in the app. Choose it with the **Recording** radios in [Settings](settings.md), where it can be chosen only when the app can capture audio.
 
 ## Moving around: Back and Forward
 
