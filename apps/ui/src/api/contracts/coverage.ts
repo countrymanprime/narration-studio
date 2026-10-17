@@ -110,6 +110,8 @@ export type CoverageStartOptions = {
   chunkSeconds?: number;
   /** How many seconds neighbouring chunks overlap, where their words are joined. */
   overlapSeconds?: number;
+  /** How many chapters one Check recordings run checks at once. Each start of the run names it, so the host allows that many in progress. */
+  chapters?: number;
 };
 
 /** One engine a recording check can run: an approved Whisper model (ADR 0841). Moonshine is the Booth's, not offered. */
@@ -124,6 +126,7 @@ export type CoverageRunDefaults = {
   workers: number;
   chunkSeconds: number;
   overlapSeconds: number;
+  chapters: number;
 };
 
 /** The engines a recording check can run, in catalog order, the id a start naming none would use (always listed) and

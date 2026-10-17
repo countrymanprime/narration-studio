@@ -63,6 +63,20 @@ export type CoverageSeed = {
   recheckAssetRequired?: boolean;
 };
 
+/** The engines the mock offers: the approved catalog, plus (when the seed stands for the cascade being on) the larger model the mock gates on, chosen from the start. */
+function enginesFor(deps: Deps): CoverageEngines {
+  const base = deps.engines();
+  if (!deps.seed?.recheckAssetRequired && !deps.seed?.cascade?.length) return base;
+  const missing = !!deps.seed?.recheckAssetRequired;
+  const larger = {
+    id: mockRecheckModelIdentity.id,
+    label: mockRecheckModelIdentity.displayName,
+    family: 'whisper' as const,
+    installState: missing ? ('not_installed' as const) : ('installed' as const),
+  };
+  return { ...base, engines: [...base.engines, larger], defaults: { ...base.defaults, recheck: true, recheckModel: larger.id } };
+}
+
 type Deps = {
   chapters: () => ManuscriptChapter[];
   assetRequired: () => AssetRequired | undefined;
@@ -416,7 +430,7 @@ export function createCoverageMock(deps: Deps): CoverageApi & {
       delete unmeasured.recordedFraction;
       return unmeasured;
     },
-    coverageEngines: async () => deps.engines(),
+    coverageEngines: async () => enginesFor(deps),
     coverageGapAccept: async (chapterId, gapId) => {
       const { gap, recordId } = reviewable(chapterId, gapId);
       const existing = gapReviews.get(gapKey(chapterId, gapId));
@@ -440,10 +454,10 @@ export function createCoverageMock(deps: Deps): CoverageApi & {
       return reviews;
     },
     coverageStart: async (chapterId, options?: CoverageStartOptions) => {
-      if (options?.model && !deps.engines().engines.some((engine) => engine.id === options.model)) {
+      if (options?.model && !enginesFor(deps).engines.some((engine) => engine.id === options.model)) {
         throw new Error('the selected Whisper model is not in the approved catalog');
       }
-      if (options?.recheckModel && !deps.engines().engines.some((engine) => engine.id === options.recheckModel)) {
+      if (options?.recheckModel && !enginesFor(deps).engines.some((engine) => engine.id === options.recheckModel)) {
         throw new Error('the selected re-check Whisper model is not in the approved catalog');
       }
       if (deps.seed?.refusal) return refuse(deps.seed.refusal);

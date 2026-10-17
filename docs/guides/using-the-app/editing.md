@@ -47,7 +47,8 @@ not in the saved project, or the track is empty) and opens the audio engine pane
 the built-in recorder there is no track to link, so the banner points at recording the chapter in the Booth. A chapter
 that was never checked has no heard words: the page shows its script plain, with a **Not transcribed yet** note and a
 **Check recording** button beside it that opens the chapter's recording check. Close the check and the page reads the chapter again, so
-what it found shows without a reload. The check never starts on its own.
+what it found shows without a reload. The check never starts on its own. The check's **Check options** (a closed section in its panel) are the same
+choices as [Check recordings](production.md#checking-a-chapters-recording) offers.
 
 ## Selecting words
 

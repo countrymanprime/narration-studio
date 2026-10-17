@@ -170,6 +170,7 @@ The `RecordingCoverage` settings tool, layered project over global over the buil
 | `parallel_workers` | 0 | number | Whisper processes working on a long item's chunks. 0 takes the model's own memory cap; a named number is kept up to the computer's processors |
 | `chunk_seconds` | 300 | choice | Each chunk's length. 0 transcribes an item whole, in one process |
 | `chunk_overlap_seconds` | 6 | number | The crossover: how much neighbouring chunks overlap, where their words are joined |
+| `parallel_chapters` | 1 | number | Chapters a Check recordings run checks at once (ADR 0865). Each is its own run; with workers left to the host they share the processors |
 
 The Settings page labels them **Proposed values, not yet calibrated**. They were chosen by a calibration:
 the synthetic fixtures run through the shipped path, 600 candidates, and five levels of simulated transcriber error.
@@ -271,12 +272,20 @@ flowchart LR
   Check recordings dialog, a press from a chapter's panel and a background check all call it, so the same chapter is checked the same way wherever it
   is started. The dialog shows the host's `defaults` (`CoverageEngines`) and sends every choice; a background check uses the settings alone and
   never downloads a model.
+- **Several chapters at once** ([ADR 0865](../adr/0865-several-chapters-are-checked-at-once-by-separate-runs-and-every-page-that-starts-a-check-offers-the-same-options.md)).
+  `coverage.Service` holds one job per run, each with its own sidecar, folder and state. A start is refused while `Request.Concurrent` runs are
+  already in progress (1 when it names none, the old rule) and while the same chapter is being checked. A Check recordings run names
+  its Chapters at once on every start, and the dialog keeps that many in progress, starting the next as each ends. `coverage:state` carries every run's
+  state with its run id and chapter, so a page keeps state by chapter (`useCoverageRuns`). With workers left to the host, each chapter gets
+  `cpus / chapters` processes. Cancel stops every run; a background check gives way to a narrator's start without touching the narrator's other runs.
+- **One set of options.** `RunOptions` draws the choices (model, larger model and score line, chunk length, processes, crossover, chapters at once) for
+  both the Check recordings dialog and a chapter's own check panel (Production, Proof and Editing), starting from `CoverageEngines.defaults`.
 - **What is not measured.** The chunked path is tested with real spawned processes and a fake model; no real-speech timing or accuracy was measured, so the
   shipped 5 min, 6 s and 0.5 are provisional like the other numbers. The words files made before scores are made again once (cache version 3).
 
 ## Decisions
 
-This table is the key to the labels that code comments, tests and the text above cite: D and Q for the recording check, MC1 to MC7 for the model cascade and LC1 to LC4 for long chapters. Where an ADR records one, the row links it.
+This table is the key to the labels that code comments, tests and the text above cite: D and Q for the recording check, MC1 to MC7 for the model cascade and LC1 to LC5 for long chapters. Where an ADR records one, the row links it.
 
 | Label | Decision |
 | --- | --- |
@@ -310,6 +319,7 @@ This table is the key to the labels that code comments, tests and the text above
 | LC2 | Word scores choose passages to re-check; they never score a gap, whose confidence stays null |
 | LC3 | One resolver decides what a check runs; an option that is present and not valid is an error, never replaced |
 | LC4 | Chunk length, workers and crossover are outside the parameter hash: they change speed, not which words count |
+| LC5 | Chapters are checked at once by separate runs, up to the number each start names; the choices are drawn by one shared component (ADR 0865) |
 
 ## Tests and tooling
 
@@ -328,7 +338,7 @@ This table is the key to the labels that code comments, tests and the text above
   stage, the words-cache-key separation, `Recheck`'s own fields and `State`'s pass/model/window fields).
 - Long chapters: `tests/test_coverage_chunks.py` (chunk planning, the join, the worker count, the transcriber with a thread pool and with real spawned
   processes), `tests/test_coverage_unsure.py` (scores in a words file, the splice, doubted passages, the transcriber chosen), `internal/coverage`'s
-  `plan_test.go`, `recheck_test.go` and `settings_test.go`, and the host's `coverage_choices_test.go` (the resolver, the options sent, the defaults the
+  `concurrent_test.go` (runs at once, the limit, the same chapter twice, cancel), `plan_test.go`, `recheck_test.go` and `settings_test.go`, and the host's `coverage_choices_test.go` (the resolver, the options sent, the defaults the
   engines answer reports, the background request).
 - UI: `RecordingCheck.test.tsx` (including the re-check gate and "Check with tiny only"),
   `recordingCheckText.test.ts` (`passLabel`, `recheckLabel`), `RecordingCheckSummary.test.tsx`, the wire contracts

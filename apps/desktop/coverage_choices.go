@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"runtime"
 	"strconv"
 	"strings"
 
@@ -18,6 +19,7 @@ const (
 	coverageOptionWorkers      = "workers"      // worker processes; 0 chooses from the model
 	coverageOptionChunkSeconds = "chunkSeconds" // each piece's length; 0 transcribes an item whole
 	coverageOptionOverlap      = "overlapSeconds"
+	coverageOptionChapters     = "chapters" // chapters checked at once by one Check recordings run
 )
 
 const (
@@ -25,7 +27,12 @@ const (
 	minCoverageChunkSeconds = 30
 	maxCoverageChunkSeconds = 3600
 	maxCoverageOverlap      = 60
+	maxCoverageChapters     = 8
 )
+
+// coverageCPUs is the computer's processor count, which a run of several chapters shares between them. A variable so a test
+// can say how many there are.
+var coverageCPUs = runtime.NumCPU
 
 // coverageChoices is what one check will do, decided once from the settings and the run's options: which model makes the
 // first pass, whether and with which larger model a second pass follows, which passages it takes, and how a long item is
@@ -97,6 +104,14 @@ func resolveCoverageChoices(store *settings.Store, options map[string]string) (c
 	}
 	if choices.Parallel.OverlapSeconds, err = wholeOption(options, coverageOptionOverlap, choices.Parallel.OverlapSeconds, 0, maxCoverageOverlap); err != nil {
 		return coverageChoices{}, err
+	}
+	if choices.Parallel.Chapters, err = wholeOption(options, coverageOptionChapters, choices.Parallel.Chapters, 1, maxCoverageChapters); err != nil {
+		return coverageChoices{}, err
+	}
+	// Chapters at once share the processors: each is its own run with its own worker processes, so a worker count left to
+	// the host is the computer's share for one chapter, not the model's whole cap for each.
+	if choices.Parallel.Chapters > 1 && choices.Parallel.Workers == 0 {
+		choices.Parallel.Workers = max(1, coverageCPUs()/choices.Parallel.Chapters)
 	}
 	return choices, nil
 }

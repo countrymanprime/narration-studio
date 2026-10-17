@@ -1,5 +1,6 @@
 // @vitest-environment jsdom
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi, type Mock } from 'vitest';
 import { MemoryRouter } from 'react-router-dom';
 import { useEffect, useState } from 'react';
@@ -271,7 +272,7 @@ describe('the recording check', () => {
     fireEvent.click(within(ask).getByRole('button', { name: 'Check with tiny only' }));
 
     await waitFor(() => expect(screen.getByRole('dialog', { name: 'Checking Chapter 7' })).toBeTruthy());
-    expect(coverageStart).toHaveBeenLastCalledWith(WIRE_CHAPTERS[6].id, { skipRecheck: true });
+    expect(coverageStart).toHaveBeenLastCalledWith(WIRE_CHAPTERS[6].id, expect.objectContaining({ skipRecheck: true, recheck: true }));
   });
 
   // The result names both models and the re-checked passages, and marks the pickup they confirmed. Seeded with
@@ -281,5 +282,59 @@ describe('the recording check', () => {
     const dialog = await openCheck('Chapter 4');
     expect(await within(dialog).findByText(/passage.*re-checked with the large-v3-turbo Whisper model/)).toBeTruthy();
     expect(within(dialog).getAllByText(/Confirmed missing by the large-v3-turbo Whisper model\./).length).toBeGreaterThan(0);
+  });
+});
+
+describe('the recording check panel shares the check options with Check recordings', () => {
+  it('shows the host defaults under Check options and sends them with the start', async () => {
+    const coverageStart = vi.fn<NarrationApi['coverageStart']>(async () => ({
+      status: 'refused',
+      reason: 'busy',
+      message: 'A recording check is already running.',
+    }));
+    const api = createMockApi({ coverageStart });
+    const [chapter] = await api.manuscriptChapters();
+    render(
+      <MemoryRouter>
+        <ApiProvider api={api}>
+          <RecordingCheck chapter={chapter} coverage={{ phase: 'idle', percent: 0, message: '' }} notify={vi.fn()} close={vi.fn()} goToParagraph={vi.fn()} />
+        </ApiProvider>
+      </MemoryRouter>,
+    );
+    const dialog = await screen.findByRole('dialog', { name: /^Recording check: Chapter 1\b/ });
+    await userEvent.click(await within(dialog).findByText('Check options'));
+    const chunk = within(dialog).getByRole('combobox', { name: 'Chunk length' }) as HTMLSelectElement;
+    expect(chunk.value).toBe('300');
+    await userEvent.selectOptions(chunk, '600');
+    await userEvent.selectOptions(within(dialog).getByRole('combobox', { name: 'Chapters at once' }), '2');
+    await userEvent.click(within(dialog).getByRole('button', { name: /^Check (again|recording)$/ }));
+    await waitFor(() => expect(coverageStart).toHaveBeenCalled());
+    expect(coverageStart).toHaveBeenLastCalledWith(chapter.id, expect.objectContaining({ model: 'small', chunkSeconds: 600, chapters: 2, recheck: false }));
+  });
+
+  it('waits for the other chapters unless Chapters at once leaves room, and says why', async () => {
+    const api = createMockApi();
+    const [chapter] = await api.manuscriptChapters();
+    render(
+      <MemoryRouter>
+        <ApiProvider api={api}>
+          <RecordingCheck
+            chapter={chapter}
+            coverage={{ phase: 'idle', percent: 0, message: '' }}
+            othersRunning={2}
+            notify={vi.fn()}
+            close={vi.fn()}
+            goToParagraph={vi.fn()}
+          />
+        </ApiProvider>
+      </MemoryRouter>,
+    );
+    const dialog = await screen.findByRole('dialog', { name: /^Recording check: Chapter 1\b/ });
+    const button = await within(dialog).findByRole('button', { name: /^Check (again|recording)$/ });
+    expect((button as HTMLButtonElement).disabled).toBe(true);
+    expect(within(dialog).getByText(/2 other chapters are being checked\./)).toBeTruthy();
+    await userEvent.click(within(dialog).getByText('Check options'));
+    await userEvent.selectOptions(await within(dialog).findByRole('combobox', { name: 'Chapters at once' }), '3');
+    expect((within(dialog).getByRole('button', { name: /^Check (again|recording)$/ }) as HTMLButtonElement).disabled).toBe(false);
   });
 });

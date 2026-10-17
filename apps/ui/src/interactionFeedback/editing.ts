@@ -41,7 +41,6 @@ export const editingFeedback: Record<string, FeedbackRow> = {
   'src/components/editing/page/useLines.ts::passageMapList#1': row('mount', 'file-io', 'na', 'na', 'ui', 'silent', 'na', 'exempt', 'The Booth\'s passage map for the chapter, read before the takes so the passages it recorded are asked for; a failed read works out no passages from it and the heard lines still load (SILENT_CATCHES).'),
   'src/components/editing/page/useLines.ts::workspaceTakes#1': row('mount', 'file-io', 'na', 'na', 'ui', 'silent', 'na', 'exempt', 'The takes of each paragraph; a paragraph whose read fails is shown with no takes, as one the workspace offers none for, and the others still load (SILENT_CATCHES).'),
   'src/components/editing/page/EditingBody.tsx::findingsGet#1': row('effect', 'file-io', 'na', 'na', 'ui', 'toast', 'na', 'ok', 'Reads the finding a deep link names, to select and open its flagged word; a failed read is an error toast saying the finding could not be read, and the link is marked done so it is not retried.'),
-  'src/components/editing/page/useRecordingCheck.tsx::subscribeCoverage#1': subscription('The recording check state, the subscription the Proof chapter view and Production use for the same slide-over: a check left running is picked up when the narrator opens it here.'),
   'src/components/editing/page/useDawStatus.ts::subscribeDawCapabilities#1': subscription('The DAW port\'s capability report, which makes the page ask the DAW again: the banner updates when the host pushes a change, without a reload.'),
 
   // Editing ribbon

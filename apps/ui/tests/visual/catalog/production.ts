@@ -185,6 +185,12 @@ export const productionStates: StateEntry[] = [
   },
   {
     page: 'production',
+    state: 'recording-check-options',
+    description:
+      "Production, a chapter's recording check panel with its Check options section open: Speech model, Larger model, the score under which words are looked at again, Chunk length, Parallel processes, Crossover and Chapters at once",
+  },
+  {
+    page: 'production',
     state: 'recording-check-pickups',
     description:
       'Production, recording check result with interior gaps (?mockCoverage=pickups): a skip and a short read listed one per line under Pickups, each with Go to paragraph, alongside a small unread tail stated in the summary, not listed',

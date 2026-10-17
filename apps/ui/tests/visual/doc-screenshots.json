@@ -85,6 +85,20 @@
   },
   {
     "page": "production",
+    "state": "recording-check-options",
+    "viewport": "desktop",
+    "docName": "production-recording-check-options",
+    "caption": "Production - a chapter's recording check with Check options open"
+  },
+  {
+    "page": "proof",
+    "state": "check-recordings-dialog",
+    "viewport": "desktop",
+    "docName": "proof-check-recordings-dialog",
+    "caption": "Proof - the Check recordings dialog before a run, with the options shared with every page"
+  },
+  {
+    "page": "production",
     "state": "stage-evidence-recommended",
     "viewport": "desktop",
     "docName": "production-stage-evidence",

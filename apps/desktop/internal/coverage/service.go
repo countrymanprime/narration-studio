@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"sort"
 	"strconv"
 	"strings"
 	"sync"
@@ -125,9 +126,14 @@ type Request struct {
 	// UnsureBelow, above 0, has the first pass report the passages whose words Whisper scored under it, so the
 	// re-check can take them as well as what is missing. 0 reports none.
 	UnsureBelow float64
+	// Concurrent is how many runs may be in progress when this one starts, itself included: the narrator's Check
+	// recordings run of several chapters sets it above 1. 0 or 1 starts only when nothing else is running.
+	Concurrent int
 }
 
-// Service runs one coverage analysis at a time and reads results back.
+// Service runs coverage analyses and reads results back. It runs one at a time unless a Start asks for more
+// (Request.Concurrent): the narrator's Check recordings run may overlap several chapters, each with its own
+// sidecar, folder and state.
 type Service struct {
 	config       Config
 	launch       Launcher
@@ -141,12 +147,15 @@ type Service struct {
 	results resultStore
 
 	mu sync.Mutex
+	// jobs are the runs in progress by run id. A job's own state is read and written with mu held.
 	// +checklocks:mu
-	busy bool
+	jobs map[string]*job
+	// preparing are the chapters whose run is being prepared, between the limit check and the sidecar launching.
+	// +checklocks:mu
+	preparing map[string]bool
+	// state is the state last sent, what State answers.
 	// +checklocks:mu
 	state State
-	// +checklocks:mu
-	job *job
 }
 
 // New builds the service for one project. changed, when not nil, hears every
@@ -163,14 +172,27 @@ func New(config Config, launch Launcher, changed func(State)) *Service {
 		ledger: ledger, cache: cache, mapping: mapping,
 		results: resultStore{dir: resultsDir(config.Project), reporter: config.Reporter},
 		state:   State{Phase: PhaseIdle, Message: "Save the REAPER project, then check a chapter's recording."},
+		jobs:    map[string]*job{}, preparing: map[string]bool{},
 	}
 }
 
-// State returns the current job's state.
+// State returns the state last sent: the newest change of any run.
 func (s *Service) State() State {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	return s.state
+}
+
+// States returns the state of every run in progress, oldest first.
+func (s *Service) States() []State {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	states := make([]State, 0, len(s.jobs))
+	for _, running := range s.jobs {
+		states = append(states, running.state)
+	}
+	sort.Slice(states, func(i, j int) bool { return states[i].RunID < states[j].RunID })
+	return states
 }
 
 // Busy reports whether a run is being prepared or is running, so the host
@@ -178,17 +200,20 @@ func (s *Service) State() State {
 func (s *Service) Busy() bool {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	return s.busy
+	return len(s.jobs)+len(s.preparing) > 0
 }
 
-// Wait blocks until the run in progress, if any, has finished and written its
-// ledger record.
+// Wait blocks until the runs in progress, if any, have finished and written their
+// ledger records.
 func (s *Service) Wait() {
 	s.mu.Lock()
-	current := s.job
+	waiting := make([]*job, 0, len(s.jobs))
+	for _, running := range s.jobs {
+		waiting = append(waiting, running)
+	}
 	s.mu.Unlock()
-	if current != nil {
-		<-current.done
+	for _, running := range waiting {
+		<-running.done
 	}
 }
 
@@ -196,24 +221,34 @@ func (s *Service) Wait() {
 // returns an UnknownError, having run and written nothing, when the chapter
 // cannot be measured as the saved project stands (unmapped, a missing source,
 // ...), and a plain error when something could not be written or launched.
+// A run starts only while fewer than request.Concurrent (at least 1) are in
+// progress, and never while the same chapter is already being checked.
 func (s *Service) Start(request Request) (State, error) {
 	s.mu.Lock()
-	if s.busy {
+	if s.checkingLocked(request.ChapterID) {
 		s.mu.Unlock()
-		return State{}, unknown(ReasonBusy, "a recording check is already running")
+		return State{}, unknown(ReasonBusy, "this chapter is already being checked")
 	}
-	s.busy = true
+	if limit := max(1, request.Concurrent); len(s.jobs)+len(s.preparing) >= limit {
+		s.mu.Unlock()
+		if limit == 1 {
+			return State{}, unknown(ReasonBusy, "a recording check is already running")
+		}
+		return State{}, unknown(ReasonBusy, fmt.Sprintf("%d recording checks are already running", limit))
+	}
+	s.preparing[request.ChapterID] = true
 	s.mu.Unlock()
 
 	running, err := s.prepareAndLaunch(request)
+	s.mu.Lock()
+	delete(s.preparing, request.ChapterID)
 	if err != nil {
-		s.mu.Lock()
-		s.busy = false
 		s.mu.Unlock()
 		return State{}, err
 	}
-	s.mu.Lock()
-	s.job, s.state = running, running.initialState()
+	running.state = running.initialState()
+	s.jobs[running.runID] = running
+	s.state = running.state
 	state := s.state
 	s.mu.Unlock()
 	s.notify(state)
@@ -221,22 +256,57 @@ func (s *Service) Start(request Request) (State, error) {
 	return state, nil
 }
 
-// Cancel asks the running sidecar to stop through its .cancel file. The items
-// it finished stay cached and the run records a partial outcome.
-func (s *Service) Cancel() {
-	s.mu.Lock()
-	current := s.job
-	if current == nil || s.state.Phase != PhaseRunning {
-		s.mu.Unlock()
-		return
+// checkingLocked reports whether a run of chapterID is being prepared or is in progress.
+// +checklocks:s.mu
+func (s *Service) checkingLocked(chapterID string) bool {
+	if s.preparing[chapterID] {
+		return true
 	}
-	s.state.Message = "Cancelling..."
-	state := s.state
+	for _, running := range s.jobs {
+		if running.basis.ChapterID == chapterID {
+			return true
+		}
+	}
+	return false
+}
+
+// Cancel asks every running sidecar to stop through its .cancel file. The items
+// each finished stay cached and the run records a partial outcome.
+func (s *Service) Cancel() {
+	s.cancelWhere(func(*job) bool { return true })
+}
+
+// CancelBackground cancels the runs the host started on its own (a background check gives way to the narrator's, ADR
+// 0211) and waits until they have ended; the narrator's own runs are left alone.
+func (s *Service) CancelBackground() {
+	cancelled := s.cancelWhere(func(running *job) bool { return running.request.Background })
+	for _, running := range cancelled {
+		<-running.done
+	}
+}
+
+// cancelWhere cancels the running jobs that match, and returns them.
+func (s *Service) cancelWhere(match func(*job) bool) []*job {
+	s.mu.Lock()
+	var cancelled []*job
+	var states []State
+	for _, running := range s.jobs {
+		if running.state.Phase != PhaseRunning || !match(running) {
+			continue
+		}
+		running.state.Message = "Cancelling..."
+		s.state = running.state
+		cancelled = append(cancelled, running)
+		states = append(states, running.state)
+	}
 	s.mu.Unlock()
-	// The error is dropped on purpose: it fails only when the run has just
-	// finished and removed its folder, and then there is nothing to cancel.
-	_ = os.WriteFile(current.progressPath+".cancel", []byte("cancel"), 0o600)
-	s.notify(state)
+	for i, running := range cancelled {
+		// The error is dropped on purpose: it fails only when the run has just
+		// finished and removed its folder, and then there is nothing to cancel.
+		_ = os.WriteFile(running.progressPath+".cancel", []byte("cancel"), 0o600)
+		s.notify(states[i])
+	}
+	return cancelled
 }
 
 func (s *Service) notify(state State) {

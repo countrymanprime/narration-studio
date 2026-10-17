@@ -53,6 +53,9 @@ type job struct {
 	child          Child
 	done           chan struct{}
 
+	// state is the run's own reported state, read and written with the service's mu held.
+	state State
+
 	// lastError is the message of an ERROR progress line, for the failure text.
 	lastError string
 
@@ -161,11 +164,12 @@ func (s *Service) launchStage(running *job, next stage) bool {
 	}
 	running.stage, running.child = next, child
 	s.mu.Lock()
-	s.state.Stage, s.state.Percent = "", 0
-	s.state.Pass = next.label()
+	running.state.Stage, running.state.Percent = "", 0
+	running.state.Pass = next.label()
 	if next == stageRecheckWindows {
-		s.state.RecheckWindows = len(running.recheck.Windows)
+		running.state.RecheckWindows = len(running.recheck.Windows)
 	}
+	s.state = running.state
 	state := s.state
 	s.mu.Unlock()
 	s.notify(state)
@@ -190,19 +194,22 @@ func (s *Service) readProgress(running *job) {
 	if stage == "ERROR" {
 		running.lastError = message
 	}
-	if s.job != running || s.state.Phase != PhaseRunning {
+	if running.state.Phase != PhaseRunning {
 		s.mu.Unlock()
 		return
 	}
-	changed := s.state.Stage != stage || s.state.Percent < percent || (message != "" && s.state.Message != message && s.state.Message != "Cancelling...")
-	s.state.Stage = stage
-	if percent > s.state.Percent {
-		s.state.Percent = percent
+	changed := running.state.Stage != stage || running.state.Percent < percent || (message != "" && running.state.Message != message && running.state.Message != "Cancelling...")
+	running.state.Stage = stage
+	if percent > running.state.Percent {
+		running.state.Percent = percent
 	}
-	if message != "" && s.state.Message != "Cancelling..." {
-		s.state.Message = message
+	if message != "" && running.state.Message != "Cancelling..." {
+		running.state.Message = message
 	}
-	state := s.state
+	if changed {
+		s.state = running.state
+	}
+	state := running.state
 	s.mu.Unlock()
 	if changed {
 		s.notify(state)
@@ -266,12 +273,13 @@ func (s *Service) finish(running *job) {
 
 	completed := s.now().UTC()
 	s.mu.Lock()
-	s.state.Phase, s.state.Message, s.state.RecordID, s.state.CompletedAt = phase, message, record.ID, &completed
+	running.state.Phase, running.state.Message, running.state.RecordID, running.state.CompletedAt = phase, message, record.ID, &completed
 	if phase == PhaseComplete {
-		s.state.Percent = 100
+		running.state.Percent = 100
 	}
-	s.busy = false
-	state := s.state
+	delete(s.jobs, running.runID)
+	s.state = running.state
+	state := running.state
 	s.mu.Unlock()
 	s.notify(state)
 }

@@ -1,6 +1,6 @@
 # 0864. A long recording is checked in overlapping chunks by parallel Whisper processes, and Whisper's word scores choose the passages a larger model looks at again
 
-**Status:** Proposed
+**Status:** Accepted
 **Significance:** An interface between parts and a quality attribute: the recording check's sidecar gains worker processes, its words file gains a per-word score, and one function in the host now decides what a check runs for the dialog, a press and a background check alike. Undoing it means changing the words-file format, the cache key and every caller of that function.
 **Date:** 2026-10-17
 **Supersedes:** none. It amends [ADR 0841](0841-a-recording-check-lists-the-approved-whisper-models-as-its-engines-and-a-start-may-name-one-to-run-alone.md) (points 6 and 7) and reads [ADR 0830](0830-the-recording-check-names-its-gaps-missing-extra-or-misread-and-a-confidence-is-null-with-a-reason-until-words-are-scored.md) deliberately.

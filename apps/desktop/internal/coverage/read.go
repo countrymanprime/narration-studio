@@ -76,7 +76,12 @@ func (s *Service) latestRecord(chapterID string) (*evidence.LedgerRecord, error)
 func (s *Service) Checking(chapterID string) bool {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	return s.busy && s.state.Phase == PhaseRunning && s.state.ChapterID == chapterID
+	for _, running := range s.jobs {
+		if running.basis.ChapterID == chapterID && running.state.Phase == PhaseRunning {
+			return true
+		}
+	}
+	return false
 }
 
 // RecordedFractions is the measured ManuscriptChapter.recordedFraction (D11):

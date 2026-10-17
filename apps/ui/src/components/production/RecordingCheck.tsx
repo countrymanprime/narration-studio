@@ -9,6 +9,9 @@ import type { CoverageReason, CoverageResult, CoverageStartResult, CoverageState
 import { AssetFacts } from '../assets/AssetFacts';
 import { AssetInstallPrompt } from '../assets/AssetInstallPrompt';
 import { MappingConfirm } from '../mapping/MappingConfirm';
+import { RunOptions } from '../recordingcheck/RunOptions';
+import { findProblem, startOptions } from '../recordingcheck/runChoices';
+import { useRunChoices } from '../recordingcheck/useRunChoices';
 import { Button } from '../primitives/Button';
 import { InsetCard } from '../primitives/InsetCard';
 import { SlideOver } from '../primitives/SlideOver';
@@ -67,13 +70,17 @@ function coverageWorkJob(state: CoverageState, logs: string[], now: number): Wor
 export function RecordingCheck({
   chapter,
   coverage,
+  othersRunning = 0,
   notify,
   close,
   goToParagraph,
   openWorkspace,
 }: {
   chapter: ManuscriptChapter;
+  /** This chapter's own latest check state, never another chapter's (`useCoverageRuns().forChapter`). */
   coverage: CoverageState;
+  /** How many checks of other chapters are running now (`useCoverageRuns().othersRunning`). */
+  othersRunning?: number;
   notify: Notify;
   close: () => void;
   goToParagraph: (index: number) => void;
@@ -89,6 +96,7 @@ export function RecordingCheck({
   const [recheckRequired, setRecheckRequired] = useState<RecheckRequired>();
   // The run this dialog shows progress for: one it started, or the chapter's own run already going when it opened.
   const [watching, setWatching] = useState(coverage.phase === 'running' && coverage.chapterId === chapter.id ? coverage.runId : undefined);
+  const options = useRunChoices();
   // The state the start answered with, until the first live event of that run arrives.
   const [startedState, setStartedState] = useState<CoverageState>();
   const [logs, setLogs] = useState<string[]>([]);
@@ -152,11 +160,12 @@ export function RecordingCheck({
     },
   });
 
-  const start = (options?: { skipRecheck?: boolean }) =>
+  // The check runs what the options showed (`RunOptions`, the same ones Check recordings offers); until they have loaded it runs the narrator's settings.
+  const start = (extra?: { skipRecheck?: boolean }) =>
     actions.run('check', async () => {
       setRefusal(undefined);
       try {
-        const answer = await api.coverageStart(chapter.id, options);
+        const answer = await api.coverageStart(chapter.id, options.choices ? { ...startOptions(options.choices), ...extra } : extra);
         if (answer.status === 'refused') setRefusal(answer);
         else if (answer.status === 'asset_required') {
           whisperInstall.reset();
@@ -272,10 +281,14 @@ export function RecordingCheck({
     );
   }
 
-  const otherRunning = coverage.phase === 'running' && coverage.chapterId !== chapter.id;
+  // Checks of other chapters going now take places: this one starts beside them only when "Chapters at once" leaves room.
+  const room = options.choices?.chapters ?? 1;
+  const otherRunning = othersRunning >= room;
+  // A model that is not installed is not a reason to stop here: starting asks to download it (or, for the larger one, to go on without it).
+  const blocker = options.engines && options.choices ? findProblem(options.choices, options.engines) : undefined;
   const checked = result?.state === 'current' || result?.state === 'stale';
   const checkButton = (
-    <Button onClick={() => void start()} pending={actions.isPending('check')} disabled={otherRunning}>
+    <Button onClick={() => void start()} pending={actions.isPending('check')} disabled={otherRunning || blocker?.needsInstall === false}>
       {checked ? 'Check again' : 'Check recording'}
     </Button>
   );
@@ -297,7 +310,21 @@ export function RecordingCheck({
         )}
         {otherRunning && (
           <p role="status" style={{ color: 'var(--text-muted)' }}>
-            Another chapter is being checked. Check this one when it finishes.
+            {othersRunning === 1 ? 'Another chapter is being checked.' : `${othersRunning} other chapters are being checked.`} Check this one when one finishes,
+            or raise Chapters at once under Check options.
+          </p>
+        )}
+        {options.engines && options.choices && (
+          <details className="rounded-[var(--radius)] border border-[var(--line)] px-3 py-2">
+            <summary className="cursor-pointer font-semibold">Check options</summary>
+            <div className="pt-3">
+              <RunOptions engines={options.engines} choices={options.choices} onChange={options.change} showInstallProblems={false} />
+            </div>
+          </details>
+        )}
+        {options.error && (
+          <p role="status" style={{ color: 'var(--text-muted)' }}>
+            The check options could not be read ({options.error}); the check runs your settings.
           </p>
         )}
         <ResultBody
