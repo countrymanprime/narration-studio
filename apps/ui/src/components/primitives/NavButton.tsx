@@ -77,7 +77,7 @@ export function NavButton({
   if (off) {
     // The hint shows the reason on hover and keyboard focus; a press opens the note, which also works on touch and in the drawer, where no hint opens.
     return (
-      <TooltipTarget text={disabledReason || children} className="w-full">
+      <TooltipTarget text={disabledReason || children} className="relative w-full">
         <Popover trigger={button} label={`${children} is unavailable`} side="right" align="start">
           <p className="m-0 text-sm text-[var(--text)]">{disabledReason}</p>
         </Popover>

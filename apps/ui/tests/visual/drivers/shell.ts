@@ -69,7 +69,8 @@ export const shellDrivers: Record<string, Driver> = {
       await menuButton.click();
       scope = page.getByRole('dialog', { name: 'Navigation' });
     }
-    await scope.getByRole('button', { name: 'Proof' }).click();
+    // Forced: Playwright reads aria-disabled as "not enabled" and would wait forever, but an off item takes the press (it opens the note).
+    await scope.getByRole('button', { name: 'Proof' }).click({ force: true });
     await page.getByRole('dialog', { name: 'Proof is unavailable' }).waitFor();
   },
   'jump-menu-off-pages': async (page) => {
