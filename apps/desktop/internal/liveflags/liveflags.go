@@ -65,7 +65,7 @@ type kindRule struct {
 	severity findings.Severity
 }
 
-// kinds maps a flag kind to its findings category (docs/architecture/manuscript-teleprompter.md#flags decision 5) and severity. The severities follow Transcript
+// kinds maps a flag kind to its findings category (docs/architecture/manuscript-teleprompter.md#flags) and severity. The severities follow Transcript
 // Compare's adapter (a misread or a skip usually needs a new take; an extra is sometimes a deliberate ad-lib), and a
 // restart is the narrator's own recovery, so it is information, like take review's restart pickups.
 var kinds = map[string]kindRule{

@@ -63,7 +63,7 @@ Owner rulings of 2026-10-11; none is open.
 | --- | --- | --- |
 | SN0-Q1 / DQ-1 | Studio Next is the spec, tokens and layouts included | Benchmark mock 05 and `apps/ui/src/components/master/RuleBadges.tsx` to 0667 are superseded where the mock differs |
 | SN0-Q2 / DQ-2 | Replace, one PR, no flag | SNM-5 swaps the routes and deletes the old pages |
-| DQ-14 / SN0-Q6 | Schedule and Delivery are pages with their own rail items | `docs/architecture/principles.md` decision 5 is superseded; SNM-5 adds the Delivery route and rail item |
+| DQ-14 / SN0-Q6 | Schedule and Delivery are pages with their own rail items | `docs/architecture/principles.md` is superseded; SNM-5 adds the Delivery route and rail item |
 | DQ-12 / DQ-13 | Series and Companion have no equivalent in the mock | Their settings stay as built |
 | SNM-Q1 | The profile is chosen in the import review, as the mock's `studio-next/src/pages/production/ImportFlow.tsx` does (default taken, standing instruction) | Phase 4 |
 | SNM-Q2 | Backups default to 2 minutes either side and 7 days (default taken; the DAW PRD owns the values) | Two settings rows |

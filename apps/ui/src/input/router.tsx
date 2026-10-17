@@ -71,7 +71,7 @@ export type CommandRouterProps = {
   catalog?: readonly CommandDescriptor[];
   /** Defaults to the platform default keymap; a test passes a fixed one so it does not depend on `navigator`. */
   keymap?: Keymap;
-  /** While this returns true, a `noisy` command's handler does not run (docs/architecture/studio-shell-and-registries.md decision 7). Defaults to never recording. */
+  /** While this returns true, a `noisy` command's handler does not run (docs/architecture/studio-shell-and-registries.md). Defaults to never recording. */
   isRecording?: () => boolean;
 };
 
@@ -85,7 +85,7 @@ export type CommandRouterProps = {
  *    other, so off the shadowing row's page the gesture falls through to the shadowed row.
  * 4. If a `noisy` command is found while `isRecording()` is true, the gesture is still consumed (so nothing else
  *    reacts to it) but the handler does not run. A suppressed press posts "Not while recording." to a status
- *    region instead (docs/architecture/studio-shell-and-registries.md decision 7), so a narrator who cannot see the screen still gets feedback.
+ *    region instead (docs/architecture/studio-shell-and-registries.md), so a narrator who cannot see the screen still gets feedback.
  * 5. A gesture no command takes, and one whose catalog rows have nothing registered yet, are left untouched.
  */
 export function CommandRouter({ children, source, catalog = COMMAND_CATALOG, keymap, isRecording = () => false }: CommandRouterProps) {

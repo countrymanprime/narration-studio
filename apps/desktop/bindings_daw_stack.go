@@ -23,7 +23,7 @@ const (
 )
 
 // DawStackTakes puts the later reads of the passages passageIDs of chapterID on the first read's spot as takes of its item,
-// and moves the audio after them up (SND-7b, docs/reference/daw/capabilities.md point 4; the Studio Next mock's stackTakes). The page sends a chapter
+// and moves the audio after them up (SND-7b, docs/reference/daw/capabilities.md; the Studio Next mock's stackTakes). The page sends a chapter
 // id and passage ids, never a GUID, a time or a path: the host rebuilds the plan itself (passagetakes.StackPlan) from the
 // Booth's passage map, which names the items each passage was read into, and the chapter's one linked track as the DAW
 // reports it now (chapter_track_state), so a GUID-shaped id is looked up like any other and the plan the page showed is

@@ -23,7 +23,7 @@ const (
 )
 
 // DawRoll stops the recording this app started on chapterID's linked track and records again from at (project seconds),
-// keeping the earlier audio as a take (SND-6a, docs/reference/daw/capabilities.md point 1; the Studio Next mock's roll). The page sends the chapter
+// keeping the earlier audio as a take (SND-6a, docs/reference/daw/capabilities.md; the Studio Next mock's roll). The page sends the chapter
 // id, a time and whether the narrator confirmed, never a GUID: the track is the chapter's link, read here
 // (docs/architecture/threat-model.md, row 5f). The answer is a DawResult: the punch capability's own sentence
 // when the resolver refuses it (a standalone launch, a DAW not answering, Experimental actions off, the toggle off),

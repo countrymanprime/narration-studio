@@ -290,7 +290,7 @@ type Puncher interface {
 	PunchTo(ctx context.Context, wordTime, preRoll float64) (float64, error)
 	PlayPosition(ctx context.Context) (PlayPosition, error)
 	// Roll stops the recording the app started on trackGUID and records again from at (project seconds), keeping the
-	// earlier audio (docs/reference/daw/capabilities.md point 1). An engine where that replaces audio declares punch destructive and the page asks
+	// earlier audio (docs/reference/daw/capabilities.md). An engine where that replaces audio declares punch destructive and the page asks
 	// first; the call itself never asks. A recording the app did not start, or a setting that would not keep the
 	// earlier audio, is Refused in a whole sentence; a track that is gone is RefusedStale.
 	Roll(ctx context.Context, trackGUID string, at float64) (Result, error)

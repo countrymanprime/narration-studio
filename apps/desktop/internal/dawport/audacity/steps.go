@@ -24,8 +24,7 @@ import (
 // that Audacity no longer lists is RefusedStale, and a backup that is refused or fails stops the call with its answer. The role
 // treats backups as unavailable when the adapter has no project folder for them; then a cut, an effect, a stack and an un-stack
 // refuse with the capability's sentence and send nothing, and a roll records over the audio, as the destructive capability the
-// page confirmed says. Whether the narrator turned backups on is the resolver's to enforce. Audacity's track id is its name (ADR
-// 0863 point 3), so an item, track or take GUID in a request is the name of an Audacity track. Setting the active take,
+// page confirmed says. Whether the narrator turned backups on is the resolver's to enforce. Audacity's track id is its name (docs/reference/daw/audacity-3.md), so an item, track or take GUID in a request is the name of an Audacity track. Setting the active take,
 // hiding takes, punching in and reading the play position are not built for Audacity and answer docs/architecture/daw-integration.md#audacity-boundary's sentence.
 type steps struct {
 	client  *audacitybridge.Client

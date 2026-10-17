@@ -213,8 +213,7 @@ flowchart LR
   past 60%, chosen because Whisper's cost is per roughly-30-second block, so a shorter
   window costs about the same as a 25-second one).
 - **The re-check** runs `cascade_recheck_model` (default `large-v3-turbo`) either as `compare.py --recheck` over
-  the planned windows only, splicing the result into the same words files with per-span model provenance (ADR
-  0341), or as one more whole-chapter pass. A windowed re-check is followed by `--align-only`, re-reading the
+  the planned windows only, splicing the result into the same words files with per-span model provenance (`sidecars/transcript-compare/core/coverage_mode.py`), or as one more whole-chapter pass. A windowed re-check is followed by `--align-only`, re-reading the
   now-spliced words with no further transcription; either way the chapter is judged by the same rules and
   thresholds as a plain check, over merged words.
 - **The stored result names both models.** `StoredResult.Model`/`ReportView.model` keep naming the first pass only,

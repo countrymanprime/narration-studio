@@ -33,7 +33,7 @@ export const MOCK_DIAGNOSTICS_THRESHOLDS: DiagnosticsThresholds = {
   pauses: { min_pause_seconds: 0.3, long_pause_seconds: 2 },
 };
 
-/** The silence cleanup analyzer's own starting thresholds (measure.DefaultCleanupOptions, apps/desktop/internal/measure/cleanup.go decision 4). */
+/** The silence cleanup analyzer's own starting thresholds (measure.DefaultCleanupOptions, apps/desktop/internal/measure/cleanup.go). */
 export const MOCK_CLEANUP_THRESHOLDS: DiagnosticsCleanupThresholds = {
   pad_seconds: 0.15,
   min_breath_seconds: 0.12,

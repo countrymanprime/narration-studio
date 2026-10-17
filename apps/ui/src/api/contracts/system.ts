@@ -95,7 +95,7 @@ export interface SystemApi {
   companionModeEnter(): Promise<void>;
   /** Puts the window back where `companionModeEnter` found it and un-pins it; a no-op when companion mode is not on. */
   companionModeExit(): Promise<void>;
-  /** Reads the window's current real zoom level (docs/guides/using-the-app/navigation.md#zoom item 3):
+  /** Reads the window's current real zoom level (docs/guides/using-the-app/navigation.md#zoom):
    * the UI calls this when it sees the page's own zoom change (a devicePixelRatio or resize event), since Wails v3
    * surfaces no zoom-changed callback on Windows. */
   windowZoom(): Promise<WindowZoom>;

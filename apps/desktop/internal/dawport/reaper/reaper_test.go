@@ -760,7 +760,7 @@ func puncherAnswering(t *testing.T, answer func(command []string) [][]string) da
 	return adapter.Role(dawport.CapPunch).(dawport.Puncher)
 }
 
-// A roll is a change with no undo point of its own (docs/reference/daw/capabilities.md point 1): the points for the recorded media are REAPER's.
+// A roll is a change with no undo point of its own (docs/reference/daw/capabilities.md): the points for the recorded media are REAPER's.
 func TestRollKeepsTheEarlierAudioAndAddsNoUndoPointOfItsOwn(t *testing.T) {
 	punch := puncherAnswering(t, func(command []string) [][]string {
 		return [][]string{{"ROLLED", command[1], rollTrack, "62.250000", "0"}}
@@ -866,7 +866,7 @@ func cutRequest(words int, mode dawport.CutMode) dawport.DeleteRangeRequest {
 	}
 }
 
-// A cut is one undo step (docs/reference/daw/capabilities.md point 5), and the command gets the request's item, range, mode and fade.
+// A cut is one undo step (docs/reference/daw/capabilities.md), and the command gets the request's item, range, mode and fade.
 func TestDeleteRangeCutsTheWordsInOneUndoStep(t *testing.T) {
 	var sent []string
 	cut := rangeCutterAnswering(t, func(command []string) [][]string {
@@ -961,7 +961,7 @@ func fxRangeRequest(words int) dawport.FXRangeRequest {
 	}
 }
 
-// A chain on a range is one undo step (docs/reference/daw/capabilities.md point 5), and the command gets the request's item, range, chain and fade.
+// A chain on a range is one undo step (docs/reference/daw/capabilities.md), and the command gets the request's item, range, chain and fade.
 func TestApplyFXToRangePutsTheChainOnInOneUndoStep(t *testing.T) {
 	var sent []string
 	fx := rangeFXApplierAnswering(t, func(command []string) [][]string {
@@ -1097,7 +1097,7 @@ func stackTakesRequest(shift float64, from, to float64) dawport.StackRequest {
 	}
 }
 
-// A stack and an un-stack are one undo step each (docs/reference/daw/capabilities.md point 5), and the payload carries the request's GUIDs and times.
+// A stack and an un-stack are one undo step each (docs/reference/daw/capabilities.md), and the payload carries the request's GUIDs and times.
 func TestStackAndUnstackTakesAreOneUndoStepAndSendThePayload(t *testing.T) {
 	var commands, payloads []string
 	stacker := takeStackerAnswering(t, func(command []string, payload string) [][]string {

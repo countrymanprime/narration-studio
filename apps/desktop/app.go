@@ -80,8 +80,7 @@ type Host struct {
 	diagnostic string
 	version    string
 	config     config
-	// dawCapabilitiesSnapshot is the last DawCapabilities payload pollDawCapabilities emitted (bindings_daw.go, ADR
-	// 0300): a marshalled JSON comparison, so daw_capabilities_changed goes out only when the resolver's
+	// dawCapabilitiesSnapshot is the last DawCapabilities payload pollDawCapabilities emitted (bindings_daw.go): a marshalled JSON comparison, so daw_capabilities_changed goes out only when the resolver's
 	// answer actually changed, never on every transcriptLoop tick.
 	// +checklocks:mu
 	dawCapabilitiesSnapshot string
@@ -1361,7 +1360,7 @@ func (h *Host) idleLocked() bool {
 }
 
 // isReadAloudRecordingLocked reports whether a REAPER take this app started is still recording. A switch or an update swap would
-// drop the only handle that can stop it (docs/architecture/reaper-bridge.md#recording-in-reaper-narration_transportlua decision 4); a take REAPER records on its own is not counted, the app cannot stop
+// drop the only handle that can stop it (docs/architecture/reaper-bridge.md#recording-in-reaper-narration_transportlua); a take REAPER records on its own is not counted, the app cannot stop
 // it. The caller holds h.mu.
 // +checklocksignore: idleLocked and its callers hold h.mu but carry no annotation for checklocks to follow.
 func (h *Host) isReadAloudRecordingLocked() bool {
@@ -1592,8 +1591,7 @@ var fieldSchemas = map[string][]fieldSchema{
 	// The per-capability toggles come after the three above, from capabilityFieldSchemas: one
 	// choice field per dawport.Capability, labeled with the port's own narrator-facing label, so Settings lists and
 	// saves every DAW.capability.<name> row through this same generic mechanism.
-	// fx_favourites is the narrator's favourite REAPER effects (ADR
-	// 0234): names WorkspaceListFXChains or a future FX plug-in listing already lists, kept as one "tags" field
+	// fx_favourites is the narrator's favourite REAPER effects: names WorkspaceListFXChains or a future FX plug-in listing already lists, kept as one "tags" field
 	// rather than two, since a chain and a plug-in are just two shapes of name (a chain always ends ".RfxChain",
 	// so the two are never confused). It
 	// works at either scope through the same global/project layering as every other setting; there is no separate

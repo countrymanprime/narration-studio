@@ -33,7 +33,7 @@ const (
 )
 
 // DawApplyFxToRange puts one of the narrator's saved FX chains on the words firstToken..lastToken of chapterID's stored
-// alignment (SND-6c, docs/reference/daw/capabilities.md point 3; the Studio Next mock's applyFxToRange): the DAW splits the item at both ends of the
+// alignment (SND-6c, docs/reference/daw/capabilities.md; the Studio Next mock's applyFxToRange): the DAW splits the item at both ends of the
 // range and puts the chain on the middle piece, with fadeMs at each new seam. The page sends a chapter id, two token
 // indices, a chain name and the fade, never a GUID, a time or a path: the item and its project seconds are resolved here
 // from the stored alignment and the saved project (threat model row 5f), one item per request, and

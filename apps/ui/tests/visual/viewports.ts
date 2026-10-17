@@ -27,12 +27,11 @@ export const REFLOW_VIEWPORT: Viewport = { name: 'reflow', width: 390, height: 8
 // judged at that width too, the way the narrator actually sees them. Not part of the matrix: rows opt in with `COMPANION`.
 export const COMPANION_VIEWPORT: Viewport = { name: 'companion', width: 380, height: 900 };
 
-// The Script page's full mock-02 layout (superseding ADR
-// 0392): the chapter list, the reader and the rail show side by side from 1440 px (D85 on issue #509 - mock 02's own
+// The Script page's full mock-02 layout: the chapter list, the reader and the rail show side by side from 1440 px (D85 on issue #509 - mock 02's own
 // capture width), so the matrix's `desktop` width already shows it; the rail rows also opt in here, an even wider check.
 export const WIDE_VIEWPORT: Viewport = { name: 'wide', width: 1680, height: 1050 };
 
-// The two layout bands the matrix never draws (docs/design/design-system.md#layout-rules decision 1; `src/layoutBreakpoints.ts`): the rail collapsed but the
+// The two layout bands the matrix never draws (docs/design/design-system.md#layout-rules; `src/layoutBreakpoints.ts`): the rail collapsed but the
 // layout not yet medium (1281 to 1359 px), and medium but not narrow (1180 to 1280 px). Rows opt in with `LAYOUT_BANDS`.
 export const RAIL_ONLY_VIEWPORT: Viewport = { name: 'rail-only', width: 1300, height: 900 };
 export const MEDIUM_ONLY_VIEWPORT: Viewport = { name: 'medium-only', width: 1230, height: 900 };

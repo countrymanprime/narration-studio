@@ -94,7 +94,7 @@ const CUT_KIND = 'cut_range';
  * Cuts the words and their audio, one range for each paragraph, as one history entry. The DAW is asked first for each range; only a cut it
  * accepted is recorded through the Editing records, in the recording's time before any cut. A refusal of the first range changes nothing. The
  * inverse asks the DAW to undo the cuts and then forgets the records; for a DAW change the journal runs it only when the DAW's last action is
- * these cuts (docs/architecture/ui-state-and-journal.md#the-journal-and-undo rule 4).
+ * these cuts (docs/architecture/ui-state-and-journal.md#the-journal-and-undo).
  */
 export function cutCommand(deps: CutDeps, plan: Acting, ask: CutAsk): Command<CutDone> {
   const { chapterId, summary, options, mute, locator } = ask;

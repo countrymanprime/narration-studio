@@ -75,7 +75,7 @@ Method: these are the ten mock test files no page owns. Each mock case is a row 
 | foundations.test.ts | `suggests speakers from "said X"` | covered | sidecars/manuscript-guide/tests/test_character_cues.py::test_a_tag_after_the_quote_attributes_the_cue | One quote with its tag after it. No test gives both halves of a quote split around one "said X" tag the speaker, as the mock does. |
 | foundations.test.ts | `counts where an entry appears` | ported | sidecars/manuscript-guide/tests/test_character_cues.py::test_entities_record_which_chapter_and_scene_they_appear_in | The UI count: entryList.test.ts "counts distinct chapters of the appearances". |
 | foundations.test.ts | `records an undoable change and undoes it` | ported | apps/ui/src/studio/journal/createJournal.test.ts::act then undo of UI-only commands, newest first, leaves the value equal to the original | `docs/architecture/ui-state-and-journal.md#the-journal-and-undo`. |
-| foundations.test.ts | `refuses to undo a DAW change that is no longer last` | ported | apps/ui/src/studio/journal/createJournal.test.ts::daw-entry-only-if-last: an entry followed by any entry refuses "came after this", naming the newest | `docs/architecture/ui-state-and-journal.md#the-journal-and-undo` rule 4. |
+| foundations.test.ts | `refuses to undo a DAW change that is no longer last` | ported | apps/ui/src/studio/journal/createJournal.test.ts::daw-entry-only-if-last: an entry followed by any entry refuses "came after this", naming the newest | `docs/architecture/ui-state-and-journal.md#the-journal-and-undo`. |
 | foundations.test.ts | `refuses when REAPER’s own last action is something else` | ported | apps/ui/src/studio/journal/createJournal.test.ts::refuses the DAW's own Edit > Undo sentence when the DAW reports '%s' | An `it.each` over `unknown` and `other`. |
 | foundations.test.ts | `removes tags, including nested ones that would rebuild a tag` | mock-only |  | Tests the mock's own `stripTags`, which removes markup the mock keeps in its sample pickup strings. Real pickup lines are plain text (pickups TestBindingsTakeIDsAndPlainTextOnly) and React escapes what it draws. |
 | scenarios.test.tsx | `every page renders with no leakage (%s)` | covered | apps/ui/src/test/scenarioMatrix.test.tsx::matrix-renders-one-page-in-every-scenario | GAP F11: the SN-S61 helper (`apps/ui/src/fixtures/renderScenario.tsx`) renders only ChapterList, for three chapter shapes at 12 and 40 chapters; no other page and no DAW setup (REAPER, REAPER off, built-in) is in the matrix. |
@@ -175,7 +175,7 @@ The rebuild PRD's working titles A1 to A18 (its ADR table) with the merged ADRs 
 | row | working title | ADR | Status |
 | --- | --- | --- | --- |
 | A1 | Studio Next is the spec for every page it covers | 0760 | Accepted |
-| A2 | Page replaced without a flag, Editing included | none: `docs/architecture/principles.md` decision 1 is kept (SN0-Q2) | |
+| A2 | Page replaced without a flag, Editing included | none: `docs/architecture/principles.md` is kept (SN0-Q2) | |
 | A3 | Jump menu, context providers and help derived from the catalogue | 0780 | Accepted |
 | A4 | Overlay service renders the existing primitives | 0781 | Accepted |
 | A5 | Read-model store and command journal | 0770 | Accepted |

@@ -14,7 +14,7 @@ type Story = StoryObj<typeof meta>;
 
 export const Default: Story = {};
 
-// An outline icon is off, a solid one is on (icon-audit.md rule 3).
+// An outline icon is off, a solid one is on (icon-audit.md).
 export const Flipped: Story = { args: { name: 'goTo', flip: true } };
 
 const iconKeys = Object.entries(CATALOG)

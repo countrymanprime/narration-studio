@@ -13,7 +13,7 @@ import (
 	"github.com/countrymanprime/narration-utils/shell/internal/pronunciationport"
 )
 
-// The narrator's pronunciation sources and one source's candidate for one word (SNB-2b, docs/guides/using-the-app/story-bible.md#how-you-say-each-name decision 1). Both
+// The narrator's pronunciation sources and one source's candidate for one word (SNB-2b, docs/guides/using-the-app/story-bible.md#how-you-say-each-name). Both
 // bindings take a word and a source id and nothing else: no path, no passage, no project id, and no batch form. The sources
 // come from three places that each know theirs - the port registry (the sidecar's sources), the online service (the keyed
 // Merriam-Webster one) and the Story Bible setting (the default) - and this file only joins them.

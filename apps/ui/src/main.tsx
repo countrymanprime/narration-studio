@@ -294,8 +294,7 @@ const mockDawPlayhead = Number.parseFloat(mockParams.get('mockDawPlayhead') ?? '
 // `cascade` gives Chapter 4's result the model cascade's own
 // pickups and recheck label; `recheck-required` answers the next
 // start with the re-check model's own missing-model gate, offering "Check with tiny only" beside the download.
-// `?mockCoverageRefusal=<reason>` answers every start with that refusal (docs/utilities/recording-coverage.md, ADR
-// 0130).
+// `?mockCoverageRefusal=<reason>` answers every start with that refusal (docs/utilities/recording-coverage.md).
 const mockCoverage = (['hold', 'stale', 'pickups', 'cascade', 'recheck-required'] as const).find((seed) => seed === mockParams.get('mockCoverage'));
 const mockCoverageRefusal = COVERAGE_REFUSAL_REASONS.find((reason) => reason === mockParams.get('mockCoverageRefusal'));
 // `?mockStages=mixed|error` puts the Home breakdown's stage suggestions in every state at

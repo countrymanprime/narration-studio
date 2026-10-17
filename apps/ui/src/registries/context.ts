@@ -2,7 +2,7 @@ import { useEffect } from 'react';
 import type { ContextMenuItem } from '../components/primitives/ContextMenu';
 
 /**
- * What a page offers when the user opens the context menu on something it owns (docs/architecture/studio-shell-and-registries.md#command-providers-and-go-to decision 5). `match` says whether
+ * What a page offers when the user opens the context menu on something it owns (docs/architecture/studio-shell-and-registries.md#command-providers-and-go-to). `match` says whether
  * the target is the page's; `items` is called only after `match` answered true, at the moment the menu opens, so it may
  * close over live state.
  */

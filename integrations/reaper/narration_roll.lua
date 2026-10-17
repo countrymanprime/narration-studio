@@ -1,4 +1,4 @@
--- Roll again while recording, over the bridge (docs/reference/daw/capabilities.md point 1). Loaded by narration_ui_bridge.lua, which passes the
+-- Roll again while recording, over the bridge (docs/reference/daw/capabilities.md). Loaded by narration_ui_bridge.lua, which passes the
 -- shared helpers as the chunk argument.
 --
 -- roll(run, track_guid, at) runs only while a recording this bridge started (record_start in narration_transport.lua,

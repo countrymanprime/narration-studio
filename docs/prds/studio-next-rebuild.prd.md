@@ -222,7 +222,7 @@ The owner's rulings of 2026-10-11 decide every row. The owning PRD authors the s
 | # | Conflict | Existing decision | Proposed ADR (owner PRD) |
 | --- | --- | --- | --- |
 | A1 | Which mock is the spec | D96, now in `.claude/rules/ui-spec-and-screenshots.md`: only the benchmark folder counts | Studio Next is the only spec for pages it covers; replaces the rule (SNF/SNC) |
-| A2 | Page replaced without a flag, Editing included | [Design principles](../architecture/principles.md) decision 1: same-PR replacement, no coexistence | None; `docs/architecture/principles.md` decision 1 is kept (SN0-Q2) |
+| A2 | Page replaced without a flag, Editing included | [Design principles](../architecture/principles.md) decision 1: same-PR replacement, no coexistence | None; `docs/architecture/principles.md` is kept (SN0-Q2) |
 | A3 | Register keys with page handlers (`registerKeys`) | [Studio shell and registries](../architecture/studio-shell-and-registries.md): features never listen to `keydown`; static catalogue | Jump menu, context providers and help derived from the catalogue (SNR) |
 | A4 | Imperative overlays | [ADR 0008](../adr/0008-the-ui-is-react-and-tailwind-over-base-ui-primitives.md), [Design system reference](../design/design-system.md), [Design system reference](../design/design-system.md) | Overlay service renders the existing primitives (SNR) |
 | A5 | Whole-book client store with immer patches | Host owns state ([The rule](../architecture/host-binding-concurrency.md#the-rule), [ADR 0005](../adr/0005-every-boundary-is-a-typed-contract.md)); no immer dependency | Read-model store and command journal (SNS) |

@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 
-/** One result a search source offers the jump menu (docs/architecture/studio-shell-and-registries.md#command-providers-and-go-to decision 5). `group` is its heading, `sub` the muted line under the title. */
+/** One result a search source offers the jump menu (docs/architecture/studio-shell-and-registries.md#command-providers-and-go-to). `group` is its heading, `sub` the muted line under the title. */
 export type SearchHit = {
   group: string;
   title: string;

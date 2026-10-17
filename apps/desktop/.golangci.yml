@@ -31,7 +31,7 @@ linters:
           # download in internal/assets, the release check and update download in internal/update, and the track-audio route in the
           # root media.go. Tests may use httptest servers.
           # This is a fence on the Go host's imports, not proof that analysis is local: it does not see a sidecar's
-          # own network use (the ephemeral uv environment of docs/architecture/manuscript-teleprompter.md#prototype-findings-and-live-engine-direction point 5 downloads packages), os/exec, or a
+          # own network use (the ephemeral uv environment of docs/architecture/manuscript-teleprompter.md#prototype-findings-and-live-engine-direction downloads packages), os/exec, or a
           # third-party client added under another name. `net` also covers its subpackages such as net/url and net/http.
           # The fourth allow row is the Merriam-Webster adapter alone (ADR 0006): one narrator-
           # initiated word at a time, on the narrator's own key, to www.dictionaryapi.com only. Its parent package

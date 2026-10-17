@@ -201,7 +201,7 @@ export interface DawClient {
   /** Smooth the request's clicks in a take, in one undo step of the DAW's own where it can; the recorded audio is left as it was where the
    * DAW can (a volume envelope). The DAW refuses a take that is gone or a click outside it (code `stale`). */
   repairClick(request: ClickRepairRequest): Promise<DawResult>;
-  /** Whether the DAW's next undo point is the app's own action of `kind` (docs/architecture/ui-state-and-journal.md#the-journal-and-undo rule 4): `this`, `other` (another action, or none),
+  /** Whether the DAW's next undo point is the app's own action of `kind` (docs/architecture/ui-state-and-journal.md#the-journal-and-undo): `this`, `other` (another action, or none),
    * or `unknown` when the DAW cannot tell. It never changes the project and never rejects: the `undo_last` capability refused, a DAW not
    * answering and a call that failed are all `unknown`. */
   lastAction(action: DawActionKind): Promise<DawLastAction>;

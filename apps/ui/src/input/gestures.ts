@@ -1,5 +1,5 @@
 /**
- * A gesture is what any input device turns into once normalised (docs/architecture/studio-shell-and-registries.md decision 3): the same shape whether it
+ * A gesture is what any input device turns into once normalised (docs/architecture/studio-shell-and-registries.md): the same shape whether it
  * came from a key, a MIDI note/CC or an HID button. `code` is `KeyboardEvent.code` for a keyboard gesture:
  * the physical key, stable across keyboard layouts, never the character it types (`event.key` would move on a
  * German keyboard).

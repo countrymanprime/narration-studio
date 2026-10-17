@@ -4,8 +4,7 @@
 Story Bible spaCy language models, the Moonshine live-engine models (the Teleprompter launches one when the narrator chooses it, asking
 before downloading like any first use; the Windows sidecar runs Moonshine only from such an install and never downloads a model itself,
 [Manuscript Teleprompter](manuscript-teleprompter.md)), the
-manuscript reader's offline dictionary (the Open English WordNet, [ADR
-0097](dictionary-thesaurus-integration.md); Look up asks for it with
+manuscript reader's offline dictionary (the Open English WordNet, `docs/architecture/dictionary-thesaurus-integration.md`; Look up asks for it with
 the same first-use question) and the MP3 encoder. This document holds the rules
 that code, other docs and `SECURITY.md` are checked against; the sections from "The asset manager" on describe what implements them.
 

@@ -8,7 +8,7 @@ import (
 	"time"
 )
 
-// apply_fx_range and remove_fx_range (docs/reference/daw/capabilities.md point 3, narration_range.lua): the answers as
+// apply_fx_range and remove_fx_range (docs/reference/daw/capabilities.md, narration_range.lua): the answers as
 // integrations/reaper/tests/fx_range_test.lua pins them.
 
 const (

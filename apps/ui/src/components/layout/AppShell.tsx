@@ -141,7 +141,7 @@ export function AppShell({
   undo: { disabledReason?: string; run: () => void };
   /** The foot's Theme item (the mock's rail): absent draws none. */
   theme?: { dark: boolean; toggle: () => void };
-  /** The menu on empty space in `<main>`, then the items every menu ends with (docs/architecture/studio-shell-and-registries.md#command-providers-and-go-to decision 5). */
+  /** The menu on empty space in `<main>`, then the items every menu ends with (docs/architecture/studio-shell-and-registries.md#command-providers-and-go-to). */
   contextMenu?: { fallback: (target: Element) => ContextMenuItem[]; tail: ContextMenuItem[] };
   children: ReactNode;
 }) {

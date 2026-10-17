@@ -2,7 +2,7 @@ import { useEffect } from 'react';
 import { COMMAND_CATALOG, type CommandDescriptor, type CommandId } from './commands.catalog';
 
 /**
- * A command whose existence depends on live data, such as "Go to chapter 3" (docs/architecture/studio-shell-and-registries.md#command-providers-and-go-to decision 3). It shows in the jump
+ * A command whose existence depends on live data, such as "Go to chapter 3" (docs/architecture/studio-shell-and-registries.md#command-providers-and-go-to). It shows in the jump
  * menu only and carries no key: `defaults?: never` forbids a gesture, and `providedCommands` rejects one at runtime.
  */
 export type ProvidedCommand = {
@@ -40,7 +40,7 @@ export function providedCommands(catalog: readonly CommandDescriptor[] = COMMAND
     for (const command of provider()) {
       if ('defaults' in command && command.defaults !== undefined) {
         throw new Error(
-          `Provided command "${command.id}" has defaults: a provided command carries no key (docs/architecture/studio-shell-and-registries.md#command-providers-and-go-to decision 3).`,
+          `Provided command "${command.id}" has defaults: a provided command carries no key (docs/architecture/studio-shell-and-registries.md#command-providers-and-go-to).`,
         );
       }
       const clash = catalog.find((row) => row.id === command.id);

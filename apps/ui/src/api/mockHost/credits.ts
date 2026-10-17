@@ -331,8 +331,7 @@ export function createCreditsMock(
       creditsStatuses = { ...creditsStatuses, [kind]: status };
       return wireClone(creditsStatuses);
     },
-    // A credits id's confirmed link lives in the same s.chapterTrackMappings as every manuscript chapter's (ADR
-    // 0333), so the same mockRecordedLength manuscriptChapters() uses reads it, keyed by "credits-opening"/"credits-closing".
+    // A credits id's confirmed link lives in the same s.chapterTrackMappings as every manuscript chapter's, so the same mockRecordedLength manuscriptChapters() uses reads it, keyed by "credits-opening"/"credits-closing".
     creditsRecordedLengths: async () => {
       const readable = Boolean(s.tracksDiscovery.selected);
       return {

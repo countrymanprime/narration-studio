@@ -142,7 +142,7 @@ export function SettingsPage({
           notify={notify}
           before={({ fields, scope }) => <RecordingCheckSummary fields={fields} scope={scope} />}
         />
-        {/* The silence cleanup analyzer's own thresholds (apps/desktop/internal/measure/cleanup.go decision 4). */}
+        {/* The silence cleanup analyzer's own thresholds (apps/desktop/internal/measure/cleanup.go). */}
         <ScopedFieldsPanel id="cleanup" title="Silence cleanup" tool="Cleanup" scopes={['global', 'project']} notify={notify} />
         <ScopedFieldsPanel
           id="proof"

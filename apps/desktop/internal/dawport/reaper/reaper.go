@@ -261,7 +261,7 @@ func (a *Adapter) Role(c dawport.Capability) any {
 // Depth is what REAPER declares about how a capability acts, the same with REAPER up or down.
 func (a *Adapter) Depth(c dawport.Capability) dawport.Depth { return depthOf(c) }
 
-// depthOf: a roll keeps the earlier audio as a take (docs/reference/daw/capabilities.md point 1), so punch is not destructive, and REAPER makes it
+// depthOf: a roll keeps the earlier audio as a take (docs/reference/daw/capabilities.md), so punch is not destructive, and REAPER makes it
 // itself. That rests on the overlapping-recording setting the roll command reads and refuses without; the QA pass (#1495)
 // confirms that setting keeps the audio. A cut moves the middle piece to the muted Cuts track and deletes nothing (point 2),
 // so cut_range is not destructive either, and a chain on a range is take FX on a split piece, which leaves the audio as it

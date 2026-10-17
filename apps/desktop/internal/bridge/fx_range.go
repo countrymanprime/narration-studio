@@ -9,7 +9,7 @@ import (
 	"unicode"
 )
 
-// Put one of the narrator's saved FX chains on a range of words and take it off again (docs/reference/daw/capabilities.md point 3; apply_fx_range
+// Put one of the narrator's saved FX chains on a range of words and take it off again (docs/reference/daw/capabilities.md; apply_fx_range
 // and remove_fx_range in narration_range.lua). Experimental (actions.go) until the QA pass has run them in a real REAPER
 // (#1495).
 

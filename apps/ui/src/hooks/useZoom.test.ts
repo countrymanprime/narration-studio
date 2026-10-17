@@ -80,7 +80,7 @@ describe('useZoom', () => {
     expect(result.current.canZoomOut).toBe(false);
   });
 
-  it('a resize above the 200% ceiling (an external Ctrl+wheel/pinch) is set back to it (docs/guides/using-the-app/navigation.md#zoom item 2)', async () => {
+  it('a resize above the 200% ceiling (an external Ctrl+wheel/pinch) is set back to it (docs/guides/using-the-app/navigation.md#zoom)', async () => {
     const api = fakeApi(1.0);
     renderHook(() => useZoom(api));
     await waitFor(() => expect(api.windowZoom).toHaveBeenCalledOnce());

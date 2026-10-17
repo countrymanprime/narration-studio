@@ -114,7 +114,7 @@ describe('AppShell grouped navigation', () => {
     }
   });
 
-  // docs/architecture/principles.md item 3 and docs/design/design-system.md item 3: on the wide rail every group's heading is drawn, the first one too (its space stands in
+  // docs/architecture/principles.md and docs/design/design-system.md: on the wide rail every group's heading is drawn, the first one too (its space stands in
   // for the benchmark mocks' Schedule item, which has no page), never only named for a screen reader.
   it('draws every group heading on the wide rail, the first one too', () => {
     const { container } = renderShell();

@@ -41,7 +41,7 @@ function Facts({ tool }: { tool: AssetItem }) {
 }
 
 /**
- * Asks before anything is downloaded (docs/architecture/extraction-tiers.md#the-75-rule decision 5): for each tool its name and size, what it does, where it downloads from,
+ * Asks before anything is downloaded (docs/architecture/extraction-tiers.md#the-75-rule): for each tool its name and size, what it does, where it downloads from,
  * the memory and time it needs and its licence, and the total when there are several. Cancel changes nothing; Download hands the
  * tools back to start one after another. Nothing downloads without this click.
  */

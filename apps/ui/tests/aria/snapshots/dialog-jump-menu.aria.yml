@@ -1,4 +1,4 @@
-# The jump menu (docs/architecture/studio-shell-and-registries.md#command-providers-and-go-to decision 6), opened from the header: a modal dialog holding one combobox field that names the active option and
+# The jump menu (docs/architecture/studio-shell-and-registries.md#command-providers-and-go-to), opened from the header: a modal dialog holding one combobox field that names the active option and
 # a listbox. Opened with nothing typed it lists one row per command group, the first selected. The live regions behind it are the page's and the overlay host's.
 - main:
   - group "Zoom"

@@ -11,7 +11,7 @@ const ZOOM_MAX = ZOOM_STEPS[ZOOM_STEPS.length - 1];
 const ANNOUNCE_DEBOUNCE_MS = 500;
 
 /** The step in ZOOM_STEPS closest to level; a level outside the list (only reachable by Ctrl+wheel/pinch below 100%,
- * docs/guides/using-the-app/navigation.md#zoom item 2) reads as its nearest end. */
+ * docs/guides/using-the-app/navigation.md#zoom) reads as its nearest end. */
 function nearestStepIndex(level: number): number {
   let nearest = 0;
   for (let index = 1; index < ZOOM_STEPS.length; index++) {
@@ -28,7 +28,7 @@ function nearestStepIndex(level: number): number {
  * Ctrl+wheel and pinch move the level outside this hook entirely (they are WebView2's own), so the only
  * signal that one of them changed anything is the `resize` a zoom change fires (it changes the CSS viewport); Wails
  * v3 surfaces no zoom-changed event on Windows. A level found above the 200% ceiling that way is
- * set back to it; one under 100% is only shown, per docs/guides/using-the-app/navigation.md#zoom item 2 ("kept, because a smaller page cramps nothing").
+ * set back to it; one under 100% is only shown, per docs/guides/using-the-app/navigation.md#zoom ("kept, because a smaller page cramps nothing").
  *
  * `announcement` is the debounced, polite text a run of wheel notches or clicks should announce once, at the level
  * the narrator settles on, not on every wheel notch.
@@ -86,7 +86,7 @@ export function useZoom(api: Pick<SystemApi, 'windowZoom' | 'windowSetZoom' | 'w
       api
         .windowZoom()
         .then((result) => {
-          // docs/guides/using-the-app/navigation.md#zoom item 2: a level above the ceiling (Ctrl+wheel/pinch) is set back to it; under the floor is kept.
+          // docs/guides/using-the-app/navigation.md#zoom: a level above the ceiling (Ctrl+wheel/pinch) is set back to it; under the floor is kept.
           if (result.level > ZOOM_MAX) return apply(ZOOM_MAX);
           setLevel(result.level);
           return undefined;

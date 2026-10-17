@@ -15,7 +15,7 @@
 -- Pending in REAPER (docs/reference/daw/reaper.md, "Takes"): that a take at D_VOL 0 is silent, that the take's P_EXT
 -- survives save, and that one Undo restores every volume and the active take. The harness proves only the calls.
 --
--- stack_takes(run, payload_path) puts the later reads of passages on the first read's spot as takes (docs/reference/daw/capabilities.md point 4,
+-- stack_takes(run, payload_path) puts the later reads of passages on the first read's spot as takes (docs/reference/daw/capabilities.md,
 -- the PRD's DQ-7). The payload is a file the host wrote under the session folder: a `shift|seconds` line, then for
 -- each passage a `group|first item GUID|first read's take GUID` line followed by one `move|take GUID|from|to|length`
 -- line per later read (seconds into the project). It is read line by line and refused whole when it is larger than

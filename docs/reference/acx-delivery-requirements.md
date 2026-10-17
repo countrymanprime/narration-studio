@@ -39,7 +39,7 @@ There is no digital-silence rule: the thirteen rules above are the profile, and 
 
 ## How a conflicting or unverified rule is judged
 
-`docs/reference/acx-delivery-requirements.md`, decision 2: a conflicting rule is judged against the looser reading with the conflict shown (room tone at the head, 0.5 to 5 s); an unverified rule is judged as written with a "to verify" mark; the profile is pinned to the month the page was read (`acx@2026-09`), and a new reading is a new version, offered, not forced; ACX's peak is the sample peak, with the true peak as advice.
+`docs/reference/acx-delivery-requirements.md`,: a conflicting rule is judged against the looser reading with the conflict shown (room tone at the head, 0.5 to 5 s); an unverified rule is judged as written with a "to verify" mark; the profile is pinned to the month the page was read (`acx@2026-09`), and a new reading is a new version, offered, not forced; ACX's peak is the sample peak, with the true peak as advice.
 
 ## Comparison with Audacity's ACX Check (pending owner)
 

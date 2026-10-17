@@ -67,8 +67,7 @@ const chapterCandidateSchema = z.object({
   region: z.object({ name: z.string(), start: z.number(), end: z.number() }).nullable(),
 }) satisfies z.ZodType<ChapterCandidate>;
 
-// trackDirectionWarningSchema is the warning set the matcher's track-to-chapter direction can report (ForTrack, ADR
-// 0113): every ForChapter warning plus confirmed-chapter-missing, which only that direction can raise.
+// trackDirectionWarningSchema is the warning set the matcher's track-to-chapter direction can report (ForTrack): every ForChapter warning plus confirmed-chapter-missing, which only that direction can raise.
 const trackDirectionWarningSchema = z.enum(['confirmed-track-missing', 'confirmed-track-renamed', 'confirmed-links-conflict', 'confirmed-chapter-missing']);
 
 export const chapterSuggestionSchema = z.object({

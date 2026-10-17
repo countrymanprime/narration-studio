@@ -117,7 +117,7 @@ export default {
       to: { path: '^src/', pathNot: '^src/(overlay|components/primitives)/' },
     },
     {
-      // docs/architecture/studio-shell-and-registries.md#command-providers-and-go-to decision 10. A registry is a table features add to (search sources, later contexts), so it sits below them: it takes
+      // docs/architecture/studio-shell-and-registries.md#command-providers-and-go-to. A registry is a table features add to (search sources, later contexts), so it sits below them: it takes
       // the primitives' types, the input layer and other registries, and no feature folder, or a feature's import would loop back.
       name: 'registries-import-no-feature',
       comment: 'src/registries/ imports components/primitives/, src/input/ and itself, never a feature folder. Features import registries.',

@@ -1,6 +1,5 @@
 // Package scriptprep is the Script page's preparation record: each chapter's prep state (not started, in progress, prepped) and
-// the words the narrator flagged for pronunciation, each with how it is said and the id of the source the value came from (ADR
-// 0792). A flag is a range of one paragraph; the word is the manuscript's own text for the range, lower-cased as its key, so the
+// the words the narrator flagged for pronunciation, each with how it is said and the id of the source the value came from. A flag is a range of one paragraph; the word is the manuscript's own text for the range, lower-cased as its key, so the
 // same word flagged in two places is one word with two flags. A word's say-value is kept while any of its flags remains and is
 // dropped with the last one. Every flag is checked against the current text on every read: one whose line is gone, whose range
 // no longer fits or whose words changed is reported stale, never moved.

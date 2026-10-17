@@ -78,5 +78,4 @@ environment this protocol's author has had access to (network policy denied
 both the audio source and the model-weight hosts in the cloud session that
 wrote this protocol and the lag-capture aid). A results table goes here, and
 in `docs/architecture/manuscript-teleprompter.md`'s Consequences, once a real-time pass exists; until then the
-default stays `whisper`/`tiny` (`config/defaults.json`, unchanged) and ADR
-0414 stays Proposed.
+default stays `whisper`/`tiny` (`config/defaults.json`, unchanged) and the default-engine decision stays open.

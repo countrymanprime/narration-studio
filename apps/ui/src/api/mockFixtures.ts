@@ -871,7 +871,7 @@ export const wireSettings = (): Record<string, ScopedSettingField[]> => ({
     recordingCheck('chunk_overlap_seconds', 'Crossover between neighbouring chunks', '6', { min: 0, max: 60, step: 1, unit: 's' }),
     recordingCheck('parallel_chapters', 'Chapters checked at once', '1', { min: 1, max: 8, step: 1, unit: 'chapters' }),
   ],
-  // The silence cleanup analyzer's five thresholds (apps/desktop/internal/measure/cleanup.go decision 4), mirroring the host's fieldSchemas and numberSpecs:
+  // The silence cleanup analyzer's five thresholds (apps/desktop/internal/measure/cleanup.go), mirroring the host's fieldSchemas and numberSpecs:
   // measure.DefaultCleanupOptions' own starting values, all still unset at every scope (repo default only) the way a fresh install reads them.
   Cleanup: [
     recordingCheck('pad_seconds', 'Hold kept at each side of a cut silence', '0.15', { min: 0, max: 2, step: 0.01, unit: 's' }),

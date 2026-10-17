@@ -75,7 +75,7 @@ export const appFeedback: Record<string, FeedbackRow> = {
   // docs/architecture/threat-model.md row 3) and a failure just leaves the readout at the level it already showed.
   'src/hooks/useZoom.ts::windowZoom#1': row('mount', 'instant', 'na', 'na', 'ui', 'silent', 'na', 'exempt', "Seeds the readout at the window's real level before the first paint settles; a failed read leaves it at the 100% default until the next resize re-reads it."),
   'src/hooks/useZoom.ts::windowSetZoom#1': row('click', 'instant', 'inline', 'none', 'ui', 'silent', 'yes', 'exempt', 'Zoom out, Zoom in, reset, and Ctrl+=/-/0: the readout itself is the acknowledgment and the completion. A failed set leaves the previous level shown, visibly unchanged, and survives navigation like the level itself.'),
-  'src/hooks/useZoom.ts::windowZoom#2': row('effect', 'instant', 'na', 'na', 'ui', 'silent', 'na', 'exempt', "The resize-triggered re-read for an external Ctrl+wheel/pinch change (docs/guides/using-the-app/navigation.md#zoom item 3, no zoom-changed event on Windows); a failed read just leaves the readout at its last known level until the next resize."),
+  'src/hooks/useZoom.ts::windowZoom#2': row('effect', 'instant', 'na', 'na', 'ui', 'silent', 'na', 'exempt', "The resize-triggered re-read for an external Ctrl+wheel/pinch change (docs/guides/using-the-app/navigation.md#zoom, no zoom-changed event on Windows); a failed read just leaves the readout at its last known level until the next resize."),
   // the settled level is also persisted to disk, debounced by
   // the same settle as the announcement, so it survives a quit; the readout has already shown the new level, so there
   // is nothing more to acknowledge here.

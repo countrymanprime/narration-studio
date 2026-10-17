@@ -269,7 +269,7 @@ return function(registry)
   registry.register('record_stop', function(ctx, args)
     record_stop(ctx.session_dir, state, args[1] or '')
   end)
-  -- The recording this bridge started, or nil: narration_roll.lua restarts only that one (docs/reference/daw/capabilities.md point 1).
+  -- The recording this bridge started, or nil: narration_roll.lua restarts only that one (docs/reference/daw/capabilities.md).
   registry.transport_recording = function()
     return state.recording
   end

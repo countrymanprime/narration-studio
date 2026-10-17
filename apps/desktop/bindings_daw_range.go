@@ -27,8 +27,7 @@ const (
 	cutAlreadyCutSentence = "These words are already cut, so nothing was changed."
 )
 
-// DawDeleteRange cuts the words firstToken..lastToken of chapterID's stored alignment together with their audio (SND-6b, ADR
-// 0860 point 2; the Studio Next mock's deleteRange): the DAW splits the item at both ends of the range and moves the middle
+// DawDeleteRange cuts the words firstToken..lastToken of chapterID's stored alignment together with their audio (SND-6b, docs/reference/daw/capabilities.md; the Studio Next mock's deleteRange): the DAW splits the item at both ends of the range and moves the middle
 // piece aside, and mode "close" moves the later audio up while "gap" leaves the length. fadeMs is the fade at each seam; padMs
 // (0 to 500) cuts that much less at each end of the words' audio; roomTone (gap only) fills the gap with the chapter's room
 // tone, which an engine with none refuses, cutting nothing (SN-E97). The page sends a chapter id, two token indices, and the

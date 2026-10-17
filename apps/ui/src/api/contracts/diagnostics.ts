@@ -12,7 +12,7 @@ import type { MeasureJob } from './measure';
 export type DiagnosticsSourceKind = 'raw_recording' | 'processed_render';
 
 /**
- * The silence cleanup analyzer's own thresholds (apps/desktop/internal/measure/cleanup.go decision 4; internal/measure.CleanupOptions), read from the narrator's settings ("Cleanup" tool) and
+ * The silence cleanup analyzer's own thresholds (apps/desktop/internal/measure/cleanup.go; internal/measure.CleanupOptions), read from the narrator's settings ("Cleanup" tool) and
  * shown the same way as `thresholds`: even before a check, so they are never hidden.
  */
 export type DiagnosticsCleanupThresholds = {
@@ -67,7 +67,7 @@ export type DiagnosticsFileStatus = 'pending' | 'checking' | 'checked' | 'failed
 
 /**
  * One file of a check: its summary and findings once checked (an empty list when nothing crossed a threshold), or why
- * it could not be. `cleanupFindings` are the silence cleanup analyzer's own candidates (apps/desktop/internal/measure/cleanup.go decision 3), apart
+ * it could not be. `cleanupFindings` are the silence cleanup analyzer's own candidates (apps/desktop/internal/measure/cleanup.go), apart
  * from `findings` so the Diagnostics tab's own list is unchanged; read-only, like every finding here.
  */
 export type DiagnosticsFileResult = {

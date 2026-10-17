@@ -187,8 +187,7 @@ func (s *MappingStore) Confirm(documentID, trackGUID, chapterID, chapterTitle st
 }
 
 // Clear removes trackGUID's link for documentID, if any, and records the pair
-// as rejected so chapter sync does not make it again straight away (ADR
-// 0203); linking it by hand lifts that. Clearing a track with no link is not
+// as rejected so chapter sync does not make it again straight away; linking it by hand lifts that. Clearing a track with no link is not
 // an error, matching CacheStore.Delete's own rule for a caller clearing what
 // may already be a miss.
 func (s *MappingStore) Clear(documentID, trackGUID string) error {

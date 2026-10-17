@@ -16,7 +16,7 @@ export type Result<R> = { ok: true; value: R } | { ok: false; refusal: Refusal }
 export type Command<R> = {
   /** The sentence the history list and the refusals show ("Added a bookmark"). */
   label: string;
-  /** Read-model keys the change touches, as `domain/id` or a whole `domain` (docs/architecture/ui-state-and-journal.md#the-journal-and-undo rule 3). */
+  /** Read-model keys the change touches, as `domain/id` or a whole `domain` (docs/architecture/ui-state-and-journal.md#the-journal-and-undo). */
   touches: string[];
   /** The change is made in the DAW too (rule 4). */
   daw?: boolean;
@@ -67,7 +67,7 @@ export type Journal = LeaveGuardStore & {
   subscribe(listener: () => void): () => void;
 };
 
-/** docs/architecture/ui-state-and-journal.md#the-journal-and-undo rule 2. */
+/** docs/architecture/ui-state-and-journal.md#the-journal-and-undo. */
 const JOURNAL_LIMIT = 40;
 
 type Entry = {

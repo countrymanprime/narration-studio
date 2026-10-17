@@ -55,7 +55,7 @@ Owner rulings of 2026-10-11; none is open.
 
 | Id | Ruling | Consequence here |
 | --- | --- | --- |
-| SN0-Q1 / DQ-1 | Studio Next is the spec | The rail, header and overlays follow the mock; `docs/architecture/principles.md` decision 5 and the Story Bible badge of `apps/ui/src/components/layout/useNavCounts.ts` are superseded (DQ-11, DQ-14) |
+| SN0-Q1 / DQ-1 | Studio Next is the spec | The rail, header and overlays follow the mock; `docs/architecture/principles.md` and the Story Bible badge of `apps/ui/src/components/layout/useNavCounts.ts` are superseded (DQ-11, DQ-14) |
 | SN0-Q2 / DQ-2 | Replace, one PR, no flag | Registries land first with no route; each migration of a `ContextMenu` or footer is its own slice |
 | SN0-Q3 | The store is a read-model cache plus a command journal; the Go host stays the source of truth | The History panel reads the journal in the Domain PRD |
 | DQ-14 / SN0-Q6 | Schedule and Delivery are pages with their own rail items | Their rail items arrive with their swaps (SNP-8, SNM-5) |

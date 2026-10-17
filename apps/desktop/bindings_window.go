@@ -14,7 +14,7 @@ import (
 
 // zoomSteps are the levels the header's buttons and Ctrl+=/-/0 step through (Windows only): WebView2's own
 // percentages from 100% to 200%. Ctrl+wheel and pinch are WebView2's own and never call WindowSetZoom, which is how a
-// level under 100% (docs/guides/using-the-app/navigation.md#zoom item 2, "kept, because a smaller page cramps nothing") stays reachable outside the
+// level under 100% (docs/guides/using-the-app/navigation.md#zoom, "kept, because a smaller page cramps nothing") stays reachable outside the
 // buttons.
 var zoomSteps = []float64{1.0, 1.10, 1.25, 1.50, 1.75, 2.00}
 
@@ -39,7 +39,7 @@ type WindowZoomResult struct {
 	Level float64 `json:"level"`
 }
 
-// WindowZoom reads the window's current zoom level (docs/guides/using-the-app/navigation.md#zoom item 3): the UI asks for this when it sees the page's
+// WindowZoom reads the window's current zoom level (docs/guides/using-the-app/navigation.md#zoom): the UI asks for this when it sees the page's
 // own zoom change (a devicePixelRatio or resize event), since Wails v3 surfaces no zoom-changed callback on Windows.
 func (h *Host) WindowZoom() (string, error) {
 	window, ok := mainWindow()

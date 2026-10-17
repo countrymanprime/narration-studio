@@ -276,8 +276,7 @@ func (s *Service) Cancel() {
 	s.cancelWhere(func(*job) bool { return true })
 }
 
-// CancelBackground cancels the runs the host started on its own (a background check gives way to the narrator's, ADR
-// 0211) and waits until they have ended; the narrator's own runs are left alone.
+// CancelBackground cancels the runs the host started on its own (a background check gives way to the narrator's) and waits until they have ended; the narrator's own runs are left alone.
 func (s *Service) CancelBackground() {
 	cancelled := s.cancelWhere(func(running *job) bool { return running.request.Background })
 	for _, running := range cancelled {

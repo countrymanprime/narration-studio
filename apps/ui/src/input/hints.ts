@@ -5,7 +5,7 @@ import type { Keymap } from './keymap';
 
 // A resolved keyboard gesture's `code` is the physical key, not the character it types, so it reads "Slash" rather than
 // "?"; this is the one place that turns a code back into a cap a narrator recognises. The sheet, the Settings key list and
-// the footers all draw their caps from here (docs/architecture/studio-shell-and-registries.md#command-providers-and-go-to decision 4: help is derived, not a second list).
+// the footers all draw their caps from here (docs/architecture/studio-shell-and-registries.md#command-providers-and-go-to: help is derived, not a second list).
 const NAMED_CODES: Record<string, string> = {
   ArrowLeft: '←',
   ArrowRight: '→',

@@ -21,7 +21,7 @@ const readingSchemaVersion = 1
 // ends. ScriptHash is a hash of the manuscript document and the chapter's text,
 // so a reading is dropped rather than misplaced once the chapter is edited or
 // the manuscript re-imported. It is one word index, never a word-to-time
-// anchor (docs/architecture/manuscript-teleprompter.md#resume-where-reaper-is-and-where-the-prompter-was decision 1 stands). The host reads it back, so its shape is
+// anchor (docs/architecture/manuscript-teleprompter.md#resume-where-reaper-is-and-where-the-prompter-was stands). The host reads it back, so its shape is
 // a wire contract (tests/fixtures/contracts/teleprompter-reading.json).
 type Reading struct {
 	Version    int       `json:"version"`

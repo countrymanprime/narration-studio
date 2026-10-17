@@ -1,5 +1,5 @@
 /**
- * Elements that already own a keystroke before any command sees it (docs/architecture/studio-shell-and-registries.md decision 4, moved here from
+ * Elements that already own a keystroke before any command sees it (docs/architecture/studio-shell-and-registries.md, moved here from
  * `useFollowCursor.ts`): a field, a widget Space activates, or an ARIA role whose arrow keys move a
  * selection or a value rather than the page. `useFollowCursor.ts` re-exports these three so `isScrollKey` and its
  * tests keep working unchanged.

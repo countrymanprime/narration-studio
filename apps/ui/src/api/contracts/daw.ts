@@ -232,7 +232,7 @@ export interface DawRollApi {
 export type DawCutMode = 'close' | 'gap';
 
 /** DawDeleteRange (SND-6b; apps/desktop/bindings_daw_range.go): cut the words between the two tokens of the chapter's stored alignment
- * together with their audio (docs/reference/daw/capabilities.md point 2), with `fadeMs` (0 to 500) at each seam. `padMs` (0 to 500) cuts that much less at each end,
+ * together with their audio (docs/reference/daw/capabilities.md), with `fadeMs` (0 to 500) at each seam. `padMs` (0 to 500) cuts that much less at each end,
  * and `roomTone` (mode `gap` only) fills the gap with the chapter's room tone, which a DAW with none refuses, cutting nothing (SN-E97).
  * The host resolves the item and its project seconds itself, one item per request. A capability refusal carries the capability's
  * sentence; a mode, fade or pad it does not take, room tone with `close`, words not heard and words across two items are refused with a
@@ -257,7 +257,7 @@ export interface DawDeleteRangeApi {
 
 /** DawApplyFxToRange and DawRemoveFxFromRange (SND-6c; apps/desktop/bindings_daw_fx_range.go): put one of the narrator's saved FX chains
  * on the words between the two tokens of the chapter's stored alignment, with `fadeMs` (0 to 500) at each new seam, and take it off again
- * (docs/reference/daw/capabilities.md point 3). The host resolves the item and its project seconds itself, one item per request; an apply's chain must be one
+ * (docs/reference/daw/capabilities.md). The host resolves the item and its project seconds itself, one item per request; an apply's chain must be one
  * `workspaceListFXChains` lists, and a removal's a plain chain name. A capability refusal carries the capability's sentence; a fade it does
  * not take, words not heard, words across two items and a chain REAPER does not list are refused with a sentence; a range outside the
  * alignment (a chapter with none included) or a gone item is code `stale`. A removal from an item that does not carry the chain answers
@@ -318,7 +318,7 @@ export type DawFxRangeCompare = {
 };
 
 /** DawStackTakes and DawUnstackTakes (SND-7b; apps/desktop/bindings_daw_stack.go): stack the later reads of the named passages on the
- * first read's spot as takes, and move them back (docs/reference/daw/capabilities.md point 4). The page sends a chapter id and passage ids only: the host rebuilds
+ * first read's spot as takes, and move them back (docs/reference/daw/capabilities.md). The page sends a chapter id and passage ids only: the host rebuilds
  * the groups, moves and shift itself from the Booth's passage map, the chapter's track as the DAW reports it now and, to move back, the
  * offsets the saved project's stacked takes recorded, so the plan a dialog showed is never sent. A capability refusal carries the
  * capability's sentence; a passage id the chapter does not list, a track that is gone, and an item that changed since the host read it
@@ -384,7 +384,7 @@ export type DawLastAction = 'this' | 'other' | 'unknown';
 export const DAW_LAST_ACTIONS = ['this', 'other', 'unknown'] as const satisfies readonly DawLastAction[];
 
 /** DawLastAction and DawUndoLast (#1711; apps/desktop/bindings_daw_undo_last.go): read and undo the app's own last action in the DAW's own
- * undo history, so the page's Undo reaches it (docs/architecture/ui-state-and-journal.md#the-journal-and-undo rule 4). */
+ * undo history, so the page's Undo reaches it (docs/architecture/ui-state-and-journal.md#the-journal-and-undo). */
 export interface DawUndoLastApi {
   /** Whether the DAW's next undo point is the app's action of `kind`. It never changes the project; a capability refusal, a DAW not
    * answering and no live DAW are `unknown`. A kind the host does not know rejects. */

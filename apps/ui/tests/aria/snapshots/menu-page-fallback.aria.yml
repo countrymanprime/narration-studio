@@ -1,4 +1,4 @@
-# The menu on empty space in <main> (docs/architecture/studio-shell-and-registries.md#command-providers-and-go-to decision 5): the shell's fallback items, then the tail every menu ends with. A step that cannot run says why.
+# The menu on empty space in <main> (docs/architecture/studio-shell-and-registries.md#command-providers-and-go-to): the shell's fallback items, then the tail every menu ends with. A step that cannot run says why.
 - menu:
   - menuitem "Go to…"
   - menuitem "Zoom in"

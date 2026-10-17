@@ -6,7 +6,7 @@ import (
 	"strconv"
 )
 
-// The narrator's old delivery limits (apps/desktop/settings_number.go decision 5, superseded by docs/reference/acx-delivery-requirements.md): seven number settings in the
+// The narrator's old delivery limits (apps/desktop/settings_number.go, superseded by docs/reference/acx-delivery-requirements.md): seven number settings in the
 // layered settings' Delivery section. They are read once more, to move them into a profile, and never again:
 // the keys stay in the settings files, unread.
 

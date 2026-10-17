@@ -47,7 +47,7 @@ function renderApp(overrides: Parameters<typeof createMockApi>[0] = {}, initial:
 }
 
 // The app's own toast region (`useToasts`) comes first in the document; the overlay host mounted after it draws a second pair for
-// `overlay.toast`, empty until a caller uses it (docs/architecture/studio-shell-and-registries.md#overlay-service decision 4 moves the call sites over one slice at a time).
+// `overlay.toast`, empty until a caller uses it (docs/architecture/studio-shell-and-registries.md#overlay-service moves the call sites over one slice at a time).
 // The toast region's live lists (Toast.tsx), told apart from a page's own status lines by announcing additions only.
 // The toast regions are portalled to <body> (the app's and the overlay host's, in that order of mounting): the one showing messages, else the first.
 const appToasts = (role: 'status' | 'alert') => {

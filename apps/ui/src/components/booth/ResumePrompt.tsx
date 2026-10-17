@@ -474,7 +474,7 @@ function unreadableText(result: Located): string {
 }
 
 /**
- * The read-aloud dialog's resume prompt (superseding docs/guides/using-the-app/booth.md#where-you-stopped decisions 5 and 6): a compact one-line
+ * The read-aloud dialog's resume prompt (superseding docs/guides/using-the-app/booth.md#where-you-stopped): a compact one-line
  * notice, or a compact choice with the matched sentence, for where the chapter's recording ends (`TeleprompterLocate`,
  * docs/architecture/manuscript-teleprompter.md#resume-where-reaper-is-and-where-the-prompter-was). It never starts reading by itself: a choice only sets where Start begins.
  *

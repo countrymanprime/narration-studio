@@ -3,7 +3,7 @@ import { readdirSync, readFileSync } from 'node:fs';
 import { join, relative, sep } from 'node:path';
 import { describe, expect, test } from 'vitest';
 
-// docs/design/design-system.md#layout-rules decision 1: a width query is written at one of the mock's widths. Tailwind cannot read a constant inside a class
+// docs/design/design-system.md#layout-rules: a width query is written at one of the mock's widths. Tailwind cannot read a constant inside a class
 // name, so `layoutBreakpoints.ts` and the classes are linked by this scan, not an import. It counts the Tailwind
 // `min-[Npx]` and `max-[Npx]` variants with N between 860 and 1440 per file; each is one of the vocabulary's eight or is in
 // `OFF_VOCABULARY`, whose counts may only go down (a higher real count fails, a lower one fails until the entry is

@@ -100,7 +100,7 @@ export async function editBookmark(env: BookmarkEnv, id: string, label: string, 
 
 /**
  * Deletes a bookmark. The inverse adds it again at the same spot and restores its text; the host gives the recreated bookmark
- * a new id and the entry is spent once it is undone (docs/architecture/ui-state-and-journal.md#the-journal-and-undo rule 6), so a second Undo of it is refused by the journal. A spot that has a bookmark again is refused, so
+ * a new id and the entry is spent once it is undone (docs/architecture/ui-state-and-journal.md#the-journal-and-undo), so a second Undo of it is refused by the journal. A spot that has a bookmark again is refused, so
  * Undo never overwrites the text of one the narrator made since.
  */
 export async function removeBookmark(env: BookmarkEnv, id: string): Promise<Result<{ entryId: number }>> {
