@@ -205,7 +205,7 @@ const plainParagraphs: ManuscriptParagraph[] = aliceChapters.flatMap((chapter, c
 );
 
 // Two paragraphs carry what the importer now preserves - a line break inside a
-// paragraph ("\n") and bold/italic/underline spans (ADR-0013/0014) - so the
+// paragraph ("\n") and bold/italic/underline spans - so the
 // visual suite and the user guide can show them. Spans are located by phrase so
 // they stay correct if the seed prose is edited.
 const spanFor = (text: string, phrase: string, style: TextSpan['style']): TextSpan[] => {
@@ -466,7 +466,7 @@ export const WIRE_SERIES_SIBLING_CLIPS: Array<{ characterId: string; clip: Serie
 // One tagged cue (the Hatter, not Alice: App.test.tsx's Story Bible flow finds Alice's own Name field by its
 // display value, and a cue pre-attributed to Alice would make her dialogue-cue Select show that same display
 // value too, an ambiguous match neither this fixture nor that test should have to know about) and one left
-// unknown (three or more active speakers in the scene, ADR 0020), so attribution correction has something to
+// unknown (three or more active speakers in the scene), so attribution correction has something to
 // correct without seeding every quote in the demo chapter.
 export const WIRE_DIALOGUE_CUES: GuideDialogueCue[] = [
   {
@@ -613,7 +613,7 @@ const bool = (key: string, label: string, value: 'true' | 'false'): ScopedSettin
   effectiveValue: value,
   effectiveSource: 'repo default',
 });
-// A delivery limit as the host sends it with nothing set: no limit ships by default (ADR 0025), so every one is empty.
+// A delivery limit as the host sends it with nothing set: no limit ships by default, so every one is empty.
 const deliveryLimit = (key: string, label: string, min: number, unit: string): ScopedSettingField => ({
   key,
   label,
@@ -736,7 +736,7 @@ export const wireSettings = (): Record<string, ScopedSettingField[]> => ({
   Piper: [choice('tts_provider', 'TTS provider', ['piper'], 'piper'), choice('tts_voice_id', 'Preview voice', ['en_US-ljspeech-high'], 'en_US-ljspeech-high')],
   // Global-scope machine facts: the device is unset until the narrator picks one, so the mock starts it empty like the
   // host does. Engine and model carry the repo defaults (whisper, tiny). The engine choices are what a Windows host
-  // offers (the host fills in the engines its platform can launch; Moonshine ships only on Windows, ADR 0107), and the
+  // offers (the host fills in the engines its platform can launch; Moonshine ships only on Windows), and the
   // model choice is tiny and small for either engine (only those have measured live-lag data).
   Teleprompter: [
     { key: 'input_device', label: 'Microphone', kind: 'text', choices: [], value: '', isSet: false, effectiveValue: '', effectiveSource: 'hardcoded' },
@@ -809,7 +809,7 @@ export const wireSettings = (): Record<string, ScopedSettingField[]> => ({
       effectiveValue: 'false',
       effectiveSource: 'repo default',
     },
-    // DAW.fx_favourites (ADR 0234): the narrator's favourite FX chains and
+    // DAW.fx_favourites: the narrator's favourite FX chains and
     // plug-ins, a comma-joined "tags" field, mirroring apps/desktop/app.go's fieldSchemas.
     {
       key: 'fx_favourites',
@@ -845,21 +845,21 @@ export const wireSettings = (): Record<string, ScopedSettingField[]> => ({
     deliveryLimit('true_peak_dbtp_max', 'True peak, highest', -60, 'dBTP'),
     deliveryLimit('noise_floor_dbfs_max', 'Noise floor, highest', -120, 'dBFS'),
   ],
-  // The recording check's four settings (docs/utilities/recording-coverage.md, ADR 0131) and its background switch, mirroring the
+  // The recording check's four settings (docs/utilities/recording-coverage.md) and its background switch, mirroring the
   // host's fieldSchemas and numberSpecs.
   RecordingCoverage: [
     recordingCheck('min_paragraph_present', 'Share of each paragraph that must be read', '0.8', { min: 0, max: 1, step: 0.01, unit: '' }),
     recordingCheck('max_missing_run', 'Longest run of missing words allowed', '3', { min: 0, max: 200, step: 1, unit: 'words' }),
     recordingCheck('max_misread_run', 'Longest misread still counted as read', '8', { min: 0, max: 200, step: 1, unit: 'words' }),
     recordingCheck('min_anchor_run', 'Shortest match that counts as read', '3', { min: 1, max: 50, step: 1, unit: 'words' }),
-    // Background checks of changed chapters (ADR 0211), on by default.
+    // Background checks of changed chapters, on by default.
     bool('background_checks', 'Check changed chapters in the background', 'true'),
     // The model cascade's own three settings: off by default,
     // tiny for the first pass, large-v3-turbo for the re-check.
     bool('cascade_enabled', "Two-pass check (fast first pass, then re-check what's missing)", 'false'),
     choice('cascade_first_pass_model', 'First-pass Whisper model', ['tiny', 'small', 'medium', 'large-v3-turbo', 'large-v3'], 'tiny'),
     choice('cascade_recheck_model', 'Re-check Whisper model', ['tiny', 'small', 'medium', 'large-v3-turbo', 'large-v3'], 'large-v3-turbo'),
-    // Also re-check passages Whisper scored under this, and how a long item is cut up (ADR 0864).
+    // Also re-check passages Whisper scored under this, and how a long item is cut up.
     recordingCheck('cascade_unsure_below', 'Also re-check passages Whisper is unsure of (word score under; 0 = off)', '0.5', {
       min: 0,
       max: 1,
@@ -871,7 +871,7 @@ export const wireSettings = (): Record<string, ScopedSettingField[]> => ({
     recordingCheck('chunk_overlap_seconds', 'Crossover between neighbouring chunks', '6', { min: 0, max: 60, step: 1, unit: 's' }),
     recordingCheck('parallel_chapters', 'Chapters checked at once', '1', { min: 1, max: 8, step: 1, unit: 'chapters' }),
   ],
-  // The silence cleanup analyzer's five thresholds (ADR 0238 decision 4), mirroring the host's fieldSchemas and numberSpecs:
+  // The silence cleanup analyzer's five thresholds (apps/desktop/internal/measure/cleanup.go), mirroring the host's fieldSchemas and numberSpecs:
   // measure.DefaultCleanupOptions' own starting values, all still unset at every scope (repo default only) the way a fresh install reads them.
   Cleanup: [
     recordingCheck('pad_seconds', 'Hold kept at each side of a cut silence', '0.15', { min: 0, max: 2, step: 0.01, unit: 's' }),

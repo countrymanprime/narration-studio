@@ -1,6 +1,6 @@
 # Story Bible page: state matrix
 
-Written before the code, per [the definition of done](../../.claude/rules/definition-of-done.md) rule 3, and filled in as the work landed. Spec: the Studio Next mock's Story Bible page (`docs/research/mockups/studio-next/src/pages/Bible.tsx` and `bible/`), by ADR 0760. Every cell is **tested** (names the test file and case), **walked** (seen in the real app with dev:mock, no automated test), or **not tested** with a reason. The tests are under `apps/ui/src/components/storybible/` unless a path says otherwise.
+Written before the code, per [the definition of done](../../.claude/rules/definition-of-done.md) rule 3, and filled in as the work landed. Spec: the Studio Next mock's Story Bible page (`docs/research/mockups/studio-next/src/pages/Bible.tsx` and `bible/`), by `docs/design/design-system.md#which-mocks-are-the-spec`. Every cell is **tested** (names the test file and case), **walked** (seen in the real app with dev:mock, no automated test), or **not tested** with a reason. The tests are under `apps/ui/src/components/storybible/` unless a path says otherwise.
 
 All of it ran against the mock host. Nothing was checked against a real host, a real manuscript or a real DAW.
 

@@ -18,8 +18,7 @@ const (
 // Hide mutes the other takes of the passage's item, keeping keepCandidateID, one of the candidates Resolve offered (SND-5b).
 // The item and the kept take are the host's own, read from the saved project: an id Resolve did not offer is refused as
 // stale, and so is a passage whose item the saved project no longer has, with nothing sent. Only a take of the passage's
-// own item can be kept, and a nil hide (no takes role: no bridge) is refused. The answer is the DAW's own Result (ADR
-// 0810); an error is worded as Use words it, as a refusal.
+// own item can be kept, and a nil hide (no takes role: no bridge) is refused. The answer is the DAW's own Result; an error is worded as Use words it, as a refusal.
 func Hide(ctx context.Context, hide Hider, resolved Resolved, keepCandidateID string) dawport.Result {
 	if resolved.View.PassageID == "" {
 		return dawport.RefusedStale(resolved.View.Message)

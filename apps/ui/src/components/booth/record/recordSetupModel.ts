@@ -13,7 +13,7 @@ export type RecordSetupFacts = {
 
 /**
  * The one-time setup Record is waiting for, or null when Record is available or nothing the narrator can do here would make it so.
- * `turn-on`: the record capability is Experimental and switched off (ADR 0230), or turned off by its own toggle; one click turns it on.
+ * `turn-on`: the record capability is Experimental and switched off, or turned off by its own toggle; one click turns it on.
  * `connect`: the DAW's bridge is not connected to this app, or has stopped answering, and the DAW has a guide to connect it
  * (`dawConnectGuide`): link the project, put the bridge in the DAW once, and run it.
  * `other-project`: Record could start, but the DAW has a different project open than the one linked here, so a take would land in the

@@ -179,7 +179,7 @@ func TestReadAloudReaperStateBindingAnswersJSON(t *testing.T) {
 	}
 }
 
-// The binding's answers, pinned for the UI's schema (ADR 0069): one of each status and reason.
+// The binding's answers, pinned for the UI's schema: one of each status and reason.
 func TestContractReadAloudReaperStates(t *testing.T) {
 	host, ids := newReadAloudReaperHost(t)
 	answers := map[string]readAloudReaperState{}
@@ -198,7 +198,7 @@ func TestContractReadAloudReaperStates(t *testing.T) {
 	contractfile.Check(t, "read-aloud-reaper-states", answers)
 }
 
-// TestTrackStateReaderFromComesFromTheResolver checks that the Track state role comes from the resolver (ADR 0300):
+// TestTrackStateReaderFromComesFromTheResolver checks that the Track state role comes from the resolver:
 // ReadAloudReaperState and TeleprompterReaperInput both source their reader
 // through trackStateReaderFrom, which asks svc.dawPortResolver for the Track state role instead of holding
 // svc.actions directly.

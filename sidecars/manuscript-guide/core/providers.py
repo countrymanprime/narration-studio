@@ -1,13 +1,12 @@
-"""Adapters for the guide sidecar's providers (ADR 0301; the wiktextract row, ADR
-0405): Piper as the ``TtsEngine`` row, CMU, Wiktextract and eSpeak as the ``PronunciationSource`` rows. Each adapter wraps
+"""Adapters for the guide sidecar's providers (the wiktextract row): Piper as the ``TtsEngine`` row, CMU, Wiktextract and eSpeak as the ``PronunciationSource`` rows. Each adapter wraps
 exactly the code ``manuscript_guide.py`` called directly before the ports existed; importing this module (which
-``manuscript_guide.py`` does at load time) registers all four, in the offline precedence order ADR 0405 records: CMU (the
+``manuscript_guide.py`` does at load time) registers all four, in the offline precedence order ADR 0002 records: CMU (the
 existing default), then Wiktextract (broader dictionary coverage than CMU alone), then eSpeak (a letter-to-sound guess for
 anything neither dictionary has).
 
 Nothing here imports piper, pronouncing or phonemizer at module level: each adapter's import stays lazy inside the call that
 needs it, so loading the sidecar for any other command does not pay their cost. ``WiktextractSource`` never imports anything
-beyond the standard library: its data is a plain JSON file the Go asset manager derives at install time (ADR 0405), never a
+beyond the standard library: its data is a plain JSON file the Go asset manager derives at install time, never a
 Python package.
 """
 
@@ -96,7 +95,7 @@ class CmuSource:
 
 
 class WiktextractSource:
-    """Wiktionary's IPA data, through the Wiktextract project's structured extracts (ADR 0405): broader headword and
+    """Wiktionary's IPA data, through the Wiktextract project's structured extracts: broader headword and
     variant coverage than the CMU dictionary, still a real dictionary hit rather than eSpeak's letter-to-sound guess, so it
     sits between the two in the offline precedence chain.
 
@@ -252,7 +251,7 @@ ENGINES.register(PiperEngine())
 
 
 def load_voice(model_path: str) -> Any:
-    """Loads a Piper voice through the TTS registry (ADR 0301): the raw object ``synthesize_to_file`` speaks through.
+    """Loads a Piper voice through the TTS registry: the raw object ``synthesize_to_file`` speaks through.
     Piper is imported lazily inside ``PiperEngine.load``: only ``render-audio`` and the self-check need it, and importing
     it costs about a quarter of a second, which every other command (each Save, lock, rescan) would pay."""
     return ENGINES.lookup("piper").load(model_path).voice

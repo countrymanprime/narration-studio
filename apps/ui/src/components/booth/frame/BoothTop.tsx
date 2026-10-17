@@ -33,7 +33,7 @@ function TextPopover({ font, size, onFont, onSize }: BoothTextChoice) {
   );
 }
 
-// The REC tokens (ADR 0656).
+// The REC tokens.
 const REC_COLORS = { fill: 'var(--rec-fill)', text: 'var(--rec-text)', line: 'var(--rec-text)' };
 
 /**

@@ -87,9 +87,9 @@ A file over a limit is refused with a sentence before any row is built.
 - An `entry` row about a known entry (by name or alias, ignoring case) **merges**: it adds the aliases the entry lacks. If it adds none, it is skipped as already in the Story Bible. A new entry is **added**.
 - A row about an entry that is in neither the Story Bible nor the file is an error naming the row.
 - A row offered or rejected before is skipped.
-- A locked entry is never edited (ADR 0007): a row that would change it is skipped.
+- A locked entry is never edited (`sidecars/manuscript-guide/core/manuscript_guide.py`): a row that would change it is skipped.
 - Nothing is deleted.
-- Status comes from the shared rule (ADR 0803): no confidence, or under 75%, or a quote not found in the manuscript, or a property or claim with no quote, is `needs-verification`; otherwise `accepted-auto`.
+- Status comes from the shared rule (`docs/architecture/extraction-tiers.md#the-75-rule`): no confidence, or under 75%, or a quote not found in the manuscript, or a property or claim with no quote, is `needs-verification`; otherwise `accepted-auto`.
 
 ## The bindings
 

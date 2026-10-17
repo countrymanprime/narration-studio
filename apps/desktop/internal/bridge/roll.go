@@ -6,7 +6,7 @@ import (
 	"fmt"
 )
 
-// Roll again while recording (ADR 0860 point 1; roll in narration_roll.lua). Experimental (actions.go) until the QA pass
+// Roll again while recording (docs/reference/daw/capabilities.md; roll in narration_roll.lua). Experimental (actions.go) until the QA pass
 // has run it in a real REAPER (#1495).
 
 // ErrBadRoll is the refusal when the roll time is not a finite, non-negative number of seconds, or no track was named,

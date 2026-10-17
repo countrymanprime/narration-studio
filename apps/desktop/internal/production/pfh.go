@@ -8,7 +8,7 @@ import (
 
 // This file computes PFH (hours worked per finished hour) and the effective
 // hourly rate, only from hours the narrator logged and audio the app measured
-// (ADR 0320). Nothing here falls back to the word-count estimate: a figure with
+// Nothing here falls back to the word-count estimate: a figure with
 // no honest input is undefined, returned as ok == false, never 0 and never a
 // guess.
 

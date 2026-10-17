@@ -59,7 +59,7 @@ func TestSavedCasesParsesEveryTrackAndItem(t *testing.T) {
 }
 
 // REAPER writes a track's selection (SEL) and record-arm (REC's first field) on its own lines; an item's own SEL line
-// (inside <ITEM>) is not the track's. The chapter suggestion (ADR 0113) reads the saved pair.
+// (inside <ITEM>) is not the track's. The chapter suggestion reads the saved pair.
 func TestTheSavedTrackSelectionAndRecordArmAreRead(t *testing.T) {
 	project := parseReaperFixture(t, "line-identity.rpp")
 	if len(project.Tracks) != 1 || !project.Tracks[0].Selected || project.Tracks[0].Armed {

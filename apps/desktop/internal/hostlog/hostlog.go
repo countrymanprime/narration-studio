@@ -1,7 +1,7 @@
-// Package hostlog is the host's local log (ADR 0069): one append-only text file, capped in size, that records where
+// Package hostlog is the host's local log: one append-only text file, capped in size, that records where
 // data went wrong and never what the data was. The UI reports a payload that did not match its schema through it
 // (SystemReportDiagnostic), and the readers of persisted files report a fallback through it, so a wrong shape leaves a
-// trace on the machine. Nothing is uploaded (ADR 0032).
+// trace on the machine. Nothing is uploaded.
 package hostlog
 
 import (

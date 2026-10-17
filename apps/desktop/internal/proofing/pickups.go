@@ -1,4 +1,4 @@
-// Package proofing holds the proofing stage's signals (ADR 0525) for the
+// Package proofing holds the proofing stage's signals for the
 // chapter stage recommendations engine (apps/desktop/internal/stages). It
 // computes, on read and from stored evidence only, whether a chapter in the
 // proofing stage has pickups left to clear up (proofing.pickups) and whether
@@ -129,7 +129,7 @@ var causePriority = []stages.UnknownCause{
 	stages.CauseNeverAnalyzed, stages.CauseProviderError,
 }
 
-// PickupsSignal is the pure roll-up (ADR 0525): not_met when any source has an open item; otherwise unknown when any
+// PickupsSignal is the pure roll-up: not_met when any source has an open item; otherwise unknown when any
 // source that ran cannot vouch for the chapter now, or when no source is
 // current; met only when some source is current and nothing is open. The same
 // input always gives the same signal.

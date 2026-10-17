@@ -86,7 +86,7 @@ export const START_TOPIC = 'daw-start';
 
 /**
  * The Booth's one-time recording setup, shown beside the Record control only while Record is unavailable for a reason the narrator
- * can fix from here (`recordSetupFor`): turning on the Experimental record capability with one click (ADR 0230: an explicit choice,
+ * can fix from here (`recordSetupFor`): turning on the Experimental record capability with one click (docs/architecture/reaper-bridge.md: an explicit choice,
  * never a default), or connecting the DAW by the steps of its own guide (`dawConnectGuide`), which words them. Every button says what
  * it did or why it could not, and nothing here records or arms anything.
  */

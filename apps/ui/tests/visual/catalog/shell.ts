@@ -5,7 +5,7 @@ import { LAYOUT_BANDS, REFLOW } from './shared';
 export const shellStates: StateEntry[] = [
   // The header's page history: the default states
   // already show both Back and Forward disabled at the first page, so that needs no row of its own. Captured
-  // at the reflow width too (ADR 0061's declared extension): the header at 390px is what
+  // at the reflow width too (docs/design/design-system.md's declared extension): the header at 390px is what
   // the narrator sees at high zoom, and no shell state was captured there before.
   {
     page: 'shell',
@@ -36,7 +36,7 @@ export const shellStates: StateEntry[] = [
     ...REFLOW,
   },
   // The zoom group: the default states already show it at 100% with Zoom out disabled and the
-  // readout itself disabled, so only a non-100% level gets its own row. Reflow (ADR 0061's declared
+  // readout itself disabled, so only a non-100% level gets its own row. Reflow (docs/design/design-system.md's declared
   // extension): the header at 390px is what the narrator sees at high real zoom.
   {
     page: 'shell',
@@ -50,7 +50,7 @@ export const shellStates: StateEntry[] = [
     page: 'shell',
     state: 'jump-menu-open',
     description: 'The jump menu open from the header button: the field focused and one row per command group',
-    // The header's Jump button is reachable below `md` (high zoom), so its menu is captured there too (ADR 0465).
+    // The header's Jump button is reachable below `md` (high zoom), so its menu is captured there too.
     extraViewports: [...REFLOW.extraViewports, ...LAYOUT_BANDS.extraViewports],
   },
   {

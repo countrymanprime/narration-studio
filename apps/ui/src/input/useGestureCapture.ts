@@ -24,7 +24,7 @@ const isBareEscape = (event: KeyboardEvent) => event.code === 'Escape' && !event
 /**
  * The recorder's "press a key or a pedal" step (a keyboard-type pedal presents as a keyboard, so this alone covers
  * it; MIDI and HID add their own capture below). Lives in
- * `src/input/` and listens on the capture phase, so `listenerGuard.test.ts`'s scan stays clean (ADR 0361: a command
+ * `src/input/` and listens on the capture phase, so `listenerGuard.test.ts`'s scan stays clean (docs/architecture/studio-shell-and-registries.md: a command
  * listener stays out of `src/components/`) and so the press never also reaches a bound command underneath the
  * recorder (Escape cancels the recorder instead of running `help.shortcuts`, say).
  *

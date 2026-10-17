@@ -9,7 +9,7 @@ import type { RecordedUnavailable } from '../../types';
 import { creditsRows } from './creditsRows';
 import type { CreditsKind, CreditsRow } from './useCreditsRows';
 
-/** The synthetic chapter id of each credits file: the one the recording check, the Script anchors and the Booth already use (ADR 0333). */
+/** The synthetic chapter id of each credits file: the one the recording check, the Script anchors and the Booth already use. */
 export const CREDITS_ID: Record<CreditsKind, string> = { opening: 'credits-opening', closing: 'credits-closing' };
 export const CREDITS_NAME: Record<CreditsKind, string> = { opening: 'Opening credits', closing: 'Closing credits' };
 

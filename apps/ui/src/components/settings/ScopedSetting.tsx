@@ -145,7 +145,7 @@ function NumberSetting({
         <Tooltip text={TOOLTIP[field.key] || `Configure ${field.label.toLowerCase()}.`} />
       </div>
       <div className={CONTROLS_CLASSES}>
-        {/* The unit stays beside its box at every width (the box shrinks, never below the collapsed-control floor of ADR 0060),
+        {/* The unit stays beside its box at every width (the box shrinks, never below the collapsed-control floor of .claude/rules/ui-visual-verification.md),
             so it never wraps to a line of its own the way a separate flex item would in the narrow tablet column. */}
         <div className={`flex items-center gap-[0.6rem] ${GROWING_CONTROL_CLASSES}`}>
           <TextField

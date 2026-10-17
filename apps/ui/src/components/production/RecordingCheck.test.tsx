@@ -42,7 +42,7 @@ function Host({
   ) : null;
 }
 
-// The recording check (docs/utilities/recording-coverage.md, ADR 0130) against the coverage mock, which answers the same states the host
+// The recording check (docs/utilities/recording-coverage.md) against the coverage mock, which answers the same states the host
 // does: chapters 1-3 have a current check with every word, 4-6 a current check with a third missing, the rest were never checked. The
 // Production row menu's "Recording check…" opens it.
 let current: {

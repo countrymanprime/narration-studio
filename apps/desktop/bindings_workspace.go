@@ -11,9 +11,9 @@ import (
 )
 
 // The chapter workspace's REAPER navigation: Go to for a chapter token, over the same bridge.Navigator, the same
-// navigate_item command, and the same connection status and refusal order as the Review page's FindingsGoTo (bindings_navigation.go, ADR 0121; docs/architecture/reaper-navigation.md, "From the
+// navigate_item command, and the same connection status and refusal order as the Review page's FindingsGoTo (bindings_navigation.go, docs/architecture/reaper-navigation.md; docs/architecture/reaper-navigation.md, "From the
 // workspace"). No new Lua command: what is new is resolving a token, in the host, to the item GUID, take GUID and
-// source time bridge.Target needs, from the chapter's stored alignment (WorkspaceAlignment, ADR 0242) checked against
+// source time bridge.Target needs, from the chapter's stored alignment (WorkspaceAlignment) checked against
 // the saved project - the page sends only a chapter id and token indices, never a GUID or a time, exactly as the Review
 // page sends only a finding id (docs/architecture/reaper-navigation.md).
 
@@ -139,9 +139,9 @@ func alignmentItemAt(items []coverage.AlignmentItem, index int) (coverage.Alignm
 	return coverage.AlignmentItem{}, false
 }
 
-// FX discovery (ADR 0234): a read-only list of the narrator's own FX chains, over the DAW port's FXManager role
+// FX discovery: a read-only list of the narrator's own FX chains, over the DAW port's FXManager role
 // (list_fx_chains; internal/dawport/roles.go), so it is gated and refused like every FX chains action
-// (dawport.CapFXChains, ADR 0230, ADR 0304). The narrator's favourites are a Settings row (DAW.fx_favourites), not part
+// (dawport.CapFXChains). The narrator's favourites are a Settings row (DAW.fx_favourites), not part
 // of this read: the effects menu combines the two client-side, since a favourite is just a name this listing (or a
 // future FX plug-in listing) already lists.
 
@@ -181,7 +181,7 @@ func workspaceListFXChainsIn(ctx context.Context, svc hostServices) (workspaceFX
 
 // WorkspaceListFXChains lists the narrator's FX chains from REAPER's FXChains folder (list_fx_chains), by relative
 // name, sorted, capped. It changes nothing and is refused (bridge.ErrUnavailable) offline or before the DAW port's
-// FX chains capability is on, exactly as list_fx_chains itself already is (ADR 0230, ADR 0234).
+// FX chains capability is on, exactly as list_fx_chains itself already is.
 func (h *Host) WorkspaceListFXChains() (string, error) {
 	return encodeBinding(workspaceListFXChainsIn(context.Background(), h.services()))
 }

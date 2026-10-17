@@ -83,7 +83,7 @@ export function ChapterTrackPanel({
   }, [api, open]);
 
   // Playback: the track the slide-over already knows from `link.track`, played through the same
-  // useTrackPlayback the Tracks page uses (ADR 0012's /media route). trackIndex stays -1 until `tracks` (this panel's
+  // useTrackPlayback the Tracks page uses (docs/architecture/threat-model.md's /media route). trackIndex stays -1 until `tracks` (this panel's
   // own read, above) resolves and the linked track's GUID is found in it; the hook is still called on every render
   // (rules of hooks) with a safe fallback index, but nothing is shown until trackIndex resolves, so playing track 0
   // by mistake is never possible - the caller can't reach the button.

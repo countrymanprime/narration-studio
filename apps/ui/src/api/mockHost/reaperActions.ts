@@ -563,7 +563,7 @@ function samplePickups(paragraphs: readonly ManuscriptParagraph[]): PickupItem[]
 const PICKUP_ID = /^(speech|finding|you):[A-Za-z0-9:._-]{1,240}$/;
 const PICKUP_LINE_MAX = 500;
 
-/** The host's pickup list (`bindings_pickuplist.go`, ADR 0840) with the same refusals: ids only, one plain line of text, a known
+/** The host's pickup list (`bindings_pickuplist.go`) with the same refusals: ids only, one plain line of text, a known
  * chapter, a time zero or more. With no DAW in the mock, a done state is kept, as the host keeps it while the DAW is away. */
 function createPickupListMock(
   manuscript?: PickupManuscript,

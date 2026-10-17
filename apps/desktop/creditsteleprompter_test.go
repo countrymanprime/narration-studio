@@ -11,8 +11,8 @@ import (
 	"github.com/countrymanprime/narration-utils/shell/internal/settings"
 )
 
-// The credits on the teleprompter (ADR 0150): the host renders the text with
-// the one renderer (credits.Render) from the template ADR 0093 picks, and a token with no value warns but never blocks.
+// The credits on the teleprompter: the host renders the text with
+// the one renderer (credits.Render) from the template docs/guides/using-the-app/production.md#the-credits picks, and a token with no value warns but never blocks.
 
 func hostWithCredits(t *testing.T) *Host {
 	t.Helper()

@@ -11,7 +11,7 @@ export const teleprompterFeedback: Record<string, FeedbackRow> = {
   'src/components/booth/pickups/usePickupSession.ts::pickupsRemove#1': row('click', 'file-io', 'none', 'none', 'ui', 'toast', 'no', 'ok', 'Dismiss removes a pickup from the session; "Dismissed." on success, the host\'s sentence in an error toast otherwise.'),
   'src/components/booth/passagemap/usePassageMapWriter.ts::passageMapRecordRun#1': row('event', 'file-io', 'na', 'host', 'ui', 'toast', 'yes', 'ok', 'Sends the run of marks when a take stops; the take is already saved, a refusal is the host\'s sentence in a toast and the run is kept for the next stop.'),
   // The Companion's resume prompt (ResumePrompt.tsx), kept with the Companion host.
-  'src/components/booth/useResumeLocate.ts::teleprompterLocate#1': row('mount', 'python', 'inline', 'pending', 'ui', 'inline', 'no', 'ok', 'The read-aloud resume prompt (ADR 0187, amending ADR 0112) asks where the recording ends once when the dialog opens, and again on Try again or a finished model download: "Checking where REAPER and your last reading are…" shows at once and replaces the choices, and only the latest lookup may answer; a failure is an inline alert with Try again. It settles - and stays gone - the moment a choice is made or a session starts, for the rest of the dialog\'s open.'),
+  'src/components/booth/useResumeLocate.ts::teleprompterLocate#1': row('mount', 'python', 'inline', 'pending', 'ui', 'inline', 'no', 'ok', 'The read-aloud resume prompt (amending docs/guides/using-the-app/booth.md#where-you-stopped) asks where the recording ends once when the dialog opens, and again on Try again or a finished model download: "Checking where REAPER and your last reading are…" shows at once and replaces the choices, and only the latest lookup may answer; a failure is an inline alert with Try again. It settles - and stays gone - the moment a choice is made or a session starts, for the rest of the dialog\'s open.'),
   'src/components/booth/useResumeLocate.ts::whisperInstall#1': row('click', 'download', 'dialog', 'host', 'dialog', 'dialog', 'no', 'ok', 'Only after Download model... and the first-use confirm; the host joins a download already running for the same asset. Bytes, the check, Cancel and a failure sentence in the dialog, through useAssetInstall; a finished download runs the lookup again.'),
   'src/components/booth/useResumeLocate.ts::whisperInstallState#1': row('timer', 'download', 'dialog', 'na', 'poll', 'dialog', 'no', 'ok', 'The one install-poll loop (useAssetInstall), every 400 ms, as for the Start reading download.'),
   'src/components/booth/useResumeLocate.ts::whisperInstallCancel#1': row('click', 'download', 'dialog', 'dialog', 'dialog', 'dialog', 'no', 'ok', 'Cancel stops the download and the dialog says it was cancelled; drawn only while bytes arrive.'),
@@ -77,7 +77,7 @@ export const teleprompterFeedback: Record<string, FeedbackRow> = {
     'inline',
     'no',
     'ok',
-    'Pause/resume on the control channel (ADR 0248); the state event\'s `paused` flag moves the bar\'s toggle and status ("Paused"/"Listening"), an inline error otherwise.',
+    'Pause/resume on the control channel; the state event\'s `paused` flag moves the bar\'s toggle and status ("Paused"/"Listening"), an inline error otherwise.',
   ),
   'src/components/booth/useBoothRecording.ts::subscribeDawTransport#1': subscription('The no-sound, no-notification rule\'s own reactive read of the DAW\'s live transport, apart from useDawRecording\'s ref-based gesture-time check.'),
   'src/components/booth/useTeleprompterSession.ts::teleprompterSeek#1': row('click', 'file-io', 'none', 'none', 'event', 'inline', 'no', 'ok', 'The tracker\'s next position event (jump: "restart") shows the move; an inline error otherwise. A click on a word in the reader sends it (while a session is running).'),
@@ -96,14 +96,14 @@ export const teleprompterFeedback: Record<string, FeedbackRow> = {
     'ok',
     "The chosen microphone (global settings) is saved as it is picked; a save failure shows as the inline error (the page's or the ReadAloudDialog modal's), and the value picked stays selected in the field either way.",
   ),
-  // Companion mode (ADR 0401): CompanionShell narrows and pins the one window
+  // Companion mode: CompanionShell narrows and pins the one window
   // while it is mounted and gives it back on unmount, and shows REAPER's playhead from the DAW port's live transport.
   'src/components/booth/CompanionShell.tsx::companionModeEnter#1': row('mount', 'instant', 'na', 'na', 'ui', 'inline', 'na', 'ok', 'Narrows and pins the window as the companion panel mounts; the panel itself is the acknowledgment, and a failure is an inline alert above its sections, with the panel still fully usable (Full app still works).'),
   'src/components/booth/CompanionShell.tsx::companionModeExit#1': row('mount', 'instant', 'na', 'na', 'ui', 'silent', 'na', 'exempt', 'Gives the window its size, position and stacking back as the companion panel unmounts (Full app, the double Escape, the dialog closing). Nothing is left mounted to tell, and the host\'s exit is a no-op when nothing was entered (SILENT_CATCHES).'),
   'src/components/booth/CompanionShell.tsx::subscribeDawTransport#1': subscription('The DAW port\'s live transport state (daw_transport_changed) for the companion header\'s playhead badge; until the first push it reads "Playhead stopped".'),
-  'src/components/booth/ResumePrompt.tsx::subscribeDawTransport#1': subscription('REAPER starting to play or record settles the resume prompt (ADR 0353): the narrator is working in REAPER, so the notice steps aside without a choice being made.'),
-  'src/components/booth/ResumePrompt.tsx::subscribeTeleprompterResumeFollow#1': subscription('The bounded REAPER follow\'s live events while the prompt shows for a matched track (ADR 0353): a cursor move retries the lookup, and REAPER playing or recording settles the prompt.'),
-  'src/components/booth/ResumePrompt.tsx::teleprompterResumeFollow#1': row('effect', 'file-io', 'na', 'na', 'ui', 'silent', 'na', 'exempt', 'Starts the bounded REAPER follow for the matched track while the prompt shows (ADR 0353); a failure to start just means the poll never begins (SILENT_CATCHES).'),
+  'src/components/booth/ResumePrompt.tsx::subscribeDawTransport#1': subscription('REAPER starting to play or record settles the resume prompt: the narrator is working in REAPER, so the notice steps aside without a choice being made.'),
+  'src/components/booth/ResumePrompt.tsx::subscribeTeleprompterResumeFollow#1': subscription('The bounded REAPER follow\'s live events while the prompt shows for a matched track: a cursor move retries the lookup, and REAPER playing or recording settles the prompt.'),
+  'src/components/booth/ResumePrompt.tsx::teleprompterResumeFollow#1': row('effect', 'file-io', 'na', 'na', 'ui', 'silent', 'na', 'exempt', 'Starts the bounded REAPER follow for the matched track while the prompt shows; a failure to start just means the poll never begins (SILENT_CATCHES).'),
   'src/components/booth/ResumePrompt.tsx::teleprompterResumeUnfollow#1': row('effect', 'file-io', 'na', 'na', 'ui', 'silent', 'na', 'exempt', 'Stops the follow on cleanup; a failure here is unobservable and harmless (SILENT_CATCHES).'),
 
   // Suspected lines and the resume offer.

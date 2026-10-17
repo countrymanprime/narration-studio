@@ -18,10 +18,10 @@ script text against what was said. The workflow is documented in
 - `core/coverage_mode.py` — `compare.py --coverage`: reads a JSON manifest of a chapter's items,
   reuses or writes one words file per item, and writes `COVERAGE` lines with JSON payloads
   (measurements only; the host applies the thresholds), then the word alignment
-  (`COVERAGE_TOKEN`, `COVERAGE_EXTRA`, ADR 0242). `--align-only` re-aligns from cached words and
-  never transcribes. Its module docstring and ADR 0127 give
+  (`COVERAGE_TOKEN`, `COVERAGE_EXTRA`). `--align-only` re-aligns from cached words and
+  never transcribes. Its module docstring and `docs/utilities/recording-coverage.md` give
   the manifest, words-file and output formats and the exit codes. The Go service that starts it
-  is `apps/desktop/internal/coverage` (ADR 0128, docs/utilities/recording-coverage.md).
+  is `apps/desktop/internal/coverage` (docs/utilities/recording-coverage.md).
 - `tests/` — the pytest suite for the backend, plus the recording-coverage ground-truth harness
   (`coverage_harness.py`) and its synthetic labeled fixtures (`fixtures/coverage/`), and the
   alignment spike that scores `core/recording_coverage.py` on them (`coverage_spike.py`); see
@@ -39,13 +39,13 @@ script text against what was said. The workflow is documented in
   span with the same diff the markers use and writes, per take, each span word's status and time and
   every divergence as span words plus source seconds (`TAKE_DIVERGENCE|{json}` lines). The manifest,
   output and exit codes are in the module docstring;
-  [ADR 0141](../../docs/adr/0141-per-take-divergence-is-localized-by-the-markers-diff-and-asr-word-timestamps.md)
+  [take_divergence_mode.py](core/take_divergence_mode.py)
   and [the evaluation](../../docs/research/take-divergence-evaluation.md) explain why ASR word
   timestamps are precise enough. `tests/divergence_harness.py` scores it against the constructed takes
   in `tests/fixtures/divergence/`.
 - `libs/python/narration_common/spoken_forms.py` — the built-in homophone list (your/you're,
   its/it's, etc.), the number words and the filler words, shared with the teleprompter's live
-  flags so both forgive the same spellings (ADR 0105). It is Python data rather than a file next
+  flags so both forgive the same spellings (`apps/ui/tests/visual/lib/capture.ts`). It is Python data rather than a file next
   to the script so a frozen build always carries it. Add a globally-useful pair to
   `HOMOPHONE_GROUPS` there (for something manuscript-specific, use the per-project equivalence
   list instead - see "Handling invented names/words" below).

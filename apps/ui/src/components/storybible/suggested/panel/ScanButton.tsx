@@ -6,7 +6,7 @@ import type { ExtractionScan } from './useSuggestions';
 
 /**
  * The Story Bible header's scan button. Idle it is the icon button; while the scan runs it is busy, shows the host's percent and message
- * (ADR 0015: nothing made up) with Cancel (ADR 0076), and when the scan ended it says what did not run, in the host's sentences, while
+ * (docs/architecture/principles.md: nothing made up) with Cancel, and when the scan ended it says what did not run, in the host's sentences, while
  * what the other sources found stays listed.
  */
 export function ScanButton({ scan }: { scan: ExtractionScan }) {

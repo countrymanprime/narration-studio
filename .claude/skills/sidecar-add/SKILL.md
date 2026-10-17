@@ -20,10 +20,10 @@ A new directory under `sidecars/`, or a new mode, argument or output format on a
 3. TDD (`tdd-workflow`). Start a new logic directory at an 80 floor in `scripts/ci/coverage-floors.json`; a lower floor needs a written reason.
 4. Host wiring: add the project to `implicitDependencies` in `apps/desktop/project.json`, add the executable name to the list in `scripts/release/verify-installable.mjs` (and its test), and extend the packaging that builds the sidecar with PyInstaller.
 5. Output: what the sidecar writes for the host (NDJSON lines, progress files, JSON) is a wire contract; follow `wire-contract-change`, including a golden file from `contract_files.check`.
-6. Models and data files go through the asset registry (`config/*-assets.json`, `internal/assets`), never a download inside the sidecar: analysis is local and the host owns the first-use download flow (ADR 0032, depguard in `apps/desktop/.golangci.yml`).
+6. Models and data files go through the asset registry (`config/*-assets.json`, `internal/assets`), never a download inside the sidecar: analysis is local and the host owns the first-use download flow (depguard in `apps/desktop/.golangci.yml`).
 7. Arguments the host passes are a trust boundary. Validate paths and values in the sidecar and re-read the sidecar row in `docs/architecture/threat-model.md` and `SECURITY.md`; a new licence needs the dependency review (`scripts/licenses`).
 8. `full-verification-gate`, then `feature-cleanup`.
 
 ## What this skill is not
 
-It does not pick ML models or decide whether the work belongs in Python or Go; that is an ADR-level decision (`adr-author`).
+It does not pick ML models or decide whether the work belongs in Python or Go; that is the owner's call (model and audio work runs in Python sidecars today for convenience; see [the sidecar boundary](../../../docs/architecture/codebase-map.md#sidecar-boundary)).

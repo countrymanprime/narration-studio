@@ -1,4 +1,4 @@
-// Package masteringporttest is the conformance suite every Mastering row must pass (ADR 0306), and the mock row it runs against.
+// Package masteringporttest is the conformance suite every Mastering row must pass, and the mock row it runs against.
 // The masteringport test runs it over every registered row, so a new row cannot skip it:
 //
 //	for _, entry := range masteringport.Rows.Entries() {

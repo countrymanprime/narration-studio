@@ -1,4 +1,4 @@
-"""The speech engine port's conformance suite (ADR 0301, Liskov): what every ``AsrEngine`` must do, checked the same way for each.
+"""The speech engine port's conformance suite (Liskov): what every ``AsrEngine`` must do, checked the same way for each.
 
 ``run(engine, ...)`` asks the engine for each role. A declared role must load and return an object; an undeclared one must refuse
 with a ``NotSupportedError`` naming the engine. A live role's hypotheses must be ``Hypothesis`` objects whose segments never go

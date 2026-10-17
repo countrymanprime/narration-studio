@@ -74,7 +74,7 @@ For SN-X61 to paste into `scripts/licenses/model-review.json` under `catalogued`
 ```json
 "gliner/gliner-small-v2.1": {
   "commercialUse": "Yes (Apache-2.0, declared on the model card and in the upstream docs; no licence file in the model repository)",
-  "status": "In the catalog as an optional download (ADR 0847, SNX-7a); consent required",
+  "status": "In the catalog as an optional download (SNX-7a); consent required",
   "note": "urchade/gliner_small-v2.1 at revision 4e091416cf7c3481db542c2a3d26156916f3a47f, a PyTorch pickle of 610,652,234 bytes. Licence read 2026-10-11 from the card front matter and the upstream docs/intro.md; the GLiNER v0 and v1 releases and the unversioned small/medium/large repositories are CC BY-NC 4.0 and are not used. Training data urchade/pile-mistral-v0.1 is Apache-2.0 on its dataset card, whose source text is not described: residual. The base encoder microsoft/deberta-v3-small is fetched separately and is not yet pinned."
 }
 ```
@@ -162,14 +162,14 @@ These go to [#992](https://github.com/countrymanprime/narration-utils/issues/992
    rows = []
    for i, ch in enumerate(chapters):
        words = ch.split()
-       chunks = [" ".join(words[j:j + 180]) for j in range(0, len(words), 180)]
+       chunks = [" ".join(words[j : j + 180]) for j in range(0, len(words), 180)]
        t = time.time()
        spans = [s for c in chunks for s in model.predict_entities(c, labels, threshold=0.5)]
-       rows.append({"chapter": i, "words": len(words), "seconds": time.time() - t,
-                    "spans": [{"text": s["text"], "label": s["label"], "score": s["score"]} for s in spans]})
+       rows.append(
+           {"chapter": i, "words": len(words), "seconds": time.time() - t, "spans": [{"text": s["text"], "label": s["label"], "score": s["score"]} for s in spans]}
+       )
    peak_mb = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss / 1024 if sys.platform != "win32" else None
-   json.dump({"load_seconds": load_s, "peak_rss_mb": peak_mb, "labels": labels, "threshold": 0.5, "chapters": rows},
-             open(a.out, "w"), indent=1)
+   json.dump({"load_seconds": load_s, "peak_rss_mb": peak_mb, "labels": labels, "threshold": 0.5, "chapters": rows}, open(a.out, "w"), indent=1)
    ```
 
    On Windows read the peak working set from Task Manager or `psutil`; the script records `null` rather than a guess. Score the spans against the gold set of the calibration protocol, and against the rules baseline run on the same chapters, and record both in the SN-X8 evaluation.

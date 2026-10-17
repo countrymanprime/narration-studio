@@ -21,7 +21,7 @@ export const CHUNK_SECONDS = [0, 60, 120, 300, 600, 900] as const;
 export const OVERLAP_SECONDS = [2, 4, 6, 10, 15] as const;
 export const DOUBT_SHARES = [0, 0.3, 0.4, 0.5, 0.6, 0.7] as const;
 
-/** The choices a run begins with: what the host would do with no options (ADR 0864), so the dialog shows the narrator's own settings. */
+/** The choices a run begins with: what the host would do with no options, so the dialog shows the narrator's own settings. */
 export const startChoices = (engines: CoverageEngines): RunChoices => ({ model: engines.default, ...engines.defaults });
 
 /** The options a start sends. Every choice is named, so the host runs what the dialog showed and a later change to a setting cannot

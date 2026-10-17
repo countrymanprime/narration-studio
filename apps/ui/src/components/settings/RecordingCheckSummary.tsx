@@ -1,7 +1,7 @@
 import type { Scope, ScopedSettingField } from '../../types';
 
-// What the recording check's settings amount to (docs/utilities/recording-coverage.md, ADR 0131). The values are
-// chosen on synthetic fixtures (ADR 0132) and stay Proposed and uncalibrated on real narration, and the page says so. The
+// What the recording check's settings amount to (docs/utilities/recording-coverage.md). The values are
+// chosen on synthetic fixtures and stay Proposed and uncalibrated on real narration, and the page says so. The
 // two thresholds only change how a stored check is judged; the two alignment settings change which words count, so the
 // host reads earlier checks as out of date once one changes.
 

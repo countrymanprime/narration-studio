@@ -8,7 +8,7 @@ import { KIND_LABELS, suspectedCount, suspectedKey, suspectedLines, toFlagSave, 
 /**
  * The Booth side panel's "Suspected" section (Studio Next mock `pages/booth/SidePanel.tsx`). The host's live check lists lines it
  * suspects were skipped or read again; each can be dismissed, with Undo, and a dismissed place comes back dismissed. The decision is the
- * finding's own (`TeleprompterSaveFlags`, ADR 0117), so Proof sees it. There is no way to add a line here.
+ * finding's own (`TeleprompterSaveFlags`), so Proof sees it. There is no way to add a line here.
  */
 export function SuspectedLines({ chapterId, flags: given }: { chapterId: string; flags: readonly SuspectedFlag[] }) {
   const flags = useMemo(() => suspectedLines(given), [given]);

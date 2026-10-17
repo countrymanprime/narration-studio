@@ -1,5 +1,5 @@
 // Package cleanuptools is the host's end of the cleanup launchers over the REAPER file bridge (launch_cleanup_tool in
-// integrations/reaper/narration_cleanup.lua; ADR 0146). It asks REAPER to
+// integrations/reaper/narration_cleanup.lua). It asks REAPER to
 // open its own Repair Pops/Clicks dialog, or the narrator's installed Magnolius DeClick script, on the items the
 // narrator has selected. It mirrors renderconfig.Service: one run at a time, reported by phase.
 //
@@ -45,7 +45,7 @@ func lookup(key string) (Tool, bool) {
 type Config struct{ SessionDir string }
 
 // Service is the state machine for one launch at a time. Level matching is a second, synchronous role on the
-// same service (ADR 0300): the Lua and the Go client exist but no narrator-facing trigger calls it yet, so it takes
+// same service: the Lua and the Go client exist but no narrator-facing trigger calls it yet, so it takes
 // its GainAdjuster role here for a binding to call ApplyGain once one exists.
 type Service struct {
 	mu           sync.RWMutex
@@ -57,7 +57,7 @@ type Service struct {
 	state map[string]any
 }
 
-// New builds the service over launcher and gainAdjuster (ADR 0300: cleanup tools depend on the roles they
+// New builds the service over launcher and gainAdjuster (docs/architecture/daw-integration.md#the-daw-port: cleanup tools depend on the roles they
 // use, never a concrete bridge client). When there is a launcher it subscribes to CLEANUP_LAUNCHED and ERROR
 // events for its own run (or, with no run, a session-level problem while a launch is in flight); gainAdjuster is
 // a synchronous role (roles.go) and needs no subscription of its own.

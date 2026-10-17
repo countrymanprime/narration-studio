@@ -14,8 +14,8 @@ import (
 )
 
 // fakeBackgroundHeartbeat is a dawport.Heartbeat a test can point at a chosen transport, for background-check gating
-// on REAPER's own recording state (ADR 0211; the transport itself is
-// ADR 0305). Only Reachable and Transport matter to backgroundCheckTick; the rest answer as an unlinked heartbeat.
+// on REAPER's own recording state (the transport itself is
+// docs/architecture/reaper-bridge.md). Only Reachable and Transport matter to backgroundCheckTick; the rest answer as an unlinked heartbeat.
 type fakeBackgroundHeartbeat struct {
 	reachable    bool
 	transport    dawport.Transport
@@ -30,7 +30,7 @@ func (f fakeBackgroundHeartbeat) Transport() (dawport.Transport, bool) {
 	return f.transport, f.hasTransport
 }
 
-// Background recording checks (ADR 0211): the host's loop over the
+// Background recording checks: the host's loop over the
 // real coverage service, with the power state and the clock handed in.
 
 // switchableSidecar is a coverage launcher a test can point at another fake between runs.
@@ -146,8 +146,8 @@ func TestOnBatteryNothingStarts(t *testing.T) {
 	}
 }
 
-// TestNothingStartsWhileReaperIsRecording covers the heartbeat's recording bit (ADR 0211 and
-// ADR 0305): a live heartbeat that says REAPER is recording holds off, even though every other condition (mains
+// TestNothingStartsWhileReaperIsRecording covers the heartbeat's recording bit (docs/utilities/recording-coverage.md and
+// docs/architecture/reaper-bridge.md): a live heartbeat that says REAPER is recording holds off, even though every other condition (mains
 // power, quiet chapter, model installed) allows a check.
 func TestNothingStartsWhileReaperIsRecording(t *testing.T) {
 	host, _, now := staleCoverageHost(t)
@@ -171,7 +171,7 @@ func TestABackgroundCheckRunsWhileReaperIsOpenAndKnownNotRecording(t *testing.T)
 }
 
 // TestNothingStartsWhileReaperIsRunningWithNoTransportInTheHeartbeat covers the fallback for an older script or a
-// heartbeat that has not carried the transport yet: unknown counts as recording (ADR 0211), same as before this
+// heartbeat that has not carried the transport yet: unknown counts as recording, same as before this
 // stream landed the wiring.
 func TestNothingStartsWhileReaperIsRunningWithNoTransportInTheHeartbeat(t *testing.T) {
 	host, _, now := staleCoverageHost(t)

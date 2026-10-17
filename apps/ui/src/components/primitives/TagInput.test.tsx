@@ -151,7 +151,7 @@ describe('TagInput', () => {
     expect(onAdd).not.toHaveBeenCalled();
   });
 
-  it('removes the last tag on Backspace in an empty box (ADR 0363), and never while there is draft text', () => {
+  it('removes the last tag on Backspace in an empty box, and never while there is draft text', () => {
     const { onRemove } = renderTags();
     const box = screen.getByRole('textbox', { name: 'Add a vocabulary term' }) as HTMLInputElement;
     fireEvent.change(box, { target: { value: 'x' } });

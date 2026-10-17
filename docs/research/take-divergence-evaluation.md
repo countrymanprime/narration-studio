@@ -1,12 +1,12 @@
 # Per-take divergence: is ASR word timing precise enough? (Q10)
 
-**Date:** 2026-09-23. **PRD:** take review, phase 9 (delivered: [Take review](../utilities/take-review.md)). **Decision:** [ADR 0141](../adr/0141-per-take-divergence-is-localized-by-the-markers-diff-and-asr-word-timestamps.md). **Result:** option (A) stays. Diff plus Whisper word timestamps ([ADR 0008](../adr/0008-timing-confidence-over-forced-alignment-model-for-transcript-compare.md)) localized every constructed divergence to the right words, with its time within 0.23 s. Forced alignment is not adopted.
+**Date:** 2026-09-23. **PRD:** take review, phase 9 (delivered: [Take review](../utilities/take-review.md)). **Decision:** [take_divergence_mode.py](../../sidecars/transcript-compare/core/take_divergence_mode.py). **Result:** option (A) stays. Diff plus Whisper word timestamps ([Alignment and confidence](../utilities/transcript-compare.md#alignment-and-confidence)) localized every constructed divergence to the right words, with its time within 0.23 s. Forced alignment is not adopted.
 
 > **This is synthetic evidence.** The owner chose constructed fixtures over an annotated corpus (Q10, answered 2026-09-23). A synthetic voice reads cleanly and evenly, with no room noise, breaths, mouth noise, plosives or overlapping retakes, and Whisper times such speech better than it times a real session. The numbers below are an optimistic bound. They show the method works and that timing is not its weak point. They do not show how it does on real recordings. If annotated chapters become available, repeat the run on them (see [Repeating it](#repeating-it)).
 
 ## The question
 
-Phase 10's comparison view shades where inside each take of one span the read goes wrong. Q10 asked whether a free Whisper transcript with word timestamps, diffed against the manuscript, can show that sub-span, or whether forced alignment (aligning the manuscript to the audio with a CTC or Kaldi model, a first PyTorch dependency) is needed. ADR 0008's condition for moving to forced alignment is evidence that word timing is too coarse.
+Phase 10's comparison view shades where inside each take of one span the read goes wrong. Q10 asked whether a free Whisper transcript with word timestamps, diffed against the manuscript, can show that sub-span, or whether forced alignment (aligning the manuscript to the audio with a CTC or Kaldi model, a first PyTorch dependency) is needed. `docs/utilities/transcript-compare.md#alignment-and-confidence`'s condition for moving to forced alignment is evidence that word timing is too coarse.
 
 **What "precise enough" means here.** The smallest sub-span the view can shade is one word. At 150 words a minute a word lasts about 0.4 s. A divergence is *localized* when:
 

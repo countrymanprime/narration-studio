@@ -17,7 +17,7 @@ export const MOCK_DICTIONARY: DictionaryInfo = {
     'Open English WordNet 2025 Edition, (c) 2019-present The Open English WordNet Team, licensed under CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Derived from Princeton WordNet 3.0, (c) 2006 Princeton University, under the WordNet License (https://wordnet.princeton.edu/license-and-commercial-use). Reorganised into a lookup index on your computer; the wording is not changed.',
 };
 
-/** The two sizes `config/dictionary-assets.json` records: the release that is downloaded, and the lookup index the install keeps (ADR 0136). */
+/** The two sizes `config/dictionary-assets.json` records: the release that is downloaded, and the lookup index the install keeps. */
 export const MOCK_DICTIONARY_DOWNLOAD_SIZE = 9986555;
 export const MOCK_DICTIONARY_DISK_SIZE = 17174403;
 

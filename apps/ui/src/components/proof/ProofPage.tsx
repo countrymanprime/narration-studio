@@ -48,7 +48,7 @@ const PIN_COLOUR: Record<string, string> = {
   entity: 'var(--info)',
 };
 
-// The last chapter the narrator looked at on Proof, per project (ADR 0750): stepping out of All chapters opens it. A per-viewer
+// The last chapter the narrator looked at on Proof, per project: stepping out of All chapters opens it. A per-viewer
 // convenience in browser storage, never a host field; storage can be missing, full or blocked, so every access is guarded.
 const lastChapterKey = (projectFolder: string): string => `narration.proof.lastChapter.${projectFolder}`;
 
@@ -112,7 +112,7 @@ export function ProofPage({
   const [summary, setSummary] = useState<FindingsSummary>();
   const [sort, setSort] = useState<NoteSort>('time');
   const [reload, setReload] = useState(0);
-  // The pickups list, for the open pickups no note stands for: while one is open the head never reads 100 (ADR 0793).
+  // The pickups list, for the open pickups no note stands for: while one is open the head never reads 100.
   const [pickups, setPickups] = useState<readonly PickupItem[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(params.get('finding'));
   const [current, setCurrent] = useState(() => loadLastChapter(projectFolder));

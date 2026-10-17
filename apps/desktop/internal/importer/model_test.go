@@ -35,7 +35,7 @@ func TestNewDraftGivesContentsItsOwnGroupInsteadOfLeakingIntoPriorSection(t *tes
 	}
 }
 
-// TestNewDraftClassifiesACharactersHeadingAsReference pins ADR 0088: a
+// TestNewDraftClassifiesACharactersHeadingAsReference pins docs/guides/using-the-app/script.md: a
 // Characters section stays classified `reference` - it is not dropped and gets no special non-chapter kind - so the Story Bible
 // entries seeded from its candidates are its readable form.
 func TestNewDraftClassifiesACharactersHeadingAsReference(t *testing.T) {

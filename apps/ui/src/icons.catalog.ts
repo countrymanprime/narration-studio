@@ -1,5 +1,5 @@
 /**
- * The icon vocabulary as data (ADR 0761 A16, SNF-Q1): an action name to the icon that draws it and the tooltip that
+ * The icon vocabulary as data (docs/design/design-system.md#layout-rules A16, SNF-Q1): an action name to the icon that draws it and the tooltip that
  * names it, from `icon-audit.md` sections 5 and 6 of the Studio Next mock. The key is the action, never the glyph, so
  * two pages that ask for "markDone" cannot draw it differently. `Icon` and `IconButton` read it; `icons.catalog.test.ts`
  * checks it.

@@ -1,7 +1,7 @@
 """Entity properties: an ordered list of {key, value} facts the narrator keeps on an entry.
 
 The list is additive: a Story Bible file written before it existed has no ``properties`` and reads as an empty list, and
-``schema_version`` stays 2. Edits go through ``edit()``, so a locked entry refuses them (ADR 0007), and a rebuild carries them.
+``schema_version`` stays 2. Edits go through ``edit()``, so a locked entry refuses them, and a rebuild carries them.
 """
 
 import argparse

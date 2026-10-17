@@ -4,7 +4,7 @@ package preview
 // docs/architecture/preview-suggestion.md), composing the recording-coverage signal, the paragraph mapping
 // (audiomapper.go), windowed audio-quality findings and pace evidence the same tri-state way the stages package
 // composes signals (met/not_met/unknown; unknown never counts as good - see docs/architecture/stage-recommendations.md
-// and ADR 0015). A windowed audio-quality finding cannot be read from a real chapter today: see ADR 0327.
+// and docs/architecture/principles.md). A windowed audio-quality finding cannot be read from a real chapter today: see docs/architecture/preview-suggestion.md.
 // WindowedFindings below is wired and tested regardless, so the composition is already correct once that gap closes.
 
 // AudioSignalState mirrors stages.SignalState's tri-state (met/not_met/unknown) without importing that package, the
@@ -24,7 +24,7 @@ type AudioSignal struct {
 }
 
 // ParagraphFinding is one windowed audio-quality finding, already resolved by the caller to a paragraph (or left
-// chapter-level when it could not be, the same "" convention OpenFinding uses) - see ADR 0327 for why no real chapter
+// chapter-level when it could not be, the same "" convention OpenFinding uses) - see docs/architecture/preview-suggestion.md for why no real chapter
 // has one of these to give today.
 type ParagraphFinding struct {
 	ParagraphID string
@@ -34,7 +34,7 @@ type ParagraphFinding struct {
 }
 
 // ChapterAudioEvidence is everything the audio-checked rule needs about one chapter's audio, already resolved to plain
-// values by the caller (a host binding composing coverage.Service, MapParagraphsToTime and, once ADR 0327 is resolved,
+// values by the caller (a host binding composing coverage.Service, MapParagraphsToTime and, once docs/architecture/preview-suggestion.md is resolved,
 // windowed audio-quality findings). Each provider answers met/not_met/unknown with a reason; the engine composes them.
 type ChapterAudioEvidence struct {
 	// Coverage is the recording-coverage signal for this chapter: met only when the mapped track's recording check is
@@ -46,7 +46,7 @@ type ChapterAudioEvidence struct {
 	// mapped only where a stamped item names that paragraph at the manuscript's current source hash.
 	ParagraphTimes map[string]ParagraphMapping
 	// WindowedFindings are the windowed audio-quality findings for this chapter, already resolved to a paragraph where
-	// possible (ADR 0327: none, in practice, until that gap closes).
+	// possible (docs/architecture/preview-suggestion.md: none, in practice, until that gap closes).
 	WindowedFindings []ParagraphFinding
 	// Pace is the fallback evidence (ChapterPace), shown whenever available regardless of the audio-checked label -
 	// pace evidence, never a per-window audio-quality claim.

@@ -33,12 +33,12 @@ const (
 )
 
 // DawApplyFxToRange puts one of the narrator's saved FX chains on the words firstToken..lastToken of chapterID's stored
-// alignment (SND-6c, ADR 0860 point 3; the Studio Next mock's applyFxToRange): the DAW splits the item at both ends of the
+// alignment (SND-6c, docs/reference/daw/capabilities.md; the Studio Next mock's applyFxToRange): the DAW splits the item at both ends of the
 // range and puts the chain on the middle piece, with fadeMs at each new seam. The page sends a chapter id, two token
 // indices, a chain name and the fade, never a GUID, a time or a path: the item and its project seconds are resolved here
-// from the stored alignment and the saved project (ADR 0242; threat model row 5f), one item per request (ADR 0705), and
+// from the stored alignment and the saved project (threat model row 5f), one item per request, and
 // the chain must be one the DAW's own list (WorkspaceListFXChains, the list the Add FX menu shows) names. The answer is a
-// DawResult (ADR 0810): the fx_range capability's own sentence when the resolver refuses it, checked first; then a fade
+// DawResult: the fx_range capability's own sentence when the resolver refuses it, checked first; then a fade
 // apply_fx_range does not take; then the range's refusals (words not heard, two items, and a range or item that is stale
 // with code stale); then a chain the DAW does not list. Nothing is sent to the DAW on any of them.
 func (h *Host) DawApplyFxToRange(chapterID string, firstToken int, lastToken int, chainName string, fadeMs int) (string, error) {
@@ -250,7 +250,7 @@ const (
 // (SN-E104; the mock's effect inspector), resolved as DawApplyFxToRange resolves them: the DAW finds the piece the chain went on
 // from the answer it gave the apply, or, after the chapter is checked again, from the item the words resolve to. The page sends a
 // chapter id, two token indices and a chain name, never a GUID or a path. The answer is the DawFxRangeParams payload: a DawResult
-// (ADR 0810) with the settings, whether the list was cut short and whether the chain is bypassed; a refusal has no settings. The
+// with the settings, whether the list was cut short and whether the chain is bypassed; a refusal has no settings. The
 // same capability and range refusals as DawRemoveFxFromRange, then a chain the DAW no longer has on those words, with code stale.
 func (h *Host) DawFxRangeParams(chapterID string, firstToken int, lastToken int, chainName string) (string, error) {
 	svc := h.services()

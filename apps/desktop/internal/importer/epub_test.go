@@ -285,7 +285,7 @@ func TestEPUBOversizedEntryIsRejected(t *testing.T) {
 }
 
 // TestEPUBBodyEpubTypeClassifiesDedicationAsNarration pins the Architecture
-// notes' "Classification" table (ADR 0102): epub:type takes
+// notes' "Classification" table: epub:type takes
 // precedence over the title-text classifier, so a dedication page titled
 // something the classifier does not know still lands as narration, since an
 // audiobook reads its dedication.
@@ -335,7 +335,7 @@ func TestEPUBBodyEpubTypeClassifiesEndnotesAsReference(t *testing.T) {
 
 // TestEPUBGluedHeadingIsSplitAndReported pins the "glued heading repair"
 // behaviour: parity with DOCX and Markdown, which both report the split
-// in Notices (ADR 0013).
+// in Notices.
 func TestEPUBGluedHeadingIsSplitAndReported(t *testing.T) {
 	files := baseEPUBFiles(
 		`<item id="ch1" href="ch1.xhtml" media-type="application/xhtml+xml"/>`,

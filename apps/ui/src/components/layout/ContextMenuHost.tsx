@@ -11,7 +11,7 @@ type SwitchableEvent = MouseEvent & { preventBaseUIHandler?: () => void };
 
 /**
  * The one context menu of the shell: wraps the content of `<main>` in the `ContextMenu` primitive and fills it from the
- * registered providers when it opens (ADR 0780 decision 5). The first provider that matches the target supplies the items,
+ * registered providers when it opens (docs/architecture/studio-shell-and-registries.md#command-providers-and-go-to). The first provider that matches the target supplies the items,
  * then `tail` follows (unless the provider opts out with `tail: false`, as a picker does); with no provider, `fallback` (the shell's empty-space menu) answers; with neither the browser's menu
  * is left alone, as it always is in a text field. The Menu key and Shift+F10 reach it as a `contextmenu` event on the
  * focused element, so it binds no key and listens to nothing on `document`.

@@ -11,7 +11,7 @@ import (
 )
 
 // fakeAlignedCoverageSidecar stands in for `compare.py --coverage` once it also writes the chapter's word alignment
-// (ADR 0242): coverageProject's one item, one paragraph, one token, read in full.
+// coverageProject's one item, one paragraph, one token, read in full.
 func fakeAlignedCoverageSidecar() coverage.Launcher {
 	return func(_ context.Context, _ string, args ...string) (coverage.Child, error) {
 		values := map[string]string{}
@@ -69,7 +69,7 @@ func TestWorkspaceAlignmentJoinsParagraphsAndPlayedRanges(t *testing.T) {
 
 func TestWorkspaceAlignmentOfAnOlderReportNeedsAlignAgain(t *testing.T) {
 	// fakeCoverageSidecar (bindings_coverage_test.go) writes a results file with no COVERAGE_TOKEN lines, as a report
-	// stored before ADR 0242 shipped alignment output would read.
+	// stored before docs/utilities/recording-coverage.md shipped alignment output would read.
 	host := coverageHost(t, coverageProject(t), true, fakeCoverageSidecar(8))
 	if _, err := host.CoverageStart("c-0001", nil); err != nil {
 		t.Fatal(err)

@@ -9,7 +9,7 @@ import (
 	"github.com/countrymanprime/narration-utils/shell/internal/project"
 )
 
-// Watching the saved REAPER project (ADR 0210). While a
+// Watching the saved REAPER project. While a
 // project with chapter sync on has a .rpp to read, the host stats that file every chapterSyncPollInterval. When its
 // modification time moves and then holds still for chapterSyncDebounce, the host re-runs the sync (trigger "watch"),
 // so a new track saved in REAPER for the next chapter is linked and announced without a click. REAPER's edit counter,

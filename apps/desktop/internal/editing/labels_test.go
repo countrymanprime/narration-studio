@@ -1,11 +1,11 @@
-// This file defines the labeling format for the editing corpus (ADR 0329): a
+// This file defines the labeling format for the editing corpus: a
 // CSV of source file identity, start, end, class (silence_to_trim, click,
 // breath, keep_pause, keep_breath) and note, with negative labels for
 // intentional pauses and kept breaths. It is test-only: this package's
 // harness consumes it. The corpus itself, built from LibriVox or a
 // permissioned narrator's chapters, lives outside the repo, pointed to by the
 // NARRATION_EDITING_CORPUS directory variable (harness_test.go), mirroring
-// ADR 0125's NARRATION_COVERAGE_CORPUS precedent. This file only defines and
+// docs/utilities/recording-coverage.md's NARRATION_COVERAGE_CORPUS precedent. This file only defines and
 // validates the row format; it never reads that variable itself.
 
 package editing
@@ -70,7 +70,7 @@ func negativeClassFor(c LabelClass) LabelClass {
 
 // LabelSplit is the tuning/held-out split of the corpus, recorded per row so
 // one corpus directory holds both halves without a second directory
-// convention, following the "tune | held_out" split named in ADR 0125's own
+// convention, following the "tune | held_out" split named in docs/utilities/recording-coverage.md's own
 // labeling precedent.
 type LabelSplit string
 

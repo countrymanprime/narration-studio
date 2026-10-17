@@ -22,7 +22,7 @@ func TestEveryRegisteredBackendPassesTheSuite(t *testing.T) {
 
 func TestOnlyWindowsHasABackend(t *testing.T) {
 	// The teleprompter sidecar lists and opens microphones through FFmpeg's dshow on Windows, the only supported platform
-	// (docs/adr/0412; the macOS coreaudio row was removed by D74), and the built-in recorder through WASAPI (docs/adr/0357).
+	// (the macOS coreaudio row was removed by D74), and the built-in recorder through WASAPI.
 	for platform, want := range map[string][]string{
 		"windows": {"dshow", "wasapi"},
 		"darwin":  {},
@@ -45,7 +45,7 @@ func TestForWindowsIsDshow(t *testing.T) {
 }
 
 func TestWasapiIsExperimentalAndDshowSupported(t *testing.T) {
-	// The wasapi row waits for the owner's check with a real microphone (#510) before it is Supported (docs/adr/0357).
+	// The wasapi row waits for the owner's check with a real microphone (#510) before it is Supported.
 	for name, want := range map[string]port.Level{captureport.DShow: port.Supported, captureport.WASAPI: port.Experimental} {
 		entry, err := captureport.Backends.Lookup(name)
 		if err != nil {

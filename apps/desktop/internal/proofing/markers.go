@@ -1,5 +1,5 @@
 // This file is a static read of the saved project's proofer PICKUP: markers
-// (ADR 0525; the bridge's convention in docs/architecture/reaper-bridge.md,
+// (the bridge's convention in docs/architecture/reaper-bridge.md,
 // `PICKUP: <body>` open and `PICKUP_DONE: <body>` resolved), attributed to a
 // chapter by its mapped track's played-item span and registered as a pickup
 // source. There is no ledger record, because nothing was analyzed - the basis

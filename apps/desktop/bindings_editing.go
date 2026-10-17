@@ -45,7 +45,7 @@ var editingIdle = editingpkg.State{Phase: editingpkg.PhaseIdle, Message: "Open a
 
 // EditingStart starts an editing-readiness scan of one chapter: played-range
 // empty-space (and, cached alongside it, click/breath candidates - always
-// unknown until their gate opens, ADR 0510). It answers {status: "started",
+// unknown until their gate opens). It answers {status: "started",
 // state} or {status: "refused", reason, message} when the chapter cannot be
 // resolved to exactly one confirmed track and its items in the saved
 // project (nothing was run or written); any other error is a rejected
@@ -99,7 +99,7 @@ func (h *Host) EditingCandidates(chapterID string) (string, error) {
 	return encodeBinding(found, nil)
 }
 
-// The per-chapter source-choice bindings (ADR 0550): which analysis source
+// The per-chapter source-choice bindings: which analysis source
 // counts for a chapter's editing check, items on its track (the default) or its
 // rendered file. Choosing render never silently replaces the item check - it is
 // an explicit, per-chapter pick the narrator makes and can change back.

@@ -1,7 +1,7 @@
 // This file holds a second, whole-file analysis source for a chapter's
 // rendered WAV, alongside the played-range item source (source.go,
 // decode.go). It lets the narrator check a render without silently replacing
-// the item check (ADR 0550): DecodeRender below is the render path's one
+// the item check: DecodeRender below is the render path's one
 // decode, mirroring Decode's own shape and error handling, but over the
 // whole file, so it passes measure.DiagnosticInput.Range as nil rather than
 // a range clipped to some item's SOFFS/LENGTH. The chapter-to-render

@@ -1,4 +1,4 @@
-// This file proves (ADR 0525), through the REAL stages.Service and the REAL
+// This file proves, through the REAL stages.Service and the REAL
 // proofing.SignalProvider (never a fake), that "Mark proofing done" going
 // through the stage recommendations Confirm actually finalizes a proofing chapter, and that the
 // proofing signals stay evaluable for that now-confirmed chapter so a later

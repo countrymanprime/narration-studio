@@ -1,7 +1,7 @@
 import type { AssetInstallState } from './assets';
 
 /**
- * The offline dictionary a lookup reads (ADR 0097: the Open English WordNet, CC BY 4.0). `attribution` is the credit its licence requires
+ * The offline dictionary a lookup reads (docs/architecture/dictionary-thesaurus-integration.md: the Open English WordNet, CC BY 4.0). `attribution` is the credit its licence requires
  * wherever a definition is shown: the lookup panel displays it with every answer.
  */
 export type DictionaryInfo = {

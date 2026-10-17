@@ -1,7 +1,7 @@
 import { defineConfig } from '@playwright/test';
 import { chromiumExecutablePath } from './playwright.launch';
 
-// Aria-snapshot config: the role trees of the dialogs, the slide-over and the navigation (tests/aria, ADR 0065). Kept apart
+// Aria-snapshot config: the role trees of the dialogs, the slide-over and the navigation (tests/aria). Kept apart
 // from the visual suite (playwright.config.ts) because that suite is one screenshot per catalog state at three fixed
 // viewports and a snapshot is neither; this one reuses its drivers and the same production mock build, and may open the
 // drawer at its own 390 px size. Run by the `ui-visual` job after the visual suite (`pnpm --dir apps/ui run aria`).
@@ -19,7 +19,7 @@ export default defineConfig({
   outputDir: './test-results/aria',
   fullyParallel: true,
   workers: 2,
-  // No retries: red must mean real (ADR 0023).
+  // No retries: red must mean real.
   retries: 0,
   reporter: [['list']],
   // On CI a snapshot is only ever compared: a missing or renamed file fails instead of being written from the current tree.
@@ -36,7 +36,7 @@ export default defineConfig({
   },
   webServer: {
     // Its own port (the visual suite uses 4173) and its own build folder, so the two never mistake each other's server or
-    // wipe each other's bundle, and a fresh build like the visual suite (ADR 0038).
+    // wipe each other's bundle, and a fresh build like the visual suite.
     command: `pnpm exec vite build --mode mock --outDir node_modules/.cache/aria-build && pnpm exec vite preview --outDir node_modules/.cache/aria-build --port ${PORT} --strictPort`,
     url: ORIGIN,
     reuseExistingServer: false,

@@ -18,7 +18,7 @@ Each quote is a verbatim slice of its paragraph, cut by the model's own characte
 paragraph or falls outside the text is dropped with a log line.
 
 Nothing here reaches the network. The model and its Python packages are an optional download the host installs through
-the asset registry (``config/analysis-assets.json``, ADR 0848); the host passes that install folder as ``--install``. The
+the asset registry (``config/analysis-assets.json``); the host passes that install folder as ``--install``. The
 loader puts the folder's unpacked wheels on ``sys.path``, tells Hugging Face to stay offline, gives BookNLP the weight
 files by path and the folder as its model folder, and unpickles the weights as tensors only. Running the model writes the
 book to a temporary folder and reads BookNLP's output files back from it (``read_output``). The freeze never carries

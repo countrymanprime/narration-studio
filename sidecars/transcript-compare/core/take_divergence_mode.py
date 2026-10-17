@@ -1,6 +1,6 @@
 """The sidecar's per-take divergence mode: `compare.py --take-divergence`.
 
-Take review (`docs/utilities/take-review.md`) and ADR 0141. For one
+Take review (`docs/utilities/take-review.md`) and sidecars/transcript-compare/core/take_divergence_mode.py. For one
 fixed manuscript span (a chapter, found by id, and a run of its sentence units, numbered as
 `--find-repeats` numbers a repeated span) and the takes the host lists in a JSON manifest, this
 mode transcribes each take's range with Whisper word timestamps, aligns it to the span with the
@@ -188,7 +188,7 @@ def _register_equivalences(engine: ModuleType, manuscript: str) -> None:
 
 
 def whisper_transcriber(engine: ModuleType, args, hotwords: str | None) -> Transcriber:
-    """Decode a take's range and transcribe it with word timestamps (ADR 0008's words)."""
+    """Decode a take's range and transcribe it with word timestamps (docs/utilities/transcript-compare.md#alignment-and-confidence's words)."""
 
     def transcribe(take: Take) -> Sequence[take_divergence.Word]:
         audio = engine.decode_segment(take.source_file, take.start_offset, take.length)

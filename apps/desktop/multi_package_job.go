@@ -22,9 +22,9 @@ import (
 // format reuses its already-encoded files; a selection whose profile requires a different container format (today
 // only ACX's mp3_format rule exists, so a second format only ever comes from a custom or future profile) triggers
 // exactly one additional encode per export-job file for that format, memoized so two selected profiles sharing a
-// non-default format share one encode too (ADR 0480). Every profile's package is built in its own subfolder of one
+// non-default format share one encode too. Every profile's package is built in its own subfolder of one
 // narrator-chosen root, sequentially (never concurrently: they would otherwise write into the same filesystem tree
-// and share the encoder's own subprocess use, ADR 0480), so a cancel stops cleanly between profiles rather than
+// and share the encoder's own subprocess use), so a cancel stops cleanly between profiles rather than
 // leaving two half-written packages at once.
 
 // requiredFormatMetric matches a file-scope rule's Metric that names the container format it requires, such as
@@ -34,7 +34,7 @@ var requiredFormatMetric = regexp.MustCompile(`^(\w+)_format$`)
 // requiredFormat is the encode format profile's own rules require: the capture group of the first file-scope rule
 // whose Metric matches "<format>_format", or "mp3" when no such rule exists. deliveryprofile.Profile has no explicit
 // format field (Q: internal/deliveryprofile's own Rule.Metric is the only signal), so this reads that existing
-// naming convention rather than adding one to a package several tools already share (ADR 0480): it lives here, in
+// naming convention rather than adding one to a package several tools already share: it lives here, in
 // apps/desktop, a caller of internal/deliveryprofile, not inside that package or internal/packager.
 func requiredFormat(profile deliveryprofile.Profile) string {
 	for _, rule := range profile.Rules {

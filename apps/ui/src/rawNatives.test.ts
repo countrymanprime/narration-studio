@@ -8,7 +8,7 @@ import { GAPS, KEPT, unexplained } from './ratchetReasons';
 // The gaps SN-C4 found (#1217). Lower it with every fix; raising it needs the owner.
 const MAX_GAPS = 43;
 
-// ADR 0053 (and ADR 0056 for the table parts): a page builds a control from a primitive (`IconButton`, `TextField`, `SearchField`, `Select`, `Field`, ...) and
+// docs/design/design-system.md#base-ui-wrappers (and docs/design/design-system.md for the table parts): a page builds a control from a primitive (`IconButton`, `TextField`, `SearchField`, `Select`, `Field`, ...) and
 // not from the native element, so every control looks and behaves one way. This scan counts the native elements written in
 // JSX outside `components/primitives/`, per file, and a file's count may only go down: a ceiling that is higher than the real
 // count fails, so the entry is lowered (or deleted at zero) in the same change, and a file with no entry may have none. The
@@ -27,7 +27,7 @@ const MAX_GAPS = 43;
 const NATIVE_TAGS = ['button', 'select', 'input', 'textarea', 'table', 'thead', 'tbody', 'tr', 'th', 'td'] as const;
 type NativeTag = (typeof NATIVE_TAGS)[number];
 
-// Native elements written in JSX per file, outside the primitives, at the time of ADR 0053 (no native select, input, textarea or table part is left).
+// Native elements written in JSX per file, outside the primitives, at the time of docs/design/design-system.md#base-ui-wrappers (no native select, input, textarea or table part is left).
 const CEILING: Record<NativeTag, Record<string, number>> = {
   button: {
     // The header's "Jump to or run…" field (the mock's top bar): a search-shaped trigger with a label and a key chord, which Button's
@@ -35,7 +35,7 @@ const CEILING: Record<NativeTag, Record<string, number>> = {
     'src/components/layout/AppShell.tsx': 1,
     // The card's whole-header toggle (the bookmark toggle went with SN-C382). `CreditsEntry.tsx`
     // renders through this and has no raw button of its own (ceiling 0 below).
-    // The recent-project card (a card that is a button). Its Remove and Create new clones became IconButton and Button (ADR 0595).
+    // The recent-project card (a card that is a button). Its Remove and Create new clones became IconButton and Button.
     'src/components/project/ProjectPicker.tsx': 1,
     // The click-to-seek word ("Start here" / "Go back to here"):
     // one word among hundreds inside running prose, so it needs `Button`'s bare click/keyboard semantics without its
@@ -52,13 +52,13 @@ const CEILING: Record<NativeTag, Record<string, number>> = {
     // the tokens `.map()`.
     // The resume prompt's disagree choice ("a card that is a button" - two places, REAPER
     // and Last reading - written once as `card()`, called twice): `Button`'s uppercase chrome does not fit a card naming a
-    // source, a time and a quoted sentence. (Its text links are `Button variant="link"`, ADR 0595, like every underlined
+    // source, a time and a quoted sentence. (Its text links are `Button variant="link"`, docs/design/design-system.md, like every underlined
     // text action inside a sentence.)
     'src/components/booth/ResumePrompt.tsx': 1,
   },
   select: {},
   // Proof's "Import proofer sheet" (`ProoferSheet.tsx`) is a hidden native `<input type="file">` triggered by an `IconButton`
-  // (ADR 0053's own escape hatch for file-choosing, since a file picker's OS chrome cannot be restyled the way a text input or
+  // (docs/design/design-system.md#base-ui-wrappers's own escape hatch for file-choosing, since a file picker's OS chrome cannot be restyled the way a text input or
   // select can - the same reason `ManuscriptSelectFile` uses a native OS dialog).
   input: { 'src/components/proof/ProoferSheet.tsx': 1 },
   textarea: {},
@@ -188,7 +188,7 @@ const pageFiles = tsxFiles(srcRoot)
   .map((file) => relative(uiRoot, file))
   .filter((file) => !file.startsWith(primitivesDir + sep));
 
-describe('native controls stay inside the primitives (ADR 0053)', () => {
+describe('native controls stay inside the primitives', () => {
   const scans = pageFiles.map((file) => [file.split(sep).join('/'), scan(readFileSync(join(uiRoot, file), 'utf8'), file)] as const);
 
   test.each(NATIVE_TAGS)('raw <%s> counts only go down', (tag) => {

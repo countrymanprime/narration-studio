@@ -29,7 +29,7 @@ before offset set: D_STARTOFFS 0.0
 after offset set: D_STARTOFFS 1.5
 item D_LENGTH still the target span, unaffected by offset 2.0
 
-== E. Provenance does not collide with item-level line identity (ADR 0026) ==
+== E. Provenance does not collide with item-level line identity ==
 item-level line id line-000001 take-level provenance still separate finding-0001
 
 == F. Provenance persists through save and reload ==

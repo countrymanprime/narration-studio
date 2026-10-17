@@ -5,7 +5,7 @@ import { Heading } from '../primitives/Heading';
 import { Panel } from '../primitives/Panel';
 
 /**
- * What a page shows when the data it loads on opening could not be read (ADR 0069, failure class "page data"): the page keeps its
+ * What a page shows when the data it loads on opening could not be read (failure class "page data"): the page keeps its
  * title, says what happened in plain words and offers Retry, and the navigation around it keeps working. The technical text is
  * in the host log.
  */

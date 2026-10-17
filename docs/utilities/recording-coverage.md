@@ -2,7 +2,7 @@
 
 **Status: Implemented.** The Production board's check, the stored result, the measured recorded length and the `recording` stage
 signal all work. The four settings ship with values chosen on synthetic fixtures and are labelled uncalibrated on real
-narration ([ADR 0132](../adr/0132-the-recording-check-ships-0-8-3-8-3-chosen-on-synthetic-fixtures-and-labelled-uncalibrated.md)).
+narration.
 The model cascade (a fast first pass, then a stronger re-check of what it reports missing and, with a score line set, of the passages it was unsure of) also ships, opt-in
 and off by default until a real corpus confirms the first pass never gives a false "met" (see
 [The model cascade](#the-model-cascade)). A long chapter is transcribed in overlapping chunks by parallel processes ([Long chapters](#long-chapters)).
@@ -42,10 +42,10 @@ until there is a track to check. The row is still clickable in every state: open
 shows the same in-place track-link prompt a refused check always has.
 
 A chapter whose recording changed since its check is also re-checked in the background
-([ADR 0211](../adr/0211-a-changed-chapter-is-rechecked-in-the-background-only-on-mains-power-with-reaper-quiet-and-not-recording.md)):
+:
 one at a time, the oldest change first, and only when the setting **Check changed chapters in the background** is on,
 no other job runs, the Whisper model is installed, the computer is on mains power, REAPER is closed or its heartbeat
-says it is not recording ([ADR 0305](../adr/0305-the-daw-heartbeat-carries-the-transport-and-is-sent-at-once-when-it-changes.md);
+says it is not recording ([The REAPER bridge and its test harness](../architecture/reaper-bridge.md);
 a REAPER that is running but has not sent the transport yet counts as recording), and nothing has changed for three
 minutes. It is the same check as a press, labelled background, and pressing **Check recording** pre-empts it.
 `chaptersync:state`'s `background.wait` says why none runs, and the engine panel's Chapter sync section shows it in
@@ -68,15 +68,15 @@ flowchart LR
   each item's active take and played range, `[SOFFS, SOFFS + LENGTH × PLAYRATE]`, in position order. Muted items are
   listed and skipped. A chapter that cannot be checked gets a typed reason and nothing runs: not linked, several
   tracks, the linked track missing, a missing or non-audio source, an empty range, not a narration chapter, or no
-  project file ([ADR 0128](../adr/0128-the-coverage-service-reads-the-saved-project-keeps-words-per-source-range-and-leaves-model-and-language-out-of-the-parameter-hash.md)).
+  project file.
 - **Words are kept per source range.** The sidecar keeps one words file per item. The host moves them between the
   run's `--words-dir` and the evidence cache (`narration-utils/analysis/cache/`). The cache is keyed by source identity,
   model, language and hints, so a trim that narrows a range reuses the words and only a changed item is transcribed
-  again ([ADR 0127](../adr/0127-the-coverage-sidecar-mode-reads-a-json-manifest-keeps-one-words-file-per-item-and-writes-tagged-json-lines.md)).
+  again.
 - **The alignment is the take markers' own.** `core/recording_coverage.py` reads the `SequenceMatcher` opcodes that
   `diff_and_build_markers` computes, so coverage and the markers cannot disagree. The marker output is unchanged,
   pinned by a golden file. The alignment spike kept `SequenceMatcher` over a word-level DP
-  ([ADR 0126](../adr/0126-recording-coverage-reads-the-take-markers-sequencematcher-alignment-and-folds-chance-matches-into-gaps.md),
+  (
   [the spike](../research/recording-coverage-alignment-spike.md)).
 - **The sidecar measures, the host judges.** `compare.py --coverage` writes counts only: `COVERAGE`, `COVERAGE_ITEM`,
   `COVERAGE_PARAGRAPH` and `COVERAGE_REGION` lines, each with a JSON payload. A region names its kind, paragraphs,
@@ -85,9 +85,9 @@ flowchart LR
   and `after`, the start of the first matched word after it. A read title never bounds a region, so `before` is `null`
   for a head and `after` for a tail, and all three are `null` when nothing was said. A result stored before the bounds
   existed reads with none, and is still current
-  ([ADR 0168](../adr/0168-a-coverage-region-carries-its-bounds-as-optional-before-and-after-points-with-no-version-bump.md)).
+.
   After those lines comes the word alignment the edit and proof workspace reads
-  ([ADR 0242](../adr/0242-the-recording-check-writes-the-chapters-word-alignment-as-additive-lines-and-align-again-never-transcribes.md)):
+:
   - one `COVERAGE_TOKEN` per chapter token: its paragraph, the ordinal of its word in the paragraph's text, and its status,
     which is `read`, `misread`, `heading` or the region kind the check counted it as; plus the item and source seconds
     where it was heard;
@@ -102,8 +102,8 @@ flowchart LR
   it reads a report, so a threshold change never transcribes or aligns again.
 - **Progress is real and a check runs only on a press.** Progress is the seconds transcribed over the seconds to
   transcribe. Cancel keeps the finished items. One check runs at a time, and a run ends with one `job:ended` event
-  ([ADR 0129](../adr/0129-the-coverage-bindings-answer-refusals-as-results-end-with-one-job-event-and-fill-recordedfraction-only-from-a-current-check.md),
-  [ADR 0130](../adr/0130-the-home-recording-check-opens-on-the-stored-result-runs-only-on-a-press-and-labels-the-recorded-length-measured-or-estimated.md)).
+  ([bindings_coverage.go](../../apps/desktop/bindings_coverage.go),
+  [Checking a chapter's recording](../guides/using-the-app/production.md#checking-a-chapters-recording)).
 - **A result is current, stale or never.** It goes stale when the saved project changes under it: an item added,
   removed, trimmed, moved, muted or switched to another take, or an audio file changed. It also goes stale when the
   chapter's text, the equivalences, the vocabulary hints or an alignment setting changes. A different Whisper model or
@@ -112,13 +112,13 @@ flowchart LR
   carries `judgement`: met or not met by the narrator's thresholds, with the gap that fails first. It comes from
   `coverage.Judge`, the same function the stage signal uses, so the two cannot disagree. It is set for any complete
   result with a report, a stale one included (as of the last check)
-  ([ADR 0204](../adr/0204-the-recording-check-result-carries-the-hosts-judgement-by-the-stage-signals-rule.md)). `recordedFraction` on the chapter
+  ([judgement.go](../../apps/desktop/internal/coverage/judgement.go)). `recordedFraction` on the chapter
   payload is the present share of a current complete check only; it no longer feeds the board's **Recorded** column,
   which instead reads `recordedSeconds`, a real duration from the chapter's linked track in the saved project, unrelated
   to any check (superseding Q12 below).
   `coverage.RecordingSignal` gives the stage recommendations engine the tri-state
   `recording.text_present` signal
-  ([ADR 0131](../adr/0131-the-recording-signal-is-read-from-stored-checks-with-thresholds-applied-on-read-and-alignment-from-settings.md),
+  (
   [stage recommendations](../architecture/stage-recommendations.md)).
 
 ### What counts as read
@@ -135,7 +135,7 @@ flowchart LR
   `different_text` (a larger gap of other speech).
 - **Extra** speech, such as retakes, false starts and asides, is counted and never held against the narrator. A
   paragraph read only out of place, like a pickup recorded at the end, is missing where it belongs.
-- **Gaps** are derived on read from the stored report ([ADR 0830](../adr/0830-the-recording-check-names-its-gaps-missing-extra-or-misread-and-a-confidence-is-null-with-a-reason-until-words-are-scored.md)),
+- **Gaps** are derived on read from the stored report ([gaps.go](../../apps/desktop/internal/coverage/gaps.go)),
   as `gaps` and `unfinished` on the result. Only a gap between the first and last read paragraph is a line to redo.
 
   | Region kind | Gap kind |
@@ -147,7 +147,7 @@ flowchart LR
 
   An extra run between the first and last read word is an `extra` gap. Every gap has `confidence: null` and
   `confReason: "no_word_scores"`: the words file keeps Whisper's word probabilities, but they only choose passages to re-check
-  ([ADR 0864](../adr/0864-a-long-recording-is-checked-in-overlapping-chunks-by-parallel-whisper-processes-and-whisper-word-scores-choose-the-passages-a-larger-model-looks-at-again.md)), and no calibrated mapping scores a gap from them.
+, and no calibrated mapping scores a gap from them.
 - **A chapter is complete** when every paragraph has at least `min_paragraph_present` of its words present, and no run
   of missing words, counted across paragraph boundaries and including the head and tail, is longer than
   `max_missing_run`.
@@ -155,7 +155,7 @@ flowchart LR
 ### Settings
 
 The `RecordingCoverage` settings tool, layered project over global over the built-in defaults like every other tool
-([ADR 0155](../adr/0155-settings-gain-a-number-kind-with-a-declared-range-and-delivery-limits-are-the-narrators-own.md)):
+([settings_number.go](../../apps/desktop/settings_number.go)):
 
 | Setting | Default | Kind | What it decides |
 | --- | --- | --- | --- |
@@ -166,11 +166,11 @@ The `RecordingCoverage` settings tool, layered project over global over the buil
 | `cascade_enabled` | off | switch | Turns the model cascade on (MC1). Off, `CoverageStart` reads `TranscriptCompare.model_size` exactly as it always has |
 | `cascade_first_pass_model` | `tiny` | Whisper model, cascade only | The fast first pass's own model (MC2), independent of `TranscriptCompare.model_size` |
 | `cascade_recheck_model` | `large-v3-turbo` | Whisper model, cascade only | The model that re-checks anything the first pass reports missing (MC2) |
-| `cascade_unsure_below` | 0.5 | number, cascade only | The Whisper word score under which a passage is re-checked even when its text is all there (ADR 0864). 0 re-checks only what is missing |
+| `cascade_unsure_below` | 0.5 | number, cascade only | The Whisper word score under which a passage is re-checked even when its text is all there. 0 re-checks only what is missing |
 | `parallel_workers` | 0 | number | Whisper processes working on a long item's chunks. 0 takes the model's own memory cap; a named number is kept up to the computer's processors |
 | `chunk_seconds` | 300 | choice | Each chunk's length. 0 transcribes an item whole, in one process |
 | `chunk_overlap_seconds` | 6 | number | The crossover: how much neighbouring chunks overlap, where their words are joined |
-| `parallel_chapters` | 1 | number | Chapters a Check recordings run checks at once (ADR 0865). Each is its own run; with workers left to the host they share the processors |
+| `parallel_chapters` | 1 | number | Chapters a Check recordings run checks at once. Each is its own run; with workers left to the host they share the processors |
 
 The Settings page labels them **Proposed values, not yet calibrated**. They were chosen by a calibration:
 the synthetic fixtures run through the shipped path, 600 candidates, and five levels of simulated transcriber error.
@@ -191,7 +191,7 @@ this stays a narrator's own choice, not the shipped default.
 
 Checking a chapter with the cascade off is unchanged: one pass, `TranscriptCompare.model_size`. With it on, the
 check runs in up to three sidecar stages under one job, one cancel and one `job:ended`, exactly as a plain check
-(ADR 0344):
+:
 
 ```mermaid
 flowchart LR
@@ -207,19 +207,18 @@ flowchart LR
 - **The first pass** runs `cascade_first_pass_model` (default `tiny`) over the whole chapter, exactly like a plain
   check. A chapter it calls complete is stored as-is: no second pass ever runs over a chapter with nothing missing.
 - **The window planner** (`internal/coverage/plan.go`, pure, no I/O) turns every reported region, and every passage the first pass was unsure of ([Long chapters](#long-chapters)), into a window
-  bounded by ADR 0168's `before`/`after` points, padded past each bound and up to a minimum size, merged when two
+  bounded by `docs/utilities/recording-coverage.md`'s `before`/`after` points, padded past each bound and up to a minimum size, merged when two
   windows of the same item are close together, and replaced by one whole-chapter pass when the windows would cover
   most of the chapter's played audio (MC3's constants: pad 3 s, minimum 25 s, merge under 20 s apart, whole-chapter
   past 60%, chosen because Whisper's cost is per roughly-30-second block, so a shorter
   window costs about the same as a 25-second one).
 - **The re-check** runs `cascade_recheck_model` (default `large-v3-turbo`) either as `compare.py --recheck` over
-  the planned windows only, splicing the result into the same words files with per-span model provenance (ADR
-  0341), or as one more whole-chapter pass. A windowed re-check is followed by `--align-only`, re-reading the
+  the planned windows only, splicing the result into the same words files with per-span model provenance (`sidecars/transcript-compare/core/coverage_mode.py`), or as one more whole-chapter pass. A windowed re-check is followed by `--align-only`, re-reading the
   now-spliced words with no further transcription; either way the chapter is judged by the same rules and
   thresholds as a plain check, over merged words.
 - **The stored result names both models.** `StoredResult.Model`/`ReportView.model` keep naming the first pass only,
-  for compatibility (ADR 0344's "stays the first-pass model for compatibility", Q13); a `recheck` field
-  (`{model, wholeChapter, windows, seconds}`, ADR 0351) carries the rest, absent for a plain check or a cascade run
+  for compatibility (`docs/utilities/recording-coverage.md#the-model-cascade`'s "stays the first-pass model for compatibility", Q13); a `recheck` field
+  (`{model, wholeChapter, windows, seconds}`) carries the rest, absent for a plain check or a cascade run
   that found nothing missing. The dialog reads "Checked ... with the tiny Whisper model; 1 passage re-checked with
   the large-v3-turbo Whisper model", and every pickup still listed - windowed or whole-chapter, every one of them
   was seen by both models - reads "Confirmed missing by the large-v3-turbo Whisper model."
@@ -233,11 +232,11 @@ flowchart LR
 - **Staleness and caching are unchanged in kind.** A cascade result is judged, evaluated for staleness and read
   back exactly like a plain one (Q13); the words cache key gains the re-check model (empty for a plain check), so
   a cascade's spliced words are never silently reused by, or reused from, a plain check of the same first-pass
-  model (ADR 0344).
+  model.
 
 ## Long chapters
 
-**Status: Implemented** (ADR 0864). A chapter an hour long used to take about an hour to check: one Whisper decode of each item's whole
+**Status: Implemented**. A chapter an hour long used to take about an hour to check: one Whisper decode of each item's whole
 played range, on one model, in one process. The sidecar now cuts the range into chunks, transcribes them in several processes and, when asked,
 lets a larger model look again at the passages the first pass was not sure of.
 
@@ -272,7 +271,7 @@ flowchart LR
   Check recordings dialog, a press from a chapter's panel and a background check all call it, so the same chapter is checked the same way wherever it
   is started. The dialog shows the host's `defaults` (`CoverageEngines`) and sends every choice; a background check uses the settings alone and
   never downloads a model.
-- **Several chapters at once** ([ADR 0865](../adr/0865-several-chapters-are-checked-at-once-by-separate-runs-and-every-page-that-starts-a-check-offers-the-same-options.md)).
+- **Several chapters at once**.
   `coverage.Service` holds one job per run, each with its own sidecar, folder and state. A start is refused while `Request.Concurrent` runs are
   already in progress (1 when it names none, the old rule) and while the same chapter is being checked. A Check recordings run names
   its Chapters at once on every start, and the dialog keeps that many in progress, starting the next as each ends. `coverage:state` carries every run's
@@ -296,7 +295,7 @@ This table is the key to the labels that code comments, tests and the text above
 | D12 | No default ships before it has been scored on labelled chapters (amended by Q15) |
 | Q1 | Word-level alignment reported per paragraph (`p-NNNNNN`), with each region's first and last words |
 | Q2 | Reuse the take markers' `SequenceMatcher` alignment. The spike found no reason to move to a DP |
-| Q3 | Four settings: two thresholds and two alignment parameters. Started at 0.95, 3, 8 and 3, and shipped at 0.8, 3, 8 and 3 ([ADR 0132](../adr/0132-the-recording-check-ships-0-8-3-8-3-chosen-on-synthetic-fixtures-and-labelled-uncalibrated.md)) |
+| Q3 | Four settings: two thresholds and two alignment parameters. Started at 0.95, 3, 8 and 3, and shipped at 0.8, 3, 8 and 3 |
 | Q4 | Narration chapters only. Front Matter is not a target |
 | Q5 | The active take of each item only |
 | Q6 | The saved `.rpp` is the only basis. A live Transcript Compare run never feeds the signal |
@@ -306,8 +305,8 @@ This table is the key to the labels that code comments, tests and the text above
 | Q11 | A spoken title or subtitle is optional, and never counted as missing or extra |
 | Q12 | *Superseded* by the Actual Recorded column: an unmeasured chapter kept the status estimate, labelled "estimated from status"; the column now reads a real recorded length or a plain dash, never a guess |
 | Q13 | Another model or language keeps a result current (labelled). Another alignment setting makes it stale |
-| Q14 | On demand only: the Production board reads stored results and never starts a check. Superseded in part by [ADR 0211](../adr/0211-a-changed-chapter-is-rechecked-in-the-background-only-on-mains-power-with-reaper-quiet-and-not-recording.md): the host re-checks a changed chapter on its own, only on mains power with REAPER quiet and not recording (`RecordingCoverage.background_checks`, on by default); reading a status still never starts one |
-| Q15 | Synthetic fixtures now, with `NARRATION_COVERAGE_CORPUS` for a real permissioned corpus later ([ADR 0125](../adr/0125-recording-coverage-ground-truth-is-scripted-recordings-with-paragraph-labels-and-a-corpus-directory-variable.md)) |
+| Q14 | On demand only: the Production board reads stored results and never starts a check. Superseded in part by Recording Check (recording coverage): the host re-checks a changed chapter on its own, only on mains power with REAPER quiet and not recording (`RecordingCoverage.background_checks`, on by default); reading a status still never starts one |
+| Q15 | Synthetic fixtures now, with `NARRATION_COVERAGE_CORPUS` for a real permissioned corpus later |
 | MC1 | The cascade is opt-in, off by default, until a real corpus confirms the first pass never gives a false "met" |
 | MC2 | Two independent settings: `cascade_first_pass_model` (default `tiny`) and `cascade_recheck_model` (default `large-v3-turbo`), from the approved catalog |
 | MC3 | Window rules are constants, not settings: pad 3 s past each bound and up to a 25 s minimum, merge windows under 20 s apart, whole-chapter fallback past 60% of the chapter's played audio |
@@ -315,11 +314,11 @@ This table is the key to the labels that code comments, tests and the text above
 | MC5 | The result names both models and how many windows were re-checked (`Recheck`); every pickup still listed on a cascade result was confirmed by the re-check model |
 | MC6 | Spot-checking "met" paragraphs is not in this delivery; revisit with a real corpus |
 | MC7 | The model cascade keeps Q13 (model and language outside the parameter hash): the label says which models made a result |
-| LC1 | A long item is cut into overlapping chunks and transcribed by parallel processes; the join is at the middle of each overlap ([ADR 0864](../adr/0864-a-long-recording-is-checked-in-overlapping-chunks-by-parallel-whisper-processes-and-whisper-word-scores-choose-the-passages-a-larger-model-looks-at-again.md)) |
+| LC1 | A long item is cut into overlapping chunks and transcribed by parallel processes; the join is at the middle of each overlap |
 | LC2 | Word scores choose passages to re-check; they never score a gap, whose confidence stays null |
 | LC3 | One resolver decides what a check runs; an option that is present and not valid is an error, never replaced |
 | LC4 | Chunk length, workers and crossover are outside the parameter hash: they change speed, not which words count |
-| LC5 | Chapters are checked at once by separate runs, up to the number each start names; the choices are drawn by one shared component (ADR 0865) |
+| LC5 | Chapters are checked at once by separate runs, up to the number each start names; the choices are drawn by one shared component |
 
 ## Tests and tooling
 
@@ -350,7 +349,7 @@ This table is the key to the labels that code comments, tests and the text above
 ## Non-goals and review boundary
 
 The check judges presence, not performance. It never edits the project, moves audio, activates a take or changes a
-status. It does not use forced alignment or any PyTorch model ([ADR 0008](../adr/0008-timing-confidence-over-forced-alignment-model-for-transcript-compare.md)),
+status. It does not use forced alignment or any PyTorch model ([Alignment and confidence](transcript-compare.md#alignment-and-confidence)),
 send audio anywhere, or run in the background. It does not move a pickup back to its place, which is take review's
 job. It does not use Lua or a running REAPER, and does not handle multi-track chapters. The trust boundary (the
 manifest names the audio the sidecar reads and the words files it writes) is row 4e of the

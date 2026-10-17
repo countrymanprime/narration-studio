@@ -31,7 +31,7 @@ function useDawName(): string {
 const plural = (count: number, one: string, many: string) => `${count} ${count === 1 ? one : many}`;
 
 /**
- * Silence cleanup candidates (ADR 0238): every
+ * Silence cleanup candidates: every
  * `silence_cleanup` finding a checked file raised, apart from the Diagnostics tab's own findings above, with the
  * thresholds a check used (the narrator's own, from Settings > Silence cleanup). Findings view only: nothing here
  * applies a cut, because acting on a candidate in REAPER is not built here.
@@ -116,12 +116,12 @@ function ThresholdsPanel({ job }: { job: DiagnosticsJob | undefined }) {
 
 /**
  * Master & QC's Diagnostics section: the windowed analyzers
- * (ADR 0158) over files picked for measuring, as a host job with real progress and Cancel (ADR 0015). Each finding shows its time in
+ * over files picked for measuring, as a host job with real progress and Cancel. Each finding shows its time in
  * the file, what was measured, the threshold that raised it and whether the audio is a raw recording or a rendered chapter, never a
  * grade. It is read-only: nothing is saved, played or sent to REAPER, so every finding stays unreviewed, and
  * the narrator listens at those times in REAPER. `measuredPaths` are the files of the last measurement, which the
  * host already accepts, so they can be checked without picking them again. Below it, `CleanupSection` lists the same check's silence
- * cleanup candidates (ADR 0238) apart from these findings; `openSettings` opens Settings > Silence cleanup.
+ * cleanup candidates apart from these findings; `openSettings` opens Settings > Silence cleanup.
  */
 export function DiagnosticsSection({ measuredPaths, openSettings }: { measuredPaths: readonly string[]; openSettings: () => void }) {
   const dawName = useDawName();

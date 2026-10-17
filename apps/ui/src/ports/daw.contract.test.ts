@@ -495,7 +495,7 @@ const UNSTACK: StackRequest = {
 /** A refusal with no code: the host's own sentence in `refused` and `message`. */
 const refusal = (sentence: string): DawResult => ({ ok: false, changed: false, message: sentence, undoSteps: 0, refused: sentence });
 
-/** The stale refusal (ADR 0861): the host's own sentence in `refused` and `message`, and the one code. */
+/** The stale refusal: the host's own sentence in `refused` and `message`, and the one code. */
 const staleRefusal = (sentence: string): DawResult => ({ ...refusal(sentence), code: 'stale' });
 
 /** What every `DawResult` holds: a refusal changed nothing, repeats its sentence in `message`, and adds no undo point. */

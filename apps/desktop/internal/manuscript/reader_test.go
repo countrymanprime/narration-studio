@@ -253,7 +253,7 @@ func TestChapterIDByTitleAndParagraphIDFailWithoutAManuscript(t *testing.T) {
 	}
 }
 
-// docs/utilities/recording-coverage.md, ADR 0129: recordedFraction is set only from a measurement the provider
+// docs/utilities/recording-coverage.md, apps/desktop/bindings_coverage.go: recordedFraction is set only from a measurement the provider
 // gives, and absent for every other chapter, so the UI keeps its labeled status estimate.
 func TestRecordedFractionComesOnlyFromTheMeasurementProvider(t *testing.T) {
 	service, chapterID, _ := importReaderFixture(t)

@@ -1,4 +1,4 @@
-// The journalled bookmark commands (ADR 0771, ADR 0820): add, edit and remove, each with the host command that takes it back.
+// The journalled bookmark commands: add, edit and remove, each with the host command that takes it back.
 // They take the port and the store as arguments, so a page calls them with `usePort('bookmarks')`, `useJournal()` and
 // `useStoreHandle()` and writes no journalling of its own. They send ids, offsets and plain text only. A host refusal comes back
 // as the host's own sentence and journals nothing. After each command and each undo the `bookmarks` slot is loaded once.
@@ -100,7 +100,7 @@ export async function editBookmark(env: BookmarkEnv, id: string, label: string, 
 
 /**
  * Deletes a bookmark. The inverse adds it again at the same spot and restores its text; the host gives the recreated bookmark
- * a new id and the entry is spent once it is undone (ADR 0771 rule 6), so a second Undo of it is refused by the journal. A spot that has a bookmark again is refused, so
+ * a new id and the entry is spent once it is undone (docs/architecture/ui-state-and-journal.md#the-journal-and-undo), so a second Undo of it is refused by the journal. A spot that has a bookmark again is refused, so
  * Undo never overwrites the text of one the narrator made since.
  */
 export async function removeBookmark(env: BookmarkEnv, id: string): Promise<Result<{ entryId: number }>> {

@@ -45,7 +45,7 @@ export const COLUMN_LABEL: Record<PipelineColumn, string> = {
   qc: 'QC',
 };
 
-/** The sources a chapter-level cell can read. A source that is absent, or has no entry for a chapter, leaves its cell "Not measured yet" (ADR 0015). */
+/** The sources a chapter-level cell can read. A source that is absent, or has no entry for a chapter, leaves its cell "Not measured yet". */
 export type PipelineSources = {
   /** `chapterCheckStatus` per chapter: the recording check's freshness, read without a click. */
   checks?: Readonly<Record<string, ChapterCheckStatus>>;

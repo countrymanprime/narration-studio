@@ -7,7 +7,7 @@ import (
 	"github.com/countrymanprime/narration-utils/shell/internal/dawport"
 )
 
-// The asynchronous roles (ADR 0302): each method writes one bridge command, named and laid out exactly as its service writes it
+// The asynchronous roles: each method writes one bridge command, named and laid out exactly as its service writes it
 // today, and the answer arrives through the client's fan-out as today's event tags. Each role is its own small type, so a consumer
 // holding one cannot reach another's commands.
 

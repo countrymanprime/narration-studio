@@ -107,7 +107,7 @@ export function clickCase(
   };
 }
 
-/** A hint: the pointer rests on the control until the popup shows (a hint waits one second, ADR 0049). */
+/** A hint: the pointer rests on the control until the popup shows (a hint waits one second). */
 export function hoverCase(name: string, control: (page: Page) => Locator, options: Partial<Pick<OverlayCase, 'viewports' | 'over'>> = {}): OverlayCase {
   return {
     name,

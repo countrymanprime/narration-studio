@@ -4,10 +4,10 @@ import type { StageVerdict } from './stages';
 /**
  * Production tracking: the book's deadline, contracted amount, payment type and
  * milestones, stored on the project manifest (apps/desktop/bindings_production.go) so they survive Replace manuscript.
- * Dates are calendar dates written "YYYY-MM-DD" (ADR 0323), never a time of day.
+ * Dates are calendar dates written "YYYY-MM-DD", never a time of day.
  */
 
-/** How the book pays (ADR 0800). Only `per_finished_hour` carries a contracted amount; the other two are labels. */
+/** How the book pays. Only `per_finished_hour` carries a contracted amount; the other two are labels. */
 export type ProductionPayment = 'per_finished_hour' | 'royalty_share' | 'none';
 
 /** What the schedule runs on: the standard rate or the narrator's own pace. A choice, not a measurement: whether own pace
@@ -43,7 +43,7 @@ export type ProductionPlan = {
 
 // The Production page's one read and the stage timer's two writes. The host shapes are
 // apps/desktop/internal/production (overview.go, production.go) and apps/desktop/bindings_production.go.
-// Every figure here is measured or logged, never estimated (ADR 0320): an undefined one is `null`, shown as "—", never 0.
+// Every figure here is measured or logged, never estimated: an undefined one is `null`, shown as "—", never 0.
 
 /** One stretch of work on one chapter's stage. `endedAt` is absent while its timer runs. `source` is always `manual`. */
 export type ProductionSession = {
@@ -102,7 +102,7 @@ export type ProductionTotals = {
 /** The book's due date (`YYYY-MM-DD`) and the whole days left until it, negative once passed. */
 export type ProductionDeadline = { date: string; daysLeft: number };
 
-/** One chapter "Next up" lists, in the host's order (ADR 0404). */
+/** One chapter "Next up" lists, in the host's order. */
 export type ProductionNextUpItem = {
   chapterId: string;
   title: string;
@@ -141,7 +141,7 @@ export type ProductionReportExport = {
 };
 
 /**
- * The document one export would write now (ProductionStatusReportPreview, ADR 0843): the host's own HTML page and JSON
+ * The document one export would write now (ProductionStatusReportPreview): the host's own HTML page and JSON
  * text, byte for byte what the export writes for the same project state, and the folder and file stem it would use
  * now (a later second may name it differently). Nothing is written. The HTML is the host's escaped template output with
  * no script, so a dialog can show it in a sandboxed frame.

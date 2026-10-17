@@ -9,7 +9,7 @@ import (
 	"github.com/countrymanprime/narration-utils/shell/internal/tracks"
 )
 
-// waveSourceKind is the only source kind measured (ADR 0025).
+// waveSourceKind is the only source kind measured.
 const waveSourceKind = "WAVE"
 
 // edgeTolerance absorbs float rounding in REAPER's saved positions.
@@ -53,7 +53,7 @@ func (a RegionAudio) ResolveIn(reference character.Reference) (Clip, error) {
 	take := item.Takes[index]
 	switch {
 	case take.SourceKind != waveSourceKind:
-		return Clip{}, fmt.Errorf("source format %q is not measured: only WAV is (ADR 0025)", take.SourceKind)
+		return Clip{}, fmt.Errorf("source format %q is not measured: only WAV is", take.SourceKind)
 	case !take.SourceAvailable:
 		return Clip{}, errors.New("the take's source file is not available")
 	}

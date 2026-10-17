@@ -1,4 +1,4 @@
-"""The checks every port's conformance suite shares (ADR 0301, Liskov).
+"""The checks every port's conformance suite shares (Liskov).
 
 A port's suite (``asr_conformance.run`` and the like) is a function of one implementation built from these checks and its own. The
 registry's test runs it over every row with ``run_over_registry``, so a new row cannot skip it. A failed check raises

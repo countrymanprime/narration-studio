@@ -1,5 +1,5 @@
-"""Piper, CMU, Wiktextract and eSpeak as provider-ports adapters (ADR 0301; the wiktextract row is
-ADR 0405): each row passes its port's conformance suite, exercised with the same fakes test_pronounce.py and test_manuscript_guide.py already patch phonemizer and Piper with, and (for Wiktextract) a tiny
+"""Piper, CMU, Wiktextract and eSpeak as provider-ports adapters (the wiktextract row is
+ADR 0002): each row passes its port's conformance suite, exercised with the same fakes test_pronounce.py and test_manuscript_guide.py already patch phonemizer and Piper with, and (for Wiktextract) a tiny
 hand-built index file standing in for the Go asset manager's derived one (docs/research/wiktextract-pronunciation-source.md).
 """
 

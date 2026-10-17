@@ -11,8 +11,8 @@ describe('NavButton', () => {
     vi.useRealTimers();
   });
 
-  // The palette guard reads tokens, not component source, so the colour decision of ADR 0059 is pinned here: the current
-  // page is mock 01's --accent-soft fill (ADR 0635), and its label --accent-strong, the pair paletteContrast.test.ts checks.
+  // The palette guard reads tokens, not component source, so the colour decision of docs/design/colour-and-contrast.md is pinned here: the current
+  // page is mock 01's --accent-soft fill, and its label --accent-strong, the pair paletteContrast.test.ts checks.
   it('draws the current page in --accent-strong on --accent-soft and every other page in --text-muted', () => {
     render(
       <>
@@ -32,7 +32,7 @@ describe('NavButton', () => {
     expect(screen.getByRole('button', { name: 'Proofing' }).className).toContain('text-[var(--text-muted)]');
   });
 
-  // Mock 01's item (ADR 0635): 34 px on the rail's 37 px pitch, Barlow Condensed 13 px tracked 0.11 em, radius 7.
+  // Mock 01's item: 34 px on the rail's 37 px pitch, Barlow Condensed 13 px tracked 0.11 em, radius 7.
   it('is the measured item', () => {
     render(
       <NavButton active={false} icon={faHouse} onClick={() => {}}>

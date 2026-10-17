@@ -56,7 +56,7 @@ export const engineFeedback: Record<string, FeedbackRow> = {
     'inline',
     'no',
     'ok',
-    'Opens an allow-listed repair dialog in REAPER (ADR 0146) and changes nothing itself. The pressed tool shows pending and the other is disabled until REAPER answers; the opened state or REAPER\'s refusal (no selection, not installed) shows inline.',
+    'Opens an allow-listed repair dialog in REAPER and changes nothing itself. The pressed tool shows pending and the other is disabled until REAPER answers; the opened state or REAPER\'s refusal (no selection, not installed) shows inline.',
   ),
   'src/components/engine/RetakeLanesDialog.tsx::subscribeRetakeLanes#1': subscription('The retake-lane state event, for the pick this dialog starts.'),
   'src/components/engine/RetakeLanesDialog.tsx::retakeLanesState#1': row('mount', 'instant', 'na', 'na', 'ui', 'silent', 'na', 'exempt', 'Hydrates whatever pick was already in flight when the dialog reopened; the live event follows anyway.'),
@@ -70,7 +70,7 @@ export const engineFeedback: Record<string, FeedbackRow> = {
     'inline',
     'no',
     'ok',
-    'Makes one retake\'s lane the only one playing on its track (ADR 0147), one REAPER undo step and nothing else. The pressed lane shows pending and every other lane and Close are disabled until REAPER answers; the new play state or REAPER\'s refusal (stale retake, lanes off) shows inline.',
+    'Makes one retake\'s lane the only one playing on its track, one REAPER undo step and nothing else. The pressed lane shows pending and every other lane and Close are disabled until REAPER answers; the new play state or REAPER\'s refusal (stale retake, lanes off) shows inline.',
   ),
   'src/components/engine/ChapterTagsDialog.tsx::chapterTagsPreview#1': row('mount', 'instant', 'na', 'na', 'ui', 'inline', 'na', 'exempt', 'Loads the known chapters from the last chapter render; a failure shows inline instead of the chapter list.'),
   'src/components/engine/ChapterTagsDialog.tsx::chapterTagsEmbed#1': row(
@@ -104,7 +104,7 @@ export const engineFeedback: Record<string, FeedbackRow> = {
     'inline',
     'no',
     'ok',
-    'Recomputes the plan and sends it to REAPER in one undo step (ADR 0245). The button is busy until it returns; a completed run shows the sent/created/existing/updated/ambiguous/failed counts, a failure shows inline as an alert and creates nothing.',
+    'Recomputes the plan and sends it to REAPER in one undo step. The button is busy until it returns; a completed run shows the sent/created/existing/updated/ambiguous/failed counts, a failure shows inline as an alert and creates nothing.',
   ),
   'src/components/engine/CreateChapterRegionsDialog.tsx::chapterRegionsPreview#2': row(
     'click',

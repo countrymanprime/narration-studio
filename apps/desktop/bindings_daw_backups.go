@@ -24,7 +24,7 @@ import (
 // longest window is ten minutes of audio.
 const backupTimeout = 2 * time.Minute
 
-// The backups settings (ADR 0863): the seconds cloned either side of an edit and the days a backup is kept, in the DAW tool.
+// The backups settings: the seconds cloned either side of an edit and the days a backup is kept, in the DAW tool.
 const (
 	backupWindowKey    = "backups.window_seconds"
 	backupRetentionKey = "backups.retention_days"
@@ -39,10 +39,10 @@ const (
 )
 
 // DawBackupAround clones the audio around the words firstToken..lastToken of chapterID before an edit, so it can be put back
-// (SN-D82, ADR 0863; the Studio Next mock's backupAround). The page sends a chapter id, two token indices and the label the
+// (SN-D82, docs/reference/daw/audacity-3.md; the Studio Next mock's backupAround). The page sends a chapter id, two token indices and the label the
 // Backups list shows ("Roll at ¶ 3"), never a track, a time or a path: the words' project seconds are resolved here from the
 // stored alignment (passagetakes.ResolveRange) and the track is the chapter's one linked track, and the DAW adds the narrator's
-// window either side (DAW.backups.window_seconds). The answer is a DawResult (ADR 0810): the backups capability's own sentence when
+// window either side (DAW.backups.window_seconds). The answer is a DawResult: the backups capability's own sentence when
 // the resolver refuses it (REAPER, the built-in recorder, a standalone launch, Audacity not connected, the toggle off), checked
 // first; then a label that is not plain text; then the range's and the link's own refusals. Nothing is sent to the DAW on any of
 // them. A backup changes no audio, so it answers changed false and no undo step.
@@ -72,7 +72,7 @@ func (h *Host) DawRestoreBackup(backupID string) (string, error) {
 	return encodeBinding(result, err)
 }
 
-// DawBackups answers the project's backups table, newest first, in the file's own shape ({schemaVersion, backups}, ADR 0863), for
+// DawBackups answers the project's backups table, newest first, in the file's own shape ({schemaVersion, backups}), for
 // the Backups list. It reads the file only and asks the DAW nothing, so it answers on any launch; a project with no table has none.
 // A table written by a newer app, or one that cannot be read, rejects with its sentence.
 func (h *Host) DawBackups() (string, error) {

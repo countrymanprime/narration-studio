@@ -30,7 +30,7 @@ export function combinedRequiredReason(missing: MissingRequirements): string | u
 }
 
 /**
- * Whether a `requiresDaw` nav item is disabled, and why (ADR 0360's "the nav's `requiresDaw`
+ * Whether a `requiresDaw` nav item is disabled, and why (docs/design/design-system.md#base-ui-wrappers's "the nav's `requiresDaw`
  * move onto the gate"). The stored setup facts (a manuscript imported, a project file linked) take precedence over
  * `capability`, since they are unrelated to what the DAW can do right now and `combinedRequiredReason` already
  * names them; once they are met, whether the page is actually usable comes from the DAW port's own capability entry

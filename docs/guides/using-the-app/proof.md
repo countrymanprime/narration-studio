@@ -203,6 +203,8 @@ model, a second look with a larger model, chunk length, parallel processes, cros
 
 ![Proof chapter view - the recording check's state with Check again, above the compare run](../../images/ui/proof-chapter-default.webp)
 
+**Native takes.** With the built-in recorder, the chapter view has a Native takes panel beside the Recording check card. It lists the chapter's native takes grouped by line and lets you mark one take of a line as its keeper (a click; mark it again or choose another take to undo, and choosing one clears the others on that line). While the project records with the built-in recorder it also offers to assign a take that has no line to one of the chapter's paragraphs. A take already assigned, and its keeper mark, stays visible whichever recorder the project uses now. The panel never edits audio.
+
 ## Comparing the recording with the script
 
 **Compare the recording with the script**, on the chapter view, transcribes the chapter's recording and

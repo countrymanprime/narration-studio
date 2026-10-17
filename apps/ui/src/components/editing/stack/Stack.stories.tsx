@@ -88,7 +88,7 @@ export const Refused: Story = {
   },
 };
 
-// Stack: the count and the one action show (ADR 0858, DQ-7).
+// Stack: the count and the one action show (DQ-7).
 export const RetryBarStack: Story = {
   render: () => <Bar mode="stack" />,
   play: async ({ canvasElement }) => {

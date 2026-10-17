@@ -93,7 +93,7 @@ func TestANamedModelRunsAloneUnlessTheSecondPassIsAskedFor(t *testing.T) {
 	saved := map[string]string{coverage.SettingCascadeEnabled: "true"}
 	alone, err := resolved(t, saved, map[string]string{"model": "base"})
 	if err != nil || alone.FirstPass != "base" || alone.Recheck != "" {
-		t.Fatalf("got %+v, %v: ADR 0841 keeps a named model whole", alone, err)
+		t.Fatalf("got %+v, %v: apps/desktop/bindings_coverage_engines.go keeps a named model whole", alone, err)
 	}
 	both, err := resolved(t, saved, map[string]string{"model": "base", "recheck": "true"})
 	if err != nil || both.FirstPass != "base" || both.Recheck != "large-v3-turbo" {

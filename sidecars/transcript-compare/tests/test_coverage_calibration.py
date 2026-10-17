@@ -1,7 +1,7 @@
 """The calibration, pinned: the app ships the settings the calibration chose, those settings
 hold on the held-out cases at every simulated noise level, the two resolution settings are the
 loosest that catch a skipped or replaced phrase, and the tooling reads the sidecar's results the way
-the host does (`docs/research/recording-coverage-calibration.md`, ADR 0132)."""
+the host does (`docs/research/recording-coverage-calibration.md`)."""
 
 import dataclasses
 import json

@@ -11,7 +11,7 @@ import (
 )
 
 // alignedResults is a results file with the chapter's per-token alignment
-// (ADR 0242) for the fixture chapter's one paragraph, "Alice was beginning to
+// for the fixture chapter's one paragraph, "Alice was beginning to
 // get very tired.": item A carries the first five words, item B the last two,
 // one of them a misread, plus one run of extra words after the chapter ends.
 var alignedResults = []string{
@@ -86,7 +86,7 @@ func TestAlignmentJoinsTheStoredTokensWithParagraphsAndPlayedRanges(t *testing.T
 func TestAReportWithNoStoredAlignmentAnswersNeedsAlignAgain(t *testing.T) {
 	p := newTestProject(t)
 	// The default fake sidecar writes a results file with no COVERAGE_TOKEN
-	// lines, as a report stored before ADR 0242 shipped would read.
+	// lines, as a report stored before docs/utilities/recording-coverage.md shipped would read.
 	service := p.service(&fakeSidecar{})
 	run(t, service, testRequest())
 

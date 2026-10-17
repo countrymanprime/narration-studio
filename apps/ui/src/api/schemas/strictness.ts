@@ -1,6 +1,6 @@
 import type { z } from 'zod';
 
-// Schemas are lenient about keys they do not declare, because a newer host or sidecar must still load (ADR 0069). The contract
+// Schemas are lenient about keys they do not declare, because a newer host or sidecar must still load. The contract
 // tests are the other half of that rule: they call `unknownKeys` on every golden payload and every mock answer and fail on any
 // key the schema does not declare, so drift is caught in both directions. It reads the schema's own definition (Zod's `_zod.def`,
 // the documented surface for library authors) and is used by tests only.

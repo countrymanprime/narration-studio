@@ -16,7 +16,7 @@ function checkedDay(lastChecked: string): string {
 
 /**
  * What the app knows about newer releases: the newest one on the narrator's channel if it is newer than this build, when the app last
- * looked, and a Check now button. It only reads and reports here: nothing is downloaded from this panel (ADR 0072).
+ * looked, and a Check now button. It only reads and reports here: nothing is downloaded from this panel.
  *
  * `formDirty` says the settings beside it have unsaved edits: a check asks with the saved channel, so it waits until they are saved
  * rather than answer a question the narrator has already changed. The caller gives the panel a new `key` when the saved channel

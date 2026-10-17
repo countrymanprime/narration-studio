@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { highlightKind, type HighlightKind } from './Highlight';
 
 const KINDS: HighlightKind[] = ['Character', 'Place', 'Organization', 'Lore', 'Item', 'Event', 'Review', 'Note', 'Cursor'];
-// Every category spelling the Story Bible produces for a highlight (ADR 0016).
+// Every category spelling the Story Bible produces for a highlight.
 const KNOWN = ['Character', 'Place', 'Organization', 'Lore', 'Item', 'Event', 'Note'];
 // Object-prototype names and near misses: a lookup table keyed on the category would answer these wrongly.
 const AWKWARD = ['__proto__', 'constructor', 'toString', 'hasOwnProperty', 'character', 'CHARACTER', ' Character', 'Needs Review', 'Draft', ''];

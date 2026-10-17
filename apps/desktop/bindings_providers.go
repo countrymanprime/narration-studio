@@ -11,7 +11,7 @@ import (
 	"github.com/countrymanprime/narration-utils/shell/internal/ttsport"
 )
 
-// ProviderCapabilities (ADR 0301) is the UI's one picture of the providers this build can hand its sidecars: every row
+// ProviderCapabilities is the UI's one picture of the providers this build can hand its sidecars: every row
 // of the speech recognition, voice, pronunciation and capture registries, whether it runs on this platform, and, for a
 // provider whose models or voices come from the asset catalog, how many of them are installed. It reads the registries
 // only (never a concrete engine) and changes nothing. No screen reads it yet; a later screen may use it to explain a
@@ -83,7 +83,7 @@ func providerEntry(d port.Descriptor, level port.Level, platform string, isDefau
 }
 
 // providerSupport is a row's answer on platform: its level, and available, where its descriptor runs; Unsupported
-// elsewhere. Only the capture port's wasapi row is Experimental today (docs/adr/0357). It is still available: no
+// elsewhere. Only the capture port's wasapi row is Experimental today. It is still available: no
 // narrator switch gates a provider row: the Booth that uses it (bindings_recording.go) offers it as an Experimental
 // choice.
 func providerSupport(d port.Descriptor, level port.Level, platform string) port.Support {

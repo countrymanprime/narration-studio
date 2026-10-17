@@ -25,7 +25,7 @@ export function PortOverrides({ clients, children }: { clients: Partial<ClientPo
 
 /**
  * The one hook a page uses to reach the backend: `usePort('production')` returns `ProductionApi` only, so a feature
- * sees the methods of the port it declares and not the whole `NarrationApi` facade (ADR 0770). A client port such as
+ * sees the methods of the port it declares and not the whole `NarrationApi` facade. A client port such as
  * `usePort('daw')` is built over the provider's api once per api, or comes from `PortOverrides`.
  */
 export function usePort<N extends PortName>(name: N): PortOf<N> {

@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
-// Mode-based header actions (ADR 0087): Lock/Unlock lives in the read view only, Delete lives in edit
-// mode only, and an entry can never be locked while it is being edited (the hazard ADR 0018 left open).
+// Mode-based header actions: Lock/Unlock lives in the read view only, Delete lives in edit
+// mode only, and an entry can never be locked while it is being edited (the hazard docs/guides/using-the-app/story-bible.md left open).
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { afterEach, describe, expect, it, vi } from 'vitest';
@@ -65,7 +65,7 @@ describe('Story Bible header actions by mode', () => {
   it('cannot be locked mid-edit, so Lock then Unlock can no longer snap back into edit mode', () => {
     renderDetail(unlocked);
     fireEvent.click(screen.getByRole('button', { name: 'Edit this entry' }));
-    // There is no way to reach Lock from here - the hazard ADR 0018 left open cannot occur.
+    // There is no way to reach Lock from here - the hazard docs/guides/using-the-app/story-bible.md left open cannot occur.
     expect(screen.queryByRole('button', { name: 'Lock entry' })).toBeNull();
     fireEvent.click(screen.getByRole('button', { name: 'Cancel editing' }));
     fireEvent.click(screen.getByRole('button', { name: 'Lock entry' }));

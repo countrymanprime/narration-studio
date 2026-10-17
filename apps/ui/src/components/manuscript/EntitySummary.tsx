@@ -9,7 +9,7 @@ import { Badge, StatusBadge, toneColors, type BadgeColors } from '../primitives/
 import { pronunciationSourceLabel } from '../storybible/pronunciationStatus';
 
 // An entity kind's badge colours: the kind's soft fill (an 18% mix into the surface for the three kinds with no soft
-// token) under its derived text colour (ADR 0059), drawn by THE badge (StatusBadge.tsx's `Badge`, ADR 0600).
+// token) under its derived text colour, drawn by THE badge (StatusBadge.tsx's `Badge`).
 const kindColors = (kind: string, fill: string): BadgeColors => ({ fill, text: `var(--${kind}-text)`, line: `var(--${kind})` });
 export const ENTITY_BADGE_COLORS: Record<string, BadgeColors> = {
   Character: kindColors('character', 'var(--character-soft)'),

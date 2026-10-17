@@ -19,7 +19,7 @@ export const Open: Story = {
   },
 };
 
-// ADR-0017: a closed panel must never take focus or clicks. The library removes it from the page once it has slid out.
+// docs/design/design-system.md#css-layering-gotcha: a closed panel must never take focus or clicks. The library removes it from the page once it has slid out.
 export const Closed: Story = {
   args: { open: false },
   play: async () => {
@@ -41,7 +41,7 @@ export const LongContent: Story = {
   },
 };
 
-// ADR 0430: the wide panel, for a slide-over that holds what would otherwise be a page (the engine panel's tables and lists).
+// docs/guides/using-the-app/navigation.md#the-audio-engine-panel: the wide panel, for a slide-over that holds what would otherwise be a page (the engine panel's tables and lists).
 export const Wide: Story = {
   args: { size: 'wide', headingLevel: 2, title: 'Audio engine' },
   play: async () => {

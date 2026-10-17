@@ -47,7 +47,7 @@ export const SpokenLabelOverridesTheCapsName: Story = {
   },
 };
 
-// A glyph key is drawn by KeyCap, a text key by Kbd (ADR 0761).
+// A glyph key is drawn by KeyCap, a text key by Kbd.
 export const GlyphKeys: Story = {
   render: () => (
     <div className="flex items-center gap-6">

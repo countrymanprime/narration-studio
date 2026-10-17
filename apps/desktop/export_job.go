@@ -244,7 +244,7 @@ func (j *exportJob) finish(cancelled bool, broken error) {
 type masterFileFunc func(ctx context.Context, req mastering.Request, opts mastering.Options) (mastering.Result, error)
 type encodeFileFunc func(ctx context.Context, wav, dst string, spec encodeport.Spec) error
 
-// exportPaths checks what ExportStart was sent: at least one item, each picked in this session (ADR 0156's own
+// exportPaths checks what ExportStart was sent: at least one item, each picked in this session (docs/architecture/threat-model.md's own
 // discipline, applied to the export flow's own picker), each once, every kind but "chapter" at most once, and every
 // chapter with a title (packager.Assemble needs one to name its file).
 func (h *Host) exportPaths(items []ExportItem) ([]ExportItem, error) {
@@ -462,7 +462,7 @@ func (h *Host) cancelExport() ExportJob {
 }
 
 // pickExportFiles opens the picker and remembers what it chose, so only those paths can be exported (mirrors
-// pickMeasureFiles, ADR 0156's own discipline).
+// pickMeasureFiles, docs/architecture/threat-model.md's own discipline).
 func (h *Host) pickExportFiles() (MeasurePickResult, error) {
 	pick := h.pickAudioFiles
 	if pick == nil {

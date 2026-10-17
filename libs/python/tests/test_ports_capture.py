@@ -1,4 +1,4 @@
-"""The capture port (ADR 0301): its descriptor, its roles and its conformance suite."""
+"""The capture port: its descriptor, its roles and its conformance suite."""
 
 import ast
 import re

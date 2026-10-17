@@ -49,9 +49,9 @@ type JumpMenuProps = {
 };
 
 /**
- * The jump menu's content (ADR 0780 decision 6): the catalogue rows for the `jumpMenu` surface, the commands providers return, then
+ * The jump menu's content (docs/architecture/studio-shell-and-registries.md#command-providers-and-go-to): the catalogue rows for the `jumpMenu` surface, the commands providers return, then
  * search-source hits, filtered by the typed term. With nothing typed it shows one row per group and a group opens to its commands.
- * A leading `>` lists commands only. The field keeps focus and names the active option (ADR 0630); nothing here waits on the host (ADR 0075).
+ * A leading `>` lists commands only. The field keeps focus and names the active option; nothing here waits on the host.
  */
 function JumpMenu({ keymap, runCommand, close, initialTerm = '', catalog = COMMAND_CATALOG }: JumpMenuProps) {
   const listId = useId();

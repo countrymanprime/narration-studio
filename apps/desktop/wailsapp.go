@@ -7,7 +7,7 @@ import (
 	"github.com/wailsapp/wails/v3/pkg/application"
 )
 
-// Every call the host makes into Wails goes through this file (docs/adr/0200). Wails v3 keeps one application per process, which
+// Every call the host makes into Wails goes through this file. Wails v3 keeps one application per process, which
 // application.New sets in main.go and application.Get returns; in a test there is none, so each helper here is a no-op or an error,
 // never a crash. The host still keeps its own ctx: it is set in ServiceStartup and means "the window exists".
 

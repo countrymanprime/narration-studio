@@ -75,7 +75,7 @@ jobs:
           UI_VISUAL_SHARDED: '1'
           SHARD: ${{ matrix.shard }}
         run: pnpm --dir apps/ui run screenshots --shard="$SHARD/3"
-      # The role trees of the dialogs, the slide-over and the navigation (tests/aria, ADR 0065): 22 tests, about 25 s, so
+      # The role trees of the dialogs, the slide-over and the navigation (tests/aria): 22 tests, about 25 s, so
       # one shard carries them rather than a job of their own. After the screenshots so a red visual run does not hide it
       # and the reverse.
       - if: steps.scope.outputs.affected == 'true' && matrix.shard == 1 && !cancelled()
@@ -178,7 +178,7 @@ jobs:
     #   - repo-scripts: the plain-Node scripts (GitHub metadata, release, the layout guard, the guide-screenshots tests,
     #     which need the UI project's `sharp`, so it installs too). `always`: the layout and
     #     project guards read every tracked file.
-    #   - docs-site (tools/docs-site, ADR 0083): unit tests only while GitHub Pages is paused (D75, ADR 0415) - the
+    #   - docs-site (tools/docs-site): unit tests only while GitHub Pages is paused (D75) - the
     #     strict MkDocs build and its link check over the built HTML are redundant with Docs / Links (offline)
     #     (lychee, every pull request) and Docs / Markdown lint (changed files), so they run only from pages.yml's
     #     manual build-site target, not here or in `pnpm check`. `always`: docs/ belongs to no Nx project.
@@ -229,7 +229,7 @@ jobs:
     #   - reaper: the bridge harness again, because the bridge builds paths from package.config and REAPER's own Lua
     #     writes CRLF on Windows.
     #   - go lint: gofmt, go vet, golangci-lint and checklocks (the `ci` configuration of the lint target). Windows, like
-    #     go-test: it is the only supported platform (docs/adr/0412), and Linux's native libraries are not installed
+    #     go-test: it is the only supported platform, and Linux's native libraries are not installed
     #     on the Linux runners. Here rather than in go-test so the tests do not wait behind it.
     # 25 min: the reaper step's mutation checks alone ran 12 of the 15 on Windows once the undo_last mutations joined
     # (two cancelled runs), and go lint follows them.
@@ -260,7 +260,7 @@ jobs:
 
   go-test:
     # The tests, with the race detector on the packages that have concurrency (the `ci` configuration of the test target;
-    # ADR 0171), then the teleprompter and shutdown tests on one and on four CPUs (`test-schedules`): an ordering bug
+    # docs/operations/verification-tooling.md#go-lint-and-the-race-detector), then the teleprompter and shutdown tests on one and on four CPUs (`test-schedules`): an ordering bug
     # between goroutines that hides on the default scheduler fails there on demand. Lint runs in quick-windows.
     timeout-minutes: 15
     runs-on: windows-latest

@@ -2,7 +2,7 @@ package main
 
 import "github.com/countrymanprime/narration-utils/shell/internal/editlog"
 
-// The narrator's word effects (ADR 0856): the host's memory of the chains the DAW put on ranges of words (applyFxToRange),
+// The narrator's word effects: the host's memory of the chains the DAW put on ranges of words (applyFxToRange),
 // so an effect's underline survives a restart. An effect's times are in the chapter recording as it was before any cut, like
 // a cut's, so a later cut moves where it is shown and not what is stored. The DAW owns the audio and the chain: an effect is
 // recorded only after the DAW accepted it, and recording or removing one changes nothing in the DAW. The chain is named as

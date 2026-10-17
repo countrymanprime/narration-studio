@@ -8,7 +8,7 @@ import { useHostRead } from './useHostRead';
 const recorded = (_failure: unknown): void => undefined;
 
 /**
- * What "Before you build" judges: the chapters (the store's `chapters` slot, ADR 0770: read when the page opens, stale when a job ends, read
+ * What "Before you build" judges: the chapters (the store's `chapters` slot, docs/architecture/ui-state-and-journal.md#the-store-host-reads-cached: read when the page opens, stale when a job ends, read
  * again on focus, and a failed read keeps the last list) and the host's measurement of the files, read when the page opens, when the window
  * regains focus, when a job ends and every half second while a measurement runs. A measurement that cannot be read is not shown as
  * "Not mastered": the page says it cannot tell.

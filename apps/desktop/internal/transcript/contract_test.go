@@ -6,7 +6,7 @@ import (
 	"github.com/countrymanprime/narration-utils/shell/internal/contractfile"
 )
 
-// The payloads the host sends to the UI as `Bootstrap.transcript` and the `transcript:state` event (ADR 0069). The UI's
+// The payloads the host sends to the UI as `Bootstrap.transcript` and the `transcript:state` event. The UI's
 // contract tests validate these files against its schemas. Volatile values (time, run id) are fixed so the file is stable.
 func stable(state map[string]any) map[string]any {
 	state["elapsed"] = 12.5

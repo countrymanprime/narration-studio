@@ -1,5 +1,5 @@
 // Package continuity is the character continuity review's analyzer: baselines
-// built only from the narrator's approved voice references (ADR 0354),
+// built only from the narrator's approved voice references,
 // candidate dialogue lines located through the manuscript's dialogue cues and
 // aligned words, the outlier rule calibrated by
 // docs/research/character-continuity-acoustic-trial.md, the recording-chain

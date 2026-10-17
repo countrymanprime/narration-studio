@@ -9,7 +9,7 @@ import (
 
 // The edit and proof workspace's REAPER actions (narration_workspace.lua): make a take active; list the narrator's FX
 // chains and apply one to a track or the master track; list the installed plug-ins and add one to a passage of a take
-// (ADR 0234). All are experimental (actions.go) until the verification pass has confirmed them in a real REAPER.
+// All are experimental (actions.go) until the verification pass has confirmed them in a real REAPER.
 
 // ActiveTakeSet is the item and take REAPER now plays, and whether the request changed anything.
 type ActiveTakeSet struct {
@@ -80,7 +80,7 @@ func (a *Actions) ListFXChains(ctx context.Context) (FXChains, error) {
 }
 
 // ApplyFXChain adds an FX chain, named as ListFXChains names it, to a whole track (its GUID) or the master track
-// (MasterTrack), in one undo step. Chains go only on tracks (ADR 0234, the owner's decision of 2026-09-25): a passage of
+// (MasterTrack), in one undo step. Chains go only on tracks (the owner's decision of 2026-09-25): a passage of
 // a take gets single plug-ins, not a chain. The Lua resolves the name inside FXChains itself; this refuses a name
 // that could not be one before anything is sent. A track that is gone is a *TrackStaleError.
 func (a *Actions) ApplyFXChain(ctx context.Context, track, chain string) (FXChainApplied, error) {

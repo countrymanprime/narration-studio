@@ -39,7 +39,7 @@ func TestCreditsRecordedLengthsIsTheConfirmedTrackSAudioInTheSavedProject(t *tes
 	}
 }
 
-// A credits id must never leak into a manuscript chapter's own recorded length, and vice versa (ADR 0183).
+// A credits id must never leak into a manuscript chapter's own recorded length, and vice versa.
 func TestCreditsRecordedLengthsNeverLeaksIntoAManuscriptChaptersOwn(t *testing.T) {
 	host, ids := newTestHostForChapterMatch(t)
 	if _, err := host.ChapterTrackMapConfirm(chapterLinksTrack, "credits-opening"); err != nil {
