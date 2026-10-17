@@ -35,6 +35,10 @@ func (s *Store) SetProject(project string) { s.mu.Lock(); defer s.mu.Unlock(); s
 // SetPersist says where to report a settings file that cannot be read (ADR 0069). Without it a corrupt file is still kept aside.
 func (s *Store) SetPersist(reporter *persist.Reporter) { s.persist.Store(reporter) }
 
+// Reporter is the reporter SetPersist gave, or nil: a caller that reads another narrator-data file of the same project reports it
+// the same way.
+func (s *Store) Reporter() *persist.Reporter { return s.reporter() }
+
 // reporter is read without s.mu: Save holds it while it reads the file it is about to change.
 func (s *Store) reporter() *persist.Reporter { return s.persist.Load() }
 

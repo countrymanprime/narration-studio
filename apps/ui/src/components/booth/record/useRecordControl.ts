@@ -28,6 +28,8 @@ export type RecordControlState = {
   startedByApp: boolean;
   /** Why Record cannot start, or the host's refusal of the last press; '' when nothing stops it. */
   reason: string;
+  /** `reason` is about the chapter's track link (none, or several), which the audio engine panel fixes. */
+  reasonIsTrackLink?: boolean;
   disabled: boolean;
   /** Start or stop a take (the `reading.toggle` command). A start that a precondition stops says why through `notify` and starts nothing. */
   toggle: () => Promise<void>;
@@ -417,6 +419,7 @@ export function useRecordControl({ chapterId, notify }: { chapterId: string; not
     stopped,
     startedByApp: true,
     reason,
+    reasonIsTrackLink: check?.code === 'no_track' || check?.code === 'several_tracks',
     disabled: !recording && (!!check || blind),
     toggle,
     refresh,
