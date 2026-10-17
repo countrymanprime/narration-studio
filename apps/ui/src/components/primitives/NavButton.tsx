@@ -77,13 +77,14 @@ export function NavButton({
   if (off) {
     // The hint shows the reason on hover and keyboard focus; a press opens the note, which also works on touch and in the drawer, where no hint opens.
     return (
-      <TooltipTarget text={disabledReason || children} className="relative w-full">
+      <TooltipTarget text={disabledReason || children} className="w-full">
         <Popover trigger={button} label={`${children} is unavailable`} side="right" align="start">
           <p className="m-0 text-sm text-[var(--text)]">{disabledReason}</p>
         </Popover>
-        {/* Outside the button: inside it, the reason would become part of the item's name. */}
+        {/* Outside the button: inside it, the reason would become part of the item's name. Clipped, not `sr-only`: that is absolutely
+            positioned, and the rail is `display: none` below `md`, where an absolute child has no offset parent (the visual suite's escaped-block guard). */}
         {disabledReason && (
-          <span id={reasonId} className="sr-only">
+          <span id={reasonId} className="-mr-px size-px flex-none overflow-hidden whitespace-nowrap [clip-path:inset(50%)]">
             {disabledReason}
           </span>
         )}
