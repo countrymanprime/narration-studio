@@ -98,6 +98,7 @@ export const coverageEnginesSchema = z.strictObject({
     workers: z.number(),
     chunkSeconds: z.number(),
     overlapSeconds: z.number(),
+    chapters: z.number(),
   }),
 }) satisfies z.ZodType<CoverageEngines>;
 

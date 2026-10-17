@@ -9,7 +9,7 @@ export function coverageStartOptions(options: CoverageStartOptions | undefined):
   if (options.model) sent.model = options.model;
   if (options.recheck !== undefined) sent.recheck = String(options.recheck);
   if (options.recheckModel) sent.recheckModel = options.recheckModel;
-  for (const key of ['recheckBelow', 'workers', 'chunkSeconds', 'overlapSeconds'] as const) {
+  for (const key of ['recheckBelow', 'workers', 'chunkSeconds', 'overlapSeconds', 'chapters'] as const) {
     const value = options[key];
     if (value !== undefined) sent[key] = String(value);
   }

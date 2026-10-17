@@ -25,6 +25,7 @@ type coverageRunDefaults struct {
 	Workers        int     `json:"workers"`
 	ChunkSeconds   int     `json:"chunkSeconds"`
 	OverlapSeconds int     `json:"overlapSeconds"`
+	Chapters       int     `json:"chapters"`
 }
 
 // coverageEngines is CoverageEngines' answer: the engines in catalog order, the id a check would use now and what else
@@ -75,6 +76,7 @@ func coverageDefaults(store *settings.Store, engines []coverageEngine) coverageR
 		Workers:        all.Parallel.Workers,
 		ChunkSeconds:   all.Parallel.ChunkSeconds,
 		OverlapSeconds: all.Parallel.OverlapSeconds,
+		Chapters:       all.Parallel.Chapters,
 	}
 }
 

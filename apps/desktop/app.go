@@ -1633,6 +1633,8 @@ var fieldSchemas = map[string][]fieldSchema{
 		{"parallel_workers", "Parallel Whisper processes (0 = chosen from the model)", "number", nil},
 		{"chunk_seconds", "Chunk length in seconds (0 = each item whole)", "choice", []string{"0", "60", "120", "300", "600", "900"}},
 		{"chunk_overlap_seconds", "Crossover between neighbouring chunks", "number", nil},
+		// Chapters a Check recordings run checks at once; they share the processors (ADR 0864).
+		{"parallel_chapters", "Chapters checked at once", "number", nil},
 	},
 	// StageRecommendations (see docs/architecture/stage-recommendations.md) chooses which signals must be
 	// met for a stage suggestion: one choice field per signal id a provider declares (apps/desktop/bindings_stages.go's

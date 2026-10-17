@@ -20,7 +20,6 @@ export const proofFeedback: Record<string, FeedbackRow> = {
   'src/components/proof/ProofChapterPage.tsx::manuscriptChapters#1': row('effect', 'file-io', 'na', 'na', 'ui', 'inline', 'na', 'ok', 'Finds the chapter by id from the route; a failure shows the page\'s inline error.'),
   'src/components/proof/ProofChapterPage.tsx::chapterTrackMapList#1': row('effect', 'file-io', 'na', 'na', 'ui', 'inline', 'na', 'ok', 'Finds the chapter\'s linked track, same as ChapterLinksTable\'s own read of the same binding.'),
   'src/components/proof/ProofChapterPage.tsx::workspaceAlignment#1': row('mount', 'file-io', 'na', 'na', 'ui', 'inline', 'na', 'ok', 'Reads the chapter\'s stored word alignment on open and again after a check completes (never runs one); a failure is the page\'s own inline error.'),
-  'src/components/proof/ProofChapterPage.tsx::subscribeCoverage#1': subscription('The recording check state, same subscription and job dialog (RecordingCheck) Home\'s own row uses.'),
 
 
   // The compare run (CompareRun.tsx): Transcript Compare, moved from the retired Proofing page into the chapter view.

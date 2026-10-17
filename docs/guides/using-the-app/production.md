@@ -158,13 +158,17 @@ own, in the background, once REAPER has been quiet for a few minutes and the app
 busy (Settings' **Check changed chapters in the background**); pressing **Check recording**
 yourself always pre-empts it.
 
+A chapter's recording check panel has the same choices under **Check options**, closed until you open it, and its **Check recording** button runs exactly
+what they show. **Chapters at once** is how many chapters may be checked together when this one starts, itself included: with the default of 1 the
+button waits for a chapter being checked elsewhere, and says so, and above 1 it starts beside them.
+
 **Check recordings** (the card's icon) lets you set up the run before it starts. **Speech model** is the
 first pass. **Look again with a larger model** adds a second pass: the **Larger model** transcribes again only
 the passages that are missing and the words Whisper scored under the **Also look again at words scored under**
 share. For a long chapter, **Chunk length** cuts each recording into pieces, **Parallel processes** is how
 many Whisper copies work on the pieces at once (each holds the whole model in memory), and **Crossover** is how
 much neighbouring pieces overlap, so a word on an edge is whole in one of them. A line under the choices says
-what will run, in words. The boxes start at the values in Settings, and the check runs exactly what the dialog
+what will run, in words. **Chapters at once** checks that many of the ticked chapters together, each with its own share of the processors, and starts the next as each ends. The boxes start at the values in Settings, and the check runs exactly what the dialog
 shows, so the same chapter is checked the same way wherever you start it, including in the background.
 
 With Settings' **Two-pass check** turned on ([Settings](settings.md)), a check instead runs a fast

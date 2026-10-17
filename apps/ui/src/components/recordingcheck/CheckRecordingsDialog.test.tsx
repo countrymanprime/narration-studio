@@ -25,7 +25,7 @@ const chapter = (id: string, extra: Partial<ManuscriptChapter> = {}): Manuscript
 });
 const engines: CoverageEngines = {
   default: 'small',
-  defaults: { recheck: false, recheckModel: 'large', recheckBelow: 0.5, workers: 0, chunkSeconds: 300, overlapSeconds: 6 },
+  defaults: { recheck: false, recheckModel: 'large', recheckBelow: 0.5, workers: 0, chunkSeconds: 300, overlapSeconds: 6, chapters: 1 },
   engines: [
     { id: 'tiny', label: 'Whisper tiny', family: 'whisper', installState: 'installed' },
     { id: 'small', label: 'Whisper small', family: 'whisper', installState: 'installed' },
@@ -274,7 +274,7 @@ describe('CheckRecordingsDialog', () => {
       await userEvent.selectOptions(screen.getByRole('combobox', { name: 'Crossover' }), '10');
       await userEvent.click(screen.getByRole('button', { name: 'Check 1 chapter' }));
       await waitFor(() => expect(sent).toHaveLength(1));
-      expect(sent[0]).toEqual({ model: 'small', recheck: false, workers: 3, chunkSeconds: 120, overlapSeconds: 10 });
+      expect(sent[0]).toEqual({ model: 'small', recheck: false, workers: 3, chunkSeconds: 120, overlapSeconds: 10, chapters: 1 });
     });
 
     it('a second look names the larger model and the score under which a passage is looked at again', async () => {
@@ -332,6 +332,54 @@ describe('CheckRecordingsDialog', () => {
       await userEvent.click(screen.getByRole('button', { name: 'Check 1 chapter' }));
       await waitFor(() => expect(sent).toHaveLength(1));
       expect(sent[0]).toMatchObject({ recheck: true, recheckModel: 'tiny' });
+    });
+  });
+
+  describe('several chapters at once', () => {
+    beforeEach(() => vi.stubGlobal('navigator', { ...navigator, hardwareConcurrency: 8 }));
+    afterEach(() => vi.unstubAllGlobals());
+
+    it('starts as many as the choice names together and the next as each ends, every start naming the same number', async () => {
+      const { api, starts, sent, emit } = host();
+      open(api, ['a', 'b', 'c']);
+      await userEvent.selectOptions(await screen.findByRole('combobox', { name: 'Chapters at once' }), '2');
+      expect(screen.getByText(/Up to 2 chapters at once\./)).toBeTruthy();
+      await userEvent.click(screen.getByRole('button', { name: 'Check 3 chapters' }));
+      await waitFor(() => expect(starts.map((start) => start.id)).toEqual(['a', 'b']));
+      expect(sent.every((options) => options?.chapters === 2)).toBe(true);
+      const bars = await screen.findAllByRole('progressbar');
+      expect(bars).toHaveLength(3);
+      emit({ runId: 'run-2', phase: 'running', percent: 60 });
+      emit({ runId: 'run-1', phase: 'running', percent: 20 });
+      expect((await screen.findByRole('progressbar', { name: /Checking Chapter b/ })).getAttribute('aria-valuenow')).toBe('60');
+      expect(screen.getByRole('progressbar', { name: /Checking Chapter a/ }).getAttribute('aria-valuenow')).toBe('20');
+      expect(screen.getByRole('progressbar', { name: /Checking Chapter c/ }).getAttribute('aria-valuenow')).toBe('0');
+      emit({ runId: 'run-2', phase: 'complete', percent: 100 });
+      await waitFor(() => expect(starts.map((start) => start.id)).toEqual(['a', 'b', 'c']));
+      expect(sent).toHaveLength(3);
+    });
+
+    it('does not offer chapters at once for a chapter alone and sends one chapter at a time by default', async () => {
+      const { api, sent } = host();
+      open(api, ['a', 'b']);
+      expect(((await screen.findByRole('combobox', { name: 'Chapters at once' })) as HTMLSelectElement).value).toBe('1');
+      await userEvent.click(screen.getByRole('button', { name: 'Check 2 chapters' }));
+      await waitFor(() => expect(sent).toHaveLength(1));
+      expect(sent[0]?.chapters).toBe(1);
+    });
+
+    it('stop says how many chapters in progress stored nothing', async () => {
+      const { api, starts, emit, results } = host();
+      const { service } = open(api, ['a', 'b', 'c']);
+      await userEvent.selectOptions(await screen.findByRole('combobox', { name: 'Chapters at once' }), '2');
+      await userEvent.click(screen.getByRole('button', { name: 'Check 3 chapters' }));
+      await waitFor(() => expect(starts).toHaveLength(2));
+      results.a = stored('current');
+      emit({ runId: 'run-1', phase: 'complete', percent: 100 });
+      await waitFor(() => expect(starts).toHaveLength(3));
+      await userEvent.click(await screen.findByRole('button', { name: 'Stop' }));
+      await waitFor(() => expect(service.getSnapshot().dialogs).toHaveLength(0));
+      expect(toasts(service)).toEqual(['Stopped. 1 chapter finished and kept; the 2 in progress stored nothing.']);
     });
   });
 });

@@ -77,6 +77,7 @@ func (h *Host) coverageStart(chapterID string, options map[string]string) (any, 
 		Transcription: coverage.Transcription{Model: choices.FirstPass, ModelDir: modelDir},
 		Alignment:     coverageSettings(svc.settings).Alignment,
 		Parallel:      choices.Parallel,
+		Concurrent:    choices.Parallel.Chapters,
 	}
 	if choices.Recheck != "" {
 		recheck, required, err := resolveCoverageRecheck(models, choices.Recheck)
@@ -90,10 +91,7 @@ func (h *Host) coverageStart(chapterID string, options map[string]string) (any, 
 	}
 	// A background check gives way to the narrator's own (ADR 0211): it is cancelled, keeping the items it finished, and
 	// this one starts once it has stopped.
-	if svc.coverage.Busy() && svc.coverage.State().Background {
-		svc.coverage.Cancel()
-		svc.coverage.Wait()
-	}
+	svc.coverage.CancelBackground()
 	state, err := svc.coverage.Start(request)
 	if reason, refused := coverage.ReasonOf(err); refused {
 		return coverageRefusal(reason, err.Error()), nil
@@ -211,11 +209,12 @@ func (h *Host) emitCoverage(state coverage.State) {
 	}
 }
 
-// coverageWatch turns a check's states into one jobEnded per run: the first terminal state of a run id ends it.
+// coverageWatch turns a check's states into one jobEnded per run: the first terminal state of a run id ends it. Runs of
+// several chapters can overlap, so it remembers every run it has ended, not only the last.
 type coverageWatch struct {
 	mu sync.Mutex
 	// +checklocks:mu
-	ended string
+	ended map[string]bool
 }
 
 // coverageJobPhase maps a check's terminal phase to the job phase words endedJob knows.
@@ -238,10 +237,13 @@ func (w *coverageWatch) observe(state coverage.State) (jobEnded, bool) {
 	}
 	w.mu.Lock()
 	defer w.mu.Unlock()
-	if w.ended == state.RunID {
+	if w.ended[state.RunID] {
 		return jobEnded{}, false
 	}
-	w.ended = state.RunID
+	if w.ended == nil {
+		w.ended = map[string]bool{}
+	}
+	w.ended[state.RunID] = true
 	var started time.Time
 	if state.StartedAt != nil {
 		started = *state.StartedAt

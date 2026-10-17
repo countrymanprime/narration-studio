@@ -6,7 +6,8 @@ import type { ProductionChapter } from '../../api/contracts/production';
 import { chapterName } from '../../chapterName';
 import { STATUS_LABELS, STATUS_ORDER } from '../../chapterStatus';
 import { registerContextProvider, type ContextProvider } from '../../registries/context';
-import type { ChapterStatus, ChapterTrackLinks, CoverageState, ManuscriptChapter } from '../../types';
+import type { ChapterStatus, ChapterTrackLinks, ManuscriptChapter } from '../../types';
+import { useCoverageRuns } from '../recordingcheck/useCoverageRuns';
 import { EditingCheckPanel } from '../editing/EditingCheckPanel';
 import type { ContextMenuItem } from '../primitives/ContextMenu';
 import type { Notify } from '../primitives/Toast';
@@ -60,7 +61,6 @@ export function useChapterTools({ rows, credits, notify, go, goToScript, goToEdi
   const api = useApi();
   const [chapters, setChapters] = useState<ManuscriptChapter[]>();
   const [trackLinks, setTrackLinks] = useState<ChapterTrackLinks>();
-  const [coverage, setCoverage] = useState<CoverageState>({ phase: 'idle', percent: 0, message: '' });
   const [open, setOpen] = useState<Open>();
   const [restoringId, setRestoringId] = useState('');
   const { rows: creditsRows, setStatus: setCreditsStatus } = credits;
@@ -87,15 +87,20 @@ export function useChapterTools({ rows, credits, notify, go, goToScript, goToEdi
   }, [active, loadChapters, loadTrackLinks]);
 
   useEffect(() => reload(), [reload, refreshKey]);
-  useEffect(() => api.subscribeCoverage(setCoverage), [api]);
+  const runs = useCoverageRuns();
   // A check that completes changes the chapter's measured length, so the overview is read again, once per run.
-  const lastCompleted = useRef<string>(undefined);
-  useEffect(() => {
-    if (coverage.phase !== 'complete' || !coverage.runId || lastCompleted.current === coverage.runId) return;
-    lastCompleted.current = coverage.runId;
-    reload();
-    onChanged();
-  }, [coverage.phase, coverage.runId, reload, onChanged]);
+  // It follows each event, not the latest state: checks of several chapters can end together, and each is one run.
+  const completed = useRef(new Set<string>());
+  useEffect(
+    () =>
+      api.subscribeCoverage((state) => {
+        if (state.phase !== 'complete' || !state.runId || completed.current.has(state.runId)) return;
+        completed.current.add(state.runId);
+        reload();
+        onChanged();
+      }),
+    [api, reload, onChanged],
+  );
 
   const manuscriptChapter = useCallback((chapterId: string) => chapters?.find((chapter) => chapter.id === chapterId), [chapters]);
 
@@ -249,7 +254,8 @@ export function useChapterTools({ rows, credits, notify, go, goToScript, goToEdi
         <RecordingCheck
           key={open.chapter.id}
           chapter={open.chapter}
-          coverage={coverage}
+          coverage={runs.forChapter(open.chapter.id)}
+          othersRunning={runs.othersRunning(open.chapter.id)}
           notify={notify}
           close={close}
           // A credits row's synthetic chapter (ADR 0333) opens the Manuscript credits entry, never the Editing page or a paragraph.

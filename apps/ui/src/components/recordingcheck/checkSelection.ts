@@ -73,10 +73,9 @@ export function finishedToast(totals: ReturnType<typeof runTotals>): string {
   return `Checked ${plural(totals.chapters, 'chapter', 'chapters')} · ${plural(totals.linesToRedo, 'line', 'lines')} to redo · ${totals.notToTheEnd} not recorded to the end`;
 }
 
-export function stoppedToast(finished: number): string {
-  return finished === 0
-    ? 'Stopped. Nothing was stored.'
-    : `Stopped. ${plural(finished, 'chapter', 'chapters')} finished and kept; the one in progress stored nothing.`;
+export function stoppedToast(finished: number, interrupted = 1): string {
+  const left = interrupted === 1 ? 'the one in progress stored nothing' : `the ${interrupted} in progress stored nothing`;
+  return finished === 0 ? 'Stopped. Nothing was stored.' : `Stopped. ${plural(finished, 'chapter', 'chapters')} finished and kept; ${left}.`;
 }
 
 export const engineOptionLabel = (engine: CoverageEngine): string =>

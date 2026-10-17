@@ -34,7 +34,7 @@ const stored = (state: CoverageResult['state'], gaps: number, unfinished: { star
 const results: Record<string, CoverageResult> = { c1: stored('current', 2, { start: 0, end: 2 }), c2: stored('stale', 0, { start: 0, end: 0 }) };
 const engines = {
   default: 'small',
-  defaults: { recheck: false, recheckModel: 'large', recheckBelow: 0.5, workers: 0, chunkSeconds: 300, overlapSeconds: 6 },
+  defaults: { recheck: false, recheckModel: 'large', recheckBelow: 0.5, workers: 0, chunkSeconds: 300, overlapSeconds: 6, chapters: 1 },
   engines: [
     { id: 'tiny', label: 'Whisper tiny', family: 'whisper' as const, installState: 'installed' as const },
     { id: 'small', label: 'Whisper small', family: 'whisper' as const, installState: 'installed' as const },
@@ -118,7 +118,7 @@ export const SecondLookWithParallelChunks: Story = {
       coverageEngines: async () => ({
         ...engines,
         default: 'tiny',
-        defaults: { recheck: true, recheckModel: 'small', recheckBelow: 0.4, workers: 4, chunkSeconds: 600, overlapSeconds: 10 },
+        defaults: { recheck: true, recheckModel: 'small', recheckBelow: 0.4, workers: 4, chunkSeconds: 600, overlapSeconds: 10, chapters: 2 },
       }),
     }),
   },
