@@ -4,7 +4,7 @@
 
 **Constraints:** [ADR 0012](../adr/0012-media-route-for-track-playback.md), [ADR 0018](../adr/0018-story-bible-entries-read-only-until-edit.md), [ADR 0026](../adr/0026-manuscript-line-identity-in-item-extension-data.md), [ADR 0048](../adr/0048-every-dialog-is-one-modal-shell-and-confirms-are-alert-dialogs.md), [ADR 0075](../adr/0075-every-action-that-leaves-the-interface-acknowledges-within-100-ms-cannot-be-fired-twice-and-tells-the-narrator-when-it-ends.md), [ADR 0388](../adr/0388-the-booth-is-a-page-keyed-by-its-address-and-only-exit-booth-stops-a-live-session.md), [ADR 0565](../adr/0565-the-series-voice-bible-pools-reference-clips-by-character-id-and-shows-no-books-until-a-second-book-has-data.md), [ADR 0760](../adr/0760-the-studio-next-mock-is-the-only-spec-for-every-page-it-covers-tokens-primitive-sizes-and-layouts-included.md), [ADR 0856](../adr/0856-the-editing-records-are-one-file-per-kind-keyed-by-word-with-its-text-checked-on-read-and-cleared-when-the-manuscript-is-replaced.md), [ADR 0860](../adr/0860-a-roll-keeps-the-earlier-audio-as-a-take-and-a-range-cut-a-chain-on-a-range-and-stacking-move-audio-and-never-delete-it.md). Proposed by this PRD: [ADR 0865](../adr/0865-a-voice-sample-is-a-clip-copied-into-the-project-folder-and-its-source-is-kept-as-provenance-only.md), [ADR 0866](../adr/0866-voice-samples-play-in-the-apps-own-audio-served-by-id-and-never-through-the-daw.md).
 
-**Status (2026-10-17):** draft, design only. No code is written. Phase 0 (this pull request) holds the PRD, the two Proposed ADRs and a draft mock. The owner has decided questions 1 to 4 (see the [Decisions Log](#decisions-log)); questions 5 to 9 are open. The owner approved the draft mock on 2026-10-17, so phases 3 to 5 are no longer waiting on it.
+**Status (2026-10-17):** draft, design only. No code is written. Phase 0 (this pull request) holds the PRD, the two Proposed ADRs and a draft mock. The owner has decided open questions 1 to 9 (see the [Decisions Log](#decisions-log)); the one thing not ruled on is playing in the app instead of through the DAW ([ADR 0866](../adr/0866-voice-samples-play-in-the-apps-own-audio-served-by-id-and-never-through-the-daw.md)). The owner approved the draft mock on 2026-10-17, so phases 3 to 5 are no longer waiting on it.
 
 ## Problem Statement
 
@@ -38,7 +38,7 @@ The narrator wants to mark, while editing, the stretches where a voice came out 
 1. **Mark in Editing.** The narrator selects words, presses **V** (or **Voice sample** on the selection toolbar, or the word menu), picks the character, optionally names the sample ("angry, to the Duke") and adds a note, hears the range, and saves. The same selection works for **Narration**.
 2. **Where a sample is kept is a setting.** The default copies the marked stretch (with a short handle each side, cut at the nearest zero crossing) into `<project>/narration-utils/voice-samples/`, and the record keeps where it came from as provenance only; this works with every DAW and with none, and playing it never touches the DAW or the narrator's place in the project ([ADR 0865](../adr/0865-a-voice-sample-is-a-clip-copied-into-the-project-folder-and-its-source-is-kept-as-provenance-only.md)). Where the DAW can label an item (REAPER), the narrator can instead, or as well, keep the sample as a label in the DAW project, so the DAW is the record and the narrator can see it outside the app ([Where a sample is kept](#where-a-sample-is-kept)).
 3. **Play it in the app's own audio, served by id.** The host serves a clip by sample id through the existing `/media` handler, never by path, and the page plays it with one shared player ([ADR 0866](../adr/0866-voice-samples-play-in-the-apps-own-audio-served-by-id-and-never-through-the-daw.md)). Playing is refused while a take records, and a Booth session that is listening to the narrator pauses its listening while a sample plays.
-4. **Story Bible.** A character entry gets a **Voice samples** section: play, primary, label and note, where it came from with **Open in Editing**, delete. Narration's samples sit in the **Voice data** panel.
+4. **Story Bible.** A character entry gets a **Voice samples** section: play, primary, label and note, where it came from with **Open in Editing**, and, after **Edit**, delete and move. Narration's samples sit in the **Voice data** panel.
 5. **Booth.** The speaker picker shows a play control on each character who has a sample; **Voices in this scene** does the same and lists every sample; a key plays the primary sample of the current phrase's speaker without leaving the text.
 6. **Curation.** One primary sample per character (the one the quick play uses), up to 20 samples a character, rename, move to another character, delete. Provenance that no longer matches the manuscript is labelled **Passage changed** and never blocks playback.
 
@@ -76,11 +76,11 @@ For the owner. Each has a recommendation; none blocks phase 1.
 2. **What Clear project data and a manuscript replace do.** Decided 2026-10-17: a replace keeps the samples and **Clear project data** removes them.
 3. **Reference clips beside voice samples.** Decided 2026-10-17: keep the REAPER-region **Reference clips** as they are, show **Voice samples** above them, and remove only the dead Play stub.
 4. **The Booth with a listening session.** Decided 2026-10-17: pause listening while a sample plays and resume after. Phase 5 starts with a spike to confirm the pause can be driven from a sample play; the fallback if it cannot is refusing play during a listening session, which the owner has not chosen.
-5. **Raw or as heard in the DAW.** Open. Recommended: raw source audio. Including the item's volume, fades and FX needs a render through the DAW (`render_with_fx`), which is REAPER-only and slow.
-6. **Limits.** Open. Proposed defaults: 0.5 to 30 s a sample, 20 samples a character, 200 MiB a project. Say if a narrator's real samples are longer.
-7. **Keys.** Open. `V` in Editing to mark and `V` in the Booth to hear the current speaker's sample, `Mod+Enter` in the picker to hear the highlighted character. All are catalogue rows checked for collisions in phase 3 and 5.
-8. **Who may manage samples while the entry is read-only.** Open. Recommended: play always, and rename, primary and delete without pressing Edit, since samples are not entry text and **Revoke** on a reference clip works the same way today ([ADR 0018](../adr/0018-story-bible-entries-read-only-until-edit.md) covers the entry's own fields).
-9. **The shape of a DAW label.** Open, phase 6. Recommended: a pair of REAPER take markers on the item (start and end, in source time, so they move with the item and survive ripple edits), named with a fixed prefix, the character and the label. The alternatives are a region (project time, which does not follow an item that moves) and the item's notes (one text field, no range). A spike in REAPER settles which the saved `.rpp` records and which the app can read back; see [Unknowns](#unknowns).
+5. **Raw or as heard in the DAW.** Decided 2026-10-17: raw source audio. Including the item's volume, fades and FX would need a render through the DAW (`render_with_fx`), which is REAPER-only and slow.
+6. **Limits.** Decided 2026-10-17: 0.5 to 30 s a sample, 20 samples a character, 200 MiB a project.
+7. **Keys.** Decided 2026-10-17: `V` in Editing to mark, `V` in the Booth to hear the current speaker's sample, `Mod+Enter` in the picker to hear the highlighted character. Each is a catalogue row checked for collisions in phases 3 and 5.
+8. **Who may manage samples while the entry is read-only.** Decided 2026-10-17: playing, renaming and setting primary work on a read-only entry; **Delete** and **Move** appear only after the narrator presses **Edit**, so a stray click cannot remove a sample ([ADR 0018](../adr/0018-story-bible-entries-read-only-until-edit.md)).
+9. **The shape of a DAW label.** Decided 2026-10-17: a REAPER region, which has a start and a duration, so one marker holds the range. The app already parses regions with their GUIDs from the saved project (`tracks.Region`, `character.Service.ListRegions`), and the Reference clips already use the same snapshot-and-compare pattern for a region that changed. A region is in project time, so how it behaves when the narrator moves the item or ripple-edits is for the phase 6 spike to record, with the region's name carrying the character and the label.
 
 ## Users & Context
 
@@ -96,7 +96,7 @@ A narrator rarely stops to leave the Booth: the sample has to be one press from 
 | --- | --- |
 | Must | Mark a selected stretch of one take as a sample for a character or Narration, with an optional label and note |
 | Must | Hear the stretch before saving, and refuse with a sentence when it cannot be copied |
-| Must | List a character's samples in the Story Bible, play, delete, set primary, rename |
+| Must | List a character's samples in the Story Bible, play, set primary, rename; delete only in the entry's Edit mode |
 | Must | Play a character's primary sample from the Booth's speaker picker and side panel; refuse while a take records |
 | Must | A clip survives a re-record, a cleanup, a ripple edit, a project move and the loss of the source file |
 | Must | A visible state for a clip that is missing or changed, and for provenance that no longer matches |
@@ -131,7 +131,7 @@ Owner decision of 2026-10-17: this is a setting, because the DAWs differ. REAPER
 | Setting | What is kept | Plays from | Available |
 | --- | --- | --- | --- |
 | **In the project folder** (default) | A clip copy and its record ([ADR 0865](../adr/0865-a-voice-sample-is-a-clip-copied-into-the-project-folder-and-its-source-is-kept-as-provenance-only.md)) | The clip, by id | Every DAW and none |
-| **In the DAW** | A label on the item in the DAW project (open question 9) and the record; no copy | The labelled range of the item's source file, by the existing `/media` route, in the app's own audio | Where the DAW declares it can label an item: REAPER, phase 6 |
+| **In the DAW** | A region in the DAW project (open question 9, decided) and the record; no copy | The labelled range of the item's source file, by the existing `/media` route, in the app's own audio | Where the DAW declares it can label an item: REAPER, phase 6 |
 | **Both** | The clip, the record and the DAW label | The clip | As **In the DAW** |
 
 - The setting is `VoiceSamples.storage` (`project`, `daw`, `both`), layered like the other settings: project, then the narrator's global value, then the repository default `project` ([settings layering](../architecture/daw-integration.md#settings-layering)). It is chosen in Settings, and the **Voice sample** dialog says where the sample will be kept.
@@ -302,7 +302,7 @@ A file the app writes and reads back is not a trust boundary, so `samples.json` 
 - **The Booth picker's group.** The real picker has no **In this chapter** group yet; phase 5 depends on the Booth rebuild adding it, or builds the group itself.
 - **Pausing listening.** Whether a running listening session can be paused from a sample play ([ADR 0104](../adr/0104-seek-reaches-a-running-teleprompter-session-through-a-tailed-control-file.md) shows how a control file reaches it).
 - **A merged Story Bible entry.** Whether the merge binding reports the absorbed id.
-- **The DAW label.** Which REAPER object records a range and survives a move, a ripple edit and a save: take markers, a region or item notes; whether the saved `.rpp` the app parses carries it ([data files](../reference/data-files.md), `tracks.Parse`); how the "not saved yet" state is detected ([`DawProjectState`](../reference/daw/capabilities.md)). A spike in phase 6.
+- **The DAW region.** Whether the saved `.rpp` the app parses carries the region's name and range as written (`tracks.Parse`, [data files](../reference/data-files.md)); how a region behaves when the narrator moves the item or ripple-edits, since a region is in project time; how "not saved in REAPER yet" is detected ([`DawProjectState`](../reference/daw/capabilities.md)). A spike in phase 6.
 - **Key collisions.** `V` is unused in the Editing rows of `apps/ui/src/input/commands.catalog.test.ts`; the Booth rows are checked in phase 5.
 - **Speaker preselect.** Whether the Editing page knows the speaker of the selected phrase; if so the character is preselected, otherwise the dialog opens on the speakers in the chapter.
 
@@ -343,6 +343,9 @@ Every phase's pull request has an **Exercised** and a **Not exercised** section.
 | 2026-10-17 | A manuscript replace keeps samples; **Clear project data** removes them | Owner ("agreed", question 2) |
 | 2026-10-17 | **Reference clips** stay; **Voice samples** sit above them | Owner ("agreed", question 3) |
 | 2026-10-17 | A Booth session that is listening pauses while a sample plays | Owner ("agreed", question 4); the pause is confirmed by the phase 5 spike |
+| 2026-10-17 | Raw source audio; limits of 0.5 to 30 s, 20 a character and 200 MiB a project; keys `V`, `V` in the Booth and `Mod+Enter` | Owner ("go with the recommendations", questions 5 to 7) |
+| 2026-10-17 | Delete and Move on a Story Bible entry need **Edit**; play, rename and primary do not | Owner (question 8) |
+| 2026-10-17 | A DAW sample is one REAPER region (a marker with a duration), not a pair of markers | Owner (question 9) |
 | 2026-10-17 | The draft mock is approved ("mocks look good"). It shows the project-folder storage; the Settings control and dialog line for the DAW choices are drawn in phase 6 | Owner |
 | 2026-10-17 | Playback is in the app's own audio, never through the DAW | Recommended in this PRD ([ADR 0866](../adr/0866-voice-samples-play-in-the-apps-own-audio-served-by-id-and-never-through-the-daw.md)); not yet ruled on |
 | 2026-10-17 | Samples are for the ear: no acoustic comparison | Carried from [ADR 0565](../adr/0565-the-series-voice-bible-pools-reference-clips-by-character-id-and-shows-no-books-until-a-second-book-has-data.md) |
