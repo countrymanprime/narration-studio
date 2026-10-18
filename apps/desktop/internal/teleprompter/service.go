@@ -37,7 +37,7 @@ const (
 const DefaultModel = "tiny"
 
 // Engines are the live engines the desktop host can launch on platform (a GOOS value), default first, as the ASR registry
-// declares them: Whisper runs everywhere the sidecar does; Moonshine ships only in the Windows sidecar (ADR 0107).
+// declares them: Whisper runs everywhere the sidecar does; Moonshine ships only in the Windows sidecar.
 func Engines(platform string) []string { return asrport.Names(platform, asrport.ModeLive) }
 
 // SupportsEngine reports whether engine is one of Engines(platform).
@@ -215,7 +215,7 @@ func option(options map[string]string, key, fallback string) string {
 }
 
 // Script is text to read that is not a manuscript chapter: the opening or closing credits the host renders
-// (ADR 0150). ID names it in the `script` event and the state's `chapter`, Title is its display name
+// ID names it in the `script` event and the state's `chapter`, Title is its display name
 // (never read aloud), and Text is exactly what the narrator reads. The service writes Text to a
 // file in the session directory for the sidecar's --script and removes it when the session ends.
 type Script struct{ ID, Title, Text string }
@@ -267,7 +267,7 @@ func (s *Service) planSession(options map[string]string, src source) (launch, er
 	if !SupportsEngine(PlatformOrCurrent(s.config.Platform), engine) {
 		return launch{}, fmt.Errorf("the %s engine is not available on this computer", engine)
 	}
-	// An engine that runs only from a verified catalog install (Moonshine, ADR 0107) would be refused by the frozen
+	// An engine that runs only from a verified catalog install (Moonshine) would be refused by the frozen
 	// sidecar without its directory anyway, so refuse here before launching anything.
 	if asrport.NeedsInstalledModel(engine) && option(options, "modelDir", "") == "" {
 		entry, _ := asrport.Engines.Lookup(engine)
@@ -373,7 +373,7 @@ func (s *Service) Start(options map[string]string) error {
 	return s.begin(plan)
 }
 
-// StartScript launches a session over text that is not a manuscript chapter (the credits, ADR 0150).
+// StartScript launches a session over text that is not a manuscript chapter (the credits).
 func (s *Service) StartScript(script Script, options map[string]string) error {
 	plan, err := s.planScript(script, options)
 	if err != nil {
@@ -451,14 +451,14 @@ func (s *Service) SetLog(report func(kind, message string)) {
 	s.mu.Unlock()
 }
 
-// Dropped is how many lines this service has dropped because they were JSON but not an event (ADR 0069).
+// Dropped is how many lines this service has dropped because they were JSON but not an event.
 func (s *Service) Dropped() int {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 	return s.dropped
 }
 
-// isEvent reports whether raw is a JSON object with a non-empty string `type`, the envelope every event of ADR 0021 has.
+// isEvent reports whether raw is a JSON object with a non-empty string `type`, the envelope every event of docs/architecture/manuscript-teleprompter.md#prototype-findings-and-live-engine-direction has.
 func isEvent(raw json.RawMessage) (string, bool) {
 	var head struct {
 		Type any `json:"type"`
@@ -483,7 +483,7 @@ func (s *Service) drop() {
 
 // onLine handles one stdout line. Anything that is not a JSON value is stray output (a library print) and is dropped
 // silently. A JSON value that is not an event envelope (an object with a string `type`) is dropped, counted and logged.
-// The rest is relayed unchanged: the UI checks the rest of each event against its schema (ADR 0022, ADR 0069).
+// The rest is relayed unchanged: the UI checks the rest of each event against its schema.
 func (s *Service) onLine(line string) {
 	if !json.Valid([]byte(line)) {
 		return
@@ -556,7 +556,7 @@ func (s *Service) watch(child *process.StreamChild, cancel context.CancelFunc, f
 }
 
 // recordReading keeps the ending session's last position for its chapter
-// (Reading, ADR 0205), before the phase says the session stopped, so a reader
+// (Reading), before the phase says the session stopped, so a reader
 // that waits for "stopped" finds it. A session that never positioned, a credits
 // session and a chapter the manuscript does not have leave nothing. A write
 // that fails costs only the next open's comparison, so it is logged, never
@@ -583,7 +583,7 @@ func (s *Service) Stop() {
 }
 
 // stop is Stop with the message to show while stopping and whether the session is ending itself at Done (the
-// auto-stop), which only changes the final message: the cooperative stop and grace kill are the same (ADR 0022).
+// auto-stop), which only changes the final message: the cooperative stop and grace kill are the same.
 func (s *Service) stop(message string, auto bool) {
 	s.mu.Lock()
 	child := s.child
@@ -624,7 +624,7 @@ func (s *Service) Seek(word int) error {
 	return appendControl(controlFile, map[string]any{"cmd": "seek", "word": word})
 }
 
-// Pause stops (true) or restarts (false) a running session's listening without ending it (ADR 0248): a `pause` or `resume` line on the control file,
+// Pause stops (true) or restarts (false) a running session's listening without ending it: a `pause` or `resume` line on the control file,
 // where the sidecar keeps the device open but drops what it hears and stands
 // the tracker's clock still. The state keeps phase "running" and gains
 // `paused`; flags are kept only when the session ends, as before. A pending auto-stop is cancelled by a pause and armed again by a resume

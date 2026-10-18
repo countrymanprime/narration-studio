@@ -13,7 +13,7 @@ import (
 	"github.com/countrymanprime/narration-utils/shell/internal/stages"
 )
 
-// The recording-coverage corpus (ADR 0125): the committed synthetic cases, and
+// The recording-coverage corpus: the committed synthetic cases, and
 // the results file the shipped sidecar writes for each at the shipped settings,
 // pinned by sidecars/transcript-compare/tests/test_coverage_results_golden.py.
 var corpusDir = filepath.Join("..", "..", "..", "..", "sidecars", "transcript-compare", "tests", "fixtures", "coverage")
@@ -187,7 +187,7 @@ func TestStageRecommendationsOverTheCoverageCorpus(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			// The dialog's judgement is the stage signal's (ADR 0204).
+			// The dialog's judgement is the stage signal's.
 			if judgement := result.View(c.ChapterID, settings.Thresholds).Judgement; judgement == nil || judgement.State != signal.State || judgement.Reason != signal.Reason {
 				t.Fatalf("judgement %+v, signal %s %q", judgement, signal.State, signal.Reason)
 			}

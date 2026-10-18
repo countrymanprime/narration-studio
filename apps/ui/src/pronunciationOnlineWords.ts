@@ -1,4 +1,4 @@
-// The Go host's rule for what an online pronunciation lookup may send (pronunciationonline.CheckWord, ADR 0356), for the mock to
+// The Go host's rule for what an online pronunciation lookup may send (pronunciationonline.CheckWord), for the mock to
 // refuse what the host refuses. The host checks again.
 
 /** The word (or short name) a lookup may send, with its spaces tidied; undefined when the host would refuse it. */

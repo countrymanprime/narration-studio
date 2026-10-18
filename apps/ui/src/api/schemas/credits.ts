@@ -106,7 +106,7 @@ const setupFieldSchema = z.object({
   candidate: detectedCandidateSchema.nullable(),
 }) satisfies z.ZodType<CreditsSetupField>;
 
-/** `CreditsSetupState`, `CreditsSetupDismiss` and `CreditsSetupSave` (`apps/desktop/creditsetup.go`, ADR 0208). */
+/** `CreditsSetupState`, `CreditsSetupDismiss` and `CreditsSetupSave` (`apps/desktop/creditsetup.go`). */
 export const creditsSetupStateSchema = z
   .object({
     needed: z.boolean(),

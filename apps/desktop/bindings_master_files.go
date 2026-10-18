@@ -13,7 +13,7 @@ import (
 // Master & QC's file actions (SN-M97): Play the quietest 5 s and Open in the DAW, over the file bindings
 // (bindings_daw_files.go). The page sends a file id, the path a file of the host's last measurement answered; the host plays or
 // shows only a file of that run, and works out the stretch to play from the run's own report, so the page names neither a
-// path to trust nor a time. Each answer is a DawResult (ADR 0810) with no undo step: the project is unchanged.
+// path to trust nor a time. Each answer is a DawResult with no undo step: the project is unchanged.
 
 // quietestPlaySeconds is how much of a file Play the quietest plays, centred on its quietest noise-floor window.
 const quietestPlaySeconds = 5
@@ -90,7 +90,7 @@ func (h *Host) lastRunFile(fileID string) (MeasureFileResult, bool) {
 }
 
 // quietestStretch is the quietestPlaySeconds of file centred on its quietest noise-floor window and moved inside the file
-// (all of it when it is shorter), or the sentence saying why there is none: never an invented time (ADR 0015).
+// (all of it when it is shorter), or the sentence saying why there is none: never an invented time.
 func quietestStretch(file MeasureFileResult) (start, length float64, refused string) {
 	if file.Report == nil {
 		return 0, 0, fmt.Sprintf("%s was not measured, so there is no quiet stretch to play.", file.Name)

@@ -27,7 +27,7 @@ const meta = {
 export default meta;
 type Story = StoryObj<typeof meta>;
 
-// ADR 0002: the default puts Cancel on the opposite side from the affirmative
+// docs/design/design-system.md#primitive-components: the default puts Cancel on the opposite side from the affirmative
 // action(s), so the two buttons must not cluster together.
 export const ActionsBetween: Story = { args: { actionsAlign: 'between' } };
 
@@ -56,7 +56,7 @@ export const ActionsBetweenWithGroup: Story = {
 // Without onClose the header has no close button; the actions row is the only exit.
 export const WithoutCloseButton: Story = { args: { onClose: undefined } };
 
-// ADR 0001: a long unbroken token (a file path) must wrap inside the body
+// docs/design/design-system.md#primitive-components: a long unbroken token (a file path) must wrap inside the body
 // instead of forcing a horizontal scrollbar.
 export const LongUnbrokenToken: Story = {
   args: {
@@ -74,7 +74,7 @@ export const LongUnbrokenToken: Story = {
   },
 };
 
-// ADR 0001: tall content scrolls inside the body (capped at 80dvh) while the
+// docs/design/design-system.md#primitive-components: tall content scrolls inside the body (capped at 80dvh) while the
 // header and action row stay put.
 export const LongScrollingContent: Story = {
   args: {
@@ -141,7 +141,7 @@ export const EscapeIsIgnoredWithoutOnClose: Story = {
   },
 };
 
-// `dismissOnOutsidePress: false` (a confirm, a form, a job): an accidental click on the scrim must not discard it (ADR 0048).
+// `dismissOnOutsidePress: false` (a confirm, a form, a job): an accidental click on the scrim must not discard it.
 export const BackdropPressDoesNotClose: Story = {
   play: async ({ args }) => {
     await screen.findByRole('dialog', { name: 'Add note' });
@@ -212,7 +212,7 @@ export const AutoFocusChildWins: Story = {
 };
 
 // `size="full"` fills the viewport with a 1rem margin and scrolls
-// its body; modality (Tab loop, Escape) is the one shell every size shares (ADR 0048), so this story reuses the same
+// its body; modality (Tab loop, Escape) is the one shell every size shares, so this story reuses the same
 // Tab/Escape assertions as the default size instead of writing new ones.
 export const FullSize: Story = {
   args: {
@@ -241,7 +241,7 @@ export const FullSize: Story = {
   },
 };
 
-// Amending ADR 0094: a `footer` region between the body and `actions` that never
+// Amending apps/ui/src/components/primitives/Dialog.tsx: a `footer` region between the body and `actions` that never
 // scrolls with the body - the read-aloud dialog's control bar (the old Booth's control bar) renders here so Play/Stop and the
 // microphone stay visible while the chapter text scrolls.
 export const WithFooter: Story = {

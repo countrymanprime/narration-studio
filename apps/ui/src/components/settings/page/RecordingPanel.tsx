@@ -27,7 +27,7 @@ export type RecordingPanelViewProps = {
 const DAW_SETTINGS_ID = 'settings-daw';
 
 /** Where on this page a fix lives: the DAW Integration panel further down holds the DAW's path, the launcher switch and the
- * Experimental switch (ADR 0230 keeps that switch there, global). */
+ * Experimental switch (docs/architecture/reaper-bridge.md keeps that switch there, global). */
 function DawSettingsLink({ children }: { children: string }) {
   return (
     <a

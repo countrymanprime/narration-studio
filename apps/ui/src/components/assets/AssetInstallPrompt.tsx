@@ -34,7 +34,7 @@ function workJob(install: AssetInstall): WorkJob {
  * The first-use question for an optional download and, once the narrator says yes, its progress: one prompt for every asset (a voice, a
  * Whisper model, and the models that follow), driven by `useAssetInstall`. The question is a confirm that says what will be downloaded
  * (`children` carries the caller's facts about the asset); the progress is the shared work dialog with the real bytes, a Cancel while bytes
- * arrive, and no Cancel while the files are being checked (ADR 0057). A failure stays on screen until the narrator closes it.
+ * arrive, and no Cancel while the files are being checked. A failure stays on screen until the narrator closes it.
  *
  * The caller closes the prompt itself when the install succeeded (its `onSuccess` continues the operation the narrator asked for).
  */

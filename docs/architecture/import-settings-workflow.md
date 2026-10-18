@@ -21,7 +21,7 @@ are filed as follow-ups (#387; a dropped EPUB `<h2>` is a separate bug, #388).
 - **The narrator's override:** a global default ("Read a heading's second line as its subtitle") plus a per-heading
   Subtitle checkbox in the import review list (`apps/ui/src/components/production/ImportReview.tsx`'s
   `TitleSubtitle`/`hasSubtitleChoice` rows). Turning a row's checkbox off joins its second line back into the title,
-  or returns a plain-text line to the body, by where its line came from ([ADR 0135](../adr/0135-a-subtitle-turned-off-in-the-import-review-joins-the-title-or-returns-to-the-text-by-where-its-line-came-from.md)).
+  or returns a plain-text line to the body, by where its line came from ([Correcting a subtitle](import-review.md#correcting-a-subtitle)).
 - **The commit path:** `ManuscriptImportCommit` takes a `subtitleOverrides` map keyed by section id; the review UI collects the narrator's per-row choices into it before commit.
 
 ## Tests

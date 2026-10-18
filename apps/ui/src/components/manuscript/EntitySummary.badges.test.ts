@@ -2,7 +2,7 @@
 import { describe, expect, it } from 'vitest';
 import { ENTITY_BADGE_COLORS } from './EntitySummary';
 
-// ADR 0059: a badge's text is the derived `--<token>-text` of its kind (the kind colour mixed toward --text), on the kind's
+// docs/design/colour-and-contrast.md: a badge's text is the derived `--<token>-text` of its kind (the kind colour mixed toward --text), on the kind's
 // own soft fill; the pure kind colour on its soft fill was 3.0 to 4.4:1. The palette guard reads tokens, not component
 // source, so this test is what ties the badges to the tokens it measures.
 const TOKEN: Record<string, string> = {
@@ -26,7 +26,7 @@ const FILL: Record<string, string> = {
   Item: 'color-mix(in srgb, var(--item) 18%, var(--surface))',
   Event: 'color-mix(in srgb, var(--event) 18%, var(--surface))',
 };
-describe('entity badge colours (ADR 0059)', () => {
+describe('entity badge colours', () => {
   it('has a badge for every kind and no other', () => {
     expect(Object.keys(ENTITY_BADGE_COLORS).sort()).toEqual(Object.keys(TOKEN).sort());
   });

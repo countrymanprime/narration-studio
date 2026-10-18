@@ -131,7 +131,7 @@ export const ScanIdle: Story = {
     await expect(within(canvasElement).queryByRole('button', { name: 'Cancel scan' })).toBeNull();
   },
 };
-// The host's own percent and message (ADR 0015), with Cancel (ADR 0076).
+// The host's own percent and message, with Cancel.
 export const ScanRunning: Story = scanStory(scanOf(job({ phase: 'running', percent: 40, message: 'Scanning with Rules (1 of 2).' })));
 export const ScanCancelling: Story = scanStory(scanOf(job({ phase: 'running', percent: 40, message: 'Stopping the scan.' })));
 export const ScanFailedSource: Story = scanStory(

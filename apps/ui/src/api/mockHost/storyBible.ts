@@ -26,7 +26,7 @@ function parseMockProperties(text: string): GuideProperty[] {
 const MOCK_PREVIEW_WAV_BASE64 =
   'UklGRuwAAABXQVZFZm10IBAAAAABAAEAIlYAAESsAAACABAAZGF0YcgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==';
 
-// A pronunciation the narrator typed: `manual` (ADR 0792), or `user` in a file written before it.
+// A pronunciation the narrator typed: `manual`, or `user` in a file written before it.
 const isUser = (value: { source?: string }) => value.source === 'user' || value.source === 'manual';
 
 function setPronunciation(prior: GuidePronunciation, next: GuidePronunciation): GuidePronunciation {

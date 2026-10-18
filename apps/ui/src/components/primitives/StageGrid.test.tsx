@@ -155,7 +155,7 @@ describe('StageGrid', () => {
     expect(screen.getAllByRole('row')[2].className).toContain('font-semibold');
     expect(screen.getAllByRole('row')[1].className).not.toContain('font-semibold');
   });
-  // ADR 0645: mock 01's board, flush in its card.
+  // docs/design/design-system.md: mock 01's board, flush in its card.
   it('names the row-header column visibly, "Chapter" unless told otherwise', () => {
     render(grid());
     expect(screen.getByRole('columnheader', { name: 'Chapter' }).textContent).toBe('Chapter');

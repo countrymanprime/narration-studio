@@ -12,7 +12,7 @@ const prefersReducedMotion = (): boolean => typeof window.matchMedia === 'functi
  * The word the highlight is on. The tracker reports positions in bursts (a
  * confirmed phrase can move it several words at once), so forward movement is
  * walked a few words at a time to read as a smooth follow. It only ever
- * catches up to the real position - it never runs ahead of it (ADR-0015) - and
+ * catches up to the real position - it never runs ahead of it - and
  * a move backward, or reduced-motion, lands immediately.
  */
 export function usePacedCursor(target: number): number {

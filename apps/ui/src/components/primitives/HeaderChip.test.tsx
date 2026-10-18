@@ -6,7 +6,7 @@ import { HeaderChip } from './HeaderChip';
 afterEach(cleanup);
 
 describe('HeaderChip', () => {
-  // jsdom lays nothing out, so the measured spec (ADR 0635) is pinned by its classes here and measured by the atlas story.
+  // jsdom lays nothing out, so the measured spec is pinned by its classes here and measured by the atlas story.
   it('is the 22 px round chip with no border, in the label’s own case', () => {
     render(<HeaderChip>Book 1 · Wonderland series</HeaderChip>);
     const chip = screen.getByText('Book 1 · Wonderland series');

@@ -2,7 +2,7 @@ import { isWireError } from './wire/WireError';
 
 /**
  * The text a narrator reads for a failed API call. A payload that did not match its schema says so in plain words (the technical
- * text is in the host log and behind "Copy details"); any other failure keeps the text it always had (ADR 0069).
+ * text is in the host log and behind "Copy details"); any other failure keeps the text it always had.
  */
 export function describeApiError(error: unknown): string {
   return isWireError(error) ? error.userMessage : String(error);

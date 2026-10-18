@@ -1,6 +1,6 @@
 //go:build audacitylive && windows
 
-// The owner's verification pass, Parts A and C (docs/operations/audacity-verification-pass.md, ADR 0355): it drives a real Audacity over
+// The owner's verification pass, Parts A and C (docs/operations/audacity-verification-pass.md): it drives a real Audacity over
 // its scripting pipe, unattended, against a scratch project, and writes a results file to paste into #510. It is behind the
 // audacitylive build tag and NU_AUDACITY_PASS=1, so no ordinary test run, and no CI job, ever touches an Audacity.
 //
@@ -107,7 +107,7 @@ func TestAudacityVerificationPass(t *testing.T) {
 
 	// A1: the pipe is there and in step.
 	if !run.record("A1", "Ping (Message echo): the pipe is reachable", client.Ping(ctx), "") {
-		run.record("A1b", "Stopped: nothing below can run without the pipe", fmt.Errorf("not reachable"), "On Audacity 4.0 this is expected: it has no scripting pipe (ADR 0355).")
+		run.record("A1b", "Stopped: nothing below can run without the pipe", fmt.Errorf("not reachable"), "On Audacity 4.0 this is expected: it has no scripting pipe.")
 		return
 	}
 	// A2: round-trip time.

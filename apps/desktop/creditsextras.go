@@ -9,8 +9,8 @@ import (
 )
 
 // Credits extras: chapter announcements rendered per narration chapter from
-// manuscript.json (ADR 0151) and the retail sample range the narrator picks, stored on the project
-// manifest (ADR 0152). Both read the manuscript through h.services(), like every other manuscript binding.
+// manuscript.json and the retail sample range the narrator picks, stored on the project
+// manifest. Both read the manuscript through h.services(), like every other manuscript binding.
 
 // CreditsChapterAnnouncements renders body once per narration chapter, with the project's own tokens plus the chapter's
 // [Chapter] and [Chapter Title]. The Settings preview shows the first; the estimate times them all.

@@ -225,7 +225,7 @@ func decodedPunch(t *testing.T, raw string, err error) TeleprompterPunchResult {
 	return result
 }
 
-// The bindings' answers, pinned for the UI's schema (ADR 0069): one of each outcome.
+// The bindings' answers, pinned for the UI's schema: one of each outcome.
 func TestContractTeleprompterPunchResults(t *testing.T) {
 	answers := map[string]TeleprompterPunchResult{}
 

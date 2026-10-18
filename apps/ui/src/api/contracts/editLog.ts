@@ -1,4 +1,4 @@
-// The narrator's Editing records (ADR 0856), kept in the project's narration-utils/editing/ folder
+// The narrator's Editing records, kept in the project's narration-utils/editing/ folder
 // (apps/desktop/internal/editlog). This file holds the accepted words: flagged words the narrator kept as read ("It is
 // right", "Keep this addition"), so they are no longer flagged. A word is named by its key, `paragraphId:ordinal` (its place
 // among the paragraph's whitespace-separated words), together with the text it had; a record whose word changed comes back

@@ -42,16 +42,16 @@ Two optional layers compose onto a candidate before it is ranked:
   when the chapter's recording coverage is current and complete, every paragraph in the window maps to a real
   audio position (`MapParagraphsToTime`, built and tested against a real REAPER-saved fixture -
   `internal/tracks/testdata/reaper/line-identity.rpp`), and no windowed audio-quality finding falls inside it.
-  Unknown never counts as good ([ADR 0015](../adr/0015-real-progress-only.md)); a DX-4 windowed finding
+  Unknown never counts as good ([Design principles](principles.md)); a DX-4 windowed finding
   cannot be read from a real chapter (as of 2026-09-27) for reasons unrelated to this package
-  ([ADR 0327](../adr/0327-dx-4-windowed-findings-need-a-chapter-and-paragraph-anchor-and-a-store-scope-before-a-consumer-can-gate-on-them.md)),
+,
   so every candidate reports pace evidence (`ChapterPace`/`EstimateErrorFraction`) but never the
   audio-checked label in production.
 
 ## The narrator's pin
 
 The narrator may pin one candidate to keep it, and move its edges by one paragraph at a time
-([ADR 0383](../adr/0383-the-preview-pin-is-one-per-book-stale-by-anchor-text-and-never-re-ranked.md)):
+:
 
 - **One pin per book** (`preview.PinStore`, `store.go`): setting a new pin replaces whatever was pinned before, in
   any chapter. The sidecar is `<project>/narration-utils/preview-pin.json`, an atomic write (temp file, rename)

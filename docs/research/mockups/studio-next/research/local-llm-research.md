@@ -1,6 +1,6 @@
 # Local (offline) LLM extraction for the Story Bible, plus a bring-your-own-LLM import path
 
-Research only; nothing in the repo, studio or studio2 was modified. Date: 2026-10-10. Builds on `scratchpad/story-bible-extraction-research.md` (the "prior doc"), whose repo findings are not repeated: the repo has no LLM, a deterministic rules/spaCy extractor, a review-first model, and ADR 0020 precision-first policy.
+Research only; nothing in the repo, studio or studio2 was modified. Date: 2026-10-10. Builds on `scratchpad/story-bible-extraction-research.md` (the "prior doc"), whose repo findings are not repeated: the repo has no LLM, a deterministic rules/spaCy extractor, a review-first model, and `docs/architecture/story-bible-entity-accuracy.md` precision-first policy.
 
 Evidence labels used throughout: **[web]** = seen in a search result or fetched page this session (secondary blogs unless stated); **[prior]** = from the prior doc; **[knowledge]** = my general knowledge, not re-verified, may be stale; **[estimate]** = my arithmetic or reasoning, not measured. Nothing here was benchmarked on this machine (sandbox, no GPU, no models).
 
@@ -36,7 +36,7 @@ Sources are mostly secondary blogs; licences and sizes need confirming on each m
 
 **Selection guidance for this task [estimate/judgement]:**
 - Default candidate: a **4B-9B Apache-2.0 model** (Qwen3 4B/8B 2507 or Qwen3.5 4B/9B, or Gemma 4 E4B). Apache-2.0 means the app may offer them as a downloadable catalog asset and even redistribute weights, with the licence text and NOTICE shipped alongside. Pick by a bake-off on a small labelled set, not by leaderboard.
-- **Do not bundle weights in the installer.** A Q4 4B model is ~2.5-3 GB, 8B ~5 GB; downloading on consent (the repo's ADR 0080 pattern: SHA-pinned catalog asset, ask first) keeps the installer small and lets users decline.
+- **Do not bundle weights in the installer.** A Q4 4B model is ~2.5-3 GB, 8B ~5 GB; downloading on consent (the repo's `apps/desktop/guidegate.go` pattern: SHA-pinned catalog asset, ask first) keeps the installer small and lets users decline.
 - Long context is not a reason to push a whole novel through a small model: 262K-token windows exist, but KV cache memory and small-model recall degrade, and a 90k-word book (~120-165k tokens) would need several GB more KV memory [estimate]. Chunk by chapter regardless.
 - Quantisation: Q4_K_M is the usual default (quality loss small for extraction); Q5_K_M/Q6_K for 4B models where RAM allows, since small models degrade more from quantisation [knowledge]. For structured extraction, prefer Q5+ on models under 5B.
 
@@ -85,7 +85,7 @@ Search found **no usable measured benchmark** (all results were one low-quality 
 
 **Hardware backends per OS:** Windows x64: AVX2 CPU build + Vulkan build (CUDA optional download); macOS: Metal build (arm64; Intel Macs CPU only, effectively unsupported for this); Linux: CPU + Vulkan. Detect AVX2/AVX512, RAM, GPU/VRAM at first run and pick quant + model + `-ngl` accordingly.
 
-**Model download and consent UX (aligned with ADR 0079/0080 pattern in the repo):**
+**Model download and consent UX (aligned with `docs/architecture/first-use-dependency-provisioning.md#the-asset-registry-implemented, apps/desktop/guidegate.go` pattern in the repo):**
 1. Settings: "Extraction: Rules only (default) / Local model (download needed) / Import from file". Nothing downloads until chosen.
 2. Consent panel before download: model name, size (e.g. 2.7 GB), source URL host, licence (Apache-2.0, link), "stays on this computer; your manuscript is never sent anywhere", estimated time for **this** book on **this** machine (a 30-second benchmark on first use gives tokens/s, then estimate = tokens * passes / rate).
 3. Hash-pinned download with resume, progress, cancel, delete model button showing disk used. Store under the app data dir, not the project.
@@ -315,7 +315,7 @@ Stages (all non-destructive; nothing changes until the user confirms the import 
 2. **Schema check** (Zod/JSON Schema in the existing wire-contract style): errors are per item, not per file. An invalid item is rejected and listed; valid items continue. Messages name the path: `entries[3].claims[1].kind: "says" is not one of talk, act, know`.
 3. **Size limits**: file <= 20 MB, <= 5,000 entries, quote <= 500 chars (truncation noted), strings stripped of control chars; no HTML interpreted (rendered as text); no URLs fetched.
 4. **Grounding check** against the manuscript for every evidence quote (3.3): found exact/normalised/fuzzy/not found, with the paragraph resolved by search (hint chapter/paragraph used to disambiguate duplicates). `not found` -> item imported only if allowed by policy below, else rejected. The default policy: **claims without verifiable evidence are not imported** (shown in the report with the quote). Entries without evidence can still be imported by name only if the name string occurs in the manuscript (count shown); a name that doesn't occur is rejected as "not in manuscript".
-5. **Normalise and dedupe**: Unicode NFC, trim, case-fold match to existing entries by name or alias; matches become "merge suggestion" rows, never overwrite authored or locked entries (ADR 0007 / locked). Duplicate rows inside the file are merged and counted. Alias conflicts (the same alias claimed by two entries) are flagged `ambiguous alias` and dropped from auto-merge.
+5. **Normalise and dedupe**: Unicode NFC, trim, case-fold match to existing entries by name or alias; matches become "merge suggestion" rows, never overwrite authored or locked entries (`sidecars/manuscript-guide/core/manuscript_guide.py` / locked). Duplicate rows inside the file are merged and counted. Alias conflicts (the same alias claimed by two entries) are flagged `ambiguous alias` and dropped from auto-merge.
 6. **Reference check**: relationships whose `to` doesn't resolve to an entry or alias in the file or the Bible -> kept as unresolved rows (name text only) and flagged; speaker names that don't resolve -> `unknown` with the raw name kept in the note.
 7. **Report**: counts (imported / merged / needs verification / rejected by reason), a downloadable list of rejected rows with reasons, first 20 shown inline; can re-import a corrected file (idempotent: fingerprints prevent duplicates).
 

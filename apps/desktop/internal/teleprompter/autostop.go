@@ -9,7 +9,7 @@ import (
 // autoStopDelay is how long a session keeps listening after the tracker first reports that the narrator reached the
 // end of the chapter (a `done` position) before the service stops it. It is longer than the tracker's 1.5 s pause
 // timeout (WAIT_SECONDS in script_tracker.py) and leaves room for the recognizer's lag, so a narrator who re-reads the
-// last line produces a later non-done position that cancels the stop first (ADR 0106). There is no setting for it yet.
+// last line produces a later non-done position that cancels the stop first. There is no setting for it yet.
 const autoStopDelay = 5 * time.Second
 
 const (
@@ -52,7 +52,7 @@ func (s *Service) trackAutoStopLocked(done bool) bool {
 		return true
 	}
 	// The phase, not s.child, says a session is live: the sidecar can print before StartStream has returned the child.
-	// A paused session is not armed (ADR 0248): Pause(false) arms it if the last position is still done.
+	// A paused session is not armed: Pause(false) arms it if the last position is still done.
 	paused, _ := s.state["paused"].(bool)
 	if phase, _ := s.state["phase"].(string); s.autoStop != nil || s.stopping || paused || (phase != "starting" && phase != "running") {
 		return false

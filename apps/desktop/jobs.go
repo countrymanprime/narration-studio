@@ -8,7 +8,7 @@ import (
 	"github.com/countrymanprime/narration-utils/shell/internal/runlog"
 )
 
-// jobEndedEvent is the one event every host job ends with (ADR 0076). The UI shows the completion from it whatever page the narrator is
+// jobEndedEvent is the one event every host job ends with. The UI shows the completion from it whatever page the narrator is
 // on, and the notification work reads it to decide whether to raise an operating system notification (kind, duration and id are in it).
 const jobEndedEvent = "job:ended"
 

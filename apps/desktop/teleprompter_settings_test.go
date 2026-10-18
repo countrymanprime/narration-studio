@@ -63,7 +63,7 @@ func TestSaveSettingsRejectsAnUnknownTeleprompterField(t *testing.T) {
 	}
 }
 
-// The engine choice offers Moonshine wherever the sidecar ships it (Windows, ADR 0107).
+// The engine choice offers Moonshine wherever the sidecar ships it (Windows).
 func TestSaveSettingsAcceptsAndPersistsTheTeleprompterEngineChoice(t *testing.T) {
 	host := newTestHostForTeleprompterSettings(t, "")
 	host.platform = "windows"

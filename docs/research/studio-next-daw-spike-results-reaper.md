@@ -25,7 +25,7 @@ Consequence, by outcome:
 | Result | Consequence for the PRD |
 | --- | --- |
 | Yes | Roll ships as one command (`roll`, SND-6a). The note names the recording mode that kept the earlier audio; the command refuses with that mode named when the project is in another, and never changes preferences. |
-| No | SND-6a is dropped from the Booth; [ADR 0246](../adr/0246-punch-and-roll-moves-only-the-edit-cursor-and-anchors-words-by-a-polled-play-position.md)'s cursor-only roll stays. |
+| No | SND-6a is dropped from the Booth; [narration_punch.lua](../../integrations/reaper/narration_punch.lua)'s cursor-only roll stays. |
 | Partly | Roll ships only for the mode(s) that kept the audio, and refuses otherwise. List the modes and any extra undo points. |
 
 ## 1b Cut (SND-S2)
@@ -39,7 +39,7 @@ Consequence, by outcome:
 | Undo points | pending |
 | Not proved | pending |
 
-Consequence: pending. It must say whether the cut and the move to the muted Cuts track are one undo block, and whether closing up later audio is correct for other items. Outcomes are in the runbook's 1b table; they decide SND-6b (`delete_range`) and SNE-6a, and relate to [ADR 0262](../adr/0262-cleanup-trims-are-found-by-matching-the-measured-file-to-a-live-item-and-applied-as-a-split-and-delete-inside-one-undo-block.md).
+Consequence: pending. It must say whether the cut and the move to the muted Cuts track are one undo block, and whether closing up later audio is correct for other items. Outcomes are in the runbook's 1b table; they decide SND-6b (`delete_range`) and SNE-6a, and relate to .
 
 ## 1c Chain on range (SND-S3)
 
@@ -52,7 +52,7 @@ Consequence: pending. It must say whether the cut and the move to the muted Cuts
 | Undo points | pending |
 | Not proved | pending |
 
-Consequence: pending. It must say which name form of `TakeFX_AddByName` loads a saved chain and how it is undone. Outcomes are in the runbook's 1c table; they decide SND-6c (`apply_fx_range`), SNE-6b and the ADR A9, and relate to [ADR 0234](../adr/0234-fx-chains-go-on-tracks-and-a-passage-of-a-take-gets-one-plug-in-at-a-time.md) and [ADR 0705](../adr/0705-the-workspace-adds-an-effect-to-a-passage-or-a-chain-to-the-chapters-track-only-after-the-narrator-confirms-and-the-host-names-both-targets.md).
+Consequence: pending. It must say which name form of `TakeFX_AddByName` loads a saved chain and how it is undone. Outcomes are in the runbook's 1c table; they decide SND-6c (`apply_fx_range`), SNE-6b and the ADR A9, and relate to [The workspace's take and FX actions (`narration_workspace.lua`)](../architecture/reaper-bridge.md#the-workspaces-take-and-fx-actions-narration_workspacelua) and .
 
 ## 1d Stack (SND-S4)
 
@@ -65,7 +65,7 @@ Consequence: pending. It must say which name form of `TakeFX_AddByName` loads a 
 | Undo points | pending |
 | Not proved | pending |
 
-Consequence: pending. It must say whether later reads become takes of the first item in one block. Outcomes are in the runbook's 1d table; they decide SND-7 and SNE-7, and relate to [ADR 0147](../adr/0147-retakes-on-fixed-lanes-are-chosen-by-lane-play-state-and-the-app-never-converts-takes-and-lanes.md).
+Consequence: pending. It must say whether later reads become takes of the first item in one block. Outcomes are in the runbook's 1d table; they decide SND-7 and SNE-7, and relate to [Tracks](../utilities/tracks.md).
 
 ## 1e Undo reach (SND-S5)
 
@@ -78,7 +78,7 @@ Consequence: pending. It must say whether later reads become takes of the first 
 | Undo points | pending |
 | Not proved | pending |
 
-Consequence: pending. It must say whether the app may trigger undo and which labels it can tell apart. Until then [ADR 0771](../adr/0771-undo-is-one-in-memory-journal-that-refuses-with-a-reason-and-reaches-the-daw-only-for-its-last-action.md) rule 4 refuses every DAW undo in-app with "Use Edit > Undo in REAPER", so nothing waits on this spike. 1e only changes the wording of the undo rule.
+Consequence: pending. It must say whether the app may trigger undo and which labels it can tell apart. Until then [The journal and undo](../architecture/ui-state-and-journal.md#the-journal-and-undo) rule 4 refuses every DAW undo in-app with "Use Edit > Undo in REAPER", so nothing waits on this spike. 1e only changes the wording of the undo rule.
 
 ## Related
 

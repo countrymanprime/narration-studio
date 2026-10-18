@@ -2,10 +2,10 @@
 // so the launch action (Host.DawLaunch) never needs the narrator to type a
 // path by hand. The evidence behind the two auto-detect sources this package tries is
 // recorded in docs/research/reaper-spike-s6-daw-reachability.md and
-// docs/adr/0092-reaper-executable-discovery-heartbeat-mechanism-and-script-plus-project-launch-are-resolved.md.
+// apps/desktop/internal/daw/locate.go.
 //
 // Auto-detect is preferred over asking the narrator, and a Settings override
-// always wins when it points at a real file (Resolve below), per ADR 0092.
+// always wins when it points at a real file (Resolve below), per apps/desktop/internal/daw/locate.go.
 package daw
 
 import (

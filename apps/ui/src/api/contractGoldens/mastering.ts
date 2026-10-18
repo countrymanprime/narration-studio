@@ -1,4 +1,4 @@
-// The mastering port's choice payload's golden files (ADR 0306): which schema owns each file in tests/fixtures/contracts/ (see
+// The mastering port's choice payload's golden files: which schema owns each file in tests/fixtures/contracts/ (see
 // index.ts). Written by apps/desktop/bindings_mastering_test.go (UPDATE_CONTRACTS=1).
 import type { z } from 'zod';
 import { masteringProvidersSchema } from '../schemas/mastering';

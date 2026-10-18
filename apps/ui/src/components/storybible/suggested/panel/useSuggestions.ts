@@ -14,7 +14,7 @@ export type ExtractionScan = {
   /** Scan was pressed and the host has not answered yet. */
   starting: boolean;
   running: boolean;
-  /** Starts a scan with the sources that can run now; while one runs this joins it (ADR 0077). */
+  /** Starts a scan with the sources that can run now; while one runs this joins it. */
   start: () => Promise<void>;
   /** Stops the running scan; what the sources that finished added stays. */
   cancel: () => Promise<void>;
@@ -34,7 +34,7 @@ export type Suggestions = {
 };
 
 /**
- * The suggestions the host lists and the extraction scan that makes more, over `usePort('extraction')` (ADR 0076: the scan is a host job
+ * The suggestions the host lists and the extraction scan that makes more, over `usePort('extraction')` (docs/architecture/interaction-feedback.md#job-end-events: the scan is a host job
  * that ends with one `job:ended` event). A running scan is asked for its percent and message on a timer; when the event arrives the
  * list is read once and the timer stops, so nothing polls while idle or after the end.
  */

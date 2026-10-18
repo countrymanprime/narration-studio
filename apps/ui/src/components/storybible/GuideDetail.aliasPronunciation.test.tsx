@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 // The Names list (SN-B22 mounted by SN-B8): the first name and every alias are one row each, with the same source tag and field
-// in edit mode (ADR 0018), scoped to the alias's own index.
+// in edit mode, scoped to the alias's own index.
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
@@ -84,7 +84,7 @@ describe('every name is a row of the Names list, scoped to its alias index', () 
     expect(screen.queryByRole('textbox', { name: /^How I say / })).toBeNull();
   });
 
-  it('shows an old note read-only and offers no status to set (ADR 0792)', () => {
+  it('shows an old note read-only and offers no status to set', () => {
     const base = withAliasPronunciation();
     const entity = {
       ...base,

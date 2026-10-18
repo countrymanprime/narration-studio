@@ -1,4 +1,4 @@
-"""The extraction port's conformance suite (ADR 0301, Liskov): what every ``ExtractionSource`` must do, checked the same way.
+"""The extraction port's conformance suite (Liskov): what every ``ExtractionSource`` must do, checked the same way.
 
 ``run(source)`` checks the descriptor and asks for the one role. An unavailable source must say why in a sentence, the same
 each time, and its ``extractor()`` must refuse with that sentence. An available source's extractor must give a new list of

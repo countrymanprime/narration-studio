@@ -1,4 +1,4 @@
-"""From a device's native blocks to the capture port's chunks (ADR 0357).
+"""From a device's native blocks to the capture port's chunks.
 
 A WASAPI shared-mode stream delivers ``(frames, channels)`` blocks at the device's own rate (usually 48 kHz), in whatever
 block size the engine picks. The recorder writes those unchanged. The capture port's ``chunks()`` instead promises 1-D

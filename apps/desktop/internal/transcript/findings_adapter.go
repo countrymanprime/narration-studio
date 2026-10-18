@@ -9,7 +9,7 @@
 //   - the sidecar's own results_<run>.txt, for the two fields the Lua
 //     bridge deliberately does not forward: confidence and
 //     timing_gap_seconds (narration_compare.lua's inspect_results has the
-//     "not yet forwarded" comment; ADR 0008 forbids changing the marker
+//     "not yet forwarded" comment; docs/utilities/transcript-compare.md#alignment-and-confidence forbids changing the marker
 //     protocol to add them there instead).
 //
 // The two are joined on the same row id Lua computes:

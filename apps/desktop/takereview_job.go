@@ -19,8 +19,8 @@ import (
 
 // The pickup and duplicate scan as a job: the Review
 // page's scan dialog starts it with the scope the narrator chose, polls its real progress, the sidecar's own
-// stage|pct|message line (ADR 0015), and can cancel it. The findings it saves go to the findings store under
-// "take-review", where the Review page lists and decides them through the generic findings bindings (ADR 0120).
+// stage|pct|message line, and can cancel it. The findings it saves go to the findings store under
+// "take-review", where the Review page lists and decides them through the generic findings bindings.
 
 // takeReviewScanPollInterval is how often a running scan's progress file is read, as the Story Bible build does.
 const takeReviewScanPollInterval = 250 * time.Millisecond
@@ -204,7 +204,7 @@ func (h *Host) startTakeReviewScan(requested TakeReviewScanScope) (TakeReviewSca
 	return job.snapshot(), nil
 }
 
-// runTakeReviewScan runs the scan while tailing its progress file, then records how it ended and says so (ADR 0076).
+// runTakeReviewScan runs the scan while tailing its progress file, then records how it ended and says so.
 func (h *Host) runTakeReviewScan(ctx context.Context, job *takeReviewScanJob, scanner *takereview.Scanner, request takereview.Request) {
 	defer job.cancel()
 	if err := os.MkdirAll(filepath.Dir(job.progressPath), 0o755); err != nil {
@@ -304,7 +304,7 @@ func (h *Host) cancelTakeReviewScan() TakeReviewScanJob {
 	return job.snapshot()
 }
 
-// readSidecarProgress reads the last stage|pct|message line a sidecar wrote to its progress file (ADR 0015); ok is false
+// readSidecarProgress reads the last stage|pct|message line a sidecar wrote to its progress file; ok is false
 // while there is none that parses.
 func readSidecarProgress(path string) (percent float64, message string, ok bool) {
 	raw, err := os.ReadFile(path)

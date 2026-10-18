@@ -4,16 +4,16 @@
 
 ## What changed since the PRD asked
 
-The PRD's spike SF asked whether REAPER loads an `.RfxChain` onto a **take** by API. The owner has since decided ([ADR 0234](../adr/0234-fx-chains-go-on-tracks-and-a-passage-of-a-take-gets-one-plug-in-at-a-time.md)) that:
+The PRD's spike SF asked whether REAPER loads an `.RfxChain` onto a **take** by API. The owner has since decided ([The workspace's take and FX actions (`narration_workspace.lua`)](../architecture/reaper-bridge.md#the-workspaces-take-and-fx-actions-narration_workspacelua)) that:
 
 - a chain goes only on a **track** or the **master track**;
 - a passage of a take gets one installed plug-in per request.
 
-The commands were built to that decision (`narration_workspace.lua`, #520), each with harness tests and mutation checks, behind the experimental switch ([ADR 0230](../adr/0230-reaper-commands-built-before-the-verification-pass-are-refused-by-the-host-while-the-experimental-switch-is-off.md)). So SF's questions now apply to those real commands, not to a prototype:
+The commands were built to that decision (`narration_workspace.lua`, #520), each with harness tests and mutation checks, behind the experimental switch ([The REAPER bridge and its test harness](../architecture/reaper-bridge.md)). So SF's questions now apply to those real commands, not to a prototype:
 
 | PRD question (Phase 0) | Now answered by |
 | --- | --- |
-| Does a chain file load onto a take by API? | No longer asked: chains never go on a take (ADR 0234). The spike checks that `TrackFX_AddByName` with a chain's full path loads it onto a track and onto the master track (verification row A8). |
+| Does a chain file load onto a take by API? | No longer asked: chains never go on a take (`docs/architecture/reaper-bridge.md#the-workspaces-take-and-fx-actions-narration_workspacelua`). The spike checks that `TrackFX_AddByName` with a chain's full path loads it onto a track and onto the master track (verification row A8). |
 | What does a split do to take FX, markers and extension data? | `add_take_fx` splits, then adds one plug-in to the middle piece. The spike logs every piece's GUID, position, length, `D_STARTOFFS`, take FX, take markers, the item's line id, the take's `P_EXT` and the fades, before and after (row A8b). |
 | Does `SetActiveTake` leave one undo point? | The spike runs `set_active_take` and checks for exactly one "Narration Utils: use take" point, that a second send adds none, and that one Undo restores take 1 (row A6). |
 | FX folder listing | `list_fx_chains` against real `.RfxChain` files, including a nested folder and a file that is not a chain, written into the isolated resource folder (row A7). |

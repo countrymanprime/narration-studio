@@ -34,7 +34,7 @@ const (
 	installPhaseError       = "error"
 )
 
-// installJob is one download of one approved asset. Its bytes are the real bytes received (ADR 0015).
+// installJob is one download of one approved asset. Its bytes are the real bytes received.
 type installJob struct {
 	mu sync.RWMutex
 	// id, kind and assetID are set when the job is made and never change, so they are read without mu.
@@ -262,7 +262,7 @@ func (h *Host) installJobByID(id, what string) (*installJob, error) {
 	return job, nil
 }
 
-// snapshotInstall is the payload of the install bindings. Percent is bytes received over bytes expected, and nothing else (ADR 0015),
+// snapshotInstall is the payload of the install bindings. Percent is bytes received over bytes expected, and nothing else,
 // and 99 until the install has succeeded. The generic asset bindings send it as it is.
 func snapshotInstall(job *installJob) map[string]any {
 	job.mu.RLock()

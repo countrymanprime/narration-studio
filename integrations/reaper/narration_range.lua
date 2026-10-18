@@ -1,4 +1,4 @@
--- Cut words and their audio (ADR 0860 point 2), and put a saved FX chain on a range of words and take it off again
+-- Cut words and their audio (docs/reference/daw/capabilities.md), and put a saved FX chain on a range of words and take it off again
 -- (point 3), over the bridge. Loaded by narration_ui_bridge.lua, which passes the shared helpers as the chunk argument.
 --
 -- delete_range(run, item_guid, start, end, mode, fade_ms) cuts project seconds start..end out of the item named by GUID.

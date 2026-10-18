@@ -139,13 +139,13 @@ func TestConfidenceIsNullWithAReason(t *testing.T) {
 	}
 }
 
-// The words file carries Whisper's probabilities since ADR 0864, and they choose which passages a larger model re-checks.
+// The words file carries Whisper's probabilities since docs/utilities/recording-coverage.md, and they choose which passages a larger model re-checks.
 // They do not score a gap: no calibrated mapping from word probabilities to a gap's confidence exists, so a gap's
 // confidence stays null (ConfNoWordScores) and ClassifyGaps takes no scores. Making the words files again is what keeps a
 // chapter checked before that from silently showing no doubted passage.
 func TestWordsFilesAreMadeAgainOnceTheyCarryProbabilities(t *testing.T) {
 	if wordsVersion != "3" {
-		t.Fatalf("wordsVersion = %q: the words file carries probabilities (ADR 0864), so the cache key must be 3", wordsVersion)
+		t.Fatalf("wordsVersion = %q: the words file carries probabilities, so the cache key must be 3", wordsVersion)
 	}
 }
 

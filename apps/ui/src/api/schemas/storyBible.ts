@@ -37,7 +37,7 @@ const evidenceSchema = z.object({
 // shape, which replaces the hand-written normalizeGuideEntity and fixes the empty-object case it never handled.
 const pronunciationStatusSchema = z.enum(['researched', 'query_sent', 'author_confirmed']) satisfies z.ZodType<GuidePronunciationStatus>;
 
-// `source` is a registered source id, `manual` for the narrator's own, or `user` in a file written before ADR 0792: any string parses.
+// `source` is a registered source id, `manual` for the narrator's own, or `user` in a file written before docs/guides/using-the-app/story-bible.md#how-you-say-each-name: any string parses.
 const pronunciationValueSchema = z.object({
   ipa: z.string().default(''),
   source: z.string().default(''),

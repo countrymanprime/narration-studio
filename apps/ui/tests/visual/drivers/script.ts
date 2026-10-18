@@ -11,7 +11,7 @@ export const scriptDrivers: Record<string, Driver> = {
     await settlePage(page);
     // The page's own content never loads here, so goToPage (which waits for it) is not used: the inline error is the proof.
     await clickNav(page, 'Script');
-    // The words are on screen twice: Home's audiobook estimate read the same chapters first and raised a notice that stays (ADR 0075), and
+    // The words are on screen twice: Home's audiobook estimate read the same chapters first and raised a notice that stays, and
     // the page then shows its own inline error. Wait for each by what it is, so neither the state nor a strict-mode locator depends on
     // which of the two rendered first.
     await page.getByRole('button', { name: 'Retry' }).waitFor();

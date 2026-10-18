@@ -40,7 +40,7 @@ export function boothSessionPath(pickups: readonly PickupItem[]): string {
 }
 
 /**
- * Pickups (Studio Next mock `pages/Pickups.tsx`): the host's merged pickup list (ADR 0840) grouped by chapter, with the pickup session
+ * Pickups (Studio Next mock `pages/Pickups.tsx`): the host's merged pickup list grouped by chapter, with the pickup session
  * beside it. The page points at the Booth and records nothing itself: there is no Punch and no Next pickup here (DQ-6). Reading the
  * list on open is what reconciles it with the DAW's markers; every change answers the whole list.
  */

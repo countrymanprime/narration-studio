@@ -12,7 +12,7 @@ import (
 	"github.com/countrymanprime/narration-utils/shell/internal/tracks"
 )
 
-// Take evidence (ADR 0140, SNE-5a): for each candidate Resolve offers, the share of the passage's script words the take
+// Take evidence (SNE-5a): for each candidate Resolve offers, the share of the passage's script words the take
 // read as written, what its own source range measures, and where the passage's place in time came from. Every figure
 // is a value or a sentence saying why there is none; nothing is defaulted, and nothing combines the figures.
 

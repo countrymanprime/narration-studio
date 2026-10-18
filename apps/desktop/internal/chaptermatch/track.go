@@ -35,7 +35,7 @@ type TrackResult struct {
 }
 
 // ForTrack is ForChapter's other direction: which chapter the track holds
-// (ADR 0113). Its candidates are exactly the chapters whose ForChapter lists
+// Its candidates are exactly the chapters whose ForChapter lists
 // this track as a candidate, with the same score and source, and its status
 // follows the same rule (classifyScores): a narrator-confirmed link wins; a
 // track linked to a chapter the manuscript no longer has is nobody's

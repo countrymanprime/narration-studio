@@ -80,7 +80,7 @@ func DecisionsFile(project string) string {
 // DecisionStore keeps the narrator's confirmations, dismissals and reverts
 // beside the chapter status, never inside it (D4). Writes are a temporary
 // file then a rename, under a mutex. The file is the narrator's own work: one
-// that cannot be decoded is kept aside and the narrator told (ADR 0069), and
+// that cannot be decoded is kept aside and the narrator told, and
 // the read that met it returns an error rather than an empty list.
 type DecisionStore struct {
 	path     string

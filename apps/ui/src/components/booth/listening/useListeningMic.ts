@@ -3,7 +3,7 @@ import type { TeleprompterDevice, TeleprompterReaperInput } from '../../../api/c
 import { usePort } from '../../../ports/usePort';
 
 export type ListeningMic = {
-  /** The microphone the Booth listens to is the one the DAW records from (a sure match, ADR 0250). */
+  /** The microphone the Booth listens to is the one the DAW records from (a sure match). */
   fromDaw: boolean;
   /** The host's sentence about the DAW's input: why it was picked, or why the narrator picks it. Null before the answer. */
   note: string | null;
@@ -23,7 +23,7 @@ type Options = {
 
 /**
  * The microphone the Booth listens to so the text follows the voice. With a DAW, `TeleprompterReaperInput` is asked once: on a
- * sure match its device is chosen when the narrator has chosen none (ADR 0250: a match only preselects, never replaces a choice);
+ * sure match its device is chosen when the narrator has chosen none (apps/desktop/internal/daw/inputmatch.go: a match only preselects, never replaces a choice);
  * any other answer leaves the choice to the narrator in Levels, with the host's sentence saying why.
  */
 export function useListeningMic({ dawRecords, device, settingsLoaded, devices, choose }: Options): ListeningMic {

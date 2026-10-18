@@ -4,7 +4,7 @@ Researched 2026-10-17 for the Settings redesign, tracking issue [#1817](https://
 
 **Question.** What do the best settings experiences of multi-page desktop apps look like when several pages share one resource, such as one transcription model or one voice? What rules should Narration Studio adopt, and what should it avoid?
 
-**Method.** Web search over the references the owner named plus the audio tools this app sits beside. **Limit of this note:** the research session could not open any page (`WebFetch` failed on DNS for every host). Every claim marked *(snippet)* rests on the search-result excerpt for that URL, not on the page read in full. A claim marked *(recommendation)* is this note's inference for this app, with no source. Things searched for and not found are listed at the end. The note changes no code; the decisions that follow from it are in [ADR 0865](../adr/0865-settings-are-grouped-by-what-is-configured-with-a-scope-and-a-used-by-list-on-every-setting-and-a-model-list-that-owns-the-downloads.md) and the [grouping proposal](settings-inventory-and-grouping.md).
+**Method.** Web search over the references the owner named plus the audio tools this app sits beside. **Limit of this note:** the research session could not open any page (`WebFetch` failed on DNS for every host). Every claim marked *(snippet)* rests on the search-result excerpt for that URL, not on the page read in full. A claim marked *(recommendation)* is this note's inference for this app, with no source. Things searched for and not found are listed at the end. The note changes no code; the decisions that follow from it are in [Settings redesign](../prds/studio-next-master-delivery-and-settings.prd.md#settings-redesign-proposed) and the [grouping proposal](settings-inventory-and-grouping.md).
 
 ## What the references do
 
@@ -25,7 +25,7 @@ Researched 2026-10-17 for the Settings redesign, tracking issue [#1817](https://
 
 ## Rules to adopt
 
-Each rule has a stable id; the mock and the ADR cite them.
+Each rule has a stable id; the mock and the PRD cite them.
 
 ### Information architecture
 

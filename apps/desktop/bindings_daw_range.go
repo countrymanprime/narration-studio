@@ -27,14 +27,13 @@ const (
 	cutAlreadyCutSentence = "These words are already cut, so nothing was changed."
 )
 
-// DawDeleteRange cuts the words firstToken..lastToken of chapterID's stored alignment together with their audio (SND-6b, ADR
-// 0860 point 2; the Studio Next mock's deleteRange): the DAW splits the item at both ends of the range and moves the middle
+// DawDeleteRange cuts the words firstToken..lastToken of chapterID's stored alignment together with their audio (SND-6b, docs/reference/daw/capabilities.md; the Studio Next mock's deleteRange): the DAW splits the item at both ends of the range and moves the middle
 // piece aside, and mode "close" moves the later audio up while "gap" leaves the length. fadeMs is the fade at each seam; padMs
 // (0 to 500) cuts that much less at each end of the words' audio; roomTone (gap only) fills the gap with the chapter's room
 // tone, which an engine with none refuses, cutting nothing (SN-E97). The page sends a chapter id, two token indices, and the
 // mode, fade, pad and room-tone choice, never a GUID or a time: the item and its project seconds are resolved here from the
-// stored alignment and the saved project (ADR 0242; threat model row 5f), and one request is one item (ADR 0705). The answer is
-// a DawResult (ADR 0810): the cut_range capability's own sentence when the resolver refuses it (a standalone launch, a DAW not
+// stored alignment and the saved project (threat model row 5f), and one request is one item. The answer is
+// a DawResult: the cut_range capability's own sentence when the resolver refuses it (a standalone launch, a DAW not
 // answering, Experimental actions off, the toggle off, an engine that cannot cut yet), checked first; then a mode, fade or pad
 // delete_range does not take, or room tone with "close"; then the range's own refusals (passagetakes.ResolveRange: words not
 // heard, two items, and a range or item that is stale with code stale); words every one of which the edit log already holds as
@@ -124,7 +123,7 @@ const (
 // is the item's id as the finding recorded it: the host looks it up on the chapter's one linked track as the DAW reports it now
 // (chapter_track_state), checks the gap is inside it, and sends the item it read itself, so an id is never sent to the DAW as
 // given (threat model row 5f). A trim splits its item, so the page sends a chapter's trims latest first. The answer is a DawResult
-// (ADR 0810): the cut_range capability's own sentence when the resolver refuses it, checked first; no live adapter is refused in a
+// the cut_range capability's own sentence when the resolver refuses it, checked first; no live adapter is refused in a
 // sentence; times or a fade out of bounds are refused; an item the track no longer holds or a gap outside it is refused with code
 // stale. Nothing is sent to the DAW on any of them.
 func (h *Host) DawTrimRange(chapterID string, itemID string, start float64, end float64, fadeMs int) (string, error) {

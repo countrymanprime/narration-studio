@@ -46,7 +46,7 @@ type DawChoice struct {
 	FoundFiles []string `json:"foundFiles"`
 	// LauncherAutoStart is DAW.auto_start_launcher: whether Start REAPER also runs the launcher that connects the bridge.
 	LauncherAutoStart bool `json:"launcherAutoStart"`
-	// Experimental is DAW.experimental_reaper_actions (ADR 0230), the global switch Experimental capabilities wait on.
+	// Experimental is DAW.experimental_reaper_actions, the global switch Experimental capabilities wait on.
 	Experimental bool              `json:"experimental"`
 	Options      []DawChoiceOption `json:"options"`
 }
@@ -198,7 +198,7 @@ func dawChoiceState(project projectDaw, bridge, reachable bool) string {
 }
 
 // dawInstalled is whether kind was found on this computer: REAPER through the DAW.reaper_path override or the Windows registry
-// (daw.Resolve, ADR 0092), Audacity through the same registry list (daw.LocateAudacityExecutable), and the built-in recorder
+// (daw.Resolve), Audacity through the same registry list (daw.LocateAudacityExecutable), and the built-in recorder
 // always (it is part of the app). null is an engine the app has no way to look for.
 func (h *Host) dawInstalled(svc hostServices, kind dawport.Kind) *bool {
 	found := true

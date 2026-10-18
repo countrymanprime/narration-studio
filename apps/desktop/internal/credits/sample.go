@@ -14,7 +14,7 @@ const MaxRetailSampleSeconds = 300
 
 // RetailSample is the range of the book the narrator picked as the retail sample (at most 5 minutes, anywhere in the book).
 // It is stored on the project manifest by paragraph id and is a marker only: it adds
-// no time to the estimate (ADR 0152).
+// no time to the estimate.
 type RetailSample struct {
 	StartParagraphID string `json:"startParagraphId"`
 	EndParagraphID   string `json:"endParagraphId"`

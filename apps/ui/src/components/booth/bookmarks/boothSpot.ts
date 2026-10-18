@@ -1,4 +1,4 @@
-// Where a bookmark sits in the Booth's text (ADR 0820). A bookmark is a paragraph and a character offset; the Booth reads by paragraph and
+// Where a bookmark sits in the Booth's text. A bookmark is a paragraph and a character offset; the Booth reads by paragraph and
 // word number (`ReadingPosition`), so these turn one into the other. A bookmark is always at the start of a word when the Booth makes it.
 import type { Bookmark } from '../../../api/contracts/bookmarks';
 import type { BookmarkSpot } from '../../../studio/commands/bookmarks';

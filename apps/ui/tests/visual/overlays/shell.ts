@@ -27,7 +27,7 @@ export const shellCases: OverlayCase[] = [
   {
     name: 'navigation rail opened over the page',
     kind: 'rail',
-    // From 768 to 1359 px the rail is icons that open to labels over the page while the pointer is on them (ADR 0761).
+    // From 768 to 1359 px the rail is icons that open to labels over the page while the pointer is on them.
     viewports: ({ width }) => width >= 768 && width < 1360,
     root: (page) => page.locator('aside:visible > div').first(),
     open: async (page) => {

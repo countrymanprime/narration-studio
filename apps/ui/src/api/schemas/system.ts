@@ -41,7 +41,7 @@ export const projectAttachStateSchema = z.object({ attached: z.boolean(), reason
 /** The `system:notice` event: something the app did for the narrator that they should read, such as keeping a file it could not read. */
 export const noticeSchema = z.object({ text: z.string() });
 
-/** The `job:ended` event: a host job ended (ADR 0076). The kind stays a string so a job kind a newer host adds is still delivered. */
+/** The `job:ended` event: a host job ended. The kind stays a string so a job kind a newer host adds is still delivered. */
 export const jobEndedSchema = z.object({
   id: z.string(),
   kind: z.string(),

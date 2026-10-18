@@ -1,13 +1,13 @@
 // Package series is a narrator-authored, per-user list of series, each naming
-// the project folders that are its member books (ADR 0450), plus read-only
+// the project folders that are its member books, plus read-only
 // access to another member project's own approved character references so the
 // Series tab can show a character's reference clips across every book they
-// appear in (ADR 0565).
+// appear in.
 //
 // Cross-project reads cover the reference data character.ReadOnly returns
 // (region GUID, snapshot, character id, note), not a calibrated baseline: the
 // acoustic baselines were never wired up after the real-corpus trial failed its
-// own reject gate (ADR 0450).
+// own reject gate.
 package series
 
 import (
@@ -58,7 +58,7 @@ type Store struct {
 // New returns the store backed by path.
 func New(path string) *Store { return &Store{path: path} }
 
-// SetPersist says where to log and, for a corrupt file, tell the narrator (ADR 0069). A series list is the
+// SetPersist says where to log and, for a corrupt file, tell the narrator. A series list is the
 // narrator's own authored data, so a file that cannot be decoded is kept aside rather than silently discarded.
 func (s *Store) SetPersist(reporter *persist.Reporter) { s.persist.Store(reporter) }
 

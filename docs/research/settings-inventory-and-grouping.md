@@ -1,6 +1,6 @@
 # Settings inventory and proposed grouping
 
-Researched 2026-10-17 on `main` at `847c1d0`, tracking issue [#1817](https://github.com/countrymanprime/narration-utils/issues/1817). Counts and line numbers are for that commit and are not kept current. Rules cited as R-xxx are in [the best-practice note](settings-best-practice.md). The proposal is recorded as [ADR 0865](../adr/0865-settings-are-grouped-by-what-is-configured-with-a-scope-and-a-used-by-list-on-every-setting-and-a-model-list-that-owns-the-downloads.md) and drawn in the [Studio Next mock](mockups/studio-next/README.md#settings).
+Researched 2026-10-17 on `main` at `847c1d0`, tracking issue [#1817](https://github.com/countrymanprime/narration-utils/issues/1817). Counts and line numbers are for that commit and are not kept current. Rules cited as R-xxx are in [the best-practice note](settings-best-practice.md). The proposal is recorded as [Settings redesign](../prds/studio-next-master-delivery-and-settings.prd.md#settings-redesign-proposed) and drawn in the [Studio Next mock](mockups/studio-next/README.md#settings).
 
 **Question.** Which settings exist, who reads each one, and where should each live so that a setting shared by several pages has one home?
 
@@ -12,7 +12,7 @@ Researched 2026-10-17 on `main` at `847c1d0`, tracking issue [#1817](https://git
 - **Scope in the host.** `saveSettings` refuses the other scope for `Updates`, `Teleprompter`, `Keymap`, `General.debug_logging` and `ManuscriptGuide.analysis_prompt` (global only) and `ReadAloud` (project only). Everything else the API accepts at either scope, even where the page offers only Global (`app.go:1802-1865`).
 - **Scope in the page.** Each panel owns its own Global / This project switch and starts on Global (`ScopedFieldsPanel.tsx:61`). A non-number row shows the inherited value as if it were set, with no marker; a number row shows an "Inherits" placeholder; Reset exists only for a project override (`ScopedSetting.tsx:117-193`).
 - **The page.** One route, one 860 px column of 27 panels, no navigation and no search. Panels 1 to 10 follow the Studio Next mock; panels 11 to 27 are older categories kept as built ([PRD](../prds/studio-next-master-delivery-and-settings.prd.md)). Only 17 of the 27 have an anchor.
-- **Assets.** Seven providers sit behind one registry (`apps/desktop/assetregistry.go`, [ADR 0079](../adr/0079-every-downloadable-asset-is-listed-installed-verified-and-removed-through-one-registry-of-providers.md), [ADR 0081](../adr/0081-local-assets-is-a-settings-list-built-from-the-registry-whose-rows-own-their-download-verify-and-remove.md)): TTS, Whisper, spaCy, Moonshine, dictionary, encoder and analysis tools. Six panels also show or remove one of them.
+- **Assets.** Seven providers sit behind one registry (`apps/desktop/assetregistry.go`, [The asset registry (implemented)](../architecture/first-use-dependency-provisioning.md#the-asset-registry-implemented), [The local assets page (implemented)](../architecture/first-use-dependency-provisioning.md#the-local-assets-page-implemented)): TTS, Whisper, spaCy, Moonshine, dictionary, encoder and analysis tools. Six panels also show or remove one of them.
 
 ## Inventory
 
@@ -27,21 +27,21 @@ Scope: **G** global, **P** project, **G+P** global with a project override, **B*
 | `Recording.device` | Last microphone the built-in recorder used | P | `bindings_booth_record.go:67` | none (written by a recording) | Merge with the microphone setting |
 | `DAW.reaper_path` | Path to reaper.exe when auto-detect fails | G | `dawlaunch.go:48` | DAW Integration | Recording & DAW, Advanced |
 | `DAW.auto_start_launcher` | Pass the launcher as REAPER's startup script | G | `dawlaunch.go:49` | DAW Integration, Booth record guide | Recording & DAW |
-| `DAW.experimental_reaper_actions` | Allow unverified REAPER commands ([ADR 0230](../adr/0230-reaper-commands-built-before-the-verification-pass-are-refused-by-the-host-while-the-experimental-switch-is-off.md)) | G | `internal/bridge/actions.go`, `dawport/resolver.go` | DAW Integration | Recording & DAW, Advanced |
-| `DAW.capability.<name>` ×34 | Per-capability auto, on or off ([ADR 0304](../adr/0304-bridge-actions-asks-a-per-command-gate-and-the-daw-ports-resolver-answers-it-from-the-per-capability-settings.md)) | G (schema allows P) | `dawport/toggles.go`, `resolver.go` | DAW Integration (34 selects); Booth record setup turns `record` on; Editing Backups tab flips `backups` | Recording & DAW, Advanced, as a table with a reason per row |
+| `DAW.experimental_reaper_actions` | Allow unverified REAPER commands ([The REAPER bridge and its test harness](../architecture/reaper-bridge.md)) | G | `internal/bridge/actions.go`, `dawport/resolver.go` | DAW Integration | Recording & DAW, Advanced |
+| `DAW.capability.<name>` ×34 | Per-capability auto, on or off ([resolver.go](../../apps/desktop/internal/dawport/resolver.go)) | G (schema allows P) | `dawport/toggles.go`, `resolver.go` | DAW Integration (34 selects); Booth record setup turns `record` on; Editing Backups tab flips `backups` | Recording & DAW, Advanced, as a table with a reason per row |
 | `DAW.fx_favourites` | Effects Editing offers first | G+P | `bindings_workspace.go:144` | DAW Integration (only editor) | Page: Editing, Effects tab |
 | `DAW.backups.window_seconds`, `retention_days` | Audacity backup window and retention | G+P | `internal/dawport/audacity/backups.go` | DAW Integration (probably twice), Backups section, Editing Backups tab | Page: Editing, Backups tab, one home |
 | `Teleprompter.punch_preroll_seconds` | Pre-roll for punch and roll | G | `teleprompterpunch.go:58` | Booth panel | Page: Booth, record setup |
-| `ReadAloud.record_in_reaper`, `record_confirmed` | Booth's record-in-REAPER toggle ([ADR 0380](../adr/0380-record-in-reaper-is-a-project-scope-setting-and-arming-is-a-separate-click-from-play.md)) | P | Booth | Booth control bar only | Stays on Booth |
+| `ReadAloud.record_in_reaper`, `record_confirmed` | Booth's record-in-REAPER toggle ([app.go](../../apps/desktop/app.go)) | P | Booth | Booth control bar only | Stays on Booth |
 | `Tracks.selectedRpp` | Which `.rpp` the project links to | P | `tracks.go:52` | Header pill, Recording panel, DAW panel | Recording & DAW (read-only link state) |
-| `Mastering.provider` | Mastering provider ([ADR 0306](../adr/0306-mastering-is-a-provider-port-and-measurement-stays-one-in-process-judge.md)) | P | `bindings_mastering.go:131` | **No UI caller** (`masteringChooseProvider` is unused) | Orphan: decide with the mastering PRD |
+| `Mastering.provider` | Mastering provider ([Provider ports](../architecture/provider-ports.md)) | P | `bindings_mastering.go:131` | **No UI caller** (`masteringChooseProvider` is unused) | Orphan: decide with the mastering PRD |
 
 ### Speech to text
 
 | Setting | What it does | Scope | Consumers | Today | Home |
 | --- | --- | --- | --- | --- | --- |
 | `TranscriptCompare.model_size` | Default Whisper model for compare and, with the cascade off, the recording check | G+P | `app.go:1511`, `bindings.go:99`, `internal/coverage/params.go`; `proof/CompareRun.tsx`; sidecars `compare.py`, `coverage_*.py` | Proof panel (+ model card) | **Speech to text: "Transcription model"**, used by Production, Proof, Pickups, Editing |
-| `RecordingCoverage.cascade_enabled`, `cascade_first_pass_model`, `cascade_recheck_model`, `cascade_unsure_below` | Two-pass recording check ([ADR 0864](../adr/0864-a-long-recording-is-checked-in-overlapping-chunks-by-parallel-whisper-processes-and-whisper-word-scores-choose-the-passages-a-larger-model-looks-at-again.md)) | G+P | `internal/coverage/settings.go` | Recording check panel | Speech to text, Advanced |
+| `RecordingCoverage.cascade_enabled`, `cascade_first_pass_model`, `cascade_recheck_model`, `cascade_unsure_below` | Two-pass recording check ([Recording Check (recording coverage)](../utilities/recording-coverage.md)) | G+P | `internal/coverage/settings.go` | Recording check panel | Speech to text, Advanced |
 | `RecordingCoverage.parallel_workers`, `chunk_seconds`, `chunk_overlap_seconds` | How a long recording is cut and run | G+P | `coverage/settings.go`; sidecar | Recording check panel | Speech to text, Advanced |
 | `TranscriptCompare.chunk_seconds` | Chunk length for a compare run (a second key with the same name, choices 30/60/300/600, default 60) | G+P | `proof/CompareRun.tsx:167` | Proof panel | Page: Proof, compare options. Unify with the recording-check chunk or rename |
 | `Teleprompter.engine`, `model` | Live engine (Whisper or Moonshine) and its model | G | Booth (`useTeleprompterSession.ts`) | Booth panel | Speech to text, "Live reading in the Booth" |
@@ -76,8 +76,8 @@ Scope: **G** global, **P** project, **G+P** global with a project override, **B*
 | Setting | What it does | Scope | Consumers | Today | Home |
 | --- | --- | --- | --- | --- | --- |
 | Delivery profile (project choice) | The standard chapters are judged against | P | Master & QC, Delivery, Production, Schedule | Three places: Delivery profile panel, Delivery page card, import review | Delivery; the page and the import dialog keep a link or quick switch to the same value |
-| Default profile and custom profiles (`delivery-profiles.json`) | Profile for new projects; copies with own limits ([ADR 0180](../adr/0180-custom-delivery-profiles-are-copies-of-a-built-in-kept-in-a-user-level-file.md)) | G | `internal/deliveryprofile` | Delivery profiles panel (a one-letter-different name) | Delivery, "For new projects" |
-| `Delivery.*` seven limits | Old per-layer limits, migrated into profiles ([ADR 0179](../adr/0179-a-built-in-dated-acx-delivery-profile-ships-and-a-project-is-judged-against-its-selected-profile.md)) | G | `delivery_profiles.go` (migration only) | none | Dead after migration; leave |
+| Default profile and custom profiles (`delivery-profiles.json`) | Profile for new projects; copies with own limits ([Data files](../reference/data-files.md)) | G | `internal/deliveryprofile` | Delivery profiles panel (a one-letter-different name) | Delivery, "For new projects" |
+| `Delivery.*` seven limits | Old per-layer limits, migrated into profiles ([ACX delivery requirements](../reference/acx-delivery-requirements.md)) | G | `delivery_profiles.go` (migration only) | none | Dead after migration; leave |
 | `StageRecommendations.*` ×16 | Which readiness signals a stage needs | G+P | `bindings_stages.go:193` | Stage suggestions panel (16 selects) | Page: Production, stage board |
 | `Cleanup.*` ×6 | Silence and breath thresholds | G+P | `cleanup_settings.go`, `internal/measure/cleanup.go` | Silence cleanup panel; Master "Open Settings" link | Page: Master & QC, diagnostics |
 | `Preview.*` ×4 | Preview excerpt length and preset | G+P | `bindings_preview.go` | Preview suggestion panel | Page: Proof, preview options |
@@ -88,7 +88,7 @@ Scope: **G** global, **P** project, **G+P** global with a project override, **B*
 | Setting | What it does | Scope | Consumers | Today | Home |
 | --- | --- | --- | --- | --- | --- |
 | Manuscript | Import or replace | P (action) | Script, Booth, Proof | Manuscript panel | Project |
-| Story Bible types ([ADR 0862](../adr/0862-story-bible-types-are-a-stored-editable-list-with-a-colour-and-a-can-speak-flag-and-the-fixed-categories-are-its-defaults.md)) | Entry kinds, colour, can speak | P | `internal/guide/types.go` | Story Bible types panel | Project |
+| Story Bible types ([Settings](../guides/using-the-app/settings.md)) | Entry kinds, colour, can speak | P | `internal/guide/types.go` | Story Bible types panel | Project |
 | Marks | Mark vocabulary | P | `internal/marks` | Marks panel (summary) and Script dialog | Project (summary), the editor stays in Script |
 | `ManuscriptGuide.build_after_import`, `spacy_model` | Auto-build the Story Bible; its language model | G+P | `ManuscriptImport.tsx`, `guidegate.go:26` | Story Bible panel | Project, "Story Bible" |
 | `ManuscriptGuide.analysis_prompt` | Offer better analysis when scanning | G | `scanModel.ts` | Analysis panel checkbox; scan dialog "Don't ask again" | Models & downloads (with the tools) |
@@ -111,7 +111,7 @@ Scope: **G** global, **P** project, **G+P** global with a project override, **B*
 | `Keymap.overrides` | Key and pedal remaps | G | `useUserKeymap.ts`, every hint | Two panels 20 apart: read-only list and Keyboard & pedals | Appearance & keys, one section |
 | Booth text size | Booth reading size | B | Booth | Booth only | Stays on Booth |
 | `General.notifications` | Notify when a long task ends | G | `notifications.go:62` | General panel | App & updates |
-| `General.debug_logging` | Debug-level run log ([ADR 0251](../adr/0251-tool-runs-are-logged-as-json-lines-through-slog-with-a-run-id-and-content-is-never-logged.md)) | G only | `app.go:469`, `:1852` | General panel | App & updates, Advanced |
+| `General.debug_logging` | Debug-level run log ([Reading a run](../operations/verification-tooling.md#reading-a-run)) | G only | `app.go:469`, `:1852` | General panel | App & updates, Advanced |
 | `General.log_verbosity` | Meant to set log level | G | **None found** | General panel, guide, tooltips | **Delete**: no consumer |
 | `Updates.check_on_startup`, `channel` | Daily release check; channel | G only | `update.go:44` | About & updates | App & updates |
 
@@ -119,7 +119,7 @@ Not listed: per-viewer memory in browser storage (Story Bible sort, last chapter
 
 ## Proposed information architecture
 
-Eight categories in three labelled groups, plus an index of what moved to pages. The mock draws it ([ADR 0865](../adr/0865-settings-are-grouped-by-what-is-configured-with-a-scope-and-a-used-by-list-on-every-setting-and-a-model-list-that-owns-the-downloads.md)).
+Eight categories in three labelled groups, plus an index of what moved to pages. The mock draws it ([Settings redesign](../prds/studio-next-master-delivery-and-settings.prd.md#settings-redesign-proposed)).
 
 | Group | Category | Holds |
 | --- | --- | --- |
@@ -150,7 +150,7 @@ Eight categories in three labelled groups, plus an index of what moved to pages.
 - **Confusing names.** Tool, panel and label disagree: `Piper` / TTS / "TTS provider"; `TranscriptCompare` / Proof / "Default Whisper model"; `Teleprompter` / Booth / "Microphone"; `RecordingCoverage` / Recording check against the "Recording" panel, which is about the DAW. "Delivery profile" and "Delivery profiles" are two panels. Story Bible is three panels ten positions apart.
 - **Structure.** 27 panels, no table of contents, mixed with action panels (Manuscript, Project data); the first ten follow the mock and the rest follow delivery history.
 - **Probable bugs, unverified in the app.** The Booth's "DAW settings" link goes to `#daw`, which is not in `SETTINGS_ANCHORS`, so it likely does not scroll. `#delivery` scrolls to the global profiles panel, not the project's. The Backups rows may be drawn twice on the DAW panel (`DawPanel` passes no filter to the generic form while `BackupsSection` renders the same keys).
-- **Docs.** [ADR 0365](../adr/0365-the-theme-is-one-global-setting-and-the-booth-and-companion-follow-it.md) says the theme is one global setting; it is stored in browser `localStorage`. There is no settings reference page in `docs/reference/`. The guide omits Moonshine, FFmpeg, `fx_cap_pct`, the record toggle and `Mastering.provider`, and lists `log_verbosity` as live.
+- **Docs.** [Derived and status tokens](../design/colour-and-contrast.md#derived-and-status-tokens) says the theme is one global setting; it is stored in browser `localStorage`. There is no settings reference page in `docs/reference/`. The guide omits Moonshine, FFmpeg, `fx_cap_pct`, the record toggle and `Mastering.provider`, and lists `log_verbosity` as live.
 - **Fields declared in four places** (`app.go`, `store.go`, `config/defaults.json`, `apps/ui/src/api/mockFixtures.ts`), and tooltips keyed by bare key, so two `chunk_seconds` share one tooltip.
 
 ## Design rationale
@@ -188,5 +188,5 @@ Each decision in the mock, against the rule it applies.
 5. **One transcription default** for compare and recording check, with the cascade models Advanced. Today `TranscriptCompare.model_size` and `RecordingCoverage` have separate settings.
 6. **Profile editing stays in Settings** (Delivery > Custom profiles); the Delivery page only chooses. The PRD kept it as built; this keeps it in a category rather than a panel.
 7. **Computer-only DAW rows:** drop the project override for REAPER path, launcher, experimental actions, capabilities and microphone.
-8. **Scope of theme and reader text:** both live in browser storage. Moving them to the host's global settings would make the theme match [ADR 0365](../adr/0365-the-theme-is-one-global-setting-and-the-booth-and-companion-follow-it.md); the mock labels them "This computer" either way.
+8. **Scope of theme and reader text:** both live in browser storage. Moving them to the host's global settings would make the theme match [Derived and status tokens](../design/colour-and-contrast.md#derived-and-status-tokens); the mock labels them "This computer" either way.
 9. **Switch control:** the mock's rows use a checkbox with an On/Off word because the primitive set has no switch. Windows guidance prefers a toggle (R-WIN1). Adding one is a Foundations decision.

@@ -35,7 +35,7 @@ type Store struct {
 
 func New(path string) *Store { return &Store{path: path} }
 
-// SetPersist says where to log a recents file that cannot be read (ADR 0069). It is disposable: it heals and is not shown to the narrator.
+// SetPersist says where to log a recents file that cannot be read. It is disposable: it heals and is not shown to the narrator.
 func (s *Store) SetPersist(reporter *persist.Reporter) { s.persist.Store(reporter) }
 
 // normalize makes path absolute and clean, so an entry means the same folder after the working directory changes. An empty path

@@ -32,7 +32,7 @@ function groupByScope(commands: readonly CommandDescriptor[]): Partial<Record<Sc
 
 // The "?" (Shift+Slash) shortcut sheet: the rows of the catalogue that list on `help` (`commandsFor`), grouped by scope,
 // each with the narrator's gestures for it (their remaps over the defaults) drawn as key caps, the ways told apart by
-// "or" (the mock's `help.tsx`). Its content claims the router's `dialog` scope (ADR 0361 decision 4): while it is open, a
+// "or" (the mock's `help.tsx`). Its content claims the router's `dialog` scope (docs/architecture/studio-shell-and-registries.md): while it is open, a
 // `global` command like Back/Forward no longer matches (`activeScopes`, router.tsx), the same way any other open dialog
 // already stops them through `App.tsx`'s own `isModalOpen` check. `catalog` is for a test's fake rows.
 export function ShortcutSheet({ onClose, onShowAll, catalog }: { onClose: () => void; onShowAll: () => void; catalog?: readonly CommandDescriptor[] }) {

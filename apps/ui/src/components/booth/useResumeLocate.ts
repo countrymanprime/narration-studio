@@ -7,7 +7,7 @@ import type { TeleprompterLocateResult, WhisperInstallJob } from '../../types';
 export type LocateState = { kind: 'loading' } | { kind: 'failed'; message: string } | { kind: 'answered'; result: TeleprompterLocateResult };
 
 /**
- * Asks the host where the chapter's recording ends (`TeleprompterLocate`, ADR 0111) once when the read-aloud dialog opens,
+ * Asks the host where the chapter's recording ends (`TeleprompterLocate`) once when the read-aloud dialog opens,
  * again for a track the narrator picks, and again after the Whisper model it needed was downloaded. It only reads; the
  * model download it may need waits for the narrator's confirm (`modelInstall` behind `WhisperModelPrompt`).
  *

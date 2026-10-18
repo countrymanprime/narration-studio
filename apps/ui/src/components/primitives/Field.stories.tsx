@@ -56,7 +56,7 @@ export const TextareaMultiline: Story = {
   },
 };
 
-// Locked story-bible entries (ADR 0007) and unsaved new drafts render their fields disabled.
+// Locked story-bible entries and unsaved new drafts render their fields disabled.
 export const TextInputDisabled: Story = { args: { disabled: true } };
 // A secret (the narrator's own API key): masked, with the browser's autofill and spell check off.
 export const SecretInput: Story = {

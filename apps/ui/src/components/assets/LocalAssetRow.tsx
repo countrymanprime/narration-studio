@@ -43,7 +43,7 @@ type RowState = 'starting' | 'downloading' | 'verifying' | 'installed' | 'needs_
  */
 export function LocalAssetRow({ item, onChanged, notify }: { item: AssetItem; onChanged: () => Promise<void>; notify: Notify }) {
   const api = useApi();
-  // One action at a time for the row's Verify and Remove (ADR 0075); a download is its own job and cannot start while either runs.
+  // One action at a time for the row's Verify and Remove; a download is its own job and cannot start while either runs.
   const actions = usePendingAction();
   const [confirmingRemove, setConfirmingRemove] = useState(false);
   const [actionFailure, setActionFailure] = useState('');

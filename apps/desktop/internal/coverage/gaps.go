@@ -6,7 +6,7 @@ import (
 	"strings"
 )
 
-// GapKind is what a gap in the recording is (ADR 0830): the stretch of script
+// GapKind is what a gap in the recording is: the stretch of script
 // not said (missing), words said that are not in the script (extra), other
 // words said in place of the script's (misread), or a region kind this reader
 // does not know yet (other, carried so a newer sidecar never loses a gap).
@@ -20,8 +20,8 @@ const (
 )
 
 // ConfNoWordScores is the reason every gap's confidence is null: no score exists for the gap. The words file
-// carries Whisper's word probabilities, but they only choose passages to re-check (ADR 0864), and no calibrated
-// mapping from them to a gap's confidence exists, so a number would be made up (ADR 0830).
+// carries Whisper's word probabilities, but they only choose passages to re-check, and no calibrated
+// mapping from them to a gap's confidence exists, so a number would be made up.
 const ConfNoWordScores = "no_word_scores"
 
 // gapKinds maps a sidecar region kind to a gap kind. head and tail are not
@@ -69,7 +69,7 @@ type Unfinished struct {
 	End   int `json:"end"`
 }
 
-// ClassifyGaps derives the gap taxonomy from a stored report (ADR 0830): the
+// ClassifyGaps derives the gap taxonomy from a stored report: the
 // regions and extra runs inside the read part, in reading order, and the
 // unread start and end. The list is never nil.
 func ClassifyGaps(report Report) ([]GapLine, Unfinished) {

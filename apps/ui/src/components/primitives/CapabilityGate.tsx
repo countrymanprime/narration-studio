@@ -3,7 +3,7 @@ import { StatusBadge } from './StatusBadge';
 import { TooltipTarget } from './Tooltip';
 
 // The shape of one entry of the DAW port's `DawCapabilities` payload, copied locally so this primitive imports
-// nothing from src/api (ADR 0360): only the `useCapability` hook knows the wire, and this gate takes whatever
+// nothing from src/api: only the `useCapability` hook knows the wire, and this gate takes whatever
 // plain entry a caller hands it.
 type CapabilityLevel = 'unsupported' | 'not_yet_available' | 'experimental' | 'supported';
 

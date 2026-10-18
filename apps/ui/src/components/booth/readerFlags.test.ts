@@ -52,7 +52,7 @@ describe('flagMarks', () => {
     expect(marks.get('p2')?.map((mark) => [mark.from, mark.to])).toEqual([[0, 2]]);
   });
 
-  // A re-read can run to a sentence or two; marking all of it would make those words one button (a mark never seeks, ADR 0116)
+  // A re-read can run to a sentence or two; marking all of it would make those words one button (a mark never seeks)
   // and take "Go back to here" away from them. The restart is where the narrator went back to, so that word carries it.
   it('marks a restart on the word it went back to, not the whole re-read', () => {
     const marks = flagMarks(rows, [flag(4, 'restart', 5, 9, 'beginning to get very')]);

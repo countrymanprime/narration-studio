@@ -1,6 +1,6 @@
 // The finished-hour target as pure selectors (the mock's selectors/pace.ts). The standard rate is a fixed input; the narrator's own rate
 // is worked out from the chapters that have a measured finished length (SN0-Q4: never from the timer or the hours log). The schedule uses
-// the plan's chosen basis and falls back to the standard while nothing is measured. A selector imports no value (ADR 0770), so the fixed
+// the plan's chosen basis and falls back to the standard while nothing is measured. A selector imports no value, so the fixed
 // inputs from `schedule/estimates.ts` (`WPH`, `MIN_OWN_RATE_CHAPTERS`) come in as arguments.
 import type { ProductionRateBasis } from '../../../api/contracts/production';
 import type { Measured } from '../../../api/schemas/base';

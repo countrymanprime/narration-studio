@@ -25,7 +25,7 @@ type TrackState struct {
 }
 
 // TrackItem is one item on the track with its active take ("" TakeGUID and SourceFile when it has none). Muted is nil
-// when the bridge script is older than the field (ADR 0349).
+// when the bridge script is older than the field.
 type TrackItem struct {
 	ItemGUID, TakeGUID                       string
 	Position, Length, SourceOffset, PlayRate float64

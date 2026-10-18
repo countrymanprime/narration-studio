@@ -667,7 +667,7 @@ def test_list_devices_reports_a_listing_failure_instead_of_pretending_there_are_
 
 
 # --capabilities is a one-shot mode like --list-devices: every row this process has registered in ENGINES and
-# BACKENDS by the time it runs, registration only by default (ADR 0403) - "loadable" is null unless --verify is
+# BACKENDS by the time it runs, registration only by default - "loadable" is null unless --verify is
 # also given, in which case _VERIFY_HOOKS rows (today: just moonshine) also get a
 # real loadable/detail. capabilities_report() is tested directly against fake registries below, so the fault-detection
 # case (a row an adapter failed to register is absent from the report) needs no real broken import to prove; the CLI wiring test only checks --capabilities is short-circuited before a session,

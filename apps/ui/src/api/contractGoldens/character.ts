@@ -1,4 +1,4 @@
-// The golden payloads for character region listing and reference approval (ADR 0431: the acoustic-drift bindings are
+// The golden payloads for character region listing and reference approval (docs/guides/using-the-app/story-bible.md: the acoustic-drift bindings are
 // benched, so none is here): which schema owns each file in tests/fixtures/contracts/ (see index.ts).
 import type { z } from 'zod';
 import { approvedCharacterReferencesSchema, characterRegionsSchema, characterReferenceSchema } from '../schemas/character';

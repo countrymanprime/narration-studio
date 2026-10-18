@@ -1,4 +1,4 @@
-// Package bookmarks is the narrator's bookmarks (ADR 0820): a spot in the manuscript, a paragraph and a character offset in
+// Package bookmarks is the narrator's bookmarks: a spot in the manuscript, a paragraph and a character offset in
 // its text, with an optional short label and note, kept in the project's own file and checked against the current text on
 // every read. A bookmark whose line is gone or whose offset no longer fits is reported stale, never moved to a guess.
 //
@@ -93,7 +93,7 @@ type Config struct {
 	Project string
 	// Manuscript reads the current manuscript; an error reads as an empty one, so every bookmark shows stale.
 	Manuscript func() (Book, error)
-	// Reporter tells the narrator about a file that cannot be read (ADR 0069); nil only logs nothing.
+	// Reporter tells the narrator about a file that cannot be read; nil only logs nothing.
 	Reporter *persist.Reporter
 }
 

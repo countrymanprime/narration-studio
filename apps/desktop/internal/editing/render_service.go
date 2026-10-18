@@ -1,8 +1,8 @@
 // This file holds the render source's own scan loop and signal gathering
-// (ADR 0550), run alongside (never instead of) the item path's own run
+// run alongside (never instead of) the item path's own run
 // (scan.go) and gatherCoverage/gatherCandidates (provider.go). Unlike run,
 // there is no per-item loop - one file, one decode - so progress is a single
-// 0%->100% jump around that one DecodeRender call: ADR 0015's real-progress
+// 0%->100% jump around that one DecodeRender call: docs/architecture/principles.md's real-progress
 // rule is still met (0% until the decode returns, then 100%, never a
 // fabricated in-between number), the same single-file-job precedent
 // apps/desktop/internal/proofing's own render measurement job sets for one

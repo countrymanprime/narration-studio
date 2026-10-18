@@ -1,6 +1,6 @@
 /**
  * The narrator's pronunciation sources and one source's candidate for one word (Go: `apps/desktop/bindings_pronunciationsources.go`,
- * ADR 0792 decision 1, ADR 0405). The host lists the sources of the pronunciation port, the keyed online one when a key is saved and
+ * docs/guides/using-the-app/story-bible.md#how-you-say-each-name). The host lists the sources of the pronunciation port, the keyed online one when a key is saved and
  * the narrator's own entry; it reports no icon, so the UI maps a source id to one. Both calls take a word and a source id only.
  */
 

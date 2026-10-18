@@ -10,7 +10,7 @@ import (
 	"github.com/countrymanprime/narration-utils/shell/internal/dawport/builtin"
 )
 
-// The Booth's Record when the project records with the built-in recorder (docs/adr/0455). It is the same pair of bindings
+// The Booth's Record when the project records with the built-in recorder. It is the same pair of bindings
 // the Booth uses with a DAW, ReadAloudRecordStart and ReadAloudRecordStop (bindings_readaloud_record.go), so the page
 // asks one question whatever records: the engine is the host's own choice (Recording.engine), never a label from the page
 // (threat-model row 6f), and the start goes through the DAW port's Record role over internal/recording, so the capability
@@ -18,7 +18,7 @@ import (
 //
 // The recorder is part of the app, so none of REAPER's preconditions apply: no bridge, no linked track, no armed track. The
 // chapter id the page sends is not used: a take is a file in the project's Recordings folder, and which line it belongs to is
-// assigned afterwards (RecorderSetTakeLine, ADR 0485). Nothing here reads a path from the page.
+// assigned afterwards (RecorderSetTakeLine). Nothing here reads a path from the page.
 
 const (
 	// readAloudNoMicrophone is the refusal of a start with no microphone to record on.

@@ -177,7 +177,7 @@ func TestReadAloudRecordStartArmsThenRecordsFromTheEnd(t *testing.T) {
 }
 
 // Other tracks being armed is no longer a refusal: ArmOnly disarms them (the DAW remembers them) and RecordStop puts
-// them back (ADR 0232).
+// them back.
 func TestReadAloudRecordStartWithOtherTracksArmedArmsOnlyTheChapters(t *testing.T) {
 	host, ids := newReadAloudReaperHost(t)
 	fake := &fakeRecorder{armed: bridge.Armed{Disarmed: 3, Changed: true}}
@@ -598,7 +598,7 @@ func TestOnRecordEndedClearsTheChapter(t *testing.T) {
 	}
 }
 
-// TestRecorderFromComesFromTheResolver pins that the role comes from the resolver (ADR 0300): the Record bindings
+// TestRecorderFromComesFromTheResolver pins that the role comes from the resolver: the Record bindings
 // source their recorder through recorderFrom, which asks svc.dawPortResolver for the Record role instead of holding a
 // bridge client directly.
 func TestRecorderFromComesFromTheResolver(t *testing.T) {
@@ -626,8 +626,8 @@ func TestRecorderFromIsNilWithoutAResolver(t *testing.T) {
 	}
 }
 
-// The binding's answers, pinned for the UI's schema (ADR 0069); other_armed and several_armed now start, since Record
-// disarms the others (ADR 0791): one arm, record start and record stop per REAPER
+// The binding's answers, pinned for the UI's schema; other_armed and several_armed now start, since Record
+// disarms the others: one arm, record start and record stop per REAPER
 // state the mock (`?mockReaper=`) can put a chapter in, plus the stale-track and no-link cases only the host can
 // reach. wireContracts.test.ts cross-checks every mock seed but "unavailable" (its own reason, standalone, differs
 // from experimental_off's here on purpose - the read-aloud-reaper-states golden the same way).

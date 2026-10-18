@@ -52,7 +52,7 @@ function segmentMask(size: keyof typeof SIZE_SEGMENT): string {
 }
 
 /**
- * A peak/RMS audio level meter with safe, hot and clipped zones (ADR 0360),
+ * A peak/RMS audio level meter with safe, hot and clipped zones,
  * replacing the teleprompter-local `InputLevelMeter`. `floor` and `ceiling` default to ACX's noise floor and peak
  * ceiling but are props, since neither figure is confirmed against ACX's spec and other delivery platforms may differ. The RMS fill's
  * colour and the peak-hold tick's position both move through the zones from `src/levelMeter.ts`, shared with

@@ -12,7 +12,7 @@ import (
 )
 
 // This file is the canonicalising pre-pass of the DAW chapter-track auto-sync
-// (ADR 0175): track names such as "Ch. 6", "Ch6", "06", "Sixth Chapter", "Chapter VI" or
+// track names such as "Ch. 6", "Ch6", "06", "Sixth Chapter", "Chapter VI" or
 // "Chapter 6 v2" read as the chapter label they are before MatchTitle compares
 // them, both sides alike. sidecars/transcript-compare/core/compare.py's
 // label_tokens is the same pass; the labelTokens cases in
@@ -118,7 +118,7 @@ func LabelTokens(text string) ([]string, Marker) {
 }
 
 // creditsName reads "Opening Credits", "Intro Credits", "Closing Credits" and
-// "End Credits" (ADR 0150: credits are not chapters).
+// "End Credits" (docs/architecture/manuscript-teleprompter.md: credits are not chapters).
 func creditsName(tokens []string) ([]string, bool) {
 	if len(tokens) != 2 || tokens[1] != "credits" {
 		return nil, false

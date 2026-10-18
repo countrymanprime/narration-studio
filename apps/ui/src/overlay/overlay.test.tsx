@@ -51,7 +51,7 @@ describe('overlay.confirm', () => {
     await expect(escaped).resolves.toBe(false);
   });
 
-  // ADR 0048: a press on the backdrop of a confirm never answers it, so an accidental click cannot discard the question. The issue
+  // docs/design/design-system.md#base-ui-wrappers: a press on the backdrop of a confirm never answers it, so an accidental click cannot discard the question. The issue
   // lists the backdrop beside Cancel and Escape; the primitive is the authority and the service adds no dismissal of its own.
   it('confirm-names-its-way-out: a cancelLabel replaces Cancel ("Keep recording", the Booth\'s leave question) and still declines', async () => {
     mount();
@@ -146,7 +146,7 @@ describe('overlay.toast', () => {
     expect(screen.queryByText('Saved.')).toBeNull();
   });
 
-  it('an error toast stays until dismissed (ADR 0075)', () => {
+  it('an error toast stays until dismissed', () => {
     vi.useFakeTimers();
     mount();
     act(() => service.toast('Could not save.', { tone: 'error' }));

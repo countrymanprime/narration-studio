@@ -1,5 +1,5 @@
 // This file records which rendered file the delivery checks are about, and
-// whether it is still the current one (ADR 0525). The narrator chooses a
+// whether it is still the current one. The narrator chooses a
 // chapter's render and so attests it was made from the chapter as it is; the
 // association keeps the render's fingerprint and the chapter items'
 // fingerprint at that moment, and a later change to either makes it stale. The

@@ -1,4 +1,4 @@
--- roll (narration_roll.lua, ADR 0860 point 1): while a recording this bridge started runs on the named track, stop it,
+-- roll (narration_roll.lua, docs/reference/daw/capabilities.md): while a recording this bridge started runs on the named track, stop it,
 -- move the edit cursor to `at` and record again from there, so the new pass overlaps the earlier one and REAPER keeps
 -- the earlier audio as a take. It refuses unless REAPER's overlapping-recording option keeps the earlier audio, and it
 -- never changes a preference, a project setting or a track. It opens no undo block of its own.

@@ -12,13 +12,16 @@ export type RunChoices = {
   /** Each chunk's length in seconds; 0 transcribes an item whole. */
   chunkSeconds: number;
   overlapSeconds: number;
+  /** Chapters checked at once by a run of several; the processors are shared between them. */
+  chapters: number;
 };
 
+export const CHAPTERS_AT_ONCE = [1, 2, 3, 4, 6, 8] as const;
 export const CHUNK_SECONDS = [0, 60, 120, 300, 600, 900] as const;
 export const OVERLAP_SECONDS = [2, 4, 6, 10, 15] as const;
 export const DOUBT_SHARES = [0, 0.3, 0.4, 0.5, 0.6, 0.7] as const;
 
-/** The choices a run begins with: what the host would do with no options (ADR 0864), so the dialog shows the narrator's own settings. */
+/** The choices a run begins with: what the host would do with no options, so the dialog shows the narrator's own settings. */
 export const startChoices = (engines: CoverageEngines): RunChoices => ({ model: engines.default, ...engines.defaults });
 
 /** The options a start sends. Every choice is named, so the host runs what the dialog showed and a later change to a setting cannot
@@ -30,6 +33,7 @@ export function startOptions(choices: RunChoices): CoverageStartOptions {
     workers: choices.chunkSeconds === 0 ? 1 : choices.workers,
     chunkSeconds: choices.chunkSeconds,
     overlapSeconds: choices.overlapSeconds,
+    chapters: choices.chapters,
   };
   if (choices.recheck) {
     options.recheckModel = choices.recheckModel;
@@ -61,18 +65,24 @@ const labelOf = (engines: CoverageEngines, id: string): string => engines.engine
 
 const needsDownload = (engine: CoverageEngine): string => `Download ${engine.label} in Settings first.`;
 
-/** Why the run cannot start, or undefined: a model missing or not installed, or a second pass by the model that made the first. */
-export function runProblem(choices: RunChoices, engines: CoverageEngines): string | undefined {
+/** What stops a run: the words for it, and whether it is only that a model is not installed yet (a page that can download one still lets the run start). */
+export type RunBlocker = { message: string; needsInstall: boolean };
+
+/** Why the run cannot start as chosen, or undefined: a model missing or not installed, or a second pass by the model that made the first. */
+export function findProblem(choices: RunChoices, engines: CoverageEngines): RunBlocker | undefined {
   const first = engines.engines.find((engine) => engine.id === choices.model);
-  if (!first) return 'Choose a speech model.';
-  if (first.installState !== 'installed') return needsDownload(first);
+  if (!first) return { message: 'Choose a speech model.', needsInstall: false };
+  if (first.installState !== 'installed') return { message: needsDownload(first), needsInstall: true };
   if (!choices.recheck) return undefined;
   const larger = engines.engines.find((engine) => engine.id === choices.recheckModel);
-  if (!larger) return 'Choose a model to re-check with.';
-  if (larger.installState !== 'installed') return needsDownload(larger);
-  if (larger.id === first.id) return 'Choose a different model to re-check with.';
+  if (!larger) return { message: 'Choose a model to re-check with.', needsInstall: false };
+  if (larger.installState !== 'installed') return { message: needsDownload(larger), needsInstall: true };
+  if (larger.id === first.id) return { message: 'Choose a different model to re-check with.', needsInstall: false };
   return undefined;
 }
+
+/** The words for what stops the run, or undefined. */
+export const runProblem = (choices: RunChoices, engines: CoverageEngines): string | undefined => findProblem(choices, engines)?.message;
 
 /** One or two sentences saying what the run will do, in the narrator's words. */
 export function runSummary(choices: RunChoices, engines: CoverageEngines): string {
@@ -84,7 +94,8 @@ export function runSummary(choices: RunChoices, engines: CoverageEngines): strin
     const at = choices.workers === 0 ? 'as many at a time as the model allows' : choices.workers === 1 ? 'one at a time' : `${choices.workers} at a time`;
     how = `${first} in ${chunkLabel(choices.chunkSeconds)} chunks that overlap by ${choices.overlapSeconds} s, ${at}.`;
   }
-  if (!choices.recheck) return how;
+  const together = choices.chapters > 1 ? ` Up to ${choices.chapters} chapters at once.` : '';
+  if (!choices.recheck) return how + together;
   const takes = choices.recheckBelow > 0 ? `what is missing and words scored under ${Math.round(choices.recheckBelow * 100)}%` : 'what is missing';
-  return `${how} Then ${labelOf(engines, choices.recheckModel)} re-checks ${takes}.`;
+  return `${how}${together} Then ${labelOf(engines, choices.recheckModel)} re-checks ${takes}.`;
 }

@@ -9,7 +9,7 @@ const active = new Set<WorkJob['phase']>(['preparing', 'committing', 'running'])
 // Shown while a job runs with no Cancel (the Story Bible rebuild, an import that is writing): the dialog stays blocking, so
 // it says why nothing can be pressed and what will change. It is the dialog's description, so a screen reader hears it on open.
 const NOT_CANCELLABLE_NOTICE = 'This step cannot be cancelled. Close appears when it finishes.';
-// The same, for a job the caller lets keep running without the dialog (ADR 0076): the app tells the narrator when it ends.
+// The same, for a job the caller lets keep running without the dialog: the app tells the narrator when it ends.
 const BACKGROUND_NOTICE = 'This step cannot be cancelled. You can close this window: it keeps running, and a message appears when it finishes.';
 
 export function WorkDialog({
@@ -23,7 +23,7 @@ export function WorkDialog({
   job: WorkJob;
   close?: () => void;
   cancel?: () => void;
-  /** Lets the narrator dismiss the dialog while the job runs. Only for a job whose end the app announces on its own (ADR 0076). */
+  /** Lets the narrator dismiss the dialog while the job runs. Only for a job whose end the app announces on its own. */
   background?: () => void;
 }) {
   const running = active.has(job.phase);

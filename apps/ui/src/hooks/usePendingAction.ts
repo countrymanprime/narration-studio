@@ -1,7 +1,7 @@
 import { useCallback, useRef, useState } from 'react';
 
 /**
- * One action at a time for a group of controls (ADR 0075): `run(key, action)` starts the action and marks that key pending until it settles,
+ * One action at a time for a group of controls: `run(key, action)` starts the action and marks that key pending until it settles,
  * and while it runs every other `run` is refused, so two presses (or two different buttons that touch the same file) never overlap. The
  * generalization of `ProjectPicker.runAction`.
  *

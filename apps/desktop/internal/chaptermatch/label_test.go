@@ -5,7 +5,7 @@ import (
 	"testing"
 )
 
-// labelTitles is the chapter list the matcher was measured against (ADR 0175).
+// labelTitles is the chapter list the matcher was measured against.
 var labelTitles = []string{
 	"A Message from the Author", "PROLOGUE — The Last Good Applause",
 	"Chapter 1", "Chapter 2", "Chapter 3", "Chapter 4", "Chapter 5", "Chapter 6", "Chapter 7", "Chapter 8",
@@ -16,7 +16,7 @@ const chapter6 = 7
 
 // Every track-name form seen on that book matches its right chapter confidently, or (a take or pickup track, a
 // credits track) is kept from ever being a confident match. "Chapter VI" no longer goes to Chapter 1, nor "Chapter 6
-// v2" to Chapter 2 (ADR 0175).
+// v2" to Chapter 2.
 func TestTheAutoSyncEvidenceNamesMatchTheirChapter(t *testing.T) {
 	cases := []struct {
 		name      string

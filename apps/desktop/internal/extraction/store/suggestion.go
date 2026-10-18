@@ -281,7 +281,7 @@ func (s Suggestion) candidate() extraction.Candidate {
 	return c
 }
 
-// rule sets the status and reason an undecided suggestion has by the 75% rule (ADR 0803).
+// rule sets the status and reason an undecided suggestion has by the 75% rule.
 func (s *Suggestion) rule() {
 	c := s.candidate()
 	s.Status = extraction.AutoStatus(c)

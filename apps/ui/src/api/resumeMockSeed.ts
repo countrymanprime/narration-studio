@@ -62,14 +62,14 @@ export function seedLastReading(seed: MockResumeSeed | undefined, chapterId: str
   return { version: 1, chapterId, read, tokens, scriptHash: '0'.repeat(64), status: 'listening', endedAt: READING_ENDED_AT };
 }
 
-// What the seeded low-confidence tail scores: it also fits a passage the chapter repeats (ADR 0111, "fit times distinctness").
+// What the seeded low-confidence tail scores: it also fits a passage the chapter repeats ("fit times distinctness").
 const LOW_CONFIDENCE = 0.31;
 // What the seeded not-found tail heard: a sign-off after the reading, which is no part of the chapter.
 const NOT_FOUND_HEARD = 'okay that is where I will stop for today, the next session picks up after the break';
 
 /**
  * The seeded match: `ambiguous` ties the chapter's own track with the next one, `none` finds nothing. Neither sets a track,
- * as the host's matcher never does below `matched` (ADR 0110).
+ * as the host's matcher never does below `matched`.
  */
 export function seedTrackMatch(match: ChapterTrackMatch, seed: MockResumeSeed | undefined): ChapterTrackMatch {
   if (seed === 'none' || seed === 'prompter_only') return { ...match, status: 'none', track: null, candidates: [], recordedEnd: null };

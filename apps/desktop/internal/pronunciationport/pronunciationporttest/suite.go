@@ -1,4 +1,4 @@
-// Package pronunciationporttest is the conformance suite every pronunciation source row must pass (ADR 0301), and a fake source it
+// Package pronunciationporttest is the conformance suite every pronunciation source row must pass, and a fake source it
 // runs against. The pronunciationport test runs it over every registered row, so a new row cannot skip it:
 //
 //	for _, entry := range pronunciationport.Sources.Entries() {

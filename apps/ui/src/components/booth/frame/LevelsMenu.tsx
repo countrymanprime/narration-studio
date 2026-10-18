@@ -24,7 +24,7 @@ export type LevelsMenuProps = {
   onDevice: (device: string) => void;
   /**
    * With a DAW, the microphone the Booth listens to so the text follows the voice: the DAW's own input when it named one
-   * (`fromDaw`, ADR 0250), else the narrator's pick from the teleprompter's devices, with the host's `note` on why.
+   * (`fromDaw`), else the narrator's pick from the teleprompter's devices, with the host's `note` on why.
    */
   listen?: { devices: readonly TeleprompterDevice[]; fromDaw: boolean; note: string | null };
   /**

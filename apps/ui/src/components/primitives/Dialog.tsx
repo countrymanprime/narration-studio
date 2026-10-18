@@ -16,10 +16,10 @@ type DialogProps = {
   // false: Escape is ignored even though there is an `onClose`. For a dialog whose close would abort work in flight (a
   // running download): the header button and Cancel are the deliberate ways out, a stray key is not.
   escapeCloses?: boolean;
-  // 'default' (ADR 0001): capped at 70vw wide and 80dvh tall, sized to its content. 'full': fills the viewport with a
+  // 'default': capped at 70vw wide and 80dvh tall, sized to its content. 'full': fills the viewport with a
   // fixed 1rem margin on every side and scrolls its body, for a surface that needs the whole window (the teleprompter
-  // reading modal, ADR 0094). Modality (focus trap, Escape, initial focus,
-  // hidden siblings) is unchanged by size: both variants are the one shell ADR 0048 describes.
+  // reading modal). Modality (focus trap, Escape, initial focus,
+  // hidden siblings) is unchanged by size: both variants are the one shell docs/design/design-system.md#base-ui-wrappers describes.
   size?: 'default' | 'full';
   // Draws no header row and no Close button, for a surface whose first row is its own field (the jump menu, D98). The title
   // still names the dialog, visually hidden; Escape closes through `onClose` or `onEscape`. The body has no padding.
@@ -27,14 +27,14 @@ type DialogProps = {
   // Whether a press on the backdrop (or anywhere outside the popup) calls `onClose`. Required, so each dialog decides (issue 1706):
   // true for reference or transient surfaces with nothing to lose (the shortcut sheet, a detail view, a picker that applies each
   // choice at once, the jump menu); false for a confirm, a form with input, or a job, where a stray click must not discard
-  // anything (ADR 0048). A dialog with no `onClose` (work in flight) never dismisses either way.
+  // anything. A dialog with no `onClose` (work in flight) never dismisses either way.
   dismissOnOutsidePress: boolean;
   // null when there is nothing to press (a running job that cannot be cancelled): no empty action row is drawn.
   actions: ReactNode;
   // WorkDialog only ever shows one action at a time - 'between' would strand
   // it on the left, so it opts into 'end' instead.
   actionsAlign?: 'between' | 'end';
-  // A region between the body and `actions` that never scrolls with it (ADR 0196): the read-aloud dialog's
+  // A region between the body and `actions` that never scrolls with it: the read-aloud dialog's
   // control bar, kept visible in every scroll position. Absent, most dialogs draw nothing here. Unlike `actions` it has no padding or alignment opinion of its own - a toolbar lays out its own row.
   footer?: ReactNode;
   children: ReactNode;
@@ -49,7 +49,7 @@ type DialogProps = {
 // empty `actions` would draw a padded blank row under the body.
 const hasContent = (node: ReactNode): boolean => node !== undefined && node !== null && node !== false && node !== '';
 
-// The one modal shell (ADR 0001, 0002, 0047, 0048). Base UI supplies the behaviour: the page behind is hidden from
+// The one modal shell. Base UI supplies the behaviour: the page behind is hidden from
 // assistive technology and unreachable by Tab, Tab loops inside, focus moves in on open and comes back on close. This
 // wrapper owns the policy on top of it:
 // - Escape closes a dialog that has somewhere to go (`onClose`, or `onEscape` when there is no header button) and is
@@ -167,7 +167,7 @@ export function Dialog({
               <div
                 data-dialog-actions
                 // The mocks' action row is 66 px under its divider (12 above a 38 px button, 16 below; the min-height counts the divider). Button is 32 px
-                // (ADR 0595), so the row keeps the mocks' height and centres the buttons in the 38 px band.
+                // so the row keeps the mocks' height and centres the buttons in the 38 px band.
                 className={`flex min-h-[4.1875rem] flex-none items-center gap-2 border-t px-4 pt-3 pb-4 ${actionsAlign === 'between' ? 'justify-between' : 'justify-end'}`}
                 style={{ borderColor: 'var(--border)' }}
               >

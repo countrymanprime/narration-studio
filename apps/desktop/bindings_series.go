@@ -1,6 +1,6 @@
 package main
 
-// The Series tab of the Story Bible (ADR 0565, ADR 0567). The acoustic engine is benched, so this is reference data
+// The Series tab of the Story Bible. The acoustic engine is benched, so this is reference data
 // only: which characters a series' member projects share, their approved reference clips, and which book each clip came
 // from. There is no per-book drift evidence.
 

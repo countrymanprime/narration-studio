@@ -8,7 +8,7 @@ export interface KeyHintItem {
   id?: string;
 }
 
-// The standard footer of key reminders (ADR 0761, rule 3): one centred row of small hints along the bottom of a page,
+// The standard footer of key reminders (rule 3): one centred row of small hints along the bottom of a page,
 // outside the content, so the page itself stays quiet. It has a tone of its own, a touch raised from the page, and a line
 // above it. The list is data only: the page decides what to remind, `KeyChord` decides how a key is drawn.
 export function KeyHints({ hints, id, children }: { hints: KeyHintItem[]; id?: string; children?: ReactNode }) {

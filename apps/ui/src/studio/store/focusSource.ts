@@ -1,6 +1,6 @@
 // The window-focus source the store uses by default. It is the same trigger as `useRefreshOnFocus`
 // (components/stages/useRefreshOnFocus.ts): the window regains focus or the page becomes visible again, at most once per
-// interval. It is copied and not imported because `src/studio/` may not import from `src/components/` (ADR 0770).
+// interval. It is copied and not imported because `src/studio/` may not import from `src/components/`.
 
 const FOCUS_THROTTLE_MS = 30_000;
 

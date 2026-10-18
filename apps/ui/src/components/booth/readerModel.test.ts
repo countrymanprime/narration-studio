@@ -81,7 +81,7 @@ describe('hydrateSession', () => {
     expect(merged.position?.read).toBe(9);
   });
 
-  it('keeps flags that arrived before the snapshot (the snapshot carries none, ADR 0115)', () => {
+  it('keeps flags that arrived before the snapshot (the snapshot carries none)', () => {
     const flag = { type: 'flag', id: 1, kind: 'skipped', start: 6, end: 7, heard: '' } as const;
 
     expect(hydrateSession(reduceEvent(initialSession, flag), snapshot).flags).toEqual([flag]);
@@ -150,7 +150,7 @@ describe('previewRows', () => {
   });
 });
 
-// The credits on the teleprompter (ADR 0150): the rendered text split the way
+// The credits on the teleprompter: the rendered text split the way
 // the sidecar's chapter_script.text_script splits it, so its spans fall on the same words.
 describe('creditsParagraphs', () => {
   it('makes one paragraph per line with words, numbered from one over those lines only', () => {

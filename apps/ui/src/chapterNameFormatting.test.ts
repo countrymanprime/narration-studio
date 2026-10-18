@@ -4,8 +4,8 @@ import { join, relative } from 'node:path';
 import ts from 'typescript';
 import { describe, expect, test } from 'vitest';
 
-// ADR 0191: one formatter (chapterName.ts) and one component (primitives/TitleSubtitle)
-// draw a chapter's name everywhere. This ratchet (in the style of rawNatives.test.ts, ADR 0053) counts every other read
+// docs/design/design-system.md: one formatter (chapterName.ts) and one component (primitives/TitleSubtitle)
+// draw a chapter's name everywhere. This ratchet (in the style of rawNatives.test.ts) counts every other read
 // of `.subtitle` inside a JSX expression or a template literal in src/components/** - the two places text actually
 // reaches the screen - and fails when a file's count goes up. A file's count may only go down; lower its entry (or
 // delete it at zero) in the same change that moves the site onto chapterName()/TitleSubtitle. A plain `.subtitle` read
@@ -68,7 +68,7 @@ export function countSubtitleReads(source: string, fileName = 'probe.tsx'): numb
   return count;
 }
 
-describe('a chapter name is drawn through chapterName()/TitleSubtitle, not a raw .subtitle read (ADR 0053-style ratchet)', () => {
+describe('a chapter name is drawn through chapterName()/TitleSubtitle, not a raw .subtitle read (docs/design/design-system.md#base-ui-wrappers-style ratchet)', () => {
   const files = sourceFiles(componentsRoot)
     .map((file) => relative(uiRoot, file))
     .filter((file) => !ALLOW_LIST.has(file));

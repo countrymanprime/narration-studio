@@ -30,7 +30,7 @@ function dialogTags(text: string): string[] {
   return tags;
 }
 
-// Issue 1706 / ADR 0048: whether a press outside a dialog closes it is a decision about what the dialog holds (a form or a
+// Issue 1706 / docs/design/design-system.md#base-ui-wrappers: whether a press outside a dialog closes it is a decision about what the dialog holds (a form or a
 // confirm must survive a stray click, a reference sheet need not), so every Dialog says which. The prop is also required by type;
 // this guard names the file when a call site slips through, and covers the specs the overlay service takes.
 describe('every dialog declares whether an outside press closes it', () => {

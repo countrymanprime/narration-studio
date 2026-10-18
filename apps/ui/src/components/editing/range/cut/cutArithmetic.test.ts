@@ -3,7 +3,7 @@ import { curTime, type ChapterDoc, type DocCut } from '../../model';
 import { docFromHeard } from '../../script/docFromHeard';
 import { syntheticChapter } from '../../script/scriptFixtures';
 
-/** A fixed-seed generator (ADR 0044): the same lists every run. */
+/** A fixed-seed generator: the same lists every run. */
 function rng(seed: number): () => number {
   let s = seed;
   return () => {

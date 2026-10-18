@@ -131,7 +131,7 @@ class SegmentReading:
     anchor: int
     location: Location
     # Each confirmed word's engine (start, end), or None where the event had
-    # none. Advisory (ADR 0021): good only for telling one stretch of audio
+    # none. Advisory: good only for telling one stretch of audio
     # from a later one, never for ordering words.
     heard_times: tuple[tuple[float, float] | None, ...] = ()
 

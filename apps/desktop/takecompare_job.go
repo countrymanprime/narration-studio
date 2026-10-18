@@ -14,9 +14,9 @@ import (
 	"github.com/countrymanprime/narration-utils/shell/internal/takecompare"
 )
 
-// Comparing the takes of one group of repeated reads, as a job (ADR 0165): the Review page starts it from a take-review group, polls the sidecar's own progress (ADR 0015)
+// Comparing the takes of one group of repeated reads, as a job: the Review page starts it from a take-review group, polls the sidecar's own progress
 // and can cancel it. The comparison it saves is a take_comparison finding under "take-comparison", listed and decided
-// through the generic findings bindings (ADR 0120). The page sends only the group's id: everything the sidecar reads is
+// through the generic findings bindings. The page sends only the group's id: everything the sidecar reads is
 // built here from the saved project and the store (threat model 4f).
 
 // TakeComparisonJob is the comparison as the dialog sees it, in the shape of the other host jobs: FindingID is the group
@@ -146,7 +146,7 @@ func (h *Host) startTakeComparison(findingID string) (TakeComparisonJob, error) 
 }
 
 // launchTakeComparison starts request in the background as the one take comparison job: a take-review group's
-// (startTakeComparison) or a workspace passage's (startPassageComparison, ADR 0700). subject names what is compared
+// (startTakeComparison) or a workspace passage's (startPassageComparison). subject names what is compared
 // (the group's finding id or the passage's id, the job's FindingID) under the run log attribute attribute. It fills
 // request's progress file and session folder itself.
 func (h *Host) launchTakeComparison(svc hostServices, attribute, subject string, reads int, request takecompare.Request) (TakeComparisonJob, error) {

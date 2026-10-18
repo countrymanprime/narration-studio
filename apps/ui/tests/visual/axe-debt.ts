@@ -1,7 +1,7 @@
 import type { AxeDebt } from './lib/validators';
 
 // Accessibility rules an app state is KNOWN to violate under axe (the visual suite runs axe on every captured state, see
-// docs/adr/0064). Each entry says which rule, why it is not fixed now and where the fix is tracked. This is an escape hatch,
+// docs/operations/ci-and-releases.md). Each entry says which rule, why it is not fixed now and where the fix is tracked. This is an escape hatch,
 // not a default: an entry hides a real failure, so the list may only shrink (`MAX_AXE_DEBT_RULES` in src/visualSuite.test.ts
 // caps it), and an entry fails the run when its rule stops being reported, so it cannot outlive its violation. The baseline
 // it started from (report-only, UI_AXE=1, 235 captures): 533 elements over 50 captures before two fixes made on the way (the

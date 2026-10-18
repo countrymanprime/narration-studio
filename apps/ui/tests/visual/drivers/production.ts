@@ -202,6 +202,12 @@ export const productionDrivers: Record<string, Driver> = {
     await dialog.getByText(/^Recorded to paragraph \d+ of \d+/).waitFor();
     await dialog.getByText('Pickups (0)').waitFor();
   },
+  // The options a chapter's own panel shares with the Check recordings dialog, opened from the closed "Check options" line.
+  'recording-check-options': async (page) => {
+    const dialog = await openRecordingCheck(page, 'Chapter 4');
+    await dialog.getByText('Check options').click();
+    await dialog.getByRole('combobox', { name: 'Chapters at once' }).waitFor();
+  },
   'recording-check-pickups': async (page) => {
     const dialog = await openRecordingCheck(page, 'Chapter 4', 'mockCoverage=pickups');
     await dialog.getByText('Pickups (2)').waitFor();

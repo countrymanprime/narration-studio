@@ -1,4 +1,4 @@
--- Cleanup launchers over the bridge: launch_cleanup_tool (ADR 0146, docs/architecture/reaper-bridge.md). Opens REAPER's
+-- Cleanup launchers over the bridge: launch_cleanup_tool (docs/architecture/reaper-bridge.md). Opens REAPER's
 -- own Repair Pops/Clicks dialog, or the narrator's own installed Magnolius DeClick script, on the items the narrator
 -- has selected. The dialog does the work and the narrator drives it; this file changes nothing itself.
 -- SAFETY (load-bearing):

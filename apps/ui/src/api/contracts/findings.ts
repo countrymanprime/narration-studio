@@ -1,4 +1,4 @@
-// The review bindings (ADR 0120): every analyzer's
+// The review bindings: every analyzer's
 // findings, read and decided through one surface whatever wrote them. A Finding keeps the wire's own snake_case
 // (docs/architecture/findings-contract.md, apps/desktop/internal/findings.Finding); the binding envelopes around
 // it (the query, the page, the summary) are camelCase like every other binding. Filtering, sorting and paging run
@@ -81,14 +81,14 @@ export type FindingSuggestedAction = {
   requires_confirmation: boolean;
 };
 
-/** The ten kinds of problem a narrator can say a finding is, in the select's order (findings.NoteTypes, ADR 0844). */
+/** The ten kinds of problem a narrator can say a finding is, in the select's order (findings.NoteTypes). */
 export const FINDING_NOTE_TYPES = ['misread', 'skip', 'mouth', 'pron', 'pacing', 'repeat', 'plosive', 'noise', 'takes', 'breath'] as const;
 
 export type FindingNoteType = (typeof FINDING_NOTE_TYPES)[number];
 
 /**
  * The word shown for a finding while the narrator has not chosen one: its category, refined by evidence.kind where the
- * category covers more than one word. The same mapping as findings.DefaultNoteType (ADR 0844); choosing this word
+ * category covers more than one word. The same mapping as findings.DefaultNoteType; choosing this word
  * again returns the finding to "not chosen".
  */
 export function defaultFindingNoteType(finding: Pick<Finding, 'category' | 'evidence'>): FindingNoteType {
@@ -120,7 +120,7 @@ export function defaultFindingNoteType(finding: Pick<Finding, 'category' | 'evid
   }
 }
 
-/** The type a note shows everywhere (the table's Type column and the inspector's select): the narrator's choice, else the analyzer's mapped word (ADR 0844). */
+/** The type a note shows everywhere (the table's Type column and the inspector's select): the narrator's choice, else the analyzer's mapped word. */
 export function shownFindingNoteType(finding: Pick<Finding, 'category' | 'evidence' | 'review'>): FindingNoteType {
   return finding.review.type ?? defaultFindingNoteType(finding);
 }
@@ -146,7 +146,7 @@ export type FindingReviewState = {
   status: FindingReviewStatus;
   note?: string;
   timestamp?: string;
-  /** The kind the narrator chose (ADR 0844); absent until chosen, then the analyzer's own word applies. Not a decision. */
+  /** The kind the narrator chose; absent until chosen, then the analyzer's own word applies. Not a decision. */
   type?: FindingNoteType;
   /** The notes on the finding, oldest first (PF-1 part 7); absent until the first. Not a decision, and kept across a re-check. */
   thread?: FindingThreadMessage[];
@@ -212,7 +212,7 @@ export type FindingsSummary = {
   deferred: number;
   /** Notes with a resolution (accepted, dismissed, deferred) in the latest run. */
   decided: number;
-  /** Notes closed (ADR 0793): dismissed, which includes "waived". An accepted or deferred note is decided and still open. */
+  /** Notes closed: dismissed, which includes "waived". An accepted or deferred note is decided and still open. */
   cleared: number;
   notInLatestRun: number;
   analyzers: string[];
@@ -220,7 +220,7 @@ export type FindingsSummary = {
   chapters: FindingChapterFacet[];
 };
 
-/** A decision on the finding the page showed; the host refuses it when the evidence changed since (ADR 0120). */
+/** A decision on the finding the page showed; the host refuses it when the evidence changed since. */
 export type FindingReviewRequest = {
   id: string;
   evidenceVersion: string;
@@ -259,7 +259,7 @@ export type FindingNavigation =
 export type FindingMarkerRefusal = FindingNavigationRefusal;
 
 /**
- * What adding the approved marker did (ADR 0123): `added` (REAPER added the take marker `name`, in
+ * What adding the approved marker did: `added` (REAPER added the take marker `name`, in
  * one undo point), `existing` (the take already had a marker of the same kind within 0.15 s, named `name`; nothing changed)
  * or `refused` (nothing in REAPER changed; `message` says why in the narrator's words). `sourceTime` is in the take's
  * source seconds.
@@ -275,7 +275,7 @@ export interface FindingsApi {
   /** Records the narrator's decision (append-only) and answers the finding as the host now holds it. */
   findingsReview(request: FindingReviewRequest): Promise<Finding>;
   /**
-   * Records the kind the narrator says a finding is (ADR 0844), against the evidence version they saw, and answers the finding
+   * Records the kind the narrator says a finding is, against the evidence version they saw, and answers the finding
    * (review.type absent when they chose the analyzer's own word). Not a decision: status, note and the counts stay.
    */
   findingsSetType(id: string, evidenceVersion: string, type: FindingNoteType): Promise<Finding>;
@@ -288,7 +288,7 @@ export interface FindingsApi {
   findingsSummary(): Promise<FindingsSummary>;
   /** Whether REAPER is there for Go to and Loop; sends REAPER nothing, so the page may poll it. */
   findingsReaperStatus(): Promise<ReaperStatus>;
-  /** Selects the finding's item in REAPER and puts the edit cursor on its spot (ADR 0121). */
+  /** Selects the finding's item in REAPER and puts the edit cursor on its spot. */
   findingsGoTo(id: string): Promise<FindingNavigation>;
   /** Loops the finding's context in REAPER: time selection, loop points, repeat on, Play. */
   findingsLoop(id: string): Promise<FindingNavigation>;
@@ -301,6 +301,6 @@ export interface FindingsApi {
   findingsLoopRead(id: string, read: number): Promise<FindingNavigation>;
   /** Stops the loop and puts back the time selection, loop points and repeat the narrator had. */
   findingsStopLoop(): Promise<FindingNavigation>;
-  /** Adds one take marker in REAPER at an accepted finding's spot, named like Transcript Compare's (ADR 0123). */
+  /** Adds one take marker in REAPER at an accepted finding's spot, named like Transcript Compare's. */
   findingsAddMarker(id: string): Promise<FindingMarker>;
 }

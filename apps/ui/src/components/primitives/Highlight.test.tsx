@@ -5,9 +5,9 @@ import { Highlight, type HighlightKind } from './Highlight';
 
 afterEach(cleanup);
 
-// ADR 0059: an entity's text is the kind colour mixed toward --text (a derived `--<token>-text`), which keeps its hue and
+// docs/design/colour-and-contrast.md: an entity's text is the kind colour mixed toward --text (a derived `--<token>-text`), which keeps its hue and
 // reaches 4.5:1 on the tint; the tint and the 1.5px underline stay the pure kind colour, a mark held to 3:1. A note keeps
-// the text colour (ADR 0016) and the Teleprompter cursor is an accent fill. The palette guard reads tokens, not component
+// the text colour and the Teleprompter cursor is an accent fill. The palette guard reads tokens, not component
 // source, so this test is what ties the component to them.
 const ENTITY_TOKEN: Record<string, string> = {
   Character: 'character',
@@ -19,7 +19,7 @@ const ENTITY_TOKEN: Record<string, string> = {
   Review: 'review',
 };
 
-describe('Highlight colours (ADR 0059)', () => {
+describe('Highlight colours', () => {
   for (const [kind, token] of Object.entries(ENTITY_TOKEN)) {
     it(`draws a ${kind} in --${token}-text on a 20% tint and 1.5px underline of the pure --${token}`, () => {
       render(<Highlight kind={kind as HighlightKind}>word</Highlight>);
@@ -76,7 +76,7 @@ describe('Highlight colours (ADR 0059)', () => {
     expect(screen.getByText('other').getAttribute('role')).toBeNull();
   });
 
-  it('draws the Teleprompter cursor as an accent tint with a caret, ADR 0655', () => {
+  it('draws the Teleprompter cursor as an accent tint with a caret, docs/design/design-system.md', () => {
     render(<Highlight kind="Cursor">word</Highlight>);
     const mark = screen.getByText('word');
     expect(mark.style.color).toBe('var(--accent-strong)');
@@ -84,7 +84,7 @@ describe('Highlight colours (ADR 0059)', () => {
     expect(mark.style.boxShadow).toContain('var(--accent)');
   });
 
-  // Per-speaker dialogue colours (ADR 0367): the Booth's "Voices in scene" tags override the kind's own
+  // Per-speaker dialogue colours: the Booth's "Voices in scene" tags override the kind's own
   // colour with one of the seven declared speaker tokens (speakerColor.ts), keeping the Character kind and behaviour.
   it('draws with colorToken instead of the kind colour when given, keeping the kind for data-highlight', () => {
     render(

@@ -64,7 +64,7 @@ const PROJECT_STATE_POLL_MS = 30_000;
 
 /** Whether "Start comparison" can run, and why not: the run
  * needs a linked REAPER project file and the DAW port's `review` capability
- * (dawport.ReviewSession, ADR 0300). */
+ * (dawport.ReviewSession). */
 function startCapability(dawFileLinked: boolean, review: CapabilityEntry): CapabilityEntry {
   if (!dawFileLinked) return { level: 'supported', available: false, message: 'Link a REAPER project (.rpp) file to start a comparison.' };
   const gate = dawCapabilityGate({ manuscript: false, dawFile: false }, review);

@@ -5,7 +5,7 @@ import type { DialogueCue } from '../../components/manuscript/dialogueCues';
 // Continuity Review's own dialogue-cue extractor is not exposed through any binding (see dialogueCues.ts).
 // This schema exists so a fixture cue and the eventual real sidecar output can both be checked against the
 // exact same shape, the same discipline a real
-// wire contract gets, applied before the cue is exposed. Zod is imported only under src/api/ (ADR 0069) - see
+// wire contract gets, applied before the cue is exposed. Zod is imported only under src/api/ - see
 // .dependency-cruiser.mjs's zod-only-in-api rule.
 export const dialogueCueSchema = z.object({
   id: z.string(),

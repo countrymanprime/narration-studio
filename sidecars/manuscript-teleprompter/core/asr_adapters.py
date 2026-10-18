@@ -1,4 +1,4 @@
-"""Live ASR engine adapters for the Manuscript Teleprompter (ADR 0301): what `live_asr.py`'s
+"""Live ASR engine adapters for the Manuscript Teleprompter: what `live_asr.py`'s
 `--engine whisper`/`--engine moonshine` become underneath. `WhisperEngine` wraps `live_asr`'s own
 `_load_whisper_decoder` and `whisper_hypotheses`; `MoonshineEngine` wraps `moonshine_engine.load_transcriber` and
 `live_asr`'s `moonshine_hypotheses`. Each also carries its own argument rules (`check`), checked before either engine
@@ -85,7 +85,7 @@ class WhisperEngine:
 
 
 class MoonshineEngine:
-    """Moonshine, Windows only (ADR 0107), English only, streaming model sizes only."""
+    """Moonshine, Windows only, English only, streaming model sizes only."""
 
     descriptor = AsrDescriptor(name="moonshine", label="Moonshine", platforms=("windows",), modes=(LIVE,), languages=("en",), asset_kind="moonshine")
 

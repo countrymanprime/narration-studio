@@ -1,5 +1,5 @@
 /**
- * Settings (proposed, ADR 0865): categories by what is being configured, a scope and "used by" on every setting, instant apply, search.
+ * Settings (proposed; see the Settings redesign in docs/prds/studio-next-master-delivery-and-settings.prd.md): categories by what is being configured, a scope and "used by" on every setting, instant apply, search.
  * It replaces the single column of panels. The registry that builds it is `fixtures/settings.ts`.
  */
 import '@/styles/settings.css'
