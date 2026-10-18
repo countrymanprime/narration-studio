@@ -33,12 +33,19 @@ jobs:
     #   - shell: the Go tests (go-test).
     #   - winquick: quick-windows (the Lua harness on Windows and go lint), so the reaper project or the shell.
     # A skipped job counts as passed in ci.yml's `CI passed`; the steps inside those jobs keep their own scope check.
+    # A pull request whose workflow changes are only `uses:` pin bumps (Dependabot) is not `all` here: the nx-affected steps run
+    # nx-scope.sh --pins, and the `pins` step (scripts/ci/workflow-pins.mjs, pin-flags.mjs) ORs in the families of the jobs that contain a
+    # changed pin (a changed local action: every job that uses it). On a pure pin bump js-static and quick-ubuntu start only when
+    # reached (`static`, `quickubuntu`); on any other change they start as before. A job that starts runs in full. Any other change
+    # under .github/workflows or .github/actions (a `run:`, `if:`, `with:` or `needs:` line, a step, job or file added or removed) is `all`.
     timeout-minutes: 10
     runs-on: ubuntu-latest
     outputs:
-      ui: ${{ steps.ui.outputs.affected }}
-      shell: ${{ steps.shell.outputs.affected }}
-      winquick: ${{ steps.winquick.outputs.affected }}
+      ui: ${{ steps.ui.outputs.affected == 'true' || steps.pins.outputs.ui == 'true' }}
+      shell: ${{ steps.shell.outputs.affected == 'true' || steps.pins.outputs.shell == 'true' }}
+      winquick: ${{ steps.winquick.outputs.affected == 'true' || steps.pins.outputs.winquick == 'true' }}
+      static: ${{ steps.pins.outputs.static }}
+      quickubuntu: ${{ steps.pins.outputs.quickubuntu }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with: { fetch-depth: 0, persist-credentials: false }
@@ -54,16 +61,34 @@ jobs:
         uses: ./.github/actions/nx-affected
         with:
           projects: narration-utils-ui
+          pins: 'true'
       - id: shell
         uses: ./.github/actions/nx-affected
         with:
           projects: narration-utils-shell
+          pins: 'true'
       - id: winquick
         uses: ./.github/actions/nx-affected
         with:
           projects: reaper,narration-utils-shell
+          pins: 'true'
+      # Only a pull request can be a pin bump; elsewhere the classifier is skipped and the self-scoped jobs start.
+      - id: pins
+        env:
+          BASE_REF: ${{ github.base_ref }}
+          EVENT_NAME: ${{ github.event_name }}
+        run: |
+          set -euo pipefail
+          if [ "$EVENT_NAME" = "pull_request" ]; then
+            node scripts/ci/workflow-pins.mjs "origin/$BASE_REF" | tee "$RUNNER_TEMP/pins.json"
+          else
+            echo '{"kind":"none"}' > "$RUNNER_TEMP/pins.json"
+          fi
+          node scripts/ci/pin-flags.mjs --github-output < "$RUNNER_TEMP/pins.json"
 
   js-static:
+    needs: scope
+    if: needs.scope.outputs.static == 'true'
     # The static checks of the UI project and Knip, about a minute: they used to share a runner with the Vitest run, which is
     # 90% of the old `js` job's 13 minutes and now has jobs of its own (js-test-shard, js-test).
     timeout-minutes: 10
@@ -302,6 +327,8 @@ jobs:
           retention-days: 7
 
   quick-ubuntu:
+    needs: scope
+    if: needs.scope.outputs.quickubuntu == 'true'
     # The sub-minute Linux checks, one step each on one runner (their own jobs spent more on setup than on checking).
     # `!cancelled()` on every step: a red step does not hide the ones after it.
     #   - repo-scripts: the plain-Node scripts (GitHub metadata, release, the layout guard, the guide-screenshots tests,
