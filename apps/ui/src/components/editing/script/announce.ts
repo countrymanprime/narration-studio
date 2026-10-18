@@ -10,3 +10,10 @@ export function announceSel(doc: ChapterDoc, sel: Sel | null): string {
   const span = sum.audible.length ? `, ${clockText(sum.start)} to ${clockText(sum.end)}` : '';
   return `${plural(sum.items.length, 'word', 'words')} selected${span}${sum.allExtra ? ', not in the script' : ''}`;
 }
+
+/** What the narrator hears when the cursor lands on a word: the word, and "not in the script" for one that was only said. */
+export function announceWord(doc: ChapterDoc, key: string | null): string {
+  const item = key === null ? undefined : doc.items[doc.index.get(key) ?? -1];
+  if (!item) return '';
+  return item.kind === 'x' ? `${item.text}, not in the script` : item.text;
+}

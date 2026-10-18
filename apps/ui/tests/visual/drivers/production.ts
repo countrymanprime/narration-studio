@@ -19,6 +19,12 @@ import {
 const MOCK_DAY = new Date(2026, 8, 26, 9, 0, 0);
 
 export const productionDrivers: Record<string, Driver> = {
+  // The overview never answers, so `openProduction` (which waits for the pipeline table) is not used.
+  loading: async (page) => {
+    await page.goto('/?mockHold=overview');
+    await settlePage(page);
+    await page.getByRole('group', { name: 'Loading the production overview' }).waitFor();
+  },
   'load-error': async (page) => {
     await page.goto('/?mockInvalidPayload=production');
     await settlePage(page);

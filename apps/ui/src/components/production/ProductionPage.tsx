@@ -25,6 +25,7 @@ import { planStart, recordedSeries, weekFigures } from './measured/measured.sele
 import { useMeasured } from './measured/useMeasured';
 import { CheckCountsCard } from './overview/CheckCountsCard';
 import { KpiRow } from './overview/KpiRow';
+import { ProductionSkeleton } from './overview/ProductionSkeleton';
 import { checkCounts, deliveryCounts, stageSegments, type OverviewTarget } from './overview/overviewFigures';
 import { ProgressChart } from './overview/ProgressChart';
 import { StageBar } from './overview/StageBar';
@@ -307,7 +308,12 @@ export function ProductionPage({
   }
 
   const record = caps
-    ? { ok: Boolean(caps.capabilities.record?.available), reason: caps.capabilities.record?.message ?? '' }
+    ? {
+        ok: Boolean(caps.capabilities.record?.available),
+        reason: caps.capabilities.record?.message ?? '',
+        // Switched off is the one refusal the narrator fixes in Settings; the others (not connected, not answering) are fixed in the DAW.
+        inSettings: caps.capabilities.record?.reason === 'experimental_off' || caps.capabilities.record?.reason === 'turned_off',
+      }
     : { ok: false, reason: 'Checking the audio engine…' };
   const due = plan?.deadline ? parseIso(plan.deadline) : null;
   const k = calc(scheduleChapters(narrated), today, due, openPickups);
@@ -382,14 +388,11 @@ export function ProductionPage({
         onStartSession={() => goToBooth(recordingChapter?.id)}
         onExport={() => openReportDialog({ projectName: data.projectName, asOf: fmtD(today) })}
         onOpenSchedule={() => go('/schedule')}
+        onOpenSettings={() => go('/settings#daw')}
       />
       {manuscriptImport.dialogs}
       {manuscriptImport.creditsBanner}
-      {load.status === 'loading' && (
-        <p role="status" className="text-sm text-[var(--text-muted)]">
-          Reading the production log…
-        </p>
-      )}
+      {load.status === 'loading' && <ProductionSkeleton />}
       {timer.problem && (
         <p role="alert" className="text-sm" style={DANGER}>
           {timer.problem}
