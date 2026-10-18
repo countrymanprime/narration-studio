@@ -25,7 +25,9 @@ for pair in "new:$new_tag" "previous:$previous_tag"; do
   sub=${pair%%:*}; tag=${pair#*:}
   # The program is not a release asset of its own; it is the one file in the zip.
   gh release download "$tag" --dir "$dir/$sub" --pattern '*-windows-x64-setup.exe' --pattern '*-windows-x64.zip'
-  tar -xf "$dir/$sub"/*-windows-x64.zip -C "$dir/$sub" narration-utils.exe
+  # Relative paths: GNU tar (Git for Windows) reads "D:\..." as host D, and cannot read zips; PowerShell can.
+  (cd "$dir/$sub" && powershell -NoProfile -Command "Expand-Archive -Force -Path (Get-ChildItem -Filter '*-windows-x64.zip').FullName -DestinationPath .")
+  test -f "$dir/$sub/narration-utils.exe"
   ls -l "$dir/$sub"
 done
 echo "NEW_TAG=$new_tag"
