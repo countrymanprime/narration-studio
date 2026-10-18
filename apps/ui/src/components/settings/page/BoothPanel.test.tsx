@@ -5,7 +5,7 @@ import { ApiProvider } from '../../../api/ApiContext';
 import { createMockApi } from '../../../api/mockApi';
 import type { AssetCatalog, AssetItem } from '../../../types';
 import { BoothPanel } from './BoothPanel';
-import { SettingsFormsProvider } from './settingsForms';
+import { SettingsFormsProvider } from '../data/settingsForms';
 
 afterEach(cleanup);
 

@@ -8,7 +8,7 @@ import type { NarrationApi } from '../../../types';
 import { DawPanel } from './DawPanel';
 import { LocalModelCard } from './LocalModelCard';
 import { ProjectDataPanel } from './ProjectDataPanel';
-import { SettingsFormsProvider } from './settingsForms';
+import { SettingsFormsProvider } from '../data/settingsForms';
 
 afterEach(cleanup);
 

@@ -1,0 +1,210 @@
+import { useId, useState, type ReactNode } from 'react';
+import { Button } from '../../primitives/Button';
+import { ConfirmDialog } from '../../primitives/ConfirmDialog';
+import { IconButton } from '../../primitives/IconButton';
+import { StatusBadge } from '../../primitives/StatusBadge';
+import { useSettingsStore } from '../data/SettingsStore';
+import { choiceLabel, computerValue, isAnyChanged, isChanged, overrideValue, projectValue } from '../data/values';
+import { PAGE_LABEL, PAGE_PATH, type Scope, type SettingMeta } from '../registry/types';
+import { rowOf } from '../registry/rows';
+import { AssetNote } from './AssetNote';
+import { useSettingsNav } from './SettingsNav';
+import { ValueControl } from './ValueControl';
+
+const SCOPE_LABEL: Record<Scope, string> = { computer: 'This computer', project: 'This project', both: 'All projects', browser: 'This computer' };
+
+/** Whose the setting is, and where this project differs. */
+export function ScopeBadge({ row, overridden }: { row: SettingMeta; overridden: boolean }) {
+  return (
+    <span data-scope={row.scope} className={row.scope === 'project' ? 'text-[var(--accent-strong)]' : ''}>
+      {SCOPE_LABEL[row.scope]}
+      {overridden && <b className="font-semibold text-[var(--accent-strong)]"> · overridden here</b>}
+    </span>
+  );
+}
+
+/** The pages that read this setting; each link goes there. The setting is changed here, once. */
+export function UsedBy({ row }: { row: SettingMeta }) {
+  const { go } = useSettingsNav();
+  if (row.used.length === 0) return null;
+  return (
+    <span className="inline-flex flex-wrap items-center gap-x-1">
+      <span>Used by</span>
+      {row.used.map((page) => (
+        <Button
+          key={page}
+          variant="link"
+          size="sm"
+          data-used={page}
+          aria-label={`Used by ${PAGE_LABEL[page]}. Go to ${PAGE_LABEL[page]}`}
+          onClick={() => go(PAGE_PATH[page])}
+        >
+          {PAGE_LABEL[page]}
+        </Button>
+      ))}
+    </span>
+  );
+}
+
+const CELL = 'grid gap-x-8 gap-y-1.5 border-t border-[var(--border)] px-5 py-4 first:border-t-0 @min-[761px]:grid-cols-2';
+
+/**
+ * One setting: what it is, whose it is, who reads it, and its control. A change applies at once; a changed row says so in words and can be
+ * reset; a row that allows a project override shows whether this project uses the computer value or its own. A row with `children` draws
+ * that control instead of the host field's (the setting is more than one value).
+ */
+export function SettingRowView({ row, children, flash }: { row: SettingMeta; children?: ReactNode; flash?: boolean }) {
+  const store = useSettingsStore();
+  const uid = useId();
+  const [asking, setAsking] = useState<string>();
+  const { global, project } = store.fieldsOf(row);
+  const controlId = `set-${row.id}`;
+  const error = store.rowErrors[row.id];
+  const hasCustom = children !== undefined;
+  const comp = computerValue(row, global);
+  const own = overrideValue(row, project);
+  const changed = hasCustom ? false : isAnyChanged(row, global, project);
+  const saved = store.saved?.row === row.id;
+  const describedBy = `${uid}d${error ? ` ${uid}e` : ''}`;
+
+  /** What the host is sent: a value equal to the default clears the setting instead of pinning it, an emptied number is "not set". */
+  const toSend = (value: string, scope: 'global' | 'project'): string | null => {
+    if (value === '' && global?.kind === 'number') return null;
+    return scope === 'global' && value === row.def ? null : value;
+  };
+  const commit = (value: string, scope: 'global' | 'project') => void store.write(row, scope, toSend(value, scope));
+  const apply = (value: string, scope: 'global' | 'project') => {
+    if (row.costly && scope === 'global') setAsking(value);
+    else commit(value, scope);
+  };
+  const defaultLabel = global?.kind === 'choice' ? choiceLabel(row, row.def) : row.def || 'empty';
+  const kindOf = (rowId: string): string => {
+    const other = rowOf(rowId);
+    return other ? computerValue(other, store.fieldsOf(other).global) : '';
+  };
+
+  return (
+    <div
+      className={`${CELL} relative scroll-mt-24 ${flash ? 'bg-[var(--accent-soft)]' : ''}`}
+      data-row={row.id}
+      data-changed={changed ? 'true' : undefined}
+      data-scope={row.scope}
+    >
+      {changed && <span aria-hidden="true" className="absolute inset-y-2.5 left-0 w-[3px] rounded-[3px] bg-[var(--info)]" />}
+      <div className="flex min-w-0 flex-col gap-[3px]">
+        <span className="flex flex-wrap items-center gap-2">
+          <label htmlFor={hasCustom ? undefined : controlId} id={`${uid}l`} className="text-[0.9375rem] font-semibold">
+            {row.label}
+          </label>
+          {changed && <StatusBadge tone="info" label="Changed" />}
+        </span>
+        <span id={`${uid}d`} className="max-w-[60ch] text-[0.8125rem] text-[var(--text-muted)]">
+          {row.desc}
+        </span>
+        <span className="mt-1.5 flex flex-wrap items-center gap-x-3.5 gap-y-0.5 text-[0.78rem] text-[var(--text-muted)]">
+          <ScopeBadge row={row} overridden={own !== undefined} />
+          <UsedBy row={row} />
+          {row.also && <span>Also set in {row.also}</span>}
+        </span>
+      </div>
+      <div className="flex max-w-full min-w-0 flex-col items-start gap-2">
+        {hasCustom ? (
+          children
+        ) : global ? (
+          <>
+            <div className="flex flex-nowrap items-center gap-1.5">
+              <ValueControl
+                row={row}
+                field={global}
+                id={controlId}
+                value={comp}
+                which={row.scope === 'both' ? 'all projects' : undefined}
+                describedBy={describedBy}
+                invalid={Boolean(error)}
+                onChange={(value) => apply(value, 'global')}
+              />
+              {isChanged(row, global) && (
+                <IconButton
+                  action="undo"
+                  label={`Reset ${row.label} to ${defaultLabel}`}
+                  className="border-transparent"
+                  onClick={() => void store.write(row, 'global', null)}
+                />
+              )}
+            </div>
+            {global.kind === 'choice' && <AssetNote row={row} value={comp} kindOf={kindOf} />}
+            {row.scope === 'both' && project && (
+              <div
+                className="flex flex-wrap items-center gap-x-2.5 gap-y-1.5 text-[0.8125rem] text-[var(--text-muted)]"
+                data-override={own !== undefined ? row.id : undefined}
+              >
+                {own !== undefined ? (
+                  <>
+                    <span>This project uses</span>
+                    <ValueControl
+                      row={row}
+                      field={project}
+                      id={`${controlId}-p`}
+                      value={projectValue(row, global, project)}
+                      which="this project"
+                      describedBy={describedBy}
+                      onChange={(value) => apply(value, 'project')}
+                    />
+                    <Button
+                      variant="link"
+                      size="sm"
+                      aria-label={`Use the computer setting for ${row.label}`}
+                      onClick={() => void store.write(row, 'project', null)}
+                    >
+                      Use computer setting
+                    </Button>
+                    {global.kind === 'choice' && <AssetNote row={row} value={own} kindOf={kindOf} />}
+                  </>
+                ) : (
+                  <>
+                    <span>This project uses the computer setting.</span>
+                    <Button variant="link" size="sm" aria-label={`Override ${row.label} for this project`} onClick={() => commit(comp, 'project')}>
+                      Override for this project
+                    </Button>
+                  </>
+                )}
+              </div>
+            )}
+          </>
+        ) : (
+          <span className="text-[0.8125rem] text-[var(--text-muted)]">This setting is not offered by this version of the app.</span>
+        )}
+        {row.effect && <span className="text-[0.8125rem] text-[var(--text-muted)]">{row.effect}</span>}
+        <span id={`${uid}e`} className="min-h-0 text-[0.8125rem]">
+          {error ? (
+            <span className="flex max-w-[52ch] items-start gap-1.5 text-[var(--danger-text)]">
+              <span
+                aria-hidden="true"
+                className="mt-0.5 inline-block size-4 flex-none rounded-full bg-[var(--danger)] text-center text-[0.6875rem] leading-4 font-bold text-[var(--surface)]"
+              >
+                !
+              </span>
+              {error}
+            </span>
+          ) : saved ? (
+            <span key={store.saved?.n} className="text-[var(--ok-text)] motion-safe:animate-[settings-saved_2.5s_forwards]">
+              Saved
+            </span>
+          ) : null}
+        </span>
+      </div>
+      {asking !== undefined && row.costly && (
+        <ConfirmDialog
+          title={row.costly.title}
+          body={row.costly.body}
+          confirmLabel={row.costly.confirm}
+          confirm={() => {
+            commit(asking, 'global');
+            setAsking(undefined);
+          }}
+          cancel={() => setAsking(undefined)}
+        />
+      )}
+    </div>
+  );
+}

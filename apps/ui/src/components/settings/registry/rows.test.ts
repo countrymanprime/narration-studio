@@ -1,0 +1,59 @@
+// @vitest-environment node
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
+import { describe, expect, it } from 'vitest';
+import { CATEGORIES } from './categories';
+import { PAGE_SETTINGS } from './pageSettings';
+import { ROWS } from './rows';
+import { search } from './search';
+
+// config/defaults.json is the host's repo default layer; a row's `def` is what the page compares a value with to decide "Changed".
+const DEFAULTS: Record<string, Record<string, string>> = JSON.parse(readFileSync(join(__dirname, '../../../../../../config/defaults.json'), 'utf8'));
+
+describe('the settings registry', () => {
+  it('gives every row a unique id and a category that exists', () => {
+    const ids = ROWS.map((row) => row.id);
+    expect(new Set(ids).size).toBe(ids.length);
+    for (const row of ROWS) expect(CATEGORIES.map((category) => category.id)).toContain(row.cat);
+  });
+
+  it('keeps each host row’s default equal to config/defaults.json', () => {
+    for (const row of ROWS.filter((candidate) => candidate.field)) {
+      const { tool, key } = row.field!;
+      expect(row.def, row.id).toBe(DEFAULTS[tool]?.[key] ?? '');
+    }
+  });
+
+  it('lists a host field once', () => {
+    const fields = ROWS.flatMap((row) => (row.field ? [`${row.field.tool}.${row.field.key}`] : []));
+    expect(new Set(fields).size).toBe(fields.length);
+  });
+
+  it('has no row for General.log_verbosity, which nothing reads', () => {
+    expect(ROWS.some((row) => row.field?.key === 'log_verbosity')).toBe(false);
+  });
+
+  it('puts every category in a group and gives each one something to show', () => {
+    for (const category of CATEGORIES.filter((candidate) => candidate.id !== 'models'))
+      expect(
+        ROWS.some((row) => row.cat === category.id),
+        category.id,
+      ).toBe(true);
+  });
+});
+
+describe('search', () => {
+  it('finds a setting by a word that is not in its name', () => {
+    expect(search('whisper').some((hit) => hit.row?.id === 'stt.model')).toBe(true);
+  });
+  it('needs every word to match', () => {
+    expect(search('whisper nothingelse')).toEqual([]);
+  });
+  it('finds a setting that moved to a page', () => {
+    expect(search('breath').some((hit) => hit.page?.id === 'ps.cleanup')).toBe(true);
+    expect(PAGE_SETTINGS.length).toBeGreaterThan(0);
+  });
+  it('leaves out a row the caller hides', () => {
+    expect(search('reaper', (row) => !row.needs).some((hit) => hit.row?.needs)).toBe(false);
+  });
+});
