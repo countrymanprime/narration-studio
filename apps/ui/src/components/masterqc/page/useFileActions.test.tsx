@@ -26,7 +26,7 @@ function mount(files: readonly MeasureFileResult[], setup: DawSetupId = 'reaper'
   render(
     <ApiProvider api={apiOf(jobOf(files))}>
       <PortOverrides clients={{ daw }}>
-        <MasterPage hasManuscript projectFolder="/p" onOpenDelivery={vi.fn()} openSettings={vi.fn()} />
+        <MasterPage hasManuscript projectFolder="/p" onOpenDelivery={vi.fn()} />
       </PortOverrides>
     </ApiProvider>,
   );

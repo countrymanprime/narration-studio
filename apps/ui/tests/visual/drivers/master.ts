@@ -76,6 +76,17 @@ export const masterDrivers: Record<string, Driver> = {
     await page.getByRole('table', { name: 'Findings' }).waitFor();
     await scrollToTop(page, diagnostics);
   },
+  // The cleanup candidates panel with its options group opened: this project's five thresholds, below the values the check used.
+  'diagnostics-cleanup-options': async (page) => {
+    await openDiagnostics(page);
+    const cleanup = page.getByRole('region', { name: 'Silence cleanup candidates' });
+    await cleanup.getByRole('button', { name: /^Silence cleanup options/ }).click();
+    await cleanup.getByRole('textbox', { name: 'Hold kept at each side of a cut silence' }).waitFor();
+    // The last of the five, so every row of the group is in the picture.
+    await cleanup
+      .getByRole('textbox', { name: 'How far above the silence around it a click stands' })
+      .evaluate((element) => element.scrollIntoView({ block: 'end' }));
+  },
   'diagnostics-cancelled': async (page) => {
     await checkOnDiagnostics(page, '?mockDiagnostics=running');
     await page.getByRole('button', { name: 'Cancel', exact: true }).click();

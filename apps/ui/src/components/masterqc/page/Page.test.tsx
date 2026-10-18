@@ -18,7 +18,7 @@ const mount = (files: readonly MeasureFileResult[], profile: DeliveryProfile = a
   const api = apiOf(jobOf(files, profile), profile, overrides);
   render(
     <PageHost api={api}>
-      <MasterPage {...PROPS} onOpenDelivery={onOpenDelivery} openSettings={vi.fn()} />
+      <MasterPage {...PROPS} onOpenDelivery={onOpenDelivery} />
     </PageHost>,
   );
   return { api, onOpenDelivery };
@@ -34,7 +34,7 @@ describe('Master & QC page body', () => {
     const api = apiOf(jobOf(files, acx), acx, { manuscriptChapters: async () => CHAPTERS });
     render(
       <PageHost api={api}>
-        <MasterPage {...PROPS} onOpenDelivery={vi.fn()} openSettings={vi.fn()} {...props} />
+        <MasterPage {...PROPS} onOpenDelivery={vi.fn()} {...props} />
       </PageHost>,
     );
   };
@@ -77,7 +77,7 @@ describe('Master & QC page body', () => {
   it('asks for the manuscript first', () => {
     render(
       <PageHost api={apiOf(jobOf(TWO_FAIL))}>
-        <MasterPage {...PROPS} hasManuscript={false} onOpenDelivery={vi.fn()} openSettings={vi.fn()} />
+        <MasterPage {...PROPS} hasManuscript={false} onOpenDelivery={vi.fn()} />
       </PageHost>,
     );
     expect(screen.getByText('Import manuscript')).toBeTruthy();
@@ -88,7 +88,7 @@ describe('Master & QC page body', () => {
     const api = apiOf(jobOf(TWO_FAIL, acx), acx);
     render(
       <PageHost api={api}>
-        <MasterPage {...PROPS} onOpenDelivery={vi.fn()} openSettings={vi.fn()} focusFile="C:/Renders/Chapter 02.wav" />
+        <MasterPage {...PROPS} onOpenDelivery={vi.fn()} focusFile="C:/Renders/Chapter 02.wav" />
       </PageHost>,
     );
     expect(await screen.findByRole('heading', { name: 'Chapter 02.wav · Checks' })).toBeTruthy();
@@ -115,13 +115,13 @@ describe('Master & QC page body', () => {
     const api = apiOf(jobOf(TWO_FAIL, acx), acx);
     const view = render(
       <PageHost api={api}>
-        <MasterPage {...PROPS} onOpenDelivery={vi.fn()} openSettings={vi.fn()} focusFile="C:/Renders/Chapter 04.wav" />
+        <MasterPage {...PROPS} onOpenDelivery={vi.fn()} focusFile="C:/Renders/Chapter 04.wav" />
       </PageHost>,
     );
     expect(await screen.findByRole('heading', { name: 'Chapter 04.wav · Why it fails' })).toBeTruthy();
     view.rerender(
       <PageHost api={api}>
-        <MasterPage {...PROPS} onOpenDelivery={vi.fn()} openSettings={vi.fn()} focusFile="C:/Renders/Chapter 02.wav" />
+        <MasterPage {...PROPS} onOpenDelivery={vi.fn()} focusFile="C:/Renders/Chapter 02.wav" />
       </PageHost>,
     );
     expect(await screen.findByRole('heading', { name: 'Chapter 02.wav · Checks' })).toBeTruthy();
@@ -168,7 +168,7 @@ describe('Master & QC page body', () => {
     const api = apiOf(jobOf([]), acx, { manuscriptChapters: async () => CHAPTERS });
     render(
       <PageHost api={api}>
-        <MasterPage {...PROPS} onOpenDelivery={vi.fn()} openSettings={vi.fn()} />
+        <MasterPage {...PROPS} onOpenDelivery={vi.fn()} />
       </PageHost>,
     );
     const notReady = chapterStates(CHAPTERS, []).filter((state) => state.kind === 'wait').length + CREDITS_FILES;
@@ -187,7 +187,7 @@ describe('Master & QC page body', () => {
     const api = apiOf(jobOf(files), acx, { manuscriptChapters: async () => chapters });
     render(
       <PageHost api={api}>
-        <MasterPage {...PROPS} onOpenDelivery={vi.fn()} openSettings={vi.fn()} />
+        <MasterPage {...PROPS} onOpenDelivery={vi.fn()} />
       </PageHost>,
     );
     const states = chapterStates(chapters, files);

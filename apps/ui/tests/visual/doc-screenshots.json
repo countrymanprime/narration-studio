@@ -687,6 +687,13 @@
   },
   {
     "page": "master",
+    "state": "diagnostics-cleanup-options",
+    "viewport": "desktop",
+    "docName": "master-cleanup-options",
+    "caption": "Master & QC, Diagnostics - the Silence cleanup options opened under the candidates"
+  },
+  {
+    "page": "master",
     "state": "report-exported",
     "viewport": "desktop",
     "docName": "master-report-exported",

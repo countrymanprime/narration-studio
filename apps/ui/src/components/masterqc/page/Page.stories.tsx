@@ -8,7 +8,7 @@ import { ALL_PASS, CHAPTERS, PageHost, TWO_FAIL, acx, apiOf, jobOf } from './tes
 const meta = {
   title: 'Master & QC/Page',
   component: MasterPage,
-  args: { hasManuscript: true, projectFolder: '/p', onImport: fn(), onOpenDelivery: fn(), openSettings: fn() },
+  args: { hasManuscript: true, projectFolder: '/p', onImport: fn(), onOpenDelivery: fn() },
   render: (args, { parameters }) => (
     <PageHost api={apiOf(jobOf(parameters.files ?? []), acx, { manuscriptChapters: async () => (parameters.chapters ? CHAPTERS : []) })}>
       <div className="bg-[var(--bg)] p-4">

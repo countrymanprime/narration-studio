@@ -12,7 +12,7 @@ export type PageSetting = {
   why: string;
   syn?: string;
   /** The panel kept behind the entry: see `PagesPane`. Absent once the page has the control, so the entry only points there. */
-  panel?: 'coverage' | 'cleanup' | 'stages' | 'punch' | 'fx';
+  panel?: 'coverage' | 'stages' | 'punch' | 'fx';
 };
 
 export const PAGE_SETTINGS: readonly PageSetting[] = [
@@ -29,8 +29,7 @@ export const PAGE_SETTINGS: readonly PageSetting[] = [
     id: 'ps.cleanup',
     label: 'Silence cleanup thresholds',
     page: 'master',
-    where: 'Diagnostics › Silence cleanup',
-    panel: 'cleanup',
+    where: 'Diagnostics › Silence cleanup options',
     why: 'Tuned while looking at a chapter’s findings.',
     syn: 'breath click pad gap',
   },

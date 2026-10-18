@@ -23,8 +23,6 @@ export function PageSettingPanel({ panel }: { panel: NonNullable<PageSetting['pa
           before={({ fields, scope }) => <RecordingCheckSummary fields={fields} scope={scope} />}
         />
       );
-    case 'cleanup':
-      return <ScopedFieldsPanel id="cleanup" title="Silence cleanup" tool="Cleanup" scopes={['global', 'project']} notify={notify} />;
     case 'stages':
       return <ScopedFieldsPanel id="stage-suggestions" title="Stage suggestions" tool="StageRecommendations" scopes={['global', 'project']} notify={notify} />;
     case 'punch':

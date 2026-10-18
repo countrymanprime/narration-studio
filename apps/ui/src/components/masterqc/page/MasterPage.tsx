@@ -60,7 +60,6 @@ export function MasterPage({
 
 type BodyProps = {
   onOpenDelivery: () => void;
-  openSettings: () => void;
   /** What a link names (`masterLink.ts`): a file's path, or the id of a chapter (Delivery's chapter links). The table opens on that file, else the first failing file. */
   focusFile?: string;
   fileActions?: Pick<FileActions, 'onPlayQuietest' | 'onOpenInDaw'>;
@@ -68,7 +67,7 @@ type BodyProps = {
 
 const isNarration = (chapter: ManuscriptChapter) => (chapter.contentKind ?? 'narration') === 'narration';
 
-function MasterBody({ projectFolder, onOpenDelivery, openSettings, fileActions, focusFile }: BodyProps & { projectFolder: string }) {
+function MasterBody({ projectFolder, onOpenDelivery, fileActions, focusFile }: BodyProps & { projectFolder: string }) {
   const manuscript = usePort('manuscript');
   const [chapters, setChapters] = useState<ManuscriptChapter[]>([]);
   const [chaptersProblem, setChaptersProblem] = useState<string>();
@@ -239,7 +238,7 @@ function MasterBody({ projectFolder, onOpenDelivery, openSettings, fileActions, 
           </Panel>
           <MasterToSpecPanel jobs={jobs} chainLabel={chain?.label} />
           <MasteringChain providers={mastering.providers} problem={mastering.problem} />
-          <DiagnosticsSection measuredPaths={run.paths} openSettings={openSettings} />
+          <DiagnosticsSection measuredPaths={run.paths} />
           <ReportExportPanel busy={run.running} measured={run.files.length > 0} />
         </div>
         <div className="flex min-w-0 flex-col gap-4">

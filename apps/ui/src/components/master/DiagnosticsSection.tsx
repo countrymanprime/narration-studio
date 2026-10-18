@@ -8,6 +8,7 @@ import { Button } from '../primitives/Button';
 import { Panel } from '../primitives/Panel';
 import { ProgressBar } from '../primitives/ProgressBar';
 import { ToggleGroup } from '../primitives/ToggleGroup';
+import { ProofOptions } from '../proof/proofOptions/ProofOptions';
 import { cleanupThresholdRows, thresholdRows } from './diagnosticsFormat';
 import { CheckedFilesTable, CleanupFindingsTable, FindingsTable } from './DiagnosticsTables';
 
@@ -28,15 +29,18 @@ function useDawName(): string {
   return !daw || daw === 'none' ? 'the DAW' : dawShortName(daw);
 }
 
+/** The host's Cleanup settings (`fieldSchemas` in apps/desktop/app.go): the five thresholds of the silence, breath and click analyzer. */
+const CLEANUP_OPTION_KEYS = ['pad_seconds', 'min_breath_seconds', 'max_breath_seconds', 'breath_below_speech_db', 'click_above_silence_db'] as const;
+
 const plural = (count: number, one: string, many: string) => `${count} ${count === 1 ? one : many}`;
 
 /**
  * Silence cleanup candidates: every
  * `silence_cleanup` finding a checked file raised, apart from the Diagnostics tab's own findings above, with the
- * thresholds a check used (the narrator's own, from Settings > Silence cleanup). Findings view only: nothing here
+ * thresholds a check used, which the narrator sets in the options group under them (this project's values). Findings view only: nothing here
  * applies a cut, because acting on a candidate in REAPER is not built here.
  */
-function CleanupSection({ job, openSettings }: { job: DiagnosticsJob | undefined; openSettings: () => void }) {
+function CleanupSection({ job }: { job: DiagnosticsJob | undefined }) {
   const dawName = useDawName();
   const files = job?.files ?? [];
   const candidates = files.flatMap((file) => file.cleanupFindings);
@@ -72,12 +76,10 @@ function CleanupSection({ job, openSettings }: { job: DiagnosticsJob | undefined
               </div>
             ))}
           </dl>
-          <div className="mt-2 flex flex-wrap items-center gap-1 text-xs" style={MUTED}>
-            <span>Set in Settings &gt; Silence cleanup.</span>
-            <Button variant="ghost" onClick={openSettings}>
-              Open Settings
-            </Button>
-          </div>
+          <p className="mt-2 text-xs" style={MUTED}>
+            These are the values this check used. A change in the options below applies to the next check.
+          </p>
+          <ProofOptions title="Silence cleanup options" tool="Cleanup" keys={CLEANUP_OPTION_KEYS} className="mt-2" />
         </>
       ) : (
         <p className="mt-2 text-sm" style={MUTED}>
@@ -121,9 +123,9 @@ function ThresholdsPanel({ job }: { job: DiagnosticsJob | undefined }) {
  * grade. It is read-only: nothing is saved, played or sent to REAPER, so every finding stays unreviewed, and
  * the narrator listens at those times in REAPER. `measuredPaths` are the files of the last measurement, which the
  * host already accepts, so they can be checked without picking them again. Below it, `CleanupSection` lists the same check's silence
- * cleanup candidates apart from these findings; `openSettings` opens Settings > Silence cleanup.
+ * cleanup candidates apart from these findings, with the options that set its thresholds.
  */
-export function DiagnosticsSection({ measuredPaths, openSettings }: { measuredPaths: readonly string[]; openSettings: () => void }) {
+export function DiagnosticsSection({ measuredPaths }: { measuredPaths: readonly string[] }) {
   const dawName = useDawName();
   const api = useApi();
   const [job, setJob] = useState<DiagnosticsJob>();
@@ -298,7 +300,7 @@ export function DiagnosticsSection({ measuredPaths, openSettings }: { measuredPa
         )}
       </Panel>
       <ThresholdsPanel job={job} />
-      <CleanupSection job={job} openSettings={openSettings} />
+      <CleanupSection job={job} />
     </div>
   );
 }

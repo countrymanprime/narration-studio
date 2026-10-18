@@ -228,6 +228,15 @@ describe('Settings: search and filters', () => {
     }
   });
 
+  it('lists the silence cleanup thresholds with a way to Master & QC and no second editor here', async () => {
+    await renderPage();
+    await userEvent.type(await screen.findByRole('textbox', { name: 'Search settings' }), 'breath');
+    const entry = document.querySelector<HTMLElement>('[data-page-setting="ps.cleanup"]');
+    expect(entry).toBeTruthy();
+    expect(within(entry!).getByRole('button', { name: /^Open Master & QC/ })).toBeTruthy();
+    expect(within(entry!).queryByRole('button', { name: 'Change it here for now' })).toBeNull();
+  });
+
   it('Escape clears the search', async () => {
     await renderPage();
     const box = (await screen.findByRole('textbox', { name: 'Search settings' })) as HTMLInputElement;

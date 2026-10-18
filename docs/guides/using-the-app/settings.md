@@ -11,7 +11,7 @@ list.
 ![Settings - Recording & DAW, with the category list at the left and the search and filters above](../../images/ui/settings-recording.webp)
 
 **Ctrl+,** opens Settings from any page. When a link from another page brings you here (the Booth's DAW settings,
-a "fix credits" link, Master's silence cleanup), Settings opens on the setting, lights it up for a moment and
+a "fix credits" link), Settings opens on the setting, lights it up for a moment and
 offers **Back to** the page you came from.
 
 ## Every setting says whose it is and who uses it
@@ -258,7 +258,7 @@ If Narration Studio will not start after an update and the program file is missi
 
 ## Set on a page
 
-Some settings only change what one page does, so they belong on that page, next to what they change: the recording check's rules (Production), silence cleanup (Master & QC), the preview suggestion and compare defaults (Proof), stage suggestions (Production), punch pre-roll (Booth), favourite effects and the Audacity backups (Editing). **Set on a page** lists them, each with where it is or will be and an **Open** button for that page. The Audacity backups are set on the Backups tab in [Editing](editing.md#effects-backups-and-timeline) only, and the preview options and compare defaults in the **Preview options** and **Compare options** groups on [Proof](proof.md#comparing-the-recording-with-the-script) only. For the others, until a page has its own control, **Change it here for now** opens the panel that always edited it, with its **Global** / **This project** switch, **Save** and **Discard changes**; leaving Settings with unsaved changes there asks whether to save or discard them. Search finds them too.
+Some settings only change what one page does, so they belong on that page, next to what they change: the recording check's rules (Production), silence cleanup (Master & QC), the preview suggestion and compare defaults (Proof), stage suggestions (Production), punch pre-roll (Booth), favourite effects and the Audacity backups (Editing). **Set on a page** lists them, each with where it is or will be and an **Open** button for that page. The Audacity backups are set on the Backups tab in [Editing](editing.md#effects-backups-and-timeline) only, and the preview options and compare defaults in the **Preview options** and **Compare options** groups on [Proof](proof.md#comparing-the-recording-with-the-script) only, and the silence cleanup thresholds in **Silence cleanup options** on [Master & QC](master-and-qc.md) only. For the others, until a page has its own control, **Change it here for now** opens the panel that always edited it, with its **Global** / **This project** switch, **Save** and **Discard changes**; leaving Settings with unsaved changes there asks whether to save or discard them. Search finds them too.
 
 ![Settings - Set on a page, with the recording check rules opened](../../images/ui/settings-pages.webp)
 

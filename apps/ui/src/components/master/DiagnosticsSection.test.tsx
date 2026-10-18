@@ -1,13 +1,13 @@
 // @vitest-environment jsdom
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { cleanup, render, screen, waitFor, within } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { DAW_SETUPS } from '../../fixtures/daw';
 import { createMockApi } from '../../api/mockApi';
 import { diagnosticsJobSchema } from '../../api/schemas/diagnostics';
-import type { DiagnosticsJob, NarrationApi } from '../../types';
+import type { Bootstrap, DiagnosticsJob, NarrationApi } from '../../types';
 import { MasterPage } from '../masterqc/page/MasterPage';
 import { PageHost } from '../masterqc/page/testPage';
 
@@ -24,7 +24,7 @@ async function openDiagnostics({ overrides = {}, initial = {} }: { overrides?: P
   const api = createMockApi(overrides, initial);
   render(
     <PageHost api={api}>
-      <MasterPage onOpenDelivery={vi.fn()} openSettings={vi.fn()} />
+      <MasterPage onOpenDelivery={vi.fn()} />
     </PageHost>,
   );
   await screen.findByRole('region', { name: 'Thresholds' });
@@ -74,16 +74,21 @@ describe('Master & QC, Diagnostics', () => {
     expect(within(cleanup).queryByRole('table', { name: 'Silence cleanup candidates' })).toBeNull();
   });
 
-  it('opens Settings > Silence cleanup from the candidates panel', async () => {
-    const openSettings = vi.fn();
+  it('sets the silence cleanup thresholds in the candidates panel, saved for this project, with no way out to Settings', async () => {
+    const save = vi.fn(async () => ({}) as Bootstrap);
     render(
-      <PageHost api={createMockApi({}, {})}>
-        <MasterPage onOpenDelivery={vi.fn()} openSettings={openSettings} />
+      <PageHost api={createMockApi({ saveSettings: save } as Parameters<typeof createMockApi>[0], {})}>
+        <MasterPage onOpenDelivery={vi.fn()} />
       </PageHost>,
     );
     const cleanup = await screen.findByRole('region', { name: 'Silence cleanup candidates' });
-    await userEvent.setup().click(within(cleanup).getByRole('button', { name: 'Open Settings' }));
-    expect(openSettings).toHaveBeenCalled();
+    expect(within(cleanup).queryByRole('button', { name: 'Open Settings' })).toBeNull();
+    await userEvent.setup().click(within(cleanup).getByRole('button', { name: /Silence cleanup options/ }));
+    const box = await within(cleanup).findByRole('textbox', { name: 'Hold kept at each side of a cut silence' });
+    fireEvent.change(box, { target: { value: '0.2' } });
+    fireEvent.blur(box);
+    await waitFor(() => expect(save).toHaveBeenCalledWith('Cleanup', 'project', { pad_seconds: '0.2' }));
+    expect(within(cleanup).getByText(/applies to the next check/i)).toBeTruthy();
   });
 
   it('checks picked files and lists each finding with its time, measured value, threshold and source, read-only', async () => {

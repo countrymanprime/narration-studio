@@ -891,7 +891,6 @@ function AppRoutes() {
                       projectFolder={data.projectFolder}
                       onImport={() => guardedNavigate('/')}
                       onOpenDelivery={() => guardedNavigate('/delivery')}
-                      openSettings={() => guardedNavigate(addressPath({ page: 'settings', anchor: 'cleanup' }))}
                       focusFile={parseMasterHash(location.hash)?.file}
                     />,
                   )}

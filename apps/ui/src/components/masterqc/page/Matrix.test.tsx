@@ -19,7 +19,7 @@ afterEach(() => {
   overlay.getSnapshot().toasts.forEach((toast) => overlay.dismissToast(toast.id));
 });
 
-const PROPS = { hasManuscript: true, projectFolder: '/p', onOpenDelivery: vi.fn(), openSettings: vi.fn() };
+const PROPS = { hasManuscript: true, projectFolder: '/p', onOpenDelivery: vi.fn() };
 
 function mount(files: readonly MeasureFileResult[], overrides: Partial<NarrationApi> = {}, daw?: DawClient) {
   const client = daw ?? createMockDawClient(DAW_SETUPS.reaper, { chapterIds: [], candidateIds: [], findingIds: [], measuredFiles: files });
