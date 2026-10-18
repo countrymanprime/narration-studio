@@ -101,10 +101,12 @@ describe('D5 Build: what it waits for', () => {
     expect(request.items).toEqual([{ kind: 'chapter', title: 'Chapter 1', path: 'C:/enc/1.mp3' }]);
   });
 
-  it('huge: 500 chapters with 300-character titles are listed and counted', async () => {
+  it('huge: 500 chapters with 300-character titles are counted, the first hundred listed and the rest on request', async () => {
     const many = Array.from({ length: 500 }, (_, i) => chapter(i + 1, `${'Long title '.repeat(30)}${i + 1}`));
     mount({ manuscriptChapters: async () => many, measureState: async () => measureJob([]) });
     expect(await screen.findByText('0 of 500', {}, { timeout: 5000 })).toBeTruthy();
+    expect(screen.getAllByRole('button', { name: /Open in Master & QC/ })).toHaveLength(100);
+    await userEvent.click(screen.getByRole('button', { name: 'Show the other 400 chapters' }));
     expect(screen.getAllByRole('button', { name: /Open in Master & QC/ })).toHaveLength(500);
   });
 
@@ -287,6 +289,8 @@ describe('D5 and D6 a running build', () => {
     await act(async () => vi.advanceTimersByTimeAsync(700));
     const alert = await screen.findByText(/Can't tell how the build is going, last heard \d+ s ago: the host did not answer/);
     expect(alert).toBeTruthy();
+    // A sentence read before the host went quiet is not repeated beside Build as if it were current.
+    expect(screen.queryByText(READY)).toBeNull();
     // The same words twice must still schedule the next try: three more failures in six seconds.
     const before = packageState.mock.calls.length;
     for (let tick = 0; tick < 3; tick += 1) await act(async () => vi.advanceTimersByTimeAsync(2100));
@@ -294,6 +298,7 @@ describe('D5 and D6 a running build', () => {
     silent = false;
     await act(async () => vi.advanceTimersByTimeAsync(2100));
     await waitFor(() => expect(screen.queryByText(/Can't tell how the build is going/)).toBeNull());
+    expect(screen.getByText(READY)).toBeTruthy();
   });
 
   it('Check again forces a fresh read', async () => {
