@@ -11,10 +11,10 @@ describe('Skeleton', () => {
     expect(container.firstElementChild?.getAttribute('aria-hidden')).toBe('true');
   });
 
-  it('shimmers only under motion-safe, so reduced motion gets a still block', () => {
+  it('shimmers only under motion-ok, so reduced motion gets a still block', () => {
     const { container } = render(<Skeleton />);
     const cls = (container.firstElementChild as HTMLElement).className;
-    expect(cls).toContain('motion-safe:animate-[skeleton-shimmer');
+    expect(cls).toContain('motion-ok:animate-[skeleton-shimmer');
     expect(cls).not.toMatch(/(^|\s)animate-/);
   });
 
