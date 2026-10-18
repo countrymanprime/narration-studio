@@ -55,12 +55,15 @@ The checks a pull request shows, by the name GitHub displays (`ci.yml` calls `_q
 
 | Check | What it runs |
 | --- | --- |
-| `quality / js` | `lint`, `format`, `architecture` (the import rules), `test` (Vitest with the coverage ratchet) and `test-node` (the node:test suites of `apps/ui/scripts`) of `narration-utils-ui`, then Knip over the whole repository |
+| `quality / js-static` | `lint`, `format`, `architecture` (the import rules) and `test-node` (the node:test suites of `apps/ui/scripts`) of `narration-utils-ui`, then Knip over the whole repository |
+| `quality / js-test (shard 1/3)` to `(shard 3/3)` | the Vitest run of `apps/ui` with coverage on the gated logic files (`node scripts/ci/coverage-gate.mjs vitest apps/ui --shard=i/3`), a third of the files each, split by cost (`apps/ui/scripts/vitest-shards.mjs`; Vitest's own split by path hash gave one shard 48% of the time). A shard checks no coverage floor; it uploads a blob of its results and coverage |
+| `quality / js-test` | merges the three blobs (`coverage-gate.mjs vitest apps/ui --merge=3`: fails when one is missing) and checks every Vitest floor of `scripts/ci/coverage-floors.json` over the merged coverage, the same numbers as the unsharded run `pnpm check` does. Skipped when the UI is not affected |
 | `quality / ui-visual (shard 1/3)` to `(shard 3/3)` | the Playwright visual suite of the mock-backed app, a third each by estimated time, not by test count ([Visual shards](#visual-shards)), with the per-capture checks; one shard, the one the split names, also runs `aria`. Each uploads its capture records and shard manifest, its screenshots, a timing report, and traces when it fails |
 | `quality / ui-atlas (shard 1/2)`, `(shard 2/2)` | the Storybook component atlas, half the stories each: every story in light and dark at a wide and a narrow viewport, with axe |
 | `quality / quick-ubuntu` | one step each, every step runs even after a red one: `repo-scripts` (the plain-Node tests of `scripts/`: labels, milestones, release tooling, the layout and project guards); `docs-site` (the public docs site, [below](#the-public-docs-site): ruff and pytest of `tools/docs-site` only, while GitHub Pages is paused — the strict MkDocs build and its link check run from `pages.yml`'s manual build instead); `python` (ruff and pytest for `libs/python`, the sidecars, `scripts/` and `tests/fixtures`); `reaper (Lua)` (StyLua and ruff on `integrations/reaper`, then its bridge harness under Lua 5.4: a fake `reaper` driven through the file protocol, and the mutation checks; [The DAW port](../architecture/daw-integration.md#the-daw-port)) |
 | `quality / quick-windows` | Windows, one step each: `reaper (Lua)` again (paths from `package.config`, CRLF), then `go lint` (gofmt, go vet, golangci-lint, checklocks) |
-| `quality / go-test` | Windows: the Go tests (the race detector on every package with concurrency), then `test-schedules`. The job limit is 25 minutes: the median run is 12 and the longest seen was 15, so a 15 minute limit cancelled runs that were passing |
+| `quality / go-test (root)` | Windows: the Go tests of the module's root package (`apps/desktop`) under the race detector, alone because it is most of the cost (405 s of the 622 s the raced packages took on run 39138316593). `coverage-gate.mjs go apps/desktop -race --group=root` |
+| `quality / go-test (rest)` | Windows: the Go tests of every other package (the race detector on those with concurrency, the rest without), then `test-schedules`. `--group=race,plain`. Each of the two jobs checks the coverage floors of the packages it ran; together they run every package once. The job limit stays 25 minutes, the limit set before the split |
 | `ui-dist / build` | builds the UI bundle the Windows build reuses |
 | `Build (Windows)` | the native Windows build, starting as soon as `ui-dist / build` finishes |
 | `CI passed` | the full tier only (a ready pull request, a manual run, `main-health`): needs every job above and fails if any failed or was cancelled (skipped passes); then, when the UI is affected, runs the whole-run checks over the three shards' records (`pnpm --dir apps/ui run visual:check-run`, which was the `quality / ui-visual` job): every expected capture present, none blank, no undeclared duplicate, no stale `sameAs`, and the shards held every test of the suite exactly once: the one check for a ruleset to require ([#544](https://github.com/countrymanprime/narration-utils/issues/544)). A draft pull request shows no `CI passed`. Documentation-only pull requests do not run `CI`, so requiring it also needs `ci.yml`'s `paths-ignore` changed |
@@ -303,6 +306,18 @@ A narrator installs from `narration-utils-<version>-windows-x64-setup.exe`, an N
   and the Wails v3 migration compiled `project.nsi` there against a cross-built program), so the compile is proven by the `Build (Windows)` job; an install on a clean machine is the owner's check (the first stable rehearsal).
 - **Install and uninstall by hand** for a check: run the setup program; `narration-utils-<version>-windows-x64-setup.exe /S` installs silently
   (both shortcuts) and `"%LOCALAPPDATA%\Programs\Narration Studio\uninstall.exe" /S` removes it.
+
+## The Windows release-gate evidence workflows
+
+Three manual workflows (`workflow_dispatch` only; no ruleset requires them, nothing calls them, none publishes anything) turn the owner-pending checks of [section 9 of the Windows QA checklist](windows-qa-checklist.md#9-release-gate-checks) into recorded runs on clean GitHub-hosted Windows runners. They are evidence for the owner, not a gate: a red run does not block a merge or a release.
+
+| Workflow | Check | What it does |
+| --- | --- | --- |
+| `windows-release-checks.yml` | 9.2, 9.3, 9.4 | Downloads the setup program and `narration-utils.exe` of two published releases (`scripts/release/fetch-release-assets.sh`; the newest and the one before, or the tags given as inputs). `scripts/release/windows-install-check.ps1` installs silently, asserts a per-user install (`HKCU` entry, none under `HKLM`, `%LOCALAPPDATA%\Programs`), both Start Menu shortcuts and the desktop one, starts the app, uninstalls and asserts removal; for 9.3 it installs the older release first, seeds `global-settings.json` and `recent-projects.json`, runs the newer setup over it and checks both files, the install folder, the reported version and the shortcuts. It accepts the uninstall key `NarrationUtils` or `NarrationStudio` ([#1816](https://github.com/countrymanprime/narration-utils/issues/1816) phase 2). The third job runs `go test -tags rehearsal` on the two real `narration-utils.exe` builds ([in-app update](../architecture/in-app-update.md)). |
+| `windows-encode-check.yml` | 9.1 | `scripts/release/install-ffmpeg-asset.ps1` downloads the file in `config/encoder-assets.json`, checks its size and SHA-256 and the kept binary's, then `NARRATION_UTILS_FFMPEG=<ffmpeg.exe> go test ./internal/encodeport/...` encodes synthetic chapters and the ACX format and sample-rate checks read them. |
+| `windows-reaper-transport.yml` | 9.7 | Installs the REAPER evaluation build silently (the installer's SHA-256 and signature are recorded; pin it with the `installer-sha256` input), runs `integrations/reaper/spikes/transport_timing.lua` through `run-reaper.ps1` in an isolated `-cfgfile`, and records, for Play, Stop, Record, Pause during Record, Pause again and Stop, when `GetPlayState()` and the real bridge's heartbeat showed the change. The runner has no audio hardware: a state REAPER refuses to enter is a finding in the report, not a failure. |
+
+What these cannot show stays with the owner: a launch from REAPER after an in-app update, a physical click or keystroke on REAPER's transport, MIDI and HID prompts (9.5) and a real microphone (9.6). Each run uploads its report as an artifact and writes it to the job summary; the checklist records the latest run link per check.
 
 ## The packaged-app smoke test
 
@@ -600,8 +615,14 @@ runner called:
   `ui-visual (shard i/3)` job fails, the job uploads that folder as the `ui-visual-traces-<i>` artifact for three days. Open a trace
   with `pnpm exec playwright show-trace <trace.zip>` from `apps/ui`, or drop it on trace.playwright.dev. The atlas
   config (`playwright.atlas.config.ts`) keeps no trace yet.
-- **Dependencies** are `implicitDependencies` in each `project.json`: the desktop app reads the UI, the sidecars,
-  `config`, `fixtures` and `reaper`; the sidecars read `narration-common` and `config`.
+- **Dependencies** are `implicitDependencies` in each `project.json`: the desktop app reads the sidecars,
+  `config`, `fixtures` and `reaper` (its Go tests read their goldens and data); the sidecars read `narration-common` and `config`.
+  The desktop app does **not** list the UI project: no Go code reads a file under `apps/ui` (the Go sources only name it in comments),
+  so a UI-only pull request does not rerun the Go lint and tests. Only the native build needs the UI, and
+  `narration-utils-shell:package` says so with `dependsOn` on `narration-utils-ui:build`. `scripts/ci/projects.test.mjs` fails if
+  a Go file under `apps/desktop` names a path under `apps/ui` in a string, so the graph cannot go out of date quietly: if it fails,
+  put `narration-utils-ui` back in the shell's `implicitDependencies`. A change that is shared (`tests/fixtures`, `config`) still
+  affects both projects.
   `scripts/ci/projects.test.mjs` fails if a Python, Go, Lua or `apps/` TypeScript file is not covered by a project
   lint target, because the repo-wide `ruff .`, `staticcheck ./...` (now golangci-lint) and `stylua --check` runs are gone.
 - **Releases** are unchanged: `nx release version` still versions the root project. `nx release` counts a commit
@@ -664,7 +685,7 @@ suite has been stable for 50 runs, [#153](https://github.com/countrymanprime/nar
 
 `nx run narration-utils:knip` (also `pnpm knip`) runs [Knip](https://knip.dev) over `apps/ui`, `apps/desktop`, `scripts/`
 and `tools/`, configured in `knip.jsonc`. It fails on an unused file, export or dependency, and on an unlisted
-dependency or binary; the repository is at zero, and CI runs it on every pull request in the `js` job. Fix a finding
+dependency or binary; the repository is at zero, and CI runs it on every pull request in the `js-static` job. Fix a finding
 by deleting the code or dropping the `export`. Add an `ignore`, `ignoreIssues`, `ignoreDependencies` or
 `ignoreBinaries` entry only with a written reason in the file (generated code, external tools). It does not read Go,
 Python or Lua. The standing exceptions are the generated `apps/ui/wailsjs`, the wire-contract types, `@nx/js` (loaded by

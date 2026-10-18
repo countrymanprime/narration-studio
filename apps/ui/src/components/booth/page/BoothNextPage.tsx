@@ -48,6 +48,7 @@ import { useBoothMarks } from '../side/useBoothMarks';
 import { useBoothReference, type ReferenceTarget } from '../side/useBoothReference';
 import { useTeleprompterSession } from '../useTeleprompterSession';
 import { boothQuery, readBoothQuery, readPickupIds, type BoothStart, type BoothTarget } from './boothQuery';
+import { BoothSkeleton } from './BoothSkeleton';
 import { BoothUnavailable } from './BoothUnavailable';
 import { CreditsWarning } from './CreditsWarning';
 import { creditsParagraphs, entityAtWord, readingParagraphsOf } from './readingSource';
@@ -140,7 +141,8 @@ function BoothLoaded({ navigate, exitTo }: { navigate: (next: string) => void; e
       </div>
     );
   if (!source) {
-    if (!data.unavailable) return null;
+    // Still reading the chapters (or the credits): the page's frame, drawn as blocks. A failed read is the alert above, never this.
+    if (!data.unavailable) return <BoothSkeleton />;
     return (
       <BoothUnavailable
         why={data.unavailable}
