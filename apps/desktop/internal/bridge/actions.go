@@ -140,6 +140,7 @@ func (a *Actions) request(ctx context.Context, command string, closing []string,
 	}
 	runID, run, timeout := a.open(closing)
 	defer a.close(runID)
+	defer a.client.Expect()()
 	if _, err := a.client.Send(command, append([]string{runID}, args...)); err != nil {
 		a.logFailure(command, runID, "could not send")
 		return nil, fmt.Errorf("could not send %s to REAPER: %w", command, err)

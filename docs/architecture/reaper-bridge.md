@@ -58,7 +58,7 @@ sequenceDiagram
   end
   Br->>Br: version 1 check, registry lookup, run the handler
   Br->>F: append COMPARE_PREPARED|runId|... to events.log
-  loop every 150 ms
+  loop every 150 ms (and every 15 ms while a request awaits its answer)
     H->>TS: Drain, then Poll
     TS->>A: Dispatch
     A->>C: Dispatch, whole new lines, in order, once
@@ -83,7 +83,7 @@ client.Subscribe(bridge.Subscription{
 ```
 
 - **Routing.** An event goes to each consumer whose `Tags` match it and, when it carries a run ID, whose `Owns` is nil or true for that run. An event with an empty run ID goes to every consumer whose tags match. An event nobody accepts (an unowned run, an unwanted tag) is dropped and counted (`Undelivered()`); a line that does not decode is skipped and counted (`Malformed()`).
-- **Delivery.** `Dispatch()` reads the lines appended since the last call and delivers them in log order, once, on the calling goroutine, serialised across callers; the host's 150 ms loop already calls it through `transcript.Service.Drain`, so a second consumer only subscribes. Only whole lines are consumed: a line REAPER is still writing waits for the next call.
+- **Delivery.** `Dispatch()` reads the lines appended since the last call and delivers them in log order, once, on the calling goroutine, serialised across callers; the host's 150 ms loop already calls it through `transcript.Service.Drain`, so a second consumer only subscribes. Between ticks, `Client.Expect` (`fastpoll.go`) makes the client call it every 15 ms on a goroutine of its own while a request sent by `bridge.Actions`, `bridge.Navigator` or the level-match client awaits its answer: it stops when the answer arrives or after 2 seconds, and the 150 ms loop is the only poller again. Commands sent by the other senders (`dawport/reaper`'s review and command senders) still wait for the 150 ms tick. `Dispatch` reads `events.log` from the byte offset it stopped at (`ReadAt`), so a tick costs what the new lines cost, and a log shorter than the offset is read again from its start. Only whole lines are consumed: a line REAPER is still writing waits for the next call.
 - **Consumers today:** `bridge.Actions` (`actions.go`) subscribes to the answers of the track, record, take, FX and region commands (`TRACK_*`, `ARMED`, `RECORD_*`, `ACTIVE_TAKE_SET`, `TAKES_HIDDEN`, `ITEM_STALE`, `FX_CHAIN*`, `REGIONS_CREATED`, `ERROR`) for the requests it has in flight; the Transcript Compare service subscribes to `COMPARE_*`/`ERROR`, `apps/desktop/internal/lineidentity` to `LINES_*`/`ERROR`, `apps/desktop/internal/pickups` to the pickup tags (`PICKUPS_IMPORTED`, `PICKUPS_EXPORTED`, `PICKUPS_COUNTED`, `PICKUP_NEXT`, `PICKUP_RESOLVED`, `PICKUP_REOPENED`, `PICKUP_MARKERS_LISTED`) and `ERROR`, `apps/desktop/internal/renderconfig` to `RENDER_CONFIGURED`/`ERROR`, `apps/desktop/internal/cleanuptools` to `CLEANUP_LAUNCHED`/`ERROR`, and `apps/desktop/internal/retakelanes` to `RETAKE_LANE_PICKED`/`ERROR`, each for its own run; `bridge.Navigator` subscribes to the navigation answers (`NAVIGATED`, `LOOP_STARTED`, `LOOP_STOPPED`, `PONG`, `FINDING_MARKER`, `FINDING_STALE`, `ERROR`) of the requests it has in flight ([going to and looping a finding](reaper-navigation.md); `configureLocked` constructs it on the same client for the Review page's bindings).
 
 ### Checking events before they are delivered
