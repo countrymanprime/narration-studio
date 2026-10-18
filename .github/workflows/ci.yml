@@ -1,6 +1,12 @@
 name: CI
+# Two tiers (docs/operations/ci-and-releases.md#draft-and-ready-tiers). A draft pull request runs the light tier: the Quality jobs
+# except the Playwright suites (js, quick-ubuntu, quick-windows, go-test) and a `CI light passed` check. Everything else (a ready pull
+# request, a manual run, main-health) runs the full tier and `CI passed`. `CI passed` is never produced by a light run, so a draft
+# cannot show a green that means less than the full gate.
 on:
   pull_request:
+    # `ready_for_review` starts the full tier when a draft is marked ready; the default three types are kept.
+    types: [opened, synchronize, reopened, ready_for_review]
     paths-ignore:
       - 'docs/**'
       - '**/*.md'
@@ -13,13 +19,17 @@ concurrency:
 jobs:
   quality:
     uses: ./.github/workflows/_quality.yml
+    with:
+      full: ${{ github.event.pull_request.draft != true }}
   ui-dist:
+    if: github.event.pull_request.draft != true
     uses: ./.github/workflows/_ui-dist.yml
   # Windows is the only supported platform, so it is the only native build.
   # This job needs only the UI bundle, so it runs alongside the quality jobs rather than after them.
   build-windows:
     name: Build (Windows)
     needs: ui-dist
+    if: github.event.pull_request.draft != true
     timeout-minutes: 30
     runs-on: windows-latest
     steps:
@@ -42,10 +52,12 @@ jobs:
   # renaming a job then changes nothing a ruleset lists, and a job skipped because Nx found nothing affected counts as
   # passed. `always()` so it reports red, not skipped, when a job it needs fails. A documentation-only pull request does
   # not run this workflow (paths-ignore above), so requiring this check also needs that trigger changed.
+  # The full tier only: a draft pull request skips this job, so its check list shows no `CI passed` (the merge conditions in
+  # agent-train/SKILL.md require it). A skipped job inside the full run (the UI not affected) still counts as passed.
   ci-passed:
     name: CI passed
     needs: [quality, ui-dist, build-windows]
-    if: always()
+    if: always() && github.event.pull_request.draft != true
     timeout-minutes: 10
     runs-on: ubuntu-latest
     steps:
@@ -86,3 +98,23 @@ jobs:
         env:
           UI_VISUAL_SHARDS: '3'
         run: pnpm --dir apps/ui run visual:check-run
+
+  # What a draft pull request shows instead of `CI passed`. It sums up only what the light tier ran, and its name says so. It is
+  # not a merge condition: marking the pull request ready runs the full tier.
+  ci-light-passed:
+    name: CI light passed
+    needs: [quality]
+    if: always() && github.event.pull_request.draft == true
+    timeout-minutes: 5
+    runs-on: ubuntu-latest
+    steps:
+      - env:
+          RESULTS: ${{ join(needs.*.result, ' ') }}
+        run: |
+          echo "light tier (no visual suite, no atlas, no Windows build); needed jobs: $RESULTS"
+          for result in $RESULTS; do
+            case "$result" in
+              success|skipped) ;;
+              *) echo "::error::a job this run needs ended $result"; exit 1 ;;
+            esac
+          done
