@@ -1170,17 +1170,17 @@ describe('App (integration, driven through the mock NarrationApi)', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Import manuscript' }));
 
     fireEvent.click(await screen.findByRole('button', { name: 'Choose a file…' }));
-    await screen.findByRole('alertdialog', { name: 'Import Alice.docx' });
+    await screen.findByRole('alertdialog', { name: /^Import Alice\.docx/ });
     expect(preview).toHaveBeenCalledWith('mock-import', { markdownHeadingLevel: 1 });
     // The review says what was found and what the importer repaired; the log and progress bar belong to the commit dialog that follows.
-    const review = within(screen.getByRole('alertdialog', { name: 'Import Alice.docx' }));
+    const review = within(screen.getByRole('alertdialog', { name: /^Import Alice\.docx/ }));
     expect(review.getByText('DOCX · 240 paragraphs · 1 narration chapter.')).toBeTruthy();
     expect(review.getByText(/1 repair made to the source/)).toBeTruthy();
     expect(review.getByText(/had no gap between its number and title/)).toBeTruthy();
     expect(review.queryByText('Preview activity')).toBeNull();
     expect(document.querySelector('.progressbar')).toBeNull();
 
-    fireEvent.click(screen.getByRole('button', { name: 'Import' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Import reviewed manuscript' }));
     const activity = await screen.findByRole('dialog', { name: 'Import manuscript' });
     expect(activity.querySelector('.progressbar')).toBeTruthy();
     expect(await screen.findByText('Writing the project-owned manuscript…')).toBeTruthy();
@@ -1216,7 +1216,7 @@ describe('App (integration, driven through the mock NarrationApi)', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Import' }));
     await waitFor(() => expect(beginImport).toHaveBeenCalledWith(candidate.path));
-    expect(await screen.findByRole('alertdialog', { name: 'Import Alice.docx' })).toBeTruthy();
+    expect(await screen.findByRole('alertdialog', { name: /^Import Alice\.docx/ })).toBeTruthy();
   });
 
   it('shows the project picker instead of the routed app when a standalone launch has no attached project folder', async () => {
