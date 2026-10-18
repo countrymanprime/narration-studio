@@ -1,6 +1,6 @@
 import { LoadError } from '../layout/LoadError';
 import { describeApiError } from '../../api/errorMessage';
-import { useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent, type ReactNode } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faLock, faMicrophone, faPlus, faRotate } from '@fortawesome/free-solid-svg-icons';
@@ -55,6 +55,8 @@ import { GuideDetail, type EntryCommand } from './GuideDetail';
 import { ReadNotice } from './ReadNotice';
 import { useContextProvider, type ContextProvider } from '../../registries/context';
 import { addressPath, readAddress } from '../../navigation/address';
+import { SamplePlayerAnnouncement } from '../voicesamples/SamplePlayButton';
+import { useSamplePlayer } from '../voicesamples/useSamplePlayer';
 import { VoiceDataPanel } from './VoiceDataPanel';
 import { SeriesTab } from '../series/SeriesTab';
 import { WorkDialog } from '../primitives/WorkDialog';
@@ -63,6 +65,8 @@ import { SearchField } from '../primitives/SearchField';
 import { Select } from '../primitives/Select';
 import { Tab, TabList, TabPanel, Tabs } from '../primitives/Tabs';
 import type { Notify } from '../primitives/Toast';
+import { CHANGE_HIGHLIGHT_CLASSES, useJustChanged } from '../primitives/changeHighlight';
+import { GuideDetailSkeleton, GuideListSkeleton } from './GuideSkeleton';
 
 const ENTRIES_TAB = 'Entries';
 const SERIES_TAB = 'Series';
@@ -93,10 +97,12 @@ type GuideProps = {
   hasManuscript?: boolean;
   /** Opens the import flow, from the ask for a manuscript. */
   onImport?: () => void;
+  /** The ask for a manuscript when the page draws it itself (with the import in place); else `onImport` goes to the import. */
+  needManuscript?: ReactNode;
 };
 
-export function Guide({ hasManuscript = true, onImport, ...rest }: GuideProps) {
-  return hasManuscript ? <GuideLoaded {...rest} /> : <NeedManuscript title="Story Bible" onImport={onImport} />;
+export function Guide({ hasManuscript = true, onImport, needManuscript, ...rest }: GuideProps) {
+  return hasManuscript ? <GuideLoaded {...rest} /> : (needManuscript ?? <NeedManuscript title="Story Bible" onImport={onImport} />);
 }
 
 function GuideLoaded({ notify, goToManuscript }: Pick<GuideProps, 'notify' | 'goToManuscript'>) {
@@ -114,6 +120,8 @@ function GuideLoaded({ notify, goToManuscript }: Pick<GuideProps, 'notify' | 'go
   // keeps the rows on screen and is a toast, as before.
   const [loadError, setLoadError] = useState<string>();
   const loadedOnce = useRef(false);
+  // False until the entries have been read once, so "No entries match" is told apart from "still reading".
+  const [entriesRead, setEntriesRead] = useState(false);
   const [selectedId, setSelectedId] = useState<string>();
   const [query, setQuery] = useState('');
   const [tab, setTab] = useState(ENTRIES_TAB);
@@ -124,6 +132,8 @@ function GuideLoaded({ notify, goToManuscript }: Pick<GuideProps, 'notify' | 'go
   const rowButtons = useRef(new Map<string, HTMLButtonElement>());
   const detailRef = useRef<HTMLDivElement>(null);
   const [voiceDataOpen, setVoiceDataOpen] = useState(false);
+  // The page's one voice-sample player: every entry's Voice samples section and the Voice data panel share it, so only one sample plays.
+  const samplePlayer = useSamplePlayer();
   const [sort, setSort] = useState<EntrySortKey>(loadEntrySort);
   // The suggestions the host lists (SN-X42): an entry with one still to verify needs review, and cannot be marked reviewed (SNB-3b).
   const found = useSuggestions();
@@ -154,6 +164,7 @@ function GuideLoaded({ notify, goToManuscript }: Pick<GuideProps, 'notify' | 'go
       try {
         const next = await api.guideEntities();
         loadedOnce.current = true;
+        setEntriesRead(true);
         setLoadError(undefined);
         setRows(next);
         // Only a load that was asked for an entry decides this: the reload that follows the hash being dropped must not clear it.
@@ -252,12 +263,16 @@ function GuideLoaded({ notify, goToManuscript }: Pick<GuideProps, 'notify' | 'go
   }, [api, readNonce]);
   // A decision changes the list here at once, and an accepted suggestion can change an entry, so the entries are read again.
   const { changed } = found;
+  // The entry a decision (or its Undo) changed is highlighted once in the list (changeHighlight.ts).
+  const { changed: justChanged, mark: markChanged } = useJustChanged();
   const decided = useCallback(
     (decision: Parameters<typeof changed>[0]) => {
       changed(decision);
+      const [entryId] = decision.entryIds;
+      if (entryId) markChanged(entryId);
       void load();
     },
-    [changed, load],
+    [changed, load, markChanged],
   );
   const scanStart = useStartScan({ scan: found.scan.start, onImported: () => void load() });
   const links = useMemo(() => evidenceLinks(chapters, goToManuscript), [chapters, goToManuscript]);
@@ -501,63 +516,69 @@ function GuideLoaded({ notify, goToManuscript }: Pick<GuideProps, 'notify' | 'go
                 </div>
               )}
               <div className="guide-list-scroll min-h-0 overflow-y-auto p-2">
-                {loose.length > 0 && (
+                {!entriesRead && <GuideListSkeleton />}
+                {entriesRead && loose.length > 0 && (
                   <ul aria-label="Suggestions not in the Story Bible yet" className="m-0 mb-2 list-none p-0">
                     <LooseSuggestionRows suggestions={loose} selectedId={looseChosen?.id ?? null} onSelect={setLooseId} />
                   </ul>
                 )}
-                <ul onKeyDown={onListKeyDown} aria-label="Story Bible entries" className="m-0 flex list-none flex-col gap-0.5 p-0">
-                  {sorted.map((row) => {
-                    const open = !pendingNewEntity && selectedId === row.id;
-                    const pill = reviewPill(row, suggestions);
-                    return (
-                      <li key={row.id}>
-                        {/* native-control-ok: a roving-focus list row of two lines (name and pill, swatch and counts) that Button's padded chrome does not fit */}
-                        <button
-                          type="button"
-                          ref={(node) => {
-                            if (node) rowButtons.current.set(row.id, node);
-                            else rowButtons.current.delete(row.id);
-                          }}
-                          data-entry-id={row.id}
-                          tabIndex={row.id === stopId ? 0 : -1}
-                          aria-current={open || undefined}
-                          onFocus={() => setFocusedId(row.id)}
-                          onClick={() => {
-                            selectRow(row.id);
-                            // Below the two-column width the entry opens under the list: bring it into view so the click visibly does something.
-                            if (window.matchMedia?.('(max-width: 1023px) and (max-height: 899px)').matches)
-                              detailRef.current?.scrollIntoView?.({ block: 'start' });
-                          }}
-                          className={`flex w-full flex-col gap-0.5 rounded-lg px-2.5 py-2 text-left ${open ? 'bg-[var(--accent-soft)] text-[var(--accent-strong)]' : 'text-[var(--text)] hover:bg-[var(--surface-2)]'}`}
-                        >
-                          <span data-line="name" className="flex w-full min-w-0 items-center gap-2 text-[0.9375rem] font-bold">
-                            <span className="truncate">{row.canonical_name}</span>
-                            {row.locked && <FontAwesomeIcon icon={faLock} className="text-[10px]" style={{ color: 'var(--non-text)' }} />}
-                            {pill && <StatusBadge tone="warning" label={pill} className="ml-auto shrink-0 whitespace-nowrap" />}
-                          </span>
-                          <span data-line="kind" className="flex items-center gap-1.5 text-sm font-normal" style={{ color: 'var(--text-muted)' }}>
-                            <Swatch colour={kindSwatch(types, row.category)} />
-                            <span>
-                              {row.category === 'Draft' ? categoryLabel(row.category) : typeUnknown(row) ? 'Type not set' : row.category}
-                              {row.category !== 'Draft' &&
-                                ` · ${nameCount(row)} ${nameCount(row) === 1 ? 'name' : 'names'} · ${chapterCount(row)} ${chapterCount(row) === 1 ? 'chapter' : 'chapters'}`}
+                {entriesRead && (
+                  <ul onKeyDown={onListKeyDown} aria-label="Story Bible entries" className="m-0 flex list-none flex-col gap-0.5 p-0">
+                    {sorted.map((row) => {
+                      const open = !pendingNewEntity && selectedId === row.id;
+                      const pill = reviewPill(row, suggestions);
+                      return (
+                        <li key={row.id}>
+                          {/* native-control-ok: a roving-focus list row of two lines (name and pill, swatch and counts) that Button's padded chrome does not fit */}
+                          <button
+                            type="button"
+                            ref={(node) => {
+                              if (node) rowButtons.current.set(row.id, node);
+                              else rowButtons.current.delete(row.id);
+                            }}
+                            data-entry-id={row.id}
+                            data-just-changed={justChanged === row.id ? '' : undefined}
+                            tabIndex={row.id === stopId ? 0 : -1}
+                            aria-current={open || undefined}
+                            onFocus={() => setFocusedId(row.id)}
+                            onClick={() => {
+                              selectRow(row.id);
+                              // Below the two-column width the entry opens under the list: bring it into view so the click visibly does something.
+                              if (window.matchMedia?.('(max-width: 1023px) and (max-height: 899px)').matches)
+                                detailRef.current?.scrollIntoView?.({ block: 'start' });
+                            }}
+                            className={`flex w-full flex-col gap-0.5 rounded-lg px-2.5 py-2 text-left ${open ? 'bg-[var(--accent-soft)] text-[var(--accent-strong)]' : 'text-[var(--text)] hover:bg-[var(--surface-2)]'} ${justChanged === row.id ? CHANGE_HIGHLIGHT_CLASSES : ''}`}
+                          >
+                            <span data-line="name" className="flex w-full min-w-0 items-center gap-2 text-[0.9375rem] font-bold">
+                              <span className="truncate">{row.canonical_name}</span>
+                              {row.locked && <FontAwesomeIcon icon={faLock} className="text-[10px]" style={{ color: 'var(--non-text)' }} />}
+                              {pill && <StatusBadge tone="warning" label={pill} className="ml-auto shrink-0 whitespace-nowrap" />}
                             </span>
-                          </span>
-                        </button>
+                            <span data-line="kind" className="flex items-center gap-1.5 text-sm font-normal" style={{ color: 'var(--text-muted)' }}>
+                              <Swatch colour={kindSwatch(types, row.category)} />
+                              <span>
+                                {row.category === 'Draft' ? categoryLabel(row.category) : typeUnknown(row) ? 'Type not set' : row.category}
+                                {row.category !== 'Draft' &&
+                                  ` · ${nameCount(row)} ${nameCount(row) === 1 ? 'name' : 'names'} · ${chapterCount(row)} ${chapterCount(row) === 1 ? 'chapter' : 'chapters'}`}
+                              </span>
+                            </span>
+                          </button>
+                        </li>
+                      );
+                    })}
+                    {sorted.length === 0 && (
+                      <li className="p-3 text-sm" style={{ color: 'var(--text-muted)' }}>
+                        No entries match.
                       </li>
-                    );
-                  })}
-                  {sorted.length === 0 && (
-                    <li className="p-3 text-sm" style={{ color: 'var(--text-muted)' }}>
-                      No entries match.
-                    </li>
-                  )}
-                </ul>
+                    )}
+                  </ul>
+                )}
               </div>
             </TabPanel>
             <div ref={detailRef} className="flex min-h-0 min-w-0">
-              {looseChosen ? (
+              {!entriesRead ? (
+                <GuideDetailSkeleton />
+              ) : looseChosen ? (
                 <Panel title={summaryOf(looseChosen.payload)} scroll className="min-h-0 flex-1">
                   <SuggestionList title="Suggested" suggestions={[looseChosen]} sources={found.sources} onChanged={decided} {...links} />
                 </Panel>
@@ -578,6 +599,7 @@ function GuideLoaded({ notify, goToManuscript }: Pick<GuideProps, 'notify' | 'go
                   reload={load}
                   notify={notify}
                   goToManuscript={goToManuscript}
+                  samplePlayer={samplePlayer}
                   toVerify={selected ? verifyOf(suggestions, selected.id) : 0}
                   chapters={chapters}
                   suggested={
@@ -629,7 +651,8 @@ function GuideLoaded({ notify, goToManuscript }: Pick<GuideProps, 'notify' | 'go
         )}
         {buildJob && <WorkDialog title="Rebuild Story Bible" job={buildJob} close={() => setBuildJob(undefined)} background={() => setBuildJob(undefined)} />}
         {scanStart.dialogs}
-        <VoiceDataPanel open={voiceDataOpen} onClose={() => setVoiceDataOpen(false)} notify={notify} />
+        <VoiceDataPanel open={voiceDataOpen} onClose={() => setVoiceDataOpen(false)} notify={notify} entities={rows} types={types} player={samplePlayer} />
+        <SamplePlayerAnnouncement text={samplePlayer.announcement} />
       </Tabs>
     </CommandScope>
   );

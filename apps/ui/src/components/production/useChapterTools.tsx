@@ -46,6 +46,8 @@ type Options = {
   refreshKey: string;
   /** Reads the overview and the readiness again after a status, a link or a measurement changed. */
   onChanged: () => void;
+  /** Hears the chapter a Restore brought back, so its pipeline row can show what changed. */
+  onRestored?: (chapterId: string) => void;
   /** The DAW the row menu's "Go to this chapter in …" names, and why selecting a track there is off (its `track_select` capability). */
   daw: { name: string; unavailable?: string };
 };
@@ -57,7 +59,7 @@ type Options = {
  * Returns the row menu's items for a target, the panels, the opener the page's Edit cell uses, and the track links the chapter-sync
  * toast names a track from.
  */
-export function useChapterTools({ rows, credits, notify, go, goToScript, goToEditing, active, refreshKey, onChanged, daw }: Options) {
+export function useChapterTools({ rows, credits, notify, go, goToScript, goToEditing, active, refreshKey, onChanged, onRestored, daw }: Options) {
   const api = useApi();
   const [chapters, setChapters] = useState<ManuscriptChapter[]>();
   const [trackLinks, setTrackLinks] = useState<ChapterTrackLinks>();
@@ -153,6 +155,7 @@ export function useChapterTools({ rows, credits, notify, go, goToScript, goToEdi
       const result = await api.manuscriptSetChapterKind(chapterId, 'narration');
       notify(`${result.chapter.title} restored.`);
       await afterKind();
+      onRestored?.(chapterId);
     } catch (error) {
       notify(describeApiError(error), 'error');
     } finally {

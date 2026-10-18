@@ -6,6 +6,7 @@ Delivery is the last step of finishing a book. It names the delivery profile the
 checks every chapter against it, and builds the platform's package from the files you mastered and encoded in
 [Master & QC](master-and-qc.md). It sits under **Finish**, after Master & QC, and needs an imported
 manuscript: without one the page asks you to import one.
+While the chapters are being read, **Before you build** shows grey blocks in place of the chapter checks.
 
 ![Delivery judged against ACX with nothing measured: the profile, its checks and files, Output with Build off, and Before you build with every chapter waiting](../../images/ui/delivery-default.webp)
 

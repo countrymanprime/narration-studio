@@ -4,6 +4,7 @@
 
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
+import { readPickupIds } from '../booth/page/boothQuery';
 import { CommandScope } from '../../input/router';
 import { useCommand } from '../../input/useCommand';
 import { addressPagePath, readAddress, type AddressPage, type AddressRead } from '../../navigation/address';
@@ -105,10 +106,18 @@ export function AddressGate({
   return <>{children}</>;
 }
 
-/** The Booth fills the window, so its bad-address screen has no sidebar to leave by: Escape leaves it as it leaves the Booth, for Script. */
+/**
+ * The Booth fills the window, so its bad-address screen has no sidebar to leave by: Escape leaves it as it leaves a working Booth.
+ * A link that still names pickups (`?pickups=`) opened a pickup session, which returns to Pickups; any other link returns to Script.
+ * The link is all a bad address has: the page the narrator came from is not kept, so a pickup session is told by its own query.
+ */
 function LeaveBoothOnEscape() {
   const navigate = useNavigate();
-  useCommand('booth.exit', () => navigate(addressPagePath('script'), { replace: true }));
+  const { search } = useLocation();
+  useCommand('booth.exit', () => {
+    const session = readPickupIds(new URLSearchParams(search)).length > 0;
+    navigate(session ? '/pickups' : addressPagePath('script'), { replace: true });
+  });
   return null;
 }
 

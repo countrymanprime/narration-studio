@@ -92,6 +92,20 @@
   },
   {
     "page": "script",
+    "state": "reader-context-menu",
+    "viewport": "desktop",
+    "docName": "script-context-menu",
+    "caption": "Script - the right-click menu on a selected word, in labelled groups"
+  },
+  {
+    "page": "script",
+    "state": "skip-to-side-panel",
+    "viewport": "desktop",
+    "docName": "script-skip-to-side-panel",
+    "caption": "Script - the Skip to the side panel button under the reader header, with focus on it"
+  },
+  {
+    "page": "script",
     "state": "rail-words",
     "viewport": "desktop",
     "docName": "script-word-lookup",
@@ -606,7 +620,7 @@
     "state": "daw-off",
     "viewport": "desktop",
     "docName": "editing-daw-off",
-    "caption": "Editing with the DAW not connected - the banner with its reason and Retry"
+    "caption": "Editing with the DAW not connected - the banner with Check again"
   },
   {
     "page": "editing",
@@ -908,6 +922,34 @@
     "viewport": "desktop",
     "docName": "storybible-voice-data",
     "caption": "Story Bible - the Voice data slide-over: choosing a region to approve as a reference, and Remove voice data"
+  },
+  {
+    "page": "storybible",
+    "state": "voice-samples-entry",
+    "viewport": "desktop",
+    "docName": "storybible-voice-samples",
+    "caption": "Story Bible - the Queen of Hearts entry with four voice samples: the primary, one whose passage changed, one whose audio file is missing"
+  },
+  {
+    "page": "storybible",
+    "state": "voice-data-samples",
+    "viewport": "desktop",
+    "docName": "storybible-voice-data-samples",
+    "caption": "Story Bible - the Voice data slide-over with Narration voice samples, the space the samples use, and the sample of a character who left the Story Bible"
+  },
+  {
+    "page": "booth",
+    "state": "voice-samples-picker",
+    "viewport": "desktop",
+    "docName": "booth-voice-samples-picker",
+    "caption": "Booth - the speaker picker with a count and a play button on each character who has voice samples"
+  },
+  {
+    "page": "booth",
+    "state": "voice-samples-panel",
+    "viewport": "desktop",
+    "docName": "booth-voice-samples-panel",
+    "caption": "Booth - Voices in this scene with voice samples: a play button and count on each voice, one opened to list its samples"
   },
   {
     "page": "booth",
