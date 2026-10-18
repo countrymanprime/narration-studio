@@ -1,0 +1,123 @@
+name: Windows release checks
+# Scripted, non-gating evidence for the owner-pending release-gate checks 9.2, 9.3 and 9.4 (docs/operations/windows-qa-checklist.md,
+# section 9). Manual only: nothing requires it, no other workflow calls it, and it publishes nothing. It installs the published
+# release candidates on a clean GitHub-hosted runner, so it changes only that runner.
+on:
+  workflow_dispatch:
+    inputs:
+      new-tag:
+        description: Release tag to test as the new build (empty = the newest release)
+        default: ''
+      previous-tag:
+        description: Release tag to test as the previous build (empty = the release before the new one)
+        default: ''
+permissions: { contents: read }
+concurrency:
+  group: windows-release-checks-${{ github.ref }}
+  cancel-in-progress: false
+jobs:
+  install:
+    name: 9.2 clean install and uninstall
+    runs-on: windows-latest
+    timeout-minutes: 20
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+      INPUT_NEW_TAG: ${{ inputs.new-tag }}
+      INPUT_PREVIOUS_TAG: ${{ inputs.previous-tag }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Download the setup programs of two releases
+        shell: bash
+        run: scripts/release/fetch-release-assets.sh "$RUNNER_TEMP/releases" "$INPUT_NEW_TAG" "$INPUT_PREVIOUS_TAG"
+      - name: Install, start, uninstall the new setup program
+        shell: pwsh
+        run: |
+          $setup = (Get-ChildItem "$env:RUNNER_TEMP/releases/new" -Filter '*-windows-x64-setup.exe' | Select-Object -First 1).FullName
+          "Release $env:NEW_TAG, $setup" | Add-Content $env:GITHUB_STEP_SUMMARY
+          ./scripts/release/windows-install-check.ps1 -Setup $setup -OutDir "$env:RUNNER_TEMP/install-report"
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        if: always()
+        with:
+          name: install-check-9-2
+          path: ${{ runner.temp }}/install-report/
+          if-no-files-found: warn
+          retention-days: 14
+
+  upgrade:
+    name: 9.3 upgrade over a previous release
+    runs-on: windows-latest
+    timeout-minutes: 20
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+      INPUT_NEW_TAG: ${{ inputs.new-tag }}
+      INPUT_PREVIOUS_TAG: ${{ inputs.previous-tag }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Download the setup programs of two releases
+        shell: bash
+        run: scripts/release/fetch-release-assets.sh "$RUNNER_TEMP/releases" "$INPUT_NEW_TAG" "$INPUT_PREVIOUS_TAG"
+      - name: Install the previous release, run the new setup over it
+        shell: pwsh
+        run: |
+          $new = (Get-ChildItem "$env:RUNNER_TEMP/releases/new" -Filter '*-windows-x64-setup.exe' | Select-Object -First 1).FullName
+          $old = (Get-ChildItem "$env:RUNNER_TEMP/releases/previous" -Filter '*-windows-x64-setup.exe' | Select-Object -First 1).FullName
+          "Upgrade $env:PREVIOUS_TAG -> $env:NEW_TAG" | Add-Content $env:GITHUB_STEP_SUMMARY
+          ./scripts/release/windows-install-check.ps1 -Setup $new -PreviousSetup $old -OutDir "$env:RUNNER_TEMP/upgrade-report"
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        if: always()
+        with:
+          name: install-check-9-3
+          path: ${{ runner.temp }}/upgrade-report/
+          if-no-files-found: warn
+          retention-days: 14
+
+  update-rehearsal:
+    name: 9.4 two-build update rehearsal
+    runs-on: windows-latest
+    timeout-minutes: 25
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+      INPUT_NEW_TAG: ${{ inputs.new-tag }}
+      INPUT_PREVIOUS_TAG: ${{ inputs.previous-tag }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/setup-toolchain
+        with:
+          need-node: 'false'
+          need-pnpm: 'false'
+          need-python: 'false'
+          need-wails-tools: 'false'
+          need-stylua: 'false'
+          need-linux-native-deps: 'false'
+      - name: Download two published builds
+        shell: bash
+        run: scripts/release/fetch-release-assets.sh "$RUNNER_TEMP/releases" "$INPUT_NEW_TAG" "$INPUT_PREVIOUS_TAG"
+      - name: Run the rehearsal against the two real narration-utils.exe builds
+        shell: bash
+        working-directory: apps/desktop
+        env:
+          GOFLAGS: -mod=readonly
+        run: |
+          export REHEARSAL_OLD="$(cygpath -w "$RUNNER_TEMP/releases/previous/narration-utils.exe")"
+          export REHEARSAL_NEW="$(cygpath -w "$RUNNER_TEMP/releases/new/narration-utils.exe")"
+          echo "Rehearsal: $PREVIOUS_TAG -> $NEW_TAG" | tee -a "$GITHUB_STEP_SUMMARY"
+          go test -tags rehearsal -run Rehearsal -v -count=1 ./internal/update 2>&1 | tee "$RUNNER_TEMP/rehearsal.log"
+          { echo '```'; tail -n 25 "$RUNNER_TEMP/rehearsal.log"; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+          # A skipped test exits 0; only a PASS line shows the two builds really swapped.
+          grep -q -- '--- PASS: TestRehearsalWithTwoRealBuilds' "$RUNNER_TEMP/rehearsal.log" || { echo '::error::the rehearsal did not pass (skipped or absent)'; exit 1; }
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        if: always()
+        with:
+          name: update-rehearsal-9-4
+          path: ${{ runner.temp }}/rehearsal.log
+          if-no-files-found: warn
+          retention-days: 14
