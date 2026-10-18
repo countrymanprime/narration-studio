@@ -9,7 +9,7 @@
     "The measurement stopped unexpectedly."
   ],
   "elapsed": 3.5,
-  "error": "runtime error: index out of range [4] with length 4",
+  "error": "The measurement stopped unexpectedly.",
   "files": [
     {
       "path": "C:/Renders/Chapter 01.wav",
@@ -19,7 +19,7 @@
       "fingerprint": null,
       "findings": [],
       "rules": [],
-      "error": "the measurement stopped unexpectedly: runtime error: index out of range [4] with length 4"
+      "error": "the measurement stopped unexpectedly on this file"
     },
     {
       "path": "C:/Renders/Chapter 02.wav",

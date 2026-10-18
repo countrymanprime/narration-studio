@@ -4,15 +4,11 @@ import { type FeedbackRow, row, subscription } from './row';
 // prettier-ignore
 export const settingsFeedback: Record<string, FeedbackRow> = {
   // Settings: the shared read, the kept panels' fields forms and their own host calls
-  'src/components/settings/page/ScopedFieldsPanel.tsx::saveSettings#1': row('click', 'file-io', 'none', 'none', 'toast', 'toast', 'na', 'ok', 'Measured at about 3 ms (docs/research/interaction-latency-baseline.md), tier 1: nothing to acknowledge, and a second save writes the same values.'),
-  'src/components/settings/page/ScopedFieldsPanel.tsx::saveSettings#2': row('click', 'file-io', 'none', 'none', 'toast', 'toast', 'na', 'ok', 'Clearing a project override is the same one-field write, about 3 ms: tier 1.'),
+  'src/components/settings/page/ScopedFieldsPanel.tsx::saveSettings#1': row('click', 'file-io', 'none', 'none', 'toast', 'toast', 'na', 'ok', 'Measured at about 3 ms (docs/research/interaction-latency-baseline.md), tier 1: nothing to acknowledge, and a second save writes the same values, so a failed save is a toast with Retry.'),
+  'src/components/settings/page/ScopedFieldsPanel.tsx::saveSettings#2': row('click', 'file-io', 'none', 'none', 'toast', 'toast', 'na', 'ok', 'Clearing a project override is the same one-field write, about 3 ms: tier 1, and a failure is a toast with Retry.'),
   'src/components/settings/page/ProjectDataPanel.tsx::clearProjectData#1': row('click', 'file-io', 'pending', 'pending', 'toast', 'toast', 'no', 'ok', 'The confirm stays open and busy until the files are removed, and cannot be confirmed twice.'),
   'src/components/settings/CapabilitySection.tsx::dawCapabilities#1': row('mount', 'file-io', 'na', 'na', 'ui', 'inline', 'na', 'ok', 'Reads the whole capability report once when the DAW Integration panel draws. A failed read shows an inline error with a Retry button that reads again, and a read that resolves after a daw_capabilities_changed event is dropped, the same stale-read guard as useCapability.'),
   'src/components/settings/CapabilitySection.tsx::subscribeDawCapabilities#1': subscription("The DAW port's capability report: each row updates when the host pushes a change, without a reload."),
-  // Settings > DAW: Backups (SNM-3b), drawn only for a DAW that reports the backups capability
-  'src/components/settings/BackupsSection.tsx::settingsForScope#1': row('mount', 'file-io', 'na', 'na', 'ui', 'inline', 'na', 'ok', 'Reads the Global layer with the project one, once the capability report says backups are there and available; a failure is written in the section with Retry.'),
-  'src/components/settings/BackupsSection.tsx::settingsForScope#2': row('mount', 'file-io', 'na', 'na', 'ui', 'inline', 'na', 'ok', 'The project layer, read with the Global one: a project override is the layer an edit is saved at.'),
-  'src/components/settings/BackupsSection.tsx::saveSettings#1': row('input', 'file-io', 'none', 'none', 'ui', 'inline', 'na', 'ok', 'A one-field write when a box is left or Reset is pressed, only for a value the store accepts, the same tier-1 cost as Settings.tsx\'s own saveSettings rows; a refusal is the host\'s sentence under the rows and the edit stays in the box.'),
   // The Studio Next Settings page (SN-M92): the Recording panel over the project's DAW choice (bindings_dawchoice.go)
   // The Studio Next Settings page (SN-M52): the project's delivery profile select
   // The Studio Next Settings page (SN-M53): the Story Bible types panel over SN-B95's calls

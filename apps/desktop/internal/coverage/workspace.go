@@ -53,6 +53,9 @@ type AlignmentView struct {
 	Extras          []ExtraLine             `json:"extras"`
 	Items           []AlignmentItem         `json:"items"`
 	Engine          *AlignmentEngine        `json:"engine,omitempty"`
+	// RecordID is the ledger record of the recording check these word times came from, set only while that check is current. A voice
+	// sample marked from these words sends it back, and the host refuses the mark when the chapter's current record is another one.
+	RecordID string `json:"recordId,omitempty"`
 }
 
 // AlignmentEngine is the recogniser that wrote a chapter's alignment: a stable
@@ -190,6 +193,9 @@ func (s *Service) Alignment(chapterID string, alignment AlignmentParams) (Alignm
 		return view, nil
 	}
 	report := result.Result.Report
+	if result.Current() {
+		view.RecordID = result.Result.RecordID
+	}
 	view.NeedsAlignAgain = !report.HasAlignment()
 	view.Tokens, view.Extras = nonNil(report.Tokens), nonNil(report.Extras)
 	view.Engine = engineOf(report)

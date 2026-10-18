@@ -3,6 +3,12 @@ import type { StateEntry } from '../lib/types';
 import { KEEPS_DESKTOP_SCROLL, LIVE_PROGRESS_MOVES_ON, TOAST_FADES_OUT } from './shared';
 
 export const productionStates: StateEntry[] = [
+  {
+    page: 'production',
+    state: 'load-error',
+    description:
+      'Production when its overview could not be read (?mockInvalidPayload=production): the title, "This page could not be loaded" with Retry; navigation still works',
+  },
   // The Production home at `/` (mock 01)
   {
     page: 'production',
@@ -111,6 +117,11 @@ export const productionStates: StateEntry[] = [
     state: 'import-confirm',
     description:
       'Production, import manuscript confirm dialog with format/paragraph/chapter preview (reached via Settings > Manuscript, "Replace manuscript…", since a manuscript is already loaded)',
+    sameAs: {
+      of: 'settings/manuscript',
+      reason:
+        'The Manuscript row moved to Settings > Project (#1834), so a loaded project reaches the import confirm through Replace manuscript… there: the same dialog over the same page, not one over Production.',
+    },
   },
   {
     page: 'production',

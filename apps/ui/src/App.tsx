@@ -384,11 +384,13 @@ function AppRoutes() {
   const boothRecording = useBoothRecording(location.pathname === '/booth');
   const boothRecordingRef = useRef(boothRecording);
   boothRecordingRef.current = boothRecording;
+  const pathnameRef = useRef(location.pathname);
+  pathnameRef.current = location.pathname;
   const queuedAnnouncements = useRef<{ text: string; tone: ToastTone }[]>([]);
   useEffect(() => {
     if (!hasBootstrap) return;
     return api.subscribeJobEnded((event) => {
-      const announcement = toastForJobEnd(event);
+      const announcement = toastForJobEnd(event, pathnameRef.current);
       if (announcement) {
         if (shouldQueueJobEndAnnouncement(announcement, boothRecordingRef.current)) queuedAnnouncements.current.push(announcement);
         else setNotice(announcement.text, announcement.tone);

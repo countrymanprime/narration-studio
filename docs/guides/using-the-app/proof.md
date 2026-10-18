@@ -19,6 +19,9 @@ something, there is no ring, every chapter in the strip is empty and the Inspect
 
 ![Proof - no notes yet](../../images/ui/proof-empty.webp)
 
+If the page's chapters or notes cannot be read when it opens, Proof keeps its title and says "This page could not be
+loaded" with the reason and a **Retry** button, which reads them again. The rest of the app keeps working.
+
 ## All chapters or one chapter
 
 The chapter stepper beside the title shows **All chapters** or one chapter. On **All chapters** the notes run in book order, chapter by chapter, and **J**/**K** follow that order. Choose a chapter from it, or step with its
@@ -111,7 +114,7 @@ Select a note in the table, or its pin on the waveform, and the Inspector shows 
 
 A decision is saved at once and the next note is selected. A message says what was saved, with **Undo** to put the
 note back as it was. The decision is also in the app's undo history, so Ctrl+Z, **Undo** in the header and
-[History](navigation.md) take it back too, as "Decision “Waive” at 00:12.4". **Waive** says the line stays as it was read. **Reopen** puts a decided note back
+[History](navigation.md) take it back too, as "Decision “Waive” at 00:12.4"; from another chapter, the undo opens the note's own chapter and selects the note. **Waive** says the line stays as it was read. **Reopen** puts a decided note back
 to review.
 
 A decision is always made on the evidence you are looking at. If the check ran again after the note was shown and the

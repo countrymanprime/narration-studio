@@ -29,6 +29,7 @@ export function LimitRow({
         label={`${rule.label} ${word}`}
         value={toShown(rule, bound)}
         mono
+        inputMode="decimal"
         className="w-24!"
         onCommit={(text) => {
           const value = fromShown(rule, text);
