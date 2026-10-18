@@ -1,5 +1,6 @@
 import { Button } from '../../primitives/Button';
 import { Icon } from '../../primitives/Icon';
+import { statusLabel, statusTone } from '../../../kinds/statusTone';
 import { StatusBadge } from '../../primitives/StatusBadge';
 import type { LinePassage } from './types';
 
@@ -44,7 +45,11 @@ export function TakeChip({
         ))}
       </span>
       {active ? <span className="font-['IBM_Plex_Mono',ui-monospace,monospace]">{active.label}</span> : null}
-      {keptId ? <StatusBadge tone="success" label="Kept" shape="tag" /> : <StatusBadge tone="neutral" label="To choose" shape="tag" />}
+      {keptId ? (
+        <StatusBadge tone={statusTone('kept_take')} label={statusLabel('kept_take')} shape="tag" />
+      ) : (
+        <StatusBadge tone={statusTone('waiting')} label="To choose" shape="tag" />
+      )}
       <Icon name={open ? 'previous' : 'next'} />
     </Button>
   );

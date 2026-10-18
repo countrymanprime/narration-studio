@@ -59,20 +59,35 @@ describe('marks-are-not-colour-alone', () => {
     show(marksDoc());
     const um = document.querySelector<HTMLElement>('[data-mark="extra"]')!;
     expect(um.textContent).toBe('um');
-    expect(um.className).toContain('italic');
-    expect(um.className).toContain('border-dotted');
+    expect(um.style.fontStyle).toBe('italic');
+    expect(um.style.boxShadow).toContain('var(--danger)');
     expect(um.getAttribute('aria-description')).toMatch(/^Not in the script, \d+:\d\d, 90%$/);
     const miss = document.querySelector<HTMLElement>('[data-mark="miss"]')!;
     expect(miss.textContent).toBe('very');
-    expect(miss.className).toContain('border-dashed');
+    expect(miss.style.outline).toContain('dashed');
     expect(miss.getAttribute('aria-description')).toBe('In the script, not read');
     const mis = document.querySelector<HTMLElement>('[data-mark="mis"]')!;
     expect(mis.getAttribute('aria-description')).toMatch(/^Heard “sitter”, \d+%$/);
-    expect(mis.className).toContain('border-solid');
+    expect(mis.style.textDecoration).toContain('wavy');
     const low = document.querySelector<HTMLElement>('[data-mark="low"]')!;
     expect(low.textContent).toBe('tired');
-    expect(low.className).toContain('decoration-wavy');
+    expect(low.style.textDecoration).toContain('solid');
     expect(low.getAttribute('aria-description')).toBe('Low confidence 50%');
+  });
+});
+
+describe('a mark yields to the layers drawn on the same word', () => {
+  it('keeps the extra bar under a selection and an effect underline, and lets a cursor ring replace the dashed box', () => {
+    show(marksDoc({ effects: [{ id: 'fx1', keys: ['p-1:0'] }] }));
+    const um = document.querySelector<HTMLElement>('[data-mark="extra"]')!;
+    act(() => page.dispatch({ type: 'select', head: um.dataset.k!, anchor: um.dataset.k! }));
+    expect(um.style.boxShadow).toContain('var(--info)');
+    expect(um.style.boxShadow).toContain('var(--danger)');
+    expect(um.style.background).toBe('');
+    const miss = document.querySelector<HTMLElement>('[data-mark="miss"]')!;
+    act(() => page.dispatch({ type: 'place', key: miss.dataset.k! }));
+    expect(miss.style.outline).toBe('');
+    expect(miss.className).toContain('outline-[var(--focus)]');
   });
 });
 
@@ -250,8 +265,8 @@ describe('struck-and-marked-words-are-drawn-from-the-document', () => {
     expect(cut.dataset.mark).toBe('cut');
     expect(cut.className).toContain('line-through');
     expect(cut.getAttribute('aria-description')).toBe('Cut from the audio');
-    expect(word('p-2:3').className).toContain('inset_0_-3px_0');
-    expect(word('p-2:4').className).toContain('inset_0_-3px_0');
+    expect(word('p-2:3').style.boxShadow).toContain('inset 0 -3px 0');
+    expect(word('p-2:4').style.boxShadow).toContain('inset 0 -3px 0');
     const markers = document.querySelectorAll('[data-fx-marker]');
     expect(markers).toHaveLength(1);
     expect(markers[0].getAttribute('aria-label')).toBe('Effect on the words before');

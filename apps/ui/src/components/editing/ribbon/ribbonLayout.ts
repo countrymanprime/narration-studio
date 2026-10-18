@@ -1,7 +1,8 @@
 import { flagged, isLow, itemAt, type ChapterDoc, type DocItem } from '../model';
 import type { PageState } from '../script/scriptState';
 
-type TintKind = 'extra' | 'low';
+/** Which kind of flagged word a tinted span covers: extra words, a misread, or a low-confidence word. */
+export type TintKind = 'extra' | 'mis' | 'low';
 
 export interface RibbonLayout {
   pid: string;
@@ -44,7 +45,7 @@ export function ribbonLayout(doc: ChapterDoc, pid: string, selected: readonly st
   const tints = para.items.filter((i) => heard(i) && !i.cut && !i.accepted && (i.st === 'extra' || i.st === 'mis' || isLow(i)));
   const flags = tints.flatMap((i) => {
     const c = clip(i.t0 as number, i.t1 as number);
-    return c ? [{ ...c, kind: (i.st === 'extra' ? 'extra' : 'low') as TintKind }] : [];
+    return c ? [{ ...c, kind: (i.st === 'extra' ? 'extra' : i.st === 'mis' ? 'mis' : 'low') as TintKind }] : [];
   });
   /* A cut word has no length of its own (it sits where the cut was), so one cut is one marker at that moment; the drawing gives it a visible width. */
   const cutIds = new Set<string>();

@@ -1,11 +1,18 @@
+import { kindMarkStyle } from '../../../kinds/markStyle';
 import type { WordPart } from './diff';
 
 /** A run of this many words left out is shortened to its first two and a count. */
 const LONG_RUN = 5;
 
+// Words the take left out are the script's missing words and words it added are extra words, drawn as those kinds are everywhere
+// (kinds/kindMap.ts). `del` and `ins` keep their meaning for assistive technology; the browser's strike and underline are switched off
+// so the registry's shape is the only mark.
+const LEFT_OUT = { ...kindMarkStyle('missing'), textDecoration: 'none' };
+const ADDED = { ...kindMarkStyle('extra'), textDecoration: 'none' };
+
 /**
- * What the take said against the script: said as written, left out (struck through) and added (underlined). The two marks differ in shape
- * as well as colour, and the line reads aloud with "left out" and "added" around them.
+ * What the take said against the script: said as written, left out (the missing mark) and added (the extra mark). The two marks differ in
+ * shape as well as colour, and the line reads aloud with "left out" and "added" around them.
  */
 export function Diff({ parts }: { parts: readonly WordPart[] }) {
   const runs: Array<{ k: WordPart['k']; words: string[] }> = [];
@@ -25,7 +32,7 @@ export function Diff({ parts }: { parts: readonly WordPart[] }) {
             <span key={i}>
               {gap}
               <span className="sr-only">left out: </span>
-              <del title={full} className="bg-[var(--danger-soft)] text-[var(--danger-text)] line-through">
+              <del title={full} data-kind="missing" className="rounded-[0.15rem] px-[0.05em]" style={LEFT_OUT}>
                 {text}
               </del>
             </span>
@@ -36,7 +43,9 @@ export function Diff({ parts }: { parts: readonly WordPart[] }) {
             <span key={i}>
               {gap}
               <span className="sr-only">added: </span>
-              <ins className="bg-[var(--ok-soft)] text-[var(--ok-text)] underline decoration-2">{full}</ins>
+              <ins data-kind="extra" className="rounded-[0.15rem] px-[0.05em]" style={ADDED}>
+                {full}
+              </ins>
             </span>
           );
         return (

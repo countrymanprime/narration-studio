@@ -20,12 +20,19 @@ legend of the marks in the text with how many of each, the recogniser that heard
 legend uses short labels with no counts.
 While the chapters and the chapter's lines are being read, the header stays and the script is drawn as grey blocks; if the chapters cannot be read, the page says so.
 
-Words carry what the last [recording check](production.md#checking-a-chapters-recording) heard:
+Words carry what the last [recording check](production.md#checking-a-chapters-recording) heard. Each kind is drawn the
+same way on every page of the app, and the legend shows a sample of each beside its count, so the shape tells two red kinds apart
+without the colour:
 
-- **Not in the script** (Extra): words heard that the script does not have, between the words they followed;
-- **In the script, not read** (Not read): words of the script nothing was heard for;
-- **Misread**: a word heard differently, with what was heard;
-- **Low confidence**: a word the recogniser was unsure of.
+- **Not in the script** (Extra): words heard that the script does not have, in italics on a red tint with a red bar at their left;
+- **In the script, not read** (Not read): words of the script nothing was heard for, in muted text inside a dashed red box;
+- **Misread**: a word heard differently, with a wavy red underline and what was heard on hover;
+- **Low confidence**: a word the recogniser was unsure of, with a thin amber underline.
+
+Red means the words are wrong, amber means the recording or the recogniser is in doubt. The same colours mark the matching
+spans on the ribbon, the kind chip on a word's card, the rows of the drawer's found list and, in a take's line, the words
+the take left out (as not read) and added (as extra). A cut word is struck through, and a selected or playing word keeps its own fill;
+the mark's underline stays under both.
 
 Each line starts with its time in the chapter. A line with more than one take has a takes chip under it: how many
 takes, the one that plays, and whether one was chosen yet. Tab visits one chip, the one on the line the cursor is on (the
