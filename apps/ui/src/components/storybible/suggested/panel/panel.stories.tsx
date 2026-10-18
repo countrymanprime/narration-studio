@@ -7,7 +7,7 @@ import { EntryVerifyPill } from './EntryVerifyPill';
 import { ImportButton } from './ImportButton';
 import { LooseSuggestionRows } from './LooseSuggestionRows';
 import { NeedsVerificationChip } from './NeedsVerificationChip';
-import { ScanButton } from './ScanButton';
+import { ScanButton, ScanStatus } from './ScanButton';
 import { unattached } from '../row/selectors';
 import type { ExtractionScan } from './useSuggestions';
 
@@ -118,6 +118,7 @@ const scanStory = (scan: ExtractionScan): Story => ({
     <Surface>
       <div className="flex items-start gap-2">
         <ScanButton scan={scan} />
+        <ScanStatus scan={scan} />
         <ImportButton onImport={fn()} />
       </div>
     </Surface>

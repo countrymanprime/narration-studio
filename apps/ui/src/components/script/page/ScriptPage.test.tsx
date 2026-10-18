@@ -213,7 +213,8 @@ describe('registers-and-unregisters', () => {
 });
 
 describe('right-click-menus-reach-what-the-page-draws', () => {
-  const labels = (target: Element | null) => (target ? (contextItemsFor(target) ?? []).map((item) => item.label) : []);
+  const labels = (target: Element | null) =>
+    target ? (contextItemsFor(target) ?? []).map((item) => (item.group ? `${item.group}: ${item.label}` : item.label)) : [];
 
   it('a mark, a flagged word, a chapter row, a chapter card and a Words row each get their menu', async () => {
     const api = createMockApi({ creditsTemplates: async () => [] });
@@ -333,7 +334,7 @@ describe('bookmark-flow-end-to-end', () => {
         .getAllByRole('button')
         .find((b) => b.textContent?.startsWith('was'))!,
     );
-    await waitFor(() => expect(document.querySelector(`[data-bm="${first!.id}"] .motion-ok\\:animate-pulse`)).not.toBeNull());
+    await waitFor(() => expect(document.querySelector(`[data-bm="${first!.id}"] [data-just-changed]`)).not.toBeNull());
   });
 });
 
@@ -638,7 +639,7 @@ describe('bookmarks-from-the-jump-menu', () => {
     act(() => entry!.run());
     // The reader is asked once, scrolls, and the bookmark's ribbon pulses.
     await waitFor(() => expect(tops.length).toBeGreaterThan(0));
-    await waitFor(() => expect(document.querySelector(`[data-bm="${bookmark.id}"] .motion-ok\\:animate-pulse`)).not.toBeNull());
+    await waitFor(() => expect(document.querySelector(`[data-bm="${bookmark.id}"] [data-just-changed]`)).not.toBeNull());
   });
 
   it('Next bookmark with none says No bookmarks yet.', async () => {

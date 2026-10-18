@@ -263,7 +263,7 @@ describe('mark-for-pickup-adds-a-pickup', () => {
     const items = await itemsOn('p-1:1');
     await act(async () => item(items, 'mark-for-pickup').onSelect());
     expect(api.pickupsAdd).toHaveBeenCalledWith(CHAPTER, page.doc.items[page.doc.index.get('p-1:1')!].t0, 'was very');
-    expect(overlay.toastUndo).toHaveBeenCalledWith('Added to Pickups.', expect.any(Function));
+    expect(overlay.toastUndo).toHaveBeenCalledWith('Added to Pickups.', expect.any(Function), { entry: expect.any(Number) });
     const undo = vi.mocked(overlay.toastUndo).mock.calls[0][1];
     await act(async () => void (await undo()));
     expect(api.pickupsRemove).toHaveBeenCalledWith('you:1');

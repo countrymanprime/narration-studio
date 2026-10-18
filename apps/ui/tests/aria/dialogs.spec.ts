@@ -199,7 +199,8 @@ test('the note on reference material reached by keyboard also takes the first Es
   await openApp(page, DESKTOP, ['production', 'import-confirm']);
   const dialog = page.getByRole('alertdialog', { name: 'Import Alice.docx' });
   const info = dialog.getByRole('button', { name: 'About reference material' });
-  for (let presses = 0; presses < 20 && !(await info.evaluate((element) => element === document.activeElement)); presses++) await page.keyboard.press('Tab');
+  // Each outline row is a few tab stops (its title, Subtitle box and kind select), so the icon is some way in.
+  for (let presses = 0; presses < 40 && !(await info.evaluate((element) => element === document.activeElement)); presses++) await page.keyboard.press('Tab');
   await expect(info).toBeFocused();
   await expect(page.getByRole('tooltip')).toBeVisible();
   await page.keyboard.press('Escape');

@@ -115,7 +115,7 @@ describe('b-bookmarks-the-reading-position-and-says-so-with-an-undo', () => {
     press('KeyB');
     await waitFor(() => expect(result.current.bookmarks).toHaveLength(1));
     expect(result.current.bookmarks![0]).toMatchObject({ chapterId: chapters[0].id, paragraphId: paragraphs[0].id, offset: wordStart(paragraphs[0].text, 2) });
-    expect(toastUndo).toHaveBeenCalledWith('Bookmark added.', expect.any(Function));
+    expect(toastUndo).toHaveBeenCalledWith('Bookmark added.', expect.any(Function), { entry: expect.any(Number) });
     await act(async () => void (await toastUndo.mock.calls[0][1]()));
     await waitFor(() => expect(result.current.bookmarks).toEqual([]));
   });
