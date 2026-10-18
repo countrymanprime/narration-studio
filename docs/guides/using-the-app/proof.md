@@ -110,7 +110,8 @@ Select a note in the table, or its pin on the waveform, and the Inspector shows 
 - **Notes on this finding**, the conversation about the spot (see [Notes on a finding](#notes-on-a-finding)).
 
 A decision is saved at once and the next note is selected. A message says what was saved, with **Undo** to put the
-note back as it was. **Waive** says the line stays as it was read. **Reopen** puts a decided note back
+note back as it was. The decision is also in the app's undo history, so Ctrl+Z, **Undo** in the header and
+[History](navigation.md) take it back too, as "Decision “Waive” at 00:12.4". **Waive** says the line stays as it was read. **Reopen** puts a decided note back
 to review.
 
 A decision is always made on the evidence you are looking at. If the check ran again after the note was shown and the
@@ -162,6 +163,7 @@ why.
 | P, E, W, D | Needs pickup, Fix in edit, Waive, Defer on the selected note |
 | Esc | Back to All chapters |
 | Ctrl+F | Find in notes |
+| Ctrl+Z | Undo the last change, a decision included |
 
 The footer lists them, and you can change them in [Settings](settings.md). Space is not a Proof key.
 
