@@ -256,7 +256,7 @@ export function createMeasureMock(
       ...job,
       error: BROKE,
       files: job.files.map((file, i) =>
-        i === 0 ? { ...file, status: 'failed', error: `the measurement stopped unexpectedly: ${BROKE}` } : { ...file, status: 'cancelled' },
+        i === 0 ? { ...file, status: 'failed', error: 'the measurement stopped unexpectedly on this file' } : { ...file, status: 'cancelled' },
       ),
     };
     end('error', 'The measurement stopped unexpectedly.');
