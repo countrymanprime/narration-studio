@@ -38,8 +38,10 @@ const textOf = (cell: PipelineCell) => (cell.text === UNDER_WAY ? underWayMark :
 
 function StageCell({ row, cell, onGo }: { row: PipelineRow; cell: PipelineCell; onGo: (target: GoTarget, chapterId: string) => void }) {
   const colors = toneColors(KIND_TONE[cell.kind]);
-  const look = cell.kind === 'none' ? 'outline' : 'soft';
-  const classes = badgeClass('cell');
+  // The mock fills an empty cell (`.cell`, --raised) rather than outlining it.
+  const look = 'soft';
+  // The mock's `.cell` is `width: 100%` of its column; the shape itself is only a minimum.
+  const classes = `${badgeClass('cell')} w-full`;
   if (!cell.go) {
     return (
       <TooltipTarget text={cell.tip}>

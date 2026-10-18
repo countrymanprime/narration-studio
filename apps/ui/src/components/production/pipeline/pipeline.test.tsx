@@ -41,6 +41,12 @@ function table(overrides: Partial<Parameters<typeof PipelineTable>[0]> = {}) {
 }
 
 describe('PipelineTable', () => {
+  // The mock's `.cell` fills its column (`width: 100%`), where the badge shape is only a 52 px minimum.
+  it('draws each stage cell across its column', () => {
+    table();
+    expect(document.querySelector('[data-cell]')!.className).toContain('w-full');
+  });
+
   it('one-row-per-chapter-with-stage-cells: a row per chapter and the same width for every stage column', () => {
     table();
     const grid = screen.getByRole('table', { name: 'Chapter pipeline' });

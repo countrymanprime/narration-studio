@@ -83,17 +83,25 @@ describe('StatusBadge', () => {
     expect(tag.className).toContain('uppercase');
   });
 
-  // docs/design/design-system.md: the Production board's cell (mock 01), a fixed-width 20 px block on the tag radius, its label centred.
-  it("draws the board cell at 20 px and at least 58 px wide, centred, on the tag radius, in the label's own case", () => {
+  // The Studio Next mock's `.cell` (app.css:121): a 24 px block, Plex Mono 500 at 12 px, on a 4 px radius, its label centred.
+  it("draws the board cell at 24 px, centred, on a 4 px radius, in Plex Mono at 12 px and the label's own case", () => {
     render(<StatusBadge tone="danger" label="3 open" shape="cell" />);
     const cell = screen.getByText('3 open');
-    expect(cell.className).toContain('h-5');
-    expect(cell.className).toContain('min-w-[3.625rem]');
+    expect(cell.className).toContain('h-6');
+    expect(cell.className).toContain('min-w-[3.25rem]');
     expect(cell.className).toContain('justify-center');
+    expect(cell.className).toContain('rounded-[0.25rem]');
+    expect(cell.className).toContain('text-xs');
+    expect(cell.className).toContain('font-medium');
+    expect(cell.className).toContain('IBM_Plex_Mono');
+    expect(cell.className).not.toContain('Barlow');
     // A label longer than the cell is clipped inside it, never drawn over the next column.
     expect(cell.className).toContain('overflow-hidden');
-    expect(cell.className).toContain('rounded-[var(--radius-tag)]');
     expect(cell.className).not.toContain('uppercase');
+  });
+
+  it('keeps Barlow Condensed on every other shape', () => {
+    for (const shape of ['pill', 'tag', 'booth'] as const) expect(badgeClass(shape)).toContain('Barlow_Condensed');
   });
 
   it('draws the booth tag at 26 px', () => {

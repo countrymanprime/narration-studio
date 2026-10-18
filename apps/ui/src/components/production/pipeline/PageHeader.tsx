@@ -40,7 +40,7 @@ export function PageHeader({ chapters, words, k, today, due, record, timerRunnin
   return (
     <header className="flex flex-wrap items-start justify-between gap-4">
       <div className="flex min-w-0 flex-[1_1_24rem] flex-col gap-2">
-        <Heading title="Production" />
+        <Heading title="Production" size="hero" />
         <p className="text-[0.8125rem] text-[var(--text-muted)]">
           {chapters} chapters · {num(words)} words ·{' '}
           {due && days ? (

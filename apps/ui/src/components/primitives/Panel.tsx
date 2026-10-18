@@ -1,7 +1,17 @@
 import { useId, type ReactNode } from 'react';
-import { PANEL_BODY_CLASS, PANEL_CAPS_TITLE_CLASS, PANEL_FRAME_CLASS, PANEL_HEADER_CLASS, PANEL_SUBTITLE_CLASS, PANEL_TITLE_CLASS } from './panelStyles';
+import {
+  PANEL_BODY_CLASS,
+  PANEL_CAPS_TITLE_CLASS,
+  PANEL_ENTRY_TITLE_CLASS,
+  PANEL_FRAME_CLASS,
+  PANEL_HEADER_CLASS,
+  PANEL_SUBTITLE_CLASS,
+  PANEL_TITLE_CLASS,
+} from './panelStyles';
 
-type PanelTitleStyle = 'card' | 'caps';
+const TITLE_CLASS: Record<PanelTitleStyle, string> = { card: PANEL_TITLE_CLASS, caps: PANEL_CAPS_TITLE_CLASS, entry: PANEL_ENTRY_TITLE_CLASS };
+
+type PanelTitleStyle = 'card' | 'caps' | 'entry';
 
 type PanelLook = {
   children: ReactNode;
@@ -17,7 +27,7 @@ type PanelLook = {
   className?: string;
 };
 
-// `titleStyle="caps"` is the dark Settings mocks' category title. `subtitle`, `leading` and `actions` sit in the header
+// `titleStyle="caps"` is the dark Settings mocks' category title; `"entry"` is the Story Bible entry's name (26 px). `subtitle`, `leading` and `actions` sit in the header
 // row, so they need a title. A bare panel may still be named by `label` when a visible title would repeat what is already
 // on screen.
 type PanelProps = PanelLook &
@@ -86,7 +96,7 @@ export function PanelHeader({
     <div className={PANEL_HEADER_CLASS}>
       <div className="flex min-w-0 flex-1 flex-wrap items-baseline gap-x-2.5 gap-y-1">
         {leading && <span className="flex items-center gap-2 self-center">{leading}</span>}
-        <h2 id={titleId} className={titleStyle === 'caps' ? PANEL_CAPS_TITLE_CLASS : PANEL_TITLE_CLASS}>
+        <h2 id={titleId} className={TITLE_CLASS[titleStyle]}>
           {title}
         </h2>
         {subtitle && <div className={PANEL_SUBTITLE_CLASS}>{subtitle}</div>}
