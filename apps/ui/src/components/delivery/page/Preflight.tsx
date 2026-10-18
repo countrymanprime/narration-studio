@@ -7,6 +7,7 @@ import { LoadingRegion, Skeleton } from '../../primitives/Skeleton';
 import { StatusBadge } from '../../primitives/StatusBadge';
 import type { ChapterState } from './chapterStates';
 import { heardText } from './useHostRead';
+import { ARRIVE_CLASSES } from '../../primitives/changeHighlight';
 
 const TONE = { ok: 'success', bad: 'danger', wait: 'neutral' } as const;
 const DANGER = { color: 'var(--danger-text)' };
@@ -48,7 +49,7 @@ export function Preflight({
     <Panel title="Before you build" actions={onOpenMaster && <IconButton action="openInMaster" onClick={onOpenMaster} />}>
       <div className="flex flex-col gap-1">
         {problem && (
-          <p role="alert" className="text-sm" style={DANGER}>
+          <p role="alert" className={`text-sm ${ARRIVE_CLASSES}`} style={DANGER}>
             Can't tell which chapters pass, {heardText(lastHeard)}: {problem}
             {known && ' The list below may be out of date.'}{' '}
             <Button variant="ghost" size="sm" onClick={onCheckAgain}>
@@ -88,6 +89,8 @@ export function Preflight({
                     <span dir="auto" title={state.name} className="min-w-0 flex-1 truncate">
                       {state.name}
                     </span>
+                    {/* A space, so the text drawn reads "Chapter 01 Pass", words of the name: run together it fails axe's
+                        label-content-name-mismatch. A flex box draws no space for it. */}{' '}
                     <StatusBadge tone={TONE[state.kind]} label={state.text} />
                   </Button>
                 </li>

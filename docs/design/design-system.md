@@ -149,6 +149,8 @@ Four widths and the rail decide the layout, as the Studio Next mock lays it out:
 
 ## Settings rows
 
+The Settings page always keeps every setting. A working page may also offer a compact entry for one (a menu, a modal or a drawer tab, hidden until opened) that edits the same keys, but it never replaces the Settings control; `registry/pageSettings.test.ts` fails when a page-owned setting has no Settings panel.
+
 `apps/ui/src/components/settings/ScopedSetting.tsx` renders one Settings field by its `kind`, and the host (`apps/desktop/app.go`, `fieldSchemas` and `validateSettingValue`) validates it by the same kind. Every value is a string in the settings files.
 
 | Kind | Control | Stored value |
@@ -176,7 +178,7 @@ Four widths and the rail decide the layout, as the Studio Next mock lays it out:
 - **Alternating rows.** Paragraph rows alternate between `--surface` and `--row-alt` (a touch darker in light theme, a touch lighter in dark) with a 1px `--border` line between rows, like banded table rows. Highlights tint with `transparent` mixes so they read on either row.
 - **Highlights** are the `Highlight` primitive only: entity, note and review share one look, filling the full line height, tinted and underlined in the kind's color and drawn in its derived `--<kind>-text` ([Colour and contrast](colour-and-contrast.md)).
 - **Sticky chapter headers** are opaque (`bg-[var(--surface)]`) with a soft shadow once stuck; they must never be transparent over scrolling text.
-- **"Go to line" target** stays highlighted (accent edge and tint) for 30 seconds (`JUMP_HIGHLIGHT_MS` in `script/ScriptPage.tsx`) and pulses while lit (`motion-ok:` only).
+- **"Go to line" target** stays highlighted (accent edge and tint) for 30 seconds (`JUMP_HIGHLIGHT_MS` in `script/ScriptPage.tsx`) and its paragraph fades from the accent tint once when the jump lands (`CHANGE_HIGHLIGHT_CLASSES`).
 - **Formatting and line breaks** from import (`spans`, `\n`) render as `<strong>`/`<em>`/`<u>` and `white-space: pre-line` ([Manuscript import: formatting quirks and how they are handled](../architecture/docx-import-quirks.md)).
 - **Side panels** use `SlideOver`; state-dependent classes are mutually exclusive.
 
@@ -192,7 +194,7 @@ A chapter's name (its title and, when it has one, its subtitle) is drawn one way
 
 ## Motion
 
-See [`motion-and-animation.md`](motion-and-animation.md). Every transition and animation is a `motion-ok:` utility timed by a `--motion-*` and `--ease-*` token in `styles.css`; `motion-ok:` stops under Windows reduced motion and under `<html data-motion="reduce">`, and `apps/ui/src/motion.test.ts` fails on anything else. `components.css` declares none (`apps/ui/src/legacyCss.test.ts`), because a legacy rule beats a utility in the same layer. Popovers and menus share one enter and exit (`primitives/overlayMotion.ts`); dialogs appear at once. The named keyframes are `work-progress-slide`, `tooltip-in`, `toast-in` and `settings-saved`, the per-row "Saved" fade on the Settings page, which leaves the word readable without motion.
+See [`motion-and-animation.md`](motion-and-animation.md). Every transition and animation is a `motion-ok:` utility timed by a `--motion-*` and `--ease-*` token in `styles.css`; `motion-ok:` stops under Windows reduced motion and under `<html data-motion="reduce">`, and `apps/ui/src/motion.test.ts` fails on anything else. `components.css` declares none (`apps/ui/src/legacyCss.test.ts`), because a legacy rule beats a utility in the same layer. Popovers and menus share one enter and exit (`primitives/overlayMotion.ts`); dialogs appear at once. What an action changed fades from `--accent-soft` once, and a failure arriving fades in once (`primitives/changeHighlight.ts`). The named keyframes are `work-progress-slide`, `tooltip-in`, `toast-in`, `change-highlight`, `arrive` and `settings-saved`, the per-row "Saved" fade on the Settings page, which leaves the word readable without motion.
 
 ## What the suites do not prove
 
