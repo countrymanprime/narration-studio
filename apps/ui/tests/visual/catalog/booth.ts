@@ -213,4 +213,17 @@ export const boothStates: StateEntry[] = [
     description: 'Booth with no manuscript imported (?mockNoManuscript=1): the page asks for the manuscript and keeps the rail, which a recording would hide',
     ...REFLOW,
   },
+  {
+    page: 'booth',
+    state: 'loading',
+    description:
+      'Booth while its chapters are still being read (?mockChapters=loading): the page in its own frame as grey blocks - the top bar with the chapter and the progress, the reading column, the side panel (inline only above 1280 px) and the footer - with the hidden page title kept and one polite "Reading the chapters…" status',
+    ...REFLOW,
+  },
+  {
+    page: 'booth',
+    state: 'load-failed',
+    description: "Booth when the chapters cannot be read (?mockChapters=fails): the read's own sentence as an alert, and no skeleton left behind",
+    ...REFLOW,
+  },
 ];
