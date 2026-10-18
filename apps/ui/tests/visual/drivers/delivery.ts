@@ -63,6 +63,16 @@ export const deliveryDrivers: Record<string, Driver> = {
     await buildButton(page).click();
     await page.getByRole('alert').filter({ hasText: "Can't tell how the build is going" }).waitFor();
   },
+  'host-quiet-cancelled': async (page) => {
+    await openReady(page, 'quiet');
+    await buildButton(page).click();
+    const quiet = page.getByRole('alert').filter({ hasText: "Can't tell how the build is going" });
+    await quiet.waitFor();
+    await quiet.getByRole('button', { name: 'Check again' }).click();
+    await page.getByText(/^You checked again .*: the host still did not answer\.$/).waitFor();
+    await page.getByRole('button', { name: 'Cancel', exact: true }).click();
+    await page.getByText('Cancel was sent, but the host did not confirm it, so the build may still be running.').waitFor();
+  },
   'no-manuscript': async (page) => {
     await page.goto('/delivery?mockNoManuscript');
     await settlePage(page);

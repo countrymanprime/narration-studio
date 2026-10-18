@@ -700,6 +700,13 @@
     "caption": "Delivery with a running build and a host that no longer answers: the message with Check again"
   },
   {
+    "page": "delivery",
+    "state": "host-quiet-cancelled",
+    "viewport": "desktop",
+    "docName": "delivery-host-quiet-cancelled",
+    "caption": "Delivery with a host that no longer answers, after Check again and Cancel: each press is answered, and the cancel is marked unconfirmed"
+  },
+  {
     "page": "settings",
     "state": "recording-found",
     "viewport": "desktop",
