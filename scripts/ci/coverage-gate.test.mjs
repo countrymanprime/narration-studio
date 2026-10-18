@@ -9,12 +9,18 @@ import test from 'node:test';
 import {
   aggregateFiles,
   aggregatePackages,
+  blobName,
+  blobProblems,
+  entriesForPackages,
   evaluate,
   FLOORS_PATH,
   floorFor,
   formatFloors,
+  groupPackages,
   normalizePytestReport,
   normalizeVitestSummary,
+  parseShard,
+  parseGroups,
   parseGoCover,
   raiseFloors,
   RAISE_MARGIN,
@@ -288,4 +294,71 @@ test('a nonWindowsFloor must be a whole number below the floor and say why', () 
   assert.match(bad({ nonWindowsFloor: -1 }), /whole number/);
   assert.match(bad({ nonWindowsReason: undefined }), /needs a nonWindowsReason/);
   assert.match(validateFloors({ entries: [entry({ nonWindowsReason: 'orphan' })] }).join('\n'), /nonWindowsReason without a nonWindowsFloor/);
+});
+
+test('--shard=i/n names a shard of a split and nothing else does', () => {
+  assert.deepEqual(parseShard('--shard=2/3'), { index: 2, count: 3 });
+  assert.deepEqual(parseShard('--shard=1/1'), { index: 1, count: 1 });
+  for (const bad of ['--shard=0/3', '--shard=4/3', '--shard=2', '--shard=a/3', '--shard=2/3 ', 'shard=2/3', undefined]) assert.equal(parseShard(bad), null, String(bad));
+});
+
+test('a merge needs the blob of every shard of its split and none of another', () => {
+  const all = [1, 2, 3].map((i) => blobName(i, 3));
+  assert.deepEqual(blobProblems(all, 3), []);
+  assert.match(blobProblems(all.slice(0, 2), 3).join('\n'), /blob-3-3\.json is missing/);
+  assert.equal(blobProblems([], 3).length, 3);
+  assert.match(blobProblems([...all, blobName(1, 2)], 3).join('\n'), /blob-1-2\.json is not part of a 3-way split/);
+});
+
+test('the command line refuses a vitest option it does not know before running anything', () => {
+  for (const option of ['--shard=4/3', '--merge=0', '--shard=1/3x', '--coverage']) {
+    const result = spawnSync(process.execPath, [fileURLToPath(new URL('./coverage-gate.mjs', import.meta.url)), 'vitest', 'apps/ui', option], { encoding: 'utf8' });
+    assert.equal(result.status, 2, option);
+    assert.match(result.stderr, /Usage: coverage-gate\.mjs vitest/);
+  }
+});
+
+const MODULE = 'example.com/shell';
+const layout = { race: [MODULE, `${MODULE}/internal/a`, `${MODULE}/internal/b`], plain: [`${MODULE}/internal/c`, `${MODULE}/cmd/d`] };
+
+test('--group names the root, the other raced and the plain packages, once each', () => {
+  assert.deepEqual(parseGroups('root'), ['root']);
+  assert.deepEqual(parseGroups('race,plain'), ['race', 'plain']);
+  for (const bad of ['', 'all', 'root,root', 'root,', 'Root']) assert.equal(parseGroups(bad), null, bad);
+});
+
+test('the groups divide the packages: the root is alone, the rest of the raced follow, the plain are kept', () => {
+  const groups = groupPackages(layout, MODULE);
+  assert.deepEqual(groups.root, [MODULE]);
+  assert.deepEqual(groups.race, [`${MODULE}/internal/a`, `${MODULE}/internal/b`]);
+  assert.deepEqual(groups.plain, layout.plain);
+  assert.deepEqual([...groups.root, ...groups.race, ...groups.plain].sort(), [...layout.race, ...layout.plain].sort());
+  assert.deepEqual(groupPackages({ race: [`${MODULE}/internal/a`], plain: [MODULE] }, MODULE).root, [], 'a root run without -race is in plain');
+});
+
+test('each job checks the floors of the packages it ran, every floor is checked by some job, and a floor for no package by all', () => {
+  const entries = [
+    entry({ path: 'internal/a' }),
+    entry({ path: 'internal/b' }),
+    entry({ path: 'internal/c' }),
+    entry({ path: 'internal/gone' }),
+  ];
+  const all = [...layout.race, ...layout.plain];
+  const groups = groupPackages(layout, MODULE);
+  const checked = (names) => entriesForPackages(entries, MODULE, names.flatMap((name) => groups[name]), all).map((e) => e.path);
+  assert.deepEqual(checked(['root']), ['internal/gone']);
+  assert.deepEqual(checked(['race', 'plain']), ['internal/a', 'internal/b', 'internal/c', 'internal/gone']);
+  assert.deepEqual(checked(['race']), ['internal/a', 'internal/b', 'internal/gone']);
+  const jobs = [['root'], ['race'], ['plain']];
+  for (const e of entries.slice(0, 3)) assert.equal(jobs.filter((names) => checked(names).includes(e.path)).length, 1, e.path);
+  assert.equal(entriesForPackages([entry({ path: '.' })], MODULE, groups.root, all).length, 1, 'the root floor belongs to the root job');
+});
+
+test('the command line refuses --group without -race and a group it does not know', () => {
+  const gate = fileURLToPath(new URL('./coverage-gate.mjs', import.meta.url));
+  const refuse = (...args) => spawnSync(process.execPath, [gate, 'go', 'apps/desktop', ...args], { encoding: 'utf8' });
+  assert.equal(refuse('-race', '--group=everything').status, 2);
+  assert.equal(refuse('--group=root').status, 2, 'no -race, nothing to divide');
+  assert.equal(refuse('-race', '--group=root', '--group=race').status, 2);
+  assert.match(refuse('-race', '--group=everything').stderr, /Usage: coverage-gate\.mjs go/);
 });
