@@ -598,8 +598,14 @@ runner called:
   `ui-visual (shard i/3)` job fails, the job uploads that folder as the `ui-visual-traces-<i>` artifact for three days. Open a trace
   with `pnpm exec playwright show-trace <trace.zip>` from `apps/ui`, or drop it on trace.playwright.dev. The atlas
   config (`playwright.atlas.config.ts`) keeps no trace yet.
-- **Dependencies** are `implicitDependencies` in each `project.json`: the desktop app reads the UI, the sidecars,
-  `config`, `fixtures` and `reaper`; the sidecars read `narration-common` and `config`.
+- **Dependencies** are `implicitDependencies` in each `project.json`: the desktop app reads the sidecars,
+  `config`, `fixtures` and `reaper` (its Go tests read their goldens and data); the sidecars read `narration-common` and `config`.
+  The desktop app does **not** list the UI project: no Go code reads a file under `apps/ui` (the Go sources only name it in comments),
+  so a UI-only pull request does not rerun the Go lint and tests. Only the native build needs the UI, and
+  `narration-utils-shell:package` says so with `dependsOn` on `narration-utils-ui:build`. `scripts/ci/projects.test.mjs` fails if
+  a Go file under `apps/desktop` names a path under `apps/ui` in a string, so the graph cannot go out of date quietly: if it fails,
+  put `narration-utils-ui` back in the shell's `implicitDependencies`. A change that is shared (`tests/fixtures`, `config`) still
+  affects both projects.
   `scripts/ci/projects.test.mjs` fails if a Python, Go, Lua or `apps/` TypeScript file is not covered by a project
   lint target, because the repo-wide `ruff .`, `staticcheck ./...` (now golangci-lint) and `stylua --check` runs are gone.
 - **Releases** are unchanged: `nx release version` still versions the root project. `nx release` counts a commit
