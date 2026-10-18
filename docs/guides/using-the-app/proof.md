@@ -101,7 +101,7 @@ Select a note in the table, or its pin on the waveform, and the Inspector shows 
 
 - its time and its type. The type is a list: if the check named the wrong kind of problem, choose the right one, and your
   choice is kept with the note;
-- the arrows to step to the previous or next note;
+- the arrows to step to the previous or next note on the list (a chip, the search or the In view filter can hide notes; the keys skip them);
 - what the script says and what was heard, with the difference marked;
 - **Takes at this spot**, when the spot has more than one take: each take with **Play** (from its own recording, without
   the DAW) and which one is active or kept. **Manage takes in Editing** opens the chapter on

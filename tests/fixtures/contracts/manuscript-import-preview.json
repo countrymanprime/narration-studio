@@ -25,17 +25,21 @@
     "sections": [
       {
         "contentKind": "narration",
+        "firstText": "Roses are red,\nviolets are blue.",
         "id": "section-0001",
         "paragraphCount": 2,
         "subtitle": "Down the Rabbit-Hole",
         "subtitleOff": "title",
-        "title": "Chapter One"
+        "title": "Chapter One",
+        "wordCount": 13
       },
       {
         "contentKind": "narration",
+        "firstText": "A short line in the second chapter.",
         "id": "section-0002",
         "paragraphCount": 1,
-        "title": "Chapter Two"
+        "title": "Chapter Two",
+        "wordCount": 7
       }
     ],
     "sourceName": "book.md"
