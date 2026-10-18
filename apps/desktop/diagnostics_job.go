@@ -328,9 +328,14 @@ func (h *Host) cancelDiagnostics() DiagnosticsJob {
 	if job == nil || !job.running() {
 		return h.diagnosticsState()
 	}
+	// The answer is read before cancel(): once the context is cancelled the check can end and rewrite the message
+	// before this returns, and the answer is "what cancelling did", not whichever state the race lands on.
 	job.mu.Lock()
-	job.message = "Cancelling the diagnostics."
+	if job.phase == "running" {
+		job.message = "Cancelling the diagnostics."
+	}
 	job.mu.Unlock()
+	cancelling := job.snapshot()
 	job.cancel()
-	return job.snapshot()
+	return cancelling
 }

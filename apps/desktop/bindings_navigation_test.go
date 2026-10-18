@@ -7,6 +7,7 @@ import (
 	"strings"
 	"sync"
 	"testing"
+	"time"
 
 	"github.com/countrymanprime/narration-utils/shell/internal/bridge"
 	"github.com/countrymanprime/narration-utils/shell/internal/daw"
@@ -67,9 +68,11 @@ func (f *fakeNavigator) sent() []string {
 	return append([]string(nil), f.requests...)
 }
 
-// liveReachability is a tracker that has just heard REAPER's heartbeat, as a REAPER launch has.
+// liveReachability is a tracker that heard a heartbeat and keeps hearing it: its clock is frozen, so a slow test (a
+// race-detector run on a busy Windows runner took 5.5 s to set one up) never outlasts the heartbeat timeout.
 func liveReachability() *daw.Reachability {
-	reach := daw.NewReachability(nil)
+	frozen := time.Now()
+	reach := daw.NewReachabilityWithClock(nil, func() time.Time { return frozen })
 	reach.Record(bridge.Event{Tag: "PROJECT_STATUS", Fields: []string{"PROJECT_STATUS", "", "C:/Projects/Alice/Alice.rpp", "0"}})
 	return reach
 }
