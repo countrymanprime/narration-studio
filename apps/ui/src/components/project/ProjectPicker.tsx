@@ -10,6 +10,7 @@ import { IconButton } from '../primitives/IconButton';
 import { Panel } from '../primitives/Panel';
 import { TOAST_INFO_MS, type Notify } from '../primitives/Toast';
 import { TooltipTarget } from '../primitives/Tooltip';
+import { CHANGE_HIGHLIGHT_CLASSES, useJustChanged } from '../primitives/changeHighlight';
 import { NewProjectDialog } from './NewProjectDialog';
 import { recentWhen } from './recentWhen';
 import { DemoBanner } from '../layout/DemoBanner';
@@ -35,6 +36,8 @@ export function ProjectPicker({ notify, onCreated }: { notify: Notify; onCreated
   const [newProjectOpen, setNewProjectOpen] = useState(false);
   // The paths of recent projects removed from the list but not yet from the host: their Undo is still on offer.
   const [hidden, setHidden] = useState<string[]>([]);
+  // The row an Undo brought back is highlighted once, so the narrator sees where it returned.
+  const restored = useJustChanged();
   const removalTimers = useRef(new Map<string, number>());
 
   useEffect(() => {
@@ -126,6 +129,7 @@ export function ProjectPicker({ notify, onCreated }: { notify: Notify; onCreated
     window.clearTimeout(timer);
     removalTimers.current.delete(path);
     pendingFocusRef.current = path;
+    restored.mark(path);
     setHidden((current) => current.filter((candidate) => candidate !== path));
   };
 
@@ -203,7 +207,11 @@ export function ProjectPicker({ notify, onCreated }: { notify: Notify; onCreated
               ) : (
                 <ul>
                   {visible.map((entry) => (
-                    <li key={entry.path} className="flex items-center gap-3 border-t border-[var(--border)] px-4 py-[0.8125rem] first:border-t-0">
+                    <li
+                      key={entry.path}
+                      data-just-changed={restored.changed === entry.path ? '' : undefined}
+                      className={`flex items-center gap-3 border-t border-[var(--border)] px-4 py-[0.8125rem] first:border-t-0 ${restored.changed === entry.path ? CHANGE_HIGHLIGHT_CLASSES : ''}`}
+                    >
                       <span
                         aria-hidden="true"
                         className="flex size-9 flex-none items-center justify-center rounded-[var(--radius-button)] bg-[var(--surface-2)] text-[var(--text-muted)] max-sm:hidden"

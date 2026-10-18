@@ -76,7 +76,7 @@ describe('NavButton', () => {
       </>,
     );
     const proof = screen.getByRole('button', { name: 'Proof, 14' });
-    expect(proof.textContent).toBe('Proof14');
+    expect(proof.textContent).toBe('Proof 14');
     expect(screen.getByRole('button', { name: 'Pickups' }).textContent).toBe('Pickups');
     expect(screen.getByRole('button', { name: 'Script' }).getAttribute('aria-label')).toBeNull();
   });

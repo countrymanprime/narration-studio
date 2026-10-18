@@ -61,6 +61,40 @@ export const scriptDrivers: Record<string, Driver> = {
       .first()
       .waitFor();
   },
+  'reader-context-menu': async (page) => {
+    await goToPage(page, 'Script');
+    await selectReaderWord(page, 'tired');
+    await page.getByRole('toolbar', { name: 'Selection tools' }).waitFor();
+    const at = await page.evaluate(() => {
+      const box = window.getSelection()!.getRangeAt(0).getBoundingClientRect();
+      return { x: box.x + box.width / 2, y: box.y + box.height / 2 };
+    });
+    // The selection toolbar can sit over the word it belongs to; the menu answers for the word under the pointer as well, so close the toolbar first.
+    await page.keyboard.press('Escape');
+    await page.getByRole('toolbar', { name: 'Selection tools' }).waitFor({ state: 'detached' });
+    await page.mouse.click(at.x, at.y, { button: 'right' });
+    await page.getByRole('group', { name: 'Mark as' }).waitFor();
+  },
+  'skip-to-side-panel': async (page) => {
+    await goToPage(page, 'Script');
+    const skip = page.getByRole('button', { name: 'Skip to the side panel' });
+    await skip.focus();
+    await page.waitForFunction(() => document.activeElement?.textContent === 'Skip to the side panel');
+  },
+  'bookmark-added': async (page) => {
+    await goToPage(page, 'Script');
+    await page.getByRole('region', { name: /^Script reader/ }).focus();
+    await page.keyboard.press('b');
+    await page.getByText('Bookmark added.').waitFor();
+    // The new bookmark's editor opens by itself; the picture is the toast and the ribbon, so close the editor.
+    await page.keyboard.press('Escape');
+    // Focus returns to the ribbon, whose tooltip would be portalled outside the landmarks.
+    await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
+    await page
+      .locator('[role="tooltip"]')
+      .waitFor({ state: 'detached' })
+      .catch(() => undefined);
+  },
   find: async (page) => {
     await goToPage(page, 'Script');
     await page.getByRole('button', { name: 'Find in the manuscript (Ctrl+F)' }).click();

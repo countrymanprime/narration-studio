@@ -11,6 +11,7 @@ Storybook title: `Primitives/ContextMenu`. Source: `src/components/primitives/Co
 - Opens On Right Click
 - Keyboard Chooses An Item
 - Escape Closes
+- Grouped
 
 ## Used by
 

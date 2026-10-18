@@ -13,6 +13,7 @@ import { ImportChooseDialog, type DroppedManuscript } from './ImportChooseDialog
 import { ImportReview, ImportSummary } from './ImportReview';
 import { subtitleOverridesToCommit, type ReviewGroupKey, type ReviewGroupOpen } from './importReviewModel';
 import { ConfirmDialog } from '../primitives/ConfirmDialog';
+import { Dialog } from '../primitives/Dialog';
 import { WorkDialog } from '../primitives/WorkDialog';
 import { TooltipTarget } from '../primitives/Tooltip';
 import type { Notify } from '../primitives/Toast';
@@ -239,6 +240,14 @@ export function useManuscriptImport({
   ) : (
     button
   );
+  // Drops the host's job for the file under review and closes the review; Back follows it with step 1.
+  const cancelImport = () => {
+    if (!importJob?.id) return;
+    void api
+      .manuscriptImportCancel(importJob.id)
+      .then(() => setImportJob(undefined))
+      .catch((error) => notify(error.message, 'error'));
+  };
   const dialogs = (
     <>
       {step1Open && !importJob && (
@@ -269,17 +278,34 @@ export function useManuscriptImport({
         />
       )}
       {importJob?.phase === 'ready' && importJob.preview && (
-        <ConfirmDialog
-          title={`Import ${importJob.preview.sourceName}`}
-          body={<ImportSummary preview={importJob.preview} selection={importSelection} requiresReset={replacing || Boolean(importJob.requiresReset)} />}
-          confirmLabel={replacing || importJob.requiresReset ? 'Replace and reset' : 'Import'}
-          confirmVariant={replacing || importJob.requiresReset ? 'danger' : 'primary'}
-          confirm={() => void commitImport()}
-          cancel={() =>
-            void api
-              .manuscriptImportCancel(importJob.id!)
-              .then(() => setImportJob(undefined))
-              .catch((error) => notify(error.message, 'error'))
+        // Step 2 of 2 (the mock's "Check the chapter outline"): Cancel drops the job; Back drops it too and returns to step 1; the confirm
+        // writes the manuscript. An alertdialog, as every confirm: Escape cancels, a press on the backdrop does nothing.
+        <Dialog
+          title={`Import ${importJob.preview.sourceName} · step 2 of 2`}
+          variant="alert"
+          dismissOnOutsidePress={false}
+          onClose={cancelImport}
+          description={<ImportSummary preview={importJob.preview} selection={importSelection} requiresReset={replacing || Boolean(importJob.requiresReset)} />}
+          actions={
+            <>
+              <Button variant="secondary" onClick={cancelImport}>
+                Cancel
+              </Button>
+              <div className="flex gap-2">
+                <Button
+                  variant="secondary"
+                  onClick={() => {
+                    cancelImport();
+                    setStep1Open(true);
+                  }}
+                >
+                  Back
+                </Button>
+                <Button variant={replacing || importJob.requiresReset ? 'danger' : 'primary'} onClick={() => void commitImport()}>
+                  {replacing || importJob.requiresReset ? 'Replace and reset' : 'Import reviewed manuscript'}
+                </Button>
+              </div>
+            </>
           }
         >
           <ImportReview
@@ -293,7 +319,7 @@ export function useManuscriptImport({
             buildStoryBible={{ checked: buildAfterImport, onChange: setBuildAfterImport }}
             deliveryProfile={asksProfile ? { value: profileChoice, onChange: setProfileChoice } : undefined}
           />
-        </ConfirmDialog>
+        </Dialog>
       )}
       {importJob && importJob.phase !== 'ready' && (
         <WorkDialog
