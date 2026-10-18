@@ -540,6 +540,97 @@
     },
     {
       "arguments": {
+        "name": "n\u0000l"
+      },
+      "command": "type-add",
+      "error": "A type's name is one line of 1 to 40 characters.",
+      "start": "default"
+    },
+    {
+      "after": {
+        "entities": [
+          {
+            "aliases": [],
+            "canonical_name": "Ada",
+            "category": "Character",
+            "id": "entity-ada",
+            "locked": false
+          },
+          {
+            "aliases": [],
+            "canonical_name": "The Mill",
+            "category": "Place",
+            "id": "entity-mill",
+            "locked": true
+          },
+          {
+            "aliases": [],
+            "canonical_name": "The Moor",
+            "category": "Place",
+            "id": "entity-moor",
+            "locked": false
+          },
+          {
+            "aliases": [],
+            "canonical_name": "The Guild",
+            "category": "Organization",
+            "id": "entity-guild",
+            "locked": false
+          }
+        ],
+        "schema_version": 2,
+        "types": [
+          {
+            "builtin": "Character",
+            "colour": "green",
+            "name": "Character",
+            "speaks": true
+          },
+          {
+            "builtin": "Place",
+            "colour": "blue",
+            "name": "Place",
+            "speaks": false
+          },
+          {
+            "builtin": "Organization",
+            "colour": "violet",
+            "name": "Organization",
+            "speaks": false
+          },
+          {
+            "builtin": "Lore",
+            "colour": "amber",
+            "name": "Lore",
+            "speaks": false
+          },
+          {
+            "builtin": "Item",
+            "colour": "teal",
+            "name": "Item",
+            "speaks": false
+          },
+          {
+            "builtin": "Event",
+            "colour": "rose",
+            "name": "Event",
+            "speaks": false
+          },
+          {
+            "colour": "green",
+            "name": "line break",
+            "speaks": false
+          }
+        ]
+      },
+      "arguments": {
+        "name": "line break"
+      },
+      "command": "type-add",
+      "start": "default"
+    },
+    {
+      "arguments": {
         "name": "character"
       },
       "command": "type-add",
@@ -842,6 +933,118 @@
       "command": "type-add",
       "error": "The Story Bible types are invalid.",
       "start": "empty-list"
+    },
+    {
+      "after": {
+        "entities": [
+          {
+            "aliases": [],
+            "canonical_name": "The Moor",
+            "category": "Place",
+            "id": "entity-moor",
+            "locked": false
+          }
+        ],
+        "schema_version": 2,
+        "types": [
+          {
+            "builtin": "Character",
+            "colour": "green",
+            "name": "Character",
+            "speaks": true
+          },
+          {
+            "builtin": "Place",
+            "colour": "blue",
+            "name": "Place",
+            "speaks": false
+          },
+          {
+            "builtin": "Organization",
+            "colour": "violet",
+            "name": "Organization",
+            "speaks": false
+          },
+          {
+            "builtin": "Lore",
+            "colour": "amber",
+            "name": "Lore",
+            "speaks": false
+          },
+          {
+            "builtin": "Item",
+            "colour": "teal",
+            "name": "Item",
+            "speaks": false
+          },
+          {
+            "builtin": "Event",
+            "colour": "rose",
+            "name": "Event",
+            "speaks": false
+          },
+          {
+            "colour": "green",
+            "name": "Creature",
+            "speaks": false
+          }
+        ]
+      },
+      "arguments": {
+        "name": "Creature"
+      },
+      "command": "type-add",
+      "start": "null-types"
+    },
+    {
+      "arguments": {
+        "name": "ᎠᎡ"
+      },
+      "command": "type-add",
+      "error": "There is a type named 'ᎠᎡ' already; give the type a new name.",
+      "start": "cherokee"
+    },
+    {
+      "after": {
+        "entities": [],
+        "schema_version": 2,
+        "types": [
+          {
+            "colour": "green",
+            "name": "ꭰꭱ",
+            "speaks": true
+          },
+          {
+            "colour": "blue",
+            "name": "Ᏸ",
+            "speaks": false
+          }
+        ]
+      },
+      "arguments": {
+        "name": "Ᏸ"
+      },
+      "command": "type-add",
+      "start": "cherokee"
+    },
+    {
+      "after": {
+        "entities": [],
+        "schema_version": 2,
+        "types": [
+          {
+            "colour": "green",
+            "name": "ᎠᎡ",
+            "speaks": true
+          }
+        ]
+      },
+      "arguments": {
+        "name": "ꭰꭱ",
+        "to": "ᎠᎡ"
+      },
+      "command": "type-rename",
+      "start": "cherokee"
     },
     {
       "after": {
@@ -2186,6 +2389,17 @@
         }
       ]
     },
+    "cherokee": {
+      "entities": [],
+      "schema_version": 2,
+      "types": [
+        {
+          "colour": "green",
+          "name": "ꭰꭱ",
+          "speaks": true
+        }
+      ]
+    },
     "default": {
       "entities": [
         {
@@ -2226,6 +2440,19 @@
       "types": []
     },
     "missing": null,
+    "null-types": {
+      "entities": [
+        {
+          "aliases": [],
+          "canonical_name": "The Moor",
+          "category": "Place",
+          "id": "entity-moor",
+          "locked": false
+        }
+      ],
+      "schema_version": 2,
+      "types": null
+    },
     "one": {
       "entities": [],
       "schema_version": 2,

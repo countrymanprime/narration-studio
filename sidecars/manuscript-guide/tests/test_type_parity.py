@@ -61,6 +61,8 @@ STARTS = {
         "types": [{"name": "Hero", "colour": "green", "speaks": True}, {"name": "HERO", "colour": "blue", "speaks": False}],
     },
     "empty-list": {"schema_version": 2, "entities": [], "types": []},
+    "null-types": {"schema_version": 2, "entities": [entry("entity-moor", "The Moor", "Place")], "types": None},
+    "cherokee": {"schema_version": 2, "entities": [], "types": [{"name": "\uab70\uab71", "colour": "green", "speaks": True}]},
 }
 
 # (command, start, arguments). Each command's arguments are its argparse names, without --guide.
@@ -76,6 +78,8 @@ CASES = [
     ("type-add", "default", {"name": "   "}),
     ("type-add", "default", {"name": "two\nlines"}),
     ("type-add", "default", {"name": "nul\0"}),
+    ("type-add", "default", {"name": "n\0l"}),
+    ("type-add", "default", {"name": "line\N{LINE SEPARATOR}break"}),
     ("type-add", "default", {"name": "character"}),
     ("type-add", "default", {"name": "Needs Review"}),
     ("type-add", "default", {"name": " Draft "}),
@@ -87,6 +91,10 @@ CASES = [
     ("type-add", "bad", {"name": "Creature"}),
     ("type-add", "twice", {"name": "Creature"}),
     ("type-add", "empty-list", {"name": "Creature"}),
+    ("type-add", "null-types", {"name": "Creature"}),
+    ("type-add", "cherokee", {"name": "\u13a0\u13a1"}),
+    ("type-add", "cherokee", {"name": "\u13f0"}),
+    ("type-rename", "cherokee", {"name": "\uab70\uab71", "to": "\u13a0\u13a1"}),
     ("type-rename", "default", {"name": "Place", "to": "Location"}),
     ("type-rename", "default", {"name": "Place", "to": " place "}),
     ("type-rename", "default", {"name": "Place", "to": "Place"}),

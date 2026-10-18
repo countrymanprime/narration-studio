@@ -184,3 +184,18 @@ func TestPythonStripMatchesStrSpace(t *testing.T) {
 		}
 	}
 }
+
+// Every Cherokee small letter folds to its capital, as str.casefold folds it, so the two spellings of a type name are one name.
+func TestFoldCaseFoldsCherokeeAsCasefoldDoes(t *testing.T) {
+	pairs := map[rune]rune{0xab70: 0x13a0, 0xabbf: 0x13ef, 0x13f8: 0x13f0, 0x13fd: 0x13f5}
+	for small, capital := range pairs {
+		if got, want := foldCase(string(small)), string(capital); got != want || foldCase(string(capital)) != want {
+			t.Errorf("foldCase(%U) = %q, foldCase(%U) = %q, want both %q", small, got, capital, foldCase(string(capital)), want)
+		}
+	}
+	for small := rune(0xab70); small <= 0xabbf; small++ {
+		if foldCase(string(small)) != foldCase(string(small-0xab70+0x13a0)) {
+			t.Errorf("%U and its capital fold apart", small)
+		}
+	}
+}

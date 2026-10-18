@@ -139,8 +139,9 @@ func refuseTaken(types []map[string]any, name string, keep int) error {
 
 // typesInHost is manuscript_guide.py _edit_types: change gets the document and its types (guideTypes) and returns the types to store,
 // and the whole list is written back. A Story Bible that is not there yet, or holds an empty object, is started, as create starts one,
-// so Settings can shape the types before the first build. A refused change writes nothing. Unlike the sidecar, a file that is there but
-// is not a JSON object is refused rather than written over, so a damaged Story Bible is kept to recover from.
+// so Settings can shape the types before the first build. A refused change writes nothing. Unlike the sidecar, a file that is there and
+// cannot be read, or is not a JSON object, is refused and kept to recover from: the sidecar's load_json reads one that is unreadable, not
+// JSON, or a falsy value ([], 0, "", false) as no file and writes a new Story Bible over it (another value it fails on).
 func (s *Service) typesInHost(change func(document map[string]any, types []map[string]any) ([]map[string]any, error)) error {
 	return s.changeInHost(true, func(document map[string]any) (bool, error) {
 		types, err := guideTypes(document)

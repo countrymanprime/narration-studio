@@ -285,8 +285,22 @@ func parseProperties(text string) ([]any, error) {
 }
 
 // foldCase is the comparison the sidecar makes with str.casefold: Unicode full case folding, so "ß" matches "SS" and "ﬁ" matches "FI".
+// cases.Fold turns Cherokee capitals into small letters and small letters into capitals, so "Ꭰ" and "ꭰ" would not match; casefold, as
+// Unicode's CaseFolding.txt says, folds both to the capital, and so does foldCase. A letter newer than the sidecar's Python knows can
+// still fold here and not there.
 func foldCase(text string) string {
-	return cases.Fold().String(text)
+	return strings.Map(cherokeeCapital, cases.Fold().String(text))
+}
+
+// cherokeeCapital is the Cherokee capital of a small Cherokee letter (U+AB70 to U+ABBF, U+13F8 to U+13FD); any other rune is itself.
+func cherokeeCapital(r rune) rune {
+	switch {
+	case r >= 0xab70 && r <= 0xabbf:
+		return r - 0xab70 + 0x13a0
+	case r >= 0x13f8 && r <= 0x13fd:
+		return r - 0x13f8 + 0x13f0
+	}
+	return r
 }
 
 // pythonStrip is Python's str.strip() with no argument: Go's unicode.IsSpace plus the four information separators U+001C to U+001F,
