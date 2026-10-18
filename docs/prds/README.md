@@ -67,6 +67,7 @@ Phase counts are the rows of each PRD's phase table. The Studio Next series (the
 | [Studio Next Master, Delivery and Settings](studio-next-master-delivery-and-settings.prd.md) | Feature | 5 | None |
 | [Studio Next Cutover](studio-next-cutover.prd.md) | Close-out (deletes the mock) | 6 | None |
 | [Character Voice Samples: Mark How You Voiced a Character in Editing, Replay It from the Story Bible and the Booth](character-voice-samples.prd.md) | Feature (owner request 2026-10-17; mock approved) | 8 | None; extends the Reference clips of the Story Bible |
+| [Activity Trace: An Allow-Listed Record of How the App Behaves That Never Holds Content](activity-trace.prd.md) | Feature (diagnostics; owner rulings 2026-10-17, [#1827](https://github.com/countrymanprime/narration-utils/issues/1827)) | 5 | None |
 
 ## Deleted PRDs
 
