@@ -17,8 +17,9 @@ afterEach(() => {
 async function renderPage({
   api = createMockApi(),
   initialCategory,
+  cameFrom,
   go = vi.fn(),
-}: { api?: NarrationApi; initialCategory?: string; go?: (path: string) => void } = {}) {
+}: { api?: NarrationApi; initialCategory?: string; cameFrom?: string; go?: (path: string) => void } = {}) {
   const data = await api.bootstrap();
   render(
     <MemoryRouter>
@@ -34,6 +35,7 @@ async function renderPage({
             go={go}
             refreshBootstrap={async () => undefined}
             initialCategory={initialCategory}
+            cameFrom={cameFrom}
           />
         </ApiProvider>
       </ThemeProvider>
@@ -233,6 +235,20 @@ describe('Settings: arriving from another page', () => {
         .getByRole('button', { name: /^Recording & DAW/ })
         .getAttribute('aria-current'),
     ).toBe('page');
+  });
+});
+
+describe('Settings: Back to the page a link came from', () => {
+  it('offers Back to the page named by the path, and goes there', async () => {
+    const { go } = await renderPage({ cameFrom: '/booth?target=x', initialCategory: 'Teleprompter' });
+    fireEvent.click(await screen.findByRole('button', { name: /Back to Booth/ }));
+    expect(go).toHaveBeenCalledWith('/booth?target=x');
+  });
+
+  it('offers no Back when the narrator came by the navigation rail', async () => {
+    await renderPage();
+    await screen.findByRole('heading', { level: 2, name: 'Recording & DAW' });
+    expect(screen.queryByRole('button', { name: /^Back to/ })).toBeNull();
   });
 });
 

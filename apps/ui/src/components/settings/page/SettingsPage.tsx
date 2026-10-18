@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { Bootstrap } from '../../../types';
 import { Button } from '../../primitives/Button';
 import { Heading } from '../../primitives/Heading';
+import { Icon } from '../../primitives/Icon';
 import { SearchField } from '../../primitives/SearchField';
 import { ToggleGroup } from '../../primitives/ToggleGroup';
 import type { Notify } from '../../primitives/Toast';
@@ -14,7 +15,7 @@ import { CATEGORIES, categoryLabel } from '../registry/categories';
 import { PAGE_SETTINGS } from '../registry/pageSettings';
 import { ROWS } from '../registry/rows';
 import { search, type Hit } from '../registry/search';
-import type { CategoryId, SettingMeta } from '../registry/types';
+import { PAGE_LABEL, PAGE_PATH, type CategoryId, type SettingMeta, type UsedPage } from '../registry/types';
 import { SettingsHostProvider, useSettingsHost, type SettingsHost } from '../row/SettingsHost';
 import { SettingsNavProvider } from '../row/SettingsNav';
 import { ANCHOR_TARGETS } from './anchors';
@@ -39,11 +40,23 @@ export type SettingsPageProps = {
   refreshBootstrap: () => Promise<void>;
   /** A deep link's name for where to open (App.tsx's `SETTINGS_ANCHORS`): the category, with the row lit. */
   initialCategory?: string;
+  /** The page a link or Ctrl+, came from (a path); Settings offers Back to it. Absent when the narrator came by the navigation rail. */
+  cameFrom?: string;
 };
 
 type Filter = 'all' | 'changed' | 'project';
 
-function Body({ initialCategory }: { initialCategory?: string }) {
+/** The name of the page a path leads to, longest path first so '/proof/ch1' is Proof and '/' is Production. */
+function pageNameOf(path: string): string {
+  const pathname = path.split(/[?#]/)[0] || '/';
+  const pages = (Object.keys(PAGE_PATH) as UsedPage[]).sort((a, b) => PAGE_PATH[b].length - PAGE_PATH[a].length);
+  const page = pages.find((candidate) =>
+    PAGE_PATH[candidate] === '/' ? pathname === '/' : pathname === PAGE_PATH[candidate] || pathname.startsWith(`${PAGE_PATH[candidate]}/`),
+  );
+  return page ? PAGE_LABEL[page] : 'the previous page';
+}
+
+function Body({ initialCategory, cameFrom }: { initialCategory?: string; cameFrom?: string }) {
   const store = useSettingsStore();
   const { data, go } = useSettingsHost();
   const target = initialCategory ? ANCHOR_TARGETS[initialCategory] : undefined;
@@ -192,6 +205,11 @@ function Body({ initialCategory }: { initialCategory?: string }) {
       <div className="@container flex w-full max-w-[1180px] flex-col gap-4" data-testid="settings-page">
         <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
           <Heading title="Settings" />
+          {cameFrom && (
+            <Button variant="secondary" size="sm" id="settings-back" onClick={() => go(cameFrom)}>
+              <Icon name="previous" /> Back to {pageNameOf(cameFrom)}
+            </Button>
+          )}
           <span className="flex-1" />
           <div role="search" className="flex flex-wrap items-center gap-2.5">
             <SearchField label="Search settings" placeholder="Search settings" value={query} onChange={setQuery} />
@@ -273,6 +291,7 @@ export function SettingsPage({
   go,
   refreshBootstrap,
   initialCategory,
+  cameFrom,
 }: SettingsPageProps) {
   const host = useMemo<SettingsHost>(
     () => ({ data, notify, onLinkDawFile, onProjectDataCleared, refreshBootstrap, go }),
@@ -283,7 +302,7 @@ export function SettingsPage({
       <SettingsFormsProvider notify={notify} onDirtyChange={onDirtyChange} registerActions={registerActions}>
         <SettingsStoreLoader>
           <AssetsStoreProvider>
-            <Body initialCategory={initialCategory} />
+            <Body initialCategory={initialCategory} cameFrom={cameFrom} />
           </AssetsStoreProvider>
         </SettingsStoreLoader>
       </SettingsFormsProvider>
