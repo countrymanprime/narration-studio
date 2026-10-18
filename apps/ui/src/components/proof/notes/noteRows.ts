@@ -9,10 +9,12 @@ import {
   type FindingsQuery,
   type FindingSortKey,
 } from '../../../api/contracts/findings';
+import { statusTone } from '../../../kinds/statusTone';
+import type { KindId } from '../../../kinds/kindMap';
 import type { StatusTone } from '../../primitives/StatusBadge';
 import { analyzerLabel, noteTime } from '../findingFormat';
 import { noteIsOpen } from '../proof.selectors';
-import { fixKindOf, resolutionOf } from '../resolution';
+import { fixKindOf } from '../resolution';
 import { proofProgress } from '../proof.selectors';
 
 export type NoteRow = {
@@ -38,17 +40,17 @@ export type NoteRow = {
   pickup: boolean;
 };
 
-/** The resolution words and colours of the mock's table (`RES_LABEL`, `RES_CLASS`): a decision reads as a word, never a colour alone. */
+/** The resolution words of the mock's table (`RES_LABEL`): a decision reads as a word, never a colour alone. The tone is the status registry's (kinds/statusTone.ts). */
 function resolutionWords(finding: Finding): { label: string; tone: StatusTone } {
   switch (finding.review.status) {
     case 'accepted':
-      return fixKindOf(finding) === 'edit' ? { label: 'Fix in edit', tone: 'info' } : { label: 'Needs pickup', tone: 'accent' };
+      return fixKindOf(finding) === 'edit' ? { label: 'Fix in edit', tone: statusTone('edit') } : { label: 'Needs pickup', tone: statusTone('pickup') };
     case 'dismissed':
-      return { label: 'Waive', tone: 'success' };
+      return { label: 'Waive', tone: statusTone('waive') };
     case 'deferred':
-      return { label: 'Defer', tone: 'neutral' };
+      return { label: 'Defer', tone: statusTone('defer') };
     default:
-      return resolutionOf(finding);
+      return { label: 'To review', tone: statusTone('unreviewed') };
   }
 }
 
@@ -187,18 +189,18 @@ export function groupByChapter(rows: readonly NoteRow[]): NoteGroup[] {
 /** Characters of the longest type word: every type chip gets this width so a changed type never moves the cells. */
 export const TYPE_CHIP_CH = Math.max(...FINDING_NOTE_TYPES.map((t) => t.length));
 
-/** The tone of a type's chip, as the mock colours them: errors in the danger tone, audio defects warning, pronunciation info, pacing and repeats the org tone. */
-export const TYPE_TONE: Record<FindingNoteType, StatusTone> = {
-  misread: 'danger',
-  skip: 'danger',
-  mouth: 'warning',
-  plosive: 'warning',
-  noise: 'warning',
-  breath: 'warning',
-  pron: 'info',
-  pacing: 'org',
-  repeat: 'org',
-  takes: 'accent',
+/** The kind a note's type word is drawn as (kinds/kindMap.ts), so a misread is the same chip here as on every page. A `takes` note is a take comparison, which has no hue (D11): null. */
+export const NOTE_KIND: Record<FindingNoteType, KindId | null> = {
+  misread: 'misread',
+  skip: 'missing',
+  mouth: 'click',
+  plosive: 'plosive',
+  noise: 'noise',
+  breath: 'breath',
+  pron: 'pron',
+  pacing: 'pacing',
+  repeat: 'repeat',
+  takes: null,
 };
 /** Characters of the longest resolution word. */
 export const RESOLUTION_CHIP_CH = Math.max(...['To review', 'Needs pickup', 'Fix in edit', 'Waived', 'Deferred'].map((l) => l.length));

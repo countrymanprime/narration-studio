@@ -1,7 +1,7 @@
 import { useToastSideClearance } from '../../hooks/useToastClearance';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import type { Finding, FindingsSummary } from '../../api/contracts/findings';
+import type { Finding, FindingNoteType, FindingsSummary } from '../../api/contracts/findings';
 import type { PickupItem } from '../../api/contracts/pickups';
 import { describeApiError } from '../../api/errorMessage';
 import { chapterName } from '../../chapterName';
@@ -31,7 +31,8 @@ import { Inspector } from './inspector/Inspector';
 import { decisionLabel, fixKindOf } from './resolution';
 import { TypeSelect } from './inspector/TypeSelect';
 import { NotesPanel } from './notes/NotesPanel';
-import { inBookOrder, noteRow, queryFor, type NoteSort } from './notes/noteRows';
+import { kindColour } from '../../kinds/kindMap';
+import { inBookOrder, NOTE_KIND, noteRow, queryFor, type NoteSort } from './notes/noteRows';
 import { openPickupsBeyondNotes, proofProgress } from './proof.selectors';
 import { ProoferSheet } from './ProoferSheet';
 import { recallSelection, rememberSelection } from './proofMemory';
@@ -44,13 +45,10 @@ import { useProofKeys } from './useProofKeys';
 import { useNoteContextMenu } from './useNoteContextMenu';
 import { addressPath } from '../../navigation/address';
 
-/** A pin's ink by the kind of note: a misread or a skip in red, a pickup or a repeat in amber, a name in blue, the rest muted. */
-const PIN_COLOUR: Record<string, string> = {
-  transcript_discrepancy: 'var(--danger)',
-  pickup: 'var(--warn)',
-  duplicate_read: 'var(--warn)',
-  pronunciation: 'var(--info)',
-  entity: 'var(--info)',
+/** A pin's ink is its note type's kind colour (kinds/kindMap.ts); a take comparison has no hue, so it is muted. */
+const pinColour = (type: FindingNoteType): string => {
+  const kind = NOTE_KIND[type];
+  return kind ? `var(${kindColour(kind).line})` : 'var(--text-muted)';
 };
 
 // The last chapter the narrator looked at on Proof, per project: stepping out of All chapters opens it. A per-viewer
@@ -337,7 +335,7 @@ export function ProofPage({
       const sec = f.time_range ? timeline.toTimeline(f.time_range.start) : null;
       if (sec === null) return [];
       const row = noteRow(f);
-      return [{ id: f.id, sec, colour: PIN_COLOUR[f.category] ?? 'var(--text-muted)', done: row.decided, label: `${row.type} at ${row.time}` }];
+      return [{ id: f.id, sec, colour: pinColour(row.type), done: row.decided, label: `${row.type} at ${row.time}` }];
     });
   }, [chapterNotes, timeline]);
   // The takes sit in project seconds and the window in seconds into the chapter's recording: `shift` is the one less the other.
