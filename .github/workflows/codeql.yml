@@ -1,15 +1,16 @@
 name: CodeQL
 # Advisory: not a required status check. Results appear under Security > Code scanning.
+# A pull request analyses the languages whose files it changes (scripts/ci/codeql-scope.mjs: Go for apps/desktop, JavaScript
+# and TypeScript for their sources, Python for .py files); the `scope` job reads the diff and the matrix follows it. The
+# baseline on main is the nightly run of all three, not a push: a merge no longer starts one.
 on:
   pull_request:
     branches: [main]
     paths-ignore:
       - 'docs/**'
       - '**/*.md'
-  push:
-    branches: [main]
   schedule:
-    - cron: '23 5 * * 1'
+    - cron: '23 5 * * *'
   workflow_dispatch: {}
 permissions: { contents: read }
 concurrency:
@@ -17,10 +18,39 @@ concurrency:
   # Never cancel a run on main: it is the baseline shown in the Security tab.
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 jobs:
-  analyze:
-    name: Analyze (${{ matrix.language }})
+  scope:
+    name: CodeQL scope
     # Fork and Dependabot pull requests get a read-only token, so the results upload would fail.
     if: github.event_name != 'pull_request' || (github.event.pull_request.head.repo.full_name == github.repository && github.actor != 'dependabot[bot]')
+    timeout-minutes: 5
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    outputs:
+      matrix: ${{ steps.scope.outputs.matrix }}
+      any: ${{ steps.scope.outputs.any }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # A pull request is checked out as a merge commit; its two parents are what the diff needs.
+          fetch-depth: 2
+          persist-credentials: false
+      # Fails open: anything but a readable pull request diff analyses every language.
+      - id: scope
+        run: |
+          if [ "$GITHUB_EVENT_NAME" = "pull_request" ] && git rev-parse --verify -q 'HEAD^2' > /dev/null; then
+            git diff --name-only 'HEAD^1' HEAD | node scripts/ci/codeql-scope.mjs > "$RUNNER_TEMP/matrix.json"
+          else
+            node scripts/ci/codeql-scope.mjs --all > "$RUNNER_TEMP/matrix.json"
+          fi
+          cat "$RUNNER_TEMP/matrix.json"
+          echo "matrix=$(cat "$RUNNER_TEMP/matrix.json")" >> "$GITHUB_OUTPUT"
+          echo "any=$(node -p "JSON.parse(require('fs').readFileSync(process.argv[1], 'utf8')).include.length > 0" "$RUNNER_TEMP/matrix.json")" >> "$GITHUB_OUTPUT"
+
+  analyze:
+    name: Analyze (${{ matrix.language }})
+    needs: scope
+    if: needs.scope.outputs.any == 'true'
     timeout-minutes: 30
     runs-on: ubuntu-latest
     permissions:
@@ -29,11 +59,7 @@ jobs:
       actions: read
     strategy:
       fail-fast: false
-      matrix:
-        include:
-          - { language: go, build-mode: manual }
-          - { language: javascript-typescript, build-mode: none }
-          - { language: python, build-mode: none }
+      matrix: ${{ fromJSON(needs.scope.outputs.matrix) }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:

@@ -340,6 +340,13 @@ html[data-motion='reduce'] {
     opacity: 1;
   }
 }
+/* A toast arrives the way a tooltip does: it fades in and rises by --motion-shift (Toast.tsx, `motion-ok:` only). */
+@keyframes toast-in {
+  from {
+    opacity: 0;
+    transform: translateY(var(--motion-shift));
+  }
+}
 @keyframes tooltip-in {
   from {
     opacity: 0;

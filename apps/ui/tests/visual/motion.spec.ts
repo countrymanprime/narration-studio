@@ -29,6 +29,19 @@ const accentSoft = (page: Page) =>
     document.body.append(probe);
     return getComputedStyle(probe).backgroundColor;
   });
+/** The open popup's transition, as `duration property`: what it eases on opening and closing. */
+async function popupTransition(page: Page, selector: string): Promise<string> {
+  const popup = page.locator(selector).first();
+  await popup.waitFor();
+  return popup.evaluate((element) => `${getComputedStyle(element).transitionDuration} ${getComputedStyle(element).transitionProperty}`);
+}
+
+async function openPageContextMenu(page: Page): Promise<void> {
+  await page
+    .locator('main')
+    .first()
+    .click({ button: 'right', position: { x: 400, y: 400 } });
+}
 
 async function railTransition(page: Page): Promise<string> {
   return page.locator(RAIL).evaluate((rail) => getComputedStyle(rail).transitionDuration);
@@ -61,6 +74,22 @@ test.describe('Motion / on', () => {
     const row = await highlightedRow(page);
     expect(row.durations).toEqual([600]);
     expect(row.background).not.toBe(await accentSoft(page));
+  });
+
+  test('a context menu eases on the fast token and settles opaque', async ({ page }) => {
+    await page.goto('/');
+    await goToPage(page, 'Production');
+    await openPageContextMenu(page);
+    expect(await popupTransition(page, '[role="menu"]')).toBe('0.12s opacity, translate');
+    await expect(page.locator('[role="menu"]').first()).toHaveCSS('opacity', '1');
+    expect(await runningAnimations(page)).toEqual([]);
+  });
+
+  test('the navigation drawer slides on the base token', async ({ page }) => {
+    await page.setViewportSize({ width: 800, height: 900 });
+    await page.goto('/');
+    await page.getByRole('button', { name: 'Open navigation' }).click();
+    expect(await popupTransition(page, '[role="dialog"]')).toMatch(/^0.2s transform/);
   });
 
   for (const name of ['Production', 'Script', 'Story Bible', 'Booth', 'Editing', 'Proof', 'Pickups', 'Settings'] as const) {
@@ -97,6 +126,15 @@ test.describe('Motion / reduced', () => {
     const row = await highlightedRow(page);
     expect(row.durations).toEqual([]);
     expect(row.background).toBe(await accentSoft(page));
+  });
+
+  test('a context menu appears at once under reduced motion', async ({ page }) => {
+    await page.emulateMedia({ reducedMotion: 'reduce' });
+    await page.goto('/');
+    await goToPage(page, 'Production');
+    await openPageContextMenu(page);
+    expect(await popupTransition(page, '[role="menu"]')).toBe('0s all');
+    await expect(page.locator('[role="menu"]').first()).toHaveCSS('opacity', '1');
   });
 
   test('<html data-motion="reduce"> stops the rail whatever Windows says', async ({ page }) => {
