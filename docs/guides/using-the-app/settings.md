@@ -258,7 +258,7 @@ If Narration Studio will not start after an update and the program file is missi
 
 ## Set on a page
 
-Some settings only change what one page does, so they belong on that page, next to what they change: the recording check's rules (Production), silence cleanup (Master & QC), the preview suggestion and compare defaults (Proof), stage suggestions (Production), punch pre-roll (Booth), favourite effects and the Audacity backups (Editing). **Set on a page** lists them, each with where it will be and an **Open** button for that page. Until a page has its own control, **Change it here for now** opens the panel that always edited it, with its **Global** / **This project** switch, **Save** and **Discard changes**; leaving Settings with unsaved changes there asks whether to save or discard them. Search finds them too.
+Some settings only change what one page does, so they belong on that page, next to what they change: the recording check's rules (Production), silence cleanup (Master & QC), the preview suggestion and compare defaults (Proof), stage suggestions (Production), punch pre-roll (Booth), favourite effects and the Audacity backups (Editing). **Set on a page** lists them, each with where it is or will be and an **Open** button for that page. Punch pre-roll is set in the Booth's **Levels** menu only. For the others, until a page has its own control, **Change it here for now** opens the panel that always edited it, with its **Global** / **This project** switch, **Save** and **Discard changes**; leaving Settings with unsaved changes there asks whether to save or discard them. Search finds them too.
 
 ![Settings - Set on a page, with the recording check rules opened](../../images/ui/settings-pages.webp)
 

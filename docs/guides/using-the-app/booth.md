@@ -43,6 +43,8 @@ the recorder reports for that microphone (**Room not measured yet** until it rep
 from your keymap. In **Levels**, **Monitor level (output)** sets how loud the DAW plays back to you (0 to 100, 70 is its normal
 level; REAPER's first hardware output, so the files you render are not changed). **Input level** is shown but off, with the reason:
 no DAW can set an audio interface's input gain, so set it in your interface's own control panel.
+With a DAW, **Punch pre-roll (seconds)** sets how long before the word **R** starts the DAW (0 to 10, in half seconds). It applies to every project on
+this computer, and Settings lists it under **Set on a page** with an **Open Booth** button. The built-in recorder does not punch, so the menu has no such box.
 
 ![Booth - the Levels menu: the input level and the microphone the text listens to](../../images/ui/booth-levels-menu.webp)
 
