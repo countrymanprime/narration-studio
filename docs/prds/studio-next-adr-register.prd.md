@@ -6,6 +6,8 @@
 
 **Status (2026-10-11):** draft; no row is open. This register writes no ADR and edits no existing ADR (they are immutable once accepted, [ADR rules](../adr/README.md#what-an-adr-means-and-why-you-supersede-it)). Each superseding ADR is authored with the `adr-author` workflow when the code of its phase lands, with the next free number checked at merge time ([Cross-PRD sequencing](README.md#cross-prd-sequencing)). The titles below are working titles.
 
+**ADR numbers (2026-10-18).** This register classifies the ADRs as they stood at `550a7d1`. [#1830](https://github.com/countrymanprime/narration-utils/pull/1830) (2026-10-17) removed every ADR except [0001](../adr/0001-the-app-is-written-in-go.md) and [0002](../adr/0002-local-models-and-tools-come-first-so-the-app-is-free-to-use.md) from `docs/adr/`, so any other number below names a file that no longer exists. To read one, run `git show 39f989b^:docs/adr/<file name>`; `git ls-tree 39f989b^ docs/adr/` lists the names. The rows stay as the record of that date.
+
 ## Problem Statement
 
 The mock contradicts accepted ADRs in many places, and it also encodes owner rulings that the ADRs predate. Workers that read an ADR and a PRD that disagree need a rule for which wins, and the owner's rulings on the conflicts need one place where each is recorded with the ADRs it supersedes or keeps.

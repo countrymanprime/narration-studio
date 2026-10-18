@@ -12,7 +12,7 @@ Key tokens: `--bg`, `--surface`, `--surface-2`, `--surface-3`, `--border`, `--li
 
 ## Which mocks are the spec
 
-The Studio Next mock (`docs/research/mockups/studio-next/`) is the spec for every page it covers: its layout, tokens, primitive sizes and behaviour (owner ruling D98, 2026-10-11). Where an older ADR, a benchmark mock or a value in this page differs, the mock wins. When a primitive, token or style does not draw what the mock shows, the primitive changes and every page inherits it; a page does not restyle it locally. The full rule, including what is not built and what stays as built, is in the Studio Next rebuild PRD's "Which mocks are the spec" section.
+The Studio Next mock (`docs/research/mockups/studio-next/`) is the frozen reference for every page it covers: its layout, tokens, primitive sizes and behaviour (owner ruling D98, 2026-10-11, amended 2026-10-18). It is not updated as the app changes; a departure supersedes the mock's line in the PRD or doc that covers the page. Where an older ADR, a benchmark mock or a value in this page differs, the mock wins until such a PRD or doc says otherwise. When a primitive, token or style does not draw what the mock shows, the primitive changes and every page inherits it; a page does not restyle it locally. The full rule, including what is not built and what stays as built, is in the Studio Next rebuild PRD's "Which mocks are the spec" section.
 
 ## Theme
 

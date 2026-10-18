@@ -432,6 +432,7 @@ export const wailsClient: NarrationApi = {
   voiceSampleSetPrimary: (id) => decode(voiceSamplesSchema, 'VoiceSampleSetPrimary', host.VoiceSampleSetPrimary(id)),
   voiceSampleRemove: (id) => decode(voiceSamplesRemovedSchema, 'VoiceSampleRemove', host.VoiceSampleRemove(id)),
   voiceSamplesRemoveAll: () => decode(voiceSamplesRemovedSchema, 'VoiceSamplesRemoveAll', host.VoiceSamplesRemoveAll()),
+  voiceSampleMediaUrl: (id) => `${mediaRoute}?sample=${encodeURIComponent(id)}`,
   subscribeVoiceSamples: (onChange) => subscribeChecked('voice_samples_changed', voiceSamplesChangedSchema, onChange),
   passageMapRecordRun: (chapterId, run) => decode(passageMapSchema, 'PassageMapRecordRun', host.PassageMapRecordRun(chapterId, run)),
   passageMapList: (chapterId) => decode(passageMapSchema, 'PassageMapList', host.PassageMapList(chapterId)),

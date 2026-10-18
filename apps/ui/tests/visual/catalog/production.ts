@@ -111,6 +111,11 @@ export const productionStates: StateEntry[] = [
     state: 'import-confirm',
     description:
       'Production, import manuscript confirm dialog with format/paragraph/chapter preview (reached via Settings > Manuscript, "Replace manuscript…", since a manuscript is already loaded)',
+    sameAs: {
+      of: 'settings/manuscript',
+      reason:
+        'The Manuscript row moved to Settings > Project (#1834), so a loaded project reaches the import confirm through Replace manuscript… there: the same dialog over the same page, not one over Production.',
+    },
   },
   {
     page: 'production',
