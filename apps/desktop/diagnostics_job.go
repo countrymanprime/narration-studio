@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"os"
 	"path/filepath"
 	"sync"
@@ -171,7 +172,7 @@ func (j *diagnosticsJob) finish(cancelled bool, broken error) {
 		case diagnosticsFileChecking:
 			if broken != nil {
 				// The file being checked when the check broke: its own failure, not the narrator's cancel.
-				j.files[i].Status, j.files[i].Error = diagnosticsFileFailed, "the diagnostics stopped unexpectedly: "+broken.Error()
+				j.files[i].Status, j.files[i].Error = diagnosticsFileFailed, "the diagnostics stopped unexpectedly on this file"
 				failed++
 				continue
 			}
@@ -184,7 +185,7 @@ func (j *diagnosticsJob) finish(cancelled bool, broken error) {
 	}
 	switch {
 	case broken != nil:
-		j.phase, j.message, j.errorText = "error", "The diagnostics stopped unexpectedly.", broken.Error()
+		j.phase, j.message, j.errorText = "error", "The diagnostics stopped unexpectedly.", "The diagnostics stopped unexpectedly."
 	case cancelled:
 		verb := "were"
 		if checked == 1 {
@@ -279,6 +280,7 @@ func (h *Host) runDiagnostics(ctx context.Context, job *diagnosticsJob, paths []
 		var broken error
 		if recovered := recover(); recovered != nil {
 			broken = fmt.Errorf("%v", recovered)
+			runlog.FromContext(ctx).Event(slog.LevelError, "diagnostics.panic", "the diagnostics stopped unexpectedly: "+broken.Error())
 		}
 		job.finish(ctx.Err() != nil && broken == nil, broken)
 		job.mu.RLock()
