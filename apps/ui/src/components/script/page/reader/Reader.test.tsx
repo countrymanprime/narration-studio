@@ -121,6 +121,25 @@ describe('the spy at the bottom', () => {
   });
 });
 
+describe('the sticky header', () => {
+  // The mock's `.rd-sticky` title is `font: 600 20px var(--f-display)`: Barlow Condensed.
+  it('names the chapter in Barlow Condensed at 20 px', () => {
+    render(<Reader {...props()} />);
+    const title = document.querySelector('b') as HTMLElement;
+    expect(title.className).toContain('Barlow_Condensed');
+    expect(title.className).toContain('text-xl');
+  });
+
+  // The mock draws the Find bar (`<FindBar>` in Reader.tsx) between the sticky header and the text, not above the header.
+  it('draws what it is given for under the header between the header and the scroller', () => {
+    render(<Reader {...props({ underHeader: <div role="search">Find</div> })} />);
+    const search = screen.getByRole('search');
+    const header = (document.querySelector('b') as HTMLElement).closest('div.border-b') as HTMLElement;
+    expect(header.compareDocumentPosition(search) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(search.compareDocumentPosition(scroller()) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+});
+
 describe('scroll requests', () => {
   it('scrolls to a chapter and clears the request once', () => {
     const onHandled = vi.fn();

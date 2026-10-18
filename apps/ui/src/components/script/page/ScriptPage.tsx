@@ -561,18 +561,6 @@ function ScriptWorkspace({
           >
             {/* The mock draws no page title: the reader is the page, so the title is for screen readers only, as the Booth's. */}
             <h1 className="sr-only">Script</h1>
-            <FindBar
-              find={find.find}
-              nonce={find.nonce}
-              matches={matches}
-              locationOf={lineOf}
-              onQuery={find.onQuery}
-              onStep={find.onStep}
-              onPick={find.onPick}
-              onToggleList={find.onToggleList}
-              onClose={find.onClose}
-              returnFocus={() => scroller()?.focus()}
-            />
             <div className="min-h-0 flex-1">
               <Reader
                 chapters={chapters}
@@ -598,6 +586,20 @@ function ScriptWorkspace({
                 after={closingCard}
                 sectionNames={sectionNames}
                 toolbar={toolbar}
+                underHeader={
+                  <FindBar
+                    find={find.find}
+                    nonce={find.nonce}
+                    matches={matches}
+                    locationOf={lineOf}
+                    onQuery={find.onQuery}
+                    onStep={find.onStep}
+                    onPick={find.onPick}
+                    onToggleList={find.onToggleList}
+                    onClose={find.onClose}
+                    returnFocus={() => scroller()?.focus()}
+                  />
+                }
                 onPickSpeaker={onPickSpeaker}
                 onShowAnnotation={(id) => {
                   const mark = marks.marks.find((row) => row.id === id);
