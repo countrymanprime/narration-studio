@@ -49,12 +49,18 @@ export function ChapterCard({
   return (
     <div data-chapter-id={chapter.id} className="flex flex-col">
       {previous ? <EndOf ended={{ name: endedName(previous), words: previous.wordCount }} /> : ended && <EndOf ended={ended} />}
-      <InsetCard as="section" fill aria-label={`${chapterName(chapter)}, chapter card`} className="flex flex-col gap-2 font-sans">
+      <InsetCard
+        as="section"
+        fill
+        roomy
+        aria-label={`${chapterName(chapter)}, chapter card`}
+        className="flex flex-col gap-2 font-['IBM_Plex_Sans',ui-sans-serif,sans-serif]"
+      >
         <div className="flex items-center justify-between gap-2">
           <SectionLabel>{cardLabel(chapter)}</SectionLabel>
           {onRecord && <IconButton action="recordInBooth" onClick={() => onRecord(chapter.id)} />}
         </div>
-        <h2 className="font-['Barlow_Condensed',sans-serif] text-[1.625rem] font-semibold">{title}</h2>
+        <h2 className="font-['Barlow_Condensed',sans-serif] text-[1.625rem] leading-[1.45] font-semibold">{title}</h2>
         <p className="m-0 text-sm text-[var(--text-muted)]">
           {words(chapter.wordCount)} words · about {Math.round((chapter.wordCount / WPH) * 60)} min finished audio · {facts(chapter.id)}
         </p>

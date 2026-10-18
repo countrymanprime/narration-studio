@@ -19,6 +19,7 @@ export function InsetCard({
   tone = 'neutral',
   fill = false,
   dashed = false,
+  roomy = false,
   role,
   id,
   className = '',
@@ -29,6 +30,8 @@ export function InsetCard({
   tone?: InsetCardTone;
   fill?: boolean;
   dashed?: boolean;
+  /** The Script chapter card's frame (the Studio Next mock): an 8 px radius and 16 px at the sides. */
+  roomy?: boolean;
   role?: AriaRole;
   id?: string;
   // Layout only (margin, flex, gap): the look is the card's own.
@@ -42,7 +45,7 @@ export function InsetCard({
       id={id}
       role={role}
       {...aria}
-      className={`rounded-md border p-3 ${dashed ? 'border-dashed' : ''} ${className}`}
+      className={`border ${roomy ? 'rounded-lg px-4 py-3' : 'rounded-md p-3'} ${dashed ? 'border-dashed' : ''} ${className}`}
       style={{ borderColor: TONE_BORDER[tone], background: fill ? 'var(--surface-2)' : 'var(--surface)' }}
     >
       {children}
