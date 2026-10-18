@@ -1,6 +1,6 @@
 # Public site benchmark: what a best-in-class software site has
 
-**Date:** 2026-10-17. **Status:** first pass; the owner is aligning the app before the next round. **Answers:** what animations, documentation pages, live demo and Storybook a best-in-class product site carries, and what that looks like for this app. **Context:** the public site is paused (owner decision D75, [CI and releases](../operations/ci-and-releases.md#the-public-docs-site)), and its generator is chosen in [ADR 0083](../adr/0083-the-public-docs-site-is-built-by-mkdocs-with-the-material-theme-straight-from-docs-and-a-reviewed-include-list.md).
+**Date:** 2026-10-17. **Status:** first pass; the owner is aligning the app before the next round. **Answers:** what animations, documentation pages, live demo and Storybook a best-in-class product site carries, and what that looks like for this app. **Context:** the public site is paused (owner decision D75, [CI and releases](../operations/ci-and-releases.md#the-public-docs-site)), and its generator is chosen in [The public docs site](../operations/ci-and-releases.md#the-public-docs-site).
 
 The mockup is [`mockups/public-site/index.html`](mockups/public-site/index.html), one self-contained file with no build step. Open it in a browser. It was reviewed as a published artifact and the owner liked it; where it differs from the real pages, the real pages win.
 
