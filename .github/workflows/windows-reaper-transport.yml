@@ -4,6 +4,10 @@ name: Windows REAPER transport timing
 # Play, Stop, Record and Pause through REAPER's transport actions and records the play state and the heartbeat after each. Manual
 # only; nothing requires it. The runner has no audio hardware, so a state REAPER refuses to enter is a finding in the report.
 on:
+  # TEMPORARY: lets GitHub register this workflow so it can be dispatched from this branch before it is on main. Removed before merge.
+  push:
+    branches: [ci/windows-release-gate-evidence]
+    paths: ['.github/workflows/windows-reaper-transport.yml']
   workflow_dispatch:
     inputs:
       reaper-version:
@@ -28,7 +32,7 @@ jobs:
       - name: Install REAPER, run the transport script in an isolated session
         shell: pwsh
         env:
-          REAPER_VERSION: ${{ inputs.reaper-version }}
+          REAPER_VERSION: ${{ inputs.reaper-version || '7.80' }}
           INSTALLER_SHA256: ${{ inputs.installer-sha256 }}
         run: ./scripts/release/windows-reaper-transport-check.ps1 -OutDir "$env:RUNNER_TEMP/transport-report" -Version $env:REAPER_VERSION -ExpectedSha256 $env:INSTALLER_SHA256
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1

@@ -3,6 +3,10 @@ name: Windows release checks
 # section 9). Manual only: nothing requires it, no other workflow calls it, and it publishes nothing. It installs the published
 # release candidates on a clean GitHub-hosted runner, so it changes only that runner.
 on:
+  # TEMPORARY: lets GitHub register this workflow so it can be dispatched from this branch before it is on main. Removed before merge.
+  push:
+    branches: [ci/windows-release-gate-evidence]
+    paths: ['.github/workflows/windows-release-checks.yml']
   workflow_dispatch:
     inputs:
       new-tag:

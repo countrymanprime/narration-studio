@@ -3,6 +3,10 @@ name: Windows encode check
 # 7.1 build, installed from its hash-pinned catalogue row, encodes synthetic chapters to MP3 on Windows and the app's own ACX format and
 # sample-rate checks accept them. Manual only; nothing requires it.
 on:
+  # TEMPORARY: lets GitHub register this workflow so it can be dispatched from this branch before it is on main. Removed before merge.
+  push:
+    branches: [ci/windows-release-gate-evidence]
+    paths: ['.github/workflows/windows-encode-check.yml']
   workflow_dispatch:
 permissions: { contents: read }
 concurrency:
