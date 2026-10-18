@@ -34,6 +34,40 @@ type DraftSection struct {
 	SubtitleOff    string `json:"subtitleOff,omitempty"`
 	ContentKind    string `json:"contentKind"`
 	ParagraphCount int    `json:"paragraphCount"`
+	// WordCount is the words in the section's paragraphs as the importer read them, which the review's outline shows. A subtitle line the
+	// narrator later returns to the text (ApplySubtitleOverrides) is not added: the preview is read before that choice.
+	WordCount int `json:"wordCount"`
+	// FirstText is how the section's text begins, cut to FirstTextMax runes with an ellipsis, so the review can show what a heading
+	// opens on. Empty when the section has no text.
+	FirstText string `json:"firstText,omitempty"`
+}
+
+// FirstTextMax is how many runes of a section's first paragraph the review's preview carries.
+const FirstTextMax = 170
+
+// sectionWords counts the words across the paragraphs at indexes.
+func sectionWords(paragraphs []Paragraph, indexes []int) int {
+	words := 0
+	for _, index := range indexes {
+		words += len(strings.Fields(paragraphs[index].Text))
+	}
+	return words
+}
+
+// sectionFirstText is the start of the first paragraph at indexes that has any text, cut to FirstTextMax runes.
+func sectionFirstText(paragraphs []Paragraph, indexes []int) string {
+	for _, index := range indexes {
+		text := strings.TrimSpace(paragraphs[index].Text)
+		if text == "" {
+			continue
+		}
+		runes := []rune(text)
+		if len(runes) <= FirstTextMax {
+			return text
+		}
+		return strings.TrimRight(string(runes[:FirstTextMax]), " ") + "…"
+	}
+	return ""
 }
 
 // Property is one labelled fact captured from a character candidate's source lines ("Codename": "Wren"), in the order the
@@ -386,7 +420,7 @@ func newDraft(format, sourceName string, paragraphs []Paragraph, titles []string
 			}
 		}
 		subtitle := firstSubtitle(paragraphs, group.indexes)
-		sections = append(sections, DraftSection{ID: id, Title: group.title, Subtitle: subtitle, SubtitleOff: subtitleOff(paragraphs, group.indexes, subtitle), ContentKind: contentKind, ParagraphCount: len(group.indexes)})
+		sections = append(sections, DraftSection{ID: id, Title: group.title, Subtitle: subtitle, SubtitleOff: subtitleOff(paragraphs, group.indexes, subtitle), ContentKind: contentKind, ParagraphCount: len(group.indexes), WordCount: sectionWords(paragraphs, group.indexes), FirstText: sectionFirstText(paragraphs, group.indexes)})
 	}
 	scanner.commit()
 	return Draft{Format: format, SourceName: sourceName, Paragraphs: paragraphs, Sections: sections, CharacterCandidates: scanner.candidates, ChapterTitles: titles}, nil

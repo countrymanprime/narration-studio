@@ -88,6 +88,10 @@ export type ManuscriptImportSection = {
   subtitleOff?: 'title' | 'body';
   contentKind: ManuscriptContentKind;
   paragraphCount: number;
+  /** The words in the section's paragraphs as the importer read them; absent from a host that predates the outline's Words column. */
+  wordCount?: number;
+  /** How the section's text begins, cut with an ellipsis; omitted for a section with no text. */
+  firstText?: string;
 };
 export type ManuscriptCharacterCandidate = {
   id: string;

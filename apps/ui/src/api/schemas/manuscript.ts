@@ -104,6 +104,8 @@ const importSectionSchema = z.object({
   subtitleOff: z.enum(['title', 'body']).optional(),
   contentKind: contentKindSchema,
   paragraphCount: z.number(),
+  wordCount: z.number().optional(),
+  firstText: z.string().optional(),
 }) satisfies z.ZodType<ManuscriptImportSection>;
 
 const characterCandidateSchema = z.object({
