@@ -238,7 +238,7 @@ export function ImportReview({
   );
   return (
     <div ref={root}>
-      <h3 className="mt-4 text-[length:var(--font-size-xl)] font-semibold">Check the chapter outline</h3>
+      <h3 className="mt-4 text-[length:var(--font-size-base)] font-semibold">Check the chapter outline</h3>
       <div className="mt-2 flex flex-wrap gap-2" aria-label="What was found">
         <StatusBadge tone="success" label={`${counts.narration} ${plural(counts.narration, 'chapter')}`} />
         <StatusBadge tone="neutral" label={`${preview.paragraphCount} ${plural(preview.paragraphCount, 'paragraph')}`} />

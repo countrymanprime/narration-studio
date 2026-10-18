@@ -8,12 +8,12 @@
 import { toneColors, type BadgeColors, type BadgeShape, type StatusTone } from '../components/primitives/StatusBadge';
 import { tint, tintOver, type EntityColour, FAINT_COLOUR } from './entityColour';
 
-export type KindFamily = 'mistake' | 'audio' | 'pronunciation' | 'search' | 'entity' | 'speaker';
+type KindFamily = 'mistake' | 'audio' | 'pronunciation' | 'search' | 'entity' | 'speaker';
 
 /** The shape of a text mark. Each shape is used by one kind app-wide, so a reader tells two red kinds apart without colour. */
-export type MarkShape = 'wavy' | 'dashed-box' | 'bar' | 'double' | 'thin' | 'dotted' | 'tint';
+type MarkShape = 'wavy' | 'dashed-box' | 'bar' | 'double' | 'thin' | 'dotted' | 'tint';
 
-export type MarkRecipe = {
+type MarkRecipe = {
   shape: MarkShape;
   /** Whether the mark paints a fill behind the words. */
   fill: boolean;
@@ -23,7 +23,7 @@ export type MarkRecipe = {
 };
 
 /** Where a kind's colour comes from: a fixed hue, or the entry's own (`entityColour.ts`). */
-export type KindHue = 'danger' | 'warn' | 'info' | 'search' | 'neutral' | 'entity';
+type KindHue = 'danger' | 'warn' | 'info' | 'search' | 'neutral' | 'entity';
 
 export type KindId =
   | 'misread'

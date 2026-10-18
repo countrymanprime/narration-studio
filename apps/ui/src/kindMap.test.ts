@@ -289,6 +289,7 @@ describe('every var(--name) without a fallback names a property something define
   for (const { source } of texts) {
     for (const match of source.matchAll(/(?<![\w-])(--[a-z0-9][\w-]*)\s*:/gi)) defined.add(match[1]);
     for (const match of source.matchAll(/['"`](--[a-z0-9][\w-]*)['"`]\s*[:\]]/gi)) defined.add(match[1]);
+    for (const match of source.matchAll(/@property\s+(--[a-z0-9][\w-]*)/gi)) defined.add(match[1]);
     for (const match of source.matchAll(/setProperty\(\s*['"`](--[a-z0-9][\w-]*)['"`]/gi)) defined.add(match[1]);
   }
 
