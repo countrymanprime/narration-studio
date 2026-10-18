@@ -13,15 +13,18 @@ import { milestoneStatus, type MilestoneStatus, type ScheduleChapter } from './p
 const STATUS_TONE: Record<MilestoneStatus['kind'], StatusTone> = { done: 'success', ok: 'success', risk: 'warning', late: 'danger', none: 'neutral' };
 
 /** A status as a small cell: the value is short ("+3 d", a date, a check, a dash) and the sentence is its name and its tooltip. */
-function StatusCell({ status }: { status: MilestoneStatus }) {
+function StatusCell({ status, finalRow = false }: { status: MilestoneStatus; finalRow?: boolean }) {
   return (
     <TooltipTarget text={status.sentence}>
-      <span role="img" aria-label={status.sentence} data-status={status.kind}>
+      <span role="img" aria-label={status.sentence} data-status={status.kind} data-final-status={finalRow ? '' : undefined}>
         <StatusBadge shape="cell" tone={STATUS_TONE[status.kind]} label={status.short} />
       </span>
     </TooltipTarget>
   );
 }
+
+/** The Final delivery status while the book has no due date: a pace cannot be judged, and the cell says so instead of staying blank. */
+const NO_DUE: MilestoneStatus = { kind: 'none', sentence: 'No due date yet. Set one to see if you are on pace.', short: 'No date' };
 
 export type MilestoneTableProps = {
   milestones: readonly ProductionMilestone[];
@@ -47,68 +50,77 @@ export function MilestoneTable({ milestones, chapters, today, due, onToggleDone,
     .sort((a, b) => (a.m.dueDate < b.m.dueDate ? -1 : a.m.dueDate > b.m.dueDate ? 1 : a.index - b.index));
   const final = due ? milestoneStatus({ dueDate: due, measure: 'all' }, chapters, today) : null;
   return (
-    <Table label="Milestones" flush>
-      <TableHead>
-        <TableRow>
-          <TableHeader hiddenLabel="Done" />
-          <TableHeader>Milestone</TableHeader>
-          {/* The mock's column sizes: Measures keeps room for "All recorded" on one line, and Due is a date wide (152 px) whatever a milestone is called. */}
-          <TableHeader className="md:min-w-[9rem]">Measures</TableHeader>
-          <TableHeader className="w-[9.5rem]">Due</TableHeader>
-          <TableHeader>Status</TableHeader>
-          <TableHeader hiddenLabel="Actions" />
-        </TableRow>
-      </TableHead>
-      <TableBody>
-        {rows.map(({ m, index }) => (
-          <TableRow key={index}>
-            <TableCell>
-              <IconButton label={`Mark ${m.name} complete`} aria-pressed={Boolean(m.done)} data-done={index} onClick={() => onToggleDone(index)}>
-                <Icon name={m.done ? 'markedDone' : 'markDone'} />
-              </IconButton>
-            </TableCell>
-            <TableCell>
-              <b data-name={index} dir="auto" className="[overflow-wrap:anywhere]">
-                {m.name}
-              </b>
-            </TableCell>
-            <TableCell>
-              <span data-measure={index}>{measureText(m.measure)}</span>
-            </TableCell>
-            <TableCell numeric align="left">
-              {fmtIso(m.dueDate, today)}
-            </TableCell>
-            <TableCell>
-              <StatusCell status={milestoneStatus(m, chapters, today)} />
-            </TableCell>
-            <TableCell align="right">
-              <span className="inline-flex gap-0.5">
-                <TooltipTarget text={m.note ?? 'Add a note'}>
-                  <IconButton label={m.note ? `Edit the note on ${m.name}` : `Add a note to ${m.name}`} data-note={index} onClick={() => onEdit(index, 'note')}>
-                    <Icon name="addNote" />
-                  </IconButton>
-                </TooltipTarget>
-                <IconButton action="edit" label={`Edit ${m.name}`} data-edit={index} onClick={() => onEdit(index)} />
-                <IconButton action="remove" variant="danger" label={`Remove ${m.name}`} data-remove={index} onClick={() => onRemove(index)} />
-              </span>
-            </TableCell>
+    /* The table keeps its width and scrolls inside its own card, with the edge shadow that says there is more, instead of spilling out of the card on a narrow window. */
+    <div className="scroll-x-edges overflow-x-auto" tabIndex={0} role="group" aria-label="Milestones scroll area">
+      <Table label="Milestones" flush>
+        <TableHead>
+          <TableRow>
+            <TableHeader hiddenLabel="Done" />
+            <TableHeader className="min-w-[10rem]">Milestone</TableHeader>
+            {/* The mock's column sizes: Measures keeps room for "All recorded" on one line, and Due is a date wide (152 px) whatever a milestone is called. */}
+            <TableHeader className="md:min-w-[9rem]">Measures</TableHeader>
+            <TableHeader className="w-[9.5rem]">Due</TableHeader>
+            <TableHeader>Status</TableHeader>
+            <TableHeader hiddenLabel="Actions" />
           </TableRow>
-        ))}
-        <TableRow>
-          <TableCell />
-          <TableCell>
-            <b>Final delivery</b>
-          </TableCell>
-          <TableCell muted>Whole book</TableCell>
-          {/* The mock's 152 px column: a long milestone name must not take the room the date field needs. */}
-          <TableCell className="min-w-[9.5rem]">
-            <DueField value={due ?? ''} onCommit={onDueChange} />
-          </TableCell>
-          <TableCell>{final ? <StatusCell status={final} /> : null}</TableCell>
-          <TableCell />
-        </TableRow>
-      </TableBody>
-    </Table>
+        </TableHead>
+        <TableBody>
+          {rows.map(({ m, index }) => (
+            <TableRow key={index}>
+              <TableCell>
+                <IconButton label={`Mark ${m.name} complete`} aria-pressed={Boolean(m.done)} data-done={index} onClick={() => onToggleDone(index)}>
+                  <Icon name={m.done ? 'markedDone' : 'markDone'} />
+                </IconButton>
+              </TableCell>
+              <TableCell>
+                <b data-name={index} dir="auto" className="[overflow-wrap:anywhere]">
+                  {m.name}
+                </b>
+              </TableCell>
+              <TableCell>
+                <span data-measure={index}>{measureText(m.measure)}</span>
+              </TableCell>
+              <TableCell numeric align="left">
+                {fmtIso(m.dueDate, today)}
+              </TableCell>
+              <TableCell>
+                <StatusCell status={milestoneStatus(m, chapters, today)} />
+              </TableCell>
+              <TableCell align="right">
+                <span className="inline-flex gap-0.5">
+                  <TooltipTarget text={m.note ?? 'Add a note'}>
+                    <IconButton
+                      label={m.note ? `Edit the note on ${m.name}` : `Add a note to ${m.name}`}
+                      data-note={index}
+                      onClick={() => onEdit(index, 'note')}
+                    >
+                      <Icon name="addNote" />
+                    </IconButton>
+                  </TooltipTarget>
+                  <IconButton action="edit" label={`Edit ${m.name}`} data-edit={index} onClick={() => onEdit(index)} />
+                  <IconButton action="remove" variant="danger" label={`Remove ${m.name}`} data-remove={index} onClick={() => onRemove(index)} />
+                </span>
+              </TableCell>
+            </TableRow>
+          ))}
+          <TableRow>
+            <TableCell />
+            <TableCell>
+              <b>Final delivery</b>
+            </TableCell>
+            <TableCell muted>Whole book</TableCell>
+            {/* The mock's 152 px column: a long milestone name must not take the room the date field needs. */}
+            <TableCell className="min-w-[9.5rem]">
+              <DueField value={due ?? ''} onCommit={onDueChange} />
+            </TableCell>
+            <TableCell>
+              <StatusCell status={final ?? NO_DUE} finalRow />
+            </TableCell>
+            <TableCell />
+          </TableRow>
+        </TableBody>
+      </Table>
+    </div>
   );
 }
 

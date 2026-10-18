@@ -8,6 +8,7 @@ import (
 	"os/exec"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/countrymanprime/narration-utils/shell/internal/runlog"
 )
@@ -99,6 +100,7 @@ func (s *Supervisor) StartStream(ctx context.Context, onLine func(string), progr
 	if err != nil {
 		return nil, err
 	}
+	started := time.Now()
 	if err := command.Start(); err != nil {
 		return nil, fmt.Errorf("could not start %s: %w", program, err)
 	}
@@ -107,11 +109,20 @@ func (s *Supervisor) StartStream(ctx context.Context, onLine func(string), progr
 		return nil, err
 	}
 
+	first := &firstOutput{started: started}
 	child := &StreamChild{Child: &Child{}, command: command, done: make(chan struct{})}
 	stderrSink := runlog.FromContext(ctx).StderrWriter()
 	var readers sync.WaitGroup
 	readers.Add(2)
-	go func() { defer readers.Done(); deliverLines(stdout, onLine) }()
+	go func() {
+		defer readers.Done()
+		deliverLines(stdout, func(line string) {
+			first.note()
+			if onLine != nil {
+				onLine(line)
+			}
+		})
+	}()
 	go func() { defer readers.Done(); child.captureStderr(stderr, stderrSink) }()
 	go func() {
 		// Wait must not run before the pipes are fully read.
@@ -129,6 +140,7 @@ func (s *Supervisor) StartStream(ctx context.Context, onLine func(string), progr
 		child.mu.Lock()
 		child.exitCode = &code
 		child.mu.Unlock()
+		s.recordTiming(ctx, "stream", program, first, code)
 		close(child.done)
 	}()
 	return child, nil

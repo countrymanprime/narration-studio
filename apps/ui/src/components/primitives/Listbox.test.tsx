@@ -89,4 +89,80 @@ describe('Listbox', () => {
     expect(screen.getByRole('option', { name: /^B/ }).getAttribute('aria-disabled')).toBe('true');
     expect(screen.getByRole('option', { name: /^A/ }).getAttribute('aria-disabled')).toBeNull();
   });
+
+  describe("a row's mouse-only action and key hint", () => {
+    const ROWS = [
+      {
+        id: 'queen',
+        label: 'The Queen of Hearts',
+        trailing: '3 samples',
+        hint: 'Has 3 voice samples. Press Control Enter to hear it.',
+        action: (
+          <button type="button" tabIndex={-1} onClick={vi.fn()}>
+            Play
+          </button>
+        ),
+      },
+      { id: 'king', label: 'The King of Hearts', trailing: 'no sample' },
+    ];
+
+    it('listbox-action-sits-outside-the-option: an option never holds a button, and the action is hidden from assistive technology', () => {
+      render(<Listbox id="who" label="Speakers" options={ROWS} onPick={vi.fn()} />);
+      const [queen, king] = screen.getAllByRole('option');
+      expect(queen.querySelector('button')).toBeNull();
+      expect(queen.parentElement?.getAttribute('role')).toBe('presentation');
+      const action = screen.getByRole('button', { name: 'Play', hidden: true });
+      expect(action.closest('[aria-hidden="true"]')).not.toBeNull();
+      expect(action.tabIndex).toBe(-1);
+      expect(queen.parentElement?.contains(action)).toBe(true);
+      // A row with no action keeps the plain option: no wrapper.
+      expect(king.parentElement?.getAttribute('role')).toBe('listbox');
+    });
+
+    it('pressing the action neither picks the option nor takes focus from the text box', async () => {
+      const onPick = vi.fn();
+      const onAct = vi.fn();
+      render(
+        <>
+          <input aria-label="Search" />
+          <Listbox
+            id="who"
+            label="Speakers"
+            options={[
+              {
+                ...ROWS[0]!,
+                action: (
+                  <button type="button" tabIndex={-1} onClick={onAct}>
+                    Play
+                  </button>
+                ),
+              },
+            ]}
+            onPick={onPick}
+          />
+        </>,
+      );
+      screen.getByLabelText('Search').focus();
+      await userEvent.click(screen.getByRole('button', { name: 'Play', hidden: true }));
+      expect(onAct).toHaveBeenCalledTimes(1);
+      expect(onPick).not.toHaveBeenCalled();
+      expect(document.activeElement).toBe(screen.getByLabelText('Search'));
+    });
+
+    it('a press on the option itself still picks it', async () => {
+      const onPick = vi.fn();
+      render(<Listbox id="who" label="Speakers" options={ROWS} onPick={onPick} />);
+      await userEvent.click(screen.getAllByRole('option')[0]!);
+      expect(onPick).toHaveBeenCalledWith('queen');
+    });
+
+    it('the hint is read after the name, for screen readers only', () => {
+      render(<Listbox id="who" label="Speakers" options={ROWS} onPick={vi.fn()} />);
+      const queen = screen.getAllByRole('option')[0]!;
+      const hint = document.getElementById(queen.getAttribute('aria-describedby') ?? '');
+      expect(hint?.textContent).toBe('Has 3 voice samples. Press Control Enter to hear it.');
+      expect(hint?.className).toContain('sr-only');
+      expect(screen.getAllByRole('option')[1]!.getAttribute('aria-describedby')).toBeNull();
+    });
+  });
 });

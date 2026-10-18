@@ -2,7 +2,7 @@
 import { render } from '@testing-library/react';
 import { useRef } from 'react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { TOAST_CLEAR_VAR, useToastClearance } from './useToastClearance';
+import { TOAST_CLEAR_RIGHT_VAR, TOAST_CLEAR_VAR, useToastClearance, useToastSideClearance } from './useToastClearance';
 
 function Bar() {
   const ref = useRef<HTMLDivElement>(null);
@@ -72,5 +72,44 @@ describe('useToastClearance with several bars', () => {
     }
     render(<Spaced />);
     expect(document.documentElement.style.getPropertyValue(TOAST_CLEAR_VAR)).toBe('108px');
+  });
+});
+
+describe('useToastSideClearance', () => {
+  function Panel() {
+    const ref = useRef<HTMLDivElement>(null);
+    useToastSideClearance(ref);
+    return <div ref={ref}>panel</div>;
+  }
+  const read = () => document.documentElement.style.getPropertyValue(TOAST_CLEAR_RIGHT_VAR);
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    document.documentElement.style.removeProperty(TOAST_CLEAR_RIGHT_VAR);
+  });
+
+  it('moves the toasts left of a panel down the right edge, and back when it goes', () => {
+    vi.stubGlobal('innerWidth', 1440);
+    vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockReturnValue({ width: 380, right: 1440 } as DOMRect);
+    const { unmount } = render(<Panel />);
+    expect(read()).toBe('392px');
+    unmount();
+    expect(read()).toBe('');
+  });
+
+  it('leaves the toasts alone when the panel spans the window (the layout stacked it under the page)', () => {
+    vi.stubGlobal('innerWidth', 1024);
+    vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockReturnValue({ width: 990, right: 1024 } as DOMRect);
+    render(<Panel />);
+    expect(read()).toBe('');
+  });
+
+  it('follows the window as it is resized', () => {
+    vi.stubGlobal('innerWidth', 1440);
+    const rect = vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockReturnValue({ width: 380, right: 1440 } as DOMRect);
+    render(<Panel />);
+    vi.stubGlobal('innerWidth', 1100);
+    rect.mockReturnValue({ width: 1060, right: 1100 } as DOMRect);
+    window.dispatchEvent(new Event('resize'));
+    expect(read()).toBe('');
   });
 });
