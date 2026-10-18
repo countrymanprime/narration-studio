@@ -242,7 +242,7 @@ The root `package.json` version is the single source: `sync-version.mjs` copies 
 `apps/desktop/wails.json` (`info.productVersion`, which the build renders into the Windows version resource and the installer), and
 `scripts/release/wails-build.mjs` stamps it into the Go variable `main.version` with `-ldflags "-X main.version=<version>"`. CI (`.github/actions/build-native`) and a local
 build (`pnpm --dir apps/desktop run build`, or the Nx `package` target) both go through that script, so a build never reports a
-version that depends on who built it. `Bootstrap` returns it and Settings > About shows it.
+version that depends on who built it. `Bootstrap` returns it and Settings > App & updates shows it.
 
 - The version is **bare semver** (`0.2.7`). A release candidate and its promotion are the same bytes, so they report the same
   version; `wails-build.mjs` refuses a version with a suffix, and sets every Go flag itself, so a caller cannot replace the stamp.

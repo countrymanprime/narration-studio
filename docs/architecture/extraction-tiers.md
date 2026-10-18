@@ -94,7 +94,7 @@ The sidecar's Python wheels and weights are loaded only from the registry's inst
 
 ## Consent for each download
 
-The downloads are catalogue entries of the one asset registry ([The asset registry (implemented)](first-use-dependency-provisioning.md#the-asset-registry-implemented)), not a second installer. The rules, the consent facts, the unavailable-until-pinned check and the failure sentences are in [first-use dependency provisioning, Story Bible analysis tools](first-use-dependency-provisioning.md#the-story-bible-analysis-tools); the install, verify and remove controls are in [the local assets page](first-use-dependency-provisioning.md#the-local-assets-page-implemented). The tools and their catalogue rows are in `config/analysis-assets.json`.
+The downloads are catalogue entries of the one asset registry ([The asset registry (implemented)](first-use-dependency-provisioning.md#the-asset-registry-implemented)), not a second installer. The rules, the consent facts, the unavailable-until-pinned check and the failure sentences are in [first-use dependency provisioning, Story Bible analysis tools](first-use-dependency-provisioning.md#the-story-bible-analysis-tools); the install, verify and remove controls are in [the models and downloads list](first-use-dependency-provisioning.md#the-models-and-downloads-list-implemented). The tools and their catalogue rows are in `config/analysis-assets.json`.
 
 | Tool | Asset id | Consent UI | State |
 | --- | --- | --- | --- |

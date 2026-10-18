@@ -2,175 +2,70 @@
 
 # Settings
 
-Settings is one page of panels, one under another: Recording, Delivery profile, the reader and Story Bible
-panels and Appearance come first, then the panels for the rest of the settings.
+Settings is a page of eight categories, one shown at a time. The list sits at the left in three groups: **Shared
+tools** (Recording & DAW, Speech to text, Voice & pronunciation, Models & downloads, Delivery), **This project**
+(Project) and **This computer** (Appearance & keys, App & updates). **Set on a page** stands apart under
+**Elsewhere**. In a narrow window the list folds into one **Category** button that names the current category and opens the
+list.
 
-- **Recording** chooses where this project's takes are recorded: **REAPER**, **Audacity** or the **Built-in
-  recorder** (see [Choose REAPER](#choose-reaper)). The choice is saved with the project. A refused choice (no
-  project open, a take running, or the built-in recorder not available) says why under the radios, and the
-  choice stays where it was.
-- **Delivery profile** picks the profile this project is judged against, on [Master &
-  QC](master-and-qc.md) and [Delivery](delivery.md), the same choice as Delivery's own menu.
-- **Definitions and pronunciations** chooses where the Script page's **Words** tab shows definitions from: the
-  web page (the default), the local dictionary or the online service. The choice is saved for every project and is
-  the same one as the Words tab's **Definitions from** menu. The local dictionary shows **Installed** or **Not
-  installed** with a button to remove or download it; the online service shows **Online**, **Offline**, or **No key
-  saved** until its key is saved.
+![Settings - Recording & DAW, with the category list at the left and the search and filters above](../../images/ui/settings-recording.webp)
 
-![Settings - the top of the page: the Recording radios with each engine's state, the linked REAPER project, the Delivery profile and Definitions and pronunciations](../../images/ui/settings-appearance.webp)
+**Ctrl+,** opens Settings from any page. When a link from another page brings you here (the Booth's DAW settings,
+a "fix credits" link, Master's silence cleanup), Settings opens on the setting, lights it up for a moment and
+offers **Back to** the page you came from.
 
-- **Reader text** sets how the [Script](script.md) reader draws the text: **Font**, **Size**, **Line spacing** and
-  **Column width**, over a quote drawn in them. These are the Script's own text settings, so a change here shows
-  there and the other way round. The Booth keeps its own text size and uses the font chosen here. They are kept on
-  this computer, not in the project.
-- **Marks** lists your mark types, each with its colour, and **tracks a reply** on a type that asks for one.
-  **Edit marks…** opens the same **Define how you mark up** dialog as the Script page.
+## Every setting says whose it is and who uses it
 
-![Settings - Reader text: font, size, line spacing and column width over the preview quote, then the Marks](../../images/ui/settings-reader-text.webp)
+Each row has a name, a line on what it does, and under it:
 
-- **Story Bible types** lists the kinds of [Story Bible](story-bible.md) entry, each with its name, colour, a
-  **Can speak** box (entries of that type can be picked as the speaker of a quoted line, and the next Story Bible
-  build attributes dialogue to them) and how many entries it has. A type you add with **New type** does not speak
-  until you tick the box. Rename a type in its box and every entry of it moves with it; change its colour; or
-  remove one: the remove button stays off while entries use the type, and the last type cannot go. A taken or
-  reserved name is refused. A refused change says why under the list. The Story Bible's list and kind chips, its
-  kind menu and the Script's speaker choices follow the list at once.
-- **Story Bible analysis** lists the optional tools that make the Story Bible scan better (GLiNER, BookNLP small
-  and large, and a local language model), each with what it does, its size, where it downloads from and the
-  memory it needs, and the **Offer better analysis when scanning** box. A tool the app does not offer yet says
-  **Not available yet** with the reason, and has no **Download**. None is offered in this version. Once one is,
-  **Download** asks first, then shows progress, and **Remove** deletes it.
+- **This computer**, **This project** or **All projects**. A setting for **All projects** is one value for the
+  computer that a project may override: under the control it says **This project uses the computer setting.** with
+  **Override for this project**; once overridden the row says **overridden here**, shows **This project uses** with its
+  own control, and **Use computer setting** goes back. A **This project** setting belongs to the open project only.
+- **Used by** and the pages that read it. Each name goes to that page; the setting is changed here, once.
+- **Also set in** where a quick control for the same value sits (the rail's theme button, the Script's Words tab).
 
-![Settings - Story Bible analysis: the four optional tools, each Not available yet with its reason, and Offer better analysis when scanning](../../images/ui/settings-analysis-tools.webp)
+A change applies at once, with no Save button. The row says **Saved** beside its control. A row that differs from its
+default shows **Changed**, a bar at its edge and a reset button that puts it back; a category with changed rows shows
+how many in the list and **Reset <category> to defaults**. A change that costs something asks first: changing the
+transcription model says earlier checks are marked out of date and run again. A value the host refuses keeps
+the previous value and says why under the row; the page then notes that changes may not be kept until one succeeds.
 
-- **Appearance** sets the theme: **Match my system**, **Light** or **Dark**. The **Dark theme** / **Light
-  theme** item at the foot of the sidebar switches it too.
+Rarely changed settings sit under **Advanced** at the foot of a category, closed until you open it; the button
+says how many it holds.
 
-![Production in the Dark theme](../../images/ui/theme-dark.webp)
+![Settings - a project overriding a setting that is otherwise for all projects](../../images/ui/settings-override.webp)
 
-- **Keyboard shortcuts** lists the keys, read-only; the **Keyboard & pedals** panel below changes them.
-- **Manuscript** says when the manuscript was imported and how many words it has (or **No manuscript yet**),
-  with **Replace manuscript…** (or **Import manuscript** when there is none). The replace confirm names what it
-  clears.
+## Find a setting
 
-![Settings - the Manuscript panel: when it was imported, its word count and Replace manuscript…](../../images/ui/settings-manuscript.webp)
+**Search settings** matches the name, the description and words you might use instead (typing "whisper" finds the
+transcription model; "breath" finds silence cleanup). Results are grouped under their category with **Show the
+whole category**, and include matches from the Advanced sections. **Changed** lists everything that differs from
+the default, wherever it is; **In this project** lists the settings this project owns or overrides. Each says so
+when nothing is there. **Escape** clears the search.
 
-Below them come General, Keyboard & pedals, Note colour, Recording check, Silence cleanup, Proof, Preview
-suggestion, Stage suggestions, Story Bible, Delivery profiles, DAW Integration, TTS, Booth, Local assets,
-Project data, Credits and About & updates. A panel whose settings can differ per project has a **Global** /
-**This project** switch in its header: Global holds the defaults for every project, and This project the
-overrides for the current one (a setting left unset there uses the Global value). Once you change a setting,
-the panel shows **Unsaved changes** with **Save** and **Discard changes**. Switching its scope, or leaving
-Settings, with unsaved changes asks whether to save or discard them.
+![Settings - searching for "whisper"](../../images/ui/settings-search.webp)
 
-![Settings with unsaved changes: the footer with Save and Discard](../../images/ui/settings-unsaved.webp)
+## Recording & DAW
 
-![Settings - the General panel (Global only): log verbosity, the long-task notification, the narrator name and the credits room tone](../../images/ui/settings-general.webp)
+**Record with** chooses where this project's takes are recorded: **REAPER**, **Audacity** or the **Built-in
+recorder** (see [Choose REAPER](#choose-reaper)). The choice is saved with the project. A refused choice (no project open,
+a take running, or the built-in recorder not available) says why under the radios, and the choice stays where it was.
+Under it, **Connection** says what the app can reach right now, with **Test connection**.
 
-- **General** (Global only) holds **Log verbosity** (`quiet`, `normal` or `verbose`); **Notify me when a long task
-  finishes while I'm away** (on by default), a Windows notification when a long job ends while the app is
-  not in front; the **Narrator name (default for credits)**; the **Room tone per credits file (seconds)**, 0
-  to 10 and 0 by default: the silence the [Production](production.md#the-credits) credits estimate adds to
-  the opening and to the closing credits file, head and tail together (ACX asks for 1 to 5 seconds at each
-  end of every file); and **Debug logging (writes decision records to the run log)**.
-- **Keyboard & pedals** (Global only) lists every command you can run without the mouse, grouped by where
-  it works. **Change** opens a recorder under the command: press the key or pedal (a USB footswitch that
-  types a key works like a keyboard), then **Replace**, **Add as another key**, **Unbind** or **Reset to
-  default**. A key another command already uses is named, and **Replace** takes it from that command. A
-  changed command shows **Changed** and its own **Reset**; **Reset all to defaults** undoes every change.
-  Each change saves at once.
-- **Note colour** holds the **Note color**, the colour that marks reader notes in the text.
-- **Recording check** holds the four numbers the [recording check](production.md#checking-a-chapters-recording) uses: the **Share of
-  each paragraph that must be read** (0.8) and the **Longest run of missing words allowed** (3)
-  decide when a chapter counts as recorded, and the **Longest misread still counted as read** (8)
-  and the **Shortest match that counts as read** (3) decide which words count as read at all. The
-  panel states the rule they make and labels them **Proposed values, not yet calibrated**: they
-  were chosen on synthetic test recordings and have not been checked against real recordings yet
-  ([how they were chosen](../../utilities/recording-coverage.md#settings)). A skipped phrase of 3
-  words or fewer can pass, because a transcriber drops single words too. Changing either of the first two only changes
-  how a stored check is judged. Changing either of the last two makes earlier checks out of date, so
-  those chapters need checking again. **Check changed chapters in the background** lets the app re-check a
-  changed chapter by itself while your DAW is idle and not recording and the computer is on mains power.
-  The panel also has its own switch, **Two-pass check (fast first pass, then re-check what's
-  missing)**, off by default. On, a **First-pass Whisper model** and a **Re-check Whisper model**
-  pick which model runs each pass ([how it works](../../utilities/recording-coverage.md#the-model-cascade)):
-  a fast pass (`tiny` by default) transcribes the whole chapter, and a stronger one (`large-v3-turbo`
-  by default) re-checks only what it reports missing, and **Also re-check passages Whisper is unsure of**
-  (0.5) sends the stronger model the passages whose words Whisper scored under that share too, even when
-  the text is all there (0 turns it off). Turning the two-pass check on does not change the model the
-  **Proof** panel sets. Three more settings decide how a long chapter is transcribed
-  ([long chapters](../../utilities/recording-coverage.md#long-chapters)): **Parallel Whisper processes**
-  (0 lets the app choose from the model), **Chunk length in seconds** (300; 0 transcribes each recording
-  whole) and **Crossover between neighbouring chunks** (6 s), and **Chapters checked at once** (1) says how many chapters **Check recordings** checks together, sharing the processors. They change how fast the check runs, not what
-  it finds, so changing one does not make earlier checks out of date. **Check recordings** starts from these
-  values and lets you change them for one run.
-- **Silence cleanup** holds the thresholds the silence cleanup analysis uses when a
-  [diagnostics](master-and-qc.md#diagnostics) check runs: the **Hold kept at each side of a cut silence**,
-  the **Shortest run read as a breath** and **Longest run read as a breath**, **How far below speech level a
-  breath sits**, and **How far above the silence around it a click stands**.
-- **Proof** picks the **Default Whisper model** and **Default chunk length** for a comparison and the marker
-  colors for misread, skipped and extra words. It shows whether the chosen model is installed, with
-  **Remove local model…** once it is.
-- **Preview suggestion** sets what the [Preview panel](proof.md#comparing-the-recording-with-the-script) suggests:
-  the **Target length (seconds)**, the **Tolerance (fraction of target)**, the **Preset** (**Sample**, a clean,
-  varied excerpt to share, or **Spot check**, a passage worth a second look) and **Exclude the ending
-  (fraction of chapters)**, so a candidate never comes from the book's last chapters.
-- **Stage suggestions** decides when Production suggests moving a chapter on ([stage
-  readiness](production.md#stage-readiness)). **Suggest stage advances** turns every suggestion off at once;
-  below it, each check (text present in order, empty space, clicks, breaths, pickups, and the rendered
-  file's delivery checks) is `required` or `ignored`. The click and breath checks are marked **not yet
-  validated**: requiring one means the stage is never suggested.
-- **Story Bible** picks the spaCy model, whether to **Build the Story Bible after import**, and the
-  **Default pronunciation source** a fresh pronunciation tries first (Automatic, CMU, Wiktionary or
-  eSpeak) at build time and when you add an alias; it never limits generating or replacing a
-  pronunciation by hand for a specific entry, which always lets you pick. In Global it also holds the
-  **Online dictionary (Merriam-Webster)**: an optional free key of your own (**Get a free key**, **Save
-  key**, **Remove key**) that Look up online uses when no dictionary on this computer knows a name; only the
-  word you look up is sent. The analysis tools are the **Story Bible analysis** panel at the top of the page.
-- **Delivery profiles** (Global only) picks the **Default delivery profile** for every project that has not chosen one (ACX
-  until you change it); a project's own choice is the **Delivery profile** panel at the top of the page. A
-  choice takes effect at once. The **Profiles** list shows the built-in ACX profile, read-only, and your custom profiles with
-  what each is based on, how many numbers you changed and how many rules are off. **Duplicate** makes a
-  custom copy and opens it in the editor, where you can rename it, turn a rule off, and change the
-  lowest and highest of a rule that has a range (a length is in minutes); a rule with a fixed value can
-  only be turned off, and a copy cannot add a kind of rule the app does not check. **Edit** and
-  **Delete** work on a custom profile; a project that chose a deleted profile goes back to the Global
-  default.
-- **TTS** picks the provider and the preview voice used to [hear a name](story-bible.md#hearing-a-name),
-  with **Remove local voice…** once the voice is installed.
+Also here: **Microphone** (a list of the computer's inputs, with **Refresh the list**; the Booth uses the same
+one), and, for REAPER only, **Start the launcher script with REAPER**, and under Advanced **REAPER program**,
+**Experimental REAPER actions** and **Capabilities**. These are settings of this computer; a project has no override for them.
 
-Choosing a model or a voice here never downloads it; the app asks when a feature first needs it.
+![Settings - Recording & DAW: the capabilities and the REAPER path under Advanced](../../images/ui/settings-daw.webp)
 
-The **Booth** panel (Global only — the microphone, engine and model are machine facts, not a
-per-project preference) remembers the microphone, live engine and model you last chose in the
-[Booth](booth.md), and changing them here changes what the Booth starts with. The engine is Whisper
-(the default) or Moonshine; the model is `tiny` or `small` for either. Choosing an engine or model whose
-files are not on this computer asks for the download straight away, with its size and where it comes from;
-closing the question without downloading puts your previous choice back. Record in the Booth also checks the
-model first, so nothing records while it is being asked for. **Punch pre-roll (seconds)** is how far
-before the word a punch-in starts. Old links to it by its former name, Teleprompter, still open it.
-
-![Settings - Keyboard & pedals: every command by scope, with its key or pedal](../../images/ui/settings-keyboard.webp)
-
-![Settings - Keyboard & pedals recording a new key for Record or stop](../../images/ui/settings-keyboard-recording.webp)
-
-![Settings - the Booth panel: the microphone, the live engine and its model](../../images/ui/settings-booth.webp)
-
-![Settings - a copy of ACX open in the delivery profile editor](../../images/ui/settings-delivery-profile.webp)
-
-The **Project data** panel is a project-only danger zone: **Clear derived project data…**
-removes the imported manuscript and its stored source, the Story Bible, proofing artifacts, reader notes and
-bookmarks, and saved comparison results for the current project, after you confirm. Its settings remain.
-
-![Settings - the Project data panel (This project): Clear derived project data…](../../images/ui/settings-project-data.webp)
-
-## Choose REAPER
+### Choose REAPER
 
 Each radio says whether that program was found on this computer, or what stops it (for example
-**Experimental: switched off in Settings.**, with a link to [DAW Integration](#daw-integration), where the switch
-is). A project folder holding a REAPER project file (`.rpp`) starts on REAPER; pick another radio to change it.
+**Experimental: switched off in Settings.**, with the switch under Advanced, below). A project folder holding a REAPER
+project file (`.rpp`) starts on REAPER; pick another radio to change it.
 
-## Link your REAPER project
+### Link your REAPER project
 
 Under the radios is the project's REAPER file. With one `.rpp` in the project folder it reads **REAPER not
 linked** and offers **Link** with the file's name; **Choose a project file** opens a file dialog for any other
@@ -181,53 +76,99 @@ linked** and offers **Link** with the file's name; **Choose a project file** ope
 The file can be in the project folder, in a subfolder of it, or anywhere else, such as a folder or drive you keep
 for REAPER. A file inside the project folder keeps working when you move the whole project. For a file elsewhere,
 a note says where the file and the project are. Only a file that is not an `.rpp`, or no longer exists, is
-refused. Linking also chooses REAPER. Once linked, the panel reads **REAPER linked** with the file's name and
+refused. Linking also chooses REAPER. Once linked, the card reads **REAPER linked** with the file's name and
 **Start REAPER**.
 
-![Settings - Recording: the REAPER project file linked, with Start REAPER](../../images/ui/settings-recording-linked.webp)
+![Settings - the REAPER project file linked, with Start REAPER](../../images/ui/settings-recording-linked.webp)
 
-## DAW Integration
+### DAW Integration
 
-In **Global**, **DAW Integration** starts with **Digital audio workstation**: the DAW the app
-works with (REAPER) and whether it is installed on this computer. When it is not, **Get REAPER** opens its
-download page in your browser; the app never downloads or installs it for you. When it is installed and no
-project is linked, **Link a REAPER project file** links one. **Check again** looks again.
+When REAPER is not installed, the card offers **Get REAPER**, which opens its download page in your browser; the
+app never downloads or installs it for you. **Check again** looks again. A running REAPER has been heard from in
+the last 5 seconds, and the card says whether its open project matches the linked one.
 
-Below that, the panel says whether your DAW is reachable: a running DAW has been heard from in the last 5 seconds,
-and its open project does or does not match the linked one. **Launch REAPER** starts REAPER on the linked
-project and needs a linked `.rpp` first.
+- **REAPER program** (Advanced): the full path to `reaper.exe`, for a REAPER the app does not find by itself. A
+  value that is not a path to `reaper` or `reaper.exe` is refused where you type it, and the old one stays.
+- **Start the launcher script with REAPER** (off by default): REAPER runs the Narration Utils launcher when the app
+  starts it.
+- **Experimental REAPER actions** (Advanced, off by default): the DAW actions not yet verified in REAPER stay refused
+  while it is off, unless you set that action to **On** in the table; while it is on, every one left on **Auto** is allowed.
+- **Capabilities** (Advanced): a table of what the app can ask the recording tool to do, each with **Auto**, **On** or
+  **Off** and a **Now** column: the level (**Supported**, **Experimental**, **Not yet available** or **Unsupported**),
+  the tool's own reason when it is unavailable, and a warning on any action that replaces audio that cannot be brought back.
+- The **REAPER launcher** path with **Copy path**, to load once in REAPER as an action (**Actions > Show action list >
+  New action > Load ReaScript**) and load again after each update, since the path changes. The Booth shows the same
+  steps when Record is waiting for REAPER ([Booth](booth.md#recording)).
 
-The settings under it:
+The Audacity backups and the favourite effects are set on [Editing](editing.md) (see [Set on a page](#set-on-a-page)).
 
-- **REAPER executable (override)**, for a REAPER the app does not find by itself.
-- **Start the launcher script automatically** (off by default): REAPER runs the Narration Utils launcher
-  when the app starts it.
-- **Experimental REAPER actions** (off by default): the DAW actions not yet verified in REAPER stay
-  refused while it is off, unless you set that action's own row below to `on`; while it is on, every one left on
-  `auto` is allowed. Its **i** says the same.
-- **Favourite effects (FX chains and plug-ins)**: the effects [Editing](editing.md#effects-on-words)
-  offers first.
-- One row per DAW action (`auto`, `on` or `off`), such as **Record**, **Punch and roll** or **Chapter
-  regions**.
+## Speech to text
 
-**What the DAW can do** lists each action with its level (**Supported**, **Experimental**, **Not yet
-available** or **Unsupported**), the DAW's own reason when it is unavailable, how a change is made, and a
-warning on any action that replaces audio that cannot be brought back. A **Backups** section follows only
-for a DAW that keeps backups of the audio around an edit: how much audio either side is kept and for how
-many days. Where the app knows the launcher's path, **REAPER launcher** shows it with **Copy path**, to
-load once in REAPER as an action (**Actions > Show action list > New action > Load ReaScript**) and load again after each
-update, since the path changes. The Booth shows the same steps when Record is waiting for REAPER ([Booth](booth.md#recording)).
+**Transcription model** is the one default for comparing and checking recordings: Production's recording check,
+[Proof](proof.md), [Pickups](pickups.md) and [Editing](editing.md) all use it. It is for all projects, and a project may override it.
+Changing it asks first. Choosing a model that is not on this computer shows **Not on this computer** with **Download** in the row.
 
-In **This project**, the same panel shows whether a REAPER project is linked, with **Link a REAPER
-project file** or **Change linked project file**: the same link as the pill in the
-[header](navigation.md).
+**Live reading in the Booth** holds the **Live engine** (Whisper, or Moonshine on Windows) and the **Live model** (`tiny`
+or `small`) the [Booth](booth.md) follows your voice with. Under Advanced, **Recording check** holds the **Two-pass check**, its **First-pass model** and
+**Re-check model**, **Parallel processes** and **Chunk length** ([how it works](../../utilities/recording-coverage.md#the-model-cascade)).
 
-![Settings - the DAW panel for this project: the linked DAW project](../../images/ui/settings-daw.webp)
+![Settings - Speech to text, asking before the transcription model changes](../../images/ui/settings-speech-confirm.webp)
+
+## Voice & pronunciation
+
+- **Preview voice** is the voice that says a name or word when you ask for a [preview](story-bible.md#hearing-a-name). It does not narrate anything.
+- **Show definitions from** chooses where the Script page's **Words** tab shows definitions: the web page (the default), the local dictionary or the online
+  service. The choice is the same one as the Words tab's **Definitions from** menu. The local dictionary shows **Installed** or **Not installed** with a button to download or remove it; the online service
+  shows **Online**, **Offline**, or **No key saved**.
+- **Pronunciation source for new names** is what a new name tries first (Automatic, CMU, Wiktionary or eSpeak); it never limits generating or replacing a pronunciation by hand for an entry.
+- **Merriam-Webster key** (Advanced): an optional free key of your own (**Get a free key**, **Save key**, **Test key**, **Remove key**) that Look up online uses when no dictionary on this computer knows a name. It is kept apart from the other settings and never shown again after you save it; only the word you look up is sent.
+
+## Models and downloads
+
+One list of everything Narration Studio can keep on this computer: Whisper models, Moonshine models, the preview voice, the Story Bible language models, the dictionary, the wiktionary pronunciations and the MP3 encoder. Nothing downloads by itself, and
+removing one never touches your projects. Above the list, the disk the installed ones use and the folder they are kept in.
+Which one is *used* is chosen in the category that uses it; here you only get, check and remove them.
+
+![Settings - Models & downloads: the disk used and each download with its state, size, what uses it and its actions](../../images/ui/settings-models.webp)
+
+Each row says what it is, its type and size, its **Status**, **Used by** (pages) and **In use** (the settings that choose it). The status is one of:
+
+- **Not installed**: **Download** starts the download. A bar shows the real bytes so far and **Cancel** stops it while bytes are arriving; the checks after the last byte cannot be cancelled. A download that is already running when you open the page (started by a Story Bible build, a preview or a comparison) is shown too, and leaving the page does not stop it.
+- **Downloading** and **Checking the download**: the download itself, then the check of every file against its approved size and checksum.
+- **Installed · checked**: **Remove** deletes that one asset after you confirm. The confirm names the settings that use it; they switch to the smallest other model you have, and checks made with it are marked out of date. When it is the only installed choice for a setting, the removal is refused and says so.
+- **Needs repair**: some files are missing or no longer match, so the app will not use the asset. **Repair** downloads it again; **Remove** deletes it.
+- **Download failed**: the reason (no connection, not enough disk space) is in the row, with **Try again** and **Dismiss**.
+- **Not available yet**: the app lists the asset but does not offer it in this version. The row says why and has no buttons.
+
+With nothing downloaded, the page offers **Download the recommended set** (the Small transcription model and the preview voice). Below the list, **Story Bible analysis tools** lists the optional tools that make the Story Bible scan better (GLiNER, BookNLP small and large, and a local language model), each with what it does, its size, where it downloads from and the memory it needs, and the **Offer better analysis when scanning** box. None is offered in this version; once one is, **Download** asks first.
+
+## Delivery
+
+- **Delivery profile** picks the profile this project is judged against, on [Master & QC](master-and-qc.md) and [Delivery](delivery.md), the same choice as Delivery's own menu, with the limits of the chosen profile listed under it.
+- **Default profile for new projects** is what a project that has not chosen its own is judged against (ACX until you change it).
+- **Custom profiles** (Advanced) lists your profiles and the built-in ones to copy. **Duplicate** makes a custom copy and opens it in the editor, where you can rename it, turn a rule off, and change the lowest and highest of a rule that has a range (a length is in minutes); a rule with a fixed value can only be turned off, and a copy cannot add a kind of rule the app does not check. **Edit** and **Delete** work on a custom profile; a project that chose a deleted profile goes back to the default.
+
+![Settings - a copy of ACX open in the delivery profile editor](../../images/ui/settings-delivery-profile.webp)
+
+## Project
+
+![Settings - Project: the manuscript, the Story Bible rows, the marks and the narrator](../../images/ui/settings-project.webp)
+
+- **Manuscript** says when the manuscript was imported and how many words it has (or **No manuscript yet**), with **Replace manuscript…** (or **Import manuscript** when there is none). The replace confirm names what it clears.
+- **Build the Story Bible after import** and **Language model for the Story Bible** are for all projects, and a project may override them.
+- **Entry types** lists the kinds of [Story Bible](story-bible.md) entry, each with its name, colour, a **Can speak** box (entries of that type can be picked as the speaker of a quoted line, and the next Story Bible build attributes dialogue to them) and how many entries it has. A type you add with **New type** does not speak until you tick the box. Rename a type in its box and every entry of it moves with it; change its colour; or remove one: the remove button stays off while entries use the type, and the last type cannot go. A taken or reserved name is refused, and says why under the list.
+- **Marks** lists your mark types, each with its colour, and **tracks a reply** on a type that asks for one. **Edit marks…** opens the same **Define how you mark up** dialog as the Script page.
+- **Narrator name** fills the narrator's name in the credits, for all projects, and a project may override it. Under Advanced, **Room tone per credits file** (0 to 10 seconds, 0 by default) is the silence the [Production](production.md#the-credits) credits estimate adds to the opening and to the closing credits file, head and tail together (ACX asks for 1 to 5 seconds at each end of every file).
+- **Credits**: see [Credits](#credits).
+- **Clear derived data** (Advanced) removes the imported manuscript and its stored source, the Story Bible, proofing artifacts, reader notes and bookmarks, and saved comparison results for the current project, after you confirm. Its settings remain.
+
+![Settings - the Manuscript row: when it was imported, its word count and Replace manuscript…](../../images/ui/settings-manuscript.webp)
+
+![Settings - Clear derived data asks first](../../images/ui/settings-project-data.webp)
 
 ## Credits
 
-**Credits** (this project only) holds the audiobook's opening and closing credits, an optional chapter
-announcement, and the retail sample.
+**Credits**, under Project, shows whether the opening and closing credits can be read as they stand, and the retail sample, with **Edit credits…**. The editor opens in place and holds the audiobook's opening and closing credits, an optional chapter announcement, and the retail sample. The templates are shared by every project; the filled-in values belong to this project.
 
 - **Templates**: pick a template to edit its **Name**, **Kind** (Opening, Closing or Chapter announcement)
   and **Body**, then **Save template**. **New** starts a blank one, **Duplicate** copies the selected one
@@ -245,7 +186,7 @@ announcement, and the retail sample.
   yet, highlighted and listed as unresolved. A chapter announcement is previewed for the first chapter
   ("Shown for Chapter 1, one of 12 chapters"); it needs an imported manuscript.
 - **Project values**: Title, Subtitle, Author, Series, Book number, Copyright, Year, Copyright holder,
-  Publisher, and a Narrator that overrides the global default from General for this project only. A value
+  Publisher, and a Narrator that overrides the narrator name set under Project for this project only. A value
   is saved as you type. Where the manuscript suggests a title or author, **Use suggestion** fills it in.
 - **Clear credits** empties every project value at once, after asking. The templates in your library stay,
   so the credits show their tokens in brackets again until you fill them in.
@@ -253,7 +194,7 @@ announcement, and the retail sample.
 The first opening and closing templates appear in the [Script](script.md) reader and as the
 credits rows on [Production](production.md#the-credits).
 
-![Settings, Credits, a chapter announcement previewed for Chapter 1](../../images/ui/settings-credits-chapter-announcement.webp)
+![Settings, Project, Credits: a chapter announcement previewed for Chapter 1](../../images/ui/settings-credits-chapter-announcement.webp)
 
 ### Retail sample
 
@@ -267,46 +208,38 @@ replacing the manuscript keeps it; if its lines are gone, the panel says so and 
 
 ![Settings, Credits, the retail sample on Chapter 3, lines 1 to 3](../../images/ui/settings-credits-retail-sample.webp)
 
-## Local assets
+## Appearance & keys
 
-The **Local assets** panel lists every optional download Narration Studio can keep on this computer: preview
-voices, Whisper models for proofing comparisons, the language model the Story Bible uses, the dictionary the Script reader's
-Look up reads and the [Story Bible analysis](#settings) tools. Nothing here downloads by itself, and
-removing one never touches your settings or projects. The page also shows how much disk the installed ones use and the folder they
-are kept in.
+- **Theme** sets **Match my system**, **Light** or **Dark**. The **Dark theme** / **Light theme** item at the foot of the sidebar switches it too. It is kept in this window, so the page calls it **This computer**.
+- **Reader text** sets how the [Script](script.md) reader draws the text: **Font**, **Size**, **Line spacing** and **Column width**, over a quote drawn in them. These are the Script's own text settings, so a change here shows there and the other way round. The Booth keeps its own text size and uses the font chosen here.
+- **Note colour** is the colour that marks reader notes in the text; a project may override it.
+- **Zoom** scales the whole window (100% to 200%, the steps the header's zoom buttons and **Ctrl+plus**, **Ctrl+minus** and **Ctrl+0** use); it follows those and sets the same level.
+- **Shortcuts** lists every command you can run without the mouse, grouped by where it works, with a **Find a shortcut** box. **Change** opens a recorder under the command: press the key or pedal (a USB footswitch that types a key works like a keyboard), then **Replace**, **Add as another key**, **Unbind** or **Reset to default**. A key another command already uses is named, and **Replace** takes it from that command. A changed command shows **Changed** and its own **Reset**; **Reset all to defaults** undoes every change. Each change saves at once.
 
-![Settings - the Local assets panel: the disk used, and each optional download with its state and actions](../../images/ui/settings-local-assets.webp)
+![Settings - Reader text: font, size, line spacing and column width over the preview quote](../../images/ui/settings-reader-text.webp)
 
-Each entry says what it is, its exact version, who publishes it, its download and disk sizes, and links to its license, model
-card and provenance. Its state is one of:
+![Production in the Dark theme](../../images/ui/theme-dark.webp)
 
-- **Not installed**: **Download** starts the download. A bar shows the real bytes so far and **Cancel** stops it while bytes are
-  arriving; the checks after the last byte cannot be cancelled. A download that is already running when you open the page
-  (started by a Story Bible build, a preview or a comparison) is shown here too, and leaving the page does not stop it.
-- **Downloading** and **Verifying**: the download itself, then the check of every file against its approved size and checksum.
-- **Installed**: **Verify** reads every file again and checks it (it can take a few seconds for a large model, and the button shows it
-  is working), and **Remove** deletes that one asset after you confirm. The confirm says how much space it frees and what will ask
-  to download it again.
-- **Needs repair**: some files are missing or no longer match the approved ones, so the app will not use the asset. **Repair**
-  downloads it again and checks it; **Remove** deletes it instead.
-- **Not available yet**: the app lists the asset but does not offer it in this version (the Story Bible analysis tools, until
-  every file they download is checked). The entry says why and has no buttons.
+![Settings - Shortcuts: every command by scope, with its key or pedal](../../images/ui/settings-keyboard.webp)
 
-If a download, a check or a removal fails, the reason is written in that entry, and the entry keeps its buttons so you can try
-again.
+![Settings - Shortcuts recording a new key for Record or stop](../../images/ui/settings-keyboard-recording.webp)
 
-## About and updates
+## App & updates
 
-The last panel, **About & updates**, shows which version of Narration Studio you are running and looks
+**Check for updates on startup**, **Update channel**, **Tell me when a long task finishes** (a Windows notification when a long job ends while the app is not in front; on by default) and, under Advanced, **Debug logging**, which writes the reasons behind the app's decisions to the run log: turn it on when asked to send a log. **This version** follows them (see [About and updates](#about-and-updates)).
+
+### About and updates
+
+Under the rows of **App & updates**, **This version** shows which version of Narration Studio you are running and looks
 after updates.
 
-![Settings - the About & updates panel with a newer version found](../../images/ui/settings-about-updates.webp)
+![Settings - App & updates with a newer version found](../../images/ui/settings-about-updates.webp)
 
-- **Check for updates on startup** (on by default): once a day, when the app starts, it asks GitHub which releases exist. That
+- **Check for updates on startup** (a row above, on by default): once a day, when the app starts, it asks GitHub which releases exist. That
   request sends nothing about you, your projects or your computer, and it never downloads anything by itself. Switch it off
   if you would rather look yourself with **Check now**. When that check finds a newer version, a message also pops up
   ("Version 0.2.7 is available. See Settings, About & updates.").
-- **Update channel**: *Candidates and stable* (the default; every release so far is a release candidate) or *Stable only*.
+- **Update channel** (a row above): *Candidates and stable* (the default; every release so far is a release candidate) or *Stable only*.
 - **Download update** asks first, then downloads the new version with a progress bar showing the megabytes received, and
   checks it against the release's checksum. You can cancel while it downloads; the checks and unpacking after it cannot be
   cancelled, and the dialog says so.
@@ -322,6 +255,19 @@ Releases are not yet signed, so Windows SmartScreen or your antivirus may ask ab
 
 If Narration Studio will not start after an update and the program file is missing from its folder, rename
 `narration-utils.exe.old` back to `narration-utils.exe`.
+
+## Set on a page
+
+Some settings only change what one page does, so they belong on that page, next to what they change: the recording check's rules (Production), silence cleanup (Master & QC), the preview suggestion and compare defaults (Proof), stage suggestions (Production), punch pre-roll (Booth), favourite effects and the Audacity backups (Editing). **Set on a page** lists them, each with where it will be and an **Open** button for that page. Until a page has its own control, **Change it here for now** opens the panel that always edited it, with its **Global** / **This project** switch, **Save** and **Discard changes**; leaving Settings with unsaved changes there asks whether to save or discard them. Search finds them too.
+
+![Settings - Set on a page, with the recording check rules opened](../../images/ui/settings-pages.webp)
+
+## When something is wrong
+
+- While the settings are read, the pane shows placeholders and says **Reading your settings…**.
+- If the settings file cannot be read, the page says **Your settings could not be read** and disables the controls until **Try again** works.
+- If a change cannot be saved, the page says **Changes cannot be saved right now** and the row says why; the previous value is still in use.
+- If the list of downloads cannot be read, Models & downloads says so with **Try again**; your downloads are not touched.
 
 ---
 

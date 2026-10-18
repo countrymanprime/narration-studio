@@ -4,10 +4,20 @@ import { wireClone, wireSettings } from '../mockFixtures';
 
 export type MockSettings = Record<Scope, Record<string, ScopedSettingField[]>>;
 
+/**
+ * How the mock's settings file behaves (`?mockSettings=`): `loading` never answers a read, so the page stays on its loading rows; `unreadable`
+ * rejects every read, as a file the host cannot parse does; `save-fails` reads normally and rejects every save with the read-only sentence.
+ */
+export type MockSettingsSeed = 'loading' | 'unreadable' | 'save-fails';
+
+export const UNREADABLE_SETTINGS = 'The settings file could not be read: it is not valid JSON';
+export const READ_ONLY_SETTINGS = 'The settings file is read-only.';
+
 /** The settings bindings. Saving answers with a fresh bootstrap, as the host does. */
 export function createSettingsMock(
   bootstrap: NarrationApi['bootstrap'],
   onSaved: (tool: string, scope: Scope, values: Record<string, string | null>) => void = () => {},
+  seed?: MockSettingsSeed,
 ) {
   const globalSettings = wireSettings();
   const settings: MockSettings = {
@@ -28,6 +38,7 @@ export function createSettingsMock(
   };
   const bindings = {
     saveSettings: async (tool, scope, values) => {
+      if (seed === 'save-fails') throw new Error(READ_ONLY_SETTINGS);
       settings[scope][tool] = (settings[scope][tool] || []).map((field) =>
         field.key in values
           ? {
@@ -45,7 +56,11 @@ export function createSettingsMock(
       onSaved(tool, scope, values);
       return bootstrap();
     },
-    settingsForScope: async (scope) => wireClone(settings[scope]),
+    settingsForScope: async (scope) => {
+      if (seed === 'loading') return new Promise<never>(() => {});
+      if (seed === 'unreadable') throw new Error(UNREADABLE_SETTINGS);
+      return wireClone(settings[scope]);
+    },
   } satisfies Partial<NarrationApi>;
   return { bindings, settings };
 }

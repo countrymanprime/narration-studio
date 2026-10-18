@@ -204,6 +204,16 @@ describe('Settings: search and filters', () => {
     expect(document.querySelector('[data-page-setting="ps.cleanup"]')).toBeTruthy();
   });
 
+  it('Escape clears the search', async () => {
+    await renderPage();
+    const box = (await screen.findByRole('textbox', { name: 'Search settings' })) as HTMLInputElement;
+    await userEvent.type(box, 'zzzz');
+    expect(screen.getByText('No settings match “zzzz”')).toBeTruthy();
+    await userEvent.keyboard('{Escape}');
+    expect(box.value).toBe('');
+    expect(screen.queryByText('No settings match “zzzz”')).toBeNull();
+  });
+
   it('says so when nothing matches', async () => {
     await renderPage();
     await userEvent.type(await screen.findByRole('textbox', { name: 'Search settings' }), 'zzzz');

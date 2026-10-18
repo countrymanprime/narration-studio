@@ -77,7 +77,7 @@ again tries again; a failed run never leaves a broken recording behind.
 | The message says | What happened, and what to do |
 | --- | --- |
 | "… could not be spoken: the voice produced no audio for it." | The name is only punctuation or symbols. Give it a pronunciation the voice can say. |
-| "The preview voice could not be loaded (…)." | The voice's files did not load. In [Settings, Local assets](settings.md#local-assets), Verify and Repair it, or remove it and install it again. |
+| "The preview voice could not be loaded (…)." | The voice's files did not load. In [Settings, Models and downloads](settings.md#models-and-downloads), Repair it, or remove it and download it again. |
 | "The preview could not be saved (…)." | The recording could not be written. Close anything that has the file open and try again. |
 | "The preview took longer than 2m0s and was stopped" | The voice did not answer in time; the first preview after starting the app is the slow one. Try again, and restart the app if it keeps happening. |
 | The question about downloading the voice | The voice is not installed yet. |
@@ -95,13 +95,13 @@ field and a source tag:
   menu offers **Use mine** or **Use the dictionary's** to switch back.
 
 A rebuild keeps all of this. Which source a *fresh* pronunciation tries first (at build time, or when you add an alias)
-follows **Settings > Story Bible > Default pronunciation source**. A note written on a pronunciation shows under its
+follows **Settings > Voice & pronunciation > Pronunciation source for new names**. A note written on a pronunciation shows under its
 name. A question for the author is a mark on the [Script](script.md#select-text) page.
 
 ## Looking a name up online (Merriam-Webster)
 
 When no dictionary on your computer knows a name, you can ask Merriam-Webster's online dictionary,
-on your own free key. Get one from **Settings > Story Bible > Get a free key** (it opens
+on your own free key. Get one from **Settings > Voice & pronunciation > Merriam-Webster key > Get a free key** (it opens
 Merriam-Webster's sign-up page in your browser), paste it into **Your key** and press **Save key**.
 On Windows the key is kept encrypted for your Windows account; **Remove key** deletes it.
 
@@ -115,7 +115,7 @@ Wikimedia Commons.
 
 | Message | What it means | What to do |
 | --- | --- | --- |
-| "Add your own free Merriam-Webster key in Settings > Story Bible first." | No key is saved. | Save your key in Settings > Story Bible. |
+| "Add your own free Merriam-Webster key in Settings > Voice & pronunciation first." | No key is saved. | Save your key in Settings > Voice & pronunciation. |
 | "Merriam-Webster refused the key ..." | The key was mistyped, or is not for the Collegiate Dictionary. | Copy it again from your dictionaryapi.com account page and save it. |
 | "An online lookup sends one word or name only ..." | The name is longer than three words or has symbols. | Look up a shorter alias, or one word of the name. |
 
