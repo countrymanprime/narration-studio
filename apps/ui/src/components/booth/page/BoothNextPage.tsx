@@ -145,7 +145,7 @@ function BoothLoaded({ navigate, exitTo }: { navigate: (next: string) => void; e
       <BoothUnavailable
         why={data.unavailable}
         onSetUpCredits={() => navigate(`${BOOTH_LINKS.settings}#credits`)}
-        onChapters={() => setParams(new URLSearchParams(), { replace: true })}
+        onChapters={() => navigate(BOOTH_LINKS.script)}
         onExit={() => navigate(pickupIds.length > 0 ? BOOTH_LINKS.pickups : exitTo)}
       />
     );

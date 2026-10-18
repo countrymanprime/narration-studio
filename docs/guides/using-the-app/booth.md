@@ -224,7 +224,7 @@ Credits settings. You can still record.
 
 If the address asks for credits that have no template (for example an old link to the closing credits after the closing template was
 deleted), the Booth shows a panel instead of text: **The closing credits are not set up**, with **Set up credits in Settings** and
-**Back to the chapters**. Escape leaves the Booth, as it does with a chapter open. A link to a chapter the book no longer has shows the
+**Back to the chapters**, which opens [Script](script.md), the chapter list, as Escape does with a chapter open. A link to a chapter the book no longer has shows the
 same panel with **Back to the chapters**. An address the app cannot read at all, or one that names a chapter or line the book lacks, shows "This link could not be opened" with **Open Booth** and **Go to Production**; Escape leaves it for [Script](script.md).
 
 ![Booth - the closing credits with no closing template: the panel that says so and offers Settings and the chapters](../../images/ui/booth-credits-missing.webp)
