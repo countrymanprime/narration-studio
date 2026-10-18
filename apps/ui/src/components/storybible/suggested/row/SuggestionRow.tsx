@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import type { ExtractionDecision, ExtractionSuggestion } from '../../../../api/contracts/extraction';
 import { Icon } from '../../../primitives/Icon';
 import { IconButton } from '../../../primitives/IconButton';
+import { InsetCard } from '../../../primitives/InsetCard';
 import { SectionLabel } from '../../../primitives/SectionLabel';
 import { StatusBadge } from '../../../primitives/StatusBadge';
 import { TextField } from '../../../primitives/TextField';
@@ -63,84 +64,81 @@ export function SuggestionRow({ suggestion, sources, context, onGoToEvidence, li
   };
 
   return (
-    <li
-      className="flex flex-col gap-1.5 border-b py-2 last:border-0"
-      style={{ borderColor: 'var(--border)' }}
-      data-sug={suggestion.id}
-      data-status={suggestion.status}
-    >
-      <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
-        <SectionLabel>{kind}</SectionLabel>
-        {editing ? (
-          <div className="min-w-0 flex-1 basis-48">
-            <TextField
-              ref={input}
-              label={`Edit ${kind.toLowerCase()}`}
-              value={text}
-              onChange={setText}
-              onKeyDown={(event) => {
-                if (event.key === 'Enter') save();
-                if (event.key === 'Escape') {
-                  event.stopPropagation();
-                  setEditing(false);
-                }
-              }}
-            />
-          </div>
-        ) : (
-          <span className="min-w-0 flex-1 basis-48 text-sm break-words">{summaryOf(suggestion.payload)}</span>
-        )}
-        <ConfidenceChip suggestion={suggestion} context={context} />
-        <span className="inline-flex gap-1.5">
+    <li data-sug={suggestion.id} data-status={suggestion.status}>
+      <InsetCard fill frame="snug" tone={verify ? 'warn' : 'neutral'} className="flex min-w-0 flex-col gap-1">
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
+          <SectionLabel>{kind}</SectionLabel>
           {editing ? (
-            <>
-              <IconButton action="saveAndAccept" size="sm" pending={busy} data-sug-save onClick={save} />
-              <IconButton action="cancelEdit" size="sm" onClick={() => setEditing(false)} />
-            </>
-          ) : (
-            <>
-              {verify ? (
-                <IconButton action="accept" size="sm" pending={busy} data-sug-accept onClick={() => void decide(() => decisions.accept(suggestion.id))} />
-              ) : (
-                <IconButton
-                  action="markReviewed"
-                  label="Mark this suggestion reviewed"
-                  size="sm"
-                  pending={busy}
-                  data-sug-reviewed
-                  onClick={() => void decide(() => decisions.review(suggestion.id))}
-                />
-              )}
-              <IconButton
-                action="editSuggestion"
-                size="sm"
-                data-sug-edit
-                onClick={() => {
-                  setText(editableText(suggestion.payload));
-                  setEditing(true);
+            <div className="min-w-0 flex-1 basis-48">
+              <TextField
+                ref={input}
+                label={`Edit ${kind.toLowerCase()}`}
+                value={text}
+                onChange={setText}
+                onKeyDown={(event) => {
+                  if (event.key === 'Enter') save();
+                  if (event.key === 'Escape') {
+                    event.stopPropagation();
+                    setEditing(false);
+                  }
                 }}
               />
-              <IconButton
-                action="reject"
-                variant="danger"
-                size="sm"
-                pending={busy}
-                data-sug-reject
-                onClick={() => void decide(() => decisions.reject(suggestion.id))}
-              />
-            </>
+            </div>
+          ) : (
+            <span className="min-w-0 flex-1 basis-48 text-sm break-words">{summaryOf(suggestion.payload)}</span>
           )}
+          <ConfidenceChip suggestion={suggestion} context={context} />
+          <span className="inline-flex gap-1.5">
+            {editing ? (
+              <>
+                <IconButton action="saveAndAccept" size="sm" pending={busy} data-sug-save onClick={save} />
+                <IconButton action="cancelEdit" size="sm" onClick={() => setEditing(false)} />
+              </>
+            ) : (
+              <>
+                {verify ? (
+                  <IconButton action="accept" size="sm" pending={busy} data-sug-accept onClick={() => void decide(() => decisions.accept(suggestion.id))} />
+                ) : (
+                  <IconButton
+                    action="markReviewed"
+                    label="Mark this suggestion reviewed"
+                    size="sm"
+                    pending={busy}
+                    data-sug-reviewed
+                    onClick={() => void decide(() => decisions.review(suggestion.id))}
+                  />
+                )}
+                <IconButton
+                  action="editSuggestion"
+                  size="sm"
+                  data-sug-edit
+                  onClick={() => {
+                    setText(editableText(suggestion.payload));
+                    setEditing(true);
+                  }}
+                />
+                <IconButton
+                  action="reject"
+                  variant="danger"
+                  size="sm"
+                  pending={busy}
+                  data-sug-reject
+                  onClick={() => void decide(() => decisions.reject(suggestion.id))}
+                />
+              </>
+            )}
+          </span>
+        </div>
+        <Quotes suggestion={suggestion} onGoToEvidence={onGoToEvidence} lineLabel={lineLabel} />
+        {suggestion.flag === 'duplicate' ? (
+          <span className="flex flex-wrap items-center gap-1.5 text-sm text-[var(--text-muted)]" data-sug-dup>
+            <StatusBadge tone="warning" label="Possible duplicate" /> {suggestion.note}
+          </span>
+        ) : null}
+        <span className="text-sm text-[var(--text-muted)]" data-sug-reason={verify ? '' : undefined}>
+          {verify ? `Needs verifying: ${suggestion.reason ?? 'under 75%'}` : 'Accepted automatically'} · <SourceMark id={suggestion.source} sources={sources} />
         </span>
-      </div>
-      <Quotes suggestion={suggestion} onGoToEvidence={onGoToEvidence} lineLabel={lineLabel} />
-      {suggestion.flag === 'duplicate' ? (
-        <span className="flex flex-wrap items-center gap-1.5 text-sm text-[var(--text-muted)]" data-sug-dup>
-          <StatusBadge tone="warning" label="Possible duplicate" /> {suggestion.note}
-        </span>
-      ) : null}
-      <span className="text-sm text-[var(--text-muted)]" data-sug-reason={verify ? '' : undefined}>
-        {verify ? `Needs verifying: ${suggestion.reason ?? 'under 75%'}` : 'Accepted automatically'} · <SourceMark id={suggestion.source} sources={sources} />
-      </span>
+      </InsetCard>
     </li>
   );
 }
