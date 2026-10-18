@@ -198,6 +198,7 @@ linked chapter's **Open in Proof** link in the [audio engine panel](navigation.m
 Proof cell or **Open Proof** in its row's menu on [Production](production.md). Its
 notes and its recording check card are on [Proof](#one-chapter); listening to the chapter against its script, its flags, effects and
 takes are on [Editing](editing.md).
+While the chapter is being read, the view shows the page title and grey blocks; an address for a chapter the manuscript does not have says so instead.
 
 If the chapter hasn't been checked yet, the chapter view says so and offers **Check recording**, the same check
 [Production](production.md#checking-a-chapters-recording) runs.
