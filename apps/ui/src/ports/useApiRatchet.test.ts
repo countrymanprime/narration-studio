@@ -14,8 +14,6 @@ const CALL = /\buseApi\(\)/g;
 // Calls to `useApi()` per file, at the time of SN-S5.
 const CEILING: Record<string, number> = {
   'src/App.tsx': 1,
-  'src/components/assets/LocalAssetRow.tsx': 1,
-  'src/components/assets/LocalAssets.tsx': 1,
   'src/components/booth/CompanionShell.tsx': 2,
   'src/components/booth/CompanionThisChapter.tsx': 1,
   'src/components/booth/ResumePrompt.tsx': 1,

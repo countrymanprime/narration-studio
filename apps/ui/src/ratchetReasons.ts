@@ -14,12 +14,9 @@ const VOICE_BIBLE =
 const ENGINE = 'the engine panel (DAW link, chapter sync, render) has no page in the mock and stays as built';
 const PICKER = 'the project picker and the start-up screens come before any Studio Next page and stay as built';
 const CREDITS = 'the credits cards stay in the Script page and the manuscript import (the SN-B8 default)';
-const ASSETS = 'the local-assets list is not a page and no swap rebuilt it; Settings mounts it as built';
 const TIMER = 'the stage timer, PFH and the effective rate stay as built (DQ-3, SN0-Q4)';
 
 export const KEPT: Readonly<Record<string, string>> = {
-  'src/components/assets/LocalAssetRow.tsx': ASSETS,
-  'src/components/assets/LocalAssets.tsx': ASSETS,
   'src/components/booth/CompanionShell.tsx': COMPANION,
   'src/components/booth/CompanionThisChapter.tsx': COMPANION,
   'src/components/booth/ReaderText.tsx': COMPANION,

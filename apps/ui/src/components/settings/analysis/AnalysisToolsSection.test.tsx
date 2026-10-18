@@ -8,7 +8,6 @@ import { ThemeProvider } from '../../../theme/ThemeContext';
 import { MemoryRouter } from 'react-router-dom';
 import { SettingsPage } from '../page/SettingsPage';
 import { AnalysisToolsSection } from './AnalysisToolsSection';
-import { LocalAssets } from '../../assets/LocalAssets';
 import { createFakeTools, type FakeInstall } from './fixtures';
 
 afterEach(cleanup);
@@ -211,15 +210,7 @@ describe('AnalysisToolsSection', () => {
     await download('gliner', 'GLiNER');
     await waitFor(async () => expect((await row('gliner')).getAttribute('data-status')).toBe('installed'), SLOW);
     expect(fake.installed()).toEqual(['gliner']);
-    // Opening the Local assets list afterwards reads the same registry and shows it installed.
-    const { container } = render(
-      <ApiProvider api={api}>
-        <LocalAssets notify={vi.fn()} />
-      </ApiProvider>,
-    );
-    const listed = (await within(container).findByRole('heading', { level: 3, name: 'GLiNER' })).closest('li') as HTMLElement;
-    expect(within(listed).getByText(/Installed/)).toBeTruthy();
-    // The reverse: a removal made through the list is what the section shows after it reads again.
+    // A removal made through the host is what a second read of the one registry shows.
     await api.assetsRemove('analysis', 'gliner');
     expect(fake.installed()).toEqual([]);
     const catalog = await api.assetsList();
