@@ -3,7 +3,7 @@
 # Story Bible
 
 Story Bible tracks every character, place, and organization extracted from the manuscript,
-with pronunciation, aliases, and narration notes. Each entry is a row of two lines: its name, then its kind in the kind's colour (an entry whose kind the host could not tell is marked **Review**) with how many names it has (its own and each alias) and how many chapters it appears in. The kind chips over the list filter it, the search box finds an entry by any of its names, the menu beside it sorts by name, type or chapters, and the Up and Down keys move through the rows. Right-click a row (or press the Menu key on it) for **Open**, **Find in the manuscript**, **Mark reviewed** (when the entry needs it) and **Delete entry**; Delete asks first, and a locked entry says it has to be unlocked. The buttons under the title scan the manuscript, import entries, open Voice data, build or refresh the Story Bible, and add an entry; the **Entries** and **Series** tabs sit below them. With no manuscript imported the page asks for one, and its **Import manuscript** opens the import on this page. If the list of kinds or the chapters cannot be read, a line under the filters says so with **Check again**, and an entry that cannot tell whether its type speaks says the same; the rest of the page keeps working.
+with pronunciation, aliases, and narration notes. Each entry is a row of two lines: its name, then its kind in the kind's colour (an entry whose kind the host could not tell is marked **Review**) with how many names it has (its own and each alias) and how many chapters it appears in. The kind chips over the list filter it, the search box finds an entry by any of its names, the menu beside it sorts by name, type or chapters, and the Up and Down keys move through the rows. Right-click a row (or press the Menu key on it) for **Open**, **Find in the manuscript**, **Mark reviewed** (when the entry needs it) and **Delete entry**; Delete asks first, and a locked entry says it has to be unlocked. The buttons under the title scan the manuscript (while a scan runs the same button becomes **Cancel scan**, and its progress shows under the filters, so nothing else moves), import entries, open Voice data, build or refresh the Story Bible, and add an entry; the **Entries** and **Series** tabs sit below them. With no manuscript imported the page asks for one, and its **Import manuscript** opens the import on this page. If the list of kinds or the chapters cannot be read, a line under the filters says so with **Check again**, and an entry that cannot tell whether its type speaks says the same; the rest of the page keeps working.
 
 ![Story Bible - a search for "hatter" narrowing the list by name and alias](../../images/ui/storybible-search.webp)
 
@@ -39,6 +39,7 @@ Entries the build isn't sure what kind they are get the **Needs Review** kind, i
 choose the right kind from the menu beside the name. An entry or a name the build flagged shows a
 **Review** pill in the list and **Needs review** with a **Mark reviewed** button in its header. The
 **Needs review** chip under the kind chips shows only these entries and the ones with suggestions waiting.
+An entry with suggestions still to verify shows **Mark reviewed** switched off, with the reason, until each is verified or rejected.
 
 ![Story Bible - an entry of the Needs Review kind, with its relationships and the chapters it appears in](../../images/ui/storybible-needs-review.webp)
 
@@ -133,7 +134,7 @@ A suggestion the app is sure of is accepted on its own; one it is not sure of wa
 beside the filters shows only the entries with suggestions waiting, and lists above them the suggestions that have no
 entry yet. An entry with suggestions waiting shows a **Verify** pill in the list, its accepted facts, and a **Suggested**
 list where you accept, edit or reject each one, with the quote it rests on (press the quote to go to the line in the
-Script). An entry cannot be marked reviewed while it has suggestions waiting.
+Script; a quote whose line the book no longer has is plain text that says so). An entry cannot be marked reviewed while it has suggestions waiting.
 
 ![Story Bible - Needs verification: the suggestions not in the Story Bible yet, each with its score](../../images/ui/storybible-verification.webp)
 

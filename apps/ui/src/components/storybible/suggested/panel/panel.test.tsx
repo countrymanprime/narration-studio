@@ -17,7 +17,7 @@ import { EntryVerifyPill } from './EntryVerifyPill';
 import { ImportButton } from './ImportButton';
 import { LooseSuggestionRows } from './LooseSuggestionRows';
 import { NeedsVerificationChip } from './NeedsVerificationChip';
-import { ScanButton } from './ScanButton';
+import { ScanButton, ScanStatus } from './ScanButton';
 import { filterEntries } from './selectors';
 import { useSuggestions } from './useSuggestions';
 
@@ -39,6 +39,7 @@ function Panel({ pollMs = 10, entries = [] as { id: string; name: string }[] }) 
   return (
     <div>
       <ScanButton scan={scan} />
+      <ScanStatus scan={scan} />
       <NeedsVerificationChip count={verifyCount(suggestions)} on={on} onToggle={setOn} />
       <ul aria-label="Entries">
         <LooseSuggestionRows suggestions={loose} selectedId={chosen} onSelect={setChosen} />

@@ -44,7 +44,7 @@ import { ImportButton } from './suggested/panel/ImportButton';
 import { LooseSuggestionRows } from './suggested/panel/LooseSuggestionRows';
 import { FilterChip } from './FilterChip';
 import { NeedsVerificationChip } from './suggested/panel/NeedsVerificationChip';
-import { ScanButton } from './suggested/panel/ScanButton';
+import { ScanButton, ScanStatus } from './suggested/panel/ScanButton';
 import { useSuggestions } from './suggested/panel/useSuggestions';
 import { openImportDialog } from './suggested/import/openImportDialog';
 import { AcceptedClaims } from './suggested/row/AcceptedClaims';
@@ -398,9 +398,10 @@ function GuideLoaded({ notify, goToManuscript }: Pick<GuideProps, 'notify' | 'go
       <Tab value={SERIES_TAB}>{SERIES_TAB}</Tab>
     </TabList>
   );
+  const scanWithStart = { ...found.scan, start: scanStart.startScan };
   const actions = (
     <div className="flex flex-wrap gap-2">
-      <ScanButton scan={{ ...found.scan, start: scanStart.startScan }} />
+      <ScanButton scan={scanWithStart} />
       <ImportButton onImport={() => openImportDialog({ onChanged: () => void load() })} />
       <TooltipTarget text="Voice data: narration reference, remove voice data">
         <IconButton label="Voice data" onClick={() => setVoiceDataOpen(true)}>
@@ -472,6 +473,8 @@ function GuideLoaded({ notify, goToManuscript }: Pick<GuideProps, 'notify' | 'go
                     <NeedsVerificationChip count={toVerifyAll} on={verifyOnly} onToggle={setVerifyOnly} />
                   </div>
                 )}
+                {/* Under the filters, so a scan starting or ending moves the list, never the buttons and chips the pointer is on. */}
+                <ScanStatus scan={scanWithStart} />
               </div>
               {unknownEntity !== undefined && (
                 <div role="alert" aria-label="Link not opened" className="mx-4 mb-2 flex flex-col gap-2 rounded border border-[var(--border)] p-3 text-sm">
