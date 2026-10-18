@@ -43,6 +43,7 @@ export function BackupsInspector({
   return (
     <section aria-label="Backup settings" className="flex flex-col gap-3">
       <h3 className="m-0 font-['Barlow_Condensed',sans-serif] text-lg font-semibold">Backups</h3>
+      <p className="m-0 text-[length:var(--font-size-sm)] text-[var(--text-muted)]">{BACKUPS_TEXT.scope}</p>
       {s ? (
         <>
           <Checkbox checked={s.keep} onChange={settings.setKeep}>

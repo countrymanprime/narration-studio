@@ -251,7 +251,14 @@ export const settingsDrivers: Record<string, Driver> = {
     await openSettings(page, 'Project');
     await page.getByText(/^Imported .* words$/).waitFor();
     await clickVisible(page, 'button', 'Replace manuscript…');
+    await clickVisible(page, 'button', 'Choose a file…');
     await confirmDialog(page, 'Import Alice.docx').waitFor();
+  },
+  'import-choose': async (page) => {
+    await openSettings(page, 'Project');
+    await page.getByText(/^Imported .* words$/).waitFor();
+    await clickVisible(page, 'button', 'Replace manuscript…');
+    await page.getByRole('heading', { name: 'Choose your manuscript' }).waitFor();
   },
   'marks-dialog': async (page) => {
     await openSettings(page, 'Project');
