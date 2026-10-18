@@ -7,6 +7,8 @@ import { createPortal } from 'react-dom';
 export type ToastTone = 'info' | 'error';
 /** A toast's one action (for example Undo): its own label, run when pressed, which also dismisses the toast. */
 export type ToastAction = { label: string; onAction: () => void };
+/** The Retry a failure toast carries where repeating the action is safe (a start that the host guards or an idempotent save). */
+export const retryAction = (retry: () => void): ToastAction => ({ label: 'Retry', onAction: retry });
 /** `durationMs` is how long an information message stays when it needs longer than `TOAST_INFO_MS` (an Undo the narrator may want ten seconds for). */
 export type ToastMessage = { id: number; text: string; tone: ToastTone; action?: ToastAction; icon?: IconDefinition; topic?: string; durationMs?: number };
 /** How a page or a component tells the narrator something. An error is announced at once and stays until it is dismissed.
@@ -38,7 +40,7 @@ function ToastItem({ message, dismiss }: { message: ToastMessage; dismiss: (id: 
       data-tone={message.tone}
       // Inverted in both themes (apps/ui/src/styles.css's --toast-bg/--toast-text), 45 px tall with a leading glyph, radius 6
       // (daw-chapter-track-auto-sync/03).
-      className={`ease flex min-h-[2.8125rem] items-center gap-[0.625rem] rounded-[var(--radius-button)] bg-[var(--toast-bg)] px-4 py-2 text-[0.85rem] text-[var(--toast-text)] shadow-[var(--shadow)] motion-safe:transition-[opacity,transform] motion-safe:duration-150 ${sticky ? 'border-l-4 border-[var(--danger)]' : ''} ${leaving ? 'translate-y-1 opacity-0' : 'opacity-100'}`}
+      className={`flex min-h-[2.8125rem] items-center gap-[0.625rem] rounded-[var(--radius-button)] bg-[var(--toast-bg)] px-4 py-2 text-[0.85rem] text-[var(--toast-text)] shadow-[var(--shadow)] motion-ok:animate-[toast-in_var(--motion-fast)_var(--ease-enter)] motion-ok:transition-[opacity,transform] motion-ok:duration-(--motion-fast) motion-ok:ease-(--ease-exit) ${sticky ? 'border-l-4 border-[var(--danger)]' : ''} ${leaving ? 'translate-y-1 opacity-0' : 'opacity-100'}`}
     >
       {sticky ? (
         <FontAwesomeIcon icon={faCircleExclamation} aria-hidden="true" />

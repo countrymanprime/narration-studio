@@ -334,7 +334,7 @@ describe('bookmark-flow-end-to-end', () => {
         .getAllByRole('button')
         .find((b) => b.textContent?.startsWith('was'))!,
     );
-    await waitFor(() => expect(document.querySelector(`[data-bm="${first!.id}"] .motion-safe\\:animate-pulse`)).not.toBeNull());
+    await waitFor(() => expect(document.querySelector(`[data-bm="${first!.id}"] .motion-ok\\:animate-pulse`)).not.toBeNull());
   });
 });
 
@@ -639,7 +639,7 @@ describe('bookmarks-from-the-jump-menu', () => {
     act(() => entry!.run());
     // The reader is asked once, scrolls, and the bookmark's ribbon pulses.
     await waitFor(() => expect(tops.length).toBeGreaterThan(0));
-    await waitFor(() => expect(document.querySelector(`[data-bm="${bookmark.id}"] .motion-safe\\:animate-pulse`)).not.toBeNull());
+    await waitFor(() => expect(document.querySelector(`[data-bm="${bookmark.id}"] .motion-ok\\:animate-pulse`)).not.toBeNull());
   });
 
   it('Next bookmark with none says No bookmarks yet.', async () => {
@@ -735,5 +735,47 @@ describe('chapter-title-once-and-end-marker-after-its-chapter', () => {
     expect(last.compareDocumentPosition(end) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     const next = screen.getByRole('heading', { level: 2, name: 'The Pool of Tears' });
     expect(end.compareDocumentPosition(next) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+});
+
+// The loading state (definition-of-done.md state matrix): the page's own columns as blocks while the chapters are read, then the page, the
+// empty state or the error with Retry; never a bare line, a blank page or an endless skeleton.
+describe('Script loading state', () => {
+  const never = () => new Promise<never>(() => {});
+  const region = () => screen.queryByRole('group', { name: 'Loading the Script' });
+
+  it('keeps the page title and draws a busy region in the columns while the chapters are read, however long that takes', async () => {
+    mount({ api: createMockApi({ manuscriptChapters: never }) });
+    expect(await screen.findByRole('heading', { level: 1, name: 'Script' })).toBeTruthy();
+    expect(region()?.getAttribute('aria-busy')).toBe('true');
+    expect(within(region()!).getByRole('status').textContent).toBe('Reading the manuscript…');
+    await new Promise((resolve) => setTimeout(resolve, 60));
+    expect(region()).toBeTruthy();
+    expect(document.querySelector('[data-script-columns]')).toBeNull();
+  });
+
+  it('is replaced by the page when the chapters arrive', async () => {
+    mount();
+    await firstHeading();
+    expect(region()).toBeNull();
+    expect(screen.getAllByRole('heading', { level: 1, name: 'Script' })).toHaveLength(1);
+  });
+
+  it('shows the empty state, not a skeleton, for a manuscript with no chapters', async () => {
+    mount({ api: createMockApi({ manuscriptChapters: async () => [] }) });
+    await screen.findByText('This project has no manuscript yet. Import one to begin.');
+    expect(region()).toBeNull();
+  });
+
+  it('shows the error with Retry, not a skeleton, when the chapters cannot be read, and the skeleton again while Retry reads', async () => {
+    let calls = 0;
+    const api = createMockApi({
+      manuscriptChapters: () => (++calls === 1 ? Promise.reject(new Error('The manuscript could not be read.')) : never()),
+    });
+    mount({ api });
+    const retry = await screen.findByRole('button', { name: /Retry|Try again/ });
+    expect(region()).toBeNull();
+    fireEvent.click(retry);
+    await waitFor(() => expect(calls).toBe(2));
   });
 });

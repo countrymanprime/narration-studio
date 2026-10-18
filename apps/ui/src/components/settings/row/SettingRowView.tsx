@@ -190,7 +190,7 @@ export function SettingRowView({ row, children, flash }: { row: SettingMeta; chi
               {error}
             </span>
           ) : saved ? (
-            <span key={store.saved?.n} className="text-[var(--ok-text)] motion-safe:animate-[settings-saved_2.5s_forwards]">
+            <span key={store.saved?.n} className="text-[var(--ok-text)] motion-ok:animate-[settings-saved_2.5s_forwards]">
               Saved
             </span>
           ) : null}
