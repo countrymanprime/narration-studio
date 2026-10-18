@@ -1,6 +1,18 @@
 name: Quality
 on:
-  workflow_call: {}
+  workflow_call:
+    outputs:
+      ui-affected:
+        description: "'true' when Nx found narration-utils-ui affected, so the visual shards ran and ci.yml's `CI passed` judges their records"
+        value: ${{ jobs.ui-visual-shard.outputs.affected }}
+    inputs:
+      full:
+        description: >-
+          true runs every job. false is the light tier of a draft pull request (ci.yml): the Playwright suites (ui-visual,
+          ui-atlas) are skipped and the rest runs. Only ci.yml's `CI passed` may sum up a full run; a light run reports as
+          `CI light passed`.
+        type: boolean
+        default: true
 permissions: { contents: read }
 # Every job runs its Nx targets through .github/actions/nx-run: on a pull request only the projects
 # the change affects (see each project's project.json and `implicitDependencies`), otherwise all of
@@ -112,13 +124,17 @@ jobs:
 
   ui-visual-shard:
     # Captures every {page, state, viewport} of the mock-backed app and fails on errors, sideways overflow and collapsed
-    # controls per capture (apps/ui/tests/visual/lib/capture.ts). Not a pixel-diff gate. A third of the catalog per job
-    # (Playwright --shard): one job took 9.4 min. The checks that need the whole run (blank, undeclared duplicate, stale
-    # sameAs) cannot run in a shard (UI_VISUAL_SHARDED=1 defers them), so each shard uploads its capture records and the
-    # `ui-visual` job below judges them together.
+    # controls per capture (apps/ui/tests/visual/lib/capture.ts). Not a pixel-diff gate. A third of the suite per job. The checks
+    # that need the whole run (blank, undeclared duplicate, stale sameAs, and that the shards held every test) cannot run in a
+    # shard (UI_VISUAL_SHARDED=1 defers them), so each shard uploads its capture records and a manifest of what it was given, and
+    # `CI passed` (ci.yml) judges them together.
+    # The split is by measured time (scripts/ci/visual-shards.mjs and apps/ui/tests/visual/shard-weights.json), not by test count:
+    # Playwright's --shard cut the list into equal counts, and the shards ran 12 m 14 s to 14 m 22 s with `aria` on the longest.
+    # The split puts `aria` (about 49 s) on whichever shard the balance wants.
     # 20 minutes: shards 1 and 2 ran 12.7 to 14.5 minutes of a 15 minute limit and then timed out once the overlay guard
-    # (a test per overlay, window size and position, for every page that adopts it) grew; shard 3 takes about 9.
+    # (a test per overlay, window size and position, for every page that adopts it) grew.
     name: ui-visual (shard ${{ matrix.shard }}/3)
+    if: inputs.full
     timeout-minutes: 20
     runs-on: ubuntu-latest
     strategy:
@@ -143,26 +159,49 @@ jobs:
           projects: narration-utils-ui
       - if: steps.scope.outputs.affected == 'true'
         uses: ./.github/actions/setup-playwright
+      # Lists the suite (no browser), gives this shard its tests and says whether this shard also runs `aria`. Fails if the shards do not
+      # hold every test exactly once.
+      - id: split
+        if: steps.scope.outputs.affected == 'true'
+        env:
+          SHARD: ${{ matrix.shard }}
+        run: node scripts/ci/visual-shards.mjs split --shard "$SHARD/3" --out "$RUNNER_TEMP/shard.txt" --manifest "$RUNNER_TEMP/shard-$SHARD.json" --github-output
+      # The JSON report is the profile (time per test); a shard uploads it as ui-visual-timings-<i> and `visual-shards.mjs weights` rebuilds
+      # shard-weights.json from the three.
       - if: steps.scope.outputs.affected == 'true'
         env:
           UI_VISUAL_SHARDED: '1'
           SHARD: ${{ matrix.shard }}
-        run: pnpm --dir apps/ui run screenshots --shard="$SHARD/3"
-      # The role trees of the dialogs, the slide-over and the navigation (tests/aria): 22 tests, about 25 s, so
-      # one shard carries them rather than a job of their own. After the screenshots so a red visual run does not hide it
-      # and the reverse.
-      - if: steps.scope.outputs.affected == 'true' && matrix.shard == 1 && !cancelled()
+          PLAYWRIGHT_JSON_OUTPUT_NAME: ${{ runner.temp }}/timings.json
+        run: pnpm --dir apps/ui run screenshots --test-list "$RUNNER_TEMP/shard.txt" --reporter=list,json
+      # The role trees of the dialogs, the slide-over and the navigation (tests/aria): 22 tests, about 50 s, on the shard the split names.
+      # After the screenshots so a red visual run does not hide it and the reverse.
+      - if: steps.scope.outputs.affected == 'true' && steps.split.outputs.aria == 'true' && !cancelled()
         run: pnpm --dir apps/ui run aria
+      # The manifest goes in the records directory, so it is uploaded with them. `mkdir`: a shard that failed before its first test has none.
+      - if: steps.scope.outputs.affected == 'true' && !cancelled()
+        env:
+          SHARD: ${{ matrix.shard }}
+        run: |
+          mkdir -p apps/ui/screenshots/.run
+          cp "$RUNNER_TEMP/shard-$SHARD.json" apps/ui/screenshots/.run/
       # `.run` is a hidden directory, which upload-artifact leaves out unless told. A shard that drew only the overlay guard's tests
-      # (they capture no screenshots, so write no records) has nothing to upload; the whole-run check judges the other shards' records.
+      # (they capture no screenshots, so write no records) still uploads its manifest.
       - if: steps.scope.outputs.affected == 'true' && !cancelled()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: ui-visual-records-${{ matrix.shard }}
           path: apps/ui/screenshots/.run
           include-hidden-files: true
-          if-no-files-found: ignore
+          if-no-files-found: error
           retention-days: 1
+      - if: steps.scope.outputs.affected == 'true' && !cancelled()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: ui-visual-timings-${{ matrix.shard }}
+          path: ${{ runner.temp }}/timings.json
+          if-no-files-found: ignore
+          retention-days: 14
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         if: always()
         with:
@@ -180,37 +219,12 @@ jobs:
           if-no-files-found: ignore
           retention-days: 3
 
-  ui-visual:
-    # The whole-run half of the visual gate over every shard's capture records (apps/ui/tests/visual/whole-run.check.ts):
-    # every capture present, none blank, no two states identical unless declared sameAs, every sameAs still holding. Reads
-    # records only: no browser. Skipped when the UI is not affected (the shards captured nothing).
-    needs: ui-visual-shard
-    if: needs.ui-visual-shard.outputs.affected == 'true'
-    timeout-minutes: 10
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with: { persist-credentials: false }
-      - uses: ./.github/actions/setup-toolchain
-        with:
-          need-go: 'false'
-          need-python: 'false'
-          need-wails-tools: 'false'
-          need-stylua: 'false'
-          need-linux-native-deps: 'false'
-          pnpm-filter: narration-utils-ui
-      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
-        with:
-          pattern: ui-visual-records-*
-          merge-multiple: true
-          path: apps/ui/screenshots/.run
-      - run: pnpm --dir apps/ui run visual:check-run
-
   ui-atlas:
     # The component library: every Storybook story x light/dark x wide/narrow, with play() interactions, axe accessibility
     # and overflow checks (apps/ui/tests/atlas). Half the stories per job (Playwright --shard): one job took 6.4 min. Each
     # story is judged on its own, so the shards need nothing merged. `pnpm atlas` builds Storybook first (seconds).
     name: ui-atlas (shard ${{ matrix.shard }}/2)
+    if: inputs.full
     timeout-minutes: 15
     runs-on: ubuntu-latest
     strategy:
@@ -335,7 +349,8 @@ jobs:
     # The tests, with the race detector on the packages that have concurrency (the `ci` configuration of the test target;
     # docs/operations/verification-tooling.md#go-lint-and-the-race-detector), then the teleprompter and shutdown tests on one and on four CPUs (`test-schedules`): an ordering bug
     # between goroutines that hides on the default scheduler fails there on demand. Lint runs in quick-windows.
-    timeout-minutes: 15
+    # 25 min: the median is 12 min and the longest run seen was 15.0, so a 15 min limit cancelled runs that were passing.
+    timeout-minutes: 25
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1

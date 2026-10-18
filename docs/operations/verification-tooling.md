@@ -2,22 +2,22 @@
 
 What `pnpm check` and CI verify beyond "it lints and the example tests pass", how to run each check on its own, and how to add to it. How the jobs are wired is in [CI and releases](ci-and-releases.md); the reasons are in ADRs [0043](ci-and-releases.md#coverage-ratchet), and 0062.
 
-| Check | Runs in | Run it alone |
-| --- | --- | --- |
-| Formatting: ruff (Python, the only Python formatter), Prettier (UI), gofmt, StyLua | `lint` and `format` targets | `pnpm exec nx run <project>:lint` |
-| Go lint: golangci-lint v2 (errcheck, staticcheck, govet, unused, gosec, depguard) and checklocks | `narration-utils-shell:lint` | `pnpm exec nx run narration-utils-shell:lint` |
-| Go race detector, on the packages with concurrency | `narration-utils-shell:test:ci` (CI only; it needs cgo) | `CGO_ENABLED=1 go -C apps/desktop test -race ./...` |
-| Coverage ratchet on logic directories | the `test` targets of the projects with logic directories | `node scripts/ci/coverage-gate.mjs <go\|vitest\|pytest> <projectRoot>`; CI runs the Vitest gate as three `--shard=i/3` jobs and one `--merge=3` job that checks the floors |
-| Property tests (Hypothesis, fast-check) and Go fuzz seed corpora | the same `test` targets | see below |
-| Dead code: Knip | `narration-utils:knip` | `pnpm knip` |
-| Import rules taken from ADRs: depguard, the script tracker's pytest | the Go lint and the teleprompter `test` target | with their targets |
-| UI import rules: dependency-cruiser (primitives are leaves, wailsjs and the Wails runtime only in `src/api`, Base UI only in primitives, Zod only in `src/api`) and the `<mark>` scan | `narration-utils-ui:architecture`, and two Vitest files | `pnpm --dir apps/ui architecture` |
-| Markdown links (lychee, offline) and PRD paths cited in source: see [the docs link check](ci-and-releases.md#the-docs-link-check) | `Docs / Links (offline)`; `repo-scripts:test-node` | `lychee --config .lychee.toml --offline .`; `node --test scripts/ci/prd-references.test.mjs` |
-| Mermaid diagrams parse (Mermaid's own parser under jsdom, no browser) | `repo-scripts:test-node` | `node --test scripts/ci/mermaid-diagrams.test.mjs` |
-| Playwright traces on a failing visual test (`trace: 'retain-on-failure'`, uploaded when a `ui-visual` step fails) | `ui-visual` | see [CI and releases](ci-and-releases.md) |
-| Axe on every app state, with a declared, capped debt list | `ui-visual` (the visual suite) | `pnpm --dir apps/ui screenshots`, or `UI_AXE=1` to measure |
-| Aria snapshots: the role trees of the dialogs, the slide-over and the navigation | `ui-visual`, after the screenshots | `pnpm --dir apps/ui run aria` |
-| Overlay guard: every menu, popover, hint, dialog and drawer of a page is the topmost element at its own points and fully on screen | `ui-visual` (the visual suite) | `pnpm --dir apps/ui exec playwright test tests/visual/overlays.spec.ts` |
+| Check                                                                                                                                                                                 | Runs in                                                   | Run it alone                                                                                 |
+| ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------- | -------------------------------------------------------------------------------------------- |
+| Formatting: ruff (Python, the only Python formatter), Prettier (UI), gofmt, StyLua                                                                                                    | `lint` and `format` targets                               | `pnpm exec nx run <project>:lint`                                                            |
+| Go lint: golangci-lint v2 (errcheck, staticcheck, govet, unused, gosec, depguard) and checklocks                                                                                      | `narration-utils-shell:lint`                              | `pnpm exec nx run narration-utils-shell:lint`                                                |
+| Go race detector, on the packages with concurrency                                                                                                                                    | `narration-utils-shell:test:ci` (CI only; it needs cgo)   | `CGO_ENABLED=1 go -C apps/desktop test -race ./...`                                          |
+| Coverage ratchet on logic directories                                                                                                                                                 | the `test` targets of the projects with logic directories | `node scripts/ci/coverage-gate.mjs <go\|vitest\|pytest> <projectRoot>`; CI runs the Vitest gate as three `--shard=i/3` jobs and one `--merge=3` job that checks the floors                       |
+| Property tests (Hypothesis, fast-check) and Go fuzz seed corpora                                                                                                                      | the same `test` targets                                   | see below                                                                                    |
+| Dead code: Knip                                                                                                                                                                       | `narration-utils:knip`                                    | `pnpm knip`                                                                                  |
+| Import rules taken from ADRs: depguard, the script tracker's pytest                                                                                                                   | the Go lint and the teleprompter `test` target            | with their targets                                                                           |
+| UI import rules: dependency-cruiser (primitives are leaves, wailsjs and the Wails runtime only in `src/api`, Base UI only in primitives, Zod only in `src/api`) and the `<mark>` scan | `narration-utils-ui:architecture`, and two Vitest files   | `pnpm --dir apps/ui architecture`                                                            |
+| Markdown links (lychee, offline) and PRD paths cited in source: see [the docs link check](ci-and-releases.md#the-docs-link-check)                                                     | `Docs / Links (offline)`; `repo-scripts:test-node`        | `lychee --config .lychee.toml --offline .`; `node --test scripts/ci/prd-references.test.mjs` |
+| Mermaid diagrams parse (Mermaid's own parser under jsdom, no browser)                                                                                                                 | `repo-scripts:test-node`                                  | `node --test scripts/ci/mermaid-diagrams.test.mjs`                                           |
+| Playwright traces on a failing visual test (`trace: 'retain-on-failure'`, uploaded when a `ui-visual` step fails)                                                                     | `ui-visual`                                               | see [CI and releases](ci-and-releases.md)                                                    |
+| Axe on every app state, with a declared, capped debt list                                                                                                                             | `ui-visual` (the visual suite)                            | `pnpm --dir apps/ui screenshots`, or `UI_AXE=1` to measure                                   |
+| Aria snapshots: the role trees of the dialogs, the slide-over and the navigation                                                                                                      | `ui-visual`, after the screenshots                        | `pnpm --dir apps/ui run aria`                                                                |
+| Overlay guard: every menu, popover, hint, dialog and drawer of a page is the topmost element at its own points and fully on screen                                                    | `ui-visual` (the visual suite)                            | `pnpm --dir apps/ui exec playwright test tests/visual/overlays.spec.ts`                      |
 
 ## Go lint and the race detector
 
@@ -71,7 +71,15 @@ Snapshots live in `tests/aria/snapshots/*.aria.yml`, hand-trimmed and commented.
 
 `apps/ui/tests/visual/overlays.spec.ts` is the guard for the overlay rule of [the definition of done](../../.claude/rules/definition-of-done.md): an overlay is the topmost element at its own points and fully on screen. It is part of the visual suite (same mock build, same shards) and captures no screenshots, so the whole-run checks ignore it. `helpers/overlayGuard.ts` measures one open overlay: it samples the box's corners, edge midpoints and centre with `document.elementFromPoint`, fails where the element found is not the overlay or inside it, except a toast (`[data-toast-region]`, drawn above every overlay on purpose; the failure names the covering element and its stacking chain), and fails when the box leaves the window. `helpers/overlayGuardFor.ts` turns a page's list of `OverlayCase`s into one test per case and viewport (the suite's three sizes, 360x500 and 320x300). Each case runs as opened, over content scrolled halfway and to the end, and, for a case with `over`, with that other overlay already open. A context menu is opened with the pointer at each window corner and edge midpoint and just beside the sidebar and under the top bar.
 
-A page with the sidebar adopts it with one line in `overlays.spec.ts`: `overlayGuardFor('Pickups', shellCases)` runs the overlays the shell draws on it (the content context menu, the top bar's hints, Jump to, History, the navigation drawer and the rail). A second list adds the page's own, in `tests/visual/overlays/<page>.ts`, with `fromState` (an overlay the catalog's driver already reaches), `clickCase`, `hoverCase` or `contextMenuCase`. Below the 390 px reflow width a driver-reached overlay is opened at 390 px and the window is then narrowed with it open.
+A page with the sidebar adopts it by being listed in `tests/visual/overlays/pages.ts`, typed by page so a new page has to be added. Every page runs `shellPageCases` (the context menu on the page and the rail that opens over it, both of which depend on what is under the pointer) and its own list in `tests/visual/overlays/<page>.ts`, written with `fromState` (an overlay the catalog's driver already reaches), `clickCase`, `hoverCase` or `contextMenuCase`. Below the 390 px reflow width a driver-reached overlay is opened at 390 px and the window is then narrowed with it open.
+
+**The top bar's overlays run on three pages, not ten** (decided 2026-10-18; the top-bar cases were 27 of the suite's 160 test-minutes, 17%, and this removes about 21 of them). `shellChromeCases` (the hints on Back, Jump to or run, Zoom in and Undo, the Jump to and History dialogs, the navigation drawer) run on `SHELL_CHROME_PAGES`: Script, Editing and Settings, picked for what lies under the top bar (Script's panels and drawers, Editing's sticky footer and floating toolbar, Settings' long scrolling form). Seven pages no longer repeat them, because for those cases the page cannot change the result:
+
+- They are anchored to the top bar, which `AppShell.tsx` draws once for every page, so their position depends on the window size only.
+- They are portalled to the body at layers of the one scale (`styles.css`): hints at `--z-tooltip` (1000), the dialogs and the drawer at `--z-dialog` (60). A page's content sits in `<main>` under layers below 19 (`layers.test.ts`), and the page's own overlays use the panel, slide-over and popover layers (all below 60). `shellOverlayScope.test.ts` reads the sources and fails if a component outside `primitives/` uses a layer at or above the dialog, if the top bar stops being drawn once, if one of the three primitives stops portalling, or if the split drops a case. When it fails, run the top-bar cases on that page too.
+- The overlay that follows the pointer, the context menu, is the one a page's content can cover, so it and the rail stay on all ten pages, and so does every page's own list.
+
+A hint in the top bar also runs one scroll pass (content scrolled to the end, where a sticky footer or table header is closest to the hint) instead of two (halfway and the end): the top bar does not move with the content. The dialogs and the drawer keep both passes.
 
 ```bash
 pnpm --dir apps/ui exec playwright test tests/visual/overlays.spec.ts -g "Script"   # one page
@@ -92,14 +100,14 @@ Both use the same comparison: a pixel matches when its YIQ colour difference is 
 
 **Baseline** (2026-09-29, one machine, before this change's text-blind score: the raw column is the number the earlier notes quoted). Recorded for the six scored mocks; 06 (the series voice bible) draws a page the app does not have and is unscored:
 
-| Mock | State | Theme | Match % (text-blind) | Raw pixel % |
-| --- | --- | --- | --- | --- |
-| 01 Production | `production/mock-fidelity-01` | light | 87.94 | 82.32 |
-| 02 Script | `script/prep-rail-pronunciations` | light | 93.03 | 86.33 |
-| 03 Booth | `booth/speaker-tags` | dark | 93.20 | 87.59 |
-| 04 Proof | `proof/default` | light | 93.75 | 89.44 |
-| 05 Master & QC | `master/mock-fidelity-05` | light | 92.06 | 85.76 |
-| 07 Companion (420×900 crop) | `booth/companion-listening` | dark | 92.39 | 85.86 |
+| Mock                        | State                             | Theme | Match % (text-blind) | Raw pixel % |
+| --------------------------- | --------------------------------- | ----- | -------------------- | ----------- |
+| 01 Production               | `production/mock-fidelity-01`     | light | 87.94                | 82.32       |
+| 02 Script                   | `script/prep-rail-pronunciations` | light | 93.03                | 86.33       |
+| 03 Booth                    | `booth/speaker-tags`              | dark  | 93.20                | 87.59       |
+| 04 Proof                    | `proof/default`                   | light | 93.75                | 89.44       |
+| 05 Master & QC              | `master/mock-fidelity-05`         | light | 92.06                | 85.76       |
+| 07 Companion (420×900 crop) | `booth/companion-listening`       | dark  | 92.39                | 85.86       |
 
 Since the Proof swap (SN-Q9, 2026-10-12), 04 has no target and is unscored: the Studio Next mock is the spec for Proof and Pickups (D98; `apps/ui/tests/visual/mock-match/mocks.ts`).
 

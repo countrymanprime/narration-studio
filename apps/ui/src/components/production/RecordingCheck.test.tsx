@@ -85,6 +85,31 @@ const openCheck = async (title: string) => {
 };
 
 // The check gets "Open in Editing": the Editing page at the check's chapter.
+describe('a refused start offers Retry', () => {
+  it('puts a Retry on the failure toast that starts the check again', async () => {
+    const real = createMockApi();
+    let calls = 0;
+    const { notify } = await openBoard(
+      {},
+      {
+        coverageStart: async (...args: Parameters<typeof real.coverageStart>) => {
+          calls += 1;
+          if (calls === 1) throw new Error('The host did not answer.');
+          return real.coverageStart(...args);
+        },
+      },
+    );
+    const dialog = await openCheck('Chapter 7');
+    fireEvent.click(await within(dialog).findByRole('button', { name: /^Check recording/ }));
+    await waitFor(() => expect(notify).toHaveBeenCalled());
+    const [, tone, action] = notify.mock.calls[0];
+    expect(tone).toBe('error');
+    expect(action?.label).toBe('Retry');
+    action?.onAction();
+    await waitFor(() => expect(calls).toBe(2));
+  });
+});
+
 describe('Open in Editing from the recording check', () => {
   it('opens the Editing page at the check’s own chapter', async () => {
     const { goToEditing } = await openBoard();

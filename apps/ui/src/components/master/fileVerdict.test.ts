@@ -3,8 +3,8 @@ import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { MOCK_ACX } from '../../api/deliveryProfilesMock';
 import { measureJobSchema } from '../../api/schemas/measure';
-import type { MeasureFileResult } from '../../types';
-import { fileVerdict, leftToCheck, misses, suggestedFix } from './fileVerdict';
+import type { DeliveryProfile, DeliveryRule, DeliveryRuleResult, MeasureFileResult } from '../../types';
+import { fileVerdict, leftToCheck, misses, missesWithLimit, suggestedFix } from './fileVerdict';
 
 // The host's own judged payload (bindings_measure_contract_test.go): Chapter 01 at 48 kHz, Chapter 02 silent, Chapter 03 unreadable.
 const measured = measureJobSchema.parse(
@@ -47,5 +47,55 @@ describe('misses', () => {
     expect(suggestedFix(noise, { ruleId: noise.id, status: 'not_met', value: -57.8, violation: 'above_max' })).toMatch(
       /^Mastering does not lower the noise floor/,
     );
+  });
+});
+
+describe('missesWithLimit', () => {
+  const rule = (over: Partial<DeliveryRule>): DeliveryRule => ({
+    ...MOCK_ACX.rules[0],
+    min: null,
+    max: null,
+    oneOf: [],
+    sameAcrossFiles: false,
+    unit: '',
+    ...over,
+  });
+  const against = (...rules: DeliveryRule[]): DeliveryProfile => ({ ...MOCK_ACX, rules });
+  const missed = (target: DeliveryRule, value: number | null, violation: DeliveryRuleResult['violation'] = 'above_max'): MeasureFileResult => ({
+    ...file('Chapter 01.wav'),
+    rules: [{ ruleId: target.id, status: 'not_met', value, violation }],
+  });
+
+  it('says the value and the limit of a level, a duration and a sample rate in the units a narrator reads', () => {
+    const noise = rule({ id: 'n', label: 'Noise floor', metric: 'noise_floor_dbfs', unit: 'dBFS', max: -60 });
+    expect(missesWithLimit(missed(noise, -57.8), against(noise))).toEqual(['noise floor −57.8 dBFS (limit ≤ −60 dBFS)']);
+    const length = rule({ id: 'd', label: 'Length', metric: 'duration_seconds', unit: 's', max: 7200 });
+    expect(missesWithLimit(missed(length, 7500), against(length))).toEqual(['length 2:05:00 (limit ≤ 120 min)']);
+    const rate = rule({ id: 'r', label: 'Sample rate', metric: 'sample_rate', unit: 'Hz', oneOf: [44100] });
+    expect(missesWithLimit(missed(rate, 48000, 'not_one_of'), against(rate))).toEqual(['sample rate 48 kHz (limit 44.1 kHz)']);
+  });
+
+  it('reads a one-of rule that must match in every file, and a rule with a limit in words', () => {
+    const rate = rule({ id: 'r', label: 'Sample rate', metric: 'sample_rate', unit: 'Hz', oneOf: [44100, 48000], sameAcrossFiles: true });
+    expect(missesWithLimit(missed(rate, 32000, 'not_one_of'), against(rate))).toEqual([
+      'sample rate 32 kHz (limit 44.1 kHz or 48 kHz, the same in every file)',
+    ]);
+    const bitrate = rule({ id: 'b', label: 'Bit rate', metric: 'bitrate', boundText: '192 kbps+ CBR' });
+    expect(missesWithLimit(missed(bitrate, 128), against(bitrate))).toEqual(['bit rate 128 (limit 192 kbps+ CBR)']);
+  });
+
+  it('leaves out the value a missed rule has none of, and the limit a rule has no text for, and still names the rule', () => {
+    const noise = rule({ id: 'n', label: 'Noise floor', metric: 'noise_floor_dbfs', unit: 'dBFS', max: -60 });
+    expect(missesWithLimit(missed(noise, null), against(noise))).toEqual(['noise floor (limit ≤ −60 dBFS)']);
+    const open = rule({ id: 'o', label: 'Peak', metric: 'sample_peak_dbfs', unit: 'dBFS' });
+    expect(missesWithLimit(missed(open, -1.5), against(open))).toEqual(['peak −1.5 dBFS']);
+    expect(missesWithLimit(missed(open, null), against(open))).toEqual(['peak']);
+  });
+
+  it('skips a miss whose rule the profile no longer has, and any rule that was met', () => {
+    const noise = rule({ id: 'n', label: 'Noise floor', metric: 'noise_floor_dbfs', unit: 'dBFS', max: -60 });
+    expect(missesWithLimit(missed(noise, -57.8), against())).toEqual([]);
+    const met: MeasureFileResult = { ...file('Chapter 01.wav'), rules: [{ ruleId: noise.id, status: 'met', value: -64 }] };
+    expect(missesWithLimit(met, against(noise))).toEqual([]);
   });
 });
