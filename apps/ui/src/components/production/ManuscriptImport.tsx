@@ -58,6 +58,8 @@ export function useManuscriptImport({
   const choosing = usePendingAction();
   // Step 1 of the flow (the mock's "Choose your manuscript"): open from the choose button until a file is chosen or the narrator cancels.
   const [step1Open, setStep1Open] = useState(false);
+  // Why the host refused a file dropped on step 1 (the host checks it and begins the import itself; the page never sees the path).
+  const [dropRefusal, setDropRefusal] = useState<string>();
   const [importSelection, setImportSelection] = useState<ManuscriptImportSelection>({});
   // Which review groups the narrator opened or closed by hand. It lives here, above the review dialog, which is swapped for a progress
   // dialog while a Markdown heading level is read again, and is reset only when a new file is chosen (a group has its own default until then).
@@ -217,6 +219,18 @@ export function useManuscriptImport({
     });
   // A file dropped on step 1. The host reads a manuscript from a path, and a browser's File carries none, so a drop that has no path says
   // so and points at the button (docs/architecture/import-review.md, "Deviations from the mock").
+  useEffect(() => {
+    if (!step1Open) return undefined;
+    setDropRefusal(undefined);
+    return api.subscribeManuscriptDropped((event) => {
+      if ('message' in event) return setDropRefusal(event.message);
+      setStep1Open(false);
+      setImportSelection({});
+      void beginImportPreview(event.jobId);
+    });
+    // beginImportPreview is a fresh closure each render; the subscription only needs to follow the dialog opening and closing.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [api, step1Open]);
   const dropFile = (file: DroppedManuscript): string | undefined => {
     if (!file.path) return `This window cannot read where "${file.name}" is. Use Choose a file… instead.`;
     setStep1Open(false);
@@ -257,6 +271,7 @@ export function useManuscriptImport({
           choosing={choosing.isPending('choose')}
           onChoose={chooseFile}
           onDrop={dropFile}
+          hostProblem={dropRefusal}
           cancel={() => setStep1Open(false)}
         />
       )}
