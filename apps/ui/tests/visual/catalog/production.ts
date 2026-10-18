@@ -338,4 +338,10 @@ export const productionStates: StateEntry[] = [
     state: 'chapter-sync-consent',
     description: 'Production, "Sync chapters to tracks?" (?mockChapterSync=ask) - it shows from every link path, not only Tracks',
   },
+  {
+    page: 'production',
+    state: 'loading',
+    description:
+      'Production while the production log is still being read (?mockHold=overview): the page header (title, counts, buttons) as usual and grey blocks in place of the KPI row, the three cards, the chapter pipeline and the side panels, with one polite "Reading the production log…" status',
+  },
 ];

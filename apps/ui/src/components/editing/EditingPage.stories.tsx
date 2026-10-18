@@ -91,12 +91,12 @@ export const DrawerBackups: Story = {
   },
 };
 
-// The DAW is not answering: the banner with the capability's own sentence and Retry; the edits wait, playback goes on.
+// The DAW is not answering: the banner with the capability's own sentence and Check again; the edits wait, playback goes on.
 export const DawOff: Story = {
   args: { setup: 'reaper-off' },
   play: async ({ canvasElement }) => {
     await script(canvasElement);
-    await within(canvasElement).findByRole('button', { name: 'Retry' });
+    await within(canvasElement).findByRole('button', { name: 'Check again' });
   },
 };
 

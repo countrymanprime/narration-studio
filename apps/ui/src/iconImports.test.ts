@@ -34,7 +34,6 @@ const CEILING: Record<string, number> = {
   'src/components/storybible/Guide.tsx': 5,
   'src/components/storybible/GuideDetail.tsx': 13,
   'src/components/storybible/PropertiesSection.tsx': 5,
-  'src/components/storybible/VoiceReferencesSection.tsx': 2,
 };
 
 const uiRoot = join(__dirname, '..');

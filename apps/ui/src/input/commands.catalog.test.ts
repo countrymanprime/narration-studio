@@ -82,6 +82,7 @@ describe('the Booth rows', () => {
       'booth.text.larger': ['Equal', 'NumpadAdd'],
       'booth.text.smaller': ['Minus', 'NumpadSubtract'],
       'booth.exit': ['Escape'],
+      'booth.voice-sample': ['KeyV'],
       'booth.pickup.next': ['KeyN'],
       'booth.pickup.prev': ['Shift+KeyN'],
     };

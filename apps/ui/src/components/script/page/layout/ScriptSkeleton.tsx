@@ -1,5 +1,6 @@
 import { LoadingRegion, Skeleton } from '../../../primitives/Skeleton';
 import { PANEL_FRAME_CLASS } from '../../../primitives/panelStyles';
+import { ScriptTitle } from './ScriptTitle';
 
 // The Script page while its chapters are read: the same grid tracks as `ScriptColumns` (the chapter list at 240 px from 1180 px, the
 // reader, the rail at 380 px from 1281 px), each a framed panel of blocks, so the columns do not move when the manuscript arrives. The page's
@@ -7,7 +8,7 @@ import { PANEL_FRAME_CLASS } from '../../../primitives/panelStyles';
 export function ScriptSkeleton() {
   return (
     <>
-      <h1 className="sr-only">Script</h1>
+      <ScriptTitle />
       <LoadingRegion
         label="Loading the Script"
         status="Reading the manuscript…"

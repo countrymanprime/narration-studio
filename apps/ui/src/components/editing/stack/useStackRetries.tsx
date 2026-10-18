@@ -16,6 +16,7 @@ import { BUILT_IN, isRecorder, planStack, type StackActing, type StackHow } from
 import { canCleanUp, keptReason, otherReads, stackModeOf } from './stackedLine';
 import { CHECKING, KEPT_UNSTACK, NO_ANSWER, NO_RETRIES, NO_STACKED, STACK_TEXT, plural } from './stackText';
 import type { StackLine } from './types';
+import { returnToScript } from '../script/returnToScript';
 
 export interface StackOptions {
   journal: Pick<Journal, 'act' | 'undo'>;
@@ -152,6 +153,7 @@ export function useStackRetries({ journal, chapterId, lines, passageOf }: StackO
       overlay.open({
         kind: 'dialog',
         dismissOnOutsidePress: false,
+        returnFocus: returnToScript,
         title: stackTitle(direction),
         render: ({ close }) => (
           <StackDialog
