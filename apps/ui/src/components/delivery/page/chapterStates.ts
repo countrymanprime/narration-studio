@@ -41,6 +41,30 @@ export function firstFailure(chapters: readonly Listed[], files: readonly Measur
   return undefined;
 }
 
+/**
+ * When no chapter fails but some are not ready, the first of them in the rows' order and why: "Chapter 8: no measured file yet." (no file
+ * matches), "Chapter 8: not measured yet." / "could not be read." (its file is pending, cancelled or failed), or "Chapter 8: part of its file could not
+ * be measured." (a silent render). Nothing when every chapter has a verdict, or when no file was measured at all: the count beside Build
+ * already says that, and a red first chapter on an untouched book would only repeat it.
+ */
+export function firstNotReady(chapters: readonly Listed[], files: readonly MeasureFileResult[]): string | undefined {
+  if (files.length === 0) return undefined;
+  for (const chapter of chapters) {
+    const file = fileOf(chapter, files);
+    if (file && fileVerdict(file) !== 'none') continue;
+    return `${chapterName(chapter)}: ${notReadyWhy(file)}.`;
+  }
+  return undefined;
+}
+
+function notReadyWhy(file: MeasureFileResult | undefined): string {
+  if (!file) return 'no measured file yet';
+  if (file.status === 'failed') return 'its file could not be read';
+  if (file.status !== 'measured') return 'its file is not measured yet';
+  // The line says "measured" and fileVerdict said "none": either a rule could not be measured, or nothing was judged at all.
+  return file.rules.some((rule) => rule.status === 'not_measurable') ? 'part of its file could not be measured' : 'the app judged nothing about its file';
+}
+
 /** One row's state from its file: no file, or a file the host did not judge, is "Not mastered". */
 export function stateOf(base: { id: string; name: string }, file: MeasureFileResult | undefined): ChapterState {
   const verdict = file ? fileVerdict(file) : 'none';

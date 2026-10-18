@@ -3,8 +3,6 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <!-- The app is a desktop window and has no tab icon; an empty one stops the browser asking for /favicon.ico (a 404 and a console error). -->
-    <link rel="icon" href="data:," />
     <script>
       // Sets data-theme before first paint so the correct palette (see
       // apps/ui/src/styles.css's :root[data-theme='dark'] block) applies
@@ -23,6 +21,7 @@
         }
       })();
     </script>
+    <!-- One local icon: a page with none makes the browser ask for /favicon.ico (a 404). An empty data: icon ahead of this one hides it. -->
     <link rel="icon" type="image/png" href="/favicon.png" />
     <title>Narration Studio</title>
   </head>
