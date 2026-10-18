@@ -68,8 +68,8 @@ function WithMenuButton() {
   const [open, setOpen] = useState(false);
   return (
     <div>
-      <button aria-label="Open navigation" className="rounded border px-3 py-1 text-sm" onClick={() => setOpen(true)}>
-        Menu
+      <button className="rounded border px-3 py-1 text-sm" onClick={() => setOpen(true)}>
+        Open navigation
       </button>
       <NavDrawer open={open} onClose={() => setOpen(false)}>
         {navigation}

@@ -85,6 +85,8 @@ export function Preflight({
                     <span dir="auto" title={state.name} className="min-w-0 flex-1 truncate">
                       {state.name}
                     </span>
+                    {/* A space, so the text drawn reads "Chapter 01 Pass", words of the name: run together it fails axe's
+                        label-content-name-mismatch. A flex box draws no space for it. */}{' '}
                     <StatusBadge tone={TONE[state.kind]} label={state.text} />
                   </Button>
                 </li>
