@@ -37,18 +37,27 @@ Off only decides what the rail offers. A page you reach another way (a typed add
 If the manuscript goes while you are on one of these pages, the page stays and asks for it, its rail item turns off where it is, and the
 rail shows no note counts, since the notes and pickups the project still holds belong to an earlier manuscript.
 
-The header runs, left to right: Back and Forward (below), the project's name, **Jump to or run…** (`Ctrl+K`), Undo and History, the timer,
-the [zoom controls](#zoom) and the engine chip. Jump to or run… opens the jump menu: type to find a page, a chapter or a command, or
-type `>` to list commands only. Escape, or a press anywhere outside the menu, closes it.
+The header is short, and the same on every page. Left to right: the **Project** label (hidden on a narrow window), the project's name, **Jump to or run…** (`Ctrl+K`),
+a zoom chip when you are zoomed, and the engine chip. Below 860 px a hamburger button at the far left opens the sidebar as a drawer.
+The project's name is a button (**Switch project**): it opens the project picker over the project you have open, with **Back** to return to it, and opening a
+recent project there switches to it.
+
+Jump to or run… opens the jump menu: type to find a page, a chapter or a command, or type `>` to list commands only. Escape, or a press anywhere outside the menu,
+closes it. The header has no other buttons, so everything else you might look for there is a command in the menu, with its key beside it; a command that cannot run now stays listed, off, with the reason under it:
+
+| Command | Key | Off when |
+| --- | --- | --- |
+| Back, Forward | `Alt+Left`, `Alt+Right`, or the mouse's back and forward buttons | there is no earlier or later page |
+| Undo the last change | `Ctrl+Z` (not in a text box, which keeps its own undo) | the journal has nothing to undo |
+| Open the undo history | `Ctrl+Shift+H` | never |
+| Zoom in, Zoom out, Reset zoom to 100% | `Ctrl+=`, `Ctrl+-`, `Ctrl+0`; also Ctrl+scroll | already at the largest or smallest size, or already at 100% |
+| Switch project… | none | never |
 
 ![The jump menu open over the page: type to find a page, a chapter or a command](../../images/ui/nav-jump-menu.webp)
 
-Undo (`Ctrl+Z`, except in a text box, which keeps its own undo) takes back the last change you made in the app, and says why when it cannot; History lists
-the changes you can undo (`Ctrl+Shift+H`), each with the time it was made; it keeps the newest 40 and says so when it is full, and `Ctrl+Z` works with History open too, and the list follows. Below the tablet width Undo and History leave the header; the jump menu opens History.
-The **Undo** on a message beside a change goes away once it would no longer be true: when you undo that change another way (`Ctrl+Z`, the header or History), open another page or chapter, or switch project.
-While a [production stage timer](production.md#the-stage-timer) runs,
-the timer chip counts its time and names the chapter ("0:42:07 · timer on Chapter 6") on every page; below the
-tablet width it keeps the clock only. With no timer running it is not there.
+Undo takes back the last change you made in the app, and says why when it cannot. The undo history lists the changes you can undo, each with the time it was made, in a panel that slides in from the right; it keeps the newest 40 and says so when it is full, and `Ctrl+Z` works with the panel open too, and the list follows.
+The **Undo** on a message beside a change goes away once it would no longer be true: when you undo that change another way (`Ctrl+Z`, the jump menu or the history), open another page or chapter, or switch project.
+A running [production stage timer](production.md#the-stage-timer) is not in the header: its clock and chapter ("0:42:07 · timer on Chapter 6") sit beside **Stop timer** at the top of the Production page, and only there.
 
 Right-clicking empty space in a page opens a menu of where to go, the zoom steps and the theme, ending with the jump menu.
 
@@ -65,10 +74,10 @@ project's `.rpp` file is linked or changed:
 
 ## Moving around: Back and Forward
 
-Two buttons at the left of the header walk the pages you have visited in this project, the way a browser's Back
+Two jump-menu commands walk the pages you have visited in this project, the way a browser's Back
 and Forward do: **Back** (`Alt+Left`, or your mouse's back button) returns to the page you came from; **Forward**
-(`Alt+Right`, or your mouse's forward button) goes there again after a Back. Each is disabled — with a tooltip
-saying why — when there is nowhere to go: Back on the first page you opened in this project, Forward until you
+(`Alt+Right`, or your mouse's forward button) goes there again after a Back. Each is listed off — with the reason
+under it — when there is nowhere to go: Back on the first page you opened in this project, Forward until you
 have gone Back at least once. Switching to a different project starts a fresh history; Back does not cross into
 the project you left.
 
@@ -83,17 +92,19 @@ The [Booth](booth.md#the-credits) fills the window and has no rail, so there Esc
 
 ## Zoom
 
-Three controls at the right of the header, before the audio engine chip, make the whole app bigger or smaller:
-`[−] [100%] [+]`. The middle button is a readout of the current level and also resets it: click it, or press
-`Ctrl+0` to return to 100% from any level; it is itself disabled at 100%, since there is
-nothing to reset. **Zoom out** (`Ctrl+-`, disabled at 100%) and **Zoom in** (`Ctrl+=`, disabled at 200%) step
-through 100%, 110%, 125%, 150%, 175% and 200%. The numpad's `+`, `-` and `0` keys do the same as their main-row
-equivalents.
+The jump menu has three zoom commands that make the whole app bigger or smaller: **Zoom out** (`Ctrl+-`), **Zoom in** (`Ctrl+=`) and
+**Reset zoom to 100%** (`Ctrl+0`). They step through 100%, 110%, 125%, 150%, 175% and 200%; zoom out is off at 100%, zoom in at 200%, and reset at 100%, since there is
+nothing to reset. The numpad's `+`, `-` and `0` keys do the same as their main-row equivalents.
+
+While the zoom is anything but 100%, a **zoom chip** with the level ("125%") appears in the header, between **Jump to or run…** and the engine chip. Press it and the
+jump menu opens already on the Zoom commands. At 100% the chip is not there.
+
+![The header at 125% zoom: the chip between the jump button and the engine chip](../../images/ui/nav-zoom-chip.webp)
 
 This is the app's real zoom — the same one a Ctrl+scroll or a touchpad pinch already does — not a text-size
 setting, so it reflows the whole layout through the sidebar, icon rail and drawer breakpoints exactly as a
-narrower window would. Ctrl+scroll and pinch keep working at any level, including below 100%; the readout
-follows them and stays the reset button. A level pushed above 200% by Ctrl+scroll or pinch is brought back to
+narrower window would. Ctrl+scroll and pinch keep working at any level, including below 100%; the chip
+follows them. A level pushed above 200% by Ctrl+scroll or pinch is brought back to
 200% automatically, since layouts below the app's minimum window width get cramped past that point. A change is
 announced once, for a screen reader, after the level settles — not on every wheel notch.
 

@@ -39,6 +39,7 @@ import { PageHeader } from './pipeline/PageHeader';
 import { PipelineTable } from './pipeline/PipelineTable';
 import { pipelineChapters } from './pipeline/pipelineChapters';
 import { buildPipelineRows, type GoTarget } from './pipeline/pipelineRows';
+import { runningTimerOf } from '../layout/TimerChip';
 import { useStageTimer } from './pipeline/useStageTimer';
 import { formatClock, formatPfh, formatRate, stageHoursHint } from './productionFormat';
 import { openReportDialog } from './report/openReportDialog';
@@ -118,7 +119,6 @@ export function ProductionPage({
   goToEditing,
   goToBooth,
   refreshBootstrap,
-  onOverview,
   onManuscriptChanged,
   dawConnectGraceMs = DAW_CONNECT_GRACE_MS,
 }: {
@@ -131,8 +131,6 @@ export function ProductionPage({
   /** Opens the Booth, on a chapter when one is given. */
   goToBooth: (chapterId?: string) => void;
   refreshBootstrap: () => Promise<void>;
-  /** Every overview this page reads, for the header's running-timer chip. */
-  onOverview?: (overview: ProductionOverview) => void;
   /** Says a chapter's status or kind changed here, so the chapter list other pages read is read again (`MANUSCRIPT_CHANGED`). */
   onManuscriptChanged?: () => void;
   /** How long after the app opens an unconnected DAW shows as connecting rather than not running (tests pass 0). */
@@ -160,11 +158,10 @@ export function ProductionPage({
       const [overview, nextPlan] = await Promise.all([production.productionOverview(), production.productionPlan()]);
       setLoad({ status: 'ready', overview });
       setPlan(nextPlan);
-      onOverview?.(overview);
     } catch (error) {
       setLoad({ status: 'error', message: apiErrorMessage(error) });
     }
-  }, [found, production, onOverview]);
+  }, [found, production]);
 
   useEffect(() => {
     void read();
@@ -383,6 +380,7 @@ export function ProductionPage({
         due={due}
         record={record}
         timerRunning={Boolean(overview?.running)}
+        timer={overview ? runningTimerOf(overview) : null}
         stopping={timer.stopping}
         onStopTimer={() => void timer.stop(nameOf)}
         onStartSession={() => goToBooth(recordingChapter?.id)}

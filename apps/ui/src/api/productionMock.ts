@@ -292,7 +292,7 @@ export function createProductionMock(deps: Deps): ProductionApi & { applyProfile
   };
   const log = seed.log ? LOGS[seed.log] : undefined;
   const sessions: ProductionSession[] = log ? seededSessions(log, seed.shiftDays ?? 0) : [];
-  // The seeded running session began 42 minutes before the mock was made, so the header's timer chip reads like a real session
+  // The seeded running session began 42 minutes before the mock was made, so the Production page's timer chip reads like a real session
   // (0:42:00 and counting) rather than days on from a fixed date.
   if (log?.running) {
     sessions.push({

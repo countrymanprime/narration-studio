@@ -35,7 +35,6 @@ async function renderPage({
 }: { overrides?: Partial<NarrationApi>; initial?: Initial; onManuscriptChanged?: () => void; dawConnectGraceMs?: number } = {}) {
   const api = createMockApi(overrides, initial);
   const data = await api.bootstrap();
-  const onOverview = vi.fn();
   const go = vi.fn();
   const goToBooth = vi.fn();
   const notify = vi.fn();
@@ -51,7 +50,6 @@ async function renderPage({
             goToEditing={vi.fn()}
             goToBooth={goToBooth}
             refreshBootstrap={async () => {}}
-            onOverview={onOverview}
             onManuscriptChanged={onManuscriptChanged}
             dawConnectGraceMs={dawConnectGraceMs}
           />
@@ -60,7 +58,7 @@ async function renderPage({
       </ApiProvider>
     </MemoryRouter>,
   );
-  return { api, onOverview, go, goToBooth, notify };
+  return { api, go, goToBooth, notify };
 }
 
 const pipeline = () => screen.findByRole('table', { name: 'Chapter pipeline' });
@@ -207,12 +205,13 @@ describe('header-icons-and-dialogs-open', () => {
 });
 
 describe('timer-and-chip-still-work', () => {
-  it('feeds the shell chip from every overview read, and Stop timer stops the running one', async () => {
-    const { onOverview } = await renderPage({ initial: { production: PRODUCTION_SCENARIOS['on-pace'] } });
-    await waitFor(() => expect(onOverview).toHaveBeenCalledWith(expect.objectContaining({ running: expect.objectContaining({ chapterId: 'chapter-6' }) })));
+  it('draws the running timer as a chip beside Stop timer, and Stop timer stops it and takes the chip away', async () => {
+    await renderPage({ initial: { production: PRODUCTION_SCENARIOS['on-pace'] } });
+    const chip = await screen.findByRole('timer', { name: /^Timer running on / });
+    expect(chip.closest('header')).toBe((await screen.findByRole('button', { name: 'Stop timer' })).closest('header'));
     await userEvent.setup().click(await screen.findByRole('button', { name: 'Stop timer' }));
     expect(await screen.findByText(/Timer stopped/)).toBeTruthy();
-    await waitFor(() => expect(onOverview.mock.lastCall?.[0].running).toBeNull());
+    await waitFor(() => expect(screen.queryByRole('timer')).toBeNull());
     expect(screen.queryByRole('button', { name: 'Stop timer' })).toBeNull();
   });
 

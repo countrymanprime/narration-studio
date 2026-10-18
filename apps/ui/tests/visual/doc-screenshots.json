@@ -721,6 +721,13 @@
     "caption": "The jump menu open over the page: type to find a page, a chapter or a command"
   },
   {
+    "page": "shell",
+    "state": "zoom-level",
+    "viewport": "desktop",
+    "docName": "nav-zoom-chip",
+    "caption": "The header at 125% zoom: the chip between the jump button and the engine chip"
+  },
+  {
     "page": "production",
     "state": "no-manuscript",
     "viewport": "desktop",

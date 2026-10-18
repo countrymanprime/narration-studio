@@ -37,6 +37,7 @@ import { ScriptPage } from './components/script/page/ScriptPage';
 import { creditsKindOfId } from './components/credits/creditsEntries';
 import { NeedManuscript } from './components/layout/NeedManuscript';
 import { NeedManuscriptImport } from './components/layout/NeedManuscriptImport';
+import { registerCommandProvider } from './input/commandProviders';
 import { ProjectPicker } from './components/project/ProjectPicker';
 import { Guide } from './components/storybible/Guide';
 import { SettingsPage } from './components/settings/page/SettingsPage';
@@ -62,8 +63,6 @@ import { DeliveryPage } from './components/delivery/page/DeliveryPage';
 import { parseMasterHash } from './components/master/masterLink';
 import { ProductionPage } from './components/production/ProductionPage';
 import { SchedulePage } from './components/schedule/SchedulePage';
-import { runningTimerOf, type RunningTimer } from './components/layout/TimerChip';
-import type { ProductionOverview } from './api/contracts/production';
 import { TooltipProvider } from './components/primitives/Tooltip';
 import { ErrorBoundary } from './components/primitives/ErrorBoundary';
 import { DESKTOP_HOST_API_VERSION } from './hostApi';
@@ -237,26 +236,11 @@ function AppRoutes() {
   // boundary (the active manuscript affects several pages).  Refresh this
   // payload in place instead of reloading the browser, which could interrupt
   // the completion dialog before its activity log is visible.
-  // The header's running-timer chip: read once for the project's manuscript,
-  // so the chip shows on whichever page the app opens on, and then from every overview the Production home reads, since only its
-  // Start and Stop timer change it.
-  const [runningTimer, setRunningTimer] = useState<RunningTimer | null>(null);
-  const onProductionOverview = useCallback((overview: ProductionOverview) => setRunningTimer(runningTimerOf(overview)), []);
-  const manuscriptId = data?.manuscript?.id;
-  useEffect(() => {
-    if (!manuscriptId) {
-      setRunningTimer(null);
-      return;
-    }
-    let active = true;
-    api
-      .productionOverview()
-      .then((overview) => active && setRunningTimer(runningTimerOf(overview)))
-      .catch(() => {});
-    return () => {
-      active = false;
-    };
-  }, [api, manuscriptId]);
+  // The project picker over the shell: the header's project name and the jump menu's "Switch project…" open it. It closes when a project is
+  // chosen (the project folder changes) or on its own Back button.
+  const [projectPickerOpen, setProjectPickerOpen] = useState(false);
+  const projectFolderOpen = data?.projectFolder;
+  useEffect(() => setProjectPickerOpen(false), [projectFolderOpen]);
   const refreshBootstrap = useCallback(async () => {
     try {
       const next = await api.bootstrap();
@@ -495,8 +479,7 @@ function AppRoutes() {
   useCommand('nav.forward', () => {
     if (!isModalOpen()) guardedForwardRef.current();
   });
-  // The header's zoom group: Ctrl+=/-/0 (and the numpad
-  // equivalents) run the same steps as the header's own buttons, and do nothing while a modal is open, like Back/Forward.
+  // Zoom: Ctrl+=/-/0 (and the numpad equivalents) run the same steps as the jump menu's zoom commands, and do nothing while a modal is open, like Back/Forward.
   useCommand('zoom.in', () => {
     if (!isModalOpen()) void zoom.zoomIn();
   });
@@ -533,6 +516,14 @@ function AppRoutes() {
     chapters,
     go: (target) => (target.kind === 'page' ? guardedNavigateRef.current(target.id) : goToScriptRef.current(target.id)),
   });
+  // "Switch project…" has no key, so it is a provided command, not a catalogue row: it opens the same picker as the header's project name.
+  useEffect(
+    () =>
+      registerCommandProvider(() => [
+        { id: 'project.switch', group: 'Go to', label: 'Switch project…', hint: 'Open the project picker', run: () => setProjectPickerOpen(true) },
+      ]),
+    [],
+  );
   const dawName = () => (dawKind ? dawShortName(dawKind) : 'the DAW');
   const openHistory = () => void openHistoryPanel(overlay, journal, dawName);
   const undoLast = async () => {
@@ -553,7 +544,26 @@ function AppRoutes() {
     'undo.last': () => void undoLast(),
     'companion.open': () => guardedNavigateRef.current('/companion'),
   };
-  const openJump = (initialTerm?: string) => void openJumpMenu({ keymap, runCommand: (id) => shellCommands.current[id]?.(), initialTerm, service: overlay });
+  // The catalogue commands the shell runs that can be off now, with the sentence the jump menu shows beside them (the header's buttons used to carry these).
+  const shellDisabledReasons = (): Record<string, string> => {
+    const off: Record<string, string> = {};
+    if (!history.canGoBack) off['nav.back'] = 'No earlier page in this project';
+    if (!history.canGoForward) off['nav.forward'] = 'No later page yet';
+    if (!journalRows || journalRows.length === 0) off['undo.last'] = 'Nothing to undo';
+    if (!zoom.canZoomIn) off['zoom.in'] = 'Already at the largest size';
+    if (!zoom.canZoomOut) off['zoom.out'] = 'Already at the smallest size';
+    if (zoom.percent === 100) off['zoom.reset'] = 'Already 100%';
+    return off;
+  };
+  const openJump = (initialTerm?: string, initialGroup?: string) =>
+    void openJumpMenu({
+      keymap,
+      runCommand: (id) => shellCommands.current[id]?.(),
+      initialTerm,
+      initialGroup,
+      disabledReasons: shellDisabledReasons,
+      service: overlay,
+    });
   useCommand('jump.open', () => {
     if (!isModalOpen()) openJump();
   });
@@ -571,7 +581,7 @@ function AppRoutes() {
   useCommand('undo.last', () => {
     if (!isModalOpen() || onlyHistoryOpen()) void undoLast();
   });
-  // The menu on empty space in <main> (the mock's page menu): where to go, the jump menu, view. Zoom steps are the header's own.
+  // The menu on empty space in <main> (the mock's page menu): where to go, the jump menu, view. Zoom steps are here and in the jump menu.
   const contextMenu = {
     fallback: (): ContextMenuItem[] => [
       { key: 'go-to', label: 'Go to…', onSelect: () => openJump('Go to ') },
@@ -643,10 +653,15 @@ function AppRoutes() {
   // already refreshes `data` once ProjectPicker's switch/create succeeds, so
   // no callback needs to be threaded through here.
   // A project made from the picker opens on Script, as the mock's New project does; the Script page offers the import when it has no manuscript.
-  if (!data.projectFolder)
+  if (!data.projectFolder || projectPickerOpen)
     return (
       <>
-        <ProjectPicker notify={setNotice} onCreated={() => navigate('/script')} />
+        <ProjectPicker
+          notify={setNotice}
+          onCreated={() => navigate('/script')}
+          onBack={data.projectFolder ? () => setProjectPickerOpen(false) : undefined}
+          currentName={data.projectFolder ? data.projectName : undefined}
+        />
         <ToastRegion messages={messages} dismiss={dismissMessage} />
       </>
     );
@@ -752,23 +767,13 @@ function AppRoutes() {
             linkingDawFile={dawLink.isBusy}
             engine={engine}
             daw={dawKind}
-            timer={runningTimer}
             navCounts={navCounts}
             onOpenJump={() => openJump()}
-            onOpenHistory={openHistory}
-            undo={{ disabledReason: journalRows && journalRows.length > 0 ? undefined : 'Nothing to undo', run: () => void undoLast() }}
+            onOpenZoomMenu={() => openJump(undefined, 'Zoom')}
+            onSwitchProject={() => setProjectPickerOpen(true)}
             theme={{ dark: theme.resolved === 'dark', toggle: toggleTheme }}
             contextMenu={contextMenu}
-            history={{ canGoBack: history.canGoBack, canGoForward: history.canGoForward, back: guardedBack, forward: guardedForward }}
-            zoom={{
-              percent: zoom.percent,
-              canZoomOut: zoom.canZoomOut,
-              canZoomIn: zoom.canZoomIn,
-              zoomIn: zoom.zoomIn,
-              zoomOut: zoom.zoomOut,
-              reset: zoom.reset,
-              announcement: zoom.announcement,
-            }}
+            zoom={{ percent: zoom.percent, announcement: zoom.announcement }}
           >
             <ErrorBoundary key={location.pathname.split('/')[1] || 'production'}>
               <Routes>
@@ -788,7 +793,6 @@ function AppRoutes() {
                         else guardedNavigate('/booth');
                       }}
                       refreshBootstrap={refreshBootstrap}
-                      onOverview={onProductionOverview}
                       onManuscriptChanged={() => studio.publish(MANUSCRIPT_CHANGED)}
                     />
                   }

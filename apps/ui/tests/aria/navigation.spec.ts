@@ -22,19 +22,19 @@ test('the collapsed rail is the same named navigation as the sidebar', async ({ 
   await expect(page.getByRole('complementary', { name: 'Primary navigation' })).toMatchAriaSnapshot({ name: 'navigation-rail.aria.yml' });
 });
 
-// Back and Forward are navigation, so they get the
-// same role-tree pin as the other navigation shapes above.
-test('the header names its page-history group, with Back and Forward', async ({ page }) => {
+// The header is the Studio Next mock's top bar: the project name as a button, the jump button and the engine chip. Back, Forward, Undo, History
+// and the zoom steps left it for the jump menu (dialog-jump-menu.aria.yml pins the menu), so the header's own tree is pinned here.
+test('the header names its project button and its jump button, with no history, undo or zoom controls', async ({ page }) => {
   await openApp(page, DESKTOP);
-  await expect(page.getByRole('group', { name: 'Page history' })).toMatchAriaSnapshot({ name: 'navigation-header.aria.yml' });
+  await expect(page.locator('main > header')).toMatchAriaSnapshot({ name: 'navigation-header.aria.yml' });
 });
 
-// The zoom group, pinned separately since it changes on a different schedule than Back/Forward
-// (it steps with the level, not with navigation). The default boot is 100%, so the readout reads "100%" and is itself
-// disabled.
-test('the header names its zoom group, with zoom out, the reset readout and zoom in', async ({ page }) => {
+// The zoom chip is drawn only off 100%: with ?mockZoom=125 it is a button between the jump button and the engine chip.
+test('the header draws the zoom chip as a button only while zoom is not 100%', async ({ page }) => {
   await openApp(page, DESKTOP);
-  await expect(page.getByRole('group', { name: 'Zoom' })).toMatchAriaSnapshot({ name: 'navigation-header-zoom.aria.yml' });
+  await page.goto('/?mockZoom=125');
+  await settlePage(page);
+  await expect(page.locator('main > header')).toMatchAriaSnapshot({ name: 'navigation-header-zoom.aria.yml' });
 });
 
 // With no manuscript the nine pages that need one are still buttons in the list, with their names, but off; Production and

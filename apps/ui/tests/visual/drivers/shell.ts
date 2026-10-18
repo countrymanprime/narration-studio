@@ -1,28 +1,30 @@
 // How to reach each `shell` state in STATE_CATALOG (see app.drivers.ts).
 import { settlePage } from '../helpers/settle';
-import { type Driver, clickVisible, goToPage, productionLoaded, PAGE_HEADING } from './shared';
+import { type Driver, goToPage, productionLoaded, PAGE_HEADING } from './shared';
+import { openJumpMenuOnCommands } from './jump';
 
 export const shellDrivers: Record<string, Driver> = {
-  // After one in-app move, Back is enabled and Forward
-  // is not (the default states already show both disabled at the first page, so they need no row here).
-  'history-enabled': async (page) => {
-    // Story Bible, not Script: reaching any page by one nav click also enables Back there, so without a further
-    // differentiator this state is just a copy of whatever page it landed on - and Script's reader carries its own
-    // pre-existing nested-interactive debt (#155, catalogued as flake 3 on #509) this row has no reason to inherit.
+  // Back, Forward, Undo, History and the zoom steps are jump-menu commands (the header is the Studio Next mock's: no buttons for them).
+  // After one in-app move the jump menu, narrowed to commands, lists Back on and Forward off with its reason (the default first page has both off).
+  'jump-menu-back-enabled': async (page) => {
+    // Story Bible, not Script: Script's reader carries its own pre-existing nested-interactive debt (#155, catalogued as flake 3 on #509) this row has no reason to inherit.
     await goToPage(page, 'Story Bible');
     await page.getByRole('list', { name: 'Story Bible entries' }).getByRole('button').first().waitFor();
-    // Focus Back for its ring and tooltip: a bare Shift press, with no Tab and no destination, flips Chromium's
-    // input-modality heuristic to keyboard without moving focus anywhere, so the following script .focus() still
-    // matches :focus-visible (button:focus-visible, components.css) instead of landing as a plain, invisible focus.
-    await page.keyboard.press('Shift');
-    await page.getByRole('button', { name: 'Back' }).focus();
-    await page.getByRole('tooltip', { name: 'Back (Alt+Left)' }).waitFor();
+    await openJumpMenuOnCommands(page, 'back');
+    await page.getByRole('option', { name: /^Back/ }).waitFor();
+    await page.getByRole('option', { name: /^Back/ }).and(page.locator(':not([aria-disabled="true"])')).waitFor();
   },
-  // After a Back from that page, both Back and Forward are enabled.
-  'history-forward': async (page) => {
+  // After a Back from that page, both Back and Forward are on.
+  'jump-menu-forward-enabled': async (page) => {
     await goToPage(page, 'Script');
-    await clickVisible(page, 'button', 'Back');
+    await openJumpMenuOnCommands(page, 'back');
+    await page.getByRole('option', { name: /^Back/ }).click();
     await page.getByRole('heading', { level: 1, name: PAGE_HEADING.Production, exact: true }).waitFor();
+    await openJumpMenuOnCommands(page, 'forward');
+    await page
+      .getByRole('option', { name: /^Forward/ })
+      .and(page.locator(':not([aria-disabled="true"])'))
+      .waitFor();
   },
   // The "Built-in recorder" state, reached through the mock flag (?mockEngine=builtin).
   'engine-builtin': async (page) => {
@@ -39,13 +41,27 @@ export const shellDrivers: Record<string, Driver> = {
     await productionLoaded(page);
     await page.getByRole('button', { name: /^REAPER: A different project is open/ }).waitFor();
   },
-  // The zoom group at a non-100% level (?mockZoom=125), so the enabled readout, Zoom out and reset can be
-  // seen without driving Ctrl+wheel or a click first.
+  // The zoom chip at a non-100% level (?mockZoom=125): it is drawn only off 100%, so it needs the flag to be seen without driving Ctrl+wheel first.
   'zoom-level': async (page) => {
     await page.goto('/?mockZoom=125');
     await settlePage(page);
     await productionLoaded(page);
-    await page.getByRole('button', { name: /Reset zoom to 100% \(now 125%\)/ }).waitFor();
+    await page.getByRole('button', { name: 'Zoom 125%: change in the jump menu' }).waitFor();
+  },
+  // The chip pressed: the jump menu opens at the Zoom commands, Reset on because zoom is off 100%.
+  'zoom-menu-open': async (page) => {
+    await page.goto('/?mockZoom=125');
+    await settlePage(page);
+    await productionLoaded(page);
+    await page.getByRole('button', { name: 'Zoom 125%: change in the jump menu' }).click();
+    await page.getByRole('option', { name: /^Reset zoom to 100%/ }).waitFor();
+  },
+  // The project name pressed: the project picker opens over the open project, with Back to return to it.
+  'switch-project-open': async (page) => {
+    await productionLoaded(page);
+    await page.getByRole('button', { name: /^Switch project/ }).click();
+    await page.getByRole('heading', { name: 'Choose your project' }).waitFor();
+    await page.getByRole('button', { name: /^Back to / }).waitFor();
   },
   // The jump menu, opened from the header's button as a narrator would.
   'jump-menu-open': async (page) => {
@@ -81,9 +97,11 @@ export const shellDrivers: Record<string, Driver> = {
     await field.fill('go to');
     await page.getByRole('option', { name: /^Go to Proof/ }).waitFor();
   },
+  // The History panel opens from the jump menu's command (the header's History button is gone) and from Ctrl+Shift+H.
   'history-panel-open': async (page) => {
     await productionLoaded(page);
-    await page.getByRole('button', { name: 'History' }).click();
+    await openJumpMenuOnCommands(page, 'open the undo history');
+    await page.getByRole('option', { name: /^Open the undo history/ }).click();
     await page.getByRole('dialog', { name: 'Undo history' }).waitFor();
   },
 };

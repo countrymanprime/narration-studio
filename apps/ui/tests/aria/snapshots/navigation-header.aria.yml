@@ -1,5 +1,6 @@
-# Back and Forward at the left of the header. Both start
-# disabled on the first page of a project; enabling on a move is exercised by the visual suite, not pinned here.
-- group "Page history":
-  - button "Back" [disabled]
-  - button "Forward" [disabled]
+# The header at the default boot (zoom 100%): the project name as a "Switch project" button, the jump button, the engine chip. No Back, Forward, Undo,
+# History or zoom control, and no zoom chip: those are jump-menu commands, and the chip appears only off 100%.
+- text: Project
+- button /Switch project \(now .+\)/
+- button "Jump to or run…"
+- button /REAPER: .+/

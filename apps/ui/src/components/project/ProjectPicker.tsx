@@ -27,7 +27,18 @@ export const REMOVE_UNDO_MS = TOAST_INFO_MS + 1_000;
 // failure states before any bootstrap payload exists at all. Built to the Studio Next mock's
 // ProjectPicker.tsx, less what the host cannot back yet: pins, the taskbar jump list and the "REAPER is running" banner.
 // `onCreated` runs when New project made a project (the app opens it on Script); opening or browsing to one leaves the page alone.
-export function ProjectPicker({ notify, onCreated }: { notify: Notify; onCreated: () => void }) {
+// `onBack` is set when the picker was opened from the header's project name over a project that is already open: it draws a Back button that closes the picker and keeps that project.
+export function ProjectPicker({
+  notify,
+  onCreated,
+  onBack,
+  currentName,
+}: {
+  notify: Notify;
+  onCreated: () => void;
+  onBack?: () => void;
+  currentName?: string;
+}) {
   const api = useApi();
   const [recents, setRecents] = useState<RecentProject[]>([]);
   const [recentsFailed, setRecentsFailed] = useState(false);
@@ -168,6 +179,11 @@ export function ProjectPicker({ notify, onCreated }: { notify: Notify; onCreated
         <div className="mx-auto flex min-h-full w-full max-w-[47.5rem] min-w-0 flex-col justify-center gap-5">
           <div className="flex items-center gap-[0.625rem]">
             <Brand />
+            {onBack && (
+              <Button variant="secondary" className="ml-auto" onClick={onBack} aria-label={currentName ? `Back to ${currentName}` : 'Back'}>
+                Back
+              </Button>
+            )}
           </div>
           <div className="flex flex-wrap items-end gap-x-4 gap-y-3">
             <div className="min-w-0 flex-1">
