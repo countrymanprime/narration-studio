@@ -76,4 +76,10 @@ export const scriptStates: StateEntry[] = [
     description:
       'Script with no manuscript imported (?mockNoManuscript=1), opened by its address: the page asks for the manuscript, with Import manuscript, and does not open the import or leave for Production by itself',
   },
+  {
+    page: 'script',
+    state: 'loading',
+    description:
+      'Script while its chapters are still being read (?mockChapters=loading): the hidden page title kept and the three columns as framed blocks - the chapter list (from 1180 px), the reader, the rail (from 1281 px) - with one polite "Reading the manuscript…" status',
+  },
 ];

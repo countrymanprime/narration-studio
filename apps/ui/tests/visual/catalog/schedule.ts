@@ -47,4 +47,10 @@ export const scheduleStates: StateEntry[] = [
     description:
       'Schedule with no manuscript imported (?mockNoManuscript=1): the page asks for the manuscript, with no estimates left over from an earlier one',
   },
+  {
+    page: 'schedule',
+    state: 'loading',
+    description:
+      'Schedule while the plan is still being read (?mockPlan=loading): the page title, a block for its due-date line and verdict, a chart block, two panel blocks and the milestones block, with one polite "Loading the schedule…" status',
+  },
 ];
