@@ -95,8 +95,8 @@ describe('WorkDialog', () => {
     const fill = document.querySelector('.progressbar > div');
     expect(fill).not.toBeNull();
     const classes = (fill as HTMLElement).className.split(/\s+/);
-    expect(classes).toContain('motion-safe:animate-[work-progress-slide_1.15s_ease-in-out_infinite]');
-    expect(classes).toContain('motion-safe:transition-[width]');
+    expect(classes).toContain('motion-ok:animate-[work-progress-slide_1.15s_ease-in-out_infinite]');
+    expect(classes).toContain('motion-ok:transition-[width]');
     expect(classes.filter((c) => /^(animate|transition)-/.test(c))).toEqual([]);
   });
 });
