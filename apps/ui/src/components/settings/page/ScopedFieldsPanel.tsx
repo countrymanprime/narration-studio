@@ -8,7 +8,7 @@ import { Panel } from '../../primitives/Panel';
 import type { Notify } from '../../primitives/Toast';
 import { ToggleGroup } from '../../primitives/ToggleGroup';
 import { ScopedSetting } from '../ScopedSetting';
-import { useScopedFields, useSettingsForms } from './settingsForms';
+import { useScopedFields, useSettingsForms } from '../data/settingsForms';
 
 const SCOPE_LABEL: Record<Scope, string> = { global: 'Global', project: 'This project' };
 const SCOPE_SUBTITLE: Record<Scope, string> = { global: 'Global defaults', project: 'This project, falling back to Global where unset' };

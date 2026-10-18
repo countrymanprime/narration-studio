@@ -62,13 +62,10 @@ export function CapabilityList({ report }: { report: DawCapabilities }) {
 }
 
 /**
- * What the connected DAW can do right now, one row per capability the host reports: its level, the host's own sentence when
- * it is unavailable (the UI never words a refusal), a warning chip when using it replaces audio that cannot be brought back,
- * and how a change needing several edits is made. The whole report is read once and kept current by
- * `daw_capabilities_changed`, with the same stale-read guard as `useCapability`. It sits beside the per-capability toggles
- * (`DAW.capability.<name>`), which stay where they are.
+ * The host's whole capability report, read once and kept current by `daw_capabilities_changed`, with the same stale-read guard as
+ * `useCapability` (an event that arrives before the first read wins). `retry` reads again after a failed read.
  */
-export function CapabilitySection() {
+export function useDawCapabilityReport() {
   const api = usePort('dawCapabilities');
   const [report, setReport] = useState<DawCapabilities>();
   const [loadError, setLoadError] = useState('');
@@ -95,6 +92,17 @@ export function CapabilitySection() {
   }, [api, attempt]);
 
   const retry = useCallback(() => setAttempt((n) => n + 1), []);
+  return { report, loadError, retry };
+}
+
+/**
+ * What the connected DAW can do right now, one row per capability the host reports: its level, the host's own sentence when
+ * it is unavailable (the UI never words a refusal), a warning chip when using it replaces audio that cannot be brought back,
+ * and how a change needing several edits is made. The report comes from `useDawCapabilityReport`. It sits beside the per-capability toggles
+ * (`DAW.capability.<name>`), which stay where they are.
+ */
+export function CapabilitySection() {
+  const { report, loadError, retry } = useDawCapabilityReport();
 
   return (
     <section aria-labelledby="daw-capabilities-label" className="space-y-2 pt-3">

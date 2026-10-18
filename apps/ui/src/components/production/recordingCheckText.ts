@@ -36,7 +36,7 @@ export const COVERAGE_REASON_TEXT: Record<CoverageReason, string> = {
   invalid_params: 'The recording check settings are not valid.',
   manuscript_changed: 'The chapter’s text changed since this check.',
   result_missing: 'The result of the last check could not be read. Check again.',
-  credits_not_set_up: 'Add a template for this in Settings > Credits before checking it.',
+  credits_not_set_up: 'Add a template for this in Settings > Project > Credits before checking it.',
   credits_changed: 'The credits text changed since this check.',
   item_added: 'Audio was added to the chapter’s track since this check.',
   item_removed: 'Audio was removed from the chapter’s track since this check.',

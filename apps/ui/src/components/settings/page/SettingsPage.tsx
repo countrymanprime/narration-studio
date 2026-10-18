@@ -1,54 +1,31 @@
-import { useEffect, type ReactNode } from 'react';
-import type { Bootstrap, ScopedSettingField } from '../../../types';
-import { LocalAssets } from '../../assets/LocalAssets';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import type { Bootstrap } from '../../../types';
+import { Button } from '../../primitives/Button';
+import { InsetCard } from '../../primitives/InsetCard';
 import { Heading } from '../../primitives/Heading';
-import { Panel } from '../../primitives/Panel';
+import { Icon } from '../../primitives/Icon';
+import { SearchField } from '../../primitives/SearchField';
+import { ToggleGroup } from '../../primitives/ToggleGroup';
 import type { Notify } from '../../primitives/Toast';
-import { AboutPanel } from '../AboutPanel';
-import { AnalysisToolsSection } from '../analysis/AnalysisToolsSection';
-import { BackupsSection } from '../BackupsSection';
-import { CapabilitySection } from '../CapabilitySection';
-import { CreditsPanel } from '../CreditsPanel';
-import { DeliveryProfilesPanel } from '../DeliveryProfilesPanel';
-import { KeyboardPanel } from '../KeyboardPanel';
-import { ManuscriptSection } from '../ManuscriptSection';
-import { OnlineDictionaryPanel } from '../OnlineDictionaryPanel';
-import { RecordingCheckSummary } from '../RecordingCheckSummary';
-import { registerSettingsSection } from '../sections';
-import { UpdatesPanel } from '../UpdatesPanel';
-import { AppearancePanel } from './AppearancePanel';
-import { BoothPanel } from './BoothPanel';
-import { DawPanel } from './DawPanel';
-import { DefinitionsPanel } from './DefinitionsPanel';
-import { DeliveryProfileField } from './DeliveryProfileField';
-import { KeysPanel } from './KeysPanel';
-import { LocalModelCard } from './LocalModelCard';
-import { MarksPanel } from './MarksPanel';
-import { ProjectDataPanel } from './ProjectDataPanel';
-import { ReaderTextPanel } from './ReaderTextPanel';
-import { RecordingPanel } from './RecordingPanel';
-import { ScopedFieldsPanel } from './ScopedFieldsPanel';
-import { SettingsFormsProvider, useScopedFields } from './settingsForms';
-import { StoryBibleTypesPanel } from './StoryBibleTypesPanel';
-
-// The DAW Integration panel draws the sections registered for `Daw`, in order.
-registerSettingsSection('Daw', 'capabilities', CapabilitySection, 10);
-registerSettingsSection('Daw', 'backups', BackupsSection, 20);
-
-// The analysis prompt is the Story Bible analysis panel's checkbox, so the Story Bible fields leave it out.
-const notAnalysisPrompt = (field: ScopedSettingField) => field.key !== 'analysis_prompt';
-
-/** A deep link's category (App.tsx's `SETTINGS_ANCHORS`) to the panel it scrolls to (`settings-<id>`). */
-const PANEL_FOR_CATEGORY: Record<string, string> = {
-  Recording: 'recording',
-  Credits: 'credits',
-  Delivery: 'delivery',
-  Cleanup: 'cleanup',
-  Teleprompter: 'booth',
-  Daw: 'daw',
-  ManuscriptGuide: 'storybible',
-  Manuscript: 'manuscript',
-};
+import { SettingsFormsProvider } from '../data/settingsForms';
+import { SettingsStoreProvider, useSettingsStore } from '../data/SettingsStore';
+import { isAnyChanged, overrideValue } from '../data/values';
+import { AssetsStoreProvider } from '../models/AssetsStore';
+import { AboutSection } from '../controls/AboutSection';
+import { CATEGORIES, categoryLabel } from '../registry/categories';
+import { PAGE_SETTINGS } from '../registry/pageSettings';
+import { ROWS } from '../registry/rows';
+import { search, type Hit } from '../registry/search';
+import { PAGE_LABEL, PAGE_PATH, type CategoryId, type SettingMeta, type UsedPage } from '../registry/types';
+import { SettingsHostProvider, useSettingsHost, type SettingsHost } from '../row/SettingsHost';
+import { SettingsNavProvider } from '../row/SettingsNav';
+import { ANCHOR_TARGETS } from './anchors';
+import { CategoryNav } from './CategoryNav';
+import { CategoryPane } from './CategoryPane';
+import { ModelsPane } from './ModelsPane';
+import { PagesPane } from './PagesPane';
+import { Results } from './Results';
+import { useDeepLink } from './useDeepLink';
 
 export type SettingsPageProps = {
   data: Bootstrap;
@@ -58,43 +35,263 @@ export type SettingsPageProps = {
   onProjectDataCleared: () => Promise<void>;
   /** The shared "link a REAPER project file" action. */
   onLinkDawFile: () => void;
-  /** Navigates the app (the Manuscript panel: the import flow's credits prompt links to Settings > Credits). */
-  go: (page: string) => void;
-  /** Re-reads the shared application state after an import commits (the Manuscript panel). */
+  /** Navigates the app through its leave guard. */
+  go: (path: string) => void;
+  /** Re-reads the shared application state after an import commits. */
   refreshBootstrap: () => Promise<void>;
-  /** The panel a deep link opens on (`#credits`, `#delivery`, `#cleanup`, `#booth`, `#recording`): the page scrolls to it. */
+  /** A deep link's name for where to open (App.tsx's `SETTINGS_ANCHORS`): the category, with the row lit. */
   initialCategory?: string;
+  /** The page a link or Ctrl+, came from (a path); Settings offers Back to it. Absent when the narrator came by the navigation rail. */
+  cameFrom?: string;
 };
 
-/** Settings > Keyboard & pedals: the remapping list, over the Global `Keymap.overrides` it saves. */
-function KeyboardPedalsPanel({ notify }: { notify: Notify }) {
-  const { fields, reload } = useScopedFields('Keymap', 'global');
+type Filter = 'all' | 'changed' | 'project';
+
+/** The name of the page a path leads to, longest path first so '/proof/ch1' is Proof and '/' is Production. */
+function pageNameOf(path: string): string {
+  const pathname = path.split(/[?#]/)[0] || '/';
+  const pages = (Object.keys(PAGE_PATH) as UsedPage[]).sort((a, b) => PAGE_PATH[b].length - PAGE_PATH[a].length);
+  const page = pages.find((candidate) =>
+    PAGE_PATH[candidate] === '/' ? pathname === '/' : pathname === PAGE_PATH[candidate] || pathname.startsWith(`${PAGE_PATH[candidate]}/`),
+  );
+  return page ? PAGE_LABEL[page] : 'the previous page';
+}
+
+function Body({ initialCategory, cameFrom }: { initialCategory?: string; cameFrom?: string }) {
+  const store = useSettingsStore();
+  const { data, go } = useSettingsHost();
+  const target = initialCategory ? ANCHOR_TARGETS[initialCategory] : undefined;
+  const [cat, setCat] = useState<CategoryId>(target?.cat ?? 'recording');
+  const [query, setQuery] = useState('');
+  const [filter, setFilter] = useState<Filter>('all');
+  const [navOpen, setNavOpen] = useState(false);
+  const [advanced, setAdvanced] = useState<Partial<Record<CategoryId, boolean>>>({});
+  const [focusRow, setFocusRow] = useState<string | null>(target?.row ?? null);
+  const [lit, setLit] = useState<string | null>(null);
+  const heading = useRef(true);
+
+  // A link from another page that arrives while Settings is open (the hash changed) asks again.
+  const lastAnchor = useRef(initialCategory);
+  useEffect(() => {
+    if (initialCategory === lastAnchor.current) return;
+    lastAnchor.current = initialCategory;
+    const next = initialCategory ? ANCHOR_TARGETS[initialCategory] : undefined;
+    if (!next) return;
+    setCat(next.cat);
+    setQuery('');
+    setFilter('all');
+    setFocusRow(next.row);
+  }, [initialCategory]);
+
+  const daw = data.daw || 'REAPER';
+  const loaded = Boolean(store.settings.global);
+  const shown = useCallback(
+    (row: SettingMeta): boolean => {
+      if (row.needs === 'reaper' && daw !== 'REAPER') return false;
+      return !row.field || !loaded || Boolean(store.fieldsOf(row).global);
+    },
+    [daw, loaded, store],
+  );
+  const changed = useCallback(
+    (row: SettingMeta): boolean => {
+      const { global, project } = store.fieldsOf(row);
+      return isAnyChanged(row, global, project);
+    },
+    [store],
+  );
+  const inProject = useCallback(
+    (row: SettingMeta): boolean => row.scope === 'project' || overrideValue(row, store.fieldsOf(row).project) !== undefined,
+    [store],
+  );
+  const passes = useCallback(
+    (row: SettingMeta) => (filter === 'all' ? true : filter === 'changed' ? changed(row) : inProject(row)),
+    [filter, changed, inProject],
+  );
+
+  const text = query.trim();
+  const searching = text !== '' || filter !== 'all';
+  const hits = useMemo<Hit[]>(() => {
+    if (text) return search(text, shown).filter((hit) => !hit.row || passes(hit.row));
+    if (filter === 'all') return [];
+    return ROWS.filter((row) => shown(row) && passes(row)).map((row) => ({ row, cat: categoryLabel(row.cat) }));
+  }, [text, filter, shown, passes]);
+
+  const categoryRows = (id: CategoryId) => ROWS.filter((row) => row.cat === id && shown(row));
+  const changedIn = (id: CategoryId) => categoryRows(id).filter(changed).length;
+
+  const showCategory = useCallback((id: CategoryId) => {
+    setCat(id);
+    setQuery('');
+    setFilter('all');
+    setNavOpen(false);
+  }, []);
+
+  // A row another page asked for may sit under Advanced: open it, then the effect below finds it.
+  const targetRow = focusRow ? ROWS.find((row) => row.id === focusRow) : undefined;
+  useEffect(() => {
+    if (targetRow?.advanced && !advanced[targetRow.cat]) setAdvanced((current) => ({ ...current, [targetRow.cat]: true }));
+  }, [targetRow, advanced]);
+  const settled = loaded || Boolean(store.readError.global);
+  const clearFocus = useCallback(() => setFocusRow(null), []);
+  useDeepLink(focusRow, settled && (!targetRow?.advanced || Boolean(advanced[targetRow.cat])) && cat === (targetRow?.cat ?? 'pages'), clearFocus, setLit);
+
+  // Choosing a category moves the reader to its heading (the list stays where it is for a keyboard user to continue).
+  useEffect(() => {
+    if (heading.current) {
+      heading.current = false;
+      return;
+    }
+    if (!searching) document.getElementById('settings-heading')?.focus({ preventScroll: true });
+  }, [cat, searching]);
+
+  const category = CATEGORIES.find((candidate) => candidate.id === cat);
+  const loading = !settled && cat !== 'models';
+  const broken = Boolean(store.readError.global) && !loaded && cat !== 'models';
+  const crumb = searching ? (text ? 'Search results' : filter === 'changed' ? 'Changed from the default' : 'Set for this project') : categoryLabel(cat);
+
+  let content;
+  if (loading) {
+    content = (
+      <div aria-busy="true" aria-label={`Loading ${crumb}`} className="flex flex-col gap-3">
+        <h2 id="settings-heading" tabIndex={-1} className="font-['Barlow_Condensed',sans-serif] text-[1.875rem] font-semibold outline-none">
+          {crumb}
+        </h2>
+        {[0, 1, 2, 3].map((index) => (
+          <div key={index} className="h-16 rounded-md bg-[var(--surface-2)] motion-safe:animate-pulse" />
+        ))}
+        <span className="sr-only" role="status">
+          Reading your settings…
+        </span>
+      </div>
+    );
+  } else if (searching) {
+    content = (
+      <fieldset disabled={broken} className="m-0 flex min-w-0 flex-col gap-4 border-0 p-0">
+        <h2 id="settings-heading" tabIndex={-1} className="sr-only">
+          Results
+        </h2>
+        <Results
+          hits={hits}
+          lit={lit}
+          onShowCategory={showCategory}
+          empty={text ? `No settings match “${text}”` : filter === 'changed' ? 'Nothing is changed from the defaults' : 'This project overrides nothing'}
+        />
+      </fieldset>
+    );
+  } else if (cat === 'models') {
+    content = <ModelsPane category={category!} />;
+  } else {
+    content = (
+      <fieldset disabled={broken} className="m-0 flex min-w-0 flex-col gap-4 border-0 p-0 disabled:opacity-55">
+        {cat === 'pages' ? (
+          <PagesPane lit={lit} />
+        ) : (
+          <CategoryPane
+            category={category!}
+            rows={categoryRows(cat)}
+            changed={changedIn(cat)}
+            advancedOpen={Boolean(advanced[cat])}
+            onToggleAdvanced={() => setAdvanced((current) => ({ ...current, [cat]: !current[cat] }))}
+            onReset={() => void resetCategory(categoryRows(cat), store)}
+            lit={lit}
+            extra={cat === 'app' ? <AboutSection /> : undefined}
+          />
+        )}
+      </fieldset>
+    );
+  }
+
   return (
-    <div id="settings-keyboard" className="scroll-mt-4">
-      <Panel title="Keyboard & pedals">
-        <KeyboardPanel overridesField={fields?.find((field) => field.key === 'overrides')} notify={notify} reload={reload} />
-      </Panel>
-    </div>
+    <SettingsNavProvider value={{ go, showCategory }}>
+      <div className="@container flex w-full max-w-[1180px] flex-col gap-4" data-testid="settings-page">
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+          <Heading title="Settings" />
+          {cameFrom && (
+            <Button variant="secondary" size="sm" id="settings-back" onClick={() => go(cameFrom)}>
+              <Icon name="previous" /> Back to {pageNameOf(cameFrom)}
+            </Button>
+          )}
+          <span className="flex-1" />
+          <div role="search" className="flex flex-wrap items-center gap-2.5">
+            <SearchField
+              label="Search settings"
+              placeholder="Search settings"
+              value={query}
+              onChange={setQuery}
+              onKeyDown={(event) => {
+                if (event.key === 'Escape' && query) {
+                  event.stopPropagation();
+                  setQuery('');
+                }
+              }}
+            />
+            <ToggleGroup
+              label="Show"
+              look="segmented"
+              value={filter}
+              onChange={(next) => setFilter(next as Filter)}
+              options={[
+                { value: 'all', label: 'All' },
+                { value: 'changed', label: 'Changed' },
+                { value: 'project', label: 'In this project' },
+              ]}
+            />
+          </div>
+        </div>
+        <div className="grid items-start gap-5 @min-[761px]:grid-cols-[236px_minmax(0,1fr)]">
+          <CategoryNav
+            current={cat}
+            browsing={searching}
+            open={navOpen}
+            onToggle={() => setNavOpen((current) => !current)}
+            onPick={showCategory}
+            changedIn={changedIn}
+            pageSettingCount={PAGE_SETTINGS.length}
+          />
+          <section aria-labelledby="settings-heading" id="settings-pane" className="flex min-w-0 scroll-mt-3 flex-col gap-4">
+            <div aria-label="Breadcrumb" className="text-[0.8125rem] text-[var(--text-muted)]">
+              Settings <span aria-hidden="true">/</span> {crumb}
+            </div>
+            {store.failing && (
+              <InsetCard tone="warn" role="status" className="flex flex-col items-start gap-1.5">
+                <b>Changes cannot be saved right now.</b>
+                <span>The last change was not kept and the previous value is still in use. The setting says why.</span>
+              </InsetCard>
+            )}
+            {broken && (
+              <InsetCard tone="danger" role="alert" className="flex flex-col items-start gap-1.5">
+                <b>Your settings could not be read.</b>
+                <span>{store.readError.global}. Nothing can be changed until the file can be read.</span>
+                <Button variant="secondary" size="sm" onClick={() => void store.reload()}>
+                  Try again
+                </Button>
+              </InsetCard>
+            )}
+            {content}
+          </section>
+        </div>
+        <span className="sr-only" role="status" aria-live="polite">
+          {store.announcement}
+        </span>
+      </div>
+    </SettingsNavProvider>
   );
 }
 
-/** A kept panel with no generic fields: its body is the old category's own component. */
-function KeptPanel({ id, title, subtitle, children }: { id: string; title: string; subtitle?: string; children: ReactNode }) {
-  return (
-    <div id={`settings-${id}`} className="scroll-mt-4">
-      <Panel title={title} subtitle={subtitle}>
-        {children}
-      </Panel>
-    </div>
-  );
+/** Puts every row of a category back to its default: the computer's values and this project's overrides. */
+async function resetCategory(rows: readonly SettingMeta[], store: ReturnType<typeof useSettingsStore>): Promise<void> {
+  for (const row of rows) {
+    if (!row.field) continue;
+    const { global, project } = store.fieldsOf(row);
+    if (global?.isSet && global.value !== row.def) await store.write(row, 'global', null);
+    if (row.scope === 'both' && project?.isSet) await store.write(row, 'project', null);
+  }
 }
 
 /**
- * The Settings page, at `/settings`: one 860 px column under one heading. First the Studio Next mock's panels, in its
- * order (Recording, Delivery profile, Definitions and pronunciations, Reader text, Marks, Story Bible types, Story Bible
- * analysis, Appearance, Keyboard shortcuts, Manuscript); then, as panels of the same column, the settings the mock
- * has no panel for, kept as built. A panel over Global and This project switches scope in its own header, and its
- * edits join the page's one dirty flag and leave guard (`SettingsFormsProvider`). `initialCategory` scrolls to its panel.
+ * The Settings page, at `/settings`: eight categories in three groups and an index of what moved to a page, one category at a time, built from
+ * the host's fields and the registry in `registry/`. A change applies at once. The panels kept behind Set on a page edit with Save as before,
+ * and join the app's leave guard through `SettingsFormsProvider`.
  */
 export function SettingsPage({
   data,
@@ -106,105 +303,39 @@ export function SettingsPage({
   go,
   refreshBootstrap,
   initialCategory,
+  cameFrom,
 }: SettingsPageProps) {
-  useEffect(() => {
-    const panel = initialCategory && PANEL_FOR_CATEGORY[initialCategory];
-    if (panel) document.getElementById(`settings-${panel}`)?.scrollIntoView?.({ block: 'start' });
-  }, [initialCategory]);
-
-  return (
-    <SettingsFormsProvider notify={notify} onDirtyChange={onDirtyChange} registerActions={registerActions}>
-      <div className="flex max-w-[860px] flex-col gap-4">
-        <Heading title="Settings" />
-        <div id="settings-recording" className="scroll-mt-4">
-          <RecordingPanel dawFileLinked={data.dawFileLinked} onLinkDawFile={onLinkDawFile} notify={notify} />
-        </div>
-        <DeliveryProfileField />
-        <DefinitionsPanel />
-        <ReaderTextPanel />
-        <MarksPanel />
-        <StoryBibleTypesPanel />
-        <AnalysisToolsSection />
-        <AppearancePanel />
-        <KeysPanel />
-        <div id="settings-manuscript" className="scroll-mt-4">
-          <ManuscriptSection data={data} go={go} notify={notify} refreshBootstrap={refreshBootstrap} />
-        </div>
-
-        <ScopedFieldsPanel id="general" title="General" tool="General" scopes={['global']} notify={notify} />
-        <KeyboardPedalsPanel notify={notify} />
-        <ScopedFieldsPanel id="note-colour" title="Note colour" tool="Manuscript" scopes={['global', 'project']} notify={notify} />
-        {/* The recording check's thresholds and alignment (docs/utilities/recording-coverage.md), Proposed and uncalibrated. */}
-        <ScopedFieldsPanel
-          id="recording-check"
-          title="Recording check"
-          tool="RecordingCoverage"
-          scopes={['global', 'project']}
-          notify={notify}
-          before={({ fields, scope }) => <RecordingCheckSummary fields={fields} scope={scope} />}
-        />
-        {/* The silence cleanup analyzer's own thresholds (apps/desktop/internal/measure/cleanup.go). */}
-        <ScopedFieldsPanel id="cleanup" title="Silence cleanup" tool="Cleanup" scopes={['global', 'project']} notify={notify} />
-        <ScopedFieldsPanel
-          id="proof"
-          title="Proof"
-          tool="TranscriptCompare"
-          scopes={['global', 'project']}
-          notify={notify}
-          before={({ fields }) => <LocalModelCard kind="model" fields={fields} notify={notify} />}
-        />
-        {/* The preview suggestion's target, tolerance, preset and ending exclusion (docs/architecture/preview-suggestion.md). */}
-        <ScopedFieldsPanel id="preview" title="Preview suggestion" tool="Preview" scopes={['global', 'project']} notify={notify} />
-        {/* Which signals must be met for a stage suggestion (docs/architecture/stage-recommendations.md). */}
-        <ScopedFieldsPanel id="stage-suggestions" title="Stage suggestions" tool="StageRecommendations" scopes={['global', 'project']} notify={notify} />
-        <ScopedFieldsPanel
-          id="storybible"
-          title="Story Bible"
-          tool="ManuscriptGuide"
-          scopes={['global', 'project']}
-          filter={notAnalysisPrompt}
-          notify={notify}
-          // The narrator's own Merriam-Webster key is theirs, not a project's, so it is set in Global only.
-          before={({ scope }) => scope === 'global' && <OnlineDictionaryPanel notify={notify} />}
-        />
-        {/* The Global default profile and the custom profiles; the project's own choice is the Delivery profile panel. */}
-        <KeptPanel id="delivery" title="Delivery profiles">
-          <DeliveryProfilesPanel notify={notify} />
-        </KeptPanel>
-        <DawPanel data={data} notify={notify} onLinkDawFile={onLinkDawFile} />
-        <ScopedFieldsPanel
-          id="tts"
-          title="TTS"
-          tool="Piper"
-          scopes={['global', 'project']}
-          notify={notify}
-          before={({ fields }) => <LocalModelCard kind="voice" fields={fields} notify={notify} />}
-        />
-        {/* The Booth's microphone, engine and model: the key stays the settings tool's name. */}
-        <BoothPanel notify={notify} />
-        <KeptPanel id="local-assets" title="Local assets">
-          <LocalAssets notify={notify} />
-        </KeptPanel>
-        <ProjectDataPanel notify={notify} onProjectDataCleared={onProjectDataCleared} />
-        {/* Credit values are per project; the global narrator default lives in General. */}
-        <KeptPanel id="credits" title="Credits" subtitle="This project">
-          <CreditsPanel notify={notify} />
-        </KeptPanel>
-        <ScopedFieldsPanel
-          id="about"
-          title="About & updates"
-          tool="Updates"
-          scopes={['global']}
-          notify={notify}
-          before={({ fields, dirty }) => (
-            <>
-              <AboutPanel version={data.version} />
-              {/* The update panel asks the host what is available on the saved channel, so it starts over when that changes. */}
-              <UpdatesPanel key={fields.find((field) => field.key === 'channel')?.effectiveValue ?? ''} formDirty={dirty} />
-            </>
-          )}
-        />
-      </div>
-    </SettingsFormsProvider>
+  const host = useMemo<SettingsHost>(
+    () => ({ data, notify, onLinkDawFile, onProjectDataCleared, refreshBootstrap, go }),
+    [data, notify, onLinkDawFile, onProjectDataCleared, refreshBootstrap, go],
   );
+  return (
+    <SettingsHostProvider value={host}>
+      <SettingsFormsProvider notify={notify} onDirtyChange={onDirtyChange} registerActions={registerActions}>
+        <SettingsStoreLoader>
+          <AssetsStoreProvider>
+            <Body initialCategory={initialCategory} cameFrom={cameFrom} />
+          </AssetsStoreProvider>
+        </SettingsStoreLoader>
+      </SettingsFormsProvider>
+    </SettingsHostProvider>
+  );
+}
+
+/** Reads both scopes once the page opens. */
+function SettingsStoreLoader({ children }: { children: React.ReactNode }) {
+  return (
+    <SettingsStoreProvider>
+      <Loader />
+      {children}
+    </SettingsStoreProvider>
+  );
+}
+function Loader() {
+  const store = useSettingsStore();
+  const { reload } = store;
+  useEffect(() => {
+    void reload();
+  }, [reload]);
+  return null;
 }

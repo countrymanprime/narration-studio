@@ -544,7 +544,7 @@ Categories as in section 2.2. "Suggested home" is where the content would go if 
 | [0078](../architecture/first-use-dependency-provisioning.md) | IMPL | Y | Accepted | reference/data-files (asset manifest) + docs/architecture assets doc | Manifest fields, caching of verification, download resume; implementation and file format details |
 | [0079](../architecture/first-use-dependency-provisioning.md#the-asset-registry-implemented) | ARCH | N | Accepted | keep | One registry of asset providers behind an interface; module boundary and interface |
 | [0080](../../apps/desktop/guidegate.go) | ARCH | Y | Accepted | keep | spaCy model provisioned as catalog asset, bundled with build-time download prompt UX |
-| [0081](../architecture/first-use-dependency-provisioning.md#the-local-assets-page-implemented) | UX | N | Accepted | PRD settings / user guide | Local assets list in Settings with per-row actions; UI feature |
+| [0081](../architecture/first-use-dependency-provisioning.md#the-models-and-downloads-list-implemented) | UX | N | Accepted | PRD settings / user guide | Local assets list in Settings with per-row actions; UI feature |
 | [0082](../operations/ci-and-releases.md#the-windows-setup-program) | ARCH | N | Accepted | keep | Per-user NSIS installer for Windows; deployment and platform packaging strategy |
 | [0083](../operations/ci-and-releases.md#the-public-docs-site) | ENG | N | Accepted | keep | MkDocs Material for docs site with include list; tooling choice for docs build |
 | [0084](../operations/ci-and-releases.md#the-docs-link-check) | ENG | Y | Accepted | docs/operations/ci-and-releases.md | Offline link checks plus local diagram rendering; two separate CI checks |

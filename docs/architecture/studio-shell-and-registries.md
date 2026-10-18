@@ -25,8 +25,8 @@ All paths are under `apps/ui/src/`.
 
 `COMMAND_CATALOG` in `input/commands.catalog.ts` is the one list of commands that have a key. A row is a `CommandDescriptor`: `id`, `label`, `scope`, `defaults` (gestures), and optionally `noisy`, `group`, `hint`, `surfaces`, `shadows` and `fieldsKeep`.
 
-- **Scope** is `global`, `page`, `booth` or `dialog`. The catalogue has 67 rows: 13 global, 40 page, 14 booth, none dialog.
-- **Surface** is `jumpMenu`, `help` or `settings`. All 67 rows list on `help` and `settings`; 9 list on `jumpMenu`: `nav.back`, `nav.forward`, `zoom.in`, `zoom.out`, `zoom.reset`, `companion.open`, `help.shortcuts`, `history.open`, `undo.last`. A page key is not a jump menu row because the menu could not run it from another page.
+- **Scope** is `global`, `page`, `booth` or `dialog`. The catalogue has 68 rows: 14 global, 40 page, 14 booth, none dialog.
+- **Surface** is `jumpMenu`, `help` or `settings`. All 68 rows list on `help` and `settings`; 10 list on `jumpMenu`: `nav.back`, `nav.forward`, `nav.settings`, `zoom.in, `zoom.out`, `zoom.reset`, `companion.open`, `help.shortcuts`, `history.open`, `undo.last`. A page key is not a jump menu row because the menu could not run it from another page.
 - **Groups** (the jump menu heading and the help and Settings grouping): Go to, Zoom, Editing, Bookmarks, Script, Story Bible, Proof, Booth, View, Edit.
 - **Id format** is `area.thing` or `area.thing.direction` (`editing.word.extend.prev`, `proof.decide.waive`). An id is the key the narrator's saved bindings use, so a renamed id loses the binding.
 - **Shell rows** `jump.open` (Ctrl/Cmd+K and Ctrl/Cmd+F), `history.open` (Ctrl+Shift+H) and `undo.last` (Ctrl+Z, `fieldsKeep`) are global. `script.find` and `proof.find` take Ctrl+F on their page and name `jump.open` in `shadows`, so Ctrl+F opens the jump menu on every other page.

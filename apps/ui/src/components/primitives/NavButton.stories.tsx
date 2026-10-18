@@ -66,7 +66,10 @@ export const Sidebar: Story = {
     await expect(proof.top - box.top).toBeCloseTo(84, 0);
     const style = getComputedStyle(current);
     await expect(style.fontSize).toBe('15px');
-    await expect(style.borderTopLeftRadius).toBe('8px');
+    // The current page is the mock's bar: square on the left, 6 px round on the right; any other item keeps the 8 px radius.
+    await expect(style.borderTopLeftRadius).toBe('0px');
+    await expect(style.borderTopRightRadius).toBe('6px');
+    await expect(getComputedStyle(canvas.getByRole('button', { name: 'Proof, 14' })).borderTopLeftRadius).toBe('8px');
     await expect(style.textTransform).toBe('uppercase');
   },
 };

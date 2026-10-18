@@ -67,6 +67,15 @@ export const COMMAND_CATALOG: readonly CommandDescriptor[] = [
     group: 'Go to',
     surfaces: ['jumpMenu', 'help', 'settings'],
   },
+  // Settings from anywhere (the VS Code binding); the page offers Back to where the narrator was.
+  {
+    id: 'nav.settings',
+    label: 'Open Settings',
+    scope: 'global',
+    defaults: [key('Comma', ['Mod'])],
+    group: 'Go to',
+    surfaces: ['jumpMenu', 'help', 'settings'],
+  },
   // The header's zoom group: `Equal` is both the unshifted "="
   // (Ctrl+=) and, on a US layout, "+" held with Shift (Ctrl++), so both chords are bound to the same physical key;
   // the numpad's own +/-/0 keys are separate physical codes, bound alongside. `Mod` resolves to Cmd on macOS.

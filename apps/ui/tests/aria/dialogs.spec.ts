@@ -30,7 +30,7 @@ const MODALS: { name: string; state: [string, string]; snapshot: string }[] = [
   { name: 'the import confirm is an alert dialog', state: ['production', 'import-confirm'], snapshot: 'confirm-import-manuscript.aria.yml' },
   {
     name: 'the unsaved-settings confirm is an alert dialog with three actions',
-    state: ['settings', 'navigate-away-confirm'],
+    state: ['settings', 'pages-navigate-away-confirm'],
     snapshot: 'confirm-unsaved-settings.aria.yml',
   },
 

@@ -1132,6 +1132,7 @@
       "source": "src/components/primitives/Heading.tsx",
       "stories": [
         "Title Only",
+        "Display",
         "With Subtitle",
         "With Rich Subtitle",
         "Long Title Wraps",

@@ -219,6 +219,11 @@ const mockUpdate = (
 const mockAssets = (['missing', 'downloading', 'verifying', 'download-fails', 'installing', 'checking', 'damaged'] as const).find(
   (seed) => seed === mockParams.get('mockAssets'),
 );
+// `?mockAssetsList=loading|fails` makes the list of downloads never answer, or fail to read, so Settings > Models & downloads shows its loading rows or its error.
+const mockAssetsList = (['loading', 'fails'] as const).find((seed) => seed === mockParams.get('mockAssetsList'));
+// `?mockSettings=loading|unreadable|save-fails` makes the settings file never answer a read, fail every read, or refuse every save as read-only,
+// so Settings can be seen loading, unreadable and failing to save.
+const mockSettings = (['loading', 'unreadable', 'save-fails'] as const).find((seed) => seed === mockParams.get('mockSettings'));
 // `?mockSeries=not-in-series|single-book` boots the Series tab outside any
 // series, or in one with no other book yet, so its honest empty state can be seen. Unset boots as a member of a two-book
 // series (WIRE_SERIES), matching the approved concept mock.
@@ -447,6 +452,8 @@ const mockInitial = {
   ...(mockFindings === 'changed' ? { findingsRerun: true } : {}),
   ...(mockImportPreview ? { importPreview: mockImportPreview } : {}),
   ...(mockAssets ? { assets: mockAssets } : {}),
+  ...(mockAssetsList ? { assetsList: mockAssetsList } : {}),
+  ...(mockSettings ? { settings: mockSettings } : {}),
   ...(mockSeries ? { seriesVoiceBible: mockSeries } : {}),
   ...(mockDictionary ? { dictionary: mockDictionary } : {}),
   ...(mockUpdate ? { update: mockUpdate } : {}),

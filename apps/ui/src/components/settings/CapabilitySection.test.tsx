@@ -5,11 +5,7 @@ import { ApiProvider } from '../../api/ApiContext';
 import { DAW_CAPABILITIES, type DawCapabilities, type DawCapabilitySupport } from '../../api/contracts/daw';
 import { createMockApi } from '../../api/mockApi';
 import type { NarrationApi } from '../../types';
-import { ThemeProvider } from '../../theme/ThemeContext';
 import { CapabilitySection } from './CapabilitySection';
-import { registerSettingsSection } from './sections';
-import { SettingsPage } from './page/SettingsPage';
-import { MemoryRouter } from 'react-router-dom';
 
 afterEach(cleanup);
 
@@ -155,48 +151,5 @@ describe('CapabilitySection', () => {
   });
 });
 
-async function renderDawCategory() {
-  const api = createMockApi();
-  const data = await api.bootstrap();
-  render(
-    <MemoryRouter>
-      <ThemeProvider>
-        <ApiProvider api={api}>
-          <SettingsPage
-            data={data}
-            notify={vi.fn()}
-            onDirtyChange={vi.fn()}
-            registerActions={vi.fn()}
-            onProjectDataCleared={async () => undefined}
-            onLinkDawFile={vi.fn()}
-            go={vi.fn()}
-            refreshBootstrap={async () => undefined}
-            initialCategory="Daw"
-          />
-        </ApiProvider>
-      </ThemeProvider>
-    </MemoryRouter>,
-  );
-}
-
-describe('Settings renders registered sections', () => {
-  it("renders the DAW Integration panel's sections in order, the capability section among them", async () => {
-    registerSettingsSection('Daw', 'test-before', () => <p>Before capabilities</p>, 5);
-    registerSettingsSection('Daw', 'test-after', () => <p>After capabilities</p>, 50);
-    await renderDawCategory();
-    const heading = await screen.findByRole('heading', { name: 'What the DAW can do' });
-    const before = screen.getByText('Before capabilities');
-    const after = screen.getByText('After capabilities');
-    expect(before.compareDocumentPosition(heading) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
-    expect(heading.compareDocumentPosition(after) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
-  });
-
-  it('draws the sections in DAW Integration only, and none there in This project', async () => {
-    await renderDawCategory();
-    const daw = screen.getByRole('region', { name: 'DAW Integration' });
-    expect(await within(daw).findByRole('heading', { name: 'What the DAW can do' })).toBeTruthy();
-    expect(screen.getAllByRole('heading', { name: 'What the DAW can do' })).toHaveLength(1);
-    fireEvent.click(within(daw).getByRole('button', { name: 'This project' }));
-    await waitFor(() => expect(within(daw).queryByRole('heading', { name: 'What the DAW can do' })).toBeNull());
-  });
-});
+// Removed with the DAW Integration panel: the two tests that rendered `registerSettingsSection('Daw', ...)` sections inside that panel.
+// The Settings page no longer renders registered sections; the capability list is the Capabilities row (controls/recording.test.tsx).
