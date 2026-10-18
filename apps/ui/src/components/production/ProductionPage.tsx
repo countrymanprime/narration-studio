@@ -9,6 +9,7 @@ import { usePort } from '../../ports/usePort';
 import type { Bootstrap } from '../../types';
 import { creditsEntries, creditsKindOfId, ownsOpeningCredits } from '../credits/creditsEntries';
 import { useCreditsRows } from '../credits/useCreditsRows';
+import { LoadError } from '../layout/LoadError';
 import { Panel } from '../primitives/Panel';
 import { StatStrip } from '../primitives/StatStrip';
 import type { Notify } from '../primitives/Toast';
@@ -339,6 +340,18 @@ export function ProductionPage({
       : measured.answers.pickupSessionSeconds
     : { ok: false as const, reason: 'Reading the pickup sessions…' };
 
+  if (load.status === 'error')
+    return (
+      <LoadError
+        title="Production"
+        message={`The production overview could not be read: ${load.message}`}
+        retry={() => {
+          setLoad({ status: 'loading' });
+          void read();
+        }}
+      />
+    );
+
   return (
     <div className="mx-auto flex max-w-[96rem] flex-col gap-4">
       {caps && !caps.reachable && caps.daw !== 'none' && (
@@ -371,11 +384,6 @@ export function ProductionPage({
       {load.status === 'loading' && (
         <p role="status" className="text-sm text-[var(--text-muted)]">
           Reading the production log…
-        </p>
-      )}
-      {load.status === 'error' && (
-        <p role="alert" className="text-sm" style={DANGER}>
-          The production overview could not be read: {load.message}
         </p>
       )}
       {timer.problem && (

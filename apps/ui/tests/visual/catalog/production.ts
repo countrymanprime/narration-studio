@@ -3,6 +3,12 @@ import type { StateEntry } from '../lib/types';
 import { KEEPS_DESKTOP_SCROLL, LIVE_PROGRESS_MOVES_ON, TOAST_FADES_OUT } from './shared';
 
 export const productionStates: StateEntry[] = [
+  {
+    page: 'production',
+    state: 'load-error',
+    description:
+      'Production when its overview could not be read (?mockInvalidPayload=production): the title, "This page could not be loaded" with Retry; navigation still works',
+  },
   // The Production home at `/` (mock 01)
   {
     page: 'production',
