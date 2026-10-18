@@ -21,6 +21,8 @@ type DialogSpec =
       headerless?: boolean;
       /** Whether a press outside the dialog closes it (issue 1706): true for a reference view or a picker with nothing to lose, false for a form or a confirm. */
       dismissOnOutsidePress: boolean;
+      /** Where focus goes on close when the element that had it is gone (a menu item closes as it runs); absent, the page's <main>. */
+      returnFocus?: () => HTMLElement | null;
       render: (api: { close: () => void }) => ReactNode;
     }
   | {

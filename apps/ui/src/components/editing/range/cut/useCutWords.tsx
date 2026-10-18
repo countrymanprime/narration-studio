@@ -13,6 +13,7 @@ import { BUILT_IN, planRange, type RangePlan } from '../common/rangePlan';
 import { DeleteButton, MuteButton, RestoreButton } from './CutButtons';
 import { CutDialog, cutTitle } from './CutDialog';
 import { cutCommand, cutRefusal, type CutOptions } from './cutCommand';
+import { returnToScript } from '../../script/returnToScript';
 
 export interface CutWordsOptions {
   journal: Pick<Journal, 'act' | 'undo'>;
@@ -104,6 +105,7 @@ export function useCutWords({ journal, chapterId, chapterName, cuts, locator, on
       overlay.open({
         kind: 'dialog',
         dismissOnOutsidePress: false,
+        returnFocus: returnToScript,
         title: cutTitle(sum.audible.length, mute),
         render: ({ close }) => (
           <CutDialog

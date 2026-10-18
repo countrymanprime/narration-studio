@@ -169,6 +169,7 @@ func (a *Actions) request(ctx context.Context, command string, closing []string,
 	runID, run, timeout := a.open(closing)
 	defer a.close(runID)
 	started := time.Now()
+	defer a.client.Expect()()
 	if _, err := a.client.Send(command, append([]string{runID}, args...)); err != nil {
 		a.report(command, "send_failed", started)
 		a.logFailure(command, runID, "could not send")

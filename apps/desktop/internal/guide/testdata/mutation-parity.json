@@ -1,0 +1,4812 @@
+{
+  "cases": [
+    {
+      "after": {
+        "dialogue_cues": [
+          {
+            "chapterId": "c1",
+            "corrected": false,
+            "evidence": {
+              "chapterId": "c1",
+              "excerpt": "Hello",
+              "paragraphId": "p1",
+              "tag": ""
+            },
+            "id": "cue-1",
+            "paragraphId": "p1",
+            "quote_end": 5,
+            "quote_start": 0,
+            "quote_text": "Hello",
+            "speaker_entity_id": null,
+            "speaker_source": "unknown"
+          },
+          {
+            "chapterId": "c1",
+            "corrected": false,
+            "evidence": {
+              "chapterId": "c1",
+              "excerpt": "Hello",
+              "paragraphId": "p1",
+              "tag": ""
+            },
+            "id": "cue-2",
+            "paragraphId": "p1",
+            "quote_end": 5,
+            "quote_start": 0,
+            "quote_text": "Hello",
+            "speaker_entity_id": "entity-wren",
+            "speaker_source": "tag"
+          }
+        ],
+        "entities": [
+          {
+            "aliases": [
+              {
+                "occurrences": [],
+                "pronunciation": {},
+                "text": "Little Wren"
+              },
+              {
+                "occurrences": [],
+                "pronunciation": {},
+                "text": "W"
+              }
+            ],
+            "canonical_name": "Wren",
+            "category": "Hero",
+            "id": "entity-wren",
+            "locked": false,
+            "relationships": [
+              {
+                "id": "entity-mill",
+                "label": "works at",
+                "name": "The Mill"
+              }
+            ],
+            "review": {
+              "aliases": [],
+              "entry": false
+            },
+            "review_state": "reviewed"
+          },
+          {
+            "aliases": [],
+            "canonical_name": "The Mill",
+            "category": "Place",
+            "id": "entity-mill",
+            "locked": true,
+            "relationships": [
+              {
+                "id": "entity-wren",
+                "label": "employs",
+                "name": "Wren"
+              },
+              {
+                "id": "entity-ada",
+                "label": "owned by",
+                "name": "Ada"
+              }
+            ],
+            "review_state": "reviewed"
+          },
+          {
+            "aliases": [],
+            "canonical_name": "Ada",
+            "category": "Hero",
+            "id": "entity-ada",
+            "locked": false,
+            "relationships": [],
+            "review_state": "needs review",
+            "speaker_color": 3
+          },
+          {
+            "aliases": [],
+            "canonical_name": "Bo",
+            "category": "Place",
+            "id": "entity-bo"
+          },
+          {
+            "aliases": [],
+            "canonical_name": "Cy",
+            "category": "Hero",
+            "id": "entity-cy",
+            "locked": 1,
+            "review_state": "reviewed"
+          }
+        ],
+        "schema_version": 2,
+        "types": [
+          {
+            "builtin": "Character",
+            "colour": "green",
+            "name": "Hero",
+            "speaks": true
+          },
+          {
+            "builtin": "Place",
+            "colour": "blue",
+            "name": "Place",
+            "speaks": false
+          }
+        ]
+      },
+      "arguments": {
+        "alias_index": null,
+        "entity_id": "entity-wren"
+      },
+      "command": "mark-reviewed",
+      "start": "types",
+      "wrote": true
+    },
+    {
+      "after": {
+        "dialogue_cues": [
+          {
+            "chapterId": "c1",
+            "corrected": false,
+            "evidence": {
+              "chapterId": "c1",
+              "excerpt": "Hello",
+              "paragraphId": "p1",
+              "tag": ""
+            },
+            "id": "cue-1",
+            "paragraphId": "p1",
+            "quote_end": 5,
+            "quote_start": 0,
+            "quote_text": "Hello",
+            "speaker_entity_id": null,
+            "speaker_source": "unknown"
+          },
+          {
+            "chapterId": "c1",
+            "corrected": false,
+            "evidence": {
+              "chapterId": "c1",
+              "excerpt": "Hello",
+              "paragraphId": "p1",
+              "tag": ""
+            },
+            "id": "cue-2",
+            "paragraphId": "p1",
+            "quote_end": 5,
+            "quote_start": 0,
+            "quote_text": "Hello",
+            "speaker_entity_id": "entity-wren",
+            "speaker_source": "tag"
+          }
+        ],
+        "entities": [
+          {
+            "aliases": [
+              {
+                "occurrences": [],
+                "pronunciation": {},
+                "text": "Little Wren"
+              },
+              {
+                "occurrences": [],
+                "pronunciation": {},
+                "text": "W"
+              }
+            ],
+            "canonical_name": "Wren",
+            "category": "Hero",
+            "id": "entity-wren",
+            "locked": false,
+            "relationships": [
+              {
+                "id": "entity-mill",
+                "label": "works at",
+                "name": "The Mill"
+              }
+            ],
+            "review": {
+              "aliases": [],
+              "entry": true
+            },
+            "review_state": "needs review"
+          },
+          {
+            "aliases": [],
+            "canonical_name": "The Mill",
+            "category": "Place",
+            "id": "entity-mill",
+            "locked": true,
+            "relationships": [
+              {
+                "id": "entity-wren",
+                "label": "employs",
+                "name": "Wren"
+              },
+              {
+                "id": "entity-ada",
+                "label": "owned by",
+                "name": "Ada"
+              }
+            ],
+            "review_state": "reviewed"
+          },
+          {
+            "aliases": [],
+            "canonical_name": "Ada",
+            "category": "Hero",
+            "id": "entity-ada",
+            "locked": false,
+            "relationships": [],
+            "review_state": "needs review",
+            "speaker_color": 3
+          },
+          {
+            "aliases": [],
+            "canonical_name": "Bo",
+            "category": "Place",
+            "id": "entity-bo"
+          },
+          {
+            "aliases": [],
+            "canonical_name": "Cy",
+            "category": "Hero",
+            "id": "entity-cy",
+            "locked": 1,
+            "review_state": "reviewed"
+          }
+        ],
+        "schema_version": 2,
+        "types": [
+          {
+            "builtin": "Character",
+            "colour": "green",
+            "name": "Hero",
+            "speaks": true
+          },
+          {
+            "builtin": "Place",
+            "colour": "blue",
+            "name": "Place",
+            "speaks": false
+          }
+        ]
+      },
+      "arguments": {
+        "alias_index": 1,
+        "entity_id": "entity-wren"
+      },
+      "command": "mark-reviewed",
+      "start": "types",
+      "wrote": true
+    },
+    {
+      "after": {
+        "dialogue_cues": [
+          {
+            "chapterId": "c1",
+            "corrected": false,
+            "evidence": {
+              "chapterId": "c1",
+              "excerpt": "Hello",
+              "paragraphId": "p1",
+              "tag": ""
+            },
+            "id": "cue-1",
+            "paragraphId": "p1",
+            "quote_end": 5,
+            "quote_start": 0,
+            "quote_text": "Hello",
+            "speaker_entity_id": null,
+            "speaker_source": "unknown"
+          },
+          {
+            "chapterId": "c1",
+            "corrected": false,
+            "evidence": {
+              "chapterId": "c1",
+              "excerpt": "Hello",
+              "paragraphId": "p1",
+              "tag": ""
+            },
+            "id": "cue-2",
+            "paragraphId": "p1",
+            "quote_end": 5,
+            "quote_start": 0,
+            "quote_text": "Hello",
+            "speaker_entity_id": "entity-wren",
+            "speaker_source": "tag"
+          }
+        ],
+        "entities": [
+          {
+            "aliases": [
+              {
+                "occurrences": [],
+                "pronunciation": {},
+                "text": "Little Wren"
+              },
+              {
+                "occurrences": [],
+                "pronunciation": {},
+                "text": "W"
+              }
+            ],
+            "canonical_name": "Wren",
+            "category": "Hero",
+            "id": "entity-wren",
+            "locked": false,
+            "relationships": [
+              {
+                "id": "entity-mill",
+                "label": "works at",
+                "name": "The Mill"
+              }
+            ],
+            "review": {
+              "aliases": [
+                "W"
+              ],
+              "entry": true
+            },
+            "review_state": "needs review"
+          },
+          {
+            "aliases": [],
+            "canonical_name": "The Mill",
+            "category": "Place",
+            "id": "entity-mill",
+            "locked": true,
+            "relationships": [
+              {
+                "id": "entity-wren",
+                "label": "employs",
+                "name": "Wren"
+              },
+              {
+                "id": "entity-ada",
+                "label": "owned by",
+                "name": "Ada"
+              }
+            ],
+            "review_state": "reviewed"
+          },
+          {
+            "aliases": [],
+            "canonical_name": "Ada",
+            "category": "Hero",
+            "id": "entity-ada",
+            "locked": false,
+            "relationships": [],
+            "review_state": "needs review",
+            "speaker_color": 3
+          },
+          {
+            "aliases": [],
+            "canonical_name": "Bo",
+            "category": "Place",
+            "id": "entity-bo"
+          },
+          {
+            "aliases": [],
+            "canonical_name": "Cy",
+            "category": "Hero",
+            "id": "entity-cy",
+            "locked": 1,
+            "review_state": "reviewed"
+          }
+        ],
+        "schema_version": 2,
+        "types": [
+          {
+            "builtin": "Character",
+            "colour": "green",
+            "name": "Hero",
+            "speaks": true
+          },
+          {
+            "builtin": "Place",
+            "colour": "blue",
+            "name": "Place",
+            "speaks": false
+          }
+        ]
+      },
+      "arguments": {
+        "alias_index": 0,
+        "entity_id": "entity-wren"
+      },
+      "command": "mark-reviewed",
+      "start": "types",
+      "wrote": true
+    },
+    {
+      "arguments": {
+        "alias_index": 2,
+        "entity_id": "entity-wren"
+      },
+      "command": "mark-reviewed",
+      "error": "Alias index out of range.",
+      "start": "types"
+    },
+    {
+      "arguments": {
+        "alias_index": -1,
+        "entity_id": "entity-wren"
+      },
+      "command": "mark-reviewed",
+      "error": "Alias index out of range.",
+      "start": "types"
+    },
+    {
+      "after": {
+        "dialogue_cues": [
+          {
+            "chapterId": "c1",
+            "corrected": false,
+            "evidence": {
+              "chapterId": "c1",
+              "excerpt": "Hello",
+              "paragraphId": "p1",
+              "tag": ""
+            },
+            "id": "cue-1",
+            "paragraphId": "p1",
+            "quote_end": 5,
+            "quote_start": 0,
+            "quote_text": "Hello",
+            "speaker_entity_id": null,
+            "speaker_source": "unknown"
+          },
+          {
+            "chapterId": "c1",
+            "corrected": false,
+            "evidence": {
+              "chapterId": "c1",
+              "excerpt": "Hello",
+              "paragraphId": "p1",
+              "tag": ""
+            },
+            "id": "cue-2",
+            "paragraphId": "p1",
+            "quote_end": 5,
+            "quote_start": 0,
+            "quote_text": "Hello",
+            "speaker_entity_id": "entity-wren",
+            "speaker_source": "tag"
+          }
+        ],
+        "entities": [
+          {
+            "aliases": [
+              {
+                "occurrences": [],
+                "pronunciation": {},
+                "text": "Little Wren"
+              },
+              {
+                "occurrences": [],
+                "pronunciation": {},
+                "text": "W"
+              }
+            ],
+            "canonical_name": "Wren",
+            "category": "Hero",
+            "id": "entity-wren",
+            "locked": false,
+            "relationships": [
+              {
+                "id": "entity-mill",
+                "label": "works at",
+                "name": "The Mill"
+              }
+            ],
+            "review": {
+              "aliases": [
+                "W",
+                "gone",
+                "W"
+              ],
+              "entry": true
+            },
+            "review_state": "needs review"
+          },
+          {
+            "aliases": [],
+            "canonical_name": "The Mill",
+            "category": "Place",
+            "id": "entity-mill",
+            "locked": true,
+            "relationships": [
+              {
+                "id": "entity-wren",
+                "label": "employs",
+                "name": "Wren"
+              },
+              {
+                "id": "entity-ada",
+                "label": "owned by",
+                "name": "Ada"
+              }
+            ],
+            "review_state": "reviewed"
+          },
+          {
+            "aliases": [],
+            "canonical_name": "Ada",
+            "category": "Hero",
+            "id": "entity-ada",
+            "locked": false,
+            "relationships": [],
+            "review": {
+              "aliases": [],
+              "entry": false
+            },
+            "review_state": "reviewed",
+            "speaker_color": 3
+          },
+          {
+            "aliases": [],
+            "canonical_name": "Bo",
+            "category": "Place",
+            "id": "entity-bo"
+          },
+          {
+            "aliases": [],
+            "canonical_name": "Cy",
+            "category": "Hero",
+            "id": "entity-cy",
+            "locked": 1,
+            "review_state": "reviewed"
+          }
+        ],
+        "schema_version": 2,
+        "types": [
+          {
+            "builtin": "Character",
+            "colour": "green",
+            "name": "Hero",
+            "speaks": true
+          },
+          {
+            "builtin": "Place",
+            "colour": "blue",
+            "name": "Place",
+            "speaks": false
+          }
+        ]
+      },
+      "arguments": {
+        "alias_index": null,
+        "entity_id": "entity-ada"
+      },
+      "command": "mark-reviewed",
+      "start": "types",
+      "wrote": true
+    },
+    {
+      "after": {
+        "dialogue_cues": [
+          {
+            "chapterId": "c1",
+            "corrected": false,
+            "evidence": {
+              "chapterId": "c1",
+              "excerpt": "Hello",
+              "paragraphId": "p1",
+              "tag": ""
+            },
+            "id": "cue-1",
+            "paragraphId": "p1",
+            "quote_end": 5,
+            "quote_start": 0,
+            "quote_text": "Hello",
+            "speaker_entity_id": null,
+            "speaker_source": "unknown"
+          },
+          {
+            "chapterId": "c1",
+            "corrected": false,
+            "evidence": {
+              "chapterId": "c1",
+              "excerpt": "Hello",
+              "paragraphId": "p1",
+              "tag": ""
+            },
+            "id": "cue-2",
+            "paragraphId": "p1",
+            "quote_end": 5,
+            "quote_start": 0,
+            "quote_text": "Hello",
+            "speaker_entity_id": "entity-wren",
+            "speaker_source": "tag"
+          }
+        ],
+        "entities": [
+          {
+            "aliases": [
+              {
+                "occurrences": [],
+                "pronunciation": {},
+                "text": "Little Wren"
+              },
+              {
+                "occurrences": [],
+                "pronunciation": {},
+                "text": "W"
+              }
+            ],
+            "canonical_name": "Wren",
+            "category": "Hero",
+            "id": "entity-wren",
+            "locked": false,
+            "relationships": [
+              {
+                "id": "entity-mill",
+                "label": "works at",
+                "name": "The Mill"
+              }
+            ],
+            "review": {
+              "aliases": [
+                "W",
+                "gone",
+                "W"
+              ],
+              "entry": true
+            },
+            "review_state": "needs review"
+          },
+          {
+            "aliases": [],
+            "canonical_name": "The Mill",
+            "category": "Place",
+            "id": "entity-mill",
+            "locked": true,
+            "relationships": [
+              {
+                "id": "entity-wren",
+                "label": "employs",
+                "name": "Wren"
+              },
+              {
+                "id": "entity-ada",
+                "label": "owned by",
+                "name": "Ada"
+              }
+            ],
+            "review_state": "reviewed"
+          },
+          {
+            "aliases": [],
+            "canonical_name": "Ada",
+            "category": "Hero",
+            "id": "entity-ada",
+            "locked": false,
+            "relationships": [],
+            "review_state": "needs review",
+            "speaker_color": 3
+          },
+          {
+            "aliases": [],
+            "canonical_name": "Bo",
+            "category": "Place",
+            "id": "entity-bo",
+            "review": {
+              "aliases": [],
+              "entry": false
+            },
+            "review_state": "reviewed"
+          },
+          {
+            "aliases": [],
+            "canonical_name": "Cy",
+            "category": "Hero",
+            "id": "entity-cy",
+            "locked": 1,
+            "review_state": "reviewed"
+          }
+        ],
+        "schema_version": 2,
+        "types": [
+          {
+            "builtin": "Character",
+            "colour": "green",
+            "name": "Hero",
+            "speaks": true
+          },
+          {
+            "builtin": "Place",
+            "colour": "blue",
+            "name": "Place",
+            "speaks": false
+          }
+        ]
+      },
+      "arguments": {
+        "alias_index": null,
+        "entity_id": "entity-bo"
+      },
+      "command": "mark-reviewed",
+      "start": "types",
+      "wrote": true
+    },
+    {
+      "arguments": {
+        "alias_index": null,
+        "entity_id": "entity-mill"
+      },
+      "command": "mark-reviewed",
+      "error": "This entity is locked. Unlock it before editing.",
+      "start": "types"
+    },
+    {
+      "arguments": {
+        "alias_index": null,
+        "entity_id": "entity-cy"
+      },
+      "command": "mark-reviewed",
+      "error": "This entity is locked. Unlock it before editing.",
+      "start": "types"
+    },
+    {
+      "arguments": {
+        "alias_index": null,
+        "entity_id": "entity-nobody"
+      },
+      "command": "mark-reviewed",
+      "error": "Entity not found.",
+      "start": "types"
+    },
+    {
+      "after": {
+        "dialogue_cues": [
+          {
+            "chapterId": "c1",
+            "corrected": false,
+            "evidence": {
+              "chapterId": "c1",
+              "excerpt": "Hello",
+              "paragraphId": "p1",
+              "tag": ""
+            },
+            "id": "cue-1",
+            "paragraphId": "p1",
+            "quote_end": 5,
+            "quote_start": 0,
+            "quote_text": "Hello",
+            "speaker_entity_id": null,
+            "speaker_source": "unknown"
+          },
+          {
+            "chapterId": "c1",
+            "corrected": false,
+            "evidence": {
+              "chapterId": "c1",
+              "excerpt": "Hello",
+              "paragraphId": "p1",
+              "tag": ""
+            },
+            "id": "cue-2",
+            "paragraphId": "p1",
+            "quote_end": 5,
+            "quote_start": 0,
+            "quote_text": "Hello",
+            "speaker_entity_id": "entity-wren",
+            "speaker_source": "tag"
+          }
+        ],
+        "entities": [
+          {
+            "aliases": [
+              "Little Wren",
+              {
+                "occurrences": [],
+                "pronunciation": {},
+                "text": "W"
+              }
+            ],
+            "canonical_name": "Wren",
+            "category": "Hero",
+            "id": "entity-wren",
+            "locked": false,
+            "relationships": [
+              {
+                "id": "entity-mill",
+                "label": "works at",
+                "name": "The Mill"
+              }
+            ],
+            "review": {
+              "aliases": [
+                "W",
+                "gone",
+                "W"
+              ],
+              "entry": true
+            },
+            "review_state": "needs review"
+          },
+          {
+            "aliases": [],
+            "canonical_name": "The Mill",
+            "category": "Place",
+            "id": "entity-mill",
+            "locked": true,
+            "relationships": [
+              {
+                "id": "entity-wren",
+                "label": "employs",
+                "name": "Wren"
+              },
+              {
+                "id": "entity-ada",
+                "label": "owned by",
+                "name": "Ada"
+              }
+            ],
+            "review_state": "reviewed"
+          },
+          {
+            "aliases": [],
+            "canonical_name": "Ada",
+            "category": "Hero",
+            "id": "entity-ada",
+            "locked": false,
+            "relationships": [],
+            "review_state": "needs review",
+            "speaker_color": 3
+          },
+          {
+            "aliases": [],
+            "canonical_name": "Bo",
+            "category": "Place",
+            "id": "entity-bo"
+          },
+          {
+            "aliases": [],
+            "canonical_name": "Cy",
+            "category": "Hero",
+            "id": "entity-cy",
+            "locked": 1,
+            "review_state": "reviewed"
+          }
+        ],
+        "schema_version": 2,
+        "types": [
+          {
+            "builtin": "Character",
+            "colour": "green",
+            "name": "Hero",
+            "speaks": true
+          },
+          {
+            "builtin": "Place",
+            "colour": "blue",
+            "name": "Place",
+            "speaks": false
+          }
+        ]
+      },
+      "arguments": {
+        "alias_index": null,
+        "entity_id": "entity-wren"
+      },
+      "command": "review-flag",
+      "start": "types",
+      "wrote": false
+    },
+    {
+      "after": {
+        "dialogue_cues": [
+          {
+            "chapterId": "c1",
+            "corrected": false,
+            "evidence": {
+              "chapterId": "c1",
+              "excerpt": "Hello",
+              "paragraphId": "p1",
+              "tag": ""
+            },
+            "id": "cue-1",
+            "paragraphId": "p1",
+            "quote_end": 5,
+            "quote_start": 0,
+            "quote_text": "Hello",
+            "speaker_entity_id": null,
+            "speaker_source": "unknown"
+          },
+          {
+            "chapterId": "c1",
+            "corrected": false,
+            "evidence": {
+              "chapterId": "c1",
+              "excerpt": "Hello",
+              "paragraphId": "p1",
+              "tag": ""
+            },
+            "id": "cue-2",
+            "paragraphId": "p1",
+            "quote_end": 5,
+            "quote_start": 0,
+            "quote_text": "Hello",
+            "speaker_entity_id": "entity-wren",
+            "speaker_source": "tag"
+          }
+        ],
+        "entities": [
+          {
+            "aliases": [
+              {
+                "occurrences": [],
+                "pronunciation": {},
+                "text": "Little Wren"
+              },
+              {
+                "occurrences": [],
+                "pronunciation": {},
+                "text": "W"
+              }
+            ],
+            "canonical_name": "Wren",
+            "category": "Hero",
+            "id": "entity-wren",
+            "locked": false,
+            "relationships": [
+              {
+                "id": "entity-mill",
+                "label": "works at",
+                "name": "The Mill"
+              }
+            ],
+            "review": {
+              "aliases": [
+                "W",
+                "Little Wren"
+              ],
+              "entry": true
+            },
+            "review_state": "needs review"
+          },
+          {
+            "aliases": [],
+            "canonical_name": "The Mill",
+            "category": "Place",
+            "id": "entity-mill",
+            "locked": true,
+            "relationships": [
+              {
+                "id": "entity-wren",
+                "label": "employs",
+                "name": "Wren"
+              },
+              {
+                "id": "entity-ada",
+                "label": "owned by",
+                "name": "Ada"
+              }
+            ],
+            "review_state": "reviewed"
+          },
+          {
+            "aliases": [],
+            "canonical_name": "Ada",
+            "category": "Hero",
+            "id": "entity-ada",
+            "locked": false,
+            "relationships": [],
+            "review_state": "needs review",
+            "speaker_color": 3
+          },
+          {
+            "aliases": [],
+            "canonical_name": "Bo",
+            "category": "Place",
+            "id": "entity-bo"
+          },
+          {
+            "aliases": [],
+            "canonical_name": "Cy",
+            "category": "Hero",
+            "id": "entity-cy",
+            "locked": 1,
+            "review_state": "reviewed"
+          }
+        ],
+        "schema_version": 2,
+        "types": [
+          {
+            "builtin": "Character",
+            "colour": "green",
+            "name": "Hero",
+            "speaks": true
+          },
+          {
+            "builtin": "Place",
+            "colour": "blue",
+            "name": "Place",
+            "speaks": false
+          }
+        ]
+      },
+      "arguments": {
+        "alias_index": 0,
+        "entity_id": "entity-wren"
+      },
+      "command": "review-flag",
+      "start": "types",
+      "wrote": true
+    },
+    {
+      "after": {
+        "dialogue_cues": [
+          {
+            "chapterId": "c1",
+            "corrected": false,
+            "evidence": {
+              "chapterId": "c1",
+              "excerpt": "Hello",
+              "paragraphId": "p1",
+              "tag": ""
+            },
+            "id": "cue-1",
+            "paragraphId": "p1",
+            "quote_end": 5,
+            "quote_start": 0,
+            "quote_text": "Hello",
+            "speaker_entity_id": null,
+            "speaker_source": "unknown"
+          },
+          {
+            "chapterId": "c1",
+            "corrected": false,
+            "evidence": {
+              "chapterId": "c1",
+              "excerpt": "Hello",
+              "paragraphId": "p1",
+              "tag": ""
+            },
+            "id": "cue-2",
+            "paragraphId": "p1",
+            "quote_end": 5,
+            "quote_start": 0,
+            "quote_text": "Hello",
+            "speaker_entity_id": "entity-wren",
+            "speaker_source": "tag"
+          }
+        ],
+        "entities": [
+          {
+            "aliases": [
+              "Little Wren",
+              {
+                "occurrences": [],
+                "pronunciation": {},
+                "text": "W"
+              }
+            ],
+            "canonical_name": "Wren",
+            "category": "Hero",
+            "id": "entity-wren",
+            "locked": false,
+            "relationships": [
+              {
+                "id": "entity-mill",
+                "label": "works at",
+                "name": "The Mill"
+              }
+            ],
+            "review": {
+              "aliases": [
+                "W",
+                "gone",
+                "W"
+              ],
+              "entry": true
+            },
+            "review_state": "needs review"
+          },
+          {
+            "aliases": [],
+            "canonical_name": "The Mill",
+            "category": "Place",
+            "id": "entity-mill",
+            "locked": true,
+            "relationships": [
+              {
+                "id": "entity-wren",
+                "label": "employs",
+                "name": "Wren"
+              },
+              {
+                "id": "entity-ada",
+                "label": "owned by",
+                "name": "Ada"
+              }
+            ],
+            "review_state": "reviewed"
+          },
+          {
+            "aliases": [],
+            "canonical_name": "Ada",
+            "category": "Hero",
+            "id": "entity-ada",
+            "locked": false,
+            "relationships": [],
+            "review_state": "needs review",
+            "speaker_color": 3
+          },
+          {
+            "aliases": [],
+            "canonical_name": "Bo",
+            "category": "Place",
+            "id": "entity-bo"
+          },
+          {
+            "aliases": [],
+            "canonical_name": "Cy",
+            "category": "Hero",
+            "id": "entity-cy",
+            "locked": 1,
+            "review_state": "reviewed"
+          }
+        ],
+        "schema_version": 2,
+        "types": [
+          {
+            "builtin": "Character",
+            "colour": "green",
+            "name": "Hero",
+            "speaks": true
+          },
+          {
+            "builtin": "Place",
+            "colour": "blue",
+            "name": "Place",
+            "speaks": false
+          }
+        ]
+      },
+      "arguments": {
+        "alias_index": 1,
+        "entity_id": "entity-wren"
+      },
+      "command": "review-flag",
+      "start": "types",
+      "wrote": false
+    },
+    {
+      "after": {
+        "dialogue_cues": [
+          {
+            "chapterId": "c1",
+            "corrected": false,
+            "evidence": {
+              "chapterId": "c1",
+              "excerpt": "Hello",
+              "paragraphId": "p1",
+              "tag": ""
+            },
+            "id": "cue-1",
+            "paragraphId": "p1",
+            "quote_end": 5,
+            "quote_start": 0,
+            "quote_text": "Hello",
+            "speaker_entity_id": null,
+            "speaker_source": "unknown"
+          },
+          {
+            "chapterId": "c1",
+            "corrected": false,
+            "evidence": {
+              "chapterId": "c1",
+              "excerpt": "Hello",
+              "paragraphId": "p1",
+              "tag": ""
+            },
+            "id": "cue-2",
+            "paragraphId": "p1",
+            "quote_end": 5,
+            "quote_start": 0,
+            "quote_text": "Hello",
+            "speaker_entity_id": "entity-wren",
+            "speaker_source": "tag"
+          }
+        ],
+        "entities": [
+          {
+            "aliases": [
+              {
+                "occurrences": [],
+                "pronunciation": {},
+                "text": "Little Wren"
+              },
+              {
+                "occurrences": [],
+                "pronunciation": {},
+                "text": "W"
+              }
+            ],
+            "canonical_name": "Wren",
+            "category": "Hero",
+            "id": "entity-wren",
+            "locked": false,
+            "relationships": [
+              {
+                "id": "entity-mill",
+                "label": "works at",
+                "name": "The Mill"
+              }
+            ],
+            "review": {
+              "aliases": [
+                "W",
+                "gone",
+                "W"
+              ],
+              "entry": true
+            },
+            "review_state": "needs review"
+          },
+          {
+            "aliases": [],
+            "canonical_name": "The Mill",
+            "category": "Place",
+            "id": "entity-mill",
+            "locked": true,
+            "relationships": [
+              {
+                "id": "entity-wren",
+                "label": "employs",
+                "name": "Wren"
+              },
+              {
+                "id": "entity-ada",
+                "label": "owned by",
+                "name": "Ada"
+              }
+            ],
+            "review_state": "reviewed"
+          },
+          {
+            "aliases": [],
+            "canonical_name": "Ada",
+            "category": "Hero",
+            "id": "entity-ada",
+            "locked": false,
+            "relationships": [],
+            "review": {
+              "aliases": [],
+              "entry": true
+            },
+            "review_state": "needs review",
+            "speaker_color": 3
+          },
+          {
+            "aliases": [],
+            "canonical_name": "Bo",
+            "category": "Place",
+            "id": "entity-bo"
+          },
+          {
+            "aliases": [],
+            "canonical_name": "Cy",
+            "category": "Hero",
+            "id": "entity-cy",
+            "locked": 1,
+            "review_state": "reviewed"
+          }
+        ],
+        "schema_version": 2,
+        "types": [
+          {
+            "builtin": "Character",
+            "colour": "green",
+            "name": "Hero",
+            "speaks": true
+          },
+          {
+            "builtin": "Place",
+            "colour": "blue",
+            "name": "Place",
+            "speaks": false
+          }
+        ]
+      },
+      "arguments": {
+        "alias_index": null,
+        "entity_id": "entity-ada"
+      },
+      "command": "review-flag",
+      "start": "types",
+      "wrote": true
+    },
+    {
+      "after": {
+        "dialogue_cues": [
+          {
+            "chapterId": "c1",
+            "corrected": false,
+            "evidence": {
+              "chapterId": "c1",
+              "excerpt": "Hello",
+              "paragraphId": "p1",
+              "tag": ""
+            },
+            "id": "cue-1",
+            "paragraphId": "p1",
+            "quote_end": 5,
+            "quote_start": 0,
+            "quote_text": "Hello",
+            "speaker_entity_id": null,
+            "speaker_source": "unknown"
+          },
+          {
+            "chapterId": "c1",
+            "corrected": false,
+            "evidence": {
+              "chapterId": "c1",
+              "excerpt": "Hello",
+              "paragraphId": "p1",
+              "tag": ""
+            },
+            "id": "cue-2",
+            "paragraphId": "p1",
+            "quote_end": 5,
+            "quote_start": 0,
+            "quote_text": "Hello",
+            "speaker_entity_id": "entity-wren",
+            "speaker_source": "tag"
+          }
+        ],
+        "entities": [
+          {
+            "aliases": [
+              {
+                "occurrences": [],
+                "pronunciation": {},
+                "text": "Little Wren"
+              },
+              {
+                "occurrences": [],
+                "pronunciation": {},
+                "text": "W"
+              }
+            ],
+            "canonical_name": "Wren",
+            "category": "Hero",
+            "id": "entity-wren",
+            "locked": false,
+            "relationships": [
+              {
+                "id": "entity-mill",
+                "label": "works at",
+                "name": "The Mill"
+              }
+            ],
+            "review": {
+              "aliases": [
+                "W",
+                "gone",
+                "W"
+              ],
+              "entry": true
+            },
+            "review_state": "needs review"
+          },
+          {
+            "aliases": [],
+            "canonical_name": "The Mill",
+            "category": "Place",
+            "id": "entity-mill",
+            "locked": true,
+            "relationships": [
+              {
+                "id": "entity-wren",
+                "label": "employs",
+                "name": "Wren"
+              },
+              {
+                "id": "entity-ada",
+                "label": "owned by",
+                "name": "Ada"
+              }
+            ],
+            "review_state": "reviewed"
+          },
+          {
+            "aliases": [],
+            "canonical_name": "Ada",
+            "category": "Hero",
+            "id": "entity-ada",
+            "locked": false,
+            "relationships": [],
+            "review_state": "needs review",
+            "speaker_color": 3
+          },
+          {
+            "aliases": [],
+            "canonical_name": "Bo",
+            "category": "Place",
+            "id": "entity-bo",
+            "review": {
+              "aliases": [],
+              "entry": true
+            },
+            "review_state": "needs review"
+          },
+          {
+            "aliases": [],
+            "canonical_name": "Cy",
+            "category": "Hero",
+            "id": "entity-cy",
+            "locked": 1,
+            "review_state": "reviewed"
+          }
+        ],
+        "schema_version": 2,
+        "types": [
+          {
+            "builtin": "Character",
+            "colour": "green",
+            "name": "Hero",
+            "speaks": true
+          },
+          {
+            "builtin": "Place",
+            "colour": "blue",
+            "name": "Place",
+            "speaks": false
+          }
+        ]
+      },
+      "arguments": {
+        "alias_index": null,
+        "entity_id": "entity-bo"
+      },
+      "command": "review-flag",
+      "start": "types",
+      "wrote": true
+    },
+    {
+      "arguments": {
+        "alias_index": 0,
+        "entity_id": "entity-bo"
+      },
+      "command": "review-flag",
+      "error": "Alias index out of range.",
+      "start": "types"
+    },
+    {
+      "arguments": {
+        "alias_index": null,
+        "entity_id": "entity-mill"
+      },
+      "command": "review-flag",
+      "error": "This entity is locked. Unlock it before editing.",
+      "start": "types"
+    },
+    {
+      "after": {
+        "dialogue_cues": [
+          {
+            "chapterId": "c1",
+            "corrected": false,
+            "evidence": {
+              "chapterId": "c1",
+              "excerpt": "Hello",
+              "paragraphId": "p1",
+              "tag": ""
+            },
+            "id": "cue-1",
+            "paragraphId": "p1",
+            "quote_end": 5,
+            "quote_start": 0,
+            "quote_text": "Hello",
+            "speaker_entity_id": null,
+            "speaker_source": "unknown"
+          },
+          {
+            "chapterId": "c1",
+            "corrected": false,
+            "evidence": {
+              "chapterId": "c1",
+              "excerpt": "Hello",
+              "paragraphId": "p1",
+              "tag": ""
+            },
+            "id": "cue-2",
+            "paragraphId": "p1",
+            "quote_end": 5,
+            "quote_start": 0,
+            "quote_text": "Hello",
+            "speaker_entity_id": "entity-wren",
+            "speaker_source": "tag"
+          }
+        ],
+        "entities": [
+          {
+            "aliases": [
+              {
+                "occurrences": [],
+                "pronunciation": {},
+                "text": "Little Wren"
+              },
+              {
+                "occurrences": [],
+                "pronunciation": {},
+                "text": "W"
+              }
+            ],
+            "canonical_name": "Wren",
+            "category": "Hero",
+            "id": "entity-wren",
+            "locked": false,
+            "relationships": [
+              {
+                "id": "entity-mill",
+                "label": "works at",
+                "name": "The Mill"
+              }
+            ],
+            "review": {
+              "aliases": [
+                "W",
+                "gone",
+                "W"
+              ],
+              "entry": true
+            },
+            "review_state": "needs review",
+            "speaker_color": 5
+          },
+          {
+            "aliases": [],
+            "canonical_name": "The Mill",
+            "category": "Place",
+            "id": "entity-mill",
+            "locked": true,
+            "relationships": [
+              {
+                "id": "entity-wren",
+                "label": "employs",
+                "name": "Wren"
+              },
+              {
+                "id": "entity-ada",
+                "label": "owned by",
+                "name": "Ada"
+              }
+            ],
+            "review_state": "reviewed"
+          },
+          {
+            "aliases": [],
+            "canonical_name": "Ada",
+            "category": "Hero",
+            "id": "entity-ada",
+            "locked": false,
+            "relationships": [],
+            "review_state": "needs review",
+            "speaker_color": 3
+          },
+          {
+            "aliases": [],
+            "canonical_name": "Bo",
+            "category": "Place",
+            "id": "entity-bo"
+          },
+          {
+            "aliases": [],
+            "canonical_name": "Cy",
+            "category": "Hero",
+            "id": "entity-cy",
+            "locked": 1,
+            "review_state": "reviewed"
+          }
+        ],
+        "schema_version": 2,
+        "types": [
+          {
+            "builtin": "Character",
+            "colour": "green",
+            "name": "Hero",
+            "speaks": true
+          },
+          {
+            "builtin": "Place",
+            "colour": "blue",
+            "name": "Place",
+            "speaks": false
+          }
+        ]
+      },
+      "arguments": {
+        "entity_id": "entity-wren",
+        "index": 5
+      },
+      "command": "speaker-color",
+      "start": "types",
+      "wrote": true
+    },
+    {
+      "after": {
+        "dialogue_cues": [
+          {
+            "chapterId": "c1",
+            "corrected": false,
+            "evidence": {
+              "chapterId": "c1",
+              "excerpt": "Hello",
+              "paragraphId": "p1",
+              "tag": ""
+            },
+            "id": "cue-1",
+            "paragraphId": "p1",
+            "quote_end": 5,
+            "quote_start": 0,
+            "quote_text": "Hello",
+            "speaker_entity_id": null,
+            "speaker_source": "unknown"
+          },
+          {
+            "chapterId": "c1",
+            "corrected": false,
+            "evidence": {
+              "chapterId": "c1",
+              "excerpt": "Hello",
+              "paragraphId": "p1",
+              "tag": ""
+            },
+            "id": "cue-2",
+            "paragraphId": "p1",
+            "quote_end": 5,
+            "quote_start": 0,
+            "quote_text": "Hello",
+            "speaker_entity_id": "entity-wren",
+            "speaker_source": "tag"
+          }
+        ],
+        "entities": [
+          {
+            "aliases": [
+              {
+                "occurrences": [],
+                "pronunciation": {},
+                "text": "Little Wren"
+              },
+              {
+                "occurrences": [],
+                "pronunciation": {},
+                "text": "W"
+              }
+            ],
+            "canonical_name": "Wren",
+            "category": "Hero",
+            "id": "entity-wren",
+            "locked": false,
+            "relationships": [
+              {
+                "id": "entity-mill",
+                "label": "works at",
+                "name": "The Mill"
+              }
+            ],
+            "review": {
+              "aliases": [
+                "W",
+                "gone",
+                "W"
+              ],
+              "entry": true
+            },
+            "review_state": "needs review"
+          },
+          {
+            "aliases": [],
+            "canonical_name": "The Mill",
+            "category": "Place",
+            "id": "entity-mill",
+            "locked": true,
+            "relationships": [
+              {
+                "id": "entity-wren",
+                "label": "employs",
+                "name": "Wren"
+              },
+              {
+                "id": "entity-ada",
+                "label": "owned by",
+                "name": "Ada"
+              }
+            ],
+            "review_state": "reviewed"
+          },
+          {
+            "aliases": [],
+            "canonical_name": "Ada",
+            "category": "Hero",
+            "id": "entity-ada",
+            "locked": false,
+            "relationships": [],
+            "review_state": "needs review"
+          },
+          {
+            "aliases": [],
+            "canonical_name": "Bo",
+            "category": "Place",
+            "id": "entity-bo"
+          },
+          {
+            "aliases": [],
+            "canonical_name": "Cy",
+            "category": "Hero",
+            "id": "entity-cy",
+            "locked": 1,
+            "review_state": "reviewed"
+          }
+        ],
+        "schema_version": 2,
+        "types": [
+          {
+            "builtin": "Character",
+            "colour": "green",
+            "name": "Hero",
+            "speaks": true
+          },
+          {
+            "builtin": "Place",
+            "colour": "blue",
+            "name": "Place",
+            "speaks": false
+          }
+        ]
+      },
+      "arguments": {
+        "entity_id": "entity-ada",
+        "index": 0
+      },
+      "command": "speaker-color",
+      "start": "types",
+      "wrote": true
+    },
+    {
+      "after": {
+        "dialogue_cues": [
+          {
+            "chapterId": "c1",
+            "corrected": false,
+            "evidence": {
+              "chapterId": "c1",
+              "excerpt": "Hello",
+              "paragraphId": "p1",
+              "tag": ""
+            },
+            "id": "cue-1",
+            "paragraphId": "p1",
+            "quote_end": 5,
+            "quote_start": 0,
+            "quote_text": "Hello",
+            "speaker_entity_id": null,
+            "speaker_source": "unknown"
+          },
+          {
+            "chapterId": "c1",
+            "corrected": false,
+            "evidence": {
+              "chapterId": "c1",
+              "excerpt": "Hello",
+              "paragraphId": "p1",
+              "tag": ""
+            },
+            "id": "cue-2",
+            "paragraphId": "p1",
+            "quote_end": 5,
+            "quote_start": 0,
+            "quote_text": "Hello",
+            "speaker_entity_id": "entity-wren",
+            "speaker_source": "tag"
+          }
+        ],
+        "entities": [
+          {
+            "aliases": [
+              {
+                "occurrences": [],
+                "pronunciation": {},
+                "text": "Little Wren"
+              },
+              {
+                "occurrences": [],
+                "pronunciation": {},
+                "text": "W"
+              }
+            ],
+            "canonical_name": "Wren",
+            "category": "Hero",
+            "id": "entity-wren",
+            "locked": false,
+            "relationships": [
+              {
+                "id": "entity-mill",
+                "label": "works at",
+                "name": "The Mill"
+              }
+            ],
+            "review": {
+              "aliases": [
+                "W",
+                "gone",
+                "W"
+              ],
+              "entry": true
+            },
+            "review_state": "needs review",
+            "speaker_color": 7
+          },
+          {
+            "aliases": [],
+            "canonical_name": "The Mill",
+            "category": "Place",
+            "id": "entity-mill",
+            "locked": true,
+            "relationships": [
+              {
+                "id": "entity-wren",
+                "label": "employs",
+                "name": "Wren"
+              },
+              {
+                "id": "entity-ada",
+                "label": "owned by",
+                "name": "Ada"
+              }
+            ],
+            "review_state": "reviewed"
+          },
+          {
+            "aliases": [],
+            "canonical_name": "Ada",
+            "category": "Hero",
+            "id": "entity-ada",
+            "locked": false,
+            "relationships": [],
+            "review_state": "needs review",
+            "speaker_color": 3
+          },
+          {
+            "aliases": [],
+            "canonical_name": "Bo",
+            "category": "Place",
+            "id": "entity-bo"
+          },
+          {
+            "aliases": [],
+            "canonical_name": "Cy",
+            "category": "Hero",
+            "id": "entity-cy",
+            "locked": 1,
+            "review_state": "reviewed"
+          }
+        ],
+        "schema_version": 2,
+        "types": [
+          {
+            "builtin": "Character",
+            "colour": "green",
+            "name": "Hero",
+            "speaks": true
+          },
+          {
+            "builtin": "Place",
+            "colour": "blue",
+            "name": "Place",
+            "speaks": false
+          }
+        ]
+      },
+      "arguments": {
+        "entity_id": "entity-wren",
+        "index": 7
+      },
+      "command": "speaker-color",
+      "start": "types",
+      "wrote": true
+    },
+    {
+      "arguments": {
+        "entity_id": "entity-wren",
+        "index": 8
+      },
+      "command": "speaker-color",
+      "error": "A speaker colour is 1 to 7, or 0 for automatic.",
+      "start": "types"
+    },
+    {
+      "arguments": {
+        "entity_id": "entity-wren",
+        "index": -1
+      },
+      "command": "speaker-color",
+      "error": "A speaker colour is 1 to 7, or 0 for automatic.",
+      "start": "types"
+    },
+    {
+      "arguments": {
+        "entity_id": "entity-bo",
+        "index": 2
+      },
+      "command": "speaker-color",
+      "error": "Only an entry whose type can speak has a speaker colour.",
+      "start": "types"
+    },
+    {
+      "arguments": {
+        "entity_id": "entity-mill",
+        "index": 2
+      },
+      "command": "speaker-color",
+      "error": "This entity is locked. Unlock it before editing.",
+      "start": "types"
+    },
+    {
+      "arguments": {
+        "entity_id": "entity-nobody",
+        "index": 2
+      },
+      "command": "speaker-color",
+      "error": "Entity not found.",
+      "start": "types"
+    },
+    {
+      "after": {
+        "entities": [
+          {
+            "aliases": [],
+            "canonical_name": "Dee",
+            "category": "Character",
+            "id": "entity-dee",
+            "locked": false,
+            "review_state": "reviewed",
+            "speaker_color": 1
+          },
+          {
+            "aliases": [],
+            "canonical_name": "Eli",
+            "category": "Needs Review",
+            "id": "entity-eli",
+            "locked": false,
+            "review_state": "needs review"
+          }
+        ],
+        "schema_version": 2
+      },
+      "arguments": {
+        "entity_id": "entity-dee",
+        "index": 1
+      },
+      "command": "speaker-color",
+      "start": "default",
+      "wrote": true
+    },
+    {
+      "arguments": {
+        "entity_id": "entity-eli",
+        "index": 1
+      },
+      "command": "speaker-color",
+      "error": "Only an entry whose type can speak has a speaker colour.",
+      "start": "default"
+    },
+    {
+      "arguments": {
+        "entity_id": "entity-dee",
+        "index": 1
+      },
+      "command": "speaker-color",
+      "error": "The Story Bible types are invalid.",
+      "start": "bad-types"
+    },
+    {
+      "after": {
+        "dialogue_cues": [
+          {
+            "chapterId": "c1",
+            "corrected": false,
+            "evidence": {
+              "chapterId": "c1",
+              "excerpt": "Hello",
+              "paragraphId": "p1",
+              "tag": ""
+            },
+            "id": "cue-1",
+            "paragraphId": "p1",
+            "quote_end": 5,
+            "quote_start": 0,
+            "quote_text": "Hello",
+            "speaker_entity_id": null,
+            "speaker_source": "unknown"
+          },
+          {
+            "chapterId": "c1",
+            "corrected": false,
+            "evidence": {
+              "chapterId": "c1",
+              "excerpt": "Hello",
+              "paragraphId": "p1",
+              "tag": ""
+            },
+            "id": "cue-2",
+            "paragraphId": "p1",
+            "quote_end": 5,
+            "quote_start": 0,
+            "quote_text": "Hello",
+            "speaker_entity_id": "entity-wren",
+            "speaker_source": "tag"
+          }
+        ],
+        "entities": [
+          {
+            "aliases": [
+              {
+                "occurrences": [],
+                "pronunciation": {},
+                "text": "Little Wren"
+              },
+              {
+                "occurrences": [],
+                "pronunciation": {},
+                "text": "W"
+              }
+            ],
+            "canonical_name": "Wren",
+            "category": "Hero",
+            "id": "entity-wren",
+            "locked": false,
+            "relationships": [
+              {
+                "id": "entity-mill",
+                "label": "works at",
+                "name": "The Mill"
+              },
+              {
+                "id": "entity-ada",
+                "label": "friend",
+                "name": "Ada"
+              }
+            ],
+            "review": {
+              "aliases": [
+                "W",
+                "gone",
+                "W"
+              ],
+              "entry": true
+            },
+            "review_state": "needs review"
+          },
+          {
+            "aliases": [],
+            "canonical_name": "The Mill",
+            "category": "Place",
+            "id": "entity-mill",
+            "locked": true,
+            "relationships": [
+              {
+                "id": "entity-wren",
+                "label": "employs",
+                "name": "Wren"
+              },
+              {
+                "id": "entity-ada",
+                "label": "owned by",
+                "name": "Ada"
+              }
+            ],
+            "review_state": "reviewed"
+          },
+          {
+            "aliases": [],
+            "canonical_name": "Ada",
+            "category": "Hero",
+            "id": "entity-ada",
+            "locked": false,
+            "relationships": [],
+            "review_state": "needs review",
+            "speaker_color": 3
+          },
+          {
+            "aliases": [],
+            "canonical_name": "Bo",
+            "category": "Place",
+            "id": "entity-bo"
+          },
+          {
+            "aliases": [],
+            "canonical_name": "Cy",
+            "category": "Hero",
+            "id": "entity-cy",
+            "locked": 1,
+            "review_state": "reviewed"
+          }
+        ],
+        "schema_version": 2,
+        "types": [
+          {
+            "builtin": "Character",
+            "colour": "green",
+            "name": "Hero",
+            "speaks": true
+          },
+          {
+            "builtin": "Place",
+            "colour": "blue",
+            "name": "Place",
+            "speaks": false
+          }
+        ]
+      },
+      "arguments": {
+        "entity_id": "entity-wren",
+        "label": "friend",
+        "other_id": "entity-ada"
+      },
+      "command": "relate",
+      "start": "types",
+      "wrote": true
+    },
+    {
+      "after": {
+        "dialogue_cues": [
+          {
+            "chapterId": "c1",
+            "corrected": false,
+            "evidence": {
+              "chapterId": "c1",
+              "excerpt": "Hello",
+              "paragraphId": "p1",
+              "tag": ""
+            },
+            "id": "cue-1",
+            "paragraphId": "p1",
+            "quote_end": 5,
+            "quote_start": 0,
+            "quote_text": "Hello",
+            "speaker_entity_id": null,
+            "speaker_source": "unknown"
+          },
+          {
+            "chapterId": "c1",
+            "corrected": false,
+            "evidence": {
+              "chapterId": "c1",
+              "excerpt": "Hello",
+              "paragraphId": "p1",
+              "tag": ""
+            },
+            "id": "cue-2",
+            "paragraphId": "p1",
+            "quote_end": 5,
+            "quote_start": 0,
+            "quote_text": "Hello",
+            "speaker_entity_id": "entity-wren",
+            "speaker_source": "tag"
+          }
+        ],
+        "entities": [
+          {
+            "aliases": [
+              {
+                "occurrences": [],
+                "pronunciation": {},
+                "text": "Little Wren"
+              },
+              {
+                "occurrences": [],
+                "pronunciation": {},
+                "text": "W"
+              }
+            ],
+            "canonical_name": "Wren",
+            "category": "Hero",
+            "id": "entity-wren",
+            "locked": false,
+            "relationships": [
+              {
+                "id": "entity-mill",
+                "label": "works at",
+                "name": "The Mill"
+              }
+            ],
+            "review": {
+              "aliases": [
+                "W",
+                "gone",
+                "W"
+              ],
+              "entry": true
+            },
+            "review_state": "needs review"
+          },
+          {
+            "aliases": [],
+            "canonical_name": "The Mill",
+            "category": "Place",
+            "id": "entity-mill",
+            "locked": true,
+            "relationships": [
+              {
+                "id": "entity-wren",
+                "label": "employs",
+                "name": "Wren"
+              },
+              {
+                "id": "entity-ada",
+                "label": "owned by",
+                "name": "Ada"
+              }
+            ],
+            "review_state": "reviewed"
+          },
+          {
+            "aliases": [],
+            "canonical_name": "Ada",
+            "category": "Hero",
+            "id": "entity-ada",
+            "locked": false,
+            "relationships": [],
+            "review_state": "needs review",
+            "speaker_color": 3
+          },
+          {
+            "aliases": [],
+            "canonical_name": "Bo",
+            "category": "Place",
+            "id": "entity-bo"
+          },
+          {
+            "aliases": [],
+            "canonical_name": "Cy",
+            "category": "Hero",
+            "id": "entity-cy",
+            "locked": 1,
+            "review_state": "reviewed"
+          }
+        ],
+        "schema_version": 2,
+        "types": [
+          {
+            "builtin": "Character",
+            "colour": "green",
+            "name": "Hero",
+            "speaks": true
+          },
+          {
+            "builtin": "Place",
+            "colour": "blue",
+            "name": "Place",
+            "speaks": false
+          }
+        ]
+      },
+      "arguments": {
+        "entity_id": "entity-wren",
+        "label": "works at",
+        "other_id": "entity-mill"
+      },
+      "command": "relate",
+      "start": "types",
+      "wrote": true
+    },
+    {
+      "after": {
+        "dialogue_cues": [
+          {
+            "chapterId": "c1",
+            "corrected": false,
+            "evidence": {
+              "chapterId": "c1",
+              "excerpt": "Hello",
+              "paragraphId": "p1",
+              "tag": ""
+            },
+            "id": "cue-1",
+            "paragraphId": "p1",
+            "quote_end": 5,
+            "quote_start": 0,
+            "quote_text": "Hello",
+            "speaker_entity_id": null,
+            "speaker_source": "unknown"
+          },
+          {
+            "chapterId": "c1",
+            "corrected": false,
+            "evidence": {
+              "chapterId": "c1",
+              "excerpt": "Hello",
+              "paragraphId": "p1",
+              "tag": ""
+            },
+            "id": "cue-2",
+            "paragraphId": "p1",
+            "quote_end": 5,
+            "quote_start": 0,
+            "quote_text": "Hello",
+            "speaker_entity_id": "entity-wren",
+            "speaker_source": "tag"
+          }
+        ],
+        "entities": [
+          {
+            "aliases": [
+              {
+                "occurrences": [],
+                "pronunciation": {},
+                "text": "Little Wren"
+              },
+              {
+                "occurrences": [],
+                "pronunciation": {},
+                "text": "W"
+              }
+            ],
+            "canonical_name": "Wren",
+            "category": "Hero",
+            "id": "entity-wren",
+            "locked": false,
+            "relationships": [
+              {
+                "id": "entity-mill",
+                "label": "works at",
+                "name": "The Mill"
+              },
+              {
+                "id": "entity-ada",
+                "label": "ally of",
+                "name": "Ada"
+              }
+            ],
+            "review": {
+              "aliases": [
+                "W",
+                "gone",
+                "W"
+              ],
+              "entry": true
+            },
+            "review_state": "needs review"
+          },
+          {
+            "aliases": [],
+            "canonical_name": "The Mill",
+            "category": "Place",
+            "id": "entity-mill",
+            "locked": true,
+            "relationships": [
+              {
+                "id": "entity-wren",
+                "label": "employs",
+                "name": "Wren"
+              },
+              {
+                "id": "entity-ada",
+                "label": "owned by",
+                "name": "Ada"
+              }
+            ],
+            "review_state": "reviewed"
+          },
+          {
+            "aliases": [],
+            "canonical_name": "Ada",
+            "category": "Hero",
+            "id": "entity-ada",
+            "locked": false,
+            "relationships": [],
+            "review_state": "needs review",
+            "speaker_color": 3
+          },
+          {
+            "aliases": [],
+            "canonical_name": "Bo",
+            "category": "Place",
+            "id": "entity-bo"
+          },
+          {
+            "aliases": [],
+            "canonical_name": "Cy",
+            "category": "Hero",
+            "id": "entity-cy",
+            "locked": 1,
+            "review_state": "reviewed"
+          }
+        ],
+        "schema_version": 2,
+        "types": [
+          {
+            "builtin": "Character",
+            "colour": "green",
+            "name": "Hero",
+            "speaks": true
+          },
+          {
+            "builtin": "Place",
+            "colour": "blue",
+            "name": "Place",
+            "speaks": false
+          }
+        ]
+      },
+      "arguments": {
+        "entity_id": "entity-wren",
+        "label": "  ally of  ",
+        "other_id": "entity-ada"
+      },
+      "command": "relate",
+      "start": "types",
+      "wrote": true
+    },
+    {
+      "after": {
+        "dialogue_cues": [
+          {
+            "chapterId": "c1",
+            "corrected": false,
+            "evidence": {
+              "chapterId": "c1",
+              "excerpt": "Hello",
+              "paragraphId": "p1",
+              "tag": ""
+            },
+            "id": "cue-1",
+            "paragraphId": "p1",
+            "quote_end": 5,
+            "quote_start": 0,
+            "quote_text": "Hello",
+            "speaker_entity_id": null,
+            "speaker_source": "unknown"
+          },
+          {
+            "chapterId": "c1",
+            "corrected": false,
+            "evidence": {
+              "chapterId": "c1",
+              "excerpt": "Hello",
+              "paragraphId": "p1",
+              "tag": ""
+            },
+            "id": "cue-2",
+            "paragraphId": "p1",
+            "quote_end": 5,
+            "quote_start": 0,
+            "quote_text": "Hello",
+            "speaker_entity_id": "entity-wren",
+            "speaker_source": "tag"
+          }
+        ],
+        "entities": [
+          {
+            "aliases": [
+              {
+                "occurrences": [],
+                "pronunciation": {},
+                "text": "Little Wren"
+              },
+              {
+                "occurrences": [],
+                "pronunciation": {},
+                "text": "W"
+              }
+            ],
+            "canonical_name": "Wren",
+            "category": "Hero",
+            "id": "entity-wren",
+            "locked": false,
+            "relationships": [
+              {
+                "id": "entity-mill",
+                "label": "works at",
+                "name": "The Mill"
+              }
+            ],
+            "review": {
+              "aliases": [
+                "W",
+                "gone",
+                "W"
+              ],
+              "entry": true
+            },
+            "review_state": "needs review"
+          },
+          {
+            "aliases": [],
+            "canonical_name": "The Mill",
+            "category": "Place",
+            "id": "entity-mill",
+            "locked": true,
+            "relationships": [
+              {
+                "id": "entity-wren",
+                "label": "employs",
+                "name": "Wren"
+              },
+              {
+                "id": "entity-ada",
+                "label": "owned by",
+                "name": "Ada"
+              }
+            ],
+            "review_state": "reviewed"
+          },
+          {
+            "aliases": [],
+            "canonical_name": "Ada",
+            "category": "Hero",
+            "id": "entity-ada",
+            "locked": false,
+            "relationships": [],
+            "review_state": "needs review",
+            "speaker_color": 3
+          },
+          {
+            "aliases": [],
+            "canonical_name": "Bo",
+            "category": "Place",
+            "id": "entity-bo",
+            "relationships": [
+              {
+                "id": "entity-ada",
+                "label": "near",
+                "name": "Ada"
+              }
+            ]
+          },
+          {
+            "aliases": [],
+            "canonical_name": "Cy",
+            "category": "Hero",
+            "id": "entity-cy",
+            "locked": 1,
+            "review_state": "reviewed"
+          }
+        ],
+        "schema_version": 2,
+        "types": [
+          {
+            "builtin": "Character",
+            "colour": "green",
+            "name": "Hero",
+            "speaks": true
+          },
+          {
+            "builtin": "Place",
+            "colour": "blue",
+            "name": "Place",
+            "speaks": false
+          }
+        ]
+      },
+      "arguments": {
+        "entity_id": "entity-bo",
+        "label": "near",
+        "other_id": "entity-ada"
+      },
+      "command": "relate",
+      "start": "types",
+      "wrote": true
+    },
+    {
+      "after": {
+        "dialogue_cues": [
+          {
+            "chapterId": "c1",
+            "corrected": false,
+            "evidence": {
+              "chapterId": "c1",
+              "excerpt": "Hello",
+              "paragraphId": "p1",
+              "tag": ""
+            },
+            "id": "cue-1",
+            "paragraphId": "p1",
+            "quote_end": 5,
+            "quote_start": 0,
+            "quote_text": "Hello",
+            "speaker_entity_id": null,
+            "speaker_source": "unknown"
+          },
+          {
+            "chapterId": "c1",
+            "corrected": false,
+            "evidence": {
+              "chapterId": "c1",
+              "excerpt": "Hello",
+              "paragraphId": "p1",
+              "tag": ""
+            },
+            "id": "cue-2",
+            "paragraphId": "p1",
+            "quote_end": 5,
+            "quote_start": 0,
+            "quote_text": "Hello",
+            "speaker_entity_id": "entity-wren",
+            "speaker_source": "tag"
+          }
+        ],
+        "entities": [
+          {
+            "aliases": [
+              {
+                "occurrences": [],
+                "pronunciation": {},
+                "text": "Little Wren"
+              },
+              {
+                "occurrences": [],
+                "pronunciation": {},
+                "text": "W"
+              }
+            ],
+            "canonical_name": "Wren",
+            "category": "Hero",
+            "id": "entity-wren",
+            "locked": false,
+            "relationships": [
+              {
+                "id": "entity-mill",
+                "label": "works at",
+                "name": "The Mill"
+              }
+            ],
+            "review": {
+              "aliases": [
+                "W",
+                "gone",
+                "W"
+              ],
+              "entry": true
+            },
+            "review_state": "needs review"
+          },
+          {
+            "aliases": [],
+            "canonical_name": "The Mill",
+            "category": "Place",
+            "id": "entity-mill",
+            "locked": true,
+            "relationships": [
+              {
+                "id": "entity-wren",
+                "label": "employs",
+                "name": "Wren"
+              },
+              {
+                "id": "entity-ada",
+                "label": "owned by",
+                "name": "Ada"
+              },
+              {
+                "id": "entity-bo",
+                "label": "beside",
+                "name": "Bo"
+              }
+            ],
+            "review_state": "reviewed"
+          },
+          {
+            "aliases": [],
+            "canonical_name": "Ada",
+            "category": "Hero",
+            "id": "entity-ada",
+            "locked": false,
+            "relationships": [],
+            "review_state": "needs review",
+            "speaker_color": 3
+          },
+          {
+            "aliases": [],
+            "canonical_name": "Bo",
+            "category": "Place",
+            "id": "entity-bo"
+          },
+          {
+            "aliases": [],
+            "canonical_name": "Cy",
+            "category": "Hero",
+            "id": "entity-cy",
+            "locked": 1,
+            "review_state": "reviewed"
+          }
+        ],
+        "schema_version": 2,
+        "types": [
+          {
+            "builtin": "Character",
+            "colour": "green",
+            "name": "Hero",
+            "speaks": true
+          },
+          {
+            "builtin": "Place",
+            "colour": "blue",
+            "name": "Place",
+            "speaks": false
+          }
+        ]
+      },
+      "arguments": {
+        "entity_id": "entity-mill",
+        "label": "beside",
+        "other_id": "entity-bo"
+      },
+      "command": "relate",
+      "start": "types",
+      "wrote": true
+    },
+    {
+      "arguments": {
+        "entity_id": "entity-wren",
+        "label": "self",
+        "other_id": "entity-wren"
+      },
+      "command": "relate",
+      "error": "An entity cannot have a relationship with itself.",
+      "start": "types"
+    },
+    {
+      "arguments": {
+        "entity_id": "entity-wren",
+        "label": "   ",
+        "other_id": "entity-ada"
+      },
+      "command": "relate",
+      "error": "A relationship needs a label.",
+      "start": "types"
+    },
+    {
+      "after": {
+        "dialogue_cues": [
+          {
+            "chapterId": "c1",
+            "corrected": false,
+            "evidence": {
+              "chapterId": "c1",
+              "excerpt": "Hello",
+              "paragraphId": "p1",
+              "tag": ""
+            },
+            "id": "cue-1",
+            "paragraphId": "p1",
+            "quote_end": 5,
+            "quote_start": 0,
+            "quote_text": "Hello",
+            "speaker_entity_id": null,
+            "speaker_source": "unknown"
+          },
+          {
+            "chapterId": "c1",
+            "corrected": false,
+            "evidence": {
+              "chapterId": "c1",
+              "excerpt": "Hello",
+              "paragraphId": "p1",
+              "tag": ""
+            },
+            "id": "cue-2",
+            "paragraphId": "p1",
+            "quote_end": 5,
+            "quote_start": 0,
+            "quote_text": "Hello",
+            "speaker_entity_id": "entity-wren",
+            "speaker_source": "tag"
+          }
+        ],
+        "entities": [
+          {
+            "aliases": [
+              {
+                "occurrences": [],
+                "pronunciation": {},
+                "text": "Little Wren"
+              },
+              {
+                "occurrences": [],
+                "pronunciation": {},
+                "text": "W"
+              }
+            ],
+            "canonical_name": "Wren",
+            "category": "Hero",
+            "id": "entity-wren",
+            "locked": false,
+            "relationships": [
+              {
+                "id": "entity-mill",
+                "label": "works at",
+                "name": "The Mill"
+              },
+              {
+                "id": "entity-ada",
+                "label": "ally of",
+                "name": "Ada"
+              }
+            ],
+            "review": {
+              "aliases": [
+                "W",
+                "gone",
+                "W"
+              ],
+              "entry": true
+            },
+            "review_state": "needs review"
+          },
+          {
+            "aliases": [],
+            "canonical_name": "The Mill",
+            "category": "Place",
+            "id": "entity-mill",
+            "locked": true,
+            "relationships": [
+              {
+                "id": "entity-wren",
+                "label": "employs",
+                "name": "Wren"
+              },
+              {
+                "id": "entity-ada",
+                "label": "owned by",
+                "name": "Ada"
+              }
+            ],
+            "review_state": "reviewed"
+          },
+          {
+            "aliases": [],
+            "canonical_name": "Ada",
+            "category": "Hero",
+            "id": "entity-ada",
+            "locked": false,
+            "relationships": [],
+            "review_state": "needs review",
+            "speaker_color": 3
+          },
+          {
+            "aliases": [],
+            "canonical_name": "Bo",
+            "category": "Place",
+            "id": "entity-bo"
+          },
+          {
+            "aliases": [],
+            "canonical_name": "Cy",
+            "category": "Hero",
+            "id": "entity-cy",
+            "locked": 1,
+            "review_state": "reviewed"
+          }
+        ],
+        "schema_version": 2,
+        "types": [
+          {
+            "builtin": "Character",
+            "colour": "green",
+            "name": "Hero",
+            "speaks": true
+          },
+          {
+            "builtin": "Place",
+            "colour": "blue",
+            "name": "Place",
+            "speaks": false
+          }
+        ]
+      },
+      "arguments": {
+        "entity_id": "entity-wren",
+        "label": "\u001fally of\u001c",
+        "other_id": "entity-ada"
+      },
+      "command": "relate",
+      "start": "types",
+      "wrote": true
+    },
+    {
+      "arguments": {
+        "entity_id": "entity-wren",
+        "label": "\u001e",
+        "other_id": "entity-ada"
+      },
+      "command": "relate",
+      "error": "A relationship needs a label.",
+      "start": "types"
+    },
+    {
+      "arguments": {
+        "entity_id": "entity-wren",
+        "label": "x",
+        "other_id": "entity-nobody"
+      },
+      "command": "relate",
+      "error": "Entity not found.",
+      "start": "types"
+    },
+    {
+      "arguments": {
+        "entity_id": "entity-nobody",
+        "label": "x",
+        "other_id": "entity-ada"
+      },
+      "command": "relate",
+      "error": "Entity not found.",
+      "start": "types"
+    },
+    {
+      "after": {
+        "dialogue_cues": [
+          {
+            "chapterId": "c1",
+            "corrected": false,
+            "evidence": {
+              "chapterId": "c1",
+              "excerpt": "Hello",
+              "paragraphId": "p1",
+              "tag": ""
+            },
+            "id": "cue-1",
+            "paragraphId": "p1",
+            "quote_end": 5,
+            "quote_start": 0,
+            "quote_text": "Hello",
+            "speaker_entity_id": null,
+            "speaker_source": "unknown"
+          },
+          {
+            "chapterId": "c1",
+            "corrected": false,
+            "evidence": {
+              "chapterId": "c1",
+              "excerpt": "Hello",
+              "paragraphId": "p1",
+              "tag": ""
+            },
+            "id": "cue-2",
+            "paragraphId": "p1",
+            "quote_end": 5,
+            "quote_start": 0,
+            "quote_text": "Hello",
+            "speaker_entity_id": "entity-wren",
+            "speaker_source": "tag"
+          }
+        ],
+        "entities": [
+          {
+            "aliases": [
+              {
+                "occurrences": [],
+                "pronunciation": {},
+                "text": "Little Wren"
+              },
+              {
+                "occurrences": [],
+                "pronunciation": {},
+                "text": "W"
+              }
+            ],
+            "canonical_name": "Wren",
+            "category": "Hero",
+            "id": "entity-wren",
+            "locked": false,
+            "relationships": [],
+            "review": {
+              "aliases": [
+                "W",
+                "gone",
+                "W"
+              ],
+              "entry": true
+            },
+            "review_state": "needs review"
+          },
+          {
+            "aliases": [],
+            "canonical_name": "The Mill",
+            "category": "Place",
+            "id": "entity-mill",
+            "locked": true,
+            "relationships": [
+              {
+                "id": "entity-wren",
+                "label": "employs",
+                "name": "Wren"
+              },
+              {
+                "id": "entity-ada",
+                "label": "owned by",
+                "name": "Ada"
+              }
+            ],
+            "review_state": "reviewed"
+          },
+          {
+            "aliases": [],
+            "canonical_name": "Ada",
+            "category": "Hero",
+            "id": "entity-ada",
+            "locked": false,
+            "relationships": [],
+            "review_state": "needs review",
+            "speaker_color": 3
+          },
+          {
+            "aliases": [],
+            "canonical_name": "Bo",
+            "category": "Place",
+            "id": "entity-bo"
+          },
+          {
+            "aliases": [],
+            "canonical_name": "Cy",
+            "category": "Hero",
+            "id": "entity-cy",
+            "locked": 1,
+            "review_state": "reviewed"
+          }
+        ],
+        "schema_version": 2,
+        "types": [
+          {
+            "builtin": "Character",
+            "colour": "green",
+            "name": "Hero",
+            "speaks": true
+          },
+          {
+            "builtin": "Place",
+            "colour": "blue",
+            "name": "Place",
+            "speaks": false
+          }
+        ]
+      },
+      "arguments": {
+        "entity_id": "entity-wren",
+        "label": "works at",
+        "other_id": "entity-mill"
+      },
+      "command": "unrelate",
+      "start": "types",
+      "wrote": true
+    },
+    {
+      "after": {
+        "dialogue_cues": [
+          {
+            "chapterId": "c1",
+            "corrected": false,
+            "evidence": {
+              "chapterId": "c1",
+              "excerpt": "Hello",
+              "paragraphId": "p1",
+              "tag": ""
+            },
+            "id": "cue-1",
+            "paragraphId": "p1",
+            "quote_end": 5,
+            "quote_start": 0,
+            "quote_text": "Hello",
+            "speaker_entity_id": null,
+            "speaker_source": "unknown"
+          },
+          {
+            "chapterId": "c1",
+            "corrected": false,
+            "evidence": {
+              "chapterId": "c1",
+              "excerpt": "Hello",
+              "paragraphId": "p1",
+              "tag": ""
+            },
+            "id": "cue-2",
+            "paragraphId": "p1",
+            "quote_end": 5,
+            "quote_start": 0,
+            "quote_text": "Hello",
+            "speaker_entity_id": "entity-wren",
+            "speaker_source": "tag"
+          }
+        ],
+        "entities": [
+          {
+            "aliases": [
+              {
+                "occurrences": [],
+                "pronunciation": {},
+                "text": "Little Wren"
+              },
+              {
+                "occurrences": [],
+                "pronunciation": {},
+                "text": "W"
+              }
+            ],
+            "canonical_name": "Wren",
+            "category": "Hero",
+            "id": "entity-wren",
+            "locked": false,
+            "relationships": [
+              {
+                "id": "entity-mill",
+                "label": "works at",
+                "name": "The Mill"
+              }
+            ],
+            "review": {
+              "aliases": [
+                "W",
+                "gone",
+                "W"
+              ],
+              "entry": true
+            },
+            "review_state": "needs review"
+          },
+          {
+            "aliases": [],
+            "canonical_name": "The Mill",
+            "category": "Place",
+            "id": "entity-mill",
+            "locked": true,
+            "relationships": [
+              {
+                "id": "entity-wren",
+                "label": "employs",
+                "name": "Wren"
+              },
+              {
+                "id": "entity-ada",
+                "label": "owned by",
+                "name": "Ada"
+              }
+            ],
+            "review_state": "reviewed"
+          },
+          {
+            "aliases": [],
+            "canonical_name": "Ada",
+            "category": "Hero",
+            "id": "entity-ada",
+            "locked": false,
+            "relationships": [],
+            "review_state": "needs review",
+            "speaker_color": 3
+          },
+          {
+            "aliases": [],
+            "canonical_name": "Bo",
+            "category": "Place",
+            "id": "entity-bo"
+          },
+          {
+            "aliases": [],
+            "canonical_name": "Cy",
+            "category": "Hero",
+            "id": "entity-cy",
+            "locked": 1,
+            "review_state": "reviewed"
+          }
+        ],
+        "schema_version": 2,
+        "types": [
+          {
+            "builtin": "Character",
+            "colour": "green",
+            "name": "Hero",
+            "speaks": true
+          },
+          {
+            "builtin": "Place",
+            "colour": "blue",
+            "name": "Place",
+            "speaks": false
+          }
+        ]
+      },
+      "arguments": {
+        "entity_id": "entity-wren",
+        "label": " works at ",
+        "other_id": "entity-mill"
+      },
+      "command": "unrelate",
+      "start": "types",
+      "wrote": true
+    },
+    {
+      "after": {
+        "dialogue_cues": [
+          {
+            "chapterId": "c1",
+            "corrected": false,
+            "evidence": {
+              "chapterId": "c1",
+              "excerpt": "Hello",
+              "paragraphId": "p1",
+              "tag": ""
+            },
+            "id": "cue-1",
+            "paragraphId": "p1",
+            "quote_end": 5,
+            "quote_start": 0,
+            "quote_text": "Hello",
+            "speaker_entity_id": null,
+            "speaker_source": "unknown"
+          },
+          {
+            "chapterId": "c1",
+            "corrected": false,
+            "evidence": {
+              "chapterId": "c1",
+              "excerpt": "Hello",
+              "paragraphId": "p1",
+              "tag": ""
+            },
+            "id": "cue-2",
+            "paragraphId": "p1",
+            "quote_end": 5,
+            "quote_start": 0,
+            "quote_text": "Hello",
+            "speaker_entity_id": "entity-wren",
+            "speaker_source": "tag"
+          }
+        ],
+        "entities": [
+          {
+            "aliases": [
+              {
+                "occurrences": [],
+                "pronunciation": {},
+                "text": "Little Wren"
+              },
+              {
+                "occurrences": [],
+                "pronunciation": {},
+                "text": "W"
+              }
+            ],
+            "canonical_name": "Wren",
+            "category": "Hero",
+            "id": "entity-wren",
+            "locked": false,
+            "relationships": [
+              {
+                "id": "entity-mill",
+                "label": "works at",
+                "name": "The Mill"
+              }
+            ],
+            "review": {
+              "aliases": [
+                "W",
+                "gone",
+                "W"
+              ],
+              "entry": true
+            },
+            "review_state": "needs review"
+          },
+          {
+            "aliases": [],
+            "canonical_name": "The Mill",
+            "category": "Place",
+            "id": "entity-mill",
+            "locked": true,
+            "relationships": [
+              {
+                "id": "entity-wren",
+                "label": "employs",
+                "name": "Wren"
+              },
+              {
+                "id": "entity-ada",
+                "label": "owned by",
+                "name": "Ada"
+              }
+            ],
+            "review_state": "reviewed"
+          },
+          {
+            "aliases": [],
+            "canonical_name": "Ada",
+            "category": "Hero",
+            "id": "entity-ada",
+            "locked": false,
+            "relationships": [],
+            "review_state": "needs review",
+            "speaker_color": 3
+          },
+          {
+            "aliases": [],
+            "canonical_name": "Bo",
+            "category": "Place",
+            "id": "entity-bo",
+            "relationships": []
+          },
+          {
+            "aliases": [],
+            "canonical_name": "Cy",
+            "category": "Hero",
+            "id": "entity-cy",
+            "locked": 1,
+            "review_state": "reviewed"
+          }
+        ],
+        "schema_version": 2,
+        "types": [
+          {
+            "builtin": "Character",
+            "colour": "green",
+            "name": "Hero",
+            "speaks": true
+          },
+          {
+            "builtin": "Place",
+            "colour": "blue",
+            "name": "Place",
+            "speaks": false
+          }
+        ]
+      },
+      "arguments": {
+        "entity_id": "entity-bo",
+        "label": "x",
+        "other_id": "entity-mill"
+      },
+      "command": "unrelate",
+      "start": "types",
+      "wrote": true
+    },
+    {
+      "after": {
+        "dialogue_cues": [
+          {
+            "chapterId": "c1",
+            "corrected": false,
+            "evidence": {
+              "chapterId": "c1",
+              "excerpt": "Hello",
+              "paragraphId": "p1",
+              "tag": ""
+            },
+            "id": "cue-1",
+            "paragraphId": "p1",
+            "quote_end": 5,
+            "quote_start": 0,
+            "quote_text": "Hello",
+            "speaker_entity_id": null,
+            "speaker_source": "unknown"
+          },
+          {
+            "chapterId": "c1",
+            "corrected": false,
+            "evidence": {
+              "chapterId": "c1",
+              "excerpt": "Hello",
+              "paragraphId": "p1",
+              "tag": ""
+            },
+            "id": "cue-2",
+            "paragraphId": "p1",
+            "quote_end": 5,
+            "quote_start": 0,
+            "quote_text": "Hello",
+            "speaker_entity_id": "entity-wren",
+            "speaker_source": "tag"
+          }
+        ],
+        "entities": [
+          {
+            "aliases": [
+              {
+                "occurrences": [],
+                "pronunciation": {},
+                "text": "Little Wren"
+              },
+              {
+                "occurrences": [],
+                "pronunciation": {},
+                "text": "W"
+              }
+            ],
+            "canonical_name": "Wren",
+            "category": "Hero",
+            "id": "entity-wren",
+            "locked": false,
+            "relationships": [
+              {
+                "id": "entity-mill",
+                "label": "works at",
+                "name": "The Mill"
+              }
+            ],
+            "review": {
+              "aliases": [
+                "W",
+                "gone",
+                "W"
+              ],
+              "entry": true
+            },
+            "review_state": "needs review"
+          },
+          {
+            "aliases": [],
+            "canonical_name": "The Mill",
+            "category": "Place",
+            "id": "entity-mill",
+            "locked": true,
+            "relationships": [
+              {
+                "id": "entity-wren",
+                "label": "employs",
+                "name": "Wren"
+              }
+            ],
+            "review_state": "reviewed"
+          },
+          {
+            "aliases": [],
+            "canonical_name": "Ada",
+            "category": "Hero",
+            "id": "entity-ada",
+            "locked": false,
+            "relationships": [],
+            "review_state": "needs review",
+            "speaker_color": 3
+          },
+          {
+            "aliases": [],
+            "canonical_name": "Bo",
+            "category": "Place",
+            "id": "entity-bo"
+          },
+          {
+            "aliases": [],
+            "canonical_name": "Cy",
+            "category": "Hero",
+            "id": "entity-cy",
+            "locked": 1,
+            "review_state": "reviewed"
+          }
+        ],
+        "schema_version": 2,
+        "types": [
+          {
+            "builtin": "Character",
+            "colour": "green",
+            "name": "Hero",
+            "speaks": true
+          },
+          {
+            "builtin": "Place",
+            "colour": "blue",
+            "name": "Place",
+            "speaks": false
+          }
+        ]
+      },
+      "arguments": {
+        "entity_id": "entity-mill",
+        "label": "owned by",
+        "other_id": "entity-ada"
+      },
+      "command": "unrelate",
+      "start": "types",
+      "wrote": true
+    },
+    {
+      "arguments": {
+        "entity_id": "entity-nobody",
+        "label": "x",
+        "other_id": "entity-mill"
+      },
+      "command": "unrelate",
+      "error": "Entity not found.",
+      "start": "types"
+    },
+    {
+      "after": {
+        "dialogue_cues": [
+          {
+            "chapterId": "c1",
+            "corrected": false,
+            "evidence": {
+              "chapterId": "c1",
+              "excerpt": "Hello",
+              "paragraphId": "p1",
+              "tag": ""
+            },
+            "id": "cue-1",
+            "paragraphId": "p1",
+            "quote_end": 5,
+            "quote_start": 0,
+            "quote_text": "Hello",
+            "speaker_entity_id": null,
+            "speaker_source": "unknown"
+          },
+          {
+            "chapterId": "c1",
+            "corrected": false,
+            "evidence": {
+              "chapterId": "c1",
+              "excerpt": "Hello",
+              "paragraphId": "p1",
+              "tag": ""
+            },
+            "id": "cue-2",
+            "paragraphId": "p1",
+            "quote_end": 5,
+            "quote_start": 0,
+            "quote_text": "Hello",
+            "speaker_entity_id": "entity-wren",
+            "speaker_source": "tag"
+          }
+        ],
+        "entities": [
+          {
+            "aliases": [
+              {
+                "occurrences": [],
+                "pronunciation": {},
+                "text": "Little Wren"
+              },
+              {
+                "occurrences": [],
+                "pronunciation": {},
+                "text": "W"
+              }
+            ],
+            "canonical_name": "Wren",
+            "category": "Hero",
+            "id": "entity-wren",
+            "locked": false,
+            "relationships": [
+              {
+                "id": "entity-mill",
+                "label": "works at",
+                "name": "The Mill"
+              }
+            ],
+            "review": {
+              "aliases": [
+                "W",
+                "gone",
+                "W"
+              ],
+              "entry": true
+            },
+            "review_state": "needs review"
+          },
+          {
+            "aliases": [],
+            "canonical_name": "The Mill",
+            "category": "Place",
+            "id": "entity-mill",
+            "locked": true,
+            "relationships": [
+              {
+                "id": "entity-wren",
+                "label": "employs",
+                "name": "Wren"
+              }
+            ],
+            "review_state": "reviewed"
+          },
+          {
+            "aliases": [],
+            "canonical_name": "Bo",
+            "category": "Place",
+            "id": "entity-bo",
+            "relationships": []
+          },
+          {
+            "aliases": [],
+            "canonical_name": "Cy",
+            "category": "Hero",
+            "id": "entity-cy",
+            "locked": 1,
+            "relationships": [],
+            "review_state": "reviewed"
+          }
+        ],
+        "schema_version": 2,
+        "types": [
+          {
+            "builtin": "Character",
+            "colour": "green",
+            "name": "Hero",
+            "speaks": true
+          },
+          {
+            "builtin": "Place",
+            "colour": "blue",
+            "name": "Place",
+            "speaks": false
+          }
+        ]
+      },
+      "arguments": {
+        "entity_id": "entity-ada"
+      },
+      "command": "delete",
+      "start": "types",
+      "wrote": true
+    },
+    {
+      "after": {
+        "dialogue_cues": [
+          {
+            "chapterId": "c1",
+            "corrected": false,
+            "evidence": {
+              "chapterId": "c1",
+              "excerpt": "Hello",
+              "paragraphId": "p1",
+              "tag": ""
+            },
+            "id": "cue-1",
+            "paragraphId": "p1",
+            "quote_end": 5,
+            "quote_start": 0,
+            "quote_text": "Hello",
+            "speaker_entity_id": null,
+            "speaker_source": "unknown"
+          },
+          {
+            "chapterId": "c1",
+            "corrected": false,
+            "evidence": {
+              "chapterId": "c1",
+              "excerpt": "Hello",
+              "paragraphId": "p1",
+              "tag": ""
+            },
+            "id": "cue-2",
+            "paragraphId": "p1",
+            "quote_end": 5,
+            "quote_start": 0,
+            "quote_text": "Hello",
+            "speaker_entity_id": "entity-wren",
+            "speaker_source": "tag"
+          }
+        ],
+        "entities": [
+          {
+            "aliases": [],
+            "canonical_name": "The Mill",
+            "category": "Place",
+            "id": "entity-mill",
+            "locked": true,
+            "relationships": [
+              {
+                "id": "entity-ada",
+                "label": "owned by",
+                "name": "Ada"
+              }
+            ],
+            "review_state": "reviewed"
+          },
+          {
+            "aliases": [],
+            "canonical_name": "Ada",
+            "category": "Hero",
+            "id": "entity-ada",
+            "locked": false,
+            "relationships": [],
+            "review_state": "needs review",
+            "speaker_color": 3
+          },
+          {
+            "aliases": [],
+            "canonical_name": "Bo",
+            "category": "Place",
+            "id": "entity-bo",
+            "relationships": []
+          },
+          {
+            "aliases": [],
+            "canonical_name": "Cy",
+            "category": "Hero",
+            "id": "entity-cy",
+            "locked": 1,
+            "relationships": [],
+            "review_state": "reviewed"
+          }
+        ],
+        "schema_version": 2,
+        "types": [
+          {
+            "builtin": "Character",
+            "colour": "green",
+            "name": "Hero",
+            "speaks": true
+          },
+          {
+            "builtin": "Place",
+            "colour": "blue",
+            "name": "Place",
+            "speaks": false
+          }
+        ]
+      },
+      "arguments": {
+        "entity_id": "entity-wren"
+      },
+      "command": "delete",
+      "start": "types",
+      "wrote": true
+    },
+    {
+      "arguments": {
+        "entity_id": "entity-mill"
+      },
+      "command": "delete",
+      "error": "Cannot delete a locked entity. Unlock it first.",
+      "start": "types"
+    },
+    {
+      "arguments": {
+        "entity_id": "entity-cy"
+      },
+      "command": "delete",
+      "error": "Cannot delete a locked entity. Unlock it first.",
+      "start": "types"
+    },
+    {
+      "arguments": {
+        "entity_id": "entity-nobody"
+      },
+      "command": "delete",
+      "error": "Entity not found.",
+      "start": "types"
+    },
+    {
+      "after": {
+        "dialogue_cues": [
+          {
+            "chapterId": "c1",
+            "corrected": true,
+            "evidence": {
+              "chapterId": "c1",
+              "excerpt": "Hello",
+              "paragraphId": "p1",
+              "tag": ""
+            },
+            "id": "cue-1",
+            "paragraphId": "p1",
+            "quote_end": 5,
+            "quote_start": 0,
+            "quote_text": "Hello",
+            "speaker_entity_id": "entity-wren",
+            "speaker_source": "correction"
+          },
+          {
+            "chapterId": "c1",
+            "corrected": false,
+            "evidence": {
+              "chapterId": "c1",
+              "excerpt": "Hello",
+              "paragraphId": "p1",
+              "tag": ""
+            },
+            "id": "cue-2",
+            "paragraphId": "p1",
+            "quote_end": 5,
+            "quote_start": 0,
+            "quote_text": "Hello",
+            "speaker_entity_id": "entity-wren",
+            "speaker_source": "tag"
+          }
+        ],
+        "entities": [
+          {
+            "aliases": [
+              {
+                "occurrences": [],
+                "pronunciation": {},
+                "text": "Little Wren"
+              },
+              {
+                "occurrences": [],
+                "pronunciation": {},
+                "text": "W"
+              }
+            ],
+            "canonical_name": "Wren",
+            "category": "Hero",
+            "id": "entity-wren",
+            "locked": false,
+            "relationships": [
+              {
+                "id": "entity-mill",
+                "label": "works at",
+                "name": "The Mill"
+              }
+            ],
+            "review": {
+              "aliases": [
+                "W",
+                "gone",
+                "W"
+              ],
+              "entry": true
+            },
+            "review_state": "needs review"
+          },
+          {
+            "aliases": [],
+            "canonical_name": "The Mill",
+            "category": "Place",
+            "id": "entity-mill",
+            "locked": true,
+            "relationships": [
+              {
+                "id": "entity-wren",
+                "label": "employs",
+                "name": "Wren"
+              },
+              {
+                "id": "entity-ada",
+                "label": "owned by",
+                "name": "Ada"
+              }
+            ],
+            "review_state": "reviewed"
+          },
+          {
+            "aliases": [],
+            "canonical_name": "Ada",
+            "category": "Hero",
+            "id": "entity-ada",
+            "locked": false,
+            "relationships": [],
+            "review_state": "needs review",
+            "speaker_color": 3
+          },
+          {
+            "aliases": [],
+            "canonical_name": "Bo",
+            "category": "Place",
+            "id": "entity-bo"
+          },
+          {
+            "aliases": [],
+            "canonical_name": "Cy",
+            "category": "Hero",
+            "id": "entity-cy",
+            "locked": 1,
+            "review_state": "reviewed"
+          }
+        ],
+        "schema_version": 2,
+        "types": [
+          {
+            "builtin": "Character",
+            "colour": "green",
+            "name": "Hero",
+            "speaks": true
+          },
+          {
+            "builtin": "Place",
+            "colour": "blue",
+            "name": "Place",
+            "speaks": false
+          }
+        ]
+      },
+      "arguments": {
+        "cue_id": "cue-1",
+        "speaker_entity_id": "entity-wren"
+      },
+      "command": "correct-cue",
+      "start": "types",
+      "wrote": true
+    },
+    {
+      "after": {
+        "dialogue_cues": [
+          {
+            "chapterId": "c1",
+            "corrected": false,
+            "evidence": {
+              "chapterId": "c1",
+              "excerpt": "Hello",
+              "paragraphId": "p1",
+              "tag": ""
+            },
+            "id": "cue-1",
+            "paragraphId": "p1",
+            "quote_end": 5,
+            "quote_start": 0,
+            "quote_text": "Hello",
+            "speaker_entity_id": null,
+            "speaker_source": "unknown"
+          },
+          {
+            "chapterId": "c1",
+            "corrected": true,
+            "evidence": {
+              "chapterId": "c1",
+              "excerpt": "Hello",
+              "paragraphId": "p1",
+              "tag": ""
+            },
+            "id": "cue-2",
+            "paragraphId": "p1",
+            "quote_end": 5,
+            "quote_start": 0,
+            "quote_text": "Hello",
+            "speaker_entity_id": null,
+            "speaker_source": "correction"
+          }
+        ],
+        "entities": [
+          {
+            "aliases": [
+              {
+                "occurrences": [],
+                "pronunciation": {},
+                "text": "Little Wren"
+              },
+              {
+                "occurrences": [],
+                "pronunciation": {},
+                "text": "W"
+              }
+            ],
+            "canonical_name": "Wren",
+            "category": "Hero",
+            "id": "entity-wren",
+            "locked": false,
+            "relationships": [
+              {
+                "id": "entity-mill",
+                "label": "works at",
+                "name": "The Mill"
+              }
+            ],
+            "review": {
+              "aliases": [
+                "W",
+                "gone",
+                "W"
+              ],
+              "entry": true
+            },
+            "review_state": "needs review"
+          },
+          {
+            "aliases": [],
+            "canonical_name": "The Mill",
+            "category": "Place",
+            "id": "entity-mill",
+            "locked": true,
+            "relationships": [
+              {
+                "id": "entity-wren",
+                "label": "employs",
+                "name": "Wren"
+              },
+              {
+                "id": "entity-ada",
+                "label": "owned by",
+                "name": "Ada"
+              }
+            ],
+            "review_state": "reviewed"
+          },
+          {
+            "aliases": [],
+            "canonical_name": "Ada",
+            "category": "Hero",
+            "id": "entity-ada",
+            "locked": false,
+            "relationships": [],
+            "review_state": "needs review",
+            "speaker_color": 3
+          },
+          {
+            "aliases": [],
+            "canonical_name": "Bo",
+            "category": "Place",
+            "id": "entity-bo"
+          },
+          {
+            "aliases": [],
+            "canonical_name": "Cy",
+            "category": "Hero",
+            "id": "entity-cy",
+            "locked": 1,
+            "review_state": "reviewed"
+          }
+        ],
+        "schema_version": 2,
+        "types": [
+          {
+            "builtin": "Character",
+            "colour": "green",
+            "name": "Hero",
+            "speaks": true
+          },
+          {
+            "builtin": "Place",
+            "colour": "blue",
+            "name": "Place",
+            "speaks": false
+          }
+        ]
+      },
+      "arguments": {
+        "cue_id": "cue-2",
+        "speaker_entity_id": "unknown"
+      },
+      "command": "correct-cue",
+      "start": "types",
+      "wrote": true
+    },
+    {
+      "after": {
+        "dialogue_cues": [
+          {
+            "chapterId": "c1",
+            "corrected": false,
+            "evidence": {
+              "chapterId": "c1",
+              "excerpt": "Hello",
+              "paragraphId": "p1",
+              "tag": ""
+            },
+            "id": "cue-1",
+            "paragraphId": "p1",
+            "quote_end": 5,
+            "quote_start": 0,
+            "quote_text": "Hello",
+            "speaker_entity_id": null,
+            "speaker_source": "unknown"
+          },
+          {
+            "chapterId": "c1",
+            "corrected": true,
+            "evidence": {
+              "chapterId": "c1",
+              "excerpt": "Hello",
+              "paragraphId": "p1",
+              "tag": ""
+            },
+            "id": "cue-2",
+            "paragraphId": "p1",
+            "quote_end": 5,
+            "quote_start": 0,
+            "quote_text": "Hello",
+            "speaker_entity_id": null,
+            "speaker_source": "correction"
+          }
+        ],
+        "entities": [
+          {
+            "aliases": [
+              {
+                "occurrences": [],
+                "pronunciation": {},
+                "text": "Little Wren"
+              },
+              {
+                "occurrences": [],
+                "pronunciation": {},
+                "text": "W"
+              }
+            ],
+            "canonical_name": "Wren",
+            "category": "Hero",
+            "id": "entity-wren",
+            "locked": false,
+            "relationships": [
+              {
+                "id": "entity-mill",
+                "label": "works at",
+                "name": "The Mill"
+              }
+            ],
+            "review": {
+              "aliases": [
+                "W",
+                "gone",
+                "W"
+              ],
+              "entry": true
+            },
+            "review_state": "needs review"
+          },
+          {
+            "aliases": [],
+            "canonical_name": "The Mill",
+            "category": "Place",
+            "id": "entity-mill",
+            "locked": true,
+            "relationships": [
+              {
+                "id": "entity-wren",
+                "label": "employs",
+                "name": "Wren"
+              },
+              {
+                "id": "entity-ada",
+                "label": "owned by",
+                "name": "Ada"
+              }
+            ],
+            "review_state": "reviewed"
+          },
+          {
+            "aliases": [],
+            "canonical_name": "Ada",
+            "category": "Hero",
+            "id": "entity-ada",
+            "locked": false,
+            "relationships": [],
+            "review_state": "needs review",
+            "speaker_color": 3
+          },
+          {
+            "aliases": [],
+            "canonical_name": "Bo",
+            "category": "Place",
+            "id": "entity-bo"
+          },
+          {
+            "aliases": [],
+            "canonical_name": "Cy",
+            "category": "Hero",
+            "id": "entity-cy",
+            "locked": 1,
+            "review_state": "reviewed"
+          }
+        ],
+        "schema_version": 2,
+        "types": [
+          {
+            "builtin": "Character",
+            "colour": "green",
+            "name": "Hero",
+            "speaks": true
+          },
+          {
+            "builtin": "Place",
+            "colour": "blue",
+            "name": "Place",
+            "speaks": false
+          }
+        ]
+      },
+      "arguments": {
+        "cue_id": "cue-2",
+        "speaker_entity_id": "  "
+      },
+      "command": "correct-cue",
+      "start": "types",
+      "wrote": true
+    },
+    {
+      "after": {
+        "dialogue_cues": [
+          {
+            "chapterId": "c1",
+            "corrected": true,
+            "evidence": {
+              "chapterId": "c1",
+              "excerpt": "Hello",
+              "paragraphId": "p1",
+              "tag": ""
+            },
+            "id": "cue-1",
+            "paragraphId": "p1",
+            "quote_end": 5,
+            "quote_start": 0,
+            "quote_text": "Hello",
+            "speaker_entity_id": null,
+            "speaker_source": "correction"
+          },
+          {
+            "chapterId": "c1",
+            "corrected": false,
+            "evidence": {
+              "chapterId": "c1",
+              "excerpt": "Hello",
+              "paragraphId": "p1",
+              "tag": ""
+            },
+            "id": "cue-2",
+            "paragraphId": "p1",
+            "quote_end": 5,
+            "quote_start": 0,
+            "quote_text": "Hello",
+            "speaker_entity_id": "entity-wren",
+            "speaker_source": "tag"
+          }
+        ],
+        "entities": [
+          {
+            "aliases": [
+              {
+                "occurrences": [],
+                "pronunciation": {},
+                "text": "Little Wren"
+              },
+              {
+                "occurrences": [],
+                "pronunciation": {},
+                "text": "W"
+              }
+            ],
+            "canonical_name": "Wren",
+            "category": "Hero",
+            "id": "entity-wren",
+            "locked": false,
+            "relationships": [
+              {
+                "id": "entity-mill",
+                "label": "works at",
+                "name": "The Mill"
+              }
+            ],
+            "review": {
+              "aliases": [
+                "W",
+                "gone",
+                "W"
+              ],
+              "entry": true
+            },
+            "review_state": "needs review"
+          },
+          {
+            "aliases": [],
+            "canonical_name": "The Mill",
+            "category": "Place",
+            "id": "entity-mill",
+            "locked": true,
+            "relationships": [
+              {
+                "id": "entity-wren",
+                "label": "employs",
+                "name": "Wren"
+              },
+              {
+                "id": "entity-ada",
+                "label": "owned by",
+                "name": "Ada"
+              }
+            ],
+            "review_state": "reviewed"
+          },
+          {
+            "aliases": [],
+            "canonical_name": "Ada",
+            "category": "Hero",
+            "id": "entity-ada",
+            "locked": false,
+            "relationships": [],
+            "review_state": "needs review",
+            "speaker_color": 3
+          },
+          {
+            "aliases": [],
+            "canonical_name": "Bo",
+            "category": "Place",
+            "id": "entity-bo"
+          },
+          {
+            "aliases": [],
+            "canonical_name": "Cy",
+            "category": "Hero",
+            "id": "entity-cy",
+            "locked": 1,
+            "review_state": "reviewed"
+          }
+        ],
+        "schema_version": 2,
+        "types": [
+          {
+            "builtin": "Character",
+            "colour": "green",
+            "name": "Hero",
+            "speaks": true
+          },
+          {
+            "builtin": "Place",
+            "colour": "blue",
+            "name": "Place",
+            "speaks": false
+          }
+        ]
+      },
+      "arguments": {
+        "cue_id": "cue-1",
+        "speaker_entity_id": " Unknown "
+      },
+      "command": "correct-cue",
+      "start": "types",
+      "wrote": true
+    },
+    {
+      "after": {
+        "dialogue_cues": [
+          {
+            "chapterId": "c1",
+            "corrected": true,
+            "evidence": {
+              "chapterId": "c1",
+              "excerpt": "Hello",
+              "paragraphId": "p1",
+              "tag": ""
+            },
+            "id": "cue-1",
+            "paragraphId": "p1",
+            "quote_end": 5,
+            "quote_start": 0,
+            "quote_text": "Hello",
+            "speaker_entity_id": null,
+            "speaker_source": "correction"
+          },
+          {
+            "chapterId": "c1",
+            "corrected": false,
+            "evidence": {
+              "chapterId": "c1",
+              "excerpt": "Hello",
+              "paragraphId": "p1",
+              "tag": ""
+            },
+            "id": "cue-2",
+            "paragraphId": "p1",
+            "quote_end": 5,
+            "quote_start": 0,
+            "quote_text": "Hello",
+            "speaker_entity_id": "entity-wren",
+            "speaker_source": "tag"
+          }
+        ],
+        "entities": [
+          {
+            "aliases": [
+              {
+                "occurrences": [],
+                "pronunciation": {},
+                "text": "Little Wren"
+              },
+              {
+                "occurrences": [],
+                "pronunciation": {},
+                "text": "W"
+              }
+            ],
+            "canonical_name": "Wren",
+            "category": "Hero",
+            "id": "entity-wren",
+            "locked": false,
+            "relationships": [
+              {
+                "id": "entity-mill",
+                "label": "works at",
+                "name": "The Mill"
+              }
+            ],
+            "review": {
+              "aliases": [
+                "W",
+                "gone",
+                "W"
+              ],
+              "entry": true
+            },
+            "review_state": "needs review"
+          },
+          {
+            "aliases": [],
+            "canonical_name": "The Mill",
+            "category": "Place",
+            "id": "entity-mill",
+            "locked": true,
+            "relationships": [
+              {
+                "id": "entity-wren",
+                "label": "employs",
+                "name": "Wren"
+              },
+              {
+                "id": "entity-ada",
+                "label": "owned by",
+                "name": "Ada"
+              }
+            ],
+            "review_state": "reviewed"
+          },
+          {
+            "aliases": [],
+            "canonical_name": "Ada",
+            "category": "Hero",
+            "id": "entity-ada",
+            "locked": false,
+            "relationships": [],
+            "review_state": "needs review",
+            "speaker_color": 3
+          },
+          {
+            "aliases": [],
+            "canonical_name": "Bo",
+            "category": "Place",
+            "id": "entity-bo"
+          },
+          {
+            "aliases": [],
+            "canonical_name": "Cy",
+            "category": "Hero",
+            "id": "entity-cy",
+            "locked": 1,
+            "review_state": "reviewed"
+          }
+        ],
+        "schema_version": 2,
+        "types": [
+          {
+            "builtin": "Character",
+            "colour": "green",
+            "name": "Hero",
+            "speaks": true
+          },
+          {
+            "builtin": "Place",
+            "colour": "blue",
+            "name": "Place",
+            "speaks": false
+          }
+        ]
+      },
+      "arguments": {
+        "cue_id": "cue-1",
+        "speaker_entity_id": "\u001funknown\u001d"
+      },
+      "command": "correct-cue",
+      "start": "types",
+      "wrote": true
+    },
+    {
+      "after": {
+        "dialogue_cues": [
+          {
+            "chapterId": "c1",
+            "corrected": true,
+            "evidence": {
+              "chapterId": "c1",
+              "excerpt": "Hello",
+              "paragraphId": "p1",
+              "tag": ""
+            },
+            "id": "cue-1",
+            "paragraphId": "p1",
+            "quote_end": 5,
+            "quote_start": 0,
+            "quote_text": "Hello",
+            "speaker_entity_id": "entity-ada",
+            "speaker_source": "correction"
+          },
+          {
+            "chapterId": "c1",
+            "corrected": false,
+            "evidence": {
+              "chapterId": "c1",
+              "excerpt": "Hello",
+              "paragraphId": "p1",
+              "tag": ""
+            },
+            "id": "cue-2",
+            "paragraphId": "p1",
+            "quote_end": 5,
+            "quote_start": 0,
+            "quote_text": "Hello",
+            "speaker_entity_id": "entity-wren",
+            "speaker_source": "tag"
+          }
+        ],
+        "entities": [
+          {
+            "aliases": [
+              {
+                "occurrences": [],
+                "pronunciation": {},
+                "text": "Little Wren"
+              },
+              {
+                "occurrences": [],
+                "pronunciation": {},
+                "text": "W"
+              }
+            ],
+            "canonical_name": "Wren",
+            "category": "Hero",
+            "id": "entity-wren",
+            "locked": false,
+            "relationships": [
+              {
+                "id": "entity-mill",
+                "label": "works at",
+                "name": "The Mill"
+              }
+            ],
+            "review": {
+              "aliases": [
+                "W",
+                "gone",
+                "W"
+              ],
+              "entry": true
+            },
+            "review_state": "needs review"
+          },
+          {
+            "aliases": [],
+            "canonical_name": "The Mill",
+            "category": "Place",
+            "id": "entity-mill",
+            "locked": true,
+            "relationships": [
+              {
+                "id": "entity-wren",
+                "label": "employs",
+                "name": "Wren"
+              },
+              {
+                "id": "entity-ada",
+                "label": "owned by",
+                "name": "Ada"
+              }
+            ],
+            "review_state": "reviewed"
+          },
+          {
+            "aliases": [],
+            "canonical_name": "Ada",
+            "category": "Hero",
+            "id": "entity-ada",
+            "locked": false,
+            "relationships": [],
+            "review_state": "needs review",
+            "speaker_color": 3
+          },
+          {
+            "aliases": [],
+            "canonical_name": "Bo",
+            "category": "Place",
+            "id": "entity-bo"
+          },
+          {
+            "aliases": [],
+            "canonical_name": "Cy",
+            "category": "Hero",
+            "id": "entity-cy",
+            "locked": 1,
+            "review_state": "reviewed"
+          }
+        ],
+        "schema_version": 2,
+        "types": [
+          {
+            "builtin": "Character",
+            "colour": "green",
+            "name": "Hero",
+            "speaks": true
+          },
+          {
+            "builtin": "Place",
+            "colour": "blue",
+            "name": "Place",
+            "speaks": false
+          }
+        ]
+      },
+      "arguments": {
+        "cue_id": "cue-1",
+        "speaker_entity_id": "  entity-ada  "
+      },
+      "command": "correct-cue",
+      "start": "types",
+      "wrote": true
+    },
+    {
+      "arguments": {
+        "cue_id": "cue-9",
+        "speaker_entity_id": "entity-wren"
+      },
+      "command": "correct-cue",
+      "error": "Cue not found.",
+      "start": "types"
+    },
+    {
+      "arguments": {
+        "cue_id": "cue-1",
+        "speaker_entity_id": "entity-dee"
+      },
+      "command": "correct-cue",
+      "error": "Cue not found.",
+      "start": "default"
+    }
+  ],
+  "starts": {
+    "bad-types": {
+      "entities": [
+        {
+          "aliases": [],
+          "canonical_name": "Dee",
+          "category": "Hero",
+          "id": "entity-dee",
+          "locked": false,
+          "review_state": "reviewed"
+        }
+      ],
+      "schema_version": 2,
+      "types": [
+        {
+          "colour": "green",
+          "name": "Hero",
+          "speaks": "yes"
+        }
+      ]
+    },
+    "default": {
+      "entities": [
+        {
+          "aliases": [],
+          "canonical_name": "Dee",
+          "category": "Character",
+          "id": "entity-dee",
+          "locked": false,
+          "review_state": "reviewed"
+        },
+        {
+          "aliases": [],
+          "canonical_name": "Eli",
+          "category": "Needs Review",
+          "id": "entity-eli",
+          "locked": false,
+          "review_state": "needs review"
+        }
+      ],
+      "schema_version": 2
+    },
+    "types": {
+      "dialogue_cues": [
+        {
+          "chapterId": "c1",
+          "corrected": false,
+          "evidence": {
+            "chapterId": "c1",
+            "excerpt": "Hello",
+            "paragraphId": "p1",
+            "tag": ""
+          },
+          "id": "cue-1",
+          "paragraphId": "p1",
+          "quote_end": 5,
+          "quote_start": 0,
+          "quote_text": "Hello",
+          "speaker_entity_id": null,
+          "speaker_source": "unknown"
+        },
+        {
+          "chapterId": "c1",
+          "corrected": false,
+          "evidence": {
+            "chapterId": "c1",
+            "excerpt": "Hello",
+            "paragraphId": "p1",
+            "tag": ""
+          },
+          "id": "cue-2",
+          "paragraphId": "p1",
+          "quote_end": 5,
+          "quote_start": 0,
+          "quote_text": "Hello",
+          "speaker_entity_id": "entity-wren",
+          "speaker_source": "tag"
+        }
+      ],
+      "entities": [
+        {
+          "aliases": [
+            "Little Wren",
+            {
+              "occurrences": [],
+              "pronunciation": {},
+              "text": "W"
+            }
+          ],
+          "canonical_name": "Wren",
+          "category": "Hero",
+          "id": "entity-wren",
+          "locked": false,
+          "relationships": [
+            {
+              "id": "entity-mill",
+              "label": "works at",
+              "name": "The Mill"
+            }
+          ],
+          "review": {
+            "aliases": [
+              "W",
+              "gone",
+              "W"
+            ],
+            "entry": true
+          },
+          "review_state": "needs review"
+        },
+        {
+          "aliases": [],
+          "canonical_name": "The Mill",
+          "category": "Place",
+          "id": "entity-mill",
+          "locked": true,
+          "relationships": [
+            {
+              "id": "entity-wren",
+              "label": "employs",
+              "name": "Wren"
+            },
+            {
+              "id": "entity-ada",
+              "label": "owned by",
+              "name": "Ada"
+            }
+          ],
+          "review_state": "reviewed"
+        },
+        {
+          "aliases": [],
+          "canonical_name": "Ada",
+          "category": "Hero",
+          "id": "entity-ada",
+          "locked": false,
+          "relationships": [],
+          "review_state": "needs review",
+          "speaker_color": 3
+        },
+        {
+          "aliases": [],
+          "canonical_name": "Bo",
+          "category": "Place",
+          "id": "entity-bo"
+        },
+        {
+          "aliases": [],
+          "canonical_name": "Cy",
+          "category": "Hero",
+          "id": "entity-cy",
+          "locked": 1,
+          "review_state": "reviewed"
+        }
+      ],
+      "schema_version": 2,
+      "types": [
+        {
+          "builtin": "Character",
+          "colour": "green",
+          "name": "Hero",
+          "speaks": true
+        },
+        {
+          "builtin": "Place",
+          "colour": "blue",
+          "name": "Place",
+          "speaks": false
+        }
+      ]
+    }
+  }
+}

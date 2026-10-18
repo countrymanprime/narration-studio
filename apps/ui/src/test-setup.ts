@@ -1,6 +1,7 @@
 import { afterEach, vi } from 'vitest';
 import { cleanup, configure } from '@testing-library/react';
 import fc from 'fast-check';
+import { forgetProofMemory } from './components/proof/proofMemory';
 
 // Testing Library's findBy* and waitFor give up after 1 s by default. Vitest runs test files in parallel workers, and a
 // page that mounts the whole app or a long chapter in jsdom can take longer than that when the machine is busy: two of 25
@@ -14,7 +15,11 @@ configure({ asyncUtilTimeout: 5_000 });
 // is off). A file that forgot `afterEach(cleanup)` (useZoom.test.ts was one of 36) left its hooks mounted: a debounce timer then fired
 // after jsdom was torn down and failed an unrelated file with "window is not defined" (quality / js on a654df8a). Unmounting after every
 // test here clears each hook's timers and listeners, so no file has to remember.
-afterEach(() => cleanup());
+afterEach(() => {
+  cleanup();
+  // What Proof keeps for a Back (the selected note, an unsaved decision note) is the session's, never a test's.
+  forgetProofMemory();
+});
 
 // Vitest 4's jsdom compat layer wraps URL.createObjectURL and reads a private
 // `_buffer` field off jsdom's Blob implementation, which jsdom 30 no longer

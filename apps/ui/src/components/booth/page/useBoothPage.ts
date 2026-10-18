@@ -71,6 +71,8 @@ export type BoothPageOptions = {
    * (`[data-bm]`), they are the whole menu.
    */
   menuItems?: (target: Element) => ContextMenuItem[];
+  /** Escape is the voice sample's first: true when a sample was playing and this press stopped it, so the page is not left on the same press. */
+  escapeStoppedSample?: () => boolean;
 };
 
 /**
@@ -80,8 +82,8 @@ export type BoothPageOptions = {
  */
 export function useBoothPage(options: BoothPageOptions) {
   const { recordId, title, credits, paragraphs, session, daw, guard, overlay, from, navigate, exitTo } = options;
-  const extras = useRef({ onTakeStopped: options.onTakeStopped, menuItems: options.menuItems });
-  extras.current = { onTakeStopped: options.onTakeStopped, menuItems: options.menuItems };
+  const extras = useRef({ onTakeStopped: options.onTakeStopped, menuItems: options.menuItems, escapeStoppedSample: options.escapeStoppedSample });
+  extras.current = { onTakeStopped: options.onTakeStopped, menuItems: options.menuItems, escapeStoppedSample: options.escapeStoppedSample };
   // The Booth changes chapter without changing its address: an Undo toast about the last one's take or pickups is no longer true.
   useEffect(() => overlay.dismissUndo(), [overlay, recordId]);
   const notify = useCallback((sentence: string, topic?: string) => overlay.toast(sentence, topic ? { topic } : undefined), [overlay]);
@@ -397,6 +399,8 @@ export function useBoothPage(options: BoothPageOptions) {
   useCommand('booth.exit', () => {
     // A dialog, menu or popover closes on its own Escape first; the side panel's drawer takes Escape before it reaches here.
     if (document.querySelector(OPEN_OVER)) return;
+    // A voice sample that is playing takes the press: it stops, and the next Escape leaves.
+    if (extras.current.escapeStoppedSample?.()) return;
     exit();
   });
 
