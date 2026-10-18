@@ -140,11 +140,18 @@
     "caption": "Production - evidence changed since you confirmed: the check that is no longer met and Revert; nothing moved on its own"
   },
   {
+    "page": "settings",
+    "state": "import-choose",
+    "viewport": "desktop",
+    "docName": "production-import-choose",
+    "caption": "Replace manuscript, step 1 of 2: Choose your manuscript, with the drop zone and Choose a file…"
+  },
+  {
     "page": "production",
     "state": "import-confirm",
     "viewport": "desktop",
     "docName": "production-import-confirm",
-    "caption": "Production - import manuscript confirm dialog with format/paragraph/chapter preview"
+    "caption": "Import manuscript, step 2 of 2: Check the chapter outline, with each heading's words and a preview of how the selected one begins"
   },
   {
     "page": "proof-chapter",

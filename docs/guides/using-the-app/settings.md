@@ -154,7 +154,7 @@ With nothing downloaded, the page offers **Download the recommended set** (the S
 
 ![Settings - Project: the manuscript, the Story Bible rows, the marks and the narrator](../../images/ui/settings-project.webp)
 
-- **Manuscript** says when the manuscript was imported and how many words it has (or **No manuscript yet**), with **Replace manuscript…** (or **Import manuscript** when there is none). The replace confirm names what it clears.
+- **Manuscript** says when the manuscript was imported and how many words it has (or **No manuscript yet**), with **Replace manuscript…** (or **Import manuscript** when there is none). **Replace manuscript…** opens the same two steps as the [import](production.md#importing-the-manuscript); step 2 names what the replace clears.
 - **Build the Story Bible after import** and **Language model for the Story Bible** are for all projects, and a project may override them.
 - **Entry types** lists the kinds of [Story Bible](story-bible.md) entry, each with its name, colour, a **Can speak** box (entries of that type can be picked as the speaker of a quoted line, and the next Story Bible build attributes dialogue to them) and how many entries it has. A type you add with **New type** does not speak until you tick the box. Rename a type in its box and every entry of it moves with it; change its colour; or remove one: the remove button stays off while entries use the type, and the last type cannot go. A taken or reserved name is refused, and says why under the list.
 - **Marks** lists your mark types, each with its colour, and **tracks a reply** on a type that asks for one. **Edit marks…** opens the same **Define how you mark up** dialog as the Script page.
@@ -162,7 +162,7 @@ With nothing downloaded, the page offers **Download the recommended set** (the S
 - **Credits**: see [Credits](#credits).
 - **Clear derived data** (Advanced) removes the imported manuscript and its stored source, the Story Bible, proofing artifacts, reader notes and bookmarks, and saved comparison results for the current project, after you confirm. Its settings remain.
 
-![Settings - the Replace manuscript confirm for an imported file, with its title, word count and what is kept](../../images/ui/settings-manuscript.webp)
+![Settings - Replace manuscript, step 2 of 2: the chapter outline, with the line that names what a replace clears](../../images/ui/settings-manuscript.webp)
 
 ![Settings - Clear derived data asks first](../../images/ui/settings-project-data.webp)
 
