@@ -14,6 +14,10 @@ import { LimitRow } from './LimitRow';
 import { editOf, formatRules, limitRules, limitsOf, type Limit } from './limitText';
 import { ProfileMenu } from './ProfileMenu';
 
+/** The longest profile name the host saves (deliverySaveProfile refuses more); checked here so the refusal reads like the blank-name one. */
+const MAX_NAME_LENGTH = 80;
+const NAME_KEPT = ', so the name was left as it was.';
+
 /** The profile the project is judged against: the one the project chose, else the Global default. */
 const activeProfile = (state: DeliveryProfilesState): DeliveryProfile | undefined =>
   state.profiles.find((profile) => deliveryProfileKey(profile) === state.projectProfile) ?? state.profiles[0];
@@ -115,11 +119,14 @@ export function ProfileCard({
           ) : (
             <CommitBox
               label="Profile name"
-              className="max-w-full min-w-[10rem]"
+              className="w-40 max-w-full"
               value={profile.name}
-              onCommit={(name) =>
-                name.trim() === '' ? setError('A profile needs a name, so the name was left as it was.') : void save(editOf(profile, { name: name.trim() }))
-              }
+              onCommit={(name) => {
+                const trimmed = name.trim();
+                if (trimmed === '') setError(`A profile needs a name${NAME_KEPT}`);
+                else if ([...trimmed].length > MAX_NAME_LENGTH) setError(`A profile's name can be at most ${MAX_NAME_LENGTH} characters${NAME_KEPT}`);
+                else void save(editOf(profile, { name: trimmed }));
+              }}
             />
           )}
         </span>

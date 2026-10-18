@@ -41,6 +41,10 @@ export function useDeliveryBuild(profile: DeliveryProfile | undefined) {
   const [notice, setNotice] = useState<string>();
   const [opening, setOpening] = useState(false);
   const [openProblem, setOpenProblem] = useState<string>();
+  // A Cancel the host never answered: the build may still be running, so the page must not say it was cancelled.
+  const [cancelUnanswered, setCancelUnanswered] = useState(false);
+  // When Check again was last pressed, so the answer to that press can be told apart from the page's own retries.
+  const [pressedAt, setPressedAt] = useState<number>();
 
   const exportFiles = exported.value?.files;
   const encodedFiles = useMemo(() => exportFiles?.filter((file) => file.status === 'done' && file.encodedPath) ?? [], [exportFiles]);
@@ -55,6 +59,7 @@ export function useDeliveryBuild(profile: DeliveryProfile | undefined) {
     setStarting(true);
     setProblem(undefined);
     setNotice(undefined);
+    setCancelUnanswered(false);
     const before = packaged.value?.id ?? null;
     const items: PackageItem[] = encodedFiles.map((file) => ({ kind: file.kind, title: file.title, path: file.encodedPath as string }));
     try {
@@ -71,8 +76,13 @@ export function useDeliveryBuild(profile: DeliveryProfile | undefined) {
   }, [profile, port, packaged, encodedFiles]);
 
   const cancel = useCallback(() => {
-    port.packageCancel().then(packaged.set, (failure) => setProblem(apiErrorMessage(failure)));
-  }, [port, packaged]);
+    setCancelUnanswered(false);
+    port.packageCancel().then(packaged.set, (failure) => {
+      // The host did not answer: nothing says the build stopped. Anything else is the host refusing, in its words.
+      if (packaged.error !== undefined || exported.error !== undefined) setCancelUnanswered(true);
+      else setProblem(apiErrorMessage(failure));
+    });
+  }, [port, packaged, exported.error]);
 
   const openFolder = () => {
     setOpening(true);
@@ -100,6 +110,8 @@ export function useDeliveryBuild(profile: DeliveryProfile | undefined) {
     built: finished?.phase === 'success' && profile && finished.profile === deliveryProfileKey(profile) ? finished : undefined,
     failed: finished?.phase === 'error' ? finished : undefined,
     cancelled: finished?.phase === 'cancelled' ? finished : undefined,
+    /** Cancel was pressed while the host was quiet and never answered; goes when the host reports the job is no longer running. */
+    cancelUnconfirmed: cancelUnanswered && running,
     // The folder this profile's last build used; a build for another profile has its own, not this one's.
     folder: job && profile && job.profile === deliveryProfileKey(profile) ? job.outputDir || undefined : undefined,
     build,
@@ -109,7 +121,10 @@ export function useDeliveryBuild(profile: DeliveryProfile | undefined) {
     lastHeard: packaged.error !== undefined ? packaged.lastHeard : exported.lastHeard,
     /** When the host was last asked, answered or not: the proof that Check again read afresh. */
     lastAsked: packaged.error !== undefined ? packaged.lastAsked : exported.lastAsked,
+    /** When the host was last asked because Check again was pressed, and whether it has answered that press yet. */
+    checkedAt: pressedAt,
     checkAgain: () => {
+      setPressedAt(Date.now());
       readExport();
       readPackage();
     },

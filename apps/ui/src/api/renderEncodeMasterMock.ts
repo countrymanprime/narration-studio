@@ -387,7 +387,8 @@ export function createRenderEncodeMasterMock(
       return wireClone(packageJob);
     },
     packageCancel: async (): Promise<PackageJob> => {
-      silent = false;
+      // A host that has stopped answering the job's reads does not answer a cancel either: nothing is confirmed.
+      if (silent) throw new Error('the host did not answer');
       if (packageJob.phase === 'running') {
         packageJob = { ...packageJob, phase: 'cancelled', message: 'Packaging cancelled.' };
         publish({ id: packageJob.id ?? '', kind: 'render_package', outcome: 'cancelled', message: packageJob.message, durationMs: 500 });
