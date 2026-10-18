@@ -1,4 +1,5 @@
 // How to reach each `master` state in STATE_CATALOG (see app.drivers.ts).
+import { settlePage } from '../helpers/settle';
 import {
   type Driver,
   checkOnDiagnostics,
@@ -9,6 +10,7 @@ import {
   openDiagnostics,
   openMaster,
   pickFilesToMaster,
+  goToPage,
   panelTitled,
   scrollToTop,
 } from './shared';
@@ -16,6 +18,13 @@ import {
 const MEASURED = /^Measured 2 of 3 files; 1 could not be measured\./;
 
 export const masterDrivers: Record<string, Driver> = {
+  // The chapters never answer, so `openMaster` is not used: the page's own parts arrive, the package panel stays on its blocks.
+  'package-loading': async (page) => {
+    await page.goto('/?mockChapters=loading');
+    await settlePage(page);
+    await goToPage(page, 'Master & QC');
+    await page.getByRole('group', { name: 'Loading the delivery package checks' }).waitFor();
+  },
   empty: async (page) => {
     await openMaster(page);
     await page.getByText(/^Nothing measured yet/).waitFor();
@@ -76,16 +85,16 @@ export const masterDrivers: Record<string, Driver> = {
     await page.getByRole('table', { name: 'Findings' }).waitFor();
     await scrollToTop(page, diagnostics);
   },
-  // The cleanup candidates panel with its options group opened: this project's five thresholds, below the values the check used.
+  // The cleanup options dialog, opened from the jump menu: this project's five thresholds, over the page the check used them on.
   'diagnostics-cleanup-options': async (page) => {
     await openDiagnostics(page);
-    const cleanup = page.getByRole('region', { name: 'Silence cleanup candidates' });
-    await cleanup.getByRole('button', { name: /^Silence cleanup options/ }).click();
-    await cleanup.getByRole('textbox', { name: 'Hold kept at each side of a cut silence' }).waitFor();
-    // The last of the five, so every row of the group is in the picture.
-    await cleanup
-      .getByRole('textbox', { name: 'How far above the silence around it a click stands' })
-      .evaluate((element) => element.scrollIntoView({ block: 'end' }));
+    await page.keyboard.press('Control+KeyK');
+    await page.getByRole('combobox', { name: 'Jump menu' }).fill('Open Silence cleanup options');
+    await page
+      .getByRole('option', { name: /^Open Silence cleanup options/ })
+      .first()
+      .click();
+    await page.getByRole('textbox', { name: 'How far above the silence around it a click stands' }).waitFor();
   },
   'diagnostics-cancelled': async (page) => {
     await checkOnDiagnostics(page, '?mockDiagnostics=running');

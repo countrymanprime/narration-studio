@@ -307,7 +307,7 @@ export function PreviewPanel({ notify, goToManuscript }: { notify: Notify; goToM
           )}
         </InsetCard>
       )}
-      <ProofOptions title="Preview options" tool="Preview" keys={PREVIEW_KEYS} onSaved={readAgain} className="mt-3" />
+      <ProofOptions title="Preview options" group="Proof" tool="Preview" keys={PREVIEW_KEYS} onSaved={readAgain} />
     </Panel>
   );
 }

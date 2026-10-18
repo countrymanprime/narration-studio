@@ -4280,6 +4280,7 @@ describe('answers of the mock client for the settings, voice, model, transcript 
       'subscribeLiveUpdateHealth',
       'subscribeNotices',
       'subscribeJobEnded',
+      'subscribeManuscriptDropped',
       'subscribeVoiceSamples',
       'subscribeTranscript',
       'subscribeCoverage',
@@ -4754,6 +4755,18 @@ describe('the voice samples bindings', () => {
     const [sample] = (await api.voiceSamplesList()).samples;
     expect(JSON.stringify(sample)).not.toMatch(/\{ITEM\}|\{TAKE\}|sourceFile|itemGuid|takeGuid/);
     expect(sample?.source).toMatchObject({ state: 'ok', chapterTitle: expect.any(String) });
+  });
+
+  it('the seeded mock lists (?mockVoiceSamples=) pass the schema, with a clip and a passage in each damaged state, and send no path or GUID', async () => {
+    const bible = await createMockApi({}, { voiceSamples: 'bible' }).voiceSamplesList();
+    expectMatches(voiceSamplesSchema, bible, 'mock voice samples (bible seed)');
+    expect(bible.samples.map((sample) => sample.clipState)).toContain('missing');
+    expect(bible.samples.map((sample) => sample.source.state)).toContain('text_changed');
+    expect(JSON.stringify(bible)).not.toMatch(/\{5EED|sourceFile|itemGuid|takeGuid/);
+    const full = await createMockApi({}, { voiceSamples: 'full' }).voiceSamplesList();
+    expectMatches(voiceSamplesSchema, full, 'mock voice samples (full seed)');
+    expect(full.samples).toHaveLength(full.limits.perCharacter);
+    expect(full.samples.filter((sample) => sample.primary)).toHaveLength(1);
   });
 
   it('the schemas read the host goldens and refuse what the host never sends', () => {

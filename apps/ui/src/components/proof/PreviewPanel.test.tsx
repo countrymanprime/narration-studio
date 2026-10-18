@@ -4,6 +4,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { PreviewPanel } from './PreviewPanel';
 import { ApiProvider } from '../../api/ApiContext';
 import { createMockApi } from '../../api/mockApi';
+import { providedCommands } from '../../input/commandProviders';
 import type { Bootstrap, ManuscriptChapter, PinnedPreview, PreviewCandidate, PreviewResult } from '../../types';
 
 afterEach(cleanup);
@@ -267,7 +268,7 @@ describe('PreviewPanel pin and adjust', () => {
     await waitFor(() => expect(notify).toHaveBeenCalledWith(expect.stringMatching(/a pin needs at least one paragraph/), 'error'));
   });
 
-  it('offers its options under the table and reads the candidates again when one is saved', async () => {
+  it('offers its options from the jump menu and reads the candidates again when one is saved', async () => {
     const read = vi.fn(() => Promise.resolve({ outcome: 'ok', candidates: [CANDIDATE] } as PreviewResult));
     const save = vi.fn(async () => ({}) as Bootstrap);
     render(
@@ -281,7 +282,11 @@ describe('PreviewPanel pin and adjust', () => {
     );
     await screen.findByRole('table', { name: 'Preview candidates' });
     expect(read).toHaveBeenCalledTimes(1);
-    fireEvent.click(screen.getByRole('button', { name: /Preview options/ }));
+    act(() =>
+      providedCommands()
+        .find((command) => command.label === 'Open Preview options')!
+        .run(),
+    );
     fireEvent.change(await screen.findByRole('combobox', { name: 'Preset' }), { target: { value: 'spot_check' } });
     await waitFor(() => expect(save).toHaveBeenCalledWith('Preview', 'project', { preset: 'spot_check' }));
     await waitFor(() => expect(read).toHaveBeenCalledTimes(2));

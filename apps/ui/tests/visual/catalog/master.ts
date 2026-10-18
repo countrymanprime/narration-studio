@@ -64,7 +64,7 @@ export const masterStates: StateEntry[] = [
     page: 'master',
     state: 'diagnostics-cleanup-options',
     description:
-      "Master & QC / Diagnostics, the Silence cleanup candidates panel with its options opened - the hold, the breath length range, the breath level and the click height, this project's values",
+      "Master & QC / Diagnostics, the Silence cleanup options dialog opened from the jump menu - the hold, the breath length range, the breath level and the click height, this project's values",
     ...KEEPS_DESKTOP_SCROLL,
   },
   {
@@ -161,5 +161,11 @@ export const masterStates: StateEntry[] = [
     page: 'master',
     state: 'no-manuscript',
     description: 'Master & QC with no manuscript imported (?mockNoManuscript=1) - the page asks for the manuscript first, with Import manuscript',
+  },
+  {
+    page: 'master',
+    state: 'package-loading',
+    description:
+      'Master & QC while the chapters are still being read (?mockChapters=loading): the page as usual, and in the Delivery package panel grey blocks in place of the checks and of the "failing and not ready" count, with Open Delivery still offered and one polite "Reading the profile and the chapters…" status',
   },
 ];

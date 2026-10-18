@@ -11,7 +11,7 @@ list.
 ![Settings - Recording & DAW, with the category list at the left and the search and filters above](../../images/ui/settings-recording.webp)
 
 **Ctrl+,** opens Settings from any page. When a link from another page brings you here (the Booth's DAW settings,
-a "fix credits" link), Settings opens on the setting, lights it up for a moment and
+a "fix credits" link, Master's silence cleanup), Settings opens on the setting, lights it up for a moment and
 offers **Back to** the page you came from.
 
 ## Every setting says whose it is and who uses it
@@ -100,7 +100,7 @@ the last 5 seconds, and the card says whether its open project matches the linke
   New action > Load ReaScript**) and load again after each update, since the path changes. The Booth shows the same
   steps when Record is waiting for REAPER ([Booth](booth.md#recording)).
 
-The Audacity backups and the favourite effects are set on [Editing](editing.md) (see [Set on a page](#set-on-a-page)).
+The Audacity backups and the favourite effects are listed under [Set on a page](#set-on-a-page), where Settings edits them; [Editing](editing.md) has a shortcut to the same settings.
 
 ## Speech to text
 
@@ -154,7 +154,7 @@ With nothing downloaded, the page offers **Download the recommended set** (the S
 
 ![Settings - Project: the manuscript, the Story Bible rows, the marks and the narrator](../../images/ui/settings-project.webp)
 
-- **Manuscript** says when the manuscript was imported and how many words it has (or **No manuscript yet**), with **Replace manuscript…** (or **Import manuscript** when there is none). The replace confirm names what it clears.
+- **Manuscript** says when the manuscript was imported and how many words it has (or **No manuscript yet**), with **Replace manuscript…** (or **Import manuscript** when there is none). **Replace manuscript…** opens the same two steps as the [import](production.md#importing-the-manuscript); step 2 names what the replace clears.
 - **Build the Story Bible after import** and **Language model for the Story Bible** are for all projects, and a project may override them.
 - **Entry types** lists the kinds of [Story Bible](story-bible.md) entry, each with its name, colour, a **Can speak** box (entries of that type can be picked as the speaker of a quoted line, and the next Story Bible build attributes dialogue to them) and how many entries it has. A type you add with **New type** does not speak until you tick the box. Rename a type in its box and every entry of it moves with it; change its colour; or remove one: the remove button stays off while entries use the type, and the last type cannot go. A taken or reserved name is refused, and says why under the list.
 - **Marks** lists your mark types, each with its colour, and **tracks a reply** on a type that asks for one. **Edit marks…** opens the same **Define how you mark up** dialog as the Script page.
@@ -162,7 +162,7 @@ With nothing downloaded, the page offers **Download the recommended set** (the S
 - **Credits**: see [Credits](#credits).
 - **Clear derived data** (Advanced) removes the imported manuscript and its stored source, the Story Bible, proofing artifacts, reader notes and bookmarks, and saved comparison results for the current project, after you confirm. Its settings remain.
 
-![Settings - the Replace manuscript confirm for an imported file, with its title, word count and what is kept](../../images/ui/settings-manuscript.webp)
+![Settings - Replace manuscript, step 2 of 2: the chapter outline, with the line that names what a replace clears](../../images/ui/settings-manuscript.webp)
 
 ![Settings - Clear derived data asks first](../../images/ui/settings-project-data.webp)
 
@@ -258,7 +258,7 @@ If Narration Studio will not start after an update and the program file is missi
 
 ## Set on a page
 
-Some settings only change what one page does, so they belong on that page, next to what they change: the recording check's rules (Production), silence cleanup (Master & QC), the preview suggestion and compare defaults (Proof), stage suggestions (Production), punch pre-roll (Booth), favourite effects and the Audacity backups (Editing). **Set on a page** lists them, each with where it is or will be and an **Open** button for that page. Punch pre-roll is set in the Booth's **Levels** menu only, the Audacity backups on the Backups tab in [Editing](editing.md#effects-backups-and-timeline) only, the preview options and compare defaults in the **Preview options** and **Compare options** groups on [Proof](proof.md#comparing-the-recording-with-the-script) only, and the silence cleanup thresholds in **Silence cleanup options** on [Master & QC](master-and-qc.md) only. For the others, until a page has its own control, **Change it here for now** opens the panel that always edited it, with its **Global** / **This project** switch, **Save** and **Discard changes**; leaving Settings with unsaved changes there asks whether to save or discard them. Search finds them too.
+Some settings only change what one page does, so they belong on that page, next to what they change: the recording check's rules (Production), silence cleanup (Master & QC), the preview suggestion and compare defaults (Proof), stage suggestions (Production), punch pre-roll (Booth), favourite effects and the Audacity backups (Editing). **Set on a page** lists them, each with where on that page it belongs and an **Open** button for that page. Settings always keeps every one of them: **Change it here for now** opens the panel with its **Global** / **This project** switch, **Save** and **Discard changes**, and leaving Settings with unsaved changes there asks whether to save or discard them. Four pages also have a shortcut to the same setting, which reads and writes the same keys: Master & QC's **Jump to or run** (Ctrl+K) has **Open Silence cleanup options**, a dialog for the open project only, the same as choosing **This project** in the Silence cleanup panel here (Diagnostics also keeps its **Open Settings** link to that panel); Proof's **Jump to or run** has **Open Preview options** and **Open Compare options**, which open a dialog for the open project only, the same as choosing **This project** in the panel here; the Booth's **Levels** menu has **Punch pre-roll (seconds)**, which is Global like the panel here, and Editing's **Backups** tab has the backup settings for the open project only, the same as choosing **This project** in the Backups panel here (that panel can also set Global). Search finds them too.
 
 ![Settings - Set on a page, with the recording check rules opened](../../images/ui/settings-pages.webp)
 

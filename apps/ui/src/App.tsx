@@ -10,6 +10,7 @@ import { useGoToCommands } from './components/layout/useGoToCommands';
 import { useJournalEntries } from './components/layout/useJournalEntries';
 import { OverlayProvider, useOverlay } from './overlay/OverlayProvider';
 import { dawShortName, StudioProvider, useJournal, useStoreHandle, useStudio } from './studio/StudioProvider';
+import { useUndoToastLifetime } from './studio/useUndoToastLifetime';
 import type { Journal } from './studio/journal/createJournal';
 import { MANUSCRIPT_CHANGED } from './studio/slots';
 import type { ContextMenuItem } from './components/primitives/ContextMenu';
@@ -35,6 +36,7 @@ import { ShortcutSheet } from './components/help/ShortcutSheet';
 import { ScriptPage } from './components/script/page/ScriptPage';
 import { creditsKindOfId } from './components/credits/creditsEntries';
 import { NeedManuscript } from './components/layout/NeedManuscript';
+import { NeedManuscriptImport } from './components/layout/NeedManuscriptImport';
 import { ProjectPicker } from './components/project/ProjectPicker';
 import { Guide } from './components/storybible/Guide';
 import { SettingsPage } from './components/settings/page/SettingsPage';
@@ -169,6 +171,7 @@ function AppRoutes() {
   const toggleTheme = () => theme.setPreference(theme.resolved === 'dark' ? 'light' : 'dark');
   const keymap = useUserKeymap();
   const journalRows = useJournalEntries(journal);
+  useUndoToastLifetime(journal, overlay, location.pathname);
   // The latest guarded back/forward, read by the one document-level listener below (mounted once) instead
   // of resubscribing it on every render.
   const guardedBackRef = useRef<() => void>(() => {});
@@ -433,11 +436,13 @@ function AppRoutes() {
       // Entries from the project that was open before this switch stay behind the new floor: they
       // would open this project's pages with the previous project's data, so Back stops here.
       if (state.attached) {
+        // What an Undo toast offered was about the project that was open; its journal entries are cleared, and the ones without an entry go here.
+        overlay.dismissUndo();
         history.resetFloor();
         void refreshBootstrap();
       } else if (state.reason) setNotice(state.reason, 'error');
     });
-  }, [api, hasBootstrap, history, refreshBootstrap, setNotice]);
+  }, [api, hasBootstrap, history, overlay, refreshBootstrap, setNotice]);
 
   useEffect(() => {
     if (!hasBootstrap) return;
@@ -554,6 +559,9 @@ function AppRoutes() {
   });
   useCommand('history.open', () => {
     if (!isModalOpen()) openHistory();
+  });
+  useCommand('companion.open', () => {
+    if (!isModalOpen()) guardedNavigateRef.current('/companion');
   });
   // The History panel says "Ctrl Z undoes the last one", so it is the one layer Ctrl+Z reaches through; any other dialog keeps it out.
   const onlyHistoryOpen = () => {
@@ -793,7 +801,7 @@ function AppRoutes() {
                     data.manuscript ? (
                       gated('script', <ScriptPage notify={setNotice} focusStoryBibleEntity={goToStoryBible} goToEditing={goToEditing} goToBooth={goToBooth} />)
                     ) : (
-                      <NeedManuscript title="Script" onImport={() => guardedNavigate('/')} />
+                      <NeedManuscriptImport title="Script" data={data} go={guardedNavigate} notify={setNotice} refreshBootstrap={refreshBootstrap} />
                     )
                   }
                 />
@@ -802,7 +810,14 @@ function AppRoutes() {
                   path="/story-bible"
                   element={gated(
                     'story-bible',
-                    <Guide notify={setNotice} goToManuscript={goToScript} hasManuscript={Boolean(data.manuscript)} onImport={() => guardedNavigate('/')} />,
+                    <Guide
+                      notify={setNotice}
+                      goToManuscript={goToScript}
+                      hasManuscript={Boolean(data.manuscript)}
+                      needManuscript={
+                        <NeedManuscriptImport title="Story Bible" data={data} go={guardedNavigate} notify={setNotice} refreshBootstrap={refreshBootstrap} />
+                      }
+                    />,
                   )}
                 />
                 {/* Retired by the engine panel: lands on Proof, where a chapter
@@ -896,6 +911,7 @@ function AppRoutes() {
                       projectFolder={data.projectFolder}
                       onImport={() => guardedNavigate('/')}
                       onOpenDelivery={() => guardedNavigate('/delivery')}
+                      openSettings={() => guardedNavigate(addressPath({ page: 'settings', anchor: 'cleanup' }))}
                       focusFile={parseMasterHash(location.hash)?.file}
                     />,
                   )}

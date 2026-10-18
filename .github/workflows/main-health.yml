@@ -56,7 +56,8 @@ jobs:
   hold-on-red:
     name: Tick HOLD when main is red
     needs: ci
-    if: needs.ci.result == 'failure'
+    # `always()`: without a status function the condition is "success() && ...", which skips this job exactly when `ci` failed.
+    if: always() && needs.ci.result == 'failure'
     timeout-minutes: 5
     runs-on: ubuntu-latest
     permissions:

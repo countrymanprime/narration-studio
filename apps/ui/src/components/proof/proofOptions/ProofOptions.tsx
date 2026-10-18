@@ -1,6 +1,7 @@
-import { useState } from 'react';
+import { useCallback, useState } from 'react';
+import { useCommandProvider } from '../../../input/commandProviders';
 import { Button } from '../../primitives/Button';
-import { Disclosure } from '../../primitives/Disclosure';
+import { Dialog } from '../../primitives/Dialog';
 import { NumberInput } from '../../primitives/NumberInput';
 import { Select } from '../../primitives/Select';
 import { TextField } from '../../primitives/TextField';
@@ -87,28 +88,47 @@ function Row({ field, onSet }: { field: ScopedSettingField; onSet: (key: string,
 }
 
 /**
- * A page's own options for what it does, kept closed under a title until wanted: the settings of one tool, this project's values, saved at once at the
- * project layer. A setting this project overrides has a Reset that hands it back to the computer-wide value or the default.
+ * A page's own options for what it does, kept off the page until wanted: the jump menu lists "Open <title>" while the page is showing, and it opens
+ * a dialog with the settings of one tool, this project's values, saved at once at the project layer. Settings keeps the same keys with its own
+ * Global / This project switch. A setting this project overrides has a Reset that hands it back to the computer-wide value or the default.
  */
 export function ProofOptions({
   title,
+  group,
   tool,
   keys,
   onSaved,
-  className = '',
 }: {
   title: string;
+  /** The jump menu heading the command is listed under: the page's name. */
+  group: string;
   tool: string;
   keys: readonly string[];
   /** Runs after each accepted save, so the page can read again what the option changes. */
   onSaved?: () => void;
-  className?: string;
 }) {
   const [open, setOpen] = useState(false);
   const { fields, error, set } = useProjectOptions(tool, keys, { enabled: open, onSaved });
+  useCommandProvider(
+    useCallback(
+      () => [{ id: `options.open.${tool}.${keys.join('.')}`, group, label: `Open ${title}`, hint: 'This project', run: () => setOpen(true) }],
+      [tool, keys, group, title],
+    ),
+  );
+  if (!open) return null;
   return (
-    <Disclosure title={title} open={open} onOpenChange={setOpen} className={className}>
-      <div className="flex flex-col gap-3 pt-2">
+    <Dialog
+      title={title}
+      description="Saved at once for this project. Settings sets the same values for every project."
+      dismissOnOutsidePress={true}
+      onClose={() => setOpen(false)}
+      actions={
+        <Button variant="secondary" onClick={() => setOpen(false)}>
+          Close
+        </Button>
+      }
+    >
+      <div className="flex flex-col gap-3">
         {fields.map((field) => (
           <Row key={field.key} field={field} onSet={set} />
         ))}
@@ -118,6 +138,6 @@ export function ProofOptions({
           </p>
         ) : null}
       </div>
-    </Disclosure>
+    </Dialog>
   );
 }

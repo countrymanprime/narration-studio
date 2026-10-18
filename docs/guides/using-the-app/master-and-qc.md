@@ -9,6 +9,7 @@ the box every project is judged against **ACX (September 2026)**, ACX's audio su
 the app recorded them. Your files are only read, never changed: mastering, encoding and packaging each write
 new files. Master & QC is always in the navigation, under **Finish**, and needs no DAW project. It needs an imported
 manuscript: without one the page says **This project has no manuscript yet** and offers to import one.
+While the profile and the chapters are being read, the **Delivery package** panel shows grey blocks in place of its checks and its count of failing and not-ready chapters, so a count of zero never appears before anything has been read.
 
 ![Master & QC before anything is checked: the ACX profile pill, Check files…, the built-in mastering chain and the delivery package](../../images/ui/master-empty.webp)
 
@@ -153,12 +154,13 @@ a pass. **Thresholds**, below it, lists every threshold the check uses, even bef
 
 **Silence cleanup candidates**, below that, lists the silences, breaths and clicks the same check found in
 each file, each a candidate to cut. Nothing is cut from here. The values the check used are listed under the
-candidates, and **Silence cleanup options** opens this project's thresholds: the hold kept at each side of a cut
-silence, the shortest and longest run read as a breath, how far below the speech level a breath sits and how far
+candidates. Their thresholds are set in Settings, under Silence cleanup; **Open Settings** goes there. For this project
+only, **Jump to or run** (Ctrl+K) has **Open Silence cleanup options**, a dialog with the hold kept at each side of a
+cut silence, the shortest and longest run read as a breath, how far below the speech level a breath sits and how far
 above the silence around it a click stands. A change is saved at once and applies to the next check, not to the
 one on screen; **Reset** on a changed setting hands it back to the computer-wide value or the default.
 
-![Master & QC, Diagnostics - the Silence cleanup options opened under the candidates](../../images/ui/master-cleanup-options.webp)
+![Master & QC, Diagnostics - the Silence cleanup options dialog opened from Jump to or run](../../images/ui/master-cleanup-options.webp)
 
 ![The checked files diagnosed: each file summarised, and each finding with its time, what was measured, the threshold that raised it and the source](../../images/ui/master-diagnostics-findings.webp)
 

@@ -1,8 +1,9 @@
-import { IconButton } from '../../primitives/IconButton';
+import { Button } from '../../primitives/Button';
 
 /**
- * The banner over the script while the DAW is not answering (the Studio Next mock's `#offbanner`): the capability's own sentence, what still
- * works, and Retry. The page is read-only meanwhile: the slices' edit actions say the same sentence, and playback goes on in the app.
+ * The banner over the script while the DAW is not answering (the Studio Next mock's `#offbanner`): the cause, what still works, and a visible
+ * Check again. The page is read-only meanwhile: the slices' edit actions say the same sentence, and playback goes on in the app. Why an edit is
+ * off for another reason (a setting) is the notice above the bar, never this banner.
  */
 export function DawOffBanner({ sentence, dawName, onRetry }: { sentence: string; dawName: string; onRetry: () => void }) {
   return (
@@ -14,7 +15,9 @@ export function DawOffBanner({ sentence, dawName, onRetry }: { sentence: string;
       <span className="min-w-0 flex-1 [overflow-wrap:anywhere]">
         <b>{sentence}</b> You can look at takes, findings and effects. Changes wait until {dawName} is running.
       </span>
-      <IconButton action="retry" label="Retry" id="retry" onClick={onRetry} />
+      <Button variant="secondary" size="sm" id="retry" onClick={onRetry}>
+        Check again
+      </Button>
     </div>
   );
 }

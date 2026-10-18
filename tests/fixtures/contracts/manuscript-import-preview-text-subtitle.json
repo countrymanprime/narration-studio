@@ -23,11 +23,13 @@
     "sections": [
       {
         "contentKind": "narration",
+        "firstText": "The rain had not stopped.",
         "id": "section-0001",
         "paragraphCount": 1,
         "subtitle": "“Water finds its level.”",
         "subtitleOff": "body",
-        "title": "Chapter One"
+        "title": "Chapter One",
+        "wordCount": 5
       }
     ],
     "sourceName": "book.txt"

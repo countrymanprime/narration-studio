@@ -8,6 +8,7 @@ import { SectionLabel } from '../../primitives/SectionLabel';
 import { StatusBadge } from '../../primitives/StatusBadge';
 import type { DeliveryBuild } from './useDeliveryBuild';
 import { askedText, checkedText, heardText } from './useHostRead';
+import { ARRIVE_CLASSES } from '../../primitives/changeHighlight';
 
 const MUTED = { color: 'var(--text-muted)' };
 const DANGER = { color: 'var(--danger-text)' };
@@ -121,7 +122,7 @@ export function OutputPanel({
           </p>
         )}
         {built && (
-          <div className="flex flex-col gap-1.5">
+          <div className={`flex flex-col gap-1.5 ${ARRIVE_CLASSES}`}>
             <div className="flex flex-wrap items-center gap-2 text-sm">
               <StatusBadge tone="success" label="Built" />
               <b>{built.files.length} files</b>
