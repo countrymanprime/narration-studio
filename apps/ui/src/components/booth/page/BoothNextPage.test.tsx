@@ -659,6 +659,44 @@ describe('credits-are-readable-and-recordable', () => {
   });
 });
 
+describe('a page that has nothing to show says so and leaves a way out', () => {
+  const openingOnly = {
+    creditsTemplates: async () => [{ id: 'o', kind: 'opening', name: 'Opening', body: 'Hello.' }],
+    creditsPreview: async () => ({ text: 'Hello.', words: 1, unresolved: [] }),
+  } as Partial<NarrationApi>;
+
+  it('credits with no template: a panel names what is missing and offers Settings, the chapters, and Escape', async () => {
+    const page = renderPage({ search: '?credits=closing', api: openingOnly });
+    expect(await screen.findByRole('heading', { name: 'The closing credits are not set up' })).toBeTruthy();
+    expect(screen.queryByRole('button', { name: /^Record$/ })).toBeNull();
+    await userEvent.click(screen.getByRole('button', { name: 'Set up credits in Settings' }));
+    expect(page.navigate).toHaveBeenCalledWith('/settings#credits');
+    await press('Escape');
+    expect(page.navigate).toHaveBeenCalledWith('/script');
+  });
+
+  it('Back to the chapters opens the book on its first chapter', async () => {
+    renderPage({ search: '?credits=closing', api: openingOnly });
+    await userEvent.click(await screen.findByRole('button', { name: 'Back to the chapters' }));
+    expect(driver.search()).toBe('');
+    await ready();
+    expect(screen.queryByRole('heading', { name: /credits are not set up/ })).toBeNull();
+  });
+
+  it('a chapter the book does not have says so too, and the way back works', async () => {
+    renderPage({ search: '?chapter=no-such-chapter' });
+    expect(await screen.findByRole('heading', { name: 'That chapter is not in this book' })).toBeTruthy();
+    await userEvent.click(screen.getByRole('button', { name: 'Back to the chapters' }));
+    await ready();
+  });
+
+  it('while the credits are still being read there is no panel yet', async () => {
+    renderPage({ search: '?credits=closing', api: { ...openingOnly, creditsTemplates: () => new Promise(() => {}) } });
+    await settle();
+    expect(screen.queryByRole('heading', { name: /not set up/ })).toBeNull();
+  });
+});
+
 describe('the resume line', () => {
   it('offers where the recording ends and choosing it moves the reading position', async () => {
     renderPage({ api: { teleprompterLocate: async () => LOCATED } });
