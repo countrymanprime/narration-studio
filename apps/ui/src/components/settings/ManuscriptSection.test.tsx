@@ -34,12 +34,13 @@ async function renderManuscript(options: { noManuscript?: boolean; replace?: boo
             onLinkDawFile={vi.fn()}
             go={vi.fn()}
             refreshBootstrap={async () => undefined}
-            initialCategory="Manuscript"
           />
         </ApiProvider>
       </ThemeProvider>
     </MemoryRouter>,
   );
+  // The Manuscript row sits under the Project category of the redesigned page.
+  fireEvent.click(within(screen.getByRole('navigation', { name: 'Settings categories' })).getByRole('button', { name: /^Project/ }));
   return api;
 }
 

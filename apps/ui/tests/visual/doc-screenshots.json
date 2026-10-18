@@ -351,45 +351,136 @@
   },
   {
     "page": "settings",
-    "state": "global-general",
+    "state": "page-top",
     "viewport": "desktop",
-    "docName": "settings-general",
-    "caption": "Settings - the General panel (Global only): log verbosity, the long-task notification, the narrator name and the credits room tone"
+    "docName": "settings-recording",
+    "caption": "Settings - Recording & DAW, with the category list at the left and the search and filters above"
   },
   {
     "page": "settings",
-    "state": "page-top",
+    "state": "override",
     "viewport": "desktop",
-    "docName": "settings-appearance",
-    "caption": "Settings - the top of the page: the Recording radios with each engine’s state, the linked REAPER project, the Delivery profile and Definitions and pronunciations"
+    "docName": "settings-override",
+    "caption": "Settings - Build the Story Bible after import overridden by this project, with Use computer setting"
+  },
+  {
+    "page": "settings",
+    "state": "search-results",
+    "viewport": "desktop",
+    "docName": "settings-search",
+    "caption": "Settings - searching for \"whisper\": the matching rows under their categories"
+  },
+  {
+    "page": "settings",
+    "state": "recording-advanced",
+    "viewport": "desktop",
+    "docName": "settings-daw",
+    "caption": "Settings - Recording & DAW with Advanced open: the REAPER program and the capabilities table"
+  },
+  {
+    "page": "settings",
+    "state": "recording-found",
+    "viewport": "desktop",
+    "docName": "settings-recording-link",
+    "caption": "Settings - Recording: REAPER chosen and not linked yet, with Link Alice.rpp"
+  },
+  {
+    "page": "settings",
+    "state": "recording-linked",
+    "viewport": "desktop",
+    "docName": "settings-recording-linked",
+    "caption": "Settings - Recording: the REAPER project linked, with Start REAPER"
+  },
+  {
+    "page": "settings",
+    "state": "speech-costly-confirm",
+    "viewport": "desktop",
+    "docName": "settings-speech-confirm",
+    "caption": "Settings - Speech to text asking before the transcription model changes"
+  },
+  {
+    "page": "settings",
+    "state": "models",
+    "viewport": "desktop",
+    "docName": "settings-models",
+    "caption": "Settings - Models & downloads: the disk used and each download with its state, size, what uses it and its actions"
+  },
+  {
+    "page": "settings",
+    "state": "delivery-profile-editor",
+    "viewport": "desktop",
+    "docName": "settings-delivery-profile",
+    "caption": "Settings - a copy of ACX open in the delivery profile editor"
+  },
+  {
+    "page": "settings",
+    "state": "project",
+    "viewport": "desktop",
+    "docName": "settings-project",
+    "caption": "Settings - Project: the manuscript, the Story Bible rows, the marks and the narrator"
   },
   {
     "page": "settings",
     "state": "manuscript",
     "viewport": "desktop",
     "docName": "settings-manuscript",
-    "caption": "Settings - the Manuscript panel: when it was imported, its word count and Replace manuscript…"
+    "caption": "Settings - Replace manuscript pressed: the import review naming what a replace clears"
+  },
+  {
+    "page": "settings",
+    "state": "project-data-confirm",
+    "viewport": "desktop",
+    "docName": "settings-project-data",
+    "caption": "Settings - Clear derived data asks first"
+  },
+  {
+    "page": "settings",
+    "state": "project-credits-chapter-announcement",
+    "viewport": "desktop",
+    "docName": "settings-credits-chapter-announcement",
+    "caption": "Settings, Credits - a chapter announcement template previewed for Chapter 1"
+  },
+  {
+    "page": "settings",
+    "state": "project-credits-retail-sample",
+    "viewport": "desktop",
+    "docName": "settings-credits-retail-sample",
+    "caption": "Settings, Credits - the retail sample picked on Chapter 3, lines 1 to 3"
+  },
+  {
+    "page": "settings",
+    "state": "reader-text",
+    "viewport": "desktop",
+    "docName": "settings-reader-text",
+    "caption": "Settings - Reader text: font, size, line spacing and column width over the preview quote"
+  },
+  {
+    "page": "settings",
+    "state": "global-keyboard",
+    "viewport": "desktop",
+    "docName": "settings-keyboard",
+    "caption": "Settings - Shortcuts: every command by scope, with its key or pedal"
+  },
+  {
+    "page": "settings",
+    "state": "global-keyboard-recording",
+    "viewport": "desktop",
+    "docName": "settings-keyboard-recording",
+    "caption": "Settings - Shortcuts recording a new key for Record or stop"
   },
   {
     "page": "settings",
     "state": "about-update-available",
     "viewport": "desktop",
     "docName": "settings-about-updates",
-    "caption": "Settings - the About & updates panel with a newer version found"
+    "caption": "Settings - App & updates with a newer version found"
   },
   {
     "page": "settings",
-    "state": "local-assets",
+    "state": "pages-panel-open",
     "viewport": "desktop",
-    "docName": "settings-local-assets",
-    "caption": "Settings - the Local assets panel: the disk used, and each optional download with its state and actions"
-  },
-  {
-    "page": "settings",
-    "state": "project-data",
-    "viewport": "desktop",
-    "docName": "settings-project-data",
-    "caption": "Settings - the Project data panel (This project): Clear derived project data…"
+    "docName": "settings-pages",
+    "caption": "Settings - Set on a page, with the recording check rules opened"
   },
   {
     "page": "global",
@@ -439,20 +530,6 @@
     "viewport": "desktop",
     "docName": "storybible-needs-review",
     "caption": "Story Bible - an entry of the Needs Review kind, with its relationships and the chapters it appears in"
-  },
-  {
-    "page": "settings",
-    "state": "project-credits-chapter-announcement",
-    "viewport": "desktop",
-    "docName": "settings-credits-chapter-announcement",
-    "caption": "Settings, Credits - a chapter announcement template previewed for Chapter 1"
-  },
-  {
-    "page": "settings",
-    "state": "project-credits-retail-sample",
-    "viewport": "desktop",
-    "docName": "settings-credits-retail-sample",
-    "caption": "Settings, Credits - the retail sample picked on Chapter 3, lines 1 to 3"
   },
   {
     "page": "script",
@@ -719,20 +796,6 @@
     "viewport": "desktop",
     "docName": "delivery-host-quiet-cancelled",
     "caption": "Delivery with a host that no longer answers, after Check again and Cancel: each press is answered, and the cancel is marked unconfirmed"
-  },
-  {
-    "page": "settings",
-    "state": "recording-found",
-    "viewport": "desktop",
-    "docName": "settings-recording-link",
-    "caption": "Settings > Recording - REAPER chosen, not linked yet, with Link Alice.rpp for the project file found in the folder"
-  },
-  {
-    "page": "settings",
-    "state": "recording-linked",
-    "viewport": "desktop",
-    "docName": "settings-recording-linked",
-    "caption": "Settings > Recording - the REAPER project file is linked, with Start REAPER"
   },
   {
     "page": "booth",
@@ -1006,62 +1069,6 @@
     "viewport": "desktop",
     "docName": "master-multi-export-results",
     "caption": "Master & QC - a finished multi-platform build: a row per platform with its folder or why it was not built"
-  },
-  {
-    "page": "settings",
-    "state": "global-keyboard",
-    "viewport": "desktop",
-    "docName": "settings-keyboard",
-    "caption": "Settings - Keyboard & pedals: every command by scope, with its key or pedal"
-  },
-  {
-    "page": "settings",
-    "state": "global-keyboard-recording",
-    "viewport": "desktop",
-    "docName": "settings-keyboard-recording",
-    "caption": "Settings - Keyboard & pedals recording a new key for Record or stop"
-  },
-  {
-    "page": "settings",
-    "state": "global-booth",
-    "viewport": "desktop",
-    "docName": "settings-booth",
-    "caption": "Settings - the Booth panel: the microphone, the live engine and its model"
-  },
-  {
-    "page": "settings",
-    "state": "delivery-profile-editor",
-    "viewport": "desktop",
-    "docName": "settings-delivery-profile",
-    "caption": "Settings - a copy of ACX open in the delivery profile editor"
-  },
-  {
-    "page": "settings",
-    "state": "project-daw",
-    "viewport": "desktop",
-    "docName": "settings-daw",
-    "caption": "Settings - the DAW panel for this project: the linked DAW project"
-  },
-  {
-    "page": "settings",
-    "state": "dirty-footer",
-    "viewport": "desktop",
-    "docName": "settings-unsaved",
-    "caption": "Settings with unsaved changes: the footer with Save and Discard"
-  },
-  {
-    "page": "settings",
-    "state": "reader-text",
-    "viewport": "desktop",
-    "docName": "settings-reader-text",
-    "caption": "Settings - Reader text: font, size, line spacing and column width over the preview quote, then the Marks"
-  },
-  {
-    "page": "settings",
-    "state": "analysis-tools",
-    "viewport": "desktop",
-    "docName": "settings-analysis-tools",
-    "caption": "Settings - Story Bible analysis: the four optional tools, each Not available yet with its reason, and Offer better analysis when scanning"
   },
   {
     "page": "proof",

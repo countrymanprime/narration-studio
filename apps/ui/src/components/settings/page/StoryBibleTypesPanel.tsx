@@ -63,9 +63,9 @@ function TypeRow({
   };
   const blocked = count === undefined ? 'Reading the entries…' : count > 0 ? `${type.name} is in use` : last ? 'The last type stays' : undefined;
   return (
-    // Below md the name takes the first line and the rest share the second.
-    <li className="flex flex-wrap items-center gap-x-3 gap-y-2 md:flex-nowrap">
-      <span className="flex min-w-0 basis-full items-center gap-3 md:flex-1 md:basis-auto">
+    // Narrower than 512 px of its own column (the Settings row gives it half the pane) the name takes the first line and the rest share the second.
+    <li className="flex flex-wrap items-center gap-x-3 gap-y-2 @lg:flex-nowrap">
+      <span className="flex min-w-0 basis-full items-center gap-3 @lg:flex-1 @lg:basis-auto">
         <Swatch colour={kindSwatch([type], type.name)} />
         <TextField
           label={`Type name: ${type.name}`}
@@ -79,10 +79,10 @@ function TypeRow({
           }}
         />
       </span>
-      <span className="flex w-full items-center gap-2 md:w-auto md:gap-3">
+      <span className="flex w-full items-center gap-2 @lg:w-auto @lg:gap-3">
         <Select
           label={`Colour for ${type.name}`}
-          className="w-[100px] md:w-[130px]"
+          className="w-[100px] @lg:w-[130px]"
           value={type.colour}
           disabled={busy}
           options={COLOUR_OPTIONS}
@@ -95,7 +95,7 @@ function TypeRow({
             </span>
           </Checkbox>
         </TooltipTarget>
-        <span data-type-count={type.name} className="ml-auto text-sm text-[var(--text-muted)] md:ml-0 md:min-w-[70px]">
+        <span data-type-count={type.name} className="ml-auto text-sm whitespace-nowrap text-[var(--text-muted)] @lg:ml-0 @lg:min-w-[70px]">
           {count === undefined ? '' : `${count} ${count === 1 ? 'entry' : 'entries'}`}
         </span>
         <IconButton
@@ -113,7 +113,16 @@ function TypeRow({
 }
 
 /** The mock's "Story Bible types" panel: a row per type (name, colour, Can speak, its entry count, Remove) and a New type field. Takes props only. */
-export function StoryBibleTypesView({ types, counts, busy = false, error, onRename, onColour, onSpeaks, onRemove, onAdd, onRefuse }: StoryBibleTypesViewProps) {
+export function StoryBibleTypesView(props: StoryBibleTypesViewProps) {
+  return (
+    <Panel title="Story Bible types">
+      <StoryBibleTypesList {...props} />
+    </Panel>
+  );
+}
+
+/** The rows and the New type field without a panel: the Settings page's Entry types row draws this. */
+export function StoryBibleTypesList({ types, counts, busy = false, error, onRename, onColour, onSpeaks, onRemove, onAdd, onRefuse }: StoryBibleTypesViewProps) {
   const [name, setName] = useState('');
   const add = () => {
     if (!name.trim()) return onRefuse(NEW_NAME);
@@ -122,10 +131,10 @@ export function StoryBibleTypesView({ types, counts, busy = false, error, onRena
     });
   };
   return (
-    <Panel title="Story Bible types">
+    <>
       <div className="flex flex-col gap-3">
         {types ? (
-          <ul className="flex flex-col gap-3">
+          <ul className="@container flex flex-col gap-3">
             {types.map((type) => (
               <TypeRow
                 key={type.name}
@@ -166,7 +175,7 @@ export function StoryBibleTypesView({ types, counts, busy = false, error, onRena
           </p>
         )}
       </div>
-    </Panel>
+    </>
   );
 }
 
@@ -182,6 +191,11 @@ function countByType(entries: readonly { category: string }[]): Record<string, n
  * use and the last type; its sentence shows under the list.
  */
 export function StoryBibleTypesPanel() {
+  return <StoryBibleTypesView {...useStoryBibleTypes()} />;
+}
+
+/** The host's types, their entry counts and the calls that change them, as the props of `StoryBibleTypesView` and `StoryBibleTypesList`. */
+export function useStoryBibleTypes(): StoryBibleTypesViewProps {
   const port = usePort('storyBible');
   const [types, setTypes] = useState<GuideType[]>();
   const [counts, setCounts] = useState<Record<string, number>>();
@@ -222,18 +236,16 @@ export function StoryBibleTypesPanel() {
     }
   };
 
-  return (
-    <StoryBibleTypesView
-      types={types}
-      counts={counts}
-      busy={busy}
-      error={error}
-      onRename={(name, to) => change(() => port.guideTypeRename(name, to))}
-      onColour={(name, colour) => void change(() => port.guideTypeSetColour(name, colour))}
-      onSpeaks={(name, speaks) => void change(() => port.guideTypeSetSpeaks(name, speaks))}
-      onRemove={(name) => void change(() => port.guideTypeRemove(name))}
-      onAdd={(name) => change(() => port.guideTypeAdd(name))}
-      onRefuse={setError}
-    />
-  );
+  return {
+    types,
+    counts,
+    busy,
+    error,
+    onRename: (name, to) => change(() => port.guideTypeRename(name, to)),
+    onColour: (name, colour) => void change(() => port.guideTypeSetColour(name, colour)),
+    onSpeaks: (name, speaks) => void change(() => port.guideTypeSetSpeaks(name, speaks)),
+    onRemove: (name) => void change(() => port.guideTypeRemove(name)),
+    onAdd: (name) => change(() => port.guideTypeAdd(name)),
+    onRefuse: setError,
+  };
 }

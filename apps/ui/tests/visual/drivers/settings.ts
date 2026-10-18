@@ -1,209 +1,341 @@
-// How to reach each `settings` state in STATE_CATALOG (see app.drivers.ts).
+// How to reach each `settings` state in STATE_CATALOG (see app.drivers.ts). The page is one category at a time, chosen in the category list
+// (shared.ts: openSettingsCategory); each driver waits for what its own state shows.
 import type { Page } from '@playwright/test';
 import { settlePage } from '../helpers/settle';
-import { type Driver, clickNav, clickSettingsCategory, settingsPanel, confirmDialog, goToPage, openLocalAssets, saveOnlineDictionaryKey } from './shared';
+import { type Driver, clickNav, clickVisible, confirmDialog, freezeClock, openAdvanced, openSettings, showSettingsRow } from './shared';
+
+const WHISPER_SMALL = 'whisper/small';
+
+/** The app booted in an update state (`?mockUpdate=`), on App & updates with the This version panel, which holds the update, at the top of the page area. */
+async function openUpdates(page: Page, seed: string): Promise<void> {
+  await openSettings(page, 'App & updates', `?mockUpdate=${seed}`);
+  await page.getByRole('region', { name: 'This version' }).evaluate((panel) => panel.scrollIntoView({ block: 'start' }));
+}
+
+/** Brings the connection card under Record with to the top of the page area, where the engine's state and its actions are. */
+async function showConnection(page: Page): Promise<void> {
+  const card = page.getByRole('group', { name: 'Connection' });
+  await card.waitFor();
+  await card.evaluate((element) => element.scrollIntoView({ block: 'center' }));
+}
+
+/** Settings > Models & downloads, booted with a mock seed when one is given (`?mockAssets=`): the rows are on screen once the list has loaded. */
+async function openModels(page: Page, query = ''): Promise<void> {
+  await openSettings(page, 'Models & downloads', query);
+  await page.getByRole('table', { name: 'Models, voices and tools' }).waitFor();
+  await page.locator(`[data-asset="${WHISPER_SMALL}"]`).waitFor();
+}
+
+/** Pulls the update dialog flow forward: Download update, then the confirm's Download. */
+async function startUpdateDownload(page: Page): Promise<void> {
+  await page.getByRole('button', { name: 'Download update' }).click();
+  await page.getByRole('button', { name: 'Download', exact: true }).click();
+}
+
+/** Opens a command's recorder on the Shortcuts row: the label span is its row's own header row's only direct text-node child (KeyboardPanel.tsx). */
+async function openKeyboardRecorder(page: Page, label: string): Promise<void> {
+  const headerRow = page.getByText(label, { exact: true }).locator('..');
+  await headerRow.getByRole('button', { name: 'Change' }).click();
+  await page.getByRole('group', { name: `Change "${label}"` }).scrollIntoViewIfNeeded();
+}
+
+/** Appearance & keys, scrolled to the Shortcuts row. */
+async function openShortcuts(page: Page): Promise<void> {
+  await openSettings(page, 'Appearance & keys');
+  await showSettingsRow(page, 'keys.map');
+  await page.getByRole('region', { name: 'Shortcuts' }).waitFor();
+}
+
+/** Project > Edit credits…, the real editor open in its row. */
+async function openCreditsEditor(page: Page, query = ''): Promise<void> {
+  await openSettings(page, 'Project', query);
+  await showSettingsRow(page, 'project.credits');
+  await page.getByRole('button', { name: 'Edit credits…' }).click();
+  await page.getByRole('combobox', { name: 'Template' }).waitFor();
+}
+
+/** Set on a page with the first entry's "Change it here for now" opened: the Recording check rules. */
+async function openFirstPagePanel(page: Page): Promise<void> {
+  await openSettings(page, 'Set on a page');
+  const entry = page.locator('[data-page-setting="ps.coverage"]');
+  await entry.getByRole('button', { name: 'Change it here for now' }).click();
+  await entry.getByRole('button', { name: 'Change it here for now' }).and(page.locator('[aria-expanded="true"]')).waitFor();
+}
 
 export const settingsDrivers: Record<string, Driver> = {
   'page-top': async (page) => {
-    await goToPage(page, 'Settings');
-    await page.getByRole('button', { name: 'Replace manuscript…' }).waitFor();
-    await page.getByRole('combobox', { name: 'Delivery profile', exact: true }).waitFor();
+    await openSettings(page);
+    // The page has arrived once the first category's heading and its Record with radios are drawn.
+    await page.getByRole('heading', { level: 2, name: 'Recording & DAW', exact: true }).waitFor();
+    await page.getByRole('radiogroup', { name: 'Record with' }).waitFor();
     await page.getByRole('radio', { name: /^Built-in recorder/ }).waitFor();
   },
-  'reader-text': async (page) => {
-    await goToPage(page, 'Settings');
-    await clickSettingsCategory(page, 'Reader text');
-    await page.getByRole('slider', { name: 'Column width' }).waitFor();
+
+  // ---- Recording & DAW
+  'recording-builtin': async (page) => {
+    // The host refuses the built-in recorder while the Experimental switch is off, so this state turns it on.
+    await openSettings(page, undefined, '?mockDawExperimentalOn=1');
+    await page.getByRole('radio', { name: /^Built-in recorder/ }).click();
+    await page
+      .getByRole('radio', { name: /^Built-in recorder/ })
+      .and(page.locator('[aria-checked="true"]'))
+      .waitFor();
+    await page.getByText('Recording happens in the app. Nothing to connect.').waitFor();
+    await showConnection(page);
   },
-  'analysis-tools': async (page) => {
-    await goToPage(page, 'Settings');
-    await settingsPanel(page, 'Story Bible analysis').getByText('Local language model').waitFor();
-    await clickSettingsCategory(page, 'Story Bible analysis');
+  'recording-found': async (page) => {
+    await openSettings(page, undefined, '?mockDawChoice=found');
+    await page.getByRole('button', { name: 'Link Alice.rpp' }).waitFor();
+    await showConnection(page);
+  },
+  'recording-several': async (page) => {
+    await openSettings(page, undefined, '?mockDawChoice=several');
+    await page.getByText(/2 REAPER project files are in the project folder/).waitFor();
+    await showConnection(page);
+  },
+  'recording-linked': async (page) => {
+    await openSettings(page, undefined, '?mockDawChoice=found');
+    await page.getByRole('button', { name: 'Link Alice.rpp' }).click();
+    await page.getByText('Linked to Alice.rpp.', { exact: false }).first().waitFor();
+    await page.getByRole('button', { name: 'Start REAPER' }).waitFor();
+    await showConnection(page);
+  },
+  'recording-not-installed': async (page) => {
+    await openSettings(page, undefined, '?mockDawChoice=not-installed');
+    await page
+      .getByText(/REAPER was not found on this computer/)
+      .first()
+      .waitFor();
+  },
+  'recording-advanced': async (page) => {
+    await openSettings(page, 'Recording & DAW');
+    await openAdvanced(page);
+    await page.getByRole('table', { name: 'What the recording tool can do' }).waitFor();
+    await page.getByLabel('REAPER program', { exact: true }).waitFor();
+  },
+  'recording-reaper-path-invalid': async (page) => {
+    await openSettings(page, 'Recording & DAW');
+    await openAdvanced(page);
+    const path = page.getByLabel('REAPER program', { exact: true });
+    await path.fill('C:\\Program Files\\REAPER\\notes.txt');
+    await path.press('Enter');
+    await page.getByText('This is not the path to reaper.exe.', { exact: false }).waitFor();
+    await showSettingsRow(page, 'daw.reaperPath');
+  },
+
+  // ---- Speech to text
+  speech: async (page) => {
+    await openSettings(page, 'Speech to text');
+    await page.getByLabel('Transcription model (all projects)', { exact: true }).waitFor();
+  },
+  'speech-costly-confirm': async (page) => {
+    await openSettings(page, 'Speech to text');
+    await page.getByLabel('Transcription model (all projects)', { exact: true }).selectOption({ index: 1 });
+    await confirmDialog(page, 'Change the transcription model?').waitFor();
+  },
+  'speech-advanced': async (page) => {
+    await openSettings(page, 'Speech to text');
+    await openAdvanced(page);
+    await page.getByLabel('Chunk length (all projects)', { exact: true }).waitFor();
+  },
+  'speech-model-offer': async (page) => {
+    // Booted without the downloads installed, so the model the row names is not on this computer and the row offers it.
+    await openSettings(page, 'Speech to text', '?mockAssets=missing');
+    await page
+      .locator('[data-row="stt.model"] [data-asset-note]')
+      .getByRole('button', { name: /^Download / })
+      .waitFor();
+  },
+
+  // ---- Voice & pronunciation
+  voice: async (page) => {
+    await openSettings(page, 'Voice & pronunciation');
+    await page.locator('[data-row="voice.id"] [data-asset-note]').waitFor();
+    await page.getByRole('group', { name: 'Show definitions from' }).waitFor();
+  },
+  'voice-key-saved': async (page) => {
+    await openSettings(page, 'Voice & pronunciation');
+    await openAdvanced(page);
+    await page.getByLabel('Merriam-Webster key', { exact: true }).fill('0b5c1a3e-7d2f-4e6a-9c8b-2f1e0d9c8b7a');
+    await clickVisible(page, 'button', 'Save key');
+    await page.getByText('Key saved', { exact: true }).waitFor();
+    // The saved toast removes itself on a real timer, which would race the screenshot: dismiss it, unless a slow run already let it expire.
+    const dismissToast = page.getByRole('button', { name: 'Dismiss message' });
+    await dismissToast.click({ timeout: 1_000 }).catch(() => undefined);
+    await dismissToast.waitFor({ state: 'detached' });
+    await showSettingsRow(page, 'voice.mwKey');
+  },
+
+  // ---- Models & downloads
+  models: async (page) => {
+    await openModels(page);
+  },
+  'models-downloading': async (page) => {
+    await openModels(page, '?mockAssets=installing');
+    await page
+      .getByRole('progressbar', { name: /^Downloading / })
+      .first()
+      .waitFor();
+    await page
+      .getByText(/44 of 109 MB|\d+%/)
+      .first()
+      .waitFor();
+  },
+  'models-failed': async (page) => {
+    await openModels(page, '?mockAssets=download-fails');
+    await page
+      .locator('[data-asset="tts/en_US-ljspeech-high"]')
+      .getByRole('button', { name: /^Download / })
+      .click();
+    await page.getByRole('alert').filter({ hasText: 'did not match the approved one' }).first().waitFor();
+  },
+  'models-needs-repair': async (page) => {
+    await openModels(page, '?mockAssets=damaged');
+    await page.getByRole('button', { name: 'Repair Small' }).waitFor();
+  },
+  'models-remove-confirm': async (page) => {
+    await openModels(page);
+    await page.locator(`[data-asset="${WHISPER_SMALL}"]`).getByRole('button', { name: 'Remove Small' }).click();
+    await confirmDialog(page, 'Remove Small?').waitFor();
+  },
+  'models-remove-refused': async (page) => {
+    await openModels(page);
+    await page.locator(`[data-asset="${WHISPER_SMALL}"]`).getByRole('button', { name: 'Remove Small' }).click();
+    await confirmDialog(page, 'Remove Small?').getByRole('button', { name: 'Remove', exact: true }).click();
+    await page.getByRole('alert').filter({ hasText: 'was not removed' }).waitFor();
+  },
+  'models-empty': async (page) => {
+    await openModels(page, '?mockAssets=missing');
+    await page.getByText('Nothing is downloaded yet', { exact: true }).first().waitFor();
+  },
+  'models-loading': async (page) => {
+    await openSettings(page, 'Models & downloads', '?mockAssetsList=loading');
+    await page.getByLabel('Loading models and downloads').waitFor();
+  },
+  'models-error': async (page) => {
+    await openSettings(page, 'Models & downloads', '?mockAssetsList=fails');
+    await page.getByText('The list of models could not be read.').waitFor();
+  },
+
+  // ---- Delivery
+  delivery: async (page) => {
+    await openSettings(page, 'Delivery');
+    await page.getByRole('combobox', { name: 'Delivery profile', exact: true }).waitFor();
+    await page.getByRole('combobox', { name: 'Default profile for new projects', exact: true }).waitFor();
+  },
+  'delivery-profile-editor': async (page) => {
+    await openSettings(page, 'Delivery');
+    await openAdvanced(page);
+    await page.getByRole('button', { name: 'Duplicate ACX' }).click();
+    await page
+      .getByRole('button', { name: /^Edit / })
+      .first()
+      .click();
+    const editor = page.getByRole('dialog', { name: 'Edit profile' });
+    await editor.getByRole('textbox', { name: 'Peak, highest (dBFS)' }).fill('-3.5');
+    await editor.getByText('Changed').waitFor();
+  },
+  'delivery-profile-custom': async (page) => {
+    await openSettings(page, 'Delivery', '?mockDeliveryProfile=custom');
+    const select = page.getByRole('combobox', { name: 'Delivery profile', exact: true });
+    await select.getByRole('option', { name: 'My ACX, tighter peak', selected: true }).waitFor({ state: 'attached' });
+  },
+
+  // ---- Project
+  project: async (page) => {
+    await openSettings(page, 'Project');
+    await page.getByText(/^Imported .* words$/).waitFor();
+    await page.getByRole('button', { name: 'Replace manuscript…' }).waitFor();
   },
   manuscript: async (page) => {
-    await goToPage(page, 'Settings');
+    await openSettings(page, 'Project');
     await page.getByText(/^Imported .* words$/).waitFor();
-    await clickSettingsCategory(page, 'Manuscript');
+    await clickVisible(page, 'button', 'Replace manuscript…');
+    await confirmDialog(page, 'Import Alice.docx').waitFor();
   },
   'marks-dialog': async (page) => {
-    await goToPage(page, 'Settings');
+    await openSettings(page, 'Project');
+    await showSettingsRow(page, 'project.marks');
     await page.getByRole('button', { name: 'Edit marks…' }).click();
     const dialog = page.getByRole('dialog', { name: 'Define how you mark up' });
     await dialog.waitFor();
     await dialog.getByLabel('Mark name').first().waitFor();
   },
-  'recording-builtin': async (page) => {
-    // The host refuses the built-in recorder while the Experimental switch is off, so this state turns it on.
-    await page.goto('/?mockDawExperimentalOn=1');
-    await settlePage(page);
-    await goToPage(page, 'Settings');
-    const builtin = page.getByRole('radio', { name: /^Built-in recorder/ });
-    await builtin.click();
-    await page
-      .getByRole('radio', { name: /^Built-in recorder/ })
-      .and(page.locator('[aria-checked="true"]'))
-      .waitFor();
+  'project-credits': async (page) => {
+    await openCreditsEditor(page);
   },
-  'recording-found': async (page) => {
-    await page.goto('/?mockDawChoice=found');
-    await settlePage(page);
-    await goToPage(page, 'Settings');
-    await page.getByRole('button', { name: 'Link Alice.rpp' }).waitFor();
+  // The chapter announcement template ?mockCredits=extras adds, previewed for Chapter 1.
+  'project-credits-chapter-announcement': async (page) => {
+    await openCreditsEditor(page, '?mockCredits=extras');
+    await page.getByRole('combobox', { name: 'Template' }).selectOption({ label: 'Chapter announcement (Chapter announcement)' });
+    await page.getByText(/Shown for Chapter 1/).waitFor();
   },
-  'recording-several': async (page) => {
-    await page.goto('/?mockDawChoice=several');
-    await settlePage(page);
-    await goToPage(page, 'Settings');
-    await page.getByText(/2 REAPER project files are in the project folder/).waitFor();
+  // The retail sample ?mockCredits=extras picked (Chapter 3, lines 1-3), scrolled into view.
+  'project-credits-retail-sample': async (page) => {
+    await openCreditsEditor(page, '?mockCredits=extras');
+    await page.getByText(/line 1 to Chapter 3 — A Caucus-Race and a Long Tale, line 3/).waitFor();
+    await page.getByRole('heading', { name: 'Retail sample' }).scrollIntoViewIfNeeded();
   },
-  'recording-linked': async (page) => {
-    await page.goto('/?mockDawChoice=found');
-    await settlePage(page);
-    await goToPage(page, 'Settings');
-    await page.getByRole('button', { name: 'Link Alice.rpp' }).click();
-    await page.getByText('REAPER linked: Alice.rpp').waitFor();
-    await page.getByRole('button', { name: 'Start REAPER' }).waitFor();
+  // A range over 5 minutes (Chapter 1 to Chapter 12) is refused, and the refusal says why.
+  'project-credits-retail-sample-refused': async (page) => {
+    await openCreditsEditor(page);
+    await page.getByRole('combobox', { name: 'Sample ends in' }).selectOption({ label: 'Chapter 12 — Alice’s Evidence' });
+    await page.getByRole('button', { name: 'Save sample' }).click();
+    await page.getByText(/at most 5 minutes/).waitFor();
+    await page.getByRole('button', { name: 'Save sample' }).scrollIntoViewIfNeeded();
   },
-  'recording-not-installed': async (page) => {
-    await page.goto('/?mockDawChoice=not-installed');
-    await settlePage(page);
-    await goToPage(page, 'Settings');
-    await page.getByText(/REAPER was not found on this computer/).waitFor();
+  'project-data-confirm': async (page) => {
+    await openSettings(page, 'Project');
+    await openAdvanced(page);
+    await page.getByRole('button', { name: 'Clear derived data…' }).click();
+    await confirmDialog(page, 'Clear derived project data?').waitFor();
   },
-  'global-general': async (page) => {
-    await goToPage(page, 'Settings');
-    await clickSettingsCategory(page, 'General');
+
+  // ---- Appearance & keys
+  appearance: async (page) => {
+    await openSettings(page, 'Appearance & keys');
+    await page.getByRole('radiogroup', { name: 'Theme' }).waitFor();
   },
-  'global-manuscript': async (page) => {
-    await goToPage(page, 'Settings');
-    await clickSettingsCategory(page, 'Note colour');
+  'reader-text': async (page) => {
+    await openSettings(page, 'Appearance & keys');
+    await showSettingsRow(page, 'look.reader');
+    await page.getByRole('slider', { name: 'Column width' }).waitFor();
   },
-  'global-stage-recommendations': async (page) => {
-    await goToPage(page, 'Settings');
-    await clickSettingsCategory(page, 'Stage suggestions');
-    await page.getByText('Suggest stage advances').waitFor();
+  'global-keyboard': async (page) => {
+    await openShortcuts(page);
+    await page.getByText('Keys and pedals').waitFor();
   },
-  'global-recording-check': async (page) => {
-    await goToPage(page, 'Settings');
-    await clickSettingsCategory(page, 'Recording check');
-    await page.getByText('Proposed values, not yet calibrated').waitFor();
+  'global-keyboard-recording': async (page) => {
+    await openShortcuts(page);
+    await openKeyboardRecorder(page, 'Record or stop');
+    await page.keyboard.press('KeyJ');
+    await page.getByText('J captured. No other command uses it where reading happens.').waitFor();
   },
-  'global-proofing': async (page) => {
-    await goToPage(page, 'Settings');
-    await clickSettingsCategory(page, 'Proof');
+  'global-keyboard-conflict': async (page) => {
+    await openShortcuts(page);
+    await openKeyboardRecorder(page, 'Next paragraph');
+    // ArrowRight is already "Next word"'s default, both `page` scope: a real findConflicts collision.
+    await page.keyboard.press('ArrowRight');
+    await page.getByText('→ already runs "Next word".').waitFor();
   },
-  'global-storybible': async (page) => {
-    await goToPage(page, 'Settings');
-    await clickSettingsCategory(page, 'Story Bible');
-    await page.getByText('No key', { exact: true }).waitFor();
-  },
-  'global-storybible-key-saved': async (page) => {
-    await saveOnlineDictionaryKey(page);
-  },
-  'global-delivery': async (page) => {
-    await goToPage(page, 'Settings');
-    await clickSettingsCategory(page, 'Delivery profiles');
-    await page.getByRole('combobox', { name: 'Default delivery profile' }).waitFor();
-  },
-  'delivery-profile-editor': async (page) => {
-    await goToPage(page, 'Settings');
-    await clickSettingsCategory(page, 'Delivery profiles');
-    await settingsPanel(page, 'Delivery profiles').getByRole('button', { name: 'Duplicate' }).click();
-    const editor = page.getByRole('dialog', { name: 'Edit profile' });
-    await editor.getByRole('textbox', { name: 'Peak, highest (dBFS)' }).fill('-3.5');
-    await editor.getByText('Changed').waitFor();
-  },
-  'global-daw': async (page) => {
-    await goToPage(page, 'Settings');
-    await clickSettingsCategory(page, 'DAW Integration');
-    await page.getByText('REAPER detected').waitFor();
-  },
-  'global-daw-capabilities': async (page) => {
-    await goToPage(page, 'Settings');
-    await clickSettingsCategory(page, 'DAW Integration');
-    await page.getByRole('heading', { name: 'What the DAW can do' }).waitFor();
-    await page.getByRole('heading', { name: 'What the DAW can do' }).scrollIntoViewIfNeeded();
-  },
-  'global-daw-not-detected': async (page) => {
-    await page.goto('/?mockDawNotDetected=1');
-    await settlePage(page);
-    await goToPage(page, 'Settings');
-    await clickSettingsCategory(page, 'DAW Integration');
-    await page.getByRole('button', { name: 'Get REAPER' }).waitFor();
-  },
-  'global-daw-handoff': async (page) => {
-    // Reload with the mock's no-linked-DAW seam (see main.tsx): REAPER stays detected (dawCatalogInstalled
-    // defaults true), only dawFileLinked flips, so the catalog panel's handoff button appears.
-    await page.goto('/?mockNoDaw=1');
-    await settlePage(page);
-    await goToPage(page, 'Settings');
-    await clickSettingsCategory(page, 'DAW Integration');
-    await page.getByRole('button', { name: 'Link a REAPER project file' }).waitFor();
-  },
-  'global-tts': async (page) => {
-    await goToPage(page, 'Settings');
-    await clickSettingsCategory(page, 'TTS');
-  },
-  'global-booth': async (page) => {
-    await goToPage(page, 'Settings');
-    await clickSettingsCategory(page, 'Booth');
-  },
-  'global-about': async (page) => {
-    await goToPage(page, 'Settings');
-    await clickSettingsCategory(page, 'About & updates');
+
+  // ---- App & updates
+  app: async (page) => {
+    await openSettings(page, 'App & updates');
     await page.getByText('Not checked yet.').waitFor();
   },
-  'local-assets': async (page) => {
-    await openLocalAssets(page);
-  },
-  'local-assets-downloading': async (page) => {
-    await openLocalAssets(page, 'installing');
-    await page.getByRole('progressbar', { name: /Download progress for/ }).waitFor();
-    await page
-      .getByText(/44 of 109 MB/)
-      .first()
-      .waitFor();
-  },
-  'local-assets-verifying': async (page) => {
-    await openLocalAssets(page, 'checking');
-    await page.getByRole('button', { name: /^Verifying Preview voice LJ Speech/ }).waitFor();
-  },
-  'local-assets-needs-repair': async (page) => {
-    await openLocalAssets(page, 'damaged');
-    await page.getByRole('button', { name: 'Repair Whisper model Small' }).waitFor();
-  },
-  'local-assets-failed': async (page) => {
-    await openLocalAssets(page, 'download-fails');
-    await page.getByRole('button', { name: 'Download Preview voice LJ Speech (U.S. English)' }).click();
-    await page.getByRole('alert').filter({ hasText: 'did not match the approved one' }).waitFor();
-  },
-  'local-assets-remove-confirm': async (page) => {
-    await openLocalAssets(page);
-    await page.getByRole('button', { name: 'Remove Whisper model Small' }).click();
-    await confirmDialog(page, 'Remove Whisper model Small?').waitFor();
-  },
   'about-update-available': async (page) => {
-    await page.goto('/?mockUpdate=available');
-    await settlePage(page);
-    await goToPage(page, 'Settings');
-    await clickSettingsCategory(page, 'About & updates');
+    await openUpdates(page, 'available');
     await page.getByText('Version 0.2.7 is available').waitFor();
   },
   'about-download-confirm': async (page) => {
-    await page.goto('/?mockUpdate=available');
-    await settlePage(page);
-    await goToPage(page, 'Settings');
-    await clickSettingsCategory(page, 'About & updates');
+    await openUpdates(page, 'available');
     await page.getByRole('button', { name: 'Download update' }).click();
     await confirmDialog(page, 'Download version 0.2.7?').waitFor();
   },
   'about-download-progress': async (page) => {
-    await page.goto('/?mockUpdate=downloading');
-    await settlePage(page);
-    await goToPage(page, 'Settings');
-    await clickSettingsCategory(page, 'About & updates');
-    await page.getByRole('button', { name: 'Download update' }).click();
-    await page.getByRole('button', { name: 'Download', exact: true }).click();
+    await openUpdates(page, 'downloading');
+    await startUpdateDownload(page);
     await page.getByRole('dialog', { name: 'Download Narration Studio 0.2.7' }).waitFor();
     await page
       .getByText(/160 of 400 MB/)
@@ -211,221 +343,141 @@ export const settingsDrivers: Record<string, Driver> = {
       .waitFor();
   },
   'about-download-failed': async (page) => {
-    await page.goto('/?mockUpdate=download-fails');
-    await settlePage(page);
-    await goToPage(page, 'Settings');
-    await clickSettingsCategory(page, 'About & updates');
-    await page.getByRole('button', { name: 'Download update' }).click();
-    await page.getByRole('button', { name: 'Download', exact: true }).click();
+    await openUpdates(page, 'download-fails');
+    await startUpdateDownload(page);
     await page.getByRole('alert').filter({ hasText: 'so the update was not used' }).waitFor();
   },
   'about-update-ready': async (page) => {
-    await page.goto('/?mockUpdate=ready');
-    await settlePage(page);
-    await goToPage(page, 'Settings');
-    await clickSettingsCategory(page, 'About & updates');
+    await openUpdates(page, 'ready');
     await page.getByRole('button', { name: 'Install and restart' }).waitFor();
   },
   'about-install-confirm': async (page) => {
-    await page.goto('/?mockUpdate=ready');
-    await settlePage(page);
-    await goToPage(page, 'Settings');
-    await clickSettingsCategory(page, 'About & updates');
+    await openUpdates(page, 'ready');
     await page.getByRole('button', { name: 'Install and restart' }).click();
     await confirmDialog(page, 'Install version 0.2.7 and restart?').waitFor();
   },
   'about-installing': async (page) => {
-    await page.goto('/?mockUpdate=ready');
-    await settlePage(page);
-    await goToPage(page, 'Settings');
-    await clickSettingsCategory(page, 'About & updates');
+    await openUpdates(page, 'ready');
     await page.getByRole('button', { name: 'Install and restart' }).click();
     await confirmDialog(page, 'Install version 0.2.7 and restart?').getByRole('button', { name: 'Install and restart' }).click();
     await page.getByRole('dialog', { name: 'Installing Narration Studio 0.2.7' }).waitFor();
   },
   'about-install-refused': async (page) => {
-    await page.goto('/?mockUpdate=install-refused');
-    await settlePage(page);
-    await goToPage(page, 'Settings');
-    await clickSettingsCategory(page, 'About & updates');
+    await openUpdates(page, 'install-refused');
     await page.getByRole('button', { name: 'Install and restart' }).click();
     await confirmDialog(page, 'Install version 0.2.7 and restart?').getByRole('button', { name: 'Install and restart' }).click();
     await page.getByRole('alert').filter({ hasText: 'Narration Studio is busy' }).waitFor();
   },
   'about-install-blocked': async (page) => {
-    await page.goto('/?mockUpdate=install-blocked');
-    await settlePage(page);
-    await goToPage(page, 'Settings');
-    await clickSettingsCategory(page, 'About & updates');
-    await page.getByRole('button', { name: 'Download update' }).click();
-    await page.getByRole('button', { name: 'Download', exact: true }).click();
+    await openUpdates(page, 'install-blocked');
+    await startUpdateDownload(page);
     await page.getByRole('button', { name: 'Close' }).waitFor({ timeout: 15_000 });
     await page.getByRole('button', { name: 'Close' }).click();
     await page.getByRole('button', { name: 'Show the downloaded file' }).waitFor();
   },
   'about-development-build': async (page) => {
-    await page.goto('/?mockUpdate=development');
-    await settlePage(page);
-    await goToPage(page, 'Settings');
-    await clickSettingsCategory(page, 'About & updates');
+    await openUpdates(page, 'development');
     await page.getByText('A development build is never offered an update.').waitFor();
   },
   'about-check-failed': async (page) => {
-    await page.goto('/?mockUpdate=failed');
-    await settlePage(page);
-    await goToPage(page, 'Settings');
-    await clickSettingsCategory(page, 'About & updates');
+    await openUpdates(page, 'failed');
     await page.getByText('Could not reach GitHub to check for updates.').waitFor();
   },
-  'global-keyboard': async (page) => {
-    await goToPage(page, 'Settings');
-    await clickSettingsCategory(page, 'Keyboard & pedals');
-    await page.getByText('Keys and pedals').waitFor();
+
+  // ---- Set on a page
+  pages: async (page) => {
+    await openSettings(page, 'Set on a page');
+    await page.locator('[data-page-setting="ps.coverage"]').waitFor();
   },
-  'global-keyboard-recording': async (page) => {
-    await goToPage(page, 'Settings');
-    await clickSettingsCategory(page, 'Keyboard & pedals');
-    await openKeyboardRecorder(page, 'Record or stop');
-    await page.keyboard.press('KeyJ');
-    await page.getByText('J captured. No other command uses it where reading happens.').waitFor();
+  'pages-panel-open': async (page) => {
+    await openFirstPagePanel(page);
+    await page.locator('[data-page-setting="ps.coverage"]').scrollIntoViewIfNeeded();
   },
-  'global-keyboard-conflict': async (page) => {
-    await goToPage(page, 'Settings');
-    await clickSettingsCategory(page, 'Keyboard & pedals');
-    await openKeyboardRecorder(page, 'Next paragraph');
-    // ArrowRight is already "Next word"'s default, both `page` scope: a real findConflicts collision.
-    await page.keyboard.press('ArrowRight');
-    await page.getByText('→ already runs "Next word".').waitFor();
-  },
-  'project-recording-check': async (page) => {
-    await goToPage(page, 'Settings');
-    await clickSettingsCategory(page, 'Recording check', 'This project');
-    await page.getByText('A value left blank here uses the Global one.').waitFor();
-  },
-  'project-proofing': async (page) => {
-    await goToPage(page, 'Settings');
-    await clickSettingsCategory(page, 'Proof', 'This project');
-  },
-  'project-storybible': async (page) => {
-    await goToPage(page, 'Settings');
-    await clickSettingsCategory(page, 'Story Bible', 'This project');
-  },
-  'delivery-profile-custom': async (page) => {
-    await page.goto('/?mockDeliveryProfile=custom');
-    await settlePage(page);
-    await goToPage(page, 'Settings');
-    const select = page.getByRole('combobox', { name: 'Delivery profile', exact: true });
-    await select.getByRole('option', { name: 'My ACX, tighter peak', selected: true }).waitFor({ state: 'attached' });
-  },
-  'project-daw': async (page) => {
-    await goToPage(page, 'Settings');
-    await clickSettingsCategory(page, 'DAW Integration', 'This project');
-    // The header pill's own text is also "REAPER project linked" (it is a plain text node, not just its aria-label),
-    // so wait on copy unique to the settings panel instead of the ambiguous status line.
-    await page.getByText('Tracks and Proof read from the linked .rpp file.').waitFor();
-  },
-  'project-daw-not-linked': async (page) => {
-    // Reload with the mock's no-linked-DAW seam (see main.tsx): the project-scope DAW category
-    // shows its unlinked copy and "Link a REAPER project file".
-    await page.goto('/?mockNoDaw=1');
-    await settlePage(page);
-    await goToPage(page, 'Settings');
-    await clickSettingsCategory(page, 'DAW Integration', 'This project');
-    // Same ambiguity as the linked state: wait on the panel's own copy, not the header pill's identical text.
-    await page.getByText('Link a REAPER project (.rpp) file to unlock Tracks and Proof.').waitFor();
-  },
-  'project-data': async (page) => {
-    await goToPage(page, 'Settings');
-    await clickSettingsCategory(page, 'Project data', 'This project');
-  },
-  'project-credits': async (page) => {
-    await goToPage(page, 'Settings');
-    await clickSettingsCategory(page, 'Credits', 'This project');
-  },
-  // Every empty field with a manuscript-detected candidate shows its own source caption, not just Title and Author.
-  'project-credits-detected': async (page) => {
-    await page.goto('/?mockCredits=detected');
-    await settlePage(page);
-    await goToPage(page, 'Settings');
-    await clickSettingsCategory(page, 'Credits', 'This project');
-    const detected = page.getByText('Detected from the copyright line: “1865”.');
-    await detected.waitFor();
-    await page.getByText(/Detected from a line ending in .Publishers.: “Macmillan” \(check this\)\./).waitFor();
-    // Scrolled into view: at the desktop viewport's own scroll position (single load, no reloadPerViewport) this
-    // caption sits below the fold, making the desktop capture pixel-identical to plain project-credits otherwise.
-    await detected.scrollIntoViewIfNeeded();
-  },
-  // The chapter announcement template ?mockCredits=extras adds, previewed for Chapter 1.
-  'project-credits-chapter-announcement': async (page) => {
-    await page.goto('/?mockCredits=extras');
-    await settlePage(page);
-    await goToPage(page, 'Settings');
-    await clickSettingsCategory(page, 'Credits', 'This project');
-    await page.getByRole('combobox', { name: 'Template' }).selectOption({ label: 'Chapter announcement (Chapter announcement)' });
-    await page.getByText(/Shown for Chapter 1/).waitFor();
-  },
-  // The retail sample ?mockCredits=extras picked (Chapter 3, lines 1-3), scrolled into view.
-  'project-credits-retail-sample': async (page) => {
-    await page.goto('/?mockCredits=extras');
-    await settlePage(page);
-    await goToPage(page, 'Settings');
-    await clickSettingsCategory(page, 'Credits', 'This project');
-    await page.getByText(/line 1 to Chapter 3 — A Caucus-Race and a Long Tale, line 3/).waitFor();
-    await page.getByRole('heading', { name: 'Retail sample' }).scrollIntoViewIfNeeded();
-  },
-  // A range over 5 minutes (Chapter 1 to Chapter 12) is refused, and the refusal says why.
-  'project-credits-retail-sample-refused': async (page) => {
-    await goToPage(page, 'Settings');
-    await clickSettingsCategory(page, 'Credits', 'This project');
-    await page.getByRole('combobox', { name: 'Sample ends in' }).selectOption({ label: 'Chapter 12 — Alice’s Evidence' });
-    await page.getByRole('button', { name: 'Save sample' }).click();
-    await page.getByText(/at most 5 minutes/).waitFor();
-    await page.getByRole('button', { name: 'Save sample' }).scrollIntoViewIfNeeded();
-  },
-  'dirty-footer': async (page) => {
-    await goToPage(page, 'Settings');
-    await clickSettingsCategory(page, 'Proof');
-    // Proof settings fields are <select> comboboxes, not pill buttons
-    // (that's a Setup-page-only control) - pick a different model to dirty it.
-    await settingsPanel(page, 'Proof').getByRole('combobox').first().selectOption('large-v3');
-    // The unsaved-changes footer sits at the end of the page; bring it on screen.
-    await settingsPanel(page, 'Proof').getByRole('button', { name: /save/i }).first().scrollIntoViewIfNeeded();
-  },
-  'navigate-away-confirm': async (page) => {
-    await goToPage(page, 'Settings');
-    await clickSettingsCategory(page, 'Proof');
-    await settingsPanel(page, 'Proof').getByRole('combobox').first().selectOption('large-v3');
+
+  'pages-navigate-away-confirm': async (page) => {
+    // A panel kept behind Set on a page still edits with Save, so leaving with a change in it asks first.
+    await openFirstPagePanel(page);
+    await page.getByLabel('Share of each paragraph that must be read', { exact: false }).first().fill('0.7');
     // Leaving with unsaved changes asks first, so this click does not arrive at Production: it opens the confirm dialog.
     await clickNav(page, 'Production');
     await confirmDialog(page, 'Unsaved settings').waitFor();
   },
-  'reset-override': async (page) => {
-    await goToPage(page, 'Settings');
-    await clickSettingsCategory(page, 'Proof', 'This project');
-    // The mock starts with no project override, so make one the way a narrator does: pick a value and save it. Only a
-    // field that has an override shows Reset (the model select), and its row is the one that must not squeeze.
-    // exact: true: the header's zoom readout is also named "Reset
-    // zoom to 100% (now N%)", which a non-exact match treats as containing "Reset" too.
-    await page.getByRole('combobox', { name: 'Default Whisper model' }).selectOption('large-v3');
-    await page.getByRole('button', { name: 'Save', exact: true }).click();
-    const reset = page.getByRole('button', { name: 'Reset', exact: true });
-    await reset.waitFor();
-    // The save toast removes itself on a real 2.4 s timer, which would race the screenshot: dismiss it, unless a slow
-    // run already let it expire, and wait until it is gone either way.
-    const dismissToast = page.getByRole('button', { name: 'Dismiss message' });
-    await dismissToast.click({ timeout: 1_000 }).catch(() => undefined);
-    await dismissToast.waitFor({ state: 'detached' });
-    // Clicking Save scrolled the panel to its footer: bring the top back so the category and its first row are in the shot.
-    await page.getByRole('heading', { level: 2, name: 'Proof' }).scrollIntoViewIfNeeded();
-    await reset.hover();
+
+  // ---- Search and filters
+  'search-results': async (page) => {
+    await openSettings(page);
+    await page.getByRole('textbox', { name: 'Search settings' }).fill('whisper');
+    await page.getByText(/\d+ settings? found/).waitFor();
+  },
+  'search-empty': async (page) => {
+    await openSettings(page);
+    await page.getByRole('textbox', { name: 'Search settings' }).fill('zzzz');
+    await page.getByText('No settings match “zzzz”').waitFor();
+  },
+  'filter-changed': async (page) => {
+    await openSettings(page, 'App & updates');
+    // Turning a setting off is a change from its default; the filter then lists exactly that row.
+    await page.getByRole('switch', { name: /Tell me when a long task finishes/ }).click();
+    await page.locator('[data-row="app.notify"][data-changed="true"]').waitFor();
+    await page
+      .getByRole('radio', { name: 'Changed', exact: true })
+      .or(page.getByRole('button', { name: 'Changed', exact: true }))
+      .first()
+      .click();
+    await page.getByRole('region', { name: 'App & updates' }).locator('[data-row="app.notify"]').waitFor();
+  },
+  'filter-project': async (page) => {
+    await openSettings(page);
+    await page
+      .getByRole('radio', { name: 'In this project', exact: true })
+      .or(page.getByRole('button', { name: 'In this project', exact: true }))
+      .first()
+      .click();
+    await page.getByText(/\d+ settings? found/).waitFor();
+  },
+
+  // ---- Arriving
+  'deep-link': async (page) => {
+    // From the Booth's credits notice, which links to /settings#credits. The row's light fades on a real 2.2 s timer, so the clock stops
+    // before the link is followed.
+    await page.goto('/booth?mockRecordCapabilityOn=1&credits=closing');
+    await settlePage(page);
+    await page.getByRole('button', { name: /Fill them in Settings$/ }).waitFor();
+    await freezeClock(page);
+    await page.getByRole('button', { name: /Fill them in Settings$/ }).click();
+    await page.getByRole('heading', { level: 1, name: 'Settings', exact: true }).waitFor();
+    await page.getByRole('button', { name: /^Back to Booth/ }).waitFor();
+    await page.locator('[data-row="project.credits"]').waitFor();
+  },
+  'folded-category-list': async (page) => {
+    await openSettings(page);
+    // Narrower than 760 px the list is folded behind the Category button, which names the current category; open it.
+    const folded = page.getByRole('button', { name: /^Category/ });
+    if (await folded.isVisible()) {
+      await folded.click();
+      await folded.and(page.locator('[aria-expanded="true"]')).waitFor();
+    }
+  },
+
+  // ---- States of the page
+  loading: async (page) => {
+    await openSettings(page, undefined, '?mockSettings=loading');
+    await page.getByLabel('Loading Recording & DAW').waitFor();
+  },
+  unreadable: async (page) => {
+    await openSettings(page, undefined, '?mockSettings=unreadable');
+    await page.getByRole('alert').filter({ hasText: 'Your settings could not be read.' }).waitFor();
+  },
+  'save-failed': async (page) => {
+    await openSettings(page, 'App & updates', '?mockSettings=save-fails');
+    await page.getByRole('switch', { name: /Tell me when a long task finishes/ }).click();
+    await page.getByText('Changes cannot be saved right now.').waitFor();
+    await page.locator('[data-row="app.notify"]').getByText('The settings file is read-only.').waitFor();
+  },
+  override: async (page) => {
+    await openSettings(page, 'Project');
+    await showSettingsRow(page, 'project.build');
+    await page.getByRole('button', { name: 'Override Build the Story Bible after import for this project' }).click();
+    await page.getByText('This project uses', { exact: true }).waitFor();
   },
 };
-
-// Opens a command's recorder on the Keyboard & pedals category: the label
-// span is its row's own header row's only direct text-node child (KeyboardPanel.tsx), so one level up from it is the
-// row scoped to exactly this command's own Change button, never another row's.
-async function openKeyboardRecorder(page: Page, label: string): Promise<void> {
-  const headerRow = page.getByText(label, { exact: true }).locator('..');
-  await headerRow.getByRole('button', { name: 'Change' }).click();
-  await page.getByRole('group', { name: `Change "${label}"` }).scrollIntoViewIfNeeded();
-}

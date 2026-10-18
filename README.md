@@ -18,7 +18,7 @@ logic is DAW-agnostic; a thin per-DAW driver wires it into a specific host.
   reading in a chosen chapter.
 
 The tools share one native UI, shown below on the Production page, plus a manuscript reader and a Settings page that also lists,
-verifies and removes the voices and models the app has downloaded (Settings > Local assets). See
+verifies and removes the voices and models the app has downloaded (Settings > Models & downloads). See
 [Using the app](docs/guides/using-the-app/README.md) for a full screenshot walkthrough. The UI's component library is a
 Storybook atlas (`pnpm --dir apps/ui run storybook`, checked in CI by the `ui-atlas` job); its generated reference is in
 [`docs/ui/atlas/`](docs/ui/atlas/index.md) and the design rules in the [design system reference](docs/design/design-system.md).
@@ -98,7 +98,7 @@ The supported way to get the app is a GitHub release. From the [releases page](h
      workflow, commit and run that built it (see [CI and releases](docs/operations/ci-and-releases.md#build-provenance)).
 4. Start **Narration Studio** from the Start Menu. Nothing is downloaded until a feature that needs a model asks you first.
 
-The app updates itself from these releases after you click (Settings > About & updates); it never installs an update on its
+The app updates itself from these releases after you click (Settings > App & updates); it never installs an update on its
 own. That works because the install folder is yours to write to. `narration-utils-<version>-windows-x64.zip` on the release is
 the update package the app fetches, not something to run by hand. A copy installed before the version was in the file names
 cannot find the new names: install the next release by hand once, and it updates itself from then on.
@@ -146,7 +146,7 @@ installation path. Compiled GitHub releases package their own sidecars and
 installer resources, and never call this command.
 
 A compiled release is one program, `narration-utils` (`narration-utils.exe` on Windows), that knows its own version
-(Settings > About & updates). Once a day at most it asks GitHub whether a newer release of this repository exists (switch
+(Settings > App & updates). Once a day at most it asks GitHub whether a newer release of this repository exists (switch
 it off there), and on Windows, after your confirmed click, it downloads that release, checks it and replaces itself; it
 never downloads or installs anything on its own. See [in-app update](docs/architecture/in-app-update.md).
 

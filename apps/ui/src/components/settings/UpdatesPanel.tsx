@@ -18,11 +18,10 @@ function checkedDay(lastChecked: string): string {
  * What the app knows about newer releases: the newest one on the narrator's channel if it is newer than this build, when the app last
  * looked, and a Check now button. It only reads and reports here: nothing is downloaded from this panel.
  *
- * `formDirty` says the settings beside it have unsaved edits: a check asks with the saved channel, so it waits until they are saved
- * rather than answer a question the narrator has already changed. The caller gives the panel a new `key` when the saved channel
+ * A setting applies at once, so a check always asks with the channel as it is. The caller gives the panel a new `key` when the channel
  * changes, so it asks the host again for what is available on the new one.
  */
-export function UpdatesPanel({ formDirty = false }: { formDirty?: boolean }) {
+export function UpdatesPanel() {
   const api = useApi();
   const [status, setStatus] = useState<UpdateStatus>();
   const [error, setError] = useState('');
@@ -153,14 +152,9 @@ export function UpdatesPanel({ formDirty = false }: { formDirty?: boolean }) {
             </div>
           )}
           <div className="flex flex-wrap items-center gap-3">
-            <Button ref={checkButton} variant="secondary" disabled={checking || formDirty} onClick={() => void check()}>
+            <Button ref={checkButton} variant="secondary" disabled={checking} onClick={() => void check()}>
               {checking ? 'Checking…' : 'Check now'}
             </Button>
-            {formDirty && (
-              <span className="text-xs" style={{ color: 'var(--text-muted)' }}>
-                Save your changes first: a check uses the saved settings.
-              </span>
-            )}
           </div>
         </>
       )}

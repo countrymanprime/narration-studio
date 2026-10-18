@@ -70,7 +70,7 @@ word in the text to open it on the **Words** tab.
 - **Words** lists the words marked for pronunciation in the chapter in view. A word's card has **How I will say it**
   with its source (a dictionary, eSpeak or the one you typed), the **Definition**, **Forvo** and **YouGlish** pages for
   it, and its definition from where **Definitions from** says: the web page (the default), the offline dictionary
-  ([Settings, Local assets](settings.md#local-assets)) or the online service on your own key. The choice is saved
+  ([Settings, Models and downloads](settings.md#models-and-downloads)) or the online service on your own key. The choice is saved
   for every project, and Settings' **Definitions and pronunciations** panel changes the same one.
 - **Story Bible** lists the entries met in the chapter; one opens its summary, and **Open in Story Bible** goes there.
 - **Notes** and **Queries** list the chapter's marks with a note and its questions for the author; one goes to its

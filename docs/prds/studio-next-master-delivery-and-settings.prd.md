@@ -133,7 +133,7 @@ On conflict this PRD is the source of truth.
 | [Design system reference](../design/design-system.md) | KEEP | Reflow |
 | [Mock match](../operations/verification-tooling.md#mock-match), [RuleBadges.tsx](../../apps/ui/src/components/master/RuleBadges.tsx) to [MasteringChain.tsx](../../apps/ui/src/components/master/MasteringChain.tsx) | SUPERSEDE (DQ-1) | Studio Next Master replaces benchmark mock 05 as the spec |
 | [Design principles](../architecture/principles.md) | KEEP decision 1, SUPERSEDE decision 5 (DQ-2, DQ-14) | Delivery is a page with its own rail item |
-| [The asset registry (implemented)](../architecture/first-use-dependency-provisioning.md#the-asset-registry-implemented), [The local assets page (implemented)](../architecture/first-use-dependency-provisioning.md#the-local-assets-page-implemented) | EXTEND | Local assets list shows analysis tools |
+| [The asset registry (implemented)](../architecture/first-use-dependency-provisioning.md#the-asset-registry-implemented), [The models and downloads list (implemented)](../architecture/first-use-dependency-provisioning.md#the-models-and-downloads-list-implemented) | EXTEND | Local assets list shows analysis tools |
 | [Studio shell and registries](../architecture/studio-shell-and-registries.md) | EXTEND | Key list from the catalogue |
 
 ## Technical Approach
