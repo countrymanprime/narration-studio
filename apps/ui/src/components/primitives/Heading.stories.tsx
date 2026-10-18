@@ -17,6 +17,9 @@ type Story = StoryObj<typeof meta>;
 // Settings, Manuscript, Story Bible and Proofing use the bare title.
 export const TitleOnly: Story = { args: { title: 'Settings' } };
 
+// The project picker's title: 40 px, with the subtitle beneath.
+export const Display: Story = { args: { title: 'Choose your project', size: 'display', children: 'Open the book you’re working on, or start a new project.' } };
+
 export const WithSubtitle: Story = { args: { title: 'Tracks', children: 'Detected from the project’s REAPER file.' } };
 
 // Home passes inline markup, so children must accept more than a string.

@@ -11,7 +11,6 @@ import {
   faGaugeHigh,
   faGear,
   faHouse,
-  faMicrophone,
   faMinus,
   faPlus,
   faRotateLeft,
@@ -28,6 +27,7 @@ import { KeyChord } from '../primitives/KeyCap';
 import { TooltipTarget } from '../primitives/Tooltip';
 import type { DawKind } from '../../api/contracts/daw';
 import { navAvailability, type NavFacts } from '../../navigation/navAvailability';
+import { Brand } from './Brand';
 import { DemoBanner } from './DemoBanner';
 import { EngineChip, type EngineState } from './EngineChip';
 import { TimerChip, type RunningTimer } from './TimerChip';
@@ -157,16 +157,9 @@ export function AppShell({
   const groupHeadingId = (label: string) => `nav-group-${label.toLowerCase().replace(/\s+/g, '-')}`;
   const navigation = (
     <>
-      {/* The brand block as the Studio Next mock's `.brand` draws it: 50 px (4 px above and 10 px below its content), no rule, 12 px below the rail's top; the 32 px mark at 16 px in,
-          the name Barlow Condensed 700 at 15 px over a 12 px muted tagline, 10 px after the mark. */}
+      {/* The brand block as the Studio Next mock's `.brand` draws it: 50 px (4 px above and 10 px below its content), no rule, 12 px below the rail's top; `Brand` is the mark and name. */}
       <div className="mt-3 flex h-[3.125rem] flex-none items-center gap-[0.625rem] px-4 pt-1 pb-2.5">
-        <span className="flex size-8 flex-none items-center justify-center rounded-[var(--radius-button)] bg-[var(--accent)] text-[1rem] text-[var(--accent-contrast)]">
-          <FontAwesomeIcon icon={faMicrophone} fixedWidth />
-        </span>
-        <span className="brand-name pb-[0.125rem] font-['Barlow_Condensed',sans-serif] leading-none uppercase">
-          <b className="block text-[0.9375rem] font-bold tracking-[0.1em]">Narration</b>
-          <span className="mt-[0.3125rem] block text-[0.75rem] font-semibold tracking-[0.14em] text-[var(--text-muted)]">Studio</span>
-        </span>
+        <Brand />
       </div>
       <nav className="flex-1 px-2 pt-0.5 pb-2">
         {NAV_GROUPS.map((group, index) => (

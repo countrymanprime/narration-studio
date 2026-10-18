@@ -35,8 +35,6 @@ const CEILING: Record<NativeTag, Record<string, number>> = {
     'src/components/layout/AppShell.tsx': 1,
     // The card's whole-header toggle (the bookmark toggle went with SN-C382). `CreditsEntry.tsx`
     // renders through this and has no raw button of its own (ceiling 0 below).
-    // The recent-project card (a card that is a button). Its Remove and Create new clones became IconButton and Button.
-    'src/components/project/ProjectPicker.tsx': 1,
     // The click-to-seek word ("Start here" / "Go back to here"):
     // one word among hundreds inside running prose, so it needs `Button`'s bare click/keyboard semantics without its
     // padded, uppercase button chrome, which would break the text flow and read as a real action button rather than a

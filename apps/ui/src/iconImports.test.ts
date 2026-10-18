@@ -17,7 +17,7 @@ const CEILING: Record<string, number> = {
   'src/components/booth/CompanionShell.tsx': 2,
   'src/components/booth/ResumePrompt.tsx': 6,
   'src/components/engine/EnginePanel.tsx': 2,
-  'src/components/layout/AppShell.tsx': 16,
+  'src/components/layout/AppShell.tsx': 15,
   'src/components/layout/LoadError.tsx': 2,
   'src/components/layout/StartupScreen.tsx': 5,
   'src/components/layout/TimerChip.tsx': 2,
