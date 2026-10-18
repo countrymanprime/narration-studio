@@ -15,7 +15,6 @@ import (
 	"sync"
 	"sync/atomic"
 	"time"
-	"unicode/utf8"
 
 	"github.com/countrymanprime/narration-utils/shell/internal/findings"
 	"github.com/countrymanprime/narration-utils/shell/internal/persist"
@@ -497,8 +496,8 @@ func (s *Service) Candidate(word, source string) (Candidate, error) {
 	return result, nil
 }
 
-// The narrator's own pronunciation and a pronunciation's note are free text. The sidecar checks the same
-// limits; the host checks them first so a bad value never starts a process.
+// The narrator's own pronunciation and a pronunciation's note are free text. The sidecar checks the same limits; the host checks the
+// note first so a bad value never starts a process, and applies the narrator's own pronunciation itself (userPronunciation).
 const (
 	maxUserPronunciation = 200
 	maxPronunciationNote = 1000
@@ -507,34 +506,21 @@ const (
 // PronunciationStatuses are the statuses a pronunciation can have; one written before status existed reads as the first.
 var PronunciationStatuses = []string{"researched", "query_sent", "author_confirmed"}
 
-func pronunciationTarget(args []string, aliasIndex *int) []string {
-	if aliasIndex != nil {
-		args = append(args, "--alias-index", fmt.Sprint(*aliasIndex))
-	}
-	return args
-}
-
-// PronounceUser sets the narrator's own pronunciation (source "manual") of the entity's name or one alias. It never asks a dictionary,
-// and the pronunciation it replaces is kept beside it as the alternate. The text goes as one --ipa=VALUE argument, so a value
-// starting with "-" stays a value.
+// PronounceUser is manuscript_guide.py pronounce_user: the narrator's own pronunciation (source "manual") of the entity's name or one
+// alias, chosen. It never asks a dictionary, and the pronunciation it replaces is kept beside it as the alternate (setPronunciation).
+// The text is checked before the file is read, as the sidecar checks it.
 func (s *Service) PronounceUser(id string, aliasIndex *int, ipa string) error {
-	text := strings.TrimSpace(ipa)
-	switch {
-	case text == "":
-		return fmt.Errorf("type a pronunciation first")
-	case strings.ContainsAny(text, "\r\n"):
-		return fmt.Errorf("a pronunciation is one line")
-	case utf8.RuneCountInString(text) > maxUserPronunciation:
-		return fmt.Errorf("a pronunciation is at most %d characters", maxUserPronunciation)
+	value, err := userPronunciation(ipa)
+	if err != nil {
+		return err
 	}
-	_, err := s.Run(pronunciationTarget([]string{"pronounce-user", "--guide", s.guidePath(), "--entity-id", id, "--ipa=" + text}, aliasIndex)...)
-	return err
+	return s.mutateInHost(func(document map[string]any) (bool, error) { return pronounceUser(document, id, aliasIndex, value) })
 }
 
-// UsePronunciationAlternate puts the kept alternate back in use and keeps the one it replaces: lossless both ways, no lookup.
+// UsePronunciationAlternate is manuscript_guide.py pronunciation_use_alternate: the kept alternate goes back in use and the one it
+// replaces is kept, so switching is lossless both ways and asks no dictionary.
 func (s *Service) UsePronunciationAlternate(id string, aliasIndex *int) error {
-	_, err := s.Run(pronunciationTarget([]string{"pronunciation-use-alternate", "--guide", s.guidePath(), "--entity-id", id}, aliasIndex)...)
-	return err
+	return s.mutateInHost(func(document map[string]any) (bool, error) { return useAlternate(document, id, aliasIndex) })
 }
 
 // MarkReviewed clears the review flags of the entry and every name (aliasIndex nil), or of one name; the entry is reviewed when nothing
