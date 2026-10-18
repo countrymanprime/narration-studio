@@ -619,7 +619,14 @@ function AppRoutes() {
   // an empty projectFolder rather than null. subscribeProjectAttach (above)
   // already refreshes `data` once ProjectPicker's switch/create succeeds, so
   // no callback needs to be threaded through here.
-  if (!data.projectFolder) return <ProjectPicker />;
+  // A project made from the picker opens on Script, as the mock's New project does; the Script page offers the import when it has no manuscript.
+  if (!data.projectFolder)
+    return (
+      <>
+        <ProjectPicker notify={setNotice} onCreated={() => navigate('/script')} />
+        <ToastRegion messages={messages} dismiss={dismissMessage} />
+      </>
+    );
   transcriptPhaseRef.current = data.transcript.phase;
 
   // Deep links are expressed as a URL anchor on the fixed page path, not as

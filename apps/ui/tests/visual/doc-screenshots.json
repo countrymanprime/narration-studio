@@ -4,7 +4,14 @@
     "state": "picker-empty",
     "viewport": "desktop",
     "docName": "project-picker",
-    "caption": "No project open yet - recent projects, browse, and create actions"
+    "caption": "Choose your project - New project, the recent projects with Open and Remove, and Browse folders"
+  },
+  {
+    "page": "project",
+    "state": "picker-removed",
+    "viewport": "desktop",
+    "docName": "project-picker-removed",
+    "caption": "A removed recent project - the row is gone and the toast offers Undo"
   },
   {
     "page": "production",
@@ -257,6 +264,13 @@
     "viewport": "desktop",
     "docName": "booth-credits",
     "caption": "Booth - the closing credits, with the warning chip for tokens that have no value"
+  },
+  {
+    "page": "booth",
+    "state": "credits-missing",
+    "viewport": "desktop",
+    "docName": "booth-credits-missing",
+    "caption": "Booth - the closing credits with no closing template: the panel that says so and offers Settings and the chapters"
   },
   {
     "page": "booth",
@@ -700,6 +714,13 @@
     "caption": "Delivery with a running build and a host that no longer answers: the message with Check again"
   },
   {
+    "page": "delivery",
+    "state": "host-quiet-cancelled",
+    "viewport": "desktop",
+    "docName": "delivery-host-quiet-cancelled",
+    "caption": "Delivery with a host that no longer answers, after Check again and Cancel: each press is answered, and the cancel is marked unconfirmed"
+  },
+  {
     "page": "settings",
     "state": "recording-found",
     "viewport": "desktop",
@@ -725,7 +746,7 @@
     "state": "new-project-dialog",
     "viewport": "desktop",
     "docName": "project-new-dialog",
-    "caption": "New Project - the location line shows the default projects folder, with Change location"
+    "caption": "New Project - the name rules, and the location line showing the default projects folder with Change location"
   },
   {
     "page": "schedule",

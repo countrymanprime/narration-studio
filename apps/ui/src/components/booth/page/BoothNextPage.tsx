@@ -48,6 +48,7 @@ import { useBoothMarks } from '../side/useBoothMarks';
 import { useBoothReference, type ReferenceTarget } from '../side/useBoothReference';
 import { useTeleprompterSession } from '../useTeleprompterSession';
 import { boothQuery, readBoothQuery, readPickupIds, type BoothStart, type BoothTarget } from './boothQuery';
+import { BoothUnavailable } from './BoothUnavailable';
 import { CreditsWarning } from './CreditsWarning';
 import { creditsParagraphs, entityAtWord, readingParagraphsOf } from './readingSource';
 import { useBoothData, type BoothSource } from './useBoothData';
@@ -111,6 +112,11 @@ function BoothLoaded({ navigate, exitTo }: { navigate: (next: string) => void; e
   // What the page shows; it follows the address unless a take runs, when the session asks first (`BoothSession`).
   const [shown, setShown] = useState(asked);
   const data = useBoothData(shown);
+  // With nothing to read there is no session, so no take to protect: the page follows the address (the panel's way back changes it).
+  const nothingToRead = !data.source;
+  useEffect(() => {
+    if (nothingToRead) setShown(asked);
+  }, [nothingToRead, asked]);
   const measurements = usePort('measurements');
   // A chapter is changed in the address (replacing it, so Back leaves the Booth rather than stepping through chapters).
   const choose = useCallback(
@@ -133,7 +139,17 @@ function BoothLoaded({ navigate, exitTo }: { navigate: (next: string) => void; e
         </Panel>
       </div>
     );
-  if (!source) return null;
+  if (!source) {
+    if (!data.unavailable) return null;
+    return (
+      <BoothUnavailable
+        why={data.unavailable}
+        onSetUpCredits={() => navigate(`${BOOTH_LINKS.settings}#credits`)}
+        onChapters={() => setParams(new URLSearchParams(), { replace: true })}
+        onExit={() => navigate(pickupIds.length > 0 ? BOOTH_LINKS.pickups : exitTo)}
+      />
+    );
+  }
   const key = source.kind === 'credits' ? `credits:${source.credits}` : source.chapter.id;
   return (
     <>

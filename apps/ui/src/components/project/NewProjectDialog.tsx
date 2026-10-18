@@ -6,6 +6,9 @@ import { Dialog } from '../primitives/Dialog';
 import { Field } from '../primitives/Field';
 import type { ProjectSwitchResult } from '../../types';
 
+// What project.ValidateName (apps/desktop/internal/project/validate.go) refuses, said before Create rather than after it.
+const NAME_RULES = 'A name can\'t contain < > : " / \\ | ? *, end with a period, or be a reserved Windows name such as CON, NUL or COM1.';
+
 type Props = {
   onClose: () => void;
   onCreated: (result: ProjectSwitchResult) => void;
@@ -89,7 +92,7 @@ export function NewProjectDialog({ onClose, onCreated }: Props) {
           if (name.trim() && !busy) create();
         }}
       >
-        <Field label="Name" value={name} onChange={setName} autoFocus disabled={busy} placeholder="My New Audiobook" />
+        <Field label="Name" value={name} onChange={setName} autoFocus disabled={busy} placeholder="My New Audiobook" hint={NAME_RULES} />
       </form>
       <p className="mt-3 text-sm" style={{ color: 'var(--text-muted)' }}>
         Location:{' '}
