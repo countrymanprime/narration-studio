@@ -30,10 +30,24 @@ type Props = {
   fill?: boolean;
   /** The panel's title: Production says "Recorded vs plan", the Schedule page "Recorded audio vs plan" (the mock). */
   title?: string;
+  /** Put the "today" label on the side of the dot away from the plan and projection lines (the Schedule page); off, it is centred above the dot as Production draws it. */
+  clearTodayLabel?: boolean;
 };
 
 /** "Recorded vs plan": the plan dashed, the recorded days solid, the projection dotted, with the due line, today and the estimated finish. */
-export function ProgressChart({ k, wph, start, today, due, recordedHours, series, height: minHeight = 200, fill = false, title = 'Recorded vs plan' }: Props) {
+export function ProgressChart({
+  k,
+  wph,
+  start,
+  today,
+  due,
+  recordedHours,
+  series,
+  height: minHeight = 200,
+  fill = false,
+  title = 'Recorded vs plan',
+  clearTodayLabel = false,
+}: Props) {
   const box = useRef<HTMLDivElement>(null);
   const [width, setWidth] = useState(520);
   const [boxHeight, setBoxHeight] = useState(minHeight);
@@ -145,15 +159,21 @@ export function ProgressChart({ k, wph, start, today, due, recordedHours, series
           />
           <circle cx={x(today)} cy={y(recordedHours)} r="5" fill="var(--accent)" stroke="var(--surface)" strokeWidth="2" data-marker="today" />
           {/* Beside the dot, on the side the plan line is not: above and left when the recording is ahead of the plan (the plan passes below), below and right otherwise. The projection runs up and right from the dot, so the right side is only taken below it. */}
-          <text
-            x={todayBelow ? x(today) + 9 : x(today) - 7}
-            y={y(recordedHours) + (todayBelow ? 18 : -14)}
-            textAnchor={todayBelow ? 'start' : 'end'}
-            fontSize="11"
-            fill="var(--text)"
-          >
-            today
-          </text>
+          {clearTodayLabel ? (
+            <text
+              x={todayBelow ? x(today) + 9 : x(today) - 7}
+              y={y(recordedHours) + (todayBelow ? 18 : -14)}
+              textAnchor={todayBelow ? 'start' : 'end'}
+              fontSize="11"
+              fill="var(--text)"
+            >
+              today
+            </text>
+          ) : (
+            <text x={x(today)} y={y(recordedHours) - 10} textAnchor="middle" fontSize="11" fill="var(--text)">
+              today
+            </text>
+          )}
           <text
             x={x(k.finish)}
             y={y(finishedHours) - 8}

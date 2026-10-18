@@ -13,10 +13,10 @@ import { milestoneStatus, type MilestoneStatus, type ScheduleChapter } from './p
 const STATUS_TONE: Record<MilestoneStatus['kind'], StatusTone> = { done: 'success', ok: 'success', risk: 'warning', late: 'danger', none: 'neutral' };
 
 /** A status as a small cell: the value is short ("+3 d", a date, a check, a dash) and the sentence is its name and its tooltip. */
-function StatusCell({ status }: { status: MilestoneStatus }) {
+function StatusCell({ status, finalRow = false }: { status: MilestoneStatus; finalRow?: boolean }) {
   return (
     <TooltipTarget text={status.sentence}>
-      <span role="img" aria-label={status.sentence} data-status={status.kind}>
+      <span role="img" aria-label={status.sentence} data-status={status.kind} data-final-status={finalRow ? '' : undefined}>
         <StatusBadge shape="cell" tone={STATUS_TONE[status.kind]} label={status.short} />
       </span>
     </TooltipTarget>
@@ -108,11 +108,7 @@ export function MilestoneTable({ milestones, chapters, today, due, onToggleDone,
             <DueField value={due ?? ''} onCommit={onDueChange} />
           </TableCell>
           <TableCell>
-            <span data-final-status="" role="img" aria-label={(final ?? NO_DUE).sentence}>
-              <TooltipTarget text={(final ?? NO_DUE).sentence}>
-                <StatusBadge shape="cell" tone={STATUS_TONE[(final ?? NO_DUE).kind]} label={(final ?? NO_DUE).short} />
-              </TooltipTarget>
-            </span>
+            <StatusCell status={final ?? NO_DUE} finalRow />
           </TableCell>
           <TableCell />
         </TableRow>

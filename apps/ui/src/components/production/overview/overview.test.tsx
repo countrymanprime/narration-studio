@@ -152,9 +152,20 @@ describe('WeekCard', () => {
 });
 
 describe('ProgressChart', () => {
-  const chart = (chapters = MID_BOOK, log = undefined as Parameters<typeof overviewFor>[2]) => {
+  const chart = (chapters = MID_BOOK, log = undefined as Parameters<typeof overviewFor>[2], clearTodayLabel = false) => {
     const o = overviewFor(chapters, undefined, log);
-    return view(<ProgressChart k={o.k} wph={9300} start={o.start} today={STORY_TODAY} due={o.kpi.due} recordedHours={o.recordedHours} series={o.series} />);
+    return view(
+      <ProgressChart
+        k={o.k}
+        wph={9300}
+        start={o.start}
+        today={STORY_TODAY}
+        due={o.kpi.due}
+        recordedHours={o.recordedHours}
+        series={o.series}
+        clearTodayLabel={clearTodayLabel}
+      />,
+    );
   };
 
   it('chart-plan-actual-projection', () => {
@@ -167,13 +178,18 @@ describe('ProgressChart', () => {
   });
 
   it('chart-today-label-clears-the-estimate-line: never centred over the dot, where the projection runs up and right from it', () => {
-    const { container } = chart();
+    const { container } = chart(MID_BOOK, undefined, true);
     const dot = container.querySelector('[data-marker="today"]') as SVGCircleElement;
     const label = screen.getByText('today');
     const [x, y, cx, cy] = [label.getAttribute('x'), label.getAttribute('y'), dot.getAttribute('cx'), dot.getAttribute('cy')].map(Number);
     // Left of the dot and above it (recording ahead of the plan), or right of it and below (behind it, or no room on the left).
     if (label.getAttribute('text-anchor') === 'end') expect([x < cx, y < cy]).toEqual([true, true]);
     else expect([label.getAttribute('text-anchor'), x > cx, y > cy]).toEqual(['start', true, true]);
+  });
+
+  it('chart keeps the label centred above the dot unless asked, as Production draws it', () => {
+    chart();
+    expect(screen.getByText('today').getAttribute('text-anchor')).toBe('middle');
   });
 
   it('chart without a take log has no actual line and says why', () => {
