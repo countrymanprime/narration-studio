@@ -33,7 +33,10 @@ func (c *Child) ExitCode() (int, bool) {
 	return *c.exitCode, true
 }
 
-type Supervisor struct{ jobs jobSet }
+type Supervisor struct {
+	jobs     jobSet
+	fallback func() *runlog.Run
+}
 
 func NewSupervisor() *Supervisor { return &Supervisor{jobs: newJobSet()} }
 
@@ -64,6 +67,7 @@ func (s *Supervisor) Start(ctx context.Context, program string, args ...string) 
 	if err != nil {
 		return nil, err
 	}
+	first := &firstOutput{started: time.Now()}
 	if err := command.Start(); err != nil {
 		return nil, fmt.Errorf("could not start %s: %w", program, err)
 	}
@@ -73,7 +77,7 @@ func (s *Supervisor) Start(ctx context.Context, program string, args ...string) 
 	}
 	child := &Child{}
 	stderrSink := runlog.FromContext(ctx).StderrWriter()
-	go func() { _, _ = io.Copy(io.Discard, stdout) }()
+	go func() { _, _ = io.Copy(first, stdout) }()
 	go func() { defer func() { _ = stderrSink.Close() }(); _, _ = io.Copy(stderrSink, stderr) }()
 	go func() {
 		err := command.Wait()
@@ -88,6 +92,7 @@ func (s *Supervisor) Start(ctx context.Context, program string, args ...string) 
 		child.mu.Lock()
 		child.exitCode = &code
 		child.mu.Unlock()
+		s.recordTiming(ctx, "start", program, first, code)
 	}()
 	return child, nil
 }
@@ -106,7 +111,8 @@ func (s *Supervisor) Run(ctx context.Context, program string, args ...string) (i
 	var out, failure bytes.Buffer
 	stderrSink := runlog.FromContext(ctx).StderrWriter()
 	defer func() { _ = stderrSink.Close() }()
-	command.Stdout, command.Stderr = &out, io.MultiWriter(&failure, stderrSink)
+	first := &firstOutput{started: time.Now()}
+	command.Stdout, command.Stderr = io.MultiWriter(&out, first), io.MultiWriter(&failure, stderrSink)
 	command.WaitDelay = runWaitDelay
 	if err := command.Start(); err != nil {
 		return 0, "", "", fmt.Errorf("could not start %s: %w", program, err)
@@ -126,6 +132,7 @@ func (s *Supervisor) Run(ctx context.Context, program string, args ...string) (i
 			code = -1
 		}
 	}
+	s.recordTiming(ctx, "run", program, first, code)
 	return code, out.String(), failure.String(), nil
 }
 
