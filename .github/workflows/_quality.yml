@@ -3,8 +3,8 @@ on:
   workflow_call:
     outputs:
       ui-affected:
-        description: "'true' when Nx found narration-utils-ui affected, so the visual shards ran and ci.yml's `CI passed` judges their records"
-        value: ${{ jobs.ui-visual-shard.outputs.affected }}
+        description: "'true' when the full tier ran and Nx found narration-utils-ui affected, so the visual shards ran and ci.yml's `CI passed` judges their records; 'false' otherwise"
+        value: ${{ inputs.full && jobs.scope.outputs.ui }}
     inputs:
       full:
         description: >-
@@ -16,8 +16,7 @@ on:
 permissions: { contents: read }
 # Every job runs its Nx targets through .github/actions/nx-run: on a pull request only the projects
 # the change affects (see each project's project.json and `implicitDependencies`), otherwise all of
-# them. The Playwright jobs keep their own `run:` steps (they pass a shard) and use .github/actions/nx-affected to
-# decide whether to run. docs/operations/ci-and-releases.md lists the jobs as GitHub shows them; ci.yml's `CI passed`
+# them. The jobs that start a runner of their own are skipped at job level by the `scope` job (below). docs/operations/ci-and-releases.md lists the jobs as GitHub shows them; ci.yml's `CI passed`
 # job is the one check that sums them up (no ruleset requires any check yet, #544). Checkouts fetch full history so Nx
 # can diff against the base branch.
 #
@@ -25,6 +24,46 @@ permissions: { contents: read }
 # runs 20 jobs at a time and queueing is the slow case). The two Playwright suites are most of a UI pull request's wait,
 # so they are sharded; the jobs under a minute share a runner per OS instead of each paying for its own toolchain setup.
 jobs:
+  scope:
+    # Decides which of the heavy jobs start at all. Nx scoping used to happen inside each job, after the runner had started, checked out
+    # and installed its toolchains, so a UI-only pull request still paid for go-test on Windows and a Go-only one for the Playwright shards.
+    # The jobs below `needs: scope` and carry a job-level `if:`: a scoped-out job is skipped and takes no runner. The scope itself is
+    # nx-scope.sh (`all` on a manual run, on main-health and for a workspace-wide file) and `nx show projects --affected`; job-scope.mjs only
+    # maps the affected projects to flags. A failed scope job skips its dependents and turns `quality` red, so it cannot pass silently.
+    #   ui             -> js-test-shard, js-test, ui-visual-shard, ui-atlas
+    #   go             -> go-test (both parts, so the coverage gate sees every package)
+    #   windows-quick  -> quick-windows (reaper or the shell: the Lua harness runs on Windows on purpose, CRLF and package.config)
+    # js-static and quick-ubuntu keep their own in-step scoping: some of their steps run `always`.
+    timeout-minutes: 10
+    runs-on: ubuntu-latest
+    outputs:
+      ui: ${{ steps.flags.outputs.ui }}
+      go: ${{ steps.flags.outputs.go }}
+      windows-quick: ${{ steps.flags.outputs.windows-quick }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with: { fetch-depth: 0, persist-credentials: false }
+      - uses: ./.github/actions/setup-toolchain
+        with:
+          need-go: 'false'
+          need-python: 'false'
+          need-wails-tools: 'false'
+          need-stylua: 'false'
+          need-linux-native-deps: 'false'
+          pnpm-filter: narration-utils
+      - id: flags
+        env:
+          BASE_REF: ${{ github.base_ref }}
+        run: |
+          set -euo pipefail
+          mode=$(bash scripts/ci/nx-scope.sh)
+          affected='[]'
+          if [ "$mode" = "affected" ]; then
+            affected=$(pnpm exec nx show projects --affected --base="origin/$BASE_REF" --head=HEAD --json)
+          fi
+          echo "scope: $mode, affected: $affected"
+          printf '%s' "$affected" | node scripts/ci/job-scope.mjs --mode "$mode" --github-output
+
   js-static:
     # The static checks of the UI project and Knip, about a minute: they used to share a runner with the Vitest run, which is
     # 90% of the old `js` job's 13 minutes and now has jobs of its own (js-test-shard, js-test).
@@ -58,14 +97,14 @@ jobs:
     # time). A shard checks no coverage floor, since it covers a third of the files: it uploads a blob of its results and
     # coverage, and the `js-test` job below merges the three and checks the floors over the whole run.
     name: js-test (shard ${{ matrix.shard }}/3)
+    needs: scope
+    if: needs.scope.outputs.ui == 'true'
     timeout-minutes: 15
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
         shard: [1, 2, 3]
-    outputs:
-      affected: ${{ steps.scope.outputs.affected }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with: { fetch-depth: 0, persist-credentials: false }
@@ -76,19 +115,13 @@ jobs:
           need-wails-tools: 'false'
           need-stylua: 'false'
           need-linux-native-deps: 'false'
-      - id: scope
-        uses: ./.github/actions/nx-affected
-        with:
-          projects: narration-utils-ui
       # No Nx cache and no retry: a green shard means its tests ran. Not through `nx run-many`, whose `test` target is the
       # whole run (`pnpm check` and a developer's machine run that).
-      - if: steps.scope.outputs.affected == 'true'
-        env:
+      - env:
           SHARD: ${{ matrix.shard }}
         run: node scripts/ci/coverage-gate.mjs vitest apps/ui --shard="$SHARD/3"
       # `.cache` is a hidden directory, which upload-artifact leaves out unless told.
-      - if: steps.scope.outputs.affected == 'true'
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: vitest-blob-${{ matrix.shard }}
           path: .cache/coverage/vitest-apps-ui-blobs
@@ -99,9 +132,9 @@ jobs:
   js-test:
     # The whole-run half of the Vitest gate: merges the three shards' blobs (`coverage-gate.mjs vitest apps/ui --merge=3`, which
     # fails when one is missing), reports the tests of all three, and checks every coverage floor of scripts/ci/coverage-floors.json
-    # over the merged coverage, exactly as the unsharded run does. Reads blobs only: no test runs here. Skipped when the UI is not affected.
-    needs: js-test-shard
-    if: needs.js-test-shard.outputs.affected == 'true'
+    # over the merged coverage, exactly as the unsharded run does. Reads blobs only: no test runs here. Skipped, with its shards, when the UI is not affected.
+    needs: [scope, js-test-shard]
+    if: needs.scope.outputs.ui == 'true'
     timeout-minutes: 10
     runs-on: ubuntu-latest
     steps:
@@ -134,15 +167,14 @@ jobs:
     # 20 minutes: shards 1 and 2 ran 12.7 to 14.5 minutes of a 15 minute limit and then timed out once the overlay guard
     # (a test per overlay, window size and position, for every page that adopts it) grew.
     name: ui-visual (shard ${{ matrix.shard }}/3)
-    if: inputs.full
+    needs: scope
+    if: inputs.full && needs.scope.outputs.ui == 'true'
     timeout-minutes: 20
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
         shard: [1, 2, 3]
-    outputs:
-      affected: ${{ steps.scope.outputs.affected }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with: { fetch-depth: 0, persist-credentials: false }
@@ -153,33 +185,26 @@ jobs:
           need-wails-tools: 'false'
           need-stylua: 'false'
           need-linux-native-deps: 'false'
-      - id: scope
-        uses: ./.github/actions/nx-affected
-        with:
-          projects: narration-utils-ui
-      - if: steps.scope.outputs.affected == 'true'
-        uses: ./.github/actions/setup-playwright
+      - uses: ./.github/actions/setup-playwright
       # Lists the suite (no browser), gives this shard its tests and says whether this shard also runs `aria`. Fails if the shards do not
       # hold every test exactly once.
       - id: split
-        if: steps.scope.outputs.affected == 'true'
         env:
           SHARD: ${{ matrix.shard }}
         run: node scripts/ci/visual-shards.mjs split --shard "$SHARD/3" --out "$RUNNER_TEMP/shard.txt" --manifest "$RUNNER_TEMP/shard-$SHARD.json" --github-output
       # The JSON report is the profile (time per test); a shard uploads it as ui-visual-timings-<i> and `visual-shards.mjs weights` rebuilds
       # shard-weights.json from the three.
-      - if: steps.scope.outputs.affected == 'true'
-        env:
+      - env:
           UI_VISUAL_SHARDED: '1'
           SHARD: ${{ matrix.shard }}
           PLAYWRIGHT_JSON_OUTPUT_NAME: ${{ runner.temp }}/timings.json
         run: pnpm --dir apps/ui run screenshots --test-list "$RUNNER_TEMP/shard.txt" --reporter=list,json
       # The role trees of the dialogs, the slide-over and the navigation (tests/aria): 22 tests, about 50 s, on the shard the split names.
       # After the screenshots so a red visual run does not hide it and the reverse.
-      - if: steps.scope.outputs.affected == 'true' && steps.split.outputs.aria == 'true' && !cancelled()
+      - if: steps.split.outputs.aria == 'true' && !cancelled()
         run: pnpm --dir apps/ui run aria
       # The manifest goes in the records directory, so it is uploaded with them. `mkdir`: a shard that failed before its first test has none.
-      - if: steps.scope.outputs.affected == 'true' && !cancelled()
+      - if: ${{ !cancelled() }}
         env:
           SHARD: ${{ matrix.shard }}
         run: |
@@ -187,7 +212,7 @@ jobs:
           cp "$RUNNER_TEMP/shard-$SHARD.json" apps/ui/screenshots/.run/
       # `.run` is a hidden directory, which upload-artifact leaves out unless told. A shard that drew only the overlay guard's tests
       # (they capture no screenshots, so write no records) still uploads its manifest.
-      - if: steps.scope.outputs.affected == 'true' && !cancelled()
+      - if: ${{ !cancelled() }}
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: ui-visual-records-${{ matrix.shard }}
@@ -195,7 +220,7 @@ jobs:
           include-hidden-files: true
           if-no-files-found: error
           retention-days: 1
-      - if: steps.scope.outputs.affected == 'true' && !cancelled()
+      - if: ${{ !cancelled() }}
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: ui-visual-timings-${{ matrix.shard }}
@@ -224,7 +249,8 @@ jobs:
     # and overflow checks (apps/ui/tests/atlas). Half the stories per job (Playwright --shard): one job took 6.4 min. Each
     # story is judged on its own, so the shards need nothing merged. `pnpm atlas` builds Storybook first (seconds).
     name: ui-atlas (shard ${{ matrix.shard }}/2)
-    if: inputs.full
+    needs: scope
+    if: inputs.full && needs.scope.outputs.ui == 'true'
     timeout-minutes: 15
     runs-on: ubuntu-latest
     strategy:
@@ -241,14 +267,8 @@ jobs:
           need-wails-tools: 'false'
           need-stylua: 'false'
           need-linux-native-deps: 'false'
-      - id: scope
-        uses: ./.github/actions/nx-affected
-        with:
-          projects: narration-utils-ui
-      - if: steps.scope.outputs.affected == 'true'
-        uses: ./.github/actions/setup-playwright
-      - if: steps.scope.outputs.affected == 'true'
-        env:
+      - uses: ./.github/actions/setup-playwright
+      - env:
           SHARD: ${{ matrix.shard }}
         run: pnpm --dir apps/ui run atlas --shard="$SHARD/2"
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
@@ -320,6 +340,9 @@ jobs:
     #     on the Linux runners. Here rather than in go-test so the tests do not wait behind it.
     # 25 min: the reaper step's mutation checks alone ran 12 of the 15 on Windows once the undo_last mutations joined
     # (two cancelled runs), and go lint follows them.
+    # Skipped when neither reaper nor the shell is affected (the scope job's windows-quick flag); the steps below still scope themselves.
+    needs: scope
+    if: needs.scope.outputs.windows-quick == 'true'
     timeout-minutes: 25
     runs-on: windows-latest
     steps:
@@ -353,7 +376,10 @@ jobs:
     # 405 s of it the module's root package alone (the other raced packages ran beside it), the plain packages 33 s and
     # `test-schedules` 118 s. `root` runs the root package; `rest` the other raced packages, the plain ones and `test-schedules`.
     # Each job checks the coverage floors of the packages it ran (scripts/ci/coverage-gate.mjs --group); together they run every package once.
+    # Skipped as a whole (both parts) when the shell is not affected: half the packages must never reach the coverage gate.
     name: go-test (${{ matrix.part }})
+    needs: scope
+    if: needs.scope.outputs.go == 'true'
     strategy:
       fail-fast: false
       matrix:
