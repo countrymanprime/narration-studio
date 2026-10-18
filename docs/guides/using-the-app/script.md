@@ -21,7 +21,7 @@ three parts side by side:
 A bar under the reader lists its keys: select text to mark it, add a note or query, or look it up; **↑** **↓** scroll;
 **←** **→** change the prep state of the chapter in view; **Alt+↑** **Alt+↓** go to the previous or next chapter (the
 credits included); **B**
-bookmarks the line and says "Bookmark added." (with Undo), or that the spot already has one; **Alt+[** **Alt+]** go to
+bookmarks the line, says "Bookmark added." and opens the bookmark's label and note (the selection toolbar's **Bookmark here** adds it with Undo instead), or says the spot already has one; **Alt+[** **Alt+]** go to
 the previous or next bookmark; **Ctrl+F** opens Find. A key you rebind
 under **Keyboard & pedals** in [Settings](settings.md) shows its new key here.
 

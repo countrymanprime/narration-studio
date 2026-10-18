@@ -213,7 +213,8 @@ describe('registers-and-unregisters', () => {
 });
 
 describe('right-click-menus-reach-what-the-page-draws', () => {
-  const labels = (target: Element | null) => (target ? (contextItemsFor(target) ?? []).map((item) => item.label) : []);
+  const labels = (target: Element | null) =>
+    target ? (contextItemsFor(target) ?? []).map((item) => (item.group ? `${item.group}: ${item.label}` : item.label)) : [];
 
   it('a mark, a flagged word, a chapter row, a chapter card and a Words row each get their menu', async () => {
     const api = createMockApi({ creditsTemplates: async () => [] });
