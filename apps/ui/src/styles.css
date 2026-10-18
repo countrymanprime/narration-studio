@@ -52,6 +52,13 @@ html {
   --ease-exit: cubic-bezier(0.4, 0, 1, 1);
   --motion-shift: 4px; /* how far a tooltip, menu or toast travels */
 }
+/* The Proof ring's arc (proof/frame/ProofHeader.tsx). Registered so the conic-gradient stop it sets can transition: an unregistered
+   custom property changes in one step. */
+@property --ring-percent {
+  syntax: '<percentage>';
+  inherits: false;
+  initial-value: 0%;
+}
 /* Under reduced motion the tokens are zero too, for anything that reads them outside a `motion-ok:` utility. */
 @media (prefers-reduced-motion: reduce) {
   html {

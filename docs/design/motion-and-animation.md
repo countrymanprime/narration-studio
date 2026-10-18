@@ -1,6 +1,6 @@
 # Motion and animation
 
-**Status: describes the current state.** The tokens and the reduced-motion gate below are slices 1 and 2, and the overlay behaviour slice 4 and the "this changed" highlight slice 5, of [#1456](https://github.com/countrymanprime/narration-utils/issues/1456). Where to animate next, and why, is [the motion research note](../research/motion-and-animation-guidance.md) and the owner's decisions recorded on that issue.
+**Status: describes the current state.** The tokens and the reduced-motion gate below are slices 1 and 2, and the overlay behaviour slice 4 the "this changed" highlight slice 5 and the ring and job results slice 6, of [#1456](https://github.com/countrymanprime/narration-utils/issues/1456). Where to animate next, and why, is [the motion research note](../research/motion-and-animation-guidance.md) and the owner's decisions recorded on that issue.
 
 ## Tokens
 
@@ -36,6 +36,7 @@ All under `motion-ok:`, in `apps/ui/src/components/`:
 - `SlideOver` slides in from the right and `NavDrawer` from the left, on the base token, and the drawer's scrim fades. `Toast` fades and rises in (`toast-in`) and fades out. The tooltip (`primitives/hintLayer.ts`) fades and rises in.
 - The icon rail widens on hover below 1360 px (`layout/AppShell.tsx`); the Script drawers slide (`script/page/layout/ScriptColumns.tsx`).
 - The Booth text column slides 300 ms on each scroll step, and its words change colour (`booth/reading/BoothText.tsx`).
+- The Proof ring (`proof/frame/ProofHeader.tsx`) eases its arc to a new percent on the base token. Its percent is the registered custom property `--ring-percent` (`@property` in `styles.css`), so the conic-gradient stop can transition; the counters beside it change at once.
 - `ProgressBar` eases its fill, and slides while nothing is measured (`work-progress-slide`); `LevelMeter` eases its fill and peak tick.
 - `Button`, `Switch`, `Disclosure` and the Booth's resume choices ease their colours or position; the pending spinner in `Button`, `IconButton` and `ResumePrompt` spins.
 - `Skeleton`, the loading placeholder on Booth and Editing, sweeps a band across itself every 1.4 s (`skeleton-shimmer`) while a page reads. Settings: the per-row "Saved" fades (`settings-saved`), and its loading placeholders pulse.
@@ -50,13 +51,14 @@ All under `motion-ok:`, in `apps/ui/src/components/`:
   - the Story Bible entry an accepted suggestion, or its Undo, changed (`storybible/Guide.tsx`);
   - the Script paragraph and bookmark a jump lands on (`script/page/reader/Para.tsx`, `script/bookmarks/ui/BookmarkRibbon.tsx`, which the Booth's ribbons share). This replaces the 2 s `animate-pulse` loop.
 - **Not marked.** A Proof decision (#1456, Q5), and Pickups' Include and Mark recorded, which a narrator presses line after line. A Pickups line restored by Undo comes back with a new id, so nothing ties it to the line removed.
-- **Arrived.** `ARRIVE_CLASSES` fades a failure or a stale notice in once on the base token when it mounts (`arrive`), then it stays still. It is used by:
+- **Arrived.** `ARRIVE_CLASSES` fades a failure, a stale notice or a finished job's result in once on the base token when it mounts (`arrive`), then it stays still. It is used by:
   - `LoadError`'s panel;
   - Production's DAW banner;
   - Proof's "The evidence changed" panel and stale Recording check line;
   - Delivery's "Can't tell which chapters pass";
   - Pickups' "Can't tell if this list is current";
-  - Master & QC's "Can't tell how the measurement is going".
+  - Master & QC's "Can't tell how the measurement is going";
+  - a long job's result as it appears: Delivery's "Built" block, Master to spec's closing message and Proof's compare-run summary. A check that ends with no line of its own (Master & QC's measure run, the Editing check) shows nothing new.
 
   A notice whose text updates in place (a "last heard" count) is not faded again.
 

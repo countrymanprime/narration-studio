@@ -43,6 +43,16 @@ async function openPageContextMenu(page: Page): Promise<void> {
     .click({ button: 'right', position: { x: 400, y: 400 } });
 }
 
+/** Sets the Proof ring's percent as a decision would, and returns the durations of what then runs on the ring. */
+async function ringAfterChange(page: Page): Promise<number[]> {
+  const ring = page.locator('[data-ring]').first();
+  await ring.waitFor();
+  return ring.evaluate((element) => {
+    (element as HTMLElement).style.setProperty('--ring-percent', '80%');
+    return element.getAnimations().map((animation) => Number((animation.effect as KeyframeEffect).getComputedTiming().duration));
+  });
+}
+
 async function railTransition(page: Page): Promise<string> {
   return page.locator(RAIL).evaluate((rail) => getComputedStyle(rail).transitionDuration);
 }
@@ -92,6 +102,12 @@ test.describe('Motion / on', () => {
     expect(await popupTransition(page, '[role="dialog"]')).toMatch(/^0.2s transform/);
   });
 
+  test('the Proof ring eases its arc on the base token when the percent changes', async ({ page }) => {
+    await page.goto('/');
+    await goToPage(page, 'Proof');
+    expect(await ringAfterChange(page)).toEqual([200]);
+  });
+
   for (const name of ['Production', 'Script', 'Story Bible', 'Booth', 'Editing', 'Proof', 'Pickups', 'Settings'] as const) {
     test(`nothing loops on ${name} at rest`, async ({ page }) => {
       await page.goto('/');
@@ -126,6 +142,13 @@ test.describe('Motion / reduced', () => {
     const row = await highlightedRow(page);
     expect(row.durations).toEqual([]);
     expect(row.background).toBe(await accentSoft(page));
+  });
+
+  test('the Proof ring jumps to its percent under reduced motion', async ({ page }) => {
+    await page.emulateMedia({ reducedMotion: 'reduce' });
+    await page.goto('/');
+    await goToPage(page, 'Proof');
+    expect(await ringAfterChange(page)).toEqual([]);
   });
 
   test('a context menu appears at once under reduced motion', async ({ page }) => {
