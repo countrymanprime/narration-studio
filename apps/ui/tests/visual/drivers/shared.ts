@@ -425,11 +425,11 @@ export async function openSettings(page: Page, category?: string, query = ''): P
   if (category) await openSettingsCategory(page, category);
 }
 
-/** One row of the open category, found by its registry id (`data-row`), scrolled to the top of the pane. */
+/** One row of the open category, found by its registry id (`data-row`), scrolled to the top of the page area. */
 export async function showSettingsRow(page: Page, id: string): Promise<Locator> {
   const row = page.locator(`[data-row="${id}"]`);
   await row.waitFor();
-  await row.scrollIntoViewIfNeeded();
+  await row.evaluate((element) => element.scrollIntoView({ block: 'start' }));
   return row;
 }
 

@@ -6,9 +6,17 @@ import { type Driver, clickNav, clickVisible, confirmDialog, freezeClock, openAd
 
 const WHISPER_SMALL = 'whisper/small';
 
-/** The Download-update flow's start: the app booted in an update state (`?mockUpdate=`), on App & updates. */
+/** The app booted in an update state (`?mockUpdate=`), on App & updates with the This version panel, which holds the update, at the top of the page area. */
 async function openUpdates(page: Page, seed: string): Promise<void> {
   await openSettings(page, 'App & updates', `?mockUpdate=${seed}`);
+  await page.getByRole('region', { name: 'This version' }).evaluate((panel) => panel.scrollIntoView({ block: 'start' }));
+}
+
+/** Brings the connection card under Record with to the top of the page area, where the engine's state and its actions are. */
+async function showConnection(page: Page): Promise<void> {
+  const card = page.getByRole('group', { name: 'Connection' });
+  await card.waitFor();
+  await card.evaluate((element) => element.scrollIntoView({ block: 'center' }));
 }
 
 /** Settings > Models & downloads, booted with a mock seed when one is given (`?mockAssets=`): the rows are on screen once the list has loaded. */
@@ -73,20 +81,24 @@ export const settingsDrivers: Record<string, Driver> = {
       .and(page.locator('[aria-checked="true"]'))
       .waitFor();
     await page.getByText('Recording happens in the app. Nothing to connect.').waitFor();
+    await showConnection(page);
   },
   'recording-found': async (page) => {
     await openSettings(page, undefined, '?mockDawChoice=found');
     await page.getByRole('button', { name: 'Link Alice.rpp' }).waitFor();
+    await showConnection(page);
   },
   'recording-several': async (page) => {
     await openSettings(page, undefined, '?mockDawChoice=several');
     await page.getByText(/2 REAPER project files are in the project folder/).waitFor();
+    await showConnection(page);
   },
   'recording-linked': async (page) => {
     await openSettings(page, undefined, '?mockDawChoice=found');
     await page.getByRole('button', { name: 'Link Alice.rpp' }).click();
     await page.getByText('Linked to Alice.rpp.', { exact: false }).first().waitFor();
     await page.getByRole('button', { name: 'Start REAPER' }).waitFor();
+    await showConnection(page);
   },
   'recording-not-installed': async (page) => {
     await openSettings(page, undefined, '?mockDawChoice=not-installed');

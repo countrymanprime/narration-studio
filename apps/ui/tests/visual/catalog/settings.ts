@@ -17,6 +17,7 @@ export const settingsStates: StateEntry[] = [
     description:
       'Settings, Recording & DAW with the built-in recorder chosen (?mockDawExperimentalOn=1): "Built-in recorder. Recordings live in the app." is the checked radio and the connection card says nothing needs connecting',
     ...REFLOW,
+    ...KEEPS_DESKTOP_SCROLL,
   },
   {
     page: 'settings',
@@ -24,6 +25,7 @@ export const settingsStates: StateEntry[] = [
     description:
       'Settings, Recording & DAW for a folder holding one .rpp that is not linked (?mockDawChoice=found): REAPER chosen, every engine listed with its state, "REAPER not linked", "Alice.rpp is in the project folder." and Link Alice.rpp',
     ...REFLOW,
+    ...KEEPS_DESKTOP_SCROLL,
   },
   {
     page: 'settings',
@@ -31,6 +33,7 @@ export const settingsStates: StateEntry[] = [
     description:
       'Settings, Recording & DAW for a folder holding two .rpp files and none linked (?mockDawChoice=several): "2 REAPER project files are in the project folder" and Choose a project file, no one-click link',
     ...REFLOW,
+    ...KEEPS_DESKTOP_SCROLL,
   },
   {
     page: 'settings',
@@ -38,6 +41,7 @@ export const settingsStates: StateEntry[] = [
     description:
       'Settings, Recording & DAW after Link Alice.rpp: "REAPER linked: Alice.rpp" is not running, with the launcher switch named, Change linked file and Start REAPER',
     ...REFLOW,
+    ...KEEPS_DESKTOP_SCROLL,
   },
   {
     page: 'settings',
@@ -45,6 +49,7 @@ export const settingsStates: StateEntry[] = [
     description:
       'Settings, Recording & DAW with REAPER chosen for an empty folder on a computer without it (?mockDawChoice=not-installed): "REAPER was not found on this computer" under its radio and "No REAPER project file is in the project folder yet"',
     ...REFLOW,
+    ...KEEPS_DESKTOP_SCROLL,
   },
   {
     page: 'settings',
@@ -293,12 +298,14 @@ export const settingsStates: StateEntry[] = [
     state: 'about-update-available',
     description: 'Settings, App & updates with a newer release found (?mockUpdate=available): "Version 0.2.7 is available" with Download update',
     ...REFLOW,
+    ...KEEPS_DESKTOP_SCROLL,
   },
   {
     page: 'settings',
     state: 'about-check-failed',
     description: 'Settings, App & updates after a check that could not reach GitHub (?mockUpdate=failed)',
     ...REFLOW,
+    ...KEEPS_DESKTOP_SCROLL,
   },
   {
     page: 'settings',
@@ -323,6 +330,7 @@ export const settingsStates: StateEntry[] = [
     state: 'about-update-ready',
     description: 'Settings, App & updates with the update downloaded and checked, ready to install (?mockUpdate=ready)',
     ...REFLOW,
+    ...KEEPS_DESKTOP_SCROLL,
   },
   {
     page: 'settings',
@@ -342,6 +350,7 @@ export const settingsStates: StateEntry[] = [
     state: 'about-install-refused',
     description: 'Settings, App & updates after an install was refused because work is running (?mockUpdate=install-refused)',
     ...REFLOW,
+    ...KEEPS_DESKTOP_SCROLL,
   },
   {
     page: 'settings',
@@ -349,12 +358,14 @@ export const settingsStates: StateEntry[] = [
     description:
       'Settings, App & updates where the app may not replace itself: why, and Show the downloaded file (?mockUpdate=install-blocked, after a download)',
     ...REFLOW,
+    ...KEEPS_DESKTOP_SCROLL,
   },
   {
     page: 'settings',
     state: 'about-development-build',
     description: 'Settings, App & updates in a development build, which has no release to compare with (?mockUpdate=development)',
     ...REFLOW,
+    ...KEEPS_DESKTOP_SCROLL,
   },
   {
     page: 'settings',
@@ -450,5 +461,6 @@ export const settingsStates: StateEntry[] = [
     description:
       'Settings, Project: a setting that belongs to both scopes overridden by the project (Build the Story Bible after import, Override for this project): "This project uses" with its own control, Use computer setting, and "overridden here" in the row\'s scope',
     ...REFLOW,
+    ...KEEPS_DESKTOP_SCROLL,
   },
 ];
