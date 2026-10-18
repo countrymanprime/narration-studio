@@ -1,5 +1,6 @@
 // The mock host (mockApi.ts): REAPER actions.
 import type {
+  Finding,
   ManuscriptParagraph,
   ChapterTagsPreview,
   CleanupToolsState,
@@ -45,6 +46,8 @@ import {
   WIRE_RETAKE_LANES_PICKED,
   wireClone,
 } from '../mockFixtures';
+import { defaultFindingNoteType } from '../contracts/findings';
+import { fixKindOf } from '../../components/proof/resolution';
 import type { MockApiSeed } from './state';
 
 /**
@@ -486,7 +489,7 @@ export function createReaperActionsMock(initial: MockApiSeed, projectFolder: () 
 }
 
 /** The manuscript the pickups are placed on: the mock's live one, once it has loaded (the browser loads the whole book). */
-type PickupManuscript = { ready: Promise<unknown>; paragraphs: () => ManuscriptParagraph[] };
+type PickupManuscript = { ready: Promise<unknown>; paragraphs: () => ManuscriptParagraph[]; proofNotes?: () => Finding[] };
 
 /** The first sentence of a paragraph, whole. A paragraph with no sentence end gives itself. */
 function firstSentence(text: string): string {
@@ -560,6 +563,38 @@ function samplePickups(paragraphs: readonly ManuscriptParagraph[]): PickupItem[]
   ];
 }
 
+/** What the narrator did to a Proof line, kept while its decision stands. */
+const pickKept = (item?: PickupItem): Partial<PickupItem> => (item ? { included: item.included, done: item.done, waiting: item.waiting } : {});
+
+/** A Proof line of the pickup list (`findingPickup` in the host): the note's place in its chapter, and its expected text as the line. */
+function proofLine(finding: Finding, paragraphs: readonly ManuscriptParagraph[]): PickupItem | undefined {
+  const chapterId = finding.manuscript?.chapter_id;
+  if (!chapterId) return undefined;
+  const paragraphId = finding.manuscript?.span?.paragraph_id;
+  const paragraph = paragraphId ? paragraphs.find((row) => row.id === paragraphId) : undefined;
+  const script = finding.manuscript?.expected || finding.manuscript?.recorded || '';
+  const range = finding.time_range;
+  const type = finding.review.type ?? defaultFindingNoteType(finding);
+  return {
+    id: `finding:${finding.id}`,
+    chapterId,
+    paragraphId: paragraph?.id ?? null,
+    paragraph: paragraph?.index ?? null,
+    time: range ? (range.source_start ?? range.start) : null,
+    at: range ? range.start : null,
+    type,
+    script,
+    context: paragraph?.text ?? script,
+    source: ['mouth', 'plosive', 'noise', 'breath'].includes(type) ? 'audio' : 'proof',
+    confidence: finding.confidence,
+    confReason: finding.confidence_reason,
+    findingId: finding.id,
+    included: true,
+    done: false,
+    waiting: false,
+  };
+}
+
 const PICKUP_ID = /^(speech|finding|you):[A-Za-z0-9:._-]{1,240}$/;
 const PICKUP_LINE_MAX = 500;
 
@@ -576,6 +611,20 @@ function createPickupListMock(
     items = samplePickups(lines());
   });
   const removed = new Set<string>();
+  // The host lists a note decided Needs pickup as a line of its own and drops it when the decision changes (pickuplist.acceptedFindings):
+  // the Proof lines are re-derived from the findings before every answer, keeping what the narrator did to a line that stays.
+  let proofIds = new Set<string>();
+  const syncProofLines = () => {
+    const kept = new Map(items.filter((item) => proofIds.has(item.id)).map((item) => [item.id, item]));
+    const derived = (manuscript?.proofNotes?.() ?? [])
+      .filter((finding) => fixKindOf(finding) === 'pickup')
+      .flatMap((finding) => {
+        const line = proofLine(finding, lines());
+        return line ? [{ ...line, ...pickKept(kept.get(line.id)) }] : [];
+      });
+    proofIds = new Set(derived.map((item) => item.id));
+    items = [...items.filter((item) => !kept.has(item.id)), ...derived];
+  };
   const list = (): PickupList => ({
     pickups: wireClone(items.filter((item) => !removed.has(item.id))),
     leftOut: WIRE_CHAPTERS.filter((chapter) => chapter.id !== 'chapter-3').map((chapter) => ({
@@ -595,11 +644,13 @@ function createPickupListMock(
   return {
     pickupsList: async () => {
       await placed;
+      syncProofLines();
       if (unreadable) throw new Error('the project folder could not be read');
       return list();
     },
     pickupsAdd: async (chapterId, time, line) => {
       await placed;
+      syncProofLines();
       const text = line.trim();
       if (!text) throw new Error('type the line first');
       if ([...text].length > PICKUP_LINE_MAX) throw new Error(`a line can be at most ${PICKUP_LINE_MAX} characters`);
@@ -636,6 +687,7 @@ function createPickupListMock(
     },
     pickupsRemove: async (id) => {
       await placed;
+      syncProofLines();
       known(id, true);
       removed.add(id);
       update(id, { included: true, done: false, waiting: false });
@@ -643,12 +695,14 @@ function createPickupListMock(
     },
     pickupsSetIncluded: async (id, included) => {
       await placed;
+      syncProofLines();
       known(id);
       update(id, { included });
       return list();
     },
     pickupsSetDone: async (id, done) => {
       await placed;
+      syncProofLines();
       known(id);
       const item = items.find((row) => row.id === id);
       update(id, { done, waiting: item?.at !== null });

@@ -13,6 +13,7 @@ import (
 	"github.com/countrymanprime/narration-utils/shell/internal/encodeport"
 	"github.com/countrymanprime/narration-utils/shell/internal/mastering"
 	"github.com/countrymanprime/narration-utils/shell/internal/packager"
+	"github.com/countrymanprime/narration-utils/shell/internal/runlog"
 )
 
 // renderExportHost is a host whose export picker answers paths, with a project folder, recording every job end.
@@ -195,6 +196,36 @@ func TestExportOneFailureDoesNotStopTheRest(t *testing.T) {
 	}
 	if job.Files[1].Status != exportFileDone {
 		t.Fatalf("expected the good file to still finish, got %+v", job.Files[1])
+	}
+	assertEndedOutcome(t, ended, "error")
+}
+
+func TestExportReportsAPanicInAPlainSentenceAndLogsTheGoError(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "a.wav")
+	writeFixtureFile(t, path, "wav")
+	host, ended := renderExportHost(t, path)
+	pickAllExport(t, host)
+	runPath := filepath.Join(t.TempDir(), "run.jsonl")
+	host.runLog = runlog.New(runPath, 0)
+	host.encodeFile = func(context.Context, string, string, encodeport.Spec) error { panic("index out of range") }
+
+	items := []ExportItem{{Kind: string(packager.KindChapter), Title: "01", Path: path}}
+	if _, err := host.startExport(ExportRequest{Items: items}); err != nil {
+		t.Fatal(err)
+	}
+	job := waitExportEnded(t, host)
+	if job.Phase != "error" || job.Error != "The export stopped unexpectedly." {
+		t.Fatalf("job = %+v", job)
+	}
+	if job.Files[0].Error != "the export stopped unexpectedly on this file" {
+		t.Fatalf("file = %+v, want a sentence free of the Go error", job.Files[0])
+	}
+	if strings.Contains(strings.Join(job.Logs, "\n"), "index out of range") {
+		t.Fatalf("logs = %q, want the Go error kept out of the job's logs", job.Logs)
+	}
+	if runText, err := os.ReadFile(runPath); err != nil || !strings.Contains(string(runText), "index out of range") {
+		t.Fatalf("run log = %q (%v), want the Go error kept in the run log", runText, err)
 	}
 	assertEndedOutcome(t, ended, "error")
 }
