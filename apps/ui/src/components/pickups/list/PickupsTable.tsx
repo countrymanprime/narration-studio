@@ -5,6 +5,7 @@ import type { OverlayService } from '../../../overlay/overlayService';
 import { Button } from '../../primitives/Button';
 import { Checkbox } from '../../primitives/Checkbox';
 import { ChapterStepper } from '../../primitives/ChapterStepper';
+import { LoadingRegion, Skeleton } from '../../primitives/Skeleton';
 import { Heading } from '../../primitives/Heading';
 import { IconButton } from '../../primitives/IconButton';
 import { PANEL_FRAME_CLASS, PANEL_HEADER_CLASS } from '../../primitives/panelStyles';
@@ -231,9 +232,11 @@ export function PickupsTable({
         </div>
       )}
       {read.kind === 'loading' ? (
-        <div role="status" className="p-6 text-center text-[var(--text-muted)]">
-          Reading the pickup list…
-        </div>
+        <LoadingRegion label="Loading the pickups" status="Reading the pickup list…" className="flex flex-col gap-2 p-4">
+          {[0, 1, 2, 3].map((row) => (
+            <Skeleton key={row} className="h-9" />
+          ))}
+        </LoadingRegion>
       ) : read.kind === 'failed' ? (
         <div role="alert" className="flex flex-col items-center gap-2 p-6 text-center">
           <h2 className="font-semibold">The pickup list could not be read</h2>
