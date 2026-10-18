@@ -7,7 +7,7 @@ import { WIRE_ENTITIES } from '../../api/mockFixtures';
 import type { NarrationApi } from '../../types';
 import { GuideDetail } from './GuideDetail';
 
-// ADR 0075: every Story Bible action acknowledges within 100 ms and cannot be fired twice. Each case starts the action against a host call
+// docs/architecture/interaction-feedback.md#the-standard: every Story Bible action acknowledges within 100 ms and cannot be fired twice. Each case starts the action against a host call
 // that never answers (a Python process that has not finished), presses it twice, and looks at what the narrator would see.
 
 beforeEach(() => vi.useFakeTimers());

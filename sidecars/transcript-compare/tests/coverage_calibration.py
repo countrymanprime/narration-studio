@@ -1,6 +1,6 @@
 """Calibration: the synthetic fixtures through the shipped coverage path.
 
-`docs/research/recording-coverage-calibration.md` records what this measured and ADR 0132 the
+`docs/research/recording-coverage-calibration.md` records what this measured and docs/utilities/recording-coverage.md#settings the
 defaults it chose. This module is test tooling, not product code. It runs each case the way the
 host runs a check:
 
@@ -105,7 +105,7 @@ PROPOSED = Settings(0.95, 3, 8, 3)
 """The starting values the owner answered Q3 with: 0.95, 3, 8 and 3."""
 
 SHIPPED = Settings(0.8, 3, 8, 3)
-"""What `choose` picks from `GRID` on the synthetic set, and the defaults the app ships (ADR 0132).
+"""What `choose` picks from `GRID` on the synthetic set, and the defaults the app ships.
 Still Proposed and uncalibrated on real narration (Q15)."""
 
 GRID: Mapping[str, tuple] = MappingProxyType(
@@ -140,7 +140,7 @@ def read_results(path: Path, seconds: float = 0.0) -> SidecarResult:
     lines: dict[str, list[dict]] = {"COVERAGE": [], "COVERAGE_ITEM": [], "COVERAGE_PARAGRAPH": [], "COVERAGE_REGION": []}
     for line in path.read_text(encoding="utf-8").splitlines():
         tag, _, payload = line.partition("|")
-        if tag in lines:  # the format is additive (ADR 0127): the word alignment's lines are not measurements
+        if tag in lines:  # the format is additive: the word alignment's lines are not measurements
             lines[tag].append(json.loads(payload))
     (summary,) = lines["COVERAGE"]
     return SidecarResult(summary, tuple(lines["COVERAGE_PARAGRAPH"]), tuple(lines["COVERAGE_REGION"]), tuple(lines["COVERAGE_ITEM"]), seconds)
@@ -856,7 +856,7 @@ class Gap:
 def region_gap(region: coverage_model.Region, aligned: Aligned) -> Gap:
     """A region's bounds from the alignment's `equal` opcodes on either side of its manuscript
     tokens, mapped through `index_map` to the joined transcript word and its item. The sidecar's
-    regions carry the same bounds as `audio_before` and `audio_after` (ADR 0168)."""
+    regions carry the same bounds as `audio_before` and `audio_after`."""
     before = after = None
     for tag, i1, i2, j1, j2 in aligned.alignment["opcodes"]:
         if tag != "equal":

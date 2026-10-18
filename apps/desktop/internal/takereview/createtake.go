@@ -15,7 +15,7 @@ import (
 
 // CreateTakeRequest is what the Lua create_take command (integrations/reaper/narration_take_review.lua) needs to
 // attach a narrator-approved candidate's source range as a new take on the target item: the finding it came from
-// (provenance, ADR 0098), the target item's own GUID (an explicit, unstamped target identity, never
+// (provenance), the target item's own GUID (an explicit, unstamped target identity, never
 // preselected on a weak match), the candidate's own item GUID when it has one (an extra
 // staleness check; empty skips it), the candidate's source file, and the matched span's range within that source
 // (SourceRangeStart becomes the new take's D_STARTOFFS).

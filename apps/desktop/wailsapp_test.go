@@ -5,7 +5,7 @@ import (
 	"testing"
 )
 
-// The window options that differ from Wails v3's defaults are deliberate (main.go, docs/adr/0200). Each one silently changes what the
+// The window options that differ from Wails v3's defaults are deliberate (main.go). Each one silently changes what the
 // narrator gets if it is lost, so each is held here.
 func TestMainWindowKeepsCtrlWheelZoomAndHidesTheBrowserMenu(t *testing.T) {
 	options := mainWindowOptions(0)

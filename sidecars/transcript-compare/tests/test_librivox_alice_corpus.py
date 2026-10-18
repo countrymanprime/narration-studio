@@ -1,4 +1,4 @@
-"""Checks on the LibriVox Alice fixtures and the corpora built from them (tests/fixtures/audio/librivox-alice, ADR 0416).
+"""Checks on the LibriVox Alice fixtures and the corpora built from them (tests/fixtures/audio/librivox-alice).
 
 The recordings are fetched from archive.org, not committed. What is committed (the word timings, the markers of where
 every paragraph and sentence sits, and the recipes) is checked here on every run, with no audio and no network. The

@@ -17,7 +17,7 @@ const (
 // DawCompareFxRange plays the words firstToken..lastToken of chapterID's stored alignment in the DAW with the chain chainName on
 // and then bypassed, and puts the chain back as it was: the effect inspector's Compare (SN-E113). The words and chain resolve as
 // DawFxRangeParams resolves them, and the page sends no GUID or path. The answer is the DawFxRangeCompare payload: a DawResult
-// (ADR 0810) with no undo step, since the DAW's history is left as it was, and Pass, how long each pass plays in seconds, so the
+// with no undo step, since the DAW's history is left as it was, and Pass, how long each pass plays in seconds, so the
 // page can say which one is playing. It answers once the first pass has started. The same refusals as DawBypassFxRange, then an
 // engine that cannot compare, in a sentence.
 func (h *Host) DawCompareFxRange(chapterID string, firstToken int, lastToken int, chainName string) (string, error) {

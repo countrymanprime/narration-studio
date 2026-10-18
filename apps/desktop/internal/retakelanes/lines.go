@@ -1,4 +1,4 @@
-// Package retakelanes is the host's end of "retakes as fixed lanes" (ADR 0147, spike S7 in
+// Package retakelanes is the host's end of "retakes as fixed lanes" (spike S7 in
 // docs/research/reaper-spike-s7-fixed-lanes.md): it lists the retakes of each manuscript line that sit on fixed item lanes, from the saved
 // project the static reader parses, and asks REAPER over the file bridge (pick_retake_lane in
 // integrations/reaper/narration_retake_lanes.lua) to make the narrator's pick the only lane playing.
@@ -14,7 +14,7 @@ import (
 	"github.com/countrymanprime/narration-utils/shell/internal/tracks"
 )
 
-// LineIDKey is the item extension key that names an item's manuscript line (ADR 0026).
+// LineIDKey is the item extension key that names an item's manuscript line.
 const LineIDKey = "narration_utils_line_id"
 
 // Retake is one item of a line on a fixed lane.

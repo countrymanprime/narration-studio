@@ -1,5 +1,5 @@
 // The `delivery` rows of STATE_CATALOG (see state-catalog.ts), in the order they are captured. Delivery is the Studio Next mock's
-// Delivery page (SN-M5, ADR 0802): the profile card, Output, the profile's rules and the "Before you build" aside. `?mockDelivery=` boots
+// Delivery page (SN-M5): the profile card, Output, the profile's rules and the "Before you build" aside. `?mockDelivery=` boots
 // every chapter measured and passing with the files mastered and encoded, so Build is on and the build's own states can be captured.
 import type { StateEntry } from '../lib/types';
 import { KEEPS_DESKTOP_SCROLL } from './shared';

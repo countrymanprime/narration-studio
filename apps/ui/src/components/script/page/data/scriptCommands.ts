@@ -1,4 +1,4 @@
-// The Script page's journalled commands (ADR 0771), the mock's `state/commands/script.ts` over the host: marks and their
+// The Script page's journalled commands, the mock's `state/commands/script.ts` over the host: marks and their
 // threads (`MarksApi`), prep states and flagged words (`ScriptPrepApi`), speakers and new Story Bible entries
 // (`StoryBibleApi`). Each runs through `journal.act` with a label and the host command that takes it back, and reads what
 // the inverse needs from the page's read cache first. A refusal is the host's own sentence and journals nothing. After each

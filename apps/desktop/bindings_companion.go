@@ -6,12 +6,12 @@ import (
 	"github.com/wailsapp/wails/v3/pkg/application"
 )
 
-// Companion mode resizes and pins the app's one existing window; it never opens a second one (ADR 0401).
+// Companion mode resizes and pins the app's one existing window; it never opens a second one.
 // CompanionModeEnter and CompanionModeExit are the only two bindings this needs: the layout that fills the narrowed
 // window is the UI's CompactShell.
 
 // companionModeWidth is the fixed width Companion mode narrows the window to, matching the
-// atlas's narrow-width convention (ADR 0061).
+// atlas's narrow-width convention.
 const companionModeWidth = 380
 
 // windowBounds is a window's size and position, saved by CompanionModeEnter so CompanionModeExit can put the window
@@ -106,7 +106,7 @@ func clampPositionToScreen(x, y, width, height int, area application.Rect) (int,
 }
 
 // CompanionModeEnter narrows the app's one window to the companion width and pins it always-on-top, saving its prior
-// size and position so CompanionModeExit can restore them. It never opens a second window (ADR 0401).
+// size and position so CompanionModeExit can restore them. It never opens a second window.
 func (h *Host) CompanionModeEnter() error {
 	window, ok := mainWindow()
 	if !ok {

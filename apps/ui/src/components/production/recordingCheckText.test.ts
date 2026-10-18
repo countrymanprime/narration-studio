@@ -64,7 +64,7 @@ describe('recording check text', () => {
     expect(verdict(report(0, 1)).headline).toBe('1 word not recorded');
   });
 
-  it("leads with the host judgement when one is given, sharing the stage signal's rule (ADR 0204)", () => {
+  it("leads with the host judgement when one is given, sharing the stage signal's rule", () => {
     const met: CoverageJudgement = {
       state: 'met',
       reason: 'Text present: 1,000 of 1,000 words; every paragraph passes.',

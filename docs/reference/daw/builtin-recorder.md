@@ -1,10 +1,10 @@
 # Built-in recorder: what the app declares for it
 
-The app's own recorder ([ADR 0455](../../adr/0455-the-built-in-recorder-records-each-take-to-a-partial-file-in-the-projects-recordings-folder-and-links-it-to-its-take-name.md), `apps/desktop/internal/recording`) is an engine of the DAW port with the kind `Built-in`. Its adapter is `apps/desktop/internal/dawport/builtin`, as of 2026-10-11.
+The app's own recorder (`apps/desktop/internal/recording`) is an engine of the DAW port with the kind `Built-in`. Its adapter is `apps/desktop/internal/dawport/builtin`, as of 2026-10-11.
 
 ## When it is the launch's engine
 
-- **A launch with no DAW whose project records with the built-in recorder.** The project's choice is the `Recording.engine` row, which only the Booth's `RecorderChooseEngine` writes and which counts only where the recorder's capture row runs (Windows, [ADR 0357](../../adr/0357-the-built-in-recorders-capture-engine-is-a-wasapi-shared-mode-row-of-the-capture-port-through-portaudio-in-the-sidecar.md)).
+- **A launch with no DAW whose project records with the built-in recorder.** The project's choice is the `Recording.engine` row, which only the Booth's `RecorderChooseEngine` writes and which counts only where the recorder's capture row runs (Windows, [capture_wasapi.py](../../../sidecars/manuscript-teleprompter/core/capture_wasapi.py)).
 - **`--daw Built-in`** (or `builtin`, any case). A launch from REAPER or Audacity keeps its DAW whatever the project chose.
 - The host reads the kind in one place, `dawLaunchKind` in `apps/desktop/bindings_daw.go`, through `dawport.LaunchKind`. A page never sends a label that selects it ([threat model](../../architecture/threat-model.md), row 6f).
 

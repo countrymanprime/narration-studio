@@ -23,7 +23,7 @@ import { listFromNull, optionalFromNull } from './base';
 const calendarDate = z.string().regex(/^\d{4}-\d{2}-\d{2}$/);
 
 // The milestone measure, estimate, done flag and template and the plan's payment type are optional so a host older than
-// them (ADR 0800) still parses.
+// them still parses.
 const productionMilestoneSchema = z.object({
   name: z.string(),
   dueDate: calendarDate,

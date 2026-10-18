@@ -7,7 +7,7 @@ import (
 	"github.com/countrymanprime/narration-utils/shell/internal/character"
 )
 
-// Cue is one dialogue cue from the Manuscript Guide (ADR 0345): a
+// Cue is one dialogue cue from the Manuscript Guide: a
 // quoted span and the character it is attributed to. SpeakerID is empty
 // when the guide left the speaker unknown.
 type Cue struct {

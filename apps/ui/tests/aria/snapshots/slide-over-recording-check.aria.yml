@@ -1,5 +1,5 @@
-# The recording check (docs/utilities/recording-coverage.md, ADR 0130): a modal slide-over named for its chapter (the row
-# has no Check button of its own; the summary lives here), with the host's judgement as a heading (ADR 0204), an
+# The recording check (docs/utilities/recording-coverage.md): a modal slide-over named for its chapter (the row
+# has no Check button of its own; the summary lives here), with the host's judgement as a heading, an
 # unfinished chapter's "recorded to" line, the chapter's stat grid, its actions (Check again, kept beside the figures
 # it refreshes, and Open in Editing, which opens the chapter on the Editing page), its own interior gaps as a named Pickups
 # region (a paragraph when there are none), and the paragraph detail as a folded disclosure (never auto-expanded).

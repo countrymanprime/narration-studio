@@ -15,7 +15,7 @@ const LOOK_CLASS: Record<PillLook, (active: boolean) => string> = {
 
 // A toggle chip. Base UI's Toggle gives it `aria-pressed`, so a screen reader hears which chip of a group is selected. The
 // callers use chips as a single choice, so pressing one (even the selected one) just reports a click and the caller decides.
-// The `active` class stays, and stays mutually exclusive with the inactive classes (ADR 0017): tests and drivers select it.
+// The `active` class stays, and stays mutually exclusive with the inactive classes: tests and drivers select it.
 export function Pill({
   label,
   active,

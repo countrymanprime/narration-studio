@@ -36,7 +36,7 @@ var Decoders = NewDecoders()
 func init() {
 	Decoders.Register(port.Entry[Decoder]{
 		Name: FFmpegName,
-		// Windows only, matching the Encoders row: the catalogued build is a Windows executable (ADR 0342).
+		// Windows only, matching the Encoders row: the catalogued build is a Windows executable.
 		Descriptor: port.Descriptor{Label: "FFmpeg (MP3 decode)", Platforms: []string{"windows"}, Modes: []string{"mp3"}},
 		New: func() Decoder {
 			ffmpegRow.mu.RLock()

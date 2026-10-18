@@ -14,7 +14,7 @@ import (
 
 // The Booth records without a DAW through ReadAloudRecordStart and ReadAloudRecordStop, the same two bindings it uses for
 // REAPER: with the project's engine the built-in recorder they go to the DAW port's Record role over internal/recording
-// (docs/adr/0455). These tests drive them over a fake engine, so no device is needed; real devices are the owner's pass.
+// These tests drive them over a fake engine, so no device is needed; real devices are the owner's pass.
 
 const (
 	micOne = "Analogue 1 + 2 (Focusrite USB Audio)"

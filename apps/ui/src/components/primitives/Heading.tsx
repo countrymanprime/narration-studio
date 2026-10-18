@@ -2,7 +2,7 @@ import type { ReactNode } from 'react';
 
 // The page (or section) title. `level` changes the tag only, so the outline is right where a heading sits under another
 // one; the look is the same at every level (a caller that needs a different size adds a `size` prop when it has a case).
-// The sizes are the mocks' (ADR 0640): Barlow Condensed at the page-title size (26 px), and a 13 px muted line under it.
+// The sizes are the mocks': Barlow Condensed at the page-title size (26 px), and a 13 px muted line under it.
 // `icon` leads the title (a spinner while the app is still opening).
 export function Heading({ title, level = 1, icon, children }: { title: string; level?: 1 | 2 | 3; icon?: ReactNode; children?: ReactNode }) {
   const Tag = `h${level}` as const;

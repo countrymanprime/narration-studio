@@ -1,4 +1,4 @@
-"""Pin a payload a sidecar really produces against a committed file (ADR 0069).
+"""Pin a payload a sidecar really produces against a committed file.
 
 A sidecar test calls ``check("name", value)``. The value is written as indented JSON with sorted keys and compared with
 ``tests/fixtures/contracts/<name>.json``; the TypeScript contract tests validate the same file against the UI's schemas, so a

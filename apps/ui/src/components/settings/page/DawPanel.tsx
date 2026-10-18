@@ -37,7 +37,7 @@ function DawLink({ data, onLinkDawFile }: { data: Bootstrap; onLinkDawFile: () =
  */
 export function DawPanel({ data, notify, onLinkDawFile }: { data: Bootstrap; notify: Notify; onLinkDawFile: () => void }) {
   const project = usePort('project');
-  // Guards Launch REAPER against a second click starting a second REAPER while the first is still starting (ADR 0075).
+  // Guards Launch REAPER against a second click starting a second REAPER while the first is still starting.
   const [launching, setLaunching] = useState(false);
   const launch = useCallback(async () => {
     setLaunching(true);

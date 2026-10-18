@@ -19,7 +19,7 @@ try {
 } catch {
   // No earlier tag (the first release, or a first commit): the notes list the whole history.
 }
-// The asset names carry the bare version, the same for a candidate and its promotion (docs/adr/0197).
+// The asset names carry the bare version, the same for a candidate and its promotion.
 const version = candidate.replace(/^v/, '').replace(/-rc$/, '');
 const range = previous ? `${previous}..${candidate}` : candidate;
 const rows = execFileSync('git', ['log', '--format=%h%x1f%s', range], { encoding: 'utf8' })
@@ -51,7 +51,7 @@ output.push(
   `Once installed, the app updates itself from these releases after you click **Install and restart** (Settings > About & updates). \`${assetName('windows-x64', version)}\` is that update package, not something to run by hand.`,
   '',
 );
-// The program is AGPL-3.0-or-later (docs/adr/0039) and bundles GPL-family components, so the licences and the source offer are their own asset
+// The program is AGPL-3.0-or-later and bundles GPL-family components, so the licences and the source offer are their own asset
 // (scripts/release/assets.mjs, scripts/licenses/notices.py).
 output.push(
   '## Licences and source',
@@ -59,7 +59,7 @@ output.push(
   `Narration Studio is free software under the AGPL-3.0-or-later licence. \`${noticesName('windows-x64', version)}\` on this release lists every third-party component in the program with its licence and licence text, includes the full AGPL text, and says where the complete source of this release is: this repository, at the tag this release was built from.`,
   '',
 );
-// Every asset is attested by the release workflow (docs/adr/0071); say how a narrator checks one.
+// Every asset is attested by the release workflow; say how a narrator checks one.
 const repository = process.env.GITHUB_REPOSITORY || '<owner>/<repo>';
 output.push(
   '## Verifying this download',

@@ -3,7 +3,7 @@ import { hm } from '../../schedule/dates';
 import { num } from '../../schedule/dates';
 import type { StageSegment } from './overviewFigures';
 
-// Delivered has no chapter-level source, so it is not drawn (ADR 0015).
+// Delivered has no chapter-level source, so it is not drawn.
 const FILL: Record<StageSegment['key'], string> = {
   proofed: 'color-mix(in srgb, var(--ok) 70%, var(--surface))',
   edited: 'var(--info)',

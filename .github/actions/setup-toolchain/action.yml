@@ -38,7 +38,7 @@ runs:
   steps:
     - if: runner.os == 'Linux' && inputs.need-linux-native-deps == 'true'
       shell: bash
-      # Wails v3 links GTK 4 and WebKitGTK 6.0 through cgo on Linux (docs/adr/0200); v2 used GTK 3 and WebKit2GTK 4.1.
+      # Wails v3 links GTK 4 and WebKitGTK 6.0 through cgo on Linux; v2 used GTK 3 and WebKit2GTK 4.1.
       run: sudo apt-get update && sudo apt-get install -y libglib2.0-dev libgtk-4-dev libwebkitgtk-6.0-dev libsoup-3.0-dev librsvg2-dev patchelf
     - if: inputs.need-pnpm == 'true'
       uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4.3.0

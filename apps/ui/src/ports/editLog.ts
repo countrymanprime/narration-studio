@@ -3,9 +3,9 @@ import type { AcceptedWord, EditLogApi } from '../api/contracts/editLog';
 import type { EditStacksApi } from '../api/contracts/editStacks';
 import type { EditWordFxApi, WordFx } from '../api/contracts/wordFx';
 
-// The Editing records port (ADR 0856): the words the narrator kept as read, the cuts and the word effects, each kept by the
+// The Editing records port: the words the narrator kept as read, the cuts and the word effects, each kept by the
 // host in the project's editing/ folder and checked against the current text on every read, and the stacks and retry modes
-// (ADR 0858), kept beside them. A page reads and changes
+// kept beside them. A page reads and changes
 // them through this port only. A later Editing slice adds its methods here together with its binding (ISP).
 
 /** What a page asks of the Editing records: the accepted words, the cuts, the word effects, the stacks and the retry modes. */

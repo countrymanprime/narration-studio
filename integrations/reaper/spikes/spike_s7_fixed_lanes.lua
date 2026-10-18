@@ -1,7 +1,7 @@
 -- Spike S7: how fixed item lanes behave through the API, before retakes are designed
 -- as fixed lanes. Covers I_FREEMODE=2 and UpdateTimeline(), I_NUMFIXEDLANES, I_FIXEDLANE,
 -- C_LANEPLAYS (track and item), C_ALLLANESPLAY, P_LANENAME, B_FIXEDLANE_HIDDEN, how takes (the take-review path,
--- ADR 0098) and lanes convert into each other, comp lanes, undo, and what the saved .rpp records.
+-- integrations/reaper/narration_take_review.lua) and lanes convert into each other, comp lanes, undo, and what the saved .rpp records.
 -- Research tool, not product code: see docs/research/reaper-spike-s7-fixed-lanes.md for the write-up.
 -- Run by run-reaper.ps1 inside an isolated REAPER (-cfgfile). Media come from make_media.py. Nothing is armed,
 -- recorded or played: recording into lanes needs audio hardware and stays pending.
@@ -182,7 +182,7 @@ local function add_track(name)
   reaper.Undo_EndBlock2(0, 'spike: add track ' .. name, -1)
   return track
 end
--- An item with one take and an item-level line id (ADR 0026), the shape the app's stamping produces.
+-- An item with one take and an item-level line id, the shape the app's stamping produces.
 local function add_item(track, file, position, length, take_name, line_id)
   local item = reaper.AddMediaItemToTrack(track)
   reaper.SetMediaItemInfo_Value(item, 'D_POSITION', position)
@@ -400,7 +400,7 @@ local ok, err = xpcall(function()
   chunk('B-lanes-named', track_b)
 
   -----------------------------------------------------------------------
-  section('E. Takes and lanes (the take-review path, ADR 0098): one item with two takes')
+  section('E. Takes and lanes (the take-review path): one item with two takes')
   -----------------------------------------------------------------------
   local function build_take_item(name)
     local track = add_track(name)

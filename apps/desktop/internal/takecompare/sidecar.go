@@ -16,7 +16,7 @@ type SidecarRequest struct {
 	ManuscriptPath string
 	Model          string
 	Language       string
-	// ProgressPath is where the sidecar writes its stage|pct|message line (ADR 0015); "<ProgressPath>.cancel" asks it
+	// ProgressPath is where the sidecar writes its stage|pct|message line; "<ProgressPath>.cancel" asks it
 	// to stop between takes. Empty runs it without either.
 	ProgressPath string
 }

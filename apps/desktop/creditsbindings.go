@@ -129,8 +129,8 @@ func (h *Host) creditTokens() map[string]string {
 // creditsScriptTitles are the credits kinds the teleprompter reads and the name each is shown under (never read aloud).
 var creditsScriptTitles = map[string]string{"opening": "Opening credits", "closing": "Closing credits"}
 
-// creditsScript is the opening or closing credits as the teleprompter reads them (ADR 0150): the first template of
-// that kind in the library (ADR 0093, the same one the estimate times and the Manuscript entry shows), rendered with
+// creditsScript is the opening or closing credits as the teleprompter reads them: the first template of
+// that kind in the library (the same one the estimate times and the Manuscript entry shows), rendered with
 // credits.Render exactly as CreditsPreview renders it. An unresolved token stays visible in the text rather than failing:
 // the UI warns about it and Start stays allowed (owner decision 2026-09-23).
 func (h *Host) creditsScript(kind string) (teleprompter.Script, error) {

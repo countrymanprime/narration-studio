@@ -161,7 +161,7 @@ describe('journal.undo', () => {
   });
 });
 
-describe('DAW entries (ADR 0771 rule 4)', () => {
+describe('DAW entries (docs/architecture/ui-state-and-journal.md#the-journal-and-undo)', () => {
   it('daw-entry-only-if-last: an entry followed by any entry refuses "came after this", naming the newest', async () => {
     const dawLastAction = vi.fn<DawLastAction>(async () => 'this');
     const journal = setup(dawLastAction);

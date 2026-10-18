@@ -2,15 +2,15 @@ import type { CSSProperties, KeyboardEvent, MouseEvent, ReactNode } from 'react'
 import { TABLE_CELL_CLASS, TABLE_HEADER_CLASS, TABLE_TEXT_CLASS } from './tableStyles';
 import { Tooltip } from './Tooltip';
 
-// A presentational data table (ADR 0056). It replaces the `table.dtable` rules in components.css: the look lives here, in
+// A presentational data table. It replaces the `table.dtable` rules in components.css: the look lives here, in
 // tokens, and the parts stay the browser's own table elements (`table`, `thead`, `tbody`, `tr`, `th`, `td`), so the table
 // semantics, the column layout and the cell spanning are the platform's. It sorts, filters and selects nothing itself: the
 // caller owns the rows and reports what the user did. TanStack Table stays the option if that ever grows. Its sizes and
-// type are the mocks' (tableStyles.ts, ADR 0605).
+// type are the mocks' (tableStyles.ts).
 
 // `label` names the table for a screen reader ("Chapters", "Aliases"). `flush` runs it to the side edges of the Panel it
 // sits in, as the mocks draw a table in a card; the cells' own padding keeps the text off the card's border. It spans the
-// Panel body's padding (`--panel-pad`, ADR 0640), which is nothing in a `Panel flush`.
+// Panel body's padding (`--panel-pad`), which is nothing in a `Panel flush`.
 export function Table({ label, flush = false, className = '', children }: { label: string; flush?: boolean; className?: string; children: ReactNode }) {
   return (
     <table
@@ -150,7 +150,7 @@ export function TableHeader({
 // A data cell. Content sits in the middle of the row; `valign="top"` for a cell of several lines beside one-line cells, so
 // its first line stays level with theirs. `numeric` is a number, a time or a level: IBM Plex Mono at 13 px, right-aligned
 // unless `align="left"` says otherwise (its header takes the same align) and never broken. `muted` is secondary text (the mocks' source column): 12 px in
-// `--text-muted`, which meets 4.5:1 where the mocks' `--non-text` would not (ADR 0059).
+// `--text-muted`, which meets 4.5:1 where the mocks' `--non-text` would not.
 export function TableCell({
   align,
   valign = 'middle',

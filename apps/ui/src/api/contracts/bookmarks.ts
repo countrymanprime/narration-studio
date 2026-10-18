@@ -1,4 +1,4 @@
-// The narrator's bookmarks (ADR 0820): a spot in the manuscript, a paragraph and a character offset in its text, with an
+// The narrator's bookmarks: a spot in the manuscript, a paragraph and a character offset in its text, with an
 // optional label and note, kept in the project's narration-utils/bookmarks.json (apps/desktop/internal/bookmarks) and checked
 // against the current text on every read, so a bookmark whose line is gone or whose offset no longer fits comes back stale
 // rather than moved.

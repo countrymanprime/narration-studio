@@ -175,7 +175,7 @@ func TestForTrackUsesTheSameConfidenceRuleAsForChapter(t *testing.T) {
 	}
 }
 
-// ADR 0110: the fuzzy fallback is never confident, even when its ratio reaches a prefix match's score.
+// docs/utilities/tracks.md: the fuzzy fallback is never confident, even when its ratio reaches a prefix match's score.
 func TestAFuzzyMatchScoringAsHighAsAPrefixIsStillUncertainForAChapter(t *testing.T) {
 	chapters := []Chapter{{ID: "c-1", Title: "The Rabbit Hole"}, {ID: "c-2", Title: "The Pool of Tears"}}
 	result := mustResolve(t, "c-1", chapters, namedProject("The Rabit Hole"), nil)

@@ -1,6 +1,6 @@
 # Studio shell and registries
 
-**Status: implemented.** The app shell draws the rail and header, and a page adds a command, a search source, a context menu or an overlay by calling one registry or service, never by editing the shell. The decisions are [ADR 0780](../adr/0780-the-jump-menu-context-menus-and-help-are-derived-from-the-static-command-catalogue-and-dynamic-commands-come-from-providers.md) (catalogue, providers, jump menu, context menus, help), [ADR 0781](../adr/0781-an-overlay-service-opens-dialogs-confirms-toasts-and-announcements-imperatively-and-renders-them-in-the-existing-primitives.md) (overlay service) and [ADR 0761](../adr/0761-layout-rules-read-the-reported-width-the-icon-vocabulary-is-a-data-module-and-key-caps-are-pictures-in-a-new-keycap-leaf.md) (widths, icons, key caps). [ADR 0361](../adr/0361-app-commands-go-through-one-registry-and-keyboard-midi-and-hid-are-input-sources-bound-by-a-remappable-keymap.md) set the command model they extend and [ADR 0046](../adr/0046-architecture-rules-taken-from-adrs-are-lint-and-test-rules.md) the rule that an import boundary is a lint or test rule that names its ADR.
+**Status: implemented.** The app shell draws the rail and header, and a page adds a command, a search source, a context menu or an overlay by calling one registry or service, never by editing the shell. The decisions are Command providers and "Go to" (catalogue, providers, jump menu, context menus, help), (overlay service) and [Layout rules](../design/design-system.md#layout-rules) (widths, icons, key caps). Studio shell and registries set the command model they extend and [Verification and code-health tooling](../operations/verification-tooling.md) the rule that an import boundary is a lint or test rule that names its ADR.
 
 All paths are under `apps/ui/src/`.
 
@@ -68,7 +68,7 @@ Tests: `input/commandProviders.test.ts`, `components/layout/useGoToCommands.test
 | A term | Search hits first, then catalogue and provided commands whose label or hint contains every word of the term |
 | A term starting with `>` | Commands only, no search hits |
 
-The text field keeps focus and names the active option with `aria-activedescendant`; the list is a `Listbox` primitive. A catalogue row draws the first gesture of the narrator's keymap as key caps. The menu reads memory only, so it opens and filters without waiting for the host ([ADR 0075](../adr/0075-every-action-that-leaves-the-interface-acknowledges-within-100-ms-cannot-be-fired-twice-and-tells-the-narrator-when-it-ends.md)). A catalogue row runs through `shellCommands` in `App.tsx`, the same action as its key or header button.
+The text field keeps focus and names the active option with `aria-activedescendant`; the list is a `Listbox` primitive. A catalogue row draws the first gesture of the narrator's keymap as key caps. The menu reads memory only, so it opens and filters without waiting for the host ([The standard](interaction-feedback.md#the-standard)). A catalogue row runs through `shellCommands` in `App.tsx`, the same action as its key or header button.
 
 Test: `components/layout/JumpMenu.test.tsx`.
 
@@ -128,23 +128,23 @@ Tests: `components/help/ShortcutSheet.test.tsx` (the sheet lists exactly `comman
 | `overlay.announce(text)` | Writes the one polite live region |
 | `overlay.dismissToast(id)`, `overlay.dismissTopic(topic)` | Remove a toast, or a message that stopped being true |
 
-`overlay/OverlayHost.tsx` renders the snapshot in the primitives (`ConfirmDialog`, `Dialog`, `SlideOver`, `ToastRegion`) and the `aria-live` region outside any dialog. `overlay/OverlayProvider.tsx` mounts the host and gives components `useOverlay()`; `App.tsx` mounts it once. Focus return, stacking and Escape order stay in the primitives ([ADR 0048](../adr/0048-every-dialog-is-one-modal-shell-and-confirms-are-alert-dialogs.md), [ADR 0172](../adr/0172-popover-is-an-interactive-layer-above-the-dialog-and-escape-defers-to-the-topmost-one.md), [ADR 0630](../adr/0630-overlays-keep-the-mocks-frame-a-nested-dialog-dims-the-page-and-a-combobox-popup-is-a-listbox-not-a-popover.md)). The jump menu, the history panel and the Booth leave guard's confirm all open through it.
+`overlay/OverlayHost.tsx` renders the snapshot in the primitives (`ConfirmDialog`, `Dialog`, `SlideOver`, `ToastRegion`) and the `aria-live` region outside any dialog. `overlay/OverlayProvider.tsx` mounts the host and gives components `useOverlay()`; `App.tsx` mounts it once. Focus return, stacking and Escape order stay in the primitives ([Base UI wrappers](../design/design-system.md#base-ui-wrappers), [Design system reference](../design/design-system.md)). The jump menu, the history panel and the Booth leave guard's confirm all open through it.
 
 | Rule | Enforced by |
 | --- | --- |
 | `overlay/` imports `components/primitives/`, React and itself only | `.dependency-cruiser.mjs` rule `overlay-imports-primitives-only` (proved by `architectureRules.test.ts`); `overlay/importsPrimitivesOnly.test.ts` |
-| `overlay/`, `studio/` and `ports/` never import `api/wailsClient` | `.dependency-cruiser.mjs` ([ADR 0770](../adr/0770-the-ui-store-caches-host-reads-and-journals-commands-and-the-go-host-stays-the-source-of-truth.md)) |
+| `overlay/`, `studio/` and `ports/` never import `api/wailsClient` | `.dependency-cruiser.mjs` ([The store: host reads, cached](ui-state-and-journal.md#the-store-host-reads-cached)) |
 | State, each kind opens, primitives' focus and Escape behaviour unchanged | `overlay/overlay.test.tsx` |
 
 ## Registry import direction
 
-`registries/` takes `components/primitives/` types, `input/` and itself, and no feature folder; features import registries. `.dependency-cruiser.mjs` rule `registries-import-no-feature` enforces it, and `architectureRules.test.ts` proves the rule fires ([ADR 0062](../adr/0062-ui-import-rules-are-a-dependency-cruiser-config-and-a-mark-scan-that-name-their-adr.md)). `JumpMenu` and `ContextMenuHost` are built from the `Dialog`, `Listbox` and `ContextMenu` primitives, so Base UI is imported only inside the primitives ([ADR 0047](../adr/0047-the-ui-primitives-wrap-base-ui-and-app-code-never-imports-it.md), `baseUiBoundary.test.ts`).
+`registries/` takes `components/primitives/` types, `input/` and itself, and no feature folder; features import registries. `.dependency-cruiser.mjs` rule `registries-import-no-feature` enforces it, and `architectureRules.test.ts` proves the rule fires ([Verification and code-health tooling](../operations/verification-tooling.md)). `JumpMenu` and `ContextMenuHost` are built from the `Dialog`, `Listbox` and `ContextMenu` primitives, so Base UI is imported only inside the primitives ([Base UI wrappers](../design/design-system.md#base-ui-wrappers), `baseUiBoundary.test.ts`).
 
 ## History panel and leave guard
 
 `openHistoryPanel(overlay, journal, dawName)` (`components/layout/HistoryPanel.tsx`) opens a slide-over "Undo history" listing the journal's entries newest first. Each row has its label, a pill naming the DAW or "App", and Undo; a row the journal would refuse shows the journal's sentence and a disabled Undo. A successful undo is announced; a refusal is a toast. It opens from the header's History button, `history.open` and the jump menu. `useJournalEntries.ts` reads the journal.
 
-The journal is `studio/journal/createJournal.ts` ([ADR 0771](../adr/0771-undo-is-one-in-memory-journal-that-refuses-with-a-reason-and-reaches-the-daw-only-for-its-last-action.md)); it also holds the leave guard (`studio/journal/leaveGuard.ts`): a page calls `setLeaveGuard` and the shell asks `checkLeave(next)` before it navigates. The verdict is `'allow'` or `{ ask: ConfirmSpec }`, and the Booth sets one while a take records (`components/booth/leave/useBoothLeaveGuard.ts`).
+The journal is `studio/journal/createJournal.ts` ([The journal and undo](ui-state-and-journal.md#the-journal-and-undo)); it also holds the leave guard (`studio/journal/leaveGuard.ts`): a page calls `setLeaveGuard` and the shell asks `checkLeave(next)` before it navigates. The verdict is `'allow'` or `{ ask: ConfirmSpec }`, and the Booth sets one while a take records (`components/booth/leave/useBoothLeaveGuard.ts`).
 
 Tests: `components/layout/HistoryPanel.test.tsx`, `studio/journal/createJournal.test.ts`, `studio/journal/leaveGuard.test.ts`.
 
@@ -161,7 +161,7 @@ Tests: `components/layout/HistoryPanel.test.tsx`, `studio/journal/createJournal.
 | Review | Proof, Pickups |
 | Finish | Master & QC, Delivery |
 
-Settings is pinned at the foot with the theme toggle, not in a group. Groups follow production stages ([ADR 0407](../adr/0407-a-new-page-replaces-its-old-counterpart-in-the-same-change-and-the-navigation-is-grouped-by-production-stage.md)); [ADR 0802](../adr/0802-schedule-and-delivery-are-pages-with-their-own-rail-items.md) and [ADR 0804](../adr/0804-the-editing-page-replaces-the-workspace-in-proof-in-one-change.md) added Schedule, Delivery and Editing.
+Settings is pinned at the foot with the theme toggle, not in a group. Groups follow production stages ([Design principles](principles.md)); [Navigation](../guides/using-the-app/navigation.md) and [Editing](../guides/using-the-app/editing.md) added Schedule, Delivery and Editing.
 
 - **Counts.** `useNavCounts(pathname, hasManuscript)` (`components/layout/useNavCounts.ts`) gives `{ proof?, pickups? }`: open notes from `findingsSummary` through `proofProgress`, and open lines from `pickupsList`. It reads again on every page move and on pickup changes. A key is absent when the host gives no count, and with no manuscript there is none; the rail draws no badge, never an invented number. No other item has a count. Test: `components/layout/useNavCounts.test.tsx`.
 - **Booth.** With a manuscript, `/booth` draws no rail, header or drawer, only the page in its own `<main>`. Test: `components/layout/AppShell.test.tsx`.
@@ -172,9 +172,9 @@ Settings is pinned at the foot with the theme toggle, not in a group. Groups fol
 
 | Vocabulary | Where | Rule | Enforced by |
 | --- | --- | --- | --- |
-| Widths: rail collapses below 1360, strip fits from 1360, medium at 1280 and below, narrow below 1180, tiny below 860 | `layoutBreakpoints.ts` (`layoutClassFor`, `LAYOUT_QUERIES`), `hooks/useLayoutClass.ts` | Layout reads the reported CSS width, so host zoom ([ADR 0201](../adr/0201-app-zoom-under-wails-v3-on-windows-runs-from-100-to-200-percent-and-reads-the-level-back-from-the-window.md)) moves a window across a threshold | `layoutBreakpoints.test.ts` (the numbers); `layoutQueries.test.ts` (a Tailwind `min-[Npx]` or `max-[Npx]` between 860 and 1440 is one of 8 variants or a listed gap in `OFF_VOCABULARY`, whose counts only fall) |
+| Widths: rail collapses below 1360, strip fits from 1360, medium at 1280 and below, narrow below 1180, tiny below 860 | `layoutBreakpoints.ts` (`layoutClassFor`, `LAYOUT_QUERIES`), `hooks/useLayoutClass.ts` | Layout reads the reported CSS width, so host zoom ([Zoom](../guides/using-the-app/navigation.md#zoom)) moves a window across a threshold | `layoutBreakpoints.test.ts` (the numbers); `layoutQueries.test.ts` (a Tailwind `min-[Npx]` or `max-[Npx]` between 860 and 1440 is one of 8 variants or a listed gap in `OFF_VOCABULARY`, whose counts only fall) |
 | Icons: an action name maps to one icon and one tooltip (117 rows) | `icons.catalog.ts` (`iconFor`, `tooltipFor`), `components/primitives/Icon.tsx`, `IconButton.tsx` | The key is the action, not the glyph; a tooltip starts with a verb from `TOOLTIP_VERBS`; two meanings never share an icon; a page icon is worn only by a page or page-link row | `icons.catalog.test.ts`; `iconImports.test.ts` ceilings on direct `FontAwesomeIcon` and icon imports outside the primitives, which only fall |
 | Native controls: a page builds a control from a primitive | `components/primitives/` | Raw `<button>`, `<input>` and table elements outside the primitives are counted per file; a file's ceiling only falls | `rawNatives.test.ts` |
-| Key caps: arrows, Enter, Esc, Tab, Backspace, Space and Right-click are pictures; every other key is text | `components/primitives/KeyCap.tsx` (`KeyCap`, `KeyChord`, `KEY_GLYPHS`), `Kbd.tsx`, `KeyHint.tsx`, `KeyHints.tsx` | A glyph cap carries its name as accessible name and tooltip; `Kbd` stays text ([ADR 0620](../adr/0620-kbd-draws-plex-mono-caps-in-two-sizes-with-a-pressed-bottom-edge-and-keyhint-composes-one-with-its-action.md)) | `components/primitives/KeyCap.test.tsx` |
+| Key caps: arrows, Enter, Esc, Tab, Backspace, Space and Right-click are pictures; every other key is text | `components/primitives/KeyCap.tsx` (`KeyCap`, `KeyChord`, `KEY_GLYPHS`), `Kbd.tsx`, `KeyHint.tsx`, `KeyHints.tsx` | A glyph cap carries its name as accessible name and tooltip; `Kbd` stays text ([Design system reference](../design/design-system.md)) | `components/primitives/KeyCap.test.tsx` |
 
 The ratchet reasons that `rawNatives.test.ts` and `iconImports.test.ts` accept are in `ratchetReasons.ts`.

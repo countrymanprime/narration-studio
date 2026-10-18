@@ -18,7 +18,7 @@ import (
 // a minute.
 const teleprompterLocateTimeout = 3 * time.Minute
 
-// Locate statuses (TeleprompterLocate's `status`, ADR 0111). Only
+// Locate statuses (TeleprompterLocate's `status`). Only
 // found and low_confidence carry a resume word; every other one says why there is none, so the resume card
 // can offer the right next step. asset_required is modelAssetRequired's own shape.
 const (
@@ -43,7 +43,7 @@ type tailRange struct {
 // teleprompterLocate is TeleprompterLocate's payload. Match is the chapter's track match as ChapterTrackMatch reports
 // it (the picker and the "as of last save" time come from it); Track and RecordedEnd are the track that was read,
 // which is the narrator's pick when they made one; Tail and Located are set once the sidecar ran. LastReading is
-// where the prompter last stopped in the chapter (ADR 0205), and Verdict reconciles it with Located:
+// where the prompter last stopped in the chapter, and Verdict reconciles it with Located:
 // it is set on every status, so a chapter with no track still offers its last reading. DAWSource says where RecordedEnd came from, REAPER's live answer or the saved .rpp, and DAWAt which point
 // of the track it is, the edit cursor or the end of the audio; both are empty when no track was read.
 type teleprompterLocate struct {
@@ -59,9 +59,9 @@ type teleprompterLocate struct {
 	DAWAt       string                     `json:"dawAt,omitempty"`
 }
 
-// TeleprompterLocate finds where to resume reading chapterID from what is already recorded (ADR 0111): the chapter's track (the
+// TeleprompterLocate finds where to resume reading chapterID from what is already recorded: the chapter's track (the
 // matcher's confident track, or trackGUID when the narrator picked one), where on it REAPER is now (the edit cursor on its recorded audio, else the end of that audio,
-// ADR 0349) or, when REAPER cannot say, where its audio ends as of the .rpp's last
+// docs/architecture/manuscript-teleprompter.md#resume-where-reaper-is-and-where-the-prompter-was) or, when REAPER cannot say, where its audio ends as of the .rpp's last
 // save, and the last teleprompter.DefaultTailSeconds before that time transcribed and placed in the
 // chapter by the sidecar. While REAPER records onto the track it answers recording and locates nothing. model is the
 // Whisper model id ("" for the teleprompter's default); like TeleprompterStart it answers asset_required instead of

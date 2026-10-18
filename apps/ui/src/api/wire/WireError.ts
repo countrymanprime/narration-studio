@@ -25,7 +25,7 @@ function formatPath(path: StandardSchemaIssue['path']): string {
 }
 
 /**
- * A payload that crossed into the UI and did not match its schema (ADR 0069). It names the boundary and the payload and
+ * A payload that crossed into the UI and did not match its schema. It names the boundary and the payload and
  * lists the failing paths with the rule each broke. It carries no value from the payload: manuscript text can be in it.
  */
 export class WireError extends Error {

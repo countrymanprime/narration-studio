@@ -5,7 +5,7 @@ import { Highlight } from '../primitives/Highlight';
 // underline). The current-word and skipped swatches copy `ReaderText`'s own styling by hand rather than rendering a
 // real `Highlight kind="Cursor"`/`data-word`, so this legend is never mistaken for the actual current word by a `[data-highlight="Cursor"]` or `[data-word]` query (the
 // reader's own tests and the mock-driven visual states rely on those being unique). The story bible and note swatches are
-// real `Highlight`s (ADR 0016/0017): nothing looks them up as unique.
+// real `Highlight`s: nothing looks them up as unique.
 // `layout="row"` is the inline strip above the text (the standalone page); `"list"` is the read-aloud rail's Key tab.
 export function ReaderKey({ seekable, marks = false, layout = 'row' }: { seekable: boolean; marks?: boolean; layout?: 'row' | 'list' }) {
   const list = layout === 'list';

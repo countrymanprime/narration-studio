@@ -25,7 +25,7 @@ type ConfirmDialogProps = {
   // false: Escape does not decline. For a confirm that has turned into a running download, where declining aborts the
   // download: the header button and Cancel stay as the deliberate ways out.
   escapeCancels?: boolean;
-  // The confirmed action is running (ADR 0075): the confirm button says so and ignores a press, and nothing else in the dialog can be pressed,
+  // The confirmed action is running: the confirm button says so and ignores a press, and nothing else in the dialog can be pressed,
   // so the action cannot be confirmed twice or walked away from half done. The caller closes the dialog when the action ends.
   pending?: boolean;
   children?: ReactNode;
@@ -33,7 +33,7 @@ type ConfirmDialogProps = {
   SecondaryAction;
 
 // Every confirm interrupts and needs an answer, so it is an alertdialog: Escape and Cancel decline, a press on the
-// backdrop does nothing (ADR 0048).
+// backdrop does nothing.
 export function ConfirmDialog({
   title,
   body,

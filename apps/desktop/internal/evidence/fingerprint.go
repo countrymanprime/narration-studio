@@ -10,7 +10,7 @@ import (
 )
 
 // This file holds the played range, the analysis key and the item/track
-// fingerprints, over a canonical encoding (ADR 0100). It builds on
+// fingerprints, over a canonical encoding. It builds on
 // tracks.Item/tracks.Take and SourceIdentity (identity.go). It writes nothing
 // and reads no file itself; every input here is already in memory.
 
@@ -79,7 +79,7 @@ func ComputeAnalysisKey(identity SourceIdentity, played PlayedRange, playRate fl
 }
 
 // ItemFingerprint identifies what an item is on the timeline right now: its
-// AnalysisKey plus the fields ADR 0100 puts in scope - GUID, position, length, mute and active-take index.
+// AnalysisKey plus the fields apps/desktop/internal/evidence/fingerprint.go puts in scope - GUID, position, length, mute and active-take index.
 // Item volume, fades and FX-chain presence are recorded as evidence
 // elsewhere (tracks.Take.HasFXChain, tracks.Take.StretchMarkerCount) but
 // deliberately excluded here: analyses read source audio, so a

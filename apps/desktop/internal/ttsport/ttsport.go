@@ -1,4 +1,4 @@
-// Package ttsport is the text to speech port on the Go side (ADR 0301): which voice engines the host can hand the guide sidecar, on
+// Package ttsport is the text to speech port on the Go side: which voice engines the host can hand the guide sidecar, on
 // which platforms, and which asset kind their voices install from. The engines themselves run in Python (narration_common.ports.tts);
 // a row here is what the host knows about one without starting it. The Piper.tts_provider setting's choices come from the registry,
 // and call sites ask it by the name the setting stores rather than comparing names. The ttsporttest suite runs over every row.

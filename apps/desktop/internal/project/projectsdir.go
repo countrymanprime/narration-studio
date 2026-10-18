@@ -17,7 +17,7 @@ const DefaultDirName = "NarrationUtils"
 // with a hardcoded map), and a computed, per-machine home directory cannot be
 // a literal there.
 //
-// It prefers %USERPROFILE% (Windows first, ADR 0030), then $HOME, then falls
+// It prefers %USERPROFILE% (Windows first), then $HOME, then falls
 // back to os.UserHomeDir for any platform where neither is set. When none of
 // those resolve a home directory - a sandboxed environment, a broken profile,
 // a OneDrive-redirected home that failed to mount - it returns an error

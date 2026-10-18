@@ -1,4 +1,4 @@
-// The words of the recording check (docs/utilities/recording-coverage.md, ADR 0130): every reason the host can give
+// The words of the recording check (docs/utilities/recording-coverage.md): every reason the host can give
 // for a check it refused or a result it cannot trust, in the narrator's terms, and the sentences a stored report is read
 // out as. Pure functions, so the dialog only lays them out.
 import type {
@@ -65,10 +65,10 @@ export const REASON_PAGE: Partial<Record<CoverageReason, { path: string; label: 
   credits_not_set_up: { path: '/settings', label: 'Open Settings' },
 };
 
-// The row labels the credits-in-chapter-table board and Manuscript's CreditsEntry both show (ADR 0150).
+// The row labels the credits-in-chapter-table board and Manuscript's CreditsEntry both show.
 const CREDITS_CHECK_TITLE: Record<CreditsKind, string> = { opening: 'Opening credits', closing: 'Closing credits' };
 
-/** The `credits-<kind>` id a credits row's check runs and reads under (ADR 0150, ADR 0333), matching the host's
+/** The `credits-<kind>` id a credits row's check runs and reads under, matching the host's
  * `coverage.CreditsChapterID`. */
 const creditsCheckId = (kind: CreditsKind): string => `credits-${kind}`;
 
@@ -82,10 +82,10 @@ export function creditsCheckKind(chapterId: string): CreditsKind | undefined {
 }
 
 /**
- * The synthetic `ManuscriptChapter` a credits row's Check button opens `RecordingCheck` with (ADR 0333): `RecordingCheck` treats `chapter.id` as an opaque key for every host call, so this
+ * The synthetic `ManuscriptChapter` a credits row's Check button opens `RecordingCheck` with: `RecordingCheck` treats `chapter.id` as an opaque key for every host call, so this
  * needs nothing beyond a title and the one paragraph id the host's synthetic check manuscript gives the credits kind
  * (`coverage.creditsParagraphID`, `"<chapterId>-p0"`), so a reported gap numbers as "paragraph 1" the same way a real
- * chapter's first paragraph would. Never inserted into the real chapters array (ADR 0150: credits are not manuscript
+ * chapter's first paragraph would. Never inserted into the real chapters array (docs/architecture/manuscript-teleprompter.md: credits are not manuscript
  * chapters) - it exists only for the seconds this dialog is open.
  */
 export function creditsCheckChapter(kind: CreditsKind, status: ChapterStatus): ManuscriptChapter {
@@ -113,13 +113,13 @@ export function formatAudioTime(seconds: number): string {
 }
 
 /**
- * The report's headline. With a judgement (ADR 0204) it leads with the host's
+ * The report's headline. With a judgement it leads with the host's
  * pass/fail, the same rule the stage signal uses, so the dialog and the stage engine never disagree: a passing
  * chapter reads "Passes the check" with the judgement's own reason as a plain detail line below it; a failing one
  * folds the reason (the gap that fails first) straight into the headline itself - "Not complete: paragraph 14: 9
  * words not read." - as the approved mockups show it (`01-slideover-not-complete.webp`,
  * `02-slideover-passes.webp`), with no separate detail line. Without a judgement - an older stored result, or a
- * result missing entirely - it falls back to the plain word count ADR 0130 originally specified.
+ * result missing entirely - it falls back to the plain word count docs/guides/using-the-app/production.md#checking-a-chapters-recording originally specified.
  */
 export function verdict(report: CoverageReport, judgement?: CoverageJudgement): { complete: boolean; headline: string; detail: string } {
   if (judgement) {

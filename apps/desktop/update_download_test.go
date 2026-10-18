@@ -308,7 +308,7 @@ func TestAnUnknownJobIsAnErrorAndClosingTheAppCancelsTheDownload(t *testing.T) {
 	}
 }
 
-// The payloads the download bindings send (ADR 0069).
+// The payloads the download bindings send.
 func TestContractUpdateJob(t *testing.T) {
 	pin := func(name string, job map[string]any) { contractfile.Check(t, name, job) }
 	pin("update-job-downloading", snapshotUpdateJob(&updateJob{id: "update-1", version: "0.2.7", phase: updatePhaseDownloading, message: "Downloading Narration Studio 0.2.7…", done: 104857600, total: 209715200}))

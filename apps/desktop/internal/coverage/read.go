@@ -7,7 +7,7 @@ import (
 
 // Result reads the chapter's newest complete coverage run back and says
 // whether it is current: the saved project's items unchanged (EL's evaluator,
-// ADR 0100), the same confirmed track, the same alignment parameters and
+// apps/desktop/internal/evidence/fingerprint.go), the same confirmed track, the same alignment parameters and
 // project inputs (the parameter hash, which leaves model and language out,
 // Q13), and the same manuscript text. It never runs anything. A chapter that
 // cannot be evaluated at all (no manuscript, unmapped, no saved project) is a
@@ -76,7 +76,12 @@ func (s *Service) latestRecord(chapterID string) (*evidence.LedgerRecord, error)
 func (s *Service) Checking(chapterID string) bool {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	return s.busy && s.state.Phase == PhaseRunning && s.state.ChapterID == chapterID
+	for _, running := range s.jobs {
+		if running.basis.ChapterID == chapterID && running.state.Phase == PhaseRunning {
+			return true
+		}
+	}
+	return false
 }
 
 // RecordedFractions is the measured ManuscriptChapter.recordedFraction (D11):

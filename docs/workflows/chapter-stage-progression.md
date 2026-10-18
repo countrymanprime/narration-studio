@@ -49,7 +49,7 @@ from evidence it already holds, one rule per advance:
 
 ---
 
-See [the signal contract](../architecture/stage-recommendations.md), [ADR 0160](../adr/0160-stage-recommendations-are-computed-from-tri-state-signals-by-a-pure-engine.md) and
-[ADR 0161](../adr/0161-stage-decisions-live-in-their-own-sidecar-and-confirm-writes-the-record-before-the-status.md).
+See [the signal contract](../architecture/stage-recommendations.md), [The engine](../architecture/stage-recommendations.md#the-engine) and
+[The narrator's decisions](../architecture/stage-recommendations.md#the-narrators-decisions).
 The end-to-end verdict is validated against synthetic and public-domain material only so far; see
-[ADR 0364](../adr/0364-the-end-to-end-corpus-validation-is-synthetic-and-provisional-until-a-permissioned-project-re-runs-it.md).
+[Editing and proofing: a synthetic signal-level corpus, provisional](../research/editing-and-proofing-corpus.md).

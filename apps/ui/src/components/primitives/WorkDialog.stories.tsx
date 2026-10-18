@@ -84,7 +84,7 @@ export const RunningWithoutCancel: Story = {
   },
 };
 
-// A job the caller lets keep running (the Story Bible rebuild, ADR 0076): the notice says the window can be closed and a message
+// A job the caller lets keep running (the Story Bible rebuild): the notice says the window can be closed and a message
 // will arrive, and Continue in background (and Escape) dismisses the dialog without stopping the job.
 export const RunningInBackground: Story = {
   args: { title: 'Rebuild Story Bible', cancel: undefined, background: fn() },
@@ -118,7 +118,7 @@ export const Cancelled: Story = {
   args: { job: { ...runningJob, phase: 'cancelled', message: 'Import cancelled', elapsed: 14 } },
 };
 
-// ADR 0001: long unbroken tokens in the message and log lines must wrap, and many log lines scroll inside the log box.
+// docs/design/design-system.md#primitive-components: long unbroken tokens in the message and log lines must wrap, and many log lines scroll inside the log box.
 export const LongLogs: Story = {
   args: {
     job: {

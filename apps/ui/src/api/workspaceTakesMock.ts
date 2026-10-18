@@ -1,4 +1,4 @@
-// The browser mock's Takes panel (ADR 0700), answering the way
+// The browser mock's Takes panel, answering the way
 // apps/desktop/bindings_workspace_takes.go and internal/passagetakes do: the passage snaps out to whole paragraphs, the
 // item it was heard on has other takes, its line has another retake on a fixed lane, and a take-review group set a
 // read from another item beside it (one candidate from each source, in the shape

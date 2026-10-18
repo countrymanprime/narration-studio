@@ -29,7 +29,7 @@ type Subscription struct {
 	Handle func(Event)
 	// Invalid, when set, receives an event of a tag this consumer handles that failed the table in wire.go (too few fields, or a number
 	// that is not a number), with the reason. The event is never given to Handle. It is called like Handle, and only for a run the
-	// consumer owns, so it can tell the narrator that REAPER's script and this app disagree (ADR 0069).
+	// consumer owns, so it can tell the narrator that REAPER's script and this app disagree.
 	Invalid func(Event, error)
 }
 

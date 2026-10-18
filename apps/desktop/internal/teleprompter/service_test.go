@@ -249,7 +249,7 @@ func scriptOptions() map[string]string {
 
 var closingCredits = Script{ID: "credits-closing", Title: "Closing credits", Text: "You have been listening to Alice.\nThe End."}
 
-// The credits (ADR 0150) are not a manuscript chapter: the host hands the
+// The credits are not a manuscript chapter: the host hands the
 // sidecar the text it rendered as a --script file named with --script-id/--script-title, and no --manuscript/--chapter.
 func TestStartScriptLaunchesTheSidecarOnAScriptFileHoldingTheText(t *testing.T) {
 	f := newFixture(t, "stream")
@@ -591,7 +591,7 @@ func TestStartRejectsIncompleteOrUnsupportedRequestsWithoutLaunchingAnything(t *
 	}
 }
 
-// Moonshine ships only in the Windows sidecar (ADR 0107): elsewhere the host refuses it before launching anything.
+// Moonshine ships only in the Windows sidecar: elsewhere the host refuses it before launching anything.
 func TestStartRefusesMoonshineWhereTheSidecarDoesNotShipIt(t *testing.T) {
 	f := newFixtureOn(t, "stream", "linux")
 	options := validOptions()

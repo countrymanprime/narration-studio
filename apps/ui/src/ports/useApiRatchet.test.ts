@@ -4,7 +4,7 @@ import { join, relative, sep } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { unexplained } from '../ratchetReasons';
 
-// ADR 0770: a feature declares the one port it uses with `usePort`, not the whole `NarrationApi` facade with `useApi()`.
+// docs/architecture/ui-state-and-journal.md#the-store-host-reads-cached: a feature declares the one port it uses with `usePort`, not the whole `NarrationApi` facade with `useApi()`.
 // This scan counts, per source file outside `src/api/` and `src/ports/` (tests and stories excluded), how many times it
 // calls `useApi()`. A count may only fall: a file with no entry, or a count above its entry, fails; an entry above the real
 // count fails too, so it is lowered (or deleted at zero) in the same change as the move to `usePort`.

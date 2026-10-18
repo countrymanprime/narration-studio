@@ -1,7 +1,7 @@
 // build.go builds the compact word -> {ipa, audio} pronunciation index this package installs: one pass over the
 // unpacked Wiktextract release's JSON Lines files, keeping only a single-word headword's first IPA transcription and
 // first Wikimedia Commons audio file name (docs/research/wiktextract-pronunciation-source.md). A multi-word headword is
-// skipped, the same "single-word lookups only" rule internal/dictionary's own WordNet index already follows (ADR 0097).
+// skipped, the same "single-word lookups only" rule internal/dictionary's own WordNet index already follows.
 package wiktextract
 
 import (

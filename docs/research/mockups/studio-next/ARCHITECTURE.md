@@ -166,7 +166,7 @@ src/providers/alignment.ts What the recording sounds like, word by word (data fi
                           hand scroll), requestDelete/deleteWords (backup first where the DAW changes the audio, DAW first, then one act() entry: cut record, take shortened, later takes/findings/effects
                           shifted by commands/stacking.ts shiftAfter, struck words kept), restoreCut (undoes that entry), fxPlanFor/requestFx/applyWordFx/removeWordFx (data.wordFx; one undo step; coverage
                           cap warning), acceptWords (data.accepted), markWords/markForPickup. Schemas: EditCut, WordFx (additive, stable ids), data.cuts / data.wordFx / data.accepted. This is the
-                          owner-approved exception to ADR 0234 (FX on a selected range of words): never auto-applied, always confirmed, shown as an underline and an FX marker with a way to remove.
+                          owner-approved exception to `docs/architecture/reaper-bridge.md#the-workspaces-take-and-fx-actions-narration_workspacelua` (FX on a selected range of words): never auto-applied, always confirmed, shown as an underline and an FX marker with a way to remove.
 src/ui/primitives/        Form controls on Base UI + Tailwind: Checkbox, Radio(Group), Input, Textarea, Select, Slider, NumberInput, FieldRow
                           (import from '@/ui/primitives'). NEVER write a raw <input>/<select>/<textarea>: tests/no-raw-controls.test.ts fails
                           (only `native-control-ok: <why>` on the line allows one, e.g. the hidden file input). Select is a button + popup

@@ -1,5 +1,5 @@
 // Character regions and reference approvals over apps/desktop/internal/character. The acoustic-drift bindings are benched
-// (ADR 0431), so none is here.
+// so none is here.
 
 /** The reserved character id for plain narration as a first-class reference subject, matching
  * apps/desktop/internal/character.NarrationCharacterID. */

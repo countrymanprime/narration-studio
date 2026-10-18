@@ -1,4 +1,4 @@
-// The chapter the chapter pages open on. The app has no app-wide chapter store, so Master & QC shares the one Proof remembers (ADR 0750):
+// The chapter the chapter pages open on. The app has no app-wide chapter store, so Master & QC shares the one Proof remembers:
 // a per-viewer convenience in browser storage under Proof's own key, never a host field. Storage can be missing, full or blocked, so every
 // access is guarded and a failed write only means the choice lasts for this visit.
 const key = (projectFolder: string): string => `narration.proof.lastChapter.${projectFolder}`;

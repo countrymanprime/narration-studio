@@ -114,7 +114,7 @@ func TestMasterPlayQuietestAndOpenInDawRefuseAFileNotInTheLastRun(t *testing.T) 
 	}
 }
 
-// A file of the run with no quietest window (digital silence) or not measured says so; no time is invented (ADR 0015).
+// A file of the run with no quietest window (digital silence) or not measured says so; no time is invented.
 func TestMasterPlayQuietestRefusesAFileWithNoQuietestWindow(t *testing.T) {
 	role := &fakeFiles{}
 	host, path := filesHost(t, "REAPER", liveReachability(), role, "on")

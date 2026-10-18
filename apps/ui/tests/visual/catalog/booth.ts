@@ -118,7 +118,7 @@ export const boothStates: StateEntry[] = [
     page: 'booth',
     state: 'leave-dialog',
     description:
-      'Booth, Escape pressed during a take: the "Stop recording?" question ("REAPER is recording. Leaving the Booth stops it."), with Keep recording (the mock\'s name for staying) and Stop and leave; the take is held while it is open, so the pill reads REC PAUSED (ADR 0790)',
+      'Booth, Escape pressed during a take: the "Stop recording?" question ("REAPER is recording. Leaving the Booth stops it."), with Keep recording (the mock\'s name for staying) and Stop and leave; the take is held while it is open, so the pill reads REC PAUSED',
     ...FREEZES_THE_CLOCK,
     ...REFLOW,
   },
@@ -141,7 +141,7 @@ export const boothStates: StateEntry[] = [
     page: 'booth',
     state: 'levels-menu',
     description:
-      'Booth, the footer\'s Levels menu open: the input level and the microphone the DAW records from, named, with "Chosen in REAPER" (TeleprompterReaperInput, ADR 0250)',
+      'Booth, the footer\'s Levels menu open: the input level and the microphone the DAW records from, named, with "Chosen in REAPER" (TeleprompterReaperInput)',
     ...REFLOW,
   },
   {
@@ -183,14 +183,14 @@ export const boothStates: StateEntry[] = [
     page: 'booth',
     state: 'dark',
     description:
-      'Booth (as setup) with Dark selected in Settings > Appearance - the Booth follows the app theme (ADR 0365), so this differs from setup only in the palette',
+      'Booth (as setup) with Dark selected in Settings > Appearance - the Booth follows the app theme, so this differs from setup only in the palette',
     ...REFLOW,
   },
   {
     page: 'booth',
     state: 'companion-default',
     description:
-      'The Companion (/companion, opened from the jump menu\'s Open Companion; frozen as built, DQ-13): the same session in CompactShell, the whole window (the host narrows it to 380 px and pins it beside the DAW, ADR 0401; also captured at that companion width) - the Companion heading with REAPER\'s playhead badge ("Playhead stopped") and Full app, then the Script (chapter title, Play Kbd-labelled Space, Stop reading, the resume prompt and the text in its own scroll box), the Pickups section, the Hotkeys that work while this window has focus, and the reserved Note at playhead and This chapter sections ("Coming soon")',
+      'The Companion (/companion, opened from the jump menu\'s Open Companion; frozen as built, DQ-13): the same session in CompactShell, the whole window (the host narrows it to 380 px and pins it beside the DAW, apps/desktop/bindings_companion.go; also captured at that companion width) - the Companion heading with REAPER\'s playhead badge ("Playhead stopped") and Full app, then the Script (chapter title, Play Kbd-labelled Space, Stop reading, the resume prompt and the text in its own scroll box), the Pickups section, the Hotkeys that work while this window has focus, and the reserved Note at playhead and This chapter sections ("Coming soon")',
     ...COMPANION,
   },
   {

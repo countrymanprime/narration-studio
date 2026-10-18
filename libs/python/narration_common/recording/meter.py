@@ -1,4 +1,4 @@
-"""Input level metering at any sample rate (ADR 0357).
+"""Input level metering at any sample rate.
 
 The same event the Booth's Read Aloud meter already reads (``sidecars/manuscript-teleprompter/core/levels.py``), measured
 on the recorder's own native-rate frames instead of the recognizer's 16 kHz chunks:

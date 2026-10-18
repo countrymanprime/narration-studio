@@ -24,7 +24,7 @@ func TestConformance(t *testing.T) {
 	dawporttest.Run(t, func(tb testing.TB) dawport.Adapter { return closedAdapter(tb) })
 }
 
-// Exactly what is built is Experimental (ADR 0355): navigate, markers, macro_render, backups (ADR 0863) and the seven rows that need
+// Exactly what is built is Experimental: navigate, markers, macro_render, backups and the seven rows that need
 // backups (their role is the steps, steps.go). Everything else is NotYetAvailable with no role, until
 // the owner's pass promotes a capability or a later phase builds one.
 func TestTheDeclarationIsWhatIsBuilt(t *testing.T) {
@@ -167,7 +167,7 @@ func TestBackupsDecideWhatAudacityCanDo(t *testing.T) {
 
 // The seven capabilities that need backups share the steps role. Over an adapter with no project folder, so no backup can be made,
 // a cut, an effect, a stack, an un-stack, lowered stretches and repaired clicks refuse with the capability's sentence; a roll still reaches for the pipe (here closed),
-// since a roll without backups is the destructive one the page confirmed; and what is not built for Audacity keeps ADR 0144's
+// since a roll without backups is the destructive one the page confirmed; and what is not built for Audacity keeps docs/architecture/daw-integration.md#audacity-boundary's
 // sentence.
 func TestTheRolesThatNeedBackupsAreTheSteps(t *testing.T) {
 	adapter := closedAdapter(t)
@@ -230,8 +230,8 @@ func resolverFor(adapter dawport.Adapter, rt dawport.Runtime, toggle dawport.Tog
 	})
 }
 
-// What is not built still refuses with ADR 0144's sentence, whatever the runtime and settings say.
-func TestWhatIsNotBuiltKeepsADR0144sSentence(t *testing.T) {
+// What is not built still refuses with docs/architecture/daw-integration.md#audacity-boundary's sentence, whatever the runtime and settings say.
+func TestWhatIsNotBuiltKeepsTheNotYetSentence(t *testing.T) {
 	for _, adapter := range []dawport.Adapter{closedAdapter(t), Declaration()} {
 		for _, rt := range []dawport.Runtime{{}, {Bridge: true}, {Bridge: true, Reachable: true}} {
 			resolver := resolverFor(adapter, rt, dawport.ToggleOn)
@@ -246,7 +246,7 @@ func TestWhatIsNotBuiltKeepsADR0144sSentence(t *testing.T) {
 					continue
 				}
 				if s.Available || s.Reason != dawport.ReasonNotYet || s.Message != string(ErrNotAvailable) {
-					t.Errorf("%T %+v: %s = %+v, want not_yet with ADR 0144's sentence", adapter, rt, c, s)
+					t.Errorf("%T %+v: %s = %+v, want not_yet with docs/architecture/daw-integration.md#audacity-boundary's sentence", adapter, rt, c, s)
 				}
 			}
 			_, err := dawport.Role[dawport.ReviewSession](resolver, dawport.CapReview)
@@ -307,7 +307,7 @@ func TestTheFactoryIsRegisteredForAudacity(t *testing.T) {
 	if !ok {
 		t.Fatal("no factory registered for Audacity")
 	}
-	// An Audacity launch never opens REAPER's session directory, even when one is passed (ADR 0144).
+	// An Audacity launch never opens REAPER's session directory, even when one is passed.
 	adapter, err := factory(dawport.Env{SessionDir: t.TempDir()})
 	if err != nil {
 		t.Fatalf("factory: %v", err)

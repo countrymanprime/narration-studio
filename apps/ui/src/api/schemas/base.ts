@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-// Helpers shared by the per-domain schema files (ADR 0069). Schemas describe what the host really sends, and the host
+// Helpers shared by the per-domain schema files. Schemas describe what the host really sends, and the host
 // (Go) sends `null` for an unset value where the TypeScript contracts say `?:`. That mismatch is closed here, in one
 // place, and not by hand in each consumer.
 

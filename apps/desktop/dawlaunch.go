@@ -10,10 +10,10 @@ import (
 
 // DawLaunch starts REAPER on the current project's linked DAW file: it resolves
 // reaper.exe (a Settings override always wins, otherwise auto-detect -
-// daw.Resolve / daw.LocateReaperExecutable, ADR 0092), and passes the linked
+// daw.Resolve / daw.LocateReaperExecutable), and passes the linked
 // .rpp, plus, when the DAW.auto_start_launcher setting is on (default off), the
 // launcher script too - the exact `reaper.exe "<project.rpp>" "<script.lua>"`
-// form spike S6 confirmed REAPER runs automatically at startup (ADR 0092), so
+// form spike S6 confirmed REAPER runs automatically at startup, so
 // the bridge is live without the narrator running the action by hand. The
 // launch is detached (daw.Launch): never through the sidecar supervisor's
 // kill-on-close job object (internal/process/job_windows.go), so REAPER

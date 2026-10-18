@@ -56,7 +56,7 @@ function decodePreview(audioBase64: string, fail: (message: string) => void): Ui
 export function usePreviewAudio({ resetKey, requestPreview, onAssetRequired, notify }: PreviewAudioOptions) {
   const [playingPreview, setPlayingPreview] = useState<string>();
   // The preview the host is still rendering (a Python process that loads a voice, so it takes a while). One at a time: pressing play
-  // again while it renders does nothing, and the button says it is working (ADR 0075).
+  // again while it renders does nothing, and the button says it is working.
   const [loadingPreview, setLoadingPreview] = useState<string>();
   const loadingRef = useRef<string | undefined>(undefined);
   const audioRef = useRef<HTMLAudioElement | undefined>(undefined);

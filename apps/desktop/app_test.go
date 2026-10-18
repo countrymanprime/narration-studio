@@ -704,7 +704,7 @@ func TestPollWorkJobKeepsTheLastGoodProgressWhenALineIsMalformedAndReportsItOnce
 }
 
 // The settings store configureLocked builds for a project is the one the narrator's settings are read through, so it must carry the
-// reporter: a corrupt settings file is kept and the narrator told (ADR 0069), not lost in silence.
+// reporter: a corrupt settings file is kept and the narrator told, not lost in silence.
 func TestTheProjectSettingsStoreReportsACorruptFileToTheNarrator(t *testing.T) {
 	appData := t.TempDir()
 	t.Setenv("APPDATA", appData)
@@ -757,7 +757,7 @@ func TestAReaperTakeTheAppStartedBlocksAProjectSwitch(t *testing.T) {
 
 func TestATakeTheAppDidNotStartDoesNotBlockAProjectSwitch(t *testing.T) {
 	host := NewHost()
-	// REAPER recording on its own leaves readAloudRecordingChapter empty: the app holds no handle to stop it (ADR 0232).
+	// REAPER recording on its own leaves readAloudRecordingChapter empty: the app holds no handle to stop it.
 	if !host.canAttach() {
 		t.Fatal("a take the app did not start must not block a project switch")
 	}

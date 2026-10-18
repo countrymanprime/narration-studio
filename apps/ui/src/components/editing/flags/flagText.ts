@@ -17,7 +17,7 @@ export const HEAR_MARGIN = 0.3;
 /** A word without its leading and trailing punctuation, for a sentence that quotes it. */
 export const bare = (t: string): string => t.replace(/[,.;:!?”“]+$/g, '').replace(/^[“‘]+/g, '');
 
-/** What the card says when the recogniser gave no score (ADR 0855). */
+/** What the card says when the recogniser gave no score. */
 export function notScoredText(reason: string | undefined): string {
   return reason === 'no_word_scores' || reason === undefined ? 'Not scored: the recogniser gives no word scores yet.' : `Not scored: ${reason}`;
 }

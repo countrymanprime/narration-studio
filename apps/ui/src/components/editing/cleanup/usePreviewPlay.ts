@@ -23,7 +23,7 @@ export interface PreviewPlay {
   reason: string | null;
   start: (rows: readonly CleanupRow[], total: number) => void;
   stop: () => void;
-  /** Escape stops a preview in progress. Put it on the element that holds focus after Preview (ADR 0361 keeps keydown listeners in `src/input/`). */
+  /** Escape stops a preview in progress. Put it on the element that holds focus after Preview (docs/architecture/studio-shell-and-registries.md keeps keydown listeners in `src/input/`). */
   onKeyDown: (event: KeyboardEvent) => void;
 }
 

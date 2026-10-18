@@ -1,6 +1,6 @@
 """Writes THIRD-PARTY-NOTICES.txt: every third-party component the Windows release ships, its licence and its licence text.
 
-See docs/architecture/model-provenance.md and docs/operations/ci-and-releases.md#third-party-notices (ADR 0085).
+See docs/architecture/model-provenance.md and docs/operations/ci-and-releases.md#third-party-notices.
 
     python scripts/licenses/notices.py --version 0.1.0 --out THIRD-PARTY-NOTICES.txt
 
@@ -519,8 +519,8 @@ def render_report(
             out.append(
                 f"  - {item.get('provider', '')}/{item.get('id', '')} {item.get('version', '')}: {item.get('license', '')} ({item.get('publisher', '')}); {item.get('licenseUrl', '')}\n"
             )
-            # An attribution licence (CC BY: the dictionary, ADR 0097) requires the credit wherever the data is used, so it is written out; the
-            # encoder's says where the GPL build's source is (ADR 0342).
+            # An attribution licence (CC BY: the dictionary) requires the credit wherever the data is used, so it is written out; the
+            # encoder's says where the GPL build's source is.
             if item.get("attribution"):
                 out.append(f"    Attribution: {item['attribution']}\n")
     else:

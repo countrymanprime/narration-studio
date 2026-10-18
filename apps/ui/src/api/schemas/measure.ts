@@ -98,7 +98,7 @@ export const measureJobSchema = z.object({
 export const measurePickResultSchema = z.object({ paths: listFromNull(z.string()) }) satisfies z.ZodType<MeasurePickResult>;
 
 /**
- * The evidence of the host's delivery_qc finding (deliveryprofile.EvaluateFile, ADR 0179): the rule and profile, the metric,
+ * The evidence of the host's delivery_qc finding (deliveryprofile.EvaluateFile): the rule and profile, the metric,
  * and how and against which bound it missed; on the Review page also what the rule is (below).
  */
 export const deliveryQcEvidenceSchema = z.object({

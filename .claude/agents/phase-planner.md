@@ -18,7 +18,7 @@ A PRD path and the phase numbers, or a stream id. If the PRD has no phase table,
 3. **Lane and model.** Assign from the Lanes table by the files the phase owns, with the table's model guidance. A refactor of a shared file is lane X and runs alone.
 4. **Files and collisions.** List the files from the slice issue's `owns`, or from the PRD's Parallel-session table for an older PRD that has one. Compare them file by file with the streams running on #509 and with open PRs (`gh pr list`); two streams may share a lane only when the files are disjoint. Name every collision and the stream it is with.
 5. **Serial points.** State which apply: `hostAPIVersion` (main's value plus one), the next free ADR number (checked again at merge), append-only rows, the app shell navigation, workflows, the token batch, hot UI files.
-6. **Principles and decisions.** Use `decision-index` for the topics the phase touches and list the Accepted ADRs it must respect and any it would supersede; use `design-principles` and note the principles at risk.
+6. **Principles and decisions.** List the ADRs in `docs/adr/` the phase must respect (a phase that would supersede one is not a phase, it is a conversation with the owner); use `design-principles` and note the principles at risk.
 7. **Intent.** Draft the acceptance criteria and non-goals per `intent-check` pass 1 from the PRD, and list the open questions with the PRD's recommendation.
 8. **Output**, in this order and no longer than needed:
    - Ready / blocked, with the reason per phase.

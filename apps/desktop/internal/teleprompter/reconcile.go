@@ -1,7 +1,7 @@
 package teleprompter
 
 // ResumeTolerance is how many script words apart the DAW word and the prompter's last word may be and still agree
-// (within ten words, or in the same sentence). Locate is accurate to about two words (ADR 0111), the tracker's
+// (within ten words, or in the same sentence). Locate is accurate to about two words, the tracker's
 // last `read` lags speech by about one confirmed word, and a narrator often reads a few words past where the
 // recording stopped.
 const ResumeTolerance = 10
@@ -29,7 +29,7 @@ const (
 const ConfirmedByPrompter = "prompter"
 
 // DAWSourceSaved is a DAW place read from the saved .rpp ("as of the project's last save"); DAWSourceLive is one read from
-// REAPER's live answer ("in REAPER now", ADR 0349), which the host sets on the place Reconcile returns.
+// REAPER's live answer ("in REAPER now"), which the host sets on the place Reconcile returns.
 const (
 	DAWSourceSaved = "saved"
 	DAWSourceLive  = "live"
@@ -58,8 +58,8 @@ type ResumeVerdict struct {
 	Tokens      int          `json:"tokens"`
 }
 
-// Reconcile compares where the recording ends (daw, the tail locate over the saved project, ADR 0111) with where the
-// prompter last was (prompter, ADR 0205) in script. A source whose token count is not script's is ignored rather
+// Reconcile compares where the recording ends (daw, the tail locate over the saved project) with where the
+// prompter last was (prompter) in script. A source whose token count is not script's is ignored rather
 // than compared across two tokenisations. The DAW word wins when they agree: the recording is the truth, and
 // the prompter may have read on without recording. A low-confidence DAW word never agrees by itself; within the
 // tolerance of the prompter's word it agrees, confirmed by the prompter.

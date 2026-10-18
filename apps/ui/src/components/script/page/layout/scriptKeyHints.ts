@@ -1,4 +1,4 @@
-// The key hints under the Script reader: the mock's `Legend.tsx`, drawn by the shared footer (`KeyHints`, ADR 0761) from the narrator's
+// The key hints under the Script reader: the mock's `Legend.tsx`, drawn by the shared footer (`KeyHints`) from the narrator's
 // keymap, so a rebound key shows its new gesture and a command with no gesture leaves its hint out.
 
 import type { CommandId } from '../../../../input/commands.catalog';

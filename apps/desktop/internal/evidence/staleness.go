@@ -1,4 +1,4 @@
-// This file holds the staleness evaluator (ADR 0100). Given a chapter's current
+// This file holds the staleness evaluator. Given a chapter's current
 // fingerprints (from a saved .rpp parse) and the ledger's latest complete
 // record for that (analyzer, chapter), it answers whether the result is
 // current: a complete chapter-level record whose fingerprints equal the

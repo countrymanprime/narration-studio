@@ -23,7 +23,7 @@ func onlyCommand(t *testing.T, session string) string {
 	return string(bytes)
 }
 
-// The review session is a behaviour-preserving extraction (ADR 0143): every review operation must put the exact line on the
+// The review session is a behaviour-preserving extraction: every review operation must put the exact line on the
 // bridge that transcript.Service sent before the extraction (the Lua harness in integrations/reaper/tests pins what REAPER does
 // with it).
 func TestReviewSendsTheExactBridgeCommandForEachOperation(t *testing.T) {

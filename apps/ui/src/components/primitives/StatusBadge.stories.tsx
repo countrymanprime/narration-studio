@@ -2,7 +2,7 @@ import type { Decorator, Meta, StoryObj } from '@storybook/react-vite';
 import { expect, fn, userEvent, within } from 'storybook/test';
 import { Dot as BareDot, StatusBadge, type StatusTone } from './StatusBadge';
 
-// A badge's fill is a tint of its tone (paletteContrast.test.ts checks it against surface, ADR 0362), the same
+// A badge's fill is a tint of its tone (paletteContrast.test.ts checks it against surface), the same
 // backdrop every real caller gives it (EntitySummary's badges, the benchmark mocks): a card, a table cell, a panel -
 // never the bare page background the atlas's own decorator otherwise renders a story on.
 const onSurface: Decorator = (Story) => (
@@ -29,7 +29,7 @@ export const Success: Story = { args: { tone: 'success', label: 'PASS' } };
 export const Warning: Story = { args: { tone: 'warning', label: '3 open' } };
 export const Danger: Story = { args: { tone: 'danger', label: 'FLOOR' } };
 export const Experimental: Story = { args: { tone: 'experimental', label: 'Experimental' } };
-// The two tones the benchmark mocks add (ADR 0600): the accent (a proofer, a query, "Author ✓") and org (PACING).
+// The two tones the benchmark mocks add: the accent (a proofer, a query, "Author ✓") and org (PACING).
 export const Accent: Story = { args: { tone: 'accent', label: 'Author ✓' } };
 export const Org: Story = { args: { tone: 'org', label: 'Pacing', shape: 'tag' } };
 
@@ -53,8 +53,8 @@ export const EveryShapeAndLook: Story = {
   ),
 };
 
-// The measured spec (ADR 0600): a pill is 22 px tall and fully
-// rounded, a tag 16 px on the 3 px tag radius, the Booth's tag 26 px, the Production board's cell 58×20 (ADR 0645). Measured
+// The measured spec: a pill is 22 px tall and fully
+// rounded, a tag 16 px on the 3 px tag radius, the Booth's tag 26 px, the Production board's cell 58×20. Measured
 // at the default root size.
 export const MeasuredShapes: Story = {
   render: () => (

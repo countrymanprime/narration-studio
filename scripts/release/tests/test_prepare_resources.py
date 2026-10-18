@@ -183,7 +183,7 @@ def test_the_guide_freeze_carries_piper_data_and_the_cmu_dictionary(script, monk
 
 def test_the_guide_freeze_excludes_the_optional_tools_it_loads_from_their_install_folder(script, monkeypatch):
     # GLiNER, BookNLP, transformers and torch are optional downloads the guide imports from the asset registry's install folder
-    # (ADR 0848). Its import is a plain one PyInstaller follows, so a build machine that has them would ship about 5 GB.
+    # Its import is a plain one PyInstaller follows, so a build machine that has them would ship about 5 GB.
     fake = FakePyInstaller()
     install(monkeypatch, script, fake)
 

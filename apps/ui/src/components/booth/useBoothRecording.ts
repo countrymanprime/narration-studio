@@ -3,7 +3,7 @@ import { useApi } from '../../api/ApiContext';
 
 /**
  * Whether the Booth is showing *and* the DAW reports recording: the
- * toast dispatcher's guard for the no-sound, no-notification rule (ADR 0075/0076). `boothShowing` is App.tsx's own
+ * toast dispatcher's guard for the no-sound, no-notification rule. `boothShowing` is App.tsx's own
  * reading of the route (the Booth is a page, so the route says
  * whether it shows). Reactive, unlike `useDawRecording`, which reads its own
  * transport subscription into a ref for a gesture-time check only - this hook's caller needs to notice the moment either

@@ -56,7 +56,7 @@ type TemplateStore struct {
 func NewTemplateStore(path string) *TemplateStore { return &TemplateStore{path: path} }
 
 // SetPersist says where to log and, for a corrupt file, tell the narrator
-// (ADR 0069). Template bodies are the narrator's own text, so a file that
+// Template bodies are the narrator's own text, so a file that
 // cannot be decoded is kept aside rather than silently discarded.
 func (s *TemplateStore) SetPersist(reporter *persist.Reporter) { s.persist.Store(reporter) }
 

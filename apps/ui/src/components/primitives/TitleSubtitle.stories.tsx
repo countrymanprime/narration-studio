@@ -45,7 +45,7 @@ export const InsideUppercaseButton: Story = {
   },
 };
 
-// The Manuscript header alignment case (ADR 0058's overflow precedent): a subtitle with no break opportunity, like a
+// The Manuscript header alignment case (docs/design/design-system.md's overflow precedent): a subtitle with no break opportunity, like a
 // file name, must clip or wrap without pushing the layout sideways.
 export const LongUnbrokenSubtitle: Story = {
   args: { title: 'Tracks', subtitle: 'The_Very_Long_Running_Series_Book_Three_The_Reckoning_chapter_twenty_seven_revised_v14_FINAL' },

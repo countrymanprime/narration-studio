@@ -2,7 +2,7 @@
  * Choosing between takes. The suggestion is evidence first: it names what was measured and never picks, preselects or applies a take.
  * Takes recorded at different levels cannot be compared, so then it has no confidence (null, with the reason) and lists the
  * preparation steps first; confidence rises as the steps are applied. A figure the host cannot measure is left out of the score
- * (its weight shared among the rest) and named "Not measured". Pure: the takes, their measurements and the applied steps are arguments (ADR 0857).
+ * (its weight shared among the rest) and named "Not measured". Pure: the takes, their measurements and the applied steps are arguments.
  */
 import {
   CONFIDENCE_HIGH,

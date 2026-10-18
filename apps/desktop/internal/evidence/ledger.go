@@ -1,5 +1,5 @@
 // This file holds the ledger record type and its one-JSON-file-per-record store
-// under <project>/narration-utils/analysis/ledger/ (ADR 0100).
+// under <project>/narration-utils/analysis/ledger/.
 //
 // Callers: the recording coverage service (apps/desktop/internal/coverage)
 // writes one record per run, and the staleness evaluator (staleness.go) reads

@@ -9,7 +9,7 @@ import (
 	"github.com/countrymanprime/narration-utils/shell/internal/evidence"
 )
 
-// The peaks cache is keyed per source identity in the evidence cache (ADR 0520). It always holds the WHOLE
+// The peaks cache is keyed per source identity in the evidence cache. It always holds the WHOLE
 // source's peaks, computed once from position 0: a request narrowed to one item's played range never invalidates
 // another item's entry for the same file, a trim only narrows or moves that range without changing the
 // cache key, and a retake sharing an earlier item's source file is answered instantly from disk.

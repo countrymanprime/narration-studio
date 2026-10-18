@@ -1,8 +1,8 @@
 // Package takecompare compares the takes of one take-review group: it checks
 // every read of the group against the saved project, aligns each one that is
 // still there to the group's one manuscript span with the sidecar's
-// --take-divergence mode (ADR 0141), measures each with internal/measure's
-// MeasureTake (ADR 0140), and saves the result as one take_comparison finding. The finding holds evidence per
+// --take-divergence mode, measures each with internal/measure's
+// MeasureTake, and saves the result as one take_comparison finding. The finding holds evidence per
 // take and per category, side by side; nothing here adds categories up, orders
 // the takes or names a best one, and nothing changes the active take.
 package takecompare

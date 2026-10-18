@@ -6,7 +6,7 @@ import { proofProgress } from '../proof/proof.selectors';
 
 /** The rail's count badges (mock 05: "14" on Proof, "9" on Pickups). A key is absent when the host has no count to give, and the
  * rail then draws no badge: a number is never made up. Story Bible has none: the open-query count it drew went with the query list
- * (ADR 0792). */
+ * */
 export type NavCounts = { proof?: number; pickups?: number };
 
 /**

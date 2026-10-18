@@ -204,7 +204,7 @@ func confidence(members []Member) (float64, string) {
 // but come from different takes don't collide.
 //
 // This key leans on ItemGUID/TakeGUID for that uniqueness, which a REAPER
-// read always has. A native take (ADR 0485) has
+// read always has. A native take has
 // neither (recording.Take.Source() leaves both ""), so two native members
 // that share an offset and length fold to the same key regardless of
 // SourceFile - see native_source_test.go's
@@ -213,7 +213,7 @@ func confidence(members []Member) (float64, string) {
 // GUID-less Member today (internal/takereview only ever reads a REAPER
 // tracks.Project), and widening this key would also reshape every
 // existing REAPER-sourced finding's id and evidence_version. Whoever wires
-// native takes into the take-review scan (ADR 0545 keeps them out of it for
+// native takes into the take-review scan (docs/guides/using-the-app/proof.md#the-chapter-view keeps them out of it for
 // now) should settle a stable per-member native id first.
 func memberKey(members []Member) string {
 	keys := make([]string, 0, len(members))

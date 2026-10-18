@@ -1,5 +1,5 @@
 // This file holds the narrator-confirmed trackGuid -> chapterId mapping store
-// (ADR 0100), plus the pure suggestion helper over the chapter-to-track matcher
+// plus the pure suggestion helper over the chapter-to-track matcher
 // (internal/chaptermatch). It is one JSON file per project,
 // narration-utils/chapter-track-map.json, keyed by the manuscript's documentId
 // and holding each mapping's chapter title and confirmedAt beside the id - the
@@ -32,7 +32,7 @@ import (
 // newer app and is treated as absent, never as an error the narrator has to
 // fix (the same unknown-version rule LedgerStore and CacheStore follow).
 //
-// Version 2 (ADR 0202) adds each
+// Version 2 adds each
 // link's Origin and Match, the Rejected pairs an Undo leaves behind and the
 // Previous links a re-import carries forward. A version 1 file reads as
 // manual links with nothing rejected, so no narrator-made link changes kind.
@@ -47,7 +47,7 @@ const mappingSchemaVersion = 2
 //
 // Origin says who made the link: the narrator (OriginManual, through Confirm
 // or SetChapter) or chapter sync (OriginAuto, through AutoLink, once the
-// narrator has consented for the project: ADR 0202, superseding ADR 0100's
+// narrator has consented for the project: docs/guides/using-the-app/navigation.md#chapter-sync, superseding apps/desktop/internal/evidence/fingerprint.go's
 // "never a link until confirmed" clause). Both count as links for every
 // consumer; the difference is that sync never overwrites or removes a manual
 // link, and an auto-link can be undone. Match is how an auto-link matched
@@ -143,7 +143,7 @@ func MappingFile(project string) string {
 }
 
 // MappingStore is the chapter-track mapping: the links the
-// narrator made (Confirm, SetChapter) and, since ADR 0202, the ones chapter
+// narrator made (Confirm, SetChapter) and, since docs/guides/using-the-app/navigation.md#chapter-sync, the ones chapter
 // sync made with the narrator's consent (AutoLink), each labelled by its
 // Origin. A suggestion (see Suggester below) is never written here by
 // itself. Writes are temp-file-then-rename (the same pattern as
@@ -187,8 +187,7 @@ func (s *MappingStore) Confirm(documentID, trackGUID, chapterID, chapterTitle st
 }
 
 // Clear removes trackGUID's link for documentID, if any, and records the pair
-// as rejected so chapter sync does not make it again straight away (ADR
-// 0203); linking it by hand lifts that. Clearing a track with no link is not
+// as rejected so chapter sync does not make it again straight away; linking it by hand lifts that. Clearing a track with no link is not
 // an error, matching CacheStore.Delete's own rule for a caller clearing what
 // may already be a miss.
 func (s *MappingStore) Clear(documentID, trackGUID string) error {
@@ -218,7 +217,7 @@ type ChapterLinkSet struct {
 }
 
 // SetChapter makes trackGUID chapterID's one confirmed link (a chapter has
-// exactly one track, ADR 0207). In one locked write it removes every link
+// exactly one track). In one locked write it removes every link
 // chapterID holds and every link on trackGUID, then appends the new one, so a
 // relink replaces rather than adds (Confirm's upsert by track left the old
 // track linked too). A link the track held for a different chapter is returned
@@ -601,7 +600,7 @@ func (f SuggesterFunc) Suggest(tracks []TrackCandidate, chapters []ChapterCandid
 // "Chapter 1") or the one title a name is a whole-token prefix of ("Chapter
 // 1" and "Chapter 1: The Beginning") - never for the matcher's ambiguous-prefix
 // pick or its fuzzy fallback, so a suggestion is never a guess dressed as a
-// match (ADR 0110). The narrator still confirms each one.
+// match. The narrator still confirms each one.
 var MatchSuggester Suggester = SuggesterFunc(suggestByMatch)
 
 func suggestByMatch(tracks []TrackCandidate, chapters []ChapterCandidate) []MappingSuggestion {

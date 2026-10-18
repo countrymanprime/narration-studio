@@ -1,5 +1,5 @@
-// Package store is the project's extraction suggestions (ADR 0846): what a source offered for the Story Bible, each with
-// the quote that backs it, the status the 75% rule gave it (ADR 0803) and, once the narrator has decided, the decision.
+// Package store is the project's extraction suggestions: what a source offered for the Story Bible, each with
+// the quote that backs it, the status the 75% rule gave it and, once the narrator has decided, the decision.
 // A rejected suggestion stays in the file as a tombstone, so the same thing is not offered again.
 //
 // The file is <project>/ManuscriptGuide/suggestions.json, beside the Story Bible, so replacing the manuscript or Clear

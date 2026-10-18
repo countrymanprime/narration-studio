@@ -10,7 +10,7 @@ import (
 	"github.com/countrymanprime/narration-utils/shell/internal/dawport"
 )
 
-// WorkspaceListFXChains (ADR 0234): a read-only list of the narrator's FX chains, over the DAW port's FXManager role,
+// WorkspaceListFXChains: a read-only list of the narrator's FX chains, over the DAW port's FXManager role,
 // exactly as gainAdjusterFrom/LevelMatchPreview are tested (bindings_cleanup_test.go) - fakeResolver is defined there
 // and reused here.
 

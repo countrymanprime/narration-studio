@@ -29,7 +29,7 @@ type Tool = 'link-chapters' | 'render-config' | 'create-regions' | 'chapter-tags
 
 export type EngineLinkState = {
   dawFileLinked: boolean;
-  /** Whether a live REAPER heartbeat has been seen recently (ADR 0092); false also covers "unknown". */
+  /** Whether a live REAPER heartbeat has been seen recently; false also covers "unknown". */
   dawReachable: boolean;
   /** Whether that heartbeat's open project is the linked file; only meaningful when dawReachable is true. */
   dawProjectMatches: boolean;
@@ -39,7 +39,7 @@ export type EngineLinkState = {
 };
 
 /**
- * The engine panel (ADR 0407), opened from the header's engine
+ * The engine panel, opened from the header's engine
  * chip on any page. It holds what the Tracks page held that is about REAPER rather than a stage: the linked `.rpp` (link,
  * relink, or choose between several), the REAPER tools, chapter sync with its Sync activity, and the track list with each track's chapter and the Chapter links table. The Tracks page's player
  * is gone: a chapter is heard in its Proof chapter view. Everything loads when the panel opens (a closed SlideOver is not

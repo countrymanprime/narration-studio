@@ -6,7 +6,7 @@ import { usePort } from '../../ports/usePort';
 import type { ChapterStatus, CreditTemplate, RecordedUnavailable } from '../../types';
 import { estimateCreditsSeconds, roomToneSeconds } from '../../state';
 
-// The one template of a kind (ADR 0093): the first in the library.
+// The one template of a kind: the first in the library.
 const firstOfKind = (templates: CreditTemplate[], kind: string) => templates.find((template) => template.kind === kind);
 
 // The room tone setting (General > "Room tone per credits file"): a secondary
@@ -31,14 +31,14 @@ export type CreditsRow = {
   /** The template rendered: the Prepped dot of the chapter lists reads its unresolved tokens (`creditsRows`). */
   preview?: CreditsRenderResult;
   status: ChapterStatus;
-  /** The row's confirmed track's recorded audio in the saved project, in seconds: the same never-an-estimate measurement a manuscript chapter's own Recorded column shows (ADR 0193). */
+  /** The row's confirmed track's recorded audio in the saved project, in seconds: the same never-an-estimate measurement a manuscript chapter's own Recorded column shows. */
   recordedSeconds?: number;
   /** Set instead of `recordedSeconds` when the row has none, saying why. */
   recordedUnavailable?: RecordedUnavailable;
 };
 
 /**
- * The Production board's Opening/Closing credits rows. Reads the first template of each kind (ADR 0093), each rendered
+ * The Production board's Opening/Closing credits rows. Reads the first template of each kind, each rendered
  * with its own room tone and status from the project manifest. `template` is undefined when the library
  * has none of that kind (the page draws no row for it). Undefined while loading or on any failure: a
  * credits problem leaves the rows out rather than toasting.

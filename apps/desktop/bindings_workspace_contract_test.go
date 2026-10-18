@@ -30,7 +30,7 @@ func TestContractWorkspaceNavigationBindings(t *testing.T) {
 	check("workspace-navigation-no-item", payload, err)
 }
 
-// What WorkspacePeaks sends (ADR 0520): one item's peaks over a real WAV source (workspacePeaksProject,
+// What WorkspacePeaks sends: one item's peaks over a real WAV source (workspacePeaksProject,
 // bindings_workspace_peaks_test.go), and one item with no usable source, answering a Reason instead of an error.
 func TestContractWorkspacePeaksBinding(t *testing.T) {
 	host := coverageHost(t, workspacePeaksProject(t), true, fakeAlignedCoverageSidecar())

@@ -77,7 +77,7 @@ func TestStartupZoomWithNothingSavedAnswersTheWebView2DefaultSentinel(t *testing
 	}
 }
 
-// clampedStartupZoom is startupZoom's pure body: a stored value the range has since narrowed past (ADR 0201), or a
+// clampedStartupZoom is startupZoom's pure body: a stored value the range has since narrowed past, or a
 // hand-edited file, must not reach WebView2's PutZoomFactor unclamped (bindings_window.go: unlike the runtime
 // SetZoom/ZoomOut, the startup Zoom option has no floor or ceiling of its own).
 func TestClampedStartupZoom(t *testing.T) {

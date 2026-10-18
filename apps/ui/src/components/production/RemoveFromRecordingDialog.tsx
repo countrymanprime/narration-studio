@@ -10,7 +10,7 @@ const OPTIONS = [
 
 /**
  * "Remove <chapter> from recording?" a reclassification, not
- * a delete (ADR 0048 reserves the red confirm for destructive ones), so the confirm button stays the ordinary primary
+ * a delete (docs/design/design-system.md#base-ui-wrappers reserves the red confirm for destructive ones), so the confirm button stays the ordinary primary
  * colour. `kind` defaults to `reference` ("Not a chapter"), the safest default.
  */
 export function RemoveFromRecordingDialog({

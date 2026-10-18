@@ -9,7 +9,7 @@ import (
 	"github.com/countrymanprime/narration-utils/shell/internal/contractfile"
 )
 
-// The payloads the manuscript bindings send to the UI (ADR 0069), pinned for its contract tests. They come from a real import of
+// The payloads the manuscript bindings send to the UI, pinned for its contract tests. They come from a real import of
 // a small Markdown file through the real service; random ids and timestamps are named or fixed by contractfile.Stabilize.
 const contractSource = "# Chapter One<br>Down the Rabbit-Hole\nRoses are *red*,  \nviolets are **blue**.\n\nA second paragraph of the first chapter.\n\n# Chapter Two\nA short line in the second chapter.\n"
 
@@ -76,7 +76,7 @@ func TestContractImportJobsAndReaderPayloads(t *testing.T) {
 		t.Fatal(err)
 	}
 	pin(t, "manuscript-notes", service.Notes(first))
-	// The old chapter and line bookmarks in the file are ignored (SN-C383): the narrator's bookmarks are a project sidecar now (ADR 0820).
+	// The old chapter and line bookmarks in the file are ignored (SN-C383): the narrator's bookmarks are a project sidecar now.
 	readerState := service.ReaderState()
 	if _, ok := readerState["bookmarks"]; ok {
 		t.Fatalf("the reader state still carries the old bookmarks: %#v", readerState)
@@ -142,7 +142,7 @@ func TestContractReaderStateOfAManuscriptNobodyHasReadYet(t *testing.T) {
 	pin(t, "manuscript-notes-empty", service.Notes(""))
 }
 
-// A Word file whose heading has a title and a subtitle run together (ADR 0013): the importer splits it and says so in the preview's notices.
+// A Word file whose heading has a title and a subtitle run together: the importer splits it and says so in the preview's notices.
 func TestContractImportPreviewCarriesRepairs(t *testing.T) {
 	project := t.TempDir()
 	source := filepath.Join(project, "book.docx")

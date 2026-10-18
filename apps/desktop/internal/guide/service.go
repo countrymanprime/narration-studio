@@ -51,7 +51,7 @@ func (s *Service) manuscript() string {
 	return filepath.Join(s.project, "narration-utils", "manuscript", "manuscript.json")
 }
 
-// SetPersist says where to report a Story Bible file that cannot be read (ADR 0069).
+// SetPersist says where to report a Story Bible file that cannot be read.
 func (s *Service) SetPersist(reporter *persist.Reporter) { s.persist.Store(reporter) }
 
 // SetFindings opts this service into producing findings.Finding records for
@@ -138,7 +138,7 @@ func (s *Service) document() (map[string]any, error) {
 	return document, nil
 }
 
-// Entities is the Story Bible as the UI reads it: a stored pronunciation status is not returned (ADR 0792).
+// Entities is the Story Bible as the UI reads it: a stored pronunciation status is not returned.
 func (s *Service) Entities() ([]map[string]any, error) {
 	document, err := s.document()
 	if err != nil {
@@ -244,7 +244,7 @@ func readReview(entity map[string]any, aliases []any) {
 	entity["review"] = map[string]any{"entry": entry, "aliases": flagged}
 }
 
-// readPronunciation reads a stored pronunciation the way ADR 0792 says: a stored status is ignored, and the legacy source "user" reads as
+// readPronunciation reads a stored pronunciation the way docs/guides/using-the-app/story-bible.md#how-you-say-each-name says: a stored status is ignored, and the legacy source "user" reads as
 // "manual", in the value and in its alternate. A note stays as it is.
 func readPronunciation(value map[string]any) {
 	delete(value, "status")
@@ -313,7 +313,7 @@ func (s *Service) DialogueCues() ([]DialogueCue, error) {
 // CorrectCue records the narrator's own attribution for one dialogue cue
 // (speakerEntityID "unknown" or "" clears it back to unknown), so the next
 // rebuild's merge_dialogue_cues keeps it instead of overwriting it with
-// fresh, possibly-unknown, extraction - the same durability ADR 0007's lock
+// fresh, possibly-unknown, extraction - the same durability sidecars/manuscript-guide/core/manuscript_guide.py's lock
 // guard already gives a locked entity, applied to a cue instead.
 func (s *Service) CorrectCue(cueID, speakerEntityID string) error {
 	_, err := s.Run("correct-cue", "--guide", s.guidePath(), "--cue-id", cueID, "--speaker-entity-id", speakerEntityID)
@@ -440,7 +440,7 @@ func (s *Service) editArgs(id string, values map[string]string) []string {
 
 // Pronounce sets the pronunciation of an entity's own name (aliasIndex nil) or one of its aliases from exactly the
 // named engine ("cmu" or "espeak"), and marks it as the narrator's explicit choice so a rebuild keeps it.
-// It is refused on a locked entity (ADR 0007, enforced by the sidecar) and when the chosen engine has nothing for the name.
+// It is refused on a locked entity (enforced by the sidecar) and when the chosen engine has nothing for the name.
 // Pronounce asks the named pronunciation source for the entity's (or one alias's) pronunciation. A source the pronunciation port
 // cannot ask for one is refused with its *port.NotSupportedError before the sidecar starts.
 func (s *Service) Pronounce(id string, aliasIndex *int, source string) error {
@@ -455,7 +455,7 @@ func (s *Service) Pronounce(id string, aliasIndex *int, source string) error {
 	return err
 }
 
-// ManualSource is the source id of a pronunciation the narrator typed (ADR 0792). A file written before it says "user"; Entities reads
+// ManualSource is the source id of a pronunciation the narrator typed. A file written before it says "user"; Entities reads
 // that as manual.
 const ManualSource = "manual"
 
@@ -486,7 +486,7 @@ func (s *Service) Candidate(word, source string) (Candidate, error) {
 	return result, nil
 }
 
-// The narrator's own pronunciation and a pronunciation's note are free text (ADR 0346). The sidecar checks the same
+// The narrator's own pronunciation and a pronunciation's note are free text. The sidecar checks the same
 // limits; the host checks them first so a bad value never starts a process.
 const (
 	maxUserPronunciation = 200
@@ -527,7 +527,7 @@ func (s *Service) UsePronunciationAlternate(id string, aliasIndex *int) error {
 }
 
 // MarkReviewed clears the review flags of the entry and every name (aliasIndex nil), or of one name; the entry is reviewed when nothing
-// is left. Refused on a locked entry (ADR 0007, enforced by the sidecar).
+// is left. Refused on a locked entry (enforced by the sidecar).
 func (s *Service) MarkReviewed(id string, aliasIndex *int) error {
 	_, err := s.Run(pronunciationTarget([]string{"mark-reviewed", "--guide", s.guidePath(), "--entity-id", id}, aliasIndex)...)
 	return err
@@ -540,7 +540,7 @@ func (s *Service) FlagReview(id string, aliasIndex *int) error {
 	return err
 }
 
-// SpeakerColors is how many speaker colours there are: the seven hues of ADR 0367, --speaker-1 to --speaker-7.
+// SpeakerColors is how many speaker colours there are: the seven hues of docs/design/colour-and-contrast.md#per-speaker-colours, --speaker-1 to --speaker-7.
 const SpeakerColors = 7
 
 // SetSpeakerColor stores a character's speaker colour, 1..SpeakerColors, which wins over the stable pick; nil or 0 puts it back to
@@ -672,7 +672,7 @@ func (s *Service) Unrelate(id, other, label string) error {
 // stored list whenever it exists made Suggest return nothing on a freshly
 // imported project and miss every name added after the last build.
 //
-// Derived names follow the sidecar's own rule (is_vocabulary_worthy, ADR 0020)
+// Derived names follow the sidecar's own rule (is_vocabulary_worthy)
 // with one relaxation: an entity the narrator locked or added by hand is always
 // offered, whatever its category, because it is theirs (the sidecar checks
 // Needs Review first, so it drops such an entity). Auto-extracted Needs Review

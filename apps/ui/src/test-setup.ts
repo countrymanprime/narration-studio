@@ -24,7 +24,7 @@ URL.createObjectURL = () => 'blob:vitest-object-url';
 URL.revokeObjectURL = () => undefined;
 
 // Property tests (fast-check) are deterministic in the gate: a fixed seed makes every run draw the
-// same examples, so a red run is a real bug and never a lucky draw (ADR 0023: red must mean real).
+// same examples, so a red run is a real bug and never a lucky draw (docs/design/design-system.md#what-the-suites-do-not-prove: red must mean real).
 // VITE_FAST_CHECK_EXPLORE=1 runs random seeds and many more runs by hand; a failing random run prints its
 // seed and counterexample, and the counterexample becomes a plain example test.
 fc.configureGlobal(import.meta.env.VITE_FAST_CHECK_EXPLORE === '1' ? { numRuns: 5000 } : { seed: 20260920, numRuns: 200 });

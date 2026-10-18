@@ -18,7 +18,7 @@ type trackOption struct {
 }
 
 // chapterTrackMatch is ChapterTrackMatch's payload: which track holds a chapter and where its recorded audio ends, from
-// the selected .rpp as of its last save (ADR 0110).
+// the selected .rpp as of its last save.
 type chapterTrackMatch struct {
 	ChapterID    string `json:"chapterId"`
 	ChapterTitle string `json:"chapterTitle"`
@@ -107,7 +107,7 @@ func matchInputs(svc hostServices) ([]chaptermatch.Chapter, tracks.Project, map[
 }
 
 // chapterSuggestion is ChapterSuggestion's payload: the chapter the narrator is most likely recording, read from the
-// selected .rpp's armed (else selected) track as of its last save (ADR 0113).
+// selected .rpp's armed (else selected) track as of its last save.
 type chapterSuggestion struct {
 	ProjectFile string `json:"projectFile"`
 	SavedAt     string `json:"savedAt"`
@@ -145,7 +145,7 @@ type chaptersForTracksResult struct {
 	Tracks      map[string]trackChapterEntry `json:"tracks"`
 }
 
-// chaptersForTracks is ForTrack (ADR 0113) run over every GUID in guids, in bulk: the Review page's chapter grouping
+// chaptersForTracks is ForTrack run over every GUID in guids, in bulk: the Review page's chapter grouping
 // needs a chapter for findings that carry only a track, item or take GUID (apps/desktop/internal/findings.Source)
 // instead of a manuscript-anchored chapter id, and it groups many findings, from many analyzers, at once. A GUID may
 // name a track directly, or an item or take on one (resolved via resolveTrackGUID); one unresolved GUID never fails the

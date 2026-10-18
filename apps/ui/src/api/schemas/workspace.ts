@@ -21,7 +21,7 @@ import { COVERAGE_EVALUATOR_REASONS, COVERAGE_REFUSAL_REASONS } from './coverage
 // CoverageResult uses (tests/fixtures/contracts/coverage-reasons.json already pins it against the host).
 const reasonSchema = z.union([z.enum(COVERAGE_REFUSAL_REASONS), z.enum(COVERAGE_EVALUATOR_REASONS)]);
 
-// A word score is a number with no reason, or null with one (ADR 0855); a payload from before it has neither.
+// A word score is a number with no reason, or null with one; a payload from before it has neither.
 const scoredOrReasoned = (word: { conf?: number | null; confReason?: string }): boolean =>
   word.conf === undefined ? word.confReason === undefined : (word.conf === null) === (word.confReason !== undefined);
 
@@ -40,7 +40,7 @@ const tokenSchema = z
     confReason: optionalFromNull(z.string().min(1)),
     added: z.never().optional(),
   })
-  .refine(scoredOrReasoned, { message: 'a score is a number beside no reason, or null with one (ADR 0855)' }) satisfies z.ZodType<WorkspaceToken>;
+  .refine(scoredOrReasoned, { message: 'a score is a number beside no reason, or null with one' }) satisfies z.ZodType<WorkspaceToken>;
 
 const audioPositionSchema = z.object({ itemIndex: z.number(), itemGuid: z.string(), sourceTime: z.number() });
 
@@ -55,7 +55,7 @@ const extraWordSchema = z
     conf: z.number().min(0).max(1).nullable(),
     confReason: optionalFromNull(z.string().min(1)),
   })
-  .refine(scoredOrReasoned, { message: 'a score is a number beside no reason, or null with one (ADR 0855)' }) satisfies z.ZodType<WorkspaceExtraWord>;
+  .refine(scoredOrReasoned, { message: 'a score is a number beside no reason, or null with one' }) satisfies z.ZodType<WorkspaceExtraWord>;
 
 const extraSchema = z.object({
   text: z.string(),
@@ -97,7 +97,7 @@ export const workspaceFXChainsResultSchema = z.object({
   truncated: z.boolean(),
 }) satisfies z.ZodType<WorkspaceFXChainsResult>;
 
-// The waveform strip's peaks (ADR 0520): apps/desktop/bindings_workspace_peaks.go.
+// The waveform strip's peaks: apps/desktop/bindings_workspace_peaks.go.
 const peaksSchema = z.object({
   startSeconds: z.number(),
   bucketsPerSecond: z.number(),
@@ -118,7 +118,7 @@ export const workspacePeaksResultSchema = z.object({
   items: listFromNull(peaksEntrySchema),
 }) satisfies z.ZodType<WorkspacePeaksResult>;
 
-// The Takes panel (ADR 0700): apps/desktop/internal/passagetakes.
+// The Takes panel: apps/desktop/internal/passagetakes.
 const passageTakeSchema = z.object({
   id: z.string(),
   source: z.enum(['item_take', 'lane_retake', 'take_review']),

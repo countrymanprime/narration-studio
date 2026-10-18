@@ -31,7 +31,7 @@ const (
 )
 
 // Progress is one step of staging. Done and Total are bytes of the download while it runs; Percent is only ever real bytes over
-// total bytes (ADR 0015), never an estimate.
+// total bytes, never an estimate.
 type Progress struct {
 	Phase Phase
 	Done  int64

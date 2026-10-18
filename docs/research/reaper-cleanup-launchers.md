@@ -1,6 +1,6 @@
 # Cleanup launchers: what is known, and the REAPER check still pending
 
-Reaper automation follow-through PRD (deleted) Phase 23, [ADR 0146](../adr/0146-cleanup-launchers-open-an-allow-listed-reaper-action-found-by-its-name-and-change-nothing-themselves.md). This note records where each fact the launcher relies on came from, and the scripted REAPER check that has not been run. No REAPER run was approved for this phase, so nothing here was observed in a running REAPER.
+Reaper automation follow-through PRD (deleted) Phase 23, [narration_cleanup.lua](../../integrations/reaper/narration_cleanup.lua). This note records where each fact the launcher relies on came from, and the scripted REAPER check that has not been run. No REAPER run was approved for this phase, so nothing here was observed in a running REAPER.
 
 ## What the launcher relies on
 
@@ -8,7 +8,7 @@ Reaper automation follow-through PRD (deleted) Phase 23, [ADR 0146](../adr/0146-
 | --- | --- | --- |
 | REAPER 7.80 added an `Edit > Repair Pops/Clicks` dialog that finds pops and clicks and applies a spectral repair, plus actions to go to the next/previous detected pop/click | REAPER's [changelog](https://www.reaper.fm/whatsnew.txt), v7.80 (also `whatsnew.txt` in the local REAPER 7.80 install) | Per docs |
 | The dialog's names in REAPER 7.80 are "Repair Pops/Clicks...", "Repair pops/clicks..." and "Repair Pops/Clicks"; the neighbouring actions are "Take: Go to next/previous detected audio pop/click for …", "Adjust pop/click detection settings..." and "Detect pop/clicks and apply spectral repair..." | Strings in the local REAPER 7.80 `reaper.exe` (read as text, REAPER not started). Which of them is the Action list text, and under which category prefix, is not known | **Unverified** |
-| The Repair Pops/Clicks action's numeric command ID | Not published, not in the binary as text | Unknown; the launcher does not need it (ADR 0146) |
+| The Repair Pops/Clicks action's numeric command ID | Not published, not in the binary as text | Unknown; the launcher does not need it (`integrations/reaper/narration_cleanup.lua`) |
 | `kbd_enumerateActions(section, index)` returns the command ID and the action-list text, and 0 past the end; native since REAPER 6.71 | ReaScript API documentation (the SDK's `reaper_plugin_functions.h`, [X-Raym's API docs](https://www.extremraym.com/cloud/reascript-doc/)) | Per docs. The fake in `integrations/reaper/tests/fake_reaper.lua` copies this shape |
 | `SectionFromUniqueID(0)` is the Main section | ReaScript API documentation | Per docs |
 | A loaded ReaScript is named `Script: <file name>` in the Action list | REAPER's behaviour for every script this project imports (`Script: NarrationUtils_Launcher.lua`) | Seen in REAPER |

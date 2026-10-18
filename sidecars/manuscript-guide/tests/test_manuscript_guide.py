@@ -923,7 +923,7 @@ class SelfCheckTests(unittest.TestCase):
 
 
 class CapabilitiesTests(unittest.TestCase):
-    """`capabilities` (ADR 0403) mirrors live_asr.py's --capabilities: every row this
+    """`capabilities` mirrors live_asr.py's --capabilities: every row this
     process has actually registered in ENGINES (voice engines) and SOURCES (pronunciation), by port then name,
     registration only - never whether the row actually loads."""
 

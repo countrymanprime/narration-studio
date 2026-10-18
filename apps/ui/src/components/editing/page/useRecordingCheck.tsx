@@ -1,11 +1,8 @@
-import { useCallback, useEffect, useState, type ReactNode } from 'react';
-import type { CoverageState } from '../../../api/contracts/coverage';
+import { useCallback, useState, type ReactNode } from 'react';
 import { overlay } from '../../../overlay/overlayService';
-import { usePort } from '../../../ports/usePort';
 import type { ManuscriptChapter } from '../../../types';
 import { RecordingCheck } from '../../production/RecordingCheck';
-
-const IDLE: CoverageState = { phase: 'idle', percent: 0, message: '' };
+import { useCoverageRuns } from '../../recordingcheck/useCoverageRuns';
 
 export interface RecordingCheckHost {
   /** Opens the check for the chapter; undefined when the page has no chapter record to check. */
@@ -28,10 +25,8 @@ export function useRecordingCheck({
   onClosed: () => void;
   goToParagraph: (index: number) => void;
 }): RecordingCheckHost {
-  const coveragePort = usePort('coverage');
   const [checking, setChecking] = useState(false);
-  const [coverage, setCoverage] = useState<CoverageState>(IDLE);
-  useEffect(() => coveragePort.subscribeCoverage(setCoverage), [coveragePort]);
+  const runs = useCoverageRuns();
   const open = useCallback(() => setChecking(true), []);
   const close = useCallback(() => {
     setChecking(false);
@@ -42,7 +37,8 @@ export function useRecordingCheck({
       <RecordingCheck
         key={chapter.id}
         chapter={chapter}
-        coverage={coverage}
+        coverage={runs.forChapter(chapter.id)}
+        othersRunning={runs.othersRunning(chapter.id)}
         notify={(text, tone) => overlay.toast(text, tone ? { tone } : undefined)}
         close={close}
         goToParagraph={goToParagraph}

@@ -73,12 +73,12 @@ Two rows for SN-X61 to paste into `scripts/licenses/model-review.json` under `ca
 ```json
 "booknlp/small": {
   "commercialUse": "Program MIT. The weights carry no stated licence (owner ruling SNX-Q3: not a blocker, because the tool only identifies character entries for the narrator to review)",
-  "status": "In the catalog as an optional download (ADR 0848, SNX-7b); consent required",
+  "status": "In the catalog as an optional download (SNX-7b); consent required",
   "note": "Three PyTorch pickles totalling 160,398,571 bytes from people.ischool.berkeley.edu/~dbamman/booknlp_models/, pinned by size and the SHA-256 this project computed on 2026-10-11 (the host publishes none). Program licence read 2026-10-11 from the repository LICENSE (MIT, Copyright (c) 2021 David Bamman). The README names no licence for the weights; the entity model's training data includes about 500 non-public contemporary books. The Google BERT encoders it fetches at first load are Apache-2.0. Use is narrow: character names, clusters and speaker guesses shown for review."
 },
 "booknlp/big": {
   "commercialUse": "As booknlp/small",
-  "status": "In the catalog as an optional download (ADR 0848, SNX-7b); consent required",
+  "status": "In the catalog as an optional download (SNX-7b); consent required",
   "note": "As booknlp/small; three pickles totalling 1,196,238,139 bytes."
 }
 ```

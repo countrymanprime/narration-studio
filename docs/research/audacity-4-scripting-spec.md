@@ -1,6 +1,6 @@
 # Audacity 4 scripting: what the published spec says (2026-09-28)
 
-**Status: done, 2026-09-28. Desk research only; nothing was run in Audacity.** Issue: [#402](https://github.com/countrymanprime/narration-utils/issues/402). Written after the owner decided on 2026-09-28 to build the Audacity hookups for Audacity 4 from the published specs, with the owner's S-A1/S-A2 session turned into the verification pass ([ADR 0355](../adr/0355-audacity-is-driven-over-its-scripting-pipe-built-from-the-published-spec-and-verified-by-the-owners-pass.md), [the verification pass](../operations/audacity-verification-pass.md)). It supersedes nothing: the [launcher feasibility note](audacity-launcher-feasibility.md) found the same gap in 4.0.0 from its release notes.
+**Status: done, 2026-09-28. Desk research only; nothing was run in Audacity.** Issue: [#402](https://github.com/countrymanprime/narration-utils/issues/402). Written after the owner decided on 2026-09-28 to build the Audacity hookups for Audacity 4 from the published specs, with the owner's S-A1/S-A2 session turned into the verification pass ([The DAW port](../architecture/daw-integration.md#the-daw-port), [the verification pass](../operations/audacity-verification-pass.md)). It supersedes nothing: the [launcher feasibility note](audacity-launcher-feasibility.md) found the same gap in 4.0.0 from its release notes.
 
 Accessed 2026-09-28. Official sources only: the github.com/audacity/audacity repository (release notes, source, issues) and github.com/audacity/audacity-manual, which is the published source of manual.audacityteam.org.
 
@@ -102,16 +102,16 @@ Source: <https://github.com/audacity/audacity-manual/blob/master/manual/man/scri
 `au3/scripts/piped-work/pipe_test.py`, verbatim:
 
 ```python
-if sys.platform == 'win32':
+if sys.platform == "win32":
     print("pipe-test.py, running on windows")
-    TONAME = '\\\\.\\pipe\\ToSrvPipe'
-    FROMNAME = '\\\\.\\pipe\\FromSrvPipe'
-    EOL = '\r\n\0'
+    TONAME = "\\\\.\\pipe\\ToSrvPipe"
+    FROMNAME = "\\\\.\\pipe\\FromSrvPipe"
+    EOL = "\r\n\0"
 else:
     print("pipe-test.py, running on linux or mac")
-    TONAME = '/tmp/audacity_script_pipe.to.' + str(os.getuid())
-    FROMNAME = '/tmp/audacity_script_pipe.from.' + str(os.getuid())
-    EOL = '\n'
+    TONAME = "/tmp/audacity_script_pipe.to." + str(os.getuid())
+    FROMNAME = "/tmp/audacity_script_pipe.from." + str(os.getuid())
+    EOL = "\n"
 ```
 
 - **Windows EOL is `"\r\n\0"`.** `"\n"` is used only on Linux and macOS.
@@ -123,13 +123,15 @@ else:
 TOFILE.write(command + EOL)
 TOFILE.flush()
 ...
+
+
 def get_response():
-    result = ''
-    line = ''
+    result = ""
+    line = ""
     while True:
         result += line
         line = FROMFILE.readline()
-        if line == '\n' and len(result) > 0:
+        if line == "\n" and len(result) > 0:
             break
     return result
 ```
@@ -378,7 +380,7 @@ The track index counts all tracks, not only label tracks. An object form `{track
 
 ## What this means for the build
 
-Audacity 4 publishes no scripting interface: the only published spec is Audacity 3's `mod-script-pipe`, described above, and 4.1's planned "script host" has no written protocol yet. So `apps/desktop/internal/audacitybridge` speaks the Audacity 3 protocol, behind a `Transport` interface, and the adapter reports "Audacity is not reachable" on an Audacity 4.0 install, whose pipe does not exist ([ADR 0355](../adr/0355-audacity-is-driven-over-its-scripting-pipe-built-from-the-published-spec-and-verified-by-the-owners-pass.md)). How each finding above shaped the client:
+Audacity 4 publishes no scripting interface: the only published spec is Audacity 3's `mod-script-pipe`, described above, and 4.1's planned "script host" has no written protocol yet. So `apps/desktop/internal/audacitybridge` speaks the Audacity 3 protocol, behind a `Transport` interface, and the adapter reports "Audacity is not reachable" on an Audacity 4.0 install, whose pipe does not exist ([The DAW port](../architecture/daw-integration.md#the-daw-port)). How each finding above shaped the client:
 
 | Finding | What the client does |
 | --- | --- |

@@ -54,7 +54,7 @@
      true yellow distinct from --warn/--lore's amber-brown and every other kind hue. */
   --search: #8a7500;
   /* Text on a tint of the kind's own colour (highlights, entity badges): 43% of the kind colour and 57% of the text colour,
-     so the hue survives and 4.5:1 holds (ADR 0059; 45% fell to 4.4:1 for review and event nested in the mock's lighter dark violet), including where one highlight is nested in another and the tints add up
+     so the hue survives and 4.5:1 holds (45% fell to 4.4:1 for review and event nested in the mock's lighter dark violet), including where one highlight is nested in another and the tints add up
      (at 50% the dark theme fell to 4.4:1 there). Defined once for both themes: it resolves against the theme's own --text,
      and it follows a user override of the kind colour. The tint and the underline stay the pure kind colour. */
   --character-text: color-mix(in srgb, var(--character) 43%, var(--text));
@@ -68,7 +68,7 @@
   --danger: #a3302a;
   --warn: #8a5a00;
   --info: #2a5c86;
-  /* A requirement met (the Delivery page's rule results, ADR 0179): the fourth status colour beside danger, warn and info. */
+  /* A requirement met (the Delivery page's rule results): the fourth status colour beside danger, warn and info. */
   --ok: #2f6b3e;
   /* Text on the status colours' soft fills. The mock sets that text in the status colour itself (its `.pill.ok` rule), and
      each of the four holds 4.5:1 on its own --<tone>-soft in both themes (paletteContrast.test.ts), so the -text names are aliases
@@ -77,8 +77,8 @@
   --warn-text: var(--warn);
   --info-text: var(--info);
   --ok-text: var(--ok);
-  /* The fifth status meaning (ADR 0360): a capability the host reports as
-     experimental (ADR 0300), distinct from every other kind and status hue. */
+  /* The fifth status meaning: a capability the host reports as
+     experimental, distinct from every other kind and status hue. */
   --experimental: #1f7a7a;
   --experimental-text: color-mix(in srgb, var(--experimental) 85%, var(--text));
   --bookmark: #3b6fc4;
@@ -91,11 +91,10 @@
   --meter-body: var(--ok);
   --meter-hot: var(--warn);
   --meter-over: var(--danger);
-  /* The 14% badge tints of ADR 0362: a 14% tint of the tone colour, the one percentage that holds 4.5:1 against
-     every tone's own -text colour in both themes. StatusBadge fills with the opaque --<tone>-soft family below (ADR 0590,
-     0600); this one stays for the experimental tone, which has no soft token. */
+  /* The 14% badge tints of docs/design/colour-and-contrast.md#derived-and-status-tokens: a 14% tint of the tone colour, the one percentage that holds 4.5:1 against
+     every tone's own -text colour in both themes. StatusBadge fills with the opaque --<tone>-soft family below; this one stays for the experimental tone, which has no soft token. */
   --badge-experimental-fill: color-mix(in srgb, var(--experimental) 14%, transparent);
-  /* The status soft fills are the mock's own opaque values (Studio Next, ADR 0760), no longer aliases of the entity fills or a
+  /* The status soft fills are the mock's own opaque values (Studio Next), no longer aliases of the entity fills or a
      mix of the warn colour, so the entity and status fills no longer move together. */
   --ok-soft: #d9ead9;
   --warn-soft: #f5e6bf;
@@ -116,9 +115,9 @@
   /* The target zone on Master's book-consistency band (mock 05 measures #c8d4c2, 18%): ok at 16% over the --surface-2
      track, so the band's --accent chapter ticks keep 3:1 on it (3.05:1 in light; 18% gave 2.98:1). */
   --ok-zone: color-mix(in srgb, var(--ok) 16%, var(--surface-2));
-  /* Per-speaker dialogue colours (ADR 0367): the Script reader's speaker attribution and the Booth's
+  /* Per-speaker dialogue colours: the Script reader's speaker attribution and the Booth's
      "Voices in scene" tags give each speaker their own colour, as the mocks show. Declared as aliases of the
-     seven entity-kind hues, the same derivation ADR 0362 used for the meter zones, so nothing here needs a second round
+     seven entity-kind hues, the same derivation docs/design/colour-and-contrast.md#derived-and-status-tokens used for the meter zones, so nothing here needs a second round
      of contrast tuning: each token and its -text companion already has a passing pair under its kind name above. A
      speaker's colour is chosen by hashing its id/name to one of these seven (SpeakerTag.tsx, speakerColor.ts); an eighth
      speaker wraps back to --speaker-1, which is why it aliases --character - the app's existing single colour for every
@@ -171,7 +170,7 @@
   --font-size-sm: 0.82rem;
   --font-size-base: 0.9375rem; /* 15, the mock's body */
   /* The booth's script size. The booth follows the app theme like every other
-     surface (ADR 0365, superseding ADR 0360's forced-dark booth block), so this is its only booth-only token: a size,
+     surface, so this is its only booth-only token: a size,
      declared once here, the same in light and dark. */
   --font-size-booth-script: 1.625rem;
   --line-height-booth-script: 1.85;
@@ -239,7 +238,7 @@
   --experimental: #4fbdbd;
   --experimental-text: var(--experimental);
   --bookmark: #6e9fdb;
-  /* Mock 03 measures both (ADR 0590). */
+  /* Mock 03 measures both. */
   --reading-bg: #0e0d09;
   --rec-fill: #5e1d16;
   --rec-text: #f9b8af;
@@ -282,7 +281,7 @@
     cursor: not-allowed;
   }
   /* Tailwind's preflight draws a placeholder at 50% of the field's text colour, about 3.2:1 in the light theme. A placeholder
-     is text (WCAG 1.4.3), so it takes the muted text colour (ADR 0059). */
+     is text (WCAG 1.4.3), so it takes the muted text colour. */
   input::placeholder,
   textarea::placeholder {
     color: var(--text-muted);

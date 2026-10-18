@@ -4,7 +4,7 @@ import { WireError } from '../../api/wire/WireError';
 import type { StandardSchemaV1 } from '../../api/wire/standardSchema';
 import { createStudioStore, type SlotConfig, type StudioStore } from './createStudioStore';
 
-// Hand-written Standard Schemas: the store takes any, and src/studio does not import Zod (ADR 0069, zod-only-in-api).
+// Hand-written Standard Schemas: the store takes any, and src/studio does not import Zod (zod-only-in-api).
 function schemaOf<T>(check: (v: unknown) => v is T): StandardSchemaV1<unknown, T> {
   return { '~standard': { version: 1, vendor: 'test', validate: (v) => (check(v) ? { value: v } : { issues: [{ message: 'wrong shape', path: [] }] }) } };
 }

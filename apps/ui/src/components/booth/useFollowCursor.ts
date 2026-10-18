@@ -1,11 +1,11 @@
 import { useCallback, useEffect, useRef, useState, type RefObject } from 'react';
 import { EDITABLE, KEY_WIDGET_ROLES, SPACE_ACTIVATES } from '../../input/targets';
 
-/** The part of the viewport the current word may sit in without the reader scrolling (ADR 0024): 25% to 70% of its height. */
+/** The part of the viewport the current word may sit in without the reader scrolling: 25% to 70% of its height. */
 const FOLLOW_BAND = { top: 0.25, bottom: 0.7 } as const;
 /**
  * How long a scroll has to be still before a paused reader checks whether the current word is back in the band. It is not a
- * resume timer (ADR 0119): it only waits out a wheel's smooth scroll or a touch's momentum, which move the text with no
+ * resume timer: it only waits out a wheel's smooth scroll or a touch's momentum, which move the text with no
  * input event of their own, so the word passing through the band mid-scroll does not resume following.
  */
 export const SCROLL_SETTLE_MS = 150;
@@ -72,7 +72,7 @@ export type FollowCursor = {
 };
 
 /**
- * Following for the shared reader (ADR 0119). Following pauses when
+ * Following for the shared reader. Following pauses when
  * the narrator scrolls - a wheel, a touch drag, a scrolling key or a press on the scrollbar, never a scroll event, because the
  * reader's own follow scrolling fires those too - and resumes by itself once the current word is back inside the follow band
  * (the narrator scrolled back, or read on until the word came into it), or at once from `resume`. Each session starts

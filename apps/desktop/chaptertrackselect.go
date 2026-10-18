@@ -44,7 +44,7 @@ func trackSelectConnectionMessage(connection string) string {
 	return messageTrackSelectStandalone
 }
 
-// trackSelectorFrom asks svc's DAW port resolver for the Track select role (ADR 0300), the same
+// trackSelectorFrom asks svc's DAW port resolver for the Track select role, the same
 // seam trackStateReaderFrom uses: nil when there is no resolver, no adapter, the capability is toggled off, or
 // REAPER is not reachable right now.
 func trackSelectorFrom(svc hostServices) dawport.TrackSelector {
