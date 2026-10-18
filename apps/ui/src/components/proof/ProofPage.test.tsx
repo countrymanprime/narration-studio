@@ -75,6 +75,28 @@ describe('sort-asks-the-host', () => {
   });
 });
 
+describe('page-data-load-failure', () => {
+  it('keeps the title, says the page could not be loaded and reloads on Retry', async () => {
+    const api = createMockApi();
+    vi.spyOn(api, 'findingsList').mockRejectedValueOnce(new Error('The findings file is unreadable.'));
+    renderPage({ api });
+    expect(await screen.findByText('This page could not be loaded')).toBeTruthy();
+    expect(screen.getByRole('heading', { name: 'Proof' })).toBeTruthy();
+    await userEvent.click(screen.getByRole('button', { name: 'Retry' }));
+    await noteRows();
+    expect(screen.queryByText('This page could not be loaded')).toBeNull();
+  });
+});
+
+describe('page-data-load-failure-chapters', () => {
+  it('shows the load error when the chapters cannot be read', async () => {
+    const api = createMockApi();
+    vi.spyOn(api, 'manuscriptChapters').mockRejectedValue(new Error('The chapters are unreadable.'));
+    renderPage({ api });
+    expect(await screen.findByText('This page could not be loaded')).toBeTruthy();
+  });
+});
+
 describe('the-head-and-open-pickups', () => {
   it('the head cannot read 100 while a pickup is open', async () => {
     const api = createMockApi();

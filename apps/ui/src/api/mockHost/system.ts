@@ -1,6 +1,7 @@
 // The mock host (mockApi.ts): the system bindings.
 import { parseWire } from '../wire/parseWire';
 import { chaptersSchema } from '../schemas/manuscript';
+import { productionOverviewSchema } from '../schemas/production';
 import { guideEntitiesSchema } from '../schemas/storyBible';
 import { bootstrapSchema } from '../schemas/system';
 import type { NarrationApi, TranscriptState } from '../../types';
@@ -46,7 +47,7 @@ export function mockAudioSource(): string | undefined {
 }
 
 export /** Answers that go through the real `parseWire` with a payload of the wrong shape, so the failure screens can be seen without a host. */
-function invalidPayloadOverrides(which: 'bootstrap' | 'manuscript' | 'storybible', base: NarrationApi): Partial<NarrationApi> {
+function invalidPayloadOverrides(which: 'bootstrap' | 'manuscript' | 'storybible' | 'production', base: NarrationApi): Partial<NarrationApi> {
   switch (which) {
     case 'bootstrap':
       return { bootstrap: async () => parseWire(bootstrapSchema, { ...(await base.bootstrap()), projectName: null }, wireContext('Bootstrap')) };
@@ -54,6 +55,8 @@ function invalidPayloadOverrides(which: 'bootstrap' | 'manuscript' | 'storybible
       return {
         manuscriptChapters: async () => parseWire(chaptersSchema, [{ id: 'c-0001', title: 'Chapter One', index: 'first' }], wireContext('ManuscriptChapters')),
       };
+    case 'production':
+      return { productionOverview: async () => parseWire(productionOverviewSchema, { chapters: 'none' }, wireContext('ProductionOverview')) };
     case 'storybible':
       return { guideEntities: async () => parseWire(guideEntitiesSchema, [{ id: 7, canonical_name: 'Alice' }], wireContext('GuideEntities')) };
   }
