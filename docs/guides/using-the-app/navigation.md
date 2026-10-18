@@ -77,7 +77,7 @@ showing results resets it the same way. They only move between pages — closing
 chapter, or the previous Story Bible entry are not Back steps.
 
 A link the app cannot open (a typed address it cannot read, or one that names a chapter or line the book does not have) shows
-**This link could not be opened** with **Open** *page* and **Go to Production**; both replace the link, so Back does not return to it.
+**This link could not be opened** with **Open** *page* (the solid button) and **Go to Production** (quieter); both replace the link, so Back does not return to it.
 The [Booth](booth.md#the-credits) fills the window and has no rail, so there Escape also leaves the message, for [Script](script.md).
 
 ## Zoom

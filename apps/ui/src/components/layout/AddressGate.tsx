@@ -130,7 +130,9 @@ function BadAddress({ page, message }: { page: AddressPage; message: string }) {
           <Button variant="primary" onClick={() => navigate(addressPagePath(page), { replace: true })}>
             Open {TITLE[page]}
           </Button>
-          <Button onClick={() => navigate('/', { replace: true })}>Go to Production</Button>
+          <Button variant="secondary" onClick={() => navigate('/', { replace: true })}>
+            Go to Production
+          </Button>
         </div>
       </Panel>
     </div>
