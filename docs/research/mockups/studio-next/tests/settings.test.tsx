@@ -99,7 +99,7 @@ describe('Settings: editing', () => {
     expect(within(adv).getByText('This project uses the computer setting.')).toBeInTheDocument()
     await u.click(within(adv).getByRole('button', { name: /Override Two-pass check for this project/ }))
     expect(getState().ui.settings.overrides['stt.cascade']).toBe('false')
-    expect(within(row('stt.cascade')).getByText('Overridden here')).toBeInTheDocument()
+    expect(within(row('stt.cascade')).getByText(/overridden here/)).toBeInTheDocument()
     await u.click(within(row('stt.cascade')).getByRole('checkbox', { name: /this project/ }))
     expect(getState().ui.settings.overrides['stt.cascade']).toBe('true')
     await u.click(within(row('stt.cascade')).getByRole('button', { name: /Use the computer setting/ }))
