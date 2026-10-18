@@ -143,3 +143,56 @@ describe('CompanionPage', () => {
     expect(screen.getByText('the booth')).toBeTruthy();
   });
 });
+
+// The loading state (definition-of-done.md state matrix): a skeleton in the Companion's own window while the chapters (or the credits) are
+// read, then the page, the Booth for a read that fails or credits with no text, never a blank window or an endless skeleton.
+describe('CompanionPage loading state', () => {
+  const never = () => new Promise<never>(() => {});
+  function open(entry: string, overrides: Partial<NarrationApi> = {}) {
+    render(
+      <MemoryRouter initialEntries={[entry]}>
+        <ApiProvider api={createMockApi(overrides)}>
+          <CommandRouter>
+            <Routes>
+              <Route path="/companion" element={<CompanionPage />} />
+              <Route path="/booth" element={<p>the booth</p>} />
+            </Routes>
+            <Probe />
+          </CommandRouter>
+        </ApiProvider>
+      </MemoryRouter>,
+    );
+  }
+  const region = () => screen.queryByRole('group', { name: 'Loading the Companion' });
+
+  it('shows the Companion window with its title and a busy region while the chapters are read, however long that takes', async () => {
+    open('/companion', { manuscriptChapters: never });
+    expect(await screen.findByRole('heading', { level: 1, name: 'Companion' })).toBeTruthy();
+    expect(region()?.getAttribute('aria-busy')).toBe('true');
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    expect(region()).toBeTruthy();
+    expect(screen.queryByText('the booth')).toBeNull();
+  });
+
+  it('is replaced by the Companion when the chapters arrive', async () => {
+    const first = (await createMockApi().manuscriptChapters())[0];
+    open(`/companion?chapter=${encodeURIComponent(first.id)}`);
+    await screen.findAllByText('resume-prompt');
+    expect(region()).toBeNull();
+  });
+
+  it('goes to the Booth, not an endless skeleton, when the chapters cannot be read', async () => {
+    open('/companion', { manuscriptChapters: () => Promise.reject(new Error('unreadable')) });
+    expect(await screen.findByText('the booth')).toBeTruthy();
+    expect(region()).toBeNull();
+  });
+
+  it('shows the skeleton while credits are read, and goes to the Booth for credits with no text', async () => {
+    let release: (value: []) => void = () => {};
+    open('/companion?credits=opening', { creditsTemplates: () => new Promise((resolve) => (release = resolve as typeof release)) });
+    expect(await screen.findByRole('group', { name: 'Loading the Companion' })).toBeTruthy();
+    release([]);
+    await waitFor(() => expect(screen.getByTestId('where').textContent).toBe('/booth?credits=opening'));
+    expect(region()).toBeNull();
+  });
+});
