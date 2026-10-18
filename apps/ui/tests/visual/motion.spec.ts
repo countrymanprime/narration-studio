@@ -91,7 +91,7 @@ test.describe('Motion / reduced', () => {
     await expect(page.locator('[role="menu"]').first()).toHaveCSS('opacity', '1');
   });
 
-  test('<html data-motion="reduce"> stops the rail whatever Windows says', async ({ page }) => {
+  test('data-motion="reduce" on the page stops the rail whatever Windows says', async ({ page }) => {
     await page.emulateMedia({ reducedMotion: 'no-preference' });
     await page.goto('/');
     await page.evaluate(() => (document.documentElement.dataset.motion = 'reduce'));
