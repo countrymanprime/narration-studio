@@ -249,7 +249,14 @@ export function ProofPage({
     if (findings.length > 0 && !findings.some((f) => f.id === selectedId)) select(findings[0].id);
   }, [findings, selectedId, select]);
   const selected = findings.find((f) => f.id === selectedId) ?? null;
-  const order = useMemo(() => findings.map((f) => f.id), [findings]);
+  // The rows the notes list shows (a chip, the find box or the "In view" window can hide some): keys and the step after a decision follow them.
+  const [shown, setShown] = useState<readonly string[] | null>(null);
+  const order = useMemo(() => {
+    const all = findings.map((f) => f.id);
+    if (shown === null) return all;
+    const visible = new Set(shown);
+    return all.filter((id) => visible.has(id));
+  }, [findings, shown]);
 
   const replace = useCallback((next: Finding) => setFindings((list) => list.map((f) => (f.id === next.id ? held(next) : f))), []);
   // A decision is one journal entry, so Ctrl+Z and History take it back as the toast's Undo does (mock `decideNote` over `act`). Undo puts the
@@ -472,6 +479,7 @@ export function ProofPage({
               sort={sort}
               onSortChange={setSort}
               selectedId={selectedId}
+              onShownChange={setShown}
               onSelect={(id) => {
                 const open = opening.current;
                 opening.current = false;

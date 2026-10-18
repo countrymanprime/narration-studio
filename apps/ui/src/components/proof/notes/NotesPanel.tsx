@@ -46,6 +46,7 @@ export function NotesPanel({
   onSortChange,
   selectedId,
   onSelect,
+  onShownChange,
   window: win,
   badge,
   lead,
@@ -57,6 +58,8 @@ export function NotesPanel({
   onSortChange: (sort: NoteSort) => void;
   selectedId: string | null;
   onSelect: (id: string) => void;
+  /** The ids the list shows right now, in order, so the page's own keys step through the same rows. */
+  onShownChange?: (ids: readonly string[]) => void;
   /** The waveform window (SN-Q42 owns it): the "In view" chip appears only when it is narrower than the chapter. */
   window?: NoteWindow;
   badge?: (row: NoteRow) => ReactNode;
@@ -81,6 +84,17 @@ export function NotesPanel({
     () => base.filter((r) => matchesChip(r, chip) && (!inView || !narrow || inWindow(r, win)) && matchesFind(r, query)),
     [base, chip, inView, narrow, win, query],
   );
+
+  // The page's own keys (J/K, the arrows, the step after a decision) walk the rows shown here, not every note the chapter holds.
+  // `rows` is rebuilt whenever the waveform window object is, so the ids are compared by value before the page is told.
+  const shownIds = useMemo(() => rows.map((r) => r.id), [rows]);
+  const shownKey = shownIds.join('\u0000');
+  const reported = useRef<string | null>(null);
+  useEffect(() => {
+    if (reported.current === shownKey) return;
+    reported.current = shownKey;
+    onShownChange?.(shownIds);
+  }, [shownKey, shownIds, onShownChange]);
 
   const closeFind = () => {
     setFindOpen(false);
