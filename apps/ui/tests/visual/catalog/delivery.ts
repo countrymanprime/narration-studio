@@ -15,19 +15,7 @@ export const deliveryStates: StateEntry[] = [
     page: 'delivery',
     state: 'measured',
     description:
-      'Delivery with the book already checked (?mockMeasure=spread) - "Before you build" counting the chapters that pass, each row opening the chapter in Master & QC, and Output with Build off, counting the chapters not ready and naming the first of them in red ("Opening credits: no measured file yet.")',
-  },
-  {
-    page: 'delivery',
-    state: 'failing-chapter',
-    description:
-      'Delivery after Master & QC measured three files (the first at 48 kHz, the second silent, the third unreadable) - Build off, "1 failing, ..." and, in red under it, the first failing chapter with its rule, value and limit ("Chapter 1 — Down the Rabbit-Hole: sample rate 48 kHz (limit 44.1 kHz).")',
-  },
-  {
-    page: 'delivery',
-    state: 'many-chapters',
-    description:
-      'Delivery for a 5002-chapter book (?mockBooth=many-chapters) - the first hundred chapters listed under "Before you build", the count above them for the whole book, and "Show the other 4902 chapters" below the list',
+      'Delivery with the book already checked (?mockMeasure=spread) - "Before you build" counting the chapters that pass, each row opening the chapter in Master & QC, and Output asking to master to spec first',
   },
   {
     page: 'delivery',
@@ -69,7 +57,7 @@ export const deliveryStates: StateEntry[] = [
     page: 'delivery',
     state: 'host-quiet',
     description:
-      'Delivery with a build running and the host no longer answering (?mockDelivery=quiet) - "Can\'t tell how the build is going, last heard N s ago" with Check again, Cancel still offered, and no "Every chapter passes." beside Build (it would be a stale fact)',
+      'Delivery with a build running and the host no longer answering (?mockDelivery=quiet) - "Can\'t tell how the build is going, last heard N s ago" with Check again, Cancel still offered',
   },
   {
     page: 'delivery',

@@ -38,7 +38,7 @@ describe('NavButton', () => {
     expect(other).not.toContain('inset_3px');
   });
 
-  // The values come from the Studio Next mock's `.nav` (the frozen reference): 40 px on the rail's 42 px pitch, Barlow Condensed 15 px tracked 0.12 em, radius 8, a 20 px icon in a 22 px box.
+  // The Studio Next mock's `.nav` (ADR 0760): 40 px on the rail's 42 px pitch, Barlow Condensed 15 px tracked 0.12 em, radius 8, a 20 px icon in a 22 px box.
   it('is the measured item', () => {
     render(
       <NavButton active={false} icon={faHouse} onClick={() => {}}>

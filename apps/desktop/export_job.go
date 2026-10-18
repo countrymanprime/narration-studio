@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"log/slog"
 	"os"
 	"path/filepath"
 	"sync"
@@ -216,7 +215,7 @@ func (j *exportJob) finish(cancelled bool, broken error) {
 			failed++
 		case exportFileMastering, exportFileEncoding:
 			if broken != nil {
-				j.files[i].Status, j.files[i].Error = exportFileFailed, "the export stopped unexpectedly on this file"
+				j.files[i].Status, j.files[i].Error = exportFileFailed, "the export stopped unexpectedly: "+broken.Error()
 				failed++
 				continue
 			}
@@ -229,7 +228,7 @@ func (j *exportJob) finish(cancelled bool, broken error) {
 	}
 	switch {
 	case broken != nil:
-		j.phase, j.message, j.errorText = "error", "The export stopped unexpectedly.", "The export stopped unexpectedly."
+		j.phase, j.message, j.errorText = "error", "The export stopped unexpectedly.", broken.Error()
 	case cancelled:
 		j.phase = "cancelled"
 		j.message = fmt.Sprintf("Export cancelled. %d of %d files were prepared.", done, len(j.files))
@@ -357,7 +356,6 @@ func (h *Host) runExport(
 		var broken error
 		if recovered := recover(); recovered != nil {
 			broken = fmt.Errorf("%v", recovered)
-			runlog.FromContext(ctx).Event(slog.LevelError, "export.panic", "the export stopped unexpectedly: "+broken.Error())
 		}
 		job.finish(ctx.Err() != nil && broken == nil, broken)
 		h.publishExportEnd(job)

@@ -30,11 +30,6 @@ export type CommandDescriptor = {
    * shadowed row. `findConflicts` skips each named pair and still reports any other row on the gesture.
    */
   shadows?: readonly CommandId[];
-  /**
-   * A held key keeps running the command at the keyboard's repeat rate. Absent means press-only: a held key runs it once, so a footswitch that
-   * holds its key down cannot fire it twice. Only the rows that step through the text and have no side effect set it.
-   */
-  repeats?: true;
   /** A modified gesture that a text field already answers (Ctrl+Z is the field's own undo): the router leaves it to the field and runs the command from anywhere else. */
   fieldsKeep?: true;
 };
@@ -117,42 +112,17 @@ export const COMMAND_CATALOG: readonly CommandDescriptor[] = [
     group: 'Editing',
     surfaces: ['help', 'settings'],
   },
-  {
-    id: 'workspace.word.prev',
-    label: 'Previous word',
-    scope: 'page',
-    defaults: [key('ArrowLeft')],
-    group: 'Editing',
-    repeats: true,
-    surfaces: ['help', 'settings'],
-  },
-  {
-    id: 'workspace.word.next',
-    label: 'Next word',
-    scope: 'page',
-    defaults: [key('ArrowRight')],
-    group: 'Editing',
-    repeats: true,
-    surfaces: ['help', 'settings'],
-  },
+  { id: 'workspace.word.prev', label: 'Previous word', scope: 'page', defaults: [key('ArrowLeft')], group: 'Editing', surfaces: ['help', 'settings'] },
+  { id: 'workspace.word.next', label: 'Next word', scope: 'page', defaults: [key('ArrowRight')], group: 'Editing', surfaces: ['help', 'settings'] },
   {
     id: 'workspace.paragraph.prev',
     label: 'Previous paragraph',
     scope: 'page',
-    repeats: true,
     defaults: [key('ArrowUp')],
     group: 'Editing',
     surfaces: ['help', 'settings'],
   },
-  {
-    id: 'workspace.paragraph.next',
-    label: 'Next paragraph',
-    scope: 'page',
-    defaults: [key('ArrowDown')],
-    group: 'Editing',
-    repeats: true,
-    surfaces: ['help', 'settings'],
-  },
+  { id: 'workspace.paragraph.next', label: 'Next paragraph', scope: 'page', defaults: [key('ArrowDown')], group: 'Editing', surfaces: ['help', 'settings'] },
   { id: 'workspace.flag.prev', label: 'Previous flag', scope: 'page', defaults: [key('BracketLeft')], group: 'Editing', surfaces: ['help', 'settings'] },
   { id: 'workspace.flag.next', label: 'Next flag', scope: 'page', defaults: [key('BracketRight')], group: 'Editing', surfaces: ['help', 'settings'] },
   // The Editing page's keys (SNE-3, mock `Editing.tsx` `registerKeys('editing')`). The seven `workspace.*` rows above keep their ids so a saved binding
@@ -163,7 +133,6 @@ export const COMMAND_CATALOG: readonly CommandDescriptor[] = [
     id: 'editing.word.extend.prev',
     label: 'Extend the selection one word left',
     scope: 'page',
-    repeats: true,
     defaults: [key('ArrowLeft', ['Shift'])],
     group: 'Editing',
     surfaces: ['help', 'settings'],
@@ -172,7 +141,6 @@ export const COMMAND_CATALOG: readonly CommandDescriptor[] = [
     id: 'editing.word.extend.next',
     label: 'Extend the selection one word right',
     scope: 'page',
-    repeats: true,
     defaults: [key('ArrowRight', ['Shift'])],
     group: 'Editing',
     surfaces: ['help', 'settings'],
@@ -181,20 +149,11 @@ export const COMMAND_CATALOG: readonly CommandDescriptor[] = [
     id: 'editing.phrase.prev',
     label: 'Previous phrase',
     scope: 'page',
-    repeats: true,
     defaults: [key('ArrowLeft', ['Mod'])],
     group: 'Editing',
     surfaces: ['help', 'settings'],
   },
-  {
-    id: 'editing.phrase.next',
-    label: 'Next phrase',
-    scope: 'page',
-    defaults: [key('ArrowRight', ['Mod'])],
-    group: 'Editing',
-    repeats: true,
-    surfaces: ['help', 'settings'],
-  },
+  { id: 'editing.phrase.next', label: 'Next phrase', scope: 'page', defaults: [key('ArrowRight', ['Mod'])], group: 'Editing', surfaces: ['help', 'settings'] },
   {
     id: 'editing.delete',
     label: 'Delete the selected words and audio',
@@ -428,42 +387,17 @@ export const COMMAND_CATALOG: readonly CommandDescriptor[] = [
   // Space stays the one record action: a pedal's only default is Space. "+" is Shift+Equal, which would also fire while typing, so
   // the larger-text keys are Equal and the numpad plus.
   { id: 'reading.toggle', label: 'Record or stop', scope: 'booth', defaults: [key('Space')], group: 'Booth', surfaces: ['help', 'settings'] },
-  {
-    id: 'booth.phrase.next',
-    label: 'Next phrase',
-    scope: 'booth',
-    defaults: [key('ArrowDown')],
-    group: 'Booth',
-    repeats: true,
-    surfaces: ['help', 'settings'],
-  },
+  { id: 'booth.phrase.next', label: 'Next phrase', scope: 'booth', defaults: [key('ArrowDown')], group: 'Booth', surfaces: ['help', 'settings'] },
   {
     id: 'booth.phrase.prev',
     label: 'Previous phrase',
     scope: 'booth',
     defaults: [key('ArrowUp'), key('Backspace')],
     group: 'Booth',
-    repeats: true,
     surfaces: ['help', 'settings'],
   },
-  {
-    id: 'booth.word.next',
-    label: 'Next word in the booth',
-    scope: 'booth',
-    defaults: [key('ArrowRight')],
-    group: 'Booth',
-    repeats: true,
-    surfaces: ['help', 'settings'],
-  },
-  {
-    id: 'booth.word.prev',
-    label: 'Previous word in the booth',
-    scope: 'booth',
-    defaults: [key('ArrowLeft')],
-    group: 'Booth',
-    repeats: true,
-    surfaces: ['help', 'settings'],
-  },
+  { id: 'booth.word.next', label: 'Next word in the booth', scope: 'booth', defaults: [key('ArrowRight')], group: 'Booth', surfaces: ['help', 'settings'] },
+  { id: 'booth.word.prev', label: 'Previous word in the booth', scope: 'booth', defaults: [key('ArrowLeft')], group: 'Booth', surfaces: ['help', 'settings'] },
   { id: 'booth.roll', label: 'Punch and roll from here', scope: 'booth', defaults: [key('KeyR')], group: 'Booth', surfaces: ['help', 'settings'] },
   { id: 'booth.view.down', label: 'Scroll the text down', scope: 'booth', defaults: [key('PageDown')], group: 'Booth', surfaces: ['help', 'settings'] },
   { id: 'booth.view.up', label: 'Scroll the text up', scope: 'booth', defaults: [key('PageUp')], group: 'Booth', surfaces: ['help', 'settings'] },

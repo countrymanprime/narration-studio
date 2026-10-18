@@ -206,10 +206,4 @@ export const proofChapterStates: StateEntry[] = [
       'Proof chapter view, the Native takes panel with two takes assigned to the same line, one marked the keeper (narrator-confirmed, undoable) and the other not',
     ...KEEPS_DESKTOP_SCROLL,
   },
-  {
-    page: 'proof-chapter',
-    state: 'loading',
-    description:
-      'Proof chapter view while the chapter is still being read (?mockChapters=loading, opened at /proof/chapter-1): the Proof title and grey blocks where the breadcrumb and the panels will be, with one polite "Reading the chapter…" status',
-  },
 ];

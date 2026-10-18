@@ -1,4 +1,4 @@
-import { useId, useRef, useState } from 'react';
+import { useRef, useState } from 'react';
 import type { PickupItem } from '../../../api/contracts/pickups';
 import type { Measured } from '../../../api/schemas/base';
 import { useOverlay } from '../../../overlay/OverlayProvider';
@@ -45,17 +45,6 @@ export function SessionPanel({
   const count = picked.length;
 
   const markersReason = !markers.available ? markers.message || `${dawName} cannot add markers now.` : count === 0 ? 'No lines in the session.' : undefined;
-  /* Why the session is empty, said for what is true: nothing listed, nothing readable, all recorded, or all left out. */
-  const emptyReason = unreadable
-    ? 'The list could not be read, so the session is not known yet.'
-    : pickups.length === 0
-      ? 'There are no pickups to include yet.'
-      : pickups.every((pickup) => pickup.done)
-        ? 'Every line in view is recorded.'
-        : 'No lines in the session: tick a line to include it.';
-  /* A button that is off stays focusable and names its reason, so the keyboard reaches the why as well as the sighted. */
-  const emptyId = useId();
-  const markersId = useId();
 
   const copy = async () => {
     if (picked.length === 0) {
@@ -90,40 +79,24 @@ export function SessionPanel({
       <div className="flex flex-col gap-3">
         <div className="flex items-center justify-between">
           <span>Lines</span>
-          <b className="font-['IBM_Plex_Mono',ui-monospace,monospace]">{unreadable ? 'not known' : count}</b>
+          <b className="font-['IBM_Plex_Mono',ui-monospace,monospace]">{count}</b>
         </div>
         <div className="flex items-center justify-between">
           <span>About</span>
           <b className="font-['IBM_Plex_Mono',ui-monospace,monospace]">{minutes.ok ? `${minutes.value} min` : NOT_MEASURED}</b>
         </div>
-        <Button
-          aria-disabled={count === 0 || undefined}
-          aria-describedby={count === 0 ? emptyId : undefined}
-          className="aria-disabled:cursor-not-allowed aria-disabled:opacity-55"
-          onClick={() => count > 0 && onOpenInBooth(picked)}
-        >
+        <Button disabled={count === 0} onClick={() => onOpenInBooth(picked)}>
           Open {count} in Booth
         </Button>
         <div>
-          <IconButton
-            action="addMarker"
-            label={`Add ${count} as markers in ${dawName}`}
-            disabledReason={markersReason}
-            aria-describedby={!markers.available ? markersId : count === 0 ? emptyId : undefined}
-            pending={adding}
-            onClick={addMarkers}
-          />
+          <IconButton action="addMarker" label={`Add ${count} as markers in ${dawName}`} disabledReason={markersReason} pending={adding} onClick={addMarkers} />
         </div>
         {count === 0 && (
-          <p id={emptyId} className="text-[0.8125rem] text-[var(--text-muted)]">
-            {emptyReason}
+          <p className="text-[0.8125rem] text-[var(--text-muted)]">
+            {unreadable ? 'The list could not be read, so the session is not known yet.' : 'No lines in the session: tick a line to include it.'}
           </p>
         )}
-        {!markers.available && (
-          <p id={markersId} className="text-[0.8125rem] text-[var(--text-muted)]">
-            {markersReason}
-          </p>
-        )}
+        {!markers.available && <p className="text-[0.8125rem] text-[var(--text-muted)]">{markersReason}</p>}
       </div>
     </Panel>
   );

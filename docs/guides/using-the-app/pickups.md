@@ -36,8 +36,7 @@ manuscript heads them. The lines are grouped by chapter, each group with how man
 In a narrow window the table scrolls sideways, with a shadow on the edge that has more to see.
 
 Right-click a line for the same actions, **Open this chapter in Script**, and **Go to the note in Proof** for a line that
-came from a note. Up and Down move between lines. When you come back from the Booth with the browser's Back button after
-opening one line, that line is selected again and has the focus.
+came from a note. Up and Down move between lines.
 
 A line is recorded once its pickup marker in the DAW says so: the marker is the record of what is done, and marking a
 line recorded renames its marker. While the DAW is not answering, the app keeps the change and the line reads
@@ -50,7 +49,7 @@ Pressing a line's button again before the first press is answered does nothing, 
 flipped twice. A refusal appears as a sentence in a message at the bottom of the window.
 
 Removing a line hides it from this list only; its note or check keeps its own record. A line you added by hand can be put
-back with **Undo** on the message that follows; a line from a check or a note cannot, and its message says so. After a removal the focus moves to the next line.
+back with **Undo** on the message that follows; a line from a check or a note cannot.
 
 ### When the list cannot be read
 
@@ -62,8 +61,7 @@ while it cannot read, and whenever you return to the window.
 ![Pickups - the list could not be read: the reason and Check again](../../images/ui/pickups-unreadable.webp)
 
 **Check recordings** opens the recording check on the chapters whose check is not current, so their gaps can join the
-list. It is off when the DAW is not reachable. An off button stays in the Tab order: focus it and the reason appears, and
-a screen reader reads it as the button's description. **Add a pickup by hand** asks for the time in the
+list. It is off, with the reason, when the DAW is not reachable. **Add a pickup by hand** asks for the time in the
 recording (`05:12.0`, or `5:12`; seconds run 00 to 59) and the line to re-record (one line, up to 500 characters), and
 adds it to the chapter in view (with every chapter shown, the last chapter you stepped to, or the first). A time or
 line the app cannot use is said under its box, which is marked as wrong until you change it, and in a short message; the
@@ -78,15 +76,14 @@ for this chapter**. If a chapter you were viewing is no longer in the manuscript
 
 ## Pickup session
 
-The **Pickup session** panel beside the list counts the open lines in view that are not left out: **Lines** (**not known** while the list cannot be read), and
+The **Pickup session** panel beside the list counts the open lines in view that are not left out: **Lines**, and
 **About** how many minutes they take to record, from the recordings' measured times (it says when there is no measured
 figure). From there:
 
 - **Open N in Booth** opens the Booth on those lines, starting with the first line's chapter (see
-  [A pickup session](booth.md#a-pickup-session)). With no lines in the session it is off, and the line under the
-  buttons says why: there are no pickups yet, every line in view is recorded, or every open line is left out.
-- **Add N as markers in** the DAW puts a pickup marker at each line's place and says "Pickup markers for N lines are in
-  REAPER." (or that those markers were already there). It is off, with the reason, when the DAW cannot add markers.
+  [A pickup session](booth.md#a-pickup-session)).
+- **Add N as markers in** the DAW puts a pickup marker at each line's place. It is off, with the reason, when the DAW
+  cannot add markers.
 - **Copy the pickup script** copies the lines, one per line as "chapter · time: line", to paste elsewhere. If the window
   does not allow the clipboard, it says so.
 

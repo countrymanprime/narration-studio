@@ -83,34 +83,6 @@ describe('CommandRouter', () => {
     expect(preventDefault).toHaveBeenCalledTimes(1);
   });
 
-  it('a held key (a repeat) runs only a command that says it repeats; any other is left alone, as if the key were pressed once', () => {
-    const source = fakeSource();
-    const press = vi.fn();
-    const hold = vi.fn();
-    const PRESS_ONLY: CommandDescriptor = { id: 'test.press', label: 'Press', scope: 'page', defaults: [] };
-    const HELD: CommandDescriptor = { id: 'test.hold', label: 'Hold', scope: 'page', defaults: [], repeats: true };
-    const keymap: Keymap = { 'test.press': [gesture('keyboard', 'KeyP')], 'test.hold': [gesture('keyboard', 'KeyH')] };
-    const preventDefault = vi.fn();
-    render(
-      <CommandRouter source={source} catalog={[PRESS_ONLY, HELD]} keymap={keymap}>
-        <CommandScope kind="page">
-          <Registrar id="test.press" onFire={press} />
-          <Registrar id="test.hold" onFire={hold} />
-        </CommandScope>
-      </CommandRouter>,
-    );
-
-    act(() => source.emit({ gesture: gesture('keyboard', 'KeyP'), preventDefault, repeat: true }));
-    expect(press).not.toHaveBeenCalled();
-    expect(preventDefault).not.toHaveBeenCalled();
-    act(() => source.emit({ gesture: gesture('keyboard', 'KeyP'), preventDefault }));
-    expect(press).toHaveBeenCalledTimes(1);
-
-    act(() => source.emit({ gesture: gesture('keyboard', 'KeyH'), preventDefault, repeat: true }));
-    act(() => source.emit({ gesture: gesture('keyboard', 'KeyH'), preventDefault, repeat: true }));
-    expect(hold).toHaveBeenCalledTimes(2);
-  });
-
   it('leaves a gesture no command takes alone (no preventDefault)', () => {
     const source = fakeSource();
     const preventDefault = vi.fn();

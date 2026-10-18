@@ -21,6 +21,7 @@ import { wireClone } from './mockFixtures';
 
 const MAX_FILES = 500;
 const QUARTERS_PER_FILE = 4;
+const BROKE = 'runtime error: index out of range [4] with length 4';
 
 /** docs/architecture/codebase-map.md's starting thresholds (measure.DefaultDiagnosticOptions). */
 export const MOCK_DIAGNOSTICS_THRESHOLDS: DiagnosticsThresholds = {
@@ -251,9 +252,9 @@ export function createDiagnosticsMock(
     if (seed === 'fails') {
       job = {
         ...job,
-        error: 'The diagnostics stopped unexpectedly.',
+        error: BROKE,
         files: job.files.map((file, i) =>
-          i === 0 ? { ...file, status: 'failed', error: 'the diagnostics stopped unexpectedly on this file' } : { ...file, status: 'cancelled' },
+          i === 0 ? { ...file, status: 'failed', error: `the diagnostics stopped unexpectedly: ${BROKE}` } : { ...file, status: 'cancelled' },
         ),
       };
       end('error', 'The diagnostics stopped unexpectedly.');

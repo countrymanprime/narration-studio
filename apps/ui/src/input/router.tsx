@@ -146,8 +146,6 @@ export function CommandRouter({ children, source, catalog = COMMAND_CATALOG, key
         // A row with nothing registered (its page isn't mounted) is skipped; with none registered at all the gesture is left alone.
         const command = commandsForGesture(catalogRef.current, keymapRef.current, scope, event.gesture).find((row) => handlers.current.has(row.id));
         if (!command) continue;
-        // A held key runs only a command that steps through text; any other is press-only, so its repeats are left alone as they always were.
-        if (event.repeat && !command.repeats) return;
         // A text field's own gesture (its undo): the field answers it, so nothing is consumed and nothing runs.
         if (command.fieldsKeep && event.target instanceof Element && event.target.closest(EDITABLE)) return;
         const handler = handlers.current.get(command.id)!;

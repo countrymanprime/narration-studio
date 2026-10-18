@@ -64,12 +64,9 @@ no package was built. A package cannot be saved inside the project's own `narrat
 
 Build is on once every chapter passes, and files have been mastered and encoded in Master & QC. Until then it
 says how many chapters fail and how many are not ready, that there are no chapters, that you must master all
-to spec in Master & QC first, or that Master & QC is still preparing the files. While Build is off, a red line
-under it names the first chapter in the way, so you do not have to open Master & QC to learn why. For a failing
-chapter it gives the rule it misses, its value and the limit ("Chapter 8: noise floor −57.8 dBFS (limit ≤ −60
-dBFS), and 1 more rule."). When no chapter fails, it names the first chapter that is not ready and why: it has no
-measured file, its file is not measured yet or could not be read, or part of it could not be measured. Until
-something is measured, the line is left off and the count beside Build says so.
+to spec in Master & QC first, or that Master & QC is still preparing the files. While Build is off for a failing
+chapter, a red line under it names the first one, the rule it misses, its value and the limit ("Chapter 8: noise
+floor −57.8 dBFS (limit ≤ −60 dBFS), and 1 more rule."), so you do not have to open Master & QC to learn why.
 
 ![Delivery with every chapter passing and the files encoded: Build ACX package is on](../../images/ui/delivery-ready.webp)
 

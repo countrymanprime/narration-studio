@@ -2,7 +2,7 @@
 // It opens on Chapter 1 (the mock's last chapter read) unless a state picks otherwise. The Companion rows open `/companion`.
 import type { Page } from '@playwright/test';
 import { settlePage } from '../helpers/settle';
-import { type Driver, chooseTheme, clickNav, goToPage, openBooth, selectReaderWord, openWithoutManuscript } from './shared';
+import { type Driver, chooseTheme, goToPage, openBooth, selectReaderWord, openWithoutManuscript } from './shared';
 
 // The record capability on, so Record is enabled (the mock's REAPER keeps it switched off by default, which is the refusal row).
 const RECORD_ON = '?mockRecordCapabilityOn=1';
@@ -46,28 +46,7 @@ async function openCompanion(page: Page, query = ''): Promise<void> {
   await page.getByRole('heading', { level: 1, name: 'Companion' }).waitFor();
 }
 
-// The Booth's chapters read with a seam, opened through the rail: the page's content never arrives (`loading`), so `goToPage` is not used.
-async function openBoothReading(page: Page, seam: 'loading' | 'fails'): Promise<void> {
-  await page.goto(`/?mockChapters=${seam}`);
-  await settlePage(page);
-  await clickNav(page, 'Booth');
-}
-
 export const boothDrivers: Record<string, Driver> = {
-  loading: async (page) => {
-    await openBoothReading(page, 'loading');
-    await page.getByRole('group', { name: 'Loading the Booth' }).waitFor();
-  },
-  'companion-loading': async (page) => {
-    await openCompanion(page, '?mockChapters=loading');
-    await page.getByRole('group', { name: 'Loading the Companion' }).waitFor();
-  },
-  'load-failed': async (page) => {
-    await openBoothReading(page, 'fails');
-    await page.locator('p[role="alert"]', { hasText: 'The manuscript could not be read from this project.' }).waitFor();
-    // The failed host call also raises its own toast, which removes itself on a real timer and would race the screenshot: dismiss it.
-    await page.getByRole('button', { name: 'Dismiss message' }).click();
-  },
   setup: (page) => readyToRecord(page),
   'daw-not-linked': async (page) => {
     await openBooth(page, '?mockDawChoice=found');

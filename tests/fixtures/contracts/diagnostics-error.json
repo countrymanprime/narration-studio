@@ -9,7 +9,7 @@
     "The diagnostics stopped unexpectedly."
   ],
   "elapsed": 3.5,
-  "error": "The diagnostics stopped unexpectedly.",
+  "error": "runtime error: index out of range [4] with length 4",
   "sourceKind": "processed_render",
   "thresholds": {
     "clip_ceiling_dbfs": 0,
@@ -37,7 +37,7 @@
       "summary": null,
       "findings": null,
       "cleanupFindings": null,
-      "error": "the diagnostics stopped unexpectedly on this file"
+      "error": "the diagnostics stopped unexpectedly: runtime error: index out of range [4] with length 4"
     },
     {
       "path": "C:/Renders/Chapter 02.wav",

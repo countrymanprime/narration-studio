@@ -20,7 +20,6 @@ import { LoadError } from '../../layout/LoadError';
 import { retailSampleRange } from '../../manuscript/retailSampleRange';
 import { IconButton } from '../../primitives/IconButton';
 import { KeyHints } from '../../primitives/KeyHints';
-import { ScriptSkeleton } from './layout/ScriptSkeleton';
 import { PANEL_FRAME_CLASS } from '../../primitives/panelStyles';
 import type { Notify } from '../../primitives/Toast';
 import { useBookmarkCommands } from '../bookmarks/model/useBookmarkCommands';
@@ -93,7 +92,12 @@ export function ScriptPage(props: ScriptPageProps) {
   const navigate = useNavigate();
   const listable = useMemo(() => (chapters.value ?? []).filter(isListableChapter), [chapters.value]);
   if (chapters.status === 'error' && chapters.value === undefined) return <LoadError title="Script" message={chapters.message} retry={chapters.retry} />;
-  if (chapters.value === undefined) return <ScriptSkeleton />;
+  if (chapters.value === undefined)
+    return (
+      <p role="status" className="p-4 text-sm text-[var(--text-muted)]">
+        Reading the manuscript…
+      </p>
+    );
   if (listable.length === 0) return <NeedManuscript title="Script" onImport={() => navigate('/')} />;
   return (
     <CommandScope kind="page">

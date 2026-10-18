@@ -5,7 +5,6 @@ import type { CreditsRenderResult, GuideEntity, ManuscriptChapter, ManuscriptNot
 import type { BoothSource } from '../page/useBoothData';
 import type { CreditsKind } from '../readerModel';
 import { ACTIVE_PHASES } from '../useTeleprompterSession';
-import { CompanionSkeleton } from './CompanionSkeleton';
 import { CompanionHost } from './CompanionHost';
 import { addressPath } from '../../../navigation/address';
 
@@ -32,8 +31,6 @@ export function CompanionPage({ onFixCredits }: Props) {
   const [notes, setNotes] = useState<ManuscriptNote[]>(NO_NOTES);
   const [fallback, setFallback] = useState('');
   const [credits, setCredits] = useState<CreditsRenderResult>();
-  // The credits kind read last, with text or without, so empty credits are not waited for for ever.
-  const [creditsReadOf, setCreditsReadOf] = useState<string>();
   const creditsParam = params.get('credits');
   const creditsKind = CREDITS_KINDS.find((kind) => kind === creditsParam);
 
@@ -69,9 +66,7 @@ export function CompanionPage({ onFixCredits }: Props) {
       const templates = await api.creditsTemplates().catch(() => []);
       const template = templates.find((item) => item.kind === creditsKind);
       const preview = template ? await api.creditsPreview(template.body).catch(() => undefined) : undefined;
-      if (!live) return;
-      setCredits(preview && preview.words > 0 ? preview : undefined);
-      setCreditsReadOf(creditsKind);
+      if (live) setCredits(preview && preview.words > 0 ? preview : undefined);
     })();
     return () => {
       live = false;
@@ -85,14 +80,12 @@ export function CompanionPage({ onFixCredits }: Props) {
     [notes, chapter],
   );
 
-  if (!chapters) return <CompanionSkeleton />;
+  if (!chapters) return null;
   if (!creditsKind && !chapter) return <Navigate to="/booth" replace />;
   const source: BoothSource | undefined = creditsKind
     ? credits && { kind: 'credits', credits: creditsKind, preview: credits }
     : { kind: 'chapter', chapter: chapter! };
-  // The credits asked for are still being read, or have no text: the Booth says so for them.
-  if (!source)
-    return creditsReadOf === creditsKind ? <Navigate to={addressPath({ page: 'booth', target: { credits: creditsKind! } })} replace /> : <CompanionSkeleton />;
+  if (!source) return null;
   const toBooth = () => navigate(addressPath({ page: 'booth', target: creditsKind ? { credits: creditsKind } : { chapter: chapter!.id } }));
   return (
     <div className="flex size-full flex-col">

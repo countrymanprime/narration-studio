@@ -248,8 +248,6 @@ export function ProofPage({
   const listRef = useRef(findings);
   listRef.current = findings;
   const entryOf = useRef(new Map<string, number>());
-  const scopeRef = useRef({ all, scope });
-  scopeRef.current = { all, scope };
   const journalledReview = useCallback(
     async (request: Parameters<typeof findingsApi.findingsReview>[0]): Promise<Finding> => {
       const before = listRef.current.find((f) => f.id === request.id);
@@ -276,9 +274,6 @@ export function ProofPage({
             });
             replace(back);
             select(request.id);
-            // The note may be in a chapter other than the one now open: go back to it, so the decision taken back is the one in view.
-            const home = chapterOf(before);
-            if (home && !scopeRef.current.all && scopeRef.current.scope !== home) choose(home);
             setReload((n) => n + 1);
             return { ok: true as const, value: back };
           } catch (error) {
@@ -291,7 +286,7 @@ export function ProofPage({
       entryOf.current.set(request.id, result.value.id);
       return result.value.value;
     },
-    [findingsApi, journal, replace, select, choose],
+    [findingsApi, journal, replace, select],
   );
   const inspectorApi = useMemo(() => ({ ...findingsApi, findingsReview: journalledReview }), [findingsApi, journalledReview]);
   // A saved decision moves to the next note and offers Undo: the journal entry's own undo.

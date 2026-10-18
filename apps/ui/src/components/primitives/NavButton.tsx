@@ -4,7 +4,7 @@ import { faLock, type faHouse } from '@fortawesome/free-solid-svg-icons';
 import { Popover } from './Popover';
 import { TooltipTarget } from './Tooltip';
 
-// The nav item with the values taken from the Studio Next mock's `.nav` (the frozen reference, `docs/design/design-system.md#which-mocks-are-the-spec`): 40 px tall on a 42 px pitch (the rail's group puts 2 px between items),
+// The nav item as the Studio Next mock's `.nav` draws it (ADR 0760): 40 px tall on a 42 px pitch (the rail's group puts 2 px between items),
 // radius 8 (6 on the right for the current page), the label Barlow Condensed 600 at 15 px tracked 0.12em in capitals, a 20 px icon in a fixed 22 px box (`!`: FontAwesome's `fa-fw` sets 1.25em), 10 px from the label.
 // The current page is the mock's default "bar" highlight (`html[data-hl="bar"] .nav[aria-current="page"]`): `--surface-2` (the mock's `--raised`)
 // with the label in `--text` and a 3 px `--accent` bar down its left edge, square on the left and 6 px round on the right. The icon-only rail (`medium-rail`) keeps its 40 px square items and 16 px icons.

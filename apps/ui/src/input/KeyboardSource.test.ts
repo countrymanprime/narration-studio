@@ -31,17 +31,14 @@ describe('createKeyboardSource', () => {
     unsubscribe();
   });
 
-  it('passes a repeated key (held down) on marked as a repeat, and a first press unmarked, so the router decides', () => {
+  it('ignores a repeated key (held down)', () => {
     const source = createKeyboardSource(document);
     const onGesture = vi.fn();
     const unsubscribe = source.subscribe(onGesture);
 
-    document.dispatchEvent(keydown({ code: 'Space' }));
     document.dispatchEvent(keydown({ code: 'Space', repeat: true }));
 
-    expect(onGesture).toHaveBeenCalledTimes(2);
-    expect(onGesture.mock.calls[0][0].repeat).toBeFalsy();
-    expect(onGesture.mock.calls[1][0].repeat).toBe(true);
+    expect(onGesture).not.toHaveBeenCalled();
     unsubscribe();
   });
 

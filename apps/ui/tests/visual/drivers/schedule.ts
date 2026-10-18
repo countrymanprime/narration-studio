@@ -15,13 +15,6 @@ async function openSchedule(page: Parameters<Driver>[0], query = '', day: Date =
 }
 
 export const scheduleDrivers: Record<string, Driver> = {
-  // The plan never answers, so `openSchedule` (which waits for the Milestones heading) is not used. No date is drawn, so the clock is left alone.
-  loading: async (page) => {
-    await page.goto('/?mockPlan=loading');
-    await settlePage(page);
-    await clickNav(page, 'Schedule');
-    await page.getByRole('group', { name: 'Loading the Schedule' }).waitFor();
-  },
   'no-due-date': async (page) => {
     await openSchedule(page);
     await page.getByText('No due date set').first().waitFor();

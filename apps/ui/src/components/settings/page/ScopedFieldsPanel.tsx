@@ -5,7 +5,7 @@ import type { Scope, ScopedSettingField } from '../../../types';
 import { Button } from '../../primitives/Button';
 import { ConfirmDialog } from '../../primitives/ConfirmDialog';
 import { Panel } from '../../primitives/Panel';
-import { type Notify, retryAction } from '../../primitives/Toast';
+import type { Notify } from '../../primitives/Toast';
 import { ToggleGroup } from '../../primitives/ToggleGroup';
 import { ScopedSetting } from '../ScopedSetting';
 import { useScopedFields, useSettingsForms } from '../data/settingsForms';
@@ -85,12 +85,7 @@ export function ScopedFieldsPanel({ id, title, tool, scopes, filter, notify, bef
       setDirty(false);
       await reload();
     } catch (failure) {
-      // Saving the same edit again sets the same values, so it is safe to repeat.
-      notify(
-        describeApiError(failure),
-        'error',
-        retryAction(() => void save()),
-      );
+      notify(describeApiError(failure), 'error');
     }
   }, [system, notify, read, reload, scope, tool, values]);
   const discard = useCallback(async () => {
@@ -109,11 +104,7 @@ export function ScopedFieldsPanel({ id, title, tool, scopes, filter, notify, bef
       notify('Project override cleared.');
       await reload();
     } catch (failure) {
-      notify(
-        describeApiError(failure),
-        'error',
-        retryAction(() => void clearOverride(key)),
-      );
+      notify(describeApiError(failure), 'error');
     }
   };
   const chooseScope = (next: Scope) => {

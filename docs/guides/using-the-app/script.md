@@ -18,8 +18,6 @@ three parts side by side:
   (Ctrl+F) and the **text settings** (font, size, line spacing and column width).
 - **The rail** on the right, with five tabs: **Words**, **Story Bible**, **Notes**, **Queries** and **Bookmarks**.
 
-While the manuscript is being read, the page shows the same three columns as grey blocks; if it cannot be read, the page says so with **Retry**.
-
 A bar under the reader lists its keys: select text to mark it, add a note or query, or look it up; **↑** **↓** scroll;
 **←** **→** change the prep state of the chapter in view; **Alt+↑** **Alt+↓** go to the previous or next chapter (the
 credits included); **B**

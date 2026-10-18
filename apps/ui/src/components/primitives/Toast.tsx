@@ -7,8 +7,6 @@ import { createPortal } from 'react-dom';
 export type ToastTone = 'info' | 'error';
 /** A toast's one action (for example Undo): its own label, run when pressed, which also dismisses the toast. */
 export type ToastAction = { label: string; onAction: () => void };
-/** The Retry a failure toast carries where repeating the action is safe (a start that the host guards or an idempotent save). */
-export const retryAction = (retry: () => void): ToastAction => ({ label: 'Retry', onAction: retry });
 /** `durationMs` is how long an information message stays when it needs longer than `TOAST_INFO_MS` (an Undo the narrator may want ten seconds for). */
 export type ToastMessage = { id: number; text: string; tone: ToastTone; action?: ToastAction; icon?: IconDefinition; topic?: string; durationMs?: number };
 /** How a page or a component tells the narrator something. An error is announced at once and stays until it is dismissed.

@@ -1,7 +1,7 @@
 // How to reach each `editing` state in STATE_CATALOG (see app.drivers.ts): the Editing page.
 import type { Page } from '@playwright/test';
 import { settlePage } from '../helpers/settle';
-import { type Driver, clickNav, goToPage, openWithoutManuscript } from './shared';
+import { type Driver, goToPage, openWithoutManuscript } from './shared';
 
 /** Chapter 1 linked to its track, so its words carry their heard times. */
 const LINKED = '?mockChapterLink=confirmed';
@@ -9,13 +9,6 @@ const LINKED = '?mockChapterLink=confirmed';
 const EDITS = `${LINKED}&mockDawExperimentalOn=1`;
 
 export const editingDrivers: Record<string, Driver> = {
-  // The chapters never answer, so the page's content never arrives and `goToPage` (which waits for it) is not used.
-  loading: async (page) => {
-    await page.goto('/?mockChapters=loading');
-    await settlePage(page);
-    await clickNav(page, 'Editing');
-    await page.getByRole('group', { name: 'Loading the editor' }).waitFor();
-  },
   default: async (page) => {
     await openEditing(page, LINKED);
   },

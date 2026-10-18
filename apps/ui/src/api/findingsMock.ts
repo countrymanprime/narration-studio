@@ -275,7 +275,6 @@ export function createFindingsMock(
   saveAnalyzerFindings: (analyzer: string, chapterId: string, fresh: Finding[]) => void;
   saveFinding: (fresh: Finding) => void;
   saveFileFindings: (analyzer: string, files: readonly string[], fresh: Finding[]) => void;
-  acceptedFindings: () => Finding[];
 } {
   let store = wireClone(seed);
   // The thread's history the host keeps in review.json: how many notes each finding has had (ids are never reused) and the deleted
@@ -378,12 +377,6 @@ export function createFindingsMock(
     findingsSummary: async () => {
       foldLazySeed();
       return summarize(store);
-    },
-    // The notes decided Needs pickup (or a fix in the edit), for the pickup list to derive its Proof lines from; not a binding, and it
-    // runs no re-run, so reading the list first changes nothing a page later sees.
-    acceptedFindings: (): Finding[] => {
-      foldLazySeed();
-      return wireClone(store.filter((finding) => finding.review.status === 'accepted' && !finding.not_in_latest_run));
     },
     ...createReaperMock(options.reaper ?? 'connected', find),
     saveAnalyzerFindings: (analyzer, chapterId, fresh) => {

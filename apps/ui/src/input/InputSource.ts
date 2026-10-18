@@ -6,8 +6,6 @@ export type GestureEvent = {
   gesture: Gesture;
   target: EventTarget | null;
   preventDefault: () => void;
-  /** The key was held down and the system is repeating it (`KeyboardEvent.repeat`). The router runs it only for a command with `repeats`. Keyboard only. */
-  repeat?: boolean;
   /** Whether something nearer the target already took the key (a list that walks its own rows with the arrows). Keyboard only. */
   consumed?: () => boolean;
 };

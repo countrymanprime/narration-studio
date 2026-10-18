@@ -79,16 +79,6 @@ describe('DeliveryPage', () => {
     expect(screen.queryByText(/limit/)).toBeNull();
   });
 
-  it('names the first not-ready chapter and why beside the disabled Build when nothing fails, and nothing when nothing was measured', async () => {
-    mount([passing('Chapter 01.wav'), passing('Chapter 02.wav')]);
-    expect((await screen.findByText('Chapter 03: no measured file yet.')).textContent).toBe('Chapter 03: no measured file yet.');
-    expect(screen.getByRole('button', { name: /Build .* package/ })).toHaveProperty('disabled', true);
-    cleanup();
-    mount([]);
-    await screen.findByText('0 failing, 4 not ready');
-    expect(screen.queryByText(/no measured file yet/)).toBeNull();
-  });
-
   it('lists the first hundred chapters of a very long book and the rest on request, counting all of them', async () => {
     const many = Array.from({ length: 150 }, (_, n) => chapter(n + 1, `Part ${n + 1} of the long book`));
     mount([], { manuscriptChapters: async () => many });

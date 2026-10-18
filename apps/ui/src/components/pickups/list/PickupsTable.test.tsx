@@ -183,23 +183,6 @@ describe('PickupsTable', () => {
     expect(undo).toHaveBeenCalledOnce();
   });
 
-  it('removing a line that cannot be put back still says it was removed, and focus moves to the next line', async () => {
-    const { onRemove, user, toasts } = setup();
-    onRemove.mockResolvedValueOnce(undefined);
-    await user.click(within(rowOf('05:12.0')).getByRole('button', { name: 'Remove from pickups' }));
-    await waitFor(() => expect(toasts()).toHaveLength(1));
-    expect(toasts()[0].text).toMatch(/^Removed 05:12\.0 from pickups\. .*no Undo\.$/);
-    expect(toasts()[0].action).toBeUndefined();
-    await waitFor(() => expect(document.activeElement?.hasAttribute('data-pk')).toBe(true));
-  });
-
-  it('a refused removal says why and nothing else', async () => {
-    const { onRemove, user, toasts } = setup();
-    onRemove.mockRejectedValueOnce(new Error('That line is not in the list.'));
-    await user.click(within(rowOf('05:12.0')).getByRole('button', { name: 'Remove from pickups' }));
-    await waitFor(() => expect(toasts().map((t) => t.text)).toEqual(['That line is not in the list.']));
-  });
-
   it('Open in Booth at this line passes that pickup', async () => {
     const { onOpenInBooth, user } = setup();
     await user.click(within(rowOf('01:35.2')).getByRole('button', { name: 'Open in Booth at this line' }));
@@ -230,8 +213,6 @@ describe('PickupsTable', () => {
     const { onCheck, user } = setup({ daw: { available: false, message: 'REAPER is not open.' } });
     const check = screen.getByRole('button', { name: 'Check recordings' });
     expect(check.getAttribute('aria-disabled')).toBe('true');
-    // The reason is on the button's own description, so a screen reader that lands on it hears why, not just "dimmed".
-    expect(check.getAttribute('aria-describedby')).toBe(screen.getByText('REAPER is not open.').id);
     await user.click(check);
     expect(onCheck).not.toHaveBeenCalled();
   });

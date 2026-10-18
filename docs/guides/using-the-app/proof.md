@@ -114,7 +114,7 @@ Select a note in the table, or its pin on the waveform, and the Inspector shows 
 
 A decision is saved at once and the next note is selected. A message says what was saved, with **Undo** to put the
 note back as it was. The decision is also in the app's undo history, so Ctrl+Z, **Undo** in the header and
-[History](navigation.md) take it back too, as "Decision “Waive” at 00:12.4"; from another chapter, the undo opens the note's own chapter and selects the note. **Waive** says the line stays as it was read. **Reopen** puts a decided note back
+[History](navigation.md) take it back too, as "Decision “Waive” at 00:12.4". **Waive** says the line stays as it was read. **Reopen** puts a decided note back
 to review.
 
 A decision is always made on the evidence you are looking at. If the check ran again after the note was shown and the
@@ -194,7 +194,6 @@ linked chapter's **Open in Proof** link in the [audio engine panel](navigation.m
 Proof cell or **Open Proof** in its row's menu on [Production](production.md). Its
 notes and its recording check card are on [Proof](#one-chapter); listening to the chapter against its script, its flags, effects and
 takes are on [Editing](editing.md).
-While the chapter is being read, the view shows the page title and grey blocks; an address for a chapter the manuscript does not have says so instead.
 
 If the chapter hasn't been checked yet, the chapter view says so and offers **Check recording**, the same check
 [Production](production.md#checking-a-chapters-recording) runs.

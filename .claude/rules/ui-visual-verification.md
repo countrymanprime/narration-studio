@@ -1,6 +1,6 @@
 ---
 paths:
-  - 'apps/ui/**'
+  - "apps/ui/**"
 ---
 
 # Visual bug fixes require screenshot verification
@@ -24,7 +24,7 @@ The visual suite also runs axe on every state it captures: a violation fails the
 
 A container whose Chromium is not the pinned build runs all of these unchanged: `visual:page` and `atlas:page` pick the installed headless shell, and for a plain `playwright test` set `PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH` to it (`apps/ui/playwright.launch.ts`). Never run `playwright install` there.
 
-The visual suite also holds the overlay guard (`tests/visual/overlays.spec.ts`, [verification tooling](../../docs/operations/verification-tooling.md#overlay-guard)): every menu, popover, hint, dialog and drawer of a page must be the topmost element at its own points and fully on screen, opened at each window edge and corner, beside the sidebar and the top bar, over scrolled content, at 360x500 and 320x300 and over another overlay. A new overlay goes in the page's list in `tests/visual/overlays/`; a new page with the sidebar is added to `tests/visual/overlays/pages.ts` (it then runs the shell's page-relative overlays and its own list; the top bar's overlays run on three representative pages, [verification tooling](../../docs/operations/verification-tooling.md#overlay-guard)). It captures no screenshots.
+The visual suite also holds the overlay guard (`tests/visual/overlays.spec.ts`, [verification tooling](../../docs/operations/verification-tooling.md#overlay-guard)): every menu, popover, hint, dialog and drawer of a page must be the topmost element at its own points and fully on screen, opened at each window edge and corner, beside the sidebar and the top bar, over scrolled content, at 360x500 and 320x300 and over another overlay. A new overlay goes in the page's list in `tests/visual/overlays/`; a new page with the sidebar adds `overlayGuardFor('<Page>', shellCases)` to the spec. It captures no screenshots.
 
 `apps/ui/screenshots/` is gitignored: these are scratch verification artifacts, not committed output.
 

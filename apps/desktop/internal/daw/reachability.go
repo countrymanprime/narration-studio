@@ -55,13 +55,7 @@ type Transport struct {
 // NewReachability subscribes to client's PROJECT_STATUS broadcasts. client may be nil (no live bridge for this
 // project, for example before a session directory exists); the returned tracker then always reports unreachable.
 func NewReachability(client *bridge.Client) *Reachability {
-	return NewReachabilityWithClock(client, time.Now)
-}
-
-// NewReachabilityWithClock is NewReachability reading time from now, so a test decides how old a heartbeat is instead
-// of racing heartbeatTimeout against a slow machine.
-func NewReachabilityWithClock(client *bridge.Client, now func() time.Time) *Reachability {
-	reach := &Reachability{now: now}
+	reach := &Reachability{now: time.Now}
 	if client != nil {
 		client.Subscribe(bridge.Subscription{
 			Tags:   []string{"PROJECT_STATUS"},
