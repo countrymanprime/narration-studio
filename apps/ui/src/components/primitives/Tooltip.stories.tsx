@@ -8,7 +8,7 @@ import { Tooltip, TooltipTarget } from './Tooltip';
 const iconButtonClass =
   'inline-flex size-8 items-center justify-center rounded-md border border-[var(--border)] bg-[var(--surface)] text-[var(--text-muted)] hover:border-[var(--accent)] hover:text-[var(--accent)]';
 const cardClass =
-  'w-full rounded-lg border border-[var(--border)] bg-[var(--surface)] p-[1.1rem] text-left shadow-[var(--shadow)] transition hover:-translate-y-px disabled:pointer-events-none disabled:opacity-50';
+  'w-full rounded-lg border border-[var(--border)] bg-[var(--surface)] p-[1.1rem] text-left shadow-[var(--shadow)] motion-ok:transition hover:-translate-y-px disabled:pointer-events-none disabled:opacity-50';
 
 const meta = {
   title: 'Primitives/Tooltip',
