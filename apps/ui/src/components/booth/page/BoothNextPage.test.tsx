@@ -324,7 +324,7 @@ describe('a-built-in-take-is-guarded-too', () => {
   });
 });
 
-describe('a-reading-only-session-keeps-adr-0388', () => {
+describe('a-reading-only-session-keeps-running', () => {
   const running: TeleprompterState = { phase: 'running', message: '', engine: 'whisper', chapter: 'c1', script: null, position: null };
 
   it('the nav leaves a listening session running; Exit asks "Stop reading?" and stops it', async () => {

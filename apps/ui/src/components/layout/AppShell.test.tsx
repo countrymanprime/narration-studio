@@ -169,7 +169,7 @@ describe('AppShell grouped navigation', () => {
     }
   });
 
-  // The Studio Next mock (docs/research/mockups/studio-next, ADR 0760) draws a heading over every group but the first: Production and Schedule sit
+  // The Studio Next mock (docs/research/mockups/studio-next, the frozen reference these values came from) draws a heading over every group but the first: Production and Schedule sit
   // straight under the brand block. The first group keeps its name for a screen reader, as an `aria-label` in place of the heading.
   it('draws a heading over every group but the first, which is named by aria-label', () => {
     const { container } = renderShell();
