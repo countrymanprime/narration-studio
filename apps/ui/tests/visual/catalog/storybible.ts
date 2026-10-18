@@ -205,4 +205,16 @@ export const storybibleStates: StateEntry[] = [
     description:
       'Story Bible, the Series tab with a two-book series: characters grouped across books with their approved reference clips, each labeled by its source book',
   },
+  {
+    page: 'storybible',
+    state: 'loading',
+    description:
+      'Story Bible while the entries are still being read (?mockHold=entities): the title, buttons, tabs, search and kind chips as usual, grey blocks in the list and the detail pane, no "No entries match" sentence, and one polite "Reading the Story Bible…" status',
+  },
+  {
+    page: 'storybible',
+    state: 'series-tab-loading',
+    description:
+      'Story Bible, the Series tab while the series are still being read (?mockHold=series): the page and its tabs as usual and grey blocks in the tab, with one polite "Reading the series…" status',
+  },
 ];
