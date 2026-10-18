@@ -53,8 +53,17 @@ export function onSampleStart(stop: () => void): () => void {
   return () => void interrupts.delete(stop);
 }
 
+/** When Escape last stopped a sample, so a page whose own Escape leaves it (the Booth) can tell that this press was the sample's. */
+let escapeStoppedAt = -Infinity;
+const ESCAPE_WINDOW_MS = 100;
+
+/** True when the Escape being handled right now is the one that stopped a sample: the page keeps its own Escape for the next press. */
+export const escapeJustStoppedASample = (): boolean => Date.now() - escapeStoppedAt < ESCAPE_WINDOW_MS;
+
 const onEscape = (event: KeyboardEvent): void => {
-  if (event.key === 'Escape' && !event.defaultPrevented) stopSample();
+  if (event.key !== 'Escape' || event.defaultPrevented) return;
+  if (state.status !== 'idle') escapeStoppedAt = Date.now();
+  stopSample();
 };
 
 function element(): HTMLAudioElement {
@@ -156,4 +165,32 @@ export function stopSample(): void {
 /** Stops the sample only when `by` started it: a page that unmounts takes its own sample with it and leaves another page's alone. */
 export function stopSampleOf(by: symbol): void {
   if (owner === by) stopSample();
+}
+
+// Samples a page asked to warm before they are pressed: an `Audio` element with `preload="auto"` that is never played, so the first press finds the
+// file already fetched. Bounded, and released when the page leaves.
+const PREFETCH_LIMIT = 24;
+const warmed = new Map<string, HTMLAudioElement>();
+
+/** Warms the clip at `url` (one `Audio`, `preload="auto"`, never played). A url warmed already is left as it is; the oldest are let go past the limit. */
+export function prefetchSample(url: string): void {
+  if (warmed.has(url)) return;
+  if (warmed.size >= PREFETCH_LIMIT) releaseWarmed([...warmed.keys()][0]!);
+  const el = new Audio();
+  el.preload = 'auto';
+  el.src = url;
+  warmed.set(url, el);
+}
+
+function releaseWarmed(url: string): void {
+  const el = warmed.get(url);
+  if (!el) return;
+  el.removeAttribute('src');
+  el.load?.();
+  warmed.delete(url);
+}
+
+/** Lets go of every warmed clip except the ones in `keep`: the page warmed a new set, or left. */
+export function releasePrefetched(keep: ReadonlySet<string> = new Set()): void {
+  for (const url of [...warmed.keys()]) if (!keep.has(url)) releaseWarmed(url);
 }
