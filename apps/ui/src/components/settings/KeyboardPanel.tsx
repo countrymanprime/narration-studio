@@ -179,12 +179,15 @@ export function KeyboardPanel({
   notify,
   reload,
   catalog,
+  find = '',
 }: {
   overridesField: ScopedSettingField | undefined;
   notify: Notify;
   reload: () => Promise<void>;
   /** The catalogue to list from; a test's fake rows. Defaults to the real one. */
   catalog?: readonly CommandDescriptor[];
+  /** Lists only the commands whose name or key contains this text (the Settings page's "Find a shortcut" box). */
+  find?: string;
 }) {
   const api = useApi();
   const [recordingId, setRecordingId] = useState<CommandId>();
@@ -194,7 +197,15 @@ export function KeyboardPanel({
   const keymap = useUserKeymap(overridesField?.effectiveValue, catalog);
   const defaults = useMemo(() => defaultKeymap(catalog), [catalog]);
   const commands = useMemo(() => commandsFor('settings', catalog), [catalog]);
-  const groups = useMemo(() => groupByScope(commands), [commands]);
+  const query = find.trim().toLowerCase();
+  const listed = useMemo(
+    () =>
+      query === ''
+        ? commands
+        : commands.filter((command) => [command.label, ...(keymap[command.id] ?? []).map(gestureLabel)].some((text) => text.toLowerCase().includes(query))),
+    [commands, keymap, query],
+  );
+  const groups = useMemo(() => groupByScope(listed), [listed]);
   const anyChanged = commands.some((command) => isChanged(keymap, defaults, command.id));
 
   const persist = useCallback(
@@ -235,6 +246,7 @@ export function KeyboardPanel({
           Press <Kbd keys={gestureKeys(keymap['help.shortcuts'][0])} /> anywhere to see what works on the screen you are on.
         </p>
       )}
+      {listed.length === 0 && <p style={{ color: 'var(--text-muted)' }}>No shortcut matches.</p>}
       {SCOPE_ORDER.filter((scope) => groups[scope]?.length).map((scope) => (
         <section key={scope}>
           <SectionLabel as="h3" className="mb-1">

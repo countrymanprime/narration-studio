@@ -74,6 +74,9 @@ export function SettingRowView({ row, children, flash }: { row: SettingMeta; chi
   };
   const commit = (value: string, scope: 'global' | 'project') => void store.write(row, scope, toSend(value, scope));
   const apply = (value: string, scope: 'global' | 'project') => {
+    const problem = row.check?.(value);
+    store.setRowError(row.id, problem);
+    if (problem) return;
     if (row.costly && scope === 'global') setAsking(value);
     else commit(value, scope);
   };

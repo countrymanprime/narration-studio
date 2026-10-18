@@ -81,4 +81,9 @@ export type SettingMeta = {
   needs?: 'reaper';
   /** A note beside the control on when it takes effect. */
   effect?: string;
+  /**
+   * Looks at a value before it is saved: a sentence says why it is refused (the row shows it and keeps the old value), `undefined` lets it
+   * through. For a rule the host does not enforce itself.
+   */
+  check?: (value: string) => string | undefined;
 };

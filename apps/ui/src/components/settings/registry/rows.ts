@@ -20,6 +20,14 @@ export function assetOfOption(note: OptionNote | undefined, kindOf: (rowId: stri
   return { kind: typeof ref.kind === 'string' ? ref.kind : kindOf(ref.kind.followRow), id: ref.id };
 }
 
+const NOT_REAPER_PATH = 'This is not the path to reaper.exe. Use the full path, such as C:\\Program Files\\REAPER\\reaper.exe.';
+
+/** A REAPER path is a full path whose last part is `reaper` or `reaper.exe` (the host does not check); empty means "find it on its own". */
+export function reaperPathProblem(value: string): string | undefined {
+  const path = value.trim();
+  return path === '' || /[\\/]reaper(\.exe)?$/i.test(path) ? undefined : NOT_REAPER_PATH;
+}
+
 /**
  * Every setting the page lists. The page, the search, the "used by" links and the Changed marks are all built from this list and the host's
  * fields. `def` follows `config/defaults.json` (a test keeps them together); a row without `field` draws a control of its own.
@@ -64,6 +72,7 @@ export const ROWS: readonly SettingMeta[] = [
     advanced: true,
     syn: 'executable location path install',
     effect: 'Used the next time the app starts REAPER.',
+    check: reaperPathProblem,
   },
   {
     id: 'daw.autoLauncher',

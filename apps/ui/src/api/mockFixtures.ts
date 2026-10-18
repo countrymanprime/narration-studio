@@ -641,6 +641,7 @@ export const wireSettings = (): Record<string, ScopedSettingField[]> => ({
   General: [
     choice('log_verbosity', 'Log verbosity', ['quiet', 'normal', 'verbose'], 'normal'),
     bool('notifications', "Notify me when a long task finishes while I'm away", 'true'),
+    bool('debug_logging', 'Debug logging', 'false'),
     {
       key: 'narrator_name',
       label: 'Narrator name (default for credits)',
