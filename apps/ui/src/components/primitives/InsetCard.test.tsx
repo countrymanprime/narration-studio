@@ -51,4 +51,15 @@ describe('InsetCard', () => {
     );
     expect(screen.getByRole('alert').tagName).toBe('P');
   });
+
+  // The Script chapter card in the Studio Next mock (`.bound .card`, app.css:145): an 8 px radius, 12 px above and below, 16 px beside.
+  it('draws the roomy card on an 8 px radius with 16 px side padding, and the default on 6 px with 12', () => {
+    const { unmount } = render(<InsetCard roomy>Card</InsetCard>);
+    expect(screen.getByText('Card').className).toContain('rounded-lg');
+    expect(screen.getByText('Card').className).toContain('px-4 py-3');
+    unmount();
+    render(<InsetCard>Card</InsetCard>);
+    expect(screen.getByText('Card').className).toContain('rounded-md');
+    expect(screen.getByText('Card').className).toContain('p-3');
+  });
 });
