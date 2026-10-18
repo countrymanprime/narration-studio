@@ -33,9 +33,9 @@ const (
 )
 
 var (
-	idPattern   = regexp.MustCompile(`^[a-z0-9_.:-]{1,64}$`)
+	idPattern   = regexp.MustCompile(`^[a-z0-9_.:-]{1,64}$`) // +checklocksignore: read-only data, used while the Tracer holds its lock
 	namePattern = regexp.MustCompile(`^[a-z][a-z0-9_]{0,31}$`)
-	extPattern  = regexp.MustCompile(`^\.[a-z0-9]{1,8}$`)
+	extPattern  = regexp.MustCompile(`^\.[a-z0-9]{1,8}$`) // +checklocksignore: read-only data, used while the Tracer holds its lock
 )
 
 // FieldDef declares one field of an event: its name, its kind and, for an enum, the values it may take.

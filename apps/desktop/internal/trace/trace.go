@@ -69,7 +69,8 @@ var reservedKeys = map[string]bool{"ts": true, "seq": true, "level": true, "sess
 
 var (
 	registryMu sync.Mutex
-	registry   = map[string]*Event{}
+	// +checklocks:registryMu
+	registry = map[string]*Event{}
 )
 
 // Event is one registered kind of record: where it comes from, what it is called, how loud it is and which fields it may
@@ -130,22 +131,36 @@ type Options struct {
 
 // Tracer writes records. It is safe for concurrent use.
 type Tracer struct {
-	mu          sync.Mutex
-	opts        Options
-	enabled     bool
-	debug       bool
-	seq         uint64
-	dropped     int64
-	ring        [][]byte
-	ringNext    int
-	ringFull    bool
-	out         *sink
-	salt        []byte
-	saltSaved   bool
-	home        string
+	mu   sync.Mutex
+	opts Options
+	// +checklocks:mu
+	enabled bool
+	// +checklocks:mu
+	debug bool
+	// +checklocks:mu
+	seq uint64
+	// +checklocks:mu
+	dropped int64
+	// +checklocks:mu
+	ring [][]byte
+	// +checklocks:mu
+	ringNext int
+	// +checklocks:mu
+	ringFull bool
+	// +checklocks:mu
+	out *sink
+	// +checklocks:mu
+	salt []byte
+	// +checklocks:mu
+	saltSaved bool
+	// +checklocks:mu
+	home string
+	// +checklocks:mu
 	projectRoot string
-	stop        chan struct{}
-	done        chan struct{}
+	// +checklocks:mu
+	stop chan struct{}
+	// +checklocks:mu
+	done chan struct{}
 }
 
 // New returns a disabled tracer.
@@ -214,20 +229,23 @@ func (t *Tracer) SetEnabled(enabled bool) {
 		return
 	}
 	t.mu.Lock()
-	defer t.mu.Unlock()
 	if enabled == t.enabled {
+		t.mu.Unlock()
 		return
 	}
 	t.enabled = enabled
 	if enabled {
 		t.ensureSaltLocked()
 		t.startFlusherLocked()
+		t.mu.Unlock()
 		return
 	}
-	t.stopFlusherLocked()
+	stop, done := t.detachFlusherLocked()
 	if t.out != nil {
 		_ = t.out.flush()
 	}
+	t.mu.Unlock()
+	waitFlusher(stop, done)
 }
 
 // SetDebug turns debug-level records on or off.
@@ -301,6 +319,7 @@ func (t *Tracer) Emit(event *Event, values ...Value) {
 }
 
 // renderLocked checks value against its definition and turns it into what is written.
+// +checklocks:t.mu
 func (t *Tracer) renderLocked(event *Event, value Value) (string, any, bool) {
 	def, ok := event.fields[value.name]
 	if !ok || def.kind != value.kind {
@@ -375,14 +394,16 @@ func (t *Tracer) Close() {
 	}
 	t.mu.Lock()
 	t.enabled = false
-	t.stopFlusherLocked()
+	stop, done := t.detachFlusherLocked()
 	if t.out != nil {
 		_ = t.out.close()
 	}
 	t.mu.Unlock()
+	waitFlusher(stop, done)
 }
 
 // startFlusherLocked runs a timer that flushes the buffered lines, so a crash loses about a second at most.
+// +checklocks:t.mu
 func (t *Tracer) startFlusherLocked() {
 	if t.stop != nil || t.out == nil {
 		return
@@ -405,20 +426,27 @@ func (t *Tracer) startFlusherLocked() {
 	}()
 }
 
-func (t *Tracer) stopFlusherLocked() {
-	if t.stop == nil {
+// detachFlusherLocked takes the flush timer's channels off the Tracer so the caller can stop it after releasing the lock: the
+// timer's own Flush takes the lock, so waiting for it while holding the lock would never finish.
+//
+// +checklocks:t.mu
+func (t *Tracer) detachFlusherLocked() (stop, done chan struct{}) {
+	stop, done = t.stop, t.done
+	t.stop, t.done = nil, nil
+	return stop, done
+}
+
+// waitFlusher stops a timer detached by detachFlusherLocked and waits for it to leave. Both channels are nil when none ran.
+func waitFlusher(stop, done chan struct{}) {
+	if stop == nil {
 		return
 	}
-	stop, done := t.stop, t.done
-	t.stop, t.done = nil, nil
-	// The flusher takes the lock in Flush, so it is released while waiting for the goroutine to leave.
-	t.mu.Unlock()
 	close(stop)
 	<-done
-	t.mu.Lock()
 }
 
 // redactPathLocked reduces a path to {class, ext, h}. Nothing of the raw path is kept.
+// +checklocks:t.mu
 func (t *Tracer) redactPathLocked(raw string) map[string]string {
 	norm := normPath(raw)
 	class := "other"
@@ -443,6 +471,7 @@ func (t *Tracer) redactPathLocked(raw string) map[string]string {
 
 // ensureSaltLocked loads the per-install salt, or makes one. It is written to disk only once the trace is enabled, so a
 // tracer that is off leaves no file; until then a new salt lives in memory.
+// +checklocks:t.mu
 func (t *Tracer) ensureSaltLocked() {
 	if t.salt == nil && t.opts.SaltPath != "" {
 		if data, err := os.ReadFile(t.opts.SaltPath); err == nil {
