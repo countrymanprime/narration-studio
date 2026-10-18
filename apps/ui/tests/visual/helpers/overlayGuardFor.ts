@@ -11,9 +11,9 @@ import { settlePage } from './settle';
 // every one over scrolled content and, where the case names an overlay to sit over, while that other overlay is open) and fails
 // when the overlay is covered at any of its points or leaves the window (overlayGuard.ts measures that).
 //
-// A new page adopts the guard in one line in tests/visual/overlays.spec.ts: `overlayGuardFor('Pickups')` runs the shell's overlays
-// (the content context menu, the top bar's hints and menus, the navigation) on that page, and `overlayGuardFor('Pickups', pickupsCases)`
-// adds the page's own, written in tests/visual/overlays/<page>.ts with the factories below.
+// A new page adopts the guard by being listed in tests/visual/overlays/pages.ts: it runs the shell's overlays that sit over the page's own
+// content (the content context menu, the rail), plus the page's own, written in tests/visual/overlays/<page>.ts with the factories below.
+// The top bar's hints, Jump to, History and the navigation drawer run on three pages (overlays/shell.ts says why).
 
 export type OverlayPage = 'Production' | 'Schedule' | 'Script' | 'Story Bible' | 'Editing' | 'Proof' | 'Pickups' | 'Master & QC' | 'Delivery' | 'Settings';
 
@@ -41,8 +41,12 @@ export interface OverlayCase {
   close?: (page: Page) => Promise<void>;
   /** Narrows the viewports it runs at, for an overlay that cannot exist at some sizes (the navigation drawer exists only below 860 px). */
   viewports?: (viewport: Viewport) => boolean;
-  /** Skip the pass over scrolled content, for an overlay whose page has nothing to scroll. */
-  scrolled?: false;
+  /**
+   * The passes over scrolled content. Default: halfway and to the end. `'end'`: only to the end (the extreme, where a sticky footer or a
+   * table header sits under the overlay), for a top-bar hint that the halfway pass cannot tell from the end. `false`: none, for an
+   * overlay whose page has nothing to scroll.
+   */
+  scrolled?: false | 'end';
 }
 
 /**
@@ -108,7 +112,11 @@ export function clickCase(
 }
 
 /** A hint: the pointer rests on the control until the popup shows (a hint waits one second). */
-export function hoverCase(name: string, control: (page: Page) => Locator, options: Partial<Pick<OverlayCase, 'viewports' | 'over'>> = {}): OverlayCase {
+export function hoverCase(
+  name: string,
+  control: (page: Page) => Locator,
+  options: Partial<Pick<OverlayCase, 'viewports' | 'over' | 'scrolled'>> = {},
+): OverlayCase {
   return {
     name,
     kind: 'tooltip',
@@ -181,8 +189,10 @@ function runCase(pageName: OverlayPage, overlay: OverlayCase, viewport: Viewport
 
     await pass('');
     if (start === 'page' && overlay.scrolled !== false) {
-      await scrollContent(page, 0.5);
-      await pass(', over content scrolled halfway');
+      if (overlay.scrolled !== 'end') {
+        await scrollContent(page, 0.5);
+        await pass(', over content scrolled halfway');
+      }
       await scrollContent(page, 1);
       await pass(', over content scrolled to the end');
     }

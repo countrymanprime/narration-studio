@@ -389,6 +389,11 @@ html[data-motion='reduce'] {
     opacity: 0;
   }
 }
+@keyframes skeleton-shimmer {
+  to {
+    background-position: -200% 0;
+  }
+}
 @keyframes work-progress-slide {
   0% {
     transform: translateX(-100%);

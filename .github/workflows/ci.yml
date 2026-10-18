@@ -58,7 +58,7 @@ jobs:
     name: CI passed
     needs: [quality, ui-dist, build-windows]
     if: always() && github.event.pull_request.draft != true
-    timeout-minutes: 5
+    timeout-minutes: 10
     runs-on: ubuntu-latest
     steps:
       - env:
@@ -71,6 +71,33 @@ jobs:
               *) echo "::error::a job this run needs ended $result"; exit 1 ;;
             esac
           done
+      # The whole-run half of the visual gate (apps/ui/tests/visual/whole-run.check.ts) over every shard's capture records: every
+      # capture present, none blank, no two states identical unless declared sameAs, every sameAs still holding, and the shards held
+      # every test of the suite exactly once. It reads records only (no browser), and ran as a job of its own after the shards; here it
+      # saves that job's queueing and start-up on the critical path. A step that fails fails `CI passed`. Skipped when the UI is not
+      # affected (the shards captured nothing). The steps above ran first, so a red shard is reported as that, not as missing records.
+      - if: needs.quality.outputs.ui-affected == 'true'
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with: { persist-credentials: false }
+      - if: needs.quality.outputs.ui-affected == 'true'
+        uses: ./.github/actions/setup-toolchain
+        with:
+          need-go: 'false'
+          need-python: 'false'
+          need-wails-tools: 'false'
+          need-stylua: 'false'
+          need-linux-native-deps: 'false'
+          pnpm-filter: narration-utils-ui
+      - if: needs.quality.outputs.ui-affected == 'true'
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          pattern: ui-visual-records-*
+          merge-multiple: true
+          path: apps/ui/screenshots/.run
+      - if: needs.quality.outputs.ui-affected == 'true'
+        env:
+          UI_VISUAL_SHARDS: '3'
+        run: pnpm --dir apps/ui run visual:check-run
 
   # What a draft pull request shows instead of `CI passed`. It sums up only what the light tier ran, and its name says so. It is
   # not a merge condition: marking the pull request ready runs the full tier.

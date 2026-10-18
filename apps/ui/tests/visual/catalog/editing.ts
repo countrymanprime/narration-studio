@@ -103,4 +103,10 @@ export const editingStates: StateEntry[] = [
     state: 'no-manuscript',
     description: 'Editing with no manuscript imported - the page asks for one, with Import manuscript',
   },
+  {
+    page: 'editing',
+    state: 'loading',
+    description:
+      'Editing while the chapters are still being read (?mockChapters=loading): the page\'s own header (the title, a block where the chapter stepper will be, the strip and Clean up and effects buttons) and the script\'s three paragraphs as grey blocks, with one polite "Reading the chapters…" status',
+  },
 ];
