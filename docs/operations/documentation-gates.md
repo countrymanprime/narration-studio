@@ -6,12 +6,12 @@ How the repository keeps documentation current and free of filler. The decision 
 
 | Check | Fails when | Runs in | Way out |
 | --- | --- | --- | --- |
-| Docs impact (`scripts/ci/docs-impact.mjs`) | Code under a mapped path changed and none of its docs did | `pnpm check`, `Docs / Docs impact`, and a hook in `.claude/settings.json` | `Docs: none — <specific reason>` in the pull request description or a commit message |
-| Guide impact (`scripts/ci/guide-impact.mjs`) | A page's UI folder changed and neither its page of the [how-to guide](../guides/using-the-app/README.md) nor any image in `docs/images/ui/` did | `pnpm check`, `Docs / Guide impact` | `No guide change: <specific reason>` in the pull request description or a commit message |
-| Docs prose (`scripts/ci/docs-slop.mjs`) | Changed Markdown has an `error` phrase from `docs-slop-phrases.json` | `pnpm check`, `Docs / Docs prose` | Cut the sentence. Do not edit the list to pass |
-| Docs references (`scripts/ci/docs-references.mjs`) | A doc names, in backticks, a repo path or root `pnpm` script that does not exist | `pnpm check`, `Docs / Docs prose` | Fix the path, or say it was deleted next to the path |
+| Docs impact (`scripts/ci/docs-impact.mjs`) | Code under a mapped path changed and none of its docs did | `pnpm check`, the `Docs impact` step of `Docs / Docs checks`, and a hook in `.claude/settings.json` | `Docs: none — <specific reason>` in the pull request description or a commit message |
+| Guide impact (`scripts/ci/guide-impact.mjs`) | A page's UI folder changed and neither its page of the [how-to guide](../guides/using-the-app/README.md) nor any image in `docs/images/ui/` did | `pnpm check`, the `Guide impact` step of `Docs / Docs checks` | `No guide change: <specific reason>` in the pull request description or a commit message |
+| Docs prose (`scripts/ci/docs-slop.mjs`) | Changed Markdown has an `error` phrase from `docs-slop-phrases.json` | `pnpm check`, the `Docs prose` steps of `Docs / Docs checks` | Cut the sentence. Do not edit the list to pass |
+| Docs references (`scripts/ci/docs-references.mjs`) | A doc names, in backticks, a repo path or root `pnpm` script that does not exist | `pnpm check`, the `Docs prose` steps of `Docs / Docs checks` | Fix the path, or say it was deleted next to the path |
 | Doc comments (`scripts/ci/doc-comments.mjs`) | The change adds a public Python name without a docstring or an exported Go name without a doc comment | Python `lint` targets, `quality.mjs go-lint` | `# noqa: D1xx` for a Python name that needs none |
-| Markdown style and links | markdownlint on changed files; lychee offline on all | `Docs / Markdown lint`, `Docs / Links (offline)` | Fix the file |
+| Markdown style and links | markdownlint on changed files; lychee offline on all | the `Markdown lint` and `Links (offline)` steps of `Docs / Docs checks` | Fix the file |
 
 ## Working with them
 
