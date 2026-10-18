@@ -22,9 +22,12 @@ var errNoGuide = errors.New("Guide file does not exist; build it first.") //noli
 
 // editInHost is manuscript_guide.py `edit` for every field but "aliases" (locked, description, personality, context, properties,
 // category, canonical_name; a new alias needs a pronunciation lookup and the manuscript, so that stays in the sidecar). Every field is
-// applied to the entity in memory, in name order (the order editArgs sends them to the sidecar), the entity is marked reviewed and the
-// file is written once, so a refused field leaves the file exactly as it was. Writes are serialized by editMu; a sidecar command that rewrites the file at the same time (a build) is not,
-// the same as before this edit moved here. A file from a newer schema is refused, never rewritten.
+// applied to a copy of the entity, in name order (the order editArgs sends them to the sidecar); only when all of them are accepted does
+// the copy replace the entity, marked reviewed, and the file get written, once. So a refused field leaves the file, and the held
+// document, exactly as they were. A file from a newer schema is refused, never rewritten.
+//
+// Edits are serialized by editMu. A sidecar command that rewrites the file at the same time (a build) is not; the host sees what it
+// wrote on the next edit (heldDocument), and an edit made while it runs can still be overwritten by it, as before this edit moved here.
 func (s *Service) editInHost(id string, values map[string]string) error {
 	s.editMu.Lock()
 	defer s.editMu.Unlock()
@@ -32,7 +35,7 @@ func (s *Service) editInHost(id string, values map[string]string) error {
 	if err != nil {
 		return err
 	}
-	entity, err := findEntity(document, id)
+	index, entity, err := findEntity(document, id)
 	if err != nil {
 		return err
 	}
@@ -45,24 +48,60 @@ func (s *Service) editInHost(id string, values map[string]string) error {
 		fields = append(fields, field)
 	}
 	slices.Sort(fields)
+	changed, _ := deepCopy(entity).(map[string]any)
 	for _, field := range fields {
-		if err := applyEdit(entity, field, values[field], categories); err != nil {
+		if err := applyEdit(changed, field, values[field], categories); err != nil {
 			return err
 		}
 	}
-	entity["review_state"] = "reviewed"
-	return writeDocument(s.guidePath(), document)
+	changed["review_state"] = "reviewed"
+	document["entities"].([]any)[index] = changed
+	written, err := writeDocument(s.guidePath(), document)
+	if err != nil {
+		// What is on disk is not known now, so the next edit reads it again.
+		s.held = nil
+		return err
+	}
+	s.held = &heldDocument{document: document, raw: written}
+	return nil
 }
 
-// documentForEdit reads the Story Bible the way manuscript_guide.py load_json does for an edit: numbers stay as their text
-// (json.Number), so a value the edit does not touch is written back exactly as it was read, and the legacy shapes load_json normalizes
-// (an alias stored as plain text, the old "user" pronunciation source) are normalized the same way, because the sidecar writes them back
-// normalized on every edit.
+// heldDocument is the Story Bible as the host last parsed or wrote it, and the file's bytes at that moment. An edit re-reads the bytes
+// (a few milliseconds on a full-length book) and parses them again (fifty or more) only when they differ, which they do whenever any
+// other writer touched the file: the sidecar, a build, another tool or the narrator. Size and modification time are not trusted for
+// this, because a coarse file system (FAT32, some network drives) can report both unchanged after a write.
+type heldDocument struct {
+	document map[string]any
+	raw      []byte
+}
+
+// documentForEdit is the held document when the file still holds the bytes it came from, otherwise the file parsed afresh.
+//
+// +checklocks:s.editMu
 func (s *Service) documentForEdit() (map[string]any, error) {
 	raw, err := os.ReadFile(s.guidePath())
 	if err != nil {
+		s.held = nil
 		return nil, errNoGuide
 	}
+	if s.held != nil && bytes.Equal(s.held.raw, raw) {
+		return s.held.document, nil
+	}
+	s.held = nil
+	document, err := parseForEdit(raw)
+	if err != nil {
+		return nil, err
+	}
+	s.parses.Add(1)
+	s.held = &heldDocument{document: document, raw: raw}
+	return document, nil
+}
+
+// parseForEdit reads the Story Bible the way manuscript_guide.py load_json does for an edit: numbers stay as their text
+// (json.Number), so a value the edit does not touch is written back exactly as it was read, and the legacy shapes load_json normalizes
+// (an alias stored as plain text, the old "user" pronunciation source) are normalized the same way, because the sidecar writes them back
+// normalized on every edit.
+func parseForEdit(raw []byte) (map[string]any, error) {
 	decoder := json.NewDecoder(bytes.NewReader(raw))
 	decoder.UseNumber()
 	var document map[string]any
@@ -101,6 +140,25 @@ func (s *Service) documentForEdit() (map[string]any, error) {
 	return document, nil
 }
 
+// deepCopy copies a decoded JSON value: objects and lists are copied all the way down; strings, numbers, booleans and null are values.
+func deepCopy(value any) any {
+	switch v := value.(type) {
+	case map[string]any:
+		out := make(map[string]any, len(v))
+		for key, item := range v {
+			out[key] = deepCopy(item)
+		}
+		return out
+	case []any:
+		out := make([]any, len(v))
+		for index, item := range v {
+			out[index] = deepCopy(item)
+		}
+		return out
+	}
+	return value
+}
+
 // readPronunciationSource is manuscript_guide.py read_pronunciation_source: the legacy source "user" reads as "manual", in the value and
 // in its alternate. Unlike readPronunciation (what the UI is sent) it keeps a stored status, as the sidecar does.
 func readPronunciationSource(value map[string]any) {
@@ -112,14 +170,15 @@ func readPronunciationSource(value map[string]any) {
 	}
 }
 
-func findEntity(document map[string]any, id string) (map[string]any, error) {
+// findEntity is the entity with the id and its place in the entities list.
+func findEntity(document map[string]any, id string) (int, map[string]any, error) {
 	entities, _ := document["entities"].([]any)
-	for _, raw := range entities {
+	for index, raw := range entities {
 		if entity, ok := raw.(map[string]any); ok && entity["id"] == id {
-			return entity, nil
+			return index, entity, nil
 		}
 	}
-	return nil, errors.New("Entity not found.") //nolint:staticcheck // the sidecar's own words, shown to the narrator
+	return 0, nil, errors.New("Entity not found.") //nolint:staticcheck // the sidecar's own words, shown to the narrator
 }
 
 // documentTypeNames is manuscript_guide.py type_names over guide_types: the names of the stored types, or of DefaultTypes for a file
@@ -272,22 +331,22 @@ func pythonRepr(text string) string {
 
 // writeDocument is manuscript_guide.py write_json: two-space indented UTF-8 with non-ASCII text as itself and a trailing newline, written
 // beside the file and renamed over it so a reader never sees half a file. Keys come out sorted (a Go map has no order) where the sidecar
-// keeps the order it read; the content is the same, and the sidecar keeps whichever order it next reads.
-func writeDocument(path string, document map[string]any) error {
+// keeps the order it read; the content is the same, and the sidecar keeps whichever order it next reads. It returns the bytes written.
+func writeDocument(path string, document map[string]any) ([]byte, error) {
 	var buffer bytes.Buffer
 	encoder := json.NewEncoder(&buffer)
 	encoder.SetEscapeHTML(false)
 	encoder.SetIndent("", "  ")
 	if err := encoder.Encode(document); err != nil {
-		return err
+		return nil, err
 	}
 	temporary := path + ".tmp"
 	if err := os.WriteFile(temporary, buffer.Bytes(), 0o644); err != nil { //nolint:gosec // G306: the mode the sidecar writes the file with; it is the narrator's own data
-		return err
+		return nil, err
 	}
 	if err := os.Rename(temporary, path); err != nil {
 		_ = os.Remove(temporary)
-		return err
+		return nil, err
 	}
-	return nil
+	return buffer.Bytes(), nil
 }
