@@ -16,6 +16,10 @@ const VOCABULARY = new Set(['min-[1360px]', 'max-[1359px]', 'max-[1280px]', 'min
 const OFF_VOCABULARY: Record<string, Record<string, number>> = {
   // GAP (#1217): the Production page still lays out at 1024 and 1280, not the mock's widths. `min-[1280px]` treats exactly 1280 as not medium; the mock treats it as medium.
   'src/components/production/ProductionPage.tsx': { 'min-[1024px]': 1, 'min-[1280px]': 1 },
+  // The Settings page's Models & downloads table folds into cards at 1020 px of the page's own width (`@max-[1020px]`, a container query, not the
+  // window's): the mock's `.assets` rule in settings.css. It follows the page container, so the zoomed window and a narrow one behave alike.
+  'src/components/settings/models/AssetRow.tsx': { 'max-[1020px]': 19 },
+  'src/components/settings/page/ModelsPane.tsx': { 'max-[1020px]': 3 },
 };
 
 function sourceFiles(dir: string): string[] {

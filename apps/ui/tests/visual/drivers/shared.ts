@@ -285,10 +285,9 @@ export function confirmDialog(page: Page, name: string | RegExp) {
   return page.getByRole('dialog', { name }).or(page.getByRole('alertdialog', { name }));
 }
 
-// Replace manuscript has one place, the Settings page's Manuscript panel (SNM-2): the Production page no longer carries it.
+// Replace manuscript has one place, the Settings page's Project category (SNM-2): the Production page no longer carries it.
 export async function clickReplaceManuscript(page: Page): Promise<void> {
-  await goToPage(page, 'Settings');
-  await clickSettingsCategory(page, 'Manuscript');
+  await openSettings(page, 'Project');
   await clickVisible(page, 'button', 'Replace manuscript…');
 }
 
@@ -395,52 +394,61 @@ export async function openEditingCheckFromEngine(page: Page, query: string) {
   return panel;
 }
 
-// Settings' own category rail (.settings-nav, a tab list) reuses the same labels as the
-// primary app nav ("Proof", "Story Bible") - an unscoped role/name query
-// matches both and .first() can silently click the wrong one (navigating
-// away from Settings instead of switching category). Always scope category
-// clicks to .settings-nav specifically.
-// Settings is one column of panels (the mock's, then the kept ones): a state shows one panel by scrolling it to the top,
-// and a panel over Global and This project picks its scope with the switch in its own header.
-export function settingsPanel(page: Page, name: string): Locator {
-  return page.getByRole('region', { name, exact: true });
-}
-export async function clickSettingsCategory(page: Page, name: string, scope: 'Global' | 'This project' = 'Global'): Promise<void> {
-  const panel = settingsPanel(page, name);
-  await panel.waitFor();
-  const scopes = panel.getByRole('group', { name: `${name} scope` });
-  if ((await scopes.count()) > 0) {
-    const choice = scopes.getByRole('button', { name: scope, exact: true });
-    if ((await choice.getAttribute('aria-pressed')) !== 'true') await choice.click();
-    await scopes.getByRole('button', { name: scope, exact: true }).and(page.locator('[aria-pressed="true"]')).waitFor();
-  }
-  await scrollToTop(page, panel);
+// The Settings page: a category list (the navigation named "Settings categories") beside one category's pane. Its labels repeat the
+// primary navigation's ("Project"), so every query for a category is scoped to that navigation. Narrower than the page's container
+// query (760 px) the list folds behind one "Category" button, which is opened to pick and closes itself on a pick.
+function settingsCategories(page: Page): Locator {
+  return page.getByRole('navigation', { name: 'Settings categories' });
 }
 
-// Chooses the theme the way a narrator does, with Settings' Appearance panel (the Studio Next mock's radios).
-export async function chooseTheme(page: Page, theme: 'Light' | 'Dark'): Promise<void> {
-  await goToPage(page, 'Settings');
-  await page.getByRole('radiogroup', { name: 'Theme' }).getByRole('radio', { name: theme, exact: true }).check();
+/** Opens a row of the category list by its label, opening the folded list first when that is how the width shows it. */
+async function openSettingsCategory(page: Page, label: string): Promise<void> {
+  const nav = settingsCategories(page);
+  const choice = nav.getByRole('button', { name: new RegExp(`^${label.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}`) });
+  if (!(await choice.isVisible())) await nav.getByRole('button', { name: /^Category/ }).click();
+  await choice.click();
+  await page.getByRole('heading', { level: 2, name: label, exact: true }).waitFor();
 }
 
-// Settings > Story Bible with the narrator's own Merriam-Webster key saved in the mock: the panel then says Key saved.
-export async function saveOnlineDictionaryKey(page: Page): Promise<void> {
-  await goToPage(page, 'Settings');
-  await clickSettingsCategory(page, 'Story Bible');
-  await page.getByLabel('Your key', { exact: true }).fill('0b5c1a3e-7d2f-4e6a-9c8b-2f1e0d9c8b7a');
-  await clickVisible(page, 'button', 'Save key');
-  await page.getByText('Key saved', { exact: true }).waitFor();
-}
-
-// Settings > Local assets, optionally booted with a mock seed (?mockAssets=): the rows are on screen once the list has loaded.
-export async function openLocalAssets(page: Page, seed?: string): Promise<void> {
-  if (seed) {
-    await page.goto(`/?mockAssets=${seed}`);
+/** Opens the Settings page (after a reload with a mock seam when `query` is given), on a category when one is named. */
+export async function openSettings(page: Page, category?: string, query = ''): Promise<void> {
+  if (query) {
+    await page.goto(`/${query}`);
     await settlePage(page);
   }
   await goToPage(page, 'Settings');
-  await clickSettingsCategory(page, 'Local assets');
-  await page.getByRole('heading', { level: 3, name: 'Small', exact: true }).waitFor();
+  if (category) await openSettingsCategory(page, category);
+}
+
+/** One row of the open category, found by its registry id (`data-row`), scrolled to the top of the page area. */
+export async function showSettingsRow(page: Page, id: string): Promise<Locator> {
+  const row = page.locator(`[data-row="${id}"]`);
+  await row.waitFor();
+  await row.evaluate((element) => element.scrollIntoView({ block: 'start' }));
+  return row;
+}
+
+/** Opens a category's Advanced group (closed until opened) and scrolls it to the top of the page area, so what it holds is what the shot shows. */
+export async function openAdvanced(page: Page): Promise<void> {
+  const advanced = page.getByRole('button', { name: /^Advanced \(\d+\)$/ });
+  await advanced.click();
+  await advanced.and(page.locator('[aria-expanded="true"]')).waitFor();
+  await advanced.evaluate((button) => button.scrollIntoView({ block: 'start' }));
+}
+
+// Chooses the theme the way a narrator does, with Settings' Appearance & keys category.
+export async function chooseTheme(page: Page, theme: 'Light' | 'Dark'): Promise<void> {
+  await openSettings(page, 'Appearance & keys');
+  await page.getByRole('radiogroup', { name: 'Theme' }).getByRole('radio', { name: theme, exact: true }).check();
+}
+
+// Settings > Voice & pronunciation with the narrator's own Merriam-Webster key saved in the mock: the key row (under Advanced) then says Key saved.
+export async function saveMerriamWebsterKey(page: Page): Promise<void> {
+  await openSettings(page, 'Voice & pronunciation');
+  await openAdvanced(page);
+  await page.getByLabel('Merriam-Webster key', { exact: true }).fill('0b5c1a3e-7d2f-4e6a-9c8b-2f1e0d9c8b7a');
+  await clickVisible(page, 'button', 'Save key');
+  await page.getByText('Key saved', { exact: true }).waitFor();
 }
 
 /** Selects the first whole occurrence of `word` in the reader text, as a narrator's drag does (a Range, then a mouseup the reader hears). */

@@ -11,6 +11,15 @@ const PREVIEW = '“Off with her head!” the Queen shouted at the top of her vo
 export function ReaderTextView({ prefs, onChange }: { prefs: TextPrefs; onChange: (change: Partial<TextPrefs>) => void }) {
   return (
     <Panel title="Reader text">
+      <ReaderTextBody prefs={prefs} onChange={onChange} />
+    </Panel>
+  );
+}
+
+/** The four reading settings and the preview quote, without a panel: the Settings page's Reader text row draws this. */
+export function ReaderTextBody({ prefs, onChange }: { prefs: TextPrefs; onChange: (change: Partial<TextPrefs>) => void }) {
+  return (
+    <>
       <div className="flex flex-col gap-3">
         <TextSettings prefs={prefs} onChange={onChange} />
         <InsetCard>
@@ -23,7 +32,7 @@ export function ReaderTextView({ prefs, onChange }: { prefs: TextPrefs; onChange
           </blockquote>
         </InsetCard>
       </div>
-    </Panel>
+    </>
   );
 }
 

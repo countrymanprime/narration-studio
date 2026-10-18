@@ -154,16 +154,18 @@ test.describe('Booth with a moving mock DAW', () => {
     await toRecordReady(page);
     await page.keyboard.press('Escape');
     await goToPage(page, 'Settings');
+    // Settings opens on Recording & DAW, whose connection card says what the host says about the DAW.
+    const connection = page.getByRole('group', { name: 'Connection' });
     const chip = page.getByRole('button', { name: /^REAPER: / });
     await expect(chip).toHaveAccessibleName('REAPER: Linked');
-    await expect(page.getByText('REAPER is reachable')).toBeVisible();
-    await expect(page.getByText('REAPER is not reachable')).toHaveCount(0);
+    await expect(connection.getByText(/REAPER is open and answering/)).toBeVisible();
+    await expect(connection.getByText(/is not running/)).toHaveCount(0);
     await page.evaluate(() => window.__NARRATION_MOCK_DAW__?.quiet());
-    await expect(page.getByText('REAPER is not reachable')).toBeVisible();
+    await expect(connection.getByText(/is not running/)).toBeVisible();
     await expect(chip).toHaveAccessibleName('REAPER: Not running');
-    await expect(page.getByText('REAPER is reachable')).toHaveCount(0);
+    await expect(connection.getByText(/REAPER is open and answering/)).toHaveCount(0);
     await page.evaluate(() => window.__NARRATION_MOCK_DAW__?.heartbeat());
-    await expect(page.getByText('REAPER is reachable')).toBeVisible();
+    await expect(connection.getByText(/REAPER is open and answering/)).toBeVisible();
     await expect(chip).toHaveAccessibleName('REAPER: Linked');
   });
 

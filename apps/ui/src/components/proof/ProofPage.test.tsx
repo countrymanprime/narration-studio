@@ -287,6 +287,38 @@ describe('proof-decisions-and-undo', () => {
     await waitFor(async () => expect(await journal.entries()).toHaveLength(0));
   });
 
+  it('after an undo the note box shows the note that is saved again, not what was typed for the decision undone', async () => {
+    const api = createMockApi();
+    const { journal } = renderPage({ api, at: '/proof?chapter=chapter-1' });
+    const user = userEvent.setup();
+    const rows = await noteRows();
+    await user.click(rows[rows.findIndex((row) => row.textContent?.includes('To review'))]);
+    const inspector = () => screen.getByRole('complementary', { name: 'Note' });
+    const box = () => within(inspector()).getByRole('textbox', { name: /Note with the decision/ }) as HTMLTextAreaElement;
+    await user.type(box(), 'Note A first');
+    await user.click(within(inspector()).getByRole('button', { name: /^Waive/ }));
+    await waitFor(async () => expect(await journal.entries()).toHaveLength(1));
+    // The decision moved on to the next note; step back to the one just decided and change its decision and note.
+    press('k', 'KeyK');
+    await waitFor(() => expect(box().value).toBe('Note A first'));
+    await user.clear(box());
+    await user.type(box(), 'Note B second');
+    await user.click(within(inspector()).getByRole('button', { name: /^Defer/ }));
+    await waitFor(async () => expect(await journal.entries()).toHaveLength(2));
+    press('k', 'KeyK');
+    await waitFor(() => expect(box().value).toBe('Note B second'));
+    expect((await journal.undoLast()).ok).toBe(true);
+    // The saved note is "Note A first" again, and that is what the box shows.
+    await waitFor(() =>
+      expect(
+        within(inspector())
+          .getByRole('button', { name: /^Waive/ })
+          .getAttribute('aria-pressed'),
+      ).toBe('true'),
+    );
+    expect(box().value).toBe('Note A first');
+  });
+
   it('the same decision again with nothing typed is no decision: no journal entry', async () => {
     const api = createMockApi();
     const review = vi.spyOn(api, 'findingsReview');

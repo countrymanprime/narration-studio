@@ -9,7 +9,6 @@ import { createMockDawClient, type DawClient } from '../../ports/daw';
 import { PortOverrides } from '../../ports/usePort';
 import type { NarrationApi, Scope, ScopedSettingField } from '../../types';
 import { BackupsSection } from './BackupsSection';
-import type { SettingsSection } from './sections';
 
 afterEach(cleanup);
 
@@ -147,9 +146,8 @@ describe('BackupsSection', () => {
     expect(await windowBox()).toBeTruthy();
   });
 
-  it('standalone-and-self-contained: it takes no props, the shape of a SettingsSection', async () => {
-    const section: SettingsSection = { id: 'backups', component: BackupsSection, order: 20 };
-    const Section = section.component;
+  it('standalone-and-self-contained: it takes no props, so a page can draw it anywhere', async () => {
+    const Section = BackupsSection;
     render(
       <ApiProvider api={createMockApi({ settingsForScope: async (scope) => ({ DAW: defaults()[scope] }) })}>
         <PortOverrides clients={{ daw: createMockDawClient(DAW_SETUPS['audacity-backups']) }}>

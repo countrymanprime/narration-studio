@@ -14,7 +14,22 @@ export const projectDrivers: Record<string, Driver> = {
   'new-project-dialog': async (page) => {
     await page.goto('/?mockNoProject=1');
     await settlePage(page);
-    await page.getByRole('button', { name: 'Create new…' }).click();
+    await page.getByRole('button', { name: 'New project' }).click();
     await page.getByRole('dialog', { name: 'New Project' }).getByText('C:/Users/Mock/NarrationStudio').waitFor();
+  },
+  // A recent project removed from the list: its row is gone and the toast says its files are kept, with Undo.
+  'picker-removed': async (page) => {
+    await page.goto('/?mockNoProject=1');
+    await settlePage(page);
+    await page.getByRole('button', { name: /^Remove Voltage and the Undercroft from recent projects/ }).click();
+    await page.getByRole('button', { name: 'Undo' }).waitFor();
+  },
+  // Every recent project removed: the list says there are none, with New project and Browse folders still there.
+  'picker-no-recents': async (page) => {
+    await page.goto('/?mockNoProject=1');
+    await settlePage(page);
+    await page.getByRole('button', { name: /^Remove Voltage and the Undercroft from recent projects/ }).click();
+    await page.getByRole('button', { name: /^Remove Alice’s Adventures in Wonderland from recent projects/ }).click();
+    await page.getByText('No recent projects yet.').waitFor();
   },
 };

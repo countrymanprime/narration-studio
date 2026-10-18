@@ -12,9 +12,6 @@ import type { Notify } from '../../primitives/Toast';
  * stays open and busy until the call ends and cannot be confirmed twice. Settings remain.
  */
 export function ProjectDataPanel({ notify, onProjectDataCleared }: { notify: Notify; onProjectDataCleared: () => Promise<void> }) {
-  const manuscript = usePort('manuscript');
-  const [confirming, setConfirming] = useState(false);
-  const clearing = usePendingAction();
   return (
     <div id="settings-project-data" className="scroll-mt-4">
       <Panel title="Project data" subtitle="This project">
@@ -23,11 +20,23 @@ export function ProjectDataPanel({ notify, onProjectDataCleared }: { notify: Not
             Clearing removes the imported manuscript and stored source, Story Bible, proofing artifacts, reader notes/bookmarks, and saved comparison results.
             Settings remain.
           </p>
-          <Button variant="danger" onClick={() => setConfirming(true)}>
-            Clear derived project data…
-          </Button>
+          <ClearProjectData notify={notify} onProjectDataCleared={onProjectDataCleared} label="Clear derived project data…" />
         </div>
       </Panel>
+    </div>
+  );
+}
+
+/** The Clear button and its confirm, without a panel: the Settings page's Clear derived data row draws this. */
+export function ClearProjectData({ notify, onProjectDataCleared, label }: { notify: Notify; onProjectDataCleared: () => Promise<void>; label: string }) {
+  const manuscript = usePort('manuscript');
+  const [confirming, setConfirming] = useState(false);
+  const clearing = usePendingAction();
+  return (
+    <>
+      <Button variant="danger" onClick={() => setConfirming(true)}>
+        {label}
+      </Button>
       {confirming && (
         <ConfirmDialog
           title="Clear derived project data?"
@@ -50,6 +59,6 @@ export function ProjectDataPanel({ notify, onProjectDataCleared }: { notify: Not
           cancel={() => setConfirming(false)}
         />
       )}
-    </div>
+    </>
   );
 }
