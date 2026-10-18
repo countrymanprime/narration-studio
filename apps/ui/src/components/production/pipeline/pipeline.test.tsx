@@ -120,6 +120,17 @@ describe('NextUp', () => {
     expect(items.map((li) => li.querySelector('[data-tone]')?.getAttribute('data-tone'))).toEqual(['rec', 'danger', 'danger']);
   });
 
+  // The mock's `.next .ico` (app.css:125): a 30 px rounded square, not a 24 px circle.
+  it('draws each disc as a 30 px square on an 8 px radius', () => {
+    view(<NextUp inputs={NEXT_UP_BUSY} record={record} onGo={noop} timer={timer} />);
+    const disc = within(screen.getByRole('list', { name: 'Next up' }))
+      .getAllByRole('listitem')[0]!
+      .querySelector('[data-tone]') as HTMLElement;
+    expect(disc.className).toContain('size-[1.875rem]');
+    expect(disc.className).toContain('rounded-lg');
+    expect(disc.className).not.toContain('rounded-full');
+  });
+
   it('says "Nothing needs you right now." when empty', () => {
     view(<NextUp inputs={NEXT_UP_EMPTY} record={record} onGo={noop} timer={timer} />);
     expect(screen.getByText('Nothing needs you right now.')).toBeTruthy();
