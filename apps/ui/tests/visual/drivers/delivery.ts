@@ -23,6 +23,13 @@ async function openReady(page: Parameters<Driver>[0], seed: string): Promise<voi
 }
 
 export const deliveryDrivers: Record<string, Driver> = {
+  // The chapters never answer, so `openDelivery` (which waits for the chapter counts) is not used.
+  loading: async (page) => {
+    await page.goto('/?mockChapters=loading');
+    await settlePage(page);
+    await goToPage(page, 'Delivery');
+    await page.getByRole('group', { name: 'Loading the chapter checks' }).waitFor();
+  },
   default: async (page) => {
     await openDelivery(page);
   },

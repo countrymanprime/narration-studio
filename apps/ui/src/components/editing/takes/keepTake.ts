@@ -72,11 +72,15 @@ export function useKeepTakes(journal: KeepJournal): KeepTakes {
       }
       setKept((k) => ({ ...k, [passage.id]: take.id }));
       entries.current[passage.id] = result.value.id;
-      overlay.toastUndo(`Kept ${take.label}. The other takes are still there.`, async () => {
-        const undone = await journal.undo(result.value.id);
-        if (undone.ok) setKept((k) => Object.fromEntries(Object.entries(k).filter(([id]) => id !== passage.id)));
-        return undone;
-      });
+      overlay.toastUndo(
+        `Kept ${take.label}. The other takes are still there.`,
+        async () => {
+          const undone = await journal.undo(result.value.id);
+          if (undone.ok) setKept((k) => Object.fromEntries(Object.entries(k).filter(([id]) => id !== passage.id)));
+          return undone;
+        },
+        { entry: result.value.id },
+      );
     },
     [daw, journal, kept],
   );

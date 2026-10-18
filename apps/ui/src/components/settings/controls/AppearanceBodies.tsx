@@ -3,6 +3,7 @@ import { apiErrorMessage } from '../../../api/errorMessage';
 import { usePort } from '../../../ports/usePort';
 import { useTheme } from '../../../theme/ThemeContext';
 import type { ThemePreference } from '../../../theme/theme';
+import { useMotionPreference, type MotionPreference } from '../../../motion';
 import { IconButton } from '../../primitives/IconButton';
 import { RadioGroup } from '../../primitives/RadioGroup';
 import { Select } from '../../primitives/Select';
@@ -20,6 +21,17 @@ const THEME_OPTIONS: { value: ThemePreference; label: string }[] = [
 export function ThemeRowBody() {
   const { preference, setPreference } = useTheme();
   return <RadioGroup label="Theme" value={preference} onChange={setPreference} options={THEME_OPTIONS} />;
+}
+
+const MOTION_OPTIONS: { value: MotionPreference; label: string }[] = [
+  { value: 'system', label: 'Follow Windows' },
+  { value: 'reduce', label: 'Reduce' },
+];
+
+/** Motion: Follow Windows (its "Animation effects" setting) or Reduce, kept by this browser window (`useMotionPreference`). */
+export function MotionRowBody() {
+  const [preference, setPreference] = useMotionPreference();
+  return <RadioGroup label="Motion" value={preference} onChange={setPreference} options={MOTION_OPTIONS} />;
 }
 
 /** Reader text: the Script reader's font, size, line spacing and width (the same saved choices as the Script's text settings) and a quote drawn in them. */

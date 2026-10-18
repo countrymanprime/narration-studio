@@ -340,3 +340,40 @@ func TestMarkdownHeadedFrontMatterIsNotNarrated(t *testing.T) {
 		t.Errorf("Chapter One content kind = %q, want narration", got)
 	}
 }
+
+// The review's outline shows how long each section is and how it begins, so the narrator can tell a chapter from a stray heading.
+func TestNewDraftSectionsCarryTheirWordCountAndTheStartOfTheirText(t *testing.T) {
+	long := strings.Repeat("word ", 60) // 60 words, longer than the preview line
+	paragraphs := []Paragraph{
+		{Chapter: "Chapter One", Text: "It was a bright cold day.", SourceIndex: 0},
+		{Chapter: "Chapter One", Text: "  Clocks were striking thirteen.  ", SourceIndex: 1},
+		{Chapter: "Chapter Two", Text: long, SourceIndex: 2},
+		{Chapter: "Empty", Text: "   ", SourceIndex: 3},
+	}
+	draft, err := newDraft("docx", "test.docx", paragraphs, []string{"Chapter One", "Chapter Two", "Empty"}, nil, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	byTitle := map[string]DraftSection{}
+	for _, section := range draft.Sections {
+		byTitle[section.Title] = section
+	}
+	one := byTitle["Chapter One"]
+	if one.WordCount != 10 {
+		t.Fatalf("Chapter One word count = %d, want 10", one.WordCount)
+	}
+	if one.FirstText != "It was a bright cold day." {
+		t.Fatalf("Chapter One first text = %q, want its first paragraph", one.FirstText)
+	}
+	two := byTitle["Chapter Two"]
+	if two.WordCount != 60 {
+		t.Fatalf("Chapter Two word count = %d, want 60", two.WordCount)
+	}
+	if got := len([]rune(two.FirstText)); got > FirstTextMax+1 || !strings.HasSuffix(two.FirstText, "…") {
+		t.Fatalf("Chapter Two first text should be cut to %d runes and end in an ellipsis, got %d runes: %q", FirstTextMax, got, two.FirstText)
+	}
+	empty := byTitle["Empty"]
+	if empty.WordCount != 0 || empty.FirstText != "" {
+		t.Fatalf("a section of blank text has no words and no first text, got %d and %q", empty.WordCount, empty.FirstText)
+	}
+}
