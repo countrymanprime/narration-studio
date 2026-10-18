@@ -10,6 +10,7 @@ import type { MockApiSeed } from '../../../api/mockHost/state';
 import { StudioProvider } from '../../../studio/StudioProvider';
 import { ThemeProvider } from '../../../theme/ThemeContext';
 import type { NarrationApi } from '../../../types';
+import type { Notify } from '../../primitives/Toast';
 import { TooltipProvider } from '../../primitives/Tooltip';
 import { SettingsPage } from '../page/SettingsPage';
 
@@ -29,7 +30,7 @@ async function renderPage({
   api?: NarrationApi;
   category: string;
   advanced?: boolean;
-  notify?: (message: string, tone?: 'error') => void;
+  notify?: Notify;
   onLinkDawFile?: () => void;
 }) {
   const data = await api.bootstrap();

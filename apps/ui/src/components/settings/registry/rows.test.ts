@@ -4,7 +4,7 @@ import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { CATEGORIES } from './categories';
 import { PAGE_SETTINGS } from './pageSettings';
-import { ROWS } from './rows';
+import { reaperPathProblem, ROWS } from './rows';
 import { search } from './search';
 
 // config/defaults.json is the host's repo default layer; a row's `def` is what the page compares a value with to decide "Changed".
@@ -55,5 +55,26 @@ describe('search', () => {
   });
   it('leaves out a row the caller hides', () => {
     expect(search('reaper', (row) => !row.needs).some((hit) => hit.row?.needs)).toBe(false);
+  });
+});
+
+describe('the REAPER program check', () => {
+  it('lets an empty value and a full path to reaper through', () => {
+    for (const ok of [
+      '',
+      '  ',
+      'C:\\Program Files\\REAPER\\reaper.exe',
+      'D:\\Audio\\REAPER (x64)\\REAPER.EXE',
+      '/Applications/REAPER.app/Contents/MacOS/REAPER',
+      '/opt/REAPER/reaper',
+    ]) {
+      expect(reaperPathProblem(ok)).toBeUndefined();
+    }
+  });
+  it('refuses anything else in the host’s words, and the row carries the check', () => {
+    for (const bad of ['reaper', 'notepad.exe', 'C:\\Program Files\\REAPER\\', 'C:\\reaper.exe.bak', 'REAPER 7']) {
+      expect(reaperPathProblem(bad)).toBe('This is not the path to reaper.exe. Use the full path, such as C:\\Program Files\\REAPER\\reaper.exe.');
+    }
+    expect(ROWS.find((row) => row.id === 'daw.reaperPath')?.check).toBe(reaperPathProblem);
   });
 });
