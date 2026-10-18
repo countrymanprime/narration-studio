@@ -493,6 +493,7 @@ func NewHost() *Host {
 	if value, _ := store.Effective("General", "debug_logging", "false"); value == "true" {
 		runLog.SetDebug(true)
 	}
+	host.sidecars.SetFallbackRun(runLog.App)
 	return host
 }
 
@@ -730,6 +731,7 @@ func (h *Host) configureLocked(next config) {
 		Experimental: dawport.SettingsExperimental(settingsStore.Effective),
 	})
 	h.actions = bridge.NewActions(client, reaper.Gate(dawResolver.Allowed))
+	h.actions.SetObserver(h.recordBridgeTiming)
 	// The retake-lane, project-state and take-creation roles below come from a live REAPER adapter over the same
 	// client, gated by the same resolver.Allowed as h.actions: a nil client (no session) or a
 	// capability the adapter does not declare leaves the role nil, which each service already treats as "no bridge".
