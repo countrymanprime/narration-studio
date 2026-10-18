@@ -22,9 +22,14 @@ $info = "REAPER installer $url`nSHA-256 $sum`nsignature $($sig.Status) $($sig.Si
 Write-Host $info
 $info | Set-Content (Join-Path $OutDir 'reaper-installer.txt')
 if ($ExpectedSha256 -and $sum -ne $ExpectedSha256.ToLowerInvariant()) { throw "installer SHA-256 $sum differs from the pinned $ExpectedSha256" }
-$p = Start-Process -FilePath $installer -ArgumentList '/S' -PassThru -Wait
-if ($p.ExitCode -ne 0) { throw "REAPER installer exited $($p.ExitCode)" }
 $exe = 'C:\Program Files\REAPER (x64)\reaper.exe'
+$p = Start-Process -FilePath $installer -ArgumentList '/S' -PassThru -Wait
+"installer exit code $($p.ExitCode)" | Tee-Object -FilePath (Join-Path $OutDir 'reaper-installer.txt') -Append
+if (-not (Test-Path $exe)) {
+  # The silent installer exited 1223 (cancelled) on the first runner; the installer is an NSIS archive, so unpack it to the default folder.
+  Write-Host 'silent install left no reaper.exe; unpacking the installer with 7-Zip instead (a portable copy in the same folder)'
+  & 7z x $installer "-oC:\Program Files\REAPER (x64)" -y | Select-Object -Last 5
+}
 if (-not (Test-Path $exe)) { throw "reaper.exe not found at $exe after the silent install" }
 Write-Host ("installed: " + (Get-Item $exe).VersionInfo.FileVersion)
 

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Downloads the Windows setup program and narration-utils.exe of two published releases for the Windows release-gate workflows.
+# Downloads the Windows setup program and narration-utils.exe (unpacked from the zip) of two published releases for the Windows release-gate workflows.
 #
 #   fetch-release-assets.sh <dir> [new-tag] [previous-tag]
 #
@@ -23,7 +23,9 @@ fi
 [ -n "$new_tag" ] && [ -n "$previous_tag" ] || { echo "::error::could not resolve two releases (new='$new_tag' previous='$previous_tag')"; exit 1; }
 for pair in "new:$new_tag" "previous:$previous_tag"; do
   sub=${pair%%:*}; tag=${pair#*:}
-  gh release download "$tag" --dir "$dir/$sub" --pattern '*-windows-x64-setup.exe' --pattern 'narration-utils.exe' --pattern '*-windows-x64-setup.exe.sha256'
+  # The program is not a release asset of its own; it is the one file in the zip.
+  gh release download "$tag" --dir "$dir/$sub" --pattern '*-windows-x64-setup.exe' --pattern '*-windows-x64.zip'
+  tar -xf "$dir/$sub"/*-windows-x64.zip -C "$dir/$sub" narration-utils.exe
   ls -l "$dir/$sub"
 done
 echo "NEW_TAG=$new_tag"

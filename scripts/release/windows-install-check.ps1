@@ -68,28 +68,28 @@ $lnkDesktop = Join-Path $desktop "$ProductName.lnk"
 
 function Assert-Installed([string]$phase) {
   $user = Get-UserEntries
-  Check "$phase: one per-user uninstall entry under HKCU" ($user.Count -eq 1) (($user | ForEach-Object { "$($_.Name) ($($_.View))" }) -join ', ')
-  Check "$phase: no machine-wide uninstall entry under HKLM" ((Get-MachineEntries).Count -eq 0)
+  Check "${phase}: one per-user uninstall entry under HKCU" ($user.Count -eq 1) (($user | ForEach-Object { "$($_.Name) ($($_.View))" }) -join ', ')
+  Check "${phase}: no machine-wide uninstall entry under HKLM" ((Get-MachineEntries).Count -eq 0)
   $entry = $user | Select-Object -First 1
   $dir = if ($entry) { $entry.InstallLocation } else { '' }
   $expected = Join-Path $env:LOCALAPPDATA "Programs\$ProductName"
-  Check "$phase: installed under %LOCALAPPDATA%\Programs" ($dir -and ($dir.TrimEnd('\') -ieq $expected)) "InstallLocation=$dir"
+  Check "${phase}: installed under %LOCALAPPDATA%\Programs" ($dir -and ($dir.TrimEnd('\') -ieq $expected)) "InstallLocation=$dir"
   $exe = if ($dir) { Join-Path $dir 'narration-utils.exe' } else { '' }
-  Check "$phase: narration-utils.exe is there" ($exe -and (Test-Path $exe)) $exe
-  Check "$phase: uninstall.exe is there" ($dir -and (Test-Path (Join-Path $dir 'uninstall.exe')))
-  Check "$phase: no files under Program Files" (-not (Test-Path "$env:ProgramFiles\$ProductName"))
+  Check "${phase}: narration-utils.exe is there" ($exe -and (Test-Path $exe)) $exe
+  Check "${phase}: uninstall.exe is there" ($dir -and (Test-Path (Join-Path $dir 'uninstall.exe')))
+  Check "${phase}: no files under Program Files" (-not (Test-Path "$env:ProgramFiles\$ProductName"))
   $app = Get-Shortcut $lnkApp
-  Check "$phase: Start Menu shortcut points at the program" ($app -and $exe -and ($app.Target -ieq $exe)) $(if ($app) { $app.Target } else { 'missing' })
+  Check "${phase}: Start Menu shortcut points at the program" ($app -and $exe -and ($app.Target -ieq $exe)) $(if ($app) { $app.Target } else { 'missing' })
   $aud = Get-Shortcut $lnkAudacity
-  Check "$phase: Start Menu shortcut 'for Audacity' passes --daw Audacity" ($aud -and $exe -and ($aud.Target -ieq $exe) -and ($aud.Arguments.Trim() -eq '--daw Audacity')) $(if ($aud) { "$($aud.Target) $($aud.Arguments)" } else { 'missing' })
+  Check "${phase}: Start Menu shortcut 'for Audacity' passes --daw Audacity" ($aud -and $exe -and ($aud.Target -ieq $exe) -and ($aud.Arguments.Trim() -eq '--daw Audacity')) $(if ($aud) { "$($aud.Target) $($aud.Arguments)" } else { 'missing' })
   $desk = Get-Shortcut $lnkDesktop
-  Check "$phase: desktop shortcut points at the program" ($desk -and $exe -and ($desk.Target -ieq $exe)) $(if ($desk) { $desk.Target } else { 'missing' })
+  Check "${phase}: desktop shortcut points at the program" ($desk -and $exe -and ($desk.Target -ieq $exe)) $(if ($desk) { $desk.Target } else { 'missing' })
   return $entry
 }
 
 function Test-AppStarts([string]$exe, [string]$phase) {
   $version = Get-ReportedVersion $exe
-  Check "$phase: --version prints a version" ($version -match '^\S+$') $version
+  Check "${phase}: --version prints a version" ($version -match '^\S+$') $version
   # The window: started with launcher-style arguments (a scratch project folder), it must still be running after a few seconds.
   $project = Join-Path $env:RUNNER_TEMP ('project-' + [guid]::NewGuid().ToString('N'))
   if (-not $env:RUNNER_TEMP) { $project = Join-Path $env:TEMP ('project-' + [guid]::NewGuid().ToString('N')) }
@@ -97,7 +97,7 @@ function Test-AppStarts([string]$exe, [string]$phase) {
   $p = Start-Process -FilePath $exe -ArgumentList @('--project-folder', "`"$project`"", '--project-name', 'InstallCheck', '--daw', 'Standalone') -PassThru
   Start-Sleep -Seconds 10
   $p.Refresh()
-  Check "$phase: the app window process is still running after 10 s" (-not $p.HasExited) $(if ($p.HasExited) { "exited with $($p.ExitCode)" } else { "pid $($p.Id)" })
+  Check "${phase}: the app window process is still running after 10 s" (-not $p.HasExited) $(if ($p.HasExited) { "exited with $($p.ExitCode)" } else { "pid $($p.Id)" })
   Get-Process | Where-Object { $_.Path -ieq $exe } | Stop-Process -Force -ErrorAction SilentlyContinue
   Start-Sleep -Seconds 2
   return $version
@@ -114,12 +114,12 @@ function Invoke-Uninstall($entry, [string]$phase) {
   # NSIS copies a silent uninstaller to %TEMP% and returns at once, so removal is polled for.
   Start-Process -FilePath $uninstaller -ArgumentList '/S' | Out-Null
   $gone = Wait-Gone (Join-Path $dir 'narration-utils.exe') 120
-  Check "$phase: uninstall removed narration-utils.exe" $gone
+  Check "${phase}: uninstall removed narration-utils.exe" $gone
   Start-Sleep -Seconds 5
-  Check "$phase: uninstall removed the HKCU uninstall entry" ((Get-UserEntries).Count -eq 0)
-  Check "$phase: uninstall removed the Start Menu shortcuts" (-not (Test-Path $lnkApp) -and -not (Test-Path $lnkAudacity))
-  Check "$phase: uninstall removed the desktop shortcut" (-not (Test-Path $lnkDesktop))
-  Check "$phase: the install folder is gone (or empty of the program)" (-not (Test-Path $dir) -or -not (Get-ChildItem $dir -Force -ErrorAction SilentlyContinue | Where-Object { $_.Name -like 'narration-utils.exe*' }))
+  Check "${phase}: uninstall removed the HKCU uninstall entry" ((Get-UserEntries).Count -eq 0)
+  Check "${phase}: uninstall removed the Start Menu shortcuts" (-not (Test-Path $lnkApp) -and -not (Test-Path $lnkAudacity))
+  Check "${phase}: uninstall removed the desktop shortcut" (-not (Test-Path $lnkDesktop))
+  Check "${phase}: the install folder is gone (or empty of the program)" (-not (Test-Path $dir) -or -not (Get-ChildItem $dir -Force -ErrorAction SilentlyContinue | Where-Object { $_.Name -like 'narration-utils.exe*' }))
 }
 
 $report = [ordered]@{ setup = (Split-Path $Setup -Leaf); previousSetup = $(if ($PreviousSetup) { Split-Path $PreviousSetup -Leaf } else { $null }) }
