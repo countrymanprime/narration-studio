@@ -30,10 +30,24 @@ type Props = {
   fill?: boolean;
   /** The panel's title: Production says "Recorded vs plan", the Schedule page "Recorded audio vs plan" (the mock). */
   title?: string;
+  /** Put the "today" label on the side of the dot away from the plan and projection lines (the Schedule page); off, it is centred above the dot as Production draws it. */
+  clearTodayLabel?: boolean;
 };
 
 /** "Recorded vs plan": the plan dashed, the recorded days solid, the projection dotted, with the due line, today and the estimated finish. */
-export function ProgressChart({ k, wph, start, today, due, recordedHours, series, height: minHeight = 200, fill = false, title = 'Recorded vs plan' }: Props) {
+export function ProgressChart({
+  k,
+  wph,
+  start,
+  today,
+  due,
+  recordedHours,
+  series,
+  height: minHeight = 200,
+  fill = false,
+  title = 'Recorded vs plan',
+  clearTodayLabel = false,
+}: Props) {
   const box = useRef<HTMLDivElement>(null);
   const [width, setWidth] = useState(520);
   const [boxHeight, setBoxHeight] = useState(minHeight);
@@ -66,6 +80,13 @@ export function ProgressChart({ k, wph, start, today, due, recordedHours, series
   const pxPerDay = (width - PAD.left - PAD.right) / span;
   const step = Math.max(7, Math.ceil(TICK_GAP / pxPerDay / 7) * 7);
   for (let d = 0; d <= span; d += step) weeks.push(d);
+  const planDays = due ? diffDays(due, start) : 0;
+  const aheadOfPlan = planDays > 0 && y(recordedHours) < y((finishedHours * nowDay) / planDays);
+  const todayBelow = !aheadOfPlan || x(today) < PAD.left + 40;
+  /* A due line close to the right of the dot would run through a label put on that side, so the label goes to the left of the dot instead. */
+  const dueGap = due ? x(due) - x(today) : Infinity;
+  const todayLeft = !todayBelow || (dueGap > -6 && dueGap < 46 && x(today) >= PAD.left + 40);
+  const todayY = Math.min(y(recordedHours) + (todayBelow ? 18 : -14), height - PAD.bottom - 6);
   const rows = Array.from({ length: yMax + 1 }, (_, v) => v).slice(0, 4);
   const summary = `Plan starts ${fmtD(start)}${due ? `, due ${fmtD(due)}` : ', no due date'}. Today is ${fmtD(today)}, ${recordedHours.toFixed(1)} of ${finishedHours.toFixed(1)} finished hours recorded. Estimated finish ${fmtD(k.finish)}.`;
 
@@ -141,9 +162,16 @@ export function ProgressChart({ k, wph, start, today, due, recordedHours, series
             data-line="projection"
           />
           <circle cx={x(today)} cy={y(recordedHours)} r="5" fill="var(--accent)" stroke="var(--surface)" strokeWidth="2" data-marker="today" />
-          <text x={x(today)} y={y(recordedHours) - 10} textAnchor="middle" fontSize="11" fill="var(--text)">
-            today
-          </text>
+          {/* Beside the dot, on the side the plan line is not: above and left when the recording is ahead of the plan (the plan passes below), below and right otherwise. The projection runs up and right from the dot, so the right side is only taken below it. */}
+          {clearTodayLabel ? (
+            <text x={todayLeft ? x(today) - 7 : x(today) + 9} y={todayY} textAnchor={todayLeft ? 'end' : 'start'} fontSize="11" fill="var(--text)">
+              today
+            </text>
+          ) : (
+            <text x={x(today)} y={y(recordedHours) - 10} textAnchor="middle" fontSize="11" fill="var(--text)">
+              today
+            </text>
+          )}
           <text
             x={x(k.finish)}
             y={y(finishedHours) - 8}
