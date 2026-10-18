@@ -275,10 +275,14 @@ export function useScriptCommands() {
   return useMemo(() => {
     const undoOffer = (text: string, entryId: number | null) => {
       if (entryId === null) return;
-      overlay.toastUndo(text, async () => {
-        const undone = await journal.undo(entryId);
-        return undone.ok ? { ok: true } : undone;
-      });
+      overlay.toastUndo(
+        text,
+        async () => {
+          const undone = await journal.undo(entryId);
+          return undone.ok ? { ok: true } : undone;
+        },
+        { entry: entryId },
+      );
     };
     return {
       /** Marks a range; a query needs its question. Says what was saved, as the mock does. */

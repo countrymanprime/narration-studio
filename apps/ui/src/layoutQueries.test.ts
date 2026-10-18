@@ -16,7 +16,7 @@ const VOCABULARY = new Set(['min-[1360px]', 'max-[1359px]', 'max-[1280px]', 'min
 const OFF_VOCABULARY: Record<string, Record<string, number>> = {
   // GAP (#1217): the Production page still lays out at 1024 and 1280, not the mock's widths. `min-[1280px]` treats exactly 1280 as not medium; the mock treats it as medium.
   'src/components/production/ProductionPage.tsx': { 'min-[1024px]': 1, 'min-[1280px]': 1 },
-  // The page's loading skeleton mirrors the page's own grid, so it keeps the same two widths until #1217 moves them.
+  // The Production skeleton draws the page's own grids while it loads, so it shares the page's gap and goes with it.
   'src/components/production/overview/ProductionSkeleton.tsx': { 'min-[1024px]': 2, 'min-[1280px]': 1 },
   // The Settings page's Models & downloads table folds into cards at 1020 px of the page's own width (`@max-[1020px]`, a container query, not the
   // window's): the mock's `.assets` rule in settings.css. It follows the page container, so the zoomed window and a narrow one behave alike.

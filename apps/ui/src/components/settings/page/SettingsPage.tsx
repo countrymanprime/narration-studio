@@ -5,6 +5,7 @@ import { InsetCard } from '../../primitives/InsetCard';
 import { Heading } from '../../primitives/Heading';
 import { Icon } from '../../primitives/Icon';
 import { SearchField } from '../../primitives/SearchField';
+import { LoadingRegion, Skeleton } from '../../primitives/Skeleton';
 import { ToggleGroup } from '../../primitives/ToggleGroup';
 import type { Notify } from '../../primitives/Toast';
 import { SettingsFormsProvider } from '../data/settingsForms';
@@ -152,17 +153,14 @@ function Body({ initialCategory, cameFrom }: { initialCategory?: string; cameFro
   let content;
   if (loading) {
     content = (
-      <div aria-busy="true" aria-label={`Loading ${crumb}`} className="flex flex-col gap-3">
+      <LoadingRegion label={`Loading ${crumb}`} status="Reading your settings…" className="flex flex-col gap-3">
         <h2 id="settings-heading" tabIndex={-1} className="font-['Barlow_Condensed',sans-serif] text-[1.875rem] font-semibold outline-none">
           {crumb}
         </h2>
         {[0, 1, 2, 3].map((index) => (
-          <div key={index} className="h-16 rounded-md bg-[var(--surface-2)] motion-ok:animate-pulse" />
+          <Skeleton key={index} tall />
         ))}
-        <span className="sr-only" role="status">
-          Reading your settings…
-        </span>
-      </div>
+      </LoadingRegion>
     );
   } else if (searching) {
     content = (

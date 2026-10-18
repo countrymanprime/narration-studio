@@ -5,6 +5,8 @@ import { type FeedbackRow, row, subscription } from './row';
 // prettier-ignore
 export const proofFeedback: Record<string, FeedbackRow> = {
   // Review page
+  'src/components/proof/proofOptions/useProjectOptions.ts::settingsForScope#1': row('effect', 'file-io', 'na', 'na', 'ui', 'inline', 'na', 'ok', 'Reads the project layer when an options group is opened and again after each save; a failure is written under the group.'),
+  'src/components/proof/proofOptions/useProjectOptions.ts::saveSettings#1': row('input', 'file-io', 'none', 'none', 'ui', 'inline', 'na', 'ok', 'A one-field write when a box is left, a choice or colour is picked or Reset is pressed, then read back; a refusal is written under the group and the value in force stays.'),
   'src/components/proof/ProofPage.tsx::findingsSummary#1': row('mount', 'file-io', 'na', 'na', 'ui', 'toast', 'na', 'ok', 'The book\'s counts for the head\'s ring, read with the list on opening, on a sort or scope change and after a decision; a failure is a toast and the counts on screen stay.'),
   // Proof follows the benchmark mock 04: the accepted notes for the header's pickup and edit chips, and the proofer's sheet on the notes header.
   'src/components/proof/ProofPage.tsx::pickupsList#1': row('mount', 'file-io', 'na', 'na', 'ui', 'silent', 'na', 'exempt', 'The pickups list, for the open pickups no note stands for, so the head never reads 100 while one is open; a failed read counts none and the Pickups page reports the error.'),

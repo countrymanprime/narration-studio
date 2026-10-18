@@ -36,7 +36,7 @@ export function OnlinePronunciationLookup({ name, disabled, onUse }: { name: str
           disabled={disabled}
           pending={pending}
           onClick={() => void lookUp()}
-          aria-label={`Look up ${name} online in Merriam-Webster`}
+          aria-label={`Look up online: ${name} in Merriam-Webster`}
         >
           Look up online
         </Button>
@@ -59,7 +59,7 @@ export function OnlinePronunciationLookup({ name, disabled, onUse }: { name: str
                     variant="secondary"
                     disabled={disabled}
                     onClick={() => onUse(row.spelling)}
-                    aria-label={`Use ${row.spelling} as your pronunciation of ${name}`}
+                    aria-label={`Use this: ${row.spelling} as your pronunciation of ${name}`}
                   >
                     Use this
                   </Button>

@@ -34,7 +34,9 @@ describe('control edges draw the mock’s line weights', () => {
   for (const [file, { carries, hairlines }] of Object.entries(EDGES)) {
     test(`${file} pins its line tokens`, () => {
       const source = read(file);
-      for (const edge of carries) expect(source).toContain(edge);
+      // Whitespace collapsed, so a pin holds however the formatter wraps the line (`default:` broke onto its own line in #1996).
+      const flat = source.replace(/\s+/g, ' ');
+      for (const edge of carries) expect(flat).toContain(edge);
       const borders = source.match(/border-\[var\(--border\)\]|borderColor: 'var\(--border\)'/g) ?? [];
       expect(borders).toHaveLength(hairlines);
     });

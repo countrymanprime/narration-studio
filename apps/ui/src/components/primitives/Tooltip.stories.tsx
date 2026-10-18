@@ -146,8 +146,9 @@ export const HidesTooltipOnBlur: Story = {
 export const OnDisabledButton: Story = {
   render: () => (
     <TooltipTarget text="Import a manuscript to unlock Proof." className="max-w-sm">
-      <button className={cardClass} aria-label="Open Proof" disabled>
-        <div className="font-semibold">Proof</div>
+      {/* Named by what it draws: an aria-label that leaves out the drawn text fails axe's label-content-name-mismatch. */}
+      <button className={cardClass} disabled>
+        <div className="font-semibold">Open Proof</div>
         <div className="mt-1 text-sm">Select audio items or a track in REAPER, then start proofing.</div>
       </button>
     </TooltipTarget>
@@ -158,7 +159,7 @@ export const DisabledButtonExplainsWhyOnFocus: Story = {
   render: OnDisabledButton.render,
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
-    const button = canvas.getByRole('button', { name: 'Open Proof' });
+    const button = canvas.getByRole('button', { name: /^Open Proof/ });
     await expect(button).toBeDisabled();
     await userEvent.tab();
     await expect(button.parentElement).toHaveFocus();
