@@ -81,6 +81,15 @@ describe('production-route-draws-the-mock-page', () => {
     expect(await pipeline()).toBeTruthy();
   });
 
+  // The mock's `.pstats` (1.5fr 1fr 1fr) and `.pgrid` (the pipeline beside a 360 px Next up), app.css:110-112.
+  it('lays the stats row out 1.5 : 1 : 1 and gives Next up 360 px', async () => {
+    await renderPage({ initial: { production: PRODUCTION_SCENARIOS['on-pace'] } });
+    const stats = (await screen.findByRole('heading', { name: 'Where the book stands' })).closest('.grid') as HTMLElement;
+    expect(stats.className).toContain('min-[1024px]:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)_minmax(0,1fr)]');
+    const board = screen.getByRole('heading', { name: 'Chapter pipeline' }).closest('.grid') as HTMLElement;
+    expect(board.className).toContain('min-[1280px]:grid-cols-[minmax(0,1fr)_22.5rem]');
+  });
+
   it('is the import when there is no manuscript', async () => {
     await renderPage({ initial: { noManuscript: true } });
     expect(await screen.findByRole('button', { name: 'Import manuscript' })).toBeTruthy();

@@ -402,7 +402,7 @@ export function ProductionPage({
             targetInfo={<TargetInfoButton />}
           />
           <TimerFigures overview={overview} />
-          <div className="grid grid-cols-[minmax(0,1fr)] gap-4 min-[1024px]:grid-cols-3">
+          <div className="grid grid-cols-[minmax(0,1fr)] gap-4 min-[1024px]:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)_minmax(0,1fr)]">
             <StageBar segments={stageSegments(narrated, WPH)} wph={WPH} />
             <WeekCard figures={weekFigures(log, today, start, due, k.words / WPH)} />
             <CheckCountsCard
@@ -412,7 +412,7 @@ export function ProductionPage({
               onCheck={(ids) => openCheckRecordings(ids)}
             />
           </div>
-          <div className="grid grid-cols-[minmax(0,1fr)] items-start gap-4 min-[1280px]:grid-cols-[minmax(0,1fr)_21.25rem]">
+          <div className="grid grid-cols-[minmax(0,1fr)] items-start gap-4 min-[1280px]:grid-cols-[minmax(0,1fr)_22.5rem]">
             <div className="flex min-w-0 flex-col gap-4">
               <Panel title="Chapter pipeline" flush>
                 <div {...{ [PIPELINE_AREA]: '' }}>
