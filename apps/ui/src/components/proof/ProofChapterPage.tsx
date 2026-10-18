@@ -8,6 +8,7 @@ import { RecordingCheck } from '../production/RecordingCheck';
 import { Button } from '../primitives/Button';
 import { Heading } from '../primitives/Heading';
 import { Panel } from '../primitives/Panel';
+import { LoadingRegion, Skeleton } from '../primitives/Skeleton';
 import { SectionLabel } from '../primitives/SectionLabel';
 import type { Notify } from '../primitives/Toast';
 import type { ManuscriptChapter, TranscriptState } from '../../types';
@@ -55,6 +56,8 @@ function ChapterView({ chapterId, notify, transcript, dawFileLinked, goToManuscr
   const [linkedTrackGuid, setLinkedTrackGuid] = useState<string>();
   const [alignment, setAlignment] = useState<WorkspaceAlignmentResult>();
   const [loadError, setLoadError] = useState('');
+  // False until the chapters and track links have been read, so "no such chapter" is told apart from "still reading".
+  const [read, setRead] = useState(false);
   const [checking, setChecking] = useState(false);
   const [lastCompleted, setLastCompleted] = useState<TranscriptState>();
   const [reviewingLast, setReviewingLast] = useState(false);
@@ -83,6 +86,7 @@ function ChapterView({ chapterId, notify, transcript, dawFileLinked, goToManuscr
     Promise.all([api.manuscriptChapters(), api.chapterTrackMapList()])
       .then(([chapters, mapping]) => {
         if (!active) return;
+        setRead(true);
         setChapter(chapters.find((candidate) => candidate.id === chapterId));
         setLinkedTrackGuid(mapping.mappings.find((entry) => entry.chapterId === chapterId)?.trackGuid);
       })
@@ -109,8 +113,30 @@ function ChapterView({ chapterId, notify, transcript, dawFileLinked, goToManuscr
         {loadError}
       </p>
     );
+  } else if (chapter === undefined && !read) {
+    // Still reading: the page's title stays, the panels are blocks.
+    content = (
+      <div className="mx-auto max-w-7xl space-y-4">
+        <Heading title="Proof" />
+        <LoadingRegion label="Loading the chapter" status="Reading the chapter…" className="flex flex-col gap-4">
+          <Skeleton className="w-48" />
+          <Skeleton tall />
+          <Skeleton tall />
+          <Skeleton tall />
+        </LoadingRegion>
+      </div>
+    );
   } else if (chapter === undefined) {
-    content = null; // still loading, or the id doesn't resolve to a chapter
+    content = (
+      <div className="mx-auto max-w-7xl space-y-4">
+        <Heading title="Proof" />
+        <Panel title="This chapter is not in the manuscript">
+          <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
+            The address names a chapter the manuscript does not have. <Link to="/proof">Back to Proof</Link>
+          </p>
+        </Panel>
+      </div>
+    );
   } else {
     content = (
       <div className="mx-auto max-w-7xl space-y-4">
