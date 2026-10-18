@@ -211,6 +211,7 @@ replacing the manuscript keeps it; if its lines are gone, the panel says so and 
 ## Appearance & keys
 
 - **Theme** sets **Match my system**, **Light** or **Dark**. The **Dark theme** / **Light theme** item at the foot of the sidebar switches it too. It is kept in this window, so the page calls it **This computer**.
+- **Motion** is **Follow Windows** or **Reduce**. **Reduce** stops the app's slides, fades and highlights: menus, drawers and messages appear at once, and the Booth's cursor jumps from line to line. **Follow Windows** does that only when Windows' **Animation effects** setting is off. Like Theme, it is kept in this window.
 - **Reader text** sets how the [Script](script.md) reader draws the text: **Font**, **Size**, **Line spacing** and **Column width**, over a quote drawn in them. These are the Script's own text settings, so a change here shows there and the other way round. The Booth keeps its own text size and uses the font chosen here.
 - **Note colour** is the colour that marks reader notes in the text; a project may override it.
 - **Zoom** scales the whole window (100% to 200%, the steps the header's zoom buttons and **Ctrl+plus**, **Ctrl+minus** and **Ctrl+0** use); it follows those and sets the same level.
@@ -264,7 +265,7 @@ Some settings only change what one page does, so they belong on that page, next 
 
 ## When something is wrong
 
-- While the settings are read, the pane shows placeholders and says **Reading your settings…**.
+- While the settings are read, the pane shows grey blocks under its title and says **Reading your settings…**.
 - If the settings file cannot be read, the page says **Your settings could not be read** and disables the controls until **Try again** works.
 - If a change cannot be saved, the page says **Changes cannot be saved right now** and the row says why; the previous value is still in use.
 - If the list of downloads cannot be read, Models & downloads says so with **Try again**; your downloads are not touched.

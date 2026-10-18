@@ -484,7 +484,7 @@ export const settingsDrivers: Record<string, Driver> = {
   override: async (page) => {
     await openSettings(page, 'Project');
     await showSettingsRow(page, 'project.build');
-    await page.getByRole('button', { name: 'Override Build the Story Bible after import for this project' }).click();
+    await page.getByRole('button', { name: 'Override for this project: Build the Story Bible after import' }).click();
     await page.getByText('This project uses', { exact: true }).waitFor();
   },
 };

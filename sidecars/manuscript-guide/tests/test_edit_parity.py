@@ -22,7 +22,7 @@ guide = importlib.util.module_from_spec(SPEC)
 assert SPEC.loader is not None
 SPEC.loader.exec_module(guide)
 
-TESTDATA = Path(__file__).parents[3] / "apps" / "desktop" / "internal" / "guide" / "testdata"
+TESTDATA = Path(__file__).parents[3] / "tests" / "fixtures" / "guide-edit"
 
 
 def entry(entity_id: str, name: str, category: str, **extra) -> dict:

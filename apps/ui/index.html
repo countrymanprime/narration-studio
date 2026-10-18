@@ -19,6 +19,13 @@
         } catch (error) {
           // Storage/matchMedia unavailable - fall back to the default light palette.
         }
+        // Settings -> Motion -> Reduce sets data-motion before first paint, so nothing moves on the first frame
+        // (apps/ui/src/motion.ts, applyMotion; same key, duplicated for the same reason).
+        try {
+          if (localStorage.getItem('narration-ui-motion') === 'reduce') document.documentElement.setAttribute('data-motion', 'reduce');
+        } catch (error) {
+          // Storage unavailable - follow Windows.
+        }
       })();
     </script>
     <!-- One local icon: a page with none makes the browser ask for /favicon.ico (a 404). An empty data: icon ahead of this one hides it. -->

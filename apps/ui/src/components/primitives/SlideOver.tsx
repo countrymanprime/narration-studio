@@ -24,6 +24,7 @@ export function SlideOver({
   headingLevel = 3,
   onClose,
   onEscape,
+  returnFocus,
   children,
 }: {
   open: boolean;
@@ -35,9 +36,11 @@ export function SlideOver({
   // Runs before Escape closes the panel; returning true means the caller already handled the key
   // itself (for example, clearing a search - R8) and the panel should stay open.
   onEscape?: () => boolean;
+  // Where focus goes on close when the element that had it at open is gone (the jump menu item that ran History, then closed). Absent: the page's <main>.
+  returnFocus?: () => HTMLElement | null;
   children: ReactNode;
 }) {
-  const finalFocus = useReturnFocusTarget(open);
+  const finalFocus = useReturnFocusTarget(open, returnFocus);
   return (
     <Drawer.Root
       open={open}
@@ -58,7 +61,7 @@ export function SlideOver({
           <Drawer.Popup
             data-slide-over
             finalFocus={finalFocus}
-            className={`flex h-full ${WIDTH[size]} [transform:translateX(var(--drawer-swipe-movement-x,0px))] flex-col border-l border-[var(--border)] bg-[var(--surface)] shadow-[var(--shadow-lg)] outline-none data-[ending-style]:[transform:translateX(100%)] data-[starting-style]:[transform:translateX(100%)] data-[swiping]:duration-0 motion-ok:transition-transform motion-ok:duration-(--motion-base) motion-ok:ease-(--ease-enter)`}
+            className={`flex h-full ${WIDTH[size]} [transform:translateX(var(--drawer-swipe-movement-x,0px))] flex-col border-l border-[var(--border)] bg-[var(--surface)] shadow-[var(--shadow-lg)] outline-none data-[swiping]:duration-0 motion-ok:transition-transform motion-ok:duration-(--motion-base) motion-ok:ease-(--ease-enter) data-[ending-style]:motion-ok:[transform:translateX(100%)] data-[starting-style]:motion-ok:[transform:translateX(100%)]`}
           >
             {/* Content: a mouse drag inside the panel selects text instead of starting a swipe-to-dismiss (touch still swipes). */}
             <Drawer.Content className="flex min-h-0 flex-1 flex-col">

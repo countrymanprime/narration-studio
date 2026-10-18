@@ -247,6 +247,7 @@ export function PickupsPage({
           pickups={inView}
           chapters={chapters}
           unreadable={read.kind === 'failed'}
+          loading={read.kind === 'loading'}
           seconds={seconds}
           dawName={dawName}
           markers={{ available: markers.available, message: markers.message }}

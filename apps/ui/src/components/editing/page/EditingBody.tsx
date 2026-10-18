@@ -64,6 +64,7 @@ import { FxMarkersContext } from '../range/fx/fxMarkers';
 import { registerSelectionAction } from '../bar/selectionActions';
 import { SelectionActionButton } from '../bar/SelectionActionButton';
 import { useShowInDaw } from '../takes/useShowInDaw';
+import { escapeClosesPanel } from '../../primitives/focusReturn';
 import { IconButton } from '../../primitives/IconButton';
 import { registerTakeControl } from '../takes/takeControls';
 import { InHost, rowOf } from './InHost';
@@ -124,6 +125,9 @@ export interface EditingBodyProps {
   /** The DAW-off banner, or null. */
   banner: ReactNode;
 }
+
+/** The chip that opens a line's takes, where focus goes back when they close. */
+const chipOf = (pid: string): HTMLElement | null => document.querySelector<HTMLElement>(`[data-tchip="${CSS.escape(pid)}"]`);
 
 /** The heard word's score for the card: a number, or null with the recogniser's reason. */
 function scoreOf(read: ChapterRead, key: string): { conf: number | null; reason?: string } | undefined {
@@ -435,6 +439,8 @@ export function EditingBody(props: EditingBodyProps) {
   // With no cursor yet the first chip stays in the Tab order, so the takes are reachable from the keyboard before a word is chosen.
   const firstChipPid = [...underLines].find((pid) => (lines.byId.get(pid)?.takes.length ?? 0) > 1);
 
+  const toggleOf = () => document.getElementById('drawertoggle');
+  const drawerEscape = escapeClosesPanel(panels.drawer.close, toggleOf);
   const drawer = (
     <Drawer
       doc={doc}
@@ -447,6 +453,7 @@ export function EditingBody(props: EditingBodyProps) {
       flagKind={flagKind}
       onReview={review}
       strip={stripProps}
+      onKeyDown={drawerEscape}
     />
   );
 
@@ -466,6 +473,7 @@ export function EditingBody(props: EditingBodyProps) {
         stripFits={stripFits}
         drawerOpen={drawerOpen}
         onDrawer={panels.drawer.toggle}
+        onDrawerKeyDown={drawerOpen ? drawerEscape : undefined}
       />
       <div className="min-h-0 flex-1 px-4 pb-3 [&>div]:h-full">
         <DrawerLayout open={drawerOpen} drawer={drawer}>
@@ -529,10 +537,22 @@ export function EditingBody(props: EditingBodyProps) {
                 controls={`takes-${pid}`}
                 tabbable={open || pid === (current ?? firstChipPid)}
                 onToggle={() => setLineOpen(pid, !open)}
+                onKeyDown={
+                  open
+                    ? escapeClosesPanel(
+                        () => setLineOpen(pid, false),
+                        () => chipOf(pid),
+                      )
+                    : undefined
+                }
               />
             ) : null}
             {open && shown ? (
               <TakeLines
+                onKeyDown={escapeClosesPanel(
+                  () => setLineOpen(pid, false),
+                  () => chipOf(pid),
+                )}
                 passage={shown}
                 onTake={pid === current ? lineTakes.onTake : null}
                 keptId={keep.kept[pid] ?? null}
