@@ -19,6 +19,7 @@ beforeEach(() => {
 afterEach(() => {
   vi.useRealTimers();
   vi.unstubAllGlobals();
+  delete document.documentElement.dataset.motion;
 });
 
 describe('usePacedCursor', () => {
@@ -69,6 +70,15 @@ describe('usePacedCursor', () => {
 
   it('does not animate for people who ask for reduced motion', () => {
     preferReducedMotion(true);
+    const { result, rerender } = renderHook(({ target }) => usePacedCursor(target), { initialProps: { target: 10 } });
+
+    rerender({ target: 30 });
+
+    expect(result.current).toBe(30);
+  });
+
+  it('does not animate when the app asks for reduced motion, whatever Windows says', () => {
+    document.documentElement.dataset.motion = 'reduce';
     const { result, rerender } = renderHook(({ target }) => usePacedCursor(target), { initialProps: { target: 10 } });
 
     rerender({ target: 30 });
