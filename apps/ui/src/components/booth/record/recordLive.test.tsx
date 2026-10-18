@@ -366,8 +366,9 @@ describe('another project opened in the DAW while Record is ready or a take runs
 
   it('Record is ready, the DAW opens another project, and no event says so: the next slow read does', async () => {
     const { open, daw } = withOpenProject();
-    await waitFor(() => expect(daw.result.current.disabled).toBe(false));
-    expect(daw.result.current.facts.openProject).toBe('same');
+    // The capability read and the link-facts read are separate: Record is on before the open project is known ('unknown' claims nothing).
+    await waitFor(() => expect(daw.result.current.facts.openProject).toBe('same'));
+    expect(daw.result.current.disabled).toBe(false);
     open.matches = false;
     await act(() => vi.advanceTimersByTimeAsync(READY_POLL_MS + 50));
     await waitFor(() => expect(daw.result.current.facts.openProject).toBe('different'));
