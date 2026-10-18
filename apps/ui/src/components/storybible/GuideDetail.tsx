@@ -630,6 +630,7 @@ export function GuideDetail({
   return (
     <Panel
       title={entity.canonical_name || 'New entity'}
+      titleStyle="entry"
       leading={<Dot color={CAT_DOT_BG[categoryCssName(entity.category)]} />}
       subtitle={
         <div className="flex items-center gap-2" style={{ position: 'relative' }}>

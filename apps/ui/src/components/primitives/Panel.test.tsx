@@ -66,6 +66,21 @@ describe('Panel', () => {
   });
 });
 
+describe('Panel title styles', () => {
+  // The Studio Next mock's Story Bible entry heading is `fontSize: 26` (pages/bible/EntryEditor.tsx), over the card title.
+  it('draws the entry title at 26 px, and the default card title smaller', () => {
+    const { unmount } = render(
+      <Panel title="Alice" titleStyle="entry">
+        body
+      </Panel>,
+    );
+    expect(screen.getByRole('heading', { name: 'Alice' }).className).toContain('text-[1.625rem]');
+    unmount();
+    render(<Panel title="Alice">body</Panel>);
+    expect(screen.getByRole('heading', { name: 'Alice' }).className).toContain('--font-size-card-title');
+  });
+});
+
 describe('Panel header, subtitle and body', () => {
   it('puts the subtitle in the header row, after the title', () => {
     render(
