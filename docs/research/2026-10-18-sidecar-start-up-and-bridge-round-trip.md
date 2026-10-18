@@ -97,11 +97,31 @@ The same harness and workflow on `claude/bridge-fast-poll` ([#1909](https://gith
 | 1 MB | 221 to 236 µs | 32 µs | 1.06 MB | 0.6 to 0.8 KB |
 | 8 MB | 1.9 to 2.3 ms | 32 µs | 8.4 MB | 0.6 to 0.8 KB |
 
-A tick no longer depends on the log's length. The empty-log tick is slower after (32 against 15 µs): the open, stat and close now happen on every tick, and the two runs were on different CPUs, so the size of that difference is not established. It is 0.02% of a 150 ms tick.
+A tick no longer depends on the log's length. The empty-log tick read 32 µs after against 15 µs before, but the two runs were on different CPUs; the re-run below, on a third CPU, measures 15 µs at every size, so the open, stat and close on every tick cost nothing visible.
 
 ### Story Bible operations, to show the noise
 
 Not changed by this PR (no sidecar code moved). One-field edit p50: 241 ms (first run), small manuscript; full-length 424 ms against 496 ms in this run. Seeding ten candidates on the full-length manuscript: 8.4 s against 10.9 s. Differences of 15% to 30% between two runs of the same code on different shared runners are the noise to read the bridge comparison against; the bridge change is a factor of six.
+
+### Re-run on the merged head
+
+The same workflow again (run 39156991571, head `0821407`) after `main` and #1898's `sidecar.timing` and `bridge.timing` records were merged into the branch, so the round trip is measured with the timing observer on. Runner: AMD EPYC 9V45 (a third CPU).
+
+| events.log at start (KB) | Round trip p50 (ms) | p95 (ms) | Max (ms) | Command taken p50 (ms) | Answer written p50 (ms) |
+| --- | --- | --- | --- | --- | --- |
+| 0 | 16 | 31 | 45 | 14 | 14 |
+| 1,024 | 16 | 31 | 45 | 13 | 13 |
+| 8,192 | 16 | 31 | 46 | 14 | 15 |
+
+| events.log | Time per tick | Allocated per tick |
+| --- | --- | --- |
+| 0 KB | 14.5 to 15.3 µs | 600 B |
+| 200 KB | 14.7 to 14.9 µs | 616 to 808 B |
+| 1 MB | 14.5 to 14.8 µs | 808 B |
+| 8 MB | 15.4 to 15.8 µs | 808 B |
+
+- **The timing records did not change the round trip**: p50 16 ms, p95 31 ms and max 45 to 46 ms, the same as before the merge. (`Actions.SetObserver` is only wired by the host, `recordBridgeTiming`; this harness calls `Actions` directly with no observer, so this run shows the fast poll after the merge but not the cost of writing the record. That cost is one `slog` line per request and was not measured.)
+- A tick costs about 15 µs at every log size, from empty to 8 MB.
 
 ## What this does and does not show
 
