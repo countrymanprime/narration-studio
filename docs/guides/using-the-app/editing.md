@@ -18,6 +18,7 @@ The header has the chapter step (the previous and next chapter buttons, Alt+↑ 
 legend of the marks in the text with how many of each, the recogniser that heard the words (**Flagged by**), the
 **Timeline** button (on a window 1360 px wide or more) and the button that opens the drawer. At 1280 px and below the
 legend uses short labels with no counts.
+While the chapters and the chapter's lines are being read, the header stays and the script is drawn as grey blocks; if the chapters cannot be read, the page says so.
 
 Words carry what the last [recording check](production.md#checking-a-chapters-recording) heard:
 

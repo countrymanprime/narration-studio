@@ -169,3 +169,36 @@ describe('the old workspace', () => {
     expect(offenders).toEqual([]);
   });
 });
+
+// The loading state (definition-of-done.md state matrix): a skeleton under the page's title while the chapter is read, then the page, a
+// "not in the manuscript" panel for an id with no chapter, or the error; never a blank page.
+describe('ProofChapterPage loading state', () => {
+  const never = () => new Promise<never>(() => {});
+  const region = () => screen.queryByRole('group', { name: 'Loading the chapter' });
+
+  it('shows the title and a busy region while the chapters are read, however long that takes', async () => {
+    renderWorkspace({ manuscriptChapters: never });
+    expect(await screen.findByRole('heading', { level: 1, name: 'Proof' })).toBeTruthy();
+    expect(region()?.getAttribute('aria-busy')).toBe('true');
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    expect(region()).toBeTruthy();
+  });
+
+  it('is replaced by the chapter when it arrives', async () => {
+    renderWorkspace();
+    expect(await screen.findByRole('heading', { name: `Proof · ${chapterName(chapter)}` })).toBeTruthy();
+    expect(region()).toBeNull();
+  });
+
+  it('says the chapter is not in the manuscript for an id that has none, not a blank page or a skeleton', async () => {
+    renderWorkspace({ manuscriptChapters: async () => [] });
+    expect(await screen.findByText('This chapter is not in the manuscript')).toBeTruthy();
+    expect(region()).toBeNull();
+  });
+
+  it('shows the error, not a skeleton, when the chapters cannot be read', async () => {
+    renderWorkspace({ manuscriptChapters: () => Promise.reject(new Error('The manuscript could not be read.')) });
+    expect(await screen.findByText(/The manuscript could not be read\./)).toBeTruthy();
+    expect(region()).toBeNull();
+  });
+});

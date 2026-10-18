@@ -3,7 +3,7 @@
   "name": "narration-utils-shell",
   "projectType": "application",
   "tags": ["toolchain:go"],
-  "implicitDependencies": ["narration-utils-ui", "manuscript-guide", "manuscript-teleprompter", "transcript-compare", "reaper", "config", "fixtures"],
+  "implicitDependencies": ["manuscript-guide", "manuscript-teleprompter", "transcript-compare", "reaper", "config", "fixtures"],
   "targets": {
     "lint": {
       "executor": "nx:run-commands",
@@ -22,6 +22,12 @@
       "configurations": {
         "ci": {
           "command": "node scripts/ci/coverage-gate.mjs go {projectRoot} -race"
+        },
+        "ci-root": {
+          "command": "node scripts/ci/coverage-gate.mjs go {projectRoot} -race --group=root"
+        },
+        "ci-rest": {
+          "command": "node scripts/ci/coverage-gate.mjs go {projectRoot} -race --group=race,plain"
         }
       }
     },
@@ -41,6 +47,7 @@
     },
     "package": {
       "executor": "nx:run-commands",
+      "dependsOn": [{ "projects": ["narration-utils-ui"], "target": "build" }],
       "options": {
         "command": "pnpm --dir {projectRoot} run build"
       }
