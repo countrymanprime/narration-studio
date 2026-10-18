@@ -55,7 +55,7 @@ test('the root project depends on every project whose commits already counted to
 const UI_PATH = /(^|[\\/])apps[\\/]ui([\\/]|$)|\.\.[\\/]ui([\\/]|$)/;
 
 // The string literals of Go source, comments removed: a comment may name apps/ui (most do, to say where a schema lives).
-export function goStringLiterals(source) {
+function goStringLiterals(source) {
   const literals = [];
   for (let i = 0; i < source.length; ) {
     const char = source[i];
@@ -88,7 +88,7 @@ export function goStringLiterals(source) {
 // it is not a read, and it must not need editing with each bump.
 const UI_PATH_MESSAGE = /^host API version = %d, want \d+; update it with apps\/ui\/src\/hostApi\.ts$/;
 
-export const uiPathReads = (source) => goStringLiterals(source).filter((literal) => UI_PATH.test(literal) && !UI_PATH_MESSAGE.test(literal));
+const uiPathReads = (source) => goStringLiterals(source).filter((literal) => UI_PATH.test(literal) && !UI_PATH_MESSAGE.test(literal));
 
 test('the Go host reads nothing under apps/ui, so the shell does not depend on the UI project', () => {
   const reads = trackedFiles()

@@ -46,6 +46,18 @@ describe('what the header and the verdict say about the days', () => {
     expect(screen.getByText('Near').closest('tr')?.textContent).toMatch(/Nov 1(?!,)/);
   });
 
+  it('says so in the Final delivery status when no due date is set, and gives it a status once one is', async () => {
+    await mountSchedule({ seed: { deadline: null } });
+    await dueField();
+    const status = () => document.querySelector('[data-final-status]');
+    expect(status()?.textContent).toBe('No date');
+    expect(status()?.getAttribute('aria-label')).toMatch(/No due date yet/);
+    cleanup();
+    await mountSchedule({ seed: { deadline: '2026-11-30' } });
+    await dueField();
+    expect(status()?.textContent).not.toBe('No date');
+  });
+
   it('draws a chart without a plan line when the due date is before the plan starts', async () => {
     await mountSchedule({ seed: { deadline: '2026-09-20' } });
     await dueField();

@@ -34,6 +34,34 @@ type Actions struct {
 	recordingRun string
 	// +checklocks:mu
 	onRecordEnded func(RecordEnded)
+	// +checklocks:mu
+	observe func(RequestTiming)
+}
+
+// RequestTiming is how long one request took from writing its command to its outcome. It holds the command's name and a fixed
+// outcome word, never an argument or an answer, which can carry a track's or a file's name.
+type RequestTiming struct {
+	Command string
+	// Outcome is "answered", "error" (the script refused), "no_answer" (timed out), "cancelled" or "send_failed".
+	Outcome string
+	Elapsed time.Duration
+}
+
+// SetObserver gives Actions somewhere to report each request's RequestTiming (the host writes it to the run log). It is
+// optional and is called on the requesting goroutine, so it must be quick.
+func (a *Actions) SetObserver(observe func(RequestTiming)) {
+	a.mu.Lock()
+	defer a.mu.Unlock()
+	a.observe = observe
+}
+
+func (a *Actions) report(command, outcome string, started time.Time) {
+	a.mu.Lock()
+	observe := a.observe
+	a.mu.Unlock()
+	if observe != nil {
+		observe(RequestTiming{Command: command, Outcome: outcome, Elapsed: time.Since(started)})
+	}
 }
 
 // The old single switch for the experimental commands: DAW.experimental_reaper_actions, a bool that defaults off
@@ -140,7 +168,9 @@ func (a *Actions) request(ctx context.Context, command string, closing []string,
 	}
 	runID, run, timeout := a.open(closing)
 	defer a.close(runID)
+	started := time.Now()
 	if _, err := a.client.Send(command, append([]string{runID}, args...)); err != nil {
+		a.report(command, "send_failed", started)
 		a.logFailure(command, runID, "could not send")
 		return nil, fmt.Errorf("could not send %s to REAPER: %w", command, err)
 	}
@@ -149,13 +179,18 @@ func (a *Actions) request(ctx context.Context, command string, closing []string,
 	select {
 	case got := <-run.done:
 		if got.err != nil {
+			a.report(command, "error", started)
 			a.logFailure(command, runID, failureKind(got.err))
+		} else {
+			a.report(command, "answered", started)
 		}
 		return got.events, got.err
 	case <-timer.C:
+		a.report(command, "no_answer", started)
 		a.logFailure(command, runID, "no answer within "+timeout.String())
 		return nil, ErrNoAnswer
 	case <-ctx.Done():
+		a.report(command, "cancelled", started)
 		a.logFailure(command, runID, "cancelled")
 		return nil, ctx.Err()
 	}
