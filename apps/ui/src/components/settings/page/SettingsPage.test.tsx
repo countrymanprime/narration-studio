@@ -204,6 +204,15 @@ describe('Settings: search and filters', () => {
     expect(document.querySelector('[data-page-setting="ps.cleanup"]')).toBeTruthy();
   });
 
+  it('lists the Audacity backups with a way to Editing and no second editor here', async () => {
+    await renderPage();
+    await userEvent.type(await screen.findByRole('textbox', { name: 'Search settings' }), 'retention');
+    const entry = document.querySelector<HTMLElement>('[data-page-setting="ps.backups"]');
+    expect(entry).toBeTruthy();
+    expect(within(entry!).getByRole('button', { name: /^Open Editing/ })).toBeTruthy();
+    expect(within(entry!).queryByRole('button', { name: 'Change it here for now' })).toBeNull();
+  });
+
   it('Escape clears the search', async () => {
     await renderPage();
     const box = (await screen.findByRole('textbox', { name: 'Search settings' })) as HTMLInputElement;

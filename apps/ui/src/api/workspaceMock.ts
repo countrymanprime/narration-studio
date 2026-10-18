@@ -233,6 +233,7 @@ export function createWorkspaceMock(deps: Deps): Omit<WorkspaceApi, 'workspaceTa
         state: result.state,
         reasons: result.reasons,
         ...(result.basis ? { basis: result.basis } : {}),
+        ...(result.state === 'current' && result.record ? { recordId: result.record.id } : {}),
         needsAlignAgain: false,
         paragraphs: [],
         tokens: [],

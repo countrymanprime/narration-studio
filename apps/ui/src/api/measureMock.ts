@@ -126,8 +126,6 @@ function measuredResult(file: MeasureFileResult, index: number, seed?: MockMeasu
 
 export type MockMeasureSeed = 'hold' | 'fails' | 'spread' | 'mock-05' | 'delivery-ready';
 
-const BROKE = 'runtime error: index out of range [4] with length 4';
-
 /** Six already-measured chapters with varied levels (the Book consistency view), all within ACX's bounds, so the book-wide spread has more than the single file `report()` above
  * gives every other mock scenario. `?mockMeasure=spread` seeds the job with these already ended, so the state can
  * be captured without measuring six files by hand. */
@@ -254,9 +252,9 @@ export function createMeasureMock(
   const breakDown = () => {
     job = {
       ...job,
-      error: BROKE,
+      error: 'The measurement stopped unexpectedly.',
       files: job.files.map((file, i) =>
-        i === 0 ? { ...file, status: 'failed', error: `the measurement stopped unexpectedly: ${BROKE}` } : { ...file, status: 'cancelled' },
+        i === 0 ? { ...file, status: 'failed', error: 'the measurement stopped unexpectedly on this file' } : { ...file, status: 'cancelled' },
       ),
     };
     end('error', 'The measurement stopped unexpectedly.');

@@ -92,7 +92,7 @@ export type MockApiSeed = {
   /** Makes every Story Bible preview fail with this text once the voice is installed. */
   previewError?: string;
   /** Makes that payload arrive in the wrong shape, through the real `parseWire`, so the failure screens can be seen without a host. */
-  invalidPayload?: 'bootstrap' | 'manuscript' | 'storybible';
+  invalidPayload?: 'bootstrap' | 'manuscript' | 'storybible' | 'production';
   /** Tells the app at once that live updates from the host are degraded, so the notice can be seen without a failing host. */
   liveUpdatesDegraded?: boolean;
   /** Tells the app this text at once, as the host does after keeping a file it could not read. */
@@ -115,6 +115,10 @@ export type MockApiSeed = {
   assets?: MockAssetSeed;
   /** `?mockAssetsList=`: the list of downloads never answers (`loading`) or fails to read (`fails`), so Models & downloads shows its loading rows or its error. */
   assetsList?: 'loading' | 'fails';
+  /** `?mockPlan=`: the read of the production plan (the Schedule's) never answers (`loading`) or fails (`fails`), so the Schedule shows its loading skeleton or its error. */
+  planRead?: 'loading' | 'fails';
+  /** `?mockChapters=`: the read of the manuscript's chapters never answers (`loading`) or fails (`fails`), so a page that reads them shows its loading skeleton or its error. */
+  chaptersRead?: 'loading' | 'fails';
   /** `?mockSettings=`: how the settings file behaves (see `MockSettingsSeed`). */
   settings?: MockSettingsSeed;
   /** What `teleprompterDevices` reports; defaults to `WIRE_TELEPROMPTER_DEVICES`. An empty array exercises the picker's no-devices fallback. */

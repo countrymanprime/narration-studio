@@ -59,6 +59,13 @@ describe('AddressGate', () => {
     expect(screen.getAllByTestId('where')[0]!.textContent).toBe('/booth');
   });
 
+  it('offers one solid way forward: Open <page> is primary and Go to Production is the quieter second choice', () => {
+    mount({ at: '/booth?chapter=a&chapter=b', page: 'booth' });
+    const solid = (name: string) => screen.getByRole('button', { name }).className.includes('bg-[var(--accent)]');
+    expect(solid('Open Booth')).toBe(true);
+    expect(solid('Go to Production')).toBe(false);
+  });
+
   it('Go to Production leaves the bad address', async () => {
     mount({ at: '/booth?chapter=a&chapter=b', page: 'booth' });
     await userEvent.click(screen.getByRole('button', { name: 'Go to Production' }));

@@ -9,6 +9,7 @@ import { createMockApi } from '../../api/mockApi';
 import { CommandRouter } from '../../input/router';
 import { OverlayHost } from '../../overlay/OverlayHost';
 import type { NarrationApi } from '../../types';
+import { PortOverrides } from '../../ports/usePort';
 import { TooltipProvider } from '../primitives/Tooltip';
 import * as checkRecordings from '../recordingcheck/openCheckRecordings';
 import { onPickupListChanged } from './pickupListChanged';
@@ -301,5 +302,60 @@ describe('narrator-walkthrough-fixes-2', () => {
     await userEvent.setup().click(again);
     await waitFor(() => expect(screen.getByRole('button', { name: 'Check again' }).getAttribute('aria-busy')).toBe('true'));
     finish();
+  });
+});
+
+describe('adding-lines-as-markers-says-what-happened', () => {
+  const markersDaw = (changed: boolean) =>
+    ({ addPickupMarkers: vi.fn().mockResolvedValue({ ok: true, changed, message: 'Imported 2 pickups.', undoSteps: changed ? 1 : 0 }) }) as never;
+  const renderWith = (changed: boolean) => {
+    const api = createMockApi({ pickupsList: () => Promise.resolve(LIST) });
+    vi.spyOn(api, 'manuscriptChapters').mockResolvedValue(
+      CHAPTERS.map((c, index) => ({ id: c.id, title: c.name, index, wordCount: 100, status: 'recording' })) as never,
+    );
+    render(
+      <MemoryRouter>
+        <ApiProvider api={api}>
+          <PortOverrides clients={{ daw: markersDaw(changed) }}>
+            <TooltipProvider>
+              <CommandRouter>
+                <PickupsPage hasManuscript goTo={vi.fn()} goToScript={vi.fn()} />
+              </CommandRouter>
+              <OverlayHost />
+            </TooltipProvider>
+          </PortOverrides>
+        </ApiProvider>
+      </MemoryRouter>,
+    );
+  };
+
+  it('says markers were added, not that pickups were imported', async () => {
+    renderWith(true);
+    await userEvent.setup().click(await screen.findByRole('button', { name: /^Add \d+ as markers in / }));
+    expect(await screen.findByText(/^Pickup markers for \d+ lines are in .+\.$/)).toBeTruthy();
+    expect(screen.queryByText(/Imported/)).toBeNull();
+  });
+
+  it('says the markers were already there when nothing changed', async () => {
+    renderWith(false);
+    await userEvent.setup().click(await screen.findByRole('button', { name: /^Add \d+ as markers in / }));
+    expect(await screen.findByText(/^Those markers were already in .+\.$/)).toBeTruthy();
+  });
+});
+
+describe('coming-back-from-the-booth', () => {
+  it('puts the selection and focus back on the line that was opened', async () => {
+    const first = renderPage();
+    const user = userEvent.setup();
+    const rows = await screen.findAllByRole('row', { selected: false });
+    const line = rows.filter((row) => row.hasAttribute('data-pk'))[1];
+    line.focus();
+    await user.keyboard('{Enter}');
+    const id = line.getAttribute('data-pk');
+    expect(first.goTo).toHaveBeenCalled();
+    cleanup();
+    renderPage();
+    await waitFor(() => expect(document.activeElement?.getAttribute('data-pk')).toBe(id));
+    expect(document.activeElement?.getAttribute('aria-selected')).toBe('true');
   });
 });

@@ -1,0 +1,34 @@
+# The page behind a modal is aria-hidden, so <body> holds the dialog and the live regions Base UI leaves exposed, nothing else.
+- /children: equal
+# Live regions stay in the tree on purpose (an error raised from inside a dialog is still announced): the zoom readout, the Editing
+# page's selection announcer and its bar, and the toast pair, which is portalled to <body> (Toast.tsx), not under <main>.
+- main:
+  - group "Zoom"
+  - region "Script editor":
+    - status: /4 words selected, 0:\d+ to 0:\d+/
+    - toolbar "Playback and selection": /4 words 0:\d+ to 0:\d+ · 1\.5 s In the script/
+- status
+- alert
+- status
+- alert
+- status
+- dialog "Voice sample":
+  - heading "Voice sample" [level=2]
+  - button "Close"
+  - text: Character
+  # A collapsed native select exposes its last direct option; the grouped characters are under their headings.
+  - combobox "Character":
+    - option "Narration"
+  - text: /0 of \d+ samples/
+  - button "Play range"
+  - text: was beginning to get 1.5 s Label (optional)
+  - textbox "Label (optional)":
+    - /placeholder: Furious, to the court
+  - text: Note (optional)
+  - textbox "Note (optional)":
+    - /placeholder: "How you did it: pitch up, clipped, no breaths"
+  - checkbox "Make primary for Hatter" [checked]
+  - text: Make primary for Hatter
+  - paragraph: Copies the raw recording, as it was before editing, into this project. Nothing leaves your computer.
+  - button "Cancel"
+  - button "Save sample"

@@ -29,6 +29,22 @@ export type VoiceSampleRefusalReason =
   | 'project_limit'
   | 'not_found';
 
+/** The sentence the host sends with each refusal (apps/desktop/internal/voicesample's `sentence`), so a page that refuses before it asks says the same words. */
+export const VOICE_SAMPLE_SENTENCES: Record<VoiceSampleRefusalReason, string> = {
+  stale_alignment: 'The recording changed since this chapter was checked. Check it again, then mark the sample.',
+  not_heard: 'These words were not heard in the recording.',
+  spans_takes: 'Choose words inside one take.',
+  spans_cut: 'Restore the cut words or choose words without them.',
+  too_short: 'A sample is at least half a second.',
+  too_long: 'A sample is at most 30 seconds.',
+  unsupported_source: 'Only WAV recordings can be copied.',
+  source_missing: 'The audio file for these words is missing.',
+  project_unreadable: 'The saved REAPER project could not be read. Save the project in REAPER, then try again.',
+  character_limit: 'This character already has 20 samples. Delete one first.',
+  project_limit: 'Voice samples already use the 200 MiB a project may hold. Delete one first.',
+  not_found: 'That voice sample is no longer there.',
+};
+
 export type VoiceSampleSource = {
   chapterId: string;
   /** Empty when the chapter is no longer in the manuscript. */
