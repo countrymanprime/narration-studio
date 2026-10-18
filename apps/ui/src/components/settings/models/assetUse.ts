@@ -11,7 +11,7 @@ type Fields = (row: SettingMeta) => { global?: ScopedSettingField; project?: Sco
 export type Use = { row: SettingMeta; scope: HostScope; value: string };
 
 /** A use of the asset moved to another installed choice. */
-export type Move = { use: Use; to: string; toLabel: string };
+type Move = { use: Use; to: string; toLabel: string };
 
 export type RemovalPlan = { moves: Move[]; blocked: SettingMeta[] };
 

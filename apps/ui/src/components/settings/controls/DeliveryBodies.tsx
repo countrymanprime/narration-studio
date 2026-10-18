@@ -5,7 +5,7 @@ import { CustomProfileList, DefaultProfileSelect, useDeliveryProfiles } from '..
 import { useSettingsHost } from '../row/SettingsHost';
 
 /** What a profile judges, one line for each rule that is on: the label and its bound, or why the app does not measure it. */
-export function ProfileLimits({ profile }: { profile: DeliveryProfile | undefined }) {
+function ProfileLimits({ profile }: { profile: DeliveryProfile | undefined }) {
   const rules = profile?.rules ?? [];
   return (
     <dl aria-label="Limits of this profile" className="m-0 grid grid-cols-[auto_1fr] gap-x-6 gap-y-1 text-[0.8125rem]">

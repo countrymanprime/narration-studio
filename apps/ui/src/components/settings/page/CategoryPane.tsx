@@ -6,7 +6,7 @@ import type { Category, SettingMeta } from '../registry/types';
 import { RowOf } from './RowOf';
 
 /** Rows in the order they were listed, grouped under their section's title. */
-export function bySection(rows: readonly SettingMeta[]): Array<[string, SettingMeta[]]> {
+function bySection(rows: readonly SettingMeta[]): Array<[string, SettingMeta[]]> {
   const groups: Array<[string, SettingMeta[]]> = [];
   for (const row of rows) {
     const group = groups.find(([section]) => section === row.section);

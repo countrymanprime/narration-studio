@@ -11,9 +11,9 @@ import { useSettingsHost } from '../row/SettingsHost';
 import { useMwKeyStatus, useNetwork } from './mwKeyStatus';
 
 /** The local dictionary as the asset list reports it, or `absent` when the catalog has none. */
-export type LocalDictionaryState = AssetStatus | 'absent';
+type LocalDictionaryState = AssetStatus | 'absent';
 /** The online service: `online`, `offline` (no network), or `no_key` (online, but no key is saved for it). */
-export type OnlineServiceState = 'online' | 'offline' | 'no_key';
+type OnlineServiceState = 'online' | 'offline' | 'no_key';
 
 const SOURCES: { value: DefinitionSource; label: string }[] = [
   { value: 'web', label: 'Web page. Opens the dictionary site.' },
@@ -39,7 +39,7 @@ const SERVICE_BADGE: Record<OnlineServiceState, { tone: StatusTone; label: strin
 };
 
 /** The three sources, the local dictionary installed or not with Download or Remove, and the online service's state. Takes props only. */
-export function DefinitionsView({
+function DefinitionsView({
   source,
   onSource,
   dictionary,

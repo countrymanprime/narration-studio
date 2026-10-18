@@ -6,16 +6,14 @@ import { Button } from '../primitives/Button';
 import { IconButton } from '../primitives/IconButton';
 import { ConfirmDialog } from '../primitives/ConfirmDialog';
 import { Select } from '../primitives/Select';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../primitives/Table';
 import type { Notify } from '../primitives/Toast';
 import { deliveryProfileKey, deliveryProfileTitle } from '../master/deliveryProfile';
-import { LOCK_ICON, Mark } from '../master/RuleBadges';
 import { DeliveryProfileEditor } from './DeliveryProfileEditor';
 
 const MUTED = { color: 'var(--text-muted)' };
 
 /** A select option's value: a built-in at its version, a custom profile by its id alone (it always judges with its latest revision). */
-export const optionValue = (ref: DeliveryProfileRef | DeliveryProfile) =>
+const optionValue = (ref: DeliveryProfileRef | DeliveryProfile) =>
   'builtIn' in ref ? (ref.builtIn ? `${ref.id}@${ref.version}` : ref.id) : ref.version ? `${ref.id}@${ref.version}` : ref.id;
 
 /** How many of a custom profile's numbers differ from the built-in it is based on, and how many rules are off. */
@@ -30,7 +28,7 @@ function differences(profile: DeliveryProfile, base?: DeliveryProfile) {
   return { numbers, off: profile.rules.filter((rule) => rule.off).length };
 }
 
-export function describe(profile: DeliveryProfile, base?: DeliveryProfile): string {
+function describe(profile: DeliveryProfile, base?: DeliveryProfile): string {
   if (profile.builtIn) {
     const host = profile.source.url ? ` · from ${new URL(profile.source.url).host}, read ${profile.source.readOn}` : '';
     return `Built in · read-only · ${profile.rules.length} rules${host}`;
@@ -194,7 +192,7 @@ function Gate({ ctl }: { ctl: DeliveryProfilesController }) {
 }
 
 /** The profile editor and the delete question, when one is open. */
-export function ProfileDialogs({ ctl }: { ctl: DeliveryProfilesController }) {
+function ProfileDialogs({ ctl }: { ctl: DeliveryProfilesController }) {
   const { editing, deleting } = ctl;
   return (
     <>
@@ -252,72 +250,6 @@ export function DefaultProfileSelect({ ctl, label = 'Default delivery profile' }
   );
 }
 
-/** Every profile as a row: what it is, what uses it, and Duplicate, Edit and Delete (a built-in can only be duplicated). */
-export function ProfilesTable({ ctl }: { ctl: DeliveryProfilesController }) {
-  const { state, busy } = ctl;
-  if (!state) return <Gate ctl={ctl} />;
-  return (
-    <>
-      {/* A profile is a row: what it is, and what can be done with it. */}
-      <Table label="Delivery profiles">
-        <TableHead>
-          <TableRow>
-            <TableHeader>Profile</TableHeader>
-            <TableHeader hiddenLabel="Actions" />
-          </TableRow>
-        </TableHead>
-        <TableBody>
-          {state.profiles.map((profile) => {
-            const users = ctl.usedBy(profile);
-            return (
-              <TableRow key={profile.id}>
-                <TableCell>
-                  <div className="min-w-0">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <span className="text-base font-semibold">{deliveryProfileTitle(profile)}</span>
-                      {profile.builtIn ? (
-                        <Mark tone="muted" icon={LOCK_ICON}>
-                          Built in
-                        </Mark>
-                      ) : (
-                        <Mark tone="muted">Custom</Mark>
-                      )}
-                    </div>
-                    <div className="text-xs" style={MUTED}>
-                      {describe(profile, ctl.baseOf(profile))}
-                    </div>
-                    <div className="text-xs" style={MUTED}>
-                      Used by: {users.length > 0 ? users.join(' · ') : 'no project open here'}
-                    </div>
-                  </div>
-                </TableCell>
-                <TableCell align="right">
-                  <div className="flex flex-wrap justify-end gap-2">
-                    <Button variant="secondary" onClick={() => void ctl.duplicate(profile)} disabled={busy}>
-                      Duplicate
-                    </Button>
-                    {!profile.builtIn && (
-                      <>
-                        <Button variant="secondary" onClick={() => ctl.edit(profile)} disabled={busy}>
-                          Edit
-                        </Button>
-                        <Button variant="danger" onClick={() => ctl.setDeleting(profile)} disabled={busy}>
-                          Delete
-                        </Button>
-                      </>
-                    )}
-                  </div>
-                </TableCell>
-              </TableRow>
-            );
-          })}
-        </TableBody>
-      </Table>
-      <ProfileDialogs ctl={ctl} />
-    </>
-  );
-}
-
 /**
  * The custom profiles as a short list (the built-ins are the ones to copy from): each with what it is based on and what uses it, and Duplicate,
  * Edit and Delete as icon buttons. A built-in is copied with "Duplicate <name>" below the list.
@@ -366,33 +298,6 @@ export function CustomProfileList({ ctl }: { ctl: DeliveryProfilesController }) 
         ))}
       </div>
       <ProfileDialogs ctl={ctl} />
-    </div>
-  );
-}
-
-/**
- * The kept Delivery profiles panel (the old Settings page): the Global default profile, for every project that has not chosen one, and the
- * profiles themselves. A built-in cannot be changed; Duplicate makes a custom copy whose numbers can change and whose rules can be turned off.
- * A choice takes effect at once: Master & QC and the report judge against it the next time they are read.
- */
-export function DeliveryProfilesPanel({ notify }: { notify: Notify }) {
-  const ctl = useDeliveryProfiles(notify);
-  if (ctl.loadError || !ctl.state) return <Gate ctl={ctl} />;
-  return (
-    <div className="space-y-5 text-sm">
-      <section className="space-y-2">
-        <h3 className="text-base font-semibold">Default delivery profile</h3>
-        <p style={MUTED}>Every project that has not chosen its own profile is judged against this one.</p>
-        <DefaultProfileSelect ctl={ctl} />
-      </section>
-      <section className="space-y-2">
-        <h3 className="text-base font-semibold">Profiles</h3>
-        <p style={MUTED}>
-          A built-in profile cannot be changed. Duplicate it to change its numbers or turn a rule off; a copy cannot add a kind of rule the app does not check.
-          Other platforms (Findaway Voices, Author&apos;s Republic, Google Play, Kobo) are not built in yet.
-        </p>
-        <ProfilesTable ctl={ctl} />
-      </section>
     </div>
   );
 }

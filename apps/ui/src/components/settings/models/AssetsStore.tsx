@@ -206,8 +206,3 @@ export function useAssetsStore(): AssetsStore {
   if (!value) throw new Error('useAssetsStore needs an AssetsStoreProvider');
   return value;
 }
-
-/** The store, or undefined where none is provided (a row drawn in a story with no downloads behind it). */
-export function useOptionalAssetsStore(): AssetsStore | undefined {
-  return useContext(Context);
-}

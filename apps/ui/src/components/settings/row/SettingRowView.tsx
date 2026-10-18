@@ -14,7 +14,7 @@ import { ValueControl } from './ValueControl';
 const SCOPE_LABEL: Record<Scope, string> = { computer: 'This computer', project: 'This project', both: 'All projects', browser: 'This computer' };
 
 /** Whose the setting is, and where this project differs. */
-export function ScopeBadge({ row, overridden }: { row: SettingMeta; overridden: boolean }) {
+function ScopeBadge({ row, overridden }: { row: SettingMeta; overridden: boolean }) {
   return (
     <span data-scope={row.scope} className={row.scope === 'project' ? 'text-[var(--accent-strong)]' : ''}>
       {SCOPE_LABEL[row.scope]}
@@ -24,7 +24,7 @@ export function ScopeBadge({ row, overridden }: { row: SettingMeta; overridden: 
 }
 
 /** The pages that read this setting; each link goes there. The setting is changed here, once. */
-export function UsedBy({ row }: { row: SettingMeta }) {
+function UsedBy({ row }: { row: SettingMeta }) {
   const { go } = useSettingsNav();
   if (row.used.length === 0) return null;
   return (
