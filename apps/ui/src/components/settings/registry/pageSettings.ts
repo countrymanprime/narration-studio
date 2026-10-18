@@ -11,8 +11,8 @@ export type PageSetting = {
   where: string;
   why: string;
   syn?: string;
-  /** The panel kept behind the entry: see `PagesPane`. */
-  panel: 'coverage' | 'cleanup' | 'preview' | 'stages' | 'compare' | 'punch' | 'fx' | 'backups';
+  /** The panel kept behind the entry: see `PagesPane`. Absent once the page has the control, so the entry only points there. */
+  panel?: 'coverage' | 'cleanup' | 'preview' | 'stages' | 'compare' | 'punch' | 'fx';
 };
 
 export const PAGE_SETTINGS: readonly PageSetting[] = [
@@ -84,7 +84,6 @@ export const PAGE_SETTINGS: readonly PageSetting[] = [
     label: 'Audacity backups (window and retention)',
     page: 'editing',
     where: 'Backups tab',
-    panel: 'backups',
     why: 'Three places edited it before; Editing is its one home.',
     syn: 'window days retention keep',
   },

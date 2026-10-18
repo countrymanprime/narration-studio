@@ -10,12 +10,15 @@ export function CommitBox({
   value,
   onCommit,
   mono = false,
+  inputMode,
   className = '',
 }: {
   label: string;
   value: string;
   onCommit: (text: string) => void;
   mono?: boolean;
+  /** The keyboard a number box asks for: `decimal` for a limit, which stays a text box so "-" and a half-typed number are not refused. */
+  inputMode?: 'decimal';
   className?: string;
 }) {
   const [draft, setDraft] = useState<string | null>(null);
@@ -34,6 +37,7 @@ export function CommitBox({
         if (event.key === 'Escape') setDraft(null);
       }}
       mono={mono}
+      inputMode={inputMode}
       className={className}
     />
   );

@@ -52,6 +52,15 @@ describe('ToastRegion', () => {
     expect(dismiss).toHaveBeenCalledExactlyOnceWith(7);
   });
 
+  it('stays as long as its own duration when it has one', () => {
+    const dismiss = vi.fn();
+    render(<ToastRegion messages={[{ ...info(8), durationMs: 10_000 }]} dismiss={dismiss} />);
+    act(() => void vi.advanceTimersByTime(TOAST_INFO_MS + 1000));
+    expect(dismiss).not.toHaveBeenCalled();
+    act(() => void vi.advanceTimersByTime(10_000 - TOAST_INFO_MS - 1000));
+    expect(dismiss).toHaveBeenCalledExactlyOnceWith(8);
+  });
+
   it('never dismisses an error by itself, however long it stays', () => {
     const dismiss = vi.fn();
     render(<ToastRegion messages={[failure(3)]} dismiss={dismiss} />);

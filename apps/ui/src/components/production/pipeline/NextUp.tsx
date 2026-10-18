@@ -29,7 +29,7 @@ function Item({ icon, tone, title, sub, children }: { icon: string; tone: keyof 
       <span
         aria-hidden="true"
         data-tone={tone}
-        className="mt-0.5 flex size-6 flex-none items-center justify-center rounded-full text-[0.8rem]"
+        className="mt-0.5 flex size-[1.875rem] flex-none items-center justify-center rounded-lg text-[0.8rem] font-bold"
         style={DISC[tone]}
       >
         {icon}

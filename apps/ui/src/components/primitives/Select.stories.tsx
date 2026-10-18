@@ -38,6 +38,23 @@ type Story = StoryObj<typeof meta>;
 
 export const Default: Story = {};
 export const FullWidth: Story = { args: { fullWidth: true } };
+// Options with a `group` sit under an `<optgroup>` heading (the voice sample dialog's "In this chapter" and "All characters"); one with none stays outside.
+export const Grouped: Story = {
+  args: {
+    label: 'Character',
+    value: 'queen',
+    options: [
+      { value: 'queen', label: 'The Queen of Hearts', group: 'In this chapter' },
+      { value: 'alice', label: 'Alice', group: 'In this chapter' },
+      { value: 'hatter', label: 'The Hatter', group: 'All characters' },
+      { value: 'narration', label: 'Narration' },
+    ],
+  },
+  play: async ({ canvasElement }) => {
+    const groups = within(canvasElement).getAllByRole('group');
+    await expect(groups.map((group) => group.getAttribute('label'))).toEqual(['In this chapter', 'All characters']);
+  },
+};
 export const Disabled: Story = { args: { disabled: true, value: 'finalized' } };
 export const WithPlaceholderOption: Story = {
   args: {

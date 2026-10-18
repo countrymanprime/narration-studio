@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/countrymanprime/narration-utils/shell/internal/measure"
+	"github.com/countrymanprime/narration-utils/shell/internal/runlog"
 )
 
 // measureHost is a host whose file picker answers paths, recording every job end.
@@ -356,6 +357,8 @@ func TestMeasureCancelWithNothingRunningChangesNothing(t *testing.T) {
 func TestMeasureReportsAPanicAsAnError(t *testing.T) {
 	paths := equalSizedFiles(t, "a.wav", "b.wav")
 	host, ended := measureHost(t, paths...)
+	runPath := filepath.Join(t.TempDir(), "run.jsonl")
+	host.runLog = runlog.New(runPath, 0)
 	host.measureFile = func(context.Context, string, measure.Options) (measure.FileMeasurement, error) {
 		panic("index out of range")
 	}
@@ -363,15 +366,21 @@ func TestMeasureReportsAPanicAsAnError(t *testing.T) {
 		t.Fatal(err)
 	}
 	job := waitForMeasurement(t, host)
-	if job.Phase != "error" || !strings.Contains(job.Error, "index out of range") || job.Message != "The measurement stopped unexpectedly." {
+	if job.Phase != "error" || job.Error != "The measurement stopped unexpectedly." || job.Message != "The measurement stopped unexpectedly." {
 		t.Fatalf("job = %+v", job)
 	}
 	broke, untouched := job.Files[0], job.Files[1]
-	if broke.Status != "failed" || !strings.Contains(broke.Error, "index out of range") {
-		t.Fatalf("the file that broke the measurement = %+v, want failed with the reason", broke)
+	if broke.Status != "failed" || broke.Error != "the measurement stopped unexpectedly on this file" {
+		t.Fatalf("the file that broke the measurement = %+v, want failed with a sentence free of the Go error", broke)
 	}
 	if untouched.Status != "cancelled" || untouched.Error != "" {
 		t.Fatalf("the file never reached = %+v, want cancelled", untouched)
+	}
+	if strings.Contains(strings.Join(job.Logs, "\n")+job.Error, "index out of range") {
+		t.Fatalf("job = %+v, want the Go error kept out of the job's error and logs", job)
+	}
+	if runText, err := os.ReadFile(runPath); err != nil || !strings.Contains(string(runText), "index out of range") {
+		t.Fatalf("run log = %q (%v), want the Go error kept in the run log", runText, err)
 	}
 	if events := waitForEnded(t, ended); events[0].Outcome != jobOutcomeError {
 		t.Fatalf("job ended = %+v", events[0])
