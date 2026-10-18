@@ -44,6 +44,9 @@ function HistoryPanel({ journal, dawName }: { journal: HistoryJournal; dawName: 
               <li key={row.id}>
                 <div className="flex items-center gap-2">
                   <span className="min-w-0 flex-1">{row.label}</span>
+                  <time dateTime={new Date(row.at).toISOString()} className="text-[length:var(--font-size-sm)] text-[var(--text-muted)]">
+                    {new Date(row.at).toLocaleTimeString()}
+                  </time>
                   <StatusBadge tone={row.daw ? 'success' : 'neutral'} label={row.daw ? dawName : 'App'} />
                   <Button
                     variant="secondary"
