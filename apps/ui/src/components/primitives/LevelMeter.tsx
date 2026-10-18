@@ -57,7 +57,7 @@ function segmentMask(size: keyof typeof SIZE_SEGMENT): string {
  * ceiling but are props, since neither figure is confirmed against ACX's spec and other delivery platforms may differ. The RMS fill's
  * colour and the peak-hold tick's position both move through the zones from `src/levelMeter.ts`, shared with
  * `levelMeter.ts`'s peak-hold ballistics. `role="meter"` with `aria-valuetext` throttled to once a second, as
- * `InputLevelMeter` did; the fill and tick's transitions are `motion-safe` only.
+ * `InputLevelMeter` did; the fill and tick's transitions are `motion-ok:` only.
  */
 export function LevelMeter({
   label,
@@ -104,7 +104,7 @@ export function LevelMeter({
       <div className="absolute inset-0" style={{ maskImage: mask, WebkitMaskImage: mask }}>
         <div className="absolute inset-0" style={{ background: gradient }} />
         <div
-          className="absolute inset-y-0 right-0 motion-safe:transition-[width] motion-safe:duration-150 motion-safe:ease-out"
+          className="absolute inset-y-0 right-0 motion-ok:transition-[width] motion-ok:duration-(--motion-fast) motion-ok:ease-(--ease-standard)"
           style={{ width: `${100 - width}%`, background: 'var(--meter-floor)' }}
         />
       </div>
@@ -112,7 +112,7 @@ export function LevelMeter({
         <span
           data-peak-tick
           aria-hidden="true"
-          className="absolute inset-y-0 w-0.5 motion-safe:transition-[left] motion-safe:duration-150 motion-safe:ease-out"
+          className="absolute inset-y-0 w-0.5 motion-ok:transition-[left] motion-ok:duration-(--motion-fast) motion-ok:ease-(--ease-standard)"
           style={{ left: `${percentInRange(peak, floor)}%`, background: ZONE_TOKEN[zoneFor(peak, ceiling)] }}
         />
       )}
