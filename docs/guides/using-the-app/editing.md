@@ -60,6 +60,13 @@ audio** in full on a wide window. The line's audio shows under it while the curs
 menu: play the selection, copy, delete or mute the words, add or remove an effect, **Mark as voice sample…**, mark them for a pickup, add a note,
 show or keep the line's takes, and **Split into takes** on a line whose one take reads it twice.
 
+With a screen reader, the script is one read-only text box. Each time the cursor stops, the screen reader says the word it is on
+(with ", not in the script" for a word that was only said), or "3 words selected, 0:23 to 0:24" for a selection, and "Selection cleared"
+when Esc lets the selection go. It waits for a quarter of a second without a key before it speaks, so holding ← or → says where the
+cursor stopped, not every word it passed. A flagged word says what its card says instead. When a dialog opened from the text closes
+(**Add note…**, **Mark as voice sample…**, and the delete, mute and effects dialogs), by Esc, **Cancel** or **Save**, focus is back on the text
+and the selection is as you left it.
+
 A flagged word opens its card: what the script says and what was heard, and the choice to keep the word as read, which
 clears the mark (with Undo in the message that confirms it).
 
