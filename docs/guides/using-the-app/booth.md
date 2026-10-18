@@ -152,7 +152,7 @@ earlier audio as a take. Pressed again within a moment, it rolls once, not again
 again from ¶ n?") and holds the take while it asks.
 
 Click a word to start from it. **↑** and **↓** move by phrase, **←** and **→** by word, **=** and **-** change the text size, and
-**F11** takes the window full screen.
+**F11** takes the window full screen. Hold an arrow and the reading position keeps travelling; Record and Stop (**Space** and the foot pedal) act once, however long they are held.
 
 Right-click the text for **Start from here** (on a phrase), **Bookmark here** (on a word), **Next phrase**, **Back one phrase**,
 **Punch and roll**, **Larger text**, **Smaller text** and **Exit Booth**. **Start from here** marks where the next take starts;
