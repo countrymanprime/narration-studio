@@ -9,6 +9,7 @@ import { SettingsFormsProvider } from '../data/settingsForms';
 import { SettingsStoreProvider, useSettingsStore } from '../data/SettingsStore';
 import { isAnyChanged, overrideValue } from '../data/values';
 import { AssetsStoreProvider } from '../models/AssetsStore';
+import { AboutSection } from '../controls/AboutSection';
 import { CATEGORIES, categoryLabel } from '../registry/categories';
 import { PAGE_SETTINGS } from '../registry/pageSettings';
 import { ROWS } from '../registry/rows';
@@ -179,6 +180,7 @@ function Body({ initialCategory }: { initialCategory?: string }) {
             onToggleAdvanced={() => setAdvanced((current) => ({ ...current, [cat]: !current[cat] }))}
             onReset={() => void resetCategory(categoryRows(cat), store)}
             lit={lit}
+            extra={cat === 'app' ? <AboutSection /> : undefined}
           />
         )}
       </fieldset>
