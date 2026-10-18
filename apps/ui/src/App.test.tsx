@@ -941,7 +941,8 @@ describe('App (integration, driven through the mock NarrationApi)', () => {
     const source = createMockApi();
     renderApp({ bootstrap: async () => ({ ...(await source.bootstrap()), manuscript: null }), manuscriptChapters: async () => [] });
     expect((await screen.findAllByRole('heading', { name: title })).length).toBeGreaterThan(0);
-    expect(screen.getAllByText(/no manuscript yet/i).length).toBeGreaterThan(0);
+    // Schedule's title is drawn while it reads its plan, so the heading is not proof the empty state has arrived: wait for its text.
+    expect((await screen.findAllByText(/no manuscript yet/i)).length).toBeGreaterThan(0);
     await new Promise((resolve) => setTimeout(resolve, 700));
     expect(window.location.pathname).toBe(path);
     expect(window.location.search).toBe('?mockNoManuscript=1');

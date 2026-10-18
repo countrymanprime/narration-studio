@@ -37,7 +37,7 @@ All under `motion-ok:`, in `apps/ui/src/components/`:
 - The Booth text column slides 300 ms on each scroll step, and its words change colour (`booth/reading/BoothText.tsx`).
 - `ProgressBar` eases its fill, and slides while nothing is measured (`work-progress-slide`); `LevelMeter` eases its fill and peak tick.
 - `Button`, `Switch`, `Disclosure` and the Booth's resume choices ease their colours or position; the pending spinner in `Button`, `IconButton` and `ResumePrompt` spins.
-- Settings: the per-row "Saved" fades (`settings-saved`), and the loading placeholders pulse. Script: a bookmark or paragraph a jump lands on pulses while it is lit.
+- `Skeleton`, the loading placeholder on Booth and Editing, sweeps a band across itself every 1.4 s (`skeleton-shimmer`) while a page reads. Settings: the per-row "Saved" fades (`settings-saved`), and its loading placeholders pulse. Script: a bookmark or paragraph a jump lands on pulses while it is lit.
 
 Dialogs appear and disappear at once (#1456, Q3), and so does the Jump menu, which is a dialog.
 
