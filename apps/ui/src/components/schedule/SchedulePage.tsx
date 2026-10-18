@@ -9,6 +9,7 @@ import { planStart, recordedSeries } from '../production/measured/measured.selec
 import { ProgressChart } from '../production/overview/ProgressChart';
 import { Button } from '../primitives/Button';
 import { NeedManuscript } from '../layout/NeedManuscript';
+import { ScheduleSkeleton } from './ScheduleSkeleton';
 import { Heading } from '../primitives/Heading';
 import { IconButton } from '../primitives/IconButton';
 import { Panel } from '../primitives/Panel';
@@ -58,7 +59,7 @@ export function SchedulePage({ journal, today, hasManuscript = true, onImport }:
   // The rows whose change is on its way to the host: a second press on the same row while one is pending is the same press.
   const pending = useRef(new Set<string>());
 
-  if (state.phase === 'loading') return <p role="status">Loading the schedule…</p>;
+  if (state.phase === 'loading') return <ScheduleSkeleton />;
   if (state.phase === 'error')
     return (
       <div role="alert" className="flex flex-col items-start gap-3">
