@@ -56,6 +56,7 @@ The checks a pull request shows, by the name GitHub displays (`ci.yml` calls `_q
 
 | Check | What it runs |
 | --- | --- |
+| `quality / scope` | Ubuntu, about a minute: asks Nx (`scripts/ci/nx-scope.sh`, the rule every `nx-run` step uses) whether the change affects `narration-utils-ui`, `narration-utils-shell`, or `reaper` or the shell. `go-test` runs only when the shell is affected, `quick-windows` when `reaper` or the shell is, and the `js-test`, `ui-visual` and `ui-atlas` jobs only when the UI is. A job that does not run is skipped, takes no runner, and passes in `CI passed`. Its UI answer is `ui-affected` |
 | `quality / js-static` | `lint`, `format`, `architecture` (the import rules) and `test-node` (the node:test suites of `apps/ui/scripts`) of `narration-utils-ui`, then Knip over the whole repository |
 | `quality / js-test (shard 1/3)` to `(shard 3/3)` | the Vitest run of `apps/ui` with coverage on the gated logic files (`node scripts/ci/coverage-gate.mjs vitest apps/ui --shard=i/3`), a third of the files each, split by cost (`apps/ui/scripts/vitest-shards.mjs`; Vitest's own split by path hash gave one shard 48% of the time). A shard checks no coverage floor; it uploads a blob of its results and coverage |
 | `quality / js-test` | merges the three blobs (`coverage-gate.mjs vitest apps/ui --merge=3`: fails when one is missing) and checks every Vitest floor of `scripts/ci/coverage-floors.json` over the merged coverage, the same numbers as the unsharded run `pnpm check` does. Skipped when the UI is not affected |
