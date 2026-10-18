@@ -189,7 +189,7 @@ A chapter's name (its title and, when it has one, its subtitle) is drawn one way
 
 ## Motion
 
-See [`motion-and-animation.md`](motion-and-animation.md) — not yet a formal system. Motion is a `motion-safe:` utility (`ProgressBar`'s fill, `LevelMeter`, `Disclosure`, `Toast`), and `components.css` declares none (`apps/ui/src/legacyCss.test.ts`), because a legacy rule beats a utility in the same layer.
+See [`motion-and-animation.md`](motion-and-animation.md) — not yet a formal system. Motion is a `motion-safe:` utility (`ProgressBar`'s fill, `LevelMeter`, `Disclosure`, `Toast`), and `components.css` declares none (`apps/ui/src/legacyCss.test.ts`), because a legacy rule beats a utility in the same layer. The one named keyframe beside `work-progress-slide` is `settings-saved`, the per-row "Saved" fade on the Settings page (used as `motion-safe:animate-[settings-saved_2.5s_forwards]`), which leaves the word readable without motion.
 
 ## What the suites do not prove
 
