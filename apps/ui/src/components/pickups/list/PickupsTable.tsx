@@ -130,10 +130,24 @@ export function PickupsTable({
   const remove = (pickup: PickupItem) =>
     once(pickup.id, async () => {
       let undo: RemoveUndo | undefined;
+      let removed = false;
+      /* Focus goes to the line that takes this one's place, so a keyboard user keeps their place instead of starting again from the top. */
+      const at = list.findIndex((p) => p.id === pickup.id);
+      const next = list[at + 1] ?? list[at - 1];
       await said(overlay, async () => {
         undo = await onRemove(pickup.id);
+        removed = true;
       });
+      if (!removed) return;
       if (undo) overlay.toastUndo(`Removed ${clock(pickup.time)} from pickups.`, undo);
+      else overlay.toast(`Removed ${clock(pickup.time)} from pickups. A line from a check or a note stays off the list, so there is no Undo.`);
+      requestAnimationFrame(() => {
+        const row = next && body.current?.querySelector<HTMLTableRowElement>(`tr[${PICKUP_ROW}="${CSS.escape(next.id)}"]`);
+        if (row) {
+          setSelected(next.id);
+          row.focus();
+        } else body.current?.focus();
+      });
     });
 
   usePickupsContextMenu(list, {
