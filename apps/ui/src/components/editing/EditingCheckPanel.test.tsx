@@ -32,6 +32,36 @@ function renderPanel(initial: Initial = {}) {
 
 const panel = () => screen.findByRole('dialog', { name: new RegExp(`^Editing check: ${chapter.title}\\b`) });
 
+describe('a refused start offers Retry', () => {
+  it('puts a Retry on the failure toast that starts the check again', async () => {
+    const real = createMockApi({}, {});
+    let calls = 0;
+    const api = createMockApi({
+      editingStart: async (...args: Parameters<typeof real.editingStart>) => {
+        calls += 1;
+        if (calls === 1) throw new Error('The host did not answer.');
+        return real.editingStart(...args);
+      },
+    });
+    const notify = vi.fn();
+    render(
+      <MemoryRouter>
+        <ApiProvider api={api}>
+          <EditingCheckPanel chapter={chapter} notify={notify} close={vi.fn()} />
+        </ApiProvider>
+      </MemoryRouter>,
+    );
+    const dialog = await panel();
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Check editing' }));
+    await waitFor(() => expect(notify).toHaveBeenCalled());
+    const [, tone, action] = notify.mock.calls[0];
+    expect(tone).toBe('error');
+    expect(action?.label).toBe('Retry');
+    action.onAction();
+    await waitFor(() => expect(calls).toBe(2));
+  });
+});
+
 describe('EditingCheckPanel', () => {
   it('shows the processed-audio caveat and a never-checked empty-space signal by default, with no scan started', async () => {
     renderPanel({ stages: { editing: { [chapter.id]: { unknown: 'never_analyzed' } } } });

@@ -11,7 +11,7 @@ import { InsetCard } from '../primitives/InsetCard';
 import { ProgressBar } from '../primitives/ProgressBar';
 import { SlideOver } from '../primitives/SlideOver';
 import { ToggleGroup } from '../primitives/ToggleGroup';
-import type { Notify } from '../primitives/Toast';
+import { type Notify, retryAction } from '../primitives/Toast';
 import { MappingConfirm } from '../mapping/MappingConfirm';
 import { formatWhen } from '../production/recordingCheckText';
 import { formatAge, SIGNAL_STATE_LABEL } from '../stages/stageText';
@@ -238,7 +238,11 @@ export function EditingCheckPanel({ chapter, notify, close }: { chapter: Manuscr
         if (answer.status === 'refused') setRefusal({ reason: answer.reason, message: answer.message });
         else setJob(answer.state);
       } catch (error) {
-        notify(describeApiError(error), 'error');
+        notify(
+          describeApiError(error),
+          'error',
+          retryAction(() => void start()),
+        );
       }
     });
 
