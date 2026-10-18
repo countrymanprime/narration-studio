@@ -44,7 +44,7 @@ A pull request that adds one adds, in the same pull request:
 | **A live event** | Dropped and counted, never thrown inside the Wails callback. The host log hears about the first three and then one in fifty (`wire_invalid`). After five, one toast says live updates could not be read. An event of a **type the UI does not know** is a newer sidecar: ignored, named once (`wire_unknown_event`), and not counted. | `wailsClient.ts`, `wire/liveHealth.ts` |
 | **An action's failure** (a toast) | `describeApiError` shows the plain message for a `WireError` and keeps every other error's text. | `api/errorMessage.ts` |
 
-The visual suite has states for each: `startup / invalid-payload`, `home / live-updates-degraded`, `manuscript / invalid-payload` and `storybible / invalid-payload`; the mock seams are `?mockInvalidPayload=bootstrap|manuscript|storybible` and `?mockLiveDegraded=1`.
+The visual suite has states for each: `startup / invalid-payload`, `home / live-updates-degraded`, `manuscript / invalid-payload`, `storybible / invalid-payload`, `proof / load-error` and `production / load-error`; the mock seams are `?mockInvalidPayload=bootstrap|manuscript|storybible|production` and `?mockLiveDegraded=1`.
 
 ## The host log
 

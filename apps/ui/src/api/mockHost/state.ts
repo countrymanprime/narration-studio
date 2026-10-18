@@ -93,7 +93,7 @@ export type MockApiSeed = {
   /** Makes every Story Bible preview fail with this text once the voice is installed. */
   previewError?: string;
   /** Makes that payload arrive in the wrong shape, through the real `parseWire`, so the failure screens can be seen without a host. */
-  invalidPayload?: 'bootstrap' | 'manuscript' | 'storybible';
+  invalidPayload?: 'bootstrap' | 'manuscript' | 'storybible' | 'production';
   /** Tells the app at once that live updates from the host are degraded, so the notice can be seen without a failing host. */
   liveUpdatesDegraded?: boolean;
   /** Tells the app this text at once, as the host does after keeping a file it could not read. */

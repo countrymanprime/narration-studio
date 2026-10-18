@@ -53,7 +53,8 @@ choices as [Check recordings](production.md#checking-a-chapters-recording) offer
 ## Selecting words
 
 Click a word to place the cursor there. Shift+click another, drag across the text or press Shift+← and Shift+→ to
-select a run of words. A toolbar floats under the selection with **Play**, **Add FX**, **Voice sample**, **Mute**, **Takes of this
+select a run of words. Hold ← or → (with Shift to select) and the cursor keeps travelling along the text; Up and Down hold
+the same way, a phrase at a time. Every other key does its job once, however long you hold it. A toolbar floats under the selection with **Play**, **Add FX**, **Voice sample**, **Mute**, **Takes of this
 line** (on a line with more than one take) and **Delete**; the bar offers the same actions, with **Delete words and
 audio** in full on a wide window. The line's audio shows under it while the cursor is on it. Right-click a word for its
 menu: play the selection, copy, delete or mute the words, add or remove an effect, **Mark as voice sample…**, mark them for a pickup, add a note,
@@ -149,7 +150,7 @@ experimental stay off until you turn them on in [Settings](settings.md).
 
 **Effects** lists the effects on words in this chapter and adds one. **Backups** shows only with a DAW that keeps
 backups of its project; with one that edits the audio itself, the app backs the words up before each delete, effect or
-stack, and refuses the edit if the backup fails. **Timeline** shows the line the cursor is on as the chapter's audio
+stack, and refuses the edit if the backup fails. The Backups tab is also where this project's backup settings live (**Keep backups**, the window either side of an edit, and **Keep backups for (days)**); Settings only points here. **Timeline** shows the line the cursor is on as the chapter's audio
 and one lane per take on one time axis. On a window 1360 px wide or more it is a strip under the text, which the header's
 **Timeline** button (S) shows and hides; on a narrower window it is a tab of the drawer.
 
