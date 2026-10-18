@@ -245,7 +245,7 @@ export function AppShell({
         {/* tabIndex -1: a dialog that closes with nothing to give focus back to (its opener is gone) sends focus into <main> (its first control, or <main> itself), not to <body>. */}
         <main tabIndex={-1} className="flex min-w-0 flex-1 flex-col overflow-hidden focus:outline-none">
           <header className="flex h-13 flex-none items-center gap-3 border-b border-[var(--border)] bg-[var(--surface)] px-3 text-sm max-md:gap-2 md:px-5">
-            <IconButton label="Open navigation" onClick={() => setDrawerOpen(true)} className="hidden max-[860px]:inline-flex">
+            <IconButton label="Open navigation" onClick={() => setDrawerOpen(true)} className="min-[860px]:hidden">
               <FontAwesomeIcon icon={faBars} />
             </IconButton>
             {/* Page history: walks the app's own page moves only, through App.tsx's guards. */}
