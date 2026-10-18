@@ -7,6 +7,13 @@ import { HINT_POPUP_SELECTOR } from './hintLayer';
 import { IconButton } from './IconButton';
 import { POPOVER_POPUP_SELECTOR } from './Popover';
 
+// Portals attach in the order the layers opened, so a modal later in the document is above this one.
+function hasModalAbove(popup: HTMLElement): boolean {
+  return Array.from(document.querySelectorAll('[role="dialog"], [role="alertdialog"]')).some(
+    (other) => other !== popup && !popup.contains(other) && Boolean(popup.compareDocumentPosition(other) & Node.DOCUMENT_POSITION_FOLLOWING),
+  );
+}
+
 type DialogProps = {
   title: string;
   // Shows the header Close button and lets Escape close the dialog.
@@ -110,6 +117,13 @@ export function Dialog({
           return;
         }
         if (details.reason !== 'escape-key') return;
+        // Another modal opened above this one: Escape is its to answer, even while focus has not yet moved into it (the key
+        // then lands in this dialog first, and Base UI would stop it here and close the layer underneath).
+        if (popupRef.current && hasModalAbove(popupRef.current)) {
+          details.cancel();
+          details.allowPropagation();
+          return;
+        }
         // Escape belongs to a hint or a Popover that is showing (a tooltip, a device picker, a settings panel inside the
         // dialog), and to a handler that already took it.
         if (!dismiss || details.event.defaultPrevented || document.querySelector(HINT_POPUP_SELECTOR) || document.querySelector(POPOVER_POPUP_SELECTOR))
