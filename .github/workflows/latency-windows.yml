@@ -1,0 +1,89 @@
+name: Latency (Windows, manual)
+# A measurement run, never a gate: freezes the three sidecars on a Windows runner and times what the architecture review could only estimate,
+# in four parts, each written to the job log and to the `latency-windows` artifact. Start it by hand (Actions > Latency (Windows, manual)
+# > Run workflow). Results go in a dated note under docs/research/ (the first is 2026-10-18-sidecar-start-up-and-bridge-round-trip.md).
+#   1. frozen-sidecar-timing.py: launch 1 of a fresh copy of each frozen sidecar against launch 10, against a frozen "hello" (the PyInstaller floor), and each import profile.
+#   2. The `latency`-tagged Go harness against the frozen Story Bible sidecar (the real guide.Service and process.Supervisor).
+#   3. The bridge round trip: the Go client against the real narration_ui_bridge.lua on the harness's fake reaper (bridge_test.go).
+#   4. BenchmarkDispatchByLogSize: what one host tick costs as events.log grows.
+on:
+  workflow_dispatch:
+    inputs:
+      runs:
+        description: Runs per Story Bible operation (the first is reported on its own)
+        default: '20'
+      bridge-calls:
+        description: Measured bridge calls per events.log size (after 10 warm-up calls)
+        default: '100'
+permissions: { contents: read }
+concurrency:
+  group: latency-windows-${{ github.ref }}
+  cancel-in-progress: false
+jobs:
+  measure:
+    name: Measure (Windows)
+    runs-on: windows-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/setup-toolchain
+        with:
+          need-pnpm: 'false'
+          need-wails-tools: 'false'
+          need-stylua: 'false'
+      - name: Freeze the sidecars
+        shell: bash
+        run: uv run python scripts/release/prepare-resources.py
+      - name: Machine
+        shell: pwsh
+        run: |
+          Get-CimInstance Win32_OperatingSystem | Select-Object Caption, Version | Format-List
+          Get-CimInstance Win32_Processor | Select-Object Name, NumberOfCores | Format-List
+          try { Get-MpComputerStatus | Select-Object RealTimeProtectionEnabled, AntivirusEnabled, AMServiceEnabled | Format-List } catch { Write-Host "Defender status unavailable: $_" }
+      - name: Frozen sidecar start-up
+        shell: bash
+        run: uv run python scripts/research/frozen-sidecar-timing.py --out-dir latency-results/sidecar-startup
+      - name: Story Bible operations against the frozen sidecar
+        shell: bash
+        working-directory: apps/desktop
+        env:
+          LATENCY_RUNS: ${{ inputs.runs }}
+        run: |
+          export LATENCY_PYTHON="$GITHUB_WORKSPACE/.release-build/manuscript-guide/dist/manuscript-guide/manuscript-guide.exe"
+          export LATENCY_LABEL="windows-latest, frozen"
+          export LATENCY_OUT="$GITHUB_WORKSPACE/latency-results/story-bible-operations.md"
+          mkdir -p "$GITHUB_WORKSPACE/latency-results"
+          go test -tags latency -run TestLatency -count=1 -timeout 60m -v ./internal/latency
+      - name: Bridge round trip against the fake reaper
+        shell: bash
+        working-directory: apps/desktop
+        env:
+          LATENCY_BRIDGE_CALLS: ${{ inputs.bridge-calls }}
+        run: |
+          export LATENCY_BRIDGE_PYTHON="$GITHUB_WORKSPACE/.venv/Scripts/python.exe"
+          export LATENCY_OUT="$GITHUB_WORKSPACE/latency-results/bridge-round-trip.md"
+          go test -tags latency -run TestBridgeRoundTrip -count=1 -timeout 30m -v ./internal/latency
+      - name: One host tick against a growing events.log
+        shell: bash
+        working-directory: apps/desktop
+        run: go test -run '^$' -bench DispatchByLogSize -count=3 ./internal/bridge | tee "$GITHUB_WORKSPACE/latency-results/dispatch-by-log-size.txt"
+      - name: Results
+        if: always()
+        shell: bash
+        run: |
+          for file in latency-results/sidecar-startup/timing.md latency-results/story-bible-operations.md latency-results/bridge-round-trip.md latency-results/dispatch-by-log-size.txt; do
+            if [ -f "$file" ]; then
+              echo "=== $file"
+              cat "$file"
+              { echo "### $file"; echo; cat "$file"; echo; } >> "$GITHUB_STEP_SUMMARY"
+            fi
+          done
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        if: always()
+        with:
+          name: latency-windows
+          path: latency-results/
+          if-no-files-found: warn
+          retention-days: 30
