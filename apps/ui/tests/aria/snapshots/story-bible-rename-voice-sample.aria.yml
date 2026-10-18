@@ -1,0 +1,21 @@
+- main:
+  - group "Zoom"
+  - paragraph
+- status
+- alert
+- status
+- alert
+- status
+- dialog "Rename voice sample":
+  - heading "Rename voice sample" [level=2]
+  - button "Close"
+  - text: Label
+  - textbox "Label":
+    - /placeholder: Furious, to the court
+    - text: Tea party, quick
+  - text: Note
+  - textbox "Note":
+    - /placeholder: "How you did it: pitch up, clipped, no breaths"
+    - text: Runs the words together.
+  - button "Cancel"
+  - button "Save"
