@@ -36,6 +36,12 @@ export const editingStates: StateEntry[] = [
   },
   {
     page: 'editing',
+    state: 'voice-sample-dialog',
+    description:
+      'Editing, Voice sample on four selected words - the character chosen from the chapter’s speakers, the words with Play range, the label and note, Make primary and Save sample',
+  },
+  {
+    page: 'editing',
     state: 'takes-open',
     description:
       'Editing, the first line’s takes opened under it - the suggested take with the steps that would make it surer, each take’s evidence, and how retries are kept',

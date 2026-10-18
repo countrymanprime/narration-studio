@@ -43,6 +43,12 @@ export const editingDrivers: Record<string, Driver> = {
       .click();
     await page.locator('[role="dialog"], [role="alertdialog"]').first().waitFor();
   },
+  'voice-sample-dialog': async (page) => {
+    await openEditing(page, EDITS);
+    await selectWords(page);
+    await bar(page).getByRole('button', { name: 'Voice sample' }).click();
+    await page.getByRole('dialog', { name: 'Voice sample' }).waitFor();
+  },
   'takes-open': async (page) => {
     await openTakes(page, EDITS);
     await expectPanelTextSize(page, 'Suggested take');

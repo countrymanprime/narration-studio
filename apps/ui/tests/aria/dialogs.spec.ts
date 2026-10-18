@@ -102,6 +102,11 @@ const MODALS: { name: string; state: [string, string]; snapshot: string }[] = [
     snapshot: 'editing-fx-dialog.aria.yml',
   },
   {
+    name: 'Editing: marking a voice sample is a modal dialog with the character, the words and Play range, the label and note, Make primary and both actions',
+    state: ['editing', 'voice-sample-dialog'],
+    snapshot: 'editing-voice-sample-dialog.aria.yml',
+  },
+  {
     name: 'Editing: a step of the take suggestion asks first, with what it changes and both actions',
     state: ['editing', 'suggestion-step'],
     snapshot: 'editing-confirm-normalise.aria.yml',
