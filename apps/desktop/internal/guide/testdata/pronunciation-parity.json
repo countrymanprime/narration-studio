@@ -31,6 +31,16 @@
                 "occurrences": [],
                 "pronunciation": {},
                 "text": "Wrenny"
+              },
+              {
+                "occurrences": [],
+                "pronunciation": {},
+                "text": null
+              },
+              {
+                "occurrences": [],
+                "pronunciation": {},
+                "text": 5
               }
             ],
             "canonical_name": "Wren",
@@ -198,6 +208,16 @@
                 "occurrences": [],
                 "pronunciation": {},
                 "text": "Wrenny"
+              },
+              {
+                "occurrences": [],
+                "pronunciation": {},
+                "text": null
+              },
+              {
+                "occurrences": [],
+                "pronunciation": {},
+                "text": 5
               }
             ],
             "canonical_name": "Wren",
@@ -366,6 +386,16 @@
                 "occurrences": [],
                 "pronunciation": {},
                 "text": "Wrenny"
+              },
+              {
+                "occurrences": [],
+                "pronunciation": {},
+                "text": null
+              },
+              {
+                "occurrences": [],
+                "pronunciation": {},
+                "text": 5
               }
             ],
             "canonical_name": "Wren",
@@ -535,6 +565,16 @@
                 "occurrences": [],
                 "pronunciation": {},
                 "text": "Wrenny"
+              },
+              {
+                "occurrences": [],
+                "pronunciation": {},
+                "text": null
+              },
+              {
+                "occurrences": [],
+                "pronunciation": {},
+                "text": 5
               }
             ],
             "canonical_name": "Wren",
@@ -703,6 +743,16 @@
                   "source": "manual"
                 },
                 "text": "Wrenny"
+              },
+              {
+                "occurrences": [],
+                "pronunciation": {},
+                "text": null
+              },
+              {
+                "occurrences": [],
+                "pronunciation": {},
+                "text": 5
               }
             ],
             "canonical_name": "Wren",
@@ -836,8 +886,186 @@
       "start": "names"
     },
     {
+      "after": {
+        "entities": [
+          {
+            "aliases": [
+              {
+                "occurrences": [],
+                "pronunciation": {
+                  "alternate": {
+                    "ipa": "dʌbəlju",
+                    "source": "espeak"
+                  },
+                  "confidence": "narrator",
+                  "ipa": "dʌbəl",
+                  "source": "manual"
+                },
+                "text": "W"
+              },
+              {
+                "occurrences": [],
+                "pronunciation": {},
+                "text": "Bare"
+              },
+              {
+                "occurrences": [],
+                "text": "Plain"
+              },
+              {
+                "occurrences": [],
+                "pronunciation": {},
+                "text": "Wrenny"
+              },
+              {
+                "occurrences": [],
+                "pronunciation": {
+                  "chosen": true,
+                  "confidence": "narrator",
+                  "ipa": "nʌl",
+                  "source": "manual"
+                },
+                "text": null
+              },
+              {
+                "occurrences": [],
+                "pronunciation": {},
+                "text": 5
+              }
+            ],
+            "canonical_name": "Wren",
+            "category": "Character",
+            "id": "entity-wren",
+            "locked": false,
+            "pronunciation": {
+              "chosen": true,
+              "confidence": "high",
+              "extra": "dropped",
+              "ipa": "ɹɛn",
+              "note": "said softly",
+              "source": "cmu",
+              "status": "researched"
+            }
+          },
+          {
+            "aliases": [],
+            "canonical_name": "Ada",
+            "category": "Character",
+            "id": "entity-ada",
+            "locked": false,
+            "pronunciation": {
+              "alternate": {
+                "confidence": "high",
+                "ipa": "ˈɑdə",
+                "source": "cmu"
+              },
+              "confidence": "narrator",
+              "ipa": "ˈeɪdə",
+              "source": "manual"
+            }
+          },
+          {
+            "aliases": [],
+            "canonical_name": "Hal",
+            "category": "Character",
+            "id": "entity-hal",
+            "locked": false,
+            "pronunciation": {
+              "alternate": {
+                "confidence": "narrator",
+                "ipa": "hɑl",
+                "note": "kept only in use",
+                "source": "manual"
+              },
+              "confidence": "high",
+              "ipa": "hæl",
+              "note": "short a",
+              "source": "cmu",
+              "status": "query_sent"
+            }
+          },
+          {
+            "aliases": [],
+            "canonical_name": "Bo",
+            "category": "Character",
+            "id": "entity-bo",
+            "locked": false
+          },
+          {
+            "aliases": [],
+            "canonical_name": "Eli",
+            "category": "Character",
+            "id": "entity-eli",
+            "locked": false,
+            "pronunciation": {
+              "confidence": "low",
+              "source": "espeak"
+            }
+          },
+          {
+            "aliases": [],
+            "canonical_name": "Fay",
+            "category": "Character",
+            "id": "entity-fay",
+            "locked": false,
+            "pronunciation": {
+              "alternate": {},
+              "ipa": "",
+              "source": "cmu"
+            }
+          },
+          {
+            "aliases": [],
+            "canonical_name": "Gil",
+            "category": "Character",
+            "id": "entity-gil",
+            "locked": false,
+            "pronunciation": null
+          },
+          {
+            "aliases": [],
+            "canonical_name": "The Mill",
+            "category": "Character",
+            "id": "entity-mill",
+            "locked": true,
+            "pronunciation": {
+              "alternate": {
+                "confidence": "high",
+                "ipa": "ɹɛn",
+                "source": "cmu"
+              },
+              "ipa": "mɪl",
+              "source": "manual"
+            }
+          },
+          {
+            "aliases": [],
+            "canonical_name": "Cy",
+            "category": "Character",
+            "id": "entity-cy",
+            "locked": 1
+          },
+          {
+            "aliases": [],
+            "canonical_name": "Dot",
+            "category": "Character",
+            "id": "entity-dot",
+            "locked": 0
+          }
+        ],
+        "schema_version": 2
+      },
       "arguments": {
         "alias_index": 4,
+        "entity_id": "entity-wren",
+        "ipa": "nʌl"
+      },
+      "command": "pronounce-user",
+      "start": "names"
+    },
+    {
+      "arguments": {
+        "alias_index": 6,
         "entity_id": "entity-wren",
         "ipa": "x"
       },
@@ -886,6 +1114,16 @@
                 "occurrences": [],
                 "pronunciation": {},
                 "text": "Wrenny"
+              },
+              {
+                "occurrences": [],
+                "pronunciation": {},
+                "text": null
+              },
+              {
+                "occurrences": [],
+                "pronunciation": {},
+                "text": 5
               }
             ],
             "canonical_name": "Wren",
@@ -1050,6 +1288,16 @@
                 "occurrences": [],
                 "pronunciation": {},
                 "text": "Wrenny"
+              },
+              {
+                "occurrences": [],
+                "pronunciation": {},
+                "text": null
+              },
+              {
+                "occurrences": [],
+                "pronunciation": {},
+                "text": 5
               }
             ],
             "canonical_name": "Wren",
@@ -1212,6 +1460,16 @@
                 "occurrences": [],
                 "pronunciation": {},
                 "text": "Wrenny"
+              },
+              {
+                "occurrences": [],
+                "pronunciation": {},
+                "text": null
+              },
+              {
+                "occurrences": [],
+                "pronunciation": {},
+                "text": 5
               }
             ],
             "canonical_name": "Wren",
@@ -1381,6 +1639,16 @@
                 "occurrences": [],
                 "pronunciation": {},
                 "text": "Wrenny"
+              },
+              {
+                "occurrences": [],
+                "pronunciation": {},
+                "text": null
+              },
+              {
+                "occurrences": [],
+                "pronunciation": {},
+                "text": 5
               }
             ],
             "canonical_name": "Wren",
@@ -1546,6 +1814,16 @@
                 "occurrences": [],
                 "pronunciation": {},
                 "text": "Wrenny"
+              },
+              {
+                "occurrences": [],
+                "pronunciation": {},
+                "text": null
+              },
+              {
+                "occurrences": [],
+                "pronunciation": {},
+                "text": 5
               }
             ],
             "canonical_name": "Wren",
@@ -1710,6 +1988,16 @@
                 "occurrences": [],
                 "pronunciation": {},
                 "text": "Wrenny"
+              },
+              {
+                "occurrences": [],
+                "pronunciation": {},
+                "text": null
+              },
+              {
+                "occurrences": [],
+                "pronunciation": {},
+                "text": 5
               }
             ],
             "canonical_name": "Wren",
@@ -1898,6 +2186,16 @@
                 "occurrences": [],
                 "pronunciation": {},
                 "text": "Wrenny"
+              },
+              {
+                "occurrences": [],
+                "pronunciation": {},
+                "text": null
+              },
+              {
+                "occurrences": [],
+                "pronunciation": {},
+                "text": 5
               }
             ],
             "canonical_name": "Wren",
@@ -2127,6 +2425,16 @@
                 "occurrences": [],
                 "pronunciation": {},
                 "text": "Wrenny"
+              },
+              {
+                "occurrences": [],
+                "pronunciation": {},
+                "text": null
+              },
+              {
+                "occurrences": [],
+                "pronunciation": {},
+                "text": 5
               }
             ],
             "canonical_name": "Wren",
@@ -2296,6 +2604,16 @@
                 "occurrences": [],
                 "pronunciation": {},
                 "text": "Wrenny"
+              },
+              {
+                "occurrences": [],
+                "pronunciation": {},
+                "text": null
+              },
+              {
+                "occurrences": [],
+                "pronunciation": {},
+                "text": 5
               }
             ],
             "canonical_name": "Wren",
@@ -2475,6 +2793,16 @@
                 "occurrences": [],
                 "pronunciation": {},
                 "text": "Wrenny"
+              },
+              {
+                "occurrences": [],
+                "pronunciation": {},
+                "text": null
+              },
+              {
+                "occurrences": [],
+                "pronunciation": {},
+                "text": 5
               }
             ],
             "canonical_name": "Wren",
@@ -2644,6 +2972,16 @@
                 "occurrences": [],
                 "pronunciation": {},
                 "text": "Wrenny"
+              },
+              {
+                "occurrences": [],
+                "pronunciation": {},
+                "text": null
+              },
+              {
+                "occurrences": [],
+                "pronunciation": {},
+                "text": 5
               }
             ],
             "canonical_name": "Wren",
@@ -2813,6 +3151,16 @@
                 "occurrences": [],
                 "pronunciation": {},
                 "text": "Wrenny"
+              },
+              {
+                "occurrences": [],
+                "pronunciation": {},
+                "text": null
+              },
+              {
+                "occurrences": [],
+                "pronunciation": {},
+                "text": 5
               }
             ],
             "canonical_name": "Wren",
@@ -2982,6 +3330,16 @@
                 "occurrences": [],
                 "pronunciation": {},
                 "text": "Wrenny"
+              },
+              {
+                "occurrences": [],
+                "pronunciation": {},
+                "text": null
+              },
+              {
+                "occurrences": [],
+                "pronunciation": {},
+                "text": 5
               }
             ],
             "canonical_name": "Wren",
@@ -3201,6 +3559,16 @@
                 "occurrences": [],
                 "pronunciation": {},
                 "text": "Wrenny"
+              },
+              {
+                "occurrences": [],
+                "pronunciation": {},
+                "text": null
+              },
+              {
+                "occurrences": [],
+                "pronunciation": {},
+                "text": 5
               }
             ],
             "canonical_name": "Wren",
@@ -3352,7 +3720,16 @@
     },
     {
       "arguments": {
-        "alias_index": 4,
+        "alias_index": 5,
+        "entity_id": "entity-wren"
+      },
+      "command": "pronunciation-use-alternate",
+      "error": "There is no other pronunciation to switch to.",
+      "start": "names"
+    },
+    {
+      "arguments": {
+        "alias_index": 6,
         "entity_id": "entity-wren"
       },
       "command": "pronunciation-use-alternate",
@@ -3390,6 +3767,16 @@
                 "occurrences": [],
                 "pronunciation": {},
                 "text": "Wrenny"
+              },
+              {
+                "occurrences": [],
+                "pronunciation": {},
+                "text": null
+              },
+              {
+                "occurrences": [],
+                "pronunciation": {},
+                "text": 5
               }
             ],
             "canonical_name": "Wren",
@@ -3553,6 +3940,16 @@
                 "occurrences": [],
                 "pronunciation": {},
                 "text": "Wrenny"
+              },
+              {
+                "occurrences": [],
+                "pronunciation": {},
+                "text": null
+              },
+              {
+                "occurrences": [],
+                "pronunciation": {},
+                "text": 5
               }
             ],
             "canonical_name": "Wren",
@@ -3776,7 +4173,9 @@
               "occurrences": [],
               "text": "Plain"
             },
-            "Wrenny"
+            "Wrenny",
+            null,
+            5
           ],
           "canonical_name": "Wren",
           "category": "Character",
