@@ -276,6 +276,9 @@ export function createMockApi(
     recommendations: stages.stageRecommendations,
     seed: initial.production,
   });
+  // `?mockPlan=loading|fails`: the Schedule's read of the plan never answers, or fails.
+  if (initial.planRead === 'loading') production.productionPlan = () => new Promise<never>(() => {});
+  if (initial.planRead === 'fails') production.productionPlan = async () => Promise.reject(new Error('The schedule could not be read from this project.'));
   const { saveAnalyzerFindings, saveFinding, saveFileFindings, acceptedFindings, ...findings } = createFindingsMock(initial.findings ?? WIRE_FINDINGS, {
     rerunAfterFirstList: initial.findingsRerun,
     reaper: initial.reaper,
