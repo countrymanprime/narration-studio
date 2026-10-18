@@ -20,7 +20,7 @@ const keymap = defaultKeymap(COMMAND_CATALOG, false);
 const emptyDoc = (): ChapterDoc => ({ ...marksDoc(), items: [], index: new Map(), paras: [] });
 
 let page: ReturnType<typeof useEditingPage>;
-let emit: (code: string, modifiers?: ModifierKey[], target?: EventTarget | null) => boolean;
+let emit: (code: string, modifiers?: ModifierKey[], target?: EventTarget | null, repeat?: boolean) => boolean;
 
 function Keys({ handlers, map = keymap }: { handlers?: EditingKeyHandlers; map?: Keymap }) {
   page = useEditingPage();
@@ -38,9 +38,9 @@ function mount(doc: ChapterDoc, handlers?: EditingKeyHandlers, wrap: (c: ReactNo
       };
     },
   };
-  emit = (code, modifiers = [], target = null) => {
+  emit = (code, modifiers = [], target = null, repeat = false) => {
     let consumed = false;
-    act(() => listener?.({ gesture: gesture('keyboard', code, modifiers), target, preventDefault: () => void (consumed = true) }));
+    act(() => listener?.({ gesture: gesture('keyboard', code, modifiers), target, preventDefault: () => void (consumed = true), repeat }));
     return consumed;
   };
   return render(
@@ -81,6 +81,49 @@ describe('left-right-move-a-word-shift-extends', () => {
     place(doc.items[doc.items.length - 1].key);
     emit('ArrowRight', ['Shift']);
     expect(state().sel?.head).toBe(doc.items[doc.items.length - 1].key);
+  });
+});
+
+describe('a-held-key-keeps-stepping-through-the-text', () => {
+  it('a held arrow moves a word at every repeat, and Shift+arrow extends one more at every repeat', () => {
+    const doc = marksDoc();
+    mount(doc);
+    emit('ArrowRight');
+    const first = state().cursor;
+    for (let i = 0; i < 3; i++) emit('ArrowRight', [], null, true);
+    expect(state().cursor).toBe(stepKey(doc, stepKey(doc, stepKey(doc, first, 1), 1), 1));
+    place(first!);
+    emit('ArrowRight', ['Shift']);
+    const head = state().sel!.head;
+    for (let i = 0; i < 2; i++) emit('ArrowRight', ['Shift'], null, true);
+    expect(doc.index.get(state().sel!.head)).toBe((doc.index.get(head) ?? 0) + 2);
+  });
+
+  it('a held phrase step steps a phrase at every repeat', () => {
+    const doc = marksDoc();
+    mount(doc);
+    place(doc.items[0].key);
+    const once = stepPhrase(doc, doc.items[0].key, 1);
+    emit('ArrowDown', [], null, true);
+    expect(state().cursor).toBe(once);
+  });
+
+  it('a held key that does something once (Delete, Space, F, Enter, Escape) acts once, not at every repeat', () => {
+    const doc = marksDoc();
+    const remove = vi.fn();
+    const play = vi.fn();
+    mount(doc, { remove, play });
+    emit('ArrowRight');
+    emit('Delete');
+    emit('Space');
+    expect(remove).toHaveBeenCalledTimes(1);
+    expect(play).toHaveBeenCalledTimes(1);
+    for (let i = 0; i < 4; i++) {
+      emit('Delete', [], null, true);
+      emit('Space', [], null, true);
+    }
+    expect(remove).toHaveBeenCalledTimes(1);
+    expect(play).toHaveBeenCalledTimes(1);
   });
 });
 
@@ -147,6 +190,32 @@ describe('brackets-step-flags-enter-opens-the-card', () => {
     expect(state().sel).not.toBeNull();
     emit('Escape');
     expect(state().sel).toBeNull();
+    const el = document.createElement('div');
+    el.tabIndex = 0;
+    document.body.append(el);
+    el.focus();
+    emit('Escape', [], el);
+    expect(document.activeElement).toBe(document.body);
+    el.remove();
+  });
+});
+
+describe('Escape-closes-the-drawer', () => {
+  it('closes an open drawer once the card and the selection are done with, before it blurs', () => {
+    const doc = marksDoc();
+    const closeDrawer = vi.fn(() => true);
+    mount(doc, { closeDrawer });
+    act(() => page.dispatch({ type: 'select', anchor: doc.items[0].key, head: doc.items[2].key }));
+    emit('Escape');
+    expect(state().sel).toBeNull();
+    expect(closeDrawer).not.toHaveBeenCalled();
+    emit('Escape');
+    expect(closeDrawer).toHaveBeenCalledTimes(1);
+  });
+
+  it('blurs when the drawer is already shut', () => {
+    const doc = marksDoc();
+    mount(doc, { closeDrawer: () => false });
     const el = document.createElement('div');
     el.tabIndex = 0;
     document.body.append(el);

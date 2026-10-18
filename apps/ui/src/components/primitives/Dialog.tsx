@@ -37,6 +37,8 @@ type DialogProps = {
   // A region between the body and `actions` that never scrolls with it: the read-aloud dialog's
   // control bar, kept visible in every scroll position. Absent, most dialogs draw nothing here. Unlike `actions` it has no padding or alignment opinion of its own - a toolbar lays out its own row.
   footer?: ReactNode;
+  // Where focus returns on close when the element that had it at open is gone (the menu item that ran, then closed). Absent: the page's <main>.
+  returnFocus?: () => HTMLElement | null;
   children: ReactNode;
 } & (
   | { variant?: 'dialog'; description?: ReactNode }
@@ -73,6 +75,7 @@ export function Dialog({
   actions,
   actionsAlign = 'between',
   footer,
+  returnFocus,
   children,
 }: DialogProps) {
   // Both families share their parts; typing them as one keeps the wrapper a single shell.
@@ -91,7 +94,9 @@ export function Dialog({
   };
   const finalFocus = () => {
     if (opener?.isConnected && opener !== document.body) return opener;
-    // The opener is gone (the click removed it, or one dialog replaced another): the landmark is the next best place.
+    // The opener is gone (the click removed it, or one dialog replaced another): where the opener says, then the landmark.
+    const target = returnFocus?.();
+    if (target?.isConnected) return target;
     return document.querySelector<HTMLElement>('main') ?? true;
   };
 

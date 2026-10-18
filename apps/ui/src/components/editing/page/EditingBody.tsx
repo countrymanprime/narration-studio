@@ -31,7 +31,7 @@ import { useEditingKeys } from '../keys/useEditingKeys';
 import { useMarkMenuSections } from '../menu/marks/useMarkMenuSections';
 import { useEditingWordMenu } from '../menu/useEditingWordMenu';
 import type { WordMenuSelection } from '../menu/wordMenuRegistry';
-import { flagged, type ChapterDoc, type FlagKind } from '../model';
+import { findingWords, flagged, type ChapterDoc, type FlagKind } from '../model';
 import type { RangeLocator } from '../range/common/locate';
 import { useCutWords } from '../range/cut/useCutWords';
 import { useFxWords } from '../range/fx/useFxWords';
@@ -42,6 +42,7 @@ import { NO_TEXT, ScriptDoc } from '../script/ScriptDoc';
 import type { StackLine } from '../stack/types';
 import type { ManuscriptChapter } from '../../../types';
 import { useStackRetries } from '../stack/useStackRetries';
+import { useVoiceSample } from '../voicesample/useVoiceSample';
 import { TimelineStrip, type TimelineStripProps } from '../strip/TimelineStrip';
 import { useKeepTakes } from '../takes/keepTake';
 import { useHideOthers } from '../takes/prep/useHideOthers';
@@ -57,6 +58,7 @@ import { useTakesGate } from '../takes/useTakesGate';
 import type { PlaylistSegment } from '../../proof/playlist';
 import { doubledCut, wordAt, type ChapterRead } from './chapterSource';
 import { EditingHeader } from './EditingHeader';
+import { EditOffNotice } from './EditOffNotice';
 import { installBackupSteps, tokensIn } from '../backups/backupBefore';
 import { FxMarkersContext } from '../range/fx/fxMarkers';
 import { registerSelectionAction } from '../bar/selectionActions';
@@ -260,6 +262,8 @@ export function EditingBody(props: EditingBodyProps) {
   const cut = useCutWords({ journal, chapterId, chapterName, cuts: read.cuts, locator, onCuts: props.onCuts });
   const fx = useFxWords({ journal, chapterId, chapterName, effects: read.effects, cuts: read.cuts, locator, onEffects: props.onEffects });
   const accept = useAcceptWords({ journal, chapterId, onChange: props.onAccepted });
+  // Mark the selected words as how a character sounds: the dialog plays a range of its own, so the page's playback stops as it opens.
+  const voice = useVoiceSample({ chapterId, workspace: read.workspace, items: read.items, mediaUrl: tracks.mediaUrl, stopPlayback: playback.stop });
   // A DAW that changes the audio itself (a cut, FX or stack capability that runs `steps`) backs the words up first.
   const backupPlaces = useRef({ chapterId, locator, doc });
   backupPlaces.current = { chapterId, locator, doc };
@@ -382,6 +386,12 @@ export function EditingBody(props: EditingBodyProps) {
     else if (drawerIsOpen && drawerWant === 'timeline') closeDrawer();
     else openTab('timeline');
   }, [stripFits, toggleStrip, drawerIsOpen, drawerWant, openTab, closeDrawer]);
+  // Escape from the text shuts an open drawer too, once the card and the selection are done with it.
+  const escapeDrawer = useCallback(() => {
+    if (!drawerIsOpen) return false;
+    closeDrawer();
+    return true;
+  }, [drawerIsOpen, closeDrawer]);
   useEditingKeys({
     keymap,
     handlers: {
@@ -389,11 +399,13 @@ export function EditingBody(props: EditingBodyProps) {
       remove: cut.remove,
       mute: cut.mute,
       fx: fx.fx,
+      voiceSample: () => voice.open(),
       takes: lineTakes.handlers.takes,
       keep: lineTakes.handlers.keep,
       hideOthers: hide.handlers.hideOthers,
       strip: showTimeline,
       drawer: panels.drawer.toggle,
+      closeDrawer: escapeDrawer,
       chapterStep,
     },
   });
@@ -420,6 +432,8 @@ export function EditingBody(props: EditingBodyProps) {
   const flagPara = flagPid ? doc.paras.find((p) => p.p.id === flagPid) : undefined;
   const underLines = new Set<string>([...lines.byId.keys(), ...(flagPid ? [flagPid] : []), ...(current ? [current] : [])]);
   const drawerOpen = panels.drawer.open;
+  // With no cursor yet the first chip stays in the Tab order, so the takes are reachable from the keyboard before a word is chosen.
+  const firstChipPid = [...underLines].find((pid) => (lines.byId.get(pid)?.takes.length ?? 0) > 1);
 
   const drawer = (
     <Drawer
@@ -470,6 +484,7 @@ export function EditingBody(props: EditingBodyProps) {
             </ScriptHost>
             {check.panel}
             {panels.strip.open && stripFits ? <TimelineStrip {...stripProps} /> : null}
+            {cut.plan?.kind === 'refused' ? <EditOffNotice reason={cut.plan.reason} /> : null}
             <SelectionBar playback={playback} end={total} narrow={compact} />
             <div className="sticky bottom-0 z-[5]">
               <KeyHints hints={hints} id="keyhints" />
@@ -507,7 +522,14 @@ export function EditingBody(props: EditingBodyProps) {
               />
             ) : null}
             {line && shown ? (
-              <TakeChip passage={line} open={open} keptId={keep.kept[pid] ?? null} controls={`takes-${pid}`} onToggle={() => setLineOpen(pid, !open)} />
+              <TakeChip
+                passage={line}
+                open={open}
+                keptId={keep.kept[pid] ?? null}
+                controls={`takes-${pid}`}
+                tabbable={open || pid === (current ?? firstChipPid)}
+                onToggle={() => setLineOpen(pid, !open)}
+              />
             ) : null}
             {open && shown ? (
               <TakeLines
@@ -549,6 +571,8 @@ function useOpenAt(
   findings: Pick<FindingsApi, 'findingsGet'>,
 ): void {
   const done = useRef({ passage: false, finding: false, t: false });
+  // The finding's words are the selection once they are chosen; the passage's first word is only where the cursor goes when no finding chose them.
+  const chosen = useRef(false);
   useEffect(() => {
     if (link.t === undefined || done.current.t) return;
     done.current.t = true;
@@ -562,7 +586,7 @@ function useOpenAt(
     const para = doc.paras.find((p) => p.p.id === id);
     if (!para) return;
     const first = para.items.find((i) => i.kind === 'w');
-    if (first) dispatch({ type: 'place', key: first.key });
+    if (first && !chosen.current) dispatch({ type: 'place', key: first.key });
     if (!lines.byId.has(id)) return;
     done.current.passage = true;
     setLineOpen(id, true);
@@ -576,11 +600,16 @@ function useOpenAt(
         if (!live) return;
         done.current.finding = true;
         const span = f.manuscript?.span;
-        if (!span?.paragraph_id || span.ordinal === undefined) return;
-        const key = `${span.paragraph_id}:${span.ordinal}`;
-        if (!doc.index.has(key)) return;
-        dispatch({ type: 'select', anchor: key, head: key });
-        if (flagged(doc).some((x) => x.key === key)) dispatch({ type: 'openFlag', key });
+        if (!span?.paragraph_id) return;
+        // The note's own words: the finding's expected text in its paragraph (its ordinal says which repeat), else the one word its ordinal names.
+        const words = f.manuscript?.expected ? findingWords(doc, span.paragraph_id, f.manuscript.expected, span.ordinal ?? 0) : [];
+        const single = span.ordinal === undefined ? undefined : `${span.paragraph_id}:${span.ordinal}`;
+        const keys = words.length ? words : single && doc.index.has(single) ? [single] : [];
+        if (!keys.length) return;
+        chosen.current = true;
+        dispatch({ type: 'select', anchor: keys[0], head: keys[keys.length - 1] });
+        const flag = keys.find((key) => flagged(doc).some((x) => x.key === key));
+        if (flag) dispatch({ type: 'openFlag', key: flag });
       },
       (e: unknown) => {
         if (!live) return;

@@ -1,7 +1,8 @@
 import type { ComponentPropsWithRef } from 'react';
 import type { ControlNaming } from './controlNaming';
 
-type SelectOption = { value: string; label: string };
+// `group` heads an `<optgroup>`: consecutive options with the same group sit under one heading, and an option with none sits outside any.
+type SelectOption = { value: string; label: string; group?: string };
 
 type Props = Omit<ComponentPropsWithRef<'select'>, 'aria-label' | 'id' | 'value' | 'defaultValue' | 'onChange' | 'children' | 'title'> &
   ControlNaming & {
@@ -16,6 +17,19 @@ type Props = Omit<ComponentPropsWithRef<'select'>, 'aria-label' | 'id' | 'value'
 
 // The placeholder option's own value: a string no caller's option can have, so `onChange` can never report it.
 const PLACEHOLDER_VALUE = '\u0000placeholder';
+
+const SelectOptionRow = ({ option }: { option: SelectOption }) => <option value={option.value}>{option.label}</option>;
+
+// Runs of options that share a group, in order; an ungrouped option is a run of its own.
+function grouped(options: readonly SelectOption[]): { group: string | undefined; options: SelectOption[] }[] {
+  const out: { group: string | undefined; options: SelectOption[] }[] = [];
+  for (const option of options) {
+    const last = out[out.length - 1];
+    if (option.group !== undefined && last?.group === option.group) last.options.push(option);
+    else out.push({ group: option.group, options: [option] });
+  }
+  return out;
+}
 
 // The browser's own `<select>` element, drawn with the app's tokens. It stays native on purpose: the platform's
 // picker, keyboard search and form behaviour are the accessibility, `fireEvent.change` and Playwright's `selectOption` keep
@@ -38,11 +52,17 @@ export function Select({ label, value, onChange, options, fullWidth = false, pla
           {placeholder}
         </option>
       )}
-      {options.map((option) => (
-        <option key={option.value} value={option.value}>
-          {option.label}
-        </option>
-      ))}
+      {grouped(options).map((entry) =>
+        entry.group === undefined ? (
+          <SelectOptionRow key={entry.options[0].value} option={entry.options[0]} />
+        ) : (
+          <optgroup key={`group:${entry.group}:${entry.options[0].value}`} label={entry.group}>
+            {entry.options.map((option) => (
+              <SelectOptionRow key={option.value} option={option} />
+            ))}
+          </optgroup>
+        ),
+      )}
     </select>
   );
 }

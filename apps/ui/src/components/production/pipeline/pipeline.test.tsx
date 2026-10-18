@@ -126,6 +126,17 @@ describe('NextUp', () => {
     expect(items.map((li) => li.querySelector('[data-tone]')?.getAttribute('data-tone'))).toEqual(['rec', 'danger', 'danger']);
   });
 
+  // The mock's `.next .ico` (app.css:125): a 30 px rounded square, not a 24 px circle.
+  it('draws each disc as a 30 px square on an 8 px radius', () => {
+    view(<NextUp inputs={NEXT_UP_BUSY} record={record} onGo={noop} timer={timer} />);
+    const disc = within(screen.getByRole('list', { name: 'Next up' }))
+      .getAllByRole('listitem')[0]!
+      .querySelector('[data-tone]') as HTMLElement;
+    expect(disc.className).toContain('size-[1.875rem]');
+    expect(disc.className).toContain('rounded-lg');
+    expect(disc.className).not.toContain('rounded-full');
+  });
+
   it('says "Nothing needs you right now." when empty', () => {
     view(<NextUp inputs={NEXT_UP_EMPTY} record={record} onGo={noop} timer={timer} />);
     expect(screen.getByText('Nothing needs you right now.')).toBeTruthy();
@@ -236,6 +247,18 @@ describe('PageHeader', () => {
     const button = screen.getByRole('button', { name: 'Start session' }) as HTMLButtonElement;
     expect(button.disabled).toBe(true);
     expect(screen.getByText('No recorder is connected.')).toBeTruthy();
+  });
+
+  it('offers the settings that switch recording on when that is the reason Start session is off', async () => {
+    const onOpenSettings = vi.fn();
+    header({ record: { ok: false, reason: 'Experimental: switched off in Settings.', inSettings: true }, onOpenSettings });
+    await userEvent.click(screen.getByRole('button', { name: 'Open DAW settings' }));
+    expect(onOpenSettings).toHaveBeenCalledOnce();
+  });
+
+  it('offers no settings link for a reason Settings cannot fix', () => {
+    header({ record: { ok: false, reason: 'No recorder is connected.' }, onOpenSettings: vi.fn() });
+    expect(screen.queryByRole('button', { name: 'Open DAW settings' })).toBeNull();
   });
 
   it('shows Stop timer only while a timer runs', async () => {

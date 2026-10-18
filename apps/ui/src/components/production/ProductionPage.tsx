@@ -9,6 +9,7 @@ import { usePort } from '../../ports/usePort';
 import type { Bootstrap } from '../../types';
 import { creditsEntries, creditsKindOfId, ownsOpeningCredits } from '../credits/creditsEntries';
 import { useCreditsRows } from '../credits/useCreditsRows';
+import { LoadError } from '../layout/LoadError';
 import { Panel } from '../primitives/Panel';
 import { StatStrip } from '../primitives/StatStrip';
 import type { Notify } from '../primitives/Toast';
@@ -24,6 +25,7 @@ import { planStart, recordedSeries, weekFigures } from './measured/measured.sele
 import { useMeasured } from './measured/useMeasured';
 import { CheckCountsCard } from './overview/CheckCountsCard';
 import { KpiRow } from './overview/KpiRow';
+import { ProductionSkeleton } from './overview/ProductionSkeleton';
 import { checkCounts, deliveryCounts, stageSegments, type OverviewTarget } from './overview/overviewFigures';
 import { ProgressChart } from './overview/ProgressChart';
 import { StageBar } from './overview/StageBar';
@@ -302,7 +304,12 @@ export function ProductionPage({
   }
 
   const record = caps
-    ? { ok: Boolean(caps.capabilities.record?.available), reason: caps.capabilities.record?.message ?? '' }
+    ? {
+        ok: Boolean(caps.capabilities.record?.available),
+        reason: caps.capabilities.record?.message ?? '',
+        // Switched off is the one refusal the narrator fixes in Settings; the others (not connected, not answering) are fixed in the DAW.
+        inSettings: caps.capabilities.record?.reason === 'experimental_off' || caps.capabilities.record?.reason === 'turned_off',
+      }
     : { ok: false, reason: 'Checking the audio engine…' };
   const due = plan?.deadline ? parseIso(plan.deadline) : null;
   const k = calc(scheduleChapters(narrated), today, due, openPickups);
@@ -339,6 +346,18 @@ export function ProductionPage({
       : measured.answers.pickupSessionSeconds
     : { ok: false as const, reason: 'Reading the pickup sessions…' };
 
+  if (load.status === 'error')
+    return (
+      <LoadError
+        title="Production"
+        message={`The production overview could not be read: ${load.message}`}
+        retry={() => {
+          setLoad({ status: 'loading' });
+          void read();
+        }}
+      />
+    );
+
   return (
     <div className="mx-auto flex max-w-[96rem] flex-col gap-4">
       {caps && !caps.reachable && caps.daw !== 'none' && (
@@ -365,19 +384,11 @@ export function ProductionPage({
         onStartSession={() => goToBooth(recordingChapter?.id)}
         onExport={() => openReportDialog({ projectName: data.projectName, asOf: fmtD(today) })}
         onOpenSchedule={() => go('/schedule')}
+        onOpenSettings={() => go('/settings#daw')}
       />
       {manuscriptImport.dialogs}
       {manuscriptImport.creditsBanner}
-      {load.status === 'loading' && (
-        <p role="status" className="text-sm text-[var(--text-muted)]">
-          Reading the production log…
-        </p>
-      )}
-      {load.status === 'error' && (
-        <p role="alert" className="text-sm" style={DANGER}>
-          The production overview could not be read: {load.message}
-        </p>
-      )}
+      {load.status === 'loading' && <ProductionSkeleton />}
       {timer.problem && (
         <p role="alert" className="text-sm" style={DANGER}>
           {timer.problem}
@@ -402,7 +413,7 @@ export function ProductionPage({
             targetInfo={<TargetInfoButton />}
           />
           <TimerFigures overview={overview} />
-          <div className="grid grid-cols-[minmax(0,1fr)] gap-4 min-[1024px]:grid-cols-3">
+          <div className="grid grid-cols-[minmax(0,1fr)] gap-4 min-[1024px]:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)_minmax(0,1fr)]">
             <StageBar segments={stageSegments(narrated, WPH)} wph={WPH} />
             <WeekCard figures={weekFigures(log, today, start, due, k.words / WPH)} />
             <CheckCountsCard
@@ -412,7 +423,7 @@ export function ProductionPage({
               onCheck={(ids) => openCheckRecordings(ids)}
             />
           </div>
-          <div className="grid grid-cols-[minmax(0,1fr)] items-start gap-4 min-[1280px]:grid-cols-[minmax(0,1fr)_21.25rem]">
+          <div className="grid grid-cols-[minmax(0,1fr)] items-start gap-4 min-[1280px]:grid-cols-[minmax(0,1fr)_22.5rem]">
             <div className="flex min-w-0 flex-col gap-4">
               <Panel title="Chapter pipeline" flush>
                 <div {...{ [PIPELINE_AREA]: '' }}>

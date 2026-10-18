@@ -198,7 +198,7 @@ The Studio Next mock (`docs/research/mockups/studio-next/`) is the only spec for
 The rule and the commands are in [CONTRIBUTING.md](../../../CONTRIBUTING.md#ui-prs-update-the-how-to-guide). For the train:
 
 - **Worker.** A UI PR updates the guide page of each app page it changes, text and screenshots (`node scripts/dev/guide-screenshots.mjs <page>...`), in the same PR, or says `No guide change: <reason>`. It looks at every catalogued state with `visual:page` and `atlas:page` and states the real-app (Playwright) and Storybook results in the body; Storybook alone does not count. It commits no other images: no `pr-screenshots/` folder in its head.
-- **Coordinator.** Accepts a UI PR when its guide page and images are updated (or the body carries a specific `No guide change:` reason), the body states the real-app and Storybook results, and `Docs / Guide impact` is green. It never merges or counts ready a UI PR without them, whatever the rest of CI says.
+- **Coordinator.** Accepts a UI PR when its guide page and images are updated (or the body carries a specific `No guide change:` reason), the body states the real-app and Storybook results, and the `Guide impact` step of `Docs / Docs checks` is green. It never merges or counts ready a UI PR without them, whatever the rest of CI says.
 - **Sweep.** A periodic docs sweep runs `node scripts/dev/guide-screenshots.mjs --all` and commits what moved, as a safety net for changes to shared components.
 
 ## Owner standing rules
@@ -244,7 +244,7 @@ The Routine fires every 30 minutes (two hourly Routines, 30 minutes apart; D50).
 4. **Merge (D40).** Take bottom PRs (base `main`), oldest first. Merge one only when all of these hold:
    - it is not a draft;
    - it merges cleanly into `main` (D73: it need not contain `main`'s tip). If GitHub reports a conflict, merge `main` into it with `update_pull_request_branch`, or start a fixer when that fails, and wait for its checks on the next pass;
-   - `Build (Windows)` and `ui-dist` succeeded on the head. A docs-only PR needs `Docs / Links (offline)` instead;
+   - `Build (Windows)` and `ui-dist` succeeded on the head. A docs-only PR needs `Docs / Docs checks` (the link check and the other four docs checks, which run on every PR) instead;
    - there is no `CHANGES_REQUESTED` review and no unresolved thread whose first comment starts with 🔴;
    - a Claude Approvals check, if present, passes;
    - a UI PR updates its pages' guide text and images, or carries a specific `No guide change:` reason, and states the real-app and Storybook results ([UI PRs update the how-to guide](#ui-prs-update-the-how-to-guide)). There is no match % bar to check (D97);
@@ -253,6 +253,7 @@ The Routine fires every 30 minutes (two hourly Routines, 30 minutes apart; D50).
    - an independent intent review passed on the current head ([Safety net](#safety-net)).
 
    Merge with `squash` and `expectedHeadSha`, then delete the branch. Don't update the other bottom PRs' branches after a merge (D73); only a PR that no longer merges cleanly gets `main` merged in.
+   - **After a merge or a close, cancel the PR's unfinished runs yourself.** `cancel-closed-pr.yml` does it too, but it needs a runner and queued for 17 to 30 minutes on 2026-10-18, so the closed PR's jobs kept taking runners meanwhile. List the runs of the PR's branch with `status` `queued` and `in_progress` (`actions_list` `list_workflow_runs`, `workflow_runs_filter`), keep only those whose `head_sha` is the PR's head and whose event is `pull_request` or `pull_request_target`, and cancel each with `actions_run_trigger` `cancel_workflow_run`. Never cancel a `push` run on `main`.
    - **A conflict:** start one **fixer**. Use Sonnet for mechanical files (`hostAPIVersion`, PRD index rows, status cells, regenerated `Host.*`) and Opus otherwise.
    - **A merge turns `main` red:** tick `HOLD`, start an Opus fixer aimed at `main`, and log it.
    - **A merge just unblocked other phases (D62, owner-directed):** don't wait for the next scheduled Routine firing to act on it. The moment a merge lands, re-check every PRD whose `Depends` named the phase that just completed, and if step 5 below would now add something to the ready list, run step 5 immediately, in the same pass. A phase sitting ready while nothing launches until the next tick is exactly the latency this rule removes.
@@ -297,6 +298,7 @@ A worker is one cloud session for one stream. It opens one PR per phase, stacked
      - Comment `<ID>: PAUSED at <step>, PR #<n>` on #989, then end the session.
   3. On AMBER in your own reading (`allowed_warning`), **unless #989's `WARNING_POLICY` is `ignore`** (then a warning counts as GREEN, D63): **yield.** Finish the current PR to green, don't start the next phase, comment `<ID>: yielded after p<N>` on #989, and end.
   4. Otherwise, continue.
+- **Open the PR as soon as the change is pushed (owner rule, 2026-10-18).** Do not wait for local checks to finish or for the owner to ask: open the PR (a draft only if the work is genuinely incomplete), list the checks still running as pending in the body, and update the body as they finish. The owner reviews from the PR, not from the session.
 - **Finishing:**
   - Subscribe to your PRs, and drive `Build (Windows)` and `ui-dist` to green.
   - Answer every red-circle thread.
@@ -305,6 +307,7 @@ A worker is one cloud session for one stream. It opens one PR per phase, stacked
   - After three failed CI rounds on one PR: mark it draft, paste the failure into it, comment on #989, and end.
 - **No resume-in-place:** there is no tool to send a follow-up task into a session that has already finished and gone idle. A stream's next PRD phase (D62) is always a **new** session, branched fresh off the current `main` tip — never a message into the old one. The gain from D62 is launching that new session the moment the phase is ready, not batching it to the next tick; it is not session reuse.
 - **Owner steps:** anything needing the owner, REAPER, audio hardware or owner input goes on #992 as a comment and is marked pending in the PR. Never wait for a human.
+- **A missing tool or library is yours to install, not a blocker.** Cloud sessions run as root with `apt-get`, `npm`, `pip`/`uv` and `go` working through the proxy. If a check, hook or build fails because something is not installed, install it and re-run; do not report the check as impossible, skip it, or use `--no-verify`. Example: the pre-commit `check-go` hook and any Go build of `apps/desktop` need the Wails GTK libraries; run `apt-get update && apt-get install -y libglib2.0-dev libgtk-4-dev libwebkitgtk-6.0-dev libsoup-3.0-dev librsvg2-dev patchelf` (the same line as `.github/actions/setup-toolchain/action.yml`). Only when the install itself fails, say which package and quote the error (and read `read_documentation` `environment.network` if a host is denied) before you hand the step to someone else.
 - **Tooling:** the repo's `SessionStart` hook (`scripts/cloud/session-start.sh`, registered in `.claude/settings.json`) installs the pinned toolchain. `.claude/settings.json` allows the build, test and git commands and denies force-pushes and rebases. Workers never edit `.claude/settings.json`; auto mode refuses that as self-modification, so any change to it goes on #992 for the owner.
 
 ## Queue

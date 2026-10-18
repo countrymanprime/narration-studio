@@ -5,6 +5,13 @@ import { REFLOW } from './shared';
 export const proofStates: StateEntry[] = [
   {
     page: 'proof',
+    state: 'load-error',
+    description:
+      'Proof when the chapters it loads on opening could not be read (?mockInvalidPayload=manuscript): the title, "This page could not be loaded" with Retry; navigation still works',
+    ...REFLOW,
+  },
+  {
+    page: 'proof',
     state: 'default',
     description:
       "Proof, all chapters (Studio Next mock): the head with the chapter stepper and the cleared ring, the chapter strip with each chapter's open notes, the notes queue (chips, sort, find, Check recordings, the proofer sheet icons, the Sources line, the table grouped by chapter), the Inspector on the first note and the key hints",

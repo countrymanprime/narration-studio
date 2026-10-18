@@ -1,3 +1,4 @@
+import { useToastSideClearance } from '../../hooks/useToastClearance';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import type { Finding, FindingsSummary } from '../../api/contracts/findings';
@@ -18,6 +19,7 @@ import { KeyHints } from '../primitives/KeyHints';
 import { openCheckRecordings } from '../recordingcheck/openCheckRecordings';
 import { creditsEntries, creditsKindOfId, ownsOpeningCredits } from '../credits/creditsEntries';
 import { useCreditsRows } from '../credits/useCreditsRows';
+import { LoadError } from '../layout/LoadError';
 import { NeedManuscript } from '../layout/NeedManuscript';
 import { CheckCard } from './checkcard/CheckCard';
 import { ChapterStrip, type StripChapter } from './frame/ChapterStrip';
@@ -32,6 +34,7 @@ import { NotesPanel } from './notes/NotesPanel';
 import { inBookOrder, noteRow, queryFor, type NoteSort } from './notes/noteRows';
 import { openPickupsBeyondNotes, proofProgress } from './proof.selectors';
 import { ProoferSheet } from './ProoferSheet';
+import { recallSelection, rememberSelection } from './proofMemory';
 import { SpotTakes } from './spot/SpotTakes';
 import { TakeLanes } from './spot/TakeLanes';
 import { TakesBadge } from './spot/TakesBadge';
@@ -115,9 +118,16 @@ export function ProofPage({
   const [summary, setSummary] = useState<FindingsSummary>();
   const [sort, setSort] = useState<NoteSort>('time');
   const [reload, setReload] = useState(0);
+  // The page's data could not be read on opening: the host's sentence for the first failure of the chapters or the notes, and which have
+  // been read once (a later failure is a toast, the page stays). Retry bumps `attempt`, which both reads depend on.
+  const [chaptersProblem, setChaptersProblem] = useState<string>();
+  const [notesProblem, setNotesProblem] = useState<string>();
+  const loadProblem = chaptersProblem ?? notesProblem;
+  const [attempt, setAttempt] = useState(0);
+  const read = useRef({ chapters: false, notes: false });
   // The pickups list, for the open pickups no note stands for: while one is open the head never reads 100.
   const [pickups, setPickups] = useState<readonly PickupItem[]>([]);
-  const [selectedId, setSelectedId] = useState<string | null>(params.get('finding'));
+  const [selectedId, setSelectedId] = useState<string | null>(params.get('finding') ?? recallSelection(projectFolder, params.get('chapter') ?? ALL_CHAPTERS));
   const [current, setCurrent] = useState(() => loadLastChapter(projectFolder));
   const [win, setWin] = useState<TimeWindow>({ start: 0, len: FIRST_WINDOW });
   // The latest selection, set as it happens: the right-click menu reads it in the same event that selected the row.
@@ -125,6 +135,9 @@ export function ProofPage({
   selectedRef.current = selectedId;
   // Set while a row is pressed (it opens the row's chapter) or selected for the right-click menu (it does not).
   const opening = useRef(false);
+  // Toasts stay left of the Inspector while it is beside the notes, so a decision's message never covers the next decision button.
+  const inspectorPanel = useRef<HTMLDivElement>(null);
+  useToastSideClearance(inspectorPanel);
   const selectingForMenu = useRef(false);
 
   const scope = params.get('chapter') ?? ALL_CHAPTERS;
@@ -150,14 +163,20 @@ export function ProofPage({
       .manuscriptChapters()
       .then((list) => {
         if (!live) return;
+        read.current.chapters = true;
+        setChaptersProblem(undefined);
         setChapters(list.filter(isNarration));
         setOwnsOpening(ownsOpeningCredits(list));
       })
-      .catch((error: unknown) => overlay.toast(describeApiError(error), { tone: 'error' }));
+      .catch((error: unknown) => {
+        if (!live) return;
+        if (read.current.chapters) overlay.toast(describeApiError(error), { tone: 'error' });
+        else setChaptersProblem(describeApiError(error));
+      });
     return () => {
       live = false;
     };
-  }, [manuscriptApi, hasManuscript, overlay]);
+  }, [manuscriptApi, hasManuscript, overlay, attempt]);
 
   useEffect(() => {
     if (!hasManuscript) return;
@@ -178,14 +197,20 @@ export function ProofPage({
     Promise.all([findingsApi.findingsList(queryFor(sort, all ? undefined : scope)), findingsApi.findingsSummary()])
       .then(([page, counts]) => {
         if (!live) return;
+        read.current.notes = true;
+        setNotesProblem(undefined);
         setFindings(page.findings.map(held));
         setSummary(counts);
       })
-      .catch((error: unknown) => live && overlay.toast(describeApiError(error), { tone: 'error' }));
+      .catch((error: unknown) => {
+        if (!live) return;
+        if (read.current.notes) overlay.toast(describeApiError(error), { tone: 'error' });
+        else setNotesProblem(describeApiError(error));
+      });
     return () => {
       live = false;
     };
-  }, [findingsApi, hasManuscript, sort, scope, all, reload, overlay]);
+  }, [findingsApi, hasManuscript, sort, scope, all, reload, overlay, attempt]);
 
   const choose = useCallback(
     (next: string) => {
@@ -193,7 +218,7 @@ export function ProofPage({
         setCurrent(next);
         saveLastChapter(projectFolder, next);
       }
-      setParams(next === ALL_CHAPTERS ? {} : { chapter: next }, { replace: true });
+      setParams(next === ALL_CHAPTERS ? {} : { chapter: next });
     },
     [setParams, projectFolder],
   );
@@ -211,10 +236,14 @@ export function ProofPage({
     [all, fallback, chapters, scope, choose],
   );
 
-  const select = useCallback((id: string) => {
-    selectedRef.current = id;
-    setSelectedId(id);
-  }, []);
+  const select = useCallback(
+    (id: string) => {
+      selectedRef.current = id;
+      setSelectedId(id);
+      rememberSelection(projectFolder, scope, id);
+    },
+    [projectFolder, scope],
+  );
   // The first note is selected while none is (the mock opens on one), so the Inspector is never empty while there are notes.
   useEffect(() => {
     if (findings.length > 0 && !findings.some((f) => f.id === selectedId)) select(findings[0].id);
@@ -228,6 +257,8 @@ export function ProofPage({
   const listRef = useRef(findings);
   listRef.current = findings;
   const entryOf = useRef(new Map<string, number>());
+  const scopeRef = useRef({ all, scope });
+  scopeRef.current = { all, scope };
   const journalledReview = useCallback(
     async (request: Parameters<typeof findingsApi.findingsReview>[0]): Promise<Finding> => {
       const before = listRef.current.find((f) => f.id === request.id);
@@ -254,6 +285,9 @@ export function ProofPage({
             });
             replace(back);
             select(request.id);
+            // The note may be in a chapter other than the one now open: go back to it, so the decision taken back is the one in view.
+            const home = chapterOf(before);
+            if (home && !scopeRef.current.all && scopeRef.current.scope !== home) choose(home);
             setReload((n) => n + 1);
             return { ok: true as const, value: back };
           } catch (error) {
@@ -266,7 +300,7 @@ export function ProofPage({
       entryOf.current.set(request.id, result.value.id);
       return result.value.value;
     },
-    [findingsApi, journal, replace, select],
+    [findingsApi, journal, replace, select, choose],
   );
   const inspectorApi = useMemo(() => ({ ...findingsApi, findingsReview: journalledReview }), [findingsApi, journalledReview]);
   // A saved decision moves to the next note and offers Undo: the journal entry's own undo.
@@ -358,6 +392,7 @@ export function ProofPage({
   });
 
   if (!hasManuscript) return <NeedManuscript title="Proof" onImport={() => goTo('/')} />;
+  if (loadProblem !== undefined) return <LoadError title="Proof" message={loadProblem} retry={() => setAttempt((n) => n + 1)} />;
 
   const stepper = (
     <ChapterStepper
@@ -461,7 +496,10 @@ export function ProofPage({
               }}
             />
           </div>
-          <div className="min-w-0 rounded-[var(--radius-card)] border border-[var(--border)] bg-[var(--surface)] p-4 min-[1180px]:col-start-2 min-[1180px]:row-span-2 min-[1180px]:row-start-1">
+          <div
+            ref={inspectorPanel}
+            className="min-w-0 rounded-[var(--radius-card)] border border-[var(--border)] bg-[var(--surface)] p-4 min-[1180px]:col-start-2 min-[1180px]:row-span-2 min-[1180px]:row-start-1"
+          >
             {selected ? (
               <Inspector
                 key={selected.id}

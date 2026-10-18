@@ -1,23 +1,63 @@
 name: Main health
-# The full CI run (quality, the sharded visual suites, the UI bundle, the Windows build) on `main` every night. The agent
-# train merges on the light gate (D43) and runs the full suite only at the end (D44), so between sweeps a regression
-# can sit on `main` unseen. When this run fails it ticks HOLD on #509, so no new worker launches onto a red `main`
+# The full CI run (quality, the sharded visual suites, the UI bundle, the Windows build) on `main` every three hours, when `main`
+# has a commit it has not run on. The agent train merges on the light gate (D43) and runs the full suite only at the end (D44), and two
+# pull requests that were each green alone can break together once both are merged (startupRequests.spec.ts did, 2026-10-18), so a
+# regression can sit on `main` unseen. When this run fails it ticks HOLD on #509, so no new worker launches onto a red `main`
 # (docs/operations/agent-train.md, "Safety net"). The owner or the coordinator clears HOLD once `main` is green.
+#
+# Every three hours, not on every push: a push-to-main run costs ~90 job-minutes and merges arrive in bursts, so a run per merge
+# would cost more than the pull request runs it follows. The `changed` job skips the run, and says so, when the last finished run
+# was on the same commit. A manual run always runs.
 on:
   schedule:
-    - cron: '37 7 * * *'
+    - cron: '37 */3 * * *'
   workflow_dispatch: {}
 permissions: { contents: read }
 concurrency:
   group: main-health
   cancel-in-progress: false
 jobs:
+  changed:
+    name: Has main moved since the last run
+    timeout-minutes: 5
+    runs-on: ubuntu-latest
+    permissions:
+      actions: read # to list this workflow's earlier runs
+    outputs:
+      run: ${{ steps.compare.outputs.run }}
+    steps:
+      - id: compare
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          EVENT: ${{ github.event_name }}
+          SHA: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          if [ "$EVENT" != schedule ]; then
+            echo "run=true" >> "$GITHUB_OUTPUT"
+            echo "A manual run always runs."
+            exit 0
+          fi
+          # The newest run that finished with a verdict (a cancelled run judged nothing), on any trigger.
+          last=$(gh api "repos/$GH_REPO/actions/workflows/main-health.yml/runs?branch=main&status=completed&per_page=20" \
+            --jq '[.workflow_runs[] | select(.conclusion == "success" or .conclusion == "failure")][0].head_sha // ""')
+          if [ "$last" = "$SHA" ]; then
+            echo "run=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::main is still at $SHA, which the last finished run already judged; skipping the full run."
+          else
+            echo "run=true" >> "$GITHUB_OUTPUT"
+            echo "main moved from '${last:-none}' to $SHA."
+          fi
   ci:
+    needs: changed
+    if: needs.changed.outputs.run == 'true'
     uses: ./.github/workflows/ci.yml
   hold-on-red:
     name: Tick HOLD when main is red
     needs: ci
-    if: failure()
+    # `always()`: without a status function the condition is "success() && ...", which skips this job exactly when `ci` failed.
+    if: always() && needs.ci.result == 'failure'
     timeout-minutes: 5
     runs-on: ubuntu-latest
     permissions:
@@ -28,7 +68,7 @@ jobs:
         with:
           persist-credentials: false
       - run: |
-          node scripts/ci/train-health.mjs hold "the nightly full CI run on main failed ($RUN_URL)"
+          node scripts/ci/train-health.mjs hold "the scheduled full CI run on main failed ($RUN_URL)"
         env:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}

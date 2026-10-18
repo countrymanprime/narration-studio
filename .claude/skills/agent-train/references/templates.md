@@ -27,10 +27,14 @@ design-spec-guard and an ADR for a changed design decision), don't restyle it lo
 primitive is docs/design/design-system.md.
 YOUR FILES: <the slice issue's owns, or for an older PRD the phases' rows from its Parallel-session table>. NEVER TOUCH: files owned by other lanes or listed for
 a running stream on #989. If you need another lane's change, comment on #989.
+MISSING TOOLS: you run as root and can install what a check needs (`apt-get install -y ...`, npm, uv, go). A hook or build that fails for a missing library, e.g. the GTK 4 / WebKitGTK 6.0 libs behind the pre-commit `check-go` hook, is fixed by installing it (`apt-get update && apt-get install -y libglib2.0-dev libgtk-4-dev libwebkitgtk-6.0-dev libsoup-3.0-dev librsvg2-dev patchelf`), never by skipping the check, `--no-verify`, or handing the commit to someone else. Report an install failure only with the package name and the exact error.
 ADR NUMBERS: an ADR takes the next free number in docs/adr/; check it at write time and again before your last push.
 DOCS: do not write agent vocabulary (coordinator, worker, slice, session, skill) into files under docs/, except
 docs/operations/ runbooks that a person follows. A spike's research note has a date and a question and no slice, stream
 or lane header; an audit or checklist for one PR is a comment on the PR or its issue, not a file.
+OPEN THE PR EARLY: open the PR as soon as the change is written and pushed, even while local checks are still running or
+unfinished (a draft only if the work is genuinely incomplete); never wait to be asked, and report the checks as pending in
+the body and update it as they finish. The owner reviews from the PR, not from the session.
 BRANCHES AND PRS: first PR based on the latest main; one PR per phase, each based on the previous branch; branch
 <type>/<prd-slug>-p<N>-<slug>; PR title a Conventional Commit; body = goal, what changed, local checks run with results,
 the real-app (Playwright) and Storybook results of the pages touched (pnpm --dir apps/ui visual:page <page> and

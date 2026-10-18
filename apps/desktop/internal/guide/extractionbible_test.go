@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"os"
 	"path/filepath"
+	"reflect"
 	"runtime"
 	"slices"
 	"strings"
@@ -96,12 +97,17 @@ func TestExtractionBibleReadsEntriesAndCues(t *testing.T) {
 	}
 }
 
+// The apply step writes through the Story Bible's own commands. Creating an entry and changing its names still start the sidecar (a new
+// name needs a pronunciation); the properties, the relationship, the review flags, the cue correction and the deletion are applied by the
+// host (editInHost, mutateInHost) and are checked in the file.
 func TestExtractionBibleWritesThroughTheStoryBibleCommands(t *testing.T) {
 	s, log := newExtractionService(t)
 	writeBible(t, s, []any{
 		map[string]any{"id": "wren", "canonical_name": "Wren", "category": "Character", "aliases": []any{map[string]any{"text": "Little Wren"}, map[string]any{"text": "W"}},
-			"review": map[string]any{"entry": true, "aliases": []any{"W"}}},
-	}, nil)
+			"review": map[string]any{"entry": true, "aliases": []any{"W"}}, "review_state": "needs review"},
+		map[string]any{"id": "mill", "canonical_name": "The Mill", "category": "Place", "aliases": []any{}},
+		map[string]any{"id": "brook", "canonical_name": "Brook", "category": "Place", "aliases": []any{}},
+	}, []any{map[string]any{"id": "c1", "speaker_entity_id": nil, "speaker_source": "unknown", "corrected": false}})
 	b := s.ExtractionBible()
 	if id, err := b.Create("Brook", "Place", []string{"the stream"}, "A stream."); err != nil || id != "new-id" {
 		t.Fatalf("%q %v", id, err)
@@ -125,17 +131,33 @@ func TestExtractionBibleWritesThroughTheStoryBibleCommands(t *testing.T) {
 	for _, c := range calls(t, log) {
 		verbs = append(verbs, c[0])
 	}
-	want := []string{"create", "edit", "edit", "relate", "review-flag", "mark-reviewed", "mark-reviewed", "review-flag", "correct-cue", "delete"}
-	if !slices.Equal(verbs, want) {
-		t.Fatalf("commands = %v, want %v", verbs, want)
+	if want := []string{"create", "edit"}; !slices.Equal(verbs, want) {
+		t.Fatalf("sidecar commands = %v, want %v", verbs, want)
 	}
-	all := calls(t, log)
-	if !slices.Contains(all[1], "--value=Little Wren") || !slices.Contains(all[2], `--value=[{"key":"Says","value":"Hold the door."}]`) {
-		t.Fatalf("edits: %v %v", all[1], all[2])
+	if all := calls(t, log); !slices.Contains(all[1], "--value=Little Wren") {
+		t.Fatalf("alias edit: %v", all[1])
 	}
-	// clearing the entry's own flag puts back the flag of the name that was still to look at
-	if last := all[7]; !slices.Contains(last, "--alias-index") || !slices.Contains(last, "1") {
-		t.Fatalf("re-flag of W: %v", last)
+	entities, err := s.Entities()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(entities) != 2 {
+		t.Fatalf("entries after deleting Brook = %d", len(entities))
+	}
+	wren := entities[0]
+	if got := wren["properties"]; !reflect.DeepEqual(got, []any{map[string]any{"key": "Says", "value": "Hold the door."}}) {
+		t.Fatalf("properties in the file = %v", got)
+	}
+	if got := wren["relationships"]; !reflect.DeepEqual(got, []any{map[string]any{"id": "mill", "name": "The Mill", "label": "works at"}}) {
+		t.Fatalf("relationships = %v", got)
+	}
+	// Clearing the entry's own flag put back the flag of the name that was still to look at.
+	if got := wren["review"]; !reflect.DeepEqual(got, map[string]any{"entry": false, "aliases": []any{"Little Wren"}}) {
+		t.Fatalf("review = %v", got)
+	}
+	cues, err := s.DialogueCues()
+	if err != nil || len(cues) != 1 || cues[0].SpeakerEntityID == nil || *cues[0].SpeakerEntityID != "wren" || !cues[0].Corrected {
+		t.Fatalf("cues = %+v, %v", cues, err)
 	}
 }
 

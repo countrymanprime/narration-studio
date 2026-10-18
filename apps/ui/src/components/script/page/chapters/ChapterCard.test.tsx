@@ -38,6 +38,16 @@ describe('chapter card', () => {
     );
   });
 
+  // The mock's card text is Plex Sans (`--f-body`), its title line-height 1.45 and its card an 8 px radius (app.css:143-145).
+  it('draws the card in Plex Sans on the roomy frame, with a 1.45 title', () => {
+    mount();
+    const card = screen.getByRole('region', { name: /chapter card/ });
+    expect(card.className).toContain('IBM_Plex_Sans');
+    expect(card.className).not.toContain('font-sans');
+    expect(card.className).toContain('rounded-lg');
+    expect(within(card).getByRole('heading', { level: 2 }).className).toContain('leading-[1.45]');
+  });
+
   it('names its region by number and title, so two chapters with one title are two landmarks', () => {
     mount();
     expect(screen.getByRole('region', { name: /^Chapter 2/ }).getAttribute('aria-label')).toMatch(/The Salt Marsh/);

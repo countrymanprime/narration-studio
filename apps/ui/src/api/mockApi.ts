@@ -153,7 +153,13 @@ export function createMockApi(
   const credits = createCreditsMock(s, initial, { settings: settings.settings, manuscriptReady });
   const assets = createAssetsMock(initial);
   const proofing = createProofingMock(s, assets);
-  const reaperActions = createReaperActionsMock(initial, project.projectFolder, { ready: manuscriptReady, paragraphs: () => s.paragraphs });
+  // The findings mock is built further down; the pickup list reads its accepted notes through this once it exists.
+  const proofNotes = { read: (): Finding[] => [] };
+  const reaperActions = createReaperActionsMock(initial, project.projectFolder, {
+    ready: manuscriptReady,
+    paragraphs: () => s.paragraphs,
+    proofNotes: () => proofNotes.read(),
+  });
   const chapterTracks = createChapterTracksMock(s, initial, {
     manuscriptReady,
     dawFileLinked: project.dawFileLinked,
@@ -270,13 +276,23 @@ export function createMockApi(
     recommendations: stages.stageRecommendations,
     seed: initial.production,
   });
-  const { saveAnalyzerFindings, saveFinding, saveFileFindings, ...findings } = createFindingsMock(initial.findings ?? WIRE_FINDINGS, {
+  // `?mockPlan=loading|fails`: the Schedule's read of the plan never answers, or fails.
+  // `?mockHold=overview,entities,series`: those reads never answer, so Production, the Story Bible and its Series tab stay on their loading skeleton.
+  const held = new Set(initial.held ?? []);
+  const never = <T>() => new Promise<T>(() => {});
+  if (held.has('overview')) production.productionOverview = never;
+  if (held.has('entities')) storyBible.bindings.guideEntities = never;
+  if (held.has('series')) series.bindings.seriesVoiceBible = never;
+  if (initial.planRead === 'loading') production.productionPlan = () => new Promise<never>(() => {});
+  if (initial.planRead === 'fails') production.productionPlan = async () => Promise.reject(new Error('The schedule could not be read from this project.'));
+  const { saveAnalyzerFindings, saveFinding, saveFileFindings, acceptedFindings, ...findings } = createFindingsMock(initial.findings ?? WIRE_FINDINGS, {
     rerunAfterFirstList: initial.findingsRerun,
     reaper: initial.reaper,
     // Only the default seed demonstrates the overlay; a caller supplying its own findings (most tests) opts out, as
     // it already does for WIRE_FINDINGS itself.
     ...(initial.findings ? {} : { lazySeed: workspaceOverlayFinding }),
   });
+  proofNotes.read = acceptedFindings;
   const takeReviewScan = createTakeReviewScanMock(saveAnalyzerFindings, endJob, initial.takeReviewScanHold);
   const { beginPassageComparison, ...takeComparison } = createTakeComparisonMock(
     { get: findings.findingsGet, save: saveFinding },
@@ -314,6 +330,7 @@ export function createMockApi(
     transcript: proofing.transcript,
     dictionaryState: assets.dictionaryState,
     dawFacts: () => dawControl.facts(),
+    manuscriptReady,
   });
   // The mock DAW's undo history: the edits below leave their labels on it (recordingUndo), and DawLastAction and DawUndoLast read it.
   const undoHistory = new MockUndoHistory();
@@ -362,6 +379,7 @@ export function createMockApi(
       manuscriptReady,
       () => s.chapters,
       () => s.paragraphs,
+      initial.voiceSamples,
     ),
     ...createEditLogMock(
       manuscriptReady,

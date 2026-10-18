@@ -72,9 +72,9 @@ describe('legacy CSS guards', () => {
     expect(unexpected).toEqual([]);
   });
 
-  it('components.css declares no motion: a legacy rule would beat the motion-safe: utilities that guard it', () => {
+  it('components.css declares no motion: a legacy rule would beat the motion-ok: utilities that guard it', () => {
     // components.css is imported into the utilities layer and its selectors are more specific than a single utility class,
-    // so a `transition` here runs even for people who asked for reduced motion. Motion is a `motion-safe:` utility.
+    // so a `transition` here runs even for people who asked for reduced motion. Motion is a `motion-ok:` utility (src/motion.test.ts).
     const css = readFileSync(join(SRC, 'components.css'), 'utf8').replace(/\/\*[\s\S]*?\*\//g, '');
     expect(css.match(/(^|[\s;{])(transition|animation)(-[a-z-]+)?\s*:/g) ?? []).toEqual([]);
   });

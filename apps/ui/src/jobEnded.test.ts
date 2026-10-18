@@ -12,6 +12,13 @@ const ended = (patch: Partial<JobEnded>): JobEnded => ({
 });
 
 describe('toastForJobEnd', () => {
+  it('leaves a failed package build to the Delivery page, which writes it under Build, but not when the narrator is elsewhere', () => {
+    const failed = ended({ kind: 'render_package', outcome: 'error', message: 'The package could not be built.' });
+    expect(toastForJobEnd(failed, '/delivery')).toBeUndefined();
+    expect(toastForJobEnd(failed, '/master')).toEqual({ text: 'The package could not be built.', tone: 'error' });
+    expect(toastForJobEnd(failed)).toEqual({ text: 'The package could not be built.', tone: 'error' });
+  });
+
   it('says what the host said when a job that can finish elsewhere succeeds', () => {
     expect(toastForJobEnd(ended({}))).toEqual({ text: 'Story Bible rebuild complete.', tone: 'info' });
     expect(toastForJobEnd(ended({ kind: 'transcript_compare', message: 'Comparison complete.' }))).toEqual({ text: 'Comparison complete.', tone: 'info' });

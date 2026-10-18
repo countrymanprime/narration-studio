@@ -102,6 +102,26 @@ const MODALS: { name: string; state: [string, string]; snapshot: string }[] = [
     snapshot: 'editing-fx-dialog.aria.yml',
   },
   {
+    name: 'Editing: marking a voice sample is a modal dialog with the character, the words and Play range, the label and note, Make primary and both actions',
+    state: ['editing', 'voice-sample-dialog'],
+    snapshot: 'editing-voice-sample-dialog.aria.yml',
+  },
+  {
+    name: 'Story Bible: renaming a voice sample is a modal dialog with the label, the note and both actions',
+    state: ['storybible', 'voice-sample-rename'],
+    snapshot: 'story-bible-rename-voice-sample.aria.yml',
+  },
+  {
+    name: 'Story Bible: moving a voice sample is a modal dialog with the character to move to, how many samples it has, and both actions',
+    state: ['storybible', 'voice-sample-move'],
+    snapshot: 'story-bible-move-voice-sample.aria.yml',
+  },
+  {
+    name: 'Story Bible: deleting a voice sample asks first, naming the sample and what is removed',
+    state: ['storybible', 'voice-sample-delete-confirm'],
+    snapshot: 'story-bible-delete-voice-sample.aria.yml',
+  },
+  {
     name: 'Editing: a step of the take suggestion asks first, with what it changes and both actions',
     state: ['editing', 'suggestion-step'],
     snapshot: 'editing-confirm-normalise.aria.yml',

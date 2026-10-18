@@ -3,7 +3,7 @@
 // `?mockChapterLink=confirmed`, so its words carry the times they were heard at; the edit rows also turn the DAW's experimental
 // actions on (`?mockDawExperimentalOn=1`), which the mock REAPER keeps off by default.
 import type { StateEntry } from '../lib/types';
-import { KEEPS_DESKTOP_SCROLL, POPUP_ANCHORED_AT_FIRST_WIDTH } from './shared';
+import { KEEPS_DESKTOP_SCROLL, POPUP_ANCHORED_AT_FIRST_WIDTH, TOAST_FADES_OUT } from './shared';
 
 export const editingStates: StateEntry[] = [
   {
@@ -33,6 +33,25 @@ export const editingStates: StateEntry[] = [
     page: 'editing',
     state: 'fx-dialog',
     description: 'Editing, an FX chain chosen for four words - the question names the chain and how the item is split around the words',
+  },
+  {
+    page: 'editing',
+    state: 'voice-sample-dialog',
+    description:
+      'Editing, Voice sample on four selected words - the character chosen from the chapter’s speakers, the words with Play range, the label and note, Make primary and Save sample',
+  },
+  {
+    page: 'editing',
+    state: 'voice-sample-refused',
+    description:
+      'Editing, Voice sample on a word that was said and is not in the script - the dialog says in one sentence that the words were not heard, with Play range and Save sample off',
+  },
+  {
+    page: 'editing',
+    state: 'voice-sample-saved',
+    description:
+      'Editing, a voice sample saved from four selected words - the dialog closed and the toast says whom it was saved for, with Undo for ten seconds',
+    ...TOAST_FADES_OUT,
   },
   {
     page: 'editing',
@@ -83,5 +102,11 @@ export const editingStates: StateEntry[] = [
     page: 'editing',
     state: 'no-manuscript',
     description: 'Editing with no manuscript imported - the page asks for one, with Import manuscript',
+  },
+  {
+    page: 'editing',
+    state: 'loading',
+    description:
+      'Editing while the chapters are still being read (?mockChapters=loading): the page\'s own header (the title, a block where the chapter stepper will be, the strip and Clean up and effects buttons) and the script\'s three paragraphs as grey blocks, with one polite "Reading the chapters…" status',
   },
 ];

@@ -2,7 +2,7 @@
 // It opens on Chapter 1 (the mock's last chapter read) unless a state picks otherwise. The Companion rows open `/companion`.
 import type { Page } from '@playwright/test';
 import { settlePage } from '../helpers/settle';
-import { type Driver, chooseTheme, goToPage, openBooth, selectReaderWord, openWithoutManuscript } from './shared';
+import { type Driver, chooseTheme, clickNav, goToPage, openBooth, selectReaderWord, openWithoutManuscript } from './shared';
 
 // The record capability on, so Record is enabled (the mock's REAPER keeps it switched off by default, which is the refusal row).
 const RECORD_ON = '?mockRecordCapabilityOn=1';
@@ -11,6 +11,9 @@ const REC_START = new Date('2026-09-28T10:00:00Z').getTime();
 // The seams boot a session already 30 words into the first paragraph (word 35 of the chapter). Wait for the highlight to
 // land there so the shot is never taken mid-walk.
 const LISTENING_WORD = '[data-word="32"] [data-highlight="Cursor"]';
+
+// The record capability on and the project's voice samples saved (api/voiceSamplesMock.ts).
+const SAMPLES = `${RECORD_ON}&mockVoiceSamples=bible`;
 
 const record = (page: Page) => page.getByRole('button', { name: /^Record$/ });
 
@@ -46,7 +49,28 @@ async function openCompanion(page: Page, query = ''): Promise<void> {
   await page.getByRole('heading', { level: 1, name: 'Companion' }).waitFor();
 }
 
+// The Booth's chapters read with a seam, opened through the rail: the page's content never arrives (`loading`), so `goToPage` is not used.
+async function openBoothReading(page: Page, seam: 'loading' | 'fails'): Promise<void> {
+  await page.goto(`/?mockChapters=${seam}`);
+  await settlePage(page);
+  await clickNav(page, 'Booth');
+}
+
 export const boothDrivers: Record<string, Driver> = {
+  loading: async (page) => {
+    await openBoothReading(page, 'loading');
+    await page.getByRole('group', { name: 'Loading the Booth' }).waitFor();
+  },
+  'companion-loading': async (page) => {
+    await openCompanion(page, '?mockChapters=loading');
+    await page.getByRole('group', { name: 'Loading the Companion' }).waitFor();
+  },
+  'load-failed': async (page) => {
+    await openBoothReading(page, 'fails');
+    await page.locator('p[role="alert"]', { hasText: 'The manuscript could not be read from this project.' }).waitFor();
+    // The failed host call also raises its own toast, which removes itself on a real timer and would race the screenshot: dismiss it.
+    await page.getByRole('button', { name: 'Dismiss message' }).click();
+  },
   setup: (page) => readyToRecord(page),
   'daw-not-linked': async (page) => {
     await openBooth(page, '?mockDawChoice=found');
@@ -154,6 +178,34 @@ export const boothDrivers: Record<string, Driver> = {
     if (await page.locator('#blisten-why').count()) throw new Error('the footer says the text cannot follow during a take that follows');
     await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
   },
+  'voice-samples-picker': async (page) => {
+    await readyToRecord(page, SAMPLES);
+    await page.locator('[data-speaker-chip]').first().click();
+    await page.getByRole('combobox', { name: 'Search speakers' }).waitFor();
+    await page
+      .getByRole('listbox', { name: 'Speakers' })
+      .getByText(/\d samples?$/)
+      .first()
+      .waitFor();
+  },
+  'voice-samples-panel': async (page) => {
+    await readyToRecord(page, SAMPLES);
+    await openSidePanel(page);
+    const panel = page.getByRole('complementary', { name: 'Side panel' });
+    await panel
+      .getByRole('button', { name: /\d samples?$/ })
+      .first()
+      .click();
+    await panel.getByRole('list', { name: /^Voice samples of / }).waitFor();
+  },
+  'voice-samples-recording': async (page) => {
+    await startTake(page, SAMPLES);
+    await openSidePanel(page);
+    const panel = page.getByRole('complementary', { name: 'Side panel' });
+    const control = panel.getByRole('button', { name: /^Play primary voice sample for / }).first();
+    await control.waitFor();
+    if ((await control.getAttribute('aria-disabled')) !== 'true') throw new Error('a voice sample can be played while a take records');
+  },
   'listening-no-mic': async (page) => {
     await openBooth(page, `${RECORD_ON}&mockNoDevices=1`);
     await page.locator('#blisten-why', { hasText: 'The text cannot follow your voice: No microphone found.' }).waitFor();
@@ -259,3 +311,9 @@ export const boothDrivers: Record<string, Driver> = {
     await openWithoutManuscript(page, 'Booth');
   },
 };
+
+/** The side panel is a column from 1280 px up and a drawer below it that starts closed: press its toggle when it is hidden. */
+async function openSidePanel(page: Page): Promise<void> {
+  if (await page.locator('#booth-side').isHidden()) await page.getByRole('button', { name: /side panel/i }).click();
+  await page.locator('#booth-side').waitFor({ state: 'visible' });
+}

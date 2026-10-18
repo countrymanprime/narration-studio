@@ -1,7 +1,7 @@
 // How to reach each `editing` state in STATE_CATALOG (see app.drivers.ts): the Editing page.
 import type { Page } from '@playwright/test';
 import { settlePage } from '../helpers/settle';
-import { type Driver, goToPage, openWithoutManuscript } from './shared';
+import { type Driver, clickNav, goToPage, openWithoutManuscript } from './shared';
 
 /** Chapter 1 linked to its track, so its words carry their heard times. */
 const LINKED = '?mockChapterLink=confirmed';
@@ -9,6 +9,13 @@ const LINKED = '?mockChapterLink=confirmed';
 const EDITS = `${LINKED}&mockDawExperimentalOn=1`;
 
 export const editingDrivers: Record<string, Driver> = {
+  // The chapters never answer, so the page's content never arrives and `goToPage` (which waits for it) is not used.
+  loading: async (page) => {
+    await page.goto('/?mockChapters=loading');
+    await settlePage(page);
+    await clickNav(page, 'Editing');
+    await page.getByRole('group', { name: 'Loading the editor' }).waitFor();
+  },
   default: async (page) => {
     await openEditing(page, LINKED);
   },
@@ -42,6 +49,33 @@ export const editingDrivers: Record<string, Driver> = {
       .first()
       .click();
     await page.locator('[role="dialog"], [role="alertdialog"]').first().waitFor();
+  },
+  'voice-sample-dialog': async (page) => {
+    await openEditing(page, EDITS);
+    await selectWords(page);
+    await bar(page).getByRole('button', { name: 'Voice sample' }).click();
+    await page.getByRole('dialog', { name: 'Voice sample' }).waitFor();
+  },
+  'voice-sample-refused': async (page) => {
+    await openEditing(page, EDITS);
+    // The extra word at the start of the first line was heard and is not in the script: nothing there can be a sample.
+    const said = page.locator('[data-k="p-1:x0"]');
+    await said.click();
+    await said.click({ modifiers: ['Shift'] });
+    await bar(page).getByRole('button', { name: 'Voice sample' }).click();
+    await page.getByRole('dialog', { name: 'Voice sample' }).getByRole('alert').waitFor();
+  },
+  'voice-sample-saved': async (page) => {
+    await openEditing(page, EDITS);
+    await selectWords(page);
+    await bar(page).getByRole('button', { name: 'Voice sample' }).click();
+    const dialog = page.getByRole('dialog', { name: 'Voice sample' });
+    await dialog.getByRole('button', { name: 'Save sample' }).click();
+    await dialog.waitFor({ state: 'hidden' });
+    // The header has an Undo button of its own (the journal's), so this scopes to the toast's.
+    const toast = page.getByRole('status').filter({ hasText: /^Saved voice sample for / });
+    await toast.waitFor();
+    await toast.getByRole('button', { name: 'Undo' }).waitFor();
   },
   'takes-open': async (page) => {
     await openTakes(page, EDITS);
@@ -95,7 +129,7 @@ export const editingDrivers: Record<string, Driver> = {
   },
   'daw-off': async (page) => {
     await openEditing(page, `${LINKED}&mockDaw=Audacity`);
-    await page.getByRole('button', { name: 'Retry' }).waitFor();
+    await page.getByRole('button', { name: 'Check again' }).waitFor();
   },
   'no-manuscript': async (page) => {
     await openWithoutManuscript(page, 'Editing');

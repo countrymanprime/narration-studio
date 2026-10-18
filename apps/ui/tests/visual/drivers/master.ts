@@ -1,4 +1,5 @@
 // How to reach each `master` state in STATE_CATALOG (see app.drivers.ts).
+import { settlePage } from '../helpers/settle';
 import {
   type Driver,
   checkOnDiagnostics,
@@ -9,6 +10,7 @@ import {
   openDiagnostics,
   openMaster,
   pickFilesToMaster,
+  goToPage,
   panelTitled,
   scrollToTop,
 } from './shared';
@@ -16,6 +18,13 @@ import {
 const MEASURED = /^Measured 2 of 3 files; 1 could not be measured\./;
 
 export const masterDrivers: Record<string, Driver> = {
+  // The chapters never answer, so `openMaster` is not used: the page's own parts arrive, the package panel stays on its blocks.
+  'package-loading': async (page) => {
+    await page.goto('/?mockChapters=loading');
+    await settlePage(page);
+    await goToPage(page, 'Master & QC');
+    await page.getByRole('group', { name: 'Loading the delivery package checks' }).waitFor();
+  },
   empty: async (page) => {
     await openMaster(page);
     await page.getByText(/^Nothing measured yet/).waitFor();

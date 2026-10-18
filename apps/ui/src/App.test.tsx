@@ -327,6 +327,27 @@ describe('App (integration, driven through the mock NarrationApi)', () => {
     expect(screen.queryByText('Manuscript imported.')).toBeNull();
   });
 
+  it('does not toast a failed package build on Delivery, which writes the reason under Build, and does toast it on another page', async () => {
+    const listeners = new Set<(event: JobEnded) => void>();
+    const announce = (event: JobEnded) => listeners.forEach((each) => each(event));
+    const failed: JobEnded = { id: 'pkg-1', kind: 'render_package', outcome: 'error', message: 'Access is denied.', durationMs: 900 };
+    window.history.replaceState(null, '', '/delivery');
+    renderApp({
+      subscribeJobEnded: (listener) => {
+        listeners.add(listener);
+        return () => listeners.delete(listener);
+      },
+    });
+    await screen.findByRole('heading', { level: 1, name: 'Delivery' });
+    act(() => announce(failed));
+    expect(screen.queryByText('Access is denied.')).toBeNull();
+
+    fireEvent.click(screen.getAllByRole('button', { name: 'Settings' })[0]);
+    await screen.findByRole('heading', { name: 'Settings' });
+    act(() => announce(failed));
+    expect(within(appToasts('alert')).getByText('Access is denied.')).toBeTruthy();
+  });
+
   it('queues a job-end toast while the booth is recording, and shows it once recording stops (no sound or notification mid-take)', async () => {
     let announce: ((event: JobEnded) => void) | undefined;
     // Every subscriber hears the transport (the Booth page subscribes too, beside App's toast guard).
@@ -455,7 +476,8 @@ describe('App (integration, driven through the mock NarrationApi)', () => {
     const selectManuscript = vi.fn(() => new Promise<never>(() => {}));
     renderApp({ selectManuscript, bootstrap: noManuscript });
     await screen.findByRole('heading', { level: 1, name: 'Production' });
-    const choose = screen.getByRole('button', { name: 'Import manuscript' });
+    fireEvent.click(screen.getByRole('button', { name: 'Import manuscript' }));
+    const choose = await screen.findByRole('button', { name: 'Choose a file…' });
     fireEvent.click(choose);
     fireEvent.click(choose);
     await waitFor(() => expect(choose.getAttribute('aria-busy')).toBe('true'));
@@ -465,6 +487,7 @@ describe('App (integration, driven through the mock NarrationApi)', () => {
     renderApp({ selectManuscript: () => Promise.reject(new Error('the file dialog could not open')), bootstrap: noManuscript });
     await screen.findByRole('heading', { level: 1, name: 'Production' });
     fireEvent.click(screen.getByRole('button', { name: 'Import manuscript' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Choose a file…' }));
     // The region that shows it is only known once the message is there, so look again on each try.
     await waitFor(() => expect(within(appToasts('alert')).getByText(/the file dialog could not open/)).toBeTruthy());
   });
@@ -920,7 +943,8 @@ describe('App (integration, driven through the mock NarrationApi)', () => {
     const source = createMockApi();
     renderApp({ bootstrap: async () => ({ ...(await source.bootstrap()), manuscript: null }), manuscriptChapters: async () => [] });
     expect((await screen.findAllByRole('heading', { name: title })).length).toBeGreaterThan(0);
-    expect(screen.getAllByText(/no manuscript yet/i).length).toBeGreaterThan(0);
+    // Schedule's title is drawn while it reads its plan, so the heading is not proof the empty state has arrived: wait for its text.
+    expect((await screen.findAllByText(/no manuscript yet/i)).length).toBeGreaterThan(0);
     await new Promise((resolve) => setTimeout(resolve, 700));
     expect(window.location.pathname).toBe(path);
     expect(window.location.search).toBe('?mockNoManuscript=1');
@@ -1138,6 +1162,8 @@ describe('App (integration, driven through the mock NarrationApi)', () => {
     expect(screen.getByRole('region', { name: 'Import your manuscript' })).toBeTruthy();
 
     fireEvent.click(screen.getByRole('button', { name: 'Import manuscript' }));
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Choose a file…' }));
     await screen.findByRole('alertdialog', { name: 'Import Alice.docx' });
     expect(preview).toHaveBeenCalledWith('mock-import', { markdownHeadingLevel: 1 });
     // The review says what was found and what the importer repaired; the log and progress bar belong to the commit dialog that follows.
@@ -1632,6 +1658,34 @@ describe('App shell mounts', () => {
     fireEvent.keyDown(document.body, { code: 'KeyZ', key: 'z', ctrlKey: true });
     await waitFor(() => expect(undo).toHaveBeenCalledTimes(1));
     expect(await screen.findByText('Undid Added a bookmark')).toBeTruthy();
+  });
+
+  it('ctrl-z-undoes-the-last-change: with the History panel open Ctrl+Z undoes the newest entry, as the panel says, and the list follows', async () => {
+    const journal = newJournal();
+    const undo = vi.fn(async () => ({ ok: true as const, value: 1 }));
+    await journal.act({ label: 'Added a bookmark', touches: ['bookmarks'], run: async () => ({ ok: true, value: 1 }), undo });
+    renderWithJournal(journal);
+    await screen.findByRole('heading', { level: 1, name: 'Production' });
+    fireEvent.keyDown(document.body, { code: 'KeyH', key: 'h', ctrlKey: true, shiftKey: true });
+    const dialog = await screen.findByRole('dialog', { name: 'Undo history' });
+    expect(within(dialog).getByText('Ctrl Z undoes the last one')).toBeTruthy();
+    fireEvent.keyDown(dialog, { code: 'KeyZ', key: 'z', ctrlKey: true });
+    await waitFor(() => expect(undo).toHaveBeenCalledTimes(1));
+    expect(await screen.findByText('Undid Added a bookmark')).toBeTruthy();
+    expect(await within(dialog).findByText('Nothing to undo yet.')).toBeTruthy();
+  });
+
+  it('ctrl-z-undoes-the-last-change: behind any other dialog Ctrl+Z still leaves the journal alone', async () => {
+    const journal = newJournal();
+    const undo = vi.fn(async () => ({ ok: true as const, value: 1 }));
+    await journal.act({ label: 'Added a bookmark', touches: ['bookmarks'], run: async () => ({ ok: true, value: 1 }), undo });
+    renderWithJournal(journal);
+    await screen.findByRole('heading', { level: 1, name: 'Production' });
+    fireEvent.keyDown(document.body, { code: 'KeyK', key: 'k', ctrlKey: true });
+    const dialog = await screen.findByRole('dialog');
+    fireEvent.keyDown(dialog, { code: 'KeyZ', key: 'z', ctrlKey: true });
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    expect(undo).not.toHaveBeenCalled();
   });
 
   it('ctrl-z-undoes-the-last-change: in a text field Ctrl+Z is the field’s own undo and the journal is left alone', async () => {

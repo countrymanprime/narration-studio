@@ -8,6 +8,7 @@ editing and proofing is left, the open pickups, the due date and whether the pac
 what to work on next. Its **Chapter pipeline** has one row per chapter and one column per stage.
 The book's dates, payment and milestones are on [Schedule](schedule.md), the item after Production in
 the navigation.
+While the production log is being read, the page keeps its header and shows grey blocks where the figures, cards and pipeline will be; if it cannot be read, the page says so with **Retry**.
 
 ![Production - the figures, the chapter pipeline and Next up, with a stage timer running in the header](../../images/ui/production-home.webp)
 
@@ -16,7 +17,8 @@ due 14 Oct (18 days)"), with the due date's tone as a word and a mark, not only 
 under it is the verdict for the due date (on track, tight or behind); it opens
 [Schedule](schedule.md). **Export status report** (the export icon) opens the
 [status report](#status-report), and **Start session** opens the [Booth](booth.md) on the chapter
-being recorded, or says why it cannot when the audio engine cannot record.
+being recorded, or says why it cannot when the audio engine cannot record. When recording is
+switched off, **Open DAW settings** beside the reason opens the section that turns it on.
 
 With no manuscript imported yet, the page is the import: **Import manuscript** opens the file
 picker (see [Importing the manuscript](#importing-the-manuscript)), and the calendar icon opens
@@ -31,6 +33,9 @@ then, a line at the top says progress that comes from it may be out of date, wit
 **Connect REAPER** and **Use built-in recorder**. The line goes by itself as soon as the engine connects.
 **Retry** checks again and says what it found; **Connect REAPER** runs the launcher in the REAPER you have
 open (or starts REAPER on the linked project) and waits up to ten seconds for it to answer.
+
+If the production overview cannot be read when the page opens, Production keeps its title and says "This page could not
+be loaded" with the reason and a **Retry** button, which reads it again.
 
 ## The figures
 
@@ -48,7 +53,9 @@ The six figures are one card; each opens the page it counts.
   yet" until the host reports a check per chapter.
 - **Due**: the due date and what the pace says about it. It opens [Schedule](schedule.md).
 
-Under the figures, **Where the book stands** splits the book's finished hours by stage, **This
+Under the figures, **Where the book stands** splits the book's finished hours by stage, estimated
+from each chapter's words and status (its **Recorded, not edited yet** share is the chapters
+recorded but not edited; **Finished audio** above is the measured length), **This
 week** says how much was recorded this week and in the last 24 hours (from the built-in recorder's
 take log), and **Recording check** counts the chapters checked as of the last save, out of date,
 and never checked; its icon opens **Check recordings** with the out-of-date and unchecked chapters
@@ -263,7 +270,12 @@ checking on progress — who has no need to know what the book pays.
 
 ## Importing the manuscript
 
-Importing (or replacing) the manuscript opens a confirm dialog previewing the detected format,
+**Import manuscript** (or **Replace manuscript…** in Settings, Project) first opens step 1 of 2, **Choose your
+manuscript**: drop a file on the zone or press **Choose a file…** to pick a .docx, .md or .txt file. A copy is
+kept in your project, and the original is read-only. If the window cannot read where a dropped file is, it says
+so under the zone; press **Choose a file…** instead.
+
+Choosing the file opens a confirm dialog previewing the detected format,
 paragraph count, and proposed chapters before anything changes. Each section is named the way the
 manuscript writes its headings: a heading with a label shows the label in bold and the chapter's name
 after it ("CHAPTER VIII. Croquet", "8. Croquet" or "Chapter 8: Croquet"), and any other heading shows its

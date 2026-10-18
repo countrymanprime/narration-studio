@@ -1,0 +1,81 @@
+# The repository was renamed
+
+The GitHub repository `countrymanprime/narration-utils` is being renamed to `countrymanprime/narration-studio`. The owner
+confirms the final name here when the rename is done: **new name: `countrymanprime/narration-studio` (expected, not yet
+confirmed)**. Until a line here says "renamed on <date>", the old name is still the live one.
+
+If git, the GitHub tools or a session launch cannot reach the repository, start with [If a session cannot connect](#if-a-session-cannot-connect).
+
+## If a session cannot connect
+
+| Symptom | Likely cause |
+| --- | --- |
+| `git fetch` or `git push` says `repository not found`, a 404, or asks for credentials | `origin` still names the old repository and the redirect is not working for this client |
+| A `mcp__github__*` call is refused as outside the session's repository scope | The session's scope was chosen by name at start and lists only the old name |
+| `create_session` fails with `ref_not_found` or a source error | The `source_url` in a prompt, Routine or scheduled task still names the old repository |
+| `gh` or a script gets a `301` from `api.github.com` | The REST API redirects a renamed repository, and a client that does not follow redirects fails |
+
+GitHub redirects web, `git clone`, `git fetch` and `git push` from the old name to the new one, but only while nobody creates
+a repository with the old name. Do not ever create a repository named `narration-utils`. Use the new name in everything you
+write, and treat the redirect as a safety net.
+
+### Fix a checkout (do these in order, stop at the first that works)
+
+1. See what you have: `git remote -v`.
+2. Find the new name. Read it from this page. To check it exists: `git ls-remote https://github.com/countrymanprime/narration-studio HEAD`.
+   If that fails, find where the old name now points with
+   `curl -sIL -o /dev/null -w '%{url_effective}\n' https://github.com/countrymanprime/narration-utils`, and if that also
+   fails, ask the owner for the name. Do not guess a name and do not create a repository.
+3. Point `origin` at it, keeping the same URL form (https, no token in the URL):
+   `git remote set-url origin https://github.com/countrymanprime/narration-studio`
+4. Check: `git fetch origin main` and `git branch -vv`. Your branches and commits are unchanged by a rename; only the URL moves.
+5. Push only to the branch you were given, as before.
+
+### Fix the GitHub tools
+
+Call every `mcp__github__*` tool with the new owner and repository. If a call is refused as outside the session's scope, run
+`mcp__claude-code-remote__add_repo` with owner `countrymanprime` and the new repository name, clone it if it says to, and call
+`register_repo_root`. A session's repositories are chosen when it starts: if `add_repo` is not available, tell the owner to start
+a new session with the renamed repository selected, and carry on with whatever does not need it. Do not stand in for missing code
+with made-up results.
+
+### Fix a launch (coordinator and Routines)
+
+`create_session` takes `source_url`. Use `https://github.com/countrymanprime/narration-studio`. The Routine prompts, scheduled tasks
+and Claude environments that still hold the old URL are owner settings, not files: list them with `list_triggers` and fix the prompt
+with `update_trigger`, or report them on [#992](https://github.com/countrymanprime/narration-utils/issues/992) for the owner.
+
+Not checked yet: whether the cloud sessions' git proxy follows a rename, and whether the Claude GitHub App needs the repository
+re-selected. The owner records the result under [After the rename](#after-the-rename).
+
+## What names the repository
+
+These are the places to change when the rename lands. GitHub keeps issue, pull request and release links working through the redirect,
+so the many documentation links are tidiness, not breakage.
+
+| Where | Why it matters |
+| --- | --- |
+| `Repository` in `apps/desktop/internal/update/check.go` | The updater asks `api.github.com` for this repository and refuses redirects on purpose. A build that still holds the old name gets a `301` and can never see a new release. Ship the new name in the first build released after the rename, and decide what happens to builds already installed |
+| `gh attestation verify --repo` and `--signer-workflow` in the release notes (`scripts/release/`), [CI and releases](ci-and-releases.md#verifying-a-download), `github-workflow.md` and the public-site mock `docs/research/mockups/public-site/index.html` | Users copy these commands to verify a download against the repository name. The release notes take the repository as a parameter, so they follow the rename on their own; the pages and the mock do not |
+| `gh api repos/countrymanprime/narration-utils/...` and `--repo` in [GitHub workflow](github-workflow.md) and [CI and releases](ci-and-releases.md) (rulesets, environments, Pages, private vulnerability reporting, project link) | Commands the owner copies to read or change a setting. They hit the `301` above when run by a client that does not follow redirects |
+| `GITHUB_REPOSITORY` fallback in `scripts/ci/run-timings.mjs`, and the example in the error message in `scripts/release/assets.mjs` | The fallback is used only when `GITHUB_REPOSITORY` is unset (a local run); the error example is cosmetic |
+| GitHub Pages URL and base path `/narration-utils/` in `.github/workflows/pages.yml`, `tools/docs-site/mkdocs.yml` and `check_site.py` | The site URL changes with the name. The site is paused ([CI and releases](ci-and-releases.md)) |
+| `LINK_BASE` in `scripts/dev/owner-qa-list.mjs`, `REPOSITORY` in `scripts/licenses/notices.py`, `config/analysis-assets.json`, issue templates, test fixtures with release URLs | Links and notices that carry the name |
+| `source_url` and issue links in `.claude/skills/agent-train/` and the worker templates | Launch prompts and the links the train posts |
+| About 900 files with `github.com/countrymanprime/narration-utils/...` links | Work through the redirect, update when convenient |
+
+These do **not** need to change with the rename, and changing them is a separate decision: the Go module path
+`github.com/countrymanprime/narration-utils/shell` (about 1,900 imports; nothing outside the repository imports it), the Nx project
+names `narration-utils*`, and the `narration-utils.exe` file name.
+
+## For the owner: order of the rename
+
+1. Tick `HOLD` on [#989](https://github.com/countrymanprime/narration-utils/issues/989) and let running sessions finish or pause.
+2. Rename the repository in GitHub settings. Rulesets, Pages settings and secrets move with it.
+3. Fix what holds the old name outside the repository: Routines and scheduled tasks, Claude environments and the GitHub App's repository list.
+4. Open one pull request that changes the table above (updater constant first), and edit the first lines of this page to "renamed on <date>".
+5. Clear `HOLD`.
+
+## After the rename
+
+Record here what you found: whether `git` and the tools followed the redirect, which settings needed a manual fix, and the date.

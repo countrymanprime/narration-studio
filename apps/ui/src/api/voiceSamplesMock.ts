@@ -6,10 +6,12 @@
 import {
   VOICE_SAMPLE_LABEL_MAX,
   VOICE_SAMPLE_NOTE_MAX,
+  VOICE_SAMPLE_SENTENCES,
   type ManuscriptChapter,
   type ManuscriptParagraph,
   type VoiceSample,
   type VoiceSampleAnswer,
+  type VoiceSampleClipState,
   type VoiceSampleRefusalReason,
   type VoiceSamples,
   type VoiceSampleSourceState,
@@ -30,24 +32,65 @@ const MOCK_RATE = 8000;
 const MOCK_FRAME_BYTES = 2;
 const WAV_HEADER_BYTES = 44;
 
-/** The sentences the host sends with each refusal (apps/desktop/internal/voicesample's sentence). */
-const SENTENCES: Record<VoiceSampleRefusalReason, string> = {
-  stale_alignment: 'The recording changed since this chapter was checked. Check it again, then mark the sample.',
-  not_heard: 'These words were not heard in the recording.',
-  spans_takes: 'Choose words inside one take.',
-  spans_cut: 'Restore the cut words or choose words without them.',
-  too_short: 'A sample is at least half a second.',
-  too_long: 'A sample is at most 30 seconds.',
-  unsupported_source: 'Only WAV recordings can be copied.',
-  source_missing: 'The audio file for these words is missing.',
-  project_unreadable: 'The saved REAPER project could not be read. Save the project in REAPER, then try again.',
-  character_limit: 'This character already has 20 samples. Delete one first.',
-  project_limit: 'Voice samples already use the 200 MiB a project may hold. Delete one first.',
-  not_found: 'That voice sample is no longer there.',
+/** A stored sample: what a list sends, less the two states read on every list, plus the item and the start the host keeps and never sends. */
+type Stored = Omit<VoiceSample, 'clipState' | 'source'> & {
+  source: Omit<VoiceSample['source'], 'chapterTitle' | 'state'>;
+  itemGuid: string;
+  start: number;
+  /** A seeded clip the host would find damaged; a sample marked in the mock is always `ok`. */
+  clip?: VoiceSampleClipState;
 };
 
-/** A stored sample: what a list sends, less the two states read on every list, plus the item and the start the host keeps and never sends. */
-type Stored = Omit<VoiceSample, 'clipState' | 'source'> & { source: Omit<VoiceSample['source'], 'chapterTitle' | 'state'>; itemGuid: string; start: number };
+/**
+ * Samples a page can boot with (`?mockVoiceSamples=`), for the Story Bible's states: `bible` is a Queen of Hearts with a primary, a
+ * playing-length one, a sample whose passage changed and one whose audio file is missing, the Hatter with one, Narration with one and a
+ * sample for a character who is no longer in the Story Bible; `full` is a Queen with the 20 a character may have.
+ */
+export type VoiceSamplesSeed = 'bible' | 'full';
+
+type SeedRow = {
+  characterId: string;
+  label: string;
+  note: string;
+  primary: boolean;
+  seconds: number;
+  chapter: number;
+  from: number;
+  to: number;
+  changed?: true;
+  clip?: VoiceSampleClipState;
+};
+
+const SEED_ROWS: Record<VoiceSamplesSeed, SeedRow[]> = {
+  bible: [
+    {
+      characterId: 'queen-of-hearts',
+      label: 'Furious, to the court',
+      note: 'Pitch up, clipped, no breaths.',
+      primary: true,
+      seconds: 7.4,
+      chapter: 1,
+      from: 0,
+      to: 5,
+    },
+    { characterId: 'queen-of-hearts', label: 'Sulking', note: '', primary: false, seconds: 12, chapter: 2, from: 1, to: 6 },
+    { characterId: 'queen-of-hearts', label: 'Whispering', note: '', primary: false, seconds: 5, chapter: 3, from: 0, to: 3, changed: true },
+    { characterId: 'queen-of-hearts', label: 'Laughing', note: '', primary: false, seconds: 3.2, chapter: 1, from: 2, to: 4, clip: 'missing' },
+    { characterId: 'mad-hatter', label: 'Tea party, quick', note: 'Runs the words together.', primary: true, seconds: 6.1, chapter: 2, from: 0, to: 4 },
+    { characterId: 'narration', label: 'Narration, calm', note: '', primary: true, seconds: 9, chapter: 1, from: 0, to: 6 },
+    { characterId: 'bill-the-lizard', label: 'Growling', note: '', primary: true, seconds: 4, chapter: 4, from: 0, to: 2 },
+  ],
+  full: Array.from({ length: 20 }, (_, index) => ({
+    characterId: 'queen-of-hearts',
+    label: `Take ${index + 1}`,
+    note: '',
+    primary: index === 0,
+    seconds: 4 + (index % 5),
+    chapter: 1 + (index % 3),
+    from: 0,
+    to: 2 + (index % 4),
+  })),
+};
 
 /** UTF-16 units, as the host counts them: a JS string's length. */
 // eslint-disable-next-line no-control-regex -- the point is to find control characters
@@ -85,12 +128,25 @@ const parseKey = (key: string): { paragraphId: string; ordinal: number } => {
   return { paragraphId: key.slice(0, cut), ordinal: Number(digits) };
 };
 
-export function createVoiceSamplesMock(ready: Promise<unknown>, chapters: () => ManuscriptChapter[], paragraphs: () => ManuscriptParagraph[]): VoiceSamplesApi {
+export function createVoiceSamplesMock(
+  ready: Promise<unknown>,
+  chapters: () => ManuscriptChapter[],
+  paragraphs: () => ManuscriptParagraph[],
+  seed?: VoiceSamplesSeed,
+): VoiceSamplesApi {
   let stored: Stored[] = [];
-  let nextId = 1;
+  let nextId = seed ? SEED_ROWS[seed].length + 1 : 1;
   let revision = 0;
   let clock = Date.UTC(2026, 9, 18, 9, 30, 0);
   const subscribers = new Set<(event: VoiceSamplesChanged) => void>();
+  let seeded = seed === undefined;
+  const settle = async () => {
+    await ready;
+    if (!seeded) {
+      seeded = true;
+      stored = seedRows();
+    }
+  };
 
   const changed = () => {
     revision += 1;
@@ -119,6 +175,37 @@ export function createVoiceSamplesMock(ready: Promise<unknown>, chapters: () => 
     return { text: picked.join(' ') };
   };
 
+  /** The seeded rows, written against the mock manuscript as they would have been when marked. */
+  const seedRows = (): Stored[] => {
+    if (!seed) return [];
+    return SEED_ROWS[seed].map((row, index) => {
+      const lines = paragraphs().filter((paragraph) => paragraph.chapterId === `chapter-${row.chapter}`);
+      const line = lines[0];
+      const startKey = `${line?.id ?? 'p-1'}:${row.from}`;
+      const endKey = `${line?.id ?? 'p-1'}:${row.to}`;
+      const span = spanText(`chapter-${row.chapter}`, startKey, endKey);
+      const frames = Math.round(row.seconds * MOCK_RATE);
+      return {
+        id: (index + 1).toString(16).padStart(32, '0'),
+        characterId: row.characterId,
+        label: row.label,
+        note: row.note,
+        primary: row.primary,
+        createdAt: new Date(clock + index * 1000).toISOString(),
+        durationMs: Math.round(row.seconds * 1000),
+        bytes: WAV_HEADER_BYTES + frames * MOCK_FRAME_BYTES,
+        source: {
+          chapterId: `chapter-${row.chapter}`,
+          text: row.changed ? 'words that read differently before the edit' : 'text' in span ? span.text : '',
+          startKey,
+          endKey,
+        },
+        itemGuid: `{5EED0000-0000-0000-0000-${String(index + 1).padStart(12, '0')}}`,
+        start: 0,
+        ...(row.clip ? { clip: row.clip } : {}),
+      };
+    });
+  };
   const view = (sample: Stored): VoiceSample => {
     const chapter = chapters().find((candidate) => candidate.id === sample.source.chapterId);
     let state: VoiceSampleSourceState = 'chapter_missing';
@@ -136,7 +223,7 @@ export function createVoiceSamplesMock(ready: Promise<unknown>, chapters: () => 
       createdAt,
       durationMs,
       bytes,
-      clipState: 'ok',
+      clipState: sample.clip ?? 'ok',
       source: { ...sample.source, chapterTitle: chapter?.title ?? '', state },
     };
   };
@@ -164,7 +251,7 @@ export function createVoiceSamplesMock(ready: Promise<unknown>, chapters: () => 
     });
   };
 
-  const refused = (reason: VoiceSampleRefusalReason): VoiceSampleAnswer => ({ status: 'refused', reason, message: SENTENCES[reason] });
+  const refused = (reason: VoiceSampleRefusalReason): VoiceSampleAnswer => ({ status: 'refused', reason, message: VOICE_SAMPLE_SENTENCES[reason] });
 
   const promoteNewest = (characterId: string) => {
     const mine = stored.filter((sample) => sample.characterId === characterId);
@@ -175,11 +262,11 @@ export function createVoiceSamplesMock(ready: Promise<unknown>, chapters: () => 
 
   return {
     voiceSamplesList: async () => {
-      await ready;
+      await settle();
       return list();
     },
     voiceSampleMark: async (request) => {
-      await ready;
+      await settle();
       for (const [name, value] of [
         ['chapter', request.chapterId],
         ['item', request.itemGuid],
@@ -235,7 +322,7 @@ export function createVoiceSamplesMock(ready: Promise<unknown>, chapters: () => 
       return { status: 'saved', sample: wireClone(view(sample)) };
     },
     voiceSampleUpdate: async (id, change) => {
-      await ready;
+      await settle();
       const { label, note } = cleanText(change.label, change.note);
       const characterId = cleanCharacter(change.characterId);
       const current = stored.find((sample) => sample.id === id);
@@ -254,7 +341,7 @@ export function createVoiceSamplesMock(ready: Promise<unknown>, chapters: () => 
       return { status: 'saved', sample: wireClone(view(now)) };
     },
     voiceSampleSetPrimary: async (id) => {
-      await ready;
+      await settle();
       const target = stored.find((sample) => sample.id === id);
       if (!target) throw new Error('that voice sample is no longer there');
       const next = stored.map((sample) => (sample.characterId === target.characterId ? { ...sample, primary: sample.id === id } : sample));
@@ -265,7 +352,7 @@ export function createVoiceSamplesMock(ready: Promise<unknown>, chapters: () => 
       return list();
     },
     voiceSampleRemove: async (id) => {
-      await ready;
+      await settle();
       const gone = stored.find((sample) => sample.id === id);
       if (!gone) return { removed: 0, bytes: 0 };
       stored = stored.filter((sample) => sample.id !== id);
@@ -274,7 +361,7 @@ export function createVoiceSamplesMock(ready: Promise<unknown>, chapters: () => 
       return { removed: 1, bytes: gone.bytes };
     },
     voiceSamplesRemoveAll: async () => {
-      await ready;
+      await settle();
       const removed = { removed: stored.length, bytes: stored.reduce((total, sample) => total + sample.bytes, 0) };
       stored = [];
       if (removed.removed > 0) changed();

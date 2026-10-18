@@ -2,16 +2,20 @@ name: Security scan
 # Advisory: neither scanner is a required check, and neither fails the run on a finding (no ruleset requires a status
 # check, and the first month is a baseline: docs/operations/ci-and-releases.md, "Vulnerability scanning"). Findings show under
 # Security > Code scanning and in the run log.
-#   - govulncheck: Go vulnerabilities that the code can actually reach (the Go module in apps/desktop).
-#   - OSV-Scanner: every known advisory in the three lockfiles (Go, npm, Python). On a pull request it reports only
-#     what the pull request adds; on main and weekly it reports everything.
-# No path filter: a new advisory can land against an unchanged lockfile, so the weekly run is what catches it.
+#   - govulncheck (this file): Go vulnerabilities that the code can actually reach (the Go module in apps/desktop).
+#   - OSV-Scanner (osv-scanner.yml): every known advisory in the three lockfiles (Go, npm, Python).
+# A pull request runs govulncheck when it changes the Go module, its toolchain pin or this workflow. The baseline on main
+# is the nightly run, not a push: a new advisory can land against an unchanged module, so the nightly run is what catches it.
 on:
   pull_request:
-  push:
-    branches: [main]
+    paths:
+      - 'apps/desktop/**'
+      - 'scripts/toolchain.json'
+      - 'scripts/ci/dedupe-sarif-stacks.mjs'
+      - '.github/actions/setup-toolchain/**'
+      - '.github/workflows/security.yml'
   schedule:
-    - cron: '41 6 * * 2'
+    - cron: '41 6 * * *'
   workflow_dispatch: {}
 permissions: { contents: read }
 concurrency:
@@ -58,7 +62,7 @@ jobs:
         run: node scripts/ci/dedupe-sarif-stacks.mjs govulncheck.sarif
       - name: Upload the results to Code scanning
         if: env.CAN_UPLOAD == 'true'
-        uses: github/codeql-action/upload-sarif@2892aa5e19bbd11bc0cff5427e3b750a04d9e3c2 # v4.38.2
+        uses: github/codeql-action/upload-sarif@24c54180a607b1449ed407dd24f251e4e9147c8d # v4.38.3
         with:
           sarif_file: govulncheck.sarif
           category: govulncheck
@@ -67,36 +71,3 @@ jobs:
         if: ${{ !cancelled() }}
         continue-on-error: true
         run: govulncheck -C apps/desktop ./...
-
-  # Only what the pull request adds is reported; it needs the base branch's results to compare with. Skipped for a
-  # fork or Dependabot pull request, whose token cannot upload the results (main's scan covers a merged update).
-  osv-scanner-pr:
-    name: osv-scanner (pull request)
-    if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository && github.actor != 'dependabot[bot]'
-    permissions:
-      actions: read
-      contents: read
-      security-events: write
-    uses: google/osv-scanner-action/.github/workflows/osv-scanner-reusable-pr.yml@a345acffa64b0eaede81a3d9aae6141214d9c8fc # v2.6.0
-    with:
-      # A lockfile added later has to be listed here. uv.lock and pnpm-lock.yaml are read natively.
-      scan-args: |-
-        --lockfile=pnpm-lock.yaml
-        --lockfile=uv.lock
-        --lockfile=apps/desktop/go.mod
-      fail-on-vuln: false
-
-  osv-scanner:
-    name: osv-scanner
-    if: github.event_name != 'pull_request'
-    permissions:
-      actions: read
-      contents: read
-      security-events: write
-    uses: google/osv-scanner-action/.github/workflows/osv-scanner-reusable.yml@a345acffa64b0eaede81a3d9aae6141214d9c8fc # v2.6.0
-    with:
-      scan-args: |-
-        --lockfile=pnpm-lock.yaml
-        --lockfile=uv.lock
-        --lockfile=apps/desktop/go.mod
-      fail-on-vuln: false

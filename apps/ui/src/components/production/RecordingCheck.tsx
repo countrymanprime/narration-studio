@@ -15,7 +15,7 @@ import { useRunChoices } from '../recordingcheck/useRunChoices';
 import { Button } from '../primitives/Button';
 import { InsetCard } from '../primitives/InsetCard';
 import { SlideOver } from '../primitives/SlideOver';
-import type { Notify } from '../primitives/Toast';
+import { type Notify, retryAction } from '../primitives/Toast';
 import { WorkDialog } from '../primitives/WorkDialog';
 import { RecordingCheckReport } from './RecordingCheckReport';
 import { COVERAGE_REASON_TEXT, LINK_REASONS, REASON_PAGE, formatWhen, passLabel, recheckLabel } from './recordingCheckText';
@@ -179,7 +179,11 @@ export function RecordingCheck({
           setWatching(answer.state.runId);
         }
       } catch (error) {
-        notify(describeApiError(error), 'error');
+        notify(
+          describeApiError(error),
+          'error',
+          retryAction(() => void start(extra)),
+        );
       }
     });
 

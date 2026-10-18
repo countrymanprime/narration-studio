@@ -6,6 +6,13 @@ import { type Driver, chooseTheme, clickNav, clickVisible, goToPage, selectReade
 const RAIL = 'Words, Story Bible and marks';
 
 export const scriptDrivers: Record<string, Driver> = {
+  // The chapters never answer, so `goToPage` (which waits for the reader) is not used.
+  loading: async (page) => {
+    await page.goto('/?mockChapters=loading');
+    await settlePage(page);
+    await clickNav(page, 'Script');
+    await page.getByRole('group', { name: 'Loading the Script' }).waitFor();
+  },
   'invalid-payload': async (page) => {
     await page.goto('/?mockInvalidPayload=manuscript');
     await settlePage(page);

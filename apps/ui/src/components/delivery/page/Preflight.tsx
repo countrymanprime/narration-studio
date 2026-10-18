@@ -1,7 +1,9 @@
+import { useState } from 'react';
 import type { MeasureJob } from '../../../types';
 import { Button } from '../../primitives/Button';
 import { IconButton } from '../../primitives/IconButton';
 import { Panel } from '../../primitives/Panel';
+import { LoadingRegion, Skeleton } from '../../primitives/Skeleton';
 import { StatusBadge } from '../../primitives/StatusBadge';
 import type { ChapterState } from './chapterStates';
 import { heardText } from './useHostRead';
@@ -9,6 +11,8 @@ import { heardText } from './useHostRead';
 const TONE = { ok: 'success', bad: 'danger', wait: 'neutral' } as const;
 const DANGER = { color: 'var(--danger-text)' };
 const MUTED = { color: 'var(--text-muted)' };
+/** A book of thousands of chapters would make a list as long as the book; this many rows show first, the rest on request. */
+const FIRST_ROWS = 100;
 
 /**
  * "Before you build" (the mock's aside): chapters passing n of N, then a row per chapter, named in the manuscript's heading style, that
@@ -38,6 +42,8 @@ export function Preflight({
   onOpen: (chapterId: string) => void;
   onOpenMaster?: () => void;
 }) {
+  const [all, setAll] = useState(false);
+  const shown = all ? states : states.slice(0, FIRST_ROWS);
   return (
     <Panel title="Before you build" actions={onOpenMaster && <IconButton action="openInMaster" onClick={onOpenMaster} />}>
       <div className="flex flex-col gap-1">
@@ -56,9 +62,11 @@ export function Preflight({
           </p>
         )}
         {!known && !problem && (
-          <p role="status" className="text-sm" style={MUTED}>
-            Reading the chapters…
-          </p>
+          <LoadingRegion label="Loading the chapter checks" status="Reading the chapters…" className="flex flex-col gap-2">
+            {[0, 1, 2].map((row) => (
+              <Skeleton key={row} />
+            ))}
+          </LoadingRegion>
         )}
         {known && (
           <>
@@ -69,7 +77,7 @@ export function Preflight({
               </b>
             </div>
             <ul className="flex flex-col">
-              {states.map((state) => (
+              {shown.map((state) => (
                 <li key={state.id}>
                   <Button
                     variant="link"
@@ -85,6 +93,11 @@ export function Preflight({
                 </li>
               ))}
             </ul>
+            {shown.length < states.length && (
+              <Button variant="secondary" size="sm" onClick={() => setAll(true)} className="self-start">
+                Show the other {states.length - shown.length} {states.length - shown.length === 1 ? 'chapter' : 'chapters'}
+              </Button>
+            )}
           </>
         )}
       </div>

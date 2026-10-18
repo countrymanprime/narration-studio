@@ -5,7 +5,7 @@ import type { Bootstrap } from './types';
 import { useApi } from './api/ApiContext';
 import { AppShell, shellPages } from './components/layout/AppShell';
 import { openJumpMenu } from './components/layout/JumpMenu';
-import { openHistoryPanel } from './components/layout/HistoryPanel';
+import { HISTORY_TITLE, openHistoryPanel } from './components/layout/HistoryPanel';
 import { useGoToCommands } from './components/layout/useGoToCommands';
 import { useJournalEntries } from './components/layout/useJournalEntries';
 import { OverlayProvider, useOverlay } from './overlay/OverlayProvider';
@@ -384,11 +384,13 @@ function AppRoutes() {
   const boothRecording = useBoothRecording(location.pathname === '/booth');
   const boothRecordingRef = useRef(boothRecording);
   boothRecordingRef.current = boothRecording;
+  const pathnameRef = useRef(location.pathname);
+  pathnameRef.current = location.pathname;
   const queuedAnnouncements = useRef<{ text: string; tone: ToastTone }[]>([]);
   useEffect(() => {
     if (!hasBootstrap) return;
     return api.subscribeJobEnded((event) => {
-      const announcement = toastForJobEnd(event);
+      const announcement = toastForJobEnd(event, pathnameRef.current);
       if (announcement) {
         if (shouldQueueJobEndAnnouncement(announcement, boothRecordingRef.current)) queuedAnnouncements.current.push(announcement);
         else setNotice(announcement.text, announcement.tone);
@@ -553,8 +555,13 @@ function AppRoutes() {
   useCommand('history.open', () => {
     if (!isModalOpen()) openHistory();
   });
+  // The History panel says "Ctrl Z undoes the last one", so it is the one layer Ctrl+Z reaches through; any other dialog keeps it out.
+  const onlyHistoryOpen = () => {
+    const { dialogs } = overlay.getSnapshot();
+    return dialogs.length > 0 && dialogs.every((entry) => entry.kind === 'slideOver' && entry.spec.kind === 'slideOver' && entry.spec.title === HISTORY_TITLE);
+  };
   useCommand('undo.last', () => {
-    if (!isModalOpen()) void undoLast();
+    if (!isModalOpen() || onlyHistoryOpen()) void undoLast();
   });
   // The menu on empty space in <main> (the mock's page menu): where to go, the jump menu, view. Zoom steps are the header's own.
   const contextMenu = {

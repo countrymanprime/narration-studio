@@ -81,6 +81,15 @@ describe('production-route-draws-the-mock-page', () => {
     expect(await pipeline()).toBeTruthy();
   });
 
+  // The mock's `.pstats` (1.5fr 1fr 1fr) and `.pgrid` (the pipeline beside a 360 px Next up), app.css:110-112.
+  it('lays the stats row out 1.5 : 1 : 1 and gives Next up 360 px', async () => {
+    await renderPage({ initial: { production: PRODUCTION_SCENARIOS['on-pace'] } });
+    const stats = (await screen.findByRole('heading', { name: 'Where the book stands' })).closest('.grid') as HTMLElement;
+    expect(stats.className).toContain('min-[1024px]:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)_minmax(0,1fr)]');
+    const board = screen.getByRole('heading', { name: 'Chapter pipeline' }).closest('.grid') as HTMLElement;
+    expect(board.className).toContain('min-[1280px]:grid-cols-[minmax(0,1fr)_22.5rem]');
+  });
+
   it('is the import when there is no manuscript', async () => {
     await renderPage({ initial: { noManuscript: true } });
     expect(await screen.findByRole('button', { name: 'Import manuscript' })).toBeTruthy();
@@ -100,6 +109,62 @@ describe('production-route-draws-the-mock-page', () => {
   it('imports no file the swap deleted', () => {
     const source = readFileSync(join(__dirname, 'ProductionPage.tsx'), 'utf8');
     for (const gone of ['ChapterBoard', 'PlanPanel', 'StatusReportPanel', 'StageSummary']) expect(source).not.toContain(gone);
+  });
+});
+
+describe('page-data-load-failure', () => {
+  it('keeps the title, says the page could not be loaded and reads again on Retry', async () => {
+    const real = createMockApi();
+    let failed = false;
+    const overrides: Partial<NarrationApi> = {
+      productionOverview: async () => {
+        if (failed) return real.productionOverview();
+        failed = true;
+        throw new Error('The production log is unreadable.');
+      },
+    };
+    await renderPage({ overrides });
+    expect(await screen.findByText('This page could not be loaded')).toBeTruthy();
+    expect(screen.getByRole('heading', { name: 'Production' })).toBeTruthy();
+    await userEvent.click(screen.getByRole('button', { name: 'Retry' }));
+    await pipeline();
+    expect(screen.queryByText('This page could not be loaded')).toBeNull();
+  });
+});
+
+// The loading state (definition-of-done.md state matrix): the page's header stays and the overview is blocks while the production log is read, then
+// the page, or the error with Retry; Retry shows the blocks again while it reads. Never an endless skeleton.
+describe('production loading state', () => {
+  const never = () => new Promise<never>(() => {});
+  const region = () => screen.queryByRole('group', { name: 'Loading the production overview' });
+
+  it('keeps the title and shows one busy region in place of the overview while the log is read, however long that takes', async () => {
+    await renderPage({ overrides: { productionOverview: never } });
+    expect(await screen.findByRole('heading', { level: 1, name: 'Production' })).toBeTruthy();
+    expect(region()?.getAttribute('aria-busy')).toBe('true');
+    expect(within(region()!).getByRole('status').textContent).toBe('Reading the production log…');
+    expect(screen.queryByRole('table', { name: 'Chapter pipeline' })).toBeNull();
+    await new Promise((resolve) => setTimeout(resolve, 60));
+    expect(region()).toBeTruthy();
+  });
+
+  it('is replaced by the overview when the log arrives', async () => {
+    await renderPage({ initial: { production: PRODUCTION_SCENARIOS['on-pace'] } });
+    await pipeline();
+    expect(region()).toBeNull();
+  });
+
+  it('ends in the error with Retry, never a skeleton, when the log cannot be read, and shows the blocks again while Retry reads', async () => {
+    let mode: 'fail' | 'hold' = 'fail';
+    await renderPage({
+      overrides: { productionOverview: () => (mode === 'fail' ? Promise.reject(new Error('The production log is unreadable.')) : never()) },
+    });
+    const retry = await screen.findByRole('button', { name: 'Retry' });
+    expect(region()).toBeNull();
+    mode = 'hold';
+    await userEvent.click(retry);
+    await waitFor(() => expect(region()).toBeTruthy());
+    expect(screen.queryByRole('button', { name: 'Retry' })).toBeNull();
   });
 });
 

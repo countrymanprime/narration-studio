@@ -15,6 +15,7 @@ import {
   faBackwardStep,
   faBook,
   faBookmark,
+  faCommentDots,
   faBookOpen,
   faCalendarDays,
   faCaretDown,
@@ -75,6 +76,8 @@ import {
   faWaveSquare,
   faXmark,
   faListCheck,
+  faEllipsis,
+  faStar,
 } from '@fortawesome/free-solid-svg-icons';
 import { faCircleCheck as faCircleCheckRegular } from '@fortawesome/free-regular-svg-icons';
 
@@ -274,6 +277,10 @@ export const CATALOG = {
   // Editing: the mock's sliders for effects, on Add FX and on the clean-up and effects drawer.
   addFx: action(faSliders, 'effects', 'Add FX', 'F'),
   cleanUpAndEffects: action(faSliders, 'effects', 'Show clean up and effects', 'Ctrl+Shift+C'),
+  // The mock draws a wave for it, which is the Proof page's icon (audit rule 1), so a voice sample wears the speech bubble.
+  primarySample: action(faStar, 'primary sample', 'Mark the primary sample'),
+  moreActions: action(faEllipsis, 'more actions', 'Show more actions'),
+  voiceSample: action(faCommentDots, 'voice sample', 'Mark a voice sample', 'V'),
   // The mock's wave is the Proof page's icon (audit rule 1), so the takes of a line wear the layers.
   showTakes: action(faLayerGroup, 'takes', 'Show the takes of this line', 'T'),
 

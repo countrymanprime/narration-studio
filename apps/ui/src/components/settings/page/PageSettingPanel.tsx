@@ -1,4 +1,3 @@
-import { BackupsSection } from '../BackupsSection';
 import { RecordingCheckSummary } from '../RecordingCheckSummary';
 import type { ScopedSettingField } from '../../../types';
 import type { PageSetting } from '../registry/pageSettings';
@@ -7,11 +6,10 @@ import { ScopedFieldsPanel } from './ScopedFieldsPanel';
 
 // Module-level so the panel's field list keeps its identity between reads (ScopedFieldsPanel's contract).
 const compareOnly = (field: ScopedSettingField) => field.key !== 'model_size';
-const punchOnly = (field: ScopedSettingField) => field.key === 'punch_preroll_seconds';
 const favouritesOnly = (field: ScopedSettingField) => field.key === 'fx_favourites';
 
 /** The panel that always edited a setting now listed under Set on a page, kept as built until its page has the control. */
-export function PageSettingPanel({ panel }: { panel: PageSetting['panel'] }) {
+export function PageSettingPanel({ panel }: { panel: NonNullable<PageSetting['panel']> }) {
   const { notify } = useSettingsHost();
   switch (panel) {
     case 'coverage':
@@ -35,11 +33,7 @@ export function PageSettingPanel({ panel }: { panel: PageSetting['panel'] }) {
       return (
         <ScopedFieldsPanel id="compare" title="Compare defaults" tool="TranscriptCompare" scopes={['global', 'project']} filter={compareOnly} notify={notify} />
       );
-    case 'punch':
-      return <ScopedFieldsPanel id="punch" title="Punch pre-roll" tool="Teleprompter" scopes={['global']} filter={punchOnly} notify={notify} />;
     case 'fx':
       return <ScopedFieldsPanel id="fx" title="Favourite effects" tool="DAW" scopes={['global', 'project']} filter={favouritesOnly} notify={notify} />;
-    case 'backups':
-      return <BackupsSection />;
   }
 }

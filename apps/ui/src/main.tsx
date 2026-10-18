@@ -89,8 +89,8 @@ const mockCreditsMissing = mockParams.has('mockCreditsMissing');
 // `?mockNoManuscript=1` boots a project with no manuscript imported yet, so
 // Home shows its manuscript-not-found banner and Proofing/Story Bible are locked.
 const mockNoManuscript = mockParams.has('mockNoManuscript');
-// `?mockPickupList=unreadable` makes every read of the Pickups list fail, to see the page's reason and Check again without a host.
-const mockPickupList = mockParams.get('mockPickupList') === 'unreadable' ? ('unreadable' as const) : undefined;
+// `?mockPickupList=unreadable|loading` makes every read of the Pickups list fail, to see the page's reason and Check again without a host, or never answer, to see it loading.
+const mockPickupList = (['unreadable', 'loading'] as const).find((seed) => seed === mockParams.get('mockPickupList'));
 // `?mockManuscriptCandidate=1` boots a project with no imported manuscript but a
 // manuscript.docx in its folder, so Home shows the import offer.
 const mockManuscriptCandidate = mockParams.has('mockManuscriptCandidate');
@@ -195,9 +195,9 @@ const MOCK_PREVIEW_WARNING_CANDIDATE: PreviewCandidate = {
   reasons: ['Mixes narration and dialogue (50% of paragraphs have dialogue).', 'One Story Bible entity present.', 'Starts and ends on paragraph boundaries.'],
   warnings: ['This manuscript was imported before chapters were classified narration, opening or reference; treated as narration.'],
 };
-// `?mockInvalidPayload=bootstrap|manuscript|storybible` makes that payload arrive in the wrong shape (through the real `parseWire`),
+// `?mockInvalidPayload=bootstrap|manuscript|storybible|production` makes that payload arrive in the wrong shape (through the real `parseWire`),
 // so the startup error screen and the inline page errors for a payload the app could not read can be seen without a host.
-const mockInvalidPayload = (['bootstrap', 'manuscript', 'storybible'] as const).find((which) => which === mockParams.get('mockInvalidPayload'));
+const mockInvalidPayload = (['bootstrap', 'manuscript', 'storybible', 'production'] as const).find((which) => which === mockParams.get('mockInvalidPayload'));
 // `?mockLiveDegraded=1` tells the app at once that live updates are degraded, so the notice can be seen without a failing host.
 const mockLiveDegraded = mockParams.has('mockLiveDegraded');
 // `?mockRebuildRunning=1` boots with a Story Bible rebuild still running, so its dialog can be seen without a host.
@@ -221,12 +221,24 @@ const mockAssets = (['missing', 'downloading', 'verifying', 'download-fails', 'i
 );
 // `?mockAssetsList=loading|fails` makes the list of downloads never answer, or fail to read, so Settings > Models & downloads shows its loading rows or its error.
 const mockAssetsList = (['loading', 'fails'] as const).find((seed) => seed === mockParams.get('mockAssetsList'));
+// `?mockHold=overview,entities,series` makes those reads never answer, so Production, the Story Bible and its Series tab show their loading skeleton.
+const mockHold = (mockParams.get('mockHold') ?? '')
+  .split(',')
+  .filter((name): name is 'overview' | 'entities' | 'series' => name === 'overview' || name === 'entities' || name === 'series');
+// `?mockPlan=loading|fails` makes the Schedule's read of the production plan never answer, or fail, so it shows its loading skeleton or its error.
+const mockPlan = (['loading', 'fails'] as const).find((seed) => seed === mockParams.get('mockPlan'));
+// `?mockChapters=loading|fails` makes the read of the manuscript's chapters never answer, or fail, so a page that reads them (the Booth) shows its loading skeleton or its error.
+const mockChapters = (['loading', 'fails'] as const).find((seed) => seed === mockParams.get('mockChapters'));
 // `?mockSettings=loading|unreadable|save-fails` makes the settings file never answer a read, fail every read, or refuse every save as read-only,
 // so Settings can be seen loading, unreadable and failing to save.
 const mockSettings = (['loading', 'unreadable', 'save-fails'] as const).find((seed) => seed === mockParams.get('mockSettings'));
 // `?mockSeries=not-in-series|single-book` boots the Series tab outside any
 // series, or in one with no other book yet, so its honest empty state can be seen. Unset boots as a member of a two-book
 // series (WIRE_SERIES), matching the approved concept mock.
+// `?mockVoiceSamples=bible|full` boots with voice samples already saved (api/voiceSamplesMock.ts): `bible` is the Story Bible's states (a Queen of
+// Hearts with four samples, one whose passage changed and one whose audio file is missing, the Hatter's, Narration's, and one for a character who left
+// the Story Bible); `full` is a Queen with the 20 a character may have.
+const mockVoiceSamples = (['bible', 'full'] as const).find((seed) => seed === mockParams.get('mockVoiceSamples'));
 const mockSeries = (['not-in-series', 'single-book'] as const).find((seed) => seed === mockParams.get('mockSeries'));
 // `?mockDictionary=missing|damaged` boots without the offline dictionary, or with one whose index fails its check, so the reader's Look up asks to
 // download it (or to download it again) first.
@@ -453,8 +465,12 @@ const mockInitial = {
   ...(mockImportPreview ? { importPreview: mockImportPreview } : {}),
   ...(mockAssets ? { assets: mockAssets } : {}),
   ...(mockAssetsList ? { assetsList: mockAssetsList } : {}),
+  ...(mockChapters ? { chaptersRead: mockChapters } : {}),
+  ...(mockPlan ? { planRead: mockPlan } : {}),
+  ...(mockHold.length > 0 ? { held: mockHold } : {}),
   ...(mockSettings ? { settings: mockSettings } : {}),
   ...(mockSeries ? { seriesVoiceBible: mockSeries } : {}),
+  ...(mockVoiceSamples ? { voiceSamples: mockVoiceSamples } : {}),
   ...(mockDictionary ? { dictionary: mockDictionary } : {}),
   ...(mockUpdate ? { update: mockUpdate } : {}),
   ...(mockLiveDegraded ? { liveUpdatesDegraded: true } : {}),
