@@ -50,7 +50,7 @@ Pressing a line's button again before the first press is answered does nothing, 
 flipped twice. A refusal appears as a sentence in a message at the bottom of the window.
 
 Removing a line hides it from this list only; its note or check keeps its own record. A line you added by hand can be put
-back with **Undo** on the message that follows; a line from a check or a note cannot, and its message says so. After a removal the focus moves to the next line.
+back with **Undo** on the message that follows; a line from a check or a note cannot, and its message says so. After a removal the focus moves to the next line as the page draws it (the previous one after the last), and to the Pickups region when no line is left.
 
 ### When the list cannot be read
 
