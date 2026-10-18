@@ -1,4 +1,4 @@
-import { useRef, useState, type KeyboardEvent, type ReactNode } from 'react';
+import { useEffect, useId, useRef, useState, type KeyboardEvent, type ReactNode } from 'react';
 import type { PickupItem } from '../../../api/contracts/pickups';
 import { useOverlay } from '../../../overlay/OverlayProvider';
 import type { OverlayService } from '../../../overlay/overlayService';
@@ -49,6 +49,7 @@ async function said(overlay: OverlayService, run: () => unknown): Promise<void> 
  */
 export function PickupsTable({
   pickups,
+  returnTo = null,
   read,
   onReload,
   checking = false,
@@ -70,6 +71,8 @@ export function PickupsTable({
 }: {
   /** Every pickup the host lists. */
   pickups: readonly PickupItem[];
+  /** The line to select and focus once it is listed: the one the narrator opened in the Booth and came back from. */
+  returnTo?: string | null;
   read: PickupsRead;
   /** Reads the list again now (Check again). */
   onReload: () => void;
@@ -100,6 +103,15 @@ export function PickupsTable({
   const body = useRef<HTMLDivElement>(null);
   const [selected, setSelected] = useState<string | null>(null);
   const [adding, setAdding] = useState(false);
+
+  /* Back from the Booth: select the line the narrator left from and put focus on it, once, when it first appears. */
+  const restored = useRef(false);
+  useEffect(() => {
+    if (restored.current || !returnTo || !pickups.some((pickup) => pickup.id === returnTo)) return;
+    restored.current = true;
+    setSelected(returnTo);
+    body.current?.querySelector<HTMLTableRowElement>(`tr[${PICKUP_ROW}="${CSS.escape(returnTo)}"]`)?.focus();
+  }, [returnTo, pickups]);
 
   const list = inScope(pickups, scope);
   const groups = groupByChapter(list, chapters);
@@ -159,6 +171,7 @@ export function PickupsTable({
   };
 
   const checkReason = daw.available ? undefined : daw.message || 'The DAW is not answering.';
+  const checkReasonId = useId();
 
   return (
     <section aria-label="Pickups" className={`${PANEL_FRAME_CLASS} min-w-0`}>
@@ -173,8 +186,14 @@ export function PickupsTable({
             label="Check recordings"
             aria-haspopup="dialog"
             disabledReason={checkReason}
+            aria-describedby={checkReason ? checkReasonId : undefined}
             onClick={() => onCheck([...chaptersToCheck])}
           />
+          {checkReason && (
+            <span id={checkReasonId} className="sr-only">
+              {checkReason}
+            </span>
+          )}
           <Popover label="Add a pickup by hand" open={adding} onOpenChange={setAdding} trigger={<IconButton action="add" label="Add a pickup by hand" />}>
             {addTo ? (
               <AddPickup chapterId={addTo.id} chapterName={addTo.name} onAdd={onAdd} onDone={() => setAdding(false)} />

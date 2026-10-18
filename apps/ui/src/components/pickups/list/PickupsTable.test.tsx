@@ -213,6 +213,8 @@ describe('PickupsTable', () => {
     const { onCheck, user } = setup({ daw: { available: false, message: 'REAPER is not open.' } });
     const check = screen.getByRole('button', { name: 'Check recordings' });
     expect(check.getAttribute('aria-disabled')).toBe('true');
+    // The reason is on the button's own description, so a screen reader that lands on it hears why, not just "dimmed".
+    expect(check.getAttribute('aria-describedby')).toBe(screen.getByText('REAPER is not open.').id);
     await user.click(check);
     expect(onCheck).not.toHaveBeenCalled();
   });
