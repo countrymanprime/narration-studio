@@ -40,6 +40,31 @@ function missingCaptures(records: readonly CaptureRecord[]): string[] {
     .filter((key) => !have.has(key));
 }
 
+// Each CI shard writes `shard-<i>.json` (scripts/ci/visual-shards.mjs: how many tests it was given out of how many the suite lists, and a
+// digest of the list) next to its capture records. The records prove the captures arrived; this proves the split itself: every shard
+// reported, they all split the same list, and their counts add up to it, so a test left in no shard fails the run (the overlay guard and
+// the other specs write no records, so nothing else would notice).
+export function shardManifestProblems(dir: string, shards: number | undefined): string[] {
+  if (shards === undefined) return [];
+  const problems: string[] = [];
+  const manifests: Array<{ shard: number; of: number; total: number; count: number; digest: string }> = [];
+  for (let shard = 1; shard <= shards; shard += 1) {
+    const path = join(dir, `shard-${shard}.json`);
+    if (!existsSync(path)) problems.push(`shard ${shard}/${shards} left no manifest: its tests are unaccounted for`);
+    else manifests.push(JSON.parse(readFileSync(path, 'utf8')));
+  }
+  for (const manifest of manifests) {
+    if (manifest.of !== shards) problems.push(`shard ${manifest.shard} was split into ${manifest.of} shards, the run has ${shards}`);
+    if (manifest.total !== manifests[0].total || manifest.digest !== manifests[0].digest)
+      problems.push(`shard ${manifest.shard} split a different list of tests than shard ${manifests[0].shard}`);
+  }
+  if (problems.length === 0) {
+    const counted = manifests.reduce((sum, manifest) => sum + manifest.count, 0);
+    if (counted !== manifests[0].total) problems.push(`the shards ran ${counted} tests of the ${manifests[0].total} the suite lists`);
+  }
+  return problems;
+}
+
 export function axeModeOfRun(): { axeMode: ReturnType<typeof resolveAxeMode>; declaresAxeDebt: boolean } {
   const declaresAxeDebt = (appDrivers as { axeDebt?: readonly AxeDebt[] }).axeDebt !== undefined;
   return { axeMode: resolveAxeMode(process.env.UI_AXE, declaresAxeDebt), declaresAxeDebt };
