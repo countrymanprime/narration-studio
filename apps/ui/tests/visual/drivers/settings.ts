@@ -2,7 +2,7 @@
 // (shared.ts: openSettingsCategory); each driver waits for what its own state shows.
 import type { Page } from '@playwright/test';
 import { settlePage } from '../helpers/settle';
-import { type Driver, clickVisible, confirmDialog, freezeClock, openAdvanced, openSettings, showSettingsRow } from './shared';
+import { type Driver, clickNav, clickVisible, confirmDialog, freezeClock, openAdvanced, openSettings, showSettingsRow } from './shared';
 
 const WHISPER_SMALL = 'whisper/small';
 
