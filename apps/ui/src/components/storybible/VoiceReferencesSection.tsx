@@ -1,12 +1,9 @@
 import { useCallback, useEffect, useState } from 'react';
-import { faPlay } from '@fortawesome/free-solid-svg-icons';
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { describeApiError } from '../../api/errorMessage';
 import { useApi } from '../../api/ApiContext';
 import { usePendingAction } from '../../hooks/usePendingAction';
 import type { ApprovedCharacterReference, CharacterRegion } from '../../types';
 import { Button } from '../primitives/Button';
-import { IconButton } from '../primitives/IconButton';
 import { InsetCard } from '../primitives/InsetCard';
 import { Select } from '../primitives/Select';
 import { StatusBadge } from '../primitives/StatusBadge';
@@ -77,9 +74,6 @@ export function VoiceReferencesSection({ characterId, characterLabel, notify }: 
         notify(describeApiError(error), 'error');
       }
     });
-  // No binding plays a region's real audio in-app yet; a REAPER-side "play this region" command would be a new
-  // Lua bridge command in integrations/reaper.
-  const play = () => notify('Playing a reference clip in the app is a future integration; open it in REAPER by its name for now.');
 
   if (loadError)
     return (
@@ -99,9 +93,6 @@ export function VoiceReferencesSection({ characterId, characterLabel, notify }: 
         <ul className="space-y-1.5">
           {ownReferences.map((reference) => (
             <InsetCard as="li" key={reference.id} className="flex items-center gap-2">
-              <IconButton label={`Play ${reference.snapshot.name}`} onClick={play}>
-                <FontAwesomeIcon icon={faPlay} />
-              </IconButton>
               <div className="min-w-0 flex-1">
                 <div className="truncate text-sm font-medium">{reference.snapshot.name}</div>
                 <div className="text-xs" style={{ color: 'var(--text-muted)' }}>

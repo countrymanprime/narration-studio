@@ -5,6 +5,20 @@ import { settlePage } from '../helpers/settle';
 import { type Driver, askForTheLanguageModel, askForThePreviewVoice, clickNav, clickVisible, confirmDialog, goToPage, saveMerriamWebsterKey } from './shared';
 
 export const storybibleDrivers: Record<string, Driver> = {
+  // The entries never answer, so `goToPage` (which waits for the first entry) is not used.
+  loading: async (page) => {
+    await page.goto('/?mockHold=entities');
+    await settlePage(page);
+    await clickNav(page, 'Story Bible');
+    await page.getByRole('group', { name: 'Loading the Story Bible entries' }).waitFor();
+  },
+  'series-tab-loading': async (page) => {
+    await page.goto('/?mockHold=series');
+    await settlePage(page);
+    await goToPage(page, 'Story Bible');
+    await clickVisible(page, 'tab', 'Series');
+    await page.getByRole('group', { name: 'Loading the series' }).waitFor();
+  },
   'review-filter': async (page) => {
     // The mock host flags nothing, so the entries it lists are sent with White Rabbit (the entry and its name "Rabbit") and Hatter flagged,
     // the way the host sends them; its suggestions leave two to verify on White Rabbit.
@@ -244,6 +258,56 @@ export const storybibleDrivers: Record<string, Driver> = {
     await clickVisible(page, 'button', 'Remove voice data…');
     await confirmDialog(page, 'Remove voice data').waitFor();
   },
+  'voice-samples-entry': async (page) => {
+    await openWithSamples(page, 'bible');
+    await entryRows(page).filter({ hasText: 'Queen of Hearts' }).click();
+    const section = samplesSection(page);
+    await section.getByText('Audio file missing').waitFor();
+    await section.getByText('Passage changed').waitFor();
+    await section.getByText('Furious, to the court').waitFor();
+    await section.scrollIntoViewIfNeeded();
+  },
+  'voice-samples-empty': async (page) => {
+    await openWithSamples(page, 'bible');
+    await entryRows(page).filter({ hasText: 'Alice' }).first().click();
+    await samplesSection(page)
+      .getByText(/No voice samples yet/)
+      .waitFor();
+  },
+  'voice-samples-limit': async (page) => {
+    await openWithSamples(page, 'full');
+    await entryRows(page).filter({ hasText: 'Queen of Hearts' }).click();
+    await samplesSection(page).getByText('Queen of Hearts has 20 samples, the most a character can have.').waitFor();
+  },
+  'voice-sample-rename': async (page) => {
+    await openHatterSampleMenu(page);
+    await page.getByRole('menuitem', { name: 'Rename…' }).click();
+    await page.getByRole('dialog', { name: 'Rename voice sample' }).waitFor();
+  },
+  'voice-sample-move': async (page) => {
+    await openHatterSampleMenu(page);
+    await page.getByRole('menuitem', { name: 'Move to a character…' }).click();
+    await page.getByRole('dialog', { name: 'Move voice sample' }).waitFor();
+  },
+  'voice-sample-delete-confirm': async (page) => {
+    await openHatterSampleMenu(page);
+    await page.getByRole('menuitem', { name: 'Delete…' }).click();
+    await confirmDialog(page, 'Delete voice sample').waitFor();
+  },
+  'voice-data-samples': async (page) => {
+    await openWithSamples(page, 'bible');
+    await clickVisible(page, 'button', 'Voice data');
+    const panel = page.getByRole('dialog', { name: 'Voice data' });
+    await panel.getByText('Narration, calm').waitFor();
+    await panel.getByRole('region', { name: 'Samples for a character that is no longer in the Story Bible' }).getByText('Growling').waitFor();
+  },
+  'remove-voice-samples-confirm': async (page) => {
+    await openWithSamples(page, 'bible');
+    await clickVisible(page, 'button', 'Voice data');
+    await page.getByRole('dialog', { name: 'Voice data' }).getByText('Narration, calm').waitFor();
+    await clickVisible(page, 'button', 'Remove voice samples…');
+    await confirmDialog(page, 'Remove voice samples').waitFor();
+  },
   'series-tab-empty': async (page) => {
     await page.goto('/?mockSeries=not-in-series');
     await settlePage(page);
@@ -272,4 +336,24 @@ async function openForEditing(page: Page, name: string): Promise<void> {
   const unlock = page.getByRole('button', { name: 'Unlock entry' });
   if (await unlock.count()) await unlock.click();
   await clickVisible(page, 'button', 'Edit this entry');
+}
+
+/** Boots the mock with voice samples saved (`?mockVoiceSamples=`) and opens the Story Bible. */
+async function openWithSamples(page: Page, seed: 'bible' | 'full'): Promise<void> {
+  await page.goto(`/?mockVoiceSamples=${seed}`);
+  await settlePage(page);
+  await goToPage(page, 'Story Bible');
+}
+
+/** The Voice samples section of the entry that is open. */
+const samplesSection = (page: Page) => page.getByRole('region', { name: 'Voice samples' });
+
+/** The Hatter in edit mode with the menu of its one voice sample open. */
+async function openHatterSampleMenu(page: Page): Promise<void> {
+  await page.goto('/?mockVoiceSamples=bible');
+  await settlePage(page);
+  await openForEditing(page, 'Hatter');
+  await samplesSection(page).getByText('Tea party, quick').waitFor();
+  await page.getByRole('button', { name: 'More about Tea party, quick' }).click();
+  await page.getByRole('menuitem', { name: 'Delete…' }).waitFor();
 }

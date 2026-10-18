@@ -4,7 +4,7 @@ import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { OverlayProvider } from '../../overlay/OverlayProvider';
 import { createOverlayService, type OverlayService } from '../../overlay/overlayService';
-import { createJournal, type Journal } from '../../studio/journal/createJournal';
+import { createJournal, JOURNAL_LIMIT, type Journal } from '../../studio/journal/createJournal';
 import { openHistoryPanel } from './HistoryPanel';
 
 let service: OverlayService;
@@ -85,6 +85,19 @@ describe('HistoryPanel', () => {
     await userEvent.click(await within(dialog).findByRole('button', { name: 'Undo' }));
     await waitFor(() => expect(service.getSnapshot().toasts.map((t) => t.text)).toEqual(['The host said no.']));
     expect(within(dialog).getAllByRole('listitem')).toHaveLength(1);
+  });
+
+  it('says the list is full: at the journal limit a line tells the narrator older changes are gone, below it there is none', async () => {
+    for (let n = 0; n < JOURNAL_LIMIT - 1; n++) await add(`Change ${n}`, false, [`t${n}`]);
+    const { dialog } = await mount();
+    await waitFor(() => expect(within(dialog).getAllByRole('listitem')).toHaveLength(JOURNAL_LIMIT - 1));
+    expect(within(dialog).queryByText(/older changes can no longer be undone/)).toBeNull();
+    await act(async () => void (await add('One more', false, ['more'])));
+    await waitFor(() => expect(within(dialog).getAllByRole('listitem')).toHaveLength(JOURNAL_LIMIT));
+    expect(within(dialog).getByText(`History keeps the newest ${JOURNAL_LIMIT} changes; older changes can no longer be undone.`)).toBeTruthy();
+    await act(async () => void (await add('Past the limit', false, ['past'])));
+    await waitFor(() => expect(within(dialog).queryByText('Change 0')).toBeNull());
+    expect(within(dialog).getAllByRole('listitem')).toHaveLength(JOURNAL_LIMIT);
   });
 
   it('empty-state', async () => {

@@ -33,6 +33,9 @@ export function StageBar({ segments, wph }: { segments: readonly StageSegment[];
           </li>
         ))}
       </ul>
+      <p className="mt-2 text-[0.75rem] text-[var(--text-muted)]">
+        Estimated from each chapter's words and status. Finished audio above is the measured length.
+      </p>
     </Panel>
   );
 }
