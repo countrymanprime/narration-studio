@@ -264,9 +264,6 @@ export const storybibleDrivers: Record<string, Driver> = {
     await entryRows(page).filter({ hasText: 'Queen of Hearts' }).click();
     await samplesSection(page).getByText('Queen of Hearts has 20 samples, the most a character can have.').waitFor();
   },
-  'voice-sample-menu': async (page) => {
-    await openHatterSampleMenu(page);
-  },
   'voice-sample-rename': async (page) => {
     await openHatterSampleMenu(page);
     await page.getByRole('menuitem', { name: 'Rename…' }).click();

@@ -70,7 +70,9 @@ function Where() {
 }
 
 /** The section as the entry draws it: one read of the project's samples shared by the section. */
-function Section({ characterId = QUEEN, name = 'Queen of Hearts', ...rest }: Partial<Parameters<typeof VoiceSamplesSection>[0]>) {
+type SectionProps = Partial<Parameters<typeof VoiceSamplesSection>[0]> & { name?: string };
+
+function Section({ characterId = QUEEN, name = 'Queen of Hearts', ...rest }: SectionProps) {
   const source = useVoiceSamples();
   return (
     <VoiceSamplesSection
@@ -86,7 +88,7 @@ function Section({ characterId = QUEEN, name = 'Queen of Hearts', ...rest }: Par
   );
 }
 
-function setup(ui: Partial<Parameters<typeof VoiceSamplesSection>[0]> = {}, api: NarrationApi = createMockApi({}, { voiceSamples: 'bible' })) {
+function setup(ui: SectionProps = {}, api: NarrationApi = createMockApi({}, { voiceSamples: 'bible' })) {
   const user = userEvent.setup();
   render(
     <ApiProvider api={api}>

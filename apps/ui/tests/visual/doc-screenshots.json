@@ -911,13 +911,6 @@
   },
   {
     "page": "storybible",
-    "state": "voice-sample-menu",
-    "viewport": "desktop",
-    "docName": "storybible-voice-sample-menu",
-    "caption": "Story Bible - the menu of a voice sample while its entry is being edited: Rename, Move to a character and Delete"
-  },
-  {
-    "page": "storybible",
     "state": "voice-data-samples",
     "viewport": "desktop",
     "docName": "storybible-voice-data-samples",

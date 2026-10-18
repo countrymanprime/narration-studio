@@ -1,9 +1,10 @@
 import type { Page } from '@playwright/test';
+import { goToPage } from '../drivers/shared';
 import { fromState, hoverCase, type OverlayCase } from '../helpers/overlayGuardFor';
+import { settlePage } from '../helpers/settle';
 
 // The Story Bible's own overlays (components/storybible/): the hints on the header's icon buttons, the kind menu of an entry in Edit, the menu of a
-// voice sample and its Rename, Move and Delete dialogs,
-// the right-click menu of an entry row, and the dialogs, the language-model and voice prompts and the Voice data panel that the catalog's
+// voice sample and its Rename, Move and Delete dialogs, the right-click menu of an entry row, and the dialogs, the language-model and voice prompts and the Voice data panel that the catalog's
 // state drivers already reach. Not driven: the Sort and speaker-colour selects (native selects, whose popup the browser draws outside
 // the page where `elementFromPoint` cannot see it), the pronunciation source menu and the review slide-over (each needs a chain of
 // steps the mock reaches only inside a driver), and a toast raised while a dialog is open, which the guard would fail today (the
@@ -49,7 +50,24 @@ export const storyBibleCases: OverlayCase[] = [
   fromState('storybible', 'rebuild-running'),
   fromState('storybible', 'voice-data-panel', 'dialog', { root: (page) => page.getByRole('dialog', { name: 'Voice data' }) }),
   fromState('storybible', 'remove-voice-data-confirm'),
-  fromState('storybible', 'voice-sample-menu', 'menu'),
+  {
+    // The menu of the Hatter's voice sample while its entry is in Edit. Opened here and not as a catalog state: the Menu primitive's focus guards
+    // and portal draw axe findings that no catalog row can declare, and the page's other menus are guarded the same way.
+    name: 'menu of a voice sample',
+    kind: 'menu',
+    start: 'fresh',
+    open: async (page) => {
+      await page.goto('/?mockVoiceSamples=bible');
+      await settlePage(page);
+      await goToPage(page, 'Story Bible');
+      await page.getByRole('list', { name: 'Story Bible entries' }).getByRole('button').filter({ hasText: 'Hatter' }).first().click();
+      const unlock = page.getByRole('button', { name: 'Unlock entry' });
+      if (await unlock.count()) await unlock.click();
+      await page.getByRole('button', { name: 'Edit this entry' }).click();
+      await page.getByRole('button', { name: 'More about Tea party, quick' }).click();
+      await page.getByRole('menuitem', { name: 'Delete…' }).waitFor();
+    },
+  },
   fromState('storybible', 'voice-sample-rename'),
   fromState('storybible', 'voice-sample-move'),
   fromState('storybible', 'voice-sample-delete-confirm'),

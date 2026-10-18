@@ -1,6 +1,6 @@
 // The `storybible` rows of STATE_CATALOG (see state-catalog.ts), in the order they are captured.
 import type { StateEntry } from '../lib/types';
-import { KEEPS_DESKTOP_SCROLL, POPUP_ANCHORED_AT_FIRST_WIDTH } from './shared';
+import { KEEPS_DESKTOP_SCROLL } from './shared';
 
 export const storybibleStates: StateEntry[] = [
   // Story Bible
@@ -161,12 +161,6 @@ export const storybibleStates: StateEntry[] = [
     page: 'storybible',
     state: 'voice-samples-limit',
     description: 'Story Bible, the Queen of Hearts at the 20 voice samples a character may have: the section says so (?mockVoiceSamples=full)',
-  },
-  {
-    page: 'storybible',
-    state: 'voice-sample-menu',
-    description: 'Story Bible, the Hatter in Edit with the menu of its voice sample open: Rename, Move to a character and Delete (?mockVoiceSamples=bible)',
-    ...POPUP_ANCHORED_AT_FIRST_WIDTH,
   },
   {
     page: 'storybible',
