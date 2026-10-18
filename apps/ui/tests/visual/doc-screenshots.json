@@ -613,7 +613,7 @@
     "state": "daw-off",
     "viewport": "desktop",
     "docName": "editing-daw-off",
-    "caption": "Editing with the DAW not connected - the banner with its reason and Retry"
+    "caption": "Editing with the DAW not connected - the banner with Check again"
   },
   {
     "page": "editing",
@@ -915,6 +915,20 @@
     "viewport": "desktop",
     "docName": "storybible-voice-data",
     "caption": "Story Bible - the Voice data slide-over: choosing a region to approve as a reference, and Remove voice data"
+  },
+  {
+    "page": "storybible",
+    "state": "voice-samples-entry",
+    "viewport": "desktop",
+    "docName": "storybible-voice-samples",
+    "caption": "Story Bible - the Queen of Hearts entry with four voice samples: the primary, one whose passage changed, one whose audio file is missing"
+  },
+  {
+    "page": "storybible",
+    "state": "voice-data-samples",
+    "viewport": "desktop",
+    "docName": "storybible-voice-data-samples",
+    "caption": "Story Bible - the Voice data slide-over with Narration voice samples, the space the samples use, and the sample of a character who left the Story Bible"
   },
   {
     "page": "booth",

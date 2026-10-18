@@ -159,7 +159,7 @@ export function stageSegments(chapters: readonly ProductionChapter[], wph: numbe
   const parts: Array<[StageSegment['key'], string, number]> = [
     ['proofed', 'Proofed', proofed],
     ['edited', 'Edited', edited],
-    ['recorded', 'Recorded', recorded],
+    ['recorded', 'Recorded, not edited yet', recorded],
     ['unrecorded', 'Not recorded yet', total - proofed - edited - recorded],
   ];
   return parts.map(([key, label, words]) => ({ key, label, words, hours: words / wph, percent: total > 0 ? (words / total) * 100 : 0 }));

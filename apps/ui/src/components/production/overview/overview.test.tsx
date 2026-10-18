@@ -130,6 +130,13 @@ describe('StageBar', () => {
     expect(screen.queryByText(/Delivered/)).toBeNull();
   });
 
+  it('names its recorded share as not yet edited and says it is an estimate, not the measured length of the Finished audio tile', () => {
+    const { segments } = overviewFor(MID_BOOK);
+    view(<StageBar segments={segments} wph={9300} />);
+    expect(screen.getByText(/Recorded, not edited yet/)).toBeTruthy();
+    expect(screen.getByText(/Estimated from each chapter's words and status\. Finished audio above is the measured length\./)).toBeTruthy();
+  });
+
   it('draws an empty bar for a book with no words', () => {
     view(<StageBar segments={overviewFor([]).segments} wph={9300} />);
     expect(screen.getByRole('img', { name: 'Book progress by stage' }).querySelectorAll('i')).toHaveLength(4);
