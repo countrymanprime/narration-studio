@@ -264,7 +264,7 @@ Some settings only change what one page does, so they belong on that page, next 
 
 ## When something is wrong
 
-- While the settings are read, the pane shows placeholders and says **Reading your settings…**.
+- While the settings are read, the pane shows grey blocks under its title and says **Reading your settings…**.
 - If the settings file cannot be read, the page says **Your settings could not be read** and disables the controls until **Try again** works.
 - If a change cannot be saved, the page says **Changes cannot be saved right now** and the row says why; the previous value is still in use.
 - If the list of downloads cannot be read, Models & downloads says so with **Try again**; your downloads are not touched.

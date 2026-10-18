@@ -499,3 +499,38 @@ describe('the jump menu on Proof', () => {
     expect(steps.map((command) => command.label)).toEqual(['Next chapter', 'Previous chapter']);
   });
 });
+
+// The loading state (definition-of-done.md state matrix): the title and one busy region while the chapters and the notes are first read, then the
+// page, or the error with Retry; a later re-read does not bring the blocks back. Never an endless skeleton.
+describe('ProofPage loading state', () => {
+  const never = () => new Promise<never>(() => {});
+  const region = () => screen.queryByRole('group', { name: 'Loading Proof' });
+
+  it('keeps the title and shows one busy region while the chapters are read, however long that takes', async () => {
+    renderPage({ api: createMockApi({ manuscriptChapters: never }) });
+    expect(await screen.findByRole('heading', { level: 1, name: 'Proof' })).toBeTruthy();
+    expect(region()?.getAttribute('aria-busy')).toBe('true');
+    expect(within(region()!).getByRole('status').textContent).toBe('Reading the chapters and notes…');
+    await new Promise((resolve) => setTimeout(resolve, 60));
+    expect(region()).toBeTruthy();
+    expect(screen.queryByRole('region', { name: 'Notes' })).toBeNull();
+  });
+
+  it('keeps the skeleton while the notes are still being read', async () => {
+    renderPage({ api: createMockApi({ findingsList: never }) });
+    expect(await screen.findByRole('group', { name: 'Loading Proof' })).toBeTruthy();
+  });
+
+  it('is replaced by the page when both reads end, and does not come back', async () => {
+    renderPage();
+    await noteRows();
+    expect(region()).toBeNull();
+    expect(screen.getAllByRole('heading', { level: 1, name: 'Proof' })).toHaveLength(1);
+  });
+
+  it('shows the error with Retry, not a skeleton, when the first read fails', async () => {
+    renderPage({ api: createMockApi({ manuscriptChapters: () => Promise.reject(new Error('The manuscript could not be read.')) }) });
+    expect(await screen.findByRole('button', { name: 'Retry' })).toBeTruthy();
+    expect(region()).toBeNull();
+  });
+});
