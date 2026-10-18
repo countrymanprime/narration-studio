@@ -1,5 +1,6 @@
 import { Menu as BaseMenu } from '@base-ui/react/menu';
 import type { CSSProperties, ReactElement, ReactNode } from 'react';
+import { POPUP_MOTION_CLASSES } from './overlayMotion';
 
 export type MenuItem = {
   key: string;
@@ -42,7 +43,9 @@ export function Menu({
       </BaseMenu.Trigger>
       <BaseMenu.Portal>
         <BaseMenu.Positioner side="bottom" align="start" sideOffset={6} collisionPadding={8} className="z-[var(--z-popover)]">
-          <BaseMenu.Popup className="max-h-[var(--available-height)] w-44 overflow-y-auto rounded-[0.4rem] border border-[var(--line-strong)] bg-[var(--surface)] p-[0.35rem] shadow-[var(--shadow-lg)] outline-none">
+          <BaseMenu.Popup
+            className={`max-h-[var(--available-height)] w-44 overflow-y-auto rounded-[0.4rem] border border-[var(--line-strong)] bg-[var(--surface)] p-[0.35rem] shadow-[var(--shadow-lg)] outline-none ${POPUP_MOTION_CLASSES}`}
+          >
             {items.map((item) => (
               <BaseMenu.Item
                 key={item.key}
