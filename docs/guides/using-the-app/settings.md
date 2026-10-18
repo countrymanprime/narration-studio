@@ -162,7 +162,7 @@ With nothing downloaded, the page offers **Download the recommended set** (the S
 - **Credits**: see [Credits](#credits).
 - **Clear derived data** (Advanced) removes the imported manuscript and its stored source, the Story Bible, proofing artifacts, reader notes and bookmarks, and saved comparison results for the current project, after you confirm. Its settings remain.
 
-![Settings - the Manuscript row: when it was imported, its word count and Replace manuscript…](../../images/ui/settings-manuscript.webp)
+![Settings - the Replace manuscript confirm for an imported file, with its title, word count and what is kept](../../images/ui/settings-manuscript.webp)
 
 ![Settings - Clear derived data asks first](../../images/ui/settings-project-data.webp)
 
