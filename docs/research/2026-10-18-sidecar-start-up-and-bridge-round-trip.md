@@ -72,6 +72,57 @@ Summed top-level imports of `manuscript-guide --help`: **63 ms in the dev interp
 
 Reading the whole log costs 0.15% of a 150 ms tick at 1 MB and 1.5% at 8 MB (about 40 hours). It is memory churn (the whole file copied and converted to a string each tick), not time. This is why the fast-poll change reads from the offset but adds no size cap or rotation.
 
+## After the fast-poll change (Windows, measured)
+
+The same harness and workflow on `claude/bridge-fast-poll` ([#1909](https://github.com/countrymanprime/narration-utils/pull/1909): `Client.Expect` polls every 15 ms while a request awaits its answer, and `Dispatch` reads `events.log` from the saved offset), run 39145917943. **The runner differed from the first run: AMD EPYC 7763 here, an Intel Xeon 6973P in the first run's benchmark output**, so the Story Bible rows moved by run-to-run noise as well (see below); the bridge rows are far outside that noise.
+
+### Bridge round trip, before and after
+
+| events.log at start (KB) | p50 before (ms) | p50 after (ms) | p95 before | p95 after | Max before | Max after |
+| --- | --- | --- | --- | --- | --- | --- |
+| 0 | 94 | 16 | 158 | 31 | 175 | 46 |
+| 1,024 | 92 | 16 | 161 | 31 | 175 | 45 |
+| 8,192 | 97 | 16 | 158 | 31 | 172 | 45 |
+
+- The round trip is now the script's own cost: the command is taken at p50 11 ms and the answer written at 13 to 14 ms, so the host adds 2 to 3 ms at p50. The 78 ms wait for the host tick is gone, and the worst case dropped from 175 ms to 46 ms.
+- Linux, same harness: p50 98 to 16 ms and p95 163 to 31 ms.
+- The ceiling is the script's 16 to 33 ms defer tick; a faster host poll cannot go below it. Real REAPER's cadence under load was not measured.
+
+### One host tick against a growing log, before and after
+
+| events.log | Time per tick before | after | Allocated before | after |
+| --- | --- | --- | --- | --- |
+| 0 KB | 15 µs | 32 µs | 1.1 KB | 0.6 KB |
+| 200 KB | 46 to 48 µs | 32 µs | 214 KB | 0.6 to 0.8 KB |
+| 1 MB | 221 to 236 µs | 32 µs | 1.06 MB | 0.6 to 0.8 KB |
+| 8 MB | 1.9 to 2.3 ms | 32 µs | 8.4 MB | 0.6 to 0.8 KB |
+
+A tick no longer depends on the log's length. The empty-log tick read 32 µs after against 15 µs before, but the two runs were on different CPUs; the re-run below, on a third CPU, measures 15 µs at every size, so the open, stat and close on every tick cost nothing visible.
+
+### Story Bible operations, to show the noise
+
+Not changed by this PR (no sidecar code moved). One-field edit p50: 241 ms (first run), small manuscript; full-length 424 ms against 496 ms in this run. Seeding ten candidates on the full-length manuscript: 8.4 s against 10.9 s. Differences of 15% to 30% between two runs of the same code on different shared runners are the noise to read the bridge comparison against; the bridge change is a factor of six.
+
+### Re-run on the merged head
+
+The same workflow again (run 39156991571, head `0821407`) after `main` and #1898's `sidecar.timing` and `bridge.timing` records were merged into the branch, so the round trip is measured with the timing observer on. Runner: AMD EPYC 9V45 (a third CPU).
+
+| events.log at start (KB) | Round trip p50 (ms) | p95 (ms) | Max (ms) | Command taken p50 (ms) | Answer written p50 (ms) |
+| --- | --- | --- | --- | --- | --- |
+| 0 | 16 | 31 | 45 | 14 | 14 |
+| 1,024 | 16 | 31 | 45 | 13 | 13 |
+| 8,192 | 16 | 31 | 46 | 14 | 15 |
+
+| events.log | Time per tick | Allocated per tick |
+| --- | --- | --- |
+| 0 KB | 14.5 to 15.3 µs | 600 B |
+| 200 KB | 14.7 to 14.9 µs | 616 to 808 B |
+| 1 MB | 14.5 to 14.8 µs | 808 B |
+| 8 MB | 15.4 to 15.8 µs | 808 B |
+
+- **The timing records did not change the round trip**: p50 16 ms, p95 31 ms and max 45 to 46 ms, the same as before the merge. (`Actions.SetObserver` is only wired by the host, `recordBridgeTiming`; this harness calls `Actions` directly with no observer, so this run shows the fast poll after the merge but not the cost of writing the record. That cost is one `slog` line per request and was not measured.)
+- A tick costs about 15 µs at every log size, from empty to 8 MB.
+
 ## What this does and does not show
 
 - The bridge cost is the host's tick, not the script or the log. [The fast-poll change](https://github.com/countrymanprime/narration-utils/pull/1909) targets it.
