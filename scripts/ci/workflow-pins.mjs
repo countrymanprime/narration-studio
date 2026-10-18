@@ -17,7 +17,7 @@ const PIN = /^\s*(?:-\s+)?uses:\s+([\w.-]+\/[\w./-]+)@[0-9a-f]{40}\s+#\s*v?\d[\w
 const WATCHED = /^\.github\/(workflows|actions)\//;
 const OTHER = { kind: 'other', jobs: [], pure: false };
 
-export function parseDiff(text) {
+function parseDiff(text) {
   const files = [];
   let file;
   let hunk;
@@ -65,7 +65,7 @@ export function jobOfLine(content, lineNumber) {
   return inJobs ? current : null;
 }
 
-export function jobsUsing(content, action) {
+function jobsUsing(content, action) {
   const jobs = new Set();
   let inJobs = false;
   let current = null;

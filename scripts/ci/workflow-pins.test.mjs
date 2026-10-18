@@ -95,7 +95,7 @@ test('no change under the folders is none, and an unparseable diff is other', ()
 const root = join(import.meta.dirname, '..', '..');
 function scopeOf(change, flag) {
   const dir = mkdtempSync(join(tmpdir(), 'nx-scope-'));
-  const run = (cmd, ...args) => execFileSync(cmd, args, { cwd: dir, encoding: 'utf8', env: { ...process.env, GITHUB_EVENT_NAME: 'pull_request', BASE_REF: 'main' } });
+  const run = (cmd, ...args) => execFileSync(cmd, args, { cwd: dir, encoding: 'utf8', env: { ...process.env, ALWAYS: 'false', GITHUB_EVENT_NAME: 'pull_request', BASE_REF: 'main' } });
   try {
     run('git', 'init', '-q', '-b', 'main');
     run('git', 'config', 'user.email', 't@t');
