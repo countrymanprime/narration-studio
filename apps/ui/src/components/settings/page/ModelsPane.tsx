@@ -141,7 +141,7 @@ export function ModelsPane({ category }: { category: Category }) {
       <Panel label="Disk use">
         <div data-disk className="flex flex-wrap items-center gap-x-4 gap-y-2">
           <span>
-            <b>{formatSize(catalog.totalInstalledBytes)}</b> used by {installed} {installed === 1 ? 'item' : 'items'}
+            <b>{catalog.totalInstalledBytes > 0 ? formatSize(catalog.totalInstalledBytes) : '0 MB'}</b> used by {installed} {installed === 1 ? 'item' : 'items'}
           </span>
           <span className="text-[0.8125rem] text-[var(--text-muted)]">
             Stored in <code className="font-['IBM_Plex_Mono',ui-monospace,monospace] text-[0.75rem] [overflow-wrap:anywhere]">{catalog.cacheRoot}</code>

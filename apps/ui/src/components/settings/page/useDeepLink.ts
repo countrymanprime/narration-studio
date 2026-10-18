@@ -17,8 +17,15 @@ export function useDeepLink(target: string | null, ready: boolean, done: () => v
     control?.focus({ preventScroll: true });
     setLit(target);
     done();
-    // Not cleared on the next render: handling the request clears `target`, which re-runs this effect.
-    window.setTimeout(() => setLit(null), 2200);
+    // Rows above it that are still being read (the Story Bible types, the marks) grow the pane after the scroll and push the row off its
+    // place: keep it centred while the light shows. Not cleared on the next render: handling the request clears `target`, which re-runs this effect.
+    const pane = element.closest('#settings-pane');
+    const follow = typeof ResizeObserver === 'undefined' || !pane ? undefined : new ResizeObserver(() => element.scrollIntoView?.({ block: 'center' }));
+    if (pane) follow?.observe(pane);
+    window.setTimeout(() => {
+      follow?.disconnect();
+      setLit(null);
+    }, 2200);
     return undefined;
   }, [target, ready, done, setLit]);
 }

@@ -95,7 +95,7 @@ function TypeRow({
             </span>
           </Checkbox>
         </TooltipTarget>
-        <span data-type-count={type.name} className="ml-auto text-sm text-[var(--text-muted)] @lg:ml-0 @lg:min-w-[70px]">
+        <span data-type-count={type.name} className="ml-auto text-sm whitespace-nowrap text-[var(--text-muted)] @lg:ml-0 @lg:min-w-[70px]">
           {count === undefined ? '' : `${count} ${count === 1 ? 'entry' : 'entries'}`}
         </span>
         <IconButton

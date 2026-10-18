@@ -433,12 +433,12 @@ export async function showSettingsRow(page: Page, id: string): Promise<Locator> 
   return row;
 }
 
-/** Opens a category's Advanced group (closed until opened) and brings it on screen. */
+/** Opens a category's Advanced group (closed until opened) and scrolls it to the top of the page area, so what it holds is what the shot shows. */
 export async function openAdvanced(page: Page): Promise<void> {
   const advanced = page.getByRole('button', { name: /^Advanced \(\d+\)$/ });
   await advanced.click();
   await advanced.and(page.locator('[aria-expanded="true"]')).waitFor();
-  await advanced.scrollIntoViewIfNeeded();
+  await advanced.evaluate((button) => button.scrollIntoView({ block: 'start' }));
 }
 
 // Chooses the theme the way a narrator does, with Settings' Appearance & keys category.
