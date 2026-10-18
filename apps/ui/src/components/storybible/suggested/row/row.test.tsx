@@ -223,7 +223,7 @@ describe('accepting-says-so-and-offers-undo', () => {
     const needs = one((s) => s.payload.kind === 'alias' && s.payload.alias === 'Rabbit');
     renderRow(needs);
     await u.click(screen.getByRole('button', { name: 'Accept this suggestion' }));
-    await waitFor(() => expect(toastUndo).toHaveBeenCalledWith('Accepted', expect.any(Function)));
+    await waitFor(() => expect(toastUndo).toHaveBeenCalledWith('Accepted', expect.any(Function), { entry: expect.any(Number) }));
     expect(await statusOf(needs.id)).toBe('accepted');
     await toastUndo.mock.calls[0]![1]();
     expect(await statusOf(needs.id)).toBe('needs-verification');

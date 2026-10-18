@@ -10,6 +10,7 @@ import { useGoToCommands } from './components/layout/useGoToCommands';
 import { useJournalEntries } from './components/layout/useJournalEntries';
 import { OverlayProvider, useOverlay } from './overlay/OverlayProvider';
 import { dawShortName, StudioProvider, useJournal, useStoreHandle, useStudio } from './studio/StudioProvider';
+import { useUndoToastLifetime } from './studio/useUndoToastLifetime';
 import type { Journal } from './studio/journal/createJournal';
 import { MANUSCRIPT_CHANGED } from './studio/slots';
 import type { ContextMenuItem } from './components/primitives/ContextMenu';
@@ -170,6 +171,7 @@ function AppRoutes() {
   const toggleTheme = () => theme.setPreference(theme.resolved === 'dark' ? 'light' : 'dark');
   const keymap = useUserKeymap();
   const journalRows = useJournalEntries(journal);
+  useUndoToastLifetime(journal, overlay, location.pathname);
   // The latest guarded back/forward, read by the one document-level listener below (mounted once) instead
   // of resubscribing it on every render.
   const guardedBackRef = useRef<() => void>(() => {});
@@ -434,11 +436,13 @@ function AppRoutes() {
       // Entries from the project that was open before this switch stay behind the new floor: they
       // would open this project's pages with the previous project's data, so Back stops here.
       if (state.attached) {
+        // What an Undo toast offered was about the project that was open; its journal entries are cleared, and the ones without an entry go here.
+        overlay.dismissUndo();
         history.resetFloor();
         void refreshBootstrap();
       } else if (state.reason) setNotice(state.reason, 'error');
     });
-  }, [api, hasBootstrap, history, refreshBootstrap, setNotice]);
+  }, [api, hasBootstrap, history, overlay, refreshBootstrap, setNotice]);
 
   useEffect(() => {
     if (!hasBootstrap) return;
