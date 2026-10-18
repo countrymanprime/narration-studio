@@ -8,6 +8,7 @@ import { createMockApi, type MockUpdateSeed } from '../../../api/mockApi';
 import { StudioProvider } from '../../../studio/StudioProvider';
 import { ThemeProvider } from '../../../theme/ThemeContext';
 import { THEME_STORAGE_KEY } from '../../../theme/theme';
+import { MOTION_STORAGE_KEY } from '../../../motion';
 import type { NarrationApi } from '../../../types';
 import { TooltipProvider } from '../../primitives/Tooltip';
 import { TEXT_PREFS_STORAGE_KEY } from '../../script/page/tools/text/readerText';
@@ -229,6 +230,19 @@ describe('Settings: Appearance & keys', () => {
     expect(document.documentElement.getAttribute('data-theme')).toBe('dark');
     await userEvent.click(within(theme).getByRole('radio', { name: 'Light' }));
     expect(localStorage.getItem(THEME_STORAGE_KEY)).toBe('light');
+  });
+
+  it('motion radios save the choice to this browser and set data-motion', async () => {
+    await renderPage();
+    await open('Appearance & keys');
+    const motion = row('look.motion');
+    expect(within(motion).getByRole('radio', { name: 'Follow Windows' }).getAttribute('aria-checked')).toBe('true');
+    await userEvent.click(within(motion).getByRole('radio', { name: 'Reduce' }));
+    expect(localStorage.getItem(MOTION_STORAGE_KEY)).toBe('reduce');
+    expect(document.documentElement.dataset.motion).toBe('reduce');
+    await userEvent.click(within(motion).getByRole('radio', { name: 'Follow Windows' }));
+    expect(localStorage.getItem(MOTION_STORAGE_KEY)).toBe('system');
+    expect(document.documentElement.dataset.motion).toBeUndefined();
   });
 
   it('reader text changes the saved preferences and the preview quote', async () => {

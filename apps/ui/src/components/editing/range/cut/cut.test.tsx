@@ -266,7 +266,7 @@ describe('Delete words and audio', () => {
     expect(item('p-1:0').cut).toBe('cut1');
     expect(item('p-1:0').text).toBe('Alice');
     expect(item('p-1:4').t0).toBeCloseTo(before - (b - a), 3);
-    expect(toastUndo).toHaveBeenCalledWith('Deleted 2 words and their audio in REAPER.', expect.any(Function));
+    expect(toastUndo).toHaveBeenCalledWith('Deleted 2 words and their audio in REAPER.', expect.any(Function), { entry: expect.any(Number) });
   });
 
   it('leaving-a-gap-moves-nothing', async () => {
