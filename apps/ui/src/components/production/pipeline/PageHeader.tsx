@@ -21,8 +21,8 @@ type Props = {
   k: Calc;
   today: Date;
   due: Date | null;
-  /** The record capability: Start session is disabled with its own reason beside it. */
-  record: { ok: boolean; reason: string };
+  /** The record capability: Start session is disabled with its own reason beside it, and a way to Settings when Settings is what fixes it. */
+  record: { ok: boolean; reason: string; inSettings?: boolean };
   timerRunning: boolean;
   stopping?: boolean;
   onStopTimer: () => void;
@@ -30,10 +30,26 @@ type Props = {
   /** Opens the status report dialog (SN-P622). */
   onExport: () => void;
   onOpenSchedule: () => void;
+  /** Opens Settings' DAW section, where recording is switched on. */
+  onOpenSettings?: () => void;
 };
 
 /** The Production title, the book's figures and due date in their tone, the verdict, and the page's actions (the mock's `phead`). */
-export function PageHeader({ chapters, words, k, today, due, record, timerRunning, stopping, onStopTimer, onStartSession, onExport, onOpenSchedule }: Props) {
+export function PageHeader({
+  chapters,
+  words,
+  k,
+  today,
+  due,
+  record,
+  timerRunning,
+  stopping,
+  onStopTimer,
+  onStartSession,
+  onExport,
+  onOpenSchedule,
+  onOpenSettings,
+}: Props) {
   const tone = deadlineTone(k);
   const mark = TONE_MARK[tone];
   const days = k.daysLeft === null ? null : `${Math.abs(k.daysLeft)} ${Math.abs(k.daysLeft) === 1 ? 'day' : 'days'}`;
@@ -84,8 +100,13 @@ export function PageHeader({ chapters, words, k, today, due, record, timerRunnin
           Start session
         </Button>
         {!record.ok && (
-          <span id="start-session-reason" className="max-w-[24ch] text-[0.8125rem] text-[var(--text-muted)]">
+          <span id="start-session-reason" className="flex max-w-[24ch] flex-col items-start text-[0.8125rem] text-[var(--text-muted)]">
             {record.reason}
+            {record.inSettings && onOpenSettings && (
+              <Button variant="link" onClick={onOpenSettings}>
+                Open DAW settings
+              </Button>
+            )}
           </span>
         )}
       </div>
