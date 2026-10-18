@@ -37,6 +37,17 @@ export const proofChapterDrivers: Record<string, Driver> = {
   'compare-setup': async (page) => {
     await openCompare(page);
   },
+  // The compare run's options, opened from the jump menu (they have no control on the page itself).
+  'options-open': async (page) => {
+    await openCompare(page);
+    await page.keyboard.press('Control+KeyK');
+    await page.getByRole('combobox', { name: 'Jump menu' }).fill('Open Compare options');
+    await page
+      .getByRole('option', { name: /^Open Compare options/ })
+      .first()
+      .click();
+    await page.getByRole('textbox', { name: 'Misread marker color', exact: true }).waitFor();
+  },
   'compare-setup-alt': async (page) => {
     await openCompare(page);
     await clickVisible(page, 'button', 'Large');

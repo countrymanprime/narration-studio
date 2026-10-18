@@ -38,9 +38,9 @@ export const PAGE_SETTINGS: readonly PageSetting[] = [
     id: 'ps.preview',
     label: 'Preview suggestion',
     page: 'proof',
-    where: 'Preview › Options',
+    where: 'Jump to or run › Open Preview options',
     panel: 'preview',
-    why: 'Only the preview builder uses them.',
+    why: 'Only the preview builder uses them. On Proof, Jump to or run opens the same keys for this project.',
     syn: 'sample length tolerance spot check',
   },
   {
@@ -56,9 +56,9 @@ export const PAGE_SETTINGS: readonly PageSetting[] = [
     id: 'ps.compare',
     label: 'Compare defaults (chunk length, marker colours)',
     page: 'proof',
-    where: 'Compare › Options',
+    where: 'Jump to or run › Open Compare options',
     panel: 'compare',
-    why: 'Chosen when starting a compare run.',
+    why: 'Chosen when starting a compare run. On Proof, Jump to or run opens the same keys for this project.',
     syn: 'misread skipped extra colour',
   },
   {

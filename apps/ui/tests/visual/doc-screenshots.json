@@ -183,6 +183,13 @@
   },
   {
     "page": "proof-chapter",
+    "state": "options-open",
+    "viewport": "desktop",
+    "docName": "proof-chapter-options",
+    "caption": "Proof chapter view - the Compare options dialog opened from Jump to or run"
+  },
+  {
+    "page": "proof-chapter",
     "state": "compare-setup-alt",
     "viewport": "desktop",
     "docName": "proof-chapter-compare-setup-alt",
