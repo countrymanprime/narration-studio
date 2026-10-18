@@ -168,7 +168,7 @@ func percentiles(values []time.Duration) (p50, p95, max time.Duration) {
 func TestBridgeRoundTrip(t *testing.T) {
 	python := os.Getenv("LATENCY_BRIDGE_PYTHON")
 	if python == "" {
-		t.Skip("set LATENCY_BRIDGE_PYTHON to a Python with lupa (the repository's .venv) to run the bridge round trip")
+		t.Fatal("set LATENCY_BRIDGE_PYTHON to a Python with lupa (the repository's .venv); run this test by name: -run TestBridgeRoundTrip")
 	}
 	calls := envInt("LATENCY_BRIDGE_CALLS", 100)
 	tick := time.Duration(envInt("LATENCY_BRIDGE_TICK_MS", 150)) * time.Millisecond
