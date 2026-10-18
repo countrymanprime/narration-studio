@@ -28,7 +28,9 @@ Words carry what the last [recording check](production.md#checking-a-chapters-re
 - **Low confidence**: a word the recogniser was unsure of.
 
 Each line starts with its time in the chapter. A line with more than one take has a takes chip under it: how many
-takes, the one that plays, and whether one was chosen yet.
+takes, the one that plays, and whether one was chosen yet. Tab visits one chip, the one on the line the cursor is on (the
+first before there is a cursor), so the script is not forty stops; **T** opens the takes of the cursor's line, and a click
+opens any other.
 
 ![Editing - Chapter 1 linked to its track: the chapter step and the legend, the script with each line's takes chip and time, the bar and the key hints](../../images/ui/editing-default.webp)
 
@@ -57,7 +59,9 @@ Click a word to place the cursor there. Shift+click another, drag across the tex
 select a run of words. Hold ← or → (with Shift to select) and the cursor keeps travelling along the text; Up and Down hold
 the same way, a phrase at a time. Every other key does its job once, however long you hold it. A toolbar floats under the selection with **Play**, **Add FX**, **Voice sample**, **Mute**, **Takes of this
 line** (on a line with more than one take) and **Delete**; the bar offers the same actions, with **Delete words and
-audio** in full on a wide window. The line's audio shows under it while the cursor is on it. Right-click a word for its
+audio** in full on a wide window. **Delete**, **Mute** and **Add FX** stay on the bar but are off while the DAW cannot make
+the change (they are Experimental and start switched off in [Settings](settings.md)); a line above the bar then says so
+and why, and the same sentence is in each button's hint. The line's audio shows under it while the cursor is on it. Right-click a word for its
 menu: play the selection, copy, delete or mute the words, add or remove an effect, **Mark as voice sample…**, mark them for a pickup, add a note,
 show or keep the line's takes, and **Split into takes** on a line whose one take reads it twice.
 
@@ -135,7 +139,8 @@ the DAW moves anything.
 
 ## The drawer
 
-The drawer button (Ctrl+Shift+C) opens the drawer beside the text, or over it on a narrower window.
+The drawer button (Ctrl+Shift+C) opens the drawer beside the text, or over it on a narrower window. **Esc** closes it,
+from the text once nothing is selected or from the drawer itself, which hands the focus back to the button.
 
 ### Cleaning up
 
@@ -161,11 +166,12 @@ and one lane per take on one time axis. On a window 1360 px wide or more it is a
 
 ## When the DAW is not connected
 
-A banner at the top says the DAW is not answering, or that the chosen DAW is not supported here yet, and why, with
-**Retry**. You can still read, select and play; the
+A banner at the top says the DAW is not answering, or that the chosen DAW is not supported here yet, with **Check again**
+beside it, which asks the DAW again. It names only that cause: a setting that keeps Delete, Mute and Add FX off is the line above
+the bar, never the banner. You can still read, select and play; the
 actions that change the DAW (delete, mute, effects, keeping a take) wait until it is back.
 
-![Editing - the banner when the chosen DAW is not supported yet, with its reason and Retry](../../images/ui/editing-daw-off.webp)
+![Editing - the banner when the DAW is not answering, with Check again](../../images/ui/editing-daw-off.webp)
 
 ## When the chapter has no audio
 

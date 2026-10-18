@@ -58,6 +58,7 @@ import { useTakesGate } from '../takes/useTakesGate';
 import type { PlaylistSegment } from '../../proof/playlist';
 import { doubledCut, wordAt, type ChapterRead } from './chapterSource';
 import { EditingHeader } from './EditingHeader';
+import { EditOffNotice } from './EditOffNotice';
 import { installBackupSteps, tokensIn } from '../backups/backupBefore';
 import { FxMarkersContext } from '../range/fx/fxMarkers';
 import { registerSelectionAction } from '../bar/selectionActions';
@@ -385,6 +386,12 @@ export function EditingBody(props: EditingBodyProps) {
     else if (drawerIsOpen && drawerWant === 'timeline') closeDrawer();
     else openTab('timeline');
   }, [stripFits, toggleStrip, drawerIsOpen, drawerWant, openTab, closeDrawer]);
+  // Escape from the text shuts an open drawer too, once the card and the selection are done with it.
+  const escapeDrawer = useCallback(() => {
+    if (!drawerIsOpen) return false;
+    closeDrawer();
+    return true;
+  }, [drawerIsOpen, closeDrawer]);
   useEditingKeys({
     keymap,
     handlers: {
@@ -398,6 +405,7 @@ export function EditingBody(props: EditingBodyProps) {
       hideOthers: hide.handlers.hideOthers,
       strip: showTimeline,
       drawer: panels.drawer.toggle,
+      closeDrawer: escapeDrawer,
       chapterStep,
     },
   });
@@ -424,6 +432,8 @@ export function EditingBody(props: EditingBodyProps) {
   const flagPara = flagPid ? doc.paras.find((p) => p.p.id === flagPid) : undefined;
   const underLines = new Set<string>([...lines.byId.keys(), ...(flagPid ? [flagPid] : []), ...(current ? [current] : [])]);
   const drawerOpen = panels.drawer.open;
+  // With no cursor yet the first chip stays in the Tab order, so the takes are reachable from the keyboard before a word is chosen.
+  const firstChipPid = [...underLines].find((pid) => (lines.byId.get(pid)?.takes.length ?? 0) > 1);
 
   const drawer = (
     <Drawer
@@ -474,6 +484,7 @@ export function EditingBody(props: EditingBodyProps) {
             </ScriptHost>
             {check.panel}
             {panels.strip.open && stripFits ? <TimelineStrip {...stripProps} /> : null}
+            {cut.plan?.kind === 'refused' ? <EditOffNotice reason={cut.plan.reason} /> : null}
             <SelectionBar playback={playback} end={total} narrow={compact} />
             <div className="sticky bottom-0 z-[5]">
               <KeyHints hints={hints} id="keyhints" />
@@ -511,7 +522,14 @@ export function EditingBody(props: EditingBodyProps) {
               />
             ) : null}
             {line && shown ? (
-              <TakeChip passage={line} open={open} keptId={keep.kept[pid] ?? null} controls={`takes-${pid}`} onToggle={() => setLineOpen(pid, !open)} />
+              <TakeChip
+                passage={line}
+                open={open}
+                keptId={keep.kept[pid] ?? null}
+                controls={`takes-${pid}`}
+                tabbable={open || pid === (current ?? firstChipPid)}
+                onToggle={() => setLineOpen(pid, !open)}
+              />
             ) : null}
             {open && shown ? (
               <TakeLines
