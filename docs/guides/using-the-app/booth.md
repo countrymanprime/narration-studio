@@ -274,7 +274,7 @@ same panel with **Back to the chapters**. An address the app cannot read at all,
 
 ## Companion mode
 
-The Companion is a narrow panel pinned beside your DAW. Open it with **Open Companion** in the jump menu (its key is in the shortcut sheet): the
+The Companion is a narrow panel pinned beside your DAW. Open it with **Open Companion** in the jump menu or with `Ctrl+Alt+C`: the
 reading session, with REAPER's playhead in its header, the script in its own scroll box, the reading controls and the hotkeys
 that work while the panel has focus. **Full app** (or Escape twice) brings the Booth back on the same chapter. **Pickups** in the
 panel shows the [Pickups](pickups.md) list: how many are left and the one you last jumped to. The note at the playhead has its
