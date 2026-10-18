@@ -1,6 +1,6 @@
 // Finds the Markdown files a change adds or modifies against a base ref: the input to
-// `Docs / Markdown lint (changed files)` (.github/workflows/docs.yml) and `pnpm lint:md[:fix]`
-// (lint-markdown-changed.mjs). Deliberately not a full-repo baseline: `Docs / Links (offline)` already lints every
+// the `Markdown lint (changed files)` step of `Docs / Docs checks` (.github/workflows/docs.yml) and `pnpm lint:md[:fix]`
+// (lint-markdown-changed.mjs). Deliberately not a full-repo baseline: the `Links (offline)` step already lints every
 // Markdown file's links with lychee, and a repo-wide markdownlint sweep is its own future change.
 
 import { execFileSync } from 'node:child_process';
