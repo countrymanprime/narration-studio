@@ -69,7 +69,7 @@ images the repository keeps, and a pull request does not carry a set of its own:
     `PLAYWRIGHT_BROWSERS_PATH`; `PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH` names another.
 - **The pull request.** Its description states the real-app (Playwright) result and the Storybook result for the pages
   it names, and links the guide diff. A change to a page that owes the guide nothing says
-  `No guide change: <specific reason>`; the `Docs / Guide impact` check fails without one of the two
+  `No guide change: <specific reason>`; the `Guide impact` step of `Docs / Docs checks` fails without one of the two
   ([Documentation gates](docs/operations/documentation-gates.md)).
 - **Compared with the mock.** A page built to the Studio Next mock (`docs/research/mockups/studio-next/`) is compared with
   the mock's page in the same state and theme; the mock's `e2e/` Playwright scripts capture it. Put that comparison in a

@@ -1,0 +1,55 @@
+name: Windows encode check
+# Scripted, non-gating evidence for release-gate check 9.1 (docs/operations/windows-qa-checklist.md, section 9): the catalogued FFmpeg
+# 7.1 build, installed from its hash-pinned catalogue row, encodes synthetic chapters to MP3 on Windows and the app's own ACX format and
+# sample-rate checks accept them. Manual only; nothing requires it.
+on:
+  workflow_dispatch:
+permissions: { contents: read }
+concurrency:
+  group: windows-encode-check-${{ github.ref }}
+  cancel-in-progress: false
+jobs:
+  encode:
+    name: 9.1 MP3 encode with the catalogued FFmpeg
+    runs-on: windows-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/setup-toolchain
+        with:
+          need-node: 'false'
+          need-pnpm: 'false'
+          need-python: 'false'
+          need-wails-tools: 'false'
+          need-stylua: 'false'
+          need-linux-native-deps: 'false'
+      - name: Install the catalogued FFmpeg (size and SHA-256 checked against config/encoder-assets.json)
+        shell: pwsh
+        run: ./scripts/release/install-ffmpeg-asset.ps1 -OutDir "$env:RUNNER_TEMP/ffmpeg"
+      - name: Run the real-binary encode tests
+        shell: bash
+        working-directory: apps/desktop
+        run: |
+          export NARRATION_UTILS_FFMPEG="$(cygpath -w "$FFMPEG_PATH")"
+          go test -count=1 -v -run 'TestTheRealFFmpegWritesMP3s' ./internal/encodeport/... 2>&1 | tee "$RUNNER_TEMP/encode.log"
+          {
+            echo '### 9.1 MP3 encode with the catalogued FFmpeg'
+            echo '```'; grep -E '^(\s*--- |ok|FAIL|PASS)' "$RUNNER_TEMP/encode.log"; echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+          # A skipped test exits 0: require the MP3 test (and its subtests) to have passed, not skipped.
+          grep -q -- '--- PASS: TestTheRealFFmpegWritesMP3sTheACXChecksAccept' "$RUNNER_TEMP/encode.log" || { echo '::error::the MP3 test did not pass (skipped or absent)'; exit 1; }
+      - name: Whole encodeport package with the real binary
+        shell: bash
+        working-directory: apps/desktop
+        run: |
+          export NARRATION_UTILS_FFMPEG="$(cygpath -w "$FFMPEG_PATH")"
+          go test -count=1 ./internal/encodeport/...
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        if: always()
+        with:
+          name: encode-check-9-1
+          path: ${{ runner.temp }}/encode.log
+          if-no-files-found: warn
+          retention-days: 14

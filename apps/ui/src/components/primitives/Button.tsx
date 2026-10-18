@@ -25,7 +25,7 @@ const SIZE_CLASSES: Record<ButtonSize, string> = {
 // at `--font-size-sm`, 600, uppercase, tracked `--tracking-button`, on one line (`leading-none`, centred by the flex box). A label
 // that wraps grows the button rather than spilling out of it. Disabled is drawn at 55%.
 const CHROME =
-  "inline-flex items-center justify-center gap-1.5 rounded-[var(--radius-button)] border px-3 py-1 font-['Barlow_Condensed',sans-serif] text-[length:var(--font-size-sm)] leading-none font-semibold tracking-[var(--tracking-button)] uppercase transition disabled:pointer-events-none disabled:opacity-55 aria-busy:pointer-events-none aria-busy:opacity-60";
+  "inline-flex items-center justify-center gap-1.5 rounded-[var(--radius-button)] border px-3 py-1 font-['Barlow_Condensed',sans-serif] text-[length:var(--font-size-sm)] leading-none font-semibold tracking-[var(--tracking-button)] uppercase motion-ok:transition disabled:pointer-events-none disabled:opacity-55 aria-busy:pointer-events-none aria-busy:opacity-60";
 const LINK = 'inline cursor-pointer underline disabled:pointer-events-none disabled:opacity-55 aria-busy:pointer-events-none aria-busy:opacity-60';
 
 function buttonClasses(variant: ButtonVariant = 'primary', size: ButtonSize = 'md') {
@@ -55,7 +55,7 @@ export function Button({ variant = 'primary', size = 'md', className = '', type 
       className={`${buttonClasses(variant, size)} ${className}`}
       {...rest}
     >
-      {pending && <FontAwesomeIcon icon={faCircleNotch} className="motion-safe:animate-spin" aria-hidden="true" />}
+      {pending && <FontAwesomeIcon icon={faCircleNotch} className="motion-ok:animate-spin" aria-hidden="true" />}
       {children}
     </button>
   );
