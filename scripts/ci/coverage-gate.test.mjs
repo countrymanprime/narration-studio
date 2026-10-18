@@ -9,12 +9,15 @@ import test from 'node:test';
 import {
   aggregateFiles,
   aggregatePackages,
+  blobName,
+  blobProblems,
   evaluate,
   FLOORS_PATH,
   floorFor,
   formatFloors,
   normalizePytestReport,
   normalizeVitestSummary,
+  parseShard,
   parseGoCover,
   raiseFloors,
   RAISE_MARGIN,
@@ -288,4 +291,26 @@ test('a nonWindowsFloor must be a whole number below the floor and say why', () 
   assert.match(bad({ nonWindowsFloor: -1 }), /whole number/);
   assert.match(bad({ nonWindowsReason: undefined }), /needs a nonWindowsReason/);
   assert.match(validateFloors({ entries: [entry({ nonWindowsReason: 'orphan' })] }).join('\n'), /nonWindowsReason without a nonWindowsFloor/);
+});
+
+test('--shard=i/n names a shard of a split and nothing else does', () => {
+  assert.deepEqual(parseShard('--shard=2/3'), { index: 2, count: 3 });
+  assert.deepEqual(parseShard('--shard=1/1'), { index: 1, count: 1 });
+  for (const bad of ['--shard=0/3', '--shard=4/3', '--shard=2', '--shard=a/3', '--shard=2/3 ', 'shard=2/3', undefined]) assert.equal(parseShard(bad), null, String(bad));
+});
+
+test('a merge needs the blob of every shard of its split and none of another', () => {
+  const all = [1, 2, 3].map((i) => blobName(i, 3));
+  assert.deepEqual(blobProblems(all, 3), []);
+  assert.match(blobProblems(all.slice(0, 2), 3).join('\n'), /blob-3-3\.json is missing/);
+  assert.equal(blobProblems([], 3).length, 3);
+  assert.match(blobProblems([...all, blobName(1, 2)], 3).join('\n'), /blob-1-2\.json is not part of a 3-way split/);
+});
+
+test('the command line refuses a vitest option it does not know before running anything', () => {
+  for (const option of ['--shard=4/3', '--merge=0', '--shard=1/3x', '--coverage']) {
+    const result = spawnSync(process.execPath, [fileURLToPath(new URL('./coverage-gate.mjs', import.meta.url)), 'vitest', 'apps/ui', option], { encoding: 'utf8' });
+    assert.equal(result.status, 2, option);
+    assert.match(result.stderr, /Usage: coverage-gate\.mjs vitest/);
+  }
 });

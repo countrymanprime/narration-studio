@@ -53,7 +53,9 @@ The checks a pull request shows, by the name GitHub displays (`ci.yml` calls `_q
 
 | Check | What it runs |
 | --- | --- |
-| `quality / js` | `lint`, `format`, `architecture` (the import rules), `test` (Vitest with the coverage ratchet) and `test-node` (the node:test suites of `apps/ui/scripts`) of `narration-utils-ui`, then Knip over the whole repository |
+| `quality / js-static` | `lint`, `format`, `architecture` (the import rules) and `test-node` (the node:test suites of `apps/ui/scripts`) of `narration-utils-ui`, then Knip over the whole repository |
+| `quality / js-test (shard 1/3)` to `(shard 3/3)` | the Vitest run of `apps/ui` with coverage on the gated logic files (`node scripts/ci/coverage-gate.mjs vitest apps/ui --shard=i/3`), a third of the files each, split by cost (`apps/ui/scripts/vitest-shards.mjs`; Vitest's own split by path hash gave one shard 48% of the time). A shard checks no coverage floor; it uploads a blob of its results and coverage |
+| `quality / js-test` | merges the three blobs (`coverage-gate.mjs vitest apps/ui --merge=3`: fails when one is missing) and checks every Vitest floor of `scripts/ci/coverage-floors.json` over the merged coverage, the same numbers as the unsharded run `pnpm check` does. Skipped when the UI is not affected |
 | `quality / ui-visual (shard 1/3)` to `(shard 3/3)` | the Playwright visual suite of the mock-backed app (`pnpm --dir apps/ui run screenshots --shard=i/3`), a third each, with the per-capture checks; shard 1 also runs `aria`. Each uploads its capture records, its screenshots, and traces when it fails |
 | `quality / ui-visual` | the whole-run checks over the three shards' records (`pnpm --dir apps/ui run visual:check-run`): every expected capture present, none blank, no undeclared duplicate, no stale `sameAs`. Skipped when the UI is not affected |
 | `quality / ui-atlas (shard 1/2)`, `(shard 2/2)` | the Storybook component atlas, half the stories each: every story in light and dark at a wide and a narrow viewport, with axe |
@@ -662,7 +664,7 @@ suite has been stable for 50 runs, [#153](https://github.com/countrymanprime/nar
 
 `nx run narration-utils:knip` (also `pnpm knip`) runs [Knip](https://knip.dev) over `apps/ui`, `apps/desktop`, `scripts/`
 and `tools/`, configured in `knip.jsonc`. It fails on an unused file, export or dependency, and on an unlisted
-dependency or binary; the repository is at zero, and CI runs it on every pull request in the `js` job. Fix a finding
+dependency or binary; the repository is at zero, and CI runs it on every pull request in the `js-static` job. Fix a finding
 by deleting the code or dropping the `export`. Add an `ignore`, `ignoreIssues`, `ignoreDependencies` or
 `ignoreBinaries` entry only with a written reason in the file (generated code, external tools). It does not read Go,
 Python or Lua. The standing exceptions are the generated `apps/ui/wailsjs`, the wire-contract types, `@nx/js` (loaded by
