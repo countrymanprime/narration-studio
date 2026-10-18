@@ -121,6 +121,7 @@ func (s *Service) Update(id string, change Change) (Sample, error) {
 			return Sample{}, refuse(ReasonCharacterLimit)
 		}
 		updated.CharacterID = character
+		updated.Merge = nil // moved by hand: an undo of the merge no longer owns it
 		updated.Primary = countFor(file.Samples, character) == 0
 	}
 	if updated != before {

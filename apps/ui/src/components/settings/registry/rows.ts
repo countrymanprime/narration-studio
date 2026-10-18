@@ -446,6 +446,17 @@ export const ROWS: readonly SettingMeta[] = [
     syn: 'dark mode light colour',
   },
   {
+    id: 'look.motion',
+    cat: 'appearance',
+    section: 'Look',
+    label: 'Motion',
+    scope: 'browser',
+    def: 'system',
+    desc: 'Reduce stops slides, fades and highlights in this app; Follow Windows uses its Animation effects setting.',
+    used: ['production', 'script', 'booth', 'editing', 'proof', 'master'],
+    syn: 'animation reduce reduced motion movement accessibility',
+  },
+  {
     id: 'look.reader',
     cat: 'appearance',
     section: 'Look',

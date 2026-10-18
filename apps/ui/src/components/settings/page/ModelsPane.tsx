@@ -4,6 +4,7 @@ import { Button } from '../../primitives/Button';
 import { InsetCard } from '../../primitives/InsetCard';
 import { ConfirmDialog } from '../../primitives/ConfirmDialog';
 import { Panel } from '../../primitives/Panel';
+import { LoadingRegion, Skeleton } from '../../primitives/Skeleton';
 import { Table, TableBody, TableHead, TableHeader, TableRow } from '../../primitives/Table';
 import { ToggleGroup } from '../../primitives/ToggleGroup';
 import { AnalysisToolsSection } from '../analysis/AnalysisToolsSection';
@@ -55,15 +56,12 @@ export function ModelsPane({ category }: { category: Category }) {
 
   if (!catalog && !loadError) {
     return (
-      <div className="flex flex-col gap-3" aria-busy="true" aria-label="Loading models and downloads">
+      <LoadingRegion label="Loading models and downloads" status="Reading the models on this computer…" className="flex flex-col gap-3">
         <Heading category={category} />
         {[0, 1, 2, 3, 4].map((index) => (
-          <div key={index} className="h-16 rounded-md bg-[var(--surface-2)] motion-ok:animate-pulse" />
+          <Skeleton key={index} tall />
         ))}
-        <span className="sr-only" role="status">
-          Reading the models on this computer…
-        </span>
-      </div>
+      </LoadingRegion>
     );
   }
   if (!catalog) {

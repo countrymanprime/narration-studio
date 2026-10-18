@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { ManuscriptContentKind, ManuscriptImportPreview, ManuscriptImportSection, ManuscriptImportSelection } from '../../types';
 import { ImportProfileField } from '../delivery/ImportProfileField';
 import { Button } from '../primitives/Button';
@@ -116,6 +116,9 @@ export function ImportReview({
   const checkedIds = checkedCandidateIds(preview, selection);
   const open = (key: ReviewGroupKey) => isGroupOpen(key, groupOpen, counts);
   const root = useRef<HTMLDivElement>(null);
+  // The row whose first lines the preview shows (the mock's selected outline row); the first section until the narrator picks one.
+  const [previewId, setPreviewId] = useState<string>();
+  const previewed = sections.find((section) => section.id === previewId) ?? sections[0];
   // Reclassifying a row moves it to another group, which is a new place in the page: the select is put back in focus there, so a keyboard
   // narrator does not lose their place, and a group the row moved into opens so the change can be seen.
   const focusAfterMove = useRef<string | null>(null);
@@ -150,7 +153,14 @@ export function ImportReview({
             const styled = headingParts(heading);
             return (
               <div key={section.id} className="flex items-center gap-3 text-sm">
-                <span className="min-w-0 flex-1 truncate" title={name}>
+                {/* native-control-ok: an outline row's title, a bare text control that picks the heading to preview; Button's uppercase chrome would break the row */}
+                <button
+                  type="button"
+                  className="min-w-0 flex-1 cursor-pointer truncate text-left"
+                  title={name}
+                  aria-pressed={previewed?.id === section.id}
+                  onClick={() => setPreviewId(section.id)}
+                >
                   {heading.textLine ? (
                     <>
                       {heading.title}
@@ -166,7 +176,12 @@ export function ImportReview({
                   ) : (
                     <TitleSubtitle title={heading.title} subtitle={heading.subtitle} />
                   )}
-                </span>
+                </button>
+                {section.wordCount !== undefined && (
+                  <span className="flex-none text-xs text-[var(--text-muted)] tabular-nums">
+                    {section.wordCount.toLocaleString('en-US')} {plural(section.wordCount, 'word')}
+                  </span>
+                )}
                 {hasSubtitleChoice(section) && (
                   // The heading's second line, read as its subtitle or not. The visible word is
                   // short so the row keeps its room for the title; the name says which line it is about.
@@ -321,7 +336,15 @@ export function ImportReview({
             </fieldset>
           )}
         </div>
-        <div className="min-w-0">{options}</div>
+        <div className="min-w-0 space-y-4">
+          {previewed && (
+            <section aria-label="Preview of the selected heading" className="rounded-[var(--radius-card)] border p-3" style={{ borderColor: 'var(--border)' }}>
+              <h4 className="text-sm font-semibold">{sectionName(previewed, selection)}</h4>
+              <p className="mt-1 text-sm text-[var(--text-muted)]">{previewed.firstText ?? 'The first lines of the selected section appear here.'}</p>
+            </section>
+          )}
+          {options}
+        </div>
       </div>
     </div>
   );

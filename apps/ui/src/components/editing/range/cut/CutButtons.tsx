@@ -37,7 +37,6 @@ export function DeleteButton({
           aria-keyshortcuts="Delete"
           aria-description={reason ? hint : undefined}
           aria-disabled={reason ? true : undefined}
-          className="aria-disabled:cursor-not-allowed aria-disabled:opacity-55"
           onClick={reason ? (event) => event.preventDefault() : onClick}
         >
           <Icon name="delete" />

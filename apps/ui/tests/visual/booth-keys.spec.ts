@@ -1,6 +1,7 @@
-// A pedal Space must never hit Record behind an open popover. Every popover, menu and dialog the Booth opens is opened and the keys the Booth
-// owns (Space, B, R, N, the arrows, Tab, Enter) are pressed with it open: the page behind must not act, focus must stay in the popup (or the popup
-// must close), and Escape must close it and return focus to what opened it.
+// Every popover, menu and dialog the Booth opens is opened and the keys the Booth owns (Space, B, R, N, the arrows, Tab, Enter) are pressed with it
+// open: the page behind must not act, focus must stay in the popup (or the popup must close), and Escape must close it and return focus to what
+// opened it. The one key that does reach the take is a pedal's Space (owner ruling): with a menu or popover open it closes the popup and records or
+// stops, unless focus is in a field that takes typed text; a dialog or question keeps Space like every other key.
 import { expect, test, type Locator, type Page } from '@playwright/test';
 import { settlePage } from './helpers/settle';
 import { goToPage } from './drivers/shared';
@@ -50,6 +51,10 @@ type Overlay = {
   open: (page: Page) => Promise<{ popup: Locator; opener: Locator | null }>;
   /** A dialog the page itself asked (a question), not a popover: Escape answers it, so focus return is not asserted. */
   question?: boolean;
+  /** A dialog that keeps Space (a question, the Jump menu); a menu or popover yields it to the take. */
+  keepsSpace?: boolean;
+  /** Focus opens on a field that takes typed text: Space types a space there, and the pedal wins once focus is elsewhere. */
+  typesSpace?: boolean;
   /** A menu closes on Tab by the platform's own convention; the others hold focus. */
   menu?: boolean;
   query?: string;
@@ -87,6 +92,7 @@ const OVERLAYS: Overlay[] = [
   },
   {
     name: 'speaker popover (a named speaker)',
+    typesSpace: true,
     open: async (page) => {
       const opener = page.getByRole('button', { name: /^Speaker Hatter\. Change speaker/ });
       await opener.click();
@@ -95,6 +101,7 @@ const OVERLAYS: Overlay[] = [
   },
   {
     name: 'speaker popover (an unassigned speaker)',
+    typesSpace: true,
     open: async (page) => {
       const opener = page.getByRole('button', { name: /^Speaker \?\. Change speaker/ });
       await opener.click();
@@ -120,6 +127,7 @@ const OVERLAYS: Overlay[] = [
   },
   {
     name: 'jump menu',
+    keepsSpace: true,
     open: async (page) => {
       await page.keyboard.press('Control+KeyK');
       return { popup: page.getByRole('combobox', { name: 'Jump menu' }).locator('xpath=ancestor::*[@role="dialog"][1]'), opener: null };
@@ -128,6 +136,7 @@ const OVERLAYS: Overlay[] = [
   {
     name: 'leave dialog (a take is running)',
     question: true,
+    keepsSpace: true,
     open: async (page) => {
       await record(page).click();
       await page.getByRole('button', { name: /^Stop$/ }).waitFor();
@@ -139,6 +148,7 @@ const OVERLAYS: Overlay[] = [
   {
     name: 'roll confirmation (a take is running)',
     question: true,
+    keepsSpace: true,
     query: `${RECORD_ON}&mockRollReplaces=1`,
     open: async (page) => {
       await record(page).click();
@@ -162,6 +172,7 @@ for (const overlay of OVERLAYS) {
       for (const focusBody of [false, true]) {
         if (focusBody) await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
         for (const key of KEYS) {
+          if (key === 'Space' && !overlay.keepsSpace) continue;
           await page.keyboard.press(key);
           // A popover or a question stays until Escape or its own button; only a menu may close on a key (it chose an item).
           if (!overlay.menu) await expect(popup, `${key} closed the open ${overlay.name}`).toBeVisible();
@@ -171,6 +182,32 @@ for (const overlay of OVERLAYS) {
         }
       }
     });
+
+    if (!overlay.keepsSpace)
+      test('a pedal Space closes it and starts the take, and with a take running stops it', async ({ page }) => {
+        await openBooth(page, overlay.query, overlay.recordReady);
+        if (overlay.recordReady === false) return;
+        const { popup, opener } = await overlay.open(page);
+        await focusSettled(page, popup);
+        if (overlay.typesSpace) {
+          await page.keyboard.press('Space');
+          await expect(popup).toBeVisible();
+          await expect(record(page)).toBeVisible();
+          await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
+        }
+        await page.keyboard.press('Space');
+        await expect(page.getByRole('button', { name: /^Stop$/ })).toBeVisible();
+        await expect(popup).toBeHidden();
+        // The chapter and speaker pickers are off while a take runs, so only the others can be opened again to stop it.
+        if (opener && !(await opener.isEnabled())) return;
+        const reopened = await overlay.open(page);
+        await focusSettled(page, reopened.popup);
+        await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
+        await page.keyboard.press('Space');
+        await expect(record(page)).toBeVisible();
+        await expect(reopened.popup).toBeHidden();
+        expect(await page.evaluate(() => window.__NARRATION_MOCK_DAW__?.state().recording)).toBe(false);
+      });
 
     test('Tab keeps focus in the popup or closes it, and Escape closes it with focus returned', async ({ page }) => {
       await openBooth(page, overlay.query, overlay.recordReady);
@@ -229,5 +266,53 @@ test.describe('the pedal works after an overlay closes', () => {
     await page.getByRole('button', { name: 'Toggle the side panel' }).focus();
     await page.keyboard.press('Escape');
     await expect(page.getByRole('alertdialog', { name: 'Stop recording?' })).toBeVisible();
+  });
+});
+
+test.describe('a pedal Space with a popup open, by the control that has focus', () => {
+  test('the Font select and the Size slider in Text settings hand Space to the take', async ({ page }) => {
+    for (const name of [/^Font$/, /^Size/]) {
+      await openBooth(page);
+      await page.getByRole('button', { name: 'Text settings' }).click();
+      const popup = page.getByRole('dialog', { name: /text settings/i });
+      await focusSettled(page, popup);
+      await popup.getByRole(name.source === '^Font$' ? 'combobox' : 'slider', { name }).focus();
+      await page.keyboard.press('Space');
+      await expect(page.getByRole('button', { name: /^Stop$/ })).toBeVisible();
+      await expect(popup).toBeHidden();
+      await page.keyboard.press('Space');
+      await expect(record(page)).toBeVisible();
+    }
+  });
+
+  test('a take running, a right click and Space stops the take and closes the menu', async ({ page }) => {
+    await openBooth(page);
+    await record(page).click();
+    await page.getByRole('button', { name: /^Stop$/ }).waitFor();
+    await page.locator('[data-word]').nth(40).click({ button: 'right' });
+    const menu = page.getByRole('menu').last();
+    await expect(menu).toBeVisible();
+    await page.keyboard.press('Space');
+    await expect(record(page)).toBeVisible();
+    await expect(menu).toBeHidden();
+    await expect(page.getByRole('alertdialog')).toHaveCount(0);
+  });
+
+  test('a text field inside a popup keeps its Space', async ({ page }) => {
+    await openBooth(page);
+    await page.getByRole('button', { name: 'Levels' }).click();
+    const popup = page.getByRole('dialog', { name: 'Levels' });
+    await focusSettled(page, popup);
+    await popup.evaluate((el) => {
+      const field = document.createElement('input');
+      field.type = 'text';
+      field.setAttribute('aria-label', 'scratch');
+      el.append(field);
+    });
+    await popup.getByLabel('scratch').fill('a');
+    await page.keyboard.press('Space');
+    await expect(popup.getByLabel('scratch')).toHaveValue('a ');
+    await expect(record(page)).toBeVisible();
+    await expect(popup).toBeVisible();
   });
 });

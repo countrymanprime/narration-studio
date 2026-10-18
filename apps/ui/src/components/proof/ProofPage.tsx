@@ -20,6 +20,7 @@ import { openCheckRecordings } from '../recordingcheck/openCheckRecordings';
 import { creditsEntries, creditsKindOfId, ownsOpeningCredits } from '../credits/creditsEntries';
 import { useCreditsRows } from '../credits/useCreditsRows';
 import { LoadError } from '../layout/LoadError';
+import { ProofSkeleton } from './frame/ProofSkeleton';
 import { NeedManuscript } from '../layout/NeedManuscript';
 import { CheckCard } from './checkcard/CheckCard';
 import { ChapterStrip, type StripChapter } from './frame/ChapterStrip';
@@ -27,6 +28,7 @@ import type { Band, Pin } from './frame/pins';
 import { ProofHeader } from './frame/ProofHeader';
 import { WaveformWindow } from './frame/WaveformWindow';
 import { FIRST_WINDOW, followSecond, type TimeWindow } from './frame/windowMath';
+import { useKeepFocusInside } from './inspector/useKeepFocusInside';
 import { Inspector } from './inspector/Inspector';
 import { decisionLabel, fixKindOf } from './resolution';
 import { TypeSelect } from './inspector/TypeSelect';
@@ -125,6 +127,8 @@ export function ProofPage({
   const loadProblem = chaptersProblem ?? notesProblem;
   const [attempt, setAttempt] = useState(0);
   const read = useRef({ chapters: false, notes: false });
+  // The same two reads as state, so the page can show its skeleton until both have ended once.
+  const [firstRead, setFirstRead] = useState({ chapters: false, notes: false });
   // The pickups list, for the open pickups no note stands for: while one is open the head never reads 100.
   const [pickups, setPickups] = useState<readonly PickupItem[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(params.get('finding') ?? recallSelection(projectFolder, params.get('chapter') ?? ALL_CHAPTERS));
@@ -138,6 +142,7 @@ export function ProofPage({
   // Toasts stay left of the Inspector while it is beside the notes, so a decision's message never covers the next decision button.
   const inspectorPanel = useRef<HTMLDivElement>(null);
   useToastSideClearance(inspectorPanel);
+  useKeepFocusInside(inspectorPanel);
   const selectingForMenu = useRef(false);
 
   const scope = params.get('chapter') ?? ALL_CHAPTERS;
@@ -164,6 +169,7 @@ export function ProofPage({
       .then((list) => {
         if (!live) return;
         read.current.chapters = true;
+        setFirstRead((now) => (now.chapters ? now : { ...now, chapters: true }));
         setChaptersProblem(undefined);
         setChapters(list.filter(isNarration));
         setOwnsOpening(ownsOpeningCredits(list));
@@ -198,6 +204,7 @@ export function ProofPage({
       .then(([page, counts]) => {
         if (!live) return;
         read.current.notes = true;
+        setFirstRead((now) => (now.notes ? now : { ...now, notes: true }));
         setNotesProblem(undefined);
         setFindings(page.findings.map(held));
         setSummary(counts);
@@ -249,7 +256,14 @@ export function ProofPage({
     if (findings.length > 0 && !findings.some((f) => f.id === selectedId)) select(findings[0].id);
   }, [findings, selectedId, select]);
   const selected = findings.find((f) => f.id === selectedId) ?? null;
-  const order = useMemo(() => findings.map((f) => f.id), [findings]);
+  // The rows the notes list shows (a chip, the find box or the "In view" window can hide some): keys and the step after a decision follow them.
+  const [shown, setShown] = useState<readonly string[] | null>(null);
+  const order = useMemo(() => {
+    const all = findings.map((f) => f.id);
+    if (shown === null) return all;
+    const visible = new Set(shown);
+    return all.filter((id) => visible.has(id));
+  }, [findings, shown]);
 
   const replace = useCallback((next: Finding) => setFindings((list) => list.map((f) => (f.id === next.id ? held(next) : f))), []);
   // A decision is one journal entry, so Ctrl+Z and History take it back as the toast's Undo does (mock `decideNote` over `act`). Undo puts the
@@ -313,7 +327,7 @@ export function ProofPage({
       if (!decided || entry === undefined) return;
       const after = order[order.indexOf(next.id) + 1];
       if (after) select(after);
-      overlay.toastUndo(`${noteRow(next).time} · ${noteRow(next).resolution.label}`, () => journal.undo(entry));
+      overlay.toastUndo(`${noteRow(next).time} · ${noteRow(next).resolution.label}`, () => journal.undo(entry), { entry });
     },
     [order, replace, select, overlay, journal],
   );
@@ -393,6 +407,7 @@ export function ProofPage({
 
   if (!hasManuscript) return <NeedManuscript title="Proof" onImport={() => goTo('/')} />;
   if (loadProblem !== undefined) return <LoadError title="Proof" message={loadProblem} retry={() => setAttempt((n) => n + 1)} />;
+  if (!firstRead.chapters || !firstRead.notes) return <ProofSkeleton />;
 
   const stepper = (
     <ChapterStepper
@@ -472,6 +487,7 @@ export function ProofPage({
               sort={sort}
               onSortChange={setSort}
               selectedId={selectedId}
+              onShownChange={setShown}
               onSelect={(id) => {
                 const open = opening.current;
                 opening.current = false;

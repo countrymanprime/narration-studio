@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { MemoryRouter } from 'react-router-dom';
 import { useManuscriptImport } from './ManuscriptImport';
@@ -593,8 +593,9 @@ describe('the delivery profile on the first import (SNM-4d)', () => {
 });
 
 describe('step 1: choose your manuscript (the Studio Next mock)', () => {
-  async function openStep1(replacing = false) {
+  async function openStep1(replacing = false, prepare: (api: NarrationApi) => void = () => {}) {
     const api = createMockApi({}, replacing ? { importPreview: 'docx' } : { noManuscript: true, importPreview: 'docx' });
+    prepare(api);
     const data: Bootstrap = await api.bootstrap();
     render(
       <MemoryRouter>
@@ -637,6 +638,43 @@ describe('step 1: choose your manuscript (the Studio Next mock)', () => {
     fireEvent.drop(zone, { dataTransfer: { files: [{ name: 'Alice.docx', path: 'C:/Books/Alice.docx' }] } });
     await waitFor(() => expect(begin).toHaveBeenCalledWith('C:/Books/Alice.docx'));
     expect(await screen.findByRole('alertdialog', { name: /^Import Alice\./ })).toBeTruthy();
+  });
+
+  it('marks the zone for the desktop host, which reads a file dropped on it itself', async () => {
+    const { dialog } = await openStep1();
+    expect(within(dialog).getByText('Drop a manuscript here').closest('[data-drop-zone]')?.hasAttribute('data-file-drop-target')).toBe(true);
+  });
+
+  it('a file the host began importing opens the review, and only while step 1 is open', async () => {
+    let onDropped: Parameters<NarrationApi['subscribeManuscriptDropped']>[0] = () => {};
+    let subscribed = 0;
+    const { api } = await openStep1(false, (host) => {
+      host.subscribeManuscriptDropped = (listener) => {
+        onDropped = listener;
+        subscribed++;
+        return () => void subscribed--;
+      };
+    });
+    expect(subscribed).toBe(1);
+    const begin = vi.spyOn(api, 'manuscriptBeginImport');
+    // The mock host keeps its one job in a closure; the real host began this one before it sent the event.
+    const { jobId } = await api.selectManuscript();
+    await act(async () => onDropped({ jobId: jobId!, name: 'Alice.docx' }));
+    expect(await screen.findByRole('alertdialog', { name: /^Import Alice\./ })).toBeTruthy();
+    expect(begin).not.toHaveBeenCalled();
+    expect(subscribed).toBe(0);
+  });
+
+  it('a drop the host refused says why in the zone and keeps step 1 open', async () => {
+    let onDropped: Parameters<NarrationApi['subscribeManuscriptDropped']>[0] = () => {};
+    const { dialog } = await openStep1(false, (host) => {
+      host.subscribeManuscriptDropped = (listener) => {
+        onDropped = listener;
+        return () => {};
+      };
+    });
+    await act(async () => onDropped({ message: 'Drop one manuscript at a time.' }));
+    expect((await within(dialog).findByRole('alert')).textContent).toBe('Drop one manuscript at a time.');
   });
 
   it('a dropped file whose location the window cannot read says so and starts nothing', async () => {
