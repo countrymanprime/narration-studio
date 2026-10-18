@@ -8,7 +8,10 @@ import { chapterName } from '../../../chapterName';
 import { useUserKeymap } from '../../../input/useUserKeymap';
 import { CommandScope } from '../../../input/router';
 import { useOverlay } from '../../../overlay/OverlayProvider';
+import { useCommand } from '../../../input/useCommand';
+import { escapeJustStoppedASample } from '../../voicesamples/samplePlayerStore';
 import { SamplePlayerAnnouncement } from '../../voicesamples/SamplePlayButton';
+import { NARRATION_SPEAKER } from '../samples/boothSamples';
 import { BoothSamplesProvider } from '../samples/BoothSamplesContext';
 import { useBoothSamples } from '../samples/useBoothSamples';
 import type { MeasurementsPort } from '../../../ports/measurements';
@@ -218,6 +221,7 @@ function BoothSession({ source, from, requested, adopt, data, choose, navigate, 
   const parts = useRef<{
     takeStopped?: (take: { began: number; stopped: number; quiet?: boolean }) => Promise<number>;
     menuItems?: (target: Element) => ContextMenuItem[];
+    escapeStoppedSample?: () => boolean;
   }>({});
   const page = useBoothPage({
     recordId,
@@ -233,6 +237,7 @@ function BoothSession({ source, from, requested, adopt, data, choose, navigate, 
     exitTo,
     onTakeStopped: (take) => parts.current.takeStopped?.(take),
     menuItems: (target) => parts.current.menuItems?.(target) ?? [],
+    escapeStoppedSample: () => parts.current.escapeStoppedSample?.() ?? false,
   });
   const { control, at, units } = page;
 
@@ -349,6 +354,19 @@ function BoothSession({ source, from, requested, adopt, data, choose, navigate, 
     recorder: { unknown: control.readFailed, checkedAt: control.checkedAt, checkAgain: control.checkAgain },
     listening: { active: session.active, paused: session.paused, pause: session.pause },
     notify: (text, tone) => overlay.toast(text, tone ? { tone } : undefined),
+  });
+  // Escape stops a sample before it leaves the Booth: a sample playing, or one the window's Escape listener has just stopped on this very press.
+  parts.current.escapeStoppedSample = () => {
+    if (!samples.activeId && !escapeJustStoppedASample()) return false;
+    samples.stop();
+    return true;
+  };
+  // V: the primary sample of the speaker of the phrase the reading is on, and again to stop it. A phrase nobody speaks in quotes is Narration's.
+  useCommand('booth.voice-sample', () => {
+    const unit = units[at.cur];
+    if (!unit) return;
+    if (unit.quoted && unit.speaker === UNKNOWN_SPEAKER) return overlay.toast('Choose who speaks this line first: press its speaker chip.');
+    samples.toggleSpeaker(unit.quoted ? unit.speaker : NARRATION_SPEAKER);
   });
   const colourOf = useMemo(() => {
     const byName = new Map(characters.map((entity) => [entity.canonical_name, entity]));

@@ -24,6 +24,8 @@
 //   reload mid-action               not tested: a reload discards the page and its player; a session paused by the page stays paused until the narrator resumes (documented)
 //   the DAW answers late / out of order  'the DAW\'s state arriving late changes the next play, not the one in flight' (the guard is read at the press)
 //   long, RTL, emoji names          'a name in any script reaches the announcement as given'
+//   V (toggle a speaker)            'plays the primary of the speaker, and again stops it', 'a speaker with no sample says where to make one', 'Narration has samples of its own', 'the key during a take is refused with the sentence'
+//   prefetch                        'warms the primary sample of each speaker in the chapter, and never plays them', 'warms again when the list or the chapter changes and lets go of what left', 'warms nothing while a take records', 'lets go of what it warmed when the page leaves', 'a speaker whose clip is missing is not warmed'
 import { act, renderHook } from '@testing-library/react';
 import type { ReactNode } from 'react';
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi, type Mock } from 'vitest';
@@ -32,7 +34,7 @@ import type { GuideEntity } from '../../../api/contracts/storyBible';
 import { createMockApi } from '../../../api/mockApi';
 import { WIRE_ENTITIES } from '../../../api/mockFixtures';
 import { stopSample } from '../../voicesamples/samplePlayerStore';
-import { cantTellSentence, PAUSE_GRACE_MS } from './boothSamples';
+import { cantTellSentence, NARRATION_SPEAKER, noSampleSentence, PAUSE_GRACE_MS } from './boothSamples';
 import { useBoothSamples, type BoothSamplesOptions } from './useBoothSamples';
 
 class FakeAudio extends EventTarget {
@@ -40,8 +42,13 @@ class FakeAudio extends EventTarget {
   private current = '';
   currentTime = 0;
   duration = Number.NaN;
+  preload = '';
   play = vi.fn().mockResolvedValue(undefined);
   pause = vi.fn();
+  removeAttribute(name: string): void {
+    if (name === 'src') this.current = '';
+  }
+  load = vi.fn();
   get src(): string {
     return this.current;
   }
@@ -55,7 +62,10 @@ class FakeAudio extends EventTarget {
   }
 }
 const instances: FakeAudio[] = [];
-const audio = (): FakeAudio => instances[0]!;
+/** The player's own element; the elements the page warmed (`preload="auto"`) are never played. */
+const players = (): FakeAudio[] => instances.filter((el) => el.preload !== 'auto');
+const warmedElements = (): FakeAudio[] => instances.filter((el) => el.preload === 'auto' && el.src !== '');
+const audio = (): FakeAudio => players()[0]!;
 beforeAll(() => {
   vi.stubGlobal(
     'Audio',
@@ -104,7 +114,8 @@ async function loaded(result: { current: ReturnType<typeof useBoothSamples> }) {
 
 beforeEach(() => {
   vi.useFakeTimers();
-  const el = instances[0];
+  for (const warmed of instances.filter((el) => el.preload === 'auto')) warmed.src = '';
+  const el = players()[0];
   if (!el) return;
   el.play.mockReset().mockResolvedValue(undefined);
   el.pause.mockReset();
@@ -447,5 +458,125 @@ describe('what the picker and the panel read', () => {
     const { result } = mount();
     await loaded(result);
     expect(result.current.samplesOf('Queen of Hearts').find((s) => s.id === LAUGHING)?.label).toBe('Laughing');
+  });
+});
+
+describe('the V key', () => {
+  it('plays the primary of the speaker, and again stops it', async () => {
+    const { result } = mount({ listening: listening({ active: false }) });
+    await loaded(result);
+    act(() => result.current.toggleSpeaker('Queen of Hearts'));
+    expect(audio().src).toBe(`/media?sample=${QUEEN}`);
+    expect(result.current.activeId).toBe(QUEEN);
+    act(() => result.current.toggleSpeaker('Queen of Hearts'));
+    expect(result.current.activeId).toBeNull();
+    expect(audio().pause).toHaveBeenCalled();
+  });
+
+  it('pressed during the wait before the sound it cancels the sample', async () => {
+    const { result, options } = mount();
+    await loaded(result);
+    act(() => result.current.toggleSpeaker('Queen of Hearts'));
+    expect(result.current.statusOf(QUEEN)).toBe('loading');
+    act(() => result.current.toggleSpeaker('Queen of Hearts'));
+    await act(async () => void (await vi.advanceTimersByTimeAsync(PAUSE_GRACE_MS * 3)));
+    expect(result.current.statusOf(QUEEN)).toBe('idle');
+    expect(asked(options)).toEqual([true, false]);
+  });
+
+  it('a speaker with no sample says where to make one', async () => {
+    const { result, options } = mount();
+    await loaded(result);
+    act(() => result.current.toggleSpeaker('Alice'));
+    expect(options.notify).toHaveBeenCalledWith(noSampleSentence('Alice'));
+    expect(noSampleSentence('Alice')).toBe('No voice sample for Alice yet. Mark one in Editing.');
+    expect(options.listening.pause).not.toHaveBeenCalled();
+  });
+
+  it('Narration has samples of its own', async () => {
+    const { result } = mount({ listening: listening({ active: false }) });
+    await loaded(result);
+    expect(result.current.samplesOf(NARRATION_SPEAKER)).toHaveLength(1);
+    act(() => result.current.toggleSpeaker(NARRATION_SPEAKER));
+    expect(audio().src).toBe(`/media?sample=${'6'.padStart(32, '0')}`);
+  });
+
+  it('a character called Narration keeps the name', async () => {
+    const odd = { ...characters[0]!, canonical_name: NARRATION_SPEAKER, id: 'mad-hatter' } as GuideEntity;
+    const { result } = mount({ characters: [odd] });
+    await loaded(result);
+    expect(result.current.samplesOf(NARRATION_SPEAKER).map((sample) => sample.id)).toEqual([HATTER]);
+  });
+
+  it('the key during a take is refused with the sentence', async () => {
+    const { result, options } = mount({ recording: true });
+    await loaded(result);
+    act(() => result.current.toggleSpeaker('Queen of Hearts'));
+    expect(options.notify).toHaveBeenCalledWith('Not while recording. Stop the take first.');
+  });
+});
+
+describe('prefetch', () => {
+  it('warms the primary sample of each speaker in the chapter, and never plays them', async () => {
+    const { result } = mount({ inChapter: new Set(['Queen of Hearts', 'Hatter', 'Alice']) });
+    await loaded(result);
+    await vi.waitFor(() => expect(warmedElements().length).toBeGreaterThan(0));
+    const urls = warmedElements()
+      .map((el) => el.src)
+      .sort();
+    // Alice has none; Narration's primary is warmed with them.
+    expect(urls).toEqual([`/media?sample=${QUEEN}`, `/media?sample=${HATTER}`, `/media?sample=${'6'.padStart(32, '0')}`].sort());
+    for (const el of warmedElements()) expect(el.play).not.toHaveBeenCalled();
+    expect(result.current.activeId).toBeNull();
+  });
+
+  it('warms again when the chapter changes and lets go of what left', async () => {
+    const { result, rerender, options } = mount({ inChapter: new Set(['Queen of Hearts']) });
+    await loaded(result);
+    await vi.waitFor(() => expect(warmedElements().some((el) => el.src.endsWith(QUEEN))).toBe(true));
+    rerender({ ...options, inChapter: new Set(['Hatter']) });
+    await vi.waitFor(() => expect(warmedElements().some((el) => el.src.endsWith(HATTER))).toBe(true));
+    expect(warmedElements().some((el) => el.src.endsWith(QUEEN))).toBe(false);
+  });
+
+  it('warms nothing while a take records', async () => {
+    const { result, rerender, options } = mount({ inChapter: new Set(['Queen of Hearts']) });
+    await loaded(result);
+    await vi.waitFor(() => expect(warmedElements().length).toBeGreaterThan(0));
+    rerender({ ...options, recording: true });
+    await vi.waitFor(() => expect(warmedElements()).toHaveLength(0));
+  });
+
+  it('lets go of what it warmed when the page leaves', async () => {
+    const { result, unmount } = mount({ inChapter: new Set(['Queen of Hearts']) });
+    await loaded(result);
+    await vi.waitFor(() => expect(warmedElements().length).toBeGreaterThan(0));
+    unmount();
+    expect(warmedElements()).toHaveLength(0);
+  });
+
+  it('a speaker whose clip is missing is not warmed', async () => {
+    const real = api.voiceSamplesList;
+    const damaged = {
+      ...api,
+      voiceSamplesList: async () => ({
+        ...(await real()),
+        samples: (await real()).samples.map((s) => (s.characterId === 'mad-hatter' ? { ...s, clipState: 'missing' as const } : s)),
+      }),
+    };
+    const view = renderHook((props: BoothSamplesOptions) => useBoothSamples(props), {
+      wrapper: ({ children }: { children: ReactNode }) => <ApiProvider api={damaged}>{children}</ApiProvider>,
+      initialProps: {
+        characters,
+        inChapter: new Set(['Hatter']),
+        recording: false,
+        recorder: { unknown: false, checkedAt: null, checkAgain: vi.fn() },
+        listening: listening(),
+        notify: vi.fn(),
+      },
+    });
+    await loaded(view.result);
+    await vi.waitFor(() => expect(warmedElements().some((el) => el.src.endsWith('6'.padStart(32, '0')))).toBe(true));
+    expect(warmedElements().some((el) => el.src.endsWith(HATTER))).toBe(false);
   });
 });

@@ -10,3 +10,9 @@ export function cantTellSentence(checkedAt: number | null, now: number): string 
   const heard = checkedAt === null ? 'not heard yet' : `last heard ${Math.max(0, Math.round((now - checkedAt) / 1000))} s ago`;
   return `Can't tell whether a take is recording (${heard}).`;
 }
+
+/** The speaker label of a phrase nobody speaks in quotes: Narration, whose samples are kept under the character id `narration`. */
+export const NARRATION_SPEAKER = 'Narration';
+
+/** What the Booth says when a speaker has no voice sample to play. */
+export const noSampleSentence = (speaker: string): string => `No voice sample for ${speaker} yet. Mark one in Editing.`;
