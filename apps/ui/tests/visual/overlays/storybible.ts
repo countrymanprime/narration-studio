@@ -1,7 +1,8 @@
 import type { Page } from '@playwright/test';
 import { fromState, hoverCase, type OverlayCase } from '../helpers/overlayGuardFor';
 
-// The Story Bible's own overlays (components/storybible/): the hints on the header's icon buttons, the kind menu of an entry in Edit,
+// The Story Bible's own overlays (components/storybible/): the hints on the header's icon buttons, the kind menu of an entry in Edit, the menu of a
+// voice sample and its Rename, Move and Delete dialogs,
 // the right-click menu of an entry row, and the dialogs, the language-model and voice prompts and the Voice data panel that the catalog's
 // state drivers already reach. Not driven: the Sort and speaker-colour selects (native selects, whose popup the browser draws outside
 // the page where `elementFromPoint` cannot see it), the pronunciation source menu and the review slide-over (each needs a chain of
@@ -48,4 +49,9 @@ export const storyBibleCases: OverlayCase[] = [
   fromState('storybible', 'rebuild-running'),
   fromState('storybible', 'voice-data-panel', 'dialog', { root: (page) => page.getByRole('dialog', { name: 'Voice data' }) }),
   fromState('storybible', 'remove-voice-data-confirm'),
+  fromState('storybible', 'voice-sample-menu', 'menu'),
+  fromState('storybible', 'voice-sample-rename'),
+  fromState('storybible', 'voice-sample-move'),
+  fromState('storybible', 'voice-sample-delete-confirm'),
+  fromState('storybible', 'remove-voice-samples-confirm'),
 ];

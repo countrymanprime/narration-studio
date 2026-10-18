@@ -1,6 +1,6 @@
 // The `storybible` rows of STATE_CATALOG (see state-catalog.ts), in the order they are captured.
 import type { StateEntry } from '../lib/types';
-import { KEEPS_DESKTOP_SCROLL } from './shared';
+import { KEEPS_DESKTOP_SCROLL, POPUP_ANCHORED_AT_FIRST_WIDTH } from './shared';
 
 export const storybibleStates: StateEntry[] = [
   // Story Bible
@@ -140,6 +140,60 @@ export const storybibleStates: StateEntry[] = [
     page: 'storybible',
     state: 'remove-voice-data-confirm',
     description: 'Story Bible, the Voice data slide-over with the Remove voice data confirm dialog open (destructive, project-wide)',
+  },
+
+  // Voice samples (phase 4 of docs/prds/character-voice-samples.prd.md): the entry's section and the Voice data panel's lists, with samples seeded by
+  // `?mockVoiceSamples=bible` (a Queen with four samples, one whose passage changed and one whose audio file is missing; the Hatter's one; Narration's
+  // one; one whose character left the Story Bible) or `full` (a Queen at the 20 a character may have). The playing state moves with the audio, so it has
+  // Vitest and a story and no row.
+  {
+    page: 'storybible',
+    state: 'voice-samples-entry',
+    description:
+      'Story Bible, the locked Queen of Hearts entry with four voice samples above Reference clips: the primary with its star, Passage changed, Audio file missing, each with where it came from and Open in Editing (?mockVoiceSamples=bible)',
+  },
+  {
+    page: 'storybible',
+    state: 'voice-samples-empty',
+    description: 'Story Bible, an entry with no voice sample: how to mark one and Open Editing (?mockVoiceSamples=bible, Alice)',
+  },
+  {
+    page: 'storybible',
+    state: 'voice-samples-limit',
+    description: 'Story Bible, the Queen of Hearts at the 20 voice samples a character may have: the section says so (?mockVoiceSamples=full)',
+  },
+  {
+    page: 'storybible',
+    state: 'voice-sample-menu',
+    description: 'Story Bible, the Hatter in Edit with the menu of its voice sample open: Rename, Move to a character and Delete (?mockVoiceSamples=bible)',
+    ...POPUP_ANCHORED_AT_FIRST_WIDTH,
+  },
+  {
+    page: 'storybible',
+    state: 'voice-sample-rename',
+    description: 'Story Bible, the Rename voice sample dialog: the label and the note, Cancel and Save (?mockVoiceSamples=bible)',
+  },
+  {
+    page: 'storybible',
+    state: 'voice-sample-move',
+    description: 'Story Bible, the Move voice sample dialog: the character to move to with how many samples it has (?mockVoiceSamples=bible)',
+  },
+  {
+    page: 'storybible',
+    state: 'voice-sample-delete-confirm',
+    description:
+      'Story Bible, the Delete voice sample confirm: it names the sample and says its audio is removed and the recording is not touched (?mockVoiceSamples=bible)',
+  },
+  {
+    page: 'storybible',
+    state: 'voice-data-samples',
+    description:
+      'Story Bible, the Voice data slide-over with Narration voice samples, the totals against 200 MiB, Remove voice samples and Remove voice data, and the sample of a character who is no longer in the Story Bible (?mockVoiceSamples=bible)',
+  },
+  {
+    page: 'storybible',
+    state: 'remove-voice-samples-confirm',
+    description: 'Story Bible, the Voice data slide-over with the Remove voice samples confirm open (destructive, project-wide) (?mockVoiceSamples=bible)',
   },
 
   // Series tab (a tab, with no nav entry of its own; non-acoustic only: reference clips and their source book, no
