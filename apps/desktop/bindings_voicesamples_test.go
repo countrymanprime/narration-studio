@@ -358,3 +358,57 @@ func TestVoiceSamplesStorageSettingAcceptsOnlyProject(t *testing.T) {
 		t.Fatalf("a hand-edited daw reads as %q", value)
 	}
 }
+
+// A Story Bible merge takes the absorbed entry's voice samples with it, and an undo of the merge gives them back; the page hears
+// of each change only when something moved.
+func TestAStoryBibleMergeMovesTheSamplesAndItsUndoMovesThemBack(t *testing.T) {
+	host, _ := voiceSamplesHost(t)
+	record := currentRecordID(t, host)
+	const survivor, undo = "entity-0123456789ab", "00000000000000a1"
+	revision := func() int64 { return host.voiceSamplesRevision.Load() }
+	owners := func() map[string]int {
+		counts := map[string]int{}
+		for _, sample := range voiceListOf(t)(host.VoiceSamplesList()).Samples {
+			counts[sample.CharacterID]++
+		}
+		return counts
+	}
+	if answer := voiceAnswerOf(t)(host.VoiceSampleMark(aliceRequest(record, voiceCharacter))); answer.Status != "saved" {
+		t.Fatalf("mark = %+v", answer)
+	}
+	before := revision()
+
+	host.followMerge(undo, "entity-with-no-samples", survivor)
+	if revision() != before {
+		t.Fatalf("a merge that moved nothing changed the revision to %d", revision())
+	}
+	host.followMerge(undo, voiceCharacter, survivor)
+	if got := owners(); got[survivor] != 1 || got[voiceCharacter] != 0 || revision() != before+1 {
+		t.Fatalf("after the merge: owners %v, revision %d", got, revision())
+	}
+	host.followMerge(undo, voiceCharacter, survivor)
+	if revision() != before+1 {
+		t.Fatalf("a repeated merge changed the revision to %d", revision())
+	}
+
+	host.unfollowMerge("00000000000000b2")
+	if revision() != before+1 {
+		t.Fatalf("the undo of another merge changed the revision to %d", revision())
+	}
+	host.unfollowMerge(undo)
+	if got := owners(); got[voiceCharacter] != 1 || got[survivor] != 0 || revision() != before+2 {
+		t.Fatalf("after the undo: owners %v, revision %d", got, revision())
+	}
+}
+
+// With no project open there is nowhere the samples could be: a merge is not an error for them, and nothing is reported.
+func TestAStoryBibleMergeWithNoProjectOpenLeavesTheSamplesAlone(t *testing.T) {
+	host := &Host{}
+	defer func() {
+		if r := recover(); r != nil {
+			t.Fatalf("following a merge with no project open panicked: %v", r)
+		}
+	}()
+	host.followMerge("00000000000000a1", "a", "b")
+	host.unfollowMerge("00000000000000a1")
+}

@@ -88,8 +88,12 @@ export async function markForPickup(
     return;
   }
   const entry = result.value.id;
-  overlay.toastUndo('Added to Pickups.', async () => {
-    const undone = await journal.undo(entry);
-    return undone.ok ? { ok: true } : undone;
-  });
+  overlay.toastUndo(
+    'Added to Pickups.',
+    async () => {
+      const undone = await journal.undo(entry);
+      return undone.ok ? { ok: true } : undone;
+    },
+    { entry },
+  );
 }

@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/wailsapp/wails/v3/pkg/application"
+	"github.com/wailsapp/wails/v3/pkg/events"
 )
 
 // Every call the host makes into Wails goes through this file. Wails v3 keeps one application per process, which
@@ -126,4 +127,12 @@ func quitApplication() {
 	if app := application.Get(); app != nil {
 		app.Quit()
 	}
+}
+
+// watchFileDrop calls onDrop with the paths of a file dropped on the window. Wails reports a drop only over an element marked
+// data-file-drop-target (the import's drop zone), and only when the window was made with EnableFileDrop (main.go).
+func watchFileDrop(window *application.WebviewWindow, onDrop func(paths []string)) {
+	window.OnWindowEvent(events.Common.WindowFilesDropped, func(event *application.WindowEvent) {
+		onDrop(event.Context().DroppedFiles())
+	})
 }

@@ -136,6 +136,32 @@ describe('stacking and Escape order stay the primitives', () => {
   });
 });
 
+describe('Escape while focus is still in the layer under a confirm', () => {
+  it('answers the confirm, not the Dialog beneath it', async () => {
+    function Page() {
+      const [open, setOpen] = useState(true);
+      return (
+        <main tabIndex={-1}>
+          {open && (
+            <Dialog dismissOnOutsidePress={false} title="Details" onClose={() => setOpen(false)} actions={<button onClick={() => void ask()}>Ask</button>}>
+              <p>Body</p>
+            </Dialog>
+          )}
+          <OverlayHost service={service} />
+        </main>
+      );
+    }
+    render(<Page />);
+    await userEvent.click(await screen.findByRole('button', { name: 'Ask' }));
+    await screen.findByRole('alertdialog', { name: 'Delete the take?' });
+    // Base UI moves focus into the confirm a frame later; a key pressed before that lands in the Dialog.
+    screen.getByRole('button', { name: 'Ask', hidden: true }).focus();
+    await userEvent.keyboard('{Escape}');
+    await waitFor(() => expect(screen.queryByRole('alertdialog')).toBeNull());
+    expect(screen.getByRole('dialog', { name: 'Details' })).toBeTruthy();
+  });
+});
+
 describe('overlay.toast', () => {
   it('toast-shows-and-expires: an information toast follows Toast timing', () => {
     vi.useFakeTimers();
@@ -189,6 +215,48 @@ describe('overlay.toastUndo', () => {
     expect(await screen.findByText('Something newer changed the DAW.')).toBeTruthy();
     expect(screen.queryByText('Moved the marker')).toBeNull();
     expect(screen.queryByRole('button', { name: 'Undo' })).toBeNull();
+  });
+});
+
+describe('an Undo toast goes when its change is no longer there to undo', () => {
+  const ok = () => Promise.resolve({ ok: true as const });
+
+  it('settleUndo takes away the Undo toast of an entry that is gone and keeps the others', () => {
+    mount();
+    act(() => service.toastUndo('Waived 00:10', ok, { entry: 1 }));
+    act(() => service.toastUndo('Waived 00:20', ok, { entry: 2 }));
+    act(() => service.settleUndo((entry) => entry === 2));
+    expect(screen.queryByText('Waived 00:10')).toBeNull();
+    expect(screen.getByText('Waived 00:20')).toBeTruthy();
+  });
+
+  it('settleUndo leaves a toast with no entry, and a plain message, alone', () => {
+    mount();
+    act(() => service.toastUndo('Deleted the note', ok));
+    act(() => service.toast('Saved.'));
+    act(() => service.settleUndo(() => false));
+    expect(screen.getByText('Deleted the note')).toBeTruthy();
+    expect(screen.getByText('Saved.')).toBeTruthy();
+  });
+
+  it('dismissUndo takes away every Undo toast (the page, the chapter or the project it was about is gone) and nothing else', () => {
+    mount();
+    act(() => service.toastUndo('Waived 00:10', ok, { entry: 1 }));
+    act(() => service.toastUndo('Deleted the note', ok));
+    act(() => service.toast('REAPER is starting', { topic: 'start' }));
+    act(() => service.toast('Could not save.', { tone: 'error' }));
+    act(() => service.dismissUndo());
+    expect(screen.queryByText('Waived 00:10')).toBeNull();
+    expect(screen.queryByText('Deleted the note')).toBeNull();
+    expect(screen.getByText('REAPER is starting')).toBeTruthy();
+    expect(screen.getByText('Could not save.')).toBeTruthy();
+  });
+
+  it('an Undo toast raised after dismissUndo shows (the new page can raise its own)', () => {
+    mount();
+    act(() => service.dismissUndo());
+    act(() => service.toastUndo('Waived 00:10', ok, { entry: 1 }));
+    expect(screen.getByRole('button', { name: 'Undo' })).toBeTruthy();
   });
 });
 

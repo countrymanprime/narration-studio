@@ -12,6 +12,13 @@ export const proofStates: StateEntry[] = [
   },
   {
     page: 'proof',
+    state: 'loading',
+    description:
+      'Proof while the chapters are still being read (?mockChapters=loading): the Proof title and grey blocks where the chapter strip, the notes queue and the Inspector will be, with one polite "Reading the chapters and notes…" status',
+    ...REFLOW,
+  },
+  {
+    page: 'proof',
     state: 'default',
     description:
       "Proof, all chapters (Studio Next mock): the head with the chapter stepper and the cleared ring, the chapter strip with each chapter's open notes, the notes queue (chips, sort, find, Check recordings, the proofer sheet icons, the Sources line, the table grouped by chapter), the Inspector on the first note and the key hints",

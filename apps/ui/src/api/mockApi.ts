@@ -54,6 +54,7 @@ import { createAssetsMock } from './mockHost/assets';
 import { createProofingMock } from './mockHost/proofing';
 import { createReaperActionsMock } from './mockHost/reaperActions';
 import { createChapterTracksMock } from './mockHost/chapterTracks';
+import { createMergeEvents } from './mockHost/mergeEvents';
 import { createStoryBibleMock } from './mockHost/storyBible';
 import { createCharacterMock } from './mockHost/character';
 import { createSeriesMock } from './mockHost/series';
@@ -165,7 +166,8 @@ export function createMockApi(
     dawFileLinked: project.dawFileLinked,
     peekCoverage: (chapterId) => peekCoverage(chapterId),
   });
-  const storyBible = createStoryBibleMock(s, initial, manuscriptReady, assets);
+  const merges = createMergeEvents();
+  const storyBible = createStoryBibleMock(s, initial, manuscriptReady, assets, merges);
   const extraction = createExtractionMock(endJob);
   const character = createCharacterMock(s);
   const series = createSeriesMock(s, (characterId) => s.entities.find((entity) => entity.id === characterId)?.canonical_name);
@@ -380,6 +382,7 @@ export function createMockApi(
       () => s.chapters,
       () => s.paragraphs,
       initial.voiceSamples,
+      merges,
     ),
     ...createEditLogMock(
       manuscriptReady,

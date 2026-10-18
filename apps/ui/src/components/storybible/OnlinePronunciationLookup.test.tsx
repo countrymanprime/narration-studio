@@ -27,17 +27,17 @@ describe('OnlinePronunciationLookup', () => {
   it('sends the name alone, only when pressed, and offers each answer for the narrator’s own field', async () => {
     const { lookup, onUse } = await setup('Hatter');
     expect(lookup).not.toHaveBeenCalled();
-    await userEvent.click(screen.getByRole('button', { name: 'Look up Hatter online in Merriam-Webster' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Look up online: Hatter in Merriam-Webster' }));
     expect(lookup).toHaveBeenCalledTimes(1);
     expect(lookup).toHaveBeenCalledWith('Hatter');
     expect(await screen.findByText('\\ˈha-tər\\')).toBeTruthy();
-    await userEvent.click(screen.getByRole('button', { name: 'Use ˈha-tər as your pronunciation of Hatter' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Use this: ˈha-tər as your pronunciation of Hatter' }));
     expect(onUse).toHaveBeenCalledWith('ˈha-tər');
   });
 
   it('says when an answer came from this computer’s copy', async () => {
     await setup('Alice');
-    const button = screen.getByRole('button', { name: 'Look up Alice online in Merriam-Webster' });
+    const button = screen.getByRole('button', { name: 'Look up online: Alice in Merriam-Webster' });
     await userEvent.click(button);
     expect(await screen.findByText('Merriam-Webster respelling:')).toBeTruthy();
     await userEvent.click(button);
@@ -46,13 +46,13 @@ describe('OnlinePronunciationLookup', () => {
 
   it('shows the dictionary’s suggestions for a word it does not have', async () => {
     await setup('quorlen');
-    await userEvent.click(screen.getByRole('button', { name: 'Look up quorlen online in Merriam-Webster' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Look up online: quorlen in Merriam-Webster' }));
     expect(await screen.findByText('Merriam-Webster does not have “quorlen”. It suggests: quorum, sorrel.')).toBeTruthy();
   });
 
   it('tells the narrator to add their own key first', async () => {
     await setup('Alice', { key: false });
-    await userEvent.click(screen.getByRole('button', { name: 'Look up Alice online in Merriam-Webster' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Look up online: Alice in Merriam-Webster' }));
     expect(await screen.findByText('Add your own free Merriam-Webster key in Settings > Story Bible first.')).toBeTruthy();
   });
 });

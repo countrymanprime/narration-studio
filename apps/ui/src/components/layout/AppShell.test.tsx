@@ -399,7 +399,7 @@ describe('AppShell header zoom group', () => {
 
     const reset = vi.fn();
     renderShell({ zoom: { ...defaultZoom, percent: 125, canZoomOut: true, reset } });
-    const enabled = screen.getByRole('button', { name: /Reset zoom to 100% \(now 125%\)/ });
+    const enabled = screen.getByRole('button', { name: 'Reset zoom to 100%, now 125%' });
     expect(enabled.getAttribute('aria-disabled')).toBeNull();
     fireEvent.click(enabled);
     expect(reset).toHaveBeenCalledTimes(1);
