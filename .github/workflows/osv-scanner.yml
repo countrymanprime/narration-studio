@@ -1,0 +1,54 @@
+name: OSV scan
+# Advisory: not a required check, and it does not fail the run on a finding (no ruleset requires a status check:
+# docs/operations/ci-and-releases.md, "Vulnerability scanning"). Findings show under Security > Code scanning.
+# OSV-Scanner reads every known advisory in the three lockfiles (Go, npm, Python). A pull request runs it when it changes
+# one of them and reports only what the pull request adds; the nightly run reports everything and is the baseline on main
+# (a new advisory can land against an unchanged lockfile, and a push to main no longer starts a run).
+on:
+  pull_request:
+    paths:
+      - 'pnpm-lock.yaml'
+      - 'uv.lock'
+      - 'apps/desktop/go.mod'
+      - '.github/workflows/osv-scanner.yml'
+  schedule:
+    - cron: '41 6 * * *'
+  workflow_dispatch: {}
+permissions: { contents: read }
+concurrency:
+  group: osv-scanner-${{ github.workflow }}-${{ github.ref }}
+  # Never cancel a run on main: it is the baseline shown in the Security tab.
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+jobs:
+  # Only what the pull request adds is reported; it needs the base branch's results to compare with. Skipped for a
+  # fork or Dependabot pull request, whose token cannot upload the results (main's scan covers a merged update).
+  osv-scanner-pr:
+    name: osv-scanner (pull request)
+    if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository && github.actor != 'dependabot[bot]'
+    permissions:
+      actions: read
+      contents: read
+      security-events: write
+    uses: google/osv-scanner-action/.github/workflows/osv-scanner-reusable-pr.yml@a345acffa64b0eaede81a3d9aae6141214d9c8fc # v2.6.0
+    with:
+      # A lockfile added later has to be listed here. uv.lock and pnpm-lock.yaml are read natively.
+      scan-args: |-
+        --lockfile=pnpm-lock.yaml
+        --lockfile=uv.lock
+        --lockfile=apps/desktop/go.mod
+      fail-on-vuln: false
+
+  osv-scanner:
+    name: osv-scanner
+    if: github.event_name != 'pull_request'
+    permissions:
+      actions: read
+      contents: read
+      security-events: write
+    uses: google/osv-scanner-action/.github/workflows/osv-scanner-reusable.yml@a345acffa64b0eaede81a3d9aae6141214d9c8fc # v2.6.0
+    with:
+      scan-args: |-
+        --lockfile=pnpm-lock.yaml
+        --lockfile=uv.lock
+        --lockfile=apps/desktop/go.mod
+      fail-on-vuln: false

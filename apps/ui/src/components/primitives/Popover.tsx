@@ -1,5 +1,6 @@
 import { Popover as BasePopover } from '@base-ui/react/popover';
 import type { ReactElement, ReactNode } from 'react';
+import { POPUP_MOTION_CLASSES } from './overlayMotion';
 
 // A layer above a dialog carries this attribute on its popup, so Dialog.tsx's Escape handler can tell that a key is
 // meant for the popover that is showing (device pickers, a settings panel) and not for the dialog it sits in - the
@@ -46,7 +47,7 @@ export function Popover({
           <BasePopover.Popup
             aria-label={label}
             {...{ [POPOVER_POPUP_ATTRIBUTE]: '' }}
-            className="max-h-[var(--available-height)] w-max max-w-[calc(100vw-1rem)] min-w-[min(21rem,calc(100vw-1rem))] overflow-y-auto rounded-[var(--radius-card)] border border-[var(--line-strong)] bg-[var(--surface)] p-4 shadow-[var(--shadow-lg)] outline-none"
+            className={`max-h-[var(--available-height)] w-max max-w-[calc(100vw-1rem)] min-w-[min(21rem,calc(100vw-1rem))] overflow-y-auto rounded-[var(--radius-card)] border border-[var(--line-strong)] bg-[var(--surface)] p-4 shadow-[var(--shadow-lg)] outline-none ${POPUP_MOTION_CLASSES}`}
           >
             {children}
           </BasePopover.Popup>

@@ -51,6 +51,8 @@ This folder documents a local-first audiobook narration toolkit: how it is built
    [Documentation gates](operations/documentation-gates.md).
 1. For issues, labels, milestones, and the project board, use
    [Tracking work on GitHub](operations/github-workflow.md).
+   If git or the GitHub tools can no longer reach the repository, or after it is renamed, use
+   [The repository was renamed](operations/repository-rename.md).
    For the checks the recent Studio Next work could not run off Windows (recording, linking a project, delivery),
    use the [Windows QA checklist](operations/windows-qa-checklist.md).
    Before switching on a REAPER bridge command that ships behind the Experimental REAPER actions switch, run
