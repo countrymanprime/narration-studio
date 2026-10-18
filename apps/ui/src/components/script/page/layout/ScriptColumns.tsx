@@ -11,7 +11,7 @@ import { useDrawerFocus } from './useDrawerFocus';
 
 export type Drawer = ScriptViewState['drawer'];
 
-const DRAWER = 'z-[var(--z-panel)] transition-[transform,visibility] duration-200 motion-reduce:transition-none';
+const DRAWER = 'z-[var(--z-panel)] motion-ok:transition-[transform,visibility] motion-ok:duration-(--motion-base)';
 const CHAPTER_DRAWER = `max-[1179px]:absolute max-[1179px]:top-2 max-[1179px]:bottom-2 max-[1179px]:left-2 max-[1179px]:w-[min(360px,calc(100%-24px))] max-[1179px]:shadow-[var(--shadow-lg)] ${DRAWER}`;
 const RAIL_DRAWER = `max-[1280px]:absolute max-[1280px]:top-2 max-[1280px]:bottom-2 max-[1280px]:right-2 max-[1280px]:w-[min(380px,calc(100%-24px))] max-[1280px]:shadow-[var(--shadow-lg)] ${DRAWER}`;
 const CHAPTER_CLOSED = 'max-[1179px]:invisible max-[1179px]:-translate-x-[calc(100%+16px)]';
