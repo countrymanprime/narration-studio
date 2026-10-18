@@ -33,6 +33,8 @@ manuscript heads them. The lines are grouped by chapter, each group with how man
 - **Open in Booth at this line** (Enter on a selected line), **Mark recorded** (or **Mark open again**) and **Remove from
   pickups**.
 
+In a narrow window the table scrolls sideways, with a shadow on the edge that has more to see.
+
 Right-click a line for the same actions, **Open this chapter in Script**, and **Go to the note in Proof** for a line that
 came from a note. Up and Down move between lines.
 
@@ -62,7 +64,8 @@ while it cannot read, and whenever you return to the window.
 list. It is off, with the reason, when the DAW is not reachable. **Add a pickup by hand** asks for the time in the
 recording (`05:12.0`, or `5:12`; seconds run 00 to 59) and the line to re-record (one line, up to 500 characters), and
 adds it to the chapter in view (with every chapter shown, the last chapter you stepped to, or the first). A time or
-line the app cannot use says how to type it, and the form keeps what you typed.
+line the app cannot use is said under its box, which is marked as wrong until you change it, and in a short message; the
+form keeps what you typed.
 
 ![Pickups - Add a pickup by hand: the time in the recording and the line to re-record](../../images/ui/pickups-add.webp)
 

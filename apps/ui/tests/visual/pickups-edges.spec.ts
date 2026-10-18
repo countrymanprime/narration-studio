@@ -36,3 +36,34 @@ for (const size of SIZES) {
     }
   });
 }
+
+// The Pickups table keeps its row actions, Remove last, inside its scroll area down to the tablet width (it was cut at its edge at 768),
+// and where it still has to scroll sideways (the 390 reflow width) it shows that there is more to the right.
+for (const size of [
+  { name: 'small-desktop', width: 1024, height: 768, scrolls: false },
+  { name: 'tablet', width: 768, height: 1024, scrolls: false },
+  { name: 'reflow', width: 390, height: 844, scrolls: true },
+]) {
+  test(`Pickups / the row actions fit the scroll area or the table says it scrolls / ${size.name} ${size.width}x${size.height}`, async ({ page }) => {
+    await page.setViewportSize({ width: size.width, height: size.height });
+    await page.goto('/pickups');
+    await settlePage(page);
+    const area = page.getByRole('group', { name: 'Pickups scroll area' });
+    const remove = area.getByRole('button', { name: 'Remove from pickups' }).first();
+    await remove.waitFor();
+    const fits = await area.evaluate(
+      (element, button) => {
+        const box = (button as HTMLElement).getBoundingClientRect();
+        return { overflows: element.scrollWidth > element.clientWidth, removeRight: box.right, areaRight: element.getBoundingClientRect().right };
+      },
+      await remove.elementHandle(),
+    );
+    if (size.scrolls) {
+      expect(fits.overflows, 'the table scrolls sideways at this width').toBe(true);
+      expect(await area.evaluate((element) => getComputedStyle(element).backgroundImage), 'a cue that there is more to the right').toContain('gradient');
+    } else {
+      expect(fits.overflows, 'the table needs no sideways scroll').toBe(false);
+      expect(fits.removeRight, 'Remove is inside the scroll area').toBeLessThanOrEqual(fits.areaRight);
+    }
+  });
+}

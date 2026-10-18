@@ -127,6 +127,8 @@ The custom-CSS system (`.btn`, `.panel-head`/`.panel-body`, `.progressbar`, etc.
 
 The document (`html`/`body`) never scrolls; it is locked (`overflow: hidden`, `styles.css`) once nothing needs it to. Every page scrolls inside the shell's own page area (`AppShell.tsx`'s `<main>`, `.scroll-chrome-hidden`), which is the shell's single scroll container and also gives absolutely positioned descendants (an `sr-only` label, a Base UI hidden input) a containing block so they scroll and clip with their row instead of escaping to the window. Before a project is attached, `StartupScreen` and `ProjectPicker` scroll in the same way inside their own `flex-1 overflow-y-auto` container, with `DemoBanner` above it in a `flex h-full flex-col` so the banner's own height never pushes the document past the viewport. The shell is sized off a `height: 100%` chain from `html`/`body`/`#root` (`h-full`), not `100vh`/`100dvh`, because only the `%` chain stays exact under both WebView2's zoom and a CSS `zoom` on `<html>`.
 
+A table that scrolls sideways inside its panel says so: give its scroll box `scroll-x-edges` (`styles.css`), a soft shadow on each edge that has more beyond it, hidden at the end of the scroll. The box stays focusable and labelled so the keyboard can scroll it. Pickups' table uses it; keep the table's minimum width no wider than the box at the tablet width (768 px), so a row's actions are not cut off there.
+
 ## Layout rules
 
 Four widths and the rail decide the layout, as the Studio Next mock lays it out:
