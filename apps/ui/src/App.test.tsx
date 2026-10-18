@@ -504,6 +504,7 @@ describe('App (integration, driven through the mock NarrationApi)', () => {
       renderApp({ selectManuscript, bootstrap: noManuscript });
       await screen.findByRole('heading', { name: title });
       fireEvent.click(await screen.findByRole('button', { name: 'Import manuscript' }));
+      fireEvent.click(await screen.findByRole('button', { name: 'Choose a file…' }));
       await waitFor(() => expect(selectManuscript).toHaveBeenCalledTimes(1));
       expect(window.location.pathname).toBe(path);
       cleanup();
