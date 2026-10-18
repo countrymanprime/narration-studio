@@ -33,6 +33,8 @@ func (c *Child) ExitCode() (int, bool) {
 	return *c.exitCode, true
 }
 
+// Supervisor starts the sidecars and owns the Job Object that ends them with the host. fallback, when set, names the run that
+// receives a launch's timing record if the launch's context carries none.
 type Supervisor struct {
 	jobs     jobSet
 	fallback func() *runlog.Run
