@@ -132,6 +132,42 @@ describe('page-data-load-failure', () => {
   });
 });
 
+// The loading state (definition-of-done.md state matrix): the page's header stays and the overview is blocks while the production log is read, then
+// the page, or the error with Retry; Retry shows the blocks again while it reads. Never an endless skeleton.
+describe('production loading state', () => {
+  const never = () => new Promise<never>(() => {});
+  const region = () => screen.queryByRole('group', { name: 'Loading the production overview' });
+
+  it('keeps the title and shows one busy region in place of the overview while the log is read, however long that takes', async () => {
+    await renderPage({ overrides: { productionOverview: never } });
+    expect(await screen.findByRole('heading', { level: 1, name: 'Production' })).toBeTruthy();
+    expect(region()?.getAttribute('aria-busy')).toBe('true');
+    expect(within(region()!).getByRole('status').textContent).toBe('Reading the production log…');
+    expect(screen.queryByRole('table', { name: 'Chapter pipeline' })).toBeNull();
+    await new Promise((resolve) => setTimeout(resolve, 60));
+    expect(region()).toBeTruthy();
+  });
+
+  it('is replaced by the overview when the log arrives', async () => {
+    await renderPage({ initial: { production: PRODUCTION_SCENARIOS['on-pace'] } });
+    await pipeline();
+    expect(region()).toBeNull();
+  });
+
+  it('ends in the error with Retry, never a skeleton, when the log cannot be read, and shows the blocks again while Retry reads', async () => {
+    let mode: 'fail' | 'hold' = 'fail';
+    await renderPage({
+      overrides: { productionOverview: () => (mode === 'fail' ? Promise.reject(new Error('The production log is unreadable.')) : never()) },
+    });
+    const retry = await screen.findByRole('button', { name: 'Retry' });
+    expect(region()).toBeNull();
+    mode = 'hold';
+    await userEvent.click(retry);
+    await waitFor(() => expect(region()).toBeTruthy());
+    expect(screen.queryByRole('button', { name: 'Retry' })).toBeNull();
+  });
+});
+
 describe('header-icons-and-dialogs-open', () => {
   it('opens the status report dialog from Export status report', async () => {
     await renderPage();

@@ -72,47 +72,55 @@ export function createSystemMock(
     transcript,
     dictionaryState,
     dawFacts,
+    manuscriptReady,
   }: {
     version: () => string;
     project: ProjectMock;
     transcript: () => TranscriptState;
     dictionaryState: () => AssetInstallState;
     dawFacts: () => { reachable: boolean; projectMatches: boolean; bridge: boolean };
+    /** Settles once the bundled manuscript has replaced the seed chapters, so the summary below counts the chapters the pages list. */
+    manuscriptReady: Promise<unknown>;
   },
 ) {
   let zoom = initial.zoom ?? 1.0;
   const bindings = {
     ready: async () => ({ apiVersion: DESKTOP_HOST_API_VERSION, diagnosticId: 'mock' }),
-    bootstrap: async () => ({
-      apiVersion: DESKTOP_HOST_API_VERSION,
-      diagnosticId: 'mock',
-      version: version(),
-      projectFolder: project.projectFolder(),
-      projectName: project.projectName(),
-      daw: project.daw(),
-      // Its own mutable state, not derived from `daw`: the real host computes this from the project's
-      // manifest link, independent of the DAW label.
-      dawFileLinked: project.dawFileLinked(),
-      // Its own mutable state, not derived from `daw`: the real host computes this from a live
-      // heartbeat. The mock never grows one on its own; `dawEngineMismatch` simulates the one case anything reads today - the engine chip's
-      // mismatch state - without pretending to a full heartbeat.
-      dawReachable: initial.dawEngineMismatch ?? dawFacts().reachable,
-      dawProjectMatches: initial.dawEngineMismatch ? false : dawFacts().projectMatches,
-      manuscript:
-        initial.noManuscript || initial.manuscriptCandidate
-          ? null
-          : {
-              id: 'alice',
-              format: 'docx',
-              sourceName: 'Alice.docx',
-              importedAt: '2026-01-01T00:00:00Z',
-              narratableWordCount: 2672,
-              narratableChapterCount: 3,
-            },
-      manuscriptCandidate: initial.manuscriptCandidate ?? null,
-      runtime: {},
-      transcript: wireClone(transcript()),
-    }),
+    bootstrap: async () => {
+      await manuscriptReady;
+      const narratable = s.chapters.filter((chapter) => chapter.contentKind !== 'reference');
+      return {
+        apiVersion: DESKTOP_HOST_API_VERSION,
+        diagnosticId: 'mock',
+        version: version(),
+        projectFolder: project.projectFolder(),
+        projectName: project.projectName(),
+        daw: project.daw(),
+        // Its own mutable state, not derived from `daw`: the real host computes this from the project's
+        // manifest link, independent of the DAW label.
+        dawFileLinked: project.dawFileLinked(),
+        // Its own mutable state, not derived from `daw`: the real host computes this from a live
+        // heartbeat. The mock never grows one on its own; `dawEngineMismatch` simulates the one case anything reads today - the engine chip's
+        // mismatch state - without pretending to a full heartbeat.
+        dawReachable: initial.dawEngineMismatch ?? dawFacts().reachable,
+        dawProjectMatches: initial.dawEngineMismatch ? false : dawFacts().projectMatches,
+        manuscript:
+          initial.noManuscript || initial.manuscriptCandidate
+            ? null
+            : {
+                id: 'alice',
+                format: 'docx',
+                sourceName: 'Alice.docx',
+                importedAt: '2026-01-01T00:00:00Z',
+                // The page's own figures (the Production header sums the same chapters), so the two never disagree.
+                narratableWordCount: narratable.reduce((sum, chapter) => sum + chapter.wordCount, 0),
+                narratableChapterCount: narratable.length,
+              },
+        manuscriptCandidate: initial.manuscriptCandidate ?? null,
+        runtime: {},
+        transcript: wireClone(transcript()),
+      };
+    },
     reportClientDiagnostic: async () => {},
     systemNotify: async () => {},
     systemLookup: async (word) => mockDictionaryLookup(word, dictionaryState()),

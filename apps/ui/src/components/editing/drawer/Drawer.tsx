@@ -51,6 +51,13 @@ export function Drawer({ doc, chapterId, tab, tabs, counts = {}, onTab, onClose,
     <aside
       id="drawer"
       aria-label="Clean up and effects"
+      onKeyDown={(event) => {
+        // The tabs own the arrows, so the page's Escape never sees a key pressed on them: the drawer answers for itself and hands the focus back to
+        // its button. A tooltip or a field that used the key first has already prevented it.
+        if (event.key !== 'Escape' || event.defaultPrevented) return;
+        onClose();
+        document.getElementById('drawertoggle')?.focus();
+      }}
       className="flex min-h-0 w-full min-w-0 flex-col overflow-hidden rounded-[10px] border border-[var(--border)] bg-[var(--surface)]"
     >
       <div className="flex items-center gap-2 px-3 py-2">

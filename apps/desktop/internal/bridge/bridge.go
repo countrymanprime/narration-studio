@@ -57,6 +57,7 @@ type Client struct {
 	// +checklocks:mu
 	counter uint64
 	events  events
+	poll    fastPoll
 }
 
 func New(sessionDir string) (*Client, error) {

@@ -1,11 +1,15 @@
 package bridge
 
 import (
+	"bytes"
+	"errors"
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 	"strings"
 	"sync"
+	"sync/atomic"
 )
 
 // Event is one decoded line of events.log. The tag is Fields[0]; by convention of every bridge event, the first
@@ -41,8 +45,9 @@ type subscriber struct {
 // events is the fan-out half of Client: one cursor over events.log and the consumers it feeds. Before it existed
 // every consumer read the log through the same cursor, so a second consumer stole the first one's events.
 type events struct {
-	dispatchMu sync.Mutex // one Dispatch at a time, so delivery order is log order
-	mu         sync.Mutex // guards everything below
+	dispatchMu sync.Mutex   // one Dispatch at a time, so delivery order is log order
+	dispatches atomic.Int64 // how many times Dispatch was called, for the tests that count the client's own polling
+	mu         sync.Mutex   // guards everything below
 	// +checklocks:mu
 	eventOffset int64
 	// +checklocks:mu
@@ -83,6 +88,7 @@ func (c *Client) Subscribe(sub Subscription) (unsubscribe func()) {
 // belongs to. Only whole lines are consumed: a line REAPER is still writing waits for the next call. It is safe to
 // call from several goroutines; calls are serialised, so every consumer sees the log in order and once.
 func (c *Client) Dispatch() error {
+	c.events.dispatches.Add(1)
 	c.events.dispatchMu.Lock()
 	defer c.events.dispatchMu.Unlock()
 	lines, err := c.newEventLines()
@@ -210,31 +216,47 @@ func (s Subscription) wants(event Event) bool {
 	return event.RunID == "" || s.Owns == nil || s.Owns(event.RunID)
 }
 
-// newEventLines returns the complete lines appended since the last call and advances the cursor past them.
+// newEventLines returns the complete lines appended since the last call and advances the cursor past them. It reads from the saved
+// byte offset, so a tick costs what the new lines cost, not the length of a session's log.
 func (c *Client) newEventLines() ([]string, error) {
-	content, err := os.ReadFile(filepath.Join(c.sessionDir, "events.log"))
+	file, err := os.Open(filepath.Join(c.sessionDir, "events.log"))
 	if os.IsNotExist(err) {
 		return nil, nil
 	}
 	if err != nil {
 		return nil, err
 	}
+	defer func() { _ = file.Close() }()
+	info, err := file.Stat()
+	if err != nil {
+		return nil, err
+	}
 	c.events.mu.Lock()
 	defer c.events.mu.Unlock()
 	offset := c.events.eventOffset
-	if offset < 0 || offset > int64(len(content)) {
+	if offset < 0 || offset > info.Size() {
 		// The log is shorter than what was already read, so it was replaced: read the new one from its start.
 		offset = 0
 	}
-	end := strings.LastIndexByte(string(content[offset:]), '\n')
+	if info.Size() == offset {
+		c.events.eventOffset = offset
+		return nil, nil
+	}
+	fresh := make([]byte, info.Size()-offset)
+	read, err := file.ReadAt(fresh, offset)
+	if err != nil && !errors.Is(err, io.EOF) {
+		return nil, err
+	}
+	// The file can shrink between the stat and the read; what was read is all there is.
+	fresh = fresh[:read]
+	end := bytes.LastIndexByte(fresh, '\n')
 	if end < 0 {
 		c.events.eventOffset = offset
 		return nil, nil
 	}
-	consumed := offset + int64(end) + 1
-	c.events.eventOffset = consumed
+	c.events.eventOffset = offset + int64(end) + 1
 	var lines []string
-	for _, line := range strings.Split(string(content[offset:consumed]), "\n") {
+	for _, line := range strings.Split(string(fresh[:end+1]), "\n") {
 		if line = strings.TrimSuffix(line, "\r"); line != "" {
 			lines = append(lines, line)
 		}
