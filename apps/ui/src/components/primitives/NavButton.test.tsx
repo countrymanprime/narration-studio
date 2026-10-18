@@ -12,8 +12,8 @@ describe('NavButton', () => {
   });
 
   // The palette guard reads tokens, not component source, so the colour decision of docs/design/colour-and-contrast.md is pinned here: the current
-  // page is mock 01's --accent-soft fill, and its label --accent-strong, the pair paletteContrast.test.ts checks.
-  it('draws the current page in --accent-strong on --accent-soft and every other page in --text-muted', () => {
+  // page is the mock's "bar" highlight, --text on --surface-2 with a 3 px --accent bar at its left edge, the pairs paletteContrast.test.ts checks.
+  it("draws the current page as the mock's accent bar and every other page in --text-muted", () => {
     render(
       <>
         <NavButton active icon={faHouse} onClick={() => {}}>
@@ -26,10 +26,16 @@ describe('NavButton', () => {
     );
 
     const current = screen.getByRole('button', { name: 'Home' });
-    expect(current.className).toContain('text-[var(--accent-strong)]');
-    expect(current.className).not.toContain('text-[var(--accent)]');
-    expect(current.className).toContain('bg-[var(--accent-soft)]');
-    expect(screen.getByRole('button', { name: 'Proofing' }).className).toContain('text-[var(--text-muted)]');
+    expect(current.className).toContain('text-[var(--text)]');
+    expect(current.className).toContain('bg-[var(--surface-2)]');
+    expect(current.className).toContain('shadow-[inset_3px_0_0_var(--accent)]');
+    expect(current.className).toContain('rounded-[0_6px_6px_0]');
+    expect(current.className).not.toContain('rounded-lg');
+    expect(current.className).not.toContain('accent-soft');
+    const other = screen.getByRole('button', { name: 'Proofing' }).className;
+    expect(other).toContain('text-[var(--text-muted)]');
+    expect(other).toContain('rounded-lg');
+    expect(other).not.toContain('inset_3px');
   });
 
   // The Studio Next mock's `.nav` (ADR 0760): 40 px on the rail's 42 px pitch, Barlow Condensed 15 px tracked 0.12 em, radius 8, a 20 px icon in a 22 px box.
@@ -40,8 +46,19 @@ describe('NavButton', () => {
       </NavButton>,
     );
     const item = screen.getByRole('button', { name: 'Production' });
-    for (const token of ['h-10', 'text-[0.9375rem]', 'tracking-[0.12em]', 'rounded-lg', '[&_svg]:text-[1.25rem]', '[&_svg]:w-[1.375rem]!'])
+    for (const token of ['h-10', 'text-[0.9375rem]', 'tracking-[0.12em]', '[&_svg]:text-[1.25rem]', '[&_svg]:w-[1.375rem]!'])
       expect(item.className).toContain(token);
+  });
+
+  it('keeps the count in --text-muted on the current page too: the mock draws it so on the bar', () => {
+    render(
+      <NavButton active icon={faHouse} onClick={() => {}} count={3}>
+        Proof
+      </NavButton>,
+    );
+    const pill = screen.getByRole('button', { name: 'Proof, 3' }).querySelector('span[aria-hidden]')!;
+    expect(pill.className).toContain('text-[var(--text-muted)]');
+    expect(pill.className).not.toContain('accent');
   });
 
   it("draws a count at the item's end and says it in the name, and draws none for zero or none", () => {
@@ -144,7 +161,7 @@ describe('NavButton', () => {
       renderOff({ active: true });
       const current = screen.getByRole('button', { name: 'Proof' });
       expect(current.getAttribute('aria-current')).toBe('page');
-      expect(current.className).toContain('bg-[var(--accent-soft)]');
+      expect(current.className).toContain('shadow-[inset_3px_0_0_var(--accent)]');
     });
 
     it('is drawn in --text-muted at full strength: an off item keeps AA contrast because it can take focus', () => {

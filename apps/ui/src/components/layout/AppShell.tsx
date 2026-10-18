@@ -4,11 +4,8 @@ import {
   faArrowLeft,
   faArrowRight,
   faBars,
-  faBookOpen,
-  faCircleDot,
   faFileLines,
   faFolder,
-  faGaugeHigh,
   faGear,
   faHouse,
   faMinus,
@@ -38,17 +35,16 @@ const PRODUCTION = { name: 'Production', path: '/', icon: faHouse };
 // The Schedule (the Studio Next mock's rail): the due date, how the book pays and the milestones.
 const SCHEDULE = { name: 'Schedule', path: '/schedule', icon: iconFor('calendar') };
 const SCRIPT = { name: 'Script', path: '/script', icon: faFileLines };
-const STORY_BIBLE = { name: 'Story Bible', path: '/story-bible', icon: faBookOpen };
-// The Record stage's one page: it replaced the Teleprompter page. Its
-// icon is a record dot, as the stage-nav mocks draw it (audit SH12).
-const BOOTH = { name: 'Booth', path: '/booth', icon: faCircleDot };
+const STORY_BIBLE = { name: 'Story Bible', path: '/story-bible', icon: iconFor('book') };
+// The Record stage's one page: it replaced the Teleprompter page. Its icon is the microphone, as the Studio Next mock's rail draws it.
+const BOOTH = { name: 'Booth', path: '/booth', icon: iconFor('microphone') };
 // Editing (the Studio Next mock's Editing page): the chapter's script as the editor, at /editing and /editing/:chapterId.
 const EDITING = { name: 'Editing', path: '/editing', icon: iconFor('scissors') };
 // Proof: the book's notes at /proof and a chapter's view at /proof/:chapterId, replacing Review and Proofing.
 const PROOF = { name: 'Proof', path: '/proof', icon: faWaveSquare };
 // Pickups: the proofer's pickup list, replacing the Tracks page's Pickups dialog.
-const PICKUPS = { name: 'Pickups', path: '/pickups', icon: faRotateLeft };
-const MASTER_QC = { name: 'Master & QC', path: '/master', icon: faGaugeHigh };
+const PICKUPS = { name: 'Pickups', path: '/pickups', icon: iconFor('pickups') };
+const MASTER_QC = { name: 'Master & QC', path: '/master', icon: iconFor('gauge') };
 // Delivery (the Studio Next mock's rail): the profile card, the package build and what is left before it.
 const DELIVERY = { name: 'Delivery', path: '/delivery', icon: iconFor('delivery') };
 
