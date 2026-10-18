@@ -44,7 +44,7 @@ repository (read with `gh api repos/countrymanprime/narration-utils/rulesets`, a
   with `cancel-in-progress`, so a newer push cancels the run before it, and `cancel-closed-pr.yml` cancels whatever is
   still queued or running when the pull request is merged or closed (a merge starts its own runs on `main`). Runs on
   `main` and the release workflows are never cancelled.
-- **Windows is the only platform the app is built for** (an owner decision, [ADR 0412](../adr/0412-windows-is-the-only-supported-platform-for-now.md)). `Build (Windows)` is the only native
+- **Windows is the only platform the app is built for** (a timing and maturity choice, not a design limit; see [Supported platforms](../../README.md#supported-platforms)). `Build (Windows)` is the only native
   build, on pull requests and in releases. The Linux runners that run the docs, Lua, UI, Python and lint checks host those
   checks; they build no Linux app.
 
@@ -54,10 +54,10 @@ The checks a pull request shows, by the name GitHub displays (`ci.yml` calls `_q
 | Check | What it runs |
 | --- | --- |
 | `quality / js` | `lint`, `format`, `architecture` (the import rules), `test` (Vitest with the coverage ratchet) and `test-node` (the node:test suites of `apps/ui/scripts`) of `narration-utils-ui`, then Knip over the whole repository |
-| `quality / ui-visual (shard 1/3)` to `(shard 3/3)` | the Playwright visual suite of the mock-backed app (`pnpm --dir apps/ui run screenshots --shard=i/3`), a third each, with the per-capture checks; shard 1 also runs `aria`. Each uploads its capture records, its screenshots, and traces when it fails ([ADR 0244](../adr/0244-the-playwright-suites-are-sharded-in-ci-the-quick-checks-share-a-runner-per-os-and-one-check-sums-up-the-run.md)) |
+| `quality / ui-visual (shard 1/3)` to `(shard 3/3)` | the Playwright visual suite of the mock-backed app (`pnpm --dir apps/ui run screenshots --shard=i/3`), a third each, with the per-capture checks; shard 1 also runs `aria`. Each uploads its capture records, its screenshots, and traces when it fails |
 | `quality / ui-visual` | the whole-run checks over the three shards' records (`pnpm --dir apps/ui run visual:check-run`): every expected capture present, none blank, no undeclared duplicate, no stale `sameAs`. Skipped when the UI is not affected |
 | `quality / ui-atlas (shard 1/2)`, `(shard 2/2)` | the Storybook component atlas, half the stories each: every story in light and dark at a wide and a narrow viewport, with axe |
-| `quality / quick-ubuntu` | one step each, every step runs even after a red one: `repo-scripts` (the plain-Node tests of `scripts/`: labels, milestones, release tooling, the layout and project guards); `docs-site` (the public docs site, [below](#the-public-docs-site): ruff and pytest of `tools/docs-site` only, while GitHub Pages is paused ([ADR 0415](../adr/0415-while-pages-is-paused-docs-are-checked-by-lychee-and-a-changed-file-markdownlint-not-by-building-the-site.md)) — the strict MkDocs build and its link check run from `pages.yml`'s manual build instead); `python` (ruff and pytest for `libs/python`, the sidecars, `scripts/` and `tests/fixtures`); `reaper (Lua)` (StyLua and ruff on `integrations/reaper`, then its bridge harness under Lua 5.4: a fake `reaper` driven through the file protocol, and the mutation checks; [ADR 0066](../adr/0066-the-lua-bridge-is-tested-by-a-harness-under-lua-5-4-and-reaper-api-behaviour-is-checked-in-reaper.md)) |
+| `quality / quick-ubuntu` | one step each, every step runs even after a red one: `repo-scripts` (the plain-Node tests of `scripts/`: labels, milestones, release tooling, the layout and project guards); `docs-site` (the public docs site, [below](#the-public-docs-site): ruff and pytest of `tools/docs-site` only, while GitHub Pages is paused — the strict MkDocs build and its link check run from `pages.yml`'s manual build instead); `python` (ruff and pytest for `libs/python`, the sidecars, `scripts/` and `tests/fixtures`); `reaper (Lua)` (StyLua and ruff on `integrations/reaper`, then its bridge harness under Lua 5.4: a fake `reaper` driven through the file protocol, and the mutation checks; [The DAW port](../architecture/daw-integration.md#the-daw-port)) |
 | `quality / quick-windows` | Windows, one step each: `reaper (Lua)` again (paths from `package.config`, CRLF), then `go lint` (gofmt, go vet, golangci-lint, checklocks) |
 | `quality / go-test` | Windows: the Go tests (the race detector on every package with concurrency), then `test-schedules` |
 | `ui-dist / build` | builds the UI bundle the Windows build reuses |
@@ -92,8 +92,8 @@ Each file in `.github/workflows`, what starts it, and the checks it shows on a p
 | `dependency-review.yml` | pull request to `main` | `review` (fails on a high-severity advisory, or on a licence outside the allow-list, that a pull request adds to a **runtime** dependency; needs the dependency graph; [the licence policy](github-workflow.md#the-dependency-licence-allow-list)) | advisory |
 | `labeler.yml` | `pull_request_target` (opened, synchronize, reopened, ready for review) | `label` | not a check that gates anything |
 | `cancel-closed-pr.yml` | `pull_request_target` (closed: merged or closed without merging) | `cancel`: cancels every unfinished run of the pull request's head commit | not a check that gates anything |
-| `pages.yml` (`Pages`) | paused (an owner decision, narrowed by [ADR 0415](../adr/0415-while-pages-is-paused-docs-are-checked-by-lychee-and-a-changed-file-markdownlint-not-by-building-the-site.md)): no push trigger and no pull request trigger, manual only | `build`, `deploy` ([below](#the-pages-workflow)); `deploy` runs only on a manual start on `main` with `publish` ticked | not a pull request check at all now; `Docs / Links (offline)` and `Docs / Markdown lint (changed files)` cover pull requests instead |
-| `train-health.yml` (`Train health`) | hourly (minute 23), manual | `heartbeat`: warns on #510 when #509's `Last pass:` line is over two hours old ([ADR 0758](../adr/0758-the-agent-train-is-watched-from-outside-and-gated-by-checks-a-worker-cannot-edit.md)) | not a pull request check |
+| `pages.yml` (`Pages`) | paused (an owner decision, narrowed by CI and releases): no push trigger and no pull request trigger, manual only | `build`, `deploy` ([below](#the-pages-workflow)); `deploy` runs only on a manual start on `main` with `publish` ticked | not a pull request check at all now; `Docs / Links (offline)` and `Docs / Markdown lint (changed files)` cover pull requests instead |
+| `train-health.yml` (`Train health`) | hourly (minute 23), manual | `heartbeat`: warns on #510 when #509's `Last pass:` line is over two hours old | not a pull request check |
 | `main-health.yml` (`Main health`) | nightly (07:37 UTC), manual | the whole of `ci.yml` run on `main`, then `Tick HOLD when main is red` on a failure | not a pull request check |
 | `test-ratchet.yml` (`Test ratchet`) | pull request (opened, synchronize, reopened, labeled, unlabeled) | `Test ratchet`: no deleted test file, added skip or focus marker, or lowered coverage floor, unless the owner added `ratchet-approved` | no ruleset requires it; it is read before merging ([merge safety checks](verification-tooling.md#merge-safety-checks)) |
 | `pr-risk.yml` (`PR risk`) | same-repository pull request (opened, synchronize, reopened) | `rate`: adds or removes the `risk:high` label | not a check that gates anything; a `risk:high` pull request is not merged without the owner |
@@ -202,7 +202,7 @@ uses the squash commit title to calculate the synchronized application version:
 next minor release. The workflow tags `v<version>-rc`, builds the Windows
 package, and its `publish` job creates the GitHub pre-release with the Windows
 zip and the Windows setup program ([The Windows setup program](#the-windows-setup-program)). No other platform is built or
-attached: the macOS and Linux preview builds were removed ([ADR 0412](../adr/0412-windows-is-the-only-supported-platform-for-now.md)).
+attached: the macOS and Linux preview builds were removed ([Supported platforms](../../README.md#supported-platforms)).
 
 The one platform, `windows-x64`, ships an asset named `narration-utils-<version>-<platform>.<ext>`, with a
 `.sha256` beside it, and its setup program and its third-party notices, named and checksummed the same way. All three files are
@@ -216,10 +216,10 @@ required: a build that lost its setup program or its notices is not promotable:
 
 `<version>` is the bare version (`0.2.7`), the same on a candidate (`v0.2.7-rc`) and its promotion (`v0.2.7`), so promote
 re-publishes the files without renaming them, and downloads of different releases can be told apart by name
-([ADR 0197](../adr/0197-every-release-asset-name-carries-the-bare-version.md)). The program inside keeps a name with no version
+. The program inside keeps a name with no version
 (`narration-utils.exe`, which the REAPER launcher looks for); the version is also stamped **into** the program
 ([The version inside the program](#the-version-inside-the-program)), where the app can show it and compare it with a newer release
-([ADR 0073](../adr/0073-the-executable-is-named-narration-utils-and-carries-its-version.md)). The build folder keeps unversioned
+. The build folder keeps unversioned
 names too (`narration-utils-windows-x64-setup.exe`, `THIRD-PARTY-NOTICES.txt`); packaging gives the released ones.
 
 `scripts/release/assets.mjs` owns that table, packages each asset in CI
@@ -263,11 +263,11 @@ The updater refuses anything else, so changing one of these means changing `apps
 (`scripts/release/assets.mjs` and the updater's `PlatformFor` and `Platform.AssetName` mirror each other). The setup program is not part of
 that contract: the updater matches its zip and checksum by exact name and ignores every other asset. A copy built before the version was in the
 names looks for `narration-utils-windows-x64.zip`, finds nothing on a newer release and is updated once by hand
-([ADR 0197](../adr/0197-every-release-asset-name-carries-the-bare-version.md)).
+.
 
 ## The Windows setup program
 
-A narrator installs from `narration-utils-<version>-windows-x64-setup.exe`, an NSIS installer ([ADR 0082](../adr/0082-windows-installs-per-user-from-an-nsis-setup-program-that-wails-builds-and-the-release-carries-beside-the-update-zip.md)) that the build script compiles on Wails v3 ([ADR 0200](../adr/0200-the-desktop-shell-runs-on-wails-v3-beta-pinned-at-v3-0-0-beta-25.md)).
+A narrator installs from `narration-utils-<version>-windows-x64-setup.exe`, an NSIS installer that the build script compiles on Wails v3 ([ADR 0001](../adr/0001-the-app-is-written-in-go.md)).
 
 - **How it is built.** `.github/actions/build-native` passes `--installer` to `scripts/release/wails-build.mjs` on `windows-x64`, after a
   step that installs NSIS (`choco install nsis`, version pinned in the step) when `makensis` is not already on the runner. The script
@@ -277,7 +277,7 @@ A narrator installs from `narration-utils-<version>-windows-x64-setup.exe`, an N
   or the file is not there afterwards, and `assets.mjs package` refuses to package Windows without it. The log shows `makensis version:`
   and makensis's own `Output:` line, and the job summary lists the release files with their sizes.
 - **What it does.** Per user (no elevation, `%LOCALAPPDATA%\Programs\Narration Studio`, uninstall entry under `HKCU`), `narration-utils.exe`
-  as the program name, a Start Menu shortcut and a second one, "Narration Studio for Audacity", that passes `--daw Audacity` ([ADR 0145](../adr/0145-the-audacity-launcher-is-an-installer-start-menu-entry-and-a-picker-switch-keeps-an-audacity-launch.md)),
+  as the program name, a Start Menu shortcut and a second one, "Narration Studio for Audacity", that passes `--daw Audacity` ([Audacity boundary](../architecture/daw-integration.md#audacity-boundary)),
   a desktop shortcut the narrator can untick, the WebView2 runtime installed by Microsoft's
   bootstrapper only when it is missing, and an uninstaller that removes the program, the update copies (`.new`, `.old`, `.failed`) and the
   shortcuts and leaves settings, downloaded assets, the WebView2 data and project folders alone. The definition is
@@ -316,7 +316,7 @@ and exits: `0` when every check passed, `1` when one failed, `2` for a bad comma
 | `sidecar:<name>` | each of the three frozen sidecars is in the unpacked tree and starts (`--help` exits 0) |
 | `guide:cmudict`, `guide:espeak` | the frozen Story Bible sidecar reads the CMU dictionary and starts the espeak-ng phonemizer Piper speaks through, from `piper/espeak-ng-data` (`manuscript-guide self-check`); a freeze that loses either data set fails here, and a self-check that stops reporting one of them fails too |
 | `guide:synthesis` | only with `--piper-model FILE`: the frozen guide loads that voice and speaks one word |
-| `teleprompter:capabilities` | the frozen Teleprompter sidecar's `--capabilities` report names every ASR and capture row this build declares for the platform; Windows only, `--verify` is also asked, and the `moonshine` row must report `loadable: true` — the native library actually loads (no model, no network), the guarantee the retired `--check-moonshine` flag used to make alone ([ADR 0403](../adr/0403-the-capabilities-flag-reports-what-registered-not-what-loads.md)) |
+| `teleprompter:capabilities` | the frozen Teleprompter sidecar's `--capabilities` report names every ASR and capture row this build declares for the platform; Windows only, `--verify` is also asked, and the `moonshine` row must report `loadable: true` — the native library actually loads (no model, no network), the guarantee the retired `--check-moonshine` flag used to make alone ([live_asr.py](../../sidecars/manuscript-teleprompter/core/live_asr.py)) |
 | `guide:capabilities` | the frozen Story Bible sidecar's `capabilities` subcommand names every TTS and pronunciation row this build declares |
 | `compare:capabilities` | the frozen Transcript Compare sidecar's `--capabilities` report names every batch ASR row this build declares |
 | `catalogs` | the four approved asset catalogs load and name assets |
@@ -339,13 +339,13 @@ exercise without a voice; the one-word synthesis is a local check with `--piper-
 `scripts/release/verify-installable.mjs`, which runs before the native build, keeps its checks separate: the three sidecars, the
 Piper and ONNX Runtime folders of the frozen guide, the guide's `piper/espeak-ng-data`, `cmudict/data` and cmudict package metadata
 (`cmudict-<version>.dist-info`), on Windows the Teleprompter's `moonshine_voice/moonshine.dll` and `moonshine_voice/onnxruntime.dll`
-(loaded with `ctypes`, so PyInstaller cannot find them; `--collect-binaries moonshine_voice`, [ADR 0107](../adr/0107-moonshine-ships-inside-the-windows-teleprompter-sidecar-and-runs-only-from-a-verified-catalog-install.md)),
+(loaded with `ctypes`, so PyInstaller cannot find them; `--collect-binaries moonshine_voice`, [Manuscript Teleprompter](../architecture/manuscript-teleprompter.md)),
 the four asset catalogs, and the REAPER files. Each has a test in
 `scripts/release/verify-installable.test.mjs`. `prepare-resources.py` gives the guide `--collect-data piper --collect-data cmudict`
 and `--copy-metadata cmudict`; PyInstaller has no hook for them (the guide grows by about 48 MB; `piper/hebrew` and `piper/tashkeel`
 come with the package data and English does not need them, a saving left for a later change). The guide is also frozen with
 `--exclude-module` for `gliner`, `booknlp`, `transformers` and `torch`, and verify-installable fails a guide tree that holds any of them: the
-optional GLiNER and BookNLP downloads load them from its own install folder ([ADR 0848](../adr/0848-optional-analysis-tools-load-their-code-and-weights-from-the-registrys-install-folder-never-from-the-freeze-or-the-network.md)).
+optional GLiNER and BookNLP downloads load them from its own install folder.
 
 **Known gap, not fixed here:** the IPA shown for a name the CMU dictionary lacks comes from the `phonemizer` package, which needs a
 system `libespeak-ng` that no build ships (it fails with "espeak not installed on your system" on a developer machine too), so
@@ -374,7 +374,7 @@ level 3). The subjects are identified by digest:
   not change how Windows SmartScreen or antivirus software treats an unsigned executable. The first stable release is
   unsigned and Windows-only: signing is the owner's call, and no workflow here signs.
 - A release candidate published before this change has no attestations, so promote refuses it (it cannot be promoted
-  once attestations are enforced, as a candidate with `SHA256SUMS.txt` could not be promoted after ADR 0027). Only the
+  once attestations are enforced, as a candidate with `SHA256SUMS.txt` could not be promoted after `README.md#supported-platforms`). Only the
   newest ten candidates are kept in any case.
 - **Promote verifies before it publishes.** `node scripts/release/assets.mjs verify <dir> <version> --attestations` (the
   `--attestations` flag needs `GITHUB_REPOSITORY` and an authenticated GitHub CLI, so `pnpm release:verify-assets` stays
@@ -389,7 +389,7 @@ level 3). The subjects are identified by digest:
 - **What the certificate says.** The signer is the workflow in the certificate's subject alternative name,
   `https://github.com/<repository>/.github/workflows/<file>@<ref>`; for a file attested inside a reusable workflow it is
   the reusable workflow, and the calling workflow appears only in `buildConfigURI`. This was read from real attestations
-  made by a throwaway workflow before the flags were written ([ADR 0071](../adr/0071-releases-carry-build-provenance-and-promote-refuses-a-file-the-release-workflows-did-not-build.md)).
+  made by a throwaway workflow before the flags were written.
 
 ### Verifying a download
 
@@ -410,15 +410,15 @@ The `.sha256` beside a file only detects a damaged download: it is not evidence 
 
 `docs.yml` (workflow `Docs`) runs [lychee](https://github.com/lycheeverse/lychee) (`lycheeverse/lychee-action`, pinned to a commit, lychee 0.24.2) over every Markdown file in the repository, configured by `.lychee.toml` and `.lycheeignore` at the root. It has three jobs:
 
-- **`Links (offline)`** (shown as `Docs / Links (offline)`) starts on **every** pull request: the trigger has no `paths` filter, on purpose. `ci.yml` skips documentation-only pull requests, so a docs job that shared its filter would also skip a *code* change that renames a file a document links to, and a check that GitHub skips because of a path filter stays pending if it is ever required (see the note at the top of this document). Offline mode reads only the tree and never opens a network connection: a relative link must resolve to a file, and a `#fragment` to a heading of that file (checked; `include_fragments = "anchor-only"` works with `--offline`). A local run over the 227 Markdown files and 1,356 links takes 0.13 seconds (the Actions run adds the runner set-up), so it is cheap enough to block on, and it is deterministic. **It blocks in the sense that a dead link turns the check red**; a red check does not stop a merge while no ruleset requires it, so the maintainer reads it like the others, and adding `Docs / Links (offline)` to the `Pull Request` ruleset's required checks is an owner-only setting that is safe to make. While GitHub Pages is paused ([ADR 0415](../adr/0415-while-pages-is-paused-docs-are-checked-by-lychee-and-a-changed-file-markdownlint-not-by-building-the-site.md)) this is the only link check a pull request runs; `apps/ui/src/docsGuide.test.ts` checks the guide's own anchors regardless.
-- **`Markdown lint (changed files)`** (shown as `Docs / Markdown lint (changed files)`) also starts on every pull request, and also fails the run on a finding, but checks Markdown *style*, not links: heading levels, list marker and indent consistency, trailing whitespace, multiple blank lines, fenced code language, bare URLs, and the rest of `.markdownlint-cli2.jsonc`'s starter rule set (`markdownlint-cli2`, exact version pinned in the root `devDependencies`). It scopes itself to only the `.md` files the pull request adds or changes against the merge base with its base branch (`scripts/ci/changed-markdown.mjs`, `scripts/ci/lint-markdown-changed.mjs`) — not a full-repo baseline, so pre-existing debt in an untouched file never blocks an unrelated change, only in one a pull request itself touches. A rename lands on its new path; a deletion has nothing left to lint. The job writes a job summary naming the fix command on a failure. `pnpm lint:md` runs the same check locally against `origin/main` (or `--base <ref>`), and `pnpm lint:md:fix` adds `--fix`; lint-staged also runs `markdownlint-cli2 --fix` on staged `*.md` files on commit, so most violations never reach a pull request at all. See [ADR 0415](../adr/0415-while-pages-is-paused-docs-are-checked-by-lychee-and-a-changed-file-markdownlint-not-by-building-the-site.md) for why this replaced building the docs site on every pull request, and why the rule set turns off line length, table style and a handful of rules that fired only on the repo's own deliberate style (template formatting, angle-bracket placeholders, bold lead-in labels, footnote-style citation markers).
+- **`Links (offline)`** (shown as `Docs / Links (offline)`) starts on **every** pull request: the trigger has no `paths` filter, on purpose. `ci.yml` skips documentation-only pull requests, so a docs job that shared its filter would also skip a *code* change that renames a file a document links to, and a check that GitHub skips because of a path filter stays pending if it is ever required (see the note at the top of this document). Offline mode reads only the tree and never opens a network connection: a relative link must resolve to a file, and a `#fragment` to a heading of that file (checked; `include_fragments = "anchor-only"` works with `--offline`). A local run over the 227 Markdown files and 1,356 links takes 0.13 seconds (the Actions run adds the runner set-up), so it is cheap enough to block on, and it is deterministic. **It blocks in the sense that a dead link turns the check red**; a red check does not stop a merge while no ruleset requires it, so the maintainer reads it like the others, and adding `Docs / Links (offline)` to the `Pull Request` ruleset's required checks is an owner-only setting that is safe to make. While GitHub Pages is paused this is the only link check a pull request runs; `apps/ui/src/docsGuide.test.ts` checks the guide's own anchors regardless.
+- **`Markdown lint (changed files)`** (shown as `Docs / Markdown lint (changed files)`) also starts on every pull request, and also fails the run on a finding, but checks Markdown *style*, not links: heading levels, list marker and indent consistency, trailing whitespace, multiple blank lines, fenced code language, bare URLs, and the rest of `.markdownlint-cli2.jsonc`'s starter rule set (`markdownlint-cli2`, exact version pinned in the root `devDependencies`). It scopes itself to only the `.md` files the pull request adds or changes against the merge base with its base branch (`scripts/ci/changed-markdown.mjs`, `scripts/ci/lint-markdown-changed.mjs`) — not a full-repo baseline, so pre-existing debt in an untouched file never blocks an unrelated change, only in one a pull request itself touches. A rename lands on its new path; a deletion has nothing left to lint. The job writes a job summary naming the fix command on a failure. `pnpm lint:md` runs the same check locally against `origin/main` (or `--base <ref>`), and `pnpm lint:md:fix` adds `--fix`; lint-staged also runs `markdownlint-cli2 --fix` on staged `*.md` files on commit, so most violations never reach a pull request at all. See CI and releases for why this replaced building the docs site on every pull request, and why the rule set turns off line length, table style and a handful of rules that fired only on the repo's own deliberate style (template formatting, angle-bracket placeholders, bold lead-in labels, footnote-style citation markers).
 - **`Links (online, advisory)`** starts weekly and by hand. It also follows the `http(s)` links (with `actions/cache` on `.lycheecache`, one day), reports the ones that rotted in the job summary, and **never fails**: a link on someone else's server is not a regression in this repository. `429 Too Many Requests` is accepted. The `GITHUB_TOKEN` is passed only to lift GitHub's anonymous rate limit.
 
 **Diagrams.** lychee reads a Mermaid block as text, so `scripts/ci/mermaid-diagrams.test.mjs` (in the `repo-scripts` step of `quality / quick-ubuntu`, and so in `pnpm check`) hands every ```` ```mermaid ```` block of every tracked Markdown file to Mermaid's own parser (`mermaid.parse`, the `mermaid` devDependency of the root package) and fails with the file, the line and the parser's message. It needs no browser: Mermaid's sanitizer only wants a DOM, and the test gives it jsdom (already a dependency of the UI's tests) before it imports Mermaid. It proves the syntax, not that the names in a picture are still true; the five diagrams of [the codebase map](../architecture/codebase-map.md#how-the-parts-connect) and the four flows each say which files they were checked against, and the test fails if one of the five owning docs loses its diagram.
 
-What it does not see: a path in a code comment (a path to a planning document in a Go or Python file) is not a Markdown link, so `scripts/ci/prd-references.test.mjs` (in the `repo-scripts` step of `quality / quick-ubuntu`) fails when a source file cites a PRD that is not in the tree ([ADR 0028](../adr/0028-planned-work-is-specified-as-prds-and-deleted-when-built.md) deletes them by design). Mermaid diagrams are text to lychee.
+What it does not see: a path in a code comment (a path to a planning document in a Go or Python file) is not a Markdown link, so `scripts/ci/prd-references.test.mjs` (in the `repo-scripts` step of `quality / quick-ubuntu`) fails when a source file cites a PRD that is not in the tree ([Lifecycle of a PRD](../prds/README.md#lifecycle-of-a-prd) deletes them by design). Mermaid diagrams are text to lychee.
 
-The baseline on 2026-09-21: 0 dead repository links; 7 external links rotted or unreachable, six of them pull requests of the owner's private repositories cited as history in the UI atlas kit's rollout ledger (deleted with the kit, [ADR 0243](../adr/0243-the-ui-atlas-kit-is-dissolved-into-apps-ui-which-owns-its-visual-suite-and-atlas-outright.md)) and one real finding, the README's link to the published site `https://countrymanprime.github.io/narration-utils/`, which answers 404 until the owner enables GitHub Pages ([#231](https://github.com/countrymanprime/narration-utils/issues/231)). To add a link the checker should not chase, add a regular expression to `.lycheeignore` with its reason; to run the check locally, install lychee (`cargo install lychee --locked`) and run `lychee --config .lychee.toml --offline .` (drop `--offline` for the online run).
+The baseline on 2026-09-21: 0 dead repository links; 7 external links rotted or unreachable, six of them pull requests of the owner's private repositories cited as history in the UI atlas kit's rollout ledger (deleted with the kit, [Visual bug fixes require screenshot verification](../../.claude/rules/ui-visual-verification.md)) and one real finding, the README's link to the published site `https://countrymanprime.github.io/narration-utils/`, which answers 404 until the owner enables GitHub Pages ([#231](https://github.com/countrymanprime/narration-utils/issues/231)). To add a link the checker should not chase, add a regular expression to `.lycheeignore` with its reason; to run the check locally, install lychee (`cargo install lychee --locked`) and run `lychee --config .lychee.toml --offline .` (drop `--offline` for the online run).
 
 ## The docs-impact check
 
@@ -455,7 +455,7 @@ Both are smell detectors: a phrase list cannot judge a sentence, and a path chec
 
 ## Third-party notices
 
-`scripts/licenses/notices.py` writes `THIRD-PARTY-NOTICES.txt`: the licence and licence text of every third-party component the Windows release contains, the AGPL-3.0-or-later text of the program itself, and the **source offer** that AGPL and the GPL-family packages in the frozen Story Bible sidecar ask for (this repository, at the release's tag). The owner's licence decision ([ADR 0039](../adr/0039-the-project-is-licensed-agpl-3-or-later.md)) makes bundling Piper, `phonemizer` and eSpeak NG fine, so the job of the file is to carry their notices, not to avoid them. Run it after `scripts/release/prepare-resources.py` has frozen the sidecars:
+`scripts/licenses/notices.py` writes `THIRD-PARTY-NOTICES.txt`: the licence and licence text of every third-party component the Windows release contains, the AGPL-3.0-or-later text of the program itself, and the **source offer** that AGPL and the GPL-family packages in the frozen Story Bible sidecar ask for (this repository, at the release's tag). The owner's licence decision ([Contributing](../../CONTRIBUTING.md)) makes bundling Piper, `phonemizer` and eSpeak NG fine, so the job of the file is to carry their notices, not to avoid them. Run it after `scripts/release/prepare-resources.py` has frozen the sidecars:
 
 ```bash
 uv run python scripts/licenses/notices.py --version 0.1.0 --tag v0.1.0-rc --out THIRD-PARTY-NOTICES.txt
@@ -473,11 +473,11 @@ Each part is read from the thing the release is built from, so nobody keeps a li
 
 The run **fails, and writes nothing**, rather than guess: when a licence cannot be named (`UNKNOWN`, or pnpm's `Unknown`; a person decides and records it under `licenses` in `scripts/licenses/reviewed.json`, as for PyInstaller, and an entry that names a component whose licence is known, or one that is not shipped, is itself an error so a stale decision cannot hide a change); when a component ships no licence text (MIT, BSD and Apache ask for it to travel: three are recorded with their reason under `noText`, [#246](https://github.com/countrymanprime/narration-utils/issues/246)); when a frozen module no installed distribution owns, or a vendored native folder (`av.libs`) has no entry in `manual.json`; when the environment is not the one that was frozen (a different version of a package, or one that is not installed); when a table of contents is missing or is not one; or when the report lacks a direct dependency: the nine Python packages the sidecars import (moonshine-voice among them: the report is of the Windows release), every production dependency in `apps/ui/package.json` and every direct requirement of `apps/desktop/go.mod` that the Windows build links. A GNU licence text is classified by its title at the top, not by the licences it quotes (GPL-3.0 names the Affero licence in section 13). `scripts/licenses/tests/test_notices.py` pins each reader and each of those refusals on fixtures and, where `go` and the UI's `node_modules` exist, runs the real npm and Go readers against the tree. **On the release.** The Windows build writes the file after the freeze (the `Write the third-party notices` step of `.github/actions/build-native`, which also installs the UI's packages for `pnpm licenses`, on Windows only; every pull request's `Build (Windows)` runs it, so a change that makes the generator refuse fails the pull request that caused it) into `apps/desktop/build/bin`, and `scripts/release/assets.mjs package` copies it to `release-assets/THIRD-PARTY-NOTICES.txt` with a `.sha256`, refusing to package a build that has no notices before it zips anything. It is then attested with the other files (`release-assets/*`), verified by `assets.mjs verify` (a Windows release without it, or with a changed one, is not promotable) and by `verify --attestations`, and the release notes point at it (`## Licences and source`). The source offer names the tag the build came from (`v<version>-rc`) **and its commit**: a release candidate's tag is pruned once ten newer ones exist (`prerelease.yml`), and a promotion re-attaches these same bytes, so the commit is what keeps the offer true for the promoted release.
 
-**It is not in the update zip.** The in-app updater refuses a zip that holds anything but `narration-utils.exe` ([in-app update](../architecture/in-app-update.md), [ADR 0074](../adr/0074-the-windows-update-renames-the-running-executable-and-keeps-the-old-one-until-the-new-one-starts.md)), and an already installed client would refuse every update to a two-file zip. So the notices are their own asset, and a copy in the setup program, or a change to the updater, is left to the owner ([ADR 0085](../adr/0085-the-third-party-notices-are-generated-from-the-release-and-ship-as-their-own-asset-and-not-inside-the-update-zip.md), Proposed; [#250](https://github.com/countrymanprime/narration-utils/issues/250)). `scripts/release/verify-installable.mjs` is unchanged: it checks the resources the app needs to start, and the notices are written after it runs.
+**It is not in the update zip.** The in-app updater refuses a zip that holds anything but `narration-utils.exe` ([in-app update](../architecture/in-app-update.md), [The install and the rollback](../architecture/in-app-update.md#the-install-and-the-rollback)), and an already installed client would refuse every update to a two-file zip. So the notices are their own asset, and a copy in the setup program, or a change to the updater, is left to the owner (Proposed; [#250](https://github.com/countrymanprime/narration-utils/issues/250)). `scripts/release/verify-installable.mjs` is unchanged: it checks the resources the app needs to start, and the notices are written after it runs.
 
 ## The Pages workflow
 
-**Paused (an owner decision, 2026-09-27; narrowed by [ADR 0415](../adr/0415-while-pages-is-paused-docs-are-checked-by-lychee-and-a-changed-file-markdownlint-not-by-building-the-site.md), same day).** The site isn't how the owner wants it yet, so nothing is published until the main
+**Paused (an owner decision, 2026-09-27; narrowed by CI and releases, same day).** The site isn't how the owner wants it yet, so nothing is published until the main
 app's development is done and the site is reworked. `pages.yml` no longer runs on a push to `main`, and no longer runs on a pull
 request either: `Docs / Links (offline)` and `Docs / Markdown lint (changed files)` ([The docs link check](#the-docs-link-check))
 cover a pull request's Markdown without building the site. Only a manual start builds, and deploys only when its `publish` input is
@@ -490,13 +490,13 @@ demand: the docs at the root ([below](#the-public-docs-site)) and the Storybook 
 
 - **Two jobs.** `build` (read-only token) checks out with `persist-credentials: false`, runs the `setup-toolchain` action (pnpm, and
   the `docs` uv group only), `pnpm --dir apps/ui run build-storybook`, `nx run docs-site:build-site` (the strict docs build and its link
-  check, named off `pnpm check`'s default target set on purpose while Pages is paused — [ADR 0415](../adr/0415-while-pages-is-paused-docs-are-checked-by-lychee-and-a-changed-file-markdownlint-not-by-building-the-site.md)),
+  check, named off `pnpm check`'s default target set on purpose while Pages is paused — CI and releases),
   copies `apps/ui/storybook-static` to `tools/docs-site/build/site/storybook`, checks every link of the combined site (including the atlas
   page's link to the Storybook) and uploads it with `actions/upload-pages-artifact`. `deploy` needs it, runs only on a manual
   start on `refs/heads/main` with `publish` ticked (a manual start from a branch builds and stops), holds `pages: write` and
   `id-token: write` (the only job that does), uses the `github-pages` environment and calls `actions/deploy-pages`. The top-level
   `permissions` is `{}` and there is no secret. One deployment runs at a time and a running one is never cancelled.
-- **Not a pull request check while paused.** `pages.yml` only starts on `workflow_dispatch` now (ADR 0415); a pull request that
+- **Not a pull request check while paused.** `pages.yml` only starts on `workflow_dispatch` now; a pull request that
   changes `docs/`, `tools/docs-site/`, `apps/ui/.storybook/`, `pyproject.toml`, `uv.lock` or the workflow gets its Markdown checked by
   `Docs / Links (offline)` and `Docs / Markdown lint (changed files)` instead ([The docs link check](#the-docs-link-check)). The
   `docs-site` step of `_quality.yml`'s `quick-ubuntu` job runs only `lint` and `test` for the same reason, not `build-site`.
@@ -517,7 +517,7 @@ demand: the docs at the root ([below](#the-public-docs-site)) and the Storybook 
 ## The public docs site
 
 The site at `https://countrymanprime.github.io/narration-utils/` is the repository's own `docs/` folder, built by MkDocs 1.6.1 with the
-Material 9.7.7 theme ([ADR 0083](../adr/0083-the-public-docs-site-is-built-by-mkdocs-with-the-material-theme-straight-from-docs-and-a-reviewed-include-list.md),
+Material 9.7.7 theme (
 the [spike](../research/docs-site-generator-spike.md) behind it). `tools/docs-site` holds configuration only and no page or picture: a test
 fails if it gains one, or if `docs_dir` stops being `docs/`.
 
@@ -532,7 +532,7 @@ fails if it gains one, or if `docs_dir` stops being `docs/`.
 - **The link check.** `mkdocs build --strict` fails on any warning (a missing page, a `#heading` that is not on the page it names, a link it
   cannot place), then `tools/docs-site/check_site.py` reads the built HTML and fails on any internal `href`, `src` or `#fragment` that does not
   resolve, under the `/narration-utils/` base. Both run in `nx run docs-site:build-site`, which only the `Pages` build job calls while GitHub
-  Pages is paused ([ADR 0415](../adr/0415-while-pages-is-paused-docs-are-checked-by-lychee-and-a-changed-file-markdownlint-not-by-building-the-site.md)) — not
+  Pages is paused — not
   `pnpm check` or the `docs-site` step of `quality / quick-ubuntu`, which run only `lint` and `test` there. This is the first link check the
   repository had (`Docs / Links (offline)` and `Docs / Markdown lint (changed files)` are what a pull request runs instead). Proof it fails:
   `tools/docs-site/tests/test_build.py` builds a tiny tree in which a dead page link, a dead heading link and a stale include line each fail
@@ -559,13 +559,13 @@ runner called:
 
 | Project | Folder | Targets |
 | --- | --- | --- |
-| `narration-utils-ui` | `apps/ui` | `lint`, `format`, `architecture` (the import rules of [ADR 0062](../adr/0062-ui-import-rules-are-a-dependency-cruiser-config-and-a-mark-scan-that-name-their-adr.md)), `test`, `test-node` (`node --test` over `apps/ui/scripts`: the `docs/ui` generator), `build`, `visual` (Playwright screenshots), `atlas` |
+| `narration-utils-ui` | `apps/ui` | `lint`, `format`, `architecture` (the import rules of [Verification and code-health tooling](verification-tooling.md)), `test`, `test-node` (`node --test` over `apps/ui/scripts`: the `docs/ui` generator), `build`, `visual` (Playwright screenshots), `atlas` |
 | `narration-utils-shell` | `apps/desktop` | `lint` (gofmt, go vet, golangci-lint v2: errcheck, staticcheck, gosec and the `standard` set; checklocks), `test` (`-race` in the `ci` configuration, on the packages with concurrency; see [Go lint and the race detector](verification-tooling.md#go-lint-and-the-race-detector)), `test-schedules` (the teleprompter and shutdown tests on one and on four CPUs, five times each; run by the CI `go-test` job, not by `pnpm check`), `package` (`scripts/release/wails-build.mjs`, not part of the gate) |
 | `narration-common` | `libs/python` | `lint` (ruff), `test` (pytest) |
 | `manuscript-guide`, `manuscript-teleprompter`, `transcript-compare` | `sidecars/<name>` | `lint`, `test` |
 | `reaper` | `integrations/reaper` | `lint` (StyLua, and ruff for the harness runner), `test` (the Lua bridge harness and its mutation checks, [reaper-bridge](../architecture/reaper-bridge.md)) |
 | `repo-scripts` | `scripts` | `lint`, `test` (pytest), `test-node` (`node --test`) |
-| `docs-site` | `tools/docs-site` | `lint` (ruff), `test` (pytest), `build-site` (the strict MkDocs build of `docs/` and the link check; [above](#the-public-docs-site)) — named off the default `lint format architecture knip test test-node build` set on purpose while GitHub Pages is paused, so `pnpm check` runs only `lint` and `test` here ([ADR 0415](../adr/0415-while-pages-is-paused-docs-are-checked-by-lychee-and-a-changed-file-markdownlint-not-by-building-the-site.md)) |
+| `docs-site` | `tools/docs-site` | `lint` (ruff), `test` (pytest), `build-site` (the strict MkDocs build of `docs/` and the link check; [above](#the-public-docs-site)) — named off the default `lint format architecture knip test test-node build` set on purpose while GitHub Pages is paused, so `pnpm check` runs only `lint` and `test` here |
 | `config`, `fixtures` | `config`, `tests/fixtures` | none (fixtures: `lint`); they exist so a change to them affects the projects that read them |
 | `narration-utils` | the repo root | `knip` (unused files, exports and dependencies, gated at zero: see below); also the `nx release` project |
 
@@ -575,7 +575,7 @@ runner called:
 - **Look around** with `pnpm exec nx show projects`, `pnpm exec nx graph`, and
   `pnpm exec nx show projects --affected --files=<path>`. Run one project's check with, for example,
   `pnpm exec nx run manuscript-guide:test`.
-- **CI** jobs are listed [above](#what-the-repository-enforces-and-what-ci-is-for) as GitHub shows them ([ADR 0244](../adr/0244-the-playwright-suites-are-sharded-in-ci-the-quick-checks-share-a-runner-per-os-and-one-check-sums-up-the-run.md)
+- **CI** jobs are listed [above](#what-the-repository-enforces-and-what-ci-is-for) as GitHub shows them (What the repository enforces, and what CI is for
   shaped them). Each job runs its targets through
   `.github/actions/nx-run`: on a pull request `nx affected` against the base branch, otherwise every selected
   project, one task at a time (parallel tasks starve the runners and trip the UI tests' timeouts).
@@ -594,7 +594,7 @@ runner called:
   in; Knip stays at zero. `git log --follow scripts/ci/changed-files.mjs` has the history.
 - **Failure diagnostics.** A failing visual test leaves `apps/ui/test-results/<test>/trace.zip` (Playwright
   `trace: 'retain-on-failure'`: DOM snapshots, network and console for every action; a passing test keeps nothing,
-  and no retry is involved, [ADR 0023](../adr/0023-visual-suite-capture-contract-and-storybook.md)). When a step of the
+  and no retry is involved, [What the suites do not prove](../design/design-system.md#what-the-suites-do-not-prove)). When a step of the
   `ui-visual (shard i/3)` job fails, the job uploads that folder as the `ui-visual-traces-<i>` artifact for three days. Open a trace
   with `pnpm exec playwright show-trace <trace.zip>` from `apps/ui`, or drop it on trace.playwright.dev. The atlas
   config (`playwright.atlas.config.ts`) keeps no trace yet.
@@ -612,7 +612,7 @@ runner called:
 
 ## Keeping a red run meaningful
 
-A red check has to mean something is wrong, so nothing is retried and nothing is quarantined ([ADR 0023](../adr/0023-visual-suite-capture-contract-and-storybook.md)).
+A red check has to mean something is wrong, so nothing is retried and nothing is quarantined ([What the suites do not prove](../design/design-system.md#what-the-suites-do-not-prove)).
 A test that fails without a code change is a bug in the test, and it is fixed at its cause; "re-run it once" hides
 exactly that. What the suites do so that timing is not a variable:
 
@@ -644,11 +644,11 @@ exactly that. What the suites do so that timing is not a variable:
 - **Classifying a red run**: `gh run view <id> --log-failed`. `identical screenshots` or `sameAs no longer holds` is a
   driver (or a real duplicate); `Unable to find` or `Test timed out` in a frontend test is a wait that does not match the
   state, or a genuinely slow test; a Go failure that comes and goes with the CPU count is an ordering bug.
-- **Aria snapshots** ([ADR 0065](../adr/0065-aria-snapshots-pin-the-role-trees-of-the-dialogs-the-slide-over-and-the-navigation.md)):
+- **Aria snapshots** ([Verification and code-health tooling](verification-tooling.md)):
   the `ui-visual` job also runs `pnpm --dir apps/ui run aria` after the screenshots (its own config, the same mock build, no
   retries, traces in `test-results/aria`), so a dialog that loses its role or name, a modal that stops hiding the page, or a
   changed navigation list fails there (comparison-only on CI). See [Verification and code-health tooling](verification-tooling.md#aria-snapshots).
-- **Axe on app states** ([ADR 0064](../adr/0064-the-visual-suite-runs-axe-on-every-app-state-and-a-violation-fails-unless-it-is-declared-debt.md)):
+- **Axe on app states**:
   the visual suite runs axe after each screenshot and fails on a violation that `apps/ui/tests/visual/axe-debt.ts` does not
   declare, and on a declared rule that is no longer reported. `UI_AXE=1` (PowerShell: `$env:UI_AXE='1'`) with `pnpm --dir apps/ui screenshots` measures without
   failing (the teardown prints the count per rule and where), `UI_AXE=0` skips it; on CI either value fails the run. To clear an entry, fix the page and delete
@@ -674,7 +674,7 @@ reason rather than the whole package to an ignore list.
 
 ## Coverage ratchet
 
-Coverage is gated on the logic directories, not everywhere ([ADR 0043](../adr/0043-coverage-is-a-ratchet-on-logic-directories-not-a-blanket-80-percent.md)).
+Coverage is gated on the logic directories, not everywhere.
 The `test` target of `narration-utils-shell` (Go statements), `narration-utils-ui` (Vitest v8 lines),
 `narration-common`, `manuscript-teleprompter`, `transcript-compare` and `manuscript-guide` (pytest-cov lines) runs
 `scripts/ci/coverage-gate.mjs`, which runs the tests with coverage on and compares each listed directory or file with its
@@ -686,7 +686,7 @@ removed, fails the run.
 - **After adding tests:** run `node scripts/ci/coverage-gate.mjs <go|vitest|pytest> <projectRoot> --update` (the same
   arguments as the project's `test` target) to raise floors to the rounded-down measurement. Floors never go down by
   `--update`; lowering one is a reviewed edit.
-- **A floor that differs by operating system:** `floor` is the Windows number, which CI enforces ([ADR 0412](../adr/0412-windows-is-the-only-supported-platform-for-now.md)).
+- **A floor that differs by operating system:** `floor` is the Windows number, which CI enforces ([Supported platforms](../../README.md#supported-platforms)).
   An entry may add `nonWindowsFloor`, below `floor`, with a `nonWindowsReason`; off Windows that one applies, and
   `--update` raises whichever applies on the host. Use it only where the platforms really measure differently: a test that
   stands a file where a folder belongs reaches one more statement on Windows, where a path through a file reads as "not
@@ -701,16 +701,16 @@ removed, fails the run.
 Pull requests run the quality jobs and the UI bundle build in parallel. The
 Windows native build needs only the UI bundle, so it starts as soon as that
 finishes instead of waiting for lint and tests. No other platform is built
-([ADR 0412](../adr/0412-windows-is-the-only-supported-platform-for-now.md)), and the Go quality job runs on Windows only. pnpm's
+([Supported platforms](../../README.md#supported-platforms)), and the Go quality job runs on Windows only. pnpm's
 content-addressable store, uv's package cache, Go's module/build caches, the
 compiled `wails3` and golangci-lint binaries (keyed on `scripts/toolchain.json`), and
 Playwright's Chromium download (keyed on the Playwright version) are restored by
 the workflows; they never cache `node_modules`, `.venv`, test results or release assets. The one build output that is
 cached is the [sidecar freeze](#the-sidecar-freeze-cache).
 `setup-node`, `setup-python`, and `setup-go` provision the exact pinned Node,
-Python, and Go versions. The Wails v3 CLI, `wails3` v3.0.0-beta.25 (built with `CGO_ENABLED=0`, [ADR 0200](../adr/0200-the-desktop-shell-runs-on-wails-v3-beta-pinned-at-v3-0-0-beta-25.md)), is installed only in jobs that run a
+Python, and Go versions. The Wails v3 CLI, `wails3` v3.0.0-beta.26 (built with `CGO_ENABLED=0`, [ADR 0001](../adr/0001-the-app-is-written-in-go.md)), is installed only in jobs that run a
 native build, and on Linux `setup-toolchain` installs GTK 4 and WebKitGTK 6.0, which Wails v3 links through cgo, only for CodeQL's Go
-compile (a Linux host for analysis, not a Linux build; [ADR 0413](../adr/0413-what-stays-of-the-other-platforms-when-windows-is-the-only-one.md)), golangci-lint v2.14.0 (built with the pinned Go, config in `apps/desktop/.golangci.yml`) only in the Go quality job, and the standalone
+compile (a Linux host for analysis, not a Linux build; [Supported platforms](../../README.md#supported-platforms)), golangci-lint v2.14.0 (built with the pinned Go, config in `apps/desktop/.golangci.yml`) only in the Go quality job, and the standalone
 StyLua v2.1.0 binary where needed, as declared in `scripts/toolchain.json`; none
 of them use Cargo. Lua 5.4 for the REAPER harness is the `lupa` wheel in the `lua` dependency group of `pyproject.toml` (hashed in `uv.lock`); the Lua job installs only that group. Platform-specific sidecars must be built on their target OS,
 so the built UI bundle is shared between jobs as a one-day artifact rather than
@@ -746,7 +746,7 @@ hosted jobs at once across the account.
 
 The CI speed work shipped Split 1 (build beside quality, later superseded by the Prerelease
 dropping quality entirely), the sidecar freeze cache, one load per state in the visual suite and per story in
-the atlas, and sharding plus the folded quick jobs ([ADR 0244](../adr/0244-the-playwright-suites-are-sharded-in-ci-the-quick-checks-share-a-runner-per-os-and-one-check-sums-up-the-run.md)).
+the atlas, and sharding plus the folded quick jobs.
 This is what a sample taken against the original baselines and targets shows once that work was steady state, and why the
 sample is not a median of 5 idle runs:
 
@@ -754,10 +754,10 @@ sample is not a median of 5 idle runs:
 | --- | --- | --- | --- | --- |
 | Prerelease push to release published | 13 m 33 s | ≤ 8 min | median 6 m 20 s, p90 8 m 35 s (n=30 successful runs) | Met |
 | CI pull request to all green (UI affected) | ~9 min | ≤ 5 min | median 7 min, p90 10 m 40 s (n=4 successful runs) | Missed, low confidence (see below) |
-| `quality / ui-visual` job | 7 m 17 s | ≤ 4 min | pooled across 3 shards: median 4 m 50 s, p90 5 m 55 s (n=12 shard-jobs) | Not comparable: ADR 0244 sharded this job after the per-state load change left the unsharded job at 9.4 min, which is why sharding exists |
+| `quality / ui-visual` job | 7 m 17 s | ≤ 4 min | pooled across 3 shards: median 4 m 50 s, p90 5 m 55 s (n=12 shard-jobs) | Not comparable: `docs/operations/ci-and-releases.md#what-the-repository-enforces-and-what-ci-is-for` sharded this job after the per-state load change left the unsharded job at 9.4 min, which is why sharding exists |
 | `quality / ui-atlas` job | 6 m 45 s | ≤ 4 min | pooled across 2 shards: median 3 m 45 s, p90 5 m 15 s (n=8 shard-jobs) | Not comparable, same reason (2 shards vs. a 1-job baseline) |
 | Windows `build-native` with sidecar cache hit | 5 m 29 s | ≤ 3 min | CI `Build (Windows)`: median 4 m 30 s, p90 5 m 10 s; Prerelease `Windows build`: median 4 m 35 s, p90 4 m 45 s (n=8 each) | Missed. Job-level data cannot distinguish a cache hit from a cold freeze; the cold-versus-hit comparison was never made |
-| Job slots per CI run / Prerelease run | 13 / 14 | 9 / 10 | CI: 12-13 (ADR 0244 accepted this trade-off deliberately: sharding costs slots to cut wall clock). Prerelease: 4 (`version`, `ui-dist`, `Windows build`, `Windows release` - quality jobs were dropped entirely, past the 10-slot target) | CI: missed by design; Prerelease: exceeded |
+| Job slots per CI run / Prerelease run | 13 / 14 | 9 / 10 | CI: 12-13 (`docs/operations/ci-and-releases.md#what-the-repository-enforces-and-what-ci-is-for` accepted this trade-off deliberately: sharding costs slots to cut wall clock). Prerelease: 4 (`version`, `ui-dist`, `Windows build`, `Windows release` - quality jobs were dropped entirely, past the 10-slot target) | CI: missed by design; Prerelease: exceeded |
 | Checks run | all | all, none dropped | not independently re-verified in this pass | Not measured |
 
 Run ids: CI wall-clock (n=4) 36327001255, 36132192971, 36130938887, 36126949380; Prerelease wall-clock (n=30, newest

@@ -1,7 +1,7 @@
-// Package recording is the built-in recorder's host side (docs/adr/0455): the Booth's
+// Package recording is the built-in recorder's host side: the Booth's
 // "Built-in recorder" picks an input device, meters it, records a take into the project's Recordings folder and lists the
 // takes for playback. It records through Engine, a port over one capture port row (internal/captureport): the sidecar
-// adapter (sidecar.go) runs that row in the teleprompter sidecar (`live_asr.py --record`, ADR 0357), and a test or the UI's
+// adapter (sidecar.go) runs that row in the teleprompter sidecar (`live_asr.py --record`), and a test or the UI's
 // mock stands in for it without hardware. Nothing here knows about WASAPI: the row does.
 //
 // The rules the files keep:

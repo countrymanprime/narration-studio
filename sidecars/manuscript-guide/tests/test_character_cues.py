@@ -1,12 +1,12 @@
 """Character Continuity Review, story-bible side:
 
-- stable entity ids across a rebuild, even when the canonical spelling choice shifts (ADR 0345)
+- stable entity ids across a rebuild, even when the canonical spelling choice shifts
 - alias split (the inverse of the existing `merge`)
 - chapter and scene appearance maps
 - rules-based dialogue cue extraction with an `unknown` speaker and evidence
-- narrator corrections to a cue's speaker that a rebuild never overwrites (mirrors ADR 0007's lock guard)
+- narrator corrections to a cue's speaker that a rebuild never overwrites (mirrors sidecars/manuscript-guide/core/manuscript_guide.py's lock guard)
 
-Precision over recall applies throughout (ADR 0020, ADR 0345): an ambiguous cue is `unknown`, never a guess.
+Precision over recall applies throughout: an ambiguous cue is `unknown`, never a guess.
 """
 
 import argparse
@@ -33,7 +33,7 @@ def _paragraphs(*rows: tuple[str, str, str]) -> list[dict[str, str]]:
 
 
 class StableIdReconciliationTests(unittest.TestCase):
-    """An unlocked, generated character keeps its id across a rebuild (ADR 0345)."""
+    """An unlocked, generated character keeps its id across a rebuild."""
 
     def test_an_unlocked_entity_keeps_its_id_when_a_title_prefixed_mention_first_appears(self):
         # Build 1: only the short form is in the text, so the id is hashed from "Arelian". The mentions are
@@ -291,7 +291,7 @@ class DialogueCueTests(unittest.TestCase):
         self.assertEqual("unknown", cues[0]["speaker_source"])
 
     def test_a_tag_naming_someone_not_in_the_character_index_is_unknown(self):
-        # Precision over recall (ADR 0020): a name that never became a real entity is not guessed at.
+        # Precision over recall: a name that never became a real entity is not guessed at.
         text = '"Wait," Someone said.'
         cues = guide.extract_cues_from_text(text, self._character_index("Ada"))
         self.assertIsNone(cues[0]["speaker_entity_id"])
@@ -382,7 +382,7 @@ class MissingAndAmbiguousCueFixtureTests(unittest.TestCase):
 
 
 class CorrectionSurvivesRebuildTests(unittest.TestCase):
-    """Corrections mirror the locked-entity guard (ADR 0007): a rebuild must never overwrite one."""
+    """Corrections mirror the locked-entity guard: a rebuild must never overwrite one."""
 
     def test_correct_cue_marks_it_corrected(self):
         with tempfile.TemporaryDirectory() as temporary:

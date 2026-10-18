@@ -22,7 +22,7 @@ type SidecarRequest struct {
 	Model          string
 	Language       string
 	MinSpanOverlap float64
-	// ProgressPath is where the sidecar writes its stage|pct|message progress line (ADR 0015), and where a
+	// ProgressPath is where the sidecar writes its stage|pct|message progress line, and where a
 	// "<ProgressPath>.cancel" file asks it to stop; empty runs it without either.
 	ProgressPath string
 }

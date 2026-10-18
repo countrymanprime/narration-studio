@@ -1,5 +1,5 @@
 // This file holds the per-chapter choice of which analysis source counts,
-// items (the default) or a chapter's rendered file (ADR 0550). ChoiceStore
+// items (the default) or a chapter's rendered file. ChoiceStore
 // mirrors apps/desktop/internal/proofing/renders.go's own RenderStore (same
 // sidecar shape, same atomic temp-file-then-rename write, same "a file a
 // newer version wrote is refused, not silently ignored" read rule) - a small,

@@ -1327,7 +1327,7 @@ function Fake:add_take_api(api)
     fake.calls[#fake.calls + 1] = { name = 'OpenMediaExplorer', path = path, play = play }
     return true
   end
-  -- GUID and take-level extension data (ADR 0098, extending ADR 0026's item-level P_EXT to take granularity). A
+  -- GUID and take-level extension data (extending docs/architecture/manuscript-line-identity.md's item-level P_EXT to take granularity). A
   -- missing P_EXT key reads as `false, ''`, like REAPER, and like the item-level function above.
   function api.GetSetMediaItemTakeInfo_String(take, key, value, set)
     if key == 'GUID' then

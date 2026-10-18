@@ -1,4 +1,4 @@
-"""The speech recognition port (ADR 0301): what every ASR engine is to its callers.
+"""The speech recognition port: what every ASR engine is to its callers.
 
 An engine has two roles, asked for separately (interface segregation). ``live`` turns a stream of audio chunks into
 ``Hypothesis`` readings for the teleprompter; ``batch`` turns a whole recording into timed words for Transcript Compare. Its

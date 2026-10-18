@@ -28,7 +28,7 @@ import (
 	"github.com/countrymanprime/narration-utils/shell/internal/whisper"
 )
 
-// The Bootstrap payloads the UI receives (ADR 0069). The UI's contract tests validate these files against its schemas and
+// The Bootstrap payloads the UI receives. The UI's contract tests validate these files against its schemas and
 // the mock client's answers against the same schemas, so a Bootstrap that drifts from its schema fails here or there.
 // Machine-specific values (the temp project folder, the diagnostic id) are fixed so the files are stable.
 func contractHost(t *testing.T, project string) *Host {
@@ -80,7 +80,7 @@ func TestContractBootstrapOfAStandaloneLaunchWithNoProject(t *testing.T) {
 	contractfile.Check(t, "bootstrap-standalone", host.Bootstrap())
 }
 
-// The Story Bible build job as GuideBuildState sends it (ADR 0069). Elapsed time is the only value that varies.
+// The Story Bible build job as GuideBuildState sends it. Elapsed time is the only value that varies.
 func TestContractStoryBibleBuildJob(t *testing.T) {
 	host := contractHost(t, "")
 	pinBinding := func(name string, job map[string]any) {
@@ -169,7 +169,7 @@ func TestContractCopyDiagnostics(t *testing.T) {
 	contractfile.Check(t, "system-copy-diagnostics", map[string]any{"path": fixed})
 }
 
-// The approved catalogs, built from the repository's real config files with nothing installed (ADR 0069), and the install jobs.
+// The approved catalogs, built from the repository's real config files with nothing installed, and the install jobs.
 // contractFixture is what the catalog payloads are built from: the registry of approved assets and the settings that say which is selected.
 type contractFixture struct {
 	registry *assetRegistry
@@ -279,7 +279,7 @@ func TestContractSettingsForEachScope(t *testing.T) {
 	project := t.TempDir()
 	host := NewHost()
 	host.settings = settings.New(layout.FindRoot("."), project)
-	// The live engine choices follow the platform (Moonshine ships only on Windows, ADR 0107); pin it so the golden is
+	// The live engine choices follow the platform (Moonshine ships only on Windows); pin it so the golden is
 	// the same on every runner.
 	host.platform = "windows"
 	for _, scope := range []string{"global", "project"} {
@@ -420,7 +420,7 @@ func normalizeMappingPayload(value any) (any, error) {
 	return decoded, nil
 }
 
-// ChapterTrackMatch's payload (ADR 0110): a matched chapter with its
+// ChapterTrackMatch's payload: a matched chapter with its
 // recorded end, an ambiguous one and one with no track. The project folder is made portable; Stabilize fixes the .rpp's
 // save time.
 func TestContractChapterTrackMatch(t *testing.T) {
@@ -511,7 +511,7 @@ func TestContractChapterTrackLinks(t *testing.T) {
 	pin(t, "chapter-track-unlink", folder, call(host.ChapterTrackUnlink(ids[1])))
 }
 
-// ChapterSuggestion's payload (ADR 0113): the armed track's
+// ChapterSuggestion's payload: the armed track's
 // chapter, two armed tracks naming different chapters (a choice), and nothing armed or selected.
 func TestContractChapterSuggestion(t *testing.T) {
 	for name, flags := range map[string]map[string]string{
@@ -536,7 +536,7 @@ func TestContractChapterSuggestion(t *testing.T) {
 	}
 }
 
-// The system:notice event: something the app did for the narrator that they should read (ADR 0069).
+// The system:notice event: something the app did for the narrator that they should read.
 func TestContractNarratorNotice(t *testing.T) {
 	contractfile.Check(t, "system-notice", noticePayload("Your notes file could not be read. It was kept as manuscript-notes.json.corrupt-20260921-101530 next to the original, and a fresh one was started."))
 }
@@ -688,7 +688,7 @@ func TestContractCreditsProjectValuesAndPreview(t *testing.T) {
 	contractfile.Check(t, "credits-preview-unresolved", decodedPreview)
 }
 
-// CreditsChapterAnnouncements' answer (ADR 0151): one per narration chapter, the second with its optional chapter
+// CreditsChapterAnnouncements' answer: one per narration chapter, the second with its optional chapter
 // title dropped and an unresolved project token reported.
 func TestContractCreditsChapterAnnouncements(t *testing.T) {
 	host := hostWithExtras(t, 10)
@@ -701,7 +701,7 @@ func TestContractCreditsChapterAnnouncements(t *testing.T) {
 	contractfile.Check(t, "credits-chapter-announcements", decoded)
 }
 
-// CreditsRetailSample's answers (ADR 0152): a measured sample, none picked, and a saved one whose lines are gone.
+// CreditsRetailSample's answers: a measured sample, none picked, and a saved one whose lines are gone.
 func TestContractCreditsRetailSample(t *testing.T) {
 	host := hostWithExtras(t, 100)
 	check := func(name, encoded string) {
@@ -732,7 +732,7 @@ func TestContractCreditsRetailSample(t *testing.T) {
 	check("credits-retail-sample-stale", stale)
 }
 
-// CreditsStatuses' and CreditsSetStatus's payloads (ADR 0183): empty before
+// CreditsStatuses' and CreditsSetStatus's payloads: empty before
 // anything is set, then both kinds once set.
 func TestContractCreditsStatuses(t *testing.T) {
 	host := hostWithExtras(t, 10)
@@ -771,7 +771,7 @@ func TestContractCreditsRecordedLengths(t *testing.T) {
 }
 
 // The take-review findings as the Review page lists them (FindingsList filtered to the take-review analyzer,
-// ADR 0069): one partial pickup (a read below full coverage) and one near-identical
+// docs/architecture/wire-contracts.md): one partial pickup (a read below full coverage) and one near-identical
 // duplicate_read (full coverage, both reads above the quality bar), each with its reads in evidence.members, which
 // the page decodes with its own schema. Built from internal/repeats.ToFindings, the adapter the scan job saves
 // through, into a real findings store: no sidecar, no REAPER project.
@@ -908,7 +908,7 @@ func TestContractFindingsReadNavigation(t *testing.T) {
 	checkBindingContract(t, "findings-loop-read", payload)
 }
 
-// The result TakeReviewCreateTake sends once REAPER confirms a take was added (ADR 0098): the target item's own
+// The result TakeReviewCreateTake sends once REAPER confirms a take was added: the target item's own
 // GUID (unchanged) and the new take's GUID, both
 // re-resolved by narration_take_review.lua after its Undo_EndBlock2.
 func TestContractTakeReviewCreateTakeResult(t *testing.T) {

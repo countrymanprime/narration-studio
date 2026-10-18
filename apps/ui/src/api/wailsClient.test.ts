@@ -798,7 +798,7 @@ describe('wailsClient', () => {
   });
 });
 
-describe('live events (ADR 0069: dropped and counted, never thrown inside the callback)', () => {
+describe('live events (docs/architecture/wire-contracts.md: dropped and counted, never thrown inside the callback)', () => {
   type Listener = (payload: unknown) => void;
 
   // A fresh module per test: the live-event counter is the client's own, and one test's drops must not degrade the next.
@@ -1648,7 +1648,7 @@ describe('the script prep bindings', () => {
   });
 });
 
-// Wails v2 rejected a failed Go method with the error's text; v3 rejects with a RuntimeError carrying it (ADR 0200). Pages render a
+// Wails v2 rejected a failed Go method with the error's text; v3 rejects with a RuntimeError carrying it. Pages render a
 // rejection with String(reason), so the text must arrive alone, never as "RuntimeError: ...".
 describe('host errors keep the text a page shows', () => {
   it('rejects with the Go error text when a host method fails', async () => {

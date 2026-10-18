@@ -8,7 +8,7 @@ import (
 	"github.com/countrymanprime/narration-utils/shell/internal/teleprompter"
 )
 
-// Which microphone REAPER uses, for the teleprompter's microphone picker (ADR 0250): REAPER's open input device, from chapter_track_state's device read, matched against the names the
+// Which microphone REAPER uses, for the teleprompter's microphone picker: REAPER's open input device, from chapter_track_state's device read, matched against the names the
 // teleprompter's capture opens. The picker preselects Device only when Status is matched, with Message as the reason;
 // every other answer leaves the full list and the narrator's own choice as they are.
 

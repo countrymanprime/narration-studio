@@ -1,4 +1,4 @@
-// Package asrport is the speech recognition port on the Go side (ADR 0301): which engines the host can hand the sidecars, on which
+// Package asrport is the speech recognition port on the Go side: which engines the host can hand the sidecars, on which
 // platforms, in which modes, and which asset kind their models install from. The engines themselves run in Python
 // (narration_common.ports.asr); a row here is what the host knows about one without starting it. Call sites ask the registry by the
 // name the setting stores and never compare names themselves. The asrporttest suite runs over every row.
@@ -35,7 +35,7 @@ type Engine interface {
 }
 
 // InstalledModelOnly is implemented by an engine that loads its model only from a verified catalog install, never by name
-// (Moonshine, ADR 0107). The host refuses a session of such an engine that has no install directory before it starts the
+// (Moonshine). The host refuses a session of such an engine that has no install directory before it starts the
 // sidecar. An engine that does not implement it may load a model by name.
 type InstalledModelOnly interface {
 	InstalledModelOnly() bool
@@ -58,7 +58,7 @@ func NewRegistry() *port.Registry[Engine] {
 		Descriptor: port.Descriptor{Label: "Whisper", Modes: []string{ModeLive, ModeBatch}},
 		New:        func() Engine { return engine{name: Whisper, assetKind: "whisper"} },
 	})
-	// Moonshine ships only in the Windows sidecar (ADR 0107), only the live sidecar loads it, and only from a verified install.
+	// Moonshine ships only in the Windows sidecar, only the live sidecar loads it, and only from a verified install.
 	r.Register(port.Entry[Engine]{
 		Name:       Moonshine,
 		Descriptor: port.Descriptor{Label: "Moonshine", Platforms: []string{"windows"}, Modes: []string{ModeLive}},

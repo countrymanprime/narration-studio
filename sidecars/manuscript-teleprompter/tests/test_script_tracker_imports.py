@@ -1,4 +1,4 @@
-"""Architecture rule for ADR 0021 point 3: the script tracker is engine-independent.
+"""Architecture rule for docs/architecture/manuscript-teleprompter.md#prototype-findings-and-live-engine-direction: the script tracker is engine-independent.
 
 `script_tracker.py` consumes the events any live engine emits and knows nothing about an engine, a
 model, audio or the rest of the sidecar, so it imports the standard library and nothing else. A
@@ -60,5 +60,5 @@ def test_the_rule_flags_engine_and_third_party_imports_and_accepts_the_standard_
 
 def test_the_script_tracker_imports_only_the_standard_library():
     assert non_stdlib_imports(TRACKER_PATH.read_text(encoding="utf-8")) == [], (
-        "ADR 0021 point 3: the script tracker must not depend on an engine or any third-party package"
+        "docs/architecture/manuscript-teleprompter.md#prototype-findings-and-live-engine-direction: the script tracker must not depend on an engine or any third-party package"
     )

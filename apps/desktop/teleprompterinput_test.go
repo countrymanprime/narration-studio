@@ -121,7 +121,7 @@ func TestTeleprompterReaperInputOnAHostWithNoBridgeIsStandalone(t *testing.T) {
 	}
 }
 
-// The binding's answers, pinned for the UI's schema (ADR 0069).
+// The binding's answers, pinned for the UI's schema.
 func TestContractTeleprompterReaperInputs(t *testing.T) {
 	answers := map[string]teleprompterReaperInput{
 		"matched":          readInput(t, connectedHost(), &fakeTrackStates{state: bridge.TrackState{InputDevice: "Shure MV7"}}, &fakeDevices{names: inputDevices}),

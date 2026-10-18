@@ -1,6 +1,6 @@
 """
 Regenerates tests/fixtures/teleprompter-locate/, the recorded tails the tail-audio locate is measured on
-(ADR 0111).
+.
 
 Each case is a narrator's recording of Chapter I of Alice's Adventures in Wonderland (tests/fixtures/alice.md,
 public domain) up to a known word: a Piper voice speaks the last couple of minutes of it, with the case's own

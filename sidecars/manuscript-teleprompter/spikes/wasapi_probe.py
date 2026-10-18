@@ -1,5 +1,5 @@
 """
-Spike: measure the built-in recorder's capture engine (ADR 0357). This is not
+Spike: measure the built-in recorder's capture engine. This is not
 shipped code. It drives the same `capture_wasapi` row and `narration_common.recording.Recorder` the app will use, and
 prints one JSON report, which the research note (docs/research/native-recording-capture-engine-spike.md) records.
 

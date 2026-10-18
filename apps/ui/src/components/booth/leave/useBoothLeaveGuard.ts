@@ -7,7 +7,7 @@ import { stopRecordingSpec } from './stopRecordingSpec';
 /** The seam the Booth gives the guard: not a `DawClient`, only what leaving needs to know and do. */
 export type BoothLeaveSession = {
   recording: boolean;
-  /** False when the DAW was already recording and the app did not start the take (ADR 0232). Default true. */
+  /** False when the DAW was already recording and the app did not start the take. Default true. */
   startedByApp?: boolean;
   daw: { name: string };
   stopRecording: () => Promise<DawResult>;

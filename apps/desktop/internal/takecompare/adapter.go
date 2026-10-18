@@ -88,7 +88,7 @@ type Evidence struct {
 
 // ToFinding builds the take_comparison finding for group from its evidence. Its id depends only on the project and the
 // group, so comparing the same group again replaces the comparison; its evidence version hashes the whole evidence, so
-// a decision made against one set of measurements returns to unreviewed when they change (ADR 0120).
+// a decision made against one set of measurements returns to unreviewed when they change.
 func ToFinding(group Group, projectPath string, manuscript findings.Manuscript, evidence Evidence) (findings.Finding, error) {
 	asMap, version, err := encodeEvidence(evidence)
 	if err != nil {

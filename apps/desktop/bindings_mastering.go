@@ -9,7 +9,7 @@ import (
 	"github.com/countrymanprime/narration-utils/shell/internal/port"
 )
 
-// The mastering chain a project masters with (ADR 0306, owner decision D86): a row of masteringport.Rows, chosen per project.
+// The mastering chain a project masters with (owner decision D86): a row of masteringport.Rows, chosen per project.
 // The choice is the project settings row Mastering.provider, written only by MasteringChooseProvider, which checks it against
 // the registry; it is not a generic Settings field, so the Settings page neither lists nor saves it, and no global or repo
 // default exists: a project with no choice masters with the registry's default row (builtin). Master & QC reads it to draw the chain. The wire schema, golden payloads, wireContracts row and mock live in apps/ui/src/api.

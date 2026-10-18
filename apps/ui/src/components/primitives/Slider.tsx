@@ -21,7 +21,7 @@ export type SliderProps = DataProps & {
 };
 
 // A single-thumb slider: a 4 px track, an 18 px thumb, and an optional header row (label left, readout right). Base UI
-// supplies the native range input, the keys (arrows, Home, End, Page Up, Page Down) and dragging (ADR 0047); the track,
+// supplies the native range input, the keys (arrows, Home, End, Page Up, Page Down) and dragging; the track,
 // thumb and focus ring are drawn with the app's tokens. Controlled: it never holds its own value. `id` and `data-*` land on
 // the range input so a page can address it. Without `label` and `valueText` no header renders and the page supplies its own.
 export function Slider({

@@ -1,4 +1,4 @@
-// The browser mock's recording coverage (docs/utilities/recording-coverage.md, ADR 0129). It answers the same
+// The browser mock's recording coverage (docs/utilities/recording-coverage.md). It answers the same
 // states the host does: a chapter whose fixture carries a recordedFraction has a current check with that share of its
 // words present, any other chapter was never checked, a seeded chapter reads stale (and so loses its recordedFraction),
 // a started check steps through real-looking progress to a result and one job end, and a seeded refusal answers every
@@ -80,10 +80,10 @@ function enginesFor(deps: Deps): CoverageEngines {
 type Deps = {
   chapters: () => ManuscriptChapter[];
   assetRequired: () => AssetRequired | undefined;
-  /** The engines a check can run: the mock's approved Whisper catalog (ADR 0841). */
+  /** The engines a check can run: the mock's approved Whisper catalog. */
   engines: () => CoverageEngines;
   endJob: (event: JobEnded) => void;
-  /** Where an accepted gap's finding is saved: the findings mock the review page reads (ADR 0842). */
+  /** Where an accepted gap's finding is saved: the findings mock the review page reads. */
   saveFinding: (finding: Finding) => void;
   seed?: CoverageSeed;
 };
@@ -127,7 +127,7 @@ const idle: CoverageState = { phase: 'idle', percent: 0, message: 'Save the REAP
 
 const narratable = (chapter: ManuscriptChapter) => chapter.contentKind !== 'opening' && chapter.contentKind !== 'reference';
 
-/** The shipped thresholds (ADR 0132), which the mock judges by. */
+/** The shipped thresholds, which the mock judges by. */
 const MOCK_THRESHOLDS = { minParagraphPresent: 0.8, maxMissingRun: 3 };
 
 const plural = (count: number, noun: string) => (count === 1 ? `1 ${noun}` : `${count} ${noun}s`);
@@ -252,7 +252,7 @@ function basePickupsReportFor(chapter: ManuscriptChapter): Omit<CoverageReport, 
   };
 }
 
-/** The host's `coverage.ClassifyGaps` for a mock report (ADR 0830): a skip is missing, a short read is misread, an
+/** The host's `coverage.ClassifyGaps` for a mock report: a skip is missing, a short read is misread, an
  * unread start or end is unfinished and never a gap, and confidence is null with its reason. */
 function classifyMock(report: Omit<CoverageReport, 'gaps' | 'unfinished'>): { gaps: CoverageGap[]; unfinished: CoverageUnfinished } {
   const read = report.paragraphs.map((paragraph) => paragraph.present > 0);
@@ -269,7 +269,7 @@ function classifyMock(report: Omit<CoverageReport, 'gaps' | 'unfinished'>): { ga
   return { gaps, unfinished: { start: first, end: report.paragraphs.length - 1 - last } };
 }
 
-/** The host's `coverage.Judge` (ADR 0204), so the mock's headline reads as the real one: met when every paragraph passes
+/** The host's `coverage.Judge`, so the mock's headline reads as the real one: met when every paragraph passes
  * and no run is too long, otherwise the largest region over the limit, then the longest run, then the thinnest paragraph. */
 export function judgeMock(report: CoverageReport, thresholds = MOCK_THRESHOLDS): CoverageJudgement {
   const numbers = new Map(report.paragraphs.map((paragraph, index) => [paragraph.id, index + 1]));
@@ -383,7 +383,7 @@ export function createCoverageMock(deps: Deps): CoverageApi & {
   const refuse = (reason: CoverageRefusalReason): CoverageStartResult => ({ status: 'refused', reason, message: COVERAGE_REFUSAL_MESSAGES[reason] });
 
   // The narrator's calls on the gaps of each chapter's current check, by chapter and gap id. A new run is a new evidence
-  // key in the host, so it starts with none (ADR 0842).
+  // key in the host, so it starts with none.
   const gapReviews = new Map<string, { decision: CoverageGapReview; finding?: Finding }>();
   const gapKey = (chapterId: string, gapId: string) => `${chapterId}\u0000${gapId}`;
   const dropGapReviews = (chapterId: string) => {

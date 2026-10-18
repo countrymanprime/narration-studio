@@ -1,4 +1,4 @@
-"""The coverage mode's word alignment (ADR 0242).
+"""The coverage mode's word alignment.
 
 Beside its measurements, `compare.py --coverage` writes one `COVERAGE_TOKEN` line per chapter token
 (the manuscript word it came from, its status as the check judged it, and where it was heard in its
@@ -154,7 +154,7 @@ def test_a_fully_read_chapter_has_no_extra_lines(tmp_path, progress):
 
 
 def test_the_measurement_lines_are_unchanged_by_the_alignment_lines(tmp_path, cached_project, progress):
-    # Additive (ADR 0127's tagged lines): the lines the host already reads come first, at the same
+    # Additive (docs/utilities/recording-coverage.md's tagged lines): the lines the host already reads come first, at the same
     # schema version, and the new tags come after them.
     manuscript, manifest = cached_project
     out = Path(_args(tmp_path, manuscript, manifest).out)

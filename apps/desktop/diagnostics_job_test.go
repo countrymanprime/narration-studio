@@ -14,7 +14,7 @@ import (
 	"github.com/countrymanprime/narration-utils/shell/internal/measure"
 )
 
-// The Diagnostics view's job: the windowed analyzers of ADR 0158 over files the narrator picked
+// The Diagnostics view's job: the windowed analyzers of docs/architecture/codebase-map.md over files the narrator picked
 // for measuring, read-only, with real progress and a cancel, answering each file's summary and findings with the
 // thresholds that raised them.
 
@@ -68,14 +68,14 @@ func TestDiagnosticsStateIsIdleWithTheThresholdsItWouldUse(t *testing.T) {
 		t.Fatalf("idle job = %+v", job)
 	}
 	if job.Thresholds != measure.DefaultDiagnosticOptions() {
-		t.Fatalf("thresholds = %+v, want the starting thresholds of ADR 0158", job.Thresholds)
+		t.Fatalf("thresholds = %+v, want the starting thresholds of docs/architecture/codebase-map.md", job.Thresholds)
 	}
 	if job.CleanupThresholds != measure.DefaultCleanupOptions() {
 		t.Fatalf("cleanup thresholds = %+v, want the silence cleanup analyzer's defaults", job.CleanupThresholds)
 	}
 }
 
-// The narrator's own silence cleanup thresholds (ADR 0238 decision 4) are read from the layered
+// The narrator's own silence cleanup thresholds (apps/desktop/internal/measure/cleanup.go) are read from the layered
 // store at start, shown even while idle, and threaded into every file's measure.DiagnosticInput.Cleanup - the
 // classifier itself (internal/measure/cleanup.go) is untouched; only what reaches it changes.
 func TestDiagnosticsThreadsTheNarratorsCleanupSettingsIntoEachFile(t *testing.T) {
@@ -115,7 +115,7 @@ func TestDiagnosticsThreadsTheNarratorsCleanupSettingsIntoEachFile(t *testing.T)
 }
 
 // CleanupFindings (internal/measure/cleanup.go) turns cleanup candidates into silence_cleanup findings apart from
-// Findings (ADR 0238 decision 3): the diagnostics job carries them on the file as their own list, never mixed into
+// Findings (apps/desktop/internal/measure/cleanup.go): the diagnostics job carries them on the file as their own list, never mixed into
 // the Diagnostics tab's existing findings.
 func TestDiagnosticsFileResultCarriesCleanupFindingsApartFromFindings(t *testing.T) {
 	t.Setenv("APPDATA", t.TempDir()) // never read the real machine's global-settings.json

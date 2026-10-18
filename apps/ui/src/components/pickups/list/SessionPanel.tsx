@@ -13,7 +13,7 @@ export type Gate = { available: boolean; message?: string };
 
 /**
  * The "Pickup session" side panel (mock): how many open, included lines the next Booth session takes, about how long that is (only from a
- * sourced figure, ADR 0015), open them in the Booth, add them as markers in the DAW, or copy the pickup script.
+ * sourced figure), open them in the Booth, add them as markers in the DAW, or copy the pickup script.
  */
 export function SessionPanel({
   pickups,

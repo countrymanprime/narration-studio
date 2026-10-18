@@ -1,7 +1,7 @@
 # Recording coverage: calibrating the four settings on the synthetic fixtures
 
 **Status: measured, 2026-09-23.** This note records the calibration that chose the recording check's shipped defaults
-([ADR 0132](../adr/0132-the-recording-check-ships-0-8-3-8-3-chosen-on-synthetic-fixtures-and-labelled-uncalibrated.md)).
+([Settings](../utilities/recording-coverage.md#settings)).
 It uses the [synthetic fixture set](recording-coverage-fixtures.md), because the owner chose constructed fixtures over
 an owner-supplied corpus (Q15 in [the recording check's decisions](../utilities/recording-coverage.md#decisions)).
 The defaults therefore stay **Proposed** and labelled uncalibrated on real narration until a permissioned corpus exists.
@@ -355,7 +355,7 @@ fallback runs almost every time and the cascade costs more than `small`, and `ti
 ## LibriVox real speech (2026-09-27)
 
 The first run on real narration: the 14 cases built from the LibriVox readings
-([ADR 0416](../adr/0416-librivox-readings-of-the-demo-script-are-fetched-from-archive-org-and-only-their-markers-and-recipes-are-committed.md),
+([LibriVox Alice: real narration of the demo script](../../tests/fixtures/audio/librivox-alice/README.md),
 `tests/fixtures/audio/librivox-alice`). Nine `tune` cases are Kara Shallenberg's Chapters I and II, and five `held_out`
 cases are her Chapter X and Eric Leach's Chapter I. They run 10 to 14 minutes each, 173 audio minutes in all, and every
 item keeps its LibriVox preamble or closing credit as real unrelated speech. The labels come from how each case was cut,

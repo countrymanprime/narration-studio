@@ -1,5 +1,5 @@
 /**
- * A gesture is what any input device turns into once normalised (ADR 0361 decision 3): the same shape whether it
+ * A gesture is what any input device turns into once normalised (docs/architecture/studio-shell-and-registries.md): the same shape whether it
  * came from a key, a MIDI note/CC or an HID button. `code` is `KeyboardEvent.code` for a keyboard gesture:
  * the physical key, stable across keyboard layouts, never the character it types (`event.key` would move on a
  * German keyboard).
@@ -9,7 +9,7 @@ export type GestureSource = 'keyboard' | 'midi' | 'hid';
 /** A held modifier on a resolved, comparable gesture. */
 export type ModifierKey = 'Alt' | 'Ctrl' | 'Meta' | 'Shift';
 
-/** A modifier as written in a catalog default: `Mod` is a placeholder ADR 0361 resolves to `Meta` on macOS and
+/** A modifier as written in a catalog default: `Mod` is a placeholder docs/architecture/studio-shell-and-registries.md resolves to `Meta` on macOS and
  * `Ctrl` elsewhere, so one default reads right on every platform. `resolveGesture` turns it into a `Gesture`. */
 type DefaultModifierKey = ModifierKey | 'Mod';
 

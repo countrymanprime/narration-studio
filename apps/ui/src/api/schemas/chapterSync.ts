@@ -50,7 +50,7 @@ const chapterSchema = z
     path: ['origin'],
   }) satisfies z.ZodType<ChapterSyncChapter>;
 
-/** `ChapterSyncState`, `ChapterSyncSetEnabled`, `ChapterSyncUndo` and the `chaptersync:state` event (`apps/desktop/chaptersync.go`, ADR 0209). */
+/** `ChapterSyncState`, `ChapterSyncSetEnabled`, `ChapterSyncUndo` and the `chaptersync:state` event (`apps/desktop/chaptersync.go`). */
 export const chapterSyncStateSchema = z
   .object({
     consent: z.enum(['undecided', 'on', 'off']),

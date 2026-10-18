@@ -66,12 +66,12 @@ export type PickupsImportResult = {
 
 export type PickupsStartResult = { status: 'started' };
 
-/** Where a pickup on the host's list came from (ADR 0840): a gap of the recording check, a note decided "Needs pickup", the
+/** Where a pickup on the host's list came from: a gap of the recording check, a note decided "Needs pickup", the
  * same decision on a note that is a sound, or a line the narrator added. */
 export const PICKUP_SOURCES = ['speech', 'proof', 'audio', 'you'] as const;
 export type PickupSource = (typeof PICKUP_SOURCES)[number];
 
-/** What a recording check found in the read part of a chapter (ADR 0830). */
+/** What a recording check found in the read part of a chapter. */
 export const PICKUP_GAP_KINDS = ['missing', 'extra', 'misread', 'other'] as const;
 export type PickupGapKind = (typeof PICKUP_GAP_KINDS)[number];
 
@@ -136,7 +136,7 @@ export interface PickupsApi {
   pickupsCount(): Promise<PickupsStartResult>;
   pickupsState(): Promise<PickupsState>;
   subscribePickups(onUpdate: (state: PickupsState) => void): () => void;
-  /** The merged pickup list (ADR 0840). With the DAW answering, done states that waited are written to the markers first. */
+  /** The merged pickup list. With the DAW answering, done states that waited are written to the markers first. */
   pickupsList(): Promise<PickupList>;
   /** Adds a line by hand at `time` seconds into the chapter's recording. Refuses an empty line, a line over 500 characters or
    * with control characters, an unknown chapter and a time outside the chapter. The same line twice is one pickup. */

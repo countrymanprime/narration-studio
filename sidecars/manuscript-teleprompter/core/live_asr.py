@@ -73,7 +73,7 @@ turns them into these three event types:
         only with --capabilities: every row this process has actually
         registered in ENGINES and BACKENDS (see capabilities_report, below),
         keyed by port then name; registration only by default, so "loadable"
-        is null unless --verify is also given (ADR 0403). With --verify, the rows
+        is null unless --verify is also given. With --verify, the rows
         _VERIFY_HOOKS names (today: just moonshine) also get "loadable" true/false and a
         "detail" string, and the process exits 1 if any of them is false.
         Prints once and exits 0 otherwise. The packaged app's smoke test
@@ -130,20 +130,20 @@ _CORE_DIR = Path(__file__).resolve().parent
 if str(_CORE_DIR) not in sys.path:
     sys.path.insert(0, str(_CORE_DIR))
 
-# Registers the "whisper" and "moonshine" rows into ENGINES (ADR 0301); --engine's choices and the argument
+# Registers the "whisper" and "moonshine" rows into ENGINES; --engine's choices and the argument
 # checks below go through this registry rather than comparing engine names themselves.
 import asr_adapters  # noqa: F401
 
-# Registers the "dshow" row into BACKENDS (ADR 0301); iter_microphone_chunks below looks it up rather than
+# Registers the "dshow" row into BACKENDS; iter_microphone_chunks below looks it up rather than
 # calling devices.py/PyAV itself.
 import capture_dshow  # noqa: F401
 
-# Registers the Experimental "wasapi" row after it (ADR 0357): the built-in recorder's engine.
+# Registers the Experimental "wasapi" row after it: the built-in recorder's engine.
 # Nothing here opens it; --capabilities reports it, and the packaged app's smoke test checks it registered.
 import capture_wasapi  # noqa: F401
 from narration_common.logging_utils import log, set_log_file
 
-# Word and Hypothesis are the speech engine port's types (ADR 0301); they are re-exported here so `live_asr.Hypothesis`
+# Word and Hypothesis are the speech engine port's types; they are re-exported here so `live_asr.Hypothesis`
 # and every other existing import keep working.
 from narration_common.ports.asr import ENGINES, Hypothesis, LiveRequest, Word
 from narration_common.ports.capture import BACKENDS
@@ -503,7 +503,7 @@ class StreamClock:
     mic, or the audio consumed so far for a file (which replays faster than
     real time). While paused it stands still, and after a resume it runs on
     without the paused time, so the tracker's pause timeout never counts a
-    pause the narrator asked for (ADR 0248)."""
+    pause the narrator asked for."""
 
     def __init__(self, capture_started: float | None = None, time_fn: Callable[[], float] = time.perf_counter) -> None:
         self._capture_started = capture_started
@@ -562,7 +562,7 @@ def ticking(chunks: Iterable[np.ndarray], clock: StreamClock, on_tick: Callable[
 def gated(chunks: Iterable[np.ndarray], is_paused: Callable[[], bool]) -> Iterator[np.ndarray]:
     """Pass chunks through except while paused, when they are read from the
     device and dropped: the device stays open, so a resume is instant, and the
-    engine never hears the pause (ADR 0248)."""
+    engine never hears the pause."""
     for chunk in chunks:
         if not is_paused():
             yield chunk
@@ -612,14 +612,14 @@ def _load_engine(args) -> EventStream:
 
 
 def _verify_moonshine() -> dict:
-    """The verify hook for asr/moonshine: whether this build's Moonshine native library actually loads (ADR 0403)."""
+    """The verify hook for asr/moonshine: whether this build's Moonshine native library actually loads."""
     from moonshine_engine import self_check
 
     return self_check()
 
 
 # Which (port, name) rows --capabilities --verify can additionally prove actually load, not just registered
-# (ADR 0403) - today only moonshine. A future engine needing the same guarantee adds one row here, the
+# - today only moonshine. A future engine needing the same guarantee adds one row here, the
 # same one-row-not-a-rewritten-call-site shape ENGINES/BACKENDS already have; looked up by key, never compared, so
 # this needs no provider-guard exception (libs/python/tests/test_provider_guard.py).
 _VERIFY_HOOKS: dict[tuple[str, str], Callable[[], dict]] = {("asr", "moonshine"): _verify_moonshine}
@@ -629,7 +629,7 @@ def _capability_row(port: str, descriptor, verify: bool) -> dict:
     """One row of a --capabilities report: a Descriptor's label, platforms and modes, plus its asset kind when it
     has one (AsrDescriptor only) - the same "include only when non-empty" rule bindings_providers.go's providerEntry
     uses. "loadable" is null unless `verify` is set and _VERIFY_HOOKS names this (port, descriptor.name) row, in
-    which case the hook's own "ok"/"detail" fill "loadable"/"detail" (ADR 0403)."""
+    which case the hook's own "ok"/"detail" fill "loadable"/"detail"."""
     row = {"label": descriptor.label, "platforms": list(descriptor.platforms), "modes": list(descriptor.modes), "loadable": None}
     asset_kind = getattr(descriptor, "asset_kind", "")
     if asset_kind:
@@ -716,7 +716,7 @@ def _check_engine_args(ap: argparse.ArgumentParser, args) -> None:
 def _load_script(ap: argparse.ArgumentParser, args):
     """(tracker, `script` event, chapter text) for --manuscript/--chapter or
     --script, or all None. A --script named with --script-id/--script-title
-    (the credits, ADR 0150) gets a `script` event like a chapter; a plain
+    (the credits) gets a `script` event like a chapter; a plain
     --script does not. Sibling modules are imported only when needed."""
     from flags import FlaggingTracker
     from script_tracker import script_words
@@ -836,7 +836,7 @@ def _run_meter(ap: argparse.ArgumentParser, args) -> None:
         ap.error(f"--meter takes only --mic, --capture and --stop-file, not {' '.join(taken)}")
     log(f"Metering {args.mic}...")
     try:
-        # --capture meters through that row (the built-in recorder's wasapi, ADR 0357); dshow otherwise.
+        # --capture meters through that row (the built-in recorder's wasapi); dshow otherwise.
         chunks = _capture_row(ap, args.capture).chunks(args.mic) if args.capture else iter_microphone_chunks(args.mic)
         for _chunk in metered(stoppable(chunks, args.stop_file), LevelMeter(), _emit):
             pass
@@ -844,7 +844,7 @@ def _run_meter(ap: argparse.ArgumentParser, args) -> None:
         log("Stopped.")
 
 
-# The capture row --record records through when --capture names none: the built-in recorder's engine (ADR 0357).
+# The capture row --record records through when --capture names none: the built-in recorder's engine.
 RECORD_CAPTURE = "wasapi"
 # How often --record looks for the stop file and for a take the device ended on its own.
 RECORD_POLL_SECONDS = 0.05
@@ -889,7 +889,7 @@ def _run_list_devices(ap: argparse.ArgumentParser, args) -> None:
 def _run_record(ap: argparse.ArgumentParser, args) -> None:
     """--record PATH --mic NAME --stop-file F: record one take of NAME into PATH through the capture row --capture names
     (wasapi by default), printing `level` events while it runs and one `recorded` event with the take's numbers when it
-    ends. PATH must not exist yet: the writer never overwrites (ADR 0357). It
+    ends. PATH must not exist yet: the writer never overwrites. It
     ends when the stop file appears, or on its own when the device or the disk fails; either way the audio written so
     far is kept and `recorded` says why in `error`. A take that could not start at all exits 1 with the reason on
     stderr, and prints no `recorded`."""

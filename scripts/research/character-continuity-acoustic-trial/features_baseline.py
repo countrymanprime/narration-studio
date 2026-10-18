@@ -1,9 +1,9 @@
 """Dependency-free acoustic features: pitch distribution, speaking rate, energy distribution, coarse spectral summary.
 
 Hand-written, numpy-only (numpy is already a repository dependency; this trial script is
-not the shipped implementation - the MVP is Go per ADR 0025 - it exists to decide whether
+not the shipped implementation - the MVP is Go per docs/architecture/codebase-map.md - it exists to decide whether
 this *kind* of feature is worth building there at all). No torch, no scipy, no
-librosa: consistent with ADR 0008 (no PyTorch dependency).
+librosa: consistent with docs/utilities/transcript-compare.md#alignment-and-confidence (no PyTorch dependency).
 """
 
 from __future__ import annotations

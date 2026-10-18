@@ -122,7 +122,7 @@ func TestResultHasAnOptionalCodeThatOnlyAStaleRefusalSets(t *testing.T) {
 }
 
 // result-has-an-optional-code: RefusedFrom maps capability refusals only, so it never sets a code. A stale answer comes
-// from the bridge as its own error, which a caller maps with RefusedStale and the host's sentence (ADR 0861).
+// from the bridge as its own error, which a caller maps with RefusedStale and the host's sentence.
 func TestRefusedFromNeverSetsACode(t *testing.T) {
 	support := Support{Level: Unsupported, Reason: ReasonUnsupported, Message: "Punch and roll is not something Audacity can do."}
 	got, ok := RefusedFrom(&NotSupportedError{Capability: CapPunch, Support: support})

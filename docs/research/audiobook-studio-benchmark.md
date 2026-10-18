@@ -175,7 +175,7 @@ tool-run-logging (deleted PRD `tool-run-logging`) marks P1–P4 and P7 as pendin
 | Capability | Status | Where it stands |
 | --- | --- | --- |
 | **Prep** | | |
-| Import DOCX, EPUB, Markdown, TXT; chapters from the TOC; front and back matter | Shipped | The importer, ADRs 0089, 0095, 0101, 0240 |
+| Import DOCX, EPUB, Markdown, TXT; chapters from the TOC; front and back matter | Shipped | The importer, `docs/architecture/docx-import-quirks.md#table-of-contents-authority, docs/architecture/docx-import-quirks.md#txt, docs/architecture/docx-import-quirks.md` |
 | PDF import | Partial | Behind a build tag and refused at runtime (`importer/pdf.go`) |
 | Characters, places and organisations with evidence, aliases and lock | Shipped | Story Bible |
 | Pronunciation from the CMU dictionary or eSpeak, with a Piper preview | Shipped | `internal/guide` |
@@ -192,7 +192,7 @@ tool-run-logging (deleted PRD `tool-run-logging`) marks P1–P4 and P7 as pendin
 | Room-tone capture, live noise floor, session match | Missing | The noise floor is measured only afterwards, on the Delivery page |
 | **Proofing and pickups** | | |
 | Transcript against manuscript, typed MISREAD / SKIPPED / EXTRA, with hints | Shipped | Needs REAPER running (`transcript/service.go`) |
-| Recording check (coverage) from the saved `.rpp` | Shipped | Thresholds not yet calibrated (ADR 0132) |
+| Recording check (coverage) from the saved `.rpp` | Shipped | Thresholds not yet calibrated (`docs/utilities/recording-coverage.md#settings`) |
 | Proofer CSV to REAPER markers; next, resolve, export | Shipped | `narration_pickups.lua`, `PickupsDialog.tsx` |
 | One findings list with decisions and go-to / loop / marker in REAPER | Shipped | Milestone 1. Delivery findings are not on it yet |
 | Pickup session assembly: script in context, a tone-match clip, auto-slate | Missing | |
@@ -203,11 +203,11 @@ tool-run-logging (deleted PRD `tool-run-logging`) marks P1–P4 and P7 as pendin
 | FX chains, active take | Partial | Experimental Lua (edit and proof workspace (deleted PRD `edit-and-proof-workspace`)) |
 | Mastering chain or master-to-spec | Missing | The roadmap says the app never changes audio without the narrator's action, so this would be narrator-triggered |
 | **QC and delivery** | | |
-| Measurement: LUFS, true peak, RMS, noise floor, room-tone head and tail, diagnostics | Shipped (WAV only) | `internal/measure`. MP3 container checks only (ADR 0237). EBU and ACX Check validation pending |
+| Measurement: LUFS, true peak, RMS, noise floor, room-tone head and tail, diagnostics | Shipped (WAV only) | `internal/measure`. MP3 container checks only (`apps/desktop/internal/measure/mp3header.go`). EBU and ACX Check validation pending |
 | ACX profile | Shipped | `acx@2026-09`, with rules marked verified, to verify, or conflicting |
 | INaudio, Google, Apple and Kobo profiles | Planned | Delivery platform profiles (deleted PRD `delivery-platform-profiles`) |
 | Per-chapter render | Partial | The render is configured in REAPER, and the narrator presses Render there. Region creation is experimental with no UI |
-| ID3 chapter tags | Shipped | Written to a copy of a combined MP3 (ADR 0099) |
+| ID3 chapter tags | Shipped | Written to a copy of a combined MP3 (`apps/desktop/internal/chaptertags/chaptertags.go`) |
 | MP3 or M4B encoding, naming templates | Missing | |
 | Book-level delivery checklist | Planned | Delivery platform profiles P7 |
 | **Production** | | |
@@ -216,7 +216,7 @@ tool-run-logging (deleted PRD `tool-run-logging`) marks P1–P4 and P7 as pendin
 | Series or multi-book shared bible | Missing | One project at a time |
 | **Platform** | | |
 | All AI runs locally, with explicit downloads | Shipped | A real differentiator [L10][L34] |
-| Screen reader and axe coverage, light and dark themes | Shipped | ADRs 0064, 0065 |
+| Screen reader and axe coverage, light and dark themes | Shipped | `docs/operations/ci-and-releases.md, docs/operations/verification-tooling.md` |
 | Windows installer and in-app update | Shipped | Unsigned; macOS and Linux have CI previews only |
 | Audacity host | Partial | The seam and launcher are built. Every Audacity request answers "not available yet" |
 | Standalone without REAPER | Partial | Reads the `.rpp` and plays audio, but proofing and every live action need REAPER ([standalone launch](../architecture/standalone-launch.md)) |
@@ -224,7 +224,7 @@ tool-run-logging (deleted PRD `tool-run-logging`) marks P1–P4 and P7 as pendin
 **Where this app is ahead of the field:**
 - A two-way bridge addressed by GUID: go to, loop and mark findings, stamp chapters, work through pickups. Competitors export
   marker files.
-- Evidence-versioned findings with narrator decisions. Analyzers never change audio (ADR 0032). This fits the distrust of fully
+- Evidence-versioned findings with narrator decisions. Analyzers never change audio (ADR 0002). This fits the distrust of fully
   automatic editing [L37].
 - Local AI with downloads the narrator agrees to.
 - A REAPER project can be read and played without REAPER running.

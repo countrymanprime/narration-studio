@@ -3,9 +3,9 @@ import type { TeleprompterFlag, TeleprompterFlagKind, TeleprompterFlagSave } fro
 
 /**
  * The Booth's suspected flags, layered on the reader model:
- * a flag arrives in chapter word indices (ADR 0115) and becomes a `ReaderMark` on the rows it falls in, the same path the
- * story bible and note marks take (ADR 0116), and a `TeleprompterFlagSave` naming its paragraph words when it is kept as a
- * finding (ADR 0117). Every flag is only suspected; Transcript Compare over the recorded take is authoritative.
+ * a flag arrives in chapter word indices and becomes a `ReaderMark` on the rows it falls in, the same path the
+ * story bible and note marks take, and a `TeleprompterFlagSave` naming its paragraph words when it is kept as a
+ * finding. Every flag is only suspected; Transcript Compare over the recorded take is authoritative.
  */
 
 export type FlagVisibility = Record<TeleprompterFlagKind, boolean>;
@@ -14,7 +14,7 @@ export type FlagVisibility = Record<TeleprompterFlagKind, boolean>;
 export const FLAG_KINDS: TeleprompterFlagKind[] = ['skipped', 'restart', 'misread', 'extra'];
 
 /**
- * Owner decision 2026-09-23 (ADR 0118), after misread measured 2.07 false flags per 100 words on synthetic speech (target at
+ * Owner decision 2026-09-23, after misread measured 2.07 false flags per 100 words on synthetic speech (target at
  * most 1): skipped and restart show by default; misread and extra wait behind a toggle until their rate meets the target.
  */
 export const DEFAULT_FLAG_VISIBILITY: FlagVisibility = { skipped: true, restart: true, misread: false, extra: false };
@@ -66,7 +66,7 @@ function rowParts([from, to]: [number, number], rows: ReaderRow[]): RowPart[] {
 /**
  * Flag marks by row key, in the shape `readerMarks` gives the story bible and note marks. A row with no flag has no entry. A
  * restart is marked on the word the narrator went back to only: a re-read can run a sentence or two, and a mark is one control
- * that never seeks (ADR 0116), so marking all of it would take "Go back to here" away from every word it covers.
+ * that never seeks, so marking all of it would take "Go back to here" away from every word it covers.
  */
 export function flagMarks(rows: ReaderRow[], flags: TeleprompterFlag[]): Map<string, ReaderMark[]> {
   const byRow = new Map<string, ReaderMark[]>();

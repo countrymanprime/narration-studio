@@ -11,7 +11,7 @@ import (
 	"github.com/countrymanprime/narration-utils/shell/internal/settings"
 )
 
-// The Proof page's marker (ADR 0123): one take marker in REAPER for one finding, in one click and for any finding the
+// The Proof page's marker: one take marker in REAPER for one finding, in one click and for any finding the
 // narrator is looking at (SD-4 left the accepted-only gate and the confirm out). It goes through the same
 // navigator, the same refusals and the same "only while REAPER is listening" rule as Go to (bindings_navigation.go), and
 // it is the one REAPER action from the page that changes the project, so REAPER wraps it in one undo block. The batch

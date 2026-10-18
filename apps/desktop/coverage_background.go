@@ -9,7 +9,7 @@ import (
 	"github.com/countrymanprime/narration-utils/shell/internal/evidence"
 )
 
-// Background recording checks (ADR 0211). Every
+// Background recording checks. Every
 // backgroundCheckInterval the host asks coverage.NextBackground whether a linked chapter whose recording changed since
 // its check may be checked now, and starts it through the same coverage.Start as a narrator's press, marked Background.
 // A narrator's own start pre-empts it (coverageStart), and a chapter the host already tried at its current change is
@@ -101,9 +101,9 @@ func (h *Host) backgroundCheckTick(now time.Time) coverage.BackgroundDecision {
 	} else {
 		power = platformPower()
 	}
-	// The heartbeat's transport (ADR 0305) says whether REAPER is recording; RecordingKnown is false when REAPER is
+	// The heartbeat's transport says whether REAPER is recording; RecordingKnown is false when REAPER is
 	// unreachable or its heartbeat has not carried the transport yet (an older script), and NextBackground treats
-	// that the same as recording (ADR 0211): a running REAPER it cannot read is never assumed idle.
+	// that the same as recording: a running REAPER it cannot read is never assumed idle.
 	reaperRunning := svc.reachability != nil && svc.reachability.Reachable()
 	var recordingKnown, recording bool
 	if reaperRunning {

@@ -1,4 +1,4 @@
-// Package dictionary owns the approved catalog of offline dictionaries the manuscript reader's Look up reads (ADR 0097: the Open English
+// Package dictionary owns the approved catalog of offline dictionaries the manuscript reader's Look up reads (docs/architecture/dictionary-thesaurus-integration.md: the Open English
 // WordNet, CC BY 4.0, no cloud API), and the lookup itself. A dictionary is a pinned release archive: it is downloaded only when the
 // narrator confirms, checked against its SHA-256, unpacked, turned into one compact lookup index (build.go) and the unpacked dataset
 // removed, all inside the same staged install the other assets use (internal/assets), so a failed or partial install never looks
@@ -85,7 +85,7 @@ func (m *Manager) Dictionary(id string) (Dictionary, bool) {
 	return Dictionary{}, false
 }
 
-// Default is the dictionary a lookup uses: the first in the catalog. There is one (US English, ADR 0097); a choice would be a setting.
+// Default is the dictionary a lookup uses: the first in the catalog. There is one (US English); a choice would be a setting.
 func (m *Manager) Default() (Dictionary, bool) {
 	if len(m.catalog.Dictionaries) == 0 {
 		return Dictionary{}, false

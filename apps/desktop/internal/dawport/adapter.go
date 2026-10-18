@@ -1,4 +1,4 @@
-// Package dawport is the one way the host reaches an audio engine (ADR 0300). An adapter per engine declares a Level
+// Package dawport is the one way the host reaches an audio engine. An adapter per engine declares a Level
 // for each Capability and returns one small role interface for each capability it has; the Resolver alone decides what is
 // available now, from that declaration, the runtime state and the narrator's per-capability settings; callers get a role through
 // Role[T] and never hold an adapter. Every adapter passes the conformance suite in dawporttest.
@@ -16,9 +16,9 @@ const (
 	// KindREAPER is `--daw REAPER`, which NarrationStudio_Launcher.lua always passes, or a project that chose REAPER or holds a
 	// REAPER project file (ProjectKind).
 	KindREAPER
-	// KindAudacity is `--daw Audacity` (ADR 0144), or a project that chose Audacity.
+	// KindAudacity is `--daw Audacity`, or a project that chose Audacity.
 	KindAudacity
-	// KindBuiltIn is the app's own recorder (internal/recording, ADR 0455) as the launch's engine: a launch with no DAW whose
+	// KindBuiltIn is the app's own recorder (internal/recording) as the launch's engine: a launch with no DAW whose
 	// project chose the built-in recorder (ProjectKind), or `--daw Built-in`.
 	KindBuiltIn
 )
@@ -80,7 +80,7 @@ type ProjectFacts struct {
 	Linked bool
 	// ProjectFiles is how many REAPER project files (.rpp) sit directly in the project folder.
 	ProjectFiles int
-	// BuiltinAvailable is whether the built-in recorder's capture row runs here (Windows, ADR 0357).
+	// BuiltinAvailable is whether the built-in recorder's capture row runs here (Windows).
 	BuiltinAvailable bool
 }
 
@@ -135,7 +135,7 @@ func (k Kind) IsDAW() bool { return k == KindREAPER || k == KindAudacity }
 func (k Kind) RecordsInApp() bool { return k == KindBuiltIn }
 
 // RebuildsServices is whether moving a project from engine a to engine b changes the services the host builds when it attaches the
-// project (an Audacity project gets Audacity's review refusal and backups, ADR 0144), so the host attaches it again.
+// project (an Audacity project gets Audacity's review refusal and backups), so the host attaches it again.
 func RebuildsServices(a, b Kind) bool { return (a == KindAudacity) != (b == KindAudacity) }
 
 // LinksProjectFile is whether k keeps its project in a file the app links (a REAPER .rpp, ProjectLinkDawFile).
@@ -161,7 +161,7 @@ type Adapter interface {
 	Role(c Capability) any
 }
 
-// Explainer is an adapter that words its own refusals, for example Audacity's "not available yet" sentence (ADR 0144) or REAPER's
+// Explainer is an adapter that words its own refusals, for example Audacity's "not available yet" sentence or REAPER's
 // "open this app from the Narration Utils action in REAPER". An empty answer falls back to the resolver's wording.
 type Explainer interface {
 	Explain(c Capability, r Reason) string

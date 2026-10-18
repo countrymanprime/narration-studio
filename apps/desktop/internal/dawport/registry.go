@@ -7,14 +7,14 @@ import (
 )
 
 // Env is what the composition root hands an adapter factory for one launch. It names the engine's transport rather than holding
-// it: the adapter a factory builds opens and owns its own connection, so no package outside the adapter holds one (ADR 0300,
-// ADR 0303).
+// it: the adapter a factory builds opens and owns its own connection, so no package outside the adapter holds one (
+// apps/desktop/internal/dawport/registry.go).
 type Env struct {
 	// SessionDir is REAPER's file bridge directory, made by NarrationStudio_Launcher.lua; empty when the launch has none.
 	SessionDir string
 	// Allowed is the launch's Resolver.Allowed: whether the declaration and the narrator's settings permit a capability. An
 	// adapter whose transport gates its own commands (REAPER's bridge.Actions) asks it before each one, so the settings are
-	// decided by the resolver alone (ADR 0304). The composition root builds the resolver over the adapter the factory
+	// decided by the resolver alone. The composition root builds the resolver over the adapter the factory
 	// returns, so this is a closure over it. nil refuses every gated command.
 	Allowed func(Capability) error
 	// Log receives the transport's diagnostics (bridge.Client.SetLog); nil discards them.

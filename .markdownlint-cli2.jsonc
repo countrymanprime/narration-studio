@@ -1,4 +1,4 @@
-// markdownlint-cli2 configuration (ADR 0415). A starter rule set: the default rules, with line length and every
+// markdownlint-cli2 configuration. A starter rule set: the default rules, with line length and every
 // rule that fired only on the repo's own deliberate style turned off (checked against the real tree, not guessed).
 // `Docs / Markdown lint (changed files)` (.github/workflows/docs.yml) runs this against the Markdown files a pull
 // request adds or changes; `pnpm lint:md` / `pnpm lint:md:fix` run the same check locally

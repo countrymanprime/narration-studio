@@ -37,10 +37,10 @@ type Config struct {
 	// LoadManuscript returns the canonical manuscript (manuscript.Service.Load).
 	LoadManuscript func() (map[string]any, error)
 	// LoadCredits returns a credits kind's ("opening" or "closing") rendered title and text - the same first-of-kind
-	// template render the Home row and the teleprompter show (ADR 0093, ADR 0150) - or an error when the
+	// template render the Home row and the teleprompter show - or an error when the
 	// library has no template of that kind. nil refuses every credits check with ReasonCreditsNotSetUp.
 	LoadCredits func(kind string) (title, text string, err error)
-	// Reporter logs a stored file that cannot be read (ADR 0069); may be nil.
+	// Reporter logs a stored file that cannot be read; may be nil.
 	Reporter *persist.Reporter
 	// ProjectReader reads the saved .rpp ProjectFile resolves; nil falls back to tracks.Parse
 	// directly, so a Config literal built before this field existed keeps reading exactly as it did before.
@@ -93,7 +93,7 @@ type State struct {
 	RecordID    string     `json:"recordId,omitempty"`
 	StartedAt   *time.Time `json:"startedAt,omitempty"`
 	CompletedAt *time.Time `json:"completedAt,omitempty"`
-	// Background is true for a run the host started on its own (ADR 0211), not the
+	// Background is true for a run the host started on its own, not the
 	// narrator: the UI labels it, and a narrator's own start pre-empts it.
 	Background bool `json:"background"`
 	// Pass, FirstPassModel, RecheckModel and RecheckWindows are the model cascade's own live progress:
@@ -276,8 +276,7 @@ func (s *Service) Cancel() {
 	s.cancelWhere(func(*job) bool { return true })
 }
 
-// CancelBackground cancels the runs the host started on its own (a background check gives way to the narrator's, ADR
-// 0211) and waits until they have ended; the narrator's own runs are left alone.
+// CancelBackground cancels the runs the host started on its own (a background check gives way to the narrator's) and waits until they have ended; the narrator's own runs are left alone.
 func (s *Service) CancelBackground() {
 	cancelled := s.cancelWhere(func(running *job) bool { return running.request.Background })
 	for _, running := range cancelled {
@@ -358,7 +357,7 @@ func (s *Service) chapter(chapterID string) (ChapterBasis, error) {
 // basisAndText resolves chapterID's basis, and, for a credits row, the rendered text a run measures against (Phase
 // 3): manuscriptPath (used only by a caller launching the sidecar) stays the real manuscript for a manuscript
 // chapter, and text is empty - the sidecar already reads that file itself. A credits id (CreditsKind) never reaches
-// LoadManuscript at all: credits are not manuscript chapters (ADR 0150, ADR 0183) and must never be looked up as one.
+// LoadManuscript at all: credits are not manuscript chapters and must never be looked up as one.
 func (s *Service) basisAndText(chapterID string) (basis ChapterBasis, text string, err error) {
 	if s.config.LoadManuscript == nil {
 		return ChapterBasis{}, "", unknown(ReasonNoManuscript, "import a manuscript before checking a recording")
@@ -453,7 +452,7 @@ func (s *Service) prepareAndLaunch(request Request) (*job, error) {
 // sidecarArgs builds one stage's --coverage arguments over the run's manifest and chapter, with
 // the given transcription: the first pass's own model, the whole-chapter fallback's re-check model,
 // or, for the align-only re-run after a windowed re-check, the first
-// pass's model again (the words files still carry it, ADR 0341's compatibility field). Every path
+// pass's model again (the words files still carry it, sidecars/transcript-compare/core/coverage_mode.py's compatibility field). Every path
 // is under the run's folder or is the project's own manuscript; the audio paths are in the
 // manifest and come from the saved project (threat-model row 4e).
 func (s *Service) sidecarArgs(running *job, transcription Transcription) []string {

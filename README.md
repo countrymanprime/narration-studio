@@ -73,8 +73,10 @@ The layout and its test rule are recorded in
 
 ## Supported platforms
 
-Windows x64 only, for now. macOS and Linux builds were removed until the app is steadier or someone uses those systems
-([ADR 0412](docs/adr/0412-windows-is-the-only-supported-platform-for-now.md)).
+Windows x64 only, for now. That is about timing and maturity, not a design limit: the app is still changing quickly, and the
+owner has no Mac or Linux machine to test on, so macOS and Linux builds were removed rather than shipped untested. The Go code still
+builds on Linux as a development host. If you use macOS or Linux and want to help find and fix bugs there, say so in an issue:
+with someone testing on those systems, non-Windows builds can come back.
 
 ## Install on Windows
 
@@ -211,7 +213,7 @@ Narration Studio is free software, licensed under the
 [GNU Affero General Public License v3.0 or later](LICENSE) (AGPL-3.0-or-later). It is built to
 help narrators for free and to stay that way: anyone who distributes it, or runs a modified
 copy as a network service, must offer the corresponding source under the same terms. See
-[ADR 0039](docs/adr/0039-the-project-is-licensed-agpl-3-or-later.md). Releases up to and
+[Contributing](CONTRIBUTING.md). Releases up to and
 including v0.2.7-rc were published under the MIT license and remain available under it.
 
 Every release carries its notices, as a release asset and inside the zip: the third-party licences

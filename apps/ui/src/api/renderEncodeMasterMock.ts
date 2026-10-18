@@ -147,7 +147,7 @@ function packageNameForFormat(item: PackageItem, index: number, format: string):
 }
 
 /**
- * `picked` is the export picker's allowlist (mirrors ADR 0156's own discipline); `encoded` is the last export's own
+ * `picked` is the export picker's allowlist (mirrors docs/architecture/threat-model.md's own discipline); `encoded` is the last export's own
  * encoded paths, package's own allowlist (mirrors the host's own "was it encoded this session" check).
  *
  * `profiles` is every profile a multi-platform selection may pick from (the same list

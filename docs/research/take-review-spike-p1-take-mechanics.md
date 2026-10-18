@@ -11,7 +11,7 @@
 | **Q4 - source-offset alignment to a manuscript span start** | `D_STARTOFFS` on the take is the mechanism: setting it to 1.5 s pointed the take's read-head 1.5 s into its 4 s source, with the target item's own `D_LENGTH` (2 s) untouched. Read back exactly as set. | Phase 6 sequence (offset comes from the matched manuscript span's start inside the candidate's own source range) |
 | **Q4 - one-step undo** | `Undo_BeginBlock2` / `Undo_EndBlock2` around the take-add (source, name, and the provenance `P_EXT` writes together) produced exactly one undo point: one "Edit: Undo" removed the take and its provenance, one "Edit: Redo" restored both. | PRD "one undo step restores the project exactly" |
 | **Q4 - a REAPER quirk that will bite the real command** | Undo and redo **replace REAPER's item/take Lua objects project-wide**, confirmed again here (S0 first found this for the whole project on a full undo). It matters for take creation specifically: if the target item itself has no undo point of its own before the take-add (e.g. it was created and never saved in the same script run), REAPER folds the item's own creation into the *next* undo point, so undoing the take-add removes the item too, not just the take. A real project's items are always already saved, so this does not affect production behaviour, but it means the Lua command must never assume an old item/take pointer survives its own `Undo_EndBlock2`: re-resolve by GUID afterwards, same rule as the mutation commands already follow (`narration_line_identity.lua`). | Phase 6 implementation: re-resolve target item and new take by GUID after `Undo_EndBlock2`, do not keep the pre-add pointers |
-| **Q5 - is take-level `P_EXT` a viable provenance store?** | Yes. `GetSetMediaItemTakeInfo_String(take, 'P_EXT:<key>', value, true)` round-trips a namespaced key, is stored as an `<EXT` block inside the take's chunk (distinct from the item's own `<EXTI` block), survives `Undo_EndBlock2`/undo/redo as one unit with the take-add, and survives save and reload (re-resolved by GUID). It does not collide with the item-level `narration_utils_line_id` key from ADR 0026: both were set on the same item/take pair and both read back independently before and after reload. | ADR extending 0026 (this PR); phase 6 |
+| **Q5 - is take-level `P_EXT` a viable provenance store?** | Yes. `GetSetMediaItemTakeInfo_String(take, 'P_EXT:<key>', value, true)` round-trips a namespaced key, is stored as an `<EXT` block inside the take's chunk (distinct from the item's own `<EXTI` block), survives `Undo_EndBlock2`/undo/redo as one unit with the take-add, and survives save and reload (re-resolved by GUID). It does not collide with the item-level `narration_utils_line_id` key from `docs/architecture/manuscript-line-identity.md`: both were set on the same item/take pair and both read back independently before and after reload. | ADR extending 0026 (this PR); phase 6 |
 
 ## Method
 
@@ -37,7 +37,7 @@ This is the exact sequence phase 6's Lua command (`create_take`, per the PRD's t
 
 ## Provenance in the saved file
 
-```
+```text
 <ITEM
   ...
   <EXTI
@@ -62,7 +62,7 @@ NAME "candidate (same length)"
 >
 ```
 
-Item-level identity (`<EXTI`, ADR 0026) and take-level provenance (`<EXT`, this spike) live in the same item chunk but are visibly separate blocks, keyed independently, exactly as ADR 0026 predicted for a hypothetical take-level extension: the spike confirms it rather than assumes it.
+Item-level identity (`<EXTI`) and take-level provenance (`<EXT`, this spike) live in the same item chunk but are visibly separate blocks, keyed independently, exactly as `docs/architecture/manuscript-line-identity.md` predicted for a hypothetical take-level extension: the spike confirms it rather than assumes it.
 
 ## What else the spike found (not gating, recorded for phase 6)
 

@@ -6,6 +6,6 @@ export const startupStates: StateEntry[] = [
   {
     page: 'startup',
     state: 'invalid-payload',
-    description: 'Startup error for a Bootstrap that did not match its schema - plain message, technical details, Retry and Copy details (ADR 0069)',
+    description: 'Startup error for a Bootstrap that did not match its schema - plain message, technical details, Retry and Copy details',
   },
 ];

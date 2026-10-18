@@ -8,7 +8,7 @@ import (
 	"golang.org/x/sys/windows"
 )
 
-// protection is how this build seals a value: DPAPI, current-user scope (ADR 0405 Q10).
+// protection is how this build seals a value: DPAPI, current-user scope (ADR 0002 Q10).
 const protection = "dpapi"
 
 // entropy ties a sealed value to this app: another program of the same Windows user calling CryptUnprotectData on the

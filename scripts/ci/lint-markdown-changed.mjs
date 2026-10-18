@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Runs markdownlint-cli2 over only the Markdown files a change adds or modifies against a base ref (ADR 0415):
+// Runs markdownlint-cli2 over only the Markdown files a change adds or modifies against a base ref:
 // `pnpm lint:md` / `pnpm lint:md:fix` locally, and `Docs / Markdown lint (changed files)`
 // (.github/workflows/docs.yml) in CI, which sets GITHUB_BASE_REF and passes --summary.
 //

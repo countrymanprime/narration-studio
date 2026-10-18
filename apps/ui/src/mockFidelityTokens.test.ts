@@ -4,7 +4,7 @@ import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { parseThemes, type Theme } from './tokenContrast';
 
-// Studio Next token batch (SN-F2, ADR 0760): the mock's `app.css` is the only spec for tokens and primitive sizes, so the
+// Studio Next token batch (SN-F2): the mock's `app.css` is the only spec for tokens and primitive sizes, so the
 // repo's token blocks are compared with the mock's, read from the mock file itself and not from a copy of its values. The
 // rows are those docs/research/studio-next-token-and-primitive-diff.md sections 1 to 3 mark "Differs" or "missing".
 const CSS = readFileSync(join(__dirname, 'styles.css'), 'utf8');
@@ -171,7 +171,7 @@ describe('the repo-only colour tokens stay declared in both themes', () => {
     for (const theme of THEME_NAMES) expect(colours.filter((token) => !THEMES[theme][token])).toEqual([]);
   });
 
-  it('gives the booth a darker reading surface in dark only, without forcing a theme (ADR 0365)', () => {
+  it('gives the booth a darker reading surface in dark only, without forcing a theme', () => {
     expect(THEMES.light['reading-bg']).toBe('var(--surface)');
     expect(THEMES.dark['reading-bg']).toBe('#0e0d09');
   });

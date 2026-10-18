@@ -9,17 +9,17 @@ import (
 )
 
 // The header's zoom group and its Ctrl+=/-/0 shortcuts read and set the window's real webview zoom through Wails v3's
-// Window.SetZoom/GetZoom (ADR 0200 names the window "main"). Nothing here reads a project service, so a project switch
+// Window.SetZoom/GetZoom (ADR 0001 names the window "main"). Nothing here reads a project service, so a project switch
 // never touches it.
 
-// zoomSteps are the levels the header's buttons and Ctrl+=/-/0 step through (Windows only, ADR 0201): WebView2's own
+// zoomSteps are the levels the header's buttons and Ctrl+=/-/0 step through (Windows only): WebView2's own
 // percentages from 100% to 200%. Ctrl+wheel and pinch are WebView2's own and never call WindowSetZoom, which is how a
-// level under 100% (ADR 0201 item 2, "kept, because a smaller page cramps nothing") stays reachable outside the
+// level under 100% (docs/guides/using-the-app/navigation.md#zoom, "kept, because a smaller page cramps nothing") stays reachable outside the
 // buttons.
 var zoomSteps = []float64{1.0, 1.10, 1.25, 1.50, 1.75, 2.00}
 
 // zoomMin and zoomMax bound WindowSetZoom's clamp. Wails v3's own SetZoom/ZoomOut already floor at 1.0 on Windows
-// (ADR 0201); named here so nearestZoomStep and this file's tests read the same range the header promises.
+// named here so nearestZoomStep and this file's tests read the same range the header promises.
 const (
 	zoomMin = 1.0
 	zoomMax = 2.00
@@ -39,7 +39,7 @@ type WindowZoomResult struct {
 	Level float64 `json:"level"`
 }
 
-// WindowZoom reads the window's current zoom level (ADR 0201 item 3): the UI asks for this when it sees the page's
+// WindowZoom reads the window's current zoom level (docs/guides/using-the-app/navigation.md#zoom): the UI asks for this when it sees the page's
 // own zoom change (a devicePixelRatio or resize event), since Wails v3 surfaces no zoom-changed callback on Windows.
 func (h *Host) WindowZoom() (string, error) {
 	window, ok := mainWindow()
@@ -51,7 +51,7 @@ func (h *Host) WindowZoom() (string, error) {
 
 // WindowSetZoom sets the window's zoom to the nearest of zoomSteps, clamped to [zoomMin, zoomMax] regardless of what
 // factor the caller sends - the defensive floor and ceiling behind the header's own disabled-at-100%/never-past-200%
-// promise (ADR 0201). The UI calls this from the header's buttons, Ctrl+=/-/0, reset, and the "set back to 200%"
+// promise. The UI calls this from the header's buttons, Ctrl+=/-/0, reset, and the "set back to 200%"
 // clamp it runs itself when it sees an external (Ctrl+wheel or pinch) zoom above the ceiling; Ctrl+wheel and pinch
 // never call it directly.
 func (h *Host) WindowSetZoom(factor float64) (string, error) {
@@ -105,7 +105,7 @@ func (h *Host) startupZoom() float64 {
 // it at WebView2's default" sentinel (webview_window_windows.go only calls PutZoomFactor when options.Zoom > 0), the
 // same as a fresh install that has never saved a level. A parsed value outside [zoomMin, zoomMax] is clamped:
 // PutZoomFactor applies whatever mainWindowOptions gives it with no floor or ceiling of its own at window-creation
-// time (unlike the runtime SetZoom/ZoomOut ADR 0201 already floors), so a hand-edited file or a value stored under a
+// time (unlike the runtime SetZoom/ZoomOut docs/guides/using-the-app/navigation.md#zoom already floors), so a hand-edited file or a value stored under a
 // wider range some earlier version allowed must not reach it unclamped.
 func clampedStartupZoom(stored string) float64 {
 	level, err := strconv.ParseFloat(stored, 64)

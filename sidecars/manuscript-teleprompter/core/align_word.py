@@ -1,5 +1,5 @@
 """
-Offline word-time alignment for punch and roll (ADR 0560): the
+Offline word-time alignment for punch and roll: the
 project time of one script word, taken from the recording itself when the live punch anchors do not cover it.
 
 "Punch from here" needs the time a flagged word was spoken. The host first asks the anchors the live session's
@@ -9,7 +9,7 @@ mode once over a stretch of the chapter's recorded audio, through `live_asr.py -
     python live_asr.py --align-word 812 --wav take.wav --tail-start 700.0 --tail-end 820.0 \\
         --manuscript manuscript.json --chapter c1 --model tiny --model-dir DIR
 
-It is the tail-audio locate's machinery pointed at a word instead of the end (locate.py, ADR 0111): the same audio cut
+It is the tail-audio locate's machinery pointed at a word instead of the end (locate.py): the same audio cut
 (`read_audio_range`), the same faster-whisper decoder with Silero VAD and word timestamps (`live_asr.make_decoder`),
 the same ranking of every place the heard words fit (the order of `locate.rank`, over the tracker's own `advance`
 step), and then a longest-matching-blocks pass from the best place (with the tracker's fuzzy `words_match` inside
@@ -18,7 +18,7 @@ Whisper dropped. The
 word's time is the start Whisper gave the heard word matched to it; a word the narrator misread or Whisper dropped,
 with matched words on both sides, is placed between them at the stretch's own pace, after the pause when a sentence
 ends in the gap and before it otherwise. There is still no
-forced alignment (ADR 0008) and no model download: `--model-dir` is required.
+forced alignment and no model download: `--model-dir` is required.
 
 Output is one JSON line on stdout:
 

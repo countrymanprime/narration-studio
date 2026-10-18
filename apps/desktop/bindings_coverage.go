@@ -11,10 +11,10 @@ import (
 	"github.com/countrymanprime/narration-utils/shell/internal/whisper"
 )
 
-// The recording coverage bindings (docs/utilities/recording-coverage.md, ADR 0129). A check runs only when the narrator
+// The recording coverage bindings (docs/utilities/recording-coverage.md). A check runs only when the narrator
 // asks (Q14): nothing here starts one on its own, and the chapter payload's recordedFraction only reads stored
 // results. A running check reports every state change as the "coverage:state" live event and ends with one job:ended
-// event (ADR 0076).
+// event.
 
 // coverageStateEvent is the live event every state change of a check is sent as.
 const coverageStateEvent = "coverage:state"
@@ -36,9 +36,9 @@ var coverageIdle = coverage.State{Phase: coverage.PhaseIdle, Message: "Open a pr
 // RecordingCoverage and Transcript Compare settings, over which the run's options win. With no options and the model
 // cascade off (Q7 A, the default, MC1) it is one pass with the narrator's Transcript Compare model; with the cascade on, the
 // two cascade models (MC2). options["model"] names an approved Whisper model (CoverageEngines lists them) to run alone
-// (ADR 0841); options["recheck"] ("true" or "false") turns the second pass on or off whatever the cascade setting says,
+// options["recheck"] ("true" or "false") turns the second pass on or off whatever the cascade setting says,
 // with options["recheckModel"] and options["recheckBelow"] naming its larger model and the word probability under which
-// a passage is re-checked even when its text is all there (ADR 0864); options["workers"], ["chunkSeconds"] and
+// a passage is re-checked even when its text is all there; options["workers"], ["chunkSeconds"] and
 // ["overlapSeconds"] say how a long item is cut up and how many processes transcribe the pieces. options["skipRecheck"] ==
 // "true" starts the first pass alone - the narrator's "Check with tiny only" choice (MC4) when the re-check model is not
 // installed. An unknown model id or an option that is not valid is an error and nothing starts. It answers
@@ -89,7 +89,7 @@ func (h *Host) coverageStart(chapterID string, options map[string]string) (any, 
 		}
 		request.Recheck, request.UnsureBelow = recheck, choices.UnsureBelow
 	}
-	// A background check gives way to the narrator's own (ADR 0211): it is cancelled, keeping the items it finished, and
+	// A background check gives way to the narrator's own: it is cancelled, keeping the items it finished, and
 	// this one starts once it has stopped.
 	svc.coverage.CancelBackground()
 	state, err := svc.coverage.Start(request)
@@ -165,10 +165,10 @@ func (h *Host) CoverageResult(chapterID string) (string, error) {
 	return encodeBinding(result.View(chapterID, coverageSettings(svc.settings).Thresholds), nil)
 }
 
-// WorkspaceAlignment reads a chapter's stored word alignment (ADR 0242) joined
+// WorkspaceAlignment reads a chapter's stored word alignment joined
 // with its current paragraphs and its items' current played ranges (coverage.AlignmentView). It never runs anything
 // (Q14), exactly like CoverageResult, whose state, reasons and basis it shares. A stored report from before the
-// sidecar wrote alignment lines answers needsAlignAgain: true (align-again re-aligns from cached words only, ADR 0242).
+// sidecar wrote alignment lines answers needsAlignAgain: true (align-again re-aligns from cached words only).
 func (h *Host) WorkspaceAlignment(chapterID string) (string, error) {
 	svc := h.services()
 	service := svc.coverage

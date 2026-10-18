@@ -1,6 +1,6 @@
 // This file holds the three tri-state signals, in the shape the stage
 // recommendations contract defines (apps/desktop/internal/stages,
-// docs/architecture/stage-recommendations.md, ADR 0160). It mirrors
+// docs/architecture/stage-recommendations.md). It mirrors
 // apps/desktop/internal/coverage/signal.go's own split: a pure decision
 // function (EmptySpaceSignal) over an already-gathered ChapterCoverage
 // (provider.go does the gathering, reading stored evidence only and never
@@ -79,7 +79,7 @@ func processedAudioCaveat() stages.Evidence {
 }
 
 // itemsSourceEvidence and renderSourceEvidence name which source was
-// analyzed (ADR 0550), for both choices, not only the render one. Every
+// analyzed, for both choices, not only the render one. Every
 // editing signal carries exactly one of these, always, whatever its state -
 // EmptySpaceSignal (the item path, below), RenderEmptySpaceSignal
 // (render_signal.go), ClassSignal (validation.go, the item path's click and

@@ -13,7 +13,7 @@ const VARIANT_CLASSES: Record<IconButtonVariant, string> = {
   danger: 'border-[var(--danger)] bg-[var(--surface)] text-[var(--danger-text)] hover:bg-[var(--review-soft)]',
 };
 
-// `md` is 32 px, `--button-height` (ADR 0053, and what the mocks draw); `sm` is 28 px, `--button-height-sm`, beside a small Button in a dense row.
+// `md` is 32 px, `--button-height` (and what the mocks draw); `sm` is 28 px, `--button-height-sm`, beside a small Button in a dense row.
 type IconButtonSize = 'md' | 'sm';
 
 const SIZE_CLASSES: Record<IconButtonSize, string> = {
@@ -24,7 +24,7 @@ const SIZE_CLASSES: Record<IconButtonSize, string> = {
 type Base = Omit<ComponentPropsWithRef<'button'>, 'aria-label' | 'title'> & {
   variant?: IconButtonVariant;
   size?: IconButtonSize;
-  // The action this button started is running (ADR 0075): the icon becomes a spinner, the button is marked busy and ignores a press, and it
+  // The action this button started is running: the icon becomes a spinner, the button is marked busy and ignores a press, and it
   // stays focusable so a keyboard user keeps their place.
   pending?: boolean;
   // Disables the button while keeping it focusable and hoverable, unlike the native `disabled` attribute (D6, WCAG 1.4.13): a native
@@ -34,7 +34,7 @@ type Base = Omit<ComponentPropsWithRef<'button'>, 'aria-label' | 'title'> & {
   disabledReason?: string;
 };
 
-// Either a `label` (the accessible name, for a control the catalogue has no row for) or an `action` (a catalogue key, ADR 0761:
+// Either a `label` (the accessible name, for a control the catalogue has no row for) or an `action` (a catalogue key, docs/design/design-system.md#layout-rules:
 // the name, the hint and the icon come from `icons.catalog.ts`). Both together is allowed and `label` wins the name and the hint.
 type Props = Base &
   (
@@ -47,7 +47,7 @@ type Props = Base &
   );
 
 // A square button that holds one icon. Its look was a class string pasted at every call site; this is the one place
-// it lives (ADR 0053). A hint is composed around it, `<TooltipTarget text="..."><IconButton .../></TooltipTarget>`, because
+// it lives. A hint is composed around it, `<TooltipTarget text="..."><IconButton .../></TooltipTarget>`, because
 // the hint often says more than the label and the wrapper sometimes needs its own layout class. A disabled one is dimmed and
 // takes no hover, like `Button`. It also renders as the button of a Base UI part (`render={<IconButton .../>}`), so it
 // forwards every attribute and the ref.

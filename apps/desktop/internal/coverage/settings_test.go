@@ -27,7 +27,7 @@ func TestResolveSettingsWithNothingSetIsTheShippedDefaults(t *testing.T) {
 		Parallel: Parallel{Workers: 0, ChunkSeconds: 300, OverlapSeconds: 6, Chapters: 1},
 	}
 	if got != want || got != DefaultSettings {
-		t.Fatalf("ResolveSettings = %+v, want the shipped defaults (ADR 0132, MC1, MC2) %+v", got, want)
+		t.Fatalf("ResolveSettings = %+v, want the shipped defaults (MC1, MC2) %+v", got, want)
 	}
 }
 

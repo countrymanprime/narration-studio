@@ -1,9 +1,8 @@
 // Package scriptprep is the Script page's preparation record: each chapter's prep state (not started, in progress, prepped) and
-// the words the narrator flagged for pronunciation, each with how it is said and the id of the source the value came from (ADR
-// 0792). A flag is a range of one paragraph; the word is the manuscript's own text for the range, lower-cased as its key, so the
+// the words the narrator flagged for pronunciation, each with how it is said and the id of the source the value came from. A flag is a range of one paragraph; the word is the manuscript's own text for the range, lower-cased as its key, so the
 // same word flagged in two places is one word with two flags. A word's say-value is kept while any of its flags remains and is
 // dropped with the last one. Every flag is checked against the current text on every read: one whose line is gone, whose range
-// no longer fits or whose words changed is reported stale, never moved (ADR 0849).
+// no longer fits or whose words changed is reported stale, never moved.
 //
 // The file is narrator data, read through persist: a corrupt one is kept aside and a fresh record starts, one written by a newer
 // app is refused and never overwritten. Replacing the manuscript or Clear project data removes it (the manuscript service's
@@ -73,7 +72,7 @@ const (
 	StatusNotFlagged = "not_flagged"
 )
 
-// ManualSource is the source id of a say-value the narrator typed (ADR 0792). A say-value saved with no source is one.
+// ManualSource is the source id of a say-value the narrator typed. A say-value saved with no source is one.
 const ManualSource = "manual"
 
 // Why a flag is stale.
@@ -173,7 +172,7 @@ type Config struct {
 	Manuscript func() (Book, error)
 	// Sources lists the registered pronunciation source ids a say-value may name; nil allows only ManualSource.
 	Sources func() []string
-	// Reporter tells the narrator about a file that cannot be read (ADR 0069); nil only logs nothing.
+	// Reporter tells the narrator about a file that cannot be read; nil only logs nothing.
 	Reporter *persist.Reporter
 }
 

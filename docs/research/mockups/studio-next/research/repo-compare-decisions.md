@@ -174,7 +174,7 @@ Open: 3 vs the owner's wish for suggestions (pickups are suggested, takes are no
 ## Editing page: script-based audio editing (owner ruling)
 
 - Build design E (script as the editor: takes as sub-lines under each passage, slim waveform ribbon under the active line, right-click menu with Delete words and audio / Add FX). Fold in G's floating selection toolbar and Clean up + FX drawer, and keep F's synchronized timeline strip (take lanes on a shared axis) as an optional strip at 1360+ wide. Designs A-D are declined. F's two-pane layout is not used.
-- FX exception: FX may be applied to a selected range of words (split at the range, apply the DAW's own saved FX chain/plug-in to the resulting item). This is an exception to the repo ADR 0234 (chains only on tracks/master; single plug-ins on a passage). Chains come from the DAW's own saved chains (data-driven), confirmation with preview first, one undo step, capability-gated (REAPER native, built-in effects, Audacity macros/effects on selection with backups).
+- FX exception: FX may be applied to a selected range of words (split at the range, apply the DAW's own saved FX chain/plug-in to the resulting item). This is an exception to the repo `docs/architecture/reaper-bridge.md#the-workspaces-take-and-fx-actions-narration_workspacelua` (chains only on tracks/master; single plug-ins on a passage). Chains come from the DAW's own saved chains (data-driven), confirmation with preview first, one undo step, capability-gated (REAPER native, built-in effects, Audacity macros/effects on selection with backups).
 
 ## Sketch review (production-sketches.html): owner rulings
 

@@ -137,7 +137,7 @@ function GuideLoaded({ notify, goToManuscript }: Pick<GuideProps, 'notify' | 'go
   const [chaptersFailed, setChaptersFailed] = useState(false);
   const [typesFailed, setTypesFailed] = useState(false);
   const [readNonce, setReadNonce] = useState(0);
-  // The start call is quick, but the button says it was heard and a second press cannot start a second rebuild (ADR 0075).
+  // The start call is quick, but the button says it was heard and a second press cannot start a second rebuild.
   const starting = usePendingAction();
   // The build needs a language model, an asset: when it is not installed the host says so instead of starting, and the narrator chooses to
   // download it, to build without it this once, or to cancel. Nothing downloads on its own.
@@ -166,9 +166,9 @@ function GuideLoaded({ notify, goToManuscript }: Pick<GuideProps, 'notify' | 'go
     },
     [api, notify],
   );
-  // Follows a running rebuild (ADR 0015). A success reloads the rows before the dialog goes, so the page never briefly renders on stale
+  // Follows a running rebuild. A success reloads the rows before the dialog goes, so the page never briefly renders on stale
   // (pre-build) rows - that render trips the route ErrorBoundary, which looks exactly like the build itself had failed. The
-  // app says the build is done: the host's job-end event is the one place that does (ADR 0076).
+  // app says the build is done: the host's job-end event is the one place that does.
   const [buildJob, setBuildJob] = useWorkJob({ poll: () => api.guideBuildState(), onSuccess: () => load() });
   const modelInstall = useAssetInstall({
     start: () => {

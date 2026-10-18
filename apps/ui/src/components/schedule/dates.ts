@@ -1,4 +1,4 @@
-/** Calendar dates as the plan writes them, "YYYY-MM-DD" (ADR 0323), worked on as local dates so a day is a day in every time zone. */
+/** Calendar dates as the plan writes them, "YYYY-MM-DD", worked on as local dates so a day is a day in every time zone. */
 const DAY = 86_400_000;
 
 export const parseIso = (s: string): Date => {

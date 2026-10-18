@@ -3,7 +3,7 @@ package preview
 import "time"
 
 // This file lets the narrator settle on a suggested window and keep it, and move its edges by paragraph (see
-// docs/architecture/preview-suggestion.md, and ADR 0383 for the pin's own design decisions).
+// docs/architecture/preview-suggestion.md, and docs/architecture/preview-suggestion.md#the-narrators-pin for the pin's own design decisions).
 
 // PinnedRange is the narrator's own decision to keep one window: "a pin per book", not per chapter - settling on a
 // preview replaces whatever was pinned before. AnchorText reuses the prep-markup spans' per-paragraph staleness idea

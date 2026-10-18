@@ -16,7 +16,7 @@ type Story = StoryObj<typeof meta>;
 
 export const Default: Story = {};
 
-// From a catalogue action (ADR 0761): the name, the hint and the icon come from `icons.catalog.ts`, so "markDone" reads the same
+// From a catalogue action: the name, the hint and the icon come from `icons.catalog.ts`, so "markDone" reads the same
 // on every page. A shortcut in the row shows in the hint.
 export const FromAction: Story = {
   render: () => (
@@ -39,7 +39,7 @@ export const Danger: Story = { args: { variant: 'danger', label: 'Delete entity'
 export const Small: Story = { args: { size: 'sm' } };
 export const Disabled: Story = { args: { disabled: true, label: 'Remove relationship', children: <FontAwesomeIcon icon={faXmark} /> } };
 
-// The action this button started is running (ADR 0075): the icon becomes a spinner, the name stays, and a press does nothing.
+// The action this button started is running: the icon becomes a spinner, the name stays, and a press does nothing.
 export const Pending: Story = { args: { pending: true, variant: 'primary', label: 'Save changes' } };
 
 export const PendingIsBusyAndFocusable: Story = {

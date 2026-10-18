@@ -1,4 +1,4 @@
--- Retakes on fixed lanes over the bridge: pick_retake_lane (ADR 0147, spike S7
+-- Retakes on fixed lanes over the bridge: pick_retake_lane (spike S7
 -- docs/research/reaper-spike-s7-fixed-lanes.md). The narrator picks one retake of a line, recorded on a fixed item
 -- lane, and that lane becomes the only one playing on its track.
 --

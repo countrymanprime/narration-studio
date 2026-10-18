@@ -6,9 +6,9 @@ import (
 )
 
 // The Script page's preparation record: each chapter's prep state and the words flagged for pronunciation, each with how it is
-// said and the id of the source the value came from (ADR 0792). It is kept in <project>/narration-utils/script-prep.json and
+// said and the id of the source the value came from. It is kept in <project>/narration-utils/script-prep.json and
 // each flag is checked against the current text on every read, so a flag whose line is gone, whose range no longer fits or
-// whose words changed comes back stale rather than moved (ADR 0849). The bindings take ids, offsets, a state, a word, a
+// whose words changed comes back stale rather than moved. The bindings take ids, offsets, a state, a word, a
 // say-value and a source id, never a path.
 
 // ScriptPrepList returns every manuscript chapter with its prep state (none when never set) and every flagged word with its

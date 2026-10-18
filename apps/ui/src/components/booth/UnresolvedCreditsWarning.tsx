@@ -2,7 +2,7 @@ import { Button } from '../primitives/Button';
 import { CREDITS_LABEL, type CreditsKind } from './readerModel';
 
 /**
- * A token with no value is named and linked to Settings, and Start stays allowed (ADR 0150, owner decision
+ * A token with no value is named and linked to Settings, and Start stays allowed (owner decision
  * 2026-09-23). Shown in the Booth's credits mode.
  */
 export function UnresolvedCreditsWarning({ kind, tokens, onFix }: { kind: CreditsKind; tokens: string[]; onFix?: () => void }) {

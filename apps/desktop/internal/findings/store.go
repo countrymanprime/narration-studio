@@ -43,7 +43,7 @@ type Decision struct {
 }
 
 // TypeChoice is one entry in the append-only type history: the narrator's chosen kind for a finding, made
-// against a specific EvidenceVersion (ADR 0844). An empty Type returns the finding to the analyzer's own word.
+// against a specific EvidenceVersion. An empty Type returns the finding to the analyzer's own word.
 // The latest entry for an id wins; a retype is not a Decision and never touches status, note or the counts.
 type TypeChoice struct {
 	FindingID       string   `json:"finding_id"`
@@ -107,7 +107,7 @@ func (s *Store) SaveAnalyzerFindings(analyzer, scope string, fresh []Finding) ([
 // treating the run as a full one: a stored finding the run did not reproduce
 // is kept exactly as it was (never marked NotInLatestRun), because an analyzer
 // whose runs each cover only part of a scope says nothing about the rest. A
-// live read-aloud session is one (ADR 0117): the narrator reads some of a
+// live read-aloud session is one: the narrator reads some of a
 // chapter, so a later session that did not flag a word is no evidence the
 // earlier flag went away. Otherwise it merges exactly as SaveAnalyzerFindings
 // does: the same id is one finding (the last copy in fresh wins), and a
@@ -253,7 +253,7 @@ func (s *Store) RecordDecision(id, evidenceVersion string, status Status, note, 
 	return findingsInFile[index], true, nil
 }
 
-// RecordType appends the narrator's chosen kind for a finding to the review history (ADR 0844) and, when a
+// RecordType appends the narrator's chosen kind for a finding to the review history and, when a
 // finding with id exists, applies it so the change shows at once. noteType is one of NoteTypes, or empty to
 // return the finding to the analyzer's own word. It never changes status, note or timestamp. found is false
 // when no stored finding has id; the entry is still recorded.

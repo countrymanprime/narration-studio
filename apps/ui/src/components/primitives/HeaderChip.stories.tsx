@@ -51,7 +51,7 @@ export const OpensThePanel: Story = {
   },
 };
 
-// The measured spec (ADR 0635), side by side as mock 01's header
+// The measured spec, side by side as mock 01's header
 // draws them: 22 px tall, fully rounded, 12 px apart, no border.
 export const MeasuredHeader: Story = {
   render: () => (

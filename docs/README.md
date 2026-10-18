@@ -26,7 +26,7 @@ This folder documents a local-first audiobook narration toolkit: how it is built
 | [The REAPER bridge and its test harness](architecture/reaper-bridge.md) | Implemented | The file protocol between the app and REAPER's Lua bridge, every command and event, and the Lua 5.4 harness (a fake `reaper` table plus mutation checks) that tests it without REAPER. |
 | [Going to and looping a finding in REAPER](architecture/reaper-navigation.md) | Implemented; checks in REAPER pending with the owner | Navigating to a finding by item GUID with the stale rule, looping its context and restoring the narrator's time selection and repeat on Stop, adding one approved take marker for an accepted finding, the verification record and the owner's checklist. |
 | [First-use dependency provisioning and Local assets](architecture/first-use-dependency-provisioning.md) | Implemented | Voices (Piper), transcription models (Whisper) and the Story Bible language model (spaCy) are catalog-managed downloads that start only after the narrator confirms; Settings > Local assets lists, verifies, repairs and removes them. Nothing downloads at startup and no model is bundled. |
-| [Windows release, setup program and in-app update](operations/ci-and-releases.md#the-windows-setup-program) | Implemented (Windows, the only supported platform: [ADR 0412](adr/0412-windows-is-the-only-supported-platform-for-now.md)) | A per-user NSIS setup program and an update zip on each GitHub release, both unsigned, with build provenance; the app checks for a newer release once a day at most (two hours after a failed check) and replaces itself only after a confirmed click ([in-app update](architecture/in-app-update.md)). |
+| [Windows release, setup program and in-app update](operations/ci-and-releases.md#the-windows-setup-program) | Implemented (Windows, the only supported platform: [Supported platforms](../README.md#supported-platforms)) | A per-user NSIS setup program and an update zip on each GitHub release, both unsigned, with build provenance; the app checks for a newer release once a day at most (two hours after a failed check) and replaces itself only after a confirmed click ([in-app update](architecture/in-app-update.md)). |
 | [Threat model](architecture/threat-model.md) | Implemented (a reviewed table) | Every trust boundary of the app (downloads, the update, the webview, sidecars, the REAPER bridge, opened files, the release pipeline) with its STRIDE threats, the mitigation in code and the risk that is left, lined up with [SECURITY.md](../SECURITY.md). |
 | Audacity adapter | Implemented; verification in Audacity pending with the owner | Drives Audacity 3.x over its scripting pipe from the desktop host (`apps/desktop/internal/dawport/audacity`); built from the published spec and tested against a fake pipe server. The owner's check is [the Audacity verification pass](operations/audacity-verification-pass.md). `integrations/audacity/` holds placeholder notes only. |
 
@@ -34,7 +34,7 @@ This folder documents a local-first audiobook narration toolkit: how it is built
 
 1. Start with the [roadmap](roadmap.md).
 1. For a screenshot walkthrough of the app itself, see [Using the app](guides/using-the-app/README.md).
-1. Before changing anything in `apps/ui/src/components/primitives/`, `apps/ui/src/styles.css`, or a behavior an ADR names, read the [ADR index](adr/README.md) and the [design system reference](design/design-system.md).
+1. Before changing anything in `apps/ui/src/components/primitives/` or `apps/ui/src/styles.css`, read the [design system reference](design/design-system.md).
 1. Before planning a feature or choosing between designs, read the [design principles](architecture/principles.md) the ADRs add up to.
 1. Read the [findings contract](architecture/findings-contract.md) before adding any analyzer or dashboard action, and the [stage recommendations signal contract](architecture/stage-recommendations.md) before building a signal that suggests a chapter's next stage.
 1. Use the workflow documents to understand how utilities combine: [manuscript/editorial](workflows/manuscript-and-editorial-review.md), [recording/comping](workflows/recording-and-comping.md), [character continuity](workflows/character-continuity.md), [technical QC/handoff](workflows/technical-qc-and-handoff.md), and [chapter stage progression](workflows/chapter-stage-progression.md).
@@ -65,8 +65,8 @@ This folder documents a local-first audiobook narration toolkit: how it is built
 
 | If you are recording ... | Put it in | Not in |
 | --- | --- | --- |
-| A choice that changes the structure, a dependency, an interface between parts, a platform, a persistence strategy or a quality attribute, and is costly to reverse | an ADR ([adr/](adr/README.md)) | |
-| A CI gate, test strategy or release-pipeline choice every contributor must follow | an ADR, plus the how-to in [operations/](operations/) | |
+| A decision that reshapes the whole repo (the language the app is written in, local models and tools over paid online ones); a pull request that adds one is unusual | an ADR ([adr/](adr/README.md)) | |
+| A CI gate, test strategy or release-pipeline choice every contributor must follow | the how-to in [operations/](operations/) | an ADR |
 | What a page, dialog or control does, its copy, its shortcut | while it is being built: the PRD; once built: the [user guide](guides/using-the-app/README.md) page, and a test | an ADR |
 | A token value, size, colour or component look | [the design system](design/design-system.md) | an ADR |
 | A threshold, default, field, error code or one function's rule | a doc comment and a test beside the code; a reference page if another component or a user depends on it | an ADR |

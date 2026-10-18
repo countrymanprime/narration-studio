@@ -64,7 +64,7 @@ type Item struct {
 	// Lane is the item's fixed item lane (0 is the top lane) on a track in
 	// fixed-lane mode (Track.FixedLanes), and 0 on any other track. The .rpp
 	// has no lane number: it is read from the item's YPOS top fraction and
-	// the track's ITEMLANES (spike S7, ADR 0147).
+	// the track's ITEMLANES (spike S7).
 	Lane int `json:"-"`
 }
 
@@ -153,13 +153,13 @@ type Track struct {
 
 	// Selected and Armed are the track's selection (SEL 1) and record-arm (the
 	// first REC field) as of the .rpp's last save. The chapter suggestion
-	// (chaptermatch.Suggest, ADR 0113) reads them to find the track the
+	// (chaptermatch.Suggest) reads them to find the track the
 	// narrator is recording; not on the TracksList wire contract (json:"-").
 	Selected bool `json:"-"`
 	Armed    bool `json:"-"`
 	// FixedLanes is true for a track in fixed item lane mode (FREEMODE 2).
 	// Several items at one position on such a track are retakes on separate
-	// lanes, not overlapping audio (spike S7, ADR 0147). The next two fields
+	// lanes, not overlapping audio (spike S7). The next two fields
 	// are zero on any other track.
 	FixedLanes bool `json:"-"`
 	// LaneCount is the track's lane count (ITEMLANES).

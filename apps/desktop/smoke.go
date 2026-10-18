@@ -364,7 +364,7 @@ type capabilitiesReport struct {
 // checkCapabilities runs the frozen Teleprompter sidecar's own --capabilities report and requires every ASR and capture row Go's
 // own registries declare for options.Platform to be one this process actually registered (a loop over every registered
 // provider row, where the retired checkFrozenMoonshine compared only Moonshine). With options.Moonshine (Windows, the one platform moonshine-voice is pinned for), it also asks for --verify and requires
-// the moonshine row to report loadable=true - the native library actually loads (ADR 0403). Every other row stays
+// the moonshine row to report loadable=true - the native library actually loads. Every other row stays
 // registration-only (loadable: null) until a future phase gives it its own verify hook.
 func checkCapabilities(ctx context.Context, options smokeOptions, root string) (string, error) {
 	executable := sidecarPath(root, "manuscript-teleprompter")
@@ -428,7 +428,6 @@ type guideCapabilitiesReport struct {
 // checkGuideCapabilities runs the frozen Story Bible sidecar's own `capabilities` report and requires every TTS and pronunciation
 // row Go's own registries declare for options.Platform to be one this process actually registered (the same comparison
 // checkCapabilities makes for the Teleprompter sidecar). It proves only that the row registered, not that it loads
-// (ADR 0403).
 func checkGuideCapabilities(ctx context.Context, options smokeOptions, root string) (string, error) {
 	executable := sidecarPath(root, "manuscript-guide")
 	if executable == "" {
@@ -539,7 +538,7 @@ func checkCatalogs(root string) (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("the wiktextract catalog could not be loaded: %w", err)
 	}
-	// The encoder catalog is read for Windows whatever the machine: its one build is a Windows executable (ADR 0342), and the release
+	// The encoder catalog is read for Windows whatever the machine: its one build is a Windows executable, and the release
 	// the smoke test checks is the Windows one.
 	encoders, err := ffmpeg.NewFor(filepath.Join(configDir, "encoder-assets.json"), "", "windows")
 	if err != nil {

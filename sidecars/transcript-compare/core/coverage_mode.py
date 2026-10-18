@@ -1,6 +1,6 @@
 """The sidecar's recording-coverage mode: `compare.py --coverage`.
 
-docs/utilities/recording-coverage.md and ADR 0127. For one chapter and the items
+docs/utilities/recording-coverage.md and docs/utilities/recording-coverage.md. For one chapter and the items
 the host lists in a JSON manifest (active takes only, in play order; muted items are listed and
 skipped, Q5 and Q10), this mode:
 
@@ -8,13 +8,13 @@ skipped, Q5 and Q10), this mode:
    and transcribes that range and writes the words file atomically (temporary file, then rename),
    so a cancelled run keeps every item it finished;
 2. joins the items' words in play order and aligns the chapter to them with the take markers' own
-   alignment (`compare.diff_and_build_markers`, ADR 0126), the title and subtitle as optional
+   alignment (`compare.diff_and_build_markers`), the title and subtitle as optional
    heading tokens (Q11);
 3. writes the measurements, never a verdict (the narrator's thresholds are applied later, on
    read, by the host), as tagged lines with one JSON object each: `COVERAGE|` (the chapter),
    `COVERAGE_ITEM|` (one per manifest item), `COVERAGE_PARAGRAPH|`, `COVERAGE_REGION|` and, with `--unsure-below`, `COVERAGE_UNSURE|` (a passage
    Whisper was not sure of, which the host may re-check with a larger model); then
-   the word alignment the edit and proof workspace reads (ADR 0242): one
+   the word alignment the edit and proof workspace reads: one
    `COVERAGE_TOKEN|` per chapter token and one `COVERAGE_EXTRA|` per run of words heard that the
    chapter does not account for. The results file is written atomically, so it exists only when
    the run finished.
@@ -33,7 +33,7 @@ timeline, and writes no results file.
 
 Progress is `stage|pct|message` in the usual file (START, DECODE, LOAD, TRANSCRIBE, ALIGN, WRITE,
 DONE; `--recheck` never reaches ALIGN or WRITE), and TRANSCRIBE moves with the seconds transcribed
-over the seconds that need transcribing (ADR 0015). Exit codes, set by `compare.main`: 0 the results
+over the seconds that need transcribing. Exit codes, set by `compare.main`: 0 the results
 file is complete (or, for `--recheck`, every window spliced); 1 failed (an `ERROR|0|<message>`
 progress line, no results file); 2 cancelled through `<progress>.cancel` (a `CANCELLED` progress
 line, no results file, finished words files kept). Python's `argparse` also exits with 2 on a usage

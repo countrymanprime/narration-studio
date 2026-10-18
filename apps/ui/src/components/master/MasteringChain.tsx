@@ -27,9 +27,9 @@ export function useMasteringProviders(): { providers?: MasteringProviders; probl
 
 /**
  * The mastering chain the book masters with (mock 05; the mastering port,
- * ADR 0306): the project's row from internal/masteringport, its fixed steps in order as a row of chips, and why the project's
+ * docs/architecture/provider-ports.md): the project's row from internal/masteringport, its fixed steps in order as a row of chips, and why the project's
  * choice is not the row it masters with, when it is not. Read-only: the built-in chain is fixed and takes its numbers from the
- * platform's rules (ADR 0321), so mock 05's "Edit chain" is not drawn, and neither is "A/B raw ↔ mastered", which needs a player
+ * platform's rules, so mock 05's "Edit chain" is not drawn, and neither is "A/B raw ↔ mastered", which needs a player
  * for a rendered file the host does not have yet.
  */
 export function MasteringChain({ providers, problem }: { providers?: MasteringProviders; problem?: string }) {

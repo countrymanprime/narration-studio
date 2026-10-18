@@ -7,7 +7,7 @@ import { DAW_SETUPS } from '../../../fixtures/daw';
 import { RecordSetup } from './RecordSetup';
 
 // The Booth's one-time recording setup, above the footer while Record is unavailable for a reason the narrator can fix from the Booth:
-// the Experimental record capability switched off (ADR 0230) with its one-click turn-on, and REAPER not connected or not answering with
+// the Experimental record capability switched off with its one-click turn-on, and REAPER not connected or not answering with
 // the launcher steps. It is drawn on the footer's surface, as on the page.
 const LAUNCHER = 'C:\\Users\\narrator\\AppData\\Local\\narration-utils\\runtime\\5f2c\\reaper\\NarrationStudio_Launcher.lua';
 

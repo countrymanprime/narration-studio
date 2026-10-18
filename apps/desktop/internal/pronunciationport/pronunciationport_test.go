@@ -22,7 +22,7 @@ func TestEveryRegisteredSourcePassesTheSuite(t *testing.T) {
 
 func TestTheFallbackOrderIsCmuThenWiktextractThenEspeak(t *testing.T) {
 	// The sidecar's build-time fallback (manuscript_guide.py's pronunciation()) tries CMU, then Wiktextract, then eSpeak,
-	// on every platform (ADR 0405).
+	// on every platform.
 	for _, platform := range port.Platforms {
 		if got, want := pronunciationport.FallbackOrder(platform), []string{"cmu", "wiktextract", "espeak"}; !reflect.DeepEqual(got, want) {
 			t.Errorf("FallbackOrder(%q) = %v, want %v", platform, got, want)

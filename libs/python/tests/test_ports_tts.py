@@ -1,4 +1,4 @@
-"""The text to speech port (ADR 0301): its descriptor, its roles and its conformance suite."""
+"""The text to speech port: its descriptor, its roles and its conformance suite."""
 
 import ast
 import wave

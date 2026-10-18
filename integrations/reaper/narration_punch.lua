@@ -1,4 +1,4 @@
--- Punch and roll over the bridge (ADR 0246). Loaded by
+-- Punch and roll over the bridge. Loaded by
 -- narration_ui_bridge.lua, which passes the shared helpers as the chunk argument.
 --
 -- play_position is read-only: the host polls it during a live reading to anchor the word it hears in project time.

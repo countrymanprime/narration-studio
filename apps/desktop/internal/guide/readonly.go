@@ -20,7 +20,7 @@ import (
 // Like character.ReadOnly, this is a plain, non-mutating read: it never quarantines or otherwise touches a file
 // that fails to decode. A project's own session (its own guide.Service, if any) is what may act on its own corrupt
 // data; this function only ever crosses into another project's data to look: there is no write path from one
-// project's session into another project's own data (ADR 0450), and this applies the same rule to the Story
+// project's session into another project's own data, and this applies the same rule to the Story
 // Bible.
 func ReadOnlyNames(project string) (map[string]string, error) {
 	path := filepath.Join(project, "ManuscriptGuide", "manuscript_guide.json")

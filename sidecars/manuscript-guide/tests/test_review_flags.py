@@ -1,7 +1,7 @@
 """A Story Bible entry's review flags and its speaker colour override (SNB-3b, SNB-4b).
 
 ``review`` is ``{entry, aliases}``: the entry itself, and the alias texts, that still need the narrator's look. A file written before it
-reads ``entry`` from ``review_state``. ``speaker_color`` is 1..7, the ``--speaker-N`` hue of ADR 0367; absent means the stable pick.
+reads ``entry`` from ``review_state``. ``speaker_color`` is 1..7, the ``--speaker-N`` hue of docs/design/colour-and-contrast.md#per-speaker-colours; absent means the stable pick.
 """
 
 import argparse

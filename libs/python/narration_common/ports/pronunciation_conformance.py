@@ -1,4 +1,4 @@
-"""The pronunciation port's conformance suite (ADR 0301, Liskov): what every ``PronunciationSource`` must do, checked the same way.
+"""The pronunciation port's conformance suite (Liskov): what every ``PronunciationSource`` must do, checked the same way.
 
 ``run(source, known=..., unknown=...)`` asks the source for each role. A declared role must work; an undeclared one must refuse
 with a ``NotSupportedError`` naming the source. A source that pronounces must give ``known`` a pronunciation with IPA, a source

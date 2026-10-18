@@ -10,7 +10,7 @@ describe('production figures', () => {
     expect(formatLength(708.4)).toBe('11:48');
   });
 
-  it('shows an undefined PFH or rate as a dash, never 0 (ADR 0320)', () => {
+  it('shows an undefined PFH or rate as a dash, never 0', () => {
     expect(formatPfh(null)).toBe('—');
     expect(formatPfh(6.123)).toBe('6.1');
     expect(formatRate(null)).toBe('—');

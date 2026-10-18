@@ -35,7 +35,7 @@ export type Flag = {
   analyzer?: string;
   /** The finding's confidence, null when the analyzer has none; undefined when the flag has no finding. */
   confidence?: number | null;
-  /** The finding's evidence version, sent back unchanged with a decision (ADR 0120): the host refuses a decision made
+  /** The finding's evidence version, sent back unchanged with a decision: the host refuses a decision made
    * against evidence that has since changed. Present exactly when findingId is. */
   evidenceVersion?: string;
   /** The finding's current decision, so the flag detail can show it without a second read of the finding. */

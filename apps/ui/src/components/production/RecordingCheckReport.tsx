@@ -21,7 +21,7 @@ const PICKUP_KINDS: ReadonlySet<CoverageRegionKind> = new Set(['skip', 'short_re
 
 /**
  * A stored recording check read out as a chapter summary first: the headline
- * (the host's judgement, ADR 0204 - the same rule the stage signal uses), the chapter figures, an unread start or end
+ * (the host's judgement, apps/desktop/internal/coverage/judgement.go - the same rule the stage signal uses), the chapter figures, an unread start or end
  * stated as "recorded to" rather than listed, then the check's own interior gaps as one-line Pickups, with the full
  * paragraph table folded away since every pickup already names and links to its paragraphs.
  */
@@ -35,7 +35,7 @@ export function RecordingCheckReport({
 }: {
   chapter: ManuscriptChapter;
   report: CoverageReport;
-  /** The host's pass/fail for this report (ADR 0204); absent falls back to the plain word count. */
+  /** The host's pass/fail for this report; absent falls back to the plain word count. */
   judgement?: CoverageJudgement;
   /** Opens the manuscript at a paragraph (its index in the whole manuscript). */
   goToParagraph: (index: number) => void;

@@ -9,7 +9,7 @@ import { WIRE_DISCREPANCIES } from '../../api/mockFixtures';
 
 afterEach(cleanup);
 
-describe('CompareRun actions that answer late or fail (ADR 0075)', () => {
+describe('CompareRun actions that answer late or fail', () => {
   it('Cancel says it was heard, ignores a second press, and reports a cancel the host refuses', async () => {
     const hang = vi.fn(() => new Promise<void>(() => {}));
     const notify = vi.fn();
@@ -86,7 +86,7 @@ describe('CompareRun DAW-link gating', () => {
     await waitFor(() => expect(transcriptStart).toHaveBeenCalledWith(expect.objectContaining({ chapterTitle: 'Chapter 1' })));
   });
 
-  // The DAW port's review capability (ADR 0360), moved from the retired Proofing nav item: once a file is linked,
+  // The DAW port's review capability, moved from the retired Proofing nav item: once a file is linked,
   // whether a comparison can start comes from the `review` capability, so a REAPER that is not connected says so.
   it('gates Start comparison on the review capability when REAPER is not connected', async () => {
     render(

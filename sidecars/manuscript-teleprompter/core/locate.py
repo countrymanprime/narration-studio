@@ -1,5 +1,5 @@
 """
-Tail-audio locate for the Manuscript Teleprompter (ADR 0111): turn
+Tail-audio locate for the Manuscript Teleprompter: turn
 the last seconds of a chapter's recorded audio into the script word to resume from.
 
 The host (apps/desktop/internal/teleprompter, `Service.Locate`) finds where the chapter's recorded audio ends
@@ -14,7 +14,7 @@ the heard words in the chapter in two steps. The tracker's `locate()` only searc
 tail has no anchor, so first every script position a heard word could start from is tried with the tracker's own
 alignment step (`script_tracker.advance`) and the alignments are ranked; then the live tracker (`ScriptTracker`) is
 run over the heard words from the best one, which is what turns a retake into a "restart" rather than a few stray
-words ahead. There is no forced alignment (ADR 0008) and no model download: `--model-dir` is required, the host
+words ahead. There is no forced alignment and no model download: `--model-dir` is required, the host
 passes the verified directory from the Whisper asset catalog.
 
 Output is one JSON line on stdout:

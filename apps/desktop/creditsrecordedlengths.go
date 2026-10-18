@@ -12,8 +12,8 @@ import (
 
 // CreditsRecordedLengths is a credits row's "actual recorded": the same
 // track-based measurement every manuscript chapter gets (recordedLengthsFor), read
-// for the two credits ids. Never an estimate (ADR 0193): a credits id has its own confirmed link, or none, in the
-// same chapter-track-map.json every manuscript chapter uses (ADR 0333), so this reads it directly rather than
+// for the two credits ids. Never an estimate: a credits id has its own confirmed link, or none, in the
+// same chapter-track-map.json every manuscript chapter uses, so this reads it directly rather than
 // through manuscript.Service's own RecordedLengths hook, which only ever sees the manuscript's own chapter ids.
 func (h *Host) CreditsRecordedLengths() (string, error) {
 	svc := h.services()

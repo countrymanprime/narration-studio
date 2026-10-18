@@ -9,7 +9,7 @@ import type { DocPara } from '../script/types';
 import { useFlagActions } from './flagActions';
 import { bare, HEAR_MARGIN, notScoredText } from './flagText';
 
-/** The recogniser's score for a word, as the port gave it: a number, or null with the reason it gave none (ADR 0855). */
+/** The recogniser's score for a word, as the port gave it: a number, or null with the reason it gave none. */
 interface WordScore {
   conf: number | null;
   reason?: string;

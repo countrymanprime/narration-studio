@@ -26,7 +26,7 @@ export default meta;
 type Story = StoryObj<typeof meta>;
 
 // Every level as a word with its own glyph, the host's sentence for an unavailable one, the warning chip for a destructive
-// one and each mode phrase (ADR 0810: `destructive` only when true, `mode` whether or not it is available).
+// one and each mode phrase (docs/architecture/daw-integration.md: `destructive` only when true, `mode` whether or not it is available).
 export const EveryLevelAndMode: Story = {
   args: {
     report: {

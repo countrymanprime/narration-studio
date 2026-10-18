@@ -1138,7 +1138,7 @@ describe('the text follows the voice: the listening microphone and the model', (
     expect(within(menu).queryByRole('combobox')).toBeNull();
   });
 
-  it('a microphone the narrator chose is kept over the DAW’s (ADR 0250)', async () => {
+  it('a microphone the narrator chose is kept over the DAW’s', async () => {
     const teleprompterStart = vi.fn(async () => ({ status: 'started' as const }));
     const page = renderPage({
       api: { settingsForScope: savedDevice('USB Mic'), teleprompterReaperInput: reaperInput('Line In'), teleprompterDevices: two, teleprompterStart } as never,

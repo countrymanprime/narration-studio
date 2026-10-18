@@ -30,7 +30,7 @@ export const ACast: Story = {
   ),
 };
 
-// The Booth's tag beside the script (mock 03): the same tag at 26 px, radius 4 (ADR 0600).
+// The Booth's tag beside the script (mock 03): the same tag at 26 px, radius 4.
 export const BoothSize: Story = {
   args: { label: 'March Hare', speakerId: 'march-hare', size: 'booth' },
   play: async ({ canvasElement }) => {

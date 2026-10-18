@@ -3,14 +3,14 @@ import { join, relative } from 'node:path';
 import ts from 'typescript';
 import { describe, expect, test } from 'vitest';
 
-// ADR 0016: `Highlight` is the only way to render highlighted text, so the `<mark>` element is written in
-// `components/primitives/Highlight.tsx` and nowhere else (ADR 0062 makes that a check). A `<mark>` written by hand gets
+// docs/design/design-system.md#primitive-components: `Highlight` is the only way to render highlighted text, so the `<mark>` element is written in
+// `components/primitives/Highlight.tsx` and nowhere else (docs/operations/verification-tooling.md makes that a check). A `<mark>` written by hand gets
 // the browser's default yellow, not the entry's colour. The scan reads the TypeScript syntax tree, so a comment or a
 // string that only mentions `<mark>` is fine, and it sees `createElement('mark')` and the compiled `jsx('mark')` calls as well
 // as JSX. A tag held in a variable (`const Tag = 'mark'`) or passed as a prop (`as="mark"`) is not seen.
 //
 // A test and not an ESLint `no-restricted-syntax` rule: the config-protection hook of the tooling refuses edits
-// to `eslint.config.js`, and ADR 0047 already keeps the Base UI boundary in this style, with a
+// to `eslint.config.js`, and docs/design/design-system.md#base-ui-wrappers already keeps the Base UI boundary in this style, with a
 // bad fixture per form of the violation. Should the lint rule be wanted later, the selector is
 // `JSXOpeningElement[name.name='mark']`.
 const HOME = 'src/components/primitives/Highlight.tsx';
@@ -20,7 +20,7 @@ const HOME = 'src/components/primitives/Highlight.tsx';
 const ALLOWED: Record<string, { marks: number; reason: string }> = {
   'src/components/script/page/reader/Para.tsx': {
     marks: 1,
-    reason: 'marks a Find bar match in the search colour, not an entry category (ADR 0016 is about entry text)',
+    reason: 'marks a Find bar match in the search colour, not an entry category (docs/design/design-system.md#primitive-components is about entry text)',
   },
 };
 
@@ -65,10 +65,10 @@ const marksByFile = new Map(
     .filter(([, count]) => count > 0),
 );
 
-describe('one Highlight for highlighted text (ADR 0016)', () => {
+describe('one Highlight for highlighted text', () => {
   test('no file writes <mark> except Highlight and the allowlisted exception', () => {
     const offenders = [...marksByFile.keys()].filter((file) => file !== HOME && !(file in ALLOWED));
-    expect(offenders, 'Render highlighted text with the Highlight primitive, not <mark> (ADR 0016)').toEqual([]);
+    expect(offenders, 'Render highlighted text with the Highlight primitive, not <mark>').toEqual([]);
   });
 
   test('Highlight still writes the mark, and every allowlist entry is still needed and says why', () => {

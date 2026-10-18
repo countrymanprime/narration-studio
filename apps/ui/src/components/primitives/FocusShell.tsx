@@ -6,7 +6,7 @@ export type FocusShellProps = {
   statusLabel?: string;
   // Side panel: last punch, voices in scene, coming up, this session (mock 03). Omitted, or `railCollapsed`, and the
   // main region takes the freed width - the shell only lays out what it is given; a toggle control (and where its state
-  // lives) is the feature's, not this primitive's (ADR 0360: layout only, no Escape or exit logic of its own).
+  // lives) is the feature's, not this primitive's (docs/design/design-system.md#base-ui-wrappers: layout only, no Escape or exit logic of its own).
   rail?: ReactNode;
   railLabel?: string;
   railCollapsed?: boolean;
@@ -22,7 +22,7 @@ export type FocusShellProps = {
   // False when the host page already has its own `<main>` that stays in the accessibility tree while this shell is
   // showing (a full-size `Dialog`'s content: Base UI keeps the page's own `<main>` un-hidden rather than aria-hidden it
   // outright, to keep any live region inside it announced) - rendering a second `<main>` there would duplicate the
-  // landmark. A standalone route (this shell's other use, ADR 0094) has no such host `<main>` to collide with, so this
+  // landmark. A standalone route (this shell's other use) has no such host `<main>` to collide with, so this
   // defaults to true.
   asMain?: boolean;
 };
@@ -30,10 +30,9 @@ export type FocusShellProps = {
 // The full-screen booth layout: a status bar, an optional side rail, the main
 // region and a command bar, each a named landmark so a screen reader can jump straight to any of them. It draws with the
 // active app theme, light or dark, like every other surface: the theme is one global setting and no surface forces it
-// (ADR 0365, superseding ADR 0360's forced-dark booth block).
 // A slots-only API: it composes whatever `ReactNode`s it is given and imports no other primitive, so it needs no change
 // as `Kbd`, `StatusBadge`, `LevelMeter` and `Toolbar` land inside it. It is a route or sits in `Dialog size="full"` at
-// the feature's choice (ADR 0094) - this shell has no opinion on that, and no Escape handling of its own.
+// the feature's choice - this shell has no opinion on that, and no Escape handling of its own.
 export function FocusShell({
   status,
   statusLabel = 'Status',

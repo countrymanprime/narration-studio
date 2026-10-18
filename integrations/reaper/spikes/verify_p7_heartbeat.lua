@@ -1,4 +1,4 @@
--- Manual verification of the reachability heartbeat (ADR 0092): loads the REAL
+-- Manual verification of the reachability heartbeat: loads the REAL
 -- narration_ui_bridge.lua (not a spike simulation) against a real REAPER session directory, lets its tick loop run
 -- for a few real seconds, then reads events.log back and reports how many PROJECT_STATUS heartbeats were appended
 -- and what they said, so the periodic-rewrite behavior described in dawfacts.go/daw.Reachability can be checked

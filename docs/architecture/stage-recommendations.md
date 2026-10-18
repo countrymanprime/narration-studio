@@ -1,6 +1,6 @@
 # Chapter stage recommendations: the signal contract
 
-**Status: delivered.** The Go types, the `Provider` interface and the pure engine are in [`apps/desktop/internal/stages`](../../apps/desktop/internal/stages) ([ADR 0160](../adr/0160-stage-recommendations-are-computed-from-tri-state-signals-by-a-pure-engine.md)). The recording signal, `recording.text_present`, and its provider are in [`apps/desktop/internal/coverage`](../../apps/desktop/internal/coverage) (`signal.go`, `provider.go`; [ADR 0131](../adr/0131-the-recording-signal-is-read-from-stored-checks-with-thresholds-applied-on-read-and-alignment-from-settings.md)). The decision store and the service that composes the providers, the engine and the manuscript's status path are in `internal/stages` too (`store.go`, `service.go`, `assess.go`; [ADR 0161](../adr/0161-stage-decisions-live-in-their-own-sidecar-and-confirm-writes-the-record-before-the-status.md)). `coverage.Service.EvidenceView` builds the view every provider shares (`stages.Config.View`). The host builds the service for each project and four bindings reach it (`apps/desktop/bindings_stages.go`, see [The bindings](#the-bindings)); the UI is described under [On the Production board](#on-the-production-board).
+**Status: delivered.** The Go types, the `Provider` interface and the pure engine are in [`apps/desktop/internal/stages`](../../apps/desktop/internal/stages). The recording signal, `recording.text_present`, and its provider are in [`apps/desktop/internal/coverage`](../../apps/desktop/internal/coverage) (`signal.go`, `provider.go`; [Settings](../utilities/recording-coverage.md#settings)). The decision store and the service that composes the providers, the engine and the manuscript's status path are in `internal/stages` too (`store.go`, `service.go`, `assess.go`;). `coverage.Service.EvidenceView` builds the view every provider shares (`stages.Config.View`). The host builds the service for each project and four bindings reach it (`apps/desktop/bindings_stages.go`, see [The bindings](#the-bindings)); the UI is described under [On the Production board](#on-the-production-board).
 
 This page is for whoever implements a signal: recording coverage (`recording`), editing readiness (`editing`) and
 proofing readiness (`proofing`).
@@ -81,7 +81,7 @@ type Provider interface {
   `FilterRequired(required []string) []string` method: the host's `RequiredSignals` (`apps/desktop/bindings_stages.go`,
   `filterRequired`) applies it after the settings, for the provider's own stage only, and never adds an id. The proofing
   provider ([`apps/desktop/internal/proofing`](../../apps/desktop/internal/proofing), proofing readiness signals,
-  delivered and deleted; see [ADR 0525](../adr/0525-proofing-is-met-by-a-current-zero-open-pickup-source-and-every-required-delivery-check-confirmed-through-the-shared-stage-engine.md)) uses it so a delivery check
+  delivered and deleted; see [pickups.go](../../apps/desktop/internal/proofing/pickups.go)) uses it so a delivery check
   (`proofing.delivery.<metric>`) is required only while the project's delivery profile has a required rule for its
   metric turned on, and `proofing.delivery.render_length` only while a tolerance is set; `proofing.pickups` is always
   required unless the narrator ignores it.

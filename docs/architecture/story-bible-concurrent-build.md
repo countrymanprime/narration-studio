@@ -8,7 +8,7 @@ narrator who always builds right after importing gets it without a second manual
 `apps/ui/src/components/production/ManuscriptImport.tsx` (the import flow, since renamed off "Home") owns the chain:
 
 1. On import success, the import `WorkDialog` closes itself (the same self-closing behavior a successful Story Bible
-   rebuild already had, [ADR 0076](../adr/0076-a-host-job-ends-with-one-job-ended-event-the-app-announces-it-and-the-story-bible-rebuild-may-continue-in-the-background.md)).
+   rebuild already had, [Job-end events](interaction-feedback.md#job-end-events)).
 2. When the per-import checkbox (pre-filled from `ManuscriptGuide.build_after_import`, read once via
    `settingsForScope('global')`) is checked, `api.guideBuild({})` starts and a second `WorkDialog` ("Build the Story
    Bible") tracks it until the host's own `job:ended` event announces it.

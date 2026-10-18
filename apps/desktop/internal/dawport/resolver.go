@@ -85,7 +85,7 @@ func (r *Resolver) support(c Capability, trail []Capability) Support {
 }
 
 // Allowed is nil when the engine's declaration and the narrator's settings permit c, whatever the runtime state, and otherwise the
-// *NotSupportedError Support would give. It is the gate bridge.Actions asks before it sends a command (ADR 0304): the
+// *NotSupportedError Support would give. It is the gate bridge.Actions asks before it sends a command: the
 // settings are decided here and nowhere else, and a command that is permitted still goes out and fails on its own terms while the
 // engine is not answering, as it did before the port.
 func (r *Resolver) Allowed(c Capability) error {

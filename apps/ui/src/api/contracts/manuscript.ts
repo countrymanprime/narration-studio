@@ -1,7 +1,7 @@
 import type { TrackMapping } from './chapterTrackMap';
 export type ChapterStatus = 'not_started' | 'recording' | 'editing' | 'proofing' | 'finalized';
 export type ManuscriptContentKind = 'narration' | 'opening' | 'reference';
-/** Why a chapter has no recorded length (ADR 0193): no linked track, several, the linked track is
+/** Why a chapter has no recorded length: no linked track, several, the linked track is
  * not in the saved project, or no saved project could be read. */
 export type RecordedUnavailable = 'unlinked' | 'multiple_tracks' | 'track_missing' | 'no_project';
 export type ManuscriptChapter = {

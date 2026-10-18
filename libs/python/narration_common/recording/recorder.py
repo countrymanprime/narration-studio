@@ -1,4 +1,4 @@
-"""The recorder: a capture engine's blocks to a WAV file, with levels and dropout counts (ADR 0357).
+"""The recorder: a capture engine's blocks to a WAV file, with levels and dropout counts.
 
 An engine is a ``Source``: it knows its rate and channel count and, once started, calls ``deliver(block, overflowed)`` from
 its own audio thread for every block it captures. ``overflowed`` is the engine's own flag for input it lost before the

@@ -6,7 +6,7 @@ import { mockChaptersForTracks, mockChapterSuggestion } from '../chapterSuggesti
 import type { CoverageResult } from '../contracts/coverage';
 import { type MockApiSeed, mockDocumentId, type MockState } from './state';
 
-// The two credits ids ADR 0150 and ADR 0333 give a real title outside the manuscript's own chapter list.
+// The two credits ids docs/architecture/manuscript-teleprompter.md, apps/desktop/internal/coverage/credits.go give a real title outside the manuscript's own chapter list.
 const CREDITS_CHECK_TITLE: Record<string, string | undefined> = { 'credits-opening': 'Opening credits', 'credits-closing': 'Closing credits' };
 
 /** The chapter-track bindings: the DAW project's tracks, the chapter links, chapter sync and chapter regions. */
@@ -90,7 +90,7 @@ export function createChapterTracksMock(
       unsavedEdits: chapterSyncUnsavedEdits,
       activity: chapterSyncActivity,
       chapters: links.project === 'ready' ? mockChapterSyncRows(links) : [],
-      // The `background` seed (ADR 0211) shows the engine panel's wait
+      // The `background` seed shows the engine panel's wait
       // line for the reason this stream landed: REAPER is running and its heartbeat says it is recording.
       background: { enabled: true, wait: initial.chapterSync === 'background' ? 'recording' : 'nothing' },
     };
@@ -156,9 +156,9 @@ export function createChapterTracksMock(
     chapterTrackMapConfirm: async (trackGuid, chapterId) => {
       await manuscriptReady;
       const chapter = s.chapters.find((candidate) => candidate.id === chapterId);
-      // A credits id is never a manuscript chapter (ADR 0150), so its recording check's "link a track" flow
+      // A credits id is never a manuscript chapter, so its recording check's "link a track" flow
       // (RecordingCheck.tsx's TrackLink, generic over chapter.id) needs this to accept it too, mirroring the host's
-      // own chapterTitle fix (ADR 0333): one chapter-track-map.json, a real title stamped either way.
+      // own chapterTitle fix: one chapter-track-map.json, a real title stamped either way.
       const creditsTitle = CREDITS_CHECK_TITLE[chapterId];
       if (!chapter && !creditsTitle) throw new Error('that chapter is not part of the current manuscript');
       const mapping: TrackMapping = {

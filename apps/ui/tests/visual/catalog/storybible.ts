@@ -7,13 +7,12 @@ export const storybibleStates: StateEntry[] = [
   {
     page: 'storybible',
     state: 'rebuild-running',
-    description:
-      'Story Bible, a rebuild still running: its dialog says the step cannot be cancelled but can go on in the background (ADR 0076, ?mockRebuildRunning=1)',
+    description: 'Story Bible, a rebuild still running: its dialog says the step cannot be cancelled but can go on in the background (?mockRebuildRunning=1)',
   },
   {
     page: 'storybible',
     state: 'entry-saving',
-    description: 'Story Bible, an entry being saved: the Save button is busy and the other actions are off (ADR 0075, ?mockHoldEdits=1)',
+    description: 'Story Bible, an entry being saved: the Save button is busy and the other actions are off (?mockHoldEdits=1)',
   },
   {
     page: 'storybible',
@@ -122,7 +121,7 @@ export const storybibleStates: StateEntry[] = [
   {
     page: 'storybible',
     state: 'invalid-payload',
-    description: 'Story Bible, the inline error with Retry when the entities could not be read; navigation still works (ADR 0069)',
+    description: 'Story Bible, the inline error with Retry when the entities could not be read; navigation still works',
   },
 
   // Character bible, the non-acoustic part only: there are no findings, drift comparison or audition states here.

@@ -1,4 +1,4 @@
-// Package dawporttest is the conformance suite every DAW port adapter must pass (ADR 0300), and a fake adapter it runs against.
+// Package dawporttest is the conformance suite every DAW port adapter must pass, and a fake adapter it runs against.
 //
 // An adapter package runs the suite from its own test:
 //

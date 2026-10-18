@@ -6,7 +6,7 @@ type Span struct {
 	End   float64
 }
 
-// RecordedEnd is where a track's recorded audio ends (the resume pipeline's second step, ADR 0111),
+// RecordedEnd is where a track's recorded audio ends (the resume pipeline's second step),
 // as of the .rpp's last save: in project time, and in the source file the last item plays, so
 // a later step can cut the audio just before it.
 type RecordedEnd struct {

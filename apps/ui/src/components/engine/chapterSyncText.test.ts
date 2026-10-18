@@ -38,7 +38,7 @@ describe('chapterSyncReasonText', () => {
   });
 });
 
-describe('chapterSyncBackgroundWaitText (ADR 0211)', () => {
+describe('chapterSyncBackgroundWaitText', () => {
   it('says nothing while background checks are off, regardless of wait', () => {
     expect(chapterSyncBackgroundWaitText({ enabled: false, wait: 'recording' })).toBe('');
   });

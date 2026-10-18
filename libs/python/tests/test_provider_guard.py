@@ -1,4 +1,4 @@
-"""Provider-ports guard (ADR 0301): no sidecar code outside an adapter compares a provider name.
+"""Provider-ports guard: no sidecar code outside an adapter compares a provider name.
 
 A call site asks a registry by name (`ENGINES.lookup(args.engine)`, `SOURCES.fallback_order()`) and gets an adapter;
 it never writes `engine == "moonshine"`, `source in {"cmu", "espeak"}` or a list of the names, because a new engine is

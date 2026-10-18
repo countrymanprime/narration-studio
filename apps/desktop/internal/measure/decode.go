@@ -7,7 +7,7 @@ import (
 	"path/filepath"
 )
 
-// Decoding an MP3 for level measurement: internal/measure never links a decoder itself (ADR 0025's "no third runtime"
+// Decoding an MP3 for level measurement: internal/measure never links a decoder itself (docs/architecture/codebase-map.md's "no third runtime"
 // is about the measurement algorithms, which stay this package's own hand-written meters), so it asks a Decoder,
 // supplied by the caller, to turn the compressed file back into PCM once. A production Decoder is the FFmpeg row
 // render-encode-master's Encoder port already catalogues, run in reverse (internal/encodeport, wired in by the host); a

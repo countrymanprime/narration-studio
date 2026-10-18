@@ -1,5 +1,5 @@
 /**
- * A cut point moved to the nearest zero crossing (ADR 0855's snap rule), host-side: apps/desktop/bindings_workspace_snap.go
+ * A cut point moved to the nearest zero crossing (apps/desktop/internal/coverage/workspace.go's snap rule), host-side: apps/desktop/bindings_workspace_snap.go
  * over apps/desktop/internal/zerocross. The page sends a chapter id, an item GUID and a time in that item's source; the
  * host finds the file and reads only the 2 ms either side.
  */

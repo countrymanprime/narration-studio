@@ -1,6 +1,6 @@
 package extraction
 
-// VerifyBelow is the review threshold (ADR 0803). A suggestion with a confidence at or above it is applied and
+// VerifyBelow is the review threshold. A suggestion with a confidence at or above it is applied and
 // flagged Review; one below it, or with no confidence, needs verification by the narrator. It is the only place the
 // number is written.
 const VerifyBelow = 0.75

@@ -1,7 +1,7 @@
 import type { ProductionPayment, ProductionPlan } from '../../api/contracts/production';
 import { WPH } from './estimates';
 
-/** How the narrator can be paid. The ids are the host's wire names (ADR 0800), read as they are and never mapped. */
+/** How the narrator can be paid. The ids are the host's wire names, read as they are and never mapped. */
 export const PAYMENT_TYPES: readonly { id: ProductionPayment; label: string }[] = [
   { id: 'per_finished_hour', label: 'Per finished hour' },
   { id: 'royalty_share', label: 'Royalty share' },

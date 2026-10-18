@@ -7,7 +7,7 @@ import (
 	"strings"
 )
 
-// The sidecar's per-take divergence output (compare.py --take-divergence, ADR 0141): a SUMMARY line, one
+// The sidecar's per-take divergence output (compare.py --take-divergence): a SUMMARY line, one
 // DIVERGENCE_SPAN line naming the span every take was aligned to, and one TAKE_DIVERGENCE line per take, in manifest
 // order. Every time is in the take's source seconds. ParseResults reads it; nothing here re-aligns or re-judges.
 

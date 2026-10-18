@@ -1,4 +1,4 @@
-"""A chapter's name as plain text, by the app's one rule (ADR 0191).
+"""A chapter's name as plain text, by the app's one rule.
 
 The title and the subtitle join with " — " in the book's own casing. This mirrors apps/ui/src/chapterName.ts and
 apps/desktop/internal/chaptername; tests/fixtures/chapter-names.json, written by the Go test, pins all three to the

@@ -152,7 +152,7 @@ func TestComputeItemFingerprintIsDeterministic(t *testing.T) {
 	}
 }
 
-// TestEditTypeTable is the edit-type acceptance table (ADR 0100): every listed
+// TestEditTypeTable is the edit-type acceptance table: every listed
 // edit and the analysis key/item fingerprint columns it specifies.
 func TestEditTypeTable(t *testing.T) {
 	identity := baseIdentity()
@@ -379,7 +379,7 @@ func TestComputeTrackFingerprintIsOrderSensitive(t *testing.T) {
 // TestRandomEditSequenceNeverLeavesAFingerprintUnchanged is a property
 // test over random edit sequences: no sequence yields an unchanged fingerprint
 // after a change to a listed field. It runs with a fixed seed so the gate
-// stays deterministic (ADR 0044): each step mutates exactly one field the fingerprint reads
+// stays deterministic: each step mutates exactly one field the fingerprint reads
 // (position, length, mute, active take, SOFFS or play rate) on a
 // two-take item and checks the fingerprint moved.
 func TestRandomEditSequenceNeverLeavesAFingerprintUnchanged(t *testing.T) {

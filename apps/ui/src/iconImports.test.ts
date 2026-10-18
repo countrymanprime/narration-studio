@@ -5,7 +5,7 @@ import ts from 'typescript';
 import { describe, expect, test } from 'vitest';
 import { unexplained } from './ratchetReasons';
 
-// ADR 0761 (A16): a page asks `Icon` or `IconButton` for an action in `icons.catalog.ts` and does not pick a Font Awesome glyph, so
+// docs/design/design-system.md#layout-rules (A16): a page asks `Icon` or `IconButton` for an action in `icons.catalog.ts` and does not pick a Font Awesome glyph, so
 // one action cannot be drawn two ways. Files outside `components/primitives/` still import `FontAwesomeIcon` or an icon from
 // `@fortawesome/free-*-svg-icons` directly; each page slice moves its own files off them. This scan counts those imported names per
 // file (the copy of the `rawNatives.test.ts` pattern), and a file's count may only go down: a ceiling above the real count fails, so
@@ -83,7 +83,7 @@ for (const path of sourceFiles(componentsRoot)) {
   if (count > 0) counts[file.split(sep).join('/')] = count;
 }
 
-describe('direct Font Awesome imports only fall (ADR 0761)', () => {
+describe('direct Font Awesome imports only fall', () => {
   test('direct-imports-only-fall: no file gained one', () => {
     const grew = Object.entries(counts).filter(([file, count]) => count > (CEILING[file] ?? 0));
     expect(

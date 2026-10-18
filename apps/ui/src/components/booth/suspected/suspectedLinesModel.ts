@@ -40,7 +40,7 @@ export function suspectedLines(flags: readonly SuspectedFlag[], readParagraphIds
 export const suspectedCount = (flags: readonly SuspectedFlag[], dismissed: ReadonlySet<string>): number =>
   flags.filter((flag) => !dismissed.has(suspectedKey(flag))).length;
 
-/** The flag in the shape `TeleprompterSaveFlags` keeps (ADR 0117). */
+/** The flag in the shape `TeleprompterSaveFlags` keeps. */
 export const toFlagSave = (flag: SuspectedFlag, dismissed: boolean): TeleprompterFlagSave => ({
   kind: flag.kind,
   paragraphId: flag.paragraphId,

@@ -1,6 +1,6 @@
 # Interaction feedback: what an action owes the narrator
 
-**Status: implemented.** Every place the UI calls the Go host has a row in a catalog with a verdict against a written standard, a test keeps that inventory honest, the Story Bible actions acknowledge and cannot overlap, and a host job that ends tells the narrator wherever they are. The decisions are [ADR 0075](../adr/0075-every-action-that-leaves-the-interface-acknowledges-within-100-ms-cannot-be-fired-twice-and-tells-the-narrator-when-it-ends.md) (the standard, the tiers, the catalog) and [ADR 0076](../adr/0076-a-host-job-ends-with-one-job-ended-event-the-app-announces-it-and-the-story-bible-rebuild-may-continue-in-the-background.md) (job-end events, the toast queue, the rebuild in the background). The measurements are in the [latency baseline](../research/interaction-latency-baseline.md).
+**Status: implemented.** Every place the UI calls the Go host has a row in a catalog with a verdict against a written standard, a test keeps that inventory honest, the Story Bible actions acknowledge and cannot overlap, and a host job that ends tells the narrator wherever they are. The decisions are The standard (the standard, the tiers, the catalog) and Job-end events (job-end events, the toast queue, the rebuild in the background). The measurements are in the [latency baseline](../research/interaction-latency-baseline.md).
 
 ## The standard
 
@@ -9,7 +9,7 @@ An action is anything a narrator starts (a click, a key, a changed value) that c
 1. **Acknowledge** within 100 ms: the control that started it is marked busy.
 2. **No double fire**: while it runs, the control and every other control that would start it ignore a press.
 3. **Completion does not depend on the page**: a background job ends with a `job:ended` event and the app, not the page that started it, tells the narrator.
-4. **Honest progress**: real numbers where the host measures, indeterminate where it does not, never padded or invented ([ADR 0015](../adr/0015-real-progress-only.md)).
+4. **Honest progress**: real numbers where the host measures, indeterminate where it does not, never padded or invented ([Design principles](principles.md)).
 5. **No swallowed errors**: a failure is shown where the narrator is looking.
 
 | Tier | Duration | Treatment |

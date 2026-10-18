@@ -15,7 +15,7 @@
 -- Pending in REAPER (docs/reference/daw/reaper.md, "Takes"): that a take at D_VOL 0 is silent, that the take's P_EXT
 -- survives save, and that one Undo restores every volume and the active take. The harness proves only the calls.
 --
--- stack_takes(run, payload_path) puts the later reads of passages on the first read's spot as takes (ADR 0860 point 4,
+-- stack_takes(run, payload_path) puts the later reads of passages on the first read's spot as takes (docs/reference/daw/capabilities.md,
 -- the PRD's DQ-7). The payload is a file the host wrote under the session folder: a `shift|seconds` line, then for
 -- each passage a `group|first item GUID|first read's take GUID` line followed by one `move|take GUID|from|to|length`
 -- line per later read (seconds into the project). It is read line by line and refused whole when it is larger than
@@ -26,7 +26,7 @@
 -- (by more than POSITION_TOLERANCE), answers ITEM_STALE|run|guid|item or take; a read on another track, longer than the
 -- first read (adding a take leaves D_LENGTH as it is), MIDI, with a changed playback rate or with its file not on
 -- disk, a first read that already carries stacked takes, a destination other than the first read's spot, a fixed-lane
--- track (ADR 0147: the app never converts lanes), other audio between the reads, or a shift the reads do not add up to
+-- track (docs/utilities/tracks.md: the app never converts lanes), other audio between the reads, or a shift the reads do not add up to
 -- answers ERROR. Then, in one undo block, each read becomes a new take of the first
 -- item (AddTakeToMediaItem, a source from the read's file, its D_STARTOFFS), the take's P_EXT records the read's item,
 -- take, track and start and its offset from the first read, the read's item moves to the muted Cuts track (found or

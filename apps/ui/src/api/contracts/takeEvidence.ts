@@ -1,6 +1,6 @@
 /**
  * The evidence for each take of a passage (Go: `apps/desktop/internal/passagetakes/evidence.go`, bound as
- * `WorkspaceTakeEvidence` in `apps/desktop/bindings_workspace_takes.go`; ADR 0140). One entry per take `workspaceTakes`
+ * `WorkspaceTakeEvidence` in `apps/desktop/bindings_workspace_takes.go`). One entry per take `workspaceTakes`
  * offers for the same passage, in its order and with its ids. Every figure is a value or a sentence saying why there is
  * none, never a default. The call reads only and takes a chapter id and token indexes; the answer holds ids and numbers.
  */

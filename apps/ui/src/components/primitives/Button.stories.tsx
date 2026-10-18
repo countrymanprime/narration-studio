@@ -17,7 +17,7 @@ export default meta;
 const isLaidOut = (element: HTMLElement) => element.getBoundingClientRect().width > 0;
 type Story = StoryObj<typeof meta>;
 
-// The measured spec (ADR 0595): 36 px (`md`, the default) or 32 px (`sm`), 12 px each side, Barlow Condensed at `--font-size-sm`,
+// The measured spec: 36 px (`md`, the default) or 32 px (`sm`), 12 px each side, Barlow Condensed at `--font-size-sm`,
 // uppercase, tracked 0.06 em. Primary is filled `--accent`; secondary is outlined and filled `--surface`.
 export const Primary: Story = { args: { variant: 'primary' } };
 export const Secondary: Story = { args: { variant: 'secondary' } };
@@ -82,7 +82,7 @@ export const PrimaryDisabled: Story = { args: { variant: 'primary', disabled: tr
 export const SecondaryDisabled: Story = { args: { variant: 'secondary', disabled: true } };
 export const DangerDisabled: Story = { args: { variant: 'danger', children: 'Delete', disabled: true } };
 
-// The action this button started is running (ADR 0075): a spinner, dimmed, aria-busy, and a press does nothing. It stays focusable.
+// The action this button started is running: a spinner, dimmed, aria-busy, and a press does nothing. It stays focusable.
 export const PrimaryPending: Story = { args: { variant: 'primary', pending: true } };
 export const SecondaryPending: Story = { args: { variant: 'secondary', pending: true } };
 export const DangerPending: Story = { args: { variant: 'danger', children: 'Delete', pending: true } };
