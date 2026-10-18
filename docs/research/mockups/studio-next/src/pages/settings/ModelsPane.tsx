@@ -56,7 +56,7 @@ function Line({ a }: { a: AssetSpec }) {
         {job.status === 'repair' ? <span className="sub stg-block">A file failed its check.</span> : null}
         {job.status === 'unavailable' && a.unavailable ? <span className="sub stg-block">{a.unavailable}</span> : null}
       </td>
-      <td data-label="Used by"><span className="usedby">{a.used.map((p) => <button key={p} type="button" className="chip" onClick={() => go(p)} aria-label={'Used by ' + PAGE_LABEL[p] + '. Go to ' + PAGE_LABEL[p]}>{PAGE_LABEL[p]}</button>)}</span></td>
+      <td data-label="Used by"><span className="usedby">{a.used.map((p) => <button key={p} type="button" className="stg-link" onClick={() => go(p)} aria-label={'Used by ' + PAGE_LABEL[p] + '. Go to ' + PAGE_LABEL[p]}>{PAGE_LABEL[p]}</button>)}</span></td>
       <td className="act"><span className="row" style={{ flexWrap: 'nowrap', gap: 4 }}><Actions a={a} /></span></td>
     </tr>
   )

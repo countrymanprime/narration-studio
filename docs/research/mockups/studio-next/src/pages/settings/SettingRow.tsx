@@ -13,9 +13,8 @@ const SCOPE: Record<SettingRow['scope'], string> = { computer: 'This computer', 
 export function ScopeBadge({ row }: { row: SettingRow }) {
   const s = useStudio((x) => x.ui.settings)
   return (
-    <span className="row" style={{ gap: 6 }}>
-      <Pill kind={row.scope === 'project' ? 'copper' : 'neutral'} size="sm">{SCOPE[row.scope]}</Pill>
-      {hasOverride(s, row) ? <Pill kind="copper" size="sm">Overridden here</Pill> : null}
+    <span className="scope" data-scope={row.scope}>
+      {SCOPE[row.scope]}{hasOverride(s, row) ? <b className="scope-ov"> · overridden here</b> : null}
     </span>
   )
 }
@@ -25,8 +24,8 @@ export function UsedBy({ row }: { row: SettingRow }) {
   if (!row.used.length) return null
   return (
     <span className="usedby">
-      <span className="sub">Used by</span>
-      {row.used.map((p) => <button key={p} type="button" className="chip" data-used={p} aria-label={'Used by ' + PAGE_LABEL[p] + '. Go to ' + PAGE_LABEL[p]} onClick={() => go(p)}>{PAGE_LABEL[p]}</button>)}
+      <span>Used by</span>
+      {row.used.map((p) => <button key={p} type="button" className="stg-link" data-used={p} aria-label={'Used by ' + PAGE_LABEL[p] + '. Go to ' + PAGE_LABEL[p]} onClick={() => go(p)}>{PAGE_LABEL[p]}</button>)}
     </span>
   )
 }
@@ -128,7 +127,7 @@ export function Row({ row, children }: { row: SettingRow; children?: ReactNode }
           {changed ? <Pill kind="info" size="sm">Changed</Pill> : null}
         </span>
         <span className="sub srow-d" id={uid + 'd'}>{row.desc}</span>
-        <span className="srow-m"><ScopeBadge row={row} /><UsedBy row={row} />{row.also ? <span className="sub">Also set in {row.also}</span> : null}</span>
+        <span className="srow-m"><ScopeBadge row={row} /><UsedBy row={row} />{row.also ? <span>Also set in {row.also}</span> : null}</span>
       </div>
       <div className="srow-c">
         {children ?? (
@@ -143,12 +142,12 @@ export function Row({ row, children }: { row: SettingRow; children?: ReactNode }
                 <div className="override" data-override={row.id}>
                   <span className="sub">This project uses</span>
                   <ValueControl row={row} id={cid + '-p'} value={projectValue(s, row)} onChange={(v) => apply(v, true)} which="this project" describedBy={describedBy} />
-                  <Btn className="ghost sm" onClick={() => clearOverride(row.id)} aria-label={'Use the computer setting for ' + row.label}>Use computer setting</Btn>
+                  <button type="button" className="linkbtn" onClick={() => clearOverride(row.id)} aria-label={'Use the computer setting for ' + row.label}>Use computer setting</button>
                   {row.kind === 'choice' ? <AssetNote row={row} value={projectValue(s, row)} /> : null}
                 </div>
               ) : (
                 <div className="override"><span className="sub">This project uses the computer setting.</span>
-                  <Btn className="ghost sm" onClick={() => setOverride(row.id, comp)} aria-label={'Override ' + row.label + ' for this project'}>Override for this project</Btn></div>
+                  <button type="button" className="linkbtn" onClick={() => setOverride(row.id, comp)} aria-label={'Override ' + row.label + ' for this project'}>Override for this project</button></div>
               )
             ) : null}
           </>
