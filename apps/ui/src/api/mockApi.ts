@@ -372,6 +372,7 @@ export function createMockApi(
       manuscriptReady,
       () => s.chapters,
       () => s.paragraphs,
+      initial.voiceSamples,
     ),
     ...createEditLogMock(
       manuscriptReady,
