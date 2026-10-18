@@ -27,8 +27,9 @@ repository (read with `gh api repos/countrymanprime/narration-utils/rulesets`, a
   things need a decision first: `ci.yml` skips documentation-only pull requests (`paths-ignore: docs/**, **/*.md`),
   which would leave a required check pending on them, and the visual and atlas jobs have to have stopped failing
   without a code change (see [Keeping a red run meaningful](#keeping-a-red-run-meaningful)). The one check that is
-  safe to require today is **`Docs / Links (offline)`**: it runs on every pull request, so it is never skipped, and it
-  reads only the repository, so it does not flake ([The docs link check](#the-docs-link-check)).
+  safe to require today is **`Docs / Docs checks`**: it runs on every pull request, so it is never skipped, and it
+  reads only the repository, so it does not flake ([The docs link check](#the-docs-link-check)). It is one job holding the five
+  docs checks as steps, so requiring it requires all five.
 - **Two settings the workflows rely on are the owner's to change:** "Require actions to be pinned to a full-length commit
   SHA" (off now; `zizmor` already enforces the same rule, and the setting is a backstop to enable after the pinning
   change has run once with Dependabot) and immutable releases (off, and they stay off: they would break the release-candidate prune, see [#186](https://github.com/countrymanprime/narration-utils/issues/186)).
@@ -55,12 +56,15 @@ The checks a pull request shows, by the name GitHub displays (`ci.yml` calls `_q
 
 | Check | What it runs |
 | --- | --- |
-| `quality / js` | `lint`, `format`, `architecture` (the import rules), `test` (Vitest with the coverage ratchet) and `test-node` (the node:test suites of `apps/ui/scripts`) of `narration-utils-ui`, then Knip over the whole repository |
+| `quality / js-static` | `lint`, `format`, `architecture` (the import rules) and `test-node` (the node:test suites of `apps/ui/scripts`) of `narration-utils-ui`, then Knip over the whole repository |
+| `quality / js-test (shard 1/3)` to `(shard 3/3)` | the Vitest run of `apps/ui` with coverage on the gated logic files (`node scripts/ci/coverage-gate.mjs vitest apps/ui --shard=i/3`), a third of the files each, split by cost (`apps/ui/scripts/vitest-shards.mjs`; Vitest's own split by path hash gave one shard 48% of the time). A shard checks no coverage floor; it uploads a blob of its results and coverage |
+| `quality / js-test` | merges the three blobs (`coverage-gate.mjs vitest apps/ui --merge=3`: fails when one is missing) and checks every Vitest floor of `scripts/ci/coverage-floors.json` over the merged coverage, the same numbers as the unsharded run `pnpm check` does. Skipped when the UI is not affected |
 | `quality / ui-visual (shard 1/3)` to `(shard 3/3)` | the Playwright visual suite of the mock-backed app, a third each by estimated time, not by test count ([Visual shards](#visual-shards)), with the per-capture checks; one shard, the one the split names, also runs `aria`. Each uploads its capture records and shard manifest, its screenshots, a timing report, and traces when it fails |
 | `quality / ui-atlas (shard 1/2)`, `(shard 2/2)` | the Storybook component atlas, half the stories each: every story in light and dark at a wide and a narrow viewport, with axe |
 | `quality / quick-ubuntu` | one step each, every step runs even after a red one: `repo-scripts` (the plain-Node tests of `scripts/`: labels, milestones, release tooling, the layout and project guards); `docs-site` (the public docs site, [below](#the-public-docs-site): ruff and pytest of `tools/docs-site` only, while GitHub Pages is paused — the strict MkDocs build and its link check run from `pages.yml`'s manual build instead); `python` (ruff and pytest for `libs/python`, the sidecars, `scripts/` and `tests/fixtures`); `reaper (Lua)` (StyLua and ruff on `integrations/reaper`, then its bridge harness under Lua 5.4: a fake `reaper` driven through the file protocol, and the mutation checks; [The DAW port](../architecture/daw-integration.md#the-daw-port)) |
 | `quality / quick-windows` | Windows, one step each: `reaper (Lua)` again (paths from `package.config`, CRLF), then `go lint` (gofmt, go vet, golangci-lint, checklocks) |
-| `quality / go-test` | Windows: the Go tests (the race detector on every package with concurrency), then `test-schedules`. The job limit is 25 minutes: the median run is 12 and the longest seen was 15, so a 15 minute limit cancelled runs that were passing |
+| `quality / go-test (root)` | Windows: the Go tests of the module's root package (`apps/desktop`) under the race detector, alone because it is most of the cost (405 s of the 622 s the raced packages took on run 39138316593). `coverage-gate.mjs go apps/desktop -race --group=root` |
+| `quality / go-test (rest)` | Windows: the Go tests of every other package (the race detector on those with concurrency, the rest without), then `test-schedules`. `--group=race,plain`. Each of the two jobs checks the coverage floors of the packages it ran; together they run every package once. The job limit stays 25 minutes, the limit set before the split |
 | `ui-dist / build` | builds the UI bundle the Windows build reuses |
 | `Build (Windows)` | the native Windows build, starting as soon as `ui-dist / build` finishes |
 | `CI passed` | the full tier only (a ready pull request, a manual run, `main-health`): needs every job above and fails if any failed or was cancelled (skipped passes); then, when the UI is affected, runs the whole-run checks over the three shards' records (`pnpm --dir apps/ui run visual:check-run`, which was the `quality / ui-visual` job): every expected capture present, none blank, no undeclared duplicate, no stale `sameAs`, and the shards held every test of the suite exactly once: the one check for a ruleset to require ([#544](https://github.com/countrymanprime/narration-utils/issues/544)). A draft pull request shows no `CI passed`. Documentation-only pull requests do not run `CI`, so requiring it also needs `ci.yml`'s `paths-ignore` changed |
@@ -69,8 +73,12 @@ The checks a pull request shows, by the name GitHub displays (`ci.yml` calls `_q
 `codeql.yml`, `dependency-review.yml`, `docs.yml`, `security.yml` and `zizmor.yml` run their own checks and are advisory too
 ([every workflow](#every-workflow), [Tracking work on GitHub](github-workflow.md)). A pull request that changes only `docs/**` or
 Markdown runs none of the `CI` checks, and not CodeQL either, so a docs-only change is reviewed by reading and by the link check
-([The docs link check](#the-docs-link-check)); `docs.yml`, `zizmor`, `security.yml`, `dependency-review.yml` and the labeler have no path
-filter and always run.
+([The docs link check](#the-docs-link-check)); `docs.yml` and the labeler have no path filter and always run. `zizmor.yml`,
+`dependency-review.yml`, `security.yml`, `osv-scanner.yml` and `codeql.yml` start on a pull request only when it changes
+what they read ([every workflow](#every-workflow) lists the paths), so they show no check at all on a pull request that
+changes none of it. That leaves nothing pending: `CI passed` needs only `quality`, `ui-dist` and `build-windows`, and no
+ruleset requires any other check. If the owner ever requires one of the path-filtered checks, a pull request that
+does not start it waits on it forever, which is the reason given above for `ci.yml`.
 
 **The `production` environment** (read live on 2026-09-21) has `@countrymanprime` as its one required reviewer, **Prevent self-review**
 left off and administrator bypass left on, so the owner can promote an emergency or solo release. It has **no deployment branch or tag
@@ -87,14 +95,15 @@ Each file in `.github/workflows`, what starts it, and the checks it shows on a p
 | `ci.yml` (`CI`) | pull request (opened, synchronize, reopened, ready for review) that is not docs- or Markdown-only; manual; called by `main-health.yml` | `quality / *` and `ui-dist / build` (the reusable `_quality.yml` and `_ui-dist.yml`), `Build (Windows)`, `CI passed` (full tier), `CI light passed` (draft) | no ruleset requires it |
 | `prerelease.yml` (`Prerelease`) | push to `main` that is not docs- or Markdown-only; manual | `ui-dist / build`, `version`, `Windows build` (needs `ui-dist` and `version`) and `Windows release` (needs the build); no quality jobs, the pull request's `CI` run is the quality gate ([#544](https://github.com/countrymanprime/narration-utils/issues/544) tracks making it a required one); both run only when `version` found a releasable change. A manual run can tick `cold-freeze` to freeze the sidecars without the [freeze cache](#the-sidecar-freeze-cache) | not a pull request check |
 | `promote-release.yml` | manual, with an RC tag; behind the `production` environment | `promote` | not a pull request check |
-| `docs.yml` (`Docs`) | every pull request (no path filter), weekly (Monday 07:17 UTC), manual | `Markdown lint (changed files)` (pull requests only), `Docs impact`, `Guide impact` and `Docs prose` (pull requests only, [below](#the-docs-impact-check)), `Links (offline)` (pull requests and manual) and `Links (online, advisory)` (weekly and manual) ([below](#the-docs-link-check)) | the offline link job, the changed-file Markdown lint job and the docs-impact, guide-impact and docs-prose jobs all **fail the run** on a finding; no ruleset requires any of them (owner-only setting) |
-| `zizmor.yml` | every pull request, push to `main`, manual | `zizmor` | advisory in GitHub terms (not required); a finding at the `regular` persona fails the run |
-| `security.yml` (`Security scan`) | every pull request, push to `main`, weekly (Tuesday 06:41 UTC), manual | `govulncheck`, `osv-scanner (pull request)` (only for a same-repository pull request that is not Dependabot's) or `osv-scanner` (every other trigger) | advisory: neither fails on a finding |
-| `codeql.yml` (`CodeQL`) | pull request to `main` that is not docs- or Markdown-only (same-repository, not Dependabot), push to `main`, weekly (Monday 05:23 UTC), manual | `Analyze (go)`, `Analyze (javascript-typescript)`, `Analyze (python)` | advisory |
-| `dependency-review.yml` | pull request to `main` | `review` (fails on a high-severity advisory, or on a licence outside the allow-list, that a pull request adds to a **runtime** dependency; needs the dependency graph; [the licence policy](github-workflow.md#the-dependency-licence-allow-list)) | advisory |
+| `docs.yml` (`Docs`) | every pull request (no path filter), weekly (Monday 07:17 UTC), manual | `Docs checks`, one job whose steps are `Markdown lint (changed files)`, `Docs impact`, `Guide impact` and `Docs prose` (pull requests only, [below](#the-docs-impact-check)) and `Links (offline)` (pull requests and manual), each running even after a red one; and `Links (online, advisory)` (weekly and manual) ([below](#the-docs-link-check)) | a red step fails `Docs checks` (every step runs, so one run lists every finding); no ruleset requires it (owner-only setting) |
+| `zizmor.yml` | pull request that changes a file under `.github/`, push to `main`, manual | `zizmor` | advisory in GitHub terms (not required); a finding at the `regular` persona fails the run |
+| `security.yml` (`Security scan`) | pull request that changes `apps/desktop/`, `scripts/toolchain.json`, the SARIF dedupe script, the toolchain action or this file; nightly (06:41 UTC); manual | `govulncheck` | advisory: it does not fail on a finding |
+| `osv-scanner.yml` (`OSV scan`) | pull request that changes `pnpm-lock.yaml`, `uv.lock`, `apps/desktop/go.mod` or this file; nightly (06:41 UTC); manual | `osv-scanner (pull request)` (only for a same-repository pull request that is not Dependabot's) or `osv-scanner` (every other trigger) | advisory: it does not fail on a finding |
+| `codeql.yml` (`CodeQL`) | pull request to `main` that is not docs- or Markdown-only (same-repository, not Dependabot), nightly (05:23 UTC), manual | `CodeQL scope` (reads the diff), then `Analyze (go)`, `Analyze (javascript-typescript)` and `Analyze (python)` for the languages the pull request changes files of (`scripts/ci/codeql-scope.mjs`: Go for `apps/desktop/` and `scripts/toolchain.json`; JavaScript and TypeScript for `.js`, `.mjs`, `.ts`, `.tsx`, `.vue` and `.html` files; Python for `.py` files); all three on the nightly and manual runs, and for a change to the workflow, the toolchain action or an unreadable diff | advisory |
+| `dependency-review.yml` | pull request to `main` that changes a lockfile (`pnpm-lock.yaml`, `uv.lock`, `apps/desktop/go.sum`, any `package-lock.json`), a manifest (`apps/desktop/go.mod`, any `package.json` or `pyproject.toml`), a workflow or a composite action | `review` (fails on a high-severity advisory, or on a licence outside the allow-list, that a pull request adds to a **runtime** dependency; needs the dependency graph; [the licence policy](github-workflow.md#the-dependency-licence-allow-list)) | advisory |
 | `labeler.yml` | `pull_request_target` (opened, synchronize, reopened, ready for review) | `label` | not a check that gates anything |
 | `cancel-closed-pr.yml` | `pull_request_target` (closed: merged or closed without merging) | `cancel`: cancels every unfinished run of the pull request's head commit | not a check that gates anything |
-| `pages.yml` (`Pages`) | paused (an owner decision, narrowed by CI and releases): no push trigger and no pull request trigger, manual only | `build`, `deploy` ([below](#the-pages-workflow)); `deploy` runs only on a manual start on `main` with `publish` ticked | not a pull request check at all now; `Docs / Links (offline)` and `Docs / Markdown lint (changed files)` cover pull requests instead |
+| `pages.yml` (`Pages`) | paused (an owner decision, narrowed by CI and releases): no push trigger and no pull request trigger, manual only | `build`, `deploy` ([below](#the-pages-workflow)); `deploy` runs only on a manual start on `main` with `publish` ticked | not a pull request check at all now; `Docs / Docs checks` (its `Links (offline)` and `Markdown lint (changed files)` steps) cover pull requests instead |
 | `train-health.yml` (`Train health`) | hourly (minute 23), manual | `heartbeat`: warns on #510 when #509's `Last pass:` line is over two hours old | not a pull request check |
 | `main-health.yml` (`Main health`) | every three hours (minute 37), manual | `Has main moved since the last run` (skips the run when the last finished run was on the same commit; a manual run always runs), the whole of `ci.yml` run on `main`, then `Tick HOLD when main is red` on a failure | not a pull request check |
 | `test-ratchet.yml` (`Test ratchet`) | pull request (opened, synchronize, reopened, labeled, unlabeled) | `Test ratchet`: no deleted test file, added skip or focus marker, or lowered coverage floor, unless the owner added `ratchet-approved` | no ruleset requires it; it is read before merging ([merge safety checks](verification-tooling.md#merge-safety-checks)) |
@@ -102,7 +111,7 @@ Each file in `.github/workflows`, what starts it, and the checks it shows on a p
 | `sync-labels.yml`, `sync-milestones.yml` | push to `main` that changes `.github/labels.json`, `config/roadmap.json` or `scripts/github/**`, and the workflow file; manual | `sync` | run after a merge, never on a pull request |
 
 The tests of `scripts/github/*.test.mjs` (the label and milestone sync) run in the `repo-scripts` step of `quality / quick-ubuntu`. Nothing runs on a schedule except
-CodeQL, the security scan, the online link check, and the two health checks (`train-health.yml`, `main-health.yml`). There is no `github-scripts` job and no changed-file classification: Nx `affected` decides what a pull
+CodeQL, the two security scans, the online link check, and the two health checks (`train-health.yml`, `main-health.yml`). There is no `github-scripts` job and no changed-file classification: Nx `affected` decides what a pull
 request runs (see [Nx projects and the quality gate](#nx-projects-and-the-quality-gate)).
 
 Issues, labels, milestones, and the project board are covered in
@@ -111,8 +120,8 @@ Issues, labels, milestones, and the project board are covered in
 ## Workflow security
 
 The workflows build and publish an unsigned executable, so they are treated as code that needs its own checks.
-[zizmor](https://docs.zizmor.sh) reads every workflow, composite action and `dependabot.yml` on every pull request
-(`zizmor.yml`, no path filter) and reports unpinned actions, credentials left in `.git/config`, template injection,
+[zizmor](https://docs.zizmor.sh) reads every workflow, composite action and `dependabot.yml` on every pull request that
+changes a file under `.github/` and on every push to `main` (`zizmor.yml`; it reads nothing outside `.github/`) and reports unpinned actions, credentials left in `.git/config`, template injection,
 excessive permissions and dangerous triggers. Its configuration is `.github/zizmor.yml`; every suppression there
 names its reason. The check is blocking: a finding at the `regular` persona fails it. Run it locally with
 `uvx zizmor --persona regular .` (add `--gh-token "$(gh auth token)"` for the online audits).
@@ -172,7 +181,9 @@ Install-time settings are written in the repository so a default that changes up
 
 ## Vulnerability scanning
 
-`security.yml` runs two scanners on every pull request, on pushes to `main` and weekly (Tuesday). Both are **advisory**:
+`security.yml` (govulncheck) and `osv-scanner.yml` (OSV-Scanner) are two workflows. Each runs on a pull request that changes what
+it reads and every night, which is the baseline on `main`: a push to `main` no longer starts a scan, and a new advisory against
+an unchanged module or lockfile is found by the nightly run. Both are **advisory**:
 neither fails the run on a finding, neither is a required check, and the first month is a baseline (the owner's decision). Findings show under **Security > Code scanning** (categories `govulncheck` and `osv-scanner`) and in
 the run log; a fork or Dependabot pull request scans but does not upload, because its token is read-only.
 
@@ -183,7 +194,7 @@ the run log; a fork or Dependabot pull request scans but does not upload, becaus
   even when the upload fails.
 - **OSV-Scanner** (`google/osv-scanner-action`, pinned by SHA) checks `pnpm-lock.yaml`, `uv.lock` and
   `apps/desktop/go.mod` against the OSV database; `uv.lock` is read natively, so Python is covered without `pip-audit`
-  (which does not read it). On a pull request it reports only advisories the pull request adds; on `main` and weekly it
+  (which does not read it). On a pull request it reports only advisories the pull request adds; the nightly run
   reports all of them. A lockfile added later has to be listed in `scan-args`. Run it by hand with
   `osv-scanner scan source --lockfile pnpm-lock.yaml --lockfile uv.lock --lockfile apps/desktop/go.mod`.
 - `uv audit --preview-features audit-command` is a preview command and stays a local, non-gating check.
@@ -304,6 +315,18 @@ A narrator installs from `narration-utils-<version>-windows-x64-setup.exe`, an N
 - **Install and uninstall by hand** for a check: run the setup program; `narration-utils-<version>-windows-x64-setup.exe /S` installs silently
   (both shortcuts) and `"%LOCALAPPDATA%\Programs\Narration Studio\uninstall.exe" /S` removes it.
 
+## The Windows release-gate evidence workflows
+
+Three manual workflows (`workflow_dispatch` only; no ruleset requires them, nothing calls them, none publishes anything) turn the owner-pending checks of [section 9 of the Windows QA checklist](windows-qa-checklist.md#9-release-gate-checks) into recorded runs on clean GitHub-hosted Windows runners. They are evidence for the owner, not a gate: a red run does not block a merge or a release.
+
+| Workflow | Check | What it does |
+| --- | --- | --- |
+| `windows-release-checks.yml` | 9.2, 9.3, 9.4 | Downloads the setup program and `narration-utils.exe` of two published releases (`scripts/release/fetch-release-assets.sh`; the newest and the one before, or the tags given as inputs). `scripts/release/windows-install-check.ps1` installs silently, asserts a per-user install (`HKCU` entry, none under `HKLM`, `%LOCALAPPDATA%\Programs`), both Start Menu shortcuts and the desktop one, starts the app, uninstalls and asserts removal; for 9.3 it installs the older release first, seeds `global-settings.json` and `recent-projects.json`, runs the newer setup over it and checks both files, the install folder, the reported version and the shortcuts. It accepts the uninstall key `NarrationUtils` or `NarrationStudio` ([#1816](https://github.com/countrymanprime/narration-utils/issues/1816) phase 2). The third job runs `go test -tags rehearsal` on the two real `narration-utils.exe` builds ([in-app update](../architecture/in-app-update.md)). |
+| `windows-encode-check.yml` | 9.1 | `scripts/release/install-ffmpeg-asset.ps1` downloads the file in `config/encoder-assets.json`, checks its size and SHA-256 and the kept binary's, then `NARRATION_UTILS_FFMPEG=<ffmpeg.exe> go test ./internal/encodeport/...` encodes synthetic chapters and the ACX format and sample-rate checks read them. |
+| `windows-reaper-transport.yml` | 9.7 | Installs the REAPER evaluation build silently (the installer's SHA-256 and signature are recorded; pin it with the `installer-sha256` input), runs `integrations/reaper/spikes/transport_timing.lua` through `run-reaper.ps1` in an isolated `-cfgfile`, and records, for Play, Stop, Record, Pause during Record, Pause again and Stop, when `GetPlayState()` and the real bridge's heartbeat showed the change. The runner has no audio hardware: a state REAPER refuses to enter is a finding in the report, not a failure. |
+
+What these cannot show stays with the owner: a launch from REAPER after an in-app update, a physical click or keystroke on REAPER's transport, MIDI and HID prompts (9.5) and a real microphone (9.6). Each run uploads its report as an artifact and writes it to the job summary; the checklist records the latest run link per check.
+
 ## The packaged-app smoke test
 
 A release must start on a machine that has none of the repository. Wails is a GUI program, so CI cannot start it and look at a
@@ -410,10 +433,10 @@ The `.sha256` beside a file only detects a damaged download: it is not evidence 
 
 ## The docs link check
 
-`docs.yml` (workflow `Docs`) runs [lychee](https://github.com/lycheeverse/lychee) (`lycheeverse/lychee-action`, pinned to a commit, lychee 0.24.2) over every Markdown file in the repository, configured by `.lychee.toml` and `.lycheeignore` at the root. It has three jobs:
+`docs.yml` (workflow `Docs`) runs [lychee](https://github.com/lycheeverse/lychee) (`lycheeverse/lychee-action`, pinned to a commit, lychee 0.24.2) over every Markdown file in the repository, configured by `.lychee.toml` and `.lycheeignore` at the root. Its pull request checks are one job, `Docs checks`, whose steps run one after another and each even after a red one (`if: !cancelled()`, as `quick-ubuntu` does), so a run lists every finding. They were five jobs with a runner and a checkout each; the step names are the old job names. The weekly online check is a job of its own.
 
-- **`Links (offline)`** (shown as `Docs / Links (offline)`) starts on **every** pull request: the trigger has no `paths` filter, on purpose. `ci.yml` skips documentation-only pull requests, so a docs job that shared its filter would also skip a _code_ change that renames a file a document links to, and a check that GitHub skips because of a path filter stays pending if it is ever required (see the note at the top of this document). Offline mode reads only the tree and never opens a network connection: a relative link must resolve to a file, and a `#fragment` to a heading of that file (checked; `include_fragments = "anchor-only"` works with `--offline`). A local run over the 227 Markdown files and 1,356 links takes 0.13 seconds (the Actions run adds the runner set-up), so it is cheap enough to block on, and it is deterministic. **It blocks in the sense that a dead link turns the check red**; a red check does not stop a merge while no ruleset requires it, so the maintainer reads it like the others, and adding `Docs / Links (offline)` to the `Pull Request` ruleset's required checks is an owner-only setting that is safe to make. While GitHub Pages is paused this is the only link check a pull request runs; `apps/ui/src/docsGuide.test.ts` checks the guide's own anchors regardless.
-- **`Markdown lint (changed files)`** (shown as `Docs / Markdown lint (changed files)`) also starts on every pull request, and also fails the run on a finding, but checks Markdown _style_, not links: heading levels, list marker and indent consistency, trailing whitespace, multiple blank lines, fenced code language, bare URLs, and the rest of `.markdownlint-cli2.jsonc`'s starter rule set (`markdownlint-cli2`, exact version pinned in the root `devDependencies`). It scopes itself to only the `.md` files the pull request adds or changes against the merge base with its base branch (`scripts/ci/changed-markdown.mjs`, `scripts/ci/lint-markdown-changed.mjs`) — not a full-repo baseline, so pre-existing debt in an untouched file never blocks an unrelated change, only in one a pull request itself touches. A rename lands on its new path; a deletion has nothing left to lint. The job writes a job summary naming the fix command on a failure. `pnpm lint:md` runs the same check locally against `origin/main` (or `--base <ref>`), and `pnpm lint:md:fix` adds `--fix`; lint-staged also runs `markdownlint-cli2 --fix` on staged `*.md` files on commit, so most violations never reach a pull request at all. See CI and releases for why this replaced building the docs site on every pull request, and why the rule set turns off line length, table style and a handful of rules that fired only on the repo's own deliberate style (template formatting, angle-bracket placeholders, bold lead-in labels, footnote-style citation markers).
+- **`Links (offline)`** (a step of `Docs / Docs checks`) runs on **every** pull request: the trigger has no `paths` filter, on purpose. `ci.yml` skips documentation-only pull requests, so a docs job that shared its filter would also skip a _code_ change that renames a file a document links to, and a check that GitHub skips because of a path filter stays pending if it is ever required (see the note at the top of this document). Offline mode reads only the tree and never opens a network connection: a relative link must resolve to a file, and a `#fragment` to a heading of that file (checked; `include_fragments = "anchor-only"` works with `--offline`). A local run over the 227 Markdown files and 1,356 links takes 0.13 seconds (the Actions run adds the runner set-up), so it is cheap enough to block on, and it is deterministic. **It blocks in the sense that a dead link turns the check red**; a red check does not stop a merge while no ruleset requires it, so the maintainer reads it like the others, and adding `Docs / Docs checks` to the `Pull Request` ruleset's required checks is an owner-only setting that is safe to make. While GitHub Pages is paused this is the only link check a pull request runs; `apps/ui/src/docsGuide.test.ts` checks the guide's own anchors regardless.
+- **`Markdown lint (changed files)`** (a step of `Docs / Docs checks`) also runs on every pull request, and also fails the run on a finding, but checks Markdown _style_, not links: heading levels, list marker and indent consistency, trailing whitespace, multiple blank lines, fenced code language, bare URLs, and the rest of `.markdownlint-cli2.jsonc`'s starter rule set (`markdownlint-cli2`, exact version pinned in the root `devDependencies`). It scopes itself to only the `.md` files the pull request adds or changes against the merge base with its base branch (`scripts/ci/changed-markdown.mjs`, `scripts/ci/lint-markdown-changed.mjs`) — not a full-repo baseline, so pre-existing debt in an untouched file never blocks an unrelated change, only in one a pull request itself touches. A rename lands on its new path; a deletion has nothing left to lint. The job writes a job summary naming the fix command on a failure. `pnpm lint:md` runs the same check locally against `origin/main` (or `--base <ref>`), and `pnpm lint:md:fix` adds `--fix`; lint-staged also runs `markdownlint-cli2 --fix` on staged `*.md` files on commit, so most violations never reach a pull request at all. See CI and releases for why this replaced building the docs site on every pull request, and why the rule set turns off line length, table style and a handful of rules that fired only on the repo's own deliberate style (template formatting, angle-bracket placeholders, bold lead-in labels, footnote-style citation markers).
 - **`Links (online, advisory)`** starts weekly and by hand. It also follows the `http(s)` links (with `actions/cache` on `.lycheecache`, one day), reports the ones that rotted in the job summary, and **never fails**: a link on someone else's server is not a regression in this repository. `429 Too Many Requests` is accepted. The `GITHUB_TOKEN` is passed only to lift GitHub's anonymous rate limit.
 
 **Diagrams.** lychee reads a Mermaid block as text, so `scripts/ci/mermaid-diagrams.test.mjs` (in the `repo-scripts` step of `quality / quick-ubuntu`, and so in `pnpm check`) hands every ` ```mermaid ` block of every tracked Markdown file to Mermaid's own parser (`mermaid.parse`, the `mermaid` devDependency of the root package) and fails with the file, the line and the parser's message. It needs no browser: Mermaid's sanitizer only wants a DOM, and the test gives it jsdom (already a dependency of the UI's tests) before it imports Mermaid. It proves the syntax, not that the names in a picture are still true; the five diagrams of [the codebase map](../architecture/codebase-map.md#how-the-parts-connect) and the four flows each say which files they were checked against, and the test fails if one of the five owning docs loses its diagram.
@@ -429,17 +452,17 @@ The baseline on 2026-09-21: 0 dead repository links; 7 external links rotted or 
 A change to code that `docs/` describes has to touch one of those docs, or say why none is owed (issue #943). `scripts/ci/docs-impact.mjs` reads `scripts/ci/docs-impact-map.json`: each rule lists code paths, paths to leave out (tests, stories), and the docs that describe them. A rule fails when the change touches its code and none of its docs. The map is a starting set of ten rules, not every doc in the tree; add a rule when a doc starts describing a new area. `scripts/ci/docs-impact.test.mjs` fails when a rule names a doc or a code path that no longer exists.
 
 - **Opt-out.** A line `Docs: none — <reason>` in the pull request description (or a commit message, which is what `pnpm check` reads) waives the check. A reason under 12 characters, or one such as "not needed", "n/a" or "trivial", does not count.
-- **Where it runs.** `Docs / Docs impact` runs on every pull request, with no path filter and on `edited` too, so adding the opt-out line re-runs it. `pnpm check` runs the same script against `origin/main` first.
+- **Where it runs.** The `Docs impact` step of `Docs / Docs checks` runs on every pull request, with no path filter and on `edited` too, so adding the opt-out line re-runs it. `pnpm check` runs the same script against `origin/main` first.
 - **Hook.** `.claude/settings.json` also runs it when a coding session stops; [`.claude/skills/README.md`](../../.claude/skills/README.md#hooks) describes how.
 - **Limits.** It compares paths, so an empty edit to a mapped doc satisfies it. Review judges whether the doc changed in substance. A rule over a wide folder fails a refactor that changes no documented behaviour; that is what the opt-out is for.
 
 ### The guide-impact check
 
-`Docs / Guide impact` runs `scripts/ci/guide-impact.mjs` the same way: on every pull request and on `edited`, and in `pnpm check` against `origin/main`. `scripts/ci/guide-impact-map.json` maps each folder under `apps/ui/src/components/` to the pages of the how-to guide it draws. A change to a folder's code (tests, stories and fixtures aside) fails when it touches neither one of those pages nor any image in `docs/images/ui/`. The opt-out is a line `No guide change: <reason>`, with the same length and vagueness rules as `Docs: none`. `primitives` and `devtools` have no rule; the periodic guide sweep catches what a shared component moves ([UI PRs update the how-to guide](../../CONTRIBUTING.md#ui-prs-update-the-how-to-guide)).
+The `Guide impact` step of `Docs / Docs checks` runs `scripts/ci/guide-impact.mjs` the same way: on every pull request and on `edited`, and in `pnpm check` against `origin/main`. `scripts/ci/guide-impact-map.json` maps each folder under `apps/ui/src/components/` to the pages of the how-to guide it draws. A change to a folder's code (tests, stories and fixtures aside) fails when it touches neither one of those pages nor any image in `docs/images/ui/`. The opt-out is a line `No guide change: <reason>`, with the same length and vagueness rules as `Docs: none`. `primitives` and `devtools` have no rule; the periodic guide sweep catches what a shared component moves ([UI PRs update the how-to guide](../../CONTRIBUTING.md#ui-prs-update-the-how-to-guide)).
 
 ### The docs prose checks
 
-`Docs / Docs prose` runs two scripts over the Markdown a pull request adds or changes, and `pnpm check` runs the same two against `origin/main`, reading uncommitted and untracked Markdown as well so a run before the commit sees what the commit will hold:
+The two `Docs prose` steps of `Docs / Docs checks` run two scripts over the Markdown a pull request adds or changes, and `pnpm check` runs the same two against `origin/main`, reading uncommitted and untracked Markdown as well so a run before the commit sees what the commit will hold:
 
 - **`scripts/ci/docs-slop.mjs`** reads the phrase list in `scripts/ci/docs-slop-phrases.json`. An `error` phrase (a filler opener, an inflated-importance phrase, a sales word or chat residue) fails the run. A `warn` phrase (words such as `robust`, `leverage` and `ensures`) is printed in the job summary and never fails, because each has real uses. It skips code, link targets, quotations, comments, front matter and the files the list's `ignore` names (the skills and report that quote the phrases). `node scripts/ci/docs-slop.mjs --all` measures the list against every tracked Markdown file; on 2026-10-10 that was no errors and 71 warnings. Do not weaken the list to get past a finding: cut the sentence or state the checkable fact ([doc-unslop](../../.claude/skills/doc-unslop/SKILL.md)).
 - **`scripts/ci/docs-references.mjs`** fails when a doc names, in backticks, a repo path or a root `pnpm` script that does not exist. It accepts a Go `package.Symbol`, a path relative to a sub-project, a pnpm built-in such as `pnpm licenses`, and a path git ignores. It skips ADRs, PRDs, research, `docs/ui/`, fenced code, quotations, placeholders and any line that says the path was deleted, removed, retired, replaced or renamed (or points to `git log`), which is how a doc names a path that is gone on purpose. On 2026-10-10 the first run found 15 hits, ten of them stale paths that this change fixed.
@@ -481,7 +504,7 @@ The run **fails, and writes nothing**, rather than guess: when a licence cannot 
 
 **Paused (an owner decision, 2026-09-27; narrowed by CI and releases, same day).** The site isn't how the owner wants it yet, so nothing is published until the main
 app's development is done and the site is reworked. `pages.yml` no longer runs on a push to `main`, and no longer runs on a pull
-request either: `Docs / Links (offline)` and `Docs / Markdown lint (changed files)` ([The docs link check](#the-docs-link-check))
+request either: `Docs / Docs checks` (its `Links (offline)` and `Markdown lint (changed files)` steps) ([The docs link check](#the-docs-link-check))
 cover a pull request's Markdown without building the site. Only a manual start builds, and deploys only when its `publish` input is
 ticked on `main`. Unpublishing the site that is already live is an owner-only setting (Settings > Pages); to resume, restore both the
 `push: branches: [main]` trigger and the `pull_request` trigger (the workflow's header comment keeps the path list) and the
@@ -500,7 +523,7 @@ demand: the docs at the root ([below](#the-public-docs-site)) and the Storybook 
   `permissions` is `{}` and there is no secret. One deployment runs at a time and a running one is never cancelled.
 - **Not a pull request check while paused.** `pages.yml` only starts on `workflow_dispatch` now; a pull request that
   changes `docs/`, `tools/docs-site/`, `apps/ui/.storybook/`, `pyproject.toml`, `uv.lock` or the workflow gets its Markdown checked by
-  `Docs / Links (offline)` and `Docs / Markdown lint (changed files)` instead ([The docs link check](#the-docs-link-check)). The
+  `Docs / Docs checks` (its `Links (offline)` and `Markdown lint (changed files)` steps) instead ([The docs link check](#the-docs-link-check)). The
   `docs-site` step of `_quality.yml`'s `quick-ubuntu` job runs only `lint` and `test` for the same reason, not `build-site`.
 - **It works under a project sub-path.** Pages serves this repository at `/narration-utils/`, not at `/`. Storybook's build writes
   every asset URL relative (`./sb-manager/...`, `./assets/...`), so no `base` setting is needed. Checked by serving the build
@@ -536,7 +559,7 @@ fails if it gains one, or if `docs_dir` stops being `docs/`.
   resolve, under the `/narration-utils/` base. Both run in `nx run docs-site:build-site`, which only the `Pages` build job calls while GitHub
   Pages is paused — not
   `pnpm check` or the `docs-site` step of `quality / quick-ubuntu`, which run only `lint` and `test` there. This is the first link check the
-  repository had (`Docs / Links (offline)` and `Docs / Markdown lint (changed files)` are what a pull request runs instead). Proof it fails:
+  repository had (`Docs / Docs checks` (its `Links (offline)` and `Markdown lint (changed files)` steps) are what a pull request runs instead). Proof it fails:
   `tools/docs-site/tests/test_build.py` builds a tiny tree in which a dead page link, a dead heading link and a stale include line each fail
   the build.
 - **Build and browse it.** `pnpm exec nx run docs-site:build-site` writes `tools/docs-site/build/site` (ignored); serve that folder from a
@@ -600,8 +623,14 @@ runner called:
   `ui-visual (shard i/3)` job fails, the job uploads that folder as the `ui-visual-traces-<i>` artifact for three days. Open a trace
   with `pnpm exec playwright show-trace <trace.zip>` from `apps/ui`, or drop it on trace.playwright.dev. The atlas
   config (`playwright.atlas.config.ts`) keeps no trace yet.
-- **Dependencies** are `implicitDependencies` in each `project.json`: the desktop app reads the UI, the sidecars,
-  `config`, `fixtures` and `reaper`; the sidecars read `narration-common` and `config`.
+- **Dependencies** are `implicitDependencies` in each `project.json`: the desktop app reads the sidecars,
+  `config`, `fixtures` and `reaper` (its Go tests read their goldens and data); the sidecars read `narration-common` and `config`.
+  The desktop app does **not** list the UI project: no Go code reads a file under `apps/ui` (the Go sources only name it in comments),
+  so a UI-only pull request does not rerun the Go lint and tests. Only the native build needs the UI, and
+  `narration-utils-shell:package` says so with `dependsOn` on `narration-utils-ui:build`. `scripts/ci/projects.test.mjs` fails if
+  a Go file under `apps/desktop` names a path under `apps/ui` in a string, so the graph cannot go out of date quietly: if it fails,
+  put `narration-utils-ui` back in the shell's `implicitDependencies`. A change that is shared (`tests/fixtures`, `config`) still
+  affects both projects.
   `scripts/ci/projects.test.mjs` fails if a Python, Go, Lua or `apps/` TypeScript file is not covered by a project
   lint target, because the repo-wide `ruff .`, `staticcheck ./...` (now golangci-lint) and `stylua --check` runs are gone.
 - **Releases** are unchanged: `nx release version` still versions the root project. `nx release` counts a commit
@@ -664,7 +693,7 @@ suite has been stable for 50 runs, [#153](https://github.com/countrymanprime/nar
 
 `nx run narration-utils:knip` (also `pnpm knip`) runs [Knip](https://knip.dev) over `apps/ui`, `apps/desktop`, `scripts/`
 and `tools/`, configured in `knip.jsonc`. It fails on an unused file, export or dependency, and on an unlisted
-dependency or binary; the repository is at zero, and CI runs it on every pull request in the `js` job. Fix a finding
+dependency or binary; the repository is at zero, and CI runs it on every pull request in the `js-static` job. Fix a finding
 by deleting the code or dropping the `export`. Add an `ignore`, `ignoreIssues`, `ignoreDependencies` or
 `ignoreBinaries` entry only with a written reason in the file (generated code, external tools). It does not read Go,
 Python or Lua. The standing exceptions are the generated `apps/ui/wailsjs`, the wire-contract types, `@nx/js` (loaded by

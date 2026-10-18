@@ -409,6 +409,12 @@ is reported for the pause. The host's state stays `running` with `paused: true`
 and no auto-stop is armed; flags are kept only when the session ends
 .
 
+`TeleprompterPause` answers once the line is appended, not once the sidecar has applied it. The sidecar reads the control file once per
+capture chunk (`CHUNK_SECONDS`, 0.32 s), so a pause or a resume takes effect at the next chunk, up to about a third of a second later; a page that
+needs the recognizer silent before it makes a sound (a voice sample played through the speakers, [Character Voice Samples](../prds/character-voice-samples.prd.md))
+starts the sound after one chunk, and resumes after one chunk's grace once the sound ends. The page that paused is the one that resumes, and only a
+pause it made: a session the narrator paused stays paused.
+
 ## The Booth page
 
 The Booth (`/booth`, `apps/ui/src/components/booth/`) is the one read-along page
