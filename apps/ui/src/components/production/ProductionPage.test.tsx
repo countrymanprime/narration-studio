@@ -112,6 +112,26 @@ describe('production-route-draws-the-mock-page', () => {
   });
 });
 
+describe('page-data-load-failure', () => {
+  it('keeps the title, says the page could not be loaded and reads again on Retry', async () => {
+    const real = createMockApi();
+    let failed = false;
+    const overrides: Partial<NarrationApi> = {
+      productionOverview: async () => {
+        if (failed) return real.productionOverview();
+        failed = true;
+        throw new Error('The production log is unreadable.');
+      },
+    };
+    await renderPage({ overrides });
+    expect(await screen.findByText('This page could not be loaded')).toBeTruthy();
+    expect(screen.getByRole('heading', { name: 'Production' })).toBeTruthy();
+    await userEvent.click(screen.getByRole('button', { name: 'Retry' }));
+    await pipeline();
+    expect(screen.queryByText('This page could not be loaded')).toBeNull();
+  });
+});
+
 describe('header-icons-and-dialogs-open', () => {
   it('opens the status report dialog from Export status report', async () => {
     await renderPage();

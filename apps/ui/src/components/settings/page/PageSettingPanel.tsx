@@ -1,4 +1,3 @@
-import { BackupsSection } from '../BackupsSection';
 import { RecordingCheckSummary } from '../RecordingCheckSummary';
 import type { ScopedSettingField } from '../../../types';
 import type { PageSetting } from '../registry/pageSettings';
@@ -36,7 +35,5 @@ export function PageSettingPanel({ panel }: { panel: NonNullable<PageSetting['pa
       );
     case 'fx':
       return <ScopedFieldsPanel id="fx" title="Favourite effects" tool="DAW" scopes={['global', 'project']} filter={favouritesOnly} notify={notify} />;
-    case 'backups':
-      return <BackupsSection />;
   }
 }

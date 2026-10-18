@@ -32,6 +32,9 @@ then, a line at the top says progress that comes from it may be out of date, wit
 **Retry** checks again and says what it found; **Connect REAPER** runs the launcher in the REAPER you have
 open (or starts REAPER on the linked project) and waits up to ten seconds for it to answer.
 
+If the production overview cannot be read when the page opens, Production keeps its title and says "This page could not
+be loaded" with the reason and a **Retry** button, which reads it again.
+
 ## The figures
 
 The six figures are one card; each opens the page it counts.

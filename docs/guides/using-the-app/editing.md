@@ -149,7 +149,7 @@ experimental stay off until you turn them on in [Settings](settings.md).
 
 **Effects** lists the effects on words in this chapter and adds one. **Backups** shows only with a DAW that keeps
 backups of its project; with one that edits the audio itself, the app backs the words up before each delete, effect or
-stack, and refuses the edit if the backup fails. **Timeline** shows the line the cursor is on as the chapter's audio
+stack, and refuses the edit if the backup fails. The Backups tab is also where this project's backup settings live (**Keep backups**, the window either side of an edit, and **Keep backups for (days)**); Settings only points here. **Timeline** shows the line the cursor is on as the chapter's audio
 and one lane per take on one time axis. On a window 1360 px wide or more it is a strip under the text, which the header's
 **Timeline** button (S) shows and hides; on a narrower window it is a tab of the drawer.
 
