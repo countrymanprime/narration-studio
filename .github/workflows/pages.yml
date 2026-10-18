@@ -1,7 +1,7 @@
 name: Pages
 # PAUSED (owner decision D75, 2026-09-27): nothing is published until the main app's development is done and
-# the site is reworked. The workflow does not run on a pull request (`Docs / Links (offline)` and `Docs / Markdown lint
-# (changed files)` in .github/workflows/docs.yml check links and style without building the site). Only
+# the site is reworked. The workflow does not run on a pull request (the `Links (offline)` and `Markdown lint
+# (changed files)` steps of `Docs / Docs checks` in .github/workflows/docs.yml check links and style without building the site). Only
 # `workflow_dispatch` starts it: a manual run builds, and deploys only when its `publish` input is ticked on main.
 #
 # Publishes the public site to GitHub Pages, by hand: the docs (tools/docs-site, docs/operations/ci-and-releases.md#the-public-docs-site, built from docs/ by MkDocs)
