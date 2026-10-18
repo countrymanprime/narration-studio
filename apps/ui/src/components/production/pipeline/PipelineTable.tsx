@@ -40,7 +40,8 @@ function StageCell({ row, cell, onGo }: { row: PipelineRow; cell: PipelineCell; 
   const colors = toneColors(KIND_TONE[cell.kind]);
   // The mock fills an empty cell (`.cell`, --raised) rather than outlining it.
   const look = 'soft';
-  const classes = badgeClass('cell');
+  // The mock's `.cell` is `width: 100%` of its column; the shape itself is only a minimum.
+  const classes = `${badgeClass('cell')} w-full`;
   if (!cell.go) {
     return (
       <TooltipTarget text={cell.tip}>
