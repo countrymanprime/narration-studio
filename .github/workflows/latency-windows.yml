@@ -7,10 +7,6 @@ name: Latency (Windows, manual)
 #   3. The bridge round trip: the Go client against the real narration_ui_bridge.lua on the harness's fake reaper (bridge_test.go).
 #   4. BenchmarkDispatchByLogSize: what one host tick costs as events.log grows.
 on:
-  # TEMPORARY (removed before review): runs the measurement on this branch for the before/after comparison in the research note.
-  push:
-    branches: [claude/bridge-fast-poll]
-    paths: ['.github/workflows/latency-windows.yml']
   workflow_dispatch:
     inputs:
       runs:
