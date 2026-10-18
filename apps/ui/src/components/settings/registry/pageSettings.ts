@@ -11,8 +11,8 @@ export type PageSetting = {
   where: string;
   why: string;
   syn?: string;
-  /** The panel kept behind the entry: see `PagesPane`. Absent once the page has the control, so the entry only points there. */
-  panel?: 'coverage' | 'cleanup' | 'preview' | 'stages' | 'compare';
+  /** The panel behind the entry: see `PagesPane`. Required: Settings keeps every setting, and a page's own control is a shortcut to the same keys. */
+  panel: 'coverage' | 'cleanup' | 'preview' | 'stages' | 'compare' | 'punch' | 'fx' | 'backups';
 };
 
 export const PAGE_SETTINGS: readonly PageSetting[] = [
@@ -66,7 +66,8 @@ export const PAGE_SETTINGS: readonly PageSetting[] = [
     label: 'Punch pre-roll',
     page: 'booth',
     where: 'Levels menu',
-    why: 'It changes how a punch feels while recording.',
+    panel: 'punch',
+    why: 'It changes how a punch feels while recording. The Booth’s Levels menu is a shortcut to this same setting.',
     syn: 'preroll seconds roll',
   },
   {
@@ -74,6 +75,7 @@ export const PAGE_SETTINGS: readonly PageSetting[] = [
     label: 'Favourite effects',
     page: 'editing',
     where: 'Effects tab',
+    panel: 'fx',
     why: 'Chosen from the effects list while editing.',
     syn: 'plugin fx chain',
   },
@@ -82,7 +84,8 @@ export const PAGE_SETTINGS: readonly PageSetting[] = [
     label: 'Audacity backups (window and retention)',
     page: 'editing',
     where: 'Backups tab',
-    why: 'Three places edited it before; Editing is its one home.',
+    panel: 'backups',
+    why: 'Editing’s Backups tab is a shortcut to the same keys, for this project.',
     syn: 'window days retention keep',
   },
 ];

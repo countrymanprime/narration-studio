@@ -47,10 +47,14 @@ export function ThreadsTab({ kind, chapterId, lineOf, onShowInText }: ThreadsTab
         // The data layer's removeMark does not offer Undo itself; the entry it just journalled is the newest.
         const [entry] = await journal.entries();
         if (!entry) return;
-        overlay.toastUndo('Note deleted.', async () => {
-          const undone = await journal.undo(entry.id);
-          return undone.ok ? { ok: true } : undone;
-        });
+        overlay.toastUndo(
+          'Note deleted.',
+          async () => {
+            const undone = await journal.undo(entry.id);
+            return undone.ok ? { ok: true } : undone;
+          },
+          { entry: entry.id },
+        );
       },
       onReply: async (id, who, text) => (await commands.reply(id, who, text)) !== null,
       onResolve: (id, who, text) => commands.resolve(id, who, text),

@@ -28,7 +28,9 @@ Words carry what the last [recording check](production.md#checking-a-chapters-re
 - **Low confidence**: a word the recogniser was unsure of.
 
 Each line starts with its time in the chapter. A line with more than one take has a takes chip under it: how many
-takes, the one that plays, and whether one was chosen yet.
+takes, the one that plays, and whether one was chosen yet. Tab visits one chip, the one on the line the cursor is on (the
+first before there is a cursor), so the script is not forty stops; **T** opens the takes of the cursor's line, and a click
+opens any other.
 
 ![Editing - Chapter 1 linked to its track: the chapter step and the legend, the script with each line's takes chip and time, the bar and the key hints](../../images/ui/editing-default.webp)
 
@@ -57,9 +59,18 @@ Click a word to place the cursor there. Shift+click another, drag across the tex
 select a run of words. Hold ← or → (with Shift to select) and the cursor keeps travelling along the text; Up and Down hold
 the same way, a phrase at a time. Every other key does its job once, however long you hold it. A toolbar floats under the selection with **Play**, **Add FX**, **Voice sample**, **Mute**, **Takes of this
 line** (on a line with more than one take) and **Delete**; the bar offers the same actions, with **Delete words and
-audio** in full on a wide window. The line's audio shows under it while the cursor is on it. Right-click a word for its
+audio** in full on a wide window. **Delete**, **Mute** and **Add FX** stay on the bar but are off while the DAW cannot make
+the change (they are Experimental and start switched off in [Settings](settings.md)); a line above the bar then says so
+and why, and the same sentence is in each button's hint. The line's audio shows under it while the cursor is on it. Right-click a word for its
 menu: play the selection, copy, delete or mute the words, add or remove an effect, **Mark as voice sample…**, mark them for a pickup, add a note,
 show or keep the line's takes, and **Split into takes** on a line whose one take reads it twice.
+
+With a screen reader, the script is one read-only text box. Each time the cursor stops, the screen reader says the word it is on
+(with ", not in the script" for a word that was only said), or "3 words selected, 0:23 to 0:24" for a selection, and "Selection cleared"
+when Esc lets the selection go. It waits for a quarter of a second without a key before it speaks, so holding ← or → says where the
+cursor stopped, not every word it passed. A flagged word says what its card says instead. When a dialog opened from the text closes
+(**Add note…**, **Mark as voice sample…**, and the delete, mute and effects dialogs), by Esc, **Cancel** or **Save**, focus is back on the text
+and the selection is as you left it.
 
 A flagged word opens its card: what the script says and what was heard, and the choice to keep the word as read, which
 clears the mark (with Undo in the message that confirms it).
@@ -113,8 +124,8 @@ The dialog says why it cannot save, in one sentence, and saves nothing: the word
 takes ("Choose words inside one take"), the recording changed since the chapter was checked ("Check it again, then mark the
 sample"), some of the words are cut ("Restore the cut words or choose words without them"), the clip would be under half a
 second or over 30 seconds, the recording is not a WAV file, the audio file is missing, the saved REAPER project cannot be read,
-the character has 20 samples, or samples already use the 200 MiB a project may hold. Playing a saved sample from the Story
-Bible and the Booth is not built yet.
+the character has 20 samples, or samples already use the 200 MiB a project may hold. Play, rename and manage a saved sample under
+**Voice samples** on the character's entry in the [Story Bible](story-bible.md#voice-samples); playing one from the Booth is not built yet.
 
 ## Takes
 
@@ -135,7 +146,8 @@ the DAW moves anything.
 
 ## The drawer
 
-The drawer button (Ctrl+Shift+C) opens the drawer beside the text, or over it on a narrower window.
+The drawer button (Ctrl+Shift+C) opens the drawer beside the text, or over it on a narrower window. **Esc** closes it,
+from the text once nothing is selected or from the drawer itself, which hands the focus back to the button.
 
 ### Cleaning up
 
@@ -149,9 +161,9 @@ experimental stay off until you turn them on in [Settings](settings.md).
 
 ### Effects, Backups and Timeline
 
-**Effects** lists the effects on words in this chapter and adds one. Under **Add an effect** the DAW's own chains and plug-ins are listed, each with a **Favourite** button. A favourite is listed first here, in the Add FX menu and in the question that asks before an effect goes on; the list belongs to this computer, not to one project, and a name with a comma in it cannot be a favourite. **Backups** shows only with a DAW that keeps
+**Effects** lists the effects on words in this chapter and adds one. Under **Add an effect** the DAW's own chains and plug-ins are listed, each with a **Favourite** button. A favourite is listed first here, in the Add FX menu and in the question that asks before an effect goes on; the buttons edit the global list, the same one as **Favourite effects** under **Set on a page** in [Settings](settings.md#set-on-a-page), which can also set it for one project. A name with a comma in it cannot be a favourite. **Backups** shows only with a DAW that keeps
 backups of its project; with one that edits the audio itself, the app backs the words up before each delete, effect or
-stack, and refuses the edit if the backup fails. The Backups tab is also where this project's backup settings live (**Keep backups**, the window either side of an edit, and **Keep backups for (days)**); Settings only points here. **Timeline** shows the line the cursor is on as the chapter's audio
+stack, and refuses the edit if the backup fails. The Backups tab is also where this project's backup settings can be changed (**Keep backups**, the window either side of an edit, and **Keep backups for (days)**). It is a shortcut to the same settings as the Audacity backups under **Set on a page** in [Settings](settings.md#set-on-a-page), which also sets them for every project (Global); the tab edits this project only. **Timeline** shows the line the cursor is on as the chapter's audio
 and one lane per take on one time axis. On a window 1360 px wide or more it is a strip under the text, which the header's
 **Timeline** button (S) shows and hides; on a narrower window it is a tab of the drawer.
 
@@ -163,11 +175,12 @@ and one lane per take on one time axis. On a window 1360 px wide or more it is a
 
 ## When the DAW is not connected
 
-A banner at the top says the DAW is not answering, or that the chosen DAW is not supported here yet, and why, with
-**Retry**. You can still read, select and play; the
+A banner at the top says the DAW is not answering, or that the chosen DAW is not supported here yet, with **Check again**
+beside it, which asks the DAW again. It names only that cause: a setting that keeps Delete, Mute and Add FX off is the line above
+the bar, never the banner. You can still read, select and play; the
 actions that change the DAW (delete, mute, effects, keeping a take) wait until it is back.
 
-![Editing - the banner when the chosen DAW is not supported yet, with its reason and Retry](../../images/ui/editing-daw-off.webp)
+![Editing - the banner when the DAW is not answering, with Check again](../../images/ui/editing-daw-off.webp)
 
 ## When the chapter has no audio
 

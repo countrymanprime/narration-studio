@@ -2,6 +2,33 @@
 
 **Status: implemented.** When a narrator chooses a manuscript (or accepts the offer of one in the project folder), the host reads it into a draft and the app shows a review dialog, "Import <file>", before anything is written. This page is how that dialog is built and what it promises. The decisions are Correcting a subtitle (correcting a subtitle), (the grouping, the subtitle, the repairs), [Design principles](principles.md) (real progress only), [ADR 0002](../adr/0002-local-models-and-tools-come-first-so-the-app-is-free-to-use.md) (one review, offered never silent), [Primitive components](../design/design-system.md#primitive-components) (width, no sideways scroll) and [state.ts](../../apps/ui/src/state.ts) (reference material is filtered at the listing layer only).
 
+## Deviations from the Studio Next mock
+
+The dialog is built to the mock's import flow (`docs/research/mockups/studio-next/src/pages/production/ImportFlow.tsx`). The mock is a frozen reference ([which mocks are the spec](../prds/studio-next-rebuild.prd.md#which-mocks-are-the-spec)), so where the app differs, the difference and its reason are here. Step 2 is below the step 1 table.
+
+**Step 1, "Choose your manuscript" (built to the mock).**
+
+| Mock | App | Why |
+| --- | --- | --- |
+| Drop a file and it is read | A dropped file starts the import only when the window can say where it is; otherwise the zone says so and points at **Choose a file…** | The host reads a manuscript from a path. A web `File` carries none, and the desktop host does not yet pass a dropped file's path to the page. |
+| "Choose a file…" opens a browser file input | It opens the host's own file chooser (`selectManuscript`) | A browser input has no path either. |
+| Header label, title and subtitle above the body | The dialog title carries "Import manuscript · step 1 of 2"; the heading and hint are in the body | The shared `Dialog` has one title row. |
+| Step 1 of 2 for an import, 3 for a replace | Step 1 of 2 for both | A replace has no step 3: the host clears what was built on the manuscript, so there is no "what changes" to show (see below). |
+
+**Step 2, "Check the chapter outline" (built to the mock's structure).** The dialog is named "Import <file> · step 2 of 2" and has the mock's heading, a row of pills (chapters, paragraphs, character suggestions, repairs), two columns (the outline on the left, the options on the right), a **Back** button and **Import reviewed manuscript** (**Replace and reset** when it replaces a manuscript).
+
+| Mock | App | Why |
+| --- | --- | --- |
+| One flat table of headings, with a Words column | Headings grouped by what each will be (Narration chapters, Front matter, Reference material), a paragraph count in the pill, no per-row count | The host's preview carries a paragraph count per book and none per section. The words and the preview below are a later slice that adds them to the preview. The groups are the app's way to review the importer's kind decisions: the chapters it got right fold away in a long book. |
+| A preview pane with the selected heading's first lines | None yet | Same: the preview has no section text. |
+| "Items need review" pill | "N repairs" pill, shown only when the importer repaired something | The app has no other "needs review" measure. |
+| One "Subtitle detected" banner for one heading | A banner for the book (how many headings have a second line, and the default), plus a Subtitle box on each row | A book has many such headings, and each can be wrong on its own. |
+| "Review character suggestions after import" checkbox | A list of the suggested names, each checked, with Select all and Select none | The narrator chooses which names become Story Bible entries before they exist. |
+| Cancel in the header, Back in the footer | Cancel and Back both in the footer, Cancel left | The shared `Dialog` puts its actions in one row; Escape and the header X cancel as well. |
+| None | A content type select on each row, the Markdown heading level, "Build the Story Bible after import" and the Repairs list | App-only behaviour with no mock equivalent, kept ([Importing the manuscript](../guides/using-the-app/production.md#importing-the-manuscript)). |
+
+**Replace.** The mock's replace flow ends with a step "What this changes in your project" that keeps marks and notes on unchanged text. The real replace clears the Story Bible, notes, bookmarks, statuses and saved comparison results (`requiresReset`), so the app keeps its warning in the review dialog and its **Replace and reset** button. Owner decision, 2026-10-18.
+
 ## What the dialog shows
 
 What the narrator sees and does in the dialog (the summary lines, the groups, the subtitle choice, the import options) is in [the Production guide](../guides/using-the-app/production.md#importing-the-manuscript). The rules behind it are in `importReviewModel.ts` (below):

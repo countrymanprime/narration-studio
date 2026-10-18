@@ -3,8 +3,8 @@ package main
 import "fmt"
 
 // The Story Bible types (SN-B95): the narrator's list of types, each with a colour and a Can speak flag. They live in their own file so
-// bindings.go stays as it is. GuideTypes reads the list (the defaults for a file without one); every other call is one sidecar call
-// that writes the whole list and returns nothing, and the UI reads the list again.
+// bindings.go stays as it is. GuideTypes reads the list (the defaults for a file without one); every other call is one host edit
+// (guide.Service, types.go) that writes the whole list and returns nothing, and the UI reads the list again.
 
 // GuideTypes returns the Story Bible's types in order: {name, colour, speaks}. A Story Bible without a list, or none yet, has the
 // default types: the fixed categories, their colours, and only Character speaking.

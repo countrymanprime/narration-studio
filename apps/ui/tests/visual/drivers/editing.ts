@@ -140,7 +140,7 @@ export const editingDrivers: Record<string, Driver> = {
   },
   'daw-off': async (page) => {
     await openEditing(page, `${LINKED}&mockDaw=Audacity`);
-    await page.getByRole('button', { name: 'Retry' }).waitFor();
+    await page.getByRole('button', { name: 'Check again' }).waitFor();
   },
   'no-manuscript': async (page) => {
     await openWithoutManuscript(page, 'Editing');

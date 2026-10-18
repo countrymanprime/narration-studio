@@ -144,7 +144,8 @@ func (h *Host) GuideEdit(id string, values map[string]string) (string, error) {
 	if service == nil {
 		return "", fmt.Errorf("the Story Bible is unavailable")
 	}
-	// One sidecar process for the whole edit, and all of it or none of it: a field the sidecar refuses leaves the file as it was.
+	// All of it or none of it: a refused field leaves the file as it was. The host applies it, or one sidecar process when it changes the
+	// aliases (guide.Service.EditFields).
 	if err := service.EditFields(id, values); err != nil {
 		return "", err
 	}

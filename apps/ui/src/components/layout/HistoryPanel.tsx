@@ -1,5 +1,5 @@
 import { useId } from 'react';
-import type { Journal } from '../../studio/journal/createJournal';
+import { JOURNAL_LIMIT, type Journal } from '../../studio/journal/createJournal';
 import { useOverlay } from '../../overlay/OverlayProvider';
 import type { OverlayService } from '../../overlay/overlayService';
 import { Button } from '../primitives/Button';
@@ -38,6 +38,9 @@ function HistoryPanel({ journal, dawName }: { journal: HistoryJournal; dawName: 
     <div className="flex flex-col gap-3">
       <p className="text-[var(--text-muted)]">Ctrl Z undoes the last one</p>
       {rows && rows.length === 0 ? <p className="text-[var(--text-muted)]">Nothing to undo yet.</p> : null}
+      {rows && rows.length >= JOURNAL_LIMIT ? (
+        <p className="text-[var(--text-muted)]">{`History keeps the newest ${JOURNAL_LIMIT} changes; older changes can no longer be undone.`}</p>
+      ) : null}
       {rows && rows.length > 0 ? (
         <ul aria-label="Changes, newest first" className="flex flex-col gap-3">
           {rows.map((row) => {
@@ -46,6 +49,9 @@ function HistoryPanel({ journal, dawName }: { journal: HistoryJournal; dawName: 
               <li key={row.id}>
                 <div className="flex items-center gap-2">
                   <span className="min-w-0 flex-1">{row.label}</span>
+                  <time dateTime={new Date(row.at).toISOString()} className="text-[length:var(--font-size-sm)] text-[var(--text-muted)]">
+                    {new Date(row.at).toLocaleTimeString()}
+                  </time>
                   <StatusBadge tone={row.daw ? 'success' : 'neutral'} label={row.daw ? dawName : 'App'} />
                   <Button
                     variant="secondary"

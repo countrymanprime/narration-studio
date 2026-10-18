@@ -100,7 +100,7 @@ the last 5 seconds, and the card says whether its open project matches the linke
   New action > Load ReaScript**) and load again after each update, since the path changes. The Booth shows the same
   steps when Record is waiting for REAPER ([Booth](booth.md#recording)).
 
-The Audacity backups and the favourite effects are set on [Editing](editing.md) (see [Set on a page](#set-on-a-page)).
+The Audacity backups and the favourite effects are listed under [Set on a page](#set-on-a-page), where Settings edits them; [Editing](editing.md) has a shortcut to the same settings.
 
 ## Speech to text
 
@@ -258,7 +258,7 @@ If Narration Studio will not start after an update and the program file is missi
 
 ## Set on a page
 
-Some settings only change what one page does, so they belong on that page, next to what they change: the recording check's rules (Production), silence cleanup (Master & QC), the preview suggestion and compare defaults (Proof), stage suggestions (Production), punch pre-roll (Booth), favourite effects and the Audacity backups (Editing). **Set on a page** lists them, each with where it is or will be and an **Open** button for that page. Punch pre-roll is set in the Booth's **Levels** menu only, and the Audacity backups (the Backups tab) and the favourite effects (the Effects tab) in [Editing](editing.md#effects-backups-and-timeline) only. For the others, until a page has its own control, **Change it here for now** opens the panel that always edited it, with its **Global** / **This project** switch, **Save** and **Discard changes**; leaving Settings with unsaved changes there asks whether to save or discard them. Search finds them too.
+Some settings only change what one page does, so they belong on that page, next to what they change: the recording check's rules (Production), silence cleanup (Master & QC), the preview suggestion and compare defaults (Proof), stage suggestions (Production), punch pre-roll (Booth), favourite effects and the Audacity backups (Editing). **Set on a page** lists them, each with where on that page it belongs and an **Open** button for that page. Settings always keeps every one of them: **Change it here for now** opens the panel with its **Global** / **This project** switch, **Save** and **Discard changes**, and leaving Settings with unsaved changes there asks whether to save or discard them. Three pages also have a shortcut to the same setting, which reads and writes the same keys: the Booth's **Levels** menu has **Punch pre-roll (seconds)**, which is Global like the panel here, and Editing's **Backups** tab has the backup settings for the open project only, the same as choosing **This project** in the Backups panel here (that panel can also set Global). Editing's **Effects** tab has a **Favourite** button on each chain and plug-in the DAW lists, which edits the same favourite effects list as **Favourite effects** here, at the Global layer (that panel can also set This project). Search finds them too.
 
 ![Settings - Set on a page, with the recording check rules opened](../../images/ui/settings-pages.webp)
 

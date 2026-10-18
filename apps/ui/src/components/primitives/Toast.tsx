@@ -10,7 +10,17 @@ export type ToastAction = { label: string; onAction: () => void };
 /** The Retry a failure toast carries where repeating the action is safe (a start that the host guards or an idempotent save). */
 export const retryAction = (retry: () => void): ToastAction => ({ label: 'Retry', onAction: retry });
 /** `durationMs` is how long an information message stays when it needs longer than `TOAST_INFO_MS` (an Undo the narrator may want ten seconds for). */
-export type ToastMessage = { id: number; text: string; tone: ToastTone; action?: ToastAction; icon?: IconDefinition; topic?: string; durationMs?: number };
+export type ToastMessage = {
+  id: number;
+  text: string;
+  tone: ToastTone;
+  action?: ToastAction;
+  icon?: IconDefinition;
+  topic?: string;
+  durationMs?: number;
+  /** Set on an Undo toast by the overlay service: the toast offers to take a change back, and goes when that change is no longer there to take back. */
+  undo?: { entry?: number };
+};
 /** How a page or a component tells the narrator something. An error is announced at once and stays until it is dismissed.
  * `action` adds one button (for example Undo) before the dismiss button; pressing it runs the action and dismisses the toast.
  * `icon` leads an information message with the glyph of what it is about (the track glyph for a chapter sync); an error always
@@ -75,7 +85,7 @@ export function ToastRegion({ messages, dismiss }: { messages: readonly ToastMes
   return createPortal(
     <div
       data-toast-region
-      className="fixed right-5 bottom-[calc(1.25rem+var(--toast-clear,0px))] z-[var(--z-toast)] flex max-w-[min(28rem,calc(100vw-2.5rem))] flex-col items-end gap-2"
+      className="fixed right-[calc(1.25rem+var(--toast-clear-right,0px))] bottom-[calc(1.25rem+var(--toast-clear,0px))] z-[var(--z-toast)] flex max-w-[min(28rem,calc(100vw-2.5rem-var(--toast-clear-right,0px)))] flex-col items-end gap-2"
     >
       <div role="alert" aria-live="assertive" aria-atomic="false" aria-relevant="additions" className="flex flex-col items-end gap-2">
         {messages

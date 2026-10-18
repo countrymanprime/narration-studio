@@ -85,6 +85,25 @@ describe('AddressGate', () => {
     expect(screen.getAllByTestId('where')[0]!.textContent).toBe('/script');
   });
 
+  it('Escape on a bad link that opened a pickup session returns to Pickups, as the working Booth does', async () => {
+    mount({ at: '/booth?chapter=c3&pickups=k1,k2', page: 'booth' });
+    await screen.findByRole('alert');
+    fireEvent.keyDown(document.body, { key: 'Escape', code: 'Escape' });
+    expect(screen.getAllByTestId('where')[0]!.textContent).toBe('/pickups');
+  });
+
+  it('Escape returns to Pickups when the pickups are what is bad (named twice), because the link still names a session', () => {
+    mount({ at: '/booth?pickups=k1&pickups=k2', page: 'booth' });
+    fireEvent.keyDown(document.body, { key: 'Escape', code: 'Escape' });
+    expect(screen.getAllByTestId('where')[0]!.textContent).toBe('/pickups');
+  });
+
+  it('Escape goes to Script when a bad link names no pickups (an empty list is no session)', () => {
+    mount({ at: '/booth?chapter=a&chapter=b&pickups=', page: 'booth' });
+    fireEvent.keyDown(document.body, { key: 'Escape', code: 'Escape' });
+    expect(screen.getAllByTestId('where')[0]!.textContent).toBe('/script');
+  });
+
   it('other keys do nothing on a bad Booth address', () => {
     mount({ at: '/booth?chapter=a&chapter=b', page: 'booth' });
     for (const [key, code] of [

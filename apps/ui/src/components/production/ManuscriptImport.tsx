@@ -9,9 +9,11 @@ import { CreditsSetupBanner } from '../credits/CreditsSetupBanner';
 import { CreditsSetupDialog } from '../credits/CreditsSetupDialog';
 import { NEUTRAL_PROFILE, PLATFORM_PROFILES } from '../schedule/profiles';
 import { Button } from '../primitives/Button';
+import { ImportChooseDialog, type DroppedManuscript } from './ImportChooseDialog';
 import { ImportReview, ImportSummary } from './ImportReview';
 import { subtitleOverridesToCommit, type ReviewGroupKey, type ReviewGroupOpen } from './importReviewModel';
 import { ConfirmDialog } from '../primitives/ConfirmDialog';
+import { Dialog } from '../primitives/Dialog';
 import { WorkDialog } from '../primitives/WorkDialog';
 import { TooltipTarget } from '../primitives/Tooltip';
 import type { Notify } from '../primitives/Toast';
@@ -54,6 +56,8 @@ export function useManuscriptImport({
   });
   // The file dialog is the host's, and pressing again while it is open would open a second one.
   const choosing = usePendingAction();
+  // Step 1 of the flow (the mock's "Choose your manuscript"): open from the choose button until a file is chosen or the narrator cancels.
+  const [step1Open, setStep1Open] = useState(false);
   const [importSelection, setImportSelection] = useState<ManuscriptImportSelection>({});
   // Which review groups the narrator opened or closed by hand. It lives here, above the review dialog, which is swapped for a progress
   // dialog while a Markdown heading level is read again, and is reset only when a new file is chosen (a group has its own default until then).
@@ -197,26 +201,35 @@ export function useManuscriptImport({
       setImportJob((current) => (current ? { ...current, phase: 'error', error: message, message } : current));
     }
   };
-  // Replacing clears what the narrator has built on the manuscript, so the button says so before the file dialog opens: the
+  // The host's file chooser, from step 1's "Choose a file…". Pressing again while it is open would open a second one.
+  const chooseFile = () =>
+    void choosing.run('choose', async () => {
+      try {
+        const result = await api.selectManuscript();
+        if (result.selected && result.jobId) {
+          setStep1Open(false);
+          setImportSelection({});
+          void beginImportPreview(result.jobId);
+        } else notify('No manuscript selected');
+      } catch (error) {
+        notify(describeApiError(error), 'error');
+      }
+    });
+  // A file dropped on step 1. The host reads a manuscript from a path, and a browser's File carries none, so a drop that has no path says
+  // so and points at the button (docs/architecture/import-review.md, "Deviations from the mock").
+  const dropFile = (file: DroppedManuscript): string | undefined => {
+    if (!file.path) return `This window cannot read where "${file.name}" is. Use Choose a file… instead.`;
+    setStep1Open(false);
+    void api
+      .manuscriptBeginImport(file.path)
+      .then((result) => (result.selected && result.jobId ? beginImportPreview(result.jobId) : undefined))
+      .catch((error) => notify(describeApiError(error), 'error'));
+    return undefined;
+  };
+  // Replacing clears what the narrator has built on the manuscript, so the button says so before anything opens: the
   // mock's danger "Replace manuscript…" (Settings, its one place), with the ellipsis of a control that asks before it acts.
   const button = (
-    <Button
-      variant={found ? 'danger' : 'primary'}
-      pending={choosing.isPending('choose')}
-      onClick={() =>
-        void choosing.run('choose', async () => {
-          try {
-            const result = await api.selectManuscript();
-            if (result.selected && result.jobId) {
-              setImportSelection({});
-              void beginImportPreview(result.jobId);
-            } else notify('No manuscript selected');
-          } catch (error) {
-            notify(describeApiError(error), 'error');
-          }
-        })
-      }
-    >
+    <Button variant={found ? 'danger' : 'primary'} onClick={() => setStep1Open(true)}>
       {found ? 'Replace manuscript…' : 'Import manuscript'}
     </Button>
   );
@@ -227,8 +240,26 @@ export function useManuscriptImport({
   ) : (
     button
   );
+  // Drops the host's job for the file under review and closes the review; Back follows it with step 1.
+  const cancelImport = () => {
+    if (!importJob?.id) return;
+    void api
+      .manuscriptImportCancel(importJob.id)
+      .then(() => setImportJob(undefined))
+      .catch((error) => notify(error.message, 'error'));
+  };
   const dialogs = (
     <>
+      {step1Open && !importJob && (
+        <ImportChooseDialog
+          replacing={found}
+          importedOn={data.manuscript?.importedAt ? new Date(data.manuscript.importedAt).toLocaleDateString() : undefined}
+          choosing={choosing.isPending('choose')}
+          onChoose={chooseFile}
+          onDrop={dropFile}
+          cancel={() => setStep1Open(false)}
+        />
+      )}
       {offerCandidate && (
         <ConfirmDialog
           title="Import manuscript?"
@@ -247,17 +278,34 @@ export function useManuscriptImport({
         />
       )}
       {importJob?.phase === 'ready' && importJob.preview && (
-        <ConfirmDialog
-          title={`Import ${importJob.preview.sourceName}`}
-          body={<ImportSummary preview={importJob.preview} selection={importSelection} requiresReset={replacing || Boolean(importJob.requiresReset)} />}
-          confirmLabel={replacing || importJob.requiresReset ? 'Replace and reset' : 'Import'}
-          confirmVariant={replacing || importJob.requiresReset ? 'danger' : 'primary'}
-          confirm={() => void commitImport()}
-          cancel={() =>
-            void api
-              .manuscriptImportCancel(importJob.id!)
-              .then(() => setImportJob(undefined))
-              .catch((error) => notify(error.message, 'error'))
+        // Step 2 of 2 (the mock's "Check the chapter outline"): Cancel drops the job; Back drops it too and returns to step 1; the confirm
+        // writes the manuscript. An alertdialog, as every confirm: Escape cancels, a press on the backdrop does nothing.
+        <Dialog
+          title={`Import ${importJob.preview.sourceName} · step 2 of 2`}
+          variant="alert"
+          dismissOnOutsidePress={false}
+          onClose={cancelImport}
+          description={<ImportSummary preview={importJob.preview} selection={importSelection} requiresReset={replacing || Boolean(importJob.requiresReset)} />}
+          actions={
+            <>
+              <Button variant="secondary" onClick={cancelImport}>
+                Cancel
+              </Button>
+              <div className="flex gap-2">
+                <Button
+                  variant="secondary"
+                  onClick={() => {
+                    cancelImport();
+                    setStep1Open(true);
+                  }}
+                >
+                  Back
+                </Button>
+                <Button variant={replacing || importJob.requiresReset ? 'danger' : 'primary'} onClick={() => void commitImport()}>
+                  {replacing || importJob.requiresReset ? 'Replace and reset' : 'Import reviewed manuscript'}
+                </Button>
+              </div>
+            </>
           }
         >
           <ImportReview
@@ -271,7 +319,7 @@ export function useManuscriptImport({
             buildStoryBible={{ checked: buildAfterImport, onChange: setBuildAfterImport }}
             deliveryProfile={asksProfile ? { value: profileChoice, onChange: setProfileChoice } : undefined}
           />
-        </ConfirmDialog>
+        </Dialog>
       )}
       {importJob && importJob.phase !== 'ready' && (
         <WorkDialog

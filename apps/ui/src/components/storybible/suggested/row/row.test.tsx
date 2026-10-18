@@ -129,6 +129,20 @@ describe('row-shows-the-quote-and-goes-to-the-line', () => {
     expect(onGoToEvidence).toHaveBeenCalledWith(s.evidence[0]!.paragraphId);
   });
 
+  it('shows a quote whose line the book no longer has as plain text that says so, not as a button that does nothing', () => {
+    const s = one((x) => x.evidence.length > 0 && x.status === 'needs-verification');
+    render(
+      wrap(
+        <ul>
+          <SuggestionRow suggestion={s} sources={SOURCES} onGoToEvidence={onGoToEvidence} lineLabel={() => 'line not found'} />
+        </ul>,
+      ),
+    );
+    expect(screen.queryByRole('button', { name: /Go to the line in the Script/ })).toBeNull();
+    expect(screen.getByText(`“${s.evidence[0]!.text}” · line not found in the text`)).toBeTruthy();
+    expect(onGoToEvidence).not.toHaveBeenCalled();
+  });
+
   it('says "Quote not found in the text" and shows the quote the source gave', () => {
     const s = one((x) => Boolean(x.unverifiedQuote));
     renderRow(s);
@@ -223,7 +237,7 @@ describe('accepting-says-so-and-offers-undo', () => {
     const needs = one((s) => s.payload.kind === 'alias' && s.payload.alias === 'Rabbit');
     renderRow(needs);
     await u.click(screen.getByRole('button', { name: 'Accept this suggestion' }));
-    await waitFor(() => expect(toastUndo).toHaveBeenCalledWith('Accepted', expect.any(Function)));
+    await waitFor(() => expect(toastUndo).toHaveBeenCalledWith('Accepted', expect.any(Function), { entry: expect.any(Number) }));
     expect(await statusOf(needs.id)).toBe('accepted');
     await toastUndo.mock.calls[0]![1]();
     expect(await statusOf(needs.id)).toBe('needs-verification');

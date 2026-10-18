@@ -394,7 +394,7 @@ describe('applying', () => {
     expect(rows[0]).toMatchObject({ label: expect.stringMatching(/^Added Podcast Voice\.RfxChain to 2 words at 0:0\d$/), daw: true });
     expect(doc.items[doc.index.get('p-1:0') ?? 0].fx).toEqual(['fx1']);
     expect(document.querySelector('[data-fx-marker]')).toBeTruthy();
-    expect(toastUndo).toHaveBeenCalledWith(expect.stringContaining(CHAINS[0]), expect.any(Function));
+    expect(toastUndo).toHaveBeenCalledWith(expect.stringContaining(CHAINS[0]), expect.any(Function), { entry: expect.any(Number) });
 
     last = 'this';
     await act(async () => void (await journal.undo(1)));

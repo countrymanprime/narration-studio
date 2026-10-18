@@ -72,3 +72,38 @@ describe('the Series tab', () => {
     });
   });
 });
+
+// The loading state (state matrix): blocks while the series are read, then the tab, or its error; never a blank tab or an endless skeleton.
+describe('the Series tab while it reads', () => {
+  const region = () => screen.queryByRole('group', { name: 'Loading the series' });
+
+  it('shows one busy region, not a blank tab, however long the read takes', async () => {
+    const api = createMockApi({ seriesVoiceBible: () => new Promise(() => {}) });
+    render(
+      <ApiProvider api={api}>
+        <SeriesTab notify={vi.fn()} />
+      </ApiProvider>,
+    );
+    expect(await screen.findByRole('group', { name: 'Loading the series' })).toBeTruthy();
+    expect(region()?.getAttribute('aria-busy')).toBe('true');
+    await new Promise((resolve) => setTimeout(resolve, 60));
+    expect(region()).toBeTruthy();
+  });
+
+  it('is replaced by the tab when the series arrive', async () => {
+    renderTab();
+    await screen.findByText('Wonderland');
+    expect(region()).toBeNull();
+  });
+
+  it('shows the error, not a skeleton, when the read fails', async () => {
+    const api = createMockApi({ seriesVoiceBible: () => Promise.reject(new Error('The series could not be read.')) });
+    render(
+      <ApiProvider api={api}>
+        <SeriesTab notify={vi.fn()} />
+      </ApiProvider>,
+    );
+    expect(await screen.findByText(/The series could not be read\./)).toBeTruthy();
+    expect(region()).toBeNull();
+  });
+});

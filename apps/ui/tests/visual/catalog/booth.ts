@@ -1,7 +1,7 @@
 // The `booth` rows of STATE_CATALOG (see state-catalog.ts), in the order they are captured: the Studio Next Booth
 // (docs/research/mockups/studio-next/src/pages/Booth.tsx), mounted at `/booth` by SN-O10, and the Companion, which has its own route.
 import type { StateEntry } from '../lib/types';
-import { COMPANION, FREEZES_THE_CLOCK, REFLOW } from './shared';
+import { COMPANION, FREEZES_THE_CLOCK, POPUP_ANCHORED_AT_FIRST_WIDTH, REFLOW } from './shared';
 
 export const boothStates: StateEntry[] = [
   {
@@ -96,6 +96,30 @@ export const boothStates: StateEntry[] = [
     state: 'following',
     description:
       'Booth, six seconds into a take (the page clock run on, then held): the text follows the voice - the mock teleprompter replays a recorded reading, so the reading position has left ¶ 1 and the progress line counts it; Levels names the microphone the DAW records from, so the footer says nothing about the listening',
+    ...FREEZES_THE_CLOCK,
+    ...REFLOW,
+  },
+  // Voice samples (phase 5 of docs/prds/character-voice-samples.prd.md), seeded by `?mockVoiceSamples=bible`: a Queen of Hearts with four samples and the Hatter
+  // with one. A listening session paused by a sample has Vitest and no row: a session runs only during a take, and a sample is refused during one.
+  {
+    page: 'booth',
+    state: 'voice-samples-picker',
+    description:
+      'Booth, the speaker picker opened from a speaker chip: the characters who speak in the chapter under In this chapter, then Everyone else, a count and a play control on each character who has voice samples, "no sample" on the rest',
+    ...POPUP_ANCHORED_AT_FIRST_WIDTH,
+    ...REFLOW,
+  },
+  {
+    page: 'booth',
+    state: 'voice-samples-panel',
+    description:
+      'Booth, "Voices in this scene" in the side panel with voice samples: a play control and the count on each voice that has some, the Queen of Hearts opened to list her samples (the primary starred), and where to make one for a voice with none',
+    ...REFLOW,
+  },
+  {
+    page: 'booth',
+    state: 'voice-samples-recording',
+    description: 'Booth, a take recording: the voices\' play controls are off, and the hint on a control says "Not while recording. Stop the take first."',
     ...FREEZES_THE_CLOCK,
     ...REFLOW,
   },

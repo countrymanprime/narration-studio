@@ -54,6 +54,9 @@ export function NavButton({
     >
       <FontAwesomeIcon icon={icon} fixedWidth />
       {!iconOnly && children}
+      {/* A space between the label and the count, so the text drawn reads "Proof 14", words of the name "Proof, 14": run
+          together as "Proof14" it fails axe's label-content-name-mismatch. A flex box draws no space for it. */}
+      {showCount && ' '}
       {/* The count pill, measured on mock 01: 16 px tall, fully rounded, `--surface-2` in `--text-muted`, also on the current page
           (the bar's own `--surface-2`, as in the mock, where `.ct` and the bar are both `--raised`), Barlow Condensed 600 at 11 px, its right edge 12 px inside the item. */}
       {showCount && (
