@@ -5,6 +5,20 @@ import { settlePage } from '../helpers/settle';
 import { type Driver, askForTheLanguageModel, askForThePreviewVoice, clickNav, clickVisible, confirmDialog, goToPage, saveMerriamWebsterKey } from './shared';
 
 export const storybibleDrivers: Record<string, Driver> = {
+  // The entries never answer, so `goToPage` (which waits for the first entry) is not used.
+  loading: async (page) => {
+    await page.goto('/?mockHold=entities');
+    await settlePage(page);
+    await clickNav(page, 'Story Bible');
+    await page.getByRole('group', { name: 'Loading the Story Bible entries' }).waitFor();
+  },
+  'series-tab-loading': async (page) => {
+    await page.goto('/?mockHold=series');
+    await settlePage(page);
+    await goToPage(page, 'Story Bible');
+    await clickVisible(page, 'tab', 'Series');
+    await page.getByRole('group', { name: 'Loading the series' }).waitFor();
+  },
   'review-filter': async (page) => {
     // The mock host flags nothing, so the entries it lists are sent with White Rabbit (the entry and its name "Rabbit") and Hatter flagged,
     // the way the host sends them; its suggestions leave two to verify on White Rabbit.

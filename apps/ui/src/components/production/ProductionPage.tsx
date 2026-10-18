@@ -25,6 +25,7 @@ import { planStart, recordedSeries, weekFigures } from './measured/measured.sele
 import { useMeasured } from './measured/useMeasured';
 import { CheckCountsCard } from './overview/CheckCountsCard';
 import { KpiRow } from './overview/KpiRow';
+import { ProductionSkeleton } from './overview/ProductionSkeleton';
 import { checkCounts, deliveryCounts, stageSegments, type OverviewTarget } from './overview/overviewFigures';
 import { ProgressChart } from './overview/ProgressChart';
 import { StageBar } from './overview/StageBar';
@@ -381,11 +382,7 @@ export function ProductionPage({
       />
       {manuscriptImport.dialogs}
       {manuscriptImport.creditsBanner}
-      {load.status === 'loading' && (
-        <p role="status" className="text-sm text-[var(--text-muted)]">
-          Reading the production log…
-        </p>
-      )}
+      {load.status === 'loading' && <ProductionSkeleton />}
       {timer.problem && (
         <p role="alert" className="text-sm" style={DANGER}>
           {timer.problem}
