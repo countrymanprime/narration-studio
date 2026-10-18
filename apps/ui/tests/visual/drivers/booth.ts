@@ -58,6 +58,10 @@ export const boothDrivers: Record<string, Driver> = {
     await openBoothReading(page, 'loading');
     await page.getByRole('group', { name: 'Loading the Booth' }).waitFor();
   },
+  'companion-loading': async (page) => {
+    await openCompanion(page, '?mockChapters=loading');
+    await page.getByRole('group', { name: 'Loading the Companion' }).waitFor();
+  },
   'load-failed': async (page) => {
     await openBoothReading(page, 'fails');
     await page.locator('p[role="alert"]', { hasText: 'The manuscript could not be read from this project.' }).waitFor();
