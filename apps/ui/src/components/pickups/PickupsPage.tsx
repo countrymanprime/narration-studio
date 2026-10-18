@@ -14,6 +14,7 @@ import { openCheckRecordings } from '../recordingcheck/openCheckRecordings';
 import { NeedManuscript } from '../layout/NeedManuscript';
 import { ALL_SCOPE, inScope, lineText, reasonSentence, type ChapterRef } from './list/pickupRows';
 import { announcePickupListChanged } from './pickupListChanged';
+import { pickupToReturnTo, rememberPickupLeft } from './pickupReturn';
 import { PickupsTable, type PickupsRead, type RemoveUndo } from './list/PickupsTable';
 import { SessionPanel } from './list/SessionPanel';
 
@@ -66,6 +67,8 @@ export function PickupsPage({
   const [read, setRead] = useState<PickupsRead>({ kind: 'loading' });
   const [scopeChoice, setScope] = useState(ALL_SCOPE);
   const [current, setCurrent] = useState('');
+  /* Back from the Booth lands on the line that was opened (the table selects it once the list is there). */
+  const [returnTo] = useState(pickupToReturnTo);
   const [seconds, setSeconds] = useState<Measured<number>>(LOADING);
   /* Answers come back in any order and can be late: each request takes a number as it starts, and an answer older than one already shown is dropped. */
   const started = useRef(0);
@@ -191,24 +194,33 @@ export function PickupsPage({
     await changing(Promise.resolve(answer));
   };
 
+  const dawName = !dawKind ? 'the DAW' : dawKind === 'none' ? 'the built-in recorder' : dawKind;
   const addMarkers = async (picked: PickupItem[]) => {
     const placed = picked.filter((p): p is PickupItem & { at: number } => p.at !== null);
     const result = await daw.addPickupMarkers(placed.map((p) => ({ ref: p.id, start: p.at, tag: p.type, note: lineText(p) })));
     if (!result.ok) throw new Error(result.message);
-    overlay.toast(result.message);
+    const lines = placed.length === 1 ? '1 line' : `${placed.length} lines`;
+    overlay.toast(
+      result.changed
+        ? `Pickup ${placed.length === 1 ? 'marker' : 'markers'} for ${lines} ${placed.length === 1 ? 'is' : 'are'} in ${dawName}.`
+        : `Those markers were already in ${dawName}.`,
+    );
     await changing(pickupsApi.pickupsList());
   };
 
   if (!hasManuscript) return <NeedManuscript title="Pickups" onImport={() => goTo('/')} />;
 
-  const openInBooth = (picked: PickupItem[]) => goTo(boothSessionPath(picked));
-  const dawName = !dawKind ? 'the DAW' : dawKind === 'none' ? 'the built-in recorder' : dawKind;
+  const openInBooth = (picked: PickupItem[]) => {
+    if (picked.length === 1) rememberPickupLeft(picked[0].id);
+    goTo(boothSessionPath(picked));
+  };
 
   return (
     <CommandScope kind="page">
       <div className="grid items-start gap-4 min-[1180px]:grid-cols-[minmax(0,1fr)_360px]">
         <PickupsTable
           pickups={list.pickups}
+          returnTo={returnTo}
           read={read}
           checking={checking}
           onReload={() => {
