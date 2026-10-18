@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useId, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { describeApiError } from '../../../api/errorMessage';
 import { usePort } from '../../../ports/usePort';
 import type { TeleprompterDevice } from '../../../types';
@@ -20,7 +20,6 @@ export function MicBody() {
   const row = rowOf('daw.mic')!;
   const store = useSettingsStore();
   const teleprompter = usePort('teleprompter');
-  const uid = useId();
   const [listing, setListing] = useState<Listing>({ phase: 'loading' });
   const { global } = store.fieldsOf(row);
   const value = computerValue(row, global);
@@ -34,15 +33,17 @@ export function MicBody() {
   }, [teleprompter]);
   useEffect(load, [load]);
 
+  const controlId = `set-${row.id}`;
   const choose = (next: string) => void store.write(row, 'global', next === row.def ? null : next);
   if (!global) return null;
 
-  if (listing.phase === 'loading') return <p className="text-[0.8125rem] text-[var(--text-muted)]">Looking for microphones…</p>;
-  const { devices, problem } = listing;
-  if (devices.length === 0) {
+  // While the list is read the picker is already there with the current choice (a deep link focuses it at once).
+  const devices = listing.phase === 'ready' ? listing.devices : [];
+  const problem = listing.phase === 'ready' ? listing.problem : undefined;
+  if (listing.phase === 'ready' && devices.length === 0) {
     return (
       <div className="flex flex-col items-start gap-1.5">
-        <ValueControl row={row} field={global} id={`${uid}-text`} value={value} onChange={choose} />
+        <ValueControl row={row} field={global} id={controlId} value={value} onChange={choose} />
         <span className="max-w-[52ch] text-[0.8125rem] text-[var(--text-muted)]">
           {problem ? `The microphones could not be listed: ${problem} ` : 'No microphone was found. '}
           Type the device name the Booth should use, or leave it empty for the system input.
@@ -58,6 +59,7 @@ export function MicBody() {
     <div className="flex flex-wrap items-center gap-2">
       <Select
         label="Microphone"
+        id={controlId}
         className="max-w-full"
         value={value}
         onChange={choose}
@@ -70,6 +72,7 @@ export function MicBody() {
       <Button variant="secondary" size="sm" onClick={load}>
         Refresh the list
       </Button>
+      {listing.phase === 'loading' && <span className="text-[0.8125rem] text-[var(--text-muted)]">Looking for microphones…</span>}
       {problem && <span className="text-[0.8125rem] text-[var(--text-muted)]">{problem}</span>}
     </div>
   );

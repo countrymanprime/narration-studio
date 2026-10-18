@@ -228,7 +228,7 @@ describe('Settings: search and filters', () => {
 describe('Settings: arriving from another page', () => {
   it('opens on the setting and focuses it', async () => {
     await renderPage({ initialCategory: 'Teleprompter' });
-    const mic = await screen.findByRole('textbox', { name: /Microphone/ });
+    const mic = await screen.findByRole('combobox', { name: /Microphone/ });
     await waitFor(() => expect(document.activeElement).toBe(mic));
     expect(
       within(nav())
