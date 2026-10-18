@@ -63,8 +63,12 @@ function offences(): string[] {
           const parts = variantsOf(token);
           const utility = parts.at(-1)!;
           const variants = parts.slice(0, -1);
-          if (!MOTION.test(utility) || STILL.has(utility)) return [];
           const where = `${relative(SRC, file)}: ${token}`;
+          // Base UI's first and last frames: ungated, the popup or drawer is invisible or off screen for a frame under reduced
+          // motion, and a check that reads it then finds nothing (#1456).
+          if (variants.some((variant) => /^data-\[(starting|ending)-style\]$/.test(variant)) && !variants.includes('motion-ok'))
+            return [`${where} (a starting or ending style is gated on motion-ok:)`];
+          if (!MOTION.test(utility) || STILL.has(utility)) return [];
           if (variants.includes('motion-safe')) return [`${where} (motion-safe: misses data-motion; use motion-ok:)`];
           if (!variants.includes('motion-ok') && !variants.includes('motion-reduce')) return [`${where} (not gated on motion-ok:)`];
           if (utility.startsWith('duration-') && !TOKEN_DURATION.test(utility)) return [`${where} (use a --motion-* token)`];
@@ -76,7 +80,7 @@ function offences(): string[] {
 }
 
 describe('motion', () => {
-  it('every transition and animation utility is gated on motion-ok: and timed by a token', () => {
+  it('every transition, animation, starting and ending style is gated on motion-ok: and timed by a token', () => {
     expect(offences()).toEqual([]);
   });
 
