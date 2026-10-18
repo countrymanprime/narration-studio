@@ -110,7 +110,7 @@ export function chapterSyncSummaryText(
 }
 
 /**
- * Chapter sync's background-checks wait line (ADR 0211): why a changed
+ * Chapter sync's background-checks wait line: why a changed
  * chapter is not being re-checked on its own right now. '' when there is nothing worth telling the narrator: checks
  * are off, another check (the narrator's own or another background pick) is already running, or nothing has
  * changed since its last check.

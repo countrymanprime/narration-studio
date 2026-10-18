@@ -1,4 +1,4 @@
-// The interaction feedback catalog (ADR 0075, docs/architecture/interaction-feedback.md): one row for every place the UI calls the host, with a
+// The interaction feedback catalog (docs/architecture/interaction-feedback.md): one row for every place the UI calls the host, with a
 // verdict against the standard. `interactionFeedback.test.ts` fails on a call site that has no row, on a row whose site is gone, and on a row that
 // breaks the rules for its verdict, so the inventory cannot rot.
 //
@@ -135,7 +135,7 @@ export const SILENT_CATCHES: Record<string, string> = {
   'src/components/booth/CompanionShell.tsx#1':
     "Companion mode's exit on unmount: nothing is left mounted to tell, and the host's exit is a no-op when companion mode was never entered, so there is no state it could leave wrong that a retry would fix.",
   'src/components/booth/listening/useListeningMic.ts#1':
-    'Asking the DAW which microphone it records with, only to preselect it: a failed ask leaves the choice to the narrator in Levels, exactly as an answer that is not a sure match does (ADR 0250).',
+    'Asking the DAW which microphone it records with, only to preselect it: a failed ask leaves the choice to the narrator in Levels, exactly as an answer that is not a sure match does.',
   'src/components/booth/useRecorder.ts#1': "Only the engine chip's first reading; without it the chip stays on REAPER until the next recording:state.",
   'src/components/booth/useTeleprompterSession.ts#1':
     'Clearing the migrated browser-storage device once it is written to settings; if storage cannot be reached the stale value is simply left behind and never read again (the settings value now wins).',
@@ -143,9 +143,9 @@ export const SILENT_CATCHES: Record<string, string> = {
   'src/components/booth/useTeleprompterSession.ts#3':
     'The one-time browser-storage-to-settings migration write; a failure leaves the device in local state for this visit and the migration is retried next load since the settings value never got marked set.',
   'src/components/masterqc/page/sharedChapter.ts#1':
-    'Remembering the chapter Master & QC is on, under the key Proof reads (ADR 0750), in localStorage; with storage unavailable the choice lasts for this visit only.',
+    'Remembering the chapter Master & QC is on, under the key Proof reads, in localStorage; with storage unavailable the choice lasts for this visit only.',
   'src/components/proof/ProofPage.tsx#1':
-    'Reading the last chapter looked at on Proof per project from localStorage (ADR 0750); with storage unavailable a step from All chapters opens the first chapter.',
+    'Reading the last chapter looked at on Proof per project from localStorage; with storage unavailable a step from All chapters opens the first chapter.',
   'src/components/proof/useChapterTimeline.ts#1':
     "The chapter's alignment only names which peaks belong to which item; a chapter not aligned yet draws flat lines in the waveform window.",
   'src/components/script/scriptPageHost.ts#1':
@@ -195,7 +195,7 @@ export const SILENT_CATCHES: Record<string, string> = {
   'src/input/HidSource.ts#3':
     "requestHidDevice()'s chooser promise rejecting (the narrator cancelled it, or, plausibly on WebView2, no chooser ever appeared): not a narrator action to retry automatically, and the only outcome either way is that no new device got paired this time.",
   'src/components/booth/ResumePrompt.tsx#1':
-    "Starts the bounded REAPER follow for the matched track while the prompt shows (ADR 0353); a failure to start just means that poll never begins, and the DAW-transport subscription and the narrator's own choices still settle the prompt.",
+    "Starts the bounded REAPER follow for the matched track while the prompt shows; a failure to start just means that poll never begins, and the DAW-transport subscription and the narrator's own choices still settle the prompt.",
   'src/components/booth/ResumePrompt.tsx#2':
     'Stops the follow on cleanup (the prompt settles, a session starts, or the dialog closes); a failure here is unobservable and harmless, since the poll it would have stopped already lost its listener.',
   'src/components/proof/ProofChapterPage.tsx#1': 'Only offers to review the last compare run; without it the offer is absent (moved from the Proofing page).',

@@ -264,7 +264,7 @@ describe('build after import (B1-B3)', () => {
     expect(await screen.findByRole('dialog', { name: 'Build the Story Bible' })).toBeTruthy();
   });
 
-  // The chained build's dialog closes by itself on the host's success, as the Story Bible page's rebuild dialog does (ADR 0076).
+  // The chained build's dialog closes by itself on the host's success, as the Story Bible page's rebuild dialog does.
   it('closes the chained build dialog by itself once the host reports the build done', async () => {
     const running = {
       id: 'chained-build',
@@ -283,7 +283,7 @@ describe('build after import (B1-B3)', () => {
     await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Build the Story Bible' })).toBeNull(), { timeout: 3000 });
   });
 
-  // The same build started from the Story Bible page can go on in the background (ADR 0076); the chained one does not hold the narrator either.
+  // The same build started from the Story Bible page can go on in the background; the chained one does not hold the narrator either.
   it('lets the narrator send the chained build to the background, and stops following it', async () => {
     const running = {
       id: 'chained-build',

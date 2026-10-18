@@ -1,4 +1,4 @@
-"""The text to speech port (ADR 0301): what every voice engine is to its callers.
+"""The text to speech port: what every voice engine is to its callers.
 
 An engine loads a voice from the model file the host verified (``load``); a voice speaks one line into a WAV file
 (``synthesize_to_file``). The guide sidecar's preview is the one caller today. It keeps one rule every voice must keep: the host

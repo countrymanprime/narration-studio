@@ -221,7 +221,7 @@ func splitBlocks(text string) []string {
 // (T2b): a real hard wrap at 60-80 columns leaves most non-final lines in
 // this band; a much shorter or much longer line is more likely verse, an
 // address or an already-unwrapped paragraph. Documented as an implementation
-// judgement call in the accompanying ADR, the same way ADR-0089 documents its
+// judgement call in the accompanying ADR, the same way docs/architecture/docx-import-quirks.md#table-of-contents-authority documents its
 // own threshold.
 const (
 	wrapLineFloor        = 45

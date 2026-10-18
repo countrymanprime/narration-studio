@@ -9,7 +9,7 @@ import (
 	"github.com/wailsapp/wails/v3/pkg/services/notifications"
 )
 
-// notificationSender is the seam over the Wails notification API (ADR 0090), so tests substitute a fake instead of
+// notificationSender is the seam over the Wails notification API, so tests substitute a fake instead of
 // touching the OS notification center or, on Windows, writing the per-user registry key InitializeNotifications needs.
 type notificationSender interface {
 	Initialize() error
@@ -18,7 +18,7 @@ type notificationSender interface {
 
 // realNotificationSender is the production notificationSender: Wails v3's notification service. It is started here, by hand, and
 // never registered with application.Options.Services, because a registered service's methods become bindings the page can call
-// (docs/adr/0200): the page asks for a notification only through SystemNotify, which checks the setting first.
+// the page asks for a notification only through SystemNotify, which checks the setting first.
 type realNotificationSender struct {
 	ctx     context.Context
 	service *notifications.NotificationService

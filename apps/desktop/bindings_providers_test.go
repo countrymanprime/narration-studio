@@ -10,7 +10,7 @@ import (
 )
 
 // TestProviderCapabilitiesGoldenIsCurrent pins providerCapabilitiesPayload for the two platforms that answer differently today:
-// Windows, the only supported platform (docs/adr/0412), where every registered provider runs (Moonshine and the dshow capture backend
+// Windows, the only supported platform, where every registered provider runs (Moonshine and the dshow capture backend
 // included), and Linux, the development host, where Moonshine and dshow are refused. The registry is empty here (a Host built without Startup), so no row reports an installed count.
 // UPDATE_CONTRACTS=1 rewrites tests/fixtures/contracts/provider-capabilities-*.json.
 func TestProviderCapabilitiesGoldenIsCurrent(t *testing.T) {
@@ -81,7 +81,7 @@ func TestProviderCapabilitiesBindingReportsThisPlatform(t *testing.T) {
 	}
 }
 
-// TestProviderCapabilitiesRefusesAProviderOffItsPlatform: Moonshine and dshow declare Windows only (ADR 0107, captureport), so on
+// TestProviderCapabilitiesRefusesAProviderOffItsPlatform: Moonshine and dshow declare Windows only (captureport), so on
 // Linux each answers unsupported with a whole sentence, while Whisper, Piper and both pronunciation sources run everywhere.
 func TestProviderCapabilitiesRefusesAProviderOffItsPlatform(t *testing.T) {
 	raw, _ := encodeBinding(providerCapabilitiesPayload("linux", &assetRegistry{}), nil)

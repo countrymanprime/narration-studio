@@ -122,7 +122,7 @@ func TestAResultsFileIsReadFromDiskWithABound(t *testing.T) {
 }
 
 // boundedRegions are COVERAGE_REGION lines as a sidecar that bounds its regions
-// writes them (docs/utilities/recording-coverage.md, ADR 0168): a skip across
+// writes them (docs/utilities/recording-coverage.md): a skip across
 // two items, and a tail, bounded only before.
 const boundedRegions = `COVERAGE_REGION|{"after":{"itemGuid":"{B}","itemIndex":2,"sourceTime":0.5},"before":{"itemGuid":"{A}","itemIndex":0,"sourceTime":19.75},"firstWord":"tired","kind":"skip","lastWord":"bank.","paragraphIds":["p-000002"],"position":{"itemGuid":"{B}","itemIndex":2,"sourceTime":0.5},"tokenCount":2}
 COVERAGE_REGION|{"after":null,"before":{"itemGuid":"{B}","itemIndex":2,"sourceTime":5.25},"firstWord":"So","kind":"tail","lastWord":"do.","paragraphIds":["p-000003"],"position":{"itemGuid":"{B}","itemIndex":2,"sourceTime":5.25},"tokenCount":12}

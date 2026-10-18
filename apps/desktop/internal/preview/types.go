@@ -98,7 +98,7 @@ type Input struct {
 	OpenFindings []OpenFinding
 	// AudioEvidence is optional (nil is "no chapter has audio evidence yet", read the same tri-state way as a missing
 	// key inside it): the per-chapter audio-checked inputs, keyed by chapter id, already resolved to plain values by
-	// the caller (the host binding, composing recording coverage, the paragraph mapper and, per ADR 0327, windowed
+	// the caller (the host binding, composing recording coverage, the paragraph mapper and, per docs/architecture/preview-suggestion.md, windowed
 	// audio-quality findings once a chapter can have them).
 	AudioEvidence map[string]ChapterAudioEvidence
 	Settings      Settings

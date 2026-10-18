@@ -86,15 +86,14 @@ type Host struct {
 	diagnostic string
 	version    string
 	config     config
-	// dawCapabilitiesSnapshot is the last DawCapabilities payload pollDawCapabilities emitted (bindings_daw.go, ADR
-	// 0300): a marshalled JSON comparison, so daw_capabilities_changed goes out only when the resolver's
+	// dawCapabilitiesSnapshot is the last DawCapabilities payload pollDawCapabilities emitted (bindings_daw.go): a marshalled JSON comparison, so daw_capabilities_changed goes out only when the resolver's
 	// answer actually changed, never on every transcriptLoop tick.
 	// +checklocks:mu
 	dawCapabilitiesSnapshot string
 	// dawFolder caches what the project folder holds for the project's DAW (projectdaw.go): the tick that polls the capability
 	// report asks it every 150 ms, and a folder listing that fresh is not needed.
 	dawFolder dawFolderCache
-	// dawTransportSnapshot is the last daw_transport_changed payload (bindings_daw_transport.go, ADR 0305), compared
+	// dawTransportSnapshot is the last daw_transport_changed payload (bindings_daw_transport.go), compared
 	// the same way.
 	// +checklocks:mu
 	dawTransportSnapshot string
@@ -134,7 +133,7 @@ type Host struct {
 	// takeComparisonJob compares the takes of one take-review group (takecompare_job.go); h.mu guards the pointer.
 	takeComparisonJob *takeComparisonJob
 	// measureJob measures the narrator's picked audio files (measure_job.go); measurePicked is every path the picker
-	// chose this session, the only paths MeasureAnalyze accepts (ADR 0156). h.mu guards both; neither is per project.
+	// chose this session, the only paths MeasureAnalyze accepts. h.mu guards both; neither is per project.
 	measureJob *measureJob
 	// +checklocks:mu
 	measurePicked map[string]bool
@@ -143,7 +142,7 @@ type Host struct {
 	diagnosticsJob *diagnosticsJob
 	// exportJob masters (optionally) and encodes the narrator's picked files (export_job.go);
 	// exportPicked is every path its own picker chose this session, mirroring measurePicked's own
-	// discipline (ADR 0156). packageJob assembles one profile's package from an export's own encoded files
+	// discipline. packageJob assembles one profile's package from an export's own encoded files
 	// (package_job.go, over internal/packager). h.mu guards all three; none is per project.
 	// +checklocks:mu
 	exportJob *exportJob
@@ -152,12 +151,12 @@ type Host struct {
 	// +checklocks:mu
 	packageJob *packageJobState
 	// multiPackageJob builds several profiles' packages from one export's own encoded files in one action
-	// (multi_package_job.go, ADR 0480). h.mu guards the pointer; it is not per project, and
+	// (multi_package_job.go). h.mu guards the pointer; it is not per project, and
 	// it and packageJob never run at the same time (each start site checks the other's running state).
 	// +checklocks:mu
 	multiPackageJob *multiPackageJobState
 	transcript      *transcript.Service
-	// coverage is the recording-coverage service (docs/utilities/recording-coverage.md, ADR 0128): it reads the saved .rpp and
+	// coverage is the recording-coverage service (docs/utilities/recording-coverage.md): it reads the saved .rpp and
 	// runs the Transcript Compare sidecar's --coverage mode. Swapped on every project switch like transcript; the Coverage* bindings
 	// reach it (bindings_coverage.go) and it fills the manuscript chapters' recordedFraction.
 	coverage *coverage.Service
@@ -182,8 +181,8 @@ type Host struct {
 	// all through the same swap-on-project-switch pattern as
 	// guide/manuscript/transcript.
 	findings *findings.Store
-	// reachability tracks the current project's bridge client PROJECT_STATUS heartbeat (ADR 0092), behind the
-	// DAW port's Heartbeat role (dawport.Heartbeat, ADR 0300) rather than the concrete *daw.Reachability, so a
+	// reachability tracks the current project's bridge client PROJECT_STATUS heartbeat, behind the
+	// DAW port's Heartbeat role (dawport.Heartbeat) rather than the concrete *daw.Reachability, so a
 	// caller depends on the role, not the REAPER-only type. Swappable like transcript: configureLocked rebuilds it on
 	// every project switch. Never a true nil interface: with no bridge client it is daw.NewReachability(nil), which
 	// always reports unreachable.
@@ -191,12 +190,12 @@ type Host struct {
 	// navigation is the Review page's REAPER navigator on the same bridge client (bindings_navigation.go); swappable
 	// like transcript. Never nil once configured: with no bridge client it is standalone and refuses every request.
 	navigation *findingNavigation
-	// dawPortResolver is the DAW port's resolver over p5aAdapter (ADR 0300): bindings_navigation.go,
+	// dawPortResolver is the DAW port's resolver over p5aAdapter: bindings_navigation.go,
 	// readaloudreaper.go, teleprompterinput.go and chapterregions.go ask it for their roles instead of holding
 	// *bridge.Client or *bridge.Actions themselves. Swappable like navigation and actions; nil with no bridge client.
 	dawPortResolver *dawport.Resolver
 	lineIdentity    *lineidentity.Service
-	// punchAlignments is punch and roll's last offline word-time alignment (teleprompterpunchalign.go, ADR 0560), so a
+	// punchAlignments is punch and roll's last offline word-time alignment (teleprompterpunchalign.go), so a
 	// punch after its preview does not decode the same stretch twice. It has its own lock and is not per project: its
 	// key names the source file and the stretch.
 	punchAlignments punchAlignCache
@@ -206,53 +205,53 @@ type Host struct {
 	cleanupTools    *cleanuptools.Service
 	retakeLanes     *retakelanes.Service
 	teleprompter    *teleprompter.Service
-	// recorder is the built-in recorder (ADR 0455), rebuilt with the project like teleprompter.
+	// recorder is the built-in recorder, rebuilt with the project like teleprompter.
 	recorder *recording.Service
 	// bridge is the REAPER session's file-based IPC client (nil when launched
 	// without a REAPER session directory); take-review's create-take action
 	// (takereview.go) is its first direct consumer outside transcript.Service,
 	// which is handed the same client rather than building its own.
 	bridge *bridge.Client
-	// takeCreator is the DAW port's take_create role over the same bridge client (ADR 0300); takereview.go's
+	// takeCreator is the DAW port's take_create role over the same bridge client; takereview.go's
 	// take-creation binding asks for it instead of holding bridge directly. Nil (a true nil interface) with no bridge
 	// client or no such role.
 	takeCreator dawport.TakeCreator
-	// takeSelector is the DAW port's takes role over the same adapter as takeCreator (ADR 0300): WorkspaceHideTakes
+	// takeSelector is the DAW port's takes role over the same adapter as takeCreator: WorkspaceHideTakes
 	// (bindings_workspace_hide.go) asks it to hide a passage's other takes. Nil with no bridge client or no such role.
 	takeSelector dawport.TakeSelector
-	// puncher is the DAW port's punch role over the same adapter as takeCreator (ADR 0300): DawRoll (bindings_daw_roll.go)
+	// puncher is the DAW port's punch role over the same adapter as takeCreator: DawRoll (bindings_daw_roll.go)
 	// asks it to roll. Nil with no bridge client or no such role.
 	puncher dawport.Puncher
-	// rangeCutter is the DAW port's cut_range role over the same adapter as takeCreator (ADR 0300): DawDeleteRange
+	// rangeCutter is the DAW port's cut_range role over the same adapter as takeCreator: DawDeleteRange
 	// (bindings_daw_range.go) asks it to cut words and their audio. Nil with no bridge client or no such role.
 	rangeCutter dawport.RangeCutter
-	// rangeFX is the DAW port's fx_range role over the same adapter as takeCreator (ADR 0300): DawApplyFxToRange and
+	// rangeFX is the DAW port's fx_range role over the same adapter as takeCreator: DawApplyFxToRange and
 	// DawRemoveFxFromRange (bindings_daw_fx_range.go) ask it to put a chain on words and take it off. Nil with no bridge client
 	// or no such role.
 	rangeFX dawport.RangeFXApplier
-	// takeStacker is the DAW port's stack_takes role over the same adapter as takeCreator (ADR 0300): DawStackTakes and
+	// takeStacker is the DAW port's stack_takes role over the same adapter as takeCreator: DawStackTakes and
 	// DawUnstackTakes (bindings_daw_stack.go) ask it to stack a passage's later reads on its first read and move them back.
 	// Nil with no bridge client or no such role.
 	takeStacker dawport.TakeStacker
 	// filePreviewer and fileRevealer are the DAW port's file_preview and file_reveal roles over the same adapter as takeCreator
-	// (ADR 0300): DawPreviewFileRange, DawStopFilePreview and DawRevealFile (bindings_daw_files.go) ask them to play a stretch of
+	// DawPreviewFileRange, DawStopFilePreview and DawRevealFile (bindings_daw_files.go) ask them to play a stretch of
 	// a file on disk and to show one. Nil with no bridge client or no such role.
 	filePreviewer dawport.FilePreviewer
 	fileRevealer  dawport.FileRevealer
-	// rangeGain is the DAW port's range_gain role over the same adapter as takeCreator (ADR 0300): DawReduceRangeGain
+	// rangeGain is the DAW port's range_gain role over the same adapter as takeCreator: DawReduceRangeGain
 	// (bindings_daw_reduce_range_gain.go) asks it to lower stretches of a take. Nil with no bridge client or no such role.
 	rangeGain dawport.RangeGainReducer
-	// clickRepairer is the DAW port's click_repair role over the same adapter as takeCreator (ADR 0300): DawRepairClick
+	// clickRepairer is the DAW port's click_repair role over the same adapter as takeCreator: DawRepairClick
 	// (bindings_daw_repair_click.go) asks it to smooth clicks in a take. Nil with no bridge client or no such role.
 	clickRepairer dawport.ClickRepairer
-	// lastActionUndoer is the DAW port's undo_last role over the same adapter as takeCreator (ADR 0300): DawLastAction and
+	// lastActionUndoer is the DAW port's undo_last role over the same adapter as takeCreator: DawLastAction and
 	// DawUndoLast (bindings_daw_undo_last.go) ask it to read and undo the app's own last action. Nil with no bridge client or no such
 	// role.
 	lastActionUndoer dawport.LastActionUndoer
-	// monitorLeveler is the DAW port's monitor_level role over the same adapter as takeCreator (ADR 0300): DawMonitorLevel and
+	// monitorLeveler is the DAW port's monitor_level role over the same adapter as takeCreator: DawMonitorLevel and
 	// DawSetMonitorLevel (bindings_daw_levels.go) ask it to read and set the monitor level. Nil with no bridge client or no such role.
 	monitorLeveler dawport.MonitorLeveler
-	// backupKeeper is the DAW port's backups role (ADR 0863): on an Audacity launch with a project open, the Audacity adapter's,
+	// backupKeeper is the DAW port's backups role: on an Audacity launch with a project open, the Audacity adapter's,
 	// over its own scripting pipe client, opened on the first request and closed when the next project replaces the role.
 	// DawBackupAround and DawRestoreBackup (bindings_daw_backups.go) ask it to clone and restore audio, and the host prunes it
 	// when the project opens. Nil otherwise.
@@ -264,9 +263,9 @@ type Host struct {
 	// creditTemplates is the narrator's own credit-template library,
 	// user-level like recents, set once in NewHost and never swapped by a project switch.
 	creditTemplates *credits.TemplateStore
-	// creditsSetupSession is the credits setup prompt's "Not now" for this run of the app (creditsetup.go, ADR 0208).
+	// creditsSetupSession is the credits setup prompt's "Not now" for this run of the app (creditsetup.go).
 	creditsSetupSession creditsSetupSession
-	// deliveryProfiles is the narrator's custom delivery profiles and their Global default (ADR 0179): user-level like creditTemplates, set once in NewHost and never swapped by a project switch.
+	// deliveryProfiles is the narrator's custom delivery profiles and their Global default: user-level like creditTemplates, set once in NewHost and never swapped by a project switch.
 	deliveryProfiles *deliveryprofile.Store
 	// series is the narrator's own series.json: user-level
 	// like recents and creditTemplates, set once in NewHost and never swapped by a project switch.
@@ -275,7 +274,7 @@ type Host struct {
 	// change and a measurement ending together cannot leave the findings of the profile that lost the race.
 	deliveryFindingsMu sync.Mutex
 	log                *hostlog.Log
-	// runLog is the structured, leveled run log (ADR 0251): every host job and sidecar launch wraps itself in
+	// runLog is the structured, leveled run log: every host job and sidecar launch wraps itself in
 	// runLog.Begin/Run.End; set once in NewHost and never swapped.
 	runLog *runlog.Logger
 	// jobRuns is runLog's other half for most job kinds (runlog_jobs.go): the run each carries from its own start
@@ -331,9 +330,9 @@ type Host struct {
 	// h.profileStore().Resolve. It exists so a test can resolve a selection to a synthetic profile - for example one
 	// requiring a format no built-in or persistable custom profile can yet, since deliveryprofile's own store
 	// validates a custom profile's rules against a known-metric whitelist - without touching internal/deliveryprofile
-	// itself (ADR 0480).
+	// itself.
 	resolveProfile func(deliveryprofile.Ref) (deliveryprofile.Profile, bool, error)
-	// updates asks GitHub for a newer release and remembers the answer (ADR 0072). It is set once in NewHost and never swapped, so it is
+	// updates asks GitHub for a newer release and remembers the answer. It is set once in NewHost and never swapped, so it is
 	// read directly, like recents.
 	updates *update.Checker
 	// stager downloads and unpacks an update into the per-user cache; updateJob is the download in progress or the last one (h.mu).
@@ -399,7 +398,7 @@ type Host struct {
 	writableAt time.Time
 	// +checklocks:writableMu
 	writableOK bool
-	// persist reports a file that cannot be read: to the host log and, for the narrator's own data, to the narrator (ADR 0069).
+	// persist reports a file that cannot be read: to the host log and, for the narrator's own data, to the narrator.
 	persist *persist.Reporter
 	// notifySender is a seam for tests: nil means the real Wails notification API. notifyInitOnce guards the lazy
 	// start of the notification service SystemNotify makes on the first qualifying send (notifications.go).
@@ -611,7 +610,7 @@ func (h *Host) configureLocked(next config) {
 	h.manuscript = manuscript.New(h.config.projectFolder)
 	h.manuscript.SetPersist(h.persist)
 	// The service is rebuilt per project, so its import-end callback must be too: without it an attached project's
-	// imports never report job:ended (ADR 0076) and never reach chapter sync (chaptersync.go).
+	// imports never report job:ended and never reach chapter sync (chaptersync.go).
 	h.manuscript.SetOnJobEnd(h.importJobEnded)
 	h.findings = findings.NewStore(h.config.projectFolder)
 	h.findings.SetPersist(h.persist)
@@ -631,11 +630,11 @@ func (h *Host) configureLocked(next config) {
 		}
 	}
 	// Reachability subscribes to the same client transcript.New below also subscribes: both are independent
-	// consumers of bridge.Client's fan-out (events.go), so neither steals the other's events (ADR 0068).
+	// consumers of bridge.Client's fan-out (events.go), so neither steals the other's events.
 	h.reachability = daw.NewReachability(client)
 	h.bridge = client
 	// The review workflow's session follows the project's DAW: REAPER's bridge (or none), or for an Audacity project one that
-	// answers "not available yet" until the Audacity pipe client exists (ADR 0144).
+	// answers "not available yet" until the Audacity pipe client exists.
 	review := reaper.ReviewFor(client)
 	if projectKind == dawport.KindAudacity {
 		review = audacity.UnavailableReview()
@@ -649,7 +648,7 @@ func (h *Host) configureLocked(next config) {
 		ProjectFile:    func() (string, error) { return selectedProjectFile(projectFolder, settingsStore) },
 		LoadManuscript: h.manuscript.Load,
 		// A credits row's check measures the same first-of-kind template
-		// render the Home row and the teleprompter show (h.creditsScript, ADR 0093, ADR 0150), never manuscript
+		// render the Home row and the teleprompter show (h.creditsScript), never manuscript
 		// paragraphs.
 		LoadCredits: func(kind string) (string, string, error) {
 			script, err := h.creditsScript(kind)
@@ -697,9 +696,9 @@ func (h *Host) configureLocked(next config) {
 		h.production = production.New(production.Config{Project: h.config.projectFolder, Reporter: h.persist, Recorded: productionRecorded(h.manuscript)})
 	}
 	// The action commands (internal/bridge/actions.go) are one more consumer of the same client. Whether each may be sent
-	// is the DAW port resolver's answer, asked before anything is written (ADR 0300): the narrator's
+	// is the DAW port resolver's answer, asked before anything is written: the narrator's
 	// DAW.capability.<name> toggles, with DAW.experimental_reaper_actions still turning on every Experimental one left
-	// on auto (ADR 0230). This resolver is over REAPER's declaration alone; the one below, over p5aAdapter, serves the
+	// on auto. This resolver is over REAPER's declaration alone; the one below, over p5aAdapter, serves the
 	// consumers that take their roles from the adapter.
 	dawResolver := dawport.NewResolver(dawport.ResolverConfig{
 		Adapter:      reaper.Declaration(),
@@ -708,7 +707,7 @@ func (h *Host) configureLocked(next config) {
 	})
 	h.actions = bridge.NewActions(client, reaper.Gate(dawResolver.Allowed))
 	// The retake-lane, project-state and take-creation roles below come from a live REAPER adapter over the same
-	// client (ADR 0300), gated by the same resolver.Allowed as h.actions: a nil client (no session) or a
+	// client, gated by the same resolver.Allowed as h.actions: a nil client (no session) or a
 	// capability the adapter does not declare leaves the role nil, which each service already treats as "no bridge".
 	// This adapter is its own, over the same client, rather than one shared with p5aAdapter below (bindings_daw.go's
 	// dawResolverFor makes the same tradeoff for DawCapabilities).
@@ -749,7 +748,7 @@ func (h *Host) configureLocked(next config) {
 	// The Review page's Go to, Loop and Stop (bindings_navigation.go), the read-aloud and
 	// teleprompter track-state reads and the chapter-regions create step (readaloudreaper.go, teleprompterinput.go,
 	// chapterregions.go) now take their roles from h.dawPortResolver instead of holding the bridge navigator or h.actions
-	// directly (ADR 0300). p5aAdapter wraps the same navigator and h.actions this project already
+	// directly. p5aAdapter wraps the same navigator and h.actions this project already
 	// built, rather than a second dawport/reaper.Adapter over the client: two *bridge.Actions on one client would race
 	// each other's run IDs (bridge/actions.go). A standalone or Audacity launch (client nil, exactly when the bridge
 	// client above was never built) has no adapter, which the resolver reports as every capability unsupported.
@@ -769,7 +768,7 @@ func (h *Host) configureLocked(next config) {
 	})
 	h.navigation = newFindingNavigation(h.dawPortResolver, client)
 	// The pickup, line-identity, render-config and cleanup-tool services take the DAW port's roles instead of the
-	// raw bridge client (ADR 0300): each depends on dawport.PickupList, LineStamper,
+	// raw bridge client: each depends on dawport.PickupList, LineStamper,
 	// RenderConfigurer or CleanupLauncher, never a concrete adapter, so a second engine can serve them unchanged.
 	// reaper.New wraps the same client the actions gate above already shares (dawport.Adapter.Role never opens a
 	// new one), so this adds no new consumer of the session's bridge; a nil client (a standalone or Audacity
@@ -789,7 +788,7 @@ func (h *Host) configureLocked(next config) {
 		gainAdjusterRole, _ = reaperAdapter.Role(dawport.CapItemGain).(dawport.GainAdjuster)
 	}
 	// The line-identity service is the second consumer of the same bridge client (bridge.Client fans events
-	// out by tag and run, ADR 0068), so pollTranscript's Drain call already pumps its events too. The UI
+	// out by tag and run), so pollTranscript's Drain call already pumps its events too. The UI
 	// triggers it, so it emits h.emitLineIdentity the way
 	// h.transcript emits h.emitTranscript.
 	h.lineIdentity = lineidentity.New(lineidentity.Config{Project: h.config.projectFolder, SessionDir: h.config.sessionDir}, lineStamperRole, h.manuscript, h.emitLineIdentity)
@@ -801,11 +800,11 @@ func (h *Host) configureLocked(next config) {
 	// consumer: pollTranscript's Drain call already pumps its events too, the same way it does for line identity
 	// and pickups above.
 	h.renderConfig = renderconfig.New(renderconfig.Config{SessionDir: h.config.sessionDir}, renderConfigurerRole, h.emitRenderConfig)
-	// The cleanup-launcher service (ADR 0146) is one more consumer of
+	// The cleanup-launcher service is one more consumer of
 	// the same bridge client: pollTranscript's Drain call pumps its events too. It only ever sends an allow-listed
 	// tool key, and the dialog it opens in REAPER is the narrator's to drive.
 	h.cleanupTools = cleanuptools.New(cleanuptools.Config{SessionDir: h.config.sessionDir}, cleanupLauncherRole, gainAdjusterRole, h.emitCleanupTools)
-	// The retake-lane service (ADR 0147) is one more consumer of the
+	// The retake-lane service is one more consumer of the
 	// same bridge client, over its retake_lanes role. It only ever asks REAPER to make one listed
 	// retake's lane the only one playing.
 	h.retakeLanes = retakelanes.New(retakelanes.Config{SessionDir: h.config.sessionDir}, retakePicker, h.emitRetakeLanes)
@@ -825,7 +824,7 @@ func (h *Host) configureLocked(next config) {
 	h.teleprompter.SetTrace(func(event string, attrs ...any) {
 		h.runLog.App().Event(slog.LevelInfo, event, "what the microphone delivered", attrs...)
 	})
-	// The built-in recorder (ADR 0455) runs the same sidecar with --record over the capture
+	// The built-in recorder runs the same sidecar with --record over the capture
 	// port's wasapi row. An attach waits while a take records (idleLocked), so the old one can only be metering: it is stopped.
 	if h.recorder != nil {
 		h.recorder.StopMeter()
@@ -1392,7 +1391,7 @@ func (h *Host) idleLocked() bool {
 }
 
 // isReadAloudRecordingLocked reports whether a REAPER take this app started is still recording. A switch or an update swap would
-// drop the only handle that can stop it (ADR 0232 decision 4); a take REAPER records on its own is not counted, the app cannot stop
+// drop the only handle that can stop it (docs/architecture/reaper-bridge.md#recording-in-reaper-narration_transportlua); a take REAPER records on its own is not counted, the app cannot stop
 // it. The caller holds h.mu.
 // +checklocksignore: idleLocked and its callers hold h.mu but carry no annotation for checklocks to follow.
 func (h *Host) isReadAloudRecordingLocked() bool {
@@ -1457,7 +1456,7 @@ func (h *Host) Bootstrap() map[string]any {
 		}
 	}
 	// A manuscript file sitting in the project folder is offered, never
-	// imported on its own (ADR-0019).
+	// imported on its own.
 	var manuscriptCandidate any
 	if imported == nil {
 		if path := manuscript.DetectSource(config.projectFolder); path != "" {
@@ -1571,9 +1570,9 @@ type fieldSchema struct {
 var fieldSchemas = map[string][]fieldSchema{
 	// narrator_name is the global default for the [Narrator] credits token (a flat text setting); a project's own credits values may
 	// override it (project.Manifest.Credits.Narrator, credits.Values.Resolve). credits_room_tone_seconds is the room tone
-	// the estimate adds to each opening and closing credits file (ADR 0151): the narrator's own figure,
-	// defaulting to 0, since published room-tone guidance disagrees (ADR 0025).
-	// debug_logging turns on the run log's debug-level decision records (ADR 0251): global only (saveSettings refuses it at project scope), a machine switch like NARRATION_DEBUG=1, not a
+	// the estimate adds to each opening and closing credits file: the narrator's own figure,
+	// defaulting to 0, since published room-tone guidance disagrees.
+	// debug_logging turns on the run log's debug-level decision records: global only (saveSettings refuses it at project scope), a machine switch like NARRATION_DEBUG=1, not a
 	// per-project preference.
 	"General":    {{"log_verbosity", "Log verbosity", "choice", []string{"quiet", "normal", "verbose"}}, {"notifications", "Notify me when a long task finishes while I'm away", "bool", nil}, {"narrator_name", "Narrator name (default for credits)", "text", nil}, {"credits_room_tone_seconds", "Room tone per credits file (seconds)", "choice", []string{"0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10"}}, {"debug_logging", "Debug logging (writes decision records to the run log)", "bool", nil}},
 	"Manuscript": {{"color_note", "Note color", "color", nil}},
@@ -1601,7 +1600,7 @@ var fieldSchemas = map[string][]fieldSchema{
 	// not a per-project preference. The chosen capture device is validated only as free text - the sidecar's own open
 	// call is what proves a device name is real; the "text" kind already accepts any string, including empty (unset).
 	// The engine choices here are only a placeholder: settingsSchemas fills in the engines this platform can launch
-	// (teleprompter.Engines: Whisper everywhere, Moonshine on Windows only, ADR 0107). The model choice is tiny and small
+	// (teleprompter.Engines: Whisper everywhere, Moonshine on Windows only). The model choice is tiny and small
 	// for either engine, since both catalogs have them and larger models are unmeasured for live use.
 	"Teleprompter": {
 		{"input_device", "Microphone", "text", nil},
@@ -1614,17 +1613,16 @@ var fieldSchemas = map[string][]fieldSchema{
 	},
 	// DAW.reaper_path is a global override for daw.Resolve (empty means auto-detect, apps/desktop/internal/daw).
 	// DAW.auto_start_launcher: the app may pass NarrationUtils_Launcher.lua as REAPER's trailing script argument when
-	// it starts REAPER (ADR 0092), so the bridge is live without the narrator running the action by hand - but only when this is on, and
+	// it starts REAPER, so the bridge is live without the narrator running the action by hand - but only when this is on, and
 	// it defaults off.
-	// DAW.experimental_reaper_actions is an owner decision (ADR 0230): the REAPER bridge commands built before the owner's
+	// DAW.experimental_reaper_actions is an owner decision: the REAPER bridge commands built before the owner's
 	// verification pass (docs/operations/reaper-verification-pass.md) are refused by the host while it is off, unless the
-	// narrator turns their capability on with its DAW.capability.<name> row (dawport's resolver decides, ADR 0300),
+	// narrator turns their capability on with its DAW.capability.<name> row (dawport's resolver decides),
 	// and it defaults off (bridge.ExperimentalSettingTool/Key, internal/bridge/actions.go).
 	// The per-capability toggles come after the three above, from capabilityFieldSchemas: one
 	// choice field per dawport.Capability, labeled with the port's own narrator-facing label, so Settings lists and
 	// saves every DAW.capability.<name> row through this same generic mechanism.
-	// fx_favourites is the narrator's favourite REAPER effects (ADR
-	// 0234): names WorkspaceListFXChains or a future FX plug-in listing already lists, kept as one "tags" field
+	// fx_favourites is the narrator's favourite REAPER effects: names WorkspaceListFXChains or a future FX plug-in listing already lists, kept as one "tags" field
 	// rather than two, since a chain and a plug-in are just two shapes of name (a chain always ends ".RfxChain",
 	// so the two are never confused). It
 	// works at either scope through the same global/project layering as every other setting; there is no separate
@@ -1634,15 +1632,15 @@ var fieldSchemas = map[string][]fieldSchema{
 		{"auto_start_launcher", "Start the launcher script automatically", "bool", nil},
 		{"experimental_reaper_actions", "Experimental REAPER actions", "bool", nil},
 		{"fx_favourites", "Favourite effects (FX chains and plug-ins)", "tags", nil},
-		// The Audacity backups' window and retention (ADR 0863), with the Studio Next mock's labels and ranges (BackupsTab.tsx).
+		// The Audacity backups' window and retention, with the Studio Next mock's labels and ranges (BackupsTab.tsx).
 		{"backups.window_seconds", "Audio kept either side of a punch or an edit (s)", "number", nil},
 		{"backups.retention_days", "Keep backups for (days)", "number", nil},
 	}, capabilityFieldSchemas()...),
-	// RecordingCoverage is the recording check's four settings (docs/utilities/recording-coverage.md Q3, ADR 0131),
+	// RecordingCoverage is the recording check's four settings (docs/utilities/recording-coverage.md Q3),
 	// read by coverage.ResolveSettings. The two thresholds judge a stored result on read; the two alignment settings are
 	// in a result's parameter hash, so changing one makes older results stale. Their defaults are Proposed and
 	// uncalibrated until measured on a real corpus. background_checks lets the host re-check a changed chapter on its own while REAPER
-	// is idle, not recording and the computer is on mains power (ADR 0211).
+	// is idle, not recording and the computer is on mains power.
 	// cascade_enabled, cascade_first_pass_model and cascade_recheck_model are the model cascade's own three settings,
 	// read by coverage.ResolveSettings into Settings.Cascade.
 	// The cascade defaults off; while it is off, CoverageStart keeps reading TranscriptCompare.model_size exactly as
@@ -1657,13 +1655,15 @@ var fieldSchemas = map[string][]fieldSchema{
 		{"cascade_enabled", "Two-pass check (fast first pass, then re-check what's missing)", "bool", nil},
 		{"cascade_first_pass_model", "First-pass Whisper model", "choice", []string{"tiny", "small", "medium", "large-v3-turbo", "large-v3"}},
 		{"cascade_recheck_model", "Re-check Whisper model", "choice", []string{"tiny", "small", "medium", "large-v3-turbo", "large-v3"}},
-		// Also re-check passages whose words Whisper scored under this (ADR 0864); 0 re-checks only what is missing.
+		// Also re-check passages whose words Whisper scored under this; 0 re-checks only what is missing.
 		{"cascade_unsure_below", "Also re-check passages Whisper is unsure of (word score under; 0 = off)", "number", nil},
-		// How a long item is cut up and how many Whisper processes work on the pieces (ADR 0864). They change how fast
+		// How a long item is cut up and how many Whisper processes work on the pieces. They change how fast
 		// the same words are made, not which ones count, so changing one never makes a result stale.
 		{"parallel_workers", "Parallel Whisper processes (0 = chosen from the model)", "number", nil},
 		{"chunk_seconds", "Chunk length in seconds (0 = each item whole)", "choice", []string{"0", "60", "120", "300", "600", "900"}},
 		{"chunk_overlap_seconds", "Crossover between neighbouring chunks", "number", nil},
+		// Chapters a Check recordings run checks at once; they share the processors.
+		{"parallel_chapters", "Chapters checked at once", "number", nil},
 	},
 	// StageRecommendations (see docs/architecture/stage-recommendations.md) chooses which signals must be
 	// met for a stage suggestion: one choice field per signal id a provider declares (apps/desktop/bindings_stages.go's
@@ -1698,7 +1698,7 @@ var fieldSchemas = map[string][]fieldSchema{
 		{"proofing.delivery.tail_room_tone_seconds", "Rendered file: room tone, tail (proofing)", "choice", []string{"required", "ignored"}},
 		{proofing.RenderLengthSignalID, "Rendered file: length matches the chapter (proofing)", "choice", []string{"required", "ignored"}},
 	},
-	// Proofing is the proofing signals' own setting (ADR 0525): how far, in seconds, a chapter's rendered file may differ in length from its items' span before the render length check is not
+	// Proofing is the proofing signals' own setting: how far, in seconds, a chapter's rendered file may differ in length from its items' span before the render length check is not
 	// met. Unset by default and then the check is not required: no default is proposed until render-versus-project
 	// lengths are measured on real renders (tails, padding).
 	"Proofing": {
@@ -1743,7 +1743,7 @@ var fieldSchemas = map[string][]fieldSchema{
 		{"record_in_reaper", "Record in REAPER", "bool", nil},
 		{"record_confirmed", "Seen the Record in REAPER confirm", "bool", nil},
 	},
-	// Cleanup is the silence cleanup analyzer's own thresholds (ADR 0238): measure.CleanupOptions field for field, read by cleanupSettings
+	// Cleanup is the silence cleanup analyzer's own thresholds: measure.CleanupOptions field for field, read by cleanupSettings
 	// (cleanup_settings.go) and passed to measure.DiagnosticInput.Cleanup when a diagnostics check runs. Every key has
 	// a config/defaults.json entry mirroring measure.DefaultCleanupOptions, so an untouched store already answers the
 	// same values the analyzer would use on its own; a saved preset is this set of values at a layer, like every
@@ -2049,7 +2049,7 @@ func (h *Host) startGuideBuild(rulesOnly bool) (map[string]any, error) {
 	go func() {
 		// The sidecar writes a stage|pct|message progress file and an
 		// append-only log while it works; tail both so the dialog shows real
-		// activity instead of sitting at 1% until the build finishes (ADR-0015).
+		// activity instead of sitting at 1% until the build finishes.
 		var logAt int64
 		stop, stopped := make(chan struct{}), make(chan struct{})
 		go func() {

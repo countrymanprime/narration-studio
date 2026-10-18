@@ -3,7 +3,7 @@
 // answer (a cache lookup per item, then one pass over the misses writing the
 // three ledger records), composes empty space over the result
 // (empty_space.go), persists silence_cleanup findings, and reports real
-// progress with a cancel button (ADR 0015). Unlike the recording coverage
+// progress with a cancel button. Unlike the recording coverage
 // service (apps/desktop/internal/coverage), there is no sidecar: every
 // decode is this package's own Decode (decode.go), so the job is a plain Go
 // goroutine over context cancellation rather than a supervised child

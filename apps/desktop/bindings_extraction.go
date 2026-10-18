@@ -12,7 +12,7 @@ import (
 	"github.com/countrymanprime/narration-utils/shell/internal/extraction/store"
 )
 
-// The Story Bible's extraction suggestions (ADR 0803, ADR 0846): what a source offered, kept in
+// The Story Bible's extraction suggestions: what a source offered, kept in
 // <project>/ManuscriptGuide/suggestions.json by internal/extraction/store and applied to the Story Bible by
 // internal/extraction/apply through the Story Bible's own commands. Only ids and the narrator's edited text cross; no
 // binding takes a path. A refusal is the error, a sentence for the narrator, and leaves the Story Bible and the

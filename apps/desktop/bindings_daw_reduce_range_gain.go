@@ -29,7 +29,7 @@ type DawGainStretch struct {
 // (SN-E100: Clean up's Breaths, Plosives and Noise, "Reduce by N dB"). Each stretch is in the take's own seconds, the time in its
 // audio file. takeID is the take's id as the DAW reports it on the chapter's one linked track now (chapter_track_state): the host
 // looks it up there, checks every stretch is inside the part of the file the take plays, and sends the item and take it read
-// itself, so an id is never sent to the DAW as given (threat model row 5f). The answer is a DawResult (ADR 0810): the range_gain
+// itself, so an id is never sent to the DAW as given (threat model row 5f). The answer is a DawResult: the range_gain
 // capability's own sentence when the resolver refuses it (a standalone launch, a DAW not answering, Experimental actions off, the
 // toggle off), checked first; no live adapter is refused in a sentence; a reduction or stretches out of bounds are refused; a take
 // the track no longer holds or a stretch outside it is refused with code stale. Nothing is sent to the DAW on any of them. A take

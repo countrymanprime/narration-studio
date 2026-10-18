@@ -15,7 +15,7 @@ import (
 	"github.com/countrymanprime/narration-utils/shell/internal/tracks"
 )
 
-// The workspace's Takes panel (ADR 0700): the alternate takes of a chapter passage, a passage-based comparison of them,
+// The workspace's Takes panel: the alternate takes of a chapter passage, a passage-based comparison of them,
 // and "Use this take". The page sends a chapter id and a range of token indices (and, to choose, the id of a candidate
 // this host offered), never a GUID, a file or a time: every one of those is read here from the chapter's stored
 // alignment, the Booth's passage map, the saved REAPER project and the findings store (internal/passagetakes), exactly as
@@ -99,7 +99,7 @@ var takeEvidenceMeasures = passagetakes.NewMeasureCache(passagetakes.MeasureRang
 // share of the passage's script words it read as written (from the stored alignment of its range), what its own
 // source range measures (the longest pause, level, noise floor and breaths, each a value or a reason; clarity is not
 // measured) and where its place came from ("map" for a take the Booth's passage map stamped over the passage, "aligned"
-// for one recorded elsewhere; ADR 0140). It reads only and starts no job; a take whose file
+// for one recorded elsewhere). It reads only and starts no job; a take whose file
 // cannot be read has reasons, not an error. A passage WorkspaceTakes refuses is refused with the same sentence.
 func (h *Host) WorkspaceTakeEvidence(chapterID string, firstToken int, lastToken int) (string, error) {
 	resolved, _, err := h.workspaceTakesResolved(h.services(), chapterID, firstToken, lastToken)
@@ -109,7 +109,7 @@ func (h *Host) WorkspaceTakeEvidence(chapterID string, firstToken int, lastToken
 	return encodeBinding(passagetakes.Evidence(resolved, takeEvidenceMeasures), nil)
 }
 
-// WorkspaceTakesCompareStart compares the passage's usable takes as the one take comparison job (ADR 0165, ADR 0700):
+// WorkspaceTakesCompareStart compares the passage's usable takes as the one take comparison job:
 // the same sidecar mode, state and cancel as a take-review group's comparison (TakeComparisonState and
 // TakeComparisonCancel answer for it, with the passage's id as the job's FindingID), with a manifest built from the
 // saved project. It saves one take_comparison finding whose id is computable from the passage, so the panel reads it back.
@@ -140,7 +140,7 @@ func (h *Host) WorkspaceTakesCompareStart(chapterID string, firstToken int, last
 	return encodeBinding(h.launchTakeComparison(svc, "passage_id", view.PassageID, len(reads), request))
 }
 
-// WorkspaceUseTake makes a take of the passage the one that plays (EP7, ADR 0233, ADR 0700). candidateID is one of the
+// WorkspaceUseTake makes a take of the passage the one that plays (EP7). candidateID is one of the
 // ids WorkspaceTakes just offered: the host re-reads the alternates from the saved project and refuses an id it does
 // not offer, so nothing but a listed take can be chosen. What happens depends on where the take came from: another take
 // of the item is made active (set_active_take, one undo step); another retake on a fixed-lane track becomes the lane
@@ -177,7 +177,7 @@ func (h *Host) WorkspaceUseTake(chapterID string, firstToken int, lastToken int,
 
 // workspaceTakeActors are the REAPER requests WorkspaceUseTake may make, each through the DAW port's own role (or the
 // retake lanes service), so each is gated exactly as the same request from another page (dawport.CapTakes,
-// CapTakeCreate, CapRetakeLanes; ADR 0230). Making a take active uses svc.takeSelector behind the launch's resolver, as
+// CapTakeCreate, CapRetakeLanes). Making a take active uses svc.takeSelector behind the launch's resolver, as
 // WorkspaceHideTakes does: h.dawPortResolver's adapter (p5aAdapter) has no takes role.
 func workspaceTakeActors(svc hostServices, resolver *dawport.Resolver, project tracks.Project, run *runlog.Run) passagetakes.Actors {
 	return passagetakes.Actors{

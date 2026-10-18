@@ -37,6 +37,7 @@ import { BookmarkGutter, GutterContext, type GutterState } from './layout/Bookma
 import { NeedManuscript } from '../../layout/NeedManuscript';
 import { RAIL_LABEL, RailPanel, type RailTab } from './layout/RailPanel';
 import { ScriptColumns } from './layout/ScriptColumns';
+import { ownsOpeningCredits } from '../../credits/creditsEntries';
 import { CREDITS_STOP, creditsRows } from '../../credits/creditsRows';
 import { CreditsSetupBanner } from '../../credits/CreditsSetupBanner';
 import { CreditsSection } from './chapters/CreditsSection';
@@ -315,7 +316,7 @@ function ScriptWorkspace({
 
   // The mock lists the opening credits above chapter 1 and the closing credits after the last chapter as chapters, each with its prep dot;
   // the reader draws them as sections of their own in the same places (`chapters/CreditsSection.tsx`, `credits/creditsRows.ts`).
-  const ownsOpening = chapters.some((chapter) => chapter.contentKind === 'opening');
+  const ownsOpening = ownsOpeningCredits(chapters);
   const { opening: openingRow, closing: closingRow } = useMemo(
     () => creditsRows({ hasOpening: credits.hasOpening, hasClosing: credits.hasClosing, ownsOpening, previews: credits.previews }),
     [credits.hasOpening, credits.hasClosing, credits.previews, ownsOpening],

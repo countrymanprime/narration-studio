@@ -3,7 +3,7 @@ import { PICKUP_HOURS, RATIO, WPH } from '../../schedule/estimates';
 
 /** Where an item sits among the stages (Prep, Record, Edit, Proof, Pickups, Master): the least advanced comes first on a tie. */
 const STAGE = { prep: 0, record: 1, pickups: 4, master: 5 } as const;
-/** ADR 0404's groups: in progress and not ready, other in progress, ready to confirm, not started. */
+/** apps/desktop/internal/production/overview.go's groups: in progress and not ready, other in progress, ready to confirm, not started. */
 type Group = 0 | 1 | 2 | 3;
 
 /** What the page knows that Next up can list. An input is null when its source has nothing to say, and then its item is absent. */
@@ -35,7 +35,7 @@ export type NextItem =
   | { kind: 'flags'; group: Group; stage: number; risk: number; count: number; names: readonly string[] };
 
 /**
- * What to do next, ranked by risk to the due date: the work-hours at risk first, then ADR 0404's group order, then the least advanced
+ * What to do next, ranked by risk to the due date: the work-hours at risk first, then apps/desktop/internal/production/overview.go's group order, then the least advanced
  * stage; an item that blocks the work without a time estimate carries no hours. The sort is stable on the order the items are listed.
  */
 export function rankNextUp(inputs: NextUpInputs): NextItem[] {

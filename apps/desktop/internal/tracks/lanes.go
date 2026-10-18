@@ -5,7 +5,7 @@ import (
 	"strconv"
 )
 
-// Fixed item lanes, as REAPER 7.80 saves them (spike S7, docs/research/reaper-spike-s7-fixed-lanes.md; ADR 0147).
+// Fixed item lanes, as REAPER 7.80 saves them (spike S7, docs/research/reaper-spike-s7-fixed-lanes.md).
 // The track carries FREEMODE 2 (fixed lanes; 1 is free item positioning, which also writes YPOS), ITEMLANES <count>
 // and, once a lane has been silenced, LANESOLO <word> <word> ...: a bitmask over 32-bit words, bit N set when lane N
 // plays. An item carries no lane number, only YPOS <top> <height> <flag>, its top and height as fractions of the

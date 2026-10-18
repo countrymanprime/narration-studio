@@ -91,7 +91,7 @@ export function createSystemMock(
       // manifest link, independent of the DAW label.
       dawFileLinked: project.dawFileLinked(),
       // Its own mutable state, not derived from `daw`: the real host computes this from a live
-      // heartbeat (ADR 0092). The mock never grows one on its own; `dawEngineMismatch` simulates the one case anything reads today - the engine chip's
+      // heartbeat. The mock never grows one on its own; `dawEngineMismatch` simulates the one case anything reads today - the engine chip's
       // mismatch state - without pretending to a full heartbeat.
       dawReachable: initial.dawEngineMismatch ?? dawFacts().reachable,
       dawProjectMatches: initial.dawEngineMismatch ? false : dawFacts().projectMatches,

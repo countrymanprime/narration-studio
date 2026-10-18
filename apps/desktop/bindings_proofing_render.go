@@ -107,7 +107,7 @@ func (h *Host) ProofingChooseRender(chapterID string) (string, error) {
 	if _, err := proofing.Attest(store, chapter, view, path, time.Now()); err != nil {
 		return encodeBinding(map[string]any{"status": "refused", "message": err.Error()}, nil)
 	}
-	// The dialog is this build's own trust boundary for a file the app reads (ADR 0156): once the narrator has chosen
+	// The dialog is this build's own trust boundary for a file the app reads: once the narrator has chosen
 	// it here, Measure may read it too, with no second picker.
 	h.markPathMeasurable(path)
 	status, err := proofing.EvaluateRender(store, chapter, view)

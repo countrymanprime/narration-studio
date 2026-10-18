@@ -1,7 +1,7 @@
 /* Component classes. Imported into Tailwind's utilities layer (ahead of the generated
    utilities) so specificity decides conflicts between these rules and utility classes,
    the way it did before Tailwind 4 put components in a layer below all utilities. */
-/* The eyebrow label: SectionLabel's look (ADR 0640), kept for the files a later phase migrates (sectionLabelCopies.test.ts). */
+/* The eyebrow label: SectionLabel's look, kept for the files a later phase migrates (sectionLabelCopies.test.ts). */
 .section-label {
   font-family: 'Barlow Condensed', sans-serif;
   font-weight: 600;
@@ -9,6 +9,18 @@
   letter-spacing: var(--tracking-label);
   text-transform: uppercase;
   color: var(--text-muted);
+}
+/* The icon rail's group rule, drawn in place of each heading's text (the Studio Next mock's `.rail-c .grp::before`): 1 px, inset 4 px, 6 px
+   above the group's first item. Not on the first group (the brand block's own border is already above it), and not while the rail is open
+   over the page, where the heading shows. AppShell's rail panel carries `icon-rail`; its headings are `relative`. */
+@media (max-width: 1359px) {
+  .icon-rail:not(:hover, :has(:focus-visible)) [role='group']:not(:first-child) > .section-label::after {
+    content: '';
+    position: absolute;
+    inset-inline: 0.25rem;
+    top: 1.4375rem;
+    border-top: 1px solid var(--border);
+  }
 }
 .label,
 label.field-label {

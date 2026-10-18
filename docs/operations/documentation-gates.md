@@ -1,6 +1,6 @@
 # Documentation gates
 
-How the repository keeps documentation current and free of filler. The decision is [ADR 0756](../adr/0756-documentation-is-kept-current-by-path-and-text-checks-on-every-pull-request-and-agent-stop-with-judgment-left-to-two-skills.md); how each check is wired into CI is in [CI and releases](ci-and-releases.md#the-docs-impact-check).
+How the repository keeps documentation current and free of filler. The decision is Documentation gates; how each check is wired into CI is in [CI and releases](ci-and-releases.md#the-docs-impact-check).
 
 ## The checks
 

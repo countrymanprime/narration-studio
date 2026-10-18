@@ -33,7 +33,7 @@ export const notTranscribed = (): HeardAnswer => ({ heard: null, reason: 'Nothin
 
 export const marksDoc = (extras?: Parameters<typeof docFromHeard>[2]): ChapterDoc => docFromHeard(PARAS, marksAnswer(), extras);
 
-/** A chapter of `words` words in paragraphs of 50, every tenth word misread or dropped by a fixed-seed generator (ADR 0044). */
+/** A chapter of `words` words in paragraphs of 50, every tenth word misread or dropped by a fixed-seed generator. */
 export function syntheticChapter(words: number, seed = 1044): { paragraphs: TextParagraph[]; answer: HeardAnswer } {
   let s = seed;
   const rand = (): number => {

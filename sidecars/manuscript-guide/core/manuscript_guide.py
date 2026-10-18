@@ -36,7 +36,7 @@ from narration_common.ports.pronunciation import SOURCES
 from narration_common.ports.tts import ENGINES as TTS_ENGINES
 from narration_common.progress import write_progress
 
-# Importing this also registers Piper into ENGINES and CMU/eSpeak into SOURCES (ADR 0301).
+# Importing this also registers Piper into ENGINES and CMU/eSpeak into SOURCES.
 from providers import load_voice, synthesize_to_file
 
 SCHEMA_VERSION = 2
@@ -135,7 +135,7 @@ TITLE_WORDS = {
 SCENE_BREAK = re.compile(r"^[*#\-–—•·\s]+$")
 # Verbs that mark a name next to a quotation as its speaker. Deliberately narrower than PERSON_WORDS above
 # (which also accepts "smiled"/"walked"/"looked"/"thought" as a proximity signal for classifying an entity's
-# category) - a cue's attribution is precision-first (ADR 0020): only an unambiguous speech verb counts.
+# category) - a cue's attribution is precision-first: only an unambiguous speech verb counts.
 SPEECH_VERBS = {
     "said",
     "asked",
@@ -445,7 +445,7 @@ def classify(candidate: dict[str, str]) -> str:
     return "Needs Review"
 
 
-# The narrator's choices for --source: the pronunciation source registry's own names (ADR 0301).
+# The narrator's choices for --source: the pronunciation source registry's own names.
 PRONUNCIATION_SOURCES = SOURCES.names()
 
 
@@ -458,12 +458,12 @@ def pronounce_source(name: str, espeak_library: str | None, source: str) -> dict
     """
     engine = SOURCES.lookup(source)
     engine.espeak_library = espeak_library
-    # The value names its source by the registry name (ADR 0792), not the adapter's display label.
+    # The value names its source by the registry name, not the adapter's display label.
     return {**engine.pronounce(name), "source": source}
 
 
-# The narrator's own pronunciation (ADR 0346, ADR 0792). It is a provenance id, not a registered source: it is never looked
-# up, so it is not in SOURCES and the pronounce command does not offer it. A file written before ADR 0792 says ``user``.
+# The narrator's own pronunciation. It is a provenance id, not a registered source: it is never looked
+# up, so it is not in SOURCES and the pronounce command does not offer it. A file written before docs/guides/using-the-app/story-bible.md#how-you-say-each-name says ``user``.
 MANUAL_SOURCE = "manual"
 LEGACY_MANUAL_SOURCE = "user"
 MAX_USER_PRONUNCIATION = 200
@@ -492,7 +492,7 @@ def _pronunciation_core(value: dict[str, Any]) -> dict[str, Any]:
 def carry_pronunciation_work(prior: dict[str, Any] | None, fresh: dict[str, Any]) -> dict[str, Any]:
     """``fresh`` with the narrator's note and alternate from ``prior``, the pronunciation it replaces.
 
-    A stored ``status`` is ignored (ADR 0792): it is neither carried nor written. Nothing is added to a value that had none of these.
+    A stored ``status`` is ignored: it is neither carried nor written. Nothing is added to a value that had none of these.
     """
     prior = prior or {}
     value = dict(fresh)
@@ -1319,7 +1319,7 @@ def rescan(args: argparse.Namespace) -> None:
 def _pronunciation_holder(guide: dict[str, Any], entity_id_value: str, alias_index: int | None) -> tuple[dict[str, Any], str]:
     """The entity (alias_index None) or the alias whose ``pronunciation`` an edit changes, and the name it is for.
 
-    Refused on a locked entity, the same as every other edit (ADR 0007).
+    Refused on a locked entity, the same as every other edit.
     """
     entity = find_entity(guide, entity_id_value)
     if entity.get("locked"):
@@ -1357,7 +1357,7 @@ def set_review(entity: dict[str, Any], entry: bool, aliases: list[str]) -> None:
 
 
 def _review_target(guide: dict[str, Any], entity_id_value: str, alias_index: int | None) -> tuple[dict[str, Any], str | None]:
-    """The entry a review call changes and the alias text it names (None for the entry itself). Refused on a locked entry (ADR 0007)."""
+    """The entry a review call changes and the alias text it names (None for the entry itself). Refused on a locked entry."""
     entity = find_entity(guide, entity_id_value)
     if entity.get("locked"):
         raise ValueError("This entity is locked. Unlock it before editing.")
@@ -1404,7 +1404,7 @@ SPEAKING_CATEGORIES = {row["name"] for row in DEFAULT_TYPES if row["speaks"]}
 
 
 def speaker_color(args: argparse.Namespace) -> None:
-    """Sets the entry's speaker colour, 1..7 (the ``--speaker-N`` hue of ADR 0367), which wins over the stable pick; 0 puts it back to
+    """Sets the entry's speaker colour, 1..7 (the ``--speaker-N`` hue of docs/design/colour-and-contrast.md#per-speaker-colours), which wins over the stable pick; 0 puts it back to
     automatic. Refused on a locked entry and for an entry whose type cannot speak."""
     if not 0 <= args.index <= SPEAKER_COLORS:
         raise ValueError(f"A speaker colour is 1 to {SPEAKER_COLORS}, or 0 for automatic.")
@@ -1430,7 +1430,7 @@ def _load_guide_for_edit(path: str) -> dict[str, Any]:
 def pronounce(args: argparse.Namespace) -> None:
     """Sets the pronunciation of an entity's own name, or one of its aliases, from one named engine.
 
-    Refused on a locked entity, the same as every other edit (ADR 0007). The value is marked ``chosen`` so a later
+    Refused on a locked entity, the same as every other edit. The value is marked ``chosen`` so a later
     rebuild's ``merge_locked`` keeps it instead of overwriting it with a freshly generated one. A narrator's own
     pronunciation it replaces is kept as the ``alternate``.
     """
@@ -1631,7 +1631,7 @@ def character_name_index(entities: list[dict[str, Any]], speaking: set[str] | No
 def find_speech_tag(text: str, quote_start: int, quote_end: int, character_index: dict[str, str]) -> tuple[str | None, str, str]:
     """Looks for a speech-verb tag naming a known character right after or right before the quote
     ('"..." Ada said.' / 'Ada said, "..."'). Anything else, including a tag naming someone who never became
-    a real Character entity, is left `unknown` rather than guessed at (ADR 0020)."""
+    a real Character entity, is left `unknown` rather than guessed at."""
     after = text[quote_end : quote_end + TAG_WINDOW]
     match = AFTER_QUOTE_TAG.match(after)
     if match and match.group(2).lower() in SPEECH_VERBS:
@@ -1674,11 +1674,11 @@ def extract_cues_from_text(text: str, character_index: dict[str, str], chapter_i
 
 
 def extract_dialogue_cues(paragraphs: list[dict[str, str]], character_index: dict[str, str]) -> list[dict[str, Any]]:
-    """Rules-based cue extraction (precision-first, ADR 0020): quote spans, adjacent speech-verb tags resolved
+    """Rules-based cue extraction (precision-first): quote spans, adjacent speech-verb tags resolved
     against known Character names/aliases, and per-scene continuation for exactly two active speakers.
     A scene-break paragraph resets who is "active" - continuation never crosses one. Three or more active
     speakers in a scene, or only one so far, leaves an untagged quote `unknown` rather than guessing which
-    of several people it might be (ADR 0020)."""
+    of several people it might be."""
     cues: list[dict[str, Any]] = []
     scene_speakers: dict[tuple[str, int], list[str]] = defaultdict(list)
     last_speaker: dict[tuple[str, int], str] = {}
@@ -1706,7 +1706,7 @@ def extract_dialogue_cues(paragraphs: list[dict[str, str]], character_index: dic
 
 
 def merge_dialogue_cues(fresh: list[dict[str, Any]], previous_cues: list[dict[str, Any]]) -> list[dict[str, Any]]:
-    """A narrator's correction (`correct_cue`) survives a rebuild the same way a locked entity does (ADR 0007):
+    """A narrator's correction (`correct_cue`) survives a rebuild the same way a locked entity does:
     matched by `cue_id`, which is itself a hash of the paragraph, the quote's position and its text, so a cue
     whose underlying text is unchanged always gets the same id back and reclaims its correction; a cue whose
     paragraph text changed gets a new id and simply does not carry a stale correction onto unrelated content."""
@@ -1723,7 +1723,7 @@ def merge_dialogue_cues(fresh: list[dict[str, Any]], previous_cues: list[dict[st
 def correct_cue(args: argparse.Namespace) -> None:
     """Records the narrator's own attribution for one cue (or clears it back to `unknown`), so the next
     rebuild's `merge_dialogue_cues` keeps it instead of overwriting it with fresh, possibly-`unknown`,
-    extraction - the same durability `merge_locked` already gives a locked entity (ADR 0007)."""
+    extraction - the same durability `merge_locked` already gives a locked entity."""
     guide = load_json(args.guide)
     if not guide:
         raise ValueError("Guide file does not exist; build it first.")
@@ -1985,8 +1985,8 @@ def unrelate(args: argparse.Namespace) -> None:
 
 def _phoneme_block(ipa: str) -> str | None:
     """Piper's own inline raw-phoneme escape (``"[[ ... ]]"``, ``PiperVoice.phonemize``) skips its espeak
-    text-to-phoneme step, speaking exactly the stored symbols instead of re-guessing them from the spelled name
-    (ADR 0680). ``None`` when ``ipa`` is empty or would break out of the block early.
+        text-to-phoneme step, speaking exactly the stored symbols instead of re-guessing them from the spelled name
+    . ``None`` when ``ipa`` is empty or would break out of the block early.
     """
     text = ipa.strip()
     if not text or "]]" in text:
@@ -2130,7 +2130,7 @@ def self_check(args: argparse.Namespace) -> None:
 def _capability_row(descriptor) -> dict:
     """One row of a `capabilities` report: a Descriptor's label, platforms and modes, plus its asset kind when it
     has one (TtsDescriptor only). "loadable" is always null: this reports registration only, never whether the row
-    actually loads (ADR 0403) - the same shape live_asr.py's --capabilities uses."""
+    actually loads - the same shape live_asr.py's --capabilities uses."""
     row = {"label": descriptor.label, "platforms": list(descriptor.platforms), "modes": list(descriptor.modes), "loadable": None}
     asset_kind = getattr(descriptor, "asset_kind", "")
     if asset_kind:

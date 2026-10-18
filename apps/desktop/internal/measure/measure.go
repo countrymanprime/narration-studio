@@ -31,7 +31,7 @@ const (
 
 // AnalyzerVersion is the version of the measurements and of the findings raised from them. It changes when a value or a
 // finding changes meaning, so an exported report says which analyzers made it; 2: delivery findings are raised per rule
-// of a delivery profile (ADR 0179), not per limit.
+// of a delivery profile, not per limit.
 const AnalyzerVersion = 2
 
 // Report holds the measurements for one file. A nil value means the

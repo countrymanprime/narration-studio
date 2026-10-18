@@ -38,7 +38,7 @@ if (guideDataMissing.length) {
   throw new Error(`Release Story Bible data is incomplete: ${guideDataMissing.join(', ')}. Manuscript Guide must collect the Piper and cmudict data and the cmudict metadata (scripts/release/prepare-resources.py).`);
 }
 // The optional analysis tools (GLiNER, BookNLP, transformers, torch) are downloads the guide imports from the asset registry's install
-// folder (ADR 0848), never part of the freeze: prepare-resources.py excludes them, and this proves the exclusion held.
+// folder, never part of the freeze: prepare-resources.py excludes them, and this proves the exclusion held.
 const optionalToolsFrozen = ['gliner', 'booknlp', 'transformers', 'torch'].filter((name) => existsSync(resolve(guideInternal, name)));
 if (optionalToolsFrozen.length) {
   throw new Error(`Release Story Bible sidecar carries an optional download: ${optionalToolsFrozen.join(', ')}. Manuscript Guide loads these from the analysis tool's install folder; exclude them in scripts/release/prepare-resources.py.`);
@@ -53,7 +53,7 @@ if (process.platform === 'win32') {
   if (moonshineMissing.length) {
     throw new Error(`Release Moonshine engine is incomplete: moonshine_voice/${moonshineMissing.join(', moonshine_voice/')}. Manuscript Teleprompter must collect the moonshine_voice binaries (scripts/release/prepare-resources.py).`);
   }
-  // The built-in recorder's engine (the capture port's wasapi row, ADR 0357) is sounddevice, whose
+  // The built-in recorder's engine (the capture port's wasapi row) is sounddevice, whose
   // PortAudio DLL ships in `_sounddevice_data/portaudio-binaries` and is loaded with ctypes: without it the row lists "cannot
   // list devices here" and nothing records.
   const portaudioDir = resolve(runtime, 'manuscript-teleprompter', '_internal', '_sounddevice_data', 'portaudio-binaries');

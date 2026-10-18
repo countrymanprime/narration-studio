@@ -8,7 +8,7 @@ import { fileURLToPath } from 'node:url';
 import { WINDOWS_INSTALLER } from './assets.mjs';
 
 // Nothing on a developer machine or in a pull request can run makensis (it is only installed in the Windows build job), so these
-// tests read the installer definition and hold it to the decisions of docs/adr/0082 that a later edit could quietly undo.
+// tests read the installer definition and hold it to the decisions of docs/operations/ci-and-releases.md#the-windows-setup-program that a later edit could quietly undo.
 const repository = fileURLToPath(new URL('../..', import.meta.url));
 const installerDir = 'apps/desktop/build/windows/installer';
 const definition = readFileSync(join(repository, installerDir, 'project.nsi'), 'utf8').replace(/\r\n/g, '\n');
@@ -67,7 +67,7 @@ test('the Start Menu entry is always made and the desktop shortcut is its own ch
 });
 
 // Audacity cannot start a program itself (docs/research/audacity-launcher-feasibility.md), so the Audacity launcher is a Start Menu
-// entry beside the app's own (ADR 0145). It passes exactly `--daw Audacity`: no project path and nothing
+// entry beside the app's own. It passes exactly `--daw Audacity`: no project path and nothing
 // else, since the narrator picks the project in the app.
 test('the Start Menu always gets a "for Audacity" entry that starts the program with --daw Audacity and nothing else', () => {
   const [program, desktop] = code.split(/^Section /m).slice(1);
@@ -120,7 +120,7 @@ test('the installer makes no network request of its own', () => {
   assert.doesNotMatch(code, /inetc|NSISdl|nsisdl|InetLoad|https?:\/\/|ExecWait|Exec |ExecShell /i);
 });
 
-test('the installer signs nothing: signing is an owner decision, so no workflow signs it (ADR 0082)', () => {
+test('the installer signs nothing: signing is an owner decision, so no workflow signs it', () => {
   assert.doesNotMatch(definition, /^\s*!(finalize|uninstfinalize)|signtool/im);
 });
 

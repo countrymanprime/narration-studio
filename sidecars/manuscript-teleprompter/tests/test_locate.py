@@ -1,4 +1,4 @@
-"""The tail-audio locate (locate.py, ADR 0111): placing a recording's last words in the
+"""The tail-audio locate (locate.py): placing a recording's last words in the
 chapter, the sentence shown for confirmation, the audio cut, and the `--locate` CLI the host drives."""
 
 import importlib.util
@@ -275,7 +275,7 @@ def test_run_on_an_empty_range_hears_nothing_without_decoding(tmp_path):
 FIXTURES = Path(__file__).resolve().parents[3] / "tests" / "fixtures" / "teleprompter-locate"
 TAILS = json.loads((FIXTURES / "tails.json").read_text(encoding="utf-8"))["cases"]
 
-# The accuracy target (ADR 0111): a tail that can be placed resumes within this many words of where the reading
+# The accuracy target: a tail that can be placed resumes within this many words of where the reading
 # really stopped, and is confident; a tail that lies wholly in a repeated passage is never confident.
 RESUME_TOLERANCE_WORDS = 2
 

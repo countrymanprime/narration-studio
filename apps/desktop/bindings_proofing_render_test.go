@@ -134,7 +134,7 @@ func TestProofingClearRenderRemovesTheAssociation(t *testing.T) {
 }
 
 // TestProofingChooseRenderMarksThePathMeasurable: MeasureAnalyze refuses any path that was not chosen through its own
-// picker (ADR 0156); choosing a chapter's render here must add it to that same allowlist, so Measure needs no second
+// picker; choosing a chapter's render here must add it to that same allowlist, so Measure needs no second
 // dialog.
 func TestProofingChooseRenderMarksThePathMeasurable(t *testing.T) {
 	host := renderHost(t)

@@ -1,4 +1,4 @@
-"""A streaming PCM WAV writer for the built-in recorder (ADR 0357).
+"""A streaming PCM WAV writer for the built-in recorder.
 
 The recorder writes as it captures, so the file on disk is a readable WAV at every moment, not only after a clean stop:
 

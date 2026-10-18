@@ -1,4 +1,4 @@
--- stack_takes and unstack_takes (narration_takes.lua, ADR 0860 point 4): later reads of a passage become takes of the
+-- stack_takes and unstack_takes (narration_takes.lua, docs/reference/daw/capabilities.md): later reads of a passage become takes of the
 -- first read's item, their own items go to the muted Cuts track and the audio that follows moves up by the request's
 -- shift, in one undo block; unstack_takes puts them back by the offsets the stacked takes recorded. Both read a payload
 -- file the host wrote, check every field and every GUID before anything changes, and delete nothing the narrator

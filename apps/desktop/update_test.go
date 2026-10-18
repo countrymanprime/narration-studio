@@ -261,7 +261,7 @@ func TestAnErrorFromTheCheckerNeverBecomesABindingError(t *testing.T) {
 	}
 }
 
-// The payloads the Update bindings send (ADR 0069): the UI's contract tests validate these files against its Zod schemas.
+// The payloads the Update bindings send: the UI's contract tests validate these files against its Zod schemas.
 func TestContractUpdateStatus(t *testing.T) {
 	fake := newFakeReleaseServer(t, "v0.2.7-rc", "v0.2.6-rc")
 	host := updateHost(t, fake, "0.2.6")

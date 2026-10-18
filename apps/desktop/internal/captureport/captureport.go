@@ -1,4 +1,4 @@
-// Package captureport is the microphone capture port on the Go side (ADR 0301): which capture backend the teleprompter sidecar
+// Package captureport is the microphone capture port on the Go side: which capture backend the teleprompter sidecar
 // lists and opens input devices through on each platform. The backends themselves run in Python (narration_common.ports.capture);
 // a row here is what the host knows about one without starting it. A backend opens one platform's own audio API, so every row names
 // its platforms and none declares modes. The captureporttest suite runs over every row.
@@ -8,10 +8,10 @@
 // platforms have a backend.
 //
 // Each row also says how far it is supported (Level): dshow is Supported; wasapi, the built-in recorder's engine
-// (ADR 0357), is Experimental until the owner's check with a real microphone (#510).
+// is Experimental until the owner's check with a real microphone (#510).
 //
 // Its callers are the provider capabilities binding, the packaged app's smoke test and the Booth's
-// "Built-in recorder" (ADR 0455), whose internal/recording engine records through the wasapi
+// "Built-in recorder", whose internal/recording engine records through the wasapi
 // row by its name; teleprompterinput.go's deviceLister stays the test seam for the teleprompter's device list.
 package captureport
 
@@ -26,7 +26,7 @@ const (
 	// DShow is the DirectShow backend (FFmpeg's dshow through PyAV), the teleprompter's microphone.
 	DShow = "dshow"
 	// WASAPI is WASAPI in shared mode through PortAudio (sounddevice), which also records a take to a WAV file at the
-	// device's own rate: the built-in recorder's engine (docs/adr/0357).
+	// device's own rate: the built-in recorder's engine.
 	WASAPI = "wasapi"
 )
 
@@ -47,7 +47,7 @@ func (b backend) Name() string      { return b.name }
 func (b backend) Level() port.Level { return b.level }
 
 // NewRegistry is a registry holding the built-in rows, dshow and then wasapi: Windows is the only supported platform
-// (docs/adr/0412), and dshow, registered first, stays its default. A test registers a fake on its own copy.
+// and dshow, registered first, stays its default. A test registers a fake on its own copy.
 func NewRegistry() *port.Registry[Backend] {
 	r := &port.Registry[Backend]{Kind: "capture backend"}
 	r.Register(port.Entry[Backend]{

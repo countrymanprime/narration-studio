@@ -153,7 +153,7 @@ func TestARefusedLoopLeavesTheLoopThatWasPlaying(t *testing.T) {
 	}
 }
 
-// A finding the host cannot place is refused before anything is sent: a project time alone is never used (ADR 0121).
+// A finding the host cannot place is refused before anything is sent: a project time alone is never used.
 func TestAFindingWithoutAnItemOrATimeIsRefusedAndNothingIsSent(t *testing.T) {
 	fake := &fakeNavigator{}
 	host := newNavigationHost(t, fake)
@@ -272,7 +272,7 @@ func TestNavigatingAFindingTheProjectDoesNotHaveIsAnError(t *testing.T) {
 
 // configureLocked builds the navigator on the session's bridge client, next to the Transcript service, and a launch
 // with no session directory (the app opened on its own) is standalone.
-// TestConfigureBuildsTheNavigatorOnTheSessionsBridge is the "role comes from the resolver" test (ADR 0300):
+// TestConfigureBuildsTheNavigatorOnTheSessionsBridge is the "role comes from the resolver" test:
 // findingNavigation.navigator is navigatorRole, resolved through
 // h.dawPortResolver rather than wrapping the session's bridge client itself, and that resolver's adapter is REAPER's
 // only for a real session (p5aAdapter, over the same client configureLocked opened).

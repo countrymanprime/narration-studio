@@ -2,7 +2,7 @@ import type { CoverageReason } from './coverage';
 import type { FindingNavigation } from './findings';
 import type { TakeComparisonJob } from './takeReview';
 
-// The edit-and-proof workspace's stored word alignment (ADR 0242): the
+// The edit-and-proof workspace's stored word alignment: the
 // recording check's per-token alignment (COVERAGE_TOKEN/COVERAGE_EXTRA, sidecars/transcript-compare) read back and
 // joined with the chapter's paragraphs and its items' current played ranges. The host shapes are
 // apps/desktop/internal/coverage/{alignment.go,workspace.go} and apps/desktop/bindings_coverage.go's
@@ -24,15 +24,15 @@ export type WorkspaceToken = {
   item?: number;
   start?: number;
   end?: number;
-  /** The recogniser's score for the word, 0 to 1, or null with `confReason` (ADR 0855): null with 'no_word_scores'
-   * until the words file carries Whisper word probabilities. Absent in a payload from before ADR 0855. */
+  /** The recogniser's score for the word, 0 to 1, or null with `confReason`: null with 'no_word_scores'
+   * until the words file carries Whisper word probabilities. Absent in a payload from before apps/desktop/internal/coverage/workspace.go. */
   conf?: number | null;
   confReason?: string;
   /** Never set: a token is in the script. Only an extra run's words are added. */
   added?: never;
 };
 
-/** How an added word's times were found (ADR 0855): spread evenly between its run's two ends, or, for a run whose
+/** How an added word's times were found: spread evenly between its run's two ends, or, for a run whose
  * ends are on two items, placed at the run's start with no duration. */
 export type WorkspaceWordTiming = 'spread' | 'unplaced';
 
@@ -59,7 +59,7 @@ export type WorkspaceExtra = {
   start: WorkspaceAudioPosition;
   end: WorkspaceAudioPosition;
   afterToken?: number;
-  /** The run's words, in order (ADR 0855); empty in a payload from before it. */
+  /** The run's words, in order; empty in a payload from before it. */
   words?: WorkspaceExtraWord[];
 };
 
@@ -96,12 +96,12 @@ export type WorkspaceAlignmentResult = {
   engine?: { id: string; name: string };
 };
 
-/** The narrator's FX chains, from REAPER's FXChains folder (ADR 0234): by
+/** The narrator's FX chains, from REAPER's FXChains folder: by
  * relative name, sorted; truncated is true when the bridge's depth or count limit left some out. Read-only. The
  * narrator's favourites are a Settings field (DAW.fx_favourites), not part of this read. */
 export type WorkspaceFXChainsResult = { names: string[]; truncated: boolean };
 
-/** Where a take offered for a passage comes from (ADR 0700): another take
+/** Where a take offered for a passage comes from: another take
  * of the item the passage was heard on, another retake of its line on a fixed-lane track, or a read a take-review
  * group set beside it. */
 export type PassageTakeSource = 'item_take' | 'lane_retake' | 'take_review';
@@ -167,7 +167,7 @@ export type WorkspaceUseTakeResult = {
   changed: boolean;
 };
 
-/** A waveform overview of a stretch of a WAV source (measure.Peaks, ADR 0520): for each bucket of 1/bucketsPerSecond seconds, the lowest and highest sample over every channel, as two
+/** A waveform overview of a stretch of a WAV source (measure.Peaks): for each bucket of 1/bucketsPerSecond seconds, the lowest and highest sample over every channel, as two
  * signed bytes scaled to +-127 packed into minMax (base64: buckets * 2 bytes, minimum then maximum per bucket). */
 export type WorkspacePeaks = {
   startSeconds: number;
@@ -201,7 +201,7 @@ export interface WorkspaceApi {
   /** Compares the passage's usable takes as the one take comparison job: takeComparisonState and takeComparisonCancel
    * answer for it, with the passage's id as the job's findingId. It saves one take_comparison finding. */
   workspaceTakesCompareStart(chapterId: string, firstToken: number, lastToken: number): Promise<TakeComparisonJob>;
-  /** Makes a take the passage's playing one, by an id workspaceTakes offered (ADR 0233, ADR 0700). */
+  /** Makes a take the passage's playing one, by an id workspaceTakes offered. */
   workspaceUseTake(chapterId: string, firstToken: number, lastToken: number, candidateId: string): Promise<WorkspaceUseTakeResult>;
   /** Reads the waveform strip's peaks for every analyzed item of a chapter's stored alignment: host-computed from each item's active take's source file, cached by source identity. */
   workspacePeaks(chapterId: string): Promise<WorkspacePeaksResult>;

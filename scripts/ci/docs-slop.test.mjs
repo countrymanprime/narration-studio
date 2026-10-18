@@ -61,7 +61,7 @@ test('an unterminated fence swallows the rest of the file rather than flagging c
 });
 
 test('isIgnored matches the ignore globs', () => {
-  assert.equal(isIgnored('docs/adr/0001-x.md', ['docs/adr/**']), true);
+  assert.equal(isIgnored('docs/adr/0001-the-app-is-written-in-go.md', ['docs/adr/**']), true);
   assert.equal(isIgnored('docs/architecture/x.md', ['docs/adr/**']), false);
 });
 

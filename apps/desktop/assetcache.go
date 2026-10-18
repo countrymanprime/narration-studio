@@ -125,7 +125,7 @@ func buildMoonshineManager(cfg config, packagedRoot, root string) *moonshine.Man
 	return manager
 }
 
-// buildDictionaryManager is buildTtsManager for the offline dictionary catalog the reader's Look up reads (ADR 0097).
+// buildDictionaryManager is buildTtsManager for the offline dictionary catalog the reader's Look up reads.
 func buildDictionaryManager(cfg config, packagedRoot, root string) *dictionary.Manager {
 	catalog := layout.Path(cfg.repoRoot, layout.DictionaryCatalogFile)
 	if _, err := os.Stat(catalog); err != nil && packagedRoot != "" {
@@ -138,7 +138,7 @@ func buildDictionaryManager(cfg config, packagedRoot, root string) *dictionary.M
 	return manager
 }
 
-// buildEncoderManager is buildTtsManager for the FFmpeg build catalog the MP3 encoder runs (ADR 0342).
+// buildEncoderManager is buildTtsManager for the FFmpeg build catalog the MP3 encoder runs.
 func buildEncoderManager(cfg config, packagedRoot, root string) *ffmpeg.Manager {
 	catalog := layout.Path(cfg.repoRoot, layout.EncoderCatalogFile)
 	if _, err := os.Stat(catalog); err != nil && packagedRoot != "" {
@@ -166,7 +166,7 @@ func buildAnalysisManager(cfg config, packagedRoot, root string) *analysistools.
 
 // analysisToolInstallDir is the folder an analysis tool is installed in under the asset cache base, whether or not it is there, read from
 // the catalog at catalogPath; "" when the catalog cannot be read or does not list the tool. The packaged smoke test hands GLiNER's to the
-// Story Bible sidecar's self-check, which reads only that folder (ADR 0848).
+// Story Bible sidecar's self-check, which reads only that folder.
 func analysisToolInstallDir(catalogPath, cacheBase, id string) string {
 	tools, err := analysistools.New(catalogPath, filepath.Join(cacheBase, analysisCacheDir))
 	if err != nil {

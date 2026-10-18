@@ -98,7 +98,7 @@ test('isCheckedFile covers current docs and leaves history and plans alone', () 
   assert.equal(isCheckedFile('docs/architecture/reaper-bridge.md'), true);
   assert.equal(isCheckedFile('README.md'), true);
   assert.equal(isCheckedFile('.claude/skills/docs-style/SKILL.md'), true);
-  assert.equal(isCheckedFile('docs/adr/0001-x.md'), false);
+  assert.equal(isCheckedFile('docs/adr/0001-the-app-is-written-in-go.md'), false);
   assert.equal(isCheckedFile(`${'docs/prds'}/x.prd.md`), false);
   assert.equal(isCheckedFile('docs/research/x.md'), false);
   assert.equal(isCheckedFile('docs/ui/atlas/x.md'), false);

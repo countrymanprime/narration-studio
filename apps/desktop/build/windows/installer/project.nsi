@@ -1,15 +1,15 @@
 Unicode true
 
 ####
-## The Narration Studio installer (docs/adr/0082). `scripts/release/wails-build.mjs --installer` compiles it with makensis on Wails v3
-## (docs/adr/0200): it renders wails_tools.nsh for the release version on every build (it is generated and not checked in) with
+## The Narration Studio installer. `scripts/release/wails-build.mjs --installer` compiles it with makensis on Wails v3
+##: it renders wails_tools.nsh for the release version on every build (it is generated and not checked in) with
 ## `wails3 update build-assets`, and this file includes it, so only what must differ from the Wails default is here:
 ##
 ##  - Per user. No administrator prompt; the program goes under %LOCALAPPDATA%\Programs and the uninstall entry under HKCU. The app
 ##    replaces itself in place when it updates (docs/architecture/in-app-update.md) and needs an install folder it can write to.
 ##  - The program is narration-utils.exe, the name the REAPER launcher and the updater expect, not "Narration Utils.exe".
 ##  - The setup file is built as narration-utils-windows-x64-setup.exe (scripts/release/assets.mjs, and a test keeps the two equal);
-##    packaging releases it as narration-utils-<version>-windows-x64-setup.exe, like every other release asset (docs/adr/0197).
+##    packaging releases it as narration-utils-<version>-windows-x64-setup.exe, like every other release asset.
 ##  - The Start Menu entries are always made: the app, and "for Audacity" (--daw Audacity, the Audacity launcher). The desktop
 ##    shortcut is a choice on the components page.
 ##  - The uninstaller removes only what the installer and the updater put in the install folder, never the folder's other contents
@@ -31,7 +31,7 @@ Unicode true
   !define REQUEST_EXECUTION_LEVEL "user"
 !endif
 !if "${WAILS_INSTALL_SCOPE}" != "user"
-  !error "Narration Studio installs per user (docs/adr/0082): the updater must be able to replace the program in its folder."
+  !error "Narration Studio installs per user: the updater must be able to replace the program in its folder."
 !endif
 !define PRODUCT_EXECUTABLE "narration-utils.exe"
 !define UNINST_KEY_NAME "NarrationUtils"
@@ -96,7 +96,7 @@ Section "${INFO_PRODUCTNAME} (required)"
 
     !insertmacro wails.files
 
-    # Versions before the rename (docs/adr/0755) named the entries "Narration Utils"; an install over one replaces them.
+    # Versions before the rename named the entries "Narration Utils"; an install over one replaces them.
     Delete "$SMPROGRAMS\Narration Utils.lnk"
     Delete "$SMPROGRAMS\Narration Utils for Audacity.lnk"
     CreateShortcut "$SMPROGRAMS\${INFO_PRODUCTNAME}.lnk" "$INSTDIR\${PRODUCT_EXECUTABLE}"
@@ -121,7 +121,7 @@ Section "uninstall"
     !insertmacro wails.setShellContext
 
     # Only what the installer wrote and what the in-app updater leaves beside the program while it swaps it
-    # (docs/adr/0074): the program, its .new copy, the .old program kept until the new one has started, and a .failed one.
+    # the program, its .new copy, the .old program kept until the new one has started, and a .failed one.
     Delete "$INSTDIR\${PRODUCT_EXECUTABLE}"
     Delete "$INSTDIR\${PRODUCT_EXECUTABLE}.new"
     Delete "$INSTDIR\${PRODUCT_EXECUTABLE}.old"

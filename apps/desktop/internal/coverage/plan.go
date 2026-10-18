@@ -104,7 +104,7 @@ func planRecheck(report Report, items []plannedItem, recheckModel string) rechec
 // regionWindows turns one region's bounds into a window per item it spans: one window when its
 // Before and After both sit in the same item, or one window per item between them (each edge item
 // clipped to its own bound, any item wholly between them windowed in full) when the region crosses
-// an item boundary. A nil bound (a chapter edge, or nothing said at all on that side, ADR 0168)
+// an item boundary. A nil bound (a chapter edge, or nothing said at all on that side)
 // runs to that item's own played edge instead.
 func regionWindows(region RegionLine, ordered []plannedItem) []window {
 	startIndex, startTime := ordered[0].Index, 0.0

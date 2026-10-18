@@ -14,14 +14,14 @@ type Story = StoryObj<typeof meta>;
 
 export const Default: Story = {};
 
-// An outline icon is off, a solid one is on (icon-audit.md rule 3).
+// An outline icon is off, a solid one is on (icon-audit.md).
 export const Flipped: Story = { args: { name: 'goTo', flip: true } };
 
 const iconKeys = Object.entries(CATALOG)
   .filter(([, row]) => row.icon !== null)
   .map(([key]) => key as IconName);
 
-// Every catalogue key with an icon, named by its action. The atlas draws it in light and dark (ADR 0761, SNF-3), so a new row shows up
+// Every catalogue key with an icon, named by its action. The atlas draws it in light and dark (SNF-3), so a new row shows up
 // here without a story of its own.
 export const Catalogue: Story = {
   render: () => (

@@ -64,7 +64,7 @@ beforeEach(() => vi.useFakeTimers());
 afterEach(() => vi.useRealTimers());
 
 describe('teleprompter mock', () => {
-  it('reads the credits as a script of their own, one paragraph per line and no title (ADR 0150)', async () => {
+  it('reads the credits as a script of their own, one paragraph per line and no title', async () => {
     const mock = build();
     const events: TeleprompterEvent[] = [];
     mock.subscribeTeleprompterEvent((event) => events.push(event));
@@ -112,7 +112,7 @@ describe('teleprompter mock', () => {
     const positions = events.flatMap((event) => (event.type === 'position' ? [event] : []));
     expect(positions.at(-1)).toMatchObject({ read: words, status: 'done' });
     expect(positions.some((position) => position.status === 'waiting')).toBe(true);
-    // Reaching the end arms the host's auto-stop, which ends the session a few seconds later (ADR 0106).
+    // Reaching the end arms the host's auto-stop, which ends the session a few seconds later.
     expect(states.map((state) => [state.phase, state.message])).toEqual([
       ['starting', 'Starting the teleprompter…'],
       ['running', 'Listening…'],

@@ -4,13 +4,13 @@ import type { WorkJob } from './manuscript';
 
 export type GuideEvidence = { chapter: string; chapterId?: string; paragraph: number; paragraphId?: string; excerpt: string; sourceLine?: number };
 export type GuideRelationship = { id: string; name: string; label: string };
-/** Where the narrator was with a pronunciation (ADR 0346, superseded by ADR 0792): read from an older file, set no longer; the Booth still
+/** Where the narrator was with a pronunciation (superseded by docs/guides/using-the-app/story-bible.md#how-you-say-each-name): read from an older file, set no longer; the Booth still
  * prints it until its swap (SNO-10). */
 export type GuidePronunciationStatus = 'researched' | 'query_sent' | 'author_confirmed';
 /** The pronunciation itself, without the narrator's bookkeeping about it. */
 export type GuidePronunciationValue = { ipa: string; source: string; confidence: string };
 /**
- * A name's pronunciation. `source` is `manual` for one the narrator typed (ADR 0792; a file written before it says `user`, which still parses). `alternate` is the one of the other kind (the narrator's own
+ * A name's pronunciation. `source` is `manual` for one the narrator typed (a file written before it says `user`, which still parses). `alternate` is the one of the other kind (the narrator's own
  * or a dictionary's) kept beside it, so switching back is lossless. The schema fills `status` (`researched` on an entry written before it).
  */
 export type GuidePronunciation = GuidePronunciationValue & {
@@ -47,7 +47,7 @@ export type GuideEntity = {
   appearances?: GuideAppearance[];
   /** The review flags (SNB-3b). Absent only from an older host. */
   review?: GuideReview;
-  /** The narrator's speaker colour, 1..7 (`--speaker-N`, ADR 0367), which wins over the stable pick; absent means automatic. */
+  /** The narrator's speaker colour, 1..7 (`--speaker-N`), which wins over the stable pick; absent means automatic. */
   speaker_color?: number;
 };
 
@@ -148,7 +148,7 @@ export interface StoryBibleApi {
   guideDialogueCues(): Promise<GuideDialogueCue[]>;
   /**
    * Records the narrator's own attribution for one dialogue cue. `speakerEntityId` of `"unknown"` or `""` clears
-   * the cue back to unknown. A rebuild never overwrites a correction (mirroring the entity lock guard, ADR 0007).
+   * the cue back to unknown. A rebuild never overwrites a correction (mirroring the entity lock guard).
    */
   guideCorrectCue(cueId: string, speakerEntityId: string): Promise<void>;
   /** Clears the review flags of the entry and every name (`aliasIndex` omitted), or of one name; the entry is reviewed when nothing is left. Refused on a locked entry. */

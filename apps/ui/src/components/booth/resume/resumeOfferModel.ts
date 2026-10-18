@@ -7,14 +7,14 @@ type ResumeSource = 'live' | 'saved' | 'booth';
 /** A place in the chapter by paragraph and word within it (the Booth's remembered stop has this shape, and `onChoose` returns it). */
 export type ResumeTarget = { paragraphId: string; word: number };
 
-/** The Booth's own record of where a take stopped (ADR 0205); it wins over the DAW's answer. */
+/** The Booth's own record of where a take stopped; it wins over the DAW's answer. */
 export type KeptResume = ResumeTarget;
 
 export type ResumeOffer = ResumeTarget & {
   /** The paragraph's one-based position among the chapter's paragraphs, for "Resume at ¶ n". */
   paragraph: number;
   source: ResumeSource;
-  /** False for an estimate: the host did not place the end of the recording with confidence (ADR 0349). */
+  /** False for an estimate: the host did not place the end of the recording with confidence. */
   confident: boolean;
 };
 

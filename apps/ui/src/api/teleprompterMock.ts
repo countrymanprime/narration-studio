@@ -59,7 +59,7 @@ const MOCK_TAIL_SECONDS = 30;
 const SENTENCE_END = /[.!?…]["'”’)\]]*$/;
 
 /**
- * `ended` is a session that stopped itself at the end of the chapter (the host's auto-stop, ADR 0106); `flagged` is `listening`
+ * `ended` is a session that stopped itself at the end of the chapter (the host's auto-stop); `flagged` is `listening`
  * further into the text, with a session's suspected flags already raised.
  */
 export type TeleprompterSeed = 'listening' | 'waiting' | 'done' | 'ended' | 'flagged';
@@ -240,7 +240,7 @@ function mockReadAloudRecording(seed: MockReaperSeed, kind: 'arm' | 'start' | 's
       return { outcome: 'started', trackGuid: MOCK_REAPER_TRACK, position: 0 };
     case 'not_armed':
       return { outcome: 'refused', reason: 'not_armed', message: 'No track is armed in REAPER.' };
-    // Record arms the chapter's track alone before it starts (ADR 0791), so the other arms are no reason to refuse.
+    // Record arms the chapter's track alone before it starts, so the other arms are no reason to refuse.
     case 'other_armed':
     case 'several_armed':
       return { outcome: 'started', trackGuid: MOCK_REAPER_TRACK, position: 0 };
@@ -301,7 +301,7 @@ function sentenceAround(words: string[], last: number, breaks: Set<number>): { s
   return { start, end, text: words.slice(start, end).join(' ') };
 }
 
-// The browser mock's stand-in for TeleprompterLocate (apps/desktop/teleprompterlocate.go, ADR 0111): the host's statuses
+// The browser mock's stand-in for TeleprompterLocate (apps/desktop/teleprompterlocate.go): the host's statuses
 // from the mock project's track match, and for a readable track a confident resume word part-way into the chapter. The
 // real placement (Whisper over the tail, the tracker's alignment) happens only in the sidecar.
 function mockLocate(
@@ -316,7 +316,7 @@ function mockLocate(
   if (picked !== undefined && !track) throw new Error('that track is not in the selected REAPER project');
   const base = { match, track: track ? { guid: track.guid, name: track.name, index: track.index } : null, recordedEnd: null, tail: null, located: null };
   if (!track) return { ...base, status: 'no_track' };
-  // The mock has no live REAPER: every track it reads is the saved project's, at the end of its audio (ADR 0349).
+  // The mock has no live REAPER: every track it reads is the saved project's, at the end of its audio.
   const read = { ...base, dawSource: 'saved' as const, dawAt: 'end' as const };
   const recordedEnd = mockRecordedEnd(track);
   if (!recordedEnd) return { ...read, status: 'no_recording' };
@@ -395,7 +395,7 @@ function withMockVerdict(
   return { ...draft, lastReading, verdict: mockReconcile(draft.located, lastReading, words, breaks, draft.dawSource) };
 }
 
-/** The mock of the sidecar's `text_script` for the credits (ADR 0150): one paragraph span per line with words, no title span. */
+/** The mock of the sidecar's `text_script` for the credits: one paragraph span per line with words, no title span. */
 function buildCreditsScript(kind: CreditsKind, text: string): { script: TeleprompterScript; words: string[] } {
   const words: string[] = [];
   const spans: TeleprompterScript['spans'] = creditsParagraphs(kind, text).map((paragraph) => {
@@ -427,7 +427,7 @@ const FLAG_CONFIDENCE_REASON =
   'Suspected from live speech recognition while reading aloud: the engine can mishear a correct read, so this has no score and is not proof. Transcript Compare over the recorded take is authoritative.';
 
 /**
- * The mock of `TeleprompterSaveFlags` (`apps/desktop/teleprompterflags.go`, ADR 0117): the same id rule in spirit (chapter,
+ * The mock of `TeleprompterSaveFlags` (`apps/desktop/teleprompterflags.go`): the same id rule in spirit (chapter,
  * paragraph, kind and words, so a repeat is one finding), a dismissal kept per id and heard text, and the same record shape.
  */
 function createFlagStore(deps: Pick<Deps, 'chapters' | 'paragraphs'>) {
@@ -478,7 +478,7 @@ function createFlagStore(deps: Pick<Deps, 'chapters' | 'paragraphs'>) {
   };
 }
 
-/** A chapter's last reading as the host writes it at session end (ADR 0205), for the mock of the locate result. */
+/** A chapter's last reading as the host writes it at session end, for the mock of the locate result. */
 export function mockLastReading(chapterId: string, read: number, tokens: number): TeleprompterReading {
   return { version: 1, chapterId, read: Math.min(read, tokens), tokens, scriptHash: '0'.repeat(64), status: 'listening', endedAt: '2026-09-24T21:04:00Z' };
 }
@@ -563,7 +563,7 @@ export function createTeleprompterMock(deps: Deps): TeleprompterApi {
     if (!chapter) throw new Error(`Chapter ${query} was not found among the narration chapters.`);
     return { id: query, built: buildScript(chapter, deps.paragraphs()) };
   };
-  // The host's creditsScript and StartScript refusals (ADR 0150), in the same words.
+  // The host's creditsScript and StartScript refusals, in the same words.
   const planCredits = (kind: CreditsKind): Planned => {
     const name = CREDITS_LABEL[kind].toLowerCase();
     const text = deps.creditsText(kind);
@@ -761,7 +761,7 @@ export function createTeleprompterMock(deps: Deps): TeleprompterApi {
       stateSubscribers.add(onState);
       return () => stateSubscribers.delete(onState);
     },
-    // The mock has no live REAPER to follow (resumefollow.go, ADR 0353): it answers as the host does with track state off,
+    // The mock has no live REAPER to follow (resumefollow.go): it answers as the host does with track state off,
     // or with no track for the chapter, and never pushes teleprompter_resume_follow. The prompt still goes away on the DAW
     // mock's transport (subscribeDawTransport), which it also listens to.
     teleprompterResumeFollow: async (chapterId, trackGuid) => {

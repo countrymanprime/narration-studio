@@ -9,7 +9,7 @@ import (
 	"github.com/countrymanprime/narration-utils/shell/internal/contractfile"
 )
 
-// The `teleprompter:state` snapshot the host builds (ADR 0069), pinned for the UI's contract tests. The running snapshot is
+// The `teleprompter:state` snapshot the host builds, pinned for the UI's contract tests. The running snapshot is
 // built by relaying the events the Python sidecar's own test pins (teleprompter-events.json) through the real onLine, so
 // the two halves of the stream are tied to the same file.
 func TestContractIdleState(t *testing.T) {

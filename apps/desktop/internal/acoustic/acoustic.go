@@ -1,7 +1,7 @@
 // Package acoustic is the character continuity review's dependency-free,
 // range-limited feature extraction engine (pitch, speaking rate, energy and
 // a coarse spectral summary), option A of
-// docs/research/character-continuity-acoustic-trial.md (ADR 0348). It
+// docs/research/character-continuity-acoustic-trial.md. It
 // consumes measure.Range so a candidate audio range means the same whole
 // number of frames here as it does in the measure package, without depending
 // on measure's unexported conversion.
@@ -96,7 +96,7 @@ type Features struct {
 // Extract computes Features from the WAV audio read from r, limited to rng
 // if it is not nil (the whole stream otherwise). Stereo input is downmixed
 // to mono (per-frame channel average) before analysis: pitch, rate and
-// spectral shape describe one voice, not a channel, and ADR 0025 already
+// spectral shape describe one voice, not a channel, and docs/architecture/codebase-map.md already
 // limits this repository's audio handling to mono and stereo.
 //
 // A range whose start is past the end of the audio, or a clip shorter than

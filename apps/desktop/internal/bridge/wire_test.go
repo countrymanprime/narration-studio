@@ -38,7 +38,7 @@ var realEvents = map[string][]string{
 	"RENDER_CONFIGURED":     {"RENDER_CONFIGURED", "t1", "C:/p/renders", "2", "C:/p/renders/Chapter 1.wav;C:/p/renders/Chapter 2.wav"},
 	"PROJECT_STATE":         {"PROJECT_STATE", "t1", "7", "C:/p/Book.rpp"},
 	"CLEANUP_LAUNCHED":      {"CLEANUP_LAUNCHED", "t1", "repair_pops_clicks", "Item: Repair pops/clicks..."},
-	// integrations/reaper/tests/level_normalize_test.lua (ADR 0252).
+	// integrations/reaper/tests/level_normalize_test.lua.
 	"GAIN_STALE":         {"GAIN_STALE", "g1", "f-0001", "{AAAAAAAA-0000-4000-8000-000000000001}", "item"},
 	"GAIN_ITEM":          {"GAIN_ITEM", "g1", "{AAAAAAAA-0000-4000-8000-000000000001}", "1.000000", "1.412538"},
 	"GAIN_APPLIED":       {"GAIN_APPLIED", "g1", "1"},
@@ -51,7 +51,7 @@ var realEvents = map[string][]string{
 	"LOOP_STOPPED":  {"LOOP_STOPPED", "s1", "3", "0"},
 	"PONG":          {"PONG", "p1", "1", "0", "0"},
 	"FINDING_STALE": {"FINDING_STALE", "n1", "{FFFFFFFF-0000-4000-8000-00000000FFFF}", "item"},
-	// integrations/reaper/tests/finding_marker_test.lua (ADR 0123).
+	// integrations/reaper/tests/finding_marker_test.lua.
 	"FINDING_MARKER": {"FINDING_MARKER", "m1", "added", "{AAAAAAAA-0000-4000-8000-0000000000A1}", "12.500000", "MISREAD: 'pink eyes' as 'pink ice'"},
 	// integrations/reaper/tests/track_state_test.lua (chapter_track_state).
 	"TRACK_STATE":     {"TRACK_STATE", "t1", "{00000001-0000-4000-8000-000000000001}", "0", "2.500000", "1.250000", "C:/p/Book.rpp", "0", "7", "1", "2", "1024", ""},
@@ -76,7 +76,7 @@ var realEvents = map[string][]string{
 	"FX_CHAIN":         {"FX_CHAIN", "f1", "Voice/Test EQ.RfxChain"},
 	"FX_CHAINS_LISTED": {"FX_CHAINS_LISTED", "f1", "3", "0"},
 	"FX_CHAIN_APPLIED": {"FX_CHAIN_APPLIED", "c1", "Voice/Test EQ.RfxChain", "{00000001-0000-4000-8000-000000000001}", "1"},
-	// integrations/reaper/tests/master_render_test.lua (master_chain_read, render_with_fx; ADR 0306).
+	// integrations/reaper/tests/master_render_test.lua (master_chain_read, render_with_fx).
 	"MASTER_CHAIN_FX":   {"MASTER_CHAIN_FX", "c1", "{00000001-0000-4000-8000-000000000001}", "Voice", "VST: ReaEQ (Cockos)", "1"},
 	"MASTER_CHAIN_READ": {"MASTER_CHAIN_READ", "c1", "3", "0"},
 	"FX_RENDER_FILE":    {"FX_RENDER_FILE", "r1", "Chapter 1", "C:/p/narration-utils/mastering/run1/fx-01.wav"},
@@ -226,7 +226,7 @@ func TestARequiredNumberThatIsEmptyIsAnErrorButAnOptionalOneMayBeEmpty(t *testin
 }
 
 func TestAnErrorEventOfTheOlderShapeIsStillReadable(t *testing.T) {
-	// ERROR|<message> (no run id) is the shape before ADR 0068; the transcript service ignores it, so the table must not make it a
+	// ERROR|<message> (no run id) is the shape before docs/architecture/daw-integration.md#the-daw-port; the transcript service ignores it, so the table must not make it a
 	// second, louder kind of failure.
 	if err := CheckEvent([]string{"ERROR", "Unsupported hub protocol"}); err != nil {
 		t.Fatal(err)
@@ -249,7 +249,7 @@ func TestTheFieldNamesOfARealEventAreListedForDiagnosticsWithoutValues(t *testin
 	}
 }
 
-// TestAProjectStatusHeartbeatWithAnUnsavedProjectIsStillValid is ADR 0092: an unsaved REAPER project reports an
+// TestAProjectStatusHeartbeatWithAnUnsavedProjectIsStillValid is apps/desktop/internal/daw/locate.go: an unsaved REAPER project reports an
 // empty rpp (never omitted, docs/research/reaper-spike-s6-daw-reachability.md), so the field must be allowed to be
 // empty although it is required.
 func TestAProjectStatusHeartbeatWithAnUnsavedProjectIsStillValid(t *testing.T) {
@@ -265,7 +265,7 @@ func TestAProjectStatusHeartbeatNeedsItsUnsavedFlagToBeANumber(t *testing.T) {
 	}
 }
 
-// ADR 0305: the heartbeat's transport fields are optional (an older script sends none) and numbers.
+// docs/architecture/reaper-bridge.md: the heartbeat's transport fields are optional (an older script sends none) and numbers.
 func TestAProjectStatusHeartbeatCarriesAnOptionalTransport(t *testing.T) {
 	if err := CheckEvent([]string{"PROJECT_STATUS", "", "C:/p/Book.rpp", "0", "3", "5", "12.500000"}); err != nil {
 		t.Fatalf("a heartbeat with the transport must be valid: %v", err)

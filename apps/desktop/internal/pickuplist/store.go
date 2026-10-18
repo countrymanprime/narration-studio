@@ -129,7 +129,7 @@ const (
 )
 
 // editCategories are fixed in the edit rather than re-recorded: the Proof page's own list
-// (apps/ui/src/components/proof/resolution.ts, ADR 0470). Every other category is a pickup, the safer fix.
+// (apps/ui/src/components/proof/resolution.ts). Every other category is a pickup, the safer fix.
 var editCategories = map[findings.Category]bool{
 	findings.CategoryDuplicateRead: true, findings.CategoryTakeComparison: true, findings.CategoryPacing: true,
 	findings.CategoryAudioQuality: true, findings.CategorySilenceCleanup: true, findings.CategoryLevelConsistency: true,

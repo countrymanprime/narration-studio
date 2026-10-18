@@ -5,7 +5,7 @@ import ts from 'typescript';
 import { describe, expect, test } from 'vitest';
 import { FEEDBACK_CATALOG, SILENT_CATCHES } from './interactionFeedback.catalog';
 
-// ADR 0075: every place the UI calls the host has a row in the interaction feedback catalog, with a verdict against the standard, and no failure
+// docs/architecture/interaction-feedback.md#the-standard: every place the UI calls the host has a row in the interaction feedback catalog, with a verdict against the standard, and no failure
 // of a narrator's action is swallowed without a reviewed reason. This test keeps that inventory honest. It reads the contracts and the source with
 // the TypeScript parser (a comment or a string that mentions a method is not a call), so it needs no build.
 

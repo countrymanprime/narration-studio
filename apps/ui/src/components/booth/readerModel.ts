@@ -87,7 +87,7 @@ export function previewRows(chapter: Pick<ManuscriptChapter, 'title' | 'subtitle
   ];
 }
 
-/** The credits the teleprompter can read instead of a chapter (ADR 0150). */
+/** The credits the teleprompter can read instead of a chapter. */
 export type CreditsKind = 'opening' | 'closing';
 export const CREDITS_LABEL: Record<CreditsKind, string> = { opening: 'Opening credits', closing: 'Closing credits' };
 
@@ -157,7 +157,7 @@ export type ReaderMark = WordMark<ReaderMarkTarget>;
  * The story bible and note marks of a chapter's paragraphs, by paragraph id (a paragraph row's `key`, in both `buildRows`
  * and `previewRows`). Mentions and anchors come from the helpers the Manuscript reader uses, so both readers mark the
  * same words. A row's marks are in reading order; a paragraph with no marks has no entry. Formatting spans are out of
- * scope for the reader (ADR 0014).
+ * scope for the reader.
  */
 export function readerMarks(paragraphs: ManuscriptParagraph[], entities: GuideEntity[], notes: ManuscriptNote[]): Map<string, ReaderMark[]> {
   const entitiesById = new Map(entities.map((entity) => [entity.id, entity]));
@@ -209,7 +209,7 @@ export type Session = {
   /** Word ranges [from, to) the narrator skipped past. */
   skipped: Array<[number, number]>;
   heard: string;
-  /** Every suspected flag the sidecar raised this session (ADR 0115), once each, in arrival order; the view picks which to show. */
+  /** Every suspected flag the sidecar raised this session, once each, in arrival order; the view picks which to show. */
   flags: TeleprompterFlag[];
 };
 

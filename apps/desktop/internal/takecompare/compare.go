@@ -33,7 +33,7 @@ type Request struct {
 	ChapterID string
 	Model     string
 	Language  string
-	// ProgressPath is handed to the sidecar for its real progress (ADR 0015); empty runs it without.
+	// ProgressPath is handed to the sidecar for its real progress; empty runs it without.
 	ProgressPath string
 	// SessionDir is where the manifest is written.
 	SessionDir string
@@ -246,7 +246,7 @@ func takeWords(span Span, take TakeDivergence) []measure.Word {
 }
 
 // neighborLevels measures, once per item, the integrated loudness of the items either side of a take's item on its
-// track (their active takes), the reference level consistency is measured against (ADR 0140).
+// track (their active takes), the reference level consistency is measured against.
 type neighborLevels map[string]*float64
 
 func (levels neighborLevels) around(track tracks.Track, item tracks.Item) []measure.NeighborLevel {

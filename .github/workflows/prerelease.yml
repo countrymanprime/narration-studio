@@ -58,7 +58,7 @@ jobs:
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
           echo "tag=v${VERSION}-rc" >> "$GITHUB_OUTPUT"
 
-  # Windows is the only supported platform (docs/adr/0412): its build creates the GitHub prerelease, and it is the only
+  # Windows is the only supported platform: its build creates the GitHub prerelease, and it is the only
   # build a release has.
   #
   # The build needs only the UI bundle and the version. It holds no write permission: the job that runs the third-party

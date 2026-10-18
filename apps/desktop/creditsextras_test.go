@@ -13,7 +13,7 @@ import (
 )
 
 // The credits extras: chapter announcements rendered per narration chapter
-// (ADR 0151) and the narrator-picked retail sample range (ADR 0152).
+// and the narrator-picked retail sample range.
 
 // A manuscript with front matter, two narration chapters (one with no subtitle) and a reference chapter; its paragraphs
 // are wordsPer words long each, two per chapter.

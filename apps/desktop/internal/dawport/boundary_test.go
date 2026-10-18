@@ -14,7 +14,7 @@ import (
 	"testing"
 )
 
-// The DAW port boundary guard (ADR 0300): dawport is the only way the host reaches an audio engine, so
+// The DAW port boundary guard: dawport is the only way the host reaches an audio engine, so
 //   - no package outside internal/bridge (the transport) and internal/dawport/reaper (the one adapter that wraps it) may hold a
 //     *bridge.Client or *bridge.Actions: a caller takes a role from a Resolver instead;
 //   - no code outside internal/dawport (any adapter, including the fake) may branch on a dawport.Kind or the DAW's own label

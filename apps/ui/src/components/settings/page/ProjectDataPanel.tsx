@@ -9,7 +9,7 @@ import type { Notify } from '../../primitives/Toast';
 
 /**
  * Settings > Project data, kept as built: clears what the project derived from its manuscript, after a confirm that
- * stays open and busy until the call ends and cannot be confirmed twice (ADR 0075). Settings remain.
+ * stays open and busy until the call ends and cannot be confirmed twice. Settings remain.
  */
 export function ProjectDataPanel({ notify, onProjectDataCleared }: { notify: Notify; onProjectDataCleared: () => Promise<void> }) {
   const manuscript = usePort('manuscript');

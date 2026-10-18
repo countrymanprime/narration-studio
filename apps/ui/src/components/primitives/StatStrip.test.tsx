@@ -44,7 +44,7 @@ describe('StatStrip', () => {
     }
   });
 
-  // ADR 0645: the strip wraps into full rows as it narrows (every tile, half of them a row, two, one) instead of clipping.
+  // docs/design/design-system.md: the strip wraps into full rows as it narrows (every tile, half of them a row, two, one) instead of clipping.
   it('wraps into full rows by the width it has: all in a row, then half, then two, then one', () => {
     const six = Array.from({ length: 6 }, (_, index) => ({ key: `k${index}`, label: `Figure ${index}`, value: `${index}` }));
     const { container } = render(<StatStrip items={six} />);

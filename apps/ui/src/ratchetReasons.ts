@@ -1,6 +1,6 @@
 // What keeps each file that still has an entry in the three per-file ratchets of the Studio Next series (SN-C4): the raw
-// native elements (`rawNatives.test.ts`, ADR 0053), the direct icon imports (`iconImports.test.ts`, ADR 0761) and the
-// `useApi()` calls (`ports/useApiRatchet.test.ts`, ADR 0770). Each of those tests calls `unexplained()` with its own
+// native elements (`rawNatives.test.ts`), the direct icon imports (`iconImports.test.ts`) and the
+// `useApi()` calls (`ports/useApiRatchet.test.ts`). Each of those tests calls `unexplained()` with its own
 // entries, so a file cannot gain an entry, or keep one, without a line here.
 //
 // KEPT is a feature the Studio Next mock does not draw, left as built on purpose, with the decision that says so.
@@ -8,14 +8,14 @@
 // is the evidence of a miss, listed so it is counted: `rawNatives.test.ts` pins the count, so a new offender cannot be added here. SN-C4 owns no component, so it records the gaps
 // and a fixer slice removes them, then deletes the line here and the entry in the ratchet.
 
-const COMPANION = 'the Companion window has no page in the mock and stays as built (DQ-13, SN0-Q5, ADR 0381)';
+const COMPANION = 'the Companion window has no page in the mock and stays as built (DQ-13, SN0-Q5)';
 const VOICE_BIBLE =
   'a Story Bible feature the mock does not draw (series voice bible, properties, dialogue cues, Commons and online pronunciation lookup), kept as built (DQ-12, SN0-Q5)';
 const ENGINE = 'the engine panel (DAW link, chapter sync, render) has no page in the mock and stays as built';
 const PICKER = 'the project picker and the start-up screens come before any Studio Next page and stay as built';
 const CREDITS = 'the credits cards stay in the Script page and the manuscript import (the SN-B8 default)';
 const ASSETS = 'the local-assets list is not a page and no swap rebuilt it; Settings mounts it as built';
-const TIMER = 'the stage timer, PFH and the effective rate stay as built (DQ-3, SN0-Q4, ADR 0320)';
+const TIMER = 'the stage timer, PFH and the effective rate stay as built (DQ-3, SN0-Q4)';
 
 export const KEPT: Readonly<Record<string, string>> = {
   'src/components/assets/LocalAssetRow.tsx': ASSETS,

@@ -1,11 +1,11 @@
--- The mastering port's DAW row over the bridge (ADR 0306):
+-- The mastering port's DAW row over the bridge:
 -- master_chain_read and render_with_fx.
 --
 -- master_chain_read lists the FX a render with FX runs, every track's and then the master track's, so the app can show
 -- the narrator the chain before they approve a render. It reads and changes nothing.
 --
 -- render_with_fx is the bridge's one render. narration_render.lua only configures a render and never triggers one; this
--- file does trigger one, and only on these conditions (ADR 0306, threat-model row 5o):
+-- file does trigger one, and only on these conditions (threat-model row 5o):
 --   * the command carries an approval the host was given by the narrator for this render: a random hex token, used once
 --     (a second command with the same token is refused, even if the first was refused for another reason);
 --   * the output folder is a run folder the app made inside the project (`<project>/narration-utils/mastering/<name>`),

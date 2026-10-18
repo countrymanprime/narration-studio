@@ -10,7 +10,7 @@ import (
 )
 
 // ErrNoApproval: a macro render was asked without the narrator's approval for this one render (the mastering port's Audacity row,
-// ADR 0306, ADR 0460, mirroring the REAPER daw row's render_with_fx).
+// docs/architecture/provider-ports.md, docs/reference/daw/capabilities.md#macro_render, mirroring the REAPER daw row's render_with_fx).
 var ErrNoApproval = errors.New("this render needs your approval")
 
 // ErrNoMacro: a macro render was asked with no macro name.

@@ -1,5 +1,5 @@
 // This file records a Transcript Compare run's chapter identity and currency
-// (ADR 0525). When a comparison finishes, ComparisonRecorder writes one analysis evidence ledger
+// When a comparison finishes, ComparisonRecorder writes one analysis evidence ledger
 // record from the run's own manifest_<run>.txt (source file, start offset and
 // played length per compared item, as narration_compare.lua writes them), the
 // chapter resolved from the run's chapter title, the manuscript's documentId,

@@ -1,4 +1,4 @@
-"""The capture port's conformance suite (ADR 0301, Liskov): what every ``CaptureBackend`` must do, checked the same way for each.
+"""The capture port's conformance suite (Liskov): what every ``CaptureBackend`` must do, checked the same way for each.
 
 ``run(backend)`` lists the devices: the listing must not raise, must be ``(devices, error)`` with either devices or a sentence, and
 every device must have a name and say it on the wire. It then opens the first listed device (or ``device=``) by that name and takes

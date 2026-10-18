@@ -1,9 +1,9 @@
 #!/usr/bin/env node
 
-// Names, packages and verifies what a release carries. Windows x64 is the only platform (docs/adr/0412):
+// Names, packages and verifies what a release carries. Windows x64 is the only platform:
 // narration-utils-<version>-<platform>.<ext> plus a .sha256 beside it, and also the setup program
 // narration-utils-<version>-windows-x64-setup.exe and the notices narration-utils-<version>-THIRD-PARTY-NOTICES.txt, each with its own
-// .sha256 (docs/adr/0082, docs/adr/0197). The version is in every name so that downloads of different releases can be told apart at a
+// .sha256. The version is in every name so that downloads of different releases can be told apart at a
 // glance. The archive is what the in-app updater downloads (apps/desktop/internal/update/manifest.go builds the same name); the setup
 // program is for a first install.
 // Checksums are per asset rather than one SHA256SUMS.txt, so a narrator checks the one file they downloaded.
@@ -22,10 +22,10 @@ export const WINDOWS_INSTALLER = 'narration-utils-windows-x64-setup.exe';
 
 // The third-party licences and the source offer of the release, under the name scripts/licenses/notices.py writes into the build folder
 // (docs/operations/ci-and-releases.md, "Third-party notices"); packaging gives it the released name (noticesName). It is its own asset, not a second file in the update zip: the in-app updater refuses a zip that holds
-// anything but narration-utils.exe (docs/adr/0074), and a client that predates a two-file zip would refuse every update to it.
+// anything but narration-utils.exe, and a client that predates a two-file zip would refuse every update to it.
 export const NOTICES_FILE = 'THIRD-PARTY-NOTICES.txt';
 
-// The workflow that builds and attests an asset (docs/adr/0071): the release job of prerelease.yml. Releases are built from main only.
+// The workflow that builds and attests an asset: the release job of prerelease.yml. Releases are built from main only.
 const PRERELEASE_WORKFLOW = '.github/workflows/prerelease.yml';
 const SOURCE_REF = 'refs/heads/main';
 
@@ -49,7 +49,7 @@ export function requireInstaller(binDir, name = WINDOWS_INSTALLER) {
 
 // `archive` turns Wails' output in binDir into the asset at `target` (an absolute path in `outDir`). Every file of every platform must be
 // on a release before it can be promoted. `installer` is a second file of the platform, copied from the Wails output as it is: it is as
-// required as the archive, so a build that lost it cannot be promoted. macOS and Linux rows were removed by D74 (docs/adr/0412).
+// required as the archive, so a build that lost it cannot be promoted. macOS and Linux rows were removed by D74.
 export const PLATFORMS = {
   // The self-contained exe is zipped (about 400 MB otherwise) and keeps the name the REAPER launcher looks for (narration-utils.exe);
   // that zip is what the in-app updater downloads. The setup program is what a narrator runs first.

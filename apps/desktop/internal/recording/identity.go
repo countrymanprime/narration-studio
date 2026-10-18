@@ -11,13 +11,13 @@ import (
 	"github.com/countrymanprime/narration-utils/shell/internal/findings"
 )
 
-// Line identity for a native take (ADR 0485): REAPER
-// has an item to stamp line identity onto (docs/adr/0026-manuscript-line-identity-in-item-extension-data.md); a
+// Line identity for a native take: REAPER
+// has an item to stamp line identity onto (docs/architecture/manuscript-line-identity.md); a
 // native take has no item, so its line identity lives instead in a project-owned sidecar file next to the takes
 // themselves, keyed by take name. ComposeLineID and ParseLineID mirror internal/lineidentity's composed-id scheme
 // field for field (an entity ID plus the manuscript's source SHA-256, joined by "@") so a line id composed by
-// either path parses identically; the two packages share no code, only the wire scheme, the same way ADR 0098
-// extends ADR 0026's pattern to a new granularity without importing it.
+// either path parses identically; the two packages share no code, only the wire scheme, the same way integrations/reaper/narration_take_review.lua
+// extends docs/architecture/manuscript-line-identity.md's pattern to a new granularity without importing it.
 
 // identityFileName is the sidecar file inside a project's Recordings folder.
 const identityFileName = "line-identity.json"

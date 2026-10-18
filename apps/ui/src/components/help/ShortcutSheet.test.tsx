@@ -154,7 +154,7 @@ describe('ShortcutSheet', () => {
     expect(onShowAll).toHaveBeenCalledOnce();
   });
 
-  it("claims the router's dialog scope while open, so nav.back (global) no longer matches until it closes (ADR 0361 decision 4)", () => {
+  it("claims the router's dialog scope while open, so nav.back (global) no longer matches until it closes (docs/architecture/studio-shell-and-registries.md)", () => {
     function Harness({ backHandler }: { backHandler: () => void }) {
       const [open, setOpen] = useState(true);
       useCommand('nav.back', backHandler);

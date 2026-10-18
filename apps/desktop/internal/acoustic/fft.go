@@ -8,7 +8,7 @@ import (
 // fft computes the discrete Fourier transform of x by recursive radix-2
 // Cooley-Tukey. len(x) must be a power of two; spectralBands zero-pads to
 // nextPow2 before calling it. Hand-rolled because the repository has no DSP
-// or numerics dependency (ADR 0008 keeps it that way) and the
+// or numerics dependency (docs/utilities/transcript-compare.md#alignment-and-confidence keeps it that way) and the
 // character-continuity acoustic trial (docs/research/character-continuity-acoustic-trial.md)
 // adopted dependency-free Go features for exactly this reason - the trial's own
 // Python used numpy.fft only to decide whether the feature design works,

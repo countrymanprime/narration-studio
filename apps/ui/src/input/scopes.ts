@@ -1,8 +1,8 @@
-/** Where a command can fire (ADR 0361 decision 1). */
+/** Where a command can fire (docs/architecture/studio-shell-and-registries.md). */
 export type Scope = 'global' | 'page' | 'booth' | 'dialog';
 
 /**
- * `dialog`, `booth` and `page` ordered most to least specific (ADR 0361 decision 4: the router "takes the most
+ * `dialog`, `booth` and `page` ordered most to least specific (docs/architecture/studio-shell-and-registries.md: the router "takes the most
  * specific scope"). `global` is last: it is the fallback that always applies. `router.tsx` walks this order and
  * takes the first scope that is both active and bound to the gesture.
  */
@@ -15,7 +15,7 @@ const OVERLAPPING_PAIRS: ReadonlySet<string> = new Set(['booth+dialog', 'booth+g
  * narrator-visible conflict rather than one the router's own precedence already keeps apart.
  *
  * A screen has at most one "surface" scope - `dialog`, `booth` or `page` - plus `global`, unless a dialog is open
- * (`router.tsx`'s `activeScopes`, ADR 0361 decision 4). `booth` is the Booth page's (it replaced the Teleprompter page and the read-aloud dialog), and a confirm
+ * (`router.tsx`'s `activeScopes`, docs/architecture/studio-shell-and-registries.md). `booth` is the Booth page's (it replaced the Teleprompter page and the read-aloud dialog), and a confirm
  * or popover opened inside it can sit on top as a `dialog`, so it claims the surface the same way `dialog` does: on a
  * booth screen, `page` is never also active, exactly as `page` is never active while a dialog is open. That is the one
  * point past the ADR's literal "page overlaps booth": read that way, the default catalog could never pass "zero

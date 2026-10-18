@@ -1,7 +1,7 @@
 // This file holds the synthetic generators (known silence lengths, impulses
 // at known positions), generated in code because, unlike real audio, they
 // can be committed to the repo. They are for unit tests only: synthetic
-// breaths and clicks are not a validation (ADR 0364). Everything here builds
+// breaths and clicks are not a validation. Everything here builds
 // small WAV fixtures with a label at every synthesized event, so
 // harness_test.go always knows exactly what a case contains and where.
 

@@ -9,7 +9,7 @@ import (
 	"github.com/countrymanprime/narration-utils/shell/internal/layout"
 )
 
-// The FFmpeg build the MP3 encoder runs (ADR 0342) is one more kind in the asset registry: the generic bindings list, install, verify
+// The FFmpeg build the MP3 encoder runs is one more kind in the asset registry: the generic bindings list, install, verify
 // and remove it with no binding of its own, and Settings > Local assets shows it with its licence.
 func TestTheEncoderIsOneMoreAssetKindTheGenericBindingsServe(t *testing.T) {
 	f := newInstallFixture(t, false)

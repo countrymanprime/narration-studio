@@ -3,7 +3,7 @@ import type { ScopedSettingField } from '../../../api/contracts/system';
 import { usePort } from '../../../ports/usePort';
 import { NO_SETTINGS } from './backupsText';
 
-/** The DAW settings the Backups tab edits (ADR 0863): the toggle, the window either side of an edit and how long a backup is kept. */
+/** The DAW settings the Backups tab edits: the toggle, the window either side of an edit and how long a backup is kept. */
 const TOOL = 'DAW';
 const KEEP_KEY = 'capability.backups';
 export const WINDOW_KEY = 'backups.window_seconds';

@@ -14,7 +14,7 @@ export const productionGoldens: Record<string, z.ZodType> = {
   // The plan (ProductionPlan, ProductionSetDeadline, ProductionSaveMilestones).
   'production-plan-empty.json': productionPlanSchema,
   'production-plan-set.json': productionPlanSchema,
-  // SN-P2: the payment type and the milestone measure, estimate, done flag and template (ADR 0800; ProductionSetPayment).
+  // SN-P2: the payment type and the milestone measure, estimate, done flag and template (ProductionSetPayment).
   'production-plan-old-manifest.json': productionPlanSchema,
   'production-plan-royalty-share.json': productionPlanSchema,
   'production-plan-milestone-measure.json': productionPlanSchema,

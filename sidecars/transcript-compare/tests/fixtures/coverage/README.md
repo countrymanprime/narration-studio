@@ -1,6 +1,6 @@
 # Recording coverage fixtures
 
-The synthetic labeled chapters the recording check is scored against ([ADR 0125](../../../../../docs/adr/0125-recording-coverage-ground-truth-is-scripted-recordings-with-paragraph-labels-and-a-corpus-directory-variable.md), [the recording check](../../../../../docs/utilities/recording-coverage.md)). Why the set is synthetic, the stub baseline and its limits are in [the fixture set research note](../../../../../docs/research/recording-coverage-fixtures.md).
+The synthetic labeled chapters the recording check is scored against ([Recording Check (recording coverage)](../../../../../docs/utilities/recording-coverage.md), [the recording check](../../../../../docs/utilities/recording-coverage.md)). Why the set is synthetic, the stub baseline and its limits are in [the fixture set research note](../../../../../docs/research/recording-coverage-fixtures.md).
 
 ## What is here
 

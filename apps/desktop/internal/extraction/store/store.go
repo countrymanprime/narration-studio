@@ -104,7 +104,7 @@ type Result struct {
 type Config struct {
 	// Project is the project folder; empty means no project is open, and nothing is read or saved.
 	Project string
-	// Reporter tells the narrator about a file that cannot be read (ADR 0069); nil only logs nothing.
+	// Reporter tells the narrator about a file that cannot be read; nil only logs nothing.
 	Reporter *persist.Reporter
 }
 

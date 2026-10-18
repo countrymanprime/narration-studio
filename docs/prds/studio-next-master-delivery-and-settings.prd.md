@@ -2,7 +2,7 @@
 
 **Source:** owner request of 2026-10-10 ([Studio Next Rebuild](studio-next-rebuild.prd.md)); the Settings, Master and Delivery behaviour in the mock's `studio-next/src/pages/Settings.tsx`, `studio-next/src/pages/Master.tsx`, `studio-next/src/pages/Delivery.tsx` and the delivery-profile rulings (ACX only; checkpoint as a template; payment type) in `studio-next/research/repo-compare-decisions.md`; the owner's rulings of 2026-10-11 (see Decisions).
 
-**Builds on:** the delivered Master & QC page, delivery profiles and mastering ([ADR 0179](../adr/0179-a-built-in-dated-acx-delivery-profile-ships-and-a-project-is-judged-against-its-selected-profile.md), [ADR 0180](../adr/0180-custom-delivery-profiles-are-copies-of-a-built-in-kept-in-a-user-level-file.md), [ADR 0440](../adr/0440-master-and-qcs-platform-tabs-are-the-projects-delivery-profile-and-the-page-draws-only-what-the-host-measures.md), [ADR 0170](../adr/0170-the-delivery-report-is-built-by-the-host-into-the-project-sidecar-without-paths-and-the-host-judges-the-limits.md), [ADR 0321](../adr/0321-the-mastering-chain-is-a-fixed-high-pass-limiter-and-gain-that-masters-to-the-profiles-own-measured-rms-and-sample-peak.md), [ADR 0322](../adr/0322-delivery-findings-are-saved-for-review-per-measured-file-versioned-by-the-audio-and-the-rules-bound.md), [ADR 0306](../adr/0306-mastering-is-a-provider-port-and-measurement-stays-one-in-process-judge.md)), the Settings page and scoped settings (`apps/ui/src/components/settings/`), the capability toggles ([ADR 0304](../adr/0304-bridge-actions-asks-a-per-command-gate-and-the-daw-ports-resolver-answers-it-from-the-per-capability-settings.md)) and the keyboard panel ([ADR 0361](../adr/0361-app-commands-go-through-one-registry-and-keyboard-midi-and-hid-are-input-sources-bound-by-a-remappable-keymap.md)). It carries over two owner-side validation phases (overview table).
+**Builds on:** the delivered Master & QC page, delivery profiles and mastering ([ACX delivery requirements](../reference/acx-delivery-requirements.md), [Data files](../reference/data-files.md), [The mastering chain](../guides/using-the-app/master-and-qc.md#the-mastering-chain), [Exporting a report](../guides/using-the-app/master-and-qc.md#exporting-a-report), [Master & QC](../guides/using-the-app/master-and-qc.md), [Shared Findings Contract](../architecture/findings-contract.md), [Provider ports](../architecture/provider-ports.md)), the Settings page and scoped settings (`apps/ui/src/components/settings/`), the capability toggles ([resolver.go](../../apps/desktop/internal/dawport/resolver.go)) and the keyboard panel ([Studio shell and registries](../architecture/studio-shell-and-registries.md)). It carries over two owner-side validation phases (overview table).
 
 **Status (2026-10-12):** the swap is in review (SN-M5, #1286): `/settings`, `/master` and `/delivery` mount the Studio Next pages, Delivery has its rail item beside Master & QC, and the old pages and equivalents are deleted. The mock's Story Bible types panel is built (SN-M53, #1539); its Recording, Definitions, Reader text and Marks panels have no host model yet and are not built. The owner's rulings of 2026-10-11 are applied. The Studio Next mock is the only spec for Settings, Master & QC and Delivery. **2026-10-13:** the old `Settings` component, which SN-M5 left stacked under the new panels, is deleted (#1698): its categories are panels of the page's one column, each two-scope panel with its own Global / This project switch, and Story Bible analysis is the mock's own panel.
 
@@ -13,7 +13,7 @@ Settings in the mock is where the new seams become visible: the DAW capabilities
 ## Evidence
 
 - **Mock.** `studio-next/src/pages/Settings.tsx`, `studio-next/src/pages/settings/AnalysisTools.tsx`, `studio-next/src/selectors/platform.ts` and `studio-next/src/fixtures/platforms.ts` (`platformOf`, `platformHas`), `studio-next/src/state/commands/settings.ts`, `studio-next/src/state/commands/delivery.ts`, `studio-next/src/selectors/master.ts`, `studio-next/src/pages/Master.tsx`, `studio-next/src/pages/Delivery.tsx`; backups settings in `studio-next/src/pages/editing/BackupsTab.tsx` and `studio-next/src/selectors/backups.ts`. Tests: `studio-next/tests/settings.test.tsx`, `studio-next/tests/master.test.tsx`, `studio-next/tests/delivery.test.tsx`, `studio-next/tests/delivery-profile.test.tsx`.
-- **Repo.** `apps/ui/src/components/settings/{Settings,DawCatalogPanel,KeyboardPanel,DeliveryProfilesPanel,DeliveryProfileEditor,ScopedSetting,AboutPanel,OnlineDictionaryPanel,CreditsPanel,RecordingCheckSummary,RetailSamplePanel}.tsx`; `apps/ui/src/components/master/*` (profile panel, per-file checks, diagnostics, mastering chain, multi-platform export, report); capability toggles in settings (`DAW.capability.<name>`, [ADR 0304](../adr/0304-bridge-actions-asks-a-per-command-gate-and-the-daw-ports-resolver-answers-it-from-the-per-capability-settings.md)); Settings categories and anchors in `App.tsx`.
+- **Repo.** `apps/ui/src/components/settings/{Settings,DawCatalogPanel,KeyboardPanel,DeliveryProfilesPanel,DeliveryProfileEditor,ScopedSetting,AboutPanel,OnlineDictionaryPanel,CreditsPanel,RecordingCheckSummary,RetailSamplePanel}.tsx`; `apps/ui/src/components/master/*` (profile panel, per-file checks, diagnostics, mastering chain, multi-platform export, report); capability toggles in settings (`DAW.capability.<name>`, [resolver.go](../../apps/desktop/internal/dawport/resolver.go)); Settings categories and anchors in `App.tsx`.
 
 | Mock behaviour | Real today |
 | --- | --- |
@@ -22,7 +22,7 @@ Settings in the mock is where the new seams become visible: the DAW capabilities
 | Backups settings, only for DAWs with the capability | None |
 | Analysis tools section | None |
 | Key list from catalogue, shows remapped keys | `KeyboardPanel` remaps from the catalogue |
-| Delivery profile chosen on first import, changed in Settings | Profile selection per project and global default ([ADR 0179](../adr/0179-a-built-in-dated-acx-delivery-profile-ships-and-a-project-is-judged-against-its-selected-profile.md)) |
+| Delivery profile chosen on first import, changed in Settings | Profile selection per project and global default ([ACX delivery requirements](../reference/acx-delivery-requirements.md)) |
 | Checkpoint measure only when the profile has it | 15-minute checkpoint is a milestone like any other (Production) |
 
 ## Proposed Solution
@@ -32,8 +32,8 @@ Settings in the mock is where the new seams become visible: the DAW capabilities
 3. **Backups** (window minutes, retention days) shown only when the DAW reports the `backups` capability.
 4. **Story Bible analysis** section: the installed tools, sizes, remove, "ask before scanning" preference, using the [Extraction and Analysis Tools](studio-next-extraction-and-analysis-tools.prd.md) consent flow.
 5. **Keys** list generated from the catalogue and the narrator's keymap.
-6. **Delivery.** `platformHas(profile, capability)` is the one lookup for what a profile unlocks (templates, measures, payment types); the first import asks for the profile (ACX or none) and Settings changes it; Master & QC draws only what the host measures ([ADR 0440](../adr/0440-master-and-qcs-platform-tabs-are-the-projects-delivery-profile-and-the-page-draws-only-what-the-host-measures.md)); DAW wording on Master and Delivery comes from capabilities.
-7. **Reflow.** Settings states are captured at 390 px ([ADR 0061](../adr/0061-settings-states-are-also-captured-at-a-390px-reflow-width.md)); the mock's breakpoints apply to the reported width.
+6. **Delivery.** `platformHas(profile, capability)` is the one lookup for what a profile unlocks (templates, measures, payment types); the first import asks for the profile (ACX or none) and Settings changes it; Master & QC draws only what the host measures ([The mastering chain](../guides/using-the-app/master-and-qc.md#the-mastering-chain)); DAW wording on Master and Delivery comes from capabilities.
+7. **Reflow.** Settings states are captured at 390 px ([Design system reference](../design/design-system.md)); the mock's breakpoints apply to the reported width.
 8. **Swap.** Settings, Master & QC and a new Delivery page (own rail item, `studio-next/src/pages/Delivery.tsx`) replace their counterparts in SNM-5, which deletes the old Settings and Master pages, the Delivery panel and every old equivalent of what the mock shows. What has no equivalent in the mock stays as built (Phase 5 lists it).
 
 ## Key Hypothesis
@@ -45,7 +45,7 @@ If Settings is generated from capabilities, the catalogue and the registry, no n
 - Distribution profiles other than ACX (and the existing custom profiles); an export of profile files.
 - Anything the mock does not show.
 - Settings for the Companion; any Series settings change (no equivalent in the mock; untouched).
-- A rewrite of the mastering chain or measurement ([ADR 0321](../adr/0321-the-mastering-chain-is-a-fixed-high-pass-limiter-and-gain-that-masters-to-the-profiles-own-measured-rms-and-sample-peak.md), [ADR 0306](../adr/0306-mastering-is-a-provider-port-and-measurement-stays-one-in-process-judge.md) stand).
+- A rewrite of the mastering chain or measurement ([Master & QC](../guides/using-the-app/master-and-qc.md), [Provider ports](../architecture/provider-ports.md) stand).
 
 ## Success Metrics
 
@@ -61,13 +61,13 @@ Owner rulings of 2026-10-11; none is open.
 
 | Id | Ruling | Consequence here |
 | --- | --- | --- |
-| SN0-Q1 / DQ-1 | Studio Next is the spec, tokens and layouts included | Benchmark mock 05 and ADRs 0665 to 0667 are superseded where the mock differs |
+| SN0-Q1 / DQ-1 | Studio Next is the spec, tokens and layouts included | Benchmark mock 05 and `apps/ui/src/components/master/RuleBadges.tsx` to 0667 are superseded where the mock differs |
 | SN0-Q2 / DQ-2 | Replace, one PR, no flag | SNM-5 swaps the routes and deletes the old pages |
-| DQ-14 / SN0-Q6 | Schedule and Delivery are pages with their own rail items | ADR 0407 decision 5 is superseded; SNM-5 adds the Delivery route and rail item |
+| DQ-14 / SN0-Q6 | Schedule and Delivery are pages with their own rail items | `docs/architecture/principles.md` is superseded; SNM-5 adds the Delivery route and rail item |
 | DQ-12 / DQ-13 | Series and Companion have no equivalent in the mock | Their settings stay as built |
 | SNM-Q1 | The profile is chosen in the import review, as the mock's `studio-next/src/pages/production/ImportFlow.tsx` does (default taken, standing instruction) | Phase 4 |
 | SNM-Q2 | Backups default to 2 minutes either side and 7 days (default taken; the DAW PRD owns the values) | Two settings rows |
-| SNM-Q3 | Settings keeps "Experimental REAPER actions" until the DAW PRD's promotion plan empties the list ([ADR 0230](../adr/0230-reaper-commands-built-before-the-verification-pass-are-refused-by-the-host-while-the-experimental-switch-is-off.md)) (default taken; the mock has no such row, so it is not re-skinned) | Left as built |
+| SNM-Q3 | Settings keeps "Experimental REAPER actions" until the DAW PRD's promotion plan empties the list ([The REAPER bridge and its test harness](../architecture/reaper-bridge.md)) (default taken; the mock has no such row, so it is not re-skinned) | Left as built |
 
 ## Users & Context
 
@@ -91,13 +91,13 @@ On conflict this PRD, and the ADR written when its phase lands, is the source of
 
 | ADR | Class | Note |
 | --- | --- | --- |
-| [ADR 0304](../adr/0304-bridge-actions-asks-a-per-command-gate-and-the-daw-ports-resolver-answers-it-from-the-per-capability-settings.md), [ADR 0230](../adr/0230-reaper-commands-built-before-the-verification-pass-are-refused-by-the-host-while-the-experimental-switch-is-off.md), [ADR 0400](../adr/0400-promoting-a-reaper-command-from-experimental-to-supported-is-a-one-line-daw-port-declaration-change.md) | KEEP / EXTEND | Toggles; reasons and flags shown |
-| [ADR 0179](../adr/0179-a-built-in-dated-acx-delivery-profile-ships-and-a-project-is-judged-against-its-selected-profile.md), [ADR 0180](../adr/0180-custom-delivery-profiles-are-copies-of-a-built-in-kept-in-a-user-level-file.md), [ADR 0440](../adr/0440-master-and-qcs-platform-tabs-are-the-projects-delivery-profile-and-the-page-draws-only-what-the-host-measures.md) | EXTEND | Capability lookup |
-| [ADR 0061](../adr/0061-settings-states-are-also-captured-at-a-390px-reflow-width.md), [ADR 0465](../adr/0465-the-shells-header-states-are-also-captured-at-the-reflow-width-because-thats-what-a-narrator-sees-at-high-zoom.md) | KEEP | Reflow |
-| [ADR 0585](../adr/0585-mock-fidelity-is-a-pixel-match-at-the-mocks-own-size-and-theme-scored-by-a-tool-that-reports-and-does-not-gate.md), [ADR 0665](../adr/0665-master-s-rule-marks-compose-statusbadge-warn-and-muted-keep-their-outline-look.md) to [ADR 0667](../adr/0667-the-mastering-chain-s-steps-are-badges-and-the-last-one-is-accent-soft.md) | SUPERSEDE (DQ-1) | Studio Next Master replaces benchmark mock 05 as the spec |
-| [ADR 0407](../adr/0407-a-new-page-replaces-its-old-counterpart-in-the-same-change-and-the-navigation-is-grouped-by-production-stage.md) | KEEP decision 1, SUPERSEDE decision 5 (DQ-2, DQ-14) | Delivery is a page with its own rail item |
-| [ADR 0079](../adr/0079-every-downloadable-asset-is-listed-installed-verified-and-removed-through-one-registry-of-providers.md), [ADR 0081](../adr/0081-local-assets-is-a-settings-list-built-from-the-registry-whose-rows-own-their-download-verify-and-remove.md) | EXTEND | Local assets list shows analysis tools |
-| [ADR 0361](../adr/0361-app-commands-go-through-one-registry-and-keyboard-midi-and-hid-are-input-sources-bound-by-a-remappable-keymap.md) | EXTEND | Key list from the catalogue |
+| [resolver.go](../../apps/desktop/internal/dawport/resolver.go), [The REAPER bridge and its test harness](../architecture/reaper-bridge.md), [The REAPER verification pass](../operations/reaper-verification-pass.md) | KEEP / EXTEND | Toggles; reasons and flags shown |
+| [ACX delivery requirements](../reference/acx-delivery-requirements.md), [Data files](../reference/data-files.md), [The mastering chain](../guides/using-the-app/master-and-qc.md#the-mastering-chain) | EXTEND | Capability lookup |
+| [Design system reference](../design/design-system.md) | KEEP | Reflow |
+| [Mock match](../operations/verification-tooling.md#mock-match), [RuleBadges.tsx](../../apps/ui/src/components/master/RuleBadges.tsx) to [MasteringChain.tsx](../../apps/ui/src/components/master/MasteringChain.tsx) | SUPERSEDE (DQ-1) | Studio Next Master replaces benchmark mock 05 as the spec |
+| [Design principles](../architecture/principles.md) | KEEP decision 1, SUPERSEDE decision 5 (DQ-2, DQ-14) | Delivery is a page with its own rail item |
+| [The asset registry (implemented)](../architecture/first-use-dependency-provisioning.md#the-asset-registry-implemented), [The local assets page (implemented)](../architecture/first-use-dependency-provisioning.md#the-local-assets-page-implemented) | EXTEND | Local assets list shows analysis tools |
+| [Studio shell and registries](../architecture/studio-shell-and-registries.md) | EXTEND | Key list from the catalogue |
 
 ## Technical Approach
 
@@ -161,7 +161,7 @@ On conflict this PRD, and the ADR written when its phase lands, is the source of
 
 ## Research Summary
 
-Read: the mock's settings, master, delivery and platform files; the real settings and master component lists; ADRs 0179, 0304, 0440. Not done: Settings categories were not audited row by row.
+Read: the mock's settings, master, delivery and platform files; the real settings and master component lists; `docs/reference/acx-delivery-requirements.md, apps/desktop/internal/dawport/resolver.go, docs/guides/using-the-app/master-and-qc.md#the-mastering-chain`. Not done: Settings categories were not audited row by row.
 
 ## Visual Spec
 

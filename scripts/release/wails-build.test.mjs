@@ -55,13 +55,13 @@ test('a version with a suffix never reaches the Go build', () => {
   assert.throws(() => goBuildArguments('0.2.7-rc', 'windows', 'x.exe'), /bare semver/);
 });
 
-// The REAPER launcher, the updater and the installer all look for exactly this name (docs/adr/0073).
+// The REAPER launcher, the updater and the installer all look for exactly this name.
 test('the program is narration-utils, with .exe on Windows only', () => {
   assert.equal(programName(product, 'windows'), 'narration-utils.exe');
   assert.equal(programName(product, 'linux'), 'narration-utils');
 });
 
-// Windows is the only shipped platform; Linux builds only as a development host (docs/adr/0412, docs/adr/0413).
+// Windows is the only shipped platform; Linux builds only as a development host.
 test('each platform builds for itself, and macOS is not built', () => {
   assert.equal(goosOf('win32'), 'windows');
   assert.equal(goosOf('linux'), 'linux');

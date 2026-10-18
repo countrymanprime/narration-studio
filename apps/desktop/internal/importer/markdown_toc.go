@@ -11,7 +11,7 @@ import (
 
 // A Markdown manuscript's own table of contents: a list whose every item is exactly one link
 // to a heading of the same file, "- [Chapter One](#chapter-one)". Two or more such items in one list make a table of
-// contents; the first such list is the one read. Its entries are matched to the chapter headings as a docx's are (ADR 0089),
+// contents; the first such list is the one read. Its entries are matched to the chapter headings as a docx's are,
 // the anchor standing in for Word's bookmark, and the list itself stays in the manuscript as the Contents section's text.
 
 // markdownTOCItem is a list item (a "-", "*" or "+" bullet, or "1." / "1)") that is one link to an in-file anchor.

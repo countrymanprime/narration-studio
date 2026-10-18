@@ -38,7 +38,7 @@ export type NoteRow = {
   pickup: boolean;
 };
 
-/** The resolution words and colours of the mock's table (`RES_LABEL`, `RES_CLASS`): a decision reads as a word, never a colour alone (ADR 0470). */
+/** The resolution words and colours of the mock's table (`RES_LABEL`, `RES_CLASS`): a decision reads as a word, never a colour alone. */
 function resolutionWords(finding: Finding): { label: string; tone: StatusTone } {
   switch (finding.review.status) {
     case 'accepted':

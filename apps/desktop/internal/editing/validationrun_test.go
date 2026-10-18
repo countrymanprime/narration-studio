@@ -1,5 +1,5 @@
 // This file is the validation run for the click and breath detectors
-// (ADR 0510): the detectors in measure/cleanup.go, exercised and never
+// the detectors in measure/cleanup.go, exercised and never
 // changed here, swept on the tuning half of the validation corpus
 // (validationcorpus_test.go), scored on the held-out half per class and
 // condition, and one fixture per failure the run found. Its tests pin the

@@ -1,12 +1,12 @@
-// Package pickuplist is the host's pickup list (ADR 0840): every line the narrator has to record again, merged from
+// Package pickuplist is the host's pickup list: every line the narrator has to record again, merged from
 // four sources the host already holds, each with a stable id, minus the ones the narrator removed.
 //
-//   - speech: the gaps of a chapter's current recording check (coverage.ClassifyGaps, ADR 0830). The unread start and
+//   - speech: the gaps of a chapter's current recording check (coverage.ClassifyGaps). The unread start and
 //     end are unfinished recording, not pickups, and a stale or absent check adds nothing (its gaps no longer describe
 //     the recording); the answer names those chapters and why.
 //   - proof: findings the narrator decided "Needs pickup": status accepted and a fix that is a pickup (fixKindOf, the
-//     Proof page's own rule, ADR 0470).
-//   - audio: the same decision on a finding whose kind is a sound (mouth, plosive, noise or breath, ADR 0844).
+//     Proof page's own rule).
+//   - audio: the same decision on a finding whose kind is a sound (mouth, plosive, noise or breath).
 //   - you: lines the narrator added by hand.
 //
 // The narrator's own changes (lines added, pickups removed, pickups left out of a session, and the done state of a
@@ -164,7 +164,7 @@ type Config struct {
 	Locate func(chapterID string, position coverage.RegionPosition) (float64, bool)
 	// DAW is the pickup markers; nil is a DAW that never answers.
 	DAW DAW
-	// Reporter tells the narrator about a file that cannot be read (ADR 0069).
+	// Reporter tells the narrator about a file that cannot be read.
 	Reporter *persist.Reporter
 }
 
@@ -722,7 +722,7 @@ func place(pickup *Pickup, chapter Chapter, paragraphID string) {
 	}
 }
 
-// audioTypes are the note types that are a sound rather than words (ADR 0844's ten words).
+// audioTypes are the note types that are a sound rather than words (docs/architecture/findings-contract.md's ten words).
 var audioTypes = map[findings.NoteType]bool{
 	findings.NoteMouth: true, findings.NotePlosive: true, findings.NoteNoise: true, findings.NoteBreath: true,
 }

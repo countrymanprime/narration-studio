@@ -2,7 +2,7 @@
 
 **Date:** 2026-10-11. **Issue:** [#1143](https://github.com/countrymanprime/narration-utils/issues/1143), Phase 1 of the [Studio Next extraction PRD](../prds/studio-next-extraction-and-analysis-tools.prd.md). **For:** the evaluation harness, which implements this protocol and writes the calibration table. Nothing is measured here.
 
-The rule being calibrated is [ADR 0803](../adr/0803-an-extraction-suggestion-at-75-percent-or-more-is-applied-and-flagged-review-and-one-under-75-percent-needs-verification.md): a suggestion at or above `VerifyBelow` is applied and flagged Review; one below it, or with no confidence, needs verification. The value is `extraction.VerifyBelow = 0.75` in `apps/desktop/internal/extraction/rule.go`, the only place the number is written. The PRD's failure test is "confident wrong entries above a few percent". This protocol says how to find out, and what a result may change.
+The rule being calibrated is [The 75% rule](../architecture/extraction-tiers.md#the-75-rule): a suggestion at or above `VerifyBelow` is applied and flagged Review; one below it, or with no confidence, needs verification. The value is `extraction.VerifyBelow = 0.75` in `apps/desktop/internal/extraction/rule.go`, the only place the number is written. The PRD's failure test is "confident wrong entries above a few percent". This protocol says how to find out, and what a result may change.
 
 ## Books
 
@@ -73,7 +73,7 @@ One value, `VerifyBelow`. The decision rule, applied to the pooled table and the
 3. The new value is the lowest qualifying `b`, and for the whole app it is the highest of the per-kind answers (the conservative one). If no edge qualifies, no confidence is trusted and the rule stays at the current value while the finding is raised with the owner.
 4. The value moves only to a bin edge, and only when both scored books agree. One book qualifying is a note, not a change.
 
-Nothing else changes: the quote requirement, the entry requirement, the reasons list and the tombstone behaviour of `rule.go` stay as they are. The change is the one constant, its test (`rule_test.go` pins it), the mock's `VERIFY_BELOW`, and an amendment of ADR 0803 through `adr-author`.
+Nothing else changes: the quote requirement, the entry requirement, the reasons list and the tombstone behaviour of `rule.go` stay as they are. The change is the one constant, its test (`rule_test.go` pins it), the mock's `VERIFY_BELOW`, and an amendment of `docs/architecture/extraction-tiers.md#the-75-rule` through `adr-author`.
 
 ## Sources compared
 
@@ -93,4 +93,4 @@ The imported file is produced from the app's own prompt template. The books are 
 
 Results calibrated on public-domain or synthetic data are provisional, and a re-run on the owner's own material goes on the owner queue as a QA item before it ships to users (D70, D65). The item for #992:
 
-> **QA, pending:** re-run the extraction calibration protocol (`docs/research/studio-next-extraction-calibration-protocol.md`) on the owner's own manuscript, with a gold set of at least 40 entries and 100 speaker lines checked by the owner, and compare its confidence table and confident-but-wrong share with the public-domain result. It does not block a merge or a launch.
+> **QA, pending:** re-run the extraction calibration protocol on the owner's own manuscript, with a gold set of at least 40 entries and 100 speaker lines checked by the owner, and compare its confidence table and confident-but-wrong share with the public-domain result. It does not block a merge or a launch.

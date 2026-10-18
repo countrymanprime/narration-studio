@@ -30,7 +30,7 @@ export function moveDraftRow(rows: DraftProperty[], id: number, direction: -1 | 
 export const propertiesFrom = (rows: DraftProperty[]): GuideProperty[] =>
   rows.map((row) => ({ key: row.key.trim(), value: row.value.trim() })).filter((row) => row.key !== '' || row.value !== '');
 
-/** The three properties a character's panel draws as fields of their own, under the mock's labels; the Script rail reads the same keys (ADR 0846). */
+/** The three properties a character's panel draws as fields of their own, under the mock's labels; the Script rail reads the same keys. */
 export const TALK_FIELDS = [
   { key: 'says', label: 'How they talk' },
   { key: 'does', label: 'How they act' },

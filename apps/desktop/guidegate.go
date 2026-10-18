@@ -46,7 +46,7 @@ func (h *Host) spacyForBuild(store *settings.Store, rulesOnly bool) (model strin
 
 // spacyAssetRequired is the answer to a Story Bible build that needs a language model that is not installed yet: what it is, its two sizes
 // (the download, and the disk it takes once unpacked), where it will be stored, and its state, so the UI can offer the three choices. The UI
-// validates it as `GuideBuildResult` (ADR 0069).
+// validates it as `GuideBuildResult`.
 func spacyAssetRequired(model spacy.Model, installState, installPath string) map[string]any {
 	return map[string]any{"status": "asset_required", "model": map[string]any{"id": model.ID, "provider": model.Provider, "displayName": model.DisplayName, "description": model.Description,
 		"version": model.Version, "publisher": model.Publisher, "license": model.License, "licenseUrl": model.LicenseURL, "modelCardUrl": model.ModelCardURL,

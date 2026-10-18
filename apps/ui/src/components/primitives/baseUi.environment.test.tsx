@@ -16,7 +16,7 @@ import { Tooltip } from '@base-ui/react/tooltip';
 import { useState } from 'react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-// The library-level facts the primitives rely on, checked under jsdom (ADR 0047). Base UI 1.8.0 needs no polyfill in
+// The library-level facts the primitives rely on, checked under jsdom. Base UI 1.8.0 needs no polyfill in
 // src/test-setup.ts; if a minor bump changes that, or changes the focus and dismissal behaviour the wrappers are built
 // on, this file is where it shows first, with the library's own parts and not one of ours in the way. It goes when the
 // wrappers' own tests cover every part it uses.

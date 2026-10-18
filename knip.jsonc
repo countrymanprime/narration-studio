@@ -1,4 +1,4 @@
-// Knip: unused files, exports and dependencies (docs/operations/verification-tooling.md, ADR 0045).
+// Knip: unused files, exports and dependencies (docs/operations/verification-tooling.md).
 // Every entry under `ignore*` says why, so a reader can tell a real exception from a way to make the report quiet.
 // Workspaces come from pnpm-workspace.yaml (apps/ui, apps/desktop); the root workspace covers scripts/ and tools/.
 {
@@ -39,7 +39,7 @@
       ],
       "ignoreDependencies": [
         // Injected into every captured page by tests/visual/lib/capture.ts, which reads the file through
-        // `createRequire(...).resolve('axe-core')` only when axe runs, so no import names it (ADR 0064). It is the
+        // `createRequire(...).resolve('axe-core')` only when axe runs, so no import names it. It is the
         // version @storybook/addon-a11y already brings.
         "axe-core"
       ]

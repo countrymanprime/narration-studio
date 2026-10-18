@@ -1,11 +1,11 @@
-// Package masteringport declares the Mastering port (ADR 0306, owner decision D86): which chain turns a narrator's audio into a
-// mastered WAV is swappable, like the other providers (ADR 0301), while what judges the result is not. Every row's written file is
+// Package masteringport declares the Mastering port (owner decision D86): which chain turns a narrator's audio into a
+// mastered WAV is swappable, like the other providers, while what judges the result is not. Every row's written file is
 // measured by internal/measure and judged by internal/deliveryprofile, the same code Master & QC and the proofing checks use,
 // so a narrator reads one set of numbers whichever chain made the file (Judge, and the conformance suite's check that a row's
 // Result is exactly Judge's answer).
 //
 // The rows:
-//   - builtin (builtin.go): today's internal/mastering chain, EQ then limiter then gain (ADR 0321), wrapped unchanged. The default.
+//   - builtin (builtin.go): today's internal/mastering chain, EQ then limiter then gain, wrapped unchanged. The default.
 //   - daw (daw.go): declared, not yet available. It will render regions through the project's own track and master FX, through
 //     the DAW port's render_with_fx role, with the narrator's approval for each render.
 //   - an Audacity row is planned (its effect macros, then Export2), once the Audacity 3.x pipe client lands; it is not registered.
@@ -45,7 +45,7 @@ type Request struct {
 	Source string
 	// Region is the region a ModeDAWRegion row asks the DAW to render, by the name the host wrote.
 	Region string
-	// Macro is the exact name of the effect macro a row that needs one applies (the Audacity row, ADR 0306, ADR 0460), as the
+	// Macro is the exact name of the effect macro a row that needs one applies (the Audacity row), as the
 	// narrator's DAW lists it.
 	Macro string
 	// Destination is the new WAV. It must not exist: a master never replaces a file (ErrDestinationExists), and never writes over
@@ -87,7 +87,7 @@ type Capabilities struct {
 	// Level is how far the row is built: Supported, Experimental (built, not yet through the owner's pass), or NotYetAvailable
 	// (declared; Master refuses). A registered row is never Unsupported.
 	Level port.Level
-	// NeedsApproval: each master needs Request.Approved. Every row that makes a DAW render needs it (ADR 0306).
+	// NeedsApproval: each master needs Request.Approved. Every row that makes a DAW render needs it.
 	NeedsApproval bool
 	// Needs are the DAW port capabilities the row uses, which the launch's DAW must have available.
 	Needs []dawport.Capability

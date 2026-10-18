@@ -8,7 +8,7 @@ import { Panel } from '../primitives/Panel';
 import type { Notify } from '../primitives/Toast';
 
 /**
- * The credits-setup banner (ADR 0208): the way back to the "Set up the credits" dialog once the narrator has pressed
+ * The credits-setup banner: the way back to the "Set up the credits" dialog once the narrator has pressed
  * Not now, or after Save leaves some tokens still unresolved. Shown on the Production home and above the Manuscript
  * credits card whenever `CreditsSetupState.banner` is true - which the host already limits to "tokens are unresolved
  * and the narrator has not said Don't ask".

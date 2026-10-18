@@ -1,4 +1,4 @@
-// Package runlog is the host's structured, leveled run log (ADR 0251): JSON lines written through log/slog to a
+// Package runlog is the host's structured, leveled run log: JSON lines written through log/slog to a
 // capped, rotating file next to host.log. Every tool run gets a run id; the host writes a `run.start` record when it
 // begins and a `run.end` record when it finishes, and — once the debug switch is on — the decision points in between.
 // Content never enters this log at any level: ids, counts, hashes, paths, timings and settings only, never

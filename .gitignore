@@ -41,8 +41,8 @@ apps/desktop/*.syso
 !apps/desktop/build/windows/
 apps/desktop/build/windows/*
 !apps/desktop/build/windows/icon.ico
-# The one installer file that differs from Wails' default (docs/adr/0082). scripts/release/wails-build.mjs renders wails_tools.nsh
-# and writes the WebView2 bootstrapper beside it on every installer build (docs/adr/0200).
+# The one installer file that differs from Wails' default. scripts/release/wails-build.mjs renders wails_tools.nsh
+# and writes the WebView2 bootstrapper beside it on every installer build.
 !apps/desktop/build/windows/installer/
 apps/desktop/build/windows/installer/*
 !apps/desktop/build/windows/installer/project.nsi

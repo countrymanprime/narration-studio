@@ -1,6 +1,6 @@
 # Repo layout: where we are and what to align
 
-Researched 2026-09-20. **Delivered:** the layout, the test rule and Nx per project are recorded in [ADR 0040](../adr/0040-the-repository-is-laid-out-by-role-and-each-project-is-an-nx-project.md) and [the codebase map](../architecture/codebase-map.md); the plan section that followed the recommendation was removed with the PRD, and the paths below describe the layout before the move. Confidence: high for the repo findings (read directly from the tree), medium for the external guidance (several points rest on one source; flagged inline).
+Researched 2026-09-20. **Delivered:** the layout, the test rule and Nx per project are recorded in [Repository layout](../architecture/codebase-map.md#repository-layout) and [the codebase map](../architecture/codebase-map.md); the plan section that followed the recommendation was removed with the PRD, and the paths below describe the layout before the move. Confidence: high for the repo findings (read directly from the tree), medium for the external guidance (several points rest on one source; flagged inline).
 
 ## Summary
 
@@ -59,7 +59,7 @@ Path-coupled config that any move must touch: `.github/labeler.yml`, `dependabot
 
 **Target shape (role-based names):**
 
-```
+```text
 apps/
   desktop/            <- shell/            Go/Wails host; keeps build/ icons
   ui/                 <- shared/ui/        React app

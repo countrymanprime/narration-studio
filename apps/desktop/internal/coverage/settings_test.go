@@ -24,10 +24,10 @@ func TestResolveSettingsWithNothingSetIsTheShippedDefaults(t *testing.T) {
 	want := Settings{
 		Alignment: AlignmentParams{MaxMisreadRun: 8, MinAnchorRun: 3}, Thresholds: Thresholds{MinParagraphPresent: 0.8, MaxMissingRun: 3},
 		Cascade:  CascadeSettings{Enabled: false, FirstPassModel: "tiny", RecheckModel: "large-v3-turbo", UnsureBelow: 0.5},
-		Parallel: Parallel{Workers: 0, ChunkSeconds: 300, OverlapSeconds: 6},
+		Parallel: Parallel{Workers: 0, ChunkSeconds: 300, OverlapSeconds: 6, Chapters: 1},
 	}
 	if got != want || got != DefaultSettings {
-		t.Fatalf("ResolveSettings = %+v, want the shipped defaults (ADR 0132, MC1, MC2) %+v", got, want)
+		t.Fatalf("ResolveSettings = %+v, want the shipped defaults (MC1, MC2) %+v", got, want)
 	}
 }
 
@@ -79,23 +79,23 @@ func TestThresholdsValidate(t *testing.T) {
 
 func TestResolveSettingsReadsTheParallelAndDoubtKeys(t *testing.T) {
 	got := ResolveSettings(lookupFrom(map[string]string{
-		SettingParallelWorkers: "3", SettingChunkSeconds: "600", SettingChunkOverlapSeconds: "10", SettingCascadeUnsureBelow: "0.4",
+		SettingParallelWorkers: "3", SettingChunkSeconds: "600", SettingChunkOverlapSeconds: "10", SettingCascadeUnsureBelow: "0.4", SettingParallelChapters: "3",
 	}))
-	if got.Parallel != (Parallel{Workers: 3, ChunkSeconds: 600, OverlapSeconds: 10}) || got.Cascade.UnsureBelow != 0.4 {
+	if got.Parallel != (Parallel{Workers: 3, ChunkSeconds: 600, OverlapSeconds: 10, Chapters: 3}) || got.Cascade.UnsureBelow != 0.4 {
 		t.Fatalf("got %+v", got)
 	}
 }
 
 func TestTheParallelAndDoubtDefaultsAreAutoWorkersFiveMinuteChunksAndAHalf(t *testing.T) {
 	got := ResolveSettings(lookupFrom(nil))
-	if got.Parallel != (Parallel{Workers: 0, ChunkSeconds: 300, OverlapSeconds: 6}) || got.Cascade.UnsureBelow != 0.5 {
+	if got.Parallel != (Parallel{Workers: 0, ChunkSeconds: 300, OverlapSeconds: 6, Chapters: 1}) || got.Cascade.UnsureBelow != 0.5 {
 		t.Fatalf("got %+v", got)
 	}
 }
 
 func TestParallelAndDoubtFallBackPerKeyOnABadValue(t *testing.T) {
 	// A chunk shorter than 30 s is not a size anyone chose on purpose: the sidecar's crossover would swallow it.
-	bad := map[string]string{SettingParallelWorkers: "-1", SettingChunkSeconds: "10", SettingChunkOverlapSeconds: "-3", SettingCascadeUnsureBelow: "1.5"}
+	bad := map[string]string{SettingParallelWorkers: "-1", SettingChunkSeconds: "10", SettingChunkOverlapSeconds: "-3", SettingCascadeUnsureBelow: "1.5", SettingParallelChapters: "0"}
 	if got := ResolveSettings(lookupFrom(bad)); got != DefaultSettings {
 		t.Fatalf("got %+v, want the defaults", got)
 	}

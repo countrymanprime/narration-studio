@@ -12,7 +12,7 @@ import (
 	"unicode/utf8"
 )
 
-// The fuzz targets in this file (ADR 0014, ADR 0013) check what must hold for any input:
+// The fuzz targets in this file check what must hold for any input:
 // the parsers never panic on a file a person chose, and the text and formatting spans they
 // produce are well formed. `go test` runs the seed corpus below plus any checked-in
 // testdata/fuzz entries, so the gate is deterministic; fuzzing itself is manual:

@@ -5,7 +5,7 @@ pure: it takes one word-level alignment between the chapter's tokens and the tra
 (the opcodes `diff_and_build_markers` in `compare.py` already computes, so coverage and the take
 markers can never disagree) and reports, per paragraph (`p-NNNNNN`), how many body tokens were
 read in place, the longest run of missing tokens, and typed regions of missing text naming their
-first and last words and the matched transcript tokens that bound them (ADR 0168).
+first and last words and the matched transcript tokens that bound them.
 
 The rules, as that page states them:
 
@@ -29,7 +29,7 @@ The rules, as that page states them:
 The narrator's thresholds (`min_paragraph_present`, `max_missing_run`) are applied on read by
 `ChapterCoverage.text_complete`, so changing one never re-aligns. The two alignment parameters
 (`max_misread_run`, `min_anchor_run`) change which tokens count, so a result is only valid for the
-parameters it was computed with (Q13). The defaults are the ones the app ships (ADR 0132), chosen
+parameters it was computed with (Q13). The defaults are the ones the app ships, chosen
 on the synthetic fixtures and still uncalibrated on real narration (Q15).
 """
 

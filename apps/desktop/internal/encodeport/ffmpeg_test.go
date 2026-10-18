@@ -988,7 +988,7 @@ type fakeChapter struct{ startMs, endMs int64 }
 // fakeM4B stands in for FFmpeg's "ipod" muxer: it writes a minimal MP4 with an audio (soun) track and, when args named an
 // FFMETADATA input with any chapters, a QuickTime "chapters" text track in the tref/chap-and-stts shape
 // encodeport.ReadM4BChapters reads back - the same shape a real FFmpeg 7.0.2 encode of the imageio-ffmpeg wheel family (the
-// catalogued Windows build's own family, ADR 0342) was found to write, checked by hand against this reader while this phase
+// catalogued Windows build's own family) was found to write, checked by hand against this reader while this phase
 // was written.
 func fakeM4B(args []string, out string, seconds float64) int {
 	chapters := fakeM4BChaptersFromArgs(args)

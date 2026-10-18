@@ -2,7 +2,7 @@
 // The Production board's Record cell reads this instead of pressing Check. It leads with the track link's own trouble when there is one (a
 // chapter with no confident, confirmed track has nothing for a check's freshness to mean yet), and only once the
 // chapter is linked does it show the check's own freshness (current / stale, with why / never), from
-// `ChapterSyncState.chapters[]` (already computed on the host, ADR 0209-0211; reading it never starts a check).
+// `ChapterSyncState.chapters[]` (already computed on the host, docs/guides/using-the-app/navigation.md#chapter-sync-0211; reading it never starts a check).
 import type { ChapterSyncChapter, ChapterTrackLink } from '../../types';
 import { chapterTrackButtonState } from './chapterTrackButtonState';
 
@@ -21,7 +21,7 @@ export type ChapterCheckStatus =
  * project is not `ready`); `sync` is its row from `ChapterSyncState.chapters` (undefined before the first sync, or
  * for a project with no chapter-sync data yet); `checking` covers both a check this page started and one the
  * background scheduler started (`sync.checking`) or is already running when the page opens (`coverage`).
- * `background` is `CoverageState.background` (ADR 0211): the host started this run on its own, so the label says so.
+ * `background` is `CoverageState.background`: the host started this run on its own, so the label says so.
  */
 export function chapterCheckStatus(
   link: ChapterTrackLink | undefined,

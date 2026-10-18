@@ -6,7 +6,7 @@ import (
 	"github.com/countrymanprime/narration-utils/shell/internal/cleanuptools"
 )
 
-// The cleanup launcher bindings, ADR 0146. h.emitCleanupTools
+// The cleanup launcher bindings, integrations/reaper/narration_cleanup.lua. h.emitCleanupTools
 // (app.go) relays every state change as the "cleanuptools:state" live event. The wire-contract schema, golden payloads
 // and mock live in apps/ui/src/api.
 

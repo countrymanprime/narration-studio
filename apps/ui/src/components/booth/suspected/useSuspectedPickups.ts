@@ -12,7 +12,7 @@ const lines = (n: number) => `${n} suspected ${n === 1 ? 'line' : 'lines'} added
 /**
  * Suspected lines become pickups (the Studio Next mock's `suspectedFrom` in `stopTake`, ruling BO-1 item 7). When a take stops, each line
  * the live speech check suspects in the paragraphs it read is put on the shared pickup list by accepting its finding: the host lists an
- * accepted finding as a pickup (ADR 0840). One the narrator dismissed, or one already accepted, is left as it is, so reading a place
+ * accepted finding as a pickup. One the narrator dismissed, or one already accepted, is left as it is, so reading a place
  * again adds it once. The toast offers Undo, which puts the findings back to unreviewed and so takes them off the list. The lines come
  * from the speech check only; nothing here flags a line by hand.
  */

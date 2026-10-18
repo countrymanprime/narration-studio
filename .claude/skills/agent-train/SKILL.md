@@ -51,7 +51,7 @@ Only the owner or the coordinator edits these. The last three rows are the Studi
 | `WEEKLY_RESET` | from `resetsAt` | The next weekly reset. The coordinator fills it from the first `seven_day` `resetsAt` it sees; until then, 22:00 America/New_York (D45) |
 | `SN_HOLD` | off | Stops launching Studio Next slices only (D-5). Merges, fixes and other work continue |
 | `SN_DAILY_CAP` | 12 | Slices launched per UTC day (D-4). A resume or a fixer for a launched slice doesn't count. At the cap, nothing new launches until the next UTC day |
-| Session cap per slice | 1 + 1 resume + 1 fixer | D-6. A `spike` slice, or an `adr` slice already open, gets 1 session. A slice that uses its cap is relabelled `blocked` and re-groomed; it was too big |
+| Session cap per slice | 1 + 1 resume + 1 fixer | D-6. A `spike` slice gets 1 session. A slice that uses its cap is relabelled `blocked` and re-groomed; it was too big |
 
 ## Usage and autoscaling
 
@@ -97,7 +97,7 @@ With `WARNING_POLICY: ignore`, warnings count as GREEN.
 
 ## Safety net
 
-Nobody watches the train live, so these checks run without a person and none of them relies on a worker's own report. Each one closes a failure the train has had or the [research behind it](../../../docs/adr/0758-the-agent-train-is-watched-from-outside-and-gated-by-checks-a-worker-cannot-edit.md) found: a stopped coordinator that nobody noticed for eleven days, regressions that sit on `main` between full sweeps, a worker weakening its own tests, and a stream relaunched forever.
+Nobody watches the train live, so these checks run without a person and none of them relies on a worker's own report. Each one closes a failure the train has had or the [research behind it](../../../docs/operations/ci-and-releases.md) found: a stopped coordinator that nobody noticed for eleven days, regressions that sit on `main` between full sweeps, a worker weakening its own tests, and a stream relaunched forever.
 
 | Check | Where | What it does |
 | --- | --- | --- |
@@ -132,7 +132,7 @@ A lane is a territory of files. Two workers may share a lane only when their sli
 | **D: documents** | PRDs, steady-state docs, ADR bookkeeping, PRD close-outs | Sonnet for PRDs, Haiku for bookkeeping |
 | **X: exclusive** | Refactors of shared files (see [Serial points](#serial-points)) | Opus |
 
-A lane-X stream runs with no other stream that touches the same files. Lanes have no ADR blocks: an ADR takes the next free number (see [Serial points](#serial-points)).
+A lane-X stream runs with no other stream that touches the same files. Lanes have no ADR blocks: a slice does not write an ADR.
 
 ## Serial points
 
@@ -140,8 +140,7 @@ A lane-X stream runs with no other stream that touches the same files. Lanes hav
   - It lives in `apps/desktop/app.go`, `app_test.go` and `apps/ui/src/hostApi.ts`, and the bindings `Host.*` are regenerated from it.
   - A PR that adds a binding takes `main`'s value + 1.
   - On a collision, whoever merges `main` in second takes the higher value + 1 and regenerates. Use the bump script once lane X has added it.
-- **ADR numbers:** the next free number in `docs/adr/`. Check it again at merge time, not only at write time; D52 on the retired #509 records an earlier collision.
-- **The ADR index and PRD index rows:** add-only. The coordinator resolves conflicts in them mechanically.
+- **The PRD index rows:** add-only. The coordinator resolves conflicts in them mechanically.
 - **Append-only rows:** `config/defaults.json`, `internal/settings/store.go` field rows, the `SettingsPage.tsx` panel list, `internal/bridge/wire.go` event rows.
 - **One at a time, train-wide:**
   - the `AppShell.tsx` navigation or header;
@@ -158,7 +157,7 @@ The [Studio Next series](../../../docs/prds/studio-next-rebuild.prd.md) is deliv
 - **The header.** A fenced `slice-meta` block with `id`, `lane`, `kind`, `depends`, `owns` and `serial`, checked by `scripts/dev/slice-lint.mjs`. The issue form is `.github/ISSUE_TEMPLATE/slice.yml`. The coordinator reads the header and the labels, never the code.
 - **Labels:** `slice`, `lane:<L>`, `prd:<code>`, and one of `ready`, `blocked` or `owner-decision`.
 - **Ready.** A slice is ready when every issue in its `depends` is closed and no other slice in progress has an overlapping `owns`. A slice waiting on an unanswered `owner-decision` is not ready.
-- **Slice kinds.** The groomer cuts no new `adr` slices: an ADR is written by the slice that settles the decision, numbered per [Serial points](#serial-points). An `adr` slice already open runs as groomed.
+- **Slice kinds.** The groomer cuts no `adr` slices. An open product question is answered in the PRD's decisions log or put to the owner on the decisions register; the whole-repo decisions are in `docs/adr/` and a slice does not add one.
 - **A spike slice** writes a research note in `docs/research/` only when its findings outlast the slice. The note carries a date, the question, the method and the findings, and no slice, stream or lane header; the slice issue links the note, not the other way round. Findings that only the slice needs go in the slice issue.
 - **An audit or checklist for one PR** is a comment on that PR or its issue, not a file.
 - **A swap slice** replaces its page and deletes the old page and what only it used, in the same PR with no flag (D98). Its `owns` lists the files it deletes.
@@ -220,7 +219,7 @@ Decisions the owner made while the train ran (logged on the retired #509). D69 a
 | **D72** | The privacy line is outbound user data, not inbound reference data. The app may call external APIs to **fetch** dictionary or pronunciation data (local first, online optional), but never sends the narrator's or authors' data out. An online lookup sends a single word, never passages, file names or project identifiers; it is narrator-initiated, or opt-in with a notice for a batch; results are cached locally; there is no telemetry and no project-run proxy. A service that needs a key uses the narrator's own key, stored locally and never logged |
 | **D73** | A PR need not contain `main`'s tip to merge (supersedes that D40 condition, 2026-09-27). The merge is a squash, so GitHub refuses it when the PR no longer merges cleanly; then, and only then, the coordinator merges `main` into the PR (a fixer when the conflict isn't mechanical) and waits for its checks. The green run must still be on the PR's current head |
 | **D74** | Windows only, for now (2026-09-27). Linux and macOS support is removed until the app is in a steadier state or someone uses those systems; `Build (Windows)` stays the build gate. Linux CI runners remain as hosts for platform-neutral checks (docs, the Lua harness, the browser-based UI suites), which is not Linux support |
-| **D75** | The public GitHub Pages site (docs, Storybook, demo) is paused until the main app's development is done (2026-09-27): `pages.yml` no longer deploys on a push to `main`, and (narrowed 2026-09-27, [ADR 0415](../../../docs/adr/0415-while-pages-is-paused-docs-are-checked-by-lychee-and-a-changed-file-markdownlint-not-by-building-the-site.md)) no longer runs on a pull request either. Workers keep the docs link-clean through `Docs / Links (offline)` (lychee, every pull request) and `Docs / Markdown lint (changed files)` (markdownlint-cli2 on the Markdown files a pull request adds or changes), not by building the site, and don't add work that only serves the published site |
+| **D75** | The public GitHub Pages site (docs, Storybook, demo) is paused until the main app's development is done (2026-09-27): `pages.yml` no longer deploys on a push to `main`, and (narrowed 2026-09-27, [CI and releases](../../../docs/operations/ci-and-releases.md)) no longer runs on a pull request either. Workers keep the docs link-clean through `Docs / Links (offline)` (lychee, every pull request) and `Docs / Markdown lint (changed files)` (markdownlint-cli2 on the Markdown files a pull request adds or changes), not by building the site, and don't add work that only serves the published site |
 | **D82** | Every worker owns its PRs until they merge or close (2026-09-27): it stays subscribed, and on a merge-conflict notice or a red check it merges `main` into its own branch (never rebase), fixes, re-runs its targeted checks and pushes. It never uses `send_later` or any scheduling tool (they block on permission prompts): it ends the turn and stays subscribed. The coordinator launches no cascade fixers; a one-PR fixer only for a PR whose own session is archived or failed. The coordinator archives the session once all its PRs are merged or closed (D78) |
 | **D91** | *(Amended by D97 below; superseded by D98 for every page the Studio Next mock covers.)* The approved mocks win, measured (2026-09-28): a screen an approved mock covers is built to that mock, captured at the mock's own size and theme with the app driven to the mock's state (the seven benchmark mocks; `pnpm --dir apps/ui mock-match`, [verification tooling](../../../docs/operations/verification-tooling.md#mock-match)). New primitives, tokens and style changes are in scope, and "the existing style is close enough" is not a reason: a difference a primitive causes is fixed in the primitive, so every consumer inherits it, never restyled locally. The 90% bar and the "reason the owner accepts" it required are gone (D97) |
 | **D96** | *(Superseded by D98.)* Only `docs/research/mockups/audiobook-studio-benchmark/` counted (2026-09-29). Every other mock is deleted from the repo and so is anything pointing at it. Keep only mocks for work actively in development, plus the current-state screenshots in `docs/images/ui/` ([Which mocks are the spec](#which-mocks-are-the-spec)) |
@@ -254,7 +253,7 @@ The Routine fires every 30 minutes (two hourly Routines, 30 minutes apart; D50).
    - an independent intent review passed on the current head ([Safety net](#safety-net)).
 
    Merge with `squash` and `expectedHeadSha`, then delete the branch. Don't update the other bottom PRs' branches after a merge (D73); only a PR that no longer merges cleanly gets `main` merged in.
-   - **A conflict:** start one **fixer**. Use Sonnet for mechanical files (`hostAPIVersion`, ADR or PRD index rows, status cells, regenerated `Host.*`) and Opus otherwise.
+   - **A conflict:** start one **fixer**. Use Sonnet for mechanical files (`hostAPIVersion`, PRD index rows, status cells, regenerated `Host.*`) and Opus otherwise.
    - **A merge turns `main` red:** tick `HOLD`, start an Opus fixer aimed at `main`, and log it.
    - **A merge just unblocked other phases (D62, owner-directed):** don't wait for the next scheduled Routine firing to act on it. The moment a merge lands, re-check every PRD whose `Depends` named the phase that just completed, and if step 5 below would now add something to the ready list, run step 5 immediately, in the same pass. A phase sitting ready while nothing launches until the next tick is exactly the latency this rule removes.
 5. **Launch.** Skip this step on `HOLD`, `HOLD-UNTIL-RESET`, AMBER-5H before its `resetsAt`, or when running ≥ `TARGET`.
@@ -312,7 +311,7 @@ A worker is one cloud session for one stream. It opens one PR per phase, stacked
 
 Waves order the work, and the coordinator doesn't start a wave until everything it depends on has merged. Inside a wave, the ready-list rules above decide.
 
-The waves that ordered the earlier PRDs (the DAW port, the studio UI primitives, input commands and pedals, the booth, proofing, production and delivery PRDs, and the filler) are retired: those PRDs are deleted ([ADR 0028](../../../docs/adr/0028-planned-work-is-specified-as-prds-and-deleted-when-built.md)) and the Studio Next series in `docs/prds/` is the plan. The series' dependency order is the graph in [Studio Next Rebuild](../../../docs/prds/studio-next-rebuild.prd.md#technical-approach); no wave has been accepted for it yet.
+The waves that ordered the earlier PRDs (the DAW port, the studio UI primitives, input commands and pedals, the booth, proofing, production and delivery PRDs, and the filler) are retired: those PRDs are deleted ([Lifecycle of a PRD](../../../docs/prds/README.md#lifecycle-of-a-prd)) and the Studio Next series in `docs/prds/` is the plan. The series' dependency order is the graph in [Studio Next Rebuild](../../../docs/prds/studio-next-rebuild.prd.md#technical-approach); no wave has been accepted for it yet.
 
 **Rules for PRD writers:**
 - Use the template in `docs/prds/README.md`.

@@ -1,10 +1,10 @@
 name: Pages
-# PAUSED (owner decision D75, 2026-09-27; ADR 0415): nothing is published until the main app's development is done and
+# PAUSED (owner decision D75, 2026-09-27): nothing is published until the main app's development is done and
 # the site is reworked. The workflow does not run on a pull request (`Docs / Links (offline)` and `Docs / Markdown lint
 # (changed files)` in .github/workflows/docs.yml check links and style without building the site). Only
 # `workflow_dispatch` starts it: a manual run builds, and deploys only when its `publish` input is ticked on main.
 #
-# Publishes the public site to GitHub Pages, by hand: the docs (tools/docs-site, ADR 0083, built from docs/ by MkDocs)
+# Publishes the public site to GitHub Pages, by hand: the docs (tools/docs-site, docs/operations/ci-and-releases.md#the-public-docs-site, built from docs/ by MkDocs)
 # at the root, the Storybook component atlas (apps/ui) under /storybook/, and a browser-runnable demo of the app
 # (apps/ui built with VITE_USE_MOCK_API=1) under /demo/. It is served at
 # https://<owner>.github.io/narration-utils/ once the owner sets Settings > Pages > Source to "GitHub Actions" (an
@@ -74,7 +74,7 @@ jobs:
         run: pnpm --dir apps/ui run build:demo
       # A strict MkDocs build of docs/ (a dead link or heading link fails it) and the link check over the built HTML.
       # Links to pages the include list leaves out point at this commit on GitHub. This is the `docs-site:build-site`
-      # target, kept out of `pnpm check` and the `_quality.yml` gate while Pages is paused (ADR 0415) — this workflow
+      # target, kept out of `pnpm check` and the `_quality.yml` gate while Pages is paused — this workflow
       # is the one place it still runs, since it needs the built site to add Storybook and the demo beside it below.
       - name: Build the docs site
         env:
