@@ -2,17 +2,28 @@
 
 # Getting started
 
-Launching the app without a project folder attached shows a picker instead of the workspace:
-recent projects to reopen, or actions to browse to an existing folder or create a new one.
+Launching the app without a project folder attached shows **Choose your project** instead of the workspace: **New project** at the top,
+and the recent projects below it, each with an **Open** button.
 
-![No project open yet - recent projects, browse, and create actions](../../images/ui/project-picker.webp)
+![Choose your project - New project, the recent projects with Open and Remove, and Browse folders](../../images/ui/project-picker.webp)
+
+- **Open** opens that project. The date is when you last opened it.
+- The folder button at the top of the list, **Browse folders…**, opens a folder chooser for a project that is not in the list.
+- **×** on a row takes the project off the list. Its files are kept, and a message offers **Undo** for a few seconds.
+- A project whose folder has been moved or deleted drops off the list by itself.
+
+![A removed recent project - the row is gone and the toast offers Undo](../../images/ui/project-picker-removed.webp)
 
 ## Where new projects go
 
-**Create new…** asks for a name. **Location** shows the folder the project goes in: the default projects folder
+**New project** asks for a name. The line under the field lists what a name cannot be: any of `< > : " / \ | ? *`, ending with a period,
+or a reserved Windows name such as CON, NUL or COM1. **Location** shows the folder the project goes in: the default projects folder
 (`NarrationStudio` in your user folder) until you pick another with **Change location…**. If you already have a `NarrationUtils` folder there and no `NarrationStudio` one, the app keeps using it; it never moves your projects.
 
-![New Project - the location line shows the default projects folder, with Change location](../../images/ui/project-new-dialog.webp)
+![New Project - the name rules, and the location line showing the default projects folder with Change location](../../images/ui/project-new-dialog.webp)
+
+A new project opens on [Script](script.md), which says it has no manuscript yet. **Import manuscript** takes you to
+[Production](production.md), where the import runs.
 
 ## If you record in Audacity
 

@@ -4,7 +4,14 @@
     "state": "picker-empty",
     "viewport": "desktop",
     "docName": "project-picker",
-    "caption": "No project open yet - recent projects, browse, and create actions"
+    "caption": "Choose your project - New project, the recent projects with Open and Remove, and Browse folders"
+  },
+  {
+    "page": "project",
+    "state": "picker-removed",
+    "viewport": "desktop",
+    "docName": "project-picker-removed",
+    "caption": "A removed recent project - the row is gone and the toast offers Undo"
   },
   {
     "page": "production",
@@ -725,7 +732,7 @@
     "state": "new-project-dialog",
     "viewport": "desktop",
     "docName": "project-new-dialog",
-    "caption": "New Project - the location line shows the default projects folder, with Change location"
+    "caption": "New Project - the name rules, and the location line showing the default projects folder with Change location"
   },
   {
     "page": "schedule",

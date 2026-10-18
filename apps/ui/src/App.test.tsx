@@ -1224,7 +1224,7 @@ describe('App (integration, driven through the mock NarrationApi)', () => {
 
   it('shows the project picker instead of the routed app when a standalone launch has no attached project folder', async () => {
     renderApp({}, { projectFolder: '' });
-    await waitFor(() => expect(screen.getByText('Open a project')).toBeTruthy());
+    await waitFor(() => expect(screen.getByRole('heading', { level: 1, name: 'Choose your project' })).toBeTruthy());
     expect(screen.queryByRole('heading', { level: 1, name: 'Production' })).toBeNull();
     expect(screen.queryByRole('heading', { name: 'Script' })).toBeNull();
     expect(screen.queryByRole('navigation')).toBeNull();
@@ -1234,10 +1234,36 @@ describe('App (integration, driven through the mock NarrationApi)', () => {
     renderApp({}, { projectFolder: '' });
     await waitFor(() => expect(screen.getByText('Voltage and the Undercroft')).toBeTruthy());
 
-    fireEvent.click(screen.getByText('Voltage and the Undercroft'));
+    fireEvent.click(screen.getByRole('button', { name: 'Open Voltage and the Undercroft' }));
 
     await waitFor(() => expect(screen.getByRole('heading', { level: 1, name: 'Production' })).toBeTruthy());
-    expect(screen.queryByText('Open a project')).toBeNull();
+    expect(screen.queryByRole('heading', { name: 'Choose your project' })).toBeNull();
+  });
+
+  // The mock's New project goes to Script (`newProject` in its state/commands/manuscript.ts), where the empty state offers the import.
+  // Opening a project that is already there leaves the page alone.
+  it('opens a project created from the picker on the Script page, and shows the import-a-manuscript state there when it has none', async () => {
+    window.history.replaceState(null, '', '/');
+    renderApp({}, { projectFolder: '' });
+    await screen.findByRole('heading', { level: 1, name: 'Choose your project' });
+
+    fireEvent.click(screen.getByRole('button', { name: 'New project' }));
+    fireEvent.change(screen.getByLabelText('Name'), { target: { value: 'Fresh Book' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Create' }));
+
+    await waitFor(() => expect(window.location.pathname).toBe('/script'));
+    expect(screen.queryByRole('heading', { name: 'Choose your project' })).toBeNull();
+  });
+
+  it('leaves the page alone when a recent project is opened from the picker', async () => {
+    window.history.replaceState(null, '', '/');
+    renderApp({}, { projectFolder: '' });
+    await screen.findByRole('button', { name: 'Open Voltage and the Undercroft' });
+
+    fireEvent.click(screen.getByRole('button', { name: 'Open Voltage and the Undercroft' }));
+
+    await screen.findByRole('heading', { level: 1, name: 'Production' });
+    expect(window.location.pathname).toBe('/');
   });
 
   // The Settings DAW panel's launch action and its two fields (reaper_path override, auto_start_launcher toggle,

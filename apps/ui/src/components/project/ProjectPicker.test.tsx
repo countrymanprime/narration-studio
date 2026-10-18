@@ -1,85 +1,148 @@
 // @vitest-environment jsdom
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
-import { afterEach, describe, expect, it, vi } from 'vitest';
-import { ProjectPicker } from './ProjectPicker';
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { ProjectPicker, REMOVE_UNDO_MS } from './ProjectPicker';
 import { ApiProvider } from '../../api/ApiContext';
 import { createMockApi } from '../../api/mockApi';
+import type { Notify } from '../primitives/Toast';
 
-afterEach(cleanup);
+afterEach(() => {
+  cleanup();
+  vi.useRealTimers();
+});
 
-function renderPicker(overrides: Parameters<typeof createMockApi>[0] = {}) {
+function renderPicker(overrides: Parameters<typeof createMockApi>[0] = {}, props: { onCreated?: () => void } = {}) {
   const api = createMockApi(overrides);
+  const notify = vi.fn<Notify>();
   render(
     <ApiProvider api={api}>
-      <ProjectPicker />
+      <ProjectPicker notify={notify} onCreated={props.onCreated ?? (() => undefined)} />
     </ApiProvider>,
   );
-  return api;
+  return { api, notify };
 }
+
+const ALICE = 'Alice’s Adventures in Wonderland';
+const VOLTAGE = 'Voltage and the Undercroft';
+const removeButton = (name: string) => screen.getByRole('button', { name: `Remove ${name} from recent projects` });
 
 describe('ProjectPicker', () => {
   it('is a page of its own: a main landmark with the level-1 heading (axe: landmark-one-main, page-has-heading-one)', () => {
     renderPicker();
     expect(screen.getByRole('main')).toBeTruthy();
-    expect(screen.getByRole('heading', { level: 1, name: 'Open a project' })).toBeTruthy();
+    expect(screen.getByRole('heading', { level: 1, name: 'Choose your project' })).toBeTruthy();
+    expect(screen.getByText('Open the book you’re working on, or start a new project.')).toBeTruthy();
   });
 
-  it('lists seeded recent projects and switches to the one clicked', async () => {
-    const api = renderPicker();
-    const switchProject = vi.spyOn(api, 'switchProject');
-    await waitFor(() => expect(screen.getByText('Voltage and the Undercroft')).toBeTruthy());
-
-    fireEvent.click(screen.getByText('Voltage and the Undercroft'));
-
-    await waitFor(() => expect(switchProject).toHaveBeenCalledWith('C:/Projects/Voltage-and-the-Undercroft', 'Voltage and the Undercroft'));
+  it('draws the app mark and name above the heading, as the mock does', () => {
+    renderPicker();
+    const main = screen.getByRole('main');
+    expect(within(main).getByText('Narration')).toBeTruthy();
+    expect(within(main).getByText('Studio')).toBeTruthy();
   });
 
-  it('switches to the folder chosen through Browse', async () => {
-    const api = renderPicker({ selectProjectFolder: async () => ({ selected: true, path: 'C:/Projects/New-Project' }) });
+  it('offers New project as the page action, which opens the New Project dialog instead of switching', async () => {
+    const { api } = renderPicker();
     const switchProject = vi.spyOn(api, 'switchProject');
-    await waitFor(() => screen.getByRole('button', { name: /Browse/ }));
+    await waitFor(() => screen.getByRole('button', { name: 'New project' }));
 
-    fireEvent.click(screen.getByRole('button', { name: /Browse/ }));
+    fireEvent.click(screen.getByRole('button', { name: 'New project' }));
 
-    await waitFor(() => expect(switchProject).toHaveBeenCalledWith('C:/Projects/New-Project'));
+    expect(screen.getByRole('dialog', { name: 'New Project' })).toBeTruthy();
+    expect(switchProject).not.toHaveBeenCalled();
+  });
+
+  it('lists the recent projects under "Recent projects" with a name, a path and an Open button each', async () => {
+    renderPicker();
+    const list = await screen.findByRole('region', { name: 'Recent projects' });
+
+    expect(within(list).getByText(VOLTAGE)).toBeTruthy();
+    expect(within(list).getByText('C:\\Projects\\Voltage-and-the-Undercroft')).toBeTruthy();
+    expect(within(list).getByRole('button', { name: `Open ${VOLTAGE}` })).toBeTruthy();
+  });
+
+  it('opens a project with its Open button, and not by pressing its name', async () => {
+    const { api } = renderPicker();
+    const switchProject = vi.spyOn(api, 'switchProject');
+    await waitFor(() => expect(screen.getByText(VOLTAGE)).toBeTruthy());
+
+    fireEvent.click(screen.getByText(VOLTAGE));
+    expect(switchProject).not.toHaveBeenCalled();
+
+    fireEvent.click(screen.getByRole('button', { name: `Open ${VOLTAGE}` }));
+    await waitFor(() => expect(switchProject).toHaveBeenCalledWith('C:\\Projects\\Voltage-and-the-Undercroft', VOLTAGE));
+  });
+
+  it('shows when each project was last opened', async () => {
+    renderPicker();
+    const row = (await screen.findByText(VOLTAGE)).closest('li')!;
+    expect(within(row).getByText(/^\d{1,2} Sep( 2026)?$/)).toBeTruthy();
+  });
+
+  it('gives a truncated name and path their full text as a tooltip (#1778)', async () => {
+    renderPicker();
+    const name = await screen.findByText(VOLTAGE);
+    expect(name.getAttribute('title')).toBe(VOLTAGE);
+    const path = screen.getByText('C:\\Projects\\Voltage-and-the-Undercroft');
+    expect(path.getAttribute('title')).toBe('C:\\Projects\\Voltage-and-the-Undercroft');
+  });
+
+  it('says project files stay in the folder you choose', () => {
+    renderPicker();
+    expect(screen.getByText('Project files stay in the folder you choose.')).toBeTruthy();
+  });
+
+  it('browses folders through an icon button named "Browse folders…" and switches to the folder chosen', async () => {
+    const { api } = renderPicker({ selectProjectFolder: async () => ({ selected: true, path: 'C:\\Projects\\New-Project' }) });
+    const switchProject = vi.spyOn(api, 'switchProject');
+    await waitFor(() => screen.getByRole('button', { name: 'Browse folders…' }));
+
+    fireEvent.click(screen.getByRole('button', { name: 'Browse folders…' }));
+
+    await waitFor(() => expect(switchProject).toHaveBeenCalledWith('C:\\Projects\\New-Project'));
   });
 
   it('does nothing when Browse is cancelled', async () => {
     const selectProjectFolder = vi.fn(async () => ({ selected: false }));
-    const api = renderPicker({ selectProjectFolder });
+    const { api } = renderPicker({ selectProjectFolder });
     const switchProject = vi.spyOn(api, 'switchProject');
     const createProject = vi.spyOn(api, 'createProject');
-    await waitFor(() => screen.getByRole('button', { name: /Browse/ }));
+    await waitFor(() => screen.getByRole('button', { name: 'Browse folders…' }));
 
-    fireEvent.click(screen.getByRole('button', { name: /Browse/ }));
+    fireEvent.click(screen.getByRole('button', { name: 'Browse folders…' }));
 
     await waitFor(() => expect(selectProjectFolder).toHaveBeenCalled());
     expect(switchProject).not.toHaveBeenCalled();
     expect(createProject).not.toHaveBeenCalled();
   });
 
-  it('opens the New Project dialog through the Create new flow, instead of switching', async () => {
-    const api = renderPicker();
-    const switchProject = vi.spyOn(api, 'switchProject');
-    await waitFor(() => screen.getByRole('button', { name: /Create new/ }));
-
-    fireEvent.click(screen.getByRole('button', { name: /Create new/ }));
-
-    expect(screen.getByRole('dialog', { name: 'New Project' })).toBeTruthy();
-    expect(switchProject).not.toHaveBeenCalled();
-  });
-
-  it('creates a new project by name through the New Project dialog and closes it', async () => {
-    const api = renderPicker();
+  it('creates a new project by name through the New Project dialog, closes it and tells the app', async () => {
+    const onCreated = vi.fn();
+    const { api } = renderPicker({}, { onCreated });
     const createProject = vi.spyOn(api, 'createProject');
-    await waitFor(() => screen.getByRole('button', { name: /Create new/ }));
-    fireEvent.click(screen.getByRole('button', { name: /Create new/ }));
+    await waitFor(() => screen.getByRole('button', { name: 'New project' }));
+    fireEvent.click(screen.getByRole('button', { name: 'New project' }));
 
     fireEvent.change(screen.getByLabelText('Name'), { target: { value: 'Fresh Project' } });
     fireEvent.click(screen.getByRole('button', { name: 'Create' }));
 
     await waitFor(() => expect(createProject).toHaveBeenCalledWith('', 'Fresh Project'));
     await waitFor(() => expect(screen.queryByRole('dialog', { name: 'New Project' })).toBeNull());
+    expect(onCreated).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not tell the app a project was created when the host refuses it', async () => {
+    const onCreated = vi.fn();
+    const { api } = renderPicker({}, { onCreated });
+    vi.spyOn(api, 'createProject').mockResolvedValue({ switched: false, reason: 'Narration Studio is busy, so the current project was left unchanged.' });
+    await waitFor(() => screen.getByRole('button', { name: 'New project' }));
+    fireEvent.click(screen.getByRole('button', { name: 'New project' }));
+    fireEvent.change(screen.getByLabelText('Name'), { target: { value: 'Fresh Project' } });
+
+    fireEvent.click(screen.getByRole('button', { name: 'Create' }));
+
+    expect(await screen.findByText('Narration Studio is busy, so the current project was left unchanged.')).toBeTruthy();
+    expect(onCreated).not.toHaveBeenCalled();
   });
 
   it('reports a load failure distinctly from an empty recents list', async () => {
@@ -89,87 +152,152 @@ describe('ProjectPicker', () => {
     expect(screen.queryByText('No recent projects yet.')).toBeNull();
   });
 
+  it('keeps New project and Browse available when there are no recent projects', async () => {
+    renderPicker({ projectRecents: async () => [] });
+
+    expect(await screen.findByText('No recent projects yet.')).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'New project' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Browse folders…' })).toBeTruthy();
+  });
+
   it('surfaces a rejected switch call as visible text instead of failing silently', async () => {
-    const api = renderPicker();
+    const { api } = renderPicker();
     vi.spyOn(api, 'switchProject').mockRejectedValue(new Error('the desktop host is not ready'));
-    await waitFor(() => expect(screen.getByText('Voltage and the Undercroft')).toBeTruthy());
+    await waitFor(() => expect(screen.getByText(VOLTAGE)).toBeTruthy());
 
-    fireEvent.click(screen.getByText('Voltage and the Undercroft'));
+    fireEvent.click(screen.getByRole('button', { name: `Open ${VOLTAGE}` }));
 
     expect(await screen.findByText('Error: the desktop host is not ready')).toBeTruthy();
-  });
-
-  it('removes a recent project when its remove control is clicked', async () => {
-    const api = renderPicker();
-    const removeRecentProject = vi.spyOn(api, 'removeRecentProject');
-    const switchProject = vi.spyOn(api, 'switchProject');
-    await waitFor(() => expect(screen.getByText('Voltage and the Undercroft')).toBeTruthy());
-
-    fireEvent.click(screen.getByRole('button', { name: /Remove Voltage and the Undercroft from recent projects/ }));
-
-    await waitFor(() => expect(removeRecentProject).toHaveBeenCalledWith('C:/Projects/Voltage-and-the-Undercroft'));
-    await waitFor(() => expect(screen.queryByText('Voltage and the Undercroft')).toBeNull());
-    expect(switchProject).not.toHaveBeenCalled();
-  });
-
-  it('surfaces a failed removal as visible text', async () => {
-    const api = renderPicker();
-    vi.spyOn(api, 'removeRecentProject').mockRejectedValue(new Error('could not update recent projects'));
-    await waitFor(() => expect(screen.getByText('Voltage and the Undercroft')).toBeTruthy());
-
-    fireEvent.click(screen.getByRole('button', { name: /Remove Voltage and the Undercroft from recent projects/ }));
-
-    expect(await screen.findByText('Error: could not update recent projects')).toBeTruthy();
-  });
-
-  it('clears a stale error message once a later removal succeeds', async () => {
-    const api = renderPicker();
-    vi.spyOn(api, 'switchProject').mockRejectedValue(new Error('the desktop host is not ready'));
-    await waitFor(() => expect(screen.getByText('Voltage and the Undercroft')).toBeTruthy());
-    fireEvent.click(screen.getByText('Voltage and the Undercroft'));
-    expect(await screen.findByText('Error: the desktop host is not ready')).toBeTruthy();
-
-    fireEvent.click(screen.getByRole('button', { name: 'Remove Alice’s Adventures in Wonderland from recent projects' }));
-
-    await waitFor(() => expect(screen.queryByText('Error: the desktop host is not ready')).toBeNull());
-  });
-
-  it('moves focus to the next remaining entry after removing a project', async () => {
-    renderPicker();
-    await waitFor(() => expect(screen.getByText('Alice’s Adventures in Wonderland')).toBeTruthy());
-
-    fireEvent.click(screen.getByRole('button', { name: 'Remove Alice’s Adventures in Wonderland from recent projects' }));
-
-    await waitFor(() => expect(screen.queryByText('Alice’s Adventures in Wonderland')).toBeNull());
-    // The row disappears in one commit and focus moves in a later one (once `busy` is false again), so wait for focus itself.
-    await waitFor(() => expect(document.activeElement).toBe(screen.getByRole('button', { name: 'Remove Voltage and the Undercroft from recent projects' })));
-  });
-
-  it('moves focus to the recent-projects heading when the last recent project is removed', async () => {
-    renderPicker();
-    await waitFor(() => expect(screen.getByText('Alice’s Adventures in Wonderland')).toBeTruthy());
-    fireEvent.click(screen.getByRole('button', { name: 'Remove Alice’s Adventures in Wonderland from recent projects' }));
-    await waitFor(() => expect(screen.queryByText('Alice’s Adventures in Wonderland')).toBeNull());
-    // Every control stays disabled until the removal settles (`busy`), and a click on a disabled button is dropped: wait
-    // for focus to land on the next remove button, which happens only once it is enabled again.
-    const removeVoltage = () => screen.getByRole('button', { name: 'Remove Voltage and the Undercroft from recent projects' });
-    await waitFor(() => expect(document.activeElement).toBe(removeVoltage()));
-
-    fireEvent.click(removeVoltage());
-
-    await waitFor(() => expect(screen.queryByText('Voltage and the Undercroft')).toBeNull());
-    await waitFor(() => expect(document.activeElement).toBe(screen.getByText('Open recent').parentElement));
   });
 
   it('renders the refusal reason when a switch is rejected', async () => {
     renderPicker({
-      selectProjectFolder: async () => ({ selected: true, path: 'C:/Projects/New-Project' }),
+      selectProjectFolder: async () => ({ selected: true, path: 'C:\\Projects\\New-Project' }),
       switchProject: async () => ({ switched: false, reason: 'Narration Studio is busy, so the current project was left unchanged.' }),
     });
-    await waitFor(() => screen.getByRole('button', { name: /Browse/ }));
+    await waitFor(() => screen.getByRole('button', { name: 'Browse folders…' }));
 
-    fireEvent.click(screen.getByRole('button', { name: /Browse/ }));
+    fireEvent.click(screen.getByRole('button', { name: 'Browse folders…' }));
 
     expect(await screen.findByText('Narration Studio is busy, so the current project was left unchanged.')).toBeTruthy();
+  });
+
+  describe('removing a recent project (#1778)', () => {
+    beforeEach(() => vi.useFakeTimers({ shouldAdvanceTime: true }));
+
+    it('takes the row away at once, says its files are kept and offers Undo, but only asks the host after the undo window', async () => {
+      const { api, notify } = renderPicker();
+      const removeRecentProject = vi.spyOn(api, 'removeRecentProject');
+      await screen.findByText(VOLTAGE);
+
+      fireEvent.click(removeButton(VOLTAGE));
+
+      expect(screen.queryByText(VOLTAGE)).toBeNull();
+      expect(notify).toHaveBeenCalledWith(`Removed ${VOLTAGE} from recent projects. Its files are kept.`, 'info', expect.objectContaining({ label: 'Undo' }));
+      expect(removeRecentProject).not.toHaveBeenCalled();
+
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(REMOVE_UNDO_MS);
+      });
+      expect(removeRecentProject).toHaveBeenCalledWith('C:\\Projects\\Voltage-and-the-Undercroft');
+      expect(screen.queryByText(VOLTAGE)).toBeNull();
+    });
+
+    it('brings the row back and never asks the host when Undo is pressed', async () => {
+      const { api, notify } = renderPicker();
+      const removeRecentProject = vi.spyOn(api, 'removeRecentProject');
+      await screen.findByText(VOLTAGE);
+      fireEvent.click(removeButton(VOLTAGE));
+
+      act(() => notify.mock.calls[0]![2]!.onAction());
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(REMOVE_UNDO_MS * 2);
+      });
+
+      expect(screen.getByText(VOLTAGE)).toBeTruthy();
+      expect(removeRecentProject).not.toHaveBeenCalled();
+    });
+
+    it('keeps each removal undoable on its own, with its own timer', async () => {
+      const { api, notify } = renderPicker();
+      const removeRecentProject = vi.spyOn(api, 'removeRecentProject');
+      await screen.findByText(VOLTAGE);
+      fireEvent.click(removeButton(ALICE));
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(REMOVE_UNDO_MS - 1_000);
+      });
+      fireEvent.click(removeButton(VOLTAGE));
+
+      act(() => notify.mock.calls[0]![2]!.onAction());
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(REMOVE_UNDO_MS);
+      });
+
+      expect(screen.getByText(ALICE)).toBeTruthy();
+      expect(removeRecentProject).toHaveBeenCalledTimes(1);
+      expect(removeRecentProject).toHaveBeenCalledWith('C:\\Projects\\Voltage-and-the-Undercroft');
+    });
+
+    it('commits a pending removal when the picker goes away, so opening a project does not bring the entry back', async () => {
+      const api = createMockApi();
+      const removeRecentProject = vi.spyOn(api, 'removeRecentProject');
+      const { unmount } = render(
+        <ApiProvider api={api}>
+          <ProjectPicker notify={vi.fn()} onCreated={() => undefined} />
+        </ApiProvider>,
+      );
+      await screen.findByText(VOLTAGE);
+      fireEvent.click(removeButton(VOLTAGE));
+
+      unmount();
+
+      expect(removeRecentProject).toHaveBeenCalledWith('C:\\Projects\\Voltage-and-the-Undercroft');
+    });
+
+    it('puts the row back and shows the reason when the host cannot remove it', async () => {
+      const { api } = renderPicker();
+      vi.spyOn(api, 'removeRecentProject').mockRejectedValue(new Error('could not update recent projects'));
+      await screen.findByText(VOLTAGE);
+      fireEvent.click(removeButton(VOLTAGE));
+
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(REMOVE_UNDO_MS);
+      });
+
+      expect(await screen.findByText('Error: could not update recent projects')).toBeTruthy();
+      expect(screen.getByText(VOLTAGE)).toBeTruthy();
+    });
+
+    it('moves focus to the next remaining entry after removing a project', async () => {
+      renderPicker();
+      await screen.findByText(ALICE);
+
+      fireEvent.click(removeButton(ALICE));
+
+      await waitFor(() => expect(document.activeElement).toBe(removeButton(VOLTAGE)));
+    });
+
+    it('moves focus to the recent-projects heading when the last recent project is removed', async () => {
+      renderPicker();
+      await screen.findByText(ALICE);
+      fireEvent.click(removeButton(ALICE));
+      await waitFor(() => expect(document.activeElement).toBe(removeButton(VOLTAGE)));
+
+      fireEvent.click(removeButton(VOLTAGE));
+
+      await waitFor(() => expect(document.activeElement).toBe(screen.getByText('No recent projects yet.').parentElement));
+    });
+
+    it('clears a stale error message once a later removal is made', async () => {
+      const { api } = renderPicker();
+      vi.spyOn(api, 'switchProject').mockRejectedValue(new Error('the desktop host is not ready'));
+      await screen.findByText(VOLTAGE);
+      fireEvent.click(screen.getByRole('button', { name: `Open ${VOLTAGE}` }));
+      expect(await screen.findByText('Error: the desktop host is not ready')).toBeTruthy();
+
+      fireEvent.click(removeButton(ALICE));
+
+      await waitFor(() => expect(screen.queryByText('Error: the desktop host is not ready')).toBeNull());
+    });
   });
 });

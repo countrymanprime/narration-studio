@@ -57,6 +57,15 @@ describe('NewProjectDialog', () => {
     expect(createProject).toHaveBeenCalledWith('', 'Alice');
   });
 
+  it('says the name rules before Create, and the Name field is described by them (#1778)', () => {
+    renderDialog();
+    const rules = screen.getByText(/can't contain/i);
+    expect(rules.textContent).toContain('< > : " / \\ | ? *');
+    expect(rules.textContent).toMatch(/end with a period/i);
+    expect(rules.textContent).toMatch(/CON, NUL or COM1/);
+    expect(screen.getByLabelText('Name').getAttribute('aria-describedby')).toContain(rules.id);
+  });
+
   it('trims surrounding whitespace from the name before creating', async () => {
     const createProject = vi.fn(async () => ({ switched: true }));
     renderDialog({ createProject });

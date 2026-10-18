@@ -7,6 +7,7 @@ Storybook title: `Primitives/Heading`. Source: `src/components/primitives/Headin
 ## Stories
 
 - Title Only
+- Display
 - With Subtitle
 - With Rich Subtitle
 - Long Title Wraps

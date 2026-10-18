@@ -45,8 +45,8 @@ export function createProjectMock(
     },
   ];
   let recentProjects: RecentProject[] = [
-    { path: 'C:/Projects/Alice-in-Wonderland', name: 'Alice’s Adventures in Wonderland', lastOpened: '2026-09-15T09:00:00Z' },
-    { path: 'C:/Projects/Voltage-and-the-Undercroft', name: 'Voltage and the Undercroft', lastOpened: '2026-09-10T18:30:00Z' },
+    { path: 'C:\\Projects\\Alice-in-Wonderland', name: 'Alice’s Adventures in Wonderland', lastOpened: '2026-09-15T09:00:00Z' },
+    { path: 'C:\\Projects\\Voltage-and-the-Undercroft', name: 'Voltage and the Undercroft', lastOpened: '2026-09-10T18:30:00Z' },
   ];
   const projectAttachSubscribers = new Set<(state: ProjectAttachState) => void>();
   const attachProject = (path: string, name?: string) => {

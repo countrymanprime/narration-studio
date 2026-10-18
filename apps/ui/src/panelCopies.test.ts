@@ -26,9 +26,8 @@ const CEILING: Record<Copy, Record<string, number>> = {
     // The companion panel's own card is at 0 (apps/ui/src/components/booth/CompanionShell.tsx: full-bleed sections, not cards).
     // Not cards. A warning on a tinted fill, which neither Panel nor InsetCard draws.
     'src/components/booth/UnresolvedCreditsWarning.tsx': 1,
-    // A card that is a button (the .rpp picker's rows, the recent projects): a Panel is a section, not a control.
+    // A card that is a button (the .rpp picker's rows): a Panel is a section, not a control.
     'src/components/engine/EnginePanel.tsx': 1,
-    'src/components/project/ProjectPicker.tsx': 1,
     // The chapter card's sticky header rounds its own top corners (`rounded-lg border-b-0`); the card is PANEL_FRAME_CLASS.
     // The waveform's frame, with its own tight padding round the drawing.
     // The bookmarks tab's list frame (SN-B62), to move onto Panel with #1119.

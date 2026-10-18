@@ -1130,7 +1130,7 @@ describe('answers of the mock client for the manuscript, Story Bible and project
   it('the project picker answers', async () => {
     const api = createMockApi({}, { projectFolder: '' });
     expectMatches(recentProjectsSchema, await api.projectRecents(), 'mock recents');
-    expectMatches(recentProjectsSchema, await api.removeRecentProject('C:/Projects/Voltage-and-the-Undercroft'), 'mock recents after remove');
+    expectMatches(recentProjectsSchema, await api.removeRecentProject('C:\\Projects\\Voltage-and-the-Undercroft'), 'mock recents after remove');
     expectMatches(projectFolderSelectionSchema, await api.selectProjectFolder(), 'mock folder selection');
     expectMatches(projectSwitchResultSchema, await api.switchProject('C:/Projects/Other', 'Other'), 'mock switch');
     expectMatches(projectSwitchResultSchema, await api.createProject('C:/Projects/New', 'New'), 'mock create');

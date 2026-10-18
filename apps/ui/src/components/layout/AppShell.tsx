@@ -11,7 +11,6 @@ import {
   faGaugeHigh,
   faGear,
   faHouse,
-  faMicrophone,
   faMinus,
   faPlus,
   faRotateLeft,
@@ -28,6 +27,7 @@ import { KeyChord } from '../primitives/KeyCap';
 import { TooltipTarget } from '../primitives/Tooltip';
 import type { DawKind } from '../../api/contracts/daw';
 import { navAvailability, type NavFacts } from '../../navigation/navAvailability';
+import { Brand } from './Brand';
 import { DemoBanner } from './DemoBanner';
 import { EngineChip, type EngineState } from './EngineChip';
 import { TimerChip, type RunningTimer } from './TimerChip';
@@ -160,13 +160,7 @@ export function AppShell({
       {/* The brand block: 62 px and its rule; the 30 px mark at 16 px in, radius 6; the name Barlow
           Condensed 700 at 13 px over a 10 px muted tagline, 10 px after the mark. */}
       <div className="flex h-[3.9375rem] flex-none items-center gap-[0.625rem] border-b border-[var(--border)] px-4">
-        <span className="flex size-[1.875rem] flex-none items-center justify-center rounded-[var(--radius-button)] bg-[var(--accent)] text-[0.875rem] text-[var(--accent-contrast)]">
-          <FontAwesomeIcon icon={faMicrophone} fixedWidth />
-        </span>
-        <span className="brand-name pb-[0.125rem] font-['Barlow_Condensed',sans-serif] leading-none uppercase">
-          <b className="block text-[0.8125rem] font-bold tracking-[0.11em]">Narration</b>
-          <span className="mt-[0.4375rem] block text-[0.625rem] font-semibold tracking-[0.1em] text-[var(--text-muted)]">Studio</span>
-        </span>
+        <Brand />
       </div>
       <nav className="flex-1 px-2 pt-[0.5625rem] pb-2">
         {NAV_GROUPS.map((group) => (
