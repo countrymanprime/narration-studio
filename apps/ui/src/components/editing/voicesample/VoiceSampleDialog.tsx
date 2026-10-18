@@ -8,6 +8,7 @@ import { IconButton } from '../../primitives/IconButton';
 import { Select } from '../../primitives/Select';
 import { TextField } from '../../primitives/TextField';
 import { useRangePlayer } from '../../engine/useRangePlayer';
+import { stopSample } from '../../voicesamples/samplePlayerStore';
 import type { CharacterChoice } from './voiceSampleCharacters';
 
 /** The part of the words the narrator can hear before saving: a stretch of one item's source file. */
@@ -78,6 +79,8 @@ export function VoiceSampleDialog({
   const play = (): void => {
     if (!audition) return;
     if (player.isPlaying) return player.stop();
+    // One sound at a time: a voice sample that is playing stops, as the range player stops when a sample starts.
+    stopSample();
     player.play({ sourceFile: audition.sourceFile, rangeStart: audition.start, rangeEnd: audition.end });
   };
 

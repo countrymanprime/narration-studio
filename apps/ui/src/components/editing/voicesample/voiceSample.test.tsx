@@ -16,7 +16,7 @@
 //   the word menu, the toolbar     'the selection toolbar and the word menu both open the dialog'
 //   keys                           'Enter in the note is a new line and Ctrl+Enter saves from it'
 //   primary                        'Make primary is on for a character's first sample and the narrator's choice stays'
-//   Play range                     'Play range plays the stretch of the take and again stops it'
+//   Play range                     'Play range plays the stretch of the take and again stops it', 'Play range stops a voice sample that is playing'
 //   reload, leave mid-action,
 //   the DAW never answers          not tested: the dialog holds no state the host keeps, and nothing here talks to the DAW (the host reads the saved project when Save is pressed)
 import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
@@ -42,6 +42,7 @@ import { buildWordMenu } from '../menu/wordMenuRegistry';
 import { summarize, type ChapterDoc } from '../model';
 import { EditingPageProvider, useEditingPage } from '../script/EditingPageState';
 import { marksDoc } from '../script/scriptFixtures';
+import { playSample, samplePlayerState, stopSample } from '../../voicesamples/samplePlayerStore';
 import { useVoiceSample } from './useVoiceSample';
 
 const idle: ScriptPlayback = {
@@ -209,6 +210,7 @@ beforeEach(() => {
   toastUndo = vi.spyOn(overlay, 'toastUndo').mockImplementation((_text, run) => void (undo = run));
 });
 afterEach(() => {
+  act(() => stopSample());
   closeOverlays();
   cleanup();
   vi.unstubAllGlobals();
@@ -466,5 +468,17 @@ describe('marking a voice sample', () => {
     fireEvent.click(within(dialog()).getByRole('button', { name: 'Stop' }));
     expect(within(dialog()).getByRole('button', { name: 'Play range' })).toBeDefined();
     await waitFor(() => expect(idle.stop).toHaveBeenCalled());
+  });
+
+  it('Play range stops a voice sample that is playing', async () => {
+    mount();
+    await select('p-1:0', 'p-1:1');
+    await openDialog();
+    act(() => playSample('c'.repeat(32), { by: Symbol('test'), url: '/media?sample=c', report: vi.fn() }));
+    expect(samplePlayerState().status).toBe('loading');
+    fireEvent.click(within(dialog()).getByRole('button', { name: 'Play range' }));
+    await flush();
+    expect(samplePlayerState().status).toBe('idle');
+    expect(played).toContain('/media?path=take-1.wav');
   });
 });
