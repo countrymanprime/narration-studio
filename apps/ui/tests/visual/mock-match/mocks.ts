@@ -1,5 +1,7 @@
-// The mocks the pixel-match tool scores (owner rulings of 2026-09-29). THE SPEC IS ONE FOLDER:
-//   docs/research/mockups/audiobook-studio-benchmark/   (the seven benchmark mocks, approved as the build spec)
+// The mocks the pixel-match tool scores (owner rulings of 2026-09-29). THE SCORED MOCKS ARE ONE FOLDER:
+//   docs/research/mockups/audiobook-studio-benchmark/   (the seven benchmark mocks, approved 2026-09-29)
+// For a page the Studio Next mock covers, that mock is the frozen reference (D98, docs/design/design-system.md#which-mocks-are-the-spec),
+// so the benchmark is not its target.
 // Every other mock is deleted (2026-09-29): the per-feature mock sets and the crops beside them predated the
 // redesign and are gone. A new mock is added only for work being built now and is deleted when that work merges.
 // Theme: the theme is one app-wide setting, so a state is captured in the theme its mock is drawn in and compared with it:
@@ -44,18 +46,18 @@ export const APPROVED_MOCKS: ApprovedMock[] = [
   {
     file: '02-prep-script.webp',
     theme: 'light',
-    unscored: 'the Script page is built to the Studio Next mock, the only spec for a page it covers (D98); this benchmark is not its target',
+    unscored: 'the Script page follows the Studio Next mock, the frozen reference for a page it covers (D98); this benchmark is not its target',
   },
   { file: '03-booth.webp', target: { page: 'booth', state: 'dark' }, theme: 'dark' },
   {
     file: '04-proof-pickups.webp',
     theme: 'light',
-    unscored: 'retired as a target (D98): the Studio Next mock is the spec for Proof and Pickups since the SN-Q9 swap',
+    unscored: 'retired as a target (D98): the Studio Next mock is the frozen reference for Proof and Pickups since the SN-Q9 swap',
   },
   {
     file: '05-master-delivery.webp',
     theme: 'light',
-    unscored: 'retired as a target (D98): the Studio Next mock is the spec for Master & QC and Delivery since the SN-M5 swap',
+    unscored: 'retired as a target (D98): the Studio Next mock is the frozen reference for Master & QC and Delivery since the SN-M5 swap',
   },
   {
     file: '06-series-voice-bible.webp',
