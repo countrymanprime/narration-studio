@@ -193,6 +193,30 @@ describe('PickupsTable', () => {
     await waitFor(() => expect(document.activeElement?.hasAttribute('data-pk')).toBe(true));
   });
 
+  const displayed = () => [...document.querySelectorAll<HTMLElement>('tr[data-pk]')];
+  const removeRow = async (user: ReturnType<typeof userEvent.setup>, row: HTMLElement) =>
+    user.click(within(row).getByRole('button', { name: 'Remove from pickups' }));
+
+  it('after a removal, focus goes to the next line as drawn, or the previous one when the last is removed', async () => {
+    const { onRemove, user } = setup();
+    onRemove.mockResolvedValue(undefined);
+    const rows = displayed();
+    expect(rows.length).toBeGreaterThan(2);
+    await removeRow(user, rows[0]);
+    await waitFor(() => expect(document.activeElement).toBe(rows[1]));
+    await removeRow(user, rows[rows.length - 1]);
+    await waitFor(() => expect(document.activeElement).toBe(rows[rows.length - 2]));
+    await removeRow(user, rows[1]);
+    await waitFor(() => expect(document.activeElement).toBe(rows[2]));
+  });
+
+  it('after the only line is removed, focus lands on the Pickups region, not the page', async () => {
+    const { onRemove, user } = setup({ pickups: [SPEECH] });
+    onRemove.mockResolvedValue(undefined);
+    await removeRow(user, displayed()[0]);
+    await waitFor(() => expect(document.activeElement).toBe(screen.getByRole('region', { name: 'Pickups' })));
+  });
+
   it('a refused removal says why and nothing else', async () => {
     const { onRemove, user, toasts } = setup();
     onRemove.mockRejectedValueOnce(new Error('That line is not in the list.'));

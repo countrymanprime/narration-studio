@@ -37,6 +37,7 @@ import {
   type ReviewStatus,
 } from './cardSelectors';
 import { FindingRow } from './FindingRow';
+import { ARRIVE_CLASSES } from '../../primitives/changeHighlight';
 
 const STATE_TONE: Record<'none' | 'checking' | 'current' | 'stale', StatusTone> = {
   none: statusTone('not_checked'),
@@ -281,7 +282,7 @@ export function CheckCard({ chapter, onCheck }: { chapter: ManuscriptChapter; on
       {stale && (
         <div
           role="alert"
-          className="flex items-center gap-2 rounded-[var(--radius-button)] border border-[var(--warn)] bg-[var(--warn-soft)] px-3 py-2 text-sm text-[var(--warn-text)]"
+          className={`flex items-center gap-2 rounded-[var(--radius-button)] border border-[var(--warn)] bg-[var(--warn-soft)] px-3 py-2 text-sm text-[var(--warn-text)] ${ARRIVE_CLASSES}`}
           data-stale={stale}
         >
           <span aria-hidden="true">{CARD_GLYPH.stale}</span> {STALE_TEXT[stale]}
