@@ -285,11 +285,11 @@ describe('Settings: Appearance & keys', () => {
 });
 
 describe('Settings: App & updates', () => {
-  async function renderApp(seed?: MockUpdateSeed, overrides: Partial<NarrationApi> = {}) {
-    const api = createMockApi(overrides, seed ? { update: seed } : {});
+  async function renderApp(seed?: MockUpdateSeed) {
+    const api = createMockApi({}, seed ? { update: seed } : {});
     const page = await renderPage({ api });
     await open('App & updates');
-    return { api, ...page };
+    return page;
   }
 
   it('says what is running and reports Check now', async () => {

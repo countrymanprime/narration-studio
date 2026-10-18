@@ -267,9 +267,11 @@ export function EngineBody() {
                 Get REAPER
               </Button>
             )}
-            <Button variant="secondary" size="sm" disabled={test.phase === 'testing'} onClick={() => void check()}>
-              {notInstalled ? 'Check again' : 'Test connection'}
-            </Button>
+            {state !== 'app' && (
+              <Button variant="secondary" size="sm" disabled={test.phase === 'testing'} onClick={() => void check()}>
+                {notInstalled ? 'Check again' : 'Test connection'}
+              </Button>
+            )}
             <span role="status" className="text-[var(--text-muted)]">
               {test.text}
             </span>
