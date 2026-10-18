@@ -54,12 +54,12 @@ export function SamplePlayButton({
 }
 
 /**
- * The polite live region for the one shared player: "Playing voice sample for Hatter", "Voice sample finished". A page mounts it once, next
+ * The polite live region for the one shared player (no `status` role, so a page's own `status` queries and notices are not joined by an empty one): "Playing voice sample for Hatter", "Voice sample finished". A page mounts it once, next
  * to its `useSamplePlayer`, so several play controls do not announce the same sample several times.
  */
 export function SamplePlayerAnnouncement({ text }: { text: string }) {
   return (
-    <p role="status" aria-live="polite" className="sr-only">
+    <p aria-live="polite" className="sr-only" data-sample-announcement>
       {text}
     </p>
   );
