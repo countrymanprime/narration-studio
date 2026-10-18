@@ -61,11 +61,12 @@ const PAIRS: PairSpec[] = [
   text('accent-strong-on-soft', 'notice and chip text: accent-strong on accent-soft', 'var(--accent-strong)', ['surface'], 'var(--accent-soft)'),
   text(
     'nav-active',
-    'active navigation item: accent-strong on a 10% accent tint',
-    'var(--accent-strong)',
+    'active navigation item (the bar highlight): text on surface-2, and its count in text-muted',
+    'var(--text)',
     ['surface'],
-    'color-mix(in srgb, var(--accent) 10%, var(--surface))',
+    'var(--surface-2)',
   ),
+  mark('nav-active-bar', 'the 3 px accent bar down the active navigation item', 'var(--accent)', ['surface-2']),
   text(
     'tab-active',
     'active Settings category: accent-strong on a 10% accent tint',
