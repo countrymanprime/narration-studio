@@ -3,11 +3,14 @@ package guide
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
+	"maps"
 	"os"
 	"path/filepath"
 	"slices"
 	"strconv"
 	"strings"
+	"unicode/utf8"
 )
 
 // The sidecar's own words for a refusal, shown to the narrator.
@@ -19,6 +22,7 @@ var (
 	errRelateLabel  = errors.New("A relationship needs a label.")                            //nolint:staticcheck // the sidecar's own words
 	errCueNotFound  = errors.New("Cue not found.")                                           //nolint:staticcheck // the sidecar's own words
 	errCannotSpeak  = errors.New("Only an entry whose type can speak has a speaker colour.") //nolint:staticcheck // the sidecar's own words
+	errNoAlternate  = errors.New("There is no other pronunciation to switch to.")            //nolint:staticcheck // the sidecar's own words
 )
 
 // mutateInHost runs one of the sidecar's small Story Bible commands in the host: change gets the document (the held one when the file
@@ -317,4 +321,114 @@ func correctCue(document map[string]any, cueID, speaker string) (bool, error) {
 		return true, nil
 	}
 	return false, errCueNotFound
+}
+
+// userPronunciation is manuscript_guide.py user_pronunciation: the narrator's typed text, trimmed, one line of 1 to
+// maxUserPronunciation characters.
+func userPronunciation(ipa string) (map[string]any, error) {
+	text := pythonStrip(ipa)
+	switch {
+	case text == "":
+		return nil, errors.New("Type a pronunciation first.") //nolint:staticcheck // the sidecar's own words
+	case strings.ContainsAny(text, "\r\n"):
+		return nil, errors.New("A pronunciation is one line.") //nolint:staticcheck // the sidecar's own words
+	case utf8.RuneCountInString(text) > maxUserPronunciation:
+		return nil, fmt.Errorf("A pronunciation is at most %d characters.", maxUserPronunciation) //nolint:staticcheck // the sidecar's own words
+	}
+	return map[string]any{"ipa": text, "source": ManualSource, "confidence": "narrator"}, nil
+}
+
+// pronunciationHolder is manuscript_guide.py _pronunciation_holder: the entry (aliasIndex nil) or the alias whose pronunciation an
+// edit changes. A locked entry is refused.
+func pronunciationHolder(document map[string]any, id string, aliasIndex *int) (map[string]any, error) {
+	_, entity, err := findEntity(document, id)
+	if err != nil {
+		return nil, err
+	}
+	if truthy(entity["locked"]) {
+		return nil, errEntityLocked
+	}
+	if aliasIndex == nil {
+		return entity, nil
+	}
+	aliases, _ := entity["aliases"].([]any)
+	if *aliasIndex < 0 || *aliasIndex >= len(aliases) {
+		return nil, errAliasRange
+	}
+	alias, ok := aliases[*aliasIndex].(map[string]any)
+	if !ok {
+		return nil, errAliasRange
+	}
+	return alias, nil
+}
+
+// storedPronunciation is the holder's pronunciation, or nil when it has none (or one that is not an object).
+func storedPronunciation(holder map[string]any) map[string]any {
+	value, _ := holder["pronunciation"].(map[string]any)
+	return value
+}
+
+// isManual is manuscript_guide.py _is_manual: the narrator typed it (source "manual", or the legacy "user").
+func isManual(value map[string]any) bool {
+	return value["source"] == ManualSource || value["source"] == legacyManualSource
+}
+
+// pronunciationCore is manuscript_guide.py _pronunciation_core: the fields that are the pronunciation itself.
+func pronunciationCore(value map[string]any) map[string]any {
+	core := map[string]any{}
+	for _, field := range []string{"ipa", "source", "confidence"} {
+		if item, present := value[field]; present {
+			core[field] = item
+		}
+	}
+	return core
+}
+
+// setPronunciation is manuscript_guide.py set_pronunciation over carry_pronunciation_work: next in use in place of prior, with prior's
+// note. The alternate is the latest pronunciation of the other kind: prior itself when it is of the other kind and has an IPA,
+// otherwise prior's alternate. A stored status, and any other field of prior, is not carried.
+func setPronunciation(prior, next map[string]any) map[string]any {
+	value := make(map[string]any, len(next)+2)
+	for key, item := range next {
+		value[key] = item
+	}
+	if truthy(prior["note"]) {
+		value["note"] = prior["note"]
+	}
+	delete(value, "alternate")
+	if truthy(prior["ipa"]) && isManual(prior) != isManual(next) {
+		value["alternate"] = pronunciationCore(prior)
+	} else if truthy(prior["alternate"]) {
+		value["alternate"] = prior["alternate"]
+	}
+	return value
+}
+
+// pronounceUser is manuscript_guide.py pronounce_user after userPronunciation.
+func pronounceUser(document map[string]any, id string, aliasIndex *int, value map[string]any) (bool, error) {
+	holder, err := pronunciationHolder(document, id, aliasIndex)
+	if err != nil {
+		return false, err
+	}
+	next := maps.Clone(value)
+	next["chosen"] = true
+	holder["pronunciation"] = setPronunciation(storedPronunciation(holder), next)
+	return true, nil
+}
+
+// useAlternate is manuscript_guide.py pronunciation_use_alternate. An alternate that is not an object is none.
+func useAlternate(document map[string]any, id string, aliasIndex *int) (bool, error) {
+	holder, err := pronunciationHolder(document, id, aliasIndex)
+	if err != nil {
+		return false, err
+	}
+	current := storedPronunciation(holder)
+	alternate, ok := current["alternate"].(map[string]any)
+	if !ok || len(alternate) == 0 {
+		return false, errNoAlternate
+	}
+	next := pronunciationCore(alternate)
+	next["chosen"] = true
+	holder["pronunciation"] = setPronunciation(current, next)
+	return true, nil
 }

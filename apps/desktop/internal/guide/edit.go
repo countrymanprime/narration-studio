@@ -135,8 +135,9 @@ func parseForEdit(raw []byte) (map[string]any, error) {
 		holders := []map[string]any{entity}
 		if aliases, ok := entity["aliases"].([]any); ok {
 			for index, alias := range aliases {
-				if text, isText := alias.(string); isText {
-					aliases[index] = map[string]any{"text": text, "pronunciation": map[string]any{}, "occurrences": []any{}}
+				// load_json makes any alias that is not an object (plain text, or anything else) one with that as its text.
+				if _, isObject := alias.(map[string]any); !isObject {
+					aliases[index] = map[string]any{"text": alias, "pronunciation": map[string]any{}, "occurrences": []any{}}
 				}
 				if holder, ok := aliases[index].(map[string]any); ok {
 					holders = append(holders, holder)
