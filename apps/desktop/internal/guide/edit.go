@@ -9,6 +9,8 @@ import (
 	"slices"
 	"strings"
 
+	"golang.org/x/text/cases"
+
 	"github.com/countrymanprime/narration-utils/shell/internal/persist"
 )
 
@@ -64,7 +66,8 @@ func (s *Service) documentForEdit() (map[string]any, error) {
 	decoder := json.NewDecoder(bytes.NewReader(raw))
 	decoder.UseNumber()
 	var document map[string]any
-	if err := decoder.Decode(&document); err != nil || document == nil {
+	// An empty object is no file to the sidecar too (load_json's result is falsy).
+	if err := decoder.Decode(&document); err != nil || len(document) == 0 {
 		return nil, errNoGuide
 	}
 	version, _ := document["schema_version"].(json.Number)
@@ -156,7 +159,7 @@ func documentTypeNames(document map[string]any) ([]string, error) {
 
 // applyEdit is manuscript_guide.py apply_edit for one field editInHost takes; any other field is refused, as the sidecar refuses it.
 func applyEdit(entity map[string]any, field, value string, categories []string) error {
-	if locked, _ := entity["locked"].(bool); locked && field != "locked" {
+	if truthy(entity["locked"]) && field != "locked" {
 		return errors.New("This entity is locked. Unlock it before editing.") //nolint:staticcheck // the sidecar's own words, shown to the narrator
 	}
 	switch field {
@@ -232,10 +235,30 @@ func parseProperties(text string) ([]any, error) {
 	return properties, nil
 }
 
-// foldCase is the comparison the sidecar makes with str.casefold: lower case, with the one full case folding a name is likely to hold
-// (ß and ẞ fold to ss) that strings.ToLower does not make.
+// foldCase is the comparison the sidecar makes with str.casefold: Unicode full case folding, so "ß" matches "SS" and "ﬁ" matches "FI".
 func foldCase(text string) string {
-	return strings.NewReplacer("ß", "ss", "ẞ", "ss").Replace(strings.ToLower(text))
+	return cases.Fold().String(text)
+}
+
+// truthy is Python's truth test of a decoded JSON value, which the sidecar's lock check (`entity.get("locked")`) makes: false, null, zero,
+// and an empty string, list or object are false, anything else true.
+func truthy(value any) bool {
+	switch v := value.(type) {
+	case nil:
+		return false
+	case bool:
+		return v
+	case json.Number:
+		f, err := v.Float64()
+		return err != nil || f != 0
+	case string:
+		return v != ""
+	case []any:
+		return len(v) > 0
+	case map[string]any:
+		return len(v) > 0
+	}
+	return true
 }
 
 // pythonRepr quotes text the way the sidecar's !r does in a message: single quotes, or double quotes when the text holds a single quote

@@ -76,6 +76,17 @@ STARTS = {
             {"name": "Place", "colour": "blue", "speaks": False, "builtin": "Place"},
         ],
     },
+    # A file whose types list the sidecar refuses (two rows with one name whatever the case), one locked by a value that is truthy but not
+    # true, and an empty object, which the sidecar reads as no file.
+    "bad-types": {
+        "schema_version": 2,
+        "entities": [entry("entity-ada", "Ada", "Hero")],
+        "types": [{"name": "Hero", "colour": "green", "speaks": True}, {"name": "HERO", "colour": "blue", "speaks": False}],
+    },
+    "bad-colour": {"schema_version": 2, "entities": [entry("entity-ada", "Ada", "Hero")], "types": [{"name": "Hero", "colour": "pink", "speaks": True}]},
+    "bad-speaks": {"schema_version": 2, "entities": [entry("entity-ada", "Ada", "Hero")], "types": [{"name": "Hero", "colour": "green", "speaks": 1}]},
+    "locked-by-number": {"schema_version": 2, "entities": [entry("entity-ada", "Ada", "Character", locked=1)]},
+    "empty": {},
     "default": {
         "schema_version": 2,
         "source": {},
@@ -116,6 +127,14 @@ CASES = [
     ("types", "entity-wren", {"properties": "[{"}),
     ("types", "entity-wren", {"nickname": "Wrennie"}),
     ("types", "entity-nobody", {"description": "x"}),
+    ("types", "entity-wren", {"properties": '[{"key": "\ufb01le", "value": ""}, {"key": "FILE", "value": ""}]'}),
+    ("types", "entity-wren", {"properties": '[{"key": "Stra\u00dfe", "value": ""}, {"key": "STRASSE", "value": ""}]'}),
+    ("bad-types", "entity-ada", {"description": "x"}),
+    ("bad-colour", "entity-ada", {"description": "x"}),
+    ("bad-speaks", "entity-ada", {"description": "x"}),
+    ("locked-by-number", "entity-ada", {"description": "x"}),
+    ("locked-by-number", "entity-ada", {"locked": "false"}),
+    ("empty", "entity-ada", {"description": "x"}),
     ("default", "entity-ada", {"category": "Character"}),
     ("default", "entity-ada", {"category": "Lore", "description": "An old tale."}),
     ("default", "entity-ada", {"category": "Hero"}),

@@ -2045,6 +2045,113 @@
       "unchanged": true
     },
     {
+      "entity_id": "entity-wren",
+      "error": "There are two properties named 'FILE'; give each a different name.",
+      "fields": {
+        "properties": "[{\"key\": \"ﬁle\", \"value\": \"\"}, {\"key\": \"FILE\", \"value\": \"\"}]"
+      },
+      "start": "types",
+      "unchanged": true
+    },
+    {
+      "entity_id": "entity-wren",
+      "error": "There are two properties named 'STRASSE'; give each a different name.",
+      "fields": {
+        "properties": "[{\"key\": \"Straße\", \"value\": \"\"}, {\"key\": \"STRASSE\", \"value\": \"\"}]"
+      },
+      "start": "types",
+      "unchanged": true
+    },
+    {
+      "entity_id": "entity-ada",
+      "error": "The Story Bible types are invalid.",
+      "fields": {
+        "description": "x"
+      },
+      "start": "bad-types",
+      "unchanged": true
+    },
+    {
+      "entity_id": "entity-ada",
+      "error": "The Story Bible types are invalid.",
+      "fields": {
+        "description": "x"
+      },
+      "start": "bad-colour",
+      "unchanged": true
+    },
+    {
+      "entity_id": "entity-ada",
+      "error": "The Story Bible types are invalid.",
+      "fields": {
+        "description": "x"
+      },
+      "start": "bad-speaks",
+      "unchanged": true
+    },
+    {
+      "entity_id": "entity-ada",
+      "error": "This entity is locked. Unlock it before editing.",
+      "fields": {
+        "description": "x"
+      },
+      "start": "locked-by-number",
+      "unchanged": true
+    },
+    {
+      "after": {
+        "entities": [
+          {
+            "aliases": [],
+            "canonical_name": "Ada",
+            "category": "Character",
+            "description": {
+              "evidence": {},
+              "text": ""
+            },
+            "id": "entity-ada",
+            "locked": false,
+            "occurrence_count": 1,
+            "occurrences": [
+              {
+                "chapter": "Chapter 1",
+                "excerpt": "…Wren said…",
+                "paragraph": 3
+              }
+            ],
+            "personality_notes": [],
+            "pronunciation": {
+              "confidence": 0.75,
+              "ipa": "ɹɛn",
+              "source": "cmu"
+            },
+            "properties": [],
+            "relationships": [],
+            "review": {
+              "aliases": [],
+              "entry": true
+            },
+            "review_state": "reviewed"
+          }
+        ],
+        "schema_version": 2
+      },
+      "entity_id": "entity-ada",
+      "fields": {
+        "locked": "false"
+      },
+      "start": "locked-by-number"
+    },
+    {
+      "entity_id": "entity-ada",
+      "error": "Guide file does not exist; build it first.",
+      "fields": {
+        "description": "x"
+      },
+      "start": "empty",
+      "unchanged": true
+    },
+    {
       "after": {
         "absorbed_names": {},
         "entities": [
@@ -2152,6 +2259,143 @@
     }
   ],
   "starts": {
+    "bad-colour": {
+      "entities": [
+        {
+          "aliases": [],
+          "canonical_name": "Ada",
+          "category": "Hero",
+          "description": {
+            "evidence": {},
+            "text": ""
+          },
+          "id": "entity-ada",
+          "locked": false,
+          "occurrence_count": 1,
+          "occurrences": [
+            {
+              "chapter": "Chapter 1",
+              "excerpt": "…Wren said…",
+              "paragraph": 3
+            }
+          ],
+          "personality_notes": [],
+          "pronunciation": {
+            "confidence": 0.75,
+            "ipa": "ɹɛn",
+            "source": "cmu"
+          },
+          "properties": [],
+          "relationships": [],
+          "review": {
+            "aliases": [],
+            "entry": true
+          },
+          "review_state": "needs review"
+        }
+      ],
+      "schema_version": 2,
+      "types": [
+        {
+          "colour": "pink",
+          "name": "Hero",
+          "speaks": true
+        }
+      ]
+    },
+    "bad-speaks": {
+      "entities": [
+        {
+          "aliases": [],
+          "canonical_name": "Ada",
+          "category": "Hero",
+          "description": {
+            "evidence": {},
+            "text": ""
+          },
+          "id": "entity-ada",
+          "locked": false,
+          "occurrence_count": 1,
+          "occurrences": [
+            {
+              "chapter": "Chapter 1",
+              "excerpt": "…Wren said…",
+              "paragraph": 3
+            }
+          ],
+          "personality_notes": [],
+          "pronunciation": {
+            "confidence": 0.75,
+            "ipa": "ɹɛn",
+            "source": "cmu"
+          },
+          "properties": [],
+          "relationships": [],
+          "review": {
+            "aliases": [],
+            "entry": true
+          },
+          "review_state": "needs review"
+        }
+      ],
+      "schema_version": 2,
+      "types": [
+        {
+          "colour": "green",
+          "name": "Hero",
+          "speaks": 1
+        }
+      ]
+    },
+    "bad-types": {
+      "entities": [
+        {
+          "aliases": [],
+          "canonical_name": "Ada",
+          "category": "Hero",
+          "description": {
+            "evidence": {},
+            "text": ""
+          },
+          "id": "entity-ada",
+          "locked": false,
+          "occurrence_count": 1,
+          "occurrences": [
+            {
+              "chapter": "Chapter 1",
+              "excerpt": "…Wren said…",
+              "paragraph": 3
+            }
+          ],
+          "personality_notes": [],
+          "pronunciation": {
+            "confidence": 0.75,
+            "ipa": "ɹɛn",
+            "source": "cmu"
+          },
+          "properties": [],
+          "relationships": [],
+          "review": {
+            "aliases": [],
+            "entry": true
+          },
+          "review_state": "needs review"
+        }
+      ],
+      "schema_version": 2,
+      "types": [
+        {
+          "colour": "green",
+          "name": "Hero",
+          "speaks": true
+        },
+        {
+          "colour": "blue",
+          "name": "HERO",
+          "speaks": false
+        }
+      ]
+    },
     "default": {
       "absorbed_names": {},
       "entities": [
@@ -2192,6 +2436,44 @@
       "schema_version": 2,
       "source": {},
       "vocabulary_candidates": []
+    },
+    "empty": {},
+    "locked-by-number": {
+      "entities": [
+        {
+          "aliases": [],
+          "canonical_name": "Ada",
+          "category": "Character",
+          "description": {
+            "evidence": {},
+            "text": ""
+          },
+          "id": "entity-ada",
+          "locked": 1,
+          "occurrence_count": 1,
+          "occurrences": [
+            {
+              "chapter": "Chapter 1",
+              "excerpt": "…Wren said…",
+              "paragraph": 3
+            }
+          ],
+          "personality_notes": [],
+          "pronunciation": {
+            "confidence": 0.75,
+            "ipa": "ɹɛn",
+            "source": "cmu"
+          },
+          "properties": [],
+          "relationships": [],
+          "review": {
+            "aliases": [],
+            "entry": true
+          },
+          "review_state": "needs review"
+        }
+      ],
+      "schema_version": 2
     },
     "types": {
       "absorbed_names": {
