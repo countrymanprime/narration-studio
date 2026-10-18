@@ -2,6 +2,7 @@ package guide
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"slices"
 	"strings"
@@ -59,57 +60,190 @@ func (s *Service) Types() ([]Type, error) {
 	return types, nil
 }
 
-// checkTypeName refuses a name the sidecar would, before a process starts: blank, more than one line, or longer than maxTypeName.
-// The sidecar also refuses a taken name and the system categories (Needs Review, Draft).
-func checkTypeName(name string) (string, error) {
-	text := strings.TrimSpace(name)
-	if text == "" || strings.ContainsAny(text, "\r\n\x00") || utf8.RuneCountInString(text) > maxTypeName {
-		return "", fmt.Errorf("a type's name is one line of 1 to %d characters", maxTypeName)
+// errTypeName is the sidecar's refusal of a name that is blank, more than one line or longer than maxTypeName.
+var errTypeName = fmt.Errorf("A type's name is one line of 1 to %d characters.", maxTypeName) //nolint:staticcheck // the sidecar's own words, shown to the narrator
+
+// guideTypes is manuscript_guide.py guide_types: the types in order as rows of the file ({name, colour, speaks, builtin}, any other key
+// dropped, as the sidecar drops it on the next type edit), or DefaultTypes for a file without a list, each the builtin it is named for. A
+// stored list that is not rows of a name, a palette colour and a speaks flag, or that repeats a name in any case, is refused.
+func guideTypes(document map[string]any) ([]map[string]any, error) {
+	stored, present := document["types"]
+	if !present || stored == nil {
+		types := []map[string]any{}
+		for _, row := range DefaultTypes() {
+			types = append(types, map[string]any{"name": row.Name, "colour": row.Colour, "speaks": row.Speaks, "builtin": row.Name})
+		}
+		return types, nil
 	}
-	return text, nil
+	invalid := errors.New("The Story Bible types are invalid.") //nolint:staticcheck // the sidecar's own words, shown to the narrator
+	rows, ok := stored.([]any)
+	if !ok || len(rows) == 0 {
+		return nil, invalid
+	}
+	types := make([]map[string]any, 0, len(rows))
+	seen := map[string]bool{}
+	for _, raw := range rows {
+		row, ok := raw.(map[string]any)
+		if !ok {
+			return nil, invalid
+		}
+		name, nameOK := row["name"].(string)
+		colour, _ := row["colour"].(string)
+		_, speaksOK := row["speaks"].(bool)
+		if !nameOK || pythonStrip(name) == "" || seen[foldCase(name)] || !slices.Contains(TypeColours, colour) || !speaksOK {
+			return nil, invalid
+		}
+		seen[foldCase(name)] = true
+		kept := map[string]any{}
+		for _, key := range []string{"name", "colour", "speaks", "builtin"} {
+			if value, present := row[key]; present {
+				kept[key] = value
+			}
+		}
+		types = append(types, kept)
+	}
+	return types, nil
 }
 
-// AddType adds a type at the end of the list, with the next colour by position, that does not speak.
+// typeName is manuscript_guide.py _type_name: the name trimmed, one line of 1 to maxTypeName characters, and not a system category.
+func typeName(value string) (string, error) {
+	name := pythonStrip(value)
+	if name == "" || strings.ContainsAny(name, "\r\n\x00") || utf8.RuneCountInString(name) > maxTypeName {
+		return "", errTypeName
+	}
+	if slices.Contains(systemCategories, name) {
+		return "", fmt.Errorf("%s is kept for the Story Bible's own use; give the type another name.", name) //nolint:staticcheck // the sidecar's own words, shown to the narrator
+	}
+	return name, nil
+}
+
+// typeRow is manuscript_guide.py _type_row: the index of the type with exactly this name.
+func typeRow(types []map[string]any, name string) (int, error) {
+	for index, row := range types {
+		if row["name"] == name {
+			return index, nil
+		}
+	}
+	return 0, fmt.Errorf("There is no type named %s.", pythonRepr(name)) //nolint:staticcheck // the sidecar's own words, shown to the narrator
+}
+
+// refuseTaken is manuscript_guide.py _refuse_taken: a type other than the one at keep (-1 for none) has the name in some case.
+func refuseTaken(types []map[string]any, name string, keep int) error {
+	for index, row := range types {
+		if index != keep && foldCase(row["name"].(string)) == foldCase(name) {
+			return fmt.Errorf("There is a type named %s already; give the type a new name.", pythonRepr(name)) //nolint:staticcheck // the sidecar's own words, shown to the narrator
+		}
+	}
+	return nil
+}
+
+// typesInHost is manuscript_guide.py _edit_types: change gets the document and its types (guideTypes) and returns the types to store,
+// and the whole list is written back. A Story Bible that is not there yet, or holds an empty object, is started, as create starts one,
+// so Settings can shape the types before the first build. A refused change writes nothing. Unlike the sidecar, a file that is there and
+// cannot be read, or is not a JSON object, is refused and kept to recover from: the sidecar's load_json reads one that is unreadable, not
+// JSON, or a falsy value ([], 0, "", false) as no file and writes a new Story Bible over it (another value it fails on).
+func (s *Service) typesInHost(change func(document map[string]any, types []map[string]any) ([]map[string]any, error)) error {
+	return s.changeInHost(true, func(document map[string]any) (bool, error) {
+		types, err := guideTypes(document)
+		if err != nil {
+			return false, err
+		}
+		if types, err = change(document, types); err != nil {
+			return false, err
+		}
+		rows := make([]any, len(types))
+		for index, row := range types {
+			rows[index] = row
+		}
+		document["types"] = rows
+		return true, nil
+	})
+}
+
+// AddType is manuscript_guide.py type_add: a type at the end of the list, with the next colour by position, that does not speak.
 func (s *Service) AddType(name string) error {
-	text, err := checkTypeName(name)
+	text, err := typeName(name)
 	if err != nil {
 		return err
 	}
-	_, err = s.Run("type-add", "--guide", s.guidePath(), "--name="+text)
-	return err
+	return s.typesInHost(func(_ map[string]any, types []map[string]any) ([]map[string]any, error) {
+		if err := refuseTaken(types, text, -1); err != nil {
+			return nil, err
+		}
+		return append(types, map[string]any{"name": text, "colour": TypeColours[len(types)%len(TypeColours)], "speaks": false}), nil
+	})
 }
 
-// RenameType renames a type and moves every entry of it to the new name. An empty or taken name is refused.
+// RenameType is manuscript_guide.py type_rename: the type takes the new name and so does every entry of it, a locked one too, since a
+// lock keeps the narrator's entry as they wrote it and the type is the same type under its new name.
 func (s *Service) RenameType(name, to string) error {
-	text, err := checkTypeName(to)
+	text, err := typeName(to)
 	if err != nil {
 		return err
 	}
-	_, err = s.Run("type-rename", "--guide", s.guidePath(), "--name="+name, "--to="+text)
-	return err
+	return s.typesInHost(func(document map[string]any, types []map[string]any) ([]map[string]any, error) {
+		index, err := typeRow(types, name)
+		if err != nil {
+			return nil, err
+		}
+		if err := refuseTaken(types, text, index); err != nil {
+			return nil, err
+		}
+		entities, _ := document["entities"].([]any)
+		for _, raw := range entities {
+			if entity, ok := raw.(map[string]any); ok && entity["category"] == name {
+				entity["category"] = text
+			}
+		}
+		types[index]["name"] = text
+		return types, nil
+	})
 }
 
-// SetTypeColour sets a type's colour, one of TypeColours; any other is refused before the sidecar starts.
+// SetTypeColour is manuscript_guide.py type_colour: the colour is one of TypeColours.
 func (s *Service) SetTypeColour(name, colour string) error {
 	if !slices.Contains(TypeColours, colour) {
-		return fmt.Errorf("a type's colour is one of %s", strings.Join(TypeColours, ", "))
+		return fmt.Errorf("A type's colour is one of %s.", strings.Join(TypeColours, ", ")) //nolint:staticcheck // the sidecar's own words, shown to the narrator
 	}
-	_, err := s.Run("type-colour", "--guide", s.guidePath(), "--name="+name, "--colour", colour)
-	return err
+	return s.typesInHost(func(_ map[string]any, types []map[string]any) ([]map[string]any, error) {
+		index, err := typeRow(types, name)
+		if err != nil {
+			return nil, err
+		}
+		types[index]["colour"] = colour
+		return types, nil
+	})
 }
 
-// SetTypeSpeaks sets whether a type's entries speak: they can have a speaker colour, and the next build resolves dialogue to them.
+// SetTypeSpeaks is manuscript_guide.py type_speaks: whether the type's entries can have a speaker colour and are what the next build
+// resolves dialogue to. A speaker colour already on an entry is kept, unused while its type is silent.
 func (s *Service) SetTypeSpeaks(name string, speaks bool) error {
-	value := "0"
-	if speaks {
-		value = "1"
-	}
-	_, err := s.Run("type-speaks", "--guide", s.guidePath(), "--name="+name, "--speaks", value)
-	return err
+	return s.typesInHost(func(_ map[string]any, types []map[string]any) ([]map[string]any, error) {
+		index, err := typeRow(types, name)
+		if err != nil {
+			return nil, err
+		}
+		types[index]["speaks"] = speaks
+		return types, nil
+	})
 }
 
-// RemoveType removes a type. The sidecar refuses one an entry uses, and the last one.
+// RemoveType is manuscript_guide.py type_remove: a type no entry uses goes; the last type stays, so an entry always has one to be given.
 func (s *Service) RemoveType(name string) error {
-	_, err := s.Run("type-remove", "--guide", s.guidePath(), "--name="+name)
-	return err
+	return s.typesInHost(func(document map[string]any, types []map[string]any) ([]map[string]any, error) {
+		index, err := typeRow(types, name)
+		if err != nil {
+			return nil, err
+		}
+		entities, _ := document["entities"].([]any)
+		for _, raw := range entities {
+			if entity, ok := raw.(map[string]any); ok && entity["category"] == name {
+				return nil, fmt.Errorf("%s is in use; give its entries another type first.", name) //nolint:staticcheck // the sidecar's own words, shown to the narrator
+			}
+		}
+		if len(types) < 2 {
+			return nil, errors.New("The last type cannot be removed.") //nolint:staticcheck // the sidecar's own words, shown to the narrator
+		}
+		return slices.Delete(types, index, index+1), nil
+	})
 }

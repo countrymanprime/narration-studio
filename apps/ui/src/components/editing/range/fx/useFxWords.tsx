@@ -20,6 +20,7 @@ import { applyFxCommand, fxPlanFor, removeFxCommand, type FxPlan } from './fxCom
 import { fxMenuItems } from './fxMenu';
 import { fxTitle } from './fxText';
 import { createHostFxChains } from '../../../../ports/fxchains';
+import { returnToScript } from '../../script/returnToScript';
 
 export interface FxWordsOptions {
   journal: Pick<Journal, 'act' | 'undo'>;
@@ -140,6 +141,7 @@ export function useFxWords({ journal, chapterId, chapterName, effects, cuts, loc
       overlay.open({
         kind: 'dialog',
         dismissOnOutsidePress: false,
+        returnFocus: returnToScript,
         title: fxTitle(sum.audible.length),
         render: ({ close }) => (
           <FxDialog

@@ -221,6 +221,10 @@ const mockAssets = (['missing', 'downloading', 'verifying', 'download-fails', 'i
 );
 // `?mockAssetsList=loading|fails` makes the list of downloads never answer, or fail to read, so Settings > Models & downloads shows its loading rows or its error.
 const mockAssetsList = (['loading', 'fails'] as const).find((seed) => seed === mockParams.get('mockAssetsList'));
+// `?mockHold=overview,entities,series` makes those reads never answer, so Production, the Story Bible and its Series tab show their loading skeleton.
+const mockHold = (mockParams.get('mockHold') ?? '')
+  .split(',')
+  .filter((name): name is 'overview' | 'entities' | 'series' => name === 'overview' || name === 'entities' || name === 'series');
 // `?mockPlan=loading|fails` makes the Schedule's read of the production plan never answer, or fail, so it shows its loading skeleton or its error.
 const mockPlan = (['loading', 'fails'] as const).find((seed) => seed === mockParams.get('mockPlan'));
 // `?mockChapters=loading|fails` makes the read of the manuscript's chapters never answer, or fail, so a page that reads them (the Booth) shows its loading skeleton or its error.
@@ -463,6 +467,7 @@ const mockInitial = {
   ...(mockAssetsList ? { assetsList: mockAssetsList } : {}),
   ...(mockChapters ? { chaptersRead: mockChapters } : {}),
   ...(mockPlan ? { planRead: mockPlan } : {}),
+  ...(mockHold.length > 0 ? { held: mockHold } : {}),
   ...(mockSettings ? { settings: mockSettings } : {}),
   ...(mockSeries ? { seriesVoiceBible: mockSeries } : {}),
   ...(mockVoiceSamples ? { voiceSamples: mockVoiceSamples } : {}),
