@@ -7,6 +7,10 @@ name: Latency (Windows, manual)
 #   3. The bridge round trip: the Go client against the real narration_ui_bridge.lua on the harness's fake reaper (bridge_test.go).
 #   4. BenchmarkDispatchByLogSize: what one host tick costs as events.log grows.
 on:
+  # TEMPORARY (removed before review): a new workflow cannot be dispatched until it is on main, so this branch runs it on a push to this file.
+  push:
+    branches: [claude/latency-measure]
+    paths: ['.github/workflows/latency-windows.yml']
   workflow_dispatch:
     inputs:
       runs:
@@ -49,7 +53,7 @@ jobs:
         shell: bash
         working-directory: apps/desktop
         env:
-          LATENCY_RUNS: ${{ inputs.runs }}
+          LATENCY_RUNS: ${{ inputs.runs || '20' }}
         run: |
           export LATENCY_PYTHON="$GITHUB_WORKSPACE/.release-build/manuscript-guide/dist/manuscript-guide/manuscript-guide.exe"
           export LATENCY_LABEL="windows-latest, frozen"
@@ -60,7 +64,7 @@ jobs:
         shell: bash
         working-directory: apps/desktop
         env:
-          LATENCY_BRIDGE_CALLS: ${{ inputs.bridge-calls }}
+          LATENCY_BRIDGE_CALLS: ${{ inputs.bridge-calls || '100' }}
         run: |
           export LATENCY_BRIDGE_PYTHON="$GITHUB_WORKSPACE/.venv/Scripts/python.exe"
           export LATENCY_OUT="$GITHUB_WORKSPACE/latency-results/bridge-round-trip.md"
