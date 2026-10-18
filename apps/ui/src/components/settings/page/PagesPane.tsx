@@ -8,8 +8,8 @@ import { useSettingsNav } from '../row/SettingsNav';
 import { PageSettingPanel } from './PageSettingPanel';
 
 /**
- * Settings that only change what one page does. Each belongs on that page, next to what it changes; until it has its own control there, the
- * panel that always edited it stays behind its entry, so nothing became unreachable.
+ * Settings that only change what one page does. Each belongs on that page, next to what it changes, but Settings always keeps its
+ * panel behind the entry: a page's own control is a shortcut to the same keys, never a replacement.
  */
 export function PageSettingList({ items }: { items: readonly PageSetting[] }) {
   const { go } = useSettingsNav();
@@ -23,32 +23,30 @@ export function PageSettingList({ items }: { items: readonly PageSetting[] }) {
               <b className="text-[0.9375rem] font-semibold">{item.label}</b>
               <span className="max-w-[60ch] text-[0.8125rem] text-[var(--text-muted)]">{item.why}</span>
               <span className="mt-1.5 text-[0.78rem] text-[var(--text-muted)]">
-                {item.panel ? 'Belongs on' : 'Set on'} {PAGE_LABEL[item.page]} › {item.where}
+                Belongs on {PAGE_LABEL[item.page]} › {item.where}
               </span>
             </div>
             <div className="flex flex-wrap items-start gap-2">
               <Button
                 variant="secondary"
                 size="sm"
-                aria-label={`Open ${PAGE_LABEL[item.page]}, where ${item.label} ${item.panel ? 'will be' : 'is'} set`}
+                aria-label={`Open ${PAGE_LABEL[item.page]}, where ${item.label} belongs`}
                 onClick={() => go(PAGE_PATH[item.page])}
               >
                 Open {PAGE_LABEL[item.page]}
               </Button>
             </div>
           </div>
-          {item.panel ? (
-            <Disclosure
-              title="Change it here for now"
-              open={Boolean(open[item.id])}
-              onOpenChange={(next) => setOpen((current) => ({ ...current, [item.id]: next }))}
-              className="mt-2"
-            >
-              <div className="pt-2">
-                <PageSettingPanel panel={item.panel} />
-              </div>
-            </Disclosure>
-          ) : null}
+          <Disclosure
+            title="Change it here for now"
+            open={Boolean(open[item.id])}
+            onOpenChange={(next) => setOpen((current) => ({ ...current, [item.id]: next }))}
+            className="mt-2"
+          >
+            <div className="pt-2">
+              <PageSettingPanel panel={item.panel} />
+            </div>
+          </Disclosure>
         </div>
       ))}
     </Panel>
@@ -63,8 +61,8 @@ export function PagesPane({ lit: _lit }: { lit?: string | null }) {
           Set on a page
         </h2>
         <p className="m-0 max-w-[62ch] text-[0.8125rem] text-[var(--text-muted)]">
-          Each of these only changes what one page does, so it belongs on that page, next to what it changes. Until it is there, you can still change it here.
-          Search finds them too.
+          Each of these only changes what one page does, so it belongs on that page, next to what it changes. Settings keeps every one of them: you can change
+          it here, and a page may offer a shortcut to the same setting. Search finds them too.
         </p>
       </div>
       <PageSettingList items={PAGE_SETTINGS} />

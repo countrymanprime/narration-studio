@@ -4,7 +4,8 @@ import type { ProofProgress } from '../proof.selectors';
 
 /**
  * The head of the Proof panel: the title, the chapter bar the page passes in, and the one Proof percent as a ring with the two counters.
- * The ring is decorative and the text carries the meaning. With no notes there is neither.
+ * The ring is decorative and the text carries the meaning. With no notes there is neither. When the percent changes the arc eases
+ * to it on the base token (`--ring-percent`, registered in styles.css); the counters change at once.
  */
 export function ProofHeader({ progress, chapterBar }: { progress: ProofProgress; chapterBar: ReactNode }) {
   return (
@@ -17,9 +18,10 @@ export function ProofHeader({ progress, chapterBar }: { progress: ProofProgress;
           <div
             aria-hidden="true"
             data-ring={progress.percent}
-            className="size-6 rounded-full"
+            className="size-6 rounded-full motion-ok:transition-[--ring-percent] motion-ok:duration-(--motion-base) motion-ok:ease-(--ease-standard)"
             style={{
-              background: `conic-gradient(var(--accent) ${progress.percent}%, var(--border) 0)`,
+              ['--ring-percent' as string]: `${progress.percent}%`,
+              background: 'conic-gradient(var(--accent) var(--ring-percent), var(--border) 0)',
               mask: 'radial-gradient(circle, transparent 55%, #000 56%)',
             }}
           />

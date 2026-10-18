@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { act, cleanup, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { OverlayProvider } from '../../overlay/OverlayProvider';
 import { createOverlayService, type OverlayService } from '../../overlay/overlayService';
 import { createJournal, JOURNAL_LIMIT, type Journal } from '../../studio/journal/createJournal';
@@ -85,6 +85,22 @@ describe('HistoryPanel', () => {
     await userEvent.click(await within(dialog).findByRole('button', { name: 'Undo' }));
     await waitFor(() => expect(service.getSnapshot().toasts.map((t) => t.text)).toEqual(['The host said no.']));
     expect(within(dialog).getAllByRole('listitem')).toHaveLength(1);
+  });
+
+  it('tells two changes with the same label apart by the time each was made', async () => {
+    const now = vi.spyOn(Date, 'now');
+    now.mockReturnValue(new Date(2026, 9, 18, 9, 5, 7).getTime());
+    await add('Added a bookmark', false, ['a']);
+    now.mockReturnValue(new Date(2026, 9, 18, 9, 41, 30).getTime());
+    await add('Added a bookmark', false, ['b']);
+    const { dialog } = await mount();
+    await waitFor(() => expect(within(dialog).getAllByRole('listitem')).toHaveLength(2));
+    const [newest, oldest] = within(dialog).getAllByRole('listitem');
+    const time = (item: HTMLElement) => item.querySelector('time')!;
+    expect(time(newest!).textContent).toBe(new Date(2026, 9, 18, 9, 41, 30).toLocaleTimeString());
+    expect(time(oldest!).textContent).toBe(new Date(2026, 9, 18, 9, 5, 7).toLocaleTimeString());
+    expect(time(oldest!).getAttribute('datetime')).toBe(new Date(2026, 9, 18, 9, 5, 7).toISOString());
+    now.mockRestore();
   });
 
   it('says the list is full: at the journal limit a line tells the narrator older changes are gone, below it there is none', async () => {
