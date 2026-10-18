@@ -34,12 +34,12 @@ export function CategoryNav({
       data-cat={id}
       aria-current={!browsing && current === id ? 'page' : 'false'}
       onClick={() => onPick(id)}
-      className="flex min-h-9 w-full items-center gap-2.5 rounded-[6px] border-0 bg-transparent px-2.5 text-left text-[0.9rem] text-[var(--text)] hover:bg-[var(--surface-2)] aria-[current=page]:bg-[var(--accent-soft)] aria-[current=page]:font-semibold"
+      className="flex min-h-9 w-full items-center gap-2.5 rounded-[6px] border-0 bg-transparent px-2.5 text-left text-[0.9rem] font-medium text-[var(--text)] hover:bg-[var(--surface-2)] aria-[current=page]:bg-[var(--accent-soft)] aria-[current=page]:font-semibold aria-[current=page]:shadow-[inset_3px_0_0_var(--accent)]"
     >
       <span className="flex-none text-[var(--text-muted)]">
         <Icon name={icon} />
       </span>
-      <span className="min-w-0 flex-1">{label}</span>
+      <span className="min-w-0 flex-1 font-['Barlow_Condensed',sans-serif] text-[0.8125rem] tracking-[0.1em] uppercase">{label}</span>
       {count > 0 && (
         <span aria-label={countLabel}>
           <StatusBadge tone="info" label={String(count)} />

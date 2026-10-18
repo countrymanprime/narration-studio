@@ -35,7 +35,7 @@ function optionsFor(choice: DawChoice, disabled: boolean): RadioOption<Choosable
   return choice.options.map((option) => ({
     value: option.daw,
     label: option.daw === 'Built-in' ? 'Built-in recorder. Recordings live in the app.' : `${option.daw}. Recordings live in the DAW.`,
-    description: optionDescription(option),
+    description: optionDescription(option) && <span className="text-[0.8125rem]">{optionDescription(option)}</span>,
     disabled,
   }));
 }
