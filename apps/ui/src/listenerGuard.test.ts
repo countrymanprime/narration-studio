@@ -22,6 +22,9 @@ const PERMANENT: Record<string, Reason> = {
   'src/components/recordingcheck/CheckRecordingsDialog.tsx': {
     note: 'Escape while a check runs asks to stop it, a widget key owned by the dialog, not a command',
   },
+  'src/components/voicesamples/samplePlayerStore.ts': {
+    note: "Escape stops the voice sample that is playing, on whatever page plays it and only while one does, a key owned by that transient playback state like the tooltip's; a catalogue row would share Escape with every page's own Escape row and be shadowed by each of them",
+  },
   'src/components/booth/useFollowCursor.ts': { note: 'isScrollKey detects a hand scroll, not a command' },
 };
 

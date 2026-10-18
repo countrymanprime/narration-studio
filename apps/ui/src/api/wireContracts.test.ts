@@ -4275,6 +4275,7 @@ describe('answers of the mock client for the settings, voice, model, transcript 
     ];
     const NOT_A_REQUEST = [
       'mediaUrl',
+      'voiceSampleMediaUrl',
       'subscribeProjectAttach',
       'subscribeLiveUpdateHealth',
       'subscribeNotices',
