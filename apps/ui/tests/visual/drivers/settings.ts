@@ -382,6 +382,15 @@ export const settingsDrivers: Record<string, Driver> = {
     await page.locator('[data-page-setting="ps.coverage"]').scrollIntoViewIfNeeded();
   },
 
+  'pages-navigate-away-confirm': async (page) => {
+    // A panel kept behind Set on a page still edits with Save, so leaving with a change in it asks first.
+    await openFirstPagePanel(page);
+    await page.getByLabel('Share of each paragraph that must be read', { exact: false }).first().fill('0.7');
+    // Leaving with unsaved changes asks first, so this click does not arrive at Production: it opens the confirm dialog.
+    await clickNav(page, 'Production');
+    await confirmDialog(page, 'Unsaved settings').waitFor();
+  },
+
   // ---- Search and filters
   'search-results': async (page) => {
     await openSettings(page);

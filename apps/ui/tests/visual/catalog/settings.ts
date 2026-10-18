@@ -372,6 +372,13 @@ export const settingsStates: StateEntry[] = [
   },
   {
     page: 'settings',
+    state: 'pages-navigate-away-confirm',
+    description:
+      'Settings, Set on a page with a change typed into the Recording check panel and another page pressed in the navigation: the Unsaved settings confirm with its three actions, over the page',
+    ...REFLOW,
+  },
+  {
+    page: 'settings',
     state: 'search-results',
     description:
       'Settings with "whisper" typed in Search settings: matching rows from several categories, each under its category with Show the whole category, and a count read aloud',
