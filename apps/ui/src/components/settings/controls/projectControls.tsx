@@ -1,5 +1,5 @@
 import type { ComponentType } from 'react';
-import { ReaderTextRowBody, ThemeRowBody, ZoomRowBody } from './AppearanceBodies';
+import { MotionRowBody, ReaderTextRowBody, ThemeRowBody, ZoomRowBody } from './AppearanceBodies';
 import { CreditsRowBody } from './CreditsBody';
 import { ManuscriptRowBody, MarksRowBody, ProjectDataRowBody, StoryBibleTypesRowBody } from './ProjectBodies';
 import { ShortcutsRowBody } from './ShortcutsBody';
@@ -12,6 +12,7 @@ export const PROJECT_CONTROLS: Record<string, ComponentType> = {
   'project.credits': CreditsRowBody,
   'project.data': ProjectDataRowBody,
   'look.theme': ThemeRowBody,
+  'look.motion': MotionRowBody,
   'look.reader': ReaderTextRowBody,
   'look.zoom': ZoomRowBody,
   'keys.map': ShortcutsRowBody,

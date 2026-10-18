@@ -25,11 +25,14 @@ const mark = (id: string, type: string, status?: 'open' | 'resolved'): Mark =>
     stale: false,
   }) as Mark;
 const entry = { id: 'e1', canonical_name: 'Alice', category: 'Character', aliases: [] } as unknown as GuideEntity;
-const selection: ReaderSelection = { chapterId: 'c1', paragraphId: 'p1', start: 0, end: 5, quote: 'Alice' };
+const selection: ReaderSelection = { chapterId: 'c1', paragraphId: 'p1', start: 0, end: 6, quote: 'Hatter' };
+const onEntry: ReaderSelection = { ...selection, end: 5, quote: 'Alice' };
+/** The labels as the menu draws them: a group's heading then the item's own name. */
+const named = (items: { label: string; group?: string }[]) => items.map((i) => (i.group ? `${i.group}: ${i.label}` : i.label));
 
 afterEach(() => void (document.body.innerHTML = ''));
 
-function build(handlers: Partial<MenuHandlers> = {}, marks: Mark[] = []) {
+function build(handlers: Partial<MenuHandlers> = {}, marks: Mark[] = [], entries: GuideEntity[] = [entry]) {
   const commands = {
     setMarkType: vi.fn(async () => null),
     removeMark: vi.fn(async () => null),
@@ -52,7 +55,7 @@ function build(handlers: Partial<MenuHandlers> = {}, marks: Mark[] = []) {
     ...handlers,
   };
   const deps: ScriptMenuDeps = {
-    lists: () => ({ types, marks, entries: [entry], kinds: ['Character', 'Place'], chapters: [{ id: 'c1', title: 'One' }], prepOf: () => 'progress' }),
+    lists: () => ({ types, marks, entries, kinds: ['Character', 'Place'], chapters: [{ id: 'c1', title: 'One' }], prepOf: () => 'progress' }),
     commands,
     handlers: () => all,
   };
@@ -76,26 +79,41 @@ describe('context-provider-matches-the-targets', () => {
 
   it('a selection gets the mock’s items with the types and kinds from the lists', () => {
     const { provider } = build({ selectionAt: () => selection });
-    const labels = provider.items(dom('<p data-pid="p1"><span data-t>Alice</span></p>')).map((i) => i.label);
+    const labels = named(provider.items(dom('<p data-pid="p1"><span data-t>Hatter</span></p>')));
     expect(labels).toEqual([
       'Mark as: Tone',
       'Mark as: Query',
       'Mark as: Pronunciation (a word)',
       'Add to the Story Bible as: Character',
       'Add to the Story Bible as: Place',
-      'Look up “Alice”',
-      'Find “Alice” in the manuscript',
+      'Look up “Hatter”',
+      'Find “Hatter” in the manuscript',
       'Copy',
     ]);
+  });
+
+  it('groups the Mark as, Story Bible and My prep choices under a heading each', () => {
+    const { provider } = build({ selectionAt: () => selection });
+    const groups = provider.items(dom('<p data-pid="p1"><span data-t>Hatter</span></p>')).map((i) => i.group);
+    expect(groups).toEqual(['Mark as', 'Mark as', 'Mark as', 'Add to the Story Bible as', 'Add to the Story Bible as', undefined, undefined, undefined]);
+    const chapter = build({ recordChapter: vi.fn() }).provider.items(dom('<div data-jump="c1"><b data-t>One</b></div>'));
+    expect(chapter.map((i) => i.group)).toEqual([undefined, undefined, 'My prep', 'My prep', 'My prep']);
+  });
+
+  it('does not offer to add a name the Story Bible already has, by its name or one of its aliases', () => {
+    const own = build({ selectionAt: () => onEntry });
+    expect(own.provider.items(dom('<p data-pid="p1"><span data-t>Alice</span></p>')).map((i) => i.key)).not.toContain('bible-as-Place');
+    const aliased = build({ selectionAt: () => ({ ...selection, quote: ' ali ' }) }, [], [{ ...entry, aliases: [{ text: 'Ali' }] } as unknown as GuideEntity]);
+    expect(aliased.provider.items(dom('<p data-pid="p1"><span data-t>Ali</span></p>')).map((i) => i.key)).not.toContain('bible-as-Place');
   });
 
   it('a mark gets its thread, status, type and delete items; a note has no status item', () => {
     const asked = build({}, [mark('m1', 'query', 'open')]);
     const items = asked.provider.items(dom('<p data-pid="p1"><mark data-a="m1" data-st="highlight" data-t>Hi</mark></p>'));
-    expect(items.map((i) => i.label)).toEqual(['Open the thread', 'Mark resolved', 'Change type: Tone', 'Change type: Query', 'Delete mark']);
+    expect(named(items)).toEqual(['Open the thread', 'Mark resolved', 'Change type: Tone', 'Change type: Query', 'Delete mark']);
     expect(items.find((i) => i.key === 'mark-type-query')?.unavailable).toBeTruthy();
     const note = build({}, [mark('m1', 'tone')]);
-    expect(note.provider.items(dom('<p data-pid="p1"><mark data-a="m1" data-st="highlight" data-t>Hi</mark></p>')).map((i) => i.label)).toEqual([
+    expect(named(note.provider.items(dom('<p data-pid="p1"><mark data-a="m1" data-st="highlight" data-t>Hi</mark></p>')))).toEqual([
       'Edit the note',
       'Change type: Tone',
       'Change type: Query',
@@ -109,10 +127,12 @@ describe('context-provider-matches-the-targets', () => {
   });
 
   it('a name gets Open in the side panel and Find; the first matching target wins over the selection', () => {
-    const { provider } = build({ selectionAt: () => selection });
+    const { provider } = build({ selectionAt: () => onEntry });
     const items = provider.items(dom('<p data-pid="p1"><span data-ent="e1" data-t>Alice</span></p>'));
     expect(items.slice(0, 2).map((i) => i.label)).toEqual(['Open “Alice” in the side panel', 'Find “Alice” in the manuscript']);
     expect(items.length).toBeGreaterThan(2);
+    // The name's own Find is the only one: the selection of the same words does not offer a second.
+    expect(items.filter((i) => i.label.startsWith('Find'))).toHaveLength(1);
   });
 
   it('a quoted phrase gets the speaker item first, which opens the picker on its cue', () => {
@@ -135,7 +155,7 @@ describe('context-provider-matches-the-targets', () => {
   it('a chapter row or boundary card gets Go to, Record in Booth, and the prep states', () => {
     const { provider } = build({ recordChapter: vi.fn() });
     const items = provider.items(dom('<div data-jump="c1"><b data-t>One</b></div>'));
-    expect(items.map((i) => i.label)).toEqual(['Go to this chapter', 'Record in Booth', 'My prep: Not started', 'My prep: In progress', 'My prep: Prepped']);
+    expect(named(items)).toEqual(['Go to this chapter', 'Record in Booth', 'My prep: Not started', 'My prep: In progress', 'My prep: Prepped']);
     expect(items.find((i) => i.key === 'prep-progress')?.unavailable).toBeTruthy();
     expect(provider.items(dom('<section data-bound="" data-ch="c1"><b data-t>One</b></section>'))).toHaveLength(5);
   });
@@ -172,10 +192,10 @@ describe('menu-items-run-the-hooks-commands', () => {
     expect(mine.commands.removeMark).toHaveBeenCalledWith('m1');
     expect(mine.handlers.composeMark).toHaveBeenCalledWith('tone', selection);
     expect(mine.commands.flagWord).toHaveBeenCalledWith(selection);
-    expect(mine.commands.createEntryFrom).toHaveBeenCalledWith('Place', 'Alice');
-    expect(mine.handlers.lookUp).toHaveBeenCalledWith('Alice', selection);
-    expect(mine.handlers.openFind).toHaveBeenCalledWith('Alice');
-    expect(mine.handlers.copy).toHaveBeenCalledWith('Alice');
+    expect(mine.commands.createEntryFrom).toHaveBeenCalledWith('Place', 'Hatter');
+    expect(mine.handlers.lookUp).toHaveBeenCalledWith('Hatter', selection);
+    expect(mine.handlers.openFind).toHaveBeenCalledWith('Hatter');
+    expect(mine.handlers.copy).toHaveBeenCalledWith('Hatter');
   });
 
   it('Bookmark here and Record from here run the page’s handlers', () => {

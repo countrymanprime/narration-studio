@@ -234,7 +234,7 @@ export function AppShell({
         {/* tabIndex -1: a dialog that closes with nothing to give focus back to (its opener is gone) sends focus into <main> (its first control, or <main> itself), not to <body>. */}
         <main tabIndex={-1} className="flex min-w-0 flex-1 flex-col overflow-hidden focus:outline-none">
           <header className="flex h-13 flex-none items-center gap-3 border-b border-[var(--border)] bg-[var(--surface)] px-3 text-sm max-md:gap-2 md:px-5">
-            <IconButton label="Open navigation" onClick={() => setDrawerOpen(true)} className="min-[860px]:hidden">
+            <IconButton label="Open navigation" aria-expanded={drawerOpen} onClick={() => setDrawerOpen(true)} className="min-[860px]:hidden">
               <FontAwesomeIcon icon={faBars} />
             </IconButton>
             {/* Page history: walks the app's own page moves only, through App.tsx's guards. */}
@@ -303,7 +303,7 @@ export function AppShell({
                   aria-label={`Reset zoom to 100%, now ${zoom.percent}%`}
                   aria-disabled={zoomAtDefault || undefined}
                   onClick={zoomAtDefault ? (event) => event.preventDefault() : zoom.reset}
-                  className="h-8 min-w-14 justify-center px-2 py-0 font-['IBM_Plex_Mono',ui-monospace,monospace] text-[0.8rem] font-normal tracking-normal normal-case aria-disabled:pointer-events-none aria-disabled:opacity-40"
+                  className="h-8 min-w-14 justify-center px-2 py-0 font-['IBM_Plex_Mono',ui-monospace,monospace] text-[0.8rem] font-normal tracking-normal normal-case aria-disabled:pointer-events-none"
                 >
                   {zoom.percent}%
                 </Button>

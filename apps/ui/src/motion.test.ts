@@ -1,8 +1,9 @@
 // @vitest-environment jsdom
 import { readdirSync, readFileSync, statSync } from 'node:fs';
 import { join, relative } from 'node:path';
+import { act, renderHook } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { reducedMotion } from './motion';
+import { MOTION_STORAGE_KEY, applyMotion, readStoredMotion, reducedMotion, useMotionPreference } from './motion';
 
 // Every transition and animation is gated on `motion-ok:` (styles.css), so it stops when Windows asks for reduced motion or
 // when <html data-motion="reduce"> is set. `motion-safe:` reads only the media query, so it is not enough. The visual suite,
@@ -124,5 +125,50 @@ describe('reducedMotion', () => {
     windowsAsks(false);
     document.documentElement.dataset.motion = 'reduce';
     expect(reducedMotion()).toBe(true);
+  });
+});
+
+describe('the Motion setting', () => {
+  afterEach(() => {
+    localStorage.clear();
+    vi.restoreAllMocks();
+    delete document.documentElement.dataset.motion;
+  });
+
+  it('reads Follow Windows unless this browser saved Reduce', () => {
+    expect(readStoredMotion()).toBe('system');
+    localStorage.setItem(MOTION_STORAGE_KEY, 'reduce');
+    expect(readStoredMotion()).toBe('reduce');
+    localStorage.setItem(MOTION_STORAGE_KEY, 'sideways');
+    expect(readStoredMotion()).toBe('system');
+  });
+
+  it('reads Follow Windows when storage throws', () => {
+    vi.spyOn(Storage.prototype, 'getItem').mockImplementation(() => {
+      throw new Error('blocked');
+    });
+    expect(readStoredMotion()).toBe('system');
+  });
+
+  it('sets and clears <html data-motion>', () => {
+    applyMotion('reduce');
+    expect(document.documentElement.dataset.motion).toBe('reduce');
+    applyMotion('system');
+    expect(document.documentElement.dataset.motion).toBeUndefined();
+  });
+
+  it('saves the choice, applies it and still applies it when storage throws', () => {
+    const { result } = renderHook(() => useMotionPreference());
+    expect(result.current[0]).toBe('system');
+    act(() => result.current[1]('reduce'));
+    expect(result.current[0]).toBe('reduce');
+    expect(localStorage.getItem(MOTION_STORAGE_KEY)).toBe('reduce');
+    expect(reducedMotion()).toBe(true);
+    vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
+      throw new Error('full');
+    });
+    act(() => result.current[1]('system'));
+    expect(result.current[0]).toBe('system');
+    expect(document.documentElement.dataset.motion).toBeUndefined();
   });
 });

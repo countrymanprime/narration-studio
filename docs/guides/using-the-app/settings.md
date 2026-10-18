@@ -154,7 +154,7 @@ With nothing downloaded, the page offers **Download the recommended set** (the S
 
 ![Settings - Project: the manuscript, the Story Bible rows, the marks and the narrator](../../images/ui/settings-project.webp)
 
-- **Manuscript** says when the manuscript was imported and how many words it has (or **No manuscript yet**), with **Replace manuscript…** (or **Import manuscript** when there is none). The replace confirm names what it clears.
+- **Manuscript** says when the manuscript was imported and how many words it has (or **No manuscript yet**), with **Replace manuscript…** (or **Import manuscript** when there is none). **Replace manuscript…** opens the same two steps as the [import](production.md#importing-the-manuscript); step 2 names what the replace clears.
 - **Build the Story Bible after import** and **Language model for the Story Bible** are for all projects, and a project may override them.
 - **Entry types** lists the kinds of [Story Bible](story-bible.md) entry, each with its name, colour, a **Can speak** box (entries of that type can be picked as the speaker of a quoted line, and the next Story Bible build attributes dialogue to them) and how many entries it has. A type you add with **New type** does not speak until you tick the box. Rename a type in its box and every entry of it moves with it; change its colour; or remove one: the remove button stays off while entries use the type, and the last type cannot go. A taken or reserved name is refused, and says why under the list.
 - **Marks** lists your mark types, each with its colour, and **tracks a reply** on a type that asks for one. **Edit marks…** opens the same **Define how you mark up** dialog as the Script page.
@@ -162,7 +162,7 @@ With nothing downloaded, the page offers **Download the recommended set** (the S
 - **Credits**: see [Credits](#credits).
 - **Clear derived data** (Advanced) removes the imported manuscript and its stored source, the Story Bible, proofing artifacts, reader notes and bookmarks, and saved comparison results for the current project, after you confirm. Its settings remain.
 
-![Settings - the Replace manuscript confirm for an imported file, with its title, word count and what is kept](../../images/ui/settings-manuscript.webp)
+![Settings - Replace manuscript, step 2 of 2: the chapter outline, with the line that names what a replace clears](../../images/ui/settings-manuscript.webp)
 
 ![Settings - Clear derived data asks first](../../images/ui/settings-project-data.webp)
 
@@ -211,6 +211,7 @@ replacing the manuscript keeps it; if its lines are gone, the panel says so and 
 ## Appearance & keys
 
 - **Theme** sets **Match my system**, **Light** or **Dark**. The **Dark theme** / **Light theme** item at the foot of the sidebar switches it too. It is kept in this window, so the page calls it **This computer**.
+- **Motion** is **Follow Windows** or **Reduce**. **Reduce** stops the app's slides, fades and highlights: menus, drawers and messages appear at once, and the Booth's cursor jumps from line to line. **Follow Windows** does that only when Windows' **Animation effects** setting is off. Like Theme, it is kept in this window.
 - **Reader text** sets how the [Script](script.md) reader draws the text: **Font**, **Size**, **Line spacing** and **Column width**, over a quote drawn in them. These are the Script's own text settings, so a change here shows there and the other way round. The Booth keeps its own text size and uses the font chosen here.
 - **Note colour** is the colour that marks reader notes in the text; a project may override it.
 - **Zoom** scales the whole window (100% to 200%, the steps the header's zoom buttons and **Ctrl+plus**, **Ctrl+minus** and **Ctrl+0** use); it follows those and sets the same level.
