@@ -38,21 +38,29 @@ func (s *sink) open() error {
 	return nil
 }
 
-// write appends line, rotating first when it would not fit. A line longer than the cap on its own is still written.
+// write appends line and a newline, rotating first when they would not fit. A line longer than the cap on its own is still
+// written.
 func (s *sink) write(line []byte) error {
 	if s.file == nil {
 		if err := s.open(); err != nil {
 			return err
 		}
 	}
-	if s.size > 0 && s.size+int64(len(line)) > s.max {
+	if s.size > 0 && s.size+int64(len(line))+1 > s.max {
 		if err := s.rotate(); err != nil {
 			return err
 		}
 	}
 	n, err := s.buf.Write(line)
 	s.size += int64(n)
-	return err
+	if err != nil {
+		return err
+	}
+	if err := s.buf.WriteByte('\n'); err != nil {
+		return err
+	}
+	s.size++
+	return nil
 }
 
 func (s *sink) rotate() error {

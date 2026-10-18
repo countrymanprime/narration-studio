@@ -26,8 +26,9 @@ import (
 const (
 	// DefaultMaxBytes caps the trace file; two backups are kept, so the trace never holds more than about three times it.
 	DefaultMaxBytes int64 = 10 << 20
-	// DefaultRingSize is how many records the in-memory ring keeps.
+	// DefaultRingSize is how many records the in-memory ring keeps; maxRingSize bounds what an Options can ask for.
 	DefaultRingSize = 2000
+	maxRingSize     = 1 << 16
 	// RedactionVersion changes when what a path, an error or a text is reduced to changes, so an export can say which rules
 	// wrote the lines in it.
 	RedactionVersion = 1
@@ -154,6 +155,9 @@ func New(opts Options) *Tracer {
 	}
 	if opts.RingSize <= 0 {
 		opts.RingSize = DefaultRingSize
+	}
+	if opts.RingSize > maxRingSize {
+		opts.RingSize = maxRingSize
 	}
 	if opts.Now == nil {
 		opts.Now = time.Now
@@ -292,7 +296,7 @@ func (t *Tracer) Emit(event *Event, values ...Value) {
 		t.ringFull = true
 	}
 	if t.enabled && t.out != nil {
-		_ = t.out.write(append(append(make([]byte, 0, len(line)+1), line...), '\n'))
+		_ = t.out.write(line)
 	}
 }
 

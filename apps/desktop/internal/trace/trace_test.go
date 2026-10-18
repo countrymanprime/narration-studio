@@ -333,3 +333,10 @@ func TestDefineRefusesADuplicateOrABadName(t *testing.T) {
 		}()
 	}
 }
+
+func TestTheRingSizeAnOptionAsksForIsBounded(t *testing.T) {
+	tracer := New(Options{RingSize: 1 << 40})
+	if got := len(tracer.ring); got != maxRingSize {
+		t.Fatalf("ring length = %d, want %d", got, maxRingSize)
+	}
+}
