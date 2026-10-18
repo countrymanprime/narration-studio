@@ -33,13 +33,19 @@ jobs:
     #   ui             -> js-test-shard, js-test, ui-visual-shard, ui-atlas
     #   go             -> go-test (both parts, so the coverage gate sees every package)
     #   windows-quick  -> quick-windows (reaper or the shell: the Lua harness runs on Windows on purpose, CRLF and package.config)
-    # js-static and quick-ubuntu keep their own in-step scoping: some of their steps run `always`.
+    #   js-static, quick-ubuntu -> start on every change, and scope their steps themselves (some run `always`), except on a pull request
+    #   whose workflow changes are only `uses:` pin bumps (Dependabot): nx-scope.sh --pins then no longer answers `all`, and
+    #   scripts/ci/workflow-pins.mjs names the jobs that contain a changed pin (a changed local action: every job that uses it). Only those
+    #   jobs start; a job that starts runs in full, since its in-job nx-run still sees a workflow change as `all`. Any other change under
+    #   .github/workflows or .github/actions (a `run:`, `if:`, `with:` or `needs:` line, a step, job or file added or removed) is `all`.
     timeout-minutes: 10
     runs-on: ubuntu-latest
     outputs:
       ui: ${{ steps.flags.outputs.ui }}
       go: ${{ steps.flags.outputs.go }}
       windows-quick: ${{ steps.flags.outputs.windows-quick }}
+      js-static: ${{ steps.flags.outputs.js-static }}
+      quick-ubuntu: ${{ steps.flags.outputs.quick-ubuntu }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with: { fetch-depth: 0, persist-credentials: false }
@@ -56,15 +62,19 @@ jobs:
           BASE_REF: ${{ github.base_ref }}
         run: |
           set -euo pipefail
-          mode=$(bash scripts/ci/nx-scope.sh)
+          mode=$(bash scripts/ci/nx-scope.sh --pins)
           affected='[]'
+          pins='{"kind":"none"}'
           if [ "$mode" = "affected" ]; then
             affected=$(pnpm exec nx show projects --affected --base="origin/$BASE_REF" --head=HEAD --json)
+            pins=$(node scripts/ci/workflow-pins.mjs "origin/$BASE_REF")
           fi
-          echo "scope: $mode, affected: $affected"
-          printf '%s' "$affected" | node scripts/ci/job-scope.mjs --mode "$mode" --github-output
+          echo "scope: $mode, affected: $affected, workflow pins: $pins"
+          printf '%s' "$affected" | node scripts/ci/job-scope.mjs --mode "$mode" --pins "$pins" --github-output
 
   js-static:
+    needs: scope
+    if: needs.scope.outputs.js-static == 'true'
     # The static checks of the UI project and Knip, about a minute: they used to share a runner with the Vitest run, which is
     # 90% of the old `js` job's 13 minutes and now has jobs of its own (js-test-shard, js-test).
     timeout-minutes: 10
@@ -280,6 +290,8 @@ jobs:
           retention-days: 7
 
   quick-ubuntu:
+    needs: scope
+    if: needs.scope.outputs.quick-ubuntu == 'true'
     # The sub-minute Linux checks, one step each on one runner (their own jobs spent more on setup than on checking).
     # `!cancelled()` on every step: a red step does not hide the ones after it.
     #   - repo-scripts: the plain-Node scripts (GitHub metadata, release, the layout guard, the guide-screenshots tests,
