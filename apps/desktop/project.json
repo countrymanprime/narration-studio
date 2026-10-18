@@ -22,6 +22,12 @@
       "configurations": {
         "ci": {
           "command": "node scripts/ci/coverage-gate.mjs go {projectRoot} -race"
+        },
+        "ci-root": {
+          "command": "node scripts/ci/coverage-gate.mjs go {projectRoot} -race --group=root"
+        },
+        "ci-rest": {
+          "command": "node scripts/ci/coverage-gate.mjs go {projectRoot} -race --group=race,plain"
         }
       }
     },
