@@ -50,6 +50,7 @@ import type { DawMockScript, DawMockSeed } from '../dawMock';
 import type { ProvidersMockSeed } from '../providersMock';
 import type { MasteringMockSeed } from '../masteringMock';
 import type { RecordingMockSeed } from '../recordingMock';
+import type { VoiceSamplesSeed } from '../voiceSamplesMock';
 
 // What createMockApi boots from (the seeds), and the host state more than one domain reads or writes.
 // manuscriptCandidate boots a project with no imported manuscript but a
@@ -247,6 +248,8 @@ export type MockApiSeed = {
    * tab's "not in a series" state can be seen. Unset boots as a member of `WIRE_SERIES` (two books).
    */
   seriesVoiceBible?: 'not-in-series' | 'single-book';
+  /** Boots with voice samples saved (`?mockVoiceSamples=`), see `VoiceSamplesSeed`. Unset boots with none. */
+  voiceSamples?: VoiceSamplesSeed;
   /** Seeds the mastering chain mock (whether a project is open, its stored choice), see `MasteringMockSeed`. */
   mastering?: MasteringMockSeed;
   /** `?mockZoom=`: the window's real zoom level at boot, as a fraction (1.25 is 125%).
