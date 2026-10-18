@@ -662,7 +662,7 @@ describe('credits-are-readable-and-recordable', () => {
   it('open as a source with the unresolved-token warning, and record to their own region', async () => {
     const page = renderPage({ search: '?credits=opening', api: credits as Partial<NarrationApi> });
     await screen.findByText('Read', { exact: false });
-    expect(screen.getByRole('button', { name: /Credits tokens with no value: Title/ })).toBeTruthy();
+    expect(screen.getByRole('button', { name: /token has no value: Title/ })).toBeTruthy();
     await waitFor(() => expect((screen.getByRole('button', { name: /^Record$/ }) as HTMLButtonElement).disabled).toBe(false));
     await space();
     await waitFor(() => expect(page.daw.recordStart).toHaveBeenCalledWith('credits-opening'));

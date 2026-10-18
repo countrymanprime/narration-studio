@@ -22,7 +22,7 @@ function renderDialog(overrides: Partial<NarrationApi> = {}, initial: Parameters
 function statusOf(lineId: string, lane: number) {
   const line = screen.getByRole('region', { name: `${lineId} on Chapter 1` });
   const row = within(line)
-    .getByRole('button', { name: `Play lane ${lane} for ${lineId} on Chapter 1` })
+    .getByRole('button', { name: `Play this lane: lane ${lane} for ${lineId} on Chapter 1` })
     .closest('li');
   return row?.textContent ?? '';
 }
@@ -39,8 +39,8 @@ describe('RetakeLanesDialog', () => {
   it('lists each line’s retakes by lane, with what plays in the saved project', async () => {
     renderDialog();
     expect(await screen.findByRole('region', { name: 'line-000012 on Chapter 1' })).toBeTruthy();
-    expect(screen.getAllByRole('button', { name: /^Play lane \d for line-000012/ })).toHaveLength(3);
-    expect(screen.getAllByRole('button', { name: /^Play lane \d for line-000013/ })).toHaveLength(2);
+    expect(screen.getAllByRole('button', { name: /^Play this lane: lane \d for line-000012/ })).toHaveLength(3);
+    expect(screen.getAllByRole('button', { name: /^Play this lane: lane \d for line-000013/ })).toHaveLength(2);
     expect(statusOf('line-000012', 1)).toContain('Plays');
     expect(statusOf('line-000012', 2)).toContain('Silent');
   });
@@ -49,7 +49,7 @@ describe('RetakeLanesDialog', () => {
     const user = userEvent.setup();
     const { api } = renderDialog();
     const pick = vi.spyOn(api, 'retakeLanesPick');
-    await user.click(await screen.findByRole('button', { name: 'Play lane 2 for line-000012 on Chapter 1' }));
+    await user.click(await screen.findByRole('button', { name: 'Play this lane: lane 2 for line-000012 on Chapter 1' }));
     expect(pick).toHaveBeenCalledWith('line-000012', '{3A1F0C2E-5B6D-4E7F-8091-A2B3C4D5E602}');
     const status = await screen.findByRole('status');
     expect(status.textContent).toMatch(/Lane 2 is now the only lane playing on Chapter 1/);
@@ -95,15 +95,15 @@ describe('RetakeLanesDialog', () => {
   it('shows a pick the host refuses as an alert', async () => {
     const user = userEvent.setup();
     renderDialog({ retakeLanesPick: () => Promise.reject(new Error('the REAPER bridge is unavailable')) });
-    await user.click(await screen.findByRole('button', { name: 'Play lane 3 for line-000012 on Chapter 1' }));
+    await user.click(await screen.findByRole('button', { name: 'Play this lane: lane 3 for line-000012 on Chapter 1' }));
     expect((await screen.findByRole('alert')).textContent).toContain('the REAPER bridge is unavailable');
   });
 
   it('disables the other lanes and Close while a pick is in flight', async () => {
     const user = userEvent.setup();
     renderDialog();
-    await user.click(await screen.findByRole('button', { name: 'Play lane 3 for line-000012 on Chapter 1' }));
+    await user.click(await screen.findByRole('button', { name: 'Play this lane: lane 3 for line-000012 on Chapter 1' }));
     await waitFor(() => expect((screen.getByRole('button', { name: 'Close' }) as HTMLButtonElement).disabled).toBe(true));
-    expect((screen.getByRole('button', { name: 'Play lane 1 for line-000013 on Chapter 1' }) as HTMLButtonElement).disabled).toBe(true);
+    expect((screen.getByRole('button', { name: 'Play this lane: lane 1 for line-000013 on Chapter 1' }) as HTMLButtonElement).disabled).toBe(true);
   });
 });

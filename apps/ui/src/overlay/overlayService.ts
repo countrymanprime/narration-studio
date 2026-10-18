@@ -29,6 +29,8 @@ type DialogSpec =
       /** A slide-over always closes on a press outside, like the mock's side sheet. */
       kind: 'slideOver';
       title: string;
+      /** Where focus goes on close when the element that had it is gone (History opened from the jump menu); absent, what had focus before the first layer opened, then the page's <main>. */
+      returnFocus?: () => HTMLElement | null;
       render: (api: { close: () => void }) => ReactNode;
     };
 /** `topic` names what a message is about: a newer message on a topic replaces the one before it, and `dismissTopic` takes it away once it is no longer true. */
@@ -82,6 +84,20 @@ export type OverlayService = {
 export function createOverlayService(): OverlayService {
   let snapshot: OverlaySnapshot = { dialogs: [], toasts: [], announcement: '' };
   let lastId = 0;
+  // The control that had focus when each layer opened. A layer opened from another layer (History from the jump menu) inherits the
+  // opener of the layer it came from: that layer is closing, so its own controls will be gone when this one closes.
+  const openers = new Map<number, HTMLElement | null>();
+  // The opener of the layer closed last: the jump menu closes, then runs its command, while its own field still has focus.
+  let closedOpener: HTMLElement | null = null;
+  const openerNow = (): HTMLElement | null => {
+    const active = document.activeElement;
+    if (!(active instanceof HTMLElement) || active === document.body) return null;
+    if (active.closest('[role="dialog"], [role="alertdialog"], [data-slide-over]')) {
+      const top = snapshot.dialogs[snapshot.dialogs.length - 1];
+      return top ? (openers.get(top.id) ?? null) : closedOpener;
+    }
+    return active;
+  };
   const listeners = new Set<() => void>();
   const update = (next: Partial<OverlaySnapshot>) => {
     snapshot = { ...snapshot, ...next };
@@ -89,6 +105,8 @@ export function createOverlayService(): OverlayService {
   };
   const removeDialog = (id: number): boolean => {
     if (!snapshot.dialogs.some((entry) => entry.id === id)) return false;
+    closedOpener = openers.get(id) ?? null;
+    openers.delete(id);
     update({ dialogs: snapshot.dialogs.filter((entry) => entry.id !== id) });
     return true;
   };
@@ -151,7 +169,11 @@ export function createOverlayService(): OverlayService {
     open: (spec) => {
       const id = ++lastId;
       const close = () => void removeDialog(id);
-      update({ dialogs: [...snapshot.dialogs, { id, kind: spec.kind, spec, close }] });
+      const opener = openerNow();
+      openers.set(id, opener);
+      // Where focus goes when the control that had it is gone: the layer's own say first, then what had focus before the chain of layers began.
+      const returnFocus = () => spec.returnFocus?.() ?? (opener?.isConnected ? opener : null);
+      update({ dialogs: [...snapshot.dialogs, { id, kind: spec.kind, spec: { ...spec, returnFocus }, close }] });
       return close;
     },
     dismissToast: (id) => update({ toasts: snapshot.toasts.filter((message) => message.id !== id) }),

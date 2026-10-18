@@ -36,6 +36,12 @@ export const proofDrivers: Record<string, Driver> = {
     await page.getByText('This page could not be loaded').waitFor();
     await page.getByRole('button', { name: 'Retry' }).waitFor();
   },
+  loading: async (page) => {
+    await page.goto('/?mockChapters=loading');
+    await settlePage(page);
+    await clickNav(page, 'Proof');
+    await page.getByRole('status').filter({ hasText: 'Reading the chapters and notes' }).waitFor({ state: 'attached' });
+  },
   default: async (page) => {
     await openProof(page);
   },

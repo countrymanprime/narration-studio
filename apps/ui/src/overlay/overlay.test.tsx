@@ -136,6 +136,32 @@ describe('stacking and Escape order stay the primitives', () => {
   });
 });
 
+describe('Escape while focus is still in the layer under a confirm', () => {
+  it('answers the confirm, not the Dialog beneath it', async () => {
+    function Page() {
+      const [open, setOpen] = useState(true);
+      return (
+        <main tabIndex={-1}>
+          {open && (
+            <Dialog dismissOnOutsidePress={false} title="Details" onClose={() => setOpen(false)} actions={<button onClick={() => void ask()}>Ask</button>}>
+              <p>Body</p>
+            </Dialog>
+          )}
+          <OverlayHost service={service} />
+        </main>
+      );
+    }
+    render(<Page />);
+    await userEvent.click(await screen.findByRole('button', { name: 'Ask' }));
+    await screen.findByRole('alertdialog', { name: 'Delete the take?' });
+    // Base UI moves focus into the confirm a frame later; a key pressed before that lands in the Dialog.
+    screen.getByRole('button', { name: 'Ask', hidden: true }).focus();
+    await userEvent.keyboard('{Escape}');
+    await waitFor(() => expect(screen.queryByRole('alertdialog')).toBeNull());
+    expect(screen.getByRole('dialog', { name: 'Details' })).toBeTruthy();
+  });
+});
+
 describe('overlay.toast', () => {
   it('toast-shows-and-expires: an information toast follows Toast timing', () => {
     vi.useFakeTimers();
