@@ -69,7 +69,7 @@ describe('Button pending', () => {
   it('spins only for people who have not asked for reduced motion', () => {
     render(<Button pending>Save</Button>);
     const classes = (screen.getByRole('button').querySelector('svg') as SVGElement).getAttribute('class')?.split(/\s+/) ?? [];
-    expect(classes).toContain('motion-safe:animate-spin');
+    expect(classes).toContain('motion-ok:animate-spin');
     expect(classes).not.toContain('animate-spin');
   });
 });
