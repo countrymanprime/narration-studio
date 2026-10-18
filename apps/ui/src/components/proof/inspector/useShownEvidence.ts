@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { apiErrorMessage } from '../../../api/errorMessage';
 import { usePendingAction } from '../../../hooks/usePendingAction';
 import type { Finding, FindingReviewStatus, NarrationApi } from '../../../types';
+import { forgetDraft, recallDraft, rememberDraft } from '../proofMemory';
 import { evidenceChange, type EvidenceChange } from './evidenceChange';
 
 /** What the narrator is told when a decision or a step is refused because the evidence moved under them. */
@@ -22,7 +23,7 @@ interface Tracked {
 }
 
 const versionOf = (finding: Finding) => finding.evidence_version ?? '';
-const fresh = (finding: Finding): Tracked => ({ prop: finding, shown: finding, latest: finding, note: finding.review.note ?? '' });
+const fresh = (finding: Finding): Tracked => ({ prop: finding, shown: finding, latest: finding, note: recallDraft(finding.id) ?? finding.review.note ?? '' });
 
 /**
  * The finding the narrator was shown, kept beside the latest one the host gave. A decision goes out with the shown evidence version
@@ -75,6 +76,7 @@ export function useShownEvidence({
       const shownVersion = versionOf(current.shown);
       try {
         const decided = await api.findingsReview({ id: current.latest.id, evidenceVersion: shownVersion, status, note: current.note.trim() });
+        forgetDraft(decided.id);
         setState((s) => ({ ...s, shown: decided, latest: decided }));
         onChanged(decided, true);
         return { ok: true };
@@ -104,7 +106,10 @@ export function useShownEvidence({
     shown: current.shown,
     change,
     note: current.note,
-    setNote: (note: string) => setState((s) => ({ ...s, note })),
+    setNote: (note: string) => {
+      rememberDraft(current.latest.id, note, current.latest.review.note ?? '');
+      setState((s) => ({ ...s, note }));
+    },
     decide,
     step,
     /** The narrator read what changed and takes the latest evidence as the one to decide on. */

@@ -1,9 +1,11 @@
 // @vitest-environment jsdom
 import { act, cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import { overlay } from '../../../overlay/overlayService';
 import { EditingPageProvider, useEditingPage } from './EditingPageState';
 import { NO_TEXT, ScriptDoc, type ScriptDocProps } from './ScriptDoc';
 import { docFromHeard } from './docFromHeard';
+import { ANNOUNCE_SETTLE_MS } from './useAnnounceCursor';
 import { marksDoc, notTranscribed, PARAS } from './scriptFixtures';
 import type { ChapterDoc } from '../model';
 import type { PageState } from './scriptState';
@@ -176,17 +178,27 @@ describe('click-shift-click-drag-and-double-click', () => {
 });
 
 describe('selection-is-announced', () => {
-  it('speaks the count and the time range in a polite live region', () => {
+  it('speaks the count and the time range through the overlay announcer once the pointer has settled', () => {
+    vi.useFakeTimers();
+    const said: string[] = [];
+    vi.spyOn(overlay, 'announce').mockImplementation((text) => void said.push(text));
     const doc = marksDoc();
     show(doc);
     const keys = doc.items.map((i) => i.key);
     fireEvent.mouseDown(word(keys[0]));
     fireEvent.mouseDown(word(keys[2]), { shiftKey: true });
-    const live = screen.getByRole('status');
-    expect(live.getAttribute('aria-live')).toBe('polite');
-    expect(live.textContent).toMatch(/^3 words selected, \d+:\d\d to \d+:\d\d$/);
+    act(() => void vi.advanceTimersByTime(ANNOUNCE_SETTLE_MS));
+    expect(said).toEqual([expect.stringMatching(/^3 words selected, \d+:\d\d to \d+:\d\d$/)]);
     fireEvent.mouseDown(word(doc.items.find((i) => i.st === 'extra')!.key), { detail: 2 });
-    expect(live.textContent).toMatch(/not in the script$/);
+    act(() => void vi.advanceTimersByTime(ANNOUNCE_SETTLE_MS));
+    expect(said.at(-1)).toMatch(/not in the script$/);
+    vi.useRealTimers();
+    vi.restoreAllMocks();
+  });
+
+  it('keeps no live region of its own, so the overlay announcer is the one voice', () => {
+    show(marksDoc());
+    expect(screen.queryByRole('status')).toBeNull();
   });
 });
 

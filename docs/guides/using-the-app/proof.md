@@ -27,7 +27,7 @@ loaded" with the reason and a **Retry** button, which reads them again. The rest
 The chapter stepper beside the title shows **All chapters** or one chapter. On **All chapters** the notes run in book order, chapter by chapter, and **J**/**K** follow that order. Choose a chapter from it, or step with its
 arrows or the Left and Right keys. From All chapters, a step opens the last chapter you looked at in this project (the
 first chapter until you have looked at one). The chapter is in the page's address (`/proof?chapter=<id>`), and Esc goes
-back to All chapters.
+back to All chapters. Each change of chapter is a step in the browser's history, so Back returns to the chapter or to All chapters you came from.
 
 On the right of the title, a ring and two counters say how far the notes in view have got: **12 of 14 cleared · 13
 decided**, for example. A note is cleared once it is waived; a deferred note, or one waiting for its pickup, is decided
@@ -79,7 +79,8 @@ The notes panel lists the notes in view, **Notes · 14** for example, with:
 - **Find in notes** (Ctrl+F), which keeps only the notes whose text matches what you type; Esc closes it;
 - **Import proofer sheet** and **Export for proofer**: the proofer's CSV sheet. Import adds each row as a pickup marker in
   the DAW and, when the DAW has answered, says how many pickups it added, how many were there already and how many rows
-  it skipped. Export saves the pickups still open as `pickups-for-proofer.csv` and says how many it wrote. Both need the
+  it skipped. Export saves the pickups still open as `pickups-for-proofer.csv` and says how many it wrote; a pickup on the Pickups page with no
+  marker in the DAW yet is not in the sheet, and the message says how many are missing and to add them as markers there first. Both need the
   DAW.
 
 Under them, **Sources** names the checks the notes came from, with a count for each, before any chip or search narrows
@@ -113,9 +114,12 @@ Select a note in the table, or its pin on the waveform, and the Inspector shows 
 - **Notes on this finding**, the conversation about the spot (see [Notes on a finding](#notes-on-a-finding)).
 
 A decision is saved at once and the next note is selected. A message says what was saved, with **Undo** to put the
-note back as it was. The decision is also in the app's undo history, so Ctrl+Z, **Undo** in the header and
+note back as it was. On a window wide enough to show the panel beside the notes, the messages sit left of it, so they do not cover the decision buttons. The decision is also in the app's undo history, so Ctrl+Z, **Undo** in the header and
 [History](navigation.md) take it back too, as "Decision “Waive” at 00:12.4"; from another chapter, the undo opens the note's own chapter and selects the note. **Waive** says the line stays as it was read. **Reopen** puts a decided note back
 to review.
+
+Leaving Proof for Booth, Script or Editing and coming Back opens the note you had selected, with the note you had typed for
+it and not yet saved.
 
 A decision is always made on the evidence you are looking at. If the check ran again after the note was shown and the
 evidence changed, the decision is not saved: **The evidence changed** shows what you saw (**Before**) and what the check

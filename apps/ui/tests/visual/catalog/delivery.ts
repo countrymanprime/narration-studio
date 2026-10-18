@@ -82,4 +82,10 @@ export const deliveryStates: StateEntry[] = [
     state: 'no-manuscript',
     description: 'Delivery opened by its address with no manuscript imported (?mockNoManuscript) - the page asks for the manuscript first',
   },
+  {
+    page: 'delivery',
+    state: 'loading',
+    description:
+      'Delivery while the chapters are still being read (?mockChapters=loading): the page as usual, and in Before you build grey blocks in place of the chapter checks, with one polite "Reading the chapters…" status',
+  },
 ];

@@ -69,7 +69,8 @@ export const LongRightToLeftAndEmoji: Story = {
 export const Announcement: StoryObj<typeof SamplePlayerAnnouncement> = {
   render: () => <SamplePlayerAnnouncement text="Playing voice sample for Hatter" />,
   play: async ({ canvasElement }) => {
-    await expect(within(canvasElement).getByRole('status')).toHaveTextContent('Playing voice sample for Hatter');
+    const region = within(canvasElement).getByText('Playing voice sample for Hatter');
+    await expect(region).toHaveAttribute('aria-live', 'polite');
   },
 };
 

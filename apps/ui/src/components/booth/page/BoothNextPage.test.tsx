@@ -694,19 +694,18 @@ describe('a page that has nothing to show says so and leaves a way out', () => {
     expect(page.navigate).toHaveBeenCalledWith('/script');
   });
 
-  it('Back to the chapters opens the book on its first chapter', async () => {
-    renderPage({ search: '?credits=closing', api: openingOnly });
+  it('Back to the chapters goes to the chapter list (Script), not into a Booth already reading chapter 1', async () => {
+    const page = renderPage({ search: '?credits=closing', api: openingOnly });
     await userEvent.click(await screen.findByRole('button', { name: 'Back to the chapters' }));
-    expect(driver.search()).toBe('');
-    await ready();
-    expect(screen.queryByRole('heading', { name: /credits are not set up/ })).toBeNull();
+    expect(page.navigate).toHaveBeenCalledWith('/script');
+    expect(screen.queryByRole('button', { name: /^Record$/ })).toBeNull();
   });
 
   it('a chapter the book does not have says so too, and the way back works', async () => {
-    renderPage({ search: '?chapter=no-such-chapter' });
+    const page = renderPage({ search: '?chapter=no-such-chapter' });
     expect(await screen.findByRole('heading', { name: 'That chapter is not in this book' })).toBeTruthy();
     await userEvent.click(screen.getByRole('button', { name: 'Back to the chapters' }));
-    await ready();
+    expect(page.navigate).toHaveBeenCalledWith('/script');
   });
 
   it('while the credits are still being read there is no panel yet', async () => {

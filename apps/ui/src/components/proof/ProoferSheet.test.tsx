@@ -6,7 +6,7 @@ import { createMockApi } from '../../api/mockApi';
 import { OverlayHost } from '../../overlay/OverlayHost';
 import type { NarrationApi } from '../../types';
 import { TooltipProvider } from '../primitives/Tooltip';
-import { importedMessage, ProoferSheet } from './ProoferSheet';
+import { exportedMessage, importedMessage, ProoferSheet } from './ProoferSheet';
 
 afterEach(() => {
   cleanup();
@@ -60,7 +60,7 @@ describe('ProoferSheet', () => {
     await countSettled();
     fireEvent.click(screen.getByRole('button', { name: 'Export for proofer' }));
     await waitFor(() => expect(exported).toHaveBeenCalledOnce());
-    expect(await screen.findByText(/^Exported \d+ pickups? for the proofer\.$/, {}, { timeout: 3000 })).toBeTruthy();
+    expect(await screen.findByText(/^Exported \d+ pickups? for the proofer\./, {}, { timeout: 3000 })).toBeTruthy();
     expect(clicked).toHaveBeenCalledOnce();
     expect(createUrl).toHaveBeenCalledOnce();
   });
@@ -73,6 +73,15 @@ describe('ProoferSheet', () => {
     renderSheet(api);
     await new Promise((resolve) => setTimeout(resolve, 50));
     expect(clicked).not.toHaveBeenCalled();
+  });
+
+  it('says why the sheet holds fewer pickups than the Pickups page lists, and nothing when they agree', () => {
+    expect(exportedMessage(2, 2)).toBe('Exported 2 pickups for the proofer.');
+    expect(exportedMessage(2, undefined)).toBe('Exported 2 pickups for the proofer.');
+    expect(exportedMessage(0, 3)).toBe(
+      'Exported 0 pickups for the proofer. 3 pickups on the Pickups page have no marker in the DAW yet, so they are not in the sheet: add them as markers there, then export again.',
+    );
+    expect(exportedMessage(2, 3)).toContain('1 pickup on the Pickups page has no marker in the DAW yet, so it is not in the sheet: add it as a marker there');
   });
 
   it('names what was already there and what the DAW rejected', () => {
