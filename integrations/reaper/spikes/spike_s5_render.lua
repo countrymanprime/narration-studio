@@ -47,7 +47,7 @@ local function finish()
 end
 
 local function list_dir(dir)
-  reaper.EnumerateFiles(dir, -1) -- clear the cache (ADR 0068): otherwise a file created after the first call is invisible.
+  reaper.EnumerateFiles(dir, -1) -- clear the cache: otherwise a file created after the first call is invisible.
   local names, index = {}, 0
   while true do
     local name = reaper.EnumerateFiles(dir, index)

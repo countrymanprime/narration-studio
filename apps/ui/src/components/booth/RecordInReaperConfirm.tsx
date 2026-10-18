@@ -8,7 +8,7 @@ type Props = {
 };
 
 /**
- * The first-time confirm turning Record in REAPER on for this project (ADR 0249): shown once per project, the first time the toggle is turned on
+ * The first-time confirm turning Record in REAPER on for this project: shown once per project, the first time the toggle is turned on
  * (`ReadAloud.record_confirmed`). It names the chapter, not a REAPER track name the host never sends, and says
  * exactly what Play and Stop do so a narrator never wonders whether REAPER is recording by surprise.
  */

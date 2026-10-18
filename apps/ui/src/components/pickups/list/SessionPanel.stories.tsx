@@ -3,7 +3,7 @@ import { expect, fn, userEvent, within } from 'storybook/test';
 import { ALL_DONE, CHAPTERS, MIXED } from './pickupFixtures';
 import { SessionPanel } from './SessionPanel';
 
-// The mock's "Pickup session" panel. The minutes are sourced (ADR 0015): a figure or "not measured yet", never a guess.
+// The mock's "Pickup session" panel. The minutes are sourced: a figure or "not measured yet", never a guess.
 const meta = {
   title: 'Pickups/SessionPanel',
   component: SessionPanel,

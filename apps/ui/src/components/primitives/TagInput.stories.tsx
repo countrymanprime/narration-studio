@@ -91,7 +91,7 @@ export const CommaAddsATerm: Story = {
   },
 };
 
-// Clicking away from a half-typed draft commits it too (ADR 0055's blur-commit), so a click on Remove, Suggest or a
+// Clicking away from a half-typed draft commits it too (docs/design/design-system.md's blur-commit), so a click on Remove, Suggest or a
 // page's own submit button never silently drops what was just typed.
 export const BlurCommitsTheDraft: Story = {
   play: async ({ args, canvasElement }) => {
@@ -103,7 +103,7 @@ export const BlurCommitsTheDraft: Story = {
   },
 };
 
-// Backspace on an empty draft removes the most recently added tag (ADR 0363).
+// Backspace on an empty draft removes the most recently added tag.
 export const BackspaceRemovesTheLastTag: Story = {
   play: async ({ args, canvasElement }) => {
     const canvas = within(canvasElement);

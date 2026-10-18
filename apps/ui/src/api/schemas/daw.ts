@@ -97,7 +97,7 @@ export const dawProjectStateSchema = z.strictObject({
   playPosition: z.number().nonnegative(),
 }) satisfies z.ZodType<DawProjectState>;
 
-/** dawport.Result: refused, code and steps are absent unless set; code is one of DAW_REFUSAL_CODES (ADR 0861). */
+/** dawport.Result: refused, code and steps are absent unless set; code is one of DAW_REFUSAL_CODES. */
 export const dawResultSchema = z.object({
   ok: z.boolean(),
   changed: z.boolean(),
@@ -182,7 +182,7 @@ const dawBackupSchema = z
   })
   .refine((row) => row.start < row.end, { message: 'the window ends before it starts', path: ['end'] }) satisfies z.ZodType<DawBackup>;
 
-/** narration-utils/backups.json (ADR 0863): at most DAW_BACKUPS_MAX rows with distinct ids. */
+/** narration-utils/backups.json: at most DAW_BACKUPS_MAX rows with distinct ids. */
 export const dawBackupsFileSchema = z
   .strictObject({
     schemaVersion: z.literal(1),

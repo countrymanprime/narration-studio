@@ -100,7 +100,7 @@ type Request struct {
 	Scope          Scope
 	Thresholds     repeats.Thresholds
 	SidecarOptions SidecarOptions
-	// ProgressPath is handed to the sidecar for its real progress (ADR 0015); empty runs it without.
+	// ProgressPath is handed to the sidecar for its real progress; empty runs it without.
 	ProgressPath string
 }
 

@@ -8,7 +8,7 @@ import { Dot } from './StatusBadge';
 export type HeaderChipTone = 'neutral' | 'success' | 'warning';
 
 // The fill and text per tone, the benchmark mocks' own (mock 01's header): the timer on `--surface-2` in `--text`, "REAPER linked" on `--ok-soft` in `--ok-text`. Each pair is one the
-// palette guard already checks (ADR 0590).
+// palette guard already checks.
 const TONE: Record<HeaderChipTone, { background: string; color: string }> = {
   neutral: { background: 'var(--surface-2)', color: 'var(--text)' },
   success: { background: 'var(--ok-soft)', color: 'var(--ok-text)' },
@@ -21,7 +21,7 @@ const CHIP =
   "inline-flex h-[1.375rem] items-center gap-[0.375rem] rounded-full px-[0.625rem] font-['Barlow_Condensed',sans-serif] text-[0.72rem] font-semibold tracking-[0.03em] whitespace-nowrap";
 
 /**
- * The header's chip (ADR 0635): the running timer, the audio engine and the Booth's built-in recorder are one shape. A
+ * The header's chip: the running timer, the audio engine and the Booth's built-in recorder are one shape. A
  * `dot` draws the status dot in that colour ahead of the content; `onClick` makes the chip a button (the engine chip opens
  * the engine panel). `short` is for a chip whose text hides below `md` (it keeps its dot or clock): its padding tightens
  * with it. The accessible name, when the visible text is not the whole of it, comes from `aria-label`.

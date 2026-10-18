@@ -22,7 +22,7 @@ const BOX_CLASS =
 
 // A checkbox: with children, a labelled row (the box, then the label content, and pressing the label toggles it); with an
 // `aria-label` instead, the bare box. Base UI's Checkbox is a styled `role="checkbox"` with a hidden native input for
-// forms; the box is drawn with the app's tokens, not the browser's default control (ADR 0047). Controlled: it never
+// forms; the box is drawn with the app's tokens, not the browser's default control. Controlled: it never
 // holds its own state. `data-*` attributes land on the box.
 export function Checkbox({ checked, onChange, disabled, indeterminate, children, ...rest }: CheckboxProps) {
   const box = (

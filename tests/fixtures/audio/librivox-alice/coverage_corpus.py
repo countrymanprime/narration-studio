@@ -1,4 +1,4 @@
-"""Recording-check cases cut from the real readings: the `NARRATION_COVERAGE_CORPUS` layout (ADR 0125).
+"""Recording-check cases cut from the real readings: the `NARRATION_COVERAGE_CORPUS` layout.
 
 Each recipe in `recipes/coverage.json` lists a case's items as pieces of a source recording. The labels are derived
 from the pieces by the rules in sidecars/transcript-compare/tests/fixtures/coverage/README.md, so they are exact by construction:

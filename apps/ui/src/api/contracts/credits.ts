@@ -32,7 +32,7 @@ export type CreditValues = {
 export type Confidence = 'high' | 'medium' | 'low';
 
 /** One credits token value detected from the manuscript's front matter or the stored source file's own metadata:
- * never written anywhere on its own, only ever offered (ADR 0019). token is a credits.Values field name ("Title", "Author", "Series", "BookNumber", "Year",
+ * never written anywhere on its own, only ever offered. token is a credits.Values field name ("Title", "Author", "Series", "BookNumber", "Year",
  * "CopyrightHolder", "Publisher", "Subtitle"), not the render token's bracket form. */
 export type DetectedCandidate = { token: string; value: string; source: string; confidence: Confidence; lines?: string[] };
 
@@ -47,11 +47,11 @@ export type CreditsProjectValuesResult = {
   detected: DetectedCandidate[];
 };
 
-/** One chapter's rendered announcement (ADR 0151): `chapter` is the chapter's heading, which
+/** One chapter's rendered announcement: `chapter` is the chapter's heading, which
  * fills [Chapter]; its subtitle fills [Chapter Title]. */
 export type CreditsAnnouncement = { chapterId: string; chapter: string; result: CreditsRenderResult };
 
-/** The retail sample the narrator picked (ADR 0152), measured against the current manuscript:
+/** The retail sample the narrator picked, measured against the current manuscript:
  * where it starts and ends (the reader's line numbers, from 1 within each chapter) and how long it runs at ~155 words a
  * minute. A marker only: it adds no time to the estimate. */
 export type RetailSample = {
@@ -79,7 +79,7 @@ export type CreditsStatuses = Record<string, CreditsStatus>;
 
 /** A credits row's "actual recorded" in the Chapter Table: the same track-based measurement
  * `ManuscriptChapter.recordedSeconds`/`recordedUnavailable` give every manuscript chapter (`RecordedUnavailable`), never an
- * estimate (ADR 0193), read for a credits id's own confirmed link in the same chapter-track-map.json. */
+ * estimate, read for a credits id's own confirmed link in the same chapter-track-map.json. */
 export type CreditsRecordedLength = { recordedSeconds: number } | { recordedUnavailable: RecordedUnavailable };
 
 /** CreditsRecordedLengths' payload: one entry per credits kind, always both present. */
@@ -91,7 +91,7 @@ export type CreditsRecordedLengths = { opening: CreditsRecordedLength; closing: 
 export type CreditsSetupField = { token: string; field: keyof CreditValues; candidate: DetectedCandidate | null };
 
 /**
- * `CreditsSetupState` (ADR 0208): whether to ask for the credits
+ * `CreditsSetupState`: whether to ask for the credits
  * values and what to ask for. `needed`: show the "Set up the credits" dialog. `banner`: show the banner (tokens are still
  * unresolved and the narrator did not choose "Don't ask"). `dismissed`: '' (never), 'session' ("Not now") or 'project'
  * ("Don't ask for this project", stored for this manuscript). `fields`: the unresolved tokens of the first opening and

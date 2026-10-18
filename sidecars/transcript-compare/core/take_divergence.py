@@ -1,7 +1,7 @@
 """Where one take of a fixed manuscript span diverges from the manuscript.
 
-Take review (`docs/utilities/take-review.md`) and ADR 0141. The
-take's timed words (free ASR words with Whisper's word timestamps, ADR 0008) are aligned to the
+Take review (`docs/utilities/take-review.md`) and sidecars/transcript-compare/core/take_divergence_mode.py. The
+take's timed words (free ASR words with Whisper's word timestamps) are aligned to the
 span's words with the take markers' own diff (`compare.diff_and_build_markers`), so a take's
 divergences and its markers can never disagree about what was said. The result says, for every
 manuscript word of the span, whether the take read it (`matched`), said something else there

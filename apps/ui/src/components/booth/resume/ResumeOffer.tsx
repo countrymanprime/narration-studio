@@ -7,7 +7,7 @@ import { useResumeOffer } from './useResumeOffer';
 
 /**
  * The Booth's one resume line (the mock's `bresume`): "Resume at ¶ n", with where the place was read from beside it, and a
- * word of caution when it is an estimate. Choosing it only reports the place for Start to begin at (ADR 0112); it starts
+ * word of caution when it is an estimate. Choosing it only reports the place for Start to begin at; it starts
  * nothing and moves nothing in the DAW. A locate that needs the Whisper model offers nothing and says why in its tooltip;
  * the download prompt stays with the Companion's `WhisperModelPrompt`. A place read from the saved project carries `saved`, the
  * project's save note (`saveNote`), so the line says it is as of that save.

@@ -5,7 +5,7 @@ import (
 )
 
 // coverageEngineFamilyWhisper is the only engine family a recording check can run: Moonshine is the Booth's live
-// engine (ADR 0414), not a recording-check one.
+// engine, not a recording-check one.
 const coverageEngineFamilyWhisper = "whisper"
 
 // coverageEngine is one engine a recording check can run.
@@ -17,7 +17,7 @@ type coverageEngine struct {
 }
 
 // coverageRunDefaults is what a start naming no option would do, so the Check recordings dialog can show it and send
-// back the narrator's changes to it (ADR 0864).
+// back the narrator's changes to it.
 type coverageRunDefaults struct {
 	Recheck        bool    `json:"recheck"`
 	RecheckModel   string  `json:"recheckModel"`
@@ -25,6 +25,7 @@ type coverageRunDefaults struct {
 	Workers        int     `json:"workers"`
 	ChunkSeconds   int     `json:"chunkSeconds"`
 	OverlapSeconds int     `json:"overlapSeconds"`
+	Chapters       int     `json:"chapters"`
 }
 
 // coverageEngines is CoverageEngines' answer: the engines in catalog order, the id a check would use now and what else
@@ -36,8 +37,8 @@ type coverageEngines struct {
 }
 
 // CoverageEngines lists the engines a recording check can run: the approved Whisper models, in catalog order, each with
-// its install state, the id of the one a start that names none would use (SN-Q62, ADR 0841) and, in defaults, the rest
-// of what such a start would do: the second pass, the passages it takes and how a long item is cut up (ADR 0864). It
+// its install state, the id of the one a start that names none would use (SN-Q62) and, in defaults, the rest
+// of what such a start would do: the second pass, the passages it takes and how a long item is cut up. It
 // reads the catalog and the settings, not a project, so the Check recordings dialog can offer the list before one is
 // open. A start may name any listed id in options["model"] (CoverageStart).
 func (h *Host) CoverageEngines() (string, error) {
@@ -75,6 +76,7 @@ func coverageDefaults(store *settings.Store, engines []coverageEngine) coverageR
 		Workers:        all.Parallel.Workers,
 		ChunkSeconds:   all.Parallel.ChunkSeconds,
 		OverlapSeconds: all.Parallel.OverlapSeconds,
+		Chapters:       all.Parallel.Chapters,
 	}
 }
 

@@ -1,6 +1,6 @@
 # UI state, the command journal and ports
 
-**Status: implemented.** The UI keeps a small cache of what the Go host last said (the read-model store), runs every narrator change through one in-memory command journal that undo reads, and reaches the host only through narrow ports. Test fixtures and a contract kit keep the mock and the host adapters from drifting. The decisions are [ADR 0770](../adr/0770-the-ui-store-caches-host-reads-and-journals-commands-and-the-go-host-stays-the-source-of-truth.md) (store, ports, fixtures, no state library) and [ADR 0771](../adr/0771-undo-is-one-in-memory-journal-that-refuses-with-a-reason-and-reaches-the-daw-only-for-its-last-action.md) (the journal and its refusals). Import rules enforced by a lint or test name their ADR ([ADR 0046](../adr/0046-architecture-rules-taken-from-adrs-are-lint-and-test-rules.md)).
+**Status: implemented.** The UI keeps a small cache of what the Go host last said (the read-model store), runs every narrator change through one in-memory command journal that undo reads, and reaches the host only through narrow ports. Test fixtures and a contract kit keep the mock and the host adapters from drifting. The decisions are The store: host reads, cached (store, ports, fixtures, no state library) and The journal and undo (the journal and its refusals). Import rules enforced by a lint or test name their ADR ([Verification and code-health tooling](../operations/verification-tooling.md)).
 
 ## The pieces
 
@@ -23,7 +23,7 @@
 
 The Go host stays the source of truth. The store is a cache that can be thrown away and rebuilt at any moment: after a restart or a project switch it starts empty and loads again. The UI imports no `immer`, Redux or Zustand.
 
-- **Slots.** A `SlotConfig` (`createStudioStore.ts`) is `{ schema, load, events?, topics?, refreshOnFocus? }`. `load` reads through a port; the store parses the result with `parseWire` ([ADR 0069](../adr/0069-payloads-are-validated-with-zod-behind-parsewire-and-a-wrong-shape-fails-loudly.md)), so a wrong shape fails loudly instead of reaching a page. A slot is absent from `getState().slots` until its first successful load.
+- **Slots.** A `SlotConfig` (`createStudioStore.ts`) is `{ schema, load, events?, topics?, refreshOnFocus? }`. `load` reads through a port; the store parses the result with `parseWire` ([Wire contracts: how data is checked where it crosses a boundary](wire-contracts.md)), so a wrong shape fails loudly instead of reaching a page. A slot is absent from `getState().slots` until its first successful load.
 - **Registered slots.** `createSlots` in `slots.ts` registers `chapters` (stale on `job:ended`, on the in-app topic `MANUSCRIPT_CHANGED`, and on window focus) and `bookmarks` (reloaded on focus and by the bookmark commands). A new cross-page read model is a new entry there; state one component owns stays in that component.
 - **What makes a slot stale.** `start()` wires host events (`createHostEvents` maps `job:ended` to `SystemApi.subscribeJobEnded`; an event with no host subscription logs a development warning and does nothing) and window focus (`focusSource.ts`). `publish(topic)` reloads every slot that lists the topic, for a change the app made that is not a job. `load(slot)` reads now and rejects on failure.
 - **Failures and races.** A failed load is recorded in `getState().errors[slot]` and reported through `onError`; it never replaces a cached value. A load that was overtaken by a newer load of the same slot, or by `reset()`, writes nothing, not even its failure. `reset()` empties every slot and drops loads in flight.
@@ -35,12 +35,12 @@ The Go host stays the source of truth. The store is a cache that can be thrown a
 | Slot load, parse, event, topic and focus refresh, stale-answer drop, `reset` | `studio/store/createStudioStore.test.ts` |
 | `useStudio` snapshot stability | `studio/store/react.test.tsx` |
 | Copy-on-write identity and prototype safety | `studio/store/copyOnWrite.test.ts` |
-| No `immer`, Redux, Zustand or Redux Toolkit in either `package.json` or `pnpm-lock.yaml` ([ADR 0770](../adr/0770-the-ui-store-caches-host-reads-and-journals-commands-and-the-go-host-stays-the-source-of-truth.md) decision 4) | `studio/store/noStateLibrary.test.ts` |
+| No `immer`, Redux, Zustand or Redux Toolkit in either `package.json` or `pnpm-lock.yaml` | `studio/store/noStateLibrary.test.ts` |
 | `src/studio/` imports no component, `App.tsx` or `main.tsx` | dependency-cruiser rule `studio-does-not-import-components` |
 | A selector imports only types and other selectors | dependency-cruiser rule `selectors-import-types-and-selectors-only` |
 | `src/studio/`, `src/ports/`, `src/fixtures/` and `src/overlay/` never import `src/api/wailsClient` | dependency-cruiser rule `bridge-only-at-the-composition-root` |
 
-The dependency-cruiser rules are in `apps/ui/.dependency-cruiser.mjs` and run as the `architecture` script of `apps/ui` ([ADR 0062](../adr/0062-ui-import-rules-are-a-dependency-cruiser-config-and-a-mark-scan-that-name-their-adr.md)).
+The dependency-cruiser rules are in `apps/ui/.dependency-cruiser.mjs` and run as the `architecture` script of `apps/ui` ([Verification and code-health tooling](../operations/verification-tooling.md)).
 
 ## The journal and undo
 
@@ -94,7 +94,7 @@ A port is a narrow interface a page asks for by name, so it sees the methods of 
 
 `useApi()` returns the whole facade. New code declares its port with `usePort`; the files that still call `useApi()` are pinned.
 
-`ports/useApiRatchet.test.ts` counts `useApi()` calls per source file outside `src/api/` and `src/ports/` (tests and stories excluded; comments stripped) against the `CEILING` table in the same file. A count may only fall: a file with no entry, or a count above its entry, fails; an entry above the real count fails too, so it is lowered, or deleted at zero, in the same change that moves the file to `usePort`. A second case, `series-folders-have-no-ceiling`, requires every remaining entry to have a line in `apps/ui/src/ratchetReasons.ts` (`KEPT`: a feature the Studio Next design did not draw and was left as built on purpose, with the decision that says so; `GAPS`: a page swap left the file behind). The rule is [ADR 0770](../adr/0770-the-ui-store-caches-host-reads-and-journals-commands-and-the-go-host-stays-the-source-of-truth.md) ("ports are narrower than the facade"). `ports/usePort.test.tsx` covers the hook and `ports/dawPort.test.tsx` the DAW client.
+`ports/useApiRatchet.test.ts` counts `useApi()` calls per source file outside `src/api/` and `src/ports/` (tests and stories excluded; comments stripped) against the `CEILING` table in the same file. A count may only fall: a file with no entry, or a count above its entry, fails; an entry above the real count fails too, so it is lowered, or deleted at zero, in the same change that moves the file to `usePort`. A second case, `series-folders-have-no-ceiling`, requires every remaining entry to have a line in `apps/ui/src/ratchetReasons.ts` (`KEPT`: a feature the Studio Next design did not draw and was left as built on purpose, with the decision that says so; `GAPS`: a page swap left the file behind). The rule is The store: host reads, cached ("ports are narrower than the facade"). `ports/usePort.test.tsx` covers the hook and `ports/dawPort.test.tsx` the DAW client.
 
 ## Fixtures and scenarios
 

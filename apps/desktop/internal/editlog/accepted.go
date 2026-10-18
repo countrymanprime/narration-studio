@@ -80,7 +80,7 @@ type Config struct {
 	Project string
 	// Manuscript reads the current manuscript; an error reads as an empty one, so every record shows stale.
 	Manuscript func() (Book, error)
-	// Reporter tells the narrator about a file that cannot be read (ADR 0069); nil only logs nothing.
+	// Reporter tells the narrator about a file that cannot be read; nil only logs nothing.
 	Reporter *persist.Reporter
 }
 

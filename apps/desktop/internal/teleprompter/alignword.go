@@ -10,10 +10,10 @@ import (
 	"strings"
 )
 
-// Punch and roll's offline word-time alignment (ADR 0560: live anchors first,
+// Punch and roll's offline word-time alignment (docs/architecture/manuscript-teleprompter.md#punch-from-here-where-a-words-time-comes-from: live anchors first,
 // offline alignment as the fallback). When no anchor brackets a flagged word
 // (anchors.go), the host runs the sidecar's `--align-word` mode (align_word.py) once over a stretch of the chapter's
-// recorded audio: the tail-audio locate's own decode and placement (locate.go, ADR 0111) pointed at one word, which
+// recorded audio: the tail-audio locate's own decode and placement (locate.go) pointed at one word, which
 // answers when that word starts in the recording's source file. Mapping that onto the project timeline is the
 // caller's (apps/desktop), which knows the item the stretch was cut from.
 

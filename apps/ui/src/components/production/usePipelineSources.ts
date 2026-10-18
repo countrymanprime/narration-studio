@@ -13,7 +13,7 @@ type Proof = NonNullable<PipelineSources['proof']>;
 type Master = NonNullable<PipelineSources['master']>;
 type Prep = NonNullable<PipelineSources['prep']>;
 
-/** The notes of the latest run per chapter: all of them, and the cleared ones (dismissed, which includes waived: ADR 0793, as `proofProgress` counts). */
+/** The notes of the latest run per chapter: all of them, and the cleared ones (dismissed, which includes waived: docs/guides/using-the-app/proof.md, as `proofProgress` counts). */
 function proofByChapter(findings: readonly Finding[]): Proof {
   const byChapter: Record<string, { cleared: number; total: number }> = {};
   for (const finding of findings) {
@@ -44,7 +44,7 @@ function masterByChapter(chapters: readonly Pick<ManuscriptChapter, 'id' | 'titl
 
 /**
  * The Proof and Master cells' sources for the pipeline, read through the ports the Proof and Master & QC pages use. A source the host
- * cannot answer, or that has no reading for a chapter, stays absent so its cell reads "Not measured yet" (ADR 0015). It reads again when
+ * cannot answer, or that has no reading for a chapter, stays absent so its cell reads "Not measured yet". It reads again when
  * `refreshKey` changes. Prep is the Script page's prep record. `failing` is Next up's first chapter that fails the delivery check, from the same measured files.
  */
 export function usePipelineSources(

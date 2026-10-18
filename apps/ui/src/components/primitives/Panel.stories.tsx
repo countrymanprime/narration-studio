@@ -12,7 +12,6 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '.
 // Panel is a card: border, background, padding and shadow around whatever the caller passes. Given a `title` it is a
 // named region (a level-2 heading and aria-labelledby) with a header row over a divider: the title, a `subtitle` on its
 // line and `actions` at the right. `flush` drops the body's padding for a table; the sizes are benchmark mock 05's
-// (ADR 0640).
 const meta = {
   title: 'Primitives/Panel',
   component: Panel,

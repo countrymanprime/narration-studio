@@ -5,7 +5,7 @@
 export type AssetJobPhase = 'downloading' | 'verifying' | 'success' | 'cancelled' | 'error';
 
 /**
- * An install job as the host reports it. `percent` is real bytes over real bytes (ADR 0015) and never more than 99 until the install succeeded;
+ * An install job as the host reports it. `percent` is real bytes over real bytes and never more than 99 until the install succeeded;
  * `error` is a sentence for the narrator, empty unless `phase` is `error`.
  */
 export type AssetInstallJob = {

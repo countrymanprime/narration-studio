@@ -7,7 +7,7 @@
 // cases (breath after a plosive, click inside silence, soft onset, plosive
 // versus click) are all in it, with levels drawn at random over a realistic
 // range rather than placed where the detector's defaults happen to catch
-// them. Synthetic breaths and clicks are not a validation (ADR 0364): its
+// them. Synthetic breaths and clicks are not a validation: its
 // numbers are provisional and never open the validated-version gate on their
 // own (validation.go).
 
@@ -87,7 +87,7 @@ func validationHardCases() []hardCase {
 // validationFilesPerSplit is how many files each condition gets per split;
 // every file holds validationRepeats of every hard case, so each split has
 // 4 conditions x 2 files x 2 repeats x 2 positive cases = 32 labeled clicks
-// and 32 labeled breaths, past the 25 per class that ADR 0575 sets as the bar.
+// and 32 labeled breaths, past the 25 per class that apps/desktop/internal/editing/librivoxvalidation_test.go sets as the bar.
 const (
 	validationFilesPerSplit = 2
 	validationRepeats       = 2
@@ -214,7 +214,7 @@ func writeValidationCorpus(t *testing.T, dir string) []CorpusLabel {
 
 // TestValidationCorpusShape guards the corpus itself: every label round-trips
 // through labels.csv, falls inside its file, and each split has at least the
-// 25 labeled locations per validated class that ADR 0575 sets as the bar.
+// 25 labeled locations per validated class that apps/desktop/internal/editing/librivoxvalidation_test.go sets as the bar.
 func TestValidationCorpusShape(t *testing.T) {
 	dir := t.TempDir()
 	labels := writeValidationCorpus(t, dir)

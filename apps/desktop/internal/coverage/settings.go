@@ -7,7 +7,7 @@ import (
 )
 
 // SettingsTool is the settings.Store tool the recording check's four settings
-// live under (docs/utilities/recording-coverage.md Q3, ADR 0131), layered project
+// live under (docs/utilities/recording-coverage.md Q3), layered project
 // over global over the built-in defaults in config/defaults.json like every
 // other tool.
 const SettingsTool = "RecordingCoverage"
@@ -37,6 +37,7 @@ const (
 	SettingParallelWorkers     = "parallel_workers"
 	SettingChunkSeconds        = "chunk_seconds"
 	SettingChunkOverlapSeconds = "chunk_overlap_seconds"
+	SettingParallelChapters    = "parallel_chapters"
 	SettingCascadeUnsureBelow  = "cascade_unsure_below"
 )
 
@@ -52,6 +53,9 @@ type Parallel struct {
 	ChunkSeconds int
 	// OverlapSeconds is the crossover: how much neighbouring pieces overlap, where their words are joined.
 	OverlapSeconds int
+	// Chapters is how many chapters a Check recordings run checks at once. It is not a sidecar flag: each chapter is its
+	// own run with its own processes (Request.Concurrent), so the host shares the processors between them.
+	Chapters int
 }
 
 // Settings are everything the narrator sets for the recording check: how the
@@ -79,15 +83,14 @@ type CascadeSettings struct {
 }
 
 // DefaultSettings are 0.8, 3, 8 and 3, chosen by running the synthetic
-// fixtures through the shipped path under simulated transcriber error (ADR
-// 0132; Q3 started at 0.95, 3, 8 and 3). No real narration has checked them,
+// fixtures through the shipped path under simulated transcriber error (Q3 started at 0.95, 3, 8 and 3). No real narration has checked them,
 // so they stay Proposed and labelled uncalibrated (Q15). The cascade defaults
 // to off, tiny first pass, large-v3-turbo re-check (MC1, MC2).
 var DefaultSettings = Settings{
 	Alignment:  DefaultAlignmentParams,
 	Thresholds: DefaultThresholds,
 	Cascade:    CascadeSettings{Enabled: false, FirstPassModel: "tiny", RecheckModel: "large-v3-turbo", UnsureBelow: 0.5},
-	Parallel:   Parallel{Workers: 0, ChunkSeconds: 300, OverlapSeconds: 6},
+	Parallel:   Parallel{Workers: 0, ChunkSeconds: 300, OverlapSeconds: 6, Chapters: 1},
 }
 
 func (t Thresholds) validate() error {
@@ -123,6 +126,7 @@ func ResolveSettings(lookup func(key string) string) Settings {
 			Workers:        wholeSetting(lookup(SettingParallelWorkers), 0, defaults.Parallel.Workers),
 			ChunkSeconds:   chunkSetting(lookup(SettingChunkSeconds), defaults.Parallel.ChunkSeconds),
 			OverlapSeconds: wholeSetting(lookup(SettingChunkOverlapSeconds), 0, defaults.Parallel.OverlapSeconds),
+			Chapters:       wholeSetting(lookup(SettingParallelChapters), 1, defaults.Parallel.Chapters),
 		},
 	}
 }

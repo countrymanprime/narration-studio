@@ -1,5 +1,5 @@
-// The sourced numbers of Production and Schedule, as pure selectors over what the measurements port answered (ADR 0015,
-// ADR 0801). Each takes the answers as arguments, so it tests without a port, and returns a value or the reason there is
+// The sourced numbers of Production and Schedule, as pure selectors over what the measurements port answered (
+// apps/ui/src/components/schedule/progress.ts). Each takes the answers as arguments, so it tests without a port, and returns a value or the reason there is
 // none. A screen prints NOT_MEASURED for a reason; no constant here stands in for a missing figure.
 import type { Measured } from '../../../api/schemas/base';
 import type { TakeLogEntry } from '../../../fixtures/measurements';
@@ -7,7 +7,7 @@ import type { TakeLogEntry } from '../../../fixtures/measurements';
 /** The one text for a figure with no source. */
 export const NOT_MEASURED = 'not measured yet';
 
-// A selector imports types only (ADR 0770), so the two date helpers it needs are local; the dates are local calendar days.
+// A selector imports types only, so the two date helpers it needs are local; the dates are local calendar days.
 const DAY = 86_400_000;
 const addDays = (d: Date, n: number): Date => new Date(d.getFullYear(), d.getMonth(), d.getDate() + n);
 const diffDays = (a: Date, b: Date): number =>

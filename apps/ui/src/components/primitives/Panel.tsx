@@ -26,7 +26,7 @@ type PanelProps = PanelLook &
     | { title: string; titleStyle?: PanelTitleStyle; subtitle?: ReactNode; leading?: ReactNode; actions?: ReactNode; label?: undefined }
   );
 
-// A card around a group of content (ADR 0058, the look ADR 0640). With a `title` it is a named region: the title is a
+// A card around a group of content (the look docs/design/design-system.md). With a `title` it is a named region: the title is a
 // level-2 heading (a panel sits beneath the page's level-1 heading) in a header row with a divider under it, and the
 // section is labelled by it, so a screen reader can list and jump to it. Without one it is the bare card.
 export function Panel({

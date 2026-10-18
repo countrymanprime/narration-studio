@@ -21,10 +21,10 @@ import (
 	"github.com/countrymanprime/narration-utils/shell/internal/runlog"
 )
 
-// The Story Bible's scan as a job (ADR 0076, the mock's scanManuscript): the rules, then each source the narrator asked
+// The Story Bible's scan as a job (the mock's scanManuscript): the rules, then each source the narrator asked
 // for, in the registry's order. Each source's suggestions are ingested as soon as it finishes, dropped by fingerprint
 // when they were offered or rejected before, and the ones the 75% rule accepts are applied through the apply step, so a
-// cancel keeps what the finished sources added. Progress is the sources done over the sources asked for (ADR 0015).
+// cancel keeps what the finished sources added. Progress is the sources done over the sources asked for.
 
 // The sentences the scan says.
 const (
@@ -245,7 +245,7 @@ func (h *Host) extractionScanInput(registry *port.Registry[extractionport.Source
 }
 
 // runExtractionScan runs each source in turn, ingests and applies what it offered, then ends the job with one
-// job:ended event (ADR 0076).
+// job:ended event.
 func (h *Host) runExtractionScan(ctx context.Context, job *extractionScanJob, run extractionScanRun) {
 	defer job.cancel()
 	var failed error

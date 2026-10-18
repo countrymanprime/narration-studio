@@ -2,7 +2,7 @@
 // stored decision is still the finding's own review status (docs/architecture/findings-contract.md): accepted, dismissed,
 // deferred or unreviewed. Only the words change. An accepted note reads Pickup or Edit by what it asks for, a
 // re-record or a fix in the edit, and that comes from the note itself (its category, or Transcript Compare's evidence
-// kind), never stored as a second field. ADR 0470 records the mapping.
+// kind), never stored as a second field. docs/guides/using-the-app/proof.md#a-note-and-your-decision records the mapping.
 import type { Finding, FindingReviewStatus } from '../../types';
 import type { StatusTone } from '../primitives/StatusBadge';
 import type { FlagKind } from './flags';

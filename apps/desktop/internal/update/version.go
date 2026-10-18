@@ -1,6 +1,6 @@
 // Package update is the application's own update path: it knows what a version is, reads this repository's GitHub releases,
 // decides whether one is newer, and (in later phases) downloads, verifies and swaps it in. It has no Wails imports, so all of it
-// is tested without a window. The trust model is docs/adr/0072; the rest is docs/architecture/in-app-update.md.
+// is tested without a window. The trust model is ADR 0002; the rest is docs/architecture/in-app-update.md.
 package update
 
 import (

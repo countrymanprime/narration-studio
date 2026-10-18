@@ -44,7 +44,7 @@ export const APPROVED_MOCKS: ApprovedMock[] = [
   {
     file: '02-prep-script.webp',
     theme: 'light',
-    unscored: 'the Script page is built to the Studio Next mock, the only spec for a page it covers (D98, ADR 0760); this benchmark is not its target',
+    unscored: 'the Script page is built to the Studio Next mock, the only spec for a page it covers (D98); this benchmark is not its target',
   },
   { file: '03-booth.webp', target: { page: 'booth', state: 'dark' }, theme: 'dark' },
   {

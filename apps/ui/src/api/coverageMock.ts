@@ -1,4 +1,4 @@
-// The browser mock's recording coverage (docs/utilities/recording-coverage.md, ADR 0129). It answers the same
+// The browser mock's recording coverage (docs/utilities/recording-coverage.md). It answers the same
 // states the host does: a chapter whose fixture carries a recordedFraction has a current check with that share of its
 // words present, any other chapter was never checked, a seeded chapter reads stale (and so loses its recordedFraction),
 // a started check steps through real-looking progress to a result and one job end, and a seeded refusal answers every
@@ -63,13 +63,27 @@ export type CoverageSeed = {
   recheckAssetRequired?: boolean;
 };
 
+/** The engines the mock offers: the approved catalog, plus (when the seed stands for the cascade being on) the larger model the mock gates on, chosen from the start. */
+function enginesFor(deps: Deps): CoverageEngines {
+  const base = deps.engines();
+  if (!deps.seed?.recheckAssetRequired && !deps.seed?.cascade?.length) return base;
+  const missing = !!deps.seed?.recheckAssetRequired;
+  const larger = {
+    id: mockRecheckModelIdentity.id,
+    label: mockRecheckModelIdentity.displayName,
+    family: 'whisper' as const,
+    installState: missing ? ('not_installed' as const) : ('installed' as const),
+  };
+  return { ...base, engines: [...base.engines, larger], defaults: { ...base.defaults, recheck: true, recheckModel: larger.id } };
+}
+
 type Deps = {
   chapters: () => ManuscriptChapter[];
   assetRequired: () => AssetRequired | undefined;
-  /** The engines a check can run: the mock's approved Whisper catalog (ADR 0841). */
+  /** The engines a check can run: the mock's approved Whisper catalog. */
   engines: () => CoverageEngines;
   endJob: (event: JobEnded) => void;
-  /** Where an accepted gap's finding is saved: the findings mock the review page reads (ADR 0842). */
+  /** Where an accepted gap's finding is saved: the findings mock the review page reads. */
   saveFinding: (finding: Finding) => void;
   seed?: CoverageSeed;
 };
@@ -113,7 +127,7 @@ const idle: CoverageState = { phase: 'idle', percent: 0, message: 'Save the REAP
 
 const narratable = (chapter: ManuscriptChapter) => chapter.contentKind !== 'opening' && chapter.contentKind !== 'reference';
 
-/** The shipped thresholds (ADR 0132), which the mock judges by. */
+/** The shipped thresholds, which the mock judges by. */
 const MOCK_THRESHOLDS = { minParagraphPresent: 0.8, maxMissingRun: 3 };
 
 const plural = (count: number, noun: string) => (count === 1 ? `1 ${noun}` : `${count} ${noun}s`);
@@ -238,7 +252,7 @@ function basePickupsReportFor(chapter: ManuscriptChapter): Omit<CoverageReport, 
   };
 }
 
-/** The host's `coverage.ClassifyGaps` for a mock report (ADR 0830): a skip is missing, a short read is misread, an
+/** The host's `coverage.ClassifyGaps` for a mock report: a skip is missing, a short read is misread, an
  * unread start or end is unfinished and never a gap, and confidence is null with its reason. */
 function classifyMock(report: Omit<CoverageReport, 'gaps' | 'unfinished'>): { gaps: CoverageGap[]; unfinished: CoverageUnfinished } {
   const read = report.paragraphs.map((paragraph) => paragraph.present > 0);
@@ -255,7 +269,7 @@ function classifyMock(report: Omit<CoverageReport, 'gaps' | 'unfinished'>): { ga
   return { gaps, unfinished: { start: first, end: report.paragraphs.length - 1 - last } };
 }
 
-/** The host's `coverage.Judge` (ADR 0204), so the mock's headline reads as the real one: met when every paragraph passes
+/** The host's `coverage.Judge`, so the mock's headline reads as the real one: met when every paragraph passes
  * and no run is too long, otherwise the largest region over the limit, then the longest run, then the thinnest paragraph. */
 export function judgeMock(report: CoverageReport, thresholds = MOCK_THRESHOLDS): CoverageJudgement {
   const numbers = new Map(report.paragraphs.map((paragraph, index) => [paragraph.id, index + 1]));
@@ -369,7 +383,7 @@ export function createCoverageMock(deps: Deps): CoverageApi & {
   const refuse = (reason: CoverageRefusalReason): CoverageStartResult => ({ status: 'refused', reason, message: COVERAGE_REFUSAL_MESSAGES[reason] });
 
   // The narrator's calls on the gaps of each chapter's current check, by chapter and gap id. A new run is a new evidence
-  // key in the host, so it starts with none (ADR 0842).
+  // key in the host, so it starts with none.
   const gapReviews = new Map<string, { decision: CoverageGapReview; finding?: Finding }>();
   const gapKey = (chapterId: string, gapId: string) => `${chapterId}\u0000${gapId}`;
   const dropGapReviews = (chapterId: string) => {
@@ -416,7 +430,7 @@ export function createCoverageMock(deps: Deps): CoverageApi & {
       delete unmeasured.recordedFraction;
       return unmeasured;
     },
-    coverageEngines: async () => deps.engines(),
+    coverageEngines: async () => enginesFor(deps),
     coverageGapAccept: async (chapterId, gapId) => {
       const { gap, recordId } = reviewable(chapterId, gapId);
       const existing = gapReviews.get(gapKey(chapterId, gapId));
@@ -440,10 +454,10 @@ export function createCoverageMock(deps: Deps): CoverageApi & {
       return reviews;
     },
     coverageStart: async (chapterId, options?: CoverageStartOptions) => {
-      if (options?.model && !deps.engines().engines.some((engine) => engine.id === options.model)) {
+      if (options?.model && !enginesFor(deps).engines.some((engine) => engine.id === options.model)) {
         throw new Error('the selected Whisper model is not in the approved catalog');
       }
-      if (options?.recheckModel && !deps.engines().engines.some((engine) => engine.id === options.recheckModel)) {
+      if (options?.recheckModel && !enginesFor(deps).engines.some((engine) => engine.id === options.recheckModel)) {
         throw new Error('the selected re-check Whisper model is not in the approved catalog');
       }
       if (deps.seed?.refusal) return refuse(deps.seed.refusal);

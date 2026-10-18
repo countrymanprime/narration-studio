@@ -1,5 +1,5 @@
-// Package encodeport declares the Encoder and Packager ports on the Go side (ADR 0301): turning a rendered WAV into a delivery
-// format, and writing chapters and tags into a delivery file. The first Encoder is FFmpeg writing MP3, M4B and FLAC (ffmpeg.go, ADR 0342);
+// Package encodeport declares the Encoder and Packager ports on the Go side: turning a rendered WAV into a delivery
+// format, and writing chapters and tags into a delivery file. The first Encoder is FFmpeg writing MP3, M4B and FLAC (ffmpeg.go);
 // the Packager registry is still empty (internal/chaptertags is the likely first Packager). The encodeporttest suites run over every row, so no row can skip them.
 //
 // A row's Descriptor.Modes are the formats it handles, as lower-case file extensions without the dot ("mp3", "m4b"): the formats an

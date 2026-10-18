@@ -29,7 +29,7 @@ const WORK_PHASE: Record<UpdateJob['phase'], WorkJob['phase']> = {
 /**
  * Downloads the update the narrator asked for and shows how it goes: real bytes while it downloads, then the check against the
  * release's checksum and the unpacking. Cancel stops the download; once it has all arrived the remaining steps are short and are
- * not cancellable, and the dialog says so (ADR 0057). It starts the download once when it opens and never on its own before that.
+ * not cancellable, and the dialog says so. It starts the download once when it opens and never on its own before that.
  */
 export function UpdateDownloadDialog({ available, close }: { available: UpdateAvailable; close: (result: UpdateJob['phase']) => void }) {
   const api = useApi();

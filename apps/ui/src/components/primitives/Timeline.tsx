@@ -1,7 +1,6 @@
 import { useRef, useState, type KeyboardEvent, type ReactNode } from 'react';
 
-// The meanings a marker's tone may take, sharing the fills the meter zones and the badge tones use (ADR
-// 0360): a marker earns a colour for what it is, not for which lane it happens to sit in.
+// The meanings a marker's tone may take, sharing the fills the meter zones and the badge tones use: a marker earns a colour for what it is, not for which lane it happens to sit in.
 type TimelineMarkerTone = 'neutral' | 'info' | 'success' | 'warning' | 'danger' | 'experimental';
 
 const TONE_DOT: Record<TimelineMarkerTone, string> = {

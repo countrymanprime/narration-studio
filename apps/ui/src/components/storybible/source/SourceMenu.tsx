@@ -5,7 +5,7 @@ import { Icon } from '../../primitives/Icon';
 import { Popover } from '../../primitives/Popover';
 import { sourceIcon } from './sourceIcons';
 
-/** The kept alternate (ADR 0346): the other value of a name, offered under the sources so switching back is one press. */
+/** The kept alternate: the other value of a name, offered under the sources so switching back is one press. */
 export type KeptAlternate = { label: string; onUse: () => void };
 
 /**

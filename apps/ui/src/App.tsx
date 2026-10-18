@@ -131,10 +131,10 @@ export function App({ journal }: { journal?: Journal } = {}) {
   // no-op basename there. The demo serves under /narration-utils/demo/: without a matching basename
   // react-router compares its routes ('/', '/proof', ...) against the full pathname and matches
   // nothing, so every page renders blank apart from the app shell (found by loading the built demo
-  // and reading the console: "No routes matched location ...", ADR 0096).
+  // and reading the console: "No routes matched location ...").
   return (
     <BrowserRouter basename={import.meta.env.BASE_URL}>
-      {/* The journal and the overlay host are mounted once, here: a page asks the overlay for a confirm, a dialog or a toast by calling the service (ADR 0781). */}
+      {/* The journal and the overlay host are mounted once, here: a page asks the overlay for a confirm, a dialog or a toast by calling the service. */}
       <StudioProvider journal={journal}>
         {/* Positioned, so the host's visually hidden announcer lays out against the app and not the document. */}
         <div className="relative h-full">
@@ -178,7 +178,7 @@ function AppRoutes() {
   const [data, setData] = useState<Bootstrap>();
   const hasManuscript = Boolean(data?.manuscript);
   // One queue for the whole app: messages stack instead of replacing each other, an identical one that is showing starts its time again, and
-  // an error stays until it is dismissed (ADR 0075). `notify` and `dismiss` keep their identity, so a page effect that lists them never re-runs.
+  // an error stays until it is dismissed. `notify` and `dismiss` keep their identity, so a page effect that lists them never re-runs.
   const { messages, notify: setNotice, dismiss: dismissMessage } = useToasts();
   // Chapter sync's consent: read here, once, so "Sync chapters to
   // tracks?" shows from every link path (the engine panel, an import, an attach) wherever the narrator happens to be.
@@ -211,7 +211,7 @@ function AppRoutes() {
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
   // The engine panel: one panel for the app, opened from the header's
   // engine chip and from every pointer to the retired Tracks page.
-  // The engine chip's state: the project's recording engine (ADR 0455), REAPER by default.
+  // The engine chip's state: the project's recording engine, REAPER by default.
   const engine = useRecordingEngine();
   const [enginePanelOpen, setEnginePanelOpen] = useState(false);
   const openEnginePanel = useCallback(() => setEnginePanelOpen(true), []);
@@ -289,7 +289,7 @@ function AppRoutes() {
   // The one shared "link a REAPER project file" action behind the engine panel and Settings' DAW
   // category. Cancelling the dialog does nothing. Any .rpp links, in the project folder or elsewhere (the host's note says
   // where a file outside the folder is); only a file that is not an .rpp or is gone is refused, with its message. One
-  // `usePendingAction` ref guards all three call sites at once (ADR 0075), since the host's file dialog is native
+  // `usePendingAction` ref guards all three call sites at once, since the host's file dialog is native
   // and modal - a second press from any of them while it is open is refused, not just the button that shows it.
   const dawLink = usePendingAction();
   const linkDawFile = useCallback(async () => {
@@ -327,7 +327,7 @@ function AppRoutes() {
         }
       } catch (error) {
         // A payload that did not match its schema says so in plain words and keeps the technical text for "Copy details"
-        // (ADR 0069); the client has already written it to the host log, so it is not reported a second time.
+        // the client has already written it to the host log, so it is not reported a second time.
         const wire = isWireError(error);
         const message = wire ? error.userMessage : String(error);
         if (!wire) void api.reportClientDiagnostic('bootstrap_failed', message).catch(() => {});
@@ -364,13 +364,13 @@ function AppRoutes() {
     return api.subscribeTranscript((transcript) => setData((current) => (current ? { ...current, transcript } : current)));
   }, [api, hasBootstrap]);
 
-  // The host tells the narrator what it did on their behalf, such as keeping a file it could not read (ADR 0069).
+  // The host tells the narrator what it did on their behalf, such as keeping a file it could not read.
   useEffect(() => {
     if (!hasBootstrap) return;
     return api.subscribeNotices(setNotice);
   }, [api, hasBootstrap, setNotice]);
 
-  // A host job that ends is announced from here, so leaving the page that started it loses nothing (ADR 0076). The same
+  // A host job that ends is announced from here, so leaving the page that started it loses nothing. The same
   // event decides whether it is also worth an OS notification (only while the window is unfocused): document.hasFocus() is read fresh for each job,
   // here, because it is the webview's to know, not the host's.
   // No sound or toast interrupts a take: a toast that would fire while the
@@ -402,7 +402,7 @@ function AppRoutes() {
     for (const announcement of queued) setNotice(announcement.text, announcement.tone);
   }, [boothRecording, setNotice]);
 
-  // A check the app makes on its own found a release newer than this build (ADR 0072): the narrator is told once, and Settings > About
+  // A check the app makes on its own found a release newer than this build: the narrator is told once, and Settings > About
   // and updates says the rest. Nothing is downloaded until they ask.
   useEffect(() => {
     if (!hasBootstrap) return;
@@ -411,7 +411,7 @@ function AppRoutes() {
     });
   }, [api, hasBootstrap, setNotice]);
 
-  // Live events that do not match their schema are dropped and counted (ADR 0069); after a run of them the page on screen may be
+  // Live events that do not match their schema are dropped and counted; after a run of them the page on screen may be
   // out of date, and the narrator is told once instead of being left with a page that silently stopped updating.
   useEffect(() => {
     if (!hasBootstrap) return;
@@ -476,7 +476,7 @@ function AppRoutes() {
   }, []);
 
   // Alt+Left/Right, the keyboard's Browser Back/Forward keys and Cmd+[ / Cmd+] on macOS are `nav.back` and
-  // `nav.forward`, `global` commands in the registry (ADR 0361). The registry applies the target guard and resolves
+  // `nav.forward`, `global` commands in the registry. The registry applies the target guard and resolves
   // scopes on its own; `isModalOpen()` above covers the open dialog (see its comment).
   useCommand('nav.back', () => {
     if (!isModalOpen()) guardedBackRef.current();
@@ -499,7 +499,7 @@ function AppRoutes() {
   // Back/Forward, since both are always-available app-level commands rather than a feature's own.
   useCommand('help.shortcuts', () => setShortcutsOpen(true));
 
-  // The jump menu, the history panel and "Go to <page>" / "Go to <chapter>" (ADR 0780). The chapters are the store's `chapters` slot (ADR 0770):
+  // The jump menu, the history panel and "Go to <page>" / "Go to <chapter>". The chapters are the store's `chapters` slot:
   // loaded when a manuscript arrives or the project changes, stale on `job:ended`, and a failed read keeps the last list ("a failure never
   // replaces a cached value"), where the local state emptied it.
   const studio = useStoreHandle();
@@ -801,7 +801,7 @@ function AppRoutes() {
                     )
                   }
                 />
-                {/* Editing (the Studio Next mock's Editing page, ADR 0804): the chapter's script is the editor. `/editing` opens the first chapter;
+                {/* Editing (the Studio Next mock's Editing page): the chapter's script is the editor. `/editing` opens the first chapter;
                   with no manuscript the page asks for one. */}
                 <Route
                   path="/editing"
@@ -852,7 +852,7 @@ function AppRoutes() {
                   path="/pickups"
                   element={<PickupsPage hasManuscript={Boolean(data.manuscript)} goTo={guardedNavigate} goToScript={(chapterId) => goToScript(chapterId)} />}
                 />
-                {/* Retired by Proof (ADR 0407): old links land, query and hash kept. */}
+                {/* Retired by Proof: old links land, query and hash kept. */}
                 <Route path="/review" element={<RedirectKeepingLocation to="/proof" />} />
                 <Route path="/proofing" element={<RedirectKeepingLocation to="/proof" />} />
                 {/* A chapter's old Tracks address lands on Editing at that chapter, ?t= and ?finding= kept. */}
@@ -862,7 +862,7 @@ function AppRoutes() {
                 />
                 {/* The Production page moved to `/`. */}
                 <Route path="/production" element={<RedirectKeepingLocation to="/" />} />
-                {/* Master & QC and Delivery are two pages (ADR 0802); without a manuscript Delivery asks for one itself. */}
+                {/* Master & QC and Delivery are two pages; without a manuscript Delivery asks for one itself. */}
                 <Route
                   path="/master"
                   element={gated(

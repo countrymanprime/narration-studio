@@ -1,15 +1,15 @@
--- Roll again while recording, over the bridge (ADR 0860 point 1). Loaded by narration_ui_bridge.lua, which passes the
+-- Roll again while recording, over the bridge (docs/reference/daw/capabilities.md). Loaded by narration_ui_bridge.lua, which passes the
 -- shared helpers as the chunk argument.
 --
 -- roll(run, track_guid, at) runs only while a recording this bridge started (record_start in narration_transport.lua,
--- ADR 0232) runs on the named track; anything else is RECORD_NOT_OURS, as record_stop answers. A recording is not an
+-- docs/architecture/reaper-bridge.md#recording-in-reaper-narration_transportlua) runs on the named track; anything else is RECORD_NOT_OURS, as record_stop answers. A recording is not an
 -- item until it stops (docs/reference/daw/reaper.md, "Media sources and recording"), so the command stops it, moves
 -- the edit cursor to `at` and records again there with CSurf_OnRecord: the new pass overlaps the earlier one, and
 -- REAPER keeps the earlier audio as a take when its "New recording that overlaps existing media items" option is
 -- "Splits existing items and creates new takes". The command reads that option first (bits 4 and 8 of the autoxfade
 -- config variable, per the Ultraschall copy of REAPER's config-variable list, 6.56) and refuses, naming it, when it
 -- is another; it never changes a preference, a project setting or a track. A fixed-lane track is refused too: a new
--- pass there is a lane, not a take, and the app never changes lanes (ADR 0147).
+-- pass there is a lane, not a take, and the app never changes lanes.
 --
 -- It opens no undo block: the points REAPER adds for the recorded media are REAPER's, so ROLLED reports 0. Not run in
 -- REAPER (pending the QA pass, #1495): how get_config_var_string formats autoxfade, whether REAPER 7's per-track

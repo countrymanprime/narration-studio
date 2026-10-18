@@ -18,7 +18,7 @@ import (
 // one file-scope rule whose Metric is "m4b_format", otherwise a minimal copy of what ACX carries. It is only ever
 // handed to a test host through resolveProfile (a seam, app.go), never saved through the real deliveryprofile.Store,
 // whose own validation would refuse an "m4b_format" metric it does not yet know (internal/deliveryprofile/store.go's
-// knownMetrics) - exactly the situation ADR 0480 records: no built-in profile needs a format helper yet, so a
+// knownMetrics) - exactly the situation docs/guides/using-the-app/master-and-qc.md#building-packages-for-several-platforms-at-once records: no built-in profile needs a format helper yet, so a
 // profile requiring M4B is only reachable with a profile built directly in a test.
 func m4bProfile(id string) deliveryprofile.Profile {
 	profile := deliveryprofile.ACX()

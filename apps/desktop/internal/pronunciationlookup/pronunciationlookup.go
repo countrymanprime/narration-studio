@@ -53,7 +53,7 @@ func URL(source Source, word string) (string, error) {
 
 // pathSegmentEscape percent-encodes s for use as one URL path segment, byte for byte the same as the standard
 // library's net/url.PathEscape - reimplemented locally because the Go host's depguard rule denies net's subpackages,
-// net/url included, everywhere outside the download flow (ADR 0032 point 4, ADR 0012; .golangci.yml
+// net/url included, everywhere outside the download flow (docs/architecture/threat-model.md; .golangci.yml
 // no-network-outside-the-download-flow), even though net/url itself never makes a network call. Unreserved:
 // letters, digits, and "-_.~$&+:=@"; everything else becomes an uppercase %XX per byte, so a multi-byte UTF-8
 // character (an accent) becomes one %XX triplet per byte.

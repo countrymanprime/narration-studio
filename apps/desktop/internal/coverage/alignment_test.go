@@ -6,7 +6,7 @@ import (
 )
 
 // sampleAlignment is the COVERAGE_TOKEN and COVERAGE_EXTRA lines a sidecar
-// that also writes the workspace's alignment (ADR 0242) adds after
+// that also writes the workspace's alignment adds after
 // sampleResults' own lines (report_test.go): two heard tokens (a read and a
 // misread), one missing token (a tail, so it names no source position), and
 // one run of extra words.

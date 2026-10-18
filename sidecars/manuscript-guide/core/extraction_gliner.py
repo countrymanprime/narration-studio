@@ -7,7 +7,7 @@ paragraph. GLiNER does not group names, attribute speech or read properties, so 
 relationship or claim. A name found more than once is offered once, from the span with the highest score.
 
 Nothing here reaches the network. The model and its Python packages are an optional download the host installs through
-the asset registry (``config/analysis-assets.json``, ADR 0848); the host passes that install folder as ``--install``. The
+the asset registry (``config/analysis-assets.json``); the host passes that install folder as ``--install``. The
 loader puts the folder's unpacked wheels on ``sys.path``, tells Hugging Face to stay offline, and loads the weights from
 the folder; the freeze never carries ``gliner``, ``transformers`` or ``torch`` (``scripts/release/prepare-resources.py``).
 A missing or damaged install is a sentence for the narrator, never a traceback.

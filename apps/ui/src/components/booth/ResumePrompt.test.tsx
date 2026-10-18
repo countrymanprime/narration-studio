@@ -11,7 +11,7 @@ import { WIRE_TELEPROMPTER_DEVICES } from '../../api/mockFixtures';
 import type { DawTransport, NarrationApi, TeleprompterLocateResult, TeleprompterResumeFollowEvent, TeleprompterState } from '../../types';
 
 // The resume prompt, as the Companion's header shows it: a compact notice or choice for where
-// the chapter's recording ends (TeleprompterLocate, ADR 0111). It never starts anything by itself, and it settles - and
+// the chapter's recording ends (TeleprompterLocate). It never starts anything by itself, and it settles - and
 // stays gone - the moment the narrator makes a choice or a session starts, for the rest of this dialog's open.
 
 const DEVICE_NAME = WIRE_TELEPROMPTER_DEVICES[0].name;
@@ -327,7 +327,7 @@ describe('ResumePrompt', () => {
   });
 
   describe('live DAW state', () => {
-    // A found answer read from REAPER's live state rather than the saved project (ADR 0349).
+    // A found answer read from REAPER's live state rather than the saved project.
     const readLive = (at: 'cursor' | 'end'): Partial<NarrationApi> => {
       const base = createMockApi();
       return {

@@ -1,4 +1,4 @@
-"""Reads a built site and fails when any internal link is dead (ADR 0083).
+"""Reads a built site and fails when any internal link is dead.
 
 MkDocs' strict build checks the Markdown it was given; this checks what it produced, and does not trust the generator. Every
 `href` and `src` in every HTML file that points inside the site must resolve to a file of the output folder, and every

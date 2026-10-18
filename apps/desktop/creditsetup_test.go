@@ -13,7 +13,7 @@ import (
 	"github.com/countrymanprime/narration-utils/shell/internal/project"
 )
 
-// The credits setup prompt's host half (ADR 0208): whether to ask, what to ask for with what prefilled, "Not now" and "Don't ask", and a save that only fills.
+// The credits setup prompt's host half: whether to ask, what to ask for with what prefilled, "Not now" and "Don't ask", and a save that only fills.
 
 // hostWithImportedBook is hostWithCredits with the owner's book imported (tests/fixtures/after-the-applause.md) and
 // no credits values saved: a project that predates credits, which is the upgrade case the prompt catches.

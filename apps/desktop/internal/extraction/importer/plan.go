@@ -176,7 +176,7 @@ func refsOf(it Item) []string {
 // PlanImport works out what importing rows into book would do. Review status comes from extraction.AutoStatus over a
 // Candidate built the same way the accept path builds it, and a quote is checked against the manuscript with
 // extraction.VerifyEvidence, so the preview and the accept cannot disagree. A row about an entry that is in neither the
-// Story Bible nor the file is an error. A locked entry is never edited (ADR 0007): a row that would change it is skipped.
+// Story Bible nor the file is an error. A locked entry is never edited: a row that would change it is skipped.
 // Nothing is deleted.
 func PlanImport(book Book, rows []Row, parseErrors []RowError) Plan {
 	plan := Plan{Errors: append([]RowError(nil), parseErrors...)}

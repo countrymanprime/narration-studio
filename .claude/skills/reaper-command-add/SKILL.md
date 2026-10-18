@@ -7,7 +7,7 @@ description: Adding or changing a REAPER bridge command or event in integrations
 
 ## Why this exists
 
-The Lua is imported into REAPER by the narrator, so it can be older or newer than the app. The bridge harness ([ADR 0066](../../../docs/adr/0066-the-lua-bridge-is-tested-by-a-harness-under-lua-5-4-and-reaper-api-behaviour-is-checked-in-reaper.md)) pins behaviour against a fake `reaper`, but a command that changes only one half, or whose fake is wrong, passes CI and fails in REAPER.
+The Lua is imported into REAPER by the narrator, so it can be older or newer than the app. The bridge harness ([The DAW port](../../../docs/architecture/daw-integration.md#the-daw-port)) pins behaviour against a fake `reaper`, but a command that changes only one half, or whose fake is wrong, passes CI and fails in REAPER.
 
 ## When to use this
 
@@ -27,4 +27,4 @@ Adding, changing or removing a command in `integrations/reaper/*.lua` or the Go 
 
 ## What this skill is not
 
-It does not replace the manual REAPER check, and it does not change the file-bridge decision (ADR 0031).
+It does not replace the manual REAPER check, and it does not change the file-bridge decision (`docs/architecture/daw-integration.md#the-daw-port`).

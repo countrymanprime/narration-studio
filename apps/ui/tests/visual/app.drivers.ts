@@ -27,7 +27,7 @@ import { shellDrivers } from './drivers/shell';
 export type { Driver } from './drivers/shared';
 
 // The accessibility rules an app state is known to violate (axe-debt.ts). Declaring the list turns on the axe gate of the vendored
-// lib/capture.ts: every captured state is checked, and a violation the list does not declare fails it (docs/adr/0064). Read by name
+// lib/capture.ts: every captured state is checked, and a violation the list does not declare fails it. Read by name
 // through a namespace import Knip cannot follow, hence @public.
 /** @public */
 export { AXE_DEBT as axeDebt } from './axe-debt';

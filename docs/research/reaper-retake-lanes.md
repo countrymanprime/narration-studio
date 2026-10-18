@@ -1,6 +1,6 @@
 # Retakes on fixed lanes: what is known, and the REAPER checks still pending
 
-Reaper automation follow-through PRD (deleted) Phase 25, [ADR 0147](../adr/0147-retakes-on-fixed-lanes-are-chosen-by-lane-play-state-and-the-app-never-converts-takes-and-lanes.md). This note records where each fact the retake-lane pick relies on came from, and the REAPER checks that have not been run. No REAPER run was approved for this phase, so nothing here was observed in a running REAPER **by this phase**; the facts marked "S7" were observed in REAPER 7.80 by [spike S7](reaper-spike-s7-fixed-lanes.md).
+Reaper automation follow-through PRD (deleted) Phase 25, [Tracks](../utilities/tracks.md). This note records where each fact the retake-lane pick relies on came from, and the REAPER checks that have not been run. No REAPER run was approved for this phase, so nothing here was observed in a running REAPER **by this phase**; the facts marked "S7" were observed in REAPER 7.80 by [spike S7](reaper-spike-s7-fixed-lanes.md).
 
 ## What the phase relies on
 

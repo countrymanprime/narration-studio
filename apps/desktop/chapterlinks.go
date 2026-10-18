@@ -25,7 +25,7 @@ type chapterTrackSetResult struct {
 
 // chapterTrackSet makes trackGUID chapterID's one confirmed link, replacing
 // any link the chapter had and taking the track from any chapter that held it
-// (a chapter has exactly one track, ADR 0207). Like mappingConfirm it refuses a chapter outside the manuscript, so
+// (a chapter has exactly one track). Like mappingConfirm it refuses a chapter outside the manuscript, so
 // the stored title is always the real one.
 func (h *Host) chapterTrackSet(chapterID, trackGUID string) (chapterTrackSetResult, error) {
 	svc := h.services()

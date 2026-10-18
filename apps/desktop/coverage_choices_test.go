@@ -1,11 +1,29 @@
 package main
 
 import (
+	"context"
+	"fmt"
+	"os"
+	"path/filepath"
 	"strings"
+	"sync"
 	"testing"
+	"time"
 
 	"github.com/countrymanprime/narration-utils/shell/internal/coverage"
+	"github.com/countrymanprime/narration-utils/shell/internal/evidence"
 )
+
+func waitUntil(t *testing.T, condition func() bool) {
+	t.Helper()
+	deadline := time.Now().Add(5 * time.Second)
+	for !condition() {
+		if time.Now().After(deadline) {
+			t.Fatal("timed out")
+		}
+		time.Sleep(time.Millisecond)
+	}
+}
 
 // resolved is resolveCoverageChoices over a host with the given RecordingCoverage and Transcript Compare settings.
 func resolved(t *testing.T, saved map[string]string, options map[string]string) (coverageChoices, error) {
@@ -75,7 +93,7 @@ func TestANamedModelRunsAloneUnlessTheSecondPassIsAskedFor(t *testing.T) {
 	saved := map[string]string{coverage.SettingCascadeEnabled: "true"}
 	alone, err := resolved(t, saved, map[string]string{"model": "base"})
 	if err != nil || alone.FirstPass != "base" || alone.Recheck != "" {
-		t.Fatalf("got %+v, %v: ADR 0841 keeps a named model whole", alone, err)
+		t.Fatalf("got %+v, %v: apps/desktop/bindings_coverage_engines.go keeps a named model whole", alone, err)
 	}
 	both, err := resolved(t, saved, map[string]string{"model": "base", "recheck": "true"})
 	if err != nil || both.FirstPass != "base" || both.Recheck != "large-v3-turbo" {
@@ -88,7 +106,7 @@ func TestTheRunsParallelOptionsWinOverTheSettings(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if got.Parallel != (coverage.Parallel{Workers: 3, ChunkSeconds: 120, OverlapSeconds: 10}) {
+	if got.Parallel != (coverage.Parallel{Workers: 3, ChunkSeconds: 120, OverlapSeconds: 10, Chapters: 1}) {
 		t.Fatalf("got %+v", got.Parallel)
 	}
 	whole, err := resolved(t, nil, map[string]string{"chunkSeconds": "0"})
@@ -250,5 +268,117 @@ func TestABackgroundCheckNeverDownloadsAndRunsFirstPassAloneWithoutTheLargerMode
 	missing := coverageHostWithModels(t, coverageProject(t), whisperCatalog(t, map[string]bool{"small": false}), fakeCoverageSidecar(10))
 	if _, ready := missing.backgroundRequest(missing.services(), "c-0001"); ready {
 		t.Fatal("a missing first-pass model must leave the background check waiting")
+	}
+}
+
+func TestChaptersAtOnceShareTheProcessorsWhenWorkersAreLeftToTheHost(t *testing.T) {
+	defer func(previous func() int) { coverageCPUs = previous }(coverageCPUs)
+	coverageCPUs = func() int { return 12 }
+
+	got, err := resolved(t, nil, map[string]string{"chapters": "3"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got.Parallel.Chapters != 3 || got.Parallel.Workers != 4 {
+		t.Fatalf("got %+v, want 3 chapters with 12/3 = 4 workers each", got.Parallel)
+	}
+	named, err := resolved(t, nil, map[string]string{"chapters": "3", "workers": "5"})
+	if err != nil || named.Parallel.Workers != 5 {
+		t.Fatalf("a named worker count is kept as it is: %+v, %v", named.Parallel, err)
+	}
+	few := func() int { return 2 }
+	coverageCPUs = few
+	crowded, err := resolved(t, nil, map[string]string{"chapters": "8"})
+	if err != nil || crowded.Parallel.Workers != 1 {
+		t.Fatalf("never below one worker: %+v, %v", crowded.Parallel, err)
+	}
+	one, err := resolved(t, nil, nil)
+	if err != nil || one.Parallel.Workers != 0 {
+		t.Fatalf("one chapter at a time leaves the model's own cap: %+v, %v", one.Parallel, err)
+	}
+}
+
+func TestTheChaptersOptionIsARangeAndComesFromTheSettingByDefault(t *testing.T) {
+	for _, bad := range []string{"0", "9", "-1", "two", ""} {
+		if got, err := resolved(t, nil, map[string]string{"chapters": bad}); err == nil {
+			t.Errorf("chapters %q was accepted as %+v", bad, got.Parallel)
+		}
+	}
+	got, err := resolved(t, map[string]string{coverage.SettingParallelChapters: "2"}, nil)
+	if err != nil || got.Parallel.Chapters != 2 {
+		t.Fatalf("got %+v, %v", got.Parallel, err)
+	}
+}
+
+// twoChapterProject is coverageProject with a second narration chapter, c-0002, on its own track.
+func twoChapterProject(t *testing.T) string {
+	t.Helper()
+	project := coverageProject(t)
+	rpp := `<REAPER_PROJECT 0.1 "7.80/win64" 1789970042 0
+`
+	for number, track := range []string{"{TRACK-1}", "{TRACK-2}"} {
+		rpp += fmt.Sprintf(`  <TRACK %[1]s
+    NAME "Chapter %[2]d"
+    TRACKID %[1]s
+    <ITEM
+      POSITION 0
+      LENGTH 4
+      IGUID {ITEM-%[2]d}
+      SOFFS 0
+      PLAYRATE 1 1 0 -1 0 0.0025
+      <SOURCE WAVE
+        FILE "media/take.wav"
+      >
+    >
+  >
+`, track, number+1)
+	}
+	rpp += ">\n"
+	manuscript := `{"schemaVersion":1,"documentId":"doc-1","chapters":[{"id":"c-0001","title":"Chapter One","contentKind":"narration"},{"id":"c-0002","title":"Chapter Two","contentKind":"narration"}],"paragraphs":[{"id":"p-000001","chapterId":"c-0001","index":0,"text":"Alice."},{"id":"p-000002","chapterId":"c-0002","index":1,"text":"Down."}]}`
+	for name, content := range map[string]string{"book.rpp": rpp, "narration-utils/manuscript/manuscript.json": manuscript} {
+		if err := os.WriteFile(filepath.Join(project, filepath.FromSlash(name)), []byte(content), 0o600); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if _, err := evidence.NewMappingStore(project).Confirm("doc-1", "{TRACK-2}", "c-0002", "Chapter Two"); err != nil {
+		t.Fatal(err)
+	}
+	return project
+}
+
+func TestTwoChaptersStartTogetherOnlyWhenTheRunAsksForIt(t *testing.T) {
+	gate := make(chan struct{})
+	var once sync.Once
+	release := func() { once.Do(func() { close(gate) }) }
+	inner := fakeCoverageSidecar(10)
+	launcher := func(ctx context.Context, program string, args ...string) (coverage.Child, error) {
+		<-gate
+		return inner(ctx, program, args...)
+	}
+	host := coverageHostWithModels(t, twoChapterProject(t), whisperCatalog(t, map[string]bool{"small": true}), launcher)
+	defer func() {
+		release()
+		host.services().coverage.Wait()
+	}()
+
+	// The launcher blocks inside Start's own sidecar launch, so each start runs in its own goroutine, as the dialog's do.
+	answers := make(chan map[string]any, 2)
+	start := func(chapter string, options map[string]string) {
+		go func() { answers <- decodeAnswer(t)(host.CoverageStart(chapter, options)) }()
+	}
+	start("c-0001", map[string]string{"chapters": "2"})
+	waitUntil(t, func() bool { return host.services().coverage.Busy() })
+	start("c-0002", map[string]string{"chapters": "2"})
+	release()
+	for range 2 {
+		if answer := <-answers; answer["status"] != "started" {
+			t.Fatalf("answer = %v, want both chapters started", answer)
+		}
+	}
+	host.services().coverage.Wait()
+	for _, chapter := range []string{"c-0001", "c-0002"} {
+		if result := decodeAnswer(t)(host.CoverageResult(chapter)); result["state"] != "current" {
+			t.Fatalf("%s: %v", chapter, result)
+		}
 	}
 }

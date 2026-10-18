@@ -126,7 +126,7 @@ type SuggestedAction struct {
 	RequiresConfirmation bool           `json:"requires_confirmation"`
 }
 
-// NoteType is the kind of problem the narrator says a finding is (ADR 0844): one of the ten words of the
+// NoteType is the kind of problem the narrator says a finding is: one of the ten words of the
 // Proof Inspector's type select. It is not a decision and never changes Status.
 type NoteType string
 
@@ -151,7 +151,7 @@ func NoteTypes() []NoteType {
 func validNoteType(t NoteType) bool { return slices.Contains(NoteTypes(), t) }
 
 // DefaultNoteType is the word shown for f while the narrator has not chosen one: its category, refined by
-// evidence.kind where the category covers more than one word (ADR 0844).
+// evidence.kind where the category covers more than one word.
 func DefaultNoteType(f Finding) NoteType {
 	kind, _ := f.Evidence["kind"].(string)
 	switch f.Category {
@@ -188,7 +188,7 @@ type ReviewState struct {
 	Status    Status `json:"status"`
 	Note      string `json:"note,omitempty"`
 	Timestamp string `json:"timestamp,omitempty"`
-	// Type is the narrator's chosen kind (ADR 0844); absent until chosen, then the analyzer's own word applies.
+	// Type is the narrator's chosen kind; absent until chosen, then the analyzer's own word applies.
 	Type NoteType `json:"type,omitempty"`
 	// Thread is the notes on the finding, between the narrator and a proofer or with themselves (PF-1 part 7); absent
 	// until the first. It is not a decision and outlives a change of evidence.

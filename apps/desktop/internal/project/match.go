@@ -18,7 +18,7 @@ import (
 // dawLinkFacts does (DawLink.Resolve: whichever of the absolute/relative
 // paths currently exists on disk) and compares that against rppPath, both
 // cleaned and lower-cased for a case-insensitive match (Windows paths are not
-// case-sensitive, and this is the first platform, ADR 0030), or as the same file
+// case-sensitive, and this is the first platform), or as the same file
 // on disk (samePath). The link may sit at any depth inside its project or
 // outside it.
 //

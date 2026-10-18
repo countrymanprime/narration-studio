@@ -23,7 +23,7 @@ export function EngineChip({
   /** Which engine backs this project; the UI defaults to 'daw' until native recording picks 'builtin'. */
   engine?: EngineState;
   dawFileLinked: boolean;
-  /** Whether a live heartbeat has been seen recently (ADR 0092); false also covers "unknown". */
+  /** Whether a live heartbeat has been seen recently; false also covers "unknown". */
   dawReachable?: boolean;
   /** Whether that heartbeat's open project is the linked file; only meaningful when dawReachable is true. */
   dawProjectMatches?: boolean;
@@ -31,7 +31,7 @@ export function EngineChip({
   followingChapter?: string;
   /** Opens the engine panel: the linked project and its link action, the tracks, chapter sync and the DAW tools. */
   onOpenEnginePanel: () => void;
-  /** True while the shared DAW-link binding is running for any of its three call sites (ADR 0075's ref guard). */
+  /** True while the shared DAW-link binding is running for any of its three call sites (docs/architecture/interaction-feedback.md#the-standard's ref guard). */
   linkingDawFile?: boolean;
 }) {
   if (engine === 'builtin' || daw === 'none') {

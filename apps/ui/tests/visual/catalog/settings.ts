@@ -99,7 +99,7 @@ export const settingsStates: StateEntry[] = [
     page: 'settings',
     state: 'global-recording-check',
     description:
-      'Settings, the Recording check panel in Global (ADR 0131): the four number settings at their defaults (0.8, 3, 8, 3 words; ADR 0132), under a summary that labels them uncalibrated and states the rule they make',
+      'Settings, the Recording check panel in Global: the four number settings at their defaults (0.8, 3, 8, 3 words), under a summary that labels them uncalibrated and states the rule they make',
     ...REFLOW,
   },
   { page: 'settings', state: 'global-proofing', description: 'Settings, the Proof panel in Global', ...REFLOW },
@@ -119,7 +119,7 @@ export const settingsStates: StateEntry[] = [
     page: 'settings',
     state: 'global-delivery',
     description:
-      'Settings, the Delivery profiles panel in Global (ADR 0179): the default delivery profile every project without its own choice is judged against (ACX), and the profiles, the built-in one read-only with Duplicate',
+      'Settings, the Delivery profiles panel in Global: the default delivery profile every project without its own choice is judged against (ACX), and the profiles, the built-in one read-only with Duplicate',
     ...REFLOW,
   },
   {

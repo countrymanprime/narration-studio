@@ -14,9 +14,9 @@ import (
 
 // This file checks the book's deadline, contracted amount, payment type and
 // milestones before they are saved to the project manifest, where they survive a
-// manuscript replace. Dates are calendar dates, "YYYY-MM-DD" (ADR 0323); the
+// manuscript replace. Dates are calendar dates, "YYYY-MM-DD"; the
 // payment type and the milestone measure, estimate, done flag and template are
-// ADR 0800's.
+// apps/desktop/internal/project/manifest.go's.
 
 const (
 	dateLayout = "2006-01-02"
@@ -29,7 +29,7 @@ const (
 	maxMilestoneTemplate = 64
 )
 
-// The payment types (ADR 0800). Only per finished hour carries a contracted amount: a royalty share or no payment is
+// The payment types. Only per finished hour carries a contracted amount: a royalty share or no payment is
 // a label and shows no rate figure (SNP-Q4).
 const (
 	PaymentPerFinishedHour = "per_finished_hour"
@@ -56,7 +56,7 @@ const (
 // the bindings answer them. Deadline and ContractedAmount are nil when unset, and
 // ContractedAmount is nil whenever Payment is not per finished hour; Payment is
 // always one of the three types; Milestones is never nil. RateBasis is "own" when the narrator chose their own pace and
-// absent otherwise, which reads as the standard rate (additive, ADR 0800).
+// absent otherwise, which reads as the standard rate (additive).
 type Plan struct {
 	Deadline         *string             `json:"deadline"`
 	ContractedAmount *float64            `json:"contractedAmount"`
@@ -90,7 +90,7 @@ func PlanOf(manifest *project.Manifest) Plan {
 
 // PaymentOf is the manifest's payment type. A manifest written before the type existed (or edited to an unknown one)
 // reads as per finished hour when it has a contracted amount, since that amount was the per-finished-hour rate's
-// (ADR 0320), and as none without one.
+// and as none without one.
 func PaymentOf(manifest *project.Manifest) string {
 	if manifest == nil {
 		return PaymentNone
@@ -106,7 +106,7 @@ func PaymentOf(manifest *project.Manifest) string {
 
 // DefaultPaymentFor is the payment type choosing the delivery profile profileID gives a contract that has none yet:
 // ACX pays per finished hour, every other profile gives "" (no default). The caller applies it only while the manifest's
-// payment is empty, never over a type the narrator set (ADR 0800).
+// payment is empty, never over a type the narrator set.
 func DefaultPaymentFor(profileID string) string {
 	if profileID == deliveryprofile.ACXID {
 		return PaymentPerFinishedHour

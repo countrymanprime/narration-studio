@@ -3,7 +3,7 @@ import { join, relative, sep } from 'node:path';
 import ts from 'typescript';
 import { describe, expect, test } from 'vitest';
 
-// ADR 0047: Base UI is an implementation detail of the primitives. Pages, feature components, tests and the stories that
+// docs/design/design-system.md#base-ui-wrappers: Base UI is an implementation detail of the primitives. Pages, feature components, tests and the stories that
 // sit outside `components/primitives/` reach it only through a primitive, so the library can be upgraded or replaced by
 // editing that folder alone. Every way of naming the package counts: an import (a type import too, because a Base UI
 // type in a page's props would leak the library and the primitives export their own prop types), an `export ... from`,
@@ -11,10 +11,10 @@ import { describe, expect, test } from 'vitest';
 // argument (`require`, `vi.mock`, `vi.importActual`). It is read with the TypeScript parser, so a comment or a string
 // that only mentions the package is fine.
 //
-// A test and not a lint rule because ADR 0046 already puts mechanical import rules in the Vitest and pytest runs, and a
+// A test and not a lint rule because docs/operations/verification-tooling.md already puts mechanical import rules in the Vitest and pytest runs, and a
 // test proves itself on the deliberately bad fixtures below. There is no ESLint `no-restricted-imports` block (the tooling's
 // config-protection hook refuses edits to eslint.config.js); the dependency-cruiser rule `base-ui-only-in-primitives` is the
-// second guard (ADR 0062).
+// second guard.
 const BASE_UI = /^@base-ui(\/|$)/;
 
 function scriptKind(fileName: string): ts.ScriptKind {
@@ -56,7 +56,7 @@ function sourceFiles(dir: string, recursive: boolean): string[] {
   });
 }
 
-describe('the Base UI import boundary (ADR 0047)', () => {
+describe('the Base UI import boundary', () => {
   test('no file outside components/primitives imports Base UI', () => {
     // The package's own config files sit at its root (vite.config.ts and friends), the rest in these folders.
     const files = [...sourceFiles(uiRoot, false), ...['src', 'tests', 'scripts', '.storybook'].flatMap((dir) => sourceFiles(join(uiRoot, dir), true))];
@@ -68,7 +68,7 @@ describe('the Base UI import boundary (ADR 0047)', () => {
         // Every form the scan finds names the package as a literal, so a file without it needs no parse (the parse of ~2000 files is slow under load).
         return source.includes('base-ui') && baseUiSpecifiers(source, file).length > 0;
       });
-    expect(offenders, 'Base UI is used only inside src/components/primitives/ (ADR 0047): import the primitive instead, or add one').toEqual([]);
+    expect(offenders, 'Base UI is used only inside src/components/primitives/: import the primitive instead, or add one').toEqual([]);
   });
 
   test('the scan sees every way of naming it (a bad fixture per form)', () => {

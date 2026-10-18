@@ -7,7 +7,7 @@ description: Writing or reviewing Lua that calls the ReaScript API in integratio
 
 ## Why this exists
 
-The bridge harness runs against a fake `reaper` table under `lupa` Lua 5.4 ([ADR 0066](../../../docs/adr/0066-the-lua-bridge-is-tested-by-a-harness-under-lua-5-4-and-reaper-api-behaviour-is-checked-in-reaper.md)). The fake proves the bridge's logic, not REAPER, and an agent that guesses a ReaScript return value writes a fake that agrees with the guess. `reaper-command-add` gives the steps for a command; this skill says how to look up and record what REAPER does, so a call is not guessed twice.
+The bridge harness runs against a fake `reaper` table under `lupa` Lua 5.4 ([The DAW port](../../../docs/architecture/daw-integration.md#the-daw-port)). The fake proves the bridge's logic, not REAPER, and an agent that guesses a ReaScript return value writes a fake that agrees with the guess. `reaper-command-add` gives the steps for a command; this skill says how to look up and record what REAPER does, so a call is not guessed twice.
 
 ## When to use this
 
@@ -24,7 +24,7 @@ What REAPER was seen to do (item GUIDs and stale pointers, `P_EXT`, undo, marker
 1. **Look in [the recorded behaviour](../../../docs/reference/daw/reaper.md#what-reaper-was-seen-to-do), then in its sources, before you write the call.** `docs/research/reaper-api-for-planned-commands.md` lists the reference text for the calls behind the planned commands. It is desk research (REAPER 7.38 reference through the Ultraschall copy, since `reaper.fm` is not reachable from a cloud session) and nothing in it has been run.
 2. **Mark what you did not see.** A call not in the recorded behaviour is "pending" in your comment, test and PR, with who owns the check. Never write that something "works in REAPER" unless a recorded run says so (`docs-style` rule 9).
 3. **Guard anything newer than REAPER 6** with `reaper.APIExists('Name')` and an error event ([version rules](../../../docs/reference/daw/reaper.md#version-rules)).
-4. **Stay on the shared Lua subset** ([version rules](../../../docs/reference/daw/reaper.md#version-rules), [ADR 0066](../../../docs/adr/0066-the-lua-bridge-is-tested-by-a-harness-under-lua-5-4-and-reaper-api-behaviour-is-checked-in-reaper.md)).
+4. **Stay on the shared Lua subset** ([version rules](../../../docs/reference/daw/reaper.md#version-rules), [The DAW port](../../../docs/architecture/daw-integration.md#the-daw-port)).
 5. **Check a new behaviour in an isolated run, and record it.** Follow [the verification pass](../../../docs/operations/reaper-verification-pass.md) rules and the spikes in `integrations/reaper/spikes/` (README there, driver `run-reaper.ps1`):
    - Open only a **copy** of a project, with `reaper.exe -cfgfile <temp>\reaper.ini -nosplash -newinst -noactivate`, so the owner's settings and projects are never read or written.
    - Call `reaper.Audio_Quit()` first and assert `Audio_IsRunning() == 0`; assert that `GetResourcePath()` is the scratch folder before anything else runs.

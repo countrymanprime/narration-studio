@@ -27,7 +27,7 @@ function detail(k: Calc, today: Date, due: Date): string {
 
 /**
  * The one-line answer to "will I make the due date" (the mock's VerdictPill): the verdict in words with a mark, and when it is done. The
- * days left set the tone and the projection can only make it worse (ADR 0801). It says so in words only when there is a due date.
+ * days left set the tone and the projection can only make it worse. It says so in words only when there is a due date.
  */
 export function VerdictPill({ k, today, due }: { k: Calc; today: Date; due: Date | null }) {
   if (k.finished) return <StatusBadge tone="success" icon={KIND.ok.glyph} label="Finished · every chapter delivered" />;

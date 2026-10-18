@@ -40,7 +40,7 @@ function stageWailsOutput(files) {
 test('every platform asset is narration-utils-<version>-<platform>.<ext>', () => {
   assert.equal(assetName('windows-x64', V), 'narration-utils-0.2.7-windows-x64.zip');
   assert.equal(checksumName('windows-x64', V), 'narration-utils-0.2.7-windows-x64.zip.sha256');
-  // Windows only (D74, docs/adr/0412).
+  // Windows only (D74).
   assert.deepEqual(Object.keys(PLATFORMS), ['windows-x64']);
 });
 
@@ -50,7 +50,7 @@ test('assetName rejects a platform the release does not ship', () => {
   assert.throws(() => assetName('linux-x64', V), /Unknown platform/);
 });
 
-// Windows ships two files (docs/adr/0082): the zip the in-app updater downloads (a 400 MB download otherwise, and it keeps the
+// Windows ships two files: the zip the in-app updater downloads (a 400 MB download otherwise, and it keeps the
 // name the REAPER launcher looks for) and the setup program a narrator runs the first time, which Wails builds with NSIS.
 test('windows ships a zip for the updater and a setup program for a first install, both named for the version', () => {
   assert.equal(WINDOWS_INSTALLER, 'narration-utils-windows-x64-setup.exe');
@@ -133,7 +133,7 @@ test('windows packaging zips the exe under its own name', { skip: process.platfo
   // bsdtar (System32) lists zips; Git Bash's GNU tar, which may come first on PATH, cannot.
   const tar = join(process.env.SystemRoot, 'System32', 'tar.exe');
   const listing = spawnSync(tar, ['-tf', basename(asset)], { cwd: out, encoding: 'utf8' });
-  // One file, on purpose: the in-app updater refuses a zip that holds anything else (docs/adr/0074), and the notices are a separate asset.
+  // One file, on purpose: the in-app updater refuses a zip that holds anything else, and the notices are a separate asset.
   assert.equal(listing.stdout.trim(), 'narration-utils.exe');
 });
 
@@ -242,7 +242,6 @@ test('verifyAssets reports an asset that no longer matches its checksum', () => 
 
 // `assets.mjs verify --attestations` asks `gh attestation verify` who built each downloaded file. The tests use a
 // fake `run` in place of `gh`; the flag names and the signer identities were checked against real attestations
-// (docs/adr/0071).
 const REPOSITORY = 'countrymanprime/narration-utils';
 
 function fakeGh(failing = {}) {
@@ -393,7 +392,7 @@ test('the verify command rejects a flag it does not know instead of skipping the
   assert.match(result.stderr, /Unknown flag --attestation/);
 });
 
-// The version is what tells three downloads apart at a glance (docs/adr/0197); it is bare, so a candidate and its promotion publish the same
+// The version is what tells three downloads apart at a glance; it is bare, so a candidate and its promotion publish the same
 // names, and the rule is the one the app's updater reads a version by.
 test('every released name carries the bare version, and a version that is not one is refused', () => {
   for (const platform of Object.keys(PLATFORMS)) {

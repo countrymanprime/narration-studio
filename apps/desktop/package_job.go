@@ -21,7 +21,7 @@ import (
 // system's own picker - never inside the project's narration-utils/ sidecar tree, so a package is never written
 // where exportScratchDir's own intermediates live. Assemble copies already-small, already-encoded files (never the
 // large WAVs the export job processes), so unlike ExportStart's own per-file progress, PackageStart reports only
-// running and done; ADR 0075's 100 ms acknowledgement still holds because the copy runs in the background, not on
+// running and done; docs/architecture/interaction-feedback.md#the-standard's 100 ms acknowledgement still holds because the copy runs in the background, not on
 // the call that starts it.
 
 // PackageItem is one already-encoded file (an ExportJob file's own EncodedPath) ready to package. Kind is one of

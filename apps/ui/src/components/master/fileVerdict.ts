@@ -1,5 +1,5 @@
 // A measured file's verdict and why (mock 05's "PASS / FAIL" column and
-// "Why it fails"). The verdict reads only the host's own judgement of the file (MeasureFileResult.rules, ADR 0179): a file fails
+// "Why it fails"). The verdict reads only the host's own judgement of the file (MeasureFileResult.rules): a file fails
 // when any rule is not met; it has no verdict when a value it should have could not be measured (a silent render) or nothing was
 // judged at all; it passes otherwise. A rule the app does not check is never counted as met; the row says how many are left.
 import type { DeliveryProfile, DeliveryRule, DeliveryRuleResult, MeasureFileResult } from '../../types';
@@ -26,7 +26,7 @@ export function valueWithUnit(rule: Pick<DeliveryRule, 'metric' | 'unit'>, value
 
 /**
  * What the narrator can do about a missed rule, by what it measures. Only the built-in chain's own reach is promised: it sets RMS
- * and holds peaks (internal/mastering, ADR 0321), and it never lowers a noise floor or changes a format, so those say where to fix
+ * and holds peaks (internal/mastering), and it never lowers a noise floor or changes a format, so those say where to fix
  * them instead.
  */
 export function suggestedFix(rule: DeliveryRule, result: DeliveryRuleResult): string | undefined {

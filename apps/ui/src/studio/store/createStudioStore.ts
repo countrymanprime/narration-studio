@@ -1,5 +1,5 @@
-// The read-model store (ADR 0770). It holds what pages show, hydrated through an injected loader, parsed by `parseWire`
-// (ADR 0069) and refreshed when the host says it changed or the window regains focus. It is a cache that can be thrown
+// The read-model store. It holds what pages show, hydrated through an injected loader, parsed by `parseWire`
+// and refreshed when the host says it changed or the window regains focus. It is a cache that can be thrown
 // away: `reset()` empties it for a project switch. It never holds the book and exposes no `act` (the journal is separate).
 
 import { parseWire } from '../../api/wire/parseWire';

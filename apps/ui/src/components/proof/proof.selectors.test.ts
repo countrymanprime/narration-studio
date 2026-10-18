@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { openPickupsBeyondNotes, proofProgress } from './proof.selectors';
 
-describe('proofProgress (one definition of cleared, ADR 0793)', () => {
+describe('proofProgress (one definition of cleared)', () => {
   it('reports decided, cleared and total as the host counted them, and open as what is not cleared', () => {
     expect(proofProgress({ total: 10, decided: 6, cleared: 4 }, 0)).toEqual({ decided: 6, cleared: 4, total: 10, open: 6, percent: 40 });
   });

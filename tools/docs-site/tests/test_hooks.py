@@ -1,4 +1,4 @@
-"""The include list, the link rewriting and the navigation order (ADR 0083). No MkDocs needed."""
+"""The include list, the link rewriting and the navigation order. No MkDocs needed."""
 
 import hooks
 import pytest

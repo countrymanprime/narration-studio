@@ -10,7 +10,7 @@ import (
 	"github.com/countrymanprime/narration-utils/shell/internal/zerocross"
 )
 
-// The alignment port's snap (ADR 0855): a cut point in an item's source moved to the nearest zero crossing within
+// The alignment port's snap: a cut point in an item's source moved to the nearest zero crossing within
 // 2 ms, computed here from the item's audio (internal/zerocross). The page sends a chapter id, an item GUID and a
 // time; the host resolves the GUID against the chapter's stored alignment and the saved project to the take's source
 // file, and reads only the few milliseconds around the time. The page never sends a path (docs/architecture/reaper-navigation.md).

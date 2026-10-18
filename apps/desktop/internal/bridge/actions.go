@@ -13,7 +13,7 @@ import (
 // their answers. Every command it sends is on experimentalCommands until the owner and Claude have run the REAPER
 // verification pass for it (docs/operations/reaper-verification-pass.md). Whether a command may be
 // sent is its Gate's answer, asked before anything is written: the host builds the gate over the DAW port's resolver
-// (ADR 0300, ADR 0304), so the narrator's per-capability settings decide it, and Actions does not check a
+// so the narrator's per-capability settings decide it, and Actions does not check a
 // setting itself.
 //
 // Like Navigator, a request returns once its answer has been dispatched by the host's loop (Client.Dispatch), so a

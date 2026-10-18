@@ -9,7 +9,7 @@ export type GoToChapter = ChapterNameInput & { id: string };
 export type GoToTarget = { kind: 'page'; id: string } | { kind: 'chapter'; id: string };
 
 /**
- * Registers one command provider for "Go to <page>" and "Go to <chapter>" while the caller is mounted (ADR 0780 decisions 3 and 4).
+ * Registers one command provider for "Go to <page>" and "Go to <chapter>" while the caller is mounted (docs/architecture/studio-shell-and-registries.md#command-providers-and-go-to).
  * The lists are arguments, so this file names no page and no chapter; the shell passes them from its navigation model. The provider
  * reads the latest lists each time the jump menu opens, so a new array never re-registers it.
  */

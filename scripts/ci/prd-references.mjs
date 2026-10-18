@@ -1,6 +1,6 @@
 // Finds source files that cite a PRD (`docs/prds/<name>.md`) which is not in the tree.
 //
-// ADR 0028 deletes a PRD when its work is delivered, so a comment that points at one goes dead by design. The Markdown link
+// docs/prds/README.md#lifecycle-of-a-prd deletes a PRD when its work is delivered, so a comment that points at one goes dead by design. The Markdown link
 // check (lychee, .github/workflows/docs.yml) sees only Markdown links, not a path in a Go, Python, Lua or YAML comment, so
 // this covers those. Markdown is left to lychee, the ADRs are immutable records, and the docs-site tests name made-up PRDs.
 

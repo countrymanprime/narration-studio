@@ -12,11 +12,11 @@ import (
 	"github.com/countrymanprime/narration-utils/shell/internal/port"
 )
 
-// Audacity is the row that masters with the narrator's chosen Audacity effect macro (ADR 0306, ADR 0460).
+// Audacity is the row that masters with the narrator's chosen Audacity effect macro.
 // Unlike daw.go it masters a rendered WAV (ModeWAV): Audacity has no per-track FX chain or region it can enumerate or
 // render from over its scripting pipe, only a named macro it applies to whatever it imports. It shares daw.go's session, run-folder
 // and place-without-replacing machinery (dawSession, randomHex, placeNew), because both rows are DAW-triggered renders under the
-// same four conditions (ADR 0306): the narrator's approval for this one run, their own action, Experimental until the owner's pass,
+// same four conditions: the narrator's approval for this one run, their own action, Experimental until the owner's pass,
 // and a folder the host made that nothing outside it can be written to.
 const Audacity = "audacity"
 

@@ -1,4 +1,4 @@
-"""Property tests for the script tracker (engine-independent alignment; ADR 0021).
+"""Property tests for the script tracker (engine-independent alignment).
 
 Example tests pin what the tracker does on a lighthouse script. These pin the rules that must hold
 on any script and any heard words, so an alignment change cannot quietly break the cursor.

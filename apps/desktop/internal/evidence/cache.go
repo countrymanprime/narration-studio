@@ -1,4 +1,4 @@
-// This file holds the per-item result cache (ADR 0100): per-source features (a
+// This file holds the per-item result cache: per-source features (a
 // silence run over the whole source, a transcript's words over the whole
 // source), sliced to an item's played range on read, not per-played-range
 // results. A trim changes the played range; a per-range entry would miss after

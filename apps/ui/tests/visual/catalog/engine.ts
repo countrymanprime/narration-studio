@@ -1,5 +1,5 @@
 // The `engine` rows of STATE_CATALOG (see state-catalog.ts), in the order they are captured: the engine panel, a slide-over from
-// the header's engine chip that replaced the Tracks page (ADR 0407). Each
+// the header's engine chip that replaced the Tracks page. Each
 // state is the panel, or one of its REAPER tools' dialogs opened from it, over the Production home. The Tracks page's player states
 // (`default`'s transport, `playing`, `skipped-forward`, `last-track-selected`, `unplayable-track-selected`) went with the player:
 // a chapter is heard in its Proof chapter view. `tracks/sync-consent` went too: the same dialog over the Production home is
@@ -35,7 +35,7 @@ export const engineStates: StateEntry[] = [
     page: 'engine',
     state: 'sync-background-wait',
     description:
-      'The engine panel, Chapter sync with background recording checks on but waiting (?mockChapterSync=background, ADR 0211): "Background checks: waiting, REAPER is recording."',
+      'The engine panel, Chapter sync with background recording checks on but waiting (?mockChapterSync=background): "Background checks: waiting, REAPER is recording."',
   },
   {
     page: 'engine',

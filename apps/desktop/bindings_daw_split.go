@@ -27,7 +27,7 @@ const (
 // chapter, in one undo step of the DAW's own (SN-E94; the Studio Next mock's splitTake, the page's splitCommand). takeID is the
 // take's id as the DAW reports it on the chapter's one linked track now (chapter_track_state): the host looks it up there,
 // checks the cut is inside that take, and sends the item and take it read itself, so an id is never sent to the DAW as given
-// (threat model row 5f). The answer is a DawResult (ADR 0810): the takes capability's own sentence when the resolver refuses it
+// (threat model row 5f). The answer is a DawResult: the takes capability's own sentence when the resolver refuses it
 // (a standalone launch, a DAW not answering, Experimental actions off, the toggle off), checked first; an engine whose takes role
 // cannot split, or no live adapter, is refused in a sentence; a time that is not one, a take the track no longer holds or a cut
 // outside it is refused (code stale for the last two). Nothing is sent to the DAW on any of them. A take that changed between the

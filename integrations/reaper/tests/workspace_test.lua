@@ -1,5 +1,4 @@
--- The edit and proof workspace's REAPER actions (narration_workspace.lua): set_active_take ("Use this take"); FX (ADR
--- 0234, the owner's 2026-09-25 decision): an FX chain goes on a track or the master track only (list_fx_chains,
+-- The edit and proof workspace's REAPER actions (narration_workspace.lua): set_active_take ("Use this take"); FX (the owner's 2026-09-25 decision): an FX chain goes on a track or the master track only (list_fx_chains,
 -- apply_fx_chain).
 
 local H = require('harness')

@@ -14,10 +14,10 @@ import (
 	"github.com/countrymanprime/narration-utils/shell/internal/tracks"
 )
 
-// Chapter sync's consent and first sync (ADR 0209). The narrator is asked once per project, when it has both a
+// Chapter sync's consent and first sync. The narrator is asked once per project, when it has both a
 // manuscript and a linked DAW project; the answer lives on the manifest. With consent, every link path (the answer
 // itself, a DAW link, an import, a project attach) runs one sync: chaptersync.Build over the narration chapters and the
-// saved .rpp, MappingStore.AutoLink for the confident two-way matches (ADR 0202), and the snapshot stored for the next
+// saved .rpp, MappingStore.AutoLink for the confident two-way matches, and the snapshot stored for the next
 // sync. Each run tells the UI through chaptersync:state. Watching the saved .rpp for changes is chaptersync_watch.go.
 
 const chapterSyncEvent = "chaptersync:state"
@@ -79,7 +79,7 @@ type chapterSyncState struct {
 	UnsavedEdits bool                   `json:"unsavedEdits"`
 	Activity     []chaptersync.Activity `json:"activity"`
 	Chapters     []chapterSyncChapter   `json:"chapters"`
-	// Background is whether background recording checks are on and why none runs now (ADR 0211).
+	// Background is whether background recording checks are on and why none runs now.
 	Background chapterSyncBackground `json:"background"`
 }
 
@@ -137,7 +137,7 @@ func (h *Host) ChapterSyncSetEnabled(on bool) (string, error) {
 	return encodeBinding(h.chapterSyncSetEnabled(on))
 }
 
-// ChapterSyncUndo removes one automatic link and remembers the pair so no later sync makes it again (ADR 0203). A
+// ChapterSyncUndo removes one automatic link and remembers the pair so no later sync makes it again. A
 // manual link is refused. It returns the new state.
 func (h *Host) ChapterSyncUndo(trackGUID string) (string, error) {
 	return encodeBinding(h.chapterSyncUndo(trackGUID))
@@ -164,7 +164,7 @@ type chapterSyncInputs struct {
 	background chapterSyncBackground
 }
 
-// readChapterSyncInputs reads the manifest, the manuscript's narration chapters (sync links only those, ADR 0207) and
+// readChapterSyncInputs reads the manifest, the manuscript's narration chapters (sync links only those) and
 // the saved .rpp. A project with no manuscript is not an error: Manuscript is then false and nothing is asked.
 func (h *Host) readChapterSyncInputs() (chapterSyncInputs, error) {
 	svc := h.services()

@@ -1,6 +1,6 @@
 # Delivery measurement validation against the EBU loudness test set
 
-**Started 2026-09-23.** **Question:** do the Go `measure` package's (`apps/desktop/internal/measure`) loudness and true-peak readings agree with the EBU's official loudness test signals, and do its RMS, peak and noise-floor readings agree with Audacity's ACX Check? This note records the method and the result of each run. [ADR 0025](../adr/0025-delivery-measurements-in-go-profiles-deferred.md) records that the DSP had been checked only against BS.1770's published 48 kHz coefficients and against analytic signals, because the EBU files were not available offline.
+**Started 2026-09-23.** **Question:** do the Go `measure` package's (`apps/desktop/internal/measure`) loudness and true-peak readings agree with the EBU's official loudness test signals, and do its RMS, peak and noise-floor readings agree with Audacity's ACX Check? This note records the method and the result of each run. [Codebase map](../architecture/codebase-map.md) records that the DSP had been checked only against BS.1770's published 48 kHz coefficients and against analytic signals, because the EBU files were not available offline.
 
 ## What is checked
 
@@ -12,7 +12,7 @@ The reference is EBU Tech 3341 Table 1 and EBU Tech 3342 Table 1 (both November 
 | Tech 3341, 7 and 8 (authentic programmes) | Integrated loudness | -23.0 LUFS | ±0.1 LU | The official files only |
 | Tech 3341, 15 to 19 | True peak | -6.0 dBTP (case 19: +3.0) | +0.2 / -0.4 dB | The official files. Also, in every `pnpm check`, signals rebuilt from the Table 1 descriptions. |
 | Tech 3341, 20 to 23 (inter-sample peaks made at 4 fs) | True peak | 0.0 dBTP | +0.2 / -0.4 dB | The official files only |
-| Tech 3341, 6 (5.0 surround) | None: the file must be refused | An error | - | The official files. Surround weights are not implemented (ADR 0025). |
+| Tech 3341, 6 (5.0 surround) | None: the file must be refused | An error | - | The official files. Surround weights are not implemented (`docs/architecture/codebase-map.md`). |
 | Tech 3341, 9 to 14 | Momentary or short-term loudness | - | - | Not applicable: `measure` has no momentary or short-term meter |
 | Tech 3342, 1 to 6 | Loudness range (LRA) | - | - | Not applicable: `measure` does not compute LRA |
 
@@ -36,7 +36,7 @@ When a run is recorded, add a row above and paste the test's `-v` lines under it
 
 ## Comparison with Audacity's ACX Check (the ACX profile)
 
-The built-in ACX delivery profile (`acx@2026-09`, [ACX delivery requirements](../reference/acx-delivery-requirements.md), ADR 0179) judges `measure`'s RMS, sample peak and noise floor against ACX's numbers. Whether `measure`'s definitions agree with ACX's own check is what this comparison records: the same verdict per rule, and values within 0.5 dB.
+The built-in ACX delivery profile (`acx@2026-09`, [ACX delivery requirements](../reference/acx-delivery-requirements.md)) judges `measure`'s RMS, sample peak and noise floor against ACX's numbers. Whether `measure`'s definitions agree with ACX's own check is what this comparison records: the same verdict per rule, and values within 0.5 dB.
 
 | Date | Commit | Files | RMS (app / ACX Check) | Peak (app / ACX Check) | Noise floor (app / ACX Check) | Verdicts agree |
 | --- | --- | --- | --- | --- | --- | --- |

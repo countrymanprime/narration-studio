@@ -1,4 +1,4 @@
-// The slot registry of the read-model store (ADR 0770) and the hooks typed over it. The chapter list is the first slot; the
+// The slot registry of the read-model store and the hooks typed over it. The chapter list is the first slot; the
 // bookmarks list is the second. A slot reads through a port, so this file names no `useApi()`.
 
 import type { BookmarksApi } from '../api/contracts/bookmarks';

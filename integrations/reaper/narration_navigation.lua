@@ -1,6 +1,6 @@
 -- Going to and looping a finding over the bridge: navigate_item, loop_context, stop_loop and ping
--- (docs/architecture/reaper-navigation.md, ADR 0121), and add_finding_marker, the one approved marker for a finding
--- (ADR 0123). Loaded by narration_ui_bridge.lua, which passes the shared
+-- (docs/architecture/reaper-navigation.md), and add_finding_marker, the one approved marker for a finding
+-- Loaded by narration_ui_bridge.lua, which passes the shared
 -- helpers as the chunk argument.
 --
 -- A finding is found by its item GUID (and take GUID when it has one), and its time is a source time inside that

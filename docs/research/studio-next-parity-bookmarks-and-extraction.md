@@ -19,7 +19,7 @@ Method: each mock case is a row below, mapped to a real test by reading the real
 
 | mock file | mock case | status | real test | note |
 | --- | --- | --- | --- | --- |
-| bookmarks.test.tsx | a bookmark has a stable id, a chapter, a paragraph, a character offset and a date; label and note are optional | ported | apps/desktop/internal/bookmarks/bookmarks_test.go::TestAddListUpdateRemoveRoundtrip | The real bookmark has paragraphId, a stale flag and createdAt (ADR 0820); the golden payload is pinned in bindings_bookmarks_contract_test.go. |
+| bookmarks.test.tsx | a bookmark has a stable id, a chapter, a paragraph, a character offset and a date; label and note are optional | ported | apps/desktop/internal/bookmarks/bookmarks_test.go::TestAddListUpdateRemoveRoundtrip | The real bookmark has paragraphId, a stale flag and createdAt (`docs/reference/data-files.md`); the golden payload is pinned in bindings_bookmarks_contract_test.go. |
 | bookmarks.test.tsx | refuses a negative or fractional offset, a missing paragraph, and a label that is not short | ported | apps/ui/src/api/wireContracts.test.ts::the schemas read a stale bookmark and refuse a negative offset, an unknown key or a label over the limit | Go side: TestLabelAndNoteAreBounded. A missing paragraph is a refusal at the host (TestSpotIsValidatedAgainstTheManuscript). |
 | bookmarks.test.tsx | the book starts with none, and old data without the field still parses | covered | apps/desktop/bindings_bookmarks_test.go::TestBookmarksBindingsWithNoProject | Asserts that a list with no project is empty. A missing file is read as none by the persist helper in `bookmarks.go`; this test does not make a project with no file, and there is no old-data case to port. |
 | bookmarks.test.tsx | makes one on a paragraph and offset with the mock clock, a new id each time | ported | apps/ui/src/studio/commands/bookmarks.test.ts::records "Added a bookmark" touching bookmarks/<id>, and Undo removes it | Ids come from the host, not a mock counter. |
@@ -169,7 +169,7 @@ Checked on `4323eff` with `git grep -n -i -E "<old name>" -- apps docs/guides`. 
 | `interactionFeedback` rows for deleted bookmark bindings | `bookmark` over `interactionFeedback/` and the catalogue | only the `studio/commands/bookmarks.ts` and `slots.ts` rows (`script.ts:7-15`, `app.ts:90`, `catalog:108`) | gone |
 | wire rows for deleted bindings | `bookmarks` in `wireContracts.test.ts` | `bookmarksList`, `bookmarksAdd`, `bookmarksUpdate`, `bookmarksRemove` and `readerState`, all live | gone |
 | `docs/guides` text of the old bookmark | `Bookmark this chapter\|ReaderBookmark` over `docs/guides` | none; `script.md:38-60` and `booth.md:9` describe the new ones | gone |
-| a second bookmark store | `bookmarks.json` is the only writer (`bookmarks.File`, ADR 0820); `ManuscriptReaderState` has no writer | `internal/manuscript/reader.go:209` reads only | One store. Old chapter bookmarks in a project's `manuscript-notes.json` are not shown or migrated: L2 |
+| a second bookmark store | `bookmarks.json` is the only writer (`bookmarks.File`); `ManuscriptReaderState` has no writer | `internal/manuscript/reader.go:209` reads only | One store. Old chapter bookmarks in a project's `manuscript-notes.json` are not shown or migrated: L2 |
 | old Story Bible import paths past the tiers | `guideBuild(` over `apps/ui/src` | `storybible/Guide.tsx:159`, `production/ManuscriptImport.tsx:141` | Leftover: L4. Scan, Import and the first-scan prompt are the new entry points and are mounted (`Guide.tsx:261`, `:211`) |
 | stale `interactionFeedback` entries for deleted bindings | `pnpm --dir apps/ui exec vitest run src/interactionFeedback.test.ts` | 1 failure: "has a row for every call the UI makes to the host", missing rows for `booth/pickups/usePickupSession.ts` and `editing/cleanup/CleanupTab.tsx` | No stale row. The red is missing rows for new code, red on `main` and not from bookmarks or extraction: L5 |
 
@@ -206,6 +206,6 @@ Found still present. Nothing is deleted here; SN-C4 and the coordinator can open
 | id | difference | where it is recorded |
 | --- | --- | --- |
 | D1 | Next and Previous bookmark are `Alt+]` and `Alt+[`, not `]` and `[`. Plain `[` and `]` are `workspace.flag.*` in page scope, and the catalogue cannot tell two pages apart. | `apps/ui/src/input/commands.catalog.ts:222-227` |
-| D2 | Adding at an offset past the text is refused, not clamped to the text length. | `wireContracts.test.ts` "not in the line"; ADR 0820 |
+| D2 | Adding at an offset past the text is refused, not clamped to the text length. | `wireContracts.test.ts` "not in the line"; `docs/reference/data-files.md` |
 | D3 | Undo of a delete recreates the bookmark under a new id; the mock restores the same id. | `studio/commands/bookmarks.test.ts` "recreates at the same spot with the old text under a new id" |
 | D4 | The registry has five sources (rules, imported, GLiNER, BookNLP, local model); the mock case names three. | `extractionport_test.go` |

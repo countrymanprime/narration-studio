@@ -72,7 +72,7 @@ type Draft struct {
 // SourceMetadata is document-level title/subtitle/author/series structure read directly from the source's own
 // markup, never guessed from plain text. It becomes another candidate source for internal/credits.Detect;
 // nothing here is ever written to a project's
-// credits values on its own (ADR 0019: detected is offered, not imported).
+// credits values on its own (ADR 0002: detected is offered, not imported).
 type SourceMetadata struct {
 	Title    string `json:"title,omitempty"`
 	Subtitle string `json:"subtitle,omitempty"`
@@ -128,8 +128,28 @@ func isReferenceHeading(value string) bool {
 		return true
 	}
 	switch normalizedHeading(value) {
-	case "table of contents", "contents", "glossary", "pronunciation guide", "acknowledgements", "acknowledgments", "about the author", "reading group guide", "discussion questions", "family tree", "maps":
+	case "table of contents", "contents", "glossary", "pronunciation guide", "reading group guide", "discussion questions", "family tree", "maps":
 		return true
+	}
+	return false
+}
+
+// isFrontMatterHeading matches the headings of preliminary pages an audiobook does not read: the importer's own "Cover" and
+// "Front Matter" groups, a half title, title page, copyright page, "Praise for..." and "Also by..." lists, and an "Opening
+// Credits" page (the credits are generated, not narrated from the manuscript). They are kind "opening", so they
+// are left out of the narration totals and are not recorded as chapters. What an audiobook does read stays narration, however
+// early it sits: dedication, epigraph, foreword, preface, introduction, prologue.
+func isFrontMatterHeading(value string) bool {
+	v := normalizedHeading(value)
+	switch v {
+	case "cover", "opening pages", "front matter", "title page", "half title", "half title page", "copyright", "copyright page",
+		"opening credits", "intro credits":
+		return true
+	}
+	for _, prefix := range []string{"praise for ", "also by ", "other books by ", "books by ", "more books by "} {
+		if strings.HasPrefix(v, prefix) {
+			return true
+		}
 	}
 	return false
 }
@@ -269,7 +289,7 @@ func firstSubtitle(paragraphs []Paragraph, indexes []int) string {
 // heading-derived title the caller saw - chapter headings and non-chapter ones like "Contents" alike - keyed by its exact text; a
 // title absent from the map (a synthetic group such as "Front Matter" that never had its own heading paragraph) has no known level.
 // kindOverrides forces a group's contentKind by its exact title, taking precedence over every text-based rule below (EPUB's
-// epub:type is authoritative and does not always share a recognizable title, e.g. a dedication page titled "For My Mother"; ADR 0102). Callers with no such signal (DOCX, Markdown, TXT) pass nil.
+// epub:type is authoritative and does not always share a recognizable title, e.g. a dedication page titled "For My Mother"). Callers with no such signal (DOCX, Markdown, TXT) pass nil.
 func newDraft(format, sourceName string, paragraphs []Paragraph, titles []string, headingLevels map[string]int, kindOverrides map[string]string) (Draft, error) {
 	if len(paragraphs) == 0 {
 		return Draft{}, &Error{"The manuscript has no readable text paragraphs."}
@@ -314,7 +334,7 @@ func newDraft(format, sourceName string, paragraphs []Paragraph, titles []string
 		// group that never had its own heading paragraph) falls back to the narrative-marker check.
 		endsCharacterScope := characterListActive && ((hasLevel && level <= charactersLevel) || (!hasLevel && narrative))
 		contentKind := "narration"
-		if normalizedHeading(group.title) == "cover" || normalizedHeading(group.title) == "opening pages" || normalizedHeading(group.title) == "front matter" {
+		if isFrontMatterHeading(group.title) {
 			contentKind = "opening"
 		} else if isReferenceHeading(group.title) || (characterListActive && !endsCharacterScope) {
 			contentKind = "reference"

@@ -10,7 +10,7 @@ import (
 	"github.com/countrymanprime/narration-utils/shell/internal/productionreport"
 )
 
-// The Production page's status report export (ADR 0028). The page sends only the narrator's one
+// The Production page's status report export. The page sends only the narrator's one
 // choice, whether to include the contracted amount and effective rate; the host builds the report from
 // exactly the same overview and plan the Production page just read (buildProductionOverview, bindings_production.go)
 // and writes an HTML and a JSON file into the project's narration-utils/production/reports folder. It never writes
@@ -62,7 +62,7 @@ func (h *Host) buildProductionReport(includeContractedAmount bool) (project, gen
 }
 
 // ProductionStatusReportPreview answers the document ProductionStatusReport would write, without writing anything
-// (ADR 0843). includeContractedAmount is the same opt-in as the export's.
+// includeContractedAmount is the same opt-in as the export's.
 func (h *Host) ProductionStatusReportPreview(includeContractedAmount bool) (string, error) {
 	project, generatedAt, report, err := h.buildProductionReport(includeContractedAmount)
 	if err != nil {

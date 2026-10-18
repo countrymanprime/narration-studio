@@ -1,4 +1,4 @@
-// This file holds the render path's own ledger record (ADR 0550). Unlike the
+// This file holds the render path's own ledger record. Unlike the
 // per-item records ledger.go writes (item-scoped, currency judged by
 // evidence.LedgerFingerprint / evidence.EvaluateFingerprints), the render
 // record's scope is the render file's fingerprint, so this file does NOT

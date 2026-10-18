@@ -5,7 +5,7 @@ internal/process.runEnv), "msg", **fields} — to stderr and, when set_log_file 
 `--log` flag has always written. A plain `log("text")` call still works exactly as
 before, at level "info". NARRATION_LOG_LEVEL ("info" unless the host set it to "debug", the same variable
 internal/process sets) gates the two levels callers use: a "debug" line is dropped before it is even built, so a
-caller does not pay to format one nobody will read. Content is never a field's value (ADR 0251, threat-model row 7a):
+caller does not pay to format one nobody will read. Content is never a field's value (threat-model row 7a):
 ids, counts, hashes, paths and timings only — never manuscript or transcript text.
 """
 

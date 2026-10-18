@@ -2,7 +2,7 @@ import type { TakeEvidenceResult } from '../api/contracts/takeEvidence';
 import { createTakeEvidenceMock } from '../api/takeEvidenceMock';
 import type { NarrationApi } from '../types';
 
-// The takes port (SNE-5a, ADR 0140): what each take of a passage offers as evidence, one entry per take the workspace's
+// The takes port (SNE-5a): what each take of a passage offers as evidence, one entry per take the workspace's
 // `workspaceTakes` offers for the same passage, with its id. It reads only: it measures nothing new on the page and
 // starts no job. Listing and choosing the takes stay on the workspace port.
 

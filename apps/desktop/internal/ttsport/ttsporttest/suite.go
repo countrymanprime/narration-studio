@@ -1,4 +1,4 @@
-// Package ttsporttest is the conformance suite every voice engine row must pass (ADR 0301), and a fake engine it runs against. The
+// Package ttsporttest is the conformance suite every voice engine row must pass, and a fake engine it runs against. The
 // ttsport test runs it over every registered row, so a new row cannot skip it:
 //
 //	for _, entry := range ttsport.Engines.Entries() {

@@ -88,7 +88,7 @@ export function ChapterSyncPanel({ notify, onChanged }: { notify: Notify; onChan
     }
   };
 
-  // Undo removes one automatic link and remembers the pair so sync never makes it again (ADR 0209); the host answers with the
+  // Undo removes one automatic link and remembers the pair so sync never makes it again; the host answers with the
   // state, and chaptersync:state follows, so the list redraws on its own.
   const undo = async (trackGuid: string) => {
     setUndoingTrackGuid(trackGuid);

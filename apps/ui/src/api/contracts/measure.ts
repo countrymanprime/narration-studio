@@ -1,5 +1,5 @@
-// Measurement (ADR 0156): the narrator picks rendered audio
-// files in the operating system's picker, and the host measures them as a job with real progress (ADR 0015). Field
+// Measurement: the narrator picks rendered audio
+// files in the operating system's picker, and the host measures them as a job with real progress. Field
 // names inside a report and a fingerprint are the wire's own snake_case, as internal/measure writes them; the job
 // around them is camelCase like the host's other jobs.
 
@@ -15,7 +15,7 @@ export type MeasureClipRun = { channel: number; start_seconds: number; duration_
 
 /**
  * One measurement (internal/measure.Report). A level that cannot be measured (silence, audio too short) is null, never
- * a number (ADR 0025); the counts are measurements too, so clean audio has 0 and an empty list.
+ * a number; the counts are measurements too, so clean audio has 0 and an empty list.
  */
 export type MeasureReport = {
   file?: string;
@@ -81,7 +81,7 @@ export type MeasureFileStatus = 'pending' | 'measuring' | 'measured' | 'failed' 
 
 /**
  * One file of a measurement: its report and fingerprint once measured, or why it could not be. `rules` is the host's
- * judgement of the report against the project's delivery profile as it is when the job is read (ADR 0179), one result per
+ * judgement of the report against the project's delivery profile as it is when the job is read, one result per
  * file rule in the profile's order; `findings` are the `delivery_qc` findings those results raise (a rule not met, a value
  * not measurable, a rule's advice), with the IDs an exported report carries. Both are empty until the file is measured.
  */

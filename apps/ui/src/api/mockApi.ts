@@ -114,7 +114,7 @@ import { knownActionKind, MOCK_DAW_UNDO_LABELS, MockUndoHistory } from '../fixtu
 export { applyMixedManuscriptMock } from './mockHost/manuscript';
 export type { MockUpdateSeed } from './mockHost/update';
 
-// `?mockEngine=builtin` seeds the mock recorder's engine choice (ADR 0455): the host answers the
+// `?mockEngine=builtin` seeds the mock recorder's engine choice: the host answers the
 // project's engine in RecorderState, and the mock answers it from this flag, so the story, the visual rows and the demo
 // reach the "Built-in recorder" chip and the Booth's recorder without a click. No window (a node test) is REAPER.
 function mockEngineFromLocation(): 'daw' | 'builtin' {
@@ -125,7 +125,7 @@ function mockEngineFromLocation(): 'daw' | 'builtin' {
 export function createMockApi(
   overrides: Partial<NarrationApi> = {},
   // manuscriptCandidate boots a project with no imported manuscript but a
-  // manuscript file waiting in its folder (Home offers to import it, ADR-0019).
+  // manuscript file waiting in its folder (Home offers to import it).
   // teleprompter boots with a session already part-way through the first chapter.
   initial: MockApiSeed = {},
 ): NarrationApi {
@@ -206,7 +206,7 @@ export function createMockApi(
   const preview = createPreviewMock({ chapters: () => s.chapters, paragraphs: () => s.paragraphs }, initial.preview);
   const providers = createProvidersMock(initial.providers);
   const mastering = createMasteringMock(initial.mastering);
-  // The engine chip's `?mockEngine=builtin` flag seeds the recorder's engine, so the chip and the Booth agree (ADR 0455).
+  // The engine chip's `?mockEngine=builtin` flag seeds the recorder's engine, so the chip and the Booth agree.
   const recorder = createRecordingMock({ engine: mockEngineFromLocation(), ...initial.recording });
   // Choosing the built-in recorder or a DAW moves the DAW port too, as the host's Recording.engine does.
   const recording: RecordingApi = {

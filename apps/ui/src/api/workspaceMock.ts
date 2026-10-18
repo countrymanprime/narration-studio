@@ -56,7 +56,7 @@ const SECONDS_PER_WORD = 60 / WORDS_PER_MINUTE;
 
 /** The mock's recogniser, named as the host names a first pass with the default model (coverage.engineOf). */
 const MOCK_ENGINE = { id: 'whisper:small', name: 'Whisper small' };
-/** Why every word score is null (ADR 0855): the words file carries no Whisper word probabilities. */
+/** Why every word score is null: the words file carries no Whisper word probabilities. */
 const NO_WORD_SCORES = 'no_word_scores';
 
 /** An extra run's words spread evenly between its ends, as the host's coverage.extraWords does for a run on one item. */
@@ -198,7 +198,7 @@ function reaperRefusal(mode: MockReaper): FindingNavigation | undefined {
   return undefined;
 }
 
-/** A deterministic stand-in for measure.ComputePeaks (ADR 0520): a smooth
+/** A deterministic stand-in for measure.ComputePeaks: a smooth
  * envelope rather than real sample data, but the same bucket rate and byte layout the host sends, and identical
  * from one call to the next - the visual suite masks a waveform state only when its content is non-deterministic
  * (state-catalog.ts), and this mock's is not. */

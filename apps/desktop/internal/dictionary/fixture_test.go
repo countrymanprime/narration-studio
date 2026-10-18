@@ -36,7 +36,7 @@ var oewnFixture = map[string]any{
 		"cat": map[string]any{"n": map[string]any{"sense": []map[string]any{{"id": "cat%1:05:00::", "synset": "02124272-n"}}}},
 		// A capitalised lemma and a lower-case one share a key; both are shown.
 		"Cat": map[string]any{"n": map[string]any{"sense": []map[string]any{{"id": "cat%1:06:00::", "synset": "03000001-n"}}}},
-		// A multi-word lemma is left out of the index (single-word lookups only, ADR 0097).
+		// A multi-word lemma is left out of the index (single-word lookups only).
 		"cat burglar": map[string]any{"n": map[string]any{"sense": []map[string]any{{"id": "cat_burglar%1:18:00::", "synset": "10000001-n"}}}},
 	},
 	"entries-f.json": map[string]any{

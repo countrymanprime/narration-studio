@@ -1,7 +1,7 @@
 import type { ChapterTrackCandidate, ChapterTrackLinksProject, TrackLinkMatch, TrackMapping } from './chapterTrackMap';
 
 /**
- * Chapter sync (ADR 0209): the narrator's one consent per project to link chapters to
+ * Chapter sync: the narrator's one consent per project to link chapters to
  * tracks by name, the preview behind it, and what each sync did.
  */
 
@@ -90,7 +90,7 @@ export type ChapterSyncState = {
   activity: ChapterSyncBatch[];
   /** One row per narration chapter, empty while the manuscript or the saved .rpp cannot be read. */
   chapters: ChapterSyncChapter[];
-  /** Background recording checks (ADR 0211): on or off (`RecordingCoverage.background_checks`), and why none runs
+  /** Background recording checks: on or off (`RecordingCoverage.background_checks`), and why none runs
    * now; `wait` is '' before the host has looked or when one just started. */
   background: { enabled: boolean; wait: ChapterSyncBackgroundWait };
 };

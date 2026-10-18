@@ -5,11 +5,12 @@ import (
 	"slices"
 )
 
-// Platforms are the host's platform names, Go's GOOS values; a Descriptor may list only these.
+// Platforms are the host's platform names, Go's GOOS values; a Descriptor may list only these. They are not the platforms the app
+// ships on: Windows x64 is the only one (README.md, "Supported platforms"), and the module builds on Linux only as a development host.
 var Platforms = []string{"windows", "darwin", "linux"}
 
 // Descriptor is what one implementation of a provider port is and can do, as narration_common.ports.Descriptor says it in Python
-// (ADR 0301). Platforms are GOOS values, and none means every platform. Modes are the roles it declares (live, batch); a port
+// Platforms are GOOS values, and none means every platform. Modes are the roles it declares (live, batch); a port
 // without roles leaves them empty.
 type Descriptor struct {
 	Label     string

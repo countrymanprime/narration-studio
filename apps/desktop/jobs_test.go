@@ -167,7 +167,7 @@ func TestAnUpdateDownloadEndsWithAJobEventWhetherItWorksOrNot(t *testing.T) {
 	}
 }
 
-// The job:ended event as the host sends it (ADR 0076); the UI schema is validated against these files.
+// The job:ended event as the host sends it; the UI schema is validated against these files.
 func TestContractJobEnded(t *testing.T) {
 	contractfile.Check(t, "job-ended-success", jobEnded{ID: "guide-1", Kind: jobKindStoryBible, Outcome: jobOutcomeSuccess, Message: "Story Bible rebuild complete.", DurationMs: 4200})
 	contractfile.Check(t, "job-ended-error", jobEnded{ID: "run-7", Kind: jobKindTranscript, Outcome: jobOutcomeError, Message: "The comparison could not read the REAPER audio.", DurationMs: 31500})

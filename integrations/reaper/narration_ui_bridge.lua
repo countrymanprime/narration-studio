@@ -77,7 +77,7 @@ function M.new_registry()
   return registry
 end
 
--- How often the reachability heartbeat (PROJECT_STATUS) is appended, in reaper.time_precise() seconds (ADR 0092): frequent enough that the Go host's own poll (transcriptLoop, 150ms) notices REAPER closing
+-- How often the reachability heartbeat (PROJECT_STATUS) is appended, in reaper.time_precise() seconds: frequent enough that the Go host's own poll (transcriptLoop, 150ms) notices REAPER closing
 -- quickly, rare enough not to grow events.log without bound over a long session.
 M.HEARTBEAT_INTERVAL_SECONDS = 1.5
 
@@ -97,7 +97,7 @@ function M.run(session_dir, registry)
   -- should not wait a full interval after REAPER starts before it can tell REAPER is running.
   local last_heartbeat_at = nil
   -- last_play_state is GetPlayState's value in the last heartbeat sent: a change (play, record, stop) sends one at once,
-  -- so the host learns REAPER started recording without waiting out the interval (ADR 0305).
+  -- so the host learns REAPER started recording without waiting out the interval.
   local last_play_state = nil
   local function heartbeat()
     local now = reaper.time_precise()

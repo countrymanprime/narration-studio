@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-// Builds the desktop app on Wails v3 (docs/adr/0200) and stamps its own version into it. CI (.github/actions/build-native) and a local
+// Builds the desktop app on Wails v3 and stamps its own version into it. CI (.github/actions/build-native) and a local
 // build (apps/desktop/package.json) both run this, from apps/desktop, so the version a build reports never depends on who built it.
 //
 // The version is the root package.json's, the single source scripts/release/sync-version.mjs keeps every other place equal to. It
@@ -10,7 +10,7 @@
 // Wails v2's `wails build` did every step below itself, from apps/desktop/wails.json. Wails v3 leaves them to a Taskfile; this script
 // runs the same steps its Windows Taskfile does, with no Taskfile: render the build assets from wails.json (`wails3 update
 // build-assets`), embed the icon, version and manifest (`wails3 generate syso`), `go build -tags production`, and, for `--installer`,
-// fetch the WebView2 bootstrapper and run makensis on apps/desktop/build/windows/installer/project.nsi (docs/adr/0082). The UI must
+// fetch the WebView2 bootstrapper and run makensis on apps/desktop/build/windows/installer/project.nsi. The UI must
 // already be in cmd/narration-utils/frontend/dist (scripts/copy-wails-frontend.mjs, or the ui-dist artifact in CI).
 
 import { spawnSync } from 'node:child_process';
@@ -36,8 +36,8 @@ export function versionFlag(version) {
   return `-X main.version=${version}`;
 }
 
-// The Go target of the machine the build runs on. Windows is the only platform that ships (docs/adr/0412); Linux builds only as a
-// development host, for local checks, and is never released (docs/adr/0413).
+// The Go target of the machine the build runs on. Windows is the only platform that ships; Linux builds only as a
+// development host, for local checks, and is never released.
 export function goosOf(platform = process.platform) {
   const goos = { win32: 'windows', linux: 'linux' }[platform];
   if (!goos) throw new Error(`The desktop app is not built on ${platform}`);
@@ -137,7 +137,7 @@ function build(extra) {
     const env = { ...process.env, CGO_ENABLED: goos === 'windows' ? '0' : '1' };
     run('go', goBuildArguments(version, goos, program), { env });
     if (installerRequested(extra)) {
-      // wails_tools.nsh is rendered for this version on every build and never checked in, as under v2 (project.nsi, docs/adr/0082).
+      // wails_tools.nsh is rendered for this version on every build and never checked in, as under v2 (project.nsi).
       copyFileSync(join(assets, 'windows', 'nsis', 'wails_tools.nsh'), join(INSTALLER_DIR, 'wails_tools.nsh'));
       // The WebView2 bootstrapper project.nsi embeds. Wails v3 carries it inside the pinned wails3 CLI (no download) and writes it beside
       // project.nsi, but keeps a file that is already there, so an old one is removed first; build-native checks its Microsoft signature.

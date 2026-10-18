@@ -1,7 +1,7 @@
 // Chapter tag embedding. Unlike every other bridge consumer's contract in this folder, this feature never talks to
 // REAPER: it reads the last successful "Prepare chapter render" result (per-chapter MP3 titles and paths) and, on
 // explicit confirm, writes ID3v2 CHAP/CTOC frames into a NEW copy of a narrator-chosen combined-book MP3 - never the
-// per-chapter files, and never the chosen file itself. See ADR 0099 for why a combined file, not the per-chapter
+// per-chapter files, and never the chosen file itself. See apps/desktop/internal/chaptertags/chaptertags.go for why a combined file, not the per-chapter
 // renders themselves, is what gets tagged.
 
 export type ChapterTagsChapter = {

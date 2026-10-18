@@ -14,7 +14,7 @@ import (
 //     project file that still resolves to a file on disk
 //     (project.DawLink.Resolve). This is a stored fact.
 //   - reachable: whether a running REAPER can be confirmed to be listening on
-//     this project's bridge right now (ADR 0092): reach's last
+//     this project's bridge right now: reach's last
 //     PROJECT_STATUS heartbeat is fresh (daw.Reachability.Reachable).
 //   - matches: whether the DAW project REAPER has open right now (per that
 //     same heartbeat) is the linked file (daw.Reachability.Matches).

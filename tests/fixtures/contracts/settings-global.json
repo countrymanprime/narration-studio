@@ -1152,6 +1152,22 @@
         "unit": "s"
       },
       "value": ""
+    },
+    {
+      "choices": null,
+      "effectiveSource": "repo_default",
+      "effectiveValue": "1",
+      "isSet": false,
+      "key": "parallel_chapters",
+      "kind": "number",
+      "label": "Chapters checked at once",
+      "number": {
+        "max": 8,
+        "min": 1,
+        "step": 1,
+        "unit": "chapters"
+      },
+      "value": ""
     }
   ],
   "Script": [

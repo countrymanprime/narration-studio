@@ -16,7 +16,7 @@ A CSV, one row per labeled location, header `source,start_seconds,end_seconds,cl
 | `source` | The audio file's name (or path relative to the corpus directory) the row labels. |
 | `start_seconds`, `end_seconds` | The labeled span, in that source file's own seconds. `end` must be after `start`. |
 | `class` | One of `silence_to_trim`, `click`, `breath` (positive: a genuine editing chore) or `keep_pause`, `keep_breath` (negative: a location the narrator kept on purpose - Phase 1 Scope's "negative labels for intentional pauses and kept breaths"). |
-| `split` | `tune` or `held_out` (ADR 0125's own precedent for a `tune \| held_out` column), so one directory holds both halves. |
+| `split` | `tune` or `held_out` (`docs/utilities/recording-coverage.md`'s own precedent for a `tune \| held_out` column), so one directory holds both halves. |
 | `note` | Free text: provenance, or why a location is a marginal call. Never parsed. |
 
 A `keep_pause` row never subtracts from `silence_to_trim`'s recall, and `keep_breath` never subtracts from `breath`'s:
@@ -34,7 +34,7 @@ many readers, solo readings with one reader voicing several characters. A corpus
 recording, the LibriVox URL, the reader, the book, and the public-domain statement (its catalog page states this for
 every recording) - in `note`, or in a `provenance.md` alongside `labels.csv` in the same directory. The audio itself
 never enters this repository: `NARRATION_EDITING_CORPUS` names the directory (mirroring
-[ADR 0125](../adr/0125-recording-coverage-ground-truth-is-scripted-recordings-with-paragraph-labels-and-a-corpus-directory-variable.md)'s
+[Recording Check (recording coverage)](../utilities/recording-coverage.md)'s
 `NARRATION_COVERAGE_CORPUS`), holding the WAV files `labels.csv` names plus `labels.csv` itself (also not committed,
 since it names and times real recordings). `TestClassRecallPrecisionOnRealCorpus`
 (`apps/desktop/internal/editing/harness_test.go`) skips cleanly when the variable is unset, so `pnpm check` never

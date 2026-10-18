@@ -148,7 +148,7 @@ export const productionStates: StateEntry[] = [
   {
     page: 'production',
     state: 'live-updates-degraded',
-    description: 'Production, the notice that live updates from the desktop host could not be read and the page may be out of date (ADR 0069)',
+    description: 'Production, the notice that live updates from the desktop host could not be read and the page may be out of date',
   },
   {
     page: 'production',
@@ -157,7 +157,7 @@ export const productionStates: StateEntry[] = [
       'Production with no linked REAPER project file (?mockNoDaw=1): the header engine chip reads REAPER with a quiet dot, its tooltip pointing to the engine panel',
   },
 
-  // The recording check (docs/utilities/recording-coverage.md, ADR 0130), from a chapter's Record cell on the board. The mock's chapters 1-3 have a
+  // The recording check (docs/utilities/recording-coverage.md), from a chapter's Record cell on the board. The mock's chapters 1-3 have a
   // current check with every word, 4-6 a current check with a third of the text missing, the rest were never checked.
   {
     page: 'production',
@@ -182,6 +182,12 @@ export const productionStates: StateEntry[] = [
     state: 'recording-check-incomplete',
     description:
       'Production, recording check result for a chapter not finished: the summary states "Recorded to paragraph N of M" rather than listing the unread end as a pickup, with no pickups from this check',
+  },
+  {
+    page: 'production',
+    state: 'recording-check-options',
+    description:
+      "Production, a chapter's recording check panel with its Check options section open: Speech model, Larger model, the score under which words are looked at again, Chunk length, Parallel processes, Crossover and Chapters at once",
   },
   {
     page: 'production',
@@ -219,7 +225,7 @@ export const productionStates: StateEntry[] = [
     description:
       'Production, a recording check whose re-check model needs downloading first (?mockCoverage=recheck-required): the same first-use question as the first-pass model, with "Check with tiny only" beside the download',
   },
-  // Stage suggestions (ADR 0160 and 0161), on `?mockStages=mixed`: Chapter 4 read in
+  // Stage suggestions, on `?mockStages=mixed`: Chapter 4 read in
   // full (suggested), Chapter 5 with no track linked (can't tell), Chapter 6 short (not ready), Chapter 7 confirmed into Editing and since
   // found short (evidence changed), Chapter 8 confirmed on evidence that still holds.
   {

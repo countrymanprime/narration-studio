@@ -5,7 +5,7 @@ import "time"
 // ProjectState is the DAW project as last saved against the live one (the DawProjectState binding and its
 // daw_project_state_changed event, apps/desktop/bindings_daw_projectstate.go). It is assembled from what the host already
 // has, with no command of its own: the saved file's modification time (a host-side stat), REAPER's edit counter and
-// transport from the heartbeat (ADR 0211, ADR 0305).
+// transport from the heartbeat.
 type ProjectState struct {
 	// SavedAt is when the project file was last written, as a local date and time to the minute ("2006-01-02T15:04"), or
 	// nil when the DAW keeps no saved project or this one was never saved.
@@ -73,7 +73,7 @@ func NewProjectState(in ProjectStateInput) ProjectState {
 // carries. Neither the heartbeat's nor chapter_track_state's "unsaved" field says this: both mean "never saved" (an
 // empty .rpp path). The counter rises on every edit, saved or not, so the tracker keeps a baseline, taken at the first
 // count it sees and again whenever the saved file's modification time moves (a save), and counts any other value as
-// unsaved edits. The same rule chaptersync_watch.go uses for unsavedEdits (ADR 0210). A tracker is not safe for
+// unsaved edits. The same rule chaptersync_watch.go uses for unsavedEdits. A tracker is not safe for
 // concurrent use; the caller holds its own lock.
 type UnsavedTracker struct {
 	path    string

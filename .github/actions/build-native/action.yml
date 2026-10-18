@@ -3,7 +3,7 @@ description: Build the Wails app on the current runner and package it as release
 
 inputs:
   platform:
-    description: windows-x64, the only platform the app ships on (docs/adr/0412; the table lives in scripts/release/assets.mjs)
+    description: windows-x64, the only platform the app ships on (the table lives in scripts/release/assets.mjs)
     required: true
   version:
     description: Release version to stamp into the build; empty keeps the checked-in version
@@ -43,7 +43,7 @@ runs:
         name: ui-dist
         path: apps/desktop/cmd/narration-utils/frontend/dist
     # The Windows setup program is compiled with NSIS by scripts/release/wails-build.mjs --installer (definition in
-    # apps/desktop/build/windows/installer, docs/adr/0082 and 0200). The hosted runner does not ship makensis, so it is installed here at a
+    # apps/desktop/build/windows/installer, docs/operations/ci-and-releases.md#the-windows-setup-program and 0200). The hosted runner does not ship makensis, so it is installed here at a
     # pinned version. The build fails if makensis is missing or no installer came out, so a runner image change cannot silently drop it.
     - name: Install NSIS (makensis) for the Windows setup program
       if: inputs.platform == 'windows-x64'
@@ -156,7 +156,7 @@ runs:
           .release-build/*/dist
           .release-build/*/work/*/*.toc
         key: ${{ steps.freeze-cache.outputs.cache-primary-key }}
-    # Named for the version in the root package.json, which the step above set to the release version (docs/adr/0197).
+    # Named for the version in the root package.json, which the step above set to the release version.
     - name: Package the release asset
       shell: bash
       env:

@@ -78,6 +78,12 @@ export const proofDrivers: Record<string, Driver> = {
     await openChapter(page, 'Chapter 7');
     await page.getByText('Not checked yet').waitFor();
   },
+  'check-recordings-dialog': async (page) => {
+    await openProof(page);
+    await openChapter(page, 'Chapter 4');
+    await notes(page).getByRole('button', { name: 'Check recordings…' }).click();
+    await page.getByRole('dialog').getByRole('combobox', { name: 'Chapters at once' }).waitFor();
+  },
   'check-checking': async (page) => {
     await openProof(page, 'mockCoverage=hold');
     await openChapter(page, 'Chapter 4');

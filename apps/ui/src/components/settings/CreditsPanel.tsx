@@ -82,7 +82,7 @@ export function CreditsPanel({ notify }: { notify: Notify }) {
   const [previewScope, setPreviewScope] = useState<{ chapter: string; count: number }>();
   const [previewProblem, setPreviewProblem] = useState('');
   const [loadError, setLoadError] = useState('');
-  // Guards a second click while a template action or a value save is in flight (ADR 0075): every button below that
+  // Guards a second click while a template action or a value save is in flight: every button below that
   // starts one of these disables until it ends, and the field being saved disables too.
   const [busy, setBusy] = useState(false);
   const [savingKey, setSavingKey] = useState<keyof CreditValues>();

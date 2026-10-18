@@ -11,7 +11,7 @@ import (
 	"github.com/countrymanprime/narration-utils/shell/internal/tracks"
 )
 
-// The chapter workspace's waveform strip (ADR 0520): host-computed peaks (measure.ComputePeaks/PeaksFile) for every
+// The chapter workspace's waveform strip: host-computed peaks (measure.ComputePeaks/PeaksFile) for every
 // analyzed item of a chapter's stored alignment, in one call so the canvas can draw the whole chapter's strip without a
 // round trip per item. The peaks themselves are cached by source identity in the evidence cache
 // (measure.CachedPeaksFile): a chapter whose items share retakes of the same source file, or a chapter reopened later,

@@ -7,7 +7,7 @@ import (
 	"github.com/countrymanprime/narration-utils/shell/internal/gapreview"
 )
 
-// The narrator's call on a recording-check gap (ADR 0842). A check only measures: nothing here runs on its own, and
+// The narrator's call on a recording-check gap. A check only measures: nothing here runs on its own, and
 // neither binding is ever called by a run. Each takes ids only, a chapter and a gap of that chapter's latest result,
 // and is refused with a sentence (nothing written) when the result is stale or was never made, or the gap is not in it.
 

@@ -13,7 +13,7 @@ import {
 } from '@fortawesome/free-solid-svg-icons';
 import { Kbd, KBD_SIZE_CLASSES, type KbdSize } from './Kbd';
 
-// The one mapping from a key name to its picture (ADR 0761, rule 3). A key with a good glyph is drawn: Font Awesome Free
+// The one mapping from a key name to its picture (rule 3). A key with a good glyph is drawn: Font Awesome Free
 // where it has one, a small inline drawing where it has none (the space bar, a mouse with its right button lit). Every
 // other key stays the text cap `Kbd` draws. A drawn key keeps its name as visually hidden text and as a tooltip. Key glyphs
 // are not catalogue actions, so this file imports Font Awesome itself rather than going through `Icon`.

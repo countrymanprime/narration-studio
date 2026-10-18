@@ -311,7 +311,7 @@ func TestAssetsInstallRefusesAnAnalysisToolThatIsNotAvailableBeforeAJobStarts(t 
 	}
 }
 
-// nothing-downloads-without-the-click, the job half: an analysis tool installs through the one internal/assets job (ADR 0077), with real
+// nothing-downloads-without-the-click, the job half: an analysis tool installs through the one internal/assets job, with real
 // bytes and a cancel, and a second start installs it.
 func TestAnAnalysisToolInstallsThroughTheGenericJobAndCanBeCancelled(t *testing.T) {
 	f := analysisFixture(t, func(_ string, files []map[string]any) []map[string]any {

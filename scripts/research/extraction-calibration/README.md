@@ -1,7 +1,7 @@
 # Extraction calibration harness
 
 Scores each extraction source against a hand-checked gold set and writes the confidence-versus-correctness table that the
-75% rule (`extraction.VerifyBelow`, ADR 0803) is calibrated against. The protocol is
+75% rule (`extraction.VerifyBelow`) is calibrated against. The protocol is
 [studio-next-extraction-calibration-protocol.md](../../../docs/research/studio-next-extraction-calibration-protocol.md); the
 result is [studio-next-extraction-calibration.md](../../../docs/research/studio-next-extraction-calibration.md).
 
@@ -20,7 +20,7 @@ Run from the repository root with `python` (the standard library only).
 | `... run --fake` | Offline demonstration on two invented books and a fake source; the report says it is not a measurement |
 | `... gold-check` | Counts each book's gold items against the protocol's minimums |
 
-Add `--books alice` to work on the smoke book only. The install folders are the ones the app's asset registry fills (ADR 0848).
+Add `--books alice` to work on the smoke book only. The install folders are the ones the app's asset registry fills (`docs/operations/ci-and-releases.md`).
 
 ## Local data (never committed)
 

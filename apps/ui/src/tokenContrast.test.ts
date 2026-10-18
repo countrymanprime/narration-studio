@@ -4,7 +4,7 @@ import { contrastRatio, countRootRules, forcedThemeRules, parseColor, parseTheme
 
 // The palette guard (paletteContrast.test.ts) is only as good as its arithmetic, so the arithmetic is checked against
 // values that can be verified by hand or against a browser: the WCAG extremes, CSS's own colour-mix rules, and the
-// numbers measured with an independent script when the palette guard was written (ADR 0059).
+// numbers measured with an independent script when the palette guard was written.
 
 describe('parseColor', () => {
   it('reads hex, transparent and rgba', () => {
@@ -100,7 +100,7 @@ describe('parseThemes', () => {
   });
 });
 
-describe('forcedThemeRules (ADR 0365: the theme is global, no surface forces light or dark)', () => {
+describe('forcedThemeRules (docs/design/colour-and-contrast.md#derived-and-status-tokens: the theme is global, no surface forces light or dark)', () => {
   const css = `
     :root { --a: #111111; --size: 1rem; color-scheme: light; }
     :root[data-theme='dark'] { --a: #eeeeee; color-scheme: dark; }

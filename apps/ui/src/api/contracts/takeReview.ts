@@ -1,5 +1,5 @@
 // Take review. Its pickup and duplicate_read findings are
-// ordinary findings, read and decided through the Review page's generic bindings (FindingsApi, ADR 0120); what is its
+// ordinary findings, read and decided through the Review page's generic bindings (FindingsApi); what is its
 // own is the reads a finding groups (its `evidence`, decoded on the page with takeReviewEvidenceSchema), the scan job
 // that finds them, and the take-creation action. Evidence field names are the wire's own snake_case
 // (docs/architecture/findings-contract.md). There is no composite score, so nothing here ranks one read over another.
@@ -43,7 +43,7 @@ export type TakeReviewScanScope = {
 
 /**
  * The scan job (TakeReviewScanStart/State/Cancel), in the shape of the host's other jobs so WorkDialog shows it: the
- * sidecar's own percent and stage (ADR 0015), the scope it runs on, and how many groups of repeated reads it saved.
+ * sidecar's own percent and stage, the scope it runs on, and how many groups of repeated reads it saved.
  */
 export type TakeReviewScanJob = Omit<WorkJob, 'kind' | 'phase' | 'preview' | 'requiresReset' | 'result' | 'detail'> & {
   kind: 'take_review';
@@ -54,7 +54,7 @@ export type TakeReviewScanJob = Omit<WorkJob, 'kind' | 'phase' | 'preview' | 're
 
 /**
  * What TakeReviewCreateTake needs to attach a narrator-approved candidate's source range as a new take on the target item
- * (confirmed and undoable): the finding it came from (provenance, ADR 0098), the target item the narrator explicitly chose
+ * (confirmed and undoable): the finding it came from (provenance), the target item the narrator explicitly chose
  * (never preselected), the candidate's own item GUID when it has one (an extra staleness check the Lua command
  * re-resolves; empty skips it), its source file, and the matched span's range within that source (seconds,
  * source-file-relative: sourceRangeStart becomes the new take's D_STARTOFFS).
@@ -75,10 +75,10 @@ export type TakeReviewCreateTakeResult = {
 };
 
 /**
- * A take comparison (ADR 0165): a `take_comparison` finding whose `evidence` sets the reads of one
+ * A take comparison: a `take_comparison` finding whose `evidence` sets the reads of one
  * take-review group side by side over the group's one span of the script. Each read is compared or says why not; a compared one
- * has how it read every word of the span (from the sidecar's --take-divergence mode, ADR 0141) and its audio measurements, one
- * category each, measured or unavailable with a reason (ADR 0140). Nothing adds the categories up or orders the reads.
+ * has how it read every word of the span (from the sidecar's --take-divergence mode) and its audio measurements, one
+ * category each, measured or unavailable with a reason. Nothing adds the categories up or orders the reads.
  */
 export type TakeComparisonWordStatus = 'matched' | 'misread' | 'skipped' | 'unread';
 
@@ -101,7 +101,7 @@ export type TakeComparisonDivergence = {
 
 export type TakeComparisonCounts = { matched: number; misread: number; skipped: number; unread: number; extra_words: number };
 
-/** A category's availability: `measured`, or `unavailable` with the reason (never a guessed value, ADR 0025). */
+/** A category's availability: `measured`, or `unavailable` with the reason (never a guessed value). */
 export type TakeMetricStatus = { status: 'measured' | 'unavailable'; reason?: string };
 
 /** A run of three or more full-scale samples on one channel, timed from the start of the measured range. */

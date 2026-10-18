@@ -30,7 +30,7 @@ func FindChapterByTrackName(titles []string, name string) (int, float64) {
 }
 
 // TitleMatch is MatchTitle's answer: FindChapterByTrackName's index and score,
-// plus whether the match is one ADR 0110 counts as confident.
+// plus whether the match is one docs/utilities/tracks.md counts as confident.
 type TitleMatch struct {
 	Index int
 	Score float64
@@ -44,12 +44,12 @@ type TitleMatch struct {
 	// (LabelTokens). A take or pickup match scores ScoreContainedAmbiguous at
 	// best and is never confident, so a "Chapter 6 pickups" track stays a
 	// candidate beside the chapter's own track and never links on its own; a
-	// credits name matches no chapter (ADR 0150).
+	// credits name matches no chapter.
 	Marker Marker
 }
 
 // MatchTitle is FindChapterByTrackName with the kind of match kept.
-// Both sides go through LabelTokens, the canonicalising pre-pass (ADR 0175), so "Ch. 6", "Chapter VI" and
+// Both sides go through LabelTokens, the canonicalising pre-pass, so "Ch. 6", "Chapter VI" and
 // "Sixth Chapter" meet "Chapter 6" as an exact match.
 func MatchTitle(titles []string, name string) TitleMatch {
 	match := matchLabels(titles, name)

@@ -15,7 +15,7 @@ import (
 	"github.com/countrymanprime/narration-utils/shell/internal/persist"
 )
 
-// DefaultBackupWindow is how much audio a backup takes either side of the edit, in seconds, when no setting gives one (ADR 0863; the
+// DefaultBackupWindow is how much audio a backup takes either side of the edit, in seconds, when no setting gives one (the
 // narrator's setting is DAW.backups.window_seconds).
 const DefaultBackupWindow = 120.0
 
@@ -24,7 +24,7 @@ type BackupsConfig struct {
 	// Project is the app's project folder, read on each call; empty (no project open) refuses every call. The table is kept
 	// under it, and no path ever comes from the page.
 	Project func() string
-	// Reporter tells the narrator about a table that cannot be read (ADR 0069); nil only keeps a corrupt file aside.
+	// Reporter tells the narrator about a table that cannot be read; nil only keeps a corrupt file aside.
 	Reporter *persist.Reporter
 	// Window is the seconds cloned either side of the edit; 0 is DefaultBackupWindow.
 	Window float64
@@ -35,7 +35,7 @@ type BackupsConfig struct {
 	Now func() time.Time
 }
 
-// Backups is Audacity's BackupKeeper (ADR 0863). Audacity keeps no takes, so before an edit the adapter copies a window of the
+// Backups is Audacity's BackupKeeper. Audacity keeps no takes, so before an edit the adapter copies a window of the
 // edited track to a new, muted track of its own, named for the backup, and records the window in the table; a restore copies it
 // back over the same window of the source track. A restore never removes the backup track: only Prune does, for rows older than
 // the retention. It drives the pipe client directly, with the commands spike 1g runs (docs/operations/daw-spike-run-sheet.md).

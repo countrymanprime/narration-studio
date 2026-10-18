@@ -1,6 +1,7 @@
 {
   "default": "small",
   "defaults": {
+    "chapters": 1,
     "chunkSeconds": 300,
     "overlapSeconds": 6,
     "recheck": false,

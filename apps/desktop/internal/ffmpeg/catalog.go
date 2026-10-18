@@ -1,4 +1,4 @@
-// Package ffmpeg owns the approved catalog of FFmpeg builds the MP3 encoder runs (ADR 0342): a pinned
+// Package ffmpeg owns the approved catalog of FFmpeg builds the MP3 encoder runs: a pinned
 // archive (the imageio-ffmpeg wheel on PyPI, which carries gyan.dev's static Windows build) is downloaded only when the narrator
 // confirms, checked against its SHA-256, unpacked, and everything but the one executable removed, inside the same staged install the
 // other assets use (internal/assets). The executable is checked against its own pinned hash before it is kept, and Verify reads it
@@ -113,7 +113,7 @@ func (m *Manager) Build(id string) (Build, bool) {
 	return Build{}, false
 }
 
-// Default is the build the encoder runs: the first for this platform. There is one (ADR 0342); a choice would be a setting.
+// Default is the build the encoder runs: the first for this platform. There is one; a choice would be a setting.
 func (m *Manager) Default() (Build, bool) {
 	builds := m.Builds()
 	if len(builds) == 0 {

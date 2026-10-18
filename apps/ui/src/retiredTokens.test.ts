@@ -3,7 +3,7 @@ import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
 import { join, relative, sep } from 'node:path';
 import { describe, expect, test } from 'vitest';
 
-// ADR 0059: `--text-faint` is gone. It carried section labels, counts and helper text at 2.2 to 3.7:1, so every place that
+// docs/design/colour-and-contrast.md: `--text-faint` is gone. It carried section labels, counts and helper text at 2.2 to 3.7:1, so every place that
 // drew something with it was triaged into muted text (it reads as text) or the non-text token (an icon, a status dot, a
 // decorative glyph), one area per slice, and the token was deleted from both theme blocks. A reference left or added
 // anywhere would draw nothing (an undefined custom property), so this scan fails on any mention in what the UI package
@@ -33,7 +33,7 @@ function mentions(): Record<string, number> {
   return counts;
 }
 
-describe('the retired text token (ADR 0059)', () => {
+describe('the retired text token', () => {
   test('nothing mentions it: text is --text-muted, an icon or a dot is --non-text', () => {
     expect(mentions()).toEqual({});
   });

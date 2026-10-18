@@ -45,7 +45,7 @@ type dataset struct {
 }
 
 // BuildIndex reads the unpacked Open English WordNet JSON release in dir and writes the lookup index to out. Only single-word lemmas are
-// indexed (ADR 0097), with the synsets they use. A folder that is not the release (no entries, no synsets, a sense whose synset is
+// indexed, with the synsets they use. A folder that is not the release (no entries, no synsets, a sense whose synset is
 // missing) is an error, and nothing is written.
 func BuildIndex(dir, out string) error {
 	data, err := readDataset(dir)

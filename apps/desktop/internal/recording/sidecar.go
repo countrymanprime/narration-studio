@@ -32,7 +32,7 @@ type SidecarConfig struct {
 }
 
 // Sidecar is the Engine over one capture port row, run in the teleprompter sidecar (`live_asr.py --capture <row>`):
-// `--list-devices`, `--meter` and `--record` (ADR 0357, 0455). It depends on the row's name and level only; what the row
+// `--list-devices`, `--meter` and `--record`. It depends on the row's name and level only; what the row
 // opens is the sidecar's business.
 type Sidecar struct {
 	backend captureport.Backend
