@@ -1,6 +1,6 @@
 # Motion and animation
 
-**Status: describes the current state.** The tokens and the reduced-motion gate below are slices 1 and 2, and the overlay behaviour slice 4 the "this changed" highlight slice 5 and the ring and job results slice 6, of [#1456](https://github.com/countrymanprime/narration-utils/issues/1456). Where to animate next, and why, is [the motion research note](../research/motion-and-animation-guidance.md) and the owner's decisions recorded on that issue.
+**Status: describes the current state.** The tokens and the reduced-motion gate below are slices 1 and 2, the Motion setting slice 3, the overlay behaviour slice 4, the "this changed" highlight slice 5 and the ring and job results slice 6, of [#1456](https://github.com/countrymanprime/narration-utils/issues/1456). Where to animate next, and why, is [the motion research note](../research/motion-and-animation-guidance.md) and the owner's decisions recorded on that issue.
 
 ## Tokens
 
@@ -21,7 +21,7 @@ A utility reads a token by name: `motion-ok:duration-(--motion-base)`, `motion-o
 
 ## Reduced motion
 
-Motion stops when Windows asks for reduced motion (`prefers-reduced-motion: reduce`) or when `<html data-motion="reduce">` is set. Nothing in the app sets the attribute yet: the owner chose to follow Windows only for now (#1456, Q1). Tests use it, and a later setting would.
+Motion stops when Windows asks for reduced motion (`prefers-reduced-motion: reduce`) or when `<html data-motion="reduce">` is set. The **Motion** row in Settings, Appearance & keys (`look.motion`) sets the attribute: **Reduce** sets it and **Follow Windows** clears it. The owner first chose to follow Windows only (#1456, Q1), then asked for the setting. The choice is kept in this window's storage (`narration-ui-motion`, `apps/ui/src/motion.ts`), and `index.html`'s inline script applies it before the first paint, as it does the theme.
 
 - **CSS.** Every transition and animation is a `motion-ok:` utility. `styles.css` defines the variant with `@custom-variant`: it applies only under `prefers-reduced-motion: no-preference` and without `data-motion="reduce"`. Tailwind's own `motion-safe:` reads only the media query, so it is not used.
 - **Script.** Code that moves things itself asks `reducedMotion()` (`apps/ui/src/motion.ts`), which checks the same two conditions. The Booth's paced cursor (`booth/usePacedCursor.ts`) and its follow scroll (`booth/useFollowCursor.ts`) jump instead of moving.
@@ -32,14 +32,14 @@ Motion stops when Windows asks for reduced motion (`prefers-reduced-motion: redu
 
 All under `motion-ok:`, in `apps/ui/src/components/`:
 
-- `Popover`, `Menu`, `ContextMenu` and `ChapterStepper`'s menu fade in while moving `--motion-shift` away from their anchor, and fade out, on the fast token. They share one class list, `primitives/overlayMotion.ts`, which uses Base UI's `data-starting-style` and `data-ending-style`.
+- `Popover`, `Menu`, `ContextMenu` and `ChapterStepper`'s menu fade in while moving `--motion-shift` away from their anchor, and fade out, on the fast token. They share one class list, `primitives/overlayMotion.ts`, which uses Base UI's `data-starting-style` and `data-ending-style`. Those starting and ending styles are `motion-ok:` too, as are `SlideOver`'s and `NavDrawer`'s, so under reduced motion an overlay has no invisible or off-screen first frame.
 - `SlideOver` slides in from the right and `NavDrawer` from the left, on the base token, and the drawer's scrim fades. `Toast` fades and rises in (`toast-in`) and fades out. The tooltip (`primitives/hintLayer.ts`) fades and rises in.
 - The icon rail widens on hover below 1360 px (`layout/AppShell.tsx`); the Script drawers slide (`script/page/layout/ScriptColumns.tsx`).
 - The Booth text column slides 300 ms on each scroll step, and its words change colour (`booth/reading/BoothText.tsx`).
 - The Proof ring (`proof/frame/ProofHeader.tsx`) eases its arc to a new percent on the base token. Its percent is the registered custom property `--ring-percent` (`@property` in `styles.css`), so the conic-gradient stop can transition; the counters beside it change at once.
 - `ProgressBar` eases its fill, and slides while nothing is measured (`work-progress-slide`); `LevelMeter` eases its fill and peak tick.
 - `Button`, `Switch`, `Disclosure` and the Booth's resume choices ease their colours or position; the pending spinner in `Button`, `IconButton` and `ResumePrompt` spins.
-- `Skeleton`, the loading placeholder on Booth and Editing, sweeps a band across itself every 1.4 s (`skeleton-shimmer`) while a page reads. Settings: the per-row "Saved" fades (`settings-saved`), and its loading placeholders pulse.
+- `Skeleton`, the loading placeholder on every page that reads before it draws, sweeps a band across itself every 1.4 s (`skeleton-shimmer`) while a page reads. Settings: the per-row "Saved" fades (`settings-saved`). Script: a bookmark or paragraph a jump lands on pulses while it is lit.
 
 ## What changed, and what arrived
 
@@ -66,8 +66,8 @@ Dialogs appear and disappear at once (#1456, Q3), and so does the Jump menu, whi
 
 ## How it is checked
 
-- `apps/ui/src/motion.test.ts` scans every source file's class lists. It fails on a `transition`, `animate-`, `duration-`, `ease-` or `delay-` utility not gated on `motion-ok:` (or `motion-reduce:`), on `motion-safe:`, and on a duration or easing that is not a token.
-- `apps/ui/tests/visual/motion.spec.ts` runs with motion on, which no other run does. It checks that the rail and a context menu ease on the fast token and the navigation drawer on the base token, that a changed row fades over the highlight token and settles to its own background, that nothing loops on eight pages at rest, and that both ways of asking for reduced motion stop the rail and hold the highlight as a still tint.
+- `apps/ui/src/motion.test.ts` scans every source file's class lists. It fails on a `transition`, `animate-`, `duration-`, `ease-` or `delay-` utility not gated on `motion-ok:` (or `motion-reduce:`), on a `data-[starting-style]:` or `data-[ending-style]:` utility not gated on `motion-ok:`, on `motion-safe:`, and on a duration or easing that is not a token.
+- `apps/ui/tests/visual/motion.spec.ts` runs with motion on, which no other run does. It checks that the rail and a context menu ease on the fast token and the navigation drawer on the base token, that a changed row fades over the highlight token and settles to its own background, that nothing loops on eight pages at rest, that both ways of asking for reduced motion stop the rail and hold the highlight as a still tint, and that the Settings Motion row stops the rail and survives a reload.
 - The rest of the visual suite, the atlas and Storybook freeze motion for deterministic screenshots (`tests/visual/helpers/settle.ts`, `playwright.atlas.config.ts`, `.storybook/preview-head.html`), so they cannot show it.
 
 Missing feedback, as opposed to missing animation, is [interaction feedback](../architecture/interaction-feedback.md) ([The standard](../architecture/interaction-feedback.md#the-standard)).

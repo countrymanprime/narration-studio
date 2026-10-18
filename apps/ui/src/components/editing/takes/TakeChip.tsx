@@ -1,3 +1,4 @@
+import type { KeyboardEventHandler } from 'react';
 import { Button } from '../../primitives/Button';
 import { Icon } from '../../primitives/Icon';
 import { StatusBadge } from '../../primitives/StatusBadge';
@@ -14,6 +15,7 @@ export function TakeChip({
   controls,
   tabbable = true,
   onToggle,
+  onKeyDown,
 }: {
   passage: LinePassage;
   open: boolean;
@@ -22,6 +24,8 @@ export function TakeChip({
   /** A page with many lines keeps one chip in the Tab order (the line the cursor is on) and leaves the rest to T and the pointer. */
   tabbable?: boolean;
   onToggle: () => void;
+  /** Escape while the takes are open: the page folds them and keeps focus here. */
+  onKeyDown?: KeyboardEventHandler<HTMLButtonElement>;
 }) {
   const n = passage.takes.length;
   if (n < 2) return null;
@@ -35,6 +39,7 @@ export function TakeChip({
       data-tchip={passage.id}
       tabIndex={tabbable ? undefined : -1}
       onClick={onToggle}
+      onKeyDown={onKeyDown}
     >
       <Icon name="wave" />
       <b>{n} takes</b>

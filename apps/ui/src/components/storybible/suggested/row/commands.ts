@@ -12,7 +12,7 @@ export type DecisionEnv = {
   /** Called with what a decision, or the undo of one, did, so the page can show the suggestion as it is now. */
   changed?: (decision: ExtractionDecision) => void;
   /** Called after a decision that said something to the narrator ("Accepted"), with the way to take it back. */
-  said?: (text: string, undo: () => Promise<Result<unknown>>) => void;
+  said?: (text: string, undo: () => Promise<Result<unknown>>, entry: number) => void;
 };
 
 /** The host's sentence as the refusal; the mock and the Wails client both reject with an `Error` carrying it. */
@@ -49,7 +49,7 @@ async function decide(
   });
   if (!result.ok) return result;
   env.changed?.(result.value.value);
-  if (says) env.said?.(says, () => env.journal.undo(result.value.id));
+  if (says) env.said?.(says, () => env.journal.undo(result.value.id), result.value.id);
   return { ok: true, value: result.value.value };
 }
 
