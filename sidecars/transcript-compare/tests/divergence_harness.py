@@ -1,6 +1,6 @@
 """Evaluation harness for per-take divergence.
 
-The question is whether diff plus ASR word timestamps (ADR 0008) localize where inside a take it
+The question is whether diff plus ASR word timestamps localize where inside a take it
 goes wrong precisely enough, or whether forced alignment is needed. The owner chose synthetic,
 constructed fixtures over an annotated corpus: `fixtures/divergence/cases.json` holds a span of
 manuscript and, per case, a scripted take with a known flub, restart, skip or substitution at a

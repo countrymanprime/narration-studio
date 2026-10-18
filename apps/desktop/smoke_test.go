@@ -278,7 +278,7 @@ func TestSmokeWithoutAVoiceNeverNeedsOne(t *testing.T) {
 	}
 }
 
-// TestSmokeProvesTheFrozenTeleprompterCanRunMoonshine: --capabilities --verify (ADR 0403) proves Moonshine's native
+// TestSmokeProvesTheFrozenTeleprompterCanRunMoonshine: --capabilities --verify proves Moonshine's native
 // library loads, as part of the capabilities check.
 func TestSmokeProvesTheFrozenTeleprompterCanRunMoonshine(t *testing.T) {
 	run := &fakeRun{}

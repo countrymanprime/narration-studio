@@ -11,7 +11,7 @@ export const appFeedback: Record<string, FeedbackRow> = {
   'src/App.tsx::reportClientDiagnostic#2': row('event', 'file-io', 'na', 'na', 'na', 'silent', 'na', 'exempt', 'A diagnostic must never throw or show a second error while one is already being reported.'),
   'src/App.tsx::reportClientDiagnostic#3': row('event', 'file-io', 'na', 'na', 'na', 'silent', 'na', 'exempt', 'A diagnostic must never throw or show a second error while one is already being reported.'),
   'src/App.tsx::subscribeTranscript#1': subscription('The transcript state event.'),
-  'src/App.tsx::subscribeJobEnded#1': subscription('A host job that ends becomes a toast for the jobs that can finish elsewhere (ADR 0076).'),
+  'src/App.tsx::subscribeJobEnded#1': subscription('A host job that ends becomes a toast for the jobs that can finish elsewhere.'),
   'src/App.tsx::systemNotify#1': row('event', 'os-dialog', 'na', 'na', 'na', 'silent', 'na', 'exempt', 'An OS notification is a courtesy, not load-bearing: the host already swallows a failed or unavailable sender (N1-N4), and the app-level toast from the same job:ended event is the record of what happened.'),
   'src/App.tsx::subscribeNotices#1': subscription('Host notices (a file kept aside) become toasts.'),
   'src/App.tsx::subscribeUpdate#1': subscription('The update check finding a newer release becomes one toast.'),
@@ -75,7 +75,7 @@ export const appFeedback: Record<string, FeedbackRow> = {
   // docs/architecture/threat-model.md row 3) and a failure just leaves the readout at the level it already showed.
   'src/hooks/useZoom.ts::windowZoom#1': row('mount', 'instant', 'na', 'na', 'ui', 'silent', 'na', 'exempt', "Seeds the readout at the window's real level before the first paint settles; a failed read leaves it at the 100% default until the next resize re-reads it."),
   'src/hooks/useZoom.ts::windowSetZoom#1': row('click', 'instant', 'inline', 'none', 'ui', 'silent', 'yes', 'exempt', 'Zoom out, Zoom in, reset, and Ctrl+=/-/0: the readout itself is the acknowledgment and the completion. A failed set leaves the previous level shown, visibly unchanged, and survives navigation like the level itself.'),
-  'src/hooks/useZoom.ts::windowZoom#2': row('effect', 'instant', 'na', 'na', 'ui', 'silent', 'na', 'exempt', "The resize-triggered re-read for an external Ctrl+wheel/pinch change (ADR 0201 item 3, no zoom-changed event on Windows); a failed read just leaves the readout at its last known level until the next resize."),
+  'src/hooks/useZoom.ts::windowZoom#2': row('effect', 'instant', 'na', 'na', 'ui', 'silent', 'na', 'exempt', "The resize-triggered re-read for an external Ctrl+wheel/pinch change (docs/guides/using-the-app/navigation.md#zoom, no zoom-changed event on Windows); a failed read just leaves the readout at its last known level until the next resize."),
   // the settled level is also persisted to disk, debounced by
   // the same settle as the announcement, so it survives a quit; the readout has already shown the new level, so there
   // is nothing more to acknowledge here.
@@ -87,6 +87,6 @@ export const appFeedback: Record<string, FeedbackRow> = {
   // exempt like every other subscribe-based hook.
   'src/input/useDawRecording.ts::subscribeDawTransport#1': subscription('The DAW port\'s live transport state (daw_transport_changed): every gesture the router resolves reads this one subscription\'s current value.'),
 
-  // Studio bookmarks (ADR 0771, ADR 0820): the commands return the host's sentence as a refusal; no screen calls them yet.
+  // Studio bookmarks: the commands return the host's sentence as a refusal; no screen calls them yet.
   'src/studio/slots.ts::bookmarksList#1': row('effect', 'file-io', 'na', 'na', 'ui', 'na', 'na', 'exempt', 'The bookmarks slot load, on focus and after each command; the store records a failed load and the change that was made stands.'),
 };

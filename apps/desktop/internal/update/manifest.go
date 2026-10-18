@@ -53,7 +53,7 @@ type Platform struct {
 }
 
 // AssetName is the platform's archive in the release of this version: narration-utils-<version>-<platform>.<ext>
-// (docs/adr/0197). The version is bare, so a candidate and its promotion publish the same file names.
+// The version is bare, so a candidate and its promotion publish the same file names.
 func (p Platform) AssetName(version Version) string {
 	return "narration-utils-" + version.String() + "-" + p.Key + p.Extension
 }
@@ -62,7 +62,7 @@ func (p Platform) AssetName(version Version) string {
 func (p Platform) ChecksumName(version Version) string { return p.AssetName(version) + ".sha256" }
 
 // PlatformFor is the release platform of a Go OS and architecture, if there is one. Windows x64 is the only one, and it replaces
-// itself (docs/adr/0412; the macOS and Linux preview assets were removed by D74). Anywhere else Check answers ErrNoPlatform.
+// itself (the macOS and Linux preview assets were removed by D74). Anywhere else Check answers ErrNoPlatform.
 func PlatformFor(goos, goarch string) (Platform, bool) {
 	if goos != "windows" || goarch != "amd64" {
 		return Platform{}, false

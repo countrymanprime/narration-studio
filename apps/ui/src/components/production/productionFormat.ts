@@ -1,7 +1,7 @@
 import type { ChapterStatus } from '../../api/contracts/manuscript';
 import { STATUS_ORDER } from '../../chapterStatus';
 
-// The stage timer's figures and a measured length (SN0-Q4: the timer, PFH and the effective rate stay as built). Every figure is measured or logged (ADR 0320): an
+// The stage timer's figures and a measured length (SN0-Q4: the timer, PFH and the effective rate stay as built). Every figure is measured or logged: an
 // undefined one is a dash, never 0 and never an estimate, and nothing here projects a pace from the time logged so far.
 
 const DASH = '—';

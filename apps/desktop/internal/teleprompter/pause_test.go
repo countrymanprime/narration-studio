@@ -6,7 +6,7 @@ import (
 	"testing"
 )
 
-// Pause (ADR 0248): a `pause`/`resume` line on the control file, a `paused` flag on the
+// Pause: a `pause`/`resume` line on the control file, a `paused` flag on the
 // state, and no auto-stop while paused.
 
 func paused(s *Service) bool {

@@ -284,7 +284,7 @@ export async function closeOverlays(page: Page, presses = 3): Promise<boolean> {
     await page.keyboard.press('Escape');
     await page.waitForTimeout(60);
   }
-  // Focus leaves the control Escape was pressed on: keyboard focus on a navigation item opens the rail over the page (ADR 0761), which
+  // Focus leaves the control Escape was pressed on: keyboard focus on a navigation item opens the rail over the page, which
   // would cover the next scenario's control. The pointer leaves too, so a hint or the hover rail of the last scenario does not carry over.
   await page.evaluate(() => (document.activeElement instanceof HTMLElement ? document.activeElement.blur() : undefined));
   const size = page.viewportSize();

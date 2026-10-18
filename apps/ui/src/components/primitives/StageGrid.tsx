@@ -8,7 +8,7 @@ const TEXT_CELL_CLASS = "font-['IBM_Plex_Mono',ui-monospace,monospace] text-[0.8
 /** One cell. `look: 'text'` draws the label as a mono figure rather than a badge: mock 01's FIN. column, a length. */
 export type StageGridCell = { tone: StatusTone; label: string; look?: 'badge' | 'text'; onActivate?: () => void };
 
-// Mock 01's columns (ADR 0645), measured at 1440 px: the row names 244 px, a figure column 112 px, and a badge column its
+// Mock 01's columns, measured at 1440 px: the row names 244 px, a figure column 112 px, and a badge column its
 // 58 px cell and 4 px either side (the 66 px pitch), its header starting where the cells do. The columns sit at these widths
 // from the left and the last takes whatever the card has spare, so a wide card lines its cells up as the mock does and a
 // narrow one scrolls.
@@ -20,9 +20,9 @@ const WIDTH_REM = { rowHeader: 15.25, text: 7, badge: 4.125 };
 // focused cell), arrow keys move focus cell to cell, Home/End move to the current row's ends, Ctrl+Home/End to the
 // grid's corners, Enter or Space activates the focused cell. `rows` and `columns` name the row and column headers
 // (the browser's own `scope`), so a screen reader hears "<chapter>, <stage>, <status>" without this primitive
-// writing that name itself. Its header and rows are Table's (tableStyles.ts, ADR 0605); `currentRow` draws the chapter the
+// writing that name itself. Its header and rows are Table's (tableStyles.ts); `currentRow` draws the chapter the
 // work is on in bold, as mock 01 does. Mock 01 names the row-header column (`rowHeader`, "Chapter"), draws each cell as the
-// board-cell badge and a length as a mono figure (ADR 0645).
+// board-cell badge and a length as a mono figure.
 export function StageGrid({
   label,
   rows,

@@ -4,7 +4,7 @@ import { pathToFileURL } from 'node:url';
 import { cruise, type ICruiseOptions, type IRuleSetType } from 'dependency-cruiser';
 import { afterAll, describe, expect, test } from 'vitest';
 
-// ADR 0062: the import-graph rules in `.dependency-cruiser.mjs` are run over
+// docs/operations/verification-tooling.md: the import-graph rules in `.dependency-cruiser.mjs` are run over
 // the real tree by `pnpm --dir apps/ui architecture` (an Nx target in the gate). This file proves that each rule fires:
 // it writes a tiny tree with deliberate violations and legal look-alikes, cruises it with the same rule set and the same
 // options, and expects exactly the named rules to be reported. A rule that can no longer see anything (a renamed folder, a
@@ -39,7 +39,7 @@ async function violations(entry: string): Promise<string[]> {
   return (await cruiseFixture(entry)).summary.violations.map((v) => `${v.rule.name}: ${v.from} -> ${v.to}`).sort();
 }
 
-describe('the import-graph rules (ADR 0062)', () => {
+describe('the import-graph rules', () => {
   test('a primitive may not import a feature component, in a story, a test or a type import either', async () => {
     write('src/components/manuscript/Chapters.ts', 'export const STATUS = 1;\nexport type Chapter = { id: string };\n');
     write('src/components/primitives/Leaky.ts', "import { STATUS } from '../manuscript/Chapters';\nexport const leaky = STATUS;\n");
@@ -81,7 +81,7 @@ describe('the import-graph rules (ADR 0062)', () => {
     expect(await violations('src/components/home/Direct.ts')).toEqual(['wails-bindings-only-in-api: src/components/home/Direct.ts -> wailsjs/go/main/Host.ts']);
   });
 
-  test('only the API layer may reach the Wails runtime (ADR 0200)', async () => {
+  test('only the API layer may reach the Wails runtime', async () => {
     write('src/api/events.ts', "import { Events } from '@wailsio/runtime';\nexport const on = Events.On;\n");
     write('src/components/home/Listen.ts', "import { Events } from '@wailsio/runtime';\nexport const listen = Events.On;\n");
     expect(await violations('src/api/events.ts')).toEqual([]);
@@ -99,7 +99,7 @@ describe('the import-graph rules (ADR 0062)', () => {
     expect(found[0]).toMatch(/^base-ui-only-in-primitives: src\/components\/settings\/Popup\.ts -> .*@base-ui\/react/);
   });
 
-  test('Zod is imported only under src/api (ADR 0069)', async () => {
+  test('Zod is imported only under src/api', async () => {
     write('src/api/schemas/thing.ts', "import { z } from 'zod';\nexport const thing = z.string();\n");
     write('src/components/settings/Validate.ts', "import { z } from 'zod';\nexport const validate = z.string();\n");
     expect(await violations('src/api/schemas/thing.ts')).toEqual([]);
@@ -108,9 +108,9 @@ describe('the import-graph rules (ADR 0062)', () => {
     expect(found[0]).toMatch(/^zod-only-in-api: src\/components\/settings\/Validate\.ts -> .*node_modules\/zod\//);
   });
 
-  // The rules below are ADR 0770's (and ADR 0781's for the overlay). `src/ports/`, `src/fixtures/` and `src/overlay/` do not
+  // The rules below are docs/architecture/ui-state-and-journal.md#the-store-host-reads-cached's (and docs/architecture/studio-shell-and-registries.md#overlay-service's for the overlay). `src/ports/`, `src/fixtures/` and `src/overlay/` do not
   // exist yet: a rule about a folder with no files must still pass on the real tree, and these cases prove it fires once there are.
-  test('the store may not import the bridge, a component, the App or main (ADR 0770)', async () => {
+  test('the store may not import the bridge, a component, the App or main', async () => {
     write('src/api/wailsClient.ts', 'export const wailsClient = {};\n');
     write('src/components/home/Home.ts', 'export const Home = 1;\n');
     write('src/App.tsx', 'export const App = 1;\n');

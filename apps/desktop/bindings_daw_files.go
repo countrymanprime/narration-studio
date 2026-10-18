@@ -16,7 +16,7 @@ import (
 // measures rendered files that are not project items, so the Review page's navigation cannot reach them. The page sends a path
 // it got from the host's own measurement result; the host plays or shows it only when the narrator picked it to measure in this
 // session (measurePicked) and it is an absolute local path to an audio file that is there (bridge.CheckMediaFile), and the
-// DAW's script checks it again (threat-model row 5r). Each answer is a DawResult (ADR 0810) with no undo step.
+// DAW's script checks it again (threat-model row 5r). Each answer is a DawResult with no undo step.
 
 // fileActionTimeout bounds one file command: a defer tick or two of the bridge and the host's 150 ms dispatch loop.
 const fileActionTimeout = 5 * time.Second

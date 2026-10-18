@@ -1,4 +1,4 @@
-// The journalled import (ADR 0771): Add is one journal entry whose inverse is one `extractionImportUndo` of the suggestions the import
+// The journalled import: Add is one journal entry whose inverse is one `extractionImportUndo` of the suggestions the import
 // created, which takes back what they applied and removes them. A host refusal (a file refused before it was read, a locked entry) is the
 // host's own sentence and journals nothing, or undoes nothing.
 

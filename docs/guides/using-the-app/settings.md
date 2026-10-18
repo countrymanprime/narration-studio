@@ -101,7 +101,7 @@ Settings, with unsaved changes asks whether to save or discard them.
   **Proof** panel sets. Three more settings decide how a long chapter is transcribed
   ([long chapters](../../utilities/recording-coverage.md#long-chapters)): **Parallel Whisper processes**
   (0 lets the app choose from the model), **Chunk length in seconds** (300; 0 transcribes each recording
-  whole) and **Crossover between neighbouring chunks** (6 s). They change how fast the check runs, not what
+  whole) and **Crossover between neighbouring chunks** (6 s), and **Chapters checked at once** (1) says how many chapters **Check recordings** checks together, sharing the processors. They change how fast the check runs, not what
   it finds, so changing one does not make earlier checks out of date. **Check recordings** starts from these
   values and lets you change them for one run.
 - **Silence cleanup** holds the thresholds the silence cleanup analysis uses when a

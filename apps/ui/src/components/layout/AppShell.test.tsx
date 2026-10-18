@@ -105,7 +105,7 @@ describe('AppShell engine chip', () => {
   });
 });
 
-// ADR 0407: the nav is grouped by production stage, and Production is the item at `/`.
+// docs/architecture/principles.md: the nav is grouped by production stage, and Production is the item at `/`.
 describe('AppShell grouped navigation', () => {
   it('names every group (sidebar, rail and drawer all expose the same accessible name)', () => {
     renderShell();
@@ -114,7 +114,7 @@ describe('AppShell grouped navigation', () => {
     }
   });
 
-  // ADR 0407 item 3 and ADR 0635 item 3: on the wide rail every group's heading is drawn, the first one too (its space stands in
+  // docs/architecture/principles.md and docs/design/design-system.md: on the wide rail every group's heading is drawn, the first one too (its space stands in
   // for the benchmark mocks' Schedule item, which has no page), never only named for a screen reader.
   it('draws every group heading on the wide rail, the first one too', () => {
     const { container } = renderShell();
@@ -123,6 +123,16 @@ describe('AppShell grouped navigation', () => {
       expect(heading?.textContent).toBe(label);
       expect(heading?.className).not.toMatch(/\bsr-only\b/);
       expect(heading?.className).toMatch(/\bsection-label\b/);
+    }
+  });
+
+  // The icon rail draws a rule in place of each heading (components.css `.icon-rail`, the mock's `.rail-c .grp::before`), which needs the rail
+  // panel's class and a positioned heading to hang from. Geometry is measured in tests/visual/navRail.spec.ts.
+  it('marks the rail panel and positions every group heading for the icon rail rules', () => {
+    const { container } = renderShell();
+    expect(container.querySelector('aside > div')?.classList.contains('icon-rail')).toBe(true);
+    for (const label of ['Production', 'Prep', 'Record', 'Edit', 'Review', 'Finish']) {
+      expect(container.querySelector(`#nav-group-${label.toLowerCase()}`)?.classList.contains('relative')).toBe(true);
     }
   });
 
@@ -160,7 +170,7 @@ describe('AppShell grouped navigation', () => {
     }
   });
 
-  // SN-E9 (route-and-rail): the Studio Next rail (the mock's `NAV` in app/Shell.tsx, ADR 0804) has Editing in an Edit group of its own,
+  // SN-E9 (route-and-rail): the Studio Next rail (the mock's `NAV` in app/Shell.tsx) has Editing in an Edit group of its own,
   // between Record and Review, with no count; Proof stays Proof, so there is never a second Proof item.
   it('route-and-rail: lists Editing alone in an Edit group between Record and Review, with no count, and opens /editing', () => {
     const navigate = vi.fn();
@@ -259,7 +269,7 @@ describe('AppShell header history controls', () => {
   });
 });
 
-// ADR 0201: the zoom group, after a running timer chip and
+// docs/guides/using-the-app/navigation.md#zoom: the zoom group, after a running timer chip and
 // before the engine chip.
 describe('AppShell header zoom group', () => {
   it('is a "Zoom" group with the level readout between zoom out and zoom in', () => {
@@ -419,7 +429,7 @@ describe('AppShell rail', () => {
     expect(screen.queryByRole('button', { name: /^Pickups, / })).toBeNull();
   });
 
-  // SN-M5 (ADR 0802): Delivery sits beside Master & QC in Finish, as the mock draws it: no item is gated, the page asks for the manuscript itself.
+  // SN-M5: Delivery sits beside Master & QC in Finish, as the mock draws it: no item is gated, the page asks for the manuscript itself.
   it('the-delivery-rail-item: Finish is Master & QC then Delivery, and Delivery opens /delivery', () => {
     const navigate = vi.fn();
     renderShell({ navigate });

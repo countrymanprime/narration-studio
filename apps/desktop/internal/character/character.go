@@ -27,7 +27,7 @@ import (
 // first-class reference subject: the narrator approves a region as
 // "Narration" exactly the way they approve one for a character. It is a
 // plain string, like every other character id this package handles, and
-// never collides with a Story Bible entity id (ADR 0018's ids are content
+// never collides with a Story Bible entity id (docs/guides/using-the-app/story-bible.md's ids are content
 // hashes, never this literal value).
 const NarrationCharacterID = "narration"
 

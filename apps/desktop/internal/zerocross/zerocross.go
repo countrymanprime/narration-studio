@@ -1,4 +1,4 @@
-// Package zerocross moves a cut point to the nearest zero crossing of the audio (ADR 0855's snap rule): the nearest
+// Package zerocross moves a cut point to the nearest zero crossing of the audio (apps/desktop/internal/coverage/workspace.go's snap rule): the nearest
 // sign change of the mono mix within MaxShift either side of the asked time, answered to the sample in source seconds.
 // It decodes only that window of the source, never the whole file, and never guesses: a silent window, or one with no
 // sign change, answers the asked time with a Reason.
@@ -11,7 +11,7 @@ import (
 	"math"
 )
 
-// MaxShift is how far a cut may move, in seconds, either way (ADR 0855).
+// MaxShift is how far a cut may move, in seconds, either way.
 const MaxShift = 0.002
 
 // Reason says why a time was not moved. Empty when it snapped.

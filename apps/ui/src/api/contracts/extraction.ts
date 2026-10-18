@@ -1,4 +1,4 @@
-// The Story Bible's extraction suggestions (ADR 0803, ADR 0846): what a source offered, each with the quote that backs it and the
+// The Story Bible's extraction suggestions: what a source offered, each with the quote that backs it and the
 // status the 75% rule gave it. They are kept in the project's ManuscriptGuide/suggestions.json (apps/desktop/internal/extraction/store)
 // and applied to the Story Bible through its own commands (apps/desktop/internal/extraction/apply), so a locked entry is never changed.
 // The shapes follow the Studio Next mock's src/domain/extraction.ts.
@@ -12,7 +12,7 @@ export type SuggestionStatus = (typeof SUGGESTION_STATUSES)[number];
 export type SuggestionSource = (typeof SUGGESTION_SOURCES)[number];
 export type ClaimKind = (typeof CLAIM_KINDS)[number];
 
-/** The most UTF-8 bytes one text holds (the store's field cap, ADR 0846); the host refuses a longer edit. */
+/** The most UTF-8 bytes one text holds (the store's field cap); the host refuses a longer edit. */
 export const SUGGESTION_TEXT_MAX_BYTES = 8192;
 
 /** A quoted stretch of one paragraph. start and end are UTF-16 units into its text, computed by the host, never by a source. */
@@ -69,8 +69,8 @@ export type ExtractionDecision = {
 export type ExtractionSource = { id: SuggestionSource; label: string; icon: string; runs: boolean; available: boolean; reason?: string };
 
 /** The scan as a host job, in the shape of the other host jobs (`WorkJob`): `percent` is the sources done over the sources it runs and
- * reads 100 only once it has ended (ADR 0015); `sources` are the ones it runs, rules first; `added` and `skipped` count the suggestions
- * stored and the ones dropped as offered or rejected before. It ends with one `job:ended` event of kind `extraction_scan` (ADR 0076). */
+ * reads 100 only once it has ended; `sources` are the ones it runs, rules first; `added` and `skipped` count the suggestions
+ * stored and the ones dropped as offered or rejected before. It ends with one `job:ended` event of kind `extraction_scan`. */
 export type ExtractionScanJob = {
   id: string | null;
   kind: 'extraction_scan';

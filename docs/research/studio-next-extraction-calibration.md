@@ -1,6 +1,6 @@
 # Extraction confidence: calibration result
 
-**Date:** 2026-10-12. **Issue:** [#1267](https://github.com/countrymanprime/narration-utils/issues/1267), Phase 8 of the [Studio Next extraction PRD](../prds/studio-next-extraction-and-analysis-tools.prd.md). **Question:** does the 75% rule (`extraction.VerifyBelow`, [ADR 0803](../adr/0803-an-extraction-suggestion-at-75-percent-or-more-is-applied-and-flagged-review-and-one-under-75-percent-needs-verification.md)) hold, by the [protocol](studio-next-extraction-calibration-protocol.md)'s rule?
+**Date:** 2026-10-12. **Issue:** [#1267](https://github.com/countrymanprime/narration-utils/issues/1267), Phase 8 of the [Studio Next extraction PRD](../prds/studio-next-extraction-and-analysis-tools.prd.md). **Question:** does the 75% rule (`extraction.VerifyBelow`, [The 75% rule](../architecture/extraction-tiers.md#the-75-rule)) hold, by the [protocol](studio-next-extraction-calibration-protocol.md)'s rule?
 
 **Verdict: no table yet.** The harness is built and tested, but no source was scored. The two scored books could not be fetched (the egress proxy answered 403 for `gutenberg.org` on 2026-10-12), and no gold set exists, so every figure below is `not run`. No number in this note is estimated. `VerifyBelow` stays 0.75.
 

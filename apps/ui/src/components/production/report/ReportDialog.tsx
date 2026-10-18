@@ -25,7 +25,7 @@ export type ReportDialogProps = {
  * "Export status report" (the mock's ReportDialog): the host's own document in a preview pane, the format, the path an export would
  * write, and Cancel / Export. Nothing is rebuilt here: the preview is `productionStatusReportPreview` and Export calls the existing
  * writer, so what is drawn is what the file holds. The mock's per-section checkboxes are not built (the host report has fixed
- * sections); its money pair is the one opt-in, off on open and offered only to a per-finished-hour plan with an amount (ADR 0406).
+ * sections); its money pair is the one opt-in, off on open and offered only to a per-finished-hour plan with an amount.
  */
 export function ReportDialog({ projectName, asOf, onClose }: ReportDialogProps) {
   const production = usePort('production');

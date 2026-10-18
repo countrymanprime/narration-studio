@@ -1,4 +1,4 @@
-"""The Story Bible entities as the sidecar really builds them, pinned as a contract file (ADR 0069).
+"""The Story Bible entities as the sidecar really builds them, pinned as a contract file.
 
 The entities come from ``manuscript_guide.build_entities`` (the rules-only path, so no language model is needed) over a few
 paragraphs, plus one manual entity as the Story Bible page creates it. The Go host reads them back through ``guide.Service`` and pins
@@ -68,7 +68,7 @@ class PronunciationDepthContractGoldenTests(unittest.TestCase):
             guide.pronounce_user(argparse.Namespace(**target, alias_index=None, ipa="wɹɛn"))
             with open(path, encoding="utf-8") as handle:
                 entities = json.load(handle)["entities"]
-        # A file written before ADR 0792 still holds a status and a note; the sidecar no longer writes either.
+        # A file written before docs/guides/using-the-app/story-bible.md#how-you-say-each-name still holds a status and a note; the sidecar no longer writes either.
         entities[0]["pronunciation"].update(status="query_sent", note="Asked the author by email.")
         entities[0]["aliases"][0]["pronunciation"]["status"] = "author_confirmed"
         contract_files.check("guide-entities-pronunciation-sidecar", entities)

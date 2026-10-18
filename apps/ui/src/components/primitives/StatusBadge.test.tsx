@@ -65,7 +65,7 @@ describe('StatusBadge', () => {
     expect(screen.queryByTestId('badge-icon')).toBeNull();
   });
 
-  // ADR 0600: the three shapes the benchmark mocks draw. jsdom has no layout, so the sizes are pinned by class here and
+  // docs/design/design-system.md: the three shapes the benchmark mocks draw. jsdom has no layout, so the sizes are pinned by class here and
   // measured by the atlas (StatusBadge.stories.tsx's MeasuredShapes).
   it("is a 22 px, fully rounded pill in the label's own case by default", () => {
     render(<StatusBadge tone="danger" label="Pickup" />);
@@ -83,7 +83,7 @@ describe('StatusBadge', () => {
     expect(tag.className).toContain('uppercase');
   });
 
-  // ADR 0645: the Production board's cell (mock 01), a fixed-width 20 px block on the tag radius, its label centred.
+  // docs/design/design-system.md: the Production board's cell (mock 01), a fixed-width 20 px block on the tag radius, its label centred.
   it("draws the board cell at 20 px and at least 58 px wide, centred, on the tag radius, in the label's own case", () => {
     render(<StatusBadge tone="danger" label="3 open" shape="cell" />);
     const cell = screen.getByText('3 open');

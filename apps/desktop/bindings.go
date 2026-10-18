@@ -47,7 +47,7 @@ func (h *Host) SystemSaveSettings(tool, scope string, values map[string]*string)
 	return encodeBinding(h.Bootstrap(), nil)
 }
 func (h *Host) SystemReportDiagnostic(kind, message string) (string, error) {
-	// Diagnostics are deliberately local and best-effort (ADR 0032, ADR 0069): the UI reports a payload that did not
+	// Diagnostics are deliberately local and best-effort: the UI reports a payload that did not
 	// match its schema (`wire_invalid`: boundary, payload and failing paths, never values) and its own errors, and a
 	// write that fails must not become a binding error the client would report again.
 	if strings.HasPrefix(kind, uiEventPrefix) {
@@ -443,7 +443,7 @@ func (h *Host) ManuscriptImportState(jobID string) (string, error) {
 }
 func (h *Host) ManuscriptImportPreview(jobID string, markdownHeadingLevel int) (string, error) {
 	// Runs in the background; the UI polls ManuscriptImportState for the real
-	// staged progress and log (ADR-0015).
+	// staged progress and log.
 	return encodeBinding(h.services().manuscript.StartPreview(jobID, markdownHeadingLevel))
 }
 
@@ -603,7 +603,7 @@ func (h *Host) TeleprompterStart(options map[string]string) (string, error) {
 	// credits it reads. Device names are hardware names, never a path or manuscript text.
 	h.runLog.App().Event(slog.LevelInfo, "teleprompter.start", "a read-aloud session was started",
 		"engine", engine, "model", modelID, "device", options["device"], "from_file", options["wav"] != "", "credits", options["credits"], "chapter", options["chapter"], "eval_args", evalArgsForLog())
-	// `credits` ("opening" or "closing") reads the credits instead of a chapter (ADR 0150): the host renders the text itself, so the UI names only which credits, never the text.
+	// `credits` ("opening" or "closing") reads the credits instead of a chapter: the host renders the text itself, so the UI names only which credits, never the text.
 	if kind := strings.TrimSpace(options["credits"]); kind != "" {
 		script, err := h.creditsScript(kind)
 		if err != nil {
@@ -711,7 +711,7 @@ func (h *Host) TeleprompterMeterStop() (string, error) {
 }
 
 // TeleprompterPause stops (true) or restarts (false) a running session's listening without ending it
-// (ADR 0248): the microphone stays open and its level still shows, the recognizer
+// the microphone stays open and its level still shows, the recognizer
 // hears nothing and the tracker holds its word. The state keeps phase "running" with `paused` set. It errors when no
 // session is running.
 func (h *Host) TeleprompterPause(paused bool) (string, error) {
@@ -894,7 +894,7 @@ func (h *Host) TracksSelect(path string) (string, error) {
 func (h *Host) TracksList() (string, error) { return encodeBinding(h.tracksList()) }
 
 // ChapterTrackMatch finds the track holding chapterID and where its recorded
-// audio ends (ADR 0110): a
+// audio ends: a
 // confirmed link first, then the shared chapter-to-track matcher over track
 // and region names. It only reads; it never creates a track or a link.
 func (h *Host) ChapterTrackMatch(chapterID string) (string, error) {
@@ -903,13 +903,13 @@ func (h *Host) ChapterTrackMatch(chapterID string) (string, error) {
 
 // ChapterSuggestion suggests the chapter the narrator is recording from the
 // selected .rpp's record-armed (else selected) track as of its last save
-// (ADR 0113): the matcher's
+// the matcher's
 // other direction, track to chapter, with the same statuses. Read-only.
 func (h *Host) ChapterSuggestion() (string, error) {
 	return encodeBinding(h.chapterSuggestionFor())
 }
 
-// ChaptersForTracks is ForTrack (ADR 0113) run over every GUID in guids: the
+// ChaptersForTracks is ForTrack run over every GUID in guids: the
 // Review page's chapter grouping for findings that carry only a track, item or take GUID
 // rather than a manuscript-anchored chapter. One GUID the project no longer
 // has is reported as an error alongside the others, never as a failed call.
@@ -920,8 +920,8 @@ func (h *Host) ChaptersForTracks(guids []string) (string, error) {
 
 // TakeReviewScanStart starts a pickup and duplicate scan of scope as a job: the chapter track's
 // items and takes, plus at most one pickup track or time range. It answers the job; TakeReviewScanState reports
-// its real progress (ADR 0015) and TakeReviewScanCancel stops it. The findings it saves are read and decided through
-// the Review page's generic findings bindings (ADR 0120), like every other analyzer's.
+// its real progress and TakeReviewScanCancel stops it. The findings it saves are read and decided through
+// the Review page's generic findings bindings, like every other analyzer's.
 func (h *Host) TakeReviewScanStart(scope TakeReviewScanScope) (string, error) {
 	return encodeBinding(h.startTakeReviewScan(scope))
 }
@@ -937,7 +937,7 @@ func (h *Host) TakeReviewScanCancel() (string, error) {
 	return encodeBinding(h.cancelTakeReviewScan(), nil)
 }
 
-// TakeComparisonStart compares the takes of one take-review group as a job (ADR 0165): findingID
+// TakeComparisonStart compares the takes of one take-review group as a job: findingID
 // names the group; the reads, their audio and the manuscript span all come from the store and the saved project. It
 // answers the job; TakeComparisonState reports its real progress and TakeComparisonCancel stops it. The comparison is a
 // take_comparison finding, read and decided through the generic findings bindings.
@@ -956,7 +956,7 @@ func (h *Host) TakeComparisonCancel() (string, error) {
 }
 
 // TakeReviewCreateTake adds a narrator-approved candidate's source range as a
-// new take on the target item (ADR 0098): findingID is the
+// new take on the target item: findingID is the
 // finding this candidate came from (provenance); targetItemGUID
 // is the item the narrator explicitly chose (never preselected);
 // candidateItemGUID is the candidate's own item GUID when it has one (empty
@@ -976,14 +976,14 @@ func (h *Host) TakeReviewCreateTake(findingID, targetItemGUID, candidateItemGUID
 }
 
 // voiceAssetRequired is the answer to a preview that needs a voice that is not installed yet: which voice, its state and its
-// download size, so the UI can offer to install it. The UI validates it as `GuidePreview` (ADR 0069).
+// download size, so the UI can offer to install it. The UI validates it as `GuidePreview`.
 func voiceAssetRequired(voice tts.Voice, installState, installPath string) map[string]any {
 	size := voiceDownloadSize(voice)
 	return map[string]any{"status": "asset_required", "voice": previewVoice(voice), "installState": installState, "downloadSize": size, "diskSize": size, "installPath": installPath}
 }
 
 // modelAssetRequired is the answer to a start that needs a Whisper model that is not installed yet, as TranscriptStart and
-// TeleprompterStart give it (the first-use gate). The UI validates it as `TranscriptStartResult` (ADR 0069).
+// TeleprompterStart give it (the first-use gate). The UI validates it as `TranscriptStartResult`.
 func modelAssetRequired(model whisper.Model, installState, installPath string) map[string]any {
 	size := modelDownloadSize(model)
 	return map[string]any{"status": "asset_required", "model": previewModel(model), "installState": installState, "downloadSize": size, "diskSize": size, "installPath": installPath}
@@ -991,7 +991,7 @@ func modelAssetRequired(model whisper.Model, installState, installPath string) m
 
 // liveAssetRequired is TeleprompterStart's first-use gate answer: the same shape as modelAssetRequired plus the live engine the model
 // belongs to, which is also the asset kind the UI installs it as (installKindWhisper, installKindMoonshine). The UI validates it as
-// `TeleprompterStartResult` (ADR 0069).
+// `TeleprompterStartResult`.
 func liveAssetRequired(engine string, model map[string]any, size int64, installState, installPath string) map[string]any {
 	return map[string]any{"status": "asset_required", "engine": engine, "model": model, "installState": installState, "downloadSize": size, "diskSize": size, "installPath": installPath}
 }

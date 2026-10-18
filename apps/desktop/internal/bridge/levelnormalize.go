@@ -12,7 +12,7 @@ import (
 )
 
 // GainCandidate is one item to change the volume of, by a dB delta a caller already decided
-// (apps/desktop/internal/levelnormalize.GainDeltaDB; ADR 0252). Unlike a cleanup candidate, a gain change touches the whole item: there is no
+// (apps/desktop/internal/levelnormalize.GainDeltaDB). Unlike a cleanup candidate, a gain change touches the whole item: there is no
 // take or cut range.
 type GainCandidate struct {
 	ItemGUID  string

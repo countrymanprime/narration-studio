@@ -13,7 +13,7 @@ import (
 const MaxWordLength = 64
 
 // ErrNotAWord is a selection that is not one word: empty, only punctuation, several words, or too long. Phrase lookups are out of scope
-// (ADR 0097), so a multi-word lemma is never in the index either.
+// so a multi-word lemma is never in the index either.
 var ErrNotAWord = errors.New("select a single word to look it up")
 
 // Normalize turns a selection from the manuscript into the key the index is written with: surrounding punctuation and quotes removed

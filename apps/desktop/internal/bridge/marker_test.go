@@ -45,7 +45,7 @@ func TestAddMarkerReportsAMarkerTheTakeAlreadyHasAsExisting(t *testing.T) {
 	}
 }
 
-// Nothing is sent for a marker that cannot be placed or named: a project time is never a fallback (ADR 0121).
+// Nothing is sent for a marker that cannot be placed or named: a project time is never a fallback.
 func TestAddMarkerRefusesBeforeSendingWithoutAnItemATimeOrAName(t *testing.T) {
 	navigator, client, dir := newNavigatorSession(t)
 	fake := startFakeReaper(t, client, dir, func(command []string) [][]string { return nil })

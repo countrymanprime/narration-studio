@@ -97,7 +97,7 @@ func TestAssetKindNamesTheCatalogOfARowAndNothingForAnUnknownOne(t *testing.T) {
 }
 
 func TestOnlyMoonshineNeedsAnInstalledModel(t *testing.T) {
-	// Moonshine loads only from a verified catalog install (ADR 0107); Whisper may load a model by name.
+	// Moonshine loads only from a verified catalog install; Whisper may load a model by name.
 	for name, want := range map[string]bool{asrport.Whisper: false, asrport.Moonshine: true, "vosk": false} {
 		if got := asrport.NeedsInstalledModel(name); got != want {
 			t.Errorf("NeedsInstalledModel(%q) = %v, want %v", name, got, want)

@@ -4,7 +4,7 @@ export type ReportFormat = 'html' | 'json';
 
 /**
  * The contracted amount is offered only when the plan pays per finished hour and an amount is set: royalty share and none carry no
- * figure (SNP-Q4). A plan saved before the payment type was recorded only ever paid per hour (ADR 0800), so an absent type counts.
+ * figure (SNP-Q4). A plan saved before the payment type was recorded only ever paid per hour, so an absent type counts.
  */
 export function amountOffered(plan: Pick<ProductionPlan, 'payment' | 'contractedAmount'> | undefined): boolean {
   if (!plan || plan.contractedAmount === null) return false;

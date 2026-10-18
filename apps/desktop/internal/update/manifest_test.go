@@ -259,7 +259,7 @@ func TestPlatformForKnowsOnlyWindowsWhichReplacesItself(t *testing.T) {
 	if asset != "narration-utils-0.2.7-windows-x64.zip" || platform.ChecksumName(Version{0, 2, 7}) != asset+".sha256" {
 		t.Errorf("asset names %+v", platform)
 	}
-	// macOS and Linux have no release since D74 (docs/adr/0412).
+	// macOS and Linux have no release since D74.
 	for _, pair := range [][2]string{{"darwin", "arm64"}, {"linux", "amd64"}, {"windows", "arm64"}, {"darwin", "amd64"}, {"freebsd", "amd64"}, {"", ""}} {
 		if _, ok := PlatformFor(pair[0], pair[1]); ok {
 			t.Errorf("PlatformFor(%s, %s) is not a release platform", pair[0], pair[1])

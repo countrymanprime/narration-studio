@@ -8,7 +8,7 @@ import (
 	"github.com/countrymanprime/narration-utils/shell/internal/contractfile"
 )
 
-// What ProjectRecents sends to the UI (ADR 0069). Folder names are fixed and the times replaced by contractfile.Stabilize.
+// What ProjectRecents sends to the UI. Folder names are fixed and the times replaced by contractfile.Stabilize.
 func TestContractRecentProjects(t *testing.T) {
 	root := t.TempDir()
 	store := New(filepath.Join(root, "recent-projects.json"))

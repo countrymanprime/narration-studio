@@ -5,7 +5,7 @@ import { useRef, useState, type ClipboardEvent, type KeyboardEvent, type ReactNo
 import { TooltipTarget } from './Tooltip';
 
 const TAG_FONT = "font-['IBM_Plex_Mono',monospace] text-[0.8rem]";
-// A term this long already reads as a mistake, not a vocabulary hint (ADR 0363's companion limit, V5).
+// A term this long already reads as a mistake, not a vocabulary hint (apps/ui/src/components/primitives/TagInput.tsx's companion limit, V5).
 const MAX_TERM_LENGTH = 64;
 
 // A list of terms the user keeps (the Proofing vocabulary hints): the ones accepted as chips with a remove cross, the ones
@@ -18,7 +18,7 @@ const MAX_TERM_LENGTH = 64;
 // Keyboard: Enter or a typed comma commits the draft (a term never holds a comma); blur commits it too, so a click on
 // Remove, the Suggest action or a page's own submit button never loses what was just typed (the blur fires, and its
 // commit lands, before that click's own handler runs - the DOM's own event order, not a workaround here). Backspace on
-// an empty draft removes the most recently added tag (ADR 0363, superseding 0055's opposite decision). A paste that
+// an empty draft removes the most recently added tag (superseding 0055's opposite decision). A paste that
 // contains a comma or newline commits at once instead of sitting as draft text needing a further Enter; an ordinary
 // single-term paste is left as draft text like typing it would be.
 export function TagInput({
@@ -70,7 +70,7 @@ export function TagInput({
       return;
     }
     if (event.key === 'Backspace' && draft === '' && tags.length > 0) {
-      // ADR 0363: Backspace on an empty draft removes the most recently added tag.
+      // apps/ui/src/components/primitives/TagInput.tsx: Backspace on an empty draft removes the most recently added tag.
       event.preventDefault();
       onRemove(tags[tags.length - 1]);
     }

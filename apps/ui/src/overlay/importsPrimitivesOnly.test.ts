@@ -2,7 +2,7 @@ import { readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
-// ADR 0781 decision 3: the overlay service imports primitives, React and itself, nothing else in the app. The dependency-cruiser rule
+// docs/architecture/studio-shell-and-registries.md#overlay-service: the overlay service imports primitives, React and itself, nothing else in the app. The dependency-cruiser rule
 // for src/overlay/** comes with SN-S2; this reads the folder's own import statements so the rule holds before and after it lands.
 const folder = __dirname;
 const sources = readdirSync(folder).filter((name) => /\.tsx?$/.test(name) && !/\.(test|stories)\.tsx?$/.test(name));

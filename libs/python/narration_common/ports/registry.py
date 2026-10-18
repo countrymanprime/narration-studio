@@ -1,6 +1,6 @@
-"""The shared vocabulary of the provider ports (ADR 0301): levels, the refusal, the descriptor and the registry.
+"""The shared vocabulary of the provider ports: levels, the refusal, the descriptor and the registry.
 
-``Level`` mirrors ``port.Level`` in Go (ADR 0300): the same names, the same order and the same wire strings, so the desktop host
+``Level`` mirrors ``port.Level`` in Go: the same names, the same order and the same wire strings, so the desktop host
 and a sidecar say "not supported, and why" the same way. A Python test reads the golden the Go test writes, so the two cannot drift.
 
 A registry maps the name a setting already stores (``whisper``, ``cmu``, ``dshow``) to the one object that implements the port.
@@ -21,7 +21,7 @@ _NAME = re.compile(r"^[a-z0-9][a-z0-9_.-]*$")
 
 
 class Level(enum.IntEnum):
-    """How far an implementation supports something, least to most capable, as Go's ``port.Level`` (ADR 0300)."""
+    """How far an implementation supports something, least to most capable, as Go's ``port.Level``."""
 
     Unsupported = 0  # it cannot do this at all
     NotYetAvailable = 1  # it could, but this app cannot drive it yet

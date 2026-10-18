@@ -9,7 +9,7 @@ import (
 	"github.com/countrymanprime/narration-utils/shell/internal/contractfile"
 )
 
-// What Entities() sends to the UI (ADR 0069). The first file is built from the entities the Python sidecar's own test pins
+// What Entities() sends to the UI. The first file is built from the entities the Python sidecar's own test pins
 // (guide-entities-sidecar.json), read back through the real service; the second is a record written by an older sidecar, with the
 // nulls and missing objects normalizeEntity exists for.
 func serviceWithGuideFile(t *testing.T, entities any) *Service {

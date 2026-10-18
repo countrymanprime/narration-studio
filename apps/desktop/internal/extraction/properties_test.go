@@ -7,7 +7,7 @@ import (
 	"unicode/utf16"
 )
 
-// Fixed seed: the gate is deterministic (ADR 0044).
+// Fixed seed: the gate is deterministic.
 func newRand() *rand.Rand { return rand.New(rand.NewPCG(44, 1080)) }
 
 var pieces = []string{

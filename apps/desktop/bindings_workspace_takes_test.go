@@ -10,7 +10,7 @@ import (
 	"github.com/countrymanprime/narration-utils/shell/internal/dawport"
 )
 
-// The Takes panel's bindings (ADR 0700). What they answer is internal/passagetakes' own (its tests pin the candidates,
+// The Takes panel's bindings. What they answer is internal/passagetakes' own (its tests pin the candidates,
 // the choices and the outcomes, and write the goldens the UI checks); these cover the host's wiring: no project, a
 // token range the alignment does not have, and a read of a chapter whose item has only one take.
 

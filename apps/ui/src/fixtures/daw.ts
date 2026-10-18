@@ -17,7 +17,7 @@ import type { MeasureReport } from '../api/contracts/measure';
 // The mock DAW's setups as data (the Studio Next mock's fixtures/daw.ts, narrowed to what the host has today): REAPER, REAPER off,
 // the built-in recorder, and Audacity with and without backups. Each is a `DawCapabilities` the existing schema accepts and names
 // only capabilities the Go catalogue has today. `cut_range`, `fx_range`, `stack_takes` and `backups` are in it: REAPER declares the
-// first three Experimental (narration_range.lua, narration_takes.lua), and `backups` is Audacity's (ADR 0863), on in the
+// first three Experimental (narration_range.lua, narration_takes.lua), and `backups` is Audacity's, on in the
 // `audacity-backups` setup and turned off in Settings in the `audacity` one.
 // The sentences are the host's own wording (dawport resolver and adapters), so a refusal here reads as the real one.
 
@@ -98,7 +98,7 @@ const REAPER_NOT_YET: Rows = Object.fromEntries(
 
 /** REAPER's Describer (dawport/reaper): a roll keeps the earlier audio as a take, a cut moves the audio to the muted Cuts track, a
  * chain on a range is take FX on a split piece that come off again, and a stack makes later reads takes and moves their items to the
- * Cuts track, so punch, cut_range, fx_range and stack_takes are native and not destructive (ADR 0860). */
+ * Cuts track, so punch, cut_range, fx_range and stack_takes are native and not destructive. */
 const REAPER_DEPTH: Rows = {
   punch: { level: 'experimental', available: true, mode: 'native' },
   cut_range: { level: 'experimental', available: true, mode: 'native' },
@@ -241,7 +241,7 @@ const QUIETEST_PLAY_SECONDS = 5;
 const NOISE_WINDOW_SECONDS = 0.5;
 
 /** The stretch MasterPlayQuietest plays of `file` and its answer, or the sentence it refuses with: 5 s centred on the quietest window,
- * moved inside the file, or all of a shorter file; never a time the measurement did not find (ADR 0015). */
+ * moved inside the file, or all of a shorter file; never a time the measurement did not find. */
 export function quietestOf(file: RunFile): { start: number; length: number; message: string } | { refused: string } {
   const name = fileName(file.path);
   if (!file.report) return { refused: `${name} was not measured, so there is no quiet stretch to play.` };
@@ -272,7 +272,7 @@ export const DAW_PROJECT: DawProject = {
 };
 
 /** What the DAW answers besides a capability's own sentence, as the host words it (tests/fixtures/contracts/read-aloud-recordings.json and workspace-use-take-*.json).
- * `noTrack` and `staleTake` are the host's stale answers, so the mock refuses them with code `stale` (ADR 0861). */
+ * `noTrack` and `staleTake` are the host's stale answers, so the mock refuses them with code `stale`. */
 /** The answer DawPreviewFileRange gives when `length` seconds of the file at `path` play from `start` (bindings_daw_files.go). */
 export const filePreviewAnswer = (path: string, start: number, length: number): string =>
   `Playing ${length.toFixed(1)} s of ${fileName(path)} from ${start.toFixed(1)} s.`;
@@ -377,7 +377,7 @@ export function recordingFromAnswer(at: number): string {
   return `Recording from ${at.toFixed(1)} seconds.`;
 }
 
-/** dawport/reaper's puncher: a roll from `at` seconds that kept the earlier audio as a take (ADR 0860; no undo point of its own). */
+/** dawport/reaper's puncher: a roll from `at` seconds that kept the earlier audio as a take (no undo point of its own). */
 export function rolledAnswer(at: number): string {
   return `Rolled again from ${at.toFixed(1)} seconds. The earlier audio is kept as a take.`;
 }

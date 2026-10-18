@@ -1,6 +1,6 @@
 # Audacity 3.x: what the app relies on
 
-Engine facts the Audacity adapter depends on, as of 2026-10-10. The protocol below is the published `mod-script-pipe` of Audacity 3; the adapter was built from that spec and has not yet been through the owner's verification pass ([ADR 0355](../../adr/0355-audacity-is-driven-over-its-scripting-pipe-built-from-the-published-spec-and-verified-by-the-owners-pass.md)). Nothing on this page was observed in a running Audacity 3: the protocol facts, the 1024-byte limit, the escaping rules and the behaviour table below come from the published manual and Audacity's source ([research, "Not verified"](../../research/audacity-4-scripting-spec.md#not-verified)).
+Engine facts the Audacity adapter depends on, as of 2026-10-10. The protocol below is the published `mod-script-pipe` of Audacity 3; the adapter was built from that spec and has not yet been through the owner's verification pass ([The DAW port](../../architecture/daw-integration.md#the-daw-port)). Nothing on this page was observed in a running Audacity 3: the protocol facts, the 1024-byte limit, the escaping rules and the behaviour table below come from the published manual and Audacity's source ([research, "Not verified"](../../research/audacity-4-scripting-spec.md#not-verified)).
 
 ## How the app reaches Audacity
 
@@ -26,7 +26,7 @@ The full table, with the commands and their reply shapes, is [the Audacity 4 spe
 
 ## What the app has no Audacity equivalent for
 
-Audacity has no items, takes or extension data. Take creation, pickups, line identity and render setup are REAPER-only, and the review page hides REAPER's take management for an Audacity launch instead of showing it disabled ([ADR 0660](../../adr/0660-audacitys-finding-detail-hides-reapers-take-management-instead-of-disabling-it-through-capabilitygate.md)).
+Audacity has no items, takes or extension data. Take creation, pickups, line identity and render setup are REAPER-only, and the review page hides REAPER's take management for an Audacity launch instead of showing it disabled.
 
 ## Not yet available
 
@@ -59,7 +59,7 @@ Paste, Delete and Punch and Roll move audio by Audacity's own rules (whether a p
 
 ## Backups
 
-`backups` is Experimental: a backup is a muted track in the Audacity project named `Narration Utils backup {ID}`, and a row in `narration-utils/backups.json` in the app's project folder ([ADR 0863](../../adr/0863-an-audacity-backup-is-a-muted-track-in-the-project-and-a-row-in-a-table-beside-it-and-a-restore-never-deletes.md), [capabilities](capabilities.md#backups)). Scripting reports no track ids, so the adapter names a source track by its name and finds a backup track only by its exact name. Deleting or renaming either track in Audacity makes the backup unrestorable, and the app reports it rather than guessing.
+`backups` is Experimental: a backup is a muted track in the Audacity project named `Narration Utils backup {ID}`, and a row in `narration-utils/backups.json` in the app's project folder ([capabilities](capabilities.md#backups)). Scripting reports no track ids, so the adapter names a source track by its name and finds a backup track only by its exact name. Deleting or renaming either track in Audacity makes the backup unrestorable, and the app reports it rather than guessing.
 
 ## Checking a capability in Audacity
 

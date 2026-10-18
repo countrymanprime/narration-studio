@@ -95,7 +95,7 @@ func TestLaunchReaperPassesTheLinkedFileAndNotTheLauncherByDefault(t *testing.T)
 	}
 }
 
-// TestLaunchReaperPassesTheLauncherScriptWhenAutoStartIsOn is D10, on: ADR 0092 W12's confirmed
+// TestLaunchReaperPassesTheLauncherScriptWhenAutoStartIsOn is D10, on: apps/desktop/internal/daw/locate.go W12's confirmed
 // `reaper.exe "<project.rpp>" "<script.lua>"` form.
 func TestLaunchReaperPassesTheLauncherScriptWhenAutoStartIsOn(t *testing.T) {
 	t.Setenv("APPDATA", t.TempDir()) // never touch the real machine's global-settings.json

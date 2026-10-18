@@ -2,7 +2,7 @@
 // types, with an optional note, or a question when the type asks. The narrator defines the types (a name, one of six colours,
 // one of six line styles, and whether it asks), and both lists are kept in the project's own file and every mark is checked
 // against the current text on every read. A mark whose line is gone, whose range no longer fits, or whose words changed is
-// reported stale, never moved to a guess (the rule of ADR 0382 and ADR 0820).
+// reported stale, never moved to a guess (the rule of docs/reference/data-files.md).
 //
 // The file is narrator data, read through persist: a corrupt one is kept aside and a fresh list starts, one written by a newer
 // app is refused and never overwritten. Replacing the manuscript or Clear project data removes it (the manuscript service's
@@ -177,7 +177,7 @@ type Config struct {
 	Manuscript func() (Book, error)
 	// OldNotes reads the reader's notes for the one-time migration; nil means there are none.
 	OldNotes func() ([]OldNote, error)
-	// Reporter tells the narrator about a file that cannot be read (ADR 0069); nil only logs nothing.
+	// Reporter tells the narrator about a file that cannot be read; nil only logs nothing.
 	Reporter *persist.Reporter
 }
 

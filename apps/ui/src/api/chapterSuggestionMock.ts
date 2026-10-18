@@ -3,8 +3,7 @@ import type { ManuscriptChapter } from './contracts/manuscript';
 import type { Track, TracksProject } from './contracts/tracks';
 import { nameScore } from './chapterTrackMatchMock';
 
-// The browser mock's stand-in for the host's ChapterSuggestion (apps/desktop/internal/chaptermatch/suggest.go, ADR
-// 0113). The mock project's tracks carry no saved arm or selection on the wire, so the caller says which tracks are
+// The browser mock's stand-in for the host's ChapterSuggestion (apps/desktop/internal/chaptermatch/suggest.go). The mock project's tracks carry no saved arm or selection on the wire, so the caller says which tracks are
 // armed. Like the chapter-to-track mock it only covers what the mock project needs: a confirmed link, an exact or
 // whole-word-prefix name (several prefixes are the Python matcher's shortest-title pick, only uncertain), and nothing.
 

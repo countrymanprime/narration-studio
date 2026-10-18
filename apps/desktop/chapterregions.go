@@ -15,7 +15,7 @@ import (
 // This file is the host half of the chapter regions (from matched tracks) and of the credits regions: one plan of
 // REAPER regions, read from the saved .rpp and the confirmed chapter-track links, that the narrator previews and then
 // approves. Nothing is written to REAPER until ChapterRegionsCreate, and that recomputes the plan itself rather than
-// trusting bounds the UI sends back. The one command both share is create_regions (ADR 0235).
+// trusting bounds the UI sends back. The one command both share is create_regions.
 
 // Credits rows are named like the chapter table's rows (the labels are AudiobookEstimatePanel.tsx's CREDITS_LABEL), so
 // a $region render writes files named the way the table names them.
@@ -37,7 +37,7 @@ const (
 	regionAmbiguous regionRowState = "ambiguous" // several regions have this title: left alone
 )
 
-// regionBoundsTolerance is create_regions' own duplicate rule (narration_regions.lua, ADR 0235).
+// regionBoundsTolerance is create_regions' own duplicate rule (narration_regions.lua).
 const regionBoundsTolerance = 0.01
 
 // chapterRegionRow is one region the plan would ask REAPER for: a credits row ("opening" or "closing") or a narration
@@ -85,10 +85,10 @@ type chapterRegionsCreated struct {
 }
 
 // regionCreator is the one method the create step needs of the Regions role; a seam for tests. It is an alias of
-// dawport.RegionWriter (ADR 0300): the role interface this file's local seam is promoted onto.
+// dawport.RegionWriter: the role interface this file's local seam is promoted onto.
 type regionCreator = dawport.RegionWriter
 
-// regionCreatorFrom asks svc's DAW port resolver for the Regions role (ADR 0300): nil, exactly as svc.actions being nil
+// regionCreatorFrom asks svc's DAW port resolver for the Regions role: nil, exactly as svc.actions being nil
 // once was, when there is no resolver, no adapter, the capability is toggled off, or REAPER is not reachable right now.
 // createChapterRegions already turns a nil creator into bridge.ErrUnavailable.
 func regionCreatorFrom(svc hostServices) regionCreator {

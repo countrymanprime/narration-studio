@@ -3,10 +3,10 @@ import { readdirSync, readFileSync } from 'node:fs';
 import { join, relative, sep } from 'node:path';
 import { describe, expect, test } from 'vitest';
 
-// Every pill is THE pill (ADR 0600): a status pill, a type tag, a
+// Every pill is THE pill: a status pill, a type tag, a
 // speaker tag, a summary chip and a status dot are drawn by `StatusBadge`/`Badge`/`Dot` (primitives/StatusBadge.tsx),
 // `SpeakerTag` or `Pill`, never by pasting the classes. The owner saw pills of 18 to 26 px side by side because each page
-// drew its own. The header's chips are `HeaderChip` (ADR 0635). This scan reads every class string outside the primitives and counts
+// drew its own. The header's chips are `HeaderChip`. This scan reads every class string outside the primitives and counts
 // the three shapes a copy leaves behind, per file:
 // - a chip: `rounded-full` with side padding;
 // - a dot: `rounded-full` at a dot's size (6-8 px);
@@ -20,7 +20,7 @@ const PENDING: Record<string, Partial<Record<Shape, number>> & { owner: string }
   // `Badge`'s label/icon-only API has no room for). The header chips (EngineChip, TimerChip)
   // use `HeaderChip`/primitives and have no entry.
   // The Booth's REC pill and its dot: drawn with `--rec-fill`/`--rec-text`, not a `StatusTone`, since no other page ever
-  // reuses this exact maroon (ADR 0656).
+  // reuses this exact maroon.
   // The Proof notes header's sources line and the legend's dots.
   // The Booth side panel's reference category chip and speaker alias chip (SN-O63): both are text-only, so they migrate onto `Badge`.
   // The bookmark ribbon's note dot: a 6 px dot absolutely placed on the ribbon icon, which `Dot` (8 px, inline) does not size or place.
@@ -80,7 +80,7 @@ const found = Object.fromEntries(
     .filter(([, counts]) => Object.keys(counts).length > 0),
 );
 
-describe('every pill is THE pill (ADR 0600)', () => {
+describe('every pill is THE pill', () => {
   test('recognises the three copies and not the primitive-shaped things around them', () => {
     expect(shapeOf('inline-flex rounded-full border px-2 py-0.5 text-[0.72rem] uppercase')).toBe('chip');
     expect(shapeOf('size-2 flex-none rounded-full')).toBe('dot');

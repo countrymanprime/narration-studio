@@ -3,7 +3,7 @@
 // characters with their names, a flagged merge for a group BookNLP split in two, the speaker of each quoted line, and a
 // Gender property. BookNLP is an optional download in two variants: the source runs the large weights when the asset
 // registry has them installed and verified, else the small ones, and is unavailable ("BookNLP is not downloaded.") with
-// neither. The sidecar is given that one install folder and reads nothing else (ADR 0848).
+// neither. The sidecar is given that one install folder and reads nothing else.
 //
 // The sidecar's output is checked as untrusted, as the GLiNER source checks its own: the whole output, each line and each
 // field have a byte cap; a line must have exactly the fields of the format, the source booknlp, a payload of a kind BookNLP

@@ -17,7 +17,7 @@ var RefusalReasons = []Reason{
 }
 
 // ResultView is a ChapterResult as the CoverageResult binding sends it
-// (docs/utilities/recording-coverage.md, ADR 0129): the state and its reasons, the
+// (docs/utilities/recording-coverage.md): the state and its reasons, the
 // basis every result states (Q8), which run it is, and the stored report with
 // the labels the parameter hash leaves out (model and language, Q13). The
 // ledger record's fingerprints and the stored hashes stay in the host.
@@ -32,7 +32,7 @@ type ResultView struct {
 	// a current result (D11): the same number the chapter payload carries.
 	RecordedFraction *float64 `json:"recordedFraction,omitempty"`
 	// Judgement is the report judged by the narrator's thresholds, the same
-	// judgement the stage signal makes (Judge, ADR 0204). It is set for any
+	// judgement the stage signal makes (Judge). It is set for any
 	// complete result with a report, stale included (the dialog labels it as
 	// of the last check), and absent for never, a partial or failed record,
 	// or thresholds that are not valid.
@@ -71,7 +71,7 @@ type ReportView struct {
 	Paragraphs        []ParagraphLine `json:"paragraphs"`
 	Regions           []RegionLine    `json:"regions"`
 	// Gaps are the lines to redo inside the read part and Unfinished the unread start and end, derived from the
-	// stored report (ClassifyGaps, ADR 0830); both are additive.
+	// stored report (ClassifyGaps); both are additive.
 	Gaps       []GapLine  `json:"gaps"`
 	Unfinished Unfinished `json:"unfinished"`
 	// Recheck is the model cascade's second pass, straight from the stored result; nil for a plain check.

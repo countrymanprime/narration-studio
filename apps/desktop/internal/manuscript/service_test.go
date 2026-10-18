@@ -349,7 +349,7 @@ func TestResetDerivedClearsTheAnalysisLedgerDirectory(t *testing.T) {
 
 // The recording coverage service keeps its stored results (and a running check's folder) under coverage.Dir; they name
 // chapter and paragraph ids and the ledger records resetDerived also clears, so they go with them
-// (docs/utilities/recording-coverage.md, ADR 0128).
+// (docs/utilities/recording-coverage.md).
 func TestResetDerivedClearsTheRecordingCoverageDirectory(t *testing.T) {
 	project := t.TempDir()
 	results := filepath.Join(coverage.Dir(project), "results")
@@ -586,7 +586,7 @@ func TestClearRemovesTheChapterTrackMappingFileAlongsideManuscriptData(t *testin
 }
 
 // Bookmarks name chapter and paragraph ids, so replacing the manuscript (a commit with a confirmed reset) and Clear project
-// data remove them (ADR 0820). An import that resets nothing (the first one, or a replace the narrator has not confirmed)
+// data remove them. An import that resets nothing (the first one, or a replace the narrator has not confirmed)
 // keeps them.
 func TestReplaceAndClearRemoveTheBookmarksFile(t *testing.T) {
 	project := t.TempDir()
@@ -688,7 +688,7 @@ func TestReplaceAndClearRemoveThePassageMapFile(t *testing.T) {
 	}
 }
 
-// Gap reviews name chapter ids and a check's gaps, so a confirmed replace and Clear project data remove them (ADR 0842);
+// Gap reviews name chapter ids and a check's gaps, so a confirmed replace and Clear project data remove them;
 // an import that resets nothing keeps them.
 func TestReplaceAndClearRemoveTheGapReviewsFile(t *testing.T) {
 	project := t.TempDir()
@@ -730,7 +730,7 @@ func TestReplaceAndClearRemoveTheGapReviewsFile(t *testing.T) {
 	}
 }
 
-// The pickup list names chapter and paragraph ids and pickup ids made from them (ADR 0840), so replacing the manuscript and
+// The pickup list names chapter and paragraph ids and pickup ids made from them, so replacing the manuscript and
 // Clear project data remove it. An import that resets nothing keeps it.
 func TestReplaceAndClearRemoveThePickupList(t *testing.T) {
 	project := t.TempDir()
@@ -773,7 +773,7 @@ func TestReplaceAndClearRemoveThePickupList(t *testing.T) {
 }
 
 // Accepted words name chapter and paragraph ids and word ordinals, so replacing the manuscript (a commit with a confirmed
-// reset) and Clear project data remove them (ADR 0856). An import that resets nothing keeps them.
+// reset) and Clear project data remove them. An import that resets nothing keeps them.
 func TestReplaceAndClearRemoveTheAcceptedWordsFile(t *testing.T) {
 	project := t.TempDir()
 	service := New(project)
@@ -827,7 +827,7 @@ func TestReplaceAndClearRemoveTheAcceptedWordsFile(t *testing.T) {
 }
 
 // Cuts name chapter and paragraph ids and word ordinals too, so replacing the manuscript and Clear project data remove
-// editing/cuts.json as well (ADR 0856); an import that resets nothing keeps it.
+// editing/cuts.json as well; an import that resets nothing keeps it.
 func TestReplaceAndClearRemoveTheCutsFile(t *testing.T) {
 	project := t.TempDir()
 	service := New(project)
@@ -929,7 +929,7 @@ func TestReplaceAndClearRemoveTheMarksFile(t *testing.T) {
 }
 
 // Word effects name chapter and paragraph ids and word ordinals too, so replacing the manuscript and Clear project data
-// remove editing/wordfx.json as well (ADR 0856); an import that resets nothing keeps it.
+// remove editing/wordfx.json as well; an import that resets nothing keeps it.
 func TestReplaceAndClearRemoveTheWordFxFile(t *testing.T) {
 	project := t.TempDir()
 	service := New(project)
@@ -1085,7 +1085,7 @@ func TestReplaceAndClearRemoveTheSuggestionsFile(t *testing.T) {
 }
 
 // Stacks and retry modes name chapter ids and the passages and takes of the recording, so replacing the manuscript and Clear
-// project data remove editing/stacks.json as well (ADR 0858); an import that resets nothing keeps it.
+// project data remove editing/stacks.json as well; an import that resets nothing keeps it.
 func TestReplaceAndClearRemoveTheStacksFile(t *testing.T) {
 	project := t.TempDir()
 	service := New(project)

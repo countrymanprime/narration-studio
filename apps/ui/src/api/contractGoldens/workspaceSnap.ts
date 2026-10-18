@@ -1,4 +1,4 @@
-// The golden payloads for WorkspaceSnap (ADR 0855): which schema owns each file in tests/fixtures/contracts/ (see index.ts).
+// The golden payloads for WorkspaceSnap: which schema owns each file in tests/fixtures/contracts/ (see index.ts).
 import type { z } from 'zod';
 import { workspaceSnapResultSchema } from '../schemas/workspaceSnap';
 

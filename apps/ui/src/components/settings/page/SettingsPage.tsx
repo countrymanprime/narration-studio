@@ -134,7 +134,7 @@ export function SettingsPage({
         <ScopedFieldsPanel id="general" title="General" tool="General" scopes={['global']} notify={notify} />
         <KeyboardPedalsPanel notify={notify} />
         <ScopedFieldsPanel id="note-colour" title="Note colour" tool="Manuscript" scopes={['global', 'project']} notify={notify} />
-        {/* The recording check's thresholds and alignment (docs/utilities/recording-coverage.md, ADR 0131), Proposed and uncalibrated. */}
+        {/* The recording check's thresholds and alignment (docs/utilities/recording-coverage.md), Proposed and uncalibrated. */}
         <ScopedFieldsPanel
           id="recording-check"
           title="Recording check"
@@ -143,7 +143,7 @@ export function SettingsPage({
           notify={notify}
           before={({ fields, scope }) => <RecordingCheckSummary fields={fields} scope={scope} />}
         />
-        {/* The silence cleanup analyzer's own thresholds (ADR 0238 decision 4). */}
+        {/* The silence cleanup analyzer's own thresholds (apps/desktop/internal/measure/cleanup.go). */}
         <ScopedFieldsPanel id="cleanup" title="Silence cleanup" tool="Cleanup" scopes={['global', 'project']} notify={notify} />
         <ScopedFieldsPanel
           id="proof"
@@ -167,7 +167,7 @@ export function SettingsPage({
           // The narrator's own Merriam-Webster key is theirs, not a project's, so it is set in Global only.
           before={({ scope }) => scope === 'global' && <OnlineDictionaryPanel notify={notify} />}
         />
-        {/* The Global default profile and the custom profiles (ADR 0179); the project's own choice is the Delivery profile panel. */}
+        {/* The Global default profile and the custom profiles; the project's own choice is the Delivery profile panel. */}
         <KeptPanel id="delivery" title="Delivery profiles">
           <DeliveryProfilesPanel notify={notify} />
         </KeptPanel>

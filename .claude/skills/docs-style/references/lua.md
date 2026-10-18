@@ -6,5 +6,5 @@ Source: [LuaLS annotations](https://luals.github.io/wiki/annotations/).
 - Use LuaLS annotations on functions other files call: `---@param name type`, `---@return type`, `---@class`, `---@alias`. Mark optional values with `?`.
 - A comment says why, not what: the REAPER API quirk, the undo behaviour, the stale rule. Name the REAPER call and what it does in practice.
 - A REAPER behaviour you verified by hand goes in `docs/operations/reaper-verification-pass.md` or `docs/architecture/reaper-navigation.md`, not only in a comment. Mark anything not yet verified inside REAPER as pending.
-- A new or changed bridge command also updates the command table in `docs/architecture/reaper-bridge.md` and `apps/desktop/internal/bridge/wire.go`, and needs a harness test first (ADR 0066).
+- A new or changed bridge command also updates the command table in `docs/architecture/reaper-bridge.md` and `apps/desktop/internal/bridge/wire.go`, and needs a harness test first (`docs/architecture/daw-integration.md#the-daw-port`).
 - Checks today: StyLua and the bridge harness. No annotation check runs: `lua-language-server --check` is not installed in CI, and its exit code is unverified.

@@ -14,7 +14,7 @@ type Sinks = {
 };
 
 /**
- * What became of the live events since the app started (ADR 0069, failure class "live event"). An event that does not match its
+ * What became of the live events since the app started (failure class "live event"). An event that does not match its
  * schema is dropped and counted, never thrown inside the event callback; after `DEGRADED_AFTER` of them the listeners are told,
  * once, so the app can say updates may be out of date. An event of a type the UI does not know is a newer sidecar talking:
  * ignored and named once, and not counted, so an additive change never raises the notice.

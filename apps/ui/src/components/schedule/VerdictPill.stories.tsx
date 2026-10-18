@@ -13,7 +13,7 @@ const meta = { title: 'Schedule/VerdictPill', component: VerdictPill, args: at('
 export default meta;
 type Story = StoryObj<typeof meta>;
 
-// The verdict reads as words and a mark (✓, ! or ✕), never colour alone (ADR 0801: the projection can only worsen the tone).
+// The verdict reads as words and a mark (✓, ! or ✕), never colour alone (apps/ui/src/components/schedule/progress.ts: the projection can only worsen the tone).
 export const OnTrack: Story = {};
 export const Tight: Story = { args: at('2026-10-06') };
 export const Behind: Story = { args: at('2026-09-28') };

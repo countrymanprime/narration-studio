@@ -2,7 +2,7 @@
 blind comparison. Optional: importing this module raises ImportError when `resemblyzer`
 (and its required `torch`) is not installed - see
 docs/research/character-continuity-acoustic-trial.md "PyTorch and Windows-build
-verification" for whether it installed in this sandbox and what that implies for ADR 0008.
+verification" for whether it installed in this sandbox and what that implies for docs/utilities/transcript-compare.md#alignment-and-confidence.
 """
 
 from __future__ import annotations

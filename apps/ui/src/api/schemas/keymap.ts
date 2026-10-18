@@ -3,7 +3,7 @@ import { z } from 'zod';
 /**
  * The narrator's remap changes from the input registry's default keymap, stored as the `Keymap.overrides` setting's JSON text: a versioned document of only the
  * gestures that differ from the defaults, keyed by command id. Read with `parseWireJson`, never a bare
- * `JSON.parse` (ADR 0069) - a malformed document falls back to no overrides rather than failing to load Settings.
+ * `JSON.parse` - a malformed document falls back to no overrides rather than failing to load Settings.
  */
 export const keymapOverridesSchema = z.object({
   version: z.literal(1),

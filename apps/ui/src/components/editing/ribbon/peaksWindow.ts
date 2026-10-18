@@ -3,7 +3,7 @@ import type { WorkspacePeaks } from '../../../api/contracts/workspace';
 /** One column of the window: the lowest and highest sample, each -127..127. */
 export type PeakColumn = readonly [min: number, max: number];
 
-/** Decodes a peaks entry's base64 minMax into signed bytes: index 2k and 2k+1 are bucket k's minimum and maximum (ADR 0520). */
+/** Decodes a peaks entry's base64 minMax into signed bytes: index 2k and 2k+1 are bucket k's minimum and maximum. */
 function decodeEntry(peaks: Pick<WorkspacePeaks, 'minMax'>): Int8Array {
   const binary = atob(peaks.minMax);
   const bytes = new Uint8Array(binary.length);

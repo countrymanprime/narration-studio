@@ -20,6 +20,9 @@ const (
 	testDocument = "doc-1"
 	testChapter  = "c-0001"
 	testTrack    = "{TRACK-1}"
+
+	testSecondChapter = "c-0003"
+	testSecondTrack   = "{TRACK-2}"
 )
 
 // testItem is one item of the fixture .rpp's chapter track.
@@ -35,11 +38,13 @@ type testItem struct {
 }
 
 type testProject struct {
-	t       *testing.T
-	dir     string
-	rpp     string
-	items   []testItem
-	tracks  int // extra tracks with no items
+	t      *testing.T
+	dir    string
+	rpp    string
+	items  []testItem
+	tracks int // extra tracks with no items
+	// second is a second narration chapter, c-0003, on its own track with its own items (addSecondChapter).
+	second  []testItem
 	credits map[string]testCreditsTemplate
 }
 
@@ -90,8 +95,25 @@ func (p *testProject) writeManuscript(documentID, title, text string) {
 			map[string]any{"id": "p-000002", "chapterId": "c-0002", "index": 1, "text": "Copyright."},
 		},
 	}
+	if len(p.second) > 0 {
+		data["chapters"] = append(data["chapters"].([]any), map[string]any{"id": testSecondChapter, "title": "Chapter Two", "contentKind": "narration"})
+		data["paragraphs"] = append(data["paragraphs"].([]any), map[string]any{"id": "p-000003", "chapterId": testSecondChapter, "index": 2, "text": "Down the rabbit hole."})
+	}
 	encoded, _ := json.Marshal(data)
 	p.writeFile("narration-utils/manuscript/manuscript.json", string(encoded))
+}
+
+// addSecondChapter gives the project a second narration chapter, c-0003, with its own track, one item and a confirmed link,
+// so a test can check two chapters at once.
+func (p *testProject) addSecondChapter() {
+	p.t.Helper()
+	p.writeFile("media/c.wav", "RIFF"+strings.Repeat("media/c.wav", 64))
+	p.second = []testItem{{guid: "{ITEM-C}", source: "media/c.wav", position: 0, length: 8, soffs: 0, playrate: 1}}
+	p.writeManuscript(testDocument, "Chapter One", "Alice was beginning to get very tired.")
+	p.writeRPP()
+	if _, err := evidence.NewMappingStore(p.dir).Confirm(testDocument, testSecondTrack, testSecondChapter, "Chapter Two"); err != nil {
+		p.t.Fatal(err)
+	}
 }
 
 func (p *testProject) loadManuscript() (map[string]any, error) {
@@ -151,6 +173,14 @@ func (p *testProject) writeRPP() {
 		}
 	}
 	b.WriteString("  >\n")
+	if len(p.second) > 0 {
+		fmt.Fprintf(&b, "  <TRACK %s\n    NAME \"Chapter Two\"\n    TRACKID %s\n", testSecondTrack, testSecondTrack)
+		for _, item := range p.second {
+			fmt.Fprintf(&b, "    <ITEM\n      POSITION %g\n      LENGTH %g\n      MUTE 0 0\n      IGUID %s\n      NAME take\n      SOFFS %g\n      PLAYRATE 1 1 0 -1 0 0.0025\n      GUID %s-take\n      <SOURCE WAVE\n        FILE %q\n      >\n    >\n",
+				item.position, item.length, item.guid, item.soffs, strings.TrimSuffix(item.guid, "}"), item.source)
+		}
+		b.WriteString("  >\n")
+	}
 	for extra := 0; extra < p.tracks; extra++ {
 		fmt.Fprintf(&b, "  <TRACK {EXTRA-%d}\n    NAME \"Extra\"\n    TRACKID {EXTRA-%d}\n  >\n", extra, extra)
 	}

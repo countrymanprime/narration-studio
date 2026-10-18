@@ -1,4 +1,4 @@
-// Package encodeporttest is the conformance suite every Encoder and Packager row must pass (ADR 0301), and fakes it runs against.
+// Package encodeporttest is the conformance suite every Encoder and Packager row must pass, and fakes it runs against.
 // The encodeport test runs it over every registered row, so a new row cannot skip it:
 //
 //	for _, entry := range encodeport.Encoders.Entries() {

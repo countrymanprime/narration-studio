@@ -30,7 +30,7 @@ RESOURCES_DIR = Path("apps/desktop/cmd/narration-utils/resources")
 
 RESOURCES = ROOT / RESOURCES_DIR
 RUNTIME = RESOURCES / "runtime"
-# The packages of the optional analysis tools, which a sidecar loads from the asset registry's install folder (ADR 0848).
+# The packages of the optional analysis tools, which a sidecar loads from the asset registry's install folder.
 OPTIONAL_TOOL_MODULES = ("gliner", "booknlp", "transformers", "torch")
 REAPER = RESOURCES / "reaper"
 
@@ -162,7 +162,7 @@ def main() -> None:
         # self-check` to prove both load. (The other log line, "eSpeak phonetic fallback unavailable", is the phonemizer package
         # wanting a system libespeak-ng that no build has, on a dev machine too; data files do not fix it.)
         # The optional GLiNER and BookNLP downloads (extraction_gliner.py, extraction_booknlp.py) are imported at run time
-        # from the folder the asset registry installed them in, never from the freeze (ADR 0848). Their imports are plain
+        # from the folder the asset registry installed them in, never from the freeze. Their imports are plain
         # ones PyInstaller would follow on a build machine that has the packages, pulling in about 5 GB of torch and
         # transformers, so the four are excluded; verify-installable.mjs checks none of them is in the tree.
         Sidecar(
@@ -192,7 +192,7 @@ def main() -> None:
         # One of its dependencies is excluded: google_crc32c, an optional speed-up of its downloader's
         # checksum, which the frozen sidecar never runs (moonshine_engine.py).
         # sounddevice (PortAudio) is the built-in recorder's engine, the capture port's wasapi row
-        # (capture_wasapi.py, ADR 0357), so it is in the build: its DLL
+        # (capture_wasapi.py), so it is in the build: its DLL
         # (_sounddevice_data/portaudio-binaries, about 2 MB) is loaded with ctypes, and PyInstaller's own
         # sounddevice hook (pyinstaller-hooks-contrib) collects it. verify-installable.mjs checks all three
         # DLLs are in the tree, and `narration-utils --smoke` runs `manuscript-teleprompter --capabilities --verify`

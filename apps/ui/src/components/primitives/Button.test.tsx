@@ -6,7 +6,7 @@ import { IconButton } from './IconButton';
 
 afterEach(cleanup);
 
-describe('Button pending (ADR 0075)', () => {
+describe('Button pending', () => {
   it('calls onClick when it is not pending', () => {
     const onClick = vi.fn();
     render(<Button onClick={onClick}>Save</Button>);
@@ -74,8 +74,8 @@ describe('Button pending (ADR 0075)', () => {
   });
 });
 
-// The measured spec (ADR 0595). jsdom computes no Tailwind, so these read the classes that name the tokens; the atlas measures the pixels.
-describe('Button look (ADR 0595)', () => {
+// The measured spec. jsdom computes no Tailwind, so these read the classes that name the tokens; the atlas measures the pixels.
+describe('Button look', () => {
   const classes = (element: HTMLElement) => element.getAttribute('class')?.split(/\s+/) ?? [];
 
   it('is 32 px by default and 28 px at size sm, from the height tokens', () => {
@@ -128,7 +128,7 @@ describe('Button look (ADR 0595)', () => {
   });
 });
 
-describe('IconButton size (ADR 0595)', () => {
+describe('IconButton size', () => {
   it('is 32 px by default and 28 px at size sm', () => {
     render(
       <>
@@ -145,7 +145,7 @@ describe('IconButton size (ADR 0595)', () => {
   });
 });
 
-describe('IconButton pending (ADR 0075)', () => {
+describe('IconButton pending', () => {
   it('swaps its icon for a spinner, keeps its name, and ignores a press while pending', () => {
     const onClick = vi.fn();
     render(

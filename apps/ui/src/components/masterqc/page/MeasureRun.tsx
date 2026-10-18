@@ -1,5 +1,5 @@
 // The run controls Master & QC keeps above the files table (not in the mock's grid): pick files, read the measurement while it runs
-// (ADR 0015 progress), cancel, and check again. The logic is the old page's, copied because that page is deleted by the swap.
+// (docs/architecture/principles.md progress), cancel, and check again. The logic is the old page's, copied because that page is deleted by the swap.
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { apiErrorMessage } from '../../../api/errorMessage';
 import { usePort } from '../../../ports/usePort';

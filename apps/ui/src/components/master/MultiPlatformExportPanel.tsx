@@ -13,7 +13,7 @@ const DANGER = { color: 'var(--danger-text)' };
 const OK = { color: 'var(--ok-text)' };
 const MONO = "font-['IBM_Plex_Mono',ui-monospace,monospace]";
 
-/** The label a checkbox gives a profile: its platform for a built-in, its own name for a custom profile (ADR 0480: the
+/** The label a checkbox gives a profile: its platform for a built-in, its own name for a custom profile (docs/guides/using-the-app/master-and-qc.md#building-packages-for-several-platforms-at-once: the
  * project's own single delivery-profile choice is Delivery's profile card; this list is a separate, multi-select export-platform picker). */
 const platformNameFor = (profile: DeliveryProfile) => (profile.builtIn ? profile.platform : profile.name);
 
@@ -61,7 +61,7 @@ function ResultRow({ result }: { result: MultiPackageResult }) {
 
 /**
  * One mastered/encoded source's packages for several platforms in one action:
- * a checkbox per profile the host lists (the same list Master & QC's platform tabs read, ADR 0480 - the tabs
+ * a checkbox per profile the host lists (the same list Master & QC's platform tabs read, docs/guides/using-the-app/master-and-qc.md#building-packages-for-several-platforms-at-once - the tabs
  * themselves stay a single-select choice of the project's own judged profile, never repurposed here), a "Build N
  * packages" action once at least one is checked and the export job has files ready, a progress indicator and Cancel
  * while it runs, and a per-profile result row once it has (or has started to) run.

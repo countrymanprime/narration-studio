@@ -1,4 +1,4 @@
-// The mock's mastering chains (ADR 0306): a stand-in for the host's internal/masteringport registry and
+// The mock's mastering chains: a stand-in for the host's internal/masteringport registry and
 // bindings_mastering.go's answer over it. Its rows mirror the registry's rows in registration order, the default first; the
 // project's choice is kept in memory, and a choice of a row that is unknown or not available yet is refused with the host's
 // sentence, changing nothing.
@@ -8,7 +8,7 @@ import { wireClone } from './mockFixtures';
 type MockRow = Omit<MasteringProvider, 'default'>;
 
 /** internal/masteringport's rows: builtin.go, daw.go, then mastering_audacity.go (both Experimental until their owner's
- * pass, ADR 0306, ADR 0460). */
+ * pass). */
 const ROWS: MockRow[] = [
   {
     name: 'builtin',

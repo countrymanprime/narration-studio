@@ -90,7 +90,7 @@ manifest), under the per-user cache `<user cache>/narration-utils/assets/<kind>/
 all of them:** none automatic. Each is pinned in the catalog to a commit or tag, an exact size and
 a SHA-256; a newer version needs a reviewed catalog change, a new hash, a license recheck and a
 release, and never replaces an installed asset by itself. The app's own update check
-([ADR 0072](../adr/0072-the-app-updates-itself-from-this-repositorys-releases-and-never-installs-without-a-click.md))
+([ADR 0002](../adr/0002-local-models-and-tools-come-first-so-the-app-is-free-to-use.md))
 reads release metadata only and downloads no asset. The files were checked against the live
 upstream when they were pinned; where a host publishes no digest (GitHub release assets), the
 SHA-256 is the hash of the first download and is the pin.
@@ -106,7 +106,7 @@ SHA-256 is the hash of the first download and is the pin.
 | Licences | Training data (LJ Speech) is public domain; the Piper Voices repository is MIT ([LJ Speech](https://keithito.com/LJ-Speech-Dataset/)). Attribution kept in the catalog: "LJ Speech Dataset (public domain); Piper voice model by rhasspy contributors." |
 | Model card, provenance | `.../piper-voices/blob/v1.0.0/en/en_US/ljspeech/high/MODEL_CARD`; `.../tree/v1.0.0/en/en_US/ljspeech/high` |
 | Install location | `<cache>/assets/tts/piper/en_US-ljspeech-high/1.0.0/` |
-| Runtime | `piper-tts` 1.8.0 and its phonemizer and eSpeak NG data are bundled in the frozen Story Bible sidecar (GPL-family code inside an AGPL-3.0-or-later program, [ADR 0039](../adr/0039-the-project-is-licensed-agpl-3-or-later.md)); only the voice is an asset |
+| Runtime | `piper-tts` 1.8.0 and its phonemizer and eSpeak NG data are bundled in the frozen Story Bible sidecar (GPL-family code inside an AGPL-3.0-or-later program, [Contributing](../../CONTRIBUTING.md)); only the voice is an asset |
 | Feature | Story Bible name and alias preview |
 
 ### Whisper models (Transcript Compare, Teleprompter)
@@ -172,7 +172,7 @@ for the full license and provenance record.
 ### Open English WordNet dictionary (manuscript reader Look up)
 
 The JSON release is downloaded, checked against the pinned hash, unpacked, turned into one lookup index and deleted: only the
-index is kept, and the manifest records its hash ([ADR 0136](../adr/0136-an-asset-may-keep-only-a-file-built-at-install-from-its-verified-archive.md)).
+index is kept, and the manifest records its hash ([The asset manager (implemented)](../architecture/first-use-dependency-provisioning.md#the-asset-manager-implemented)).
 See [entry 11](#11-open-english-wordnet--dictionarythesaurus-lookup-story-bible-and-import-ux-briefs-d1-d2) for the licence and
 provenance record.
 
@@ -191,7 +191,7 @@ provenance record.
 ### FFmpeg encoder (render-encode-master: WAV to MP3, later M4B)
 
 Recorded in render-encode-master (deleted PRD `render-encode-master`) Phase 0 ([build verification](ffmpeg-encoder-build.md),
-[ADR 0342](../adr/0342-the-mp3-encoder-is-a-pinned-gpl-ffmpeg-build-run-as-a-separate-process-and-writes-no-tag-frame.md), Proposed);
+[encoder-assets.json](../../config/encoder-assets.json), Proposed);
 catalogued in Phase 1 (`config/encoder-assets.json`, kind `encoder`, provider `ffmpeg`, id `ffmpeg-7.1-essentials-win64`). The wheel is downloaded, checked
 against the pinned hash and unpacked, and only the executable is kept, and only when its own hash is the pinned one.
 
@@ -522,7 +522,7 @@ server this app's DAW-integration boundary explicitly disallows).
 
 **License/provenance.** WhisperLive is MIT licensed
 (`Copyright (c) 2023 Vineet Suryan, Collabora Ltd.`) — a permissive licence
-that this AGPL-3.0-or-later repository may include (ADR 0039), so porting its logic is
+that this AGPL-3.0-or-later repository may include (`CONTRIBUTING.md`), so porting its logic is
 allowed. The only obligation is preserving attribution: the ported module's header must cite
 the source repository and copyright holder, pinned to the exact upstream
 commit ported from, since MIT's condition ("the above copyright notice and
@@ -575,13 +575,13 @@ heard words that fit nothing nearby. Same reuse class as the two sources
 above: MIT, technique re-implemented from scratch rather than copied,
 attribution carried in the module's docstring, no new runtime dependency
 (Autocue's own Vosk or Sherpa-ONNX recogniser is not used; see
-[ADR 0034](../adr/0034-live-recognition-is-unconstrained-and-never-restricted-to-the-script.md)).
+[Manuscript Teleprompter](../architecture/manuscript-teleprompter.md)).
 
 ### 10. Moonshine Voice — streaming ASR candidate for the live teleprompter path
 
 **Status: adopted on Windows. Models are provisioned through the hashed asset catalog
 (`teleprompter-engines-and-input-devices.prd.md` phase 5) and the `moonshine-voice` package is pinned and frozen into the
-`manuscript-teleprompter` sidecar (phase 6, [ADR 0107](../adr/0107-moonshine-ships-inside-the-windows-teleprompter-sidecar-and-runs-only-from-a-verified-catalog-install.md)); D17 compatibility re-verified at both.** It is imported only by
+`manuscript-teleprompter` sidecar (phase 6, [Manuscript Teleprompter](../architecture/manuscript-teleprompter.md)); D17 compatibility re-verified at both.** It is imported only by
 [`moonshine_engine.py`](../../sidecars/manuscript-teleprompter/core/moonshine_engine.py), on the `--engine moonshine` path of
 [`live_asr.py`](../../sidecars/manuscript-teleprompter/core/live_asr.py). The engine choice in the app is phase 7.
 
@@ -624,12 +624,12 @@ for why two live engines are supported and how they are compared.
   dated path the library itself resolves to, never `latest`.
 - **Provisioning (delivered, phase 5)**: `internal/moonshine` (mirrors `internal/whisper`'s `Manager`
   exactly), registered as a fourth `assetProvider` (kind `moonshine`) in the existing asset registry
-  ([ADR 0079](../adr/0079-every-downloadable-asset-is-listed-installed-verified-and-removed-through-one-registry-of-providers.md)),
+  ([The asset registry (implemented)](../architecture/first-use-dependency-provisioning.md#the-asset-registry-implemented)),
   so it is installed, verified, repaired and removed through the same generic `Assets*` bindings and appears
   on Settings > Local assets with no new binding and no `hostAPIVersion` bump. Files are flat (no nested
   layout needed, unlike the risk register anticipated) and load from a pre-placed, hash-verified directory;
   the library's own downloader (`get_model_for_language`) is never called by the host.
-- **Packaging (delivered, phase 6, [ADR 0107](../adr/0107-moonshine-ships-inside-the-windows-teleprompter-sidecar-and-runs-only-from-a-verified-catalog-install.md))**: `moonshine-voice==0.1.5 ; sys_platform == 'win32'` in
+- **Packaging (delivered, phase 6, [Manuscript Teleprompter](../architecture/manuscript-teleprompter.md))**: `moonshine-voice==0.1.5 ; sys_platform == 'win32'` in
   `pyproject.toml`, hashed in `uv.lock`; the licence was read again in the pinned wheel itself
   (`moonshine_voice-0.1.5.dist-info/licenses/LICENSE`, MIT, "Copyright (c) 2025 Moonshine AI", 2026-09-23). New
   transitive dependencies on Windows: `google-crc32c` 1.8.0 (Apache-2.0), `platformdirs` (MIT), `sounddevice`
@@ -661,7 +661,7 @@ for why two live engines are supported and how they are compared.
 
 **Decision: adopt** (D1: local dataset only,
 provisioned as a downloadable asset, never a cloud API; D2: single-word definitions, synonyms and antonyms from one dataset, US
-English). See [ADR 0097](../adr/0097-the-manuscript-reader-word-lookup-uses-the-open-english-wordnet-as-a-downloadable-asset.md) (Accepted 2026-09-23).
+English). See [Dictionary look-up](../architecture/dictionary-thesaurus-integration.md) (Accepted 2026-09-23).
 
 **What it contributes.** A single offline dataset covering definitions, synonyms (same-synset members) and antonyms (an explicit
 lexical relation in WordNet-style data) for single US English words, looked up from the reader's selection menu (the backend is
@@ -673,11 +673,11 @@ Phase 7 and the UI Phase 8, both delivered).
 | --- | --- | --- | --- |
 | Princeton WordNet 3.1 | A custom, permissive "WordNet License" (BSD-like; commercial use allowed with the copyright notice retained) | Last major release 2011; effectively unmaintained | Rejected: same licence class as OEWN but stale data (11+ years of missing senses and corrections) |
 | **Open English WordNet (OEWN)** | **CC BY 4.0** ([globalwordnet/english-wordnet](https://github.com/globalwordnet/english-wordnet)) | Actively maintained, annual editions (2025 Edition, December 2025) | **Adopted**: an actively-maintained fork of Princeton WordNet's data with the same synset/definition/antonym structure, distributed under an unambiguous attribution licence |
-| Wiktionary-derived extracts | Share-alike terms (CC BY-SA), not one of the four classes in [License classes](#license-classes) | Actively maintained upstream, but no single reviewed extract artifact | Deferred for this feature (the reader's word lookup): share-alike is not yet a reviewed class in this policy; would need its own policy decision before adoption, not folded into this one. **Update (2026-09-27):** that policy decision was made, scoped narrowly to a different feature's displayed IPA data only — [ADR 0405](../adr/0405-pronunciation-stays-local-first-behind-cmu-wiktextract-and-espeak-with-merriam-webster-as-the-one-narrator-keyed-online-source.md), prep-depth Phase 8. It does not reopen this row: the reader's word lookup still has no Wiktionary/Wiktextract source, and would need its own ADR to add one |
+| Wiktionary-derived extracts | Share-alike terms (CC BY-SA), not one of the four classes in [License classes](#license-classes) | Actively maintained upstream, but no single reviewed extract artifact | Deferred for this feature (the reader's word lookup): share-alike is not yet a reviewed class in this policy; would need its own policy decision before adoption, not folded into this one. **Update (2026-09-27):** that policy decision was made, scoped narrowly to a different feature's displayed IPA data only — [ADR 0002](../adr/0002-local-models-and-tools-come-first-so-the-app-is-free-to-use.md), prep-depth Phase 8. It does not reopen this row: the reader's word lookup still has no Wiktionary/Wiktextract source, and would need its own ADR to add one |
 
 **Licence check against this project's policy.** CC BY 4.0 is the **Attribution** class in [License classes](#license-classes):
 "Allowed. Display and retain the exact required attribution and model card." AGPL-3.0-or-later (this project's own licence,
-[ADR 0039](../adr/0039-the-project-is-licensed-agpl-3-or-later.md)) has no reciprocal terms that CC BY 4.0 data would trigger
+[Contributing](../../CONTRIBUTING.md)) has no reciprocal terms that CC BY 4.0 data would trigger
 (CC BY 4.0 is not a copyleft software licence; it applies to the dataset, not to Narration Utils' own code), so bundling or
 downloading it does not affect the project's own AGPL status. This is a fresh evaluation of the dataset's own terms, not the
 Princeton WordNet License already noted as a training-data component of the spaCy models above.
@@ -701,7 +701,7 @@ shipped-asset row is [Open English WordNet dictionary](#open-english-wordnet-dic
   ([Third-party notices](../operations/ci-and-releases.md#third-party-notices))
 - **Runtime dependency**: none beyond the Go standard library. The install unpacks the release and builds one lookup index
   from it (17,174,403 bytes; about 0.7 to 2.3 s and about 300 MB of memory, once), then removes the dataset
-  ([ADR 0136](../adr/0136-an-asset-may-keep-only-a-file-built-at-install-from-its-verified-archive.md)); each lookup opens the
+  ([The asset manager (implemented)](../architecture/first-use-dependency-provisioning.md#the-asset-manager-implemented)); each lookup opens the
   index, binary-searches it with a few small reads and closes it (no server, no resident index).
   **Invocation**: kind `dictionary` in the one asset registry (`AssetsList`, `AssetsInstall`, ...), and `SystemLookup(word)`,
   which answers `asset_required` until the narrator confirms the download.

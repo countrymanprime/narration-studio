@@ -35,7 +35,7 @@ func TestNewDraftGivesContentsItsOwnGroupInsteadOfLeakingIntoPriorSection(t *tes
 	}
 }
 
-// TestNewDraftClassifiesACharactersHeadingAsReference pins ADR 0088: a
+// TestNewDraftClassifiesACharactersHeadingAsReference pins docs/guides/using-the-app/script.md: a
 // Characters section stays classified `reference` - it is not dropped and gets no special non-chapter kind - so the Story Bible
 // entries seeded from its candidates are its readable form.
 func TestNewDraftClassifiesACharactersHeadingAsReference(t *testing.T) {
@@ -280,5 +280,63 @@ func TestNewDraftSectionWithoutSubtitleSendsNoSubtitleField(t *testing.T) {
 	}
 	if strings.Contains(string(encoded), "subtitle") {
 		t.Fatalf("a section without a subtitle must not carry the field, got %s", encoded)
+	}
+}
+
+// A book's preliminary pages are usually headed ("Copyright", "Title Page"), not just loose text before chapter 1. The ones an
+// audiobook does not read are Front Matter (kind opening), so they are not recorded as chapters. What it does read (Dedication,
+// Epigraph, Foreword, Prologue, Acknowledgements, About the Author) stays narration; Contents-type material stays reference.
+func TestNewDraftClassifiesHeadedFrontMatterAsOpening(t *testing.T) {
+	cases := map[string]string{
+		"Title Page":                    "opening",
+		"Half Title":                    "opening",
+		"Copyright":                     "opening",
+		"Copyright Page":                "opening",
+		"Dedication":                    "narration",
+		"Epigraph":                      "narration",
+		"About the Author":              "narration",
+		"Glossary":                      "reference",
+		"Praise for After the Applause": "opening",
+		"Also by Adrian Crow":           "opening",
+		"Other Books by Adrian Crow":    "opening",
+		"Opening Credits":               "opening",
+		"Acknowledgements":              "narration",
+		"Foreword":                      "narration",
+		"Prologue":                      "narration",
+		"Chapter One":                   "narration",
+	}
+	for title, want := range cases {
+		paragraphs := []Paragraph{
+			{Chapter: title, Text: "Some text.", SourceIndex: 0},
+			{Chapter: "Chapter Two", Text: "Chapter two text.", SourceIndex: 1},
+		}
+		draft, err := newDraft("docx", "test.docx", paragraphs, []string{title, "Chapter Two"}, nil, nil)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if got := sectionNamed(t, draft, title).ContentKind; got != want {
+			t.Errorf("%q content kind = %q, want %q", title, got, want)
+		}
+	}
+}
+
+func TestMarkdownHeadedFrontMatterIsNotNarrated(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "book.md")
+	content := "# Copyright\nCopyright © 2026 Adrian Crow.\n\n# Dedication\nFor my mother.\n\n# Chapter One\nChapter one text.\n"
+	if err := os.WriteFile(path, []byte(content), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	draft, err := markdown(path, 1)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := sectionNamed(t, draft, "Copyright").ContentKind; got != "opening" {
+		t.Errorf("Copyright content kind = %q, want opening", got)
+	}
+	if got := sectionNamed(t, draft, "Dedication").ContentKind; got != "narration" {
+		t.Errorf("Dedication content kind = %q, want narration", got)
+	}
+	if got := sectionNamed(t, draft, "Chapter One").ContentKind; got != "narration" {
+		t.Errorf("Chapter One content kind = %q, want narration", got)
 	}
 }

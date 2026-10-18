@@ -17,11 +17,11 @@ import { TooltipTarget } from '../primitives/Tooltip';
 import type { Notify } from '../primitives/Toast';
 
 // Import runs as a host-side job; the UI only ever displays the percent and log
-// lines the host reports while polling (ADR-0015) - it never invents progress.
+// lines the host reports while polling - it never invents progress.
 const IMPORT_POLL_MS = 200;
 // Candidate manuscripts the user has said no to. Module scope, not storage, so a
 // declined offer stays quiet for the rest of the session and is offered again
-// the next time the app starts (ADR-0019).
+// the next time the app starts.
 const declinedCandidates = new Set<string>();
 const IMPORT_POLLED_PHASES: WorkJob['phase'][] = ['preparing', 'committing'];
 
@@ -52,7 +52,7 @@ export function useManuscriptImport({
     pollingPhases: IMPORT_POLLED_PHASES,
     intervalMs: IMPORT_POLL_MS,
   });
-  // The file dialog is the host's, and pressing again while it is open would open a second one (ADR 0075).
+  // The file dialog is the host's, and pressing again while it is open would open a second one.
   const choosing = usePendingAction();
   const [importSelection, setImportSelection] = useState<ManuscriptImportSelection>({});
   // Which review groups the narrator opened or closed by hand. It lives here, above the review dialog, which is swapped for a progress
@@ -66,7 +66,7 @@ export function useManuscriptImport({
   const [buildAfterImport, setBuildAfterImport] = useState(true);
   // The chained build is followed like the Story Bible page follows its own (the same hook), and its dialog clears the moment the host
   // reports success rather than waiting for a click: the app's job:ended subscriber already raises the "Story Bible rebuild complete"
-  // toast (ADR 0076), so this dialog does not also announce it.
+  // toast, so this dialog does not also announce it.
   const [buildAfterImportJob, setBuildAfterImportJob] = useWorkJob({ poll: () => api.guideBuildState(), onSuccess: () => undefined });
   const buildStarted = useRef(false);
   // The delivery profile is asked for on a first import of a project with none chosen, never on a replace (SNM-Q1). The host's profile
@@ -116,7 +116,7 @@ export function useManuscriptImport({
   // exactly once, on that transition. A checked "Build the Story Bible after import" chains straight into
   // api.guideBuild() (B3, UI-chained for the MVP: no binding change, and a build failure never unmakes the import,
   // which is already written and reported). The import dialog closes itself (like a successful Story Bible rebuild
-  // already does, ADR 0076) and a second WorkDialog picks up the build's own progress, its own toast on the app's job:ended
+  // already does) and a second WorkDialog picks up the build's own progress, its own toast on the app's job:ended
   // subscriber included.
   // The choice is saved once, after the import is written; a refusal is said in the host's words and never undoes the import.
   const saveProfile = useCallback(async () => {
@@ -290,7 +290,7 @@ export function useManuscriptImport({
         />
       )}
       {buildAfterImportJob && (
-        // Like the rebuild on the Story Bible page, the build can go on in the background (ADR 0076): the host keeps running it and the
+        // Like the rebuild on the Story Bible page, the build can go on in the background: the host keeps running it and the
         // app's job:ended subscriber says when it ends.
         <WorkDialog
           title="Build the Story Bible"

@@ -10,7 +10,7 @@ import (
 )
 
 // ExtractionBible lets the extraction apply step write the Story Bible through the commands the Service already has, so the lock rule
-// (ADR 0007) and the sidecar's own checks hold for every write. It writes no file itself.
+// and the sidecar's own checks hold for every write. It writes no file itself.
 func (s *Service) ExtractionBible() apply.Bible { return extractionBible{s} }
 
 type extractionBible struct{ s *Service }

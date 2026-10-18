@@ -73,7 +73,7 @@ func (h *Host) takeReviewRunnerFor(svc hostServices) takereview.SidecarRunner {
 }
 
 // takeReviewCreateTake sends the create_take bridge command for a narrator-approved candidate. The request carries the
-// finding id (provenance, ADR 0098), the target item's own GUID (the narrator chooses it explicitly; this method never preselects one), the candidate's
+// finding id (provenance), the target item's own GUID (the narrator chooses it explicitly; this method never preselects one), the candidate's
 // own item GUID when it has one, its source file, and the matched span's range within that source. It does not
 // change the finding's review status in the store: the narrator decides that on the Review page, which offers this
 // action only for a finding they accepted.

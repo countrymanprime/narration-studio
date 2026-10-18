@@ -286,7 +286,7 @@ def _live_asr():
     return module
 
 
-# --capabilities --verify exits by the Moonshine verdict (ADR 0403), through
+# --capabilities --verify exits by the Moonshine verdict, through
 # _VERIFY_HOOKS[("asr", "moonshine")] calling this module's self_check().
 @pytest.mark.parametrize(("ok", "code"), [(True, None), (False, 1)])
 def test_capabilities_verify_exits_by_the_moonshine_verdict_without_wav_or_mic(monkeypatch, capsys, ok, code):

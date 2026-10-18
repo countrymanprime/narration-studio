@@ -1,6 +1,6 @@
 -- The edit and proof workspace's REAPER actions, over the bridge (the calls are in
 -- docs/research/reaper-api-for-planned-commands.md): set_active_take ("Use this take"), and FX chains as
--- the owner decided on 2026-09-25 (ADR 0234): an FX chain goes on a track or the master track only (list_fx_chains,
+-- the owner decided on 2026-09-25: an FX chain goes on a track or the master track only (list_fx_chains,
 -- apply_fx_chain). A chain on a passage of a take is apply_fx_range (narration_range.lua).
 -- Loaded by narration_ui_bridge.lua, which passes the shared helpers as the chunk argument.
 --
@@ -182,7 +182,7 @@ local function find_track(guid_text)
   return nil
 end
 
--- An FX chain goes on a whole track or the master track, never on an item or take (ADR 0234): TrackFX_AddByName with
+-- An FX chain goes on a whole track or the master track, never on an item or take: TrackFX_AddByName with
 -- the chain's full path, built here from REAPER's resource path, in one undo block.
 local function apply_fx_chain(session_dir, run_id, track_text, name)
   if not reaper.APIExists('TrackFX_AddByName') or not reaper.APIExists('TrackFX_GetCount') or not reaper.APIExists('GetMasterTrack') then

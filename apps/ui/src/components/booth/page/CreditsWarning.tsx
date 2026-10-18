@@ -3,7 +3,7 @@ import { TooltipTarget } from '../../primitives/Tooltip';
 
 /**
  * The credits' unresolved-token warning in the top bar's resume slot: the tokens with no value read as written, in brackets, and
- * recording is still allowed (ADR 0150). The chip opens Settings > Credits through the Booth's leave guard.
+ * recording is still allowed. The chip opens Settings > Credits through the Booth's leave guard.
  */
 export function CreditsWarning({ tokens, onFix }: { tokens: readonly string[]; onFix: () => void }) {
   if (tokens.length === 0) return null;

@@ -14,7 +14,7 @@ export const systemGoldens: Record<string, z.ZodType> = {
   'system-notice.json': noticeSchema,
   'job-ended-success.json': jobEndedSchema,
   'job-ended-error.json': jobEndedSchema,
-  // The provider-port level vocabulary (ADR 0301): not on the wire yet; the Go internal/port test writes it for Python to read back.
+  // The provider-port level vocabulary: not on the wire yet; the Go internal/port test writes it for Python to read back.
   'port-levels.json': z.object({
     levels: z.array(
       z.object({

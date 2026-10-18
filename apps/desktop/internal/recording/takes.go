@@ -37,7 +37,7 @@ type Take struct {
 	Unfinished bool `json:"unfinished"`
 	// LineID is the take's composed line identity (ComposeLineID), or nil when it carries none yet. It is read
 	// from the folder's line-identity sidecar (identity.go), the native-take equivalent of a REAPER item's stamped
-	// P_EXT line id (docs/adr/0026).
+	// P_EXT line id.
 	LineID *string `json:"lineId"`
 	// Keeper marks this take the narrator's chosen read for its line (keeper.go): narrator-confirmed
 	// and always undoable, and never a REAPER active-take equivalent since a native take has no REAPER item.

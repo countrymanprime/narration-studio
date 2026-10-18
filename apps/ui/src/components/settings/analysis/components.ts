@@ -1,6 +1,6 @@
 import type { AssetCatalog, AssetInstallJob, AssetItem } from '../../../types';
 
-/** The registry kind the optional Story Bible analysis tools are listed under (ADR 0847). */
+/** The registry kind the optional Story Bible analysis tools are listed under. */
 export const ANALYSIS_KIND = 'analysis';
 
 /** Where a tool is, as its row's pill says it. */

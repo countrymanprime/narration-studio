@@ -1,11 +1,11 @@
 -- Take creation over the bridge: create_take (the spike docs/research/take-review-spike-p1-take-mechanics.md and
--- ADR 0098). Loaded by
+-- integrations/reaper/narration_take_review.lua). Loaded by
 -- narration_ui_bridge.lua, which passes the shared helpers as the chunk argument.
 
 local core = ...
 local event, pipe_fields = core.event, core.pipe_fields
 
--- Namespaced take extension data (ADR 0098, extending ADR 0026 to take granularity): which finding produced this
+-- Namespaced take extension data (extending docs/architecture/manuscript-line-identity.md to take granularity): which finding produced this
 -- take, the candidate's source file, and the matched source range within it. Never item notes or take names.
 local FINDING_ID_KEY = 'P_EXT:narration_utils_take_finding_id'
 local SOURCE_FILE_KEY = 'P_EXT:narration_utils_take_source_file'
@@ -69,7 +69,7 @@ local function read_create_take_payload(path)
 end
 
 -- Adds one candidate source range as a new take on the target item: AddTakeToMediaItem, set source, align
--- D_STARTOFFS to the matched span's start inside the candidate's own source, write the three provenance keys (ADR 0098),
+-- D_STARTOFFS to the matched span's start inside the candidate's own source, write the three provenance keys,
 -- all inside one Undo_BeginBlock2/Undo_EndBlock2 block. Never calls SetActiveTake (the previously active take stays
 -- active - nothing asks it to switch) and never touches the item's D_LENGTH, matching the spike's observations.
 -- Undo and redo replace REAPER's item/take Lua objects project-wide (the spike's warning), so this re-resolves the

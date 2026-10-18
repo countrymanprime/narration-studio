@@ -2,8 +2,8 @@ import type { ChapterTrackMatch, RecordedEnd } from './chapterTrackMap';
 import type { WhisperInstallState, WhisperModel } from './whisper';
 
 /**
- * The live engines (ADR 0021): both speak the same event contract. Which of them this computer can launch is the choices of the
- * host's `Teleprompter.engine` setting (Moonshine only on Windows, ADR 0107).
+ * The live engines: both speak the same event contract. Which of them this computer can launch is the choices of the
+ * host's `Teleprompter.engine` setting (Moonshine only on Windows).
  */
 export type TeleprompterEngine = 'whisper' | 'moonshine';
 
@@ -27,7 +27,7 @@ export type TeleprompterPosition = {
 export type TeleprompterFlagKind = 'misread' | 'extra' | 'skipped' | 'restart';
 
 /**
- * A suspected reading error the sidecar raised when a speech segment closed (`flags.py`, ADR 0115). Always only suspected:
+ * A suspected reading error the sidecar raised when a speech segment closed (`flags.py`). Always only suspected:
  * live recognition is not proof, and Transcript Compare over the recorded take stays authoritative. `start`/`end` are script
  * word indices (the space of `TeleprompterPosition.read`): the misread, skipped or re-read words are `[start, end)`, and an
  * `extra` is zero-width (`start === end`), sitting before the word at `start`. `heard` is what was heard in their place ('' for
@@ -36,7 +36,7 @@ export type TeleprompterFlagKind = 'misread' | 'extra' | 'skipped' | 'restart';
 export type TeleprompterFlag = { type: 'flag'; id: number; kind: TeleprompterFlagKind; start: number; end: number; heard: string };
 
 /**
- * One flag as the read-aloud dialog sends it to be kept (`TeleprompterSaveFlags`, ADR 0117): its words within one
+ * One flag as the read-aloud dialog sends it to be kept (`TeleprompterSaveFlags`): its words within one
  * manuscript paragraph (`[wordStart, wordEnd)`, the reader's own word split; an `extra` covers the one word it was heard
  * before), the event's chapter word indices as evidence, what was heard, and whether the narrator dismissed it. The host
  * reads the paragraph itself, so the expected text and the finding's id come from the manuscript.
@@ -108,7 +108,7 @@ export type TeleprompterState = {
   /** The chapter id or title the session was started with. */
   chapter: string | null;
   /**
-   * A running session whose listening is paused (`teleprompterPause`, ADR 0248): the phase stays `running`, the microphone and
+   * A running session whose listening is paused (`teleprompterPause`): the phase stays `running`, the microphone and
    * its level stay live, the tracker holds its word. Absent from a host before host API 55, which reads as not paused.
    */
   paused?: boolean;
@@ -124,8 +124,8 @@ export type TeleprompterStartOptions = (
     }
   | {
       /**
-       * Read the opening or closing credits instead of a chapter (ADR 0150).
-       * The host renders the text itself from the first template of that kind (ADR 0093), so only the kind is sent; the
+       * Read the opening or closing credits instead of a chapter.
+       * The host renders the text itself from the first template of that kind, so only the kind is sent; the
        * session's `chapter` and its `script` event's `chapter.id` are then `credits-<kind>`.
        */
       credits: 'opening' | 'closing';
@@ -173,7 +173,7 @@ export type TeleprompterLocated = {
 };
 
 /**
- * Why a locate has a resume word or not (ADR 0111): `found` and
+ * Why a locate has a resume word or not: `found` and
  * `low_confidence` carry one (only `found` is confident); `not_found` heard nothing that fits; `no_track` has no confirmed
  * or confident track (the narrator picks one from `match`); `no_recording` has nothing audible on the track; `source_missing`
  * and `source_unsupported` cannot read the last item's source file.
@@ -212,7 +212,7 @@ export type TeleprompterLocateResult =
       /** The host's reconciliation of `located` with `lastReading`: render it, never recompute it. */
       verdict: TeleprompterResumeVerdict;
       /**
-       * Where `recordedEnd` came from (ADR 0349): `live` is REAPER's answer ("in REAPER
+       * Where `recordedEnd` came from: `live` is REAPER's answer ("in REAPER
        * now"), `saved` the saved project ("as of the project's last save"). Absent when no track was read.
        */
       dawSource?: TeleprompterDawSource;
@@ -266,7 +266,7 @@ export type TeleprompterLocateOptions = {
 };
 
 /** One input device the sidecar's `--list-devices` reported, by the exact name its capture path opens it under. */
-/** Where the prompter last was in a chapter (ADR 0205): the host writes it when a
+/** Where the prompter last was in a chapter: the host writes it when a
  * chapter session ends and reads it back only while the chapter's text is unchanged (`scriptHash`). `read` is the index
  * space of a position event's `read` and of locate's `word`. The locate result carries it as `lastReading`. */
 export type TeleprompterReading = {
@@ -289,7 +289,7 @@ export type TeleprompterDevice = { name: string };
 export type TeleprompterDevicesResult = { devices: TeleprompterDevice[]; error: string | null };
 
 /**
- * Whether REAPER is ready to record a chapter with reading (`ReadAloudReaperState`, ADR 0249):
+ * Whether REAPER is ready to record a chapter with reading (`ReadAloudReaperState`):
  * `ready` only when the chapter's linked track is the one track armed and REAPER is not recording. `reason` qualifies `no_link`
  * (`unlinked`, `several_links`, `track_missing`) and `unavailable` (`standalone`, `not_running`, `experimental_off`, `failed`).
  * `armedCount`, `playing` and `recording` are what REAPER said; `armedCount` is absent when it was not asked.
@@ -345,7 +345,7 @@ export type ReadAloudRecording = {
 };
 
 /**
- * Which microphone REAPER records from (`TeleprompterReaperInput`, ADR 0250). The
+ * Which microphone REAPER records from (`TeleprompterReaperInput`). The
  * picker preselects `device` only when `status` is `matched`, and shows `message` as the reason; `uncertain` names the `candidates`
  * that fit equally well; `no_match` and `unavailable` (with a `reason`) leave the list and the narrator's choice alone.
  */
@@ -376,7 +376,7 @@ export type TeleprompterPunchResult = {
 };
 
 /**
- * `TeleprompterResumeFollow` / `TeleprompterResumeUnfollow` (ADR 0353): whether the
+ * `TeleprompterResumeFollow` / `TeleprompterResumeUnfollow`: whether the
  * host now follows REAPER for the resume prompt; not with no track to follow (`no_track`) or no way to ask REAPER
  * (`unavailable`: no DAW, REAPER not reachable, or track state switched off).
  */
@@ -397,7 +397,7 @@ export interface TeleprompterApi {
   teleprompterPunchPreview(word: number): Promise<TeleprompterPunchResult>;
   /** Move REAPER's edit cursor to `word`'s resolved time minus the pre-roll. */
   teleprompterPunch(word: number): Promise<TeleprompterPunchResult>;
-  /** Keep a session's flags as suspected, unreviewed findings; answers one finding per flag, in order (ADR 0117). */
+  /** Keep a session's flags as suspected, unreviewed findings; answers one finding per flag, in order. */
   teleprompterSaveFlags(chapterId: string, flags: TeleprompterFlagSave[]): Promise<TeleprompterFlagFinding[]>;
   teleprompterState(): Promise<TeleprompterState>;
   teleprompterDevices(): Promise<TeleprompterDevicesResult>;
@@ -407,7 +407,7 @@ export interface TeleprompterApi {
    */
   teleprompterMeterStart(device: string): Promise<void>;
   teleprompterMeterStop(): Promise<void>;
-  /** Pause (true) or resume (false) a running session's listening without ending it; flags are kept only on Stop (ADR 0117). */
+  /** Pause (true) or resume (false) a running session's listening without ending it; flags are kept only on Stop. */
   teleprompterPause(paused: boolean): Promise<void>;
   /** Ask REAPER, once, whether it is ready to record `chapterId` with reading; read-only. Ask on open, toggle, Play and Refresh, never on a timer. */
   readAloudReaperState(chapterId: string): Promise<ReadAloudReaperState>;

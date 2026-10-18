@@ -1,4 +1,4 @@
-// Package evidence is the analysis evidence platform (ADR 0100): source
+// Package evidence is the analysis evidence platform: source
 // identity, fingerprints, the analysis ledger, a per-item result cache, the
 // staleness evaluator and the confirmed chapter-track mapping. It answers which
 // audio a stored result describes and whether that is still the audio the

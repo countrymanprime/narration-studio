@@ -2,7 +2,7 @@
 // apps/desktop/bindings_production.go's ProductionPlan, ProductionSetDeadline, ProductionSetPayment and ProductionSaveMilestones
 // do, with the same refusals (internal/production/plan.go): an impossible date, a negative amount, an amount under a royalty share
 // or none, an unknown payment type, a milestone with no name or a bad measure, estimate or template. The overview and timer follow the same
-// arithmetic and "Next up" order as the host (apps/desktop/internal/production/overview.go, ADR 0404) over the mock's own
+// arithmetic and "Next up" order as the host (apps/desktop/internal/production/overview.go) over the mock's own
 // chapters, stage recommendations and plan, and the stage timer. `?mockProduction=on-pace|at-risk` seeds a time log and a plan
 // (PRODUCTION_SCENARIOS); with no seed nothing is logged or set, which is what a narrator sees first.
 import type { ChapterStatus, ManuscriptChapter } from './contracts/manuscript';
@@ -281,7 +281,7 @@ function nextUp(chapters: ProductionChapter[]): ProductionNextUpItem[] {
 const defaultPaymentFor = (profileId: string): ProductionPayment | null => (profileId === 'acx' ? 'per_finished_hour' : null);
 
 /** The production API, and the step the project's delivery-profile choice takes on the plan: a payment still unset takes the profile's default,
- * one the narrator set (an explicit `none` too) is kept (apps/desktop/delivery_profiles.go selectDeliveryProfile, ADR 0800). */
+ * one the narrator set (an explicit `none` too) is kept (apps/desktop/delivery_profiles.go selectDeliveryProfile). */
 export function createProductionMock(deps: Deps): ProductionApi & { applyProfileDefaultPayment: (profileId: string) => void } {
   const seed = deps.seed ?? {};
   let plan: StoredPlan = {
@@ -420,7 +420,7 @@ export function createProductionMock(deps: Deps): ProductionApi & { applyProfile
         contractedAmountIncluded: includeContractedAmount,
       };
     },
-    // The host's own document (ADR 0843) in miniature: the mock builds the page from the same overview it answers, leaves
+    // The host's own document in miniature: the mock builds the page from the same overview it answers, leaves
     // the contracted amount and rate out unless asked, and says "Not available" for a figure it cannot give.
     productionStatusReportPreview: async (includeContractedAmount): Promise<ProductionReportPreview> => {
       const { totals, deadline } = await overview();

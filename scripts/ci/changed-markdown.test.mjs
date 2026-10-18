@@ -8,9 +8,9 @@ import test from 'node:test';
 import { changedMarkdownFiles, isMarkdownFile, parseChangedFiles } from './changed-markdown.mjs';
 
 test('parseChangedFiles reads an added and a modified file', () => {
-  const output = ['A', 'docs/adr/0415-new.md', 'M', 'README.md'].join('\0') + '\0';
+  const output = ['A', 'docs/operations/ci-and-releases.md', 'M', 'README.md'].join('\0') + '\0';
 
-  assert.deepEqual(parseChangedFiles(output), ['docs/adr/0415-new.md', 'README.md']);
+  assert.deepEqual(parseChangedFiles(output), ['docs/operations/ci-and-releases.md', 'README.md']);
 });
 
 test('parseChangedFiles takes the new path of a rename, not the old one', () => {
@@ -30,10 +30,10 @@ test('parseChangedFiles reports nothing for empty output', () => {
 });
 
 test('isMarkdownFile matches .md case-insensitively and rejects everything else', () => {
-  assert.equal(isMarkdownFile('docs/adr/0415-new.md'), true);
+  assert.equal(isMarkdownFile('docs/operations/ci-and-releases.md'), true);
   assert.equal(isMarkdownFile('README.MD'), true);
   assert.equal(isMarkdownFile('apps/desktop/app.go'), false);
-  assert.equal(isMarkdownFile('docs/adr/0415-new.md.bak'), false);
+  assert.equal(isMarkdownFile('docs/operations/ci-and-releases.md.bak'), false);
 });
 
 test('changedMarkdownFiles with includeWorkingTree also reports an uncommitted edit and an untracked file', () => {

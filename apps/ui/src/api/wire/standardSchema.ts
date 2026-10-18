@@ -1,6 +1,6 @@
 // The Standard Schema V1 interface (https://standardschema.dev), copied as the spec asks libraries to do: it is a
 // types-only contract, so copying it adds no dependency. `parseWire` accepts anything that implements it, which keeps Zod
-// (ADR 0069) replaceable by Valibot, ArkType or a hand-written parser without touching a caller.
+// replaceable by Valibot, ArkType or a hand-written parser without touching a caller.
 
 export interface StandardSchemaV1<Input = unknown, Output = Input> {
   readonly '~standard': StandardSchemaProps<Input, Output>;

@@ -4,8 +4,8 @@ import type { WorkspaceSnapRefusal, WorkspaceSnapResult } from '../api/contracts
 import { mockSnapTime } from '../api/workspaceSnapMock';
 import type { NarrationApi } from '../types';
 
-// The alignment port (ADR 0855): what the recording sounds like, word by word, read from the chapter's stored alignment
-// (ADR 0242). It never runs an alignment or a check: a chapter with nothing transcribed answers null with the reason.
+// The alignment port: what the recording sounds like, word by word, read from the chapter's stored alignment
+// It never runs an alignment or a check: a chapter with nothing transcribed answers null with the reason.
 // The page asks this for words and never knows the recogniser; a later source replaces the adapter and no caller changes.
 // `snap` moves a cut point to the nearest zero crossing within 2 ms, computed by the host from the item's audio.
 
@@ -65,7 +65,7 @@ function heardFrom(result: WorkspaceAlignmentResult): HeardAnswer {
   const reasons = result.reasons;
   if (result.state === 'never') return { heard: null, reason: NEVER, reasons };
   if (result.needsAlignAgain) return { heard: null, reason: ALIGN_AGAIN, reasons };
-  // A payload from before ADR 0855 names no engine: its words cannot say who heard them.
+  // A payload from before apps/desktop/internal/coverage/workspace.go names no engine: its words cannot say who heard them.
   if (!result.engine) return { heard: null, reason: NEVER, reasons };
   const after = new Map<number, HeardWord[]>();
   const leading: HeardWord[] = [];

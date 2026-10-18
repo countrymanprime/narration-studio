@@ -62,7 +62,7 @@ type DiagnosticOptions struct {
 }
 
 // DefaultDiagnosticOptions are starting thresholds for a narrator who has
-// set none. They are not a delivery specification (ADR 0025): each is
+// set none. They are not a delivery specification: each is
 // shown with its findings and can be changed.
 func DefaultDiagnosticOptions() DiagnosticOptions {
 	return DiagnosticOptions{
@@ -108,7 +108,7 @@ type DiagnosticInput struct {
 	// Nil means there is none, so pacing is unavailable.
 	Words []Word
 	// Progress, when set, is told the audio bytes read so far, as for
-	// AnalyzeContext (ADR 0015).
+	// AnalyzeContext.
 	Progress Progress
 	// Cleanup are the silence cleanup thresholds (cleanup.go); zero means
 	// DefaultCleanupOptions.

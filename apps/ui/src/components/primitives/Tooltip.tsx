@@ -6,7 +6,7 @@ import { lastInputWasKeyboard } from './inputModality';
 
 // A hint waits for the pointer to rest for a second (keyboard focus shows it at once). It stays while it is hovered or
 // focused, does not move when the pointer travels onto it, and Escape dismisses it, which is what WCAG 1.4.13 asks of
-// content that appears on hover or focus (ADR 0049).
+// content that appears on hover or focus.
 const HOVER_DELAY_MS = 1000;
 
 // The popup sits 5 px clear of its target when it is above it and 13 px when it flipped below, within a pixel of where the

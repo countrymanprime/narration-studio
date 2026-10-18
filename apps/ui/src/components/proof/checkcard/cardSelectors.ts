@@ -45,7 +45,7 @@ export function staleWhy(result: CoverageResult): StaleWhy {
 /** Whether the chapter has a measured recording. Without one a stored check cannot be current: there is nothing for it to be a check of. */
 export const hasRecording = (seconds: number | undefined): boolean => seconds !== undefined && seconds > 0;
 
-/** Why a chapter has no measured recording, in the words Production and the engine panel use (ADR 0193), and whether the audio engine panel is where to fix it. */
+/** Why a chapter has no measured recording, in the words Production and the engine panel use, and whether the audio engine panel is where to fix it. */
 export const NO_RECORDING_WHY: Record<RecordedUnavailable, { text: string; engine: boolean }> = {
   unlinked: { text: 'No track is linked to it.', engine: true },
   multiple_tracks: { text: 'More than one track is linked to it.', engine: true },
@@ -67,7 +67,7 @@ export const checkSentence = (differences: number): string =>
 export const asOfLabel = (result: CoverageResult): string | undefined =>
   result.basis ? `As of last save · ${formatWhen(result.basis.modifiedAt)}` : undefined;
 
-/** An unfinished start or end is a sentence, never a count of pickups (ADR 0830). */
+/** An unfinished start or end is a sentence, never a count of pickups. */
 export function unfinishedSentence(result: CoverageResult): string | undefined {
   const unfinished = result.result?.unfinished;
   if (!unfinished) return undefined;

@@ -11,7 +11,7 @@ import (
 	"github.com/countrymanprime/narration-utils/shell/internal/dawport/reaper"
 )
 
-// renderConfigurerRole wraps client in the REAPER adapter (ADR 0300) and takes its RenderConfigurer
+// renderConfigurerRole wraps client in the REAPER adapter and takes its RenderConfigurer
 // role, the way the composition root does (apps/desktop/app.go), so these tests exercise the real bridge round
 // trip through the same port the service now depends on.
 func renderConfigurerRole(t *testing.T, client *bridge.Client) dawport.RenderConfigurer {
@@ -185,7 +185,7 @@ func TestHandleErrorReportsTheMessage(t *testing.T) {
 	}
 }
 
-// A fan-out sharing test (bridge.Client fans events out by tag and run, ADR 0068): a second subscriber on the
+// A fan-out sharing test (bridge.Client fans events out by tag and run): a second subscriber on the
 // same client must not steal or lose this service's event.
 func TestDrainSharesTheBridgeWithAnotherConsumerWithoutLosingOrStealingEvents(t *testing.T) {
 	service, session := testService(t)

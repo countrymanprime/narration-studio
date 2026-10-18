@@ -37,7 +37,7 @@ function Layer({ entry }: { entry: DialogEntry }) {
 
 /**
  * Draws what the service holds in the existing primitives. Mount it once, at the root. The live region for `announce` is rendered here
- * with `aria-live`, outside any dialog, so Base UI keeps it audible while a modal hides the rest of the page (ADR 0048).
+ * with `aria-live`, outside any dialog, so Base UI keeps it audible while a modal hides the rest of the page.
  */
 export function OverlayHost({ service = overlay }: { service?: OverlayService }) {
   const { dialogs, toasts, announcement } = useSyncExternalStore(service.subscribe, service.getSnapshot);

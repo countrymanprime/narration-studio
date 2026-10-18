@@ -1,4 +1,4 @@
-// The stack record and the retry choice (ADR 0858), kept in the project's narration-utils/editing/stacks.json
+// The stack record and the retry choice, kept in the project's narration-utils/editing/stacks.json
 // (apps/desktop/internal/editlog/stacks.go) apart from the passage list, so re-reading the passages from a newer Booth map keeps
 // them. A stack is the host's memory of the takes the DAW stacked on a passage's first read, with where each began before,
 // in seconds after the first read's start, so un-stacking can put it back after a restart. It is recorded only after the DAW

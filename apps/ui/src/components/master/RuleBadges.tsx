@@ -6,8 +6,7 @@ import { StatusBadge, toneColors, type StatusTone, type BadgeLook } from '../pri
 
 // The small status marks of Master & QC: a rule's result,
 // how its requirement was verified, and the profile's counts. The words carry the meaning; the colour and icon repeat it.
-// `Mark` draws through StatusBadge, the one badge primitive (ADR
-// 0600): a tone that was already a fill (`ok`, `danger`, `info`) stays soft; one that was outline-only (`warn`, `muted`)
+// `Mark` draws through StatusBadge, the one badge primitive: a tone that was already a fill (`ok`, `danger`, `info`) stays soft; one that was outline-only (`warn`, `muted`)
 // keeps that look, so DeliveryProfilesPanel's "Built in"/"Custom" tags and DeliveryProfileEditor's marks are unchanged.
 
 type Tone = 'ok' | 'danger' | 'info' | 'warn' | 'muted';

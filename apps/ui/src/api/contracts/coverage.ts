@@ -1,7 +1,7 @@
 import type { Finding } from './findings';
 import type { WhisperInstallState, WhisperModel } from './whisper';
 
-// Recording coverage (docs/utilities/recording-coverage.md, ADR 0129): a check of one chapter's saved recording
+// Recording coverage (docs/utilities/recording-coverage.md): a check of one chapter's saved recording
 // against its manuscript text, run only when the narrator asks, and the stored result read back as current,
 // stale or never. The host shapes are apps/desktop/bindings_coverage.go and apps/desktop/internal/coverage/view.go.
 
@@ -48,7 +48,7 @@ export type CoverageReason = CoverageRefusalReason | CoverageEvaluatorReason;
 export type CoveragePhase = 'idle' | 'running' | 'complete' | 'cancelled' | 'failed';
 
 /** The one check the host runs at a time, or the last one that ended. Sent by CoverageState and the `coverage:state` event. */
-/** Which sidecar pass is running now (ADR 0344): set only for a run that asked for a
+/** Which sidecar pass is running now: set only for a run that asked for a
  * re-check. "first_pass" is every run's own first launch; the other three only ever follow it. */
 export type CoveragePass = 'first_pass' | 'recheck_windows' | 'recheck_whole' | 'realign';
 
@@ -56,7 +56,7 @@ export type CoverageState = {
   runId?: string;
   chapterId?: string;
   phase: CoveragePhase;
-  /** Real progress from the sidecar (ADR 0015); it never moves backwards. */
+  /** Real progress from the sidecar; it never moves backwards. */
   percent: number;
   stage?: string;
   message: string;
@@ -64,7 +64,7 @@ export type CoverageState = {
   recordId?: string;
   startedAt?: string;
   completedAt?: string;
-  /** The host started this check on its own (ADR 0211): label it "(background)". The
+  /** The host started this check on its own: label it "(background)". The
    * narrator's own Check pre-empts it. The host always sends it; absent reads as false (a state the page builds itself). */
   background?: boolean;
   /** Which pass is running, and the models involved, for a cascade-enabled run only; absent for a plain,
@@ -75,7 +75,7 @@ export type CoverageState = {
   recheckWindows?: number;
 };
 
-/** The re-check model's own asset gate (ADR 0351): the same shape as asset_required, kept apart so the UI can
+/** The re-check model's own asset gate: the same shape as asset_required, kept apart so the UI can
  * offer "Check with tiny only" beside the download, instead of blocking the check the way a missing first-pass
  * model does. */
 type ModelAssetRequired = {
@@ -94,11 +94,11 @@ export type CoverageStartResult =
 
 /** CoverageStart's own options: skipRecheck starts a cascade-enabled chapter with the first pass alone -
  * "Check with tiny only" - regardless of what the re-check settings or its install state are. model names one of
- * the engines coverageEngines lists to run alone, replacing the cascade for that run (ADR 0841). */
+ * the engines coverageEngines lists to run alone, replacing the cascade for that run. */
 export type CoverageStartOptions = {
   skipRecheck?: boolean;
   model?: string;
-  /** Turns the second pass on or off whatever the cascade setting says; with recheckModel and recheckBelow it is ADR 0864. */
+  /** Turns the second pass on or off whatever the cascade setting says; with recheckModel and recheckBelow it is docs/utilities/recording-coverage.md. */
   recheck?: boolean;
   /** The larger model of the second pass: one of the engines coverageEngines lists. */
   recheckModel?: string;
@@ -110,13 +110,15 @@ export type CoverageStartOptions = {
   chunkSeconds?: number;
   /** How many seconds neighbouring chunks overlap, where their words are joined. */
   overlapSeconds?: number;
+  /** How many chapters one Check recordings run checks at once. Each start of the run names it, so the host allows that many in progress. */
+  chapters?: number;
 };
 
-/** One engine a recording check can run: an approved Whisper model (ADR 0841). Moonshine is the Booth's, not offered. */
+/** One engine a recording check can run: an approved Whisper model. Moonshine is the Booth's, not offered. */
 export type CoverageEngine = { id: string; label: string; family: 'whisper'; installState: WhisperInstallState };
 
 /** What a start naming no option would do besides the first-pass model: the second pass, the passages it takes and how a long
- * item is cut up (ADR 0864). `recheckModel` is always one of the listed engines. */
+ * item is cut up. `recheckModel` is always one of the listed engines. */
 export type CoverageRunDefaults = {
   recheck: boolean;
   recheckModel: string;
@@ -124,6 +126,7 @@ export type CoverageRunDefaults = {
   workers: number;
   chunkSeconds: number;
   overlapSeconds: number;
+  chapters: number;
 };
 
 /** The engines a recording check can run, in catalog order, the id a start naming none would use (always listed) and
@@ -160,25 +163,25 @@ export type CoverageRegion = {
   lastWord: string;
   /** Where the missing text would sit. */
   position?: CoverageRegionPosition;
-  /** The end of the last matched word before the region (ADR 0168); absent before a head, when nothing was said, and in an older result. */
+  /** The end of the last matched word before the region; absent before a head, when nothing was said, and in an older result. */
   before?: CoverageRegionPosition;
   /** The start of the first matched word after the region; absent after a tail, when nothing was said, and in an older result. */
   after?: CoverageRegionPosition;
 };
 
-/** The model cascade's second pass over this report (ADR 0344): Model stays the
+/** The model cascade's second pass over this report: Model stays the
  * report's own top-level model (the first pass, for compatibility) - this is the other one. Absent for a plain,
  * single-model check. Every region still listed on a report with a recheck was re-checked and still missing: the
  * planner windows every region a first pass reports (or, wholeChapter, re-transcribes the whole chapter), so a
  * region surviving realignment was seen by both models. */
 export type CoverageRecheck = { model: string; wholeChapter: boolean; windows: number; seconds: number };
 
-/** What a gap in the recording is (ADR 0830): script not said, words said that are not in the script, other words in
+/** What a gap in the recording is: script not said, words said that are not in the script, other words in
  * place of the script's, or a region kind this app does not know yet. */
 export type CoverageGapKind = 'missing' | 'extra' | 'misread' | 'other';
 
 /** A line to redo inside the read part of a chapter. `confidence` is a number or null; it is null with a `confReason`
- * ('no_word_scores') until the words file carries Whisper word probabilities (ADR 0830). */
+ * ('no_word_scores') until the words file carries Whisper word probabilities. */
 export type CoverageGap = {
   id: string;
   kind: CoverageGapKind;
@@ -212,7 +215,7 @@ export type CoverageReport = {
   items: CoverageItem[];
   paragraphs: CoverageParagraph[];
   regions: CoverageRegion[];
-  /** The lines to redo inside the read part (ADR 0830); the host always sends both (an empty list and zeros for a result stored before the taxonomy); optional so a report built by hand need not. */
+  /** The lines to redo inside the read part; the host always sends both (an empty list and zeros for a result stored before the taxonomy); optional so a report built by hand need not. */
   gaps?: CoverageGap[];
   unfinished?: CoverageUnfinished;
   recheck?: CoverageRecheck;
@@ -229,7 +232,7 @@ export type CoverageResult = {
   result?: CoverageReport;
   /** The share of the chapter's words present, only for a current result: the chapter payload's recordedFraction. */
   recordedFraction?: number;
-  /** The report judged by the narrator's thresholds, by the same rule as the stage signal (ADR 0204): set for any
+  /** The report judged by the narrator's thresholds, by the same rule as the stage signal: set for any
    * complete result with a report, stale included (as of the last check), absent otherwise. */
   judgement?: CoverageJudgement;
 };
@@ -241,7 +244,7 @@ export type CoverageJudgement = {
   thresholds: { minParagraphPresent: number; maxMissingRun: number };
 };
 
-/** The narrator's call on one gap of a current check (ADR 0842): accepted became a note, ignored is remembered. */
+/** The narrator's call on one gap of a current check: accepted became a note, ignored is remembered. */
 export type CoverageGapReview = 'accepted' | 'ignored';
 
 /** The gaps of a chapter's current check that have a review, by gap id; a gap without one is to review. */
@@ -260,7 +263,7 @@ export interface CoverageApi {
   coverageResult(chapterId: string): Promise<CoverageResult>;
   subscribeCoverage(onUpdate: (state: CoverageState) => void): () => void;
   /** Turns one gap of the chapter's current check into a note with the accepted decision and answers that finding
-   * (ADR 0842). The same gap again answers the same finding. Rejects, writing nothing, when the check is out of date or
+   * The same gap again answers the same finding. Rejects, writing nothing, when the check is out of date or
    * was never run, the gap is not in it, or the gap was ignored. A check never calls this. */
   coverageGapAccept(chapterId: string, gapId: string): Promise<Finding>;
   /** Remembers that the narrator passed on one gap of the chapter's current check; no note is made. Rejects like coverageGapAccept. */

@@ -19,7 +19,7 @@ function show(call: Promise<DawResult>, done: () => void): void {
  */
 export function useFileActions(): Pick<FileActions, 'onPlayQuietest' | 'onOpenInDaw'> {
   const daw = usePort('daw');
-  // One call per action and file at a time (ADR 0075): a second press while the DAW has not answered is ignored, so a double press never
+  // One call per action and file at a time: a second press while the DAW has not answered is ignored, so a double press never
   // plays or reveals twice. The key frees when the call settles, and a call that never settles keeps only its own file's action busy.
   const inFlight = useRef(new Set<string>());
   return useMemo(() => {

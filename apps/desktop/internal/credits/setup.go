@@ -15,15 +15,15 @@ type SetupField struct {
 }
 
 // setupTokenFields maps each render token a narrator can set to its Values JSON key. [Chapter] and [Chapter Title]
-// are computed per chapter (ADR 0151), so they are never asked for.
+// are computed per chapter, so they are never asked for.
 var setupTokenFields = map[string]string{
 	"Title": "title", "Subtitle": "subtitle", "Author": "author", "Series": "series", "Book Number": "bookNumber",
 	"Copyright": "copyright", "Year": "year", "Copyright Holder": "copyrightHolder", "Publisher": "publisher",
 	"Narrator": "narrator",
 }
 
-// SetupFields is what the prompt asks for (ADR 0208): the tokens the first opening and the first closing template (the
-// credits the app reads, ADR 0093) leave unresolved with the project's values and the global narrator, in the order
+// SetupFields is what the prompt asks for: the tokens the first opening and the first closing template (the
+// credits the app reads) leave unresolved with the project's values and the global narrator, in the order
 // they first appear, each with its detected candidate. Tokens only other templates use are left to Settings.
 func SetupFields(templates []Template, values Values, globalNarrator string, candidates []Candidate) []SetupField {
 	tokens := values.Resolve(globalNarrator)

@@ -12,7 +12,7 @@ manuscript order. The frontend must tokenize each paragraph the same way
 carries the spans so it can check its own tokenization against ours.
 
 `text_script` builds the same kind of script for text that is not a chapter
-(the opening or closing credits the host renders, ADR 0150).
+(the opening or closing credits the host renders).
 """
 
 import re
@@ -111,7 +111,7 @@ _LINE_BREAK = re.compile(r"\r\n|\r|\n")
 
 def text_script(text: str, script_id: str, title: str) -> ChapterScript:
     """The script for text that is not a manuscript chapter: the opening or
-    closing credits the host renders (ADR 0150). Every line with words is one paragraph span, `<script_id>-<n>`
+    closing credits the host renders. Every line with words is one paragraph span, `<script_id>-<n>`
     counted from 1 over those lines only, with no manuscript index; there is no title span, because the script's
     name ("Opening credits") is not read aloud.
     The reader splits the same text the same way (`readerModel.ts`)."""

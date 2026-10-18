@@ -30,7 +30,7 @@ const maxCustomProfiles = 100
 const maxNameLength = 80
 
 // storeFile is delivery-profiles.json. LegacyLimitsMoved records that the Global layer's old Delivery limits were
-// moved into a profile once (ADR 0179), so a later run never moves them again.
+// moved into a profile once, so a later run never moves them again.
 type storeFile struct {
 	SchemaVersion     int       `json:"schemaVersion"`
 	Default           *Ref      `json:"defaultProfile,omitempty"`
@@ -40,7 +40,7 @@ type storeFile struct {
 
 // Store is the narrator's own custom profiles and their Global default: one versioned JSON file per user, written
 // through a temporary file and a rename. The built-ins are compiled in and never written here. A file that cannot be
-// read is kept aside and reported (persist, ADR 0069), and the built-ins still work.
+// read is kept aside and reported (persist), and the built-ins still work.
 type Store struct {
 	mu      sync.Mutex
 	path    string
@@ -187,7 +187,7 @@ func (s *Store) Delete(id string) error {
 	return s.writeLocked(file)
 }
 
-// MoveGlobalLimits moves the Global layer's old Delivery limits into a profile, once (ADR 0179): none set, or
+// MoveGlobalLimits moves the Global layer's old Delivery limits into a profile, once: none set, or
 // the same numbers as ACX, leave the Global default as it is; any other set becomes the custom profile "Your limits",
 // made the Global default so every project that used them judges the same values the same way. It is a no-op after the
 // first run. It answers the profile made, if any.
@@ -343,7 +343,7 @@ var knownMetrics = map[string]bool{
 
 // withCurrentChecks gives each rule of a custom profile its built-in's current way of being checked: CheckedBy, the
 // reason it is not checked, and its advice. How a rule is checked is what this build of the app can do, not the
-// narrator's choice, so a copy saved before the app measured a rule (room tone at the edges, ADR 0236) is judged
+// narrator's choice, so a copy saved before the app measured a rule (room tone at the edges) is judged
 // by the measurement now; the narrator's numbers and switches are kept.
 func withCurrentChecks(profile Profile) Profile {
 	for i := range profile.Rules {
@@ -356,7 +356,7 @@ func withCurrentChecks(profile Profile) Profile {
 			fresh := current.clone()
 			rule.CheckedBy, rule.NotCheckedWhy, rule.Advice = fresh.CheckedBy, fresh.NotCheckedWhy, fresh.Advice
 			if rule.Min == nil && rule.Max == nil && len(rule.OneOf) == 0 {
-				// A rule saved with no bound at all was one the app could not check (the MP3 format before ADR 0237):
+				// A rule saved with no bound at all was one the app could not check (the MP3 format before apps/desktop/internal/measure/mp3header.go):
 				// the narrator never had a number to change, so it takes the built-in's.
 				rule.Min, rule.Max, rule.OneOf, rule.Unit = fresh.Min, fresh.Max, fresh.OneOf, fresh.Unit
 			}

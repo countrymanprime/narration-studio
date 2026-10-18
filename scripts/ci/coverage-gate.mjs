@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * The coverage ratchet (ADR 0043). Runs a project's tests with coverage on and compares each
+ * The coverage ratchet. Runs a project's tests with coverage on and compares each
  * logic directory with its floor in scripts/ci/coverage-floors.json:
  *
  *   node scripts/ci/coverage-gate.mjs go <projectRoot> [go test args]

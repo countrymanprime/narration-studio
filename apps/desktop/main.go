@@ -38,7 +38,7 @@ func main() {
 	host := NewHost()
 	app := application.New(application.Options{
 		Name: "Narration Studio",
-		// The Host is the one bound service: the page calls only its exported methods (docs/adr/0200).
+		// The Host is the one bound service: the page calls only its exported methods.
 		Services: []application.Service{application.NewService(host)},
 		// Wails finds index.html inside the embedded folder, as v2 did; /media is the host's own route (media.go).
 		Assets:         application.AssetOptions{Handler: application.AssetFileServerFS(frontendAssets), Middleware: host.mediaMiddleware},
@@ -51,7 +51,7 @@ func main() {
 }
 
 // mainWindowOptions is the app's one window. What differs from Wails v3's defaults is deliberate and kept as it was on v2
-// (docs/adr/0200, main_test.go):
+// (main_test.go):
 //   - ZoomControlEnabled: v3 turns WebView2's zoom control off unless asked, which would silently stop Ctrl+wheel zoom. Pinch zoom
 //     stays on because v3 leaves WebView2's IsPinchZoomEnabled at its default. The header's zoom controls set the
 //     level at runtime with Window.SetZoom on the window this names.

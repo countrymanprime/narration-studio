@@ -1,4 +1,4 @@
-// Package audacitybridge drives Audacity over its scripting pipe, mod-script-pipe (ADR 0355).
+// Package audacitybridge drives Audacity over its scripting pipe, mod-script-pipe.
 //
 // The protocol is the one Audacity publishes (docs/research/audacity-4-scripting-spec.md): the client writes one command line to
 // the pipe Audacity reads (ToSrvPipe) and reads Audacity's answer from the pipe it writes (FromSrvPipe). An answer is any number of
@@ -45,7 +45,7 @@ func (s Sentence) Error() string { return string(s) }
 // The sentinel errors every failure is one of, so a caller can word it for the narrator without parsing text.
 const (
 	// ErrNotReachable: there is no scripting pipe to open. Audacity is closed, or mod-script-pipe is not enabled in
-	// Preferences > Modules (and Audacity restarted), or this Audacity has no scripting pipe at all (Audacity 4.0, ADR 0355).
+	// Preferences > Modules (and Audacity restarted), or this Audacity has no scripting pipe at all (Audacity 4.0).
 	ErrNotReachable = Sentence("Audacity is not reachable: open Audacity and enable mod-script-pipe in Preferences > Modules, then restart Audacity")
 	// ErrTimeout: Audacity took the command but did not finish answering in time (it is busy, showing a dialog, or hung).
 	ErrTimeout = Sentence("Audacity did not answer in time: check that Audacity is not showing a dialog, then try again")

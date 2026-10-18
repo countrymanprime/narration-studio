@@ -10,11 +10,11 @@ import (
 	"github.com/countrymanprime/narration-utils/shell/internal/tracks"
 )
 
-// Take metrics are per-category evidence about one take (ADR 0140): each
+// Take metrics are per-category evidence about one take: each
 // category is measured or unavailable with a reason, and nothing combines
 // the categories into one number. A category that
 // cannot be measured carries no figures and lowers Coverage; it is never a
-// penalty and never a guessed value (ADR 0025).
+// penalty and never a guessed value.
 
 // EvidenceStatus says whether a category was measured.
 type EvidenceStatus string
@@ -185,7 +185,7 @@ func measureTakeAudio(item tracks.Item, index int) (*SourceRange, *Report, strin
 	take := item.Takes[index]
 	switch {
 	case source.Kind != waveSourceKind:
-		return &source, nil, fmt.Sprintf("source format %q is not measured: only WAV is (ADR 0025)", source.Kind)
+		return &source, nil, fmt.Sprintf("source format %q is not measured: only WAV is", source.Kind)
 	case !take.SourceAvailable:
 		return &source, nil, "the take's source file is not available"
 	}

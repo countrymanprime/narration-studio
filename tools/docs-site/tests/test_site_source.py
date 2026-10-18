@@ -1,4 +1,4 @@
-"""The site is generated from docs/ and nothing is copied by hand (ADR 0083, owner decision Q9)."""
+"""The site is generated from docs/ and nothing is copied by hand (owner decision Q9)."""
 
 import hooks
 import yaml

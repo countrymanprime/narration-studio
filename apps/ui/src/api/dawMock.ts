@@ -109,10 +109,10 @@ const MESSAGE_NOT_RUNNING_REAPER = 'REAPER is not answering. Check that REAPER i
 const MESSAGE_NO_ENGINE = 'No DAW is connected to this app. Open this app from your DAW to use it.';
 const MESSAGE_TURNED_OFF = 'Turned off in Settings.';
 const MESSAGE_EXPERIMENTAL_OFF = 'Experimental: switched off in Settings.';
-/** ADR 0144's sentence, for what an Audacity launch does not build. */
+/** docs/architecture/daw-integration.md#audacity-boundary's sentence, for what an Audacity launch does not build. */
 const MESSAGE_AUDACITY_NOT_YET =
   "Audacity support is not available yet. This version can't read audio from Audacity or add labels to it, so open the project from REAPER to compare it.";
-/** An Audacity launch's built but Experimental capabilities while no page opens the pipe (ADR 0355,
+/** An Audacity launch's built but Experimental capabilities while no page opens the pipe (
  * apps/desktop/internal/dawport/audacity/audacity.go's Declaration). */
 const MESSAGE_AUDACITY_NOT_CONNECTED = "Audacity isn't connected to this app yet. This part of Audacity support is still being tested.";
 /** The Audacity adapter over its pipe, when the pipe is missing or silent (audacity.go's messageNotReachable). */
@@ -129,7 +129,7 @@ const AUDACITY_NEED_BACKUPS: Partial<Record<DawCapabilityKey, string>> = {
   click_repair: 'Repairing clicks in a take',
 };
 const AUDACITY_NEED_BACKUPS_KEYS: readonly DawCapabilityKey[] = ['takes', 'punch', 'stack_takes', 'cut_range', 'fx_range', 'range_gain', 'click_repair'];
-/** What the Audacity adapter declares Experimental until the owner's verification pass (ADR 0355, ADR 0863 for backups, SN-D83 for
+/** What the Audacity adapter declares Experimental until the owner's verification pass (docs/reference/daw/audacity-3.md for backups, SN-D83 for
  * the rows that need backups); the rest is not_yet_available. */
 const AUDACITY_EXPERIMENTAL: ReadonlySet<DawCapabilityKey> = new Set<DawCapabilityKey>([
   'navigate',
@@ -283,7 +283,7 @@ function permitted(m: Mock, key: DawCapabilityKey, trail: DawCapabilityKey[]): D
   const level = declarationFor(daw)[key] ?? 'unsupported';
   if (level === 'unsupported') {
     // No engine at all (resolver.go's Adapter == nil) is 'standalone'; a launched engine that simply cannot do this (macro_render
-    // for REAPER, ADR 0460) is 'unsupported', checked before connection state, the same order the declaration check runs in.
+    // for REAPER) is 'unsupported', checked before connection state, the same order the declaration check runs in.
     const reason = daw === 'none' ? 'standalone' : 'unsupported';
     return { level, available: false, reason, message: explain(daw, key, reason, pipe) };
   }
@@ -331,7 +331,7 @@ function supportFor(m: Mock, key: DawCapabilityKey): DawCapabilitySupport {
 
 /** REAPER's Describer (dawport/reaper's depthOf): a roll keeps the earlier audio as a take, a cut moves the audio to the
  * muted Cuts track, a chain on a range is take FX on a split piece that come off again, and a stack makes later reads takes and
- * moves their items to the Cuts track, so punch, cut_range, fx_range and stack_takes are native and not destructive (ADR 0860
+ * moves their items to the Cuts track, so punch, cut_range, fx_range and stack_takes are native and not destructive (docs/reference/daw/capabilities.md
  * points 1 to 4). Audacity's is AUDACITY_DEPTH. */
 const REAPER_DEPTH: Partial<Record<DawCapabilityKey, { destructive?: boolean; mode?: DawCapabilityMode }>> = {
   punch: { mode: 'native' },

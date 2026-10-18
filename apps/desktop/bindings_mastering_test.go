@@ -15,7 +15,7 @@ import (
 
 // TestMasteringProvidersGoldenIsCurrent pins MasteringProviders' five answers on Windows: no project, a project that chose the
 // built-in chain, a project that chose the DAW row (Experimental), a project that chose the
-// Audacity row (Experimental, ADR 0460), and a project whose stored choice this version does not have (so it
+// Audacity row (Experimental), and a project whose stored choice this version does not have (so it
 // masters with the built-in chain, and says so). UPDATE_CONTRACTS=1 rewrites tests/fixtures/contracts/mastering-providers-*.json.
 func TestMasteringProvidersGoldenIsCurrent(t *testing.T) {
 	for _, c := range []struct {

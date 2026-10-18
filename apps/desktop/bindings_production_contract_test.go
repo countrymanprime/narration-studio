@@ -32,7 +32,7 @@ func TestContractProductionPlan(t *testing.T) {
 	checkBindingContract(t, "production-plan-set", set)
 }
 
-// The plan a manifest written before the payment type and the milestone fields reads as (ADR 0800): per finished hour
+// The plan a manifest written before the payment type and the milestone fields reads as: per finished hour
 // from its contracted amount, and milestones with no measure, estimate, done flag or template.
 func TestContractProductionPlanOldManifest(t *testing.T) {
 	host := hostWithCredits(t)

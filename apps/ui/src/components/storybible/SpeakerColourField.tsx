@@ -3,7 +3,7 @@ import { Select } from '../primitives/Select';
 import { Swatch, type SwatchColour } from '../primitives/Swatch';
 import type { GuideEntity } from '../../types';
 
-// The names of the seven hues, --speaker-1..7 in order (ADR 0367).
+// The names of the seven hues, --speaker-1..7 in order.
 const HUE_NAMES = ['Green', 'Blue', 'Violet', 'Red', 'Brown', 'Teal', 'Rose'] as const;
 const AUTOMATIC = 'auto';
 

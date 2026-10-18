@@ -1,4 +1,4 @@
-"""MkDocs hooks for the public docs site (ADR 0083).
+"""MkDocs hooks for the public docs site.
 
 The site is the repository's `docs/` folder, read where it is. These hooks decide what is published and keep every link on
 the site alive:
@@ -202,7 +202,7 @@ def storybook_section(site_url: str, storybook_path: str) -> str:
 
 
 def demo_section(site_url: str, demo_path: str) -> str:
-    """The paragraph appended beside the Live Storybook section: a link to the running app demo (ADR 0096), sample data only, nothing saved."""
+    """The paragraph appended beside the Live Storybook section: a link to the running app demo, sample data only, nothing saved."""
     url = site_url.rstrip("/") + "/" + demo_path.lstrip("/")
     return (
         "\n\n## Live demo\n\n"

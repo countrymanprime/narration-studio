@@ -24,7 +24,7 @@ func TestEveryRegisteredRowPassesTheSuite(t *testing.T) {
 }
 
 func TestTheRowsAreTheBuiltInChainThenTheDAWThenAudacity(t *testing.T) {
-	// The built-in chain is the default; the DAW and Audacity rows are both Experimental (ADR 0460), registered in that order.
+	// The built-in chain is the default; the DAW and Audacity rows are both Experimental, registered in that order.
 	for _, platform := range port.Platforms {
 		want := []string{masteringport.Builtin, masteringport.DAW, masteringport.Audacity}
 		if got := masteringport.Rows.Names(platform); !reflect.DeepEqual(got, want) {

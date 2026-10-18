@@ -1,4 +1,4 @@
-"""Reading the Go level vocabulary back from its golden (``tests/fixtures/contracts/port-levels.json``, ADR 0301).
+"""Reading the Go level vocabulary back from its golden (``tests/fixtures/contracts/port-levels.json``).
 
 The Go ``internal/port`` test writes the golden; this side only reads it. Its exact layout is Go's to choose, so any plain layout is
 accepted: a list of names, a ``{"levels": [...]}`` wrapper, a list of objects carrying a name and a value, or a map of name to value.

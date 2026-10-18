@@ -93,7 +93,7 @@ func TestPlanOfReadsTheManifestFieldsAndIsEmptyWithoutOne(t *testing.T) {
 }
 
 // old-manifest-reads-as-defaults: a manifest written before the payment type reads as per finished hour when it has a
-// contracted amount and as none without one (ADR 0800, SNP-Q4); its milestones read as not done, with no measure,
+// contracted amount and as none without one (SNP-Q4); its milestones read as not done, with no measure,
 // estimate or template.
 func TestPlanOfReadsAnOldManifestAsDefaults(t *testing.T) {
 	amount := 900.0
