@@ -12,7 +12,7 @@ export type PageSetting = {
   why: string;
   syn?: string;
   /** The panel kept behind the entry: see `PagesPane`. Absent once the page has the control, so the entry only points there. */
-  panel?: 'coverage' | 'cleanup' | 'preview' | 'stages' | 'compare' | 'punch' | 'fx';
+  panel?: 'coverage' | 'cleanup' | 'preview' | 'stages' | 'compare' | 'fx';
 };
 
 export const PAGE_SETTINGS: readonly PageSetting[] = [
@@ -65,8 +65,7 @@ export const PAGE_SETTINGS: readonly PageSetting[] = [
     id: 'ps.punch',
     label: 'Punch pre-roll',
     page: 'booth',
-    where: 'Booth › Record setup',
-    panel: 'punch',
+    where: 'Levels menu',
     why: 'It changes how a punch feels while recording.',
     syn: 'preroll seconds roll',
   },
