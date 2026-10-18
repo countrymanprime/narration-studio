@@ -41,6 +41,12 @@ function table(overrides: Partial<Parameters<typeof PipelineTable>[0]> = {}) {
 }
 
 describe('PipelineTable', () => {
+  // The mock's `.cell` fills its column (`width: 100%`), where the badge shape is only a 52 px minimum.
+  it('draws each stage cell across its column', () => {
+    table();
+    expect(document.querySelector('[data-cell]')!.className).toContain('w-full');
+  });
+
   it('one-row-per-chapter-with-stage-cells: a row per chapter and the same width for every stage column', () => {
     table();
     const grid = screen.getByRole('table', { name: 'Chapter pipeline' });
@@ -118,6 +124,17 @@ describe('NextUp', () => {
     view(<NextUp inputs={NEXT_UP_BUSY} record={record} onGo={noop} timer={timer} />);
     const items = within(screen.getByRole('list', { name: 'Next up' })).getAllByRole('listitem');
     expect(items.map((li) => li.querySelector('[data-tone]')?.getAttribute('data-tone'))).toEqual(['rec', 'danger', 'danger']);
+  });
+
+  // The mock's `.next .ico` (app.css:125): a 30 px rounded square, not a 24 px circle.
+  it('draws each disc as a 30 px square on an 8 px radius', () => {
+    view(<NextUp inputs={NEXT_UP_BUSY} record={record} onGo={noop} timer={timer} />);
+    const disc = within(screen.getByRole('list', { name: 'Next up' }))
+      .getAllByRole('listitem')[0]!
+      .querySelector('[data-tone]') as HTMLElement;
+    expect(disc.className).toContain('size-[1.875rem]');
+    expect(disc.className).toContain('rounded-lg');
+    expect(disc.className).not.toContain('rounded-full');
   });
 
   it('says "Nothing needs you right now." when empty', () => {

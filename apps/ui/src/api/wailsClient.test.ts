@@ -801,6 +801,13 @@ describe('wailsClient', () => {
   it('builds a /media playback URL with the source path percent-encoded', () => {
     expect(wailsClient.mediaUrl('C:\\My Book\\media\\take 1.wav')).toBe('/media?path=C%3A%5CMy%20Book%5Cmedia%5Ctake%201.wav');
   });
+
+  it('builds a voice sample URL from its id alone, with no path in it', () => {
+    const id = '9f2c'.repeat(8);
+    expect(wailsClient.voiceSampleMediaUrl(id)).toBe(`/media?sample=${id}`);
+    // The id is encoded, so whatever a caller passes stays one value of one parameter and can never add a `path`.
+    expect(wailsClient.voiceSampleMediaUrl('a&path=C:\\x')).toBe('/media?sample=a%26path%3DC%3A%5Cx');
+  });
 });
 
 describe('live events (docs/architecture/wire-contracts.md: dropped and counted, never thrown inside the callback)', () => {

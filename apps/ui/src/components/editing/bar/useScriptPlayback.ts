@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { overlay } from '../../../overlay/overlayService';
+import { onSampleStart } from '../../voicesamples/samplePlayerStore';
 import { segmentAtElapsed, totalDuration, type PlaylistSegment } from '../../proof/playlist';
 import { firstFrom, summarize, type ChapterDoc } from '../model';
 import { useEditingPage } from '../script/EditingPageState';
@@ -58,6 +59,9 @@ export function useScriptPlayback({ playlist, mediaUrl, notify = (text) => overl
     stopAt.current = null;
     live.current.dispatch({ type: 'play', t: null });
   }, []);
+
+  // A voice sample starting takes the audio: two sounds at once would be heard as one muddle (docs/prds/character-voice-samples.prd.md, Playback).
+  useEffect(() => onSampleStart(halt), [halt]);
 
   const fail = useCallback(() => {
     halt();

@@ -43,6 +43,33 @@ export const editingDrivers: Record<string, Driver> = {
       .click();
     await page.locator('[role="dialog"], [role="alertdialog"]').first().waitFor();
   },
+  'voice-sample-dialog': async (page) => {
+    await openEditing(page, EDITS);
+    await selectWords(page);
+    await bar(page).getByRole('button', { name: 'Voice sample' }).click();
+    await page.getByRole('dialog', { name: 'Voice sample' }).waitFor();
+  },
+  'voice-sample-refused': async (page) => {
+    await openEditing(page, EDITS);
+    // The extra word at the start of the first line was heard and is not in the script: nothing there can be a sample.
+    const said = page.locator('[data-k="p-1:x0"]');
+    await said.click();
+    await said.click({ modifiers: ['Shift'] });
+    await bar(page).getByRole('button', { name: 'Voice sample' }).click();
+    await page.getByRole('dialog', { name: 'Voice sample' }).getByRole('alert').waitFor();
+  },
+  'voice-sample-saved': async (page) => {
+    await openEditing(page, EDITS);
+    await selectWords(page);
+    await bar(page).getByRole('button', { name: 'Voice sample' }).click();
+    const dialog = page.getByRole('dialog', { name: 'Voice sample' });
+    await dialog.getByRole('button', { name: 'Save sample' }).click();
+    await dialog.waitFor({ state: 'hidden' });
+    // The header has an Undo button of its own (the journal's), so this scopes to the toast's.
+    const toast = page.getByRole('status').filter({ hasText: /^Saved voice sample for / });
+    await toast.waitFor();
+    await toast.getByRole('button', { name: 'Undo' }).waitFor();
+  },
   'takes-open': async (page) => {
     await openTakes(page, EDITS);
     await expectPanelTextSize(page, 'Suggested take');

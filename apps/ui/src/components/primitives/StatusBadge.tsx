@@ -12,8 +12,8 @@ export type StatusTone = 'neutral' | 'info' | 'progress' | 'accent' | 'success' 
  * - `tag`: the type badge (Proof's MISREAD, the Script's speaker, "Retail sample"). 16 px tall, the 3 px tag radius, 6 px
  *   each side, Barlow Condensed 600 at the 11 px label size in capitals.
  * - `booth`: the Booth's speaker tag beside the script (the benchmark's 03-booth mock). A tag at 26 px, radius 4, 8 px each side.
- * - `cell`: a Production board cell (the benchmark's 01-production-home mock). A flat 20 px block at least 58 px wide, on the tag radius, its
- *   label centred in Barlow Condensed 600 at the 11 px label size in its own case ("✓", "3 open", "PASS"), so every cell
+ * - `cell`: a Production board cell (the Studio Next mock's `.cell`). A flat 24 px block at least 52 px wide, on a 4 px radius, its
+ *   label centred in Plex Mono 500 at 12 px in its own case ("✓", "3 open", "PASS"), so every cell
  *   of a column lines up whatever it says. A label longer than the cell is clipped inside it: a board's caller keeps its
  *   labels short.
  */
@@ -50,12 +50,15 @@ export function toneColors(tone: StatusTone): BadgeColors {
 // side padding is the measured one less that border. `min-h` rather than `h`: a long label wraps instead of pushing the
 // row sideways at a narrow width, unless its caller keeps it on one line (`whitespace-nowrap` on a wrapper, as Proof's
 // table does), which the badge inherits.
-const BASE = "inline-flex max-w-full items-center border border-solid font-['Barlow_Condensed',sans-serif] font-semibold leading-[1.1]";
+const BASE = 'inline-flex max-w-full items-center border border-solid leading-[1.1]';
+const BARLOW = "font-['Barlow_Condensed',sans-serif] font-semibold";
+// The Studio Next mock's cell (`.cell`, app.css:121) is Plex Mono, not the label face.
+const MONO = "font-['IBM_Plex_Mono',ui-monospace,monospace] font-medium";
 const SHAPE_CLASS: Record<BadgeShape, string> = {
-  pill: 'min-h-[1.375rem] gap-[0.35rem] rounded-full px-[0.5625rem] py-[0.1rem] text-[0.72rem] tracking-[0.06em]',
-  tag: 'min-h-4 gap-1 rounded-[var(--radius-tag)] px-[0.3125rem] py-0 text-[length:var(--font-size-label)] tracking-[0.06em] uppercase',
-  booth: 'min-h-[1.625rem] gap-1 rounded-[0.25rem] px-[0.4375rem] py-[0.1rem] text-[0.75rem] tracking-[0.06em] uppercase',
-  cell: 'h-5 min-w-[3.625rem] justify-center gap-1 overflow-hidden rounded-[var(--radius-tag)] px-1.5 py-0 text-[length:var(--font-size-label)] tracking-[0.04em] whitespace-nowrap',
+  pill: `${BARLOW} min-h-[1.375rem] gap-[0.35rem] rounded-full px-[0.5625rem] py-[0.1rem] text-[0.72rem] tracking-[0.06em]`,
+  tag: `${BARLOW} min-h-4 gap-1 rounded-[var(--radius-tag)] px-[0.3125rem] py-0 text-[length:var(--font-size-label)] tracking-[0.06em] uppercase`,
+  booth: `${BARLOW} min-h-[1.625rem] gap-1 rounded-[0.25rem] px-[0.4375rem] py-[0.1rem] text-[0.75rem] tracking-[0.06em] uppercase`,
+  cell: `${MONO} h-6 min-w-[3.25rem] justify-center gap-1 overflow-hidden rounded-[0.25rem] px-1 py-0 text-xs whitespace-nowrap`,
 };
 
 /** The class list of a badge of `shape`, for an element that is not a `Badge` (a Menu trigger, a speaker tag button). */

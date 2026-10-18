@@ -28,7 +28,7 @@ export function KpiRow({ onGo, targetInfo, ...inputs }: Props) {
                 className="block size-full cursor-pointer px-4 pt-3.5 pb-3 text-left hover:bg-[var(--surface-2)] focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-[var(--focus)]"
                 onClick={() => onGo(target)}
               >
-                <StatTile {...tile} />
+                <StatTile {...tile} size="kpi" />
               </button>
             </TooltipTarget>
             {key === 'recording' && targetInfo}

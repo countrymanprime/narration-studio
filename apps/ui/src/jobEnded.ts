@@ -6,9 +6,16 @@ import type { ToastTone } from './components/primitives/Toast';
 // it); the app-level toast is for the jobs that can finish while the narrator is somewhere else.
 const SHOWN_BY_THEIR_DIALOG = new Set(['manuscript_import', 'tts_install', 'whisper_install', 'dictionary_install', 'app_update']);
 
-/** What the app says when a host job ends, or nothing when the narrator does not need telling (they cancelled it, or its dialog says so). */
-export function toastForJobEnd(event: JobEnded): { text: string; tone: ToastTone } | undefined {
+/**
+ * A failed package build is written on the Delivery page itself, under its Build button, so a toast over the same page would say it twice
+ * (and at a narrow width cover the list beside it). Left for another page, the toast is the only word the narrator gets.
+ */
+const SHOWN_ON_THEIR_PAGE: Record<string, string> = { render_package: '/delivery' };
+
+/** What the app says when a host job ends, or nothing when the narrator does not need telling (they cancelled it, or its dialog or page says so). */
+export function toastForJobEnd(event: JobEnded, pathname?: string): { text: string; tone: ToastTone } | undefined {
   if (event.outcome === 'cancelled' || SHOWN_BY_THEIR_DIALOG.has(event.kind)) return undefined;
+  if (event.outcome === 'error' && pathname !== undefined && SHOWN_ON_THEIR_PAGE[event.kind] === pathname) return undefined;
   if (event.outcome === 'error') return { text: event.message || 'A background task failed.', tone: 'error' };
   return { text: event.message || 'A background task finished.', tone: 'info' };
 }

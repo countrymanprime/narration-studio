@@ -15,6 +15,10 @@ export const PANEL_BODY_CLASS = 'p-[var(--panel-pad)] [--panel-pad:1rem]';
 export const PANEL_TITLE_CLASS =
   "min-w-0 font-['Barlow_Condensed',sans-serif] text-[length:var(--font-size-card-title)] leading-[1.2] font-semibold text-[var(--text)] [overflow-wrap:anywhere]";
 
+// The Story Bible entry's name (the Studio Next mock, pages/bible/EntryEditor.tsx): the card title at 26 px.
+export const PANEL_ENTRY_TITLE_CLASS =
+  "min-w-0 font-['Barlow_Condensed',sans-serif] text-[1.625rem] leading-[1.2] font-semibold text-[var(--text)] [overflow-wrap:anywhere]";
+
 // The caps title the dark Settings mocks draw over a category (delivery-platform-profiles 05 and 09, input-commands 01):
 // Barlow Condensed 17 px, semibold, uppercase, tracked 0.08 em.
 export const PANEL_CAPS_TITLE_CLASS =

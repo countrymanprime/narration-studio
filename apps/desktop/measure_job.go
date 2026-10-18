@@ -176,7 +176,9 @@ func (j *measureJob) finish(cancelled bool, broken error) {
 		case measureFileMeasuring:
 			if broken != nil {
 				// The file being measured when the measurement broke: its own failure, not the narrator's cancel.
-				j.files[i].Status, j.files[i].Error = measureFileFailed, "the measurement stopped unexpectedly: "+broken.Error()
+				// The narrator reads this sentence in the row; the Go error ("index out of range [4] with length 4") goes to the log only.
+				j.files[i].Status, j.files[i].Error = measureFileFailed, "the measurement stopped unexpectedly on this file"
+				j.logs = append(j.logs, fmt.Sprintf("%s: the measurement stopped unexpectedly: %s", j.files[i].Name, broken.Error()))
 				failed++
 				continue
 			}

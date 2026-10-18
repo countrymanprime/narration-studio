@@ -12,6 +12,7 @@ import { SelectionActionButton } from './SelectionActionButton';
 import { SelectionBar } from './SelectionBar';
 import { SelToolbar } from './SelToolbar';
 import { registerSelectionAction } from './selectionActions';
+import { playSample, stopSample } from '../../voicesamples/samplePlayerStore';
 import { AUDIO_FAILED, useScriptPlayback, type ScriptPlayback } from './useScriptPlayback';
 
 class FakeAudio extends EventTarget {
@@ -305,6 +306,20 @@ describe('the audio element', () => {
     await act(async () => playback.toggle());
     expect(notify).toHaveBeenCalledWith(AUDIO_FAILED);
     expect(state().playT).toBeNull();
+  });
+
+  it('stops when a voice sample starts, and leaves the cursor on the word it reached', () => {
+    mount();
+    dispatch({ type: 'place', key: 'p-1:1' });
+    act(() => playback.toggle());
+    tick(t0('p-1:3') + 0.05);
+    const chapterAudio = audio();
+
+    act(() => playSample('a'.repeat(32), { by: Symbol('test'), url: '/media?sample=a', report: vi.fn() }));
+
+    expect(chapterAudio.pause).toHaveBeenCalled();
+    expect(state().playT).toBeNull();
+    act(() => stopSample());
   });
 
   it('stops and says why when a segment fails to load, and when play throws', () => {

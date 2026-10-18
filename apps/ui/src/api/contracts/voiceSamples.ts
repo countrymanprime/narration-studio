@@ -29,6 +29,22 @@ export type VoiceSampleRefusalReason =
   | 'project_limit'
   | 'not_found';
 
+/** The sentence the host sends with each refusal (apps/desktop/internal/voicesample's `sentence`), so a page that refuses before it asks says the same words. */
+export const VOICE_SAMPLE_SENTENCES: Record<VoiceSampleRefusalReason, string> = {
+  stale_alignment: 'The recording changed since this chapter was checked. Check it again, then mark the sample.',
+  not_heard: 'These words were not heard in the recording.',
+  spans_takes: 'Choose words inside one take.',
+  spans_cut: 'Restore the cut words or choose words without them.',
+  too_short: 'A sample is at least half a second.',
+  too_long: 'A sample is at most 30 seconds.',
+  unsupported_source: 'Only WAV recordings can be copied.',
+  source_missing: 'The audio file for these words is missing.',
+  project_unreadable: 'The saved REAPER project could not be read. Save the project in REAPER, then try again.',
+  character_limit: 'This character already has 20 samples. Delete one first.',
+  project_limit: 'Voice samples already use the 200 MiB a project may hold. Delete one first.',
+  not_found: 'That voice sample is no longer there.',
+};
+
 export type VoiceSampleSource = {
   chapterId: string;
   /** Empty when the chapter is no longer in the manuscript. */
@@ -116,6 +132,11 @@ export interface VoiceSamplesApi {
   voiceSampleRemove(id: string): Promise<VoiceSamplesRemoved>;
   /** Deletes every sample and every clip in the project. */
   voiceSamplesRemoveAll(): Promise<VoiceSamplesRemoved>;
+  /**
+   * Where a sample's clip plays from, built from its id alone: synchronous, not a request, and never a file path. The host serves the
+   * clip only for an id it lists and only while the file is the one that was saved, so a bad id or a changed clip is a failed load.
+   */
+  voiceSampleMediaUrl(id: string): string;
   /** Called after any change to the samples (a mark, an update, a remove, Clear project data). The page reads the list again. */
   subscribeVoiceSamples(onChange: (event: VoiceSamplesChanged) => void): () => void;
 }

@@ -165,7 +165,7 @@ describe('StageGrid', () => {
 
   it('draws every badge cell in the board-cell shape', () => {
     render(grid());
-    expect(screen.getByText('Chapter 1 Prep').className).toContain('min-w-[3.625rem]');
+    expect(screen.getByText('Chapter 1 Prep').className).toContain('min-w-[3.25rem]');
   });
 
   it('draws a text cell as a mono figure, not a badge, and still activates it', async () => {

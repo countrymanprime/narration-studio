@@ -220,6 +220,9 @@ describe('D3 and D4 Limits and the longest file', () => {
     expect(typed(' 7.5 ')).toBe(7.5);
     expect(typed('1e3')).toBe(1000);
     expect(typed('0')).toBe(0);
+    expect(typed('\u221225')).toBe(-25);
+    expect(Object.is(typed('-0'), 0)).toBe(true);
+    expect(Object.is(fromShown({ metric: 'duration_seconds', unit: 's' } as never, '-0'), 0)).toBe(true);
     for (const bad of ['', '   ', 'loud', 'NaN', 'Infinity', '-Infinity', '1e999', '--5', '5 dB']) expect(typed(bad), bad).toBeUndefined();
     expect(fromShown({ metric: 'duration_seconds', unit: 's' } as never, '90')).toBe(5400);
   });
