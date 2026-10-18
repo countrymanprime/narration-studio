@@ -169,6 +169,7 @@ export const boothDrivers: Record<string, Driver> = {
   },
   'voice-samples-panel': async (page) => {
     await readyToRecord(page, SAMPLES);
+    await openSidePanel(page);
     const panel = page.getByRole('complementary', { name: 'Side panel' });
     await panel
       .getByRole('button', { name: /\d samples?$/ })
@@ -178,6 +179,7 @@ export const boothDrivers: Record<string, Driver> = {
   },
   'voice-samples-recording': async (page) => {
     await startTake(page, SAMPLES);
+    await openSidePanel(page);
     const panel = page.getByRole('complementary', { name: 'Side panel' });
     const control = panel.getByRole('button', { name: /^Play primary voice sample for / }).first();
     await control.waitFor();
@@ -288,3 +290,9 @@ export const boothDrivers: Record<string, Driver> = {
     await openWithoutManuscript(page, 'Booth');
   },
 };
+
+/** The side panel is a column from 1280 px up and a drawer below it that starts closed: press its toggle when it is hidden. */
+async function openSidePanel(page: Page): Promise<void> {
+  if (await page.locator('#booth-side').isHidden()) await page.getByRole('button', { name: /side panel/i }).click();
+  await page.locator('#booth-side').waitFor({ state: 'visible' });
+}
