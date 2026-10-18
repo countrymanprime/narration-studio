@@ -194,7 +194,7 @@ function PunchPrerollRow() {
       {preroll ? (
         <NumberInput label="Punch pre-roll (seconds)" value={preroll.value} min={preroll.min} max={preroll.max} step={preroll.step} onValueChange={set} />
       ) : null}
-      <span className="text-xs text-[var(--text-muted)]">Seconds before the word that “Punch from here” starts.</span>
+      <span className="text-xs text-[var(--text-muted)]">Seconds before the word that “Punch from here” starts, for every project. Also in Settings.</span>
       {error ? (
         <span role="alert" className="text-xs [overflow-wrap:anywhere] text-[var(--danger-text)]">
           {error}
