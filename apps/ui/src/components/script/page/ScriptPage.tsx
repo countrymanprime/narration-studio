@@ -242,7 +242,8 @@ function ScriptWorkspace({
   const { add: addBookmark } = bookmarks;
   const bookmarkAt = useCallback(
     async (spot: { chapterId: string; paragraphId: string; offset: number }) => {
-      const added = await addBookmark(spot);
+      // The editor opens on the new bookmark, so its toast carries no Undo (a later Undo would undo what was typed in the editor).
+      const added = await addBookmark(spot, { undo: false });
       if (added) setEditAfterAdd(added.id);
     },
     [addBookmark],

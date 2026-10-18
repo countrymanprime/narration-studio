@@ -135,6 +135,21 @@ describe('same-spot-twice-is-one', () => {
   });
 });
 
+describe('add-without-undo-when-an-editor-follows', () => {
+  it('says "Bookmark added." with no Undo, since the page opens the bookmark\'s editor and a later Undo would undo what was typed there', async () => {
+    const toastUndo = vi.spyOn(overlay, 'toastUndo');
+    const toast = vi.spyOn(overlay, 'toast');
+    toastUndo.mockClear();
+    toast.mockClear();
+    const { result } = setup();
+    await waitFor(() => expect(result.current.model.bookmarks).toEqual([]));
+    await act(async () => void (await result.current.model.add(spot(0, 4), { undo: false })));
+    expect(toast).toHaveBeenCalledWith('Bookmark added.');
+    expect(toastUndo).not.toHaveBeenCalled();
+    expect(await result.current.journal.entries()).toHaveLength(1);
+  });
+});
+
 describe('jump-menu-lists-each-bookmark-and-the-actions', () => {
   it('lists each bookmark by title with note and chapter as the hint, and the actions only while the page gave handlers', async () => {
     const onHere = vi.fn();
