@@ -568,6 +568,13 @@
   },
   {
     "page": "editing",
+    "state": "voice-sample-dialog",
+    "viewport": "desktop",
+    "docName": "editing-voice-sample-dialog",
+    "caption": "Editing - Voice sample on four selected words: the character, the words with Play range, the label and note, and Save sample"
+  },
+  {
+    "page": "editing",
     "state": "takes-open",
     "viewport": "desktop",
     "docName": "editing-takes",

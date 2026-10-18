@@ -90,6 +90,7 @@ export const workspaceAlignmentResultSchema = z.object({
   extras: listFromNull(extraSchema),
   items: listFromNull(itemSchema),
   engine: optionalFromNull(z.object({ id: z.string().min(1), name: z.string().min(1) })),
+  recordId: z.string().min(1).optional(),
 }) satisfies z.ZodType<WorkspaceAlignmentResult>;
 
 export const workspaceFXChainsResultSchema = z.object({

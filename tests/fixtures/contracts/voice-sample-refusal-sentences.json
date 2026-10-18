@@ -1,0 +1,14 @@
+{
+  "character_limit": "This character already has 20 samples. Delete one first.",
+  "not_found": "That voice sample is no longer there.",
+  "not_heard": "These words were not heard in the recording.",
+  "project_limit": "Voice samples already use the 200 MiB a project may hold. Delete one first.",
+  "project_unreadable": "The saved REAPER project could not be read. Save the project in REAPER, then try again.",
+  "source_missing": "The audio file for these words is missing.",
+  "spans_cut": "Restore the cut words or choose words without them.",
+  "spans_takes": "Choose words inside one take.",
+  "stale_alignment": "The recording changed since this chapter was checked. Check it again, then mark the sample.",
+  "too_long": "A sample is at most 30 seconds.",
+  "too_short": "A sample is at least half a second.",
+  "unsupported_source": "Only WAV recordings can be copied."
+}
