@@ -55,7 +55,9 @@ The checks a pull request shows, by the name GitHub displays (`ci.yml` calls `_q
 
 | Check | What it runs |
 | --- | --- |
-| `quality / js` | `lint`, `format`, `architecture` (the import rules), `test` (Vitest with the coverage ratchet) and `test-node` (the node:test suites of `apps/ui/scripts`) of `narration-utils-ui`, then Knip over the whole repository |
+| `quality / js-static` | `lint`, `format`, `architecture` (the import rules) and `test-node` (the node:test suites of `apps/ui/scripts`) of `narration-utils-ui`, then Knip over the whole repository |
+| `quality / js-test (shard 1/3)` to `(shard 3/3)` | the Vitest run of `apps/ui` with coverage on the gated logic files (`node scripts/ci/coverage-gate.mjs vitest apps/ui --shard=i/3`), a third of the files each, split by cost (`apps/ui/scripts/vitest-shards.mjs`; Vitest's own split by path hash gave one shard 48% of the time). A shard checks no coverage floor; it uploads a blob of its results and coverage |
+| `quality / js-test` | merges the three blobs (`coverage-gate.mjs vitest apps/ui --merge=3`: fails when one is missing) and checks every Vitest floor of `scripts/ci/coverage-floors.json` over the merged coverage, the same numbers as the unsharded run `pnpm check` does. Skipped when the UI is not affected |
 | `quality / ui-visual (shard 1/3)` to `(shard 3/3)` | the Playwright visual suite of the mock-backed app, a third each by estimated time, not by test count ([Visual shards](#visual-shards)), with the per-capture checks; one shard, the one the split names, also runs `aria`. Each uploads its capture records and shard manifest, its screenshots, a timing report, and traces when it fails |
 | `quality / ui-atlas (shard 1/2)`, `(shard 2/2)` | the Storybook component atlas, half the stories each: every story in light and dark at a wide and a narrow viewport, with axe |
 | `quality / quick-ubuntu` | one step each, every step runs even after a red one: `repo-scripts` (the plain-Node tests of `scripts/`: labels, milestones, release tooling, the layout and project guards); `docs-site` (the public docs site, [below](#the-public-docs-site): ruff and pytest of `tools/docs-site` only, while GitHub Pages is paused — the strict MkDocs build and its link check run from `pages.yml`'s manual build instead); `python` (ruff and pytest for `libs/python`, the sidecars, `scripts/` and `tests/fixtures`); `reaper (Lua)` (StyLua and ruff on `integrations/reaper`, then its bridge harness under Lua 5.4: a fake `reaper` driven through the file protocol, and the mutation checks; [The DAW port](../architecture/daw-integration.md#the-daw-port)) |
@@ -665,7 +667,7 @@ suite has been stable for 50 runs, [#153](https://github.com/countrymanprime/nar
 
 `nx run narration-utils:knip` (also `pnpm knip`) runs [Knip](https://knip.dev) over `apps/ui`, `apps/desktop`, `scripts/`
 and `tools/`, configured in `knip.jsonc`. It fails on an unused file, export or dependency, and on an unlisted
-dependency or binary; the repository is at zero, and CI runs it on every pull request in the `js` job. Fix a finding
+dependency or binary; the repository is at zero, and CI runs it on every pull request in the `js-static` job. Fix a finding
 by deleting the code or dropping the `export`. Add an `ignore`, `ignoreIssues`, `ignoreDependencies` or
 `ignoreBinaries` entry only with a written reason in the file (generated code, external tools). It does not read Go,
 Python or Lua. The standing exceptions are the generated `apps/ui/wailsjs`, the wire-contract types, `@nx/js` (loaded by

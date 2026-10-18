@@ -25,8 +25,10 @@ permissions: { contents: read }
 # runs 20 jobs at a time and queueing is the slow case). The two Playwright suites are most of a UI pull request's wait,
 # so they are sharded; the jobs under a minute share a runner per OS instead of each paying for its own toolchain setup.
 jobs:
-  js:
-    timeout-minutes: 15
+  js-static:
+    # The static checks of the UI project and Knip, about a minute: they used to share a runner with the Vitest run, which is
+    # 90% of the old `js` job's 13 minutes and now has jobs of its own (js-test-shard, js-test).
+    timeout-minutes: 10
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -40,7 +42,7 @@ jobs:
           need-linux-native-deps: 'false'
       - uses: ./.github/actions/nx-run
         with:
-          targets: lint format architecture test test-node
+          targets: lint format architecture test-node
           projects: narration-utils-ui
       # Knip reads every workspace, so a change anywhere can leave an unused file or export: `always`.
       - uses: ./.github/actions/nx-run
@@ -48,6 +50,77 @@ jobs:
           targets: knip
           projects: narration-utils
           always: 'true'
+
+  js-test-shard:
+    # The Vitest run of apps/ui (the `test` target of narration-utils-ui: every test, coverage on the gated logic files), a third
+    # of it per job. One job took 11 m 44 s on a 2-vCPU runner. `vitest --shard=i/3` splits the files by cost
+    # (apps/ui/scripts/vitest-shards.mjs: Vitest's own split is by a hash of the path and left one of three shards with 48% of the
+    # time). A shard checks no coverage floor, since it covers a third of the files: it uploads a blob of its results and
+    # coverage, and the `js-test` job below merges the three and checks the floors over the whole run.
+    name: js-test (shard ${{ matrix.shard }}/3)
+    timeout-minutes: 15
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3]
+    outputs:
+      affected: ${{ steps.scope.outputs.affected }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with: { fetch-depth: 0, persist-credentials: false }
+      - uses: ./.github/actions/setup-toolchain
+        with:
+          need-go: 'false'
+          need-python: 'false'
+          need-wails-tools: 'false'
+          need-stylua: 'false'
+          need-linux-native-deps: 'false'
+      - id: scope
+        uses: ./.github/actions/nx-affected
+        with:
+          projects: narration-utils-ui
+      # No Nx cache and no retry: a green shard means its tests ran. Not through `nx run-many`, whose `test` target is the
+      # whole run (`pnpm check` and a developer's machine run that).
+      - if: steps.scope.outputs.affected == 'true'
+        env:
+          SHARD: ${{ matrix.shard }}
+        run: node scripts/ci/coverage-gate.mjs vitest apps/ui --shard="$SHARD/3"
+      # `.cache` is a hidden directory, which upload-artifact leaves out unless told.
+      - if: steps.scope.outputs.affected == 'true'
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: vitest-blob-${{ matrix.shard }}
+          path: .cache/coverage/vitest-apps-ui-blobs
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 1
+
+  js-test:
+    # The whole-run half of the Vitest gate: merges the three shards' blobs (`coverage-gate.mjs vitest apps/ui --merge=3`, which
+    # fails when one is missing), reports the tests of all three, and checks every coverage floor of scripts/ci/coverage-floors.json
+    # over the merged coverage, exactly as the unsharded run does. Reads blobs only: no test runs here. Skipped when the UI is not affected.
+    needs: js-test-shard
+    if: needs.js-test-shard.outputs.affected == 'true'
+    timeout-minutes: 10
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with: { persist-credentials: false }
+      - uses: ./.github/actions/setup-toolchain
+        with:
+          need-go: 'false'
+          need-python: 'false'
+          need-wails-tools: 'false'
+          need-stylua: 'false'
+          need-linux-native-deps: 'false'
+          pnpm-filter: narration-utils-ui
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          pattern: vitest-blob-*
+          merge-multiple: true
+          path: .cache/coverage/vitest-apps-ui-blobs
+      - run: node scripts/ci/coverage-gate.mjs vitest apps/ui --merge=3
 
   ui-visual-shard:
     # Captures every {page, state, viewport} of the mock-backed app and fails on errors, sideways overflow and collapsed

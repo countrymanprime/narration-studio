@@ -4,8 +4,12 @@
  * logic directory with its floor in scripts/ci/coverage-floors.json:
  *
  *   node scripts/ci/coverage-gate.mjs go <projectRoot> [go test args] [--group=<root|race|plain>[,...]]
- *   node scripts/ci/coverage-gate.mjs vitest <projectRoot>
+ *   node scripts/ci/coverage-gate.mjs vitest <projectRoot> [--shard=<i>/<n> | --merge=<n>]
  *   node scripts/ci/coverage-gate.mjs pytest <projectRoot> [pytest args]
+ *
+ * CI splits the Vitest run into n shards (`--shard`, one job each: the tests and their coverage go to a blob file) and
+ * checks the floors once over all of them (`--merge`: reads the n blobs, fails when one is missing, and measures the
+ * merged coverage exactly as an unsharded run does). A shard alone never checks a floor: it covers part of the files.
  *
  * A directory below its floor fails the run, and so does one with no coverage data at all (a
  * renamed or deleted directory must be edited out of the floors file on purpose). Floors only go
@@ -24,7 +28,7 @@
  * raises whichever applies on the host.
  * UI, glue and sidecar-launch code are not listed and so are not gated.
  */
-import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath, pathToFileURL } from 'node:url';
@@ -303,24 +307,71 @@ function reportsDir(name) {
   return dir;
 }
 
-function runVitest(projectRoot, entries) {
-  const dir = reportsDir(`vitest-${projectRoot.replaceAll('/', '-')}`);
-  // Only the listed logic files are instrumented: components and glue are not gated.
+/** `--shard=2/3` as {index: 2, count: 3}; null for anything else. */
+export function parseShard(argument) {
+  const match = /^--shard=(\d+)\/(\d+)$/.exec(argument ?? '');
+  const shard = match && { index: Number(match[1]), count: Number(match[2]) };
+  return shard && shard.index >= 1 && shard.index <= shard.count ? shard : null;
+}
+
+/** The blob file shard `index` of `count` writes and `--merge` expects. */
+export const blobName = (index, count) => `blob-${index}-${count}.json`;
+
+/** What is wrong with the blob files a `count`-way merge finds: a shard's missing, or one of another split left behind. */
+export function blobProblems(present, count) {
+  const expected = Array.from({ length: count }, (_, i) => blobName(i + 1, count));
+  const missing = expected.filter((name) => !present.includes(name));
+  const extra = present.filter((name) => !expected.includes(name));
+  return [
+    ...missing.map((name) => `${name} is missing: a shard did not report, so its tests and coverage are not in this run`),
+    ...extra.map((name) => `${name} is not part of a ${count}-way split`),
+  ];
+}
+
+/** Where `--shard` writes its blob and `--merge` reads them: beside the reports dir of the same project. */
+function blobsDir(projectRoot) {
+  const dir = resolve('.cache', 'coverage', `vitest-${projectRoot.replaceAll('/', '-')}-blobs`);
+  mkdirSync(dir, { recursive: true });
+  return dir;
+}
+
+/** Vitest options of every Vitest mode: only the listed logic files are instrumented, components and glue are not gated. */
+function vitestCoverageArgs(entries, dir) {
   const includes = entries.map((entry) => (/\.[a-z]+$/i.test(entry.path) ? entry.path : `${entry.path}/**`));
-  const args = [
-    '--dir',
-    projectRoot,
-    'exec',
-    'vitest',
-    'run',
+  return [
     '--coverage.enabled',
     '--coverage.provider=v8',
     '--coverage.reporter=json-summary',
     `--coverage.reportsDirectory=${dir}`,
     ...includes.map((include) => `--coverage.include=${include}`),
   ];
-  const result = run('pnpm', args, { stdio: 'inherit' });
-  if (result.status !== 0) process.exit(result.status ?? 1);
+}
+
+function runVitest(projectRoot, entries, { shard = null, merge = 0 } = {}) {
+  const dir = reportsDir(`vitest-${projectRoot.replaceAll('/', '-')}`);
+  const args = ['--dir', projectRoot, 'exec', 'vitest', 'run', ...vitestCoverageArgs(entries, dir)];
+  if (shard) {
+    // The report goes to the console as usual and, with the coverage, to the blob `--merge` reads. No floor is checked here.
+    const blobs = blobsDir(projectRoot);
+    // Blobs of an earlier split would be merged with this one's.
+    for (const name of readdirSync(blobs)) if (name.startsWith('blob-') && !name.endsWith(`-${shard.count}.json`)) rmSync(join(blobs, name));
+    const blob = join(blobs, blobName(shard.index, shard.count));
+    const result = run('pnpm', [...args, `--shard=${shard.index}/${shard.count}`, '--reporter=default', '--reporter=blob', `--outputFile.blob=${blob}`], { stdio: 'inherit' });
+    process.exit(result.status ?? 1);
+  }
+  if (merge) {
+    const blobs = blobsDir(projectRoot);
+    const problems = blobProblems(readdirSync(blobs), merge);
+    if (problems.length) {
+      console.error(`coverage: cannot merge the blobs in ${blobs}:\n${problems.map((problem) => `  ${problem}`).join('\n')}`);
+      process.exit(1);
+    }
+    const result = run('pnpm', [...args, `--merge-reports=${blobs}`, '--reporter=default'], { stdio: 'inherit' });
+    if (result.status !== 0) process.exit(result.status ?? 1);
+  } else {
+    const result = run('pnpm', args, { stdio: 'inherit' });
+    if (result.status !== 0) process.exit(result.status ?? 1);
+  }
   const files = normalizeVitestSummary(JSON.parse(readFileSync(join(dir, 'coverage-summary.json'), 'utf8')), resolve(projectRoot));
   return (entry) => aggregateFiles(files, entry.path);
 }
@@ -334,6 +385,17 @@ function runPytest(projectRoot, extra) {
   if (result.status !== 0) process.exit(result.status ?? 1);
   const files = normalizePytestReport(JSON.parse(readFileSync(json, 'utf8')));
   return (entry) => aggregateFiles(files, entry.path);
+}
+
+/** `--shard=i/n` or `--merge=n` after `vitest <projectRoot>`; nothing is an unsharded run, anything else is refused. */
+function vitestMode(rest) {
+  if (rest.length === 0) return {};
+  const merge = /^--merge=(\d+)$/.exec(rest[0] ?? '');
+  const shard = parseShard(rest[0]);
+  if (rest.length === 1 && shard) return { shard };
+  if (rest.length === 1 && merge && Number(merge[1]) >= 1) return { merge: Number(merge[1]) };
+  console.error('Usage: coverage-gate.mjs vitest <projectRoot> [--shard=<i>/<n> | --merge=<n>]');
+  process.exit(2);
 }
 
 function main(argv) {
@@ -361,7 +423,7 @@ function main(argv) {
     const owned = goTest.ran ? entriesForPackages(entries, goTest.modulePath, goTest.ran, goTest.all) : entries;
     process.exit(report(doc, owned, goTest.measure, { update }));
   }
-  const measure = tool === 'vitest' ? runVitest(projectRoot, entries) : runPytest(projectRoot, rest);
+  const measure = tool === 'vitest' ? runVitest(projectRoot, entries, vitestMode(rest)) : runPytest(projectRoot, rest);
   process.exit(report(doc, entries, measure, { update }));
 }
 
