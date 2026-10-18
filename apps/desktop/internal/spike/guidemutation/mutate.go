@@ -233,3 +233,82 @@ func write(path string, guide map[string]any) error {
 	}
 	return os.Rename(temporary, path)
 }
+
+// Document is Edit for a host that keeps the Story Bible in memory: the file is parsed once and again only when its size or
+// modification time shows another writer (a build run as its own process), and each edit writes it back unindented.
+type Document struct {
+	path    string
+	guide   map[string]any
+	size    int64
+	modTime int64
+}
+
+// Open returns a Document for the file at path; nothing is read until the first Edit.
+func Open(path string) *Document { return &Document{path: path} }
+
+// Edit is the package's Edit against the held document. A refused field leaves both the file and the held copy as they were.
+func (d *Document) Edit(entityID string, fields map[string]string) error {
+	if _, ok := fields["aliases"]; ok {
+		return ErrNeedsPython
+	}
+	info, err := os.Stat(d.path)
+	if err != nil {
+		return fmt.Errorf("Guide file does not exist; build it first.") //nolint:staticcheck // the sidecar's own message
+	}
+	if d.guide == nil || info.Size() != d.size || info.ModTime().UnixNano() != d.modTime {
+		if d.guide, err = load(d.path); err != nil {
+			return err
+		}
+	}
+	entity, err := findEntity(d.guide, entityID)
+	if err != nil {
+		return err
+	}
+	categories, err := typeNames(d.guide)
+	if err != nil {
+		return err
+	}
+	// Applied to a copy of the entry, so a refused field does not leave the held document half-changed.
+	encoded, err := json.Marshal(entity)
+	if err != nil {
+		return err
+	}
+	decoder := json.NewDecoder(bytes.NewReader(encoded))
+	decoder.UseNumber()
+	var changed map[string]any
+	if err := decoder.Decode(&changed); err != nil {
+		return err
+	}
+	names := make([]string, 0, len(fields))
+	for name := range fields {
+		names = append(names, name)
+	}
+	slices.Sort(names)
+	for _, name := range names {
+		if err := applyEdit(changed, name, fields[name], categories); err != nil {
+			return err
+		}
+	}
+	changed["review_state"] = "reviewed"
+	for key := range entity {
+		delete(entity, key)
+	}
+	for key, value := range changed {
+		entity[key] = value
+	}
+	raw, err := json.Marshal(d.guide)
+	if err != nil {
+		return err
+	}
+	temporary := d.path + ".tmp"
+	if err := os.WriteFile(temporary, append(raw, '\n'), 0o644); err != nil { //nolint:gosec // the mode manuscript_guide.py writes the file with
+		return err
+	}
+	if err := os.Rename(temporary, d.path); err != nil {
+		return err
+	}
+	if info, err = os.Stat(d.path); err == nil {
+		d.size, d.modTime = info.Size(), info.ModTime().UnixNano()
+	}
+	return nil
+}

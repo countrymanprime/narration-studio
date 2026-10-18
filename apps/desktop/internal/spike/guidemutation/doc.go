@@ -6,5 +6,5 @@
 //   - Edit is the same `edit` command (setLocked is an edit of "locked") written in Go against the real manuscript_guide.json schema.
 //
 // Every other file is under the "spike" build tag, so the gate neither builds nor runs them and nothing in the app can import them.
-// How to run the measurement is at the top of latency_test.go.
+// How to run the measurement is at the top of spike_test.go.
 package guidemutation

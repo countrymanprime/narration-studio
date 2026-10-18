@@ -12,7 +12,10 @@ A Story Bible mutation (an edit, a lock, a merge) starts a frozen Python process
 
 The owner also asked whether any other Python code that is not model work would be faster or more stable in Go.
 
-**Recommendation: B, split by operation.** Python keeps everything that calls a model, a dictionary or a voice. The full-length numbers decide it: on an 88,000-word book the Story Bible file is 5 MB, and reading and rewriting it costs more than starting the process. A warm worker removes only the start. Go can keep the document in memory between edits, which no per-call process can do. The list of operations to move, in order, is in [What to move first](#what-to-move-first).
+**Recommendation: B, split by operation.** Python keeps everything that calls a model, a dictionary or a voice. The full-length numbers decide it: on an 88,000-word book the Story Bible file is 5 MB, and reading and rewriting it costs more than starting the process.
+
+- A warm worker removes only the start. Its edit, which still re-reads the file, ties with a Go edit that re-reads it (about 130 ms p50 each).
+- Go pulls ahead only because the host can keep the document in memory between edits, which no per-call process can do. Measured end to end, that is 21 to 27 ms p50 for a full-length edit. The list of operations to move, in order, is in [What to move first](#what-to-move-first).
 
 ## Method
 
@@ -20,11 +23,14 @@ The owner also asked whether any other Python code that is not model work would 
   - The worker is `sidecars/manuscript-guide/spikes/serve_worker.py`. It runs the sidecar's own command line (`manuscript_guide.main`) once per request line and answers with the exit code, stdout and stderr that a spawn would have produced. So any command works unchanged, and the host could treat the two transports the same.
   - The worker re-reads the file on every command, as a spawn does. It refuses `build`, `render-audio`, `self-check` and `suggest`, and exits after 60 s idle or when stdin closes.
   - The Go side is in `apps/desktop/internal/spike/guidemutation`, under the `spike` build tag. `worker.go` is the host end of the worker: it starts the worker on the first call and again after the worker has exited. `mutate.go` is `edit` for every field except `aliases`. setLocked is an edit of `locked`.
-  - `TestGoEditMatchesTheSidecar` runs ten edits through the real sidecar and through the Go `Edit` on copies of one built Story Bible. It requires the same JSON after each edit; key order is the one difference, because Go sorts map keys. It passed.
+  - `Document` in the same file is that edit for a host that holds the parsed file. It re-reads the file only when its size or modification time shows another writer, and it writes back unindented.
+  - `TestGoEditMatchesTheSidecar` runs ten edits through the real sidecar and through the Go `Edit` on copies of one built Story Bible. It requires the same JSON after each edit, for both the plain and the held edit; key order is the one difference, because Go sorts map keys. It passed.
+  - `TestHeldDocumentRefusesWithoutChangingAndRereadsAfterAnotherWriter` checks that a refused field leaves the held copy alone and that an outside write is picked up.
+  - The worker's own test, `sidecars/manuscript-guide/tests/test_serve_worker_spike.py`, runs in the normal sidecar pytest job, so the spike cannot rot while it lives. The Go spike runs only with the tag.
 - **Measurement.** `TestLatency` in `spike_test.go` uses the baseline harness's method: 20 runs, the first reported alone, p50, p95 and max over the other 19. It also uses the baseline's generator and seed (copied from `apps/desktop/internal/latency/latency_test.go`), so the manuscripts are the same text: small (2,225 words) and full-length (88,471 words, 30 chapters, 1,200 paragraphs).
   - The guide is built by the real sidecar with `rules-only` extraction. The baseline's venv had no spaCy model either. The build found 527 entries and 9,905 occurrences, and the full-length file is 4,994 KB.
   - The spawn rows go through the real `guide.Service` and `process.Supervisor.Run`, exactly as the app does.
-  - Three passes were run; the tables below are the third. The other two agree within the run-to-run noise noted under [Caveats](#caveats).
+  - Five passes were run (the held edit was added for the fourth); the tables below are the fourth. The other two agree within the run-to-run noise noted under [Caveats](#caveats).
   - Python's own JSON costs were timed in-process on the saved full-length file: `json.loads` and `json.dumps`, median of 20.
 - **Machine.** Everything ran in a Linux cloud container: 4 vCPU Intel Xeon at 2.1 GHz, 15 GB RAM, Go 1.27.2, Python 3.12.14 (the repository's `.venv`), no antivirus.
   - The baseline was a Windows 11 Ryzen 9 9955HX. Process starts there cost more, so **the spawn rows here are not the Windows numbers**. Read the rows against each other, not against the baseline.
@@ -37,19 +43,26 @@ The owner also asked whether any other Python code that is not model work would 
 
 | Path | Small p50 | Small p95 | Full-length p50 | Full-length p95 |
 | --- | --- | --- | --- | --- |
-| Spawn (today): edit, 1 field | 100 | 106 | 232 | 352 |
-| Spawn (today): setLocked | 95 | 105 | 237 | 259 |
-| Worker, warm: edit, 1 field | 7.0 | 7.9 | 132 | 168 |
-| Worker, warm: setLocked | 7.1 | 8.0 | 130 | 139 |
-| Worker, first call (start + call) | 57 (one run) | | 205 (one run) | |
-| Worker after an idle exit (start + call) | 67 | 70 | 204 | 251 |
-| Go: edit, 1 field (read, change, write) | 3.2 | 6.6 | 132 | 180 |
-| Go: setLocked | 2.9 | 3.5 | 114 | 151 |
-| Go: read and parse only | 1.4 | 2.0 | 54 | 72 |
-| Go: write only, document held in memory | 1.2 | 1.8 | 35 | 64 |
-| Go: write only, unindented, document held in memory | 0.7 | 1.0 | 16 | 27 |
+| Spawn (today): edit, 1 field | 103 | 139 | 236 | 274 |
+| Spawn (today): setLocked | 100 | 110 | 241 | 274 |
+| Worker, warm: edit, 1 field | 8.1 | 12.5 | 130 | 149 |
+| Worker, warm: setLocked | 8.0 | 12.1 | 134 | 169 |
+| Worker, first call (start + call) | 68 (one run) | | 204 (one run) | |
+| Worker after an idle exit (start + call) | 74 | 84 | 210 | 247 |
+| Go: edit, 1 field (read, change, write) | 3.6 | 4.5 | 103 | 113 |
+| Go: setLocked (read, change, write) | 3.0 | 4.3 | 129 | 152 |
+| **Go: edit, document held in memory, unindented write** | **1.0** | 1.2 | **27** | 40 |
+| **Go: setLocked, document held in memory, unindented write** | **1.1** | 1.6 | **21** | 42 |
+| Go: the held edit's first call (parses the file) | 2.5 (one run) | | 110 (one run) | |
+| Go: read and parse only | 1.5 | 2.2 | 56 | 75 |
+| Go: write only, document held in memory | 1.2 | 2.1 | 44 | 59 |
+| Go: write only, unindented, document held in memory | 0.9 | 1.1 | 16 | 24 |
 
-Across the three passes, the full-length Go edit's p50 ranged from 100 to 132 ms and the spawn's from 232 to 263 ms.
+Across the passes:
+- the full-length spawn's p50 ranged from 232 to 263 ms;
+- the warm worker's ranged from 128 to 136 ms;
+- the Go edit that re-reads the file ranged from 100 to 132 ms;
+- the held edit ranged from 21 to 27 ms (passes four and five).
 
 ### Measured: where the full-length time goes
 
@@ -58,19 +71,19 @@ Across the three passes, the full-length Go edit's p50 ranged from 100 to 132 ms
   - The indented dump is three times the cost of an unindented one (22 ms).
   - The same in-process call with an unindented write was 56 ms p50 (78 ms p95).
 - **Go's per-call work.** Go's `encoding/json` into `map[string]any` is slower than CPython's C parser on this file (54 ms against 23 ms). So a Go edit that re-reads the file each time is no faster than the warm worker at full length.
-  - Go wins only by not re-reading. Held in memory and written unindented, it costs 16 ms.
+  - Go wins only by not re-reading. Held in memory and written unindented, the write costs 16 ms and the whole edit 21 to 27 ms.
 - **What fills the file.** Occurrence evidence is 3.9 MB of the 5.1 MB (76%): each mention stores an excerpt of up to 300 characters. Appearances are 0.2 MB. Each mutation rewrites all of it.
 
 ### Estimated, not measured: the frozen app on Windows
 
-The rows below apply the baseline's frozen floor to the per-call work measured here. The Windows machine has the faster CPU, so the work terms are probably lower there.
+The rows below apply the baseline's frozen floor to the per-call work measured here. The Windows machine has the faster CPU, so the work terms are probably lower there. The Go row needs no frozen sidecar, so only the machine differs.
 
 | Path | Small | Full-length |
 | --- | --- | --- |
 | Spawn, frozen (measured in the baseline) | 226 | 355 |
 | Worker, warm (estimated: the Python work alone) | under 10 | 100 to 130 |
 | Worker after an idle exit, frozen (estimated: the frozen floor plus the work) | about 235 | about 355 |
-| Go, document held in memory, unindented (estimated) | about 1 | 15 to 20 |
+| Go, document held in memory, unindented (the Linux numbers; no frozen part) | about 1 | 20 to 30 |
 
 ## Classification of every manuscript-guide command
 
@@ -98,6 +111,39 @@ Line counts are the functions each command uses, counted from the module's synta
 | `rescan`, `status` | Pure | the manuscript (`find_occurrences`, `excerpt`, the SHA-256 of the file) | 73 | `test_manuscript_guide.py` | M: the excerpts must match Python's to the character |
 
 ## The other sidecars and narration_common
+
+The frozen entry scripts are `compare.py` and `live_asr.py` (`scripts/release/prepare-resources.py`). Both dispatch on flags, not subcommands. "Pure" lines are estimates read from the functions; tests are the files under each sidecar's `tests/` (and `libs/python/tests/`). Every output is tagged pipe-delimited lines or NDJSON on stdout, parsed on the Go side by the package named.
+
+### Entry points
+
+| Entry point | Kind | Go caller and parser | Tests and goldens | Port |
+| --- | --- | --- | --- | --- |
+| `compare.py`, default compare | Model (Whisper), then pure diff and markers | `internal/transcript/service.go` | `test_compare.py`, `test_compare_properties.py`, the marker golden | L, with the diff core below |
+| `compare.py --find-repeats` | Model, then pure span grouping | `internal/takereview/sidecar.go`, `internal/repeats/parse.go` | `test_repeated_spans.py` | L, with the diff core |
+| `compare.py --take-divergence` (`take_divergence_mode.py`) | Model, then pure alignment | `internal/takecompare/sidecar.go`, `divergence.go` | `test_take_divergence*.py`, `take-divergence-results.json` | L, with the diff core |
+| `compare.py --coverage` (`coverage_mode.py`, `coverage_chunks.py`, `recording_coverage.py`) | Model, then pure coverage; `--align-only` runs no model at all | `internal/coverage` (`service.go`, `report.go`) | `test_coverage*.py`, `results.golden.json` (also read by `internal/coverage/corpus_test.go`) | L; `--align-only` alone is M |
+| `compare.py --coverage --recheck` | Model on the windows, then a pure splice | `internal/coverage` (the host writes the windows file) | `test_coverage_recheck.py` | stays with the model |
+| `compare.py --extract-hints` | Pure manuscript scan | none found | | delete if unused |
+| `compare.py --capabilities`, `live_asr.py --capabilities` | Glue | `apps/desktop/smoke.go` | | stays |
+| `live_asr.py`, a session | Model (Moonshine, Whisper) and capture; tracker, flags and the confirmation logic are pure, in the same loop | `internal/teleprompter/service.go` | `test_live_asr.py`, `test_script_tracker*.py`, `test_flags.py`, the `teleprompter-events` golden | M for the tracker and flags |
+| `live_asr.py --locate`, `--align-word` | Model decode, then pure placement | `internal/teleprompter/locate.go`, `alignword.go` | `test_locate.py`, `test_align_word.py`, their goldens | M; little gain |
+| `live_asr.py --meter`, `--record`, `--list-devices`, `--capture` | Native capture (WASAPI, dshow) | `internal/recording/sidecar.go`, `internal/teleprompter/meter.go` | `test_levels.py`, `test_devices.py`, `test_capture_*.py`, `test_recording.py` | stays |
+| `replay.py` (developer tool, not frozen) | Pure | none | `test_replay.py` | not needed |
+
+### narration_common
+
+| Module | Lines | Kind | Go parallel | Port |
+| --- | --- | --- | --- | --- |
+| `manuscript.py` | 74 | Pure read and validate | the host owns the format (`internal/manuscript`) | nothing to port |
+| `progress.py` | 38 | Protocol (`STAGE\|percent\|message`) | `internal/process/progress.go` reads it | stays (it is the contract) |
+| `spoken_forms.py` | 204 | Pure (numbers, homophones, tokens) | partly in `internal/chaptermatch/normalize.go` | S to M, with whatever uses it |
+| `chapter_names.py` | 50 | Pure | `internal/chaptername`, `apps/ui/src/chapterName.ts` | S |
+| `config.py` | 168 | Glue (default settings) | the host's settings are authoritative | stays while sidecars read defaults |
+| `contract_files.py` | 46 | Test glue (golden writer) | `internal/contractfile` | stays with the Python tests |
+| `logging_utils.py` | 47 | Glue | `internal/runlog` reads it | stays |
+| `ui_bridge.py` | 71 | Glue | no non-test importer found | delete if unused |
+| `ports/` | 1,542 | Glue (engine registries, conformance) | the host's `*port` packages mirror the names | stays |
+| `recording/` | 704 | numpy and I/O behind native capture | | stays |
 
 ### Already duplicated in Go
 
@@ -130,7 +176,7 @@ These would only be worth porting if the sidecars became "audio in, words out".
   - The engine's word events already reach the host one by one (`live_asr.py` prints each before `tracker.feed`), so moving them adds no crossing per audio frame.
   - The tick per audio chunk, the stream clock and the seek and pause control would have to move with them, and `difflib`'s ratio would need exact parity.
   - Cost: M. Its benefit is a contract that moves, not speed.
-- **Engine-bound code.** `coverage_chunks.py`'s planning (about 75 pure lines around a Whisper process pool), `locate.py` and `align_word.py` (about 450 pure lines, each one-shot behind a decode) and `levels.py` (numpy, every chunk) belong with their engines.
+- **Engine-bound code.** `coverage_chunks.py`'s planning (about 75 pure lines around a Whisper process pool), `locate.py` and `align_word.py` (559 lines between them, about 450 of them pure, each one-shot behind a decode) and `levels.py` (numpy, every chunk) belong with their engines.
 
 ## What B buys besides speed
 
@@ -166,7 +212,7 @@ C is not enough. Every mutation stays over 100 ms, and full-length ones over 350
 ## What to move first
 
 1. **`edit` for every field but `aliases`, and setLocked.** This is every Save. The prototype and its parity test exist.
-2. **Hold the document in `guide.Service`.** Keep the parsed document in memory keyed by size and modification time. Dropping the indent is an owner choice: it is still JSON, but no longer pleasant to read by hand, and it takes a full-length write from 35 to 16 ms here.
+2. **Hold the document in `guide.Service`.** Keep the parsed document in memory keyed by size and modification time. Dropping the indent is an owner choice: it is still JSON, but no longer pleasant to read by hand, and it takes a full-length write from 44 to 16 ms here (write only, held document).
    - The same unindented write in Python's `write_json` is a separate, smaller change that would help the commands that stay in Python. Estimated: about 70 ms off each full-length spawn (in-process, 127 to 56 ms).
 3. **`mark-reviewed`, `review-flag`, `speaker-color`, `relate`, `unrelate`, `delete` and `correct-cue`.**
 4. **The five `type-*` commands.**

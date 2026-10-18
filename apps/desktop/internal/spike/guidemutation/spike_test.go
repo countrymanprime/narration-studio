@@ -262,8 +262,10 @@ func TestGoEditMatchesTheSidecar(t *testing.T) {
 		{"locked": "no"},
 		{"description": "d", "context": "c", "personality": "p", "canonical_name": "Aldric"},
 	}
-	sidecarPath, goPath := p.guidePath, filepath.Join(t.TempDir(), "go.json")
+	sidecarPath, goPath, heldPath := p.guidePath, filepath.Join(t.TempDir(), "go.json"), filepath.Join(t.TempDir(), "held.json")
 	copyFile(t, sidecarPath, goPath)
+	copyFile(t, sidecarPath, heldPath)
+	held := Open(heldPath)
 	for _, fields := range edits {
 		if err := p.svc.EditFields(p.subject, fields); err != nil {
 			t.Fatalf("sidecar %v: %v", fields, err)
@@ -271,8 +273,14 @@ func TestGoEditMatchesTheSidecar(t *testing.T) {
 		if err := Edit(goPath, p.subject, fields); err != nil {
 			t.Fatalf("Go %v: %v", fields, err)
 		}
+		if err := held.Edit(p.subject, fields); err != nil {
+			t.Fatalf("held Go %v: %v", fields, err)
+		}
 		if a, b := decodeFile(t, sidecarPath), decodeFile(t, goPath); !reflect.DeepEqual(a, b) {
 			t.Fatalf("after %v the sidecar's file and Go's differ", fields)
+		}
+		if a, b := decodeFile(t, sidecarPath), decodeFile(t, heldPath); !reflect.DeepEqual(a, b) {
+			t.Fatalf("after %v the sidecar's file and the held document's differ", fields)
 		}
 	}
 }
@@ -397,6 +405,14 @@ func operations(t *testing.T, py string, p project, runs int) []sample {
 		return Edit(p.guidePath, p.subject, map[string]string{"locked": fmt.Sprint(i%2 == 1)})
 	}))
 	_ = Edit(p.guidePath, p.subject, map[string]string{"locked": "false"})
+	document := Open(p.guidePath)
+	out = append(out, measure(t, "Go: edit, document held in memory, unindented write (first = parse)", runs, nil, func(i int) error {
+		return document.Edit(p.subject, map[string]string{"description": fmt.Sprint("held ", i)})
+	}))
+	out = append(out, measure(t, "Go: setLocked, document held in memory, unindented write", runs, nil, func(i int) error {
+		return document.Edit(p.subject, map[string]string{"locked": fmt.Sprint(i%2 == 1)})
+	}))
+	_ = Edit(p.guidePath, p.subject, map[string]string{"locked": "false"})
 	// The Go edit is read, change, write; the read and the write alone show where its time goes.
 	out = append(out, measure(t, "Go: read and parse only", runs, nil, func(int) error { _, err := load(p.guidePath); return err }))
 	held, err := load(p.guidePath)
@@ -447,5 +463,36 @@ func TestLatency(t *testing.T) {
 		if err := os.WriteFile(out, []byte(report.String()), 0o644); err != nil {
 			t.Fatal(err)
 		}
+	}
+}
+
+func TestHeldDocumentRefusesWithoutChangingAndRereadsAfterAnotherWriter(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "manuscript_guide.json")
+	if err := os.WriteFile(path, []byte(fixture), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	document := Open(path)
+	if err := document.Edit("entity-a", map[string]string{"description": "first"}); err != nil {
+		t.Fatal(err)
+	}
+	if err := document.Edit("entity-a", map[string]string{"description": "lost", "category": "Draft"}); err == nil {
+		t.Fatal("a reserved category was accepted")
+	}
+	if err := document.Edit("entity-a", map[string]string{"context": "c"}); err != nil {
+		t.Fatal(err)
+	}
+	raw, _ := os.ReadFile(path)
+	if strings.Contains(string(raw), "lost") || !strings.Contains(string(raw), `"text":"first"`) {
+		t.Fatalf("a refused field reached the held document:\n%s", raw)
+	}
+	// Another writer (a build) replaces the file: the next edit works on its content, not the held copy.
+	if err := os.WriteFile(path, []byte(strings.Replace(fixture, `"Mirelle", "category": "Place", "locked": true`, `"Mirelle", "category": "Place", "locked": false`, 1)), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := document.Edit("entity-b", map[string]string{"description": "rebuilt"}); err != nil {
+		t.Fatalf("the edit after another writer used the stale copy: %v", err)
+	}
+	if raw, _ := os.ReadFile(path); strings.Contains(string(raw), `"first"`) {
+		t.Fatalf("the stale held copy was written over the other writer's file:\n%s", raw)
 	}
 }
