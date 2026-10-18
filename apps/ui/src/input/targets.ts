@@ -59,3 +59,27 @@ const KEY_LAYER = '[role="dialog"], [role="alertdialog"], [role="menu"], [role="
 export function keyLayerOpen(root: ParentNode = document): boolean {
   return Array.from(root.querySelectorAll(KEY_LAYER)).some((layer) => !layer.closest('[hidden], [inert], [aria-hidden="true"]'));
 }
+
+const HIDDEN = '[hidden], [inert], [aria-hidden="true"]';
+const SOFT_LAYER = '[role="menu"], [data-popover-popup]';
+const MODAL_LAYER = '[role="alertdialog"], [role="dialog"]:not([data-popover-popup])';
+
+/** Whether a menu or popover (a popup the page behind stays usable under, closed by Escape) is on screen. */
+export function softLayerOpen(root: ParentNode = document): boolean {
+  return Array.from(root.querySelectorAll(SOFT_LAYER)).some((layer) => !layer.closest(HIDDEN));
+}
+
+/** Whether a dialog or an alert dialog, a question the narrator has to answer, is on screen. */
+export function modalLayerOpen(root: ParentNode = document): boolean {
+  return Array.from(root.querySelectorAll(MODAL_LAYER)).some((layer) => !layer.closest(HIDDEN));
+}
+
+const TEXT_INPUT_TYPES = new Set(['text', 'search', 'email', 'url', 'tel', 'password']);
+
+/** Whether the element takes typed text, so a Space on it is a space in the text. A select, a slider, a checkbox or a button does not. */
+export function takesTypedText(target: EventTarget | null): boolean {
+  if (!(target instanceof HTMLElement)) return false;
+  if (target instanceof HTMLTextAreaElement) return true;
+  if (target instanceof HTMLInputElement) return TEXT_INPUT_TYPES.has(target.type);
+  return target.isContentEditable || target.closest('[contenteditable]:not([contenteditable="false"])') !== null;
+}
