@@ -46,7 +46,7 @@ starts (`Pronounce`'s `CheckPronounce`).
 ## The default source setting
 
 The default source setting
-added `ManuscriptGuide.default_pronunciation_source` (Settings > Story Bible): `""` (Automatic, the
+added `ManuscriptGuide.default_pronunciation_source` (Settings > Voice & pronunciation): `""` (Automatic, the
 original CMU-then-Wiktionary-then-eSpeak order) or one of the three source names. It only **reorders** the automatic
 fallback to try the narrator's preferred source first — the rest of the chain still runs if that source has nothing
 for a name — and never limits the entity/alias Generate/Replace control's own explicit per-name choice.

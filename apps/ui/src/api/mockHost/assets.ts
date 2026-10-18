@@ -235,6 +235,8 @@ export function createAssetsMock(initial: MockApiSeed) {
       }
     },
     assetsList: async () => {
+      if (initial.assetsList === 'loading') return new Promise<never>(() => {});
+      if (initial.assetsList === 'fails') throw new Error('The list of downloads could not be read from this computer.');
       const item = (kind: string, kindLabel: string, model: AssetFactsSource, installState: AssetInstallState, activeJobId: string) => ({
         kind,
         kindLabel,

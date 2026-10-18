@@ -132,6 +132,11 @@ export interface VoiceSamplesApi {
   voiceSampleRemove(id: string): Promise<VoiceSamplesRemoved>;
   /** Deletes every sample and every clip in the project. */
   voiceSamplesRemoveAll(): Promise<VoiceSamplesRemoved>;
+  /**
+   * Where a sample's clip plays from, built from its id alone: synchronous, not a request, and never a file path. The host serves the
+   * clip only for an id it lists and only while the file is the one that was saved, so a bad id or a changed clip is a failed load.
+   */
+  voiceSampleMediaUrl(id: string): string;
   /** Called after any change to the samples (a mark, an update, a remove, Clear project data). The page reads the list again. */
   subscribeVoiceSamples(onChange: (event: VoiceSamplesChanged) => void): () => void;
 }

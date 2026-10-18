@@ -128,18 +128,6 @@ describe('UpdatesPanel, more', () => {
     expect(screen.queryByRole('button', { name: 'Check now' })).toBeNull();
   });
 
-  it('waits for unsaved settings to be saved, because a check uses the saved ones', async () => {
-    const api = createMockApi();
-    render(
-      <ApiProvider api={api}>
-        <UpdatesPanel formDirty />
-      </ApiProvider>,
-    );
-    const button = (await screen.findByRole('button', { name: 'Check now' })) as HTMLButtonElement;
-    expect(button.disabled).toBe(true);
-    expect(screen.getByText(/Save your changes first/)).toBeTruthy();
-  });
-
   it('puts keyboard focus back on the button when a check ends and announces the result in a status region', async () => {
     renderPanel(undefined);
     const button = await screen.findByRole('button', { name: 'Check now' });

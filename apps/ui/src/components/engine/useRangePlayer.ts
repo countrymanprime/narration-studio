@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { onSampleStart } from '../voicesamples/samplePlayerStore';
 
 // Fixed lead-in/trail-off ("pre/post roll") around a matched span. Not a setting (YAGNI): nothing calls for
 // narrator tuning, and a constant keeps both audition sides consistent.
@@ -98,6 +99,9 @@ export function useRangePlayer(
     audioRef.current!.pause();
     setIsPlaying(false);
   }, []);
+
+  // A voice sample starting takes the audio (docs/prds/character-voice-samples.prd.md, Playback).
+  useEffect(() => onSampleStart(stop), [stop]);
 
   /** Where the audio is now, in its source file's seconds. */
   const position = useCallback(() => audioRef.current!.currentTime, []);

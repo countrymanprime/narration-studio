@@ -2,7 +2,7 @@
 import type { Page } from '@playwright/test';
 import { WIRE_ENTITIES } from '../../../src/api/mockFixtures';
 import { settlePage } from '../helpers/settle';
-import { type Driver, askForTheLanguageModel, askForThePreviewVoice, clickNav, clickVisible, confirmDialog, goToPage, saveOnlineDictionaryKey } from './shared';
+import { type Driver, askForTheLanguageModel, askForThePreviewVoice, clickNav, clickVisible, confirmDialog, goToPage, saveMerriamWebsterKey } from './shared';
 
 export const storybibleDrivers: Record<string, Driver> = {
   'review-filter': async (page) => {
@@ -145,7 +145,7 @@ export const storybibleDrivers: Record<string, Driver> = {
     await field.scrollIntoViewIfNeeded();
   },
   'entry-pronunciation-online': async (page) => {
-    await saveOnlineDictionaryKey(page);
+    await saveMerriamWebsterKey(page);
     // The "key saved" toast belongs to Settings; dismissed so it does not cover the answer this state is about.
     await page.getByRole('button', { name: 'Dismiss message' }).click();
     await openForEditing(page, 'Alice');

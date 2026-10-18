@@ -351,6 +351,16 @@
 .guide-list-scroll tr:has(.type-Event) td:first-child {
   border-left: 3px solid var(--event);
 }
+/* Settings: the per-row "Saved" fades out; a row another page asked for is lit and settles. */
+@keyframes settings-saved {
+  0%,
+  70% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
 @keyframes work-progress-slide {
   0% {
     transform: translateX(-100%);

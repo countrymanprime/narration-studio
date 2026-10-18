@@ -81,7 +81,8 @@ These are the colours the mocks draw that the base palette does not name ([style
 | Body text, values, titles | `--text` |
 | A label, count, helper text, placeholder, empty state, timestamp | `--text-muted` (a placeholder gets it from `styles.css`) |
 | An icon, dot, decorative glyph, an unset colour | `--non-text` (and list it in `NON_TEXT_USES` in `paletteContrast.test.ts` with what it draws) |
-| The current item on an accent tint (navigation, tabs) | `--accent-strong` |
+| The current item on an accent tint (tabs) | `--accent-strong` |
+| The current navigation item (the bar highlight) | `--text` on `--surface-2`, with a 3 px `--accent` bar; its count stays `--text-muted` |
 | Error, warning or info text, on the page or on a soft fill | `--danger-text`, `--warn-text`, `--info-text`; `--danger`, `--warn` and `--info` stay for borders, dots and fills |
 | A requirement met (Master & QC's rule results) | `--ok-text`; `--ok` stays for borders, dots and fills |
 | An entity's text on a tint of its own colour (highlights, badges) | `--<kind>-text` |

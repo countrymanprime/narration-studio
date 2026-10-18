@@ -8,7 +8,6 @@ import { ThemeProvider } from '../../../theme/ThemeContext';
 import { MemoryRouter } from 'react-router-dom';
 import { SettingsPage } from '../page/SettingsPage';
 import { AnalysisToolsSection } from './AnalysisToolsSection';
-import { LocalAssets } from '../../assets/LocalAssets';
 import { createFakeTools, type FakeInstall } from './fixtures';
 
 afterEach(cleanup);
@@ -211,22 +210,14 @@ describe('AnalysisToolsSection', () => {
     await download('gliner', 'GLiNER');
     await waitFor(async () => expect((await row('gliner')).getAttribute('data-status')).toBe('installed'), SLOW);
     expect(fake.installed()).toEqual(['gliner']);
-    // Opening the Local assets list afterwards reads the same registry and shows it installed.
-    const { container } = render(
-      <ApiProvider api={api}>
-        <LocalAssets notify={vi.fn()} />
-      </ApiProvider>,
-    );
-    const listed = (await within(container).findByRole('heading', { level: 3, name: 'GLiNER' })).closest('li') as HTMLElement;
-    expect(within(listed).getByText(/Installed/)).toBeTruthy();
-    // The reverse: a removal made through the list is what the section shows after it reads again.
+    // A removal made through the host is what a second read of the one registry shows.
     await api.assetsRemove('analysis', 'gliner');
     expect(fake.installed()).toEqual([]);
     const catalog = await api.assetsList();
     expect(catalog.assets.find((item) => item.id === 'gliner')?.installState).toBe('not_installed');
   });
 
-  it("is drawn on the Settings page as the mock's own panel, after Story Bible types, whatever scope Story Bible shows", async () => {
+  it('is drawn on the Settings page under Models & downloads, below the list of downloads and without a panel of its own', async () => {
     const fake = createFakeTools();
     const api = createMockApi({ ...fake.port });
     const data = await api.bootstrap();
@@ -243,20 +234,17 @@ describe('AnalysisToolsSection', () => {
               onLinkDawFile={vi.fn()}
               go={vi.fn()}
               refreshBootstrap={async () => undefined}
-              initialCategory="ManuscriptGuide"
             />
           </ApiProvider>
         </ThemeProvider>
       </MemoryRouter>,
     );
-    const analysis = screen.getByRole('region', { name: 'Story Bible analysis' });
-    const types = screen.getByRole('region', { name: 'Story Bible types' });
-    expect(types.compareDocumentPosition(analysis) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    fireEvent.click(within(screen.getByRole('navigation', { name: 'Settings categories' })).getByRole('button', { name: /^Models & downloads/ }));
+    const heading = await screen.findByRole('heading', { level: 3, name: 'Story Bible analysis tools' });
+    const table = await screen.findByRole('table', { name: 'Models, voices and tools' });
+    expect(table.compareDocumentPosition(heading) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(screen.queryByRole('region', { name: 'Story Bible analysis' })).toBeNull();
     expect(await row('gliner')).toBeTruthy();
-    const storyBible = screen.getByRole('region', { name: 'Story Bible' });
-    fireEvent.click(within(storyBible).getByRole('button', { name: 'This project' }));
-    await waitFor(() => expect(within(storyBible).getByRole('button', { name: 'This project' }).getAttribute('aria-pressed')).toBe('true'));
-    expect(screen.getByRole('region', { name: 'Story Bible analysis' })).toBe(analysis);
   });
 
   it('says why the list could not be read, and reads it again', async () => {

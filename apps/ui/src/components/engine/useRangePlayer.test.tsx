@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 import { act, renderHook } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { playSample, stopSample } from '../voicesamples/samplePlayerStore';
 import { AUDITION_POST_ROLL_SECONDS, AUDITION_PRE_ROLL_SECONDS, useRangePlayer } from './useRangePlayer';
 
 class FakeAudio extends EventTarget {
@@ -69,6 +70,19 @@ describe('useRangePlayer', () => {
     act(() => result.current.play({ ...range, rangeStart: 0.5 }));
 
     expect(audio().currentTime).toBe(0);
+  });
+
+  it('stops when a voice sample starts', () => {
+    const { result } = renderHook(() => useRangePlayer(mediaUrl));
+    act(() => result.current.play(range));
+    const takeAudio = audio();
+    expect(result.current.isPlaying).toBe(true);
+
+    act(() => playSample('a'.repeat(32), { by: Symbol('test'), url: '/media?sample=a', report: vi.fn() }));
+
+    expect(takeAudio.pause).toHaveBeenCalled();
+    expect(result.current.isPlaying).toBe(false);
+    act(() => stopSample());
   });
 
   it('stops itself at rangeEnd plus the post-roll instead of playing the whole file', () => {

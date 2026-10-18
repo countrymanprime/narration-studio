@@ -1,49 +1,109 @@
-# The delivery profile editor: a modal dialog named "Edit profile", what the
-# copy is based on, its name as a labelled field, a named table of the file rules where each rule has an on/off switch named for the
-# rule, number boxes named for the rule and the bound (with the unit), a fixed rule that can only be turned off, and Cancel and
-# Save profile. The page behind it is aria-hidden.
-- /children: equal
-# The two toast live regions stay in the tree on purpose (see dialog-mark-composer.aria.yml); Duplicate's toast is in the status one.
 - main:
   - group "Zoom"
-  - region "Credits":
-    - region "Retail sample":
-      - paragraph: No retail sample picked yet.
+  - status
 - status
 - alert
 - status
 - alert
-- status:
-  - text: /Duplicated as "ACX \(September \d+\) copy"\./
-  - button "Dismiss message"
+- status
 - dialog "Edit profile":
   - heading "Edit profile" [level=2]
   - button "Close"
-  - paragraph: /Based on ACX \(September \d+\)\. Saving makes revision 2/
-  - textbox "Name"
+  - paragraph: /Based on ACX \(September \d+\)\. Saving makes revision 2; projects using it are judged again without measuring\./
+  - text: Name
+  - textbox "Name": /ACX \(September \d+\) copy/
   - table "Rules of this profile":
     - rowgroup:
-      - row "On Rule Lowest Highest ACX"
+      - row "On Rule Lowest Highest ACX":
+        - columnheader "On"
+        - columnheader "Rule"
+        - columnheader "Lowest"
+        - columnheader "Highest"
+        - columnheader "ACX"
     - rowgroup:
-      - row /^RMS on RMS/:
+      - row /RMS on RMS -\d+ dBFS -\d+ dBFS −\d+ to −\d+ dBFS/:
         - cell "RMS on":
           - switch "RMS on" [checked]
+          - text: ""
         - cell "RMS"
-        - cell:
-          - textbox "RMS, lowest (dBFS)"
-        - cell:
-          - textbox "RMS, highest (dBFS)"
-      - row /^Peak on Peak Changed/:
+        - cell /-\d+ dBFS/:
+          - textbox "RMS, lowest (dBFS)": /-\d+/
+          - text: ""
+        - cell /-\d+ dBFS/:
+          - textbox "RMS, highest (dBFS)": /-\d+/
+          - text: ""
+        - cell /−\d+ to −\d+ dBFS/
+      - row "Peak on Peak Changed none -3.5 dBFS ≤ −3 dBFS":
         - cell "Peak on":
           - switch "Peak on" [checked]
+          - text: ""
         - cell "Peak Changed"
         - cell "none"
-        - cell:
+        - cell "-3.5 dBFS":
           - textbox "Peak, highest (dBFS)": "-3.5"
-      - row /^Sample rate on Sample rate Fixed by ACX; can only be turned off/:
+          - text: ""
+        - cell "≤ −3 dBFS"
+      - row /Noise floor on Noise floor none -\d+ dBFS ≤ −\d+ dBFS/:
+        - cell "Noise floor on":
+          - switch "Noise floor on" [checked]
+          - text: ""
+        - cell "Noise floor"
+        - cell "none"
+        - cell /-\d+ dBFS/:
+          - textbox "Noise floor, highest (dBFS)": /-\d+/
+          - text: ""
+        - cell /≤ −\d+ dBFS/
+      - row /Sample rate on Sample rate Fixed by ACX; can only be turned off \d+\.\d+ kHz/:
         - cell "Sample rate on":
           - switch "Sample rate on" [checked]
+          - text: ""
         - cell "Sample rate"
         - cell "Fixed by ACX; can only be turned off"
+        - cell /\d+\.\d+ kHz/
+      - row /File length on File length none \d+ min ≤ \d+ min/:
+        - cell "File length on":
+          - switch "File length on" [checked]
+          - text: ""
+        - cell "File length"
+        - cell "none"
+        - cell /\d+ min/:
+          - textbox "File length, highest (min)": /\d+/
+          - text: ""
+        - cell /≤ \d+ min/
+      - row "Room tone, head on Room tone, head 0.5 s 5 s 0.5 to 5 s":
+        - cell "Room tone, head on":
+          - switch "Room tone, head on" [checked]
+          - text: ""
+        - cell "Room tone, head"
+        - cell "0.5 s":
+          - textbox "Room tone, head, lowest (s)": "0.5"
+          - text: ""
+        - cell "5 s":
+          - textbox "Room tone, head, highest (s)": "5"
+          - text: ""
+        - cell "0.5 to 5 s"
+      - row "Room tone, tail on Room tone, tail 1 s 5 s 1 to 5 s":
+        - cell "Room tone, tail on":
+          - switch "Room tone, tail on" [checked]
+          - text: ""
+        - cell "Room tone, tail"
+        - cell "1 s":
+          - textbox "Room tone, tail, lowest (s)": "1"
+          - text: ""
+        - cell "5 s":
+          - textbox "Room tone, tail, highest (s)": "5"
+          - text: ""
+        - cell "1 to 5 s"
+      - row /MP3 format on MP3 format \d+ kbps none \d+ kbps\+ CBR/:
+        - cell "MP3 format on":
+          - switch "MP3 format on" [checked]
+          - text: ""
+        - cell "MP3 format"
+        - cell /\d+ kbps/:
+          - textbox "MP3 format, lowest (kbps)": /\d+/
+          - text: ""
+        - cell "none"
+        - cell /\d+ kbps\+ CBR/
+  - paragraph: The listen-only and book rules (one section per file, credits files, retail sample, consistency, channels the same in every file) are kept as in ACX. A copy cannot add a kind of rule the app does not check.
   - button "Cancel"
   - button "Save profile"

@@ -62,6 +62,8 @@ export type ReaderProps = {
   sectionNames?: ReadonlyMap<string, string>;
   /** The sticky header's buttons. */
   toolbar?: ReactNode;
+  /** Drawn between the sticky header and the text: the Find bar, as the mock's reader has it. */
+  underHeader?: ReactNode;
   onPickSpeaker?: (cueId: string, anchor: DOMRect) => void;
   onShowAnnotation?: (id: string) => void;
   /** A click on a flagged word: its key. */
@@ -119,7 +121,7 @@ function StickyHeader({
   return (
     <div className="flex items-center gap-3 border-b border-[var(--line)] bg-[var(--surface)] px-4 py-2">
       <div className="min-w-0">
-        <b className="block truncate text-xl font-semibold">{section ?? (chapter ? chapterName(chapter) : '—')}</b>
+        <b className="block truncate font-['Barlow_Condensed',sans-serif] text-xl font-semibold">{section ?? (chapter ? chapterName(chapter) : '—')}</b>
         <div aria-live="off" className="text-sm text-[var(--text-muted)]">
           {current.para}
         </div>
@@ -213,6 +215,7 @@ export function Reader(props: ReaderProps) {
     after,
     sectionNames,
     toolbar,
+    underHeader,
     onPickSpeaker,
     onShowAnnotation,
     onShowWord,
@@ -453,6 +456,7 @@ export function Reader(props: ReaderProps) {
   return (
     <section aria-label="Reader" className="flex h-full min-h-0 flex-col bg-[var(--surface)] text-[var(--text)]">
       <StickyHeader spy={spy} chapters={chapters} names={sectionNames} toolbar={toolbar} />
+      {underHeader}
       <div
         ref={scroller}
         role="region"

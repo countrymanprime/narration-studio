@@ -80,7 +80,15 @@ test.describe('cross-page hand-offs', () => {
     await h1(page, 'Production').waitFor();
   });
 
-  test('Escape on the message leaves it and the address where they are', async ({ page }) => {
+  test('Escape on the Booth message leaves for Script: the Booth fills the window, so it has no other way out', async ({ page }) => {
+    await open(page, '/booth?chapter=nope');
+    await blocked(page).waitFor();
+    await page.keyboard.press('Escape');
+    await h1(page, 'Script').waitFor();
+    expect(here(page)).toBe('/script');
+  });
+
+  test('Escape on the message of a page that keeps its sidebar leaves it and the address where they are', async ({ page }) => {
     await open(page, '/editing/nope');
     await blocked(page).waitFor();
     await page.keyboard.press('Escape');

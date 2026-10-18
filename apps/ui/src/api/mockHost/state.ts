@@ -44,6 +44,7 @@ import type { EditingSeed } from '../editingMock';
 import type { CleanupActionSeed } from '../cleanupActionMock';
 import type { ProductionSeed } from '../productionMock';
 import type { MockAssetSeed } from '../assetInstallMock';
+import type { MockSettingsSeed } from './settings';
 import type { MockUpdateSeed } from './update';
 import type { DawMockScript, DawMockSeed } from '../dawMock';
 import type { ProvidersMockSeed } from '../providersMock';
@@ -112,6 +113,10 @@ export type MockApiSeed = {
   update?: MockUpdateSeed;
   /** How the next voice or model download behaves (see `MockAssetSeed`). */
   assets?: MockAssetSeed;
+  /** `?mockAssetsList=`: the list of downloads never answers (`loading`) or fails to read (`fails`), so Models & downloads shows its loading rows or its error. */
+  assetsList?: 'loading' | 'fails';
+  /** `?mockSettings=`: how the settings file behaves (see `MockSettingsSeed`). */
+  settings?: MockSettingsSeed;
   /** What `teleprompterDevices` reports; defaults to `WIRE_TELEPROMPTER_DEVICES`. An empty array exercises the picker's no-devices fallback. */
   teleprompterDevices?: TeleprompterDevice[];
   /** `?mockLevel=`: the RMS in dBFS of every input level the teleprompter mock sends, for a still meter. */

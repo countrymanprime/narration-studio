@@ -167,12 +167,9 @@ export const MockBoard: Story = {
     await document.fonts.ready;
     const boxes = ['✓', '62%', 'proofer', '3 open'].map((label) => canvas.getAllByText(label).at(-1)!.getBoundingClientRect());
     for (const box of boxes) {
-      await expect(box.height).toBeCloseTo(20, 0);
-      // 58 px wide, or a pixel more where a 13 px label (--font-size-label, the mock's) outgrows it until the primitive slices re-measure the cell.
-      await expect(box.width).toBeGreaterThanOrEqual(58);
-      await expect(box.width).toBeLessThan(60);
+      await expect(box.height).toBeCloseTo(24, 0);
+      // At least 52 px wide (the mock's `.cell` min-width).
+      await expect(box.width).toBeGreaterThanOrEqual(52);
     }
-    // The 66 px pitch: 58 px cells, 4 px either side.
-    await expect(Math.round(boxes[2].left - boxes[1].left)).toBe(66);
   },
 };

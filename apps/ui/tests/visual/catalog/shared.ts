@@ -23,6 +23,9 @@ export const KEEPS_DESKTOP_SCROLL = { reloadPerViewport: true } as const;
 export const POPUP_ANCHORED_AT_FIRST_WIDTH = { reloadPerViewport: true } as const;
 export const LIVE_PROGRESS_MOVES_ON = { reloadPerViewport: true } as const;
 export const TOAST_FADES_OUT = { reloadPerViewport: true } as const;
+// Settings' category list folds behind a Category button only where the page is narrower than 760 px, and a button that a wide layout does not draw
+// cannot be pressed there: the driver runs on a fresh load at each width.
+export const FOLDS_WITH_THE_PAGE_WIDTH = { reloadPerViewport: true } as const;
 export const FREEZES_THE_CLOCK = { reloadPerViewport: true } as const;
 // The Script page's rail is a column from `2xl` and a panel below it, so its driver opens it
 // the way the width shows it (resizing one load would keep the panel open where the column shows), and its rows are also captured
