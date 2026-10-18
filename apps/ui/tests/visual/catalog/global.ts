@@ -61,12 +61,13 @@ export const globalStates: StateEntry[] = [
     page: 'global',
     state: 'nav-rail-open',
     description:
-      'Primary navigation - hovering the collapsed rail opens it over the page with the labels and group headings; at desktop width the rail is already open, so this is a no-op there',
+      'Primary navigation - hovering the collapsed rail opens it over the page with the labels and group headings; at desktop width the rail is already open, and at tablet width (768 px) there is no rail, so this is a no-op there',
     pointer: 'keep',
     sameAs: {
       of: 'production/no-data',
-      reason: 'Only the collapsed rail opens on hover; the wide rail is always open.',
-      viewports: ['desktop'],
+      reason:
+        'Only the collapsed rail (860 to 1359 px) opens on hover; the wide rail is always open, and below 860 px the hamburger and drawer replace the rail.',
+      viewports: ['desktop', 'tablet'],
     },
     ...TOOLTIP_CLOSES_ON_RESIZE,
     ...LAYOUT_BANDS,

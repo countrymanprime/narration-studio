@@ -157,28 +157,36 @@ export function AppShell({
   const groupHeadingId = (label: string) => `nav-group-${label.toLowerCase().replace(/\s+/g, '-')}`;
   const navigation = (
     <>
-      {/* The brand block: 62 px and its rule; the 30 px mark at 16 px in, radius 6; the name Barlow
-          Condensed 700 at 13 px over a 10 px muted tagline, 10 px after the mark. */}
-      <div className="flex h-[3.9375rem] flex-none items-center gap-[0.625rem] border-b border-[var(--border)] px-4">
-        <span className="flex size-[1.875rem] flex-none items-center justify-center rounded-[var(--radius-button)] bg-[var(--accent)] text-[0.875rem] text-[var(--accent-contrast)]">
+      {/* The brand block as the Studio Next mock's `.brand` draws it: 50 px (4 px above and 10 px below its content), no rule, 12 px below the rail's top; the 32 px mark at 16 px in,
+          the name Barlow Condensed 700 at 15 px over a 12 px muted tagline, 10 px after the mark. */}
+      <div className="mt-3 flex h-[3.125rem] flex-none items-center gap-[0.625rem] px-4 pt-1 pb-2.5">
+        <span className="flex size-8 flex-none items-center justify-center rounded-[var(--radius-button)] bg-[var(--accent)] text-[1rem] text-[var(--accent-contrast)]">
           <FontAwesomeIcon icon={faMicrophone} fixedWidth />
         </span>
         <span className="brand-name pb-[0.125rem] font-['Barlow_Condensed',sans-serif] leading-none uppercase">
-          <b className="block text-[0.8125rem] font-bold tracking-[0.11em]">Narration</b>
-          <span className="mt-[0.4375rem] block text-[0.625rem] font-semibold tracking-[0.1em] text-[var(--text-muted)]">Studio</span>
+          <b className="block text-[0.9375rem] font-bold tracking-[0.1em]">Narration</b>
+          <span className="mt-[0.3125rem] block text-[0.75rem] font-semibold tracking-[0.14em] text-[var(--text-muted)]">Studio</span>
         </span>
       </div>
-      <nav className="flex-1 px-2 pt-[0.5625rem] pb-2">
-        {NAV_GROUPS.map((group) => (
-          <div key={group.label} role="group" aria-labelledby={groupHeadingId(group.label)} className="flex flex-col gap-[0.1875rem]">
-            {/* Every group is headed: 10 px capitals at x 19, 29 px deep with the gap above the group's first
-                item, so a heading sits 32 px between two items. */}
-            <div
-              id={groupHeadingId(group.label)}
-              className="section-label relative px-[0.625rem] pt-[0.6875rem] pb-[0.375rem] text-[0.625rem] leading-[0.75rem] tracking-[0.1em]"
-            >
-              {group.label}
-            </div>
+      <nav className="flex-1 px-2 pt-0.5 pb-2">
+        {NAV_GROUPS.map((group, index) => (
+          <div
+            key={group.label}
+            role="group"
+            aria-label={index === 0 ? group.label : undefined}
+            aria-labelledby={index === 0 ? undefined : groupHeadingId(group.label)}
+            className="flex flex-col gap-0.5"
+          >
+            {/* Every group but the first is headed, as the mock's `.grp`: 12 px capitals tracked .16em, the row 36 px with the text 4 px
+                above its bottom, so the group's first item follows at once. Production and Schedule sit straight under the brand block. */}
+            {index > 0 && (
+              <div
+                id={groupHeadingId(group.label)}
+                className="section-label relative flex h-9 items-end px-[0.625rem] pb-1 text-[0.75rem] leading-none tracking-[0.16em]"
+              >
+                {group.label}
+              </div>
+            )}
             {group.items.map((item) => (
               <NavButton
                 key={item.name}
@@ -195,8 +203,8 @@ export function AppShell({
           </div>
         ))}
       </nav>
-      {/* The foot: its rule, then Settings 10 px from it, 4 px further in than the items above. */}
-      <div className="rail-foot flex flex-none flex-col gap-[0.1875rem] border-t border-[var(--border)] px-3 py-[0.625rem]">
+      {/* The foot: Theme and Settings on the rail's own inset, 12 px above its bottom edge, with no rule above them (the mock draws none). */}
+      <div className="rail-foot flex flex-none flex-col gap-0.5 px-2 pt-2 pb-3">
         {theme && (
           <NavButton active={false} icon={iconFor(theme.dark ? 'themeLight' : 'themeDark')} onClick={theme.toggle}>
             {theme.dark ? 'Light theme' : 'Dark theme'}
@@ -223,11 +231,11 @@ export function AppShell({
     <div className="flex h-full flex-col overflow-hidden bg-[var(--bg)]">
       <DemoBanner />
       <div className="flex min-h-0 flex-1 overflow-hidden">
-        {/* One rail at md and up (the mock's `.rail`): 216 px from 1360 CSS px, 64 px of icons below it. Below 1360 the panel inside
+        {/* One rail from 860 px (the mock's `.rail`; below it the mock's tab bar is the hamburger and drawer here): 216 px from 1360 CSS px, 64 px of icons below it. Below 1360 the panel inside
             is taken out of the flow, so it opens over the page on hover or keyboard focus without moving anything; the labels stay in the
             markup, hidden by size, so every item keeps its name. */}
-        <aside className="relative z-[var(--z-nav)] hidden w-16 flex-none min-[1360px]:w-54 md:flex" aria-label="Primary navigation">
-          <div className="icon-rail flex w-16 flex-col overflow-x-hidden overflow-y-auto border-r border-[var(--border)] bg-[var(--surface)] transition-[width,box-shadow] duration-150 max-[1359px]:hover:w-59 max-[1359px]:hover:shadow-[var(--shadow-lg)] max-[1359px]:has-[:focus-visible]:w-59 max-[1359px]:has-[:focus-visible]:shadow-[var(--shadow-lg)] min-[1360px]:static min-[1360px]:w-54 md:max-[1359px]:absolute md:max-[1359px]:inset-y-0 md:max-[1359px]:left-0 max-[1359px]:[&_.brand-name]:invisible max-[1359px]:hover:[&_.brand-name]:visible max-[1359px]:has-[:focus-visible]:[&_.brand-name]:visible max-[1359px]:[&_.rail-foot]:px-2 max-[1359px]:[&_.section-label]:text-transparent max-[1359px]:hover:[&_.section-label]:text-[var(--text-muted)] max-[1359px]:has-[:focus-visible]:[&_.section-label]:text-[var(--text-muted)] max-[1359px]:[&_button]:pl-4 max-[1359px]:[&_button]:text-[0px] max-[1359px]:hover:[&_button]:text-[0.8125rem] max-[1359px]:has-[:focus-visible]:[&_button]:text-[0.8125rem] max-[1359px]:[&_button_svg]:w-[0.9375rem] max-[1359px]:[&_button_svg]:flex-none max-[1359px]:[&_button>span]:invisible max-[1359px]:hover:[&_button>span]:visible max-[1359px]:has-[:focus-visible]:[&_button>span]:visible">
+        <aside className="relative z-[var(--z-nav)] hidden w-16 flex-none min-[860px]:flex min-[1360px]:w-54" aria-label="Primary navigation">
+          <div className="icon-rail flex w-16 flex-col overflow-x-hidden overflow-y-auto border-r border-[var(--border)] bg-[var(--surface)] transition-[width,box-shadow] duration-150 max-[1359px]:hover:w-59 max-[1359px]:hover:shadow-[var(--shadow-lg)] max-[1359px]:has-[:focus-visible]:w-59 max-[1359px]:has-[:focus-visible]:shadow-[var(--shadow-lg)] min-[860px]:max-[1359px]:absolute min-[860px]:max-[1359px]:inset-y-0 min-[860px]:max-[1359px]:left-0 min-[1360px]:static min-[1360px]:w-54 max-[1359px]:[&_.brand-name]:invisible max-[1359px]:hover:[&_.brand-name]:visible max-[1359px]:has-[:focus-visible]:[&_.brand-name]:visible max-[1359px]:[&_.section-label]:text-transparent max-[1359px]:hover:[&_.section-label]:text-[var(--text-muted)] max-[1359px]:has-[:focus-visible]:[&_.section-label]:text-[var(--text-muted)] max-[1359px]:[&_button]:pl-[0.78125rem] max-[1359px]:[&_button]:text-[0px] max-[1359px]:hover:[&_button]:text-[0.9375rem] max-[1359px]:has-[:focus-visible]:[&_button]:text-[0.9375rem] max-[1359px]:[&_button>span]:invisible max-[1359px]:hover:[&_button>span]:visible max-[1359px]:has-[:focus-visible]:[&_button>span]:visible">
             {navigation}
           </div>
         </aside>
@@ -237,7 +245,7 @@ export function AppShell({
         {/* tabIndex -1: a dialog that closes with nothing to give focus back to (its opener is gone) sends focus into <main> (its first control, or <main> itself), not to <body>. */}
         <main tabIndex={-1} className="flex min-w-0 flex-1 flex-col overflow-hidden focus:outline-none">
           <header className="flex h-13 flex-none items-center gap-3 border-b border-[var(--border)] bg-[var(--surface)] px-3 text-sm max-md:gap-2 md:px-5">
-            <IconButton label="Open navigation" onClick={() => setDrawerOpen(true)} className="hidden max-md:inline-flex">
+            <IconButton label="Open navigation" onClick={() => setDrawerOpen(true)} className="min-[860px]:hidden">
               <FontAwesomeIcon icon={faBars} />
             </IconButton>
             {/* Page history: walks the app's own page moves only, through App.tsx's guards. */}

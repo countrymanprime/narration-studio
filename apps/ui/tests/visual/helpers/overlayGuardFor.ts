@@ -39,7 +39,7 @@ export interface OverlayCase {
   over?: { name: string; open: (page: Page) => Promise<void> };
   /** Closes it, for an overlay Escape on the open menus and dialogs does not reach (a panel of the page, such as the Script drawers). */
   close?: (page: Page) => Promise<void>;
-  /** Narrows the viewports it runs at, for an overlay that cannot exist at some sizes (the navigation drawer exists only below 768 px). */
+  /** Narrows the viewports it runs at, for an overlay that cannot exist at some sizes (the navigation drawer exists only below 860 px). */
   viewports?: (viewport: Viewport) => boolean;
   /** Skip the pass over scrolled content, for an overlay whose page has nothing to scroll. */
   scrolled?: false;

@@ -6,7 +6,6 @@
     - /children: equal
     - group "Production":
       - /children: equal
-      - text: Production
       - button "Production"
       - button "Schedule"
     - group "Prep":
