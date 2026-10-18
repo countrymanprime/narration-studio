@@ -52,8 +52,9 @@ export function MilestoneTable({ milestones, chapters, today, due, onToggleDone,
         <TableRow>
           <TableHeader hiddenLabel="Done" />
           <TableHeader>Milestone</TableHeader>
-          <TableHeader>Measures</TableHeader>
-          <TableHeader>Due</TableHeader>
+          {/* The mock's column sizes: Measures keeps room for "All recorded" on one line, and Due is a date wide (152 px) whatever a milestone is called. */}
+          <TableHeader className="md:min-w-[9rem]">Measures</TableHeader>
+          <TableHeader className="w-[9.5rem]">Due</TableHeader>
           <TableHeader>Status</TableHeader>
           <TableHeader hiddenLabel="Actions" />
         </TableRow>

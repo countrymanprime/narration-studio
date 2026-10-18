@@ -4,13 +4,11 @@ import { faLock, type faHouse } from '@fortawesome/free-solid-svg-icons';
 import { Popover } from './Popover';
 import { TooltipTarget } from './Tooltip';
 
-// The nav item as mock 01 draws it, measured at 1440 px:
-// 34 px tall on a 37 px pitch (the rail's group puts 3 px between items), radius 7; a 12 px icon centred at x 26 of the rail
-// and the label from x 45 (the rail's 8 px inset, 10 px, the icon's fixed-width box, 11 px); the label Barlow Condensed 600
-// at 13 px, tracked 0.11 em, in capitals. The current page is `--accent-soft` with its label in `--accent-strong`.
-// The icon-only rail (`medium-rail`) keeps its 40 px square items and 16 px icons.
+// The nav item as the Studio Next mock's `.nav` draws it (ADR 0760): 40 px tall on a 42 px pitch (the rail's group puts 2 px between items),
+// radius 8, the label Barlow Condensed 600 at 15 px tracked 0.12em in capitals, a 20 px icon in a fixed 22 px box (`!`: FontAwesome's `fa-fw` sets 1.25em), 10 px from the label.
+// The current page is `--accent-soft` with its label in `--accent-strong`. The icon-only rail (`medium-rail`) keeps its 40 px square items and 16 px icons.
 const ITEM =
-  "relative flex h-[2.125rem] w-full items-center gap-[0.6875rem] rounded-[0.4375rem] border-0 pr-3 pl-[0.625rem] text-left font-['Barlow_Condensed',sans-serif] text-[0.8125rem] font-semibold tracking-[0.11em] uppercase [&_svg]:text-[0.75rem] [.medium-rail_&]:h-10 [.medium-rail_&]:justify-center [.medium-rail_&]:p-0 [.medium-rail_&_svg]:text-base";
+  "relative flex h-10 w-full items-center gap-[0.625rem] rounded-lg border-0 pr-3 pl-[0.625rem] text-left font-['Barlow_Condensed',sans-serif] text-[0.9375rem] font-semibold tracking-[0.12em] uppercase [&_svg]:w-[1.375rem]! [&_svg]:flex-none [&_svg]:text-[1.25rem] [.medium-rail_&]:h-10 [.medium-rail_&]:justify-center [.medium-rail_&]:p-0 [.medium-rail_&_svg]:text-base";
 
 const HOVER = 'hover:bg-[var(--surface-2)] hover:text-[var(--text)]';
 

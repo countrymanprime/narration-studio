@@ -32,6 +32,7 @@ import (
 	"github.com/countrymanprime/narration-utils/shell/internal/proofing"
 	"github.com/countrymanprime/narration-utils/shell/internal/scriptprep"
 	"github.com/countrymanprime/narration-utils/shell/internal/stages"
+	"github.com/countrymanprime/narration-utils/shell/internal/voicesample"
 )
 
 type ImportJob struct {
@@ -643,6 +644,11 @@ func (s *Service) Clear() error {
 	}
 	if err := resetDerived(project); err != nil {
 		return err
+	}
+	// Voice samples are the narrator's own audio and survive a manuscript replace, so resetDerived leaves them; Clear project data
+	// is the one action that removes them (docs/reference/data-files.md, Retention terms: Cleared on Clear).
+	if err := os.RemoveAll(voicesample.Dir(project)); err != nil {
+		return fmt.Errorf("could not clear project data: %w", err)
 	}
 	// The old script markup file (prep/markup.json) is no longer read since marks replaced it; an explicit clear still
 	// removes it with the rest of the project's data.

@@ -37,6 +37,7 @@ import type { DiagnosticsApi } from '../api/contracts/diagnostics';
 import type { EditingApi } from '../api/contracts/editing';
 import type { CleanupActionApi } from '../api/contracts/cleanup';
 import type { BookmarksApi } from '../api/contracts/bookmarks';
+import type { VoiceSamplesApi } from '../api/contracts/voiceSamples';
 import type { PassageMapApi } from '../api/contracts/passageMap';
 import type { EditLogApi } from '../api/contracts/editLog';
 import type { MarksApi } from '../api/contracts/marks';
@@ -120,6 +121,7 @@ export type {
   EditingApi,
   CleanupActionApi,
   BookmarksApi,
+  VoiceSamplesApi,
   PassageMapApi,
   EditLogApi,
   MarksApi,
@@ -196,6 +198,7 @@ export interface PortMap {
   editing: EditingApi;
   cleanupAction: CleanupActionApi;
   bookmarks: BookmarksApi;
+  voiceSamples: VoiceSamplesApi;
   passageMap: PassageMapApi;
   editLog: EditLogApi;
   marks: MarksApi;

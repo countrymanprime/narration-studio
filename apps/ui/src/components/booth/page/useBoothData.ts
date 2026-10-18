@@ -11,10 +11,14 @@ const NONE: never[] = [];
 export type BoothSource =
   { kind: 'chapter'; chapter: Pick<ManuscriptChapter, 'id' | 'title' | 'subtitle'> } | { kind: 'credits'; credits: CreditsKind; preview: CreditsRenderResult };
 
-/** The opening and closing credits as the host renders them; a failure leaves them out rather than blocking the chapters. */
-function useCreditsPreviews(): Partial<Record<CreditsKind, CreditsRenderResult>> {
+/** Why the page has nothing to read: the credits asked for have no text, or the chapter asked for is not in the book. */
+export type BoothUnavailable = { kind: 'credits'; credits: CreditsKind } | { kind: 'chapter' };
+
+/** The opening and closing credits as the host renders them; a failure leaves them out rather than blocking the chapters. `loaded` is false until the read ends. */
+function useCreditsPreviews(): { previews: Partial<Record<CreditsKind, CreditsRenderResult>>; loaded: boolean } {
   const credits = usePort('credits');
   const [previews, setPreviews] = useState<Partial<Record<CreditsKind, CreditsRenderResult>>>({});
+  const [loaded, setLoaded] = useState(false);
   useEffect(() => {
     let live = true;
     void (async () => {
@@ -26,13 +30,15 @@ function useCreditsPreviews(): Partial<Record<CreditsKind, CreditsRenderResult>>
           return [kind, preview] as const;
         }),
       );
-      if (live) setPreviews(Object.fromEntries(rendered.filter(([, preview]) => preview && preview.words > 0)));
+      if (!live) return;
+      setPreviews(Object.fromEntries(rendered.filter(([, preview]) => preview && preview.words > 0)));
+      setLoaded(true);
     })();
     return () => {
       live = false;
     };
   }, [credits]);
-  return previews;
+  return { previews, loaded };
 }
 
 /**
@@ -49,7 +55,7 @@ export function useBoothData(target: BoothTarget | null) {
   const [error, setError] = useState('');
   const [entities, setEntities] = useState<GuideEntity[]>(NONE);
   const [cues, setCues] = useState<GuideDialogueCue[]>(NONE);
-  const previews = useCreditsPreviews();
+  const { previews, loaded: creditsLoaded } = useCreditsPreviews();
 
   useEffect(() => {
     let live = true;
@@ -89,10 +95,21 @@ export function useBoothData(target: BoothTarget | null) {
 
   const preview = credits ? previews[credits] : undefined;
   const source: BoothSource | undefined = credits ? preview && { kind: 'credits', credits, preview } : chapter && { kind: 'chapter', chapter };
+  // Nothing to show once what it waits for has been read: the credits have no text, or the chapter asked for is not there. (No chapters at all is its own panel.)
+  const unavailable: BoothUnavailable | undefined = source
+    ? undefined
+    : credits
+      ? creditsLoaded
+        ? { kind: 'credits', credits }
+        : undefined
+      : chapters && chapters.length > 0
+        ? { kind: 'chapter' }
+        : undefined;
   return {
     chapters,
     previews,
     source,
+    unavailable,
     error,
     entities,
     cues,

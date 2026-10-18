@@ -139,6 +139,32 @@ describe('D2 Profile name', () => {
     expect((await screen.findByRole('alert')).textContent).toBe('A profile needs a name, so the name was left as it was.');
   });
 
+  it('too long: says the name was kept, in the same words as a blank one, and never asks the host', async () => {
+    const save = vi.fn(async () => mockCustomProfile());
+    mount({ deliverySaveProfile: save });
+    const user = userEvent.setup();
+    const box = await screen.findByRole('textbox', { name: 'Profile name' });
+    await user.clear(box);
+    await user.click(box);
+    await user.paste('x'.repeat(81));
+    await user.keyboard('{Enter}');
+    expect((await screen.findByRole('alert')).textContent).toBe("A profile's name can be at most 80 characters, so the name was left as it was.");
+    expect(save).not.toHaveBeenCalled();
+    expect(box).toHaveProperty('value', 'My ACX, tighter peak');
+  });
+
+  it('80 characters exactly: saved', async () => {
+    const save = vi.fn(async () => mockCustomProfile());
+    mount({ deliverySaveProfile: save });
+    const user = userEvent.setup();
+    const box = await screen.findByRole('textbox', { name: 'Profile name' });
+    await user.clear(box);
+    await user.click(box);
+    await user.paste('x'.repeat(80));
+    await user.keyboard('{Enter}');
+    await waitFor(() => expect(save).toHaveBeenCalledTimes(1));
+  });
+
   it('locked while a build runs: no name or limit boxes, and the menu is off', async () => {
     const api = createMockApi({ deliveryProfiles: async () => stateOf(mockCustomProfile()) });
     render(
@@ -151,26 +177,26 @@ describe('D2 Profile name', () => {
     expect(screen.getByRole('combobox')).toHaveProperty('disabled', true);
   });
 
-  it('long, right-to-left and emoji: saved as typed, surrounding spaces trimmed', async () => {
+  it('long (80 characters), right-to-left and emoji: saved as typed, surrounding spaces trimmed', async () => {
     const save = vi.fn(async () => mockCustomProfile());
     mount({ deliverySaveProfile: save });
     const user = userEvent.setup();
     const box = await screen.findByRole('textbox', { name: 'Profile name' });
-    for (const name of ['ملف التسليم 🎧', 'פרופיל 📚', 'y'.repeat(200)]) {
+    for (const name of ['ملف التسليم 🎧', 'פרופיל 📚', 'y'.repeat(80)]) {
       await user.clear(box);
       await user.type(box, `  ${name}  {Enter}`);
       await waitFor(() => expect(lastSave(save).name).toBe(name));
     }
   });
 
-  it('the host refuses the name (too long): its sentence is shown and the box reverts', async () => {
-    const save = vi.fn().mockRejectedValue(new Error("a profile's name must be 1 to 80 characters"));
+  it('the host refuses the name (here, one already taken): its sentence is shown and the box reverts', async () => {
+    const save = vi.fn().mockRejectedValue(new Error('a profile named "Mine" already exists'));
     mount({ deliverySaveProfile: save });
     const user = userEvent.setup();
     const box = await screen.findByRole('textbox', { name: 'Profile name' });
     await user.clear(box);
-    await user.type(box, `${'z'.repeat(200)}{Enter}`);
-    expect((await screen.findByRole('alert')).textContent).toContain('must be 1 to 80 characters');
+    await user.type(box, 'Mine{Enter}');
+    expect((await screen.findByRole('alert')).textContent).toContain('already exists');
     expect(box).toHaveProperty('value', 'My ACX, tighter peak');
   });
 

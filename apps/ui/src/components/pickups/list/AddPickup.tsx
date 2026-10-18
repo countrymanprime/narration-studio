@@ -24,17 +24,18 @@ export function AddPickup({
   const [time, setTime] = useState('');
   const [line, setLine] = useState('');
   const [busy, setBusy] = useState(false);
+  /* What is wrong, said under the field it is about as well as in a toast (the toast is gone in five seconds); typing in the field clears it. */
+  const [problem, setProblem] = useState<{ field: 'time' | 'line'; text: string } | null>(null);
+  const refuse = (field: 'time' | 'line', text: string) => {
+    setProblem({ field, text });
+    overlay.toast(text);
+  };
 
   const submit = async () => {
-    if (!line.trim()) {
-      overlay.toast('Type the line first.');
-      return;
-    }
+    if (!line.trim()) return refuse('line', 'Type the line first.');
     const seconds = parseClock(time);
-    if (seconds === null) {
-      overlay.toast('Type the time like 05:12.0.');
-      return;
-    }
+    if (seconds === null) return refuse('time', 'Type the time like 05:12.0.');
+    setProblem(null);
     setBusy(true);
     try {
       await onAdd(chapterId, seconds, line.trim());
@@ -55,8 +56,26 @@ export function AddPickup({
       }}
     >
       <span className="text-[0.88rem] font-medium text-[var(--text-muted)]">{chapterName}</span>
-      <Field label="Time in the recording" value={time} onChange={setTime} placeholder="05:12.0" />
-      <Field label="Line to re-record" value={line} onChange={setLine} placeholder="Start of the line" />
+      <Field
+        label="Time in the recording"
+        value={time}
+        onChange={(value) => {
+          setTime(value);
+          if (problem?.field === 'time') setProblem(null);
+        }}
+        placeholder="05:12.0"
+        error={problem?.field === 'time' ? problem.text : undefined}
+      />
+      <Field
+        label="Line to re-record"
+        value={line}
+        onChange={(value) => {
+          setLine(value);
+          if (problem?.field === 'line') setProblem(null);
+        }}
+        placeholder="Start of the line"
+        error={problem?.field === 'line' ? problem.text : undefined}
+      />
       <Button type="submit" pending={busy}>
         Add pickup
       </Button>

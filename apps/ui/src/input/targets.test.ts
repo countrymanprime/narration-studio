@@ -40,6 +40,16 @@ describe('isGuardedTarget', () => {
     expect(isGuardedTarget(el('<div role="slider"></div>'))).toBe(true);
   });
 
+  it("is false for a read-only textbox (the Editing script): it owns no text, so its keys are the page's", () => {
+    expect(isGuardedTarget(el('<div role="textbox" aria-readonly="true" tabindex="0"></div>'))).toBe(false);
+    expect(isGuardedTarget(el('<div role="textbox" aria-readonly="true"><span>word</span></div>').firstElementChild)).toBe(false);
+  });
+
+  it('is true for a textbox that can be typed in', () => {
+    expect(isGuardedTarget(el('<div role="textbox" tabindex="0"></div>'))).toBe(true);
+    expect(isGuardedTarget(el('<div role="textbox" aria-readonly="false"></div>'))).toBe(true);
+  });
+
   it('is false for an unrelated role', () => {
     expect(isGuardedTarget(el('<div role="note"></div>'))).toBe(false);
   });

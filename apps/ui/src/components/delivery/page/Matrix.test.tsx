@@ -325,6 +325,44 @@ describe('D5 and D6 a running build', () => {
     await waitFor(() => expect(screen.getByRole('alert').textContent).toMatch(/asked again just now/));
   });
 
+  it('Cancel against a quiet host: says the cancel is unconfirmed, keeps the quiet notice and never says cancelled', async () => {
+    let silent = false;
+    const packageState = vi.fn(async () => {
+      if (silent) throw new Error('the host did not answer');
+      return RUNNING;
+    });
+    const packageCancel = vi.fn(async () => {
+      throw new Error('the host did not answer');
+    });
+    mount({ packageState, packageCancel });
+    await screen.findByRole('button', { name: 'Cancel' });
+    silent = true;
+    await act(async () => vi.advanceTimersByTimeAsync(700));
+    await screen.findByText(/Can't tell how the build is going/);
+    await userEvent.click(screen.getByRole('button', { name: 'Cancel' }), { advanceTimers: vi.advanceTimersByTime });
+    expect((await screen.findByRole('status')).textContent).toBe('Cancel was sent, but the host did not confirm it, so the build may still be running.');
+    expect(screen.queryByText('Packaging cancelled.')).toBeNull();
+    expect(screen.getByText(/Can't tell how the build is going/)).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Cancel' })).toBeTruthy();
+    // The host comes back and says the build ended: the unconfirmed sentence goes with the running build.
+    silent = false;
+    packageState.mockImplementation(async () => ({ ...RUNNING, phase: 'cancelled', message: 'Packaging cancelled.' }) as PackageJob);
+    await act(async () => vi.advanceTimersByTimeAsync(2100));
+    expect(await screen.findByText('Packaging cancelled.')).toBeTruthy();
+    expect(screen.queryByText(/did not confirm it/)).toBeNull();
+  });
+
+  it('Check again against a quiet host: a press is answered with "You checked again", not only the standing "asked again"', async () => {
+    const packageState = vi.fn(async () => {
+      throw new Error('the host did not answer');
+    });
+    mount({ packageState });
+    const alert = await screen.findByRole('alert');
+    expect(screen.queryByText(/You checked again/)).toBeNull();
+    await userEvent.click(within(alert).getByRole('button', { name: 'Check again' }), { advanceTimers: vi.advanceTimersByTime });
+    await waitFor(() => expect(screen.getByRole('status').textContent).toMatch(/^You checked again just now: the host still did not answer\.$/));
+  });
+
   it('late and out of order: an answer to an older read never replaces the Cancel answer', async () => {
     const slow = deferred<PackageJob>();
     let calls = 0;

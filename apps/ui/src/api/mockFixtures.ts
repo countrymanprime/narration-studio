@@ -699,6 +699,19 @@ export const wireSettings = (): Record<string, ScopedSettingField[]> => ({
       number: { min: 1, max: 100, step: 1, unit: '%' },
     },
   ],
+  // VoiceSamples.storage unset, so it reads as the default, project: the host accepts only project until the DAW label is built.
+  VoiceSamples: [
+    {
+      key: 'storage',
+      label: 'Where voice samples are kept',
+      kind: 'choice',
+      choices: ['project'],
+      value: '',
+      isSet: false,
+      effectiveValue: 'project',
+      effectiveSource: 'repo_default',
+    },
+  ],
   TranscriptCompare: [
     choice('model_size', 'Default Whisper model', ['tiny', 'small', 'medium', 'large-v3-turbo', 'large-v3'], 'small'),
     choice('chunk_seconds', 'Default chunk length', ['30', '60', '300', '600'], '60'),

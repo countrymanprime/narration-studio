@@ -6,7 +6,7 @@ import { clickCase, contextMenuCase, hoverCase, type OverlayCase } from '../help
 // rail that opens over the page below 1360 px. Written once and run on every page: what lies under them is the page's.
 
 const header = (page: Page) => page.locator('main > header');
-const atLeastMd = ({ width }: { width: number }) => width >= 768;
+const atLeastMd = ({ width }: { width: number }) => width >= 860;
 
 export const shellCases: OverlayCase[] = [
   contextMenuCase('context menu on the page'),
@@ -19,7 +19,7 @@ export const shellCases: OverlayCase[] = [
   {
     name: 'navigation drawer',
     kind: 'drawer',
-    viewports: ({ width }) => width < 768,
+    viewports: ({ width }) => width < 860,
     open: async (page) => {
       await page.getByRole('button', { name: 'Open navigation' }).click();
     },
@@ -27,8 +27,8 @@ export const shellCases: OverlayCase[] = [
   {
     name: 'navigation rail opened over the page',
     kind: 'rail',
-    // From 768 to 1359 px the rail is icons that open to labels over the page while the pointer is on them.
-    viewports: ({ width }) => width >= 768 && width < 1360,
+    // From 860 to 1359 px the rail is icons that open to labels over the page while the pointer is on them.
+    viewports: ({ width }) => width >= 860 && width < 1360,
     root: (page) => page.locator('aside:visible > div').first(),
     open: async (page) => {
       await page.locator('aside:visible').first().hover();

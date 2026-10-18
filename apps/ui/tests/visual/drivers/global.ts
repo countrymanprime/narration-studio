@@ -22,10 +22,11 @@ export const globalDrivers: Record<string, Driver> = {
     const viewport = page.viewportSize();
     if (viewport) await page.mouse.move(viewport.width / 2, viewport.height / 2);
   },
-  // The collapsed rail (below 1360 CSS px) opens over the page on hover, with its labels and group headings; at 1360 and above the wide
-  // rail is already open, so there is nothing to hover and the state is the page as it was.
+  // The collapsed rail (860 to 1359 CSS px) opens over the page on hover, with its labels and group headings; at 1360 and above the wide
+  // rail is already open, and below 860 there is no rail (the hamburger and drawer replace it), so there is nothing to hover and the state is the page as it was.
   'nav-rail-open': async (page) => {
-    if ((page.viewportSize()?.width ?? 0) >= 1360) return;
+    const width = page.viewportSize()?.width ?? 0;
+    if (width >= 1360 || width < 860) return;
     const rail = page.getByRole('complementary', { name: 'Primary navigation' });
     await rail.getByRole('button', { name: /^Pickups/ }).hover();
     await page.waitForFunction(() => (document.querySelector('aside[aria-label="Primary navigation"] > div')?.getBoundingClientRect().width ?? 0) > 200);

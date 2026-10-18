@@ -24,6 +24,7 @@ import (
 	"github.com/countrymanprime/narration-utils/shell/internal/proofing"
 	"github.com/countrymanprime/narration-utils/shell/internal/scriptprep"
 	"github.com/countrymanprime/narration-utils/shell/internal/stages"
+	"github.com/countrymanprime/narration-utils/shell/internal/voicesample"
 )
 
 func TestCommitCreatesProjectOwnedCanonicalManuscript(t *testing.T) {
@@ -1171,5 +1172,40 @@ func TestCanSwitchProjectWaitsForAPreparedPreview(t *testing.T) {
 	service.SetProject(t.TempDir())
 	if _, err := service.Load(); err == nil {
 		t.Fatal("the new project read the old project's manuscript")
+	}
+}
+
+// Voice samples are the narrator's own audio: a manuscript replace (resetDerived) keeps them, and only Clear project data removes them
+// (docs/reference/data-files.md, Retention terms; the owner's decision of 2026-10-17 on the voice samples PRD, question 2).
+func TestAReplaceKeepsVoiceSamplesAndClearRemovesThem(t *testing.T) {
+	project := t.TempDir()
+	service := New(project)
+	files := []string{
+		filepath.Join(voicesample.Dir(project), "samples.json"),
+		filepath.Join(voicesample.Dir(project), "clips", strings.Repeat("ab", 16)+".wav"),
+	}
+	for _, file := range files {
+		if err := os.MkdirAll(filepath.Dir(file), 0o755); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(file, []byte("kept"), 0o600); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	if err := resetDerived(project); err != nil {
+		t.Fatal(err)
+	}
+	for _, file := range files {
+		if _, err := os.Stat(file); err != nil {
+			t.Fatalf("a manuscript replace removed %s: %v", file, err)
+		}
+	}
+
+	if err := service.Clear(); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := os.Stat(voicesample.Dir(project)); !os.IsNotExist(err) {
+		t.Fatalf("Clear project data left the voice samples behind: %v", err)
 	}
 }

@@ -3,7 +3,7 @@ import { useCommandProvider, type ProvidedCommand } from '../../../input/command
 import type { CommandId } from '../../../input/commands.catalog';
 import { gestureKeys } from '../../../input/hints';
 import type { Keymap } from '../../../input/keymap';
-import { EDITABLE, KEY_WIDGET_ROLES } from '../../../input/targets';
+import { EDITABLE, ownsKeysByRole } from '../../../input/targets';
 import { useCommand } from '../../../input/useCommand';
 import { flagged, stepFlag, stepKey, stepPhrase, type ChapterDoc, type DocItem } from '../model';
 import { useEditingPage } from '../script/EditingPageState';
@@ -38,8 +38,7 @@ type Target = EventTarget | null;
 /** A field, or a widget whose arrows move a value or a selection: it keeps the key even when a modifier is held. */
 function ownsKey(target: Target): boolean {
   if (!(target instanceof Element)) return false;
-  const role = target.getAttribute('role');
-  return target.closest(EDITABLE) !== null || Boolean(role && KEY_WIDGET_ROLES.has(role));
+  return target.closest(EDITABLE) !== null || ownsKeysByRole(target);
 }
 
 const inDrawer = (target: Target): boolean => target instanceof Element && target.closest('#drawer') !== null;
