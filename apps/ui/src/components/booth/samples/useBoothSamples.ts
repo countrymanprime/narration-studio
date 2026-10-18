@@ -4,7 +4,10 @@ import type { VoiceSample } from '../../../api/contracts/voiceSamples';
 import { NOT_WHILE_RECORDING, type SamplePlayerStatus } from '../../voicesamples/samplePlayerStore';
 import { useSamplePlayer } from '../../voicesamples/useSamplePlayer';
 import { useVoiceSamples } from '../../voicesamples/useVoiceSamples';
-import { cantTellSentence, PAUSE_GRACE_MS } from './boothSamples';
+import { NARRATION_CHARACTER_ID } from '../../../api/contracts/character';
+import { usePort } from '../../../ports/usePort';
+import { prefetchSample, releasePrefetched } from '../../voicesamples/samplePlayerStore';
+import { cantTellSentence, NARRATION_SPEAKER, noSampleSentence, PAUSE_GRACE_MS } from './boothSamples';
 
 export type BoothSamplesOptions = {
   /** The Story Bible's characters: a speaker label is a character's canonical name. */
@@ -39,6 +42,8 @@ export type BoothSamples = {
   /** Plays a sample (pausing a listening session first), or says why it cannot. A press on the one playing restarts it. */
   play: (sample: VoiceSample, speaker: string) => void;
   playPrimary: (speaker: string) => void;
+  /** The `V` key: stops the speaker's primary sample if it is the one playing, otherwise plays it, or says there is none to play. */
+  toggleSpeaker: (speaker: string) => void;
   stop: () => void;
   /** The sample that is waiting to start, loading or playing. */
   activeId: string | null;
@@ -70,7 +75,12 @@ export function useBoothSamples(options: BoothSamplesOptions): BoothSamples {
     live.current = { ...options, player };
   });
 
-  const idOf = useMemo(() => new Map(characters.map((entity) => [entity.canonical_name, entity.id])), [characters]);
+  const idOf = useMemo(() => {
+    const byName = new Map(characters.map((entity) => [entity.canonical_name, entity.id]));
+    // Narration is not a Story Bible entry; a character that happens to be called Narration keeps the name.
+    if (!byName.has(NARRATION_SPEAKER)) byName.set(NARRATION_SPEAKER, NARRATION_CHARACTER_ID);
+    return byName;
+  }, [characters]);
   const samplesOf = useCallback(
     (speaker: string): VoiceSample[] => {
       const id = idOf.get(speaker);
@@ -90,6 +100,10 @@ export function useBoothSamples(options: BoothSamplesOptions): BoothSamples {
 
   // The pause of a listening session. `pausedByUs` is the page's own pause; `pauseSentAt` when it was asked; `seenPaused` that the host's state has said so.
   const [waiting, setWaiting] = useState<string | null>(null);
+  const waitingRef = useRef<string | null>(null);
+  useEffect(() => {
+    waitingRef.current = waiting;
+  });
   const [listeningPaused, setListeningPaused] = useState(false);
   const generation = useRef(0);
   const pausedByUs = useRef(false);
@@ -153,6 +167,31 @@ export function useBoothSamples(options: BoothSamplesOptions): BoothSamples {
     [primaryOf, play],
   );
 
+  const toggleSpeaker = useCallback(
+    (speaker: string) => {
+      const sample = primaryOf(speaker);
+      if (!sample) return live.current.notify(noSampleSentence(speaker));
+      if (live.current.player.isActive(sample.id) || waitingRef.current === sample.id) return stop();
+      play(sample, speaker);
+    },
+    [primaryOf, play, stop],
+  );
+
+  // The primary samples of the characters in this chapter are warmed when the page opens and when the list or the chapter changes, so the first press does
+  // not wait for the file. Nothing is warmed while a take records, and nothing ever plays.
+  const { voiceSampleMediaUrl } = usePort('voiceSamples');
+  useEffect(() => {
+    if (recording || !list) return releasePrefetched();
+    const urls = new Set<string>();
+    for (const speaker of [...inChapter, NARRATION_SPEAKER]) {
+      const primary = primaryOf(speaker);
+      if (primary) urls.add(voiceSampleMediaUrl(primary.id));
+    }
+    releasePrefetched(urls);
+    for (const url of urls) prefetchSample(url);
+  }, [recording, list, inChapter, primaryOf, voiceSampleMediaUrl]);
+  useEffect(() => () => releasePrefetched(), []);
+
   // Once nothing is waiting or playing, a pause the page made is taken back after one chunk's grace.
   const busy = player.status !== 'idle' || waiting !== null;
   useEffect(() => {
@@ -199,6 +238,7 @@ export function useBoothSamples(options: BoothSamplesOptions): BoothSamples {
     checkAgain: recorder.checkAgain,
     play,
     playPrimary,
+    toggleSpeaker,
     stop,
     activeId,
     statusOf: (id) => (waiting === id ? 'loading' : player.isActive(id) ? player.status : 'idle'),

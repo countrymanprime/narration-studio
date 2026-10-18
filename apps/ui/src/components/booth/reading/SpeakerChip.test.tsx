@@ -60,6 +60,7 @@ function stand(over: Partial<BoothSamples> = {}): BoothSamples {
     checkAgain: vi.fn(),
     play: vi.fn(),
     playPrimary: vi.fn(),
+    toggleSpeaker: vi.fn(),
     stop: vi.fn(),
     activeId: null,
     statusOf: () => 'idle',
