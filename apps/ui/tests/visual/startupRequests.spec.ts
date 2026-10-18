@@ -22,11 +22,11 @@ test('the webview requests nothing but its own bundle at start-up', async ({ pag
   await page.waitForLoadState('networkidle');
 
   // The headless shell the suite runs in never asks for a tab icon, a desktop Chromium and the WebView2 shell do.
-  // A `data:` icon is the empty one that stops the favicon request (index.html), so it is skipped: the real one is the file to check.
   // Fetch what the page declares so a missing or mistyped icon fails here, not only in a desktop browser.
-  const icon = await page.evaluate(() => document.querySelector<HTMLLinkElement>('link[rel~="icon"]:not([href^="data:"])')?.href ?? null);
-  expect(icon, 'index.html declares a tab icon, so the browser does not fall back to /favicon.ico').not.toBeNull();
-  const iconResponse = await page.request.get(icon!);
+  const icons = await page.evaluate(() => [...document.querySelectorAll<HTMLLinkElement>('link[rel~="icon"]')].map((link) => link.href));
+  expect(icons, 'index.html declares exactly one tab icon, a local one, so the browser does not fall back to /favicon.ico').toEqual([`${origin}/favicon.png`]);
+  const icon = icons[0];
+  const iconResponse = await page.request.get(icon);
   expect(iconResponse.status()).toBe(200);
   expect(iconResponse.headers()['content-type']).toMatch(/^image\//);
 
