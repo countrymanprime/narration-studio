@@ -59,8 +59,8 @@ export type MockApiSeed = {
   projectFolder?: string;
   tracksCandidates?: string[];
   noManuscript?: boolean;
-  /** The Pickups list cannot be read: every read is refused with a reason. */
-  pickupList?: 'unreadable';
+  /** The Pickups list cannot be read: every read is refused with a reason (`unreadable`), or never answers (`loading`). */
+  pickupList?: 'unreadable' | 'loading';
   /** Replaces the Alice chapters at boot (fixtures/scenario.ts); the bundled manuscript then does not load over them. */
   chapters?: ManuscriptChapter[];
   /** Replaces the Alice paragraphs at boot; seed it with `chapters`. */
