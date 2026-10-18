@@ -36,6 +36,7 @@ async function openReview(prepare: (api: NarrationApi) => void = () => {}, impor
     </MemoryRouter>,
   );
   fireEvent.click(await screen.findByRole('button', { name: 'Import manuscript' }));
+  fireEvent.click(await screen.findByRole('button', { name: 'Choose a file…' }));
   const dialog = await screen.findByRole('alertdialog', { name: /^Import Alice\./ });
   return { api, dialog: within(dialog) };
 }
@@ -177,6 +178,7 @@ describe('the import review dialog, as the narrator meets it', () => {
       </MemoryRouter>,
     );
     fireEvent.click(await screen.findByRole('button', { name: 'Replace manuscript…' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Choose a file…' }));
     const dialog = within(await screen.findByRole('alertdialog', { name: /^Import Alice\./ }));
     expect(dialog.getByText(/This replaces the active manuscript and clears Story Bible, notes, bookmarks, statuses/)).toBeTruthy();
     expect(dialog.queryByRole('button', { name: 'Import' })).toBeNull();
@@ -223,6 +225,7 @@ describe('build after import (B1-B3)', () => {
       </MemoryRouter>,
     );
     fireEvent.click(await screen.findByRole('button', { name: 'Import manuscript' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Choose a file…' }));
     const dialog = within(await screen.findByRole('alertdialog', { name: /^Import Alice\./ }));
     await waitFor(() => dialog.getByRole('checkbox', { name: 'Build the Story Bible after import' }));
     fireEvent.click(dialog.getByRole('button', { name: 'Import' }));
@@ -350,6 +353,7 @@ describe('the summary and the groups of the review', () => {
     fireEvent.click(dialog.getByRole('button', { name: 'Cancel' }));
     await waitFor(() => expect(screen.queryByRole('alertdialog')).toBeNull());
     fireEvent.click(screen.getByRole('button', { name: 'Import manuscript' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Choose a file…' }));
     const again = within(await screen.findByRole('alertdialog', { name: /^Import Alice\./ }));
     expect(again.getByRole('button', { name: /^Narration chapters 5 chapters/ }).getAttribute('aria-expanded')).toBe('true');
     expect((again.getByRole('combobox', { name: 'Glossary content type' }) as HTMLSelectElement).value).toBe('reference');
@@ -546,6 +550,7 @@ describe('the delivery profile on the first import (SNM-4d)', () => {
       </MemoryRouter>,
     );
     fireEvent.click(await screen.findByRole('button', { name: 'Import manuscript' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Choose a file…' }));
     const dialog = within(await screen.findByRole('alertdialog', { name: /^Import Alice\./ }));
     await waitFor(() => expect(profileField(dialog)).toBeTruthy());
     fireEvent.click(dialog.getByRole('button', { name: 'Import' }));
@@ -564,6 +569,7 @@ describe('the delivery profile on the first import (SNM-4d)', () => {
       </MemoryRouter>,
     );
     fireEvent.click(await screen.findByRole('button', { name: 'Replace manuscript…' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Choose a file…' }));
     const dialog = within(await screen.findByRole('alertdialog', { name: /^Import Alice\./ }));
     expect(profileField(dialog)).toBeNull();
   });
@@ -579,8 +585,66 @@ describe('the delivery profile on the first import (SNM-4d)', () => {
       </MemoryRouter>,
     );
     fireEvent.click(await screen.findByRole('button', { name: 'Import manuscript' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Choose a file…' }));
     const dialog = within(await screen.findByRole('alertdialog', { name: /^Import Alice\./ }));
     await new Promise((resolve) => setTimeout(resolve, 50));
     expect(profileField(dialog)).toBeNull();
+  });
+});
+
+describe('step 1: choose your manuscript (the Studio Next mock)', () => {
+  async function openStep1(replacing = false) {
+    const api = createMockApi({}, replacing ? { importPreview: 'docx' } : { noManuscript: true, importPreview: 'docx' });
+    const data: Bootstrap = await api.bootstrap();
+    render(
+      <MemoryRouter>
+        <ApiProvider api={api}>
+          <ImportHarness data={data} go={() => {}} notify={() => {}} refreshBootstrap={async () => {}} />
+        </ApiProvider>
+      </MemoryRouter>,
+    );
+    fireEvent.click(await screen.findByRole('button', { name: replacing ? 'Replace manuscript…' : 'Import manuscript' }));
+    return { api, dialog: await screen.findByRole('dialog', { name: replacing ? /^Replace manuscript · step 1 of 2/ : /^Import manuscript · step 1 of 2/ }) };
+  }
+
+  it('opens before anything else and says what it takes and that the manuscript stays read-only', async () => {
+    const { api, dialog } = await openStep1();
+    const select = vi.spyOn(api, 'selectManuscript');
+    expect(within(dialog).getByRole('heading', { name: 'Choose your manuscript' })).toBeTruthy();
+    expect(within(dialog).getByText('Use a .docx, .md or .txt file. A copy is kept in your project.')).toBeTruthy();
+    expect(within(dialog).getByText('The manuscript is read-only. Your marks and notes are stored separately.')).toBeTruthy();
+    expect(within(dialog).getByText('Drop a manuscript here')).toBeTruthy();
+    expect(select).not.toHaveBeenCalled();
+  });
+
+  it('Cancel closes it and nothing reaches the host', async () => {
+    const { api, dialog } = await openStep1();
+    const select = vi.spyOn(api, 'selectManuscript');
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Cancel' }));
+    await waitFor(() => expect(screen.queryByRole('dialog', { name: /step 1 of 2/ })).toBeNull());
+    expect(select).not.toHaveBeenCalled();
+  });
+
+  it('says it replaces the manuscript when there is one', async () => {
+    const { dialog } = await openStep1(true);
+    expect(within(dialog).getByText(/^Replaces the manuscript imported /)).toBeTruthy();
+  });
+
+  it('a dropped file with a path starts the same preview as Choose a file', async () => {
+    const { api, dialog } = await openStep1();
+    const begin = vi.spyOn(api, 'manuscriptBeginImport');
+    const zone = within(dialog).getByText('Drop a manuscript here').closest('[data-drop-zone]')!;
+    fireEvent.drop(zone, { dataTransfer: { files: [{ name: 'Alice.docx', path: 'C:/Books/Alice.docx' }] } });
+    await waitFor(() => expect(begin).toHaveBeenCalledWith('C:/Books/Alice.docx'));
+    expect(await screen.findByRole('alertdialog', { name: /^Import Alice\./ })).toBeTruthy();
+  });
+
+  it('a dropped file whose location the window cannot read says so and starts nothing', async () => {
+    const { api, dialog } = await openStep1();
+    const begin = vi.spyOn(api, 'manuscriptBeginImport');
+    const zone = within(dialog).getByText('Drop a manuscript here').closest('[data-drop-zone]')!;
+    fireEvent.drop(zone, { dataTransfer: { files: [{ name: 'Alice.docx' }] } });
+    expect((await within(dialog).findByRole('alert')).textContent).toContain('Use Choose a file… instead.');
+    expect(begin).not.toHaveBeenCalled();
   });
 });
