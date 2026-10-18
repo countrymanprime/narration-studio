@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react';
+import type { KeyboardEventHandler, ReactNode } from 'react';
 import { Heading } from '../../primitives/Heading';
 import { IconButton } from '../../primitives/IconButton';
 import { TooltipTarget } from '../../primitives/Tooltip';
@@ -14,13 +14,15 @@ export interface EditingHeaderProps {
   stripFits: boolean;
   drawerOpen: boolean;
   onDrawer: () => void;
+  /** Escape on the drawer's toggle while the drawer is open: closes it, focus stays on the toggle. */
+  onDrawerKeyDown?: KeyboardEventHandler<HTMLButtonElement>;
 }
 
 /**
  * The page's header (the Studio Next mock's `.ph.sx-ph`): the title, the chapter step, the legend, and the two header buttons, the timeline
  * strip (S) where it fits and the clean-up and effects drawer (Ctrl+Shift+C).
  */
-export function EditingHeader({ stepper, legend, strip, stripFits, drawerOpen, onDrawer }: EditingHeaderProps) {
+export function EditingHeader({ stepper, legend, strip, stripFits, drawerOpen, onDrawer, onDrawerKeyDown }: EditingHeaderProps) {
   return (
     <header className="flex flex-wrap items-center gap-x-4 gap-y-2 px-4 pt-3 pb-2">
       <Heading title="Editing" />
@@ -36,6 +38,7 @@ export function EditingHeader({ stepper, legend, strip, stripFits, drawerOpen, o
             aria-pressed={drawerOpen}
             aria-keyshortcuts="Control+Shift+C"
             onClick={onDrawer}
+            onKeyDown={onDrawerKeyDown}
           />
         </TooltipTarget>
       </div>
