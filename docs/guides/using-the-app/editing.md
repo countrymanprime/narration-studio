@@ -18,6 +18,7 @@ The header has the chapter step (the previous and next chapter buttons, Alt+↑ 
 legend of the marks in the text with how many of each, the recogniser that heard the words (**Flagged by**), the
 **Timeline** button (on a window 1360 px wide or more) and the button that opens the drawer. At 1280 px and below the
 legend uses short labels with no counts.
+While the chapters and the chapter's lines are being read, the header stays and the script is drawn as grey blocks; if the chapters cannot be read, the page says so.
 
 Words carry what the last [recording check](production.md#checking-a-chapters-recording) heard:
 
@@ -53,7 +54,8 @@ choices as [Check recordings](production.md#checking-a-chapters-recording) offer
 ## Selecting words
 
 Click a word to place the cursor there. Shift+click another, drag across the text or press Shift+← and Shift+→ to
-select a run of words. A toolbar floats under the selection with **Play**, **Add FX**, **Voice sample**, **Mute**, **Takes of this
+select a run of words. Hold ← or → (with Shift to select) and the cursor keeps travelling along the text; Up and Down hold
+the same way, a phrase at a time. Every other key does its job once, however long you hold it. A toolbar floats under the selection with **Play**, **Add FX**, **Voice sample**, **Mute**, **Takes of this
 line** (on a line with more than one take) and **Delete**; the bar offers the same actions, with **Delete words and
 audio** in full on a wide window. The line's audio shows under it while the cursor is on it. Right-click a word for its
 menu: play the selection, copy, delete or mute the words, add or remove an effect, **Mark as voice sample…**, mark them for a pickup, add a note,
