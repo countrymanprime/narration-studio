@@ -427,7 +427,7 @@ export const ROWS: readonly SettingMeta[] = [
     label: 'Clear derived data',
     scope: 'project',
     def: '',
-    desc: 'Removes checks, caches and analysis results. Your manuscript, recordings and decisions stay.',
+    desc: 'Removes the imported manuscript and its stored source, the Story Bible and proofing data, reader notes and saved comparison results. Settings and recordings stay.',
     used: ['proof', 'pickups'],
     advanced: true,
   },
