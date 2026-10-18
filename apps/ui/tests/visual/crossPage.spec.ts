@@ -88,6 +88,14 @@ test.describe('cross-page hand-offs', () => {
     expect(here(page)).toBe('/script');
   });
 
+  test('Escape on the Booth message of a pickup session returns to Pickups, as the working Booth does', async ({ page }) => {
+    await open(page, '/booth?chapter=nope&pickups=k1');
+    await blocked(page).waitFor();
+    await page.keyboard.press('Escape');
+    await h1(page, 'Pickups').waitFor();
+    expect(here(page)).toBe('/pickups');
+  });
+
   test('Escape on the message of a page that keeps its sidebar leaves it and the address where they are', async ({ page }) => {
     await open(page, '/editing/nope');
     await blocked(page).waitFor();

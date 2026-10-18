@@ -1,6 +1,6 @@
 import { LoadError } from '../layout/LoadError';
 import { describeApiError } from '../../api/errorMessage';
-import { useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent, type ReactNode } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faLock, faMicrophone, faPlus, faRotate } from '@fortawesome/free-solid-svg-icons';
@@ -96,10 +96,12 @@ type GuideProps = {
   hasManuscript?: boolean;
   /** Opens the import flow, from the ask for a manuscript. */
   onImport?: () => void;
+  /** The ask for a manuscript when the page draws it itself (with the import in place); else `onImport` goes to the import. */
+  needManuscript?: ReactNode;
 };
 
-export function Guide({ hasManuscript = true, onImport, ...rest }: GuideProps) {
-  return hasManuscript ? <GuideLoaded {...rest} /> : <NeedManuscript title="Story Bible" onImport={onImport} />;
+export function Guide({ hasManuscript = true, onImport, needManuscript, ...rest }: GuideProps) {
+  return hasManuscript ? <GuideLoaded {...rest} /> : (needManuscript ?? <NeedManuscript title="Story Bible" onImport={onImport} />);
 }
 
 function GuideLoaded({ notify, goToManuscript }: Pick<GuideProps, 'notify' | 'goToManuscript'>) {
