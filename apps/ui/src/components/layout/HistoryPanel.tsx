@@ -8,11 +8,13 @@ import { useJournalEntries, type JournalRow } from './useJournalEntries';
 
 type HistoryJournal = Pick<Journal, 'entries' | 'subscribe' | 'undo'>;
 
+export const HISTORY_TITLE = 'Undo history';
+
 /** Opens the panel as a slide-over titled "Undo history"; returns the close function. */
 export function openHistoryPanel(overlay: OverlayService, journal: HistoryJournal, dawName: () => string): () => void {
   return overlay.open({
     kind: 'slideOver',
-    title: 'Undo history',
+    title: HISTORY_TITLE,
     render: () => <HistoryPanel journal={journal} dawName={dawName()} />,
   });
 }
