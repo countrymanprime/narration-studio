@@ -132,3 +132,64 @@ func TestPercentDecodeReadsEscapesAndRefusesBadOnes(t *testing.T) {
 		}
 	}
 }
+
+// Every request reports how long it took and how it ended, by command name and a fixed outcome word. Nothing of the arguments
+// or the answer's text is in the report (a track's name is the canary here).
+func TestEveryRequestReportsItsTiming(t *testing.T) {
+	actions, client, dir := newActionsSession(t, true)
+	var mu sync.Mutex
+	var timings []RequestTiming
+	actions.SetObserver(func(timing RequestTiming) {
+		mu.Lock()
+		defer mu.Unlock()
+		timings = append(timings, timing)
+	})
+	startFakeReaper(t, client, dir, func(command []string) [][]string {
+		switch command[1] {
+		case "arm_only":
+			return [][]string{{"ERROR", run(command), "Track \"CANARY Alice\" is locked."}}
+		case "record_stop":
+			return nil
+		}
+		return trackStateAnswer(command)
+	})
+	actions.SetTimeout(100 * time.Millisecond)
+
+	if _, err := actions.ChapterTrackState(context.Background(), testTrack); err != nil {
+		t.Fatal(err)
+	}
+	_, _ = actions.ArmOnly(context.Background(), testTrack)
+	_, _ = actions.RecordStop(context.Background())
+	cancelled, cancel := context.WithCancel(context.Background())
+	cancel()
+	_, _ = actions.RecordStop(cancelled)
+
+	mu.Lock()
+	defer mu.Unlock()
+	want := []struct{ command, outcome string }{{"chapter_track_state", "answered"}, {"arm_only", "error"}, {"record_stop", "no_answer"}, {"record_stop", "cancelled"}}
+	if len(timings) != len(want) {
+		t.Fatalf("timings = %+v, want %d", timings, len(want))
+	}
+	for i, w := range want {
+		if timings[i].Command != w.command || timings[i].Outcome != w.outcome || timings[i].Elapsed < 0 {
+			t.Errorf("timing %d = %+v, want %s %s", i, timings[i], w.command, w.outcome)
+		}
+		if strings.Contains(fmt.Sprintf("%+v", timings[i]), "CANARY") {
+			t.Errorf("timing %d holds a canary: %+v", i, timings[i])
+		}
+	}
+	if timings[2].Elapsed < 90*time.Millisecond {
+		t.Errorf("a request that timed out reports %v, want about the 100 ms timeout", timings[2].Elapsed)
+	}
+}
+
+// A request the gate refuses is never sent, so it reports nothing.
+func TestARefusedRequestReportsNoTiming(t *testing.T) {
+	actions, _, _ := newActionsSession(t, false)
+	called := false
+	actions.SetObserver(func(RequestTiming) { called = true })
+	_, _ = actions.ChapterTrackState(context.Background(), testTrack)
+	if called {
+		t.Error("a refused request reported a timing")
+	}
+}
