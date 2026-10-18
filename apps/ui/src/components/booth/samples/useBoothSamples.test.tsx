@@ -103,7 +103,7 @@ async function loaded(result: { current: ReturnType<typeof useBoothSamples> }) {
 }
 
 beforeEach(() => {
-  vi.useFakeTimers({ shouldAdvanceTime: true });
+  vi.useFakeTimers();
   const el = instances[0];
   if (!el) return;
   el.play.mockReset().mockResolvedValue(undefined);
