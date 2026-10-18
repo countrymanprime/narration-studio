@@ -20,6 +20,7 @@
     { "id": "recording-check", "paths": ["apps/ui/src/components/recordingcheck/**"], "guide": ["production.md", "proof.md", "pickups.md"] },
     { "id": "stages", "paths": ["apps/ui/src/components/stages/**"], "guide": ["production.md", "editing.md", "proof.md", "navigation.md"] },
     { "id": "mapping", "paths": ["apps/ui/src/components/mapping/**"], "guide": ["production.md", "editing.md", "navigation.md"] },
+    { "id": "voice-samples", "paths": ["apps/ui/src/components/voicesamples/**"], "guide": ["editing.md", "story-bible.md", "booth.md"] },
     { "id": "assets", "paths": ["apps/ui/src/components/assets/**"], "guide": ["*.md"] }
   ]
 }
