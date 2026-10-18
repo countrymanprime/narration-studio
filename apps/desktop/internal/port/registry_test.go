@@ -143,7 +143,7 @@ func TestRegisterPanicsOnARowThatIsABug(t *testing.T) {
 }
 
 // TestTheLevelGoldenIsCurrent writes tests/fixtures/contracts/port-levels.json (UPDATE_CONTRACTS=1) and otherwise compares with it.
-// narration_common.ports reads it back, so the Python Level cannot drift from this one (ADR 0301).
+// narration_common.ports reads it back, so the Python Level cannot drift from this one.
 func TestTheLevelGoldenIsCurrent(t *testing.T) {
 	type level struct {
 		Name  string `json:"name"`

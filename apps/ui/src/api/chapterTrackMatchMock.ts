@@ -15,7 +15,7 @@ import type {
 import type { ManuscriptChapter, RecordedUnavailable } from './contracts/manuscript';
 import type { Track, TracksProject } from './contracts/tracks';
 
-// The browser mock's stand-in for the host's chapter-to-track matcher (apps/desktop/internal/chaptermatch, ADR 0110).
+// The browser mock's stand-in for the host's chapter-to-track matcher (apps/desktop/internal/chaptermatch).
 // It covers only what the mock project needs to show every status: a confirmed link, an exact or whole-word-prefix
 // name match (spelled-out numbers up to twenty read as digits, so "Chapter One" finds the "Chapter 1" track), a tie,
 // and nothing. The real matcher (number-word merge, homophones, fuzzy fallback, regions) lives in Go only.

@@ -26,7 +26,7 @@ import { hidSource } from './input/HidSource';
 import './fonts';
 import './styles.css';
 
-// ADR 0361: the router's one `source` slot carries KeyboardSource, MidiSource and HidSource. Built once, here, so
+// docs/architecture/studio-shell-and-registries.md: the router's one `source` slot carries KeyboardSource, MidiSource and HidSource. Built once, here, so
 // `router.tsx` never needs to know MIDI or HID exist.
 const commandInputSource = combineSources(createKeyboardSource(), midiSource, hidSource);
 
@@ -59,7 +59,7 @@ const mockNoRpp = mockParams.has('mockNoRpp');
 // Tracks/Settings show their unlinked DAW-link controls. The mock otherwise defaults `dawFileLinked` to true so every
 // other capture (and App.test.tsx's default click into Proofing) keeps working without this param.
 const mockNoDaw = mockParams.has('mockNoDaw');
-// `?mockDawMismatch=1` simulates a live REAPER heartbeat whose open project disagrees with the linked file (ADR 0092):
+// `?mockDawMismatch=1` simulates a live REAPER heartbeat whose open project disagrees with the linked file:
 // the engine chip reads "Wrong REAPER project open".
 const mockDawMismatch = mockParams.has('mockDawMismatch');
 // `?mockDawNotDetected=1` makes the DAW catalog panel (Settings > DAW Integration, docs/architecture/
@@ -126,7 +126,7 @@ const mockRemoved = mockParams.get('mockRemoved') === '1';
 // `?mockChapterSync=ask|off|linked|unsaved|pickups|activity|background`: chapter sync's consent at boot
 // (`unsaved` is REAPER holding unsaved edits, with a Sync activity row; `pickups` is a chapter whose pickup track changed since its last scan; `activity` is the engine
 // panel's Sync activity with an automatic and a manual link; `background` is a background check waiting because the
-// heartbeat says REAPER is recording, ADR 0211).
+// heartbeat says REAPER is recording).
 const mockChapterSync = (['ask', 'off', 'linked', 'unsaved', 'pickups', 'activity', 'background'] as const).find(
   (seed) => seed === mockParams.get('mockChapterSync'),
 );
@@ -294,8 +294,7 @@ const mockDawPlayhead = Number.parseFloat(mockParams.get('mockDawPlayhead') ?? '
 // `cascade` gives Chapter 4's result the model cascade's own
 // pickups and recheck label; `recheck-required` answers the next
 // start with the re-check model's own missing-model gate, offering "Check with tiny only" beside the download.
-// `?mockCoverageRefusal=<reason>` answers every start with that refusal (docs/utilities/recording-coverage.md, ADR
-// 0130).
+// `?mockCoverageRefusal=<reason>` answers every start with that refusal (docs/utilities/recording-coverage.md).
 const mockCoverage = (['hold', 'stale', 'pickups', 'cascade', 'recheck-required'] as const).find((seed) => seed === mockParams.get('mockCoverage'));
 const mockCoverageRefusal = COVERAGE_REFUSAL_REASONS.find((reason) => reason === mockParams.get('mockCoverageRefusal'));
 // `?mockStages=mixed|error` puts the Home breakdown's stage suggestions in every state at
@@ -350,7 +349,7 @@ const MOCK_STAGES_SEEDS = {
   },
   error: { unavailable: 'the saved REAPER project could not be read' },
 };
-// `?mockChapterSuggestion=matched|ambiguous` arms tracks in the mock .rpp (ADR 0113): the
+// `?mockChapterSuggestion=matched|ambiguous` arms tracks in the mock .rpp: the
 // "Chapter 2" track alone, so the Teleprompter preselects Chapter 2 from it, or both chapter
 // tracks, so it offers the two chapters as a choice instead.
 const MOCK_ARMED_TRACKS = {
@@ -359,7 +358,7 @@ const MOCK_ARMED_TRACKS = {
 } as const;
 const mockChapterSuggestion = (['matched', 'ambiguous'] as const).find((seed) => seed === mockParams.get('mockChapterSuggestion'));
 // `?mockFindings=empty|changed` boots the Review page with no findings at all, or with an analyzer that runs again right after the page
-// lists its findings, so the empty queue and a decision refused on changed evidence (ADR 0120) can be seen without a host.
+// lists its findings, so the empty queue and a decision refused on changed evidence can be seen without a host.
 const mockFindings = (['empty', 'changed'] as const).find((seed) => seed === mockParams.get('mockFindings'));
 // `?mockReaper=standalone|not-running|stale|recording|outdated` sets what the Review page's REAPER does for Go to, Loop and Stop:
 // not there at all, gone quiet, or connected and refusing for that reason. Connected when absent.
@@ -396,7 +395,7 @@ const mockProduction = (['on-pace', 'at-risk'] as const).find((seed) => seed ===
 const mockFidelity = mockFidelityFrom(mockParams.get('mockFidelity'));
 
 // `?mockRecorder=recording|failed|empty|no-devices|start-fails|unavailable` seeds the Booth's built-in recorder
-// (ADR 0455), with `?mockEngine=builtin` choosing it: a take 42 s in; the last take ended on
+// with `?mockEngine=builtin` choosing it: a take 42 s in; the last take ended on
 // its own; no takes yet; no input device listed; a device that will not open on Record; the wasapi row unavailable here.
 const MOCK_RECORDER_SEEDS: Record<string, RecordingMockSeed> = {
   recording: { recording: true },
@@ -615,7 +614,7 @@ createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
     <ThemeProvider>
       <ApiProvider api={api}>
-        {/* ADR 0361: the command registry with keyboard, MIDI and HID as its input sources. Wired to the DAW port's
+        {/* docs/architecture/studio-shell-and-registries.md: the command registry with keyboard, MIDI and HID as its input sources. Wired to the DAW port's
             live transport state, so a `noisy` command (workspace.play, Editing's Play) goes silent while the DAW reports recording. */}
         <LiveCommandRouter source={commandInputSource}>
           <App />

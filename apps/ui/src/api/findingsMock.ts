@@ -1,6 +1,6 @@
 // The browser mock's findings store, answering the review bindings the way apps/desktop/internal/findings does:
 // the same filters, sort keys (a missing value sorts last either way), ties by chapter then id, paging with the
-// total before paging, counts over the latest run, and a decision refused when the evidence changed (ADR 0120).
+// total before paging, counts over the latest run, and a decision refused when the evidence changed.
 // It exists so the Review page can be built and screenshotted without a host; the host's rules are the ones that
 // count, and apps/desktop/internal/findings/query_test.go pins them.
 import { z } from 'zod';

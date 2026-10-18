@@ -80,7 +80,7 @@ func TestContractProductionStatusReport(t *testing.T) {
 	contractfile.Check(t, "production-status-report", stable)
 }
 
-// ProductionStatusReportPreview (ADR 0843): the document an export would write, built from the same Report and
+// ProductionStatusReportPreview: the document an export would write, built from the same Report and
 // answered without writing anything.
 
 func previewOf(t *testing.T, host *Host, include bool) map[string]any {

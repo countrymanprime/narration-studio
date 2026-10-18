@@ -30,32 +30,32 @@ type Manifest struct {
 	// Credits is this project's own audiobook credit token values (title, author, copyright, ...), added additively to
 	// the manifest rather than kept in a separate file. Nil on a project that has never had its credit values saved.
 	Credits *credits.Values `json:"credits,omitempty"`
-	// RetailSample is the range the narrator picked as the retail sample (ADR 0152), additive like Credits. Nil when
+	// RetailSample is the range the narrator picked as the retail sample, additive like Credits. Nil when
 	// none is picked.
 	RetailSample *credits.RetailSample `json:"retailSample,omitempty"`
 	// CreditsStatus is the chapter-table row status of the opening and closing credits ("opening"/"closing" keys, one
-	// of the five chapter statuses each), additive like Credits (ADR 0183). It lives here rather than in
+	// of the five chapter statuses each), additive like Credits. It lives here rather than in
 	// manuscript-notes.json (like a chapter's own status) so it survives Replace manuscript and Clear derived data the
 	// way the credits values themselves do. Nil or a missing key means "not_started", the same default a manuscript
 	// chapter with no note has.
 	CreditsStatus map[string]string `json:"creditsStatus,omitempty"`
 	// CreditsSetup records that the narrator said "Don't ask" to the credits setup prompt for one imported manuscript
-	// (ADR 0208), additive like Credits. A Replace manuscript gives a new document id, so the prompt asks again. Nil:
+	// additive like Credits. A Replace manuscript gives a new document id, so the prompt asks again. Nil:
 	// never dismissed.
 	CreditsSetup *CreditsSetup `json:"creditsSetup,omitempty"`
-	// ChapterSync is the narrator's answer to "Sync chapters to tracks?" (ADR 0209), additive like Credits. It lives on
+	// ChapterSync is the narrator's answer to "Sync chapters to tracks?", additive like Credits. It lives on
 	// the manifest because it is a project decision that survives Replace manuscript. Nil: not asked yet.
 	ChapterSync *ChapterSync `json:"chapterSync,omitempty"`
-	// DeliveryProfile is the delivery profile this project is judged against (ADR 0179), additive like Credits. Nil:
+	// DeliveryProfile is the delivery profile this project is judged against, additive like Credits. Nil:
 	// the Global default.
 	DeliveryProfile *DeliveryProfileRef `json:"deliveryProfile,omitempty"`
-	// Deadline is the book's delivery date, a calendar date "YYYY-MM-DD" (ADR 0323), additive like Credits so it
+	// Deadline is the book's delivery date, a calendar date "YYYY-MM-DD", additive like Credits so it
 	// survives Replace manuscript: it is a business fact about the book, not the imported text. Empty: none set.
 	Deadline string `json:"deadline,omitempty"`
-	// ContractedAmount is what the book pays, a bare number in the narrator's own currency (ADR 0320): the effective
+	// ContractedAmount is what the book pays, a bare number in the narrator's own currency: the effective
 	// rate divides it by the hours logged. Nil: none set, so the rate is undefined.
 	ContractedAmount *float64 `json:"contractedAmount,omitempty"`
-	// Payment is how the book pays: "per_finished_hour", "royalty_share" or "none" (ADR 0800), additive like Credits.
+	// Payment is how the book pays: "per_finished_hour", "royalty_share" or "none", additive like Credits.
 	// Empty: written before the payment type existed; internal/production reads it from ContractedAmount.
 	Payment string `json:"payment,omitempty"`
 	// RateBasis is the schedule basis the narrator chose: "standard" or "own" (their own pace). Empty reads as standard.
@@ -67,7 +67,7 @@ type Manifest struct {
 }
 
 // Milestone is one dated checkpoint: a name, a calendar date "YYYY-MM-DD" and an optional note, plus what it measures,
-// an estimated date, whether it is done and the template it came from (ADR 0800; each empty or false on a milestone
+// an estimated date, whether it is done and the template it came from (each empty or false on a milestone
 // saved before them). Nothing beyond the shape is validated here; internal/production checks a milestone before it is
 // saved.
 type Milestone struct {
@@ -113,7 +113,7 @@ func Path(projectFolder string) string {
 // migrated, never created through the new-project flow) is not an error: ok is
 // false and err is nil. reporter may be nil (a test, a caller that does not yet
 // have one); project.json is the narrator's own data, so a file that cannot be
-// decoded is kept aside and reported rather than silently discarded (ADR 0069),
+// decoded is kept aside and reported rather than silently discarded,
 // matching every other narrator-data file in this codebase (settings, notes).
 func Load(reporter *persist.Reporter, projectFolder string) (*Manifest, bool, error) {
 	if projectFolder == "" {

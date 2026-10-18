@@ -6,7 +6,7 @@ import { resumeOfferFor, type KeptResume, type ResumeOfferState } from './resume
 const NONE: ResumeOfferState = { kind: 'none' };
 
 /**
- * The chapter's resume offer: asks the host where the recording ends (`teleprompterLocate`, ADR 0111) once per chapter and
+ * The chapter's resume offer: asks the host where the recording ends (`teleprompterLocate`) once per chapter and
  * reduces the answer to one line (`resumeOfferFor`). It only reads. Nothing is asked, and nothing is offered, while a take
  * runs; a failed or pending lookup offers nothing. `model` is read when the lookup starts.
  */

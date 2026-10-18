@@ -1,4 +1,4 @@
-// Package extractionport is the extraction port on the Go side (ADR 0301): the sources a Story Bible suggestion can come
+// Package extractionport is the extraction port on the Go side: the sources a Story Bible suggestion can come
 // from, what the host knows about each without starting it, and the one role a source plays, Extractor, which offers raw
 // suggestions. A source only offers Raw values (what it found, how sure it is, the quotes behind it); code computes the
 // offsets, the status and the fingerprint (internal/extraction), so a source cannot set them. The host asks this registry

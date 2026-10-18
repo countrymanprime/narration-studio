@@ -1,6 +1,6 @@
 -- Take-review spike: answers how a take is created (which take becomes active, item-length
 -- behaviour on a longer/shorter candidate, source-offset alignment, one-step undo) and how take provenance is stored (via
--- namespaced take P_EXT plus a finding id, extending ADR 0026). Research tool, not product code: see
+-- namespaced take P_EXT plus a finding id, extending docs/architecture/manuscript-line-identity.md). Research tool, not product code: see
 -- docs/research/take-review-spike-p1-take-mechanics.md for the write-up.
 -- Run by run-reaper.ps1 inside an isolated REAPER (-cfgfile). Media come from make_media.py and make_length_media.py.
 
@@ -94,7 +94,7 @@ local function add_candidate_take(item, file, take_name)
   reaper.GetSetMediaItemTakeInfo_String(take, 'P_NAME', take_name, true)
   return take
 end
--- Provenance: namespaced take P_EXT plus the finding id. Mirrors ADR 0026's item-level key style
+-- Provenance: namespaced take P_EXT plus the finding id. Mirrors docs/architecture/manuscript-line-identity.md's item-level key style
 -- (narration_utils_<name>) but at take level and with a finding id key.
 local function write_provenance(take, finding_id, source_file, range_start, range_end)
   reaper.GetSetMediaItemTakeInfo_String(take, 'P_EXT:narration_utils_take_finding_id', finding_id, true)
@@ -242,7 +242,7 @@ local ok, err = xpcall(function()
   log('item D_LENGTH still the target span, unaffected by offset', reaper.GetMediaItemInfo_Value(item_d, 'D_LENGTH'))
 
   -----------------------------------------------------------------------
-  section('E. Provenance does not collide with item-level line identity (ADR 0026)')
+  section('E. Provenance does not collide with item-level line identity')
   -----------------------------------------------------------------------
   reaper.GetSetMediaItemInfo_String(item_a, 'P_EXT:narration_utils_line_id', 'line-000001', true)
   local _, line_id = reaper.GetSetMediaItemInfo_String(item_a, 'P_EXT:narration_utils_line_id', '', false)

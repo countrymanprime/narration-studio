@@ -8,7 +8,7 @@ paths:
 
 ## Which mocks are the spec
 
-The rule is the rebuild PRD's [Which mocks are the spec](../../docs/prds/studio-next-rebuild.prd.md#which-mocks-are-the-spec) (owner ruling D98, 2026-10-11; [ADR 0760](../../docs/adr/0760-the-studio-next-mock-is-the-only-spec-for-every-page-it-covers-tokens-primitive-sizes-and-layouts-included.md)). Read it before building or changing a page. In short:
+The rule is the rebuild PRD's [Which mocks are the spec](../../docs/prds/studio-next-rebuild.prd.md#which-mocks-are-the-spec) (owner ruling D98, 2026-10-11; [Which mocks are the spec](../../docs/design/design-system.md#which-mocks-are-the-spec)). Read it before building or changing a page. In short:
 
 - Build every page the Studio Next mock (`docs/research/mockups/studio-next/`) covers to it, and build nothing it lacks.
 - In the PR that swaps a page in, remove the repo's old equivalent of anything in the mock.

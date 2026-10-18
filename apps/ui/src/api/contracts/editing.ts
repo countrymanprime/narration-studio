@@ -19,7 +19,7 @@ export type EditingState = {
   runId?: string;
   chapterId?: string;
   phase: EditingPhase;
-  /** Real progress (ADR 0015): items done over items total, cache hits counted done immediately; never moves backwards. */
+  /** Real progress: items done over items total, cache hits counted done immediately; never moves backwards. */
   percent: number;
   message: string;
   itemsTotal: number;

@@ -103,7 +103,7 @@ func TestDawLinkFactsWithAManifestLinkThatNoLongerResolvesIsNotLinked(t *testing
 	}
 }
 
-// TestDawLinkFactsIsReachableAndMatchesWhenTheHeartbeatAgreesWithTheLinkedFile (ADR 0092): a fresh
+// TestDawLinkFactsIsReachableAndMatchesWhenTheHeartbeatAgreesWithTheLinkedFile: a fresh
 // PROJECT_STATUS heartbeat naming the same file the manifest links makes both reachable and matches true.
 func TestDawLinkFactsIsReachableAndMatchesWhenTheHeartbeatAgreesWithTheLinkedFile(t *testing.T) {
 	folder := t.TempDir()

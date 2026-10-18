@@ -150,7 +150,7 @@ func (s *Service) jobEnded(job ImportJob) {
 	}
 }
 
-// SetPersist says where to report a notes file that cannot be read (ADR 0069). Without it a corrupt file is still kept aside.
+// SetPersist says where to report a notes file that cannot be read. Without it a corrupt file is still kept aside.
 func (s *Service) SetPersist(reporter *persist.Reporter) { s.persist.Store(reporter) }
 
 // CanSwitchProject is deliberately conservative. A prepared preview is
@@ -171,7 +171,7 @@ func (s *Service) CanSwitchProject() bool {
 }
 
 // previewPayload is what the review shows of a draft. The importer's repairs (notices) travel in it only when there are some, so the review can
-// say what was guessed at without the narrator reading the preview log for it (ADR 0013).
+// say what was guessed at without the narrator reading the preview log for it.
 func previewPayload(draft importer.Draft) map[string]any {
 	preview := map[string]any{"format": draft.Format, "sourceName": draft.SourceName, "paragraphCount": len(draft.Paragraphs), "chapterTitles": draft.ChapterTitles, "sections": draft.Sections, "characterCandidates": draft.CharacterCandidates}
 	if len(draft.Notices) > 0 {
@@ -202,7 +202,7 @@ func copyJob(job *ImportJob) ImportJob {
 
 // report records a real stage of an import: it moves the progress bar and adds
 // a line to the activity log in one step, so the two can never disagree
-// (ADR-0015). Progress never moves backwards within a job.
+// Progress never moves backwards within a job.
 func (s *Service) report(job *ImportJob, percent int, message string) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -400,7 +400,7 @@ func (s *Service) runCommit(job *ImportJob, confirmedReset bool, choices Choices
 		// The old links name chapter ids the re-import renumbers, so they are
 		// cleared, but read first: the new document's mapping file carries them
 		// (and the auto-links the narrator undid) for chapter sync to re-link by
-		// title (ADR 0202).
+		// title.
 		carry = evidence.ReadCarryOver(project)
 		s.report(job, 8, "Clearing derived data: Story Bible, notes, bookmarks, chapter statuses and proofing results")
 		if err := resetDerived(project); err != nil {
@@ -644,7 +644,7 @@ func (s *Service) Clear() error {
 	if err := resetDerived(project); err != nil {
 		return err
 	}
-	// The old script markup file (prep/markup.json) is no longer read since marks replaced it (ADR 0792); an explicit clear still
+	// The old script markup file (prep/markup.json) is no longer read since marks replaced it; an explicit clear still
 	// removes it with the rest of the project's data.
 	if err := os.RemoveAll(filepath.Join(project, "narration-utils", "prep", "markup.json")); err != nil {
 		return fmt.Errorf("could not clear project data: %w", err)

@@ -23,11 +23,11 @@ const (
 )
 
 // DawStackTakes puts the later reads of the passages passageIDs of chapterID on the first read's spot as takes of its item,
-// and moves the audio after them up (SND-7b, ADR 0860 point 4; the Studio Next mock's stackTakes). The page sends a chapter
+// and moves the audio after them up (SND-7b, docs/reference/daw/capabilities.md; the Studio Next mock's stackTakes). The page sends a chapter
 // id and passage ids, never a GUID, a time or a path: the host rebuilds the plan itself (passagetakes.StackPlan) from the
 // Booth's passage map, which names the items each passage was read into, and the chapter's one linked track as the DAW
 // reports it now (chapter_track_state), so a GUID-shaped id is looked up like any other and the plan the page showed is
-// never an input (threat model row 5f). The answer is a DawResult (ADR 0810): the stack_takes capability's own sentence
+// never an input (threat model row 5f). The answer is a DawResult: the stack_takes capability's own sentence
 // when the resolver refuses it (a standalone launch, a DAW not answering, Experimental actions off, the toggle off, an
 // engine that cannot stack), checked first; then too many passages; then a passage id the chapter does not list or a track
 // that is gone (code stale); then a kept take, reads two passages share and nothing to move. Nothing is sent to the DAW on

@@ -69,7 +69,7 @@ Three feature engines, one shared corpus, one shared evaluation ([`run_trial.py`
 | Resemblyzer (candidate 5) | [`features_resemblyzer.py`](../../scripts/research/character-continuity-acoustic-trial/features_resemblyzer.py) | Yes, in the same isolated venv, after two install-friction fixes (below) |
 
 **Baseline features** (hand-written, numpy only, no scipy/librosa/torch, matching Q1 option A
-and ADR 0008's "no PyTorch" constraint): per 40 ms frame at 10 ms hop, an autocorrelation pitch
+and `docs/utilities/transcript-compare.md#alignment-and-confidence`'s "no PyTorch" constraint): per 40 ms frame at 10 ms hop, an autocorrelation pitch
 tracker (60-400 Hz search range), a voiced/unvoiced gate from a per-clip RMS percentile, speaking
 rate as voiced-run count per second (no aligned words available at this stage, so this is the
 coarse fallback the PRD anticipates, not TR-3's aligned-word rate), RMS energy mean/std, and a
@@ -90,7 +90,7 @@ live upstream metadata (`https://pypi.org/pypi/<pkg>/json`), not assumed:
   in the isolated trial venv pulled `torch==2.14.0+cu130` (a 554.6 MB `manylinux` wheel on this
   Linux sandbox; PyPI also lists a 124.1 MB `win_amd64` wheel for the same CPython 3.12 this
   repository pins) plus `scipy`, `scikit-learn`, `numba`, `soundfile` and others - about 5.8 GB
-  installed. This would be the repository's first PyTorch dependency, exactly the cost ADR 0008
+  installed. This would be the repository's first PyTorch dependency, exactly the cost `docs/utilities/transcript-compare.md#alignment-and-confidence`
   already flags as material.
 - **Windows build risk is real and specific, not generic.** `librosa` itself ships a universal
   `py3-none-any` wheel (pure Python, no Windows build needed) - the earlier "Windows build
@@ -196,7 +196,7 @@ Provisional, pending the real-corpus re-run:
 ## Real-speech re-run: LibriVox, 2026-09-27
 
 The same `run_trial.py` on real speech: Kara Shallenberg's solo LibriVox reading of Chapters I, II, VII, IX, X and XI,
-fetched from archive.org as [ADR 0416](../adr/0416-librivox-readings-of-the-demo-script-are-fetched-from-archive-org-and-only-their-markers-and-recipes-are-committed.md)
+fetched from archive.org as [LibriVox Alice: real narration of the demo script](../../tests/fixtures/audio/librivox-alice/README.md)
 and cut by `tests/fixtures/audio/librivox-alice/build.py characters`. 462 clips averaging 4.0 s: narration plus 11
 characters, each line labelled only where the text names its speaker ("'…,' said the Hatter"). Alice appears in all six
 chapters, and the Hatter, March Hare, Dormouse, Gryphon, Mock Turtle and Queen in two or three. Timestamps come from

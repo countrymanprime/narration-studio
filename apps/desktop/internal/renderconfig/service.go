@@ -37,7 +37,7 @@ type Service struct {
 }
 
 // New builds the service over role (render config depends on the RenderConfigurer role, never a concrete bridge
-// client; ADR 0300). When there is a role it subscribes to RENDER_CONFIGURED and ERROR events for its
+// client). When there is a role it subscribes to RENDER_CONFIGURED and ERROR events for its
 // own run (or, with no run, a session-level problem). The transcript, line-identity and pickups services subscribe independently on the same underlying client; Dispatch fans events out to all of them.
 func New(config Config, role dawport.RenderConfigurer, changed func(map[string]any)) *Service {
 	s := &Service{config: config, role: role, changed: changed, state: empty()}

@@ -1,4 +1,4 @@
-// The golden payload for the series voice bible (ADR 0450: only reference data is shared across a series, no
+// The golden payload for the series voice bible (docs/reference/data-files.md: only reference data is shared across a series, no
 // acoustic baseline): which schema owns each file in tests/fixtures/contracts/ (see index.ts).
 import type { z } from 'zod';
 import { seriesVoiceBibleSchema } from '../schemas/series';

@@ -19,7 +19,7 @@ and its UI (Phase 11) are out of scope here and deferred.
   this session, not assumed.
 - Piper (`piper-tts`) and `phonemizer`/eSpeak NG are already bundled in the frozen Story Bible sidecar as GPL-3.0-or-later
   components, recorded in [model provenance](../architecture/model-provenance.md) under owner decision D17 (this project
-  is itself AGPL-3.0-or-later, [ADR 0039](../adr/0039-the-project-is-licensed-agpl-3-or-later.md), so a GPL-3.0-or-later
+  is itself AGPL-3.0-or-later, [Contributing](../../CONTRIBUTING.md), so a GPL-3.0-or-later
   component already ships).
 
 ## P1: what does "provider" mean?
@@ -66,4 +66,4 @@ because there is no new artifact yet to evaluate.
 
 ## Decision
 
-See [ADR 0091](../adr/0091-story-bible-pronunciation-is-a-narrator-edited-value-the-preview-speaks-directly.md) (Proposed).
+See [What "provider" means here](../architecture/pronunciation-provider-selection.md#what-provider-means-here) (Proposed).

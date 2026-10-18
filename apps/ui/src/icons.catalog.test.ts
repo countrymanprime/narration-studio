@@ -13,7 +13,7 @@ import {
   type CatalogRow,
 } from './icons.catalog';
 
-// The vocabulary is data (ADR 0761, SNF-Q1): these tests are what keeps two pages from giving one action two icons, and
+// The vocabulary is data (SNF-Q1): these tests are what keeps two pages from giving one action two icons, and
 // one icon two meanings (icon-audit.md section 3a and rules 1, 6 and 10).
 
 const rows = Object.entries(CATALOG as Record<string, CatalogRow>);

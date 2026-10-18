@@ -1,4 +1,4 @@
-"""The built-in recorder's engine-neutral core (ADR 0357).
+"""The built-in recorder's engine-neutral core.
 
 A capture engine (``capture_wasapi.py`` in the teleprompter sidecar, or ``SyntheticSource`` in a test) hands blocks of
 ``float32`` frames to a ``Recorder``, which writes them to a WAV file at the device's own rate (``wav``), reports input

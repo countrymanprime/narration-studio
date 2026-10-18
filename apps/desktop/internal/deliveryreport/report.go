@@ -82,7 +82,7 @@ type Input struct {
 	AppVersion  string
 	Options     Options
 
-	// Profile is the delivery profile the project is judged against (ADR 0179); ProfileNotice says why the project's own
+	// Profile is the delivery profile the project is judged against; ProfileNotice says why the project's own
 	// choice could not be used, when it could not.
 	Profile       deliveryprofile.Profile
 	ProfileNotice string

@@ -1,5 +1,5 @@
 """The results file the sidecar's coverage mode writes for every committed recording-coverage case,
-pinned byte for byte at the shipped settings (ADR 0132).
+pinned byte for byte at the shipped settings.
 
 A service test over the recording-coverage corpus covers the Go side: the Go host reads these exact
 lines as a check's results (`apps/desktop/internal/coverage/corpus_test.go`) and the recording signal and the stages engine must suggest `editing` for exactly the cases whose
@@ -8,7 +8,7 @@ really produces, not on hand-written reports. Regenerate the file with `UPDATE_C
 when a change to the coverage output is intended, and say why in the PR.
 
 Only the measurement lines are pinned: the word alignment the same run writes for the edit and
-proof workspace (`COVERAGE_TOKEN`, `COVERAGE_EXTRA`, ADR 0242) is about 50 bytes a word, which would
+proof workspace (`COVERAGE_TOKEN`, `COVERAGE_EXTRA`) is about 50 bytes a word, which would
 outgrow the committed fixtures' size budget, and `test_coverage_alignment.py` covers it."""
 
 import json

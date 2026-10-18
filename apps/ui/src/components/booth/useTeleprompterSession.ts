@@ -18,7 +18,7 @@ import type {
 export type ModelPrompt = Extract<TeleprompterStartResult, { status: 'asset_required' }>;
 type SessionAction = { kind: 'event'; event: TeleprompterEvent } | { kind: 'hydrate'; state: TeleprompterState } | { kind: 'reset' };
 
-/** The live engines by name (ADR 0021). Which of them this computer offers is the host's `Teleprompter.engine` choices. */
+/** The live engines by name. Which of them this computer offers is the host's `Teleprompter.engine` choices. */
 export const ENGINE_LABELS: Record<TeleprompterEngine, string> = { whisper: 'Whisper', moonshine: 'Moonshine' };
 const ENGINE_CAPTIONS: Record<TeleprompterEngine, string> = {
   whisper: 'OpenAI Whisper, run on this computer - the default',
@@ -72,10 +72,10 @@ export const errorText = (reason: unknown): string => (reason instanceof Error ?
 function statusText(host: TeleprompterState, session: Session): string {
   if (host.phase === 'starting') return 'Starting…';
   if (host.phase === 'stopping') return 'Stopping…';
-  // The host says why a session stopped (the narrator pressed Stop, or it stopped itself at the end of the chapter, ADR 0106).
+  // The host says why a session stopped (the narrator pressed Stop, or it stopped itself at the end of the chapter).
   if (host.phase === 'stopped') return host.message.trim() || 'Stopped';
   if (host.phase !== 'running') return '';
-  // Paused (ADR 0248): the tracker's clock is frozen, so it never reports `waiting` or `done` while paused.
+  // Paused: the tracker's clock is frozen, so it never reports `waiting` or `done` while paused.
   if (host.paused) return 'Paused';
   if (session.position?.status === 'waiting') return 'Waiting for you to return to the script';
   if (session.position?.status === 'done')
@@ -90,7 +90,7 @@ export type UseTeleprompterSessionOptions = {
   chapterId: string;
   chapter: Pick<ManuscriptChapter, 'title' | 'subtitle'> | undefined;
   /**
-   * The opening or closing credits instead of a chapter (ADR 0150), with the
+   * The opening or closing credits instead of a chapter, with the
    * text the host's one renderer produced (`creditsPreview`); the host renders the same text again for the sidecar.
    */
   credits?: { kind: CreditsKind; text: string };
@@ -260,8 +260,8 @@ export function useTeleprompterSession({ chapterId, chapter, credits, migrateLeg
     }
   };
   const stop = () => void api.teleprompterStop().catch((reason) => setError(errorText(reason)));
-  // Pause (true) or resume (false) a running session's listening without ending it (ADR 0248): the phase stays `running`, so `active` and every "is a session running" check stay as they are; only
-  // `host.paused` changes. Flags are kept on Stop only (ADR 0117 unchanged).
+  // Pause (true) or resume (false) a running session's listening without ending it: the phase stays `running`, so `active` and every "is a session running" check stay as they are; only
+  // `host.paused` changes. Flags are kept on Stop only (docs/architecture/findings-contract.md unchanged).
   const pause = (paused: boolean) => void api.teleprompterPause(paused).catch((reason) => setError(errorText(reason)));
   // Moves a running tracker straight to a chosen script word ("Start here" / "Go back to here", wired to a word click through
   // `ReaderText`'s `onSeek`). `useCallback` keeps this a stable

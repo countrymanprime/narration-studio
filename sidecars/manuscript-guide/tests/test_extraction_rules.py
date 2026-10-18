@@ -2,7 +2,7 @@
 
 Each test is one of the slice's acceptance tests. The command reads the manuscript and the Story Bible, prints one JSON
 line per suggestion and writes nothing; it proposes only what the Story Bible does not already say, never touches a
-locked entry (ADR 0007), keeps every quote verbatim and takes each confidence from ``RULE_CONFIDENCE``.
+locked entry, keeps every quote verbatim and takes each confidence from ``RULE_CONFIDENCE``.
 """
 
 import argparse
@@ -294,7 +294,7 @@ class QuotesAreVerbatimTests(unittest.TestCase):
 
 
 class NothingInALockedEntryTests(unittest.TestCase):
-    """5. nothing-in-a-locked-entry (ADR 0007)."""
+    """5. nothing-in-a-locked-entry."""
 
     def test_a_locked_entry_gets_no_entry_or_alias_suggestion(self):
         with tempfile.TemporaryDirectory() as temporary:

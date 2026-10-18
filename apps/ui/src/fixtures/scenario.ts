@@ -2,7 +2,7 @@ import type { ManuscriptChapter, ManuscriptParagraph } from '../types';
 import type { DawMockSeed } from '../api/dawMock';
 import { type ChapterShape, makeChapters, makeParagraphs } from './chapters';
 
-// The scenario book (ADR 0770): a chapter list and its paragraphs in one of the three heading shapes, as a seed for the
+// The scenario book: a chapter list and its paragraphs in one of the three heading shapes, as a seed for the
 // mock API, never a book held in the browser. Pure and deterministic. The mock's other domains (production plan, stages,
 // findings) still read the Alice chapters, so a scenario changes the manuscript domain only; a page swap that needs more
 // adds the seed field it reads.

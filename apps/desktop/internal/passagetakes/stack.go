@@ -13,7 +13,7 @@ import (
 	"github.com/countrymanprime/narration-utils/shell/internal/tracks"
 )
 
-// Stacking retries (SND-7b, ADR 0860 point 4; the Studio Next mock's selectors/stacking.ts): the later reads of a passage
+// Stacking retries (SND-7b, docs/reference/daw/capabilities.md; the Studio Next mock's selectors/stacking.ts): the later reads of a passage
 // move onto the first read's spot as takes of its item, and back. The page names passages by id only; StackPlan and
 // UnstackPlan rebuild the groups, the moves and the shift from the Booth's passage map, the chapter's track as REAPER reports
 // it now and, to move takes back, the offsets the saved project's stacked takes recorded (threat model row 5f). The plan the

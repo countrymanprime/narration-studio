@@ -13,14 +13,14 @@ import (
 )
 
 // The Review page's REAPER bindings: Go to, Loop and Stop on
-// a finding, and whether REAPER is there to do them. They drive bridge.Navigator (ADR 0121,
+// a finding, and whether REAPER is there to do them. They drive bridge.Navigator (
 // docs/architecture/reaper-navigation.md), which finds a finding by its item GUID and its time inside the take's
 // audio, never by a project time. Each is sent only on the narrator's click (no bridge command
 // without an explicit action), and only when REAPER is listening, so a command never waits in the session folder for
 // a REAPER that starts later. A refusal is an answer, not an error, so the page can say in plain words what to do.
 
 // p5aAdapter is dawport.Adapter over the objects configureLocked already builds for the Review page's navigator and
-// the action commands (ADR 0300): it hands the same *bridge.Navigator and *bridge.Actions out as the
+// the action commands: it hands the same *bridge.Navigator and *bridge.Actions out as the
 // Navigate, Markers, Track state, Track select, Regions and Record roles rather than opening a second
 // dawport/reaper.Adapter over the same client, which would race its own run IDs against h.actions' (bridge/actions.go).
 // Punch, for the Booth's punch and roll (puncherFrom), is the puncher configureLocked already took from its
@@ -83,7 +83,7 @@ type findingNavigation struct {
 	loopingID string
 }
 
-// newFindingNavigation takes its navigator from resolver (ADR 0300) rather than wrapping client
+// newFindingNavigation takes its navigator from resolver rather than wrapping client
 // itself: navigatorRole asks the resolver for the Navigate and Markers roles on every call, so a toggle the narrator
 // changes in Settings, or REAPER going quiet and coming back, is reflected the next time a finding is navigated, not
 // only at the project's next attach. standalone still comes from client directly, exactly as before, since a resolver
@@ -215,7 +215,7 @@ type FindingNavigation struct {
 }
 
 // FindingsReaperStatus answers whether REAPER is there for Go to and Loop, without sending REAPER anything: it reads
-// the heartbeat REAPER's script already broadcasts (daw.Reachability, ADR 0092), so the page can poll it.
+// the heartbeat REAPER's script already broadcasts (daw.Reachability), so the page can poll it.
 func (h *Host) FindingsReaperStatus() (string, error) {
 	return encodeBinding(reaperStatus(h.services()), nil)
 }

@@ -32,7 +32,7 @@ type Store struct {
 func New(repo, project string) *Store      { return &Store{repo: repo, project: project} }
 func (s *Store) SetProject(project string) { s.mu.Lock(); defer s.mu.Unlock(); s.project = project }
 
-// SetPersist says where to report a settings file that cannot be read (ADR 0069). Without it a corrupt file is still kept aside.
+// SetPersist says where to report a settings file that cannot be read. Without it a corrupt file is still kept aside.
 func (s *Store) SetPersist(reporter *persist.Reporter) { s.persist.Store(reporter) }
 
 // Reporter is the reporter SetPersist gave, or nil: a caller that reads another narrator-data file of the same project reports it
@@ -98,7 +98,7 @@ func known(tool, key, value string) bool {
 var builtinDefaults = map[string]Values{
 	// notifications defaults on (OS notifications are on by default and opt-out in Settings,
 	// docs/architecture/native-notifications.md). debug_logging defaults
-	// off (ADR 0251): decision records are opt-in, on the Settings page or with
+	// off: decision records are opt-in, on the Settings page or with
 	// NARRATION_DEBUG=1.
 	"General": {"log_verbosity": "normal", "notifications": "true", "credits_room_tone_seconds": "0", "debug_logging": "false"},
 	// build_after_import defaults on: the Story Bible is built after import unless the narrator opts out.
@@ -113,14 +113,14 @@ var builtinDefaults = map[string]Values{
 	"TranscriptCompare": {"chunk_seconds": "60", "model_size": "small", "color_misread": "FF4040", "color_skipped": "FFC000", "color_extra": "40A0FF"},
 	"Teleprompter":      {"engine": "whisper", "model": "tiny", "punch_preroll_seconds": "3"},
 	// auto_start_launcher defaults off: the spike that proved REAPER auto-runs a script
-	// argument (ADR 0092) does not by itself decide whether the app should always do it.
-	// experimental_reaper_actions defaults off (ADR 0230): the bridge commands not yet verified in a real
+	// argument does not by itself decide whether the app should always do it.
+	// experimental_reaper_actions defaults off: the bridge commands not yet verified in a real
 	// REAPER stay off until the narrator turns them on (internal/bridge/actions.go).
-	// capability.<name> is the narrator's per-capability toggle for the DAW port (ADR 0300): auto, on or off, defaulting
+	// capability.<name> is the narrator's per-capability toggle for the DAW port: auto, on or off, defaulting
 	// auto, which is today's behaviour (on when Supported; when Experimental, on only while
 	// experimental_reaper_actions is on). One row per dawport capability; dawport's toggles_test.go holds the rows to its catalog.
 	// backups.window_seconds and backups.retention_days are the Audacity backups' window either side of an edit and how long a
-	// backup is kept (ADR 0863): the process defaults, two minutes and seven days.
+	// backup is kept: the process defaults, two minutes and seven days.
 	"DAW": {"auto_start_launcher": "false", "experimental_reaper_actions": "false",
 		"backups.window_seconds": "120", "backups.retention_days": "7",
 		"capability.review": "auto", "capability.navigate": "auto", "capability.markers": "auto", "capability.pickups": "auto",
@@ -136,15 +136,15 @@ var builtinDefaults = map[string]Values{
 		"capability.click_repair": "auto", "capability.undo_last": "auto",
 		"capability.monitor_level": "auto", "capability.input_level": "auto"},
 	// RecordingCoverage mirrors coverage.DefaultSettings: the recording check's shipped values, chosen on synthetic fixtures
-	// and still Proposed and uncalibrated on real narration (docs/utilities/recording-coverage.md, ADR 0132).
+	// and still Proposed and uncalibrated on real narration (docs/utilities/recording-coverage.md).
 	// background_checks defaults on: it only ever runs with the model installed, on mains power and while
-	// REAPER is idle (coverage.NextBackground, ADR 0211).
+	// REAPER is idle (coverage.NextBackground).
 	// cascade_enabled defaults off (MC1 in docs/utilities/recording-coverage.md); the two model settings default
 	// to tiny (first pass) and large-v3-turbo (re-check), MC2.
 	"RecordingCoverage": {
 		"min_paragraph_present": "0.8", "max_missing_run": "3", "max_misread_run": "8", "min_anchor_run": "3", "background_checks": "true",
 		"cascade_enabled": "false", "cascade_first_pass_model": "tiny", "cascade_recheck_model": "large-v3-turbo",
-		"cascade_unsure_below": "0.5", "parallel_workers": "0", "chunk_seconds": "300", "chunk_overlap_seconds": "6",
+		"cascade_unsure_below": "0.5", "parallel_workers": "0", "chunk_seconds": "300", "chunk_overlap_seconds": "6", "parallel_chapters": "1",
 	},
 	// StageRecommendations defaults every signal to required and suggestions on
 	// (docs/architecture/stage-recommendations.md): a narrator who never opens this settings page gets the engine's
@@ -192,7 +192,7 @@ var builtinDefaults = map[string]Values{
 	// command keeps its shipped gesture until the narrator remaps it. Global scope only (a narrator's pedal belongs
 	// to the booth, not the book), enforced in apps/desktop/app.go's saveSettings.
 	"Keymap": {"overrides": `{"version":1,"bindings":{}}`},
-	// Cleanup mirrors measure.DefaultCleanupOptions (ADR 0238 decision 4): the silence cleanup analyzer's own starting thresholds, read by cleanupSettings
+	// Cleanup mirrors measure.DefaultCleanupOptions (apps/desktop/internal/measure/cleanup.go): the silence cleanup analyzer's own starting thresholds, read by cleanupSettings
 	// (apps/desktop/cleanup_settings.go). They are not a delivery specification, and every one can be changed here.
 	"Cleanup": {
 		"pad_seconds":            "0.15",

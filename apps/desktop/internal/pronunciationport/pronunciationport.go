@@ -1,4 +1,4 @@
-// Package pronunciationport is the pronunciation port on the Go side (ADR 0301): which sources the guide sidecar can ask for a
+// Package pronunciationport is the pronunciation port on the Go side: which sources the guide sidecar can ask for a
 // name's pronunciation, on which platforms, and in which roles. The sources themselves run in Python
 // (narration_common.ports.pronunciation); a row here is what the host knows about one without starting it. The host checks the
 // narrator's chosen source here before it starts the sidecar, and never compares source names itself. The pronunciationporttest
@@ -73,7 +73,7 @@ func (s source) Kind() string               { return s.kind }
 func (s source) NeedsLocalDictionary() bool { return s.localDictionary }
 func (s source) NeedsNetwork() bool         { return false }
 
-// NewRegistry is a registry holding the built-in rows in the build-time fallback's order, CMU first as the default (ADR 0405
+// NewRegistry is a registry holding the built-in rows in the build-time fallback's order, CMU first as the default (ADR 0002
 // puts Wiktextract between CMU and eSpeak). A test registers a fake on its own copy.
 func NewRegistry() *port.Registry[Source] {
 	r := &port.Registry[Source]{Kind: "pronunciation source"}

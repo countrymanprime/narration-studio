@@ -12,7 +12,7 @@ import (
 	"github.com/countrymanprime/narration-utils/shell/internal/evidence"
 )
 
-// pinResult pins a CoverageResult answer (docs/utilities/recording-coverage.md, ADR 0129, ADR 0069). The basis label
+// pinResult pins a CoverageResult answer (docs/utilities/recording-coverage.md). The basis label
 // embeds the saved file's time, which Stabilize only replaces as a whole value, so it is fixed here.
 func pinResult(t *testing.T, name string, result ChapterResult) {
 	t.Helper()
@@ -101,7 +101,7 @@ func TestContractWorkspaceAlignment(t *testing.T) {
 	pinAlignment(t, "workspace-alignment-stale", stale)
 }
 
-// TestContractWorkspaceAlignmentAddedWords pins the heard words of extra runs (ADR 0855): one before anything was
+// TestContractWorkspaceAlignmentAddedWords pins the heard words of extra runs: one before anything was
 // heard, one across two items (unplaced) and one after the last token.
 func TestContractWorkspaceAlignmentAddedWords(t *testing.T) {
 	p := newTestProject(t)

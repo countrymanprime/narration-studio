@@ -7,11 +7,11 @@ import (
 )
 
 // teleprompterSessionRunID is jobRuns' key for the one live teleprompter session that can run at a time (bindings.go
-// TeleprompterStart/TeleprompterStop): not an ADR 0076 job kind (its lifecycle is teleprompter:state, not job:ended),
+// TeleprompterStart/TeleprompterStop): not an docs/architecture/interaction-feedback.md#job-end-events job kind (its lifecycle is teleprompter:state, not job:ended),
 // so it is a fixed key rather than a per-run id.
 const teleprompterSessionRunID = "teleprompter-session"
 
-// jobRuns tracks the runlog.Run for each in-flight job, keyed by the same job id ADR 0076's job:ended event already
+// jobRuns tracks the runlog.Run for each in-flight job, keyed by the same job id docs/architecture/interaction-feedback.md#job-end-events's job:ended event already
 // carries. jobs.go's publishJobEnded is the one place every job kind's end already flows through, so ending the
 // tracked run there (jobRuns.end) is the one place every kind's run.end record comes from too: most job-start sites
 // need only call begin where they first learn their id, not remember to end it later.

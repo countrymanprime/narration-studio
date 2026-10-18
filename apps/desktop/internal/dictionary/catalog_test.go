@@ -217,7 +217,7 @@ func TestACatalogEntryThatIsNotOneUnpackedArchiveIsRefused(t *testing.T) {
 	}
 }
 
-// The approved catalog: the Open English WordNet 2025 JSON release (ADR 0097), one pinned, hashed archive from the project's own release,
+// The approved catalog: the Open English WordNet 2025 JSON release, one pinned, hashed archive from the project's own release,
 // with the licence and attribution the lookup UI and the notices show.
 func TestTheApprovedCatalogIsThePinnedOpenEnglishWordNetRelease(t *testing.T) {
 	manager, err := New(layout.RepoFile(layout.DictionaryCatalogFile), t.TempDir())

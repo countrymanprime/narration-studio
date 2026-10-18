@@ -5,10 +5,10 @@
 // real reading of Chapter IX with 2 ms clicks added at known times in her
 // pauses, so the room tone, breaths and mouth noise around every click are
 // real. It has no breath labels. The audio is fetched from archive.org and
-// never committed (ADR 0125/0416), so the run is skipped unless
+// never committed, so the run is skipped unless
 // NARRATION_SIGNAL_CORPUS names a built corpus, like measure's
 // TestLibriVoxSignalCorpus. docs/research/editing-click-breath-validation.md
-// reports it; ADR 0575 says what the set can and cannot decide.
+// reports it; apps/desktop/internal/editing/librivoxvalidation_test.go says what the set can and cannot decide.
 
 package editing
 
@@ -35,7 +35,7 @@ const librivoxSignalCorpusEnv = "NARRATION_SIGNAL_CORPUS"
 const librivoxClickSeconds = 0.002
 
 // minLabelsPerSplit is the corpus size per class and split that a set needs
-// before it can open the gate (ADR 0575; TestValidationCorpusShape holds the
+// before it can open the gate (TestValidationCorpusShape holds the
 // synthetic corpus to it too). A set under it can report a rate but never
 // meet the target.
 const minLabelsPerSplit = 25
@@ -178,7 +178,7 @@ func emptyMetrics() map[LabelClass]*ClassMetrics {
 }
 
 // meetsTarget is the bar a class must clear on this set before a Proposed ADR
-// may ask to open it (ADR 0510, 0575): enough labels, and held-out recall at
+// may ask to open it: enough labels, and held-out recall at
 // RecallTarget overall and in every condition.
 func meetsTarget(total ClassMetrics, byCondition map[string]ClassMetrics) bool {
 	if total.TruePositives+total.FalseNegatives < minLabelsPerSplit || total.Recall() < RecallTarget {

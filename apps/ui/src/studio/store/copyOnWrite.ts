@@ -1,4 +1,4 @@
-// The small copy-on-write helpers ADR 0770 decision 4 names in place of immer. `setIn` returns a new object along the
+// The small copy-on-write helpers docs/architecture/ui-state-and-journal.md#the-store-host-reads-cached names in place of immer. `setIn` returns a new object along the
 // changed path and keeps the identity of every other branch, so a `useSyncExternalStore` selector that returns a slice
 // stays stable when an unrelated part changes. They cover the shallow UI-only slices; they do not diff.
 

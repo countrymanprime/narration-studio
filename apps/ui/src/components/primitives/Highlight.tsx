@@ -14,7 +14,7 @@ export type HighlightKind =
 // Story Bible categories arrive under several spellings ("Needs Review",
 // "Location", the transient "Draft"). Every highlight funnels through this one
 // mapping so an unfamiliar category degrades to the review color instead of the
-// browser's default yellow <mark> (ADR-0016).
+// browser's default yellow <mark>.
 export function highlightKind(category: string): HighlightKind {
   switch (category) {
     case 'Character':
@@ -59,8 +59,8 @@ const FLAG_DECORATION: Partial<Record<HighlightKind, string>> = {
   Restart: 'dashed',
 };
 
-// The text of an entity is the kind colour mixed toward --text (ADR 0059), which reaches 4.5:1 on the tint where the pure
-// colour did not; the tint and the underline stay the pure colour. A note keeps the text colour (ADR 0016).
+// The text of an entity is the kind colour mixed toward --text, which reaches 4.5:1 on the tint where the pure
+// colour did not; the tint and the underline stay the pure colour. A note keeps the text colour.
 const TEXT_TOKEN: Partial<Record<HighlightKind, string>> = {
   Character: '--character-text',
   Place: '--place-text',
@@ -78,7 +78,7 @@ const TEXT_TOKEN: Partial<Record<HighlightKind, string>> = {
 // background fills the whole line height rather than just the glyph box.
 //
 // `colorToken` (a bare custom-property name, e.g. `--speaker-3` from speakerColor.ts) overrides the kind's own colour
-// for the Booth's per-speaker "Voices in scene" tags (ADR 0367): the mark keeps its kind's `data-highlight`
+// for the Booth's per-speaker "Voices in scene" tags: the mark keeps its kind's `data-highlight`
 // and behaviour, only which colour it draws with changes, so it needs no new HighlightKind of its own.
 function highlightStyle(kind: HighlightKind, colorToken?: string): CSSProperties {
   const resolvedToken = colorToken ?? TOKEN[kind];

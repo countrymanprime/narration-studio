@@ -1,7 +1,7 @@
 import { chapterName } from '../../chapterName';
 import { TooltipTarget } from './Tooltip';
 
-// A chapter's title and subtitle, drawn one way everywhere (ADR 0058's Heading
+// A chapter's title and subtitle, drawn one way everywhere (docs/design/design-system.md's Heading
 // precedent for a muted line): the title semibold, the subtitle `--text-muted` and regular, both in source casing and the
 // context's own font family. Generic on purpose - a book title or an import-section name can use it too.
 //
@@ -25,7 +25,7 @@ export function TitleSubtitle({
   title: string;
   subtitle?: string;
   layout?: 'inline' | 'stacked';
-  // Clips from the end instead of wrapping. Inline: one run, with the full name in a tooltip (ADR 0049) since the text
+  // Clips from the end instead of wrapping. Inline: one run, with the full name in a tooltip since the text
   // itself is cut. Stacked: each line clips on its own; the title and, when it is the one that runs out of room, the
   // subtitle stay each on one line rather than wrapping to a second.
   truncate?: boolean;

@@ -3,7 +3,7 @@ import { expect, within } from 'storybook/test';
 import { Heading } from './Heading';
 
 // Heading renders the page-level <h1> by default, with an optional muted line under it. `level` changes the tag only
-// (2 or 3 under another heading); the look is the same at every level. The sizes are the mocks' (ADR 0640): Barlow
+// (2 or 3 under another heading); the look is the same at every level. The sizes are the mocks': Barlow
 // Condensed 26 px, and a 13 px muted subtitle.
 const meta = {
   title: 'Primitives/Heading',

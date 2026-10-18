@@ -43,7 +43,7 @@ function candidateCaption(candidate: DetectedCandidate): string {
 }
 
 /**
- * "Set up the credits" (ADR 0208): a
+ * "Set up the credits": a
  * dialog shown once per project when `CreditsSetupState.needed` is true. Every field is prefilled from its detected
  * candidate and captioned with its source, so the narrator sees exactly what will be written before they write
  * it. Save fills only the

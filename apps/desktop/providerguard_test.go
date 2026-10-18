@@ -21,7 +21,7 @@ import (
 	"github.com/countrymanprime/narration-utils/shell/internal/ttsport"
 )
 
-// The provider-ports guard (ADR 0301): no host code outside a port package compares a provider name. A call site asks a
+// The provider-ports guard: no host code outside a port package compares a provider name. A call site asks a
 // registry (asrport.Supports, asrport.AssetKind, pronunciationport.CheckPronounce, ...) and never writes
 // engine == teleprompter.EngineMoonshine, because a new engine is meant to be one registry row with no call site edited.
 // The Python sidecars have the same guard in libs/python/tests/test_provider_guard.py.

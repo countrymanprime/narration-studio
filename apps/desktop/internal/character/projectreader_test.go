@@ -9,7 +9,7 @@ import (
 	"github.com/countrymanprime/narration-utils/shell/internal/tracks"
 )
 
-// fakeProjectReader proves savedProject reads through the injected dawport.ProjectReader role (ADR 0300)
+// fakeProjectReader proves savedProject reads through the injected dawport.ProjectReader role
 // instead of calling tracks.Parse itself: it ignores the bytes at the path it is given, so a real .rpp is never parsed
 // once one is set.
 type fakeProjectReader struct {

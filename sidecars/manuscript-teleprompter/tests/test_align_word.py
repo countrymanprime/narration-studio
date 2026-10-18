@@ -1,5 +1,5 @@
-"""Punch and roll's offline word-time alignment (align_word.py, ADR 0560): timing one script word from a stretch of
-recording, the `--align-word` CLI the host drives, and its accuracy on real narration (the LibriVox Alice readings, ADR 0416)."""
+"""Punch and roll's offline word-time alignment (align_word.py): timing one script word from a stretch of
+recording, the `--align-word` CLI the host drives, and its accuracy on real narration (the LibriVox Alice readings)."""
 
 import importlib.util
 import json
@@ -301,7 +301,7 @@ def test_the_word_time_line_matches_the_committed_contract_file(tmp_path):
     )
 
 
-# --- real narration: the LibriVox Alice readings (tests/fixtures/audio/librivox-alice, ADR 0416) ---
+# --- real narration: the LibriVox Alice readings (tests/fixtures/audio/librivox-alice) ---
 
 LIBRIVOX = REPO / "tests" / "fixtures" / "audio" / "librivox-alice"
 # A window as long as the host ever asks for (teleprompter.MaxTailSeconds), well inside Chapter I's reading.

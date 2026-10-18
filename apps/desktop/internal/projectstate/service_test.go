@@ -12,7 +12,7 @@ import (
 	"github.com/countrymanprime/narration-utils/shell/internal/dawport/reaper"
 )
 
-// reader builds the project_state role a live REAPER adapter over client hands out (ADR 0300): the same
+// reader builds the project_state role a live REAPER adapter over client hands out: the same
 // wrapper configureLocked uses, so a test exercises the wiring the resolver hands the service, not a hand-rolled
 // fake.
 func reader(t *testing.T, client *bridge.Client) dawport.ProjectStateReader {
@@ -204,7 +204,7 @@ func TestHandleErrorReportsTheMessage(t *testing.T) {
 	}
 }
 
-// A fan-out sharing test (bridge.Client fans events out by tag and run, ADR 0068): a second subscriber on the
+// A fan-out sharing test (bridge.Client fans events out by tag and run): a second subscriber on the
 // same client must not steal or lose this service's event.
 func TestDrainSharesTheBridgeWithAnotherConsumerWithoutLosingOrStealingEvents(t *testing.T) {
 	service, session := testService(t)

@@ -2,7 +2,7 @@ package main
 
 import "testing"
 
-// What WorkspaceSnap sends (ADR 0855): a cut moved to the nearest crossing of workspacePeaksProject's real sine, and
+// What WorkspaceSnap sends: a cut moved to the nearest crossing of workspacePeaksProject's real sine, and
 // a refusal (an item the project no longer has). UPDATE_CONTRACTS=1 rewrites tests/fixtures/contracts/workspace-snap-*.json.
 func TestContractWorkspaceSnapBinding(t *testing.T) {
 	host, _ := workspaceSnapHost(t)

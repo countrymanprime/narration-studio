@@ -19,7 +19,7 @@ type DialogSpec =
       title: string;
       /** A dialog without a header row; the title still names it for assistive technology. */
       headerless?: boolean;
-      /** Whether a press outside the dialog closes it (issue 1706): true for a reference view or a picker with nothing to lose, false for a form or a confirm (ADR 0048). */
+      /** Whether a press outside the dialog closes it (issue 1706): true for a reference view or a picker with nothing to lose, false for a form or a confirm. */
       dismissOnOutsidePress: boolean;
       render: (api: { close: () => void }) => ReactNode;
     }
@@ -32,7 +32,7 @@ type DialogSpec =
 /** `topic` names what a message is about: a newer message on a topic replaces the one before it, and `dismissTopic` takes it away once it is no longer true. */
 type ToastOptions = { tone?: ToastTone; action?: ToastAction; topic?: string };
 
-/** An open layer. The primitive that draws it owns focus, stacking and Escape (ADR 0048, 0172, 0630); this is only what to draw and who to tell. */
+/** An open layer. The primitive that draws it owns focus, stacking and Escape; this is only what to draw and who to tell. */
 export type DialogEntry =
   | { id: number; kind: 'confirm'; spec: ConfirmSpec; answer: (confirmed: boolean) => void }
   | { id: number; kind: DialogSpec['kind']; spec: DialogSpec; close: () => void };
@@ -61,7 +61,7 @@ export type OverlayService = {
 };
 
 /**
- * The overlay service (ADR 0781): imperative calls, specs and callbacks as state, no drawing. `OverlayHost` reads the snapshot and renders
+ * The overlay service: imperative calls, specs and callbacks as state, no drawing. `OverlayHost` reads the snapshot and renders
  * the existing primitives, so focus return, stacking and Escape order stay theirs. It imports primitives only (decision 3).
  */
 export function createOverlayService(): OverlayService {

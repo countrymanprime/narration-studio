@@ -12,7 +12,7 @@ import (
 	"unicode/utf8"
 )
 
-// The stack record and the retry choice (ADR 0858): where each take stacked on a passage's first read began before it was
+// The stack record and the retry choice: where each take stacked on a passage's first read began before it was
 // stacked, so un-stacking can put it back, and whether the narrator keeps a passage's retries stacked or leaves them where they
 // were recorded. Both live in stacks.json, apart from the passage list, so re-reading the passages from a newer Booth map
 // keeps them. A stack is recorded only after the DAW accepted stackTakes, and recording or removing one changes nothing in the

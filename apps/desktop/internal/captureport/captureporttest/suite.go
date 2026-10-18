@@ -1,4 +1,4 @@
-// Package captureporttest is the conformance suite every capture backend row must pass (ADR 0301), and a fake backend it runs
+// Package captureporttest is the conformance suite every capture backend row must pass, and a fake backend it runs
 // against. The captureport test runs it over every registered row, so a new row cannot skip it:
 //
 //	for _, entry := range captureport.Backends.Entries() {

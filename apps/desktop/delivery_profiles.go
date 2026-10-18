@@ -14,12 +14,12 @@ import (
 	"github.com/countrymanprime/narration-utils/shell/internal/project"
 )
 
-// Delivery profiles (ADR 0179): the built-in profiles are compiled into
+// Delivery profiles: the built-in profiles are compiled into
 // internal/deliveryprofile; the narrator's custom profiles and the Global default are the user-level
 // delivery-profiles.json (h.deliveryProfiles, set once in NewHost like the credit templates); a project's own choice is
 // on its manifest. The old Delivery limits settings are read once more, to move them into a profile, and never again.
 
-// deliverySettingsTool is the settings section that held the narrator's old delivery limits (ADR 0155).
+// deliverySettingsTool is the settings section that held the narrator's old delivery limits.
 const deliverySettingsTool = "Delivery"
 
 // deliveryProfilesPath resolves the per-user delivery-profiles.json, beside credit-templates.json.

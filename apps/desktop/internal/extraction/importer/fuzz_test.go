@@ -5,7 +5,7 @@ import (
 	"testing"
 )
 
-// Fixed seed: the gate is deterministic (ADR 0044). Exploring is manual: go test -run='^$' -fuzz=FuzzParse -fuzztime=60s.
+// Fixed seed: the gate is deterministic. Exploring is manual: go test -run='^$' -fuzz=FuzzParse -fuzztime=60s.
 func newRand() *rand.Rand { return rand.New(rand.NewPCG(44, 1086)) }
 
 // checkParse parses data, plans it, and holds the results to the package's promises.

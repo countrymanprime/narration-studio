@@ -7,7 +7,7 @@ import { PronSourceTag } from '../../../../storybible/source/PronSourceTag';
 import { kindColours } from './kinds';
 
 /** The Story Bible's `Says`, `Does` and `Knows` properties under the mock's labels, for an entry whose type can speak (SN-X222,
- * ADR 0846, SN-B97). */
+ * docs/reference/data-files.md, SN-B97). */
 const TALK_FIELDS: ReadonlyArray<{ key: string; label: string }> = [
   { key: 'says', label: 'How they talk' },
   { key: 'does', label: 'How they act' },

@@ -1,6 +1,6 @@
 // The one place a hand-off address is built and read (docs/reference/cross-page-handoffs.md). A page that sends the narrator to
 // another page calls a builder here; a destination reads its address with `readAddress`, which says what is wrong with a bad one
-// instead of guessing. The Booth's own shape (ADR 0388) is wrapped, not changed: `boothQuery` and `readBoothQuery` do the work.
+// instead of guessing. The Booth's own shape is wrapped, not changed: `boothQuery` and `readBoothQuery` do the work.
 
 import { boothQuery, readBoothQuery, type BoothTarget } from '../components/booth/page/boothQuery';
 

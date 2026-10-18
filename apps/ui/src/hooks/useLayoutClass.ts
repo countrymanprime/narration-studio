@@ -1,7 +1,7 @@
 import { FULL_LAYOUT, LAYOUT_QUERIES, type LayoutClass } from '../layoutBreakpoints';
 import { useMediaQuery } from './useMediaQuery';
 
-// The layout class of the window, for the places CSS cannot decide (ADR 0761 decision 1). It follows the media queries in
+// The layout class of the window, for the places CSS cannot decide (docs/design/design-system.md#layout-rules). It follows the media queries in
 // `LAYOUT_QUERIES`, so it reads the CSS width and re-renders when the window crosses a threshold. Where there is no
 // `matchMedia` (jsdom) it is the full layout.
 export function useLayoutClass(): LayoutClass {

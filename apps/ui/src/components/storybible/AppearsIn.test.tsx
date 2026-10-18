@@ -42,7 +42,7 @@ describe("chapter names follow the manuscript's heading style", () => {
         expect(rows).toHaveLength(count);
         for (const n of [1, 2, count]) {
           const chapter = book[n - 1]!;
-          // The manuscript's own label and title, joined as every chapter name is (ADR 0191), never a number counted here.
+          // The manuscript's own label and title, joined as every chapter name is, never a number counted here.
           expect(chapterHeading(chapter).label).toBe(HEADING_LABELS[style](n));
           expect(rows[n - 1]!.textContent).toContain(chapterName(chapter));
           expect(screen.getByRole('button', { name: `Go to ${chapterName(chapter)}` })).toBeTruthy();

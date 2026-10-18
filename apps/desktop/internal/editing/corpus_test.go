@@ -10,7 +10,7 @@
 // PROVISIONAL (see docs/research/editing-and-proofing-corpus.md): this is a
 // synthetic, signal-level stand-in, not a real corpus. Only the underlying
 // evidence sources are faked here - a scan job's own findings and, for the
-// click and breath classes (which ship gated off, ADR 0510), a
+// click and breath classes (which ship gated off), a
 // directly-written finding standing in for a detected one - never the
 // engine, the provider or the stages.Service.
 package editing
@@ -43,7 +43,7 @@ const editingCorpusChapter = "chapter-1"
 // and breath required checks in the stage recommendation settings: a
 // narrator who deselects them can still get an empty-space recommendation,
 // the intended path to a recommended verdict while those two detectors are
-// not validated (ADR 0510). It is not a workaround invented for this test: it is the
+// not validated. It is not a workaround invented for this test: it is the
 // production RequiredSignals mechanism (apps/desktop/bindings_stages.go's
 // requiredStageSignals), narrowed here exactly as a narrator's own choice
 // would narrow it.
@@ -58,7 +58,7 @@ func deselectClickAndBreath(stage stages.Stage, declared []string) []string {
 // scan is driven to produce one here, so this is written directly to the
 // findings store as a fake evidence source. It never changes the
 // click/breath SIGNAL state, which stays unknown while the detectors are not
-// validated (ADR 0510): it only exercises gatherCandidates' click/breath
+// validated: it only exercises gatherCandidates' click/breath
 // evidence branches.
 func syntheticCandidateFinding(id, chapterID, class string) findings.Finding {
 	return findings.Finding{
@@ -117,7 +117,7 @@ func editingCorpusCases() []editingCorpusCase {
 			id: "clean-scan-default-required-set",
 			label: "the same clean chapter as above, but under SR's production DEFAULT required set (every " +
 				"declared signal required, unchanged): it must read unknown, never recommended, because clicks and " +
-				"breaths are gated off until their detectors are validated and cannot report met (ADR 0510) - " +
+				"breaths are gated off until their detectors are validated and cannot report met - " +
 				"documenting that 'recommended' is unreachable for editing today without a narrator's own " +
 				"required-check choice",
 			build: func(t *testing.T) *testService {

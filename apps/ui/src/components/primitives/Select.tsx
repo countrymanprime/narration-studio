@@ -17,7 +17,7 @@ type Props = Omit<ComponentPropsWithRef<'select'>, 'aria-label' | 'id' | 'value'
 // The placeholder option's own value: a string no caller's option can have, so `onChange` can never report it.
 const PLACEHOLDER_VALUE = '\u0000placeholder';
 
-// The browser's own `<select>` element, drawn with the app's tokens (ADR 0053). It stays native on purpose: the platform's
+// The browser's own `<select>` element, drawn with the app's tokens. It stays native on purpose: the platform's
 // picker, keyboard search and form behaviour are the accessibility, `fireEvent.change` and Playwright's `selectOption` keep
 // working, and no option needs rich content. Controlled, and `onChange` reports the chosen value, not the event.
 export function Select({ label, value, onChange, options, fullWidth = false, placeholder, className = '', ...rest }: Props) {

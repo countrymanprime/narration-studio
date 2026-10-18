@@ -55,7 +55,7 @@ type Privacy struct {
 	Note          string `json:"note"`
 }
 
-// ProfileInfo is the delivery profile the measurements were judged against (ADR 0179): which profile and version, where
+// ProfileInfo is the delivery profile the measurements were judged against: which profile and version, where
 // its rules come from, every rule with its source and verification and how many files met it, and the book rules'
 // results. Notice says why the project's own choice could not be used, when it could not.
 type ProfileInfo struct {

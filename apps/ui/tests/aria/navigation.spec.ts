@@ -1,7 +1,7 @@
 import { expect, test } from '@playwright/test';
 import { DESKTOP, NARROW, RAIL, openApp } from './helpers';
 
-// The role trees of the two shapes of the primary navigation (ADR 0051): the sidebar and the drawer that replaces it below
+// The role trees of the two shapes of the primary navigation: the sidebar and the drawer that replaces it below
 // `md`. The item list is pinned with `children: equal`, so an added, removed or reordered item fails here; everything else
 // is matched partially. The snapshots are in tests/aria/snapshots (see docs/operations/verification-tooling.md).
 test('the navigation lists exactly the pages, in order, with Settings after it', async ({ page }) => {

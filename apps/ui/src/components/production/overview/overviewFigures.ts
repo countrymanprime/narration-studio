@@ -1,4 +1,4 @@
-// The Production page's figures as pure functions of the plan, the overview and what the host measured (ADR 0015, ADR 0801).
+// The Production page's figures as pure functions of the plan, the overview and what the host measured.
 // Each returns a value or the reason there is none; a component prints it and computes nothing.
 import type { ChapterStatus } from '../../../api/contracts/manuscript';
 import type { ProductionChapter } from '../../../api/contracts/production';
@@ -39,7 +39,7 @@ export type DeliveryCounts = { pass: number; fail: number; total: number };
 
 /**
  * The book's pass and fail count from the chapters' QC verdicts: `PASS` passes, any other verdict fails, a chapter with no verdict is unchecked.
- * Not measured while no narrated chapter has a review (ADR 0015).
+ * Not measured while no narrated chapter has a review.
  */
 export function deliveryCounts(
   narrationIds: readonly string[],

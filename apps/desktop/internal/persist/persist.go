@@ -1,4 +1,4 @@
-// Package persist is how the host reads a file it keeps on disk without ever failing silently (ADR 0069, rule 8). A file that
+// Package persist is how the host reads a file it keeps on disk without ever failing silently (rule 8). A file that
 // cannot be decoded is handled by the class of data in it: disposable state heals and is logged; narrator-authored data is kept
 // beside the original as `<name>.corrupt-<timestamp>`, a fresh one is started, the log records it and the narrator is told; a file
 // written by a newer version of the app is refused with a message and never overwritten. Nothing here reads the file's content

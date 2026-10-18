@@ -92,9 +92,9 @@ type assetRegistry struct {
 	whisper   *whisper.Manager
 	spacy     *spacy.Manager
 	moonshine *moonshine.Manager
-	// dictionary is the offline dictionary catalog the reader's Look up reads (SystemLookup, ADR 0097); nil when its catalog is unreadable.
+	// dictionary is the offline dictionary catalog the reader's Look up reads (SystemLookup); nil when its catalog is unreadable.
 	dictionary *dictionary.Manager
-	// encoder is the FFmpeg build catalog the MP3 encoder runs (ADR 0342); nil when its catalog is unreadable.
+	// encoder is the FFmpeg build catalog the MP3 encoder runs; nil when its catalog is unreadable.
 	encoder *ffmpeg.Manager
 	// analysis is the optional Story Bible analysis tools' catalog (GLiNER, BookNLP, a local language model); nil when it is unreadable.
 	analysis *analysistools.Manager

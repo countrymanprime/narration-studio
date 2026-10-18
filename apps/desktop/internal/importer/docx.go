@@ -82,7 +82,7 @@ type tocEntry struct {
 // tocAuthorityThreshold is the minimum fraction of a docx's own table-of-contents entries that must match a body heading (by
 // bookmark anchor, then normalised text, then position) before the TOC is trusted as the chapter list instead of the heading
 // heuristic. Below it, a hand-typed or stale TOC is common enough that overriding
-// the heuristic would do more harm than good; ADR 0089 records this as a decision.
+// the heuristic would do more harm than good; docs/architecture/docx-import-quirks.md#table-of-contents-authority records this as a decision.
 const tocAuthorityThreshold = 0.8
 
 // tocMatchedTitles matches a document's own table-of-contents entries, in their own order, to the chapter titles the heading

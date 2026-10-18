@@ -42,7 +42,7 @@ export const teleprompterGoldens: Record<string, z.ZodType> = {
   'teleprompter-resume-follow-playing.json': teleprompterResumeFollowEventSchema,
   'teleprompter-resume-follow-cursor.json': teleprompterResumeFollowEventSchema,
   'teleprompter-save-flags.json': teleprompterFlagFindingsSchema,
-  // The per-chapter reading file the host writes at session end and reads back (ADR 0205).
+  // The per-chapter reading file the host writes at session end and reads back.
   'teleprompter-reading.json': teleprompterReadingSchema,
   'teleprompter-level.json': teleprompterEventSchema.array(),
   'teleprompter-meter-stopped.json': teleprompterEventSchema.array(),
@@ -52,7 +52,7 @@ export const teleprompterGoldens: Record<string, z.ZodType> = {
   'readaloud-record-start-at.json': z.record(z.string(), readAloudRecordingSchema),
   'teleprompter-reaper-inputs.json': z.record(z.string(), teleprompterReaperInputSchema),
   'teleprompter-punch-results.json': z.record(z.string(), teleprompterPunchResultSchema),
-  // The sidecar's own `word_time` lines (align_word.py, ADR 0560): the host reads them (teleprompter.AlignWord) and hands
+  // The sidecar's own `word_time` lines (align_word.py): the host reads them (teleprompter.AlignWord) and hands
   // the UI only the punch result above, so no UI schema owns them; this pins the shape the Go and Python tests share.
   'teleprompter-word-time.json': z
     .object({

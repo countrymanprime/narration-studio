@@ -5,7 +5,7 @@ import { settlePage } from '../visual/helpers/settle';
 import { REFLOW_VIEWPORT, VIEWPORTS, type Viewport } from '../visual/viewports';
 
 // The desktop size of the visual suite, its 1024 px width (the icon rail) and its 390 px reflow width (where the navigation is a drawer). The aria suite has
-// its own config, so it may open the drawer, which the visual matrix does not (ADR 0037, ADR 0061).
+// its own config, so it may open the drawer, which the visual matrix does not.
 function viewportNamed(name: string): Viewport {
   const found = VIEWPORTS.find((viewport) => viewport.name === name);
   if (!found) throw new Error(`the visual suite has no viewport named "${name}" (tests/visual/viewports.ts): update tests/aria/helpers.ts`);

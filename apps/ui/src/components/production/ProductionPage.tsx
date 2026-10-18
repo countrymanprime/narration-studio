@@ -7,7 +7,7 @@ import { chapterName } from '../../chapterName';
 import { useOpenPickups } from '../pickups/useOpenPickups';
 import { usePort } from '../../ports/usePort';
 import type { Bootstrap } from '../../types';
-import { creditsEntries, creditsKindOfId } from '../credits/creditsEntries';
+import { creditsEntries, creditsKindOfId, ownsOpeningCredits } from '../credits/creditsEntries';
 import { useCreditsRows } from '../credits/useCreditsRows';
 import { Panel } from '../primitives/Panel';
 import { StatStrip } from '../primitives/StatStrip';
@@ -213,7 +213,7 @@ export function ProductionPage({
 
   // The opening and closing credits are rows of the pipeline, in the places the mock puts them and the Script list draws them.
   const credits = useCreditsRows(manuscriptKey, (error) => notify(describeApiError(error), 'error'));
-  const ownsOpening = Boolean(overview?.chapters.some((chapter) => chapter.contentKind === 'opening'));
+  const ownsOpening = ownsOpeningCredits(overview?.chapters);
   const entries = useMemo(() => creditsEntries(credits.rows, ownsOpening), [credits.rows, ownsOpening]);
   const pipelineRows = useMemo(() => (overview ? pipelineChapters(overview.chapters, entries) : []), [overview, entries]);
 

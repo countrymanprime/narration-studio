@@ -1,4 +1,4 @@
-// Package extractionporttest is the conformance suite every extraction source row must pass (ADR 0301), and a fake source
+// Package extractionporttest is the conformance suite every extraction source row must pass, and a fake source
 // it runs against. The extractionport test runs it over the program's registry, so a new row cannot skip it:
 //
 //	extractionporttest.Run(t, extractionport.Sources)

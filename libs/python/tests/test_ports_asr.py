@@ -1,4 +1,4 @@
-"""The speech recognition port (ADR 0301): its types, its descriptor and its conformance suite."""
+"""The speech recognition port: its types, its descriptor and its conformance suite."""
 
 import ast
 from collections.abc import Iterable, Iterator

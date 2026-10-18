@@ -3,8 +3,8 @@ import type { Discrepancy, GuideEntity, GuideEvidence, ManuscriptChapter, Transc
 export const isTranscriptActive = (phase: TranscriptState['phase']) => phase === 'preparing' || phase === 'running' || phase === 'inspecting';
 // Reference-material sections (Contents, Characters, ...) stay in manuscript.json for data
 // integrity but shouldn't clutter chapter navigation/listing surfaces or the continuous reader
-// itself - see ChapterNav.tsx and Manuscript.tsx (ADR 0090, which reverses the reader-view clause
-// of ADR 0005; this predicate's original scope was the panel only).
+// itself - see ChapterNav.tsx and Manuscript.tsx (which reverses the reader-view clause
+// of apps/ui/src/state.ts; this predicate's original scope was the panel only).
 export const isListableChapter = (chapter: Pick<ManuscriptChapter, 'contentKind'>): boolean => (chapter.contentKind ?? 'narration') !== 'reference';
 export const selectDiscrepancy = (rows: Discrepancy[], id?: string): Discrepancy | undefined => rows.find((row) => row.id === id) ?? rows[0];
 export const canAddEquivalence = (row?: Discrepancy): boolean =>
@@ -95,11 +95,11 @@ export const estimateFinishedHours = (wordCount: number): number => wordCount / 
 // rather than a second 155/60 constant that could drift from it. Credits are read as separate files from the
 // narration chapters (ACX convention), so each segment (an opening or closing template's
 // rendered text) is timed on its own and carries its own room-tone padding: the narrator's General >
-// "Room tone per credits file" setting (ADR 0151), which defaults to 0 seconds per file.
+// "Room tone per credits file" setting, which defaults to 0 seconds per file.
 export const CREDITS_ROOM_TONE_SECONDS_PER_FILE = 0;
 export const estimateCreditsSeconds = (segmentWordCounts: number[], roomToneSecondsPerFile = CREDITS_ROOM_TONE_SECONDS_PER_FILE): number =>
   segmentWordCounts.reduce((total, words) => total + (words / WORDS_PER_FINISHED_HOUR) * 3600 + roomToneSecondsPerFile, 0);
-// Chapter announcements (ADR 0151) are read at the head of each chapter's own file, not as files of their own,
+// Chapter announcements are read at the head of each chapter's own file, not as files of their own,
 // so they are timed at the same rate with no room tone.
 export const estimateAnnouncementSeconds = (announcementWordCounts: number[]): number => estimateCreditsSeconds(announcementWordCounts, 0);
 // A retail sample's length as the narrator reads it ("2m 05s"), the same rounding the host's refusal message uses.

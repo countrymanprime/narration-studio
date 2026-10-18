@@ -7,7 +7,7 @@ import { sampleColour, sampleParagraphs, sampleSpeakers } from '../reading/fixtu
 import { BookmarkRibbons } from './BookmarkRibbons';
 
 // The Studio Next mock's Booth ribbons (`pages/booth/Teleprompter.tsx`, `Ribbons`): a ribbon per bookmark in the margin to the right of
-// the text, level with the line of its word, away from the speaker chips. A bookmark whose line changed (ADR 0820) is a warning
+// the text, level with the line of its word, away from the speaker chips. A bookmark whose line changed is a warning
 // shape at the head of the margin and is never put on a guessed word. The page mounts the margin inside the text column; here it sits
 // beside the real Booth text.
 const mark = (over: Partial<Bookmark>): Bookmark => ({

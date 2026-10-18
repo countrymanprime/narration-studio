@@ -3,11 +3,11 @@
 **Date:** moved here on 2026-10-12 from `docs/architecture/manuscript-teleprompter.md`. **Question:** which live engine, Whisper or Moonshine, should the Booth default to? **Tracking:** [#1476](https://github.com/countrymanprime/narration-utils/issues/1476). No real-time run is recorded yet.
 
 **Goal.** Decide the default engine (whisper vs. moonshine) with evidence, per
-the numeric gate in ADR 0414 (median cursor lag at least 25% lower than
+the numeric gate in `docs/architecture/manuscript-teleprompter.md` (median cursor lag at least 25% lower than
 Whisper tiny, no more false jumps or backward moves, on at least 3 readings
 across at least 2 microphones) plus the owner's judgment. This note is the
 protocol and the launch aid; a results table lands once runs exist (see
-[ADR 0414](../adr/0414-the-teleprompter-default-engine-stays-whisper-tiny-until-a-real-time-ab-evaluation-runs.md),
+[Manuscript Teleprompter](../architecture/manuscript-teleprompter.md),
 Proposed).
 
 **Lag-capture aid.** `NARRATION_TELEPROMPTER_EVAL=1` (same opt-in pattern as
@@ -63,7 +63,7 @@ device fed by a real-time playback of a recording:
   × at least 3 real-time runs each, same chapter, same reader (or the same
   synthetic voice), same microphone (or loopback device) per batch, at least
   2 microphones/devices total before the gate is evaluated. Moonshine only
-  where the platform ships it (Windows, ADR 0107).
+  where the platform ships it (Windows).
 - Per run, from the session's `--log` file and its emitted `position` events:
   median and p90 cursor lag (the `--timing` "behind the speaker" lines),
   `backward_moves`, `jumps`, and flag counts. Aggregate medians across the 3+
@@ -77,6 +77,5 @@ device fed by a real-time playback of a recording:
 environment this protocol's author has had access to (network policy denied
 both the audio source and the model-weight hosts in the cloud session that
 wrote this protocol and the lag-capture aid). A results table goes here, and
-in ADR 0414's Consequences, once a real-time pass exists; until then the
-default stays `whisper`/`tiny` (`config/defaults.json`, unchanged) and ADR
-0414 stays Proposed.
+in `docs/architecture/manuscript-teleprompter.md`'s Consequences, once a real-time pass exists; until then the
+default stays `whisper`/`tiny` (`config/defaults.json`, unchanged) and the default-engine decision stays open.

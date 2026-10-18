@@ -152,7 +152,7 @@ func fmtPtr(v *float64) string {
 
 // checkEdges compares the measured head and tail room tone with the
 // builder's reference. Room tone at or above the edge floor is not room tone
-// to the meter (ADR 0158), so a file whose noise floor is that loud has no
+// to the meter, so a file whose noise floor is that loud has no
 // measurable edges and is only logged.
 func checkEdges(t *testing.T, c signalCase, r Report) {
 	t.Helper()

@@ -30,7 +30,7 @@ used a synthetic corpus for the same D70/D71 reason (no network access to a real
 Each paragraph's quotes are labeled in extraction order with either the true speaker's name, or `unknown`
 for a quote that even a careful human reader could not confidently attribute - no tag, three or more active
 speakers, or an incidental speaker who was never named as a Character entity. The extractor returning
-`unknown` there is *correct*, not a miss (ADR 0020: precision over recall).
+`unknown` there is *correct*, not a miss (`docs/architecture/story-bible-entity-accuracy.md`: precision over recall).
 
 ## Results
 
@@ -71,7 +71,7 @@ path, no flag without an attributed cue"). Two things already bound the damage:
    consumer (Phase 5's candidate locator, Phase 6's review UI) can treat a continuation-sourced attribution
    with less confidence than a directly tagged one, rather than as equally certain evidence.
 2. **The correction path** (`correct_cue`, this phase) lets the narrator fix exactly this kind of case once;
-   `merge_dialogue_cues` guarantees a rebuild never overwrites that correction, the same durability ADR 0007
+   `merge_dialogue_cues` guarantees a rebuild never overwrites that correction, the same durability `sidecars/manuscript-guide/core/manuscript_guide.py`
    already gives a locked Story Bible entity.
 
 No change to the continuation rule is proposed here: narrowing it further (e.g. requiring a tag within the

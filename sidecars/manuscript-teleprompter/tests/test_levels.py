@@ -90,7 +90,7 @@ def test_metered_passes_chunks_through_and_reports_their_levels():
 
 
 def test_the_level_events_match_the_committed_contract_file():
-    """Silence, a sine at half scale, then a clipped burst, as the sidecar reports them (ADR 0069)."""
+    """Silence, a sine at half scale, then a clipped burst, as the sidecar reports them."""
     audio = np.concatenate([np.zeros(REPORT, dtype=np.float32), _sine(0.5, 0.1), np.clip(_sine(2.0, 0.1), -1.0, 1.0)])
 
     contract_files.check("teleprompter-level", levels.LevelMeter().feed(audio))

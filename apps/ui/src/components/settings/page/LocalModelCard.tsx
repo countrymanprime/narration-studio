@@ -53,7 +53,7 @@ const INSTALL_STATE: Record<string, string> = { installed: 'Installed and verifi
 
 /**
  * The selected Piper voice (TTS) or Whisper model (Proof): whether it is on this computer, its size, and Remove, which
- * asks first (ADR 0075: the confirm stays busy until the call ends). It reads the catalog again whenever `fields` (the
+ * asks first (docs/architecture/interaction-feedback.md#the-standard: the confirm stays busy until the call ends). It reads the catalog again whenever `fields` (the
  * panel's settings, which hold the selection) are read again.
  */
 export function LocalModelCard({ kind, fields, notify }: { kind: keyof typeof KINDS; fields: readonly ScopedSettingField[]; notify: Notify }) {

@@ -171,7 +171,7 @@ import { Events } from '@wailsio/runtime';
 
 /**
  * A Go method that returns an error rejected with the error's text on Wails v2. Wails v3 rejects with a `RuntimeError` whose `message`
- * is that text (ADR 0200), and pages show a rejection with `String(reason)`, which would then read "RuntimeError: ...". `decode` and
+ * is that text, and pages show a rejection with `String(reason)`, which would then read "RuntimeError: ...". `decode` and
  * `decodeObject`, which every binding call goes through, keep v2's contract: the text alone. Any other rejection (an unknown method,
  * a wrong argument, a lost transport) passes through as it is.
  */
@@ -216,7 +216,7 @@ function checked<T>(check: () => T): T {
 
 const bindingContext = (payload: string): WireContext => ({ boundary: 'host.binding', payload });
 
-// Live events (ADR 0069, failure class "live event"): one counter for the whole client. An event that does not match is dropped
+// Live events (failure class "live event"): one counter for the whole client. An event that does not match is dropped
 // and counted, and the host log hears about the first few and then one in fifty; a run of them tells the app (`subscribeLiveUpdateHealth`).
 const liveHealth = createLiveHealth({
   onDropped: (error, count) => reportWireError(error, `live update ${count} dropped: `),

@@ -2,7 +2,7 @@
 
 `pronounce_source` gets a pronunciation from one named engine and raises when that engine has nothing for the name,
 instead of the automatic-fallback ``pronunciation()`` that quietly reports "not generated". The ``pronounce`` command
-applies it to an entity's own name or one of its aliases, refuses a locked entity (ADR 0007), and marks the value
+applies it to an entity's own name or one of its aliases, refuses a locked entity, and marks the value
 ``chosen`` so a rebuild (`merge_locked`) keeps it (B11) instead of overwriting it with a freshly generated one.
 """
 

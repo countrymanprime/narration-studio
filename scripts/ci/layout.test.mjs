@@ -36,7 +36,7 @@ test('applyPathMap leaves look-alikes, prose and the Go module path alone', () =
 test('findStaleReferences reports each retired path with its file and line', () => {
   const files = new Map([
     ['README.md', 'first line\nsee shared/ui here\n'],
-    ['docs/adr/0001-x.md', 'shared/ui in an accepted ADR'],
+    ['docs/adr/0001-the-app-is-written-in-go.md', 'shared/ui in an accepted ADR'],
     ['clean.md', 'nothing to see'],
   ]);
 

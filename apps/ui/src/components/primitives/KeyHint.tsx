@@ -2,8 +2,8 @@ import { Kbd, type KbdSize } from './Kbd';
 import { KeyChord, glyphOf, keyName } from './KeyCap';
 
 // A key cap with its action spelled out beside it (mock 03's command bar): the cap, 10 px, then the action in Plex Sans,
-// muted. A chord of text keys is the `Kbd` of ADR 0620; a chord with a glyph key (arrows, Enter, Esc, Tab, Backspace, Space,
-// right-click) draws it through `KeyCap` (ADR 0761) and is one image named by every key. `spokenLabel` overrides that name
+// muted. A chord of text keys is the `Kbd` of docs/design/design-system.md; a chord with a glyph key (arrows, Enter, Esc, Tab, Backspace, Space,
+// right-click) draws it through `KeyCap` and is one image named by every key. `spokenLabel` overrides that name
 // for a symbol key whose glyph alone would read as a stray character.
 export function KeyHint({
   keys,

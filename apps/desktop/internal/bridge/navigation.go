@@ -11,8 +11,8 @@ import (
 )
 
 // Navigator asks REAPER to go to a finding, loop its context and stop the loop, and whether the script is listening
-// (integrations/reaper/narration_navigation.lua; docs/architecture/reaper-navigation.md; ADR 0121), and to add one
-// approved marker for a finding (AddMarker, marker.go; ADR 0123). Each request is one command and waits for its one
+// (integrations/reaper/narration_navigation.lua; docs/architecture/reaper-navigation.md), and to add one
+// approved marker for a finding (AddMarker, marker.go). Each request is one command and waits for its one
 // answer.
 //
 // A request returns only once the answer has been dispatched, and dispatching is the host's job (its 150 ms loop calls

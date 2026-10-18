@@ -2,14 +2,14 @@
 
 ``suggest`` reads the manuscript and the Story Bible and prints one JSON line per suggestion, in the extraction port's
 ``RawSuggestion`` shape (``narration_common.ports.extraction``) plus ``source`` and ``rule``. It writes nothing: the build
-keeps writing the Story Bible as it does (ADR 0020), and this proposes only what the Story Bible does not already say:
+keeps writing the Story Bible as it does, and this proposes only what the Story Bible does not already say:
 
 - an ``entry`` for a name the rules accept that no entry answers to, or that one answers to only as Needs Review;
 - an ``alias`` for a spelling the rules group with a known entry that the entry does not list;
 - a ``speaker`` for a dialogue cue a speech tag resolves to a Character, unless the Story Bible already has that cue
   with that speaker or the narrator corrected it.
 
-A locked entry gets no suggestion (ADR 0007), nor does a name a merge absorbed. Properties, relationships and claims
+A locked entry gets no suggestion, nor does a name a merge absorbed. Properties, relationships and claims
 need a language model and are not emitted. Each quote is a verbatim slice of the paragraph it names; one that is not is
 dropped with a log line. Each confidence comes from ``RULE_CONFIDENCE``.
 """
@@ -66,7 +66,7 @@ RULE_CONFIDENCE = _rules(
         "known-spelling",
         None,
         "A spelling the rules group with a known entry (a title-prefixed form such as Captain Arelian for Arelian). The "
-        "grouping is conservative (ADR 0020) but unmeasured.",
+        "grouping is conservative but unmeasured.",
     ),
     Rule(
         "speech-tag",

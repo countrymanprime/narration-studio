@@ -32,7 +32,7 @@ type Suggestion struct {
 }
 
 // Suggest finds the chapter the narrator is recording from the saved
-// project (ADR 0113): the record-armed track, else the selected one, mapped
+// project: the record-armed track, else the selected one, mapped
 // to a chapter with ForTrack. Several such tracks give a confident answer
 // only when every one of them is confident about the same chapter; otherwise
 // their chapters are offered as a choice. It never guesses past ForTrack's

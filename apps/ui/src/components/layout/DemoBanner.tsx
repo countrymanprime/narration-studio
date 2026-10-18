@@ -1,8 +1,8 @@
 const REPO_URL = 'https://github.com/countrymanprime/narration-utils';
 
-// The public demo (ADR 0096) is the only build that sets VITE_DEMO: the
+// The public demo is the only build that sets VITE_DEMO: the
 // regular `mock` build used by Vitest, the Playwright visual suite and Storybook does not, so this
-// banner never appears in a captured app state or an atlas story. AGPL-3.0-or-later (ADR 0039)
+// banner never appears in a captured app state or an atlas story. AGPL-3.0-or-later
 // requires that a modified copy interacted with over a network offer its source (section 13); the
 // demo is unmodified, but linking the source here keeps that offer visible rather than relying on
 // a visitor finding it another way.

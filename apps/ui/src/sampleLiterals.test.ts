@@ -7,10 +7,10 @@ import { afterAll, describe, expect, test } from 'vitest';
 import { aliceChapterSeeds, WIRE_ENTITIES } from './api/mockFixtures';
 import { sampleSpeakers } from './fixtures/speakers';
 
-// ADR 0770 / the Studio Next domain PRD: sample data lives in `src/fixtures/` (and the mock host under `src/api/`), never as a
+// docs/architecture/ui-state-and-journal.md#the-store-host-reads-cached / the Studio Next domain PRD: sample data lives in `src/fixtures/` (and the mock host under `src/api/`), never as a
 // literal in a component or a hook. This scan counts, per non-test, non-story file under `src/components/` and `src/hooks/`, the
 // string literals that equal a sample chapter title, chapter subtitle or speaker name those two places hold. A file's count
-// may only go down, in the style of rawNatives.test.ts (ADR 0053): a ceiling above the real count fails, so the entry is
+// may only go down, in the style of rawNatives.test.ts: a ceiling above the real count fails, so the entry is
 // lowered (deleted at zero) in the same change, and a file with a literal and no entry fails. The scan reports; it edits nothing.
 // SN-C4 (#1217) leaves these seven fixture files: each is a gap, moved to src/fixtures/ by #1119, not a decision.
 const CEILING: Record<string, number> = {

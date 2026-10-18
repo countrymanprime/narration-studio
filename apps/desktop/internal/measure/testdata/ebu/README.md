@@ -33,7 +33,7 @@ The folder is searched recursively, so the zip's own sub-folder is fine. Files a
 For each case, the test does one of three things:
 
 - **Measured.** Integrated loudness (cases 1 to 5, 7 and 8) or true peak (cases 15 to 23) must be inside the published tolerance. With `-v`, each file logs one line: the measured value, the expected value and the tolerance.
-- **Refused.** Case 6 is a 5.0-channel file. `measure` supports mono and stereo only ([ADR 0025](../../../../../../docs/adr/0025-delivery-measurements-in-go-profiles-deferred.md)), so the file must be refused with an error rather than measured.
+- **Refused.** Case 6 is a 5.0-channel file. `measure` supports mono and stereo only ([Codebase map](../../../../../../docs/architecture/codebase-map.md)), so the file must be refused with an error rather than measured.
 - **Skipped, with the reason.** `measure` has no momentary, short-term or loudness-range meter, so Tech 3341 cases 9 to 14 and every Tech 3342 case are skipped.
 
 A measured case with no file fails, so an incomplete set cannot pass.

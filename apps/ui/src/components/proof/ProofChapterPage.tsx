@@ -10,7 +10,8 @@ import { Heading } from '../primitives/Heading';
 import { Panel } from '../primitives/Panel';
 import { SectionLabel } from '../primitives/SectionLabel';
 import type { Notify } from '../primitives/Toast';
-import type { CoverageState, ManuscriptChapter, TranscriptState } from '../../types';
+import type { ManuscriptChapter, TranscriptState } from '../../types';
+import { useCoverageRuns } from '../recordingcheck/useCoverageRuns';
 import type { WorkspaceAlignmentResult } from '../../api/contracts/workspace';
 import { CommandScope } from '../../input/router';
 import { CompareRun } from './CompareRun';
@@ -39,7 +40,7 @@ type ChapterViewProps = {
 
 /**
  * Proof's chapter view, `/proof/:chapterId`: what the chapter page held besides the workspace, which the Editing page replaced (SN-E9,
- * ADR 0804). The recording check's state and Check again, the native takes, Transcript Compare's run against this chapter (CompareRun),
+ * docs/guides/using-the-app/editing.md). The recording check's state and Check again, the native takes, Transcript Compare's run against this chapter (CompareRun),
  * and the Preview and stage panels; none of them is in the Studio Next mock, so they stay as built (D98). One component per chapter
  * (keyed by the id).
  */
@@ -54,7 +55,6 @@ function ChapterView({ chapterId, notify, transcript, dawFileLinked, goToManuscr
   const [linkedTrackGuid, setLinkedTrackGuid] = useState<string>();
   const [alignment, setAlignment] = useState<WorkspaceAlignmentResult>();
   const [loadError, setLoadError] = useState('');
-  const [coverage, setCoverage] = useState<CoverageState>({ phase: 'idle', percent: 0, message: '' });
   const [checking, setChecking] = useState(false);
   const [lastCompleted, setLastCompleted] = useState<TranscriptState>();
   const [reviewingLast, setReviewingLast] = useState(false);
@@ -68,7 +68,7 @@ function ChapterView({ chapterId, notify, transcript, dawFileLinked, goToManuscr
       .catch(() => {});
   }, [api]);
 
-  useEffect(() => api.subscribeCoverage(setCoverage), [api]);
+  const runs = useCoverageRuns();
 
   // The check's state for the header; read again after Check again closes.
   useEffect(() => {
@@ -173,7 +173,8 @@ function ChapterView({ chapterId, notify, transcript, dawFileLinked, goToManuscr
         {checking && (
           <RecordingCheck
             chapter={chapter}
-            coverage={coverage}
+            coverage={runs.forChapter(chapterId)}
+            othersRunning={runs.othersRunning(chapterId)}
             notify={notify}
             close={() => {
               setChecking(false);

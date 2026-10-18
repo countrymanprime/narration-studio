@@ -5,7 +5,7 @@ import type { PlatformCapability } from './profiles';
 /** What a milestone can measure. A custom milestone has no estimate and is marked done by hand. `needs` is a delivery-profile capability. */
 type MeasureDef = { id: string; label: string; needs?: PlatformCapability };
 
-/** The measures the host accepts (ADR 0800 decision 3), in the order the dialog lists them. `chN` and `minN` stand for `ch<N>` and `min<N>`. */
+/** The measures the host accepts (apps/desktop/internal/project/manifest.go), in the order the dialog lists them. `chN` and `minN` stand for `ch<N>` and `min<N>`. */
 export const MEASURES: readonly MeasureDef[] = [
   { id: 'custom', label: 'Custom: no estimate' },
   { id: 'rec', label: 'All recorded' },

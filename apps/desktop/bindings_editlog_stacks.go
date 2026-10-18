@@ -2,7 +2,7 @@ package main
 
 import "github.com/countrymanprime/narration-utils/shell/internal/editlog"
 
-// The stack record and the retry choice (ADR 0858), kept in <project>/narration-utils/editing/stacks.json apart from the
+// The stack record and the retry choice, kept in <project>/narration-utils/editing/stacks.json apart from the
 // passage list. A stack is the host's memory of the takes the DAW stacked on a passage's first read and where each began
 // before, in seconds after the first read's start, so un-stacking can put it back after a restart. It is recorded only after
 // the DAW accepted stackTakes and forgotten after unstackTakes; recording or removing one changes nothing in the DAW. The

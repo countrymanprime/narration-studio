@@ -21,7 +21,7 @@ type Options<J extends AssetInstallJob> = {
  * the install, follows the job the host reports until it ends, and exposes what a dialog needs: the job with its real bytes, the seconds it
  * has been running, the distinct messages so far, and a failure sentence when a call to the host itself failed.
  *
- * `begin` is refused while an install is running, in the code path and not only in how a button looks (ADR 0075); the host refuses too, by
+ * `begin` is refused while an install is running, in the code path and not only in how a button looks; the host refuses too, by
  * joining the running job. Leaving the page stops the polling but not the download: it is a host job and ends with a `job:ended` event.
  */
 export function useAssetInstall<J extends AssetInstallJob>(options: Options<J>) {

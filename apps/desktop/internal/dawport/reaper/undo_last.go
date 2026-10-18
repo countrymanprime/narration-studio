@@ -10,7 +10,7 @@ import (
 )
 
 // lastActionUndoer is the undo_last role over bridge's last_action and undo_last (narration_undo.lua), answering a LastAction and a
-// dawport.Result (ADR 0810). The script maps a kind to the undo label its command writes; this role sends only the kind.
+// dawport.Result. The script maps a kind to the undo label its command writes; this role sends only the kind.
 type lastActionUndoer struct {
 	actions *bridge.Actions
 	allowed func(dawport.Capability) error
