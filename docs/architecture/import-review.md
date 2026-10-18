@@ -10,7 +10,7 @@ The dialog is built to the mock's import flow (`docs/research/mockups/studio-nex
 
 | Mock | App | Why |
 | --- | --- | --- |
-| Drop a file and it is read | A dropped file starts the import only when the window can say where it is; otherwise the zone says so and points at **Choose a file…** | The host reads a manuscript from a path. A web `File` carries none, and the desktop host does not yet pass a dropped file's path to the page. |
+| Drop a file and it is read | In the desktop app the host reads a dropped file itself: it checks that it is one supported manuscript, begins the import and tells the window, so the review opens as it does after **Choose a file…**. A drop it cannot use is said in words under the zone. In a browser, a dropped file starts the import only when the window can say where it is, which a web `File` cannot | The host reads a manuscript from a path, and the page must not hold or send one (the host takes a path only from its own dialog or the file Bootstrap offered; threat model row 6aa), so the operating system's drop is read in Go (`manuscript_drop.go`) and the page learns a file name and a job id from `manuscript:dropped`. |
 | "Choose a file…" opens a browser file input | It opens the host's own file chooser (`selectManuscript`) | A browser input has no path either. |
 | Header label, title and subtitle above the body | The dialog title carries "Import manuscript · step 1 of 2"; the heading and hint are in the body | The shared `Dialog` has one title row. |
 | Step 1 of 2 for an import, 3 for a replace | Step 1 of 2 for both | A replace has no step 3: the host clears what was built on the manuscript, so there is no "what changes" to show (see below). |

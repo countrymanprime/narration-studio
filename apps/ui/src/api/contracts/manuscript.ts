@@ -122,6 +122,8 @@ export type ManuscriptImportPreview = {
   notices?: string[];
 };
 export type ManuscriptFileSelection = { selected: boolean; jobId?: string };
+/** The `manuscript:dropped` event: what became of a file dropped on the import's drop zone. The host checks the file and starts the import itself, so it names the file and the job, never the path. */
+export type ManuscriptDropped = { jobId: string; name: string } | { message: string };
 export type ManuscriptReader = { chapters: ManuscriptChapter[]; paragraphs: ManuscriptParagraph[]; notes: ManuscriptNote[] };
 export type WorkJob = {
   id: string | null;
@@ -144,6 +146,8 @@ export interface ManuscriptApi {
   selectManuscript(): Promise<ManuscriptFileSelection>;
   /** Begins an import for the file offered as `Bootstrap.manuscriptCandidate`; the host accepts only that exact path. */
   manuscriptBeginImport(path: string): Promise<ManuscriptFileSelection>;
+  /** Calls `onDropped` when a file is dropped on the import's drop zone (desktop only). A `jobId` is an import already begun; a `message` says in words why the file cannot be imported. */
+  subscribeManuscriptDropped(onDropped: (event: ManuscriptDropped) => void): () => void;
   manuscriptImportState(jobId: string): Promise<WorkJob>;
   manuscriptImportPreview(jobId: string, options: { markdownHeadingLevel: number }): Promise<WorkJob>;
   manuscriptImportCommit(jobId: string, options: { confirmedReset: boolean; selection?: ManuscriptImportSelection }): Promise<WorkJob>;

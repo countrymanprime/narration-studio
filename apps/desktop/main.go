@@ -45,7 +45,8 @@ func main() {
 		Assets:         application.AssetOptions{Handler: application.AssetFileServerFS(frontendAssets), Middleware: host.mediaMiddleware},
 		SingleInstance: &application.SingleInstanceOptions{UniqueID: "b742fa00-67d8-4a0c-a290-b70b193cc785", OnSecondInstanceLaunch: host.onSecondInstance},
 	})
-	app.Window.NewWithOptions(mainWindowOptions(host.startupZoom()))
+	window := app.Window.NewWithOptions(mainWindowOptions(host.startupZoom()))
+	watchFileDrop(window, host.onFilesDropped)
 	if err := app.Run(); err != nil {
 		log.Fatal(err)
 	}
@@ -57,6 +58,8 @@ func main() {
 //     stays on because v3 leaves WebView2's IsPinchZoomEnabled at its default. The header's zoom controls set the
 //     level at runtime with Window.SetZoom on the window this names.
 //   - DefaultContextMenuDisabled: v2 hid the browser's right-click menu (Reload, Inspect) in a production build; v3 shows it.
+//   - EnableFileDrop: the import's drop zone (data-file-drop-target) is only told about a dropped file when this is on; the host
+//     then checks and starts it (manuscript_drop.go).
 //   - Zoom: the remembered level, read by host.startupZoom() before this is called and
 //     already clamped to [zoomMin, zoomMax]; 0 on a fresh install, which leaves WebView2 at its own 100% default.
 func mainWindowOptions(zoom float64) application.WebviewWindowOptions {
@@ -71,6 +74,7 @@ func mainWindowOptions(zoom float64) application.WebviewWindowOptions {
 		Zoom:                       zoom,
 		ZoomControlEnabled:         true,
 		DefaultContextMenuDisabled: true,
+		EnableFileDrop:             true,
 	}
 }
 

@@ -268,8 +268,8 @@ checking on progress — who has no need to know what the book pays.
 
 **Import manuscript** (or **Replace manuscript…** in Settings, Project) first opens step 1 of 2, **Choose your
 manuscript**: drop a file on the zone or press **Choose a file…** to pick a .docx, .md or .txt file. A copy is
-kept in your project, and the original is read-only. If the window cannot read where a dropped file is, it says
-so under the zone; press **Choose a file…** instead.
+kept in your project, and the original is read-only. The app checks a dropped file before it reads it: one file at a time, in a format
+it can import. If it cannot use the file, it says why under the zone; press **Choose a file…** instead.
 
 Choosing the file opens step 2 of 2, **Check the chapter outline**. Each heading in the outline shows how many words it holds, and pressing its title shows how it begins in the preview beside the outline. The step previews the detected format,
 paragraph count, and proposed chapters before anything changes. Each section is named the way the
