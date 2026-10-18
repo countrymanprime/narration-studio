@@ -276,3 +276,33 @@ function failingRms(): MeasureFileResult {
     report: { ...file.report!, rms_dbfs: -30 },
   };
 }
+
+// The loading state of the Delivery package panel (state matrix): no count is drawn until the profile and the chapters have been read, because
+// "0 failing and 0 not ready" would read as a pass; a failed read ends it, never an endless skeleton.
+describe('Master & QC package panel loading state', () => {
+  const never = () => new Promise<never>(() => undefined);
+  const region = () => screen.queryByRole('group', { name: 'Loading the delivery package checks' });
+
+  it('shows a busy region and no counts while the chapters are read, however long that takes', async () => {
+    mount(ALL_PASS, acx, { manuscriptChapters: never });
+    await screen.findByRole('complementary', { name: /Delivery package/ });
+    expect(region()?.getAttribute('aria-busy')).toBe('true');
+    expect(within(region()!).getByRole('status').textContent).toBe('Reading the profile and the chapters…');
+    expect(screen.queryByText(/failing and \d+ not ready/)).toBeNull();
+    expect(screen.getByRole('button', { name: 'Open Delivery' })).toBeTruthy();
+    await new Promise((resolve) => setTimeout(resolve, 60));
+    expect(region()).toBeTruthy();
+  });
+
+  it('shows the counts, and no region, once both have been read', async () => {
+    mount(TWO_FAIL, acx, { manuscriptChapters: async () => CHAPTERS });
+    expect(await screen.findByText(/\d+ failing and \d+ not ready\./)).toBeTruthy();
+    expect(region()).toBeNull();
+  });
+
+  it('ends the region when the chapters cannot be read, and says so', async () => {
+    mount(ALL_PASS, acx, { manuscriptChapters: () => Promise.reject(new Error('unreadable')) });
+    expect(await screen.findByText(/The chapters could not be read/)).toBeTruthy();
+    await waitFor(() => expect(region()).toBeNull());
+  });
+});

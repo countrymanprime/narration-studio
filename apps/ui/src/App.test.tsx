@@ -476,7 +476,8 @@ describe('App (integration, driven through the mock NarrationApi)', () => {
     const selectManuscript = vi.fn(() => new Promise<never>(() => {}));
     renderApp({ selectManuscript, bootstrap: noManuscript });
     await screen.findByRole('heading', { level: 1, name: 'Production' });
-    const choose = screen.getByRole('button', { name: 'Import manuscript' });
+    fireEvent.click(screen.getByRole('button', { name: 'Import manuscript' }));
+    const choose = await screen.findByRole('button', { name: 'Choose a file…' });
     fireEvent.click(choose);
     fireEvent.click(choose);
     await waitFor(() => expect(choose.getAttribute('aria-busy')).toBe('true'));
@@ -486,6 +487,7 @@ describe('App (integration, driven through the mock NarrationApi)', () => {
     renderApp({ selectManuscript: () => Promise.reject(new Error('the file dialog could not open')), bootstrap: noManuscript });
     await screen.findByRole('heading', { level: 1, name: 'Production' });
     fireEvent.click(screen.getByRole('button', { name: 'Import manuscript' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Choose a file…' }));
     // The region that shows it is only known once the message is there, so look again on each try.
     await waitFor(() => expect(within(appToasts('alert')).getByText(/the file dialog could not open/)).toBeTruthy());
   });
@@ -1160,6 +1162,8 @@ describe('App (integration, driven through the mock NarrationApi)', () => {
     expect(screen.getByRole('region', { name: 'Import your manuscript' })).toBeTruthy();
 
     fireEvent.click(screen.getByRole('button', { name: 'Import manuscript' }));
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Choose a file…' }));
     await screen.findByRole('alertdialog', { name: 'Import Alice.docx' });
     expect(preview).toHaveBeenCalledWith('mock-import', { markdownHeadingLevel: 1 });
     // The review says what was found and what the importer repaired; the log and progress bar belong to the commit dialog that follows.
@@ -1495,7 +1499,8 @@ describe('App shell mounts', () => {
   it('jump-menu-chapters-come-from-the-slot: with no manuscript the list is empty and nothing is loaded', async () => {
     const manuscriptChapters = vi.fn().mockResolvedValue([]);
     renderApp({ manuscriptChapters, bootstrap: bootstrapWithCandidate({ path: 'a.docx', name: 'a.docx' }) });
-    await screen.findByRole('button', { name: /Jump to or run/ });
+    // The shell has mounted; the import step for the candidate can open first and make it inert, so look past that.
+    await screen.findByRole('button', { name: /Jump to or run/, hidden: true });
     expect(manuscriptChapters).not.toHaveBeenCalled();
   });
 

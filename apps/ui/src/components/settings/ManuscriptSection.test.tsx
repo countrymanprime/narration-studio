@@ -71,6 +71,7 @@ describe('Settings > Manuscript', () => {
   it('replace-opens-the-existing-flow: the button opens the import review through the host, naming what a replace clears', async () => {
     await renderManuscript({ replace: true });
     fireEvent.click(await screen.findByRole('button', { name: 'Replace manuscript…' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Choose a file…' }));
     const dialog = await screen.findByRole('alertdialog', { name: /^Import / });
     // confirmation-lists-what-a-replace-clears (no bookmark count until the bookmarks binding exists, SN-B5)
     expect(within(dialog).getByText(/clears Story Bible, notes, bookmarks, statuses, and saved comparison results/)).toBeTruthy();
@@ -83,6 +84,7 @@ describe('Settings > Manuscript', () => {
     let commit = vi.fn();
     await renderManuscript({ replace: true, prepare: (api) => void (commit = vi.spyOn(api, 'manuscriptImportCommit')) });
     fireEvent.click(await screen.findByRole('button', { name: 'Replace manuscript…' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Choose a file…' }));
     const dialog = await screen.findByRole('alertdialog', { name: /^Import / });
     fireEvent.click(within(dialog).getByRole('button', { name: 'Replace and reset' }));
     await waitFor(() => expect(commit).toHaveBeenCalled());

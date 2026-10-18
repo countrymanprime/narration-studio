@@ -3,6 +3,7 @@ import type { MeasureJob } from '../../../types';
 import { Button } from '../../primitives/Button';
 import { IconButton } from '../../primitives/IconButton';
 import { Panel } from '../../primitives/Panel';
+import { LoadingRegion, Skeleton } from '../../primitives/Skeleton';
 import { StatusBadge } from '../../primitives/StatusBadge';
 import type { ChapterState } from './chapterStates';
 import { heardText } from './useHostRead';
@@ -61,9 +62,11 @@ export function Preflight({
           </p>
         )}
         {!known && !problem && (
-          <p role="status" className="text-sm" style={MUTED}>
-            Reading the chapters…
-          </p>
+          <LoadingRegion label="Loading the chapter checks" status="Reading the chapters…" className="flex flex-col gap-2">
+            {[0, 1, 2].map((row) => (
+              <Skeleton key={row} />
+            ))}
+          </LoadingRegion>
         )}
         {known && (
           <>
@@ -85,6 +88,8 @@ export function Preflight({
                     <span dir="auto" title={state.name} className="min-w-0 flex-1 truncate">
                       {state.name}
                     </span>
+                    {/* A space, so the text drawn reads "Chapter 01 Pass", words of the name: run together it fails axe's
+                        label-content-name-mismatch. A flex box draws no space for it. */}{' '}
                     <StatusBadge tone={TONE[state.kind]} label={state.text} />
                   </Button>
                 </li>
