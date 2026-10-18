@@ -28,6 +28,7 @@ import type { Band, Pin } from './frame/pins';
 import { ProofHeader } from './frame/ProofHeader';
 import { WaveformWindow } from './frame/WaveformWindow';
 import { FIRST_WINDOW, followSecond, type TimeWindow } from './frame/windowMath';
+import { useKeepFocusInside } from './inspector/useKeepFocusInside';
 import { Inspector } from './inspector/Inspector';
 import { decisionLabel, fixKindOf } from './resolution';
 import { TypeSelect } from './inspector/TypeSelect';
@@ -141,6 +142,7 @@ export function ProofPage({
   // Toasts stay left of the Inspector while it is beside the notes, so a decision's message never covers the next decision button.
   const inspectorPanel = useRef<HTMLDivElement>(null);
   useToastSideClearance(inspectorPanel);
+  useKeepFocusInside(inspectorPanel);
   const selectingForMenu = useRef(false);
 
   const scope = params.get('chapter') ?? ALL_CHAPTERS;

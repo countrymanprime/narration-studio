@@ -24,6 +24,7 @@ export function SlideOver({
   headingLevel = 3,
   onClose,
   onEscape,
+  returnFocus,
   children,
 }: {
   open: boolean;
@@ -35,9 +36,11 @@ export function SlideOver({
   // Runs before Escape closes the panel; returning true means the caller already handled the key
   // itself (for example, clearing a search - R8) and the panel should stay open.
   onEscape?: () => boolean;
+  // Where focus goes on close when the element that had it at open is gone (the jump menu item that ran History, then closed). Absent: the page's <main>.
+  returnFocus?: () => HTMLElement | null;
   children: ReactNode;
 }) {
-  const finalFocus = useReturnFocusTarget(open);
+  const finalFocus = useReturnFocusTarget(open, returnFocus);
   return (
     <Drawer.Root
       open={open}
