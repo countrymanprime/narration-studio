@@ -3,9 +3,9 @@ import { Button } from '../../primitives/Button';
 import { StatusBadge } from '../../primitives/StatusBadge';
 import { flagged, type ChapterDoc } from '../model';
 import { useEditingPage } from './EditingPageState';
-import { announceSel } from './announce';
 import { Paragraph } from './Paragraph';
 import { playable, playingKey } from './playing';
+import { useAnnounceCursor } from './useAnnounceCursor';
 
 const keyAt = (t: EventTarget | null): string | null => (t instanceof Element ? (t.closest<HTMLElement>('[data-k]')?.dataset.k ?? null) : null);
 
@@ -41,7 +41,7 @@ export function ScriptDoc({ reason, explained = false, onCheckRecording, onParag
   const touched = useMemo(() => new Set(Array.from(selSet, (k) => doc.items[doc.index.get(k) ?? -1]?.pid)), [selSet, doc]);
   const cursorPid = state.cursor ? doc.items[doc.index.get(state.cursor) ?? -1]?.pid : undefined;
   const flagPid = state.flag ? (state.flag.startsWith('dup:') ? state.flag.slice(4) : doc.items[doc.index.get(state.flag) ?? -1]?.pid) : undefined;
-  const message = useMemo(() => announceSel(doc, state.sel), [doc, state.sel]);
+  useAnnounceCursor();
 
   useEffect(() => {
     const up = (): void => {
@@ -118,9 +118,6 @@ export function ScriptDoc({ reason, explained = false, onCheckRecording, onParag
             />
           );
         })}
-      </div>
-      <div role="status" aria-live="polite" className="sr-only">
-        {message}
       </div>
     </div>
   );
