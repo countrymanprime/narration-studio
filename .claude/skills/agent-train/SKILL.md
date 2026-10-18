@@ -198,7 +198,7 @@ The Studio Next mock (`docs/research/mockups/studio-next/`) is the only spec for
 The rule and the commands are in [CONTRIBUTING.md](../../../CONTRIBUTING.md#ui-prs-update-the-how-to-guide). For the train:
 
 - **Worker.** A UI PR updates the guide page of each app page it changes, text and screenshots (`node scripts/dev/guide-screenshots.mjs <page>...`), in the same PR, or says `No guide change: <reason>`. It looks at every catalogued state with `visual:page` and `atlas:page` and states the real-app (Playwright) and Storybook results in the body; Storybook alone does not count. It commits no other images: no `pr-screenshots/` folder in its head.
-- **Coordinator.** Accepts a UI PR when its guide page and images are updated (or the body carries a specific `No guide change:` reason), the body states the real-app and Storybook results, and `Docs / Guide impact` is green. It never merges or counts ready a UI PR without them, whatever the rest of CI says.
+- **Coordinator.** Accepts a UI PR when its guide page and images are updated (or the body carries a specific `No guide change:` reason), the body states the real-app and Storybook results, and the `Guide impact` step of `Docs / Docs checks` is green. It never merges or counts ready a UI PR without them, whatever the rest of CI says.
 - **Sweep.** A periodic docs sweep runs `node scripts/dev/guide-screenshots.mjs --all` and commits what moved, as a safety net for changes to shared components.
 
 ## Owner standing rules
@@ -244,7 +244,7 @@ The Routine fires every 30 minutes (two hourly Routines, 30 minutes apart; D50).
 4. **Merge (D40).** Take bottom PRs (base `main`), oldest first. Merge one only when all of these hold:
    - it is not a draft;
    - it merges cleanly into `main` (D73: it need not contain `main`'s tip). If GitHub reports a conflict, merge `main` into it with `update_pull_request_branch`, or start a fixer when that fails, and wait for its checks on the next pass;
-   - `Build (Windows)` and `ui-dist` succeeded on the head. A docs-only PR needs `Docs / Links (offline)` instead;
+   - `Build (Windows)` and `ui-dist` succeeded on the head. A docs-only PR needs `Docs / Docs checks` (the link check and the other four docs checks, which run on every PR) instead;
    - there is no `CHANGES_REQUESTED` review and no unresolved thread whose first comment starts with 🔴;
    - a Claude Approvals check, if present, passes;
    - a UI PR updates its pages' guide text and images, or carries a specific `No guide change:` reason, and states the real-app and Storybook results ([UI PRs update the how-to guide](#ui-prs-update-the-how-to-guide)). There is no match % bar to check (D97);

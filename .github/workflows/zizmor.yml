@@ -1,12 +1,13 @@
 name: zizmor
 # Static analysis of the workflows themselves: unpinned actions, credentials left in .git/config, template
 # injection, excessive permissions, dangerous triggers. Config and every suppression (each with a reason) live in
-# .github/zizmor.yml. It runs on every pull request with no path filter, so a change to a workflow, a composite
-# action or dependabot.yml is always judged.
+# .github/zizmor.yml. It reads only what is under .github (workflows, composite actions, dependabot.yml and its own
+# config), so a pull request runs it when it changes a file there; every such change is judged. A push to main always runs it.
 # Blocking: a finding at the regular persona fails the check (a plain-format run exits non-zero by severity). The
 # convention this enforces is in docs/operations/ci-and-releases.md, "Workflow security".
 on:
   pull_request:
+    paths: ['.github/**']
   push:
     branches: [main]
   workflow_dispatch: {}
