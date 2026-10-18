@@ -18,7 +18,7 @@ export function bySection(rows: readonly SettingMeta[]): Array<[string, SettingM
 
 function Section({ title, rows, lit }: { title: string; rows: readonly SettingMeta[]; lit: string | null }) {
   return (
-    <section aria-label={title} className="flex flex-col">
+    <div role="group" aria-label={title} className="flex flex-col">
       <SectionLabel as="h3" className="mb-1.5">
         {title}
       </SectionLabel>
@@ -27,7 +27,7 @@ function Section({ title, rows, lit }: { title: string; rows: readonly SettingMe
           <RowOf key={row.id} row={row} flash={lit === row.id} />
         ))}
       </Panel>
-    </section>
+    </div>
   );
 }
 

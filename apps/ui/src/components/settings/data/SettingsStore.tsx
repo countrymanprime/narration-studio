@@ -1,5 +1,5 @@
 import { createContext, useCallback, useContext, useMemo, useRef, useState, type ReactNode } from 'react';
-import { describeApiError } from '../../../api/errorMessage';
+import { apiErrorMessage } from '../../../api/errorMessage';
 import { usePort } from '../../../ports/usePort';
 import type { Scope, ScopedSettingField } from '../../../types';
 import type { SettingMeta } from '../registry/types';
@@ -74,7 +74,7 @@ export function SettingsStoreProvider({ children }: { children: ReactNode }) {
         await load(scope);
         return true;
       } catch (failure) {
-        const message = describeApiError(failure);
+        const message = apiErrorMessage(failure);
         setRowError(row.id, message);
         setFailing(true);
         announce(`${row.label} not saved. ${message}`);

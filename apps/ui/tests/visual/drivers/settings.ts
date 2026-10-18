@@ -139,7 +139,7 @@ export const settingsDrivers: Record<string, Driver> = {
   voice: async (page) => {
     await openSettings(page, 'Voice & pronunciation');
     await page.locator('[data-row="voice.id"] [data-asset-note]').waitFor();
-    await page.getByRole('radiogroup', { name: /Show definitions from/ }).waitFor();
+    await page.getByRole('group', { name: 'Show definitions from' }).waitFor();
   },
   'voice-key-saved': async (page) => {
     await openSettings(page, 'Voice & pronunciation');
@@ -391,12 +391,12 @@ export const settingsDrivers: Record<string, Driver> = {
   // ---- Search and filters
   'search-results': async (page) => {
     await openSettings(page);
-    await page.getByRole('searchbox', { name: 'Search settings' }).fill('whisper');
+    await page.getByRole('textbox', { name: 'Search settings' }).fill('whisper');
     await page.getByText(/\d+ settings? found/).waitFor();
   },
   'search-empty': async (page) => {
     await openSettings(page);
-    await page.getByRole('searchbox', { name: 'Search settings' }).fill('zzzz');
+    await page.getByRole('textbox', { name: 'Search settings' }).fill('zzzz');
     await page.getByText('No settings match “zzzz”').waitFor();
   },
   'filter-changed': async (page) => {
@@ -457,7 +457,7 @@ export const settingsDrivers: Record<string, Driver> = {
     await openSettings(page, 'App & updates', '?mockSettings=save-fails');
     await page.getByRole('switch', { name: /Tell me when a long task finishes/ }).click();
     await page.getByText('Changes cannot be saved right now.').waitFor();
-    await page.getByText('The settings file is read-only.').waitFor();
+    await page.locator('[data-row="app.notify"]').getByText('The settings file is read-only.').waitFor();
   },
   override: async (page) => {
     await openSettings(page, 'Project');

@@ -1,5 +1,5 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
-import { describeApiError } from '../../../api/errorMessage';
+import { apiErrorMessage } from '../../../api/errorMessage';
 import { usePort } from '../../../ports/usePort';
 import type { Scope, ScopedSettingField } from '../../../types';
 
@@ -74,7 +74,7 @@ export function SettingsFormsProvider({
           setErrors(({ [scope]: _cleared, ...rest }) => rest);
           applyPalette(next);
         } catch (error) {
-          const message = describeApiError(error);
+          const message = apiErrorMessage(error);
           setErrors((current) => ({ ...current, [scope]: message }));
           notify(message);
         } finally {
