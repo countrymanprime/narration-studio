@@ -492,6 +492,25 @@ describe('App (integration, driven through the mock NarrationApi)', () => {
     await waitFor(() => expect(within(appToasts('alert')).getByText(/the file dialog could not open/)).toBeTruthy());
   });
 
+  it('without a manuscript, Script and Story Bible open the import in place instead of going to Production', async () => {
+    const source = createMockApi();
+    const noManuscript = async () => ({ ...(await source.bootstrap()), manuscript: null });
+    for (const [path, title] of [
+      ['/script', 'Script'],
+      ['/story-bible', 'Story Bible'],
+    ] as const) {
+      window.history.replaceState(null, '', path);
+      const selectManuscript = vi.fn(() => new Promise<never>(() => {}));
+      renderApp({ selectManuscript, bootstrap: noManuscript });
+      await screen.findByRole('heading', { name: title });
+      fireEvent.click(await screen.findByRole('button', { name: 'Import manuscript' }));
+      fireEvent.click(await screen.findByRole('button', { name: 'Choose a file…' }));
+      await waitFor(() => expect(selectManuscript).toHaveBeenCalledTimes(1));
+      expect(window.location.pathname).toBe(path);
+      cleanup();
+    }
+  });
+
   it('Clear derived project data stays open and busy while it runs and cannot be confirmed twice', async () => {
     const clearProjectData = vi.fn(() => new Promise<void>(() => {}));
     renderApp({ clearProjectData });
@@ -596,19 +615,6 @@ describe('App (integration, driven through the mock NarrationApi)', () => {
     renderApp({ bootstrap: async () => ({ ...(await source.bootstrap()), manuscript: null }) });
     await screen.findByText('This project has no manuscript yet. Import one to begin.');
     expect(window.location.pathname).toBe('/booth');
-  });
-
-  it('the Story Bible route asks for a manuscript on its own page instead of sending a project without one home', async () => {
-    window.history.replaceState(null, '', '/story-bible');
-    const source = createMockApi();
-    renderApp({ bootstrap: async () => ({ ...(await source.bootstrap()), manuscript: null }) });
-    await screen.findByRole('heading', { level: 1, name: 'Story Bible' });
-    expect(window.location.pathname).toBe('/story-bible');
-    expect(screen.getByText('This project has no manuscript yet. Import one to begin.')).toBeTruthy();
-    // The ask sends the narrator to the Production home, where the import lives.
-    fireEvent.click(screen.getByRole('button', { name: 'Import manuscript' }));
-    await screen.findByRole('heading', { level: 1, name: 'Production' });
-    expect(window.location.pathname).toBe('/');
   });
 
   // docs/architecture/principles.md: the retired Teleprompter route lands on the Booth with its
