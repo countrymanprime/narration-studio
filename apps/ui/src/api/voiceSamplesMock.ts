@@ -18,6 +18,7 @@ import {
   type VoiceSamplesApi,
   type VoiceSamplesChanged,
 } from '../types';
+import type { MergeEvents } from './mockHost/mergeEvents';
 import { mockAudioSource } from './mockHost/system';
 import { wireClone } from './mockFixtures';
 
@@ -39,6 +40,8 @@ type Stored = Omit<VoiceSample, 'clipState' | 'source'> & {
   start: number;
   /** A seeded clip the host would find damaged; a sample marked in the mock is always `ok`. */
   clip?: VoiceSampleClipState;
+  /** Set while the sample sits where a Story Bible merge put it, as the host keeps it on the row; never sent. */
+  merge?: { undoId: string; from: string; to: string; wasPrimary: boolean };
 };
 
 /**
@@ -133,6 +136,7 @@ export function createVoiceSamplesMock(
   chapters: () => ManuscriptChapter[],
   paragraphs: () => ManuscriptParagraph[],
   seed?: VoiceSamplesSeed,
+  merges?: MergeEvents,
 ): VoiceSamplesApi {
   let stored: Stored[] = [];
   let nextId = seed ? SEED_ROWS[seed].length + 1 : 1;
@@ -260,6 +264,56 @@ export function createVoiceSamplesMock(
     stored = stored.map((sample) => (sample.id === newest.id ? { ...sample, primary: true } : sample));
   };
 
+  /**
+   * The Story Bible merged `from` into `to`: as the host's FollowMerge, every sample of `from` moves, the absorbed primary first and
+   * then the newest, up to the 20 a character may have. The survivor keeps its own primary. Each moved sample remembers the merge.
+   */
+  const followMerge = (undoId: string, from: string, to: string) => {
+    const mine = stored
+      .filter((sample) => sample.characterId === from)
+      .sort((a, b) => Number(b.primary) - Number(a.primary) || b.createdAt.localeCompare(a.createdAt));
+    if (mine.length === 0) return;
+    let room = Math.max(0, PER_CHARACTER - stored.filter((sample) => sample.characterId === to).length);
+    let hasPrimary = stored.some((sample) => sample.characterId === to && sample.primary);
+    const moved = new Map<string, Stored>();
+    for (const sample of mine) {
+      if (room === 0) break;
+      room -= 1;
+      const primary = sample.primary && !hasPrimary;
+      hasPrimary = hasPrimary || primary;
+      moved.set(sample.id, { ...sample, characterId: to, primary, merge: { undoId, from, to, wasPrimary: sample.primary } });
+    }
+    if (moved.size === 0) return;
+    stored = stored.map((sample) => moved.get(sample.id) ?? sample);
+    promoteNewest(from);
+    changed();
+  };
+
+  /** The Story Bible took the merge back: as the host's UndoFollow, each sample still where the merge put it goes home. */
+  const undoFollow = (undoId: string) => {
+    const touched = new Set<string>();
+    let moved = 0;
+    const next: Stored[] = [];
+    for (const sample of stored) {
+      const merge = sample.merge;
+      if (!merge || merge.undoId !== undoId || sample.characterId !== merge.to) {
+        next.push(sample);
+        continue;
+      }
+      touched.add(merge.to);
+      touched.add(merge.from);
+      const homeHasPrimary = next.concat(stored).some((other) => other !== sample && other.characterId === merge.from && other.primary);
+      next.push({ ...sample, merge: undefined, characterId: merge.from, primary: merge.wasPrimary && !homeHasPrimary });
+      moved += 1;
+    }
+    if (moved === 0) return;
+    stored = next;
+    touched.forEach(promoteNewest);
+    changed();
+  };
+  merges?.onMerged((undoId, from, to) => void settle().then(() => followMerge(undoId, from, to)));
+  merges?.onUnmerged((undoId) => void settle().then(() => undoFollow(undoId)));
+
   return {
     voiceSamplesList: async () => {
       await settle();
@@ -330,7 +384,7 @@ export function createVoiceSamplesMock(
       let updated: Stored = { ...current, label, note };
       if (characterId !== current.characterId) {
         if (stored.filter((sample) => sample.characterId === characterId).length >= PER_CHARACTER) return refused('character_limit');
-        updated = { ...updated, characterId, primary: !stored.some((sample) => sample.characterId === characterId) };
+        updated = { ...updated, characterId, merge: undefined, primary: !stored.some((sample) => sample.characterId === characterId) };
       }
       if (JSON.stringify(updated) !== JSON.stringify(current)) {
         stored = stored.map((sample) => (sample.id === id ? updated : sample));
