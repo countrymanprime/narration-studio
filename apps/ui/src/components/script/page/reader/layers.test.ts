@@ -3,7 +3,7 @@ import type { Mark, MarkType } from '../../../../api/contracts/marks';
 import type { ScriptWord } from '../../../../api/contracts/scriptPrep';
 import type { GuideDialogueCue, GuideEntity } from '../../../../api/contracts/storyBible';
 import { buildLayerIndex, composeLayers, paragraphLayers, type Layer } from './layers';
-import { cue, entry, flaggedWord, mark, paragraph, TYPES } from './readerFixtures';
+import { cue, entry, flaggedWord, GUIDE_TYPES, mark, paragraph, TYPES } from './readerFixtures';
 
 const text = 'Mina said, "Come along," and left the harbour.';
 const range = (needle: string): { start: number; end: number } => ({ start: text.indexOf(needle), end: text.indexOf(needle) + needle.length });
@@ -18,7 +18,13 @@ const markLayer = (id: string, needle: string): Layer => ({
   note: false,
   name: 'Note',
 });
-const nameLayer = (needle: string): Layer => ({ kind: 'name', entryId: 'e1', entryKind: 'Character', ...range(needle) });
+const nameLayer = (needle: string): Layer => ({
+  kind: 'name',
+  entryId: 'e1',
+  entryKind: 'Character',
+  colour: { hue: 'character', line: '--character', text: '--character-text' },
+  ...range(needle),
+});
 
 describe('composeLayers', () => {
   it('rebuilds the paragraph text however the layers overlap', () => {
@@ -33,7 +39,15 @@ describe('composeLayers', () => {
   });
 
   it('draws speaker phrases outside, find matches inside', () => {
-    const phrase: Layer = { kind: 'phrase', cueId: 'c1', speakerId: 'e1', colourIndex: 2, label: 'Mina', state: 'confirmed', ...range('"Come along,"') };
+    const phrase: Layer = {
+      kind: 'phrase',
+      cueId: 'c1',
+      speakerId: 'e1',
+      colour: { hue: 'speaker-2', line: '--speaker-2', text: '--speaker-2-text' },
+      label: 'Mina',
+      state: 'confirmed',
+      ...range('"Come along,"'),
+    };
     const find: Layer = { kind: 'find', current: true, ...range('along') };
     const pieces = composeLayers(text, [find, markLayer('m', '"Come along,"'), phrase]);
     const along = pieces.find((piece) => piece.text === 'along');
@@ -53,7 +67,7 @@ describe('composeLayers', () => {
   });
 
   it('marks the first piece of a phrase', () => {
-    const phrase: Layer = { kind: 'phrase', cueId: 'c1', speakerId: null, colourIndex: 1, label: '?', state: 'unknown', ...range('"Come along,"') };
+    const phrase: Layer = { kind: 'phrase', cueId: 'c1', speakerId: null, colour: null, label: '?', state: 'unknown', ...range('"Come along,"') };
     const pieces = composeLayers(text, [phrase, markLayer('m', 'along')]);
     expect(pieces.filter((piece) => piece.chipFor).map((piece) => piece.text)).toEqual(['"Come ']);
   });
@@ -68,7 +82,7 @@ describe('paragraphLayers', () => {
   ];
   const marks: Mark[] = [mark('m1', 'p1', range('left'), 'ask'), mark('m2', 'p1', range('Mina'), 'note', { stale: true })];
   const words: ScriptWord[] = [flaggedWord('harbour', 'p1', range('harbour'))];
-  const index = buildLayerIndex({ marks, markTypes: TYPES as MarkType[], words, entries, cues });
+  const index = buildLayerIndex({ marks, markTypes: TYPES as MarkType[], words, entries, cues, types: GUIDE_TYPES });
 
   it('turns each source into a layer of this paragraph only', () => {
     const kinds = paragraphLayers(index, para).map((layer) => layer.kind);
@@ -87,16 +101,35 @@ describe('paragraphLayers', () => {
 
   it('gives a confirmed speaker the entry colour override', () => {
     const layer = paragraphLayers(index, para).find((l) => l.kind === 'phrase');
-    expect(layer).toMatchObject({ cueId: 'q1', state: 'confirmed', colourIndex: 4, label: 'Mina' });
+    expect(layer).toMatchObject({
+      cueId: 'q1',
+      state: 'confirmed',
+      colour: { hue: 'speaker-4', line: '--speaker-4', text: '--speaker-4-text' },
+      label: 'Mina',
+    });
   });
 
   it('draws an unattributed phrase as unknown with a question mark', () => {
-    const idx = buildLayerIndex({ marks: [], markTypes: [], words: [], entries, cues: [cue('q3', 'p1', 'c1', range('"Come along,"'), null, 'tag')] });
+    const idx = buildLayerIndex({
+      marks: [],
+      markTypes: [],
+      words: [],
+      entries,
+      types: GUIDE_TYPES,
+      cues: [cue('q3', 'p1', 'c1', range('"Come along,"'), null, 'tag')],
+    });
     expect(paragraphLayers(idx, para).find((l) => l.kind === 'phrase')).toMatchObject({ state: 'unknown', label: '?' });
   });
 
   it('draws a suggested speaker as a suggestion', () => {
-    const idx = buildLayerIndex({ marks: [], markTypes: [], words: [], entries, cues: [cue('q4', 'p1', 'c1', range('"Come along,"'), 'e1', 'tag')] });
+    const idx = buildLayerIndex({
+      marks: [],
+      markTypes: [],
+      words: [],
+      entries,
+      types: GUIDE_TYPES,
+      cues: [cue('q4', 'p1', 'c1', range('"Come along,"'), 'e1', 'tag')],
+    });
     expect(paragraphLayers(idx, para).find((l) => l.kind === 'phrase')).toMatchObject({ state: 'suggested' });
   });
 });

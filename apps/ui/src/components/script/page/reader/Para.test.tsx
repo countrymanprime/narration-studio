@@ -4,7 +4,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { MarkColour, MarkStyle } from '../../../../api/contracts/marks';
 import { buildLayerIndex, paragraphLayers, type Layer } from './layers';
 import { Para } from './Para';
-import { cue, entry, flaggedWord, mark, paragraph, TYPES } from './readerFixtures';
+import { cue, entry, flaggedWord, GUIDE_TYPES, mark, paragraph, TYPES } from './readerFixtures';
 
 afterEach(cleanup);
 
@@ -14,7 +14,7 @@ const para = paragraph('p1', 'c1', TEXT);
 const QUOTE = at('"Come along,"');
 
 const layersOf = (parts: Parameters<typeof buildLayerIndex>[0]): Layer[] => paragraphLayers(buildLayerIndex(parts), para);
-const base = { marks: [], markTypes: TYPES, words: [], entries: [], cues: [] };
+const base = { marks: [], markTypes: TYPES, words: [], entries: [], cues: [], types: GUIDE_TYPES };
 const text = (container: HTMLElement): string => container.querySelector('p[data-pid]')?.textContent ?? '';
 
 describe('Para', () => {
@@ -84,6 +84,50 @@ describe('Para', () => {
     expect(container.querySelector('[data-a="m1"]')?.className).toContain('ring-2');
   });
 
+  describe('the registry kinds', () => {
+    it('draws a name as a tint and a 2px underline in its type colour, a Needs Review entry in warn', () => {
+      const layers = layersOf({ ...base, entries: [entry('e1', 'Mina', 'Character'), entry('e2', 'harbour', 'Needs Review')] });
+      const { container } = render(<Para paragraph={para} layers={layers} />);
+      const mina = container.querySelector<HTMLElement>('[data-ent="e1"]')!;
+      expect(mina.style.boxShadow).toBe('inset 0 -2px 0 var(--character)');
+      expect(mina.style.background).toBe('color-mix(in srgb, var(--character) 20%, transparent)');
+      expect(container.querySelector<HTMLElement>('[data-ent="e2"]')!.style.boxShadow).toBe('inset 0 -2px 0 var(--warn)');
+    });
+
+    it('draws a flagged word as a pronunciation mark whether or not its pronunciation is set', () => {
+      const layers = layersOf({ ...base, words: [flaggedWord('harbour', 'p1', at('harbour'))] });
+      const { container } = render(<Para paragraph={para} layers={layers} />);
+      expect(container.querySelector<HTMLElement>('[data-w]')!.style.textDecoration).toContain('dotted');
+    });
+
+    it('draws a Find hit with the search hue and rings the current one', () => {
+      const { container } = render(<Para paragraph={para} layers={[]} find={[at('Mina'), at('along')]} findCurrent={1} />);
+      const [first, current] = [...container.querySelectorAll<HTMLElement>('mark[data-kind="search"]')];
+      expect(first.style.boxShadow).toBe('inset 0 -1.5px 0 var(--search)');
+      expect(first.className).not.toContain('ring-2');
+      expect(current.className).toContain('ring-2');
+    });
+
+    it('draws a suggested speaker dashed in its colour and an unknown one dashed and neutral', () => {
+      const { container } = render(
+        <Para
+          paragraph={para}
+          layers={layersOf({
+            ...base,
+            entries: [entry('e1', 'Mina', 'Character')],
+            cues: [cue('q1', 'p1', 'c1', at('"Come'), 'e1', 'tag'), cue('q2', 'p1', 'c1', at('along,"'), null, 'unknown')],
+          })}
+        />,
+      );
+      const suggested = container.querySelector<HTMLElement>('[data-chip="q1"]')!;
+      expect(suggested.style.borderStyle).toBe('dashed');
+      expect(suggested.style.borderColor).toBe('var(--character)');
+      const unknown = container.querySelector<HTMLElement>('[data-chip="q2"]')!;
+      expect(unknown.style.borderStyle).toBe('dashed');
+      expect(unknown.style.color).toBe('var(--text-muted)');
+    });
+  });
+
   describe('speaker chips', () => {
     const people = [entry('e1', 'Mina', 'Character', 4)];
     const chips = (cues: ReturnType<typeof cue>[], onPick = vi.fn()) => {
@@ -96,7 +140,8 @@ describe('Para', () => {
       const chip = container.querySelector<HTMLElement>('[data-chip="q1"]')!;
       expect(chip.dataset.state).toBe('confirmed');
       expect(chip.dataset.label).toBe('Mina');
-      expect(chip.style.getPropertyValue('--sp')).toBe('var(--speaker-4)');
+      expect(chip.style.color).toBe('var(--speaker-4-text)');
+      expect(chip.style.borderStyle).toBe('solid');
       expect(chip.getAttribute('aria-label')).toBe('Speaker: Mina, confirmed. Change speaker');
     });
 
