@@ -12,8 +12,12 @@ import { IconButton } from '../primitives/IconButton';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../primitives/Table';
 import { TooltipTarget } from '../primitives/Tooltip';
 import type { Notify } from '../primitives/Toast';
+import { ProofOptions } from './proofOptions/ProofOptions';
 
 type Phase = 'loading' | 'ready' | 'error';
+
+/** The host's Preview settings (`fieldSchemas` in apps/desktop/app.go): how long an excerpt is and which kind the page suggests. */
+const PREVIEW_KEYS = ['target_seconds', 'tolerance_fraction', 'preset', 'exclude_ending_fraction'] as const;
 
 /**
  * The Proofing page's preview suggestion: up to three candidate
@@ -29,6 +33,9 @@ export function PreviewPanel({ notify, goToManuscript }: { notify: Notify; goToM
   const [copiedChapterId, setCopiedChapterId] = useState<string>();
   const [pinned, setPinned] = useState<PinnedPreview>();
   const [pinBusy, setPinBusy] = useState(false);
+  // Bumped when a preview option is saved: the candidates are computed fresh from the settings on every read.
+  const [reads, setReads] = useState(0);
+  const readAgain = useCallback(() => setReads((n) => n + 1), []);
 
   useEffect(() => {
     let active = true;
@@ -49,7 +56,7 @@ export function PreviewPanel({ notify, goToManuscript }: { notify: Notify; goToM
     return () => {
       active = false;
     };
-  }, [api]);
+  }, [api, reads]);
 
   // Every pin action (User Flow step 5) re-reads the pin the binding itself just resolved, rather than guessing the
   // new state locally: the host recomputes evidence and staleness fresh on every call (SR D1), so this is the one
@@ -300,6 +307,7 @@ export function PreviewPanel({ notify, goToManuscript }: { notify: Notify; goToM
           )}
         </InsetCard>
       )}
+      <ProofOptions title="Preview options" tool="Preview" keys={PREVIEW_KEYS} onSaved={readAgain} className="mt-3" />
     </Panel>
   );
 }

@@ -12,7 +12,7 @@ export type PageSetting = {
   why: string;
   syn?: string;
   /** The panel kept behind the entry: see `PagesPane`. Absent once the page has the control, so the entry only points there. */
-  panel?: 'coverage' | 'cleanup' | 'preview' | 'stages' | 'compare' | 'punch' | 'fx';
+  panel?: 'coverage' | 'cleanup' | 'stages' | 'punch' | 'fx';
 };
 
 export const PAGE_SETTINGS: readonly PageSetting[] = [
@@ -38,8 +38,7 @@ export const PAGE_SETTINGS: readonly PageSetting[] = [
     id: 'ps.preview',
     label: 'Preview suggestion',
     page: 'proof',
-    where: 'Preview › Options',
-    panel: 'preview',
+    where: 'Preview options',
     why: 'Only the preview builder uses them.',
     syn: 'sample length tolerance spot check',
   },
@@ -56,8 +55,7 @@ export const PAGE_SETTINGS: readonly PageSetting[] = [
     id: 'ps.compare',
     label: 'Compare defaults (chunk length, marker colours)',
     page: 'proof',
-    where: 'Compare › Options',
-    panel: 'compare',
+    where: 'Compare options, in the setup',
     why: 'Chosen when starting a compare run.',
     syn: 'misread skipped extra colour',
   },

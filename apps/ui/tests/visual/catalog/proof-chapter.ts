@@ -30,6 +30,12 @@ export const proofChapterStates: StateEntry[] = [
   },
   {
     page: 'proof-chapter',
+    state: 'options-open',
+    description:
+      'Proof chapter view, the Compare options and the Preview options opened: the chunk length and the three marker colours, then the excerpt length, tolerance, preset and ending exclusion',
+  },
+  {
+    page: 'proof-chapter',
     state: 'compare-setup-alt',
     description: 'Proof chapter view, the compare run’s setup with the Large model picked, capping chunk length and workers',
   },

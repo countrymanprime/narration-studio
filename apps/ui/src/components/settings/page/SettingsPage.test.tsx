@@ -213,6 +213,21 @@ describe('Settings: search and filters', () => {
     expect(within(entry!).queryByRole('button', { name: 'Change it here for now' })).toBeNull();
   });
 
+  it('lists the preview options and the compare defaults with a way to Proof and no second editor here', async () => {
+    await renderPage();
+    for (const [term, id] of [
+      ['sample', 'ps.preview'],
+      ['misread', 'ps.compare'],
+    ]) {
+      await userEvent.clear(await screen.findByRole('textbox', { name: 'Search settings' }));
+      await userEvent.type(screen.getByRole('textbox', { name: 'Search settings' }), term);
+      const entry = document.querySelector<HTMLElement>(`[data-page-setting="${id}"]`);
+      expect(entry, id).toBeTruthy();
+      expect(within(entry!).getByRole('button', { name: /^Open Proof/ })).toBeTruthy();
+      expect(within(entry!).queryByRole('button', { name: 'Change it here for now' })).toBeNull();
+    }
+  });
+
   it('Escape clears the search', async () => {
     await renderPage();
     const box = (await screen.findByRole('textbox', { name: 'Search settings' })) as HTMLInputElement;

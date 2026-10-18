@@ -225,6 +225,14 @@ Large model doesn't support Auto).
 
 ![Proof chapter view - a different model, chunk length, and worker count selected](../../images/ui/proof-chapter-compare-setup-alt.webp)
 
+Above **Start comparison**, **Compare options** opens this project's defaults for a run: the **chunk length** a run starts
+with and the colours of the three kinds of marker a comparison exports to REAPER (**misread**, **skipped** and **extra**,
+each a colour picker and six hex digits). A change is saved at once for this project; **Reset** appears on one this project
+changes and hands it back to the computer-wide value or the built-in default. The transcription model is not here: it is the
+one default in Settings under Speech to text.
+
+![Proof chapter view - the Compare options and the Preview options opened](../../images/ui/proof-chapter-options.webp)
+
 Vocabulary hints teach the transcription model unusual names it's likely to mis-hear. The pills box is
 the input: type a name and press Enter or a comma to add it, click elsewhere to commit whatever you were
 typing, or press Backspace in an empty box to remove the last term added. Pasting a list with
@@ -260,6 +268,8 @@ words, starting and ending on a paragraph boundary). A candidate that falls shor
 even using the whole chapter says so, in words and an icon rather than colour alone. Open a candidate
 in the manuscript reader, or copy its range and length to paste elsewhere; neither changes anything — a
 suggestion is recomputed fresh every time you visit the page, never applied, exported or stored.
+
+**Preview options**, at the foot of the panel, sets how the suggestions are made for this project: the target length, the tolerance around it, the preset (**Sample** or **Spot check**) and how much of each chapter's ending to leave out. A change is saved at once and the suggestions are computed again; **Reset** hands one back to the computer-wide value or the default.
 
 ![Proof chapter view - the Preview panel suggesting three candidate excerpts from the manuscript](../../images/ui/proof-chapter-preview.webp)
 

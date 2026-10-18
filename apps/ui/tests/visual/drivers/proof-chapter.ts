@@ -37,6 +37,15 @@ export const proofChapterDrivers: Record<string, Driver> = {
   'compare-setup': async (page) => {
     await openCompare(page);
   },
+  // Both option groups the page keeps closed (the compare run's and the Preview's), opened: this project's values for the run and the excerpts.
+  'options-open': async (page) => {
+    await openCompare(page);
+    await page.getByRole('button', { name: /^Compare options/ }).click();
+    await page.getByRole('textbox', { name: 'Misread marker color', exact: true }).waitFor();
+    await page.getByRole('button', { name: /^Preview options/ }).click();
+    await page.getByRole('combobox', { name: 'Preset' }).waitFor();
+    await page.getByRole('combobox', { name: 'Preset' }).evaluate((element) => element.scrollIntoView({ block: 'end' }));
+  },
   'compare-setup-alt': async (page) => {
     await openCompare(page);
     await clickVisible(page, 'button', 'Large');
