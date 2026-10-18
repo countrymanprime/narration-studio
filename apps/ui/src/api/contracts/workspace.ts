@@ -94,6 +94,9 @@ export type WorkspaceAlignmentResult = {
   items: WorkspaceItem[];
   /** The recogniser whose words the alignment came from; absent when there is no stored alignment. */
   engine?: { id: string; name: string };
+  /** The recording check these word times came from, present only while that check is current. A voice sample marked from these words sends
+   * it back (`VoiceSampleMarkRequest.alignmentRecordId`), and the host refuses the mark when the chapter's current check is another one. */
+  recordId?: string;
 };
 
 /** The narrator's FX chains, from REAPER's FXChains folder: by

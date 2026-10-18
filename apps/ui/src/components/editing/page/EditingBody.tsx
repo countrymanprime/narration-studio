@@ -42,6 +42,7 @@ import { NO_TEXT, ScriptDoc } from '../script/ScriptDoc';
 import type { StackLine } from '../stack/types';
 import type { ManuscriptChapter } from '../../../types';
 import { useStackRetries } from '../stack/useStackRetries';
+import { useVoiceSample } from '../voicesample/useVoiceSample';
 import { TimelineStrip, type TimelineStripProps } from '../strip/TimelineStrip';
 import { useKeepTakes } from '../takes/keepTake';
 import { useHideOthers } from '../takes/prep/useHideOthers';
@@ -260,6 +261,8 @@ export function EditingBody(props: EditingBodyProps) {
   const cut = useCutWords({ journal, chapterId, chapterName, cuts: read.cuts, locator, onCuts: props.onCuts });
   const fx = useFxWords({ journal, chapterId, chapterName, effects: read.effects, cuts: read.cuts, locator, onEffects: props.onEffects });
   const accept = useAcceptWords({ journal, chapterId, onChange: props.onAccepted });
+  // Mark the selected words as how a character sounds: the dialog plays a range of its own, so the page's playback stops as it opens.
+  const voice = useVoiceSample({ chapterId, workspace: read.workspace, items: read.items, mediaUrl: tracks.mediaUrl, stopPlayback: playback.stop });
   // A DAW that changes the audio itself (a cut, FX or stack capability that runs `steps`) backs the words up first.
   const backupPlaces = useRef({ chapterId, locator, doc });
   backupPlaces.current = { chapterId, locator, doc };
@@ -389,6 +392,7 @@ export function EditingBody(props: EditingBodyProps) {
       remove: cut.remove,
       mute: cut.mute,
       fx: fx.fx,
+      voiceSample: () => voice.open(),
       takes: lineTakes.handlers.takes,
       keep: lineTakes.handlers.keep,
       hideOthers: hide.handlers.hideOthers,

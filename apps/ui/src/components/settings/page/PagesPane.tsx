@@ -23,30 +23,32 @@ export function PageSettingList({ items }: { items: readonly PageSetting[] }) {
               <b className="text-[0.9375rem] font-semibold">{item.label}</b>
               <span className="max-w-[60ch] text-[0.8125rem] text-[var(--text-muted)]">{item.why}</span>
               <span className="mt-1.5 text-[0.78rem] text-[var(--text-muted)]">
-                Belongs on {PAGE_LABEL[item.page]} › {item.where}
+                {item.panel ? 'Belongs on' : 'Set on'} {PAGE_LABEL[item.page]} › {item.where}
               </span>
             </div>
             <div className="flex flex-wrap items-start gap-2">
               <Button
                 variant="secondary"
                 size="sm"
-                aria-label={`Open ${PAGE_LABEL[item.page]}, where ${item.label} will be set`}
+                aria-label={`Open ${PAGE_LABEL[item.page]}, where ${item.label} ${item.panel ? 'will be' : 'is'} set`}
                 onClick={() => go(PAGE_PATH[item.page])}
               >
                 Open {PAGE_LABEL[item.page]}
               </Button>
             </div>
           </div>
-          <Disclosure
-            title="Change it here for now"
-            open={Boolean(open[item.id])}
-            onOpenChange={(next) => setOpen((current) => ({ ...current, [item.id]: next }))}
-            className="mt-2"
-          >
-            <div className="pt-2">
-              <PageSettingPanel panel={item.panel} />
-            </div>
-          </Disclosure>
+          {item.panel ? (
+            <Disclosure
+              title="Change it here for now"
+              open={Boolean(open[item.id])}
+              onOpenChange={(next) => setOpen((current) => ({ ...current, [item.id]: next }))}
+              className="mt-2"
+            >
+              <div className="pt-2">
+                <PageSettingPanel panel={item.panel} />
+              </div>
+            </Disclosure>
+          ) : null}
         </div>
       ))}
     </Panel>

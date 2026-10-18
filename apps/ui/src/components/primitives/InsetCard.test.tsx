@@ -51,4 +51,16 @@ describe('InsetCard', () => {
     );
     expect(screen.getByRole('alert').tagName).toBe('P');
   });
+
+  // The Script chapter card (`.bound .card`, app.css:145) and the Story Bible suggestion (`.xsug`, extraction.css:3) in the Studio Next mock.
+  it('draws the roomy frame on 8 px with 16 px at the sides, the snug one with 12 px and 8 px, and the default on 6 px with 12', () => {
+    const { unmount } = render(<InsetCard frame="roomy">Card</InsetCard>);
+    expect(screen.getByText('Card').className).toContain('rounded-lg px-4 py-3');
+    unmount();
+    const snug = render(<InsetCard frame="snug">Card</InsetCard>);
+    expect(screen.getByText('Card').className).toContain('rounded-lg py-2 pr-2 pl-3');
+    snug.unmount();
+    render(<InsetCard>Card</InsetCard>);
+    expect(screen.getByText('Card').className).toContain('rounded-md p-3');
+  });
 });

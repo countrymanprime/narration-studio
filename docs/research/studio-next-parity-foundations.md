@@ -6,6 +6,8 @@ Mock files: palette.test.tsx, d2-keycaps.test.tsx, form-primitives.test.tsx, pri
 
 Method: these are the ten mock test files no page owns. Each mock case is a row below, mapped to a real test by name, after reading the mock case and the real test. The checker is `node scripts/ci/studio-next-parity.mjs`. It proves a cited file exists and holds the name; it does not prove the test asserts what the mock case asserts, so a row's note says where the real test asserts less. The ADR sections read the `**Status:**` and `**Supersedes:**` lines of the files in `docs/adr/`, not the PRDs. The app was not run. The cited tests were run once (see [Verification](#verification)).
 
+**ADR numbers (2026-10-18).** The ADR sections read the files in `docs/adr/` at `c0fd988`. [#1830](https://github.com/countrymanprime/narration-utils/pull/1830) (2026-10-17) removed every ADR except [0001](../adr/0001-the-app-is-written-in-go.md) and [0002](../adr/0002-local-models-and-tools-come-first-so-the-app-is-free-to-use.md) from `docs/adr/`, so any other number below names a file that no longer exists. To read one, run `git show 39f989b^:docs/adr/<file name>`; `git ls-tree 39f989b^ docs/adr/` lists the names. The rows stay as the record of that date.
+
 ## Result
 
 - 91 mock cases: 25 `ported`, 56 `covered`, 10 `mock-only`. Of the 10, 8 are gaps (notes starting `GAP`) and 2 test the mock's own fixture factory and tag stripper. 11 `covered` rows name a gap in their note.
@@ -234,7 +236,7 @@ None of these is fixed here: each needs an ADR, and the owner audits the ADR set
 | id | what is missing | evidence |
 | --- | --- | --- |
 | R1 | DQ-17 (wheel browse follows the mock) has no ADR, so [useFollowCursor.ts](../../apps/ui/src/components/booth/useFollowCursor.ts) still reads as binding where the mock differs | no file in `docs/adr/` cites DQ-17 or supersedes 0119 |
-| R2 | DQ-18 supersedes (Audacity hides REAPER take management). `docs/reference/daw/audacity-3.md` settles the backups table but its Supersedes line is "none", and no ADR names 0660 | `docs/adr/0863-*.md` Supersedes line |
+| R2 | DQ-18 supersedes (Audacity hides REAPER take management). `docs/reference/daw/audacity-3.md` settles the backups table but its Supersedes line is "none", and no ADR names 0660 | the Supersedes line of the 0863 ADR file (retired in #1830) |
 | R3 | The DQ-1 rows supersede "where they differ". `docs/design/design-system.md` were not compared with the mock, by the [diff note](studio-next-token-and-primitive-diff.md) or by a page swap, so whether their Status lines owe "superseded in part by `docs/design/design-system.md#which-mocks-are-the-spec`" is open. The diff note says 0600's pill measures change (its section 3) | the diff note's section 6 |
 
 ## Owner steps

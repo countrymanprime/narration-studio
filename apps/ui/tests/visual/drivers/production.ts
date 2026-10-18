@@ -19,6 +19,12 @@ import {
 const MOCK_DAY = new Date(2026, 8, 26, 9, 0, 0);
 
 export const productionDrivers: Record<string, Driver> = {
+  'load-error': async (page) => {
+    await page.goto('/?mockInvalidPayload=production');
+    await settlePage(page);
+    await page.getByText('This page could not be loaded').waitFor();
+    await page.getByRole('button', { name: 'Retry' }).waitFor();
+  },
   'no-data': async (page) => {
     await openProduction(page);
     await page.getByText('Set a due date').waitFor();
