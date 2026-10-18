@@ -19,7 +19,7 @@ let mockAudioUrl: string | undefined;
  * would have nothing to act on. This serves a real, silent WAV from memory
  * instead. It's built lazily and only where object URLs exist (not jsdom).
  */
-function mockAudioSource(): string | undefined {
+export function mockAudioSource(): string | undefined {
   if (typeof URL.createObjectURL !== 'function') return undefined;
   if (!mockAudioUrl) {
     const sampleRate = 8000;

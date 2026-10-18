@@ -67,6 +67,8 @@ for (const rows of AREAS) {
  * The list may only shrink: a new one needs a reason a reviewer accepts, and a narrator's action never belongs here.
  */
 export const SILENT_CATCHES: Record<string, string> = {
+  'src/components/voicesamples/samplePlayerStore.ts#1':
+    "Another page's stop (Editing's playback, a take audition) threw while a sample was starting: the sample still starts, and that page's own audio is the thing that failed, not an action the narrator took.",
   'src/components/settings/page/BoothPanel.tsx#1':
     'The model list could not be read: nothing is claimed and no question is asked; Record looks the model up again before a take begins, so a missing model still stops there.',
   'src/api/uiLog.ts#1':
