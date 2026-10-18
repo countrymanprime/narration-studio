@@ -74,3 +74,33 @@ export const Grouped: Story = {
     await expect(within(list).getByText('View')).toHaveAttribute('role', 'presentation');
   },
 };
+
+// A row with a mouse-only control at its right (the Booth's speaker picker: a play control on a character who has voice samples). The option never
+// holds the button; the control is hidden from assistive technology and out of the Tab order, and the row's `hint` tells a screen reader the key that does the same.
+export const WithRowAction: Story = {
+  args: {
+    label: 'Speakers',
+    activeIndex: 0,
+    options: [
+      {
+        id: 'queen',
+        label: 'The Queen of Hearts',
+        trailing: '3 samples',
+        hint: 'Has 3 voice samples. Press Control Enter to hear the primary one.',
+        action: (
+          <IconButton label="Play" tabIndex={-1}>
+            ▶
+          </IconButton>
+        ),
+      },
+      { id: 'king', label: 'The King of Hearts', trailing: 'no sample' },
+    ],
+  },
+  play: async ({ canvasElement, args }) => {
+    const list = within(canvasElement).getByRole('listbox', { name: 'Speakers' });
+    const options = within(list).getAllByRole('option');
+    await expect(options[0]?.querySelector('button')).toBeNull();
+    await userEvent.click(options[0]!);
+    await expect(args.onPick).toHaveBeenCalledWith('queen');
+  },
+};

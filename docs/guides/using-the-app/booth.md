@@ -35,9 +35,9 @@ the view without moving your place.
 
 Clicking a Story Bible name, a marked word or a note shows it in the side panel's **Reference**, read-only: the entry, or the
 mark with its note and its replies. A click on another word or on empty space clears it. The side panel also has the suspected
-lines of this take, **Last punch**, **Voices in this scene** (the characters nearby, with their voice notes), **Coming up** (the
-next names with a pronunciation) and **This session** (how long you have recorded and how many punches). In a
-[pickup session](#a-pickup-session) the pickup lines come first.
+lines of this take, **Last punch**, **Voices in this scene** (the characters nearby, with their voice notes and their
+[voice samples](#voice-samples)), **Coming up** (the next names with a pronunciation) and **This session** (how long you have recorded and
+how many punches). In a [pickup session](#a-pickup-session) the pickup lines come first.
 
 The footer has **Record**, the take's timer, **Levels** (the microphone in use and two sliders), a level bar and the room tone
 the recorder reports for that microphone (**Room not measured yet** until it reports one), and the keys the Booth answers, drawn
@@ -186,6 +186,38 @@ DAW now, the saved project, or the Booth's own record of your last reading. Choo
 ends; nothing starts until you press Record.
 
 ![Booth - Resume at ¶ 14 chosen: the reading position moved to where the recording ends](../../images/ui/booth-waiting.webp)
+
+## Voice samples
+
+A voice sample is a stretch of your own recording that you marked in [Editing](editing.md#marking-a-voice-sample) as how a character
+sounded; the [Story Bible](story-bible.md#voice-samples) lists them. The Booth lets you hear one without leaving the text, so you can sound the same
+in chapter 19 as in chapter 3.
+
+- **Speaker picker.** Press a speaker chip. The characters who speak in this chapter are listed first under **In this chapter**, then
+  **Everyone else**. A character with samples shows how many, and a play button at the right of the row plays its primary sample (the starred one in the
+  Story Bible); a character with none says "no sample". The picker has the arrow keys now: **Up** and **Down** move the highlighted row and
+  **Enter** chooses it. **Ctrl+Enter** plays the highlighted character's primary sample without choosing it, and **Esc** stops it.
+- **Side panel.** Each voice in **Voices in this scene** has a play button for its primary sample and a count; press the count to list every sample
+  with its length, and press one to hear it. A voice with none says "No voice sample yet. Mark one in Editing." Press the play button, or a sample, again to stop it.
+
+![Booth - the speaker picker with a count and a play button on each character who has voice samples](../../images/ui/booth-voice-samples-picker.webp)
+
+![Booth - Voices in this scene with voice samples: a play button and count on each voice, one opened to list its samples](../../images/ui/booth-voice-samples-panel.webp)
+
+A sample plays through the computer's own speakers or headphones, never through the DAW, and it does not move the text or REAPER's cursor. Only one plays
+at a time, and playing another stops the first. While the text is following your voice, listening pauses for the sample: the Booth asks the session to
+pause, starts the sound about a third of a second later, and takes the pause back a third of a second after the sample ends or is stopped, with the note
+**Listening paused while a voice sample plays**. A session you paused yourself stays paused. If you press Resume while a sample plays, the Booth leaves it resumed.
+
+A sample is refused, with a sentence, in two cases:
+
+| Shown | What it means | What to do |
+| --- | --- | --- |
+| "Not while recording. Stop the take first." | A take is recording, and a sample through your speakers would be heard by the microphone. The play buttons are off, and their hint says so. | Stop the take. |
+| "Can't tell whether a take is recording (last heard 12 s ago)." with **Check again** | The DAW has gone quiet, so the Booth cannot tell whether it is recording. | Press **Check again**, or look in the DAW. |
+
+A sample whose audio file is missing is listed with **Audio file missing** and does not play; the Story Bible says what to do. If a sample cannot be loaded, it
+stops with a message. Playing a character's primary sample with a key from the text, and warming the samples when the Booth opens, come next.
 
 ## Bookmarks
 
