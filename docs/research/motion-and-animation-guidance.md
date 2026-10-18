@@ -311,12 +311,12 @@ Each slice is small, follows the CLAUDE.md workflow, and owes the [motion refere
 | --- | --- | --- | --- | --- | --- |
 | 1 | **Tokens and the reduce mechanism.** Tokens in `:root`, the `motion-ok:` custom variant, `data-motion` from `matchMedia`, the guard test, the motion-on Playwright spec | All | `styles.css`, a small hook in `main.tsx` or `layout/`, `legacyCss.test.ts` or a new sibling test, a `tests/` spec, `docs/design/motion-and-animation.md`, `design-system.md` | Vitest guard test red on today's list; the Playwright motion spec; `pnpm --dir apps/ui atlas` unchanged | M |
 | 2 | **Guard and tokenise what exists.** Booth column, SlideOver, rail, Button (`transition` to `transition-colors`), Switch, tooltip, ResumePrompt, Toast's dead `ease`, the dead `jump-target-pulse` | Booth, all overlays | `booth/reading/BoothText.tsx`, `booth/reading/useBrowseView.ts`, `primitives/SlideOver.tsx`, `layout/AppShell.tsx`, `primitives/Button.tsx`, `primitives/Switch.tsx`, `primitives/hintLayer.ts`, `booth/ResumePrompt.tsx`, `styles.css` | Slice 1's guard test goes green; Booth visual states unchanged; a Booth unit test that the column has no transition under reduce | S |
-| 3 | **In-app setting.** Settings → Appearance & keys → Motion: Follow Windows or Reduce, persisted | Settings | `components/settings/`, the settings schema and its Go side (a persisted setting, so `wire-contract-change` applies), the Settings guide and screenshot | Settings visual states; a unit test that Reduce sets `data-motion`; the guide | M |
-| 4 | **One overlay behaviour.** Popover, Menu, ContextMenu, Jump menu, NavDrawer, Toast enter, Dialog fade, via starting and ending style | All | `primitives/Popover.tsx`, `Menu.tsx`, `ContextMenu.tsx`, `NavDrawer.tsx`, `Toast.tsx`, `Dialog.tsx`, `layout/JumpMenu.tsx` | The overlay guard and aria runs (`pnpm --dir apps/ui run aria`), the motion spec (settles within 400 ms), atlas | M |
-| 5 | **"This changed" highlight and failure arrival.** One highlight utility; used on Production stage changes, restored rows after Undo, accepted Story Bible suggestions and Script jump targets (replacing `animate-pulse`); errors and stale banners fade in once | Production, Getting started, Pickups, Story Bible, Script, Proof, Delivery | A primitive or utility in `primitives/`, the call sites, `styles.css` | Unit tests on the class; the motion spec (no infinite animations); visual states unchanged under freeze | M |
+| 3 | **In-app setting** (not started: owner decision Q1). Settings → Appearance & keys → Motion: Follow Windows or Reduce, persisted | Settings | `components/settings/`, the settings schema and its Go side (a persisted setting, so `wire-contract-change` applies), the Settings guide and screenshot | Settings visual states; a unit test that Reduce sets `data-motion`; the guide | M |
+| 4 | **One overlay behaviour.** Popover, Menu, ContextMenu, Jump menu, NavDrawer, Toast enter, via starting and ending style. Dialogs stay instant (Q3) | All | `primitives/Popover.tsx`, `Menu.tsx`, `ContextMenu.tsx`, `NavDrawer.tsx`, `Toast.tsx`, `layout/JumpMenu.tsx` | The overlay guard and aria runs (`pnpm --dir apps/ui run aria`), the motion spec (settles within 400 ms), atlas | M |
+| 5 | **"This changed" highlight and failure arrival.** One highlight utility; used on Production stage changes, restored rows after Undo, accepted Story Bible suggestions and Script jump targets (replacing `animate-pulse`); errors and stale banners fade in once. Not on Proof decisions (Q5) | Production, Getting started, Pickups, Story Bible, Script, Proof, Delivery | A primitive or utility in `primitives/`, the call sites, `styles.css` | Unit tests on the class; the motion spec (no infinite animations); visual states unchanged under freeze | M |
 | 6 | **Optional: Proof ring arc and job completion mark** | Proof, Master and QC, Delivery | The ring component, `@property` in `styles.css`, the completion sites | As slice 5 | S |
 
-Slices 1 and 2 can land as one PR if the owner prefers. Slice 3 depends on Q1.
+Slices 1 and 2 land as one PR (owner decision, 2026-10-18). Slice 3 is not started (Q1).
 
 ## Questions for the owner
 
@@ -328,6 +328,19 @@ Slices 1 and 2 can land as one PR if the owner prefers. Slice 3 depends on Q1.
 | Q4 | Should the icon rail keep widening on hover? | Keep it, on the fast token, guarded. Whether to add a hover delay is a separate behaviour question | Keep, guarded |
 | Q5 | Should a decision on Proof highlight the decided row? | No. The toast and the selection move are enough at that frequency | No highlight |
 | Q6 | Should the mock site be corrected for its motion mistakes and the 14 fixes, or left as a frozen reference? | Leave it frozen and treat this note and the comparison as the record. Fix it only if the public site is un-paused (D75) | Leave it |
+
+## Owner decisions (2026-10-18)
+
+Recorded on [#1456](https://github.com/countrymanprime/narration-utils/issues/1456#issuecomment-6251946598).
+
+| # | Decision |
+| --- | --- |
+| Q1 | No in-app motion setting for now: the app follows Windows `prefers-reduced-motion` only. The `data-motion="reduce"` mechanism is still built. Slice 3 is not started |
+| Q2 | The Booth text column keeps its 300 ms slide, guarded so it does not move under reduce |
+| Q3 | Dialogs stay instant |
+| Q4 | The icon rail keeps widening on hover, on the fast token, guarded |
+| Q5 | A Proof decision does not highlight the decided row |
+| Q6 | The mock public site stays frozen |
 
 ## Caveats
 
