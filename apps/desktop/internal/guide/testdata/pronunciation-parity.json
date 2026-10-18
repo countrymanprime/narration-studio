@@ -1,0 +1,4303 @@
+{
+  "cases": [
+    {
+      "after": {
+        "entities": [
+          {
+            "aliases": [
+              {
+                "occurrences": [],
+                "pronunciation": {
+                  "alternate": {
+                    "ipa": "dʌbəlju",
+                    "source": "espeak"
+                  },
+                  "confidence": "narrator",
+                  "ipa": "dʌbəl",
+                  "source": "manual"
+                },
+                "text": "W"
+              },
+              {
+                "occurrences": [],
+                "pronunciation": {},
+                "text": "Bare"
+              },
+              {
+                "occurrences": [],
+                "text": "Plain"
+              },
+              {
+                "occurrences": [],
+                "pronunciation": {},
+                "text": "Wrenny"
+              },
+              {
+                "occurrences": [],
+                "pronunciation": {},
+                "text": null
+              },
+              {
+                "occurrences": [],
+                "pronunciation": {},
+                "text": 5
+              }
+            ],
+            "canonical_name": "Wren",
+            "category": "Character",
+            "id": "entity-wren",
+            "locked": false,
+            "pronunciation": {
+              "alternate": {
+                "confidence": "high",
+                "ipa": "ɹɛn",
+                "source": "cmu"
+              },
+              "chosen": true,
+              "confidence": "narrator",
+              "ipa": "wɹɛn",
+              "note": "said softly",
+              "source": "manual"
+            }
+          },
+          {
+            "aliases": [],
+            "canonical_name": "Ada",
+            "category": "Character",
+            "id": "entity-ada",
+            "locked": false,
+            "pronunciation": {
+              "alternate": {
+                "confidence": "high",
+                "ipa": "ˈɑdə",
+                "source": "cmu"
+              },
+              "confidence": "narrator",
+              "ipa": "ˈeɪdə",
+              "source": "manual"
+            }
+          },
+          {
+            "aliases": [],
+            "canonical_name": "Hal",
+            "category": "Character",
+            "id": "entity-hal",
+            "locked": false,
+            "pronunciation": {
+              "alternate": {
+                "confidence": "narrator",
+                "ipa": "hɑl",
+                "note": "kept only in use",
+                "source": "manual"
+              },
+              "confidence": "high",
+              "ipa": "hæl",
+              "note": "short a",
+              "source": "cmu",
+              "status": "query_sent"
+            }
+          },
+          {
+            "aliases": [],
+            "canonical_name": "Bo",
+            "category": "Character",
+            "id": "entity-bo",
+            "locked": false
+          },
+          {
+            "aliases": [],
+            "canonical_name": "Eli",
+            "category": "Character",
+            "id": "entity-eli",
+            "locked": false,
+            "pronunciation": {
+              "confidence": "low",
+              "source": "espeak"
+            }
+          },
+          {
+            "aliases": [],
+            "canonical_name": "Fay",
+            "category": "Character",
+            "id": "entity-fay",
+            "locked": false,
+            "pronunciation": {
+              "alternate": {},
+              "ipa": "",
+              "source": "cmu"
+            }
+          },
+          {
+            "aliases": [],
+            "canonical_name": "Gil",
+            "category": "Character",
+            "id": "entity-gil",
+            "locked": false,
+            "pronunciation": null
+          },
+          {
+            "aliases": [],
+            "canonical_name": "The Mill",
+            "category": "Character",
+            "id": "entity-mill",
+            "locked": true,
+            "pronunciation": {
+              "alternate": {
+                "confidence": "high",
+                "ipa": "ɹɛn",
+                "source": "cmu"
+              },
+              "ipa": "mɪl",
+              "source": "manual"
+            }
+          },
+          {
+            "aliases": [],
+            "canonical_name": "Cy",
+            "category": "Character",
+            "id": "entity-cy",
+            "locked": 1
+          },
+          {
+            "aliases": [],
+            "canonical_name": "Dot",
+            "category": "Character",
+            "id": "entity-dot",
+            "locked": 0
+          }
+        ],
+        "schema_version": 2
+      },
+      "arguments": {
+        "alias_index": null,
+        "entity_id": "entity-wren",
+        "ipa": " wɹɛn "
+      },
+      "command": "pronounce-user",
+      "start": "names"
+    },
+    {
+      "after": {
+        "entities": [
+          {
+            "aliases": [
+              {
+                "occurrences": [],
+                "pronunciation": {
+                  "alternate": {
+                    "ipa": "dʌbəlju",
+                    "source": "espeak"
+                  },
+                  "chosen": true,
+                  "confidence": "narrator",
+                  "ipa": "dʌb",
+                  "source": "manual"
+                },
+                "text": "W"
+              },
+              {
+                "occurrences": [],
+                "pronunciation": {},
+                "text": "Bare"
+              },
+              {
+                "occurrences": [],
+                "text": "Plain"
+              },
+              {
+                "occurrences": [],
+                "pronunciation": {},
+                "text": "Wrenny"
+              },
+              {
+                "occurrences": [],
+                "pronunciation": {},
+                "text": null
+              },
+              {
+                "occurrences": [],
+                "pronunciation": {},
+                "text": 5
+              }
+            ],
+            "canonical_name": "Wren",
+            "category": "Character",
+            "id": "entity-wren",
+            "locked": false,
+            "pronunciation": {
+              "chosen": true,
+              "confidence": "high",
+              "extra": "dropped",
+              "ipa": "ɹɛn",
+              "note": "said softly",
+              "source": "cmu",
+              "status": "researched"
+            }
+          },
+          {
+            "aliases": [],
+            "canonical_name": "Ada",
+            "category": "Character",
+            "id": "entity-ada",
+            "locked": false,
+            "pronunciation": {
+              "alternate": {
+                "confidence": "high",
+                "ipa": "ˈɑdə",
+                "source": "cmu"
+              },
+              "confidence": "narrator",
+              "ipa": "ˈeɪdə",
+              "source": "manual"
+            }
+          },
+          {
+            "aliases": [],
+            "canonical_name": "Hal",
+            "category": "Character",
+            "id": "entity-hal",
+            "locked": false,
+            "pronunciation": {
+              "alternate": {
+                "confidence": "narrator",
+                "ipa": "hɑl",
+                "note": "kept only in use",
+                "source": "manual"
+              },
+              "confidence": "high",
+              "ipa": "hæl",
+              "note": "short a",
+              "source": "cmu",
+              "status": "query_sent"
+            }
+          },
+          {
+            "aliases": [],
+            "canonical_name": "Bo",
+            "category": "Character",
+            "id": "entity-bo",
+            "locked": false
+          },
+          {
+            "aliases": [],
+            "canonical_name": "Eli",
+            "category": "Character",
+            "id": "entity-eli",
+            "locked": false,
+            "pronunciation": {
+              "confidence": "low",
+              "source": "espeak"
+            }
+          },
+          {
+            "aliases": [],
+            "canonical_name": "Fay",
+            "category": "Character",
+            "id": "entity-fay",
+            "locked": false,
+            "pronunciation": {
+              "alternate": {},
+              "ipa": "",
+              "source": "cmu"
+            }
+          },
+          {
+            "aliases": [],
+            "canonical_name": "Gil",
+            "category": "Character",
+            "id": "entity-gil",
+            "locked": false,
+            "pronunciation": null
+          },
+          {
+            "aliases": [],
+            "canonical_name": "The Mill",
+            "category": "Character",
+            "id": "entity-mill",
+            "locked": true,
+            "pronunciation": {
+              "alternate": {
+                "confidence": "high",
+                "ipa": "ɹɛn",
+                "source": "cmu"
+              },
+              "ipa": "mɪl",
+              "source": "manual"
+            }
+          },
+          {
+            "aliases": [],
+            "canonical_name": "Cy",
+            "category": "Character",
+            "id": "entity-cy",
+            "locked": 1
+          },
+          {
+            "aliases": [],
+            "canonical_name": "Dot",
+            "category": "Character",
+            "id": "entity-dot",
+            "locked": 0
+          }
+        ],
+        "schema_version": 2
+      },
+      "arguments": {
+        "alias_index": 0,
+        "entity_id": "entity-wren",
+        "ipa": "dʌb"
+      },
+      "command": "pronounce-user",
+      "start": "names"
+    },
+    {
+      "after": {
+        "entities": [
+          {
+            "aliases": [
+              {
+                "occurrences": [],
+                "pronunciation": {
+                  "alternate": {
+                    "ipa": "dʌbəlju",
+                    "source": "espeak"
+                  },
+                  "confidence": "narrator",
+                  "ipa": "dʌbəl",
+                  "source": "manual"
+                },
+                "text": "W"
+              },
+              {
+                "occurrences": [],
+                "pronunciation": {
+                  "chosen": true,
+                  "confidence": "narrator",
+                  "ipa": "bɛə",
+                  "source": "manual"
+                },
+                "text": "Bare"
+              },
+              {
+                "occurrences": [],
+                "text": "Plain"
+              },
+              {
+                "occurrences": [],
+                "pronunciation": {},
+                "text": "Wrenny"
+              },
+              {
+                "occurrences": [],
+                "pronunciation": {},
+                "text": null
+              },
+              {
+                "occurrences": [],
+                "pronunciation": {},
+                "text": 5
+              }
+            ],
+            "canonical_name": "Wren",
+            "category": "Character",
+            "id": "entity-wren",
+            "locked": false,
+            "pronunciation": {
+              "chosen": true,
+              "confidence": "high",
+              "extra": "dropped",
+              "ipa": "ɹɛn",
+              "note": "said softly",
+              "source": "cmu",
+              "status": "researched"
+            }
+          },
+          {
+            "aliases": [],
+            "canonical_name": "Ada",
+            "category": "Character",
+            "id": "entity-ada",
+            "locked": false,
+            "pronunciation": {
+              "alternate": {
+                "confidence": "high",
+                "ipa": "ˈɑdə",
+                "source": "cmu"
+              },
+              "confidence": "narrator",
+              "ipa": "ˈeɪdə",
+              "source": "manual"
+            }
+          },
+          {
+            "aliases": [],
+            "canonical_name": "Hal",
+            "category": "Character",
+            "id": "entity-hal",
+            "locked": false,
+            "pronunciation": {
+              "alternate": {
+                "confidence": "narrator",
+                "ipa": "hɑl",
+                "note": "kept only in use",
+                "source": "manual"
+              },
+              "confidence": "high",
+              "ipa": "hæl",
+              "note": "short a",
+              "source": "cmu",
+              "status": "query_sent"
+            }
+          },
+          {
+            "aliases": [],
+            "canonical_name": "Bo",
+            "category": "Character",
+            "id": "entity-bo",
+            "locked": false
+          },
+          {
+            "aliases": [],
+            "canonical_name": "Eli",
+            "category": "Character",
+            "id": "entity-eli",
+            "locked": false,
+            "pronunciation": {
+              "confidence": "low",
+              "source": "espeak"
+            }
+          },
+          {
+            "aliases": [],
+            "canonical_name": "Fay",
+            "category": "Character",
+            "id": "entity-fay",
+            "locked": false,
+            "pronunciation": {
+              "alternate": {},
+              "ipa": "",
+              "source": "cmu"
+            }
+          },
+          {
+            "aliases": [],
+            "canonical_name": "Gil",
+            "category": "Character",
+            "id": "entity-gil",
+            "locked": false,
+            "pronunciation": null
+          },
+          {
+            "aliases": [],
+            "canonical_name": "The Mill",
+            "category": "Character",
+            "id": "entity-mill",
+            "locked": true,
+            "pronunciation": {
+              "alternate": {
+                "confidence": "high",
+                "ipa": "ɹɛn",
+                "source": "cmu"
+              },
+              "ipa": "mɪl",
+              "source": "manual"
+            }
+          },
+          {
+            "aliases": [],
+            "canonical_name": "Cy",
+            "category": "Character",
+            "id": "entity-cy",
+            "locked": 1
+          },
+          {
+            "aliases": [],
+            "canonical_name": "Dot",
+            "category": "Character",
+            "id": "entity-dot",
+            "locked": 0
+          }
+        ],
+        "schema_version": 2
+      },
+      "arguments": {
+        "alias_index": 1,
+        "entity_id": "entity-wren",
+        "ipa": "bɛə"
+      },
+      "command": "pronounce-user",
+      "start": "names"
+    },
+    {
+      "after": {
+        "entities": [
+          {
+            "aliases": [
+              {
+                "occurrences": [],
+                "pronunciation": {
+                  "alternate": {
+                    "ipa": "dʌbəlju",
+                    "source": "espeak"
+                  },
+                  "confidence": "narrator",
+                  "ipa": "dʌbəl",
+                  "source": "manual"
+                },
+                "text": "W"
+              },
+              {
+                "occurrences": [],
+                "pronunciation": {},
+                "text": "Bare"
+              },
+              {
+                "occurrences": [],
+                "pronunciation": {
+                  "chosen": true,
+                  "confidence": "narrator",
+                  "ipa": "pleɪn",
+                  "source": "manual"
+                },
+                "text": "Plain"
+              },
+              {
+                "occurrences": [],
+                "pronunciation": {},
+                "text": "Wrenny"
+              },
+              {
+                "occurrences": [],
+                "pronunciation": {},
+                "text": null
+              },
+              {
+                "occurrences": [],
+                "pronunciation": {},
+                "text": 5
+              }
+            ],
+            "canonical_name": "Wren",
+            "category": "Character",
+            "id": "entity-wren",
+            "locked": false,
+            "pronunciation": {
+              "chosen": true,
+              "confidence": "high",
+              "extra": "dropped",
+              "ipa": "ɹɛn",
+              "note": "said softly",
+              "source": "cmu",
+              "status": "researched"
+            }
+          },
+          {
+            "aliases": [],
+            "canonical_name": "Ada",
+            "category": "Character",
+            "id": "entity-ada",
+            "locked": false,
+            "pronunciation": {
+              "alternate": {
+                "confidence": "high",
+                "ipa": "ˈɑdə",
+                "source": "cmu"
+              },
+              "confidence": "narrator",
+              "ipa": "ˈeɪdə",
+              "source": "manual"
+            }
+          },
+          {
+            "aliases": [],
+            "canonical_name": "Hal",
+            "category": "Character",
+            "id": "entity-hal",
+            "locked": false,
+            "pronunciation": {
+              "alternate": {
+                "confidence": "narrator",
+                "ipa": "hɑl",
+                "note": "kept only in use",
+                "source": "manual"
+              },
+              "confidence": "high",
+              "ipa": "hæl",
+              "note": "short a",
+              "source": "cmu",
+              "status": "query_sent"
+            }
+          },
+          {
+            "aliases": [],
+            "canonical_name": "Bo",
+            "category": "Character",
+            "id": "entity-bo",
+            "locked": false
+          },
+          {
+            "aliases": [],
+            "canonical_name": "Eli",
+            "category": "Character",
+            "id": "entity-eli",
+            "locked": false,
+            "pronunciation": {
+              "confidence": "low",
+              "source": "espeak"
+            }
+          },
+          {
+            "aliases": [],
+            "canonical_name": "Fay",
+            "category": "Character",
+            "id": "entity-fay",
+            "locked": false,
+            "pronunciation": {
+              "alternate": {},
+              "ipa": "",
+              "source": "cmu"
+            }
+          },
+          {
+            "aliases": [],
+            "canonical_name": "Gil",
+            "category": "Character",
+            "id": "entity-gil",
+            "locked": false,
+            "pronunciation": null
+          },
+          {
+            "aliases": [],
+            "canonical_name": "The Mill",
+            "category": "Character",
+            "id": "entity-mill",
+            "locked": true,
+            "pronunciation": {
+              "alternate": {
+                "confidence": "high",
+                "ipa": "ɹɛn",
+                "source": "cmu"
+              },
+              "ipa": "mɪl",
+              "source": "manual"
+            }
+          },
+          {
+            "aliases": [],
+            "canonical_name": "Cy",
+            "category": "Character",
+            "id": "entity-cy",
+            "locked": 1
+          },
+          {
+            "aliases": [],
+            "canonical_name": "Dot",
+            "category": "Character",
+            "id": "entity-dot",
+            "locked": 0
+          }
+        ],
+        "schema_version": 2
+      },
+      "arguments": {
+        "alias_index": 2,
+        "entity_id": "entity-wren",
+        "ipa": "pleɪn"
+      },
+      "command": "pronounce-user",
+      "start": "names"
+    },
+    {
+      "after": {
+        "entities": [
+          {
+            "aliases": [
+              {
+                "occurrences": [],
+                "pronunciation": {
+                  "alternate": {
+                    "ipa": "dʌbəlju",
+                    "source": "espeak"
+                  },
+                  "confidence": "narrator",
+                  "ipa": "dʌbəl",
+                  "source": "manual"
+                },
+                "text": "W"
+              },
+              {
+                "occurrences": [],
+                "pronunciation": {},
+                "text": "Bare"
+              },
+              {
+                "occurrences": [],
+                "text": "Plain"
+              },
+              {
+                "occurrences": [],
+                "pronunciation": {
+                  "chosen": true,
+                  "confidence": "narrator",
+                  "ipa": "ˈɹɛni",
+                  "source": "manual"
+                },
+                "text": "Wrenny"
+              },
+              {
+                "occurrences": [],
+                "pronunciation": {},
+                "text": null
+              },
+              {
+                "occurrences": [],
+                "pronunciation": {},
+                "text": 5
+              }
+            ],
+            "canonical_name": "Wren",
+            "category": "Character",
+            "id": "entity-wren",
+            "locked": false,
+            "pronunciation": {
+              "chosen": true,
+              "confidence": "high",
+              "extra": "dropped",
+              "ipa": "ɹɛn",
+              "note": "said softly",
+              "source": "cmu",
+              "status": "researched"
+            }
+          },
+          {
+            "aliases": [],
+            "canonical_name": "Ada",
+            "category": "Character",
+            "id": "entity-ada",
+            "locked": false,
+            "pronunciation": {
+              "alternate": {
+                "confidence": "high",
+                "ipa": "ˈɑdə",
+                "source": "cmu"
+              },
+              "confidence": "narrator",
+              "ipa": "ˈeɪdə",
+              "source": "manual"
+            }
+          },
+          {
+            "aliases": [],
+            "canonical_name": "Hal",
+            "category": "Character",
+            "id": "entity-hal",
+            "locked": false,
+            "pronunciation": {
+              "alternate": {
+                "confidence": "narrator",
+                "ipa": "hɑl",
+                "note": "kept only in use",
+                "source": "manual"
+              },
+              "confidence": "high",
+              "ipa": "hæl",
+              "note": "short a",
+              "source": "cmu",
+              "status": "query_sent"
+            }
+          },
+          {
+            "aliases": [],
+            "canonical_name": "Bo",
+            "category": "Character",
+            "id": "entity-bo",
+            "locked": false
+          },
+          {
+            "aliases": [],
+            "canonical_name": "Eli",
+            "category": "Character",
+            "id": "entity-eli",
+            "locked": false,
+            "pronunciation": {
+              "confidence": "low",
+              "source": "espeak"
+            }
+          },
+          {
+            "aliases": [],
+            "canonical_name": "Fay",
+            "category": "Character",
+            "id": "entity-fay",
+            "locked": false,
+            "pronunciation": {
+              "alternate": {},
+              "ipa": "",
+              "source": "cmu"
+            }
+          },
+          {
+            "aliases": [],
+            "canonical_name": "Gil",
+            "category": "Character",
+            "id": "entity-gil",
+            "locked": false,
+            "pronunciation": null
+          },
+          {
+            "aliases": [],
+            "canonical_name": "The Mill",
+            "category": "Character",
+            "id": "entity-mill",
+            "locked": true,
+            "pronunciation": {
+              "alternate": {
+                "confidence": "high",
+                "ipa": "ɹɛn",
+                "source": "cmu"
+              },
+              "ipa": "mɪl",
+              "source": "manual"
+            }
+          },
+          {
+            "aliases": [],
+            "canonical_name": "Cy",
+            "category": "Character",
+            "id": "entity-cy",
+            "locked": 1
+          },
+          {
+            "aliases": [],
+            "canonical_name": "Dot",
+            "category": "Character",
+            "id": "entity-dot",
+            "locked": 0
+          }
+        ],
+        "schema_version": 2
+      },
+      "arguments": {
+        "alias_index": 3,
+        "entity_id": "entity-wren",
+        "ipa": "ˈɹɛni"
+      },
+      "command": "pronounce-user",
+      "start": "names"
+    },
+    {
+      "after": {
+        "entities": [
+          {
+            "aliases": [
+              {
+                "occurrences": [],
+                "pronunciation": {
+                  "alternate": {
+                    "ipa": "dʌbəlju",
+                    "source": "espeak"
+                  },
+                  "confidence": "narrator",
+                  "ipa": "dʌbəl",
+                  "source": "manual"
+                },
+                "text": "W"
+              },
+              {
+                "occurrences": [],
+                "pronunciation": {},
+                "text": "Bare"
+              },
+              {
+                "occurrences": [],
+                "text": "Plain"
+              },
+              {
+                "occurrences": [],
+                "pronunciation": {},
+                "text": "Wrenny"
+              },
+              {
+                "occurrences": [],
+                "pronunciation": {
+                  "chosen": true,
+                  "confidence": "narrator",
+                  "ipa": "nʌl",
+                  "source": "manual"
+                },
+                "text": null
+              },
+              {
+                "occurrences": [],
+                "pronunciation": {},
+                "text": 5
+              }
+            ],
+            "canonical_name": "Wren",
+            "category": "Character",
+            "id": "entity-wren",
+            "locked": false,
+            "pronunciation": {
+              "chosen": true,
+              "confidence": "high",
+              "extra": "dropped",
+              "ipa": "ɹɛn",
+              "note": "said softly",
+              "source": "cmu",
+              "status": "researched"
+            }
+          },
+          {
+            "aliases": [],
+            "canonical_name": "Ada",
+            "category": "Character",
+            "id": "entity-ada",
+            "locked": false,
+            "pronunciation": {
+              "alternate": {
+                "confidence": "high",
+                "ipa": "ˈɑdə",
+                "source": "cmu"
+              },
+              "confidence": "narrator",
+              "ipa": "ˈeɪdə",
+              "source": "manual"
+            }
+          },
+          {
+            "aliases": [],
+            "canonical_name": "Hal",
+            "category": "Character",
+            "id": "entity-hal",
+            "locked": false,
+            "pronunciation": {
+              "alternate": {
+                "confidence": "narrator",
+                "ipa": "hɑl",
+                "note": "kept only in use",
+                "source": "manual"
+              },
+              "confidence": "high",
+              "ipa": "hæl",
+              "note": "short a",
+              "source": "cmu",
+              "status": "query_sent"
+            }
+          },
+          {
+            "aliases": [],
+            "canonical_name": "Bo",
+            "category": "Character",
+            "id": "entity-bo",
+            "locked": false
+          },
+          {
+            "aliases": [],
+            "canonical_name": "Eli",
+            "category": "Character",
+            "id": "entity-eli",
+            "locked": false,
+            "pronunciation": {
+              "confidence": "low",
+              "source": "espeak"
+            }
+          },
+          {
+            "aliases": [],
+            "canonical_name": "Fay",
+            "category": "Character",
+            "id": "entity-fay",
+            "locked": false,
+            "pronunciation": {
+              "alternate": {},
+              "ipa": "",
+              "source": "cmu"
+            }
+          },
+          {
+            "aliases": [],
+            "canonical_name": "Gil",
+            "category": "Character",
+            "id": "entity-gil",
+            "locked": false,
+            "pronunciation": null
+          },
+          {
+            "aliases": [],
+            "canonical_name": "The Mill",
+            "category": "Character",
+            "id": "entity-mill",
+            "locked": true,
+            "pronunciation": {
+              "alternate": {
+                "confidence": "high",
+                "ipa": "ɹɛn",
+                "source": "cmu"
+              },
+              "ipa": "mɪl",
+              "source": "manual"
+            }
+          },
+          {
+            "aliases": [],
+            "canonical_name": "Cy",
+            "category": "Character",
+            "id": "entity-cy",
+            "locked": 1
+          },
+          {
+            "aliases": [],
+            "canonical_name": "Dot",
+            "category": "Character",
+            "id": "entity-dot",
+            "locked": 0
+          }
+        ],
+        "schema_version": 2
+      },
+      "arguments": {
+        "alias_index": 4,
+        "entity_id": "entity-wren",
+        "ipa": "nʌl"
+      },
+      "command": "pronounce-user",
+      "start": "names"
+    },
+    {
+      "arguments": {
+        "alias_index": 6,
+        "entity_id": "entity-wren",
+        "ipa": "x"
+      },
+      "command": "pronounce-user",
+      "error": "Alias index out of range.",
+      "start": "names"
+    },
+    {
+      "arguments": {
+        "alias_index": -1,
+        "entity_id": "entity-wren",
+        "ipa": "x"
+      },
+      "command": "pronounce-user",
+      "error": "Alias index out of range.",
+      "start": "names"
+    },
+    {
+      "after": {
+        "entities": [
+          {
+            "aliases": [
+              {
+                "occurrences": [],
+                "pronunciation": {
+                  "alternate": {
+                    "ipa": "dʌbəlju",
+                    "source": "espeak"
+                  },
+                  "confidence": "narrator",
+                  "ipa": "dʌbəl",
+                  "source": "manual"
+                },
+                "text": "W"
+              },
+              {
+                "occurrences": [],
+                "pronunciation": {},
+                "text": "Bare"
+              },
+              {
+                "occurrences": [],
+                "text": "Plain"
+              },
+              {
+                "occurrences": [],
+                "pronunciation": {},
+                "text": "Wrenny"
+              },
+              {
+                "occurrences": [],
+                "pronunciation": {},
+                "text": null
+              },
+              {
+                "occurrences": [],
+                "pronunciation": {},
+                "text": 5
+              }
+            ],
+            "canonical_name": "Wren",
+            "category": "Character",
+            "id": "entity-wren",
+            "locked": false,
+            "pronunciation": {
+              "chosen": true,
+              "confidence": "high",
+              "extra": "dropped",
+              "ipa": "ɹɛn",
+              "note": "said softly",
+              "source": "cmu",
+              "status": "researched"
+            }
+          },
+          {
+            "aliases": [],
+            "canonical_name": "Ada",
+            "category": "Character",
+            "id": "entity-ada",
+            "locked": false,
+            "pronunciation": {
+              "alternate": {
+                "confidence": "high",
+                "ipa": "ˈɑdə",
+                "source": "cmu"
+              },
+              "chosen": true,
+              "confidence": "narrator",
+              "ipa": "ˈædə",
+              "source": "manual"
+            }
+          },
+          {
+            "aliases": [],
+            "canonical_name": "Hal",
+            "category": "Character",
+            "id": "entity-hal",
+            "locked": false,
+            "pronunciation": {
+              "alternate": {
+                "confidence": "narrator",
+                "ipa": "hɑl",
+                "note": "kept only in use",
+                "source": "manual"
+              },
+              "confidence": "high",
+              "ipa": "hæl",
+              "note": "short a",
+              "source": "cmu",
+              "status": "query_sent"
+            }
+          },
+          {
+            "aliases": [],
+            "canonical_name": "Bo",
+            "category": "Character",
+            "id": "entity-bo",
+            "locked": false
+          },
+          {
+            "aliases": [],
+            "canonical_name": "Eli",
+            "category": "Character",
+            "id": "entity-eli",
+            "locked": false,
+            "pronunciation": {
+              "confidence": "low",
+              "source": "espeak"
+            }
+          },
+          {
+            "aliases": [],
+            "canonical_name": "Fay",
+            "category": "Character",
+            "id": "entity-fay",
+            "locked": false,
+            "pronunciation": {
+              "alternate": {},
+              "ipa": "",
+              "source": "cmu"
+            }
+          },
+          {
+            "aliases": [],
+            "canonical_name": "Gil",
+            "category": "Character",
+            "id": "entity-gil",
+            "locked": false,
+            "pronunciation": null
+          },
+          {
+            "aliases": [],
+            "canonical_name": "The Mill",
+            "category": "Character",
+            "id": "entity-mill",
+            "locked": true,
+            "pronunciation": {
+              "alternate": {
+                "confidence": "high",
+                "ipa": "ɹɛn",
+                "source": "cmu"
+              },
+              "ipa": "mɪl",
+              "source": "manual"
+            }
+          },
+          {
+            "aliases": [],
+            "canonical_name": "Cy",
+            "category": "Character",
+            "id": "entity-cy",
+            "locked": 1
+          },
+          {
+            "aliases": [],
+            "canonical_name": "Dot",
+            "category": "Character",
+            "id": "entity-dot",
+            "locked": 0
+          }
+        ],
+        "schema_version": 2
+      },
+      "arguments": {
+        "alias_index": null,
+        "entity_id": "entity-ada",
+        "ipa": "ˈædə"
+      },
+      "command": "pronounce-user",
+      "start": "names"
+    },
+    {
+      "after": {
+        "entities": [
+          {
+            "aliases": [
+              {
+                "occurrences": [],
+                "pronunciation": {
+                  "alternate": {
+                    "ipa": "dʌbəlju",
+                    "source": "espeak"
+                  },
+                  "confidence": "narrator",
+                  "ipa": "dʌbəl",
+                  "source": "manual"
+                },
+                "text": "W"
+              },
+              {
+                "occurrences": [],
+                "pronunciation": {},
+                "text": "Bare"
+              },
+              {
+                "occurrences": [],
+                "text": "Plain"
+              },
+              {
+                "occurrences": [],
+                "pronunciation": {},
+                "text": "Wrenny"
+              },
+              {
+                "occurrences": [],
+                "pronunciation": {},
+                "text": null
+              },
+              {
+                "occurrences": [],
+                "pronunciation": {},
+                "text": 5
+              }
+            ],
+            "canonical_name": "Wren",
+            "category": "Character",
+            "id": "entity-wren",
+            "locked": false,
+            "pronunciation": {
+              "chosen": true,
+              "confidence": "high",
+              "extra": "dropped",
+              "ipa": "ɹɛn",
+              "note": "said softly",
+              "source": "cmu",
+              "status": "researched"
+            }
+          },
+          {
+            "aliases": [],
+            "canonical_name": "Ada",
+            "category": "Character",
+            "id": "entity-ada",
+            "locked": false,
+            "pronunciation": {
+              "alternate": {
+                "confidence": "high",
+                "ipa": "ˈɑdə",
+                "source": "cmu"
+              },
+              "confidence": "narrator",
+              "ipa": "ˈeɪdə",
+              "source": "manual"
+            }
+          },
+          {
+            "aliases": [],
+            "canonical_name": "Hal",
+            "category": "Character",
+            "id": "entity-hal",
+            "locked": false,
+            "pronunciation": {
+              "alternate": {
+                "confidence": "high",
+                "ipa": "hæl",
+                "source": "cmu"
+              },
+              "chosen": true,
+              "confidence": "narrator",
+              "ipa": "hal",
+              "note": "short a",
+              "source": "manual"
+            }
+          },
+          {
+            "aliases": [],
+            "canonical_name": "Bo",
+            "category": "Character",
+            "id": "entity-bo",
+            "locked": false
+          },
+          {
+            "aliases": [],
+            "canonical_name": "Eli",
+            "category": "Character",
+            "id": "entity-eli",
+            "locked": false,
+            "pronunciation": {
+              "confidence": "low",
+              "source": "espeak"
+            }
+          },
+          {
+            "aliases": [],
+            "canonical_name": "Fay",
+            "category": "Character",
+            "id": "entity-fay",
+            "locked": false,
+            "pronunciation": {
+              "alternate": {},
+              "ipa": "",
+              "source": "cmu"
+            }
+          },
+          {
+            "aliases": [],
+            "canonical_name": "Gil",
+            "category": "Character",
+            "id": "entity-gil",
+            "locked": false,
+            "pronunciation": null
+          },
+          {
+            "aliases": [],
+            "canonical_name": "The Mill",
+            "category": "Character",
+            "id": "entity-mill",
+            "locked": true,
+            "pronunciation": {
+              "alternate": {
+                "confidence": "high",
+                "ipa": "ɹɛn",
+                "source": "cmu"
+              },
+              "ipa": "mɪl",
+              "source": "manual"
+            }
+          },
+          {
+            "aliases": [],
+            "canonical_name": "Cy",
+            "category": "Character",
+            "id": "entity-cy",
+            "locked": 1
+          },
+          {
+            "aliases": [],
+            "canonical_name": "Dot",
+            "category": "Character",
+            "id": "entity-dot",
+            "locked": 0
+          }
+        ],
+        "schema_version": 2
+      },
+      "arguments": {
+        "alias_index": null,
+        "entity_id": "entity-hal",
+        "ipa": "hal"
+      },
+      "command": "pronounce-user",
+      "start": "names"
+    },
+    {
+      "after": {
+        "entities": [
+          {
+            "aliases": [
+              {
+                "occurrences": [],
+                "pronunciation": {
+                  "alternate": {
+                    "ipa": "dʌbəlju",
+                    "source": "espeak"
+                  },
+                  "confidence": "narrator",
+                  "ipa": "dʌbəl",
+                  "source": "manual"
+                },
+                "text": "W"
+              },
+              {
+                "occurrences": [],
+                "pronunciation": {},
+                "text": "Bare"
+              },
+              {
+                "occurrences": [],
+                "text": "Plain"
+              },
+              {
+                "occurrences": [],
+                "pronunciation": {},
+                "text": "Wrenny"
+              },
+              {
+                "occurrences": [],
+                "pronunciation": {},
+                "text": null
+              },
+              {
+                "occurrences": [],
+                "pronunciation": {},
+                "text": 5
+              }
+            ],
+            "canonical_name": "Wren",
+            "category": "Character",
+            "id": "entity-wren",
+            "locked": false,
+            "pronunciation": {
+              "chosen": true,
+              "confidence": "high",
+              "extra": "dropped",
+              "ipa": "ɹɛn",
+              "note": "said softly",
+              "source": "cmu",
+              "status": "researched"
+            }
+          },
+          {
+            "aliases": [],
+            "canonical_name": "Ada",
+            "category": "Character",
+            "id": "entity-ada",
+            "locked": false,
+            "pronunciation": {
+              "alternate": {
+                "confidence": "high",
+                "ipa": "ˈɑdə",
+                "source": "cmu"
+              },
+              "confidence": "narrator",
+              "ipa": "ˈeɪdə",
+              "source": "manual"
+            }
+          },
+          {
+            "aliases": [],
+            "canonical_name": "Hal",
+            "category": "Character",
+            "id": "entity-hal",
+            "locked": false,
+            "pronunciation": {
+              "alternate": {
+                "confidence": "narrator",
+                "ipa": "hɑl",
+                "note": "kept only in use",
+                "source": "manual"
+              },
+              "confidence": "high",
+              "ipa": "hæl",
+              "note": "short a",
+              "source": "cmu",
+              "status": "query_sent"
+            }
+          },
+          {
+            "aliases": [],
+            "canonical_name": "Bo",
+            "category": "Character",
+            "id": "entity-bo",
+            "locked": false,
+            "pronunciation": {
+              "chosen": true,
+              "confidence": "narrator",
+              "ipa": "boʊ",
+              "source": "manual"
+            }
+          },
+          {
+            "aliases": [],
+            "canonical_name": "Eli",
+            "category": "Character",
+            "id": "entity-eli",
+            "locked": false,
+            "pronunciation": {
+              "confidence": "low",
+              "source": "espeak"
+            }
+          },
+          {
+            "aliases": [],
+            "canonical_name": "Fay",
+            "category": "Character",
+            "id": "entity-fay",
+            "locked": false,
+            "pronunciation": {
+              "alternate": {},
+              "ipa": "",
+              "source": "cmu"
+            }
+          },
+          {
+            "aliases": [],
+            "canonical_name": "Gil",
+            "category": "Character",
+            "id": "entity-gil",
+            "locked": false,
+            "pronunciation": null
+          },
+          {
+            "aliases": [],
+            "canonical_name": "The Mill",
+            "category": "Character",
+            "id": "entity-mill",
+            "locked": true,
+            "pronunciation": {
+              "alternate": {
+                "confidence": "high",
+                "ipa": "ɹɛn",
+                "source": "cmu"
+              },
+              "ipa": "mɪl",
+              "source": "manual"
+            }
+          },
+          {
+            "aliases": [],
+            "canonical_name": "Cy",
+            "category": "Character",
+            "id": "entity-cy",
+            "locked": 1
+          },
+          {
+            "aliases": [],
+            "canonical_name": "Dot",
+            "category": "Character",
+            "id": "entity-dot",
+            "locked": 0
+          }
+        ],
+        "schema_version": 2
+      },
+      "arguments": {
+        "alias_index": null,
+        "entity_id": "entity-bo",
+        "ipa": "boʊ"
+      },
+      "command": "pronounce-user",
+      "start": "names"
+    },
+    {
+      "after": {
+        "entities": [
+          {
+            "aliases": [
+              {
+                "occurrences": [],
+                "pronunciation": {
+                  "alternate": {
+                    "ipa": "dʌbəlju",
+                    "source": "espeak"
+                  },
+                  "confidence": "narrator",
+                  "ipa": "dʌbəl",
+                  "source": "manual"
+                },
+                "text": "W"
+              },
+              {
+                "occurrences": [],
+                "pronunciation": {},
+                "text": "Bare"
+              },
+              {
+                "occurrences": [],
+                "text": "Plain"
+              },
+              {
+                "occurrences": [],
+                "pronunciation": {},
+                "text": "Wrenny"
+              },
+              {
+                "occurrences": [],
+                "pronunciation": {},
+                "text": null
+              },
+              {
+                "occurrences": [],
+                "pronunciation": {},
+                "text": 5
+              }
+            ],
+            "canonical_name": "Wren",
+            "category": "Character",
+            "id": "entity-wren",
+            "locked": false,
+            "pronunciation": {
+              "chosen": true,
+              "confidence": "high",
+              "extra": "dropped",
+              "ipa": "ɹɛn",
+              "note": "said softly",
+              "source": "cmu",
+              "status": "researched"
+            }
+          },
+          {
+            "aliases": [],
+            "canonical_name": "Ada",
+            "category": "Character",
+            "id": "entity-ada",
+            "locked": false,
+            "pronunciation": {
+              "alternate": {
+                "confidence": "high",
+                "ipa": "ˈɑdə",
+                "source": "cmu"
+              },
+              "confidence": "narrator",
+              "ipa": "ˈeɪdə",
+              "source": "manual"
+            }
+          },
+          {
+            "aliases": [],
+            "canonical_name": "Hal",
+            "category": "Character",
+            "id": "entity-hal",
+            "locked": false,
+            "pronunciation": {
+              "alternate": {
+                "confidence": "narrator",
+                "ipa": "hɑl",
+                "note": "kept only in use",
+                "source": "manual"
+              },
+              "confidence": "high",
+              "ipa": "hæl",
+              "note": "short a",
+              "source": "cmu",
+              "status": "query_sent"
+            }
+          },
+          {
+            "aliases": [],
+            "canonical_name": "Bo",
+            "category": "Character",
+            "id": "entity-bo",
+            "locked": false
+          },
+          {
+            "aliases": [],
+            "canonical_name": "Eli",
+            "category": "Character",
+            "id": "entity-eli",
+            "locked": false,
+            "pronunciation": {
+              "chosen": true,
+              "confidence": "narrator",
+              "ipa": "ˈiːlaɪ",
+              "source": "manual"
+            }
+          },
+          {
+            "aliases": [],
+            "canonical_name": "Fay",
+            "category": "Character",
+            "id": "entity-fay",
+            "locked": false,
+            "pronunciation": {
+              "alternate": {},
+              "ipa": "",
+              "source": "cmu"
+            }
+          },
+          {
+            "aliases": [],
+            "canonical_name": "Gil",
+            "category": "Character",
+            "id": "entity-gil",
+            "locked": false,
+            "pronunciation": null
+          },
+          {
+            "aliases": [],
+            "canonical_name": "The Mill",
+            "category": "Character",
+            "id": "entity-mill",
+            "locked": true,
+            "pronunciation": {
+              "alternate": {
+                "confidence": "high",
+                "ipa": "ɹɛn",
+                "source": "cmu"
+              },
+              "ipa": "mɪl",
+              "source": "manual"
+            }
+          },
+          {
+            "aliases": [],
+            "canonical_name": "Cy",
+            "category": "Character",
+            "id": "entity-cy",
+            "locked": 1
+          },
+          {
+            "aliases": [],
+            "canonical_name": "Dot",
+            "category": "Character",
+            "id": "entity-dot",
+            "locked": 0
+          }
+        ],
+        "schema_version": 2
+      },
+      "arguments": {
+        "alias_index": null,
+        "entity_id": "entity-eli",
+        "ipa": "ˈiːlaɪ"
+      },
+      "command": "pronounce-user",
+      "start": "names"
+    },
+    {
+      "after": {
+        "entities": [
+          {
+            "aliases": [
+              {
+                "occurrences": [],
+                "pronunciation": {
+                  "alternate": {
+                    "ipa": "dʌbəlju",
+                    "source": "espeak"
+                  },
+                  "confidence": "narrator",
+                  "ipa": "dʌbəl",
+                  "source": "manual"
+                },
+                "text": "W"
+              },
+              {
+                "occurrences": [],
+                "pronunciation": {},
+                "text": "Bare"
+              },
+              {
+                "occurrences": [],
+                "text": "Plain"
+              },
+              {
+                "occurrences": [],
+                "pronunciation": {},
+                "text": "Wrenny"
+              },
+              {
+                "occurrences": [],
+                "pronunciation": {},
+                "text": null
+              },
+              {
+                "occurrences": [],
+                "pronunciation": {},
+                "text": 5
+              }
+            ],
+            "canonical_name": "Wren",
+            "category": "Character",
+            "id": "entity-wren",
+            "locked": false,
+            "pronunciation": {
+              "chosen": true,
+              "confidence": "high",
+              "extra": "dropped",
+              "ipa": "ɹɛn",
+              "note": "said softly",
+              "source": "cmu",
+              "status": "researched"
+            }
+          },
+          {
+            "aliases": [],
+            "canonical_name": "Ada",
+            "category": "Character",
+            "id": "entity-ada",
+            "locked": false,
+            "pronunciation": {
+              "alternate": {
+                "confidence": "high",
+                "ipa": "ˈɑdə",
+                "source": "cmu"
+              },
+              "confidence": "narrator",
+              "ipa": "ˈeɪdə",
+              "source": "manual"
+            }
+          },
+          {
+            "aliases": [],
+            "canonical_name": "Hal",
+            "category": "Character",
+            "id": "entity-hal",
+            "locked": false,
+            "pronunciation": {
+              "alternate": {
+                "confidence": "narrator",
+                "ipa": "hɑl",
+                "note": "kept only in use",
+                "source": "manual"
+              },
+              "confidence": "high",
+              "ipa": "hæl",
+              "note": "short a",
+              "source": "cmu",
+              "status": "query_sent"
+            }
+          },
+          {
+            "aliases": [],
+            "canonical_name": "Bo",
+            "category": "Character",
+            "id": "entity-bo",
+            "locked": false
+          },
+          {
+            "aliases": [],
+            "canonical_name": "Eli",
+            "category": "Character",
+            "id": "entity-eli",
+            "locked": false,
+            "pronunciation": {
+              "confidence": "low",
+              "source": "espeak"
+            }
+          },
+          {
+            "aliases": [],
+            "canonical_name": "Fay",
+            "category": "Character",
+            "id": "entity-fay",
+            "locked": false,
+            "pronunciation": {
+              "chosen": true,
+              "confidence": "narrator",
+              "ipa": "feɪ",
+              "source": "manual"
+            }
+          },
+          {
+            "aliases": [],
+            "canonical_name": "Gil",
+            "category": "Character",
+            "id": "entity-gil",
+            "locked": false,
+            "pronunciation": null
+          },
+          {
+            "aliases": [],
+            "canonical_name": "The Mill",
+            "category": "Character",
+            "id": "entity-mill",
+            "locked": true,
+            "pronunciation": {
+              "alternate": {
+                "confidence": "high",
+                "ipa": "ɹɛn",
+                "source": "cmu"
+              },
+              "ipa": "mɪl",
+              "source": "manual"
+            }
+          },
+          {
+            "aliases": [],
+            "canonical_name": "Cy",
+            "category": "Character",
+            "id": "entity-cy",
+            "locked": 1
+          },
+          {
+            "aliases": [],
+            "canonical_name": "Dot",
+            "category": "Character",
+            "id": "entity-dot",
+            "locked": 0
+          }
+        ],
+        "schema_version": 2
+      },
+      "arguments": {
+        "alias_index": null,
+        "entity_id": "entity-fay",
+        "ipa": "feɪ"
+      },
+      "command": "pronounce-user",
+      "start": "names"
+    },
+    {
+      "after": {
+        "entities": [
+          {
+            "aliases": [
+              {
+                "occurrences": [],
+                "pronunciation": {
+                  "alternate": {
+                    "ipa": "dʌbəlju",
+                    "source": "espeak"
+                  },
+                  "confidence": "narrator",
+                  "ipa": "dʌbəl",
+                  "source": "manual"
+                },
+                "text": "W"
+              },
+              {
+                "occurrences": [],
+                "pronunciation": {},
+                "text": "Bare"
+              },
+              {
+                "occurrences": [],
+                "text": "Plain"
+              },
+              {
+                "occurrences": [],
+                "pronunciation": {},
+                "text": "Wrenny"
+              },
+              {
+                "occurrences": [],
+                "pronunciation": {},
+                "text": null
+              },
+              {
+                "occurrences": [],
+                "pronunciation": {},
+                "text": 5
+              }
+            ],
+            "canonical_name": "Wren",
+            "category": "Character",
+            "id": "entity-wren",
+            "locked": false,
+            "pronunciation": {
+              "chosen": true,
+              "confidence": "high",
+              "extra": "dropped",
+              "ipa": "ɹɛn",
+              "note": "said softly",
+              "source": "cmu",
+              "status": "researched"
+            }
+          },
+          {
+            "aliases": [],
+            "canonical_name": "Ada",
+            "category": "Character",
+            "id": "entity-ada",
+            "locked": false,
+            "pronunciation": {
+              "alternate": {
+                "confidence": "high",
+                "ipa": "ˈɑdə",
+                "source": "cmu"
+              },
+              "confidence": "narrator",
+              "ipa": "ˈeɪdə",
+              "source": "manual"
+            }
+          },
+          {
+            "aliases": [],
+            "canonical_name": "Hal",
+            "category": "Character",
+            "id": "entity-hal",
+            "locked": false,
+            "pronunciation": {
+              "alternate": {
+                "confidence": "narrator",
+                "ipa": "hɑl",
+                "note": "kept only in use",
+                "source": "manual"
+              },
+              "confidence": "high",
+              "ipa": "hæl",
+              "note": "short a",
+              "source": "cmu",
+              "status": "query_sent"
+            }
+          },
+          {
+            "aliases": [],
+            "canonical_name": "Bo",
+            "category": "Character",
+            "id": "entity-bo",
+            "locked": false
+          },
+          {
+            "aliases": [],
+            "canonical_name": "Eli",
+            "category": "Character",
+            "id": "entity-eli",
+            "locked": false,
+            "pronunciation": {
+              "confidence": "low",
+              "source": "espeak"
+            }
+          },
+          {
+            "aliases": [],
+            "canonical_name": "Fay",
+            "category": "Character",
+            "id": "entity-fay",
+            "locked": false,
+            "pronunciation": {
+              "alternate": {},
+              "ipa": "",
+              "source": "cmu"
+            }
+          },
+          {
+            "aliases": [],
+            "canonical_name": "Gil",
+            "category": "Character",
+            "id": "entity-gil",
+            "locked": false,
+            "pronunciation": {
+              "chosen": true,
+              "confidence": "narrator",
+              "ipa": "ɡɪl",
+              "source": "manual"
+            }
+          },
+          {
+            "aliases": [],
+            "canonical_name": "The Mill",
+            "category": "Character",
+            "id": "entity-mill",
+            "locked": true,
+            "pronunciation": {
+              "alternate": {
+                "confidence": "high",
+                "ipa": "ɹɛn",
+                "source": "cmu"
+              },
+              "ipa": "mɪl",
+              "source": "manual"
+            }
+          },
+          {
+            "aliases": [],
+            "canonical_name": "Cy",
+            "category": "Character",
+            "id": "entity-cy",
+            "locked": 1
+          },
+          {
+            "aliases": [],
+            "canonical_name": "Dot",
+            "category": "Character",
+            "id": "entity-dot",
+            "locked": 0
+          }
+        ],
+        "schema_version": 2
+      },
+      "arguments": {
+        "alias_index": null,
+        "entity_id": "entity-gil",
+        "ipa": "ɡɪl"
+      },
+      "command": "pronounce-user",
+      "start": "names"
+    },
+    {
+      "arguments": {
+        "alias_index": null,
+        "entity_id": "entity-mill",
+        "ipa": "x"
+      },
+      "command": "pronounce-user",
+      "error": "This entity is locked. Unlock it before editing.",
+      "start": "names"
+    },
+    {
+      "arguments": {
+        "alias_index": null,
+        "entity_id": "entity-cy",
+        "ipa": "x"
+      },
+      "command": "pronounce-user",
+      "error": "This entity is locked. Unlock it before editing.",
+      "start": "names"
+    },
+    {
+      "after": {
+        "entities": [
+          {
+            "aliases": [
+              {
+                "occurrences": [],
+                "pronunciation": {
+                  "alternate": {
+                    "ipa": "dʌbəlju",
+                    "source": "espeak"
+                  },
+                  "confidence": "narrator",
+                  "ipa": "dʌbəl",
+                  "source": "manual"
+                },
+                "text": "W"
+              },
+              {
+                "occurrences": [],
+                "pronunciation": {},
+                "text": "Bare"
+              },
+              {
+                "occurrences": [],
+                "text": "Plain"
+              },
+              {
+                "occurrences": [],
+                "pronunciation": {},
+                "text": "Wrenny"
+              },
+              {
+                "occurrences": [],
+                "pronunciation": {},
+                "text": null
+              },
+              {
+                "occurrences": [],
+                "pronunciation": {},
+                "text": 5
+              }
+            ],
+            "canonical_name": "Wren",
+            "category": "Character",
+            "id": "entity-wren",
+            "locked": false,
+            "pronunciation": {
+              "chosen": true,
+              "confidence": "high",
+              "extra": "dropped",
+              "ipa": "ɹɛn",
+              "note": "said softly",
+              "source": "cmu",
+              "status": "researched"
+            }
+          },
+          {
+            "aliases": [],
+            "canonical_name": "Ada",
+            "category": "Character",
+            "id": "entity-ada",
+            "locked": false,
+            "pronunciation": {
+              "alternate": {
+                "confidence": "high",
+                "ipa": "ˈɑdə",
+                "source": "cmu"
+              },
+              "confidence": "narrator",
+              "ipa": "ˈeɪdə",
+              "source": "manual"
+            }
+          },
+          {
+            "aliases": [],
+            "canonical_name": "Hal",
+            "category": "Character",
+            "id": "entity-hal",
+            "locked": false,
+            "pronunciation": {
+              "alternate": {
+                "confidence": "narrator",
+                "ipa": "hɑl",
+                "note": "kept only in use",
+                "source": "manual"
+              },
+              "confidence": "high",
+              "ipa": "hæl",
+              "note": "short a",
+              "source": "cmu",
+              "status": "query_sent"
+            }
+          },
+          {
+            "aliases": [],
+            "canonical_name": "Bo",
+            "category": "Character",
+            "id": "entity-bo",
+            "locked": false
+          },
+          {
+            "aliases": [],
+            "canonical_name": "Eli",
+            "category": "Character",
+            "id": "entity-eli",
+            "locked": false,
+            "pronunciation": {
+              "confidence": "low",
+              "source": "espeak"
+            }
+          },
+          {
+            "aliases": [],
+            "canonical_name": "Fay",
+            "category": "Character",
+            "id": "entity-fay",
+            "locked": false,
+            "pronunciation": {
+              "alternate": {},
+              "ipa": "",
+              "source": "cmu"
+            }
+          },
+          {
+            "aliases": [],
+            "canonical_name": "Gil",
+            "category": "Character",
+            "id": "entity-gil",
+            "locked": false,
+            "pronunciation": null
+          },
+          {
+            "aliases": [],
+            "canonical_name": "The Mill",
+            "category": "Character",
+            "id": "entity-mill",
+            "locked": true,
+            "pronunciation": {
+              "alternate": {
+                "confidence": "high",
+                "ipa": "ɹɛn",
+                "source": "cmu"
+              },
+              "ipa": "mɪl",
+              "source": "manual"
+            }
+          },
+          {
+            "aliases": [],
+            "canonical_name": "Cy",
+            "category": "Character",
+            "id": "entity-cy",
+            "locked": 1
+          },
+          {
+            "aliases": [],
+            "canonical_name": "Dot",
+            "category": "Character",
+            "id": "entity-dot",
+            "locked": 0,
+            "pronunciation": {
+              "chosen": true,
+              "confidence": "narrator",
+              "ipa": "dɒt",
+              "source": "manual"
+            }
+          }
+        ],
+        "schema_version": 2
+      },
+      "arguments": {
+        "alias_index": null,
+        "entity_id": "entity-dot",
+        "ipa": "dɒt"
+      },
+      "command": "pronounce-user",
+      "start": "names"
+    },
+    {
+      "arguments": {
+        "alias_index": null,
+        "entity_id": "entity-nobody",
+        "ipa": "x"
+      },
+      "command": "pronounce-user",
+      "error": "Entity not found.",
+      "start": "names"
+    },
+    {
+      "arguments": {
+        "alias_index": null,
+        "entity_id": "entity-bo",
+        "ipa": ""
+      },
+      "command": "pronounce-user",
+      "error": "Type a pronunciation first.",
+      "start": "names"
+    },
+    {
+      "arguments": {
+        "alias_index": null,
+        "entity_id": "entity-bo",
+        "ipa": "   "
+      },
+      "command": "pronounce-user",
+      "error": "Type a pronunciation first.",
+      "start": "names"
+    },
+    {
+      "arguments": {
+        "alias_index": null,
+        "entity_id": "entity-bo",
+        "ipa": "\u001f\u001c"
+      },
+      "command": "pronounce-user",
+      "error": "Type a pronunciation first.",
+      "start": "names"
+    },
+    {
+      "arguments": {
+        "alias_index": null,
+        "entity_id": "entity-bo",
+        "ipa": "two\nlines"
+      },
+      "command": "pronounce-user",
+      "error": "A pronunciation is one line.",
+      "start": "names"
+    },
+    {
+      "arguments": {
+        "alias_index": null,
+        "entity_id": "entity-bo",
+        "ipa": "carriage\rreturn"
+      },
+      "command": "pronounce-user",
+      "error": "A pronunciation is one line.",
+      "start": "names"
+    },
+    {
+      "after": {
+        "entities": [
+          {
+            "aliases": [
+              {
+                "occurrences": [],
+                "pronunciation": {
+                  "alternate": {
+                    "ipa": "dʌbəlju",
+                    "source": "espeak"
+                  },
+                  "confidence": "narrator",
+                  "ipa": "dʌbəl",
+                  "source": "manual"
+                },
+                "text": "W"
+              },
+              {
+                "occurrences": [],
+                "pronunciation": {},
+                "text": "Bare"
+              },
+              {
+                "occurrences": [],
+                "text": "Plain"
+              },
+              {
+                "occurrences": [],
+                "pronunciation": {},
+                "text": "Wrenny"
+              },
+              {
+                "occurrences": [],
+                "pronunciation": {},
+                "text": null
+              },
+              {
+                "occurrences": [],
+                "pronunciation": {},
+                "text": 5
+              }
+            ],
+            "canonical_name": "Wren",
+            "category": "Character",
+            "id": "entity-wren",
+            "locked": false,
+            "pronunciation": {
+              "chosen": true,
+              "confidence": "high",
+              "extra": "dropped",
+              "ipa": "ɹɛn",
+              "note": "said softly",
+              "source": "cmu",
+              "status": "researched"
+            }
+          },
+          {
+            "aliases": [],
+            "canonical_name": "Ada",
+            "category": "Character",
+            "id": "entity-ada",
+            "locked": false,
+            "pronunciation": {
+              "alternate": {
+                "confidence": "high",
+                "ipa": "ˈɑdə",
+                "source": "cmu"
+              },
+              "confidence": "narrator",
+              "ipa": "ˈeɪdə",
+              "source": "manual"
+            }
+          },
+          {
+            "aliases": [],
+            "canonical_name": "Hal",
+            "category": "Character",
+            "id": "entity-hal",
+            "locked": false,
+            "pronunciation": {
+              "alternate": {
+                "confidence": "narrator",
+                "ipa": "hɑl",
+                "note": "kept only in use",
+                "source": "manual"
+              },
+              "confidence": "high",
+              "ipa": "hæl",
+              "note": "short a",
+              "source": "cmu",
+              "status": "query_sent"
+            }
+          },
+          {
+            "aliases": [],
+            "canonical_name": "Bo",
+            "category": "Character",
+            "id": "entity-bo",
+            "locked": false,
+            "pronunciation": {
+              "chosen": true,
+              "confidence": "narrator",
+              "ipa": "line separator",
+              "source": "manual"
+            }
+          },
+          {
+            "aliases": [],
+            "canonical_name": "Eli",
+            "category": "Character",
+            "id": "entity-eli",
+            "locked": false,
+            "pronunciation": {
+              "confidence": "low",
+              "source": "espeak"
+            }
+          },
+          {
+            "aliases": [],
+            "canonical_name": "Fay",
+            "category": "Character",
+            "id": "entity-fay",
+            "locked": false,
+            "pronunciation": {
+              "alternate": {},
+              "ipa": "",
+              "source": "cmu"
+            }
+          },
+          {
+            "aliases": [],
+            "canonical_name": "Gil",
+            "category": "Character",
+            "id": "entity-gil",
+            "locked": false,
+            "pronunciation": null
+          },
+          {
+            "aliases": [],
+            "canonical_name": "The Mill",
+            "category": "Character",
+            "id": "entity-mill",
+            "locked": true,
+            "pronunciation": {
+              "alternate": {
+                "confidence": "high",
+                "ipa": "ɹɛn",
+                "source": "cmu"
+              },
+              "ipa": "mɪl",
+              "source": "manual"
+            }
+          },
+          {
+            "aliases": [],
+            "canonical_name": "Cy",
+            "category": "Character",
+            "id": "entity-cy",
+            "locked": 1
+          },
+          {
+            "aliases": [],
+            "canonical_name": "Dot",
+            "category": "Character",
+            "id": "entity-dot",
+            "locked": 0
+          }
+        ],
+        "schema_version": 2
+      },
+      "arguments": {
+        "alias_index": null,
+        "entity_id": "entity-bo",
+        "ipa": "line separator"
+      },
+      "command": "pronounce-user",
+      "start": "names"
+    },
+    {
+      "after": {
+        "entities": [
+          {
+            "aliases": [
+              {
+                "occurrences": [],
+                "pronunciation": {
+                  "alternate": {
+                    "ipa": "dʌbəlju",
+                    "source": "espeak"
+                  },
+                  "confidence": "narrator",
+                  "ipa": "dʌbəl",
+                  "source": "manual"
+                },
+                "text": "W"
+              },
+              {
+                "occurrences": [],
+                "pronunciation": {},
+                "text": "Bare"
+              },
+              {
+                "occurrences": [],
+                "text": "Plain"
+              },
+              {
+                "occurrences": [],
+                "pronunciation": {},
+                "text": "Wrenny"
+              },
+              {
+                "occurrences": [],
+                "pronunciation": {},
+                "text": null
+              },
+              {
+                "occurrences": [],
+                "pronunciation": {},
+                "text": 5
+              }
+            ],
+            "canonical_name": "Wren",
+            "category": "Character",
+            "id": "entity-wren",
+            "locked": false,
+            "pronunciation": {
+              "chosen": true,
+              "confidence": "high",
+              "extra": "dropped",
+              "ipa": "ɹɛn",
+              "note": "said softly",
+              "source": "cmu",
+              "status": "researched"
+            }
+          },
+          {
+            "aliases": [],
+            "canonical_name": "Ada",
+            "category": "Character",
+            "id": "entity-ada",
+            "locked": false,
+            "pronunciation": {
+              "alternate": {
+                "confidence": "high",
+                "ipa": "ˈɑdə",
+                "source": "cmu"
+              },
+              "confidence": "narrator",
+              "ipa": "ˈeɪdə",
+              "source": "manual"
+            }
+          },
+          {
+            "aliases": [],
+            "canonical_name": "Hal",
+            "category": "Character",
+            "id": "entity-hal",
+            "locked": false,
+            "pronunciation": {
+              "alternate": {
+                "confidence": "narrator",
+                "ipa": "hɑl",
+                "note": "kept only in use",
+                "source": "manual"
+              },
+              "confidence": "high",
+              "ipa": "hæl",
+              "note": "short a",
+              "source": "cmu",
+              "status": "query_sent"
+            }
+          },
+          {
+            "aliases": [],
+            "canonical_name": "Bo",
+            "category": "Character",
+            "id": "entity-bo",
+            "locked": false,
+            "pronunciation": {
+              "chosen": true,
+              "confidence": "narrator",
+              "ipa": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+              "source": "manual"
+            }
+          },
+          {
+            "aliases": [],
+            "canonical_name": "Eli",
+            "category": "Character",
+            "id": "entity-eli",
+            "locked": false,
+            "pronunciation": {
+              "confidence": "low",
+              "source": "espeak"
+            }
+          },
+          {
+            "aliases": [],
+            "canonical_name": "Fay",
+            "category": "Character",
+            "id": "entity-fay",
+            "locked": false,
+            "pronunciation": {
+              "alternate": {},
+              "ipa": "",
+              "source": "cmu"
+            }
+          },
+          {
+            "aliases": [],
+            "canonical_name": "Gil",
+            "category": "Character",
+            "id": "entity-gil",
+            "locked": false,
+            "pronunciation": null
+          },
+          {
+            "aliases": [],
+            "canonical_name": "The Mill",
+            "category": "Character",
+            "id": "entity-mill",
+            "locked": true,
+            "pronunciation": {
+              "alternate": {
+                "confidence": "high",
+                "ipa": "ɹɛn",
+                "source": "cmu"
+              },
+              "ipa": "mɪl",
+              "source": "manual"
+            }
+          },
+          {
+            "aliases": [],
+            "canonical_name": "Cy",
+            "category": "Character",
+            "id": "entity-cy",
+            "locked": 1
+          },
+          {
+            "aliases": [],
+            "canonical_name": "Dot",
+            "category": "Character",
+            "id": "entity-dot",
+            "locked": 0
+          }
+        ],
+        "schema_version": 2
+      },
+      "arguments": {
+        "alias_index": null,
+        "entity_id": "entity-bo",
+        "ipa": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+      },
+      "command": "pronounce-user",
+      "start": "names"
+    },
+    {
+      "arguments": {
+        "alias_index": null,
+        "entity_id": "entity-bo",
+        "ipa": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+      },
+      "command": "pronounce-user",
+      "error": "A pronunciation is at most 200 characters.",
+      "start": "names"
+    },
+    {
+      "after": {
+        "entities": [
+          {
+            "aliases": [
+              {
+                "occurrences": [],
+                "pronunciation": {
+                  "alternate": {
+                    "ipa": "dʌbəlju",
+                    "source": "espeak"
+                  },
+                  "confidence": "narrator",
+                  "ipa": "dʌbəl",
+                  "source": "manual"
+                },
+                "text": "W"
+              },
+              {
+                "occurrences": [],
+                "pronunciation": {},
+                "text": "Bare"
+              },
+              {
+                "occurrences": [],
+                "text": "Plain"
+              },
+              {
+                "occurrences": [],
+                "pronunciation": {},
+                "text": "Wrenny"
+              },
+              {
+                "occurrences": [],
+                "pronunciation": {},
+                "text": null
+              },
+              {
+                "occurrences": [],
+                "pronunciation": {},
+                "text": 5
+              }
+            ],
+            "canonical_name": "Wren",
+            "category": "Character",
+            "id": "entity-wren",
+            "locked": false,
+            "pronunciation": {
+              "chosen": true,
+              "confidence": "high",
+              "extra": "dropped",
+              "ipa": "ɹɛn",
+              "note": "said softly",
+              "source": "cmu",
+              "status": "researched"
+            }
+          },
+          {
+            "aliases": [],
+            "canonical_name": "Ada",
+            "category": "Character",
+            "id": "entity-ada",
+            "locked": false,
+            "pronunciation": {
+              "alternate": {
+                "confidence": "high",
+                "ipa": "ˈɑdə",
+                "source": "cmu"
+              },
+              "confidence": "narrator",
+              "ipa": "ˈeɪdə",
+              "source": "manual"
+            }
+          },
+          {
+            "aliases": [],
+            "canonical_name": "Hal",
+            "category": "Character",
+            "id": "entity-hal",
+            "locked": false,
+            "pronunciation": {
+              "alternate": {
+                "confidence": "narrator",
+                "ipa": "hɑl",
+                "note": "kept only in use",
+                "source": "manual"
+              },
+              "confidence": "high",
+              "ipa": "hæl",
+              "note": "short a",
+              "source": "cmu",
+              "status": "query_sent"
+            }
+          },
+          {
+            "aliases": [],
+            "canonical_name": "Bo",
+            "category": "Character",
+            "id": "entity-bo",
+            "locked": false,
+            "pronunciation": {
+              "chosen": true,
+              "confidence": "narrator",
+              "ipa": "ɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛ",
+              "source": "manual"
+            }
+          },
+          {
+            "aliases": [],
+            "canonical_name": "Eli",
+            "category": "Character",
+            "id": "entity-eli",
+            "locked": false,
+            "pronunciation": {
+              "confidence": "low",
+              "source": "espeak"
+            }
+          },
+          {
+            "aliases": [],
+            "canonical_name": "Fay",
+            "category": "Character",
+            "id": "entity-fay",
+            "locked": false,
+            "pronunciation": {
+              "alternate": {},
+              "ipa": "",
+              "source": "cmu"
+            }
+          },
+          {
+            "aliases": [],
+            "canonical_name": "Gil",
+            "category": "Character",
+            "id": "entity-gil",
+            "locked": false,
+            "pronunciation": null
+          },
+          {
+            "aliases": [],
+            "canonical_name": "The Mill",
+            "category": "Character",
+            "id": "entity-mill",
+            "locked": true,
+            "pronunciation": {
+              "alternate": {
+                "confidence": "high",
+                "ipa": "ɹɛn",
+                "source": "cmu"
+              },
+              "ipa": "mɪl",
+              "source": "manual"
+            }
+          },
+          {
+            "aliases": [],
+            "canonical_name": "Cy",
+            "category": "Character",
+            "id": "entity-cy",
+            "locked": 1
+          },
+          {
+            "aliases": [],
+            "canonical_name": "Dot",
+            "category": "Character",
+            "id": "entity-dot",
+            "locked": 0
+          }
+        ],
+        "schema_version": 2
+      },
+      "arguments": {
+        "alias_index": null,
+        "entity_id": "entity-bo",
+        "ipa": "ɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛɛ"
+      },
+      "command": "pronounce-user",
+      "start": "names"
+    },
+    {
+      "after": {
+        "entities": [
+          {
+            "aliases": [
+              {
+                "occurrences": [],
+                "pronunciation": {
+                  "alternate": {
+                    "ipa": "dʌbəlju",
+                    "source": "espeak"
+                  },
+                  "confidence": "narrator",
+                  "ipa": "dʌbəl",
+                  "source": "manual"
+                },
+                "text": "W"
+              },
+              {
+                "occurrences": [],
+                "pronunciation": {},
+                "text": "Bare"
+              },
+              {
+                "occurrences": [],
+                "text": "Plain"
+              },
+              {
+                "occurrences": [],
+                "pronunciation": {},
+                "text": "Wrenny"
+              },
+              {
+                "occurrences": [],
+                "pronunciation": {},
+                "text": null
+              },
+              {
+                "occurrences": [],
+                "pronunciation": {},
+                "text": 5
+              }
+            ],
+            "canonical_name": "Wren",
+            "category": "Character",
+            "id": "entity-wren",
+            "locked": false,
+            "pronunciation": {
+              "chosen": true,
+              "confidence": "high",
+              "extra": "dropped",
+              "ipa": "ɹɛn",
+              "note": "said softly",
+              "source": "cmu",
+              "status": "researched"
+            }
+          },
+          {
+            "aliases": [],
+            "canonical_name": "Ada",
+            "category": "Character",
+            "id": "entity-ada",
+            "locked": false,
+            "pronunciation": {
+              "alternate": {
+                "confidence": "high",
+                "ipa": "ˈɑdə",
+                "source": "cmu"
+              },
+              "confidence": "narrator",
+              "ipa": "ˈeɪdə",
+              "source": "manual"
+            }
+          },
+          {
+            "aliases": [],
+            "canonical_name": "Hal",
+            "category": "Character",
+            "id": "entity-hal",
+            "locked": false,
+            "pronunciation": {
+              "alternate": {
+                "confidence": "narrator",
+                "ipa": "hɑl",
+                "note": "kept only in use",
+                "source": "manual"
+              },
+              "confidence": "high",
+              "ipa": "hæl",
+              "note": "short a",
+              "source": "cmu",
+              "status": "query_sent"
+            }
+          },
+          {
+            "aliases": [],
+            "canonical_name": "Bo",
+            "category": "Character",
+            "id": "entity-bo",
+            "locked": false,
+            "pronunciation": {
+              "chosen": true,
+              "confidence": "narrator",
+              "ipa": "-boʊ",
+              "source": "manual"
+            }
+          },
+          {
+            "aliases": [],
+            "canonical_name": "Eli",
+            "category": "Character",
+            "id": "entity-eli",
+            "locked": false,
+            "pronunciation": {
+              "confidence": "low",
+              "source": "espeak"
+            }
+          },
+          {
+            "aliases": [],
+            "canonical_name": "Fay",
+            "category": "Character",
+            "id": "entity-fay",
+            "locked": false,
+            "pronunciation": {
+              "alternate": {},
+              "ipa": "",
+              "source": "cmu"
+            }
+          },
+          {
+            "aliases": [],
+            "canonical_name": "Gil",
+            "category": "Character",
+            "id": "entity-gil",
+            "locked": false,
+            "pronunciation": null
+          },
+          {
+            "aliases": [],
+            "canonical_name": "The Mill",
+            "category": "Character",
+            "id": "entity-mill",
+            "locked": true,
+            "pronunciation": {
+              "alternate": {
+                "confidence": "high",
+                "ipa": "ɹɛn",
+                "source": "cmu"
+              },
+              "ipa": "mɪl",
+              "source": "manual"
+            }
+          },
+          {
+            "aliases": [],
+            "canonical_name": "Cy",
+            "category": "Character",
+            "id": "entity-cy",
+            "locked": 1
+          },
+          {
+            "aliases": [],
+            "canonical_name": "Dot",
+            "category": "Character",
+            "id": "entity-dot",
+            "locked": 0
+          }
+        ],
+        "schema_version": 2
+      },
+      "arguments": {
+        "alias_index": null,
+        "entity_id": "entity-bo",
+        "ipa": "-boʊ"
+      },
+      "command": "pronounce-user",
+      "start": "names"
+    },
+    {
+      "after": {
+        "entities": [
+          {
+            "aliases": [
+              {
+                "occurrences": [],
+                "pronunciation": {
+                  "alternate": {
+                    "ipa": "dʌbəlju",
+                    "source": "espeak"
+                  },
+                  "confidence": "narrator",
+                  "ipa": "dʌbəl",
+                  "source": "manual"
+                },
+                "text": "W"
+              },
+              {
+                "occurrences": [],
+                "pronunciation": {},
+                "text": "Bare"
+              },
+              {
+                "occurrences": [],
+                "text": "Plain"
+              },
+              {
+                "occurrences": [],
+                "pronunciation": {},
+                "text": "Wrenny"
+              },
+              {
+                "occurrences": [],
+                "pronunciation": {},
+                "text": null
+              },
+              {
+                "occurrences": [],
+                "pronunciation": {},
+                "text": 5
+              }
+            ],
+            "canonical_name": "Wren",
+            "category": "Character",
+            "id": "entity-wren",
+            "locked": false,
+            "pronunciation": {
+              "chosen": true,
+              "confidence": "high",
+              "extra": "dropped",
+              "ipa": "ɹɛn",
+              "note": "said softly",
+              "source": "cmu",
+              "status": "researched"
+            }
+          },
+          {
+            "aliases": [],
+            "canonical_name": "Ada",
+            "category": "Character",
+            "id": "entity-ada",
+            "locked": false,
+            "pronunciation": {
+              "alternate": {
+                "confidence": "high",
+                "ipa": "ˈɑdə",
+                "source": "cmu"
+              },
+              "confidence": "narrator",
+              "ipa": "ˈeɪdə",
+              "source": "manual"
+            }
+          },
+          {
+            "aliases": [],
+            "canonical_name": "Hal",
+            "category": "Character",
+            "id": "entity-hal",
+            "locked": false,
+            "pronunciation": {
+              "alternate": {
+                "confidence": "narrator",
+                "ipa": "hɑl",
+                "note": "kept only in use",
+                "source": "manual"
+              },
+              "confidence": "high",
+              "ipa": "hæl",
+              "note": "short a",
+              "source": "cmu",
+              "status": "query_sent"
+            }
+          },
+          {
+            "aliases": [],
+            "canonical_name": "Bo",
+            "category": "Character",
+            "id": "entity-bo",
+            "locked": false,
+            "pronunciation": {
+              "chosen": true,
+              "confidence": "narrator",
+              "ipa": "boʊ",
+              "source": "manual"
+            }
+          },
+          {
+            "aliases": [],
+            "canonical_name": "Eli",
+            "category": "Character",
+            "id": "entity-eli",
+            "locked": false,
+            "pronunciation": {
+              "confidence": "low",
+              "source": "espeak"
+            }
+          },
+          {
+            "aliases": [],
+            "canonical_name": "Fay",
+            "category": "Character",
+            "id": "entity-fay",
+            "locked": false,
+            "pronunciation": {
+              "alternate": {},
+              "ipa": "",
+              "source": "cmu"
+            }
+          },
+          {
+            "aliases": [],
+            "canonical_name": "Gil",
+            "category": "Character",
+            "id": "entity-gil",
+            "locked": false,
+            "pronunciation": null
+          },
+          {
+            "aliases": [],
+            "canonical_name": "The Mill",
+            "category": "Character",
+            "id": "entity-mill",
+            "locked": true,
+            "pronunciation": {
+              "alternate": {
+                "confidence": "high",
+                "ipa": "ɹɛn",
+                "source": "cmu"
+              },
+              "ipa": "mɪl",
+              "source": "manual"
+            }
+          },
+          {
+            "aliases": [],
+            "canonical_name": "Cy",
+            "category": "Character",
+            "id": "entity-cy",
+            "locked": 1
+          },
+          {
+            "aliases": [],
+            "canonical_name": "Dot",
+            "category": "Character",
+            "id": "entity-dot",
+            "locked": 0
+          }
+        ],
+        "schema_version": 2
+      },
+      "arguments": {
+        "alias_index": null,
+        "entity_id": "entity-bo",
+        "ipa": "\u001fboʊ\u001d"
+      },
+      "command": "pronounce-user",
+      "start": "names"
+    },
+    {
+      "after": {
+        "entities": [
+          {
+            "aliases": [
+              {
+                "occurrences": [],
+                "pronunciation": {
+                  "alternate": {
+                    "ipa": "dʌbəlju",
+                    "source": "espeak"
+                  },
+                  "confidence": "narrator",
+                  "ipa": "dʌbəl",
+                  "source": "manual"
+                },
+                "text": "W"
+              },
+              {
+                "occurrences": [],
+                "pronunciation": {},
+                "text": "Bare"
+              },
+              {
+                "occurrences": [],
+                "text": "Plain"
+              },
+              {
+                "occurrences": [],
+                "pronunciation": {},
+                "text": "Wrenny"
+              },
+              {
+                "occurrences": [],
+                "pronunciation": {},
+                "text": null
+              },
+              {
+                "occurrences": [],
+                "pronunciation": {},
+                "text": 5
+              }
+            ],
+            "canonical_name": "Wren",
+            "category": "Character",
+            "id": "entity-wren",
+            "locked": false,
+            "pronunciation": {
+              "chosen": true,
+              "confidence": "high",
+              "extra": "dropped",
+              "ipa": "ɹɛn",
+              "note": "said softly",
+              "source": "cmu",
+              "status": "researched"
+            }
+          },
+          {
+            "aliases": [],
+            "canonical_name": "Ada",
+            "category": "Character",
+            "id": "entity-ada",
+            "locked": false,
+            "pronunciation": {
+              "alternate": {
+                "confidence": "high",
+                "ipa": "ˈɑdə",
+                "source": "cmu"
+              },
+              "confidence": "narrator",
+              "ipa": "ˈeɪdə",
+              "source": "manual"
+            }
+          },
+          {
+            "aliases": [],
+            "canonical_name": "Hal",
+            "category": "Character",
+            "id": "entity-hal",
+            "locked": false,
+            "pronunciation": {
+              "alternate": {
+                "confidence": "narrator",
+                "ipa": "hɑl",
+                "note": "kept only in use",
+                "source": "manual"
+              },
+              "confidence": "high",
+              "ipa": "hæl",
+              "note": "short a",
+              "source": "cmu",
+              "status": "query_sent"
+            }
+          },
+          {
+            "aliases": [],
+            "canonical_name": "Bo",
+            "category": "Character",
+            "id": "entity-bo",
+            "locked": false,
+            "pronunciation": {
+              "chosen": true,
+              "confidence": "narrator",
+              "ipa": "b\u0000o",
+              "source": "manual"
+            }
+          },
+          {
+            "aliases": [],
+            "canonical_name": "Eli",
+            "category": "Character",
+            "id": "entity-eli",
+            "locked": false,
+            "pronunciation": {
+              "confidence": "low",
+              "source": "espeak"
+            }
+          },
+          {
+            "aliases": [],
+            "canonical_name": "Fay",
+            "category": "Character",
+            "id": "entity-fay",
+            "locked": false,
+            "pronunciation": {
+              "alternate": {},
+              "ipa": "",
+              "source": "cmu"
+            }
+          },
+          {
+            "aliases": [],
+            "canonical_name": "Gil",
+            "category": "Character",
+            "id": "entity-gil",
+            "locked": false,
+            "pronunciation": null
+          },
+          {
+            "aliases": [],
+            "canonical_name": "The Mill",
+            "category": "Character",
+            "id": "entity-mill",
+            "locked": true,
+            "pronunciation": {
+              "alternate": {
+                "confidence": "high",
+                "ipa": "ɹɛn",
+                "source": "cmu"
+              },
+              "ipa": "mɪl",
+              "source": "manual"
+            }
+          },
+          {
+            "aliases": [],
+            "canonical_name": "Cy",
+            "category": "Character",
+            "id": "entity-cy",
+            "locked": 1
+          },
+          {
+            "aliases": [],
+            "canonical_name": "Dot",
+            "category": "Character",
+            "id": "entity-dot",
+            "locked": 0
+          }
+        ],
+        "schema_version": 2
+      },
+      "arguments": {
+        "alias_index": null,
+        "entity_id": "entity-bo",
+        "ipa": "b\u0000o"
+      },
+      "command": "pronounce-user",
+      "start": "names"
+    },
+    {
+      "arguments": {
+        "alias_index": null,
+        "entity_id": "entity-mill",
+        "ipa": "   "
+      },
+      "command": "pronounce-user",
+      "error": "Type a pronunciation first.",
+      "start": "names"
+    },
+    {
+      "arguments": {
+        "alias_index": null,
+        "entity_id": "entity-bo",
+        "ipa": "boʊ"
+      },
+      "command": "pronounce-user",
+      "error": "Guide file does not exist; build it first.",
+      "start": "missing"
+    },
+    {
+      "arguments": {
+        "alias_index": null,
+        "entity_id": "entity-bo",
+        "ipa": ""
+      },
+      "command": "pronounce-user",
+      "error": "Type a pronunciation first.",
+      "start": "missing"
+    },
+    {
+      "arguments": {
+        "alias_index": null,
+        "entity_id": "entity-bo",
+        "ipa": "boʊ"
+      },
+      "command": "pronounce-user",
+      "error": "Guide file does not exist; build it first.",
+      "start": "empty"
+    },
+    {
+      "arguments": {
+        "alias_index": null,
+        "entity_id": "entity-wren"
+      },
+      "command": "pronunciation-use-alternate",
+      "error": "There is no other pronunciation to switch to.",
+      "start": "names"
+    },
+    {
+      "after": {
+        "entities": [
+          {
+            "aliases": [
+              {
+                "occurrences": [],
+                "pronunciation": {
+                  "alternate": {
+                    "confidence": "narrator",
+                    "ipa": "dʌbəl",
+                    "source": "manual"
+                  },
+                  "chosen": true,
+                  "ipa": "dʌbəlju",
+                  "source": "espeak"
+                },
+                "text": "W"
+              },
+              {
+                "occurrences": [],
+                "pronunciation": {},
+                "text": "Bare"
+              },
+              {
+                "occurrences": [],
+                "text": "Plain"
+              },
+              {
+                "occurrences": [],
+                "pronunciation": {},
+                "text": "Wrenny"
+              },
+              {
+                "occurrences": [],
+                "pronunciation": {},
+                "text": null
+              },
+              {
+                "occurrences": [],
+                "pronunciation": {},
+                "text": 5
+              }
+            ],
+            "canonical_name": "Wren",
+            "category": "Character",
+            "id": "entity-wren",
+            "locked": false,
+            "pronunciation": {
+              "chosen": true,
+              "confidence": "high",
+              "extra": "dropped",
+              "ipa": "ɹɛn",
+              "note": "said softly",
+              "source": "cmu",
+              "status": "researched"
+            }
+          },
+          {
+            "aliases": [],
+            "canonical_name": "Ada",
+            "category": "Character",
+            "id": "entity-ada",
+            "locked": false,
+            "pronunciation": {
+              "alternate": {
+                "confidence": "high",
+                "ipa": "ˈɑdə",
+                "source": "cmu"
+              },
+              "confidence": "narrator",
+              "ipa": "ˈeɪdə",
+              "source": "manual"
+            }
+          },
+          {
+            "aliases": [],
+            "canonical_name": "Hal",
+            "category": "Character",
+            "id": "entity-hal",
+            "locked": false,
+            "pronunciation": {
+              "alternate": {
+                "confidence": "narrator",
+                "ipa": "hɑl",
+                "note": "kept only in use",
+                "source": "manual"
+              },
+              "confidence": "high",
+              "ipa": "hæl",
+              "note": "short a",
+              "source": "cmu",
+              "status": "query_sent"
+            }
+          },
+          {
+            "aliases": [],
+            "canonical_name": "Bo",
+            "category": "Character",
+            "id": "entity-bo",
+            "locked": false
+          },
+          {
+            "aliases": [],
+            "canonical_name": "Eli",
+            "category": "Character",
+            "id": "entity-eli",
+            "locked": false,
+            "pronunciation": {
+              "confidence": "low",
+              "source": "espeak"
+            }
+          },
+          {
+            "aliases": [],
+            "canonical_name": "Fay",
+            "category": "Character",
+            "id": "entity-fay",
+            "locked": false,
+            "pronunciation": {
+              "alternate": {},
+              "ipa": "",
+              "source": "cmu"
+            }
+          },
+          {
+            "aliases": [],
+            "canonical_name": "Gil",
+            "category": "Character",
+            "id": "entity-gil",
+            "locked": false,
+            "pronunciation": null
+          },
+          {
+            "aliases": [],
+            "canonical_name": "The Mill",
+            "category": "Character",
+            "id": "entity-mill",
+            "locked": true,
+            "pronunciation": {
+              "alternate": {
+                "confidence": "high",
+                "ipa": "ɹɛn",
+                "source": "cmu"
+              },
+              "ipa": "mɪl",
+              "source": "manual"
+            }
+          },
+          {
+            "aliases": [],
+            "canonical_name": "Cy",
+            "category": "Character",
+            "id": "entity-cy",
+            "locked": 1
+          },
+          {
+            "aliases": [],
+            "canonical_name": "Dot",
+            "category": "Character",
+            "id": "entity-dot",
+            "locked": 0
+          }
+        ],
+        "schema_version": 2
+      },
+      "arguments": {
+        "alias_index": 0,
+        "entity_id": "entity-wren"
+      },
+      "command": "pronunciation-use-alternate",
+      "start": "names"
+    },
+    {
+      "arguments": {
+        "alias_index": 1,
+        "entity_id": "entity-wren"
+      },
+      "command": "pronunciation-use-alternate",
+      "error": "There is no other pronunciation to switch to.",
+      "start": "names"
+    },
+    {
+      "arguments": {
+        "alias_index": 2,
+        "entity_id": "entity-wren"
+      },
+      "command": "pronunciation-use-alternate",
+      "error": "There is no other pronunciation to switch to.",
+      "start": "names"
+    },
+    {
+      "arguments": {
+        "alias_index": 5,
+        "entity_id": "entity-wren"
+      },
+      "command": "pronunciation-use-alternate",
+      "error": "There is no other pronunciation to switch to.",
+      "start": "names"
+    },
+    {
+      "arguments": {
+        "alias_index": 6,
+        "entity_id": "entity-wren"
+      },
+      "command": "pronunciation-use-alternate",
+      "error": "Alias index out of range.",
+      "start": "names"
+    },
+    {
+      "after": {
+        "entities": [
+          {
+            "aliases": [
+              {
+                "occurrences": [],
+                "pronunciation": {
+                  "alternate": {
+                    "ipa": "dʌbəlju",
+                    "source": "espeak"
+                  },
+                  "confidence": "narrator",
+                  "ipa": "dʌbəl",
+                  "source": "manual"
+                },
+                "text": "W"
+              },
+              {
+                "occurrences": [],
+                "pronunciation": {},
+                "text": "Bare"
+              },
+              {
+                "occurrences": [],
+                "text": "Plain"
+              },
+              {
+                "occurrences": [],
+                "pronunciation": {},
+                "text": "Wrenny"
+              },
+              {
+                "occurrences": [],
+                "pronunciation": {},
+                "text": null
+              },
+              {
+                "occurrences": [],
+                "pronunciation": {},
+                "text": 5
+              }
+            ],
+            "canonical_name": "Wren",
+            "category": "Character",
+            "id": "entity-wren",
+            "locked": false,
+            "pronunciation": {
+              "chosen": true,
+              "confidence": "high",
+              "extra": "dropped",
+              "ipa": "ɹɛn",
+              "note": "said softly",
+              "source": "cmu",
+              "status": "researched"
+            }
+          },
+          {
+            "aliases": [],
+            "canonical_name": "Ada",
+            "category": "Character",
+            "id": "entity-ada",
+            "locked": false,
+            "pronunciation": {
+              "alternate": {
+                "confidence": "narrator",
+                "ipa": "ˈeɪdə",
+                "source": "manual"
+              },
+              "chosen": true,
+              "confidence": "high",
+              "ipa": "ˈɑdə",
+              "source": "cmu"
+            }
+          },
+          {
+            "aliases": [],
+            "canonical_name": "Hal",
+            "category": "Character",
+            "id": "entity-hal",
+            "locked": false,
+            "pronunciation": {
+              "alternate": {
+                "confidence": "narrator",
+                "ipa": "hɑl",
+                "note": "kept only in use",
+                "source": "manual"
+              },
+              "confidence": "high",
+              "ipa": "hæl",
+              "note": "short a",
+              "source": "cmu",
+              "status": "query_sent"
+            }
+          },
+          {
+            "aliases": [],
+            "canonical_name": "Bo",
+            "category": "Character",
+            "id": "entity-bo",
+            "locked": false
+          },
+          {
+            "aliases": [],
+            "canonical_name": "Eli",
+            "category": "Character",
+            "id": "entity-eli",
+            "locked": false,
+            "pronunciation": {
+              "confidence": "low",
+              "source": "espeak"
+            }
+          },
+          {
+            "aliases": [],
+            "canonical_name": "Fay",
+            "category": "Character",
+            "id": "entity-fay",
+            "locked": false,
+            "pronunciation": {
+              "alternate": {},
+              "ipa": "",
+              "source": "cmu"
+            }
+          },
+          {
+            "aliases": [],
+            "canonical_name": "Gil",
+            "category": "Character",
+            "id": "entity-gil",
+            "locked": false,
+            "pronunciation": null
+          },
+          {
+            "aliases": [],
+            "canonical_name": "The Mill",
+            "category": "Character",
+            "id": "entity-mill",
+            "locked": true,
+            "pronunciation": {
+              "alternate": {
+                "confidence": "high",
+                "ipa": "ɹɛn",
+                "source": "cmu"
+              },
+              "ipa": "mɪl",
+              "source": "manual"
+            }
+          },
+          {
+            "aliases": [],
+            "canonical_name": "Cy",
+            "category": "Character",
+            "id": "entity-cy",
+            "locked": 1
+          },
+          {
+            "aliases": [],
+            "canonical_name": "Dot",
+            "category": "Character",
+            "id": "entity-dot",
+            "locked": 0
+          }
+        ],
+        "schema_version": 2
+      },
+      "arguments": {
+        "alias_index": null,
+        "entity_id": "entity-ada"
+      },
+      "command": "pronunciation-use-alternate",
+      "start": "names"
+    },
+    {
+      "after": {
+        "entities": [
+          {
+            "aliases": [
+              {
+                "occurrences": [],
+                "pronunciation": {
+                  "alternate": {
+                    "ipa": "dʌbəlju",
+                    "source": "espeak"
+                  },
+                  "confidence": "narrator",
+                  "ipa": "dʌbəl",
+                  "source": "manual"
+                },
+                "text": "W"
+              },
+              {
+                "occurrences": [],
+                "pronunciation": {},
+                "text": "Bare"
+              },
+              {
+                "occurrences": [],
+                "text": "Plain"
+              },
+              {
+                "occurrences": [],
+                "pronunciation": {},
+                "text": "Wrenny"
+              },
+              {
+                "occurrences": [],
+                "pronunciation": {},
+                "text": null
+              },
+              {
+                "occurrences": [],
+                "pronunciation": {},
+                "text": 5
+              }
+            ],
+            "canonical_name": "Wren",
+            "category": "Character",
+            "id": "entity-wren",
+            "locked": false,
+            "pronunciation": {
+              "chosen": true,
+              "confidence": "high",
+              "extra": "dropped",
+              "ipa": "ɹɛn",
+              "note": "said softly",
+              "source": "cmu",
+              "status": "researched"
+            }
+          },
+          {
+            "aliases": [],
+            "canonical_name": "Ada",
+            "category": "Character",
+            "id": "entity-ada",
+            "locked": false,
+            "pronunciation": {
+              "alternate": {
+                "confidence": "high",
+                "ipa": "ˈɑdə",
+                "source": "cmu"
+              },
+              "confidence": "narrator",
+              "ipa": "ˈeɪdə",
+              "source": "manual"
+            }
+          },
+          {
+            "aliases": [],
+            "canonical_name": "Hal",
+            "category": "Character",
+            "id": "entity-hal",
+            "locked": false,
+            "pronunciation": {
+              "alternate": {
+                "confidence": "high",
+                "ipa": "hæl",
+                "source": "cmu"
+              },
+              "chosen": true,
+              "confidence": "narrator",
+              "ipa": "hɑl",
+              "note": "short a",
+              "source": "manual"
+            }
+          },
+          {
+            "aliases": [],
+            "canonical_name": "Bo",
+            "category": "Character",
+            "id": "entity-bo",
+            "locked": false
+          },
+          {
+            "aliases": [],
+            "canonical_name": "Eli",
+            "category": "Character",
+            "id": "entity-eli",
+            "locked": false,
+            "pronunciation": {
+              "confidence": "low",
+              "source": "espeak"
+            }
+          },
+          {
+            "aliases": [],
+            "canonical_name": "Fay",
+            "category": "Character",
+            "id": "entity-fay",
+            "locked": false,
+            "pronunciation": {
+              "alternate": {},
+              "ipa": "",
+              "source": "cmu"
+            }
+          },
+          {
+            "aliases": [],
+            "canonical_name": "Gil",
+            "category": "Character",
+            "id": "entity-gil",
+            "locked": false,
+            "pronunciation": null
+          },
+          {
+            "aliases": [],
+            "canonical_name": "The Mill",
+            "category": "Character",
+            "id": "entity-mill",
+            "locked": true,
+            "pronunciation": {
+              "alternate": {
+                "confidence": "high",
+                "ipa": "ɹɛn",
+                "source": "cmu"
+              },
+              "ipa": "mɪl",
+              "source": "manual"
+            }
+          },
+          {
+            "aliases": [],
+            "canonical_name": "Cy",
+            "category": "Character",
+            "id": "entity-cy",
+            "locked": 1
+          },
+          {
+            "aliases": [],
+            "canonical_name": "Dot",
+            "category": "Character",
+            "id": "entity-dot",
+            "locked": 0
+          }
+        ],
+        "schema_version": 2
+      },
+      "arguments": {
+        "alias_index": null,
+        "entity_id": "entity-hal"
+      },
+      "command": "pronunciation-use-alternate",
+      "start": "names"
+    },
+    {
+      "arguments": {
+        "alias_index": null,
+        "entity_id": "entity-bo"
+      },
+      "command": "pronunciation-use-alternate",
+      "error": "There is no other pronunciation to switch to.",
+      "start": "names"
+    },
+    {
+      "arguments": {
+        "alias_index": null,
+        "entity_id": "entity-fay"
+      },
+      "command": "pronunciation-use-alternate",
+      "error": "There is no other pronunciation to switch to.",
+      "start": "names"
+    },
+    {
+      "arguments": {
+        "alias_index": null,
+        "entity_id": "entity-gil"
+      },
+      "command": "pronunciation-use-alternate",
+      "error": "There is no other pronunciation to switch to.",
+      "start": "names"
+    },
+    {
+      "arguments": {
+        "alias_index": null,
+        "entity_id": "entity-mill"
+      },
+      "command": "pronunciation-use-alternate",
+      "error": "This entity is locked. Unlock it before editing.",
+      "start": "names"
+    },
+    {
+      "arguments": {
+        "alias_index": null,
+        "entity_id": "entity-nobody"
+      },
+      "command": "pronunciation-use-alternate",
+      "error": "Entity not found.",
+      "start": "names"
+    },
+    {
+      "arguments": {
+        "alias_index": null,
+        "entity_id": "entity-ada"
+      },
+      "command": "pronunciation-use-alternate",
+      "error": "Guide file does not exist; build it first.",
+      "start": "missing"
+    },
+    {
+      "arguments": {
+        "alias_index": null,
+        "entity_id": "entity-ada"
+      },
+      "command": "pronunciation-use-alternate",
+      "error": "Guide file does not exist; build it first.",
+      "start": "empty"
+    }
+  ],
+  "starts": {
+    "empty": {},
+    "missing": null,
+    "names": {
+      "entities": [
+        {
+          "aliases": [
+            {
+              "occurrences": [],
+              "pronunciation": {
+                "alternate": {
+                  "ipa": "dʌbəlju",
+                  "source": "espeak"
+                },
+                "confidence": "narrator",
+                "ipa": "dʌbəl",
+                "source": "user"
+              },
+              "text": "W"
+            },
+            {
+              "occurrences": [],
+              "pronunciation": {},
+              "text": "Bare"
+            },
+            {
+              "occurrences": [],
+              "text": "Plain"
+            },
+            "Wrenny",
+            null,
+            5
+          ],
+          "canonical_name": "Wren",
+          "category": "Character",
+          "id": "entity-wren",
+          "locked": false,
+          "pronunciation": {
+            "chosen": true,
+            "confidence": "high",
+            "extra": "dropped",
+            "ipa": "ɹɛn",
+            "note": "said softly",
+            "source": "cmu",
+            "status": "researched"
+          }
+        },
+        {
+          "aliases": [],
+          "canonical_name": "Ada",
+          "category": "Character",
+          "id": "entity-ada",
+          "locked": false,
+          "pronunciation": {
+            "alternate": {
+              "confidence": "high",
+              "ipa": "ˈɑdə",
+              "source": "cmu"
+            },
+            "confidence": "narrator",
+            "ipa": "ˈeɪdə",
+            "source": "manual"
+          }
+        },
+        {
+          "aliases": [],
+          "canonical_name": "Hal",
+          "category": "Character",
+          "id": "entity-hal",
+          "locked": false,
+          "pronunciation": {
+            "alternate": {
+              "confidence": "narrator",
+              "ipa": "hɑl",
+              "note": "kept only in use",
+              "source": "user"
+            },
+            "confidence": "high",
+            "ipa": "hæl",
+            "note": "short a",
+            "source": "cmu",
+            "status": "query_sent"
+          }
+        },
+        {
+          "aliases": [],
+          "canonical_name": "Bo",
+          "category": "Character",
+          "id": "entity-bo",
+          "locked": false
+        },
+        {
+          "aliases": [],
+          "canonical_name": "Eli",
+          "category": "Character",
+          "id": "entity-eli",
+          "locked": false,
+          "pronunciation": {
+            "confidence": "low",
+            "source": "espeak"
+          }
+        },
+        {
+          "aliases": [],
+          "canonical_name": "Fay",
+          "category": "Character",
+          "id": "entity-fay",
+          "locked": false,
+          "pronunciation": {
+            "alternate": {},
+            "ipa": "",
+            "source": "cmu"
+          }
+        },
+        {
+          "aliases": [],
+          "canonical_name": "Gil",
+          "category": "Character",
+          "id": "entity-gil",
+          "locked": false,
+          "pronunciation": null
+        },
+        {
+          "aliases": [],
+          "canonical_name": "The Mill",
+          "category": "Character",
+          "id": "entity-mill",
+          "locked": true,
+          "pronunciation": {
+            "alternate": {
+              "confidence": "high",
+              "ipa": "ɹɛn",
+              "source": "cmu"
+            },
+            "ipa": "mɪl",
+            "source": "manual"
+          }
+        },
+        {
+          "aliases": [],
+          "canonical_name": "Cy",
+          "category": "Character",
+          "id": "entity-cy",
+          "locked": 1
+        },
+        {
+          "aliases": [],
+          "canonical_name": "Dot",
+          "category": "Character",
+          "id": "entity-dot",
+          "locked": 0
+        }
+      ],
+      "schema_version": 2
+    }
+  }
+}

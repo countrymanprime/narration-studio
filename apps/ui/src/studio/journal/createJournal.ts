@@ -68,7 +68,8 @@ export type Journal = LeaveGuardStore & {
 };
 
 /** docs/architecture/ui-state-and-journal.md#the-journal-and-undo. */
-const JOURNAL_LIMIT = 40;
+/** How many changes the journal keeps; the History panel says so when it is full. */
+export const JOURNAL_LIMIT = 40;
 
 type Entry = {
   id: number;

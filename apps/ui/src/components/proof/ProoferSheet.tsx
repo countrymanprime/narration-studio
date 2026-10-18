@@ -3,6 +3,7 @@ import { describeApiError } from '../../api/errorMessage';
 import { usePort } from '../../ports/usePort';
 import { useOverlay } from '../../overlay/OverlayProvider';
 import { IconButton } from '../primitives/IconButton';
+import { useOpenPickups } from '../pickups/useOpenPickups';
 import { usePickupsState } from '../pickups/usePickupsState';
 
 // Triggers a browser "Save As" for the proofer's sheet without a native file dialog: the WebView2 host handles a download the way a
@@ -25,6 +26,17 @@ const pickups = (n: number) => `${n} ${n === 1 ? 'pickup' : 'pickups'}`;
 /** The rows of the exported CSV, its header not counted. */
 const exportedRows = (csv: string) => csv.split(/\r?\n/).filter((line) => line.trim() !== '').length - 1;
 
+/**
+ * What a finished export says: how many pickups the sheet holds (the DAW's open pickup markers) and, when the Pickups page lists more open lines
+ * than that, how many have no marker yet, so the count here never seems to disagree with Pickups, the sidebar and the Booth without saying why.
+ */
+export function exportedMessage(written: number, openLines: number | undefined): string {
+  const first = `Exported ${pickups(written)} for the proofer.`;
+  const unmarked = (openLines ?? 0) - written;
+  if (unmarked <= 0) return first;
+  return `${first} ${pickups(unmarked)} on the Pickups page ${unmarked === 1 ? 'has' : 'have'} no marker in the DAW yet, so ${unmarked === 1 ? 'it is' : 'they are'} not in the sheet: add ${unmarked === 1 ? 'it as a marker' : 'them as markers'} there, then export again.`;
+}
+
 /** What the finished import says: how many pickups it added, how many were there already and how many rows were skipped. */
 export function importedMessage(report: { added: number; existing: number; invalid: number }, skippedRows: number): string {
   const parts = [`Added ${pickups(report.added)} from the proofer’s sheet`];
@@ -44,6 +56,9 @@ export function importedMessage(report: { added: number; existing: number; inval
 export function ProoferSheet() {
   const port = usePort('pickups');
   const state = usePickupsState();
+  const open = useOpenPickups();
+  const openRef = useRef(open);
+  openRef.current = open;
   const overlay = useOverlay();
   const fileInput = useRef<HTMLInputElement>(null);
   const awaiting = useRef<{ run: 'import' | 'export'; skippedRows: number; runId?: string } | null>(null);
@@ -66,7 +81,7 @@ export function ProoferSheet() {
     } else if (state.phase === 'success' && run.run === 'export') {
       awaiting.current = null;
       downloadCSV(state.csv, 'pickups-for-proofer.csv');
-      overlay.toast(`Exported ${pickups(exportedRows(state.csv))} for the proofer.`);
+      overlay.toast(exportedMessage(exportedRows(state.csv), openRef.current?.length));
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps -- once per state the host sends, not when the overlay changes
   }, [state]);

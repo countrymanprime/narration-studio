@@ -8,8 +8,8 @@ import type { BoothUnavailable as Unavailable } from './useBoothData';
 
 /**
  * What the Booth shows when the page asked for has nothing to read: credits whose template is missing or empty, or a chapter the book does not
- * have. The Booth fills the window, so with nothing drawn there is no sidebar and no button: this says what is missing and how to go on, and
- * Escape leaves the Booth as it does with a chapter open.
+ * have. The Booth fills the window, so with nothing drawn there is no sidebar and no button: this says what is missing and how to go on. The
+ * chapters button leaves for the chapter list, as Escape does, rather than reopening the Booth on a chapter.
  */
 export function BoothUnavailable({
   why,
