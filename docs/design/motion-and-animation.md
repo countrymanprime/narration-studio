@@ -1,6 +1,6 @@
 # Motion and animation
 
-**Status: describes the current state.** The tokens and the reduced-motion gate below are slices 1 and 2, and the overlay behaviour slice 4, of [#1456](https://github.com/countrymanprime/narration-utils/issues/1456). Where to animate next, and why, is the motion research note in [PR 1914](https://github.com/countrymanprime/narration-utils/pull/1914) and the owner's decisions recorded on that issue.
+**Status: describes the current state.** The tokens and the reduced-motion gate below are slices 1 and 2, the overlay behaviour slice 4, and the Motion setting slice 3, of [#1456](https://github.com/countrymanprime/narration-utils/issues/1456). Where to animate next, and why, is the motion research note in [PR 1914](https://github.com/countrymanprime/narration-utils/pull/1914) and the owner's decisions recorded on that issue.
 
 ## Tokens
 
@@ -21,7 +21,7 @@ A utility reads a token by name: `motion-ok:duration-(--motion-base)`, `motion-o
 
 ## Reduced motion
 
-Motion stops when Windows asks for reduced motion (`prefers-reduced-motion: reduce`) or when `<html data-motion="reduce">` is set. Nothing in the app sets the attribute yet: the owner chose to follow Windows only for now (#1456, Q1). Tests use it, and a later setting would.
+Motion stops when Windows asks for reduced motion (`prefers-reduced-motion: reduce`) or when `<html data-motion="reduce">` is set. The **Motion** row in Settings, Appearance & keys (`look.motion`) sets the attribute: **Reduce** sets it and **Follow Windows** clears it. The owner first chose to follow Windows only (#1456, Q1), then asked for the setting. The choice is kept in this window's storage (`narration-ui-motion`, `apps/ui/src/motion.ts`), and `index.html`'s inline script applies it before the first paint, as it does the theme.
 
 - **CSS.** Every transition and animation is a `motion-ok:` utility. `styles.css` defines the variant with `@custom-variant`: it applies only under `prefers-reduced-motion: no-preference` and without `data-motion="reduce"`. Tailwind's own `motion-safe:` reads only the media query, so it is not used.
 - **Script.** Code that moves things itself asks `reducedMotion()` (`apps/ui/src/motion.ts`), which checks the same two conditions. The Booth's paced cursor (`booth/usePacedCursor.ts`) and its follow scroll (`booth/useFollowCursor.ts`) jump instead of moving.
@@ -44,7 +44,7 @@ Dialogs appear and disappear at once (#1456, Q3), and so does the Jump menu, whi
 ## How it is checked
 
 - `apps/ui/src/motion.test.ts` scans every source file's class lists. It fails on a `transition`, `animate-`, `duration-`, `ease-` or `delay-` utility not gated on `motion-ok:` (or `motion-reduce:`), on `motion-safe:`, and on a duration or easing that is not a token.
-- `apps/ui/tests/visual/motion.spec.ts` runs with motion on, which no other run does. It checks that the rail and a context menu ease on the fast token and the navigation drawer on the base token, that nothing loops on eight pages at rest, and that both ways of asking for reduced motion stop it.
+- `apps/ui/tests/visual/motion.spec.ts` runs with motion on, which no other run does. It checks that the rail and a context menu ease on the fast token and the navigation drawer on the base token, that nothing loops on eight pages at rest, that both ways of asking for reduced motion stop it, and that the Settings Motion row does and survives a reload.
 - The rest of the visual suite, the atlas and Storybook freeze motion for deterministic screenshots (`tests/visual/helpers/settle.ts`, `playwright.atlas.config.ts`, `.storybook/preview-head.html`), so they cannot show it.
 
 Missing feedback, as opposed to missing animation, is [interaction feedback](../architecture/interaction-feedback.md) ([The standard](../architecture/interaction-feedback.md#the-standard)).
