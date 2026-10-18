@@ -5,7 +5,7 @@ import (
 	"github.com/countrymanprime/narration-utils/shell/internal/manuscript"
 )
 
-// The narrator's bookmarks (ADR 0820): a spot in the manuscript, a paragraph and a UTF-16 offset in its text, with an
+// The narrator's bookmarks: a spot in the manuscript, a paragraph and a UTF-16 offset in its text, with an
 // optional label and note, kept in <project>/narration-utils/bookmarks.json and checked against the current text on every
 // read, so a bookmark whose line is gone or whose offset no longer fits comes back stale rather than moved.
 
@@ -20,7 +20,7 @@ func (h *Host) BookmarksAdd(chapterID, paragraphID string, offset int) (string, 
 	return encodeBinding(h.bookmarks().Add(chapterID, paragraphID, offset))
 }
 
-// BookmarksUpdate replaces a bookmark's label and note, both plain text within the limits ADR 0820 states.
+// BookmarksUpdate replaces a bookmark's label and note, both plain text within the limits docs/reference/data-files.md states.
 func (h *Host) BookmarksUpdate(id, label, note string) (string, error) {
 	return encodeBinding(h.bookmarks().Update(id, label, note))
 }

@@ -384,7 +384,7 @@ func TestStageRecommendationsNeverStartsACheckOrWritesAFile(t *testing.T) {
 	}
 }
 
-// Every reason a decision can be refused with, pinned so the UI's schema lists the same words (ADR 0069).
+// Every reason a decision can be refused with, pinned so the UI's schema lists the same words.
 func TestContractStageRefusalReasons(t *testing.T) {
 	reasons := make([]string, 0, len(stageRefusals))
 	for _, reason := range stageRefusals {

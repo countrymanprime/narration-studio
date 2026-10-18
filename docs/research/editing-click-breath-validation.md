@@ -8,10 +8,10 @@ class and recording condition. Neither class reaches the proposed 90% recall, so
 Q10 a synthetic run could not validate a detector even at 100%. The LibriVox Alice signal set (#836) is the second,
 real-speech evaluation set ([below](#real-speech-the-librivox-signal-set)); its run is pending. The permissioned run is
 a QA item on [#992](https://github.com/countrymanprime/narration-utils/issues/992#issuecomment-6116098217). Decisions:
-[ADR 0510](../adr/0510-click-and-breath-signals-open-only-on-a-recorded-permissioned-held-out-run-at-target-in-every-condition.md),
-[ADR 0511](../adr/0511-click-and-breath-sensitivity-is-a-scan-parameter-and-its-defaults-only-move-toward-more-candidates.md)
+[validation.go](../../apps/desktop/internal/editing/validation.go),
+[validation.go](../../apps/desktop/internal/editing/validation.go)
 and
-[ADR 0575](../adr/0575-the-librivox-signal-set-is-a-second-click-evaluation-split-by-pause-that-reports-and-never-opens-the-gate-alone.md).
+[librivoxvalidation_test.go](../../apps/desktop/internal/editing/librivoxvalidation_test.go).
 
 ## The corpus
 
@@ -140,7 +140,7 @@ reader's own mouth noise), but the click is not.
 
 The synthetic corpus splits by file. This set is one reading, so it splits by pause instead: within each case, in time
 order, the clicks alternate held-out, tune, held-out, and so on. That gives 5 held-out and 3 tuning clicks
-(ADR 0575).
+ (`apps/desktop/internal/editing/librivoxvalidation_test.go`).
 
 ### What it can decide
 
@@ -176,7 +176,7 @@ It fails only on a broken corpus or a stale `knownIssue`. Paste the held-out tab
 
 These are for the owner, on [#992](https://github.com/countrymanprime/narration-utils/issues/992#issuecomment-6116098217):
 
-- a decision on whether a LibriVox reading counts as ADR 0510's permissioned corpus (the recommendation is yes);
+- a decision on whether a LibriVox reading counts as `apps/desktop/internal/editing/validation.go`'s permissioned corpus (the recommendation is yes);
 - breath labels placed by listening;
 - enough clicks, ideally the reader's own, to pass 25 per half.
 

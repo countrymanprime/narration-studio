@@ -271,7 +271,7 @@ func TestProductionBindingsNeedAProject(t *testing.T) {
 	}
 }
 
-// ProductionStartTimer's and ProductionStopTimer's answers (ADR 0069). The session id is random hex of 16 characters,
+// ProductionStartTimer's and ProductionStopTimer's answers. The session id is random hex of 16 characters,
 // which Stabilize leaves alone, so it is fixed here.
 func TestContractProductionTimer(t *testing.T) {
 	host := productionHost(t)

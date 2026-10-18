@@ -1,4 +1,4 @@
-"""The build itself: it must pass on the real tree and fail on a dead link (ADR 0083). Runs MkDocs in strict mode."""
+"""The build itself: it must pass on the real tree and fail on a dead link. Runs MkDocs in strict mode."""
 
 import os
 import subprocess

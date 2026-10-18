@@ -1,6 +1,6 @@
 # Extraction tiers
 
-Story Bible extraction turns a manuscript into suggestions: new entries, aliases, properties, relationships, claims and speakers. Each suggestion comes from one **source**, carries the quote that backs it, and gets a status from one rule. This page describes the tiers the sources fall into, the rule, the evidence check and where each runs. Nothing here writes the Story Bible without that rule and the lock rule of [ADR 0007](../adr/0007-story-bible-locked-entry-enforcement.md).
+Story Bible extraction turns a manuscript into suggestions: new entries, aliases, properties, relationships, claims and speakers. Each suggestion comes from one **source**, carries the quote that backs it, and gets a status from one rule. This page describes the tiers the sources fall into, the rule, the evidence check and where each runs. Nothing here writes the Story Bible without that rule and the lock rule of [manuscript_guide.py](../../sidecars/manuscript-guide/core/manuscript_guide.py).
 
 ## Tiers
 
@@ -18,7 +18,7 @@ The registry order above is the scan order. `NewRegistry` in `apps/desktop/inter
 
 ## The 75% rule
 
-[ADR 0803](../adr/0803-an-extraction-suggestion-at-75-percent-or-more-is-applied-and-flagged-review-and-one-under-75-percent-needs-verification.md) sets the rule. It is written once, in `apps/desktop/internal/extraction/rule.go`.
+The 75% rule sets the rule. It is written once, in `apps/desktop/internal/extraction/rule.go`.
 
 | Piece | Identifier | Behaviour |
 | --- | --- | --- |
@@ -35,9 +35,9 @@ The four statuses are `accepted-auto`, `needs-verification`, `accepted` and `rej
 - `needs-verification` is stored and not applied. `Applier.Accept` applies it, optionally with edited text.
 - `rejected` is a tombstone in the store: the suggestion's `Fingerprint` is remembered, so the same thing is not offered again.
 
-Enforced by `TestThresholdLivesInOnePlace` (no other non-test file in the package holds the literal), `TestExactlyThreeQuartersIsAcceptedAuto`, `TestReasonsFollowTheMock` and `TestStatusFollowsReasons` in `apps/desktop/internal/extraction/rule_test.go`. The import planner and the store both take their status from `AutoStatus` (`TestStatusFollowsTheSharedRule` in `importer/importer_test.go`, `TestStoredStatusFollowsTheRuleAtIngest` in `store/store_test.go`). Per [ADR 0046](../adr/0046-architecture-rules-taken-from-adrs-are-lint-and-test-rules.md), a rule that can be checked by reading code is a test that names its ADR.
+Enforced by `TestThresholdLivesInOnePlace` (no other non-test file in the package holds the literal), `TestExactlyThreeQuartersIsAcceptedAuto`, `TestReasonsFollowTheMock` and `TestStatusFollowsReasons` in `apps/desktop/internal/extraction/rule_test.go`. The import planner and the store both take their status from `AutoStatus` (`TestStatusFollowsTheSharedRule` in `importer/importer_test.go`, `TestStoredStatusFollowsTheRuleAtIngest` in `store/store_test.go`). Per [Verification and code-health tooling](../operations/verification-tooling.md), a rule that can be checked by reading code is a test that names its ADR.
 
-[ADR 0803](../adr/0803-an-extraction-suggestion-at-75-percent-or-more-is-applied-and-flagged-review-and-one-under-75-percent-needs-verification.md) supersedes [ADR 0020](../adr/0020-entity-extraction-precision-over-recall.md) and [ADR 0042](../adr/0042-proofing-suggestions-derive-from-current-entities-and-skip-auto-extracted-needs-review.md) where it reaches; the Story Bible build keeps writing entries as ADR 0020 describes, and the rules source proposes only what the Story Bible does not already say.
+The 75% rule supersedes [Story Bible entity-extraction accuracy](story-bible-entity-accuracy.md) and [service.go](../../apps/desktop/internal/guide/service.go) where it reaches; the Story Bible build keeps writing entries as `docs/architecture/story-bible-entity-accuracy.md` describes, and the rules source proposes only what the Story Bible does not already say.
 
 ## The evidence check
 
@@ -75,10 +75,10 @@ The file is untrusted. The `importer` package imports no `os`, `io/fs` or networ
 
 | Package | Does | Does not |
 | --- | --- | --- |
-| `internal/extraction/store` | Keeps every suggestion in `<project>/ManuscriptGuide/suggestions.json`, beside the Story Bible ([ADR 0846](../adr/0846-extraction-suggestions-are-kept-in-a-project-file-beside-the-story-bible-and-a-rejected-one-stays-as-a-tombstone.md), Proposed). Skips a suggestion already stored or rejected. | Change the Story Bible. A decision here changes a status only. |
-| `internal/extraction/apply` | Puts accepted suggestions into the Story Bible through the `Bible` interface and takes them back (`Accept`, `Reject`, `Review`, `Withdraw`, `Settle`). Idempotent. | Write `manuscript_guide.json` itself, or touch a locked entry (`TestLockedEntryIsNeverEdited`, [ADR 0007](../adr/0007-story-bible-locked-entry-enforcement.md)). |
+| `internal/extraction/store` | Keeps every suggestion in `<project>/ManuscriptGuide/suggestions.json`, beside the Story Bible ([Data files](../reference/data-files.md), Proposed). Skips a suggestion already stored or rejected. | Change the Story Bible. A decision here changes a status only. |
+| `internal/extraction/apply` | Puts accepted suggestions into the Story Bible through the `Bible` interface and takes them back (`Accept`, `Reject`, `Review`, `Withdraw`, `Settle`). Idempotent. | Write `manuscript_guide.json` itself, or touch a locked entry (`TestLockedEntryIsNeverEdited`, [manuscript_guide.py](../../sidecars/manuscript-guide/core/manuscript_guide.py)). |
 
-The Wails bindings that expose both are in `apps/desktop/bindings_extraction.go` (`ExtractionList`, `ExtractionAccept`, `ExtractionReject`, `ExtractionReview`, `ExtractionReopen`). The scan is `ExtractionSources`, `ExtractionScan`, `ExtractionScanState` and `ExtractionScanCancel` in `bindings_extraction_scan.go`, run as a host job by `apps/desktop/extraction_job.go` ([ADR 0076](../adr/0076-a-host-job-ends-with-one-job-ended-event-the-app-announces-it-and-the-story-bible-rebuild-may-continue-in-the-background.md)). Their payload shapes are pinned by `bindings_extraction_scan_contract_test.go` and `bindings_extraction_import_contract_test.go`; the walk for changing one is in [wire contracts](wire-contracts.md).
+The Wails bindings that expose both are in `apps/desktop/bindings_extraction.go` (`ExtractionList`, `ExtractionAccept`, `ExtractionReject`, `ExtractionReview`, `ExtractionReopen`). The scan is `ExtractionSources`, `ExtractionScan`, `ExtractionScanState` and `ExtractionScanCancel` in `bindings_extraction_scan.go`, run as a host job by `apps/desktop/extraction_job.go` ([Job-end events](interaction-feedback.md#job-end-events)). Their payload shapes are pinned by `bindings_extraction_scan_contract_test.go` and `bindings_extraction_import_contract_test.go`; the walk for changing one is in [wire contracts](wire-contracts.md).
 
 ## What runs where
 
@@ -90,11 +90,11 @@ The Wails bindings that expose both are in `apps/desktop/bindings_extraction.go`
 | Store, apply, import | Go host | `internal/extraction/{store,apply,importer}` |
 | Install state of a tool | Go host | `Host.analysisToolInstall` reads the asset registry; a tool counts only when installed, verified and pinned |
 
-The sidecar's Python wheels and weights are loaded only from the registry's install folder, passed as `--install`; the freeze never carries `gliner`, `transformers`, `torch` or `booknlp` ([ADR 0848](../adr/0848-optional-analysis-tools-load-their-code-and-weights-from-the-registrys-install-folder-never-from-the-freeze-or-the-network.md), Proposed). The adapters set Hugging Face offline and a missing or damaged install is a sentence for the narrator. The packaged smoke test reports each install's version through `run_self_check` (`gliner_install`, `booknlp_installs`). The sidecar tests are `sidecars/manuscript-guide/tests/test_extraction_rules.py`, `test_extraction_gliner.py` and `test_extraction_booknlp.py`; the rules adapter's line format is pinned by `internal/extractionport/rules/testdata/suggest-lines.json`.
+The sidecar's Python wheels and weights are loaded only from the registry's install folder, passed as `--install`; the freeze never carries `gliner`, `transformers`, `torch` or `booknlp` ([CI and releases](../operations/ci-and-releases.md), Proposed). The adapters set Hugging Face offline and a missing or damaged install is a sentence for the narrator. The packaged smoke test reports each install's version through `run_self_check` (`gliner_install`, `booknlp_installs`). The sidecar tests are `sidecars/manuscript-guide/tests/test_extraction_rules.py`, `test_extraction_gliner.py` and `test_extraction_booknlp.py`; the rules adapter's line format is pinned by `internal/extractionport/rules/testdata/suggest-lines.json`.
 
 ## Consent for each download
 
-The downloads are catalogue entries of the one asset registry ([ADR 0079](../adr/0079-every-downloadable-asset-is-listed-installed-verified-and-removed-through-one-registry-of-providers.md)), not a second installer. The rules, the consent facts, the unavailable-until-pinned check and the failure sentences are in [first-use dependency provisioning, Story Bible analysis tools](first-use-dependency-provisioning.md#the-story-bible-analysis-tools); the install, verify and remove controls are in [the local assets page](first-use-dependency-provisioning.md#the-local-assets-page-implemented). The tools and their catalogue rows are in `config/analysis-assets.json`.
+The downloads are catalogue entries of the one asset registry ([The asset registry (implemented)](first-use-dependency-provisioning.md#the-asset-registry-implemented)), not a second installer. The rules, the consent facts, the unavailable-until-pinned check and the failure sentences are in [first-use dependency provisioning, Story Bible analysis tools](first-use-dependency-provisioning.md#the-story-bible-analysis-tools); the install, verify and remove controls are in [the local assets page](first-use-dependency-provisioning.md#the-local-assets-page-implemented). The tools and their catalogue rows are in `config/analysis-assets.json`.
 
 | Tool | Asset id | Consent UI | State |
 | --- | --- | --- | --- |
@@ -102,4 +102,4 @@ The downloads are catalogue entries of the one asset registry ([ADR 0079](../adr
 | BookNLP small, large | `booknlp-small`, `booknlp-big` | same | Refused, same reason |
 | Local language model | `local-llm` | none; no files | Not built; the row carries an `unavailable` sentence |
 
-Nothing downloads without the narrator's confirmation, and with nothing installed the scan runs the rules ([ADR 0803](../adr/0803-an-extraction-suggestion-at-75-percent-or-more-is-applied-and-flagged-review-and-one-under-75-percent-needs-verification.md), decision 5).
+Nothing downloads without the narrator's confirmation, and with nothing installed the scan runs the rules.

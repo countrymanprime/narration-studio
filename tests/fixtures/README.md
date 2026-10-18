@@ -41,7 +41,7 @@ python generate.py
 ## teleprompter-locate/
 
 The recorded tails the teleprompter's tail-audio locate is measured on
-([ADR 0111](../../docs/adr/0111-the-resume-point-comes-from-transcribing-the-recorded-tail-and-placing-it-with-the-tracker.md),
+([Resume: where REAPER is and where the prompter was](../../docs/architecture/manuscript-teleprompter.md#resume-where-reaper-is-and-where-the-prompter-was),
 `sidecars/manuscript-teleprompter/tests/test_locate.py`). `chapter.txt` is Chapter I of `alice.md` (one paragraph per
 line, `_italics_` markers removed) and `chapter-repeated.txt` the same chapter with its twelfth paragraph repeated at the
 end. `tails.json` holds, per case, what the tiny Whisper model heard in the last seconds of a Piper reading that stops at
@@ -102,4 +102,4 @@ path for Unicode PDF text - see the script for how to point it elsewhere.
 
 Markers and recipes for seven public-domain LibriVox readings of *Alice* chapters (the demo script), which are fetched
 from archive.org to build real-speech test corpora: the recording check, the character-continuity trial and the audio
-diagnostics. See [its README](audio/librivox-alice/README.md) and ADR 0416.
+diagnostics. See [its README](audio/librivox-alice/README.md) and `tests/fixtures/audio/librivox-alice/README.md`.

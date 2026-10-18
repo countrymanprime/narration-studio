@@ -120,7 +120,7 @@ func TestATamperedFileIsReportedAndTheBuiltInsStillWork(t *testing.T) {
 	}
 }
 
-// oldJudgement is how the old limits judged a report (measure.Evaluate before ADR 0179): per metric, above or below.
+// oldJudgement is how the old limits judged a report (measure.Evaluate before docs/reference/acx-delivery-requirements.md): per metric, above or below.
 func oldJudgement(limits map[string]string, report measure.Report) map[string]string {
 	parsed, _ := ParseLegacyLimits(limits)
 	values := map[string]*float64{

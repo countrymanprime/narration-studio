@@ -1,4 +1,4 @@
-// The bookmarks model's pure selectors (ADR 0820). They take the host's list as it comes (already in reading order) and know nothing
+// The bookmarks model's pure selectors. They take the host's list as it comes (already in reading order) and know nothing
 // of the Script DOM, so the Booth's ribbons (SNO-8) can import them too.
 import type { Bookmark } from '../../../../api/contracts/bookmarks';
 

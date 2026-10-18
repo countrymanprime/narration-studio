@@ -22,7 +22,7 @@ import (
 // sidecars are separate processes that are not started here, and no transport of this process can see them; the host starts a sidecar only
 // for a feature the narrator uses.) Tests that swap http.DefaultTransport and the per-user environment cannot run in parallel.
 //
-// The one intended exception is the in-app update check (ADR 0072): a GET of GitHub's releases metadata, at most once a day, that the
+// The one intended exception is the in-app update check: a GET of GitHub's releases metadata, at most once a day, that the
 // narrator can switch off in Settings. It downloads no asset. The tests below keep it off where they assert silence, and pin it as the
 // only request, and only to that address, where it is on.
 
@@ -83,7 +83,7 @@ func launchHost(t *testing.T, guard *networkGuard, how launch) *Host {
 	t.Helper()
 	host := NewHost()
 	host.stager.Client = &http.Client{Transport: guard}
-	// The host acts as the Windows build, the only one with a release (docs/adr/0412), so a Linux development host checks too.
+	// The host acts as the Windows build, the only one with a release, so a Linux development host checks too.
 	windows, _ := update.PlatformFor("windows", "amd64")
 	host.updates.Platform, host.stager.Platform = windows, windows
 	if !how.keepDefaultDelay {

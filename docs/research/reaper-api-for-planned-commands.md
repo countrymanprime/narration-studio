@@ -64,7 +64,7 @@ One undo block ("Narration Utils: use take"); a take that is already active chan
 
 ## FX: `list_fx_chains`, `apply_fx_chain`, `list_fx`, `add_take_fx` (read, then write)
 
-Serve Edit and Proof Workspace Phases 8 and 9 (EP8, EP9). **The owner's rule (2026-09-25, [ADR 0234](../adr/0234-fx-chains-go-on-tracks-and-a-passage-of-a-take-gets-one-plug-in-at-a-time.md)): an FX chain goes on a track or the master track only; a passage of a take gets single plug-ins, one per request, never a chain.**
+Serve Edit and Proof Workspace Phases 8 and 9 (EP8, EP9). **The owner's rule (2026-09-25, [The workspace's take and FX actions (`narration_workspace.lua`)](../architecture/reaper-bridge.md#the-workspaces-take-and-fx-actions-narration_workspacelua)): an FX chain goes on a track or the master track only; a passage of a take gets single plug-ins, one per request, never a chain.**
 
 | Call | Reference and what is still open |
 | --- | --- |
@@ -98,7 +98,7 @@ At the owner's suggestion (a comment on PR #513), the five REAPER MCP servers li
 | Job | What they do | What this stack takes from it |
 | --- | --- | --- |
 | Start and stop recording | TwelveTake and ReaMCP call `OnRecordButton`/`OnStopButton`; total-reaper calls `CSurf_OnRecord`/`CSurf_OnStop`; danishaft calls `Main_OnCommand(1013, 0)` and refuses unless a track is armed. None waits for `GetPlayState` to report recording, and none uses `GetPlayPosition2`. | `record_start` refuses unless exactly the named track is armed, presses `CSurf_OnRecord` once, and waits up to 30 defer cycles for the record bit instead of reading it once, so a REAPER that reports it a cycle late is not misread as a failure. |
-| Arming | Every one sets `I_RECARM` with `SetMediaTrackInfo_Value`; TwelveTake and danishaft wrap it in an undo block, the others do not. | `arm_only` opens no undo block (the PRD's evidence: an arm is not in REAPER's undo history). Recorded as a Proposed decision (ADR 0232, added with the command); the verification pass (row A4) settles it. |
+| Arming | Every one sets `I_RECARM` with `SetMediaTrackInfo_Value`; TwelveTake and danishaft wrap it in an undo block, the others do not. | `arm_only` opens no undo block (the PRD's evidence: an arm is not in REAPER's undo history). Recorded as a Proposed decision (added with the command); the verification pass (row A4) settles it. |
 | Active take | Every one calls `SetActiveTake`; danishaft follows it with `UpdateItemInProject(item)` and `UpdateArrange()`. | `set_active_take` does the same. |
 | FX | None loads an `.RfxChain` or lists the `FXChains` folder; they add plug-ins by name with `TakeFX_AddByName(take, name, -1)` and danishaft refuses a negative return. | `add_take_fx` does the same for one listed plug-in and checks exactly one was added; `apply_fx_chain` refuses a negative return and checks `TrackFX_GetCount` grew. Loading a chain by path has no outside precedent, so the verification pass (row A8) is its only evidence. |
 | Splitting | danishaft splits the end first, then the start, skips a split within an epsilon of the item's edges, and refuses when `SplitMediaItem` returns nil; TwelveTake reports a nil split. | `add_take_fx` does the same, inside its one undo block. |

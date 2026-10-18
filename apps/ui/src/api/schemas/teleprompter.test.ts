@@ -38,7 +38,7 @@ describe('teleprompterEventSchema', () => {
     for (const { event } of recording.events) expect(() => parseWire(teleprompterEventSchema, event, ctx)).not.toThrow();
   });
 
-  it('validates the recorded stream at a cost that is nothing next to the event rate (ADR 0069, rule 10)', () => {
+  it('validates the recorded stream at a cost that is nothing next to the event rate (rule 10)', () => {
     // Measured 2026-09-21 in Node: about 0.05 microseconds per recorded event and about 1.4 for a 30-word partial. The budget here is
     // four orders of magnitude looser, so it only fails if validation becomes a real cost, never on a slow runner.
     const events = recording.events.map((entry) => entry.event);

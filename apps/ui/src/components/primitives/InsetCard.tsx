@@ -1,6 +1,6 @@
 import type { AriaRole, ReactNode } from 'react';
 
-// A card inside a card (ADR 0640): a 1 px frame at a 6 px radius with 12 px inside it, on `--surface` (the panel it sits
+// A card inside a card: a 1 px frame at a 6 px radius with 12 px inside it, on `--surface` (the panel it sits
 // in, and an opaque card where it sits on the page). `tone` colours the frame for a problem or a match, `fill` sets it on
 // `--surface-2` to lift it off its panel, and `dashed` marks a placeholder (something that is not there yet). It replaces the hand-drawn `rounded-md border px-3 py-2` copies.
 type InsetCardTone = 'neutral' | 'accent' | 'warn' | 'danger';

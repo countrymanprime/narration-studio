@@ -1,4 +1,4 @@
-// The one list of sample speaker names (ADR 0770): data a builder or a test reads, never a literal inside a component.
+// The one list of sample speaker names: data a builder or a test reads, never a literal inside a component.
 // Names and ids follow what api/mockFixtures.ts holds for the Alice book, so a page that swaps a literal for an entry here
 // shows the same text. `code` is the short uppercase tag a script line carries.
 

@@ -103,7 +103,7 @@ func TestVocabularyCandidatesSayWhenThereIsNoGuideYet(t *testing.T) {
 	}
 }
 
-// ADR 0020's precision rule holds for derived names: a lone word the build is not sure of needs
+// docs/architecture/story-bible-entity-accuracy.md's precision rule holds for derived names: a lone word the build is not sure of needs
 // three occurrences, exactly as the sidecar's own list requires. Locked and manual entries are
 // exempt, and an entity from a guide too old to carry occurrence data cannot be judged, so it stays.
 func TestVocabularyCandidatesKeepTheSingleWordOccurrenceThreshold(t *testing.T) {

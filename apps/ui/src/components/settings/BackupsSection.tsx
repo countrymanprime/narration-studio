@@ -129,7 +129,7 @@ function rowsOf(global: ScopedSettingField[], project: ScopedSettingField[]): Ba
 /**
  * Settings > DAW: Backups (SNM-3b). Drawn only when the DAW reports the `backups` capability as Supported or Experimental; when it
  * is there but unavailable (turned off, the DAW not running) the capability's own sentence stands in for the rows. The window
- * either side of an edit and the retention are the DAW tool's two number settings (ADR 0863), edited through `ScopedSetting` and
+ * either side of an edit and the retention are the DAW tool's two number settings, edited through `ScopedSetting` and
  * saved when a box is left, at the layer the value comes from, with the store's own range check. It takes no props, so a Settings
  * page mounts it as `<BackupsSection />`. The report is read when it mounts, as the Editing drawer reads it.
  */

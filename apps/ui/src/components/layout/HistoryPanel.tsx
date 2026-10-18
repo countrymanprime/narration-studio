@@ -18,7 +18,7 @@ export function openHistoryPanel(overlay: OverlayService, journal: HistoryJourna
 }
 
 /**
- * The undo history (ADR 0771, mock `history.tsx`): the journal's entries newest first, each with its label, a pill naming the DAW or
+ * The undo history (mock `history.tsx`): the journal's entries newest first, each with its label, a pill naming the DAW or
  * "App", and Undo. A row the journal would refuse shows the journal's own sentence and its Undo is off.
  */
 function HistoryPanel({ journal, dawName }: { journal: HistoryJournal; dawName: string }) {

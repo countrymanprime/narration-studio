@@ -1,4 +1,4 @@
--- Take creation: create_take (ADR 0098).
+-- Take creation: create_take.
 
 local H = require('harness')
 

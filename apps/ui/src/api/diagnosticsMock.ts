@@ -1,7 +1,7 @@
 // The browser mock's diagnostics check, answering the way
 // apps/desktop/diagnostics_job.go does: the same refusals (an unknown source kind, nothing chosen, a path the measurement
 // picker did not choose, one already running), a running job that reads one more quarter of a file per poll (standing in
-// for the bytes the host reads, ADR 0015), and results in the shape tests/fixtures/contracts/diagnostics-success.json
+// for the bytes the host reads), and results in the shape tests/fixtures/contracts/diagnostics-success.json
 // pins: a chapter with a clip region, a level shift and a room-tone change, a render of digital silence in which nothing
 // crossed a threshold, and a file that is not a WAV. The findings are built the way internal/measure's diagnosticfindings.go
 // builds them, with the thresholds that raised them and the source kind the narrator chose. `hold` keeps a started check
@@ -23,7 +23,7 @@ const MAX_FILES = 500;
 const QUARTERS_PER_FILE = 4;
 const BROKE = 'runtime error: index out of range [4] with length 4';
 
-/** ADR 0158's starting thresholds (measure.DefaultDiagnosticOptions). */
+/** docs/architecture/codebase-map.md's starting thresholds (measure.DefaultDiagnosticOptions). */
 export const MOCK_DIAGNOSTICS_THRESHOLDS: DiagnosticsThresholds = {
   clip_ceiling_dbfs: 0,
   silence_floor_dbfs: -50,
@@ -33,7 +33,7 @@ export const MOCK_DIAGNOSTICS_THRESHOLDS: DiagnosticsThresholds = {
   pauses: { min_pause_seconds: 0.3, long_pause_seconds: 2 },
 };
 
-/** The silence cleanup analyzer's own starting thresholds (measure.DefaultCleanupOptions, ADR 0238 decision 4). */
+/** The silence cleanup analyzer's own starting thresholds (measure.DefaultCleanupOptions, apps/desktop/internal/measure/cleanup.go). */
 export const MOCK_CLEANUP_THRESHOLDS: DiagnosticsCleanupThresholds = {
   pad_seconds: 0.15,
   min_breath_seconds: 0.12,
@@ -213,7 +213,7 @@ function checkedResult(file: DiagnosticsFileResult, kind: DiagnosticsSourceKind)
 export type MockDiagnosticsSeed = 'hold' | 'fails';
 
 /**
- * `picked` is the measurement mock's picker allowlist: the host checks only paths MeasurePickFiles chose (ADR 0156).
+ * `picked` is the measurement mock's picker allowlist: the host checks only paths MeasurePickFiles chose.
  * `peekDiagnostics` is the check as it stands, without moving it on, for the report export (it is not a binding).
  */
 export function createDiagnosticsMock(

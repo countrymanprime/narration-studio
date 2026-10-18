@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 
-// The eyebrow label the mocks put over a section, a KPI tile and a nav group (ADR 0640): Barlow Condensed at the label
+// The eyebrow label the mocks put over a section, a KPI tile and a nav group: Barlow Condensed at the label
 // size (11 px), semibold, uppercase, tracked 0.1 em, muted. The global `.section-label` draws the same thing for the files
 // that still use it. `as` picks the element, so a label
 // that names a region is a heading and one over a fieldset is its legend; the look is the same on every element.

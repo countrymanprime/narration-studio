@@ -20,7 +20,7 @@ type Story = StoryObj<typeof meta>;
 
 export const Default: Story = {};
 
-// The confirmed action is running (ADR 0075): the confirm button is busy, Cancel is off, and neither Escape nor the header button leaves.
+// The confirmed action is running: the confirm button is busy, Cancel is off, and neither Escape nor the header button leaves.
 export const Pending: Story = {
   args: {
     title: 'Delete entry',
@@ -102,7 +102,7 @@ export const WithChildren: Story = {
   },
 };
 
-// ADR 0001: a long unbroken token in the body must wrap, not scroll sideways.
+// docs/design/design-system.md#primitive-components: a long unbroken token in the body must wrap, not scroll sideways.
 export const LongUnbrokenBody: Story = {
   args: {
     title: 'Import manuscript',
@@ -111,7 +111,7 @@ export const LongUnbrokenBody: Story = {
   },
 };
 
-// ADR 0001: tall children scroll inside the dialog; Cancel and Import stay reachable.
+// docs/design/design-system.md#primitive-components: tall children scroll inside the dialog; Cancel and Import stay reachable.
 export const LongScrollingChildren: Story = {
   args: {
     title: 'Import manuscript',

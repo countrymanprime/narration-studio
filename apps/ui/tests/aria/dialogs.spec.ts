@@ -1,7 +1,7 @@
 import { expect, test } from '@playwright/test';
 import { DESKTOP, openApp } from './helpers';
 
-// The role trees of the Base UI dialogs, the slide-over and the hint popups (ADR 0047, ADR 0048, ADR 0051). Each modal is
+// The role trees of the Base UI dialogs, the slide-over and the hint popups. Each modal is
 // snapshotted from <body> with `children: equal` at the root: while it is open the rest of the page is aria-hidden, so the
 // dialog is the only thing in the tree, which proves both its role and name and the isolation of what is behind it. Inside
 // the dialog the match is partial (heading, the controls and the message, not every node), so a copy change to a paragraph does
@@ -157,7 +157,7 @@ test('the menu on empty space is a menu of the shell items, ending with the jump
   await expect(page.getByRole('menu')).toMatchAriaSnapshot({ name: 'menu-page-fallback.aria.yml' });
 });
 
-// The note on the Reference material group is an info icon inside an alert dialog (ADR 0049): it is a button with the note as its
+// The note on the Reference material group is an info icon inside an alert dialog: it is a button with the note as its
 // description, its popup is a tooltip that stays above the dialog, and the first Escape closes the note and only the second the dialog.
 test('the note on the reference material group of the import review is an info icon whose Escape closes it before the dialog', async ({ page }) => {
   await openApp(page, DESKTOP, ['production', 'import-confirm']);

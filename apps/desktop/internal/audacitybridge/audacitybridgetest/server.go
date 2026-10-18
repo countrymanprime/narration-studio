@@ -4,7 +4,7 @@
 // misbehave on purpose (Script), so the client's timeout, reconnect and strict-parser paths are exercised.
 //
 // It is only as faithful as the spec it replays. What the owner's verification pass finds a real Audacity doing differently is
-// corrected here, with a test, the way the REAPER harness's fake is corrected (ADR 0066).
+// corrected here, with a test, the way the REAPER harness's fake is corrected.
 package audacitybridgetest
 
 import (

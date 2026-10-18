@@ -14,9 +14,9 @@ import (
 	"github.com/countrymanprime/narration-utils/shell/internal/teleprompter"
 )
 
-// The built-in recorder's bindings (docs/adr/0455): the Booth records with the project's DAW or with the built-in recorder, a
+// The built-in recorder's bindings: the Booth records with the project's DAW or with the built-in recorder, a
 // per-project choice (projectdaw.go) that sets the engine chip. The recorder itself is internal/recording over the capture port's
-// wasapi row (Experimental, ADR 0357); every state change goes out as the "recording:state" live event and every level
+// wasapi row (Experimental); every state change goes out as the "recording:state" live event and every level
 // report as "recording:level". The choice and the remembered device are the project settings rows Recording.engine and
 // Recording.device, written only here and by DawChoose (like Mastering.provider, bindings_mastering.go): not generic Settings fields, so
 // the Settings page neither lists nor saves them. The wire schema, golden payloads, wireContracts rows and mock live in
@@ -139,7 +139,7 @@ func (h *Host) RecorderStop() (string, error) {
 	return encodeBinding(h.recorderState(svc, nil), nil)
 }
 
-// RecorderSetTakeLine assigns takeName the manuscript paragraph or chapter entityId as its line identity (ADR 0485), so
+// RecorderSetTakeLine assigns takeName the manuscript paragraph or chapter entityId as its line identity, so
 // it joins the review pipeline the same way a REAPER item's stamped line id does. entityId "" clears the assignment.
 // The manuscript's current source checksum is read here, never sent by the caller, so a stale UI can never stamp a
 // wrong one.
@@ -221,7 +221,7 @@ func (h *Host) recordingEngine(svc hostServices) string {
 // recorderPlatform is the GOOS the recorder answers for (h.platform, the tests' seam).
 func (h *Host) recorderPlatform() string { return teleprompter.PlatformOrCurrent(h.platform) }
 
-// recorderSupport is the wasapi capture row's answer on platform (ADR 0357: Experimental, Windows only).
+// recorderSupport is the wasapi capture row's answer on platform (sidecars/manuscript-teleprompter/core/capture_wasapi.py: Experimental, Windows only).
 func recorderSupport(platform string) port.Support {
 	entry, err := captureport.Backends.Lookup(captureport.WASAPI)
 	if err != nil {

@@ -1,9 +1,9 @@
 """Tests for the sidecar coverage mode (`core/coverage_mode.py`, `compare.py --coverage`).
 
-docs/utilities/recording-coverage.md, ADR 0127: a hand-made manifest and pre-written words
+docs/utilities/recording-coverage.md, docs/utilities/recording-coverage.md: a hand-made manifest and pre-written words
 files give the expected report with no transcription call; a missing words file is transcribed
 once and written atomically; cancel mid-run keeps the finished words files and exits with code 2;
-progress comes from transcribed seconds (ADR 0015). No Whisper model is needed: the transcriber is
+progress comes from transcribed seconds. No Whisper model is needed: the transcriber is
 a fake, and the real one is driven with a fake model over a generated WAV file."""
 
 import argparse

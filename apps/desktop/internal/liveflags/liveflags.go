@@ -1,5 +1,5 @@
-// Package liveflags turns the read-aloud session's suspected flags (the teleprompter sidecar's `flag` events, ADR 0115)
-// into shared findings (docs/architecture/findings-contract.md) once a session ends (ADR 0117). A flag is only ever
+// Package liveflags turns the read-aloud session's suspected flags (the teleprompter sidecar's `flag` events)
+// into shared findings (docs/architecture/findings-contract.md) once a session ends. A flag is only ever
 // suspected: live recognition is not proof, so a finding carries no confidence score and says why, and Transcript
 // Compare over the recorded take stays authoritative. The UI names each flag's words by paragraph and word; the
 // manuscript text is read here, so the expected text, the character span and the id come from the manuscript, never
@@ -65,7 +65,7 @@ type kindRule struct {
 	severity findings.Severity
 }
 
-// kinds maps a flag kind to its findings category (ADR 0115 decision 5) and severity. The severities follow Transcript
+// kinds maps a flag kind to its findings category (docs/architecture/manuscript-teleprompter.md#flags) and severity. The severities follow Transcript
 // Compare's adapter (a misread or a skip usually needs a new take; an extra is sometimes a deliberate ad-lib), and a
 // restart is the narrator's own recovery, so it is information, like take review's restart pickups.
 var kinds = map[string]kindRule{

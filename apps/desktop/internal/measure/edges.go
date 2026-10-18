@@ -3,7 +3,7 @@ package measure
 import "math"
 
 // edgeFloordBFS is the level a 50 ms window must reach to count as the start (or end) of the reading when the edges
-// of a file are timed: the diagnostics silence floor (ADR 0158), so room tone is what the silence map calls silence.
+// of a file are timed: the diagnostics silence floor, so room tone is what the silence map calls silence.
 const edgeFloordBFS = -50
 
 // edgeMeter times the room tone at a file's edges from the start of the audio to the first window at or above the edge

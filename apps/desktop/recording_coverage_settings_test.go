@@ -12,8 +12,8 @@ import (
 )
 
 // nonNumberRecordingCoverageFields are the RecordingCoverage fields coverage.ResolveSettings reads that are not one
-// of its numbers: background checks (ADR 0211), the model cascade's own three
-// (docs/utilities/recording-coverage.md, MC1 and MC2) and the chunk length (ADR 0864).
+// of its numbers: background checks, the model cascade's own three
+// (docs/utilities/recording-coverage.md, MC1 and MC2) and the chunk length.
 var nonNumberRecordingCoverageFields = map[string]string{
 	settingBackgroundChecks:               "bool",
 	coverage.SettingCascadeEnabled:        "bool",
@@ -22,7 +22,7 @@ var nonNumberRecordingCoverageFields = map[string]string{
 	coverage.SettingChunkSeconds:          "choice",
 }
 
-// The recording check's settings (docs/utilities/recording-coverage.md Q3, ADR 0131; MC1, MC2) are exactly the keys
+// The recording check's settings (docs/utilities/recording-coverage.md Q3, docs/utilities/recording-coverage.md#settings; MC1, MC2) are exactly the keys
 // coverage.ResolveSettings reads: a field it did not read would change nothing.
 func TestTheRecordingCoverageFieldsAreTheCoverageSettings(t *testing.T) {
 	var fields []string
@@ -40,7 +40,7 @@ func TestTheRecordingCoverageFieldsAreTheCoverageSettings(t *testing.T) {
 	}
 	keys := []string{
 		coverage.SettingMinParagraphPresent, coverage.SettingMaxMissingRun, coverage.SettingMaxMisreadRun, coverage.SettingMinAnchorRun,
-		coverage.SettingCascadeUnsureBelow, coverage.SettingParallelWorkers, coverage.SettingChunkOverlapSeconds,
+		coverage.SettingCascadeUnsureBelow, coverage.SettingParallelWorkers, coverage.SettingChunkOverlapSeconds, coverage.SettingParallelChapters,
 	}
 	sort.Strings(fields)
 	sort.Strings(keys)
@@ -49,7 +49,7 @@ func TestTheRecordingCoverageFieldsAreTheCoverageSettings(t *testing.T) {
 	}
 }
 
-// With nothing set, the effective settings are the shipped defaults (ADR 0132: 0.8, 3, 8, 3), and every
+// With nothing set, the effective settings are the shipped defaults (docs/utilities/recording-coverage.md#settings: 0.8, 3, 8, 3), and every
 // default passes its own field's range.
 func TestTheRecordingCoverageDefaultsAreTheShippedValues(t *testing.T) {
 	host := newTestHostForDeliverySettings(t, t.TempDir())
@@ -164,6 +164,7 @@ func TestAParallelOrDoubtSettingOutsideItsRangeIsRefused(t *testing.T) {
 		coverage.SettingParallelWorkers:     "33",
 		coverage.SettingChunkOverlapSeconds: "61",
 		coverage.SettingChunkSeconds:        "10",
+		coverage.SettingParallelChapters:    "9",
 	} {
 		if err := host.saveSettings(coverage.SettingsTool, "global", map[string]*string{key: ptr(value)}); err == nil {
 			t.Errorf("%s = %q was saved", key, value)

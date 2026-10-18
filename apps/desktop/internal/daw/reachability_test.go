@@ -144,7 +144,7 @@ func TestReachabilityChangeCountIsUnknownOnceTheHeartbeatIsStale(t *testing.T) {
 	}
 }
 
-// ADR 0305: the heartbeat's fifth and sixth fields are the transport, GetPlayState's bit field and
+// docs/architecture/reaper-bridge.md: the heartbeat's fifth and sixth fields are the transport, GetPlayState's bit field and
 // GetPlayPosition, so the host knows REAPER is playing or recording without asking it.
 func TestReachabilityTransportFollowsTheHeartbeat(t *testing.T) {
 	cases := []struct {

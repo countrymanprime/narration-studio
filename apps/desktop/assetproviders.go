@@ -208,7 +208,7 @@ func (p moonshineProvider) install(ctx context.Context, id string, options asset
 func (p moonshineProvider) verify(id string) (string, error) { return p.manager.Verify(id) }
 func (p moonshineProvider) remove(id string) error           { return p.manager.Remove(id) }
 
-// dictionaryProvider serves the offline dictionary the manuscript reader's Look up reads (ADR 0097). Its install unpacks the release and
+// dictionaryProvider serves the offline dictionary the manuscript reader's Look up reads. Its install unpacks the release and
 // builds the lookup index from it (internal/dictionary), so what it takes on disk is the index, not the download.
 type dictionaryProvider struct{ manager *dictionary.Manager }
 
@@ -258,7 +258,7 @@ func (p dictionaryProvider) install(ctx context.Context, id string, options asse
 func (p dictionaryProvider) verify(id string) (string, error) { return p.manager.Verify(id) }
 func (p dictionaryProvider) remove(id string) error           { return p.manager.Remove(id) }
 
-// encoderProvider serves the FFmpeg build the MP3 encoder runs (ADR 0342). Its install unpacks the
+// encoderProvider serves the FFmpeg build the MP3 encoder runs. Its install unpacks the
 // pinned wheel and keeps only the executable (internal/ffmpeg), so what it takes on disk is ffmpeg.exe, not the download. It is
 // offered on Windows only: the catalog has no build for another platform.
 type encoderProvider struct{ manager *ffmpeg.Manager }

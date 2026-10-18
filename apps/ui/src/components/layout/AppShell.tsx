@@ -52,7 +52,7 @@ const MASTER_QC = { name: 'Master & QC', path: '/master', icon: faGaugeHigh };
 // Delivery (the Studio Next mock's rail): the profile card, the package build and what is left before it.
 const DELIVERY = { name: 'Delivery', path: '/delivery', icon: iconFor('delivery') };
 
-// Grouped by production stage (ADR 0407): Production, Prep, Record, Edit (the Studio Next mock's own group for Editing, ADR 0804), Review,
+// Grouped by production stage: Production, Prep, Record, Edit (the Studio Next mock's own group for Editing), Review,
 // Finish, with Settings pinned at the foot (below, not a group). A page is renamed only in the change that ships its
 // replacement. The Production page is the home at `/` (`/production` redirects there).
 type NavItem = typeof PRODUCTION;
@@ -103,13 +103,13 @@ export function AppShell({
   projectName: string;
   hasManuscript: boolean;
   dawFileLinked: boolean;
-  /** Whether a live REAPER heartbeat has been seen recently (ADR 0092); false also covers "unknown". */
+  /** Whether a live REAPER heartbeat has been seen recently; false also covers "unknown". */
   dawReachable?: boolean;
   /** Whether that heartbeat's open project is the linked file; only meaningful when dawReachable is true. */
   dawProjectMatches?: boolean;
   /** Opens the engine panel from the header's engine chip. */
   onOpenEnginePanel: () => void;
-  /** True while the shared DAW-link binding is running for any of its three call sites (ADR 0075's ref guard). */
+  /** True while the shared DAW-link binding is running for any of its three call sites (docs/architecture/interaction-feedback.md#the-standard's ref guard). */
   linkingDawFile?: boolean;
   /** Which engine the header's chip shows; UI-only until native recording picks 'builtin'. */
   engine?: EngineState;
@@ -131,7 +131,7 @@ export function AppShell({
   undo: { disabledReason?: string; run: () => void };
   /** The foot's Theme item (the mock's rail): absent draws none. */
   theme?: { dark: boolean; toggle: () => void };
-  /** The menu on empty space in `<main>`, then the items every menu ends with (ADR 0780 decision 5). */
+  /** The menu on empty space in `<main>`, then the items every menu ends with (docs/architecture/studio-shell-and-registries.md#command-providers-and-go-to). */
   contextMenu?: { fallback: (target: Element) => ContextMenuItem[]; tail: ContextMenuItem[] };
   children: ReactNode;
 }) {
@@ -171,11 +171,11 @@ export function AppShell({
       <nav className="flex-1 px-2 pt-[0.5625rem] pb-2">
         {NAV_GROUPS.map((group) => (
           <div key={group.label} role="group" aria-labelledby={groupHeadingId(group.label)} className="flex flex-col gap-[0.1875rem]">
-            {/* Every group is headed (ADR 0407): 10 px capitals at x 19, 29 px deep with the gap above the group's first
+            {/* Every group is headed: 10 px capitals at x 19, 29 px deep with the gap above the group's first
                 item, so a heading sits 32 px between two items. */}
             <div
               id={groupHeadingId(group.label)}
-              className="section-label px-[0.625rem] pt-[0.6875rem] pb-[0.375rem] text-[0.625rem] leading-[0.75rem] tracking-[0.1em]"
+              className="section-label relative px-[0.625rem] pt-[0.6875rem] pb-[0.375rem] text-[0.625rem] leading-[0.75rem] tracking-[0.1em]"
             >
               {group.label}
             </div>
@@ -196,7 +196,7 @@ export function AppShell({
         ))}
       </nav>
       {/* The foot: its rule, then Settings 10 px from it, 4 px further in than the items above. */}
-      <div className="flex flex-none flex-col gap-[0.1875rem] border-t border-[var(--border)] px-3 py-[0.625rem]">
+      <div className="rail-foot flex flex-none flex-col gap-[0.1875rem] border-t border-[var(--border)] px-3 py-[0.625rem]">
         {theme && (
           <NavButton active={false} icon={iconFor(theme.dark ? 'themeLight' : 'themeDark')} onClick={theme.toggle}>
             {theme.dark ? 'Light theme' : 'Dark theme'}
@@ -223,11 +223,11 @@ export function AppShell({
     <div className="flex h-full flex-col overflow-hidden bg-[var(--bg)]">
       <DemoBanner />
       <div className="flex min-h-0 flex-1 overflow-hidden">
-        {/* One rail at md and up (the mock's `.rail`): 216 px from 1360 CSS px, 64 px of icons below it (ADR 0761). Below 1360 the panel inside
+        {/* One rail at md and up (the mock's `.rail`): 216 px from 1360 CSS px, 64 px of icons below it. Below 1360 the panel inside
             is taken out of the flow, so it opens over the page on hover or keyboard focus without moving anything; the labels stay in the
             markup, hidden by size, so every item keeps its name. */}
         <aside className="relative z-[var(--z-nav)] hidden w-16 flex-none min-[1360px]:w-54 md:flex" aria-label="Primary navigation">
-          <div className="flex w-16 flex-col overflow-x-hidden overflow-y-auto border-r border-[var(--border)] bg-[var(--surface)] transition-[width,box-shadow] duration-150 max-[1359px]:hover:w-59 max-[1359px]:hover:shadow-[var(--shadow-lg)] max-[1359px]:has-[:focus-visible]:w-59 max-[1359px]:has-[:focus-visible]:shadow-[var(--shadow-lg)] min-[1360px]:static min-[1360px]:w-54 md:max-[1359px]:absolute md:max-[1359px]:inset-y-0 md:max-[1359px]:left-0 max-[1359px]:[&_.brand-name]:invisible max-[1359px]:hover:[&_.brand-name]:visible max-[1359px]:has-[:focus-visible]:[&_.brand-name]:visible max-[1359px]:[&_.section-label]:text-transparent max-[1359px]:hover:[&_.section-label]:text-[var(--text-muted)] max-[1359px]:has-[:focus-visible]:[&_.section-label]:text-[var(--text-muted)] max-[1359px]:[&_button]:text-[0px] max-[1359px]:hover:[&_button]:text-[0.8125rem] max-[1359px]:has-[:focus-visible]:[&_button]:text-[0.8125rem] max-[1359px]:[&_button>span]:invisible max-[1359px]:hover:[&_button>span]:visible max-[1359px]:has-[:focus-visible]:[&_button>span]:visible">
+          <div className="icon-rail flex w-16 flex-col overflow-x-hidden overflow-y-auto border-r border-[var(--border)] bg-[var(--surface)] transition-[width,box-shadow] duration-150 max-[1359px]:hover:w-59 max-[1359px]:hover:shadow-[var(--shadow-lg)] max-[1359px]:has-[:focus-visible]:w-59 max-[1359px]:has-[:focus-visible]:shadow-[var(--shadow-lg)] min-[1360px]:static min-[1360px]:w-54 md:max-[1359px]:absolute md:max-[1359px]:inset-y-0 md:max-[1359px]:left-0 max-[1359px]:[&_.brand-name]:invisible max-[1359px]:hover:[&_.brand-name]:visible max-[1359px]:has-[:focus-visible]:[&_.brand-name]:visible max-[1359px]:[&_.rail-foot]:px-2 max-[1359px]:[&_.section-label]:text-transparent max-[1359px]:hover:[&_.section-label]:text-[var(--text-muted)] max-[1359px]:has-[:focus-visible]:[&_.section-label]:text-[var(--text-muted)] max-[1359px]:[&_button]:pl-4 max-[1359px]:[&_button]:text-[0px] max-[1359px]:hover:[&_button]:text-[0.8125rem] max-[1359px]:has-[:focus-visible]:[&_button]:text-[0.8125rem] max-[1359px]:[&_button_svg]:w-[0.9375rem] max-[1359px]:[&_button_svg]:flex-none max-[1359px]:[&_button>span]:invisible max-[1359px]:hover:[&_button>span]:visible max-[1359px]:has-[:focus-visible]:[&_button>span]:visible">
             {navigation}
           </div>
         </aside>
@@ -292,7 +292,7 @@ export function AppShell({
               </TooltipTarget>
             </div>
             {timer && <TimerChip timer={timer} />}
-            {/* The zoom group (ADR 0407): after a running timer chip, before the engine chip. Below `md` a running timer takes its room (Ctrl+wheel and the shortcuts still zoom). */}
+            {/* The zoom group: after a running timer chip, before the engine chip. Below `md` a running timer takes its room (Ctrl+wheel and the shortcuts still zoom). */}
             <div className={`flex flex-none items-center gap-1 ${timer ? 'max-md:hidden' : ''}`} role="group" aria-label="Zoom">
               <TooltipTarget text={zoomOutTooltip}>
                 <IconButton label="Zoom out" disabledReason={zoom.canZoomOut ? undefined : zoomOutTooltip} onClick={zoom.zoomOut}>

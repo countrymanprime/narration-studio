@@ -225,10 +225,10 @@ On conflict this PRD, and the ADR written when its phase lands, is the source of
 
 | ADR | Class | Note |
 | --- | --- | --- |
-| [ADR 0028](../../../../docs/adr/0028-planned-work-is-specified-as-prds-and-deleted-when-built.md) | KEEP | PRDs deleted when built; the series obeys it |
-| [ADR 0029](../../../../docs/adr/0029-work-is-tracked-on-github-and-decided-in-the-repo.md) | EXTEND | Work tracked on GitHub: one issue per slice under the PRD issue (D-1) |
-| [ADR 0410](../../../../docs/adr/0410-the-adr-index-is-generated-from-each-adrs-heading-and-status-line-and-a-stale-index-fails-the-gate.md) | KEEP | ADR index generated; ADR numbers allocated at merge time |
-| [ADR 0415](../../../../docs/adr/0415-while-pages-is-paused-docs-are-checked-by-lychee-and-a-changed-file-markdownlint-not-by-building-the-site.md) | KEEP | Docs checked by lychee and changed-file markdownlint |
+| [Lifecycle of a PRD](../../../../docs/prds/README.md#lifecycle-of-a-prd) | KEEP | PRDs deleted when built; the series obeys it |
+| [Tracking work on GitHub](../../../../docs/operations/github-workflow.md) | EXTEND | Work tracked on GitHub: one issue per slice under the PRD issue (D-1) |
+| | KEEP | ADR index generated; ADR numbers allocated at merge time |
+| [CI and releases](../../../../docs/operations/ci-and-releases.md) | KEEP | Docs checked by lychee and changed-file markdownlint |
 | D40, D43, D44, D62, D67, D82, D96, D97 (train rules, not ADRs) | KEEP / EXTEND | See the deviations table; D96 is DQ-1 |
 
 ## Technical Approach

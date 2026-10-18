@@ -5,7 +5,7 @@ import type { InferOutput, StandardSchemaV1 } from './standardSchema';
 export type WireContext = { boundary: string; payload: string };
 
 /**
- * The one way a value crossing into the UI is checked (ADR 0069). Every binding result, live event and mock answer goes
+ * The one way a value crossing into the UI is checked. Every binding result, live event and mock answer goes
  * through it, so a wrong shape fails here, loudly and by name, and not three components later as a blank chart.
  *
  * Typed on Standard Schema and not on Zod: no caller depends on the library. Reads are lenient about keys the schema does

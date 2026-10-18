@@ -52,7 +52,7 @@ import type { RecordingMockSeed } from '../recordingMock';
 
 // What createMockApi boots from (the seeds), and the host state more than one domain reads or writes.
 // manuscriptCandidate boots a project with no imported manuscript but a
-// manuscript file waiting in its folder (Home offers to import it, ADR-0019).
+// manuscript file waiting in its folder (Home offers to import it).
 // teleprompter boots with a session already part-way through the first chapter.
 export type MockApiSeed = {
   projectFolder?: string;
@@ -137,7 +137,7 @@ export type MockApiSeed = {
   /** Makes the next `linkDawFile()` call link a file outside the project folder (a separate DAW folder), with its note. */
   dawLinkOutside?: boolean;
   /**
-   * Simulates a live REAPER heartbeat whose open project disagrees with the linked file (ADR 0092): the
+   * Simulates a live REAPER heartbeat whose open project disagrees with the linked file: the
    * mock otherwise never grows a heartbeat, so `dawReachable`/`dawProjectMatches` stay false. Used by the engine
    * chip's "Wrong REAPER project open" state.
    */
@@ -150,7 +150,7 @@ export type MockApiSeed = {
   /** Seeds the confirmed chapter-track mapping, so a link's state (a
    * missing track, in particular) can be seen without going through Confirm in the UI first. */
   chapterTrackMappings?: TrackMapping[];
-  /** The mock .rpp's record-armed track GUIDs, which `chapterSuggestion` reads (ADR 0113). Defaults to none, so the
+  /** The mock .rpp's record-armed track GUIDs, which `chapterSuggestion` reads. Defaults to none, so the
    * Teleprompter keeps its usual default chapter. */
   armedTracks?: readonly string[];
   /** Boots LineIdentityState already at this result, so "Link chapters" states can be seen without stepping through a run. */
@@ -242,12 +242,12 @@ export type MockApiSeed = {
    * tab's "not in a series" state can be seen. Unset boots as a member of `WIRE_SERIES` (two books).
    */
   seriesVoiceBible?: 'not-in-series' | 'single-book';
-  /** Seeds the mastering chain mock (whether a project is open, its stored choice), see `MasteringMockSeed` (ADR 0306). */
+  /** Seeds the mastering chain mock (whether a project is open, its stored choice), see `MasteringMockSeed`. */
   mastering?: MasteringMockSeed;
   /** `?mockZoom=`: the window's real zoom level at boot, as a fraction (1.25 is 125%).
    * Defaults to 1.0, a fresh window. */
   zoom?: number;
-  /** Seeds the built-in recorder mock (engine, takes, a take recording, devices), see `RecordingMockSeed` (ADR 0455). */
+  /** Seeds the built-in recorder mock (engine, takes, a take recording, devices), see `RecordingMockSeed`. */
   recording?: RecordingMockSeed;
 };
 
@@ -287,7 +287,7 @@ export function withSeededStatuses(chapters: ManuscriptChapter[], initial: MockA
 export function createMockState(initial: MockApiSeed): MockState {
   // One candidate auto-selects (like the Go host); several leave the choice to the narrator.
   const tracksCandidates = initial.tracksCandidates ?? [WIRE_TRACKS_PROJECT.path];
-  // A job that ends tells whoever listens, after the call that started it has returned, the way the host does (ADR 0076). The mock ends
+  // A job that ends tells whoever listens, after the call that started it has returned, the way the host does. The mock ends
   // only the Story Bible rebuild this way: its comparison run is driven by a timer the visual suite steps through, and a toast raised at
   // the end of one would land in every screenshot of the results.
   const jobEndListeners = new Set<(event: JobEnded) => void>();
@@ -297,7 +297,7 @@ export function createMockState(initial: MockApiSeed): MockState {
     paragraphs: wireClone(initial.paragraphs ?? WIRE_PARAGRAPHS),
     nextId: 1,
     tracksDiscovery: { candidates: tracksCandidates, selected: tracksCandidates.length === 1 ? tracksCandidates[0] : '' },
-    // A seed built before links had an origin (ADR 0202) reads as the narrator's own link, as the host reads a v1 file.
+    // A seed built before links had an origin reads as the narrator's own link, as the host reads a v1 file.
     chapterTrackMappings: wireClone(initial.chapterTrackMappings ?? []).map((link) => ({ origin: 'manual', match: null, ...link })),
     jobEndListeners,
     endJob: (event) => void setTimeout(() => jobEndListeners.forEach((listener) => listener(event)), 0),

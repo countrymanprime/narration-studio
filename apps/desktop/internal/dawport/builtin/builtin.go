@@ -1,4 +1,4 @@
-// Package builtin is the DAW port's adapter for the app's own recorder (internal/recording, ADR 0455): the engine of a launch with
+// Package builtin is the DAW port's adapter for the app's own recorder (internal/recording): the engine of a launch with
 // no DAW whose project records with the built-in recorder (dawport.LaunchKind). It wraps the recorder through Recorder, an
 // interface declared here that recording.Service satisfies, so the recorder itself knows nothing of the port.
 //

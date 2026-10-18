@@ -1,8 +1,8 @@
-// Package editlog is the narrator's Editing records (ADR 0856): one file per kind of record under the project's
+// Package editlog is the narrator's Editing records: one file per kind of record under the project's
 // narration-utils/editing/ folder, beside the per-chapter source choices. Each names a word by its chapter id, its paragraph
 // id and its ordinal among the paragraph's words, together with the text the word had, and is checked against the current
 // manuscript on every read: a record whose word is gone or whose text changed is reported stale, never moved to a guess
-// (the rule of ADR 0382).
+// (the rule of).
 //
 // Each file is narrator data, read through persist: a corrupt one is kept aside and an empty list starts, one written by a
 // newer app is refused and never overwritten, and a write goes through a temporary file and a rename. Replacing the

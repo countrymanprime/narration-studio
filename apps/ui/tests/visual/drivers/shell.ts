@@ -32,7 +32,7 @@ export const shellDrivers: Record<string, Driver> = {
     await page.getByLabel(/^Built-in: Recording happens in the app/).waitFor();
   },
   // The header's mismatch state, simulating a live REAPER heartbeat whose open project disagrees with the
-  // linked file (ADR 0092) - the mock never grows one on its own (see main.tsx).
+  // linked file - the mock never grows one on its own (see main.tsx).
   'engine-mismatch': async (page) => {
     await page.goto('/?mockDawMismatch=1');
     await settlePage(page);

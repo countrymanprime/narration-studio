@@ -43,7 +43,7 @@ describe('chapterName', () => {
   });
 });
 
-// fast-check with the repo's fixed global seed (ADR 0044): deterministic in the gate, 200 runs.
+// fast-check with the repo's fixed global seed: deterministic in the gate, 200 runs.
 describe('chapterName properties', () => {
   const titleArb = fc.string({ minLength: 1 }).filter((title) => squashed(title).length > 0 && !title.includes('\n'));
   const subtitleArb = fc.option(

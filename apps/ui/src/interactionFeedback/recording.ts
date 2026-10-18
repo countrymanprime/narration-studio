@@ -1,4 +1,4 @@
-// The built-in recorder's calls (ADR 0455): the engine chip (components/booth/useRecorder.ts) and the takes the recorder left.
+// The built-in recorder's calls: the engine chip (components/booth/useRecorder.ts) and the takes the recorder left.
 import { row, startup, subscription } from './row';
 
 export const recordingFeedback = {

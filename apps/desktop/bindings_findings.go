@@ -10,7 +10,7 @@ import (
 	"github.com/countrymanprime/narration-utils/shell/internal/findings"
 )
 
-// The review bindings (ADR 0120): every analyzer's
+// The review bindings: every analyzer's
 // findings are read and decided through these four, whatever wrote them (Transcript Compare, the Story
 // Bible, take review, and later the teleprompter's live flags), so a new analyzer needs no new binding.
 // Filtering, sorting and paging run in Go over findings.Query; the UI stays a view.
@@ -93,7 +93,7 @@ func (h *Host) FindingsReview(id, evidenceVersion, status, note string) (string,
 	return encodeBinding(finding, err)
 }
 
-// FindingsSetType records the kind the narrator says a finding is (ADR 0844), made against evidenceVersion
+// FindingsSetType records the kind the narrator says a finding is, made against evidenceVersion
 // like a decision, and answers the finding as the store now holds it (review.type set, or absent when the
 // narrator chose the analyzer's own word). noteType is one of findings.NoteTypes. It is not a decision:
 // status, note and the review counts stay as they were. A stale evidenceVersion is refused as FindingsReview

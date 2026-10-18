@@ -55,7 +55,7 @@ describe('atlas accessibility debt', () => {
 });
 
 describe('atlas reload debt', () => {
-  // A story here opted back into a fresh page load per variant (ADR 0267) after the side-by-side diff found a real
+  // A story here opted back into a fresh page load per variant after the side-by-side diff found a real
   // difference from switching in place. Starts empty; grows only when that diff finds one.
   test('every entry says why', () => {
     for (const debt of RELOAD_DEBT) {

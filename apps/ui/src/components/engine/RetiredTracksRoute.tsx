@@ -3,7 +3,7 @@ import { RedirectKeepingLocation } from '../layout/RedirectKeepingLocation';
 import { useOpenEnginePanel } from './EnginePanelContext';
 
 /**
- * `/tracks`, retired by the engine panel (ADR 0407). It lands on Proof
+ * `/tracks`, retired by the engine panel. It lands on Proof
  * (its chapter picker is where a narrator goes to hear a chapter), query and hash kept, and opens the engine panel
  * over it, since that is where the Tracks page's project, track list and REAPER tools went: an old bookmark or a link still
  * pointing here reaches both.

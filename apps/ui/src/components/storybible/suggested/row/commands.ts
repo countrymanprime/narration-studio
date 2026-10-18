@@ -1,4 +1,4 @@
-// The journalled decisions on a suggestion (ADR 0771): Accept, Reject and Mark reviewed are each one journal entry, and the inverse
+// The journalled decisions on a suggestion: Accept, Reject and Mark reviewed are each one journal entry, and the inverse
 // of each is the host's `extractionReopen`, which puts the suggestion back to the status the 75% rule gave it. They take the port
 // and the journal as arguments, so the row calls them through `useSuggestionDecisions` and writes no journalling of its own.
 // A host refusal (a locked entry, a name another entry owns) comes back as the host's own sentence and journals nothing.

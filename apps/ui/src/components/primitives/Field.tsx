@@ -10,7 +10,7 @@ const CONTROL_CLASSES =
   'mt-2 w-full rounded-[var(--control-radius)] font-medium border border-[var(--line-strong)] bg-[var(--surface)] px-3 py-[0.6rem] text-[0.88rem] leading-[1.35] text-[var(--text)] data-[invalid]:border-[var(--danger)]';
 
 // A labelled text control. Base UI's Field wires the label, the hint and the error to the control (`for`, `aria-invalid`,
-// `aria-describedby`), so none of that is written by hand here (ADR 0047). The control stays controlled: it never holds
+// `aria-describedby`), so none of that is written by hand here. The control stays controlled: it never holds
 // its own value.
 export function Field({
   label,

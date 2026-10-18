@@ -15,7 +15,7 @@ export const masterStates: StateEntry[] = [
     page: 'master',
     state: 'running',
     description:
-      'Master & QC, a check part way through (?mockMeasure=running) - its real progress from the bytes read (ADR 0015), what it is reading, Cancel, and each file waiting in the table',
+      'Master & QC, a check part way through (?mockMeasure=running) - its real progress from the bytes read, what it is reading, Cancel, and each file waiting in the table',
   },
   {
     page: 'master',
@@ -57,14 +57,14 @@ export const masterStates: StateEntry[] = [
     page: 'master',
     state: 'diagnostics-empty',
     description:
-      'Master & QC / Diagnostics, nothing checked yet - "Rendered chapters" or "Raw recordings", Choose files to check, and every threshold the check uses shown before any finding (ADR 0158)',
+      'Master & QC / Diagnostics, nothing checked yet - "Rendered chapters" or "Raw recordings", Choose files to check, and every threshold the check uses shown before any finding',
     ...KEEPS_DESKTOP_SCROLL,
   },
   {
     page: 'master',
     state: 'diagnostics-running',
     description:
-      'Master & QC / Diagnostics, a check part way through (?mockDiagnostics=running) - its real progress from the bytes read (ADR 0015), what it is reading, Cancel, and the source-kind choice locked while it runs',
+      'Master & QC / Diagnostics, a check part way through (?mockDiagnostics=running) - its real progress from the bytes read, what it is reading, Cancel, and the source-kind choice locked while it runs',
     ...KEEPS_DESKTOP_SCROLL,
   },
   {

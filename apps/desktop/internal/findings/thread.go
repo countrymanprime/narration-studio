@@ -24,7 +24,7 @@ const (
 )
 
 // ThreadEntry is one line of the append-only thread history (PF-1 part 7, beside the decisions and the type choices of
-// ADR 0844). MessageID names the message an edit, delete or restore acts on; an add gets the next id for its finding.
+// docs/architecture/findings-contract.md). MessageID names the message an edit, delete or restore acts on; an add gets the next id for its finding.
 type ThreadEntry struct {
 	FindingID string   `json:"finding_id"`
 	Op        ThreadOp `json:"op"`

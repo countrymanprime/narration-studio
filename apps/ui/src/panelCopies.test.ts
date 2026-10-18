@@ -3,7 +3,7 @@ import { readdirSync, readFileSync, statSync } from 'node:fs';
 import { join, relative, sep } from 'node:path';
 import { describe, expect, test } from 'vitest';
 
-// ADR 0640: a card is a `Panel`, a card inside a card an
+// docs/design/design-system.md: a card is a `Panel`, a card inside a card an
 // `InsetCard`, an eyebrow a `SectionLabel` and a page title a `Heading`, so each looks one way. This scan counts the copies
 // written outside `components/primitives/`, per file, and a file's count may only go down: a ceiling higher than the real
 // count fails, so the entry is lowered (or deleted at zero) in the same change, and a file with no entry may have none.
@@ -23,7 +23,7 @@ type Copy = keyof typeof COPIES;
 
 const CEILING: Record<Copy, Record<string, number>> = {
   card: {
-    // The companion panel's own card is at 0 (ADR 0659: full-bleed sections, not cards).
+    // The companion panel's own card is at 0 (apps/ui/src/components/booth/CompanionShell.tsx: full-bleed sections, not cards).
     // Not cards. A warning on a tinted fill, which neither Panel nor InsetCard draws.
     'src/components/booth/UnresolvedCreditsWarning.tsx': 1,
     // A card that is a button (the .rpp picker's rows, the recent projects): a Panel is a section, not a control.
@@ -86,7 +86,7 @@ function counts(): Record<Copy, Record<string, number>> {
   return found;
 }
 
-describe('panel, inset card, eyebrow and page-title copies outside the primitives (ADR 0640)', () => {
+describe('panel, inset card, eyebrow and page-title copies outside the primitives', () => {
   const found = counts();
   test.each(Object.keys(COPIES) as Copy[])('no file has more %s copies than its ceiling, and no ceiling is higher than its count', (copy) => {
     expect(found[copy]).toEqual(CEILING[copy]);

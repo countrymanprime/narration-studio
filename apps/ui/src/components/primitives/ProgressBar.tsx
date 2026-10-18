@@ -1,6 +1,6 @@
 import { Progress } from '@base-ui/react/progress';
 
-// The one determinate/indeterminate progress bar (ADR 0015: real progress only). Base UI's Progress carries the semantics (role="progressbar",
+// The one determinate/indeterminate progress bar (docs/architecture/principles.md: real progress only). Base UI's Progress carries the semantics (role="progressbar",
 // aria-valuenow only when there is a value); the fill below keeps the current look. WorkDialog and the local-assets rows draw it.
 //
 // `value` is a percentage, or `null` when nothing has been measured yet: no value is announced and the fill slides. `running` says the job has begun,

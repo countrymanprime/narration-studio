@@ -4,7 +4,7 @@ import { usePort } from '../../ports/usePort';
 import { openPickups } from './list/pickupRows';
 
 /**
- * The Pickups page's own list (`pickupsList`, ADR 0840), or undefined until it is read or when it cannot be. Every count of pickups outside that page (Production's
+ * The Pickups page's own list (`pickupsList`), or undefined until it is read or when it cannot be. Every count of pickups outside that page (Production's
  * tile, Next up and pipeline, Schedule's pickup hours, the Booth companion, the recording check) reads it here, so they count the lines the Pickups page lists and never the DAW's
  * marker count. It reads again on every pickups event: a marker the DAW reports changes the list.
  */

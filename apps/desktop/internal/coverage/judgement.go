@@ -7,7 +7,7 @@ import (
 )
 
 // Judgement is a stored report judged by the narrator's thresholds: met or
-// not met, and why (ADR 0204). The
+// not met, and why. The
 // recording check dialog shows it as its headline and the stage signal is
 // built from it (measuredSignal), so the two can never disagree. Thresholds
 // are the ones it was judged by, so the dialog can say so.

@@ -56,7 +56,7 @@ describe('wailsClient', () => {
     const engines = {
       engines: [{ id: 'small', label: 'Small', family: 'whisper', installState: 'installed' }],
       default: 'small',
-      defaults: { recheck: false, recheckModel: 'small', recheckBelow: 0.5, workers: 0, chunkSeconds: 300, overlapSeconds: 6 },
+      defaults: { recheck: false, recheckModel: 'small', recheckBelow: 0.5, workers: 0, chunkSeconds: 300, overlapSeconds: 6, chapters: 1 },
     };
     const start = vi.fn().mockResolvedValue(JSON.stringify({ status: 'refused', reason: 'busy', message: 'A check is already running.' }));
     standInHost({ CoverageEngines: () => Promise.resolve(JSON.stringify(engines)), CoverageStart: start });
@@ -798,7 +798,7 @@ describe('wailsClient', () => {
   });
 });
 
-describe('live events (ADR 0069: dropped and counted, never thrown inside the callback)', () => {
+describe('live events (docs/architecture/wire-contracts.md: dropped and counted, never thrown inside the callback)', () => {
   type Listener = (payload: unknown) => void;
 
   // A fresh module per test: the live-event counter is the client's own, and one test's drops must not degrade the next.
@@ -1648,7 +1648,7 @@ describe('the script prep bindings', () => {
   });
 });
 
-// Wails v2 rejected a failed Go method with the error's text; v3 rejects with a RuntimeError carrying it (ADR 0200). Pages render a
+// Wails v2 rejected a failed Go method with the error's text; v3 rejects with a RuntimeError carrying it. Pages render a
 // rejection with String(reason), so the text must arrive alone, never as "RuntimeError: ...".
 describe('host errors keep the text a page shows', () => {
   it('rejects with the Go error text when a host method fails', async () => {

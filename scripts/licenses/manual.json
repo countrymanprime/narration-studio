@@ -61,7 +61,7 @@
     "license": "GPL-3.0-or-later",
     "homepage": "https://github.com/espeak-ng/espeak-ng",
     "source": "manuscript-guide",
-    "note": "The piper-tts wheel bundles eSpeak NG and its data to phonemize text. Licence: GPL-3.0-or-later (with parts under other licences named in the eSpeak NG repository's COPYING files). Source: https://github.com/espeak-ng/espeak-ng and https://github.com/OHF-voice/piper1-gpl. Narration Utils is AGPL-3.0-or-later (ADR 0039), which is compatible."
+    "note": "The piper-tts wheel bundles eSpeak NG and its data to phonemize text. Licence: GPL-3.0-or-later (with parts under other licences named in the eSpeak NG repository's COPYING files). Source: https://github.com/espeak-ng/espeak-ng and https://github.com/OHF-voice/piper1-gpl. Narration Utils is AGPL-3.0-or-later, which is compatible."
   },
   {
     "name": "Silero VAD model (silero_vad_v6.onnx) inside the faster-whisper wheel",
@@ -69,7 +69,7 @@
     "license": "MIT",
     "homepage": "https://github.com/snakers4/silero-vad",
     "source": "transcript-compare, manuscript-teleprompter",
-    "note": "A voice-activity-detection model that faster-whisper ships as package data and the sidecars collect (ADR 0022). Licence: MIT, https://github.com/snakers4/silero-vad/blob/master/LICENSE."
+    "note": "A voice-activity-detection model that faster-whisper ships as package data and the sidecars collect. Licence: MIT, https://github.com/snakers4/silero-vad/blob/master/LICENSE."
   },
   {
     "name": "ONNX Runtime inside the moonshine-voice wheel (moonshine_voice/onnxruntime.dll)",

@@ -35,7 +35,7 @@ func TestTheApprovedCatalogPinsOneWindowsBuildFromAnImmutablePyPIFile(t *testing
 	}
 	builds := windows.Builds()
 	if len(builds) != 1 {
-		t.Fatalf("the Windows catalog has %d builds, want the one ADR 0342 approves", len(builds))
+		t.Fatalf("the Windows catalog has %d builds, want the one config/encoder-assets.json approves", len(builds))
 	}
 	build := builds[0]
 	file := build.Files[0]

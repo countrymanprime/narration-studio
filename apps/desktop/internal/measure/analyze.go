@@ -14,7 +14,7 @@ const skipBlockFrames = 1 << 20
 // Progress is told how many bytes of audio the measurement has read so far, of how many it will read in all (total
 // is 0 when that is not known, as for a stream whose header was never finished). It is called from the measuring
 // goroutine after every block, so it must be quick. done never goes backwards and never passes a known total, and a
-// measurement that runs to its end reports done == total: the progress is the bytes really read (ADR 0015).
+// measurement that runs to its end reports done == total: the progress is the bytes really read.
 type Progress func(done, total int64)
 
 // Options are what a measurement can be asked for beyond the whole file: only a range of it, and progress.

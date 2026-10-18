@@ -61,7 +61,7 @@ describe('useZoom', () => {
     expect(api.windowSetZoom).toHaveBeenLastCalledWith(1.0);
   });
 
-  it('zoom out is disabled at 100% and zoom in is disabled at 200% (ADR 0201)', async () => {
+  it('zoom out is disabled at 100% and zoom in is disabled at 200%', async () => {
     const atFloor = fakeApi(1.0);
     const { result: floor } = renderHook(() => useZoom(atFloor));
     await waitFor(() => expect(floor.current.canZoomOut).toBe(false));
@@ -80,7 +80,7 @@ describe('useZoom', () => {
     expect(result.current.canZoomOut).toBe(false);
   });
 
-  it('a resize above the 200% ceiling (an external Ctrl+wheel/pinch) is set back to it (ADR 0201 item 2)', async () => {
+  it('a resize above the 200% ceiling (an external Ctrl+wheel/pinch) is set back to it (docs/guides/using-the-app/navigation.md#zoom)', async () => {
     const api = fakeApi(1.0);
     renderHook(() => useZoom(api));
     await waitFor(() => expect(api.windowZoom).toHaveBeenCalledOnce());

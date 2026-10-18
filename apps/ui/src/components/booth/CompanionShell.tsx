@@ -47,7 +47,7 @@ function playheadTime(seconds: number): string {
   return `${minutes}:${rest.toFixed(1).padStart(4, '0')}`;
 }
 
-/** REAPER's transport from `daw_transport_changed` (ADR 0305). Pushed only: until the first push, stopped. */
+/** REAPER's transport from `daw_transport_changed`. Pushed only: until the first push, stopped. */
 function useDawTransport(): DawTransport {
   const api = useApi();
   const [transport, setTransport] = useState<DawTransport>({ playing: false, recording: false });
@@ -63,7 +63,7 @@ function playheadBadge({ playing, recording, position }: DawTransport): { tone: 
 }
 
 /**
- * Narrows and pins the app's one window while this is mounted, and gives it back on unmount (ADR 0401: the same window,
+ * Narrows and pins the app's one window while this is mounted, and gives it back on unmount (apps/desktop/bindings_companion.go: the same window,
  * never a second one). Unmount covers every way out - Full app, the double Escape, the dialog closing - and the host's
  * exit is a no-op when nothing was entered, so there is no path that leaves the window narrow and pinned.
  */
@@ -127,7 +127,7 @@ function Section({ title, badge, children, first = false }: { title: string; bad
 
 /**
  * Companion mode's layout: `CompactShell` in the app's own window, narrowed
- * and pinned beside the DAW (ADR 0401). It is the same teleprompter session the Booth
+ * and pinned beside the DAW. It is the same teleprompter session the Booth
  * shows (`CompanionHost` renders this beside the DAW, apart from the Booth page), re-laid out for a 380 px column: REAPER's playhead in the
  * header, then the script, the note at the playhead (not built yet, so an honest "Coming soon"), the Pickups page's list, and the gestures that work here.
  *

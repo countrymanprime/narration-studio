@@ -11,8 +11,8 @@ import (
 	"github.com/countrymanprime/narration-utils/shell/internal/tracks"
 )
 
-// The live half of the resume locate (ADR 0349): where the chapter's track is in
-// REAPER now, read through the DAW port's Track state role (chapter_track_state, ADR 0231), preferred over the saved .rpp
+// The live half of the resume locate: where the chapter's track is in
+// REAPER now, read through the DAW port's Track state role (chapter_track_state), preferred over the saved .rpp
 // whenever REAPER can say. It only reads.
 
 // Where the DAW place came from (TeleprompterLocate's dawSource) and which point of the track it is (dawAt).

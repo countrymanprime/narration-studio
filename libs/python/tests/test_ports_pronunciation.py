@@ -1,4 +1,4 @@
-"""The pronunciation port (ADR 0301): its descriptor, its two roles, the fallback order and its conformance suite."""
+"""The pronunciation port: its descriptor, its two roles, the fallback order and its conformance suite."""
 
 import ast
 from pathlib import Path

@@ -1,5 +1,5 @@
 """
-Loads the Moonshine streaming engine for live_asr.py (the Manuscript Teleprompter's second live engine, ADR 0021, ADR 0107).
+Loads the Moonshine streaming engine for live_asr.py (the Manuscript Teleprompter's second live engine).
 live_asr.py turns the loaded Transcriber's line events into the same partial/word/segment_end events the Whisper engine
 produces; this module only decides WHICH model files are loaded.
 
@@ -44,11 +44,11 @@ def missing_model_files(model_dir: str | Path) -> list[str]:
 
 def self_check() -> dict:
     """Whether this build carries a working Moonshine, as one `{ok, detail}` report. Called by live_asr.py's `_verify_moonshine`
-    (the asr/moonshine row of --capabilities --verify's `_VERIFY_HOOKS`, for the packaged app's smoke test, apps/desktop/smoke.go)
-    (ADR 0403).
-    moonshine_voice loads its native moonshine.dll (and the onnxruntime.dll beside it) with ctypes, which PyInstaller cannot see,
-    so a freeze that lost them still starts; asking the native library for its language catalog proves it loads and answers, with
-    no model and no network. Transcriber is imported too, since the package imports it lazily."""
+        (the asr/moonshine row of --capabilities --verify's `_VERIFY_HOOKS`, for the packaged app's smoke test, apps/desktop/smoke.go)
+    .
+        moonshine_voice loads its native moonshine.dll (and the onnxruntime.dll beside it) with ctypes, which PyInstaller cannot see,
+        so a freeze that lost them still starts; asking the native library for its language catalog proves it loads and answers, with
+        no model and no network. Transcriber is imported too, since the package imports it lazily."""
 
     def report(ok: bool, detail: str) -> dict:
         return {"type": "engine_check", "engine": "moonshine", "ok": ok, "detail": detail}

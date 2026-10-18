@@ -15,21 +15,21 @@ export const workspaceGoldens: Record<string, z.ZodType> = {
   'workspace-alignment-stale.json': workspaceAlignmentResultSchema,
   'workspace-alignment-never.json': workspaceAlignmentResultSchema,
   'workspace-alignment-needs-align-again.json': workspaceAlignmentResultSchema,
-  // ADR 0855: extra runs' added words (spread, and unplaced across two items) and the engine.
+  // apps/desktop/internal/coverage/workspace.go: extra runs' added words (spread, and unplaced across two items) and the engine.
   'workspace-alignment-added-words.json': workspaceAlignmentResultSchema,
   // WorkspaceGoTo reuses findingNavigationSchema: the same
   // shape as FindingsGoTo, sent by apps/desktop/bindings_workspace.go's encodeBinding(FindingNavigation).
   'workspace-go-to.json': findingNavigationSchema,
   'workspace-navigation-no-item.json': findingNavigationSchema,
-  // WorkspaceListFXChains (ADR 0234): the narrator's FX chains by name.
+  // WorkspaceListFXChains: the narrator's FX chains by name.
   'workspace-fx-chains.json': workspaceFXChainsResultSchema,
-  // WorkspaceTakes and WorkspaceUseTake (ADR 0700): a passage's takes from each source, none, and each outcome.
+  // WorkspaceTakes and WorkspaceUseTake: a passage's takes from each source, none, and each outcome.
   'workspace-takes.json': workspaceTakesResultSchema,
   'workspace-takes-none.json': workspaceTakesResultSchema,
   'workspace-use-take-done.json': workspaceUseTakeResultSchema,
   'workspace-use-take-started.json': workspaceUseTakeResultSchema,
   'workspace-use-take-refused.json': workspaceUseTakeResultSchema,
-  // WorkspacePeaks (ADR 0520): one item's real peaks, and one item with no usable source (a Reason).
+  // WorkspacePeaks: one item's real peaks, and one item with no usable source (a Reason).
   'workspace-peaks.json': workspacePeaksResultSchema,
   'workspace-peaks-no-source.json': workspacePeaksResultSchema,
 };

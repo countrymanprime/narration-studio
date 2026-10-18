@@ -1,4 +1,4 @@
-# The public docs site (ADR 0083): MkDocs and the Material theme, built from the repository's own docs/ folder.
+# The public docs site: MkDocs and the Material theme, built from the repository's own docs/ folder.
 # Nothing under tools/docs-site is content: `docs_dir` is docs/ itself, `include.txt` says which of its pages are published,
 # and hooks.py rewrites the links that leave the published set. Build it with `pnpm exec nx run docs-site:build-site`.
 site_name: narration-utils
@@ -85,7 +85,7 @@ extra:
   # Where the Storybook build is published beside this site (pages.yml copies it to <site>/storybook/).
   storybook_path: storybook/
   storybook_page: ui/atlas/index.md
-  # Where the app demo is published beside this site (pages.yml copies it to <site>/demo/, ADR 0096).
+  # Where the app demo is published beside this site (pages.yml copies it to <site>/demo/).
   # Linked from the same page as Storybook (storybook_page) rather than a new nav entry.
   demo_path: demo/
 

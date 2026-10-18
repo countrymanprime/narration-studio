@@ -19,12 +19,12 @@ const (
 	// wordsAnalyzerID and wordsVersion name the per-source words entries in the
 	// analysis evidence cache. The version is the sidecar's words file schema.
 	// Raised once, to 2, for the model cascade's `spans` field
-	// (coverage_mode.splice_window, ADR 0341): a words file the sidecar
+	// (coverage_mode.splice_window): a words file the sidecar
 	// still reads without them, so this is a clean one-time invalidation, not a
 	// correctness fix.
 	wordsAnalyzerID = "recording-coverage-words"
 	//
-	// Raised again, to 3, when a words file began to carry Whisper's probability for each word (ADR 0864): the
+	// Raised again, to 3, when a words file began to carry Whisper's probability for each word: the
 	// reader still takes a file without them, but a chapter checked before would otherwise never show a doubted
 	// passage, so every words file is made again once.
 	wordsVersion = "3"
@@ -41,7 +41,7 @@ type AlignmentParams struct {
 	MinAnchorRun  int `json:"minAnchorRun"`
 }
 
-// DefaultAlignmentParams are the shipped defaults (ADR 0132): calibrated on the
+// DefaultAlignmentParams are the shipped defaults: calibrated on the
 // synthetic fixtures only, so still Proposed and uncalibrated on real narration
 // (Q15). They are the values the sidecar uses when no flag is given.
 var DefaultAlignmentParams = AlignmentParams{MaxMisreadRun: 8, MinAnchorRun: 3}
@@ -103,7 +103,7 @@ func paramHash(params AlignmentParams, inputs projectInputs) string {
 // model, "" when a run never re-checks ("" here is the same cache
 // entry a plain single-model run of transcription.Model already uses): a cascade's spliced words
 // carry the re-check model in their own key, so they never seed a later plain check of the same
-// first-pass model with words a stronger model has already touched (ADR 0341).
+// first-pass model with words a stronger model has already touched.
 func wordsParamHash(transcription Transcription, recheckModel string, inputs projectInputs) string {
 	return hashParts("coverage-words", wordsVersion, transcription.Model, transcription.Language, recheckModel, inputs.HotwordsHash, vadFilter)
 }

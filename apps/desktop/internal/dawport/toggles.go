@@ -32,7 +32,7 @@ func SettingsToggles(effective Effective) func(Capability) Toggle {
 }
 
 // SettingsExperimental is the resolver's Experimental input over the settings store: the old DAW.experimental_reaper_actions switch,
-// read on every call. While it is on, every Experimental capability left on auto is on (ADR 0300); it defaults off (owner decision
+// read on every call. While it is on, every Experimental capability left on auto is on; it defaults off (owner decision
 // D38). The settings rows are text, so it is on only for "true" in any case.
 func SettingsExperimental(effective Effective) func() bool {
 	return func() bool {

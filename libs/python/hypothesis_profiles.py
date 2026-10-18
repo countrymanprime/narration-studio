@@ -4,7 +4,7 @@ Two profiles, chosen with the HYPOTHESIS_PROFILE environment variable:
 
 ``gate`` (the default, what ``pnpm check`` and CI run)
     Derandomized: the examples are derived from each test function, so a run is repeatable and a
-    red result is a real bug, never a lucky draw (ADR 0023 stance: red must mean real). No example
+    red result is a real bug, never a lucky draw (docs/design/design-system.md#what-the-suites-do-not-prove stance: red must mean real). No example
     database, so nothing carries over between runs. Deadlines and the too_slow health check are off because CI runners vary in speed and
     a slow runner must not turn a repeatable run red; the example count keeps the suite short.
 

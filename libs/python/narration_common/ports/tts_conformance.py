@@ -1,4 +1,4 @@
-"""The voice engine port's conformance suite (ADR 0301, Liskov): what every ``TtsEngine`` must do, checked the same way for each.
+"""The voice engine port's conformance suite (Liskov): what every ``TtsEngine`` must do, checked the same way for each.
 
 ``run(engine, voice_path=..., workdir=...)`` loads the voice and speaks a line: the WAV must be at the destination, readable and
 not empty. It then speaks blank text, which no voice can: that must raise a ``ValueError`` with a message and leave the workdir as

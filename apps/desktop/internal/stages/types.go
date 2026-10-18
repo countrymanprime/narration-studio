@@ -4,7 +4,7 @@
 // chapter's required signals into a verdict. It only suggests: nothing here writes a
 // chapter status, stores a recommendation, or starts an analysis. The
 // contract is described for implementers in
-// docs/architecture/stage-recommendations.md and decided in ADR 0160.
+// docs/architecture/stage-recommendations.md and decided in docs/architecture/stage-recommendations.md#the-engine.
 package stages
 
 import (

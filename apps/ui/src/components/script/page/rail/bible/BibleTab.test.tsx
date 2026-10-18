@@ -22,7 +22,7 @@ beforeEach(() => {
   const base = createMockApi();
   api = {
     ...base,
-    // The mock's Alice has no Says, Does or Knows; the real entry keeps them as properties (SN-X222, ADR 0846).
+    // The mock's Alice has no Says, Does or Knows; the real entry keeps them as properties (SN-X222).
     guideEntities: async () =>
       (await base.guideEntities()).map((entry) =>
         entry.id === 'alice'

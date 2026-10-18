@@ -63,7 +63,7 @@ type Summary struct {
 	Dismissed  int `json:"dismissed"`
 	Deferred   int `json:"deferred"`
 	// Decided counts the latest run's findings with a resolution (accepted, dismissed or deferred). Cleared counts
-	// those that are closed (ADR 0793): dismissed, which includes "waived". The store holds no fact that an accepted
+	// those that are closed: dismissed, which includes "waived". The store holds no fact that an accepted
 	// finding was fixed or a take kept, so an accepted or deferred finding is decided and still open.
 	Decided        int            `json:"decided"`
 	Cleared        int            `json:"cleared"`

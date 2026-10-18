@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { CreditTemplate } from '../../types';
-import { CREDITS_ID, creditsEntries, creditsKindOfId } from './creditsEntries';
+import { CREDITS_ID, creditsEntries, creditsKindOfId, ownsOpeningCredits } from './creditsEntries';
 import type { CreditsKind, CreditsRow } from './useCreditsRows';
 
 const template: CreditTemplate = { id: 't', kind: 'opening', name: 'Standard', body: 'x' } as CreditTemplate;
@@ -50,5 +50,23 @@ describe('creditsKindOfId', () => {
     expect(creditsKindOfId('credits-opening')).toBe('opening');
     expect(creditsKindOfId('credits-closing')).toBe('closing');
     expect(creditsKindOfId('chapter-1')).toBeUndefined();
+  });
+});
+
+describe('ownsOpeningCredits', () => {
+  const chapter = (title: string, contentKind: 'narration' | 'opening' | 'reference') => ({ title, contentKind });
+
+  it('is true only for an opening chapter that is itself the opening credits', () => {
+    expect(ownsOpeningCredits([chapter('Opening Credits', 'opening'), chapter('Chapter One', 'narration')])).toBe(true);
+    expect(ownsOpeningCredits([chapter('Intro credits', 'opening')])).toBe(true);
+  });
+
+  it('is false for front matter such as a copyright page, which the credits row still sits above', () => {
+    expect(ownsOpeningCredits([chapter('Front Matter', 'opening'), chapter('Copyright', 'opening'), chapter('Chapter One', 'narration')])).toBe(false);
+  });
+
+  it('is false for a narrated chapter that happens to be called Opening Credits, and for no chapters', () => {
+    expect(ownsOpeningCredits([chapter('Opening Credits', 'narration')])).toBe(false);
+    expect(ownsOpeningCredits(undefined)).toBe(false);
   });
 });

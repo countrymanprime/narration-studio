@@ -1,4 +1,4 @@
-// Package contractfile is how a Go test pins a payload the host really sends (ADR 0069). It marshals the payload as
+// Package contractfile is how a Go test pins a payload the host really sends. It marshals the payload as
 // indented JSON with sorted keys and compares it with the committed file under tests/fixtures/contracts; the TypeScript
 // contract tests validate the same file against the UI's schemas, so a payload that drifts fails on one side or the other.
 // Run the tests with UPDATE_CONTRACTS=1 to rewrite the files after a deliberate change, and commit the diff.

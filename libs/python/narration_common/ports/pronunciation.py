@@ -1,4 +1,4 @@
-"""The pronunciation port (ADR 0301): what every pronunciation source is to its callers.
+"""The pronunciation port: what every pronunciation source is to its callers.
 
 A source has two roles, declared separately (interface segregation):
 

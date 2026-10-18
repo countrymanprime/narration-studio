@@ -319,7 +319,7 @@ func TestSuggestFromPreviousFollowsATitleThatGainedASubtitle(t *testing.T) {
 }
 
 // "The Rabit Hole" scores 0.97 against "The Rabbit Hole" through the fuzzy fallback, above ScoreContained: still a
-// guess, so it is not suggested (ADR 0110).
+// guess, so it is not suggested.
 func TestMatchSuggesterNeverSuggestsAFuzzyMatchWhateverItsScore(t *testing.T) {
 	tracks := []TrackCandidate{{TrackGUID: "track-guid-r", Name: "The Rabit Hole"}}
 	chapters := []ChapterCandidate{{ID: "c-0001", Title: "The Rabbit Hole"}, {ID: "c-0002", Title: "The Pool of Tears"}}

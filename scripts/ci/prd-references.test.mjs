@@ -43,7 +43,7 @@ test('isSourceFile leaves Markdown, the ADRs and the fixtures that name made-up 
   assert.equal(isSourceFile('scripts/ci/prd-references.test.mjs'), false);
 });
 
-test('every PRD a source file cites exists (ADR 0028: a deleted PRD takes its citations with it)', () => {
+test('every PRD a source file cites exists (docs/prds/README.md#lifecycle-of-a-prd: a deleted PRD takes its citations with it)', () => {
   const sources = new Map([...readTrackedText(trackedFiles().filter(isSourceFile))]);
 
   const missing = findMissingPrdReferences(sources, (path) => existsSync(join(REPO_ROOT, path)));

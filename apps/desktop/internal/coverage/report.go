@@ -88,7 +88,7 @@ type RegionPosition struct {
 }
 
 // RegionLine is one COVERAGE_REGION line. Position is where the missing text
-// would sit. Before and After bound it (ADR 0168): the end of the last matched
+// would sit. Before and After bound it: the end of the last matched
 // word before the region and the start of the first matched word after it,
 // each in its own item. Either is nil at a chapter edge (always before a head,
 // after a tail), when nothing was said, and in a result written before the
@@ -123,7 +123,7 @@ type Report struct {
 	Paragraphs []ParagraphLine `json:"paragraphs"`
 	Regions    []RegionLine    `json:"regions"`
 	// Tokens and Extras are the chapter's per-token alignment (COVERAGE_TOKEN
-	// and COVERAGE_EXTRA lines, ADR 0242, alignment.go): empty for a results
+	// and COVERAGE_EXTRA lines, docs/utilities/recording-coverage.md, alignment.go): empty for a results
 	// file written before the sidecar carried them (HasAlignment).
 	Tokens []TokenLine `json:"tokens"`
 	Extras []ExtraLine `json:"extras"`
@@ -157,7 +157,7 @@ func readReport(path, chapterID string) (Report, error) {
 	return parseReport(raw, chapterID)
 }
 
-// parseReport reads the tagged lines (ADR 0127). A tag it does not know is
+// parseReport reads the tagged lines. A tag it does not know is
 // skipped (the format is additive); a known tag whose payload does not decode,
 // a count that does not add up, or a report for another chapter is an error.
 func parseReport(raw []byte, chapterID string) (Report, error) {
@@ -253,7 +253,7 @@ type Thresholds struct {
 	MaxMissingRun       int
 }
 
-// DefaultThresholds are the shipped defaults (ADR 0132): calibrated on the
+// DefaultThresholds are the shipped defaults: calibrated on the
 // synthetic fixtures only, so still Proposed and uncalibrated on real narration (Q15).
 var DefaultThresholds = Thresholds{MinParagraphPresent: 0.8, MaxMissingRun: 3}
 

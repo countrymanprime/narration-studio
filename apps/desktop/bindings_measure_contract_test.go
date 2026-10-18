@@ -51,7 +51,7 @@ func contractMeasureJob() *measureJob {
 }
 
 // pinMeasureJob pins a job as the bindings answer it: judged against the built-in ACX profile, which the first contract
-// file misses (a 48 kHz render) and the silent render cannot be judged against (ADR 0179).
+// file misses (a 48 kHz render) and the silent render cannot be judged against.
 func pinMeasureJob(t *testing.T, name string, job MeasureJob) {
 	t.Helper()
 	job = judgeMeasureJob(job, deliveryprofile.ACX(), "")

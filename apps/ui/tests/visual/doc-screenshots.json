@@ -15,6 +15,20 @@
   },
   {
     "page": "global",
+    "state": "nav-rail-collapsed",
+    "viewport": "small-desktop",
+    "docName": "nav-rail-collapsed",
+    "caption": "Primary navigation - the collapsed rail at rest: icons centred, a thin rule between the groups"
+  },
+  {
+    "page": "global",
+    "state": "nav-rail-collapsed-dark",
+    "viewport": "small-desktop",
+    "docName": "nav-rail-collapsed-dark",
+    "caption": "Primary navigation - the collapsed rail at rest in the Dark theme"
+  },
+  {
+    "page": "global",
     "state": "nav-rail-open",
     "viewport": "small-desktop",
     "docName": "nav-rail-open",
@@ -89,6 +103,20 @@
     "viewport": "desktop",
     "docName": "production-recording-check",
     "caption": "Production - a chapter's recording check, opened from its Record cell, with text still to record"
+  },
+  {
+    "page": "production",
+    "state": "recording-check-options",
+    "viewport": "desktop",
+    "docName": "production-recording-check-options",
+    "caption": "Production - a chapter's recording check with Check options open"
+  },
+  {
+    "page": "proof",
+    "state": "check-recordings-dialog",
+    "viewport": "desktop",
+    "docName": "proof-check-recordings-dialog",
+    "caption": "Proof - the Check recordings dialog before a run, with the options shared with every page"
   },
   {
     "page": "production",

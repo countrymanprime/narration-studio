@@ -39,7 +39,7 @@ export type UpdateStatus = {
 
 /**
  * The download of an update. The host stages it in the user's cache (never over the running program) and the percent is real bytes
- * over real bytes (ADR 0015). `ready` means it is downloaded, checked against the release's checksum and unpacked.
+ * over real bytes. `ready` means it is downloaded, checked against the release's checksum and unpacked.
  */
 export type UpdateJob = {
   id: string;

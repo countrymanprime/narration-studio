@@ -2,7 +2,7 @@
 
 **Source:** owner request of 2026-10-10 ([Studio Next Rebuild](studio-next-rebuild.prd.md)); the mock's `studio-next/src/ui/`, `studio-next/research/icon-audit.md` and the "no raw controls" standing rule in `studio-next/ARCHITECTURE.md`; the owner's rulings of 2026-10-11 (see Decisions).
 
-**Builds on:** the delivered primitives ([ADR 0047](../adr/0047-the-ui-primitives-wrap-base-ui-and-app-code-never-imports-it.md), [ADR 0360](../adr/0360-studio-primitives-land-as-flat-leaf-files-after-one-token-batch-and-capability-gating-is-a-primitive.md), [ADR 0620](../adr/0620-kbd-draws-plex-mono-caps-in-two-sizes-with-a-pressed-bottom-edge-and-keyhint-composes-one-with-its-action.md), [ADR 0595](../adr/0595-button-has-two-measured-sizes-a-surface-filled-secondary-and-a-link-and-owns-its-look.md), [ADR 0600](../adr/0600-every-pill-tag-and-status-dot-is-one-badge-primitive-with-a-pill-a-tag-and-a-booth-shape.md)), [the design system](../design/design-system.md), the zero-new-global-CSS rule ([ADR 0009](../adr/0009-complete-tailwind-migration.md), [ADR 0017](../adr/0017-no-legacy-css-shadowing-tailwind.md)) and the visual-suite viewports ([ADR 0037](../adr/0037-visual-suite-captures-no-phone-viewport.md), [ADR 0061](../adr/0061-settings-states-are-also-captured-at-a-390px-reflow-width.md)).
+**Builds on:** the delivered primitives ([Base UI wrappers](../design/design-system.md#base-ui-wrappers), [Design system reference](../design/design-system.md)), [the design system](../design/design-system.md), the zero-new-global-CSS rule ([Base UI wrappers](../design/design-system.md#base-ui-wrappers), [CSS layering gotcha](../design/design-system.md#css-layering-gotcha)) and the visual-suite viewports ([viewports.ts](../../apps/ui/tests/visual/viewports.ts), [Design system reference](../design/design-system.md)).
 
 **Status (2026-10-16):** done; all eight phases are merged, the atlas docs by SN-F82. The owner's rulings of 2026-10-11 are applied. Tokens, primitive sizes and layouts come from the Studio Next mock (`studio-next/src/styles/`, `studio-next/src/ui/`), not from the benchmark mocks. Slice SNF-2 is a train-wide serial point (the token batch runs alone).
 
@@ -13,10 +13,10 @@ The mock draws every page from about 30 small components, one icon map, one key 
 ## Evidence
 
 - **Primitives.** The mock's `studio-next/src/ui/primitives/` has Checkbox, RadioGroup, Input, Textarea, Select, Slider, NumberInput, FieldRow; `studio-next/src/ui/` adds Icon, IconButton, Pill, Seg, Swatch, Field, Menu, ChapterBar, Tooltip, Waveform, SpeakerPicker. The repo's `apps/ui/src/components/primitives/` has the equivalents of all but Slider, NumberInput, Swatch and the chapter stepper (and `SpeakerTag` stands in for the speaker chip).
-- **Raw controls.** The mock bans them outright (`studio-next/tests/no-raw-controls.test.ts`, escape: a `native-control-ok: <why>` comment). The repo ratchets them down per file (`apps/ui/src/rawNatives.test.ts`, ADR 0053).
+- **Raw controls.** The mock bans them outright (`studio-next/tests/no-raw-controls.test.ts`, escape: a `native-control-ok: <why>` comment). The repo ratchets them down per file (`apps/ui/src/rawNatives.test.ts`).
 - **Icons.** The mock draws every icon through `studio-next/src/ui/Icon.tsx` and a vocabulary decided in `studio-next/research/icon-audit.md` (sections 5 and 6: keep, change or text per action). 55 files in `apps/ui/src` import `FontAwesomeIcon` directly; there is no icon wrapper in `apps/ui/src/components/primitives/`.
-- **Key caps.** `studio-next/src/ui/KeyCap.tsx` maps key names to pictures (arrows, Enter, Esc, Backspace as Font Awesome glyphs; space bar and right-click as inline SVG) and `studio-next/src/ui/KeyHints.tsx` draws the footer. The repo has `Kbd` and `KeyHint` (text caps only, [ADR 0620](../adr/0620-kbd-draws-plex-mono-caps-in-two-sizes-with-a-pressed-bottom-edge-and-keyhint-composes-one-with-its-action.md)).
-- **Layout.** `studio-next/src/app/layout.ts` reads the zoomed viewport width (`RAIL_COLLAPSE_BELOW = 1360`, medium at 1280, narrow under 1180, tiny under 860) and sets `document.documentElement.style.zoom`. The real app zooms through the host ([ADR 0201](../adr/0201-app-zoom-under-wails-v3-on-windows-runs-from-100-to-200-percent-and-reads-the-level-back-from-the-window.md)), the suite captures 1440, 1024 and 768 plus a 390 reflow, and the desktop minimum is 960. The mock's rules apply to the width the host reports (SN0-Q7).
+- **Key caps.** `studio-next/src/ui/KeyCap.tsx` maps key names to pictures (arrows, Enter, Esc, Backspace as Font Awesome glyphs; space bar and right-click as inline SVG) and `studio-next/src/ui/KeyHints.tsx` draws the footer. The repo has `Kbd` and `KeyHint` (text caps only, [Design system reference](../design/design-system.md)).
+- **Layout.** `studio-next/src/app/layout.ts` reads the zoomed viewport width (`RAIL_COLLAPSE_BELOW = 1360`, medium at 1280, narrow under 1180, tiny under 860) and sets `document.documentElement.style.zoom`. The real app zooms through the host ([Zoom](../guides/using-the-app/navigation.md#zoom)), the suite captures 1440, 1024 and 768 plus a 390 reflow, and the desktop minimum is 960. The mock's rules apply to the width the host reports (SN0-Q7).
 - **Styles.** `studio-next/src/styles/app.css` is global classes; the real app forbids new ones and styles with Tailwind utilities on tokens.
 
 ## Proposed Solution
@@ -38,7 +38,7 @@ If the base is settled once, page slices need no primitive work and no token edi
 - Anything the mock does not show. Tokens are diffed against the mock, not redrawn.
 - A port of `app.css`, of the mock's zoom mechanism, or of its Font Awesome map as a second icon system.
 - Per-page forced light or dark (one app-wide theme, [D69](../design/design-system.md#theme)).
-- A phone layout ([ADR 0037](../adr/0037-visual-suite-captures-no-phone-viewport.md)).
+- A phone layout ([viewports.ts](../../apps/ui/tests/visual/viewports.ts)).
 - Storybook rewrites beyond the new primitives' stories.
 
 ## Success Metrics
@@ -49,7 +49,7 @@ If the base is settled once, page slices need no primitive work and no token edi
 | Direct `FontAwesomeIcon` imports outside `Icon` | Falls to 0 for migrated pages; never rises | New ratchet test |
 | Raw native controls in pages of this series | 0 at cutover | `rawNatives.test.ts` |
 | Contrast | Every new token has a `PAIRS` row and passes AA | `paletteContrast.test.ts` |
-| Overflow and collapsed controls | None at 1440, 1024, 768 and 390 | Visual suite checks (ADR 0060) |
+| Overflow and collapsed controls | None at 1440, 1024, 768 and 390 | Visual suite checks (`.claude/rules/ui-visual-verification.md`) |
 
 ## Decisions
 
@@ -57,11 +57,11 @@ Owner rulings of 2026-10-11; none is open.
 
 | Id | Ruling | Consequence here |
 | --- | --- | --- |
-| SN0-Q1 / DQ-1 | Studio Next is the spec for every page it covers, tokens, primitive sizes and layouts included | SNF-2 takes the mock's values; ADR 0362 and ADRs 0590 to 0640 and the benchmark's measured values are superseded where they differ; ADR 0585 and ADR 0740 stop binding pages the mock covers |
+| SN0-Q1 / DQ-1 | Studio Next is the spec for every page it covers, tokens, primitive sizes and layouts included | SNF-2 takes the mock's values; `docs/design/colour-and-contrast.md#derived-and-status-tokens, apps/ui/src/styles.css` to 0640 and the benchmark's measured values are superseded where they differ; `docs/operations/verification-tooling.md#mock-match` stop binding pages the mock covers |
 | SN0-Q7 | The mock's breakpoints are implemented as container or media queries at the mock's widths | Rail collapse below 1360 CSS px replaces the earlier 1280 recommendation; the 960 px minimum window and host zoom do not change the rules, which read the reported width |
 | SNF-Q1 | The icon vocabulary is a data module, `apps/ui/src/icons.catalog.ts`, read by `Icon` and by a test that checks tooltips (default taken, standing instruction) | SNF-3 |
 | SNF-Q2 | `Kbd` stays text; a new `KeyCap` leaf picks text or a glyph and `KeyHint` composes it (default taken) | SNF-4 |
-| SNF-Q4 | `Slider` and `NumberInput` wrap Base UI ([ADR 0047](../adr/0047-the-ui-primitives-wrap-base-ui-and-app-code-never-imports-it.md)) (default taken) | SNF-5a, SNF-5b |
+| SNF-Q4 | `Slider` and `NumberInput` wrap Base UI ([Base UI wrappers](../design/design-system.md#base-ui-wrappers)) (default taken) | SNF-5a, SNF-5b |
 
 ## Users & Context
 
@@ -89,14 +89,14 @@ On conflict this PRD, and the ADR written when its phase lands, is the source of
 
 | ADR | Class | Note |
 | --- | --- | --- |
-| [ADR 0003](../adr/0003-tailwind-tokenized-primitives.md), [ADR 0009](../adr/0009-complete-tailwind-migration.md), [ADR 0017](../adr/0017-no-legacy-css-shadowing-tailwind.md) | KEEP | The mock's global `app.css` is not adopted |
-| [ADR 0037](../adr/0037-visual-suite-captures-no-phone-viewport.md), [ADR 0061](../adr/0061-settings-states-are-also-captured-at-a-390px-reflow-width.md), [ADR 0201](../adr/0201-app-zoom-under-wails-v3-on-windows-runs-from-100-to-200-percent-and-reads-the-level-back-from-the-window.md) | KEEP | Viewports and host zoom; the mock's breakpoints are applied to the reported width, its `style.zoom` mechanism is not adopted |
-| [ADR 0047](../adr/0047-the-ui-primitives-wrap-base-ui-and-app-code-never-imports-it.md), [ADR 0360](../adr/0360-studio-primitives-land-as-flat-leaf-files-after-one-token-batch-and-capability-gating-is-a-primitive.md) | KEEP / EXTEND | New primitives are flat leaves; token batch alone |
-| [ADR 0052](../adr/0052-toggle-menu-checkbox-collapsible-and-switch-replace-the-hand-rolled-widgets.md), [ADR 0053](../adr/0053-icon-buttons-text-fields-and-selects-wrap-the-native-controls.md) | EXTEND | Raw controls become a zero ceiling per migrated page |
-| [ADR 0620](../adr/0620-kbd-draws-plex-mono-caps-in-two-sizes-with-a-pressed-bottom-edge-and-keyhint-composes-one-with-its-action.md) | EXTEND | Key cap pictures and the icon vocabulary (A16) |
-| [ADR 0362](../adr/0362-studio-token-batch-aliases-meter-and-badge-colours-and-a-minimal-booth-override.md), [ADR 0590](../adr/0590-the-mock-fidelity-token-batch-fills-badges-with-opaque-soft-tokens-and-names-the-mocks-sizes-and-type.md) to [ADR 0640](../adr/0640-panel-draws-the-mocks-card-header-with-a-divider-and-a-padded-or-flush-body-and-the-eyebrow-and-inset-card-are-primitives.md) | SUPERSEDE (DQ-1) | Token values and primitive sizes come from the Studio Next mock where they differ from the benchmark |
-| [ADR 0585](../adr/0585-mock-fidelity-is-a-pixel-match-at-the-mocks-own-size-and-theme-scored-by-a-tool-that-reports-and-does-not-gate.md), [ADR 0740](../adr/0740-mock-match-is-text-blind-and-a-diagnostic-and-only-the-benchmark-mocks-are-kept.md) | SUPERSEDE (DQ-1) | Spec precedence (A1): the Studio Next mock, not the benchmark, is scored against and built to |
-| [ADR 0010](../adr/0010-theme-switching.md), [ADR 0365](../adr/0365-the-theme-is-one-global-setting-and-the-booth-and-companion-follow-it.md) | KEEP | One app-wide theme (D69) |
+| , [Base UI wrappers](../design/design-system.md#base-ui-wrappers), [CSS layering gotcha](../design/design-system.md#css-layering-gotcha) | KEEP | The mock's global `app.css` is not adopted |
+| [viewports.ts](../../apps/ui/tests/visual/viewports.ts), [Design system reference](../design/design-system.md), [Zoom](../guides/using-the-app/navigation.md#zoom) | KEEP | Viewports and host zoom; the mock's breakpoints are applied to the reported width, its `style.zoom` mechanism is not adopted |
+| [Base UI wrappers](../design/design-system.md#base-ui-wrappers) | KEEP / EXTEND | New primitives are flat leaves; token batch alone |
+| [Design system reference](../design/design-system.md), [Base UI wrappers](../design/design-system.md#base-ui-wrappers) | EXTEND | Raw controls become a zero ceiling per migrated page |
+| [Design system reference](../design/design-system.md) | EXTEND | Key cap pictures and the icon vocabulary (A16) |
+| [Derived and status tokens](../design/colour-and-contrast.md#derived-and-status-tokens), [styles.css](../../apps/ui/src/styles.css) to [Design system reference](../design/design-system.md) | SUPERSEDE (DQ-1) | Token values and primitive sizes come from the Studio Next mock where they differ from the benchmark |
+| [Mock match](../operations/verification-tooling.md#mock-match) | SUPERSEDE (DQ-1) | Spec precedence (A1): the Studio Next mock, not the benchmark, is scored against and built to |
+| [Theme](../design/design-system.md#theme), [Derived and status tokens](../design/colour-and-contrast.md#derived-and-status-tokens) | KEEP | One app-wide theme (D69) |
 
 ## Technical Approach
 
@@ -104,13 +104,13 @@ On conflict this PRD, and the ADR written when its phase lands, is the source of
 
 **Data contracts.** None cross the host. The catalogue and glyph map are static data validated by tests (no duplicate meaning, every action has a tooltip).
 
-**Architecture.** Leaf files in `apps/ui/src/components/primitives/` ([ADR 0360](../adr/0360-studio-primitives-land-as-flat-leaf-files-after-one-token-batch-and-capability-gating-is-a-primitive.md) rules); catalogue and layout helpers in `apps/ui/src/`; Base UI imported only by primitives ([ADR 0047](../adr/0047-the-ui-primitives-wrap-base-ui-and-app-code-never-imports-it.md)); no class added to `styles.css` ([ADR 0017](../adr/0017-no-legacy-css-shadowing-tailwind.md)). The token batch edits `styles.css` token blocks and `paletteContrast.test.ts` once.
+**Architecture.** Leaf files in `apps/ui/src/components/primitives/` ([Base UI wrappers](../design/design-system.md#base-ui-wrappers) rules); catalogue and layout helpers in `apps/ui/src/`; Base UI imported only by primitives ([Base UI wrappers](../design/design-system.md#base-ui-wrappers)); no class added to `styles.css` ([CSS layering gotcha](../design/design-system.md#css-layering-gotcha)). The token batch edits `styles.css` token blocks and `paletteContrast.test.ts` once.
 
 **Test plan.** Unit and story per primitive; atlas (`pnpm --dir apps/ui atlas`) in light and dark, wide and narrow; axe; visual suite on the pages that first use them; ratchet tests; `describe`-level property tests where the mock has them (number clamp).
 
-**Rollout.** No flag. New primitives are unused until a page slice adopts them; Knip counts stories as use ([ADR 0045](../adr/0045-dead-code-is-gated-at-zero-with-reasoned-ignores.md)), and the coordinator flags an unused primitive older than one wave.
+**Rollout.** No flag. New primitives are unused until a page slice adopts them; Knip counts stories as use ([Dead code (Knip)](../operations/verification-tooling.md#dead-code-knip)), and the coordinator flags an unused primitive older than one wave.
 
-**ADRs to author.** A1 spec precedence (with the owner); A16 layout rules, icon vocabulary and key cap pictures (supersedes nothing; extends [ADR 0620](../adr/0620-kbd-draws-plex-mono-caps-in-two-sizes-with-a-pressed-bottom-edge-and-keyhint-composes-one-with-its-action.md)).
+**ADRs to author.** A1 spec precedence (with the owner); A16 layout rules, icon vocabulary and key cap pictures (supersedes nothing; extends [Design system reference](../design/design-system.md)).
 
 **Risks.** The token diff touches colour used by every page (mitigation: the atlas strip and the full visual suite run once at the end of SNF-2); the icon sweep touches 55 files (mitigation: ratchet, migrate per page, never in bulk).
 
@@ -170,7 +170,7 @@ Phases 3, 4 are independent of 2; Phase 5 needs the tokens. Phase 6 follows the 
 | --- | --- | --- | --- |
 | Icons by catalogue (proposed) | A data catalogue and one wrapper | Per-file imports | Two actions cannot drift to different icons |
 | Layout by queries (SN0-Q7) | The mock's widths as CSS queries, a hook only where needed | Port the mock's zoom-width logic | The host zooms and reports the width; the rules stay the mock's |
-| Tokens in one batch (existing) | One serial slice | Per-primitive token edits | [ADR 0360](../adr/0360-studio-primitives-land-as-flat-leaf-files-after-one-token-batch-and-capability-gating-is-a-primitive.md) |
+| Tokens in one batch (existing) | One serial slice | Per-primitive token edits | [Base UI wrappers](../design/design-system.md#base-ui-wrappers) |
 
 ## Research Summary
 

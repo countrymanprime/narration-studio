@@ -9,7 +9,7 @@ import { analysisTools, ANALYSIS_KIND, statusOf, type ToolRun, type ToolStatus }
 /** What the analysis tools section needs of the asset registry: its list, an install with its progress and cancel, and a removal. */
 export type ComponentsPort = Pick<AssetsApi, 'assetsList' | 'assetsInstall' | 'assetsInstallState' | 'assetsInstallCancel' | 'assetsRemove'>;
 
-/** The analysis tools over the registry: the `ComponentsPort` the section reads (ADR 0770). */
+/** The analysis tools over the registry: the `ComponentsPort` the section reads. */
 export const useComponentsPort = (): ComponentsPort => usePort('assets');
 
 /**

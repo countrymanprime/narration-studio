@@ -21,7 +21,7 @@ const hostApi = (over: Partial<Record<'overview' | 'recorder', string>> = {}): M
   recorderState: () => Promise.resolve(recorder(over.recorder ?? 'recorder-state-takes.json')),
 });
 
-// Zod stays under src/api/ (ADR 0069), so the numeric value schema is borrowed from the recorder state (a plain number) and the other two
+// Zod stays under src/api/, so the numeric value schema is borrowed from the recorder state (a plain number) and the other two
 // answers (a list, a record) are checked by the same strict `Measured` rule written out.
 const numberAnswer = measuredSchema(recorderStateSchema.shape.startedAt.unwrap());
 const isMeasured = (answer: unknown): boolean => {

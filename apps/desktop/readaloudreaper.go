@@ -9,9 +9,9 @@ import (
 	"github.com/countrymanprime/narration-utils/shell/internal/dawport"
 )
 
-// Whether REAPER is ready to record a chapter with reading (ADR 0249): one read-only
+// Whether REAPER is ready to record a chapter with reading: one read-only
 // chapter_track_state of the chapter's linked track, compared with REAPER's arms. It is asked on demand (the dialog
-// opening, the REAPER toggle, before Play, a Refresh), never on a timer (ADR 0122), and changes nothing in REAPER.
+// opening, the REAPER toggle, before Play, a Refresh), never on a timer, and changes nothing in REAPER.
 
 // The statuses ReadAloudReaperState answers.
 const (
@@ -52,7 +52,7 @@ const (
 )
 
 // trackStateReader is the Track state role's read of chapter_track_state, as the binding needs it (a fake in tests):
-// an alias of dawport.TrackStateReader (ADR 0300), the role interface this file and
+// an alias of dawport.TrackStateReader, the role interface this file and
 // teleprompterinput.go promote their identical local seam onto.
 type trackStateReader = dawport.TrackStateReader
 

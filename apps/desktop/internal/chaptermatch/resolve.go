@@ -15,12 +15,12 @@ type Chapter struct {
 	Title string
 }
 
-// Status is how sure ForChapter is of a chapter's track (ADR 0110).
+// Status is how sure ForChapter is of a chapter's track.
 type Status string
 
 const (
 	// StatusConfirmed: the narrator confirmed the link (chapter-track-map.json,
-	// ADR 0100) and the track is in the project.
+	// apps/desktop/internal/evidence/fingerprint.go) and the track is in the project.
 	StatusConfirmed Status = "confirmed"
 	// StatusMatched: one track's name (or a region's) matches the chapter
 	// exactly or as a whole-token prefix, and no other comes near it.
@@ -164,7 +164,7 @@ func nameCandidates(target int, titles []string, project tracks.Project, chapter
 		}
 		// A pickup track ("Chapter 6 pickups") is not the chapter's own track, so
 		// it is never a candidate for the link
-		// (ADR 0175); a take track ("Chapter 6 v2") is, but never a confident one.
+		// a take track ("Chapter 6 v2") is, but never a confident one.
 		if match := MatchTitle(titles, track.Name); match.Index == target && match.Marker != MarkerPickup {
 			add(Candidate{TrackGUID: track.GUID, TrackName: track.Name, TrackIndex: track.Index, Score: match.Score, Source: SourceTrackName, confident: match.Confident})
 		}

@@ -1,6 +1,6 @@
 """The narrator's own pronunciation.
 
-A pronunciation can carry a ``note`` (a stored ``status`` from before ADR 0792 is ignored). The narrator can type their own pronunciation (source ``manual``); it never asks CMU or eSpeak, and it sits beside
+A pronunciation can carry a ``note`` (a stored ``status`` from before docs/guides/using-the-app/story-bible.md#how-you-say-each-name is ignored). The narrator can type their own pronunciation (source ``manual``); it never asks CMU or eSpeak, and it sits beside
 the dictionary's answer instead of replacing it: the one not in use is kept as ``alternate``, so switching back is lossless and
 never re-runs a lookup. A rebuild keeps the note and the alternate.
 """

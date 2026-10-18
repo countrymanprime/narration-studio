@@ -282,7 +282,7 @@ func TestContractChapterRegions(t *testing.T) {
 	pin(t, "chapter-regions-created", host.config.projectFolder, created)
 }
 
-// TestRegionCreatorFromComesFromTheResolver pins that the role comes from the resolver (ADR 0300):
+// TestRegionCreatorFromComesFromTheResolver pins that the role comes from the resolver:
 // ChapterRegionsCreate sources its creator through regionCreatorFrom, which asks svc.dawPortResolver for the Regions
 // role instead of holding svc.actions directly.
 func TestRegionCreatorFromComesFromTheResolver(t *testing.T) {

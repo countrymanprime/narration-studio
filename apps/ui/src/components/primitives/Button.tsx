@@ -4,7 +4,7 @@ import type { ComponentProps } from 'react';
 
 // `secondary` is the mocks' outlined button, filled `--surface` so it reads the same on the page background and in a card.
 // `ghost` is the same button with no fill, for the rare one on a tinted surface. `link` is the underlined text action that sits
-// inside a sentence: it takes the sentence's font, size and colour and draws none of the button chrome (ADR 0595).
+// inside a sentence: it takes the sentence's font, size and colour and draws none of the button chrome.
 type ButtonVariant = 'primary' | 'secondary' | 'ghost' | 'danger' | 'link';
 // `md` is the mocks' 32 px button (`--button-height`); `sm` is 28 px (`--button-height-sm`), for the companion and dense rows.
 type ButtonSize = 'md' | 'sm';
@@ -37,7 +37,7 @@ type Props = ComponentProps<'button'> & {
   variant?: ButtonVariant;
   // Ignored by `link`, which is as tall as the text it sits in.
   size?: ButtonSize;
-  // The action this button started is running (ADR 0075). The button says so (`aria-busy`, a spinner, dimmed) and ignores a press, but
+  // The action this button started is running. The button says so (`aria-busy`, a spinner, dimmed) and ignores a press, but
   // stays focusable, so a keyboard user does not lose their place the way they do when a button becomes `disabled`.
   pending?: boolean;
 };

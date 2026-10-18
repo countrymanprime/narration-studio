@@ -14,8 +14,8 @@ import (
 	"github.com/countrymanprime/narration-utils/shell/internal/runlog"
 )
 
-// Measuring the narrator's rendered chapter files as a job (ADR 0156). The narrator picks WAV files in the operating system's picker (MeasurePickFiles); MeasureAnalyze measures
-// only files picked that way in this session, one after another, with progress from the bytes really read (ADR 0015)
+// Measuring the narrator's rendered chapter files as a job. The narrator picks WAV files in the operating system's picker (MeasurePickFiles); MeasureAnalyze measures
+// only files picked that way in this session, one after another, with progress from the bytes really read
 // and a cancel that stops mid-file. Each file answers its internal/measure report and the fingerprint of the bytes it
 // was measured from, or why it could not be measured. Nothing is written anywhere: the files are opened read-only.
 
@@ -32,9 +32,9 @@ const (
 )
 
 // MeasureFileResult is one file of a measurement. Report and Fingerprint are set once it is measured; a report's
-// unmeasurable values are null, never a number (ADR 0025). Error says why a failed file could not be measured. Findings
+// unmeasurable values are null, never a number. Error says why a failed file could not be measured. Findings
 // are the host's judgement of the report against the project's delivery profile when the job is read (judgeMeasureJob,
-// ADR 0179): delivery_qc findings with the IDs an exported report carries, empty when no rule is missed.
+// docs/reference/acx-delivery-requirements.md): delivery_qc findings with the IDs an exported report carries, empty when no rule is missed.
 type MeasureFileResult struct {
 	Path        string               `json:"path"`
 	Name        string               `json:"name"`
@@ -221,7 +221,7 @@ func measuredMessage(measured, failed int) string {
 	return fmt.Sprintf("Measured %d of %s; %d could not be measured.", measured, countFiles(measured+failed), failed)
 }
 
-// pickMeasureFiles opens the picker and remembers what it chose, so only those paths can be measured (ADR 0156).
+// pickMeasureFiles opens the picker and remembers what it chose, so only those paths can be measured.
 func (h *Host) pickMeasureFiles() (MeasurePickResult, error) {
 	pick := h.pickAudioFiles
 	if pick == nil {
@@ -334,7 +334,7 @@ func (h *Host) startMeasure(requested []string) (MeasureJob, error) {
 
 type measureFileFunc func(ctx context.Context, path string, opts measure.Options) (measure.FileMeasurement, error)
 
-// runMeasure measures each file in turn, then records how the measurement ended and says so (ADR 0076). A panic in
+// runMeasure measures each file in turn, then records how the measurement ended and says so. A panic in
 // the measurement ends the job as an error instead of taking the app down.
 func (h *Host) runMeasure(ctx context.Context, job *measureJob, paths []string, measureFile measureFileFunc) {
 	defer job.cancel()

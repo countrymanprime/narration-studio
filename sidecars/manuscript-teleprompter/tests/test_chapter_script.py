@@ -65,7 +65,7 @@ def test_an_unknown_chapter_lists_the_narration_chapters_that_can_be_chosen(tmp_
     with pytest.raises(chapter_script.ChapterError) as error:
         chapter_script.load_chapter_script(_manuscript(tmp_path), "Chapter Nine")
 
-    # Named by the app's rule (ADR 0191), and each can be passed back to select its chapter.
+    # Named by the app's rule, and each can be passed back to select its chapter.
     assert error.value.candidates == ["CHAPTER ONE — Bad Ideas Look Great", "Chapter Two"]
     for name in error.value.candidates:
         assert chapter_script.load_chapter_script(_manuscript(tmp_path), name).title
@@ -104,7 +104,7 @@ def test_a_missing_manuscript_reports_a_chapter_error_not_a_crash(tmp_path):
         chapter_script.load_chapter_script(tmp_path / "nope.json", "c1")
 
 
-# A script that is not a manuscript chapter (the opening or closing credits, ADR 0150): the host renders the text and hands it over as a file,
+# A script that is not a manuscript chapter (the opening or closing credits): the host renders the text and hands it over as a file,
 # and the reader needs spans for it as for a chapter.
 
 

@@ -10,7 +10,7 @@ const DECISIONS: ReadonlyArray<{ label: string; key: string; status: FindingRevi
   { label: 'Defer', key: 'D', status: 'deferred' },
 ];
 
-/** Why the other of Needs pickup and Fix in edit is off: the fix comes from the kind of note, never stored on its own (ADR 0470). */
+/** Why the other of Needs pickup and Fix in edit is off: the fix comes from the kind of note, never stored on its own. */
 export const OTHER_FIX: Record<FixKind, string> = {
   pickup: 'This kind of note is re-recorded, so it is a pickup, not a fix in the edit.',
   edit: 'This kind of note is fixed in the edit, so it is not a pickup.',
@@ -18,7 +18,7 @@ export const OTHER_FIX: Record<FixKind, string> = {
 
 /**
  * The Studio Next Inspector's decision group: Needs pickup, Fix in edit, Waive and Defer, each with its key cap. The stored status is
- * the finding's own review status (ADR 0470): both of the first two are `accepted` and the fix the note asks for (`fix`, from
+ * the finding's own review status: both of the first two are `accepted` and the fix the note asks for (`fix`, from
  * `fixKindOf`) says which one is pressed. The one that does not match the note's fix is off with `OTHER_FIX`, so a press never saves
  * the other fix in its name. Waive is `dismissed` and shown as Waived. The keys themselves are registered by the page.
  */

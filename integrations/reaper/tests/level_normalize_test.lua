@@ -1,5 +1,4 @@
 -- Applying a per-item gain change to match a narrator-set loudness target: apply_item_gain
--- (ADR 0252).
 
 local H = require('harness')
 

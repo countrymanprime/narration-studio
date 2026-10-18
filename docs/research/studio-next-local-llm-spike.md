@@ -26,7 +26,7 @@ Reasons for the choice:
 - Gemma 4 E4B is the one candidate from another family with a first-party GGUF under Apache 2.0 (earlier Gemma versions used Google's own terms, [`local-llm-research.md`](mockups/studio-next/research/local-llm-research.md) section 1.1). Nothing about its quality on this task was measured or found.
 - Llama 3.x (community licence with an acceptable-use policy) and Phi-4 (short context) were left out for the reasons in that section.
 
-A GGUF is loaded by a runtime (`llama.cpp`, or `llama-cpp-python` as in the trial). Registering a model as a tool would also need the runtime pinned and its loading confined to the install folder, as [ADR 0848](../adr/0848-optional-analysis-tools-load-their-code-and-weights-from-the-registrys-install-folder-never-from-the-freeze-or-the-network.md) requires of the other tools. This spike pins no runtime.
+A GGUF is loaded by a runtime (`llama.cpp`, or `llama-cpp-python` as in the trial). Registering a model as a tool would also need the runtime pinned and its loading confined to the install folder, as [CI and releases](../operations/ci-and-releases.md) requires of the other tools. This spike pins no runtime.
 
 ## 2. Time and memory
 
@@ -100,7 +100,7 @@ Reading: on explicit speech tags a small model adds nothing a rule does not alre
 2. **Time is practical.** `llama-bench` on the owner's machine, and on one lower-spec Windows machine if the owner has one, shows a book finishing in a time the owner accepts as a background job. The owner sets the number; the trial's 3 to 11 hours is not it.
 3. **Memory fits.** Peak memory beside the app is under the 16 GB machine's free memory with room to spare, which excludes Qwen3 8B at 8,192 context unless the context or the file shrinks.
 4. **Quotes pass.** A run through `VerifyEvidence` gives the rate in section 4, and the share of verified quotes that do not support their claim is measured and acceptable.
-5. **Pins and licence.** The runtime and one model file are pinned with their digests streamed and recorded, and the licence text is copied into the registry row ([ADR 0848](../adr/0848-optional-analysis-tools-load-their-code-and-weights-from-the-registrys-install-folder-never-from-the-freeze-or-the-network.md)).
+5. **Pins and licence.** The runtime and one model file are pinned with their digests streamed and recorded, and the licence text is copied into the registry row ([CI and releases](../operations/ci-and-releases.md)).
 6. **The owner's manuscript.** The same run on the owner's own book, because every figure on public-domain text is provisional (D70).
 
 The first and sixth steps depend on the SN-X8 re-run already on the QA checklist ([#1495](https://github.com/countrymanprime/narration-utils/issues/1495)); the second, third and fourth need the owner's machine and are pending, D65. None blocks a merge or a launch. "Drop" is also open: if the first condition fails once a table exists, the tier has no use that BookNLP and the rules do not cover.

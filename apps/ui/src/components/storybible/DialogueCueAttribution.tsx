@@ -12,7 +12,7 @@ const UNKNOWN_SPEAKER = 'unknown';
 /**
  * Dialogue cues attributed to this speaker, or left unknown, with a correction control
  * (attribution correction, via the guide's correct_cue). A rebuild
- * never overwrites a correction (ADR 0007's lock guard, applied to a cue). Self-fetching, like
+ * never overwrites a correction (sidecars/manuscript-guide/core/manuscript_guide.py's lock guard, applied to a cue). Self-fetching, like
  * VoiceReferencesSection - its own data source, independent of the entity edit form.
  */
 export function DialogueCueAttribution({

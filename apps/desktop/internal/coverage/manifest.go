@@ -18,7 +18,7 @@ const manifestSchemaVersion = 1
 // as an overlap (float rounding in REAPER's saved positions).
 const overlapTolerance = 0.001
 
-// Manifest is the JSON the sidecar's --manifest reads (ADR 0127).
+// Manifest is the JSON the sidecar's --manifest reads.
 type Manifest struct {
 	SchemaVersion int            `json:"schemaVersion"`
 	Items         []ManifestItem `json:"items"`
@@ -213,7 +213,7 @@ func memoIdentify(projectFolder string) evidence.SourceIdentifier {
 }
 
 // projectFileFact is the saved project file a run read: its path and the
-// modified time the basis label names (ADR 0100, D6).
+// modified time the basis label names (D6).
 func projectFileFact(path string, modTime time.Time) evidence.LedgerProjectFile {
 	return evidence.LedgerProjectFile{Path: path, ModTime: modTime.UTC()}
 }

@@ -128,7 +128,7 @@ type Config struct {
 	Manuscript func() (Book, error)
 	// Stamp reads the DAW's ids for a chapter's run that just ended; nil or an error leaves the run unstamped.
 	Stamp func(chapterID string) (Stamp, error)
-	// Reporter tells the narrator about a file that cannot be read (ADR 0069); nil only logs nothing.
+	// Reporter tells the narrator about a file that cannot be read; nil only logs nothing.
 	Reporter *persist.Reporter
 }
 

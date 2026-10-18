@@ -4,7 +4,7 @@ import { join, relative, sep } from 'node:path';
 import ts from 'typescript';
 import { describe, expect, test } from 'vitest';
 
-// ADR 0361: a command is registered with `useCommand`, never heard with a
+// docs/architecture/studio-shell-and-registries.md: a command is registered with `useCommand`, never heard with a
 // feature's own `keydown` listener - the rule that made three listeners quietly disagree on modifiers, dialogs and
 // fields in the first place. This scan (in the style of rawNatives.test.ts) fails on `<target>.addEventListener('keydown', ...)`
 // outside `src/input/`, unless the file is in ALLOWLIST below, and each entry there must say why. A file dropped from
@@ -22,7 +22,7 @@ const PERMANENT: Record<string, Reason> = {
   'src/components/recordingcheck/CheckRecordingsDialog.tsx': {
     note: 'Escape while a check runs asks to stop it, a widget key owned by the dialog, not a command',
   },
-  'src/components/booth/useFollowCursor.ts': { note: 'isScrollKey detects a hand scroll (ADR 0119), not a command' },
+  'src/components/booth/useFollowCursor.ts': { note: 'isScrollKey detects a hand scroll, not a command' },
 };
 
 // Temporary: a command listener not yet migrated onto `useCommand`. Each entry names what migrates it and is
@@ -71,7 +71,7 @@ function keydownListenerCount(source: string, fileName: string): number {
   return count;
 }
 
-describe('command listeners stay inside src/input/ (ADR 0361)', () => {
+describe('command listeners stay inside src/input/', () => {
   const files = sourceFiles(srcRoot)
     .map((file) => relative(uiRoot, file))
     .filter((file) => !file.startsWith(inputDir + sep))

@@ -4,7 +4,7 @@
 
 **Builds on / appendix to:** [Studio Next Rebuild](studio-next-rebuild.prd.md), which summarises this register; every focused PRD of the series repeats its own rows in a "Supersedes / depends on ADRs" subsection. The decisions are the 336 files in [`docs/adr/`](../adr/README.md) at `550a7d1`; the rulings are `studio-next/research/repo-compare-decisions.md`.
 
-**Status (2026-10-11):** draft; no row is open. This register writes no ADR and edits no existing ADR (they are immutable once accepted, [ADR rules](../adr/README.md#rules)). Each superseding ADR is authored with the `adr-author` workflow when the code of its phase lands, with the next free number checked at merge time ([Cross-PRD sequencing](README.md#cross-prd-sequencing)). The titles below are working titles.
+**Status (2026-10-11):** draft; no row is open. This register writes no ADR and edits no existing ADR (they are immutable once accepted, [ADR rules](../adr/README.md#what-an-adr-means-and-why-you-supersede-it)). Each superseding ADR is authored with the `adr-author` workflow when the code of its phase lands, with the next free number checked at merge time ([Cross-PRD sequencing](README.md#cross-prd-sequencing)). The titles below are working titles.
 
 ## Problem Statement
 

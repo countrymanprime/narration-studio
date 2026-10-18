@@ -2,7 +2,7 @@ import type { Measured } from '../api/schemas/base';
 import { CHAPTER_LENGTHS, PICKUP_BOOTH, ROOM_TONE_DB, TAKE_LOG, type TakeLogEntry } from '../fixtures/measurements';
 import type { NarrationApi } from '../types';
 
-// The measurements port (ADR 0015, ADR 0770): every sourced number a screen shows is asked here and answers a value or a
+// The measurements port: every sourced number a screen shows is asked here and answers a value or a
 // reason, never a guess. A source the host does not have answers `{ ok: false, reason }` and the screen prints "not measured
 // yet"; this file never invents a figure. A later source adds its value here and no screen changes.
 

@@ -356,7 +356,7 @@ def test_compare_py_exits_2_on_a_usage_error(tmp_path):
 
 def test_the_results_file_is_pinned_for_the_host_that_reads_it(tmp_path):
     """Three takes of one span, read cleanly, with a misread and with a skipped word: the file the host's
-    internal/takecompare parser and its comparison tests read (`take-divergence-results.json`, ADR 0069)."""
+    internal/takecompare parser and its comparison tests read (`take-divergence-results.json`)."""
     takes = [
         {"itemGuid": "{ITEM-A}", "takeGuid": "{TAKE-A}", "sourceFile": "read-a.wav", "startOffset": 0.0, "length": 8.0},
         {"itemGuid": "{ITEM-B}", "takeGuid": "{TAKE-B}", "sourceFile": "read-b.wav", "startOffset": 1.5, "length": 8.0},

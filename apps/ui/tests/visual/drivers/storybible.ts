@@ -110,7 +110,7 @@ export const storybibleDrivers: Record<string, Driver> = {
     // fixture data happens to sort first into the row - findAliasMatches
     // excludes the selected entity by id, not by name, so this can't
     // accidentally match zero results.
-    // Entries open read-only (ADR-0018): unlock if needed, then Edit, before
+    // Entries open read-only: unlock if needed, then Edit, before
     // the alias field accepts input.
     const unlock = page.getByRole('button', { name: 'Unlock entry' });
     if (await unlock.count()) await unlock.click();
@@ -184,7 +184,7 @@ export const storybibleDrivers: Record<string, Driver> = {
   'delete-confirm': async (page) => {
     await goToPage(page, 'Story Bible');
     await entryRows(page).first().click();
-    // Delete only exists in edit mode (ADR 0087); the delete button is unreachable
+    // Delete only exists in edit mode; the delete button is unreachable
     // while the selected entity is locked, and unlocking never happens mid-edit,
     // so unlock it first if needed - regardless of which entity sorts first.
     const unlock = page.getByRole('button', { name: 'Unlock entry' });

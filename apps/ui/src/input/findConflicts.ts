@@ -3,7 +3,7 @@ import { serializeGesture } from './gestures';
 import { scopesOverlap } from './scopes';
 import type { Keymap } from './keymap';
 
-/** Two commands bound to the same gesture in scopes that can be active together (Solution Detail, ADR 0361 decision
+/** Two commands bound to the same gesture in scopes that can be active together (Solution Detail, docs/architecture/studio-shell-and-registries.md decision
  * 6). `commands` is sorted, so the same conflict reads the same way regardless of which command was found first. */
 export type Conflict = {
   gesture: string;

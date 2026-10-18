@@ -32,7 +32,7 @@ func pin(t *testing.T, name string, value any) {
 	contractfile.Check(t, name, stable)
 }
 
-// What WorkspaceTakes sends (ADR 0700): a passage with a take from each of the three sources (the item itself,
+// What WorkspaceTakes sends: a passage with a take from each of the three sources (the item itself,
 // fixed-lane retakes and a take-review group) and a saved comparison covering some of them, then a passage nothing was
 // heard on.
 func TestContractWorkspaceTakes(t *testing.T) {

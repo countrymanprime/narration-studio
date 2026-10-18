@@ -13,7 +13,7 @@ import (
 )
 
 // Size limits (E5), a proposed judgement call revisited once real files are
-// supplied (F1) and recorded in ADR 0101: a shared capped reader keeps a
+// supplied (F1) and recorded in docs/architecture/docx-import-quirks.md: a shared capped reader keeps a
 // hostile zip entry or an oversized book from an unbounded read, the same
 // hazard docxEntry has today (Evidence, threat-model row 6a, issue #239).
 const (
@@ -219,13 +219,13 @@ type chapterStart struct {
 }
 
 // epubTypeKindTable maps an EPUB epub:type token to the contentKind it
-// implies (Architecture notes, "Classification"; ADR 0102): it takes
+// implies (Architecture notes, "Classification"): it takes
 // precedence over model.go's title-text classifiers, which stay the fallback
 // for a document that carries no epub:type or an unrecognized one.
 var epubTypeKindTable = map[string]string{
 	"cover": "opening", "titlepage": "opening", "frontmatter": "opening",
-	"dedication": "opening", "epigraph": "opening", "copyright-page": "opening",
-	"toc": "reference", "acknowledgments": "reference", "glossary": "reference",
+	"copyright-page": "opening", "dedication": "narration", "epigraph": "narration", "acknowledgments": "narration",
+	"toc": "reference", "glossary": "reference",
 	"index": "reference", "bibliography": "reference", "endnotes": "reference",
 	"footnotes": "reference", "backmatter": "reference",
 	"bodymatter": "narration", "chapter": "narration", "prologue": "narration", "epilogue": "narration",

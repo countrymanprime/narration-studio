@@ -61,7 +61,7 @@ func TestAMisreadIsASuspectedTranscriptDiscrepancyOnTheManuscriptWords(t *testin
 		t.Fatalf("evidence = %v", f.Evidence)
 	}
 	if f.TimeRange != nil || f.Source != (findings.Source{}) {
-		t.Fatal("no take is known yet, so the finding carries no time range or source (ADR 0117)")
+		t.Fatal("no take is known yet, so the finding carries no time range or source")
 	}
 	if f.Project.OutputPath != "narration-utils/findings/teleprompter/ch-1.json" {
 		t.Fatalf("output path = %q", f.Project.OutputPath)
@@ -71,7 +71,7 @@ func TestAMisreadIsASuspectedTranscriptDiscrepancyOnTheManuscriptWords(t *testin
 func TestARestartIsAPickupWithRestartEvidence(t *testing.T) {
 	f := only(t, Flag{Kind: "restart", ParagraphID: "p-2", WordStart: 3, WordEnd: 8, Heard: "she had peeped into the"})
 	if f.Category != findings.CategoryPickup || f.Evidence["kind"] != "restart" {
-		t.Fatalf("category %s, evidence kind %v; ADR 0115 maps a restart to pickup with evidence.kind restart", f.Category, f.Evidence["kind"])
+		t.Fatalf("category %s, evidence kind %v; docs/architecture/manuscript-teleprompter.md#flags maps a restart to pickup with evidence.kind restart", f.Category, f.Evidence["kind"])
 	}
 	if f.Manuscript.Expected != "she had peeped into the" {
 		t.Fatalf("expected = %q", f.Manuscript.Expected)

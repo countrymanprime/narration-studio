@@ -1,6 +1,6 @@
 """The LibriVox recordings: where they come from, where they are kept, and fetching them.
 
-The MP3s are not committed (ADR 0416). `sources.json` names each file's archive.org URL and checksums; `fetch` downloads
+The MP3s are not committed. `sources.json` names each file's archive.org URL and checksums; `fetch` downloads
 any that are missing or wrong into the sources directory and keeps a file only when its SHA-256 matches. The directory
 is `NARRATION_LIBRIVOX_DIR`, or `~/.cache/narration-utils/librivox-alice` when that is unset, outside the repository.
 """
