@@ -324,8 +324,7 @@ func (s *Service) DialogueCues() ([]DialogueCue, error) {
 // fresh, possibly-unknown, extraction - the same durability sidecars/manuscript-guide/core/manuscript_guide.py's lock
 // guard already gives a locked entity, applied to a cue instead.
 func (s *Service) CorrectCue(cueID, speakerEntityID string) error {
-	_, err := s.Run("correct-cue", "--guide", s.guidePath(), "--cue-id", cueID, "--speaker-entity-id", speakerEntityID)
-	return err
+	return s.mutateInHost(func(document map[string]any) (bool, error) { return correctCue(document, cueID, speakerEntityID) })
 }
 
 func (s *Service) Run(args ...string) (string, error) {
@@ -539,24 +538,22 @@ func (s *Service) UsePronunciationAlternate(id string, aliasIndex *int) error {
 }
 
 // MarkReviewed clears the review flags of the entry and every name (aliasIndex nil), or of one name; the entry is reviewed when nothing
-// is left. Refused on a locked entry (enforced by the sidecar).
+// is left. Refused on a locked entry.
 func (s *Service) MarkReviewed(id string, aliasIndex *int) error {
-	_, err := s.Run(pronunciationTarget([]string{"mark-reviewed", "--guide", s.guidePath(), "--entity-id", id}, aliasIndex)...)
-	return err
+	return s.mutateInHost(func(document map[string]any) (bool, error) { return markReviewed(document, id, aliasIndex) })
 }
 
 // FlagReview flags the entry (aliasIndex nil), or one name, as needing review: the undo of MarkReviewed, and what an accepted automatic
 // suggestion sets. A flag that is set already changes nothing. Refused on a locked entry.
 func (s *Service) FlagReview(id string, aliasIndex *int) error {
-	_, err := s.Run(pronunciationTarget([]string{"review-flag", "--guide", s.guidePath(), "--entity-id", id}, aliasIndex)...)
-	return err
+	return s.mutateInHost(func(document map[string]any) (bool, error) { return flagReview(document, id, aliasIndex) })
 }
 
 // SpeakerColors is how many speaker colours there are: the seven hues of docs/design/colour-and-contrast.md#per-speaker-colours, --speaker-1 to --speaker-7.
 const SpeakerColors = 7
 
 // SetSpeakerColor stores a character's speaker colour, 1..SpeakerColors, which wins over the stable pick; nil or 0 puts it back to
-// automatic. A value outside that is refused before the sidecar starts; the sidecar refuses a locked entry and one that cannot speak.
+// automatic. A value outside that is refused before the file is read; a locked entry and one whose type cannot speak are refused too.
 func (s *Service) SetSpeakerColor(id string, index *int) error {
 	value := 0
 	if index != nil {
@@ -565,8 +562,7 @@ func (s *Service) SetSpeakerColor(id string, index *int) error {
 	if value < 0 || value > SpeakerColors {
 		return fmt.Errorf("a speaker colour is 1 to %d, or 0 for automatic", SpeakerColors)
 	}
-	_, err := s.Run("speaker-color", "--guide", s.guidePath(), "--entity-id", id, "--index", fmt.Sprint(value))
-	return err
+	return s.mutateInHost(func(document map[string]any) (bool, error) { return speakerColor(document, id, value) })
 }
 
 func (s *Service) Rescan(id string) error {
@@ -661,17 +657,20 @@ func (s *Service) Unmerge(undoID string) error {
 	_, err := s.Run("unmerge", "--guide", s.guidePath(), "--undo-id", undoID)
 	return err
 }
+
+// Delete removes an entry, and every other entry's relationship to it. A locked entry is refused.
 func (s *Service) Delete(id string) error {
-	_, err := s.Run("delete", "--guide", s.guidePath(), "--entity-id", id)
-	return err
+	return s.mutateInHost(func(document map[string]any) (bool, error) { return deleteEntity(document, id) })
 }
+
+// Relate adds a labelled relationship from one entry to another, once.
 func (s *Service) Relate(id, other, label string) error {
-	_, err := s.Run("relate", "--guide", s.guidePath(), "--entity-id", id, "--other-id", other, "--label", label)
-	return err
+	return s.mutateInHost(func(document map[string]any) (bool, error) { return relate(document, id, other, label) })
 }
+
+// Unrelate removes the relationship with exactly that other entry and label.
 func (s *Service) Unrelate(id, other, label string) error {
-	_, err := s.Run("unrelate", "--guide", s.guidePath(), "--entity-id", id, "--other-id", other, "--label", label)
-	return err
+	return s.mutateInHost(func(document map[string]any) (bool, error) { return unrelate(document, id, other, label) })
 }
 
 // VocabularyCandidates returns the names Proofing's "Suggest from manuscript"

@@ -94,14 +94,15 @@ func pairs(t *testing.T, args []string) map[string]string {
 	return out
 }
 
-// writeStoryBible puts a Story Bible with one entry, entity-1, in the service's project.
+// writeStoryBible puts a Story Bible with one entry, entity-1, a Character with three aliases, in the service's project.
 func writeStoryBible(t *testing.T, project string) {
 	t.Helper()
 	path := filepath.Join(project, "ManuscriptGuide", "manuscript_guide.json")
 	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
 		t.Fatal(err)
 	}
-	content := `{"schema_version": 2, "entities": [{"id": "entity-1", "canonical_name": "Al", "category": "Character", "locked": false}]}`
+	content := `{"schema_version": 2, "entities": [{"id": "entity-1", "canonical_name": "Al", "category": "Character", "locked": false,
+		"aliases": [{"text": "Ally"}, {"text": "Alfie"}, {"text": "Big Al"}]}]}`
 	if err := os.WriteFile(path, []byte(content), 0o600); err != nil {
 		t.Fatal(err)
 	}
