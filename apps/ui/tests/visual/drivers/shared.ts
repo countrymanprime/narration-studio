@@ -287,7 +287,7 @@ export function confirmDialog(page: Page, name: string | RegExp) {
 
 // Replace manuscript has one place, the Settings page's Project category (SNM-2): the Production page no longer carries it.
 export async function clickReplaceManuscript(page: Page): Promise<void> {
-  await openSettingsCategory(page, 'Project');
+  await openSettings(page, 'Project');
   await clickVisible(page, 'button', 'Replace manuscript…');
 }
 
