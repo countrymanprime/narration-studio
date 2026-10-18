@@ -553,6 +553,8 @@ function useOpenAt(
   findings: Pick<FindingsApi, 'findingsGet'>,
 ): void {
   const done = useRef({ passage: false, finding: false, t: false });
+  // The finding's words are the selection once they are chosen; the passage's first word is only where the cursor goes when no finding chose them.
+  const chosen = useRef(false);
   useEffect(() => {
     if (link.t === undefined || done.current.t) return;
     done.current.t = true;
@@ -566,7 +568,7 @@ function useOpenAt(
     const para = doc.paras.find((p) => p.p.id === id);
     if (!para) return;
     const first = para.items.find((i) => i.kind === 'w');
-    if (first) dispatch({ type: 'place', key: first.key });
+    if (first && !chosen.current) dispatch({ type: 'place', key: first.key });
     if (!lines.byId.has(id)) return;
     done.current.passage = true;
     setLineOpen(id, true);
@@ -586,6 +588,7 @@ function useOpenAt(
         const single = span.ordinal === undefined ? undefined : `${span.paragraph_id}:${span.ordinal}`;
         const keys = words.length ? words : single && doc.index.has(single) ? [single] : [];
         if (!keys.length) return;
+        chosen.current = true;
         dispatch({ type: 'select', anchor: keys[0], head: keys[keys.length - 1] });
         const flag = keys.find((key) => flagged(doc).some((x) => x.key === key));
         if (flag) dispatch({ type: 'openFlag', key: flag });

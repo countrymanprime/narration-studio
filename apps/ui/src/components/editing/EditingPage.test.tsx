@@ -425,6 +425,14 @@ describe('EditingPage', () => {
       await script();
       await waitFor(() => expect(within(screen.getByRole('toolbar', { name: 'Playback and selection' })).getByText('3 words')).toBeTruthy());
     });
+    it('keeps the finding’s words selected when the passage it came with is found later, as Proof’s Manage takes sends both', async () => {
+      const named = { id: 'f-run', manuscript: { chapter_id: 'c1', expected: 'turned and walked', span: { paragraph_id: 'p2' } } };
+      mount({ findingId: 'f-run', passageId: 'ps-1', api: { findingsGet: async () => named } as never });
+      await script();
+      await waitFor(() => expect(document.querySelector('[data-tchip="p1"]')!.getAttribute('aria-expanded')).toBe('true'));
+      await act(async () => {});
+      expect(within(screen.getByRole('toolbar', { name: 'Playback and selection' })).getByText('3 words')).toBeTruthy();
+    });
     // SN-E9: the editing check's "Clean up in Editing" opens the page with the drawer on Clean up.
     it('opens with the drawer on the tab it is given', async () => {
       mount({ drawer: 'cleanup' });
