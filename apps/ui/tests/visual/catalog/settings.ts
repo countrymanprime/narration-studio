@@ -202,6 +202,11 @@ export const settingsStates: StateEntry[] = [
     page: 'settings',
     state: 'manuscript',
     description: 'Settings, Project with Replace manuscript… pressed: the "Import Alice.docx" review dialog over the page, naming what a replace clears',
+    sameAs: {
+      of: 'production/import-confirm',
+      reason: 'Both open the same Import confirm dialog, and CI found the two captures identical at these widths.',
+      viewports: ['desktop', 'small-desktop', 'tablet'],
+    },
     ...REFLOW,
   },
   {
