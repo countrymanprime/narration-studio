@@ -349,6 +349,17 @@ jobs:
     # The tests, with the race detector on the packages that have concurrency (the `ci` configuration of the test target;
     # docs/operations/verification-tooling.md#go-lint-and-the-race-detector), then the teleprompter and shutdown tests on one and on four CPUs (`test-schedules`): an ordering bug
     # between goroutines that hides on the default scheduler fails there on demand. Lint runs in quick-windows.
+    # Two parallel jobs, split by what each package cost on the Windows runner (run 39138316593): the raced packages took 10 m 22 s,
+    # 405 s of it the module's root package alone (the other raced packages ran beside it), the plain packages 33 s and
+    # `test-schedules` 118 s. `root` runs the root package; `rest` the other raced packages, the plain ones and `test-schedules`.
+    # Each job checks the coverage floors of the packages it ran (scripts/ci/coverage-gate.mjs --group); together they run every package once.
+    name: go-test (${{ matrix.part }})
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { part: root, configuration: ci-root, schedules: false }
+          - { part: rest, configuration: ci-rest, schedules: true }
     # 25 min: the median is 12 min and the longest run seen was 15.0, so a 15 min limit cancelled runs that were passing.
     timeout-minutes: 25
     runs-on: windows-latest
@@ -363,6 +374,11 @@ jobs:
           pnpm-filter: narration-utils
       - uses: ./.github/actions/nx-run
         with:
-          targets: test test-schedules
+          targets: test
           projects: narration-utils-shell
-          configuration: ci
+          configuration: ${{ matrix.configuration }}
+      - if: ${{ matrix.schedules && !cancelled() }}
+        uses: ./.github/actions/nx-run
+        with:
+          targets: test-schedules
+          projects: narration-utils-shell

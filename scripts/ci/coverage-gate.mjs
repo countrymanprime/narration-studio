@@ -3,7 +3,7 @@
  * The coverage ratchet. Runs a project's tests with coverage on and compares each
  * logic directory with its floor in scripts/ci/coverage-floors.json:
  *
- *   node scripts/ci/coverage-gate.mjs go <projectRoot> [go test args]
+ *   node scripts/ci/coverage-gate.mjs go <projectRoot> [go test args] [--group=<root|race|plain>[,...]]
  *   node scripts/ci/coverage-gate.mjs vitest <projectRoot> [--shard=<i>/<n> | --merge=<n>]
  *   node scripts/ci/coverage-gate.mjs pytest <projectRoot> [pytest args]
  *
@@ -15,6 +15,11 @@
  * renamed or deleted directory must be edited out of the floors file on purpose). Floors only go
  * up: `--update` rewrites them to the rounded-down measurement and never lowers one. The floor for
  * a new logic directory is TARGET (80); a lower floor needs a written `reason` in the file.
+ *
+ * `--group` (with `-race`) runs only some of the packages, so CI can run them as parallel jobs: `root` is the module's root
+ * package, which the race detector slows to 405 s of the 622 s it spent on all the others together, `race` is the other
+ * packages with concurrency, `plain` the rest. A job checks the floors of the packages it ran and no others; the jobs
+ * together run every package once, and an entry naming no package fails in every job as it does in an unsplit run.
  *
  * Coverage can differ by operating system: a test that stands a file where a folder belongs reaches one more
  * statement on Windows, where a path through a file reads as "not found", than elsewhere, where it fails with ENOTDIR
@@ -80,6 +85,32 @@ export function splitRacePackages(packages, readFile = (path) => readFileSync(pa
     (concurrent ? race : plain).push(pkg.ImportPath);
   }
   return { race, plain };
+}
+
+const GROUPS = ['root', 'race', 'plain'];
+
+/** `root,race` as ['root', 'race']; null when a name is not a group. */
+export function parseGroups(argument) {
+  const names = argument.split(',');
+  return names.every((name) => GROUPS.includes(name)) && new Set(names).size === names.length ? names : null;
+}
+
+/**
+ * The packages of each `--group`: `root` is the module's root package when the race detector applies to it, `race` the other
+ * raced packages, `plain` the ones run without it. Together they are the whole `split` and no package is in two.
+ */
+export function groupPackages(split, modulePath) {
+  return {
+    root: split.race.filter((pkg) => pkg === modulePath),
+    race: split.race.filter((pkg) => pkg !== modulePath),
+    plain: split.plain,
+  };
+}
+
+/** The entries a job that ran `ran` (import paths) is answerable for: its packages', and any naming a package that does not exist. */
+export function entriesForPackages(entries, modulePath, ran, all) {
+  const importPath = (entry) => (entry.path === '.' ? modulePath : `${modulePath}/${entry.path}`);
+  return entries.filter((entry) => ran.includes(importPath(entry)) || !all.includes(importPath(entry)));
 }
 
 function relativeTo(root, file) {
@@ -222,24 +253,44 @@ function listGoPackages(projectRoot) {
   return result.stdout.split(/\r?\n(?=\{)/).filter((chunk) => chunk.trim()).map((chunk) => JSON.parse(chunk));
 }
 
-/** `-race` runs only on the packages splitRacePackages picks; every package is still tested and measured. */
-function goTestRuns(projectRoot, extra) {
-  if (!extra.includes('-race')) return [{ args: extra, packages: ['./...'] }];
-  const { race, plain } = splitRacePackages(listGoPackages(projectRoot));
+/**
+ * `-race` runs only on the packages splitRacePackages picks; every package is still tested and measured. With `groups`
+ * only those groups' packages run, and `ran` names them (all of them when there are none).
+ */
+function goTestRuns(projectRoot, modulePath, extra, groups) {
+  if (!extra.includes('-race')) {
+    if (groups) {
+      console.error('coverage: --group needs -race, which is what divides the packages.');
+      process.exit(2);
+    }
+    return { runs: [{ args: extra, packages: ['./...'] }], ran: null, all: [] };
+  }
+  const split = splitRacePackages(listGoPackages(projectRoot));
+  const all = [...split.race, ...split.plain];
+  const byGroup = groupPackages(split, modulePath);
+  const wanted = groups ?? GROUPS;
+  const raced = wanted.filter((name) => name !== 'plain').flatMap((name) => byGroup[name]);
+  const plain = wanted.includes('plain') ? byGroup.plain : [];
   if (plain.length) console.log(`coverage: ${plain.length} packages with no concurrency run without -race: ${plain.join(', ')}`);
-  return [
-    { args: extra, packages: race },
-    { args: extra.filter((arg) => arg !== '-race'), packages: plain },
-  ].filter((group) => group.packages.length > 0);
+  if (groups) console.log(`coverage: group ${groups.join(',')}: ${raced.length} packages with -race, ${plain.length} without; the rest run in other jobs.`);
+  return {
+    runs: [
+      { args: extra, packages: raced },
+      { args: extra.filter((arg) => arg !== '-race'), packages: plain },
+    ].filter((group) => group.packages.length > 0),
+    ran: [...raced, ...plain],
+    all,
+  };
 }
 
-function runGo(projectRoot, extra) {
+function runGo(projectRoot, extra, groups) {
   const goMod = readFileSync(join(projectRoot, 'go.mod'), 'utf8');
   const modulePath = /^module\s+(\S+)/m.exec(goMod)?.[1];
   let output = '';
   let failed = 0;
-  // Both groups run even when the first fails, so one failure does not hide another.
-  for (const { args, packages } of goTestRuns(projectRoot, extra)) {
+  const { runs, ran, all } = goTestRuns(projectRoot, modulePath, extra, groups);
+  // Every run happens even when an earlier one fails, so one failure does not hide another.
+  for (const { args, packages } of runs) {
     const result = run('go', ['-C', projectRoot, 'test', '-cover', ...args, ...packages], { stdio: ['inherit', 'pipe', 'inherit'] });
     process.stdout.write(result.stdout ?? '');
     output += result.stdout ?? '';
@@ -247,7 +298,7 @@ function runGo(projectRoot, extra) {
   }
   if (failed) process.exit(failed);
   const packages = parseGoCover(output, modulePath);
-  return (entry) => aggregatePackages(packages, entry.path);
+  return { measure: (entry) => aggregatePackages(packages, entry.path), modulePath, ran, all };
 }
 
 function reportsDir(name) {
@@ -360,7 +411,19 @@ function main(argv) {
     console.error(`No coverage floors are listed for ${tool} ${projectRoot} in scripts/ci/coverage-floors.json.`);
     process.exit(2);
   }
-  const measure = tool === 'go' ? runGo(projectRoot, rest) : tool === 'vitest' ? runVitest(projectRoot, entries, vitestMode(rest)) : runPytest(projectRoot, rest);
+  if (tool === 'go') {
+    const groupArgs = rest.filter((argument) => argument.startsWith('--group='));
+    const groups = groupArgs.length ? parseGroups(groupArgs[0].slice('--group='.length)) : undefined;
+    if (groupArgs.length > 1 || groups === null) {
+      console.error('Usage: coverage-gate.mjs go <projectRoot> -race --group=<root|race|plain>[,...]');
+      process.exit(2);
+    }
+    const goTest = runGo(projectRoot, rest.filter((argument) => !argument.startsWith('--group=')), groups);
+    // A job answers for the packages it ran: the others' floors are checked by the jobs that ran them.
+    const owned = goTest.ran ? entriesForPackages(entries, goTest.modulePath, goTest.ran, goTest.all) : entries;
+    process.exit(report(doc, owned, goTest.measure, { update }));
+  }
+  const measure = tool === 'vitest' ? runVitest(projectRoot, entries, vitestMode(rest)) : runPytest(projectRoot, rest);
   process.exit(report(doc, entries, measure, { update }));
 }
 
