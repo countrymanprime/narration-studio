@@ -1,3 +1,4 @@
+import { logUi } from './api/uiLog';
 import { useCallback, useEffect, useRef, useState, type ReactElement } from 'react';
 import { BrowserRouter, Navigate, Route, Routes, useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import type { Bootstrap } from './types';
@@ -156,6 +157,7 @@ function AppRoutes() {
   const api = useApi();
   const navigate = useNavigate();
   const location = useLocation();
+  useEffect(() => logUi('ui.nav', location.pathname), [location.pathname]);
   const history = useAppHistory();
   const zoom = useZoom(api);
   const journal = useJournal();
@@ -512,7 +514,7 @@ function AppRoutes() {
   const guardedNavigateRef = useRef<(next: string) => void>(() => {});
   const goToScriptRef = useRef<(chapter: string) => void>(() => {});
   useGoToCommands({
-    pages: shellPages(hasManuscript),
+    pages: shellPages({ hasManuscript, dawFileLinked: data?.dawFileLinked ?? false }),
     chapters,
     go: (target) => (target.kind === 'page' ? guardedNavigateRef.current(target.id) : goToScriptRef.current(target.id)),
   });

@@ -22,20 +22,20 @@ export type DawConnectGuide = {
 };
 
 /** The REAPER action the launcher file becomes once it is loaded, as REAPER's action list names it. */
-export const REAPER_LAUNCHER_ACTION = 'Script: NarrationUtils_Launcher.lua';
+export const REAPER_LAUNCHER_ACTION = 'Script: NarrationStudio_Launcher.lua';
 
 const REAPER_GUIDE: DawConnectGuide = {
   dawName: 'REAPER',
   link: 'Link this project’s REAPER project file (.rpp).',
   install: 'Once only: in REAPER, choose Actions, Show action list, then New action, Load ReaScript, and pick the launcher file',
-  installFile: 'NarrationUtils_Launcher.lua, in the reaper folder beside this app',
+  installFile: 'NarrationStudio_Launcher.lua, in the reaper folder beside this app',
   installAgain: 'Load it again after this app is updated: the file moves with each update.',
   run: `With the chapter’s project open in REAPER, run ${REAPER_LAUNCHER_ACTION} from the action list. This app connects and Record turns on here.`,
   launch: {
     label: 'Open in REAPER and connect',
     // REAPER runs a script it is started with, so the launcher connects this launch whether or not the action was loaded.
     settings: { auto_start_launcher: 'true' },
-    note: 'With REAPER closed: opens the linked project and connects. Settings then starts the link each time this app opens REAPER.',
+    note: 'Opens the linked project in REAPER and connects, or connects the REAPER you already have open. Settings then starts the link each time this app opens REAPER.',
   },
 };
 
