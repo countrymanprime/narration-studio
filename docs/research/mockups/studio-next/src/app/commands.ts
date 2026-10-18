@@ -1,6 +1,8 @@
 import { chName } from '@/selectors/chapters'
 import { navReason } from '@/selectors/nav'
 import { go, openInScript } from '@/state/commands/nav'
+import { openSettings } from '@/state/commands/settingsPage'
+import { CATEGORIES } from '@/fixtures/settings'
 import { setPrefs, setZoom, toggleTheme } from '@/state/commands/prefs'
 import { openFind } from '@/state/commands/script'
 import { getState, undoLast, update } from '@/state/store'
@@ -21,6 +23,8 @@ registerCommands(() => {
   const out: Command[] = []
   const add = (g: string, l: string, fn: () => void, k = '', hint?: string, off?: string): void => { out.push({ g, l, k, fn, hint, off }) }
   PAGE_LIST.forEach(([p, l]) => add('Go to', 'Go to ' + l, () => go(p), '', undefined, navReason(p, s.mock.hasManuscript)))
+  add('Settings', 'Open settings', () => openSettings({ from: getState().ui.page === 'settings' ? undefined : getState().ui.page }), 'Ctrl ,')
+  CATEGORIES.forEach((c) => add('Settings', 'Settings: ' + c.label, () => openSettings({ cat: c.id }), '', 'settings'))
   s.data.chapters.forEach((c) => add('Chapters', 'Go to ' + chName(s.data, c), () => openInScript(c.id), '', 'chapter'))
   add('Manuscript', 'Find in the manuscript', () => openFind(), 'Ctrl F')
   add('Manuscript', 'Import manuscript…', () => modals.importFlow('import'))
