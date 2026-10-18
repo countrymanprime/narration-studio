@@ -26,6 +26,7 @@ import { usePendingAction } from './hooks/usePendingAction';
 import { ChapterSyncConsentDialog } from './components/engine/ChapterSyncConsentDialog';
 import type { ChapterSyncPreview } from './api/contracts/chapterSync';
 import { useAppHistory } from './hooks/useAppHistory';
+import { useSettingsOrigin } from './hooks/useSettingsOrigin';
 import { useZoom } from './hooks/useZoom';
 import { notificationForJobEnd, shouldNotifyForJobEnd, shouldQueueJobEndAnnouncement, toastForJobEnd } from './jobEnded';
 import { useBoothRecording } from './components/booth/useBoothRecording';
@@ -159,6 +160,7 @@ function AppRoutes() {
   const location = useLocation();
   useEffect(() => logUi('ui.nav', location.pathname), [location.pathname]);
   const history = useAppHistory();
+  const settingsOrigin = useSettingsOrigin();
   const zoom = useZoom(api);
   const journal = useJournal();
   const overlay = useOverlay();
@@ -512,6 +514,12 @@ function AppRoutes() {
   const slotChapters = useStudio((state) => state.slots.chapters);
   const chapters = hasManuscript ? (slotChapters ?? NO_CHAPTERS) : NO_CHAPTERS;
   const guardedNavigateRef = useRef<(next: string) => void>(() => {});
+  // Ctrl+, opens Settings from any page; the page then offers Back to the page the narrator left.
+  useCommand('nav.settings', () => {
+    if (isModalOpen()) return;
+    settingsOrigin.markLink();
+    guardedNavigateRef.current(addressPagePath('settings'));
+  });
   const goToScriptRef = useRef<(chapter: string) => void>(() => {});
   useGoToCommands({
     pages: shellPages({ hasManuscript, dawFileLinked: data?.dawFileLinked ?? false }),
@@ -920,6 +928,7 @@ function AppRoutes() {
                       go={guardedNavigate}
                       refreshBootstrap={refreshBootstrap}
                       initialCategory={SETTINGS_ANCHORS[location.hash]}
+                      cameFrom={settingsOrigin.origin}
                     />
                   }
                 />

@@ -28,7 +28,7 @@ const fresh = (finding: Finding): Tracked => ({ prop: finding, shown: finding, l
  * The finding the narrator was shown, kept beside the latest one the host gave. A decision goes out with the shown evidence version
  * and is refused here, before the host is asked, while the latest evidence differs from the shown one. A re-check with the same
  * version replaces the finding silently; one that moves it raises `change` until `useNewEvidence`. The decision note lives here, so it
- * outlives a replaced finding and goes out with the decision made on the new evidence.
+ * outlives a re-checked finding and goes out with the decision made on the new evidence; a note saved differently on the host replaces it.
  */
 export function useShownEvidence({
   api,
@@ -54,7 +54,14 @@ export function useShownEvidence({
     current =
       state.prop.id !== finding.id
         ? fresh(finding)
-        : { ...state, prop: finding, latest: finding, shown: versionOf(state.shown) === versionOf(finding) ? finding : state.shown };
+        : {
+            ...state,
+            prop: finding,
+            latest: finding,
+            shown: versionOf(state.shown) === versionOf(finding) ? finding : state.shown,
+            // A re-check keeps what the narrator typed; a saved note that moved (an undo put the earlier one back) is what the box shows.
+            note: (finding.review.note ?? '') === (state.prop.review.note ?? '') ? state.note : (finding.review.note ?? ''),
+          };
     setState(current);
   }
 

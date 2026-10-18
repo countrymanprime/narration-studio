@@ -5,6 +5,7 @@ import { Button } from '../../primitives/Button';
 import { Checkbox } from '../../primitives/Checkbox';
 import { ConfirmDialog } from '../../primitives/ConfirmDialog';
 import { Panel } from '../../primitives/Panel';
+import { SectionLabel } from '../../primitives/SectionLabel';
 import { offerable } from './components';
 import { ConsentDialog } from './ConsentDialog';
 import { ToolRow } from './ToolRow';
@@ -14,9 +15,9 @@ import { useAnalysisTools, useComponentsPort } from './useAnalysisTools';
 /**
  * Settings > Story Bible analysis, the mock's panel of that name after Story Bible types: the optional tools that make the Story Bible scan better, from the asset registry. Nothing downloads until the
  * narrator agrees in the consent; several start one after another. Below them, whether a scan offers them first
- * (`ManuscriptGuide.analysis_prompt`).
+ * (`ManuscriptGuide.analysis_prompt`). `bare` draws it under a heading, with no panel, below the Models & downloads list.
  */
-export function AnalysisToolsSection() {
+export function AnalysisToolsSection({ bare = false }: { bare?: boolean }) {
   const tools = useAnalysisTools(useComponentsPort());
   const prompt = useAnalysisPrompt();
   const [consent, setConsent] = useState<AssetItem[]>();
@@ -45,7 +46,12 @@ export function AnalysisToolsSection() {
 
   return (
     <div id="settings-analysis" className="scroll-mt-4">
-      <Panel title="Story Bible analysis">
+      {bare && (
+        <SectionLabel as="h3" className="mb-1.5">
+          Story Bible analysis tools
+        </SectionLabel>
+      )}
+      <Wrap bare={bare}>
         <div className="space-y-3">
           {tools.loadError && !tools.tools ? (
             <div
@@ -110,7 +116,12 @@ export function AnalysisToolsSection() {
             />
           )}
         </div>
-      </Panel>
+      </Wrap>
     </div>
   );
+}
+
+/** The tools in the panel the page of their own draws, or bare under a heading of the Models & downloads list. */
+function Wrap({ bare, children }: { bare: boolean; children: React.ReactNode }) {
+  return bare ? <>{children}</> : <Panel title="Story Bible analysis">{children}</Panel>;
 }

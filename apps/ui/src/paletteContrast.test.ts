@@ -61,11 +61,12 @@ const PAIRS: PairSpec[] = [
   text('accent-strong-on-soft', 'notice and chip text: accent-strong on accent-soft', 'var(--accent-strong)', ['surface'], 'var(--accent-soft)'),
   text(
     'nav-active',
-    'active navigation item: accent-strong on a 10% accent tint',
-    'var(--accent-strong)',
+    'active navigation item (the bar highlight): text on surface-2, and its count in text-muted',
+    'var(--text)',
     ['surface'],
-    'color-mix(in srgb, var(--accent) 10%, var(--surface))',
+    'var(--surface-2)',
   ),
+  mark('nav-active-bar', 'the 3 px accent bar down the active navigation item', 'var(--accent)', ['surface-2']),
   text(
     'tab-active',
     'active Settings category: accent-strong on a 10% accent tint',
@@ -390,12 +391,6 @@ const NON_TEXT_USES: Record<string, { count: number; what: string }> = {
   'components/layout/EngineChip.tsx': { count: 2, what: "the header chip dot when no DAW file is linked, and the Built-in chip's dot" },
   'components/primitives/HeaderChip.stories.tsx': { count: 1, what: "the QuietDot story's dot, the engine chip's when no DAW file is linked" },
   'components/primitives/Tooltip.tsx': { count: 1, what: 'the border of the info icon' },
-  'components/settings/DawCatalogPanel.tsx': { count: 1, what: 'the not-detected DAW catalog entry dot' },
-  'components/settings/page/DawPanel.tsx': {
-    count: 2,
-    what: 'the DAW link status dot in the project-scope panel when nothing is linked, and the global-scope reachability dot when REAPER has not sent a recent heartbeat',
-  },
-  'components/settings/page/RecordingPanel.tsx': { count: 1, what: 'the project DAW status dot while its DAW is linked but not connected' },
   'components/storybible/Guide.tsx': { count: 1, what: 'the lock icon beside a locked entry' },
   'components/engine/EnginePanel.tsx': { count: 1, what: 'the dot of a track that has no colour' },
   'styles.css': { count: 1, what: "LevelMeter's below-floor zone: --meter-floor is a derived alias of --non-text, not text" },

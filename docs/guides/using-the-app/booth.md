@@ -59,7 +59,7 @@ offers **Open the audio engine panel**, where **Chapter links** sets the chapter
 When the reason is one you can fix from the Booth, a box above the footer shows the steps:
 
 - **Recording in REAPER is experimental.** Recording in a DAW starts switched off until it has been checked in that DAW.
-  **Turn on Record** turns it on for this computer (Settings > DAW Integration > Record), and Record is ready at once.
+  **Turn on Record** turns it on for this computer (Settings > Recording & DAW > Capabilities > Record), and Record is ready at once.
 
   ![Booth - Record disabled with the reason in the footer, and the Recording in REAPER is experimental box above it with Turn on Record and DAW settings](../../images/ui/booth-record-refused.webp)
 
@@ -107,7 +107,7 @@ in the project's `Recordings` folder (`Take 001.wav`, `Take 002.wav`, …); an e
 ![Booth - a project that records with the built-in recorder: the chip reads Built-in, and Record is ready with no track to link](../../images/ui/booth-builtin-setup.webp)
 
 - **Experimental.** Like recording in a DAW, it starts switched off until it has been checked on your microphone. The box above
-  the footer says so and **Turn on Record** turns it on, the same switch as in Settings > DAW Integration > Record.
+  the footer says so and **Turn on Record** turns it on, the same switch as in Settings > Recording & DAW > Capabilities > Record.
 
   ![Booth - the built-in recorder with Experimental actions off: Record disabled with the reason, and the Recording in the built-in recorder is experimental box above it with Turn on Record](../../images/ui/booth-builtin-refusal.webp)
 

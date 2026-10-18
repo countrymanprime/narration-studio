@@ -13,7 +13,7 @@ What is delivered, and what is deliberately not:
 - **Delivered.** One catalog per kind (`config/{tts,whisper,spacy,moonshine,dictionary,encoder,analysis}-assets.json`) with pinned URLs, sizes and SHA-256; the
   asset manager and its manifest, resume, repair and free-space check; the registry and the `Assets*` bindings (a later kind is a
   catalog file, a provider and a row on the page, with no new binding); the
-  first-use dialog for Piper, Whisper and Story Bible (with the rules-only choice); Settings > Local assets; no download and no
+  first-use dialog for Piper, Whisper and Story Bible (with the rules-only choice); Settings > Models & downloads; no download and no
   request at startup other than the switch-off-able update check (tests in `apps/desktop/startup_offline_test.go`); the
   legacy-cache policy; the developer seeding command; and the packaged smoke test, `narration-utils --smoke`, which CI runs on the
   Windows build. Each shipped artifact's record (publisher, version, URL, SHA-256, licences, install location, update policy) is in
@@ -69,7 +69,7 @@ What is delivered, and what is deliberately not:
   installed model automatically.
 - The application's own update follows the same rule and adds one thing. Once a
   day at most, in the background and unless the narrator turned it off
-  (Settings > About and updates), the app asks GitHub which releases exist. That
+  (Settings > App & updates), the app asks GitHub which releases exist. That
   request is metadata only: it downloads no asset and sends nothing about the
   narrator, their projects or their machine. Nothing is downloaded and nothing
   is replaced without an explicit, confirmed click ([ADR 0002](../adr/0002-local-models-and-tools-come-first-so-the-app-is-free-to-use.md)).
@@ -179,9 +179,9 @@ The optional analysis tools (`config/analysis-assets.json`, kind `analysis`, lab
 - **Wheels are data until loaded.** A tool's weights are plain files; its Python wheels (`gliner`, `transformers`, `torch`, `booknlp`) are archives with a mandatory SHA-256 and unpacked size, unpacked into one `wheel-<package>` folder each and deleted. Nothing in the host imports or runs them; the adapters (SNX-7a, SNX-7b) load them inside the manuscript-guide sidecar during a scan the narrator started. Until those adapters exist, an installed tool is not offered as an extraction source. Threat model row 1i.
 - **Failures.** The free-space check of `internal/assets/disk.go` refuses a tool the disk cannot hold before the first byte, with the shortfall sentence, and a host that does not answer is named ("Could not reach huggingface.co.").
 
-## The local assets page (implemented)
+## The models and downloads list (implemented)
 
-Settings > Local assets (Global scope) is the one place to see, verify, repair and remove what the app keeps on this computer. `apps/ui/src/components/assets/LocalAssets.tsx` lists `AssetsList`, so a new kind of asset appears there with no page work. Each row shows the kind, name, exact version, publisher, licence, model card and provenance links, the download and disk sizes and one of five states: not installed, downloading (real bytes and percent from the install job, with Cancel while bytes arrive), verifying, installed and needs repair (`verification_failed`). The row owns its download through `useAssetInstall`, and a download that was already running when the page opened is followed through the list's `activeJobId`, so leaving the page never loses one. Not installed offers Download, installed offers Verify (a busy button, because it reads every byte) and Remove, and needs repair offers Repair (the install call, which repairs) and Remove. Remove is a danger confirm that says what it frees and what will ask to download it again. A failed download, verification or removal is written in the row, never silent. The page also shows the total the installed assets use and the cache folder; the folder is shown and never changed or emptied from here (an owner decision), and only the narrator's Remove deletes an asset. The mock seeds `?mockAssets=installing|checking|damaged` reach every state without a host, and the visual suite captures each one at every viewport including the 390 px reflow width.
+Settings > Models & downloads (a category of the Settings page, [Settings](../guides/using-the-app/settings.md#models-and-downloads)) is the one place to see, repair and remove what the app keeps on this computer. `apps/ui/src/components/settings/page/ModelsPane.tsx` lists `AssetsList`, so a new kind of asset appears there with no page work. `settings/models/AssetsStore.tsx` reads the list once for the page and runs the downloads started from it or from the offer under a model choice (`AssetNote`): it starts the install, follows its job (`assetsInstallState`, every 400 ms) to the end, and follows a download that was already running when the page opened through the list's `activeJobId`, so leaving the page never loses one. Each row shows the name, kind, size, what the asset is for, its status (not installed, downloading with the real bytes and percent and Cancel while bytes arrive, checking the download, installed · checked, needs repair (`verification_failed`), download failed or not available yet), the pages that read it and the settings that choose it. Not installed offers Download, installed offers Remove, needs repair offers Repair (the install call, which repairs) and Remove, and a failed download offers Try again. Remove is a confirm that names the settings using the asset, moves each to the smallest other installed choice and is refused when there is none (`settings/models/assetUse.ts`). A failed download or removal is written in the row, never silent. The page also shows the total the installed assets use and the cache folder. The page has no Verify button: `AssetsVerify` stays in the contract for a later use.
 
 ## The packaged smoke test (implemented)
 

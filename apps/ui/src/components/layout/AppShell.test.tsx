@@ -193,6 +193,40 @@ describe('AppShell grouped navigation', () => {
     }
   });
 
+  // The rail's glyphs are the Studio Next mock's (Shell.tsx NAV through Icon.tsx), drawn from the icon catalogue so a page wears one icon everywhere.
+  it("draws each rail item with the mock's glyph", () => {
+    const { container } = renderShell();
+    const nav = container.querySelector('aside nav')!;
+    const glyph = (name: string) =>
+      [...nav.querySelectorAll('button')]
+        .find((b) => b.textContent?.startsWith(name))
+        ?.querySelector('svg')
+        ?.getAttribute('data-icon');
+    expect({
+      production: glyph('Production'),
+      schedule: glyph('Schedule'),
+      script: glyph('Script'),
+      bible: glyph('Story Bible'),
+      booth: glyph('Booth'),
+      editing: glyph('Editing'),
+      proof: glyph('Proof'),
+      pickups: glyph('Pickups'),
+      master: glyph('Master'),
+      delivery: glyph('Delivery'),
+    }).toEqual({
+      production: 'house',
+      schedule: 'calendar-days',
+      script: 'file-lines',
+      bible: 'book',
+      booth: 'microphone',
+      editing: 'scissors',
+      proof: 'wave-square',
+      pickups: 'list-check',
+      master: 'gauge',
+      delivery: 'upload',
+    });
+  });
+
   // The Production home replaced Home at `/`, as the Production group's one item, active on `/` and nowhere else.
   it("has Production, not Home, as the Production group's item, active at /", () => {
     renderShell({ pathname: '/' });

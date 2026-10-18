@@ -21,6 +21,15 @@ export type MarksViewProps = {
 export function MarksView({ types, error, onEdit }: MarksViewProps) {
   return (
     <Panel title="Marks" actions={<IconButton action="edit" label="Edit marks…" disabled={!types} onClick={onEdit} />}>
+      <MarksList types={types} error={error} />
+    </Panel>
+  );
+}
+
+/** The pills, or the reading and failed states, without a panel: the Settings page's Marks row draws these beside its own Edit button. */
+export function MarksList({ types, error }: Pick<MarksViewProps, 'types' | 'error'>) {
+  return (
+    <>
       {types && (
         <ul className="m-0 flex list-none flex-wrap gap-2 p-0">
           {types.map((type) => (
@@ -36,7 +45,7 @@ export function MarksView({ types, error, onEdit }: MarksViewProps) {
           {error}
         </p>
       )}
-    </Panel>
+    </>
   );
 }
 

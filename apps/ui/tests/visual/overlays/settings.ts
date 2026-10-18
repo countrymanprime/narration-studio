@@ -7,6 +7,8 @@ export const settingsCases: OverlayCase[] = [
   fromState('settings', 'about-download-confirm'),
   fromState('settings', 'about-download-progress'),
   fromState('settings', 'about-install-confirm'),
-  fromState('settings', 'local-assets-remove-confirm'),
-  fromState('settings', 'navigate-away-confirm'),
+  fromState('settings', 'speech-costly-confirm'),
+  fromState('settings', 'models-remove-confirm'),
+  fromState('settings', 'project-data-confirm'),
+  fromState('settings', 'pages-navigate-away-confirm'),
 ];

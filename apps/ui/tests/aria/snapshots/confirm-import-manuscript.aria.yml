@@ -4,9 +4,6 @@
 # from inside a dialog is still announced. They are empty here, and the page's pair is portalled to <body> (Toast.tsx), so it sits beside the overlay host's, not under <main>.
 - main:
   - group "Zoom"
-  - region "Credits":
-    - region "Retail sample":
-      - paragraph: No retail sample picked yet.
 - status
 - alert
 - status

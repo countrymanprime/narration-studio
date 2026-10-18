@@ -1,13 +1,13 @@
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import type { IconDefinition } from '@fortawesome/fontawesome-svg-core';
-import { faCircleCheck, faCircleMinus, faCircleXmark, faEarListen, faLock, faTriangleExclamation } from '@fortawesome/free-solid-svg-icons';
+import { faCircleCheck, faCircleMinus, faCircleXmark, faEarListen, faTriangleExclamation } from '@fortawesome/free-solid-svg-icons';
 import type { DeliveryRuleStatus, DeliveryVerification } from '../../types';
 import { StatusBadge, toneColors, type StatusTone, type BadgeLook } from '../primitives/StatusBadge';
 
 // The small status marks of Master & QC: a rule's result,
 // how its requirement was verified, and the profile's counts. The words carry the meaning; the colour and icon repeat it.
 // `Mark` draws through StatusBadge, the one badge primitive: a tone that was already a fill (`ok`, `danger`, `info`) stays soft; one that was outline-only (`warn`, `muted`)
-// keeps that look, so DeliveryProfilesPanel's "Built in"/"Custom" tags and DeliveryProfileEditor's marks are unchanged.
+// keeps that look, so the Settings profile list's "Built in"/"Custom" tags and DeliveryProfileEditor's marks are unchanged.
 
 type Tone = 'ok' | 'danger' | 'info' | 'warn' | 'muted';
 
@@ -65,4 +65,3 @@ export function ResultIcon({ status }: { status: DeliveryRuleStatus }) {
 }
 
 export const LISTEN_ICON = faEarListen;
-export const LOCK_ICON = faLock;

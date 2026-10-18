@@ -11,6 +11,8 @@ the notes still open and **Pickups** the open lines of the Pickups list; a zero,
 
 ![Primary navigation sidebar at desktop width](../../images/ui/nav-sidebar-desktop.webp)
 
+The page you are on is marked with an accent-coloured bar down the left edge of its item, on a slightly darker background; in the icon layout the bar still shows beside the icon.
+
 In the icon layout the rail shows only the icons, centred, with a thin line where each group's heading would be.
 
 ![Collapsed navigation rail at rest: icons centred, a thin line between the groups](../../images/ui/nav-rail-collapsed.webp)

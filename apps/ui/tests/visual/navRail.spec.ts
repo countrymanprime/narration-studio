@@ -116,3 +116,41 @@ test('Navigation rail / the hamburger takes over below 860 px / 859 and 860', as
   await expect(page.getByRole('button', { name: 'Open navigation' })).toBeHidden();
   await expect(page.locator(RAIL)).toBeVisible();
 });
+
+// The current page is the mock's "bar" highlight (`html[data-hl="bar"] .nav[aria-current="page"]`): --raised fill, --ink label, a 3 px
+// --copper bar inset on the left, square on the left and 6 px round on the right. It must read in the icon-only rail too.
+for (const width of [1440, 1100]) {
+  test(`Navigation rail / the current page draws the accent bar / ${width}`, async ({ page }) => {
+    await page.setViewportSize({ width, height: 900 });
+    await page.goto('/');
+    await settlePage(page);
+    await goToPage(page, 'Proof');
+    await page.mouse.move(width - 2, 600);
+    const current = page.locator(`${RAIL} button[aria-current="page"]`);
+    await expect(current).toHaveCount(1);
+    const style = await current.evaluate((el) => {
+      const probe = (token: string) => {
+        const p = document.createElement('i');
+        p.style.color = `var(${token})`;
+        document.body.append(p);
+        const c = getComputedStyle(p).color;
+        p.remove();
+        return c;
+      };
+      const s = getComputedStyle(el);
+      return {
+        bg: s.backgroundColor,
+        color: s.color,
+        radius: [s.borderTopLeftRadius, s.borderTopRightRadius, s.borderBottomRightRadius, s.borderBottomLeftRadius],
+        shadow: s.boxShadow,
+        surface2: probe('--surface-2'),
+        text: probe('--text'),
+        accent: probe('--accent'),
+      };
+    });
+    expect(style.bg).toBe(style.surface2);
+    expect(style.color).toBe(style.text);
+    expect(style.radius).toEqual(['0px', '6px', '6px', '0px']);
+    expect(style.shadow.endsWith(`${style.accent} 3px 0px 0px 0px inset`)).toBe(true);
+  });
+}
