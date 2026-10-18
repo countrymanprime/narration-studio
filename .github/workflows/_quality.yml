@@ -272,7 +272,8 @@ jobs:
     # The tests, with the race detector on the packages that have concurrency (the `ci` configuration of the test target;
     # docs/operations/verification-tooling.md#go-lint-and-the-race-detector), then the teleprompter and shutdown tests on one and on four CPUs (`test-schedules`): an ordering bug
     # between goroutines that hides on the default scheduler fails there on demand. Lint runs in quick-windows.
-    timeout-minutes: 15
+    # 25 min: the median is 12 min and the longest run seen was 15.0, so a 15 min limit cancelled runs that were passing.
+    timeout-minutes: 25
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
