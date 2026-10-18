@@ -39,8 +39,9 @@ profile needs could not be measured), or **Waiting** / **Not measured**. A value
 profile's rule is red with a cross; a value the app could not measure (a silent render, or a file too
 short) is a dash, never a number, and never counted as met. A file not measured yet, or one that could not
 be read, says so in place of its values. If the measurement itself breaks on a file, its row says the
-measurement stopped unexpectedly on that file, and the details go to the app's log, not the screen. The table opens on the first file that fails; the arrow keys move
-between files and Enter selects one. Right-click a row for the same actions as the buttons below it.
+measurement stopped unexpectedly on that file, and the technical error goes to the app's run log, not
+the screen. The table opens on the first file that fails; the arrow keys move between files and Enter
+selects one. Right-click a row for the same actions as the buttons below it.
 
 ![Three files checked against ACX: a 48 kHz render selected with why it fails](../../images/ui/master-measured.webp)
 
