@@ -1,6 +1,14 @@
 name: Quality
 on:
-  workflow_call: {}
+  workflow_call:
+    inputs:
+      full:
+        description: >-
+          true runs every job. false is the light tier of a draft pull request (ci.yml): the Playwright suites (ui-visual,
+          ui-atlas) are skipped and the rest runs. Only ci.yml's `CI passed` may sum up a full run; a light run reports as
+          `CI light passed`.
+        type: boolean
+        default: true
 permissions: { contents: read }
 # Every job runs its Nx targets through .github/actions/nx-run: on a pull request only the projects
 # the change affects (see each project's project.json and `implicitDependencies`), otherwise all of
@@ -46,6 +54,7 @@ jobs:
     # 20 minutes: shards 1 and 2 ran 12.7 to 14.5 minutes of a 15 minute limit and then timed out once the overlay guard
     # (a test per overlay, window size and position, for every page that adopts it) grew; shard 3 takes about 9.
     name: ui-visual (shard ${{ matrix.shard }}/3)
+    if: inputs.full
     timeout-minutes: 20
     runs-on: ubuntu-latest
     strategy:
@@ -112,7 +121,7 @@ jobs:
     # every capture present, none blank, no two states identical unless declared sameAs, every sameAs still holding. Reads
     # records only: no browser. Skipped when the UI is not affected (the shards captured nothing).
     needs: ui-visual-shard
-    if: needs.ui-visual-shard.outputs.affected == 'true'
+    if: inputs.full && needs.ui-visual-shard.outputs.affected == 'true'
     timeout-minutes: 10
     runs-on: ubuntu-latest
     steps:
@@ -138,6 +147,7 @@ jobs:
     # and overflow checks (apps/ui/tests/atlas). Half the stories per job (Playwright --shard): one job took 6.4 min. Each
     # story is judged on its own, so the shards need nothing merged. `pnpm atlas` builds Storybook first (seconds).
     name: ui-atlas (shard ${{ matrix.shard }}/2)
+    if: inputs.full
     timeout-minutes: 15
     runs-on: ubuntu-latest
     strategy:
@@ -262,7 +272,8 @@ jobs:
     # The tests, with the race detector on the packages that have concurrency (the `ci` configuration of the test target;
     # docs/operations/verification-tooling.md#go-lint-and-the-race-detector), then the teleprompter and shutdown tests on one and on four CPUs (`test-schedules`): an ordering bug
     # between goroutines that hides on the default scheduler fails there on demand. Lint runs in quick-windows.
-    timeout-minutes: 15
+    # 25 min: the median is 12 min and the longest run seen was 15.0, so a 15 min limit cancelled runs that were passing.
+    timeout-minutes: 25
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1

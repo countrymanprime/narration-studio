@@ -119,6 +119,10 @@ Four scripts in `scripts/ci/` check what merges while no person watches each pul
 - `test-ratchet.mjs <base-ref>` diffs `HEAD` against the merge base and prints one line per deleted test file, test file moved to a non-test path, added skip, focus or xfail marker in a test file, and coverage floor in `coverage-floors.json` that fell or was removed. It exits 1 on any. Run it locally before pushing a test change.
 - `pr-risk.mjs <path>...` prints `high` or `normal` and the boundary each path touches. The list is in the script; `--json` reads paths from stdin.
 
+## Latency measurements (manual, Windows)
+
+`.github/workflows/latency-windows.yml` is started by hand (`workflow_dispatch` only) and is never a gate. On a `windows-latest` runner it freezes the three sidecars, then runs `scripts/research/frozen-sidecar-timing.py` (fresh-copy launch against launch 10, against a frozen "hello", plus import profiles), the `latency`-tagged Go harness against the frozen Story Bible sidecar (`apps/desktop/internal/latency`), the bridge round trip against the fake `reaper` (`bridge_test.go`, with `scripts/research/bridge-fake-driver.py`) and `BenchmarkDispatchByLogSize`. The tables are printed in the job log and uploaded as the `latency-windows` artifact. Results go in a dated note under `docs/research/`.
+
 ## Reading a run
 
 Every tool run (a host job, a sidecar launch, a Go tool decision) writes one JSON line per event to `%APPDATA%\narration-utils\logs\run.jsonl` (`run`, `tool`, `event`, `ts`, `level`, plus the event's own fields; never manuscript, audio or transcript text), rotated at 5 MiB with two backups (`internal/runlog`). `grep '"run":"<id>"' run.jsonl` (or `jq 'select(.run=="<id>")'`) isolates one run; `Begin`/`End` bound it and `Decision` records why a tool chose what it chose. A sidecar's own stderr for a run with debug on is captured separately, one file per run, at `logs/runs/<run-id>.stderr.jsonl` (pruned to the newest 20, or 7 days).

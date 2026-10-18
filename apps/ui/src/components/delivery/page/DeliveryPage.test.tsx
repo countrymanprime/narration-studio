@@ -70,6 +70,35 @@ describe('DeliveryPage', () => {
     expect(screen.getByText('Not mastered')).toBeTruthy();
   });
 
+  it('names the first failing chapter, the rule, its value and its limit beside the disabled Build, and names none when nothing fails', async () => {
+    mount(BLOCKED);
+    expect((await screen.findByText(/^Chapter 04: noise floor/)).textContent).toBe('Chapter 04: noise floor −57.8 dBFS (limit ≤ −60 dBFS), and 1 more rule.');
+    cleanup();
+    mount(PASSING);
+    await screen.findByText('Every chapter passes.');
+    expect(screen.queryByText(/limit/)).toBeNull();
+  });
+
+  it('names the first not-ready chapter and why beside the disabled Build when nothing fails, and nothing when nothing was measured', async () => {
+    mount([passing('Chapter 01.wav'), passing('Chapter 02.wav')]);
+    expect((await screen.findByText('Chapter 03: no measured file yet.')).textContent).toBe('Chapter 03: no measured file yet.');
+    expect(screen.getByRole('button', { name: /Build .* package/ })).toHaveProperty('disabled', true);
+    cleanup();
+    mount([]);
+    await screen.findByText('0 failing, 4 not ready');
+    expect(screen.queryByText(/no measured file yet/)).toBeNull();
+  });
+
+  it('lists the first hundred chapters of a very long book and the rest on request, counting all of them', async () => {
+    const many = Array.from({ length: 150 }, (_, n) => chapter(n + 1, `Part ${n + 1} of the long book`));
+    mount([], { manuscriptChapters: async () => many });
+    expect(await screen.findByText('0 of 150')).toBeTruthy();
+    expect(screen.getAllByText('Not mastered')).toHaveLength(100);
+    await userEvent.click(screen.getByRole('button', { name: 'Show the other 50 chapters' }));
+    expect(screen.getAllByText('Not mastered')).toHaveLength(150);
+    expect(screen.queryByRole('button', { name: /Show the other/ })).toBeNull();
+  });
+
   it('builds-when-everything-passes-lists-what-was-written-and-opens-the-folder: runs the package job and lists the files', async () => {
     const packageStart = vi.fn(async () => PACKAGE_DONE);
     mount(PASSING, { packageStart });

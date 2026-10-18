@@ -39,7 +39,7 @@ import type { WordFxRequest } from './contracts/wordFx';
 import { WIRE_CHAPTERS, WIRE_TAKE_REVIEW_FINDINGS, WIRE_TRACKS_PROJECT, WIRE_TRANSCRIPT } from './mockFixtures';
 import { bookmarkSchema as spotBookmarkSchema, bookmarksSchema } from './schemas/bookmarks';
 import { voiceSampleAnswerSchema, voiceSamplesChangedSchema, voiceSamplesRemovedSchema, voiceSamplesSchema } from './schemas/voiceSamples';
-import type { VoiceSampleMarkRequest } from './contracts/voiceSamples';
+import { VOICE_SAMPLE_SENTENCES, type VoiceSampleMarkRequest } from './contracts/voiceSamples';
 import { passageMapSchema, passageMarkSchema } from './schemas/passageMap';
 import { acceptedWordSchema, acceptedWordsChangeSchema, acceptedWordsSchema } from './schemas/editLog';
 import { editCutSchema, editCutsChangeSchema, editCutsSchema } from './schemas/editCuts';
@@ -4775,6 +4775,8 @@ describe('the voice samples bindings', () => {
     expect(voiceSamplesSchema.safeParse({ ...list, samples: [{ ...sample, durationMs: 0 }] }).success).toBe(false);
     const refused = parseWire(voiceSampleAnswerSchema, readGolden('voice-sample-mark-refused.json'), ctx('voice sample refused'));
     expect(refused).toMatchObject({ status: 'refused', reason: 'stale_alignment' });
+    // The page refuses some reasons before it asks and says the host's words for the rest: the two tables are one table.
+    expect(VOICE_SAMPLE_SENTENCES).toEqual(readGolden('voice-sample-refusal-sentences.json'));
     expect(voiceSampleAnswerSchema.safeParse({ status: 'refused', reason: 'because', message: 'no' }).success).toBe(false);
     expect(voiceSampleAnswerSchema.safeParse({ status: 'refused', reason: 'too_long', message: '' }).success).toBe(false);
     expect(voiceSampleAnswerSchema.safeParse({ status: 'saved' }).success).toBe(false);

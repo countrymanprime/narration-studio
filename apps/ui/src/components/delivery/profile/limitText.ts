@@ -35,11 +35,15 @@ export const limitText = (rule: DeliveryRule): string => (rule.off ? 'Off' : for
 export const shownUnit = (rule: DeliveryRule): string => (rule.metric === 'duration_seconds' ? 'min' : rule.unit);
 export const toShown = (rule: DeliveryRule, value: number): string => String(rule.metric === 'duration_seconds' ? Number((value / 60).toFixed(4)) : value);
 
-/** What was typed as a bound, in the rule's own unit; undefined when it is not a number, so the box reverts. */
+/**
+ * What was typed as a bound, in the rule's own unit; undefined when it is not a number, so the box reverts. The page writes a minus as
+ * "−" (U+2212), so that is read as one; "-0" is 0, never a negative zero.
+ */
 export function fromShown(rule: DeliveryRule, text: string): number | undefined {
-  const value = Number(text);
+  const value = Number(text.trim().replace('\u2212', '-'));
   if (text.trim() === '' || !Number.isFinite(value)) return undefined;
-  return rule.metric === 'duration_seconds' ? value * 60 : value;
+  const bound = rule.metric === 'duration_seconds' ? value * 60 : value;
+  return bound === 0 ? 0 : bound;
 }
 
 /** The edit the host expects: every rule with the ids the host gave, the one change applied, never a retyped id. */

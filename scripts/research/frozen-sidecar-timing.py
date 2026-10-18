@@ -85,7 +85,7 @@ def measure_folder(label: str, folder: Path, exe_name: str, arguments: list[str]
     """Launch 1 of each of `fresh_copies` new copies of the folder (new files: cold cache, a scanner's first look), then launches 2..N of the last."""
     first, rest, codes = [], [], set()
     for copy_index in range(fresh_copies):
-        target = scratch / f"{label}-copy{copy_index}"
+        target = scratch / f"{re.sub(r'[^A-Za-z0-9_.-]+', '-', label)}-copy{copy_index}"
         shutil.copytree(folder, target)
         command = [str(target / exe_name), *arguments]
         for index in range(launches):
