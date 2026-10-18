@@ -16,6 +16,7 @@ import { AddPickup } from './AddPickup';
 import { clock, groupByChapter, reasonSentence, inScope, sourceLabel, sourceTitle, typeLabel, typeTone, ALL_SCOPE, type ChapterRef } from './pickupRows';
 import { ScriptLine } from './ScriptLine';
 import { PICKUP_ROW, usePickupsContextMenu } from './usePickupsContextMenu';
+import { ARRIVE_CLASSES } from '../../primitives/changeHighlight';
 
 /** What a removal gives back to undo it: the page's journal entry. */
 export type RemoveUndo = () => Promise<{ ok: true } | { ok: false; refusal: { reason: string } }>;
@@ -102,6 +103,7 @@ export function PickupsTable({
 }) {
   const overlay = useOverlay();
   const body = useRef<HTMLDivElement>(null);
+  const region = useRef<HTMLElement>(null);
   const [selected, setSelected] = useState<string | null>(null);
   const [adding, setAdding] = useState(false);
 
@@ -132,9 +134,10 @@ export function PickupsTable({
     once(pickup.id, async () => {
       let undo: RemoveUndo | undefined;
       let removed = false;
-      /* Focus goes to the line that takes this one's place, so a keyboard user keeps their place instead of starting again from the top. */
-      const at = list.findIndex((p) => p.id === pickup.id);
-      const next = list[at + 1] ?? list[at - 1];
+      /* Focus goes to the line that takes this one's place as the page draws it (grouped by chapter, not in the host's order), so a keyboard user keeps their place instead of starting again from the top. */
+      const drawn = [...(body.current?.querySelectorAll<HTMLTableRowElement>(`tr[${PICKUP_ROW}]`) ?? [])].map((row) => row.getAttribute(PICKUP_ROW));
+      const at = drawn.indexOf(pickup.id);
+      const nextId = drawn[at + 1] ?? drawn[at - 1] ?? null;
       await said(overlay, async () => {
         undo = await onRemove(pickup.id);
         removed = true;
@@ -143,11 +146,11 @@ export function PickupsTable({
       if (undo) overlay.toastUndo(`Removed ${clock(pickup.time)} from pickups.`, undo);
       else overlay.toast(`Removed ${clock(pickup.time)} from pickups. A line from a check or a note stays off the list, so there is no Undo.`);
       requestAnimationFrame(() => {
-        const row = next && body.current?.querySelector<HTMLTableRowElement>(`tr[${PICKUP_ROW}="${CSS.escape(next.id)}"]`);
-        if (row) {
-          setSelected(next.id);
+        const row = nextId && body.current?.querySelector<HTMLTableRowElement>(`tr[${PICKUP_ROW}="${CSS.escape(nextId)}"]`);
+        if (row && nextId) {
+          setSelected(nextId);
           row.focus();
-        } else body.current?.focus();
+        } else region.current?.focus();
       });
     });
 
@@ -189,7 +192,8 @@ export function PickupsTable({
   const checkReasonId = useId();
 
   return (
-    <section aria-label="Pickups" className={`${PANEL_FRAME_CLASS} min-w-0`}>
+    /* tabIndex -1: with no line left to focus, the region itself takes focus so the narrator is not dropped to the top of the page. */
+    <section ref={region} tabIndex={-1} aria-label="Pickups" className={`${PANEL_FRAME_CLASS} min-w-0 focus:outline-none`}>
       <div className={PANEL_HEADER_CLASS}>
         <div className="flex min-w-0 flex-wrap items-center gap-x-4 gap-y-2">
           <Heading title="Pickups" />
@@ -221,7 +225,7 @@ export function PickupsTable({
       {read.kind === 'ready' && read.trouble && (
         <div
           role="status"
-          className="flex flex-wrap items-center justify-between gap-2 border-b border-[var(--border)] bg-[var(--surface-2)] px-4 py-2 text-[0.875rem]"
+          className={`flex flex-wrap items-center justify-between gap-2 border-b border-[var(--border)] bg-[var(--surface-2)] px-4 py-2 text-[0.875rem] ${ARRIVE_CLASSES}`}
         >
           <span>
             Can’t tell if this list is current. {read.trouble} Last read at {new Date(read.readAt).toLocaleTimeString()}.

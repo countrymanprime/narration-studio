@@ -1,8 +1,8 @@
 // The Script page's right-click menus (the mock's `pages/script/context.ts`): reader text (a selection, a mark, a name), the
 // chapter list and boundary cards, and the words of the side panel. One provider answers for those targets and for nothing else,
 // the first matching target wins, and every item runs a SN-B70 command or a handler the page passes, so it holds no state. A mark
-// type or a Story Bible kind is never written here: both come from the lists passed in. The menu primitive draws one flat list,
-// so the mock's submenus ("Mark as", "Change type", "My prep") are rows named after their submenu. An item whose handler the
+// type or a Story Bible kind is never written here: both come from the lists passed in. The menu primitive draws one list, so the
+// mock's submenus ("Mark as", "Add to the Story Bible as", "Change type", "My prep") are labelled groups of it. An item whose handler the
 // page did not pass (Bookmark here, Record from here before the Booth swap) is left out.
 
 import type { Mark, MarkType } from '../../../../api/contracts/marks';
@@ -75,14 +75,21 @@ export type ScriptMenuDeps = { lists: () => MenuLists; commands: MenuCommands; h
 const PREP_ORDER = Object.keys(PREP_LABELS) as PrepState[];
 const QUOTE_SHOWN = 28;
 
-const item = (key: string, label: string, onSelect: () => void, unavailable?: string): ContextMenuItem => ({
+const item = (key: string, label: string, onSelect: () => void, unavailable?: string, group?: string): ContextMenuItem => ({
   key,
   label,
   onSelect,
   ...(unavailable ? { unavailable } : {}),
+  ...(group ? { group } : {}),
 });
 const attr = (target: Element, selector: string, name: string): string | undefined => target.closest<HTMLElement>(selector)?.getAttribute(name) ?? undefined;
 const shortQuote = (text: string): string => (text.length > QUOTE_SHOWN ? `${text.slice(0, QUOTE_SHOWN)}…` : text);
+
+/** Whether the text is a name the Story Bible already has (an entry's name or one of its aliases), so adding it again would be a second entry. */
+const namesAnEntry = (text: string, entries: readonly GuideEntity[]): boolean => {
+  const wanted = text.trim().toLowerCase();
+  return entries.some((entry) => [entry.canonical_name, ...entry.aliases.map((alias) => alias.text)].some((name) => name.trim().toLowerCase() === wanted));
+};
 
 function markItems(mark: Mark, lists: MenuLists, commands: MenuCommands, handlers: MenuHandlers): ContextMenuItem[] {
   const asks = lists.types.find((row) => row.key === mark.type)?.asks ?? false;
@@ -95,9 +102,10 @@ function markItems(mark: Mark, lists: MenuLists, commands: MenuCommands, handler
     out.push(
       item(
         `mark-type-${type.key}`,
-        `Change type: ${type.name}`,
+        type.name,
         () => void commands.setMarkType(mark.id, type.key),
         type.key === mark.type ? 'Already this type' : undefined,
+        'Change type',
       ),
     );
   }
@@ -105,14 +113,20 @@ function markItems(mark: Mark, lists: MenuLists, commands: MenuCommands, handler
   return out;
 }
 
-function selectionItems(selection: ReaderSelection, lists: MenuLists, commands: MenuCommands, handlers: MenuHandlers): ContextMenuItem[] {
+function selectionItems(selection: ReaderSelection, lists: MenuLists, commands: MenuCommands, handlers: MenuHandlers, findShown: boolean): ContextMenuItem[] {
   const q = shortQuote(selection.quote);
   const out: ContextMenuItem[] = [
-    ...lists.types.map((type) => item(`mark-as-${type.key}`, `Mark as: ${type.name}`, () => handlers.composeMark(type.key, selection))),
-    item('mark-as-word', 'Mark as: Pronunciation (a word)', () => void commands.flagWord(selection)),
-    ...lists.kinds.map((kind) => item(`bible-as-${kind}`, `Add to the Story Bible as: ${kind}`, () => void commands.createEntryFrom(kind, selection.quote))),
+    ...lists.types.map((type) => item(`mark-as-${type.key}`, type.name, () => handlers.composeMark(type.key, selection), undefined, 'Mark as')),
+    item('mark-as-word', 'Pronunciation (a word)', () => void commands.flagWord(selection), undefined, 'Mark as'),
+    // A name the Story Bible already has is opened, not added again.
+    ...(namesAnEntry(selection.quote, lists.entries)
+      ? []
+      : lists.kinds.map((kind) =>
+          item(`bible-as-${kind}`, kind, () => void commands.createEntryFrom(kind, selection.quote), undefined, 'Add to the Story Bible as'),
+        )),
     item('look-up', `Look up “${q}”`, () => handlers.lookUp(selection.quote, selection)),
-    item('find', `Find “${q}” in the manuscript`, () => handlers.openFind(selection.quote)),
+    // The entry's own menu row already finds its name.
+    ...(findShown ? [] : [item('find', `Find “${q}” in the manuscript`, () => handlers.openFind(selection.quote))]),
     item('copy', 'Copy', () => handlers.copy(selection.quote)),
   ];
   const { bookmarkHere, recordFromHere } = handlers;
@@ -150,7 +164,11 @@ function lineItems(target: Element, deps: ScriptMenuDeps): ContextMenuItem[] {
     );
   }
   const selection = handlers.selectionAt(target);
-  if (selection) out.push(...selectionItems(selection, lists, commands, handlers));
+  if (selection) {
+    // The same words as the entry the pointer is on: its row finds them already.
+    const findShown = out.some((row) => row.key === 'entry-find' && entry && selection.quote.trim().toLowerCase() === entry.canonical_name.toLowerCase());
+    out.push(...selectionItems(selection, lists, commands, handlers, findShown));
+  }
   return out;
 }
 
@@ -164,9 +182,7 @@ function chapterItems(id: string, { lists, commands, handlers: getHandlers }: Sc
   const { recordChapter } = handlers;
   if (recordChapter) out.push(item('chapter-record', 'Record in Booth', () => recordChapter(id)));
   for (const state of PREP_ORDER) {
-    out.push(
-      item(`prep-${state}`, `My prep: ${PREP_LABELS[state]}`, () => void commands.setPrep(chapter, state), state === current ? 'Already set' : undefined),
-    );
+    out.push(item(`prep-${state}`, PREP_LABELS[state], () => void commands.setPrep(chapter, state), state === current ? 'Already set' : undefined, 'My prep'));
   }
   return out;
 }

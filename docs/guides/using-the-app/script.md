@@ -26,8 +26,15 @@ While the manuscript is being read, the page shows the same three columns as gre
 A bar under the reader lists its keys: select text to mark it, add a note or query, or look it up; **↑** **↓** scroll;
 **←** **→** change the prep state of the chapter in view; **Alt+↑** **Alt+↓** go to the previous or next chapter (the
 credits included); **B**
-bookmarks the line; **Alt+[** **Alt+]** go to the previous or next bookmark; **Ctrl+F** opens Find. A key you rebind
+bookmarks the line, says "Bookmark added." and opens the bookmark's label and note (the selection toolbar's **Bookmark here** adds it with Undo instead), or says the spot already has one; **Alt+[** **Alt+]** go to
+the previous or next bookmark; **Ctrl+F** opens Find. A key you rebind
 under **Keyboard & pedals** in [Settings](settings.md) shows its new key here.
+
+Each chapter card has its own prep buttons and **Record in Booth**, so a keyboard user would pass four stops per chapter on the
+way to the rail. The first Tab stop after the reader's header is **Skip to the side panel**, which is seen only while it has focus:
+Enter moves focus to the open tab of the rail (or opens the rail, where it is a drawer).
+
+![Script - the Skip to the side panel button under the reader header, with focus on it](../../images/ui/script-skip-to-side-panel.webp)
 
 ![Script - Find on "Alice": the count, the matches lit in the text and the results list](../../images/ui/script-find.webp)
 
@@ -60,13 +67,17 @@ Select words in the reader and a toolbar appears over them:
 
 ![Script - Define how you mark up: each mark type with its name, colour and line](../../images/ui/script-define-marks.webp)
 
-Right-click the text for the same actions, and more where you click: on a speaker's line, **Speaker: …** to change who
+Right-click the text for the same actions, in labelled groups: **Mark as** (your marks and **Pronunciation (a word)**),
+**Add to the Story Bible as** (left out when the words are already an entry's name or alias, where the entry's own row finds them),
+then **Look up**, **Find**, **Copy**, **Bookmark here** and **Record from here**. Where you click adds more: on a speaker's line, **Speaker: …** to change who
 speaks it; on one of your marks, open it, change its type, resolve or reopen a query, or delete it; on a marked word,
 **Show in Words** or **Remove from my words**. Right-click a chapter in the list or its card in the reader to go to it,
 record it in the Booth or set its prep state, and a word on the **Words** tab to show it or remove it. Click a marked
 word in the text to open it on the **Words** tab.
 
 ![Script - the selection toolbar on one word: Mark, Story Bible, Bookmark here, Record from here and Look up](../../images/ui/script-selection-popup.webp)
+
+![Script - the right-click menu on a selected word, in labelled groups](../../images/ui/script-context-menu.webp)
 
 ![Script - the mark composer after selecting text](../../images/ui/script-add-note.webp)
 

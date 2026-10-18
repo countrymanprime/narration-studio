@@ -1,5 +1,6 @@
 import { Button } from '../../primitives/Button';
 import { IconButton } from '../../primitives/IconButton';
+import { ARRIVE_CLASSES } from '../../primitives/changeHighlight';
 
 /**
  * The banner over the page while the DAW cannot be reached (DQ-5: the wording names the DAW the capability reports, never a fixed one).
@@ -37,7 +38,7 @@ export function DawBanner({
   return (
     <div
       role="status"
-      className="flex flex-wrap items-center gap-x-3 gap-y-2 rounded-[var(--radius-card)] border border-[var(--review)] bg-[var(--review-soft)] px-4 py-2.5 text-[0.875rem]"
+      className={`flex flex-wrap items-center gap-x-3 gap-y-2 rounded-[var(--radius-card)] border border-[var(--review)] bg-[var(--review-soft)] px-4 py-2.5 text-[0.875rem] ${ARRIVE_CLASSES}`}
     >
       <span className="min-w-0 flex-1 [overflow-wrap:anywhere]">
         <b>{daw} is not running.</b> Progress that comes from {daw} may be out of date until it is running again.

@@ -275,7 +275,7 @@ manuscript**: drop a file on the zone or press **Choose a file…** to pick a .d
 kept in your project, and the original is read-only. If the window cannot read where a dropped file is, it says
 so under the zone; press **Choose a file…** instead.
 
-Choosing the file opens a confirm dialog previewing the detected format,
+Choosing the file opens step 2 of 2, **Check the chapter outline**, previewing the detected format,
 paragraph count, and proposed chapters before anything changes. Each section is named the way the
 manuscript writes its headings: a heading with a label shows the label in bold and the chapter's name
 after it ("CHAPTER VIII. Croquet", "8. Croquet" or "Chapter 8: Croquet"), and any other heading shows its

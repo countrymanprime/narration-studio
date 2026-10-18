@@ -23,7 +23,7 @@ export function BoothSkeleton() {
           </div>
         </div>
         {drawer ? null : (
-          <div className="flex w-80 max-w-full flex-col gap-4 border-l border-[var(--line)] bg-[var(--surface)] p-3">
+          <div className="flex w-80 max-w-full flex-col gap-4 border-l border-[var(--border)] bg-[var(--surface)] p-3">
             <Skeleton tall />
             <Skeleton tall />
             <Skeleton tall />
