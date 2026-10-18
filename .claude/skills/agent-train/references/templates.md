@@ -45,6 +45,7 @@ other images (see "UI PRs update the how-to guide" in CONTRIBUTING.md), "Base: <
 else "Part of #<PRD issue>" (find it or create it per docs/operations/github-workflow.md; the PRD's last phase says "Closes #<n>"), "New ADRs for review". Set each phase's
 Status cell in its own PR. The PR delivering a PRD's last phase writes the steady-state docs and deletes the PRD.
 METHOD: impact scan before touching shared code (list every consumer of what you change and its tests); tests first;
+SETTINGS: the Settings page always keeps every setting; a working page may add a compact modal/side-panel entry, never remove or replace the Settings control.
 SOLID: depend on the ports (internal/dawport roles, provider ports, NarrationApi), never on concrete adapters.
 TESTING (D43, D44): targeted checks only: Go tests of changed packages plus go vet, the Lua harness for Lua, Vitest of
 changed UI, pytest of changed sidecars, lint and typecheck of touched projects, and the visual states of pages you
