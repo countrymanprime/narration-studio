@@ -161,7 +161,7 @@ the work dialog. The app tells you when
 it ends, wherever you are. If the Whisper model is not installed yet, the app asks before
 downloading it, as a chapter's Proof view does. A changed chapter can also be re-checked on its
 own, in the background, once REAPER has been quiet for a few minutes and the app is not otherwise
-busy (Settings' **Check changed chapters in the background**); pressing **Check recording**
+busy (**Check changed chapters in the background**, under the chapter panel's **Check rules**); pressing **Check recording**
 yourself always pre-empts it.
 
 A chapter's recording check panel has the same choices under **Check options**, closed until you open it, and its **Check recording** button runs exactly
@@ -169,6 +169,10 @@ what they show. **Chapters at once** is how many chapters may be checked togethe
 button waits for a chapter being checked elsewhere, and says so, and above 1 it starts beside them.
 
 ![Production - a chapter's recording check with Check options open](../../images/ui/production-recording-check-options.webp)
+
+**Check rules**, also closed until you open it, are what the check judges a chapter by, for this project: **Share of each paragraph that must be read**, **Longest run of missing words allowed**, **Longest misread still counted as read**, **Shortest match that counts as read** and **Check changed chapters in the background**. They are proposed values, chosen on synthetic recordings and not yet calibrated on real narration. A change is saved at once and the last check is read again; the first two only change how a stored check is judged, but the next two change which words count, so earlier checks read as out of date and those chapters need checking again. **Reset** hands a rule back to the computer-wide value or the default (Settings › Set on a page still sets the computer-wide values).
+
+![Production - a chapter's recording check with Check rules open](../../images/ui/production-recording-check-rules.webp)
 
 **Check recordings** (the card's icon) lets you set up the run before it starts. **Speech model** is the
 first pass. **Look again with a larger model** adds a second pass: the **Larger model** transcribes again only

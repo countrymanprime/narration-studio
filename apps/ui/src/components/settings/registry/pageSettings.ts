@@ -20,7 +20,7 @@ export const PAGE_SETTINGS: readonly PageSetting[] = [
     id: 'ps.coverage',
     label: 'Recording check rules',
     page: 'production',
-    where: 'Recording check › Rules',
+    where: 'Recording check › Check rules',
     panel: 'coverage',
     why: 'Only the recording check reads them, and the run already shows the values it used.',
     syn: 'paragraph present missing run misread anchor threshold',

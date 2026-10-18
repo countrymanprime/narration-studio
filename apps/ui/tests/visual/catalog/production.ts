@@ -202,6 +202,12 @@ export const productionStates: StateEntry[] = [
   },
   {
     page: 'production',
+    state: 'recording-check-rules',
+    description:
+      "Production, a chapter's recording check panel with its Check rules section open: the note that the values are proposed, then the share of each paragraph, the missing and misread runs, the shortest match and the background switch, this project's values",
+  },
+  {
+    page: 'production',
     state: 'recording-check-pickups',
     description:
       'Production, recording check result with interior gaps (?mockCoverage=pickups): a skip and a short read listed one per line under Pickups, each with Go to paragraph, alongside a small unread tail stated in the summary, not listed',

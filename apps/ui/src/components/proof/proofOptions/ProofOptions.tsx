@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
 import { Button } from '../../primitives/Button';
 import { Disclosure } from '../../primitives/Disclosure';
 import { NumberInput } from '../../primitives/NumberInput';
@@ -107,6 +107,7 @@ export function ProofOptions({
   tool,
   keys,
   onSaved,
+  note,
   className = '',
 }: {
   title: string;
@@ -114,6 +115,8 @@ export function ProofOptions({
   keys: readonly string[];
   /** Runs after each accepted save, so the page can read again what the option changes. */
   onSaved?: () => void;
+  /** What to know before changing them, above the rows. */
+  note?: ReactNode;
   className?: string;
 }) {
   const [open, setOpen] = useState(false);
@@ -121,6 +124,7 @@ export function ProofOptions({
   return (
     <Disclosure title={title} open={open} onOpenChange={setOpen} className={className}>
       <div className="flex flex-col gap-3 pt-2">
+        {note}
         {fields.map((field) => (
           <Row key={field.key} field={field} onSet={set} />
         ))}
