@@ -16,3 +16,25 @@ export function useReturnFocusTarget(open: boolean): () => HTMLElement | boolean
     return document.querySelector<HTMLElement>('main') ?? true;
   };
 }
+
+// Escape on a panel that opens in place from a control (a chip that expands, a drawer opened by a header toggle): close it and put focus back
+// on the control that opened it. Put it on the panel and on its opener (or on one element holding both). Not for a modal: Dialog, SlideOver and
+// Popover already return focus. A key the panel's own widgets took (`defaultPrevented`: an open menu, a running preview) or that came from a
+// layer portaled out of it is left alone. The router skips Escape on a tab, radio or slider, so the page's own Escape never sees these.
+export function escapeClosesPanel(close: () => void, opener: () => HTMLElement | null) {
+  return (event: {
+    key: string;
+    defaultPrevented: boolean;
+    target: EventTarget;
+    currentTarget: Element;
+    preventDefault: () => void;
+    stopPropagation: () => void;
+  }) => {
+    if (event.key !== 'Escape' || event.defaultPrevented) return;
+    if (!(event.target instanceof Node) || !event.currentTarget.contains(event.target)) return;
+    event.preventDefault();
+    event.stopPropagation();
+    close();
+    opener()?.focus();
+  };
+}

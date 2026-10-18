@@ -118,7 +118,7 @@ Bible and the Booth is not built yet.
 
 ## Takes
 
-Click a line's takes chip (T steps to the next take) to open its takes under it. The suggested take comes first, with
+Click a line's takes chip (T steps to the next take) to open its takes under it. Escape folds them again and leaves focus on the chip. The suggested take comes first, with
 why it is suggested and the steps that would make the comparison surer: **Trim white space**, **Trim breaths** and
 **Normalise**, each asking before it changes anything in the DAW. Then each take, with its waveform, what share of the
 script it read as written, and its pause, level, noise, clarity and breaths. Play a take to hear it; **Keep take**
@@ -135,7 +135,8 @@ the DAW moves anything.
 
 ## The drawer
 
-The drawer button (Ctrl+Shift+C) opens the drawer beside the text, or over it on a narrower window.
+The drawer button (Ctrl+Shift+C) opens the drawer beside the text, or over it on a narrower window. Escape closes the drawer and leaves
+focus on the button.
 
 ### Cleaning up
 

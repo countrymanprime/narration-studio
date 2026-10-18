@@ -178,7 +178,7 @@ describe('brackets-step-flags-enter-opens-the-card', () => {
     expect(keep).toHaveBeenCalledTimes(1);
   });
 
-  it('Escape closes the card, then clears the selection, then blurs', () => {
+  it('Escape closes the card, then clears the selection, then leaves the script text', () => {
     const doc = marksDoc();
     mount(doc);
     act(() => {
@@ -190,13 +190,24 @@ describe('brackets-step-flags-enter-opens-the-card', () => {
     expect(state().sel).not.toBeNull();
     emit('Escape');
     expect(state().sel).toBeNull();
-    const el = document.createElement('div');
-    el.tabIndex = 0;
-    document.body.append(el);
-    el.focus();
-    emit('Escape', [], el);
+    const script = document.createElement('div');
+    script.setAttribute('data-script', '');
+    script.tabIndex = 0;
+    document.body.append(script);
+    script.focus();
+    emit('Escape', [], script);
     expect(document.activeElement).toBe(document.body);
-    el.remove();
+    script.remove();
+  });
+
+  it('Escape on a control outside the script text leaves focus where it is', () => {
+    mount(marksDoc());
+    const button = document.createElement('button');
+    document.body.append(button);
+    button.focus();
+    emit('Escape', [], button);
+    expect(document.activeElement).toBe(button);
+    button.remove();
   });
 });
 

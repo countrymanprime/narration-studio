@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react';
+import type { KeyboardEventHandler, ReactNode } from 'react';
 import { IconButton } from '../../primitives/IconButton';
 import { Tab, TabList, TabPanel, Tabs } from '../../primitives/Tabs';
 import type { ChapterDoc, FlagKind } from '../model';
@@ -24,12 +24,14 @@ export interface DrawerProps {
   onReview: (kind: FlagKind) => void;
   /** What the Timeline tab hands the strip. */
   strip: TimelineStripProps;
+  /** Escape inside the drawer: the page closes it and focuses the toggle that opened it. */
+  onKeyDown?: KeyboardEventHandler<HTMLElement>;
 }
 
 const foundTotal = (doc: ChapterDoc): number => doc.counts.extra + doc.counts.miss + doc.counts.mis + doc.counts.low;
 
 /** The clean-up and effects drawer: tabs by capability, each tab a panel of the sections that registered for it. */
-export function Drawer({ doc, chapterId, tab, tabs, counts = {}, onTab, onClose, flagKind, onReview, strip }: DrawerProps) {
+export function Drawer({ doc, chapterId, tab, tabs, counts = {}, onTab, onClose, flagKind, onReview, strip, onKeyDown }: DrawerProps) {
   const count = (k: DrawerTab): number => counts[k] ?? (k === 'cleanup' ? foundTotal(doc) : 0);
   const sections = drawSections(tab, { doc, chapterId });
   let body: ReactNode;
@@ -51,6 +53,7 @@ export function Drawer({ doc, chapterId, tab, tabs, counts = {}, onTab, onClose,
     <aside
       id="drawer"
       aria-label="Clean up and effects"
+      onKeyDown={onKeyDown}
       className="flex min-h-0 w-full min-w-0 flex-col overflow-hidden rounded-[10px] border border-[var(--border)] bg-[var(--surface)]"
     >
       <div className="flex items-center gap-2 px-3 py-2">

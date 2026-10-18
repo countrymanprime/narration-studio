@@ -146,7 +146,8 @@ export function useEditingKeys({ handlers = {}, keymap }: EditingKeysOptions): v
     'editing.escape',
     (e) => {
       if (state.flag || state.sel) dispatch({ type: 'clear' });
-      else if (e.target instanceof HTMLElement && e.target !== document.body) e.target.blur();
+      // "Leave the text" lets go of the script only. A button or tab keeps focus: blurring it would drop the narrator on <body>.
+      else if (e.target instanceof HTMLElement && e.target.closest('[data-script]')) e.target.blur();
     },
     on,
   );
