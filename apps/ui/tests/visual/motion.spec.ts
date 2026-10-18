@@ -119,7 +119,7 @@ test.describe('Motion / reduced', () => {
     expect(row.background).toBe(await accentSoft(page));
   });
 
-  test('a changed row holds a still accent tint under <html data-motion="reduce">', async ({ page }) => {
+  test('a changed row holds a still accent tint under data-motion="reduce" on the page', async ({ page }) => {
     await page.emulateMedia({ reducedMotion: 'no-preference' });
     await page.goto('/');
     await page.evaluate(() => (document.documentElement.dataset.motion = 'reduce'));
