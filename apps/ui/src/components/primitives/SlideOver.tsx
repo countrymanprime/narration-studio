@@ -58,7 +58,7 @@ export function SlideOver({
           <Drawer.Popup
             data-slide-over
             finalFocus={finalFocus}
-            className={`flex h-full ${WIDTH[size]} [transform:translateX(var(--drawer-swipe-movement-x,0px))] flex-col border-l border-[var(--border)] bg-[var(--surface)] shadow-[var(--shadow-lg)] outline-none data-[ending-style]:[transform:translateX(100%)] data-[starting-style]:[transform:translateX(100%)] data-[swiping]:duration-0 motion-ok:transition-transform motion-ok:duration-(--motion-base) motion-ok:ease-(--ease-enter)`}
+            className={`flex h-full ${WIDTH[size]} [transform:translateX(var(--drawer-swipe-movement-x,0px))] flex-col border-l border-[var(--border)] bg-[var(--surface)] shadow-[var(--shadow-lg)] outline-none data-[swiping]:duration-0 motion-ok:transition-transform motion-ok:duration-(--motion-base) motion-ok:ease-(--ease-enter) data-[ending-style]:motion-ok:[transform:translateX(100%)] data-[starting-style]:motion-ok:[transform:translateX(100%)]`}
           >
             {/* Content: a mouse drag inside the panel selects text instead of starting a swipe-to-dismiss (touch still swipes). */}
             <Drawer.Content className="flex min-h-0 flex-1 flex-col">
