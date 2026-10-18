@@ -3,11 +3,12 @@
 # copies the report to <OutDir>. It records what REAPER did; it fails only when REAPER could not be installed or started or the script
 # did not finish, never because the transport refused a state (that is a finding, written in the report).
 #
-#   pwsh windows-reaper-transport-check.ps1 -OutDir <dir> [-Version 7.80] [-ExpectedSha256 <hex>]
+#   pwsh windows-reaper-transport-check.ps1 -OutDir <dir> [-Version 7.80] -ExpectedSha256 <hex> [-ExpectedSize <bytes>]
 param(
   [Parameter(Mandatory)][string]$OutDir,
   [string]$Version = '7.80',
-  [string]$ExpectedSha256 = ''
+  [Parameter(Mandatory)][string]$ExpectedSha256,
+  [long]$ExpectedSize = 0
 )
 $ErrorActionPreference = 'Stop'
 $repo = (Resolve-Path (Join-Path $PSScriptRoot '..\..')).Path
@@ -21,7 +22,9 @@ $sig = Get-AuthenticodeSignature $installer
 $info = "REAPER installer $url`nSHA-256 $sum`nsignature $($sig.Status) $($sig.SignerCertificate.Subject)"
 Write-Host $info
 $info | Set-Content (Join-Path $OutDir 'reaper-installer.txt')
-if ($ExpectedSha256 -and $sum -ne $ExpectedSha256.ToLowerInvariant()) { throw "installer SHA-256 $sum differs from the pinned $ExpectedSha256" }
+# Nothing is run before the installer matches the pinned hash (and the size, when one is given).
+if ($sum -ne $ExpectedSha256.Trim().ToLowerInvariant()) { throw "installer SHA-256 $sum differs from the pinned $ExpectedSha256" }
+if ($ExpectedSize -gt 0 -and (Get-Item $installer).Length -ne $ExpectedSize) { throw "installer size $((Get-Item $installer).Length) differs from the pinned $ExpectedSize" }
 $exe = 'C:\Program Files\REAPER (x64)\reaper.exe'
 $p = Start-Process -FilePath $installer -ArgumentList '/S' -PassThru -Wait
 "installer exit code $($p.ExitCode)" | Tee-Object -FilePath (Join-Path $OutDir 'reaper-installer.txt') -Append
