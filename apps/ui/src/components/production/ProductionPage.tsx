@@ -18,6 +18,7 @@ import { fmtD, parseIso } from '../schedule/dates';
 import { WPH } from '../schedule/estimates';
 import { calc, scheduleChapters } from '../schedule/progress';
 import { useRefreshOnFocus } from '../stages/useRefreshOnFocus';
+import { StageSuggestionOptions } from '../stages/StageSuggestionOptions';
 import { useStageRecommendations } from '../stages/useStageRecommendations';
 import { chapterCheckStatus } from './chapterCheckStatus';
 import { useManuscriptImport } from './ManuscriptImport';
@@ -432,6 +433,7 @@ export function ProductionPage({
                     onStatus={() => onChanged()}
                   />
                 </div>
+                <StageSuggestionOptions onSaved={refreshStages} />
               </Panel>
               {tools.panels}
             </div>

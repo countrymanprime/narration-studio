@@ -1000,17 +1000,17 @@ describe('App (integration, driven through the mock NarrationApi)', () => {
     const saveSettings = vi.fn(createMockApi().saveSettings);
     renderApp({ saveSettings });
     await waitFor(() => screen.getByRole('heading', { level: 1, name: 'Production' }));
-    const stages = await openKeptPanel('ps.stages', 'Stage suggestions');
+    const check = await openKeptPanel('ps.coverage', 'Recording check');
 
-    // A project has no override for any Stage suggestions field until one is saved, so all of them are unset (empty) here. The
-    // host rejects an empty choice ("unsupported value for ..."), so only the edited field may go.
-    fireEvent.click(within(stages).getByRole('button', { name: 'This project' }));
-    await waitFor(() => expect(within(stages).getByRole('button', { name: 'This project' }).getAttribute('aria-pressed')).toBe('true'));
-    fireEvent.change(await within(stages).findByRole('combobox', { name: 'Text present in order (recording)' }), { target: { value: 'ignored' } });
-    fireEvent.click(within(stages).getByRole('button', { name: 'Save' }));
+    // A project has no override for any Recording check field until one is saved, so all of them are unset (empty) here. The
+    // host rejects an empty value, so only the edited field may go.
+    fireEvent.click(within(check).getByRole('button', { name: 'This project' }));
+    await waitFor(() => expect(within(check).getByRole('button', { name: 'This project' }).getAttribute('aria-pressed')).toBe('true'));
+    fireEvent.change(await within(check).findByRole('textbox', { name: 'Longest run of missing words allowed' }), { target: { value: '5' } });
+    fireEvent.click(within(check).getByRole('button', { name: 'Save' }));
 
     await waitFor(() => expect(saveSettings).toHaveBeenCalledTimes(1));
-    expect(saveSettings).toHaveBeenCalledWith('StageRecommendations', 'project', { 'recording.text_present': 'ignored' });
+    expect(saveSettings).toHaveBeenCalledWith('RecordingCoverage', 'project', { max_missing_run: '5' });
   });
 
   it('offers the recording check settings at their defaults and saves a changed threshold', async () => {
@@ -1032,13 +1032,14 @@ describe('App (integration, driven through the mock NarrationApi)', () => {
     const saveSettings = vi.fn(createMockApi().saveSettings);
     renderApp({ saveSettings });
     await waitFor(() => screen.getByRole('heading', { level: 1, name: 'Production' }));
-    const stages = await openKeptPanel('ps.stages', 'Stage suggestions');
+    const check = await openKeptPanel('ps.coverage', 'Recording check');
 
-    const signal = await within(stages).findByRole('combobox', { name: 'Text present in order (recording)' });
-    fireEvent.change(signal, { target: { value: 'ignored' } });
-    fireEvent.change(signal, { target: { value: 'required' } });
-    expect(within(stages).getByText('Unsaved changes')).toBeTruthy();
-    fireEvent.click(within(stages).getByRole('button', { name: 'Save' }));
+    const run = await within(check).findByRole('textbox', { name: 'Longest run of missing words allowed' });
+    const original = (run as HTMLInputElement).value;
+    fireEvent.change(run, { target: { value: '5' } });
+    fireEvent.change(run, { target: { value: original } });
+    expect(within(check).getByText('Unsaved changes')).toBeTruthy();
+    fireEvent.click(within(check).getByRole('button', { name: 'Save' }));
 
     await waitFor(() => expect(screen.queryByText('Unsaved changes')).toBeNull());
     expect(saveSettings).not.toHaveBeenCalled();
@@ -1048,16 +1049,17 @@ describe('App (integration, driven through the mock NarrationApi)', () => {
     const saveSettings = vi.fn(createMockApi().saveSettings);
     renderApp({ saveSettings });
     await waitFor(() => screen.getByRole('heading', { level: 1, name: 'Production' }));
-    const stages = await openKeptPanel('ps.stages', 'Stage suggestions');
+    const check = await openKeptPanel('ps.coverage', 'Recording check');
 
-    // A project shows the Global value ("required") for a field it has no override for. Changing it and changing it back must
+    // A project shows the Global value for a field it has no override for. Changing it and changing it back must
     // not pin that value in the project, or a later change to the Global default would no longer reach it.
-    fireEvent.click(within(stages).getByRole('button', { name: 'This project' }));
-    await waitFor(() => expect(within(stages).getByRole('button', { name: 'This project' }).getAttribute('aria-pressed')).toBe('true'));
-    const signal = await within(stages).findByRole('combobox', { name: 'Text present in order (recording)' });
-    fireEvent.change(signal, { target: { value: 'ignored' } });
-    fireEvent.change(signal, { target: { value: 'required' } });
-    fireEvent.click(within(stages).getByRole('button', { name: 'Save' }));
+    fireEvent.click(within(check).getByRole('button', { name: 'This project' }));
+    await waitFor(() => expect(within(check).getByRole('button', { name: 'This project' }).getAttribute('aria-pressed')).toBe('true'));
+    const run = await within(check).findByRole('textbox', { name: 'Longest run of missing words allowed' });
+    const original = (run as HTMLInputElement).value;
+    fireEvent.change(run, { target: { value: '5' } });
+    fireEvent.change(run, { target: { value: original } });
+    fireEvent.click(within(check).getByRole('button', { name: 'Save' }));
 
     await waitFor(() => expect(screen.queryByText('Unsaved changes')).toBeNull());
     expect(saveSettings).not.toHaveBeenCalled();

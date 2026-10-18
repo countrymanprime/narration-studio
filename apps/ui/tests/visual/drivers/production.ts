@@ -249,6 +249,15 @@ export const productionDrivers: Record<string, Driver> = {
     await ask.waitFor();
     await ask.getByRole('button', { name: 'Check with tiny only' }).waitFor();
   },
+  // The stage board's own options, opened below the pipeline: the switch and the signals, down to the last of them.
+  'stage-suggestion-options': async (page) => {
+    await openProduction(page, '?mockStages=mixed');
+    await page.getByRole('button', { name: /^Stage suggestion options/ }).click();
+    await page.getByRole('switch', { name: 'Suggest stage advances' }).waitFor();
+    await page
+      .getByRole('combobox', { name: 'Rendered file: length matches the chapter (proofing)' })
+      .evaluate((element) => element.scrollIntoView({ block: 'end' }));
+  },
   'stage-evidence-recommended': async (page) => {
     const view = await openStageEvidence(page, 'Chapter 4');
     await view.getByRole('button', { name: 'Confirm', exact: true }).waitFor();

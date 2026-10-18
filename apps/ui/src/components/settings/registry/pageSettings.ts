@@ -12,7 +12,7 @@ export type PageSetting = {
   why: string;
   syn?: string;
   /** The panel kept behind the entry: see `PagesPane`. Absent once the page has the control, so the entry only points there. */
-  panel?: 'coverage' | 'stages' | 'punch' | 'fx';
+  panel?: 'coverage' | 'punch' | 'fx';
 };
 
 export const PAGE_SETTINGS: readonly PageSetting[] = [
@@ -45,8 +45,7 @@ export const PAGE_SETTINGS: readonly PageSetting[] = [
     id: 'ps.stages',
     label: 'Stage suggestions',
     page: 'production',
-    where: 'Stage board › Suggestions',
-    panel: 'stages',
+    where: 'Chapter pipeline › Stage suggestion options',
     why: 'They shape the board they appear on.',
     syn: 'readiness signals required ignored',
   },
