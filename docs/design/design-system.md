@@ -191,7 +191,7 @@ A chapter's name (its title and, when it has one, its subtitle) is drawn one way
 
 ## Motion
 
-See [`motion-and-animation.md`](motion-and-animation.md). Every transition and animation is a `motion-ok:` utility timed by a `--motion-*` and `--ease-*` token in `styles.css`; `motion-ok:` stops under Windows reduced motion and under `<html data-motion="reduce">`, and `apps/ui/src/motion.test.ts` fails on anything else. `components.css` declares none (`apps/ui/src/legacyCss.test.ts`), because a legacy rule beats a utility in the same layer. The named keyframes are `work-progress-slide`, `tooltip-in` and `settings-saved`, the per-row "Saved" fade on the Settings page, which leaves the word readable without motion.
+See [`motion-and-animation.md`](motion-and-animation.md). Every transition and animation is a `motion-ok:` utility timed by a `--motion-*` and `--ease-*` token in `styles.css`; `motion-ok:` stops under Windows reduced motion and under `<html data-motion="reduce">`, and `apps/ui/src/motion.test.ts` fails on anything else. `components.css` declares none (`apps/ui/src/legacyCss.test.ts`), because a legacy rule beats a utility in the same layer. Popovers and menus share one enter and exit (`primitives/overlayMotion.ts`); dialogs appear at once. The named keyframes are `work-progress-slide`, `tooltip-in`, `toast-in` and `settings-saved`, the per-row "Saved" fade on the Settings page, which leaves the word readable without motion.
 
 ## What the suites do not prove
 
