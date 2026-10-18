@@ -32,7 +32,7 @@ Motion stops when Windows asks for reduced motion (`prefers-reduced-motion: redu
 
 All under `motion-ok:`, in `apps/ui/src/components/`:
 
-- `Popover`, `Menu`, `ContextMenu` and `ChapterStepper`'s menu fade in while moving `--motion-shift` away from their anchor, and fade out, on the fast token. They share one class list, `primitives/overlayMotion.ts`, which uses Base UI's `data-starting-style` and `data-ending-style`.
+- `Popover`, `Menu`, `ContextMenu` and `ChapterStepper`'s menu fade in while moving `--motion-shift` away from their anchor, and fade out, on the fast token. They share one class list, `primitives/overlayMotion.ts`, which uses Base UI's `data-starting-style` and `data-ending-style`. Those starting and ending styles are `motion-ok:` too, as are `SlideOver`'s and `NavDrawer`'s, so under reduced motion an overlay has no invisible or off-screen first frame.
 - `SlideOver` slides in from the right and `NavDrawer` from the left, on the base token, and the drawer's scrim fades. `Toast` fades and rises in (`toast-in`) and fades out. The tooltip (`primitives/hintLayer.ts`) fades and rises in.
 - The icon rail widens on hover below 1360 px (`layout/AppShell.tsx`); the Script drawers slide (`script/page/layout/ScriptColumns.tsx`).
 - The Booth text column slides 300 ms on each scroll step, and its words change colour (`booth/reading/BoothText.tsx`).
@@ -66,7 +66,7 @@ Dialogs appear and disappear at once (#1456, Q3), and so does the Jump menu, whi
 
 ## How it is checked
 
-- `apps/ui/src/motion.test.ts` scans every source file's class lists. It fails on a `transition`, `animate-`, `duration-`, `ease-` or `delay-` utility not gated on `motion-ok:` (or `motion-reduce:`), on `motion-safe:`, and on a duration or easing that is not a token.
+- `apps/ui/src/motion.test.ts` scans every source file's class lists. It fails on a `transition`, `animate-`, `duration-`, `ease-` or `delay-` utility not gated on `motion-ok:` (or `motion-reduce:`), on a `data-[starting-style]:` or `data-[ending-style]:` utility not gated on `motion-ok:`, on `motion-safe:`, and on a duration or easing that is not a token.
 - `apps/ui/tests/visual/motion.spec.ts` runs with motion on, which no other run does. It checks that the rail and a context menu ease on the fast token and the navigation drawer on the base token, that a changed row fades over the highlight token and settles to its own background, that nothing loops on eight pages at rest, that both ways of asking for reduced motion stop the rail and hold the highlight as a still tint, and that the Settings Motion row stops the rail and survives a reload.
 - The rest of the visual suite, the atlas and Storybook freeze motion for deterministic screenshots (`tests/visual/helpers/settle.ts`, `playwright.atlas.config.ts`, `.storybook/preview-head.html`), so they cannot show it.
 

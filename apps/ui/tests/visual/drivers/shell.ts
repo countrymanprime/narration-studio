@@ -45,7 +45,7 @@ export const shellDrivers: Record<string, Driver> = {
     await page.goto('/?mockZoom=125');
     await settlePage(page);
     await productionLoaded(page);
-    await page.getByRole('button', { name: /Reset zoom to 100% \(now 125%\)/ }).waitFor();
+    await page.getByRole('button', { name: 'Reset zoom to 100%, now 125%' }).waitFor();
   },
   // The jump menu, opened from the header's button as a narrator would.
   'jump-menu-open': async (page) => {
