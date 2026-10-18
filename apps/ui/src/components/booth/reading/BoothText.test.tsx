@@ -88,7 +88,21 @@ describe('one-phrase-is-lit-the-ones-read-are-dimmed-and-one-word-is-marked', ()
   it('draws the Story Bible tint and the notes', () => {
     setup();
     expect(screen.getByText('Pace: slow down')).toBeTruthy();
-    expect(document.querySelector<HTMLElement>('[data-word][style*="--ek"]')!.style.getPropertyValue('--ek')).toBe('var(--place)');
+    // The Garden is a Place: the registry's entity mark in the place hue, a tint with a 2px line.
+    const garden = [...document.querySelectorAll<HTMLElement>('[data-word]')].find((word) => word.textContent === 'garden')!;
+    expect(garden.style.boxShadow).toBe('inset 0 -2px 0 var(--place)');
+  });
+
+  it('draws a narrator mark in its type’s colour and the line style it chose, not always a solid underline (D8)', () => {
+    setup({ decorations: [{ paragraphId: 'p1', start: 4, end: 10, kind: 'mark', colour: 'info', style: 'wavy', title: 'Breath' }] });
+    const garden = [...document.querySelectorAll<HTMLElement>('[data-word]')].find((word) => word.textContent === 'garden')!;
+    expect(garden.style.textDecorationStyle).toBe('wavy');
+    expect(garden.style.textDecorationColor).toBe('var(--info)');
+  });
+
+  it('draws a note’s marker in the colour of its mark (D8)', () => {
+    setup({ notes: [{ id: 'n1', paragraphId: 'p3', name: 'Pace', text: 'slow down', colour: 'ok' }] });
+    expect(screen.getByText('Pace: slow down').style.boxShadow).toBe('inset 0.25em 0 0 var(--ok)');
   });
 });
 
@@ -167,15 +181,16 @@ describe('speaker-chips', () => {
     const chips = document.querySelectorAll<HTMLElement>('[data-speaker-chip]');
     expect([...chips].map((c) => c.textContent)).toEqual(['Queen', 'Alice']);
     expect(chips[0].hasAttribute('data-suggested')).toBe(true);
-    expect(chips[0].className).toContain('border-dashed');
+    expect(chips[0].style.borderStyle).toBe('dashed');
     expect(chips[1].hasAttribute('data-suggested')).toBe(false);
-    expect(chips[1].className).toContain('border-solid');
+    expect(chips[1].style.borderStyle).not.toBe('dashed');
   });
 
   it('follows the speaker colour and shows uppercase through CSS', () => {
     setup();
     const chip = document.querySelector<HTMLElement>('[data-speaker-chip]')!;
-    expect(chip.style.getPropertyValue('--spk-c')).toBe('var(--speaker-2)');
+    // The chip is the registry's speaker chip in the entry's colour (D6): the sample colour is the violet type hue.
+    expect(chip.style.color).toBe('var(--org-text)');
     expect(chip.className).toContain('uppercase');
     expect(chip.textContent).toBe('Queen');
   });
