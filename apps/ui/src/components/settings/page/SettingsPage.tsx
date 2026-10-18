@@ -248,7 +248,7 @@ function Body({ initialCategory, cameFrom }: { initialCategory?: string; cameFro
             changedIn={changedIn}
             pageSettingCount={PAGE_SETTINGS.length}
           />
-          <main aria-labelledby="settings-heading" id="settings-pane" className="flex min-w-0 scroll-mt-3 flex-col gap-4">
+          <section aria-labelledby="settings-heading" id="settings-pane" className="flex min-w-0 scroll-mt-3 flex-col gap-4">
             <div aria-label="Breadcrumb" className="text-[0.8125rem] text-[var(--text-muted)]">
               Settings <span aria-hidden="true">/</span> {crumb}
             </div>
@@ -268,7 +268,7 @@ function Body({ initialCategory, cameFrom }: { initialCategory?: string; cameFro
               </InsetCard>
             )}
             {content}
-          </main>
+          </section>
         </div>
         <span className="sr-only" role="status" aria-live="polite">
           {store.announcement}
