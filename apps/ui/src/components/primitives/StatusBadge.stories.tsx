@@ -54,7 +54,7 @@ export const EveryShapeAndLook: Story = {
 };
 
 // The measured spec: a pill is 22 px tall and fully
-// rounded, a tag 16 px on the 3 px tag radius, the Booth's tag 26 px, the Production board's cell 58×20. Measured
+// rounded, a tag 16 px on the 3 px tag radius, the Booth's tag 26 px, the Production board's cell 52×24 (the Studio Next mock's `.cell`). Measured
 // at the default root size.
 export const MeasuredShapes: Story = {
   render: () => (
@@ -81,15 +81,14 @@ export const MeasuredShapes: Story = {
     await expect(getComputedStyle(canvas.getByText('Misread')).borderTopLeftRadius).toBe('3px');
     await expect(getComputedStyle(canvas.getByText('Pickup')).textTransform).toBe('none');
     await expect(getComputedStyle(canvas.getByText('Misread')).textTransform).toBe('uppercase');
-    // Every board cell is a 20 px block at least 58 px wide; the label size is the mock's 13 px (--font-size-label), so
-    // "3 open" now fills the minimum and is 59 px, and a short label stays at 58.
+    // Every board cell is a 24 px block at least 52 px wide (a 12 px mono label like "3 open" fits inside that minimum).
     for (const label of ['✓', '3 open']) {
       const box = canvas.getByText(label).getBoundingClientRect();
-      await expect(box.height).toBeCloseTo(20, 0);
-      // 58 px wide, or a pixel more where a 13 px label (--font-size-label, the mock's) outgrows it until the primitive slices re-measure the cell.
-      await expect(box.width).toBeGreaterThanOrEqual(58);
-      await expect(box.width).toBeLessThan(60);
+      await expect(box.height).toBeCloseTo(24, 0);
+      await expect(box.width).toBeGreaterThanOrEqual(52);
+      await expect(box.width).toBeLessThan(56);
     }
+    await expect(getComputedStyle(canvas.getByText('3 open')).borderTopLeftRadius).toBe('4px');
     await expect(getComputedStyle(canvas.getByText('3 open')).textTransform).toBe('none');
   },
 };
