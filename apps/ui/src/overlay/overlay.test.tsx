@@ -192,6 +192,48 @@ describe('overlay.toastUndo', () => {
   });
 });
 
+describe('an Undo toast goes when its change is no longer there to undo', () => {
+  const ok = () => Promise.resolve({ ok: true as const });
+
+  it('settleUndo takes away the Undo toast of an entry that is gone and keeps the others', () => {
+    mount();
+    act(() => service.toastUndo('Waived 00:10', ok, { entry: 1 }));
+    act(() => service.toastUndo('Waived 00:20', ok, { entry: 2 }));
+    act(() => service.settleUndo((entry) => entry === 2));
+    expect(screen.queryByText('Waived 00:10')).toBeNull();
+    expect(screen.getByText('Waived 00:20')).toBeTruthy();
+  });
+
+  it('settleUndo leaves a toast with no entry, and a plain message, alone', () => {
+    mount();
+    act(() => service.toastUndo('Deleted the note', ok));
+    act(() => service.toast('Saved.'));
+    act(() => service.settleUndo(() => false));
+    expect(screen.getByText('Deleted the note')).toBeTruthy();
+    expect(screen.getByText('Saved.')).toBeTruthy();
+  });
+
+  it('dismissUndo takes away every Undo toast (the page, the chapter or the project it was about is gone) and nothing else', () => {
+    mount();
+    act(() => service.toastUndo('Waived 00:10', ok, { entry: 1 }));
+    act(() => service.toastUndo('Deleted the note', ok));
+    act(() => service.toast('REAPER is starting', { topic: 'start' }));
+    act(() => service.toast('Could not save.', { tone: 'error' }));
+    act(() => service.dismissUndo());
+    expect(screen.queryByText('Waived 00:10')).toBeNull();
+    expect(screen.queryByText('Deleted the note')).toBeNull();
+    expect(screen.getByText('REAPER is starting')).toBeTruthy();
+    expect(screen.getByText('Could not save.')).toBeTruthy();
+  });
+
+  it('an Undo toast raised after dismissUndo shows (the new page can raise its own)', () => {
+    mount();
+    act(() => service.dismissUndo());
+    act(() => service.toastUndo('Waived 00:10', ok, { entry: 1 }));
+    expect(screen.getByRole('button', { name: 'Undo' })).toBeTruthy();
+  });
+});
+
 describe('overlay.announce', () => {
   it('writes to one polite region outside any dialog, and a second announcement replaces the first', async () => {
     mount();

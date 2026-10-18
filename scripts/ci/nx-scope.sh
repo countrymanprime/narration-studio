@@ -6,6 +6,11 @@
 # or when the change touches a file that every project depends on but no project owns. Otherwise
 # only the projects the change affects run.
 #
+# `--pins` is for the scope job of _quality.yml (through .github/actions/nx-affected `pins: true`): when the only workspace-wide files in
+# the change are workflow or action files whose every changed line is a `uses:` pin bump (scripts/ci/workflow-pins.mjs says `pins`),
+# they no longer force `all`; the scope job asks scripts/ci/pin-flags.mjs which jobs the bump reaches. Without the flag any workflow
+# change is `all`, as before.
+#
 # Environment: ALWAYS, GITHUB_EVENT_NAME, BASE_REF (the pull request's base branch).
 set -euo pipefail
 
@@ -18,6 +23,9 @@ fi
 
 # Captured first: `git diff | grep -q` can take a SIGPIPE under pipefail and print the wrong answer.
 changed=$(git diff --name-only "origin/${BASE_REF}...HEAD")
+if [ "${1:-}" = "--pins" ] && [ "$(node scripts/ci/workflow-pins.mjs "origin/${BASE_REF}" | node -pe 'JSON.parse(require("fs").readFileSync(0, "utf8")).kind')" = "pins" ]; then
+  changed=$(grep -Ev '^\.github/(workflows|actions)/' <<<"$changed" || true)
+fi
 if grep -Eq "$workspace_wide" <<<"$changed"; then
   echo all
 else
