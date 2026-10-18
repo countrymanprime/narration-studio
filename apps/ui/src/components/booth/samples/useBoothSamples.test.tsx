@@ -113,7 +113,7 @@ async function loaded(result: { current: ReturnType<typeof useBoothSamples> }) {
 }
 
 beforeEach(() => {
-  vi.useFakeTimers({ shouldAdvanceTime: true });
+  vi.useFakeTimers();
   for (const warmed of instances.filter((el) => el.preload === 'auto')) warmed.src = '';
   const el = players()[0];
   if (!el) return;
