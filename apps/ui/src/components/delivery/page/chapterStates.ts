@@ -43,7 +43,7 @@ export function firstFailure(chapters: readonly Listed[], files: readonly Measur
 
 /**
  * When no chapter fails but some are not ready, the first of them in the rows' order and why: "Chapter 8: no measured file yet." (no file
- * matches), "Chapter 8: not measured yet." / "could not be read." (its file is pending, cancelled or failed), or "Chapter 8: noise floor could not
+ * matches), "Chapter 8: not measured yet." / "could not be read." (its file is pending, cancelled or failed), or "Chapter 8: part of its file could not
  * be measured." (a silent render). Nothing when every chapter has a verdict, or when no file was measured at all: the count beside Build
  * already says that, and a red first chapter on an untouched book would only repeat it.
  */
