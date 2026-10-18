@@ -9,6 +9,7 @@ import { InsetCard } from '../primitives/InsetCard';
 import { StatusBadge } from '../primitives/StatusBadge';
 import { TextField } from '../primitives/TextField';
 import type { Notify } from '../primitives/Toast';
+import { SeriesSkeleton } from './SeriesSkeleton';
 
 /**
  * The Series tab of the Story Bible (a tab, with no navigation entry of its own). Non-acoustic only, because the
@@ -100,7 +101,7 @@ export function SeriesTab({ notify }: { notify: Notify }) {
         {loadError}
       </p>
     );
-  if (!bible) return null;
+  if (!bible) return <SeriesSkeleton />;
 
   if (!bible.inSeries) {
     return (

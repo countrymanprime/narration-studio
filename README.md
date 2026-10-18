@@ -35,7 +35,7 @@ read the docs here in `docs/` meanwhile.
 narration-utils/
   apps/
     desktop/                   Go/Wails desktop host: app.go, bindings*.go, internal/ (domain services, the asset manager),
-                               cmd/ (narration-utils, seed-assets, manuscript-import, spike-globalhotkeys), build/ (icons, the Windows setup program definition)
+                               cmd/ (narration-utils, seed-assets, manuscript-import, spike-globalhotkeys, spike-storage), build/ (icons, the Windows setup program definition)
     ui/                        React + Tailwind workspace (built static assets); its tests/ hold the visual and atlas suites
   sidecars/                    Python programs frozen into the app and run on demand
     manuscript-guide/          core/ CLI backend, tests/

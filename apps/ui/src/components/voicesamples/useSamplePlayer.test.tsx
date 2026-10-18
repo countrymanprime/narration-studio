@@ -25,7 +25,17 @@ import type { ReactNode } from 'react';
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { ApiProvider } from '../../api/ApiContext';
 import { createMockApi } from '../../api/mockApi';
-import { NOT_WHILE_RECORDING, SAMPLE_FAILED, SAMPLE_FINISHED, onSampleStart, samplePlayerState, stopSample } from './samplePlayerStore';
+import {
+  NOT_WHILE_RECORDING,
+  SAMPLE_FAILED,
+  SAMPLE_FINISHED,
+  escapeJustStoppedASample,
+  onSampleStart,
+  prefetchSample,
+  releasePrefetched,
+  samplePlayerState,
+  stopSample,
+} from './samplePlayerStore';
 import { useSamplePlayer, type SamplePlayerOptions } from './useSamplePlayer';
 
 class FakeAudio extends EventTarget {
@@ -33,8 +43,13 @@ class FakeAudio extends EventTarget {
   private current = '';
   currentTime = 0;
   duration = Number.NaN;
+  preload = '';
   play = vi.fn().mockResolvedValue(undefined);
   pause = vi.fn();
+  load = vi.fn();
+  removeAttribute(name: string): void {
+    if (name === 'src') this.current = '';
+  }
   get src(): string {
     return this.current;
   }
@@ -50,7 +65,8 @@ class FakeAudio extends EventTarget {
 
 // The player makes its one Audio on the first play and keeps it for the life of the page, so the tests share it and reset it.
 const instances: FakeAudio[] = [];
-const audio = (): FakeAudio => instances[0]!;
+/** The player's own element: the first one made without `preload="auto"`, which is what a warmed clip is given. */
+const audio = (): FakeAudio => instances.find((el) => el.preload !== 'auto')!;
 
 beforeAll(() => {
   vi.stubGlobal(
@@ -72,7 +88,7 @@ const wrapper = ({ children }: { children: ReactNode }) => <ApiProvider api={api
 const mount = (options: SamplePlayerOptions = {}) => renderHook((props: SamplePlayerOptions) => useSamplePlayer(props), { wrapper, initialProps: options });
 
 beforeEach(() => {
-  const el = instances[0];
+  const el = instances.find((candidate) => candidate.preload !== 'auto');
   if (!el) return;
   el.play.mockReset().mockResolvedValue(undefined);
   el.pause.mockReset();
@@ -368,5 +384,60 @@ describe('useSamplePlayer', () => {
 
     starter.unmount();
     expect(samplePlayerState()).toMatchObject({ status: 'idle', id: null });
+  });
+});
+
+describe('Escape and the page that leaves on it', () => {
+  it('remembers that this Escape stopped a sample, for the page whose own Escape leaves', async () => {
+    const { result } = mount();
+    // An Escape in an earlier test is not this one's.
+    await new Promise((resolve) => setTimeout(resolve, 120));
+    act(() => void result.current.play(A, { name: 'Hatter' }));
+    expect(escapeJustStoppedASample()).toBe(false);
+    act(() => void window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' })));
+    expect(result.current.status).toBe('idle');
+    expect(escapeJustStoppedASample()).toBe(true);
+  });
+
+  it("an Escape with no sample playing is nobody's to remember", async () => {
+    mount();
+    await new Promise((resolve) => setTimeout(resolve, 120));
+    act(() => void window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' })));
+    expect(escapeJustStoppedASample()).toBe(false);
+  });
+});
+
+describe('warming clips before they are pressed', () => {
+  const warmed = () => instances.filter((el) => el.preload === 'auto' && el.src !== '');
+  afterEach(() => releasePrefetched());
+
+  it('loads a clip into an element that is never played, once', () => {
+    prefetchSample('/media?sample=w1');
+    prefetchSample('/media?sample=w1');
+    expect(warmed().map((el) => el.src)).toEqual(['/media?sample=w1']);
+    expect(warmed()[0]!.play).not.toHaveBeenCalled();
+  });
+
+  it('lets go of every clip but the ones to keep', () => {
+    for (const id of ['a', 'b', 'c']) prefetchSample(`/media?sample=${id}`);
+    releasePrefetched(new Set(['/media?sample=b']));
+    expect(warmed().map((el) => el.src)).toEqual(['/media?sample=b']);
+    releasePrefetched();
+    expect(warmed()).toHaveLength(0);
+  });
+
+  it('keeps no more than 24 clips, letting the oldest go', () => {
+    for (let i = 0; i < 30; i += 1) prefetchSample(`/media?sample=n${i}`);
+    expect(warmed()).toHaveLength(24);
+    expect(warmed().some((el) => el.src.endsWith('n0'))).toBe(false);
+    expect(warmed().some((el) => el.src.endsWith('n29'))).toBe(true);
+  });
+
+  it("a warmed clip does not become the player's element", () => {
+    prefetchSample('/media?sample=w2');
+    const { result } = mount();
+    act(() => void result.current.play(A));
+    expect(audio().preload).not.toBe('auto');
+    expect(audio().src).toBe(`/media?sample=${A}`);
   });
 });

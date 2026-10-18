@@ -9,6 +9,7 @@ import { useEditingPage } from '../../script/EditingPageState';
 import { markForPickup, markWords } from './markCommands';
 import { registerMarkMenuSections } from './markMenuSections';
 import { NoteDialog } from './NoteDialog';
+import { returnToScript } from '../../script/returnToScript';
 
 /**
  * Puts "Mark as", "Add note…" and "Mark for pickup" in the Editing page's word menu while the page is mounted, and fills the flag card's
@@ -42,6 +43,7 @@ export function useMarkMenuSections(chapterId: string): void {
         const close = overlay.open({
           kind: 'dialog',
           dismissOnOutsidePress: false,
+          returnFocus: returnToScript,
           title: 'Add a note',
           render: ({ close: done }) =>
             createElement(NoteDialog, {
