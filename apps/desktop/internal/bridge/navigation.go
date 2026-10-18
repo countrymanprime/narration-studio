@@ -222,6 +222,7 @@ func (n *Navigator) request(ctx context.Context, command string, args ...string)
 	}
 	runID, reply, timeout := n.open()
 	defer n.close(runID)
+	defer n.client.Expect()()
 	if _, err := n.client.Send(command, append([]string{runID}, args...)); err != nil {
 		return Event{}, fmt.Errorf("could not send %s to REAPER: %w", command, err)
 	}

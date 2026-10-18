@@ -104,6 +104,7 @@ func (c *LevelMatchClient) Apply(ctx context.Context, candidates []GainCandidate
 	if err != nil {
 		return ApplyGainResult{}, err
 	}
+	defer c.client.Expect()()
 	if _, err := c.client.Send("apply_item_gain", []string{runID, path}); err != nil {
 		return ApplyGainResult{}, fmt.Errorf("could not send apply_item_gain to REAPER: %w", err)
 	}

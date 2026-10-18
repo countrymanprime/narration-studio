@@ -3,6 +3,7 @@ import type { MeasureJob } from '../../../types';
 import { Button } from '../../primitives/Button';
 import { IconButton } from '../../primitives/IconButton';
 import { Panel } from '../../primitives/Panel';
+import { LoadingRegion, Skeleton } from '../../primitives/Skeleton';
 import { StatusBadge } from '../../primitives/StatusBadge';
 import type { ChapterState } from './chapterStates';
 import { heardText } from './useHostRead';
@@ -61,9 +62,11 @@ export function Preflight({
           </p>
         )}
         {!known && !problem && (
-          <p role="status" className="text-sm" style={MUTED}>
-            Reading the chapters…
-          </p>
+          <LoadingRegion label="Loading the chapter checks" status="Reading the chapters…" className="flex flex-col gap-2">
+            {[0, 1, 2].map((row) => (
+              <Skeleton key={row} />
+            ))}
+          </LoadingRegion>
         )}
         {known && (
           <>
