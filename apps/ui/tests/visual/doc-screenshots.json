@@ -260,6 +260,13 @@
   },
   {
     "page": "booth",
+    "state": "credits-missing",
+    "viewport": "desktop",
+    "docName": "booth-credits-missing",
+    "caption": "Booth - the closing credits with no closing template: the panel that says so and offers Settings and the chapters"
+  },
+  {
+    "page": "booth",
     "state": "refusal",
     "viewport": "desktop",
     "docName": "booth-record-refused",
