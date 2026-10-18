@@ -531,12 +531,12 @@ function GuideLoaded({ notify, goToManuscript }: Pick<GuideProps, 'notify' | 'go
                           }}
                           className={`flex w-full flex-col gap-0.5 rounded-lg px-2.5 py-2 text-left ${open ? 'bg-[var(--accent-soft)] text-[var(--accent-strong)]' : 'text-[var(--text)] hover:bg-[var(--surface-2)]'}`}
                         >
-                          <span data-line="name" className="flex w-full min-w-0 items-center gap-2 text-sm font-semibold">
+                          <span data-line="name" className="flex w-full min-w-0 items-center gap-2 text-[0.9375rem] font-bold">
                             <span className="truncate">{row.canonical_name}</span>
                             {row.locked && <FontAwesomeIcon icon={faLock} className="text-[10px]" style={{ color: 'var(--non-text)' }} />}
                             {pill && <StatusBadge tone="warning" label={pill} className="ml-auto shrink-0 whitespace-nowrap" />}
                           </span>
-                          <span data-line="kind" className="flex items-center gap-1.5 text-xs font-normal" style={{ color: 'var(--text-muted)' }}>
+                          <span data-line="kind" className="flex items-center gap-1.5 text-sm font-normal" style={{ color: 'var(--text-muted)' }}>
                             <Swatch colour={kindSwatch(types, row.category)} />
                             <span>
                               {row.category === 'Draft' ? categoryLabel(row.category) : typeUnknown(row) ? 'Type not set' : row.category}

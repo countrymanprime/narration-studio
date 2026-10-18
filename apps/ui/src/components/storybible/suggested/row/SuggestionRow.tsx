@@ -64,8 +64,8 @@ export function SuggestionRow({ suggestion, sources, context, onGoToEvidence, li
 
   return (
     <li
-      className="flex flex-col gap-1.5 border-b py-2 last:border-0"
-      style={{ borderColor: 'var(--border)' }}
+      className="flex min-w-0 flex-col gap-1 rounded-lg border py-2 pr-2 pl-3"
+      style={{ borderColor: verify ? 'var(--warn)' : 'var(--border)', background: 'var(--surface-2)' }}
       data-sug={suggestion.id}
       data-status={suggestion.status}
     >

@@ -86,6 +86,16 @@ describe('the-list-is-kind-chips-over-two-line-rows', () => {
     expect(rows().length).toBeGreaterThan(shown.length);
   });
 
+  // The mock's entry rows: the name at 15 px bold and the kind line at 14 px, so a row is about 61 px tall.
+  it('draws a row with the name at 15 px bold and the kind line at 14 px', async () => {
+    await renderGuide();
+    await screen.findAllByText('Alice');
+    const alice = rows().find((row) => row.textContent?.includes('Alice'))!;
+    expect(alice.querySelector('[data-line="name"]')!.className).toContain('text-[0.9375rem]');
+    expect(alice.querySelector('[data-line="name"]')!.className).toContain('font-bold');
+    expect(alice.querySelector('[data-line="kind"]')!.className).toContain('text-sm');
+  });
+
   it('says so when no entry matches the chip', async () => {
     await renderGuide();
     await screen.findAllByText('Alice');
