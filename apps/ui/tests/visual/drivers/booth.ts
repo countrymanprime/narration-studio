@@ -12,6 +12,9 @@ const REC_START = new Date('2026-09-28T10:00:00Z').getTime();
 // land there so the shot is never taken mid-walk.
 const LISTENING_WORD = '[data-word="32"] [data-highlight="Cursor"]';
 
+// The record capability on and the project's voice samples saved (api/voiceSamplesMock.ts).
+const SAMPLES = `${RECORD_ON}&mockVoiceSamples=bible`;
+
 const record = (page: Page) => page.getByRole('button', { name: /^Record$/ });
 
 async function readyToRecord(page: Page, query = RECORD_ON): Promise<void> {
@@ -153,6 +156,32 @@ export const boothDrivers: Record<string, Driver> = {
     await page.getByText(/^¶ [2-9] of 24/).waitFor();
     if (await page.locator('#blisten-why').count()) throw new Error('the footer says the text cannot follow during a take that follows');
     await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
+  },
+  'voice-samples-picker': async (page) => {
+    await readyToRecord(page, SAMPLES);
+    await page.locator('[data-speaker-chip]').first().click();
+    await page.getByRole('combobox', { name: 'Search speakers' }).waitFor();
+    await page
+      .getByRole('listbox', { name: 'Speakers' })
+      .getByText(/\d samples?$/)
+      .first()
+      .waitFor();
+  },
+  'voice-samples-panel': async (page) => {
+    await readyToRecord(page, SAMPLES);
+    const panel = page.getByRole('complementary', { name: 'Side panel' });
+    await panel
+      .getByRole('button', { name: /\d samples?$/ })
+      .first()
+      .click();
+    await panel.getByRole('list', { name: /^Voice samples of / }).waitFor();
+  },
+  'voice-samples-recording': async (page) => {
+    await startTake(page, SAMPLES);
+    const panel = page.getByRole('complementary', { name: 'Side panel' });
+    const control = panel.getByRole('button', { name: /^Play primary voice sample for / }).first();
+    await control.waitFor();
+    if ((await control.getAttribute('aria-disabled')) !== 'true') throw new Error('a voice sample can be played while a take records');
   },
   'listening-no-mic': async (page) => {
     await openBooth(page, `${RECORD_ON}&mockNoDevices=1`);

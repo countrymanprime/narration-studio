@@ -918,6 +918,20 @@
   },
   {
     "page": "booth",
+    "state": "voice-samples-picker",
+    "viewport": "desktop",
+    "docName": "booth-voice-samples-picker",
+    "caption": "Booth - the speaker picker with a count and a play button on each character who has voice samples"
+  },
+  {
+    "page": "booth",
+    "state": "voice-samples-panel",
+    "viewport": "desktop",
+    "docName": "booth-voice-samples-panel",
+    "caption": "Booth - Voices in this scene with voice samples: a play button and count on each voice, one opened to list its samples"
+  },
+  {
+    "page": "booth",
     "state": "following",
     "viewport": "desktop",
     "docName": "booth-following",
