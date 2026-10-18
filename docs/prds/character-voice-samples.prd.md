@@ -355,6 +355,7 @@ Every phase's pull request has an **Exercised** and a **Not exercised** section.
 | 2026-10-18 | The dialog opens on the character whose quote the first word is in (the Story Bible's dialogue cues), else the first character who speaks in the chapter, else Narration; **Make primary** is on for a character with no sample until the narrator touches it | Phase 3 implementation (the PRD's "Speaker preselect" unknown) |
 | 2026-10-18 | The **Saved** toast and its Undo stay 10 seconds, as the flow and the mock say: toasts gained an optional `durationMs` (the usual 5 seconds is unchanged for every other message). Marking the same stretch again says "already a voice sample" with no Undo, so Undo never removes an earlier save | Phase 3 implementation |
 | 2026-10-18 | `Select` gained an optional `group` on its options (an `<optgroup>`) for **In this chapter** and **All characters**, rather than a second primitive; the action wears the speech-bubble icon because the mock's wave is the Proof page's icon (audit rule 1) | Phase 3 implementation |
+| 2026-10-18 | The visual catalog drives the mock's refused frame with a word that was heard and is not in the script (`voice-sample-refused`), not words across two takes: the mock REAPER's recording check puts every word of a chapter on one item, so no fixture selection spans takes. The two-takes sentence is covered by the dialog's story, `voiceSampleRange.test.ts` and `voiceSample.test.tsx`. The saved toast has its own row, `voice-sample-saved` | Phase 3 implementation; for the owner to confirm |
 
 ## Research Summary
 

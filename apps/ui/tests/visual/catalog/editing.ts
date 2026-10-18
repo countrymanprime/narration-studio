@@ -3,7 +3,7 @@
 // `?mockChapterLink=confirmed`, so its words carry the times they were heard at; the edit rows also turn the DAW's experimental
 // actions on (`?mockDawExperimentalOn=1`), which the mock REAPER keeps off by default.
 import type { StateEntry } from '../lib/types';
-import { KEEPS_DESKTOP_SCROLL, POPUP_ANCHORED_AT_FIRST_WIDTH } from './shared';
+import { KEEPS_DESKTOP_SCROLL, POPUP_ANCHORED_AT_FIRST_WIDTH, TOAST_FADES_OUT } from './shared';
 
 export const editingStates: StateEntry[] = [
   {
@@ -45,6 +45,13 @@ export const editingStates: StateEntry[] = [
     state: 'voice-sample-refused',
     description:
       'Editing, Voice sample on a word that was said and is not in the script - the dialog says in one sentence that the words were not heard, with Play range and Save sample off',
+  },
+  {
+    page: 'editing',
+    state: 'voice-sample-saved',
+    description:
+      'Editing, a voice sample saved from four selected words - the dialog closed and the toast says whom it was saved for, with Undo for ten seconds',
+    ...TOAST_FADES_OUT,
   },
   {
     page: 'editing',
