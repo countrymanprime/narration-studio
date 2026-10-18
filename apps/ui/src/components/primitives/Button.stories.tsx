@@ -40,9 +40,10 @@ export const Link: Story = {
 };
 
 // The mocks' header row: a secondary and a primary button side by side, 8 px apart, each 36 px tall (the mock's Round 12 size).
+// The row wraps, as a header row does, so at the atlas's 390 px the buttons keep their one-line labels and their height.
 export const HeaderRow: Story = {
   render: () => (
-    <div className="flex items-center gap-2">
+    <div className="flex flex-wrap items-center gap-2">
       <Button variant="secondary">Export status report</Button>
       <Button variant="primary">● Start session</Button>
     </div>
@@ -58,7 +59,7 @@ export const HeaderRow: Story = {
 // The companion's row of small buttons, 32 px tall.
 export const SmallRow: Story = {
   render: () => (
-    <div className="flex items-center gap-2">
+    <div className="flex flex-wrap items-center gap-2">
       <Button variant="primary" size="sm">
         ● Punch & roll here
       </Button>
