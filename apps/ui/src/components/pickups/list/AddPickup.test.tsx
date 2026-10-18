@@ -8,6 +8,18 @@ import { AddPickup } from './AddPickup';
 
 afterEach(cleanup);
 
+/** What a control says is wrong with it: its `aria-invalid` and the text of the element its `aria-describedby` names. */
+function problemWith(control: HTMLElement): { invalid: boolean; says: string } {
+  const ids = (control.getAttribute('aria-describedby') ?? '').split(' ').filter(Boolean);
+  return {
+    invalid: control.getAttribute('aria-invalid') === 'true',
+    says: ids
+      .map((id) => document.getElementById(id)?.textContent ?? '')
+      .join(' ')
+      .trim(),
+  };
+}
+
 function setup(onAdd = vi.fn().mockResolvedValue(undefined)) {
   const service = createOverlayService();
   const onDone = vi.fn();
@@ -27,6 +39,29 @@ describe('AddPickup', () => {
     expect(toasts()).toEqual(['Type the line first.']);
     expect(onAdd).not.toHaveBeenCalled();
     expect(onDone).not.toHaveBeenCalled();
+  });
+
+  it('an empty line is also said next to its field, which is marked invalid and described by it', async () => {
+    const { user } = setup();
+    await user.type(screen.getByRole('textbox', { name: 'Time in the recording' }), '05:12.0');
+    await user.click(screen.getByRole('button', { name: 'Add pickup' }));
+    const line = screen.getByRole('textbox', { name: 'Line to re-record' });
+    expect(problemWith(line)).toEqual({ invalid: true, says: 'Type the line first.' });
+    expect(problemWith(screen.getByRole('textbox', { name: 'Time in the recording' })).invalid).toBe(false);
+    await user.type(line, 'A');
+    expect(problemWith(line)).toEqual({ invalid: false, says: '' });
+  });
+
+  it('a bad time is said next to the time field, which is marked invalid and described by it', async () => {
+    const { user } = setup();
+    await user.type(screen.getByRole('textbox', { name: 'Line to re-record' }), 'A line');
+    await user.type(screen.getByRole('textbox', { name: 'Time in the recording' }), 'abc');
+    await user.click(screen.getByRole('button', { name: 'Add pickup' }));
+    const time = screen.getByRole('textbox', { name: 'Time in the recording' });
+    expect(problemWith(time)).toEqual({ invalid: true, says: 'Type the time like 05:12.0.' });
+    expect(problemWith(screen.getByRole('textbox', { name: 'Line to re-record' })).invalid).toBe(false);
+    await user.type(time, '1');
+    expect(problemWith(time)).toEqual({ invalid: false, says: '' });
   });
 
   it('a line with no usable time is refused', async () => {

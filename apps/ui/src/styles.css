@@ -383,3 +383,12 @@
     --reader-inline: 1rem;
   }
 }
+/* A box that scrolls sideways shows a soft shadow on the edge that has more beyond it: the shadows stay put (`scroll`) and a cover in
+   the box's own colour (`local`) moves with the content and hides each one at the end of the scroll. Pickups' table uses it. */
+.scroll-x-edges {
+  background:
+    linear-gradient(to right, var(--surface) 30%, transparent) left center / 2rem 100% no-repeat local,
+    linear-gradient(to left, var(--surface) 30%, transparent) right center / 2rem 100% no-repeat local,
+    linear-gradient(to right, rgb(0 0 0 / 0.2), transparent) left center / 0.75rem 100% no-repeat scroll,
+    linear-gradient(to left, rgb(0 0 0 / 0.2), transparent) right center / 0.75rem 100% no-repeat scroll;
+}
