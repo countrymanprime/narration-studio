@@ -555,6 +555,9 @@ function AppRoutes() {
   useCommand('history.open', () => {
     if (!isModalOpen()) openHistory();
   });
+  useCommand('companion.open', () => {
+    if (!isModalOpen()) guardedNavigateRef.current('/companion');
+  });
   // The History panel says "Ctrl Z undoes the last one", so it is the one layer Ctrl+Z reaches through; any other dialog keeps it out.
   const onlyHistoryOpen = () => {
     const { dialogs } = overlay.getSnapshot();

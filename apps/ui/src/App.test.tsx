@@ -1645,6 +1645,13 @@ describe('App shell mounts', () => {
     expect(await screen.findByText('Renaming cannot be undone here.')).toBeTruthy();
   });
 
+  it('the Companion has its key: Ctrl+Alt+C opens it from the page, as the shortcut sheet and the jump menu say', async () => {
+    renderWithJournal(newJournal());
+    await screen.findByRole('heading', { level: 1, name: 'Production' });
+    fireEvent.keyDown(document.body, { code: 'KeyC', key: 'c', ctrlKey: true, altKey: true });
+    await waitFor(() => expect(screen.queryByRole('heading', { level: 1, name: 'Production' })).toBeNull());
+  });
+
   it('ctrl-z-undoes-the-last-change: Ctrl+Z with focus on the page body undoes the newest entry', async () => {
     const journal = newJournal();
     const undo = vi.fn(async () => ({ ok: true as const, value: 1 }));
