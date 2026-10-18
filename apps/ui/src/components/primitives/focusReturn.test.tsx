@@ -14,6 +14,7 @@ function Rig({ close }: { close: () => void }) {
       </button>
       <div data-testid="panel" onKeyDown={onKeyDown}>
         <button>Inside</button>
+        <button onKeyDown={(event) => event.preventDefault()}>Takes the key</button>
       </div>
     </>
   );
@@ -54,8 +55,7 @@ describe('escapeClosesPanel', () => {
     render(<Rig close={close} />);
     const inside = screen.getByText('Inside');
     fireEvent.keyDown(inside, { key: 'Enter' });
-    inside.addEventListener('keydown', (e) => e.preventDefault());
-    fireEvent.keyDown(inside, { key: 'Escape' });
+    fireEvent.keyDown(screen.getByText('Takes the key'), { key: 'Escape' });
     expect(close).not.toHaveBeenCalled();
     const outside = document.createElement('button');
     document.body.append(outside);
