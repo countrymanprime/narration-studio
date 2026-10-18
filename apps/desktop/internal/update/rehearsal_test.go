@@ -33,6 +33,12 @@ func TestRehearsalWithTwoRealBuilds(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	// The record names the program by the path the install was given, and the new build compares it with CurrentExecutable, which
+	// resolves links and 8.3 short names (a runner's TEMP is C:\Users\RUNNER~1\...). A raw temp path would never match, and the
+	// new build would neither count its start nor confirm.
+	if root, err = filepath.EvalSymlinks(root); err != nil {
+		t.Fatal(err)
+	}
 	// The window's web view keeps its profile folder open for a moment after the program is stopped, so removal is best effort.
 	t.Cleanup(func() {
 		time.Sleep(5 * time.Second)
