@@ -60,8 +60,8 @@ export type MockApiSeed = {
   projectFolder?: string;
   tracksCandidates?: string[];
   noManuscript?: boolean;
-  /** The Pickups list cannot be read: every read is refused with a reason. */
-  pickupList?: 'unreadable';
+  /** The Pickups list cannot be read: every read is refused with a reason (`unreadable`), or never answers (`loading`). */
+  pickupList?: 'unreadable' | 'loading';
   /** Replaces the Alice chapters at boot (fixtures/scenario.ts); the bundled manuscript then does not load over them. */
   chapters?: ManuscriptChapter[];
   /** Replaces the Alice paragraphs at boot; seed it with `chapters`. */
@@ -116,6 +116,8 @@ export type MockApiSeed = {
   assets?: MockAssetSeed;
   /** `?mockAssetsList=`: the list of downloads never answers (`loading`) or fails to read (`fails`), so Models & downloads shows its loading rows or its error. */
   assetsList?: 'loading' | 'fails';
+  /** `?mockHold=`: the reads named here never answer, so the page that makes them stays on its loading skeleton: the Production overview, the Story Bible's entries, the Series tab's voice bible. */
+  held?: readonly ('overview' | 'entities' | 'series')[];
   /** `?mockPlan=`: the read of the production plan (the Schedule's) never answers (`loading`) or fails (`fails`), so the Schedule shows its loading skeleton or its error. */
   planRead?: 'loading' | 'fails';
   /** `?mockChapters=`: the read of the manuscript's chapters never answers (`loading`) or fails (`fails`), so a page that reads them shows its loading skeleton or its error. */
