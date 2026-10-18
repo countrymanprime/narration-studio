@@ -8,6 +8,12 @@ import { chapterName } from '../../../chapterName';
 import { useUserKeymap } from '../../../input/useUserKeymap';
 import { CommandScope } from '../../../input/router';
 import { useOverlay } from '../../../overlay/OverlayProvider';
+import { useCommand } from '../../../input/useCommand';
+import { escapeJustStoppedASample } from '../../voicesamples/samplePlayerStore';
+import { SamplePlayerAnnouncement } from '../../voicesamples/SamplePlayButton';
+import { NARRATION_SPEAKER } from '../samples/boothSamples';
+import { BoothSamplesProvider } from '../samples/BoothSamplesContext';
+import { useBoothSamples } from '../samples/useBoothSamples';
 import type { MeasurementsPort } from '../../../ports/measurements';
 import { usePort } from '../../../ports/usePort';
 import { recordsInApp } from '../../../studio/dawNames';
@@ -31,7 +37,7 @@ import { useListeningMic } from '../listening/useListeningMic';
 import { useListeningModelState } from '../listening/useListeningModelState';
 import { CREDITS_LABEL } from '../readerModel';
 import { BoothText } from '../reading/BoothText';
-import { wordCount } from '../reading/boothUnits';
+import { UNKNOWN_SPEAKER, wordCount } from '../reading/boothUnits';
 import { RecordControl } from '../record/RecordControl';
 import { RecordSetup } from '../record/RecordSetup';
 import { useStaleToasts } from './useStaleToasts';
@@ -147,7 +153,7 @@ function BoothLoaded({ navigate, exitTo }: { navigate: (next: string) => void; e
       <BoothUnavailable
         why={data.unavailable}
         onSetUpCredits={() => navigate(`${BOOTH_LINKS.settings}#credits`)}
-        onChapters={() => setParams(new URLSearchParams(), { replace: true })}
+        onChapters={() => navigate(BOOTH_LINKS.script)}
         onExit={() => navigate(pickupIds.length > 0 ? BOOTH_LINKS.pickups : exitTo)}
       />
     );
@@ -215,6 +221,7 @@ function BoothSession({ source, from, requested, adopt, data, choose, navigate, 
   const parts = useRef<{
     takeStopped?: (take: { began: number; stopped: number; quiet?: boolean }) => Promise<number>;
     menuItems?: (target: Element) => ContextMenuItem[];
+    escapeStoppedSample?: () => boolean;
   }>({});
   const page = useBoothPage({
     recordId,
@@ -230,6 +237,7 @@ function BoothSession({ source, from, requested, adopt, data, choose, navigate, 
     exitTo,
     onTakeStopped: (take) => parts.current.takeStopped?.(take),
     menuItems: (target) => parts.current.menuItems?.(target) ?? [],
+    escapeStoppedSample: () => parts.current.escapeStoppedSample?.() ?? false,
   });
   const { control, at, units } = page;
 
@@ -333,6 +341,33 @@ function BoothSession({ source, from, requested, adopt, data, choose, navigate, 
   };
 
   const characters = useMemo(() => entities.filter((entity) => entity.category.toLowerCase() === 'character'), [entities]);
+  // The speakers who speak in this chapter, for the picker's first group.
+  const inChapter = useMemo(
+    () => new Set(units.filter((unit) => unit.quoted && unit.speaker !== '' && unit.speaker !== UNKNOWN_SPEAKER).map((unit) => unit.speaker)),
+    [units],
+  );
+  // The project's voice samples, the guards (a take records, or the DAW cannot be heard) and the pause of a listening session while a sample plays.
+  const samples = useBoothSamples({
+    characters,
+    inChapter,
+    recording: control.recording,
+    recorder: { unknown: control.readFailed, checkedAt: control.checkedAt, checkAgain: control.checkAgain },
+    listening: { active: session.active, paused: session.paused, pause: session.pause },
+    notify: (text, tone) => overlay.toast(text, tone ? { tone } : undefined),
+  });
+  // Escape stops a sample before it leaves the Booth: a sample playing, or one the window's Escape listener has just stopped on this very press.
+  parts.current.escapeStoppedSample = () => {
+    if (!samples.activeId && !escapeJustStoppedASample()) return false;
+    samples.stop();
+    return true;
+  };
+  // V: the primary sample of the speaker of the phrase the reading is on, and again to stop it. A phrase nobody speaks in quotes is Narration's.
+  useCommand('booth.voice-sample', () => {
+    const unit = units[at.cur];
+    if (!unit) return;
+    if (unit.quoted && unit.speaker === UNKNOWN_SPEAKER) return overlay.toast('Choose who speaks this line first: press its speaker chip.');
+    samples.toggleSpeaker(unit.quoted ? unit.speaker : NARRATION_SPEAKER);
+  });
   const colourOf = useMemo(() => {
     const byName = new Map(characters.map((entity) => [entity.canonical_name, entity]));
     return (speaker: string) => {
@@ -428,68 +463,71 @@ function BoothSession({ source, from, requested, adopt, data, choose, navigate, 
               text={{ font: page.text.font, size: page.text.size, onFont: page.text.setFont, onSize: page.text.setSize }}
             />
           </div>
-          <div className="relative flex min-h-0 flex-1">
-            <div className="min-w-0 flex-1">
-              <BoothText
-                paragraphs={paragraphs}
-                position={page.position}
-                browse={page.browse}
-                onBrowse={page.setBrowse}
-                onSeek={(paragraphId, word) => {
-                  page.seek(paragraphId, word);
-                  // A Story Bible name or a marked word shows its reference in the side panel; any other word clears it.
-                  const name = entityAtWord(paragraphs, decorated.decorations, paragraphId, word);
-                  const entryId = name ? entities.find((item) => item.canonical_name === name)?.id : undefined;
-                  const noteId = markAtWord(paragraphs, marks, paragraphId, word)?.id;
-                  if (entryId || noteId) referenced.show({ entryId, noteId });
-                  else referenced.clear();
-                }}
-                onNote={(noteId) => referenced.show({ noteId })}
-                onBackground={referenced.clear}
-                speakers={characters.map((entity) => entity.canonical_name)}
-                speakerColour={colourOf}
-                onSetSpeaker={setSpeaker}
-                decorations={decorated.decorations}
-                notes={decorated.notes}
-                punchAt={page.punchAt}
-                pickupLines={pickups.bars}
-                size={page.text.size}
-                font={page.text.fontFamily}
-                viewRef={page.view}
-                margin={
-                  chapter && bookmarks.bookmarks ? (
-                    <BookmarkRibbons
-                      chapterId={chapter.id}
-                      bookmarks={bookmarks.bookmarks}
-                      paragraphs={paragraphs}
-                      units={units}
-                      flashId={bookmarks.flashId}
-                      onUpdate={bookmarks.update}
-                      onRemove={bookmarks.remove}
-                    />
-                  ) : undefined
-                }
-              />
+          <BoothSamplesProvider value={samples}>
+            <div className="relative flex min-h-0 flex-1">
+              <div className="min-w-0 flex-1">
+                <BoothText
+                  paragraphs={paragraphs}
+                  position={page.position}
+                  browse={page.browse}
+                  onBrowse={page.setBrowse}
+                  onSeek={(paragraphId, word) => {
+                    page.seek(paragraphId, word);
+                    // A Story Bible name or a marked word shows its reference in the side panel; any other word clears it.
+                    const name = entityAtWord(paragraphs, decorated.decorations, paragraphId, word);
+                    const entryId = name ? entities.find((item) => item.canonical_name === name)?.id : undefined;
+                    const noteId = markAtWord(paragraphs, marks, paragraphId, word)?.id;
+                    if (entryId || noteId) referenced.show({ entryId, noteId });
+                    else referenced.clear();
+                  }}
+                  onNote={(noteId) => referenced.show({ noteId })}
+                  onBackground={referenced.clear}
+                  speakers={characters.map((entity) => entity.canonical_name)}
+                  speakerColour={colourOf}
+                  onSetSpeaker={setSpeaker}
+                  decorations={decorated.decorations}
+                  notes={decorated.notes}
+                  punchAt={page.punchAt}
+                  pickupLines={pickups.bars}
+                  size={page.text.size}
+                  font={page.text.fontFamily}
+                  viewRef={page.view}
+                  margin={
+                    chapter && bookmarks.bookmarks ? (
+                      <BookmarkRibbons
+                        chapterId={chapter.id}
+                        bookmarks={bookmarks.bookmarks}
+                        paragraphs={paragraphs}
+                        units={units}
+                        flashId={bookmarks.flashId}
+                        onUpdate={bookmarks.update}
+                        onRemove={bookmarks.remove}
+                      />
+                    ) : undefined
+                  }
+                />
+              </div>
+              {/* The panel's sections are h3s; this keeps the outline h1, h2, h3. */}
+              <h2 className="sr-only">Side panel</h2>
+              <PickupSessionProvider value={pickups.active ? { session: pickups, chapterLabel } : null}>
+                <BoothSidePanel
+                  open={side.open}
+                  drawer={side.drawer}
+                  onOpenChange={side.setOpen}
+                  data={{
+                    chapterId: recordId,
+                    reference,
+                    voices: voicesNearby(units, at.cur, entities),
+                    comingUp: comingUpWords(units, at.cur, entities),
+                    numbers: page.numbers,
+                    flags: page.flags,
+                    onOpenEntry: (id) => void page.goTo(`${BOOTH_LINKS.storyBible}#${encodeURIComponent(id)}`),
+                  }}
+                />
+              </PickupSessionProvider>
             </div>
-            {/* The panel's sections are h3s; this keeps the outline h1, h2, h3. */}
-            <h2 className="sr-only">Side panel</h2>
-            <PickupSessionProvider value={pickups.active ? { session: pickups, chapterLabel } : null}>
-              <BoothSidePanel
-                open={side.open}
-                drawer={side.drawer}
-                onOpenChange={side.setOpen}
-                data={{
-                  chapterId: recordId,
-                  reference,
-                  voices: voicesNearby(units, at.cur, entities),
-                  comingUp: comingUpWords(units, at.cur, entities),
-                  numbers: page.numbers,
-                  flags: page.flags,
-                  onOpenEntry: (id) => void page.goTo(`${BOOTH_LINKS.storyBible}#${encodeURIComponent(id)}`),
-                }}
-              />
-            </PickupSessionProvider>
-          </div>
+          </BoothSamplesProvider>
+          <SamplePlayerAnnouncement text={samples.announcement} />
           {capabilities && !control.recording ? (
             <RecordSetup
               capabilities={capabilities}

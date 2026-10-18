@@ -1,34 +1,55 @@
 package main
 
 import (
-	"slices"
+	"encoding/json"
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 )
 
-// The narrator's own pronunciation and switching to the kept alternate. Each is one sidecar call; free text goes as
-// --ipa=VALUE so a value starting with "-" stays a value.
+// The narrator's own pronunciation and switching to the kept alternate. Each is applied by the host (guide.Service, mutate.go) with
+// no sidecar process; free text is stored as typed, so a value starting with "-" is still the value.
 
-func TestGuidePronounceUserSendsTheTextAsOneArgument(t *testing.T) {
-	service, calls := countingGuide(t)
-	host := &Host{guide: service}
-	aliasIndex := 1
-	if _, err := host.GuidePronounceUser("entity-1", &aliasIndex, "-wɹɛn"); err != nil {
+// aliasPronunciation is the pronunciation of the alias at index of entity-1 in the project's Story Bible.
+func aliasPronunciation(t *testing.T, project string, index int) map[string]any {
+	t.Helper()
+	raw, err := os.ReadFile(filepath.Join(project, "ManuscriptGuide", "manuscript_guide.json"))
+	if err != nil {
 		t.Fatal(err)
 	}
-	got := calls()
-	if len(got) != 1 {
-		t.Fatalf("calls = %d", len(got))
+	var document struct {
+		Entities []struct {
+			Aliases []map[string]any `json:"aliases"`
+		} `json:"entities"`
 	}
-	call := got[0]
-	if call[0] != "pronounce-user" || !slices.Contains(call, "entity-1") || !slices.Contains(call, "--ipa=-wɹɛn") || !slices.Contains(call, "1") {
-		t.Fatalf("call = %v", call)
+	if err := json.Unmarshal(raw, &document); err != nil {
+		t.Fatal(err)
+	}
+	value, _ := document.Entities[0].Aliases[index]["pronunciation"].(map[string]any)
+	return value
+}
+
+func TestGuidePronounceUserStoresTheTextWithoutTheSidecar(t *testing.T) {
+	service, calls, project := countingGuideIn(t)
+	writeStoryBible(t, project)
+	host := &Host{guide: service}
+	aliasIndex := 1
+	if _, err := host.GuidePronounceUser("entity-1", &aliasIndex, " -wɹɛn "); err != nil {
+		t.Fatal(err)
+	}
+	if got := aliasPronunciation(t, project, 1); got["ipa"] != "-wɹɛn" || got["source"] != "manual" || got["chosen"] != true {
+		t.Fatalf("Alfie's pronunciation = %v", got)
+	}
+	if got := calls(); len(got) != 0 {
+		t.Fatalf("the sidecar was started: %v", got)
 	}
 }
 
-func TestGuidePronounceUserRefusesBlankMultiLineAndOverlongTextBeforeStartingTheSidecar(t *testing.T) {
+func TestGuidePronounceUserRefusesBlankMultiLineAndOverlongTextWithoutTheSidecar(t *testing.T) {
 	for _, bad := range []string{"  ", "one\ntwo", strings.Repeat("x", 201)} {
-		service, calls := countingGuide(t)
+		service, calls, project := countingGuideIn(t)
+		writeStoryBible(t, project)
 		host := &Host{guide: service}
 		if _, err := host.GuidePronounceUser("entity-1", nil, bad); err == nil {
 			t.Fatalf("GuidePronounceUser(%q) accepted", bad[:2])
@@ -39,15 +60,33 @@ func TestGuidePronounceUserRefusesBlankMultiLineAndOverlongTextBeforeStartingThe
 	}
 }
 
-func TestGuidePronunciationUseAlternateSendsTheEntity(t *testing.T) {
-	service, calls := countingGuide(t)
+func TestGuidePronunciationUseAlternateSwitchesWithoutTheSidecar(t *testing.T) {
+	service, calls, project := countingGuideIn(t)
+	writeStoryBible(t, project)
 	host := &Host{guide: service}
-	if _, err := host.GuidePronunciationUseAlternate("entity-1", nil); err != nil {
+	if _, err := host.GuidePronunciationUseAlternate("entity-1", nil); err == nil || !strings.Contains(err.Error(), "no other pronunciation") {
+		t.Fatalf("a switch with no alternate = %v", err)
+	}
+	path := filepath.Join(project, "ManuscriptGuide", "manuscript_guide.json")
+	raw, err := os.ReadFile(path)
+	if err != nil {
 		t.Fatal(err)
 	}
-	call := calls()[0]
-	if call[0] != "pronunciation-use-alternate" || !slices.Contains(call, "entity-1") || slices.Contains(call, "--alias-index") {
-		t.Fatalf("call = %v", call)
+	raw = []byte(strings.Replace(string(raw), `{"text": "Ally"}`, `{"text": "Ally", "pronunciation": {"ipa": "ˈæli", "source": "manual",
+		"alternate": {"ipa": "ˈɑli", "source": "cmu", "confidence": "high"}}}`, 1))
+	if err := os.WriteFile(path, raw, 0o600); err != nil {
+		t.Fatal(err)
+	}
+	zero := 0
+	if _, err := host.GuidePronunciationUseAlternate("entity-1", &zero); err != nil {
+		t.Fatal(err)
+	}
+	got := aliasPronunciation(t, project, 0)
+	if alternate, _ := got["alternate"].(map[string]any); got["ipa"] != "ˈɑli" || got["source"] != "cmu" || alternate["ipa"] != "ˈæli" {
+		t.Fatalf("Ally's pronunciation = %v", got)
+	}
+	if got := calls(); len(got) != 0 {
+		t.Fatalf("the sidecar was started: %v", got)
 	}
 }
 

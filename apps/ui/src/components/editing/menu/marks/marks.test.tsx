@@ -216,6 +216,40 @@ describe('add-note-writes-a-note-on-the-words', () => {
     expect(api.marksAdd).not.toHaveBeenCalled();
   });
 
+  // The word menu closes as its item runs, so the element focused when the dialog mounts is a menu item that is gone by the time it closes.
+  describe('returns focus to the script text', () => {
+    const openFromMenu = async () => {
+      mount();
+      await itemsOn('p-1:1');
+      fireEvent.contextMenu(word('p-1:1'), { clientX: 40, clientY: 40 });
+      fireEvent.click(await screen.findByRole('menuitem', { name: 'Add note…' }));
+      await screen.findByRole('dialog', { name: 'Add a note' });
+    };
+    const script = () => document.querySelector<HTMLElement>('[data-script]')!;
+    const backOnScript = async () => {
+      await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+      await waitFor(() => expect(document.activeElement).toBe(script()));
+      expect(page.state.sel).toEqual({ anchor: 'p-1:1', head: 'p-1:1' });
+    };
+
+    it('on Escape', async () => {
+      await openFromMenu();
+      fireEvent.keyDown(screen.getByRole('textbox', { name: 'Note' }), { key: 'Escape' });
+      await backOnScript();
+    });
+    it('on Cancel', async () => {
+      await openFromMenu();
+      fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+      await backOnScript();
+    });
+    it('on Save', async () => {
+      await openFromMenu();
+      fireEvent.change(screen.getByRole('textbox', { name: 'Note' }), { target: { value: 'Check the stress.' } });
+      fireEvent.click(screen.getByRole('button', { name: 'Save note' }));
+      await backOnScript();
+    });
+  });
+
   it('has no axe violations', async () => {
     await open();
     expect((await axe.run(document.body)).violations).toEqual([]);

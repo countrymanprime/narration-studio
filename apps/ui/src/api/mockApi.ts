@@ -277,6 +277,12 @@ export function createMockApi(
     seed: initial.production,
   });
   // `?mockPlan=loading|fails`: the Schedule's read of the plan never answers, or fails.
+  // `?mockHold=overview,entities,series`: those reads never answer, so Production, the Story Bible and its Series tab stay on their loading skeleton.
+  const held = new Set(initial.held ?? []);
+  const never = <T>() => new Promise<T>(() => {});
+  if (held.has('overview')) production.productionOverview = never;
+  if (held.has('entities')) storyBible.bindings.guideEntities = never;
+  if (held.has('series')) series.bindings.seriesVoiceBible = never;
   if (initial.planRead === 'loading') production.productionPlan = () => new Promise<never>(() => {});
   if (initial.planRead === 'fails') production.productionPlan = async () => Promise.reject(new Error('The schedule could not be read from this project.'));
   const { saveAnalyzerFindings, saveFinding, saveFileFindings, acceptedFindings, ...findings } = createFindingsMock(initial.findings ?? WIRE_FINDINGS, {
@@ -324,6 +330,7 @@ export function createMockApi(
     transcript: proofing.transcript,
     dictionaryState: assets.dictionaryState,
     dawFacts: () => dawControl.facts(),
+    manuscriptReady,
   });
   // The mock DAW's undo history: the edits below leave their labels on it (recordingUndo), and DawLastAction and DawUndoLast read it.
   const undoHistory = new MockUndoHistory();
@@ -372,6 +379,7 @@ export function createMockApi(
       manuscriptReady,
       () => s.chapters,
       () => s.paragraphs,
+      initial.voiceSamples,
     ),
     ...createEditLogMock(
       manuscriptReady,

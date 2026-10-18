@@ -113,6 +113,8 @@ describe('D5 Build: what it waits for', () => {
   it('loading: nothing is judged before the chapters and the measurement have been read', async () => {
     mount({ manuscriptChapters: () => new Promise(() => undefined) });
     expect(await screen.findByText('Reading the chapters…')).toBeTruthy();
+    // The status is the one sentence of a busy region of blocks, not a bare line.
+    expect((await screen.findByRole('group', { name: 'Loading the chapter checks' })).getAttribute('aria-busy')).toBe('true');
     expect(await screen.findByText("Can't tell which chapters pass yet.")).toBeTruthy();
     expect(screen.queryByText('Not mastered')).toBeNull();
     expect(await buildButton()).toHaveProperty('disabled', true);
