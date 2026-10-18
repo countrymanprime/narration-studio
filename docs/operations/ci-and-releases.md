@@ -302,6 +302,18 @@ A narrator installs from `narration-utils-<version>-windows-x64-setup.exe`, an N
 - **Install and uninstall by hand** for a check: run the setup program; `narration-utils-<version>-windows-x64-setup.exe /S` installs silently
   (both shortcuts) and `"%LOCALAPPDATA%\Programs\Narration Studio\uninstall.exe" /S` removes it.
 
+## The Windows release-gate evidence workflows
+
+Three manual workflows (`workflow_dispatch` only; no ruleset requires them, nothing calls them, none publishes anything) turn the owner-pending checks of [section 9 of the Windows QA checklist](windows-qa-checklist.md#9-release-gate-checks) into recorded runs on clean GitHub-hosted Windows runners. They are evidence for the owner, not a gate: a red run does not block a merge or a release.
+
+| Workflow | Check | What it does |
+| --- | --- | --- |
+| `windows-release-checks.yml` | 9.2, 9.3, 9.4 | Downloads the setup program and `narration-utils.exe` of two published releases (`scripts/release/fetch-release-assets.sh`; the newest and the one before, or the tags given as inputs). `scripts/release/windows-install-check.ps1` installs silently, asserts a per-user install (`HKCU` entry, none under `HKLM`, `%LOCALAPPDATA%\Programs`), both Start Menu shortcuts and the desktop one, starts the app, uninstalls and asserts removal; for 9.3 it installs the older release first, seeds `global-settings.json` and `recent-projects.json`, runs the newer setup over it and checks both files, the install folder, the reported version and the shortcuts. It accepts the uninstall key `NarrationUtils` or `NarrationStudio` ([#1816](https://github.com/countrymanprime/narration-utils/issues/1816) phase 2). The third job runs `go test -tags rehearsal` on the two real `narration-utils.exe` builds ([in-app update](../architecture/in-app-update.md)). |
+| `windows-encode-check.yml` | 9.1 | `scripts/release/install-ffmpeg-asset.ps1` downloads the file in `config/encoder-assets.json`, checks its size and SHA-256 and the kept binary's, then `NARRATION_UTILS_FFMPEG=<ffmpeg.exe> go test ./internal/encodeport/...` encodes synthetic chapters and the ACX format and sample-rate checks read them. |
+| `windows-reaper-transport.yml` | 9.7 | Installs the REAPER evaluation build silently (the installer's SHA-256 and signature are recorded; pin it with the `installer-sha256` input), runs `integrations/reaper/spikes/transport_timing.lua` through `run-reaper.ps1` in an isolated `-cfgfile`, and records, for Play, Stop, Record, Pause during Record, Pause again and Stop, when `GetPlayState()` and the real bridge's heartbeat showed the change. The runner has no audio hardware: a state REAPER refuses to enter is a finding in the report, not a failure. |
+
+What these cannot show stays with the owner: a launch from REAPER after an in-app update, a physical click or keystroke on REAPER's transport, MIDI and HID prompts (9.5) and a real microphone (9.6). Each run uploads its report as an artifact and writes it to the job summary; the checklist records the latest run link per check.
+
 ## The packaged-app smoke test
 
 A release must start on a machine that has none of the repository. Wails is a GUI program, so CI cannot start it and look at a
