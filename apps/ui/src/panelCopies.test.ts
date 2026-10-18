@@ -56,8 +56,8 @@ const CEILING: Record<Copy, Record<string, number>> = {
   h1: {
     // The Booth's page title is visually hidden (`sr-only`): the reading surface is the page, and a Heading would show.
     'src/components/booth/page/BoothNextPage.tsx': 1,
-    // The Script page's title is visually hidden too: the mock draws none, the reader is the page.
-    'src/components/script/page/ScriptPage.tsx': 1,
+    // The Script page's title is visually hidden too: the mock draws none, the reader is the page. The page and its loading skeleton share it.
+    'src/components/script/page/layout/ScriptTitle.tsx': 1,
   },
 };
 
