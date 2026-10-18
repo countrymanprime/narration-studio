@@ -297,6 +297,7 @@ A worker is one cloud session for one stream. It opens one PR per phase, stacked
      - Comment `<ID>: PAUSED at <step>, PR #<n>` on #989, then end the session.
   3. On AMBER in your own reading (`allowed_warning`), **unless #989's `WARNING_POLICY` is `ignore`** (then a warning counts as GREEN, D63): **yield.** Finish the current PR to green, don't start the next phase, comment `<ID>: yielded after p<N>` on #989, and end.
   4. Otherwise, continue.
+- **Open the PR as soon as the change is pushed (owner rule, 2026-10-18).** Do not wait for local checks to finish or for the owner to ask: open the PR (a draft only if the work is genuinely incomplete), list the checks still running as pending in the body, and update the body as they finish. The owner reviews from the PR, not from the session.
 - **Finishing:**
   - Subscribe to your PRs, and drive `Build (Windows)` and `ui-dist` to green.
   - Answer every red-circle thread.
