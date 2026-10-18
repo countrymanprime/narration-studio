@@ -2,7 +2,7 @@
 // (shared.ts: openSettingsCategory); each driver waits for what its own state shows.
 import type { Page } from '@playwright/test';
 import { settlePage } from '../helpers/settle';
-import { type Driver, clickVisible, confirmDialog, freezeClock, openAdvanced, openSettings, openSettingsCategory, showSettingsRow } from './shared';
+import { type Driver, clickVisible, confirmDialog, freezeClock, openAdvanced, openSettings, showSettingsRow } from './shared';
 
 const WHISPER_SMALL = 'whisper/small';
 
@@ -197,13 +197,7 @@ export const settingsDrivers: Record<string, Driver> = {
     await page.getByText('Nothing is downloaded yet', { exact: true }).first().waitFor();
   },
   'models-loading': async (page) => {
-    await openSettings(page, undefined, '?mockAssetsList=loading');
-    await page
-      .getByRole('button', { name: /^Models & downloads/ })
-      .or(page.getByRole('button', { name: /^Category/ }))
-      .first()
-      .waitFor();
-    await openSettingsCategory(page, 'Models & downloads');
+    await openSettings(page, 'Models & downloads', '?mockAssetsList=loading');
     await page.getByLabel('Loading models and downloads').waitFor();
   },
   'models-error': async (page) => {
@@ -215,7 +209,7 @@ export const settingsDrivers: Record<string, Driver> = {
   delivery: async (page) => {
     await openSettings(page, 'Delivery');
     await page.getByRole('combobox', { name: 'Delivery profile', exact: true }).waitFor();
-    await page.getByRole('list', { name: 'Limits of this profile' }).or(page.getByRole('term').first()).first().waitFor();
+    await page.getByRole('combobox', { name: 'Default profile for new projects', exact: true }).waitFor();
   },
   'delivery-profile-editor': async (page) => {
     await openSettings(page, 'Delivery');
