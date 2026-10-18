@@ -137,3 +137,135 @@ test.describe('The jump menu returns focus on Escape', () => {
     expect(await page.evaluate(() => document.querySelector('main')?.contains(document.activeElement))).toBe(true);
   });
 });
+
+// Proof: the notes, the Inspector's decisions and the undo history. Whatever the narrator acts on or opens, focus stays on that control
+// (or on the equivalent one for the next note), and Escape hands it back to what opened the panel.
+const NOTES_FIND = 'section[aria-label="Notes"] button[aria-label="Find in notes"]';
+const INSPECTOR = 'aside[aria-label="Note"]';
+
+async function openProof(page: Page): Promise<void> {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto('/proof?chapter=chapter-1');
+  await settlePage(page);
+  await page.locator(`${INSPECTOR} [role="group"][aria-label="Resolution"]`).waitFor();
+}
+
+/** The accessible name of the focused element, 'BODY' when nothing has focus. */
+const focusedName = (page: Page) =>
+  page.evaluate(() => {
+    const el = document.activeElement as HTMLElement | null;
+    if (!el || el === document.body) return 'BODY';
+    return (el.getAttribute('aria-label') ?? el.textContent ?? el.tagName).trim();
+  });
+
+test.describe('Proof: focus stays with the control that acted', () => {
+  for (const decision of ['Waive', 'Defer']) {
+    test(`pressing ${decision} keeps focus on ${decision} for the next note`, async ({ page }) => {
+      await openProof(page);
+      await page
+        .locator(`${INSPECTOR}`)
+        .getByRole('button', { name: new RegExp(`^${decision}`) })
+        .click();
+      await page.waitForTimeout(600);
+      expect(await focusedName(page)).toMatch(new RegExp(`^${decision}`));
+    });
+  }
+
+  test('Needs pickup keeps focus in the decision group', async ({ page }) => {
+    await openProof(page);
+    await page
+      .locator(INSPECTOR)
+      .getByRole('button', { name: /^Needs pickup/ })
+      .click();
+    await page.waitForTimeout(600);
+    const inGroup = await page.evaluate(() => document.activeElement?.closest('[role="group"][aria-label="Resolution"]') !== null);
+    expect(inGroup).toBe(true);
+  });
+
+  test('a decision made with the key leaves focus on the notes row', async ({ page }) => {
+    await openProof(page);
+    await page.locator('section[aria-label="Notes"] tbody tr').first().focus();
+    await page.keyboard.press('w');
+    await page.waitForTimeout(600);
+    expect(await page.evaluate(() => document.activeElement?.closest('section[aria-label="Notes"]') !== null)).toBe(true);
+  });
+
+  test('Reopen hands focus to the decision group, not to <body>', async ({ page }) => {
+    await openProof(page);
+    await page
+      .locator(INSPECTOR)
+      .getByRole('button', { name: /^Waive/ })
+      .click();
+    await page.waitForTimeout(600);
+    await page.locator('section[aria-label="Notes"] tbody tr').first().click();
+    const reopen = page.locator(INSPECTOR).getByRole('button', { name: /^Reopen/ });
+    await reopen.focus();
+    await page.keyboard.press('Enter');
+    await expect(reopen).toHaveCount(0);
+    expect(await page.evaluate(() => document.activeElement?.closest(`aside[aria-label="Note"]`) !== null)).toBe(true);
+  });
+
+  test('Escape in Find in notes closes it and focuses the Find button', async ({ page }) => {
+    await openProof(page);
+    await page.locator(NOTES_FIND).click();
+    await page
+      .getByRole('searchbox', { name: 'Find in notes' })
+      .or(page.getByRole('textbox', { name: 'Find in notes' }))
+      .first()
+      .waitFor();
+    await page.keyboard.press('Escape');
+    await expect(page.locator(NOTES_FIND)).toBeFocused();
+  });
+
+  test('Ctrl+F then Escape returns to the control that had focus', async ({ page }) => {
+    await openProof(page);
+    const row = page.locator('section[aria-label="Notes"] tbody tr').first();
+    await row.focus();
+    await page.keyboard.press('Control+f');
+    await page
+      .getByRole('textbox', { name: 'Find in notes' })
+      .or(page.getByRole('searchbox', { name: 'Find in notes' }))
+      .first()
+      .waitFor();
+    await page.keyboard.press('Escape');
+    await expect(row).toBeFocused();
+  });
+});
+
+test.describe('The undo history returns focus on Escape to whatever opened it', () => {
+  test('opened from the jump menu', async ({ page }) => {
+    await openProof(page);
+    const control = page.locator('section[aria-label="Notes"] button[aria-label="Find in notes"]');
+    await control.focus();
+    await page.keyboard.press('Control+k');
+    await page.getByRole('dialog').waitFor();
+    await page.keyboard.type('undo history');
+    await page.waitForTimeout(300);
+    await page.keyboard.press('Enter');
+    await page.locator('[data-slide-over]').waitFor();
+    await page.keyboard.press('Escape');
+    await expect(page.locator('[data-slide-over]')).toHaveCount(0);
+    await expect(control).toBeFocused();
+  });
+
+  test('opened with Ctrl+Shift+H', async ({ page }) => {
+    await openProof(page);
+    const control = page.locator(NOTES_FIND);
+    await control.focus();
+    await page.keyboard.press('Control+Shift+H');
+    await page.locator('[data-slide-over]').waitFor();
+    await page.keyboard.press('Escape');
+    await expect(page.locator('[data-slide-over]')).toHaveCount(0);
+    await expect(control).toBeFocused();
+  });
+
+  test('opened with nothing focused, focus lands inside the page', async ({ page }) => {
+    await openProof(page);
+    await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
+    await page.keyboard.press('Control+Shift+H');
+    await page.locator('[data-slide-over]').waitFor();
+    await page.keyboard.press('Escape');
+    await expect(page.locator('[data-slide-over]')).toHaveCount(0);
+    expect(await page.evaluate(() => document.querySelector('main')?.contains(document.activeElement))).toBe(true);
+  });
+});
