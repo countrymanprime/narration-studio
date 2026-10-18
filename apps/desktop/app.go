@@ -637,7 +637,8 @@ func (h *Host) configureLocked(next config) {
 	projectKind := h.projectDaw(hostServices{config: h.config, settings: h.settings}).kind
 	var client *bridge.Client
 	var bridgeErr error
-	if h.config.sessionDir != "" && projectKind != dawport.KindAudacity {
+	attempted := h.config.sessionDir != "" && projectKind != dawport.KindAudacity
+	if attempted {
 		client, bridgeErr = bridge.New(h.config.sessionDir)
 		if client != nil {
 			client.SetLog(func(kind, message string) {
@@ -647,7 +648,7 @@ func (h *Host) configureLocked(next config) {
 		}
 	}
 	h.tracer.SetProjectRoot(h.config.projectFolder)
-	h.traceDawBridge(projectKind, h.config.sessionDir, client != nil, bridgeErr)
+	h.traceDawBridge(projectKind, h.config.sessionDir, attempted, client != nil, bridgeErr)
 	// Reachability subscribes to the same client transcript.New below also subscribes: both are independent
 	// consumers of bridge.Client's fan-out (events.go), so neither steals the other's events.
 	h.reachability = daw.NewReachability(client)

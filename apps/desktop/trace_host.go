@@ -2,6 +2,7 @@ package main
 
 import (
 	"runtime"
+	"strings"
 	"time"
 
 	"github.com/countrymanprime/narration-utils/shell/internal/daw"
@@ -32,19 +33,8 @@ func (h *Host) stopTrace() {
 	h.tracer.Flush()
 }
 
-// traceDawKind is the trace's name for a DAW kind.
-func traceDawKind(kind dawport.Kind) string {
-	switch kind {
-	case dawport.KindREAPER:
-		return "reaper"
-	case dawport.KindAudacity:
-		return "audacity"
-	case dawport.KindBuiltIn:
-		return "builtin"
-	default:
-		return "none"
-	}
-}
+// traceDawKind is the trace's name for a DAW kind: the port's own name, lower case.
+func traceDawKind(kind dawport.Kind) string { return strings.ToLower(kind.String()) }
 
 // concreteReachability is the live tracker behind the Heartbeat role, or nil when there is none (a launch with no bridge, or a
 // test double): the trace reads the age and the match reason only the tracker keeps.
@@ -65,19 +55,21 @@ func heartbeatAge(reach *daw.Reachability) (int64, bool) {
 	return age.Milliseconds(), true
 }
 
-// traceDawBridge records how the project's REAPER file bridge was set up (configureLocked): opened, or not and why.
-func (h *Host) traceDawBridge(kind dawport.Kind, sessionDir string, opened bool, openErr error) {
+// traceDawBridge records how the project's REAPER file bridge was set up (configureLocked): opened, or not and why. attempted is
+// whether configureLocked tried to open it at all, which it does only for a launch with a session folder and a project that is
+// not another DAW's.
+func (h *Host) traceDawBridge(kind dawport.Kind, sessionDir string, attempted, opened bool, openErr error) {
 	reason := "ok"
 	switch {
 	case sessionDir == "":
 		reason = "no_session_dir"
-	case kind == dawport.KindAudacity:
-		reason = "audacity_project"
+	case !attempted:
+		reason = "other_daw"
 	case openErr != nil:
 		reason = "bridge_new_failed"
 	}
 	h.tracer.Emit(trace.DawClient,
-		trace.EnumValue("kind", traceDawKind(kind)), trace.BoolValue("configured", opened),
+		trace.IDValue("kind", traceDawKind(kind)), trace.BoolValue("configured", opened),
 		trace.EnumValue("reason", reason), trace.PathValue("session", sessionDir))
 }
 
@@ -96,7 +88,7 @@ func (h *Host) traceDawPoll(reach *daw.Reachability, resolver *dawport.Resolver,
 	if flipped {
 		age, heard := heartbeatAge(reach)
 		h.tracer.Emit(trace.DawReachableChanged,
-			trace.EnumValue("kind", kind), trace.BoolValue("reachable", runtime.Reachable), trace.BoolValue("heard", heard),
+			trace.IDValue("kind", kind), trace.BoolValue("reachable", runtime.Reachable), trace.BoolValue("heard", heard),
 			trace.IntValue("age_ms", age), trace.IntValue("timeout_ms", daw.HeartbeatTimeout().Milliseconds()))
 	}
 	if !capsChanged {
@@ -110,7 +102,7 @@ func (h *Host) traceDawPoll(reach *daw.Reachability, resolver *dawport.Resolver,
 		}
 	}
 	h.tracer.Emit(trace.DawCapsChanged,
-		trace.EnumValue("kind", kind), trace.BoolValue("reachable", runtime.Reachable),
+		trace.IDValue("kind", kind), trace.BoolValue("reachable", runtime.Reachable),
 		trace.IntValue("available", int64(len(all)-len(unavailable))), trace.IntValue("unavailable", int64(len(unavailable))))
 	for _, capability := range unavailable {
 		h.tracer.Emit(trace.DawCapUnavailable, trace.IDValue("capability", string(capability)), trace.IDValue("reason", string(all[capability].Reason)))
@@ -134,7 +126,7 @@ func (h *Host) traceDrain(err error) {
 // traceBridgeLog is the bridge client's report callback beside the host log: a rejected REAPER event is also a trace record.
 func (h *Host) traceBridgeLog(kind string) {
 	if kind == "reaper_event_invalid" {
-		h.tracer.Emit(trace.DawEventRejected, trace.EnumValue("kind", kind))
+		h.tracer.Emit(trace.DawEventRejected, trace.IDValue("kind", kind))
 	}
 }
 

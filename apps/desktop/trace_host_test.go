@@ -115,15 +115,15 @@ func TestARejectedReaperEventIsTraced(t *testing.T) {
 
 func TestTheBridgeSetupIsTracedWithTheReasonItWasNotOpened(t *testing.T) {
 	host := newTestHostForDawCapabilities(t, "")
-	host.traceDawBridge(dawport.KindREAPER, "", false, nil)
-	host.traceDawBridge(dawport.KindAudacity, "S", false, nil)
-	host.traceDawBridge(dawport.KindREAPER, "S", false, errors.New("mkdir failed"))
-	host.traceDawBridge(dawport.KindREAPER, "S", true, nil)
+	host.traceDawBridge(dawport.KindREAPER, "", false, false, nil)
+	host.traceDawBridge(dawport.KindAudacity, "S", false, false, nil)
+	host.traceDawBridge(dawport.KindREAPER, "S", true, false, errors.New("mkdir failed"))
+	host.traceDawBridge(dawport.KindREAPER, "S", true, true, nil)
 	var reasons []any
 	for _, record := range traceRecords(t, host, "daw.client") {
 		reasons = append(reasons, record["reason"])
 	}
-	want := []any{"no_session_dir", "audacity_project", "bridge_new_failed", "ok"}
+	want := []any{"no_session_dir", "other_daw", "bridge_new_failed", "ok"}
 	if len(reasons) != len(want) {
 		t.Fatalf("reasons = %v, want %v", reasons, want)
 	}
@@ -149,7 +149,7 @@ func TestTheLinkFactsTraceNamesWhyThereIsNoMatch(t *testing.T) {
 func TestNoCanaryReachesTheHostTrace(t *testing.T) {
 	host, reach := newTestHostWithHeartbeat(t, `C:\Users\CANARYUSER\Books\CANARY_Novel\Book.rpp`, "0")
 	host.tracer.SetProjectRoot(`C:\Users\CANARYUSER\Books\CANARY_Novel`)
-	host.traceDawBridge(dawport.KindREAPER, `C:\Users\CANARYUSER\AppData\REAPER\NarrationUtils\sessions\hub_CANARY`, true, errors.New(`open C:\Users\CANARYUSER\x: denied`))
+	host.traceDawBridge(dawport.KindREAPER, `C:\Users\CANARYUSER\AppData\REAPER\NarrationUtils\sessions\hub_CANARY`, true, true, errors.New(`open C:\Users\CANARYUSER\x: denied`))
 	host.pollDawCapabilities()
 	host.traceDawLink(`C:\Users\CANARYUSER\Books\CANARY_Novel`, reach, true, true, true)
 	host.traceDrain(errors.New(`read C:\Users\CANARYUSER\events.log: CANARY_TEXT`))

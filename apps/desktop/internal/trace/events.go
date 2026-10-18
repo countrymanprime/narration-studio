@@ -4,8 +4,6 @@ package trace
 // and the values an enum may take; an Emit that strays from its definition loses the field and counts a drop. Add an
 // event by adding a line, not by formatting a message (docs/prds/activity-trace.prd.md).
 
-var dawKinds = []string{"reaper", "audacity", "builtin", "none"}
-
 var (
 	// AppStart is the first record of a launch.
 	AppStart = Define("app", "start", LevelInfo,
@@ -16,15 +14,15 @@ var (
 
 	// DawClient says whether the REAPER file bridge was opened for the project and, when it was not, why.
 	DawClient = Define("daw", "client", LevelInfo,
-		EnumField("kind", dawKinds...), BoolField("configured"),
-		EnumField("reason", "ok", "no_session_dir", "audacity_project", "bridge_new_failed"), PathField("session"))
+		IDField("kind"), BoolField("configured"),
+		EnumField("reason", "ok", "no_session_dir", "other_daw", "bridge_new_failed"), PathField("session"))
 	// DawReachableChanged is every flip of "the DAW answers", and the first look: how old the last heartbeat was and the
 	// age it was judged against.
 	DawReachableChanged = Define("daw", "reachable_changed", LevelInfo,
-		EnumField("kind", dawKinds...), BoolField("reachable"), BoolField("heard"), IntField("age_ms"), IntField("timeout_ms"))
+		IDField("kind"), BoolField("reachable"), BoolField("heard"), IntField("age_ms"), IntField("timeout_ms"))
 	// DawCapsChanged summarizes the capability report whenever it changes.
 	DawCapsChanged = Define("daw", "caps_changed", LevelInfo,
-		EnumField("kind", dawKinds...), BoolField("reachable"), IntField("available"), IntField("unavailable"))
+		IDField("kind"), BoolField("reachable"), IntField("available"), IntField("unavailable"))
 	// DawCapUnavailable is one capability the report calls unavailable, and its reason code, written with each change.
 	DawCapUnavailable = Define("daw", "cap_unavailable", LevelInfo, IDField("capability"), IDField("reason"))
 	// DawLinkFacts is what Bootstrap told the page about the DAW project, and why it is not a match when it is not.
