@@ -178,7 +178,7 @@ describe('brackets-step-flags-enter-opens-the-card', () => {
     expect(keep).toHaveBeenCalledTimes(1);
   });
 
-  it('Escape closes the card, then clears the selection, then leaves the script text', () => {
+  it('Escape closes the card, then clears the selection, then blurs', () => {
     const doc = marksDoc();
     mount(doc);
     act(() => {
