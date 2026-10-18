@@ -120,6 +120,19 @@ describe('same-spot-twice-is-one', () => {
     expect(b!.id).toBe(a!.id);
     expect(await result.current.journal.entries()).toHaveLength(1);
   });
+
+  it('says whether the press added a bookmark or found one already there', async () => {
+    const toastUndo = vi.spyOn(overlay, 'toastUndo');
+    const toast = vi.spyOn(overlay, 'toast');
+    const { result } = setup();
+    await waitFor(() => expect(result.current.model.bookmarks).toEqual([]));
+    await act(async () => void (await result.current.model.add(spot(0, 4))));
+    expect(toastUndo).toHaveBeenCalledWith('Bookmark added.', expect.any(Function));
+    toast.mockClear();
+    await act(async () => void (await result.current.model.add(spot(0, 4))));
+    expect(toast).toHaveBeenCalledWith('That spot is already bookmarked.');
+    expect(toastUndo).toHaveBeenCalledOnce();
+  });
 });
 
 describe('jump-menu-lists-each-bookmark-and-the-actions', () => {

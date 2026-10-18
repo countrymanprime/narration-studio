@@ -47,6 +47,7 @@ import { endedName } from '../../../chapterHeading';
 import { SpeakerLayer } from './layout/SpeakerLayer';
 import { useDeepLink } from './layout/useDeepLink';
 import { scriptKeyHints } from './layout/scriptKeyHints';
+import { SkipToRail } from './layout/SkipToRail';
 import { useLoadedParagraphs } from './layout/useLoadedParagraphs';
 import { Reader } from './reader/Reader';
 import { readFindQuery } from './scriptQuery';
@@ -587,18 +588,21 @@ function ScriptWorkspace({
                 sectionNames={sectionNames}
                 toolbar={toolbar}
                 underHeader={
-                  <FindBar
-                    find={find.find}
-                    nonce={find.nonce}
-                    matches={matches}
-                    locationOf={lineOf}
-                    onQuery={find.onQuery}
-                    onStep={find.onStep}
-                    onPick={find.onPick}
-                    onToggleList={find.onToggleList}
-                    onClose={find.onClose}
-                    returnFocus={() => scroller()?.focus()}
-                  />
+                  <>
+                    <SkipToRail onOpenRail={() => update({ drawer: 'rail' })} />
+                    <FindBar
+                      find={find.find}
+                      nonce={find.nonce}
+                      matches={matches}
+                      locationOf={lineOf}
+                      onQuery={find.onQuery}
+                      onStep={find.onStep}
+                      onPick={find.onPick}
+                      onToggleList={find.onToggleList}
+                      onClose={find.onClose}
+                      returnFocus={() => scroller()?.focus()}
+                    />
+                  </>
                 }
                 onPickSpeaker={onPickSpeaker}
                 onShowAnnotation={(id) => {

@@ -1,7 +1,7 @@
 // The `script` rows of STATE_CATALOG (see state-catalog.ts), in the order they are captured. The Studio Next Script page (SN-B77,
 // swapped in by SN-B8): three columns at 1440, the rail a drawer below 1280 px and the chapter list a drawer below 1180 px.
 import type { StateEntry } from '../lib/types';
-import { POPUP_ANCHORED_AT_FIRST_WIDTH, RAIL_DEPENDS_ON_WIDTH } from './shared';
+import { POPUP_ANCHORED_AT_FIRST_WIDTH, RAIL_DEPENDS_ON_WIDTH, TOAST_FADES_OUT } from './shared';
 
 // A rail tab: the column beside the reader at 1440, the drawer over the text with its scrim below 1280 px.
 const railTab = (state: string, description: string): StateEntry => ({ page: 'script', state, description, ...RAIL_DEPENDS_ON_WIDTH });
@@ -25,6 +25,26 @@ export const scriptStates: StateEntry[] = [
       'Script, Chapter 3 chosen from the chapter list: the column at 1440, the drawer from the left with its scrim below 1180 px (the header’s Chapters button)',
     // The driver opens the drawer only where the width shows its button, so each width loads afresh.
     reloadPerViewport: true,
+  },
+  {
+    page: 'script',
+    state: 'reader-context-menu',
+    description:
+      'Script, the right-click menu on a selected word: Mark as, Add to the Story Bible as, then Look up, Find, Copy, Bookmark here and Record from here, each group under its heading',
+    ...POPUP_ANCHORED_AT_FIRST_WIDTH,
+  },
+  {
+    page: 'script',
+    state: 'skip-to-side-panel',
+    description:
+      'Script, the "Skip to the side panel" button under the reader header, shown while it has focus: one Tab from the header past every chapter card to the rail',
+    ...POPUP_ANCHORED_AT_FIRST_WIDTH,
+  },
+  {
+    page: 'script',
+    state: 'bookmark-added',
+    description: 'Script, B pressed in the reader: the "Bookmark added." toast with Undo, and the bookmark ribbon beside its line',
+    ...TOAST_FADES_OUT,
   },
   { page: 'script', state: 'find', description: 'Script, Find open on "Alice": the bar over the reader with its count, the matches lit and the results list' },
   {
@@ -74,6 +94,6 @@ export const scriptStates: StateEntry[] = [
     page: 'script',
     state: 'no-manuscript',
     description:
-      'Script with no manuscript imported (?mockNoManuscript=1), opened by its address: the page asks for the manuscript, with Import manuscript, and does not open the import or leave for Production by itself',
+      'Script with no manuscript imported (?mockNoManuscript=1), opened by its address: the page asks for the manuscript, with Import manuscript, which opens the import on this page (it neither opens it by itself nor goes to Production)',
   },
 ];

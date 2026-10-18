@@ -9,7 +9,7 @@ import type { Result } from '../../../../studio/journal/createJournal';
 export type BookmarksModel = {
   /** The host's list in reading order; undefined until the first read lands. */
   bookmarks: Bookmark[] | undefined;
-  /** Bookmarks a spot. A spot that has one answers it and journals nothing. Null when the host refused (its sentence is a toast). */
+  /** Bookmarks a spot and says so in a toast. A spot that has one answers it, says it is already there and journals nothing. Null when the host refused (its sentence is a toast). */
   add: (spot: BookmarkSpot) => Promise<Bookmark | null>;
   /** Saves label and note as one journal entry. */
   update: (id: string, label: string, note: string) => Promise<boolean>;
@@ -38,7 +38,19 @@ export function useBookmarks(): BookmarksModel {
     void store.load('bookmarks');
   }, [store]);
 
-  const add = useCallback(async (spot: BookmarkSpot) => said(await addBookmark(env, spot))?.bookmark ?? null, [env]);
+  const add = useCallback(
+    async (spot: BookmarkSpot) => {
+      const added = said(await addBookmark(env, spot));
+      if (!added) return null;
+      // A press says what it did: a new bookmark (with Undo), or that the spot already had one, which a second press never toggles off.
+      if (added.created && added.entryId !== null) {
+        const { entryId } = added;
+        overlay.toastUndo('Bookmark added.', () => journal.undo(entryId));
+      } else overlay.toast('That spot is already bookmarked.');
+      return added.bookmark;
+    },
+    [env, journal],
+  );
   const update = useCallback(async (id: string, label: string, note: string) => said(await editBookmark(env, id, label, note)) !== null, [env]);
   const remove = useCallback(async (id: string) => said(await removeBookmark(env, id)) !== null, [env]);
 

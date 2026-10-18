@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { ContextMenu } from './ContextMenu';
@@ -63,5 +63,30 @@ describe('ContextMenu', () => {
     await screen.findAllByRole('menuitem');
     await user.keyboard('{Escape}');
     await waitFor(() => expect(screen.queryByRole('menuitem')).toBeNull());
+  });
+
+  it('puts neighbouring items of one group under a heading that names the group', async () => {
+    const grouped = [
+      { key: 'tone', label: 'Tone', group: 'Mark as', onSelect: vi.fn() },
+      { key: 'query', label: 'Query', group: 'Mark as', onSelect: vi.fn() },
+      { key: 'place', label: 'Place', group: 'Add to the Story Bible as', onSelect: vi.fn() },
+      { key: 'copy', label: 'Copy', onSelect: vi.fn() },
+    ];
+    render(
+      <ContextMenu items={grouped}>
+        <p>Alice was beginning to get very tired.</p>
+      </ContextMenu>,
+    );
+    fireEvent.contextMenu(screen.getByText(/Alice was beginning/));
+    const groups = await screen.findAllByRole('group');
+    expect(
+      groups.map((group) => group.getAttribute('aria-labelledby') && document.getElementById(group.getAttribute('aria-labelledby')!)?.textContent),
+    ).toEqual(['Mark as', 'Add to the Story Bible as']);
+    expect(
+      within(groups[0])
+        .getAllByRole('menuitem')
+        .map((item) => item.textContent),
+    ).toEqual(['Tone', 'Query']);
+    expect(screen.getAllByRole('menuitem')).toHaveLength(4);
   });
 });

@@ -92,6 +92,20 @@
   },
   {
     "page": "script",
+    "state": "reader-context-menu",
+    "viewport": "desktop",
+    "docName": "script-context-menu",
+    "caption": "Script - the right-click menu on a selected word, in labelled groups"
+  },
+  {
+    "page": "script",
+    "state": "skip-to-side-panel",
+    "viewport": "desktop",
+    "docName": "script-skip-to-side-panel",
+    "caption": "Script - the Skip to the side panel button under the reader header, with focus on it"
+  },
+  {
+    "page": "script",
     "state": "rail-words",
     "viewport": "desktop",
     "docName": "script-word-lookup",

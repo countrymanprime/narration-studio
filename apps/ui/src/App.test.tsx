@@ -469,6 +469,24 @@ describe('App (integration, driven through the mock NarrationApi)', () => {
     await waitFor(() => expect(within(appToasts('alert')).getByText(/the file dialog could not open/)).toBeTruthy());
   });
 
+  it('without a manuscript, Script and Story Bible open the import in place instead of going to Production', async () => {
+    const source = createMockApi();
+    const noManuscript = async () => ({ ...(await source.bootstrap()), manuscript: null });
+    for (const [path, title] of [
+      ['/script', 'Script'],
+      ['/story-bible', 'Story Bible'],
+    ] as const) {
+      window.history.replaceState(null, '', path);
+      const selectManuscript = vi.fn(() => new Promise<never>(() => {}));
+      renderApp({ selectManuscript, bootstrap: noManuscript });
+      await screen.findByRole('heading', { name: title });
+      fireEvent.click(await screen.findByRole('button', { name: 'Import manuscript' }));
+      await waitFor(() => expect(selectManuscript).toHaveBeenCalledTimes(1));
+      expect(window.location.pathname).toBe(path);
+      cleanup();
+    }
+  });
+
   it('Clear derived project data stays open and busy while it runs and cannot be confirmed twice', async () => {
     const clearProjectData = vi.fn(() => new Promise<void>(() => {}));
     renderApp({ clearProjectData });
