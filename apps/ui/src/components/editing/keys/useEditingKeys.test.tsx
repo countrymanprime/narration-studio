@@ -157,6 +157,32 @@ describe('brackets-step-flags-enter-opens-the-card', () => {
   });
 });
 
+describe('Escape-closes-the-drawer', () => {
+  it('closes an open drawer once the card and the selection are done with, before it blurs', () => {
+    const doc = marksDoc();
+    const closeDrawer = vi.fn(() => true);
+    mount(doc, { closeDrawer });
+    act(() => page.dispatch({ type: 'select', anchor: doc.items[0].key, head: doc.items[2].key }));
+    emit('Escape');
+    expect(state().sel).toBeNull();
+    expect(closeDrawer).not.toHaveBeenCalled();
+    emit('Escape');
+    expect(closeDrawer).toHaveBeenCalledTimes(1);
+  });
+
+  it('blurs when the drawer is already shut', () => {
+    const doc = marksDoc();
+    mount(doc, { closeDrawer: () => false });
+    const el = document.createElement('div');
+    el.tabIndex = 0;
+    document.body.append(el);
+    el.focus();
+    emit('Escape', [], el);
+    expect(document.activeElement).toBe(document.body);
+    el.remove();
+  });
+});
+
 describe('a-control-that-owns-the-key-keeps-it', () => {
   it.each([
     ['input', () => document.createElement('input')],

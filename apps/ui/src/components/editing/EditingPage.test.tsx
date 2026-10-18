@@ -223,19 +223,57 @@ describe('EditingPage', () => {
   });
 
   describe('daw-off-banner-is-read-only-and-plays-still-work', () => {
-    it('shows the capability’s sentence with Retry, disables the edits with it, and still plays', async () => {
+    it('shows the capability’s sentence with Check again, disables the edits with it, and still plays', async () => {
       mount({ setup: 'reaper-off' });
       await script();
       const banner = await waitFor(() => document.querySelector<HTMLElement>('#offbanner')!);
       const sentence = DAW_SETUPS['reaper-off'].capabilities['record'].message!;
       expect(banner.textContent).toContain(sentence);
-      expect(within(banner).getByRole('button', { name: 'Retry' })).toBeTruthy();
+      expect(within(banner).getByRole('button', { name: 'Check again' })).toBeTruthy();
       fireEvent.mouseDown(word('p1:1'), { button: 0, detail: 2 });
       const bar = screen.getByRole('toolbar', { name: 'Playback and selection' });
       const del = await within(bar).findByRole('button', { name: /Delete/ });
       await waitFor(() => expect(del.getAttribute('aria-disabled') === 'true' || (del as HTMLButtonElement).disabled).toBe(true));
       fireEvent.click(within(bar).getByRole('button', { name: 'Play the selection' }));
       await waitFor(() => expect(audios.some((a) => a.play.mock.calls.length > 0)).toBe(true));
+    });
+
+    it('says why Delete, Mute and Add FX are off in words on the page, not only in a hint', async () => {
+      mount({ setup: 'reaper-off' });
+      await script();
+      const notice = await waitFor(() => document.querySelector<HTMLElement>('#editoff')!);
+      expect(notice.textContent).toContain('Delete, Mute and Add FX are off.');
+      expect(notice.textContent).toContain(DAW_SETUPS['reaper-off'].capabilities['cut_range'].message!);
+    });
+
+    it('has no such notice while the edits are on', async () => {
+      mount({ setup: 'reaper' });
+      await script();
+      await act(async () => {});
+      expect(document.querySelector('#editoff')).toBeNull();
+    });
+
+    it('keeps the setting out of the banner: a quiet DAW is "not answering", and the switched-off edits are the notice’s to say', async () => {
+      const off = { level: 'experimental', available: false, reason: 'experimental_off', message: 'Experimental: switched off in Settings.' } as const;
+      const quiet = DAW_SETUPS['reaper-off'];
+      const setting = { ...quiet, capabilities: { ...quiet.capabilities, record: off, cut_range: off, fx_range: off } };
+      mount({ daw: createMockDawClient(setting, { chapterIds: ['c1', 'c2'], candidateIds: ['t1', 't2'], findingIds: [] }) });
+      await script();
+      const banner = await waitFor(() => document.querySelector<HTMLElement>('#offbanner')!);
+      expect(banner.textContent).toContain('REAPER is not answering.');
+      expect(banner.textContent).not.toContain('Experimental');
+      expect(document.querySelector('#editoff')!.textContent).toContain('Experimental: switched off in Settings.');
+    });
+
+    it('keeps one takes chip in the Tab order: the cursor’s line, or the first before there is a cursor', async () => {
+      mount({ chapterId: 'c1' });
+      await script();
+      await waitFor(() => expect(document.querySelector('[data-tchip="p1"]')).not.toBeNull());
+      expect(document.querySelector('[data-tchip="p1"]')!.getAttribute('tabindex')).toBeNull();
+      fireEvent.mouseDown(word('p2:1'), { button: 0, detail: 1 });
+      await waitFor(() => expect(document.querySelector('[data-tchip="p1"]')!.getAttribute('tabindex')).toBe('-1'));
+      fireEvent.mouseDown(word('p1:1'), { button: 0, detail: 1 });
+      await waitFor(() => expect(document.querySelector('[data-tchip="p1"]')!.getAttribute('tabindex')).toBeNull());
     });
 
     it('shows no banner with REAPER linked or the built-in recorder, whose takes can be kept', async () => {
@@ -352,6 +390,21 @@ describe('EditingPage', () => {
     await script();
     expect(screen.queryByRole('button', { name: 'Timeline' })).toBeNull();
     expect(drawerButton()).toBeTruthy();
+  });
+
+  it('Escape closes the drawer, from the text or from its tabs, and from its tabs gives the focus back to its button', async () => {
+    mount();
+    await script();
+    fireEvent.click(drawerButton());
+    expect(document.querySelector('#drawer')).not.toBeNull();
+    press('Escape');
+    expect(document.querySelector('#drawer')).toBeNull();
+    fireEvent.click(drawerButton());
+    const tab = within(document.querySelector<HTMLElement>('#drawer')!).getAllByRole('tab')[0];
+    act(() => tab.focus());
+    act(() => void fireEvent.keyDown(tab, { key: 'Escape', code: 'Escape' }));
+    expect(document.querySelector('#drawer')).toBeNull();
+    expect(document.activeElement).toBe(drawerButton());
   });
 
   it('measures the window, not the page beside the rail, as the mock does', async () => {
