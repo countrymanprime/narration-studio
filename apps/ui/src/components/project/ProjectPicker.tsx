@@ -115,9 +115,14 @@ export function ProjectPicker({ notify, onCreated }: { notify: Notify; onCreated
     };
   }, [commitRemoval]);
 
-  const undoRemoval = (path: string) => {
+  const undoRemoval = (entry: RecentProject) => {
+    const { path } = entry;
     const timer = removalTimers.current.get(path);
-    if (timer === undefined) return;
+    // The picker closed (a project was opened) and sent the removal while this Undo was still on screen: say so rather than do nothing.
+    if (timer === undefined) {
+      notify(`${entry.name} was already removed from recent projects.`);
+      return;
+    }
     window.clearTimeout(timer);
     removalTimers.current.delete(path);
     pendingFocusRef.current = path;
@@ -133,7 +138,7 @@ export function ProjectPicker({ notify, onCreated }: { notify: Notify; onCreated
     );
     setHidden((current) => [...current, entry.path]);
     setReason('');
-    notify(`Removed ${entry.name} from recent projects. Its files are kept.`, 'info', { label: 'Undo', onAction: () => undoRemoval(entry.path) });
+    notify(`Removed ${entry.name} from recent projects. Its files are kept.`, 'info', { label: 'Undo', onAction: () => undoRemoval(entry) });
   };
 
   const browse = () =>

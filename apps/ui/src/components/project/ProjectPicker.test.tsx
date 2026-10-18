@@ -254,6 +254,23 @@ describe('ProjectPicker', () => {
       expect(removeRecentProject).toHaveBeenCalledWith('C:\\Projects\\Voltage-and-the-Undercroft');
     });
 
+    it('says so when Undo is pressed after the picker has closed and sent the removal', async () => {
+      const api = createMockApi();
+      const notify = vi.fn<Notify>();
+      const { unmount } = render(
+        <ApiProvider api={api}>
+          <ProjectPicker notify={notify} onCreated={() => undefined} />
+        </ApiProvider>,
+      );
+      await screen.findByText(VOLTAGE);
+      fireEvent.click(removeButton(VOLTAGE));
+      unmount();
+
+      notify.mock.calls[0]![2]!.onAction();
+
+      expect(notify).toHaveBeenLastCalledWith(`${VOLTAGE} was already removed from recent projects.`);
+    });
+
     it('puts the row back and shows the reason when the host cannot remove it', async () => {
       const { api } = renderPicker();
       vi.spyOn(api, 'removeRecentProject').mockRejectedValue(new Error('could not update recent projects'));

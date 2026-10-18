@@ -1241,8 +1241,8 @@ describe('App (integration, driven through the mock NarrationApi)', () => {
   });
 
   // The mock's New project goes to Script (`newProject` in its state/commands/manuscript.ts), where the empty state offers the import.
-  // Opening a project that is already there leaves the page alone.
-  it('opens a project created from the picker on the Script page, and shows the import-a-manuscript state there when it has none', async () => {
+  // Opening a project that is already there leaves the page alone. (The Script page's own no-manuscript state is covered in ScriptPage.test.tsx.)
+  it('opens a project created from the picker on the Script page', async () => {
     window.history.replaceState(null, '', '/');
     renderApp({}, { projectFolder: '' });
     await screen.findByRole('heading', { level: 1, name: 'Choose your project' });
