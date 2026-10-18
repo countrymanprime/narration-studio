@@ -341,7 +341,7 @@ export function EffectSettings({ fx, cuts, total, dawName, host }: { fx: WordFx;
         Bypass this effect
       </Checkbox>
       {asking ? (
-        <div role="alert" className="flex flex-col gap-2 rounded-[var(--radius-button)] bg-[var(--warning-soft)] p-2 text-[length:var(--font-size-sm)]">
+        <div role="alert" className="flex flex-col gap-2 rounded-[var(--radius-button)] bg-[var(--warn-soft)] p-2 text-[length:var(--font-size-sm)]">
           <span>Turning this on takes coverage over the {fmtPct(fxCap.cap)} cap.</span>
           <span className="flex gap-2">
             <Button variant="secondary" size="sm" onClick={() => setAsking(false)}>

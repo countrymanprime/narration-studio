@@ -22,7 +22,7 @@ function Entry({ entry, onOpenEntry }: { entry: GuideEntity; onOpenEntry: (id: s
         <b>{entry.canonical_name}</b>
         <span
           className="rounded-full px-2 text-xs"
-          style={{ background: `var(${colour}-soft, var(--surface-muted))`, color: `var(${colour}-text, var(${colour}))` }}
+          style={{ background: `var(${colour}-soft, var(--surface-2))`, color: `var(${colour}-text, var(${colour}))` }}
         >
           {entry.category}
         </span>

@@ -81,7 +81,7 @@ export function RunOptions({
           </label>
         </div>
       ) : null}
-      <fieldset className="m-0 grid min-w-0 grid-cols-1 gap-3 border-0 border-t border-[var(--line)] p-0 pt-3 @sm:grid-cols-3">
+      <fieldset className="m-0 grid min-w-0 grid-cols-1 gap-3 border-0 border-t border-[var(--border)] p-0 pt-3 @sm:grid-cols-3">
         <legend className="sr-only">Long recordings</legend>
         <label className="flex flex-col gap-1">
           <span className={LABEL}>Chunk length</span>

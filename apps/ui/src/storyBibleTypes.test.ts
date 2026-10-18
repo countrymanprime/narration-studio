@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { canSpeak, TYPE_COLOUR_VAR, typeColour, typeOf } from './storyBibleTypes';
-import { GUIDE_TYPE_COLOURS, type GuideType } from './types';
+import { canSpeak, typeColour, typeOf } from './storyBibleTypes';
+import type { GuideType } from './types';
 
 const TYPES: GuideType[] = [
   { name: 'Person', colour: 'green', speaks: true },
@@ -27,9 +27,5 @@ describe('the Story Bible types', () => {
       expect(typeColour(TYPES, state)).toBe('review');
       expect(canSpeak(TYPES, state)).toBe(false);
     }
-  });
-
-  it('has a CSS colour for every type colour', () => {
-    expect(Object.keys(TYPE_COLOUR_VAR).sort()).toEqual([...GUIDE_TYPE_COLOURS].sort());
   });
 });

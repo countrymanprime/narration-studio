@@ -10,7 +10,7 @@ export function VoicesNearby({ voices }: { voices: readonly NearbyVoice[] }) {
           <div className={ROW_CLASS} key={voice.id}>
             <span className="flex flex-col gap-0.5">
               {voice.aliases.map((alias) => (
-                <span className="rounded-full bg-[var(--surface-muted)] px-2 text-xs" key={alias} data-speaker={alias}>
+                <span className="rounded-full bg-[var(--surface-2)] px-2 text-xs" key={alias} data-speaker={alias}>
                   {alias}
                 </span>
               ))}
