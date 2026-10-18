@@ -27,9 +27,12 @@ describe('the swapped pages (SN-M5)', () => {
     expect(offending).toEqual([]);
   });
 
+  // BackupsSection is a section registered into the DAW category that shows itself only for a DAW with the backups capability
+  // (it asks for that one capability on purpose); it draws no capability row.
+  const GATED_SECTIONS = new Set(['settings/BackupsSection.tsx']);
   it('no-hand-written-capability-row: no Settings file reads one capability by name', () => {
     const offending = swapped
-      .filter((file) => relative(components, file).startsWith('settings'))
+      .filter((file) => relative(components, file).startsWith('settings') && !GATED_SECTIONS.has(relative(components, file)))
       .filter((file) => /capabilities\.[a-z]\w*|capabilities\[['"`]/.test(readFileSync(file, 'utf8')))
       .map((file) => relative(components, file));
     expect(offending).toEqual([]);

@@ -44,7 +44,8 @@ type `>` to list commands only. Escape, or a press anywhere outside the menu, cl
 ![The jump menu open over the page: type to find a page, a chapter or a command](../../images/ui/nav-jump-menu.webp)
 
 Undo (`Ctrl+Z`, except in a text box, which keeps its own undo) takes back the last change you made in the app, and says why when it cannot; History lists
-the changes you can undo (`Ctrl+Shift+H`); `Ctrl+Z` works with History open too, and the list follows. Below the tablet width Undo and History leave the header; the jump menu opens History.
+the changes you can undo (`Ctrl+Shift+H`), each with the time it was made; it keeps the newest 40 and says so when it is full, and `Ctrl+Z` works with History open too, and the list follows. Below the tablet width Undo and History leave the header; the jump menu opens History.
+The **Undo** on a message beside a change goes away once it would no longer be true: when you undo that change another way (`Ctrl+Z`, the header or History), open another page or chapter, or switch project.
 While a [production stage timer](production.md#the-stage-timer) runs,
 the timer chip counts its time and names the chapter ("0:42:07 · timer on Chapter 6") on every page; below the
 tablet width it keeps the clock only. With no timer running it is not there.
@@ -78,7 +79,7 @@ chapter, or the previous Story Bible entry are not Back steps.
 
 A link the app cannot open (a typed address it cannot read, or one that names a chapter or line the book does not have) shows
 **This link could not be opened** with **Open** *page* (the solid button) and **Go to Production** (quieter); both replace the link, so Back does not return to it.
-The [Booth](booth.md#the-credits) fills the window and has no rail, so there Escape also leaves the message, for [Script](script.md).
+The [Booth](booth.md#the-credits) fills the window and has no rail, so there Escape also leaves the message: for [Pickups](pickups.md) when the link still names pickups, otherwise for [Script](script.md).
 
 ## Zoom
 

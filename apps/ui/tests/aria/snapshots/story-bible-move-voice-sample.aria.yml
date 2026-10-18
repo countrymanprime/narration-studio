@@ -1,0 +1,23 @@
+- main:
+  - group "Zoom"
+  - paragraph
+- status
+- alert
+- status
+- alert
+- status
+- dialog "Move voice sample":
+  - heading "Move voice sample" [level=2]
+  - button "Close"
+  - paragraph: Move “Tea party, quick” to another character.
+  - text: Move to
+  - combobox "Move to":
+    - option "Narration" [selected]
+    - option "Alice"
+    - option "Caterpillar"
+    - option "Cheshire Cat"
+    - option "Queen of Hearts"
+    - option "White Rabbit"
+  - text: /1 of \d+ samples/
+  - button "Cancel"
+  - button "Move"

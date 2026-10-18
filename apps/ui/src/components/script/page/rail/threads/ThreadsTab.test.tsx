@@ -182,7 +182,7 @@ describe('edits-a-message-and-deletes-one-with-undo', () => {
     await screen.findByRole('article', { name: /Query for author/ });
     await user.click(card(query.id).getAllByRole('button', { name: 'Delete the message' }).at(-1)!);
     await waitFor(async () => expect((await marks())[1]?.thread).toHaveLength(0));
-    expect(toastUndo).toHaveBeenCalledWith('Message deleted.', expect.any(Function));
+    expect(toastUndo).toHaveBeenCalledWith('Message deleted.', expect.any(Function), { entry: expect.any(Number) });
     await toastUndo.mock.calls[0]![1]();
     expect(restore).toHaveBeenCalledWith(query.id, 0, expect.objectContaining({ who: 'author', text: 'They meant the live animals.' }));
     expect((await marks())[1]?.thread).toHaveLength(1);
@@ -229,7 +229,7 @@ describe('change-type-and-delete', () => {
     await screen.findByRole('article', { name: /Word stress/ });
     await user.click(card(note.id).getByRole('button', { name: 'Delete the note' }));
     await waitFor(async () => expect((await marks()).filter((mark) => mark.type === 'stress')).toHaveLength(0));
-    await waitFor(() => expect(toastUndo).toHaveBeenCalledWith('Note deleted.', expect.any(Function)));
+    await waitFor(() => expect(toastUndo).toHaveBeenCalledWith('Note deleted.', expect.any(Function), { entry: expect.any(Number) }));
     await toastUndo.mock.calls[0]![1]();
     expect((await marks()).filter((mark) => mark.type === 'stress')).toHaveLength(1);
   });

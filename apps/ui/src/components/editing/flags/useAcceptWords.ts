@@ -41,11 +41,15 @@ export function useAcceptWords({ journal, chapterId, onChange }: AcceptOptions):
         return;
       }
       onChange?.();
-      overlay.toastUndo('Not flagged any more.', async () => {
-        const undone = await journal.undo(result.value.id);
-        if (undone.ok) onChange?.();
-        return undone;
-      });
+      overlay.toastUndo(
+        'Not flagged any more.',
+        async () => {
+          const undone = await journal.undo(result.value.id);
+          if (undone.ok) onChange?.();
+          return undone;
+        },
+        { entry: result.value.id },
+      );
     },
     [journal, chapterId, log, onChange],
   );

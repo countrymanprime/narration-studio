@@ -155,4 +155,10 @@ export const masterStates: StateEntry[] = [
     state: 'no-manuscript',
     description: 'Master & QC with no manuscript imported (?mockNoManuscript=1) - the page asks for the manuscript first, with Import manuscript',
   },
+  {
+    page: 'master',
+    state: 'package-loading',
+    description:
+      'Master & QC while the chapters are still being read (?mockChapters=loading): the page as usual, and in the Delivery package panel grey blocks in place of the checks and of the "failing and not ready" count, with Open Delivery still offered and one polite "Reading the profile and the chapters…" status',
+  },
 ];

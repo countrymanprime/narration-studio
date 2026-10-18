@@ -50,6 +50,7 @@ import type { DawMockScript, DawMockSeed } from '../dawMock';
 import type { ProvidersMockSeed } from '../providersMock';
 import type { MasteringMockSeed } from '../masteringMock';
 import type { RecordingMockSeed } from '../recordingMock';
+import type { VoiceSamplesSeed } from '../voiceSamplesMock';
 
 // What createMockApi boots from (the seeds), and the host state more than one domain reads or writes.
 // manuscriptCandidate boots a project with no imported manuscript but a
@@ -59,8 +60,8 @@ export type MockApiSeed = {
   projectFolder?: string;
   tracksCandidates?: string[];
   noManuscript?: boolean;
-  /** The Pickups list cannot be read: every read is refused with a reason. */
-  pickupList?: 'unreadable';
+  /** The Pickups list cannot be read: every read is refused with a reason (`unreadable`), or never answers (`loading`). */
+  pickupList?: 'unreadable' | 'loading';
   /** Replaces the Alice chapters at boot (fixtures/scenario.ts); the bundled manuscript then does not load over them. */
   chapters?: ManuscriptChapter[];
   /** Replaces the Alice paragraphs at boot; seed it with `chapters`. */
@@ -115,6 +116,8 @@ export type MockApiSeed = {
   assets?: MockAssetSeed;
   /** `?mockAssetsList=`: the list of downloads never answers (`loading`) or fails to read (`fails`), so Models & downloads shows its loading rows or its error. */
   assetsList?: 'loading' | 'fails';
+  /** `?mockHold=`: the reads named here never answer, so the page that makes them stays on its loading skeleton: the Production overview, the Story Bible's entries, the Series tab's voice bible. */
+  held?: readonly ('overview' | 'entities' | 'series')[];
   /** `?mockPlan=`: the read of the production plan (the Schedule's) never answers (`loading`) or fails (`fails`), so the Schedule shows its loading skeleton or its error. */
   planRead?: 'loading' | 'fails';
   /** `?mockChapters=`: the read of the manuscript's chapters never answers (`loading`) or fails (`fails`), so a page that reads them shows its loading skeleton or its error. */
@@ -251,6 +254,8 @@ export type MockApiSeed = {
    * tab's "not in a series" state can be seen. Unset boots as a member of `WIRE_SERIES` (two books).
    */
   seriesVoiceBible?: 'not-in-series' | 'single-book';
+  /** Boots with voice samples saved (`?mockVoiceSamples=`), see `VoiceSamplesSeed`. Unset boots with none. */
+  voiceSamples?: VoiceSamplesSeed;
   /** Seeds the mastering chain mock (whether a project is open, its stored choice), see `MasteringMockSeed`. */
   mastering?: MasteringMockSeed;
   /** `?mockZoom=`: the window's real zoom level at boot, as a fraction (1.25 is 125%).

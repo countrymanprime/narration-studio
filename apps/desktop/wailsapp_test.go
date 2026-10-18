@@ -15,6 +15,9 @@ func TestMainWindowKeepsCtrlWheelZoomAndHidesTheBrowserMenu(t *testing.T) {
 	if !options.DefaultContextMenuDisabled {
 		t.Error("the browser's right-click menu (Reload, Inspect) is shown; v2 hid it in a production build")
 	}
+	if !options.EnableFileDrop {
+		t.Error("EnableFileDrop is off: the import's drop zone would never be told about a dropped file (manuscript_drop.go)")
+	}
 	if options.Name != mainWindowName {
 		t.Errorf("window name = %q, want %q: the host finds the window by this name", options.Name, mainWindowName)
 	}

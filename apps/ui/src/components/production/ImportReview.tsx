@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { ManuscriptContentKind, ManuscriptImportPreview, ManuscriptImportSection, ManuscriptImportSelection } from '../../types';
 import { ImportProfileField } from '../delivery/ImportProfileField';
 import { Button } from '../primitives/Button';
@@ -7,6 +7,7 @@ import { Disclosure } from '../primitives/Disclosure';
 import { FIELD_LABEL_CLASSES } from '../primitives/Field';
 import { SectionLabel } from '../primitives/SectionLabel';
 import { Select } from '../primitives/Select';
+import { StatusBadge } from '../primitives/StatusBadge';
 import { Tooltip } from '../primitives/Tooltip';
 import { TitleSubtitle } from '../primitives/TitleSubtitle';
 import {
@@ -115,6 +116,9 @@ export function ImportReview({
   const checkedIds = checkedCandidateIds(preview, selection);
   const open = (key: ReviewGroupKey) => isGroupOpen(key, groupOpen, counts);
   const root = useRef<HTMLDivElement>(null);
+  // The row whose first lines the preview shows (the mock's selected outline row); the first section until the narrator picks one.
+  const [previewId, setPreviewId] = useState<string>();
+  const previewed = sections.find((section) => section.id === previewId) ?? sections[0];
   // Reclassifying a row moves it to another group, which is a new place in the page: the select is put back in focus there, so a keyboard
   // narrator does not lose their place, and a group the row moved into opens so the change can be seen.
   const focusAfterMove = useRef<string | null>(null);
@@ -149,7 +153,14 @@ export function ImportReview({
             const styled = headingParts(heading);
             return (
               <div key={section.id} className="flex items-center gap-3 text-sm">
-                <span className="min-w-0 flex-1 truncate" title={name}>
+                {/* native-control-ok: an outline row's title, a bare text control that picks the heading to preview; Button's uppercase chrome would break the row */}
+                <button
+                  type="button"
+                  className="min-w-0 flex-1 cursor-pointer truncate text-left"
+                  title={name}
+                  aria-pressed={previewed?.id === section.id}
+                  onClick={() => setPreviewId(section.id)}
+                >
                   {heading.textLine ? (
                     <>
                       {heading.title}
@@ -165,7 +176,12 @@ export function ImportReview({
                   ) : (
                     <TitleSubtitle title={heading.title} subtitle={heading.subtitle} />
                   )}
-                </span>
+                </button>
+                {section.wordCount !== undefined && (
+                  <span className="flex-none text-xs text-[var(--text-muted)] tabular-nums">
+                    {section.wordCount.toLocaleString('en-US')} {plural(section.wordCount, 'word')}
+                  </span>
+                )}
                 {hasSubtitleChoice(section) && (
                   // The heading's second line, read as its subtitle or not. The visible word is
                   // short so the row keeps its room for the title; the name says which line it is about.
@@ -195,115 +211,141 @@ export function ImportReview({
       </Disclosure>
     );
   const subtitleChoices = hasSubtitleChoices(preview);
+  const subtitleRows = sections.filter(hasSubtitleChoice).length;
+  const options = (preview.format === 'markdown' || buildStoryBible || subtitleChoices || deliveryProfile) && (
+    <fieldset className="min-w-0">
+      <SectionLabel as="legend" className="px-1">
+        Import options
+      </SectionLabel>
+      <div className="space-y-2">
+        {preview.format === 'markdown' && (
+          <label className="flex items-center gap-2">
+            <span className={FIELD_LABEL_CLASSES}>Markdown chapter heading level</span>
+            <Select
+              label="Markdown chapter heading level"
+              value={String(headingLevel)}
+              options={[1, 2, 3, 4, 5, 6].map((level) => ({ value: String(level), label: `H${level}` }))}
+              onChange={(value) => onHeadingLevelChange(Number(value))}
+            />
+          </label>
+        )}
+        {subtitleChoices && (
+          // The mock's "Subtitle detected" banner, for the book: how many headings have a second line, and the default every row starts
+          // from; a row set by hand keeps its own answer (owner decision I2: a book's house style here, the exceptions on the rows).
+          <div className="space-y-1 rounded-[var(--radius-card)] border p-3" style={{ borderColor: 'var(--border)', background: 'var(--surface-2)' }}>
+            <b className="text-sm">Subtitles detected</b>
+            <p className="text-xs text-[var(--text-muted)]">
+              {subtitleRows} {plural(subtitleRows, 'heading has', 'headings have')} a second line the importer read as a subtitle. Each row can say otherwise.
+            </p>
+            <Checkbox checked={selection.subtitleDefault ?? true} onChange={(next) => onSelectionChange((current) => ({ ...current, subtitleDefault: next }))}>
+              Read a heading's second line as its subtitle
+            </Checkbox>
+          </div>
+        )}
+        {deliveryProfile && <ImportProfileField value={deliveryProfile.value} onChange={deliveryProfile.onChange} />}
+        {buildStoryBible && (
+          <Checkbox checked={buildStoryBible.checked} onChange={buildStoryBible.onChange}>
+            Build the Story Bible after import
+          </Checkbox>
+        )}
+      </div>
+    </fieldset>
+  );
   return (
     <div ref={root}>
-      {(preview.format === 'markdown' || buildStoryBible || subtitleChoices || deliveryProfile) && (
-        <fieldset className="mt-4 min-w-0 border-t pt-3" style={{ borderColor: 'var(--border)' }}>
-          <SectionLabel as="legend" className="px-1">
-            Import options
-          </SectionLabel>
-          <div className="space-y-2">
-            {preview.format === 'markdown' && (
-              <label className="flex items-center gap-2">
-                <span className={FIELD_LABEL_CLASSES}>Markdown chapter heading level</span>
-                <Select
-                  label="Markdown chapter heading level"
-                  value={String(headingLevel)}
-                  options={[1, 2, 3, 4, 5, 6].map((level) => ({ value: String(level), label: `H${level}` }))}
-                  onChange={(value) => onHeadingLevelChange(Number(value))}
-                />
-              </label>
-            )}
-            {subtitleChoices && (
-              // The default every row starts from; a row set by hand keeps its own answer (owner decision I2: a book's house style here,
-              // the exceptions on the rows).
-              <Checkbox
-                checked={selection.subtitleDefault ?? true}
-                onChange={(next) => onSelectionChange((current) => ({ ...current, subtitleDefault: next }))}
-              >
-                Read a heading's second line as its subtitle
-              </Checkbox>
-            )}
-            {deliveryProfile && <ImportProfileField value={deliveryProfile.value} onChange={deliveryProfile.onChange} />}
-            {buildStoryBible && (
-              <Checkbox checked={buildStoryBible.checked} onChange={buildStoryBible.onChange}>
-                Build the Story Bible after import
-              </Checkbox>
-            )}
-          </div>
-        </fieldset>
-      )}
-      {preview.format === 'pdf' && preview.chapterTitles.length > 0 && <p className="mt-3 text-xs">Detected chapters: {preview.chapterTitles.join(' · ')}</p>}
-      {(sections.length > 0 || candidates.length > 0 || notices.length > 0) && (
-        <fieldset className="mt-4 min-w-0">
-          <SectionLabel as="legend" className="px-1">
-            Review what was found
-          </SectionLabel>
-          {sectionGroup('narration', 'Narration chapters', `${counts.narration} ${plural(counts.narration, 'chapter')}`)}
-          {sectionGroup('opening', 'Front matter', `${counts.opening} ${plural(counts.opening, 'section')}`, {
-            label: 'About front matter',
-            text: FRONT_MATTER_NOTE,
-          })}
-          {sectionGroup('reference', 'Reference material', `${counts.reference} ${plural(counts.reference, 'section')}`, {
-            label: 'About reference material',
-            text: REFERENCE_NOTE,
-          })}
-          {candidates.length > 0 && (
-            <Disclosure
-              title="Story Bible character suggestions"
-              summary={`${counts.suggestionsChecked} of ${counts.suggestionsTotal} checked`}
-              open={open('characters')}
-              onOpenChange={(next) => onGroupOpenChange('characters', next)}
-              className="border-t border-[var(--border)]"
-            >
-              <div className="pt-1 pb-3 pl-5">
-                <p className="mb-2 text-xs text-[var(--text-muted)]">Checked names become reviewable Character entries after import.</p>
-                <div className="mb-2 flex gap-2">
-                  <Button
-                    variant="secondary"
-                    onClick={() => onSelectionChange((current) => ({ ...current, characterCandidateIds: candidates.map((item) => item.id) }))}
-                  >
-                    Select all
-                  </Button>
-                  <Button variant="secondary" onClick={() => onSelectionChange((current) => ({ ...current, characterCandidateIds: [] }))}>
-                    Select none
-                  </Button>
-                </div>
-                {candidates.map((candidate) => (
-                  <Checkbox
-                    key={candidate.id}
-                    checked={checkedIds.includes(candidate.id)}
-                    onChange={(next) => {
-                      const selected = new Set(checkedIds);
-                      if (next) selected.add(candidate.id);
-                      else selected.delete(candidate.id);
-                      onSelectionChange((current) => ({ ...current, characterCandidateIds: [...selected] }));
-                    }}
-                  >
-                    {candidate.name}
-                    {candidate.description && <span className="text-[var(--text-muted)]"> — {candidate.description}</span>}
-                  </Checkbox>
-                ))}
-              </div>
-            </Disclosure>
+      <h3 className="mt-4 text-[length:var(--font-size-xl)] font-semibold">Check the chapter outline</h3>
+      <div className="mt-2 flex flex-wrap gap-2" aria-label="What was found">
+        <StatusBadge tone="success" label={`${counts.narration} ${plural(counts.narration, 'chapter')}`} />
+        <StatusBadge tone="neutral" label={`${preview.paragraphCount} ${plural(preview.paragraphCount, 'paragraph')}`} />
+        <StatusBadge tone="neutral" label={`${counts.suggestionsTotal} character ${plural(counts.suggestionsTotal, 'suggestion')}`} />
+        {counts.repairs > 0 && <StatusBadge tone="warning" label={`${counts.repairs} ${plural(counts.repairs, 'repair')}`} />}
+      </div>
+      <div className="mt-4 grid gap-4 min-[1180px]:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
+        <div className="min-w-0">
+          {preview.format === 'pdf' && preview.chapterTitles.length > 0 && (
+            <p className="mt-3 text-xs">Detected chapters: {preview.chapterTitles.join(' · ')}</p>
           )}
-          {notices.length > 0 && (
-            <Disclosure
-              title="Repairs"
-              summary={`${notices.length} made to the source`}
-              open={open('repairs')}
-              onOpenChange={(next) => onGroupOpenChange('repairs', next)}
-              className="border-t border-[var(--border)]"
-            >
-              <ul className="list-disc space-y-1 pt-1 pb-3 pl-9 text-xs break-words text-[var(--text-muted)]">
-                {notices.map((notice, index) => (
-                  <li key={`${index}-${notice}`}>{notice}</li>
-                ))}
-              </ul>
-            </Disclosure>
+          {(sections.length > 0 || candidates.length > 0 || notices.length > 0) && (
+            <fieldset className="mt-4 min-w-0">
+              <SectionLabel as="legend" className="px-1">
+                Review what was found
+              </SectionLabel>
+              {sectionGroup('narration', 'Narration chapters', `${counts.narration} ${plural(counts.narration, 'chapter')}`)}
+              {sectionGroup('opening', 'Front matter', `${counts.opening} ${plural(counts.opening, 'section')}`, {
+                label: 'About front matter',
+                text: FRONT_MATTER_NOTE,
+              })}
+              {sectionGroup('reference', 'Reference material', `${counts.reference} ${plural(counts.reference, 'section')}`, {
+                label: 'About reference material',
+                text: REFERENCE_NOTE,
+              })}
+              {candidates.length > 0 && (
+                <Disclosure
+                  title="Story Bible character suggestions"
+                  summary={`${counts.suggestionsChecked} of ${counts.suggestionsTotal} checked`}
+                  open={open('characters')}
+                  onOpenChange={(next) => onGroupOpenChange('characters', next)}
+                  className="border-t border-[var(--border)]"
+                >
+                  <div className="pt-1 pb-3 pl-5">
+                    <p className="mb-2 text-xs text-[var(--text-muted)]">Checked names become reviewable Character entries after import.</p>
+                    <div className="mb-2 flex gap-2">
+                      <Button
+                        variant="secondary"
+                        onClick={() => onSelectionChange((current) => ({ ...current, characterCandidateIds: candidates.map((item) => item.id) }))}
+                      >
+                        Select all
+                      </Button>
+                      <Button variant="secondary" onClick={() => onSelectionChange((current) => ({ ...current, characterCandidateIds: [] }))}>
+                        Select none
+                      </Button>
+                    </div>
+                    {candidates.map((candidate) => (
+                      <Checkbox
+                        key={candidate.id}
+                        checked={checkedIds.includes(candidate.id)}
+                        onChange={(next) => {
+                          const selected = new Set(checkedIds);
+                          if (next) selected.add(candidate.id);
+                          else selected.delete(candidate.id);
+                          onSelectionChange((current) => ({ ...current, characterCandidateIds: [...selected] }));
+                        }}
+                      >
+                        {candidate.name}
+                        {candidate.description && <span className="text-[var(--text-muted)]"> — {candidate.description}</span>}
+                      </Checkbox>
+                    ))}
+                  </div>
+                </Disclosure>
+              )}
+              {notices.length > 0 && (
+                <Disclosure
+                  title="Repairs"
+                  summary={`${notices.length} made to the source`}
+                  open={open('repairs')}
+                  onOpenChange={(next) => onGroupOpenChange('repairs', next)}
+                  className="border-t border-[var(--border)]"
+                >
+                  <ul className="list-disc space-y-1 pt-1 pb-3 pl-9 text-xs break-words text-[var(--text-muted)]">
+                    {notices.map((notice, index) => (
+                      <li key={`${index}-${notice}`}>{notice}</li>
+                    ))}
+                  </ul>
+                </Disclosure>
+              )}
+            </fieldset>
           )}
-        </fieldset>
-      )}
+        </div>
+        <div className="min-w-0 space-y-4">
+          {previewed && (
+            <section aria-label="Preview of the selected heading" className="rounded-[var(--radius-card)] border p-3" style={{ borderColor: 'var(--border)' }}>
+              <h4 className="text-sm font-semibold">{sectionName(previewed, selection)}</h4>
+              <p className="mt-1 text-sm text-[var(--text-muted)]">{previewed.firstText ?? 'The first lines of the selected section appear here.'}</p>
+            </section>
+          )}
+          {options}
+        </div>
+      </div>
     </div>
   );
 }

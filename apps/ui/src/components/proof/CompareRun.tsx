@@ -23,6 +23,7 @@ import { Tooltip, TooltipTarget } from '../primitives/Tooltip';
 import { hasHint, splitHintTerms, suggestionMessage } from './hints';
 import { PROOFING_CHUNK_OPTIONS } from './options';
 import type { Notify } from '../primitives/Toast';
+import { ARRIVE_CLASSES } from '../primitives/changeHighlight';
 
 /** The host rejects with its error text as a plain string; an Error carries it in `message`. */
 const errorText = apiErrorMessage;
@@ -473,7 +474,7 @@ export function CompareRun({
         </div>
       )}
       {phase === 'results' && (
-        <div className="space-y-2 text-sm">
+        <div className={`space-y-2 text-sm ${ARRIVE_CLASSES}`}>
           <div className="flex flex-wrap items-center justify-between gap-2">
             <p>
               {results.trackName ? `${results.trackName}: ` : ''}
