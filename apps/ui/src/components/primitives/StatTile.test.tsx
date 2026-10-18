@@ -26,6 +26,17 @@ describe('StatTile', () => {
     expect(container.textContent).not.toContain('/min');
   });
 
+  // The mock's `.kpi` (app.css:106-108, 427): the Production KPI value is 30 px, its unit 16 px and its sub line 13 px.
+  it('draws the kpi size at 30 px with a 16 px unit and a 13 px hint, and the default smaller', () => {
+    const { unmount } = render(<StatTile label="Recording" value="4:37" unit="left" hint="of 9:26 est." size="kpi" />);
+    expect(screen.getByText('4:37').parentElement?.className).toContain('text-[1.875rem]');
+    expect(screen.getByText('left').className).toContain('text-base');
+    expect(screen.getByText('of 9:26 est.').className).toContain('text-[0.8125rem]');
+    unmount();
+    render(<StatTile label="Recording" value="4:37" />);
+    expect(screen.getByText('4:37').parentElement?.className).toContain('text-[1.375rem]');
+  });
+
   it('defaults to neutral tone: the value carries no tone colour', () => {
     render(<StatTile label="Paragraphs" value="9 of 12" />);
     expect(screen.getByText('9 of 12').style.color).toBe('');

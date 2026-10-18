@@ -26,6 +26,15 @@ describe('Heading', () => {
     expect(new Set(classes).size).toBe(1);
   });
 
+  // The mock's `.phead h1` (app.css:101) is 34 px on Production; every other page's title is the 28 px page-title size.
+  it('draws the hero size at 34 px, and the default at the page-title token', () => {
+    const { unmount } = render(<Heading title="Production" size="hero" />);
+    expect(screen.getByRole('heading').className).toContain('text-[2.125rem]');
+    unmount();
+    render(<Heading title="Script" />);
+    expect(screen.getByRole('heading').className).toContain('var(--font-size-page-title)');
+  });
+
   it('wraps a long unbroken subtitle instead of overflowing sideways', () => {
     render(<Heading title="Tracks">{'The_Very_Long_Running_Series_Book_Three_The_Reckoning_chapter_twenty_seven_revised_v14_FINAL.rpp'}</Heading>);
     const subtitle = screen.getByText(/The_Very_Long/);

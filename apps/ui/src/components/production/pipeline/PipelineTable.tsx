@@ -38,7 +38,8 @@ const textOf = (cell: PipelineCell) => (cell.text === UNDER_WAY ? underWayMark :
 
 function StageCell({ row, cell, onGo }: { row: PipelineRow; cell: PipelineCell; onGo: (target: GoTarget, chapterId: string) => void }) {
   const colors = toneColors(KIND_TONE[cell.kind]);
-  const look = cell.kind === 'none' ? 'outline' : 'soft';
+  // The mock fills an empty cell (`.cell`, --raised) rather than outlining it.
+  const look = 'soft';
   const classes = badgeClass('cell');
   if (!cell.go) {
     return (

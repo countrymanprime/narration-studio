@@ -24,6 +24,7 @@ export function StatTile({
   unit,
   progress,
   tone = 'neutral',
+  size = 'default',
   className = '',
 }: {
   label: string;
@@ -33,22 +34,24 @@ export function StatTile({
   /** 0 to 1. When given, a ProgressBar is drawn under the value, named after `label`. */
   progress?: number;
   tone?: StatTileTone;
+  /** `kpi` is the Studio Next mock's Production tile: a 30 px value, a 16 px unit and a 13 px hint. */
+  size?: 'default' | 'kpi';
   className?: string;
 }) {
   return (
     <div className={className}>
       <SectionLabel as="div">{label}</SectionLabel>
-      {/* Plex Mono 22 px, weight 500 (mock B01) - one step up from the shared body mono and a touch lighter than a plain bold. */}
-      <div className={`mt-1 text-[1.375rem] leading-[1.35] font-medium ${MONO}`}>
+      {/* Plex Mono, weight 500: 22 px by default, 30 px for the Production `kpi` tile (the mock's `.kpi .v`). */}
+      <div className={`mt-1 ${size === 'kpi' ? 'text-[1.875rem] leading-[1.1]' : 'text-[1.375rem] leading-[1.35]'} font-medium ${MONO}`}>
         <span style={tone === 'neutral' ? undefined : { color: TONE_TEXT[tone] }}>{value}</span>
         {unit && (
-          <span className={`ml-1 text-sm font-normal ${MONO}`} style={{ color: 'var(--text-muted)' }}>
+          <span className={`ml-1 ${size === 'kpi' ? 'text-base' : 'text-sm'} font-normal ${MONO}`} style={{ color: 'var(--text-muted)' }}>
             {unit}
           </span>
         )}
       </div>
       {hint && (
-        <div className="text-xs leading-[1.5]" style={{ color: 'var(--text-muted)' }}>
+        <div className={`${size === 'kpi' ? 'text-[0.8125rem]' : 'text-xs'} leading-[1.5]`} style={{ color: 'var(--text-muted)' }}>
           {hint}
         </div>
       )}
