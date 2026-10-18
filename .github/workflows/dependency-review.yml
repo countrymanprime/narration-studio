@@ -1,8 +1,21 @@
 name: Dependency review
 # Requires the dependency graph (enabled with Dependabot alerts). Advisory, not a required check.
+# It judges what a pull request adds to a manifest or lockfile, so it runs when one changes: the pnpm, uv and Go
+# lockfiles and manifests, every package.json and pyproject.toml, the npm lockfile of the mockups, and the workflows
+# and composite actions, whose `uses:` pins the dependency graph also lists as dependencies.
 on:
   pull_request:
     branches: [main]
+    paths:
+      - 'pnpm-lock.yaml'
+      - 'uv.lock'
+      - 'apps/desktop/go.mod'
+      - 'apps/desktop/go.sum'
+      - '**/package.json'
+      - '**/package-lock.json'
+      - '**/pyproject.toml'
+      - '.github/workflows/**'
+      - '.github/actions/**'
 permissions: { contents: read }
 concurrency:
   group: dependency-review-${{ github.ref }}

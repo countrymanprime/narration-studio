@@ -38,7 +38,7 @@ Any change to what a page draws or how it is used, after `visual-catalog-sync` i
 6. Run `pnpm --dir apps/ui exec vitest run src/docScreenshots.test.ts src/docsGuide.test.ts`: every entry must be a
    catalogued state and embedded on exactly one page.
 7. Link the guide diff from the PR description, or write `No guide change: <specific reason>` there; the
-   `Docs / Guide impact` check (`scripts/ci/guide-impact.mjs`) fails a page change with neither.
+   `Guide impact` step of `Docs / Docs checks` (`scripts/ci/guide-impact.mjs`) fails a page change with neither.
 
 ## The sweep
 
