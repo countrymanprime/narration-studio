@@ -214,7 +214,7 @@ describe('marks-and-threads-are-journalled', () => {
 
     await run(() => hook.result.current.commands.deleteMessage(id, 0));
     expect(markOf(hook, id)?.thread).toEqual([]);
-    expect(toastUndo).toHaveBeenCalledWith('Message deleted.', expect.any(Function));
+    expect(toastUndo).toHaveBeenCalledWith('Message deleted.', expect.any(Function), { entry: expect.any(Number) });
     const offer = toastUndo.mock.calls[0]![1];
     await act(async () => expect(await offer()).toEqual({ ok: true }));
     await waitFor(() => expect(markOf(hook, id)?.thread[0]?.text).toBe('First.'));

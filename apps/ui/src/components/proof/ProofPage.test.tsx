@@ -3,7 +3,7 @@ import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-li
 import userEvent from '@testing-library/user-event';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
+import { MemoryRouter, Route, Routes, useLocation, useNavigate } from 'react-router-dom';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { ApiProvider } from '../../api/ApiContext';
 import { createMockApi } from '../../api/mockApi';
@@ -31,20 +31,37 @@ function Where() {
   return <p data-testid="where">{location.pathname + location.search}</p>;
 }
 
-function renderPage({ api = createMockApi(), at = '/proof', hasManuscript = true }: { api?: NarrationApi; at?: string; hasManuscript?: boolean } = {}) {
+/** The browser's Back, as a button the tests press. */
+function Back() {
+  const navigate = useNavigate();
+  return (
+    <button type="button" onClick={() => navigate(-1)}>
+      history back
+    </button>
+  );
+}
+
+function renderPage({
+  api = createMockApi(),
+  at = '/proof',
+  before = [],
+  hasManuscript = true,
+}: { api?: NarrationApi; at?: string; before?: string[]; hasManuscript?: boolean } = {}) {
   const handlers = { goTo: vi.fn(), goToScript: vi.fn(), goToBooth: vi.fn(), goToEditing: vi.fn() };
   const journal = createJournal({ dawName: () => 'REAPER', dawLastAction: async () => 'unknown' });
   window.localStorage.setItem('narration.proof.lastChapter./p', 'chapter-2');
   render(
-    <MemoryRouter initialEntries={[at]}>
+    <MemoryRouter initialEntries={[...before, at]} initialIndex={before.length}>
       <ApiProvider api={api}>
         <StudioProvider journal={journal}>
           <CommandRouter>
             <TooltipProvider>
               <Routes>
+                <Route path="/pickups" element={<p>The pickups page</p>} />
                 <Route path="/proof" element={<ProofPage hasManuscript={hasManuscript} projectFolder="/p" {...handlers} />} />
               </Routes>
               <Where />
+              <Back />
               <OverlayHost />
             </TooltipProvider>
           </CommandRouter>
@@ -177,6 +194,33 @@ describe('proof-route-draws-the-mock-page', () => {
     expect(window.localStorage.getItem('narration.proof.lastChapter./p')).toBe('chapter-1');
   });
 
+  it('a chapter change is a step in the history, so Back goes to the page before it, not out of the page', async () => {
+    renderPage({ before: ['/pickups'] });
+    await noteRows();
+    press('ArrowRight', 'ArrowRight');
+    await waitFor(() => expect(where()).toBe('/proof?chapter=chapter-2'));
+    fireEvent.click(screen.getByRole('button', { name: 'history back' }));
+    await waitFor(() => expect(where()).toBe('/proof'));
+    fireEvent.click(screen.getByRole('button', { name: 'history back' }));
+    await waitFor(() => expect(where()).toBe('/pickups'));
+  });
+
+  it('opens on the note that was selected when the page is left and opened again, with the note typed for it', async () => {
+    renderPage({ at: '/proof?chapter=chapter-1' });
+    const rows = () => [...screen.getByRole('region', { name: 'Notes' }).querySelectorAll<HTMLElement>('tr[data-row]')];
+    await noteRows();
+    await waitFor(() => expect(rows()[0].getAttribute('aria-selected')).toBe('true'));
+    press('j', 'KeyJ');
+    await waitFor(() => expect(rows()[1].getAttribute('aria-selected')).toBe('true'));
+    fireEvent.change(await screen.findByRole('textbox', { name: 'Note with the decision (optional)' }), { target: { value: 'Say it slower' } });
+    cleanup();
+    renderPage({ at: '/proof?chapter=chapter-1' });
+    await noteRows();
+    await waitFor(() => expect(rows()[1].getAttribute('aria-selected')).toBe('true'));
+    expect((await screen.findByRole('textbox', { name: 'Note with the decision (optional)' })).getAttribute('value') ?? '').toBe('');
+    expect((screen.getByRole('textbox', { name: 'Note with the decision (optional)' }) as HTMLTextAreaElement).value).toBe('Say it slower');
+  });
+
   it('opens on the first note, moves through the notes with J and K and with Down and Up, and does not claim Space', async () => {
     renderPage();
     await noteRows();
@@ -247,6 +291,31 @@ describe('proof-route-draws-the-mock-page', () => {
     ]) {
       expect(source).not.toContain(gone);
     }
+  });
+});
+
+describe('proof-keys-follow-the-visible-list', () => {
+  it('J and the arrow keys stay on the rows the list shows when a filter hides some notes', async () => {
+    const { journal } = renderPage({ at: '/proof?chapter=chapter-1' });
+    const user = userEvent.setup();
+    const all = await noteRows();
+    expect(all.length).toBeGreaterThan(1);
+    const notes = screen.getByRole('region', { name: 'Notes' });
+    // "To review" hides every decided note; decide the last one first so at least one row below the others is hidden by the chip.
+    await user.click(all[all.length - 1]);
+    press('w', 'KeyW');
+    await waitFor(async () => expect(await journal.entries()).toHaveLength(1));
+    await user.click(within(notes).getByRole('button', { name: /To review/ }));
+    const shown = () => [...notes.querySelectorAll<HTMLElement>('tr[data-row]')];
+    await waitFor(() => expect(shown().length).toBeLessThan(all.length));
+    for (let n = 0; n < all.length + 2; n++) {
+      press('ArrowDown', 'ArrowDown');
+    }
+    await waitFor(() => expect(shown().filter((row) => row.getAttribute('aria-selected') === 'true')).toHaveLength(1));
+    // Waive what is selected: it must be a note on the list, so the list loses exactly one row.
+    const before = shown().length;
+    press('w', 'KeyW');
+    await waitFor(() => expect(shown().length).toBe(before - 1));
   });
 });
 

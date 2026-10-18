@@ -21,6 +21,7 @@ import { retailSampleRange } from '../../manuscript/retailSampleRange';
 import { IconButton } from '../../primitives/IconButton';
 import { KeyHints } from '../../primitives/KeyHints';
 import { ScriptSkeleton } from './layout/ScriptSkeleton';
+import { ScriptTitle } from './layout/ScriptTitle';
 import { PANEL_FRAME_CLASS } from '../../primitives/panelStyles';
 import type { Notify } from '../../primitives/Toast';
 import { useBookmarkCommands } from '../bookmarks/model/useBookmarkCommands';
@@ -48,6 +49,7 @@ import { endedName } from '../../../chapterHeading';
 import { SpeakerLayer } from './layout/SpeakerLayer';
 import { useDeepLink } from './layout/useDeepLink';
 import { scriptKeyHints } from './layout/scriptKeyHints';
+import { SkipToRail } from './layout/SkipToRail';
 import { useLoadedParagraphs } from './layout/useLoadedParagraphs';
 import { Reader } from './reader/Reader';
 import { readFindQuery } from './scriptQuery';
@@ -241,7 +243,8 @@ function ScriptWorkspace({
   const { add: addBookmark } = bookmarks;
   const bookmarkAt = useCallback(
     async (spot: { chapterId: string; paragraphId: string; offset: number }) => {
-      const added = await addBookmark(spot);
+      // The editor opens on the new bookmark, so its toast carries no Undo (a later Undo would undo what was typed in the editor).
+      const added = await addBookmark(spot, { undo: false });
       if (added) setEditAfterAdd(added.id);
     },
     [addBookmark],
@@ -556,7 +559,7 @@ function ScriptWorkspace({
             onKeyUp={(event) => event.shiftKey && setSelection(getSelection())}
           >
             {/* The mock draws no page title: the reader is the page, so the title is for screen readers only, as the Booth's. */}
-            <h1 className="sr-only">Script</h1>
+            <ScriptTitle />
             <div className="min-h-0 flex-1">
               <Reader
                 chapters={chapters}
@@ -583,18 +586,21 @@ function ScriptWorkspace({
                 sectionNames={sectionNames}
                 toolbar={toolbar}
                 underHeader={
-                  <FindBar
-                    find={find.find}
-                    nonce={find.nonce}
-                    matches={matches}
-                    locationOf={lineOf}
-                    onQuery={find.onQuery}
-                    onStep={find.onStep}
-                    onPick={find.onPick}
-                    onToggleList={find.onToggleList}
-                    onClose={find.onClose}
-                    returnFocus={() => scroller()?.focus()}
-                  />
+                  <>
+                    <SkipToRail onOpenRail={() => update({ drawer: 'rail' })} />
+                    <FindBar
+                      find={find.find}
+                      nonce={find.nonce}
+                      matches={matches}
+                      locationOf={lineOf}
+                      onQuery={find.onQuery}
+                      onStep={find.onStep}
+                      onPick={find.onPick}
+                      onToggleList={find.onToggleList}
+                      onClose={find.onClose}
+                      returnFocus={() => scroller()?.focus()}
+                    />
+                  </>
                 }
                 onPickSpeaker={onPickSpeaker}
                 onShowAnnotation={(id) => {

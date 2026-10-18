@@ -3,7 +3,6 @@ import {
   allEvidence,
   canAddEquivalence,
   categoryLabel,
-  categoryValue,
   chapterLineNumber,
   chapterTextMatches,
   CREDITS_ROOM_TONE_SECONDS_PER_FILE,
@@ -65,14 +64,12 @@ describe('Transcript workspace state', () => {
 });
 
 describe('Story Bible category labels', () => {
-  it('shows Place as Location without touching any other category', () => {
-    expect(categoryLabel('Place')).toBe('Location');
+  it('shows a category as it is stored, so a type the narrator renamed reads the same everywhere', () => {
+    expect(categoryLabel('Place')).toBe('Place');
+    expect(categoryLabel('Location')).toBe('Location');
     expect(categoryLabel('Character')).toBe('Character');
     expect(categoryLabel('Needs Review')).toBe('Needs Review');
-  });
-  it("translates the Location label back to the backend's Place value", () => {
-    expect(categoryValue('Location')).toBe('Place');
-    expect(categoryValue('Character')).toBe('Character');
+    expect(categoryLabel('Draft')).toBe('Choose category');
   });
 });
 

@@ -10,25 +10,16 @@ export const selectDiscrepancy = (rows: Discrepancy[], id?: string): Discrepancy
 export const canAddEquivalence = (row?: Discrepancy): boolean =>
   Boolean(row && row.kind === 'MISREAD' && row.docText && row.audioText && !row.docText.includes(' ') && !row.audioText.includes(' '));
 
-// The backend's category values ("Place") never changed - only the label
-// shown to the user did ("Location") - so these two stay the single place
-// that translates between them. Lore/Item/Event are manual-only categories
-// (nothing in rule/spaCy extraction can guess them), and Needs Review/Draft
-// are system states a user can never pick for themselves - see
-// CREATABLE_CATEGORIES below and manuscript_guide.py's SYSTEM_CATEGORIES.
+// An entry's category is the name of its Story Bible type, which the narrator can rename in Settings ("Place" can become "Location"),
+// so the page shows the category as it is stored. Lore/Item/Event are manual-only categories (nothing in rule/spaCy extraction can guess
+// them), and Needs Review/Draft are system states a user can never pick for themselves - see CREATABLE_CATEGORIES below and
+// manuscript_guide.py's SYSTEM_CATEGORIES.
 const CATEGORY_LABELS: Record<string, string> = {
-  Character: 'Character',
-  Place: 'Location',
-  Organization: 'Organization',
-  Lore: 'Lore',
-  Item: 'Item',
-  Event: 'Event',
-  'Needs Review': 'Needs Review',
   Draft: 'Choose category',
 };
-export const CREATABLE_CATEGORIES = ['Character', 'Location', 'Organization', 'Lore', 'Item', 'Event'];
+/** The types a new entry can be given until the host's own list (the narrator's names) has been read. */
+export const CREATABLE_CATEGORIES = ['Character', 'Place', 'Organization', 'Lore', 'Item', 'Event'];
 export const categoryLabel = (category: string): string => CATEGORY_LABELS[category] ?? category;
-export const categoryValue = (label: string): string => (label === 'Location' ? 'Place' : label);
 export const categoryCssName = (category: string): string => (category === 'Needs Review' ? 'Review' : category);
 
 // Backs the Story Bible alias field's "this matches an existing entity" combobox

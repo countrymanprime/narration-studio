@@ -92,6 +92,20 @@
   },
   {
     "page": "script",
+    "state": "reader-context-menu",
+    "viewport": "desktop",
+    "docName": "script-context-menu",
+    "caption": "Script - the right-click menu on a selected word, in labelled groups"
+  },
+  {
+    "page": "script",
+    "state": "skip-to-side-panel",
+    "viewport": "desktop",
+    "docName": "script-skip-to-side-panel",
+    "caption": "Script - the Skip to the side panel button under the reader header, with focus on it"
+  },
+  {
+    "page": "script",
     "state": "rail-words",
     "viewport": "desktop",
     "docName": "script-word-lookup",
@@ -130,7 +144,7 @@
     "state": "stage-suggestion-options",
     "viewport": "desktop",
     "docName": "production-stage-suggestion-options",
-    "caption": "Production - the Stage suggestion options opened under the chapter pipeline"
+    "caption": "Production - the Stage suggestion options dialog opened from Jump to or run"
   },
   {
     "page": "production",
@@ -147,11 +161,18 @@
     "caption": "Production - evidence changed since you confirmed: the check that is no longer met and Revert; nothing moved on its own"
   },
   {
+    "page": "settings",
+    "state": "import-choose",
+    "viewport": "desktop",
+    "docName": "production-import-choose",
+    "caption": "Replace manuscript, step 1 of 2: Choose your manuscript, with the drop zone and Choose a file…"
+  },
+  {
     "page": "production",
     "state": "import-confirm",
     "viewport": "desktop",
     "docName": "production-import-confirm",
-    "caption": "Production - import manuscript confirm dialog with format/paragraph/chapter preview"
+    "caption": "Import manuscript, step 2 of 2: Check the chapter outline, with each heading's words and a preview of how the selected one begins"
   },
   {
     "page": "proof-chapter",
@@ -172,7 +193,7 @@
     "state": "options-open",
     "viewport": "desktop",
     "docName": "proof-chapter-options",
-    "caption": "Proof chapter view - the Compare options and the Preview options opened"
+    "caption": "Proof chapter view - the Compare options dialog opened from Jump to or run"
   },
   {
     "page": "proof-chapter",
@@ -613,7 +634,7 @@
     "state": "daw-off",
     "viewport": "desktop",
     "docName": "editing-daw-off",
-    "caption": "Editing with the DAW not connected - the banner with its reason and Retry"
+    "caption": "Editing with the DAW not connected - the banner with Check again"
   },
   {
     "page": "editing",
@@ -697,7 +718,7 @@
     "state": "diagnostics-cleanup-options",
     "viewport": "desktop",
     "docName": "master-cleanup-options",
-    "caption": "Master & QC, Diagnostics - the Silence cleanup options opened under the candidates"
+    "caption": "Master & QC, Diagnostics - the Silence cleanup options dialog opened from Jump to or run"
   },
   {
     "page": "master",
@@ -922,6 +943,34 @@
     "viewport": "desktop",
     "docName": "storybible-voice-data",
     "caption": "Story Bible - the Voice data slide-over: choosing a region to approve as a reference, and Remove voice data"
+  },
+  {
+    "page": "storybible",
+    "state": "voice-samples-entry",
+    "viewport": "desktop",
+    "docName": "storybible-voice-samples",
+    "caption": "Story Bible - the Queen of Hearts entry with four voice samples: the primary, one whose passage changed, one whose audio file is missing"
+  },
+  {
+    "page": "storybible",
+    "state": "voice-data-samples",
+    "viewport": "desktop",
+    "docName": "storybible-voice-data-samples",
+    "caption": "Story Bible - the Voice data slide-over with Narration voice samples, the space the samples use, and the sample of a character who left the Story Bible"
+  },
+  {
+    "page": "booth",
+    "state": "voice-samples-picker",
+    "viewport": "desktop",
+    "docName": "booth-voice-samples-picker",
+    "caption": "Booth - the speaker picker with a count and a play button on each character who has voice samples"
+  },
+  {
+    "page": "booth",
+    "state": "voice-samples-panel",
+    "viewport": "desktop",
+    "docName": "booth-voice-samples-panel",
+    "caption": "Booth - Voices in this scene with voice samples: a play button and count on each voice, one opened to list its samples"
   },
   {
     "page": "booth",

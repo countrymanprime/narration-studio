@@ -476,7 +476,8 @@ describe('App (integration, driven through the mock NarrationApi)', () => {
     const selectManuscript = vi.fn(() => new Promise<never>(() => {}));
     renderApp({ selectManuscript, bootstrap: noManuscript });
     await screen.findByRole('heading', { level: 1, name: 'Production' });
-    const choose = screen.getByRole('button', { name: 'Import manuscript' });
+    fireEvent.click(screen.getByRole('button', { name: 'Import manuscript' }));
+    const choose = await screen.findByRole('button', { name: 'Choose a file…' });
     fireEvent.click(choose);
     fireEvent.click(choose);
     await waitFor(() => expect(choose.getAttribute('aria-busy')).toBe('true'));
@@ -486,8 +487,28 @@ describe('App (integration, driven through the mock NarrationApi)', () => {
     renderApp({ selectManuscript: () => Promise.reject(new Error('the file dialog could not open')), bootstrap: noManuscript });
     await screen.findByRole('heading', { level: 1, name: 'Production' });
     fireEvent.click(screen.getByRole('button', { name: 'Import manuscript' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Choose a file…' }));
     // The region that shows it is only known once the message is there, so look again on each try.
     await waitFor(() => expect(within(appToasts('alert')).getByText(/the file dialog could not open/)).toBeTruthy());
+  });
+
+  it('without a manuscript, Script and Story Bible open the import in place instead of going to Production', async () => {
+    const source = createMockApi();
+    const noManuscript = async () => ({ ...(await source.bootstrap()), manuscript: null });
+    for (const [path, title] of [
+      ['/script', 'Script'],
+      ['/story-bible', 'Story Bible'],
+    ] as const) {
+      window.history.replaceState(null, '', path);
+      const selectManuscript = vi.fn(() => new Promise<never>(() => {}));
+      renderApp({ selectManuscript, bootstrap: noManuscript });
+      await screen.findByRole('heading', { name: title });
+      fireEvent.click(await screen.findByRole('button', { name: 'Import manuscript' }));
+      fireEvent.click(await screen.findByRole('button', { name: 'Choose a file…' }));
+      await waitFor(() => expect(selectManuscript).toHaveBeenCalledTimes(1));
+      expect(window.location.pathname).toBe(path);
+      cleanup();
+    }
   });
 
   it('Clear derived project data stays open and busy while it runs and cannot be confirmed twice', async () => {
@@ -594,19 +615,6 @@ describe('App (integration, driven through the mock NarrationApi)', () => {
     renderApp({ bootstrap: async () => ({ ...(await source.bootstrap()), manuscript: null }) });
     await screen.findByText('This project has no manuscript yet. Import one to begin.');
     expect(window.location.pathname).toBe('/booth');
-  });
-
-  it('the Story Bible route asks for a manuscript on its own page instead of sending a project without one home', async () => {
-    window.history.replaceState(null, '', '/story-bible');
-    const source = createMockApi();
-    renderApp({ bootstrap: async () => ({ ...(await source.bootstrap()), manuscript: null }) });
-    await screen.findByRole('heading', { level: 1, name: 'Story Bible' });
-    expect(window.location.pathname).toBe('/story-bible');
-    expect(screen.getByText('This project has no manuscript yet. Import one to begin.')).toBeTruthy();
-    // The ask sends the narrator to the Production home, where the import lives.
-    fireEvent.click(screen.getByRole('button', { name: 'Import manuscript' }));
-    await screen.findByRole('heading', { level: 1, name: 'Production' });
-    expect(window.location.pathname).toBe('/');
   });
 
   // docs/architecture/principles.md: the retired Teleprompter route lands on the Booth with its
@@ -1000,17 +1008,17 @@ describe('App (integration, driven through the mock NarrationApi)', () => {
     const saveSettings = vi.fn(createMockApi().saveSettings);
     renderApp({ saveSettings });
     await waitFor(() => screen.getByRole('heading', { level: 1, name: 'Production' }));
-    const check = await openKeptPanel('ps.coverage', 'Recording check');
+    const compare = await openKeptPanel('ps.compare', 'Compare defaults');
 
-    // A project has no override for any Recording check field until one is saved, so all of them are unset (empty) here. The
-    // host rejects an empty value, so only the edited field may go.
-    fireEvent.click(within(check).getByRole('button', { name: 'This project' }));
-    await waitFor(() => expect(within(check).getByRole('button', { name: 'This project' }).getAttribute('aria-pressed')).toBe('true'));
-    fireEvent.change(await within(check).findByRole('textbox', { name: 'Longest run of missing words allowed' }), { target: { value: '5' } });
-    fireEvent.click(within(check).getByRole('button', { name: 'Save' }));
+    // A project has no override for any Compare field until one is saved, so all of them are unset (empty) here. The
+    // host rejects an empty choice or colour ("unsupported value for chunk_seconds"), so only the edited field may go.
+    fireEvent.click(within(compare).getByRole('button', { name: 'This project' }));
+    await waitFor(() => expect(within(compare).getByRole('button', { name: 'This project' }).getAttribute('aria-pressed')).toBe('true'));
+    fireEvent.change(await within(compare).findByRole('combobox', { name: 'Default chunk length' }), { target: { value: '600' } });
+    fireEvent.click(within(compare).getByRole('button', { name: 'Save' }));
 
     await waitFor(() => expect(saveSettings).toHaveBeenCalledTimes(1));
-    expect(saveSettings).toHaveBeenCalledWith('RecordingCoverage', 'project', { max_missing_run: '5' });
+    expect(saveSettings).toHaveBeenCalledWith('TranscriptCompare', 'project', { chunk_seconds: '600' });
   });
 
   it('offers the recording check settings at their defaults and saves a changed threshold', async () => {
@@ -1032,14 +1040,13 @@ describe('App (integration, driven through the mock NarrationApi)', () => {
     const saveSettings = vi.fn(createMockApi().saveSettings);
     renderApp({ saveSettings });
     await waitFor(() => screen.getByRole('heading', { level: 1, name: 'Production' }));
-    const check = await openKeptPanel('ps.coverage', 'Recording check');
+    const compare = await openKeptPanel('ps.compare', 'Compare defaults');
 
-    const run = await within(check).findByRole('textbox', { name: 'Longest run of missing words allowed' });
-    const original = (run as HTMLInputElement).value;
-    fireEvent.change(run, { target: { value: '5' } });
-    fireEvent.change(run, { target: { value: original } });
-    expect(within(check).getByText('Unsaved changes')).toBeTruthy();
-    fireEvent.click(within(check).getByRole('button', { name: 'Save' }));
+    const chunk = await within(compare).findByRole('combobox', { name: 'Default chunk length' });
+    fireEvent.change(chunk, { target: { value: '600' } });
+    fireEvent.change(chunk, { target: { value: '60' } });
+    expect(within(compare).getByText('Unsaved changes')).toBeTruthy();
+    fireEvent.click(within(compare).getByRole('button', { name: 'Save' }));
 
     await waitFor(() => expect(screen.queryByText('Unsaved changes')).toBeNull());
     expect(saveSettings).not.toHaveBeenCalled();
@@ -1049,17 +1056,16 @@ describe('App (integration, driven through the mock NarrationApi)', () => {
     const saveSettings = vi.fn(createMockApi().saveSettings);
     renderApp({ saveSettings });
     await waitFor(() => screen.getByRole('heading', { level: 1, name: 'Production' }));
-    const check = await openKeptPanel('ps.coverage', 'Recording check');
+    const compare = await openKeptPanel('ps.compare', 'Compare defaults');
 
-    // A project shows the Global value for a field it has no override for. Changing it and changing it back must
+    // A project shows the Global value ("60") for a field it has no override for. Changing it and changing it back must
     // not pin that value in the project, or a later change to the Global default would no longer reach it.
-    fireEvent.click(within(check).getByRole('button', { name: 'This project' }));
-    await waitFor(() => expect(within(check).getByRole('button', { name: 'This project' }).getAttribute('aria-pressed')).toBe('true'));
-    const run = await within(check).findByRole('textbox', { name: 'Longest run of missing words allowed' });
-    const original = (run as HTMLInputElement).value;
-    fireEvent.change(run, { target: { value: '5' } });
-    fireEvent.change(run, { target: { value: original } });
-    fireEvent.click(within(check).getByRole('button', { name: 'Save' }));
+    fireEvent.click(within(compare).getByRole('button', { name: 'This project' }));
+    await waitFor(() => expect(within(compare).getByRole('button', { name: 'This project' }).getAttribute('aria-pressed')).toBe('true'));
+    const chunk = await within(compare).findByRole('combobox', { name: 'Default chunk length' });
+    fireEvent.change(chunk, { target: { value: '600' } });
+    fireEvent.change(chunk, { target: { value: '60' } });
+    fireEvent.click(within(compare).getByRole('button', { name: 'Save' }));
 
     await waitFor(() => expect(screen.queryByText('Unsaved changes')).toBeNull());
     expect(saveSettings).not.toHaveBeenCalled();
@@ -1162,17 +1168,19 @@ describe('App (integration, driven through the mock NarrationApi)', () => {
     expect(screen.getByRole('region', { name: 'Import your manuscript' })).toBeTruthy();
 
     fireEvent.click(screen.getByRole('button', { name: 'Import manuscript' }));
-    await screen.findByRole('alertdialog', { name: 'Import Alice.docx' });
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Choose a file…' }));
+    await screen.findByRole('alertdialog', { name: /^Import Alice\.docx/ });
     expect(preview).toHaveBeenCalledWith('mock-import', { markdownHeadingLevel: 1 });
     // The review says what was found and what the importer repaired; the log and progress bar belong to the commit dialog that follows.
-    const review = within(screen.getByRole('alertdialog', { name: 'Import Alice.docx' }));
+    const review = within(screen.getByRole('alertdialog', { name: /^Import Alice\.docx/ }));
     expect(review.getByText('DOCX · 240 paragraphs · 1 narration chapter.')).toBeTruthy();
     expect(review.getByText(/1 repair made to the source/)).toBeTruthy();
     expect(review.getByText(/had no gap between its number and title/)).toBeTruthy();
     expect(review.queryByText('Preview activity')).toBeNull();
     expect(document.querySelector('.progressbar')).toBeNull();
 
-    fireEvent.click(screen.getByRole('button', { name: 'Import' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Import reviewed manuscript' }));
     const activity = await screen.findByRole('dialog', { name: 'Import manuscript' });
     expect(activity.querySelector('.progressbar')).toBeTruthy();
     expect(await screen.findByText('Writing the project-owned manuscript…')).toBeTruthy();
@@ -1208,7 +1216,7 @@ describe('App (integration, driven through the mock NarrationApi)', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Import' }));
     await waitFor(() => expect(beginImport).toHaveBeenCalledWith(candidate.path));
-    expect(await screen.findByRole('alertdialog', { name: 'Import Alice.docx' })).toBeTruthy();
+    expect(await screen.findByRole('alertdialog', { name: /^Import Alice\.docx/ })).toBeTruthy();
   });
 
   it('shows the project picker instead of the routed app when a standalone launch has no attached project folder', async () => {
@@ -1497,7 +1505,8 @@ describe('App shell mounts', () => {
   it('jump-menu-chapters-come-from-the-slot: with no manuscript the list is empty and nothing is loaded', async () => {
     const manuscriptChapters = vi.fn().mockResolvedValue([]);
     renderApp({ manuscriptChapters, bootstrap: bootstrapWithCandidate({ path: 'a.docx', name: 'a.docx' }) });
-    await screen.findByRole('button', { name: /Jump to or run/ });
+    // The shell has mounted; the import step for the candidate can open first and make it inert, so look past that.
+    await screen.findByRole('button', { name: /Jump to or run/, hidden: true });
     expect(manuscriptChapters).not.toHaveBeenCalled();
   });
 
@@ -1645,6 +1654,13 @@ describe('App shell mounts', () => {
     await waitFor(() => expect(screen.getByRole('button', { name: 'Undo' }).getAttribute('aria-disabled')).toBeNull());
     fireEvent.click(screen.getByRole('button', { name: 'Undo' }));
     expect(await screen.findByText('Renaming cannot be undone here.')).toBeTruthy();
+  });
+
+  it('the Companion has its key: Ctrl+Alt+C opens it from the page, as the shortcut sheet and the jump menu say', async () => {
+    renderWithJournal(newJournal());
+    await screen.findByRole('heading', { level: 1, name: 'Production' });
+    fireEvent.keyDown(document.body, { code: 'KeyC', key: 'c', ctrlKey: true, altKey: true });
+    await waitFor(() => expect(screen.queryByRole('heading', { level: 1, name: 'Production' })).toBeNull());
   });
 
   it('ctrl-z-undoes-the-last-change: Ctrl+Z with focus on the page body undoes the newest entry', async () => {

@@ -17,6 +17,7 @@ import {
   type PipelineColumn,
   type PipelineRow,
 } from './pipelineRows';
+import { CHANGE_HIGHLIGHT_CLASSES } from '../../primitives/changeHighlight';
 
 const KIND_TONE: Record<CellKind, StatusTone> = { done: 'success', progress: 'progress', open: 'danger', none: 'neutral' };
 /** Every stage column is the same width; Fin. is narrower (the mock: 80 px and 64 px). */
@@ -78,10 +79,12 @@ type TableProps = {
   notify: Notify;
   /** Hears the chapter status a Confirm or Revert set. */
   onStatus: (chapterId: string, status: ChapterStatus) => void;
+  /** The chapter an action just changed: its row is highlighted once (changeHighlight.ts). */
+  justChanged?: string | null;
 };
 
 /** Every chapter and where it stands in each stage (the mock's PipelineTable). One format for every stage: a tick when done, the percent when under way, a dash when not started. */
-export function PipelineTable({ rows, recommendations, onGo, notify, onStatus }: TableProps) {
+export function PipelineTable({ rows, recommendations, onGo, notify, onStatus, justChanged = null }: TableProps) {
   return (
     // The table scrolls inside its panel at a narrow width, never the page; the region is a tab stop so the keyboard can scroll it.
     <div className="overflow-x-auto" tabIndex={0} role="group" aria-label="Chapter pipeline scroll area">
@@ -106,7 +109,11 @@ export function PipelineTable({ rows, recommendations, onGo, notify, onStatus }:
           {rows.map((row) => {
             const recommendation = recommendations.get(row.id);
             return (
-              <TableRow key={row.id}>
+              <TableRow
+                key={row.id}
+                data={row.id === justChanged ? { 'data-just-changed': '' } : undefined}
+                className={row.id === justChanged ? CHANGE_HIGHLIGHT_CLASSES : ''}
+              >
                 <TableCell className="font-medium [overflow-wrap:anywhere]">{row.name}</TableCell>
                 <TableCell numeric>{row.finished}</TableCell>
                 {STAGE_COLUMNS.map((column) => {

@@ -4,43 +4,33 @@ import (
 	"encoding/json"
 	"os"
 	"path/filepath"
+	"reflect"
 	"slices"
 	"testing"
 
 	"github.com/countrymanprime/narration-utils/shell/internal/contractfile"
-	"github.com/countrymanprime/narration-utils/shell/internal/guide"
 )
 
-// Each type edit is one sidecar call naming the type, and GuideTypes reads back the list the sidecar writes: here the file the
-// sidecar's own test wrote after an add, a Can speak, a colour, a rename and a remove (guide-types-sidecar.json).
-func TestGuideTypesRoundTripThroughTheSidecar(t *testing.T) {
-	for _, tc := range []struct {
-		call func(*Host) (string, error)
-		want []string
-	}{
-		{func(h *Host) (string, error) { return h.GuideTypeAdd(" Creature ") }, []string{"type-add", "--name=Creature"}},
-		{func(h *Host) (string, error) { return h.GuideTypeSetSpeaks("Creature", true) }, []string{"type-speaks", "--name=Creature", "--speaks", "1"}},
-		{func(h *Host) (string, error) { return h.GuideTypeSetSpeaks("Creature", false) }, []string{"type-speaks", "--name=Creature", "--speaks", "0"}},
-		{func(h *Host) (string, error) { return h.GuideTypeSetColour("Creature", "amber") }, []string{"type-colour", "--name=Creature", "--colour", "amber"}},
-		{func(h *Host) (string, error) { return h.GuideTypeRename("Place", "Location") }, []string{"type-rename", "--name=Place", "--to=Location"}},
-		{func(h *Host) (string, error) { return h.GuideTypeRemove("Event") }, []string{"type-remove", "--name=Event"}},
+// The type edits run in the host (guide.Service.typesInHost): the same five edits the sidecar's own test makes, through the bindings with
+// no sidecar process, leave the types the sidecar left (guide-types-sidecar.json), and GuideTypes reads that list back.
+func TestGuideTypesRoundTripWithoutTheSidecar(t *testing.T) {
+	service, calls, project := countingGuideIn(t)
+	writeStoryBible(t, project)
+	host := &Host{guide: service}
+	for _, step := range []func() (string, error){
+		func() (string, error) { return host.GuideTypeAdd(" Creature ") },
+		func() (string, error) { return host.GuideTypeSetSpeaks("Creature", true) },
+		func() (string, error) { return host.GuideTypeSetColour("Creature", "amber") },
+		func() (string, error) { return host.GuideTypeRename("Place", "Location") },
+		func() (string, error) { return host.GuideTypeRemove("Event") },
 	} {
-		service, calls := countingGuide(t)
-		result, err := tc.call(&Host{guide: service})
-		if err != nil || result != "null" {
-			t.Fatalf("%v: %q, %v", tc.want, result, err)
-		}
-		call := calls()[0]
-		if call[0] != tc.want[0] || !slices.Contains(call, "--guide") {
-			t.Fatalf("call = %v, want %v", call, tc.want)
-		}
-		for _, arg := range tc.want[1:] {
-			if !slices.Contains(call, arg) {
-				t.Fatalf("call = %v, want %v", call, tc.want)
-			}
+		if result, err := step(); err != nil || result != "null" {
+			t.Fatalf("%q, %v", result, err)
 		}
 	}
-
+	if got := calls(); len(got) != 0 {
+		t.Fatalf("the sidecar was started: %v", got)
+	}
 	dir, err := contractfile.Dir()
 	if err != nil {
 		t.Fatal(err)
@@ -49,14 +39,22 @@ func TestGuideTypesRoundTripThroughTheSidecar(t *testing.T) {
 	if err != nil {
 		t.Fatalf("the sidecar's types file is missing (run the Python contract test with UPDATE_CONTRACTS=1): %v", err)
 	}
-	project := t.TempDir()
-	host := &Host{guide: guide.New(project, "", "", nil, nil)}
-	path := filepath.Join(project, "ManuscriptGuide", "manuscript_guide.json")
-	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
+	raw, err := os.ReadFile(filepath.Join(project, "ManuscriptGuide", "manuscript_guide.json"))
+	if err != nil {
 		t.Fatal(err)
 	}
-	if err := os.WriteFile(path, []byte(`{"schema_version": 2, "entities": [], "types": `+string(written)+`}`), 0o600); err != nil {
+	var file struct {
+		Types any `json:"types"`
+	}
+	var want any
+	if err := json.Unmarshal(raw, &file); err != nil {
 		t.Fatal(err)
+	}
+	if err := json.Unmarshal(written, &want); err != nil {
+		t.Fatal(err)
+	}
+	if !reflect.DeepEqual(file.Types, want) {
+		t.Fatalf("types = %v, the sidecar's = %v", file.Types, want)
 	}
 	got, err := host.GuideTypes()
 	if err != nil {
@@ -82,7 +80,7 @@ func TestGuideTypesRoundTripThroughTheSidecar(t *testing.T) {
 	}
 }
 
-func TestGuideTypeBindingsRefuseABadNameOrColourBeforeTheSidecar(t *testing.T) {
+func TestGuideTypeBindingsRefuseABadNameOrColourWithoutTheSidecar(t *testing.T) {
 	for _, call := range []func(*Host) (string, error){
 		func(h *Host) (string, error) { return h.GuideTypeAdd("  ") },
 		func(h *Host) (string, error) { return h.GuideTypeRename("Place", "two\nlines") },

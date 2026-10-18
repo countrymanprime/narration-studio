@@ -88,3 +88,24 @@ export const EscapeCloses: Story = {
     await expect(args.items[0].onSelect).not.toHaveBeenCalled();
   },
 };
+
+// Items that share a group sit under a heading of its name, so a long menu reads as a few short lists.
+export const Grouped: Story = {
+  args: {
+    items: [
+      { key: 'tone', label: 'Tone', group: 'Mark as', onSelect: fn() },
+      { key: 'query', label: 'Query', group: 'Mark as', onSelect: fn() },
+      { key: 'character', label: 'Character', group: 'Add to the Story Bible as', onSelect: fn() },
+      { key: 'place', label: 'Place', group: 'Add to the Story Bible as', onSelect: fn() },
+      { key: 'copy', label: 'Copy', onSelect: fn() },
+    ],
+  },
+  play: async ({ canvasElement }) => {
+    fireEvent.contextMenu(within(canvasElement).getByText(/Alice was beginning/));
+    await expect(await screen.findAllByRole('group')).toHaveLength(2);
+    await expect(screen.getByRole('group', { name: 'Mark as' })).toBeInTheDocument();
+    await expect(screen.getAllByRole('menuitem')).toHaveLength(5);
+    await userEvent.keyboard('{Escape}');
+    await waitFor(() => expect(screen.queryByRole('menuitem')).toBeNull());
+  },
+};

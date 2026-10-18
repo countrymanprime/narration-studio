@@ -21,9 +21,9 @@ const STAGE_SUGGESTION_KEYS = [
 ] as const;
 
 /**
- * The stage board's own options, kept closed under the pipeline they shape: this project's values, saved at once. `onSaved` has the board read
+ * The stage board's own options, opened from the jump menu while Production shows the pipeline they shape: this project's values, saved at once. `onSaved` has the board read
  * its suggestions again, so a change shows in the rows above.
  */
 export function StageSuggestionOptions({ onSaved }: { onSaved: () => void }) {
-  return <ProofOptions title="Stage suggestion options" tool="StageRecommendations" keys={STAGE_SUGGESTION_KEYS} onSaved={onSaved} className="m-3" />;
+  return <ProofOptions title="Stage suggestion options" group="Production" tool="StageRecommendations" keys={STAGE_SUGGESTION_KEYS} onSaved={onSaved} />;
 }

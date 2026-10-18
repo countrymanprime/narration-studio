@@ -16,6 +16,7 @@ import { BUILT_IN, isRecorder, planStack, type StackActing, type StackHow } from
 import { canCleanUp, keptReason, otherReads, stackModeOf } from './stackedLine';
 import { CHECKING, KEPT_UNSTACK, NO_ANSWER, NO_RETRIES, NO_STACKED, STACK_TEXT, plural } from './stackText';
 import type { StackLine } from './types';
+import { returnToScript } from '../script/returnToScript';
 
 export interface StackOptions {
   journal: Pick<Journal, 'act' | 'undo'>;
@@ -152,6 +153,7 @@ export function useStackRetries({ journal, chapterId, lines, passageOf }: StackO
       overlay.open({
         kind: 'dialog',
         dismissOnOutsidePress: false,
+        returnFocus: returnToScript,
         title: stackTitle(direction),
         render: ({ close }) => (
           <StackDialog
@@ -229,7 +231,7 @@ export function useStackRetries({ journal, chapterId, lines, passageOf }: StackO
           if (!yes) return;
           const result = await journal.act(cleanUpCommand(daw, line, keptId, others.length, dawName));
           if (!result.ok) return overlay.toast(result.refusal.reason, { tone: 'error' });
-          overlay.toastUndo(result.value.value.message, () => journal.undo(result.value.id));
+          overlay.toastUndo(result.value.value.message, () => journal.undo(result.value.id), { entry: result.value.id });
         });
     },
     [merged, settings, journal, daw, dawName],

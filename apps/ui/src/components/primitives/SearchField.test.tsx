@@ -52,4 +52,19 @@ describe('SearchField', () => {
     render(<Controlled start="hare" />);
     expect(screen.getByRole('button', { name: 'Clear search' })).toBeTruthy();
   });
+
+  it('is the text box of a combobox when it is given the list it drives', () => {
+    render(
+      <SearchField
+        label="Search speakers"
+        value=""
+        onChange={vi.fn()}
+        combobox={{ role: 'combobox', 'aria-controls': 'list', 'aria-activedescendant': 'list-option-a', 'aria-expanded': true }}
+      />,
+    );
+    const box = screen.getByRole('combobox', { name: 'Search speakers' });
+    expect(box.getAttribute('aria-controls')).toBe('list');
+    expect(box.getAttribute('aria-activedescendant')).toBe('list-option-a');
+    expect(box.getAttribute('aria-expanded')).toBe('true');
+  });
 });

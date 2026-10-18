@@ -20,9 +20,36 @@ const REPAIR_NOTICES = [
 // are in the order the host sends them: the titles the parser read come first, in document order, and "Front Matter" (the
 // paragraphs before the first heading) is added after them, so it is last (apps/desktop/internal/importer/model.go, newDraft).
 const SECTIONS: readonly ManuscriptImportSection[] = [
-  { id: 'section-0001', title: 'Chapter One', subtitle: 'Down the Rabbit-Hole', subtitleOff: 'title', contentKind: 'narration', paragraphCount: 42 },
-  { id: 'section-0002', title: 'Chapter Two', subtitle: 'The Pool of Tears', subtitleOff: 'title', contentKind: 'narration', paragraphCount: 38 },
-  { id: 'section-0003', title: 'Chapter Three', contentKind: 'narration', paragraphCount: 35 },
+  {
+    id: 'section-0001',
+    title: 'Chapter One',
+    subtitle: 'Down the Rabbit-Hole',
+    subtitleOff: 'title',
+    contentKind: 'narration',
+    paragraphCount: 42,
+    wordCount: 1862,
+    firstText:
+      'Alice was beginning to get very tired of sitting by her sister on the bank, and of having nothing to do: once or twice she had peeped into the book her sister was reading…',
+  },
+  {
+    id: 'section-0002',
+    title: 'Chapter Two',
+    subtitle: 'The Pool of Tears',
+    subtitleOff: 'title',
+    contentKind: 'narration',
+    paragraphCount: 38,
+    wordCount: 1655,
+    firstText: '“Curiouser and curiouser!” cried Alice (she was so much surprised, that for the moment she quite forgot how to speak good English).',
+  },
+  {
+    id: 'section-0003',
+    title: 'Chapter Three',
+    contentKind: 'narration',
+    paragraphCount: 35,
+    wordCount: 1410,
+    firstText:
+      'They were indeed a queer-looking party that assembled on the bank, the birds with draggled feathers, the animals with their fur clinging close to them.',
+  },
   {
     id: 'section-0004',
     title: 'Chapter Four',
@@ -30,11 +57,41 @@ const SECTIONS: readonly ManuscriptImportSection[] = [
     subtitleOff: 'title',
     contentKind: 'narration',
     paragraphCount: 40,
+    wordCount: 1733,
+    firstText: 'The Rabbit started violently, dropped the white kid-gloves and the fan, and scurried away into the darkness as hard as he could go.',
   },
-  { id: 'section-0005', title: 'Chapter Five', contentKind: 'narration', paragraphCount: 45 },
-  { id: 'section-0006', title: 'Glossary', contentKind: 'reference', paragraphCount: 12 },
-  { id: 'section-0007', title: 'Characters', contentKind: 'reference', paragraphCount: 6 },
-  { id: 'section-0008', title: 'Front Matter', contentKind: 'opening', paragraphCount: 3 },
+  {
+    id: 'section-0005',
+    title: 'Chapter Five',
+    contentKind: 'narration',
+    paragraphCount: 45,
+    wordCount: 1980,
+    firstText: 'The Caterpillar and Alice looked at each other for some time in silence: at last the Caterpillar took the hookah out of its mouth.',
+  },
+  {
+    id: 'section-0006',
+    title: 'Glossary',
+    contentKind: 'reference',
+    paragraphCount: 12,
+    wordCount: 240,
+    firstText: 'Dodo: an extinct flightless bird, here a stand-in for the author.',
+  },
+  {
+    id: 'section-0007',
+    title: 'Characters',
+    contentKind: 'reference',
+    paragraphCount: 6,
+    wordCount: 96,
+    firstText: 'Alice; The White Rabbit; The Duchess; The Mad Hatter.',
+  },
+  {
+    id: 'section-0008',
+    title: 'Front Matter',
+    contentKind: 'opening',
+    paragraphCount: 3,
+    wordCount: 41,
+    firstText: 'Alice’s Adventures in Wonderland, by Lewis Carroll.',
+  },
 ];
 
 const FORMATS = { docx: 'docx', markdown: 'markdown', repaired: 'docx', text: 'txt' } as const;
