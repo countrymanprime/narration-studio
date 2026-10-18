@@ -8,6 +8,9 @@ inputs:
   always:
     description: Set to `true` to report affected whatever the change
     default: 'false'
+  pins:
+    description: Set to `true` to let a change that is only `uses:` pin bumps in the workflow folders count as not workspace-wide (nx-scope.sh --pins). Only the scope job of _quality.yml sets it, and ORs in the jobs the pins reach
+    default: 'false'
 
 outputs:
   affected:
@@ -22,11 +25,13 @@ runs:
       env:
         PROJECTS: ${{ inputs.projects }}
         ALWAYS: ${{ inputs.always }}
+        PINS: ${{ inputs.pins }}
         BASE_REF: ${{ github.base_ref }}
       run: |
         set -euo pipefail
         affected=true
-        if [ "$(bash scripts/ci/nx-scope.sh)" = "affected" ]; then
+        flag=(); if [ "$PINS" = "true" ]; then flag=(--pins); fi
+        if [ "$(bash scripts/ci/nx-scope.sh "${flag[@]}")" = "affected" ]; then
           hit=$(pnpm exec nx show projects --affected --projects="$PROJECTS" --base="origin/$BASE_REF" --head=HEAD)
           if [ -z "$hit" ]; then affected=false; fi
         fi

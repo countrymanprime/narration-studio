@@ -289,6 +289,8 @@ export function confirmDialog(page: Page, name: string | RegExp) {
 export async function clickReplaceManuscript(page: Page): Promise<void> {
   await openSettings(page, 'Project');
   await clickVisible(page, 'button', 'Replace manuscript…');
+  // Step 1 of the import (the mock's "Choose your manuscript"): the host's file chooser, and so the preview, follows this button.
+  await clickVisible(page, 'button', 'Choose a file…');
 }
 
 // Opens the import review dialog with the mock's own preview (`?mockImportPreview=`, main.tsx): "Replace manuscript" begins the same
