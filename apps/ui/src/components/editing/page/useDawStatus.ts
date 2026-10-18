@@ -16,9 +16,13 @@ export interface DawStatus {
 /** The DAW-neutral name the banner uses: the DAW's own, or "The DAW" when the launch names none. */
 const nameOf = (caps: DawCapabilities | null): string => (!caps || caps.daw === 'none' || caps.daw === 'Built-in' ? 'the DAW' : caps.daw);
 
+/** The reasons a capability is off because of a setting, not because the DAW is quiet: the edit notice says them, the banner never does. */
+const SETTING_REASONS: ReadonlySet<string> = new Set(['experimental_off', 'turned_off']);
+
 /**
- * Whether the DAW answers, from `DawClient.capabilities`, asked again on Retry and on each capabilities event. When it does not, the sentence is
- * the capability's own (the record capability's message), else "<DAW> is not running." The built-in recorder always answers.
+ * Whether the DAW answers, from `DawClient.capabilities`, asked again on Check again and on each capabilities event. When it does not, the sentence
+ * is the record capability's own message, unless that is a setting being off (then the DAW is simply "not answering"), else "<DAW> is not
+ * running." The built-in recorder always answers.
  */
 export function useDawStatus(): DawStatus {
   const daw = usePort('daw');
@@ -39,9 +43,9 @@ export function useDawStatus(): DawStatus {
   useEffect(() => events.subscribeDawCapabilities(() => setAsked((n) => n + 1)), [events]);
 
   const retry = useCallback(() => setAsked((n) => n + 1), []);
-  const off =
-    caps && !caps.reachable
-      ? (caps.capabilities['record']?.message ?? `${caps.daw === 'none' || caps.daw === 'Built-in' ? 'The DAW' : caps.daw} is not running.`)
-      : null;
+  const record = caps?.capabilities['record'];
+  const aSetting = record?.reason !== undefined && SETTING_REASONS.has(record.reason);
+  const name = !caps || caps.daw === 'none' || caps.daw === 'Built-in' ? 'The DAW' : caps.daw;
+  const off = caps && !caps.reachable ? ((aSetting ? undefined : record?.message) ?? `${name} is ${aSetting ? 'not answering' : 'not running'}.`) : null;
   return { caps, off, dawName: nameOf(caps), retry };
 }

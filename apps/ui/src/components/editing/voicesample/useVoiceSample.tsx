@@ -13,6 +13,7 @@ import { useEditingPage } from '../script/EditingPageState';
 import { VoiceSampleDialog, type Audition } from './VoiceSampleDialog';
 import { characterChoices, speakerOfWord } from './voiceSampleCharacters';
 import { voiceSampleRange } from './voiceSampleRange';
+import { returnToScript } from '../script/returnToScript';
 
 export interface VoiceSampleOptions {
   chapterId: string;
@@ -76,6 +77,7 @@ export function useVoiceSample({ chapterId, workspace, items, mediaUrl, stopPlay
           kind: 'dialog',
           title: 'Voice sample',
           dismissOnOutsidePress: false,
+          returnFocus: returnToScript,
           render: ({ close }) => (
             <VoiceSampleDialog
               words={result.ok ? result.range.words : summarize(doc, [...picked], [], (t) => t).words}

@@ -38,6 +38,7 @@ import { Panel } from '../primitives/Panel';
 import { TooltipTarget } from '../primitives/Tooltip';
 import { previewKey, usePreviewAudio } from './usePreviewAudio';
 import { PropertiesSection } from './PropertiesSection';
+import { EntryVoiceSamples } from './voicesamples/EntryVoiceSamples';
 import { VoiceReferencesSection } from './VoiceReferencesSection';
 import { DialogueCueAttribution } from './DialogueCueAttribution';
 import { SpeakerColourField } from './SpeakerColourField';
@@ -50,6 +51,7 @@ import { addressPath } from '../../navigation/address';
 import { aliasFlagged, entryFlagged, reviewFlags } from './entryList';
 import { EntryText } from './EntryText';
 import { ReadNotice } from './ReadNotice';
+import type { SamplePlayer } from '../voicesamples/useSamplePlayer';
 import {
   draftFrom,
   NO_TALK,
@@ -185,6 +187,7 @@ export function GuideDetail({
   reload,
   notify,
   goToManuscript,
+  samplePlayer,
   toVerify = 0,
   chapters = NO_CHAPTERS,
   suggested,
@@ -204,6 +207,8 @@ export function GuideDetail({
   notify: Notify;
   // A method, so Guide's (chapter, paragraph) handler still fits; the Appears in list calls it with a chapter alone.
   goToManuscript(chapter: string, paragraph?: number): void;
+  /** The page's one voice-sample player; an entry drawn alone has its own. */
+  samplePlayer?: SamplePlayer;
   // How many of this entry's extraction suggestions are still to be verified; Mark reviewed waits until none are.
   toVerify?: number;
   /** The manuscript's chapters, for Appears in; the page reads them once. */
@@ -1019,6 +1024,7 @@ export function GuideDetail({
             {!isNewDraft && (
               <>
                 <SpeakerColourField entity={entity} speaks disabled={mutation.isBusy || locked} onChange={(index) => void setSpeakerColour(index)} />
+                <EntryVoiceSamples entity={entity} entities={entities} types={types} canManage={editing && canEdit} player={samplePlayer} notify={notify} />
                 <VoiceReferencesSection characterId={entity.id} characterLabel={entity.canonical_name} notify={notify} />
                 <DialogueCueAttribution entity={entity} entities={entities} canSpeak={(category) => canSpeak(types, category)} notify={notify} />
               </>

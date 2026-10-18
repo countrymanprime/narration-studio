@@ -324,6 +324,7 @@ export function createMockApi(
     transcript: proofing.transcript,
     dictionaryState: assets.dictionaryState,
     dawFacts: () => dawControl.facts(),
+    manuscriptReady,
   });
   // The mock DAW's undo history: the edits below leave their labels on it (recordingUndo), and DawLastAction and DawUndoLast read it.
   const undoHistory = new MockUndoHistory();
@@ -372,6 +373,7 @@ export function createMockApi(
       manuscriptReady,
       () => s.chapters,
       () => s.paragraphs,
+      initial.voiceSamples,
     ),
     ...createEditLogMock(
       manuscriptReady,

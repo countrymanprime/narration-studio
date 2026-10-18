@@ -1,0 +1,2523 @@
+{
+  "cases": [
+    {
+      "after": {
+        "entities": [
+          {
+            "aliases": [],
+            "canonical_name": "Ada",
+            "category": "Character",
+            "id": "entity-ada",
+            "locked": false
+          },
+          {
+            "aliases": [],
+            "canonical_name": "The Mill",
+            "category": "Place",
+            "id": "entity-mill",
+            "locked": true
+          },
+          {
+            "aliases": [],
+            "canonical_name": "The Moor",
+            "category": "Place",
+            "id": "entity-moor",
+            "locked": false
+          },
+          {
+            "aliases": [],
+            "canonical_name": "The Guild",
+            "category": "Organization",
+            "id": "entity-guild",
+            "locked": false
+          }
+        ],
+        "schema_version": 2,
+        "types": [
+          {
+            "builtin": "Character",
+            "colour": "green",
+            "name": "Character",
+            "speaks": true
+          },
+          {
+            "builtin": "Place",
+            "colour": "blue",
+            "name": "Place",
+            "speaks": false
+          },
+          {
+            "builtin": "Organization",
+            "colour": "violet",
+            "name": "Organization",
+            "speaks": false
+          },
+          {
+            "builtin": "Lore",
+            "colour": "amber",
+            "name": "Lore",
+            "speaks": false
+          },
+          {
+            "builtin": "Item",
+            "colour": "teal",
+            "name": "Item",
+            "speaks": false
+          },
+          {
+            "builtin": "Event",
+            "colour": "rose",
+            "name": "Event",
+            "speaks": false
+          },
+          {
+            "colour": "green",
+            "name": "Creature",
+            "speaks": false
+          }
+        ]
+      },
+      "arguments": {
+        "name": "Creature"
+      },
+      "command": "type-add",
+      "start": "default"
+    },
+    {
+      "after": {
+        "entities": [
+          {
+            "aliases": [],
+            "canonical_name": "Ada",
+            "category": "Character",
+            "id": "entity-ada",
+            "locked": false
+          },
+          {
+            "aliases": [],
+            "canonical_name": "The Mill",
+            "category": "Place",
+            "id": "entity-mill",
+            "locked": true
+          },
+          {
+            "aliases": [],
+            "canonical_name": "The Moor",
+            "category": "Place",
+            "id": "entity-moor",
+            "locked": false
+          },
+          {
+            "aliases": [],
+            "canonical_name": "The Guild",
+            "category": "Organization",
+            "id": "entity-guild",
+            "locked": false
+          }
+        ],
+        "schema_version": 2,
+        "types": [
+          {
+            "builtin": "Character",
+            "colour": "green",
+            "name": "Character",
+            "speaks": true
+          },
+          {
+            "builtin": "Place",
+            "colour": "blue",
+            "name": "Place",
+            "speaks": false
+          },
+          {
+            "builtin": "Organization",
+            "colour": "violet",
+            "name": "Organization",
+            "speaks": false
+          },
+          {
+            "builtin": "Lore",
+            "colour": "amber",
+            "name": "Lore",
+            "speaks": false
+          },
+          {
+            "builtin": "Item",
+            "colour": "teal",
+            "name": "Item",
+            "speaks": false
+          },
+          {
+            "builtin": "Event",
+            "colour": "rose",
+            "name": "Event",
+            "speaks": false
+          },
+          {
+            "colour": "green",
+            "name": "Beast",
+            "speaks": false
+          }
+        ]
+      },
+      "arguments": {
+        "name": "  Beast  "
+      },
+      "command": "type-add",
+      "start": "default"
+    },
+    {
+      "after": {
+        "entities": [
+          {
+            "aliases": [],
+            "canonical_name": "Ada",
+            "category": "Character",
+            "id": "entity-ada",
+            "locked": false
+          },
+          {
+            "aliases": [],
+            "canonical_name": "The Mill",
+            "category": "Place",
+            "id": "entity-mill",
+            "locked": true
+          },
+          {
+            "aliases": [],
+            "canonical_name": "The Moor",
+            "category": "Place",
+            "id": "entity-moor",
+            "locked": false
+          },
+          {
+            "aliases": [],
+            "canonical_name": "The Guild",
+            "category": "Organization",
+            "id": "entity-guild",
+            "locked": false
+          }
+        ],
+        "schema_version": 2,
+        "types": [
+          {
+            "builtin": "Character",
+            "colour": "green",
+            "name": "Character",
+            "speaks": true
+          },
+          {
+            "builtin": "Place",
+            "colour": "blue",
+            "name": "Place",
+            "speaks": false
+          },
+          {
+            "builtin": "Organization",
+            "colour": "violet",
+            "name": "Organization",
+            "speaks": false
+          },
+          {
+            "builtin": "Lore",
+            "colour": "amber",
+            "name": "Lore",
+            "speaks": false
+          },
+          {
+            "builtin": "Item",
+            "colour": "teal",
+            "name": "Item",
+            "speaks": false
+          },
+          {
+            "builtin": "Event",
+            "colour": "rose",
+            "name": "Event",
+            "speaks": false
+          },
+          {
+            "colour": "green",
+            "name": "Beast",
+            "speaks": false
+          }
+        ]
+      },
+      "arguments": {
+        "name": "\u001fBeast\u001c"
+      },
+      "command": "type-add",
+      "start": "default"
+    },
+    {
+      "after": {
+        "entities": [
+          {
+            "aliases": [],
+            "canonical_name": "Ada",
+            "category": "Character",
+            "id": "entity-ada",
+            "locked": false
+          },
+          {
+            "aliases": [],
+            "canonical_name": "The Mill",
+            "category": "Place",
+            "id": "entity-mill",
+            "locked": true
+          },
+          {
+            "aliases": [],
+            "canonical_name": "The Moor",
+            "category": "Place",
+            "id": "entity-moor",
+            "locked": false
+          },
+          {
+            "aliases": [],
+            "canonical_name": "The Guild",
+            "category": "Organization",
+            "id": "entity-guild",
+            "locked": false
+          }
+        ],
+        "schema_version": 2,
+        "types": [
+          {
+            "builtin": "Character",
+            "colour": "green",
+            "name": "Character",
+            "speaks": true
+          },
+          {
+            "builtin": "Place",
+            "colour": "blue",
+            "name": "Place",
+            "speaks": false
+          },
+          {
+            "builtin": "Organization",
+            "colour": "violet",
+            "name": "Organization",
+            "speaks": false
+          },
+          {
+            "builtin": "Lore",
+            "colour": "amber",
+            "name": "Lore",
+            "speaks": false
+          },
+          {
+            "builtin": "Item",
+            "colour": "teal",
+            "name": "Item",
+            "speaks": false
+          },
+          {
+            "builtin": "Event",
+            "colour": "rose",
+            "name": "Event",
+            "speaks": false
+          },
+          {
+            "colour": "green",
+            "name": "Ünïcødé",
+            "speaks": false
+          }
+        ]
+      },
+      "arguments": {
+        "name": "Ünïcødé"
+      },
+      "command": "type-add",
+      "start": "default"
+    },
+    {
+      "after": {
+        "entities": [
+          {
+            "aliases": [],
+            "canonical_name": "Ada",
+            "category": "Character",
+            "id": "entity-ada",
+            "locked": false
+          },
+          {
+            "aliases": [],
+            "canonical_name": "The Mill",
+            "category": "Place",
+            "id": "entity-mill",
+            "locked": true
+          },
+          {
+            "aliases": [],
+            "canonical_name": "The Moor",
+            "category": "Place",
+            "id": "entity-moor",
+            "locked": false
+          },
+          {
+            "aliases": [],
+            "canonical_name": "The Guild",
+            "category": "Organization",
+            "id": "entity-guild",
+            "locked": false
+          }
+        ],
+        "schema_version": 2,
+        "types": [
+          {
+            "builtin": "Character",
+            "colour": "green",
+            "name": "Character",
+            "speaks": true
+          },
+          {
+            "builtin": "Place",
+            "colour": "blue",
+            "name": "Place",
+            "speaks": false
+          },
+          {
+            "builtin": "Organization",
+            "colour": "violet",
+            "name": "Organization",
+            "speaks": false
+          },
+          {
+            "builtin": "Lore",
+            "colour": "amber",
+            "name": "Lore",
+            "speaks": false
+          },
+          {
+            "builtin": "Item",
+            "colour": "teal",
+            "name": "Item",
+            "speaks": false
+          },
+          {
+            "builtin": "Event",
+            "colour": "rose",
+            "name": "Event",
+            "speaks": false
+          },
+          {
+            "colour": "green",
+            "name": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+            "speaks": false
+          }
+        ]
+      },
+      "arguments": {
+        "name": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+      },
+      "command": "type-add",
+      "start": "default"
+    },
+    {
+      "arguments": {
+        "name": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+      },
+      "command": "type-add",
+      "error": "A type's name is one line of 1 to 40 characters.",
+      "start": "default"
+    },
+    {
+      "after": {
+        "entities": [
+          {
+            "aliases": [],
+            "canonical_name": "Ada",
+            "category": "Character",
+            "id": "entity-ada",
+            "locked": false
+          },
+          {
+            "aliases": [],
+            "canonical_name": "The Mill",
+            "category": "Place",
+            "id": "entity-mill",
+            "locked": true
+          },
+          {
+            "aliases": [],
+            "canonical_name": "The Moor",
+            "category": "Place",
+            "id": "entity-moor",
+            "locked": false
+          },
+          {
+            "aliases": [],
+            "canonical_name": "The Guild",
+            "category": "Organization",
+            "id": "entity-guild",
+            "locked": false
+          }
+        ],
+        "schema_version": 2,
+        "types": [
+          {
+            "builtin": "Character",
+            "colour": "green",
+            "name": "Character",
+            "speaks": true
+          },
+          {
+            "builtin": "Place",
+            "colour": "blue",
+            "name": "Place",
+            "speaks": false
+          },
+          {
+            "builtin": "Organization",
+            "colour": "violet",
+            "name": "Organization",
+            "speaks": false
+          },
+          {
+            "builtin": "Lore",
+            "colour": "amber",
+            "name": "Lore",
+            "speaks": false
+          },
+          {
+            "builtin": "Item",
+            "colour": "teal",
+            "name": "Item",
+            "speaks": false
+          },
+          {
+            "builtin": "Event",
+            "colour": "rose",
+            "name": "Event",
+            "speaks": false
+          },
+          {
+            "colour": "green",
+            "name": "éééééééééééééééééééééééééééééééééééééééé",
+            "speaks": false
+          }
+        ]
+      },
+      "arguments": {
+        "name": "éééééééééééééééééééééééééééééééééééééééé"
+      },
+      "command": "type-add",
+      "start": "default"
+    },
+    {
+      "arguments": {
+        "name": ""
+      },
+      "command": "type-add",
+      "error": "A type's name is one line of 1 to 40 characters.",
+      "start": "default"
+    },
+    {
+      "arguments": {
+        "name": "   "
+      },
+      "command": "type-add",
+      "error": "A type's name is one line of 1 to 40 characters.",
+      "start": "default"
+    },
+    {
+      "arguments": {
+        "name": "two\nlines"
+      },
+      "command": "type-add",
+      "error": "A type's name is one line of 1 to 40 characters.",
+      "start": "default"
+    },
+    {
+      "arguments": {
+        "name": "nul\u0000"
+      },
+      "command": "type-add",
+      "error": "A type's name is one line of 1 to 40 characters.",
+      "start": "default"
+    },
+    {
+      "arguments": {
+        "name": "n\u0000l"
+      },
+      "command": "type-add",
+      "error": "A type's name is one line of 1 to 40 characters.",
+      "start": "default"
+    },
+    {
+      "after": {
+        "entities": [
+          {
+            "aliases": [],
+            "canonical_name": "Ada",
+            "category": "Character",
+            "id": "entity-ada",
+            "locked": false
+          },
+          {
+            "aliases": [],
+            "canonical_name": "The Mill",
+            "category": "Place",
+            "id": "entity-mill",
+            "locked": true
+          },
+          {
+            "aliases": [],
+            "canonical_name": "The Moor",
+            "category": "Place",
+            "id": "entity-moor",
+            "locked": false
+          },
+          {
+            "aliases": [],
+            "canonical_name": "The Guild",
+            "category": "Organization",
+            "id": "entity-guild",
+            "locked": false
+          }
+        ],
+        "schema_version": 2,
+        "types": [
+          {
+            "builtin": "Character",
+            "colour": "green",
+            "name": "Character",
+            "speaks": true
+          },
+          {
+            "builtin": "Place",
+            "colour": "blue",
+            "name": "Place",
+            "speaks": false
+          },
+          {
+            "builtin": "Organization",
+            "colour": "violet",
+            "name": "Organization",
+            "speaks": false
+          },
+          {
+            "builtin": "Lore",
+            "colour": "amber",
+            "name": "Lore",
+            "speaks": false
+          },
+          {
+            "builtin": "Item",
+            "colour": "teal",
+            "name": "Item",
+            "speaks": false
+          },
+          {
+            "builtin": "Event",
+            "colour": "rose",
+            "name": "Event",
+            "speaks": false
+          },
+          {
+            "colour": "green",
+            "name": "line break",
+            "speaks": false
+          }
+        ]
+      },
+      "arguments": {
+        "name": "line break"
+      },
+      "command": "type-add",
+      "start": "default"
+    },
+    {
+      "arguments": {
+        "name": "character"
+      },
+      "command": "type-add",
+      "error": "There is a type named 'character' already; give the type a new name.",
+      "start": "default"
+    },
+    {
+      "arguments": {
+        "name": "Needs Review"
+      },
+      "command": "type-add",
+      "error": "Needs Review is kept for the Story Bible's own use; give the type another name.",
+      "start": "default"
+    },
+    {
+      "arguments": {
+        "name": " Draft "
+      },
+      "command": "type-add",
+      "error": "Draft is kept for the Story Bible's own use; give the type another name.",
+      "start": "default"
+    },
+    {
+      "after": {
+        "entities": [
+          {
+            "aliases": [],
+            "canonical_name": "Ada",
+            "category": "Character",
+            "id": "entity-ada",
+            "locked": false
+          },
+          {
+            "aliases": [],
+            "canonical_name": "The Mill",
+            "category": "Place",
+            "id": "entity-mill",
+            "locked": true
+          },
+          {
+            "aliases": [],
+            "canonical_name": "The Moor",
+            "category": "Place",
+            "id": "entity-moor",
+            "locked": false
+          },
+          {
+            "aliases": [],
+            "canonical_name": "The Guild",
+            "category": "Organization",
+            "id": "entity-guild",
+            "locked": false
+          }
+        ],
+        "schema_version": 2,
+        "types": [
+          {
+            "builtin": "Character",
+            "colour": "green",
+            "name": "Character",
+            "speaks": true
+          },
+          {
+            "builtin": "Place",
+            "colour": "blue",
+            "name": "Place",
+            "speaks": false
+          },
+          {
+            "builtin": "Organization",
+            "colour": "violet",
+            "name": "Organization",
+            "speaks": false
+          },
+          {
+            "builtin": "Lore",
+            "colour": "amber",
+            "name": "Lore",
+            "speaks": false
+          },
+          {
+            "builtin": "Item",
+            "colour": "teal",
+            "name": "Item",
+            "speaks": false
+          },
+          {
+            "builtin": "Event",
+            "colour": "rose",
+            "name": "Event",
+            "speaks": false
+          },
+          {
+            "colour": "green",
+            "name": "draft",
+            "speaks": false
+          }
+        ]
+      },
+      "arguments": {
+        "name": "draft"
+      },
+      "command": "type-add",
+      "start": "default"
+    },
+    {
+      "after": {
+        "entities": [
+          {
+            "aliases": [],
+            "canonical_name": "Ada",
+            "category": "Hero",
+            "id": "entity-ada",
+            "locked": false
+          },
+          {
+            "aliases": [],
+            "canonical_name": "The Mill",
+            "category": "Place",
+            "id": "entity-mill",
+            "locked": true
+          }
+        ],
+        "schema_version": 2,
+        "types": [
+          {
+            "builtin": "Character",
+            "colour": "green",
+            "name": "Hero",
+            "speaks": true
+          },
+          {
+            "builtin": "Place",
+            "colour": "blue",
+            "name": "Place",
+            "speaks": false
+          },
+          {
+            "colour": "teal",
+            "name": "Ship",
+            "speaks": false
+          },
+          {
+            "colour": "amber",
+            "name": "Creature",
+            "speaks": false
+          }
+        ]
+      },
+      "arguments": {
+        "name": "Creature"
+      },
+      "command": "type-add",
+      "start": "stored"
+    },
+    {
+      "arguments": {
+        "name": "hero"
+      },
+      "command": "type-add",
+      "error": "There is a type named 'hero' already; give the type a new name.",
+      "start": "stored"
+    },
+    {
+      "after": {
+        "absorbed_names": {},
+        "entities": [],
+        "generated_at": null,
+        "schema_version": 2,
+        "source": {},
+        "types": [
+          {
+            "builtin": "Character",
+            "colour": "green",
+            "name": "Character",
+            "speaks": true
+          },
+          {
+            "builtin": "Place",
+            "colour": "blue",
+            "name": "Place",
+            "speaks": false
+          },
+          {
+            "builtin": "Organization",
+            "colour": "violet",
+            "name": "Organization",
+            "speaks": false
+          },
+          {
+            "builtin": "Lore",
+            "colour": "amber",
+            "name": "Lore",
+            "speaks": false
+          },
+          {
+            "builtin": "Item",
+            "colour": "teal",
+            "name": "Item",
+            "speaks": false
+          },
+          {
+            "builtin": "Event",
+            "colour": "rose",
+            "name": "Event",
+            "speaks": false
+          },
+          {
+            "colour": "green",
+            "name": "Creature",
+            "speaks": false
+          }
+        ],
+        "vocabulary_candidates": []
+      },
+      "arguments": {
+        "name": "Creature"
+      },
+      "command": "type-add",
+      "start": "missing"
+    },
+    {
+      "after": {
+        "absorbed_names": {},
+        "entities": [],
+        "generated_at": null,
+        "schema_version": 2,
+        "source": {},
+        "types": [
+          {
+            "builtin": "Character",
+            "colour": "green",
+            "name": "Character",
+            "speaks": true
+          },
+          {
+            "builtin": "Place",
+            "colour": "blue",
+            "name": "Place",
+            "speaks": false
+          },
+          {
+            "builtin": "Organization",
+            "colour": "violet",
+            "name": "Organization",
+            "speaks": false
+          },
+          {
+            "builtin": "Lore",
+            "colour": "amber",
+            "name": "Lore",
+            "speaks": false
+          },
+          {
+            "builtin": "Item",
+            "colour": "teal",
+            "name": "Item",
+            "speaks": false
+          },
+          {
+            "builtin": "Event",
+            "colour": "rose",
+            "name": "Event",
+            "speaks": false
+          },
+          {
+            "colour": "green",
+            "name": "Creature",
+            "speaks": false
+          }
+        ],
+        "vocabulary_candidates": []
+      },
+      "arguments": {
+        "name": "Creature"
+      },
+      "command": "type-add",
+      "start": "empty"
+    },
+    {
+      "arguments": {
+        "name": "Creature"
+      },
+      "command": "type-add",
+      "error": "The Story Bible types are invalid.",
+      "start": "bad"
+    },
+    {
+      "arguments": {
+        "name": "Creature"
+      },
+      "command": "type-add",
+      "error": "The Story Bible types are invalid.",
+      "start": "twice"
+    },
+    {
+      "arguments": {
+        "name": "Creature"
+      },
+      "command": "type-add",
+      "error": "The Story Bible types are invalid.",
+      "start": "empty-list"
+    },
+    {
+      "after": {
+        "entities": [
+          {
+            "aliases": [],
+            "canonical_name": "The Moor",
+            "category": "Place",
+            "id": "entity-moor",
+            "locked": false
+          }
+        ],
+        "schema_version": 2,
+        "types": [
+          {
+            "builtin": "Character",
+            "colour": "green",
+            "name": "Character",
+            "speaks": true
+          },
+          {
+            "builtin": "Place",
+            "colour": "blue",
+            "name": "Place",
+            "speaks": false
+          },
+          {
+            "builtin": "Organization",
+            "colour": "violet",
+            "name": "Organization",
+            "speaks": false
+          },
+          {
+            "builtin": "Lore",
+            "colour": "amber",
+            "name": "Lore",
+            "speaks": false
+          },
+          {
+            "builtin": "Item",
+            "colour": "teal",
+            "name": "Item",
+            "speaks": false
+          },
+          {
+            "builtin": "Event",
+            "colour": "rose",
+            "name": "Event",
+            "speaks": false
+          },
+          {
+            "colour": "green",
+            "name": "Creature",
+            "speaks": false
+          }
+        ]
+      },
+      "arguments": {
+        "name": "Creature"
+      },
+      "command": "type-add",
+      "start": "null-types"
+    },
+    {
+      "arguments": {
+        "name": "ᎠᎡ"
+      },
+      "command": "type-add",
+      "error": "There is a type named 'ᎠᎡ' already; give the type a new name.",
+      "start": "cherokee"
+    },
+    {
+      "after": {
+        "entities": [],
+        "schema_version": 2,
+        "types": [
+          {
+            "colour": "green",
+            "name": "ꭰꭱ",
+            "speaks": true
+          },
+          {
+            "colour": "blue",
+            "name": "Ᏸ",
+            "speaks": false
+          }
+        ]
+      },
+      "arguments": {
+        "name": "Ᏸ"
+      },
+      "command": "type-add",
+      "start": "cherokee"
+    },
+    {
+      "after": {
+        "entities": [],
+        "schema_version": 2,
+        "types": [
+          {
+            "colour": "green",
+            "name": "ᎠᎡ",
+            "speaks": true
+          }
+        ]
+      },
+      "arguments": {
+        "name": "ꭰꭱ",
+        "to": "ᎠᎡ"
+      },
+      "command": "type-rename",
+      "start": "cherokee"
+    },
+    {
+      "after": {
+        "entities": [
+          {
+            "aliases": [],
+            "canonical_name": "Ada",
+            "category": "Character",
+            "id": "entity-ada",
+            "locked": false
+          },
+          {
+            "aliases": [],
+            "canonical_name": "The Mill",
+            "category": "Location",
+            "id": "entity-mill",
+            "locked": true
+          },
+          {
+            "aliases": [],
+            "canonical_name": "The Moor",
+            "category": "Location",
+            "id": "entity-moor",
+            "locked": false
+          },
+          {
+            "aliases": [],
+            "canonical_name": "The Guild",
+            "category": "Organization",
+            "id": "entity-guild",
+            "locked": false
+          }
+        ],
+        "schema_version": 2,
+        "types": [
+          {
+            "builtin": "Character",
+            "colour": "green",
+            "name": "Character",
+            "speaks": true
+          },
+          {
+            "builtin": "Place",
+            "colour": "blue",
+            "name": "Location",
+            "speaks": false
+          },
+          {
+            "builtin": "Organization",
+            "colour": "violet",
+            "name": "Organization",
+            "speaks": false
+          },
+          {
+            "builtin": "Lore",
+            "colour": "amber",
+            "name": "Lore",
+            "speaks": false
+          },
+          {
+            "builtin": "Item",
+            "colour": "teal",
+            "name": "Item",
+            "speaks": false
+          },
+          {
+            "builtin": "Event",
+            "colour": "rose",
+            "name": "Event",
+            "speaks": false
+          }
+        ]
+      },
+      "arguments": {
+        "name": "Place",
+        "to": "Location"
+      },
+      "command": "type-rename",
+      "start": "default"
+    },
+    {
+      "after": {
+        "entities": [
+          {
+            "aliases": [],
+            "canonical_name": "Ada",
+            "category": "Character",
+            "id": "entity-ada",
+            "locked": false
+          },
+          {
+            "aliases": [],
+            "canonical_name": "The Mill",
+            "category": "place",
+            "id": "entity-mill",
+            "locked": true
+          },
+          {
+            "aliases": [],
+            "canonical_name": "The Moor",
+            "category": "place",
+            "id": "entity-moor",
+            "locked": false
+          },
+          {
+            "aliases": [],
+            "canonical_name": "The Guild",
+            "category": "Organization",
+            "id": "entity-guild",
+            "locked": false
+          }
+        ],
+        "schema_version": 2,
+        "types": [
+          {
+            "builtin": "Character",
+            "colour": "green",
+            "name": "Character",
+            "speaks": true
+          },
+          {
+            "builtin": "Place",
+            "colour": "blue",
+            "name": "place",
+            "speaks": false
+          },
+          {
+            "builtin": "Organization",
+            "colour": "violet",
+            "name": "Organization",
+            "speaks": false
+          },
+          {
+            "builtin": "Lore",
+            "colour": "amber",
+            "name": "Lore",
+            "speaks": false
+          },
+          {
+            "builtin": "Item",
+            "colour": "teal",
+            "name": "Item",
+            "speaks": false
+          },
+          {
+            "builtin": "Event",
+            "colour": "rose",
+            "name": "Event",
+            "speaks": false
+          }
+        ]
+      },
+      "arguments": {
+        "name": "Place",
+        "to": " place "
+      },
+      "command": "type-rename",
+      "start": "default"
+    },
+    {
+      "after": {
+        "entities": [
+          {
+            "aliases": [],
+            "canonical_name": "Ada",
+            "category": "Character",
+            "id": "entity-ada",
+            "locked": false
+          },
+          {
+            "aliases": [],
+            "canonical_name": "The Mill",
+            "category": "Place",
+            "id": "entity-mill",
+            "locked": true
+          },
+          {
+            "aliases": [],
+            "canonical_name": "The Moor",
+            "category": "Place",
+            "id": "entity-moor",
+            "locked": false
+          },
+          {
+            "aliases": [],
+            "canonical_name": "The Guild",
+            "category": "Organization",
+            "id": "entity-guild",
+            "locked": false
+          }
+        ],
+        "schema_version": 2,
+        "types": [
+          {
+            "builtin": "Character",
+            "colour": "green",
+            "name": "Character",
+            "speaks": true
+          },
+          {
+            "builtin": "Place",
+            "colour": "blue",
+            "name": "Place",
+            "speaks": false
+          },
+          {
+            "builtin": "Organization",
+            "colour": "violet",
+            "name": "Organization",
+            "speaks": false
+          },
+          {
+            "builtin": "Lore",
+            "colour": "amber",
+            "name": "Lore",
+            "speaks": false
+          },
+          {
+            "builtin": "Item",
+            "colour": "teal",
+            "name": "Item",
+            "speaks": false
+          },
+          {
+            "builtin": "Event",
+            "colour": "rose",
+            "name": "Event",
+            "speaks": false
+          }
+        ]
+      },
+      "arguments": {
+        "name": "Place",
+        "to": "Place"
+      },
+      "command": "type-rename",
+      "start": "default"
+    },
+    {
+      "arguments": {
+        "name": "Place",
+        "to": "character"
+      },
+      "command": "type-rename",
+      "error": "There is a type named 'character' already; give the type a new name.",
+      "start": "default"
+    },
+    {
+      "arguments": {
+        "name": "Place",
+        "to": "Needs Review"
+      },
+      "command": "type-rename",
+      "error": "Needs Review is kept for the Story Bible's own use; give the type another name.",
+      "start": "default"
+    },
+    {
+      "arguments": {
+        "name": "Place",
+        "to": ""
+      },
+      "command": "type-rename",
+      "error": "A type's name is one line of 1 to 40 characters.",
+      "start": "default"
+    },
+    {
+      "arguments": {
+        "name": "place",
+        "to": "Location"
+      },
+      "command": "type-rename",
+      "error": "There is no type named 'place'.",
+      "start": "default"
+    },
+    {
+      "arguments": {
+        "name": " Place",
+        "to": "Location"
+      },
+      "command": "type-rename",
+      "error": "There is no type named ' Place'.",
+      "start": "default"
+    },
+    {
+      "arguments": {
+        "name": "Nowhere",
+        "to": "Location"
+      },
+      "command": "type-rename",
+      "error": "There is no type named 'Nowhere'.",
+      "start": "default"
+    },
+    {
+      "arguments": {
+        "name": "Needs Review",
+        "to": "Location"
+      },
+      "command": "type-rename",
+      "error": "There is no type named 'Needs Review'.",
+      "start": "default"
+    },
+    {
+      "after": {
+        "entities": [
+          {
+            "aliases": [],
+            "canonical_name": "Ada",
+            "category": "Lead",
+            "id": "entity-ada",
+            "locked": false
+          },
+          {
+            "aliases": [],
+            "canonical_name": "The Mill",
+            "category": "Place",
+            "id": "entity-mill",
+            "locked": true
+          }
+        ],
+        "schema_version": 2,
+        "types": [
+          {
+            "builtin": "Character",
+            "colour": "green",
+            "name": "Lead",
+            "speaks": true
+          },
+          {
+            "builtin": "Place",
+            "colour": "blue",
+            "name": "Place",
+            "speaks": false
+          },
+          {
+            "colour": "teal",
+            "name": "Ship",
+            "speaks": false
+          }
+        ]
+      },
+      "arguments": {
+        "name": "Hero",
+        "to": "Lead"
+      },
+      "command": "type-rename",
+      "start": "stored"
+    },
+    {
+      "arguments": {
+        "name": "Place",
+        "to": "Ship"
+      },
+      "command": "type-rename",
+      "error": "There is a type named 'Ship' already; give the type a new name.",
+      "start": "stored"
+    },
+    {
+      "after": {
+        "absorbed_names": {},
+        "entities": [],
+        "generated_at": null,
+        "schema_version": 2,
+        "source": {},
+        "types": [
+          {
+            "builtin": "Character",
+            "colour": "green",
+            "name": "Character",
+            "speaks": true
+          },
+          {
+            "builtin": "Place",
+            "colour": "blue",
+            "name": "Location",
+            "speaks": false
+          },
+          {
+            "builtin": "Organization",
+            "colour": "violet",
+            "name": "Organization",
+            "speaks": false
+          },
+          {
+            "builtin": "Lore",
+            "colour": "amber",
+            "name": "Lore",
+            "speaks": false
+          },
+          {
+            "builtin": "Item",
+            "colour": "teal",
+            "name": "Item",
+            "speaks": false
+          },
+          {
+            "builtin": "Event",
+            "colour": "rose",
+            "name": "Event",
+            "speaks": false
+          }
+        ],
+        "vocabulary_candidates": []
+      },
+      "arguments": {
+        "name": "Place",
+        "to": "Location"
+      },
+      "command": "type-rename",
+      "start": "missing"
+    },
+    {
+      "arguments": {
+        "name": "Nowhere",
+        "to": "Location"
+      },
+      "command": "type-rename",
+      "error": "There is no type named 'Nowhere'.",
+      "start": "missing"
+    },
+    {
+      "arguments": {
+        "name": "Hero",
+        "to": "Lead"
+      },
+      "command": "type-rename",
+      "error": "The Story Bible types are invalid.",
+      "start": "bad"
+    },
+    {
+      "after": {
+        "entities": [
+          {
+            "aliases": [],
+            "canonical_name": "Ada",
+            "category": "Character",
+            "id": "entity-ada",
+            "locked": false
+          },
+          {
+            "aliases": [],
+            "canonical_name": "The Mill",
+            "category": "Place",
+            "id": "entity-mill",
+            "locked": true
+          },
+          {
+            "aliases": [],
+            "canonical_name": "The Moor",
+            "category": "Place",
+            "id": "entity-moor",
+            "locked": false
+          },
+          {
+            "aliases": [],
+            "canonical_name": "The Guild",
+            "category": "Organization",
+            "id": "entity-guild",
+            "locked": false
+          }
+        ],
+        "schema_version": 2,
+        "types": [
+          {
+            "builtin": "Character",
+            "colour": "green",
+            "name": "Character",
+            "speaks": true
+          },
+          {
+            "builtin": "Place",
+            "colour": "amber",
+            "name": "Place",
+            "speaks": false
+          },
+          {
+            "builtin": "Organization",
+            "colour": "violet",
+            "name": "Organization",
+            "speaks": false
+          },
+          {
+            "builtin": "Lore",
+            "colour": "amber",
+            "name": "Lore",
+            "speaks": false
+          },
+          {
+            "builtin": "Item",
+            "colour": "teal",
+            "name": "Item",
+            "speaks": false
+          },
+          {
+            "builtin": "Event",
+            "colour": "rose",
+            "name": "Event",
+            "speaks": false
+          }
+        ]
+      },
+      "arguments": {
+        "colour": "amber",
+        "name": "Place"
+      },
+      "command": "type-colour",
+      "start": "default"
+    },
+    {
+      "after": {
+        "entities": [
+          {
+            "aliases": [],
+            "canonical_name": "Ada",
+            "category": "Character",
+            "id": "entity-ada",
+            "locked": false
+          },
+          {
+            "aliases": [],
+            "canonical_name": "The Mill",
+            "category": "Place",
+            "id": "entity-mill",
+            "locked": true
+          },
+          {
+            "aliases": [],
+            "canonical_name": "The Moor",
+            "category": "Place",
+            "id": "entity-moor",
+            "locked": false
+          },
+          {
+            "aliases": [],
+            "canonical_name": "The Guild",
+            "category": "Organization",
+            "id": "entity-guild",
+            "locked": false
+          }
+        ],
+        "schema_version": 2,
+        "types": [
+          {
+            "builtin": "Character",
+            "colour": "green",
+            "name": "Character",
+            "speaks": true
+          },
+          {
+            "builtin": "Place",
+            "colour": "blue",
+            "name": "Place",
+            "speaks": false
+          },
+          {
+            "builtin": "Organization",
+            "colour": "violet",
+            "name": "Organization",
+            "speaks": false
+          },
+          {
+            "builtin": "Lore",
+            "colour": "amber",
+            "name": "Lore",
+            "speaks": false
+          },
+          {
+            "builtin": "Item",
+            "colour": "teal",
+            "name": "Item",
+            "speaks": false
+          },
+          {
+            "builtin": "Event",
+            "colour": "rose",
+            "name": "Event",
+            "speaks": false
+          }
+        ]
+      },
+      "arguments": {
+        "colour": "blue",
+        "name": "Place"
+      },
+      "command": "type-colour",
+      "start": "default"
+    },
+    {
+      "arguments": {
+        "colour": "pink",
+        "name": "Place"
+      },
+      "command": "type-colour",
+      "error": "A type's colour is one of green, blue, violet, amber, teal, rose.",
+      "start": "default"
+    },
+    {
+      "arguments": {
+        "colour": "Amber",
+        "name": "Place"
+      },
+      "command": "type-colour",
+      "error": "A type's colour is one of green, blue, violet, amber, teal, rose.",
+      "start": "default"
+    },
+    {
+      "arguments": {
+        "colour": "green",
+        "name": "Nowhere"
+      },
+      "command": "type-colour",
+      "error": "There is no type named 'Nowhere'.",
+      "start": "default"
+    },
+    {
+      "after": {
+        "entities": [
+          {
+            "aliases": [],
+            "canonical_name": "Ada",
+            "category": "Hero",
+            "id": "entity-ada",
+            "locked": false
+          },
+          {
+            "aliases": [],
+            "canonical_name": "The Mill",
+            "category": "Place",
+            "id": "entity-mill",
+            "locked": true
+          }
+        ],
+        "schema_version": 2,
+        "types": [
+          {
+            "builtin": "Character",
+            "colour": "green",
+            "name": "Hero",
+            "speaks": true
+          },
+          {
+            "builtin": "Place",
+            "colour": "blue",
+            "name": "Place",
+            "speaks": false
+          },
+          {
+            "colour": "violet",
+            "name": "Ship",
+            "speaks": false
+          }
+        ]
+      },
+      "arguments": {
+        "colour": "violet",
+        "name": "Ship"
+      },
+      "command": "type-colour",
+      "start": "stored"
+    },
+    {
+      "after": {
+        "absorbed_names": {},
+        "entities": [],
+        "generated_at": null,
+        "schema_version": 2,
+        "source": {},
+        "types": [
+          {
+            "builtin": "Character",
+            "colour": "green",
+            "name": "Character",
+            "speaks": true
+          },
+          {
+            "builtin": "Place",
+            "colour": "blue",
+            "name": "Place",
+            "speaks": false
+          },
+          {
+            "builtin": "Organization",
+            "colour": "violet",
+            "name": "Organization",
+            "speaks": false
+          },
+          {
+            "builtin": "Lore",
+            "colour": "teal",
+            "name": "Lore",
+            "speaks": false
+          },
+          {
+            "builtin": "Item",
+            "colour": "teal",
+            "name": "Item",
+            "speaks": false
+          },
+          {
+            "builtin": "Event",
+            "colour": "rose",
+            "name": "Event",
+            "speaks": false
+          }
+        ],
+        "vocabulary_candidates": []
+      },
+      "arguments": {
+        "colour": "teal",
+        "name": "Lore"
+      },
+      "command": "type-colour",
+      "start": "missing"
+    },
+    {
+      "arguments": {
+        "colour": "teal",
+        "name": "Hero"
+      },
+      "command": "type-colour",
+      "error": "The Story Bible types are invalid.",
+      "start": "bad"
+    },
+    {
+      "after": {
+        "entities": [
+          {
+            "aliases": [],
+            "canonical_name": "Ada",
+            "category": "Character",
+            "id": "entity-ada",
+            "locked": false
+          },
+          {
+            "aliases": [],
+            "canonical_name": "The Mill",
+            "category": "Place",
+            "id": "entity-mill",
+            "locked": true
+          },
+          {
+            "aliases": [],
+            "canonical_name": "The Moor",
+            "category": "Place",
+            "id": "entity-moor",
+            "locked": false
+          },
+          {
+            "aliases": [],
+            "canonical_name": "The Guild",
+            "category": "Organization",
+            "id": "entity-guild",
+            "locked": false
+          }
+        ],
+        "schema_version": 2,
+        "types": [
+          {
+            "builtin": "Character",
+            "colour": "green",
+            "name": "Character",
+            "speaks": true
+          },
+          {
+            "builtin": "Place",
+            "colour": "blue",
+            "name": "Place",
+            "speaks": true
+          },
+          {
+            "builtin": "Organization",
+            "colour": "violet",
+            "name": "Organization",
+            "speaks": false
+          },
+          {
+            "builtin": "Lore",
+            "colour": "amber",
+            "name": "Lore",
+            "speaks": false
+          },
+          {
+            "builtin": "Item",
+            "colour": "teal",
+            "name": "Item",
+            "speaks": false
+          },
+          {
+            "builtin": "Event",
+            "colour": "rose",
+            "name": "Event",
+            "speaks": false
+          }
+        ]
+      },
+      "arguments": {
+        "name": "Place",
+        "speaks": 1
+      },
+      "command": "type-speaks",
+      "start": "default"
+    },
+    {
+      "after": {
+        "entities": [
+          {
+            "aliases": [],
+            "canonical_name": "Ada",
+            "category": "Character",
+            "id": "entity-ada",
+            "locked": false
+          },
+          {
+            "aliases": [],
+            "canonical_name": "The Mill",
+            "category": "Place",
+            "id": "entity-mill",
+            "locked": true
+          },
+          {
+            "aliases": [],
+            "canonical_name": "The Moor",
+            "category": "Place",
+            "id": "entity-moor",
+            "locked": false
+          },
+          {
+            "aliases": [],
+            "canonical_name": "The Guild",
+            "category": "Organization",
+            "id": "entity-guild",
+            "locked": false
+          }
+        ],
+        "schema_version": 2,
+        "types": [
+          {
+            "builtin": "Character",
+            "colour": "green",
+            "name": "Character",
+            "speaks": false
+          },
+          {
+            "builtin": "Place",
+            "colour": "blue",
+            "name": "Place",
+            "speaks": false
+          },
+          {
+            "builtin": "Organization",
+            "colour": "violet",
+            "name": "Organization",
+            "speaks": false
+          },
+          {
+            "builtin": "Lore",
+            "colour": "amber",
+            "name": "Lore",
+            "speaks": false
+          },
+          {
+            "builtin": "Item",
+            "colour": "teal",
+            "name": "Item",
+            "speaks": false
+          },
+          {
+            "builtin": "Event",
+            "colour": "rose",
+            "name": "Event",
+            "speaks": false
+          }
+        ]
+      },
+      "arguments": {
+        "name": "Character",
+        "speaks": 0
+      },
+      "command": "type-speaks",
+      "start": "default"
+    },
+    {
+      "after": {
+        "entities": [
+          {
+            "aliases": [],
+            "canonical_name": "Ada",
+            "category": "Character",
+            "id": "entity-ada",
+            "locked": false
+          },
+          {
+            "aliases": [],
+            "canonical_name": "The Mill",
+            "category": "Place",
+            "id": "entity-mill",
+            "locked": true
+          },
+          {
+            "aliases": [],
+            "canonical_name": "The Moor",
+            "category": "Place",
+            "id": "entity-moor",
+            "locked": false
+          },
+          {
+            "aliases": [],
+            "canonical_name": "The Guild",
+            "category": "Organization",
+            "id": "entity-guild",
+            "locked": false
+          }
+        ],
+        "schema_version": 2,
+        "types": [
+          {
+            "builtin": "Character",
+            "colour": "green",
+            "name": "Character",
+            "speaks": true
+          },
+          {
+            "builtin": "Place",
+            "colour": "blue",
+            "name": "Place",
+            "speaks": false
+          },
+          {
+            "builtin": "Organization",
+            "colour": "violet",
+            "name": "Organization",
+            "speaks": false
+          },
+          {
+            "builtin": "Lore",
+            "colour": "amber",
+            "name": "Lore",
+            "speaks": false
+          },
+          {
+            "builtin": "Item",
+            "colour": "teal",
+            "name": "Item",
+            "speaks": false
+          },
+          {
+            "builtin": "Event",
+            "colour": "rose",
+            "name": "Event",
+            "speaks": false
+          }
+        ]
+      },
+      "arguments": {
+        "name": "Character",
+        "speaks": 1
+      },
+      "command": "type-speaks",
+      "start": "default"
+    },
+    {
+      "arguments": {
+        "name": "Nowhere",
+        "speaks": 1
+      },
+      "command": "type-speaks",
+      "error": "There is no type named 'Nowhere'.",
+      "start": "default"
+    },
+    {
+      "after": {
+        "entities": [
+          {
+            "aliases": [],
+            "canonical_name": "Ada",
+            "category": "Hero",
+            "id": "entity-ada",
+            "locked": false
+          },
+          {
+            "aliases": [],
+            "canonical_name": "The Mill",
+            "category": "Place",
+            "id": "entity-mill",
+            "locked": true
+          }
+        ],
+        "schema_version": 2,
+        "types": [
+          {
+            "builtin": "Character",
+            "colour": "green",
+            "name": "Hero",
+            "speaks": true
+          },
+          {
+            "builtin": "Place",
+            "colour": "blue",
+            "name": "Place",
+            "speaks": false
+          },
+          {
+            "colour": "teal",
+            "name": "Ship",
+            "speaks": true
+          }
+        ]
+      },
+      "arguments": {
+        "name": "Ship",
+        "speaks": 1
+      },
+      "command": "type-speaks",
+      "start": "stored"
+    },
+    {
+      "after": {
+        "absorbed_names": {},
+        "entities": [],
+        "generated_at": null,
+        "schema_version": 2,
+        "source": {},
+        "types": [
+          {
+            "builtin": "Character",
+            "colour": "green",
+            "name": "Character",
+            "speaks": true
+          },
+          {
+            "builtin": "Place",
+            "colour": "blue",
+            "name": "Place",
+            "speaks": false
+          },
+          {
+            "builtin": "Organization",
+            "colour": "violet",
+            "name": "Organization",
+            "speaks": false
+          },
+          {
+            "builtin": "Lore",
+            "colour": "amber",
+            "name": "Lore",
+            "speaks": false
+          },
+          {
+            "builtin": "Item",
+            "colour": "teal",
+            "name": "Item",
+            "speaks": true
+          },
+          {
+            "builtin": "Event",
+            "colour": "rose",
+            "name": "Event",
+            "speaks": false
+          }
+        ],
+        "vocabulary_candidates": []
+      },
+      "arguments": {
+        "name": "Item",
+        "speaks": 1
+      },
+      "command": "type-speaks",
+      "start": "empty"
+    },
+    {
+      "arguments": {
+        "name": "Hero",
+        "speaks": 0
+      },
+      "command": "type-speaks",
+      "error": "The Story Bible types are invalid.",
+      "start": "twice"
+    },
+    {
+      "after": {
+        "entities": [
+          {
+            "aliases": [],
+            "canonical_name": "Ada",
+            "category": "Character",
+            "id": "entity-ada",
+            "locked": false
+          },
+          {
+            "aliases": [],
+            "canonical_name": "The Mill",
+            "category": "Place",
+            "id": "entity-mill",
+            "locked": true
+          },
+          {
+            "aliases": [],
+            "canonical_name": "The Moor",
+            "category": "Place",
+            "id": "entity-moor",
+            "locked": false
+          },
+          {
+            "aliases": [],
+            "canonical_name": "The Guild",
+            "category": "Organization",
+            "id": "entity-guild",
+            "locked": false
+          }
+        ],
+        "schema_version": 2,
+        "types": [
+          {
+            "builtin": "Character",
+            "colour": "green",
+            "name": "Character",
+            "speaks": true
+          },
+          {
+            "builtin": "Place",
+            "colour": "blue",
+            "name": "Place",
+            "speaks": false
+          },
+          {
+            "builtin": "Organization",
+            "colour": "violet",
+            "name": "Organization",
+            "speaks": false
+          },
+          {
+            "builtin": "Lore",
+            "colour": "amber",
+            "name": "Lore",
+            "speaks": false
+          },
+          {
+            "builtin": "Item",
+            "colour": "teal",
+            "name": "Item",
+            "speaks": false
+          }
+        ]
+      },
+      "arguments": {
+        "name": "Event"
+      },
+      "command": "type-remove",
+      "start": "default"
+    },
+    {
+      "arguments": {
+        "name": "Place"
+      },
+      "command": "type-remove",
+      "error": "Place is in use; give its entries another type first.",
+      "start": "default"
+    },
+    {
+      "arguments": {
+        "name": "event"
+      },
+      "command": "type-remove",
+      "error": "There is no type named 'event'.",
+      "start": "default"
+    },
+    {
+      "arguments": {
+        "name": "Nowhere"
+      },
+      "command": "type-remove",
+      "error": "There is no type named 'Nowhere'.",
+      "start": "default"
+    },
+    {
+      "after": {
+        "entities": [
+          {
+            "aliases": [],
+            "canonical_name": "Ada",
+            "category": "Hero",
+            "id": "entity-ada",
+            "locked": false
+          },
+          {
+            "aliases": [],
+            "canonical_name": "The Mill",
+            "category": "Place",
+            "id": "entity-mill",
+            "locked": true
+          }
+        ],
+        "schema_version": 2,
+        "types": [
+          {
+            "builtin": "Character",
+            "colour": "green",
+            "name": "Hero",
+            "speaks": true
+          },
+          {
+            "builtin": "Place",
+            "colour": "blue",
+            "name": "Place",
+            "speaks": false
+          }
+        ]
+      },
+      "arguments": {
+        "name": "Ship"
+      },
+      "command": "type-remove",
+      "start": "stored"
+    },
+    {
+      "arguments": {
+        "name": "Hero"
+      },
+      "command": "type-remove",
+      "error": "Hero is in use; give its entries another type first.",
+      "start": "stored"
+    },
+    {
+      "arguments": {
+        "name": "Thing"
+      },
+      "command": "type-remove",
+      "error": "The last type cannot be removed.",
+      "start": "one"
+    },
+    {
+      "after": {
+        "absorbed_names": {},
+        "entities": [],
+        "generated_at": null,
+        "schema_version": 2,
+        "source": {},
+        "types": [
+          {
+            "builtin": "Character",
+            "colour": "green",
+            "name": "Character",
+            "speaks": true
+          },
+          {
+            "builtin": "Place",
+            "colour": "blue",
+            "name": "Place",
+            "speaks": false
+          },
+          {
+            "builtin": "Organization",
+            "colour": "violet",
+            "name": "Organization",
+            "speaks": false
+          },
+          {
+            "builtin": "Lore",
+            "colour": "amber",
+            "name": "Lore",
+            "speaks": false
+          },
+          {
+            "builtin": "Item",
+            "colour": "teal",
+            "name": "Item",
+            "speaks": false
+          }
+        ],
+        "vocabulary_candidates": []
+      },
+      "arguments": {
+        "name": "Event"
+      },
+      "command": "type-remove",
+      "start": "missing"
+    },
+    {
+      "after": {
+        "absorbed_names": {},
+        "entities": [],
+        "generated_at": null,
+        "schema_version": 2,
+        "source": {},
+        "types": [
+          {
+            "builtin": "Place",
+            "colour": "blue",
+            "name": "Place",
+            "speaks": false
+          },
+          {
+            "builtin": "Organization",
+            "colour": "violet",
+            "name": "Organization",
+            "speaks": false
+          },
+          {
+            "builtin": "Lore",
+            "colour": "amber",
+            "name": "Lore",
+            "speaks": false
+          },
+          {
+            "builtin": "Item",
+            "colour": "teal",
+            "name": "Item",
+            "speaks": false
+          },
+          {
+            "builtin": "Event",
+            "colour": "rose",
+            "name": "Event",
+            "speaks": false
+          }
+        ],
+        "vocabulary_candidates": []
+      },
+      "arguments": {
+        "name": "Character"
+      },
+      "command": "type-remove",
+      "start": "missing"
+    },
+    {
+      "arguments": {
+        "name": "Hero"
+      },
+      "command": "type-remove",
+      "error": "The Story Bible types are invalid.",
+      "start": "bad"
+    }
+  ],
+  "starts": {
+    "bad": {
+      "entities": [],
+      "schema_version": 2,
+      "types": [
+        {
+          "colour": "green",
+          "name": "Hero",
+          "speaks": "yes"
+        }
+      ]
+    },
+    "cherokee": {
+      "entities": [],
+      "schema_version": 2,
+      "types": [
+        {
+          "colour": "green",
+          "name": "ꭰꭱ",
+          "speaks": true
+        }
+      ]
+    },
+    "default": {
+      "entities": [
+        {
+          "aliases": [],
+          "canonical_name": "Ada",
+          "category": "Character",
+          "id": "entity-ada",
+          "locked": false
+        },
+        {
+          "aliases": [],
+          "canonical_name": "The Mill",
+          "category": "Place",
+          "id": "entity-mill",
+          "locked": true
+        },
+        {
+          "aliases": [],
+          "canonical_name": "The Moor",
+          "category": "Place",
+          "id": "entity-moor",
+          "locked": false
+        },
+        {
+          "aliases": [],
+          "canonical_name": "The Guild",
+          "category": "Organization",
+          "id": "entity-guild",
+          "locked": false
+        }
+      ],
+      "schema_version": 2
+    },
+    "empty": {},
+    "empty-list": {
+      "entities": [],
+      "schema_version": 2,
+      "types": []
+    },
+    "missing": null,
+    "null-types": {
+      "entities": [
+        {
+          "aliases": [],
+          "canonical_name": "The Moor",
+          "category": "Place",
+          "id": "entity-moor",
+          "locked": false
+        }
+      ],
+      "schema_version": 2,
+      "types": null
+    },
+    "one": {
+      "entities": [],
+      "schema_version": 2,
+      "types": [
+        {
+          "colour": "rose",
+          "name": "Thing",
+          "speaks": false
+        }
+      ]
+    },
+    "stored": {
+      "entities": [
+        {
+          "aliases": [],
+          "canonical_name": "Ada",
+          "category": "Hero",
+          "id": "entity-ada",
+          "locked": false
+        },
+        {
+          "aliases": [],
+          "canonical_name": "The Mill",
+          "category": "Place",
+          "id": "entity-mill",
+          "locked": true
+        }
+      ],
+      "schema_version": 2,
+      "types": [
+        {
+          "builtin": "Character",
+          "colour": "green",
+          "name": "Hero",
+          "speaks": true
+        },
+        {
+          "builtin": "Place",
+          "colour": "blue",
+          "name": "Place",
+          "note": "dropped on the next write",
+          "speaks": false
+        },
+        {
+          "colour": "teal",
+          "name": "Ship",
+          "speaks": false
+        }
+      ]
+    },
+    "twice": {
+      "entities": [],
+      "schema_version": 2,
+      "types": [
+        {
+          "colour": "green",
+          "name": "Hero",
+          "speaks": true
+        },
+        {
+          "colour": "blue",
+          "name": "HERO",
+          "speaks": false
+        }
+      ]
+    }
+  }
+}

@@ -55,6 +55,8 @@ import { GuideDetail, type EntryCommand } from './GuideDetail';
 import { ReadNotice } from './ReadNotice';
 import { useContextProvider, type ContextProvider } from '../../registries/context';
 import { addressPath, readAddress } from '../../navigation/address';
+import { SamplePlayerAnnouncement } from '../voicesamples/SamplePlayButton';
+import { useSamplePlayer } from '../voicesamples/useSamplePlayer';
 import { VoiceDataPanel } from './VoiceDataPanel';
 import { SeriesTab } from '../series/SeriesTab';
 import { WorkDialog } from '../primitives/WorkDialog';
@@ -124,6 +126,8 @@ function GuideLoaded({ notify, goToManuscript }: Pick<GuideProps, 'notify' | 'go
   const rowButtons = useRef(new Map<string, HTMLButtonElement>());
   const detailRef = useRef<HTMLDivElement>(null);
   const [voiceDataOpen, setVoiceDataOpen] = useState(false);
+  // The page's one voice-sample player: every entry's Voice samples section and the Voice data panel share it, so only one sample plays.
+  const samplePlayer = useSamplePlayer();
   const [sort, setSort] = useState<EntrySortKey>(loadEntrySort);
   // The suggestions the host lists (SN-X42): an entry with one still to verify needs review, and cannot be marked reviewed (SNB-3b).
   const found = useSuggestions();
@@ -578,6 +582,7 @@ function GuideLoaded({ notify, goToManuscript }: Pick<GuideProps, 'notify' | 'go
                   reload={load}
                   notify={notify}
                   goToManuscript={goToManuscript}
+                  samplePlayer={samplePlayer}
                   toVerify={selected ? verifyOf(suggestions, selected.id) : 0}
                   chapters={chapters}
                   suggested={
@@ -629,7 +634,8 @@ function GuideLoaded({ notify, goToManuscript }: Pick<GuideProps, 'notify' | 'go
         )}
         {buildJob && <WorkDialog title="Rebuild Story Bible" job={buildJob} close={() => setBuildJob(undefined)} background={() => setBuildJob(undefined)} />}
         {scanStart.dialogs}
-        <VoiceDataPanel open={voiceDataOpen} onClose={() => setVoiceDataOpen(false)} notify={notify} />
+        <VoiceDataPanel open={voiceDataOpen} onClose={() => setVoiceDataOpen(false)} notify={notify} entities={rows} types={types} player={samplePlayer} />
+        <SamplePlayerAnnouncement text={samplePlayer.announcement} />
       </Tabs>
     </CommandScope>
   );

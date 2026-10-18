@@ -16,7 +16,8 @@ due 14 Oct (18 days)"), with the due date's tone as a word and a mark, not only 
 under it is the verdict for the due date (on track, tight or behind); it opens
 [Schedule](schedule.md). **Export status report** (the export icon) opens the
 [status report](#status-report), and **Start session** opens the [Booth](booth.md) on the chapter
-being recorded, or says why it cannot when the audio engine cannot record.
+being recorded, or says why it cannot when the audio engine cannot record. When recording is
+switched off, **Open DAW settings** beside the reason opens the section that turns it on.
 
 With no manuscript imported yet, the page is the import: **Import manuscript** opens the file
 picker (see [Importing the manuscript](#importing-the-manuscript)), and the calendar icon opens
@@ -51,7 +52,9 @@ The six figures are one card; each opens the page it counts.
   yet" until the host reports a check per chapter.
 - **Due**: the due date and what the pace says about it. It opens [Schedule](schedule.md).
 
-Under the figures, **Where the book stands** splits the book's finished hours by stage, **This
+Under the figures, **Where the book stands** splits the book's finished hours by stage, estimated
+from each chapter's words and status (its **Recorded, not edited yet** share is the chapters
+recorded but not edited; **Finished audio** above is the measured length), **This
 week** says how much was recorded this week and in the last 24 hours (from the built-in recorder's
 take log), and **Recording check** counts the chapters checked as of the last save, out of date,
 and never checked; its icon opens **Check recordings** with the out-of-date and unchecked chapters

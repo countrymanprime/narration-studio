@@ -1,3 +1,4 @@
+import { useToastSideClearance } from '../../hooks/useToastClearance';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import type { Finding, FindingsSummary } from '../../api/contracts/findings';
@@ -34,6 +35,7 @@ import { NotesPanel } from './notes/NotesPanel';
 import { inBookOrder, noteRow, queryFor, type NoteSort } from './notes/noteRows';
 import { openPickupsBeyondNotes, proofProgress } from './proof.selectors';
 import { ProoferSheet } from './ProoferSheet';
+import { recallSelection, rememberSelection } from './proofMemory';
 import { SpotTakes } from './spot/SpotTakes';
 import { TakeLanes } from './spot/TakeLanes';
 import { TakesBadge } from './spot/TakesBadge';
@@ -128,7 +130,7 @@ export function ProofPage({
   const [firstRead, setFirstRead] = useState({ chapters: false, notes: false });
   // The pickups list, for the open pickups no note stands for: while one is open the head never reads 100.
   const [pickups, setPickups] = useState<readonly PickupItem[]>([]);
-  const [selectedId, setSelectedId] = useState<string | null>(params.get('finding'));
+  const [selectedId, setSelectedId] = useState<string | null>(params.get('finding') ?? recallSelection(projectFolder, params.get('chapter') ?? ALL_CHAPTERS));
   const [current, setCurrent] = useState(() => loadLastChapter(projectFolder));
   const [win, setWin] = useState<TimeWindow>({ start: 0, len: FIRST_WINDOW });
   // The latest selection, set as it happens: the right-click menu reads it in the same event that selected the row.
@@ -136,6 +138,9 @@ export function ProofPage({
   selectedRef.current = selectedId;
   // Set while a row is pressed (it opens the row's chapter) or selected for the right-click menu (it does not).
   const opening = useRef(false);
+  // Toasts stay left of the Inspector while it is beside the notes, so a decision's message never covers the next decision button.
+  const inspectorPanel = useRef<HTMLDivElement>(null);
+  useToastSideClearance(inspectorPanel);
   const selectingForMenu = useRef(false);
 
   const scope = params.get('chapter') ?? ALL_CHAPTERS;
@@ -218,7 +223,7 @@ export function ProofPage({
         setCurrent(next);
         saveLastChapter(projectFolder, next);
       }
-      setParams(next === ALL_CHAPTERS ? {} : { chapter: next }, { replace: true });
+      setParams(next === ALL_CHAPTERS ? {} : { chapter: next });
     },
     [setParams, projectFolder],
   );
@@ -236,10 +241,14 @@ export function ProofPage({
     [all, fallback, chapters, scope, choose],
   );
 
-  const select = useCallback((id: string) => {
-    selectedRef.current = id;
-    setSelectedId(id);
-  }, []);
+  const select = useCallback(
+    (id: string) => {
+      selectedRef.current = id;
+      setSelectedId(id);
+      rememberSelection(projectFolder, scope, id);
+    },
+    [projectFolder, scope],
+  );
   // The first note is selected while none is (the mock opens on one), so the Inspector is never empty while there are notes.
   useEffect(() => {
     if (findings.length > 0 && !findings.some((f) => f.id === selectedId)) select(findings[0].id);
@@ -493,7 +502,10 @@ export function ProofPage({
               }}
             />
           </div>
-          <div className="min-w-0 rounded-[var(--radius-panel)] border border-[var(--border)] bg-[var(--surface)] p-4 min-[1180px]:col-start-2 min-[1180px]:row-span-2 min-[1180px]:row-start-1">
+          <div
+            ref={inspectorPanel}
+            className="min-w-0 rounded-[var(--radius-panel)] border border-[var(--border)] bg-[var(--surface)] p-4 min-[1180px]:col-start-2 min-[1180px]:row-span-2 min-[1180px]:row-start-1"
+          >
             {selected ? (
               <Inspector
                 key={selected.id}
