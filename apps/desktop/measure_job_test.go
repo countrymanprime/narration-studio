@@ -367,11 +367,14 @@ func TestMeasureReportsAPanicAsAnError(t *testing.T) {
 		t.Fatalf("job = %+v", job)
 	}
 	broke, untouched := job.Files[0], job.Files[1]
-	if broke.Status != "failed" || !strings.Contains(broke.Error, "index out of range") {
-		t.Fatalf("the file that broke the measurement = %+v, want failed with the reason", broke)
+	if broke.Status != "failed" || broke.Error != "the measurement stopped unexpectedly on this file" {
+		t.Fatalf("the file that broke the measurement = %+v, want failed with a sentence free of the Go error", broke)
 	}
 	if untouched.Status != "cancelled" || untouched.Error != "" {
 		t.Fatalf("the file never reached = %+v, want cancelled", untouched)
+	}
+	if !strings.Contains(strings.Join(job.Logs, "\n"), "index out of range") {
+		t.Fatalf("logs = %q, want the Go error kept in the log", job.Logs)
 	}
 	if events := waitForEnded(t, ended); events[0].Outcome != jobOutcomeError {
 		t.Fatalf("job ended = %+v", events[0])

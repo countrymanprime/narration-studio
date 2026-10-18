@@ -53,10 +53,10 @@ choices as [Check recordings](production.md#checking-a-chapters-recording) offer
 ## Selecting words
 
 Click a word to place the cursor there. Shift+click another, drag across the text or press Shift+← and Shift+→ to
-select a run of words. A toolbar floats under the selection with **Play**, **Add FX**, **Mute**, **Takes of this
+select a run of words. A toolbar floats under the selection with **Play**, **Add FX**, **Voice sample**, **Mute**, **Takes of this
 line** (on a line with more than one take) and **Delete**; the bar offers the same actions, with **Delete words and
 audio** in full on a wide window. The line's audio shows under it while the cursor is on it. Right-click a word for its
-menu: play the selection, copy, delete or mute the words, add or remove an effect, mark them for a pickup, add a note,
+menu: play the selection, copy, delete or mute the words, add or remove an effect, **Mark as voice sample…**, mark them for a pickup, add a note,
 show or keep the line's takes, and **Split into takes** on a line whose one take reads it twice.
 
 A flagged word opens its card: what the script says and what was heard, and the choice to keep the word as read, which
@@ -89,6 +89,30 @@ field (a whole percent from 1 to 100, kept for the project). Over the cap the ta
 before it goes ahead.
 
 ![Editing - an FX chain chosen for four words: how the item is split around the words](../../images/ui/editing-fx-dialog.webp)
+
+## Marking a voice sample
+
+Select the words where a character's voice came out right and press **V** (or **Voice sample** on the toolbar, or **Mark as
+voice sample…** in the word menu). The dialog offers the characters who speak in this chapter first, with the speaker of the
+first word chosen, then every other character, then **Narration**. Under the character it counts that character's samples ("3 of
+20 samples"); a character with 20 has to lose one first. **Play range** plays the words from the recording. Give the sample a
+label and a note if you like ("Furious, to the court", "pitch up, no breaths"), and leave **Make primary** on if this should be
+the one that plays first for that character; it is on by default for a character's first sample. **Enter** saves, **Ctrl+Enter**
+saves from the note, and **Esc** closes. So with the right character already chosen, marking a sample is **V**, then **Enter**.
+
+![Editing - Voice sample on four selected words: the character, the words with Play range, the label and note, and Save sample](../../images/ui/editing-voice-sample-dialog.webp)
+
+Saving copies the raw recording of those words, as it was before editing, with a short margin either side cut at a quiet point,
+into `narration-utils/voice-samples/` in the project folder. Nothing leaves your computer, and the clip does not change if you
+later cut, re-record or move the chapter. A message says "Saved voice sample for" the character, with **Undo** for ten seconds, which removes
+the sample again. Marking the same words again for the same character says it is already a sample instead of making a second.
+
+The dialog says why it cannot save, in one sentence, and saves nothing: the words are not in the recording, they run across two
+takes ("Choose words inside one take"), the recording changed since the chapter was checked ("Check it again, then mark the
+sample"), some of the words are cut ("Restore the cut words or choose words without them"), the clip would be under half a
+second or over 30 seconds, the recording is not a WAV file, the audio file is missing, the saved REAPER project cannot be read,
+the character has 20 samples, or samples already use the 200 MiB a project may hold. Playing a saved sample from the Story
+Bible and the Booth is not built yet.
 
 ## Takes
 

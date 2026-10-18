@@ -195,6 +195,21 @@ func TestVoiceSamplesContractGoldens(t *testing.T) {
 	contractfile.Check(t, "voice-samples-changed", event)
 }
 
+// The sentence of every refusal reason, as the host words it. The page refuses a few reasons before it asks and shows the host's
+// sentence for the rest, so apps/ui/src/api/contracts/voiceSamples.ts keeps a table of the same words; this golden is what a test of
+// that table compares against, so a rewording here cannot leave the page saying something else.
+func TestVoiceSampleRefusalSentencesGolden(t *testing.T) {
+	sentences := map[string]string{}
+	for _, reason := range voicesample.Reasons() {
+		sentences[string(reason)] = (&voicesample.Refusal{Reason: reason}).Sentence()
+	}
+	payload, err := json.Marshal(sentences)
+	if err != nil {
+		t.Fatal(err)
+	}
+	checkBindingContract(t, "voice-sample-refusal-sentences", string(payload))
+}
+
 func voiceAnswerOf(t *testing.T) func(string, error) voiceSampleAnswer {
 	return func(payload string, err error) voiceSampleAnswer { return decodeVoiceAnswer(t, payload, err) }
 }

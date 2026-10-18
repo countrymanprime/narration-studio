@@ -1,5 +1,5 @@
 // The golden payloads of the narrator's voice samples (apps/desktop/bindings_voicesamples.go).
-import type { z } from 'zod';
+import { z } from 'zod';
 import { voiceSampleAnswerSchema, voiceSamplesChangedSchema, voiceSamplesRemovedSchema, voiceSamplesSchema } from '../schemas/voiceSamples';
 
 export const voiceSamplesGoldens: Record<string, z.ZodType> = {
@@ -13,4 +13,6 @@ export const voiceSamplesGoldens: Record<string, z.ZodType> = {
   'voice-samples-removed.json': voiceSamplesRemovedSchema,
   'voice-samples-removed-all.json': voiceSamplesRemovedSchema,
   'voice-samples-changed.json': voiceSamplesChangedSchema,
+  // Every refusal reason and the sentence the host words it with; the page's table of the same words is compared with it.
+  'voice-sample-refusal-sentences.json': z.record(z.string(), z.string().min(1)),
 };
