@@ -7,7 +7,7 @@ import type { GuideType, GuideTypeColour } from '../types';
 
 /** The six hues a Story Bible type can be set to, as the entity tokens of styles.css. */
 export const ENTITY_HUES = ['character', 'place', 'org', 'lore', 'item', 'event'] as const;
-export type EntityHue = (typeof ENTITY_HUES)[number];
+type EntityHue = (typeof ENTITY_HUES)[number];
 
 /** What an entry is drawn in: a type's hue, `warn` for an entry still to review (D7), `faint` for a type nobody defines, or a speaker colour. */
 export type EntityColour = {

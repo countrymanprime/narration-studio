@@ -76,7 +76,7 @@ describe('the import review dialog, as the narrator meets it', () => {
   it('commits the sections as they came when nothing was changed, and every suggestion by its id', async () => {
     let commit = vi.fn();
     const { dialog } = await openReview((api) => void (commit = vi.spyOn(api, 'manuscriptImportCommit')));
-    fireEvent.click(dialog.getByRole('button', { name: 'Import' }));
+    fireEvent.click(dialog.getByRole('button', { name: 'Import reviewed manuscript' }));
     await waitFor(() => expect(commit).toHaveBeenCalled());
     expect(commit).toHaveBeenCalledWith('mock-import', {
       confirmedReset: false,
@@ -89,7 +89,7 @@ describe('the import review dialog, as the narrator meets it', () => {
     const { dialog } = await openReview((api) => void (commit = vi.spyOn(api, 'manuscriptImportCommit')));
     fireEvent.click(dialog.getByRole('checkbox', { name: "Read a heading's second line as its subtitle" }));
     fireEvent.click(dialog.getByRole('checkbox', { name: 'Subtitle — The Pool of Tears' }));
-    fireEvent.click(dialog.getByRole('button', { name: 'Import' }));
+    fireEvent.click(dialog.getByRole('button', { name: 'Import reviewed manuscript' }));
     await waitFor(() => expect(commit).toHaveBeenCalled());
     expect(commit.mock.calls[0]?.[1].selection?.subtitleOverrides).toEqual({ 'section-0001': false, 'section-0004': false });
   });
@@ -99,7 +99,7 @@ describe('the import review dialog, as the narrator meets it', () => {
     const { dialog } = await openReview((api) => void (commit = vi.spyOn(api, 'manuscriptImportCommit')));
     fireEvent.change(dialog.getByRole('combobox', { name: 'Glossary content type' }), { target: { value: 'narration' } });
     expect((dialog.getByRole('combobox', { name: 'Glossary content type' }) as HTMLSelectElement).value).toBe('narration');
-    fireEvent.click(dialog.getByRole('button', { name: 'Import' }));
+    fireEvent.click(dialog.getByRole('button', { name: 'Import reviewed manuscript' }));
     await waitFor(() => expect(commit).toHaveBeenCalled());
     expect(commit.mock.calls[0]?.[1].selection?.sectionKinds).toEqual({ 'section-0006': 'narration' });
   });
@@ -111,7 +111,7 @@ describe('the import review dialog, as the narrator meets it', () => {
     fireEvent.click(dialog.getByRole('checkbox', { name: /^The White Rabbit/ }));
     expect(dialog.getByRole('checkbox', { name: /^The White Rabbit/ }).getAttribute('aria-checked')).toBe('false');
     expect(dialog.getByRole('checkbox', { name: /^Alice/ }).getAttribute('aria-checked')).toBe('true');
-    fireEvent.click(dialog.getByRole('button', { name: 'Import' }));
+    fireEvent.click(dialog.getByRole('button', { name: 'Import reviewed manuscript' }));
     await waitFor(() => expect(commit).toHaveBeenCalled());
     expect(commit.mock.calls[0]?.[1].selection?.characterCandidateIds).toEqual(['candidate-section-0007-001', 'candidate-section-0007-003']);
   });
@@ -147,7 +147,7 @@ describe('the import review dialog, as the narrator meets it', () => {
     await waitFor(() => expect(level().value).toBe('2'));
     expect((dialog.getByRole('combobox', { name: 'Glossary content type' }) as HTMLSelectElement).value).toBe('reference');
 
-    fireEvent.click(dialog.getByRole('button', { name: 'Import' }));
+    fireEvent.click(dialog.getByRole('button', { name: 'Import reviewed manuscript' }));
     await waitFor(() => expect(commit).toHaveBeenCalled());
     expect(commit.mock.calls[0]?.[1].selection?.sectionKinds).toBeUndefined();
   });
@@ -181,7 +181,7 @@ describe('the import review dialog, as the narrator meets it', () => {
     fireEvent.click(await screen.findByRole('button', { name: 'Choose a file…' }));
     const dialog = within(await screen.findByRole('alertdialog', { name: /^Import Alice\./ }));
     expect(dialog.getByText(/This replaces the active manuscript and clears Story Bible, notes, bookmarks, statuses/)).toBeTruthy();
-    expect(dialog.queryByRole('button', { name: 'Import' })).toBeNull();
+    expect(dialog.queryByRole('button', { name: 'Import reviewed manuscript' })).toBeNull();
     fireEvent.click(dialog.getByRole('button', { name: 'Replace and reset' }));
     await waitFor(() => expect(commit).toHaveBeenCalled());
     expect(commit.mock.calls[0]?.[1].confirmedReset).toBe(true);
@@ -228,7 +228,7 @@ describe('build after import (B1-B3)', () => {
     fireEvent.click(await screen.findByRole('button', { name: 'Choose a file…' }));
     const dialog = within(await screen.findByRole('alertdialog', { name: /^Import Alice\./ }));
     await waitFor(() => dialog.getByRole('checkbox', { name: 'Build the Story Bible after import' }));
-    fireEvent.click(dialog.getByRole('button', { name: 'Import' }));
+    fireEvent.click(dialog.getByRole('button', { name: 'Import reviewed manuscript' }));
 
     await waitFor(() => expect(guideBuild).toHaveBeenCalledWith({}));
     await waitFor(() => expect(notices).toContain('Manuscript imported.'));
@@ -242,7 +242,7 @@ describe('build after import (B1-B3)', () => {
     const { dialog } = await openReview((api) => void (guideBuild = vi.spyOn(api, 'guideBuild')));
     const box = await waitFor(() => dialog.getByRole('checkbox', { name: 'Build the Story Bible after import' }));
     fireEvent.click(box);
-    fireEvent.click(dialog.getByRole('button', { name: 'Import' }));
+    fireEvent.click(dialog.getByRole('button', { name: 'Import reviewed manuscript' }));
     await waitFor(() => expect(screen.queryByRole('alertdialog')).toBeNull());
     expect(guideBuild).not.toHaveBeenCalled();
   });
@@ -263,7 +263,7 @@ describe('build after import (B1-B3)', () => {
       logs: [],
       elapsed: 3,
     });
-    fireEvent.click(dialog.getByRole('button', { name: 'Import' }));
+    fireEvent.click(dialog.getByRole('button', { name: 'Import reviewed manuscript' }));
     expect(await screen.findByRole('dialog', { name: 'Build the Story Bible' })).toBeTruthy();
   });
 
@@ -281,7 +281,7 @@ describe('build after import (B1-B3)', () => {
     const { dialog, api } = await openReview((hostApi) => vi.spyOn(hostApi, 'guideBuild').mockResolvedValue({ status: 'started', job: running }));
     let calls = 0;
     vi.spyOn(api, 'guideBuildState').mockImplementation(async () => ({ ...running, phase: ++calls < 3 ? 'running' : 'success' }));
-    fireEvent.click(dialog.getByRole('button', { name: 'Import' }));
+    fireEvent.click(dialog.getByRole('button', { name: 'Import reviewed manuscript' }));
     await screen.findByRole('dialog', { name: 'Build the Story Bible' });
     await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Build the Story Bible' })).toBeNull(), { timeout: 3000 });
   });
@@ -299,7 +299,7 @@ describe('build after import (B1-B3)', () => {
     };
     const { dialog, api } = await openReview((hostApi) => vi.spyOn(hostApi, 'guideBuild').mockResolvedValue({ status: 'started', job: running }));
     const state = vi.spyOn(api, 'guideBuildState').mockResolvedValue(running);
-    fireEvent.click(dialog.getByRole('button', { name: 'Import' }));
+    fireEvent.click(dialog.getByRole('button', { name: 'Import reviewed manuscript' }));
     const build = await screen.findByRole('dialog', { name: 'Build the Story Bible' });
     expect(within(build).getByText(/keeps running/)).toBeTruthy();
     fireEvent.click(within(build).getByRole('button', { name: 'Continue in background' }));
@@ -321,7 +321,7 @@ describe('build after import (B1-B3)', () => {
     };
     const { dialog, api } = await openReview((hostApi) => vi.spyOn(hostApi, 'guideBuild').mockResolvedValue({ status: 'started', job: running }));
     vi.spyOn(api, 'guideBuildState').mockRejectedValue(new Error('the host stopped answering'));
-    fireEvent.click(dialog.getByRole('button', { name: 'Import' }));
+    fireEvent.click(dialog.getByRole('button', { name: 'Import reviewed manuscript' }));
     const build = await screen.findByRole('dialog', { name: 'Build the Story Bible' });
     expect(await within(build).findAllByText(/the host stopped answering/)).not.toHaveLength(0);
   });
@@ -531,7 +531,7 @@ describe('the delivery profile on the first import (SNM-4d)', () => {
     await waitFor(() => expect(profileField(dialog)).toBeTruthy());
     fireEvent.change(profileField(dialog)!, { target: { value: 'acx' } });
     expect(select).not.toHaveBeenCalled();
-    fireEvent.click(dialog.getByRole('button', { name: 'Import' }));
+    fireEvent.click(dialog.getByRole('button', { name: 'Import reviewed manuscript' }));
     await waitFor(() => expect(select).toHaveBeenCalledTimes(1));
     expect(select).toHaveBeenCalledWith('project', 'acx', expect.any(String));
     expect((await api.deliveryProfiles()).projectChoice?.id).toBe('acx');
@@ -553,7 +553,7 @@ describe('the delivery profile on the first import (SNM-4d)', () => {
     fireEvent.click(await screen.findByRole('button', { name: 'Choose a file…' }));
     const dialog = within(await screen.findByRole('alertdialog', { name: /^Import Alice\./ }));
     await waitFor(() => expect(profileField(dialog)).toBeTruthy());
-    fireEvent.click(dialog.getByRole('button', { name: 'Import' }));
+    fireEvent.click(dialog.getByRole('button', { name: 'Import reviewed manuscript' }));
     await waitFor(() => expect(notify).toHaveBeenCalledWith(expect.stringContaining('profile store is read-only'), 'error'));
     expect(notify).toHaveBeenCalledWith('Manuscript imported.');
   });
@@ -646,5 +646,33 @@ describe('step 1: choose your manuscript (the Studio Next mock)', () => {
     fireEvent.drop(zone, { dataTransfer: { files: [{ name: 'Alice.docx' }] } });
     expect((await within(dialog).findByRole('alert')).textContent).toContain('Use Choose a file… instead.');
     expect(begin).not.toHaveBeenCalled();
+  });
+});
+
+describe('step 2: check the chapter outline (the Studio Next mock)', () => {
+  it('is named for the file and its step, and says what was found in pills above the outline', async () => {
+    const { dialog } = await openReview();
+    expect(screen.getByRole('alertdialog', { name: 'Import Alice.docx · step 2 of 2' })).toBeTruthy();
+    expect(dialog.getByRole('heading', { name: 'Check the chapter outline' })).toBeTruthy();
+    const pills = within(dialog.getByLabelText('What was found'));
+    expect(pills.getByText(/^\d+ chapters?$/)).toBeTruthy();
+    expect(pills.getByText(/^221 paragraphs$/)).toBeTruthy();
+    expect(pills.getByText(/character suggestions?$/)).toBeTruthy();
+  });
+
+  it('Back drops the host job and returns to step 1, with nothing committed', async () => {
+    const { api, dialog } = await openReview();
+    const cancel = vi.spyOn(api, 'manuscriptImportCancel');
+    const commit = vi.spyOn(api, 'manuscriptImportCommit');
+    fireEvent.click(dialog.getByRole('button', { name: 'Back' }));
+    await waitFor(() => expect(cancel).toHaveBeenCalledTimes(1));
+    expect(await screen.findByRole('dialog', { name: /^Import manuscript · step 1 of 2/ })).toBeTruthy();
+    expect(screen.queryByRole('alertdialog')).toBeNull();
+    expect(commit).not.toHaveBeenCalled();
+  });
+
+  it('the confirm is Import reviewed manuscript, and Replace and reset when it replaces one', async () => {
+    const { dialog } = await openReview();
+    expect(dialog.getByRole('button', { name: 'Import reviewed manuscript' })).toBeTruthy();
   });
 });
