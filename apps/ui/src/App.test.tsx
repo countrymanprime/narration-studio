@@ -327,6 +327,27 @@ describe('App (integration, driven through the mock NarrationApi)', () => {
     expect(screen.queryByText('Manuscript imported.')).toBeNull();
   });
 
+  it('does not toast a failed package build on Delivery, which writes the reason under Build, and does toast it on another page', async () => {
+    const listeners = new Set<(event: JobEnded) => void>();
+    const announce = (event: JobEnded) => listeners.forEach((each) => each(event));
+    const failed: JobEnded = { id: 'pkg-1', kind: 'render_package', outcome: 'error', message: 'Access is denied.', durationMs: 900 };
+    window.history.replaceState(null, '', '/delivery');
+    renderApp({
+      subscribeJobEnded: (listener) => {
+        listeners.add(listener);
+        return () => listeners.delete(listener);
+      },
+    });
+    await screen.findByRole('heading', { level: 1, name: 'Delivery' });
+    act(() => announce(failed));
+    expect(screen.queryByText('Access is denied.')).toBeNull();
+
+    fireEvent.click(screen.getAllByRole('button', { name: 'Settings' })[0]);
+    await screen.findByRole('heading', { name: 'Settings' });
+    act(() => announce(failed));
+    expect(within(appToasts('alert')).getByText('Access is denied.')).toBeTruthy();
+  });
+
   it('queues a job-end toast while the booth is recording, and shows it once recording stops (no sound or notification mid-take)', async () => {
     let announce: ((event: JobEnded) => void) | undefined;
     // Every subscriber hears the transport (the Booth page subscribes too, beside App's toast guard).

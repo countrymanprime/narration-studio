@@ -6,7 +6,7 @@ import { NeedManuscript } from '../../layout/NeedManuscript';
 import { Heading } from '../../primitives/Heading';
 import type { DeliveryProfile } from '../../../types';
 import { ProfileCard } from '../profile/ProfileCard';
-import { chapterStates, firstFailure, listedChapters, readiness } from './chapterStates';
+import { chapterStates, firstFailure, firstNotReady, listedChapters, readiness } from './chapterStates';
 import { OutputPanel } from './OutputPanel';
 import { Preflight } from './Preflight';
 import { useDeliveryBuild } from './useDeliveryBuild';
@@ -66,7 +66,7 @@ function LoadedDelivery({ onOpenInMaster, onOpenMaster }: { onOpenInMaster: (cha
   const entries = creditsEntries(credits.rows, ownsOpeningCredits(chapters));
   const listed = known ? listedChapters(chapters, entries) : [];
   const states = known ? chapterStates(listed, job.files) : [];
-  const failure = known && profile ? firstFailure(listed, job.files, profile) : undefined;
+  const failure = known && profile ? (firstFailure(listed, job.files, profile) ?? firstNotReady(listed, job.files)) : undefined;
   const { ready, text } = known ? readiness(states) : { ready: false, text: "Can't tell which chapters pass yet." };
   const measuring = job?.phase === 'running' ? job : undefined;
   return (
