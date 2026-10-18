@@ -39,6 +39,8 @@ type Service struct {
 	// existing caller, including every test in this package, leaves it nil
 	// and SaveFindings is then a no-op.
 	findingsStore atomic.Pointer[findings.Store]
+	// editMu serializes the edits the host applies itself (editInHost), each a read, change and rewrite of the whole file.
+	editMu sync.Mutex
 }
 
 func New(project, python, backend string, store *settings.Store, sidecars *process.Supervisor) *Service {
@@ -99,7 +101,8 @@ func (s *Service) SaveFindings() error {
 	return nil
 }
 
-// schemaVersion is the newest Story Bible file this host reads; the Python sidecar writes it (manuscript_guide.py SCHEMA_VERSION).
+// schemaVersion is the newest Story Bible file this host reads. The Python sidecar writes it (manuscript_guide.py SCHEMA_VERSION), and so
+// does the host for an edit without aliases (editInHost), which refuses a newer file instead of rewriting it.
 const schemaVersion = 2
 
 // document reads and version-checks the Story Bible file, returning its raw
@@ -408,12 +411,16 @@ func (s *Service) Edit(id, field, value string) error {
 	return s.EditFields(id, map[string]string{field: value})
 }
 
-// EditFields changes every field of an entity in one sidecar process. The sidecar applies them all in memory and writes the file once, so a
-// field it refuses leaves the file as it was, and a Save of four fields costs one process instead of four.
-// The fields are sent in name order, so the same edit always produces the same command.
+// EditFields changes every field of an entity at once: all of them are applied in memory and the file is written once, so a field that is
+// refused leaves the file as it was. The host applies the edit itself (editInHost) unless it changes the aliases; then the whole edit goes
+// to the sidecar in one process, because a new alias needs a pronunciation and the manuscript. The fields are sent in name order, so
+// the same edit always produces the same command.
 func (s *Service) EditFields(id string, values map[string]string) error {
 	if len(values) == 0 {
 		return nil
+	}
+	if _, editsAliases := values["aliases"]; !editsAliases {
+		return s.editInHost(id, values)
 	}
 	_, err := s.Run(s.editArgs(id, values)...)
 	return err

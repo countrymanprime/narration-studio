@@ -1,0 +1,270 @@
+package guide
+
+import (
+	"bytes"
+	"encoding/json"
+	"errors"
+	"fmt"
+	"os"
+	"slices"
+	"strings"
+
+	"github.com/countrymanprime/narration-utils/shell/internal/persist"
+)
+
+// systemCategories are manuscript_guide.py SYSTEM_CATEGORIES: states a build or a create sets, never a type an edit can give.
+var systemCategories = []string{"Needs Review", "Draft"}
+
+// errNoGuide is the sidecar's refusal for a file that is missing or not a JSON object (load_json reads both as no file).
+var errNoGuide = errors.New("Guide file does not exist; build it first.") //nolint:staticcheck // the sidecar's own words, shown to the narrator
+
+// editInHost is manuscript_guide.py `edit` for every field but "aliases" (locked, description, personality, context, properties,
+// category, canonical_name; a new alias needs a pronunciation lookup and the manuscript, so that stays in the sidecar). Every field is
+// applied to the entity in memory, in name order (the order editArgs sends them to the sidecar), the entity is marked reviewed and the
+// file is written once, so a refused field leaves the file exactly as it was. Writes are serialized by editMu; a sidecar command that rewrites the file at the same time (a build) is not,
+// the same as before this edit moved here. A file from a newer schema is refused, never rewritten.
+func (s *Service) editInHost(id string, values map[string]string) error {
+	s.editMu.Lock()
+	defer s.editMu.Unlock()
+	document, err := s.documentForEdit()
+	if err != nil {
+		return err
+	}
+	entity, err := findEntity(document, id)
+	if err != nil {
+		return err
+	}
+	categories, err := documentTypeNames(document)
+	if err != nil {
+		return err
+	}
+	fields := make([]string, 0, len(values))
+	for field := range values {
+		fields = append(fields, field)
+	}
+	slices.Sort(fields)
+	for _, field := range fields {
+		if err := applyEdit(entity, field, values[field], categories); err != nil {
+			return err
+		}
+	}
+	entity["review_state"] = "reviewed"
+	return writeDocument(s.guidePath(), document)
+}
+
+// documentForEdit reads the Story Bible the way manuscript_guide.py load_json does for an edit: numbers stay as their text
+// (json.Number), so a value the edit does not touch is written back exactly as it was read, and the legacy shapes load_json normalizes
+// (an alias stored as plain text, the old "user" pronunciation source) are normalized the same way, because the sidecar writes them back
+// normalized on every edit.
+func (s *Service) documentForEdit() (map[string]any, error) {
+	raw, err := os.ReadFile(s.guidePath())
+	if err != nil {
+		return nil, errNoGuide
+	}
+	decoder := json.NewDecoder(bytes.NewReader(raw))
+	decoder.UseNumber()
+	var document map[string]any
+	if err := decoder.Decode(&document); err != nil || document == nil {
+		return nil, errNoGuide
+	}
+	version, _ := document["schema_version"].(json.Number)
+	found, _ := version.Int64()
+	if err := persist.CheckVersion(int(found), schemaVersion, "Story Bible"); err != nil {
+		return nil, err
+	}
+	entities, _ := document["entities"].([]any)
+	for _, raw := range entities {
+		entity, ok := raw.(map[string]any)
+		if !ok {
+			continue
+		}
+		holders := []map[string]any{entity}
+		if aliases, ok := entity["aliases"].([]any); ok {
+			for index, alias := range aliases {
+				if text, isText := alias.(string); isText {
+					aliases[index] = map[string]any{"text": text, "pronunciation": map[string]any{}, "occurrences": []any{}}
+				}
+				if holder, ok := aliases[index].(map[string]any); ok {
+					holders = append(holders, holder)
+				}
+			}
+		}
+		for _, holder := range holders {
+			if value, ok := holder["pronunciation"].(map[string]any); ok {
+				readPronunciationSource(value)
+			}
+		}
+	}
+	return document, nil
+}
+
+// readPronunciationSource is manuscript_guide.py read_pronunciation_source: the legacy source "user" reads as "manual", in the value and
+// in its alternate. Unlike readPronunciation (what the UI is sent) it keeps a stored status, as the sidecar does.
+func readPronunciationSource(value map[string]any) {
+	if value["source"] == legacyManualSource {
+		value["source"] = ManualSource
+	}
+	if alternate, ok := value["alternate"].(map[string]any); ok {
+		readPronunciationSource(alternate)
+	}
+}
+
+func findEntity(document map[string]any, id string) (map[string]any, error) {
+	entities, _ := document["entities"].([]any)
+	for _, raw := range entities {
+		if entity, ok := raw.(map[string]any); ok && entity["id"] == id {
+			return entity, nil
+		}
+	}
+	return nil, errors.New("Entity not found.") //nolint:staticcheck // the sidecar's own words, shown to the narrator
+}
+
+// documentTypeNames is manuscript_guide.py type_names over guide_types: the names of the stored types, or of DefaultTypes for a file
+// without a list. A stored list that is not rows of a name, a palette colour and a speaks flag, or that repeats a name, is refused.
+func documentTypeNames(document map[string]any) ([]string, error) {
+	stored, present := document["types"]
+	if !present || stored == nil {
+		names := []string{}
+		for _, row := range DefaultTypes() {
+			names = append(names, row.Name)
+		}
+		return names, nil
+	}
+	invalid := errors.New("The Story Bible types are invalid.") //nolint:staticcheck // the sidecar's own words, shown to the narrator
+	rows, ok := stored.([]any)
+	if !ok || len(rows) == 0 {
+		return nil, invalid
+	}
+	names := make([]string, 0, len(rows))
+	seen := map[string]bool{}
+	for _, raw := range rows {
+		row, ok := raw.(map[string]any)
+		if !ok {
+			return nil, invalid
+		}
+		name, nameOK := row["name"].(string)
+		colour, _ := row["colour"].(string)
+		_, speaksOK := row["speaks"].(bool)
+		if !nameOK || strings.TrimSpace(name) == "" || seen[foldCase(name)] || !slices.Contains(TypeColours, colour) || !speaksOK {
+			return nil, invalid
+		}
+		seen[foldCase(name)] = true
+		names = append(names, name)
+	}
+	return names, nil
+}
+
+// applyEdit is manuscript_guide.py apply_edit for one field editInHost takes; any other field is refused, as the sidecar refuses it.
+func applyEdit(entity map[string]any, field, value string, categories []string) error {
+	if locked, _ := entity["locked"].(bool); locked && field != "locked" {
+		return errors.New("This entity is locked. Unlock it before editing.") //nolint:staticcheck // the sidecar's own words, shown to the narrator
+	}
+	switch field {
+	case "locked":
+		entity["locked"] = slices.Contains([]string{"1", "true", "yes", "on"}, strings.ToLower(strings.TrimSpace(value)))
+	case "description":
+		description, ok := entity["description"].(map[string]any)
+		if !ok {
+			description = map[string]any{}
+			entity["description"] = description
+		}
+		description["text"] = value
+	case "personality":
+		entity["personality_notes"] = []any{}
+		if value != "" {
+			entity["personality_notes"] = []any{map[string]any{"text": value, "evidence": map[string]any{"chapter": "User edit", "excerpt": "User-authored note."}}}
+		}
+	case "context":
+		entity["context"] = value
+	case "properties":
+		properties, err := parseProperties(value)
+		if err != nil {
+			return err
+		}
+		entity["properties"] = properties
+	case "category":
+		if slices.Contains(systemCategories, value) || !slices.Contains(categories, value) {
+			return fmt.Errorf("Unknown or reserved category: %s", value) //nolint:staticcheck // the sidecar's own words, shown to the narrator
+		}
+		entity["category"] = value
+	case "canonical_name":
+		entity["canonical_name"] = value
+	default:
+		return errors.New("Unsupported editable field.") //nolint:staticcheck // the sidecar's own words, shown to the narrator
+	}
+	return nil
+}
+
+// parseProperties is manuscript_guide.py parse_properties and normalize_properties: empty text is no properties; otherwise a JSON list of
+// {key, value} strings, each trimmed, in the order given, a key required and unique whatever its case. A refusal names the position.
+func parseProperties(text string) ([]any, error) {
+	if strings.TrimSpace(text) == "" {
+		return []any{}, nil
+	}
+	var raw any
+	if err := json.Unmarshal([]byte(text), &raw); err != nil {
+		return nil, fmt.Errorf("The properties are not valid JSON (%v).", err) //nolint:staticcheck // the sidecar's own words, shown to the narrator
+	}
+	list, ok := raw.([]any)
+	if !ok {
+		return nil, errors.New("Properties must be a list of key and value pairs.") //nolint:staticcheck // the sidecar's own words, shown to the narrator
+	}
+	properties := make([]any, 0, len(list))
+	seen := map[string]bool{}
+	for index, item := range list {
+		position := index + 1
+		pair, isPair := item.(map[string]any)
+		key, keyOK := pair["key"].(string)
+		value, valueOK := pair["value"].(string)
+		if !isPair || !keyOK || !valueOK {
+			return nil, fmt.Errorf("Property %d must have a text key and a text value.", position) //nolint:staticcheck // the sidecar's own words, shown to the narrator
+		}
+		key, value = strings.TrimSpace(key), strings.TrimSpace(value)
+		if key == "" {
+			return nil, fmt.Errorf("Property %d has no name.", position) //nolint:staticcheck // the sidecar's own words, shown to the narrator
+		}
+		if seen[foldCase(key)] {
+			return nil, fmt.Errorf("There are two properties named %s; give each a different name.", pythonRepr(key)) //nolint:staticcheck // the sidecar's own words, shown to the narrator
+		}
+		seen[foldCase(key)] = true
+		properties = append(properties, map[string]any{"key": key, "value": value})
+	}
+	return properties, nil
+}
+
+// foldCase is the comparison the sidecar makes with str.casefold: lower case, with the one full case folding a name is likely to hold
+// (ß and ẞ fold to ss) that strings.ToLower does not make.
+func foldCase(text string) string {
+	return strings.NewReplacer("ß", "ss", "ẞ", "ss").Replace(strings.ToLower(text))
+}
+
+// pythonRepr quotes text the way the sidecar's !r does in a message: single quotes, or double quotes when the text holds a single quote
+// and no double one.
+func pythonRepr(text string) string {
+	if strings.Contains(text, "'") && !strings.Contains(text, `"`) {
+		return `"` + strings.ReplaceAll(text, `\`, `\\`) + `"`
+	}
+	return "'" + strings.NewReplacer(`\`, `\\`, "'", `\'`).Replace(text) + "'"
+}
+
+// writeDocument is manuscript_guide.py write_json: two-space indented UTF-8 with non-ASCII text as itself and a trailing newline, written
+// beside the file and renamed over it so a reader never sees half a file. Keys come out sorted (a Go map has no order) where the sidecar
+// keeps the order it read; the content is the same, and the sidecar keeps whichever order it next reads.
+func writeDocument(path string, document map[string]any) error {
+	var buffer bytes.Buffer
+	encoder := json.NewEncoder(&buffer)
+	encoder.SetEscapeHTML(false)
+	encoder.SetIndent("", "  ")
+	if err := encoder.Encode(document); err != nil {
+		return err
+	}
+	temporary := path + ".tmp"
+	if err := os.WriteFile(temporary, buffer.Bytes(), 0o644); err != nil { //nolint:gosec // G306: the mode the sidecar writes the file with; it is the narrator's own data
+		return err
+	}
+	if err := os.Rename(temporary, path); err != nil {
+		_ = os.Remove(temporary)
+		return err
+	}
+	return nil
+}

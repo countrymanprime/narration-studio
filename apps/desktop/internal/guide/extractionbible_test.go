@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"os"
 	"path/filepath"
+	"reflect"
 	"runtime"
 	"slices"
 	"strings"
@@ -125,16 +126,25 @@ func TestExtractionBibleWritesThroughTheStoryBibleCommands(t *testing.T) {
 	for _, c := range calls(t, log) {
 		verbs = append(verbs, c[0])
 	}
-	want := []string{"create", "edit", "edit", "relate", "review-flag", "mark-reviewed", "mark-reviewed", "review-flag", "correct-cue", "delete"}
+	// The properties are an edit without aliases, which the host applies to the file itself (editInHost); the alias edit still goes to the
+	// sidecar.
+	want := []string{"create", "edit", "relate", "review-flag", "mark-reviewed", "mark-reviewed", "review-flag", "correct-cue", "delete"}
 	if !slices.Equal(verbs, want) {
 		t.Fatalf("commands = %v, want %v", verbs, want)
 	}
 	all := calls(t, log)
-	if !slices.Contains(all[1], "--value=Little Wren") || !slices.Contains(all[2], `--value=[{"key":"Says","value":"Hold the door."}]`) {
-		t.Fatalf("edits: %v %v", all[1], all[2])
+	if !slices.Contains(all[1], "--value=Little Wren") {
+		t.Fatalf("alias edit: %v", all[1])
+	}
+	entities, err := s.Entities()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := entities[0]["properties"]; !reflect.DeepEqual(got, []any{map[string]any{"key": "Says", "value": "Hold the door."}}) {
+		t.Fatalf("properties in the file = %v", got)
 	}
 	// clearing the entry's own flag puts back the flag of the name that was still to look at
-	if last := all[7]; !slices.Contains(last, "--alias-index") || !slices.Contains(last, "1") {
+	if last := all[6]; !slices.Contains(last, "--alias-index") || !slices.Contains(last, "1") {
 		t.Fatalf("re-flag of W: %v", last)
 	}
 }

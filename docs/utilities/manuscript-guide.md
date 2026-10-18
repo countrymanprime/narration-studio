@@ -12,7 +12,7 @@ Every entry carries `properties`: an ordered list of `{"key", "value"}` facts, t
 
 - **Shape.** An ordered list, not an object: the host decodes the file to a map and writes it back, which sorts an object's keys and would lose the narrator's order. A key is required and unique whatever its case (`Codename` and `codename` are one key); a value may be empty. Both are trimmed.
 - **Additive.** A Story Bible file written before properties existed has none, and every reader treats that as an empty list. `schema_version` stays 2.
-- **Editing.** `edit --field properties --value=<JSON list>` replaces the whole list in one run, like every other field: a locked entry refuses it (`sidecars/manuscript-guide/core/manuscript_guide.py`), a bad list changes nothing, and it counts as a review (`review_state` becomes `reviewed`). The Save button sends it only when the list changed.
+- **Editing.** An edit of `properties` replaces the whole list in one write, like every other field: a locked entry refuses it, a bad list changes nothing, and it counts as a review (`review_state` becomes `reviewed`). The Save button sends it only when the list changed.
 - **Creating with properties.** `create --properties=<JSON list>` sets them in the same run as the entry, for the import of a manuscript's cast blocks (`guide.Service.CreateFull` in the host). The list must be valid (a name on every property, no name twice); an invalid list creates nothing. The caller merges repeated labels before it asks.
 - **Rebuilding.** A build never produces properties, so `merge_locked` carries the prior list onto a regenerated entry, and a locked or manual entry is kept whole. `merge` unions by key: the target's value wins and the source adds the keys the target lacks.
 
@@ -114,6 +114,7 @@ Run the guide after manuscript selection; review uncertain candidates; lock narr
 - Inputs: Word manuscript, the selected catalog-managed spaCy language model (downloaded after a confirmation; without one the build offers a rules-only run), optional eSpeak, the selected catalog-managed Piper voice, and existing guide JSON.
 - Outputs: `<project>/ManuscriptGuide/manuscript_guide.json`, optional audio previews, and shared `entity` and `pronunciation` findings for entries that need review or a pronunciation with low or unknown confidence (`apps/desktop/internal/guide/findings_adapter.go`), which [Proof](../guides/using-the-app/proof.md) lists and decides.
 - Narrator actions: edit, lock, merge/reject candidates, and approve pronunciations.
+- Who writes the file: the sidecar builds it and runs every other command. The host applies an edit or a lock itself when it changes no aliases (`apps/desktop/internal/guide/edit.go`, `editInHost`), without starting the sidecar, and writes the file in the sidecar's format. An edit that changes the aliases goes to the sidecar's `edit` whole, because a new alias needs a pronunciation and its places in the manuscript. The two implementations are held together by `apps/desktop/internal/guide/testdata/edit-parity.json`: `sidecars/manuscript-guide/tests/test_edit_parity.py` records what the sidecar's `edit` does to a file, and `TestEditMatchesTheSidecarCases` requires the host to do the same.
 
 ## Non-goals and review boundary
 
