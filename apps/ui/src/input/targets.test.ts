@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { describe, expect, it } from 'vitest';
-import { isGuardedTarget } from './targets';
+import { isGuardedTarget, modalLayerOpen, softLayerOpen, takesTypedText } from './targets';
 
 function el(html: string): Element {
   const div = document.createElement('div');
@@ -57,5 +57,43 @@ describe('isGuardedTarget', () => {
   it('reaches up through a nested target (closest), not just the exact element', () => {
     const wrapper = el('<button><span>label</span></button>');
     expect(isGuardedTarget(wrapper.firstElementChild)).toBe(true);
+  });
+});
+
+describe('takesTypedText', () => {
+  it('is true for a text input, a textarea and editable content', () => {
+    expect(takesTypedText(el('<input type="text">'))).toBe(true);
+    expect(takesTypedText(el('<input>'))).toBe(true);
+    expect(takesTypedText(el('<input type="search">'))).toBe(true);
+    expect(takesTypedText(el('<textarea></textarea>'))).toBe(true);
+    expect(takesTypedText(el('<div contenteditable="true"><span>x</span></div>').firstElementChild)).toBe(true);
+  });
+
+  it('is false for a select, a slider, a checkbox, a button and a non-editable target', () => {
+    for (const html of ['<select></select>', '<input type="range">', '<input type="checkbox">', '<button></button>', '<div role="menuitem"></div>'])
+      expect(takesTypedText(el(html))).toBe(false);
+    expect(takesTypedText(null)).toBe(false);
+  });
+});
+
+describe('softLayerOpen and modalLayerOpen', () => {
+  const mount = (html: string) => {
+    const root = document.createElement('div');
+    root.innerHTML = html;
+    return root;
+  };
+
+  it('a menu or a popover popup is soft, an alert dialog or a plain dialog is modal', () => {
+    expect(softLayerOpen(mount('<div role="menu"></div>'))).toBe(true);
+    expect(softLayerOpen(mount('<div role="dialog" data-popover-popup></div>'))).toBe(true);
+    expect(modalLayerOpen(mount('<div role="dialog" data-popover-popup></div>'))).toBe(false);
+    expect(modalLayerOpen(mount('<div role="alertdialog"></div>'))).toBe(true);
+    expect(modalLayerOpen(mount('<div role="dialog"></div>'))).toBe(true);
+    expect(softLayerOpen(mount('<div role="dialog"></div>'))).toBe(false);
+  });
+
+  it('a hidden, inert or aria-hidden popup is not open', () => {
+    for (const wrap of ['<div hidden>', '<div inert>', '<div aria-hidden="true">'])
+      expect(softLayerOpen(mount(`${wrap}<div role="menu"></div></div>`))).toBe(false);
   });
 });

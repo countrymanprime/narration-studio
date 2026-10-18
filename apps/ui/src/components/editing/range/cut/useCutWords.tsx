@@ -81,11 +81,15 @@ export function useCutWords({ journal, chapterId, chapterName, cuts, locator, on
       if (!result.ok) return overlay.toast(result.refusal.reason, { tone: 'error' });
       const { id, value } = result.value;
       value.ids.forEach((cut) => entries.current.set(cut, id));
-      overlay.toastUndo(value.message, async () => {
-        const undone = await journal.undo(id);
-        if (undone.ok) value.ids.forEach((cut) => entries.current.delete(cut));
-        return undone;
-      });
+      overlay.toastUndo(
+        value.message,
+        async () => {
+          const undone = await journal.undo(id);
+          if (undone.ok) value.ids.forEach((cut) => entries.current.delete(cut));
+          return undone;
+        },
+        { entry: id },
+      );
       if (value.refused) overlay.toast(value.refused, { tone: 'error' });
     },
     [plan, journal, daw, log, onCuts, chapterId, locator],

@@ -3,7 +3,7 @@
 
 import type { ManuscriptChapter } from '../../api/contracts/manuscript';
 import { chapterName } from '../../chapterName';
-import type { EvidenceLinks } from './suggested/row/Quotes';
+import { LINE_NOT_FOUND, type EvidenceLinks } from './suggested/row/Quotes';
 
 type Chapter = Pick<ManuscriptChapter, 'id' | 'title' | 'subtitle' | 'contentKind' | 'paragraphIds'>;
 
@@ -19,7 +19,7 @@ export function evidenceLinks(chapters: readonly Chapter[], goTo: (chapter: stri
   return {
     lineLabel: (paragraphId) => {
       const hit = find(paragraphId);
-      return hit ? `${chapterName(hit.chapter, 'short')} · line ${hit.line}` : 'line not found';
+      return hit ? `${chapterName(hit.chapter, 'short')} · line ${hit.line}` : LINE_NOT_FOUND;
     },
     onGoToEvidence: (paragraphId) => {
       const hit = find(paragraphId);

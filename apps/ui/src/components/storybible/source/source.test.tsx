@@ -173,8 +173,8 @@ describe('a name row', () => {
     renderRow(pron());
     expect(screen.queryByRole('button', { name: /Look up Alice online/i })).toBeNull();
     await userEvent.setup().click(screen.getByRole('button', { name: /Look up elsewhere/ }));
-    expect(await screen.findByRole('button', { name: 'Look up Alice online in Merriam-Webster' })).toBeTruthy();
-    expect(screen.getByRole('button', { name: 'Listen to Alice on Wikimedia Commons' })).toBeTruthy();
+    expect(await screen.findByRole('button', { name: 'Look up online: Alice in Merriam-Webster' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Listen on Commons: Alice' })).toBeTruthy();
   });
 
   it('read-only it shows the value and a read-only tag', async () => {

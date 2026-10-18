@@ -61,7 +61,7 @@ export function useSplitDuplicate({ journal, splitter, resolve }: SplitOptions):
       const result = await journal.act(splitCommand(splitter, plan, target));
       if (!result.ok) return overlay.toast(result.refusal.reason, { tone: 'error' });
       const done = `Split ${target.label} at ${clock(target.at)}. The line has two takes now.`;
-      if (plan.kind === 'recorder') overlay.toastUndo(done, () => journal.undo(result.value.id));
+      if (plan.kind === 'recorder') overlay.toastUndo(done, () => journal.undo(result.value.id), { entry: result.value.id });
       else overlay.toast(`${done} ${result.value.value.message}`);
     },
     [journal, plan, splitter],

@@ -4,6 +4,7 @@ import {
   chapterKindResultSchema,
   chapterSchema,
   chaptersSchema,
+  manuscriptDroppedSchema,
   notesSchema,
   paragraphsSchema,
   readerSchema,
@@ -13,6 +14,8 @@ import {
 } from '../schemas/manuscript';
 
 export const manuscriptGoldens: Record<string, z.ZodType> = {
+  'manuscript-dropped-begun.json': manuscriptDroppedSchema,
+  'manuscript-dropped-refused.json': manuscriptDroppedSchema,
   'manuscript-import-selected.json': workJobSchema,
   'manuscript-import-preview.json': workJobSchema,
   'manuscript-import-preview-repaired.json': workJobSchema,

@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { cleanup, fireEvent, render, screen } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { useState } from 'react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
@@ -182,6 +182,9 @@ describe('ImportReview', () => {
   });
 });
 
+// The outline's rows, apart from the preview pane that names the selected heading again.
+const outline = () => screen.getByRole('group', { name: 'Review what was found' });
+
 describe('ImportReview subtitles', () => {
   const subtitleBox = (subtitle: string) => screen.getByRole('checkbox', { name: `Subtitle — ${subtitle}` });
   const rowOf = (select: string) => screen.getByRole('combobox', { name: new RegExp(`^${select}.* content type$`) });
@@ -198,7 +201,7 @@ describe('ImportReview subtitles', () => {
     renderReview();
     await user.click(subtitleBox('Down the Rabbit-Hole'));
     expect(subtitleBox('Down the Rabbit-Hole').getAttribute('aria-checked')).toBe('false');
-    expect(screen.getByText('Chapter One Down the Rabbit-Hole').closest('[title]')!.getAttribute('title')).toBe('Chapter One Down the Rabbit-Hole');
+    expect(within(outline()).getByText('Chapter One Down the Rabbit-Hole').closest('[title]')!.getAttribute('title')).toBe('Chapter One Down the Rabbit-Hole');
     expect(screen.getByRole('combobox', { name: 'Chapter One Down the Rabbit-Hole content type' })).toBeTruthy();
     expect(screen.getByRole('combobox', { name: 'Chapter Two — The Pool of Tears content type' })).toBeTruthy();
   });
@@ -208,7 +211,7 @@ describe('ImportReview subtitles', () => {
     renderReview('text');
     await user.click(subtitleBox('“Curiouser and curiouser!” cried Alice'));
     expect(rowOf('Chapter One').getAttribute('aria-label')).toBe('Chapter One · “Curiouser and curiouser!” cried Alice is read as text content type');
-    expect(screen.getByText(/is read as text$/)).toBeTruthy();
+    expect(within(outline()).getByText(/is read as text$/)).toBeTruthy();
   });
 
   it('turns every row off from the default, and a row set by hand keeps its own answer', async () => {
@@ -262,5 +265,41 @@ describe('ImportReview heading styles', () => {
     render(<Harness preview={styled(style)} />);
     await user.click(screen.getByRole('checkbox', { name: 'Subtitle — Title of 8' }));
     expect(screen.getByTitle(names[style])).toBeTruthy();
+  });
+});
+
+describe('ImportReview outline data', () => {
+  it("shows each section's words, from the host's count", () => {
+    renderReview();
+    const rows = within(outline());
+    expect(rows.getByText('1,862 words')).toBeTruthy();
+    expect(rows.getByText('41 words')).toBeTruthy();
+  });
+
+  it('previews the first lines of the first heading, and of another when its title is pressed', async () => {
+    const user = userEvent.setup();
+    renderReview();
+    const preview = within(screen.getByRole('region', { name: 'Preview of the selected heading' }));
+    expect(preview.getByText(/^Alice was beginning to get very tired/)).toBeTruthy();
+    await user.click(within(outline()).getByRole('button', { name: /^Chapter Two/ }));
+    expect(preview.getByText(/^“Curiouser and curiouser!” cried Alice/)).toBeTruthy();
+  });
+
+  it('says the lines appear here when the host sent none for the heading', () => {
+    const preview = mockImportPreview();
+    const bare = { ...preview, sections: preview.sections?.map((section) => ({ ...section, wordCount: undefined, firstText: undefined })) };
+    render(
+      <ImportReview
+        preview={bare}
+        selection={{}}
+        onSelectionChange={() => {}}
+        headingLevel={1}
+        onHeadingLevelChange={() => {}}
+        groupOpen={{}}
+        onGroupOpenChange={() => {}}
+      />,
+    );
+    expect(screen.getByText('The first lines of the selected section appear here.')).toBeTruthy();
+    expect(screen.queryByText(/ words$/)).toBeNull();
   });
 });

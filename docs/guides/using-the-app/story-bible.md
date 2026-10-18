@@ -3,7 +3,7 @@
 # Story Bible
 
 Story Bible tracks every character, place, and organization extracted from the manuscript,
-with pronunciation, aliases, and narration notes. Each entry is a row of two lines: its name, then its kind in the kind's colour (an entry whose kind the host could not tell is marked **Review**) with how many names it has (its own and each alias) and how many chapters it appears in. The kind chips over the list filter it, the search box finds an entry by any of its names, the menu beside it sorts by name, type or chapters, and the Up and Down keys move through the rows. Right-click a row (or press the Menu key on it) for **Open**, **Find in the manuscript**, **Mark reviewed** (when the entry needs it) and **Delete entry**; Delete asks first, and a locked entry says it has to be unlocked. The buttons under the title scan the manuscript, import entries, open Voice data, build or refresh the Story Bible, and add an entry; the **Entries** and **Series** tabs sit below them. With no manuscript imported the page asks for one, and its **Import manuscript** opens the import on this page. If the list of kinds or the chapters cannot be read, a line under the filters says so with **Check again**, and an entry that cannot tell whether its type speaks says the same; the rest of the page keeps working.
+with pronunciation, aliases, and narration notes. Each entry is a row of two lines: its name, then its kind in the kind's colour (an entry whose kind the host could not tell is marked **Review**) with how many names it has (its own and each alias) and how many chapters it appears in. The kind chips over the list filter it, the search box finds an entry by any of its names, the menu beside it sorts by name, type or chapters, and the Up and Down keys move through the rows. Right-click a row (or press the Menu key on it) for **Open**, **Find in the manuscript**, **Mark reviewed** (when the entry needs it) and **Delete entry**; Delete asks first, and a locked entry says it has to be unlocked. The buttons under the title scan the manuscript (while a scan runs the same button becomes **Cancel scan**, and its progress shows under the filters, so nothing else moves), import entries, open Voice data, build or refresh the Story Bible, and add an entry; the **Entries** and **Series** tabs sit below them. With no manuscript imported the page asks for one, and its **Import manuscript** opens the import on this page. If the list of kinds or the chapters cannot be read, a line under the filters says so with **Check again**, and an entry that cannot tell whether its type speaks says the same; the rest of the page keeps working.
 While the entries are being read, the list and the detail pane show grey blocks under the title, tabs and search; "No entries match" appears only once the read has ended with none, and an unreadable Story Bible says so with **Retry**. The **Series** tab shows the same blocks while it is read.
 
 ![Story Bible - a search for "hatter" narrowing the list by name and alias](../../images/ui/storybible-search.webp)
@@ -40,6 +40,7 @@ Entries the build isn't sure what kind they are get the **Needs Review** kind, i
 choose the right kind from the menu beside the name. An entry or a name the build flagged shows a
 **Review** pill in the list and **Needs review** with a **Mark reviewed** button in its header. The
 **Needs review** chip under the kind chips shows only these entries and the ones with suggestions waiting.
+An entry with suggestions still to verify shows **Mark reviewed** switched off, with the reason, until each is verified or rejected.
 
 ![Story Bible - an entry of the Needs Review kind, with its relationships and the chapters it appears in](../../images/ui/storybible-needs-review.webp)
 
@@ -134,7 +135,7 @@ A suggestion the app is sure of is accepted on its own; one it is not sure of wa
 beside the filters shows only the entries with suggestions waiting, and lists above them the suggestions that have no
 entry yet. An entry with suggestions waiting shows a **Verify** pill in the list, its accepted facts, and a **Suggested**
 list where you accept, edit or reject each one, with the quote it rests on (press the quote to go to the line in the
-Script). An entry cannot be marked reviewed while it has suggestions waiting.
+Script; a quote whose line the book no longer has is plain text that says so). An entry cannot be marked reviewed while it has suggestions waiting.
 
 ![Story Bible - Needs verification: the suggestions not in the Story Bible yet, each with its score](../../images/ui/storybible-verification.webp)
 
@@ -183,6 +184,11 @@ entry first. Delete asks first and says that the sample's audio is
 removed and the recording it was copied from is not touched; afterwards the focus moves to the next sample. A character may have 20 samples,
 and the section says so when it has them; moving a sample to a character that has 20 is refused.
 
+When you merge an entry into another, its samples go with it: they are listed under the entry it was merged into, and that entry
+keeps its own primary sample (an entry that had none takes the merged entry's primary). If the entry it merged into would have more
+than 20, the primary and the newest move and the rest stay where they were, under **Samples for a character that is no longer in the
+Story Bible** in **Voice data**. **Undo** on the merge moves them back, all but any you moved or deleted yourself since.
+
 A row says what is wrong with it:
 
 | Shown | What it means | What to do |
@@ -197,8 +203,8 @@ again. The list also follows the project by itself: a sample marked in Editing, 
 you doing anything.
 
 In **Voice data**, **Narration voice samples** work the same way, and **Move to a character…** and **Delete…** are always there. Under
-**Samples for a character that is no longer in the Story Bible** are the samples of a character who was deleted, merged into another
-entry, or whose type no longer speaks; they are kept until you move them to a character or delete them. **Remove voice samples…** deletes
+**Samples for a character that is no longer in the Story Bible** are the samples of a character who was deleted, or whose type no longer speaks,
+and any a merge could not move because the other entry already had 20; they are kept until you move them to a character or delete them. **Remove voice samples…** deletes
 every sample in the project, with its audio, after you confirm, and says how many it removed and how much space came back.
 
 ![Story Bible - the Voice data slide-over with Narration voice samples, the space the samples use, and the sample of a character who left the Story Bible](../../images/ui/storybible-voice-data-samples.webp)
