@@ -333,7 +333,7 @@ describe('bookmark-flow-end-to-end', () => {
         .getAllByRole('button')
         .find((b) => b.textContent?.startsWith('was'))!,
     );
-    await waitFor(() => expect(document.querySelector(`[data-bm="${first!.id}"] .motion-ok\\:animate-pulse`)).not.toBeNull());
+    await waitFor(() => expect(document.querySelector(`[data-bm="${first!.id}"] [data-just-changed]`)).not.toBeNull());
   });
 });
 
@@ -638,7 +638,7 @@ describe('bookmarks-from-the-jump-menu', () => {
     act(() => entry!.run());
     // The reader is asked once, scrolls, and the bookmark's ribbon pulses.
     await waitFor(() => expect(tops.length).toBeGreaterThan(0));
-    await waitFor(() => expect(document.querySelector(`[data-bm="${bookmark.id}"] .motion-ok\\:animate-pulse`)).not.toBeNull());
+    await waitFor(() => expect(document.querySelector(`[data-bm="${bookmark.id}"] [data-just-changed]`)).not.toBeNull());
   });
 
   it('Next bookmark with none says No bookmarks yet.', async () => {

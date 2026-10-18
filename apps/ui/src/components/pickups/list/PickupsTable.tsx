@@ -15,6 +15,7 @@ import { AddPickup } from './AddPickup';
 import { clock, groupByChapter, reasonSentence, inScope, sourceLabel, sourceTitle, typeLabel, typeTone, ALL_SCOPE, type ChapterRef } from './pickupRows';
 import { ScriptLine } from './ScriptLine';
 import { PICKUP_ROW, usePickupsContextMenu } from './usePickupsContextMenu';
+import { ARRIVE_CLASSES } from '../../primitives/changeHighlight';
 
 /** What a removal gives back to undo it: the page's journal entry. */
 export type RemoveUndo = () => Promise<{ ok: true } | { ok: false; refusal: { reason: string } }>;
@@ -220,7 +221,7 @@ export function PickupsTable({
       {read.kind === 'ready' && read.trouble && (
         <div
           role="status"
-          className="flex flex-wrap items-center justify-between gap-2 border-b border-[var(--line)] bg-[var(--surface-2)] px-4 py-2 text-[0.875rem]"
+          className={`flex flex-wrap items-center justify-between gap-2 border-b border-[var(--line)] bg-[var(--surface-2)] px-4 py-2 text-[0.875rem] ${ARRIVE_CLASSES}`}
         >
           <span>
             Can’t tell if this list is current. {read.trouble} Last read at {new Date(read.readAt).toLocaleTimeString()}.

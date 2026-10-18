@@ -1,4 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
+import { CHANGE_HIGHLIGHT_CLASSES } from '../../src/components/primitives/changeHighlight';
 import { goToPage } from './drivers/shared';
 
 // Motion is on here. Every other spec in this folder freezes it (helpers/settle.ts), and the atlas and Storybook do too, so this
@@ -6,6 +7,28 @@ import { goToPage } from './drivers/shared';
 // both ways of asking for reduced motion (Windows, and <html data-motion="reduce">) stop it. styles.css defines the tokens and
 // the `motion-ok:` variant; src/motion.test.ts checks that every utility uses them.
 const RAIL = 'aside[aria-label="Primary navigation"] > div';
+
+/** A row drawn with the "this changed" classes, as an action's row would be: its animation durations, and its background once
+ * any animation has run to its end. */
+async function highlightedRow(page: Page): Promise<{ durations: number[]; background: string }> {
+  return page.evaluate((classes) => {
+    const row = document.createElement('div');
+    row.className = classes;
+    document.querySelector('main')!.append(row);
+    const animations = row.getAnimations();
+    const durations = animations.map((animation) => Number((animation.effect as KeyframeEffect).getComputedTiming().duration));
+    for (const animation of animations) animation.finish();
+    return { durations, background: getComputedStyle(row).backgroundColor };
+  }, CHANGE_HIGHLIGHT_CLASSES);
+}
+
+const accentSoft = (page: Page) =>
+  page.evaluate(() => {
+    const probe = document.createElement('div');
+    probe.style.backgroundColor = 'var(--accent-soft)';
+    document.body.append(probe);
+    return getComputedStyle(probe).backgroundColor;
+  });
 
 async function railTransition(page: Page): Promise<string> {
   return page.locator(RAIL).evaluate((rail) => getComputedStyle(rail).transitionDuration);
@@ -33,6 +56,13 @@ test.describe('Motion / on', () => {
     expect(await railTransition(page)).toBe('0.12s');
   });
 
+  test('a changed row fades from the accent tint once, over the highlight token, and settles to its own background', async ({ page }) => {
+    await page.goto('/');
+    const row = await highlightedRow(page);
+    expect(row.durations).toEqual([600]);
+    expect(row.background).not.toBe(await accentSoft(page));
+  });
+
   for (const name of ['Production', 'Script', 'Story Bible', 'Booth', 'Editing', 'Proof', 'Pickups', 'Settings'] as const) {
     test(`nothing loops on ${name} at rest`, async ({ page }) => {
       await page.goto('/');
@@ -50,6 +80,23 @@ test.describe('Motion / reduced', () => {
     await page.emulateMedia({ reducedMotion: 'reduce' });
     await page.goto('/');
     expect(await railTransition(page)).toBe('0s');
+  });
+
+  test('a changed row holds a still accent tint under reduced motion', async ({ page }) => {
+    await page.emulateMedia({ reducedMotion: 'reduce' });
+    await page.goto('/');
+    const row = await highlightedRow(page);
+    expect(row.durations).toEqual([]);
+    expect(row.background).toBe(await accentSoft(page));
+  });
+
+  test('a changed row holds a still accent tint under <html data-motion="reduce">', async ({ page }) => {
+    await page.emulateMedia({ reducedMotion: 'no-preference' });
+    await page.goto('/');
+    await page.evaluate(() => (document.documentElement.dataset.motion = 'reduce'));
+    const row = await highlightedRow(page);
+    expect(row.durations).toEqual([]);
+    expect(row.background).toBe(await accentSoft(page));
   });
 
   test('<html data-motion="reduce"> stops the rail whatever Windows says', async ({ page }) => {

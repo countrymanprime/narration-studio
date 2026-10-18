@@ -6,6 +6,7 @@ import { Panel } from '../../primitives/Panel';
 import { StatusBadge } from '../../primitives/StatusBadge';
 import type { ChapterState } from './chapterStates';
 import { heardText } from './useHostRead';
+import { ARRIVE_CLASSES } from '../../primitives/changeHighlight';
 
 const TONE = { ok: 'success', bad: 'danger', wait: 'neutral' } as const;
 const DANGER = { color: 'var(--danger-text)' };
@@ -47,7 +48,7 @@ export function Preflight({
     <Panel title="Before you build" actions={onOpenMaster && <IconButton action="openInMaster" onClick={onOpenMaster} />}>
       <div className="flex flex-col gap-1">
         {problem && (
-          <p role="alert" className="text-sm" style={DANGER}>
+          <p role="alert" className={`text-sm ${ARRIVE_CLASSES}`} style={DANGER}>
             Can't tell which chapters pass, {heardText(lastHeard)}: {problem}
             {known && ' The list below may be out of date.'}{' '}
             <Button variant="ghost" size="sm" onClick={onCheckAgain}>
