@@ -1,6 +1,6 @@
 import { LoadError } from '../layout/LoadError';
 import { describeApiError } from '../../api/errorMessage';
-import { useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent, type ReactNode } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faLock, faMicrophone, faPlus, faRotate } from '@fortawesome/free-solid-svg-icons';
@@ -44,7 +44,7 @@ import { ImportButton } from './suggested/panel/ImportButton';
 import { LooseSuggestionRows } from './suggested/panel/LooseSuggestionRows';
 import { FilterChip } from './FilterChip';
 import { NeedsVerificationChip } from './suggested/panel/NeedsVerificationChip';
-import { ScanButton } from './suggested/panel/ScanButton';
+import { ScanButton, ScanStatus } from './suggested/panel/ScanButton';
 import { useSuggestions } from './suggested/panel/useSuggestions';
 import { openImportDialog } from './suggested/import/openImportDialog';
 import { AcceptedClaims } from './suggested/row/AcceptedClaims';
@@ -65,6 +65,7 @@ import { SearchField } from '../primitives/SearchField';
 import { Select } from '../primitives/Select';
 import { Tab, TabList, TabPanel, Tabs } from '../primitives/Tabs';
 import type { Notify } from '../primitives/Toast';
+import { CHANGE_HIGHLIGHT_CLASSES, useJustChanged } from '../primitives/changeHighlight';
 import { GuideDetailSkeleton, GuideListSkeleton } from './GuideSkeleton';
 
 const ENTRIES_TAB = 'Entries';
@@ -96,10 +97,12 @@ type GuideProps = {
   hasManuscript?: boolean;
   /** Opens the import flow, from the ask for a manuscript. */
   onImport?: () => void;
+  /** The ask for a manuscript when the page draws it itself (with the import in place); else `onImport` goes to the import. */
+  needManuscript?: ReactNode;
 };
 
-export function Guide({ hasManuscript = true, onImport, ...rest }: GuideProps) {
-  return hasManuscript ? <GuideLoaded {...rest} /> : <NeedManuscript title="Story Bible" onImport={onImport} />;
+export function Guide({ hasManuscript = true, onImport, needManuscript, ...rest }: GuideProps) {
+  return hasManuscript ? <GuideLoaded {...rest} /> : (needManuscript ?? <NeedManuscript title="Story Bible" onImport={onImport} />);
 }
 
 function GuideLoaded({ notify, goToManuscript }: Pick<GuideProps, 'notify' | 'goToManuscript'>) {
@@ -260,12 +263,16 @@ function GuideLoaded({ notify, goToManuscript }: Pick<GuideProps, 'notify' | 'go
   }, [api, readNonce]);
   // A decision changes the list here at once, and an accepted suggestion can change an entry, so the entries are read again.
   const { changed } = found;
+  // The entry a decision (or its Undo) changed is highlighted once in the list (changeHighlight.ts).
+  const { changed: justChanged, mark: markChanged } = useJustChanged();
   const decided = useCallback(
     (decision: Parameters<typeof changed>[0]) => {
       changed(decision);
+      const [entryId] = decision.entryIds;
+      if (entryId) markChanged(entryId);
       void load();
     },
-    [changed, load],
+    [changed, load, markChanged],
   );
   const scanStart = useStartScan({ scan: found.scan.start, onImported: () => void load() });
   const links = useMemo(() => evidenceLinks(chapters, goToManuscript), [chapters, goToManuscript]);
@@ -404,9 +411,10 @@ function GuideLoaded({ notify, goToManuscript }: Pick<GuideProps, 'notify' | 'go
       <Tab value={SERIES_TAB}>{SERIES_TAB}</Tab>
     </TabList>
   );
+  const scanWithStart = { ...found.scan, start: scanStart.startScan };
   const actions = (
     <div className="flex flex-wrap gap-2">
-      <ScanButton scan={{ ...found.scan, start: scanStart.startScan }} />
+      <ScanButton scan={scanWithStart} />
       <ImportButton onImport={() => openImportDialog({ onChanged: () => void load() })} />
       <TooltipTarget text="Voice data: narration reference, remove voice data">
         <IconButton label="Voice data" onClick={() => setVoiceDataOpen(true)}>
@@ -478,6 +486,8 @@ function GuideLoaded({ notify, goToManuscript }: Pick<GuideProps, 'notify' | 'go
                     <NeedsVerificationChip count={toVerifyAll} on={verifyOnly} onToggle={setVerifyOnly} />
                   </div>
                 )}
+                {/* Under the filters, so a scan starting or ending moves the list, never the buttons and chips the pointer is on. */}
+                <ScanStatus scan={scanWithStart} />
               </div>
               {unknownEntity !== undefined && (
                 <div role="alert" aria-label="Link not opened" className="mx-4 mb-2 flex flex-col gap-2 rounded border border-[var(--border)] p-3 text-sm">
@@ -530,6 +540,7 @@ function GuideLoaded({ notify, goToManuscript }: Pick<GuideProps, 'notify' | 'go
                               else rowButtons.current.delete(row.id);
                             }}
                             data-entry-id={row.id}
+                            data-just-changed={justChanged === row.id ? '' : undefined}
                             tabIndex={row.id === stopId ? 0 : -1}
                             aria-current={open || undefined}
                             onFocus={() => setFocusedId(row.id)}
@@ -539,7 +550,7 @@ function GuideLoaded({ notify, goToManuscript }: Pick<GuideProps, 'notify' | 'go
                               if (window.matchMedia?.('(max-width: 1023px) and (max-height: 899px)').matches)
                                 detailRef.current?.scrollIntoView?.({ block: 'start' });
                             }}
-                            className={`flex w-full flex-col gap-0.5 rounded-lg px-2.5 py-2 text-left ${open ? 'bg-[var(--accent-soft)] text-[var(--accent-strong)]' : 'text-[var(--text)] hover:bg-[var(--surface-2)]'}`}
+                            className={`flex w-full flex-col gap-0.5 rounded-lg px-2.5 py-2 text-left ${open ? 'bg-[var(--accent-soft)] text-[var(--accent-strong)]' : 'text-[var(--text)] hover:bg-[var(--surface-2)]'} ${justChanged === row.id ? CHANGE_HIGHLIGHT_CLASSES : ''}`}
                           >
                             <span data-line="name" className="flex w-full min-w-0 items-center gap-2 text-[0.9375rem] font-bold">
                               <span className="truncate">{row.canonical_name}</span>

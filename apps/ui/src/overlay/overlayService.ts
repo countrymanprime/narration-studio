@@ -58,7 +58,14 @@ export type OverlayService = {
   confirm: (spec: ConfirmSpec) => Promise<boolean>;
   toast: (text: string, options?: ToastOptions) => void;
   /** A message with an Undo; `durationMs` keeps it longer than the usual five seconds. */
-  toastUndo: (text: string, undo: Undo, options?: { durationMs?: number }) => void;
+  toastUndo: (text: string, undo: Undo, options?: { durationMs?: number; entry?: number }) => void;
+  /**
+   * Takes away the Undo toasts whose journal `entry` `live` no longer holds (undone from the header, the keys or History; cleared by a project
+   * switch; pushed out). An Undo toast with no `entry` is left to `dismissUndo`.
+   */
+  settleUndo: (live: (entry: number) => boolean) => void;
+  /** Takes away every Undo toast: what they offered to undo belongs to a page, chapter or project the narrator has left. */
+  dismissUndo: () => void;
   announce: (text: string) => void;
   open: (spec: DialogSpec) => () => void;
   dismissToast: (id: number) => void;
@@ -86,10 +93,10 @@ export function createOverlayService(): OverlayService {
     return true;
   };
 
-  const toast = (text: string, options: ToastOptions = {}) => {
+  const toast = (text: string, options: ToastOptions = {}, undo?: ToastMessage['undo']) => {
     if (!text) return;
     const tone = options.tone ?? 'info';
-    const message: ToastMessage = { id: ++lastId, text, tone, action: options.action, topic: options.topic, durationMs: options.durationMs };
+    const message: ToastMessage = { id: ++lastId, text, tone, action: options.action, topic: options.topic, durationMs: options.durationMs, undo };
     // A message that says what one on screen already says is that message again, and one on the same topic is its newer word: either
     // replaces the old one (its timer starts again), so a repeated press or a lost-and-found DAW never stacks the same sentence.
     const again = (old: ToastMessage) =>
@@ -114,20 +121,31 @@ export function createOverlayService(): OverlayService {
     toast,
     toastUndo: (text, undo, options) => {
       let pressed = false;
-      toast(text, {
-        durationMs: options?.durationMs,
-        action: {
-          label: 'Undo',
-          onAction: () => {
-            if (pressed) return;
-            pressed = true;
-            // The toast closes itself when Undo is pressed; a refusal says why in a toast of its own.
-            void undo().then((result) => {
-              if (!result.ok) toast(result.refusal.reason);
-            });
+      toast(
+        text,
+        {
+          durationMs: options?.durationMs,
+          action: {
+            label: 'Undo',
+            onAction: () => {
+              if (pressed) return;
+              pressed = true;
+              // The toast closes itself when Undo is pressed; a refusal says why in a toast of its own.
+              void undo().then((result) => {
+                if (!result.ok) toast(result.refusal.reason);
+              });
+            },
           },
         },
-      });
+        { entry: options?.entry },
+      );
+    },
+    settleUndo: (live) => {
+      const gone = (m: ToastMessage) => m.undo?.entry !== undefined && !live(m.undo.entry);
+      if (snapshot.toasts.some(gone)) update({ toasts: snapshot.toasts.filter((m) => !gone(m)) });
+    },
+    dismissUndo: () => {
+      if (snapshot.toasts.some((m) => m.undo)) update({ toasts: snapshot.toasts.filter((m) => !m.undo) });
     },
     announce: (text) => update({ announcement: text }),
     open: (spec) => {

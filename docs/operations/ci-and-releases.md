@@ -56,7 +56,7 @@ The checks a pull request shows, by the name GitHub displays (`ci.yml` calls `_q
 
 | Check | What it runs |
 | --- | --- |
-| `quality / scope` | Ubuntu, about a minute: asks Nx (`scripts/ci/nx-scope.sh`, the rule every `nx-run` step uses) whether the change affects `narration-utils-ui`, `narration-utils-shell`, or `reaper` or the shell. `go-test` runs only when the shell is affected, `quick-windows` when `reaper` or the shell is, and the `js-test`, `ui-visual` and `ui-atlas` jobs only when the UI is. A job that does not run is skipped, takes no runner, and passes in `CI passed`. Its UI answer is `ui-affected` |
+| `quality / scope` | Ubuntu, about a minute: asks Nx (`scripts/ci/nx-scope.sh`, the rule every `nx-run` step uses) whether the change affects `narration-utils-ui`, `narration-utils-shell`, or `reaper` or the shell. `go-test` runs only when the shell is affected, `quick-windows` when `reaper` or the shell is, and the `js-test`, `ui-visual` and `ui-atlas` jobs only when the UI is. A job that does not run is skipped, takes no runner, and passes in `CI passed`. Its UI answer is `ui-affected`. A pull request whose workflow changes are only `uses:` pin bumps is the one case where a change under `.github/workflows` is not `all` ([Nx projects and the quality gate](#nx-projects-and-the-quality-gate)): it starts the jobs that contain a changed pin, and `js-static` and `quick-ubuntu` start unless the bump is the whole change and does not reach them |
 | `quality / js-static` | `lint`, `format`, `architecture` (the import rules) and `test-node` (the node:test suites of `apps/ui/scripts`) of `narration-utils-ui`, then Knip over the whole repository |
 | `quality / js-test (shard 1/3)` to `(shard 3/3)` | the Vitest run of `apps/ui` with coverage on the gated logic files (`node scripts/ci/coverage-gate.mjs vitest apps/ui --shard=i/3`), a third of the files each, split by cost (`apps/ui/scripts/vitest-shards.mjs`; Vitest's own split by path hash gave one shard 48% of the time). A shard checks no coverage floor; it uploads a blob of its results and coverage |
 | `quality / js-test` | merges the three blobs (`coverage-gate.mjs vitest apps/ui --merge=3`: fails when one is missing) and checks every Vitest floor of `scripts/ci/coverage-floors.json` over the merged coverage, the same numbers as the unsharded run `pnpm check` does. Skipped when the UI is not affected |
@@ -614,6 +614,18 @@ runner called:
   their own `run:` steps (they pass a shard) and skip them through
   `.github/actions/nx-affected` when the UI is not affected. The `repo-scripts` and `docs-site` steps always run,
   because the layout and project guards read every tracked file and the docs site reads `docs/`, which no project owns.
+- **Pin-only workflow changes.** A change under `.github/workflows` or `.github/actions` is `all`, so a Dependabot bump of
+  `actions/upload-artifact` ran every job. `quality / scope` calls `nx-scope.sh --pins` (through `nx-affected`'s `pins: true`; callers
+  without the flag see the old `all`/`affected` contract) and `scripts/ci/workflow-pins.mjs <base>`. When every changed line in those two
+  folders is a `uses: <owner>/<repo>@<40-hex sha> # v<version>` line replaced by one for the same action, in a file that was only
+  modified, and nothing else is a workspace-wide file, the change is not `all`. The jobs that contain a changed pin start (written
+  `<workflow file>#<job id>`; a changed local action maps to every job that uses it and to the users of any action that uses it),
+  through the `ui`, `shell` and `winquick` outputs of `scope`, ORed with what Nx says is affected (`scripts/ci/pin-flags.mjs`; the
+  families are in that file, and `ci.yml#ci-passed` belongs to `ui` so that its download-artifact pin runs the visual shards). When nothing
+  outside those folders changed either, `js-static` and `quick-ubuntu` start only if a changed pin is in them. A job that starts runs in
+  full. Anything else is `all`: a `run:`, `if:`, `with:` or `needs:` line, a step, job or file added, removed or renamed, a changed line
+  outside any job, a pin swapped for another action or an unversioned one, a diff that does not parse. The families are coarse: a bump in one
+  UI job starts all four. `ui-dist`, `Build (Windows)` and the other workflows are not gated and run on their own triggers.
 - **No changed-file classifier.** `scripts/ci/changed-files.mjs` (and its test, both deleted) sorted a pull request into `bootstrap` and
   `package` scopes for a four-platform bootstrap and installer matrix that no longer exists. No workflow, script, Nx target or
   document called it, and Nx `affected` with `nx-scope.sh` does the job, so both files were deleted (2026-09-21) rather than wired

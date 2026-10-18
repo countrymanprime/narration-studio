@@ -149,6 +149,8 @@ export function createManuscriptMock(
   const bindings = {
     selectManuscript: async () => startImport(),
     manuscriptBeginImport: async () => startImport(),
+    // A browser has no operating-system drop to report (the zone's own HTML5 drop has no path to give the host).
+    subscribeManuscriptDropped: () => () => {},
     manuscriptImportState: async () => wireClone(importJob),
     manuscriptImportPreview: async (_jobId, { markdownHeadingLevel }) => {
       importJob = {

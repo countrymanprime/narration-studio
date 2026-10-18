@@ -3,6 +3,7 @@ import type {
   ManuscriptChapterKindResult,
   ManuscriptChapter,
   ManuscriptCharacterCandidate,
+  ManuscriptDropped,
   ManuscriptFileSelection,
   ManuscriptImportPreview,
   ManuscriptImportSection,
@@ -104,6 +105,8 @@ const importSectionSchema = z.object({
   subtitleOff: z.enum(['title', 'body']).optional(),
   contentKind: contentKindSchema,
   paragraphCount: z.number(),
+  wordCount: z.number().optional(),
+  firstText: z.string().optional(),
 }) satisfies z.ZodType<ManuscriptImportSection>;
 
 const characterCandidateSchema = z.object({
@@ -123,6 +126,12 @@ const importPreviewSchema = z.object({
   characterCandidates: z.array(characterCandidateSchema).optional(),
   notices: z.array(z.string()).optional(),
 }) satisfies z.ZodType<ManuscriptImportPreview>;
+
+/** The `manuscript:dropped` event: an import begun on the dropped file, or the reason it was not. */
+export const manuscriptDroppedSchema = z.union([
+  z.object({ jobId: z.string(), name: z.string() }),
+  z.object({ message: z.string() }),
+]) satisfies z.ZodType<ManuscriptDropped>;
 
 export const fileSelectionSchema = z.object({ selected: z.boolean(), jobId: z.string().optional() }) satisfies z.ZodType<ManuscriptFileSelection>;
 
