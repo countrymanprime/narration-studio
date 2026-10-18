@@ -63,9 +63,9 @@ function TypeRow({
   };
   const blocked = count === undefined ? 'Reading the entries…' : count > 0 ? `${type.name} is in use` : last ? 'The last type stays' : undefined;
   return (
-    // Below md the name takes the first line and the rest share the second.
-    <li className="flex flex-wrap items-center gap-x-3 gap-y-2 md:flex-nowrap">
-      <span className="flex min-w-0 basis-full items-center gap-3 md:flex-1 md:basis-auto">
+    // Narrower than 512 px of its own column (the Settings row gives it half the pane) the name takes the first line and the rest share the second.
+    <li className="flex flex-wrap items-center gap-x-3 gap-y-2 @lg:flex-nowrap">
+      <span className="flex min-w-0 basis-full items-center gap-3 @lg:flex-1 @lg:basis-auto">
         <Swatch colour={kindSwatch([type], type.name)} />
         <TextField
           label={`Type name: ${type.name}`}
@@ -79,10 +79,10 @@ function TypeRow({
           }}
         />
       </span>
-      <span className="flex w-full items-center gap-2 md:w-auto md:gap-3">
+      <span className="flex w-full items-center gap-2 @lg:w-auto @lg:gap-3">
         <Select
           label={`Colour for ${type.name}`}
-          className="w-[100px] md:w-[130px]"
+          className="w-[100px] @lg:w-[130px]"
           value={type.colour}
           disabled={busy}
           options={COLOUR_OPTIONS}
@@ -95,7 +95,7 @@ function TypeRow({
             </span>
           </Checkbox>
         </TooltipTarget>
-        <span data-type-count={type.name} className="ml-auto text-sm text-[var(--text-muted)] md:ml-0 md:min-w-[70px]">
+        <span data-type-count={type.name} className="ml-auto text-sm text-[var(--text-muted)] @lg:ml-0 @lg:min-w-[70px]">
           {count === undefined ? '' : `${count} ${count === 1 ? 'entry' : 'entries'}`}
         </span>
         <IconButton
@@ -134,7 +134,7 @@ export function StoryBibleTypesList({ types, counts, busy = false, error, onRena
     <>
       <div className="flex flex-col gap-3">
         {types ? (
-          <ul className="flex flex-col gap-3">
+          <ul className="@container flex flex-col gap-3">
             {types.map((type) => (
               <TypeRow
                 key={type.name}
