@@ -419,6 +419,12 @@ describe('EditingPage', () => {
       expect(within(screen.getByRole('toolbar', { name: 'Playback and selection' })).getByText('1 word')).toBeTruthy();
       expect(document.querySelector('[data-flagcard]')).not.toBeNull();
     });
+    it('opens a finding on all the words it names: its expected text in its paragraph, not the first word', async () => {
+      const named = { id: 'f-run', manuscript: { chapter_id: 'c1', expected: 'turned and walked', span: { paragraph_id: 'p2' } } };
+      mount({ findingId: 'f-run', api: { findingsGet: async () => named } as never });
+      await script();
+      await waitFor(() => expect(within(screen.getByRole('toolbar', { name: 'Playback and selection' })).getByText('3 words')).toBeTruthy());
+    });
     // SN-E9: the editing check's "Clean up in Editing" opens the page with the drawer on Clean up.
     it('opens with the drawer on the tab it is given', async () => {
       mount({ drawer: 'cleanup' });

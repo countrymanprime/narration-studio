@@ -42,3 +42,37 @@ export function useToastClearance(bar: RefObject<HTMLElement | null>): void {
     };
   }, [bar]);
 }
+
+/** The CSS variable the toast region adds to its distance from the right edge (`ToastRegion`). */
+export const TOAST_CLEAR_RIGHT_VAR = '--toast-clear-right';
+
+/** A column down the right edge is wide when it takes more of the window than this share, which is a panel under the page, not beside it. */
+const SIDE_COLUMN_MAX_SHARE = 0.5;
+
+/**
+ * Keeps toasts out of a panel down the right edge of the window (Proof's Inspector, whose decision buttons a toast would cover): while `panel` is
+ * mounted and beside the page, a message sits left of it by the panel's width. A panel that spans the window (the layout stacks it under the
+ * page) leaves the toasts where they were. Follows the panel as it is resized, and puts the toasts back on unmount.
+ */
+export function useToastSideClearance(panel: RefObject<HTMLElement | null>): void {
+  useEffect(() => {
+    const element = panel.current;
+    if (!element) return;
+    const root = document.documentElement;
+    const apply = (): void => {
+      const box = element.getBoundingClientRect();
+      const beside = box.width > 0 && box.width < window.innerWidth * SIDE_COLUMN_MAX_SHARE && box.right >= window.innerWidth - 1;
+      if (beside) root.style.setProperty(TOAST_CLEAR_RIGHT_VAR, `${Math.ceil(box.width + 12)}px`);
+      else root.style.removeProperty(TOAST_CLEAR_RIGHT_VAR);
+    };
+    apply();
+    const observer = typeof ResizeObserver === 'undefined' ? undefined : new ResizeObserver(apply);
+    observer?.observe(element);
+    window.addEventListener('resize', apply);
+    return () => {
+      observer?.disconnect();
+      window.removeEventListener('resize', apply);
+      root.style.removeProperty(TOAST_CLEAR_RIGHT_VAR);
+    };
+  }, [panel]);
+}

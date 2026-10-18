@@ -31,7 +31,7 @@ import { useEditingKeys } from '../keys/useEditingKeys';
 import { useMarkMenuSections } from '../menu/marks/useMarkMenuSections';
 import { useEditingWordMenu } from '../menu/useEditingWordMenu';
 import type { WordMenuSelection } from '../menu/wordMenuRegistry';
-import { flagged, type ChapterDoc, type FlagKind } from '../model';
+import { findingWords, flagged, type ChapterDoc, type FlagKind } from '../model';
 import type { RangeLocator } from '../range/common/locate';
 import { useCutWords } from '../range/cut/useCutWords';
 import { useFxWords } from '../range/fx/useFxWords';
@@ -580,11 +580,15 @@ function useOpenAt(
         if (!live) return;
         done.current.finding = true;
         const span = f.manuscript?.span;
-        if (!span?.paragraph_id || span.ordinal === undefined) return;
-        const key = `${span.paragraph_id}:${span.ordinal}`;
-        if (!doc.index.has(key)) return;
-        dispatch({ type: 'select', anchor: key, head: key });
-        if (flagged(doc).some((x) => x.key === key)) dispatch({ type: 'openFlag', key });
+        if (!span?.paragraph_id) return;
+        // The note's own words: the finding's expected text in its paragraph (its ordinal says which repeat), else the one word its ordinal names.
+        const words = f.manuscript?.expected ? findingWords(doc, span.paragraph_id, f.manuscript.expected, span.ordinal ?? 0) : [];
+        const single = span.ordinal === undefined ? undefined : `${span.paragraph_id}:${span.ordinal}`;
+        const keys = words.length ? words : single && doc.index.has(single) ? [single] : [];
+        if (!keys.length) return;
+        dispatch({ type: 'select', anchor: keys[0], head: keys[keys.length - 1] });
+        const flag = keys.find((key) => flagged(doc).some((x) => x.key === key));
+        if (flag) dispatch({ type: 'openFlag', key: flag });
       },
       (e: unknown) => {
         if (!live) return;
