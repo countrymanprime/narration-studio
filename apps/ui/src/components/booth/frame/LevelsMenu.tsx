@@ -7,10 +7,12 @@ import { IconButton } from '../../primitives/IconButton';
 import { LevelMeter } from '../../primitives/LevelMeter';
 import { Popover } from '../../primitives/Popover';
 import { Select } from '../../primitives/Select';
+import { NumberInput } from '../../primitives/NumberInput';
 import { Slider } from '../../primitives/Slider';
 import { Badge } from '../../primitives/StatusBadge';
 import type { InputLevel } from './useLevels';
 import { useMonitorLevel } from './useMonitorLevel';
+import { usePunchPreroll } from './usePunchPreroll';
 
 export type LevelsMenuProps = {
   /** Which engine records: with a DAW the microphone is chosen in the DAW, with the built-in recorder here. */
@@ -183,6 +185,25 @@ function LevelSliders({ levels }: { levels: NonNullable<LevelsMenuProps['levels'
   );
 }
 
+/** How far before a word "Punch from here" starts: a computer-wide number, set here because only punching reads it. Offered with a DAW, the only recorder that punches. */
+function PunchPrerollRow() {
+  const { preroll, error, set } = usePunchPreroll();
+  return (
+    <div className="flex flex-col gap-1.5">
+      <span className="text-xs font-semibold text-[var(--text-muted)] uppercase">Punch</span>
+      {preroll ? (
+        <NumberInput label="Punch pre-roll (seconds)" value={preroll.value} min={preroll.min} max={preroll.max} step={preroll.step} onValueChange={set} />
+      ) : null}
+      <span className="text-xs text-[var(--text-muted)]">Seconds before the word that “Punch from here” starts.</span>
+      {error ? (
+        <span role="alert" className="text-xs [overflow-wrap:anywhere] text-[var(--danger-text)]">
+          {error}
+        </span>
+      ) : null}
+    </div>
+  );
+}
+
 export function LevelsMenu({ engine, dawName, reachable, offReason, device, onDevice, listen, levels, level, error, open, onOpenChange }: LevelsMenuProps) {
   const off = engine === 'daw' && !reachable;
   return (
@@ -219,6 +240,7 @@ export function LevelsMenu({ engine, dawName, reachable, offReason, device, onDe
           ) : null}
         </div>
         {levels ? <LevelSliders levels={levels} /> : null}
+        {engine === 'daw' ? <PunchPrerollRow /> : null}
       </div>
     </Popover>
   );
