@@ -12,6 +12,12 @@ const TONE_BORDER: Record<InsetCardTone, string> = {
   danger: 'var(--danger)',
 };
 
+const FRAME_CLASS = {
+  default: 'rounded-md p-3',
+  roomy: 'rounded-lg px-4 py-3',
+  snug: 'rounded-lg py-2 pr-2 pl-3',
+} as const;
+
 type InsetCardElement = 'div' | 'section' | 'li' | 'p';
 
 export function InsetCard({
@@ -19,7 +25,7 @@ export function InsetCard({
   tone = 'neutral',
   fill = false,
   dashed = false,
-  roomy = false,
+  frame = 'default',
   role,
   id,
   className = '',
@@ -30,8 +36,8 @@ export function InsetCard({
   tone?: InsetCardTone;
   fill?: boolean;
   dashed?: boolean;
-  /** The Script chapter card's frame (the Studio Next mock): an 8 px radius and 16 px at the sides. */
-  roomy?: boolean;
+  /** `roomy` is the Script chapter card's frame and `snug` the Story Bible suggestion's (the Studio Next mock): an 8 px radius, with 16 px or 8 px at the sides. */
+  frame?: 'default' | 'roomy' | 'snug';
   role?: AriaRole;
   id?: string;
   // Layout only (margin, flex, gap): the look is the card's own.
@@ -45,7 +51,7 @@ export function InsetCard({
       id={id}
       role={role}
       {...aria}
-      className={`border ${roomy ? 'rounded-lg px-4 py-3' : 'rounded-md p-3'} ${dashed ? 'border-dashed' : ''} ${className}`}
+      className={`border ${FRAME_CLASS[frame]} ${dashed ? 'border-dashed' : ''} ${className}`}
       style={{ borderColor: TONE_BORDER[tone], background: fill ? 'var(--surface-2)' : 'var(--surface)' }}
     >
       {children}

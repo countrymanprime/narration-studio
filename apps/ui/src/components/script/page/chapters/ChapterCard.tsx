@@ -52,7 +52,7 @@ export function ChapterCard({
       <InsetCard
         as="section"
         fill
-        roomy
+        frame="roomy"
         aria-label={`${chapterName(chapter)}, chapter card`}
         className="flex flex-col gap-2 font-['IBM_Plex_Sans',ui-sans-serif,sans-serif]"
       >

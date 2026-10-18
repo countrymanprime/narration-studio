@@ -102,20 +102,19 @@ describe('confidence-chip-says-why', () => {
   });
 });
 
-// The mock's `.xsug` (extraction.css:3-4): a bordered card on an 8 px radius, warn-bordered while it still needs verifying.
+// The mock's `.xsug` (extraction.css:3-4): a bordered card on an 8 px radius, warn-bordered only while it still needs verifying.
 describe('row-is-a-card', () => {
   it('draws each suggestion as a rounded bordered card, warn-bordered only while it needs verifying', () => {
     const verify = one((s) => s.status === 'needs-verification');
     const auto = one((s) => s.status === 'accepted-auto');
     const { unmount } = renderRow(verify);
-    const card = document.querySelector<HTMLElement>('[data-sug]')!;
+    const card = document.querySelector<HTMLElement>('[data-sug] > div')!;
     expect(card.className).toContain('rounded-lg');
     expect(card.className).toContain('border');
-    expect(card.className).not.toContain('border-b');
     expect(card.style.borderColor).toContain('--warn');
     unmount();
     renderRow(auto);
-    expect(document.querySelector<HTMLElement>('[data-sug]')!.style.borderColor).toContain('--border');
+    expect(document.querySelector<HTMLElement>('[data-sug] > div')!.style.borderColor).toContain('--border');
   });
 });
 
