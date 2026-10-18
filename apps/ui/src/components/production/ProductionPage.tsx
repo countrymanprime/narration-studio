@@ -47,6 +47,7 @@ import { PIPELINE_AREA, useChapterTools } from './useChapterTools';
 import { useChapterSyncToast } from './useChapterSyncToast';
 import { usePipelineSources } from './usePipelineSources';
 import { addressPath } from '../../navigation/address';
+import { useJustChanged } from '../primitives/changeHighlight';
 
 const DANGER = { color: 'var(--danger-text)' };
 
@@ -257,6 +258,8 @@ export function ProductionPage({
   const entries = useMemo(() => creditsEntries(credits.rows, ownsOpening), [credits.rows, ownsOpening]);
   const pipelineRows = useMemo(() => (overview ? pipelineChapters(overview.chapters, entries) : []), [overview, entries]);
 
+  // The pipeline row a Confirm, a Revert or a Restore just changed is highlighted once (changeHighlight.ts).
+  const changedRow = useJustChanged();
   const tools = useChapterTools({
     rows: pipelineRows,
     credits,
@@ -267,6 +270,7 @@ export function ProductionPage({
     active: found,
     refreshKey: manuscriptKey,
     onChanged,
+    onRestored: changedRow.mark,
     daw: {
       name: caps && caps.daw !== 'none' ? caps.daw : 'your DAW',
       unavailable: !caps
@@ -432,7 +436,11 @@ export function ProductionPage({
                     recommendations={recommendations}
                     onGo={(target, chapterId) => onGo(target, chapterId)}
                     notify={notify}
-                    onStatus={() => onChanged()}
+                    justChanged={changedRow.changed}
+                    onStatus={(chapterId) => {
+                      changedRow.mark(chapterId);
+                      onChanged();
+                    }}
                   />
                 </div>
               </Panel>

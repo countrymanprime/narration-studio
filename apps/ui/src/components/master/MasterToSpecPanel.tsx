@@ -7,6 +7,7 @@ import { Select } from '../primitives/Select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../primitives/Table';
 import { TextField } from '../primitives/TextField';
 import { type ExportJobs, fileName } from './useExportJobs';
+import { ARRIVE_CLASSES } from '../primitives/changeHighlight';
 
 const MUTED = { color: 'var(--text-muted)' };
 const DANGER = { color: 'var(--danger-text)' };
@@ -147,7 +148,7 @@ export function MasterToSpecPanel({ jobs, chainLabel }: { jobs: ExportJobs; chai
         </div>
       )}
       {exportJob && !exportRunning && exportJob.phase !== 'idle' && (
-        <p aria-live="polite" className="mt-2 text-sm" style={exportJob.phase === 'error' ? DANGER : undefined}>
+        <p aria-live="polite" className={`mt-2 text-sm ${ARRIVE_CLASSES}`} style={exportJob.phase === 'error' ? DANGER : undefined}>
           {exportJob.message}
         </p>
       )}

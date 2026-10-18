@@ -32,6 +32,16 @@
     }
   }
 }
+/* The other side of `motion-ok:`: Windows asked for reduced motion, or <html data-motion="reduce"> is set. A one-shot
+   highlight that fades under `motion-ok:` shows here as a still tint for as long as its flag is on (changeHighlight.ts). */
+@custom-variant motion-still {
+  @media (prefers-reduced-motion: reduce) {
+    @slot;
+  }
+  &:where(html[data-motion='reduce'] *) {
+    @slot;
+  }
+}
 html {
   --motion-fast: 120ms; /* hover and press colour, tooltip, menu, toast, the icon rail, level meter */
   --motion-base: 200ms; /* slide-over, drawers, progress fill */
@@ -41,6 +51,13 @@ html {
   --ease-enter: cubic-bezier(0.2, 0.7, 0.2, 1);
   --ease-exit: cubic-bezier(0.4, 0, 1, 1);
   --motion-shift: 4px; /* how far a tooltip, menu or toast travels */
+}
+/* The Proof ring's arc (proof/frame/ProofHeader.tsx). Registered so the conic-gradient stop it sets can transition: an unregistered
+   custom property changes in one step. */
+@property --ring-percent {
+  syntax: '<percentage>';
+  inherits: false;
+  initial-value: 0%;
 }
 /* Under reduced motion the tokens are zero too, for anything that reads them outside a `motion-ok:` utility. */
 @media (prefers-reduced-motion: reduce) {
@@ -385,6 +402,19 @@ html[data-motion='reduce'] {
   border-left: 3px solid var(--event);
 }
 /* Settings: the per-row "Saved" fades out; a row another page asked for is lit and settles. */
+/* What changed after an action or an Undo: its background starts at --accent-soft and settles to its own colour
+   (changeHighlight.ts). Nothing moves. */
+@keyframes change-highlight {
+  from {
+    background-color: var(--accent-soft);
+  }
+}
+/* A failure or a stale notice arriving: it fades in once and then stays still (changeHighlight.ts). */
+@keyframes arrive {
+  from {
+    opacity: 0;
+  }
+}
 @keyframes settings-saved {
   0%,
   70% {
