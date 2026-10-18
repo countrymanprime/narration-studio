@@ -517,7 +517,13 @@ func (h *Host) ManuscriptClearProjectData(confirmed bool) (string, error) {
 	if !confirmed {
 		return "", fmt.Errorf("project data clear requires confirmation")
 	}
-	return encodeBinding(nil, h.services().manuscript.Clear())
+	// Clear project data removes the voice samples too (a replace keeps them), so a page that shows them must read again.
+	had := voiceSamplesPresent(h.services().config.projectFolder)
+	err := h.services().manuscript.Clear()
+	if err == nil && had {
+		h.emitVoiceSamplesChanged()
+	}
+	return encodeBinding(nil, err)
 }
 func (h *Host) ManuscriptChapters() (string, error) {
 	return encodeBinding(h.services().manuscript.Chapters())

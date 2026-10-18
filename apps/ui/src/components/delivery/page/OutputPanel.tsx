@@ -7,7 +7,7 @@ import { ProgressBar } from '../../primitives/ProgressBar';
 import { SectionLabel } from '../../primitives/SectionLabel';
 import { StatusBadge } from '../../primitives/StatusBadge';
 import type { DeliveryBuild } from './useDeliveryBuild';
-import { askedText, heardText } from './useHostRead';
+import { askedText, checkedText, heardText } from './useHostRead';
 
 const MUTED = { color: 'var(--text-muted)' };
 const DANGER = { color: 'var(--danger-text)' };
@@ -85,6 +85,16 @@ export function OutputPanel({
             <Button variant="ghost" size="sm" onClick={build.checkAgain}>
               Check again
             </Button>
+          </p>
+        )}
+        {build.quiet !== undefined && build.checkedAt !== undefined && build.lastAsked !== undefined && build.lastAsked >= build.checkedAt && (
+          <p role="status" className="text-sm" style={MUTED}>
+            {checkedText(build.checkedAt)}: the host still did not answer.
+          </p>
+        )}
+        {build.cancelUnconfirmed && (
+          <p role="status" className="text-sm" style={MUTED}>
+            Cancel was sent, but the host did not confirm it, so the build may still be running.
           </p>
         )}
         {/* What the last attempt came to belongs to the profile and limits it was made with: a change drops it, as it drops the built list. */}

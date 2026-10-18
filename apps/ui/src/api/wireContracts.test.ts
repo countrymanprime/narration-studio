@@ -38,6 +38,8 @@ import type { EditCutRequest } from './contracts/editCuts';
 import type { WordFxRequest } from './contracts/wordFx';
 import { WIRE_CHAPTERS, WIRE_TAKE_REVIEW_FINDINGS, WIRE_TRACKS_PROJECT, WIRE_TRANSCRIPT } from './mockFixtures';
 import { bookmarkSchema as spotBookmarkSchema, bookmarksSchema } from './schemas/bookmarks';
+import { voiceSampleAnswerSchema, voiceSamplesChangedSchema, voiceSamplesRemovedSchema, voiceSamplesSchema } from './schemas/voiceSamples';
+import type { VoiceSampleMarkRequest } from './contracts/voiceSamples';
 import { passageMapSchema, passageMarkSchema } from './schemas/passageMap';
 import { acceptedWordSchema, acceptedWordsChangeSchema, acceptedWordsSchema } from './schemas/editLog';
 import { editCutSchema, editCutsChangeSchema, editCutsSchema } from './schemas/editCuts';
@@ -3918,6 +3920,12 @@ describe('answers of the mock client for the settings, voice, model, transcript 
       'bookmarksAdd',
       'bookmarksUpdate',
       'bookmarksRemove',
+      'voiceSamplesList',
+      'voiceSampleMark',
+      'voiceSampleUpdate',
+      'voiceSampleSetPrimary',
+      'voiceSampleRemove',
+      'voiceSamplesRemoveAll',
       'passageMapRecordRun',
       'passageMapList',
       'editingAcceptedList',
@@ -4271,6 +4279,7 @@ describe('answers of the mock client for the settings, voice, model, transcript 
       'subscribeLiveUpdateHealth',
       'subscribeNotices',
       'subscribeJobEnded',
+      'subscribeVoiceSamples',
       'subscribeTranscript',
       'subscribeCoverage',
       'subscribeTeleprompterEvent',
@@ -4609,6 +4618,167 @@ describe('the bookmarks bindings', () => {
     expect(spotBookmarkSchema.safeParse({ ...bookmark, label: 'a'.repeat(61) }).success).toBe(false);
     expect(spotBookmarkSchema.safeParse({ ...bookmark, staleReason: 'moved' }).success).toBe(false);
     expect(bookmarksSchema.safeParse([{ ...bookmark, offset: 1.5 }]).success).toBe(false);
+  });
+});
+
+// The narrator's voice samples (apps/desktop/internal/voicesample): the mock answers through the same schemas as the host's goldens,
+// refuses what the host refuses for want of nothing but the request, and the schemas refuse what the host never sends.
+describe('the voice samples bindings', () => {
+  const requestFor = async (api: ReturnType<typeof createMockApi>, characterId: string, from = 0, to = 1): Promise<VoiceSampleMarkRequest> => {
+    const [chapter] = await api.manuscriptChapters();
+    const [line] = await api.manuscriptParagraphs(chapter?.id ?? '');
+    return {
+      chapterId: chapter?.id ?? '',
+      itemGuid: '{ITEM}',
+      takeGuid: '{TAKE}',
+      sourceStart: 10,
+      sourceEnd: 12,
+      startKey: `${line?.id}:${from}`,
+      endKey: `${line?.id}:${to}`,
+      characterId,
+      label: 'Angry, to the Duke',
+      note: '',
+      makePrimary: false,
+      alignmentRecordId: 'record-1',
+    };
+  };
+
+  it('the mock answers every binding through its schema, and sorts primary first then newest', async () => {
+    const api = createMockApi();
+    const seen: number[] = [];
+    const stop = api.subscribeVoiceSamples((event) => seen.push(parseWire(voiceSamplesChangedSchema, event, ctx('mock voice_samples_changed')).revision));
+    const empty = await api.voiceSamplesList();
+    expectMatches(voiceSamplesSchema, empty, 'mock voice samples (empty)');
+    expect(empty.samples).toEqual([]);
+
+    const first = await api.voiceSampleMark(await requestFor(api, 'hatter'));
+    expectMatches(voiceSampleAnswerSchema, first, 'mock voice sample mark');
+    if (first.status !== 'saved') throw new Error(`refused: ${first.message}`);
+    // 2 s asked and 150 ms of handle each side.
+    expect(first.sample).toMatchObject({ primary: true, durationMs: 2300, clipState: 'ok', source: { state: 'ok' } });
+    const second = await api.voiceSampleMark({ ...(await requestFor(api, 'hatter')), sourceStart: 20, sourceEnd: 22 });
+    if (second.status !== 'saved') throw new Error(`refused: ${second.message}`);
+    expect(second.sample.primary).toBe(false);
+    const moved = await api.voiceSampleSetPrimary(second.sample.id);
+    expectMatches(voiceSamplesSchema, moved, 'mock voice sample primary');
+    expect(moved.samples.map((sample) => [sample.id, sample.primary])).toEqual([
+      [second.sample.id, true],
+      [first.sample.id, false],
+    ]);
+    const updated = await api.voiceSampleUpdate(first.sample.id, { characterId: 'hatter', label: '  Whispered ', note: 'Late.\r\nVery late.' });
+    expectMatches(voiceSampleAnswerSchema, updated, 'mock voice sample update');
+    expect(updated).toMatchObject({ status: 'saved', sample: { label: 'Whispered', note: 'Late.\nVery late.' } });
+
+    const removed = await api.voiceSampleRemove(second.sample.id);
+    expectMatches(voiceSamplesRemovedSchema, removed, 'mock voice sample remove');
+    expect(removed).toEqual({ removed: 1, bytes: second.sample.bytes });
+    // The primary went, so the character's remaining sample is promoted.
+    expect((await api.voiceSamplesList()).samples.map((sample) => [sample.id, sample.primary])).toEqual([[first.sample.id, true]]);
+    expect(await api.voiceSampleRemove(second.sample.id)).toEqual({ removed: 0, bytes: 0 });
+    const all = await api.voiceSamplesRemoveAll();
+    expectMatches(voiceSamplesRemovedSchema, all, 'mock voice samples remove all');
+    expect(all.removed).toBe(1);
+    expect(await api.voiceSamplesRemoveAll()).toEqual({ removed: 0, bytes: 0 });
+    // One event for each change, and none for a read or a remove of nothing.
+    expect(seen).toEqual([1, 2, 3, 4, 5, 6]);
+    stop();
+    await api.voiceSampleMark(await requestFor(api, 'hatter'));
+    expect(seen).toHaveLength(6);
+  });
+
+  it("the mock refuses what the host refuses, with the host's sentences", async () => {
+    const api = createMockApi();
+    const refused = async (request: VoiceSampleMarkRequest) => {
+      const answer = await api.voiceSampleMark(request);
+      expectMatches(voiceSampleAnswerSchema, answer, 'mock refused mark');
+      return answer;
+    };
+    const base = await requestFor(api, 'hatter');
+    expect(await refused({ ...base, alignmentRecordId: '' })).toMatchObject({ status: 'refused', reason: 'stale_alignment' });
+    expect(await refused({ ...base, startKey: 'no-such-line:0', endKey: 'no-such-line:1' })).toMatchObject({ status: 'refused', reason: 'stale_alignment' });
+    expect(await refused({ ...base, chapterId: 'no-such-chapter' })).toMatchObject({ status: 'refused', reason: 'stale_alignment' });
+    expect(await refused({ ...base, sourceEnd: 41 })).toMatchObject({ status: 'refused', reason: 'too_long', message: 'A sample is at most 30 seconds.' });
+    expect(await refused({ ...base, sourceStart: 10, sourceEnd: 10.1 })).toMatchObject({ status: 'refused', reason: 'too_short' });
+    // Exactly 30 s with the handles is the longest allowed.
+    expect(await refused({ ...base, sourceStart: 10, sourceEnd: 39.7 })).toMatchObject({ status: 'saved', sample: { durationMs: 30000 } });
+    expect(await api.voiceSamplesList()).toMatchObject({ totals: { count: 1 } });
+
+    for (const [name, change] of Object.entries({
+      'no chapter': { chapterId: '' },
+      'no item': { itemGuid: ' ' },
+      'no character': { characterId: '' },
+      'a range that ends first': { sourceEnd: 5 },
+      'a negative start': { sourceStart: -1 },
+      'a label over the limit': { label: 'a'.repeat(61) },
+      'a note over the limit': { note: 'a'.repeat(501) },
+      'a label with a break': { label: 'one\ntwo' },
+      'a bell in the note': { note: 'ding\u0007' },
+      'words backwards': { startKey: base.endKey, endKey: base.startKey },
+    })) {
+      await expect(api.voiceSampleMark({ ...base, ...change }), name).rejects.toThrow();
+    }
+  });
+
+  it('the mock keeps one sample for one stretch, twenty a character and a primary for each character', async () => {
+    const api = createMockApi();
+    const base = await requestFor(api, 'hatter');
+    const once = await api.voiceSampleMark(base);
+    const again = await api.voiceSampleMark(base);
+    if (once.status !== 'saved' || again.status !== 'saved') throw new Error('refused');
+    expect(again.sample.id).toBe(once.sample.id);
+    for (let i = 1; i < 20; i += 1) {
+      const answer = await api.voiceSampleMark({ ...base, sourceStart: 20 + i * 3, sourceEnd: 22 + i * 3 });
+      expect(answer.status).toBe('saved');
+    }
+    expect(await api.voiceSampleMark({ ...base, sourceStart: 200, sourceEnd: 202 })).toMatchObject({ status: 'refused', reason: 'character_limit' });
+    // Another character is not held back, and its first sample is its primary.
+    const queen = await api.voiceSampleMark({ ...base, characterId: 'queen' });
+    expect(queen).toMatchObject({ status: 'saved', sample: { primary: true } });
+    if (queen.status !== 'saved') return;
+    // Moving into a character who has twenty is refused; a sample that is gone is refused too.
+    expect(await api.voiceSampleUpdate(queen.sample.id, { characterId: 'hatter', label: '', note: '' })).toMatchObject({
+      status: 'refused',
+      reason: 'character_limit',
+    });
+    expect(await api.voiceSampleUpdate('gone', { characterId: 'hatter', label: '', note: '' })).toMatchObject({ status: 'refused', reason: 'not_found' });
+    await expect(api.voiceSampleSetPrimary('gone')).rejects.toThrow('no longer there');
+    const primaries = (await api.voiceSamplesList()).samples.filter((sample) => sample.primary).map((sample) => sample.characterId);
+    expect(primaries.sort()).toEqual(['hatter', 'queen']);
+  });
+
+  it('the mock reads each sample against the manuscript as it is now and never sends a path or a GUID', async () => {
+    const api = createMockApi();
+    const base = await requestFor(api, 'hatter');
+    await api.voiceSampleMark(base);
+    const [sample] = (await api.voiceSamplesList()).samples;
+    expect(JSON.stringify(sample)).not.toMatch(/\{ITEM\}|\{TAKE\}|sourceFile|itemGuid|takeGuid/);
+    expect(sample?.source).toMatchObject({ state: 'ok', chapterTitle: expect.any(String) });
+  });
+
+  it('the schemas read the host goldens and refuse what the host never sends', () => {
+    const list = parseWire(voiceSamplesSchema, readGolden('voice-samples-list.json'), ctx('voice samples list'));
+    expect(list.samples.map((sample) => [sample.characterId, sample.primary])).toEqual([
+      ['entity-ab12cd34ef56', true],
+      ['entity-ab12cd34ef56', false],
+      ['narration', true],
+    ]);
+    expect(list.limits).toEqual({ minSeconds: 0.5, maxSeconds: 30, perCharacter: 20, projectBytes: 209715200, labelUnits: 60, noteUnits: 500 });
+    const [sample] = list.samples;
+    expect(sample).toBeDefined();
+    if (!sample) return;
+    expect(voiceSamplesSchema.safeParse({ ...list, samples: [{ ...sample, sourceFile: 'C:/audio/take.wav' }] }).success).toBe(false);
+    expect(voiceSamplesSchema.safeParse({ ...list, samples: [{ ...sample, source: { ...sample.source, itemGuid: '{ITEM}' } }] }).success).toBe(false);
+    expect(voiceSamplesSchema.safeParse({ ...list, samples: [{ ...sample, clipState: 'gone' }] }).success).toBe(false);
+    expect(voiceSamplesSchema.safeParse({ ...list, samples: [{ ...sample, source: { ...sample.source, state: 'moved' } }] }).success).toBe(false);
+    expect(voiceSamplesSchema.safeParse({ ...list, samples: [{ ...sample, label: 'a'.repeat(61) }] }).success).toBe(false);
+    expect(voiceSamplesSchema.safeParse({ ...list, samples: [{ ...sample, durationMs: 0 }] }).success).toBe(false);
+    const refused = parseWire(voiceSampleAnswerSchema, readGolden('voice-sample-mark-refused.json'), ctx('voice sample refused'));
+    expect(refused).toMatchObject({ status: 'refused', reason: 'stale_alignment' });
+    expect(voiceSampleAnswerSchema.safeParse({ status: 'refused', reason: 'because', message: 'no' }).success).toBe(false);
+    expect(voiceSampleAnswerSchema.safeParse({ status: 'refused', reason: 'too_long', message: '' }).success).toBe(false);
+    expect(voiceSampleAnswerSchema.safeParse({ status: 'saved' }).success).toBe(false);
+    expect(voiceSamplesRemovedSchema.safeParse({ removed: -1, bytes: 0 }).success).toBe(false);
+    expect(voiceSamplesChangedSchema.safeParse({ revision: 0 }).success).toBe(false);
   });
 });
 

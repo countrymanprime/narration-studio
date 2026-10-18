@@ -11,6 +11,7 @@ import (
 	"path/filepath"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/countrymanprime/narration-utils/shell/internal/bridge"
@@ -56,6 +57,7 @@ import (
 	"github.com/countrymanprime/narration-utils/shell/internal/takecompare"
 	"github.com/countrymanprime/narration-utils/shell/internal/takereview"
 	"github.com/countrymanprime/narration-utils/shell/internal/teleprompter"
+	"github.com/countrymanprime/narration-utils/shell/internal/trace"
 	"github.com/countrymanprime/narration-utils/shell/internal/transcript"
 	"github.com/countrymanprime/narration-utils/shell/internal/tts"
 	"github.com/countrymanprime/narration-utils/shell/internal/ttsport"
@@ -68,7 +70,7 @@ import (
 // Keep this in lockstep with apps/ui/src/hostApi.ts.  The frontend rejects
 // an older host before bootstrapping so a partial update cannot run against a
 // binding contract it does not understand.
-const hostAPIVersion = 136
+const hostAPIVersion = 137
 
 // Host is the Wails binding boundary. The frontend invokes only this bound
 // object; it never receives a loopback port or an HTTP capability.
@@ -86,6 +88,17 @@ type Host struct {
 	diagnostic string
 	version    string
 	config     config
+	// tracer is the activity trace (trace_host.go); launched is when this Host was built, for the uptime on its last record.
+	tracer   *trace.Tracer
+	launched time.Time
+	// dawTracedReach and dawTracedKind are the reachability and DAW kind the trace last recorded (1 reachable, 2 not, 0 never
+	// looked), so only a flip is written; drainErrClass is the class of the last bridge-reader error it recorded.
+	// +checklocks:mu
+	dawTracedReach int8
+	// +checklocks:mu
+	dawTracedKind string
+	// +checklocks:mu
+	drainErrClass string
 	// dawCapabilitiesSnapshot is the last DawCapabilities payload pollDawCapabilities emitted (bindings_daw.go): a marshalled JSON comparison, so daw_capabilities_changed goes out only when the resolver's
 	// answer actually changed, never on every transcriptLoop tick.
 	// +checklocks:mu
@@ -108,9 +121,12 @@ type Host struct {
 	// ServiceShutdown knows whether to stop one before the app quits.
 	// +checklocks:mu
 	readAloudRecordingChapter string
-	manuscript                *manuscript.Service
-	sidecars                  *process.Supervisor
-	settings                  *settings.Store
+	// voiceSamplesRevision rises with every change to the voice samples this process makes (bindings_voicesamples.go): the
+	// voice_samples_changed event's payload, so a page that missed an event still sees that something changed.
+	voiceSamplesRevision atomic.Int64
+	manuscript           *manuscript.Service
+	sidecars             *process.Supervisor
+	settings             *settings.Store
 	// resumeFollowCancel stops the resume prompt's REAPER poll (resumefollow.go):
 	// nil when none runs.
 	// +checklocks:mu
@@ -454,6 +470,7 @@ func NewHost() *Host {
 	repoRoot := layout.FindRoot(workingDirectory)
 	logger := hostlog.New(hostlog.DefaultPath(), 0)
 	runLog := runlog.New(runlog.DefaultPath(), 0)
+	tracer := trace.New(trace.Options{Path: filepath.Join(filepath.Dir(runLog.Path()), "trace.jsonl")})
 	// The services are built and given their reporter before the Host exists, so nothing reads a swappable field off a Host here
 	// (hostguard_test.go); the reporter reaches the narrator through the host once it does.
 	var host *Host
@@ -469,7 +486,7 @@ func NewHost() *Host {
 	seriesStore := series.New(seriesPath())
 	seriesStore.SetPersist(reporter)
 	notes.SetOnJobEnd(func(job manuscript.ImportJob) { host.importJobEnded(job) })
-	host = &Host{diagnostic: fmt.Sprintf("go-%d", time.Now().UnixNano()), version: version, config: config{repoRoot: repoRoot}, manuscript: notes, sidecars: process.NewSupervisor(), settings: store, installJobs: map[string]*installJob{}, recents: recent, creditTemplates: templates, deliveryProfiles: profiles, series: seriesStore, pronunciationOnline: newPronunciationOnline(), log: logger, runLog: runLog, persist: reporter, updates: update.NewChecker(version, updateCachePath(), reporter), stager: newUpdateStager(), pendingPath: updatePendingPath()}
+	host = &Host{diagnostic: fmt.Sprintf("go-%d", time.Now().UnixNano()), version: version, config: config{repoRoot: repoRoot}, manuscript: notes, sidecars: process.NewSupervisor(), settings: store, installJobs: map[string]*installJob{}, recents: recent, creditTemplates: templates, deliveryProfiles: profiles, series: seriesStore, pronunciationOnline: newPronunciationOnline(), log: logger, runLog: runLog, tracer: tracer, launched: time.Now(), persist: reporter, updates: update.NewChecker(version, updateCachePath(), reporter), stager: newUpdateStager(), pendingPath: updatePendingPath()}
 	// NARRATION_DEBUG=1 already forced the level in runlog.New; a saved General.debug_logging=true from a previous
 	// run turns it on too, so the narrator's last choice survives a restart (SetDebug is a no-op once the
 	// environment has forced it).
@@ -623,12 +640,19 @@ func (h *Host) configureLocked(next config) {
 	// The project's DAW (projectdaw.go): the launch's --daw, else the project's own choice or what its folder holds.
 	projectKind := h.projectDaw(hostServices{config: h.config, settings: h.settings}).kind
 	var client *bridge.Client
-	if h.config.sessionDir != "" && projectKind != dawport.KindAudacity {
-		client, _ = bridge.New(h.config.sessionDir)
+	var bridgeErr error
+	attempted := h.config.sessionDir != "" && projectKind != dawport.KindAudacity
+	if attempted {
+		client, bridgeErr = bridge.New(h.config.sessionDir)
 		if client != nil {
-			client.SetLog(func(kind, message string) { _ = h.log.Report(kind, message) })
+			client.SetLog(func(kind, message string) {
+				_ = h.log.Report(kind, message)
+				h.traceBridgeLog(kind)
+			})
 		}
 	}
+	h.tracer.SetProjectRoot(h.config.projectFolder)
+	h.traceDawBridge(projectKind, h.config.sessionDir, attempted, client != nil, bridgeErr)
 	// Reachability subscribes to the same client transcript.New below also subscribes: both are independent
 	// consumers of bridge.Client's fan-out (events.go), so neither steals the other's events.
 	h.reachability = daw.NewReachability(client)
@@ -1123,7 +1147,7 @@ func (h *Host) transcriptLoop(ctx context.Context) {
 // since neither has a callback of its own to emit from directly.
 func (h *Host) pollTranscript() {
 	if service := h.services().transcript; service != nil {
-		_ = service.Drain()
+		h.traceDrain(service.Drain())
 		service.Poll()
 	}
 	h.pollDawCapabilities()
@@ -1133,6 +1157,7 @@ func (h *Host) pollTranscript() {
 
 // ServiceShutdown is Wails v3's stop hook for the Host service: the window is closing or the app was asked to quit.
 func (h *Host) ServiceShutdown() error {
+	defer h.stopTrace()
 	// Stop a live session first, without holding h.mu: the service reports its
 	// phase changes through emitTeleprompterState, which takes h.mu.RLock.
 	if live := h.services().teleprompter; live != nil {
@@ -1468,6 +1493,7 @@ func (h *Host) Bootstrap() map[string]any {
 		transcriptState = svc.transcript.Snapshot()
 	}
 	dawFileLinked, dawReachable, dawProjectMatches := dawLinkFacts(h.persist, config.projectFolder, config.daw, svc.reachability)
+	h.traceDawLink(config.projectFolder, concreteReachability(svc.reachability), dawFileLinked, dawReachable, dawProjectMatches)
 	return map[string]any{
 		"apiVersion": hostAPIVersion, "diagnosticId": h.diagnostic, "version": h.version,
 		"projectFolder": config.projectFolder, "projectName": config.projectName, "daw": config.daw,
@@ -1592,7 +1618,10 @@ var fieldSchemas = map[string][]fieldSchema{
 	// definition_source is where the Script page's Words tab reads a word's definition: web (the dictionary site, nothing inline), local
 	// (the offline dictionary asset) or api (the online pronunciation service). Settings' Definitions panel and the Words tab's source menu
 	// both save it; a stored value outside the three reads as web (settings.closedChoices).
-	"Script":            {{"definition_source", "Show definitions from", "choice", settings.DefinitionSources()}},
+	"Script": {{"definition_source", "Show definitions from", "choice", settings.DefinitionSources()}},
+	// storage is where a voice sample is kept (internal/voicesample): project copies its clip into the project folder. The DAW choices
+	// (daw, both) come with phase 6 of docs/prds/character-voice-samples.prd.md, so a save of either is refused until then.
+	"VoiceSamples":      {{"storage", "Where voice samples are kept", "choice", []string{"project"}}},
 	"Piper":             {{"tts_provider", "TTS provider", "choice", []string{ttsport.Piper}}, {"tts_voice_id", "Preview voice", "choice", []string{"en_US-ljspeech-high"}}},
 	"Updates":           {{"check_on_startup", "Check for updates on startup", "bool", nil}, {"channel", "Update channel", "choice", []string{"candidates", "stable"}}},
 	"TranscriptCompare": {{"model_size", "Default Whisper model", "choice", []string{"tiny", "small", "medium", "large-v3-turbo", "large-v3"}}, {"chunk_seconds", "Default chunk length", "choice", []string{"30", "60", "300", "600"}}, {"color_misread", "Misread marker color", "color", nil}, {"color_skipped", "Skipped marker color", "color", nil}, {"color_extra", "Extra marker color", "color", nil}},

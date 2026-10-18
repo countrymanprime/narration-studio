@@ -94,3 +94,9 @@ export function askedText(lastAsked: number | undefined, now = Date.now()): stri
   const seconds = lastAsked === undefined ? undefined : Math.max(0, Math.round((now - lastAsked) / 1000));
   return seconds === undefined ? 'not asked yet' : seconds === 0 ? 'asked again just now' : `asked again ${seconds} s ago`;
 }
+
+/** "You checked again just now" or "You checked again 4 s ago": what a press of Check again says it did. */
+export function checkedText(pressedAt: number, now = Date.now()): string {
+  const seconds = Math.max(0, Math.round((now - pressedAt) / 1000));
+  return seconds === 0 ? 'You checked again just now' : `You checked again ${seconds} s ago`;
+}

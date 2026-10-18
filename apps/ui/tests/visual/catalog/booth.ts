@@ -181,6 +181,13 @@ export const boothStates: StateEntry[] = [
   },
   {
     page: 'booth',
+    state: 'credits-missing',
+    description:
+      'Booth on the closing credits with no closing template (?credits=closing&mockCreditsMissing=1): a panel says "The closing credits are not set up" and offers Set up credits in Settings and Back to the chapters (Escape leaves the Booth), instead of a blank window',
+    ...REFLOW,
+  },
+  {
+    page: 'booth',
     state: 'dark',
     description:
       'Booth (as setup) with Dark selected in Settings > Appearance - the Booth follows the app theme, so this differs from setup only in the palette',

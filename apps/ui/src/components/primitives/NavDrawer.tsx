@@ -11,11 +11,11 @@ import { IconButton } from './IconButton';
 // that. The suite captures no phone viewport but the Settings states at 390 px, where the drawer only opens to navigate, so the atlas stories are its visual record.
 export function NavDrawer({ open, onClose, children }: { open: boolean; onClose: () => void; children: ReactNode }) {
   const finalFocus = useReturnFocusTarget(open);
-  // The drawer exists only in the narrow layout (below Tailwind's `md`, 48rem). If the window grows past it while the drawer
+  // The drawer exists only in the narrow layout (below 860 px, 53.75rem: where the mock's rail turns into a tab bar). If the window grows past it while the drawer
   // is open, close it: the desktop navigation is already on screen and the menu button that opened it is gone.
   useEffect(() => {
     if (!open || typeof window.matchMedia !== 'function') return;
-    const wide = window.matchMedia('(min-width: 48rem)');
+    const wide = window.matchMedia('(min-width: 53.75rem)');
     const closeWhenWide = () => {
       if (wide.matches) onClose();
     };

@@ -222,6 +222,13 @@ Credits settings. You can still record.
 
 ![Booth - the closing credits, with the warning chip for tokens that have no value](../../images/ui/booth-credits.webp)
 
+If the address asks for credits that have no template (for example an old link to the closing credits after the closing template was
+deleted), the Booth shows a panel instead of text: **The closing credits are not set up**, with **Set up credits in Settings** and
+**Back to the chapters**. Escape leaves the Booth, as it does with a chapter open. A link to a chapter the book no longer has shows the
+same panel with **Back to the chapters**.
+
+![Booth - the closing credits with no closing template: the panel that says so and offers Settings and the chapters](../../images/ui/booth-credits-missing.webp)
+
 ## Companion mode
 
 The Companion is a narrow panel pinned beside your DAW. Open it with **Open Companion** in the jump menu (its key is in the shortcut sheet): the

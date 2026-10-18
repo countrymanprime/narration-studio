@@ -4,7 +4,7 @@
 
 **Constraints:** [Threat model](../architecture/threat-model.md), [Story Bible](../guides/using-the-app/story-bible.md), [Manuscript line identity in the REAPER project](../architecture/manuscript-line-identity.md), [Base UI wrappers](../design/design-system.md#base-ui-wrappers), [The standard](../architecture/interaction-feedback.md#the-standard), [Booth](../guides/using-the-app/booth.md), [voicebible.go](../../apps/desktop/internal/series/voicebible.go), [Which mocks are the spec](../design/design-system.md#which-mocks-are-the-spec), [Data files](../reference/data-files.md), [DAW capabilities: what each one is and what it returns](../reference/daw/capabilities.md). Proposed by this PRD: [What is stored](#what-is-stored), [Playback](#playback).
 
-**Status (2026-10-17):** draft, design only. No code is written. Phase 0 (this pull request) holds the PRD and a draft mock. The owner has decided open questions 1 to 9 (see the [Decisions Log](#decisions-log)), and has approved playing in the app's own audio (see Playback under Technical Approach). Nothing in this PRD is waiting on the owner. The owner approved the draft mock on 2026-10-17, so phases 3 to 5 are no longer waiting on it.
+**Status (2026-10-18):** phase 0 (the PRD and a draft mock) is merged. Phase 1, the Go host's store and bindings, is built and has no page: nothing in the app calls it yet. The owner has decided open questions 1 to 9 (see the [Decisions Log](#decisions-log)), and has approved playing in the app's own audio (see Playback under Technical Approach). Nothing in this PRD is waiting on the owner. The owner approved the draft mock on 2026-10-17, so phases 3 to 5 are no longer waiting on it.
 
 ## Problem Statement
 
@@ -270,12 +270,9 @@ New ([wire-contract-change](../../.claude/skills/wire-contract-change/SKILL.md),
 
 Each needs a Zod schema in `apps/ui/src/api/schemas/`, a golden payload written by a Go test (`UPDATE_CONTRACTS=1`), a row in `apps/ui/src/api/wireContracts.test.ts`, a mock that passes the schema, a port, an `interactionFeedback` row, and a host API version bump. The source file path and the item and take GUIDs stay inside the host: the page gets `source.state` and the words, as the passage map keeps its ids ([data files](../reference/data-files.md)). The DAW bridge, the Lua files and the capability catalogue do not change in phases 1 to 5. `VoiceSamples.storage` is a new row in `config/defaults.json` (append-only) and in the settings contract; only `project` is accepted until phase 6.
 
-### Data files row (proposed, written in phase 1 when the file exists)
+### Data files rows
 
-| File | Location | Written by | Read by | Schema or golden | Retention | Notes |
-| --- | --- | --- | --- | --- | --- | --- |
-| `samples.json` | `voice-samples/samples.json` | `VoiceSampleMark`, `VoiceSampleUpdate`, `VoiceSampleSetPrimary`, `VoiceSampleRemove`, `VoiceSamplesRemoveAll` | `VoiceSamplesList`, the media handler (by id) | `voice-samples-*.json` (binding) | Kept through a manuscript replace; removed by **Clear project data** and by deleting a sample. Deleting the file loses every label, note and primary mark; the clips stay on disk but are not listed | Kept aside; a newer version is refused. Limits: label 60, note 500, 20 samples a character, 200 MiB of clips, 30 s a clip. The clip file name comes from the id |
-| `<id>.wav` | `voice-samples/clips/` | `VoiceSampleMark` | The media handler, by id | None | Removed with its sample. Safe to delete: the sample then reads `missing` | A PCM WAV in the source's format. Served by id only; never by path |
+Written in phase 1: `samples.json` and `<id>.wav` are rows of [Data files](../reference/data-files.md#project-files), with the limits, what is checked on read and the retention.
 
 ### Trust boundary and the threat model
 
@@ -297,7 +294,7 @@ A file the app writes and reads back is not a trust boundary, so `samples.json` 
 ### Unknowns
 
 - **Booth transcription timestamps.** Whether the Booth persists word timestamps for reuse in Editing is under investigation elsewhere. This design does not need them: Editing's alignment comes from the stored recording check. If they are persisted, they could pre-fill a range from a Booth take later; nothing here depends on it.
-- **The alignment record id.** The wire must carry the id of the record Editing's word times came from. Whether `WorkspaceAlignment` already exposes it, or the evidence ledger's record id must be added, is read in phase 1.
+- **The alignment record id.** Resolved in phase 1. `WorkspaceAlignment` does not expose it; the host reads it from the chapter's stored recording check (`coverage.StoredResult.RecordID`) and treats a check that is not current as having none. Phase 3 adds `recordId` to the alignment answer, additively, so the page can send the record its word times came from; until then `VoiceSampleMark` takes it in the request and refuses `stale_alignment` on a difference.
 - **Words in stacked retries and heard words that are not in the script.** Editing aligns them in ways ([workspace.go](../../apps/desktop/internal/coverage/workspace.go), [Data files](../reference/data-files.md)) that phase 3 must map to one source range; a selection that cannot map is `spans_takes`.
 - **The Booth picker's group.** The real picker has no **In this chapter** group yet; phase 5 depends on the Booth rebuild adding it, or builds the group itself.
 - **Pausing listening.** Whether a running listening session can be paused from a sample play ([control_channel.py](../../sidecars/manuscript-teleprompter/core/control_channel.py) shows how a control file reaches it).
@@ -311,7 +308,7 @@ A file the app writes and reads back is not a trust boundary, so `samples.json` 
 | # | Phase | Description | Status | Parallel | Depends |
 | --- | --- | --- | --- | --- | --- |
 | 0 | Design | This PRD and the draft mock | in review | Yes | None |
-| 1 | Store and bindings | `internal/voicesample`: record, WAV window copy, limits, list, update, primary, remove; bindings, schemas, goldens, mock API, port, data-files rows, host API bump. No UI | pending | Yes, with 2 | 0 (owner answers 1, 2, 6) |
+| 1 | Store and bindings | `internal/voicesample`: record, WAV window copy, limits, list, update, primary, remove; bindings, schemas, goldens, mock API, port, data-files rows, host API bump. No UI | complete | Yes, with 2 | 0 (owner answers 1, 2, 6) |
 | 2 | Playback | The id-keyed branch in `mediaMiddleware`, threat model row 6b, `useSamplePlayer` with the one-at-a-time and recording guards, Storybook | pending | Yes, with 1 after the contract is fixed | 1 |
 | 3 | Mark in Editing | Selection action, word menu section, `V` row, the **Voice sample** dialog and its refusals, Editing guide | pending | Yes, with 4 | 1 |
 | 4 | Story Bible | **Voice samples** section, **Voice data** additions, orphan and state rows, entry read-only rules, Story Bible guide | pending | Yes, with 3 | 2 |
@@ -350,6 +347,9 @@ Every phase's pull request has an **Exercised** and a **Not exercised** section.
 | 2026-10-17 | Playback is in the app's own audio, served by id, never through the DAW. Rejected: the DAW's file preview (REAPER-only, needs SWS and the DAW running, refuses while recording, so a sample would not play in a standalone launch or with another engine); a base64 binding (up to 5.8 MB of JSON a play, adds latency in the Booth, no seek); authorizing a clip by path in `/media` (widens the route toward a general local-file read) | Owner ("good with the recommendation") |
 | 2026-10-17 | The default storage is a clip copy in the project folder, with the source kept as provenance only. Rejected: reference only (source file, range, hash), because the sample dies or plays the wrong audio when the raw file is archived, re-recorded over or moved; a copy plus a live source, which keeps two playback paths for no benefit the copy lacks; a clip rendered through the DAW, which is REAPER-only, slow and fails with the DAW closed (left as a later option, open question 5) | Owner ("agreed") |
 | 2026-10-17 | Samples are for the ear: no acoustic comparison | Carried from [voicebible.go](../../apps/desktop/internal/series/voicebible.go) |
+| 2026-10-18 | Phase 1 removes the samples in `manuscript.Service.Clear`, not in `resetDerived`: `resetDerived` also runs when a manuscript replace is confirmed, and the owner decided a replace keeps them | Phase 1 implementation, from the owner's decision on question 2 |
+| 2026-10-18 | A mark of the same character and the same frames of the same take answers the sample that exists instead of storing a second (the host's answer to a double press); the handles stop at a cut as well as at the played range, so a sample never carries audio the narrator cut; an update of a sample that is gone is refused `not_found` | Phase 1 implementation; for the owner to confirm |
+| 2026-10-18 | The host finds a cut's audio from the words it cut: the span of source seconds the recording check heard for the cut's words, on the item they were heard on. A cut with no words, or whose words changed, hides nothing here | Phase 1 implementation; checked against stored cuts only, not against a cut made in a real DAW |
 
 ## Research Summary
 

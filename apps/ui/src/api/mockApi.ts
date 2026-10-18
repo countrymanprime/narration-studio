@@ -34,6 +34,7 @@ import { createDiagnosticsMock } from './diagnosticsMock';
 import { createEditingMock, type EditingChoices } from './editingMock';
 import { createCleanupActionMock } from './cleanupActionMock';
 import { createBookmarksMock } from './bookmarksMock';
+import { createVoiceSamplesMock } from './voiceSamplesMock';
 import { createPassageMapMock } from './passageMapMock';
 import { takesPerParagraph } from './passageMapSpans';
 import { createEditLogMock } from './editLogMock';
@@ -353,6 +354,11 @@ export function createMockApi(
     editingCandidates: async (chapterId) => (await findings.findingsList({ analyzer: 'editing', chapterId })).findings,
     ...cleanupAction,
     ...createBookmarksMock(
+      manuscriptReady,
+      () => s.chapters,
+      () => s.paragraphs,
+    ),
+    ...createVoiceSamplesMock(
       manuscriptReady,
       () => s.chapters,
       () => s.paragraphs,

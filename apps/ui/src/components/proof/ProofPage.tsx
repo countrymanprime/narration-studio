@@ -9,6 +9,7 @@ import { CommandScope } from '../../input/router';
 import { useUserKeymap } from '../../input/useUserKeymap';
 import { useOverlay } from '../../overlay/OverlayProvider';
 import { usePort } from '../../ports/usePort';
+import { useJournal } from '../../studio/StudioProvider';
 import { useCapability } from '../../useCapability';
 import type { ManuscriptChapter } from '../../types';
 import { ALL_CHAPTERS, ChapterStepper } from '../primitives/ChapterStepper';
@@ -25,6 +26,7 @@ import { ProofHeader } from './frame/ProofHeader';
 import { WaveformWindow } from './frame/WaveformWindow';
 import { FIRST_WINDOW, followSecond, type TimeWindow } from './frame/windowMath';
 import { Inspector } from './inspector/Inspector';
+import { decisionLabel, fixKindOf } from './resolution';
 import { TypeSelect } from './inspector/TypeSelect';
 import { NotesPanel } from './notes/NotesPanel';
 import { inBookOrder, noteRow, queryFor, type NoteSort } from './notes/noteRows';
@@ -100,6 +102,7 @@ export function ProofPage({
   const pickupsApi = usePort('pickups');
   const manuscriptApi = usePort('manuscript');
   const overlay = useOverlay();
+  const journal = useJournal();
   const keymap = useUserKeymap();
   const review = useCapability('review');
   const [params, setParams] = useSearchParams();
@@ -220,33 +223,65 @@ export function ProofPage({
   const order = useMemo(() => findings.map((f) => f.id), [findings]);
 
   const replace = useCallback((next: Finding) => setFindings((list) => list.map((f) => (f.id === next.id ? held(next) : f))), []);
-  // A saved decision moves to the next note and offers Undo, which puts the decision back and the selection with it (mock `decideNote`).
+  // A decision is one journal entry, so Ctrl+Z and History take it back as the toast's Undo does (mock `decideNote` over `act`). Undo puts the
+  // decision back and the selection with it. The same decision again with nothing typed is no decision: no entry, no toast.
+  const listRef = useRef(findings);
+  listRef.current = findings;
+  const entryOf = useRef(new Map<string, number>());
+  const journalledReview = useCallback(
+    async (request: Parameters<typeof findingsApi.findingsReview>[0]): Promise<Finding> => {
+      const before = listRef.current.find((f) => f.id === request.id);
+      if (!before || (before.review.status === request.status && (before.review.note ?? '') === request.note)) return findingsApi.findingsReview(request);
+      let failure: unknown;
+      const result = await journal.act({
+        label: `Decision “${decisionLabel(request.status ?? 'unreviewed', fixKindOf(before))}” at ${noteRow(before).time}`,
+        touches: [`proof/finding/${request.id}`],
+        run: async () => {
+          try {
+            return { ok: true as const, value: await findingsApi.findingsReview(request) };
+          } catch (error) {
+            failure = error;
+            return { ok: false as const, refusal: { code: 'host_refused', reason: describeApiError(error) } };
+          }
+        },
+        undo: async (decided) => {
+          try {
+            const back = await findingsApi.findingsReview({
+              id: request.id,
+              evidenceVersion: decided.evidence_version ?? '',
+              status: before.review.status,
+              note: before.review.note ?? '',
+            });
+            replace(back);
+            select(request.id);
+            setReload((n) => n + 1);
+            return { ok: true as const, value: back };
+          } catch (error) {
+            return { ok: false as const, refusal: { code: 'host_refused', reason: describeApiError(error) } };
+          }
+        },
+      });
+      // The Inspector tells a stale decision from any other failure by what the host threw, so that is what it gets back.
+      if (!result.ok) throw failure ?? new Error(result.refusal.reason);
+      entryOf.current.set(request.id, result.value.id);
+      return result.value.value;
+    },
+    [findingsApi, journal, replace, select],
+  );
+  const inspectorApi = useMemo(() => ({ ...findingsApi, findingsReview: journalledReview }), [findingsApi, journalledReview]);
+  // A saved decision moves to the next note and offers Undo: the journal entry's own undo.
   const changed = useCallback(
     (next: Finding, decided: boolean) => {
-      const before = findings.find((f) => f.id === next.id);
+      const entry = entryOf.current.get(next.id);
+      entryOf.current.delete(next.id);
       replace(next);
       setReload((n) => n + 1);
-      if (!decided || !before) return;
+      if (!decided || entry === undefined) return;
       const after = order[order.indexOf(next.id) + 1];
       if (after) select(after);
-      overlay.toastUndo(`${noteRow(next).time} · ${noteRow(next).resolution.label}`, async () => {
-        try {
-          const back = await findingsApi.findingsReview({
-            id: next.id,
-            evidenceVersion: next.evidence_version ?? '',
-            status: before.review.status,
-            note: before.review.note ?? '',
-          });
-          replace(back);
-          select(next.id);
-          setReload((n) => n + 1);
-          return { ok: true };
-        } catch (error) {
-          return { ok: false, refusal: { reason: describeApiError(error) } };
-        }
-      });
+      overlay.toastUndo(`${noteRow(next).time} · ${noteRow(next).resolution.label}`, () => journal.undo(entry));
     },
-    [findings, order, replace, select, overlay, findingsApi],
+    [order, replace, select, overlay, journal],
   );
 
   const chapterNotes = useMemo(() => (chapter ? findings.filter((f) => chapterOf(f) === chapter.id) : []), [findings, chapter]);
@@ -431,7 +466,7 @@ export function ProofPage({
               <Inspector
                 key={selected.id}
                 finding={selected}
-                api={findingsApi}
+                api={inspectorApi}
                 order={order}
                 onSelect={select}
                 onChanged={changed}

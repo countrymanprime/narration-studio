@@ -27,6 +27,16 @@ export const KEY_WIDGET_ROLES = new Set([
 ]);
 
 /**
+ * Whether the element's own role makes it a widget that keeps the keys. A read-only textbox holds no text to edit, so its arrows,
+ * Delete and Space are the page's: the Editing script is one (`role="textbox" aria-readonly="true"`, so a screen reader reads it as text).
+ */
+export function ownsKeysByRole(element: Element): boolean {
+  const role = element.getAttribute('role');
+  if (!role || !KEY_WIDGET_ROLES.has(role)) return false;
+  return !(role === 'textbox' && element.getAttribute('aria-readonly') === 'true');
+}
+
+/**
  * Whether a gesture's target already owns the key: a field, a widget Space activates, or a `KEY_WIDGET_ROLES` role.
  * The router (`router.tsx`) applies this only to a gesture with no modifier held (Solution Detail, "Router"); a
  * modified gesture like Alt+ArrowLeft reaches its command regardless of target, matching `App.tsx`'s nav shortcuts
@@ -36,8 +46,7 @@ export const KEY_WIDGET_ROLES = new Set([
 export function isGuardedTarget(target: EventTarget | null): boolean {
   if (!(target instanceof Element)) return false;
   if (target.closest(EDITABLE) || target.closest(SPACE_ACTIVATES)) return true;
-  const role = target.getAttribute('role');
-  return Boolean(role && KEY_WIDGET_ROLES.has(role));
+  return ownsKeysByRole(target);
 }
 
 /**

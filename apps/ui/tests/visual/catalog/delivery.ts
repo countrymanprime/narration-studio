@@ -61,6 +61,12 @@ export const deliveryStates: StateEntry[] = [
   },
   {
     page: 'delivery',
+    state: 'host-quiet-cancelled',
+    description:
+      'Delivery with the host not answering (?mockDelivery=quiet), after Check again and then Cancel - "You checked again just now: the host still did not answer." and "Cancel was sent, but the host did not confirm it, so the build may still be running." with the quiet notice and Cancel still up',
+  },
+  {
+    page: 'delivery',
     state: 'no-manuscript',
     description: 'Delivery opened by its address with no manuscript imported (?mockNoManuscript) - the page asks for the manuscript first',
   },

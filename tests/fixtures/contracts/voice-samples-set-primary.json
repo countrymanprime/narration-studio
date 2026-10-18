@@ -1,0 +1,73 @@
+{
+  "limits": {
+    "labelUnits": 60,
+    "maxSeconds": 30,
+    "minSeconds": 0.5,
+    "noteUnits": 500,
+    "perCharacter": 20,
+    "projectBytes": 209715200
+  },
+  "samples": [
+    {
+      "bytes": 12844,
+      "characterId": "entity-ab12cd34ef56",
+      "clipState": "ok",
+      "createdAt": "2026-09-21T10:00:00Z",
+      "durationMs": 800,
+      "id": "id-1",
+      "label": "Alice, tired",
+      "note": "Late in the chapter.",
+      "primary": true,
+      "source": {
+        "chapterId": "c-0001",
+        "chapterTitle": "Chapter One",
+        "endKey": "p-000001:0",
+        "startKey": "p-000001:0",
+        "state": "ok",
+        "text": "Alice."
+      }
+    },
+    {
+      "bytes": 10444,
+      "characterId": "entity-ab12cd34ef56",
+      "clipState": "ok",
+      "createdAt": "2026-09-21T10:00:00Z",
+      "durationMs": 650,
+      "id": "id-2",
+      "label": "Alice, calm",
+      "note": "Before the rabbit hole.",
+      "primary": false,
+      "source": {
+        "chapterId": "c-0001",
+        "chapterTitle": "Chapter One",
+        "endKey": "p-000001:0",
+        "startKey": "p-000001:0",
+        "state": "ok",
+        "text": "Alice."
+      }
+    },
+    {
+      "bytes": 10444,
+      "characterId": "narration",
+      "clipState": "ok",
+      "createdAt": "2026-09-21T10:00:00Z",
+      "durationMs": 650,
+      "id": "id-3",
+      "label": "Alice, calm",
+      "note": "Before the rabbit hole.",
+      "primary": true,
+      "source": {
+        "chapterId": "c-0001",
+        "chapterTitle": "Chapter One",
+        "endKey": "p-000001:0",
+        "startKey": "p-000001:0",
+        "state": "ok",
+        "text": "Alice."
+      }
+    }
+  ],
+  "totals": {
+    "bytes": 33732,
+    "count": 3
+  }
+}

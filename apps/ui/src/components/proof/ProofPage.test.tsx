@@ -8,6 +8,8 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { ApiProvider } from '../../api/ApiContext';
 import { createMockApi } from '../../api/mockApi';
 import { CommandRouter } from '../../input/router';
+import { createJournal } from '../../studio/journal/createJournal';
+import { StudioProvider } from '../../studio/StudioProvider';
 import { OverlayHost } from '../../overlay/OverlayHost';
 import { providedCommands } from '../../input/commandProviders';
 import { contextItemsFor } from '../../registries/context';
@@ -31,23 +33,26 @@ function Where() {
 
 function renderPage({ api = createMockApi(), at = '/proof', hasManuscript = true }: { api?: NarrationApi; at?: string; hasManuscript?: boolean } = {}) {
   const handlers = { goTo: vi.fn(), goToScript: vi.fn(), goToBooth: vi.fn(), goToEditing: vi.fn() };
+  const journal = createJournal({ dawName: () => 'REAPER', dawLastAction: async () => 'unknown' });
   window.localStorage.setItem('narration.proof.lastChapter./p', 'chapter-2');
   render(
     <MemoryRouter initialEntries={[at]}>
       <ApiProvider api={api}>
-        <CommandRouter>
-          <TooltipProvider>
-            <Routes>
-              <Route path="/proof" element={<ProofPage hasManuscript={hasManuscript} projectFolder="/p" {...handlers} />} />
-            </Routes>
-            <Where />
-            <OverlayHost />
-          </TooltipProvider>
-        </CommandRouter>
+        <StudioProvider journal={journal}>
+          <CommandRouter>
+            <TooltipProvider>
+              <Routes>
+                <Route path="/proof" element={<ProofPage hasManuscript={hasManuscript} projectFolder="/p" {...handlers} />} />
+              </Routes>
+              <Where />
+              <OverlayHost />
+            </TooltipProvider>
+          </CommandRouter>
+        </StudioProvider>
       </ApiProvider>
     </MemoryRouter>,
   );
-  return { api, ...handlers };
+  return { api, journal, ...handlers };
 }
 
 const noteRows = async () => {
@@ -242,6 +247,68 @@ describe('proof-decisions-and-undo', () => {
     await waitFor(() => expect(review).toHaveBeenCalledTimes(2));
     expect(review.mock.calls[1][0].status).toBe('unreviewed');
     await waitFor(() => expect(selectedAt(at)).toBe('true'));
+  });
+
+  it('a decision is one journal entry: Ctrl+Z and History take it back, and the toast Undo is the same entry', async () => {
+    const api = createMockApi();
+    const review = vi.spyOn(api, 'findingsReview');
+    const { journal } = renderPage({ api, at: '/proof?chapter=chapter-1' });
+    const user = userEvent.setup();
+    const rows = await noteRows();
+    const at = rows.findIndex((row) => row.textContent?.includes('To review'));
+    const selectedAt = (index: number) =>
+      (screen.getByRole('region', { name: 'Notes' }).querySelectorAll('tr[data-row]')[index] as HTMLElement).getAttribute('aria-selected');
+    await user.click(rows[at]);
+    press('w', 'KeyW');
+    await waitFor(() => expect(review).toHaveBeenCalledTimes(1));
+    await waitFor(async () => expect(await journal.entries()).toHaveLength(1));
+    const [entry] = await journal.entries();
+    expect(entry.label).toMatch(/^Decision “Waive” at \d/);
+    expect(entry.undoable).toBe(true);
+    const undone = await journal.undoLast();
+    expect(undone.ok).toBe(true);
+    expect(review.mock.calls[1][0].status).toBe('unreviewed');
+    await waitFor(() => expect(selectedAt(at)).toBe('true'));
+    expect(await journal.entries()).toHaveLength(0);
+    // The toast's Undo was that entry: it has nothing left to take back.
+    await user.click(await screen.findByRole('button', { name: 'Undo' }));
+    await waitFor(() => expect(review).toHaveBeenCalledTimes(2));
+  });
+
+  it('the toast Undo takes the journal entry with it', async () => {
+    const api = createMockApi();
+    const { journal } = renderPage({ api, at: '/proof?chapter=chapter-1' });
+    const user = userEvent.setup();
+    const rows = await noteRows();
+    await user.click(rows[rows.findIndex((row) => row.textContent?.includes('To review'))]);
+    press('w', 'KeyW');
+    await waitFor(async () => expect(await journal.entries()).toHaveLength(1));
+    await user.click(await screen.findByRole('button', { name: 'Undo' }));
+    await waitFor(async () => expect(await journal.entries()).toHaveLength(0));
+  });
+
+  it('the same decision again with nothing typed is no decision: no journal entry', async () => {
+    const api = createMockApi();
+    const review = vi.spyOn(api, 'findingsReview');
+    const { journal } = renderPage({ api, at: '/proof?chapter=chapter-1' });
+    const user = userEvent.setup();
+    const rows = await noteRows();
+    await user.click(rows[rows.findIndex((row) => row.textContent?.includes('To review'))]);
+    const inspector = await screen.findByRole('complementary', { name: 'Note' });
+    await user.click(within(inspector).getByRole('button', { name: /^Waive/ }));
+    await waitFor(async () => expect(await journal.entries()).toHaveLength(1));
+    // The decision moved on to the next note; step back to the waived one and Waive it again.
+    press('k', 'KeyK');
+    await waitFor(() =>
+      expect(
+        within(screen.getByRole('complementary', { name: 'Note' }))
+          .getByRole('button', { name: /^Waive/ })
+          .getAttribute('aria-pressed'),
+      ).toBe('true'),
+    );
+    await user.click(within(screen.getByRole('complementary', { name: 'Note' })).getByRole('button', { name: /^Waive/ }));
+    await waitFor(() => expect(review).toHaveBeenCalledTimes(2));
+    expect(await journal.entries()).toHaveLength(1);
   });
 
   it('a stale decision is refused with the evidence-changed banner and the typed note kept', async () => {
