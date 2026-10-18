@@ -134,6 +134,9 @@ func (h *Host) pollDawCapabilities() {
 	ctx := h.ctx
 	h.mu.Unlock()
 	h.traceDawPoll(concreteReachability(svc.reachability), resolver, runtime, changed)
+	if changed {
+		h.logDawCapabilities(runtime)
+	}
 	if changed && ctx != nil {
 		emitEvent("daw_capabilities_changed", payload)
 	}
