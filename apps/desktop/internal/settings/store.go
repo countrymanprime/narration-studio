@@ -60,6 +60,10 @@ func (s *Store) Effective(tool, key, fallback string) (string, string) {
 // Script.definition_source is where the Words tab's definitions come from (wordsHost.ts's DEFINITION_SOURCES).
 var closedChoices = map[string]map[string][]string{
 	"Script": {"definition_source": {"web", "local", "api"}},
+	// VoiceSamples.storage is where a voice sample is kept: the clip in the project folder (project), a label in the DAW (daw) or both
+	// (docs/prds/character-voice-samples.prd.md, Where a sample is kept). Only project is offered until phase 6 builds the DAW
+	// label, so a stored daw or both reads as project.
+	"VoiceSamples": {"storage": {"project"}},
 }
 
 // DefinitionSources is Script.definition_source's choices, in the order Settings lists them.
@@ -106,7 +110,9 @@ var builtinDefaults = map[string]Values{
 	"ManuscriptGuide": {"spacy_model": "en_core_web_sm", "build_after_import": "true", "analysis_prompt": "ask"},
 	// definition_source defaults to web: the Words tab opens the dictionary site and shows nothing inline until the narrator picks
 	// the local dictionary or the online service.
-	"Script":            {"definition_source": "web"},
+	"Script": {"definition_source": "web"},
+	// storage defaults to project: a voice sample's clip is copied into the project folder (VoiceSamples, closedChoices above).
+	"VoiceSamples":      {"storage": "project"},
 	"Piper":             {"tts_provider": "piper", "tts_voice_id": "en_US-ljspeech-high"},
 	"Updates":           {"check_on_startup": "true", "channel": "candidates"},
 	"Manuscript":        {"color_note": "B85C1E"},

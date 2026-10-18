@@ -1534,5 +1534,19 @@
       "label": "Update channel",
       "value": ""
     }
+  ],
+  "VoiceSamples": [
+    {
+      "choices": [
+        "project"
+      ],
+      "effectiveSource": "repo_default",
+      "effectiveValue": "project",
+      "isSet": false,
+      "key": "storage",
+      "kind": "choice",
+      "label": "Where voice samples are kept",
+      "value": ""
+    }
   ]
 }

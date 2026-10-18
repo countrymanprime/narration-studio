@@ -23,6 +23,9 @@ import * as marks$0 from "./internal/marks/models.js";
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore: Unused imports
 import * as project$0 from "./internal/project/models.js";
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-ignore: Unused imports
+import * as voicesample$0 from "./internal/voicesample/models.js";
 
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore: Unused imports
@@ -318,9 +321,10 @@ export function CoverageCancel(): $CancellablePromise<string> {
 
 /**
  * CoverageEngines lists the engines a recording check can run: the approved Whisper models, in catalog order, each with
- * its install state, and the id of the one a start that names none would use (SN-Q62). It reads the catalog
- * and the settings, not a project, so the Check recordings dialog can offer the list before one is open. A start
- * may name any listed id in options["model"] (CoverageStart).
+ * its install state, the id of the one a start that names none would use (SN-Q62) and, in defaults, the rest
+ * of what such a start would do: the second pass, the passages it takes and how a long item is cut up. It
+ * reads the catalog and the settings, not a project, so the Check recordings dialog can offer the list before one is
+ * open. A start may name any listed id in options["model"] (CoverageStart).
  */
 export function CoverageEngines(): $CancellablePromise<string> {
     return $Call.ByID(2398170927);
@@ -358,16 +362,20 @@ export function CoverageResult(chapterID: string): $CancellablePromise<string> {
 }
 
 /**
- * CoverageStart starts a recording check of one chapter. With the model cascade off (Q7 A, the default, MC1) it uses
- * the narrator's Transcript Compare model; with it on, the two cascade settings (MC2). options["skipRecheck"] ==
- * "true" starts a cascade-enabled chapter with the first pass alone - the narrator's "Check with tiny only" choice
- * (MC4) when the re-check model is not installed; nil or without that key is the ordinary start. options["model"] names
- * an approved Whisper model (CoverageEngines lists them) to run alone, replacing the cascade for this run;
- * an unknown id is an error and nothing starts. It answers
+ * CoverageStart starts a recording check of one chapter. What it runs is decided by resolveCoverageChoices: the
+ * RecordingCoverage and Transcript Compare settings, over which the run's options win. With no options and the model
+ * cascade off (Q7 A, the default, MC1) it is one pass with the narrator's Transcript Compare model; with the cascade on, the
+ * two cascade models (MC2). options["model"] names an approved Whisper model (CoverageEngines lists them) to run alone
+ * options["recheck"] ("true" or "false") turns the second pass on or off whatever the cascade setting says,
+ * with options["recheckModel"] and options["recheckBelow"] naming its larger model and the word probability under which
+ * a passage is re-checked even when its text is all there; options["workers"], ["chunkSeconds"] and
+ * ["overlapSeconds"] say how a long item is cut up and how many processes transcribe the pieces. options["skipRecheck"] ==
+ * "true" starts the first pass alone - the narrator's "Check with tiny only" choice (MC4) when the re-check model is not
+ * installed. An unknown model id or an option that is not valid is an error and nothing starts. It answers
  * {status: "started", state}; {status: "refused", reason, message} when the chapter cannot be measured as the saved
  * project stands (nothing was run or written); {status: "asset_required", ...} when the first-pass model is not
- * installed yet (the first-use gate TranscriptStart has); or {status: "recheck_asset_required", ...} when the
- * cascade is on and its re-check model is not installed (MC4). Anything else (a file that could not be written, a
+ * installed yet (the first-use gate TranscriptStart has); or {status: "recheck_asset_required", ...} when a second pass
+ * is wanted and its model is not installed (MC4). Anything else (a file that could not be written, a
  * sidecar that did not start) is a rejected promise.
  */
 export function CoverageStart(chapterID: string, options: { [_ in string]?: string }): $CancellablePromise<string> {
@@ -2456,7 +2464,8 @@ export function ScriptPrepList(): $CancellablePromise<string> {
 }
 
 /**
- * ScriptPrepSetChapter stores one chapter's prep state: none, progress or prepped. A chapter the manuscript lacks is refused.
+ * ScriptPrepSetChapter stores one chapter's prep state: none, progress or prepped. A chapter the manuscript lacks is refused; the
+ * opening and closing credits (credits:opening, credits:closing) are kept like a chapter.
  */
 export function ScriptPrepSetChapter(chapterID: string, state: string): $CancellablePromise<string> {
     return $Call.ByID(1526545883, chapterID, state);
@@ -2952,6 +2961,51 @@ export function UpdateShowDownload(): $CancellablePromise<string> {
  */
 export function UpdateStatus(): $CancellablePromise<string> {
     return $Call.ByID(2410778633);
+}
+
+/**
+ * VoiceSampleMark copies the stretch of one take the request names into a clip and stores it as a voice sample of a character.
+ * It answers {status: "saved", sample}, or {status: "refused", reason, message} when the stretch cannot be copied (nothing was
+ * saved); a request that is not valid, or a file that cannot be read or written, is a rejected promise.
+ */
+export function VoiceSampleMark(request: voicesample$0.MarkRequest): $CancellablePromise<string> {
+    return $Call.ByID(2094857587, request);
+}
+
+/**
+ * VoiceSampleRemove deletes a voice sample and its clip. A sample that is not there is not an error: removed is then 0.
+ */
+export function VoiceSampleRemove(id: string): $CancellablePromise<string> {
+    return $Call.ByID(2732941662, id);
+}
+
+/**
+ * VoiceSampleSetPrimary makes a voice sample its character's primary (the one the quick play uses) and returns the samples.
+ */
+export function VoiceSampleSetPrimary(id: string): $CancellablePromise<string> {
+    return $Call.ByID(1335901708, id);
+}
+
+/**
+ * VoiceSampleUpdate changes a voice sample's label, note and character. It answers like VoiceSampleMark.
+ */
+export function VoiceSampleUpdate(id: string, change: voicesample$0.Change): $CancellablePromise<string> {
+    return $Call.ByID(3828545363, id, change);
+}
+
+/**
+ * VoiceSamplesList returns every voice sample, sorted by character and then primary first and newest, each with the state of its
+ * clip and of the words it was marked on, with what they add up to and the limits.
+ */
+export function VoiceSamplesList(): $CancellablePromise<string> {
+    return $Call.ByID(4079938099);
+}
+
+/**
+ * VoiceSamplesRemoveAll deletes every voice sample and every clip in the project.
+ */
+export function VoiceSamplesRemoveAll(): $CancellablePromise<string> {
+    return $Call.ByID(2655911602);
 }
 
 export function WhisperCatalog(): $CancellablePromise<string> {
