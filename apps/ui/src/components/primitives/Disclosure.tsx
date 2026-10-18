@@ -34,7 +34,7 @@ export function Disclosure({
         <BaseCollapsible.Trigger className="group flex min-w-0 flex-1 items-center gap-2 rounded-md py-1.5 text-left">
           <FontAwesomeIcon
             icon={faChevronRight}
-            className="size-3 flex-none text-[var(--text-muted)] group-data-[panel-open]:rotate-90 motion-safe:transition-transform"
+            className="size-3 flex-none text-[var(--text-muted)] group-data-[panel-open]:rotate-90 motion-ok:transition-transform motion-ok:duration-(--motion-fast)"
           />
           <span className="text-sm font-semibold">{title}</span>
           {/* The space is only for the button's name: the two spans are flex items, which drop it from the layout. */}

@@ -5,6 +5,7 @@ import { useState } from 'react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { SlideOver } from './SlideOver';
 import { tabInsideTrap } from './tabInsideTrap';
+import { guardedMotion, unguardedMotion } from '../../motionScan';
 
 afterEach(cleanup);
 
@@ -114,5 +115,16 @@ describe('SlideOver is a real modal panel', () => {
       const focused = await tabInsideTrap(user);
       expect(focused, `press ${press}`).not.toBe(behind);
     }
+  });
+});
+
+describe('SlideOver under reduced motion', () => {
+  it('slides only through `motion-ok:` classes: under reduce the panel appears and leaves in place, with no transition to wait for', async () => {
+    const user = userEvent.setup();
+    render(<Harness />);
+    await user.click(screen.getByRole('button', { name: 'Open panel' }));
+    const panel = await screen.findByRole('dialog', { name: 'Entry details' });
+    expect(unguardedMotion(panel.outerHTML)).toEqual([]);
+    expect(guardedMotion(panel.outerHTML)).toEqual(expect.arrayContaining(['motion-ok:transition-transform']));
   });
 });

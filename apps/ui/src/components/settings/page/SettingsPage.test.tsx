@@ -278,6 +278,8 @@ describe('Settings: states', () => {
     await renderPage({ api });
     expect(document.querySelector('[aria-busy="true"]')).toBeTruthy();
     expect(screen.getByText('Reading your settings…')).toBeTruthy();
+    // A tier-1 load: a still placeholder, no looping pulse.
+    expect(document.querySelector('[aria-busy="true"]')!.innerHTML).not.toContain('animate-');
   });
 
   it('an unreadable settings file shows an alert, disables the controls and Try again recovers', async () => {

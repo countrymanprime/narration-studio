@@ -9,6 +9,7 @@ import { createMockApi } from '../../api/mockApi';
 import { CommandRouter } from '../../input/router';
 import { WIRE_TELEPROMPTER_DEVICES } from '../../api/mockFixtures';
 import type { DawTransport, NarrationApi, TeleprompterLocateResult, TeleprompterResumeFollowEvent, TeleprompterState } from '../../types';
+import { guardedMotion, unguardedMotion } from '../../motionScan';
 
 // The resume prompt, as the Companion's header shows it: a compact notice or choice for where
 // the chapter's recording ends (TeleprompterLocate). It never starts anything by itself, and it settles - and
@@ -504,5 +505,22 @@ describe('ResumePrompt', () => {
       cleanup();
       expect(api.teleprompterResumeUnfollow).toHaveBeenCalled();
     });
+  });
+});
+
+describe('ResumePrompt under reduced motion', () => {
+  it('draws its two places and its checking spinner with `motion-ok:` classes only', async () => {
+    renderDialog({}, { resume: 'disagree' });
+    const region = await prompt();
+    await within(region).findByText(/different places/);
+    expect(unguardedMotion(region.innerHTML)).toEqual([]);
+    expect(guardedMotion(region.innerHTML)).toContain('motion-ok:transition-colors');
+  });
+
+  it('shows the checking spinner through `motion-ok:animate-spin` only', async () => {
+    renderDialog({ teleprompterLocate: () => new Promise(() => undefined) });
+    const region = await prompt();
+    expect(unguardedMotion(region.innerHTML)).toEqual([]);
+    expect(guardedMotion(region.innerHTML)).toEqual(['motion-ok:animate-spin']);
   });
 });

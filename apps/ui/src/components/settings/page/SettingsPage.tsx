@@ -157,7 +157,7 @@ function Body({ initialCategory, cameFrom }: { initialCategory?: string; cameFro
           {crumb}
         </h2>
         {[0, 1, 2, 3].map((index) => (
-          <div key={index} className="h-16 rounded-md bg-[var(--surface-2)] motion-safe:animate-pulse" />
+          <div key={index} className="h-16 rounded-md bg-[var(--surface-2)]" />
         ))}
         <span className="sr-only" role="status">
           Reading your settings…

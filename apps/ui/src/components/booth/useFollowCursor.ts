@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState, type RefObject } from 'react';
 import { EDITABLE, KEY_WIDGET_ROLES, SPACE_ACTIVATES } from '../../input/targets';
+import { motionReduced } from '../../theme/motion';
 
 /** The part of the viewport the current word may sit in without the reader scrolling: 25% to 70% of its height. */
 const FOLLOW_BAND = { top: 0.25, bottom: 0.7 } as const;
@@ -11,8 +12,6 @@ const FOLLOW_BAND = { top: 0.25, bottom: 0.7 } as const;
 export const SCROLL_SETTLE_MS = 150;
 
 const SCROLL_KEYS = new Set(['PageUp', 'PageDown', 'Home', 'End', 'ArrowUp', 'ArrowDown', ' ']);
-
-const prefersReducedMotion = (): boolean => typeof window.matchMedia === 'function' && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 export function inFollowBand({ top, bottom }: { top: number; bottom: number }, viewportHeight: number): boolean {
   return top > viewportHeight * FOLLOW_BAND.top && bottom < viewportHeight * FOLLOW_BAND.bottom;
@@ -31,7 +30,7 @@ export function scrollCursorIntoView(reader: HTMLElement | null) {
   const word = currentWord(reader);
   if (!word || typeof word.scrollIntoView !== 'function') return;
   if (inFollowBand(word.getBoundingClientRect(), window.innerHeight)) return;
-  word.scrollIntoView({ block: 'center', behavior: prefersReducedMotion() ? 'auto' : 'smooth' });
+  word.scrollIntoView({ block: 'center', behavior: motionReduced() ? 'auto' : 'smooth' });
 }
 
 /** A key press that scrolls the page: a scrolling key nothing else took (a field, a widget's arrows, Space on a button). */

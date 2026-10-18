@@ -82,7 +82,7 @@ const UnitView = memo(function UnitView({ unit, index, mode, wcur, words, paragr
       <span
         data-unit={index}
         data-state={mode}
-        className={`cursor-pointer rounded-md transition-colors ${MODE_TONE[mode]} ${from ? 'bg-[var(--accent-soft)]' : ''}`}
+        className={`cursor-pointer rounded-md motion-ok:transition-colors motion-ok:duration-(--motion-fast) ${MODE_TONE[mode]} ${from ? 'bg-[var(--accent-soft)]' : ''}`}
         onClick={(event) => {
           const word = (event.target as HTMLElement).closest<HTMLElement>('[data-word]');
           onSeek(paragraph.id, seekWord(unit, word ? Number(word.dataset.word) : 0));
@@ -108,7 +108,7 @@ const UnitView = memo(function UnitView({ unit, index, mode, wcur, words, paragr
                     ...(token.mark ? { '--mcb': `var(${token.mark.colour})` } : {}),
                   } as CSSProperties
                 }
-                className={`relative rounded-[0.12em] transition-colors ${tint} ${mark} ${said ? 'text-[var(--text-muted)]' : ''} ${
+                className={`relative rounded-[0.12em] motion-ok:transition-colors motion-ok:duration-(--motion-fast) ${tint} ${mark} ${said ? 'text-[var(--text-muted)]' : ''} ${
                   now
                     ? 'bg-[var(--accent)] text-[var(--accent-contrast)] shadow-[0_0_0_0.08em_var(--accent)] before:absolute before:top-[-0.3em] before:left-1/2 before:-translate-x-1/2 before:border-x-[0.18em] before:border-t-[0.2em] before:border-x-transparent before:border-t-[var(--accent)] before:content-[""]'
                     : ''
@@ -202,7 +202,7 @@ export function BoothText({
       <div
         ref={text}
         style={{ fontSize: `${textSizePx(size)}px`, fontFamily: font, '--tsize': `${textSizePx(size)}px` } as CSSProperties}
-        className="relative mx-auto max-w-[26em] py-[30vh] leading-[1.5] [overflow-wrap:anywhere] transition-transform duration-300"
+        className="relative mx-auto max-w-[26em] py-[30vh] leading-[1.5] [overflow-wrap:anywhere] motion-ok:transition-transform motion-ok:duration-(--motion-slow) motion-ok:ease-(--ease-standard)"
       >
         {paragraphs.map((paragraph, paragraphIndex) => {
           const pickup = pickupLines.find((line) => line.paragraphId === paragraph.id);

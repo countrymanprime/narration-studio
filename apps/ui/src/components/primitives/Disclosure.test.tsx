@@ -6,6 +6,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { danglingAriaReferences } from './ariaReferences';
 import { Disclosure } from './Disclosure';
 import { Tooltip } from './Tooltip';
+import { guardedMotion, unguardedMotion } from '../../motionScan';
 
 afterEach(() => {
   (document.activeElement as HTMLElement | null)?.blur();
@@ -83,5 +84,13 @@ describe('Disclosure', () => {
       </Disclosure>,
     );
     expect(screen.getByRole('button', { name: 'Repairs' })).toBeTruthy();
+  });
+});
+
+describe('Disclosure under reduced motion', () => {
+  it('turns its chevron through a `motion-ok:` transition only, so under reduce it snaps', () => {
+    const { container } = render(<Harness />);
+    expect(unguardedMotion(container.innerHTML)).toEqual([]);
+    expect(guardedMotion(container.innerHTML)).toEqual(['motion-ok:transition-transform']);
   });
 });

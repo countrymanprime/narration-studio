@@ -246,6 +246,7 @@ describe('Settings: Models & downloads', () => {
     const loading = document.querySelector('[aria-busy="true"]');
     expect(loading).not.toBeNull();
     expect(within(loading as HTMLElement).getByRole('status').textContent).toBe('Reading the models on this computer…');
+    expect((loading as HTMLElement).innerHTML).not.toContain('animate-');
   });
 
   it('says when the list cannot be read and Try again reads it again', async () => {

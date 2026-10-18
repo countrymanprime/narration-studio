@@ -16,6 +16,21 @@
   --text-xl--line-height: 1.75rem;
   --text-2xl--line-height: 2rem;
   --text-3xl--line-height: 2.25rem;
+  /* Named animations read the motion tokens below (docs/design/design-system.md#motion), so `motion-ok:animate-tooltip-in` is the
+     whole spelling at a call site. */
+  --animate-tooltip-in: tooltip-in var(--motion-fast) var(--ease-enter);
+  --animate-changed-highlight: changed-highlight var(--motion-highlight) var(--ease-standard);
+}
+
+/* `motion-ok:` applies a utility only when Windows has not asked for reduced motion AND the root is not `data-motion="reduce"`
+   (theme/motion.ts sets it from the same media query; the in-app setting will set it too). Every transition and
+   animation in apps/ui/src uses it (motion.test.ts fails on one that does not). `:where` keeps the specificity of the utility. */
+@custom-variant motion-ok {
+  @media (prefers-reduced-motion: no-preference) {
+    &:where(:root:not([data-motion='reduce']) *) {
+      @slot;
+    }
+  }
 }
 
 :root {
@@ -188,7 +203,33 @@
   --font-size-label: 0.8125rem; /* 13, .label and th */
   --tracking-label: 0.14em;
   --tracking-button: 0.09em;
+  /* Motion (docs/design/design-system.md#motion). Nothing exceeds --motion-slow except the highlight, which moves nothing. */
+  --motion-fast: 120ms; /* hover and press colour, tooltip, menu and popover enter, toast */
+  --motion-base: 200ms; /* slide-overs, drawers, a banner arriving */
+  --motion-slow: 300ms; /* the Booth text column only */
+  --motion-highlight: 600ms; /* the one-shot "this changed" background fade */
+  --ease-standard: cubic-bezier(0.2, 0, 0, 1); /* anything that changes in place */
+  --ease-enter: cubic-bezier(0.2, 0.7, 0.2, 1); /* things arriving */
+  --ease-exit: cubic-bezier(0.4, 0, 1, 1); /* things leaving */
+  --motion-shift: 4px; /* how far a menu, popover, tooltip or toast travels */
   color-scheme: light;
+}
+/* Under reduced motion the durations are zero, so a transition a `motion-ok:` guard missed still cannot play. */
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --motion-fast: 0ms;
+    --motion-base: 0ms;
+    --motion-slow: 0ms;
+    --motion-highlight: 0ms;
+    --motion-shift: 0px;
+  }
+}
+:root[data-motion='reduce'] {
+  --motion-fast: 0ms;
+  --motion-base: 0ms;
+  --motion-slow: 0ms;
+  --motion-highlight: 0ms;
+  --motion-shift: 0px;
 }
 /* Single source of truth for dark values - set via ThemeProvider
    (apps/ui/src/theme/ThemeContext.tsx), which also handles the "system"
@@ -291,10 +332,20 @@
 @keyframes tooltip-in {
   from {
     opacity: 0;
-    transform: translateY(4px);
+    transform: translateY(var(--motion-shift));
   }
   to {
     opacity: 1;
+  }
+}
+/* The one-shot "this changed" highlight (primitives/changedHighlight.ts): the row, cell or entry an action changed is tinted and
+   settles to nothing. It replaces Tailwind's animate-pulse, which looped for as long as its flag was set. */
+@keyframes changed-highlight {
+  from {
+    background-color: var(--accent-soft);
+  }
+  to {
+    background-color: transparent;
   }
 }
 .manuscript-reader {
@@ -309,20 +360,6 @@
 .scroll-chrome-hidden::-webkit-scrollbar {
   width: 0;
   height: 0;
-}
-/* "Go to line" destination: a brief ring that settles into the persistent
-   tint/edge applied by ParagraphView for JUMP_HIGHLIGHT_MS. */
-@keyframes jump-target-pulse {
-  0% {
-    box-shadow:
-      0 0 0 3px var(--accent),
-      inset 3px 0 0 var(--accent);
-  }
-  100% {
-    box-shadow:
-      0 0 0 0 transparent,
-      inset 3px 0 0 var(--accent);
-  }
 }
 .guide-list-scroll {
   scrollbar-width: none;

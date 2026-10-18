@@ -58,7 +58,7 @@ export function ModelsPane({ category }: { category: Category }) {
       <div className="flex flex-col gap-3" aria-busy="true" aria-label="Loading models and downloads">
         <Heading category={category} />
         {[0, 1, 2, 3, 4].map((index) => (
-          <div key={index} className="h-16 rounded-md bg-[var(--surface-2)] motion-safe:animate-pulse" />
+          <div key={index} className="h-16 rounded-md bg-[var(--surface-2)]" />
         ))}
         <span className="sr-only" role="status">
           Reading the models on this computer…

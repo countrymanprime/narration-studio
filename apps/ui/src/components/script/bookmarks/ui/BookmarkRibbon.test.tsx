@@ -5,6 +5,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { TooltipProvider } from '../../../primitives/Tooltip';
 import { bookmark, lineText, NOTED, STALE } from './bookmarkFixtures';
 import { BookmarkRibbon } from './BookmarkRibbon';
+import { guardedMotion, unguardedMotion } from '../../../../motionScan';
 
 afterEach(cleanup);
 
@@ -127,5 +128,14 @@ describe('BookmarkRibbon', () => {
     expect(document.activeElement?.closest('[role="dialog"]')).not.toBeNull();
     await user.keyboard('{Escape}');
     await waitFor(() => expect(document.activeElement).toBe(r));
+  });
+});
+
+describe('BookmarkRibbon jump flash under reduced motion', () => {
+  it('fades once through `motion-ok:` and is a static tint otherwise: no looping pulse', () => {
+    const { container } = setup({ flash: true });
+    expect(unguardedMotion(container.innerHTML)).toEqual([]);
+    expect(guardedMotion(container.innerHTML)).toEqual(['motion-ok:animate-changed-highlight']);
+    expect(container.innerHTML).not.toContain('animate-pulse');
   });
 });

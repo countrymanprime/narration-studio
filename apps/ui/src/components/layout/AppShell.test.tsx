@@ -6,6 +6,7 @@ import { TooltipProvider } from '../primitives/Tooltip';
 import { ApiProvider } from '../../api/ApiContext';
 import { createMockApi } from '../../api/mockApi';
 import type { DawMockSeed } from '../../api/dawMock';
+import { guardedMotion, unguardedMotion } from '../../motionScan';
 
 afterEach(cleanup);
 
@@ -541,5 +542,14 @@ describe('AppShell rail', () => {
       label: 'Delivery',
       disabledReason: 'Import a manuscript to unlock this page.',
     });
+  });
+});
+
+describe('AppShell under reduced motion', () => {
+  it('widens the icon rail through a `motion-ok:` transition on the fast token only, so under reduce it opens at once', () => {
+    const { container } = renderShell();
+    expect(unguardedMotion(container.innerHTML)).toEqual([]);
+    expect(guardedMotion(container.innerHTML)).toContain('motion-ok:transition-[width,box-shadow]');
+    expect(container.innerHTML).toContain('motion-ok:duration-(--motion-fast)');
   });
 });

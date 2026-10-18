@@ -3,6 +3,7 @@ import { act, cleanup, fireEvent, render, screen, within } from '@testing-librar
 import { faLayerGroup } from '@fortawesome/free-solid-svg-icons';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { TOAST_INFO_MS, ToastRegion, type ToastMessage } from './Toast';
+import { guardedMotion, unguardedMotion } from '../../motionScan';
 
 beforeEach(() => vi.useFakeTimers());
 afterEach(() => {
@@ -114,5 +115,14 @@ describe('ToastRegion', () => {
     const error = within(screen.getByRole('alert')).getByText('Failure 2').parentElement!;
     expect(error.querySelector('svg[data-icon="circle-exclamation"]')).not.toBeNull();
     expect(error.querySelector('svg[data-icon="layer-group"]')).toBeNull();
+  });
+});
+
+describe('ToastRegion under reduced motion', () => {
+  it('fades and shifts a leaving toast only through `motion-ok:` classes, and has no stray `ease` class', () => {
+    render(<ToastRegion messages={[info(1)]} dismiss={vi.fn()} />);
+    expect(unguardedMotion(document.body.innerHTML)).toEqual([]);
+    expect(guardedMotion(document.body.innerHTML)).toContain('motion-ok:transition-[opacity,transform]');
+    expect(screen.getByText('Message 1').closest('[data-tone]')!.classList.contains('ease')).toBe(false);
   });
 });

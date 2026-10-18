@@ -21,9 +21,9 @@ export function Switch({
         checked={checked}
         disabled={disabled}
         onCheckedChange={onChange}
-        className="inline-flex h-5 w-9 flex-none items-center rounded-full border border-[var(--border)] bg-[var(--surface-3)] p-0.5 transition-colors data-[checked]:border-[var(--accent)] data-[checked]:bg-[var(--accent)] data-[disabled]:opacity-40"
+        className="inline-flex h-5 w-9 flex-none items-center rounded-full border border-[var(--border)] bg-[var(--surface-3)] p-0.5 data-[checked]:border-[var(--accent)] data-[checked]:bg-[var(--accent)] data-[disabled]:opacity-40 motion-ok:transition-colors motion-ok:duration-(--motion-fast)"
       >
-        <BaseSwitch.Thumb className="size-3.5 rounded-full bg-[var(--surface)] shadow-[var(--shadow)] transition-transform data-[checked]:translate-x-4" />
+        <BaseSwitch.Thumb className="size-3.5 rounded-full bg-[var(--surface)] shadow-[var(--shadow)] data-[checked]:translate-x-4 motion-ok:transition-transform motion-ok:duration-(--motion-fast)" />
       </BaseSwitch.Root>
       <span>{children}</span>
     </label>

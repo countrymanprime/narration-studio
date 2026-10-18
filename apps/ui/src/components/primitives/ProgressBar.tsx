@@ -43,8 +43,8 @@ export function ProgressBar({
     <Progress.Root value={value} aria-label={label} aria-valuetext={valueText} className={className}>
       <Progress.Track className={`progressbar overflow-hidden rounded-full ${SIZE_HEIGHT[size]} ${SIZE_TRACK[size]}`}>
         <div
-          // motion-safe: the fill neither eases nor slides for people who have asked for reduced motion.
-          className={`h-full ${TONE_FILL[tone]} motion-safe:transition-[width] motion-safe:duration-[0.4s] motion-safe:ease-in-out ${indeterminate ? 'motion-safe:animate-[work-progress-slide_1.15s_ease-in-out_infinite]' : ''}`}
+          // motion-ok: the fill neither eases nor slides for people who have asked for reduced motion.
+          className={`h-full ${TONE_FILL[tone]} motion-ok:transition-[width] motion-ok:duration-[0.4s] motion-ok:ease-in-out ${indeterminate ? 'motion-ok:animate-[work-progress-slide_1.15s_ease-in-out_infinite]' : ''}`}
           style={{ width: `${Math.max(value ?? 0, running ? MINIMUM_RUNNING_PERCENT : 0)}%` }}
         />
       </Progress.Track>

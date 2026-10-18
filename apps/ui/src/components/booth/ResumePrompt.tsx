@@ -195,7 +195,7 @@ function DisagreeChoice({
     <button
       type="button"
       onClick={() => pick(place)}
-      className="min-w-0 rounded-md border p-2 text-left transition hover:border-[var(--accent)]"
+      className="min-w-0 rounded-md border p-2 text-left hover:border-[var(--accent)] motion-ok:transition-colors motion-ok:duration-(--motion-fast)"
       style={{ borderColor: 'var(--border)' }}
     >
       <div className="flex flex-wrap items-baseline justify-between gap-x-2 text-xs" style={{ color: 'var(--text-muted)' }}>
@@ -295,7 +295,7 @@ function PromptBody({
   if (state.kind === 'loading')
     return (
       <p role="status" className="flex items-center gap-2">
-        <FontAwesomeIcon icon={faCircleNotch} className="motion-safe:animate-spin" style={{ color: 'var(--text-muted)' }} />
+        <FontAwesomeIcon icon={faCircleNotch} className="motion-ok:animate-spin" style={{ color: 'var(--text-muted)' }} />
         Checking where REAPER and your last reading are… You can press Play now to start from the top.
       </p>
     );

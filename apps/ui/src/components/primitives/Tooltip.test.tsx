@@ -7,6 +7,8 @@ import { Dialog } from './Dialog';
 import { Highlight } from './Highlight';
 import { danglingAriaReferences } from './ariaReferences';
 import { Tooltip, TooltipProvider, TooltipTarget } from './Tooltip';
+import { guardedMotion, unguardedMotion } from '../../motionScan';
+import { HINT_POPUP_CLASSES } from './hintLayer';
 
 afterEach(() => {
   // jsdom keeps :focus-visible state on the element that was focused last; drop it so the next test starts clean.
@@ -301,5 +303,12 @@ describe('a hint inside a dialog', () => {
     expect(onClose).not.toHaveBeenCalled();
     await user.keyboard('{Escape}');
     expect(onClose).toHaveBeenCalledOnce();
+  });
+});
+
+describe('hints under reduced motion', () => {
+  it('enter through the `motion-ok:` tooltip-in animation only, so under reduce a hint just appears', () => {
+    expect(unguardedMotion(HINT_POPUP_CLASSES)).toEqual([]);
+    expect(guardedMotion(HINT_POPUP_CLASSES)).toEqual(['motion-ok:animate-tooltip-in']);
   });
 });

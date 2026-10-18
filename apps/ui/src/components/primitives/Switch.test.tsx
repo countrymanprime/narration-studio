@@ -4,6 +4,7 @@ import userEvent from '@testing-library/user-event';
 import { useState } from 'react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { Switch } from './Switch';
+import { guardedMotion, unguardedMotion } from '../../motionScan';
 
 afterEach(cleanup);
 
@@ -45,5 +46,13 @@ describe('Switch', () => {
     render(<Controlled onChange={onChange} disabled />);
     await user.click(screen.getByText('Notify me when a job finishes'));
     expect(onChange).not.toHaveBeenCalled();
+  });
+});
+
+describe('Switch under reduced motion', () => {
+  it('moves its thumb and colours only through `motion-ok:` classes, so reduced motion changes state with no transition', () => {
+    const { container } = render(<Controlled />);
+    expect(unguardedMotion(container.innerHTML)).toEqual([]);
+    expect(guardedMotion(container.innerHTML)).toEqual(expect.arrayContaining(['motion-ok:transition-colors', 'motion-ok:transition-transform']));
   });
 });

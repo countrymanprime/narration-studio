@@ -5,4 +5,4 @@ export const HINT_POPUP_SELECTOR = `[${HINT_POPUP_ATTRIBUTE}]`;
 
 // Everything a hint looks like: one place, so a tooltip and an info-icon popup cannot drift apart.
 export const HINT_POPUP_CLASSES =
-  'w-max max-w-60 animate-[tooltip-in_0.12s_ease] rounded-[0.4rem] bg-[var(--text)] px-[0.65rem] py-2 text-[0.78rem] leading-[1.35] text-[var(--bg)] shadow-[var(--shadow-lg)]';
+  'w-max max-w-60 motion-ok:animate-tooltip-in rounded-[0.4rem] bg-[var(--text)] px-[0.65rem] py-2 text-[0.78rem] leading-[1.35] text-[var(--bg)] shadow-[var(--shadow-lg)]';

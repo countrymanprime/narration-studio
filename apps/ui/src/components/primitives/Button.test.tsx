@@ -3,6 +3,7 @@ import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { Button } from './Button';
 import { IconButton } from './IconButton';
+import { guardedMotion, unguardedMotion } from '../../motionScan';
 
 afterEach(cleanup);
 
@@ -69,7 +70,7 @@ describe('Button pending', () => {
   it('spins only for people who have not asked for reduced motion', () => {
     render(<Button pending>Save</Button>);
     const classes = (screen.getByRole('button').querySelector('svg') as SVGElement).getAttribute('class')?.split(/\s+/) ?? [];
-    expect(classes).toContain('motion-safe:animate-spin');
+    expect(classes).toContain('motion-ok:animate-spin');
     expect(classes).not.toContain('animate-spin');
   });
 });
@@ -171,5 +172,21 @@ describe('IconButton pending', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Save changes' }));
     expect(screen.getByTestId('icon')).toBeTruthy();
     expect(onClick).toHaveBeenCalledOnce();
+  });
+});
+
+describe('Button and IconButton under reduced motion', () => {
+  it('change colour through `motion-ok:transition-colors` only (not a bare `transition`), and spin only through `motion-ok:`', () => {
+    const { container } = render(
+      <div>
+        <Button pending>Save</Button>
+        <Button>Plain</Button>
+        <IconButton label="Close" pending>
+          x
+        </IconButton>
+      </div>,
+    );
+    expect(unguardedMotion(container.innerHTML)).toEqual([]);
+    expect(guardedMotion(container.innerHTML)).toEqual(expect.arrayContaining(['motion-ok:transition-colors', 'motion-ok:animate-spin']));
   });
 });

@@ -5,6 +5,7 @@ import type { MarkColour, MarkStyle } from '../../../../api/contracts/marks';
 import { buildLayerIndex, paragraphLayers, type Layer } from './layers';
 import { Para } from './Para';
 import { cue, entry, flaggedWord, mark, paragraph, TYPES } from './readerFixtures';
+import { guardedMotion, unguardedMotion } from '../../../../motionScan';
 
 afterEach(cleanup);
 
@@ -148,5 +149,17 @@ describe('Para', () => {
     rerender(<Para paragraph={para} layers={layers} renderGutter={renderGutter} />);
     expect(renderGutter).toHaveBeenCalledTimes(1);
     expect(screen.queryByRole('button')).toBeNull();
+  });
+});
+
+describe('Para jump-target highlight under reduced motion', () => {
+  it('fades once through `motion-ok:` and is a static tint otherwise: no looping pulse', () => {
+    const { container } = render(<Para paragraph={para} layers={[]} flash />);
+    const html = container.innerHTML;
+    expect(unguardedMotion(html)).toEqual([]);
+    expect(guardedMotion(html)).toEqual(['motion-ok:animate-changed-highlight']);
+    expect(html).not.toContain('animate-pulse');
+    // The static form: tinted while flagged, which is what a reduce user sees.
+    expect(container.querySelector('[data-para]')!.className).toContain('bg-[var(--accent-soft)]');
   });
 });

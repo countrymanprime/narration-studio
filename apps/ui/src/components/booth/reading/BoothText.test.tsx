@@ -6,6 +6,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { BoothText, TEXT_SIZE, textSizePx } from './BoothText';
 import { sampleColour, sampleDecorations, sampleNotes, sampleParagraphs, sampleSpeakers } from './fixture';
 import type { BrowseView } from './useBrowseView';
+import { guardedMotion, unguardedMotion } from '../../../motionScan';
 
 afterEach(() => {
   cleanup();
@@ -259,5 +260,16 @@ describe('paragraphs away from the reading position are skipped by the browser u
       parseFloat([...document.querySelectorAll<HTMLElement>('[data-booth-text] p')].find((p) => p.dataset.paragraph === id)!.style.getPropertyValue('--est'));
     expect(est('b')).toBeGreaterThan(est('a') * 5);
     expect(est('c')).toBeGreaterThanOrEqual(1.5);
+  });
+});
+
+describe('BoothText under reduced motion', () => {
+  it('slides the column (300 ms) and fades word and unit colour only through `motion-ok:` classes, so under reduce the text jumps', () => {
+    const { container, text } = setup();
+    expect(unguardedMotion(container.innerHTML)).toEqual([]);
+    expect(guardedMotion(container.innerHTML)).toEqual(expect.arrayContaining(['motion-ok:transition-transform', 'motion-ok:transition-colors']));
+    // The column's transition is a class, never an inline style, so nothing in code can switch it on past the guard.
+    expect(text.className).toContain('motion-ok:duration-(--motion-slow)');
+    expect(text.style.transition).toBe('');
   });
 });

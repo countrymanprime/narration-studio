@@ -20,6 +20,7 @@ import { MOCK_RESUME_SEEDS } from './api/resumeMockSeed';
 import { MOCK_REAPER_INPUT_SEEDS, MOCK_REAPER_SEEDS } from './api/teleprompterMock';
 import { scenarioFromParams } from './components/devtools/mockStates';
 import { ThemeProvider } from './theme/ThemeContext';
+import { syncMotionAttribute } from './theme/motion';
 import { LiveCommandRouter } from './input/LiveCommandRouter';
 import { createKeyboardSource } from './input/KeyboardSource';
 import { combineSources, midiSource } from './input/MidiSource';
@@ -618,6 +619,8 @@ const mockInitial = {
 };
 const api = import.meta.env.VITE_USE_MOCK_API === '1' ? createMockApi(window.__NARRATION_MOCK_OVERRIDES__, mockInitial) : wailsClient;
 if (api === wailsClient) enableUiLog();
+// data-motion="reduce" from Windows' reduced-motion preference, before the first render (the `motion-ok:` variant reads it).
+syncMotionAttribute();
 
 createRoot(document.getElementById('root')!).render(
   <React.StrictMode>

@@ -2,6 +2,7 @@
 import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { ScriptColumns, type Drawer } from './ScriptColumns';
+import { guardedMotion, unguardedMotion } from '../../../../motionScan';
 
 afterEach(cleanup);
 
@@ -48,5 +49,15 @@ describe('ScriptColumns drawers', () => {
     const onClose = mount(null);
     fireEvent.pointerDown(screen.getByRole('link', { name: 'Production' }));
     expect(onClose).not.toHaveBeenCalled();
+  });
+});
+
+describe('ScriptColumns drawers under reduced motion', () => {
+  it('slide through a `motion-ok:` transition on the base token only, so under reduce they open and close at once', () => {
+    mount('ch');
+    const panel = document.querySelector('[data-panel="chapters"]') as HTMLElement;
+    expect(unguardedMotion(panel.outerHTML)).toEqual([]);
+    expect(guardedMotion(panel.outerHTML)).toEqual(['motion-ok:transition-[transform,visibility]']);
+    expect(panel.className).toContain('motion-ok:duration-(--motion-base)');
   });
 });

@@ -3,6 +3,7 @@ import { Icon } from '../../../primitives/Icon';
 import { TooltipTarget } from '../../../primitives/Tooltip';
 import { bookmarkSnippet, bookmarkTip, type LineText } from '../model/selectors';
 import { BookmarkEditor } from './BookmarkEditor';
+import { CHANGED_HIGHLIGHT } from '../../../primitives/changedHighlight';
 
 export type BookmarkRibbonProps = {
   bookmark: Bookmark;
@@ -39,7 +40,7 @@ export function BookmarkRibbon({ bookmark, lineText, top, flash = false, onUpdat
             aria-haspopup="dialog"
             className="relative flex h-[26px] w-4 cursor-pointer items-start justify-center rounded-sm border-0 bg-transparent p-0 text-[var(--accent)] hover:text-[var(--accent-strong)] focus-visible:outline-2 focus-visible:outline-[var(--focus)]"
           >
-            <span className={flash ? 'motion-safe:animate-pulse' : undefined}>
+            <span className={flash ? CHANGED_HIGHLIGHT : undefined}>
               <Icon name="bookmark" />
             </span>
             {hasNote && <span data-note-dot="" aria-hidden="true" className="absolute right-0 bottom-1 size-1.5 rounded-full bg-[var(--accent)]" />}
