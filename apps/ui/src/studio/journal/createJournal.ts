@@ -61,6 +61,8 @@ export type Journal = LeaveGuardStore & {
   undoLast(): Promise<Result<unknown>>;
   /** Newest first. Async because a DAW entry's refusal depends on what the DAW reports. */
   entries(): Promise<HistoryRow[]>;
+  /** Whether the entry is still in the journal: false once it is undone (by any route), cleared or pushed out by newer ones. */
+  has(id: number): boolean;
   /** Empties the journal (a project switch). */
   clear(): void;
   /** Calls `listener` after the journal changes; returns the unsubscribe. */
@@ -206,6 +208,7 @@ export function createJournal(options: JournalOptions): Journal {
       );
       return rows.reverse();
     },
+    has: (id) => entries.some((e) => e.id === id),
     clear: () => {
       entries = [];
       emit();

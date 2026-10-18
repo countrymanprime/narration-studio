@@ -124,7 +124,7 @@ export function useFxWords({ journal, chapterId, chapterName, effects, cuts, loc
       const result = await journal.act(applyFxCommand({ daw, log, onEffects }, plan, { chapterId, range, chain, source, locator, needsOver, confirmedOver }));
       if (!result.ok) return overlay.toast(result.refusal.reason, { tone: 'error' });
       const { id, value } = result.value;
-      overlay.toastUndo(value.message, () => journal.undo(id));
+      overlay.toastUndo(value.message, () => journal.undo(id), { entry: id });
     },
     [plan, journal, daw, log, onEffects, chapterId, locator],
   );
@@ -172,7 +172,7 @@ export function useFxWords({ journal, chapterId, chapterName, effects, cuts, loc
       const result = await journal.act(removeFxCommand({ daw, log, onEffects }, plan, { chapterId, fx, locator }));
       if (!result.ok) return overlay.toast(result.refusal.reason, { tone: 'error' });
       const { id } = result.value;
-      overlay.toastUndo(`Took ${fx.chainName} off the words.`, () => journal.undo(id));
+      overlay.toastUndo(`Took ${fx.chainName} off the words.`, () => journal.undo(id), { entry: id });
     },
     [plan, journal, daw, log, onEffects, chapterId, locator],
   );

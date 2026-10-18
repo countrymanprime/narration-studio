@@ -107,11 +107,15 @@ export function SchedulePage({ journal, today, hasManuscript = true, onImport }:
         // A refusal is about the change before: once one goes through, it is no longer true.
         overlay.dismissTopic(REFUSAL);
         if (undoText)
-          overlay.toastUndo(undoText, async () => {
-            const undone = await journal.undo(result.value.id);
-            await reload();
-            return undone;
-          });
+          overlay.toastUndo(
+            undoText,
+            async () => {
+              const undone = await journal.undo(result.value.id);
+              await reload();
+              return undone;
+            },
+            { entry: result.value.id },
+          );
         return undefined;
       },
     );
