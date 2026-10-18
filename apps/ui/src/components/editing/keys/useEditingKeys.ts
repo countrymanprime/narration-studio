@@ -18,6 +18,7 @@ export interface EditingKeyHandlers {
   remove?: () => void;
   mute?: () => void;
   fx?: () => void;
+  voiceSample?: () => void;
   takes?: (d: 1 | -1) => void;
   /** Keeps the take the keys are on; Enter on a flagged word opens its card instead. */
   keep?: () => void;
@@ -85,7 +86,7 @@ function openWordMenu(key: string): void {
 export function useEditingKeys({ handlers = {}, keymap }: EditingKeysOptions): void {
   const { doc, state, dispatch } = useEditingPage();
   const on = doc.items.length > 0;
-  const { play, remove, mute, fx, takes, keep, hideOthers, strip, drawer, chapterStep } = handlers;
+  const { play, remove, mute, fx, voiceSample, takes, keep, hideOthers, strip, drawer, chapterStep } = handlers;
 
   const move = useCallback(
     (d: number) => {
@@ -129,6 +130,7 @@ export function useEditingKeys({ handlers = {}, keymap }: EditingKeysOptions): v
   useCommand('editing.delete', (e) => !inDrawer(e.target) && remove?.(), on && remove !== undefined);
   useCommand('editing.mute', () => mute?.(), on && mute !== undefined);
   useCommand('editing.fx', () => fx?.(), on && fx !== undefined);
+  useCommand('editing.voice-sample', () => voiceSample?.(), on && voiceSample !== undefined);
   useCommand('editing.hide-others', () => hideOthers?.(), on && hideOthers !== undefined);
   useCommand('editing.strip', () => strip?.(), on && strip !== undefined);
   useCommand(
@@ -203,6 +205,7 @@ export function useEditingKeys({ handlers = {}, keymap }: EditingKeysOptions): v
       if (play) out.push(entry('workspace.play', 'Play from the cursor or the selection', play));
       if (remove) out.push(entry('editing.delete', 'Delete the selected words and audio', remove));
       if (fx) out.push(entry('editing.fx', 'Add FX to the selected words', fx));
+      if (voiceSample) out.push(entry('editing.voice-sample', 'Mark the selected words as a voice sample', voiceSample));
       out.push(
         entry('workspace.flag.next', 'Next flagged word', () => flag(1)),
         entry('workspace.flag.prev', 'Previous flagged word', () => flag(-1)),
@@ -212,7 +215,7 @@ export function useEditingKeys({ handlers = {}, keymap }: EditingKeysOptions): v
       if (hideOthers) out.push(entry('editing.hide-others', 'Hide or show the other takes', hideOthers));
       return out;
     },
-    [on, keymap, chapterStep, play, remove, fx, strip, keep, hideOthers, flag],
+    [on, keymap, chapterStep, play, remove, fx, voiceSample, strip, keep, hideOthers, flag],
   );
   useCommandProvider(provider);
 }

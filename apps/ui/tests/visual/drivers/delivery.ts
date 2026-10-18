@@ -56,7 +56,7 @@ export const deliveryDrivers: Record<string, Driver> = {
   'build-failed': async (page) => {
     await openReady(page, 'fails');
     await buildButton(page).click();
-    await page.getByRole('alert').filter({ hasText: 'could not be built' }).waitFor();
+    await page.getByRole('alert').filter({ hasText: 'access is denied' }).waitFor();
   },
   'host-quiet': async (page) => {
     await openReady(page, 'quiet');

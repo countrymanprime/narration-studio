@@ -9,6 +9,7 @@ import { usePort } from '../../ports/usePort';
 import type { Bootstrap } from '../../types';
 import { creditsEntries, creditsKindOfId, ownsOpeningCredits } from '../credits/creditsEntries';
 import { useCreditsRows } from '../credits/useCreditsRows';
+import { LoadError } from '../layout/LoadError';
 import { Panel } from '../primitives/Panel';
 import { StatStrip } from '../primitives/StatStrip';
 import type { Notify } from '../primitives/Toast';
@@ -339,6 +340,18 @@ export function ProductionPage({
       : measured.answers.pickupSessionSeconds
     : { ok: false as const, reason: 'Reading the pickup sessions…' };
 
+  if (load.status === 'error')
+    return (
+      <LoadError
+        title="Production"
+        message={`The production overview could not be read: ${load.message}`}
+        retry={() => {
+          setLoad({ status: 'loading' });
+          void read();
+        }}
+      />
+    );
+
   return (
     <div className="mx-auto flex max-w-[96rem] flex-col gap-4">
       {caps && !caps.reachable && caps.daw !== 'none' && (
@@ -373,11 +386,6 @@ export function ProductionPage({
           Reading the production log…
         </p>
       )}
-      {load.status === 'error' && (
-        <p role="alert" className="text-sm" style={DANGER}>
-          The production overview could not be read: {load.message}
-        </p>
-      )}
       {timer.problem && (
         <p role="alert" className="text-sm" style={DANGER}>
           {timer.problem}
@@ -402,7 +410,7 @@ export function ProductionPage({
             targetInfo={<TargetInfoButton />}
           />
           <TimerFigures overview={overview} />
-          <div className="grid grid-cols-[minmax(0,1fr)] gap-4 min-[1024px]:grid-cols-3">
+          <div className="grid grid-cols-[minmax(0,1fr)] gap-4 min-[1024px]:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)_minmax(0,1fr)]">
             <StageBar segments={stageSegments(narrated, WPH)} wph={WPH} />
             <WeekCard figures={weekFigures(log, today, start, due, k.words / WPH)} />
             <CheckCountsCard
@@ -412,7 +420,7 @@ export function ProductionPage({
               onCheck={(ids) => openCheckRecordings(ids)}
             />
           </div>
-          <div className="grid grid-cols-[minmax(0,1fr)] items-start gap-4 min-[1280px]:grid-cols-[minmax(0,1fr)_21.25rem]">
+          <div className="grid grid-cols-[minmax(0,1fr)] items-start gap-4 min-[1280px]:grid-cols-[minmax(0,1fr)_22.5rem]">
             <div className="flex min-w-0 flex-col gap-4">
               <Panel title="Chapter pipeline" flush>
                 <div {...{ [PIPELINE_AREA]: '' }}>

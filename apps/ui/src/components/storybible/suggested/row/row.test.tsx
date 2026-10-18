@@ -102,6 +102,22 @@ describe('confidence-chip-says-why', () => {
   });
 });
 
+// The mock's `.xsug` (extraction.css:3-4): a bordered card on an 8 px radius, warn-bordered only while it still needs verifying.
+describe('row-is-a-card', () => {
+  it('draws each suggestion as a rounded bordered card, warn-bordered only while it needs verifying', () => {
+    const verify = one((s) => s.status === 'needs-verification');
+    const auto = one((s) => s.status === 'accepted-auto');
+    const { unmount } = renderRow(verify);
+    const card = document.querySelector<HTMLElement>('[data-sug] > div')!;
+    expect(card.className).toContain('rounded-lg');
+    expect(card.className).toContain('border');
+    expect(card.style.borderColor).toContain('--warn');
+    unmount();
+    renderRow(auto);
+    expect(document.querySelector<HTMLElement>('[data-sug] > div')!.style.borderColor).toContain('--border');
+  });
+});
+
 describe('row-shows-the-quote-and-goes-to-the-line', () => {
   it('draws each evidence quote as a button with the chapter and line in its tip, and presses go to the line', async () => {
     const u = userEvent.setup();

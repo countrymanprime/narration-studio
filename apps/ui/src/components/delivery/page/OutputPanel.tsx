@@ -22,12 +22,15 @@ export function OutputPanel({
   profile,
   ready,
   waiting,
+  failure,
   build,
   showBuilt,
 }: {
   profile: DeliveryProfile;
   ready: boolean;
   waiting: string;
+  /** The first failing chapter, rule, value and limit, said beside Build while Build is off. */
+  failure?: string;
   build: DeliveryBuild;
   /** False after a profile change or while the chapters stop passing: the built list goes away. */
   showBuilt: boolean;
@@ -36,13 +39,17 @@ export function OutputPanel({
   // Busy is shown with `pending`, not `disabled`, so the Build button keeps keyboard focus while it works.
   const canBuild = ready && build.encoded > 0;
   const buildButton = useRef<HTMLButtonElement>(null);
-  const why = !ready
-    ? waiting
-    : build.encoded === 0
-      ? 'Master all to spec in Master & QC first.'
-      : build.exportRunning
-        ? 'Master & QC is still preparing the files.'
-        : waiting;
+  // While a build runs and the host has stopped answering, "Every chapter passes." would be a stale fact; the alert below says what is known.
+  const stale = build.running && build.quiet !== undefined;
+  const why = stale
+    ? ''
+    : !ready
+      ? waiting
+      : build.encoded === 0
+        ? 'Master all to spec in Master & QC first.'
+        : build.exportRunning
+          ? 'Master & QC is still preparing the files.'
+          : waiting;
   return (
     <Panel title="Output">
       <div className="flex flex-col gap-3">
@@ -78,6 +85,11 @@ export function OutputPanel({
             {why}
           </span>
         </div>
+        {!ready && failure && !stale && (
+          <p dir="auto" className="text-sm" style={DANGER}>
+            {failure}
+          </p>
+        )}
         {build.running && <ProgressBar label="Building the package" value={null} running />}
         {build.quiet !== undefined && (
           <p role="alert" className="text-sm" style={DANGER}>

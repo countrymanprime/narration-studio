@@ -195,9 +195,9 @@ const MOCK_PREVIEW_WARNING_CANDIDATE: PreviewCandidate = {
   reasons: ['Mixes narration and dialogue (50% of paragraphs have dialogue).', 'One Story Bible entity present.', 'Starts and ends on paragraph boundaries.'],
   warnings: ['This manuscript was imported before chapters were classified narration, opening or reference; treated as narration.'],
 };
-// `?mockInvalidPayload=bootstrap|manuscript|storybible` makes that payload arrive in the wrong shape (through the real `parseWire`),
+// `?mockInvalidPayload=bootstrap|manuscript|storybible|production` makes that payload arrive in the wrong shape (through the real `parseWire`),
 // so the startup error screen and the inline page errors for a payload the app could not read can be seen without a host.
-const mockInvalidPayload = (['bootstrap', 'manuscript', 'storybible'] as const).find((which) => which === mockParams.get('mockInvalidPayload'));
+const mockInvalidPayload = (['bootstrap', 'manuscript', 'storybible', 'production'] as const).find((which) => which === mockParams.get('mockInvalidPayload'));
 // `?mockLiveDegraded=1` tells the app at once that live updates are degraded, so the notice can be seen without a failing host.
 const mockLiveDegraded = mockParams.has('mockLiveDegraded');
 // `?mockRebuildRunning=1` boots with a Story Bible rebuild still running, so its dialog can be seen without a host.

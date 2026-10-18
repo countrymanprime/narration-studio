@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"os"
 	"path/filepath"
 	"sync"
@@ -176,7 +177,8 @@ func (j *measureJob) finish(cancelled bool, broken error) {
 		case measureFileMeasuring:
 			if broken != nil {
 				// The file being measured when the measurement broke: its own failure, not the narrator's cancel.
-				j.files[i].Status, j.files[i].Error = measureFileFailed, "the measurement stopped unexpectedly: "+broken.Error()
+				// The narrator reads this sentence in the row; the Go error ("index out of range [4] with length 4") goes to the run log only (runMeasure).
+				j.files[i].Status, j.files[i].Error = measureFileFailed, "the measurement stopped unexpectedly on this file"
 				failed++
 				continue
 			}
@@ -189,7 +191,7 @@ func (j *measureJob) finish(cancelled bool, broken error) {
 	}
 	switch {
 	case broken != nil:
-		j.phase, j.message, j.errorText = "error", "The measurement stopped unexpectedly.", broken.Error()
+		j.phase, j.message, j.errorText = "error", "The measurement stopped unexpectedly.", "The measurement stopped unexpectedly."
 	case cancelled:
 		j.phase = "cancelled"
 		j.message = fmt.Sprintf("Measurement cancelled. %d of %s was measured.", measured, countFiles(len(j.files)))
@@ -342,6 +344,7 @@ func (h *Host) runMeasure(ctx context.Context, job *measureJob, paths []string, 
 		var broken error
 		if recovered := recover(); recovered != nil {
 			broken = fmt.Errorf("%v", recovered)
+			runlog.FromContext(ctx).Event(slog.LevelError, "measure.panic", "the measurement stopped unexpectedly: "+broken.Error())
 		}
 		// Save before finish() flips the job's phase to a terminal one: every file this loop measured already carries
 		// its report at this point, so the save needs nothing finish() would still set, and doing it first keeps a
