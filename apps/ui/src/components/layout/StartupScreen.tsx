@@ -44,7 +44,7 @@ export function StartupScreen({ state, error, details, diagnosticId, retry }: Pr
           <div className="text-center">
             <Heading
               title={waiting ? 'Opening Narration Studio…' : 'Desktop host needs attention'}
-              icon={waiting ? <FontAwesomeIcon icon={faCircleNotch} spin /> : undefined}
+              icon={waiting ? <FontAwesomeIcon icon={faCircleNotch} className="motion-ok:animate-spin" /> : undefined}
             />
             <p className="mt-3 text-sm" style={{ color: 'var(--text-muted)' }}>
               {detail}

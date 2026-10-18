@@ -92,6 +92,8 @@ export function findMotionViolations(file: string, source: string): Violation[] 
       if (match[2] !== '' && match[2] !== 'none') add(match[0], 'an inline transition (use a `motion-ok:` class; "" or "none" only resets one)');
     }
     for (const match of text.matchAll(/\banimation(?:Duration|Name)?\s*[:=]\s*['"`][^'"`]+['"`]|\.animate\(/g)) add(match[0], 'an inline animation');
+    // FontAwesome's own `spin` prop loops with no guard; use `className="motion-ok:animate-spin"`.
+    if (/<FontAwesomeIcon[^>]*\sspin\b/.test(text)) add('spin', 'FontAwesome `spin` loops under reduced motion; use `motion-ok:animate-spin`');
     // CSS declarations in a stylesheet or a CSS-in-JS block.
     if (file.endsWith('.css') && /(^|[;{\s])(transition|animation)(-[a-z-]+)?\s*:/.test(text))
       add(text.trim(), 'a CSS transition or animation outside a `motion-ok:` utility');

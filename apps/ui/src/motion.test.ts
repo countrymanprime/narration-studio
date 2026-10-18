@@ -40,6 +40,7 @@ describe('findMotionViolations (the scan itself)', () => {
     expect(whys(`<i className="animate-spin" />`)).toHaveLength(2);
     expect(whys(`el.style.transition = 'transform 300ms';`)).toHaveLength(1);
     expect(whys(`el.style.transition = eased ? '' : 'none';`)).toEqual([]);
+    expect(whys(`<FontAwesomeIcon icon={x} spin />`)).toHaveLength(1);
     expect(whys(`el.animate({ opacity: [0, 1] }, 200);`)).toEqual(['an inline animation']);
   });
 

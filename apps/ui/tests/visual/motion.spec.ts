@@ -39,6 +39,15 @@ async function recordMotion(page: Page): Promise<void> {
   });
 }
 
+/** `data-motion="reduce"` on <html> from before the first script, the way the in-app setting will leave it. */
+async function forceReduceAttribute(page: Page): Promise<void> {
+  await page.addInitScript(() => {
+    const set = () => document.documentElement?.setAttribute('data-motion', 'reduce');
+    set();
+    new MutationObserver(set).observe(document, { childList: true });
+  });
+}
+
 const motionSeen = (page: Page) => page.evaluate(() => (window as unknown as { __motionSeen: Seen[] }).__motionSeen);
 
 /** What is running right now, in the page's own terms. */
@@ -106,9 +115,13 @@ test.describe('motion on', () => {
     await recordMotion(page);
     await openProduction(page);
     await openOverlays(page);
-    const seen = await motionSeen(page);
-    // Not vacuous: motion really is on here. The slide-over's transform transition ran.
-    expect(seen).toContainEqual({ kind: 'transition', target: 'slide-over', property: 'transform' });
+    // Not vacuous: motion really is on here. The tooltip (opened by the hover on the way) animated, and the slide-over carries its
+    // base-token transition. (Base UI 1.8's Drawer never sets `data-starting-style` here, so the panel appears in place and no
+    // transitionrun fires on it: slice 4 of #1456 looks at that. The class and its token are what this asserts.)
+    await page.keyboard.press('Escape');
+    await page.keyboard.press('Escape');
+    await page.locator('main > header').getByRole('button', { name: 'History', exact: true }).click();
+    await expect(page.locator('[data-slide-over]')).toHaveCSS('transition-duration', '0.2s');
     await expectAtRest(page);
     expect(await page.evaluate(() => document.documentElement.hasAttribute('data-motion'))).toBe(false);
   });
@@ -137,13 +150,13 @@ test.describe('motion on', () => {
       'Schedule',
       'Script',
       'Story Bible',
-      'Booth',
       'Editing',
       'Proof',
       'Pickups',
       'Master & QC',
       'Delivery',
       'Settings',
+      'Booth',
     ] as const) {
       await goToPage(page, name);
       await page.waitForTimeout(400);
@@ -159,7 +172,7 @@ test.describe('motion on', () => {
     await goToPage(page, 'Booth');
     const column = page.locator('[data-booth-text] > div').first();
     await expect(column).toHaveCSS('transition-duration', '0.3s');
-    await expect(column).toHaveCSS('transition-property', 'transform');
+    await expect(column).toHaveCSS('transition-property', /^transform\b/);
   });
 });
 
@@ -178,14 +191,18 @@ test.describe('reduced motion', () => {
       await openOverlays(page);
       await expectNothingMoved(page);
       expect(await page.evaluate(() => document.documentElement.getAttribute('data-motion'))).toBe('reduce');
+      await page.keyboard.press('Escape');
+      await page.keyboard.press('Escape');
+      await page.locator('main > header').getByRole('button', { name: 'History', exact: true }).click();
+      await expect(page.locator('[data-slide-over]')).toHaveCSS('transition-duration', '0s');
     });
 
-    test('the Booth text column, the icon rail and a switch have no transition', async ({ page }) => {
+    test('the icon rail and the Booth text column have no transition', async ({ page }) => {
       await openProduction(page);
-      await goToPage(page, 'Booth');
-      await expect(page.locator('[data-booth-text] > div').first()).toHaveCSS('transition-duration', '0s');
       await goToPage(page, 'Settings');
       await expect(page.locator('aside[aria-label="Primary navigation"] > div')).toHaveCSS('transition-duration', '0s');
+      await goToPage(page, 'Booth');
+      await expect(page.locator('[data-booth-text] > div').first()).toHaveCSS('transition-duration', '0s');
     });
   });
 
@@ -193,7 +210,7 @@ test.describe('reduced motion', () => {
     test.use({ reducedMotion: 'no-preference' });
 
     test('opening a slide-over, a menu and a toast starts no transition or animation', async ({ page }) => {
-      await page.addInitScript(() => document.documentElement.setAttribute('data-motion', 'reduce'));
+      await forceReduceAttribute(page);
       await recordMotion(page);
       await openProduction(page);
       expect(await page.evaluate(() => matchMedia('(prefers-reduced-motion: reduce)').matches)).toBe(false);
@@ -202,7 +219,7 @@ test.describe('reduced motion', () => {
     });
 
     test('the Booth text column has no transition', async ({ page }) => {
-      await page.addInitScript(() => document.documentElement.setAttribute('data-motion', 'reduce'));
+      await forceReduceAttribute(page);
       await openProduction(page);
       await goToPage(page, 'Booth');
       await expect(page.locator('[data-booth-text] > div').first()).toHaveCSS('transition-duration', '0s');
