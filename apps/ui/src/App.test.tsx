@@ -943,7 +943,8 @@ describe('App (integration, driven through the mock NarrationApi)', () => {
     const source = createMockApi();
     renderApp({ bootstrap: async () => ({ ...(await source.bootstrap()), manuscript: null }), manuscriptChapters: async () => [] });
     expect((await screen.findAllByRole('heading', { name: title })).length).toBeGreaterThan(0);
-    expect(screen.getAllByText(/no manuscript yet/i).length).toBeGreaterThan(0);
+    // Schedule's title is drawn while it reads its plan, so the heading is not proof the empty state has arrived: wait for its text.
+    expect((await screen.findAllByText(/no manuscript yet/i)).length).toBeGreaterThan(0);
     await new Promise((resolve) => setTimeout(resolve, 700));
     expect(window.location.pathname).toBe(path);
     expect(window.location.search).toBe('?mockNoManuscript=1');
@@ -1657,6 +1658,34 @@ describe('App shell mounts', () => {
     fireEvent.keyDown(document.body, { code: 'KeyZ', key: 'z', ctrlKey: true });
     await waitFor(() => expect(undo).toHaveBeenCalledTimes(1));
     expect(await screen.findByText('Undid Added a bookmark')).toBeTruthy();
+  });
+
+  it('ctrl-z-undoes-the-last-change: with the History panel open Ctrl+Z undoes the newest entry, as the panel says, and the list follows', async () => {
+    const journal = newJournal();
+    const undo = vi.fn(async () => ({ ok: true as const, value: 1 }));
+    await journal.act({ label: 'Added a bookmark', touches: ['bookmarks'], run: async () => ({ ok: true, value: 1 }), undo });
+    renderWithJournal(journal);
+    await screen.findByRole('heading', { level: 1, name: 'Production' });
+    fireEvent.keyDown(document.body, { code: 'KeyH', key: 'h', ctrlKey: true, shiftKey: true });
+    const dialog = await screen.findByRole('dialog', { name: 'Undo history' });
+    expect(within(dialog).getByText('Ctrl Z undoes the last one')).toBeTruthy();
+    fireEvent.keyDown(dialog, { code: 'KeyZ', key: 'z', ctrlKey: true });
+    await waitFor(() => expect(undo).toHaveBeenCalledTimes(1));
+    expect(await screen.findByText('Undid Added a bookmark')).toBeTruthy();
+    expect(await within(dialog).findByText('Nothing to undo yet.')).toBeTruthy();
+  });
+
+  it('ctrl-z-undoes-the-last-change: behind any other dialog Ctrl+Z still leaves the journal alone', async () => {
+    const journal = newJournal();
+    const undo = vi.fn(async () => ({ ok: true as const, value: 1 }));
+    await journal.act({ label: 'Added a bookmark', touches: ['bookmarks'], run: async () => ({ ok: true, value: 1 }), undo });
+    renderWithJournal(journal);
+    await screen.findByRole('heading', { level: 1, name: 'Production' });
+    fireEvent.keyDown(document.body, { code: 'KeyK', key: 'k', ctrlKey: true });
+    const dialog = await screen.findByRole('dialog');
+    fireEvent.keyDown(dialog, { code: 'KeyZ', key: 'z', ctrlKey: true });
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    expect(undo).not.toHaveBeenCalled();
   });
 
   it('ctrl-z-undoes-the-last-change: in a text field Ctrl+Z is the field’s own undo and the journal is left alone', async () => {

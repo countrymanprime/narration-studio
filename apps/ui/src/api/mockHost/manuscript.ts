@@ -197,6 +197,8 @@ export function createManuscriptMock(
       importJob = { ...importJob, phase: 'cancelled', message: 'Manuscript import cancelled.' };
     },
     manuscriptChapters: async () => {
+      if (initial.chaptersRead === 'loading') return new Promise<never>(() => {});
+      if (initial.chaptersRead === 'fails') throw new Error('The manuscript could not be read from this project.');
       await manuscriptReady;
       const readable = Boolean(s.tracksDiscovery.selected);
       return wireClone(
