@@ -41,6 +41,11 @@ type Service struct {
 	findingsStore atomic.Pointer[findings.Store]
 	// editMu serializes the edits the host applies itself (editInHost), each a read, change and rewrite of the whole file.
 	editMu sync.Mutex
+	// held is the Story Bible as the last host edit left it (heldDocument); nil until the first edit and after a failed write.
+	// +checklocks:editMu
+	held *heldDocument
+	// parses counts how often an edit had to parse the file, for the tests of heldDocument.
+	parses atomic.Int64 // +checklocksignore: an atomic; it is only ever counted while editMu is held
 }
 
 func New(project, python, backend string, store *settings.Store, sidecars *process.Supervisor) *Service {
