@@ -356,6 +356,25 @@ describe('keys-register-through-the-catalogue', () => {
     expect(document.querySelector('[data-current]')?.textContent).toBe('The');
   });
 
+  it('a held arrow keeps stepping the word, and a held Down the phrase, but a held Space rolls once', async () => {
+    const page = renderPage();
+    await ready();
+    await press('ArrowRight', 'ArrowRight', { repeat: true });
+    await press('ArrowRight', 'ArrowRight', { repeat: true });
+    expect(document.querySelector('[data-current]')?.textContent).toBe('was');
+    await press('ArrowDown', 'ArrowDown', { repeat: true });
+    await press('ArrowDown', 'ArrowDown', { repeat: true });
+    expect(current()).toBe('2');
+    await press('ArrowUp', 'ArrowUp', { repeat: true });
+    expect(current()).toBe('1');
+    await space();
+    await press(' ', 'Space', { repeat: true });
+    await press(' ', 'Space', { repeat: true });
+    await settle();
+    expect(page.daw.recordStart).toHaveBeenCalledTimes(1);
+    expect(page.daw.recordStop).not.toHaveBeenCalled();
+  });
+
   it('ignores keys while typing and with Ctrl held', async () => {
     const page = renderPage();
     await ready();
