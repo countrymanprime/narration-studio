@@ -135,5 +135,8 @@
   },
   "Editing": {
     "fx_cap_pct": "10"
+  },
+  "VoiceSamples": {
+    "storage": "project"
   }
 }

@@ -1,0 +1,5 @@
+{
+  "message": "The recording changed since this chapter was checked. Check it again, then mark the sample.",
+  "reason": "stale_alignment",
+  "status": "refused"
+}
