@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useState } from 'react';
-import { useApi } from '../../../api/ApiContext';
+import { usePort } from '../../../ports/usePort';
 import { apiErrorMessage } from '../../../api/errorMessage';
 import type { CreditsRenderResult, CreditTemplate, RetailSample } from '../../../types';
 import { Button } from '../../primitives/Button';
+import { InsetCard } from '../../primitives/InsetCard';
 import { StatusBadge } from '../../primitives/StatusBadge';
 import { CreditsPanel } from '../CreditsPanel';
 import { useSettingsHost } from '../row/SettingsHost';
@@ -39,7 +40,7 @@ function CreditsLine({ title, part }: { title: string; part: Summary['opening'] 
  * which opens the real editor in place: the template library, this project's values with a live preview, and the retail sample range.
  */
 export function CreditsRowBody() {
-  const api = useApi();
+  const api = usePort('credits');
   const { notify } = useSettingsHost();
   const [editing, setEditing] = useState(false);
   const [summary, setSummary] = useState<Summary>();
@@ -97,9 +98,9 @@ export function CreditsRowBody() {
         </Button>
       </div>
       {editing && (
-        <div className="w-full min-w-0 rounded-md border border-[var(--border)] bg-[var(--surface-2)] p-3">
+        <InsetCard fill className="w-full min-w-0">
           <CreditsPanel notify={notify} />
-        </div>
+        </InsetCard>
       )}
     </div>
   );

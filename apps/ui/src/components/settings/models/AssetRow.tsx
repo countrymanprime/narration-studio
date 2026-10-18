@@ -27,6 +27,7 @@ const CARD_LABEL =
 
 function Cell({ label, className = '', children }: { label?: string; className?: string; children: React.ReactNode }) {
   return (
+    // native-control-ok: a table cell that turns into a labelled card line (data-label) below 1020px, which TableCell cannot draw
     <td data-label={label} className={`${TABLE_CELL_CLASS} align-top ${CARD_CELL} ${label ? CARD_LABEL : ''} ${className}`}>
       {children}
     </td>
@@ -55,6 +56,7 @@ export function AssetRow({ view, pages, inUse, go, install, cancel, remove, dism
   const size = formatSize(item.diskSize || item.downloadSize);
   return (
     <TableRow data={{ 'data-asset': `${item.kind}/${item.id}`, 'data-status': status }} className={CARD_ROW}>
+      {/* native-control-ok: the row header of the asset table; it becomes a card heading at narrow widths (CARD_CELL) */}
       <th scope="row" className={`${TABLE_CELL_CLASS} text-left align-top font-normal ${CARD_CELL}`}>
         <b className="font-semibold">{name}</b>
         <span className="block text-[0.75rem] text-[var(--text-muted)]">

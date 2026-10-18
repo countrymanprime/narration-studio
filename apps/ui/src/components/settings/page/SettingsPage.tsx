@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { Bootstrap } from '../../../types';
 import { Button } from '../../primitives/Button';
+import { InsetCard } from '../../primitives/InsetCard';
 import { Heading } from '../../primitives/Heading';
 import { Icon } from '../../primitives/Icon';
 import { SearchField } from '../../primitives/SearchField';
@@ -241,19 +242,19 @@ function Body({ initialCategory, cameFrom }: { initialCategory?: string; cameFro
               Settings <span aria-hidden="true">/</span> {crumb}
             </div>
             {store.failing && (
-              <div role="status" className="flex flex-col items-start gap-1.5 rounded-lg border border-[var(--warn)] bg-[var(--warn-soft)] px-3.5 py-3">
+              <InsetCard tone="warn" role="status" className="flex flex-col items-start gap-1.5">
                 <b>Changes cannot be saved right now.</b>
                 <span>The last change was not kept and the previous value is still in use. The setting says why.</span>
-              </div>
+              </InsetCard>
             )}
             {broken && (
-              <div role="alert" className="flex flex-col items-start gap-1.5 rounded-lg border border-[var(--danger)] bg-[var(--danger-soft)] px-3.5 py-3">
+              <InsetCard tone="danger" role="alert" className="flex flex-col items-start gap-1.5">
                 <b>Your settings could not be read.</b>
                 <span>{store.readError.global}. Nothing can be changed until the file can be read.</span>
                 <Button variant="secondary" size="sm" onClick={() => void store.reload()}>
                   Try again
                 </Button>
-              </div>
+              </InsetCard>
             )}
             {content}
           </main>

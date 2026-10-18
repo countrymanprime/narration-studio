@@ -1,4 +1,5 @@
 import { Icon } from '../../primitives/Icon';
+import { StatusBadge } from '../../primitives/StatusBadge';
 import { CATEGORIES, GROUPS, PAGES_CATEGORY } from '../registry/categories';
 import type { CategoryId } from '../registry/types';
 
@@ -26,21 +27,22 @@ export function CategoryNav({
 }) {
   const currentLabel = CATEGORIES.find((category) => category.id === current)?.label ?? PAGES_CATEGORY.label;
   const item = (id: CategoryId, label: string, icon: Parameters<typeof Icon>[0]['name'], count: number, countLabel: string) => (
+    // native-control-ok: a navigation entry (icon, label, count) in a full-width list; Button's uppercase centred chrome does not draw it
     <button
       key={id}
       type="button"
       data-cat={id}
       aria-current={!browsing && current === id ? 'page' : 'false'}
       onClick={() => onPick(id)}
-      className="flex min-h-9 w-full items-center gap-2.5 rounded-md border-0 bg-transparent px-2.5 text-left text-[0.9rem] text-[var(--text)] hover:bg-[var(--surface-2)] aria-[current=page]:bg-[var(--accent-soft)] aria-[current=page]:font-semibold"
+      className="flex min-h-9 w-full items-center gap-2.5 rounded-[6px] border-0 bg-transparent px-2.5 text-left text-[0.9rem] text-[var(--text)] hover:bg-[var(--surface-2)] aria-[current=page]:bg-[var(--accent-soft)] aria-[current=page]:font-semibold"
     >
       <span className="flex-none text-[var(--text-muted)]">
         <Icon name={icon} />
       </span>
       <span className="min-w-0 flex-1">{label}</span>
       {count > 0 && (
-        <span aria-label={countLabel} className="rounded-full bg-[var(--info-soft)] px-1.5 text-[0.72rem] font-semibold text-[var(--info-text)]">
-          {count}
+        <span aria-label={countLabel}>
+          <StatusBadge tone="info" label={String(count)} />
         </span>
       )}
     </button>
@@ -50,6 +52,7 @@ export function CategoryNav({
       aria-label="Settings categories"
       className="flex flex-col gap-0.5 rounded-[10px] border border-[var(--border)] bg-[var(--surface)] p-2 @min-[761px]:sticky @min-[761px]:top-0"
     >
+      {/* native-control-ok: the folded Category button spans the card and names the current category; Button does not draw that */}
       <button
         type="button"
         aria-expanded={open}

@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import { formatSize } from '../../assets/AssetFacts';
 import { Button } from '../../primitives/Button';
+import { InsetCard } from '../../primitives/InsetCard';
 import { ConfirmDialog } from '../../primitives/ConfirmDialog';
 import { Panel } from '../../primitives/Panel';
 import { Table, TableBody, TableHead, TableHeader, TableRow } from '../../primitives/Table';
@@ -69,13 +70,13 @@ export function ModelsPane({ category }: { category: Category }) {
     return (
       <div className="flex flex-col gap-3">
         <Heading category={category} />
-        <div role="alert" className="flex flex-col items-start gap-1.5 rounded-lg border border-[var(--danger)] bg-[var(--danger-soft)] px-3.5 py-3">
+        <InsetCard tone="danger" role="alert" className="flex flex-col items-start gap-1.5">
           <b>The list of models could not be read.</b>
           <span>{loadError} Your downloads are not touched.</span>
           <Button variant="secondary" size="sm" onClick={() => void assets.refresh()}>
             Try again
           </Button>
-        </div>
+        </InsetCard>
       </div>
     );
   }
@@ -148,12 +149,15 @@ export function ModelsPane({ category }: { category: Category }) {
         </div>
       </Panel>
       {notice && (
-        <p
+        <InsetCard
+          as="p"
           role={notice.tone === 'alert' ? 'alert' : 'status'}
-          className={`m-0 rounded-lg border px-3.5 py-2.5 ${notice.tone === 'alert' ? 'border-[var(--danger)] bg-[var(--danger-soft)]' : 'border-[var(--border)] bg-[var(--surface-2)]'}`}
+          tone={notice.tone === 'alert' ? 'danger' : 'neutral'}
+          fill={notice.tone !== 'alert'}
+          className="m-0"
         >
           {notice.text}
-        </p>
+        </InsetCard>
       )}
       {rows.every((view) => view.status !== 'installed') && (
         <Panel label="Nothing is downloaded yet">

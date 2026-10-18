@@ -120,7 +120,7 @@ function LauncherPath({ path }: { path: string }) {
  */
 export function EngineBody() {
   const dawChoice = usePort('dawChoice');
-  const capabilities = usePort('dawCapabilities');
+  const dawEvents = usePort('dawCapabilities');
   const project = usePort('project');
   const catalog = usePort('dawCatalog');
   const { data, notify, onLinkDawFile } = useSettingsHost();
@@ -149,12 +149,12 @@ export function EngineBody() {
   useEffect(() => {
     live.current = true;
     void read();
-    const unsubscribe = capabilities.subscribeDawCapabilities(() => void read());
+    const unsubscribe = dawEvents.subscribeDawCapabilities(() => void read());
     return () => {
       live.current = false;
       unsubscribe();
     };
-  }, [read, capabilities, data.dawFileLinked]);
+  }, [read, dawEvents, data.dawFileLinked]);
 
   const act = useCallback(async (call: () => Promise<DawChoice>) => {
     setBusy(true);

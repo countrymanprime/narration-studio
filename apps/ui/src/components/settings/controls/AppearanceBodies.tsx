@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
+import { apiErrorMessage } from '../../../api/errorMessage';
 import { usePort } from '../../../ports/usePort';
 import { useTheme } from '../../../theme/ThemeContext';
 import type { ThemePreference } from '../../../theme/theme';
@@ -7,6 +8,7 @@ import { RadioGroup } from '../../primitives/RadioGroup';
 import { Select } from '../../primitives/Select';
 import { ReaderTextBody } from '../page/ReaderTextPanel';
 import { useTextPrefs } from '../../script/page/tools/text/useTextPrefs';
+import { useSettingsHost } from '../row/SettingsHost';
 
 const THEME_OPTIONS: { value: ThemePreference; label: string }[] = [
   { value: 'system', label: 'Match my system' },
@@ -37,6 +39,7 @@ const percent = (level: number): string => `${Math.round(level * 100)}%`;
  */
 export function ZoomRowBody() {
   const system = usePort('system');
+  const { notify } = useSettingsHost();
   const [level, setLevel] = useState(1);
 
   const read = useCallback(() => {
@@ -58,7 +61,7 @@ export function ZoomRowBody() {
         setLevel(result.level);
         await system.windowSaveZoom(result.level);
       })
-      .catch(() => undefined);
+      .catch((failure: unknown) => notify(apiErrorMessage(failure), 'error'));
 
   // A level under 100% (Ctrl + wheel) is shown as it is, though it is not one to choose.
   const levels = ZOOM_LEVELS.includes(level) ? ZOOM_LEVELS : [...ZOOM_LEVELS, level].sort((a, b) => a - b);

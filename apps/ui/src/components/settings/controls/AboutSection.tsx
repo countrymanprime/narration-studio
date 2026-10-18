@@ -1,3 +1,4 @@
+import { Panel } from '../../primitives/Panel';
 import { AboutPanel } from '../AboutPanel';
 import { UpdatesPanel } from '../UpdatesPanel';
 import { useSettingsStore } from '../data/SettingsStore';
@@ -16,9 +17,9 @@ export function AboutSection() {
   const store = useSettingsStore();
   const channel = computerValue(CHANNEL, store.fieldsOf(CHANNEL).global);
   return (
-    <section aria-label="This version" className="flex flex-col gap-3 rounded-lg border border-[var(--border)] bg-[var(--surface)] px-5 py-4">
+    <Panel label="This version" className="flex flex-col gap-3">
       <AboutPanel version={data.version} />
       <UpdatesPanel key={channel} />
-    </section>
+    </Panel>
   );
 }
