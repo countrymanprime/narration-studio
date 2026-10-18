@@ -187,6 +187,24 @@ describe('ProgressChart', () => {
     else expect([label.getAttribute('text-anchor'), x > cx, y > cy]).toEqual(['start', true, true]);
   });
 
+  it('chart-today-label-leaves-the-dot-when-the-due-line-is-close: a due date a day away puts the label left of the dot', () => {
+    const o = overviewFor(MID_BOOK, undefined, undefined);
+    const dayAfter = new Date(STORY_TODAY.getTime() + 24 * 3600 * 1000);
+    view(
+      <ProgressChart
+        k={o.k}
+        wph={9300}
+        start={new Date(STORY_TODAY.getTime() - 20 * 24 * 3600 * 1000)}
+        today={STORY_TODAY}
+        due={dayAfter}
+        recordedHours={0.1}
+        series={o.series}
+        clearTodayLabel
+      />,
+    );
+    expect(screen.getByText('today').getAttribute('text-anchor')).toBe('end');
+  });
+
   it('chart keeps the label centred above the dot unless asked, as Production draws it', () => {
     chart();
     expect(screen.getByText('today').getAttribute('text-anchor')).toBe('middle');

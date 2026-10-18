@@ -26,6 +26,14 @@ describe('how many', () => {
     expect(screen.getByRole('columnheader', { name: 'Milestone' }).className).toContain('min-w-[10rem]');
   });
 
+  it('scrolls the table inside its own card, with a keyboard stop and the edge cue', async () => {
+    await mountSchedule({ seed: { milestones: [{ name: 'Draft', dueDate: '2026-10-25' }] } });
+    const area = await screen.findByRole('group', { name: 'Milestones scroll area' });
+    expect(area.className).toContain('scroll-x-edges');
+    expect(area.getAttribute('tabindex')).toBe('0');
+    expect(within(area).getByRole('table', { name: 'Milestones' })).toBeTruthy();
+  });
+
   it('draws five hundred milestones read from a hand-edited plan, in a few seconds (the host saves at most a hundred; a plan edited by hand can hold more)', async () => {
     const started = Date.now();
     await mountSchedule({ seed: { milestones: many(500) } });

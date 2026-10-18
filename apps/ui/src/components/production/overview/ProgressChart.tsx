@@ -83,6 +83,10 @@ export function ProgressChart({
   const planDays = due ? diffDays(due, start) : 0;
   const aheadOfPlan = planDays > 0 && y(recordedHours) < y((finishedHours * nowDay) / planDays);
   const todayBelow = !aheadOfPlan || x(today) < PAD.left + 40;
+  /* A due line close to the right of the dot would run through a label put on that side, so the label goes to the left of the dot instead. */
+  const dueGap = due ? x(due) - x(today) : Infinity;
+  const todayLeft = !todayBelow || (dueGap > -6 && dueGap < 46 && x(today) >= PAD.left + 40);
+  const todayY = Math.min(y(recordedHours) + (todayBelow ? 18 : -14), height - PAD.bottom - 6);
   const rows = Array.from({ length: yMax + 1 }, (_, v) => v).slice(0, 4);
   const summary = `Plan starts ${fmtD(start)}${due ? `, due ${fmtD(due)}` : ', no due date'}. Today is ${fmtD(today)}, ${recordedHours.toFixed(1)} of ${finishedHours.toFixed(1)} finished hours recorded. Estimated finish ${fmtD(k.finish)}.`;
 
@@ -160,13 +164,7 @@ export function ProgressChart({
           <circle cx={x(today)} cy={y(recordedHours)} r="5" fill="var(--accent)" stroke="var(--surface)" strokeWidth="2" data-marker="today" />
           {/* Beside the dot, on the side the plan line is not: above and left when the recording is ahead of the plan (the plan passes below), below and right otherwise. The projection runs up and right from the dot, so the right side is only taken below it. */}
           {clearTodayLabel ? (
-            <text
-              x={todayBelow ? x(today) + 9 : x(today) - 7}
-              y={y(recordedHours) + (todayBelow ? 18 : -14)}
-              textAnchor={todayBelow ? 'start' : 'end'}
-              fontSize="11"
-              fill="var(--text)"
-            >
+            <text x={todayLeft ? x(today) - 7 : x(today) + 9} y={todayY} textAnchor={todayLeft ? 'end' : 'start'} fontSize="11" fill="var(--text)">
               today
             </text>
           ) : (
