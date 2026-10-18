@@ -265,7 +265,7 @@ export function EffectSettings({ fx, cuts, total, dawName, host }: { fx: WordFx;
       const result = await journal.act(command);
       reload();
       if (!result.ok) return overlay.toast(result.refusal.reason, { tone: 'error' });
-      overlay.toastUndo(result.value.value.message, () => journal.undo(result.value.id));
+      overlay.toastUndo(result.value.value.message, () => journal.undo(result.value.id), { entry: result.value.id });
     },
     [journal, reload],
   );

@@ -1,10 +1,10 @@
 // @vitest-environment jsdom
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
+import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import type { ReactNode } from 'react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { ApiProvider } from '../../../api/ApiContext';
 import { createMockApi } from '../../../api/mockApi';
+import { providedCommands } from '../../../input/commandProviders';
 import type { ScopedSettingField } from '../../../types';
 import type { NarrationApi } from '../../../types';
 import { ProofOptions } from './ProofOptions';
@@ -55,8 +55,16 @@ function mount(over: Partial<NarrationApi> = {}) {
   const save = vi.fn(async () => undefined);
   const api = createMockApi({ settingsForScope: async () => FIELDS, saveSettings: save, ...over } as Partial<NarrationApi>);
   const wrapper = ({ children }: { children: ReactNode }) => <ApiProvider api={api}>{children}</ApiProvider>;
-  render(<ProofOptions title="Demo options" tool="Demo" keys={['target', 'preset', 'tint']} />, { wrapper });
-  return { save, open: () => userEvent.click(screen.getByRole('button', { name: /Demo options/ })) };
+  render(<ProofOptions title="Demo options" group="Proof" tool="Demo" keys={['target', 'preset', 'tint']} />, { wrapper });
+  return {
+    save,
+    open: async () =>
+      act(() =>
+        providedCommands()
+          .find((command) => command.label === 'Open Demo options')!
+          .run(),
+      ),
+  };
 }
 
 describe('Proof options', () => {

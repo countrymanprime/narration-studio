@@ -18,7 +18,7 @@ import {
 } from '@fortawesome/free-solid-svg-icons';
 import type { GuideEntity, GuidePreview, GuideType, TtsInstallJob } from '../../types';
 import { canSpeak } from '../../storyBibleTypes';
-import { categoryCssName, categoryLabel, categoryValue, CREATABLE_CATEGORIES, findAliasMatches } from '../../state';
+import { categoryCssName, categoryLabel, CREATABLE_CATEGORIES, findAliasMatches } from '../../state';
 import { useApi } from '../../api/ApiContext';
 import { usePort } from '../../ports/usePort';
 import { useAssetInstall } from '../../hooks/useAssetInstall';
@@ -38,6 +38,7 @@ import { Panel } from '../primitives/Panel';
 import { TooltipTarget } from '../primitives/Tooltip';
 import { previewKey, usePreviewAudio } from './usePreviewAudio';
 import { PropertiesSection } from './PropertiesSection';
+import { EntryVoiceSamples } from './voicesamples/EntryVoiceSamples';
 import { VoiceReferencesSection } from './VoiceReferencesSection';
 import { DialogueCueAttribution } from './DialogueCueAttribution';
 import { SpeakerColourField } from './SpeakerColourField';
@@ -50,6 +51,7 @@ import { addressPath } from '../../navigation/address';
 import { aliasFlagged, entryFlagged, reviewFlags } from './entryList';
 import { EntryText } from './EntryText';
 import { ReadNotice } from './ReadNotice';
+import type { SamplePlayer } from '../voicesamples/useSamplePlayer';
 import {
   draftFrom,
   NO_TALK,
@@ -185,6 +187,7 @@ export function GuideDetail({
   reload,
   notify,
   goToManuscript,
+  samplePlayer,
   toVerify = 0,
   chapters = NO_CHAPTERS,
   suggested,
@@ -204,6 +207,8 @@ export function GuideDetail({
   notify: Notify;
   // A method, so Guide's (chapter, paragraph) handler still fits; the Appears in list calls it with a chapter alone.
   goToManuscript(chapter: string, paragraph?: number): void;
+  /** The page's one voice-sample player; an entry drawn alone has its own. */
+  samplePlayer?: SamplePlayer;
   // How many of this entry's extraction suggestions are still to be verified; Mark reviewed waits until none are.
   toVerify?: number;
   /** The manuscript's chapters, for Appears in; the page reads them once. */
@@ -638,13 +643,13 @@ export function GuideDetail({
             triggerClassName={badgeClass('pill')}
             triggerStyle={badgeStyle(entityBadgeColors(entity.category))}
             disabled={locked || !(editing || isNewDraft) || mutation.isBusy}
-            items={CREATABLE_CATEGORIES.map((label) => ({
+            items={(types.length > 0 ? types.map((type) => type.name) : CREATABLE_CATEGORIES).map((label) => ({
               key: label,
               label,
-              leading: <Dot color={CAT_DOT_BG[categoryValue(label)]} />,
+              leading: <Dot color={CAT_DOT_BG[label]} />,
               onSelect: () => {
-                if (isNewDraft) void createNewEntity(categoryValue(label));
-                else void save('category', { category: categoryValue(label) }, `Category changed to ${label}.`);
+                if (isNewDraft) void createNewEntity(label);
+                else void save('category', { category: label }, `Category changed to ${label}.`);
               },
             }))}
           >
@@ -657,7 +662,7 @@ export function GuideDetail({
       }
       actions={
         <>
-          {entryFlagged(entity) &&
+          {(entryFlagged(entity) || toVerify > 0) &&
             (toVerify > 0 ? (
               <TooltipTarget text={VERIFY_FIRST_REASON}>
                 <Button variant="secondary" size="sm" disabled>
@@ -1019,6 +1024,7 @@ export function GuideDetail({
             {!isNewDraft && (
               <>
                 <SpeakerColourField entity={entity} speaks disabled={mutation.isBusy || locked} onChange={(index) => void setSpeakerColour(index)} />
+                <EntryVoiceSamples entity={entity} entities={entities} types={types} canManage={editing && canEdit} player={samplePlayer} notify={notify} />
                 <VoiceReferencesSection characterId={entity.id} characterLabel={entity.canonical_name} notify={notify} />
                 <DialogueCueAttribution entity={entity} entities={entities} canSpeak={(category) => canSpeak(types, category)} notify={notify} />
               </>

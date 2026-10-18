@@ -645,6 +645,7 @@ function createPickupListMock(
     pickupsList: async () => {
       await placed;
       syncProofLines();
+      if (unreadable === 'loading') return new Promise<never>(() => {});
       if (unreadable) throw new Error('the project folder could not be read');
       return list();
     },

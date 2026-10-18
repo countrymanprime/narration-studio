@@ -123,6 +123,21 @@ describe('the-list-read-failing-and-going-stale', () => {
     expect(screen.queryByText('No pickups queued')).toBeNull();
   });
 
+  it('loading: keeps the page title and shows one busy region in the table, however long it takes', async () => {
+    renderPage(createMockApi({ pickupsList: () => new Promise<PickupList>(() => {}) }));
+    const region = await screen.findByRole('group', { name: 'Loading the pickups' });
+    expect(region.getAttribute('aria-busy')).toBe('true');
+    expect(screen.getByRole('heading', { level: 1, name: 'Pickups' })).toBeTruthy();
+    await new Promise((resolve) => setTimeout(resolve, 60));
+    expect(screen.queryByRole('group', { name: 'Loading the pickups' })).toBeTruthy();
+  });
+
+  it('loaded: the busy region is gone', async () => {
+    renderPage(createMockApi({ pickupsList: () => Promise.resolve(LIST) }));
+    await screen.findAllByRole('button', { name: 'Open in Booth at this line' });
+    expect(screen.queryByRole('group', { name: 'Loading the pickups' })).toBeNull();
+  });
+
   it('stale: a later read that fails keeps the list and says when it was read', async () => {
     let read: () => Promise<PickupList> = () => Promise.resolve(LIST);
     renderPage(createMockApi({ pickupsList: () => read() }));
