@@ -40,7 +40,7 @@ function ToastItem({ message, dismiss }: { message: ToastMessage; dismiss: (id: 
       data-tone={message.tone}
       // Inverted in both themes (apps/ui/src/styles.css's --toast-bg/--toast-text), 45 px tall with a leading glyph, radius 6
       // (daw-chapter-track-auto-sync/03).
-      className={`ease flex min-h-[2.8125rem] items-center gap-[0.625rem] rounded-[var(--radius-button)] bg-[var(--toast-bg)] px-4 py-2 text-[0.85rem] text-[var(--toast-text)] shadow-[var(--shadow)] motion-safe:transition-[opacity,transform] motion-safe:duration-150 ${sticky ? 'border-l-4 border-[var(--danger)]' : ''} ${leaving ? 'translate-y-1 opacity-0' : 'opacity-100'}`}
+      className={`flex min-h-[2.8125rem] items-center gap-[0.625rem] rounded-[var(--radius-button)] bg-[var(--toast-bg)] px-4 py-2 text-[0.85rem] text-[var(--toast-text)] shadow-[var(--shadow)] motion-ok:transition-[opacity,transform] motion-ok:duration-(--motion-fast) motion-ok:ease-(--ease-exit) ${sticky ? 'border-l-4 border-[var(--danger)]' : ''} ${leaving ? 'translate-y-1 opacity-0' : 'opacity-100'}`}
     >
       {sticky ? (
         <FontAwesomeIcon icon={faCircleExclamation} aria-hidden="true" />

@@ -16,6 +16,47 @@
   --text-xl--line-height: 1.75rem;
   --text-2xl--line-height: 2rem;
   --text-3xl--line-height: 2.25rem;
+  /* A bare `transition` utility takes the fast token, not Tailwind's own 150 ms and curve. */
+  --default-transition-duration: var(--motion-fast);
+  --default-transition-timing-function: var(--ease-standard);
+}
+
+/* Motion (docs/design/motion-and-animation.md). Every transition and animation is a `motion-ok:` utility timed by these
+   tokens. `motion-ok:` applies only when Windows has not asked for reduced motion and <html> has no data-motion="reduce";
+   `motion-safe:` reads the media query alone, so `src/motion.test.ts` fails on it. */
+@custom-variant motion-ok {
+  @media (prefers-reduced-motion: no-preference) {
+    &:where(:root:not([data-motion='reduce']) *) {
+      @slot;
+    }
+  }
+}
+:root {
+  --motion-fast: 120ms; /* hover and press colour, tooltip, menu, toast, the icon rail, level meter */
+  --motion-base: 200ms; /* slide-over, drawers, progress fill */
+  --motion-slow: 300ms; /* the Booth text column only */
+  --motion-highlight: 600ms; /* a one-shot background fade on what changed; moves nothing */
+  --ease-standard: cubic-bezier(0.2, 0, 0, 1);
+  --ease-enter: cubic-bezier(0.2, 0.7, 0.2, 1);
+  --ease-exit: cubic-bezier(0.4, 0, 1, 1);
+  --motion-shift: 4px; /* how far a tooltip, menu or toast travels */
+}
+/* Under reduced motion the tokens are zero too, for anything that reads them outside a `motion-ok:` utility. */
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --motion-fast: 0ms;
+    --motion-base: 0ms;
+    --motion-slow: 0ms;
+    --motion-highlight: 0ms;
+    --motion-shift: 0px;
+  }
+}
+:root[data-motion='reduce'] {
+  --motion-fast: 0ms;
+  --motion-base: 0ms;
+  --motion-slow: 0ms;
+  --motion-highlight: 0ms;
+  --motion-shift: 0px;
 }
 
 :root {
@@ -291,7 +332,7 @@
 @keyframes tooltip-in {
   from {
     opacity: 0;
-    transform: translateY(4px);
+    transform: translateY(var(--motion-shift));
   }
   to {
     opacity: 1;
@@ -309,20 +350,6 @@
 .scroll-chrome-hidden::-webkit-scrollbar {
   width: 0;
   height: 0;
-}
-/* "Go to line" destination: a brief ring that settles into the persistent
-   tint/edge applied by ParagraphView for JUMP_HIGHLIGHT_MS. */
-@keyframes jump-target-pulse {
-  0% {
-    box-shadow:
-      0 0 0 3px var(--accent),
-      inset 3px 0 0 var(--accent);
-  }
-  100% {
-    box-shadow:
-      0 0 0 0 transparent,
-      inset 3px 0 0 var(--accent);
-  }
 }
 .guide-list-scroll {
   scrollbar-width: none;
