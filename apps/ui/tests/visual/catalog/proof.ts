@@ -8,6 +8,7 @@ export const proofStates: StateEntry[] = [
     state: 'load-error',
     description:
       'Proof when the chapters it loads on opening could not be read (?mockInvalidPayload=manuscript): the title, "This page could not be loaded" with Retry; navigation still works',
+    ...REFLOW,
   },
   {
     page: 'proof',

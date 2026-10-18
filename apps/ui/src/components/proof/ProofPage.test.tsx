@@ -341,6 +341,25 @@ describe('proof-decisions-and-undo', () => {
     expect(box().value).toBe('Note A first');
   });
 
+  it('an undo from another chapter goes back to the chapter of the note and selects it', async () => {
+    const api = createMockApi();
+    const { journal } = renderPage({ api, at: '/proof?chapter=chapter-1' });
+    const user = userEvent.setup();
+    const rows = await noteRows();
+    const at = rows.findIndex((row) => row.textContent?.includes('To review'));
+    await user.click(rows[at]);
+    press('w', 'KeyW');
+    await waitFor(async () => expect(await journal.entries()).toHaveLength(1));
+    press('ArrowRight', 'ArrowRight');
+    await waitFor(() => expect(where()).toBe('/proof?chapter=chapter-2'));
+    await noteRows();
+    expect((await journal.undoLast()).ok).toBe(true);
+    await waitFor(() => expect(where()).toBe('/proof?chapter=chapter-1'));
+    const back = await noteRows();
+    await waitFor(() => expect(back[at].getAttribute('aria-selected')).toBe('true'));
+    expect(back[at].textContent).toContain('To review');
+  });
+
   it('the same decision again with nothing typed is no decision: no journal entry', async () => {
     const api = createMockApi();
     const review = vi.spyOn(api, 'findingsReview');

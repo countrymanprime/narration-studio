@@ -1,9 +1,20 @@
 // How to reach each `proof-chapter` state in STATE_CATALOG (see app.drivers.ts): Proof's chapter view.
 import { settlePage } from '../helpers/settle';
 import { type Page } from '@playwright/test';
-import { type Driver, clickVisible, compareRun, freezeClock, openLinkedProofChapter, openProofChapter } from './shared';
+import { type Driver, clickVisible, compareRun, freezeClock, goToPage, openLinkedProofChapter, openProofChapter } from './shared';
 
 export const proofChapterDrivers: Record<string, Driver> = {
+  // The chapters never answer: Proof opens, then the chapter's address is opened in place (as `openProofChapter` does) and stays on its skeleton.
+  loading: async (page) => {
+    await page.goto('/?mockChapters=loading');
+    await settlePage(page);
+    await goToPage(page, 'Proof');
+    await page.evaluate((path) => {
+      window.history.pushState(null, '', path);
+      window.dispatchEvent(new PopStateEvent('popstate'));
+    }, '/proof/chapter-1');
+    await page.getByRole('group', { name: 'Loading the chapter' }).waitFor();
+  },
   never: async (page) => {
     // Chapter 7 has no recordedFraction in the fixture (mockFixtures.ts: only chapters 1-6 do), so it reads "never checked".
     await openLinkedProofChapter(page, 'Chapter 7');
