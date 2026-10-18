@@ -149,6 +149,8 @@ Four widths and the rail decide the layout, as the Studio Next mock lays it out:
 
 ## Settings rows
 
+The Settings page always keeps every setting. A working page may also offer a compact entry for one (a menu, a modal or a drawer tab, hidden until opened) that edits the same keys, but it never replaces the Settings control; `registry/pageSettings.test.ts` fails when a page-owned setting has no Settings panel.
+
 `apps/ui/src/components/settings/ScopedSetting.tsx` renders one Settings field by its `kind`, and the host (`apps/desktop/app.go`, `fieldSchemas` and `validateSettingValue`) validates it by the same kind. Every value is a string in the settings files.
 
 | Kind | Control | Stored value |
