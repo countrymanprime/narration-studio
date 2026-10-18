@@ -182,8 +182,6 @@ entry first. Delete asks first and says that the sample's audio is
 removed and the recording it was copied from is not touched; afterwards the focus moves to the next sample. A character may have 20 samples,
 and the section says so when it has them; moving a sample to a character that has 20 is refused.
 
-![Story Bible - the menu of a voice sample while its entry is being edited: Rename, Move to a character and Delete](../../images/ui/storybible-voice-sample-menu.webp)
-
 A row says what is wrong with it:
 
 | Shown | What it means | What to do |
