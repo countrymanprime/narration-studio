@@ -207,6 +207,48 @@ describe('a-control-that-owns-the-key-keeps-it', () => {
   });
 });
 
+describe('the-read-only-script-does-not-keep-the-keys', () => {
+  // The script is `role="textbox" aria-readonly="true"` (a screen reader reads it as text); it holds no text to edit, so with focus on it the keys are the page's.
+  const scriptBox = (readonly: boolean) => {
+    const el = document.createElement('div');
+    el.setAttribute('role', 'textbox');
+    el.tabIndex = 0;
+    if (readonly) el.setAttribute('aria-readonly', 'true');
+    document.body.append(el);
+    return el;
+  };
+
+  it('with focus on the script, the arrows, Shift+arrows, Delete and Space reach the page', () => {
+    const doc = marksDoc();
+    const remove = vi.fn();
+    const play = vi.fn();
+    mount(doc, { remove, play });
+    const box = scriptBox(true);
+    emit('ArrowRight', [], box);
+    expect(state().cursor).not.toBeNull();
+    emit('ArrowRight', ['Shift'], box);
+    expect(state().sel).not.toBeNull();
+    emit('Delete', [], box);
+    emit('Space', [], box);
+    expect(remove).toHaveBeenCalledTimes(1);
+    expect(play).toHaveBeenCalledTimes(1);
+    box.remove();
+  });
+
+  it('a textbox that can be typed in keeps them', () => {
+    const doc = marksDoc();
+    const remove = vi.fn();
+    mount(doc, { remove });
+    const box = scriptBox(false);
+    emit('ArrowRight', [], box);
+    emit('ArrowRight', ['Shift'], box);
+    emit('Delete', [], box);
+    expect(state().cursor).toBeNull();
+    expect(remove).not.toHaveBeenCalled();
+    box.remove();
+  });
+});
+
 describe('keys-do-nothing-without-a-manuscript-or-in-a-dialog', () => {
   it('with no text no key is taken', () => {
     const remove = vi.fn();

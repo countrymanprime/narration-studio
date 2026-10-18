@@ -5,12 +5,9 @@ import type { GestureEvent, InputSource } from './InputSource';
 import { createKeyboardSource } from './KeyboardSource';
 import { defaultKeymap, type Keymap } from './keymap';
 import { SCOPE_PRIORITY, type Scope } from './scopes';
-import { EDITABLE, isGuardedTarget, keyLayerOpen, KEY_WIDGET_ROLES } from './targets';
+import { EDITABLE, isGuardedTarget, keyLayerOpen, ownsKeysByRole } from './targets';
 
-const KEY_ROLE_TARGET = (target: Element): boolean => {
-  const role = target.getAttribute('role');
-  return Boolean(role && KEY_WIDGET_ROLES.has(role));
-};
+const KEY_ROLE_TARGET = ownsKeysByRole;
 
 export type CommandHandlerEvent = { target: EventTarget | null };
 type CommandHandler = (event: CommandHandlerEvent) => void;
