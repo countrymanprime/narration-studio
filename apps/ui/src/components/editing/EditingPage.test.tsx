@@ -770,3 +770,44 @@ describe('EditingPage', () => {
     delete document.documentElement.dataset.theme;
   });
 });
+
+// The loading state (definition-of-done.md state matrix): the page's header stays and the script is blocks while the chapters, or the chapter's
+// lines, are read; then the page, the empty panel or the error; never a blank page or an endless skeleton.
+describe('EditingPage loading state', () => {
+  const never = () => new Promise<never>(() => {});
+  const region = (name: string) => screen.queryByRole('group', { name });
+
+  it('keeps the title and the header buttons and shows a busy region while the chapters are read, however long that takes', async () => {
+    mount({ api: { manuscriptChapters: never } });
+    expect(await screen.findByRole('heading', { level: 1, name: 'Editing' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Clean up and effects' })).toBeTruthy();
+    expect(region('Loading the editor')?.getAttribute('aria-busy')).toBe('true');
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    expect(region('Loading the editor')).toBeTruthy();
+  });
+
+  it('is replaced by the script when the chapters and lines arrive', async () => {
+    mount();
+    await script();
+    expect(region('Loading the editor')).toBeNull();
+    expect(region('Loading the chapter')).toBeNull();
+  });
+
+  it('shows the chapter skeleton, under the stepper, while one chapter is read', async () => {
+    mount({ api: { manuscriptParagraphs: never } });
+    expect(await screen.findByRole('group', { name: 'Loading the chapter' })).toBeTruthy();
+    expect(screen.getByRole('group', { name: 'Chapter' })).toBeTruthy();
+  });
+
+  it('shows the empty panel, not a skeleton, for a manuscript with no narration chapters', async () => {
+    mount({ api: { manuscriptChapters: async () => [] } });
+    expect(await screen.findByText('This manuscript has no chapters to edit')).toBeTruthy();
+    expect(region('Loading the editor')).toBeNull();
+  });
+
+  it('shows the error, not a skeleton, when the chapters cannot be read', async () => {
+    mount({ api: { manuscriptChapters: () => Promise.reject(new Error('The manuscript could not be read.')) } });
+    expect(await screen.findByText('The manuscript could not be read.')).toBeTruthy();
+    expect(region('Loading the editor')).toBeNull();
+  });
+});
