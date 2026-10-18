@@ -1,6 +1,6 @@
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faXmark } from '@fortawesome/free-solid-svg-icons';
-import { useRef, type KeyboardEvent } from 'react';
+import { useRef, type ComponentPropsWithRef, type KeyboardEvent } from 'react';
 import { IconButton } from './IconButton';
 import { TextField } from './TextField';
 import { TooltipTarget } from './Tooltip';
@@ -15,6 +15,7 @@ export function SearchField({
   clearLabel = 'Clear search',
   autoFocus = false,
   onKeyDown,
+  combobox,
 }: {
   label: string;
   value: string;
@@ -24,6 +25,8 @@ export function SearchField({
   autoFocus?: boolean;
   // Enter, in the manuscript search, fires the debounced query immediately (R1) instead of waiting.
   onKeyDown?: (event: KeyboardEvent<HTMLInputElement>) => void;
+  // The field is the text box of a combobox whose list it drives (the Booth's speaker picker): its role and the attributes that name the list and the active row.
+  combobox?: Pick<ComponentPropsWithRef<'input'>, 'role' | 'aria-controls' | 'aria-activedescendant' | 'aria-expanded'>;
 }) {
   const fieldRef = useRef<HTMLInputElement>(null);
   return (
@@ -36,6 +39,7 @@ export function SearchField({
         placeholder={placeholder}
         autoFocus={autoFocus}
         onKeyDown={onKeyDown}
+        {...combobox}
         style={value ? { paddingRight: '2.25rem' } : undefined}
       />
       {value && (
