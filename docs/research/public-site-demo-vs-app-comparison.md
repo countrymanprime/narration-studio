@@ -155,6 +155,54 @@ Real: [`tools/docs-site/mkdocs.yml`](../../tools/docs-site/mkdocs.yml), [the pub
 | V4 | Focus ring | 2 px outline, 2 px offset, blue | Same | F | `styles.css:39`; site `:focus-visible` |
 | V5 | Dark theme | Token set in `styles.css` | Same tokens | F | V1 |
 
+## Side-by-side images
+
+Left: the real app (committed guide screenshots in `docs/images/ui/`, or a live capture marked so). Right: the mockup, captured in headless Chromium at 1440 px on 2026-10-18 and stored in `docs/research/images/public-site-comparison/`. The mockup captures show the state after the steps named in each caption.
+
+### Production (P1 to P5)
+
+| Real app | Mockup |
+| --- | --- |
+| ![Real Production: six figures in one card, shape-only pipeline cells, Start session off with its reason](../images/ui/production-home.webp) | ![Mockup Production: the same card, a word in each pipeline cell, Start session always on](images/public-site-comparison/mock-site-production.webp) |
+
+### Proof evidence and decisions (R2 to R4)
+
+| Real app (live capture, after pressing Needs pickup) | Mockup (Skipped word note, after one decision) |
+| --- | --- |
+| ![Real Proof: Script with "White Rabbit" and "pink" struck, Heard with "white rabbit" and "pale" underlined, a toast with Undo](images/public-site-comparison/real-proof-decision.webp) | ![Mockup Proof: Script and Heard sentences with no mark on the missed word, no toast, stepper limited to four chapters](images/public-site-comparison/mock-site-proof.webp) |
+
+### Pickups (K1 to K3)
+
+| Real app | Mockup (after marking one note Needs pickup) |
+| --- | --- |
+| ![Real Pickups: a table with Time, Type, Line, From, Status and per-line actions, and the session panel](../images/ui/pickups-list.webp) | ![Mockup Pickups: one derived line with a Remove button](images/public-site-comparison/mock-site-pickups.webp) |
+
+### Story Bible (B1 to B3)
+
+| Real app | Mockup |
+| --- | --- |
+| ![Real Story Bible: searchable list, filters and a read-only detail panel with Edit](../images/ui/storybible-needs-review.webp) | ![Mockup Story Bible: four cards, each with an editable pronunciation field and Save](images/public-site-comparison/mock-site-story-bible.webp) |
+
+### Delivery (D1 to D4)
+
+| Real app (Build off, count sentence beside it) | Mockup (rules grid, Build stopped with chapter and rule) |
+| --- | --- |
+| ![Real Delivery: profile limits, Before you build with Pass or Not mastered per chapter, Build off with "0 failing, 8 not ready"](../images/ui/delivery-measured.webp) | ![Mockup Delivery: per-chapter rules grid with Pass or Fail and values, and a notice that the build stopped at chapter 8](images/public-site-comparison/mock-site-delivery-stopped.webp) |
+
+### Failure state (L2)
+
+The real app has no Proof or Production counterpart to capture: Proof shows an error toast over the page and Production a red line (`ProofPage.tsx:181`, `ProductionPage.tsx:376`).
+
+| Mockup: Proof after "Fail the next call" |
+| --- |
+| ![Mockup host-quiet state: a Host not answering panel with a Retry button inside the demo frame](images/public-site-comparison/mock-site-host-quiet.webp) |
+
+### Storybook (SB1 to SB5)
+
+| Real Storybook (live capture of the static build) | Mockup Storybook view |
+| --- | --- |
+| ![Real Storybook, Primitives/Button/Primary: component tree, toolbar, canvas, Controls, Actions, Interactions and Accessibility tabs](images/public-site-comparison/real-storybook-button.webp) | ![Mockup Storybook view of Button with Canvas and Docs tabs, viewport and background selects, and the Controls panel](images/public-site-comparison/mock-site-storybook.webp) |
+
 ## App should move toward the mock site
 
 Ranked by what the narrator gains. None is built; no Accepted ADR is in the way (only ADR 0001 and 0002 remain). The first two add a state the Studio mock does not draw; the design-system rule says to add it to the mock in the same change, so the owner may prefer to treat them as **S**.
@@ -237,4 +285,4 @@ The real app already has a demo build: `VITE_DEMO=1` shows `DemoBanner`, and `cr
 - **Row heights.** "86 px" is the mockup's measured note row; I did not measure the real table's rows, so R1 and V2 quote the real sizes only where I measured them live (button, h1, rail).
 - **Pipeline cell words (P2).** The in-progress cell in the real pipeline shows a percent in the Studio mock; I did not drive a real in-progress state.
 - **Master & QC states.** The partial run reached Master & QC only to confirm where the per-rule table lives; I did not review its states.
-- **Screenshots in this note.** The PNGs I looked at are under gitignored `apps/ui/screenshots/`; the committed equivalents are in `docs/images/ui/`.
+- **Images.** The real-app images are the committed guide screenshots, which show the fixtures of the guide and not exactly the state the mockup was driven to, except the two marked live. The live captures and the mockup captures are stored under `docs/research/images/public-site-comparison/`, an exception to the rule that UI images live in the guides (CONTRIBUTING.md, "UI PRs update the how-to guide"), made at the owner's request; they are dated captures and are not kept current.
