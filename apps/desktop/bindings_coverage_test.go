@@ -119,6 +119,15 @@ func coverageHostWithModels(t *testing.T, project string, models *whisper.Manage
 	if attached, reason := host.attachProjectLocked(next); !attached {
 		t.Fatalf("attach failed: %s", reason)
 	}
+	// A finished check starts a chaptersync:state read (emitCoverage) that logs to the run log under APPDATA. Windows
+	// cannot remove a folder with a file open, so wait for the runs and those reads before t.TempDir's cleanup (cleanups
+	// run last in, first out, so this one runs before the folders made above are removed).
+	t.Cleanup(func() {
+		if svc := host.services(); svc.coverage != nil {
+			svc.coverage.Wait()
+		}
+		host.chapterSyncEmits.Wait()
+	})
 	return host
 }
 
