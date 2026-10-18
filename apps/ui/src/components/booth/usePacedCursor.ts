@@ -1,12 +1,11 @@
 import { useEffect, useState } from 'react';
 import { pacedStep } from './readerModel';
+import { reducedMotion } from '../../motion';
 
 const STEP_MS = 45;
 // Nobody reads this many words between two reports: it is a session being
 // picked up mid-chapter, so show it in place rather than walking there.
 const SNAP_WORDS = 80;
-
-const prefersReducedMotion = (): boolean => typeof window.matchMedia === 'function' && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 /**
  * The word the highlight is on. The tracker reports positions in bursts (a
@@ -17,7 +16,7 @@ const prefersReducedMotion = (): boolean => typeof window.matchMedia === 'functi
  */
 export function usePacedCursor(target: number): number {
   const [paced, setPaced] = useState(target);
-  const reduced = prefersReducedMotion();
+  const reduced = reducedMotion();
   if (target < paced || target - paced > SNAP_WORDS) setPaced(target);
 
   useEffect(() => {

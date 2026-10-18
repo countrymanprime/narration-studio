@@ -80,7 +80,7 @@ export function IconButton({
       {...rest}
     >
       {pending ? (
-        <FontAwesomeIcon icon={faCircleNotch} className="motion-safe:animate-spin" aria-hidden="true" />
+        <FontAwesomeIcon icon={faCircleNotch} className="motion-ok:animate-spin" aria-hidden="true" />
       ) : (
         (children ?? (action === undefined ? null : <Icon name={action} />))
       )}

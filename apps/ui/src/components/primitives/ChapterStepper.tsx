@@ -4,6 +4,7 @@ import { Button } from './Button';
 import { Icon } from './Icon';
 import { IconButton } from './IconButton';
 import { TooltipTarget } from './Tooltip';
+import { POPUP_MOTION_CLASSES } from './overlayMotion';
 
 // The value that stands for "All chapters" in `value` and in `onChange`, where the page allows it.
 export const ALL_CHAPTERS = 'all';
@@ -79,7 +80,9 @@ export function ChapterStepper({
         {disabled === undefined ? trigger : <TooltipTarget text={disabled}>{trigger}</TooltipTarget>}
         <BaseMenu.Portal>
           <BaseMenu.Positioner side="bottom" align="start" sideOffset={6} collisionPadding={8} className="z-[var(--z-popover)]">
-            <BaseMenu.Popup className="max-h-[min(20rem,var(--available-height))] min-w-[var(--anchor-width)] overflow-y-auto rounded-[0.4rem] border border-[var(--line-strong)] bg-[var(--surface)] p-[0.35rem] shadow-[var(--shadow-lg)] outline-none">
+            <BaseMenu.Popup
+              className={`max-h-[min(20rem,var(--available-height))] min-w-[var(--anchor-width)] overflow-y-auto rounded-[0.4rem] border border-[var(--line-strong)] bg-[var(--surface)] p-[0.35rem] shadow-[var(--shadow-lg)] outline-none ${POPUP_MOTION_CLASSES}`}
+            >
               <BaseMenu.RadioGroup value={value} onValueChange={(next) => onChange(String(next))}>
                 {items.map((item) => (
                   <BaseMenu.RadioItem
