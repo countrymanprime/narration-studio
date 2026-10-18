@@ -1,5 +1,5 @@
 import { useId } from 'react';
-import type { Journal } from '../../studio/journal/createJournal';
+import { JOURNAL_LIMIT, type Journal } from '../../studio/journal/createJournal';
 import { useOverlay } from '../../overlay/OverlayProvider';
 import type { OverlayService } from '../../overlay/overlayService';
 import { Button } from '../primitives/Button';
@@ -36,6 +36,9 @@ function HistoryPanel({ journal, dawName }: { journal: HistoryJournal; dawName: 
     <div className="flex flex-col gap-3">
       <p className="text-[var(--text-muted)]">Ctrl Z undoes the last one</p>
       {rows && rows.length === 0 ? <p className="text-[var(--text-muted)]">Nothing to undo yet.</p> : null}
+      {rows && rows.length >= JOURNAL_LIMIT ? (
+        <p className="text-[var(--text-muted)]">{`History keeps the newest ${JOURNAL_LIMIT} changes; older changes can no longer be undone.`}</p>
+      ) : null}
       {rows && rows.length > 0 ? (
         <ul aria-label="Changes, newest first" className="flex flex-col gap-3">
           {rows.map((row) => {
