@@ -1,7 +1,7 @@
 import type { GuideDialogueCue, GuideEntity } from '../../../api/contracts/storyBible';
 
 /** The reserved character id for plain narration, as in apps/desktop/internal/voicesample. */
-export const NARRATION_ID = 'narration';
+const NARRATION_ID = 'narration';
 
 export type CharacterChoice = { id: string; name: string; group?: 'In this chapter' | 'All characters' };
 

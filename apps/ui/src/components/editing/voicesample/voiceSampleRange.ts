@@ -2,7 +2,7 @@ import { VOICE_SAMPLE_SENTENCES, type VoiceSampleRefusalReason } from '../../../
 import type { WorkspaceAlignmentResult, WorkspaceToken } from '../../../api/contracts/workspace';
 
 /** The stretch of one take a selection names: what `VoiceSampleMark` needs of the words, in the item's own source seconds. */
-export type VoiceRange = {
+type VoiceRange = {
   chapterId: string;
   itemGuid: string;
   takeGuid: string;
@@ -17,7 +17,7 @@ export type VoiceRange = {
   alignmentRecordId: string;
 };
 
-export type VoiceRangeRefusal = {
+type VoiceRangeRefusal = {
   ok: false;
   reason: Extract<VoiceSampleRefusalReason, 'stale_alignment' | 'not_heard' | 'spans_takes'> | 'nothing_selected';
   message: string;

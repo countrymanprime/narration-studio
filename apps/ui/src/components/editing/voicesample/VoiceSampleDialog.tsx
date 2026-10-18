@@ -14,7 +14,7 @@ import type { CharacterChoice } from './voiceSampleCharacters';
 /** The part of the words the narrator can hear before saving: a stretch of one item's source file. */
 export type Audition = { sourceFile: string; start: number; end: number; mediaUrl: (sourceFile: string) => string };
 
-export type VoiceSampleValues = { characterId: string; label: string; note: string; makePrimary: boolean };
+type VoiceSampleValues = { characterId: string; label: string; note: string; makePrimary: boolean };
 
 export type VoiceSampleDialogProps = {
   /** The script words the sample records, or the selection's words when it cannot be made. */
