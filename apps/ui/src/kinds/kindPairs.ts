@@ -18,7 +18,7 @@ export type KindPairRow = {
 };
 
 /** The colours a kind is drawn in: the entry colours for an entity or speaker kind, else the one fixed hue. */
-const coloursOf = (id: KindId): (EntityColour | undefined)[] => (kindDef(id).hue === 'entity' ? ALL_ENTITY_COLOURS : [undefined]);
+const coloursOf = (id: KindId): readonly (EntityColour | undefined)[] => (kindDef(id).hue === 'entity' ? ALL_ENTITY_COLOURS : [undefined]);
 
 const unwrap = (value: unknown): string => (typeof value === 'string' && value !== 'transparent' ? value : '');
 
