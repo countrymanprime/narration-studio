@@ -20,6 +20,7 @@ import { openCheckRecordings } from '../recordingcheck/openCheckRecordings';
 import { creditsEntries, creditsKindOfId, ownsOpeningCredits } from '../credits/creditsEntries';
 import { useCreditsRows } from '../credits/useCreditsRows';
 import { LoadError } from '../layout/LoadError';
+import { ProofSkeleton } from './frame/ProofSkeleton';
 import { NeedManuscript } from '../layout/NeedManuscript';
 import { CheckCard } from './checkcard/CheckCard';
 import { ChapterStrip, type StripChapter } from './frame/ChapterStrip';
@@ -125,6 +126,8 @@ export function ProofPage({
   const loadProblem = chaptersProblem ?? notesProblem;
   const [attempt, setAttempt] = useState(0);
   const read = useRef({ chapters: false, notes: false });
+  // The same two reads as state, so the page can show its skeleton until both have ended once.
+  const [firstRead, setFirstRead] = useState({ chapters: false, notes: false });
   // The pickups list, for the open pickups no note stands for: while one is open the head never reads 100.
   const [pickups, setPickups] = useState<readonly PickupItem[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(params.get('finding') ?? recallSelection(projectFolder, params.get('chapter') ?? ALL_CHAPTERS));
@@ -164,6 +167,7 @@ export function ProofPage({
       .then((list) => {
         if (!live) return;
         read.current.chapters = true;
+        setFirstRead((now) => (now.chapters ? now : { ...now, chapters: true }));
         setChaptersProblem(undefined);
         setChapters(list.filter(isNarration));
         setOwnsOpening(ownsOpeningCredits(list));
@@ -198,6 +202,7 @@ export function ProofPage({
       .then(([page, counts]) => {
         if (!live) return;
         read.current.notes = true;
+        setFirstRead((now) => (now.notes ? now : { ...now, notes: true }));
         setNotesProblem(undefined);
         setFindings(page.findings.map(held));
         setSummary(counts);
@@ -400,6 +405,7 @@ export function ProofPage({
 
   if (!hasManuscript) return <NeedManuscript title="Proof" onImport={() => goTo('/')} />;
   if (loadProblem !== undefined) return <LoadError title="Proof" message={loadProblem} retry={() => setAttempt((n) => n + 1)} />;
+  if (!firstRead.chapters || !firstRead.notes) return <ProofSkeleton />;
 
   const stepper = (
     <ChapterStepper
