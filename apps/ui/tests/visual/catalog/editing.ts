@@ -42,6 +42,12 @@ export const editingStates: StateEntry[] = [
   },
   {
     page: 'editing',
+    state: 'voice-sample-refused',
+    description:
+      'Editing, Voice sample on a word that was said and is not in the script - the dialog says in one sentence that the words were not heard, with Play range and Save sample off',
+  },
+  {
+    page: 'editing',
     state: 'takes-open',
     description:
       'Editing, the first line’s takes opened under it - the suggested take with the steps that would make it surer, each take’s evidence, and how retries are kept',

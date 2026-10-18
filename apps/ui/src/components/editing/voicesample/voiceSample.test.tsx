@@ -7,7 +7,7 @@
 //   huge                           not tested here: the length limits are the host's (voicesample tests); 'a refusal from the host stays in the dialog'
 //   loading                        'Save is busy while the host answers and a second press does nothing'
 //   refused (page)                 'words in two takes are refused before asking', 'words that were not heard...', 'a stale check'
-//   refused (host)                 'a refusal from the host stays in the dialog, and Save can be pressed again'
+//   refused (host)                 'a refusal from the host stays in the dialog, and Save can be pressed again', 'every reason the host can give is shown as its own sentence'
 //   failed                         'a rejected save is a sentence in the dialog', 'a failed read is a note and the dialog still opens'
 //   stale                          'a stale check' (refused before asking)
 //   long, right-to-left, emoji     'a label and note in any script are sent as typed, trimmed'
@@ -23,7 +23,7 @@ import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testi
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { ApiProvider } from '../../../api/ApiContext';
 import type { GuideDialogueCue, GuideEntity } from '../../../api/contracts/storyBible';
-import type { VoiceSample, VoiceSampleAnswer, VoiceSampleMarkRequest, VoiceSamples } from '../../../api/contracts/voiceSamples';
+import type { VoiceSample, VoiceSampleAnswer, VoiceSampleMarkRequest, VoiceSampleRefusalReason, VoiceSamples } from '../../../api/contracts/voiceSamples';
 import { VOICE_SAMPLE_SENTENCES } from '../../../api/contracts/voiceSamples';
 import type { WorkspaceAlignmentResult, WorkspaceToken } from '../../../api/contracts/workspace';
 import { createMockApi } from '../../../api/mockApi';
@@ -251,7 +251,7 @@ describe('marking a voice sample', () => {
       alignmentRecordId: 'record-7',
     });
     expect(screen.queryByRole('dialog')).toBeNull();
-    expect(toastUndo).toHaveBeenCalledWith('Saved voice sample for The Queen of Hearts.', expect.any(Function));
+    expect(toastUndo).toHaveBeenCalledWith('Saved voice sample for The Queen of Hearts.', expect.any(Function), { durationMs: 10_000 });
   });
 
   it('the character list: chapter speakers first, then the others, then Narration, under their headings', async () => {
@@ -286,7 +286,9 @@ describe('marking a voice sample', () => {
     await openDialog();
     expect(within(dialog()).getByRole('alert').textContent).toBe(VOICE_SAMPLE_SENTENCES.spans_takes);
     expect(saveButton().getAttribute('disabled')).not.toBeNull();
-    enter();
+    // Only the sentence, the words and the footer: nothing to choose when the words cannot be a sample.
+    expect(within(dialog()).queryByRole('combobox', { name: 'Character' })).toBeNull();
+    enter(dialog().querySelector('form') as HTMLElement);
     await flush();
     expect(mark).not.toHaveBeenCalled();
   });
@@ -319,6 +321,17 @@ describe('marking a voice sample', () => {
     await flush();
     expect(mark).toHaveBeenCalledTimes(2);
     expect(screen.queryByRole('dialog')).toBeNull();
+  });
+
+  it.each(Object.entries(VOICE_SAMPLE_SENTENCES))('every reason the host can give is shown as its own sentence: %s', async (reason, message) => {
+    mark.mockResolvedValueOnce({ status: 'refused', reason: reason as VoiceSampleRefusalReason, message });
+    mount();
+    await select('p-1:0', 'p-1:1');
+    await openDialog();
+    fireEvent.click(saveButton());
+    await flush();
+    expect(within(dialog()).getByRole('alert').textContent).toBe(message);
+    expect(screen.getByRole('dialog')).toBeTruthy();
   });
 
   it('a rejected save is a sentence in the dialog', async () => {

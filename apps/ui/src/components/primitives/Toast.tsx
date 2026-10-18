@@ -7,7 +7,8 @@ import { createPortal } from 'react-dom';
 export type ToastTone = 'info' | 'error';
 /** A toast's one action (for example Undo): its own label, run when pressed, which also dismisses the toast. */
 export type ToastAction = { label: string; onAction: () => void };
-export type ToastMessage = { id: number; text: string; tone: ToastTone; action?: ToastAction; icon?: IconDefinition; topic?: string };
+/** `durationMs` is how long an information message stays when it needs longer than `TOAST_INFO_MS` (an Undo the narrator may want ten seconds for). */
+export type ToastMessage = { id: number; text: string; tone: ToastTone; action?: ToastAction; icon?: IconDefinition; topic?: string; durationMs?: number };
 /** How a page or a component tells the narrator something. An error is announced at once and stays until it is dismissed.
  * `action` adds one button (for example Undo) before the dismiss button; pressing it runs the action and dismisses the toast.
  * `icon` leads an information message with the glyph of what it is about (the track glyph for a chapter sync); an error always
@@ -22,15 +23,16 @@ function ToastItem({ message, dismiss }: { message: ToastMessage; dismiss: (id: 
   const [leaving, setLeaving] = useState(false);
   const sticky = message.tone === 'error';
   const { id } = message;
+  const stays = message.durationMs ?? TOAST_INFO_MS;
   useEffect(() => {
     if (sticky) return;
-    const fade = window.setTimeout(() => setLeaving(true), TOAST_INFO_MS - FADE_MS);
-    const remove = window.setTimeout(() => dismiss(id), TOAST_INFO_MS);
+    const fade = window.setTimeout(() => setLeaving(true), stays - FADE_MS);
+    const remove = window.setTimeout(() => dismiss(id), stays);
     return () => {
       window.clearTimeout(fade);
       window.clearTimeout(remove);
     };
-  }, [dismiss, id, sticky]);
+  }, [dismiss, id, sticky, stays]);
   return (
     <div
       data-tone={message.tone}

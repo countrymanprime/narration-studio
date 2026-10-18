@@ -121,30 +121,34 @@ export function VoiceSampleDialog({
           {refusal}
         </p>
       ) : null}
-      {notice ? (
-        <p className={alert} role="status" data-voice-sample-notice>
-          {notice}
-        </p>
-      ) : null}
-      <div className="flex flex-col gap-1">
-        <label htmlFor="voice-sample-character" className={FIELD_LABEL_CLASSES}>
-          Character
-        </label>
-        <Select
-          id="voice-sample-character"
-          fullWidth
-          autoFocus
-          value={characterId}
-          onChange={(next) => {
-            setCharacterId(next);
-            setFailure('');
-          }}
-          options={choices.map((c) => ({ value: c.id, label: c.name, ...(c.group ? { group: c.group } : {}) }))}
-        />
-        <span className="text-sm text-[var(--text-muted)]" data-voice-sample-count>
-          {countText}
-        </span>
-      </div>
+      {refusal ? null : (
+        <>
+          {notice ? (
+            <p className={alert} role="status" data-voice-sample-notice>
+              {notice}
+            </p>
+          ) : null}
+          <div className="flex flex-col gap-1">
+            <label htmlFor="voice-sample-character" className={FIELD_LABEL_CLASSES}>
+              Character
+            </label>
+            <Select
+              id="voice-sample-character"
+              fullWidth
+              autoFocus
+              value={characterId}
+              onChange={(next) => {
+                setCharacterId(next);
+                setFailure('');
+              }}
+              options={choices.map((c) => ({ value: c.id, label: c.name, ...(c.group ? { group: c.group } : {}) }))}
+            />
+            <span className="text-sm text-[var(--text-muted)]" data-voice-sample-count>
+              {countText}
+            </span>
+          </div>
+        </>
+      )}
       <div className="flex items-center gap-3 rounded-lg bg-[var(--info-soft)] px-3 py-2">
         <IconButton
           label={player.isPlaying ? 'Stop' : 'Play range'}
@@ -164,41 +168,45 @@ export function VoiceSampleDialog({
           {COULD_NOT_PLAY}
         </p>
       ) : null}
-      <div className="flex flex-col gap-1">
-        <label htmlFor="voice-sample-label" className={FIELD_LABEL_CLASSES}>
-          Label <span className="font-normal">(optional)</span>
-        </label>
-        <TextField
-          id="voice-sample-label"
-          dir="auto"
-          maxLength={VOICE_SAMPLE_LABEL_MAX}
-          value={label}
-          onChange={setLabel}
-          placeholder="Furious, to the court"
-        />
-      </div>
-      <div className="flex flex-col gap-1">
-        <label htmlFor="voice-sample-note" className={FIELD_LABEL_CLASSES}>
-          Note <span className="font-normal">(optional)</span>
-        </label>
-        {/* native-control-ok: Field's textarea has no length limit or text direction, and no primitive offers a bare textarea */}
-        <textarea
-          id="voice-sample-note"
-          dir="auto"
-          rows={3}
-          maxLength={VOICE_SAMPLE_NOTE_MAX}
-          value={note}
-          onChange={(event) => setNote(event.target.value)}
-          placeholder="How you did it: pitch up, clipped, no breaths"
-          className="box-border min-h-20 w-full rounded-[var(--control-radius)] border border-[var(--line-strong)] bg-[var(--surface)] px-3 py-[0.6rem] text-[0.88rem] leading-[1.35] text-[var(--text)]"
-        />
-      </div>
-      <Checkbox checked={makePrimary} onChange={setPrimaryChoice} disabled={blocked}>
-        Make primary for {name}
-      </Checkbox>
-      <p className="m-0 text-sm text-[var(--text-muted)]">
-        Copies the raw recording, as it was before editing, into this project. Nothing leaves your computer.
-      </p>
+      {refusal ? null : (
+        <>
+          <div className="flex flex-col gap-1">
+            <label htmlFor="voice-sample-label" className={FIELD_LABEL_CLASSES}>
+              Label <span className="font-normal">(optional)</span>
+            </label>
+            <TextField
+              id="voice-sample-label"
+              dir="auto"
+              maxLength={VOICE_SAMPLE_LABEL_MAX}
+              value={label}
+              onChange={setLabel}
+              placeholder="Furious, to the court"
+            />
+          </div>
+          <div className="flex flex-col gap-1">
+            <label htmlFor="voice-sample-note" className={FIELD_LABEL_CLASSES}>
+              Note <span className="font-normal">(optional)</span>
+            </label>
+            {/* native-control-ok: Field's textarea has no length limit or text direction, and no primitive offers a bare textarea */}
+            <textarea
+              id="voice-sample-note"
+              dir="auto"
+              rows={3}
+              maxLength={VOICE_SAMPLE_NOTE_MAX}
+              value={note}
+              onChange={(event) => setNote(event.target.value)}
+              placeholder="How you did it: pitch up, clipped, no breaths"
+              className="box-border min-h-20 w-full rounded-[var(--control-radius)] border border-[var(--line-strong)] bg-[var(--surface)] px-3 py-[0.6rem] text-[0.88rem] leading-[1.35] text-[var(--text)]"
+            />
+          </div>
+          <Checkbox checked={makePrimary} onChange={setPrimaryChoice} disabled={blocked}>
+            Make primary for {name}
+          </Checkbox>
+          <p className="m-0 text-sm text-[var(--text-muted)]">
+            Copies the raw recording, as it was before editing, into this project. Nothing leaves your computer.
+          </p>
+        </>
+      )}
       {failure ? (
         <p className={alert} role="alert" data-voice-sample-failure>
           {failure}

@@ -30,7 +30,12 @@ type DialogSpec =
       render: (api: { close: () => void }) => ReactNode;
     };
 /** `topic` names what a message is about: a newer message on a topic replaces the one before it, and `dismissTopic` takes it away once it is no longer true. */
-type ToastOptions = { tone?: ToastTone; action?: ToastAction; topic?: string };
+type ToastOptions = {
+  tone?: ToastTone;
+  action?: ToastAction;
+  topic?: string;
+  /** How long an information message stays, when longer than the usual five seconds. */ durationMs?: number;
+};
 
 /** An open layer. The primitive that draws it owns focus, stacking and Escape; this is only what to draw and who to tell. */
 export type DialogEntry =
@@ -50,7 +55,8 @@ const OVERLAY_TOAST_LIMIT = 4;
 export type OverlayService = {
   confirm: (spec: ConfirmSpec) => Promise<boolean>;
   toast: (text: string, options?: ToastOptions) => void;
-  toastUndo: (text: string, undo: Undo) => void;
+  /** A message with an Undo; `durationMs` keeps it longer than the usual five seconds. */
+  toastUndo: (text: string, undo: Undo, options?: { durationMs?: number }) => void;
   announce: (text: string) => void;
   open: (spec: DialogSpec) => () => void;
   dismissToast: (id: number) => void;
@@ -81,7 +87,7 @@ export function createOverlayService(): OverlayService {
   const toast = (text: string, options: ToastOptions = {}) => {
     if (!text) return;
     const tone = options.tone ?? 'info';
-    const message: ToastMessage = { id: ++lastId, text, tone, action: options.action, topic: options.topic };
+    const message: ToastMessage = { id: ++lastId, text, tone, action: options.action, topic: options.topic, durationMs: options.durationMs };
     // A message that says what one on screen already says is that message again, and one on the same topic is its newer word: either
     // replaces the old one (its timer starts again), so a repeated press or a lost-and-found DAW never stacks the same sentence.
     const again = (old: ToastMessage) =>
@@ -104,9 +110,10 @@ export function createOverlayService(): OverlayService {
         update({ dialogs: [...snapshot.dialogs, { id, kind: 'confirm', spec, answer }] });
       }),
     toast,
-    toastUndo: (text, undo) => {
+    toastUndo: (text, undo, options) => {
       let pressed = false;
       toast(text, {
+        durationMs: options?.durationMs,
         action: {
           label: 'Undo',
           onAction: () => {

@@ -32,6 +32,8 @@ export interface VoiceSample {
 
 const NO_SELECTION = 'Select the words first.';
 const DEFAULT_LIMIT = 20;
+/** How long the Saved message, and its Undo, stays: ten seconds (the PRD's flow and the approved mock). */
+const UNDO_MS = 10_000;
 
 /**
  * Mark a voice sample from the selected words (docs/prds/character-voice-samples.prd.md, phase 3): registers the selection action and the word
@@ -115,11 +117,14 @@ export function useVoiceSample({ chapterId, workspace, items, mediaUrl, stopPlay
                 // The host answers the sample that exists when the same frames are marked twice; Undo must not remove an earlier save.
                 if (list?.samples.some((s) => s.id === id)) overlay.toast(`That stretch is already a voice sample for ${name}.`);
                 else
-                  overlay.toastUndo(`Saved voice sample for ${name}.`, () =>
-                    samples
-                      .voiceSampleRemove(id)
-                      .then(() => ({ ok: true as const }))
-                      .catch((error: unknown) => ({ ok: false as const, refusal: { reason: apiErrorMessage(error) } })),
+                  overlay.toastUndo(
+                    `Saved voice sample for ${name}.`,
+                    () =>
+                      samples
+                        .voiceSampleRemove(id)
+                        .then(() => ({ ok: true as const }))
+                        .catch((error: unknown) => ({ ok: false as const, refusal: { reason: apiErrorMessage(error) } })),
+                    { durationMs: UNDO_MS },
                   );
                 return { ok: true };
               }}

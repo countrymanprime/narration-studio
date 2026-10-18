@@ -49,6 +49,15 @@ export const editingDrivers: Record<string, Driver> = {
     await bar(page).getByRole('button', { name: 'Voice sample' }).click();
     await page.getByRole('dialog', { name: 'Voice sample' }).waitFor();
   },
+  'voice-sample-refused': async (page) => {
+    await openEditing(page, EDITS);
+    // The extra word at the start of the first line was heard and is not in the script: nothing there can be a sample.
+    const said = page.locator('[data-k="p-1:x0"]');
+    await said.click();
+    await said.click({ modifiers: ['Shift'] });
+    await bar(page).getByRole('button', { name: 'Voice sample' }).click();
+    await page.getByRole('dialog', { name: 'Voice sample' }).getByRole('alert').waitFor();
+  },
   'takes-open': async (page) => {
     await openTakes(page, EDITS);
     await expectPanelTextSize(page, 'Suggested take');
