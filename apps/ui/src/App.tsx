@@ -35,6 +35,7 @@ import { ShortcutSheet } from './components/help/ShortcutSheet';
 import { ScriptPage } from './components/script/page/ScriptPage';
 import { creditsKindOfId } from './components/credits/creditsEntries';
 import { NeedManuscript } from './components/layout/NeedManuscript';
+import { NeedManuscriptImport } from './components/layout/NeedManuscriptImport';
 import { ProjectPicker } from './components/project/ProjectPicker';
 import { Guide } from './components/storybible/Guide';
 import { SettingsPage } from './components/settings/page/SettingsPage';
@@ -793,7 +794,7 @@ function AppRoutes() {
                     data.manuscript ? (
                       gated('script', <ScriptPage notify={setNotice} focusStoryBibleEntity={goToStoryBible} goToEditing={goToEditing} goToBooth={goToBooth} />)
                     ) : (
-                      <NeedManuscript title="Script" onImport={() => guardedNavigate('/')} />
+                      <NeedManuscriptImport title="Script" data={data} go={guardedNavigate} notify={setNotice} refreshBootstrap={refreshBootstrap} />
                     )
                   }
                 />
@@ -802,7 +803,14 @@ function AppRoutes() {
                   path="/story-bible"
                   element={gated(
                     'story-bible',
-                    <Guide notify={setNotice} goToManuscript={goToScript} hasManuscript={Boolean(data.manuscript)} onImport={() => guardedNavigate('/')} />,
+                    <Guide
+                      notify={setNotice}
+                      goToManuscript={goToScript}
+                      hasManuscript={Boolean(data.manuscript)}
+                      needManuscript={
+                        <NeedManuscriptImport title="Story Bible" data={data} go={guardedNavigate} notify={setNotice} refreshBootstrap={refreshBootstrap} />
+                      }
+                    />,
                   )}
                 />
                 {/* Retired by the engine panel: lands on Proof, where a chapter

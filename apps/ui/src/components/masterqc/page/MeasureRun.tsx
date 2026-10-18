@@ -6,6 +6,7 @@ import { usePort } from '../../../ports/usePort';
 import type { MeasureJob } from '../../../types';
 import { Button } from '../../primitives/Button';
 import { ProgressBar } from '../../primitives/ProgressBar';
+import { ARRIVE_CLASSES } from '../../primitives/changeHighlight';
 
 /** How often a running measurement is read. */
 const POLL_MS = 500;
@@ -138,7 +139,7 @@ export function MeasureProgress({ run }: { run: MeasureRun }) {
   return (
     <>
       {run.jobError && (
-        <p role="alert" className="text-sm" style={DANGER}>
+        <p role="alert" className={`text-sm ${ARRIVE_CLASSES}`} style={DANGER}>
           Can't tell how the measurement is going{run.lastHeard ? `, last heard ${Math.max(0, Math.round((Date.now() - run.lastHeard) / 1000))} s ago` : ''}:{' '}
           {run.jobError}{' '}
           <Button variant="ghost" size="sm" onClick={run.checkAgain}>
