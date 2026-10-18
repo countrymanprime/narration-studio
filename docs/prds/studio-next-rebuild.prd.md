@@ -520,10 +520,10 @@ The spec for every page in this series is the running Studio Next mock, [`docs/r
 
 ### Which mocks are the spec
 
-Owner ruling D98, 2026-10-11 (it replaces D96, 2026-09-29), and D69 on the theme.
+Owner ruling D98, 2026-10-11 (it replaces D96, 2026-09-29), and D69 on the theme. Amended by an owner ruling of 2026-10-18: the Studio Next mock is a frozen reference, not a spec kept in step with the app. The first two bullets below replace D98's "the mock is the spec" and "if it is not in the mock, it is not built".
 
-- **The spec is the Studio Next mock: `docs/research/mockups/studio-next/`.** Layout, tokens, primitive sizes and behaviour of every page it covers are built to it. Where an older ADR, a benchmark mock, an existing page or a measured value differs, the mock wins and the older thing is superseded ([Which mocks are the spec](../design/design-system.md#which-mocks-are-the-spec)).
-- **If it is not in the mock, it is not built.** No control, state or feature the mock lacks is added, and no page is widened beyond it.
+- **The reference is the Studio Next mock: `docs/research/mockups/studio-next/`.** The first build of every page it covers follows its layout, tokens, primitive sizes and behaviour. Where an older ADR, a benchmark mock, an existing page or a measured value differs, the mock wins until a PRD or doc supersedes the mock's line ([Which mocks are the spec](../design/design-system.md#which-mocks-are-the-spec)).
+- **The mock is not updated as the real app changes.** A change that departs from it does not edit the mock. It supersedes the line in the PRD or doc that covers the page, naming what it replaces and why; that PRD or doc, not the mock, then states the behaviour. A control, state or feature the mock lacks may be added the same way, through an issue or PRD that says so.
 - **If the repo already has an equivalent of something in the mock, the old one is removed.** The change that swaps a page in deletes the old page and anything only it used, in the same PR ([Design principles](../architecture/principles.md) decision 1).
 - **Existing features with no equivalent in the mock are left as built:** the series voice bible and Series tab, the companion mode, and the stage timer, PFH and effective rate. They are not extended, removed or restyled.
 - **The benchmark mocks (`docs/research/mockups/audiobook-studio-benchmark/`) are no longer a build target for any page the Studio Next mock covers.** They remain only as the reference for the two pages it lacks (06 Series voice bible, 07 companion), and are deleted at cutover with the old pages.

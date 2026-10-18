@@ -1,8 +1,9 @@
 // @vitest-environment jsdom
-import { act, cleanup, render, screen, waitFor } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import { CommandRouter } from '../../input/router';
 import { MAX_ADDRESS_TEXT } from '../../navigation/address';
 import type { AddressPage } from '../../navigation/address';
 import { AddressGate } from './AddressGate';
@@ -20,18 +21,20 @@ function mount(options: { at: string; page: AddressPage; chapters?: Chapters | n
   const reload = options.reload ?? vi.fn().mockResolvedValue(undefined);
   const ui = (chapters: Chapters) => (
     <MemoryRouter initialEntries={[options.at]}>
-      <Routes>
-        <Route
-          path={options.route ?? '/booth'}
-          element={
-            <AddressGate page={options.page} chapterParam={options.param} chapters={chapters} reloadChapters={reload}>
-              <p>the page</p>
-            </AddressGate>
-          }
-        />
-        <Route path="*" element={<Where />} />
-      </Routes>
-      <Where />
+      <CommandRouter>
+        <Routes>
+          <Route
+            path={options.route ?? '/booth'}
+            element={
+              <AddressGate page={options.page} chapterParam={options.param} chapters={chapters} reloadChapters={reload}>
+                <p>the page</p>
+              </AddressGate>
+            }
+          />
+          <Route path="*" element={<Where />} />
+        </Routes>
+        <Where />
+      </CommandRouter>
     </MemoryRouter>
   );
   const view = render(ui('chapters' in options ? options.chapters! : [{ id: 'c1' }, { id: 'c2' }]));
@@ -60,6 +63,38 @@ describe('AddressGate', () => {
     mount({ at: '/booth?chapter=a&chapter=b', page: 'booth' });
     await userEvent.click(screen.getByRole('button', { name: 'Go to Production' }));
     expect(screen.getAllByTestId('where')[0]!.textContent).toBe('/');
+  });
+
+  it('Escape leaves a bad Booth address for the Script page, as it leaves the Booth: the Booth fills the window, so there is no other way out', () => {
+    mount({ at: '/booth?chapter=a&chapter=b', page: 'booth' });
+    fireEvent.keyDown(document.body, { key: 'Escape', code: 'Escape' });
+    expect(screen.getAllByTestId('where')[0]!.textContent).toBe('/script');
+  });
+
+  it('Escape leaves a Booth link to a chapter that is gone, too', async () => {
+    mount({ at: '/booth?chapter=c3', page: 'booth' });
+    await screen.findByRole('alert');
+    fireEvent.keyDown(document.body, { key: 'Escape', code: 'Escape' });
+    expect(screen.getAllByTestId('where')[0]!.textContent).toBe('/script');
+  });
+
+  it('other keys do nothing on a bad Booth address', () => {
+    mount({ at: '/booth?chapter=a&chapter=b', page: 'booth' });
+    for (const [key, code] of [
+      [' ', 'Space'],
+      ['Enter', 'Enter'],
+      ['r', 'KeyR'],
+      ['F11', 'F11'],
+    ] as const)
+      fireEvent.keyDown(document.body, { key, code });
+    expect(screen.getByRole('alert')).toBeTruthy();
+    expect(screen.getAllByTestId('where')[0]!.textContent).toBe('/booth?chapter=a&chapter=b');
+  });
+
+  it('Escape on a bad address of a page that keeps its sidebar does nothing', () => {
+    mount({ at: '/editing/a%20b?x=1&x=2', page: 'editing', route: '/editing/:chapterId' });
+    fireEvent.keyDown(document.body, { key: 'Escape', code: 'Escape' });
+    expect(screen.queryByRole('alert') ?? screen.queryByText('the page')).toBeTruthy();
   });
 
   it('reads the list again before it calls a chapter stale, and opens the page when the new chapter is there', async () => {

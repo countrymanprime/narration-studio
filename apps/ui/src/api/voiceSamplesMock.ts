@@ -16,6 +16,7 @@ import {
   type VoiceSamplesApi,
   type VoiceSamplesChanged,
 } from '../types';
+import { mockAudioSource } from './mockHost/system';
 import { wireClone } from './mockFixtures';
 
 const MIN_SECONDS = 0.5;
@@ -279,6 +280,9 @@ export function createVoiceSamplesMock(ready: Promise<unknown>, chapters: () => 
       if (removed.removed > 0) changed();
       return removed;
     },
+    // Browser mock mode has no /media route: where object URLs exist a silent WAV stands in for every clip, as it does for a track; elsewhere (jsdom)
+    // the URL is the host's own shape, so a test sees what the page would ask for.
+    voiceSampleMediaUrl: (id) => mockAudioSource() ?? `/media?sample=${encodeURIComponent(id)}`,
     subscribeVoiceSamples: (onChange) => {
       subscribers.add(onChange);
       return () => subscribers.delete(onChange);

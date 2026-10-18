@@ -4,7 +4,7 @@
 
 **Constraints:** [Threat model](../architecture/threat-model.md), [Story Bible](../guides/using-the-app/story-bible.md), [Manuscript line identity in the REAPER project](../architecture/manuscript-line-identity.md), [Base UI wrappers](../design/design-system.md#base-ui-wrappers), [The standard](../architecture/interaction-feedback.md#the-standard), [Booth](../guides/using-the-app/booth.md), [voicebible.go](../../apps/desktop/internal/series/voicebible.go), [Which mocks are the spec](../design/design-system.md#which-mocks-are-the-spec), [Data files](../reference/data-files.md), [DAW capabilities: what each one is and what it returns](../reference/daw/capabilities.md). Proposed by this PRD: [What is stored](#what-is-stored), [Playback](#playback).
 
-**Status (2026-10-18):** phase 0 (the PRD and a draft mock) is merged. Phase 1, the Go host's store and bindings, is built and has no page: nothing in the app calls it yet. The owner has decided open questions 1 to 9 (see the [Decisions Log](#decisions-log)), and has approved playing in the app's own audio (see Playback under Technical Approach). Nothing in this PRD is waiting on the owner. The owner approved the draft mock on 2026-10-17, so phases 3 to 5 are no longer waiting on it.
+**Status (2026-10-18):** phase 0 (the PRD and a draft mock) is merged. Phase 1, the Go host's store and bindings, is merged and has no page. Phase 2, playback (`GET /media?sample=<id>` and the page's `useSamplePlayer`), is built and has no page either: nothing in the app draws a play control yet. The owner has decided open questions 1 to 9 (see the [Decisions Log](#decisions-log)), and has approved playing in the app's own audio (see Playback under Technical Approach). Nothing in this PRD is waiting on the owner. The owner approved the draft mock on 2026-10-17, so phases 3 to 5 are no longer waiting on it.
 
 ## Problem Statement
 
@@ -309,7 +309,7 @@ A file the app writes and reads back is not a trust boundary, so `samples.json` 
 | --- | --- | --- | --- | --- | --- |
 | 0 | Design | This PRD and the draft mock | in review | Yes | None |
 | 1 | Store and bindings | `internal/voicesample`: record, WAV window copy, limits, list, update, primary, remove; bindings, schemas, goldens, mock API, port, data-files rows, host API bump. No UI | complete | Yes, with 2 | 0 (owner answers 1, 2, 6) |
-| 2 | Playback | The id-keyed branch in `mediaMiddleware`, threat model row 6b, `useSamplePlayer` with the one-at-a-time and recording guards, Storybook | pending | Yes, with 1 after the contract is fixed | 1 |
+| 2 | Playback | The id-keyed branch in `mediaMiddleware`, threat model row 6b, `useSamplePlayer` with the one-at-a-time and recording guards, Storybook | complete | Yes, with 1 after the contract is fixed | 1 |
 | 3 | Mark in Editing | Selection action, word menu section, `V` row, the **Voice sample** dialog and its refusals, Editing guide | pending | Yes, with 4 | 1 |
 | 4 | Story Bible | **Voice samples** section, **Voice data** additions, orphan and state rows, entry read-only rules, Story Bible guide | pending | Yes, with 3 | 2 |
 | 5 | Booth | Spike: pause listening while a sample plays. Then picker play controls with the `Listbox` trailing action, **Voices in this scene**, `V` and `Mod+Enter`, prefetch, the recording and listening guards, Booth guide | pending | No | 2, 4, the picker group |
@@ -350,6 +350,7 @@ Every phase's pull request has an **Exercised** and a **Not exercised** section.
 | 2026-10-18 | Phase 1 removes the samples in `manuscript.Service.Clear`, not in `resetDerived`: `resetDerived` also runs when a manuscript replace is confirmed, and the owner decided a replace keeps them | Phase 1 implementation, from the owner's decision on question 2 |
 | 2026-10-18 | A mark of the same character and the same frames of the same take answers the sample that exists instead of storing a second (the host's answer to a double press); the handles stop at a cut as well as at the played range, so a sample never carries audio the narrator cut; an update of a sample that is gone is refused `not_found` | Phase 1 implementation; for the owner to confirm |
 | 2026-10-18 | The host finds a cut's audio from the words it cut: the span of source seconds the recording check heard for the cut's words, on the item they were heard on. A cut with no words, or whose words changed, hides nothing here | Phase 1 implementation; checked against stored cuts only, not against a cut made in a real DAW |
+| 2026-10-18 | The player is one module-level store (one `Audio`) that every `useSamplePlayer` shares, and other audio stops through `onSampleStart`. A page that has no recorder passes no guard and a sample plays; a page that cannot tell passes the sentence, and the player refuses with it. The Booth has no audio output of its own (no speech synthesis), so only Editing's chapter playback and the take audition register | Phase 2 implementation; for the owner to confirm |
 
 ## Research Summary
 

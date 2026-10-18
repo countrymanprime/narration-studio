@@ -4,6 +4,8 @@
 
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
+import { CommandScope } from '../../input/router';
+import { useCommand } from '../../input/useCommand';
 import { addressPagePath, readAddress, type AddressPage, type AddressRead } from '../../navigation/address';
 import { Button } from '../primitives/Button';
 import { Heading } from '../primitives/Heading';
@@ -103,10 +105,22 @@ export function AddressGate({
   return <>{children}</>;
 }
 
+/** The Booth fills the window, so its bad-address screen has no sidebar to leave by: Escape leaves it as it leaves the Booth, for Script. */
+function LeaveBoothOnEscape() {
+  const navigate = useNavigate();
+  useCommand('booth.exit', () => navigate(addressPagePath('script'), { replace: true }));
+  return null;
+}
+
 function BadAddress({ page, message }: { page: AddressPage; message: string }) {
   const navigate = useNavigate();
   return (
     <div className="mx-auto max-w-3xl space-y-4 p-6">
+      {page === 'booth' && (
+        <CommandScope kind="booth">
+          <LeaveBoothOnEscape />
+        </CommandScope>
+      )}
       <Heading title={TITLE[page]} />
       <Panel title="This link could not be opened">
         <p role="alert" className="text-sm" style={{ color: 'var(--text-muted)' }}>
