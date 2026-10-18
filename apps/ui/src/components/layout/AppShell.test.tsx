@@ -169,16 +169,18 @@ describe('AppShell grouped navigation', () => {
     }
   });
 
-  // docs/architecture/principles.md and docs/design/design-system.md: on the wide rail every group's heading is drawn, the first one too (its space stands in
-  // for the benchmark mocks' Schedule item, which has no page), never only named for a screen reader.
-  it('draws every group heading on the wide rail, the first one too', () => {
+  // The Studio Next mock (docs/research/mockups/studio-next, ADR 0760) draws a heading over every group but the first: Production and Schedule sit
+  // straight under the brand block. The first group keeps its name for a screen reader, as an `aria-label` in place of the heading.
+  it('draws a heading over every group but the first, which is named by aria-label', () => {
     const { container } = renderShell();
-    for (const label of ['Production', 'Prep', 'Record', 'Edit', 'Review', 'Finish']) {
+    for (const label of ['Prep', 'Record', 'Edit', 'Review', 'Finish']) {
       const heading = container.querySelector(`#nav-group-${label.toLowerCase()}`);
       expect(heading?.textContent).toBe(label);
       expect(heading?.className).not.toMatch(/\bsr-only\b/);
       expect(heading?.className).toMatch(/\bsection-label\b/);
     }
+    expect(container.querySelector('#nav-group-production')).toBeNull();
+    expect(container.querySelector('[role="group"][aria-label="Production"]')).not.toBeNull();
   });
 
   // The icon rail draws a rule in place of each heading (components.css `.icon-rail`, the mock's `.rail-c .grp::before`), which needs the rail
@@ -186,7 +188,7 @@ describe('AppShell grouped navigation', () => {
   it('marks the rail panel and positions every group heading for the icon rail rules', () => {
     const { container } = renderShell();
     expect(container.querySelector('aside > div')?.classList.contains('icon-rail')).toBe(true);
-    for (const label of ['Production', 'Prep', 'Record', 'Edit', 'Review', 'Finish']) {
+    for (const label of ['Prep', 'Record', 'Edit', 'Review', 'Finish']) {
       expect(container.querySelector(`#nav-group-${label.toLowerCase()}`)?.classList.contains('relative')).toBe(true);
     }
   });

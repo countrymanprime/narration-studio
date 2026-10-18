@@ -32,7 +32,7 @@ describe('NavButton', () => {
     expect(screen.getByRole('button', { name: 'Proofing' }).className).toContain('text-[var(--text-muted)]');
   });
 
-  // Mock 01's item: 34 px on the rail's 37 px pitch, Barlow Condensed 13 px tracked 0.11 em, radius 7.
+  // The Studio Next mock's `.nav` (ADR 0760): 40 px on the rail's 42 px pitch, Barlow Condensed 15 px tracked 0.12 em, radius 8, a 20 px icon in a 22 px box.
   it('is the measured item', () => {
     render(
       <NavButton active={false} icon={faHouse} onClick={() => {}}>
@@ -40,7 +40,8 @@ describe('NavButton', () => {
       </NavButton>,
     );
     const item = screen.getByRole('button', { name: 'Production' });
-    for (const token of ['h-[2.125rem]', 'text-[0.8125rem]', 'tracking-[0.11em]', 'rounded-[0.4375rem]']) expect(item.className).toContain(token);
+    for (const token of ['h-10', 'text-[0.9375rem]', 'tracking-[0.12em]', 'rounded-lg', '[&_svg]:text-[1.25rem]', '[&_svg]:w-[1.375rem]!'])
+      expect(item.className).toContain(token);
   });
 
   it("draws a count at the item's end and says it in the name, and draws none for zero or none", () => {
