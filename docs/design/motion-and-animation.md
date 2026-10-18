@@ -4,7 +4,7 @@
 
 ## Tokens
 
-Defined once in `:root` in `apps/ui/src/styles.css`:
+Defined once on `html` in `apps/ui/src/styles.css` (not `:root`, which `paletteContrast.test.ts` reads as a colour theme):
 
 | Token | Value | Used by |
 | --- | --- | --- |

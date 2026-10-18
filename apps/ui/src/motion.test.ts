@@ -95,7 +95,7 @@ describe('motion', () => {
       expect(css).toContain(`${token}:`);
     }
     expect(css).toMatch(/@custom-variant motion-ok/);
-    expect(css).toMatch(/:root\[data-motion='reduce'\]/);
+    expect(css).toMatch(/html\[data-motion='reduce'\]/);
   });
 });
 

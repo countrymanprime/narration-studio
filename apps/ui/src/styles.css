@@ -23,15 +23,16 @@
 
 /* Motion (docs/design/motion-and-animation.md). Every transition and animation is a `motion-ok:` utility timed by these
    tokens. `motion-ok:` applies only when Windows has not asked for reduced motion and <html> has no data-motion="reduce";
-   `motion-safe:` reads the media query alone, so `src/motion.test.ts` fails on it. */
+   `motion-safe:` reads the media query alone, so `src/motion.test.ts` fails on it. The motion rules select `html`, not `:root`:
+   paletteContrast.test.ts reads every `:root` rule as a colour theme. */
 @custom-variant motion-ok {
   @media (prefers-reduced-motion: no-preference) {
-    &:where(:root:not([data-motion='reduce']) *) {
+    &:where(html:not([data-motion='reduce']) *) {
       @slot;
     }
   }
 }
-:root {
+html {
   --motion-fast: 120ms; /* hover and press colour, tooltip, menu, toast, the icon rail, level meter */
   --motion-base: 200ms; /* slide-over, drawers, progress fill */
   --motion-slow: 300ms; /* the Booth text column only */
@@ -43,7 +44,7 @@
 }
 /* Under reduced motion the tokens are zero too, for anything that reads them outside a `motion-ok:` utility. */
 @media (prefers-reduced-motion: reduce) {
-  :root {
+  html {
     --motion-fast: 0ms;
     --motion-base: 0ms;
     --motion-slow: 0ms;
@@ -51,7 +52,7 @@
     --motion-shift: 0px;
   }
 }
-:root[data-motion='reduce'] {
+html[data-motion='reduce'] {
   --motion-fast: 0ms;
   --motion-base: 0ms;
   --motion-slow: 0ms;
