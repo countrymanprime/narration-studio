@@ -130,6 +130,7 @@ function VoiceDataContent({
           heading={ORPHAN_HEADING}
           select={selectOrphans}
           quietWhenEmpty
+          checkAgain={false}
           canManage
         />
       </div>

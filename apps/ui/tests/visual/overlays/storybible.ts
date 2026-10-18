@@ -56,6 +56,11 @@ export const storyBibleCases: OverlayCase[] = [
     name: 'menu of a voice sample',
     kind: 'menu',
     start: 'fresh',
+    // The menu stays anchored to its row when the page scrolls under it, as the kind menu's does, so it is checked where it opens.
+    scrolled: false,
+    // Not at 320x300: the row's menu button is below the fold of a 300 px window when the menu opens (a fresh load draws the page at its first size), so the
+    // menu opens off screen; listed as not covered, as the word menu is in Editing.
+    viewports: ({ height }) => height >= 500,
     open: async (page) => {
       await page.goto('/?mockVoiceSamples=bible');
       await settlePage(page);
