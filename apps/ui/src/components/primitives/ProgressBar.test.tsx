@@ -21,7 +21,7 @@ describe('ProgressBar', () => {
     const { container } = render(<ProgressBar label="Starting" value={null} running />);
     expect(screen.getByRole('progressbar').getAttribute('aria-valuenow')).toBeNull();
     const fill = container.querySelector('.progressbar > div') as HTMLElement;
-    expect(fill.className).toContain('motion-safe:animate-[work-progress-slide_1.15s_ease-in-out_infinite]');
+    expect(fill.className).toContain('motion-ok:animate-[work-progress-slide_1.15s_ease-in-out_infinite]');
     expect(fill.className.split(/\s+/)).not.toContain('animate-[work-progress-slide_1.15s_ease-in-out_infinite]');
   });
 
