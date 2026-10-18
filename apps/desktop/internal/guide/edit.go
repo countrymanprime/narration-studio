@@ -5,9 +5,11 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io/fs"
 	"os"
 	"slices"
 	"strings"
+	"unicode"
 
 	"golang.org/x/text/cases"
 
@@ -19,6 +21,10 @@ var systemCategories = []string{"Needs Review", "Draft"}
 
 // errNoGuide is the sidecar's refusal for a file that is missing or not a JSON object (load_json reads both as no file).
 var errNoGuide = errors.New("Guide file does not exist; build it first.") //nolint:staticcheck // the sidecar's own words, shown to the narrator
+
+// errNoFile is errNoGuide for a file that is not there or holds an empty object (or null): the two the sidecar's type commands start a
+// new Story Bible for (typesInHost). A file that is there but is not a JSON object is errNoGuide alone.
+var errNoFile = fmt.Errorf("%w", errNoGuide)
 
 // editInHost is manuscript_guide.py `edit` for every field but "aliases" (locked, description, personality, context, properties,
 // category, canonical_name; a new alias needs a pronunciation lookup and the manuscript, so that stays in the sidecar). Every field is
@@ -82,6 +88,9 @@ func (s *Service) documentForEdit() (map[string]any, error) {
 	raw, err := os.ReadFile(s.guidePath())
 	if err != nil {
 		s.held = nil
+		if errors.Is(err, fs.ErrNotExist) {
+			return nil, errNoFile
+		}
 		return nil, errNoGuide
 	}
 	if s.held != nil && bytes.Equal(s.held.raw, raw) {
@@ -105,9 +114,12 @@ func parseForEdit(raw []byte) (map[string]any, error) {
 	decoder := json.NewDecoder(bytes.NewReader(raw))
 	decoder.UseNumber()
 	var document map[string]any
-	// An empty object is no file to the sidecar too (load_json's result is falsy).
-	if err := decoder.Decode(&document); err != nil || len(document) == 0 {
+	if err := decoder.Decode(&document); err != nil {
 		return nil, errNoGuide
+	}
+	// An empty object, or null, is no file to the sidecar too (load_json's result is falsy).
+	if len(document) == 0 {
+		return nil, errNoFile
 	}
 	version, _ := document["schema_version"].(json.Number)
 	found, _ := version.Int64()
@@ -181,37 +193,15 @@ func findEntity(document map[string]any, id string) (int, map[string]any, error)
 	return 0, nil, errors.New("Entity not found.") //nolint:staticcheck // the sidecar's own words, shown to the narrator
 }
 
-// documentTypeNames is manuscript_guide.py type_names over guide_types: the names of the stored types, or of DefaultTypes for a file
-// without a list. A stored list that is not rows of a name, a palette colour and a speaks flag, or that repeats a name, is refused.
+// documentTypeNames is manuscript_guide.py type_names: the names of the types guideTypes reads.
 func documentTypeNames(document map[string]any) ([]string, error) {
-	stored, present := document["types"]
-	if !present || stored == nil {
-		names := []string{}
-		for _, row := range DefaultTypes() {
-			names = append(names, row.Name)
-		}
-		return names, nil
+	types, err := guideTypes(document)
+	if err != nil {
+		return nil, err
 	}
-	invalid := errors.New("The Story Bible types are invalid.") //nolint:staticcheck // the sidecar's own words, shown to the narrator
-	rows, ok := stored.([]any)
-	if !ok || len(rows) == 0 {
-		return nil, invalid
-	}
-	names := make([]string, 0, len(rows))
-	seen := map[string]bool{}
-	for _, raw := range rows {
-		row, ok := raw.(map[string]any)
-		if !ok {
-			return nil, invalid
-		}
-		name, nameOK := row["name"].(string)
-		colour, _ := row["colour"].(string)
-		_, speaksOK := row["speaks"].(bool)
-		if !nameOK || strings.TrimSpace(name) == "" || seen[foldCase(name)] || !slices.Contains(TypeColours, colour) || !speaksOK {
-			return nil, invalid
-		}
-		seen[foldCase(name)] = true
-		names = append(names, name)
+	names := make([]string, 0, len(types))
+	for _, row := range types {
+		names = append(names, row["name"].(string))
 	}
 	return names, nil
 }
@@ -223,7 +213,7 @@ func applyEdit(entity map[string]any, field, value string, categories []string) 
 	}
 	switch field {
 	case "locked":
-		entity["locked"] = slices.Contains([]string{"1", "true", "yes", "on"}, strings.ToLower(strings.TrimSpace(value)))
+		entity["locked"] = slices.Contains([]string{"1", "true", "yes", "on"}, strings.ToLower(pythonStrip(value)))
 	case "description":
 		description, ok := entity["description"].(map[string]any)
 		if !ok {
@@ -260,7 +250,7 @@ func applyEdit(entity map[string]any, field, value string, categories []string) 
 // parseProperties is manuscript_guide.py parse_properties and normalize_properties: empty text is no properties; otherwise a JSON list of
 // {key, value} strings, each trimmed, in the order given, a key required and unique whatever its case. A refusal names the position.
 func parseProperties(text string) ([]any, error) {
-	if strings.TrimSpace(text) == "" {
+	if pythonStrip(text) == "" {
 		return []any{}, nil
 	}
 	var raw any
@@ -281,7 +271,7 @@ func parseProperties(text string) ([]any, error) {
 		if !isPair || !keyOK || !valueOK {
 			return nil, fmt.Errorf("Property %d must have a text key and a text value.", position) //nolint:staticcheck // the sidecar's own words, shown to the narrator
 		}
-		key, value = strings.TrimSpace(key), strings.TrimSpace(value)
+		key, value = pythonStrip(key), pythonStrip(value)
 		if key == "" {
 			return nil, fmt.Errorf("Property %d has no name.", position) //nolint:staticcheck // the sidecar's own words, shown to the narrator
 		}
@@ -295,8 +285,28 @@ func parseProperties(text string) ([]any, error) {
 }
 
 // foldCase is the comparison the sidecar makes with str.casefold: Unicode full case folding, so "ß" matches "SS" and "ﬁ" matches "FI".
+// cases.Fold turns Cherokee capitals into small letters and small letters into capitals, so "Ꭰ" and "ꭰ" would not match; casefold, as
+// Unicode's CaseFolding.txt says, folds both to the capital, and so does foldCase. A letter newer than the sidecar's Python knows can
+// still fold here and not there.
 func foldCase(text string) string {
-	return cases.Fold().String(text)
+	return strings.Map(cherokeeCapital, cases.Fold().String(text))
+}
+
+// cherokeeCapital is the Cherokee capital of a small Cherokee letter (U+AB70 to U+ABBF, U+13F8 to U+13FD); any other rune is itself.
+func cherokeeCapital(r rune) rune {
+	switch {
+	case r >= 0xab70 && r <= 0xabbf:
+		return r - 0xab70 + 0x13a0
+	case r >= 0x13f8 && r <= 0x13fd:
+		return r - 0x13f8 + 0x13f0
+	}
+	return r
+}
+
+// pythonStrip is Python's str.strip() with no argument: Go's unicode.IsSpace plus the four information separators U+001C to U+001F,
+// which Python counts as space and Go does not.
+func pythonStrip(text string) string {
+	return strings.TrimFunc(text, func(r rune) bool { return unicode.IsSpace(r) || (r >= 0x1c && r <= 0x1f) })
 }
 
 // truthy is Python's truth test of a decoded JSON value, which the sidecar's lock check (`entity.get("locked")`) makes: false, null, zero,

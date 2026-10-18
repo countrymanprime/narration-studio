@@ -109,6 +109,7 @@ CASES = [
     ("types", "entity-wren", {"category": "Place"}),
     ("types", "entity-wren", {"locked": "true"}),
     ("types", "entity-wren", {"locked": " On "}),
+    ("types", "entity-wren", {"locked": "\x1ftrue\x1c"}),
     ("types", "entity-wren", {"locked": "no"}),
     ("types", "entity-wren", {"canonical_name": "Wren", "context": "c", "description": "d", "personality": "p"}),
     ("types", "entity-wren", {"description": 'שלום 👋 — \N{LINE SEPARATOR} "quoted" <b>&amp;</b>'}),
