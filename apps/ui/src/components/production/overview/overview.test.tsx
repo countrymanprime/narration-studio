@@ -166,6 +166,16 @@ describe('ProgressChart', () => {
     expect(document.getElementById(svg.getAttribute('aria-describedby') ?? '')?.textContent).toMatch(/starts .*due .*Today is .*Estimated finish/);
   });
 
+  it('chart-today-label-clears-the-estimate-line: never centred over the dot, where the projection runs up and right from it', () => {
+    const { container } = chart();
+    const dot = container.querySelector('[data-marker="today"]') as SVGCircleElement;
+    const label = screen.getByText('today');
+    const [x, y, cx, cy] = [label.getAttribute('x'), label.getAttribute('y'), dot.getAttribute('cx'), dot.getAttribute('cy')].map(Number);
+    // Left of the dot and above it (recording ahead of the plan), or right of it and below (behind it, or no room on the left).
+    if (label.getAttribute('text-anchor') === 'end') expect([x < cx, y < cy]).toEqual([true, true]);
+    else expect([label.getAttribute('text-anchor'), x > cx, y > cy]).toEqual(['start', true, true]);
+  });
+
   it('chart without a take log has no actual line and says why', () => {
     const { container } = chart(MID_BOOK, NO_TAKE_LOG);
     expect(container.querySelector('[data-line="actual"]')).toBeNull();

@@ -23,6 +23,9 @@ function StatusCell({ status }: { status: MilestoneStatus }) {
   );
 }
 
+/** The Final delivery status while the book has no due date: a pace cannot be judged, and the cell says so instead of staying blank. */
+const NO_DUE: MilestoneStatus = { kind: 'none', sentence: 'No due date yet. Set one to see if you are on pace.', short: 'No date' };
+
 export type MilestoneTableProps = {
   milestones: readonly ProductionMilestone[];
   chapters: readonly ScheduleChapter[];
@@ -51,7 +54,7 @@ export function MilestoneTable({ milestones, chapters, today, due, onToggleDone,
       <TableHead>
         <TableRow>
           <TableHeader hiddenLabel="Done" />
-          <TableHeader>Milestone</TableHeader>
+          <TableHeader className="min-w-[10rem]">Milestone</TableHeader>
           {/* The mock's column sizes: Measures keeps room for "All recorded" on one line, and Due is a date wide (152 px) whatever a milestone is called. */}
           <TableHeader className="md:min-w-[9rem]">Measures</TableHeader>
           <TableHeader className="w-[9.5rem]">Due</TableHeader>
@@ -104,7 +107,13 @@ export function MilestoneTable({ milestones, chapters, today, due, onToggleDone,
           <TableCell className="min-w-[9.5rem]">
             <DueField value={due ?? ''} onCommit={onDueChange} />
           </TableCell>
-          <TableCell>{final ? <StatusCell status={final} /> : null}</TableCell>
+          <TableCell>
+            <span data-final-status="" role="img" aria-label={(final ?? NO_DUE).sentence}>
+              <TooltipTarget text={(final ?? NO_DUE).sentence}>
+                <StatusBadge shape="cell" tone={STATUS_TONE[(final ?? NO_DUE).kind]} label={(final ?? NO_DUE).short} />
+              </TooltipTarget>
+            </span>
+          </TableCell>
           <TableCell />
         </TableRow>
       </TableBody>

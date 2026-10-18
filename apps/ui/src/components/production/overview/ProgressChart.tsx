@@ -66,6 +66,9 @@ export function ProgressChart({ k, wph, start, today, due, recordedHours, series
   const pxPerDay = (width - PAD.left - PAD.right) / span;
   const step = Math.max(7, Math.ceil(TICK_GAP / pxPerDay / 7) * 7);
   for (let d = 0; d <= span; d += step) weeks.push(d);
+  const planDays = due ? diffDays(due, start) : 0;
+  const aheadOfPlan = planDays > 0 && y(recordedHours) < y((finishedHours * nowDay) / planDays);
+  const todayBelow = !aheadOfPlan || x(today) < PAD.left + 40;
   const rows = Array.from({ length: yMax + 1 }, (_, v) => v).slice(0, 4);
   const summary = `Plan starts ${fmtD(start)}${due ? `, due ${fmtD(due)}` : ', no due date'}. Today is ${fmtD(today)}, ${recordedHours.toFixed(1)} of ${finishedHours.toFixed(1)} finished hours recorded. Estimated finish ${fmtD(k.finish)}.`;
 
@@ -141,7 +144,14 @@ export function ProgressChart({ k, wph, start, today, due, recordedHours, series
             data-line="projection"
           />
           <circle cx={x(today)} cy={y(recordedHours)} r="5" fill="var(--accent)" stroke="var(--surface)" strokeWidth="2" data-marker="today" />
-          <text x={x(today)} y={y(recordedHours) - 10} textAnchor="middle" fontSize="11" fill="var(--text)">
+          {/* Beside the dot, on the side the plan line is not: above and left when the recording is ahead of the plan (the plan passes below), below and right otherwise. The projection runs up and right from the dot, so the right side is only taken below it. */}
+          <text
+            x={todayBelow ? x(today) + 9 : x(today) - 7}
+            y={y(recordedHours) + (todayBelow ? 18 : -14)}
+            textAnchor={todayBelow ? 'start' : 'end'}
+            fontSize="11"
+            fill="var(--text)"
+          >
             today
           </text>
           <text

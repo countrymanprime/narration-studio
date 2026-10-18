@@ -29,7 +29,8 @@ the finished hours, editing 2.1× and proofing 0.94×, a pickup takes 0.06 hours
 pace, done** is today plus the work left divided by that pace.
 
 The chart, **Recorded audio vs plan**, draws the plan as a dashed line to the due date, the recorded days as a solid line when
-the app can read them (otherwise it says why it cannot), today, and the estimated finish as a dotted line.
+the app can read them (otherwise it says why it cannot), today (its label sits left of the dot, clear of the dotted line), and the
+estimated finish as a dotted line.
 
 ## Contract
 
@@ -41,12 +42,12 @@ refused with a message and the box goes back to the stored amount. A refusal's m
 
 ## Milestones
 
-The table lists your milestones by date, with the **Final delivery** row, the book's due date, at the end. Each row has:
+The table lists your milestones by date (the Milestone column keeps a readable width, so a long name wraps in it and the table scrolls sideways in a narrow window), with the **Final delivery** row, the book's due date, at the end. Each row has:
 
 - a **done** toggle. A done milestone reads **Done** and is never estimated.
 - a name, what it **measures** (a custom milestone measures nothing), and its date.
 - a status cell: **Late by 3 d**, **At risk** or **On track** with the estimated date, or **Not estimated** for a custom one.
-  Hover or focus it for the full sentence.
+  Hover or focus it for the full sentence. **Final delivery** reads **No date** until a due date is set.
 - a note button (hover it to read the note; with no note it offers to add one), **Edit** and **Remove**. Removing offers Undo.
 
 ![Schedule - the Add milestone dialog: name, due date, what it measures, a note and Done](../../images/ui/schedule-milestone-dialog.webp)
