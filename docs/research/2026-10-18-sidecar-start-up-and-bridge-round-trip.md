@@ -2,7 +2,7 @@
 
 **Measured 2026-10-18.** Issue: [#1897](https://github.com/countrymanprime/narration-utils/issues/1897). **Questions:** (1) in a frozen Story Bible call that costs 226 to 380 ms p50 ([interaction latency baseline](interaction-latency-baseline.md)), how much is the PyInstaller bootloader, how much is imports, and how much is work? (2) How long does one bridge command take to come back, given that the answer waits for the host's 150 ms tick? Nobody had measured either.
 
-**Status of the numbers.** Every number below is labelled *measured* (and where) or *estimated*. The Windows rows come from the manual workflow [`latency-windows.yml`](../../.github/workflows/latency-windows.yml); **they are pending the workflow run and are marked so** until they are filled in.
+**Status of the numbers.** Every number is *measured* on the machine named beside it; nothing here is estimated. The Windows figures come from one run of the manual workflow [`latency-windows.yml`](../../.github/workflows/latency-windows.yml) (run 39143237384) on a GitHub-hosted `windows-latest` runner: Windows Server 2025, 2-core AMD EPYC 7763, **Defender real-time protection off** (`AntivirusEnabled` true), so a scanned first launch is not in them. One run: expect noise between runs. Linux figures from this container are kept as a second sample of shape only.
 
 ## Method
 
@@ -14,63 +14,75 @@
 
 ## Findings
 
-### Frozen sidecar start-up
+### Frozen sidecar start-up (Windows, measured)
 
-Linux container (2.1 GHz Xeon, 4 vCPU), frozen `manuscript-guide`, 2 fresh copies, 6 launches each. **Measured, but Linux and a short run; the Windows figures are the ones that matter and are pending.**
+Launches of each frozen sidecar's `--help` (every module-level import plus argparse; no work). Launch 1 is the first run of a freshly copied folder; launch 10 and the p50 of launches 2 to 12 are warm. Three fresh copies, 12 launches each.
 
-| Program | Launch 1, fresh copy (ms) | Launch 10 (ms) | Launches 2 to N p50 (ms) | Folder |
-| --- | --- | --- | --- | --- |
-| frozen hello (floor) | 57 | 59 | 57 | 3 files, 35 MB |
-| `manuscript-guide --help` | 224 | 200 | 202 | 709 files, 387 MB |
+| Program | Launch 1, fresh copy (ms) | Launch 10 (ms) | Launches 2 to 12 p50 (ms) | p95 (ms) | Folder |
+| --- | --- | --- | --- | --- | --- |
+| frozen hello (the floor) | 224 (max 246) | 62 | 60 | 69 | 55 files, 20 MB |
+| `manuscript-guide --help` | **882** (max 1,283) | 235 | 230 | 260 | 825 files, 278 MB |
+| `transcript-compare --help` | **1,947** (max 3,142) | 268 | 269 | 310 | 245 files, 259 MB |
+| `manuscript-teleprompter --help` | **3,147** (max 5,528) | 271 | 273 | 312 | 256 files, 285 MB |
 
-Import profile of `manuscript-guide --help`, summed top-level imports: **176 ms frozen** (built with `-X importtime`) against **80 ms in the dev interpreter**. The frozen profile's largest entry is `setuptools` at 89 ms, which the dev run does not import; the frozen build includes PyInstaller's `pyi_rth_setuptools` runtime hook. The cause of the import was not traced, so whether it can be dropped (an `--exclude-module`, or the hook) is **not established**.
+- **First launch against warm:** 3.6x for the hello program, 3.7x for `manuscript-guide`, 7.3x for `transcript-compare`, 11.6x for `manuscript-teleprompter`. The larger the folder of native libraries a sidecar loads, the more the first launch costs. This is with Defender's real-time protection off; whether it is the file cache or a scan that the runner still does was not separated.
+- **Dev interpreter:** `python -c pass` 30 ms on the runner.
 
-**Windows (`windows-latest`): pending the workflow run.** The runner is Windows Server 2025 on a 2-core AMD EPYC 7763, with Defender's real-time protection **off** (read from the first run's log), the kindest case for a first launch, as in the earlier baseline.
+### Where a warm Story Bible call goes (Windows, measured)
 
-### Where the 200 ms goes (Linux, measured; Windows pending)
+For `manuscript-guide`, from the table above and the Go harness (20 runs, the real `guide.Service` and `process.Supervisor` against the frozen sidecar):
 
-| Part | ms | How known |
-| --- | --- | --- |
-| Bootloader, interpreter start, a `print` | about 57 | frozen hello |
-| Module imports and argparse of `manuscript-guide` | about 145 | `--help` minus hello (202 - 57) |
-| Of which `setuptools` | about 89 | import profile, frozen build |
-| Work (an edit on a 2,000-word manuscript) | to be taken from the Windows Go harness | pending |
+| Part | ms | Share of a one-field edit on a 2,000-word manuscript (241 ms) | How known |
+| --- | --- | --- | --- |
+| Bootloader, interpreter start, a `print` | 60 | 25% | frozen hello, warm |
+| Imports and argparse of `manuscript_guide.py` | 170 | 70% | `--help` (230) minus hello (60) |
+| Work | about 11 | 5% | edit (241) minus `--help` (230) |
 
-So on Linux about 28% of a no-work launch is the floor and 72% is imports, and about half the imports are one package the dev interpreter does not load. This does not yet say the same for Windows, where the earlier baseline measured the interpreter at 47 ms and `import piper.voice` at 264 ms in the dev venv.
+On a full-length manuscript (88,000 words) the same edit is 424 ms, so the work is about 195 ms there, and start-up is still 230 ms of it. Operations that do more than edit one field cost more on any size: create 538 ms and an alias (pronunciation) edit 654 ms on the small manuscript, so 300 to 420 ms of work each (not traced).
 
-### Bridge round trip
+**So 95% of a cheap small-manuscript call is start-up, and about three quarters of that start-up is imports and argparse, not the bootloader.** Cutting imports is where the 170 ms is; the bootloader floor of 60 ms is what remains.
 
-`play_position` through the real Lua bridge on the fake reaper, host tick 150 ms. **Measured on the Linux container; Windows pending.** This is the **before** state: the answer waits for the host's tick.
+### Import profile (Windows, measured once)
+
+Summed top-level imports of `manuscript-guide --help`: **63 ms in the dev interpreter** against **511 ms in a frozen build with `-X importtime` built in** (the frozen program ignored the environment variable `PYTHONPROFILEIMPORTTIME` on both platforms, which is why the script re-freezes from the generated spec). The frozen profile's largest entries are `multiprocessing` (320 ms), `setuptools` (121 ms) and `ctypes.util` (21 ms); the dev profile has none of them. The build log shows PyInstaller including the `pyi_rth_setuptools` runtime hook; no hook was seen for `multiprocessing`. **The cause of either import was not traced and removing them was not tried.** The 511 ms is also inflated: it is a single launch of a newly built executable (a cold one, by the table above) with the profiler on, so it is not comparable to the 230 ms warm launch. Read it as a ranking, not a total. The other two sidecars have no frozen profile (only `manuscript-guide` is re-frozen); their dev profiles are 128 ms (`transcript-compare`, `numpy` 65 ms the largest) and 114 ms (`manuscript-teleprompter`, `numpy` 62 ms).
+
+### Bridge round trip (Windows, measured; Linux in brackets)
+
+`play_position` through the real Lua bridge on the fake reaper, host tick 150 ms. This is the **before** state: the answer waits for the host's tick.
 
 | events.log at start (KB) | Round trip p50 (ms) | p95 (ms) | Max (ms) | Command taken p50 (ms) | Answer written p50 (ms) |
 | --- | --- | --- | --- | --- | --- |
-| 0 | 98 | 163 | 172 | 14 | 15 |
-| 1,024 | 97 | 162 | 172 | 14 | 14 |
-| 8,192 | 100 | 165 | 208 | 15 | 16 |
+| 0 | 94 [98] | 158 [163] | 175 [172] | 11 [14] | 16 [15] |
+| 1,024 | 92 [97] | 161 [162] | 175 [172] | 13 [14] | 16 [14] |
+| 8,192 | 97 [100] | 158 [165] | 172 [208] | 11 [15] | 14 [16] |
 
-- The script takes a command in about 14 ms and writes its answer in the same tick, so the Lua is about 15 ms of the 98. **The other 80 ms or so is the wait for the host's tick**, matching the review's estimate (script tick 16 to 33 ms plus a mean of 75 ms waiting for the 150 ms tick), now measured on the fake.
-- The log's length does not move the round trip: 0 and 8 MB differ by 2 ms at p50.
+- The script takes a command in 11 to 13 ms and writes its answer in the same tick, about 16 ms of the 94. **The other 78 ms or so is the wait for the host's tick**, matching the review's estimate (script tick 16 to 33 ms plus a mean of 75 ms), now measured on the fake. p95 is 158 ms: a command sent just after a tick waits nearly the whole 150 ms.
+- The log's length (0 to 8 MB) moves p50 by 5 ms, within noise.
 
-### One host tick against a growing log (Linux, measured; `Dispatch` before the offset read)
+### One host tick against a growing log (Windows, measured)
+
+`Dispatch` when nothing new arrived, before the change that reads from the saved offset (three runs each):
 
 | events.log | Time per tick | Allocated per tick |
 | --- | --- | --- |
-| 0 KB | 6 µs | 952 B |
-| 200 KB (about an hour of session) | 45 µs | 213 KB |
-| 1 MB | 226 µs | 1.06 MB |
-| 8 MB | 1.8 ms | 8.4 MB |
+| 0 KB | 15 µs | 1.1 KB |
+| 200 KB (about an hour of session) | 46 to 48 µs | 214 KB |
+| 1 MB | 221 to 236 µs | 1.06 MB |
+| 8 MB | 1.9 to 2.3 ms | 8.4 MB |
 
-Reading the whole log is cheap on Linux with a warm page cache, because nothing is re-read from disk: at 1 MB (about five hours) it is 0.15% of a 150 ms tick. It is memory churn (the whole file copied and converted to a string every tick) more than time. Windows, with a scanner opening the file, may differ; **pending**.
+Reading the whole log costs 0.15% of a 150 ms tick at 1 MB and 1.5% at 8 MB (about 40 hours). It is memory churn (the whole file copied and converted to a string each tick), not time. This is why the fast-poll change reads from the offset but adds no size cap or rotation.
 
 ## What this does and does not show
 
-- The bridge cost is mostly the host's tick, not the script or the log. That is the part [the fast-poll change](https://github.com/countrymanprime/narration-utils/pull/1909) targets.
-- The sidecar floor (the hello program) is a quarter of a no-work launch on Linux. Whether the imports can shrink is a separate question; `manuscript_guide.py` imports `providers` (and through it Piper) for every subcommand, and the `setuptools` import above is a candidate, neither tried here.
-- Measured: Linux numbers above, from this container. Estimated: nothing in the tables. Pending: every Windows figure, the cold-launch ratio on Windows, and the work share of each Story Bible operation.
+- The bridge cost is the host's tick, not the script or the log. [The fast-poll change](https://github.com/countrymanprime/narration-utils/pull/1909) targets it.
+- Start-up dominates cheap Story Bible calls, and imports dominate start-up. Candidates, none tried: the `multiprocessing` and `setuptools` imports a frozen build carries; `manuscript_guide.py` importing `providers` (and through it Piper) for every subcommand; one long-lived sidecar process instead of one process per call. Which of them pays is for a follow-up with its own measurement.
+- The first launch of a sidecar is 0.9 to 3.1 s on this runner even with real-time protection off. Whether to start a sidecar ahead of its first use is a product question these numbers inform but do not answer.
+- Not measured: a machine with real-time protection on, a real manuscript, real REAPER under load, the work inside `create` and the pronunciation edits.
 
 ## Caveats
 
-- Linux is not the shipping platform. Process creation, file-cache and scanner behaviour all differ on Windows, so the Linux splits are shape, not size.
+- One Windows run on a shared 2-core runner. The Linux container's numbers (from a 2-copy, 6-launch run for the sidecar, and the same harness for the bridge) agree in shape and are not shown except in brackets.
+- The 12 launches per copy and 3 copies are small samples; p95 over launches 2 to 12 is the 11 slowest-but-one of 33.
 - The fake `reaper` ticks from a Python thread; real REAPER's defer cadence under load (a big project, rendering) was not measured. The review's 16 to 33 ms is the figure from the [transport timing note](reaper-transport-timing.md).
 - The bridge probe's 0.5 ms polling and Go's timer resolution put about 1 ms of noise on the split between "taken" and "written".
 - The hello program is a floor for the bootloader, not for PyInstaller's runtime hooks, which also run in a sidecar.
