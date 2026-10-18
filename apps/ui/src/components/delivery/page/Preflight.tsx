@@ -4,12 +4,13 @@ import { Button } from '../../primitives/Button';
 import { IconButton } from '../../primitives/IconButton';
 import { Panel } from '../../primitives/Panel';
 import { LoadingRegion, Skeleton } from '../../primitives/Skeleton';
+import { statusTone, type StatusId } from '../../../kinds/statusTone';
 import { StatusBadge } from '../../primitives/StatusBadge';
 import type { ChapterState } from './chapterStates';
 import { heardText } from './useHostRead';
 import { ARRIVE_CLASSES } from '../../primitives/changeHighlight';
 
-const TONE = { ok: 'success', bad: 'danger', wait: 'neutral' } as const;
+const STATUS = { ok: 'pass', bad: 'fail', wait: 'waiting' } as const satisfies Record<string, StatusId>;
 const DANGER = { color: 'var(--danger-text)' };
 const MUTED = { color: 'var(--text-muted)' };
 /** A book of thousands of chapters would make a list as long as the book; this many rows show first, the rest on request. */
@@ -91,7 +92,7 @@ export function Preflight({
                     </span>
                     {/* A space, so the text drawn reads "Chapter 01 Pass", words of the name: run together it fails axe's
                         label-content-name-mismatch. A flex box draws no space for it. */}{' '}
-                    <StatusBadge tone={TONE[state.kind]} label={state.text} />
+                    <StatusBadge tone={statusTone(STATUS[state.kind])} label={state.text} />
                   </Button>
                 </li>
               ))}

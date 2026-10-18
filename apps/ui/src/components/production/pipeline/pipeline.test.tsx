@@ -120,10 +120,10 @@ describe('NextUp', () => {
     expect(within(items[2]!).getByRole('button', { name: 'Inspect failed check' })).toBeTruthy();
   });
 
-  it("tints each item's disc by what it is: recording, then pickups and a failed check as danger (the mock)", () => {
+  it("tints each item's disc by its status: recording in progress, an open pickup session a warning, a failed check danger (kinds/statusTone.ts)", () => {
     view(<NextUp inputs={NEXT_UP_BUSY} record={record} onGo={noop} timer={timer} />);
     const items = within(screen.getByRole('list', { name: 'Next up' })).getAllByRole('listitem');
-    expect(items.map((li) => li.querySelector('[data-tone]')?.getAttribute('data-tone'))).toEqual(['rec', 'danger', 'danger']);
+    expect(items.map((li) => li.querySelector('[data-tone]')?.getAttribute('data-tone'))).toEqual(['info', 'warning', 'danger']);
   });
 
   // The mock's `.next .ico` (app.css:125): a 30 px rounded square, not a 24 px circle.
