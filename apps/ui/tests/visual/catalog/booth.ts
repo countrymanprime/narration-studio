@@ -107,18 +107,21 @@ export const boothStates: StateEntry[] = [
     description:
       'Booth, the speaker picker opened from a speaker chip: the characters who speak in the chapter under In this chapter, then Everyone else, a count and a play control on each character who has voice samples, "no sample" on the rest',
     ...POPUP_ANCHORED_AT_FIRST_WIDTH,
+    ...REFLOW,
   },
   {
     page: 'booth',
     state: 'voice-samples-panel',
     description:
       'Booth, "Voices in this scene" in the side panel with voice samples: a play control and the count on each voice that has some, the Queen of Hearts opened to list her samples (the primary starred), and where to make one for a voice with none',
+    ...REFLOW,
   },
   {
     page: 'booth',
     state: 'voice-samples-recording',
     description: 'Booth, a take recording: the voices\' play controls are off, and the hint on a control says "Not while recording. Stop the take first."',
     ...FREEZES_THE_CLOCK,
+    ...REFLOW,
   },
   {
     page: 'booth',
