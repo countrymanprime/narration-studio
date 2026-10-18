@@ -113,8 +113,8 @@ The dialog says why it cannot save, in one sentence, and saves nothing: the word
 takes ("Choose words inside one take"), the recording changed since the chapter was checked ("Check it again, then mark the
 sample"), some of the words are cut ("Restore the cut words or choose words without them"), the clip would be under half a
 second or over 30 seconds, the recording is not a WAV file, the audio file is missing, the saved REAPER project cannot be read,
-the character has 20 samples, or samples already use the 200 MiB a project may hold. Playing a saved sample from the Story
-Bible and the Booth is not built yet.
+the character has 20 samples, or samples already use the 200 MiB a project may hold. Play, rename and manage a saved sample under
+**Voice samples** on the character's entry in the [Story Bible](story-bible.md#voice-samples); playing one from the Booth is not built yet.
 
 ## Takes
 
