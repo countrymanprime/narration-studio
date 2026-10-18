@@ -251,6 +251,7 @@ export const storybibleDrivers: Record<string, Driver> = {
     await section.getByText('Audio file missing').waitFor();
     await section.getByText('Passage changed').waitFor();
     await section.getByText('Furious, to the court').waitFor();
+    await section.scrollIntoViewIfNeeded();
   },
   'voice-samples-empty': async (page) => {
     await openWithSamples(page, 'bible');

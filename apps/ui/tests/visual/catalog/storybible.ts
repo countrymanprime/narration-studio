@@ -151,11 +151,13 @@ export const storybibleStates: StateEntry[] = [
     state: 'voice-samples-entry',
     description:
       'Story Bible, the locked Queen of Hearts entry with four voice samples above Reference clips: the primary with its star, Passage changed, Audio file missing, each with where it came from and Open in Editing (?mockVoiceSamples=bible)',
+    ...KEEPS_DESKTOP_SCROLL,
   },
   {
     page: 'storybible',
     state: 'voice-samples-empty',
     description: 'Story Bible, an entry with no voice sample: how to mark one and Open Editing (?mockVoiceSamples=bible, Alice)',
+    ...KEEPS_DESKTOP_SCROLL,
   },
   {
     page: 'storybible',

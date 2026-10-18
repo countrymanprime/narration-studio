@@ -26,6 +26,7 @@ export function VoiceSamplesBody({
   heading = 'Voice samples',
   select,
   quietWhenEmpty = false,
+  checkAgain: showCheckAgain = true,
   canManage,
   player,
   notify,
@@ -42,6 +43,8 @@ export function VoiceSamplesBody({
   select?: (list: VoiceSamples) => VoiceSample[];
   /** Draws nothing at all when the list is empty (the samples of a removed character, which most projects have none of). */
   quietWhenEmpty?: boolean;
+  /** Whether the heading has a Check again button; the list of a removed character's samples shares the Narration section's read and leaves it to that one. */
+  checkAgain?: boolean;
   canManage: boolean;
   player: SamplePlayer;
   notify: Notify;
@@ -115,9 +118,11 @@ export function VoiceSamplesBody({
           </span>
         ) : null}
         <span className="flex-1" />
-        <Button variant="ghost" size="sm" pending={checking} onClick={() => void checkAgain()}>
-          Check again
-        </Button>
+        {showCheckAgain ? (
+          <Button variant="ghost" size="sm" pending={checking} onClick={() => void checkAgain()}>
+            Check again
+          </Button>
+        ) : null}
       </div>
       {read.status === 'loading' ? (
         <p aria-busy="true" className="m-0 text-sm text-[var(--text-muted)]">
