@@ -232,6 +232,11 @@ export const boothDrivers: Record<string, Driver> = {
     await settlePage(page);
     await page.getByRole('button', { name: /Fill them in Settings$/ }).waitFor();
   },
+  'credits-missing': async (page) => {
+    await page.goto(`/booth${RECORD_ON}&credits=closing&mockCreditsMissing=1`);
+    await settlePage(page);
+    await page.getByRole('heading', { name: 'The closing credits are not set up' }).waitFor();
+  },
   // The Booth in the Dark theme, chosen the way a narrator chooses it (Settings' Appearance panel). If the Booth ever forced one
   // palette again, this would render the same as 'setup' and the suite's identical-states check would fail the run.
   dark: async (page) => {

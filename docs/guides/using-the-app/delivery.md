@@ -19,7 +19,9 @@ longest file, MP3 format and channels. A built-in profile is marked **Built in**
 
 A custom profile's name, its limits (a lowest and a highest box each) and its longest file can be changed in
 place; the change is saved when you press Enter or leave the box, and a rule it turned off reads **Off**. A
-blank name or a limit that is not a number is ignored and the box shows the saved value again. If the lowest
+blank name, a name over 80 characters or a limit that is not a number is ignored, a sentence under the card says so
+("A profile needs a name, so the name was left as it was.") and the box shows the saved value again. The name box
+sits on the same row as the title and the profile menu. If the lowest
 is above the highest, or the host refuses the change for another reason, its sentence appears under the card
 and the box shows the saved value again. To make a custom profile, duplicate ACX in [Settings, Delivery](settings.md);
 turning a rule off and deleting a profile are there too. If you had set your own limits before delivery
@@ -83,9 +85,16 @@ is a chapter whose title makes a file name longer than Windows allows.
 ![Delivery after the host refused the build: its reason under Build, and nothing written](../../images/ui/delivery-build-failed.webp)
 
 If the host stops answering while a build runs, Delivery says "Can't tell how the build is going", when it last
-heard and when it last asked (**asked again just now** after **Check again**, which reads again at once); the build keeps running on the host and **Cancel** is still there.
+heard and when it last asked. **Check again** reads again at once and answers your press: "You checked again just now:
+the host still did not answer." The build keeps running on the host and **Cancel** is still there.
 
 ![Delivery with a running build and a host that no longer answers: the message with Check again](../../images/ui/delivery-host-quiet.webp)
+
+**Cancel** with a quiet host cannot be confirmed, so Delivery says "Cancel was sent, but the host did not confirm
+it, so the build may still be running." and keeps the quiet message. It says "Packaging cancelled." only when the
+host reports that the build ended; **Check again** asks for that.
+
+![Delivery with a host that no longer answers, after Check again and Cancel: each press is answered, and the cancel is marked unconfirmed](../../images/ui/delivery-host-quiet-cancelled.webp)
 
 ## Profile rules
 

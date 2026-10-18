@@ -1,0 +1,22 @@
+{
+  "sample": {
+    "bytes": 10444,
+    "characterId": "entity-ab12cd34ef56",
+    "clipState": "ok",
+    "createdAt": "2026-09-21T10:00:00Z",
+    "durationMs": 650,
+    "id": "id-1",
+    "label": "Alice, calm",
+    "note": "Before the rabbit hole.",
+    "primary": true,
+    "source": {
+      "chapterId": "c-0001",
+      "chapterTitle": "Chapter One",
+      "endKey": "p-000001:0",
+      "startKey": "p-000001:0",
+      "state": "ok",
+      "text": "Alice."
+    }
+  },
+  "status": "saved"
+}

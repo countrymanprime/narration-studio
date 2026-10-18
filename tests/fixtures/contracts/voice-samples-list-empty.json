@@ -1,0 +1,15 @@
+{
+  "limits": {
+    "labelUnits": 60,
+    "maxSeconds": 30,
+    "minSeconds": 0.5,
+    "noteUnits": 500,
+    "perCharacter": 20,
+    "projectBytes": 209715200
+  },
+  "samples": [],
+  "totals": {
+    "bytes": 0,
+    "count": 0
+  }
+}

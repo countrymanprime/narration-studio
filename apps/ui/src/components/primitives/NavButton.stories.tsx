@@ -36,10 +36,10 @@ export const IconOnly: Story = {
 };
 
 // The full-width sidebar (>= 1400px in AppShell): icon + label, unavailable pages disabled. The 216 px rail and its 8 px
-// inset, as mock 01 draws it.
+// inset, with the items as the Studio Next mock's `.nav` draws them (40 px on a 42 px pitch).
 export const Sidebar: Story = {
   render: () => (
-    <nav className="flex w-54 flex-col gap-[0.1875rem] border-r border-[var(--border)] bg-[var(--surface)] p-2" aria-label="Primary navigation">
+    <nav className="flex w-54 flex-col gap-0.5 border-r border-[var(--border)] bg-[var(--surface)] p-2" aria-label="Primary navigation">
       <NavButton active icon={faHouse} onClick={fn()}>
         Production
       </NavButton>
@@ -60,13 +60,13 @@ export const Sidebar: Story = {
     const box = current.getBoundingClientRect();
     // Measured in the atlas's browser; jsdom (stories.test.tsx) lays nothing out, so there NavButton.test.tsx pins the classes.
     if (box.height === 0) return;
-    await expect(box.height).toBeCloseTo(34, 0);
+    await expect(box.height).toBeCloseTo(40, 0);
     await expect(box.width).toBeCloseTo(199, 0);
     const proof = canvas.getByRole('button', { name: 'Proof, 14' }).getBoundingClientRect();
-    await expect(proof.top - box.top).toBeCloseTo(74, 0);
+    await expect(proof.top - box.top).toBeCloseTo(84, 0);
     const style = getComputedStyle(current);
-    await expect(style.fontSize).toBe('13px');
-    await expect(style.borderTopLeftRadius).toBe('7px');
+    await expect(style.fontSize).toBe('15px');
+    await expect(style.borderTopLeftRadius).toBe('8px');
     await expect(style.textTransform).toBe('uppercase');
   },
 };
