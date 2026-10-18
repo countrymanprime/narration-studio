@@ -1,5 +1,3 @@
-import { faXmark } from '@fortawesome/free-solid-svg-icons';
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { TooltipTarget } from '../../../primitives/Tooltip';
 import { IconButton } from '../../../primitives/IconButton';
 import { ProgressBar } from '../../../primitives/ProgressBar';
@@ -15,9 +13,7 @@ export function ScanButton({ scan }: { scan: ExtractionScan }) {
   if (running)
     return (
       <TooltipTarget text="Cancel scan">
-        <IconButton label="Cancel scan" onClick={() => void scan.cancel()}>
-          <FontAwesomeIcon icon={faXmark} />
-        </IconButton>
+        <IconButton action="close" label="Cancel scan" onClick={() => void scan.cancel()} />
       </TooltipTarget>
     );
   return <IconButton action="sourceAuto" label="Scan the manuscript for suggestions" pending={starting} onClick={() => void scan.start()} />;
