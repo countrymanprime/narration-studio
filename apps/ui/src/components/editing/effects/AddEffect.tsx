@@ -2,6 +2,7 @@ import type { FxList } from '../../../ports/daw';
 import { Button } from '../../primitives/Button';
 import { SectionLabel } from '../../primitives/SectionLabel';
 import { fmtPct, type Impact } from './effectsMath';
+import type { FxFavourites } from './useFxFavourites';
 
 export const SELECT_FIRST = 'Select the words first.';
 
@@ -15,6 +16,7 @@ export function AddEffect({
   impact,
   cap,
   list,
+  favourites,
   onAdd,
 }: {
   hasSelection: boolean;
@@ -24,6 +26,8 @@ export function AddEffect({
   impact: Impact | null;
   cap: number;
   list: FxList | null;
+  /** The narrator's favourites, when the page has them: each listed chain gets a star and the list is already in favourites-first order. */
+  favourites?: FxFavourites;
   onAdd: () => void;
 }) {
   const note = !hasSelection ? SELECT_FIRST : reason;
@@ -59,10 +63,25 @@ export function AddEffect({
         <div className="flex flex-col gap-1" aria-label={list.source} role="group">
           <span className="text-[length:var(--font-size-sm)] text-[var(--text-muted)]">{list.source}</span>
           <ul className="m-0 list-none p-0 text-[length:var(--font-size-sm)]">
-            {list.choices.map((c) => (
-              <li key={c.id}>{c.name}</li>
-            ))}
+            {list.choices.map((c) => {
+              const starred = favourites?.names.some((n) => n.toLowerCase() === c.name.toLowerCase()) ?? false;
+              return (
+                <li key={c.id} className="flex items-center gap-1.5">
+                  {favourites ? (
+                    <Button variant="secondary" size="sm" aria-label={`Favourite ${c.name}`} aria-pressed={starred} onClick={() => favourites.toggle(c.name)}>
+                      {starred ? '★ Favourite' : 'Favourite'}
+                    </Button>
+                  ) : null}
+                  <span className="[overflow-wrap:anywhere]">{c.name}</span>
+                </li>
+              );
+            })}
           </ul>
+          {favourites?.error ? (
+            <p role="alert" className="m-0 text-[length:var(--font-size-sm)] text-[var(--danger-text)]">
+              {favourites.error}
+            </p>
+          ) : null}
         </div>
       ) : null}
     </section>

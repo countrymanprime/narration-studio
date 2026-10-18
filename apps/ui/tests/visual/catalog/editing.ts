@@ -77,6 +77,11 @@ export const editingStates: StateEntry[] = [
   },
   {
     page: 'editing',
+    state: 'drawer-effects-chains',
+    description: 'Editing, the drawer on Effects with a DAW that lists its chains - each chain with a Favourite button, the favourites first',
+  },
+  {
+    page: 'editing',
     state: 'drawer-timeline',
     description:
       'Editing, the drawer on Timeline (the strip does not fit beside the text at these widths) - the waveform and takes of the line the cursor is on',

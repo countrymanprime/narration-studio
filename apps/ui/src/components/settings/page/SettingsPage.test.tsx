@@ -213,6 +213,15 @@ describe('Settings: search and filters', () => {
     expect(within(entry!).queryByRole('button', { name: 'Change it here for now' })).toBeNull();
   });
 
+  it('lists the favourite effects with a way to Editing and no second editor here', async () => {
+    await renderPage();
+    await userEvent.type(await screen.findByRole('textbox', { name: 'Search settings' }), 'plugin');
+    const entry = document.querySelector<HTMLElement>('[data-page-setting="ps.fx"]');
+    expect(entry).toBeTruthy();
+    expect(within(entry!).getByRole('button', { name: /^Open Editing/ })).toBeTruthy();
+    expect(within(entry!).queryByRole('button', { name: 'Change it here for now' })).toBeNull();
+  });
+
   it('Escape clears the search', async () => {
     await renderPage();
     const box = (await screen.findByRole('textbox', { name: 'Search settings' })) as HTMLInputElement;

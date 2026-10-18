@@ -12,7 +12,7 @@ export type PageSetting = {
   why: string;
   syn?: string;
   /** The panel kept behind the entry: see `PagesPane`. Absent once the page has the control, so the entry only points there. */
-  panel?: 'coverage' | 'cleanup' | 'preview' | 'stages' | 'compare' | 'punch' | 'fx';
+  panel?: 'coverage' | 'cleanup' | 'preview' | 'stages' | 'compare' | 'punch';
 };
 
 export const PAGE_SETTINGS: readonly PageSetting[] = [
@@ -75,7 +75,6 @@ export const PAGE_SETTINGS: readonly PageSetting[] = [
     label: 'Favourite effects',
     page: 'editing',
     where: 'Effects tab',
-    panel: 'fx',
     why: 'Chosen from the effects list while editing.',
     syn: 'plugin fx chain',
   },

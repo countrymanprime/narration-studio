@@ -88,6 +88,17 @@ export const editingDrivers: Record<string, Driver> = {
     await page.getByRole('tab', { name: /^Effects/ }).click();
     await page.getByRole('region', { name: 'Effects' }).waitFor();
   },
+  'drawer-effects-chains': async (page) => {
+    // With a DAW that lists its chains (the mock host's EDITS setup), the Effects tab lists them with a Favourite button on each.
+    await openEditing(page, EDITS);
+    await page.getByRole('button', { name: 'Clean up and effects' }).click();
+    await page.locator('#drawer').waitFor();
+    await page.getByRole('tab', { name: /^Effects/ }).click();
+    await page
+      .getByRole('button', { name: /^Favourite .*RfxChain$/ })
+      .first()
+      .waitFor();
+  },
   'drawer-timeline': async (page) => {
     // The timeline follows the line the cursor is on: place it on the first line's second word first.
     await openEditing(page, LINKED);
