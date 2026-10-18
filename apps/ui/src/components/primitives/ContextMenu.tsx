@@ -1,6 +1,7 @@
 import { ContextMenu as BaseContextMenu } from '@base-ui/react/context-menu';
 import { useId } from 'react';
 import type { MouseEvent, ReactNode } from 'react';
+import { POPUP_MOTION_CLASSES } from './overlayMotion';
 
 export type ContextMenuItem = {
   key: string;
@@ -38,7 +39,7 @@ export function ContextMenu({
         <BaseContextMenu.Positioner collisionPadding={8} className="z-[var(--z-popover)]">
           <BaseContextMenu.Popup
             tabIndex={0}
-            className="max-h-[var(--available-height)] w-64 overflow-y-auto rounded-[0.4rem] border border-[var(--line-strong)] bg-[var(--surface)] p-[0.35rem] shadow-[var(--shadow-lg)] outline-none"
+            className={`max-h-[var(--available-height)] w-64 overflow-y-auto rounded-[0.4rem] border border-[var(--line-strong)] bg-[var(--surface)] p-[0.35rem] shadow-[var(--shadow-lg)] outline-none ${POPUP_MOTION_CLASSES}`}
           >
             {items.map((item) => (
               <BaseContextMenu.Item
