@@ -37,6 +37,13 @@ func runFakeGuideCount(path string) int {
 // countingGuide returns a Story Bible service whose sidecar is the recording fake, and a function that reads back every call it received.
 func countingGuide(t *testing.T) (*guide.Service, func() [][]string) {
 	t.Helper()
+	service, calls, _ := countingGuideIn(t)
+	return service, calls
+}
+
+// countingGuideIn is countingGuide that also returns the project folder, for a test that needs a Story Bible file in it.
+func countingGuideIn(t *testing.T) (*guide.Service, func() [][]string, string) {
+	t.Helper()
 	log := filepath.Join(t.TempDir(), "calls.jsonl")
 	t.Setenv(fakeGuideCountEnv, log)
 	project := t.TempDir()
@@ -62,7 +69,7 @@ func countingGuide(t *testing.T) (*guide.Service, func() [][]string) {
 			calls = append(calls, args)
 		}
 		return calls
-	}
+	}, project
 }
 
 // pairs reads the --field and --value arguments of one edit call back into a map.
@@ -87,27 +94,60 @@ func pairs(t *testing.T, args []string) map[string]string {
 	return out
 }
 
-func TestASaveOfFourFieldsIsOneSidecarProcess(t *testing.T) {
-	service, calls := countingGuide(t)
+// writeStoryBible puts a Story Bible with one entry, entity-1, in the service's project.
+func writeStoryBible(t *testing.T, project string) {
+	t.Helper()
+	path := filepath.Join(project, "ManuscriptGuide", "manuscript_guide.json")
+	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	content := `{"schema_version": 2, "entities": [{"id": "entity-1", "canonical_name": "Al", "category": "Character", "locked": false}]}`
+	if err := os.WriteFile(path, []byte(content), 0o600); err != nil {
+		t.Fatal(err)
+	}
+}
+
+// A Save without aliases is applied by the host (guide.Service.editInHost): no sidecar process, and every field in the file. It used to be
+// one sidecar process; an alias edit still is (below).
+func TestASaveWithoutAliasesStartsNoProcessAndWritesEveryField(t *testing.T) {
+	service, calls, project := countingGuideIn(t)
+	writeStoryBible(t, project)
 	host := &Host{guide: service}
-	values := map[string]string{"canonical_name": "Alice", "description": "A child.", "personality": "Curious.", "context": "Oxford."}
+	values := map[string]string{"canonical_name": "Alice", "description": "A child.", "personality": "-curious", "context": "--oxford"}
 	if _, err := host.GuideEdit("entity-1", values); err != nil {
 		t.Fatal(err)
 	}
-	got := calls()
-	if len(got) != 1 {
-		t.Fatalf("a Save of four fields started %d sidecar processes, want 1: %v", len(got), got)
+	if got := calls(); len(got) != 0 {
+		t.Fatalf("a Save without aliases started %d sidecar processes, want 0: %v", len(got), got)
 	}
-	if got[0][0] != "edit" || !slices.Contains(got[0], "entity-1") {
-		t.Fatalf("call = %v", got[0])
+	entities, err := service.Entities()
+	if err != nil {
+		t.Fatal(err)
 	}
-	for field, value := range values {
-		if pairs(t, got[0])[field] != value {
-			t.Fatalf("field %s = %q in %v", field, pairs(t, got[0])[field], got[0])
-		}
+	entity := entities[0]
+	notes, _ := entity["personality_notes"].([]any)
+	if entity["canonical_name"] != "Alice" || entity["description"].(map[string]any)["text"] != "A child." || entity["context"] != "--oxford" ||
+		len(notes) != 1 || notes[0].(map[string]any)["text"] != "-curious" {
+		t.Fatalf("entity after the Save = %v", entity)
 	}
-	if slices.Contains(got[0], "--manuscript") {
-		t.Fatalf("only an alias edit reads the manuscript: %v", got[0])
+}
+
+func TestSettingTheLockStartsNoProcess(t *testing.T) {
+	service, calls, project := countingGuideIn(t)
+	writeStoryBible(t, project)
+	host := &Host{guide: service}
+	if _, err := host.GuideSetLocked("entity-1", true); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := host.GuideEdit("entity-1", map[string]string{"description": "x"}); err == nil || !strings.Contains(err.Error(), "locked") {
+		t.Fatalf("an edit of a locked entry = %v, want the lock refusal", err)
+	}
+	if got := calls(); len(got) != 0 {
+		t.Fatalf("the lock started %d sidecar processes: %v", len(got), got)
+	}
+	entities, _ := service.Entities()
+	if entities[0]["locked"] != true {
+		t.Fatalf("entity = %v", entities[0])
 	}
 }
 
@@ -147,14 +187,15 @@ func TestAnEditIsTheSameCommandEveryTimeAndOnlyAnAliasEditReadsTheManuscript(t *
 func TestAValueThatLooksLikeAnOptionIsSentAsAValue(t *testing.T) {
 	service, calls := countingGuide(t)
 	host := &Host{guide: service}
-	if _, err := host.GuideEdit("entity-1", map[string]string{"personality": "-brave", "description": "--not-a-flag"}); err != nil {
+	// An edit with aliases is the one that still goes to the sidecar.
+	if _, err := host.GuideEdit("entity-1", map[string]string{"aliases": "Al", "personality": "-brave", "description": "--not-a-flag"}); err != nil {
 		t.Fatal(err)
 	}
 	got := calls()
 	if len(got) != 1 {
 		t.Fatalf("calls = %v", got)
 	}
-	if want := (map[string]string{"personality": "-brave", "description": "--not-a-flag"}); !maps.Equal(pairs(t, got[0]), want) {
+	if want := (map[string]string{"aliases": "Al", "personality": "-brave", "description": "--not-a-flag"}); !maps.Equal(pairs(t, got[0]), want) {
 		t.Fatalf("pairs = %v in %v", pairs(t, got[0]), got[0])
 	}
 	if slices.Contains(got[0], "-brave") || slices.Contains(got[0], "--not-a-flag") {
