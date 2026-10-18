@@ -5,7 +5,7 @@
 Pickups lists every line to record again, so you can gather them into one session in the [Booth](booth.md). It sits
 under **Review** in the sidebar, after [Proof](proof.md). The page records nothing itself: it has no punch and does not
 move the DAW's cursor. Each line opens in the Booth, where you record it.
-While the list is being read, the table shows grey blocks under the page title; if it cannot be read, the page says so with **Check again**.
+While the list is being read, the table shows grey blocks under the page title and the Pickup session panel shows blocks for **Lines** and **About**, not a count; if it cannot be read, the page says so with **Check again**.
 
 ## Where the lines come from
 

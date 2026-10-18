@@ -5,6 +5,7 @@ import { useOverlay } from '../../../overlay/OverlayProvider';
 import { Button } from '../../primitives/Button';
 import { IconButton } from '../../primitives/IconButton';
 import { Panel } from '../../primitives/Panel';
+import { Skeleton } from '../../primitives/Skeleton';
 import { NOT_MEASURED, sessionMinutes } from '../../production/measured/measured.selectors';
 import { pickupScript, reasonSentence, sessionPickups, type ChapterRef } from './pickupRows';
 
@@ -20,6 +21,7 @@ export function SessionPanel({
   chapters,
   seconds,
   unreadable = false,
+  loading = false,
   dawName,
   markers,
   onOpenInBooth,
@@ -32,6 +34,8 @@ export function SessionPanel({
   seconds: Measured<number>;
   /** The list could not be read: the session is unknown, not empty. */
   unreadable?: boolean;
+  /** The list is still being read for the first time: the session is unknown, not empty, so the figures are blocks. The table's own region announces the read. */
+  loading?: boolean;
   /** The DAW's name for the marker icon's tip. */
   dawName: string;
   markers: Gate;
@@ -46,6 +50,7 @@ export function SessionPanel({
 
   const markersReason = !markers.available ? markers.message || `${dawName} cannot add markers now.` : count === 0 ? 'No lines in the session.' : undefined;
   /* Why the session is empty, said for what is true: nothing listed, nothing readable, all recorded, or all left out. */
+  const showEmptyReason = count === 0 && !loading;
   const emptyReason = unreadable
     ? 'The list could not be read, so the session is not known yet.'
     : pickups.length === 0
@@ -87,18 +92,20 @@ export function SessionPanel({
 
   return (
     <Panel title="Pickup session" actions={<IconButton action="copy" label="Copy the pickup script" onClick={() => void copy()} />} className="min-w-0">
-      <div className="flex flex-col gap-3">
+      <div className="flex flex-col gap-3" aria-busy={loading || undefined}>
         <div className="flex items-center justify-between">
           <span>Lines</span>
-          <b className="font-['IBM_Plex_Mono',ui-monospace,monospace]">{unreadable ? 'not known' : count}</b>
+          <b className="font-['IBM_Plex_Mono',ui-monospace,monospace]">{loading ? <Skeleton className="w-10" /> : unreadable ? 'not known' : count}</b>
         </div>
         <div className="flex items-center justify-between">
           <span>About</span>
-          <b className="font-['IBM_Plex_Mono',ui-monospace,monospace]">{minutes.ok ? `${minutes.value} min` : NOT_MEASURED}</b>
+          <b className="font-['IBM_Plex_Mono',ui-monospace,monospace]">
+            {loading ? <Skeleton className="w-14" /> : minutes.ok ? `${minutes.value} min` : NOT_MEASURED}
+          </b>
         </div>
         <Button
           aria-disabled={count === 0 || undefined}
-          aria-describedby={count === 0 ? emptyId : undefined}
+          aria-describedby={showEmptyReason ? emptyId : undefined}
           onClick={() => count > 0 && onOpenInBooth(picked)}
         >
           Open {count} in Booth
@@ -108,12 +115,12 @@ export function SessionPanel({
             action="addMarker"
             label={`Add ${count} as markers in ${dawName}`}
             disabledReason={markersReason}
-            aria-describedby={!markers.available ? markersId : count === 0 ? emptyId : undefined}
+            aria-describedby={!markers.available ? markersId : showEmptyReason ? emptyId : undefined}
             pending={adding}
             onClick={addMarkers}
           />
         </div>
-        {count === 0 && (
+        {showEmptyReason && (
           <p id={emptyId} className="text-[0.8125rem] text-[var(--text-muted)]">
             {emptyReason}
           </p>
