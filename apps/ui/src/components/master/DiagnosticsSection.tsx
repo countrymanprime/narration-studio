@@ -8,6 +8,7 @@ import { Button } from '../primitives/Button';
 import { Panel } from '../primitives/Panel';
 import { ProgressBar } from '../primitives/ProgressBar';
 import { ToggleGroup } from '../primitives/ToggleGroup';
+import { ProofOptions } from '../proof/proofOptions/ProofOptions';
 import { cleanupThresholdRows, thresholdRows } from './diagnosticsFormat';
 import { CheckedFilesTable, CleanupFindingsTable, FindingsTable } from './DiagnosticsTables';
 
@@ -27,6 +28,9 @@ function useDawName(): string {
   const daw = useDawKind();
   return !daw || daw === 'none' ? 'the DAW' : dawShortName(daw);
 }
+
+/** The host's Cleanup settings (`fieldSchemas` in apps/desktop/app.go): the five thresholds of the silence, breath and click analyzer. */
+const CLEANUP_OPTION_KEYS = ['pad_seconds', 'min_breath_seconds', 'max_breath_seconds', 'breath_below_speech_db', 'click_above_silence_db'] as const;
 
 const plural = (count: number, one: string, many: string) => `${count} ${count === 1 ? one : many}`;
 
@@ -73,7 +77,7 @@ function CleanupSection({ job, openSettings }: { job: DiagnosticsJob | undefined
             ))}
           </dl>
           <div className="mt-2 flex flex-wrap items-center gap-1 text-xs" style={MUTED}>
-            <span>Set in Settings &gt; Silence cleanup.</span>
+            <span>Set in Settings &gt; Silence cleanup, or for this project only from Jump to or run &gt; Open Silence cleanup options.</span>
             <Button variant="ghost" onClick={openSettings}>
               Open Settings
             </Button>
@@ -84,6 +88,7 @@ function CleanupSection({ job, openSettings }: { job: DiagnosticsJob | undefined
           Reading the thresholds…
         </p>
       )}
+      <ProofOptions title="Silence cleanup options" group="Master & QC" tool="Cleanup" keys={CLEANUP_OPTION_KEYS} />
     </Panel>
   );
 }

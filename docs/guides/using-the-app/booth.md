@@ -45,7 +45,7 @@ from your keymap. In **Levels**, **Monitor level (output)** sets how loud the DA
 level; REAPER's first hardware output, so the files you render are not changed). **Input level** is shown but off, with the reason:
 no DAW can set an audio interface's input gain, so set it in your interface's own control panel.
 With a DAW, **Punch pre-roll (seconds)** sets how long before the word **R** starts the DAW (0 to 10, in half seconds). It applies to every project on
-this computer, and Settings lists it under **Set on a page** with an **Open Booth** button. The built-in recorder does not punch, so the menu has no such box.
+this computer. It is a shortcut to the same setting as **Punch pre-roll** under **Set on a page** in [Settings](settings.md#set-on-a-page), which keeps it too. The built-in recorder does not punch, so the menu has no such box.
 
 ![Booth - the Levels menu: the input level and the microphone the text listens to](../../images/ui/booth-levels-menu.webp)
 
@@ -159,7 +159,7 @@ Right-click the text for **Start from here** (on a phrase), **Bookmark here** (o
 **Punch and roll**, **Larger text**, **Smaller text** and **Exit Booth**. **Start from here** marks where the next take starts;
 during a take it rolls again from that phrase, as **R** does. A take is held while the menu is open.
 
-While a popover, a menu or a question is open (Levels, Text settings, a speaker, the chapter list, the jump menu, "Stop recording?"), no key reaches the Booth behind it: a foot pedal's Space cannot start or stop a take until it is closed. Escape closes the one on top and returns you to the control that opened it.
+While a popover or a menu is open (Levels, Text settings, a speaker, the chapter list, a right-click menu), a foot pedal's Space still starts or stops the take: it closes the popup, as Escape would, and records. The exception is a box you can type in (the speaker search): Space types a space there until focus moves. A question ("Stop recording?") or the jump menu keeps every key, Space included, until you answer it. Escape closes the one on top and returns you to the control that opened it.
 
 The engine and model the Booth listens with are chosen in [Settings](settings.md) › Booth. Nothing you say is sent anywhere.
 
@@ -268,13 +268,13 @@ Credits settings. You can still record.
 If the address asks for credits that have no template (for example an old link to the closing credits after the closing template was
 deleted), the Booth shows a panel instead of text: **The closing credits are not set up**, with **Set up credits in Settings** and
 **Back to the chapters**, which opens [Script](script.md), the chapter list, as Escape does with a chapter open. A link to a chapter the book no longer has shows the
-same panel with **Back to the chapters**. An address the app cannot read at all, or one that names a chapter or line the book lacks, shows "This link could not be opened" with **Open Booth** and **Go to Production**; Escape leaves it for [Script](script.md).
+same panel with **Back to the chapters**. An address the app cannot read at all, or one that names a chapter or line the book lacks, shows "This link could not be opened" with **Open Booth** and **Go to Production**; Escape leaves it as it leaves the Booth: for [Pickups](pickups.md) when the link still names pickups ("Open 3 in Booth"), otherwise for [Script](script.md).
 
 ![Booth - the closing credits with no closing template: the panel that says so and offers Settings and the chapters](../../images/ui/booth-credits-missing.webp)
 
 ## Companion mode
 
-The Companion is a narrow panel pinned beside your DAW. Open it with **Open Companion** in the jump menu (its key is in the shortcut sheet): the
+The Companion is a narrow panel pinned beside your DAW. Open it with **Open Companion** in the jump menu or with `Ctrl+Alt+C`: the
 reading session, with REAPER's playhead in its header, the script in its own scroll box, the reading controls and the hotkeys
 that work while the panel has focus. **Full app** (or Escape twice) brings the Booth back on the same chapter. **Pickups** in the
 panel shows the [Pickups](pickups.md) list: how many are left and the one you last jumped to. The note at the playhead has its

@@ -89,6 +89,8 @@ export function usePreviewPlay(playback: PreviewPlayback | undefined): PreviewPl
   const onKeyDown = useCallback(
     (event: KeyboardEvent) => {
       if (event.key !== 'Escape' || !queue) return;
+      // The key ends the preview and nothing else: the page behind would otherwise close the drawer on the same press.
+      event.stopPropagation();
       stop();
     },
     [queue, stop],

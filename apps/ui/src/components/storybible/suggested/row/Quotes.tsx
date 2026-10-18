@@ -2,6 +2,9 @@ import type { ExtractionSuggestion } from '../../../../api/contracts/extraction'
 import { Button } from '../../../primitives/Button';
 import { TooltipTarget } from '../../../primitives/Tooltip';
 
+/** What `lineLabel` answers for a paragraph no chapter of the book names. */
+export const LINE_NOT_FOUND = 'line not found';
+
 /** How a quote reaches its line: the page that mounts the row knows the Script, the row does not. */
 export type EvidenceLinks = {
   /** Opens the paragraph in the Script. */
@@ -16,7 +19,16 @@ export function Quotes({ suggestion, onGoToEvidence, lineLabel }: { suggestion: 
   return (
     <>
       {evidence.map((quote) => {
-        const tip = `Go to the line in the Script · ${lineLabel(quote.paragraphId)}`;
+        const where = lineLabel(quote.paragraphId);
+        // A line the book no longer has cannot be opened: the quote stays readable and says so, instead of being a button that does nothing.
+        if (where === LINE_NOT_FOUND) {
+          return (
+            <span key={`${quote.paragraphId}:${quote.start}`} className="min-w-0 text-sm break-words text-[var(--text-muted)]" data-noline>
+              “{quote.text}” · line not found in the text
+            </span>
+          );
+        }
+        const tip = `Go to the line in the Script · ${where}`;
         return (
           <TooltipTarget key={`${quote.paragraphId}:${quote.start}`} text={tip} className="min-w-0">
             <Button

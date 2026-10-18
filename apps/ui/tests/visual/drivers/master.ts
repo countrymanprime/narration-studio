@@ -85,6 +85,17 @@ export const masterDrivers: Record<string, Driver> = {
     await page.getByRole('table', { name: 'Findings' }).waitFor();
     await scrollToTop(page, diagnostics);
   },
+  // The cleanup options dialog, opened from the jump menu: this project's five thresholds, over the page the check used them on.
+  'diagnostics-cleanup-options': async (page) => {
+    await openDiagnostics(page);
+    await page.keyboard.press('Control+KeyK');
+    await page.getByRole('combobox', { name: 'Jump menu' }).fill('Open Silence cleanup options');
+    await page
+      .getByRole('option', { name: /^Open Silence cleanup options/ })
+      .first()
+      .click();
+    await page.getByRole('textbox', { name: 'How far above the silence around it a click stands' }).waitFor();
+  },
   'diagnostics-cancelled': async (page) => {
     await checkOnDiagnostics(page, '?mockDiagnostics=running');
     await page.getByRole('button', { name: 'Cancel', exact: true }).click();

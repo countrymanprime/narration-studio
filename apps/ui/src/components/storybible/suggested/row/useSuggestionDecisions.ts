@@ -29,7 +29,7 @@ export function useSuggestionDecisions(onChanged?: (decision: ExtractionDecision
   const heard = useRef(onChanged);
   heard.current = onChanged;
   const env = useMemo<DecisionEnv>(
-    () => ({ journal, port, changed: (decision) => heard.current?.(decision), said: (text, undo) => overlay.toastUndo(text, undo) }),
+    () => ({ journal, port, changed: (decision) => heard.current?.(decision), said: (text, undo, entry) => overlay.toastUndo(text, undo, { entry }) }),
     [journal, port],
   );
   const accept = useCallback(async (id: string, text?: string) => said(await acceptSuggestion(env, id, text)), [env]);

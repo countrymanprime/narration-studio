@@ -48,6 +48,8 @@ export type JournalOptions = {
 type HistoryRow = {
   id: number;
   label: string;
+  /** When the change was made, in milliseconds since the epoch. */
+  at: number;
   daw: boolean;
   touches: readonly string[];
   undoable: boolean;
@@ -61,6 +63,8 @@ export type Journal = LeaveGuardStore & {
   undoLast(): Promise<Result<unknown>>;
   /** Newest first. Async because a DAW entry's refusal depends on what the DAW reports. */
   entries(): Promise<HistoryRow[]>;
+  /** Whether the entry is still in the journal: false once it is undone (by any route), cleared or pushed out by newer ones. */
+  has(id: number): boolean;
   /** Empties the journal (a project switch). */
   clear(): void;
   /** Calls `listener` after the journal changes; returns the unsubscribe. */
@@ -74,6 +78,7 @@ export const JOURNAL_LIMIT = 40;
 type Entry = {
   id: number;
   label: string;
+  at: number;
   daw: boolean;
   touches: readonly string[];
   /** What the DAW's undo history holds for it, when the command said. */
@@ -146,6 +151,7 @@ export function createJournal(options: JournalOptions): Journal {
     const entry: Entry = {
       id: ++nextId,
       label: command.label,
+      at: Date.now(),
       daw: command.daw === true,
       touches: [...command.touches],
       dawAction: command.dawAction?.(result.value),
@@ -198,6 +204,7 @@ export function createJournal(options: JournalOptions): Journal {
           return {
             id: entry.id,
             label: entry.label,
+            at: entry.at,
             daw: entry.daw,
             touches: entry.touches,
             undoable: entry.inverse !== null,
@@ -207,6 +214,7 @@ export function createJournal(options: JournalOptions): Journal {
       );
       return rows.reverse();
     },
+    has: (id) => entries.some((e) => e.id === id),
     clear: () => {
       entries = [];
       emit();

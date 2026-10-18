@@ -10,10 +10,10 @@ type ButtonVariant = 'primary' | 'secondary' | 'ghost' | 'danger' | 'link';
 type ButtonSize = 'md' | 'sm';
 
 const VARIANT_CLASSES: Record<Exclude<ButtonVariant, 'link'>, string> = {
-  primary: 'border-transparent bg-[var(--accent)] text-[var(--accent-contrast)] hover:bg-[var(--accent-strong)]',
-  secondary: 'border-[var(--btn-line)] bg-[var(--surface)] text-[var(--text)] hover:bg-[var(--surface-2)]',
-  ghost: 'border-[var(--line-strong)] bg-transparent text-[var(--text)] hover:bg-[var(--surface-2)]',
-  danger: 'border-[var(--danger)] bg-transparent text-[var(--danger-text)] hover:bg-[var(--review-soft)]',
+  primary: 'border-transparent bg-[var(--accent)] text-[var(--accent-contrast)] not-aria-disabled:hover:bg-[var(--accent-strong)]',
+  secondary: 'border-[var(--btn-line)] bg-[var(--surface)] text-[var(--text)] not-aria-disabled:hover:bg-[var(--surface-2)]',
+  ghost: 'border-[var(--line-strong)] bg-transparent text-[var(--text)] not-aria-disabled:hover:bg-[var(--surface-2)]',
+  danger: 'border-[var(--danger)] bg-transparent text-[var(--danger-text)] not-aria-disabled:hover:bg-[var(--review-soft)]',
 };
 
 const SIZE_CLASSES: Record<ButtonSize, string> = {
@@ -23,10 +23,13 @@ const SIZE_CLASSES: Record<ButtonSize, string> = {
 
 // The measured spec: the height includes the 1 px border, 12 px each side, the label Barlow Condensed
 // at `--font-size-sm`, 600, uppercase, tracked `--tracking-button`, on one line (`leading-none`, centred by the flex box). A label
-// that wraps grows the button rather than spilling out of it. Disabled is drawn at 55%.
+// that wraps grows the button rather than spilling out of it. Disabled is drawn at 55%, native `disabled` and `aria-disabled` alike (an
+// `aria-disabled` button stays focusable so it can say why, and must not look live), with a not-allowed cursor and no hover change. A pending
+// button is `aria-disabled` too but keeps its own busy look (60%, `aria-busy`).
 const CHROME =
-  "inline-flex items-center justify-center gap-1.5 rounded-[var(--radius-button)] border px-3 py-1 font-['Barlow_Condensed',sans-serif] text-[length:var(--font-size-sm)] leading-none font-semibold tracking-[var(--tracking-button)] uppercase motion-ok:transition disabled:pointer-events-none disabled:opacity-55 aria-busy:pointer-events-none aria-busy:opacity-60";
-const LINK = 'inline cursor-pointer underline disabled:pointer-events-none disabled:opacity-55 aria-busy:pointer-events-none aria-busy:opacity-60';
+  "inline-flex items-center justify-center gap-1.5 rounded-[var(--radius-button)] border px-3 py-1 font-['Barlow_Condensed',sans-serif] text-[length:var(--font-size-sm)] leading-none font-semibold tracking-[var(--tracking-button)] uppercase motion-ok:transition disabled:pointer-events-none disabled:opacity-55 aria-busy:pointer-events-none aria-busy:opacity-60 not-aria-busy:aria-disabled:cursor-not-allowed not-aria-busy:aria-disabled:opacity-55";
+const LINK =
+  'inline cursor-pointer underline disabled:pointer-events-none disabled:opacity-55 aria-busy:pointer-events-none aria-busy:opacity-60 not-aria-busy:aria-disabled:cursor-not-allowed not-aria-busy:aria-disabled:opacity-55';
 
 function buttonClasses(variant: ButtonVariant = 'primary', size: ButtonSize = 'md') {
   return variant === 'link' ? LINK : `${CHROME} ${SIZE_CLASSES[size]} ${VARIANT_CLASSES[variant]}`;

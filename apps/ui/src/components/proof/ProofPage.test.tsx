@@ -294,6 +294,31 @@ describe('proof-route-draws-the-mock-page', () => {
   });
 });
 
+describe('proof-keys-follow-the-visible-list', () => {
+  it('J and the arrow keys stay on the rows the list shows when a filter hides some notes', async () => {
+    const { journal } = renderPage({ at: '/proof?chapter=chapter-1' });
+    const user = userEvent.setup();
+    const all = await noteRows();
+    expect(all.length).toBeGreaterThan(1);
+    const notes = screen.getByRole('region', { name: 'Notes' });
+    // "To review" hides every decided note; decide the last one first so at least one row below the others is hidden by the chip.
+    await user.click(all[all.length - 1]);
+    press('w', 'KeyW');
+    await waitFor(async () => expect(await journal.entries()).toHaveLength(1));
+    await user.click(within(notes).getByRole('button', { name: /To review/ }));
+    const shown = () => [...notes.querySelectorAll<HTMLElement>('tr[data-row]')];
+    await waitFor(() => expect(shown().length).toBeLessThan(all.length));
+    for (let n = 0; n < all.length + 2; n++) {
+      press('ArrowDown', 'ArrowDown');
+    }
+    await waitFor(() => expect(shown().filter((row) => row.getAttribute('aria-selected') === 'true')).toHaveLength(1));
+    // Waive what is selected: it must be a note on the list, so the list loses exactly one row.
+    const before = shown().length;
+    press('w', 'KeyW');
+    await waitFor(() => expect(shown().length).toBe(before - 1));
+  });
+});
+
 describe('proof-decisions-and-undo', () => {
   it('a decision moves to the next note, and Undo takes back the decision and the selection', async () => {
     const api = createMockApi();
@@ -541,5 +566,40 @@ describe('the jump menu on Proof', () => {
     await noteRows();
     const steps = providedCommands().filter((command) => command.group === 'Proof');
     expect(steps.map((command) => command.label)).toEqual(['Next chapter', 'Previous chapter']);
+  });
+});
+
+// The loading state (definition-of-done.md state matrix): the title and one busy region while the chapters and the notes are first read, then the
+// page, or the error with Retry; a later re-read does not bring the blocks back. Never an endless skeleton.
+describe('ProofPage loading state', () => {
+  const never = () => new Promise<never>(() => {});
+  const region = () => screen.queryByRole('group', { name: 'Loading Proof' });
+
+  it('keeps the title and shows one busy region while the chapters are read, however long that takes', async () => {
+    renderPage({ api: createMockApi({ manuscriptChapters: never }) });
+    expect(await screen.findByRole('heading', { level: 1, name: 'Proof' })).toBeTruthy();
+    expect(region()?.getAttribute('aria-busy')).toBe('true');
+    expect(within(region()!).getByRole('status').textContent).toBe('Reading the chapters and notes…');
+    await new Promise((resolve) => setTimeout(resolve, 60));
+    expect(region()).toBeTruthy();
+    expect(screen.queryByRole('region', { name: 'Notes' })).toBeNull();
+  });
+
+  it('keeps the skeleton while the notes are still being read', async () => {
+    renderPage({ api: createMockApi({ findingsList: never }) });
+    expect(await screen.findByRole('group', { name: 'Loading Proof' })).toBeTruthy();
+  });
+
+  it('is replaced by the page when both reads end, and does not come back', async () => {
+    renderPage();
+    await noteRows();
+    expect(region()).toBeNull();
+    expect(screen.getAllByRole('heading', { level: 1, name: 'Proof' })).toHaveLength(1);
+  });
+
+  it('shows the error with Retry, not a skeleton, when the first read fails', async () => {
+    renderPage({ api: createMockApi({ manuscriptChapters: () => Promise.reject(new Error('The manuscript could not be read.')) }) });
+    expect(await screen.findByRole('button', { name: 'Retry' })).toBeTruthy();
+    expect(region()).toBeNull();
   });
 });

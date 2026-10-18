@@ -106,7 +106,6 @@ export function SessionPanel({
         <Button
           aria-disabled={count === 0 || undefined}
           aria-describedby={showEmptyReason ? emptyId : undefined}
-          className="aria-disabled:cursor-not-allowed aria-disabled:opacity-55"
           onClick={() => count > 0 && onOpenInBooth(picked)}
         >
           Open {count} in Booth

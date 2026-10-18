@@ -54,7 +54,7 @@ export type BoothPageOptions = {
   session: TeleprompterSession;
   daw: DawClient;
   guard: Pick<LeaveGuardStore, 'setLeaveGuard'>;
-  overlay: Pick<OverlayService, 'confirm' | 'toast' | 'getSnapshot' | 'subscribe'>;
+  overlay: Pick<OverlayService, 'confirm' | 'toast' | 'dismissUndo' | 'getSnapshot' | 'subscribe'>;
   /** Where Record from here opened the Booth. */
   from?: BoothStart;
   /** Goes to `next`; called only once the leave guard let the narrator go. */
@@ -84,6 +84,8 @@ export function useBoothPage(options: BoothPageOptions) {
   const { recordId, title, credits, paragraphs, session, daw, guard, overlay, from, navigate, exitTo } = options;
   const extras = useRef({ onTakeStopped: options.onTakeStopped, menuItems: options.menuItems, escapeStoppedSample: options.escapeStoppedSample });
   extras.current = { onTakeStopped: options.onTakeStopped, menuItems: options.menuItems, escapeStoppedSample: options.escapeStoppedSample };
+  // The Booth changes chapter without changing its address: an Undo toast about the last one's take or pickups is no longer true.
+  useEffect(() => overlay.dismissUndo(), [overlay, recordId]);
   const notify = useCallback((sentence: string, topic?: string) => overlay.toast(sentence, topic ? { topic } : undefined), [overlay]);
   const units = useMemo(() => boothUnits(paragraphs), [paragraphs]);
   const script = session.session.script;

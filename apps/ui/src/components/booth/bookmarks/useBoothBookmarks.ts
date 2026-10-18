@@ -71,7 +71,7 @@ export function useBoothBookmarks(options: BoothBookmarksOptions): BoothBookmark
         return null;
       }
       const { bookmark, created, entryId } = added.value;
-      if (created && entryId !== null) overlay.toastUndo('Bookmark added.', () => journal.undo(entryId));
+      if (created && entryId !== null) overlay.toastUndo('Bookmark added.', () => journal.undo(entryId), { entry: entryId });
       else overlay.toast('That word is already bookmarked.');
       return bookmark;
     },

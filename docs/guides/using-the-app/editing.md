@@ -129,7 +129,7 @@ the character has 20 samples, or samples already use the 200 MiB a project may h
 
 ## Takes
 
-Click a line's takes chip (T steps to the next take) to open its takes under it. The suggested take comes first, with
+Click a line's takes chip (T steps to the next take) to open its takes under it. Escape folds them again and leaves focus on the chip. The suggested take comes first, with
 why it is suggested and the steps that would make the comparison surer: **Trim white space**, **Trim breaths** and
 **Normalise**, each asking before it changes anything in the DAW. Then each take, with its waveform, what share of the
 script it read as written, and its pause, level, noise, clarity and breaths. Play a take to hear it; **Keep take**
@@ -147,7 +147,7 @@ the DAW moves anything.
 ## The drawer
 
 The drawer button (Ctrl+Shift+C) opens the drawer beside the text, or over it on a narrower window. **Esc** closes it,
-from the text once nothing is selected or from the drawer itself, which hands the focus back to the button.
+from the text once nothing is selected or from the drawer itself, and leaves focus on the button when it was pressed inside the drawer.
 
 ### Cleaning up
 
@@ -163,7 +163,7 @@ experimental stay off until you turn them on in [Settings](settings.md).
 
 **Effects** lists the effects on words in this chapter and adds one. **Backups** shows only with a DAW that keeps
 backups of its project; with one that edits the audio itself, the app backs the words up before each delete, effect or
-stack, and refuses the edit if the backup fails. The Backups tab is also where this project's backup settings live (**Keep backups**, the window either side of an edit, and **Keep backups for (days)**); Settings only points here. **Timeline** shows the line the cursor is on as the chapter's audio
+stack, and refuses the edit if the backup fails. The Backups tab is also where this project's backup settings can be changed (**Keep backups**, the window either side of an edit, and **Keep backups for (days)**). It is a shortcut to the same settings as the Audacity backups under **Set on a page** in [Settings](settings.md#set-on-a-page), which also sets them for every project (Global); the tab edits this project only. **Timeline** shows the line the cursor is on as the chapter's audio
 and one lane per take on one time axis. On a window 1360 px wide or more it is a strip under the text, which the header's
 **Timeline** button (S) shows and hides; on a narrower window it is a tab of the drawer.
 
