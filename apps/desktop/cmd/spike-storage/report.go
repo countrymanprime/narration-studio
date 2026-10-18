@@ -102,7 +102,7 @@ func renderMarkdown(a *AllResults) string {
 	for _, c := range a.Conc {
 		for _, op := range []string{"loadChapterAlignment", "listMarks"} {
 			al, ww := c.ReadAlone[op], c.ReadWithW[op]
-			fmt.Fprintf(&b, "| %s | %v | %s | %.1f / %.1f | %.1f / %.1f | %d | %d (%.1f / %.1f) | %d %s |\n", c.Backend, c.Separate, op, al.P50, al.P95, ww.P50, ww.P95, ww.Errors, c.Writer.N, c.Writer.P50, c.Writer.P95, c.Writer.Errors, trunc(c.FirstWriteEr+c.FirstReadEr, 60))
+			fmt.Fprintf(&b, "| %s | %v | %s | %.1f / %.1f | %.1f / %.1f | %d | %d (%.1f / %.1f) | %d %s |\n", c.Backend, c.Separate, op, al.P50, al.P95, ww.P50, ww.P95, ww.Errors, c.Writer.N, c.Writer.P50, c.Writer.P95, c.Writer.Errors, trunc(c.FirstWriteEr+" | "+c.FirstReadEr, 220))
 		}
 	}
 	fmt.Fprintf(&b, "\n#### kill -9 mid-write\n\n| backend | kills | consistent | torn/unparseable | mixed versions | lost acked commit | open failed | integrity failed | stray .tmp |\n|---|---|---|---|---|---|---|---|---|\n")

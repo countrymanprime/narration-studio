@@ -40,6 +40,10 @@ jobs:
         run: |
           New-Item -ItemType Directory -Force "$env:RUNNER_TEMP\project" | Out-Null
           & "$env:RUNNER_TEMP\spike.exe" all -dir "$env:RUNNER_TEMP\project" -scale $env:SCALE -out "$env:RUNNER_TEMP\results-windows.json" | Tee-Object -FilePath "$env:RUNNER_TEMP\results-windows.md"
+      - name: Driver features
+        run: |
+          New-Item -ItemType Directory -Force "$env:RUNNER_TEMP\info" | Out-Null
+          & "$env:RUNNER_TEMP\spike.exe" info -dir "$env:RUNNER_TEMP\info"
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: storage-spike-windows-${{ inputs.scale || 'full' }}
