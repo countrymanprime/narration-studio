@@ -1,5 +1,7 @@
 # Working in this repo
 
+If git, the GitHub tools or a session launch cannot reach this repository (a 404, `repository not found`, `ref_not_found`, a call refused as out of scope), the repository was probably renamed: follow `docs/operations/repository-rename.md`.
+
 ## Feature workflow: plan → impact scan → implement → verify → clean up
 
 New features and bugfixes in this repo have a history of silently breaking unrelated things — this order exists to catch that before it ships, not after. For anything beyond a trivial single-file change:
