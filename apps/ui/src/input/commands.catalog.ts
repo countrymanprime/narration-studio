@@ -162,6 +162,14 @@ export const COMMAND_CATALOG: readonly CommandDescriptor[] = [
     surfaces: ['help', 'settings'],
   },
   { id: 'editing.fx', label: 'Add FX to the selected words', scope: 'page', defaults: [key('KeyF')], group: 'Editing', surfaces: ['help', 'settings'] },
+  {
+    id: 'editing.voice-sample',
+    label: 'Mark the selected words as a voice sample',
+    scope: 'page',
+    defaults: [key('KeyV')],
+    group: 'Editing',
+    surfaces: ['help', 'settings'],
+  },
   { id: 'editing.takes.next', label: 'Next take of the line', scope: 'page', defaults: [key('KeyT')], group: 'Editing', surfaces: ['help', 'settings'] },
   {
     id: 'editing.takes.prev',

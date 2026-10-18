@@ -51,6 +51,26 @@ describe('Select', () => {
     expect(onChange).toHaveBeenLastCalledWith('b');
   });
 
+  it('puts consecutive options of one group under one heading, and leaves the ungrouped outside', () => {
+    render(
+      <Select
+        label="Character"
+        value="q"
+        onChange={() => undefined}
+        options={[
+          { value: 'q', label: 'The Queen', group: 'In this chapter' },
+          { value: 'a', label: 'Alice', group: 'In this chapter' },
+          { value: 'h', label: 'The Hatter', group: 'All characters' },
+          { value: 'n', label: 'Narration' },
+        ]}
+      />,
+    );
+    const groups = screen.getAllByRole('group');
+    expect(groups.map((group) => group.getAttribute('label'))).toEqual(['In this chapter', 'All characters']);
+    expect(Array.from(groups[0].querySelectorAll('option')).map((option) => option.value)).toEqual(['q', 'a']);
+    expect(screen.getByRole('option', { name: 'Narration' }).parentElement?.tagName).toBe('SELECT');
+  });
+
   it('is named by a visible label through its id instead', () => {
     render(
       <>

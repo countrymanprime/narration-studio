@@ -6,6 +6,7 @@
 import {
   VOICE_SAMPLE_LABEL_MAX,
   VOICE_SAMPLE_NOTE_MAX,
+  VOICE_SAMPLE_SENTENCES,
   type ManuscriptChapter,
   type ManuscriptParagraph,
   type VoiceSample,
@@ -28,22 +29,6 @@ const MAX_SPAN_WORDS = 1000;
 const MOCK_RATE = 8000;
 const MOCK_FRAME_BYTES = 2;
 const WAV_HEADER_BYTES = 44;
-
-/** The sentences the host sends with each refusal (apps/desktop/internal/voicesample's sentence). */
-const SENTENCES: Record<VoiceSampleRefusalReason, string> = {
-  stale_alignment: 'The recording changed since this chapter was checked. Check it again, then mark the sample.',
-  not_heard: 'These words were not heard in the recording.',
-  spans_takes: 'Choose words inside one take.',
-  spans_cut: 'Restore the cut words or choose words without them.',
-  too_short: 'A sample is at least half a second.',
-  too_long: 'A sample is at most 30 seconds.',
-  unsupported_source: 'Only WAV recordings can be copied.',
-  source_missing: 'The audio file for these words is missing.',
-  project_unreadable: 'The saved REAPER project could not be read. Save the project in REAPER, then try again.',
-  character_limit: 'This character already has 20 samples. Delete one first.',
-  project_limit: 'Voice samples already use the 200 MiB a project may hold. Delete one first.',
-  not_found: 'That voice sample is no longer there.',
-};
 
 /** A stored sample: what a list sends, less the two states read on every list, plus the item and the start the host keeps and never sends. */
 type Stored = Omit<VoiceSample, 'clipState' | 'source'> & { source: Omit<VoiceSample['source'], 'chapterTitle' | 'state'>; itemGuid: string; start: number };
@@ -163,7 +148,7 @@ export function createVoiceSamplesMock(ready: Promise<unknown>, chapters: () => 
     });
   };
 
-  const refused = (reason: VoiceSampleRefusalReason): VoiceSampleAnswer => ({ status: 'refused', reason, message: SENTENCES[reason] });
+  const refused = (reason: VoiceSampleRefusalReason): VoiceSampleAnswer => ({ status: 'refused', reason, message: VOICE_SAMPLE_SENTENCES[reason] });
 
   const promoteNewest = (characterId: string) => {
     const mine = stored.filter((sample) => sample.characterId === characterId);
