@@ -211,8 +211,11 @@ C is not enough. Every mutation stays over 100 ms, and full-length ones over 350
 
 ## What to move first
 
+On 2026-10-18 the owner approved B and asked for step 1 (#1923).
+
+
 1. **`edit` for every field but `aliases`, and setLocked.** This is every Save. The prototype and its parity test exist.
-2. **Hold the document in `guide.Service`.** Keep the parsed document in memory keyed by size and modification time. Dropping the indent is an owner choice: it is still JSON, but no longer pleasant to read by hand, and it takes a full-length write from 44 to 16 ms here (write only, held document).
+2. **Hold the document in `guide.Service`.** Keep the parsed document in memory keyed by size and modification time. Dropping the indent was put to the owner (it is still JSON, but no longer pleasant to read by hand, and it takes a full-length write from 44 to 16 ms here, write only, held document); on 2026-10-18 the owner chose to keep it.
    - The same unindented write in Python's `write_json` is a separate, smaller change that would help the commands that stay in Python. Estimated: about 70 ms off each full-length spawn (in-process, 127 to 56 ms).
 3. **`mark-reviewed`, `review-flag`, `speaker-color`, `relate`, `unrelate`, `delete` and `correct-cue`.**
 4. **The five `type-*` commands.**
