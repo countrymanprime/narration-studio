@@ -287,6 +287,8 @@ describe('D5 and D6 a running build', () => {
     await act(async () => vi.advanceTimersByTimeAsync(700));
     const alert = await screen.findByText(/Can't tell how the build is going, last heard \d+ s ago: the host did not answer/);
     expect(alert).toBeTruthy();
+    // A sentence read before the host went quiet is not repeated beside Build as if it were current.
+    expect(screen.queryByText(READY)).toBeNull();
     // The same words twice must still schedule the next try: three more failures in six seconds.
     const before = packageState.mock.calls.length;
     for (let tick = 0; tick < 3; tick += 1) await act(async () => vi.advanceTimersByTimeAsync(2100));
@@ -294,6 +296,7 @@ describe('D5 and D6 a running build', () => {
     silent = false;
     await act(async () => vi.advanceTimersByTimeAsync(2100));
     await waitFor(() => expect(screen.queryByText(/Can't tell how the build is going/)).toBeNull());
+    expect(screen.getByText(READY)).toBeTruthy();
   });
 
   it('Check again forces a fresh read', async () => {
