@@ -3,7 +3,7 @@
 // when any rule is not met; it has no verdict when a value it should have could not be measured (a silent render) or nothing was
 // judged at all; it passes otherwise. A rule the app does not check is never counted as met; the row says how many are left.
 import type { DeliveryProfile, DeliveryRule, DeliveryRuleResult, MeasureFileResult } from '../../types';
-import { describeMiss, formatRuleValue } from './deliveryProfile';
+import { describeMiss, formatBound, formatRuleValue } from './deliveryProfile';
 
 export type FileVerdict = 'pass' | 'fail' | 'none';
 
@@ -19,7 +19,7 @@ export const leftToCheck = (file: MeasureFileResult): number =>
   file.rules.filter((result) => result.status === 'not_checked' || result.status === 'not_measurable').length;
 
 /** A rule's value with its unit, as a sentence writes it: "−57.8 dBFS", "48 kHz", "2:04:10". */
-export function valueWithUnit(rule: Pick<DeliveryRule, 'metric' | 'unit'>, value: number): string {
+function valueWithUnit(rule: Pick<DeliveryRule, 'metric' | 'unit'>, value: number): string {
   const text = formatRuleValue(rule, value);
   return rule.unit && rule.metric !== 'duration_seconds' && rule.metric !== 'sample_rate' ? `${text} ${rule.unit}` : text;
 }
@@ -65,5 +65,17 @@ export function misses(file: MeasureFileResult, profile: DeliveryProfile): Miss[
     const value = result.value !== null ? ` ${valueWithUnit(rule, result.value)}` : '';
     const fix = suggestedFix(rule, result);
     return [{ rule, result, text: `${rule.label}${value}: ${describeMiss(rule, result, owner)}.`, ...(fix ? { fix } : {}) }];
+  });
+}
+
+/** Every rule a file did not meet, each as "noise floor −57.8 dBFS (limit ≤ −60 dBFS)": the value and the limit in the same breath. */
+export function missesWithLimit(file: MeasureFileResult, profile: DeliveryProfile): string[] {
+  return file.rules.flatMap((result) => {
+    if (result.status !== 'not_met') return [];
+    const rule = profile.rules.find((candidate) => candidate.id === result.ruleId);
+    if (!rule) return [];
+    const value = result.value !== null ? ` ${valueWithUnit(rule, result.value)}` : '';
+    const bound = formatBound(rule);
+    return [`${rule.label.toLowerCase()}${value}${bound ? ` (limit ${bound})` : ''}`];
   });
 }

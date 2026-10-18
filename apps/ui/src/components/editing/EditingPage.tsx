@@ -11,9 +11,11 @@ import type { DrawerTab } from './drawer/drawerTabs';
 import { STRIP_MIN_WIDTH } from './drawer/drawerTabs';
 import { useWindowWidth } from './drawer/useDrawer';
 import { EditingPageProvider } from './script/EditingPageState';
+import { Skeleton } from '../primitives/Skeleton';
 import { DawOffBanner } from './page/DawOffBanner';
 import { EditingBody, type DeepLink, type PanelsState } from './page/EditingBody';
 import { EditingHeader } from './page/EditingHeader';
+import { EditingBodySkeleton } from './page/EditingSkeleton';
 import { useChapterSource } from './page/useChapterSource';
 import { useDawStatus } from './page/useDawStatus';
 
@@ -152,7 +154,21 @@ function EditingLoaded({ chapterId: asked, passageId, findingId, t, drawer, onCh
             <Panel title="This manuscript has no chapters to edit">
               <p className="text-sm text-[var(--text-muted)]">Import a manuscript with at least one narration chapter first.</p>
             </Panel>
-          ) : null}
+          ) : (
+            // Still reading the chapters: the page's own header stays, the script is blocks.
+            <div className="flex min-h-0 flex-1 flex-col">
+              {banner}
+              <EditingHeader
+                stepper={<Skeleton className="h-8 w-56 max-w-full" />}
+                legend={null}
+                strip={panels.strip}
+                stripFits={width >= STRIP_MIN_WIDTH}
+                drawerOpen={panels.drawer.open}
+                onDrawer={panels.drawer.toggle}
+              />
+              <EditingBodySkeleton label="Loading the editor" status="Reading the chapters…" />
+            </div>
+          )}
         </div>
       </section>
     </CommandScope>
@@ -208,9 +224,7 @@ function EditingChapter({
             {source.message}
           </p>
         ) : (
-          <p role="status" className="px-4 text-sm text-[var(--text-muted)]">
-            Reading the chapter…
-          </p>
+          <EditingBodySkeleton label="Loading the chapter" status="Reading the chapter…" />
         )}
       </div>
     );

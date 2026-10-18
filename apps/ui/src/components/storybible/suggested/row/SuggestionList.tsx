@@ -17,7 +17,7 @@ export function SuggestionList({ title, suggestions, contextOf, ...row }: ListPr
       <SectionLabel>
         {title} · {suggestions.length}
       </SectionLabel>
-      <ul>
+      <ul className="m-0 flex list-none flex-col gap-1.5 p-0">
         {suggestions.map((suggestion) => (
           <SuggestionRow key={suggestion.id} suggestion={suggestion} context={contextOf?.(suggestion)} {...row} />
         ))}

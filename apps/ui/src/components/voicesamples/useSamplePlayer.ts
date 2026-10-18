@@ -17,7 +17,7 @@ import {
  * whether a take is recording (a DAW is configured and silent): a sample is refused with it, because a clip through the speakers reaches
  * the microphone of a take that may be running. A page that has no recorder, such as the Story Bible, passes none and a sample plays.
  */
-export type RecorderGuard = { recording: boolean; cantTell?: string };
+type RecorderGuard = { recording: boolean; cantTell?: string };
 
 export type SamplePlayerOptions = {
   guard?: RecorderGuard;

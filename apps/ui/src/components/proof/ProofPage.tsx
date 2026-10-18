@@ -18,6 +18,7 @@ import { KeyHints } from '../primitives/KeyHints';
 import { openCheckRecordings } from '../recordingcheck/openCheckRecordings';
 import { creditsEntries, creditsKindOfId, ownsOpeningCredits } from '../credits/creditsEntries';
 import { useCreditsRows } from '../credits/useCreditsRows';
+import { LoadError } from '../layout/LoadError';
 import { NeedManuscript } from '../layout/NeedManuscript';
 import { CheckCard } from './checkcard/CheckCard';
 import { ChapterStrip, type StripChapter } from './frame/ChapterStrip';
@@ -115,6 +116,13 @@ export function ProofPage({
   const [summary, setSummary] = useState<FindingsSummary>();
   const [sort, setSort] = useState<NoteSort>('time');
   const [reload, setReload] = useState(0);
+  // The page's data could not be read on opening: the host's sentence for the first failure of the chapters or the notes, and which have
+  // been read once (a later failure is a toast, the page stays). Retry bumps `attempt`, which both reads depend on.
+  const [chaptersProblem, setChaptersProblem] = useState<string>();
+  const [notesProblem, setNotesProblem] = useState<string>();
+  const loadProblem = chaptersProblem ?? notesProblem;
+  const [attempt, setAttempt] = useState(0);
+  const read = useRef({ chapters: false, notes: false });
   // The pickups list, for the open pickups no note stands for: while one is open the head never reads 100.
   const [pickups, setPickups] = useState<readonly PickupItem[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(params.get('finding'));
@@ -150,14 +158,20 @@ export function ProofPage({
       .manuscriptChapters()
       .then((list) => {
         if (!live) return;
+        read.current.chapters = true;
+        setChaptersProblem(undefined);
         setChapters(list.filter(isNarration));
         setOwnsOpening(ownsOpeningCredits(list));
       })
-      .catch((error: unknown) => overlay.toast(describeApiError(error), { tone: 'error' }));
+      .catch((error: unknown) => {
+        if (!live) return;
+        if (read.current.chapters) overlay.toast(describeApiError(error), { tone: 'error' });
+        else setChaptersProblem(describeApiError(error));
+      });
     return () => {
       live = false;
     };
-  }, [manuscriptApi, hasManuscript, overlay]);
+  }, [manuscriptApi, hasManuscript, overlay, attempt]);
 
   useEffect(() => {
     if (!hasManuscript) return;
@@ -178,14 +192,20 @@ export function ProofPage({
     Promise.all([findingsApi.findingsList(queryFor(sort, all ? undefined : scope)), findingsApi.findingsSummary()])
       .then(([page, counts]) => {
         if (!live) return;
+        read.current.notes = true;
+        setNotesProblem(undefined);
         setFindings(page.findings.map(held));
         setSummary(counts);
       })
-      .catch((error: unknown) => live && overlay.toast(describeApiError(error), { tone: 'error' }));
+      .catch((error: unknown) => {
+        if (!live) return;
+        if (read.current.notes) overlay.toast(describeApiError(error), { tone: 'error' });
+        else setNotesProblem(describeApiError(error));
+      });
     return () => {
       live = false;
     };
-  }, [findingsApi, hasManuscript, sort, scope, all, reload, overlay]);
+  }, [findingsApi, hasManuscript, sort, scope, all, reload, overlay, attempt]);
 
   const choose = useCallback(
     (next: string) => {
@@ -228,6 +248,8 @@ export function ProofPage({
   const listRef = useRef(findings);
   listRef.current = findings;
   const entryOf = useRef(new Map<string, number>());
+  const scopeRef = useRef({ all, scope });
+  scopeRef.current = { all, scope };
   const journalledReview = useCallback(
     async (request: Parameters<typeof findingsApi.findingsReview>[0]): Promise<Finding> => {
       const before = listRef.current.find((f) => f.id === request.id);
@@ -254,6 +276,9 @@ export function ProofPage({
             });
             replace(back);
             select(request.id);
+            // The note may be in a chapter other than the one now open: go back to it, so the decision taken back is the one in view.
+            const home = chapterOf(before);
+            if (home && !scopeRef.current.all && scopeRef.current.scope !== home) choose(home);
             setReload((n) => n + 1);
             return { ok: true as const, value: back };
           } catch (error) {
@@ -266,7 +291,7 @@ export function ProofPage({
       entryOf.current.set(request.id, result.value.id);
       return result.value.value;
     },
-    [findingsApi, journal, replace, select],
+    [findingsApi, journal, replace, select, choose],
   );
   const inspectorApi = useMemo(() => ({ ...findingsApi, findingsReview: journalledReview }), [findingsApi, journalledReview]);
   // A saved decision moves to the next note and offers Undo: the journal entry's own undo.
@@ -358,6 +383,7 @@ export function ProofPage({
   });
 
   if (!hasManuscript) return <NeedManuscript title="Proof" onImport={() => goTo('/')} />;
+  if (loadProblem !== undefined) return <LoadError title="Proof" message={loadProblem} retry={() => setAttempt((n) => n + 1)} />;
 
   const stepper = (
     <ChapterStepper

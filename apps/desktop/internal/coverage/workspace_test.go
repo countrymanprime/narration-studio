@@ -67,6 +67,11 @@ func TestAlignmentJoinsTheStoredTokensWithParagraphsAndPlayedRanges(t *testing.T
 	if view.State != evidence.StateCurrent || view.NeedsAlignAgain {
 		t.Fatalf("view = %+v", view)
 	}
+	// The record the word times came from, for a voice sample marked from them: the chapter's current recording check.
+	current, err := service.Result(testChapter, DefaultAlignmentParams)
+	if err != nil || current.Result == nil || current.Result.RecordID == "" || view.RecordID != current.Result.RecordID {
+		t.Fatalf("view.RecordID = %q, want the current record %+v (%v)", view.RecordID, current.Result, err)
+	}
 	if len(view.Paragraphs) != 1 || view.Paragraphs[0] != (AlignmentParagraph{ID: "p-000001", Text: "Alice was beginning to get very tired."}) {
 		t.Fatalf("paragraphs = %+v", view.Paragraphs)
 	}
@@ -145,6 +150,9 @@ func TestAStaleAlignmentStillReadsItsStoredTokens(t *testing.T) {
 
 	if view.State != evidence.StateStale {
 		t.Fatalf("view.State = %v, want stale", view.State)
+	}
+	if view.RecordID != "" {
+		t.Fatalf("view.RecordID = %q: a stale check has no record a sample may be marked from", view.RecordID)
 	}
 	if len(view.Tokens) != 7 {
 		t.Fatalf("a stale alignment must still carry the last run's tokens: %+v", view.Tokens)

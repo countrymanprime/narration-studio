@@ -1,6 +1,6 @@
 // How to reach each `delivery` state in STATE_CATALOG (see app.drivers.ts).
 import { settlePage } from '../helpers/settle';
-import { type Driver, goToPage, panelTitled, scrollToTop } from './shared';
+import { type Driver, goToPage, measureOnMaster, measurementEnded, panelTitled, scrollToTop } from './shared';
 
 // Opens Delivery through the rail (after a reload with mock seams, when given) once the profile card and the chapters are read.
 async function openDelivery(page: Parameters<Driver>[0], query = ''): Promise<void> {
@@ -29,6 +29,16 @@ export const deliveryDrivers: Record<string, Driver> = {
   measured: async (page) => {
     await openDelivery(page, '?mockMeasure=spread');
   },
+  'failing-chapter': async (page) => {
+    await measureOnMaster(page);
+    await measurementEnded(page, /^Measured 2 of 3 files; 1 could not be measured\./);
+    await goToPage(page, 'Delivery');
+    await page.getByText(/^Chapter 1 — Down the Rabbit-Hole: sample rate 48 kHz \(limit 44\.1 kHz\)\.$/).waitFor();
+  },
+  'many-chapters': async (page) => {
+    await openDelivery(page, '?mockBooth=many-chapters');
+    await page.getByRole('button', { name: /^Show the other \d+ chapters$/ }).waitFor();
+  },
   'custom-profile': async (page) => {
     await openDelivery(page, '?mockDeliveryProfile=custom');
     await page.getByRole('textbox', { name: 'Profile name' }).waitFor();
@@ -56,12 +66,13 @@ export const deliveryDrivers: Record<string, Driver> = {
   'build-failed': async (page) => {
     await openReady(page, 'fails');
     await buildButton(page).click();
-    await page.getByRole('alert').filter({ hasText: 'could not be built' }).waitFor();
+    await page.getByRole('alert').filter({ hasText: 'access is denied' }).waitFor();
   },
   'host-quiet': async (page) => {
     await openReady(page, 'quiet');
     await buildButton(page).click();
     await page.getByRole('alert').filter({ hasText: "Can't tell how the build is going" }).waitFor();
+    await page.getByText('Every chapter passes.').waitFor({ state: 'hidden' });
   },
   'host-quiet-cancelled': async (page) => {
     await openReady(page, 'quiet');

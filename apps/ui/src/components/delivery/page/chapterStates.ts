@@ -3,10 +3,10 @@
 // a chapter with no file, or a file the host did not judge, is "Not mastered". A row names its chapter with `chapterName`, so it
 // reads in the manuscript's own heading style ("CHAPTER IV. — The Rabbit Sends in a Little Bill"), as Script's list does.
 import { chapterName } from '../../../chapterName';
-import type { ManuscriptChapter, MeasureFileResult } from '../../../types';
+import type { DeliveryProfile, ManuscriptChapter, MeasureFileResult } from '../../../types';
 import { CREDITS_ID, CREDITS_NAME, type CreditsEntry } from '../../credits/creditsEntries';
 import { fileOf } from '../../master/chapterFile';
-import { fileVerdict } from '../../master/fileVerdict';
+import { fileVerdict, missesWithLimit } from '../../master/fileVerdict';
 
 export type ChapterState = { id: string; name: string; kind: 'ok' | 'bad' | 'wait'; text: string };
 
@@ -24,6 +24,45 @@ export function listedChapters(chapters: readonly ManuscriptChapter[], credits: 
 
 export function chapterStates(chapters: readonly Listed[], files: readonly MeasureFileResult[]): ChapterState[] {
   return chapters.map((chapter) => stateOf({ id: chapter.id, name: chapterName(chapter) }, fileOf(chapter, files)));
+}
+
+/**
+ * The first chapter in the rows' order whose file misses a rule, as "Chapter 8: noise floor −57.8 dBFS (limit ≤ −60 dBFS)" (and how many
+ * more rules it misses), so the reason Build is off is on the page and not behind Master & QC. Nothing when no chapter fails.
+ */
+export function firstFailure(chapters: readonly Listed[], files: readonly MeasureFileResult[], profile: DeliveryProfile): string | undefined {
+  for (const chapter of chapters) {
+    const file = fileOf(chapter, files);
+    if (!file || fileVerdict(file) !== 'fail') continue;
+    const [first, ...rest] = missesWithLimit(file, profile);
+    if (first === undefined) continue;
+    return `${chapterName(chapter)}: ${first}${rest.length > 0 ? `, and ${rest.length} more ${rest.length === 1 ? 'rule' : 'rules'}` : ''}.`;
+  }
+  return undefined;
+}
+
+/**
+ * When no chapter fails but some are not ready, the first of them in the rows' order and why: "Chapter 8: no measured file yet." (no file
+ * matches), "Chapter 8: not measured yet." / "could not be read." (its file is pending, cancelled or failed), or "Chapter 8: part of its file could not
+ * be measured." (a silent render). Nothing when every chapter has a verdict, or when no file was measured at all: the count beside Build
+ * already says that, and a red first chapter on an untouched book would only repeat it.
+ */
+export function firstNotReady(chapters: readonly Listed[], files: readonly MeasureFileResult[]): string | undefined {
+  if (files.length === 0) return undefined;
+  for (const chapter of chapters) {
+    const file = fileOf(chapter, files);
+    if (file && fileVerdict(file) !== 'none') continue;
+    return `${chapterName(chapter)}: ${notReadyWhy(file)}.`;
+  }
+  return undefined;
+}
+
+function notReadyWhy(file: MeasureFileResult | undefined): string {
+  if (!file) return 'no measured file yet';
+  if (file.status === 'failed') return 'its file could not be read';
+  if (file.status !== 'measured') return 'its file is not measured yet';
+  // The line says "measured" and fileVerdict said "none": either a rule could not be measured, or nothing was judged at all.
+  return file.rules.some((rule) => rule.status === 'not_measurable') ? 'part of its file could not be measured' : 'the app judged nothing about its file';
 }
 
 /** One row's state from its file: no file, or a file the host did not judge, is "Not mastered". */

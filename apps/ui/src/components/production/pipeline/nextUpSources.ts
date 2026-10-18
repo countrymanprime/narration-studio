@@ -1,8 +1,7 @@
 import { chapterName } from '../../../chapterName';
 import type { DeliveryProfile, ManuscriptChapter, MeasureFileResult } from '../../../types';
 import { fileOf } from '../../master/chapterFile';
-import { formatBound } from '../../master/deliveryProfile';
-import { fileVerdict, valueWithUnit } from '../../master/fileVerdict';
+import { fileVerdict, missesWithLimit } from '../../master/fileVerdict';
 import type { NextUpInputs } from './nextUpRanking';
 
 type Chapter = Pick<ManuscriptChapter, 'id' | 'title' | 'index'> & { subtitle?: string };
@@ -17,14 +16,7 @@ export function failingChapter(chapters: readonly Chapter[], files: readonly Mea
   for (const chapter of chapters) {
     const file = fileOf(chapter, files);
     if (!file || fileVerdict(file) !== 'fail') continue;
-    const fails = file.rules.flatMap((result) => {
-      if (result.status !== 'not_met') return [];
-      const rule = profile.rules.find((candidate) => candidate.id === result.ruleId);
-      if (!rule) return [];
-      const value = result.value !== null ? ` ${valueWithUnit(rule, result.value)}` : '';
-      const bound = formatBound(rule);
-      return [`${rule.label.toLowerCase()}${value}${bound ? ` (limit ${bound})` : ''}`];
-    });
+    const fails = missesWithLimit(file, profile);
     if (fails.length) return { chapterId: chapter.id, tag: chapterName(chapter), fails };
   }
   return null;

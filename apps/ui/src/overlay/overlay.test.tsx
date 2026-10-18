@@ -146,6 +146,16 @@ describe('overlay.toast', () => {
     expect(screen.queryByText('Saved.')).toBeNull();
   });
 
+  it('an Undo toast with its own duration outlasts the usual time and is gone after it', () => {
+    vi.useFakeTimers();
+    mount();
+    act(() => service.toastUndo('Saved voice sample.', () => Promise.resolve({ ok: true }), { durationMs: 10_000 }));
+    act(() => void vi.advanceTimersByTime(TOAST_INFO_MS + 1000));
+    expect(screen.getByText('Saved voice sample.')).toBeTruthy();
+    act(() => void vi.advanceTimersByTime(10_000 - TOAST_INFO_MS - 1000));
+    expect(screen.queryByText('Saved voice sample.')).toBeNull();
+  });
+
   it('an error toast stays until dismissed', () => {
     vi.useFakeTimers();
     mount();

@@ -75,6 +75,28 @@ describe('sort-asks-the-host', () => {
   });
 });
 
+describe('page-data-load-failure', () => {
+  it('keeps the title, says the page could not be loaded and reloads on Retry', async () => {
+    const api = createMockApi();
+    vi.spyOn(api, 'findingsList').mockRejectedValueOnce(new Error('The findings file is unreadable.'));
+    renderPage({ api });
+    expect(await screen.findByText('This page could not be loaded')).toBeTruthy();
+    expect(screen.getByRole('heading', { name: 'Proof' })).toBeTruthy();
+    await userEvent.click(screen.getByRole('button', { name: 'Retry' }));
+    await noteRows();
+    expect(screen.queryByText('This page could not be loaded')).toBeNull();
+  });
+});
+
+describe('page-data-load-failure-chapters', () => {
+  it('shows the load error when the chapters cannot be read', async () => {
+    const api = createMockApi();
+    vi.spyOn(api, 'manuscriptChapters').mockRejectedValue(new Error('The chapters are unreadable.'));
+    renderPage({ api });
+    expect(await screen.findByText('This page could not be loaded')).toBeTruthy();
+  });
+});
+
 describe('the-head-and-open-pickups', () => {
   it('the head cannot read 100 while a pickup is open', async () => {
     const api = createMockApi();
@@ -317,6 +339,25 @@ describe('proof-decisions-and-undo', () => {
       ).toBe('true'),
     );
     expect(box().value).toBe('Note A first');
+  });
+
+  it('an undo from another chapter goes back to the chapter of the note and selects it', async () => {
+    const api = createMockApi();
+    const { journal } = renderPage({ api, at: '/proof?chapter=chapter-1' });
+    const user = userEvent.setup();
+    const rows = await noteRows();
+    const at = rows.findIndex((row) => row.textContent?.includes('To review'));
+    await user.click(rows[at]);
+    press('w', 'KeyW');
+    await waitFor(async () => expect(await journal.entries()).toHaveLength(1));
+    press('ArrowRight', 'ArrowRight');
+    await waitFor(() => expect(where()).toBe('/proof?chapter=chapter-2'));
+    await noteRows();
+    expect((await journal.undoLast()).ok).toBe(true);
+    await waitFor(() => expect(where()).toBe('/proof?chapter=chapter-1'));
+    const back = await noteRows();
+    await waitFor(() => expect(back[at].getAttribute('aria-selected')).toBe('true'));
+    expect(back[at].textContent).toContain('To review');
   });
 
   it('the same decision again with nothing typed is no decision: no journal entry', async () => {
