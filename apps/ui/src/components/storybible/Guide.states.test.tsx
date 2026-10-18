@@ -297,3 +297,45 @@ describe('stale and leaving mid-action', () => {
     expect(build).toHaveBeenCalledTimes(1);
   });
 });
+
+// The loading state (definition-of-done.md state matrix): the page's title, tabs and search stay while the entries are read; the list and the detail
+// are blocks, never "No entries match"; then the entries, or the error with Retry. Never an endless skeleton.
+describe('the entries are being read', () => {
+  const region = () => screen.queryByRole('group', { name: 'Loading the Story Bible entries' });
+
+  it('keeps the title and shows one busy region in the list, not an empty-list sentence, however long the read takes', async () => {
+    const api = createMockApi();
+    vi.spyOn(api, 'guideEntities').mockImplementation(() => new Promise(() => {}));
+    mount(api);
+    expect(await screen.findByRole('heading', { level: 1, name: 'Story Bible' })).toBeTruthy();
+    expect(region()?.getAttribute('aria-busy')).toBe('true');
+    expect(within(region()!).getByRole('status').textContent).toBe('Reading the Story Bible…');
+    expect(screen.queryByText('No entries match.')).toBeNull();
+    expect(screen.queryByRole('list', { name: 'Story Bible entries' })).toBeNull();
+    await new Promise((resolve) => setTimeout(resolve, 60));
+    expect(region()).toBeTruthy();
+  });
+
+  it('is replaced by the entries when they arrive', async () => {
+    mount(createMockApi());
+    await screen.findAllByText('Alice');
+    expect(region()).toBeNull();
+    expect(screen.getByRole('list', { name: 'Story Bible entries' })).toBeTruthy();
+  });
+
+  it('says "No entries match." only once the read has ended with none', async () => {
+    const api = createMockApi();
+    vi.spyOn(api, 'guideEntities').mockResolvedValue([]);
+    mount(api);
+    expect(await screen.findByText('No entries match.')).toBeTruthy();
+    expect(region()).toBeNull();
+  });
+
+  it('ends in the error with Retry, not a skeleton, when the first read fails', async () => {
+    const api = createMockApi();
+    vi.spyOn(api, 'guideEntities').mockRejectedValueOnce(new Error('The Story Bible file is locked by another program.'));
+    mount(api);
+    expect(await screen.findByText(/locked by another program/)).toBeTruthy();
+    expect(region()).toBeNull();
+  });
+});

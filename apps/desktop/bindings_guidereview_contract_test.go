@@ -11,7 +11,8 @@ func TestContractGuideReviewBindingsReturnNothing(t *testing.T) {
 		"GuideFlagReview":      func(h *Host) (string, error) { return h.GuideFlagReview("entity-1", &two) },
 		"GuideSetSpeakerColor": func(h *Host) (string, error) { return h.GuideSetSpeakerColor("entity-1", &two) },
 	} {
-		service, _ := countingGuide(t)
+		service, _, project := countingGuideIn(t)
+		writeStoryBible(t, project)
 		if got, err := call(&Host{guide: service}); err != nil || got != "null" {
 			t.Fatalf("%s = %q, %v", name, got, err)
 		}
