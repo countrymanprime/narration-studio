@@ -397,17 +397,12 @@ export async function openEditingCheckFromEngine(page: Page, query: string) {
 // The Settings page: a category list (the navigation named "Settings categories") beside one category's pane. Its labels repeat the
 // primary navigation's ("Project"), so every query for a category is scoped to that navigation. Narrower than the page's container
 // query (760 px) the list folds behind one "Category" button, which is opened to pick and closes itself on a pick.
-export function settingsCategories(page: Page): Locator {
+function settingsCategories(page: Page): Locator {
   return page.getByRole('navigation', { name: 'Settings categories' });
 }
 
-/** The Settings page's main pane: a category, the results of a search, or the models list. */
-export function settingsPane(page: Page): Locator {
-  return page.locator('#settings-pane');
-}
-
 /** Opens a row of the category list by its label, opening the folded list first when that is how the width shows it. */
-export async function openSettingsCategory(page: Page, label: string): Promise<void> {
+async function openSettingsCategory(page: Page, label: string): Promise<void> {
   const nav = settingsCategories(page);
   const choice = nav.getByRole('button', { name: new RegExp(`^${label.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}`) });
   if (!(await choice.isVisible())) await nav.getByRole('button', { name: /^Category/ }).click();
