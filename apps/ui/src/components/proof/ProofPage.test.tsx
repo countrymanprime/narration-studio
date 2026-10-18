@@ -20,6 +20,9 @@ import * as checkRecordings from '../recordingcheck/openCheckRecordings';
 import { proofProgress } from './proof.selectors';
 import { ProofPage } from './ProofPage';
 
+/** What a chapter tile draws: its number and count, which it draws as generated content from data-text. */
+const drawn = (tile: HTMLElement): string => [...tile.querySelectorAll('[data-text]')].map((part) => part.getAttribute('data-text')).join('');
+
 afterEach(() => {
   cleanup();
   window.localStorage.clear();
@@ -150,9 +153,9 @@ describe('proof-route-draws-the-mock-page', () => {
     await waitFor(() => expect(within(strip).getAllByRole('button')[0].getAttribute('aria-label')).toBe('Opening credits: no notes'));
     const tiles = within(strip).getAllByRole('button');
     expect(tiles.at(-1)?.getAttribute('aria-label')).toBe('Closing credits: no notes');
-    expect(tiles[0].textContent).toBe('Open—');
-    expect(tiles.at(-1)?.textContent).toBe('Close—');
-    expect(tiles[1].textContent?.startsWith('1')).toBe(true);
+    expect(drawn(tiles[0])).toBe('Open—');
+    expect(drawn(tiles.at(-1)!)).toBe('Close—');
+    expect(drawn(tiles[1]).startsWith('1')).toBe(true);
   });
 
   it('opens the credits card in Script from a credits tile, since Proof has no chapter view for them', async () => {
