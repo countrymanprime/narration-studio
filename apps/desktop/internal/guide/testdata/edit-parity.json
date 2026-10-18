@@ -1312,6 +1312,133 @@
               "text": ""
             },
             "id": "entity-wren",
+            "locked": true,
+            "occurrence_count": 1,
+            "occurrences": [
+              {
+                "chapter": "Chapter 1",
+                "excerpt": "…Wren said…",
+                "paragraph": 3
+              }
+            ],
+            "personality_notes": [],
+            "pronunciation": {
+              "confidence": 0.75,
+              "ipa": "ɹɛn",
+              "source": "cmu"
+            },
+            "properties": [
+              {
+                "key": "Codename",
+                "value": "Sparrow"
+              }
+            ],
+            "relationships": [],
+            "review": {
+              "aliases": [],
+              "entry": true
+            },
+            "review_state": "reviewed",
+            "score": 1.0,
+            "weight": 12345678901234567
+          },
+          {
+            "aliases": [],
+            "canonical_name": "The Mill",
+            "category": "Place",
+            "description": {
+              "evidence": {},
+              "text": ""
+            },
+            "id": "entity-mill",
+            "locked": true,
+            "occurrence_count": 1,
+            "occurrences": [
+              {
+                "chapter": "Chapter 1",
+                "excerpt": "…Wren said…",
+                "paragraph": 3
+              }
+            ],
+            "personality_notes": [],
+            "pronunciation": {
+              "confidence": 0.75,
+              "ipa": "ɹɛn",
+              "source": "cmu"
+            },
+            "properties": [],
+            "relationships": [],
+            "review": {
+              "aliases": [],
+              "entry": false
+            },
+            "review_state": "reviewed"
+          }
+        ],
+        "generated_at": "2026-10-18T00:00:00+00:00",
+        "schema_version": 2,
+        "source": {
+          "path": "manuscript.json",
+          "sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+        },
+        "types": [
+          {
+            "builtin": "Character",
+            "colour": "green",
+            "name": "Hero",
+            "speaks": true
+          },
+          {
+            "builtin": "Place",
+            "colour": "blue",
+            "name": "Place",
+            "speaks": false
+          }
+        ],
+        "vocabulary_candidates": [
+          "Wren"
+        ]
+      },
+      "entity_id": "entity-wren",
+      "fields": {
+        "locked": "\u001ftrue\u001c"
+      },
+      "start": "types"
+    },
+    {
+      "after": {
+        "absorbed_names": {
+          "wren": "entity-wren"
+        },
+        "dialogue_cues": [],
+        "entities": [
+          {
+            "aliases": [
+              {
+                "occurrences": [],
+                "pronunciation": {},
+                "text": "Little Wren"
+              },
+              {
+                "occurrences": [],
+                "pronunciation": {
+                  "alternate": {
+                    "ipa": "y",
+                    "source": "manual"
+                  },
+                  "ipa": "x",
+                  "source": "manual"
+                },
+                "text": "the Sparrow"
+              }
+            ],
+            "canonical_name": "Wren",
+            "category": "Hero",
+            "description": {
+              "evidence": {},
+              "text": ""
+            },
+            "id": "entity-wren",
             "locked": false,
             "occurrence_count": 1,
             "occurrences": [

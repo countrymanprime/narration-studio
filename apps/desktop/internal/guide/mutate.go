@@ -3,6 +3,8 @@ package guide
 import (
 	"encoding/json"
 	"errors"
+	"os"
+	"path/filepath"
 	"slices"
 	"strconv"
 	"strings"
@@ -23,9 +25,19 @@ var (
 // still holds its bytes, heldDocument) and says whether the file is to be written. A refusal leaves the file as it was; it also drops the
 // held document, since change may have touched it before it refused, so the next command parses the unchanged file again.
 func (s *Service) mutateInHost(change func(document map[string]any) (write bool, err error)) error {
+	return s.changeInHost(false, change)
+}
+
+// changeInHost is mutateInHost; with start, a file that is not there or holds an empty object (errNoFile) is changed as emptyGuide
+// instead of refused, and its folder made, as the sidecar's type commands start a Story Bible.
+func (s *Service) changeInHost(start bool, change func(document map[string]any) (write bool, err error)) error {
 	s.editMu.Lock()
 	defer s.editMu.Unlock()
 	document, err := s.documentForEdit()
+	started := start && errors.Is(err, errNoFile)
+	if started {
+		document, err = emptyGuide(), nil
+	}
 	if err != nil {
 		return err
 	}
@@ -37,6 +49,11 @@ func (s *Service) mutateInHost(change func(document map[string]any) (write bool,
 	if !write {
 		return nil
 	}
+	if started {
+		if err := os.MkdirAll(filepath.Dir(s.guidePath()), 0o755); err != nil {
+			return err
+		}
+	}
 	written, err := writeDocument(s.guidePath(), document)
 	if err != nil {
 		s.held = nil
@@ -44,6 +61,18 @@ func (s *Service) mutateInHost(change func(document map[string]any) (write bool,
 	}
 	s.held = &heldDocument{document: document, raw: written}
 	return nil
+}
+
+// emptyGuide is manuscript_guide.py empty_guide: a Story Bible with nothing in it yet, which reads as stale until a build fills source.
+func emptyGuide() map[string]any {
+	return map[string]any{
+		"schema_version":        json.Number(strconv.Itoa(schemaVersion)),
+		"source":                map[string]any{},
+		"generated_at":          nil,
+		"entities":              []any{},
+		"vocabulary_candidates": []any{},
+		"absorbed_names":        map[string]any{},
+	}
 }
 
 // reviewTarget is manuscript_guide.py _review_target: the entry a review or colour change is for and the text of the alias it names
@@ -179,23 +208,14 @@ func speakerColor(document map[string]any, id string, index int) (bool, error) {
 	return true, nil
 }
 
-// speakingTypes is manuscript_guide.py speaking_types: the types whose entries speak, Character alone for a file without a list.
+// speakingTypes is manuscript_guide.py speaking_types: the names of the types guideTypes reads whose entries speak.
 func speakingTypes(document map[string]any) ([]string, error) {
-	if stored, present := document["types"]; !present || stored == nil {
-		speaking := []string{}
-		for _, row := range DefaultTypes() {
-			if row.Speaks {
-				speaking = append(speaking, row.Name)
-			}
-		}
-		return speaking, nil
-	}
-	if _, err := documentTypeNames(document); err != nil {
+	types, err := guideTypes(document)
+	if err != nil {
 		return nil, err
 	}
 	speaking := []string{}
-	for _, raw := range document["types"].([]any) {
-		row := raw.(map[string]any)
+	for _, row := range types {
 		if row["speaks"] == true {
 			speaking = append(speaking, row["name"].(string))
 		}
@@ -217,7 +237,7 @@ func relate(document map[string]any, id, other, label string) (bool, error) {
 	if err != nil {
 		return false, err
 	}
-	label = strings.TrimSpace(label)
+	label = pythonStrip(label)
 	if label == "" {
 		return false, errRelateLabel
 	}
@@ -286,7 +306,7 @@ func correctCue(document map[string]any, cueID, speaker string) (bool, error) {
 		if !ok || cue["id"] != cueID {
 			continue
 		}
-		value := strings.TrimSpace(speaker)
+		value := pythonStrip(speaker)
 		if value == "" || strings.ToLower(value) == "unknown" {
 			cue["speaker_entity_id"] = nil
 		} else {
