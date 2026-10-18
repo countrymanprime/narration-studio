@@ -27,9 +27,9 @@ function Layer({ entry }: { entry: DialogEntry }) {
         {content}
       </SlideOver>
     );
-  const { title, headerless, dismissOnOutsidePress } = entry.spec;
+  const { title, headerless, dismissOnOutsidePress, returnFocus } = entry.spec;
   return (
-    <Dialog title={title} headerless={headerless} dismissOnOutsidePress={dismissOnOutsidePress} onClose={entry.close} actions={null}>
+    <Dialog title={title} headerless={headerless} dismissOnOutsidePress={dismissOnOutsidePress} returnFocus={returnFocus} onClose={entry.close} actions={null}>
       {content}
     </Dialog>
   );

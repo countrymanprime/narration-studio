@@ -15,7 +15,6 @@ import (
 	"sync"
 	"sync/atomic"
 	"time"
-	"unicode/utf8"
 
 	"github.com/countrymanprime/narration-utils/shell/internal/findings"
 	"github.com/countrymanprime/narration-utils/shell/internal/persist"
@@ -39,6 +38,13 @@ type Service struct {
 	// existing caller, including every test in this package, leaves it nil
 	// and SaveFindings is then a no-op.
 	findingsStore atomic.Pointer[findings.Store]
+	// editMu serializes the edits the host applies itself (editInHost), each a read, change and rewrite of the whole file.
+	editMu sync.Mutex
+	// held is the Story Bible as the last host edit left it (heldDocument); nil until the first edit and after a failed write.
+	// +checklocks:editMu
+	held *heldDocument
+	// parses counts how often an edit had to parse the file, for the tests of heldDocument.
+	parses atomic.Int64 // +checklocksignore: an atomic; it is only ever counted while editMu is held
 }
 
 func New(project, python, backend string, store *settings.Store, sidecars *process.Supervisor) *Service {
@@ -99,7 +105,8 @@ func (s *Service) SaveFindings() error {
 	return nil
 }
 
-// schemaVersion is the newest Story Bible file this host reads; the Python sidecar writes it (manuscript_guide.py SCHEMA_VERSION).
+// schemaVersion is the newest Story Bible file this host reads. The Python sidecar writes it (manuscript_guide.py SCHEMA_VERSION), and so
+// does the host for an edit without aliases (editInHost), which refuses a newer file instead of rewriting it.
 const schemaVersion = 2
 
 // document reads and version-checks the Story Bible file, returning its raw
@@ -316,8 +323,7 @@ func (s *Service) DialogueCues() ([]DialogueCue, error) {
 // fresh, possibly-unknown, extraction - the same durability sidecars/manuscript-guide/core/manuscript_guide.py's lock
 // guard already gives a locked entity, applied to a cue instead.
 func (s *Service) CorrectCue(cueID, speakerEntityID string) error {
-	_, err := s.Run("correct-cue", "--guide", s.guidePath(), "--cue-id", cueID, "--speaker-entity-id", speakerEntityID)
-	return err
+	return s.mutateInHost(func(document map[string]any) (bool, error) { return correctCue(document, cueID, speakerEntityID) })
 }
 
 func (s *Service) Run(args ...string) (string, error) {
@@ -408,12 +414,16 @@ func (s *Service) Edit(id, field, value string) error {
 	return s.EditFields(id, map[string]string{field: value})
 }
 
-// EditFields changes every field of an entity in one sidecar process. The sidecar applies them all in memory and writes the file once, so a
-// field it refuses leaves the file as it was, and a Save of four fields costs one process instead of four.
-// The fields are sent in name order, so the same edit always produces the same command.
+// EditFields changes every field of an entity at once: all of them are applied in memory and the file is written once, so a field that is
+// refused leaves the file as it was. The host applies the edit itself (editInHost) unless it changes the aliases; then the whole edit goes
+// to the sidecar in one process, because a new alias needs a pronunciation and the manuscript. The fields are sent in name order, so
+// the same edit always produces the same command.
 func (s *Service) EditFields(id string, values map[string]string) error {
 	if len(values) == 0 {
 		return nil
+	}
+	if _, editsAliases := values["aliases"]; !editsAliases {
+		return s.editInHost(id, values)
 	}
 	_, err := s.Run(s.editArgs(id, values)...)
 	return err
@@ -486,8 +496,8 @@ func (s *Service) Candidate(word, source string) (Candidate, error) {
 	return result, nil
 }
 
-// The narrator's own pronunciation and a pronunciation's note are free text. The sidecar checks the same
-// limits; the host checks them first so a bad value never starts a process.
+// The narrator's own pronunciation and a pronunciation's note are free text. The sidecar checks the same limits; the host checks the
+// note first so a bad value never starts a process, and applies the narrator's own pronunciation itself (userPronunciation).
 const (
 	maxUserPronunciation = 200
 	maxPronunciationNote = 1000
@@ -496,55 +506,40 @@ const (
 // PronunciationStatuses are the statuses a pronunciation can have; one written before status existed reads as the first.
 var PronunciationStatuses = []string{"researched", "query_sent", "author_confirmed"}
 
-func pronunciationTarget(args []string, aliasIndex *int) []string {
-	if aliasIndex != nil {
-		args = append(args, "--alias-index", fmt.Sprint(*aliasIndex))
-	}
-	return args
-}
-
-// PronounceUser sets the narrator's own pronunciation (source "manual") of the entity's name or one alias. It never asks a dictionary,
-// and the pronunciation it replaces is kept beside it as the alternate. The text goes as one --ipa=VALUE argument, so a value
-// starting with "-" stays a value.
+// PronounceUser is manuscript_guide.py pronounce_user: the narrator's own pronunciation (source "manual") of the entity's name or one
+// alias, chosen. It never asks a dictionary, and the pronunciation it replaces is kept beside it as the alternate (setPronunciation).
+// The text is checked before the file is read, as the sidecar checks it.
 func (s *Service) PronounceUser(id string, aliasIndex *int, ipa string) error {
-	text := strings.TrimSpace(ipa)
-	switch {
-	case text == "":
-		return fmt.Errorf("type a pronunciation first")
-	case strings.ContainsAny(text, "\r\n"):
-		return fmt.Errorf("a pronunciation is one line")
-	case utf8.RuneCountInString(text) > maxUserPronunciation:
-		return fmt.Errorf("a pronunciation is at most %d characters", maxUserPronunciation)
+	value, err := userPronunciation(ipa)
+	if err != nil {
+		return err
 	}
-	_, err := s.Run(pronunciationTarget([]string{"pronounce-user", "--guide", s.guidePath(), "--entity-id", id, "--ipa=" + text}, aliasIndex)...)
-	return err
+	return s.mutateInHost(func(document map[string]any) (bool, error) { return pronounceUser(document, id, aliasIndex, value) })
 }
 
-// UsePronunciationAlternate puts the kept alternate back in use and keeps the one it replaces: lossless both ways, no lookup.
+// UsePronunciationAlternate is manuscript_guide.py pronunciation_use_alternate: the kept alternate goes back in use and the one it
+// replaces is kept, so switching is lossless both ways and asks no dictionary.
 func (s *Service) UsePronunciationAlternate(id string, aliasIndex *int) error {
-	_, err := s.Run(pronunciationTarget([]string{"pronunciation-use-alternate", "--guide", s.guidePath(), "--entity-id", id}, aliasIndex)...)
-	return err
+	return s.mutateInHost(func(document map[string]any) (bool, error) { return useAlternate(document, id, aliasIndex) })
 }
 
 // MarkReviewed clears the review flags of the entry and every name (aliasIndex nil), or of one name; the entry is reviewed when nothing
-// is left. Refused on a locked entry (enforced by the sidecar).
+// is left. Refused on a locked entry.
 func (s *Service) MarkReviewed(id string, aliasIndex *int) error {
-	_, err := s.Run(pronunciationTarget([]string{"mark-reviewed", "--guide", s.guidePath(), "--entity-id", id}, aliasIndex)...)
-	return err
+	return s.mutateInHost(func(document map[string]any) (bool, error) { return markReviewed(document, id, aliasIndex) })
 }
 
 // FlagReview flags the entry (aliasIndex nil), or one name, as needing review: the undo of MarkReviewed, and what an accepted automatic
 // suggestion sets. A flag that is set already changes nothing. Refused on a locked entry.
 func (s *Service) FlagReview(id string, aliasIndex *int) error {
-	_, err := s.Run(pronunciationTarget([]string{"review-flag", "--guide", s.guidePath(), "--entity-id", id}, aliasIndex)...)
-	return err
+	return s.mutateInHost(func(document map[string]any) (bool, error) { return flagReview(document, id, aliasIndex) })
 }
 
 // SpeakerColors is how many speaker colours there are: the seven hues of docs/design/colour-and-contrast.md#per-speaker-colours, --speaker-1 to --speaker-7.
 const SpeakerColors = 7
 
 // SetSpeakerColor stores a character's speaker colour, 1..SpeakerColors, which wins over the stable pick; nil or 0 puts it back to
-// automatic. A value outside that is refused before the sidecar starts; the sidecar refuses a locked entry and one that cannot speak.
+// automatic. A value outside that is refused before the file is read; a locked entry and one whose type cannot speak are refused too.
 func (s *Service) SetSpeakerColor(id string, index *int) error {
 	value := 0
 	if index != nil {
@@ -553,8 +548,7 @@ func (s *Service) SetSpeakerColor(id string, index *int) error {
 	if value < 0 || value > SpeakerColors {
 		return fmt.Errorf("a speaker colour is 1 to %d, or 0 for automatic", SpeakerColors)
 	}
-	_, err := s.Run("speaker-color", "--guide", s.guidePath(), "--entity-id", id, "--index", fmt.Sprint(value))
-	return err
+	return s.mutateInHost(func(document map[string]any) (bool, error) { return speakerColor(document, id, value) })
 }
 
 func (s *Service) Rescan(id string) error {
@@ -649,17 +643,20 @@ func (s *Service) Unmerge(undoID string) error {
 	_, err := s.Run("unmerge", "--guide", s.guidePath(), "--undo-id", undoID)
 	return err
 }
+
+// Delete removes an entry, and every other entry's relationship to it. A locked entry is refused.
 func (s *Service) Delete(id string) error {
-	_, err := s.Run("delete", "--guide", s.guidePath(), "--entity-id", id)
-	return err
+	return s.mutateInHost(func(document map[string]any) (bool, error) { return deleteEntity(document, id) })
 }
+
+// Relate adds a labelled relationship from one entry to another, once.
 func (s *Service) Relate(id, other, label string) error {
-	_, err := s.Run("relate", "--guide", s.guidePath(), "--entity-id", id, "--other-id", other, "--label", label)
-	return err
+	return s.mutateInHost(func(document map[string]any) (bool, error) { return relate(document, id, other, label) })
 }
+
+// Unrelate removes the relationship with exactly that other entry and label.
 func (s *Service) Unrelate(id, other, label string) error {
-	_, err := s.Run("unrelate", "--guide", s.guidePath(), "--entity-id", id, "--other-id", other, "--label", label)
-	return err
+	return s.mutateInHost(func(document map[string]any) (bool, error) { return unrelate(document, id, other, label) })
 }
 
 // VocabularyCandidates returns the names Proofing's "Suggest from manuscript"
