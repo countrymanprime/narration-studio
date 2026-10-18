@@ -29,7 +29,7 @@ export const PAGE_SETTINGS: readonly PageSetting[] = [
     id: 'ps.cleanup',
     label: 'Silence cleanup thresholds',
     page: 'master',
-    where: 'Diagnostics › Silence cleanup',
+    where: 'Diagnostics › Silence cleanup; Jump to or run › Open Silence cleanup options',
     panel: 'cleanup',
     why: 'Tuned while looking at a chapter’s findings.',
     syn: 'breath click pad gap',
