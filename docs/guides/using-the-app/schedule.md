@@ -25,7 +25,8 @@ date is today or past, no daily pace can reach it, so the pill says how late ins
 ## How it is worked out
 
 **How this is worked out** lists the recording, editing and proofing left, the pickups still open, and their sum, **Work left**.
-The numbers behind it are fixed, not measured from your sessions: finished audio is words ÷ 9,300 per hour, recording takes 3×
+The numbers behind it are fixed, not measured from your sessions, so the page labels **Your pace** and **At your
+pace, done** as estimates and says what they assume: finished audio is words ÷ 9,300 per hour, recording takes 3×
 the finished hours, editing 2.1× and proofing 0.94×, a pickup takes 0.06 hours (3.6 minutes), and your pace is 1.5 hours a day. **At your
 pace, done** is today plus the work left divided by that pace.
 
@@ -60,8 +61,8 @@ milestones, a name is at most 200 characters and a note 2,000; when a save is re
 ## The due date
 
 Set the date in the **Final delivery** row: type its parts or open the calendar. A whole, real date is saved as soon as it is written
-or picked; a date still being typed, or a year before 1000, is not saved, and leaving the field puts the saved date back. To clear the due date, empty the field and press Enter, and the page says **No
-due date set**. A due date in the plan that is not a real date (the file was edited by hand) is named in the header and treated as no
+or picked, and a screen reader hears the saved date and the verdict it gives ("Due date saved: Oct 10. Behind · done Oct 27, due Oct 10 · 9 days overdue."); a date still being typed, or a year before 1000, is not saved, and leaving the field puts the saved date back. To clear the due date, empty the field and press Enter, and the page says **No
+due date set**, and a screen reader hears **Due date cleared**. A due date in the plan that is not a real date (the file was edited by hand) is named in the header and treated as no
 due date.
 
 ![Schedule before a due date is set: no verdict, and the Final delivery milestone with no date](../../images/ui/schedule-no-due-date.webp)

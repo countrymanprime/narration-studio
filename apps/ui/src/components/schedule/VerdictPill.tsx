@@ -29,10 +29,22 @@ function detail(k: Calc, today: Date, due: Date): string {
  * days left set the tone and the projection can only make it worse. It says so in words only when there is a due date.
  */
 export function VerdictPill({ k, today, due }: { k: Calc; today: Date; due: Date | null }) {
-  if (k.finished) return <StatusBadge tone="success" icon={KIND.ok.glyph} label="Finished · every chapter delivered" />;
-  if (!due || !k.verdict) return <StatusBadge tone="neutral" label="No due date set" />;
+  if (k.finished) return <StatusBadge tone="success" icon={KIND.ok.glyph} label={verdictLabel(k, today, due)} />;
+  if (!due || !k.verdict) return <StatusBadge tone="neutral" label={verdictLabel(k, today, due)} />;
+  const kind = verdictKind(k, k.verdict);
+  return <StatusBadge tone={statusTone(KIND[kind].status)} icon={KIND[kind].glyph} label={verdictLabel(k, today, due)} />;
+}
+
+/** The days set the tone and the projection can only make it worse. */
+function verdictKind(k: Calc, verdict: Verdict): Kind {
   const byDays = TONE_KIND[deadlineTone(k)];
-  const byPace = VERDICT_KIND[k.verdict];
-  const kind = RANK[byDays] > RANK[byPace] ? byDays : byPace;
-  return <StatusBadge tone={statusTone(KIND[kind].status)} icon={KIND[kind].glyph} label={`${statusLabel(KIND[kind].status)} · ${detail(k, today, due)}`} />;
+  const byPace = VERDICT_KIND[verdict];
+  return RANK[byDays] > RANK[byPace] ? byDays : byPace;
+}
+
+/** The pill's words, which the page also says to a screen reader when the due date changes: "Behind · done Oct 27, due Oct 10 · 9 days overdue". */
+export function verdictLabel(k: Calc, today: Date, due: Date | null): string {
+  if (k.finished) return 'Finished · every chapter delivered';
+  if (!due || !k.verdict) return 'No due date set';
+  return `${statusLabel(KIND[verdictKind(k, k.verdict)].status)} · ${detail(k, today, due)}`;
 }

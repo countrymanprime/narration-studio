@@ -25,7 +25,7 @@ export function WorkedOut({ k }: { k: Calc }) {
           <dd className="font-mono">{hm(k.remain)}</dd>
         </div>
         <div className="flex justify-between gap-3">
-          <dt>Your pace</dt>
+          <dt>Your pace (estimate)</dt>
           <dd className="font-mono">{PACE.toFixed(1)} h/day</dd>
         </div>
         <div className="flex justify-between gap-3">
@@ -33,12 +33,13 @@ export function WorkedOut({ k }: { k: Calc }) {
           <dd className="font-mono">{Number.isFinite(k.reqPace) ? `${k.reqPace.toFixed(1)} h/day` : '—'}</dd>
         </div>
         <div className="flex justify-between gap-3">
-          <dt>At your pace, done</dt>
+          <dt>At your pace, done (estimate)</dt>
           <dd className="font-semibold">{fmtD(k.finish)}</dd>
         </div>
       </dl>
       <p className="mt-3 text-[0.8125rem] text-[var(--text-muted)]">
-        Finished audio is words ÷ {num(WPH)}. Recording takes {RATIO.rec}×, editing {RATIO.edit}× and proofing {RATIO.proof}× the finished hours.
+        Finished audio is words ÷ {num(WPH)}. Recording takes {RATIO.rec}×, editing {RATIO.edit}× and proofing {RATIO.proof}× the finished hours. Your pace is
+        an estimate, not measured from your sessions: it assumes {PACE.toFixed(1)} h of work a day.
       </p>
     </Panel>
   );
