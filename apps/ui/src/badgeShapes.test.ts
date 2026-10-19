@@ -22,7 +22,6 @@ const PENDING: Record<string, Partial<Record<Shape, number>> & { owner: string }
   // The Booth's REC pill and its dot: drawn with `--rec-fill`/`--rec-text`, not a `StatusTone`, since no other page ever
   // reuses this exact maroon.
   // The Proof notes header's sources line and the legend's dots.
-  // The Booth side panel's reference category chip and speaker alias chip (SN-O63): both are text-only, so they migrate onto `Badge`.
   // The bookmark ribbon's note dot: a 6 px dot absolutely placed on the ribbon icon, which `Dot` (8 px, inline) does not size or place.
   // The take chip's state dot and the check card's count chip (SN-E5, SN-Q66) landed with no row; both should migrate onto `Dot` and `Badge`.
   'src/components/editing/takes/TakeChip.tsx': { dot: 1, owner: 'state dot, #1119' },
@@ -30,8 +29,6 @@ const PENDING: Record<string, Partial<Record<Shape, number>> & { owner: string }
   'src/components/script/bookmarks/ui/BookmarkRibbon.tsx': { dot: 1, owner: 'note dot on the ribbon, #1119' },
   // The Story Bible's kind chip (SN-B94, the mock's `.chip`): a 28 px pill with the kind's swatch, which `Pill`'s uppercase label-only look does not draw.
   'src/components/storybible/FilterChip.tsx': { chip: 1, owner: 'kind chip, #1119' },
-  'src/components/booth/side/Reference.tsx': { chip: 1, owner: 'category chip, #1119' },
-  'src/components/booth/side/VoicesNearby.tsx': { chip: 1, owner: 'alias chip, #1119' },
   // The script document's inline insertion marker (SN-E3): a mono pill drawn inside running text, which `Badge` has no inline form for.
   'src/components/editing/script/Word.tsx': { chip: 1, owner: 'inline marker, #1119' },
   // The FX marker after the last word an effect is on (SN-E64): a mono pill that is the trigger of its menu and sits inside running text, so like `Word.tsx` it has no `Badge` form.

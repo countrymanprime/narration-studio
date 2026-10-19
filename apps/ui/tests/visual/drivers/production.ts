@@ -220,6 +220,19 @@ export const productionDrivers: Record<string, Driver> = {
     await dialog.getByText('Check options').click();
     await dialog.getByRole('combobox', { name: 'Chapters at once' }).waitFor();
   },
+  // The rules the check judges by, opened from the jump menu on Production: the last of them, the background switch, is in the picture.
+  'recording-check-rules': async (page) => {
+    await openProduction(page);
+    await page.keyboard.press('Control+KeyK');
+    await page.getByRole('combobox', { name: 'Jump menu' }).fill('Open Recording check rules');
+    await page
+      .getByRole('option', { name: /^Open Recording check rules/ })
+      .first()
+      .click();
+    const background = page.getByRole('switch', { name: 'Check changed chapters in the background' });
+    await background.waitFor();
+    await background.evaluate((element) => element.scrollIntoView({ block: 'end' }));
+  },
   'recording-check-pickups': async (page) => {
     const dialog = await openRecordingCheck(page, 'Chapter 4', 'mockCoverage=pickups');
     await dialog.getByText('Pickups (2)').waitFor();

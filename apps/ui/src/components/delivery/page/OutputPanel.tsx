@@ -5,6 +5,7 @@ import { IconButton } from '../../primitives/IconButton';
 import { Panel } from '../../primitives/Panel';
 import { ProgressBar } from '../../primitives/ProgressBar';
 import { SectionLabel } from '../../primitives/SectionLabel';
+import { statusTone } from '../../../kinds/statusTone';
 import { StatusBadge } from '../../primitives/StatusBadge';
 import type { DeliveryBuild } from './useDeliveryBuild';
 import { askedText, checkedText, heardText } from './useHostRead';
@@ -124,7 +125,7 @@ export function OutputPanel({
         {built && (
           <div className={`flex flex-col gap-1.5 ${ARRIVE_CLASSES}`}>
             <div className="flex flex-wrap items-center gap-2 text-sm">
-              <StatusBadge tone="success" label="Built" />
+              <StatusBadge tone={statusTone('done')} label="Built" />
               <b>{built.files.length} files</b>
               <span dir="auto" style={MUTED}>
                 in {built.outputDir}
@@ -143,7 +144,7 @@ export function OutputPanel({
                   <span dir="auto" title={file.name} className="min-w-0 truncate">
                     {file.name}
                   </span>
-                  <StatusBadge tone="success" label="Written" />
+                  <StatusBadge tone={statusTone('done')} label="Written" />
                 </li>
               ))}
             </ul>

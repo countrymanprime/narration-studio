@@ -94,7 +94,8 @@ mark (✓) for a stage done, a half circle for the stage under way and a dash fo
 circle while in progress and an empty circle when not started. **Pickups** counts the chapter's
 open lines once it is recorded to the end (0 when none are open). **Master** and **QC** come from
 the files measured on [Master & QC](master-and-qc.md): mastered, and PASS or FAIL. A cell with nothing to
-read says "Not measured yet". A cell opens its stage for the chapter: Script, the Booth, the editing
+read says "Not measured yet". A cell's colour is the colour of its status everywhere in the app: green for done or passing, blue for under way,
+amber for open pickups, red for a failed check, grey for not started. A cell opens its stage for the chapter: Script, the Booth, the editing
 check, Proof, Pickups or Master & QC. The table scrolls sideways in a narrow window.
 
 The chip on the chapter's current-stage cell is its [readiness](#stage-readiness).
@@ -165,7 +166,7 @@ the work dialog. The app tells you when
 it ends, wherever you are. If the Whisper model is not installed yet, the app asks before
 downloading it, as a chapter's Proof view does. A changed chapter can also be re-checked on its
 own, in the background, once REAPER has been quiet for a few minutes and the app is not otherwise
-busy (Settings' **Check changed chapters in the background**); pressing **Check recording**
+busy (**Check changed chapters in the background**, in Settings, or for this project in Production's **Open Recording check rules**); pressing **Check recording**
 yourself always pre-empts it.
 
 A chapter's recording check panel has the same choices under **Check options**, closed until you open it, and its **Check recording** button runs exactly
@@ -174,14 +175,25 @@ button waits for a chapter being checked elsewhere, and says so, and above 1 it 
 
 ![Production - a chapter's recording check with Check options open](../../images/ui/production-recording-check-options.webp)
 
+On Production, **Jump to or run** (Ctrl+K) has **Open Recording check rules**: a dialog with what the check judges a chapter by, for this project: **Share of each paragraph that must be read**, **Longest run of missing words allowed**, **Longest misread still counted as read**, **Shortest match that counts as read** and **Check changed chapters in the background**. They are proposed values, chosen on synthetic recordings and not yet calibrated on real narration. A change is saved at once and the last check is read again; the first two only change how a stored check is judged, but the next two change which words count, so earlier checks read as out of date and those chapters need checking again. **Reset** hands a rule back to the computer-wide value or the default. Settings under **Set on a page** has the same five rules with a **Global** / **This project** switch.
+
+![Production - the Recording check rules dialog opened from Jump to or run](../../images/ui/production-recording-check-rules.webp)
+
 **Check recordings** (the card's icon) lets you set up the run before it starts. **Speech model** is the
 first pass. **Look again with a larger model** adds a second pass: the **Larger model** transcribes again only
 the passages that are missing and the words Whisper scored under the **Also look again at words scored under**
-share. For a long chapter, **Chunk length** cuts each recording into pieces, **Parallel processes** is how
-many Whisper copies work on the pieces at once (each holds the whole model in memory), and **Crossover** is how
-much neighbouring pieces overlap, so a word on an edge is whole in one of them. A line under the choices says
-what will run, in words. **Chapters at once** checks that many of the ticked chapters together, each with its own share of the processors, and starts the next as each ends. The boxes start at the values in Settings, and the check runs exactly what the dialog
+share. In the **Check recordings** dialog, three sliders set how a long chapter is read: **Chunk length** (10 to 120 s, in steps
+of 5) cuts each recording into pieces, **Overlap between chunks** (0 to 10 s) is how much neighbouring pieces overlap, so a
+word on an edge is whole in one of them, and **Parallel workers** (1 to 8) is how many Whisper copies work on the pieces at
+once (each holds the whole model in memory). **Transcribe each recording whole** turns the chunks off and leaves one worker, and **Let the model choose
+the workers** hands the count back to the computer. A setting the sliders do not reach, such as a 5 min chunk from Settings, shows its real figure
+and is kept until you move the slider. A chapter's own **Check options** keeps the same choices as lists (**Chunk length**, **Parallel processes**,
+**Crossover**). A line under the choices says what will run, in words. **Chapters at once** checks that many of the ticked chapters together, each with its own share of the
+processors, and starts the next as each ends. The boxes start at the values in Settings, and the check runs exactly what the dialog
 shows, so the same chapter is checked the same way wherever you start it, including in the background.
+
+The dialog scrolls when the window is short, but **Audio to check** (the recorded time of the ticked chapters, or **Not measured**) and the buttons stay in view
+under it. It gives no estimate of how long the check will take. The line by the buttons says what a check adds: skipped, changed or unclear lines become pickups.
 
 ![Proof - the Check recordings dialog before a run, with the options shared with every page](../../images/ui/proof-check-recordings-dialog.webp)
 

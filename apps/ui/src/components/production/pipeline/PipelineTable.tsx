@@ -1,6 +1,7 @@
 import type { StageChapterRecommendation } from '../../../types';
 import type { ChapterStatus } from '../../../api/contracts/manuscript';
-import { badgeClass, badgeStyle, toneColors, type StatusTone } from '../../primitives/StatusBadge';
+import { statusTone, type StatusId } from '../../../kinds/statusTone';
+import { badgeClass, badgeStyle, toneColors } from '../../primitives/StatusBadge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../primitives/Table';
 import { TooltipTarget } from '../../primitives/Tooltip';
 import type { Notify } from '../../primitives/Toast';
@@ -19,7 +20,11 @@ import {
 } from './pipelineRows';
 import { CHANGE_HIGHLIGHT_CLASSES } from '../../primitives/changeHighlight';
 
-const KIND_TONE: Record<CellKind, StatusTone> = { done: 'success', progress: 'progress', open: 'danger', none: 'neutral' };
+/** What a cell says, as a registry status: open pickups are a thing still to do (D10); the other open cell is a failed delivery check. */
+const cellStatus = (cell: PipelineCell): StatusId => {
+  const byKind: Record<Exclude<CellKind, 'open'>, StatusId> = { done: 'done', progress: 'in_progress', none: 'not_started' };
+  return cell.kind === 'open' ? (cell.column === 'pickups' ? 'open_pickup' : 'fail') : byKind[cell.kind];
+};
 /** Every stage column is the same width; Fin. is narrower (the mock: 80 px and 64 px). */
 const STAGE_WIDTH = '5rem';
 const FIN_WIDTH = '4rem';
@@ -38,7 +43,7 @@ const notStartedMark = <span data-not-started="" aria-hidden="true" className="i
 const textOf = (cell: PipelineCell) => (cell.text === UNDER_WAY ? underWayMark : cell.text === NOT_STARTED_PREP ? notStartedMark : cell.text);
 
 function StageCell({ row, cell, onGo }: { row: PipelineRow; cell: PipelineCell; onGo: (target: GoTarget, chapterId: string) => void }) {
-  const colors = toneColors(KIND_TONE[cell.kind]);
+  const colors = toneColors(statusTone(cellStatus(cell)));
   // The mock fills an empty cell (`.cell`, --raised) rather than outlining it.
   const look = 'soft';
   // The mock's `.cell` is `width: 100%` of its column; the shape itself is only a minimum.

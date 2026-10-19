@@ -219,7 +219,10 @@ describe('a-kind-is-drawn-in-its-type-colour', () => {
     { name: 'Place', colour: 'blue', speaks: false },
   ];
   it('names the swatch of the colour the narrator set', () => expect(kindSwatch(types, 'Character')).toBe('event'));
-  it('draws the system states in the review hue', () => expect(kindSwatch(types, 'Needs Review')).toBe('review'));
+  it('draws the system states amber, as a thing still to review (D7)', () => {
+    expect(kindSwatch(types, 'Needs Review')).toBe('warn');
+    expect(kindSwatch(types, 'Draft')).toBe('warn');
+  });
   it('draws a name no type has in the faint hue', () => expect(kindSwatch(types, 'Mystery')).toBe('non-text'));
   it('orders the type sort by the kinds it is given', () => {
     const rows = [entry('p', 'A', { category: 'Place' }), entry('c', 'B', { category: 'Character' })];

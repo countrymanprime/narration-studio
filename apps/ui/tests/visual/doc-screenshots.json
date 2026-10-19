@@ -133,6 +133,13 @@
     "caption": "Production - a chapter's recording check with Check options open"
   },
   {
+    "page": "production",
+    "state": "recording-check-rules",
+    "viewport": "desktop",
+    "docName": "production-recording-check-rules",
+    "caption": "Production - the Recording check rules dialog opened from Jump to or run"
+  },
+  {
     "page": "proof",
     "state": "check-recordings-dialog",
     "viewport": "desktop",

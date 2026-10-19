@@ -211,7 +211,7 @@ export function BoothText({
         if (!(event.target as Element).closest('[data-unit],[data-note],button')) onBackground?.();
       }}
       data-booth-text
-      className="relative h-full overflow-hidden px-7"
+      className="relative h-full overflow-hidden px-7 before:pointer-events-none before:absolute before:inset-x-0 before:top-0 before:z-[2] before:h-[90px] before:bg-gradient-to-b before:from-[var(--bg)] before:to-transparent before:content-[''] after:pointer-events-none after:absolute after:inset-x-0 after:bottom-0 after:z-[2] after:h-[90px] after:bg-gradient-to-t after:from-[var(--bg)] after:to-transparent after:content-['']"
     >
       <div
         ref={text}

@@ -108,7 +108,7 @@ Line counts are the functions each command uses, counted from the module's synta
 | `type-add`, `type-rename`, `type-colour`, `type-speaks`, `type-remove` | Pure | the file | 82 | `test_bible_types.py` (12 tests) | S; the host already checks names and colours (`types.go`) |
 | `pronounce-user`, `pronunciation-use-alternate` | Pure | the file (`set_pronunciation`, no lookup) | 76 | `test_pronounce.py`, `test_pronunciation_depth.py` | S |
 | `merge`, `unmerge`, `split` | Pure | the file, `merge_undo` fingerprints, `entity_id` | 254 | `test_merge_undo.py` (12 tests), `test_manuscript_guide.py` | M; see [Risks](#risks-of-b) |
-| `rescan`, `status` | Pure | the manuscript (`find_occurrences`, `excerpt`, the SHA-256 of the file) | 73 | `test_manuscript_guide.py` | M: the excerpts must match Python's to the character |
+| `rescan`, `status` | Pure | the manuscript (`find_occurrences`, `excerpt`, the SHA-256 of the file) | 73 | `test_manuscript_guide.py` | M: the excerpts must match Python's to the character. Done 2026-10-19, see [What to move first](#what-to-move-first) |
 
 ## The other sidecars and narration_common
 
@@ -188,7 +188,7 @@ These would only be worth porting if the sidecars became "audio in, words out".
 
 ## Risks of B
 
-- **Two writers of one schema** while `build`, `create`, alias edits, `pronounce` and `rescan` stay in Python.
+- **Two writers of one schema** while `build`, `create`, alias edits and `pronounce` stay in Python.
   - Every Go edit goes through one `guide.Service` lock (`editMu`). `Service.Run` does not take it, because a Save would then wait for a whole build; a sidecar write is seen by comparing bytes on the next edit (see [the concurrent build note](../architecture/story-bible-concurrent-build.md)).
   - Parity is pinned by fixtures, not by a Python run in the Go job. The Python tests write before-and-after pairs for each command into `tests/fixtures/contracts/` (`UPDATE_CONTRACTS=1`, the `wire-contract-change` pattern), and a Go test replays each pair and compares the JSON.
   - Python stops writing the file only if `build` returns its entities and the host does the rebuild merge (`merge_locked`, about 140 lines of the subtlest logic in the module, cost L). That is not proposed now.
@@ -220,11 +220,15 @@ On 2026-10-18 the owner approved B and asked for step 1 (#1923).
 4. **The five `type-*` commands.**
 5. **`pronounce-user` and `pronunciation-use-alternate`.**
 6. **`merge`, `unmerge` and `split` together**, with the fingerprint encoder and its golden. Done on 2026-10-18: `guide/merge.go` and `guide/pythonjson.go`, pinned by `testdata/merge-parity.json` and `testdata/merge-fingerprint-golden.json` (written by `test_merge_parity.py`). Python's `split` has no binding yet, so `Service.Split` has no caller in the app.
-7. **Later:**
-   - `rescan` and `status`, once a Go `find_occurrences` matches Python's excerpts;
+7. **`rescan` and `status`.** Done on 2026-10-19: `guide/rescan.go` (`Service.Rescan`, `Service.Status`) and `guide/occurrences.go` (`find_occurrences`, `excerpt`), through `mutateInHost` like step 6. The search is a regular expression in Python, `\b` + `re.escape(name.strip())` + `\b` under `re.IGNORECASE`, so it is not a string search: what is a word character, which letters are one letter and what `strip` removes are Python's, and Python indexes by code point where Go indexes by byte.
+   - **Python's tables, not Go's.** `guide/python-unicode.json` holds the Unicode data Python 3.12 searches by (`\w`, `str.isspace`, the simple lower-casing `re` uses, which characters `re` counts as cased, and its extra case pairs such as `i` and dotless `ı`). Go's `unicode` package does not give the same answers: `re` calls a character cased when its upper case is a longer string (sharp s, ligatures such as `ﬁ`), so `ß` matches `ẞ` and an uncased literal would not, and a newer Go carries a newer Unicode than Python 3.12's 15.0. The host reads the table so that neither can change which text matches. `test_rescan_parity.py` writes it; Python's Unicode version is in the file.
+   - **Pinned by** `testdata/occurrence-parity.json` (about 110 searches over awkward text, and a sweep of every character `re` folds against every other) and `testdata/rescan-parity.json` (rescans and statuses over `testdata/rescan-manuscript.json`, a manuscript in the importer's shape with every content kind). The cases are replayed twice, as a chain on the host's writes and step by step on the sidecar's file.
+   - **No Python run in the Go job**, as in step 6. The sidecar stays the fallback and the recorder.
+   - **Where Go differs on purpose:** it refuses where the sidecar crashes (a paragraph with no `chapterTitle`; a Story Bible whose `source` is not an object is `STALE`; JSON that Python reads and Go does not, such as `NaN`; a lone surrogate escape), and a `status` with no manuscript is an error with the sidecar's `Import a manuscript first.` words instead of a Python `FileNotFoundError`. `Service.Status` has no caller in the app yet, as `Service.Split` had none.
+8. **Later:**
    - `create` and alias edits, with Go writing and the sidecar asked only for the pronunciation. This needs a stateless command beside `candidate` that returns the whole value of `pronunciation()`.
 
-`build`, `suggest`, `pronounce`, `candidate`, `render-audio`, `self-check` and `capabilities` stay in Python.
+`build`, `suggest`, `pronounce`, `candidate`, `render-audio`, `self-check` and `capabilities` stay in Python, and `create` and alias edits until step 8.
 
 ## Doc changes
 

@@ -1,6 +1,7 @@
 import { Button } from '../../primitives/Button';
 import { IconButton } from '../../primitives/IconButton';
 import { Panel } from '../../primitives/Panel';
+import { statusTone } from '../../../kinds/statusTone';
 import { StatusBadge } from '../../primitives/StatusBadge';
 import type { FileActions } from './FileActions';
 import type { FileRow } from './rows';
@@ -50,7 +51,7 @@ export function FileChecks({ row, chapterLabel, actions }: { row: FileRow | unde
         <ul className="flex flex-col gap-2 text-sm">
           {row.checks.map((check) => (
             <li key={check.ruleId} className="flex flex-wrap items-center gap-x-3 gap-y-1">
-              <StatusBadge tone={check.passed ? 'success' : 'danger'} label={check.passed ? 'Pass' : 'Fail'} icon={check.passed ? undefined : '✕'} />
+              <StatusBadge tone={statusTone(check.passed ? 'pass' : 'fail')} label={check.passed ? 'Pass' : 'Fail'} icon={check.passed ? undefined : '✕'} />
               <span className="flex-1">{check.label}</span>
               <span className="font-['IBM_Plex_Mono',ui-monospace,monospace]">{check.value}</span>
               <span className="min-w-[9.5rem] text-right text-[var(--text-muted)]">limit: {check.limit}</span>

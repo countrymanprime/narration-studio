@@ -1,4 +1,5 @@
 import { apiErrorMessage, describeApiError } from '../../api/errorMessage';
+import { statusLabel, statusTone } from '../../kinds/statusTone';
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { useInRouterContext, useNavigate } from 'react-router-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
@@ -18,7 +19,7 @@ import {
 } from '@fortawesome/free-solid-svg-icons';
 import type { GuideEntity, GuidePreview, GuideType, TtsInstallJob } from '../../types';
 import { canSpeak } from '../../storyBibleTypes';
-import { categoryCssName, categoryLabel, CREATABLE_CATEGORIES, findAliasMatches } from '../../state';
+import { categoryLabel, CREATABLE_CATEGORIES, findAliasMatches } from '../../state';
 import { useApi } from '../../api/ApiContext';
 import { usePort } from '../../ports/usePort';
 import { useAssetInstall } from '../../hooks/useAssetInstall';
@@ -26,7 +27,9 @@ import { overlay } from '../../overlay/overlayService';
 import { usePendingAction } from '../../hooks/usePendingAction';
 import { AssetFacts } from '../assets/AssetFacts';
 import { AssetInstallPrompt } from '../assets/AssetInstallPrompt';
-import { CAT_DOT_BG, EntitySummary, entityBadgeColors } from '../manuscript/EntitySummary';
+import { EntitySummary } from '../manuscript/EntitySummary';
+import { entryColour } from '../../kinds/entityColour';
+import { kindChipColors } from '../../kinds/kindMap';
 import { Icon } from '../primitives/Icon';
 import { Dot, StatusBadge, badgeClass, badgeStyle } from '../primitives/StatusBadge';
 import { SlideOver } from '../primitives/SlideOver';
@@ -223,6 +226,8 @@ export function GuideDetail({
   const api = useApi();
   const { types, failed: typesFailed, checkAgain: checkTypesAgain } = useGuideTypes(entities);
   const speaks = entity ? canSpeak(types, entity.category) : false;
+  /** The dot beside a category: its type's colour (a Needs Review or Draft entry is amber), the same as its chip and its list swatch. */
+  const dotOf = (category: string): string => `var(${entryColour(types, category).line})`;
   // The Find button navigates, so it needs the router every page has; a detail drawn outside one (a story, a unit test) has none.
   const inRouter = useInRouterContext();
   const [draft, setDraft] = useState<Draft>({ name: '', description: '', personality: '', context: '', properties: [], talk: NO_TALK });
@@ -636,17 +641,17 @@ export function GuideDetail({
     <Panel
       title={entity.canonical_name || 'New entity'}
       titleStyle="entry"
-      leading={<Dot color={CAT_DOT_BG[categoryCssName(entity.category)]} />}
+      leading={<Dot color={dotOf(entity.category)} />}
       subtitle={
         <div className="flex items-center gap-2" style={{ position: 'relative' }}>
           <Menu
             triggerClassName={badgeClass('pill')}
-            triggerStyle={badgeStyle(entityBadgeColors(entity.category))}
+            triggerStyle={badgeStyle(kindChipColors('entity', entryColour(types, entity.category)))}
             disabled={locked || !(editing || isNewDraft) || mutation.isBusy}
             items={(types.length > 0 ? types.map((type) => type.name) : CREATABLE_CATEGORIES).map((label) => ({
               key: label,
               label,
-              leading: <Dot color={CAT_DOT_BG[label]} />,
+              leading: <Dot color={dotOf(label)} />,
               onSelect: () => {
                 if (isNewDraft) void createNewEntity(label);
                 else void save('category', { category: label }, `Category changed to ${label}.`);
@@ -657,7 +662,7 @@ export function GuideDetail({
             {/* The mock's read-only kind is a plain pill: the chevron promises a menu only while the kind can change. */}
             {!locked && (editing || isNewDraft) && <FontAwesomeIcon icon={faChevronDown} />}
           </Menu>
-          {(entryFlagged(entity) || toVerify > 0) && <StatusBadge tone="warning" label="Needs review" />}
+          {(entryFlagged(entity) || toVerify > 0) && <StatusBadge tone={statusTone('needs_review')} label={statusLabel('needs_review')} />}
         </div>
       }
       actions={
@@ -814,7 +819,7 @@ export function GuideDetail({
                       reload={() => reloadFor(entity.id)}
                       notify={notify}
                     />
-                    {flagged && <StatusBadge tone="warning" label="Needs review" />}
+                    {flagged && <StatusBadge tone={statusTone('needs_review')} label={statusLabel('needs_review')} />}
                     {/* A note from before pronunciation statuses were removed: kept readable, no longer edited. */}
                     {pronunciation.note && <p className="m-0 text-xs text-[var(--text-muted)]">Note: {pronunciation.note}</p>}
                   </div>
@@ -929,7 +934,7 @@ export function GuideDetail({
                       id: match.id,
                       label: match.canonical_name,
                       description: categoryLabel(match.category),
-                      leading: <Dot color={CAT_DOT_BG[categoryCssName(match.category)]} />,
+                      leading: <Dot color={dotOf(match.category)} />,
                     }))}
                     activeIndex={aliasActiveIndex}
                     onPick={setAliasSelectedId}
@@ -1152,7 +1157,7 @@ export function GuideDetail({
                             id: match.id,
                             label: match.canonical_name,
                             description: categoryLabel(match.category),
-                            leading: <Dot color={CAT_DOT_BG[categoryCssName(match.category)]} />,
+                            leading: <Dot color={dotOf(match.category)} />,
                           }))}
                           activeIndex={relationActiveIndex}
                           onPick={pickRelated}
@@ -1224,7 +1229,7 @@ export function GuideDetail({
         onClose={() => setReviewOverlayId(undefined)}
       >
         {reviewOverlayEntity && (
-          <EntitySummary entity={reviewOverlayEntity} speaks={canSpeak(types, reviewOverlayEntity.category)} jumpToLine={goToManuscript} />
+          <EntitySummary entity={reviewOverlayEntity} types={types} speaks={canSpeak(types, reviewOverlayEntity.category)} jumpToLine={goToManuscript} />
         )}
       </SlideOver>
     </Panel>

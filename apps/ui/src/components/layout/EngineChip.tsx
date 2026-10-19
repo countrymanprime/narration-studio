@@ -1,6 +1,8 @@
 import type { DawKind } from '../../api/contracts/daw';
 import { dawShortName } from '../../studio/StudioProvider';
-import { HeaderChip } from '../primitives/HeaderChip';
+import { statusTone, type StatusId } from '../../kinds/statusTone';
+import { HeaderChip, type HeaderChipTone } from '../primitives/HeaderChip';
+import { toneColors } from '../primitives/StatusBadge';
 import { TooltipTarget } from '../primitives/Tooltip';
 
 // The header's recording-engine chip (the Studio Next mock's top bar): the name of the recorder the project is connected to, with a dot
@@ -54,8 +56,9 @@ export function EngineChip({
         : followingChapter
           ? `Linked · following ${followingChapter}`
           : 'Linked';
-  const tone = !dawFileLinked ? 'neutral' : mismatch || !dawReachable ? 'warning' : 'success';
-  const dot = tone === 'neutral' ? 'var(--non-text)' : tone === 'warning' ? 'var(--warn)' : 'var(--ok)';
+  const status: StatusId = !dawFileLinked ? 'not_linked' : mismatch ? 'wrong_project' : !dawReachable ? 'not_running' : 'linked';
+  const tone = statusTone(status) as HeaderChipTone;
+  const dot = tone === 'neutral' ? 'var(--non-text)' : toneColors(tone).line;
   return (
     <TooltipTarget text={tooltip}>
       <HeaderChip
