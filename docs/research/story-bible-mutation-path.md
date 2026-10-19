@@ -219,7 +219,7 @@ On 2026-10-18 the owner approved B and asked for step 1 (#1923).
 3. **`mark-reviewed`, `review-flag`, `speaker-color`, `relate`, `unrelate`, `delete` and `correct-cue`.**
 4. **The five `type-*` commands.**
 5. **`pronounce-user` and `pronunciation-use-alternate`.**
-6. **`merge`, `unmerge` and `split` together**, with the fingerprint encoder and its golden.
+6. **`merge`, `unmerge` and `split` together**, with the fingerprint encoder and its golden. Done on 2026-10-18: `guide/merge.go` and `guide/pythonjson.go`, pinned by `testdata/merge-parity.json` and `testdata/merge-fingerprint-golden.json` (written by `test_merge_parity.py`). Python's `split` has no binding yet, so `Service.Split` has no caller in the app.
 7. **Later:**
    - `rescan` and `status`, once a Go `find_occurrences` matches Python's excerpts;
    - `create` and alias edits, with Go writing and the sidecar asked only for the pronunciation. This needs a stateless command beside `candidate` that returns the whole value of `pronunciation()`.
