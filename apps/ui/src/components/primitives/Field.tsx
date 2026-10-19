@@ -24,6 +24,8 @@ export function Field({
   hint,
   error,
   secret = false,
+  labelHidden = false,
+  compact = false,
 }: {
   label: string;
   value: string;
@@ -42,14 +44,23 @@ export function Field({
   // A value that must not be shown or kept by the browser (the narrator's own API key): a masked input with the browser's
   // autofill, spell check and autocorrect off. Never with `textarea`.
   secret?: boolean;
+  // The mock's Inspector textareas have a placeholder and no visible label: the label stays for a screen reader (and the control
+  // loses the gap the label would have taken).
+  labelHidden?: boolean;
+  // A 56 px textarea instead of the 80 px one.
+  compact?: boolean;
 }) {
   return (
-    <BaseField.Root invalid={Boolean(error)} disabled={disabled} className="text-[0.88rem] font-medium text-[var(--text-muted)] first:mt-3">
-      <BaseField.Label className={FIELD_LABEL_CLASSES}>{label}</BaseField.Label>
+    <BaseField.Root
+      invalid={Boolean(error)}
+      disabled={disabled}
+      className={`text-[0.88rem] font-medium text-[var(--text-muted)] ${labelHidden ? '' : 'first:mt-3'}`}
+    >
+      <BaseField.Label className={labelHidden ? 'sr-only' : FIELD_LABEL_CLASSES}>{label}</BaseField.Label>
       <BaseField.Control
         render={
           textarea ? (
-            <textarea className={`min-h-20 ${CONTROL_CLASSES}`} />
+            <textarea className={`${compact ? 'min-h-14' : 'min-h-20'} ${labelHidden ? CONTROL_CLASSES.replace('mt-2', 'mt-0') : CONTROL_CLASSES}`} />
           ) : secret ? (
             <input
               type="password"
