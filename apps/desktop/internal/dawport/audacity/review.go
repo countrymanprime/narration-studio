@@ -334,7 +334,7 @@ func orZero(s string) string {
 	return s
 }
 
-// ErrFindingGone: the finding is not in any comparison this session remembers, or its track is not in the project.
+// ErrFindingGone means the finding is not in any comparison this session remembers, or its track is not in the project.
 var ErrFindingGone = audacitybridge.Sentence("That finding is no longer available: select the chapter's audio track and compare again.")
 
 // NavigateToFinding selects the compared track and puts the cursor at the finding.
