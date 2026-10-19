@@ -6,7 +6,7 @@ import { existsSync, readFileSync, statSync } from 'node:fs';
 import { join, normalize, resolve, sep } from 'node:path';
 import { contentType } from './siteFiles.mjs';
 
-export function startServer({ dir, base = '/', port = 0 }) {
+function startServer({ dir, base = '/', port = 0 }) {
   const root = resolve(dir);
   const prefix = base.endsWith('/') ? base : `${base}/`;
   const server = createServer((request, response) => {

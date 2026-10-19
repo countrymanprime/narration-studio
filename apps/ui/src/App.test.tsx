@@ -1798,19 +1798,19 @@ describe('App page change signal', () => {
   it('titles the document with the page for rail clicks, the jump menu and Back/Forward', async () => {
     renderApp();
     await screen.findByRole('heading', { level: 1, name: 'Production' });
-    expect(document.title).toBe('Production · Narration Studio');
+    await waitFor(() => expect(document.title).toBe('Production · Narration Studio'));
     fireEvent.click(screen.getAllByRole('button', { name: 'Script' })[0]);
     await screen.findByRole('heading', { name: 'Script' });
-    expect(document.title).toBe('Script · Narration Studio');
+    await waitFor(() => expect(document.title).toBe('Script · Narration Studio'));
     await waitFor(() => expect(focusIsInMain()).toBe(true));
 
     fireEvent.keyDown(document, { key: 'ArrowLeft', code: 'ArrowLeft', altKey: true });
     await screen.findByRole('heading', { level: 1, name: 'Production' });
-    expect(document.title).toBe('Production · Narration Studio');
+    await waitFor(() => expect(document.title).toBe('Production · Narration Studio'));
     await waitFor(() => expect(focusIsInMain()).toBe(true));
     fireEvent.keyDown(document, { key: 'ArrowRight', code: 'ArrowRight', altKey: true });
     await screen.findByRole('heading', { name: 'Script' });
-    expect(document.title).toBe('Script · Narration Studio');
+    await waitFor(() => expect(document.title).toBe('Script · Narration Studio'));
   });
 
   it('leaves focus in the page after the jump menu picks one', async () => {

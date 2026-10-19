@@ -4,7 +4,7 @@
 import { readdirSync, readFileSync, statSync } from 'node:fs';
 import { extname, join, relative } from 'node:path';
 
-export const CONTENT_TYPES = {
+const CONTENT_TYPES = {
   '.html': 'text/html; charset=utf-8',
   '.js': 'text/javascript; charset=utf-8',
   '.mjs': 'text/javascript; charset=utf-8',
@@ -23,7 +23,7 @@ export const CONTENT_TYPES = {
 
 export const contentType = (file) => CONTENT_TYPES[extname(file).toLowerCase()] ?? 'application/octet-stream';
 
-export function walk(dir) {
+function walk(dir) {
   const files = [];
   for (const name of readdirSync(dir)) {
     const path = join(dir, name);
