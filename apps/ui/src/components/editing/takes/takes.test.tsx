@@ -97,7 +97,7 @@ const mount = (passage: LinePassage = measuredPassage(), setup: DawSetupId = 're
     </ApiProvider>,
   );
 };
-const chip = () => screen.getByRole('button', { name: /takes/ });
+const chip = () => screen.getByRole('button', { name: /\d takes?/ });
 const flush = () => act(async () => {});
 
 beforeEach(() => {
@@ -119,9 +119,32 @@ describe('chip-under-a-line-with-more-than-one-take', () => {
     expect(chip().getAttribute('aria-expanded')).toBe('true');
     expect(document.querySelectorAll('[data-takes] [data-take]')).toHaveLength(3);
   });
-  it('a line with one take has no chip', () => {
+  it('a line with one take has a chip too, in the singular, so its takes can be reached', () => {
     mount(singleTakePassage());
-    expect(document.querySelector('[data-tchip]')).toBeNull();
+    expect(chip().textContent).toContain('1 take');
+    expect(chip().textContent).not.toContain('1 takes');
+    expect(chip().textContent).toContain('To choose');
+    fireEvent.click(chip());
+    expect(document.querySelectorAll('[data-takes] [data-take]')).toHaveLength(1);
+  });
+  it('says Stacked or Duplicate read where the line is, and Kept above both', () => {
+    const base = { passage: measuredPassage(), open: false, onToggle: () => {} };
+    const { rerender } = render(<TakeChip {...base} keptId={null} stacked />);
+    expect(chip().textContent).toContain('Stacked');
+    rerender(<TakeChip {...base} keptId={null} duplicate />);
+    expect(chip().textContent).toContain('Duplicate read');
+    expect(chip().textContent).not.toContain('To choose');
+    rerender(<TakeChip {...base} keptId="t-8" stacked duplicate />);
+    expect(chip().textContent).toContain('Kept');
+    expect(chip().textContent).not.toContain('Stacked');
+  });
+  it('draws a bar for each take, the active one filled', () => {
+    mount();
+    const pips = chip().querySelectorAll('span[aria-hidden] > i');
+    expect(pips).toHaveLength(3);
+    expect(pips[0]?.className).toContain('w-3.5');
+    expect(pips[0]?.className).toContain('bg-[var(--accent)]');
+    expect(pips[1]?.className).not.toContain('bg-[var(--accent)]');
   });
 });
 
@@ -274,10 +297,13 @@ describe('t-keys-walk-the-takes', () => {
     expect(useTake).toHaveBeenCalledTimes(1);
     expect(toast).toHaveBeenCalledWith('T-8 is already kept.');
   });
-  it('a line with one take says so on T', () => {
+  it('a line with one take opens on T and folds on the next', () => {
     mount(singleTakePassage());
     act(() => lineHook.handlers.takes(1));
-    expect(toast).toHaveBeenCalledWith('This line has one take.');
+    expect(lineHook.open).toBe(true);
+    act(() => lineHook.handlers.takes(1));
+    expect(lineHook.open).toBe(false);
+    expect(toast).not.toHaveBeenCalled();
   });
 });
 
@@ -323,7 +349,7 @@ describe('menu-section-offers-the-takes', () => {
     expect(show).toHaveBeenCalledWith(passage);
     expect(keep).toHaveBeenCalledWith(passage, passage.takes[1]);
   });
-  it('is off with the DAW’s reason when it cannot, and absent on a line with one take', () => {
+  it('is off with the DAW’s reason when it cannot, and offers no Keep on a line with one take', () => {
     const remove = registerTakesMenuSection({
       passageOf: () => measuredPassage(),
       show: () => {},
@@ -334,11 +360,9 @@ describe('menu-section-offers-the-takes', () => {
     remove();
     expect(items.filter((i) => i.key.startsWith('keep-take')).every((i) => i.unavailable === 'REAPER is not running.')).toBe(true);
     const removeOne = registerTakesMenuSection({ passageOf: () => singleTakePassage(), show: () => {}, keep: () => {}, gate: () => ({ ok: true }) });
-    expect(
-      buildWordMenu(selection())
-        .groups.flat()
-        .some((i) => i.key.startsWith('keep-take')),
-    ).toBe(false);
+    const one = buildWordMenu(selection()).groups.flat();
+    expect(one.some((i) => i.key.startsWith('keep-take'))).toBe(false);
+    expect(one.some((i) => i.key === 'show-takes')).toBe(true);
     removeOne();
   });
 });
@@ -472,5 +496,40 @@ describe('compare-the-takes-of-a-line', () => {
     fireEvent.change(screen.getByRole('combobox', { name: 'Second take to compare' }), { target: { value: 't-9' } });
     expect(screen.getByRole('button', { name: 'A then B' }).getAttribute('aria-disabled')).toBe('true');
     expect(document.querySelector('[data-compare-note]')!.textContent).toContain('This take cannot be heard.');
+  });
+});
+
+describe('take-rows-name-where-they-start-and-what-they-are', () => {
+  const lines = (props: Partial<React.ComponentProps<typeof TakeLines>> = {}, passage: LinePassage = measuredPassage()) =>
+    render(
+      <ApiProvider api={createMockApi()}>
+        <PortOverrides clients={{ daw: createMockDawClient(DAW_SETUPS.reaper, { chapterIds: ['5'], candidateIds: [], findingIds: [] }) }}>
+          <TakeLines passage={passage} onTake={null} keptId={null} playingId={null} gate={{ ok: true }} onKeep={() => {}} onPlay={() => {}} {...props} />
+        </PortOverrides>
+      </ApiProvider>,
+    );
+  const row = (id: string) => document.querySelector(`[data-take="${id}"]`) as HTMLElement;
+
+  it('writes the start, the length and the source in the sub-line', () => {
+    const passage = measuredPassage();
+    passage.takes[0] = { ...passage.takes[0]!, start: 72 };
+    lines({ sourceLabel: 'REAPER take' }, passage);
+    expect(row('t-7').textContent).toContain('1:12 · 8 s · REAPER take');
+    expect(row('t-8').textContent).not.toContain('1:12');
+  });
+  it('names the first read of a stack and calls a hidden take Hidden, not Muted', () => {
+    lines({ firstReadId: 't-7', hiddenIds: ['t-9'] });
+    expect(row('t-7').textContent).toContain('First read');
+    expect(row('t-8').textContent).not.toContain('First read');
+    expect(row('t-9').textContent).toContain('Hidden');
+    expect(row('t-8').textContent).toContain('Muted');
+  });
+  it('says in the takes that the take reads the line twice, and where the second read starts', () => {
+    lines({ duplicateAt: 65 });
+    expect(document.querySelector('[data-dupnote]')?.textContent).toBe('This take reads the line twice. The second read starts at 1:05.');
+  });
+  it('has no duplicate note when the line is read once', () => {
+    lines();
+    expect(document.querySelector('[data-dupnote]')).toBeNull();
   });
 });

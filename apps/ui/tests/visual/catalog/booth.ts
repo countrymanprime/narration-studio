@@ -248,7 +248,7 @@ export const boothStates: StateEntry[] = [
     page: 'booth',
     state: 'load-failed',
     description:
-      'Booth when the chapters cannot be read (?mockChapters=fails): the page title and "This page could not be loaded" with the read\'s own sentence as an alert and a Retry button that reads the chapters again; no skeleton left behind',
+      'Booth when the chapters cannot be read (?mockChapters=fails): the page title and "This page could not be loaded" with the read\'s own sentence as an alert and a Retry button that reads the chapters again and a Leave the Booth button beside it (Escape leaves too); no skeleton left behind',
     ...REFLOW,
   },
   {
@@ -262,7 +262,7 @@ export const boothStates: StateEntry[] = [
     page: 'booth',
     state: 'address-checking',
     description:
-      'Booth opened from a link to a chapter the list does not have, while the list is read once more (?mockChapters=reread-hangs, at /booth?chapter=gone): the Booth\'s top bar, reading column, side panel and footer as grey blocks, with one polite "Checking this link…" status',
+      'Booth opened from a link to a chapter the list does not have, while the list is read once more (?mockChapters=reread-hangs, at /booth?chapter=gone): the Booth\'s top bar with its visible Booth title and a Go to Production button, then the reading column, side panel and footer as grey blocks, with one polite "Checking this link…" status',
     ...REFLOW,
   },
 ];

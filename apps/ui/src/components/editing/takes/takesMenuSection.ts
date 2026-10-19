@@ -18,7 +18,10 @@ export function registerTakesMenuSection(source: TakesMenuSource): () => void {
     order: 300,
     items: (selection): ContextMenuItem[] => {
       const passage = source.passageOf(selection);
-      if (!passage || passage.takes.length < 2) return [];
+      if (!passage || passage.takes.length < 1) return [];
+      const show: ContextMenuItem = { key: 'show-takes', label: 'Show takes of this line (T)', onSelect: () => source.show(passage) };
+      // A line with one take has nothing to choose between: the menu opens its takes and offers no Keep.
+      if (passage.takes.length < 2) return [show];
       const gate = source.gate();
       const keepItems = passage.takes.map((t): ContextMenuItem => {
         const off = !gate.ok ? gate.reason : !t.usable ? (t.reason ?? 'This take cannot be chosen.') : undefined;
@@ -29,7 +32,7 @@ export function registerTakesMenuSection(source: TakesMenuSource): () => void {
           onSelect: () => source.keep(passage, t),
         };
       });
-      return [{ key: 'show-takes', label: 'Show takes of this line (T)', onSelect: () => source.show(passage) }, ...keepItems];
+      return [show, ...keepItems];
     },
   });
 }

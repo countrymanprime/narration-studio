@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faBars, faFileLines, faGear, faHouse, faWaveSquare } from '@fortawesome/free-solid-svg-icons';
 import { iconFor } from '../../icons.catalog';
@@ -57,6 +57,44 @@ export function shellPages(facts: NavFacts): { id: string; label: string; disabl
   }));
 }
 export const isActivePath = (pathname: string, path: string) => (path === '/' ? pathname === '/' : pathname === path || pathname.startsWith(`${path}/`));
+const APP_NAME = 'Narration Studio';
+const ALL_PAGES: { name: string; path: string }[] = [...NAV_GROUPS.flatMap((group) => group.items), { name: 'Settings', path: '/settings' }];
+/** The rail's name for the page `pathname` is on (`/editing/chapter-2` is Editing), or undefined for a path no rail item owns. */
+const pageNameFor = (pathname: string) => ALL_PAGES.find((page) => isActivePath(pathname, page.path))?.name;
+// The skip link: hidden until it takes focus, then drawn over the top of the window. It is the first tab stop on every page.
+const SKIP_LINK_CLASS =
+  'sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-[var(--z-toast)] focus:rounded-[var(--radius-button)] focus:bg-[var(--surface)] focus:px-3 focus:py-2 focus:text-sm focus:font-medium focus:text-[var(--text)] focus:shadow-[var(--shadow-lg)] focus:outline-2 focus:outline-offset-2 focus:outline-[var(--accent)]';
+
+// A dialog that closes (the jump menu after a pick) gives focus back to the control that opened it a moment after the page changed, which
+// would undo the move into <main>. So focus <main> a tick later, and with a dialog still on screen after the last one leaves, unless focus
+// already sits in the page. Gives up waiting after a second so a dialog the new page opens itself is left alone. Returns the cleanup.
+function focusMainOnceDialogsClose(main: HTMLElement | null): (() => void) | undefined {
+  if (!main) return undefined;
+  const focusMain = () => {
+    if (!main.contains(document.activeElement)) main.focus({ preventScroll: true });
+  };
+  let timer = 0;
+  if (!document.querySelector('[role="dialog"]')) {
+    timer = window.setTimeout(focusMain, 0);
+    return () => window.clearTimeout(timer);
+  }
+  const watch = new MutationObserver(() => {
+    if (document.querySelector('[role="dialog"]')) return;
+    stop();
+    // After Base UI has put focus back on the opener.
+    timer = window.setTimeout(focusMain, 0);
+  });
+  const give = window.setTimeout(() => stop(), 1000);
+  function stop() {
+    watch.disconnect();
+    window.clearTimeout(give);
+  }
+  watch.observe(document.body, { childList: true, subtree: true });
+  return () => {
+    stop();
+    window.clearTimeout(timer);
+  };
+}
 
 export function AppShell({
   pathname,
@@ -114,10 +152,50 @@ export function AppShell({
 }) {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const go = (next: string) => {
+    viaDrawer.current = drawerOpen;
     setDrawerOpen(false);
     navigate(next);
   };
   const settingsActive = isActivePath(pathname, '/settings');
+  const mainRef = useRef<HTMLElement>(null);
+  const pageName = pageNameFor(pathname);
+  const [pageAnnouncement, setPageAnnouncement] = useState('');
+  const lastPage = useRef(pageName);
+  const viaDrawer = useRef(false);
+  // The title names the page. A move to another page (not a chapter within one, and not the first load) is announced politely and
+  // takes focus into <main>, so it does not stay on the control of the page left (the rail item after the jump menu or Back).
+  useEffect(() => {
+    document.title = pageName ? `${pageName} · ${APP_NAME}` : APP_NAME;
+  }, [pageName]);
+  useEffect(() => {
+    if (lastPage.current === pageName) return;
+    lastPage.current = pageName;
+    if (!pageName) return;
+    setPageAnnouncement(pageName);
+    // The drawer sends focus back to its menu button, as it always has; the title and the announcement carry the change.
+    if (viaDrawer.current) {
+      viaDrawer.current = false;
+      return;
+    }
+    return focusMainOnceDialogsClose(mainRef.current);
+  }, [pageName]);
+  const skipLink = (
+    <a
+      href="#main-content"
+      className={SKIP_LINK_CLASS}
+      onClick={(event) => {
+        event.preventDefault();
+        mainRef.current?.focus();
+      }}
+    >
+      Skip to content
+    </a>
+  );
+  const pageStatus = (
+    <div role="status" aria-label="Page" className="sr-only">
+      {pageAnnouncement}
+    </div>
+  );
   const gateFor = (item: NavItem) => navAvailability(item.path, { hasManuscript, dawFileLinked });
   const isDisabled = (item: NavItem) => gateFor(item).disabled;
   const requiredReason = (item: NavItem) => gateFor(item).reason;
@@ -183,7 +261,9 @@ export function AppShell({
   if (isActivePath(pathname, '/booth') && hasManuscript) {
     return (
       <div className="h-full overflow-hidden bg-[var(--bg)]">
-        <main tabIndex={-1} className="size-full overflow-hidden focus:outline-none">
+        {skipLink}
+        {pageStatus}
+        <main id="main-content" ref={mainRef} tabIndex={-1} className="size-full overflow-hidden focus:outline-none">
           {children}
         </main>
       </div>
@@ -191,6 +271,8 @@ export function AppShell({
   }
   return (
     <div className="flex h-full flex-col overflow-hidden bg-[var(--bg)]">
+      {skipLink}
+      {pageStatus}
       <DemoBanner />
       <div className="flex min-h-0 flex-1 overflow-hidden">
         {/* One rail from 860 px (the mock's `.rail`; below it the mock's tab bar is the hamburger and drawer here): 216 px from 1360 CSS px, 64 px of icons below it. Below 1360 the panel inside
@@ -205,7 +287,7 @@ export function AppShell({
           {navigation}
         </NavDrawer>
         {/* tabIndex -1: a dialog that closes with nothing to give focus back to (its opener is gone) sends focus into <main> (its first control, or <main> itself), not to <body>. */}
-        <main tabIndex={-1} className="flex min-w-0 flex-1 flex-col overflow-hidden focus:outline-none">
+        <main id="main-content" ref={mainRef} tabIndex={-1} className="flex min-w-0 flex-1 flex-col overflow-hidden focus:outline-none">
           <header className="flex h-13 flex-none items-center gap-3 border-b border-[var(--border)] bg-[var(--surface)] px-3 text-sm max-md:gap-2 md:px-5">
             <IconButton label="Open navigation" aria-expanded={drawerOpen} onClick={() => setDrawerOpen(true)} className="min-[860px]:hidden">
               <FontAwesomeIcon icon={faBars} />

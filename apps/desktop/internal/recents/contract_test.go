@@ -21,6 +21,9 @@ func TestContractRecentProjects(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
+	if err := store.SetPinned(filepath.Join(root, "Alice"), true); err != nil {
+		t.Fatal(err)
+	}
 	entries, err := store.List()
 	if err != nil {
 		t.Fatal(err)

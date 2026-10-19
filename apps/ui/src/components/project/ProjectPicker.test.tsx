@@ -11,8 +11,12 @@ afterEach(() => {
   vi.useRealTimers();
 });
 
-function renderPicker(overrides: Parameters<typeof createMockApi>[0] = {}, props: { onCreated?: () => void } = {}) {
-  const api = createMockApi(overrides);
+function renderPicker(
+  overrides: Parameters<typeof createMockApi>[0] = {},
+  props: { onCreated?: () => void } = {},
+  seed: Parameters<typeof createMockApi>[1] = {},
+) {
+  const api = createMockApi(overrides, seed);
   const notify = vi.fn<Notify>();
   render(
     <ApiProvider api={api}>
@@ -52,9 +56,9 @@ describe('ProjectPicker', () => {
     expect(switchProject).not.toHaveBeenCalled();
   });
 
-  it('lists the recent projects under "Recent projects" with a name, a path and an Open button each', async () => {
+  it('lists the recent projects under "Pinned and recent" with a name, a path and an Open button each', async () => {
     renderPicker();
-    const list = await screen.findByRole('region', { name: 'Recent projects' });
+    const list = await screen.findByRole('region', { name: 'Pinned and recent' });
 
     expect(within(list).getByText(VOLTAGE)).toBeTruthy();
     expect(within(list).getByText('C:\\Projects\\Voltage-and-the-Undercroft')).toBeTruthy();
@@ -316,5 +320,69 @@ describe('ProjectPicker', () => {
 
       await waitFor(() => expect(screen.queryByText('Error: the desktop host is not ready')).toBeNull());
     });
+  });
+
+  it('pins a project with its toggle: the row moves to the top, the toggle reads pressed, and the host keeps it', async () => {
+    const { api } = renderPicker();
+    const list = await screen.findByRole('region', { name: 'Pinned and recent' });
+    const rows = () =>
+      within(list)
+        .getAllByRole('listitem')
+        .map((row) => row.textContent ?? '');
+    expect(rows()[0]).toContain(ALICE);
+
+    fireEvent.click(within(list).getByRole('button', { name: `Pin ${VOLTAGE}` }));
+
+    await waitFor(() =>
+      expect(
+        within(list)
+          .getByRole('button', { name: `Unpin ${VOLTAGE}` })
+          .getAttribute('aria-pressed'),
+      ).toBe('true'),
+    );
+    expect(rows()[0]).toContain(VOLTAGE);
+    expect((await api.projectRecents()).find((entry) => entry.name === VOLTAGE)?.pinned).toBe(true);
+
+    fireEvent.click(within(list).getByRole('button', { name: `Unpin ${VOLTAGE}` }));
+    await waitFor(() => expect(rows()[0]).toContain(ALICE));
+  });
+
+  it('says why a pin the host refused did not take, and leaves the toggle as it was', async () => {
+    const { api } = renderPicker();
+    vi.spyOn(api, 'setProjectPinned').mockRejectedValue(new Error('the recent projects list is locked'));
+    const list = await screen.findByRole('region', { name: 'Pinned and recent' });
+
+    fireEvent.click(within(list).getByRole('button', { name: `Pin ${VOLTAGE}` }));
+
+    expect((await screen.findByRole('alert')).textContent).toContain('locked');
+    expect(
+      within(list)
+        .getByRole('button', { name: `Pin ${VOLTAGE}` })
+        .getAttribute('aria-pressed'),
+    ).toBe('false');
+  });
+
+  it('draws no banner when no REAPER project is linked, and none when the host cannot say', async () => {
+    renderPicker();
+    await screen.findByRole('region', { name: 'Pinned and recent' });
+    expect(screen.queryByRole('status')).toBeNull();
+    cleanup();
+
+    const { api } = renderPicker();
+    vi.spyOn(api, 'projectRunningDaw').mockRejectedValue(new Error('no bridge'));
+    await screen.findByRole('region', { name: 'Pinned and recent' });
+    expect(screen.queryByText(/REAPER is running/)).toBeNull();
+  });
+
+  it('offers the project REAPER has open in a banner, and Open in it switches to that project', async () => {
+    const { api } = renderPicker({}, {}, { dawRunningProject: true });
+    const switchProject = vi.spyOn(api, 'switchProject');
+    const banner = await screen.findByRole('status');
+    expect(banner.textContent).toContain('REAPER is running with a project linked to');
+    expect(within(banner).getByText(VOLTAGE)).toBeTruthy();
+
+    fireEvent.click(within(banner).getByRole('button', { name: `Open ${VOLTAGE}` }));
+
+    await waitFor(() => expect(switchProject).toHaveBeenCalledWith('C:\\Projects\\Voltage-and-the-Undercroft', VOLTAGE));
   });
 });

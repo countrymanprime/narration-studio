@@ -4,7 +4,6 @@ import { Icon } from '../../../../primitives/Icon';
 import { Menu, type MenuItem } from '../../../../primitives/Menu';
 import { Swatch } from '../../../../primitives/Swatch';
 import { TooltipTarget } from '../../../../primitives/Tooltip';
-import { TOOL_BUTTON } from './SelectionTool';
 import { markSwatch } from '../../rail/threads/markSwatch';
 
 const WORD_ITEM = 'Pronunciation (a word)';
@@ -34,7 +33,7 @@ export function MarkMenu({
   ];
   return (
     <TooltipTarget text="Mark the selected words with one of your marks">
-      <Menu items={items} render={<Button variant="ghost" size="sm" className={TOOL_BUTTON} />}>
+      <Menu items={items} render={<Button variant="inverse" size="sm" />}>
         <Icon name="markText" />
         Mark
       </Menu>

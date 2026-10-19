@@ -146,6 +146,11 @@ export type MockApiSeed = {
    */
   dawEngineMismatch?: boolean;
   /**
+   * Simulates REAPER running with the project linked to the second recent project (Voltage and the Undercroft), so the project
+   * picker shows its "REAPER is running with a project linked to" banner. Unset, the mock has no REAPER session.
+   */
+  dawRunningProject?: boolean;
+  /**
    * Whether `dawCatalogList()`'s REAPER entry reports installed (docs/architecture/daw-integration.md).
    * Defaults to true; false shows the not-detected state and its "Get REAPER" button.
    */

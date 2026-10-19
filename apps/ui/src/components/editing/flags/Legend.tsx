@@ -25,7 +25,7 @@ export function Legend({ doc, compact, noAudio = false }: LegendProps) {
       id="legend"
       role="group"
       aria-label={`What is marked. Flagged by ${doc.engine.name}`}
-      className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[length:var(--font-size-sm)] text-[var(--text-muted)]"
+      className="flex flex-nowrap items-center justify-end gap-x-3.5 overflow-hidden text-[12.5px] whitespace-nowrap text-[var(--text-muted)]"
     >
       {FLAG_KINDS.map((k) => (
         <span key={k} data-legend={k} className="inline-flex items-center gap-1.5">
@@ -35,7 +35,7 @@ export function Legend({ doc, compact, noAudio = false }: LegendProps) {
           <span data-legend-label>{compact ? FLAG_LABEL[k][1] : `${FLAG_LABEL[k][0]} · ${doc.counts[k]}`}</span>
         </span>
       ))}
-      <span title={`Flagged by ${doc.engine.name}`} className="ml-auto">
+      <span title={`Flagged by ${doc.engine.name}`} className="hidden min-w-0 truncate text-[var(--text-muted)] @min-[1240px]/hd:inline">
         Flagged by {doc.engine.name.split(' ')[0]}
       </span>
     </div>

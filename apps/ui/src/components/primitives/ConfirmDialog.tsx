@@ -28,6 +28,10 @@ type ConfirmDialogProps = {
   // The confirmed action is running: the confirm button says so and ignores a press, and nothing else in the dialog can be pressed,
   // so the action cannot be confirmed twice or walked away from half done. The caller closes the dialog when the action ends.
   pending?: boolean;
+  // Focus opens on the decline button, not the message: for a question whose safe answer is to stay (Keep recording).
+  focusCancel?: boolean;
+  // Closing leaves focus on <body> when that is where it was, rather than in the page's <main> (see `Dialog`).
+  stayOnBody?: boolean;
   children?: ReactNode;
 } & DangerAction &
   SecondaryAction;
@@ -48,6 +52,8 @@ export function ConfirmDialog({
   cancelLabel = 'Cancel',
   escapeCancels = true,
   pending = false,
+  focusCancel = false,
+  stayOnBody = false,
   children,
 }: ConfirmDialogProps) {
   return (
@@ -57,10 +63,11 @@ export function ConfirmDialog({
       dismissOnOutsidePress={false}
       onClose={pending ? undefined : cancel}
       escapeCloses={escapeCancels && !pending}
+      stayOnBody={stayOnBody}
       description={body}
       actions={
         <>
-          <Button variant="secondary" disabled={pending} onClick={cancel}>
+          <Button variant="secondary" disabled={pending} onClick={cancel} autoFocus={focusCancel}>
             {cancelLabel}
           </Button>
           <div className="flex gap-2">

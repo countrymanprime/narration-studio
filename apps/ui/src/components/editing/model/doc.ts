@@ -13,6 +13,8 @@ interface WordTok {
   text: string;
   gap: string;
   i: number;
+  /** Where the word begins in the paragraph's text (UTF-16), so marks and names on the text land on it. */
+  s: number;
 }
 
 /** A phrase of a paragraph (the unit the cursor steps by): `[s, e)` characters of the paragraph's text. */
@@ -20,6 +22,8 @@ interface ScriptUnit {
   key: string;
   s: number;
   e: number;
+  /** The dialogue cue this unit is the quote of; absent for narration. */
+  cue?: string;
 }
 
 /** The take a stretch of a paragraph is heard in. `start` is seconds into the chapter recording before any cut. */
@@ -158,7 +162,7 @@ function unitWords(text: string, s: number, e: number): { lead: string; words: W
   let wi = 0;
   while ((m = re.exec(txt))) {
     const word = m[0].trimEnd();
-    words.push({ text: word, gap: m[0].slice(word.length), i: wi++ });
+    words.push({ text: word, gap: m[0].slice(word.length), i: wi++, s: s + m.index });
   }
   return { lead: txt.match(/^\s*/)?.[0] ?? '', words };
 }

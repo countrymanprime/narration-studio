@@ -14,10 +14,10 @@ With no manuscript imported yet, the page says so and offers **Import manuscript
 
 ## The page
 
-The header has the chapter step (the previous and next chapter buttons, Alt+↑ and Alt+↓, and the chapter list), a
-legend of the marks in the text with how many of each, the recogniser that heard the words (**Flagged by**), the
-**Timeline** button (on a window 1360 px wide or more) and the button that opens the drawer. At 1280 px and below the
-legend uses short labels with no counts.
+The header sits inside the one bordered card that holds the script, so the title, the chapter step (the previous and
+next chapter buttons, Alt+↑ and Alt+↓, and the chapter list), a legend of the marks in the text with how many of each,
+the recogniser that heard the words (**Flagged by**, written out when the card is wide enough and always in the legend's name and hint), the timeline strip button (a timeline icon, on a window 1360 px
+wide or more) and the button that opens the drawer are all in it. At 1280 px and below the legend uses short labels with no counts.
 While the chapters and the chapter's lines are being read, the header stays and the script is drawn as grey blocks; if the chapters cannot be read, the page says "This page could not be loaded" with the reason and **Retry**, and if one chapter cannot be read, the same appears under the header and the chapter stepper. Retry shows the grey blocks again while it reads, then the page or the reason again. A link to a chapter the list does not have shows the title and the same blocks with **Checking this link…** while the chapter list is read once more.
 
 Words carry what the last [recording check](production.md#checking-a-chapters-recording) heard. Each kind is drawn the
@@ -34,10 +34,18 @@ spans on the ribbon, the kind chip on a word's card, the rows of the drawer's fo
 the take left out (as not read) and added (as extra). A cut word is struck through, and a selected or playing word keeps its own fill;
 the mark's underline stays under both.
 
-Each line starts with its time in the chapter. A line with more than one take has a takes chip under it: how many
-takes, the one that plays, and whether one was chosen yet. Tab visits one chip, the one on the line the cursor is on (the
-first before there is a cursor), so the script is not forty stops; **T** opens the takes of the cursor's line, and a click
-opens any other.
+Each line starts with its time in the chapter, and a line that has takes shows how many in a round badge under the
+time. Every such line, one with a single take included, has a takes chip under it: how many takes, a bar for each take with
+the playing one filled, the one that plays, and where the choice stands: **Kept**, **Stacked** (the later reads sit on the
+first read's spot), **Duplicate read** (the take reads the line twice) or **To choose**. Tab visits one chip, the one on the
+line the cursor is on (the first before there is a cursor), so the script is not forty stops; **T** opens the takes of the
+cursor's line (and folds them again on a line with one take), and a click on the chip or the badge opens any other.
+
+The script also shows what the Story Bible and your marks say about it, read from the [Script page](script.md)'s data. A
+quoted stretch starts with a chip naming the speaker, in the character's colour (dashed when the Story Bible only suggests
+the speaker, and grey with a question mark when it does not know); the speaker is changed on the Script page. A word that is
+part of a Story Bible name is tinted and underlined in its entry type's colour, a word you marked wears the colour and line
+of its mark type, and the notes you left on a line show under it as the mark type's name and the note.
 
 ![Editing - Chapter 1 linked to its track: the chapter step and the legend, the script with each line's takes chip and time, the bar and the key hints](../../images/ui/editing-default.webp)
 
@@ -68,7 +76,7 @@ the same way, a phrase at a time. Every other key does its job once, however lon
 line** (on a line with more than one take) and **Delete**; the bar offers the same actions, with **Delete words and
 audio** in full on a wide window. **Delete**, **Mute** and **Add FX** stay on the bar but are off while the DAW cannot make
 the change (they are Experimental and start switched off in [Settings](settings.md)); a line above the bar then says so
-and why, and the same sentence is in each button's hint. The line's audio shows under it while the cursor is on it. Right-click a word for its
+and why, and the same sentence is in each button's hint. The line's audio shows under it while the cursor is on it, headed by the take that plays (or "recording") and the stretch it draws. Right-click a word for its
 menu: play the selection, copy, delete or mute the words, **Add FX** and **Mark as** (each opens a list beside it), remove an effect, **Mark as voice sample…**, mark them for a pickup, add a note,
 show or keep the line's takes, and **Split into takes** on a line whose one take reads it twice.
 
@@ -161,10 +169,11 @@ check whether a take is recording before it plays a sample, so do not play one w
 
 ## Takes
 
-Click a line's takes chip (T steps to the next take) to open its takes under it. Escape folds them again and leaves focus on the chip. The suggested take comes first, with
+Click a line's takes chip or its badge (T steps to the next take) to open its takes under it. Escape folds them again and leaves focus on the chip. A take that reads its line twice says so at the top of the takes, with where the second read starts. The suggested take comes first, with
 why it is suggested and the steps that would make the comparison surer: **Trim white space**, **Trim breaths** and
 **Normalise**, each asking before it changes anything in the DAW. Then each take, with its waveform, what share of the
-script it read as written, and its pause, level, noise, clarity and breaths. Play a take to hear it; **Keep take**
+script it read as written, and its pause, level, noise, clarity and breaths. A take's second line says where it begins, how long it lasts and what the DAW calls it
+(a REAPER take, an Audacity clip or a recorder take). A take reads **Kept**, **Active**, **Muted** or, once you hide the others and look at them again, **Hidden**; the first read of a stacked line wears **First read**. Play a take to hear it; **Keep take**
 (Enter) makes it the one that plays, and **Hide others** (H) hides the other takes from the lanes. **Show in the DAW**
 moves the DAW to the line, on a DAW that can move to a place in the project.
 
@@ -183,8 +192,10 @@ from the text once nothing is selected or from the drawer itself, and leaves foc
 
 ### Cleaning up
 
-**Clean up** lists what was found in the chapter (words not in the script, not read, misread and of low confidence,
-each with **Review** to step through them) and the clean-up findings by kind: gaps, breaths, clicks, plosives and noise.
+**Clean up** lists what was found in the chapter (words not in the script, not read, misread and of low confidence, each
+with the kind's sample mark and **Review** to step through them) and, under **In the audio**, the clean-up findings by kind: gaps,
+breaths, clicks, plosives and noise. The tab's count adds the words found to the findings that pass the thresholds, and the
+Backups tab counts this chapter's backups.
 Pick a strength, **Preview** to hear the first three findings with two seconds either side, and apply the change to
 the findings you selected. Clean-up actions that are still
 experimental stay off until you turn them on in [Settings](settings.md).
@@ -197,11 +208,13 @@ experimental stay off until you turn them on in [Settings](settings.md).
 backups of its project; with one that edits the audio itself, the app backs the words up before each delete, effect or
 stack, and refuses the edit if the backup fails. The Backups tab is also where this project's backup settings can be changed (**Keep backups**, the window either side of an edit, and **Keep backups for (days)**). It is a shortcut to the same settings as the Audacity backups under **Set on a page** in [Settings](settings.md#set-on-a-page), which also sets them for every project (Global); the tab edits this project only. **Timeline** shows the line the cursor is on as the chapter's audio
 and one lane per take on one time axis. On a window 1360 px wide or more it is a strip under the text, which the header's
-**Timeline** button (S) shows and hides; on a narrower window it is a tab of the drawer.
+timeline button (S) shows and hides; on a narrower window it is a tab of the drawer.
 
 ![Editing - the Clean up and effects panel on Effects: no effects yet, and Add effect waiting for a selection](../../images/ui/editing-drawer-effects.webp)
 
 ![Editing - the Effects tab with a DAW that lists its chains: each has a Favourite button, and the favourites are listed first](../../images/ui/editing-drawer-effects-chains.webp)
+
+![Editing - the Effects tab with two effects on words: the inspector with its Previous and Next arrows and Show in the DAW](../../images/ui/editing-drawer-effects-inspector.webp)
 
 ![Editing - the Timeline strip under the text: the waveform and takes of the line the cursor is on](../../images/ui/editing-drawer-timeline.webp)
 

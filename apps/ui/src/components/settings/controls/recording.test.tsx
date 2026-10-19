@@ -40,16 +40,19 @@ async function renderPage({
         <ApiProvider api={api}>
           <StudioProvider>
             <TooltipProvider>
-              <SettingsPage
-                data={data}
-                notify={notify}
-                onDirtyChange={vi.fn()}
-                registerActions={vi.fn()}
-                onProjectDataCleared={async () => undefined}
-                onLinkDawFile={onLinkDawFile}
-                go={vi.fn()}
-                refreshBootstrap={async () => undefined}
-              />
+              {/* The shell's focusable landmark, which a Retry that goes away hands focus to. */}
+              <main tabIndex={-1}>
+                <SettingsPage
+                  data={data}
+                  notify={notify}
+                  onDirtyChange={vi.fn()}
+                  registerActions={vi.fn()}
+                  onProjectDataCleared={async () => undefined}
+                  onLinkDawFile={onLinkDawFile}
+                  go={vi.fn()}
+                  refreshBootstrap={async () => undefined}
+                />
+              </main>
             </TooltipProvider>
           </StudioProvider>
         </ApiProvider>
@@ -276,6 +279,30 @@ describe('Recording & DAW: Capabilities', () => {
     fireEvent.click(within(row('daw.capabilities')).getByRole('button', { name: 'Retry' }));
     await waitFor(() => expect(within(row('daw.capabilities')).queryByText(/bridge unreadable/)).toBeNull());
     expect(within(row('daw.capabilities')).getAllByText(/Available|Unavailable/).length).toBeGreaterThan(0);
+  });
+});
+
+describe('Recording & DAW: a failed capability read', () => {
+  it('keeps focus on the page when Retry succeeds and its error line goes away, and on Retry when the read fails again', async () => {
+    let fail = true;
+    const base = createMockApi({}, {});
+    const dawCapabilities = vi.fn(async () => {
+      if (fail) throw new Error('bridge unreadable');
+      return base.dawCapabilities();
+    });
+    const api = createMockApi({ subscribeDawCapabilities: () => () => undefined, dawCapabilities });
+    await renderPage({ api, category: 'Recording & DAW', advanced: true });
+    const line = row('daw.capabilities');
+    await within(line).findByText(/bridge unreadable/);
+    const retry = within(line).getByRole('button', { name: 'Retry' });
+    const reads = dawCapabilities.mock.calls.length;
+    await userEvent.click(retry);
+    await waitFor(() => expect(dawCapabilities.mock.calls.length).toBeGreaterThan(reads));
+    expect(document.activeElement).toBe(retry);
+    fail = false;
+    await userEvent.click(within(line).getByRole('button', { name: 'Retry' }));
+    await waitFor(() => expect(within(line).queryByText(/bridge unreadable/)).toBeNull());
+    expect(document.activeElement).toBe(screen.getByRole('main'));
   });
 });
 

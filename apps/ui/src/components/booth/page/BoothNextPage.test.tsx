@@ -288,6 +288,30 @@ describe('every-way-out-asks-while-recording', () => {
     expect(screen.getByText('REC')).toBeTruthy();
   });
 
+  it('the question opens with focus on Keep recording, and closes with focus where it was, never on a chapter arrow', async () => {
+    for (const closeWith of ['Escape', 'Keep recording']) {
+      const page = renderPage();
+      await record(page);
+      expect(document.activeElement).toBe(document.body);
+      await press('Escape');
+      const dialog = await screen.findByRole('alertdialog');
+      await waitFor(() => expect(document.activeElement).toBe(within(dialog).getByRole('button', { name: 'Keep recording' })));
+      if (closeWith === 'Escape') await press('Escape');
+      else await act(async () => void (await userEvent.click(within(dialog).getByRole('button', { name: 'Keep recording' }))));
+      await settle();
+      await waitFor(() => expect(page.overlay.getSnapshot().dialogs).toHaveLength(0));
+      // Enter on whatever has focus now must not change the chapter mid-take.
+      expect(document.activeElement).not.toBe(screen.getByRole('button', { name: /previous chapter/i }));
+      expect(document.activeElement).not.toBe(screen.getByRole('button', { name: /next chapter/i }));
+      expect(document.activeElement === document.body || document.activeElement?.tagName === 'MAIN').toBe(true);
+      // The take goes on and Space still stops it with the question closed.
+      expect(page.daw.recordStop).not.toHaveBeenCalled();
+      await space();
+      await waitFor(() => expect(page.daw.recordStop).toHaveBeenCalledTimes(1));
+      cleanup();
+    }
+  });
+
   it('Stop and leave stops the recording the app started, writes the passage map and then leaves', async () => {
     const page = renderPage();
     await record(page);

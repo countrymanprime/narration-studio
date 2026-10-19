@@ -7,6 +7,7 @@ import (
 	"html/template"
 	"sort"
 	"strconv"
+	"strings"
 )
 
 //go:embed report.html.tmpl
@@ -20,6 +21,7 @@ var page = template.Must(template.New("report").Funcs(template.FuncMap{
 	"days":       formatDays,
 	"stageHours": stageHoursLines,
 	"readiness":  readinessLines,
+	"join":       func(parts []string) string { return strings.Join(parts, ", ") },
 }).Parse(pageSource))
 
 // HTML renders the report as one self-contained page.

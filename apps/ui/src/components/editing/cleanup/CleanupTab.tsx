@@ -8,6 +8,7 @@ import { useDawKind } from '../../../useDawKind';
 import { applyCleanupCommand, outcomeSentence, previewOf, type CleanupDeps, type CleanupPreview } from './cleanupApply';
 import { initialParams, opSpec, type CleanupKind, type CleanupParams, type Level, type ParamKey } from './cleanupOps';
 import { countsOf, noiseFloorOf, proposals, selectedRows, type CleanupRow } from './cleanupRows';
+import { notifyCleanupChanged } from './cleanupChanged';
 import { CleanupHeader } from './CleanupHeader';
 import { CleanupInspector } from './CleanupInspector';
 import { CleanupList } from './CleanupList';
@@ -108,12 +109,16 @@ export function CleanupTab({ chapterId, journal, deps, playback }: CleanupTabPro
     const outcome = result.value.value;
     overlay.toast(outcomeSentence(op, outcome, params[op]), outcome.refused ? { tone: 'error' } : undefined);
     setVersion((v) => v + 1);
+    notifyCleanupChanged();
   };
 
   return (
     // The div is not a control: it carries Escape from the focused Preview button to the preview.
     <div className="flex flex-col" onKeyDown={previewPlay.onKeyDown}>
-      <div className="border-b border-[var(--border)] p-3">
+      <div className="flex flex-col gap-2 border-b border-[var(--border)] p-3">
+        <span className="font-['Barlow_Condensed',sans-serif] text-[11px] font-semibold tracking-[var(--tracking-button)] text-[var(--text-muted)] uppercase">
+          In the audio
+        </span>
         <CleanupHeader counts={counts} op={op} onOp={choose} />
       </div>
       {readError ? (

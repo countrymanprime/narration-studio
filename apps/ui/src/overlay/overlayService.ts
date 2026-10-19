@@ -12,6 +12,8 @@ type ConfirmSpec = {
   confirmVariant?: 'primary' | 'danger';
   /** The decline button's name; "Cancel" when absent. */
   cancelLabel?: string;
+  /** Focus opens on the decline button instead of the message, and closing leaves focus on <body> when it was there. For a question whose safe answer is to stay. */
+  safeDefault?: boolean;
 };
 type DialogSpec =
   | {

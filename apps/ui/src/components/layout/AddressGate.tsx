@@ -113,16 +113,7 @@ const CHECKING = { label: 'Checking this link', status: 'Checking this link…' 
  */
 function CheckingLink({ page }: { page: AddressPage }) {
   if (page === 'proof') return <ProofSkeleton {...CHECKING} />;
-  if (page === 'booth') {
-    return (
-      <>
-        <div className="sr-only">
-          <Heading title={TITLE.booth} />
-        </div>
-        <BoothSkeleton {...CHECKING} />
-      </>
-    );
-  }
+  if (page === 'booth') return <CheckingBooth />;
   return (
     <div className="flex min-h-0 flex-1 flex-col">
       <header className="flex flex-wrap items-center gap-x-4 gap-y-2 px-4 pt-3 pb-2">
@@ -131,6 +122,25 @@ function CheckingLink({ page }: { page: AddressPage }) {
       </header>
       <EditingBodySkeleton {...CHECKING} />
     </div>
+  );
+}
+
+/** The Booth fills the window, so a link that is only being checked shows its title and a way out in its top bar, and Escape leaves as it does from a bad link. */
+function CheckingBooth() {
+  const navigate = useNavigate();
+  return (
+    <CommandScope kind="booth">
+      <LeaveBoothOnEscape />
+      <BoothSkeleton
+        {...CHECKING}
+        title={<Heading title={TITLE.booth} />}
+        exit={
+          <Button variant="secondary" onClick={() => navigate('/', { replace: true })}>
+            Go to Production
+          </Button>
+        }
+      />
+    </CommandScope>
   );
 }
 
