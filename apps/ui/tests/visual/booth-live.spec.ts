@@ -1,6 +1,7 @@
 // The Booth against a mock DAW that moves like the host's (`?mockDaw=`, src/api/dawMock.ts): the owner's own sequence driven through
 // the app, and each way REAPER can go wrong around it. Not a screenshot test: it asserts what a narrator sees and can press.
 import { expect, test, type Page } from '@playwright/test';
+import { pastStartGuard } from './helpers/startGuard';
 import { settlePage } from './helpers/settle';
 import { goToPage } from './drivers/shared';
 
@@ -53,6 +54,7 @@ test.describe('Booth with a moving mock DAW', () => {
     await expect(stop(page)).toBeVisible();
     await expect(page.getByText('REC', { exact: true })).toBeVisible();
     expect((await dawState(page))?.recording).toBe(true);
+    await pastStartGuard(page);
     await stop(page).click();
     await expect(record(page)).toBeVisible();
     expect((await dawState(page))?.recording).toBe(false);
@@ -67,6 +69,7 @@ test.describe('Booth with a moving mock DAW', () => {
     expect((await dawState(page))?.recording).toBe(true);
     await page.goForward();
     await page.getByRole('button', { name: /^Stop$/ }).waitFor();
+    await pastStartGuard(page);
     await stop(page).click();
     await expect(record(page)).toBeVisible();
     expect((await dawState(page))?.recording).toBe(false);
@@ -243,6 +246,7 @@ test.describe('Booth with a moving mock DAW', () => {
     await expect(page.locator('#brec-why')).toContainText('has a different project open than the one linked here', { timeout: 12_000 });
     await expect(stop(page)).toBeVisible();
     expect((await dawState(page))?.recording).toBe(true);
+    await pastStartGuard(page);
     await stop(page).click();
     await expect(record(page)).toBeVisible();
   });

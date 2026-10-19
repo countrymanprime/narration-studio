@@ -2,6 +2,7 @@
 // Booth can be given. Not a screenshot test. Each case names what it drives and asserts what the narrator sees and what the DAW holds; any page
 // error or console error fails it.
 import { expect, test, type Page } from '@playwright/test';
+import { pastStartGuard } from './helpers/startGuard';
 import { settlePage } from './helpers/settle';
 import { goToPage } from './drivers/shared';
 
@@ -50,6 +51,7 @@ test.describe('with a take running', () => {
     const errors = watch(page);
     await takeRunning(page);
     expect((await daw(page))?.recording).toBe(true);
+    await pastStartGuard(page);
     await stop(page).click();
     await expect(record(page)).toBeVisible();
     expect((await daw(page))?.recording).toBe(false);
@@ -331,6 +333,7 @@ test.describe('with a take running', () => {
     const errors = watch(page);
     await takeRunning(page);
     await page.evaluate(() => window.__NARRATION_MOCK_DAW__?.refuseNextRecord('REAPER could not finish the file: the disk is full.', 'stop'));
+    await pastStartGuard(page);
     await stop(page).click();
     await expect(page.getByText('REAPER could not finish the file: the disk is full.').first()).toBeVisible();
     await expect(stop(page)).toBeVisible();
@@ -409,6 +412,7 @@ test.describe('the other controls', () => {
     await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
     await page.keyboard.press('b');
     await page.keyboard.press('r');
+    await pastStartGuard(page);
     await stop(page).click();
     await expect(record(page)).toBeVisible();
     expect((await daw(page))?.recording).toBe(false);
@@ -433,6 +437,7 @@ test.describe('the other controls', () => {
     for (let i = 0; i < 14; i++) await page.keyboard.press('Equal');
     await page.keyboard.press('ArrowDown');
     expect(await noHorizontalScroll(page)).toBe(true);
+    await pastStartGuard(page);
     await stop(page).click();
     await expect(record(page)).toBeVisible();
     expect(errors).toEqual([]);
@@ -469,6 +474,7 @@ test.describe('the worst inputs', () => {
     expect(opened, 'the Booth opens in under 30 s, traced').toBeLessThan(30_000);
     await record(page).click();
     await expect(stop(page)).toBeVisible({ timeout: 20_000 });
+    await pastStartGuard(page);
     await stop(page).click();
     await expect(record(page)).toBeVisible({ timeout: 20_000 });
     expect(errors).toEqual([]);
@@ -510,6 +516,7 @@ test.describe('the worst inputs', () => {
       for (let i = 0; i < 4; i++) await page.keyboard.press('ArrowDown');
       await record(page).click();
       await expect(stop(page)).toBeVisible();
+      await pastStartGuard(page);
       await stop(page).click();
       await expect(record(page)).toBeVisible();
       expect(await noHorizontalScroll(page)).toBe(true);
