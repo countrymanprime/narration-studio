@@ -188,7 +188,7 @@ export function CheckCard({ chapter, onCheck }: { chapter: ManuscriptChapter; on
         {entries.map((entry) => (
           <li
             key={entry.key}
-            className="inline-flex items-center gap-1.5 rounded-full border border-[var(--line)] px-2.5 py-0.5 text-sm"
+            className="inline-flex items-center gap-1.5 rounded-full border border-[var(--border)] px-2.5 py-0.5 text-sm"
             data-count={entry.key}
           >
             <Dot color={COUNT_COLOUR[entry.key]} />
@@ -204,7 +204,7 @@ export function CheckCard({ chapter, onCheck }: { chapter: ManuscriptChapter; on
     <section
       aria-label="Recording check"
       data-check-state={state}
-      className="flex flex-col gap-3 rounded-[var(--radius-card)] border border-[var(--line)] bg-[var(--surface)] p-4"
+      className="flex flex-col gap-3 rounded-[var(--radius-card)] border border-[var(--border)] bg-[var(--surface)] p-4"
     >
       <div className="flex flex-wrap items-center gap-3">
         <h3 className="text-xs font-semibold tracking-wide text-[var(--text-muted)] uppercase">Recording check</h3>

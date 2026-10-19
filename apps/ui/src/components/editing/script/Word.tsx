@@ -1,4 +1,6 @@
-import { Fragment, memo } from 'react';
+import { Fragment, memo, type CSSProperties } from 'react';
+import { kindMarkStyle } from '../../../kinds/markStyle';
+import type { KindId } from '../../../kinds/kindMap';
 import { clockText } from '../../booth/boothProgress';
 import { isLow, type DocItem } from '../model';
 import { FxMarker } from '../range/fx/FxButtons';
@@ -34,13 +36,41 @@ function describe(it: DocItem, mark: Mark): string {
   }
 }
 
-const MARK_CLASS: Record<Mark, string> = {
-  cut: 'line-through text-[var(--text-muted)] opacity-80',
-  extra: 'italic rounded-[0.12em] px-[0.12em] bg-[var(--danger-soft)] text-[var(--danger-text)] border-b-2 border-dotted border-[var(--danger)]',
-  miss: 'px-[0.1em] border-[1.5px] border-dashed border-[var(--warn)] text-[var(--text-muted)]',
-  mis: 'bg-[var(--warn-soft)] border-b-2 border-solid border-[var(--warn)]',
-  low: 'underline decoration-wavy decoration-[var(--warn)] decoration-[1.5px] underline-offset-[0.2em]',
-};
+/** Which registry kind each mark is (kinds/kindMap.ts): the same shape and colour as that kind on every other page. A cut word is not a kind: it is struck through. */
+const KIND_OF: Record<Exclude<Mark, 'cut'>, KindId> = { extra: 'extra', miss: 'missing', mis: 'misread', low: 'low' };
+
+const CUT_CLASS = 'line-through text-[var(--text-muted)] opacity-80';
+const SEL_SHADOW = '0 2px 0 var(--info)';
+const FX_SHADOW = 'inset 0 -3px 0 var(--accent-strong)';
+
+// A script holds thousands of words, so a word is one span and its mark is a shared style object from the registry, never a `<mark>` per
+// word. The style is cached per combination of what else is drawn on the word (a selection, an effect, a ring, the playing word).
+const STYLES = new Map<string, CSSProperties | undefined>();
+
+/**
+ * The inline style of a word: its kind's mark (`kindMarkStyle`) with the layers that share its properties composed in. The selection and the
+ * playing word paint their own fill and text colour, a cursor or open flag draws its ring as the outline, and the selection underline and the
+ * effect underline join the mark's shadow, so the mark yields to each rather than hiding it.
+ */
+function wordStyle(mark: Mark | null, sel: boolean, fx: boolean, ringed: boolean, now: boolean): CSSProperties | undefined {
+  const key = `${mark ?? ''}|${sel}|${fx}|${ringed}|${now}`;
+  if (STYLES.has(key)) return STYLES.get(key);
+  const base = mark && mark !== 'cut' ? kindMarkStyle(KIND_OF[mark]) : undefined;
+  const style: CSSProperties = { ...base };
+  if (sel || now) {
+    delete style.background;
+    delete style.color;
+  }
+  if (ringed) {
+    delete style.outline;
+    delete style.outlineOffset;
+  }
+  const shadows = [sel ? SEL_SHADOW : '', fx ? FX_SHADOW : '', base?.boxShadow ?? ''].filter(Boolean);
+  if (shadows.length) style.boxShadow = shadows.join(', ');
+  const out = Object.keys(style).length ? style : undefined;
+  STYLES.set(key, out);
+  return out;
+}
 
 export interface WordProps {
   it: DocItem;
@@ -62,26 +92,21 @@ export const Word = memo(function Word({ it, sel, cur, now, said, flag, join, fx
   const fx = it.fx.length > 0 && !it.cut;
   const cls = [
     'rounded-[0.12em] cursor-text',
-    mark ? MARK_CLASS[mark] : '',
+    mark === 'cut' ? CUT_CLASS : '',
     sel ? 'bg-[var(--info-soft)] text-[var(--text)] rounded-none' : '',
-    sel && fx
-      ? 'shadow-[0_2px_0_var(--info),inset_0_-3px_0_var(--accent-strong)]'
-      : sel
-        ? 'shadow-[0_2px_0_var(--info)]'
-        : fx
-          ? 'shadow-[inset_0_-3px_0_var(--accent-strong)]'
-          : '',
     cur && !sel ? 'outline outline-2 outline-[var(--focus)]' : '',
     flag ? 'outline outline-2 outline-[var(--warn)]' : '',
     now ? 'bg-[var(--accent)] text-[var(--accent-contrast)]' : said ? 'text-[var(--text-muted)]' : '',
   ]
     .filter(Boolean)
     .join(' ');
+  const style = wordStyle(mark, sel, fx, (cur && !sel) || flag, now);
   const gap = it.kind === 'x' ? ' ' : it.gap;
   return (
     <Fragment>
       <span
         className={cls}
+        style={style}
         data-k={it.key}
         data-kind={it.kind}
         data-mark={mark ?? undefined}

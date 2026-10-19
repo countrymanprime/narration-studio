@@ -30,7 +30,7 @@ export function BookmarksTab({ bookmarks, chapters, lineText, currentId = null, 
               return (
                 <li
                   key={bookmark.id}
-                  className={`grid grid-cols-[minmax(0,1fr)_auto] items-start gap-1 rounded-lg border py-1 pr-1 pl-0 ${bookmark.id === currentId ? 'border-[var(--accent)] bg-[var(--accent-soft)]' : 'border-[var(--line)] bg-[var(--surface)]'}`}
+                  className={`grid grid-cols-[minmax(0,1fr)_auto] items-start gap-1 rounded-lg border py-1 pr-1 pl-0 ${bookmark.id === currentId ? 'border-[var(--accent)] bg-[var(--accent-soft)]' : 'border-[var(--border)] bg-[var(--surface)]'}`}
                 >
                   {/* native-control-ok: a row that is a button holding up to three lines of text, which Button's padded chrome does not fit */}
                   <button

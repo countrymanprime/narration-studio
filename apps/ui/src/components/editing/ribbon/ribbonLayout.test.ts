@@ -31,8 +31,8 @@ describe('ribbonLayout', () => {
   });
   it('tints flagged words and counts them', () => {
     const l = ribbonLayout(doc, 'p-1', [], null)!;
-    // the extra word and the low-confidence word are timed; the word not read and the misread are counted (the misread is timed too)
-    expect(l.flags.map((f) => f.kind).sort()).toEqual(['extra', 'low', 'low']);
+    // the extra word, the misread and the low-confidence word are timed, each tinted as its own kind; the word not read is counted
+    expect(l.flags.map((f) => f.kind).sort()).toEqual(['extra', 'low', 'mis']);
     expect(l.flagged).toBe(4);
     expect(l.description).toMatch(/flagged/);
   });

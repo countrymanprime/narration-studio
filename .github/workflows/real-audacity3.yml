@@ -1,0 +1,85 @@
+name: Real Audacity 3 (Linux)
+# Drives a real Audacity 3 over its scripting pipe, headless, with the repository's own Go client and adapter and a pinned LibriVox
+# chapter (docs/research/real-audacity3-ci-integration.md). Evidence, not a gate: nothing requires it and it never runs on a pull request.
+#
+# Triggers: a manual dispatch, and a nightly run that stays off until the owner sets the repository variable REAL_AUDACITY_NIGHTLY to
+# `true` (after reading Audacity's licence note in the research page). The job installs only packages and the hash-pinned AppImage;
+# it never uploads the AppImage or an extracted tree (GPLv3 redistribution), only the test output, screenshots and the exported audio.
+#
+# The script it runs is scripts/research/real-audacity3-ci/run.sh, which carries the Audacity version and SHA-256 pins.
+on:
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: 'Which tests to run: chapter (import, labels, selection, export, undo), record (loopback) or all'
+        type: choice
+        options: [all, chapter, record]
+        default: all
+      with-reply-patch:
+        description: 'Apply scripts/research/real-audacity3-ci/leading-blank-line.patch to the client for this run (without it the run shows the blank-first-line bug)'
+        type: boolean
+        default: false
+  schedule:
+    - cron: '17 3 * * *'
+permissions: {}
+concurrency:
+  group: real-audacity3-${{ github.ref }}
+  cancel-in-progress: false
+jobs:
+  real-audacity3:
+    name: Audacity 3.7.7 over mod-script-pipe
+    # A scheduled run needs the owner's opt-in; a dispatch always runs.
+    if: github.event_name == 'workflow_dispatch' || vars.REAL_AUDACITY_NIGHTLY == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    permissions:
+      contents: read
+    steps:
+      - name: Choose the work folder
+        run: echo "NU_AUDACITY_WORK=$RUNNER_TEMP/nu-audacity" >> "$GITHUB_ENV"
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5.6.0
+        with:
+          go-version: '1.27.2'
+          cache-dependency-path: apps/desktop/go.sum
+      - name: Install the display, audio and helper packages
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends xvfb pulseaudio pulseaudio-utils libasound2-plugins xdotool ffmpeg imagemagick
+      # The key is the pinned hashes' version: a new pin in run.sh is a new key. The recordings are keyed by the fixture's own pins.
+      - uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+        with:
+          path: |
+            ${{ env.NU_AUDACITY_WORK }}/bin/*.AppImage
+            ${{ env.NU_AUDACITY_WORK }}/fixtures/*.mp3
+          key: real-audacity3-${{ hashFiles('scripts/research/real-audacity3-ci/run.sh', 'tests/fixtures/audio/librivox-alice/sources.json') }}
+      - name: Run the Audacity tests
+        env:
+          MODE: ${{ inputs.mode || 'all' }}
+          WITH_REPLY_PATCH: ${{ inputs.with-reply-patch && '1' || '' }}
+        run: |
+          set -o pipefail
+          mkdir -p "$NU_AUDACITY_WORK"
+          NU_AUDACITY_WITH_REPLY_PATCH="$WITH_REPLY_PATCH" scripts/research/real-audacity3-ci/run.sh "$MODE" 2>&1 | tee "$NU_AUDACITY_WORK/run.log"
+      - name: Summarise the rows
+        if: always()
+        run: |
+          {
+            echo '### Real Audacity 3: one line per test and subtest'
+            echo '```'
+            grep -E '^\s*--- (PASS|FAIL|SKIP)|^(ok|FAIL|PASS)\b|\[real-audacity3\]' "$NU_AUDACITY_WORK/run.log" || echo 'no output'
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+      # No AppImage and no extracted tree: only what the tests wrote.
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: always()
+        with:
+          name: real-audacity3
+          path: |
+            ${{ env.NU_AUDACITY_WORK }}/run.log
+            ${{ env.NU_AUDACITY_WORK }}/out/
+            ${{ env.NU_AUDACITY_WORK }}/logs/
+          if-no-files-found: warn
+          retention-days: 14

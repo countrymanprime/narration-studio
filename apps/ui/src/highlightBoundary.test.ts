@@ -13,7 +13,9 @@ import { describe, expect, test } from 'vitest';
 // to `eslint.config.js`, and docs/design/design-system.md#base-ui-wrappers already keeps the Base UI boundary in this style, with a
 // bad fixture per form of the violation. Should the lint rule be wanted later, the selector is
 // `JSXOpeningElement[name.name='mark']`.
+// `KindMark` is the kind-registry sibling of `Highlight` (docs/research/finding-colours-and-chips.md section 5.1): the pages move from the one to the other.
 const HOME = 'src/components/primitives/Highlight.tsx';
+const HOMES = [HOME, 'src/components/primitives/KindMark.tsx'];
 
 // The one deliberate exception: the Script reader's Find bar marks a match in the search colour, which is not highlighted entry text.
 // The count is pinned too, so a second `<mark>` with another meaning cannot ride on the entry.
@@ -67,12 +69,12 @@ const marksByFile = new Map(
 
 describe('one Highlight for highlighted text', () => {
   test('no file writes <mark> except Highlight and the allowlisted exception', () => {
-    const offenders = [...marksByFile.keys()].filter((file) => file !== HOME && !(file in ALLOWED));
+    const offenders = [...marksByFile.keys()].filter((file) => !HOMES.includes(file) && !(file in ALLOWED));
     expect(offenders, 'Render highlighted text with the Highlight primitive, not <mark>').toEqual([]);
   });
 
   test('Highlight still writes the mark, and every allowlist entry is still needed and says why', () => {
-    expect(marksByFile.get(HOME), `${HOME} is where <mark> lives`).toBeGreaterThan(0);
+    for (const home of HOMES) expect(marksByFile.get(home), `${home} is where <mark> lives`).toBeGreaterThan(0);
     for (const [file, { marks, reason }] of Object.entries(ALLOWED)) {
       expect(marksByFile.get(file), `${file} no longer writes exactly ${marks} <mark>: delete or update its allowlist entry`).toBe(marks);
       expect(reason.length, `${file} needs a reason`).toBeGreaterThan(10);

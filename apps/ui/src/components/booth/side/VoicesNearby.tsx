@@ -78,7 +78,7 @@ function VoiceRow({ voice, samples }: { voice: NearbyVoice; samples: BoothSample
         ) : null}
         <span className="flex flex-1 flex-col gap-0.5">
           {voice.aliases.map((alias) => (
-            <span className="w-fit rounded-full bg-[var(--surface-muted)] px-2 text-xs" key={alias} data-speaker={alias}>
+            <span className="w-fit rounded-full bg-[var(--surface-2)] px-2 text-xs" key={alias} data-speaker={alias}>
               {alias}
             </span>
           ))}

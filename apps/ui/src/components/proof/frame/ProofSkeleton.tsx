@@ -8,7 +8,7 @@ export function ProofSkeleton() {
   return (
     <div className="flex min-h-full flex-col">
       <div className="grid flex-1 gap-4 min-[1180px]:grid-cols-[minmax(0,1fr)_380px]">
-        <section aria-label="Proof" className="flex min-w-0 flex-col gap-3 rounded-[var(--radius-panel)] border border-[var(--border)] bg-[var(--surface)] p-4">
+        <section aria-label="Proof" className="flex min-w-0 flex-col gap-3 rounded-[var(--radius-card)] border border-[var(--border)] bg-[var(--surface)] p-4">
           <div className="flex flex-wrap items-center gap-3">
             <Heading title="Proof" />
             <Skeleton className="h-8 w-56 max-w-full" />
@@ -19,7 +19,7 @@ export function ProofSkeleton() {
             <Skeleton className="h-40" />
           </LoadingRegion>
         </section>
-        <div aria-hidden="true" className="flex min-w-0 flex-col gap-3 rounded-[var(--radius-panel)] border border-[var(--border)] bg-[var(--surface)] p-4">
+        <div aria-hidden="true" className="flex min-w-0 flex-col gap-3 rounded-[var(--radius-card)] border border-[var(--border)] bg-[var(--surface)] p-4">
           <Skeleton className="w-24" />
           {[0, 1, 2, 3].map((row) => (
             <Skeleton key={row} className="h-10" />

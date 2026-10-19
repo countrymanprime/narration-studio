@@ -1,5 +1,6 @@
 import type { KeyboardEventHandler } from 'react';
 import { IconButton } from '../../primitives/IconButton';
+import { statusLabel, statusTone, type StatusId } from '../../../kinds/statusTone';
 import { StatusBadge } from '../../primitives/StatusBadge';
 import { Diff } from './TakeDiff';
 import { MiniWave } from './MiniWave';
@@ -31,9 +32,9 @@ const takeRowId = (passageId: string, takeId: string): string => `take-${passage
 const takesGroupId = (passageId: string): string => `takes-${passageId}`;
 
 /** How the take stands: kept (the DAW said so), the one playing in the DAW, or muted. */
-function stateOf(take: LineTake, keptId: string | null): { label: string; tone: 'success' | 'info' | 'neutral' } {
-  if (keptId === take.id) return { label: 'Kept', tone: 'success' };
-  return take.active ? { label: 'Active', tone: 'info' } : { label: 'Muted', tone: 'neutral' };
+function stateOf(take: LineTake, keptId: string | null): StatusId {
+  if (keptId === take.id) return 'kept_take';
+  return take.active ? 'active_take' : 'muted';
 }
 
 function TakeRow({ passage, take, suggestedId, ...rest }: TakeLinesProps & { take: LineTake; suggestedId: string | null }) {
@@ -52,8 +53,8 @@ function TakeRow({ passage, take, suggestedId, ...rest }: TakeLinesProps & { tak
     >
       <div className="flex flex-wrap items-center gap-2">
         <span className="font-['IBM_Plex_Mono',ui-monospace,monospace] font-medium">{take.label}</span>
-        <StatusBadge tone={state.tone} label={state.label} shape="tag" />
-        {suggestedId === take.id ? <StatusBadge tone="accent" label="Suggested" shape="tag" /> : null}
+        <StatusBadge tone={statusTone(state)} label={statusLabel(state)} shape="tag" />
+        {suggestedId === take.id ? <StatusBadge tone={statusTone('suggested_take')} label={statusLabel('suggested_take')} shape="tag" /> : null}
         <span className="min-w-[3rem] flex-1" style={{ maxWidth: `${Math.max(3, Math.round(take.sourceLength * 16))}px` }}>
           <MiniWave id={take.id} seconds={take.sourceLength} />
         </span>
@@ -110,10 +111,10 @@ export function TakeLines(props: TakeLinesProps) {
       aria-activedescendant={props.onTake ? takeRowId(passage.id, props.onTake) : undefined}
       data-takes={passage.id}
       onKeyDown={props.onKeyDown}
-      className="flex flex-col gap-2 border-l border-[var(--line)] pl-3"
+      className="flex flex-col gap-2 border-l border-[var(--border)] pl-3"
     >
       <Suggested suggestion={suggestion} labelOf={labelOf} />
-      <div className="flex flex-col divide-y divide-[var(--line)]">
+      <div className="flex flex-col divide-y divide-[var(--border)]">
         {passage.takes.map((t) => (
           <TakeRow key={t.id} {...props} take={t} suggestedId={suggestion.take} />
         ))}

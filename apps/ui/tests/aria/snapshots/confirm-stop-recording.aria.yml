@@ -1,6 +1,10 @@
 # Leaving the Booth during a take: the page behind the confirm is aria-hidden, so <body> holds the alert dialog and what
 # Base UI leaves exposed on purpose - the live regions (the page's and the overlay host's toast pairs, the first portalled to <body> by Toast.tsx, and the announcer).
 - /children: equal
+# The Booth's one voice-sample announcer (SamplePlayerAnnouncement) is a polite live region under <main>, so it stays exposed behind the
+# modal like the toast regions and is empty here: nothing is playing, and a sample is refused during a take.
+- main:
+  - paragraph
 - status
 - alert
 - status

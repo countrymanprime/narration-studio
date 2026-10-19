@@ -30,7 +30,7 @@ export function BackupsList({
 }) {
   if (!list.length) {
     return (
-      <div className="rounded-[var(--radius-card)] border border-[var(--line)] px-3 py-8 text-center">
+      <div className="rounded-[var(--radius-card)] border border-[var(--border)] px-3 py-8 text-center">
         <h3 className="m-0 font-['Barlow_Condensed',sans-serif] text-xl font-semibold">{gate.ok ? BACKUPS_TEXT.none : gate.reason || BACKUPS_TEXT.off}</h3>
       </div>
     );
