@@ -51,6 +51,9 @@ Every row was observed by the real-REAPER CI run (`scripts/ci/real-reaper`, [the
 | Reopening | `Main_openProject('noprompt:' .. rpp)` clears the undo history, so nothing can be undone after a save-and-reload. |
 | Regions | `AddProjectMarker2` keeps the colour it is given; `SetProjectMarker4(.., 0, 0)` on an existing region moves it and keeps its number and colour. |
 | Render | The master-mix render (`RENDER_SETTINGS` 0) runs with no audio device and with one; a JSFX chain on the master shows in the rendered samples; an item's `D_VOL` is -6.00 dB in the file at 0.501187. |
+| FX switches | `TakeFX_SetEnabled` writes one "FX bypass toggle: …" undo point per change outside an undo block; inside one the change is the block's own point, and a block closed with an empty description still writes the point with that automatic label. Setting an FX's Bypass setting (`TakeFX_SetParam`, listed after the FX's own settings with Wet and Delta) bypasses it with no point at once and an "Edit FX parameter" point a moment later. |
+| Volume envelope | Making a take's volume envelope (action 40693) gives it a point at 0 s of its own, in fader scaling (716.21785 is 0 dB). The bridge's lowered stretches measured -9 dB and a click dip -30 dB in a render. |
+| Undo of a cut | One `Undo_DoUndo2` reverses a `delete_range` block whole, the Cuts track it added and the room-tone items included; `Undo_CanUndo2` names the block's label right after it closes. |
 | Audio device | With `jackd -d dummy` running, REAPER opens it by itself (`GetAudioDeviceInfo('MODE')` is `JACK`, 2 in, 2 out), plays, records silence and stops. Its "Files recorded" prompt blocks every stop until `promptendrec=0` is in `reaper.ini`. |
 
 ## Documentation and research, not run in REAPER
