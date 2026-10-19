@@ -186,6 +186,18 @@ function M.new_registry()
   return registry
 end
 
+-- Loads an FX chain through `add(candidate)`, which is TrackFX_AddByName or TakeFX_AddByName with its other arguments bound
+-- and answers the first new FX's index, or -1. REAPER 7.82 on Linux loads a chain by its name relative to FXChains (forward
+-- slashes, the extension) and answers -1 for the file's full path (the real-REAPER CI run, 2026-10-19), so the listed name goes
+-- first and the full path is the fallback for a REAPER that behaves the other way round. Answers the index, or -1.
+function M.add_chain(add, name, path)
+  local index = add(name)
+  if index < 0 and path then
+    index = add(path)
+  end
+  return index
+end
+
 M.SEP = SEP
 M.join = join
 M.encode = encode

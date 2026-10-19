@@ -837,10 +837,20 @@ function Fake:add_item_api(api)
     send.vol = value
     return true
   end
+  -- What REAPER 7.82 on Linux does with an FX chain's name (the real-REAPER CI run, 2026-10-19): a name relative to the FXChains
+  -- folder, with forward slashes and the extension, loads; the file's full path does not (-1). fake.fx_full_path_loads and
+  -- fake.fx_relative_fails model a REAPER that behaves the other way round.
+  function fake.chain_name_loads(name)
+    local absolute = name:match('^/') ~= nil or name:match('^%a:[\\/]') ~= nil or name:match('^\\\\') ~= nil
+    if absolute then
+      return fake.fx_full_path_loads == true
+    end
+    return not fake.fx_relative_fails
+  end
   -- Track FX (apply_fx_chain): a chain adds fake.chain_fx_count FX (1 unless set); fake.fx_load_fails refuses it.
   function api.TrackFX_AddByName(track, name, rec_fx, instantiate)
     fake.calls[#fake.calls + 1] = { name = 'TrackFX_AddByName', fx = name, rec_fx = rec_fx, instantiate = instantiate }
-    if fake.fx_load_fails then
+    if fake.fx_load_fails or not fake.chain_name_loads(name) then
       return -1
     end
     track.fx = track.fx or {}
@@ -1085,7 +1095,7 @@ function Fake:add_take_api(api)
   -- fake.calls.
   function api.TakeFX_AddByName(take, name, instantiate)
     fake.calls[#fake.calls + 1] = { name = 'TakeFX_AddByName', fx = name, instantiate = instantiate }
-    if fake.fx_load_fails then
+    if fake.fx_load_fails or not fake.chain_name_loads(name) then
       return -1
     end
     take.fx = take.fx or {}

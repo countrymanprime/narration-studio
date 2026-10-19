@@ -42,7 +42,7 @@
 -- in REAPER's own folder listing, part by part, and its file be there, and the path is built here. The command never loads
 -- from a path the host sent. (list_fx_chains also stops at 500 chains; a chain past that is accepted here.) In one undo
 -- block it splits the item at both ends as delete_range does, adds the chain to the middle piece's active take with
--- TakeFX_AddByName(take, path, -1), and records the chain name and the GUIDs of the FX it added in the take's P_EXT.
+-- TakeFX_AddByName (core.add_chain: the listed name first, the full path as the fallback; REAPER 7.82 on Linux refuses the full path), and records the chain name and the GUIDs of the FX it added in the take's P_EXT.
 -- fade_ms sets the fade at each new seam (the neighbours' and the middle piece's). A chain that adds no FX answers ERROR,
 -- saying one Undo rejoins the item when it was split. Answers RANGE_FX_APPLIED|run|middleItemGuid|middleTakeGuid|chain|
 -- undoPoints.
@@ -652,7 +652,9 @@ local function apply_fx_range(session_dir, run_id, guid_text, start_text, end_te
   if not failure then
     take = reaper.GetActiveTake(middle)
     local before = reaper.TakeFX_GetCount(take)
-    local index = reaper.TakeFX_AddByName(take, path, -1)
+    local index = core.add_chain(function(candidate)
+      return reaper.TakeFX_AddByName(take, candidate, -1)
+    end, name, path)
     local count = reaper.TakeFX_GetCount(take)
     if index < 0 or count <= before then
       failure = 'REAPER did not load the FX chain.'

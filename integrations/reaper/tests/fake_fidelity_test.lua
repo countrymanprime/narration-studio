@@ -139,3 +139,17 @@ H.test('Undo_CanUndo2 names a closed block, and one Undo_DoUndo2 takes it off th
   H.eq(reaper_api.Undo_CanUndo2(0), nil)
   H.eq(reaper_api.Undo_DoUndo2(0), 0)
 end)
+
+-- Observed in REAPER 7.82 on Linux by the real-REAPER CI run, 2026-10-19 (scripts/ci/real-reaper, docs/research/real-reaper-ci-integration.md).
+
+H.test('7.82/Linux: an FX chain loads by its name relative to FXChains and not by its full path', function()
+  local reaper_api, fake = api()
+  local track = fake:add_track('T')
+  H.eq(reaper_api.TrackFX_AddByName(track, '/home/me/.config/REAPER/FXChains/Voice/Test EQ.RfxChain', false, -1), -1)
+  H.eq(reaper_api.TrackFX_GetCount(track), 0)
+  H.eq(reaper_api.TrackFX_AddByName(track, 'Voice/Test EQ.RfxChain', false, -1), 0)
+  H.eq(reaper_api.TrackFX_GetCount(track), 1)
+  local take = fake:add_item(track, { source = 'a.wav' }).takes[1]
+  H.eq(reaper_api.TakeFX_AddByName(take, 'C:\\Users\\me\\AppData\\Roaming\\REAPER\\FXChains\\Voice\\Test EQ.RfxChain', -1), -1)
+  H.eq(reaper_api.TakeFX_AddByName(take, 'Voice/Test EQ.RfxChain', -1), 0)
+end)

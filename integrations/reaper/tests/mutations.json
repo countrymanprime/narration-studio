@@ -1230,10 +1230,22 @@
     "replace": "    take = reaper.GetActiveTake(item)"
   },
   {
+    "name": "apply_fx_chain loads the chain by its full path only",
+    "file": "narration_workspace.lua",
+    "find": "end, name, path)\n  local added",
+    "replace": "end, path, nil)\n  local added"
+  },
+  {
+    "name": "apply_fx_range loads the chain by its full path only",
+    "file": "narration_range.lua",
+    "find": "end, name, path)\n    local count = reaper.TakeFX_GetCount(take)",
+    "replace": "end, path, nil)\n    local count = reaper.TakeFX_GetCount(take)"
+  },
+  {
     "name": "apply_fx_range: the load opens a second undo block",
     "file": "narration_range.lua",
-    "find": "    local index = reaper.TakeFX_AddByName(take, path, -1)",
-    "replace": "    reaper.Undo_EndBlock2(0, UNDO_ADD_CHAIN, -1)\n    reaper.Undo_BeginBlock2(0)\n    local index = reaper.TakeFX_AddByName(take, path, -1)"
+    "find": "    local index = core.add_chain(function(candidate)",
+    "replace": "    reaper.Undo_EndBlock2(0, UNDO_ADD_CHAIN, -1)\n    reaper.Undo_BeginBlock2(0)\n    local index = core.add_chain(function(candidate)"
   },
   {
     "name": "apply_fx_range: a chain that loads nothing is answered as applied",

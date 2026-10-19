@@ -183,7 +183,7 @@ local function find_track(guid_text)
 end
 
 -- An FX chain goes on a whole track or the master track, never on an item or take: TrackFX_AddByName with
--- the chain's full path, built here from REAPER's resource path, in one undo block.
+-- the chain's listed name (core.add_chain; the full path built here from REAPER's resource path is the fallback), in one undo block.
 local function apply_fx_chain(session_dir, run_id, track_text, name)
   if not reaper.APIExists('TrackFX_AddByName') or not reaper.APIExists('TrackFX_GetCount') or not reaper.APIExists('GetMasterTrack') then
     event(session_dir, 'ERROR', run_id, 'This REAPER version cannot apply an FX chain.')
@@ -206,7 +206,9 @@ local function apply_fx_chain(session_dir, run_id, track_text, name)
   local label = answer == 'master' and 'the master track' or select(2, reaper.GetTrackName(track))
   local before = reaper.TrackFX_GetCount(track)
   reaper.Undo_BeginBlock2(0)
-  local index = reaper.TrackFX_AddByName(track, path, false, -1)
+  local index = core.add_chain(function(candidate)
+    return reaper.TrackFX_AddByName(track, candidate, false, -1)
+  end, name, path)
   local added = reaper.TrackFX_GetCount(track) - before
   reaper.Undo_EndBlock2(0, 'Narration Utils: apply FX chain ' .. name .. ' to ' .. label, -1)
   reaper.UpdateArrange()

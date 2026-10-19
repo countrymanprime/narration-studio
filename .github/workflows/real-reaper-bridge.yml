@@ -1,8 +1,9 @@
 name: Real REAPER bridge check
 # PROTOTYPE, manual only (workflow_dispatch); nothing requires it. Installs the REAPER evaluation build on a GitHub-hosted Windows runner
 # (pinned SHA-256), fetches one pinned LibriVox chapter, starts REAPER isolated with the real narration bridge loaded and drives it
-# over the file protocol: ping, project, transport, regions, per-chapter render configuration and a real render. Report per action
-# in the job summary. Design, limits and the phased plan: docs/research/real-reaper-ci-integration.md. The runners have no audio device.
+# over the file protocol: ping, project, transport, regions, per-chapter render configuration and a real render, then the scenario
+# suites (scripts/ci/real-reaper/scenarios_*.py: arrange a scratch project, send each Experimental command, assert on what REAPER holds).
+# Report per action and per capability in the job summary. Design, limits and the phased plan: docs/research/real-reaper-ci-integration.md. The runners have no audio device.
 # The Linux job ran green locally on 2026-10-19 (REAPER 7.82 under xvfb, about 9 s) but has not run on a GitHub runner; the Windows job has not run at all.
 on:
   workflow_dispatch:
@@ -30,13 +31,14 @@ jobs:
   linux:
     name: Real REAPER bridge actions (Linux, xvfb)
     runs-on: ubuntu-24.04
-    timeout-minutes: 15
+    timeout-minutes: 25
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - name: Install xvfb and REAPER's GTK runtime
-        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends xvfb libgtk-3-0t64 libasound2t64
+      # jackd2 is the sound server with no hardware (`jackd -d dummy`): REAPER connects to it by itself, so the rows that play and record run.
+      - name: Install xvfb, REAPER's GTK runtime and the JACK server
+        run: sudo apt-get update && sudo DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends xvfb libgtk-3-0t64 libasound2t64 jackd2
       - name: Download the pinned REAPER tarball, fetch the chapter, drive the bridge
         env:
           REAPER_VERSION: ${{ inputs.linux-reaper-version }}

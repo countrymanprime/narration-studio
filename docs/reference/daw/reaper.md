@@ -40,6 +40,19 @@ Every row was observed in REAPER 7.80/x64 on Windows, scripted, in an isolated r
 | Active project | `EnumProjects(-1, '')` returns the active tab's `.rpp`, and the exact empty string for an unsaved project. | [S6](../../research/reaper-spike-s6-daw-reachability.md) |
 | Startup | `reaper.exe -cfgfile <cfg> "<project.rpp>" "<script.lua>"` runs the script at startup with the project already open. | S6 |
 
+## What REAPER 7.82 on Linux was seen to do
+
+Every row was observed by the real-REAPER CI run (`scripts/ci/real-reaper`, [the research note](../../research/real-reaper-ci-integration.md), the [run record](../../operations/reaper-verification-pass.md#real-reaper-ci-run-linux)) on 2026-10-19, with the audio device closed or a `jackd -d dummy` device. `fake_fidelity_test.lua` pins the ones the fake models.
+
+| Area | What REAPER does |
+| --- | --- |
+| FX chains | `TrackFX_AddByName` and `TakeFX_AddByName` load a `.RfxChain` by its name relative to `FXChains` with forward slashes and the extension (`Voice/Test EQ.RfxChain`), and answer -1 for its full path, a backslash name, a different case or the name without its extension. The bridge loads by the listed name first and falls back to the full path. |
+| Change count | `GetProjectStateChangeCount` rises with an undo point; an API edit made outside an undo block leaves it as it was. |
+| Reopening | `Main_openProject('noprompt:' .. rpp)` clears the undo history, so nothing can be undone after a save-and-reload. |
+| Regions | `AddProjectMarker2` keeps the colour it is given; `SetProjectMarker4(.., 0, 0)` on an existing region moves it and keeps its number and colour. |
+| Render | The master-mix render (`RENDER_SETTINGS` 0) runs with no audio device and with one; a JSFX chain on the master shows in the rendered samples; an item's `D_VOL` is -6.00 dB in the file at 0.501187. |
+| Audio device | With `jackd -d dummy` running, REAPER opens it by itself (`GetAudioDeviceInfo('MODE')` is `JACK`, 2 in, 2 out), plays, records silence and stops. Its "Files recorded" prompt blocks every stop until `promptendrec=0` is in `reaper.ini`. |
+
 ## Documentation and research, not run in REAPER
 
 | Subject | Page |
