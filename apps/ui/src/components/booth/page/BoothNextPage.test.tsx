@@ -6,6 +6,17 @@ import { afterEach, describe, expect, it, vi, beforeEach } from 'vitest';
 
 const host = vi.hoisted(() => ({ toggleFullscreen: vi.fn(async () => true), exitFullscreen: vi.fn(async () => {}) }));
 vi.mock('../../../api/hostWindow', () => host);
+const tone = vi.hoisted(() => ({ order: [] as string[], gate: null as Promise<void> | null }));
+vi.mock('../takeTone', async (original) => {
+  const actual = await original<typeof import('../takeTone')>();
+  return {
+    ...actual,
+    playTakeTone: vi.fn(async () => {
+      tone.order.push('tone');
+      await tone.gate;
+    }),
+  };
+});
 
 import type { Bookmark } from '../../../api/contracts/bookmarks';
 import type { DawCapabilities, DawResult } from '../../../api/contracts/daw';
@@ -175,6 +186,34 @@ describe('space-records-and-stops-and-nothing-else-records', () => {
     await waitFor(() => expect(page.daw.recordStop).toHaveBeenCalledTimes(1));
     await waitFor(() => expect(page.passageMapRecordRun).toHaveBeenCalledTimes(1));
     expect(page.passageMapRecordRun.mock.calls[0]).toMatchObject(['c1', [{ kind: 'start', pid: 'p1' }, { kind: 'stop' }]]);
+  });
+
+  it('plays the start tone before the take starts, and none to stop it', async () => {
+    tone.order = [];
+    const page = renderPage();
+    const begin = page.daw.recordStart.getMockImplementation()!;
+    page.daw.recordStart.mockImplementation(async (...args) => {
+      tone.order.push('start');
+      return begin(...args);
+    });
+    await record(page);
+    expect(tone.order).toEqual(['tone', 'start']);
+    await space();
+    await waitFor(() => expect(page.daw.recordStop).toHaveBeenCalledTimes(1));
+    expect(tone.order).toEqual(['tone', 'start']);
+  });
+
+  it('holds the take until the tone has ended', async () => {
+    let release = () => {};
+    tone.gate = new Promise<void>((resolve) => (release = resolve));
+    const page = renderPage();
+    await ready();
+    await space();
+    await settle();
+    expect(page.daw.recordStart).not.toHaveBeenCalled();
+    release();
+    tone.gate = null;
+    await waitFor(() => expect(page.daw.recordStart).toHaveBeenCalledTimes(1));
   });
 
   it('says the take ended in a status region once it stops, and nothing while it records', async () => {
