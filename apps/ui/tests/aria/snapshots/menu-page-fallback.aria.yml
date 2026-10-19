@@ -1,9 +1,6 @@
 # The menu on empty space in <main> (docs/architecture/studio-shell-and-registries.md#command-providers-and-go-to): the shell's fallback items, then the tail every menu ends with. A step that cannot run says why.
 - menu:
-  - menuitem "Go to…"
-  - menuitem "Zoom in"
-  - menuitem "Zoom out Already at the smallest size" [disabled]
-  - menuitem /Reset zoom Already \d+%/ [disabled]
-  - menuitem "Use the dark theme"
-  - menuitem "Jump menu…"
-  - menuitem "Find a page, chapter or command"
+  - menuitem "Go to"
+  - menuitem /Jump menu… Ctrl K/
+  - menuitem /Find a page, chapter or command Ctrl F/
+  - menuitem "View"
