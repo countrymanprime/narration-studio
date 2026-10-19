@@ -1,7 +1,8 @@
 // @vitest-environment jsdom
-import { cleanup, render } from '@testing-library/react';
+import { act, cleanup, render } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { overlay } from '../../../overlay/overlayService';
+import { ANNOUNCE_SETTLE_MS } from '../script/useAnnounceCursor';
 import { useAnnouncePlayback } from './useAnnouncePlayback';
 
 function Probe({ playing }: { playing: boolean }) {
@@ -10,11 +11,13 @@ function Probe({ playing }: { playing: boolean }) {
 }
 let said: string[];
 beforeEach(() => {
+  vi.useFakeTimers();
   said = [];
   vi.spyOn(overlay, 'announce').mockImplementation((text) => void said.push(text));
 });
 afterEach(() => {
   cleanup();
+  vi.useRealTimers();
   vi.restoreAllMocks();
 });
 
@@ -29,6 +32,8 @@ describe('playback is announced when it starts and stops', () => {
     view.rerender(<Probe playing />);
     expect(said).toEqual(['Playing']);
     view.rerender(<Probe playing={false} />);
+    expect(said).toEqual(['Playing']);
+    act(() => void vi.advanceTimersByTime(ANNOUNCE_SETTLE_MS + 50));
     expect(said).toEqual(['Playing', 'Stopped']);
   });
 
