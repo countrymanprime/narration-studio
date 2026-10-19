@@ -26,13 +26,17 @@ export function playSwitchAvailable(): boolean {
   return import.meta.env.VITE_DEMO === '1';
 }
 
+// The choice made in this window, so it holds until the page reloads when there is no storage to keep it (the demo inside the site's sandboxed
+// window frame, or full storage).
+let playThisWindow = false;
+
 /** Whether the demo visitor switched Play animations on in this browser. Always false outside the demo. */
 export function readStoredPlay(): boolean {
   if (!playSwitchAvailable()) return false;
   try {
-    return localStorage.getItem(PLAY_MOTION_STORAGE_KEY) === '1';
+    return localStorage.getItem(PLAY_MOTION_STORAGE_KEY) === '1' || playThisWindow;
   } catch {
-    return false;
+    return playThisWindow;
   }
 }
 
@@ -57,14 +61,12 @@ export function applyMotion(preference: MotionPreference): void {
 /** The demo's Play animations switch: keeps the choice for this browser and applies it at once. Off goes back to the Motion setting. */
 export function setPlayAnimations(on: boolean): void {
   if (!playSwitchAvailable()) return;
+  playThisWindow = on;
   try {
     if (on) localStorage.setItem(PLAY_MOTION_STORAGE_KEY, '1');
     else localStorage.removeItem(PLAY_MOTION_STORAGE_KEY);
   } catch {
     // Storage unavailable: the choice holds for this window only.
-    if (on) document.documentElement.dataset.motion = 'play';
-    else applyMotion(readStoredMotion());
-    return;
   }
   applyMotion(readStoredMotion());
 }

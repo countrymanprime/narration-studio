@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { createTeleprompterMock } from './teleprompterMock';
+import { createTeleprompterMock, MOCK_READING_WORDS_PER_MINUTE } from './teleprompterMock';
 import { mockChapterTrackMatch } from './chapterTrackMatchMock';
 import { tokenize } from '../components/booth/readerModel';
 import { MOCK_RESUME_SEEDS } from './resumeMockSeed';
@@ -126,8 +126,8 @@ describe('teleprompter mock', () => {
     const states: TeleprompterState[] = [];
     mock.subscribeTeleprompterState((state) => states.push(state));
     await mock.teleprompterStart(options);
-    // 32 tracked words * REPLAY_SECONDS_PER_WORD (0.45) is a 14.4s replay, so the auto-stop timer (armed at the end,
-    // AUTO_STOP_MS later) fires at ~19.4s: 17s lands after the replay ends but before it fires.
+    // 32 tracked words at MOCK_READING_WORDS_PER_MINUTE (150, 0.4 s a word) is a 12.8s replay, so the auto-stop timer (armed at the end,
+    // AUTO_STOP_MS later) fires at ~17.8s: 17s lands after the replay ends but before it fires.
     await vi.advanceTimersByTimeAsync(17_000);
     expect(states.at(-1)?.message).toMatch(/Stopping in 5 seconds/);
 
@@ -135,6 +135,44 @@ describe('teleprompter mock', () => {
     await vi.runAllTimersAsync();
 
     expect(states.at(-1)).toMatchObject({ phase: 'running', message: 'Listening…' });
+  });
+
+  it('reads a long chapter at 150 words a minute, block by block, and reports the end only at the end', async () => {
+    expect(MOCK_READING_WORDS_PER_MINUTE).toBe(150);
+    // 2 title words and 300 paragraph words: 302 words read in 302 / 2.5 = 120.8 s.
+    const long = Array.from({ length: 10 }, (_, index) => ({ ...paragraphs[0], id: `p-${index}`, index, text: `${sentence} ${sentence}` }));
+    const mock = build({ paragraphs: () => long });
+    const reads: Array<{ at: number; read: number; status: string }> = [];
+    const started = Date.now();
+    mock.subscribeTeleprompterEvent((event) => {
+      if (event.type === 'position') reads.push({ at: (Date.now() - started) / 1000, read: event.read, status: event.status });
+    });
+    await mock.teleprompterStart(options);
+    await vi.advanceTimersByTimeAsync(125_000);
+
+    const furthest = (seconds: number) => Math.max(0, ...reads.filter((entry) => entry.at <= seconds).map((entry) => entry.read));
+    // Never ahead of 2.5 words a second (a block's last word lands with its last second), and never far behind it once a block is read.
+    for (const seconds of [10, 20, 40, 60, 80, 100, 120]) expect(furthest(seconds)).toBeLessThanOrEqual(Math.ceil(seconds * 2.5));
+    expect(furthest(40)).toBeGreaterThanOrEqual(100);
+    expect(furthest(80)).toBeGreaterThanOrEqual(200);
+    expect(furthest(120)).toBeGreaterThanOrEqual(300);
+    expect(furthest(121)).toBe(302);
+    // Only the chapter's last word says done, so the auto-stop is not armed between blocks.
+    expect(reads.filter((entry) => entry.status === 'done').every((entry) => entry.read === 302)).toBe(true);
+    expect(reads.some((entry) => entry.status === 'done')).toBe(true);
+    await mock.teleprompterStop();
+  });
+
+  it('raises the recorded flags once, in the first block, however long the chapter', async () => {
+    const long = Array.from({ length: 10 }, (_, index) => ({ ...paragraphs[0], id: `p-${index}`, index, text: `${sentence} ${sentence}` }));
+    const mock = build({ paragraphs: () => long });
+    const events: TeleprompterEvent[] = [];
+    mock.subscribeTeleprompterEvent((event) => events.push(event));
+    await mock.teleprompterStart(options);
+    await vi.runAllTimersAsync();
+    const flags = events.flatMap((event) => (event.type === 'flag' ? [event] : []));
+    expect(flags.map((flag) => flag.id)).toEqual([1, 2, 3, 4, 5, 6]);
+    expect(Math.max(...flags.map((flag) => flag.end))).toBeLessThanOrEqual(100);
   });
 
   it('replays the recorded suspected flags, rescaled onto the chapter being read', async () => {

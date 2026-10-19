@@ -1,8 +1,10 @@
-import { useState } from 'react';
+import { useEffect, useState, useSyncExternalStore } from 'react';
 import { useInRouterContext, useLocation } from 'react-router-dom';
 import { readStoredPlay, setPlayAnimations } from '../../motion';
 import { Switch } from '../primitives/Switch';
 import { guideHref } from './demoGuide';
+import { demoToolbarItem, demoToolbarSlots } from './demoToolbar';
+import { inSiteWindow } from './siteWindow';
 
 const REPO_URL = 'https://github.com/countrymanprime/narration-utils';
 
@@ -39,7 +41,8 @@ function HowToUseThisPage() {
 function PlayAnimationsSwitch() {
   const [on, setOn] = useState(readStoredPlay);
   return (
-    <span className="inline-flex rounded-full bg-[var(--surface)] px-2.5 py-0.5 text-[var(--text)]">
+    // A plate that keeps the switch legible on the accent banner; squared, so it does not read as a status pill (badgeShapes.test.ts).
+    <span className="inline-flex rounded-md bg-[var(--surface)] px-2.5 py-0.5 text-[var(--text)]">
       <Switch
         checked={on}
         onChange={(next) => {
@@ -53,10 +56,18 @@ function PlayAnimationsSwitch() {
   );
 }
 
+// Whatever the site build put in the banner's toolbar (the Simulated DAW badge), drawn in the banner's row so it covers no page.
+function ToolbarSlot() {
+  const item = useSyncExternalStore(demoToolbarItem.subscribe, demoToolbarItem.current);
+  useEffect(() => demoToolbarSlots.enter(), []);
+  return item ? item() : null;
+}
+
 // Rendered unconditionally by every top-level screen (StartupScreen, ProjectPicker, AppShell) so
 // it shows before and after a project loads, so every page of the demo says it is a demo. Self-gates on isDemoBuild so callers never branch on it.
 export function DemoBanner() {
-  if (!isDemoBuild) return null;
+  // Inside the site's demo window the page's title bar says all of this, and the frame cannot open the site's links anyway.
+  if (!isDemoBuild || inSiteWindow()) return null;
   return (
     <div
       role="note"
@@ -69,6 +80,7 @@ export function DemoBanner() {
         View source
       </a>
       <PlayAnimationsSwitch />
+      <ToolbarSlot />
       {isSiteBuild && (
         <>
           <a href="../index.html" className="underline">

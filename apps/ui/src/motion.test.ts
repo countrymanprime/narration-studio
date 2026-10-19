@@ -237,17 +237,21 @@ describe("the demo's Play animations switch", () => {
     expect(document.documentElement.dataset.motion).toBe('reduce');
   });
 
-  it('still plays for this window when storage throws', () => {
+  it('still plays for this window when storage throws, and reads on until switched off', () => {
     vi.stubEnv('VITE_DEMO', '1');
     vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
       throw new Error('full');
     });
     setPlayAnimations(true);
     expect(document.documentElement.dataset.motion).toBe('play');
+    expect(readStoredPlay()).toBe(true);
+    setPlayAnimations(false);
+    expect(document.documentElement.dataset.motion).toBeUndefined();
   });
 
-  it('reads off when storage throws', () => {
+  it('reads off when storage throws and this window has not switched it on', () => {
     vi.stubEnv('VITE_DEMO', '1');
+    setPlayAnimations(false);
     vi.spyOn(Storage.prototype, 'getItem').mockImplementation(() => {
       throw new Error('blocked');
     });

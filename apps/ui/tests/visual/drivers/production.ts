@@ -35,7 +35,7 @@ export const productionDrivers: Record<string, Driver> = {
   },
   'no-data': async (page) => {
     await openProduction(page);
-    await page.getByText('Set a due date').waitFor();
+    await page.getByText('Set it on the Schedule').waitFor();
   },
   'on-pace': async (page) => {
     await page.clock.install({ time: MOCK_DAY });

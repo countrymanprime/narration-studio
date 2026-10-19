@@ -76,4 +76,27 @@ describe('DemoBanner', () => {
     fireEvent.click(screen.getByRole('switch', { name: 'Play animations' }));
     expect(document.documentElement.dataset.motion).toBeUndefined();
   });
+
+  it('draws nothing inside the site window, where the page around the frame says all of it', async () => {
+    vi.stubEnv('VITE_DEMO', '1');
+    vi.stubEnv('VITE_SITE', '1');
+    window.history.replaceState(null, '', '/?embed=1');
+    const { DemoBanner } = await import('./DemoBanner');
+    const { container } = render(<DemoBanner />);
+    expect(container.firstChild).toBeNull();
+    window.history.replaceState(null, '', '/');
+  });
+
+  it("draws the toolbar's item in its row, and counts itself in while it is on screen", async () => {
+    vi.stubEnv('VITE_DEMO', '1');
+    vi.stubEnv('VITE_SITE', '1');
+    const { DemoBanner } = await import('./DemoBanner');
+    const { demoToolbarSlots, setDemoToolbarItem } = await import('./demoToolbar');
+    setDemoToolbarItem(() => <button type="button">Simulated DAW · REAPER</button>);
+    const { unmount } = render(<DemoBanner />);
+    expect(screen.getByRole('note').contains(screen.getByRole('button', { name: 'Simulated DAW · REAPER' }))).toBe(true);
+    expect(demoToolbarSlots.count()).toBe(1);
+    unmount();
+    expect(demoToolbarSlots.count()).toBe(0);
+  });
 });

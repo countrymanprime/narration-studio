@@ -41,9 +41,15 @@ import type {
 const recording = parseWire(recordedStreamSchema, recordedStream, { boundary: 'mock.recording', payload: 'teleprompterRecording.json' });
 const recordingSeconds = recording.events.at(-1)?.t ?? 1;
 
+/**
+ * How fast the mock narrator reads: an average speaking rate, 150 words a minute (2.5 words a second). The recorded read-through (100 words) is
+ * replayed one block of that many words after another at this pace, never stretched over the whole chapter, so the Booth's highlight moves as fast
+ * as a person reads and no faster. The recording's own pauses and re-reads, at sentence ends among them, stay in each block.
+ */
+export const MOCK_READING_WORDS_PER_MINUTE = 150;
+const SECONDS_PER_WORD = 60 / MOCK_READING_WORDS_PER_MINUTE;
+// A session shorter than this (a few words of credits) still takes this long, as a narrator would.
 const MIN_REPLAY_SECONDS = 8;
-const MAX_REPLAY_SECONDS = 90;
-const REPLAY_SECONDS_PER_WORD = 0.45;
 const HEARD_WORDS = 6;
 const SEED_WORDS_INTO_TEXT = 30;
 // Punch and roll: a plausible reading pace and the repo default
@@ -572,29 +578,44 @@ export function createTeleprompterMock(deps: Deps): TeleprompterApi {
     return { id: `credits-${kind}`, built: buildCreditsScript(kind, text) };
   };
 
-  // Replays the recorded read-through over words `from`..end, so a session started at a word (a resume) never goes back before it.
+  // Replays the recorded read-through over words `from`..end, one block of `recording.tokens` words at a time at MOCK_READING_WORDS_PER_MINUTE, so a
+  // session started at a word (a resume) never goes back before it. Each block is scheduled when the one before it ends. The recording's flags are
+  // raised in the first block only, and only the last block reports the end of the chapter.
   const replay = (words: string[], from = 0) => {
     const total = words.length;
-    const seconds = Math.min(MAX_REPLAY_SECONDS, Math.max(MIN_REPLAY_SECONDS, (total - from) * REPLAY_SECONDS_PER_WORD));
-    const scale = (value: number) => from + Math.round((value / recording.tokens) * (total - from));
-    for (const [step, { t, event }] of recording.events.entries()) {
-      const at = (t / recordingSeconds) * seconds;
-      if (event.type === 'flag') {
-        timers.push(setTimeout(() => emit(scaleFlag(event, scale)), at * 1000));
-        continue;
+    const playBlock = (start: number, first: boolean) => {
+      const count = Math.min(recording.tokens, total - start);
+      const last = start + count >= total;
+      const seconds = first && last ? Math.max(MIN_REPLAY_SECONDS, count * SECONDS_PER_WORD) : count * SECONDS_PER_WORD;
+      const scale = (value: number) => start + Math.round((value / recording.tokens) * count);
+      for (const [step, { t, event }] of recording.events.entries()) {
+        const at = (t / recordingSeconds) * seconds;
+        if (event.type === 'flag') {
+          if (first) timers.push(setTimeout(() => emit(scaleFlag(event, scale)), at * 1000));
+          continue;
+        }
+        const read = scale(event.read);
+        const skipped: [number, number] | null = event.skipped ? [scale(event.skipped[0]), scale(event.skipped[1])] : null;
+        const status = event.status === 'done' && !last ? 'listening' : event.status;
+        const scaled: TeleprompterPosition = {
+          ...event,
+          read,
+          committed: scale(event.committed),
+          status,
+          skipped: skipped && skipped[0] < skipped[1] ? skipped : null,
+        };
+        timers.push(
+          setTimeout(() => {
+            emit(levelAt(step));
+            const heard = words.slice(Math.max(0, read - HEARD_WORDS), read);
+            if (heard.length > 0) emit({ type: 'partial', segment: 0, words: heard.map((word) => ({ word, start: at, end: at })) });
+            emit(scaled);
+          }, at * 1000),
+        );
       }
-      const read = scale(event.read);
-      const skipped: [number, number] | null = event.skipped ? [scale(event.skipped[0]), scale(event.skipped[1])] : null;
-      const scaled: TeleprompterPosition = { ...event, read, committed: scale(event.committed), skipped: skipped && skipped[0] < skipped[1] ? skipped : null };
-      timers.push(
-        setTimeout(() => {
-          emit(levelAt(step));
-          const heard = words.slice(Math.max(0, read - HEARD_WORDS), read);
-          if (heard.length > 0) emit({ type: 'partial', segment: 0, words: heard.map((word) => ({ word, start: at, end: at })) });
-          emit(scaled);
-        }, at * 1000),
-      );
-    }
+      if (!last) timers.push(setTimeout(() => playBlock(start + count, false), seconds * 1000));
+    };
+    if (from < total) playBlock(from, true);
   };
 
   // The flags a `flagged` session raised: the recorded ones (the recording's word numbers counted from the chapter's first

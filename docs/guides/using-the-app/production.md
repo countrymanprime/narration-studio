@@ -51,7 +51,7 @@ The six figures are one card; each opens the page it counts.
   the same lines, so the cells add up to the tile.
 - **Delivery check**: chapters that pass, fail or are not checked yet. It reads "Not measured
   yet" until the host reports a check per chapter.
-- **Due**: the due date and what the pace says about it. It opens [Schedule](schedule.md).
+- **Due**: the due date and what the pace says about it, or **Not set** ("Set it on the Schedule") before one is set. It opens [Schedule](schedule.md).
 
 Under the figures, **Where the book stands** splits the book's finished hours by stage, estimated
 from each chapter's own progress in five parts: **Delivered** (the chapters mastered for delivery), **Proofed**, **Edited**,
