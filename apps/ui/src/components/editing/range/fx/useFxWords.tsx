@@ -14,10 +14,10 @@ import { registerSelectionAction } from '../../bar/selectionActions';
 import { registerWordMenuSection } from '../../menu/wordMenuRegistry';
 import { summarize, type Range, type SelSummary } from '../../model';
 import { useEditingPage } from '../../script/EditingPageState';
-import { docCutsOf, snapEnd, type RangeLocator } from '../common/locate';
+import { docCutsOf, snapEnd, tokensOf, type RangeLocator } from '../common/locate';
 import { BUILT_IN, planRange, type RangePlan } from '../common/rangePlan';
 import { AddFxButton } from './FxButtons';
-import { FxDialog } from './FxDialog';
+import { FxDialog, type FxHear } from './FxDialog';
 import { applyFxCommand, fxPlanFor, removeFxCommand, type FxPlan } from './fxCommand';
 import { fxMenuItems } from './fxMenu';
 import { fxTitle } from './fxText';
@@ -64,6 +64,7 @@ export interface FxWords {
 
 const NO_ANSWER = 'Could not ask the DAW what it can do.';
 const NO_SELECTION = 'Select some words first.';
+const NOT_ON_WORDS = 'The DAW can compare an effect that is on the words. Add it first, then use Compare on the Effects tab.';
 
 /**
  * Add FX to a range of words: registers the bar and toolbar action, the word menu section, and answers the F key. Every way in lists the DAW's own
@@ -137,6 +138,38 @@ export function useFxWords({ journal, chapterId, chapterName, effects, cuts, loc
     [plan, journal, daw, log, onEffects, chapterId, locator],
   );
 
+  /**
+   * The dialog's A/B: the DAW plays the words with the chain on, then bypassed (`compareFxRange`, the Effects tab's Compare). The DAW can compare only a
+   * chain that is already on the words, so a chain not yet there is off with that sentence instead of a pretend answer.
+   */
+  const hearOf = useCallback(
+    (keys: readonly string[]): FxHear => {
+      const onWords = (chainId: string) => effects.find((f) => f.chainId === chainId && keys.every((k) => f.keys.includes(k)));
+      return {
+        reasonOf: (chainId) => (onWords(chainId) ? '' : NOT_ON_WORDS),
+        play: async (chainId) => {
+          const fx = onWords(chainId);
+          const tokens = fx ? tokensOf(locator, { keys: [...fx.keys] } as Range) : null;
+          if (!fx || !tokens) return overlay.toast(NOT_ON_WORDS, { tone: 'error' });
+          const answer = await daw.compareFxRange({ chapterId, ...tokens, chainName: fx.chainId }).catch((e: unknown) => ({
+            result: {
+              ok: false,
+              changed: false,
+              message: e instanceof Error ? e.message : String(e),
+              undoSteps: 0,
+              refused: e instanceof Error ? e.message : String(e),
+            },
+            pass: 0,
+          }));
+          if (!answer.result.ok) overlay.toast(answer.result.refused ?? answer.result.message, { tone: 'error' });
+          else if (answer.result.message) overlay.toast(answer.result.message);
+        },
+        stop: () => void daw.stopFxCompare().catch(() => undefined),
+      };
+    },
+    [effects, locator, daw, chapterId],
+  );
+
   const ask = useCallback(
     (keys: readonly string[], chainId?: string) => {
       if (!keys.length) return overlay.toast(NO_SELECTION);
@@ -162,6 +195,7 @@ export function useFxWords({ journal, chapterId, chapterName, effects, cuts, loc
             locator={locator}
             snap={snap}
             overOf={(summary) => planOf(summary).over}
+            hear={hearOf(keys)}
             onCancel={close}
             onConfirm={(summary, chain, over) => {
               close();
@@ -172,7 +206,7 @@ export function useFxWords({ journal, chapterId, chapterName, effects, cuts, loc
         ),
       });
     },
-    [doc, docCuts, refusalOf, plan, list, alignment, chapterId, chapterName, locator, planOf, run],
+    [doc, docCuts, refusalOf, plan, list, alignment, chapterId, chapterName, locator, planOf, run, hearOf],
   );
 
   const remove = useCallback(
@@ -214,9 +248,10 @@ export function useFxWords({ journal, chapterId, chapterName, effects, cuts, loc
     if (at) openMenu(at);
   }, [selected, doc, docCuts, refusalOf, openMenu]);
 
-  const latest = useRef({ openMenu, refusalOf, itemsOf, selected, effects, remove });
+  const hasList = useCallback(() => list !== null, [list]);
+  const latest = useRef({ openMenu, refusalOf, itemsOf, hasList, selected, effects, remove });
   useEffect(() => {
-    latest.current = { openMenu, refusalOf, itemsOf, selected, effects, remove };
+    latest.current = { openMenu, refusalOf, itemsOf, hasList, selected, effects, remove };
   });
   useEffect(() => {
     const removers = [
@@ -229,7 +264,14 @@ export function useFxWords({ journal, chapterId, chapterName, effects, cuts, loc
       }),
       registerWordMenuSection({
         order: 90,
-        items: ({ keys, summary }) => (summary.items.length > 0 && summary.items.every((i) => i.cut) ? [] : latest.current.itemsOf(keys, summary)),
+        items: ({ keys, summary }) => {
+          if (summary.items.length > 0 && summary.items.every((i) => i.cut)) return [];
+          // The word menu holds the DAW's effects in one "Add FX" submenu; the F key's list (the anchor's provider) stays flat.
+          const refusal = latest.current.refusalOf(summary);
+          const list = latest.current.itemsOf(keys, summary);
+          if (!latest.current.hasList()) return list;
+          return [{ key: 'fx-add', label: 'Add FX', ...(refusal ? { unavailable: refusal } : { submenu: list }), onSelect: () => {} }];
+        },
       }),
       // "Remove <chain>" for the first effect on the selected words, as the mock's menu has it.
       registerWordMenuSection({

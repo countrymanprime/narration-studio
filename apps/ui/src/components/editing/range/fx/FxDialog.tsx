@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import type { FxChoice, FxList } from '../../../../ports/daw';
 import { Button } from '../../../primitives/Button';
 import { Select } from '../../../primitives/Select';
@@ -15,6 +15,14 @@ type Acting = Exclude<RangePlan, { kind: 'refused' }>;
 
 const sec = (n: number): string => `${n.toFixed(1)} s`;
 
+/** What the A/B button does for a chain: the reason it is off, or the call that plays the words without the chain and then with it. */
+export interface FxHear {
+  reasonOf: (chainId: string) => string;
+  play: (chainId: string) => Promise<void>;
+  /** Ends a Compare still playing. */
+  stop: () => void;
+}
+
 export interface FxDialogProps {
   doc: ChapterDoc;
   keys: readonly string[];
@@ -29,6 +37,8 @@ export interface FxDialogProps {
   snap: (at: number) => Promise<SnappedEnd>;
   /** What the snapped range comes to for "Add anyway": an overlap or the Effects tab's cap, or null. */
   overOf: (summary: SelSummary) => FxOver | null;
+  /** The A/B button (the mock's `#fxhear`); without it the dialog draws none. */
+  hear?: FxHear;
   onCancel: () => void;
   onConfirm: (summary: SelSummary, chain: FxChoice, over: FxOver | null) => void;
 }
@@ -38,9 +48,16 @@ export interface FxDialogProps {
  * words, the split ends (snapped to zero crossings), the pieces either side, the chain (which can be changed here) and what the DAW does and how
  * it is undone. Cancel has the focus and changes nothing.
  */
-export function FxDialog({ doc, keys, cuts, plan, list, chainId, chapterName, locator, snap, overOf, onCancel, onConfirm }: FxDialogProps) {
+export function FxDialog({ doc, keys, cuts, plan, list, chainId, chapterName, locator, snap, overOf, hear, onCancel, onConfirm }: FxDialogProps) {
   const [chain, setChain] = useState(chainId ?? list.choices[0]?.id ?? '');
   const choice = list.choices.find((c) => c.id === chain);
+  const [hearing, setHearing] = useState(false);
+  const heard = useRef(false);
+  // The page hands a new `hear` on every render; the Compare is stopped once, when the question closes.
+  const stopHear = useRef(hear?.stop);
+  stopHear.current = hear?.stop;
+  useEffect(() => () => void (heard.current && stopHear.current?.()), []);
+  const hearReason = hear && choice ? hear.reasonOf(choice.id) : '';
   const [snapped, setSnapped] = useState<Map<number, SnappedEnd> | null>(null);
   const asked = useMemo(() => summarize(doc, [...keys], cuts, (t) => t), [doc, keys, cuts]);
   useEffect(() => {
@@ -106,6 +123,31 @@ export function FxDialog({ doc, keys, cuts, plan, list, chainId, chapterName, lo
         </dt>
         <dd className="m-0">{FX_JOINS}</dd>
       </dl>
+      {hear ? (
+        <div className="flex items-center gap-2">
+          <Button
+            type="button"
+            variant="secondary"
+            size="sm"
+            data-fx-hear
+            disabled={!choice}
+            pending={hearing}
+            aria-disabled={hearReason || hearing ? true : undefined}
+            aria-describedby={hearReason ? 'fx-hear-why' : undefined}
+            onClick={() => {
+              if (!choice || hearReason) return;
+              heard.current = true;
+              setHearing(true);
+              void hear.play(choice.id).finally(() => setHearing(false));
+            }}
+          >
+            A/B
+          </Button>
+          <span id="fx-hear-why" className="text-sm text-[var(--text-muted)]">
+            {hearReason || 'Hear the words without the effect, then with it.'}
+          </span>
+        </div>
+      ) : null}
       {over ? (
         <p className="m-0 rounded-lg bg-[var(--warn-soft)] px-3 py-2.5 text-sm" role="alert" data-fx-over>
           {over.text}

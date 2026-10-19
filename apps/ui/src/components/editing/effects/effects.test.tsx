@@ -161,6 +161,78 @@ describe('the list, the words and the inspector', () => {
   });
 });
 
+describe('the inspector header and Show in the DAW', () => {
+  it('previous-and-next-step-through-the-effects: the first has no previous, the last no next, and each says why', () => {
+    const step = vi.fn();
+    const view = render(
+      <ApiProvider api={createMockApi()}>
+        <EffectInspector fx={MANY[0]} cuts={[]} total={TOTAL} dawName="REAPER" onRemove={() => {}} position={{ index: 0, count: 3 }} onStep={step} />
+      </ApiProvider>,
+    );
+    const previous = screen.getByRole('button', { name: 'Previous effect' });
+    expect(previous.getAttribute('aria-disabled')).toBe('true');
+    fireEvent.click(previous);
+    expect(step).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole('button', { name: 'Next effect' }));
+    expect(step).toHaveBeenLastCalledWith(1);
+    view.rerender(
+      <ApiProvider api={createMockApi()}>
+        <EffectInspector fx={MANY[2]} cuts={[]} total={TOTAL} dawName="REAPER" onRemove={() => {}} position={{ index: 2, count: 3 }} onStep={step} />
+      </ApiProvider>,
+    );
+    expect(screen.getByRole('button', { name: 'Next effect' }).getAttribute('aria-disabled')).toBe('true');
+    fireEvent.click(screen.getByRole('button', { name: 'Previous effect' }));
+    expect(step).toHaveBeenLastCalledWith(-1);
+  });
+
+  it('the tab steps the inspector to the neighbouring effect', async () => {
+    render(withApi(<EffectsTab {...base()} />));
+    expect(screen.getByText('Podcast Voice', { selector: 'h3' })).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: 'Next effect' }));
+    expect(screen.queryByText('Podcast Voice', { selector: 'h3' })).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: 'Previous effect' }));
+    expect(screen.getByText('Podcast Voice', { selector: 'h3' })).toBeTruthy();
+  });
+
+  it('show-in-the-daw: without the page’s host it is off and says so; with it, it moves the DAW to the first word', async () => {
+    const goTo = vi.fn(async () => ({ outcome: 'navigated', projectTime: 12.5 }));
+    const api = Object.assign(createMockApi(), { workspaceGoTo: goTo });
+    const host: EffectHost = {
+      chapterId: 'chapter-1',
+      locator,
+      journal: createJournal({ dawName: () => 'REAPER', dawLastAction: async () => 'unknown' }),
+      effects: MANY,
+      onEffects: () => {},
+      play: () => {},
+      stop: () => {},
+    };
+    const toast = vi.spyOn(overlay, 'toast');
+    render(
+      <ApiProvider api={api}>
+        <PortOverrides clients={{ daw: createMockDawClient(DAW_SETUPS.reaper) }}>
+          <EffectHostProvider value={host}>
+            <EffectInspector fx={MANY[0]} cuts={[]} total={TOTAL} dawName="REAPER" onRemove={() => {}} />
+          </EffectHostProvider>
+        </PortOverrides>
+      </ApiProvider>,
+    );
+    const show = screen.getByRole('button', { name: 'Show in the DAW' });
+    await waitFor(() => expect(show.getAttribute('aria-disabled')).toBeNull());
+    fireEvent.click(show);
+    await waitFor(() => expect(goTo).toHaveBeenCalledWith('chapter-1', 0));
+    await waitFor(() => expect(toast).toHaveBeenCalledWith(expect.stringMatching(/^Moved to /)));
+  });
+
+  it('show-in-the-daw is off with the reason when the page lends no host', () => {
+    render(
+      <ApiProvider api={createMockApi()}>
+        <EffectInspector fx={MANY[0]} cuts={[]} total={TOTAL} dawName="REAPER" onRemove={() => {}} />
+      </ApiProvider>,
+    );
+    expect(screen.getByRole('button', { name: 'Show in the DAW' }).getAttribute('aria-disabled')).toBe('true');
+  });
+});
+
 describe('Add effect', () => {
   const add = (over: Partial<Parameters<typeof AddEffect>[0]> = {}) => {
     const onAdd = vi.fn();

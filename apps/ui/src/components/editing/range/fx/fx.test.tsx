@@ -245,8 +245,10 @@ describe('the Add FX menu', () => {
     await select('p-1:0', 'p-1:1');
     const sum = summarize(doc, ['p-1:0', 'p-1:1'], [], (t) => t);
     const items = buildWordMenu({ doc, keys: ['p-1:0', 'p-1:1'], summary: sum, play: vi.fn(), notify: vi.fn() }).groups.flat();
-    expect(items.filter((i) => i.key.startsWith('fx')).map((i) => i.label)).toEqual([SOURCE, ...CHAINS, 'Manage in REAPER…']);
-    expect(items.find((i) => i.key === 'fx-manage')?.unavailable).toBeTruthy();
+    const add = items.find((i) => i.key === 'fx-add');
+    expect(add?.label).toBe('Add FX');
+    expect(add?.submenu?.map((i) => i.label)).toEqual([SOURCE, ...CHAINS, 'Manage in REAPER…']);
+    expect(add?.submenu?.find((i) => i.key === 'fx-manage')?.unavailable).toBeTruthy();
     press('KeyF');
     await screen.findByRole('menu');
     expect(screen.getAllByRole('menuitem').map((i) => i.textContent)).toContain(CHAINS[1]);
@@ -283,15 +285,16 @@ describe('the Add FX menu', () => {
     expect(applied).toEqual([]);
   });
 
-  it('a-daw-that-cannot-says-why-on-the-item: a selection the DAW cannot do keeps the chains and disables each with the reason', async () => {
+  it('a-daw-that-cannot-says-why-on-the-item: a selection the DAW cannot do turns the Add FX row off with the reason', async () => {
     mount();
     await flush();
     await select('p-1:7', 'p-2:1');
     const sum = summarize(doc, ['p-1:7', 'p-2:0', 'p-2:1'], [], (t) => t);
     const items = buildWordMenu({ doc, keys: ['p-1:7', 'p-2:0', 'p-2:1'], summary: sum, play: vi.fn(), notify: vi.fn() }).groups.flat();
-    const chainItems = items.filter((i) => i.key.startsWith('fx:'));
-    expect(chainItems.map((i) => i.label)).toEqual(CHAINS);
-    for (const i of chainItems) expect(i.unavailable).toBe(SPANS_TWO_PARAGRAPHS);
+    // The refusal sits on the "Add FX" row itself, as the mock's menu does, and the row opens nothing.
+    const add = items.find((i) => i.key === 'fx-add');
+    expect(add?.unavailable).toBe(SPANS_TWO_PARAGRAPHS);
+    expect(add?.submenu).toBeUndefined();
   });
 
   it('a-daw-that-cannot-says-why-on-the-item: a capability that is on with no chains says the DAW lists none', async () => {
@@ -351,6 +354,59 @@ describe('the preview', () => {
     expect(applied).toEqual([]);
     expect(log.effects).toEqual([]);
     expect(await journal.entries()).toEqual([]);
+  });
+});
+
+describe('A/B in the preview', () => {
+  it('ab-needs-the-effect-on-the-words: the DAW compares only a chain that is on the words, so a new one is off with that sentence and asks nothing', async () => {
+    const compared: unknown[] = [];
+    mount(DAW_SETUPS.reaper, { compareFxRange: async (t) => (compared.push(t), { result: { ok: true, changed: false, message: '', undoSteps: 0 }, pass: 1 }) });
+    await flush();
+    await choose();
+    const hear = within(dialog()).getByRole('button', { name: 'A/B' });
+    expect(hear.getAttribute('aria-disabled')).toBe('true');
+    expect(document.getElementById(hear.getAttribute('aria-describedby') ?? '')?.textContent).toMatch(/Add it first/);
+    fireEvent.click(hear);
+    expect(compared).toEqual([]);
+  });
+
+  it('ab-plays-the-chain-through-compareFxRange: with the chain already on the words it asks the DAW to compare them, and stops the Compare when the question closes', async () => {
+    const compared: unknown[] = [];
+    let stopped = 0;
+    mount(DAW_SETUPS.reaper, {
+      compareFxRange: async (t) => (
+        compared.push(t),
+        { result: { ok: true, changed: false, message: 'Playing the words in REAPER with the effect on, then bypassed.', undoSteps: 0 }, pass: 1 }
+      ),
+      stopFxCompare: async () => (stopped++, { ok: true, changed: false, message: '', undoSteps: 0 }),
+    });
+    await flush();
+    await choose();
+    await confirmAdd();
+    await choose();
+    const hear = within(dialog()).getByRole('button', { name: 'A/B' });
+    expect(hear.getAttribute('aria-disabled')).toBeNull();
+    fireEvent.click(hear);
+    await flush();
+    expect(compared).toEqual([{ chapterId: 'chapter-1', firstToken: 0, lastToken: 1, chainName: CHAINS[0] }]);
+    expect(toast).toHaveBeenCalledWith('Playing the words in REAPER with the effect on, then bypassed.');
+    expect(stopped).toBe(0);
+    fireEvent.click(within(dialog()).getByRole('button', { name: 'Cancel' }));
+    await flush();
+    expect(stopped).toBe(1);
+  });
+
+  it('ab-says-why-the-daw-refused: a refusal is the DAW’s sentence in an error toast', async () => {
+    mount(DAW_SETUPS.reaper, {
+      compareFxRange: async () => ({ result: { ok: false, changed: false, message: 'No.', undoSteps: 0, refused: 'REAPER cannot compare now.' }, pass: 0 }),
+    });
+    await flush();
+    await choose();
+    await confirmAdd();
+    await choose();
+    fireEvent.click(within(dialog()).getByRole('button', { name: 'A/B' }));
+    await flush();
+    expect(toast).toHaveBeenCalledWith('REAPER cannot compare now.', { tone: 'error' });
   });
 });
 

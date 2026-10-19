@@ -61,7 +61,17 @@ export function EffectsTab({ doc, effects, cuts, total, selected, fx, onSelectWo
         capError={fxCap.error}
       />
       <EffectsList effects={effects} cuts={cuts} total={total} selectedId={current?.id ?? null} onSelect={setPick} />
-      {current ? <EffectInspector fx={current} cuts={cuts} total={total} dawName={dawName} onRemove={(f) => void fx.remove(f)} /> : null}
+      {current ? (
+        <EffectInspector
+          fx={current}
+          cuts={cuts}
+          total={total}
+          dawName={dawName}
+          onRemove={(f) => void fx.remove(f)}
+          position={{ index: effects.indexOf(current), count: effects.length }}
+          onStep={(by) => setPick(effects[effects.indexOf(current) + by]?.id ?? current.id)}
+        />
+      ) : null}
       <AddEffect
         hasSelection={selected.length > 0}
         reason={summary ? fx.refusalOf(summary) : ''}

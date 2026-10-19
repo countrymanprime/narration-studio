@@ -31,6 +31,17 @@ export const editingStates: StateEntry[] = [
   },
   {
     page: 'editing',
+    state: 'word-menu-fx',
+    description: 'Editing, the word menu with its Add FX submenu open - the DAW’s FX chains beside the row, Mark as and Remove in the menu',
+    ...POPUP_ANCHORED_AT_FIRST_WIDTH,
+  },
+  {
+    page: 'editing',
+    state: 'drawer-effects-inspector',
+    description: 'Editing, the Effects tab with two effects on words - the inspector with Previous and Next effect and Show in the DAW',
+  },
+  {
+    page: 'editing',
     state: 'fx-dialog',
     description: 'Editing, an FX chain chosen for four words - the question names the chain and how the item is split around the words',
   },

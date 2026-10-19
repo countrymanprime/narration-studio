@@ -109,3 +109,31 @@ export const Grouped: Story = {
     await waitFor(() => expect(screen.queryByRole('menuitem')).toBeNull());
   },
 };
+
+// A row can open a submenu beside it ("Add FX" > the chains). It opens on a click or ArrowRight, a choice runs and closes the whole menu, and a
+// row that is unavailable is a plain disabled item that says why.
+export const Submenu: Story = {
+  args: {
+    items: [
+      {
+        key: 'fx-add',
+        label: 'Add FX',
+        onSelect: fn(),
+        submenu: [
+          { key: 'podcast', label: 'Podcast Voice', onSelect: fn() },
+          { key: 'warmth', label: 'Vocal Warmth', onSelect: fn(), unavailable: 'This selection spans two paragraphs.' },
+        ],
+      },
+      { key: 'mark', label: 'Mark as', onSelect: fn(), unavailable: 'Only said words cannot be marked.' },
+    ],
+  },
+  play: async ({ args, canvasElement }) => {
+    fireEvent.contextMenu(within(canvasElement).getByText(/Alice was beginning/));
+    await userEvent.click(await screen.findByRole('menuitem', { name: /Add FX/ }));
+    await expect(await screen.findByRole('menuitem', { name: /Vocal Warmth/ })).toHaveAttribute('aria-disabled', 'true');
+    await expect(screen.getByRole('menuitem', { name: /^Mark as/ })).toHaveAttribute('aria-disabled', 'true');
+    await userEvent.click(screen.getByRole('menuitem', { name: 'Podcast Voice' }));
+    await expect(args.items[0].submenu?.[0].onSelect).toHaveBeenCalledOnce();
+    await waitFor(() => expect(screen.queryByRole('menuitem')).toBeNull());
+  },
+};

@@ -9,7 +9,7 @@ import { marksDoc } from '../../script/scriptFixtures';
 import type { RangePlan } from '../common/rangePlan';
 import { locator } from '../cut/cutFixtures';
 import { AddFxButton, FxMarker } from './FxButtons';
-import { FxDialog } from './FxDialog';
+import { FxDialog, type FxHear } from './FxDialog';
 import { fxMenuItems } from './fxMenu';
 import { fxTitle } from './fxText';
 
@@ -27,7 +27,7 @@ const list = {
 };
 
 /** The question as the overlay draws it: the Dialog primitive with the dialog's own body and buttons. */
-function Question({ plan, over = null }: { plan: Acting; over?: string | null }) {
+function Question({ plan, over = null, hear }: { plan: Acting; over?: string | null; hear?: FxHear }) {
   return (
     <Dialog dismissOnOutsidePress={false} title={fxTitle(2)} onClose={fn()} actions={null}>
       <FxDialog
@@ -40,6 +40,7 @@ function Question({ plan, over = null }: { plan: Acting; over?: string | null })
         locator={locator}
         snap={snap}
         overOf={() => (over ? { overlaps: [], cap: over, text: over } : null)}
+        hear={hear}
         onCancel={fn()}
         onConfirm={fn()}
       />
@@ -61,6 +62,39 @@ export const Preview: Story = {
     await expect(within(dialog).getByText(/one undo step in REAPER/)).toBeTruthy();
     await userEvent.selectOptions(within(dialog).getByRole('combobox', { name: 'Effect' }), 'Vocal Chain/Warmth.RfxChain');
     await expect(within(dialog).getByText(/Piece 2 · Vocal Chain\/Warmth\.RfxChain/)).toBeTruthy();
+  },
+};
+
+// A/B plays the words without the effect and then with it, when the DAW can: the chain is already on the words.
+export const HearReady: Story = {
+  render: () => {
+    const hear: FxHear = { reasonOf: () => '', play: fn(() => Promise.resolve()), stop: fn() };
+    return <Question plan={{ kind: 'daw', dawName: 'REAPER' }} hear={hear} />;
+  },
+  play: async () => {
+    const dialog = await screen.findByRole('dialog', { name: 'Add FX to 2 words?' });
+    const button = within(dialog).getByRole('button', { name: 'A/B' });
+    await expect(button).not.toHaveAttribute('aria-disabled');
+    await userEvent.click(button);
+  },
+};
+
+// A chain not yet on the words cannot be compared by the DAW: A/B stays, off, and says to add it first.
+export const HearOff: Story = {
+  render: () => (
+    <Question
+      plan={{ kind: 'daw', dawName: 'REAPER' }}
+      hear={{
+        reasonOf: () => 'The DAW can compare an effect that is on the words. Add it first, then use Compare on the Effects tab.',
+        play: fn(),
+        stop: fn(),
+      }}
+    />
+  ),
+  play: async () => {
+    const dialog = await screen.findByRole('dialog', { name: 'Add FX to 2 words?' });
+    await expect(within(dialog).getByRole('button', { name: 'A/B' })).toHaveAttribute('aria-disabled', 'true');
+    await expect(within(dialog).getByText(/Add it first/)).toBeTruthy();
   },
 };
 

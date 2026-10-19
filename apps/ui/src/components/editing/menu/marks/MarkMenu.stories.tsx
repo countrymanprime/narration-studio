@@ -46,18 +46,20 @@ async function openMenu(canvasElement: HTMLElement, key: string) {
   await waitFor(
     async () => {
       await userEvent.pointer({ keys: '[MouseRight]', target: canvasElement.querySelector(`[data-k="${key}"]`)! });
-      await expect((await menu.findAllByRole('menuitem', { name: /Mark as/ }, { timeout: 500 })).length).toBeGreaterThan(1);
+      await menu.findByRole('menuitem', { name: /^Mark as/ }, { timeout: 500 });
     },
     { timeout: 5000 },
   );
   return menu;
 }
 
-// The mock's right-click menu on script words: one "Mark as <kind>" row per kind of the Script page, Add note… and Mark for pickup.
+// The mock's right-click menu on script words: "Mark as" opens the kinds of the Script page, then Add note… and Mark for pickup.
 export const MarkAsKinds: Story = {
   render: () => frame(),
   play: async ({ canvasElement }) => {
     const menu = await openMenu(canvasElement, 'p-1:1');
+    await userEvent.hover(menu.getByRole('menuitem', { name: /^Mark as/ }));
+    await expect((await menu.findAllByRole('menuitem', { name: /Word stress|Breath|Pronunciation/ })).length).toBeGreaterThan(0);
     await expect(menu.getByRole('menuitem', { name: 'Add note…' })).toBeTruthy();
     await expect(menu.getByRole('menuitem', { name: 'Mark for pickup' })).toBeTruthy();
   },

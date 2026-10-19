@@ -62,11 +62,31 @@ export const StripCapReadOnly: Story = {
 
 export const OnWordsMany: Story = { render: () => shell(<OnWords effects={MANY} cuts={[]} onSelect={fn()} onRemove={fn()} />) };
 
-const inspector = (dawName: string, width = 420) => shell(<EffectInspector fx={MANY[0]} cuts={[]} total={TOTAL} dawName={dawName} onRemove={fn()} />, width);
+const inspector = (dawName: string, width = 420, index = 0) =>
+  shell(
+    <EffectInspector fx={MANY[index]} cuts={[]} total={TOTAL} dawName={dawName} onRemove={fn()} position={{ index, count: MANY.length }} onStep={fn()} />,
+    width,
+  );
 export const InspectorReaper: Story = {
   render: () => inspector('REAPER'),
   play: async ({ canvasElement }) => {
     await expect(within(canvasElement).getByRole('button', { name: 'Settings' })).toHaveProperty('disabled', true);
+  },
+};
+// The header's Previous and Next step through the effects (the mock's `#prevf`, `#nextf`): the first has no previous, the last no next.
+export const InspectorFirst: Story = {
+  render: () => inspector('REAPER'),
+  play: async ({ canvasElement }) => {
+    const view = within(canvasElement);
+    await expect(view.getByRole('button', { name: 'Previous effect' })).toHaveAttribute('aria-disabled', 'true');
+    await expect(view.getByRole('button', { name: 'Next effect' })).not.toHaveAttribute('aria-disabled');
+    await expect(view.getByRole('button', { name: 'Show in the DAW' })).toBeTruthy();
+  },
+};
+export const InspectorLast: Story = {
+  render: () => inspector('REAPER', 420, MANY.length - 1),
+  play: async ({ canvasElement }) => {
+    await expect(within(canvasElement).getByRole('button', { name: 'Next effect' })).toHaveAttribute('aria-disabled', 'true');
   },
 };
 // The DAW lists the effect's settings: a slider for the continuous one, a number field for the stepped one; Bypass, Preview and Compare work.

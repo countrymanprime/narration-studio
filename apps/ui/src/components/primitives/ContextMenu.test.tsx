@@ -89,4 +89,64 @@ describe('ContextMenu', () => {
     ).toEqual(['Tone', 'Query']);
     expect(screen.getAllByRole('menuitem')).toHaveLength(4);
   });
+
+  describe('a submenu', () => {
+    const chosen = vi.fn();
+    const withSub = [
+      {
+        key: 'fx-add',
+        label: 'Add FX',
+        onSelect: vi.fn(),
+        submenu: [
+          { key: 'a', label: 'Podcast Voice', onSelect: chosen },
+          { key: 'b', label: 'Vocal Warmth', onSelect: vi.fn(), unavailable: 'Spans two paragraphs.' },
+        ],
+      },
+      { key: 'off', label: 'Mark as', onSelect: vi.fn(), unavailable: 'Only said.', submenu: [{ key: 'c', label: 'Tone', onSelect: vi.fn() }] },
+    ];
+    const open = () => {
+      chosen.mockClear();
+      render(
+        <ContextMenu items={withSub}>
+          <p>Alice was beginning to get very tired.</p>
+        </ContextMenu>,
+      );
+      fireEvent.contextMenu(screen.getByText(/Alice was beginning/));
+    };
+
+    it('opens beside its row on a click, runs a choice and closes the whole menu', async () => {
+      const user = userEvent.setup({ pointerEventsCheck: 0 });
+      open();
+      const row = await screen.findByRole('menuitem', { name: /Add FX/ });
+      expect(row.getAttribute('aria-haspopup')).toBe('menu');
+      await user.click(row);
+      fireEvent.click(await screen.findByRole('menuitem', { name: 'Podcast Voice' }));
+      expect(chosen).toHaveBeenCalledOnce();
+      expect(withSub[0].onSelect).not.toHaveBeenCalled();
+      await waitFor(() => expect(screen.queryByRole('menuitem')).toBeNull());
+    });
+
+    it('opens with ArrowRight, closes with ArrowLeft and keeps an unavailable choice off', async () => {
+      const user = userEvent.setup();
+      open();
+      await screen.findAllByRole('menuitem');
+      await user.keyboard('{ArrowDown}{ArrowRight}');
+      const off = await screen.findByRole('menuitem', { name: /Vocal Warmth/ });
+      expect(off.getAttribute('aria-disabled')).toBe('true');
+      expect(screen.getByText('Spans two paragraphs.')).toBeTruthy();
+      await user.keyboard('{ArrowLeft}');
+      await waitFor(() => expect(screen.queryByRole('menuitem', { name: /Podcast Voice/ })).toBeNull());
+      expect(screen.getByRole('menuitem', { name: /Add FX/ })).toBeTruthy();
+    });
+
+    it('draws a row that is unavailable as a plain disabled item with its reason, and opens nothing', async () => {
+      const user = userEvent.setup();
+      open();
+      const row = await screen.findByRole('menuitem', { name: /Mark as/ });
+      expect(row.getAttribute('aria-disabled')).toBe('true');
+      expect(row.getAttribute('aria-haspopup')).toBeNull();
+      await user.click(row);
+      expect(screen.queryByRole('menuitem', { name: 'Tone' })).toBeNull();
+    });
+  });
 });
