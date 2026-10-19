@@ -19,6 +19,19 @@ describe('IconButton', () => {
     expect(button.getAttribute('type')).toBe('button');
   });
 
+  it('draws the accent tint while pressed or expanded, and not otherwise', () => {
+    render(
+      <>
+        <IconButton label="On" aria-pressed={true} />
+        <IconButton label="Open" aria-expanded={true} />
+        <IconButton label="Off" aria-pressed={false} />
+      </>,
+    );
+    expect(screen.getByRole('button', { name: 'On' }).className).toContain('aria-pressed:bg-[var(--accent-soft)]');
+    expect(screen.getByRole('button', { name: 'Open' }).className).toContain('aria-expanded:bg-[var(--accent-soft)]');
+    expect(screen.getByRole('button', { name: 'Off' }).getAttribute('aria-pressed')).toBe('false');
+  });
+
   it('reports a click and ignores one when disabled', async () => {
     const onClick = vi.fn();
     const user = userEvent.setup();
