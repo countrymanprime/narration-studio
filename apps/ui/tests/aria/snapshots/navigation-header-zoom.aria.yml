@@ -1,4 +1,4 @@
 # The header with the zoom chip, at ?mockZoom=125: the chip sits between the jump button and the engine chip and names the level.
-- button "Jump to or run…"
-- button /Zoom \d+%: change in the jump menu/
-- button /REAPER: .+/
+- button /Jump to or run/
+- button /Zoom \d+%.+jump menu/
+- button /REAPER.+/

@@ -4,8 +4,7 @@
 # three dismissal actions (Don't ask for this project, Not now, Save). The page behind it is aria-hidden.
 - /children: equal
 # The two toast live regions stay in the tree on purpose (see dialog-mark-composer.aria.yml).
-- main:
-  - group "Zoom"
+- main
 - status
 - alert
 - status
