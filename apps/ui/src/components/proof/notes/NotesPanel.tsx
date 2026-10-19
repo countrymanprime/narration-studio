@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import type { Finding } from '../../../api/contracts/findings';
 import { IconButton } from '../../primitives/IconButton';
 import { Pill } from '../../primitives/Pill';
@@ -96,9 +96,23 @@ export function NotesPanel({
     onShownChange?.(shownIds);
   }, [shownKey, shownIds, onShownChange]);
 
+  // What had focus when find opened, so Escape hands it back; the Find button when that is gone or was the field itself.
+  const findOpener = useRef<HTMLElement | null>(null);
+  const openFind = useCallback(() => {
+    const active = document.activeElement;
+    // Ctrl+F inside the field keeps the opener it already has.
+    if (!(active instanceof HTMLElement && active.matches('input')))
+      findOpener.current = active instanceof HTMLElement && active !== document.body ? active : null;
+    setFindOpen(true);
+  }, []);
   const closeFind = () => {
     setFindOpen(false);
     setQuery('');
+  };
+  const closeFindToOpener = () => {
+    const back = findOpener.current?.isConnected ? findOpener.current : root.current?.querySelector<HTMLElement>('button[aria-label="Find in notes"]');
+    back?.focus();
+    closeFind();
   };
   const clearFilters = () => {
     setChip('all');
@@ -111,12 +125,12 @@ export function NotesPanel({
     const onKey = (event: KeyboardEvent) => {
       if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'f') {
         event.preventDefault();
-        setFindOpen(true);
+        openFind();
       }
     };
     document.addEventListener('keydown', onKey);
     return () => document.removeEventListener('keydown', onKey);
-  }, []);
+  }, [openFind]);
 
   const move = (step: 1 | -1) => {
     if (rows.length === 0) return;
@@ -174,13 +188,13 @@ export function NotesPanel({
                 onKeyDown={(event) => {
                   if (event.key === 'Escape') {
                     event.stopPropagation();
-                    closeFind();
+                    closeFindToOpener();
                   }
                 }}
               />
             </div>
           )}
-          <IconButton action="find" label="Find in notes" onClick={() => (findOpen ? closeFind() : setFindOpen(true))} />
+          <IconButton action="find" label="Find in notes" onClick={() => (findOpen ? closeFind() : openFind())} />
           {actions}
         </div>
       </div>

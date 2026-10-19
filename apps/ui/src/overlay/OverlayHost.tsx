@@ -23,7 +23,7 @@ function Layer({ entry }: { entry: DialogEntry }) {
   const content = entry.spec.render({ close: entry.close });
   if (entry.spec.kind === 'slideOver')
     return (
-      <SlideOver open title={entry.spec.title} onClose={entry.close}>
+      <SlideOver open title={entry.spec.title} returnFocus={entry.spec.returnFocus} onClose={entry.close}>
         {content}
       </SlideOver>
     );

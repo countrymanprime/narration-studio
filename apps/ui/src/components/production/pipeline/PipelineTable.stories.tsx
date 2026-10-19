@@ -32,7 +32,7 @@ type Story = StoryObj<typeof meta>;
 export const MidBook: Story = {
   play: async ({ canvasElement, args }) => {
     const canvas = within(canvasElement);
-    await expect(canvas.getByRole('button', { name: 'Chapter 2: Proof 6 of 9 notes cleared' })).toBeTruthy();
+    await expect(canvas.getByRole('button', { name: 'Chapter 2: Proof 66%, 6 of 9 notes cleared' })).toBeTruthy();
     canvas.getByRole('button', { name: 'Chapter 3: Edit in progress' }).click();
     await expect(args.onGo).toHaveBeenCalledWith('editing', 'c3');
   },

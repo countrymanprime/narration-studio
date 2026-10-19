@@ -295,7 +295,7 @@ func TestAMergeSeesAnotherWritersChange(t *testing.T) {
 	}
 }
 
-func TestAFailedWriteDropsTheHeldDocument(t *testing.T) {
+func TestAFailedMergeWriteDropsTheHeldDocument(t *testing.T) {
 	s := hostEditService(t)
 	writeStart(t, s, twoEntries)
 	if _, err := s.Merge("a", "b"); err != nil {

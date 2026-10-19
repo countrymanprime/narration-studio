@@ -2,6 +2,6 @@
 # Zoom out and the readout/reset are both disabled there; Zoom in is not. Its own tree at a different level (both
 # enabled) is exercised by the visual suite, not pinned here.
 - group "Zoom":
-  - button "Zoom out" [disabled]
-  - button /Reset zoom to \d+% \(now \d+%\)/ [disabled]
-  - button "Zoom in"
+    - button "Zoom out" [disabled]
+    - button /Reset zoom to \d+%, now \d+%/ [disabled]
+    - button "Zoom in"

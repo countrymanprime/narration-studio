@@ -263,7 +263,8 @@ export function AppShell({
               <button
                 type="button"
                 onClick={onOpenJump}
-                aria-label="Jump to or run…"
+                // The name says the key the chord draws: axe fails a name that leaves out text the button draws.
+                aria-label="Jump to or run…, Ctrl K"
                 aria-keyshortcuts="Control+K"
                 className="flex h-8 min-w-0 flex-none cursor-pointer items-center gap-2 rounded-[var(--radius-button)] border border-[var(--border)] bg-[var(--bg)] px-2.5 text-[length:var(--font-size-sm)] text-[var(--text-muted)] hover:bg-[var(--surface-2)] max-lg:size-8 max-lg:justify-center max-lg:px-0"
               >
@@ -299,7 +300,7 @@ export function AppShell({
               <TooltipTarget text={zoomResetTooltip}>
                 <Button
                   variant="secondary"
-                  aria-label={`Reset zoom to 100% (now ${zoom.percent}%)`}
+                  aria-label={`Reset zoom to 100%, now ${zoom.percent}%`}
                   aria-disabled={zoomAtDefault || undefined}
                   onClick={zoomAtDefault ? (event) => event.preventDefault() : zoom.reset}
                   className="h-8 min-w-14 justify-center px-2 py-0 font-['IBM_Plex_Mono',ui-monospace,monospace] text-[0.8rem] font-normal tracking-normal normal-case aria-disabled:pointer-events-none"
