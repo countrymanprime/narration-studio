@@ -42,6 +42,12 @@ export type MeasureReport = {
   full_scale_samples: number;
   clip_run_count: number;
   clip_runs: MeasureClipRun[];
+  /**
+   * How many click candidates the Diagnostics click detector finds in the measured audio, at its default thresholds: a
+   * burst of at most 30 ms with silence on both sides. Not `clip_run_count`, which is full-scale clipping. 0 is a
+   * measurement; null when the audio was not read (an MP3 whose audio was not decoded).
+   */
+  click_candidate_count: number | null;
   /** Set only for an MP3, read for its container. */
   mp3?: MeasureMP3;
   /**

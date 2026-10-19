@@ -145,33 +145,8 @@ export const productionDrivers: Record<string, Driver> = {
   },
   'import-activity-log': async (page) => {
     await clickReplaceManuscript(page);
-    // This state is about the import dialog's own activity log, not the chained Story Bible build (B1-B3, on by
-    // default): uncheck it so the import dialog stays open with "Manuscript imported" instead of closing itself
-    // into a second dialog.
-    await clickVisible(page, 'checkbox', 'Build the Story Bible after import');
     await clickVisible(page, 'button', 'Replace and reset');
     await page.getByText('Manuscript imported', { exact: true }).first().waitFor();
-  },
-  'import-build-running': async (page) => {
-    // The mock's build seam (see main.tsx): the chained build starts and stays at 30 percent.
-    await page.goto('/?mockBuild=hold');
-    await settlePage(page);
-    await clickReplaceManuscript(page);
-    await clickVisible(page, 'button', 'Replace and reset');
-    await page.getByRole('dialog', { name: 'Build the Story Bible' }).getByText('Extracting names and terms').first().waitFor();
-  },
-  'import-build-failed': async (page) => {
-    // The chained build starts and the host reports it failed at the first poll; the import was already written and said so.
-    await page.goto('/?mockBuild=fails');
-    await settlePage(page);
-    await clickReplaceManuscript(page);
-    await clickVisible(page, 'button', 'Replace and reset');
-    await page
-      .getByRole('dialog', { name: 'Build the Story Bible' })
-      .getByText(/model folder is missing its config\.cfg/)
-      .first()
-      .waitFor();
-    await page.getByText('Manuscript imported.', { exact: true }).first().waitFor();
   },
   'import-confirm': async (page) => {
     // The default mock state already has a manuscript loaded, so "Import

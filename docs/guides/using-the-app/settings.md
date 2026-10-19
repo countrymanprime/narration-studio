@@ -31,14 +31,14 @@ how many in the list and **Reset <category> to defaults**. A change that costs s
 transcription model says earlier checks are marked out of date and run again. A value the host refuses keeps
 the previous value and says why under the row; the page then notes that changes may not be kept until one succeeds.
 
-Rarely changed settings sit under **Advanced** at the foot of a category, closed until you open it; the button
+Rarely changed settings sit under **Advanced** at the foot of a category, closed until you open it; the heading
 says how many it holds.
 
 ![Settings - a project overriding a setting that is otherwise for all projects](../../images/ui/settings-override.webp)
 
 ## Find a setting
 
-**Search settings** matches the name, the description and words you might use instead (typing "whisper" finds the
+At the top right, the search box (with its magnifier) and the **All** / **Changed** / **In this project** control sit on one line. **Search settings** matches the name, the description and words you might use instead (typing "whisper" finds the
 transcription model; "breath" finds silence cleanup). Results are grouped under their category with **Show the
 whole category**, and include matches from the Advanced sections. **Changed** lists everything that differs from
 the default, wherever it is; **In this project** lists the settings this project owns or overrides. Each says so
@@ -126,7 +126,7 @@ or `small`) the [Booth](booth.md) follows your voice with. Under Advanced, **Rec
 ## Models and downloads
 
 One list of everything Narration Studio can keep on this computer: Whisper models, Moonshine models, the preview voice, the Story Bible language models, the dictionary, the wiktionary pronunciations and the MP3 encoder. Nothing downloads by itself, and
-removing one never touches your projects. Above the list, the disk the installed ones use and the folder they are kept in.
+removing one never touches your projects. Above the list, the disk the installed ones use and the folder they are kept in, with **Open folder** to show it in the file manager. When the list cannot be read, the message offers **Try again** and **Open the folder**.
 Which one is *used* is chosen in the category that uses it; here you only get, check and remove them.
 
 ![Settings - Models & downloads: the disk used and each download with its state, size, what uses it and its actions](../../images/ui/settings-models.webp)

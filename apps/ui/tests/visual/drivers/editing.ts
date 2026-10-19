@@ -43,6 +43,16 @@ export const editingDrivers: Record<string, Driver> = {
     // The list of effects is a picker: the page menu's search items do not belong in it.
     if (await page.getByRole('menuitem', { name: /Jump menu|Find a page/ }).count()) throw new Error('The Add FX menu lists the page menu’s search items.');
   },
+  'word-menu-fx': async (page) => {
+    await openEditing(page, EDITS);
+    await selectWords(page);
+    await page.locator('[data-k="p-1:2"]').click({ button: 'right' });
+    await page.getByRole('menuitem', { name: 'Add FX' }).click();
+    await page
+      .getByRole('menuitem', { name: /RfxChain$/ })
+      .first()
+      .waitFor();
+  },
   'fx-dialog': async (page) => {
     await openEditing(page, EDITS);
     await selectWords(page);

@@ -71,7 +71,7 @@ The preview log ("Preview activity") is not on the review screen; the commit dia
 
 Reclassifying a row moves it to the group of its new kind. The select is put back in focus in its new place (so a keyboard narrator keeps their place), and the group it moved into opens.
 
-**"Build the Story Bible after import".** `ImportReview` takes an optional `buildStoryBible: { checked, onChange }` and, when it is given, draws a checkbox "Build the Story Bible after import" in the Import options group. `useManuscriptImport` passes it, pre-checked from the `ManuscriptGuide.build_after_import` setting (on by default, owner decision D8). On a successful import the import dialog closes itself and `ManuscriptImport` starts `api.guideBuild({})`, followed in its own "Build the Story Bible" `WorkDialog` by the same `useWorkJob` hook the Story Bible page uses; like that page's rebuild it can go on in the background (`docs/architecture/interaction-feedback.md#job-end-events`), and a build that fails never unmakes the reported import. Measured (p50 of 5, `en_core_web_sm`, Windows dev venv), the build is most of the wait: about 6 s for the Alice fixture and the full 26,000-word book, about 15 s for a 79,000-word novel-length manuscript, against 0.05 s for the import itself and about 0.5 s per checked character suggestion ([Story Bible build after import](story-bible-concurrent-build.md)).
+**No build after import.** The review draws no "Build the Story Bible after import" checkbox and an import starts no build: the narrator scans the manuscript or imports entries from the Story Bible page. `ImportReview` keeps an optional `buildStoryBible` prop that nothing passes. ([Story Bible build after import](story-bible-concurrent-build.md), history.)
 
 ## Tests and states
 
