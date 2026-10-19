@@ -264,6 +264,30 @@ type TrackSelector interface {
 	SelectTrack(ctx context.Context, trackGUID string) (SelectedTrack, error)
 }
 
+// Place is where the narrator is in the project, in terms every engine can answer: TrackID is the engine's id for the one selected
+// track ("" when none or several are selected, so a caller never guesses), Selected how many tracks are selected, and Cursor the edit
+// cursor in project seconds.
+type Place struct {
+	TrackID  string
+	Selected int
+	Cursor   float64
+}
+
+// PlaceTarget is where PlaceFollower.GoTo puts the cursor on a track: the end of what is on it, or a time in project seconds.
+type PlaceTarget struct {
+	End     bool
+	Seconds float64
+}
+
+// PlaceFollower lets the app follow the narrator's place in the project and take them somewhere in it: ReadPlace says which track is
+// selected and where the cursor is, GoTo selects a track and puts the cursor at its end or at a time. Neither starts playback or adds an
+// undo step. The caller names a track by the id the engine gave it (the chapter's link), never a path. A track the engine no longer has
+// is the engine's stale error; a refusal is a capability refusal error (RefusedFrom) or the engine's own sentence.
+type PlaceFollower interface {
+	ReadPlace(ctx context.Context) (Place, error)
+	GoTo(ctx context.Context, trackID string, target PlaceTarget) error
+}
+
 // FilePreviewer plays a stretch of a file on disk through the engine's own preview, and stops it. It never inserts the file,
 // makes an undo point or moves the project's transport: the project is unchanged. The path is one the narrator picked; a path
 // that is not an absolute local path to an audio file is refused before anything is sent.

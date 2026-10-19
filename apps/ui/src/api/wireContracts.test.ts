@@ -205,6 +205,7 @@ import {
   dawFxRangeSettingsSchema,
   dawLastActionSchema,
   dawMonitorLevelSchema,
+  dawPlaceSchema,
   dawProjectStateSchema,
   dawResultSchema,
   dawTransportSchema,
@@ -3341,6 +3342,33 @@ describe('answers of the mock client for the settings, voice, model, transcript 
     expect(await off.dawSetMonitorLevel(40)).toEqual(refused);
   });
 
+  it('dawPlace and dawGoToChapter answer where the narrator is and a move: the host goldens parse, and the mock answers as the host does', async () => {
+    expectMatches(dawPlaceSchema, readGolden('daw-place-ok.json'), 'daw-place-ok.json');
+    expectMatches(dawPlaceSchema, readGolden('daw-place-refused.json'), 'daw-place-refused.json');
+    expectMatches(dawResultSchema, readGolden('daw-go-to-chapter-done.json'), 'daw-go-to-chapter-done.json');
+    expectMatches(dawResultSchema, readGolden('daw-go-to-chapter-refused.json'), 'daw-go-to-chapter-refused.json');
+    // A refusal carries its sentence and names no chapter; an answer has no sentence.
+    expect(dawPlaceSchema.safeParse({ ok: false, message: '', chapterId: '', selected: 0, cursor: 0 }).success).toBe(false);
+    expect(dawPlaceSchema.safeParse({ ok: true, message: 'x', chapterId: '', selected: 0, cursor: 0 }).success).toBe(false);
+    expect(dawPlaceSchema.safeParse({ ok: false, message: 'x', chapterId: 'c-1', selected: 0, cursor: 0 }).success).toBe(false);
+    expect(dawPlaceSchema.safeParse({ ok: true, message: '', chapterId: '', selected: -1, cursor: 0 }).success).toBe(false);
+    expect(dawPlaceSchema.safeParse({ ok: true, message: '', chapterId: '', selected: 0, cursor: -1 }).success).toBe(false);
+
+    const api = createMockApi({}, { daw: { toggles: { follow_position: 'on' } } });
+    expect(await api.dawPlace()).toEqual({ ok: true, message: '', chapterId: '', selected: 0, cursor: 0 });
+    expect(await api.dawGoToChapter('c-0001', 'at', 17.25)).toEqual({ ok: true, changed: true, message: '', undoSteps: 0 });
+    expect(await api.dawPlace()).toEqual({ ok: true, message: '', chapterId: 'c-0001', selected: 1, cursor: 17.25 });
+    const bad = await api.dawGoToChapter('c-0001', 'at', -1);
+    expect(bad.refused).toBe('The place to go to is not a usable number of seconds.');
+
+    const off = createMockApi();
+    const refused = await off.dawPlace();
+    expectMatches(dawPlaceSchema, refused, 'mock place, experimental off');
+    expect(refused.ok).toBe(false);
+    expect(refused.message).toBe((await off.dawCapabilities()).capabilities.follow_position.message);
+    expect((await off.dawGoToChapter('c-0001', 'end', 0)).refused).toBe(refused.message);
+  });
+
   it('dawLastAction and dawUndoLast answer a dawLastAction and a dawResult: the host goldens parse, and the mock answers as the host does', async () => {
     expect(dawLastActionSchema.parse(readGolden('daw-last-action-this.json'))).toBe('this');
     expect(dawLastActionSchema.parse(readGolden('daw-last-action-unknown.json'))).toBe('unknown');
@@ -4104,6 +4132,8 @@ describe('answers of the mock client for the settings, voice, model, transcript 
       'dawUndoLast',
       'dawMonitorLevel',
       'dawSetMonitorLevel',
+      'dawPlace',
+      'dawGoToChapter',
       'dawBackupAround',
       'dawRestoreBackup',
       'dawBackups',

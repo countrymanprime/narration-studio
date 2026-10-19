@@ -14,6 +14,8 @@ import {
 } from 'react';
 import type { ManuscriptChapter, ManuscriptParagraph } from '../../../../api/contracts/manuscript';
 import { chapterName } from '../../../../chapterName';
+import { chapterHeading } from '../../../../chapterHeading';
+import { overlay } from '../../../../overlay/overlayService';
 import { measureLineTop } from '../../bookmarks/ui/ribbonTops';
 import { buildLayerIndex, paragraphLayers, type Layer, type LayerSources } from './layers';
 import { Para, type FindRange } from './Para';
@@ -328,6 +330,15 @@ export function Reader(props: ReaderProps) {
     if (idx !== undefined) reach(idx);
   }, [measure, spy, onChapterInView, indexOf, reach]);
 
+  /** Says where a jump landed ("Chapter 2, The Pool of Tears, ¶ 1 of 26"). The header's line is not a live region, and this replaces whatever the live region said last (a prep state). */
+  const announcePosition = (): void => {
+    const { chapterId, para } = spy.get();
+    const chapter = chapters.find((c) => c.id === chapterId);
+    const heading = chapter && chapterHeading(chapter);
+    const name = (chapterId && sectionNames?.get(chapterId)) || (heading && [heading.label, heading.title].filter(Boolean).join(', '));
+    const said = [name, para].filter(Boolean).join(', ');
+    if (said) overlay.announce(said);
+  };
   const scrollToChapter = (chapterId: string): void => {
     const root = scroller.current;
     const bound = root?.querySelector<HTMLElement>(`[data-bound][data-ch="${chapterId}"]`);
@@ -373,15 +384,14 @@ export function Reader(props: ReaderProps) {
     const root = scroller.current;
     if (!root) return;
     if (pendingJump || pendingPid || pendingBm) release();
+    let jumped = false;
     if (pendingJump) {
       const at = indexOf.get(pendingJump);
-      if (at === undefined) {
-        // A section outside the chapters (the credits) is always drawn.
+      // A section outside the chapters (the credits) is always drawn.
+      if (at === undefined || reach(at)) {
         jumpTo(pendingJump);
         onHandled?.('chapter');
-      } else if (reach(at)) {
-        jumpTo(pendingJump);
-        onHandled?.('chapter');
+        jumped = true;
       }
     }
     if (pendingPid) {
@@ -404,6 +414,7 @@ export function Reader(props: ReaderProps) {
       }
     }
     onSpy();
+    if (jumped) announcePosition();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pendingJump, pendingPid, pendingBm, drawn]);
 

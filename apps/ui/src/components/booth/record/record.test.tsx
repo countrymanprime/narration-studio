@@ -104,7 +104,7 @@ describe('Record preconditions on the Record control', () => {
     await waitFor(() => expect(record().disabled).toBe(false));
     expect(record().textContent).toBe('Record');
     await userEvent.click(record());
-    expect(start).toHaveBeenCalledExactlyOnceWith('c1');
+    expect(start).toHaveBeenCalledExactlyOnceWith('c1', undefined);
     await waitFor(() => expect(record().textContent).toBe('Stop'));
     await userEvent.click(record());
     expect(stop).toHaveBeenCalledTimes(1);

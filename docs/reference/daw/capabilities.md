@@ -151,6 +151,16 @@ Facts about REAPER, Audacity and the built-in recorder are copied from the pages
 - **Audacity:** not built.
 - **Checked:** harness (`track_select_test.lua`); expected result is row A11; the run in REAPER is pending with the owner ([#510](https://github.com/countrymanprime/narration-utils/issues/510)).
 
+### `follow_position`
+
+- **Intent:** know which track the narrator is on and where their cursor is, and take them to a track at its end or at a time, so the Booth opens where the narrator is and moves the engine to the chapter and word it was opened at.
+- **Role:** `PlaceFollower`, synchronous. `ReadPlace()` answers a `Place`: the engine's id for the one selected track (empty when none or several are selected, so a caller never guesses), how many are selected, and the cursor in project seconds. `GoTo(trackID, target)` selects that track alone and puts the cursor at the end of what is on it, or at a time in project seconds. The caller names the track by the id the chapter's link holds, never a path; the host maps a track back to its chapter.
+- **Result:** neither starts or seeks playback, neither adds an undo point, and `ReadPlace` changes nothing. A track the engine no longer has is its stale error and nothing moves. A time that is negative or not a number is refused before anything is sent.
+- **REAPER:** `read_place` (`PLACE`) and `go_to` (`PLACE_SET`), Experimental, in `narration_track_select.lua`. The track is the one selected track (`CountSelectedTracks`, `GetSelectedTrack`), the cursor `GetCursorPosition`; `go_to` uses `SetOnlyTrackSelected` and `SetEditCurPos(time, true, false)`, with the end of the track the latest item's `D_POSITION + D_LENGTH`.
+- **Audacity:** not built. The same role fits it: its selected track and cursor are readable and settable through its scripting commands.
+- **Binding:** `DawPlace()` and `DawGoToChapter(chapterId, where, seconds)` (`apps/desktop/bindings_daw_place.go`).
+- **Checked:** harness (`track_select_test.lua`); the run in REAPER is pending with the owner.
+
 ### `record`
 
 - **Intent:** arm one track, start and stop recording on it, and learn when the narrator stops it in the engine.

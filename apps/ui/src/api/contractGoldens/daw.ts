@@ -10,6 +10,7 @@ import {
   dawFxRangeSettingsSchema,
   dawLastActionSchema,
   dawMonitorLevelSchema,
+  dawPlaceSchema,
   dawProjectStateSchema,
   dawResultSchema,
   dawTransportSchema,
@@ -104,6 +105,11 @@ export const dawGoldens: Record<string, z.ZodType> = {
   // DawMonitorLevel and DawSetMonitorLevel (bindings_daw_levels_test.go): the level the DAW holds, and the monitor_level capability's refusal.
   'daw-monitor-level-ok.json': dawMonitorLevelSchema,
   'daw-monitor-level-refused.json': dawMonitorLevelSchema,
+  // DawPlace and DawGoToChapter (bindings_daw_place_test.go): where the narrator is, the follow_position capability's refusal, and a move to a chapter.
+  'daw-place-ok.json': dawPlaceSchema,
+  'daw-place-refused.json': dawPlaceSchema,
+  'daw-go-to-chapter-done.json': dawResultSchema,
+  'daw-go-to-chapter-refused.json': dawResultSchema,
   // narration-utils/backups.json, the file the host reads back (backups_contract_test.go): an empty table and one with two rows.
   'daw-backups-empty.json': dawBackupsFileSchema,
   'daw-backups-two.json': dawBackupsFileSchema,

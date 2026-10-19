@@ -20,7 +20,7 @@ export function mockSnapTime(sourceTime: number): number {
 export function createWorkspaceSnapMock(): WorkspaceSnapApi {
   return {
     workspaceSnap: async (chapterId, itemGuid, sourceTime): Promise<WorkspaceSnapResult> => {
-      if (!Number.isFinite(sourceTime) || sourceTime < 0) throw new Error('a cut point is a finite time of at least 0 seconds');
+      if (!Number.isFinite(sourceTime) || sourceTime < 0) throw new Error('a cut point must be a finite time of 0 seconds or later');
       const time = mockSnapTime(sourceTime);
       return { chapterId, itemGuid, sourceTime, outcome: 'snapped', time, moved: time - sourceTime };
     },

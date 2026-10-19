@@ -90,6 +90,11 @@ export function pageApi(overrides: Partial<NarrationApi> = {}): NarrationApi {
     manuscriptChapters: async () => CHAPTERS,
     manuscriptParagraphs: async (chapterId: string) => PARAGRAPHS[chapterId] ?? [],
     teleprompterState: async () => ({ phase: 'idle', message: '', engine: null, chapter: null, script: null, position: null }),
+    // Listening starts before a take does, so a page under test has a session that starts unless a test says otherwise.
+    teleprompterStart: async () => ({ status: 'started' as const }),
+    // Opened at a chapter, the Booth also moves the DAW there; a page under test has a DAW that does.
+    dawGoToChapter: async () => ({ ok: true, changed: true, message: '', undoSteps: 0 }),
+    dawPlace: async () => ({ ok: true, message: '', chapterId: '', selected: 0, cursor: 0 }),
     teleprompterLocate: () => Promise.reject(new Error('no recording')),
     teleprompterDevices: async () => ({ devices: [{ name: 'USB Mic' }], error: null }),
     guideEntities: async () => ENTITIES,

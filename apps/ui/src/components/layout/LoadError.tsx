@@ -1,9 +1,22 @@
+import type { MouseEvent } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faRotate } from '@fortawesome/free-solid-svg-icons';
 import { Button } from '../primitives/Button';
 import { Heading } from '../primitives/Heading';
 import { Panel } from '../primitives/Panel';
 import { ARRIVE_CLASSES } from '../primitives/changeHighlight';
+
+/**
+ * Retry swaps the error for the page's skeleton, so the button that was pressed unmounts and focus would fall to the document body, losing
+ * the keyboard and screen-reader place. The page's `<main>` (the shell's focusable landmark) keeps it: the next Tab continues from the page
+ * and the error that may come back is announced as the alert it is.
+ */
+function retryAndKeepFocus(retry: () => void) {
+  return (event: MouseEvent<HTMLButtonElement>) => {
+    event.currentTarget.closest('main')?.focus({ preventScroll: true });
+    retry();
+  };
+}
 
 /**
  * The panel of a failed read: the sentence as an alert and Retry. A page puts it under its own title (`LoadError`); a tab or section
@@ -15,7 +28,7 @@ export function LoadErrorPanel({ message, retry }: { message: string; retry: () 
       <p role="alert" className="text-sm" style={{ color: 'var(--text-muted)' }}>
         {message}
       </p>
-      <Button variant="primary" className="mt-4" onClick={retry}>
+      <Button variant="primary" className="mt-4" onClick={retryAndKeepFocus(retry)}>
         <FontAwesomeIcon icon={faRotate} />
         Retry
       </Button>
