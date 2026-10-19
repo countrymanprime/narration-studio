@@ -123,6 +123,29 @@ The same workflow again (run 39156991571, head `0821407`) after `main` and #1898
 - **The timing records did not change the round trip**: p50 16 ms, p95 31 ms and max 45 to 46 ms, the same as before the merge. (`Actions.SetObserver` is only wired by the host, `recordBridgeTiming`; this harness calls `Actions` directly with no observer, so this run shows the fast poll after the merge but not the cost of writing the record. That cost is one `slog` line per request and was not measured.)
 - A tick costs about 15 µs at every log size, from empty to 8 MB.
 
+### After, merged head (2026-10-19)
+
+The same workflow run by hand on `main` at `c363085` (run 39177332990, started 2026-10-18 23:38 UTC), after #1909 and #1936 merged. Runner: `windows-latest`, AMD EPYC 7763, 4 logical CPUs. Sample: 100 timed `play_position` calls per log size after 10 warm-ups. Defender's state on this run was not read from the log.
+
+| events.log at start (KB) | Round trip p50 (ms) | p95 (ms) | Max (ms) | Command taken p50 (ms) | Answer written p50 (ms) |
+| --- | --- | --- | --- | --- | --- |
+| 0 | 16 | 31 | 46 | 6 | 14 |
+| 1,024 | 16 | 31 | 45 | 7 | 14 |
+| 8,192 | 16 | 31 | 45 | 10 | 15 |
+
+| events.log | Time per tick (three runs) | Allocated per tick |
+| --- | --- | --- |
+| 0 KB | 31.8 to 32.5 µs | 600 B |
+| 200 KB | 32.3 to 32.4 µs | 808 B |
+| 1 MB | 32.5 to 33.1 µs | 808 B |
+| 8 MB | 31.9 to 32.5 µs | 808 B |
+
+- The round trip matches the branch runs: p50 16 ms against 94 ms before the change, p95 31 ms against 158 ms, max 45 to 46 ms against 172 to 175 ms. The fast poll holds on the merged head.
+- A tick is flat across log sizes, as before. It reads 32 µs here and 15 µs on the EPYC 9V45 run above; both runners are shared hardware, and this one has the same CPU as the first "after" run (EPYC 7763, 32 µs), so the difference tracks the CPU, not the code.
+- "Command taken" moved between runs (6 to 10 ms here, 11 to 14 ms before) while the total did not. The 0.5 ms probe and the fake's defer cadence limit how far to read that split.
+- The same run re-measured the frozen sidecars slower than the first run (`manuscript-guide --help` p50 313 ms against 230 ms, hello 80 ms against 60 ms; the first launch of a fresh copy 576 ms against 882 ms). Those rows are not comparable across runs. They are not tabulated here.
+- **What this run could not prove.** The bridge was driven by a fake `reaper` ticked from a Python thread, not by REAPER: the 16 ms floor is the fake's 16 to 33 ms tick, and real REAPER's defer cadence under load is unmeasured. The runner has no audio device, so nothing here touches playback or recording. The harness calls `Actions` without the host's timing observer, so the cost of the timing record is not in these numbers.
+
 ## What this does and does not show
 
 - The bridge cost is the host's tick, not the script or the log. [The fast-poll change](https://github.com/countrymanprime/narration-utils/pull/1909) targets it.

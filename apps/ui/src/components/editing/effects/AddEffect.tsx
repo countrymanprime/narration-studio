@@ -43,7 +43,7 @@ export function AddEffect({
       {over && impact && !note ? (
         <p
           role="alert"
-          className={`m-0 rounded-[var(--radius-button)] p-2 text-[length:var(--font-size-sm)] ${impact.far ? 'bg-[var(--danger-soft)] text-[var(--danger-text)]' : 'bg-[var(--warning-soft)]'}`}
+          className={`m-0 rounded-[var(--radius-button)] p-2 text-[length:var(--font-size-sm)] ${impact.far ? 'bg-[var(--danger-soft)] text-[var(--danger-text)]' : 'bg-[var(--warn-soft)]'}`}
         >
           This takes coverage from <b>{fmtPct(impact.before)}</b> to <b>{fmtPct(impact.after)}</b>, over the {fmtPct(cap)} cap.
           {impact.far ? ' That is more than twice the cap.' : ''}

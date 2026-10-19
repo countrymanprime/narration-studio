@@ -53,7 +53,7 @@ export function BiblePanel({
           onOpenStoryBible={onOpenStoryBible}
         />
       ) : missing ? (
-        <section aria-label={missing} className="flex flex-col gap-2 rounded-lg border border-[var(--line)] bg-[var(--surface)] p-3">
+        <section aria-label={missing} className="flex flex-col gap-2 rounded-lg border border-[var(--border)] bg-[var(--surface)] p-3">
           <h3 className="m-0 text-[1rem] font-semibold">{`“${missing}”`}</h3>
           <p className="m-0 text-[0.88rem]">No Story Bible entry for this.</p>
           <div className="flex">
@@ -78,7 +78,7 @@ export function BiblePanel({
                 type="button"
                 aria-pressed={entry?.id === row.id}
                 onClick={() => onPick(row.id)}
-                className={`flex w-full cursor-pointer flex-col items-start gap-0.5 rounded-md border px-2.5 py-1.5 text-left text-[var(--text)] focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-[var(--focus)] ${entry?.id === row.id ? 'border-[var(--accent)] bg-[var(--accent-soft)]' : 'border-[var(--line)] bg-[var(--surface)]'}`}
+                className={`flex w-full cursor-pointer flex-col items-start gap-0.5 rounded-md border px-2.5 py-1.5 text-left text-[var(--text)] focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-[var(--focus)] ${entry?.id === row.id ? 'border-[var(--accent)] bg-[var(--accent-soft)]' : 'border-[var(--border)] bg-[var(--surface)]'}`}
               >
                 <b className="text-[0.88rem]">{row.canonical_name}</b>
                 <span className="text-[0.8rem] text-[var(--text-muted)]">{`${row.category} · first ${firstAppearance(row)}`}</span>

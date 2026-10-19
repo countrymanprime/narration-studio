@@ -7,7 +7,7 @@ export function PrepLegend() {
   return (
     <ul
       aria-label="Prep key"
-      className="m-0 flex list-none flex-col items-start gap-1 border-t border-[var(--line)] bg-[var(--surface-2)] px-4 py-2.5 text-[0.8125rem] text-[var(--text-muted)]"
+      className="m-0 flex list-none flex-col items-start gap-1 border-t border-[var(--border)] bg-[var(--surface-2)] px-4 py-2.5 text-[0.8125rem] text-[var(--text-muted)]"
     >
       {PREP_STATES.map((state) => (
         <li key={state} className="inline-flex items-center gap-1.5">

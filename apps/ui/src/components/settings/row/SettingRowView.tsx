@@ -156,7 +156,7 @@ export function SettingRowView({ row, children, flash }: { row: SettingMeta; chi
                     <Button
                       variant="link"
                       size="sm"
-                      aria-label={`Use the computer setting for ${row.label}`}
+                      aria-label={`Use computer setting for ${row.label}`}
                       onClick={() => void store.write(row, 'project', null)}
                     >
                       Use computer setting
@@ -166,7 +166,7 @@ export function SettingRowView({ row, children, flash }: { row: SettingMeta; chi
                 ) : (
                   <>
                     <span>This project uses the computer setting.</span>
-                    <Button variant="link" size="sm" aria-label={`Override ${row.label} for this project`} onClick={() => commit(comp, 'project')}>
+                    <Button variant="link" size="sm" aria-label={`Override for this project: ${row.label}`} onClick={() => commit(comp, 'project')}>
                       Override for this project
                     </Button>
                   </>

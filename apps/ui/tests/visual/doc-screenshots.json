@@ -154,11 +154,18 @@
     "caption": "Production - evidence changed since you confirmed: the check that is no longer met and Revert; nothing moved on its own"
   },
   {
+    "page": "settings",
+    "state": "import-choose",
+    "viewport": "desktop",
+    "docName": "production-import-choose",
+    "caption": "Replace manuscript, step 1 of 2: Choose your manuscript, with the drop zone and Choose a file…"
+  },
+  {
     "page": "production",
     "state": "import-confirm",
     "viewport": "desktop",
     "docName": "production-import-confirm",
-    "caption": "Production - import manuscript confirm dialog with format/paragraph/chapter preview"
+    "caption": "Import manuscript, step 2 of 2: Check the chapter outline, with each heading's words and a preview of how the selected one begins"
   },
   {
     "page": "proof-chapter",
@@ -173,6 +180,13 @@
     "viewport": "desktop",
     "docName": "proof-chapter-compare-setup",
     "caption": "Proof chapter view - the compare run's setup before starting a comparison"
+  },
+  {
+    "page": "proof-chapter",
+    "state": "options-open",
+    "viewport": "desktop",
+    "docName": "proof-chapter-options",
+    "caption": "Proof chapter view - the Compare options dialog opened from Jump to or run"
   },
   {
     "page": "proof-chapter",
@@ -691,6 +705,13 @@
     "viewport": "desktop",
     "docName": "master-diagnostics-findings",
     "caption": "Master & QC, Diagnostics - the checked files diagnosed: each file summarised, and each finding with its time, what was measured, the threshold that raised it and the source"
+  },
+  {
+    "page": "master",
+    "state": "diagnostics-cleanup-options",
+    "viewport": "desktop",
+    "docName": "master-cleanup-options",
+    "caption": "Master & QC, Diagnostics - the Silence cleanup options dialog opened from Jump to or run"
   },
   {
     "page": "master",

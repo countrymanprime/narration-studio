@@ -19,14 +19,7 @@ const REMOVED_CLASSES = [
   'progress-segment',
 ];
 // Reviewed exceptions from docs/design/design-system.md#base-ui-wrappers that may stay as plain (unlayered) class rules.
-const UNLAYERED_ALLOW_LIST = new Set([
-  'manuscript-reader',
-  'scroll-chrome-hidden',
-  'guide-list-scroll',
-  'reader-page',
-  'reader-chapters',
-  'source-line-number',
-]);
+const UNLAYERED_ALLOW_LIST = new Set(['manuscript-reader', 'scroll-chrome-hidden', 'guide-list-scroll']);
 
 function sourceFiles(directory: string): string[] {
   return readdirSync(directory).flatMap((name) => {

@@ -10,6 +10,9 @@ import { WaveformWindow, type WaveformWindowProps } from './WaveformWindow';
 import type { Pin } from './pins';
 import type { TimeWindow } from './windowMath';
 
+/** What a chapter tile draws: its number and count, which it draws as generated content from data-text. */
+const drawn = (tile: HTMLElement): string => [...tile.querySelectorAll('[data-text]')].map((part) => part.getAttribute('data-text')).join('');
+
 afterEach(cleanup);
 
 describe('ProofHeader', () => {
@@ -42,9 +45,9 @@ describe('ChapterStrip', () => {
     const onChoose = vi.fn();
     render(<ChapterStrip chapters={chapters(5)} current="c3" onChooseChapter={onChoose} />);
     expect(screen.getAllByRole('button')).toHaveLength(5);
-    expect(screen.getByRole('button', { name: 'Chapter 0: 3 open of 4' }).textContent).toBe('Open3');
-    expect(screen.getByRole('button', { name: 'Chapter 4: 3 open of 4' }).textContent).toBe('Close3');
-    expect(screen.getByRole('button', { name: 'Chapter 1: no notes' }).textContent).toBe('1—');
+    expect(drawn(screen.getByRole('button', { name: 'Chapter 0: 3 open of 4' }))).toBe('Open3');
+    expect(drawn(screen.getByRole('button', { name: 'Chapter 4: 3 open of 4' }))).toBe('Close3');
+    expect(drawn(screen.getByRole('button', { name: 'Chapter 1: no notes' }))).toBe('1—');
     expect(screen.getByRole('button', { name: 'Chapter 2: 0 open of 4' }).getAttribute('data-state')).toBe('clear');
     expect(screen.getByRole('button', { name: 'Chapter 3: 3 open of 4' }).getAttribute('aria-current')).toBe('true');
     fireEvent.click(screen.getByRole('button', { name: 'Chapter 2: 0 open of 4' }));
@@ -52,12 +55,12 @@ describe('ChapterStrip', () => {
   });
   it('goes dense above the threshold: a dot per tile and every fifth number labelled', () => {
     render(<ChapterStrip chapters={chapters(24)} current="c1" onChooseChapter={() => {}} />);
-    const labels = screen.getAllByRole('button').map((b) => b.querySelector('span')!.textContent);
+    const labels = screen.getAllByRole('button').map((b) => b.querySelector('span')!.getAttribute('data-text'));
     expect(labels[5]).toBe('5');
     expect(labels[6]).toBe('');
     expect(labels[0]).toBe('In');
     expect(labels[23]).toBe('Out');
-    expect(screen.getByRole('button', { name: 'Chapter 6: 3 open of 4' }).querySelector('b')!.textContent).toBe('●');
+    expect(screen.getByRole('button', { name: 'Chapter 6: 3 open of 4' }).querySelector('b')!.getAttribute('data-text')).toBe('●');
     expect(screen.getByRole('group').getAttribute('data-dense')).toBe('true');
   });
 });

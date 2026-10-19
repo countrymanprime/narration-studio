@@ -27,7 +27,7 @@ export function SelectionBar({ playback, end, narrow = false }: { playback: Scri
     <div
       role="toolbar"
       aria-label="Playback and selection"
-      className="flex flex-wrap items-center gap-x-3.5 gap-y-2 border-t border-[var(--line)] bg-[var(--surface)] px-3.5 py-2"
+      className="flex flex-wrap items-center gap-x-3.5 gap-y-2 border-t border-[var(--border)] bg-[var(--surface)] px-3.5 py-2"
     >
       <div className="flex items-center gap-1.5">
         <IconButton action="previousWord" onClick={() => playback.skip(-1)} />
