@@ -16,6 +16,6 @@ describe('guideForPath', () => {
   });
 
   it('addresses the guide from the demo page', () => {
-    expect(guideHref('/pickups')).toBe('../guides/pickups.html');
+    expect(guideHref('/pickups')).toBe('../docs/pickups.html');
   });
 });
