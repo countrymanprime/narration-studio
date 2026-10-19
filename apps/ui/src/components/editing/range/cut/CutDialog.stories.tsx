@@ -1,4 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
+import type { ComponentProps } from 'react';
 import { expect, fn, userEvent, waitFor, within } from 'storybook/test';
 import { Dialog } from '../../../primitives/Dialog';
 import { screen } from '../../../primitives/portalScreen';
@@ -15,12 +16,13 @@ const keys = ['p-1:3', 'p-1:4'];
 const snap = (at: number) => Promise.resolve({ time: at + 0.0012, moved: 0.0012 });
 
 /** The question as the overlay draws it: the Dialog primitive with the dialog's own body and buttons. */
-function Question({ plan, mute = false }: { plan: Acting; mute?: boolean }) {
+function Question({ plan, mute = false, stays = [] }: { plan: Acting; mute?: boolean; stays?: ComponentProps<typeof CutDialog>['stays'] }) {
   return (
     <Dialog dismissOnOutsidePress={false} title={cutTitle(2, mute)} onClose={fn()} actions={null}>
       <CutDialog
         doc={doc}
         keys={keys}
+        stays={stays}
         cuts={[]}
         mute={mute}
         plan={plan}
@@ -46,6 +48,15 @@ export const Delete: Story = {
     await waitFor(() => expect(within(dialog).getByText(/moved 1\.2 ms to a zero crossing/)).toBeTruthy());
     await expect(document.activeElement).toBe(within(dialog).getByRole('button', { name: 'Cancel' }));
     await expect(within(dialog).getByText(/one undo step in REAPER/)).toBeTruthy();
+  },
+};
+
+// A word only said at the edge of the selection has no token: the question names it and says its audio stays.
+export const StayingWord: Story = {
+  render: () => <Question plan={{ kind: 'daw', dawName: 'REAPER' }} stays={doc.items.filter((i) => i.kind === 'x')} />,
+  play: async () => {
+    const dialog = await screen.findByRole('dialog', { name: 'Delete 2 words and their audio?' });
+    await expect(within(dialog).getByText('“um” was only said and is not in the script, so its audio stays.')).toBeTruthy();
   },
 };
 

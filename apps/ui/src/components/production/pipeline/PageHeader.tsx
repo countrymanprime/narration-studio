@@ -9,6 +9,7 @@ import { statusTone } from '../../../kinds/statusTone';
 import { toneColors } from '../../primitives/StatusBadge';
 import { deadlineTone, TONE_STATUS, type Calc, type Tone } from '../../schedule/progress';
 import { VerdictPill } from '../../schedule/VerdictPill';
+import { TimerChip, type RunningTimer } from '../../layout/TimerChip';
 
 /** The tone as a word and a shape, beside its colour, so the due date is never told by colour alone. */
 const TONE_MARK: Record<Tone, { glyph: string; word: string; color: string } | null> = {
@@ -29,6 +30,8 @@ type Props = {
   /** The record capability: Start session is disabled with its own reason beside it, and a way to Settings when Settings is what fixes it. */
   record: { ok: boolean; reason: string; inSettings?: boolean };
   timerRunning: boolean;
+  /** The running stage timer, drawn as a chip beside Stop timer (it was the app header's chip); null draws none. */
+  timer?: RunningTimer | null;
   stopping?: boolean;
   onStopTimer: () => void;
   onStartSession: () => void;
@@ -49,6 +52,7 @@ export function PageHeader({
   due,
   record,
   timerRunning,
+  timer,
   stopping,
   onStopTimer,
   onStartSession,
@@ -103,6 +107,7 @@ export function PageHeader({
         )}
       </div>
       <div className="flex flex-none flex-wrap items-center gap-2">
+        {timer && <TimerChip timer={timer} />}
         {timerRunning && (
           <Button variant="secondary" pending={stopping} onClick={onStopTimer}>
             Stop timer

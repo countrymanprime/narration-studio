@@ -30,10 +30,8 @@ describe('the shell overlay scope', () => {
       [
         'context menu on the page',
         'navigation rail opened over the page',
-        'hint on Back',
+        'hint on Switch project',
         'hint on Jump to or run',
-        'hint on Zoom in',
-        'hint on Undo',
         'Jump to or run',
         'History',
         'navigation drawer',

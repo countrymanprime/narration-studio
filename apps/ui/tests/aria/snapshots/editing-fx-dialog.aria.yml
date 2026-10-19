@@ -3,7 +3,6 @@
 # Live regions stay in the tree on purpose (an error raised from inside a dialog is still announced): the zoom readout, the Editing
 # overlay announcer (it says what is selected) and the Editing page's bar (a live region that says what is selected), and the toast pair, which is portalled to <body> (Toast.tsx), not under <main>.
 - main:
-  - group "Zoom"
   - region "Script editor":
     - toolbar "Playback and selection": /4 words 0:\d+ to 0:\d+ · 1\.5 s In the script/
 - status: /4 words selected, 0:\d+ to 0:\d+/
