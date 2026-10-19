@@ -70,22 +70,22 @@ function ProfileBody({ profile, open, onOpenChange }: { profile: DeliveryProfile
       </p>
       <ul aria-label="Rules at a glance" className="flex flex-wrap gap-2">
         <li>
-          <Mark tone="ok">{`${counts.checked} checked by the app`}</Mark>
+          <Mark status="met">{`${counts.checked} checked by the app`}</Mark>
         </li>
         <li>
-          <Mark tone="info">{`${counts.notChecked} not checked by the app`}</Mark>
+          <Mark status="not_checked">{`${counts.notChecked} not checked by the app`}</Mark>
         </li>
         <li>
-          <Mark tone="muted" icon={LISTEN_ICON}>{`${counts.listen} listen`}</Mark>
+          <Mark status="not_measurable" icon={LISTEN_ICON}>{`${counts.listen} listen`}</Mark>
         </li>
         {counts.off > 0 && (
           <li>
-            <Mark tone="muted">{`${counts.off} off`}</Mark>
+            <Mark status="off">{`${counts.off} off`}</Mark>
           </li>
         )}
         {counts.toVerify + counts.conflicting > 0 && (
           <li>
-            <Mark tone="warn">{`${counts.toVerify + counts.conflicting} to verify`}</Mark>
+            <Mark status="to_verify">{`${counts.toVerify + counts.conflicting} to verify`}</Mark>
           </li>
         )}
       </ul>

@@ -438,10 +438,16 @@ describe('readerMarks', () => {
   });
 
   it('maps entity mentions and note anchors onto the words of the paragraph row they sit in, keyed by paragraph id', () => {
-    const marks = readerMarks([withEntity('Then Mr. Hale left the room')], [hale], [note(14, 27, 'left the room')]);
+    const marks = readerMarks(
+      [withEntity('Then Mr. Hale left the room')],
+      [hale],
+      [note(14, 27, 'left the room')],
+      [{ name: hale.category, colour: 'blue', speaks: false }],
+    );
+    const colour = { hue: 'place', line: '--place', text: '--place-text' };
     expect(marks.get('p0')).toEqual([
-      { id: 'entity-e1-0-5', from: 1, to: 3, value: { kind: 'entity', entity: hale } },
-      { id: 'entity-e1-1-9', from: 2, to: 3, value: { kind: 'entity', entity: hale } },
+      { id: 'entity-e1-0-5', from: 1, to: 3, value: { kind: 'entity', entity: hale, colour } },
+      { id: 'entity-e1-1-9', from: 2, to: 3, value: { kind: 'entity', entity: hale, colour } },
       { id: 'note-n1', from: 3, to: 6, value: { kind: 'note', note: expect.objectContaining({ id: 'n1' }) } },
     ]);
   });

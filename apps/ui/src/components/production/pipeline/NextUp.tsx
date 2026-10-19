@@ -1,6 +1,8 @@
 import type { ReactNode } from 'react';
 import type { ChapterStatus } from '../../../api/contracts/manuscript';
+import { statusTone, type StatusId } from '../../../kinds/statusTone';
 import { Button } from '../../primitives/Button';
+import { toneColors } from '../../primitives/StatusBadge';
 import { hm } from '../../schedule/dates';
 import { rankNextUp, type NextItem, type NextUpInputs } from './nextUpRanking';
 import type { GoTarget } from './pipelineRows';
@@ -16,21 +18,19 @@ type Props = {
   timer: { running: boolean; starting?: string; onStart: (chapterId: string, stage: ChapterStatus) => void };
 };
 
-/** The disc's colours by what the item is (the mock: copper for recording, danger for pickups and a failed check, warn for changes). */
-const DISC = {
-  rec: { background: 'var(--accent-soft)', color: 'var(--accent-strong)' },
-  danger: { background: 'var(--danger-soft)', color: 'var(--danger-text)' },
-  warn: { background: 'var(--warn-soft)', color: 'var(--warn-text)' },
-} as const;
+/** The status each item is, so its disc is drawn in the tone that status has everywhere: recording is in progress, a pickup session is an open pickup (D10), a failed check fails, a changed chapter is changed. */
+const DISC: Record<string, StatusId> = { rec: 'in_progress', pick: 'open_pickup', fail: 'fail', flags: 'changed' };
 
-function Item({ icon, tone, title, sub, children }: { icon: string; tone: keyof typeof DISC; title: ReactNode; sub: ReactNode; children: ReactNode }) {
+function Item({ icon, status, title, sub, children }: { icon: string; status: keyof typeof DISC; title: ReactNode; sub: ReactNode; children: ReactNode }) {
+  const tone = statusTone(DISC[status]);
+  const colors = toneColors(tone);
   return (
     <li className="flex gap-3 border-t border-[var(--border)] py-3 first:border-t-0">
       <span
         aria-hidden="true"
         data-tone={tone}
         className="mt-0.5 flex size-[1.875rem] flex-none items-center justify-center rounded-lg text-[0.8rem] font-bold"
-        style={DISC[tone]}
+        style={{ background: colors.fill, color: colors.text }}
       >
         {icon}
       </span>
@@ -53,7 +53,7 @@ function Rendered({ item, record, onGo, onReviewChanges, timer }: Omit<Props, 'i
           ? 'recording in progress'
           : `${Math.round((item.share ?? 0) * 100)}% recorded · about ${hm(item.hoursLeft)} of finished audio left`;
       return (
-        <Item icon="●" tone="rec" title={`Finish recording ${item.name}`} sub={left}>
+        <Item icon="●" status="rec" title={`Finish recording ${item.name}`} sub={left}>
           {/* Opening the Booth to read and prepare is navigation; only Record needs the capability (the Booth gates that itself). */}
           <Button variant="primary" size="sm" onClick={() => onGo('booth', item.chapterId)}>
             Open Booth
@@ -76,7 +76,7 @@ function Rendered({ item, record, onGo, onReviewChanges, timer }: Omit<Props, 'i
     }
     case 'pick':
       return (
-        <Item icon="↺" tone="danger" title={`Pickup session · ${item.lines} lines`} sub={`${item.chapters.join(' and ')} · match mic, gain and position first`}>
+        <Item icon="↺" status="pick" title={`Pickup session · ${item.lines} lines`} sub={`${item.chapters.join(' and ')} · match mic, gain and position first`}>
           <Button variant="secondary" size="sm" onClick={() => onGo('pickups')}>
             Review pickups
           </Button>
@@ -86,7 +86,7 @@ function Rendered({ item, record, onGo, onReviewChanges, timer }: Omit<Props, 'i
       return (
         <Item
           icon="◠"
-          tone="danger"
+          status="fail"
           title={`${item.tag} fails ${item.fails.length} ACX ${item.fails.length > 1 ? 'checks' : 'check'}`}
           sub={item.fails.join(' · ')}
         >
@@ -99,7 +99,7 @@ function Rendered({ item, record, onGo, onReviewChanges, timer }: Omit<Props, 'i
       return (
         <Item
           icon="!"
-          tone="warn"
+          status="flags"
           title={`${item.count} ${item.count > 1 ? 'chapters' : 'chapter'} changed by the new manuscript`}
           sub={item.names.join(' · ')}
         >

@@ -48,5 +48,8 @@ export const proofingChoiceLabel = (key: string, value: string) => {
         espeak: 'eSpeak NG',
       }[value] ?? value
     );
+  // A readiness signal's two policies (the StageRecommendations choices): it must hold before a stage is suggested, or it is not looked at.
+  if (value === 'required') return 'Required';
+  if (value === 'ignored') return 'Ignored';
   return value;
 };

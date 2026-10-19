@@ -30,13 +30,17 @@ manuscript heads them. The lines are grouped by chapter, each group with how man
 
 - a box that includes it in the next session, or leaves it out (Space on a selected line does the same);
 - its time in the recording, its type, the line to re-record, where it came from and its status (**Open** or
-  **Recorded**);
+  **Recorded**). The type is drawn as that kind is everywhere in the app: a misread, a left-out line, extra words,
+  a repeat and a long silence are red; a breath, click, noise or plosive is amber; a pronunciation is blue. **Open** is amber, a thing
+  still to do, and **Recorded** is green;
+- **Hear the original in context**, which plays the recording at this line with 3 seconds either side (press it again to
+  stop; it is off, with the reason, for a line that has no place in the recording yet);
 - **Open in Booth at this line** (Enter on a selected line), **Mark recorded** (or **Mark open again**) and **Remove from
   pickups**.
 
-In a narrow window the table scrolls sideways, with a shadow on the edge that has more to see.
+Each line is a tall row with 36 px buttons, and each chapter's group row is tinted. In a narrow window the table scrolls sideways, with a shadow on the edge that has more to see.
 
-Right-click a line for the same actions, **Open this chapter in Script**, and **Go to the note in Proof** for a line that
+Right-click a line for the same actions (**Hear the original in context** too), **Open this chapter in Script**, and **Go to the note in Proof** for a line that
 came from a note. Up and Down move between lines. When you come back from the Booth with the browser's Back button after
 opening one line, that line is selected again and has the focus.
 
@@ -90,9 +94,6 @@ figure). From there:
   REAPER." (or that those markers were already there). It is off, with the reason, when the DAW cannot add markers.
 - **Copy the pickup script** copies the lines, one per line as "chapter · time: line", to paste elsewhere. If the window
   does not allow the clipboard, it says so.
-
-**Play the original around this line** is off, with its reason: the app has no player for the original recording around
-a line yet. Open the line in the Booth to hear and re-record it.
 
 ![Pickups - one line left out of the session: the session panel counts one fewer](../../images/ui/pickups-left-out.webp)
 

@@ -1,4 +1,5 @@
 import { apiErrorMessage, describeApiError } from '../../api/errorMessage';
+import { statusLabel, statusTone } from '../../kinds/statusTone';
 import { useEffect, useId, useRef, useState, type ReactNode } from 'react';
 import { useInRouterContext, useNavigate } from 'react-router-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
@@ -226,6 +227,8 @@ export function GuideDetail({
   const api = useApi();
   const { types, failed: typesFailed, checkAgain: checkTypesAgain } = useGuideTypes(entities);
   const speaks = entity ? canSpeak(types, entity.category) : false;
+  /** The dot beside a category: its type's colour (a Needs Review or Draft entry is amber), the same as its chip and its list swatch. */
+  const dotOf = (category: string): string => `var(${entryColour(types, category).line})`;
   // The Find button navigates, so it needs the router every page has; a detail drawn outside one (a story, a unit test) has none.
   const inRouter = useInRouterContext();
   const [draft, setDraft] = useState<Draft>({ name: '', description: '', personality: '', context: '', properties: [], talk: NO_TALK });
@@ -615,7 +618,7 @@ export function GuideDetail({
           </div>
         ) : undefined
       }
-      leading={<Dot color={`var(${entryColour(types, entity.category).line})`} />}
+      leading={<Dot color={dotOf(entity.category)} />}
       subtitle={
         <div className="flex items-center gap-2" style={{ position: 'relative' }}>
           <Menu
@@ -625,7 +628,7 @@ export function GuideDetail({
             items={(types.length > 0 ? types.map((type) => type.name) : CREATABLE_CATEGORIES).map((label) => ({
               key: label,
               label,
-              leading: <Dot color={`var(${entryColour(types, label).line})`} />,
+              leading: <Dot color={dotOf(label)} />,
               onSelect: () => {
                 if (isNewDraft) void createNewEntity(label);
                 else void save('category', { category: label }, `Category changed to ${label}.`);
@@ -636,7 +639,7 @@ export function GuideDetail({
             {/* The mock's read-only kind is a plain pill: the chevron promises a menu only while the kind can change. */}
             {!locked && (editing || isNewDraft) && <FontAwesomeIcon icon={faChevronDown} />}
           </Menu>
-          {(entryFlagged(entity) || toVerify > 0) && <StatusBadge tone="warning" label="Needs review" />}
+          {(entryFlagged(entity) || toVerify > 0) && <StatusBadge tone={statusTone('needs_review')} label={statusLabel('needs_review')} />}
         </div>
       }
       actions={
@@ -775,7 +778,7 @@ export function GuideDetail({
                       reload={() => reloadFor(entity.id)}
                       notify={notify}
                     />
-                    {flagged && <StatusBadge tone="warning" label="Needs review" />}
+                    {flagged && <StatusBadge tone={statusTone('needs_review')} label={statusLabel('needs_review')} />}
                     {/* A note from before pronunciation statuses were removed: kept readable, no longer edited. */}
                     {pronunciation.note && <p className="m-0 text-xs text-[var(--text-muted)]">Note: {pronunciation.note}</p>}
                   </div>

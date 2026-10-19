@@ -1,28 +1,16 @@
 import { useMemo } from 'react';
 import { useEntries } from '../../data/useScriptData';
-import { toneColors, type BadgeColors } from '../../../../primitives/StatusBadge';
+import { entryColour, FAINT_COLOUR, type EntityColour } from '../../../../../kinds/entityColour';
 import type { SwatchColour } from '../../../../primitives/Swatch';
 
-/** The hue token of each Story Bible kind the narrator can create from a selection of text. */
-const KIND_HUE = { Character: 'character', Place: 'place', Organization: 'org', Lore: 'lore', Item: 'item', Event: 'event' } as const satisfies Record<
-  string,
-  SwatchColour
->;
+/** A kind a selection can be added to the Story Bible as: a type's name and the colour the registry draws it in. */
+export type BibleKind = { name: string; colour: EntityColour };
 
-/** The kinds the tab offers for a name that has no entry, in the order the Story Bible lists them. */
-export const BIBLE_KINDS: readonly string[] = Object.keys(KIND_HUE);
+/** The kinds the tab offers for a name that has no entry until the host's types are read, in the order the Story Bible lists them. */
+export const BIBLE_KINDS: readonly string[] = ['Character', 'Place', 'Organization', 'Lore', 'Item', 'Event'];
 
-const hueOf = (kind: string): SwatchColour | null => (Object.hasOwn(KIND_HUE, kind) ? KIND_HUE[kind as keyof typeof KIND_HUE] : null);
-
-/** The swatch hue of a kind; a kind with no hue of its own (a draft, a note) is the note hue. */
-export const kindSwatch = (kind: string): SwatchColour => hueOf(kind) ?? 'note';
-
-/** A kind's pill colours: its soft fill under its derived text colour, and the neutral pill for a kind with no hue. */
-export function kindColours(kind: string): BadgeColors {
-  const hue = hueOf(kind);
-  if (!hue) return toneColors('neutral');
-  return { fill: `color-mix(in srgb, var(--${hue}) 18%, var(--surface))`, text: `var(--${hue}-text)`, line: `var(--${hue})` };
-}
+/** The swatch of a colour: its line token, which `styles.css` declares for every entry colour (the Swatch test reads the file). */
+export const swatchOf = (colour: EntityColour): SwatchColour => colour.line.slice(2) as SwatchColour;
 
 /**
  * The kinds a selection can be added to the Story Bible as: the host's own types (`GuideTypes`, so a type the narrator added in the
@@ -31,4 +19,16 @@ export function kindColours(kind: string): BadgeColors {
 export function useBibleKinds(): readonly string[] {
   const { types } = useEntries();
   return useMemo(() => (types.length ? types.map((type) => type.name) : BIBLE_KINDS), [types]);
+}
+
+/** The same kinds, each with the colour its type is drawn in; the built-in six are undrawn (faint) until the types are read. */
+export function useBibleKindChoices(): readonly BibleKind[] {
+  const { types } = useEntries();
+  return useMemo(
+    () =>
+      types.length
+        ? types.map((type) => ({ name: type.name, colour: entryColour(types, type.name) }))
+        : BIBLE_KINDS.map((name) => ({ name, colour: FAINT_COLOUR })),
+    [types],
+  );
 }

@@ -4,12 +4,13 @@ import { Button } from '../../primitives/Button';
 import { IconButton } from '../../primitives/IconButton';
 import { Panel } from '../../primitives/Panel';
 import { LoadingRegion, Skeleton } from '../../primitives/Skeleton';
+import { statusTone, type StatusId } from '../../../kinds/statusTone';
 import { StatusBadge } from '../../primitives/StatusBadge';
 import type { ChapterState } from './chapterStates';
 import { heardText } from './useHostRead';
 import { ARRIVE_CLASSES } from '../../primitives/changeHighlight';
 
-const TONE = { ok: 'success', bad: 'danger', wait: 'neutral' } as const;
+const STATUS = { ok: 'pass', bad: 'fail', wait: 'waiting' } as const satisfies Record<string, StatusId>;
 const DANGER = { color: 'var(--danger-text)' };
 const MUTED = { color: 'var(--text-muted)' };
 /** A book of thousands of chapters would make a list as long as the book; this many rows show first, the rest on request. */
@@ -46,7 +47,7 @@ export function Preflight({
   const [all, setAll] = useState(false);
   const shown = all ? states : states.slice(0, FIRST_ROWS);
   return (
-    <Panel title="Before you build" actions={onOpenMaster && <IconButton action="openInMaster" onClick={onOpenMaster} />}>
+    <Panel title="Before you build" actions={onOpenMaster && <IconButton action="goTo" label="Open in Master & QC" onClick={onOpenMaster} />}>
       <div className="flex flex-col gap-1">
         {problem && (
           <p role="alert" className={`text-sm ${ARRIVE_CLASSES}`} style={DANGER}>
@@ -84,14 +85,14 @@ export function Preflight({
                     variant="link"
                     onClick={() => onOpen(state.id)}
                     aria-label={`${state.name}: ${state.text}. Open in Master & QC`}
-                    className="flex! w-full items-center justify-between gap-2 py-0.5 text-left text-sm no-underline!"
+                    className="flex! min-h-[2.8125rem] w-full items-center justify-between gap-2 text-left text-sm no-underline!"
                   >
                     <span dir="auto" title={state.name} className="min-w-0 flex-1 truncate">
                       {state.name}
                     </span>
                     {/* A space, so the text drawn reads "Chapter 01 Pass", words of the name: run together it fails axe's
                         label-content-name-mismatch. A flex box draws no space for it. */}{' '}
-                    <StatusBadge tone={TONE[state.kind]} label={state.text} />
+                    <StatusBadge tone={statusTone(STATUS[state.kind])} label={state.text} />
                   </Button>
                 </li>
               ))}

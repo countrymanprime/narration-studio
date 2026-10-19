@@ -12,6 +12,7 @@ import {
   secondsBefore,
   suspectedFrom,
 } from './readingSource';
+import { typeHueColour } from '../../../kinds/entityColour';
 
 const paragraph = (id: string, text: string): ManuscriptParagraph => ({ id, chapterId: 'c1', chapter: 'One', index: 0, text, entityIds: [] });
 const queen = { id: 'e-queen', canonical_name: 'Queen' } as GuideEntity;
@@ -111,7 +112,7 @@ describe('estimatedSpans', () => {
 describe('entityAtWord', () => {
   it('names the Story Bible entry tinted on a word, and nothing on a plain word', () => {
     const reading = readingParagraphsOf(paragraphs, [], []);
-    const tint = { paragraphId: 'p1', start: 4, end: 10, kind: 'entity' as const, colour: '--place', title: 'Garden' };
+    const tint = { paragraphId: 'p1', start: 4, end: 10, kind: 'entity' as const, colour: typeHueColour('blue'), title: 'Garden' };
     expect(entityAtWord(reading, [tint], 'p1', 1)).toBe('Garden');
     expect(entityAtWord(reading, [tint], 'p1', 2)).toBeNull();
     expect(entityAtWord(reading, [tint], 'p1', 9)).toBeNull();
