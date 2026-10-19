@@ -2,11 +2,11 @@
 # LibriVox chapter, starts REAPER isolated (-cfgfile, through integrations/reaper/spikes/run-reaper.ps1) with spikes/ci_real_reaper_launcher.lua, and
 # runs drive.py against the live bridge. Design and limits: docs/research/real-reaper-ci-integration.md.
 #
-#   pwsh run-real-reaper-check.ps1 -OutDir <dir> -ExpectedSha256 <hex> [-Version 7.80] [-ExpectedSize <bytes>]
+#   pwsh run-real-reaper-check.ps1 -OutDir <dir> -ExpectedSha256 <hex> [-Version 7.82] [-ExpectedSize <bytes>]
 param(
   [Parameter(Mandatory)][string]$OutDir,
   [Parameter(Mandatory)][string]$ExpectedSha256,
-  [string]$Version = '7.80',
+  [string]$Version = '7.82',
   [long]$ExpectedSize = 0
 )
 $ErrorActionPreference = 'Stop'
