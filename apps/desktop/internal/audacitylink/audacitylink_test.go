@@ -109,6 +109,10 @@ func TestStepsFollowTheFacts(t *testing.T) {
 	if got := done(Facts{Installed: true, Running: true, Module: ModuleOn, Pipe: PipeAnswering}); got != "installed,started_once,scripting_on,answering" {
 		t.Errorf("answering: %q", got)
 	}
+	// "Audacity 3 is installed" is not done by an install that looks like Audacity 4, which the card says in the same breath it cannot link.
+	if got := done(Facts{Installed: true, Looks4: true, Module: ModuleOn}); got != "started_once,scripting_on" {
+		t.Errorf("looks like 4: %q", got)
+	}
 }
 
 func TestLooksLikeAudacity4(t *testing.T) {

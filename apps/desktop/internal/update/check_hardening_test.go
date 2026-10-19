@@ -124,3 +124,11 @@ func TestAPlatformWithNoReleaseIsNeverDueAndMakesNoRequest(t *testing.T) {
 		t.Fatalf("err %v requests %d", err, fake.requests.Load())
 	}
 }
+
+// The updater refuses redirects, so a build that holds a stale repository name sees a 301 and never finds a release
+// (docs/operations/repository-rename.md). A rename changes this constant first.
+func TestTheCompiledInRepositoryIsTheRenamedOne(t *testing.T) {
+	if Repository != "countrymanprime/narration-studio" {
+		t.Fatalf("Repository %q", Repository)
+	}
+}

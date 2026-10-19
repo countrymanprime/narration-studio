@@ -358,7 +358,9 @@ func (h *Host) openProjectRelation(ctx context.Context, conn *audacityConn, save
 	switch {
 	case err != nil:
 		return audacitylink.ProjectUnknown
-	case !found:
+	case !found, savedID == "":
+		// With no id recorded for this project (never linked, or the narrator pressed Unlink, which leaves the label in the Audacity
+		// project) the app has nothing to tell the label from: it cannot say the project is another one's, only that it is not linked.
 		return audacitylink.ProjectUnlabelled
 	case id == savedID:
 		return audacitylink.ProjectLinked

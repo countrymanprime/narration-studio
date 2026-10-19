@@ -193,7 +193,7 @@ func steps(f Facts) []Step {
 	answering := f.Pipe == PipeAnswering || f.Pipe == PipeNoProject
 	setUp := f.Module != ModuleUnknown || answering
 	return []Step{
-		{ID: "installed", Label: "Audacity 3 is installed", Done: f.Installed || f.Running},
+		{ID: "installed", Label: "Audacity 3 is installed", Done: (f.Installed || f.Running) && !f.Looks4},
 		{ID: "started_once", Label: "Audacity has started once, so it has made its settings", Done: setUp},
 		{ID: "scripting_on", Label: "Scripting is turned on in Audacity", Done: f.Module == ModuleOn || answering},
 		{ID: "answering", Label: "Audacity answers the app", Done: answering},

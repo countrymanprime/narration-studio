@@ -436,7 +436,7 @@ article.doc code{font:400 .88em var(--mono);background:var(--surface-2);border:1
     <div class="bar-right">
       <button type="button" class="search-btn" id="open-pal" aria-label="Search the site"><svg class="i" viewBox="0 0 16 16"><path d="M11 11l4 4M7 12a5 5 0 110-10 5 5 0 010 10z"/></svg><span>Search</span><kbd>Ctrl K</kbd></button>
       <button type="button" class="icon-btn" id="theme" aria-label="Switch colour theme"></button>
-      <a class="btn primary sm dl-btn" href="https://github.com/countrymanprime/narration-utils/releases" target="_blank" rel="noopener">Download</a>
+      <a class="btn primary sm dl-btn" href="https://github.com/countrymanprime/narration-studio/releases" target="_blank" rel="noopener">Download</a>
       <button type="button" class="icon-btn menu-btn" id="menu" aria-label="Menu" aria-expanded="false"><svg class="i" viewBox="0 0 16 16"><path d="M2 4h12M2 8h12M2 12h12"/></svg></button>
     </div>
   </div>
@@ -451,7 +451,7 @@ article.doc code{font:400 .88em var(--mono);background:var(--surface-2);border:1
       <h1 style="margin-top:16px"><span>Proof every</span><span>chapter before</span><span>the proofer does.</span></h1>
       <p class="sub">Narration Studio imports your manuscript, follows along as you read, listens to the recording with a local Whisper model and marks every skipped or added word. Then it checks your files against the platform's delivery rules.</p>
       <div class="cta">
-        <a class="btn primary lg" href="https://github.com/countrymanprime/narration-utils/releases" target="_blank" rel="noopener">Download for Windows</a>
+        <a class="btn primary lg" href="https://github.com/countrymanprime/narration-studio/releases" target="_blank" rel="noopener">Download for Windows</a>
         <a class="btn lg" href="#demo" data-go="demo">Try the live demo</a>
       </div>
       <div class="facts"><span>Windows x64</span><span>Audio stays on your machine</span><span>REAPER · Audacity 3</span></div>
@@ -509,7 +509,7 @@ article.doc code{font:400 .88em var(--mono);background:var(--surface-2);border:1
         <div class="eyebrow">Install on Windows</div>
         <h2 class="display" style="font-size:clamp(40px,5vw,60px);text-transform:uppercase;margin:12px 0 14px">Four minutes to a first project</h2>
         <p style="color:var(--text-muted);max-width:44ch">Windows x64 only for now. The installer is per-user, so it asks for no administrator rights.</p>
-        <div style="display:flex;gap:12px;flex-wrap:wrap;margin-top:22px"><a class="btn primary lg" href="https://github.com/countrymanprime/narration-utils/releases" target="_blank" rel="noopener">Get the latest release</a><a class="btn lg" href="#docs-getting-started" data-go="docs-getting-started">Setup guide</a></div>
+        <div style="display:flex;gap:12px;flex-wrap:wrap;margin-top:22px"><a class="btn primary lg" href="https://github.com/countrymanprime/narration-studio/releases" target="_blank" rel="noopener">Get the latest release</a><a class="btn lg" href="#docs-getting-started" data-go="docs-getting-started">Setup guide</a></div>
       </div>
       <ol>
         <li><span><b>Download the setup file</b>narration-utils-&lt;version&gt;-windows-x64-setup.exe, and its .sha256 file to check it.</span></li>
@@ -567,10 +567,10 @@ article.doc code{font:400 .88em var(--mono);background:var(--surface-2);border:1
 
 <footer class="foot">
   <span class="display" style="font-size:20px;color:var(--text);text-transform:uppercase">Narration Studio</span>
-  <a href="https://github.com/countrymanprime/narration-utils" target="_blank" rel="noopener">GitHub</a>
-  <a href="https://github.com/countrymanprime/narration-utils/releases" target="_blank" rel="noopener">Releases</a>
+  <a href="https://github.com/countrymanprime/narration-studio" target="_blank" rel="noopener">GitHub</a>
+  <a href="https://github.com/countrymanprime/narration-studio/releases" target="_blank" rel="noopener">Releases</a>
   <a href="#docs" data-go="docs">Docs</a>
-  <a href="https://github.com/countrymanprime/narration-utils/blob/main/SECURITY.md" target="_blank" rel="noopener">Security</a>
+  <a href="https://github.com/countrymanprime/narration-studio/blob/main/SECURITY.md" target="_blank" rel="noopener">Security</a>
   <span class="sp">Windows x64 · MIT-style license in the repo</span>
 </footer>
 
@@ -589,7 +589,7 @@ const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',
 const RM=matchMedia('(prefers-reduced-motion: reduce)').matches;
 const store={get(k){try{return localStorage.getItem(k)}catch(e){return null}},set(k,v){try{localStorage.setItem(k,v)}catch(e){}}};
 const wait=ms=>new Promise(r=>setTimeout(r,ms));
-const REPO='https://github.com/countrymanprime/narration-utils/blob/main/';
+const REPO='https://github.com/countrymanprime/narration-studio/blob/main/';
 const IC={
   check:'<path d="M3 8.5l3.5 3.5L13 4.5"/>',x:'<path d="M4 4l8 8M12 4l-8 8"/>',
   play:'<path class="f" d="M5 3.5v9l7-4.5z"/>',info:'<circle cx="8" cy="8" r="6.5"/><path d="M8 7.5V11M8 5v.1"/>',
@@ -721,7 +721,7 @@ const DOCS=[
    <div class="note warn">${ic('info')}<div>The release is unsigned. The warning is about the missing signature, not about anything found in the file. Check the file yourself first, as below.</div></div>
    <h2>Verify the download</h2><p>The checksum only detects a damaged download. The second command shows where the file was built.</p>
    <div class="codebox"><span class="lang">POWERSHELL</span><button class="btn sm quiet" data-copy type="button">Copy</button><pre><code>(Get-FileHash .\\narration-utils-0.2.7-windows-x64-setup.exe).Hash
-gh attestation verify narration-utils-0.2.7-windows-x64-setup.exe --repo countrymanprime/narration-utils</code></pre></div>
+gh attestation verify narration-utils-0.2.7-windows-x64-setup.exe --repo countrymanprime/narration-studio</code></pre></div>
    <h2>Open a project</h2><p>The first screen is the project picker. Choose a folder for the book, then you land on Production. With no manuscript imported, the page is the import.</p>
    <h2>Run your first check</h2><p>Open <a href="#docs-proof-a-chapter" data-go="docs-proof-a-chapter">Proof a chapter</a>. The first check asks before it downloads a Whisper model; nothing is downloaded without asking.</p>`},
  ]},
@@ -794,7 +794,7 @@ const APP_PAGES=[['production','Production'],['story-bible','Story Bible'],['pro
 let pal={items:[],i:0};
 function palItems(){
   return [...FLAT.map(d=>({t:d.t,k:'Docs · '+T[d.k],go:'docs-'+d.id})),...APP_PAGES.map(p=>({t:p[1]+' page',k:'Live demo',go:'demo-'+p[0]})),...STORIES.map(s=>({t:s.name,k:'Storybook · '+s.group,go:'storybook-'+s.id})),
-   {t:'Toggle light and dark',k:'Action',fn:()=>setTheme(isDark()?'light':'dark')},{t:'Download for Windows',k:'Action',fn:()=>window.open('https://github.com/countrymanprime/narration-utils/releases','_blank')}];
+   {t:'Toggle light and dark',k:'Action',fn:()=>setTheme(isDark()?'light':'dark')},{t:'Download for Windows',k:'Action',fn:()=>window.open('https://github.com/countrymanprime/narration-studio/releases','_blank')}];
 }
 function palDraw(){
   const q=$('#pal-in').value.trim().toLowerCase();pal.items=palItems().filter(x=>!q||(x.t+' '+x.k).toLowerCase().includes(q));pal.i=Math.min(pal.i,Math.max(0,pal.items.length-1));

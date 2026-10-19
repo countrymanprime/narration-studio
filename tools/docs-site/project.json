@@ -31,7 +31,7 @@
       "options": {
         "commands": [
           "uv run --locked --only-group docs python -m mkdocs build --strict -f {projectRoot}/mkdocs.yml",
-          "uv run --locked --only-group docs python {projectRoot}/check_site.py {projectRoot}/build/site --base /narration-utils/"
+          "uv run --locked --only-group docs python {projectRoot}/check_site.py {projectRoot}/build/site --base /narration-studio/"
         ],
         "parallel": false,
         "env": {

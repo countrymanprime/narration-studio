@@ -7,7 +7,7 @@ body:
     attributes:
       value: |
         The suite helps a narrator find and review issues faster. It does not automatically edit or comp audio, and it does not require cloud processing.
-        See the [roadmap](https://github.com/countrymanprime/narration-utils/blob/main/docs/roadmap.md) for what is already planned or deferred.
+        See the [roadmap](https://github.com/countrymanprime/narration-studio/blob/main/docs/roadmap.md) for what is already planned or deferred.
   - type: textarea
     id: problem
     attributes:

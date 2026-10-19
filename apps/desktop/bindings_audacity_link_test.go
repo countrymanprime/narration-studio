@@ -198,13 +198,17 @@ func TestAudacityLinkTellsLinkedOtherAndUnlabelledProjects(t *testing.T) {
 	if link := f.check(t); link.OpenProject != "other" || !strings.Contains(link.Message, "different project") {
 		t.Errorf("another project's link = %+v", link)
 	}
-	// Unlinking forgets the id, so the same label now reads as another project's.
+	// Unlinking forgets the id and leaves the label in the Audacity project. With no id to compare it with, the label is not
+	// "linked to a different project in this app" (the narrator just unlinked it): the card says the open project is not linked.
 	raw, err = f.host.AudacityUnlink()
 	if err != nil {
 		t.Fatal(err)
 	}
 	if err := json.Unmarshal([]byte(raw), &link); err != nil || link.Linked || link.LinkedFile != nil {
 		t.Fatalf("after unlinking = %+v, %v", link, err)
+	}
+	if link.OpenProject != "unlabelled" || strings.Contains(link.Message, "different project") || !strings.Contains(link.Message, "not linked to this one") {
+		t.Errorf("after unlinking, the label left in the project = %+v, want the open project reported as not linked", link)
 	}
 }
 

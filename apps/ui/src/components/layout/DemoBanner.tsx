@@ -6,7 +6,7 @@ import { guideHref } from './demoGuide';
 import { demoToolbarItem, demoToolbarSlots } from './demoToolbar';
 import { inSiteWindow } from './siteWindow';
 
-const REPO_URL = 'https://github.com/countrymanprime/narration-utils';
+const REPO_URL = 'https://github.com/countrymanprime/narration-studio';
 
 // The public demo is the only build that sets VITE_DEMO: the
 // regular `mock` build used by Vitest, the Playwright visual suite and Storybook does not, so this
