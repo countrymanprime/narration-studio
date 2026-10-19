@@ -45,6 +45,7 @@ import {
   dawFxRangeSettingsSchema,
   dawLastActionSchema,
   dawMonitorLevelSchema,
+  dawPlaceSchema,
   dawProjectStateSchema,
   dawResultSchema,
   dawTransportSchema,
@@ -690,6 +691,8 @@ export const wailsClient: NarrationApi = {
   dawUndoLast: (kind, steps) => decode(dawResultSchema, 'DawUndoLast', host.DawUndoLast(kind, steps)),
   dawMonitorLevel: () => decode(dawMonitorLevelSchema, 'DawMonitorLevel', host.DawMonitorLevel()),
   dawSetMonitorLevel: (level) => decode(dawMonitorLevelSchema, 'DawSetMonitorLevel', host.DawSetMonitorLevel(level)),
+  dawPlace: () => decode(dawPlaceSchema, 'DawPlace', host.DawPlace()),
+  dawGoToChapter: (chapterId, where, seconds) => decode(dawResultSchema, 'DawGoToChapter', host.DawGoToChapter(chapterId, where, seconds)),
   dawBackupAround: (chapterId, firstToken, lastToken, label) =>
     decode(dawResultSchema, 'DawBackupAround', host.DawBackupAround(chapterId, firstToken, lastToken, label)),
   dawRestoreBackup: (backupId) => decode(dawResultSchema, 'DawRestoreBackup', host.DawRestoreBackup(backupId)),

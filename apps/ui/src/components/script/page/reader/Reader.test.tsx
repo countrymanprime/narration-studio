@@ -3,6 +3,7 @@ import { act, cleanup, fireEvent, render, screen } from '@testing-library/react'
 import type { ComponentProps } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { ManuscriptChapter, ManuscriptParagraph } from '../../../../api/contracts/manuscript';
+import { overlay } from '../../../../overlay/overlayService';
 import { Reader } from './Reader';
 import { READER_POSITION_KEY } from './readerPosition';
 import { chapter, cue, entry, GUIDE_TYPES, mark, paragraph, TYPES } from './readerFixtures';
@@ -86,6 +87,18 @@ describe('continuous scroll with the spy', () => {
     const named = [{ ...chapters[0]!, subtitle: 'Down the Rabbit-Hole' }, ...chapters.slice(1)];
     render(<Reader {...props({ chapters: named })} />);
     expect(document.querySelector('b')?.textContent).toBe('Chapter 1 — Down the Rabbit-Hole');
+  });
+
+  it('says the chapter and the paragraph through the live region when a request jumps to a chapter, so no earlier line stays as the last thing said', () => {
+    const said: string[] = [];
+    vi.spyOn(overlay, 'announce').mockImplementation((text) => void said.push(text));
+    const named = [chapters[0]!, { ...chapters[1]!, subtitle: 'The Pool of Tears' }, chapters[2]!];
+    const { rerender } = render(<Reader {...props({ chapters: named })} />);
+    expect(said).toEqual([]);
+    rerender(<Reader {...props({ chapters: named, pendingJump: 'c2' })} />);
+    expect(said).toEqual(['Chapter 2, The Pool of Tears, ¶ 1 of 2']);
+    rerender(<Reader {...props({ chapters: named, pendingJump: null })} />);
+    expect(said).toHaveLength(1);
   });
 
   it('tells its owner which chapter is in view, once per change', () => {

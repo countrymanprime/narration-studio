@@ -25,7 +25,7 @@ export interface EditingKeyHandlers {
   hideOthers?: () => void;
   strip?: () => void;
   drawer?: () => void;
-  /** Closes the drawer if it is open and says whether it did: Escape's last step, before it blurs. The drawer closes itself on an Escape from inside it. */
+  /** Closes the drawer if it is open and says whether it did: Escape's last step. The drawer closes itself on an Escape from inside it. */
   closeDrawer?: () => boolean;
   chapterStep?: (d: 1 | -1) => void;
 }
@@ -146,11 +146,10 @@ export function useEditingKeys({ handlers = {}, keymap }: EditingKeysOptions): v
   );
   useCommand(
     'editing.escape',
-    (e) => {
+    () => {
+      // Focus stays where it is: blurring the script text would drop the narrator on <body>, and Tab already leaves it.
       if (state.flag || state.sel) dispatch({ type: 'clear' });
-      else if (closeDrawer?.()) return;
-      // "Leave the text" lets go of the script only. A button or tab keeps focus: blurring it would drop the narrator on <body>.
-      else if (e.target instanceof HTMLElement && e.target.closest('[data-script]')) e.target.blur();
+      else closeDrawer?.();
     },
     on,
   );

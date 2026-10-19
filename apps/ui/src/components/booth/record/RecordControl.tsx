@@ -11,7 +11,7 @@ export function RecordControl({
   control,
   describedBy = 'brec-why',
 }: {
-  control: Pick<RecordControlState, 'recording' | 'disabled' | 'reason' | 'toggle'>;
+  control: Pick<RecordControlState, 'recording' | 'disabled' | 'reason'> & { toggle: () => Promise<unknown> };
   describedBy?: string;
 }) {
   const { recording, disabled, reason, toggle } = control;

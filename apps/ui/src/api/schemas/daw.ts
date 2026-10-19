@@ -17,6 +17,7 @@ import type {
   DawKind,
   DawLastAction,
   DawMonitorLevel,
+  DawPlace,
   DawPlayState,
   DawProjectState,
   DawResult,
@@ -112,6 +113,12 @@ export const dawResultSchema = z.object({
 export const dawMonitorLevelSchema = z
   .object({ ok: z.boolean(), level: z.number().int().min(0).max(DAW_LEVEL_MAX), message: z.string() })
   .refine((answer) => answer.ok === (answer.message === ''), 'a refusal carries its sentence, an answer has none') satisfies z.ZodType<DawMonitorLevel>;
+
+/** DawPlace's answer (bindings_daw_place.go): a sentence exactly when the call was refused, and a chapter only on an answer. */
+export const dawPlaceSchema = z
+  .object({ ok: z.boolean(), message: z.string(), chapterId: z.string(), selected: z.number().int().min(0), cursor: z.number().min(0) })
+  .refine((answer) => answer.ok === (answer.message === ''), 'a refusal carries its sentence, an answer has none')
+  .refine((answer) => answer.ok || answer.chapterId === '', 'a refusal names no chapter') satisfies z.ZodType<DawPlace>;
 
 /** dawport.LastAction, DawLastAction's answer: one of DAW_LAST_ACTIONS. */
 export const dawLastActionSchema = z.enum(DAW_LAST_ACTIONS) satisfies z.ZodType<DawLastAction>;

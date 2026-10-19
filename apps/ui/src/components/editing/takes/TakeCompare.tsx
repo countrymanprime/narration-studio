@@ -19,7 +19,7 @@ export function TakeCompare(props: TakeCompareArgs) {
       data-compare
       className="flex flex-col gap-1.5"
       onKeyDown={(event) => {
-        // Escape stops a run in progress; with none it is left to the page (clear the selection, leave the text).
+        // Escape stops a run in progress; with none it is left to the page (close the card, clear the selection, close the drawer).
         if (event.key !== 'Escape' || !c.running) return;
         event.stopPropagation();
         c.stop();

@@ -630,9 +630,21 @@ func (h *Host) TeleprompterStart(options map[string]string) (string, error) {
 		}
 		delete(started, "credits")
 		delete(started, "chapter")
-		return encodeBinding(map[string]any{"status": "started"}, svc.teleprompter.StartScript(script, started))
+		return encodeBinding(map[string]any{"status": "started"}, awaitListening(svc.teleprompter, svc.teleprompter.StartScript(script, started)))
 	}
-	return encodeBinding(map[string]any{"status": "started"}, svc.teleprompter.Start(started))
+	return encodeBinding(map[string]any{"status": "started"}, awaitListening(svc.teleprompter, svc.teleprompter.Start(started)))
+}
+
+// listeningWait is how long a start waits for the sidecar to say it is listening before it answers anyway: a slow model load is not a failure.
+const listeningWait = 20 * time.Second
+
+// awaitListening turns a start that launched a sidecar which then died (a frozen program that cannot run, a microphone that will not open)
+// into a failed start, so the Booth never begins a take its text cannot follow.
+func awaitListening(service *teleprompter.Service, startErr error) error {
+	if startErr != nil {
+		return startErr
+	}
+	return service.AwaitReady(listeningWait)
 }
 
 // liveModelDir is the verified install directory of a live engine's model, or the first-use gate's answer when it is

@@ -81,6 +81,7 @@ func NewFake(kind dawport.Kind, levels map[dawport.Capability]dawport.Level) *Fa
 		dawport.CapClickRepair:     clickRepairRole{r(dawport.CapClickRepair)},
 		dawport.CapUndoLast:        undoLastRole{r(dawport.CapUndoLast)},
 		dawport.CapMonitorLevel:    monitorLevelRole{r(dawport.CapMonitorLevel)},
+		dawport.CapFollowPosition:  placeRole{r(dawport.CapFollowPosition)},
 		dawport.CapInputLevel:      inputLevelRole{r(dawport.CapInputLevel)},
 	}
 	return f
@@ -380,6 +381,29 @@ func (r undoLastRole) UndoLast(_ context.Context, kind dawport.ActionKind, _ int
 		return dawport.Result{}, dawport.ErrActionKind
 	}
 	return got.WithUndoSteps(0), nil
+}
+
+type placeRole struct{ role }
+
+// ReadPlace answers a project with nothing selected and the cursor at the start; GoTo accepts a named track and a time that is a number
+// of seconds from zero, and refuses the rest with nothing moved.
+func (r placeRole) ReadPlace(context.Context) (dawport.Place, error) {
+	if err := r.do("ReadPlace"); err != nil {
+		return dawport.Place{}, err
+	}
+	return dawport.Place{}, nil
+}
+func (r placeRole) GoTo(_ context.Context, trackID string, target dawport.PlaceTarget) error {
+	if err := r.do("GoTo"); err != nil {
+		return err
+	}
+	if trackID == "" {
+		return errors.New("choose a track to go to")
+	}
+	if !target.End && (target.Seconds != target.Seconds || target.Seconds < 0) {
+		return errors.New("the place to go to is not a usable number of seconds")
+	}
+	return nil
 }
 
 type monitorLevelRole struct{ role }

@@ -95,7 +95,7 @@
     {
       "choices": null,
       "effectiveSource": "repo_default",
-      "effectiveValue": "false",
+      "effectiveValue": "true",
       "isSet": false,
       "key": "auto_start_launcher",
       "kind": "bool",
@@ -348,6 +348,20 @@
       "key": "capability.track_select",
       "kind": "choice",
       "label": "Select a track in REAPER",
+      "value": ""
+    },
+    {
+      "choices": [
+        "auto",
+        "on",
+        "off"
+      ],
+      "effectiveSource": "repo_default",
+      "effectiveValue": "auto",
+      "isSet": false,
+      "key": "capability.follow_position",
+      "kind": "choice",
+      "label": "Follow the narrator's place in the project",
       "value": ""
     },
     {
