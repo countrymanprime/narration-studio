@@ -2,6 +2,7 @@ import type { KeyboardEventHandler } from 'react';
 import { IconButton } from '../../primitives/IconButton';
 import { statusLabel, statusTone, type StatusId } from '../../../kinds/statusTone';
 import { StatusBadge } from '../../primitives/StatusBadge';
+import { clockText } from '../../booth/boothProgress';
 import { Diff } from './TakeDiff';
 import { MiniWave } from './MiniWave';
 import { Suggested } from './Suggested';
@@ -26,20 +27,29 @@ export interface TakeLinesProps {
   onPlay: (take: LineTake) => void;
   /** Escape inside the takes: the page folds them and focuses their chip. */
   onKeyDown?: KeyboardEventHandler<HTMLDivElement>;
+  /** The takes the narrator hid, shown here only while they are looked at: they read Hidden, not Muted. */
+  hiddenIds?: readonly string[];
+  /** The take the stack sits on, when the line is stacked: it reads First read. */
+  firstReadId?: string | null;
+  /** What the DAW calls a take (`takeSourceLabel`), named in each take's sub-line. */
+  sourceLabel?: string | null;
+  /** Seconds into the chapter where the second read of a doubled take starts, or null when the take reads the line once. */
+  duplicateAt?: number | null;
 }
 
 const takeRowId = (passageId: string, takeId: string): string => `take-${passageId}-${takeId}`;
 const takesGroupId = (passageId: string): string => `takes-${passageId}`;
 
 /** How the take stands: kept (the DAW said so), the one playing in the DAW, or muted. */
-function stateOf(take: LineTake, keptId: string | null): StatusId {
+function stateOf(take: LineTake, keptId: string | null, hidden: boolean): StatusId {
   if (keptId === take.id) return 'kept_take';
-  return take.active ? 'active_take' : 'muted';
+  if (take.active) return 'active_take';
+  return hidden ? 'hidden_take' : 'muted';
 }
 
 function TakeRow({ passage, take, suggestedId, ...rest }: TakeLinesProps & { take: LineTake; suggestedId: string | null }) {
-  const { onTake, keptId, playingId, gate, onKeep, onPlay } = rest;
-  const state = stateOf(take, keptId);
+  const { onTake, keptId, playingId, gate, onKeep, onPlay, hiddenIds = [], firstReadId = null, sourceLabel = null } = rest;
+  const state = stateOf(take, keptId, hiddenIds.includes(take.id));
   const parts = take.said === undefined ? null : takeDiff(passage.script, take.said);
   const share = take.evidence?.matched.ok ? Math.round(take.evidence.matched.value) : parts ? matchedShare(parts) : null;
   const playing = playingId === take.id;
@@ -54,6 +64,7 @@ function TakeRow({ passage, take, suggestedId, ...rest }: TakeLinesProps & { tak
       <div className="flex flex-wrap items-center gap-2">
         <span className="font-['IBM_Plex_Mono',ui-monospace,monospace] font-medium">{take.label}</span>
         <StatusBadge tone={statusTone(state)} label={statusLabel(state)} shape="tag" />
+        {firstReadId === take.id ? <StatusBadge tone={statusTone('first_read')} label={statusLabel('first_read')} shape="tag" /> : null}
         {suggestedId === take.id ? <StatusBadge tone={statusTone('suggested_take')} label={statusLabel('suggested_take')} shape="tag" /> : null}
         <span className="min-w-[3rem] flex-1" style={{ maxWidth: `${Math.max(3, Math.round(take.sourceLength * 16))}px` }}>
           <MiniWave id={take.id} seconds={take.sourceLength} />
@@ -83,7 +94,14 @@ function TakeRow({ passage, take, suggestedId, ...rest }: TakeLinesProps & { tak
         )}
       </div>
       <div className="font-['IBM_Plex_Mono',ui-monospace,monospace] text-[12px] text-[var(--text-muted)]">
-        {take.sourceLength.toFixed(0)} s{take.evidence ? ` · ${placedLabel(take.evidence.via)}` : ''}
+        {[
+          take.start === undefined ? null : clockText(take.start),
+          `${take.sourceLength.toFixed(0)} s`,
+          sourceLabel,
+          take.evidence ? placedLabel(take.evidence.via) : null,
+        ]
+          .filter((part) => part !== null)
+          .join(' · ')}
         {!take.usable && take.reason ? ` · ${take.reason}` : ''}
       </div>
       {take.evidence ? <TakeEvidence evidence={take.evidence} /> : null}
@@ -113,6 +131,11 @@ export function TakeLines(props: TakeLinesProps) {
       onKeyDown={props.onKeyDown}
       className="flex flex-col gap-2 border-l border-[var(--border)] pl-3"
     >
+      {props.duplicateAt != null ? (
+        <p data-dupnote className="m-0 text-[var(--text-muted)]">
+          This take reads the line twice. The second read starts at {clockText(props.duplicateAt)}.
+        </p>
+      ) : null}
       <Suggested suggestion={suggestion} labelOf={labelOf} />
       <div className="flex flex-col divide-y divide-[var(--border)]">
         {passage.takes.map((t) => (

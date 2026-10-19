@@ -24,7 +24,7 @@ export interface EditingHeaderProps {
  */
 export function EditingHeader({ stepper, legend, strip, stripFits, drawerOpen, onDrawer, onDrawerKeyDown }: EditingHeaderProps) {
   return (
-    <header className="flex flex-wrap items-center gap-x-4 gap-y-2 px-4 pt-3 pb-2">
+    <header className="@container/hd flex flex-wrap items-center gap-x-3 gap-y-2 px-4 pt-3 pb-2">
       <Heading title="Editing" />
       {stepper}
       <div className="min-w-0 flex-1">{legend}</div>

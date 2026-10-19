@@ -1,17 +1,66 @@
 import type { HeardAnswer, HeardWord as PortWord } from '../../../ports/alignment';
 import { buildDoc, type Aligner, type ChapterDoc, type ChapterInput, type Heard, type HeardWord, type ScriptParagraph } from '../model';
 
-/** A paragraph of the chapter as the workspace port gives it. */
+/** A quoted stretch of a paragraph: UTF-16 offsets into its text, and the cue it is the quote of. */
+export interface QuotedPhrase {
+  cue: string;
+  start: number;
+  end: number;
+}
+
+/** A paragraph of the chapter as the workspace port gives it, with the quotes the Story Bible found in it. */
 export interface TextParagraph {
   id: string;
   text: string;
+  phrases?: readonly QuotedPhrase[];
 }
 
 /** Seconds of lead-in before a stretch's first word, so the model's offsets begin just after zero. */
 const LEAD = 0.15;
 
-/** A paragraph is one phrase: the port knows no phrases, so the cursor steps by paragraph where the mock steps by phrase. */
-const toScriptParagraph = (p: TextParagraph): ScriptParagraph => ({ id: p.id, text: p.text, units: [{ key: `${p.id}:u0`, s: 0, e: p.text.length }] });
+/**
+ * The units of a paragraph: its quotes and the narration around them. A boundary is moved out to the whitespace around the word it fell in, so
+ * the words of the paragraph are the same whole-text words with or without quotes (a word's key is its number in the paragraph).
+ */
+export function unitsOf(p: TextParagraph): ScriptParagraph['units'] {
+  const text = p.text;
+  const isSpace = (at: number): boolean => /\s/.test(text[at] ?? ' ');
+  const back = (at: number): number => {
+    let i = Math.min(Math.max(at, 0), text.length);
+    while (i > 0 && i < text.length && !isSpace(i) && !isSpace(i - 1)) i--;
+    return i;
+  };
+  const forward = (at: number): number => {
+    let i = Math.min(Math.max(at, 0), text.length);
+    while (i > 0 && i < text.length && !isSpace(i) && !isSpace(i - 1)) i++;
+    return i;
+  };
+  const quotes: Array<{ cue: string; s: number; e: number }> = [];
+  let floor = 0;
+  for (const q of [...(p.phrases ?? [])].sort((a, b) => a.start - b.start)) {
+    const s = Math.max(back(q.start), floor);
+    const e = forward(q.end);
+    if (e <= s || !text.slice(s, e).trim()) continue;
+    quotes.push({ cue: q.cue, s, e });
+    floor = e;
+  }
+  if (!quotes.length) return [{ key: `${p.id}:u0`, s: 0, e: text.length }];
+  const out: ScriptParagraph['units'] = [];
+  let at = 0;
+  const add = (s: number, e: number, cue?: string): void => {
+    if (e > s) out.push({ key: `${p.id}:u${out.length}`, s, e, ...(cue ? { cue } : {}) });
+  };
+  for (const q of quotes) {
+    add(at, q.s);
+    add(q.s, q.e, q.cue);
+    at = q.e;
+  }
+  add(at, text.length);
+  return out;
+}
+
+/** The cursor steps by unit: a quote or the narration between quotes, and a whole paragraph where it has no quote (the mock steps by phrase). */
+const toScriptParagraph = (p: TextParagraph): ScriptParagraph => ({ id: p.id, text: p.text, units: unitsOf(p) });
 
 /** The port's words, grouped by the paragraph they were heard in: a word said and not in the script goes with the script word before it. */
 function groupByParagraph(words: readonly PortWord[], first: string | undefined): Map<string, PortWord[]> {

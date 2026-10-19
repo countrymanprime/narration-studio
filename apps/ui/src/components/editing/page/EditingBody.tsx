@@ -16,10 +16,11 @@ import { useAnnouncePlayback } from '../bar/useAnnouncePlayback';
 import { useScriptPlayback } from '../bar/useScriptPlayback';
 import { registerCleanupSection } from '../cleanup/registerCleanupSection';
 import { useCleanupDeps } from '../cleanup/useCleanupDeps';
-import { Drawer } from '../drawer/Drawer';
+import { Drawer, flagTotal } from '../drawer/Drawer';
 import { DrawerLayout } from '../drawer/DrawerLayout';
 import { resolveTab, tabsFor, type DrawerTab } from '../drawer/drawerTabs';
 import { useDrawerCommands } from '../drawer/useDrawerCommands';
+import { useTabCounts } from '../drawer/useTabCounts';
 import { effectsCount } from '../effects/EffectsTab';
 import { registerEffectsSection } from '../effects/registerEffectsSection';
 import { FlagCard } from '../flags/FlagCard';
@@ -52,13 +53,15 @@ import { usePrepSteps } from '../takes/prep/usePrepSteps';
 import { dawSplitter } from '../takes/split/splitCommand';
 import { useSplitDuplicate } from '../takes/split/useSplitDuplicate';
 import { TakeChip } from '../takes/TakeChip';
+import { TakeBadge } from '../takes/TakeBadge';
 import { TakeLines } from '../takes/TakeLines';
+import { takeSourceLabel } from '../takes/takeSource';
 import { registerTakesMenuSection } from '../takes/takesMenuSection';
 import type { LinePassage, LineTake } from '../takes/types';
 import { useLineTakes } from '../takes/useLineTakes';
 import { useTakesGate } from '../takes/useTakesGate';
 import type { PlaylistSegment } from '../../proof/playlist';
-import { doubledCut, wordAt, type ChapterRead } from './chapterSource';
+import { doubledCut, doubledStart, wordAt, type ChapterRead } from './chapterSource';
 import { EditingHeader } from './EditingHeader';
 import { EditOffNotice } from './EditOffNotice';
 import { installBackupSteps, tokensIn } from '../backups/backupBefore';
@@ -72,6 +75,8 @@ import { registerTakeControl } from '../takes/takeControls';
 import { InHost, rowOf } from './InHost';
 import { NoAudioBanner } from './NoAudioBanner';
 import { useRecordingCheck } from './useRecordingCheck';
+import { ScriptNotesProvider } from '../script/paragraphNotes';
+import { useEntries, useMarks, useSpeakers } from '../../script/page/data/useScriptData';
 import { useLines } from './useLines';
 
 /** The page state a chapter change keeps: the strip and the drawer stay as the narrator left them. */
@@ -163,6 +168,14 @@ export function EditingBody(props: EditingBodyProps) {
   const root = useRef<HTMLDivElement>(null);
   const scriptBox = useRef<HTMLElement | null>(null);
   const lines = useLines(chapterId, read.workspace);
+  // What the Script page has read of the Story Bible and the narrator's marks, laid over the words (names, marks, notes, who speaks a quote).
+  const marksRead = useMarks();
+  const entriesRead = useEntries();
+  const speakersRead = useSpeakers();
+  const noteSources = useMemo(
+    () => ({ marks: marksRead.marks, markTypes: marksRead.types, words: [], entries: entriesRead.entries, cues: speakersRead.cues, types: entriesRead.types }),
+    [marksRead.marks, marksRead.types, entriesRead.entries, entriesRead.types, speakersRead.cues],
+  );
   const check = useRecordingCheck({ chapter: props.checkChapter, onClosed: props.onReread, goToParagraph: props.onGoToParagraph });
 
   // Playback: the chapter on the document's clock, and a take on its own.
@@ -265,7 +278,6 @@ export function EditingBody(props: EditingBodyProps) {
     return out;
   }, [lines.byId, doc, keep.kept, hide, chapterId]);
   const stack = useStackRetries({ journal, chapterId, lines: stackLines, passageOf: (sel) => stackLines.find((l) => l.id === passageOf(sel)?.id) ?? null });
-  void stack;
 
   // Ranges: delete and mute, FX, accept.
   const cut = useCutWords({ journal, chapterId, chapterName, cuts: read.cuts, locator, onCuts: props.onCuts });
@@ -324,7 +336,7 @@ export function EditingBody(props: EditingBodyProps) {
         where: 'toolbar',
         render: ({ doc: d, keys }) => {
           const line = lineOfKey(d, latest.current.lines.byId, keys[0]);
-          if (!line || line.takes.length < 2) return null;
+          if (!line || line.takes.length < 1) return null;
           return (
             <SelectionActionButton
               icon="showTakes"
@@ -342,6 +354,7 @@ export function EditingBody(props: EditingBodyProps) {
   const backups = keepsBackups(caps);
   const offered = tabsFor(backups, stripFits);
   const tab = resolveTab(panels.drawer.want, offered);
+  const tabCounts = useTabCounts(chapterId, backups);
   useDrawerCommands(offered, panels.drawer.openTab);
   const selectWords = useCallback((keys: string[]) => keys.length && dispatch({ type: 'select', anchor: keys[0], head: keys[keys.length - 1] }), [dispatch]);
   const fxMarkers = useMemo(
@@ -450,8 +463,15 @@ export function EditingBody(props: EditingBodyProps) {
   const flagPara = flagPid ? doc.paras.find((p) => p.p.id === flagPid) : undefined;
   const underLines = new Set<string>([...lines.byId.keys(), ...(flagPid ? [flagPid] : []), ...(current ? [current] : [])]);
   const drawerOpen = panels.drawer.open;
+  const stackBase = (pid: string): string | null => stack.lines.find((l) => l.id === pid)?.stack?.base ?? null;
+  const sourceLabel = takeSourceLabel(caps?.daw);
+  // A take that reads the line twice says so on its chip and in its takes, until the narrator splits it.
+  const doubledAt = (pid: string): number | null => {
+    const second = doubledStart(read, pid);
+    return second === null ? null : (doc.paras.find((p) => p.p.id === pid)?.start ?? 0) + second;
+  };
   // With no cursor yet the first chip stays in the Tab order, so the takes are reachable from the keyboard before a word is chosen.
-  const firstChipPid = [...underLines].find((pid) => (lines.byId.get(pid)?.takes.length ?? 0) > 1);
+  const firstChipPid = [...underLines].find((pid) => (lines.byId.get(pid)?.takes.length ?? 0) > 0);
 
   const toggleOf = () => document.getElementById('drawertoggle');
   const drawerEscape = escapeClosesPanel(panels.drawer.close, toggleOf);
@@ -461,7 +481,7 @@ export function EditingBody(props: EditingBodyProps) {
       chapterId={chapterId}
       tab={tab}
       tabs={offered}
-      counts={{ effects: effectsCount(read.effects) }}
+      counts={{ cleanup: flagTotal(doc) + tabCounts.proposals, effects: effectsCount(read.effects), backups: tabCounts.backups }}
       onTab={panels.drawer.setWant}
       onClose={panels.drawer.close}
       flagKind={flagKind}
@@ -473,31 +493,33 @@ export function EditingBody(props: EditingBodyProps) {
 
   return (
     <div ref={root} className="flex min-h-0 flex-1 flex-col">
-      {props.banner}
-      <NoAudioBanner
-        audio={read.audio}
-        chapterName={chapterName}
-        daw={caps && caps.daw !== 'none' && caps.daw !== 'Built-in' ? caps.daw : null}
-        onReread={props.onReread}
-      />
-      <EditingHeader
-        stepper={props.stepper}
-        legend={<Legend doc={doc} compact={compact} noAudio={read.audio.kind !== 'ready'} />}
-        strip={panels.strip}
-        stripFits={stripFits}
-        drawerOpen={drawerOpen}
-        onDrawer={panels.drawer.toggle}
-        onDrawerKeyDown={drawerOpen ? drawerEscape : undefined}
-      />
       <div className="min-h-0 flex-1 px-4 pb-3 [&>div]:h-full">
         <DrawerLayout open={drawerOpen} drawer={drawer}>
           <div className="flex h-full min-h-0 flex-col overflow-hidden rounded-[10px] border border-[var(--border)] bg-[var(--surface)]">
+            {props.banner}
+            <NoAudioBanner
+              audio={read.audio}
+              chapterName={chapterName}
+              daw={caps && caps.daw !== 'none' && caps.daw !== 'Built-in' ? caps.daw : null}
+              onReread={props.onReread}
+            />
+            <EditingHeader
+              stepper={props.stepper}
+              legend={<Legend doc={doc} compact={compact} noAudio={read.audio.kind !== 'ready'} />}
+              strip={panels.strip}
+              stripFits={stripFits}
+              drawerOpen={drawerOpen}
+              onDrawer={panels.drawer.toggle}
+              onDrawerKeyDown={drawerOpen ? drawerEscape : undefined}
+            />
             <ScriptHost box={scriptBox} root={root}>
               {doc.paras.length ? (
                 <FxMarkersContext.Provider value={fxMarkers}>
                   <SampleMarksContext.Provider value={sampleMarks}>
                     <SamplePlayerContext.Provider value={samplePlayer}>
-                      <ScriptDoc reason={reason} explained={read.audio.kind !== 'ready'} onCheckRecording={check.open} />
+                      <ScriptNotesProvider sources={noteSources} chapterId={chapterId}>
+                        <ScriptDoc reason={reason} explained={read.audio.kind !== 'ready'} onCheckRecording={check.open} />
+                      </ScriptNotesProvider>
                     </SamplePlayerContext.Provider>
                   </SampleMarksContext.Provider>
                 </FxMarkersContext.Provider>
@@ -535,7 +557,12 @@ export function EditingBody(props: EditingBodyProps) {
             className="col-start-2 flex flex-col items-start gap-2 pt-1 text-[length:var(--font-size-sm)] leading-[1.4]"
             watch={doc}
           >
-            {pid === current && doc.aligned ? <Ribbon chapterId={chapterId} pid={pid} /> : null}
+            {line ? (
+              <InHost root={root} selector={`${rowOf(pid)} [data-gutter]`} name={`badge-${pid}`} className="contents" watch={doc}>
+                <TakeBadge count={line.takes.length} open={open} controls={`takes-${pid}`} active={pid === current} onToggle={() => setLineOpen(pid, !open)} />
+              </InHost>
+            ) : null}
+            {pid === current && doc.aligned ? <Ribbon chapterId={chapterId} pid={pid} take={line?.takes.find((t) => t.active)?.label ?? null} /> : null}
             {flagPara && flagPid === pid && state.flag ? (
               <FlagCard
                 doc={doc}
@@ -554,6 +581,8 @@ export function EditingBody(props: EditingBodyProps) {
                 keptId={keep.kept[pid] ?? null}
                 controls={`takes-${pid}`}
                 tabbable={open || pid === (current ?? firstChipPid)}
+                stacked={stackBase(pid) !== null}
+                duplicate={doubledStart(read, pid) !== null}
                 onToggle={() => setLineOpen(pid, !open)}
                 onKeyDown={
                   open
@@ -575,6 +604,10 @@ export function EditingBody(props: EditingBodyProps) {
                 onTake={pid === current ? lineTakes.onTake : null}
                 keptId={keep.kept[pid] ?? null}
                 playingId={takePlayer.isPlaying ? playingTake : null}
+                hiddenIds={hide.hiddenIds(pid)}
+                firstReadId={stackBase(pid)}
+                sourceLabel={sourceLabel}
+                duplicateAt={keep.kept[pid] ? null : doubledAt(pid)}
                 gate={gate}
                 onKeep={(take) => void keep.keep(line!, take)}
                 onPlay={playTake}

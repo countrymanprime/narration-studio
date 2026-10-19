@@ -214,6 +214,20 @@ describe('found-list-steps-through-never-edits', () => {
     }
     expect(within(found).queryByRole('textbox')).toBeNull();
   });
+  it('leads each row with the kind’s swatch, drawn by the registry’s mark', async () => {
+    mount(1280);
+    await open();
+    const found = screen.getByRole('region', { name: 'Found in this chapter' });
+    for (const [kind, shape] of [
+      ['extra', 'extra'],
+      ['miss', 'missing'],
+      ['mis', 'misread'],
+      ['low', 'low'],
+    ] as const) {
+      const swatch = found.querySelector(`[data-found="${kind}"] [data-swatch="${kind}"] mark`);
+      expect(swatch?.getAttribute('data-kind'), kind).toBe(shape);
+    }
+  });
 });
 
 describe('sections-register-by-tab-and-order', () => {
