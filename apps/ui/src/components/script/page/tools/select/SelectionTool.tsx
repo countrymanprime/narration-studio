@@ -12,8 +12,8 @@ import { KindMenu } from './KindMenu';
 import { lookupTarget } from './lookupTarget';
 import { MarkMenu } from './MarkMenu';
 
-/** What makes a toolbar button the mock's `.seltool` one: no border or fill, the toolbar's text colour, a white wash on hover. Important so
- * it wins over the button variants' own hover rules. */
+/** What makes a toolbar icon button the mock's `.seltool` one: no border or fill, the toolbar's text colour, a white wash on hover. Important so
+ * it wins over `IconButton`'s own hover rules. Text buttons use `Button variant="inverse"`. */
 export const TOOL_BUTTON = 'border-0! bg-transparent! text-inherit! not-aria-disabled:hover:bg-white/15!';
 /** The record button's red: the mock's `--bad` on the ink pill, eased toward the surface so it holds 3:1 on the pill in both themes. */
 const RECORD_RED = 'border-0! bg-transparent! text-[color-mix(in_srgb,var(--danger)_60%,var(--surface))]! not-aria-disabled:hover:bg-white/15!';
@@ -89,7 +89,7 @@ export function SelectionTool({ selection, zoom = 1, onDismiss, onCompose, onDef
       className="fixed isolate z-[var(--z-popover)] flex items-center gap-1 rounded-lg bg-[var(--text)] p-1 text-[var(--surface)] shadow-[var(--shadow-lg)]"
     >
       {place === null ? (
-        <Button variant="ghost" size="sm" disabled className={`${TOOL_BUTTON} opacity-100!`}>
+        <Button variant="inverse" size="sm" disabled className="opacity-100!">
           {ACROSS_PARAGRAPHS}
         </Button>
       ) : (
@@ -138,9 +138,8 @@ export function SelectionTool({ selection, zoom = 1, onDismiss, onCompose, onDef
           )}
           <TooltipTarget text="Look the selected words up in the dictionary or the Story Bible">
             <Button
-              variant="ghost"
+              variant="inverse"
               size="sm"
-              className={TOOL_BUTTON}
               onClick={() => {
                 onDismiss();
                 const target = lookupTarget(place.quote, entries);

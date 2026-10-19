@@ -44,10 +44,6 @@ a zoom chip when you are zoomed, and the engine chip. Below 860 px a hamburger b
 The project's name is a button (**Switch project**): it opens the project picker over the project you have open, with **Back** to return to it, and opening a
 recent project there switches to it.
 
-![The header in the Light theme: Project, the project's name, Jump to or run… and the engine chip](../../images/ui/nav-rail-collapsed.webp)
-
-![The same header in the Dark theme](../../images/ui/nav-rail-collapsed-dark.webp)
-
 There are no Back and Forward, Undo or History buttons, folder icon or always-visible zoom controls in the header, and no timer chip. Reach them from **Jump to or run…** or by key: Back and Forward are `Alt+Left` and `Alt+Right`, Undo is `Ctrl+Z`, the undo history is `Ctrl+Shift+H`, and zoom is `Ctrl+=`, `Ctrl+-` and `Ctrl+0` ([the table below](#jump-to-or-run) lists each command and when it is off).
 
 ### Jump to or run
