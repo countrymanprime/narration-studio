@@ -156,17 +156,19 @@ function EditingLoaded({ chapterId: asked, passageId, findingId, t, drawer, onCh
             </Panel>
           ) : (
             // Still reading the chapters: the page's own header stays, the script is blocks.
-            <div className="flex min-h-0 flex-1 flex-col">
-              {banner}
-              <EditingHeader
-                stepper={<Skeleton className="h-8 w-56 max-w-full" />}
-                legend={null}
-                strip={panels.strip}
-                stripFits={width >= STRIP_MIN_WIDTH}
-                drawerOpen={panels.drawer.open}
-                onDrawer={panels.drawer.toggle}
-              />
-              <EditingBodySkeleton label="Loading the editor" status="Reading the chapters…" />
+            <div className="min-h-0 flex-1 px-4 pb-3">
+              <div className="flex h-full min-h-0 flex-col overflow-hidden rounded-[10px] border border-[var(--border)] bg-[var(--surface)]">
+                {banner}
+                <EditingHeader
+                  stepper={<Skeleton className="h-8 w-56 max-w-full" />}
+                  legend={null}
+                  strip={panels.strip}
+                  stripFits={width >= STRIP_MIN_WIDTH}
+                  drawerOpen={panels.drawer.open}
+                  onDrawer={panels.drawer.toggle}
+                />
+                <EditingBodySkeleton label="Loading the editor" status="Reading the chapters…" />
+              </div>
             </div>
           )}
         </div>
@@ -209,23 +211,25 @@ function EditingChapter({
   const stripFits = width >= STRIP_MIN_WIDTH;
   if (source.status !== 'ready') {
     return (
-      <div className="flex min-h-0 flex-1 flex-col">
-        {banner}
-        <EditingHeader
-          stepper={stepper}
-          legend={null}
-          strip={panels.strip}
-          stripFits={stripFits}
-          drawerOpen={panels.drawer.open}
-          onDrawer={panels.drawer.toggle}
-        />
-        {source.status === 'error' ? (
-          <p role="alert" className="px-4 text-sm text-[var(--danger-text)]">
-            {source.message}
-          </p>
-        ) : (
-          <EditingBodySkeleton label="Loading the chapter" status="Reading the chapter…" />
-        )}
+      <div className="min-h-0 flex-1 px-4 pb-3">
+        <div className="flex h-full min-h-0 flex-col overflow-hidden rounded-[10px] border border-[var(--border)] bg-[var(--surface)]">
+          {banner}
+          <EditingHeader
+            stepper={stepper}
+            legend={null}
+            strip={panels.strip}
+            stripFits={stripFits}
+            drawerOpen={panels.drawer.open}
+            onDrawer={panels.drawer.toggle}
+          />
+          {source.status === 'error' ? (
+            <p role="alert" className="px-4 text-sm text-[var(--danger-text)]">
+              {source.message}
+            </p>
+          ) : (
+            <EditingBodySkeleton label="Loading the chapter" status="Reading the chapter…" />
+          )}
+        </div>
       </div>
     );
   }

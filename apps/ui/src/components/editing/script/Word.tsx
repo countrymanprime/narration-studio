@@ -1,10 +1,12 @@
 import { Fragment, memo, type CSSProperties } from 'react';
 import { kindMarkStyle } from '../../../kinds/markStyle';
+import { narratorMarkStyle } from '../../../kinds/narratorMark';
 import type { KindId } from '../../../kinds/kindMap';
 import { clockText } from '../../booth/boothProgress';
 import { isLow, type DocItem } from '../model';
 import { FxMarker } from '../range/fx/FxButtons';
 import { useFxMarker } from '../range/fx/fxMarkers';
+import type { WordNote } from './paragraphNotes';
 
 /** What marks a word: each is drawn with a shape (underline, strike, dashed box) as well as a colour, and named in `aria-description`. */
 type Mark = 'cut' | 'extra' | 'miss' | 'mis' | 'low';
@@ -16,6 +18,12 @@ function markOf(it: DocItem): Mark | null {
   if (it.st === 'miss') return 'miss';
   if (it.st === 'mis') return 'mis';
   return it.kind === 'w' && isLow(it) ? 'low' : null;
+}
+
+/** What a screen reader and a tooltip say about a word that is a Story Bible name or carries a mark. */
+function describeNote(note: WordNote): string {
+  const parts = [note.entity ? 'Story Bible name' : '', note.mark ? `Marked: ${note.mark.name}` : ''].filter(Boolean);
+  return parts.join(', ');
 }
 
 const pct = (it: DocItem): string => `${Math.round(it.conf * 100)}%`;
@@ -52,10 +60,10 @@ const STYLES = new Map<string, CSSProperties | undefined>();
  * playing word paint their own fill and text colour, a cursor or open flag draws its ring as the outline, and the selection underline and the
  * effect underline join the mark's shadow, so the mark yields to each rather than hiding it.
  */
-function wordStyle(mark: Mark | null, sel: boolean, fx: boolean, ringed: boolean, now: boolean): CSSProperties | undefined {
-  const key = `${mark ?? ''}|${sel}|${fx}|${ringed}|${now}`;
+function wordStyle(mark: Mark | null, sel: boolean, fx: boolean, ringed: boolean, now: boolean, note?: WordNote): CSSProperties | undefined {
+  const key = `${mark ?? ''}|${sel}|${fx}|${ringed}|${now}|${note?.entity?.line ?? ''}|${note?.mark?.colour ?? ''}|${note?.mark?.style ?? ''}`;
   if (STYLES.has(key)) return STYLES.get(key);
-  const base = mark && mark !== 'cut' ? kindMarkStyle(KIND_OF[mark]) : undefined;
+  const base = mark ? (mark !== 'cut' ? kindMarkStyle(KIND_OF[mark]) : undefined) : noteStyle(note);
   const style: CSSProperties = { ...base };
   if (sel || now) {
     delete style.background;
@@ -72,6 +80,17 @@ function wordStyle(mark: Mark | null, sel: boolean, fx: boolean, ringed: boolean
   return out;
 }
 
+/**
+ * What a word that nothing flagged wears for the Story Bible name it is part of (the entry kind's tint and line) and for the narrator's mark on
+ * it (the type's colour and style); a mark's line wins where both cover the word. A flagged word keeps its flag's mark, which matters more.
+ */
+function noteStyle(note: WordNote | undefined): CSSProperties | undefined {
+  if (!note) return undefined;
+  const entity = note.entity ? kindMarkStyle('entity', note.entity) : undefined;
+  const mark = note.mark ? narratorMarkStyle(note.mark.colour, note.mark.style) : undefined;
+  return entity || mark ? { ...entity, ...mark } : undefined;
+}
+
 export interface WordProps {
   it: DocItem;
   sel: boolean;
@@ -83,12 +102,14 @@ export interface WordProps {
   join: boolean;
   /** The last word of an effect: its marker follows. */
   fxEnd: boolean;
+  /** The Story Bible name and the narrator's mark on the word, if any. */
+  note?: WordNote;
 }
 
 /** One word of the script, or one that was said and is not in it. Read-only: never editable text. */
-export const Word = memo(function Word({ it, sel, cur, now, said, flag, join, fxEnd }: WordProps) {
+export const Word = memo(function Word({ it, sel, cur, now, said, flag, join, fxEnd, note: wordNote }: WordProps) {
   const mark = markOf(it);
-  const note = mark ? describe(it, mark) : undefined;
+  const note = mark ? describe(it, mark) : wordNote ? describeNote(wordNote) : undefined;
   const fx = it.fx.length > 0 && !it.cut;
   const cls = [
     'rounded-[0.12em] cursor-text',
@@ -100,7 +121,7 @@ export const Word = memo(function Word({ it, sel, cur, now, said, flag, join, fx
   ]
     .filter(Boolean)
     .join(' ');
-  const style = wordStyle(mark, sel, fx, (cur && !sel) || flag, now);
+  const style = wordStyle(mark, sel, fx, (cur && !sel) || flag, now, wordNote);
   const gap = it.kind === 'x' ? ' ' : it.gap;
   return (
     <Fragment>
@@ -110,6 +131,8 @@ export const Word = memo(function Word({ it, sel, cur, now, said, flag, join, fx
         data-k={it.key}
         data-kind={it.kind}
         data-mark={mark ?? undefined}
+        data-entity={wordNote?.entity ? '' : undefined}
+        data-noted={wordNote?.mark ? '' : undefined}
         data-sel={sel ? '' : undefined}
         data-cursor={cur ? '' : undefined}
         data-now={now ? '' : undefined}

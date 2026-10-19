@@ -8,7 +8,7 @@ import type { ChapterDoc, HeardWord as ModelWord } from '../model';
 import { duplicateRead } from '../model/duplicates';
 import type { RangeLocator } from '../range/common/locate';
 import { docCutsOf } from '../range/common/locate';
-import { docFromHeard } from '../script/docFromHeard';
+import { docFromHeard, type QuotedPhrase } from '../script/docFromHeard';
 
 /** Seconds of lead-in `docFromHeard` puts before a paragraph's first heard word. */
 const LEAD = 0.15;
@@ -69,13 +69,17 @@ export function audioOf(link: 'linked' | 'unlinked' | 'missing' | 'unknown', tra
 }
 
 /** The chapter's document with its cuts, effects and accepted words. */
-export function docOf(read: ChapterRead): ChapterDoc {
+export function docOf(read: ChapterRead, phrasesOf: (paragraphId: string) => readonly QuotedPhrase[] = () => []): ChapterDoc {
   const answer: HeardAnswer = read.audio.kind === 'ready' ? read.answer : { heard: null, reason: NO_AUDIO_REASON, reasons: [] };
-  return docFromHeard(read.workspace.paragraphs, answer, {
-    cuts: docCutsOf(read.cuts),
-    effects: read.effects.filter((e) => !e.stale).map((e) => ({ id: e.id, keys: [...e.keys] })),
-    accepted: read.accepted,
-  });
+  return docFromHeard(
+    read.workspace.paragraphs.map((p) => ({ id: p.id, text: p.text, phrases: phrasesOf(p.id) })),
+    answer,
+    {
+      cuts: docCutsOf(read.cuts),
+      effects: read.effects.filter((e) => !e.stale).map((e) => ({ id: e.id, keys: [...e.keys] })),
+      accepted: read.accepted,
+    },
+  );
 }
 
 const paraOf = (doc: ChapterDoc, at: number) => doc.paras.find((p) => p.start != null && p.end != null && at >= p.start && at <= p.end) ?? null;

@@ -2,6 +2,8 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import type { EditCut } from '../../../api/contracts/editCuts';
 import type { WordFx } from '../../../api/contracts/wordFx';
 import { usePort } from '../../../ports/usePort';
+import { useSpeakers } from '../../script/page/data/useScriptData';
+import type { QuotedPhrase } from '../script/docFromHeard';
 import type { ChapterDoc } from '../model';
 import type { RangeLocator } from '../range/common/locate';
 import type { PlaylistSegment } from '../../proof/playlist';
@@ -50,6 +52,12 @@ export function useChapterSource(chapterId: string, chapterName: string): Chapte
   const tracks = usePort('tracks');
   const [state, setState] = useState<{ chapterId: string; read: ChapterRead | null; error: string | null }>({ chapterId, read: null, error: null });
   const [reads, setReads] = useState(0);
+  const speakers = useSpeakers();
+  // The quotes the Story Bible found in each paragraph: the script's units follow them, and each quote opens with its speaker's chip.
+  const phrasesOf = useCallback(
+    (paragraphId: string): QuotedPhrase[] => speakers.phrasesOf({ id: paragraphId, chapterId }).map((p) => ({ cue: p.cueId, start: p.start, end: p.end })),
+    [speakers, chapterId],
+  );
 
   useEffect(() => {
     let live = true;
@@ -110,7 +118,7 @@ export function useChapterSource(chapterId: string, chapterName: string): Chapte
   const source = useMemo((): ChapterSource => {
     if (error) return { status: 'error', message: error };
     if (!read) return { status: 'loading' };
-    const doc = docOf(read);
+    const doc = docOf(read, phrasesOf);
     return {
       status: 'ready',
       read,
@@ -120,7 +128,7 @@ export function useChapterSource(chapterId: string, chapterName: string): Chapte
       playlist: playlistOf(doc, read),
       total: lengthOf(doc),
     };
-  }, [read, error]);
+  }, [read, error, phrasesOf]);
 
   const reread = useCallback(() => setReads((n) => n + 1), []);
 

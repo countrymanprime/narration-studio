@@ -73,6 +73,8 @@ import { registerTakeControl } from '../takes/takeControls';
 import { InHost, rowOf } from './InHost';
 import { NoAudioBanner } from './NoAudioBanner';
 import { useRecordingCheck } from './useRecordingCheck';
+import { ScriptNotesProvider } from '../script/paragraphNotes';
+import { useEntries, useMarks, useSpeakers } from '../../script/page/data/useScriptData';
 import { useLines } from './useLines';
 
 /** The page state a chapter change keeps: the strip and the drawer stay as the narrator left them. */
@@ -162,6 +164,14 @@ export function EditingBody(props: EditingBodyProps) {
   const root = useRef<HTMLDivElement>(null);
   const scriptBox = useRef<HTMLElement | null>(null);
   const lines = useLines(chapterId, read.workspace);
+  // What the Script page has read of the Story Bible and the narrator's marks, laid over the words (names, marks, notes, who speaks a quote).
+  const marksRead = useMarks();
+  const entriesRead = useEntries();
+  const speakersRead = useSpeakers();
+  const noteSources = useMemo(
+    () => ({ marks: marksRead.marks, markTypes: marksRead.types, words: [], entries: entriesRead.entries, cues: speakersRead.cues, types: entriesRead.types }),
+    [marksRead.marks, marksRead.types, entriesRead.entries, entriesRead.types, speakersRead.cues],
+  );
   const check = useRecordingCheck({ chapter: props.checkChapter, onClosed: props.onReread, goToParagraph: props.onGoToParagraph });
 
   // Playback: the chapter on the document's clock, and a take on its own.
@@ -469,29 +479,31 @@ export function EditingBody(props: EditingBodyProps) {
 
   return (
     <div ref={root} className="flex min-h-0 flex-1 flex-col">
-      {props.banner}
-      <NoAudioBanner
-        audio={read.audio}
-        chapterName={chapterName}
-        daw={caps && caps.daw !== 'none' && caps.daw !== 'Built-in' ? caps.daw : null}
-        onReread={props.onReread}
-      />
-      <EditingHeader
-        stepper={props.stepper}
-        legend={<Legend doc={doc} compact={compact} noAudio={read.audio.kind !== 'ready'} />}
-        strip={panels.strip}
-        stripFits={stripFits}
-        drawerOpen={drawerOpen}
-        onDrawer={panels.drawer.toggle}
-        onDrawerKeyDown={drawerOpen ? drawerEscape : undefined}
-      />
       <div className="min-h-0 flex-1 px-4 pb-3 [&>div]:h-full">
         <DrawerLayout open={drawerOpen} drawer={drawer}>
           <div className="flex h-full min-h-0 flex-col overflow-hidden rounded-[10px] border border-[var(--border)] bg-[var(--surface)]">
+            {props.banner}
+            <NoAudioBanner
+              audio={read.audio}
+              chapterName={chapterName}
+              daw={caps && caps.daw !== 'none' && caps.daw !== 'Built-in' ? caps.daw : null}
+              onReread={props.onReread}
+            />
+            <EditingHeader
+              stepper={props.stepper}
+              legend={<Legend doc={doc} compact={compact} noAudio={read.audio.kind !== 'ready'} />}
+              strip={panels.strip}
+              stripFits={stripFits}
+              drawerOpen={drawerOpen}
+              onDrawer={panels.drawer.toggle}
+              onDrawerKeyDown={drawerOpen ? drawerEscape : undefined}
+            />
             <ScriptHost box={scriptBox} root={root}>
               {doc.paras.length ? (
                 <FxMarkersContext.Provider value={fxMarkers}>
-                  <ScriptDoc reason={reason} explained={read.audio.kind !== 'ready'} onCheckRecording={check.open} />
+                  <ScriptNotesProvider sources={noteSources} chapterId={chapterId}>
+                    <ScriptDoc reason={reason} explained={read.audio.kind !== 'ready'} onCheckRecording={check.open} />
+                  </ScriptNotesProvider>
                 </FxMarkersContext.Provider>
               ) : (
                 // The page's own empty state, so its heading sits under the page's h1.

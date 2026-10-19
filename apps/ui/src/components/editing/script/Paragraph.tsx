@@ -1,6 +1,8 @@
 import { Fragment, memo, useEffect } from 'react';
 import { clockText } from '../../booth/boothProgress';
 import type { DocPara } from './types';
+import { useParagraphNotes } from './paragraphNotes';
+import { SpeakerChip } from './SpeakerChip';
 import { Word } from './Word';
 
 export interface ParagraphProps {
@@ -22,6 +24,7 @@ export const Paragraph = memo(function Paragraph({ dp, sel, cursor, nowKey, flag
   useEffect(() => {
     onRender?.(dp.p.id);
   });
+  const notes = useParagraphNotes(dp.p.id, dp.p.text);
   const nowIdx = nowKey ? dp.items.findIndex((i) => i.key === nowKey) : -1;
   const index = new Map(dp.items.map((i, k) => [i.key, k]));
   return (
@@ -38,6 +41,7 @@ export const Paragraph = memo(function Paragraph({ dp, sel, cursor, nowKey, flag
       <p className={`m-0 min-w-0 ${dp.recorded ? 'text-[var(--text)]' : 'text-[var(--text-muted)]'}`}>
         {dp.units.map((us) => (
           <Fragment key={us.u.key}>
+            {us.u.cue && notes.phrase(us.u.cue) ? <SpeakerChip phrase={notes.phrase(us.u.cue)!} /> : null}
             {us.lead}
             {us.items.map((it) => {
               const at = index.get(it.key) ?? 0;
@@ -53,6 +57,7 @@ export const Paragraph = memo(function Paragraph({ dp, sel, cursor, nowKey, flag
                   said={nowIdx >= 0 && at < nowIdx}
                   flag={flag === it.key}
                   join={selected && !!next && sel.has(next.key) && (it.kind === 'x' || !!it.gap)}
+                  note={it.tok ? notes.at(it.tok.s, it.tok.s + it.tok.text.length) : undefined}
                   fxEnd={it.fx.length > 0 && !it.cut && !(next && !next.cut && next.fx.includes(it.fx[0]))}
                 />
               );
@@ -60,6 +65,11 @@ export const Paragraph = memo(function Paragraph({ dp, sel, cursor, nowKey, flag
           </Fragment>
         ))}
       </p>
+      {notes.notes.map((n) => (
+        <p key={n.id} data-note={n.id} className="col-start-2 m-0 mt-1 text-[length:var(--font-size-sm)] leading-[1.4] text-[var(--text-muted)]">
+          <b className="font-semibold text-[var(--text)]">{n.name}:</b> {n.text}
+        </p>
+      ))}
     </div>
   );
 });
