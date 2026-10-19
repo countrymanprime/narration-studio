@@ -142,7 +142,7 @@ Tests: `components/help/ShortcutSheet.test.tsx` (the sheet lists exactly `comman
 
 ## History panel and leave guard
 
-`openHistoryPanel(overlay, journal, dawName)` (`components/layout/HistoryPanel.tsx`) opens a slide-over "Undo history" listing the journal's entries newest first. Each row has its label, a pill naming the DAW or "App", and Undo; a row the journal would refuse shows the journal's sentence and a disabled Undo. A successful undo is announced; a refusal is a toast. It opens from the header's History button, `history.open` and the jump menu. `useJournalEntries.ts` reads the journal.
+`openHistoryPanel(overlay, journal, dawName)` (`components/layout/HistoryPanel.tsx`) opens a slide-over "Undo history" listing the journal's entries newest first. Each row has its label, a pill naming the DAW or "App", and Undo; a row the journal would refuse shows the journal's sentence and a disabled Undo. A successful undo is announced; a refusal is a toast. It opens from the jump menu's "Open the undo history" command and `history.open` (Ctrl+Shift+H); neither anchors to a header button, since the header has none. `useJournalEntries.ts` reads the journal.
 
 The journal is `studio/journal/createJournal.ts` ([The journal and undo](ui-state-and-journal.md#the-journal-and-undo)); it also holds the leave guard (`studio/journal/leaveGuard.ts`): a page calls `setLeaveGuard` and the shell asks `checkLeave(next)` before it navigates. The verdict is `'allow'` or `{ ask: ConfirmSpec }`, and the Booth sets one while a take records (`components/booth/leave/useBoothLeaveGuard.ts`).
 
@@ -167,7 +167,7 @@ Settings is pinned at the foot with the theme toggle, not in a group. Groups fol
 - **Counts.** `useNavCounts(pathname, hasManuscript)` (`components/layout/useNavCounts.ts`) gives `{ proof?, pickups? }`: open notes from `findingsSummary` through `proofProgress`, and open lines from `pickupsList`. It reads again on every page move and on pickup changes. A key is absent when the host gives no count, and with no manuscript there is none; the rail draws no badge, never an invented number. No other item has a count. Test: `components/layout/useNavCounts.test.tsx`.
 - **Booth.** With a manuscript, `/booth` draws no rail, header or drawer, only the page in its own `<main>`. Test: `components/layout/AppShell.test.tsx`.
 - **Rail width.** 216 px from 1360 CSS px; below it 64 px of icons that open over the page to 236 px on hover or keyboard focus, labels kept in the markup. Below 860 px (the width the mock turns its rail into a tab bar) the hamburger and drawer replace the rail. The first group, Production, has no heading, as in the mock.
-- **Header.** Back and Forward, project name, "Jump to or run…" with its key chord, Undo and History, a timer chip while a timer runs, the zoom group, the engine chip.
+- **Header.** The mock's top bar and nothing else: the "Project" crumb, the project name as a "Switch project" button (opens the project picker over the open project), "Jump to or run…" with its key chord, a zoom chip only while zoom is not 100% (opens the jump menu at its Zoom commands), the engine chip. Back, Forward, Undo, "Open the undo history", the zoom steps and "Switch project…" are jump-menu commands (Back, Forward, Undo and the zoom steps list off with a reason through `openJumpMenu`'s `disabledReasons`); the running timer is drawn by the Production page beside Stop timer.
 
 ## Width, icon and key-cap vocabulary
 
