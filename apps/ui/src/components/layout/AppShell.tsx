@@ -1,25 +1,12 @@
 import { useState, type ReactNode } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import {
-  faArrowLeft,
-  faArrowRight,
-  faBars,
-  faFileLines,
-  faFolder,
-  faGear,
-  faHouse,
-  faMinus,
-  faPlus,
-  faRotateLeft,
-  faWaveSquare,
-} from '@fortawesome/free-solid-svg-icons';
+import { faBars, faFileLines, faGear, faHouse, faWaveSquare } from '@fortawesome/free-solid-svg-icons';
 import { iconFor } from '../../icons.catalog';
 import { ContextMenuHost } from './ContextMenuHost';
 import type { ContextMenuItem } from '../primitives/ContextMenu';
 import { NavButton } from '../primitives/NavButton';
 import { NavDrawer } from '../primitives/NavDrawer';
 import { IconButton } from '../primitives/IconButton';
-import { Button } from '../primitives/Button';
 import { KeyChord } from '../primitives/KeyCap';
 import { TooltipTarget } from '../primitives/Tooltip';
 import type { DawKind } from '../../api/contracts/daw';
@@ -27,7 +14,7 @@ import { navAvailability, type NavFacts } from '../../navigation/navAvailability
 import { Brand } from './Brand';
 import { DemoBanner } from './DemoBanner';
 import { EngineChip, type EngineState } from './EngineChip';
-import { TimerChip, type RunningTimer } from './TimerChip';
+import { HeaderChip } from '../primitives/HeaderChip';
 import type { NavCounts } from './useNavCounts';
 
 // The rail's items. What each one needs is not here: `navAvailability` is the one table the rail, the drawer and the jump menu read.
@@ -83,13 +70,11 @@ export function AppShell({
   linkingDawFile = false,
   engine = 'daw',
   daw,
-  timer = null,
   navCounts = {},
-  history,
   zoom,
   onOpenJump,
-  onOpenHistory,
-  undo,
+  onOpenZoomMenu,
+  onSwitchProject,
   theme,
   contextMenu,
   children,
@@ -111,20 +96,16 @@ export function AppShell({
   engine?: EngineState;
   /** Which DAW backs the session, from the DAW capabilities; the header's chip names it. */
   daw?: DawKind;
-  /** The production stage timer while it runs; null hides the chip. */
-  timer?: RunningTimer | null;
   /** The rail's count badges, from useNavCounts: a missing or zero count draws none. */
   navCounts?: NavCounts;
-  /** Page-level Back/Forward: already guarded and gated by App.tsx. */
-  history: { canGoBack: boolean; canGoForward: boolean; back: () => void; forward: () => void };
-  /** The header's zoom group: `useZoom`'s own state and actions. */
-  zoom: { percent: number; canZoomOut: boolean; canZoomIn: boolean; zoomIn: () => void; zoomOut: () => void; reset: () => void; announcement: string };
+  /** The zoom level: the header draws a chip only while `percent` is not 100, and `announcement` is the debounced live-region text `useZoom` builds. */
+  zoom: { percent: number; announcement: string };
   /** Opens the jump menu: the header's "Jump to or run…" button (Ctrl+K opens it from anywhere). */
   onOpenJump: () => void;
-  /** Opens the undo history panel from the header's History button. */
-  onOpenHistory: () => void;
-  /** The header's Undo: `disabledReason` is set while the journal has nothing to undo. */
-  undo: { disabledReason?: string; run: () => void };
+  /** Opens the jump menu at its Zoom commands: the zoom chip. */
+  onOpenZoomMenu: () => void;
+  /** Opens the project picker: the project name in the header. */
+  onSwitchProject: () => void;
   /** The foot's Theme item (the mock's rail): absent draws none. */
   theme?: { dark: boolean; toggle: () => void };
   /** The menu on empty space in `<main>`, then the items every menu ends with (docs/architecture/studio-shell-and-registries.md#command-providers-and-go-to). */
@@ -140,14 +121,6 @@ export function AppShell({
   const gateFor = (item: NavItem) => navAvailability(item.path, { hasManuscript, dawFileLinked });
   const isDisabled = (item: NavItem) => gateFor(item).disabled;
   const requiredReason = (item: NavItem) => gateFor(item).reason;
-  const backTooltip = history.canGoBack ? 'Back (Alt+Left)' : 'Back (Alt+Left): no earlier page in this project';
-  const forwardTooltip = history.canGoForward ? 'Forward (Alt+Right)' : 'Forward (Alt+Right): no later page yet';
-  // The header's zoom group: the readout is always shown and is itself the reset button, disabled
-  // only at exactly 100%.
-  const zoomOutTooltip = 'Zoom out (Ctrl+-)';
-  const zoomInTooltip = 'Zoom in (Ctrl+=)';
-  const zoomResetTooltip = 'Reset zoom to 100% (Ctrl+0)';
-  const zoomAtDefault = zoom.percent === 100;
   // The wide rail's group heading: a visible `section-label`, referenced by the group's `aria-labelledby` so a
   // screen reader hears the stage name once, not twice. Shared by the sidebar and the drawer, which render the same markup.
   const groupHeadingId = (label: string) => `nav-group-${label.toLowerCase().replace(/\s+/g, '-')}`;
@@ -237,28 +210,22 @@ export function AppShell({
             <IconButton label="Open navigation" aria-expanded={drawerOpen} onClick={() => setDrawerOpen(true)} className="min-[860px]:hidden">
               <FontAwesomeIcon icon={faBars} />
             </IconButton>
-            {/* Page history: walks the app's own page moves only, through App.tsx's guards. */}
-            <div className="flex flex-none items-center gap-1" role="group" aria-label="Page history">
-              <TooltipTarget text={backTooltip}>
-                <IconButton label="Back" disabledReason={history.canGoBack ? undefined : backTooltip} onClick={history.back}>
-                  <FontAwesomeIcon icon={faArrowLeft} />
-                </IconButton>
-              </TooltipTarget>
-              <TooltipTarget text={forwardTooltip}>
-                <IconButton label="Forward" disabledReason={history.canGoForward ? undefined : forwardTooltip} onClick={history.forward}>
-                  <FontAwesomeIcon icon={faArrowRight} />
-                </IconButton>
-              </TooltipTarget>
-            </div>
-            {/* Left-aligned after the history buttons, as the mocks draw it; it takes the free width and truncates first. */}
-            <div className="flex min-w-16 flex-1 items-center gap-2">
-              {/* Below `md` the two history buttons leave less room: the label and
-                  folder icon drop first, and the project name is left to truncate on its own. */}
-              <span className="section-label max-md:hidden">Project</span>
-              <FontAwesomeIcon icon={faFolder} style={{ color: 'var(--non-text)' }} className="max-md:hidden" />
-              <span className="truncate font-medium">{projectName}</span>
-            </div>
-            {/* The mock's top bar: the jump menu opens from here, and the journal's Undo and History sit beside it. */}
+            {/* The Studio Next mock's top bar and nothing else: the crumb, the project name (a button), the jump menu, a zoom chip off 100% and the engine chip.
+                Back, Forward, Undo, History and the zoom steps live in the jump menu, on their keys. */}
+            <span className="section-label max-md:hidden">Project</span>
+            <TooltipTarget text="Switch project">
+              {/* native-control-ok: the project name is a text-shaped button (the mock's `.proj`); Button's padded uppercase chrome would turn the name into an action label. */}
+              <button
+                type="button"
+                onClick={onSwitchProject}
+                // The name starts with the text the button draws: axe fails a name that does not.
+                aria-label={`${projectName}, switch project`}
+                className="min-w-0 cursor-pointer truncate rounded-[var(--radius-button)] px-1.5 py-1 text-left font-medium hover:bg-[var(--surface-2)]"
+              >
+                {projectName}
+              </button>
+            </TooltipTarget>
+            <div className="flex-1" />
             <TooltipTarget text="Jump to a page or chapter, or run a command (Ctrl+K)">
               <button
                 type="button"
@@ -275,48 +242,17 @@ export function AppShell({
                 </span>
               </button>
             </TooltipTarget>
-            {/* Below `md` there is no room for these two beside the zoom group at 390 px: the jump menu lists "Open the undo history" there, and each
-                history row has its own Undo. While a timer chip runs the pair also drops below `lg`, so the project name keeps room. */}
-            <div className={`flex flex-none items-center gap-1 ${timer ? 'max-lg:hidden' : 'max-md:hidden'}`} role="group" aria-label="Undo history">
-              <TooltipTarget text={undo.disabledReason ?? 'Undo the last change'}>
-                <IconButton label="Undo" disabledReason={undo.disabledReason} onClick={undo.run}>
-                  <FontAwesomeIcon icon={faRotateLeft} />
-                </IconButton>
+            {/* The zoom chip, only while zoom is not 100%: it opens the jump menu at the zoom commands (the mock's `zoomchip`). */}
+            {zoom.percent !== 100 && (
+              <TooltipTarget text="Zoom (change it in the jump menu)">
+                <HeaderChip onClick={onOpenZoomMenu} aria-label={`Zoom ${zoom.percent}%: change in the jump menu`}>
+                  <span className="font-['IBM_Plex_Mono',ui-monospace,monospace] text-[0.8125rem] font-medium tracking-normal">{zoom.percent}%</span>
+                </HeaderChip>
               </TooltipTarget>
-              <TooltipTarget text="History: every change you can undo (Ctrl+Shift+H)">
-                <IconButton label="History" aria-keyshortcuts="Control+Shift+H" onClick={onOpenHistory}>
-                  <FontAwesomeIcon icon={iconFor('history')} />
-                </IconButton>
-              </TooltipTarget>
-            </div>
-            {timer && <TimerChip timer={timer} />}
-            {/* The zoom group: after a running timer chip, before the engine chip. Below `md` a running timer takes its room (Ctrl+wheel and the shortcuts still zoom). */}
-            <div className={`flex flex-none items-center gap-1 ${timer ? 'max-md:hidden' : ''}`} role="group" aria-label="Zoom">
-              <TooltipTarget text={zoomOutTooltip}>
-                <IconButton label="Zoom out" disabledReason={zoom.canZoomOut ? undefined : zoomOutTooltip} onClick={zoom.zoomOut}>
-                  <FontAwesomeIcon icon={faMinus} />
-                </IconButton>
-              </TooltipTarget>
-              <TooltipTarget text={zoomResetTooltip}>
-                <Button
-                  variant="secondary"
-                  aria-label={`Reset zoom to 100%, now ${zoom.percent}%`}
-                  aria-disabled={zoomAtDefault || undefined}
-                  onClick={zoomAtDefault ? (event) => event.preventDefault() : zoom.reset}
-                  className="h-8 min-w-14 justify-center px-2 py-0 font-['IBM_Plex_Mono',ui-monospace,monospace] text-[0.8rem] font-normal tracking-normal normal-case aria-disabled:pointer-events-none"
-                >
-                  {zoom.percent}%
-                </Button>
-              </TooltipTarget>
-              <TooltipTarget text={zoomInTooltip}>
-                <IconButton label="Zoom in" disabledReason={zoom.canZoomIn ? undefined : zoomInTooltip} onClick={zoom.zoomIn}>
-                  <FontAwesomeIcon icon={faPlus} />
-                </IconButton>
-              </TooltipTarget>
-              {/* A level change is announced once, politely, debounced by useZoom - not on every wheel notch (Solution Detail). */}
-              <div aria-live="polite" className="sr-only">
-                {zoom.announcement}
-              </div>
+            )}
+            {/* A level change is announced once, politely, debounced by useZoom, not on every wheel notch. It stays mounted at 100% so the return to 100% is heard too. */}
+            <div aria-live="polite" className="sr-only">
+              {zoom.announcement}
             </div>
             <EngineChip
               daw={daw}

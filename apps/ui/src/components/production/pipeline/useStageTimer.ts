@@ -8,7 +8,7 @@ type TimerApi = Pick<NarrationApi, 'productionStartTimer' | 'productionStopTimer
 /**
  * The stage timer as the old Production page ran it (SN0-Q4: the timer stays as built). Start refused because another timer runs says
  * so in the host's words; the host stops the other first and never switches silently. `onChange` runs after each write, so the page reads
- * the overview again and the shell's timer chip keeps its feed.
+ * the overview again and the page's timer chip keeps its feed.
  */
 export function useStageTimer(api: TimerApi, onChange: () => void | Promise<void>) {
   const [starting, setStarting] = useState<string>();

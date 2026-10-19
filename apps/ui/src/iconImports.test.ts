@@ -17,7 +17,7 @@ const CEILING: Record<string, number> = {
   'src/components/booth/CompanionShell.tsx': 2,
   'src/components/booth/ResumePrompt.tsx': 6,
   'src/components/engine/EnginePanel.tsx': 2,
-  'src/components/layout/AppShell.tsx': 12,
+  'src/components/layout/AppShell.tsx': 6,
   'src/components/layout/LoadError.tsx': 2,
   'src/components/layout/StartupScreen.tsx': 5,
   'src/components/layout/TimerChip.tsx': 2,
@@ -30,7 +30,7 @@ const CEILING: Record<string, number> = {
   'src/components/proof/CompareRun.tsx': 6,
   'src/components/proof/NativeTakesPanel.tsx': 3,
   'src/components/proof/PreviewPanel.tsx': 9,
-  'src/components/storybible/Guide.tsx': 5,
+  'src/components/storybible/Guide.tsx': 4,
   'src/components/storybible/GuideDetail.tsx': 12,
   'src/components/storybible/PropertiesSection.tsx': 5,
 };

@@ -58,3 +58,102 @@ H.test('select_track opens no undo block: selection is not project data', functi
   s:send('select_track', 't1', chapter.guid)
   H.eq(#s.fake.undo, 0)
 end)
+
+-- Where the narrator is (read_place) and taking them somewhere (go_to): the DAW-neutral "follow the narrator" pair the Booth uses to open
+-- on the track REAPER is on, and to move REAPER to the chapter and word the Booth was opened at.
+
+local function place_session()
+  local s, chapter, pickups = new_session()
+  s.fake:add_item(chapter, { position = 0, length = 30 })
+  s.fake:add_item(chapter, { position = 40, length = 20 })
+  return s, chapter, pickups
+end
+
+H.test('read_place reports the one selected track, how many are selected and the edit cursor', function()
+  local s, chapter = place_session()
+  chapter.selected = true
+  s.fake.cursor = 12.5
+  s:send('read_place', 'p1')
+  H.eq(s:events(), { { 'PLACE', 'p1', CH1, '1', '12.5' } })
+end)
+
+H.test('read_place with no track selected names none', function()
+  local s = place_session()
+  s:send('read_place', 'p1')
+  H.eq(s:events(), { { 'PLACE', 'p1', '', '0', '0' } })
+end)
+
+H.test('read_place with several tracks selected names none, so the caller never guesses which', function()
+  local s, chapter, pickups = place_session()
+  chapter.selected, pickups.selected = true, true
+  s.fake.cursor = 3
+  s:send('read_place', 'p1')
+  H.eq(s:events(), { { 'PLACE', 'p1', '', '2', '3' } })
+end)
+
+H.test('read_place changes nothing and opens no undo block', function()
+  local s, chapter = place_session()
+  chapter.selected = true
+  s:send('read_place', 'p1')
+  H.eq(#s.fake.undo, 0)
+  H.eq(s.fake.cursor or 0, 0)
+end)
+
+H.test('go_to end selects the track and puts the cursor at the end of its last item', function()
+  local s, chapter, pickups = place_session()
+  pickups.selected = true
+  s:send('go_to', 'g1', chapter.guid, 'end', '')
+  H.eq(s:events(), { { 'PLACE_SET', 'g1', CH1, '60' } })
+  H.eq(chapter.selected, true)
+  H.eq(pickups.selected, false)
+  H.eq(s.fake.cursor, 60)
+end)
+
+H.test('go_to end on a track with no items puts the cursor at zero', function()
+  local s, chapter = new_session()
+  s:send('go_to', 'g1', chapter.guid, 'end', '')
+  H.eq(s:events(), { { 'PLACE_SET', 'g1', CH1, '0' } })
+end)
+
+H.test('go_to a time puts the cursor there without playing and without scrolling it away', function()
+  local s, chapter = place_session()
+  s:send('go_to', 'g1', chapter.guid, 'at', '17.25')
+  H.eq(s:events(), { { 'PLACE_SET', 'g1', CH1, '17.25' } })
+  H.eq(s.fake.cursor, 17.25)
+  H.eq(s.fake.cursor_seekplay, false, 'moving the cursor does not start or seek playback')
+end)
+
+H.test('go_to with a time that is not a number refuses and moves nothing', function()
+  local s, chapter = place_session()
+  s:send('go_to', 'g1', chapter.guid, 'at', 'soon')
+  H.eq(s:events(), { { 'ERROR', 'g1', 'The place to go to is not a usable number of seconds.' } })
+  H.eq(s.fake.cursor or 0, 0)
+  H.eq(chapter.selected, false)
+end)
+
+H.test('go_to with a negative time refuses', function()
+  local s, chapter = place_session()
+  s:send('go_to', 'g1', chapter.guid, 'at', '-1')
+  H.eq(s:events(), { { 'ERROR', 'g1', 'The place to go to is not a usable number of seconds.' } })
+end)
+
+H.test('go_to with an unknown mode refuses', function()
+  local s, chapter = place_session()
+  s:send('go_to', 'g1', chapter.guid, 'sideways', '')
+  H.eq(s:events(), { { 'ERROR', 'g1', 'Unknown place: sideways.' } })
+end)
+
+H.test('go_to on a track that no longer resolves reports TRACK_STALE and moves nothing', function()
+  local s, chapter, pickups = place_session()
+  pickups.selected = true
+  s:send('go_to', 'g1', '{FFFFFFFF-0000-4000-8000-00000000FFFF}', 'end', '')
+  H.eq(s:events(), { { 'TRACK_STALE', 'g1', '{FFFFFFFF-0000-4000-8000-00000000FFFF}' } })
+  H.eq(pickups.selected, true)
+  H.eq(s.fake.cursor or 0, 0)
+end)
+
+H.test('go_to opens no undo block: a cursor move is not project data', function()
+  local s, chapter = place_session()
+  s:send('go_to', 'g1', chapter.guid, 'end', '')
+  H.eq(#s.fake.undo, 0)
+end)

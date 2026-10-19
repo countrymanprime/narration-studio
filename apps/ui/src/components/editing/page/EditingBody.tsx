@@ -27,7 +27,7 @@ import { useDawPlayPosition } from '../follow/useDawPlayPosition';
 import { useFollowScroll } from '../follow/useFollowScroll';
 import { Legend } from '../flags/Legend';
 import { useAcceptWords } from '../flags/useAcceptWords';
-import { EDITING_FOOTER_SPEC, editingKeyHints } from '../keys/editingKeyHints';
+import { EDITING_FOOTER_SPEC, editingKeyHints, enterHintLabel } from '../keys/editingKeyHints';
 import { useEditingKeys } from '../keys/useEditingKeys';
 import { useMarkMenuSections } from '../menu/marks/useMarkMenuSections';
 import { useEditingWordMenu } from '../menu/useEditingWordMenu';
@@ -436,9 +436,15 @@ export function EditingBody(props: EditingBodyProps) {
     onPlay: playTake,
     chapterId,
   };
+  const cursorItem = state.cursor ? doc.items[doc.index.get(state.cursor) ?? -1] : undefined;
+  const cursorOnFlag = cursorItem !== undefined && flagged(doc).some((x) => x.key === cursorItem.key);
   const hints = editingKeyHints(
     keymap,
-    EDITING_FOOTER_SPEC.map((h) => (h.id === 'editing.strip' && !stripFits ? { ...h, label: 'Timeline drawer' } : h)),
+    EDITING_FOOTER_SPEC.map((h) => {
+      if (h.id === 'editing.strip' && !stripFits) return { ...h, label: 'Timeline drawer' };
+      if (h.id === 'editing.keep') return { ...h, label: enterHintLabel({ takesOpen: lineTakes.onTake !== null, onFlag: cursorOnFlag }) };
+      return h;
+    }),
   );
   const flagPid = state.flag ? (state.flag.startsWith('dup:') ? state.flag.slice(4) : doc.items[doc.index.get(state.flag) ?? -1]?.pid) : undefined;
   const flagPara = flagPid ? doc.paras.find((p) => p.p.id === flagPid) : undefined;

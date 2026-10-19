@@ -180,7 +180,7 @@ describe('space-records-and-stops-and-nothing-else-records', () => {
   it('Space records and stops through the Record control', async () => {
     const page = renderPage();
     await record(page);
-    expect(page.daw.recordStart).toHaveBeenCalledWith('c1');
+    expect(page.daw.recordStart).toHaveBeenCalledWith('c1', undefined);
     expect(screen.getByText('REC')).toBeTruthy();
     await space();
     await waitFor(() => expect(page.daw.recordStop).toHaveBeenCalledTimes(1));
@@ -354,7 +354,7 @@ describe('a-built-in-take-is-guarded-too', () => {
     await space();
     await waitFor(() => expect(screen.getByRole('button', { name: /^Stop$/ })).toBeTruthy());
     expect(page.daw.recordStart).toHaveBeenCalledTimes(1);
-    expect(page.daw.recordStart).toHaveBeenCalledWith('c1');
+    expect(page.daw.recordStart).toHaveBeenCalledWith('c1', undefined);
     await press('Escape');
     expect(page.dialog()?.spec.body).toBe('The built-in recorder is recording. Leaving the Booth stops it.');
     await act(async () => page.dialog()!.answer(false));
@@ -716,7 +716,7 @@ describe('credits-are-readable-and-recordable', () => {
     expect(screen.getByRole('button', { name: /token has no value: Title/ })).toBeTruthy();
     await waitFor(() => expect((screen.getByRole('button', { name: /^Record$/ }) as HTMLButtonElement).disabled).toBe(false));
     await space();
-    await waitFor(() => expect(page.daw.recordStart).toHaveBeenCalledWith('credits-opening'));
+    await waitFor(() => expect(page.daw.recordStart).toHaveBeenCalledWith('credits-opening', undefined));
     await waitFor(() => expect(screen.getByRole('button', { name: /^Stop$/ })).toBeTruthy());
     await space();
     // The take maps to the credits' own region in the passage map.
@@ -1313,7 +1313,7 @@ describe('the text follows the voice: the listening microphone and the model', (
     await waitFor(() => expect(teleprompterStart).toHaveBeenCalledWith(expect.objectContaining({ device: 'USB Mic' })));
   });
 
-  it('a missing model is asked for when the take starts, and nothing downloads until the narrator says so', async () => {
+  it('a missing model is asked for when the take starts, no take begins behind the question, and nothing downloads until the narrator says so', async () => {
     const assetsInstall = vi.fn();
     const teleprompterStart = vi.fn(async () => ({
       status: 'asset_required' as const,
@@ -1337,20 +1337,23 @@ describe('the text follows the voice: the listening microphone and the model', (
     await ready();
     await space();
     expect(await screen.findByRole('alertdialog', { name: 'Download local Whisper model?' })).toBeTruthy();
-    expect(page.daw.recordStart).toHaveBeenCalledTimes(1);
+    expect(page.daw.recordStart).not.toHaveBeenCalled();
     expect(assetsInstall).not.toHaveBeenCalled();
   });
 
-  it('a session that fails to start says so in the footer; the take goes on', async () => {
+  it('a session that fails to start says so in the footer, and no take begins', async () => {
     const teleprompterStart = vi.fn(async () => {
       throw new Error('The microphone is in use by another application.');
     });
     const page = renderPage({ api: { settingsForScope: savedDevice('USB Mic'), teleprompterStart } as never });
-    await record(page);
+    await ready();
+    await space();
     await waitFor(() =>
       expect(document.getElementById('blisten-why')?.textContent).toBe('The text cannot follow your voice: The microphone is in use by another application.'),
     );
-    expect(screen.getByRole('button', { name: /^Stop$/ })).toBeTruthy();
+    // The DAW is never asked to record: a take whose text cannot follow the voice is not started.
+    expect(page.daw.recordStart).not.toHaveBeenCalled();
+    expect(screen.getByRole('button', { name: /^Record$/ })).toBeTruthy();
   });
 });
 

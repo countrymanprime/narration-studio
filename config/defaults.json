@@ -37,7 +37,7 @@
     "punch_preroll_seconds": "3"
   },
   "DAW": {
-    "auto_start_launcher": "false",
+    "auto_start_launcher": "true",
     "experimental_reaper_actions": "false",
     "fx_favourites": "",
     "capability.review": "auto",
@@ -73,6 +73,7 @@
     "capability.click_repair": "auto",
     "capability.undo_last": "auto",
     "capability.monitor_level": "auto",
+    "capability.follow_position": "auto",
     "capability.input_level": "auto",
     "backups.window_seconds": "120",
     "backups.retention_days": "7"

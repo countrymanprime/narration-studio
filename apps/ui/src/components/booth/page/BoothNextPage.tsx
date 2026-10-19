@@ -59,7 +59,9 @@ import { LoadError } from '../../layout/LoadError';
 import { BoothSkeleton } from './BoothSkeleton';
 import { BoothUnavailable } from './BoothUnavailable';
 import { CreditsWarning } from './CreditsWarning';
-import { creditsParagraphs, entityAtWord, readingParagraphsOf } from './readingSource';
+import { creditsParagraphs, entityAtWord, positionAtOffset, readingParagraphsOf, secondsBefore } from './readingSource';
+import { useFollowDawOnOpen, useMoveDawOnOpen } from './useDawFollow';
+import { unitAtPosition } from '../reading/readingPosition';
 import { useBoothData, type BoothSource } from './useBoothData';
 import { useBoothPage } from './useBoothPage';
 
@@ -121,6 +123,14 @@ function BoothLoaded({ navigate, exitTo }: { navigate: (next: string) => void; e
   // What the page shows; it follows the address unless a take runs, when the session asks first (`BoothSession`).
   const [shown, setShown] = useState(asked);
   const data = useBoothData(shown);
+  // The Booth opens on the chapter the DAW is on when the address names none, and moves the DAW to the chapter the address names.
+  const openedByAddress = useRef(asked !== null && 'chapter' in asked);
+  const chapterIds = useMemo(() => data.chapters?.map((item) => item.id), [data.chapters]);
+  useFollowDawOnOpen({
+    enabled: asked === null,
+    chapterIds,
+    onChapter: (chapterId) => setParams(new URLSearchParams(boothQuery({ chapter: chapterId }, pickupIds).slice(1)), { replace: true }),
+  });
   // With nothing to read there is no session, so no take to protect: the page follows the address (the panel's way back changes it).
   const nothingToRead = !data.source;
   useEffect(() => {
@@ -163,6 +173,7 @@ function BoothLoaded({ navigate, exitTo }: { navigate: (next: string) => void; e
         source={source}
         from={shown && 'chapter' in shown ? shown.from : undefined}
         requested={asked}
+        moveDaw={openedByAddress.current}
         adopt={setShown}
         data={data}
         choose={choose}
@@ -182,6 +193,8 @@ type SessionProps = {
   from?: BoothStart;
   /** What the address asks for now, and how the page takes it on. */
   requested: BoothTarget | null;
+  /** The Booth was opened at a chapter: the DAW is moved to it too. */
+  moveDaw: boolean;
   adopt: (target: BoothTarget) => void;
   data: ReturnType<typeof useBoothData>;
   choose: (target: BoothTarget) => void;
@@ -196,7 +209,7 @@ type SessionProps = {
 };
 
 /** One chapter (or the credits) in the Booth. Keyed by it, so a new chapter starts with a clean take, position and session. */
-function BoothSession({ source, from, requested, adopt, data, choose, navigate, exitTo, pickupIds, pickAt, onPick, measurements }: SessionProps) {
+function BoothSession({ source, from, requested, moveDaw, adopt, data, choose, navigate, exitTo, pickupIds, pickAt, onPick, measurements }: SessionProps) {
   const overlay = useOverlay();
   const journal = useJournal();
   const keymap = useUserKeymap();
@@ -294,6 +307,21 @@ function BoothSession({ source, from, requested, adopt, data, choose, navigate, 
   // What the side panel's Reference shows: a clicked Story Bible name, a marked word or a note under a paragraph, read-only.
   const referenced = useBoothReference(recordId);
   const reference = useMemo(() => referenceOf(referenced.target, entities, marks, types), [referenced.target, entities, marks, types]);
+
+  // Opened at a chapter, the DAW goes there too: to the end of its track, or to the line the Booth opened at, so the narrator can punch from it.
+  const moveTarget = useMemo(() => {
+    if (!chapter || units.length === 0) return null;
+    const position = from ? positionAtOffset(paragraphs, from.paragraphId, from.offset) : null;
+    const unit = position && unitAtPosition(paragraphs, units, position);
+    return unit ? ({ where: 'at', seconds: secondsBefore(units, unit.cur) } as const) : ({ where: 'end' } as const);
+  }, [chapter, from, paragraphs, units]);
+  useMoveDawOnOpen({
+    enabled: moveDaw,
+    chapterId: chapter?.id ?? '',
+    canFollow: !!control.capabilities?.capabilities.follow_position?.available,
+    target: moveTarget,
+    say: (sentence) => overlay.toast(sentence, { tone: 'error', topic: 'daw-follow' }),
+  });
 
   // A chapter asked for in the address while a take runs: leaving this one is asked about like any other way out; staying puts the
   // address back. The picker is disabled during a take, so this is a link from elsewhere (a Script card, a bookmark, a pickup).
@@ -528,7 +556,7 @@ function BoothSession({ source, from, requested, adopt, data, choose, navigate, 
             </div>
           </BoothSamplesProvider>
           <SamplePlayerAnnouncement text={samples.announcement} />
-          {capabilities && !control.recording ? (
+          {capabilities && control.factsLoaded && !control.recording ? (
             <RecordSetup
               capabilities={capabilities}
               facts={control.facts}
@@ -542,7 +570,7 @@ function BoothSession({ source, from, requested, adopt, data, choose, navigate, 
             />
           ) : null}
           <BoothFooter
-            record={<RecordControl control={control} />}
+            record={<RecordControl control={{ ...control, toggle: page.toggleTake }} />}
             seconds={page.seconds}
             recording={control.recording}
             why={control.reason || undefined}

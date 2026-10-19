@@ -678,6 +678,30 @@
     "replace": "local track = find_track(wanted) or reaper.GetTrack(0, 0)\n  if false then"
   },
   {
+    "name": "read_place names a track when several are selected",
+    "file": "narration_track_select.lua",
+    "find": "if selected == 1 then",
+    "replace": "if selected >= 1 then"
+  },
+  {
+    "name": "go_to accepts a negative time",
+    "file": "narration_track_select.lua",
+    "find": "seconds < 0 or seconds == math.huge",
+    "replace": "seconds == math.huge"
+  },
+  {
+    "name": "go_to end puts the cursor at the start of the track's last item",
+    "file": "narration_track_select.lua",
+    "find": "reaper.GetMediaItemInfo_Value(item, 'D_POSITION') + reaper.GetMediaItemInfo_Value(item, 'D_LENGTH'))",
+    "replace": "reaper.GetMediaItemInfo_Value(item, 'D_POSITION'))"
+  },
+  {
+    "name": "go_to seeks playback when it moves the cursor",
+    "file": "narration_track_select.lua",
+    "find": "reaper.SetEditCurPos(target, true, false)",
+    "replace": "reaper.SetEditCurPos(target, true, true)"
+  },
+  {
     "name": "a render runs without a well-formed approval",
     "file": "narration_master_render.lua",
     "find": "if #approval < 32 or #approval > 128 or not approval:match('^%x+$') then",

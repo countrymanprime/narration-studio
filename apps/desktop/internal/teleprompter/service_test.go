@@ -40,6 +40,10 @@ func runFakeSidecar(mode string) {
 	if runFakeMeter(mode) || runFakeDeviceLister(mode) || runFakeLocator(mode) || runFakeAligner(mode) {
 		return
 	}
+	if mode == "early-crash" { // dies before saying anything, as a sidecar that cannot start does
+		fmt.Fprintln(os.Stderr, "Failed to execute script 'live_asr' due to unhandled exception!")
+		os.Exit(5)
+	}
 	args, _ := json.Marshal(os.Args[1:])
 	fmt.Printf("{\"type\":\"args\",\"args\":%s}\n", args)
 	if scriptFile := flagValue(os.Args[1:], "--script"); scriptFile != "" {
@@ -752,5 +756,34 @@ func TestADeveloperSidecarRunsItsBackendScriptAsTheFirstArgument(t *testing.T) {
 	args := echoedArgs(t, f)
 	if len(args) == 0 || args[0] != "C:/repo/sidecars/manuscript-teleprompter/core/live_asr.py" {
 		t.Fatalf("args = %v", args)
+	}
+}
+
+func TestAwaitReadyFailsWhenTheSidecarDiesBeforeListening(t *testing.T) {
+	f := newFixture(t, "early-crash")
+	if err := f.service.Start(validOptions()); err != nil {
+		t.Fatal(err)
+	}
+	err := f.service.AwaitReady(10 * time.Second)
+	if err == nil || !strings.Contains(err.Error(), "unhandled exception") {
+		t.Fatalf("AwaitReady = %v, want the sidecar's own failure", err)
+	}
+}
+
+func TestAwaitReadyAnswersOnceTheSidecarIsListening(t *testing.T) {
+	f := newFixture(t, "stream")
+	if err := f.service.Start(validOptions()); err != nil {
+		t.Fatal(err)
+	}
+	defer f.service.Stop()
+	if err := f.service.AwaitReady(10 * time.Second); err != nil {
+		t.Fatalf("AwaitReady = %v", err)
+	}
+}
+
+func TestAwaitReadyWithoutASessionAnswersNil(t *testing.T) {
+	f := newFixture(t, "stream")
+	if err := f.service.AwaitReady(time.Millisecond); err != nil {
+		t.Fatal(err)
 	}
 }

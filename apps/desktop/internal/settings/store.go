@@ -118,8 +118,8 @@ var builtinDefaults = map[string]Values{
 	"Manuscript":        {"color_note": "B85C1E"},
 	"TranscriptCompare": {"chunk_seconds": "60", "model_size": "small", "color_misread": "FF4040", "color_skipped": "FFC000", "color_extra": "40A0FF"},
 	"Teleprompter":      {"engine": "whisper", "model": "tiny", "punch_preroll_seconds": "3"},
-	// auto_start_launcher defaults off: the spike that proved REAPER auto-runs a script
-	// argument does not by itself decide whether the app should always do it.
+	// auto_start_launcher defaults on: the app runs the launcher in REAPER itself (REAPER runs a script it is started with),
+	// so the narrator never has to add the action by hand.
 	// experimental_reaper_actions defaults off: the bridge commands not yet verified in a real
 	// REAPER stay off until the narrator turns them on (internal/bridge/actions.go).
 	// capability.<name> is the narrator's per-capability toggle for the DAW port: auto, on or off, defaulting
@@ -127,7 +127,7 @@ var builtinDefaults = map[string]Values{
 	// experimental_reaper_actions is on). One row per dawport capability; dawport's toggles_test.go holds the rows to its catalog.
 	// backups.window_seconds and backups.retention_days are the Audacity backups' window either side of an edit and how long a
 	// backup is kept: the process defaults, two minutes and seven days.
-	"DAW": {"auto_start_launcher": "false", "experimental_reaper_actions": "false",
+	"DAW": {"auto_start_launcher": "true", "experimental_reaper_actions": "false",
 		"backups.window_seconds": "120", "backups.retention_days": "7",
 		"capability.review": "auto", "capability.navigate": "auto", "capability.markers": "auto", "capability.pickups": "auto",
 		"capability.line_identity": "auto", "capability.render_config": "auto", "capability.cleanup_tools": "auto",
@@ -140,7 +140,7 @@ var builtinDefaults = map[string]Values{
 		"capability.stack_takes": "auto", "capability.backups": "auto",
 		"capability.file_preview": "auto", "capability.file_reveal": "auto", "capability.range_gain": "auto",
 		"capability.click_repair": "auto", "capability.undo_last": "auto",
-		"capability.monitor_level": "auto", "capability.input_level": "auto"},
+		"capability.monitor_level": "auto", "capability.input_level": "auto", "capability.follow_position": "auto"},
 	// RecordingCoverage mirrors coverage.DefaultSettings: the recording check's shipped values, chosen on synthetic fixtures
 	// and still Proposed and uncalibrated on real narration (docs/utilities/recording-coverage.md).
 	// background_checks defaults on: it only ever runs with the model installed, on mains power and while

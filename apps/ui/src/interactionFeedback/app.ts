@@ -72,14 +72,14 @@ export const appFeedback: Record<string, FeedbackRow> = {
   'src/useDawKind.ts::dawCapabilities#1': row('mount', 'file-io', 'na', 'na', 'event', 'silent', 'na', 'exempt', "Seeds the kind useDawKind exposes before the very next daw_capabilities_changed event takes over; a failed seed just leaves the kind unknown a moment longer, the same as before the first answer."),
   'src/useDawKind.ts::subscribeDawCapabilities#1': subscription("The DAW port's capability report, the same event useCapability reads: a second subscription, since useDawKind wants the whole payload's daw field rather than one capability's entry."),
 
-  // useZoom.ts: the header's zoom group. The readout is the only feedback surface
+  // useZoom.ts: the zoom behind the header's zoom chip. The chip (off 100%) is the only feedback surface
   // every call here is instant (the binding sets/reads a number on the window, no file or network,
-  // docs/architecture/threat-model.md row 3) and a failure just leaves the readout at the level it already showed.
-  'src/hooks/useZoom.ts::windowZoom#1': row('mount', 'instant', 'na', 'na', 'ui', 'silent', 'na', 'exempt', "Seeds the readout at the window's real level before the first paint settles; a failed read leaves it at the 100% default until the next resize re-reads it."),
-  'src/hooks/useZoom.ts::windowSetZoom#1': row('click', 'instant', 'inline', 'none', 'ui', 'silent', 'yes', 'exempt', 'Zoom out, Zoom in, reset, and Ctrl+=/-/0: the readout itself is the acknowledgment and the completion. A failed set leaves the previous level shown, visibly unchanged, and survives navigation like the level itself.'),
-  'src/hooks/useZoom.ts::windowZoom#2': row('effect', 'instant', 'na', 'na', 'ui', 'silent', 'na', 'exempt', "The resize-triggered re-read for an external Ctrl+wheel/pinch change (docs/guides/using-the-app/navigation.md#zoom, no zoom-changed event on Windows); a failed read just leaves the readout at its last known level until the next resize."),
+  // docs/architecture/threat-model.md row 3) and a failure just leaves the chip at the level it already showed.
+  'src/hooks/useZoom.ts::windowZoom#1': row('mount', 'instant', 'na', 'na', 'ui', 'silent', 'na', 'exempt', "Seeds the zoom chip at the window's real level before the first paint settles; a failed read leaves it at the 100% default until the next resize re-reads it."),
+  'src/hooks/useZoom.ts::windowSetZoom#1': row('click', 'instant', 'inline', 'none', 'ui', 'silent', 'yes', 'exempt', 'The jump menu zoom commands and Ctrl+=/-/0: the page resizing and the zoom chip (drawn off 100%) are the acknowledgment and the completion. A failed set leaves the previous level shown, visibly unchanged, and survives navigation like the level itself.'),
+  'src/hooks/useZoom.ts::windowZoom#2': row('effect', 'instant', 'na', 'na', 'ui', 'silent', 'na', 'exempt', "The resize-triggered re-read for an external Ctrl+wheel/pinch change (docs/guides/using-the-app/navigation.md#zoom, no zoom-changed event on Windows); a failed read just leaves the zoom chip at its last known level until the next resize."),
   // the settled level is also persisted to disk, debounced by
-  // the same settle as the announcement, so it survives a quit; the readout has already shown the new level, so there
+  // the same settle as the announcement, so it survives a quit; the zoom chip has already shown the new level, so there
   // is nothing more to acknowledge here.
   'src/hooks/useZoom.ts::windowSaveZoom#1': row('timer', 'file-io', 'na', 'na', 'na', 'silent', 'na', 'exempt', "The debounced persist of the settled level; a failed write just leaves the next launch opening at the last level that did save, with no error surfaced for a header control that already did what the narrator asked."),
 

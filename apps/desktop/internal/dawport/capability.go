@@ -25,12 +25,15 @@ const (
 	CapProjectRead  Capability = "project_read"
 	CapTrackState   Capability = "track_state"
 	CapTrackSelect  Capability = "track_select"
-	CapRecord       Capability = "record"
-	CapPunch        Capability = "punch"
-	CapRegions      Capability = "regions"
-	CapTakes        Capability = "takes"
-	CapFXChains     Capability = "fx_chains"
-	CapItemGain     Capability = "item_gain"
+	// CapFollowPosition reads the track and cursor the narrator is on and moves them: the Booth opens where the narrator is, and takes them to
+	// the chapter and word it was opened at.
+	CapFollowPosition Capability = "follow_position"
+	CapRecord         Capability = "record"
+	CapPunch          Capability = "punch"
+	CapRegions        Capability = "regions"
+	CapTakes          Capability = "takes"
+	CapFXChains       Capability = "fx_chains"
+	CapItemGain       Capability = "item_gain"
 	// CapRenderWithFX is the mastering port's DAW row, declared but not yet built. It is the one
 	// capability that makes the engine render, so each use needs the narrator's approval in the UI (threat model row 5o).
 	CapRenderWithFX    Capability = "render_with_fx"
@@ -106,6 +109,7 @@ var specs = []Spec{
 	{CapProjectRead, "Read the saved project", NeedsNothing, reflect.TypeFor[ProjectReader](), nil},
 	{CapTrackState, "Read track arm state", NeedsRunning, reflect.TypeFor[TrackStateReader](), nil},
 	{CapTrackSelect, "Select a track in REAPER", NeedsRunning, reflect.TypeFor[TrackSelector](), nil},
+	{CapFollowPosition, "Follow the narrator's place in the project", NeedsRunning, reflect.TypeFor[PlaceFollower](), nil},
 	{CapRecord, "Record", NeedsRunning, reflect.TypeFor[Recorder](), nil},
 	{CapPunch, "Punch and roll", NeedsRunning, reflect.TypeFor[Puncher](), nil},
 	{CapRegions, "Chapter regions", NeedsRunning, reflect.TypeFor[RegionWriter](), nil},

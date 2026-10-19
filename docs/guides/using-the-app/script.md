@@ -25,7 +25,7 @@ While the manuscript is being read, the page shows the same three columns as gre
 
 A bar under the reader lists its keys: select text to mark it, add a note or query, or look it up; **↑** **↓** scroll;
 **←** **→** change the prep state of the chapter in view; **Alt+↑** **Alt+↓** go to the previous or next chapter (the
-credits included); **B**
+credits included) and say where you land, such as "Chapter 2, The Pool of Tears, ¶ 1 of 26"; **B**
 bookmarks the line, says "Bookmark added." and opens the bookmark's label and note (the selection toolbar's **Bookmark here** adds it with Undo instead), or says the spot already has one; **Alt+[** **Alt+]** go to
 the previous or next bookmark; **Ctrl+F** opens Find. A key you rebind
 under **Keyboard & pedals** in [Settings](settings.md) shows its new key here.

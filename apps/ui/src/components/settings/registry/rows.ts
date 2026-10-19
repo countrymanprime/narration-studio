@@ -103,7 +103,7 @@ export const ROWS: readonly SettingMeta[] = [
     section: 'REAPER',
     label: 'Start the launcher script with REAPER',
     scope: 'computer',
-    def: 'false',
+    def: 'true',
     field: { tool: 'DAW', key: 'auto_start_launcher' },
     desc: 'Passes the launcher to REAPER as its startup script so the link is ready when REAPER opens.',
     used: ['booth'],
@@ -512,7 +512,7 @@ export const ROWS: readonly SettingMeta[] = [
     def: '1',
     desc: 'Scales the whole window. Ctrl + plus, Ctrl + minus and Ctrl 0 change it from anywhere.',
     used: ['production', 'script', 'booth', 'editing', 'proof', 'master'],
-    also: 'Header zoom chip, Ctrl + / −',
+    also: 'Zoom chip in the header, Ctrl + / −',
     syn: 'scale size dpi',
   },
   {

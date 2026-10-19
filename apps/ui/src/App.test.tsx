@@ -55,6 +55,22 @@ const appToasts = (role: 'status' | 'alert') => {
   return regions.find((node) => node.childElementCount > 0) ?? regions[0]!;
 };
 
+// The header carries only the jump button now (the Studio Next mock's top bar): Back, Forward, Undo, History and the zoom steps are jump-menu commands.
+// Opens the menu from its button, narrows to commands, and returns the row named `label` (its name starts with the label).
+async function jumpRow(label: string) {
+  fireEvent.click(screen.getByRole('button', { name: /^Jump to or run…/ }));
+  fireEvent.change(await screen.findByRole('combobox', { name: 'Jump menu' }), { target: { value: `> ${label}` } });
+  return screen.findByRole('option', { name: new RegExp(`^${label}`) });
+}
+const runFromJump = async (label: string) => fireEvent.click(await jumpRow(label));
+// Whether a command is off in the jump menu right now: opens the menu, reads the row and closes it again.
+async function jumpRowIsOff(label: string) {
+  const off = (await jumpRow(label)).getAttribute('aria-disabled') === 'true';
+  fireEvent.keyDown(screen.getByRole('combobox', { name: 'Jump menu' }), { key: 'Escape' });
+  await waitFor(() => expect(screen.queryByRole('combobox', { name: 'Jump menu' })).toBeNull());
+  return off;
+}
+
 // A project with no imported manuscript but a manuscript file in its folder.
 const bootstrapWithCandidate = (manuscriptCandidate: { path: string; name: string }) => async () => ({
   ...(await createMockApi().bootstrap()),
@@ -563,11 +579,19 @@ describe('App (integration, driven through the mock NarrationApi)', () => {
     expect(window.location.hash).toBe('#plan');
   });
 
-  // The header's timer chip shows a running production timer on every page, read once when the app opens.
-  it('shows the running production timer in the header on any page', async () => {
+  // The running timer left the header: it is the Production page's chip beside Stop timer, and no other page draws it.
+  it('shows the running production timer on the Production page, beside Stop timer, and not in the header', async () => {
+    renderApp({}, { production: PRODUCTION_SCENARIOS['on-pace'] });
+    const chip = await screen.findByRole('timer', { name: /^Timer running on Chapter 6, Recording: 0:4\d:\d\d$/ });
+    expect(chip.closest('header')).not.toBe(screen.getAllByRole('banner')[0]);
+    expect(within(screen.getAllByRole('banner')[0]!).queryByRole('timer')).toBeNull();
+  });
+
+  it('draws no timer chip on a page other than Production, even while a timer runs', async () => {
     window.history.replaceState(null, '', '/settings');
     renderApp({}, { production: PRODUCTION_SCENARIOS['on-pace'] });
-    expect(await screen.findByRole('timer', { name: /^Timer running on Chapter 6, Recording: 0:4\d:\d\d$/ })).toBeTruthy();
+    await screen.findByRole('heading', { level: 2, name: /Recording & DAW|Appearance|Project/ });
+    expect(screen.queryByRole('timer')).toBeNull();
   });
 
   it('opens Settings on the Booth category from #booth and from the old #teleprompter anchor', async () => {
@@ -1181,31 +1205,41 @@ describe('App (integration, driven through the mock NarrationApi)', () => {
   });
 });
 
-// Page-level Back and Forward in the header, their
-// shortcuts, and the two guards they share with the nav (unsaved Settings, leaving Proofing).
+// Page-level Back and Forward (jump-menu commands and Alt+Left / Alt+Right, no header buttons), their shortcuts, and the two guards they share with
+// the nav (unsaved Settings, leaving Proofing).
 describe('App Back and Forward', () => {
-  it('are disabled on the first page and enable after moving, one page at a time', async () => {
+  it('are off with a reason on the first page and enable after moving, one page at a time', async () => {
     renderApp();
     await screen.findByRole('heading', { level: 1, name: 'Production' });
-    expect((screen.getByRole('button', { name: 'Back' }) as HTMLButtonElement).getAttribute('aria-disabled')).toBe('true');
-    expect((screen.getByRole('button', { name: 'Forward' }) as HTMLButtonElement).getAttribute('aria-disabled')).toBe('true');
+    expect(await jumpRowIsOff('Back')).toBe(true);
+    expect(await jumpRowIsOff('Forward')).toBe(true);
+    expect((await jumpRow('Back')).textContent).toContain('No earlier page in this project');
+    fireEvent.keyDown(screen.getByRole('combobox', { name: 'Jump menu' }), { key: 'Escape' });
 
     fireEvent.click(screen.getAllByRole('button', { name: 'Script' })[0]);
     await screen.findByRole('heading', { name: 'Script' });
-    await waitFor(() => expect(screen.getByRole('button', { name: 'Back' }).getAttribute('aria-disabled')).toBeNull());
+    await waitFor(async () => expect(await jumpRowIsOff('Back')).toBe(false));
 
-    fireEvent.click(screen.getByRole('button', { name: 'Back' }));
+    await runFromJump('Back');
     await screen.findByRole('heading', { level: 1, name: 'Production' });
-    // The location updates at once; `useAppHistory`'s own `idx` (and so the disabled state) settles one
+    // The location updates at once; `useAppHistory`'s own `idx` (and so the off state) settles one
     // render later, once its effect has run - real for a person, imperceptible, but needs a wait here.
-    await waitFor(() => expect(screen.getByRole('button', { name: 'Back' }).getAttribute('aria-disabled')).toBe('true'));
-    await waitFor(() => expect(screen.getByRole('button', { name: 'Forward' }).getAttribute('aria-disabled')).toBeNull());
+    await waitFor(async () => expect(await jumpRowIsOff('Back')).toBe(true));
+    await waitFor(async () => expect(await jumpRowIsOff('Forward')).toBe(false));
 
-    fireEvent.click(screen.getByRole('button', { name: 'Forward' }));
+    await runFromJump('Forward');
     await screen.findByRole('heading', { name: 'Script' });
   });
 
-  it('Alt+Left and Alt+Right do what the buttons do', async () => {
+  it('draws no Back or Forward button in the header', async () => {
+    renderApp();
+    await screen.findByRole('heading', { level: 1, name: 'Production' });
+    const header = screen.getAllByRole('banner')[0]!;
+    expect(within(header).queryByRole('button', { name: 'Back' })).toBeNull();
+    expect(within(header).queryByRole('button', { name: 'Forward' })).toBeNull();
+  });
+
+  it('Alt+Left and Alt+Right do what the jump-menu commands do', async () => {
     renderApp();
     await screen.findByRole('heading', { level: 1, name: 'Production' });
     fireEvent.click(screen.getAllByRole('button', { name: 'Script' })[0]);
@@ -1215,13 +1249,13 @@ describe('App Back and Forward', () => {
     // character); a real Alt+Left keydown carries both, so the fixture does too.
     fireEvent.keyDown(document, { key: 'ArrowLeft', code: 'ArrowLeft', altKey: true });
     await screen.findByRole('heading', { level: 1, name: 'Production' });
-    await waitFor(() => expect(screen.getByRole('button', { name: 'Forward' }).getAttribute('aria-disabled')).toBeNull());
+    await waitFor(async () => expect(await jumpRowIsOff('Forward')).toBe(false));
 
     fireEvent.keyDown(document, { key: 'ArrowRight', code: 'ArrowRight', altKey: true });
     await screen.findByRole('heading', { name: 'Script' });
   });
 
-  it("the mouse's back and forward buttons do what the header buttons do", async () => {
+  it("the mouse's back and forward buttons do what the jump-menu commands do", async () => {
     renderApp();
     await screen.findByRole('heading', { level: 1, name: 'Production' });
     fireEvent.click(screen.getAllByRole('button', { name: 'Script' })[0]);
@@ -1229,7 +1263,7 @@ describe('App Back and Forward', () => {
 
     fireEvent.mouseUp(document, { button: 3 });
     await screen.findByRole('heading', { level: 1, name: 'Production' });
-    await waitFor(() => expect(screen.getByRole('button', { name: 'Forward' }).getAttribute('aria-disabled')).toBeNull());
+    await waitFor(async () => expect(await jumpRowIsOff('Forward')).toBe(false));
 
     fireEvent.mouseUp(document, { button: 4 });
     await screen.findByRole('heading', { name: 'Script' });
@@ -1241,9 +1275,9 @@ describe('App Back and Forward', () => {
     await screen.findByRole('heading', { level: 1, name: 'Production' });
     const check = await openKeptPanel('ps.coverage', 'Recording check');
     fireEvent.change(await within(check).findByRole('textbox', { name: 'Longest run of missing words allowed' }), { target: { value: '5' } });
-    expect(screen.getByRole('button', { name: 'Back' }).getAttribute('aria-disabled')).toBeNull();
+    expect(await jumpRowIsOff('Back')).toBe(false);
 
-    fireEvent.click(screen.getByRole('button', { name: 'Back' }));
+    await runFromJump('Back');
     expect(await screen.findByText('Save or discard changes before leaving Settings?')).toBeTruthy();
     fireEvent.click(screen.getByRole('button', { name: 'Save & continue' }));
 
@@ -1275,7 +1309,7 @@ describe('App Back and Forward', () => {
     fireEvent.click(within(await linkChapterOne()).getByRole('link', { name: 'Open in Proof' }));
     await startRunOnChapterOne();
 
-    fireEvent.click(screen.getByRole('button', { name: 'Back' }));
+    await runFromJump('Back');
     await screen.findByRole('heading', { level: 1, name: 'Production' });
     expect(transcriptReset).toHaveBeenCalled();
   });
@@ -1520,10 +1554,11 @@ describe('App shell mounts', () => {
     expect(screen.queryByRole('menu')).toBeNull();
   });
 
-  it('history-button-and-key-open-the-panel: the button and Mod+Shift+H open it over a live journal', async () => {
+  it('history-command-and-key-open-the-panel: the jump-menu command and Mod+Shift+H open it over a live journal, and the header has no History button', async () => {
     renderApp();
     await screen.findByRole('heading', { level: 1, name: 'Production' });
-    fireEvent.click(screen.getByRole('button', { name: 'History' }));
+    expect(within(screen.getAllByRole('banner')[0]!).queryByRole('button', { name: 'History' })).toBeNull();
+    await runFromJump('Open the undo history');
     const panel = await screen.findByRole('dialog', { name: 'Undo history' });
     expect(within(panel).getByText('Nothing to undo yet.')).toBeTruthy();
     await waitFor(() => expect(panel.contains(document.activeElement)).toBe(true));
@@ -1534,11 +1569,68 @@ describe('App shell mounts', () => {
     await screen.findByRole('dialog', { name: 'Undo history' });
   });
 
-  it('header-undo-follows-the-journal: Undo is off with the reason while the journal is empty', async () => {
+  it('zoom-chip: no chip at 100%; Ctrl+= draws it, clicking it opens the jump menu at the Zoom commands, Ctrl+0 takes it away', async () => {
     renderApp();
     await screen.findByRole('heading', { level: 1, name: 'Production' });
-    const undo = screen.getByRole('button', { name: 'Undo' });
+    const header = screen.getAllByRole('banner')[0]!;
+    expect(within(header).queryByRole('button', { name: /^Zoom \d+%/ })).toBeNull();
+    // The steps and the readout button are gone from the header; the keys still zoom.
+    expect(within(header).queryByRole('button', { name: 'Zoom in' })).toBeNull();
+    fireEvent.keyDown(document.body, { key: '=', code: 'Equal', ctrlKey: true });
+    const chip = await within(header).findByRole('button', { name: /^Zoom \d+%: change in the jump menu$/ });
+    expect(chip.textContent).not.toBe('100%');
+    fireEvent.click(chip);
+    await screen.findByRole('combobox', { name: 'Jump menu' });
+    expect((await screen.findAllByRole('option')).map((option) => option.textContent)).toEqual([
+      expect.stringContaining('All commands'),
+      expect.stringMatching(/^Zoom in/),
+      expect.stringMatching(/^Zoom out/),
+      expect.stringMatching(/^Reset zoom to 100%/),
+    ]);
+    // Reset is on now (zoom is off 100%) and runs from here.
+    expect(screen.getByRole('option', { name: /^Reset zoom to 100%/ }).getAttribute('aria-disabled')).toBeNull();
+    fireEvent.click(screen.getByRole('option', { name: /^Reset zoom to 100%/ }));
+    await waitFor(() => expect(within(header).queryByRole('button', { name: /^Zoom \d+%/ })).toBeNull());
+  });
+
+  it('zoom-commands-in-the-jump-menu: Zoom in, out and reset run from the menu, and reset is off at 100%', async () => {
+    renderApp();
+    await screen.findByRole('heading', { level: 1, name: 'Production' });
+    const header = screen.getAllByRole('banner')[0]!;
+    expect(await jumpRowIsOff('Reset zoom to 100%')).toBe(true);
+    await runFromJump('Zoom in');
+    await within(header).findByRole('button', { name: /^Zoom \d+%/ });
+    await runFromJump('Zoom out');
+    await waitFor(() => expect(within(header).queryByRole('button', { name: /^Zoom \d+%/ })).toBeNull());
+  });
+
+  it('project-switch: the project name opens the picker over the open project, Back returns, and the jump menu has the same command', async () => {
+    renderApp();
+    await screen.findByRole('heading', { level: 1, name: 'Production' });
+    const header = screen.getAllByRole('banner')[0]!;
+    fireEvent.click(within(header).getByRole('button', { name: /, switch project$/ }));
+    await screen.findByRole('heading', { name: 'Choose your project' });
+    fireEvent.click(screen.getByRole('button', { name: /^Back to / }));
+    await screen.findByRole('heading', { level: 1, name: 'Production' });
+    await runFromJump('Switch project…');
+    await screen.findByRole('heading', { name: 'Choose your project' });
+  });
+
+  it('project-switch: opening a recent project from the picker closes it', async () => {
+    renderApp();
+    await screen.findByRole('heading', { level: 1, name: 'Production' });
+    fireEvent.click(within(screen.getAllByRole('banner')[0]!).getByRole('button', { name: /, switch project$/ }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Open Voltage and the Undercroft' }));
+    await screen.findByRole('heading', { level: 1, name: 'Production' });
+    expect(screen.queryByRole('heading', { name: 'Choose your project' })).toBeNull();
+  });
+
+  it('jump-undo-follows-the-journal: Undo is off with the reason while the journal is empty', async () => {
+    renderApp();
+    await screen.findByRole('heading', { level: 1, name: 'Production' });
+    const undo = await jumpRow('Undo the last change');
     expect(undo.getAttribute('aria-disabled')).toBe('true');
+    expect(undo.textContent).toContain('Nothing to undo');
   });
 
   const renderWithJournal = (journal: ReturnType<typeof createJournal>) =>
@@ -1553,19 +1645,19 @@ describe('App shell mounts', () => {
     );
   const newJournal = () => createJournal({ dawName: () => 'REAPER', dawLastAction: async () => 'unknown' });
 
-  it('header-undo-follows-the-journal: Undo undoes the newest entry and says what it undid', async () => {
+  it('jump-undo-follows-the-journal: Undo undoes the newest entry and says what it undid', async () => {
     const journal = newJournal();
     const undo = vi.fn(async () => ({ ok: true as const, value: 1 }));
     await journal.act({ label: 'Added a bookmark', touches: ['bookmarks'], run: async () => ({ ok: true, value: 1 }), undo });
     renderWithJournal(journal);
     await screen.findByRole('heading', { level: 1, name: 'Production' });
-    await waitFor(() => expect(screen.getByRole('button', { name: 'Undo' }).getAttribute('aria-disabled')).toBeNull());
-    fireEvent.click(screen.getByRole('button', { name: 'Undo' }));
+    await waitFor(async () => expect(await jumpRowIsOff('Undo the last change')).toBe(false));
+    await runFromJump('Undo the last change');
     await waitFor(() => expect(undo).toHaveBeenCalledTimes(1));
     expect(await screen.findByText('Undid Added a bookmark')).toBeTruthy();
   });
 
-  it('header-undo-follows-the-journal: a refusal shows the journal sentence as a toast', async () => {
+  it('jump-undo-follows-the-journal: a refusal shows the journal sentence as a toast', async () => {
     const journal = newJournal();
     await journal.act({
       label: 'Renamed a chapter',
@@ -1575,8 +1667,8 @@ describe('App shell mounts', () => {
     });
     renderWithJournal(journal);
     await screen.findByRole('heading', { level: 1, name: 'Production' });
-    await waitFor(() => expect(screen.getByRole('button', { name: 'Undo' }).getAttribute('aria-disabled')).toBeNull());
-    fireEvent.click(screen.getByRole('button', { name: 'Undo' }));
+    await waitFor(async () => expect(await jumpRowIsOff('Undo the last change')).toBe(false));
+    await runFromJump('Undo the last change');
     expect(await screen.findByText('Renaming cannot be undone here.')).toBeTruthy();
   });
 
@@ -1673,13 +1765,13 @@ describe('App shell mounts', () => {
     await screen.findByRole('heading', { level: 1, name: 'Production' });
     fireEvent.click(screen.getAllByRole('button', { name: 'Script' })[0]);
     await screen.findByRole('heading', { name: 'Script' });
-    await waitFor(() => expect(screen.getByRole('button', { name: 'Back' }).getAttribute('aria-disabled')).toBeNull());
+    await waitFor(async () => expect(await jumpRowIsOff('Back')).toBe(false));
     journal.setLeaveGuard(() => ({
       ask: { title: 'Stop recording?', body: 'A take is recording.', confirmLabel: 'Stop and leave', cancelLabel: 'Keep recording' },
     }));
 
     // The guard's own name for staying reaches the question.
-    fireEvent.click(screen.getByRole('button', { name: 'Back' }));
+    await runFromJump('Back');
     fireEvent.click(within(await screen.findByRole('alertdialog', { name: /Stop recording/ })).getByRole('button', { name: 'Keep recording' }));
     await waitFor(() => expect(screen.queryByRole('alertdialog')).toBeNull());
     expect(screen.getByRole('heading', { name: 'Script' })).toBeTruthy();
@@ -1687,9 +1779,9 @@ describe('App shell mounts', () => {
     fireEvent.keyDown(document, { key: 'ArrowLeft', code: 'ArrowLeft', altKey: true });
     fireEvent.click(within(await screen.findByRole('alertdialog', { name: /Stop recording/ })).getByRole('button', { name: 'Stop and leave' }));
     await screen.findByRole('heading', { level: 1, name: 'Production' });
-    await waitFor(() => expect(screen.getByRole('button', { name: 'Forward' }).getAttribute('aria-disabled')).toBeNull());
+    await waitFor(async () => expect(await jumpRowIsOff('Forward')).toBe(false));
 
-    fireEvent.click(screen.getByRole('button', { name: 'Forward' }));
+    await runFromJump('Forward');
     expect(await screen.findByRole('alertdialog', { name: /Stop recording/ })).toBeTruthy();
     fireEvent.click(within(screen.getByRole('alertdialog')).getByRole('button', { name: 'Keep recording' }));
     await waitFor(() => expect(screen.queryByRole('alertdialog')).toBeNull());
