@@ -2,5 +2,13 @@
   "contractedAmountIncluded": false,
   "folder": "narration-utils/production/reports",
   "htmlFile": "production-status-20260921-100000Z.html",
+  "include": {
+    "delivery": true,
+    "milestones": true,
+    "money": false,
+    "pickups": true,
+    "stages": true,
+    "words": true
+  },
   "jsonFile": "production-status-20260921-100000Z.json"
 }

@@ -127,6 +127,13 @@
   },
   {
     "page": "production",
+    "state": "report-dialog",
+    "viewport": "desktop",
+    "docName": "production-report-dialog",
+    "caption": "Production - Export status report: the Include checkboxes, format and path beside the live preview"
+  },
+  {
+    "page": "production",
     "state": "recording-check-options",
     "viewport": "desktop",
     "docName": "production-recording-check-options",
