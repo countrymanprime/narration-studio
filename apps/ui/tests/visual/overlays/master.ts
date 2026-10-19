@@ -24,10 +24,11 @@ const afterMeasuring = (overlay: OverlayCase): OverlayCase => ({
 });
 
 /** A hint on an icon button: the button is scrolled into view and the pointer moved off it first, so the hint always re-arms (a pointer already resting there shows nothing new). */
-const hint = (caseName: string, button: string): OverlayCase =>
+const hint = (caseName: string, button: string, viewports?: OverlayCase['viewports']): OverlayCase =>
   afterMeasuring({
     name: caseName,
     kind: 'tooltip',
+    viewports,
     // Not over scrolled content: in the guard's scroll passes the hint did not show on CI and sometimes locally; the cause was not found, so
     // that pass is not covered (listed in the state matrix).
     scrolled: false,
@@ -93,5 +94,7 @@ export const masterCases: OverlayCase[] = [
   },
   afterMeasuring(clickCase('chapter picker', 'menu', picker)),
   hint('hint on Play the quietest 5 s', 'Play the quietest 5 s'),
-  hint('hint on Check the files again', 'Check the files again'),
+  // Not at 320x300: the icon is in the table panel's header at the top of the page, and the guard only scrolls it to the window's top edge, under the
+  // shell's top bar, so the pointer never reaches it (a narrator scrolls further). Listed as not covered; the other widths are.
+  hint('hint on Check the files again', 'Check the files again', ({ height }) => height >= 500),
 ];
