@@ -59,14 +59,68 @@ describe('Master & QC page body', () => {
     expect(screen.getByRole('row', { name: /Chapter 2 — The Pool of Tears/ }).getAttribute('aria-selected')).toBe('true');
   });
 
-  it('a chapter with no file yet reads Not mastered yet', async () => {
+  it('a chapter with no file yet says no file was measured for it', async () => {
     const user = userEvent.setup();
     withChapters([passing('Chapter 01.wav'), failingTwo('Chapter 04.wav')]);
     await waitFor(() => expect(bar().getAttribute('aria-label')).toContain('Chapter 4'));
     await user.click(screen.getByRole('button', { name: 'Previous chapter' }));
     await user.click(screen.getByRole('button', { name: 'Previous chapter' }));
     expect(await screen.findByRole('heading', { name: 'Chapter 2 — The Pool of Tears · Not mastered' })).toBeTruthy();
-    expect(screen.getByText('Not mastered yet.')).toBeTruthy();
+    expect(screen.getByText('No file measured yet.')).toBeTruthy();
+  });
+
+  it('has a row for every chapter, the credits and the retail sample before anything is measured, each Waiting', async () => {
+    withChapters([]);
+    const grid = await screen.findByRole('grid', { name: 'Per-file checks' });
+    const rows = await waitFor(() => {
+      const found = grid.querySelectorAll('tbody tr');
+      expect(found.length).toBe(CHAPTERS.length + CREDITS_FILES + 1);
+      return [...found];
+    });
+    expect(rows.every((tr) => within(tr as HTMLElement).getByText('Waiting'))).toBe(true);
+    expect(within(rows.at(-1) as HTMLElement).getByText('Retail sample')).toBeTruthy();
+    expect(within(rows[0] as HTMLElement).getByText(/No file measured yet · not mastered/)).toBeTruthy();
+  });
+
+  it('a chapter with open pickups says how many it waits on, from the Pickups page list, and counts only the open ones', async () => {
+    const pickup = {
+      id: 'p',
+      chapterId: 'chapter-2',
+      paragraphId: null,
+      paragraph: null,
+      time: 1,
+      at: 1,
+      type: 'misread',
+      script: '',
+      context: '',
+      source: 'speech',
+      confidence: null,
+      confReason: '',
+      included: true,
+      done: false,
+      waiting: false,
+    } as const;
+    const list = [pickup, { ...pickup, id: 'q' }, { ...pickup, id: 'r' }, { ...pickup, id: 's', done: true }, { ...pickup, id: 't', chapterId: 'chapter-1' }];
+    const api = apiOf(jobOf([]), acx, { manuscriptChapters: async () => CHAPTERS, pickupsList: async () => ({ pickups: list, leftOut: [] }) });
+    render(
+      <PageHost api={api}>
+        <MasterPage {...PROPS} onOpenDelivery={vi.fn()} openSettings={vi.fn()} />
+      </PageHost>,
+    );
+    const two = await screen.findByRole('row', { name: /Chapter 2 — The Pool of Tears/ });
+    expect(within(two).getByText('Waiting on 3 pickups · not mastered')).toBeTruthy();
+    expect(within(screen.getByRole('row', { name: /^Chapter 1 / })).getByText('Waiting on 1 pickup · not mastered')).toBeTruthy();
+  });
+
+  it('draws the title, the chapter bar, the profile as a pill and one refresh icon in the table panel', async () => {
+    const onOpenDelivery = vi.fn();
+    withChapters(TWO_FAIL, { onOpenDelivery });
+    const panel = (await screen.findByRole('grid', { name: 'Per-file checks' })).closest('section')!;
+    expect(within(panel).getByRole('heading', { level: 1, name: 'Master & QC' })).toBeTruthy();
+    await userEvent.click(within(panel).getByRole('button', { name: 'ACX' }));
+    expect(onOpenDelivery).toHaveBeenCalled();
+    expect(screen.getAllByRole('button', { name: 'Check the files again' })).toHaveLength(1);
+    expect(within(panel).getByRole('button', { name: 'Check the files again' })).toBeTruthy();
   });
 
   it('opens on the chapter a link names by its id when the chapter has a file', async () => {

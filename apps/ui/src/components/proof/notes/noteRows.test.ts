@@ -143,3 +143,14 @@ describe('by-time-lists-chapters-in-book-order', () => {
     expect(inBookOrder(hostOrder, ['ch1', 'ch2']).map((f) => f.id)).toEqual(['ch2-50', 'ch2-5', 'gone-1']);
   });
 });
+
+describe('the headline cell', () => {
+  it('words the note and names the words in question, only when the headline quotes them', () => {
+    const base = notesFixture()[0];
+    const read = noteRow({ ...base, manuscript: { ...base.manuscript, expected: 'are', recorded: 'our' } });
+    expect(read.headline).toBe('“are” read as “our”');
+    expect(read.marked).toBe('are');
+    const bare = noteRow({ ...base, manuscript: undefined });
+    expect(bare.marked).toBe('');
+  });
+});

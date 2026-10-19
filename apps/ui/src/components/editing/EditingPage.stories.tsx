@@ -2,6 +2,7 @@ import type { Meta, StoryObj } from '@storybook/react-vite';
 import { useState } from 'react';
 import { expect, fireEvent, userEvent, waitFor, within } from 'storybook/test';
 import type { DawSetupId } from '../../fixtures/daw';
+import { withBackupSettings } from './backups/backupsFixtures';
 import { EditingPage, type EditingPageProps } from './EditingPage';
 import { dawFor, EditingHost, newJournal, noAudioApi, pageApi } from './page/testPage';
 
@@ -10,7 +11,11 @@ import { dawFor, EditingHost, newJournal, noAudioApi, pageApi } from './page/tes
 type Args = Omit<EditingPageProps, 'hasManuscript'> & { setup: DawSetupId; heard: boolean; hasManuscript: boolean; noAudio?: 'unlinked' | 'missing' | 'empty' };
 
 function Page({ setup, heard, noAudio, ...props }: Args) {
-  const [host] = useState(() => ({ api: pageApi({ heard, ...(noAudio ? noAudioApi(noAudio) : {}) }), daw: dawFor(setup), journal: newJournal() }));
+  const [host] = useState(() => ({
+    api: withBackupSettings(pageApi({ heard, ...(noAudio ? noAudioApi(noAudio) : {}) })),
+    daw: dawFor(setup),
+    journal: newJournal(),
+  }));
   return (
     <div className="h-[calc(100vh-2rem)]">
       <EditingHost {...host}>

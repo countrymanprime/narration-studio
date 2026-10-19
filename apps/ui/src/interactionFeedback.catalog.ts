@@ -90,8 +90,6 @@ export const SILENT_CATCHES: Record<string, string> = {
     'onRemoveFromRecording already shows the failure (its own toast, in useChapterTools) before rethrowing; this catch only stops that rejection from going unhandled and skips closing the confirm, so the narrator can retry.',
   'src/api/wailsClient.ts#1': 'The diagnostic report itself: a report that fails must not raise a second error over the one being reported.',
   'src/api/wailsClient.ts#2': 'The host binding is missing (not running inside the desktop app), so there is nothing to report to.',
-  'src/components/booth/page/useBoothData.ts#5':
-    'The Story Bible types only colour the names and speakers: when none can be read, every entry keeps the fallback colour and the Booth still opens.',
   'src/App.tsx#1':
     "The header's running-timer chip on first load: an unreadable overview just leaves the chip hidden until the Production home reads one and says why there.",
   'src/App.tsx#2': 'A diagnostic report while showing the startup error; it must not throw over it.',
@@ -133,8 +131,6 @@ export const SILENT_CATCHES: Record<string, string> = {
   'src/App.tsx#8':
     'Best effort when leaving a Proof chapter view with a compare run through the nav: a reset that fails leaves the finished results in place, which is harmless.',
   'src/App.tsx#9': 'Best effort when leaving a Proof chapter view with a compare run through guarded Back/Forward: same as the nav, harmless either way.',
-  'src/components/production/ManuscriptImport.tsx#1':
-    'Only pre-fills the "Build the Story Bible after import" checkbox from Settings; it keeps its on-by-default local state without it, and the narrator can still change it per import.',
   'src/components/proof/CompareRun.tsx#1': 'Reads the last model and chunk choice; the defaults stay usable and Settings reports a real error.',
   'src/components/proof/CompareRun.tsx#2':
     'The "may have changed since comparison" background check: comparing a successful REAPER answer against the baseline is best-effort - a failure just leaves the note as it was, tried again next low-frequency poll.',
@@ -222,6 +218,7 @@ export const SILENT_CATCHES: Record<string, string> = {
   'src/components/booth/page/useBoothData.ts#3': 'The Story Bible entries only tint names and fill the side panel; without them the chapter reads unmarked.',
   'src/components/booth/page/useBoothData.ts#4':
     'The Story Bible types only colour the names and speakers; without them every entry keeps the fallback colour and the page still opens.',
+  'src/components/booth/page/useBoothData.ts#5': 'The dialogue cues only add speaker chips; without them every phrase reads as narration.',
   'src/components/booth/page/useBoothPage.ts#1':
     'The resume lookup only offers where the recording ends; a failure offers nothing and Record still starts at the end of the last item.',
 };
