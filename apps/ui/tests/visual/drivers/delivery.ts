@@ -43,7 +43,14 @@ export const deliveryDrivers: Record<string, Driver> = {
     await page.getByText(/^Chapter 1 — Down the Rabbit-Hole: sample rate 48 kHz \(limit 44\.1 kHz\)\.$/).waitFor();
   },
   'many-chapters': async (page) => {
-    await openDelivery(page, '?mockBooth=many-chapters');
+    // Open Delivery's own address instead of reloading at `/` and clicking through the rail: Production, the landing page,
+    // lists every chapter with a tooltip each (about 40,000 window listeners at 5002 chapters, a quadratic cost), and a main
+    // thread busy for a minute starved the rail click and, on a loaded shard, axe's evaluate until the 90 s test timeout.
+    await page.goto('/delivery?mockBooth=many-chapters');
+    await settlePage(page);
+    await panelTitled(page, 'Before you build')
+      .getByText(/passing/)
+      .waitFor();
     await page.getByRole('button', { name: /^Show the other \d+ chapters$/ }).waitFor();
   },
   'custom-profile': async (page) => {
