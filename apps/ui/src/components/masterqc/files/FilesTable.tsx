@@ -1,12 +1,14 @@
-import { useMemo } from 'react';
+import { useMemo, type ReactNode } from 'react';
 import { useContextProvider, type ContextProvider } from '../../../registries/context';
 import type { DeliveryProfile, MeasureFileResult } from '../../../types';
+import { IconButton } from '../../primitives/IconButton';
 import { Panel } from '../../primitives/Panel';
+import { PANEL_HEADER_CLASS } from '../../primitives/panelStyles';
 import { StatusBadge } from '../../primitives/StatusBadge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../primitives/Table';
 import type { FileActions } from './FileActions';
-import { buildRows, type Cell, type FileRow } from './rows';
-import { useDawGates } from './useDawGates';
+import { buildChapterRows, buildRows, type Cell, type ChapterSlot, type FileRow } from './rows';
+import { useDawGates, type Gate } from './useDawGates';
 import { useMasterSelection } from './useMasterSelection';
 
 /** The file a right-click landed on: the marker in the row's first cell. */
@@ -34,6 +36,24 @@ function Result({ row }: { row: FileRow }) {
 }
 
 /**
+ * The table panel's header row (the mock's `.ph`): `heading` (the page title, the chapter bar and the profile pill) at the left; at the
+ * right the one refresh icon, "Check the files again". The page's run controls (`controls`, which the mock lacks) sit in a strip under it.
+ */
+function FilesHeader({ heading, controls, actions }: { heading?: ReactNode; controls?: ReactNode; actions: Pick<FileActions, 'onRecheck'> }) {
+  const gates = useDawGates();
+  const gate: Gate = gates.recheck;
+  return (
+    <>
+      <div className={PANEL_HEADER_CLASS}>
+        <div className="flex min-w-0 flex-1 flex-wrap items-center gap-x-3 gap-y-2">{heading}</div>
+        <IconButton action="retry" label="Check the files again" disabledReason={gate.ok ? undefined : gate.reason} onClick={actions.onRecheck} />
+      </div>
+      {controls && <div className="flex flex-wrap items-center justify-end gap-2 border-b border-[var(--border)] px-4 py-2">{controls}</div>}
+    </>
+  );
+}
+
+/**
  * Master & QC's per-file checks (the Studio Next mock's Master page): one row per file, each level red when the profile's rule on
  * it was not met, the Result column in words, and a row with no measurements saying what it waits on ("<reason> · not mastered").
  * The caller owns which file is selected (it is the shared chapter). Right-click on a row offers its checks through the context
@@ -42,17 +62,33 @@ function Result({ row }: { row: FileRow }) {
 export function FilesTable({
   files,
   profile,
+  slots,
+  openPickups,
+  heading,
+  controls,
   selected,
   onSelect,
   actions,
 }: {
   files: readonly MeasureFileResult[];
-  profile: DeliveryProfile;
+  /** Without one (still being read) the panel holds its header only. */
+  profile: DeliveryProfile | undefined;
+  /** The chapters, credits and retail sample that each get a row; without them there is a row per file only. */
+  slots?: readonly ChapterSlot[];
+  /** Open pickups by chapter id (the Pickups page's list); a row with no file says how many it waits on. */
+  openPickups?: Readonly<Record<string, number>>;
+  /** The page title, chapter bar and profile pill, drawn in the panel's header. */
+  heading?: ReactNode;
+  /** The page's run controls, drawn beside the refresh icon. */
+  controls?: ReactNode;
   selected: string | undefined;
   onSelect: (fileId: string) => void;
   actions: FileActions;
 }) {
-  const rows = useMemo(() => buildRows(files, profile), [files, profile]);
+  const rows = useMemo(() => {
+    if (!profile) return [];
+    return slots ? buildChapterRows(files, profile, slots, openPickups) : buildRows(files, profile);
+  }, [files, profile, slots, openPickups]);
   const { current, bind, onKeyDown } = useMasterSelection({ rows, selected, onSelect });
   const gates = useDawGates();
 
@@ -67,13 +103,19 @@ export function FilesTable({
           {
             key: 'play',
             label: 'Play the quietest 5 s',
-            unavailable: row.waiting ? 'This file is not mastered yet.' : gates.play.ok ? undefined : gates.play.reason,
+            unavailable: row.noFile
+              ? 'This chapter has no file yet.'
+              : row.waiting
+                ? 'This file is not mastered yet.'
+                : gates.play.ok
+                  ? undefined
+                  : gates.play.reason,
             onSelect: () => actions.onPlayQuietest(row.id),
           },
           {
             key: 'open',
             label: `Open in ${gates.dawName}`,
-            unavailable: gates.open.ok ? undefined : gates.open.reason,
+            unavailable: row.noFile ? 'This chapter has no file yet.' : gates.open.ok ? undefined : gates.open.reason,
             onSelect: () => actions.onOpenInDaw(row.id),
           },
           { key: 'recheck', label: 'Check the files again', unavailable: gates.recheck.ok ? undefined : gates.recheck.reason, onSelect: actions.onRecheck },
@@ -86,27 +128,30 @@ export function FilesTable({
 
   return (
     <Panel flush label="Per-file checks">
+      <FilesHeader heading={heading} controls={controls} actions={actions} />
       {/* The keys sit on the wrapper: a row's own Enter and Space come from `TableRow`, the arrows from here. */}
-      <div ref={bind} onKeyDown={onKeyDown} className="overflow-x-auto">
-        <Table label="Per-file checks">
-          <TableHead>
-            <TableRow>
-              <TableHeader>File</TableHeader>
-              <TableHeader align="right">Length</TableHeader>
-              <TableHeader align="right">RMS</TableHeader>
-              <TableHeader align="right">Peak</TableHeader>
-              <TableHeader align="right">Noise floor</TableHeader>
-              <TableHeader align="right">Head / tail</TableHeader>
-              <TableHeader align="right">Result</TableHeader>
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {rows.map((row) => (
-              <FileTableRow key={row.id} row={row} selected={row.id === current} onSelect={onSelect} />
-            ))}
-          </TableBody>
-        </Table>
-      </div>
+      {profile && (
+        <div ref={bind} onKeyDown={onKeyDown} className="overflow-x-auto">
+          <Table label="Per-file checks">
+            <TableHead>
+              <TableRow>
+                <TableHeader>File</TableHeader>
+                <TableHeader align="right">Length</TableHeader>
+                <TableHeader align="right">RMS</TableHeader>
+                <TableHeader align="right">Peak</TableHeader>
+                <TableHeader align="right">Noise floor</TableHeader>
+                <TableHeader align="right">Head / tail</TableHeader>
+                <TableHeader align="right">Result</TableHeader>
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {rows.map((row) => (
+                <FileTableRow key={row.id} row={row} selected={row.id === current} onSelect={onSelect} />
+              ))}
+            </TableBody>
+          </Table>
+        </div>
+      )}
     </Panel>
   );
 }
