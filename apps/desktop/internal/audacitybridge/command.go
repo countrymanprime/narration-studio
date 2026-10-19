@@ -36,6 +36,31 @@ func NewCommand(name string) *Command {
 	return c
 }
 
+// newMacroCommand starts the command that runs a saved macro. Audacity 3.7.7 has no ApplyMacro command: it makes each macro a menu
+// command, Macro_<name>, scripted like any other menu command (no parameters), and takes the spaces out of the name to make the id
+// (the file "Narration Spaced Name.txt" is Macro_NarrationSpacedName; measured, tests/audacity3/real/edits A3-T20). Only letters, digits,
+// hyphens, underscores and spaces are known to survive, so a name with another character is refused rather than guessed at.
+func newMacroCommand(name string) *Command {
+	var id strings.Builder
+	for _, r := range name {
+		switch {
+		case r == ' ':
+		case (r >= 'A' && r <= 'Z') || (r >= 'a' && r <= 'z') || (r >= '0' && r <= '9') || r == '-' || r == '_':
+			id.WriteRune(r)
+		default:
+			return &Command{name: "Macro_", err: fmt.Errorf("%w: macro name %q (Audacity's id for it is only known for letters, digits, hyphens, underscores and spaces)", ErrInvalidValue, name)}
+		}
+	}
+	if id.Len() == 0 || id.Len() > 64 {
+		return &Command{name: "Macro_", err: fmt.Errorf("%w: macro name %q", ErrInvalidValue, name)}
+	}
+	return &Command{name: "Macro_" + id.String()}
+}
+
+// CheckMacroName is nil when ApplyMacro can run a macro of that name, so a caller refuses a name before it sends the first command of
+// an edit, not at the macro's step in the middle of it.
+func CheckMacroName(name string) error { return newMacroCommand(name).Err() }
+
 // Name is the command's name.
 func (c *Command) Name() string { return c.name }
 
