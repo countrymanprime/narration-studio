@@ -19,7 +19,7 @@ import (
 
 // Repository is the only place the app looks for a newer version. It is compiled in on purpose: no setting, argument or response
 // can point the updater somewhere else.
-const Repository = "countrymanprime/narration-utils"
+const Repository = "countrymanprime/narration-studio"
 
 // APIBase is GitHub's REST API. A test points a Checker at a fake server instead.
 const APIBase = "https://api.github.com"

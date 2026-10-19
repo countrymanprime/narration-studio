@@ -95,7 +95,7 @@ def test_the_real_tree_builds_strictly_with_zero_dead_internal_links(tmp_path):
     assert (site / "guides" / "using-the-app" / "index.html").is_file(), "the guide index is the README.md of its folder"
     assert (REPO_ROOT / "docs" / "guides" / "using-the-app" / "README.md").is_file()
     # The atlas page links the Storybook that pages.yml publishes beside the site, so that one link is checked there, not here.
-    problems = check_site.check_site(site, base="/narration-utils/")
+    problems = check_site.check_site(site, base="/narration-studio/")
     assert problems == []
 
 

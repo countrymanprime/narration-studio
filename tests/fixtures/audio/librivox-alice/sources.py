@@ -21,7 +21,7 @@ DEFAULT_DIR = Path.home() / ".cache" / "narration-utils" / "librivox-alice"
 ATTEMPTS = 3
 RETRY_SECONDS = 5
 TIMEOUT_SECONDS = 120
-USER_AGENT = "narration-utils test fixtures (https://github.com/countrymanprime/narration-utils)"
+USER_AGENT = "narration-utils test fixtures (https://github.com/countrymanprime/narration-studio)"
 
 
 def load_sources(root: Path = HERE) -> dict[str, dict]:

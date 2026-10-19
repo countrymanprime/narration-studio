@@ -393,7 +393,7 @@ func TestTheRedirectPolicyFollowsGitHubOverHTTPSAndNothingElse(t *testing.T) {
 		return r
 	}
 	allowed := []string{
-		"https://github.com/countrymanprime/narration-utils/releases/download/v1.0.0/x.zip",
+		"https://github.com/countrymanprime/narration-studio/releases/download/v1.0.0/x.zip",
 		"https://objects.githubusercontent.com/github-production-release-asset/1",
 		"https://release-assets.githubusercontent.com/github-production-release-asset/1",
 		"https://github-releases.githubusercontent.com/1/2",

@@ -8,7 +8,7 @@ import (
 	"testing"
 )
 
-const testRepository = "countrymanprime/narration-utils"
+const testRepository = "countrymanprime/narration-studio"
 
 var windows = Platform{Key: "windows-x64", Extension: ".zip", SelfReplace: true}
 
@@ -97,10 +97,10 @@ func TestTheURLsAreBuiltFromTheRepositoryAndNeverTakenFromTheJSON(t *testing.T) 
 		t.Fatalf("releases %v err %v", releases, err)
 	}
 	got := releases[0]
-	if got.NotesURL != "https://github.com/countrymanprime/narration-utils/releases/tag/v0.2.7" {
+	if got.NotesURL != "https://github.com/countrymanprime/narration-studio/releases/tag/v0.2.7" {
 		t.Fatalf("notes URL = %s", got.NotesURL)
 	}
-	if got.Asset.URL != "https://github.com/countrymanprime/narration-utils/releases/download/v0.2.7/narration-utils-0.2.7-windows-x64.zip" {
+	if got.Asset.URL != "https://github.com/countrymanprime/narration-studio/releases/download/v0.2.7/narration-utils-0.2.7-windows-x64.zip" {
 		t.Fatalf("asset URL = %s", got.Asset.URL)
 	}
 	if got.Checksum.URL != got.Asset.URL+".sha256" {

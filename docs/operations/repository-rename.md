@@ -1,8 +1,7 @@
 # The repository was renamed
 
-The GitHub repository `countrymanprime/narration-utils` is being renamed to `countrymanprime/narration-studio`. The owner
-confirms the final name here when the rename is done: **new name: `countrymanprime/narration-studio` (expected, not yet
-confirmed)**. Until a line here says "renamed on <date>", the old name is still the live one.
+The GitHub repository `countrymanprime/narration-utils` was **renamed on 2026-10-19**. The new name, `countrymanprime/narration-studio`,
+is confirmed. Use it in everything you write; the old name works only through GitHub's redirect.
 
 If git, the GitHub tools or a session launch cannot reach the repository, start with [If a session cannot connect](#if-a-session-cannot-connect).
 
@@ -45,7 +44,7 @@ with made-up results.
 and Claude environments that still hold the old URL are owner settings, not files: list them with `list_triggers` and fix the prompt
 with `update_trigger`, or report them on [#992](https://github.com/countrymanprime/narration-utils/issues/992) for the owner.
 
-Not checked yet: whether the cloud sessions' git proxy follows a rename, and whether the Claude GitHub App needs the repository
+Not recorded yet: whether the Claude GitHub App needs the repository
 re-selected. The owner records the result under [After the rename](#after-the-rename).
 
 ## What names the repository
@@ -78,4 +77,28 @@ names `narration-utils*`, and the `narration-utils.exe` file name.
 
 ## After the rename
 
-Record here what you found: whether `git` and the tools followed the redirect, which settings needed a manual fix, and the date.
+Found on 2026-10-19:
+
+- **Git, the MCP tools and `gh`** follow the redirect only for sessions that were scoped to the old name when they started and then
+  added the new repository with `add_repo`. A session started with the old name selected cannot use the new one until it does.
+- **Routine prompts** that held the old `source_url` were updated by the coordinator.
+- **This repository** now names itself `countrymanprime/narration-studio` in the updater constant, the verify-download commands, the
+  `gh api` and `--repo` commands, the scripts, the issue templates, the agent-train `source_url` and the Pages name and URLs. The
+  Pages site is still paused; only its names changed. The Go module path, the Nx project names and `narration-utils.exe` keep the old
+  name on purpose.
+- **About 900 documentation links** to `github.com/countrymanprime/narration-utils/...` were left as they are. They work through the
+  redirect, and rewriting them is churn without a benefit.
+
+### Builds already installed with the old name
+
+The updater asks `api.github.com/repos/countrymanprime/narration-utils/releases` and refuses redirects, so every build released
+before the rename gets a `301` there. It shows "GitHub says the repository has moved, so this version of the app can no longer check
+for updates." (`TestARepositoryThatMovedIsSaidPlainly`) and never sees a release. A new release does not change that: the old build
+decides where it looks, and GitHub redirects the old API path for as long as nobody creates a repository with the old name.
+
+The fix for those users is a manual download from the [releases page](https://github.com/countrymanprime/narration-studio/releases),
+which is the supported path in the [README](../../README.md). A change to the updater rule could let a new build follow this one
+redirect, but it would not reach the builds that already hold the old rule, and the rule is a deliberate trust limit (the
+[threat model](../architecture/threat-model.md) row for the update). Not done here; if the owner wants it, it needs its own
+decision: follow a `301` only when it stays on `api.github.com` over HTTPS and points to `/repositories/<id>/releases`, once, and
+write the new name down.
