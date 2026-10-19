@@ -13,7 +13,7 @@ export interface WordNote {
 }
 
 /** A note the narrator left on a line (a mark of a type that does not ask, with text): shown under the line as "name: text". */
-export interface BoothNote {
+interface BoothNote {
   id: string;
   name: string;
   text: string;
@@ -32,7 +32,7 @@ const NONE: ParagraphNotes = { phrase: () => undefined, at: () => undefined, not
 const overlaps = (a: { start: number; end: number }, start: number, end: number): boolean => a.start < end && a.end > start;
 
 /** What one paragraph's text carries, from the same layers the Script reader draws (names, marks, quotes with their speakers). */
-export function notesFor(index: LayerIndex, paragraph: { id: string; chapterId: string; text: string }): ParagraphNotes {
+function notesFor(index: LayerIndex, paragraph: { id: string; chapterId: string; text: string }): ParagraphNotes {
   const layers = paragraphLayers(index, paragraph);
   const phrases = new Map(layers.flatMap((l) => (l.kind === 'phrase' ? [[l.cueId, l] as const] : [])));
   const names = layers.flatMap((l) => (l.kind === 'name' ? [l] : []));
