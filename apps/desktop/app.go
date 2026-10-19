@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"context"
 	"crypto/sha256"
 	"encoding/json"
@@ -70,7 +71,7 @@ import (
 // Keep this in lockstep with apps/ui/src/hostApi.ts.  The frontend rejects
 // an older host before bootstrapping so a partial update cannot run against a
 // binding contract it does not understand.
-const hostAPIVersion = 138
+const hostAPIVersion = 139
 
 // Host is the Wails binding boundary. The frontend invokes only this bound
 // object; it never receives a loopback port or an HTTP capability.
@@ -267,6 +268,9 @@ type Host struct {
 	// monitorLeveler is the DAW port's monitor_level role over the same adapter as takeCreator: DawMonitorLevel and
 	// DawSetMonitorLevel (bindings_daw_levels.go) ask it to read and set the monitor level. Nil with no bridge client or no such role.
 	monitorLeveler dawport.MonitorLeveler
+	// placeFollower is the DAW port's follow_position role over the same bridge client: DawPlace and DawGoToChapter (bindings_daw_place.go)
+	// read and move the narrator's place in the project. Nil (a true nil interface) with no bridge client or no such role.
+	placeFollower dawport.PlaceFollower
 	// backupKeeper is the DAW port's backups role: on an Audacity launch with a project open, the Audacity adapter's,
 	// over its own scripting pipe client, opened on the first request and closed when the next project replaces the role.
 	// DawBackupAround and DawRestoreBackup (bindings_daw_backups.go) ask it to clone and restore audio, and the host prunes it
@@ -619,7 +623,8 @@ func (h *Host) configureLocked(next config) {
 		h.config.teleprompterPython = sidecarPath(packagedRoot, "manuscript-teleprompter")
 	}
 	if packagedRoot != "" {
-		h.config.reaperLauncher = filepath.Join(packagedRoot, "reaper", "NarrationStudio_Launcher.lua")
+		cache, _ := os.UserCacheDir()
+		h.config.reaperLauncher = filepath.Join(stableLauncherDir(cache), "NarrationStudio_Launcher.lua")
 	} else {
 		h.config.reaperLauncher = layout.Path(h.config.repoRoot, layout.LauncherFile)
 		// A checkout's launcher would otherwise run whatever build sits in build/bin; point it at the program that is running.
@@ -754,10 +759,11 @@ func (h *Host) configureLocked(next config) {
 		h.clickRepairer, _ = dawAdapter.Role(dawport.CapClickRepair).(dawport.ClickRepairer)
 		h.lastActionUndoer, _ = dawAdapter.Role(dawport.CapUndoLast).(dawport.LastActionUndoer)
 		h.monitorLeveler, _ = dawAdapter.Role(dawport.CapMonitorLevel).(dawport.MonitorLeveler)
+		h.placeFollower, _ = dawAdapter.Role(dawport.CapFollowPosition).(dawport.PlaceFollower)
 	} else {
 		h.takeCreator, h.takeSelector, h.puncher, h.rangeCutter, h.rangeFX, h.takeStacker = nil, nil, nil, nil, nil, nil
 		h.filePreviewer, h.fileRevealer, h.rangeGain, h.clickRepairer, h.lastActionUndoer = nil, nil, nil, nil, nil
-		h.monitorLeveler = nil
+		h.monitorLeveler, h.placeFollower = nil, nil
 	}
 	if previous, ok := h.backupKeeper.(audacityBackups); ok {
 		previous.closePipe()
@@ -888,6 +894,7 @@ func materializeResources(source fs.FS, userCache, executable string) (string, e
 		// tiny launcher pointer on every startup; REAPER import itself remains
 		// an explicit, user-controlled action.
 		_ = writeReaperLauncherPath(target, executable)
+		_ = syncStableLauncher(source, stableLauncherDir(userCache), executable)
 		return target, nil
 	}
 	staging := target + ".staging"
@@ -936,7 +943,56 @@ func materializeResources(source fs.FS, userCache, executable string) (string, e
 	// REAPER is never modified automatically: Settings shows this path for a
 	// user-controlled import or re-import.
 	_ = writeReaperLauncherPath(target, executable)
+	_ = syncStableLauncher(source, stableLauncherDir(userCache), executable)
 	return target, nil
+}
+
+// stableLauncherDir is the one folder REAPER's launcher runs from, whatever version is installed: the content-addressed runtime
+// folder changes with every update, and a launcher path that moves meant re-adding the REAPER action after each one.
+func stableLauncherDir(userCache string) string {
+	return filepath.Join(userCache, "narration-utils", "reaper")
+}
+
+// syncStableLauncher updates the embedded REAPER scripts in place under dir and points the launcher at executable. A file is
+// rewritten only when its content differs, through a temporary file, so REAPER never reads a half-written script.
+func syncStableLauncher(source fs.FS, dir, executable string) error {
+	root := resourcesRoot + "/reaper"
+	err := fs.WalkDir(source, root, func(path string, entry fs.DirEntry, walkErr error) error {
+		if walkErr != nil {
+			return walkErr
+		}
+		relative, err := filepath.Rel(root, path)
+		if err != nil {
+			return err
+		}
+		destination := filepath.Join(dir, relative)
+		if entry.IsDir() {
+			return os.MkdirAll(destination, 0o755)
+		}
+		bytes, err := fs.ReadFile(source, path)
+		if err != nil {
+			return err
+		}
+		return writeIfChanged(destination, bytes)
+	})
+	if err != nil {
+		return err
+	}
+	if executable == "" {
+		return nil
+	}
+	return writeIfChanged(filepath.Join(dir, "narration-utils-app-path.txt"), []byte(executable+"\n"))
+}
+
+func writeIfChanged(target string, content []byte) error {
+	if existing, err := os.ReadFile(target); err == nil && bytes.Equal(existing, content) {
+		return nil
+	}
+	temporary := target + ".tmp"
+	if err := os.WriteFile(temporary, content, 0o600); err != nil {
+		return err
+	}
+	return os.Rename(temporary, target)
 }
 
 func executablePath() string {

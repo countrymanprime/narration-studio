@@ -20,6 +20,7 @@ What each engine declares for each capability today. The levels are the adapters
 | `project_read` | `ProjectReader` | Nothing (works offline) | Supported | Not yet available | Not reachable | Unsupported |
 | `track_state` | `TrackStateReader` | Engine answering | Experimental | Not yet available | Not reachable | Unsupported |
 | `track_select` | `TrackSelector` | Engine answering | Experimental | Not yet available | Not reachable | Unsupported |
+| `follow_position` | `PlaceFollower` | Engine answering | Experimental | Not yet available | Not reachable | Unsupported |
 | `record` | `Recorder` | Engine answering | Experimental | Not yet available | Not reachable | Experimental |
 | `punch` | `Puncher` | Engine answering | Experimental | Experimental | Not reachable | Not yet available |
 | `regions` | `RegionWriter` | Engine answering | Experimental | Not yet available | Not reachable | Unsupported |

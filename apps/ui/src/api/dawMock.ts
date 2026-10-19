@@ -13,6 +13,8 @@ import type {
   DawCapabilitiesApi,
   DawKind,
   DawLevelsApi,
+  DawPlaceApi,
+  DawResult,
   DawMonitorLevel,
   DawProjectState,
   DawProjectStateApi,
@@ -40,6 +42,7 @@ const REAPER_DECLARATION: Record<DawCapabilityKey, DawCapabilityLevel> = {
   project_read: 'supported',
   track_state: 'experimental',
   track_select: 'experimental',
+  follow_position: 'experimental',
   record: 'experimental',
   punch: 'experimental',
   regions: 'experimental',
@@ -78,6 +81,7 @@ const CAPABILITY_NEEDS: Record<DawCapabilityKey, DawMockNeeds> = {
   project_read: 'nothing',
   track_state: 'running',
   track_select: 'running',
+  follow_position: 'running',
   record: 'running',
   punch: 'running',
   regions: 'running',
@@ -416,6 +420,10 @@ export interface DawMockControl {
   stopInDaw(): void;
   /** The next monitor-level call fails with this sentence (the DAW did not take the change), as a bridge that answers an error would. */
   refuseNextLevel(sentence: string): void;
+  /** Where the narrator is in the DAW: the chapter whose track is selected ('' for none or several) and the cursor in project seconds. */
+  setPlace(chapterId: string, cursor: number): void;
+  /** The moves the app asked the DAW to make (`dawGoToChapter`), oldest first, for a driver to assert on. */
+  moves(): { chapterId: string; where: 'end' | 'at'; seconds: number }[];
   /** The narrator pressed Record inside the DAW: a take this app did not start. */
   startInDaw(): void;
   /** Whether the DAW is recording, whoever started it (the host's `recording_elsewhere` is true for the app's own take too). */
@@ -444,7 +452,7 @@ export interface DawMockControl {
   facts(): { reachable: boolean; projectMatches: boolean; bridge: boolean };
 }
 
-export type DawMock = DawCapabilitiesApi & DawProjectStateApi & DawLevelsApi & { control: DawMockControl };
+export type DawMock = DawCapabilitiesApi & DawProjectStateApi & DawLevelsApi & DawPlaceApi & { control: DawMockControl };
 
 /** How long after a record start or stop the DAW's next heartbeat reports it: the host pushes the transport on a tick, never inside the call. */
 const HEARTBEAT_MS = 250;
@@ -461,6 +469,9 @@ export function createDawMock(seed: DawMockSeed = {}, script?: DawMockScript): D
   // The monitor level the DAW holds, on the page's 0 to 100 scale (the mock's own starting value for its slider).
   let monitorLevel = 60;
   let refuseLevel: string | null = null;
+  // Where the narrator is in the DAW project (setPlace), and the moves the app made (dawGoToChapter).
+  let place = { chapterId: '', cursor: 0 };
+  const moved: { chapterId: string; where: 'end' | 'at'; seconds: number }[] = [];
   const timers = new Set<ReturnType<typeof setTimeout>>();
   const later = (ms: number, work: () => void) => {
     const timer = setTimeout(() => {
@@ -484,6 +495,12 @@ export function createDawMock(seed: DawMockSeed = {}, script?: DawMockScript): D
     }
     return { ok: true, level: monitorLevel, message: '' };
   };
+
+  const followRefusal = (): string | null => {
+    const support = currentCapabilities(live).capabilities.follow_position;
+    return support?.available ? null : (support?.message ?? MESSAGE_NO_ENGINE);
+  };
+  const refusedMove = (sentence: string): DawResult => ({ ok: false, changed: false, message: sentence, undoSteps: 0, refused: sentence });
 
   const snapshot = () => {
     const capabilities = currentCapabilities(live);
@@ -566,6 +583,10 @@ export function createDawMock(seed: DawMockSeed = {}, script?: DawMockScript): D
     refuseNextLevel: (sentence) => {
       refuseLevel = sentence;
     },
+    setPlace: (chapterId, cursor) => {
+      place = { chapterId, cursor };
+    },
+    moves: () => moved.map((move) => ({ ...move })),
     state: () => ({
       daw: live.daw ?? home,
       bridge: bridgeOpen(),
@@ -642,6 +663,20 @@ export function createDawMock(seed: DawMockSeed = {}, script?: DawMockScript): D
       if (!answer.ok) return answer;
       monitorLevel = level;
       return levelAnswer();
+    },
+    // The host's answers (bindings_daw_place.go): the capability's own sentence when it refuses, else where the narrator is.
+    dawPlace: async () => {
+      const refusal = followRefusal();
+      if (refusal !== null) return { ok: false, message: refusal, chapterId: '', selected: 0, cursor: 0 };
+      return { ok: true, message: '', chapterId: place.chapterId, selected: place.chapterId === '' ? 0 : 1, cursor: place.cursor };
+    },
+    dawGoToChapter: async (chapterId, where, seconds) => {
+      const refusal = followRefusal();
+      if (refusal !== null) return refusedMove(refusal);
+      if (where === 'at' && (!Number.isFinite(seconds) || seconds < 0)) return refusedMove('The place to go to is not a usable number of seconds.');
+      moved.push({ chapterId, where, seconds: where === 'end' ? 0 : seconds });
+      place = { chapterId, cursor: where === 'end' ? place.cursor : seconds };
+      return { ok: true, changed: true, message: '', undoSteps: 0 };
     },
     dawProjectState: async () => wireClone(snapshot().projectState),
     subscribeDawProjectState: (onUpdate) => {

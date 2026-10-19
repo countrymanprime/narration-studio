@@ -69,6 +69,7 @@ export type DawCapabilityKey =
   | 'project_read'
   | 'track_state'
   | 'track_select'
+  | 'follow_position'
   | 'record'
   | 'punch'
   | 'regions'
@@ -116,6 +117,7 @@ export const DAW_CAPABILITIES: ReadonlyArray<{ key: DawCapabilityKey; label: str
   { key: 'project_read', label: 'Read the saved project' },
   { key: 'track_state', label: 'Read track arm state' },
   { key: 'track_select', label: 'Select a track in REAPER' },
+  { key: 'follow_position', label: "Follow the narrator's place in the project" },
   { key: 'record', label: 'Record' },
   { key: 'punch', label: 'Punch and roll' },
   { key: 'regions', label: 'Chapter regions' },
@@ -415,6 +417,26 @@ export interface DawLevelsApi {
   dawMonitorLevel(): Promise<DawMonitorLevel>;
   /** Sets it (0 to DAW_LEVEL_MAX) and answers the level the DAW now holds, which may differ by rounding. A level outside the range rejects. */
   dawSetMonitorLevel(level: number): Promise<DawMonitorLevel>;
+}
+
+/** What `dawPlace` answers (apps/desktop/bindings_daw_place.go): where the narrator is in the DAW project, so the Booth can open there. `ok` false is
+ * a refusal with its sentence in `message` (the `follow_position` capability's own, a DAW not answering, no live DAW) and nothing else means anything;
+ * `ok` true has an empty `message`. `chapterId` is the chapter whose linked track is the one selected in the DAW, and '' when no track, several
+ * tracks or a track no chapter is linked to is selected. `selected` is how many tracks are selected and `cursor` the DAW's cursor in project seconds. */
+export type DawPlace = { ok: boolean; message: string; chapterId: string; selected: number; cursor: number };
+
+/** Where `dawGoToChapter` puts the cursor on the chapter's track: `end` (the end of what is recorded; `seconds` is ignored) or `at` (`seconds` into the project). */
+export type DawGoToWhere = 'end' | 'at';
+
+/** DawPlace and DawGoToChapter (apps/desktop/bindings_daw_place.go): read which chapter's track the narrator is on in the DAW and where their cursor is, and
+ * take the DAW there. The page names a chapter, never a track: the host holds the chapter-track links, and the same calls serve any DAW with the
+ * `follow_position` capability. Neither plays, seeks or adds an undo step. */
+export interface DawPlaceApi {
+  /** The narrator's place in the DAW. A capability refusal, a DAW not answering and no live DAW are `ok` false with the sentence. */
+  dawPlace(): Promise<DawPlace>;
+  /** Select the chapter's linked track in the DAW and put its cursor at `where`. A time that is not a finite, non-negative number of seconds, a
+   * chapter with no or several linked tracks, a track the DAW no longer has and a refused capability are refused with nothing moved. */
+  dawGoToChapter(chapterId: string, where: DawGoToWhere, seconds: number): Promise<DawResult>;
 }
 
 /** DawBackupAround, DawRestoreBackup and DawBackups (SN-D82, docs/reference/daw/audacity-3.md; apps/desktop/bindings_daw_backups.go): clone the audio around a

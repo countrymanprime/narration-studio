@@ -134,6 +134,8 @@ var experimentalCapability = map[string]dawport.Capability{
 	"last_action":         dawport.CapUndoLast,
 	"undo_last":           dawport.CapUndoLast,
 	"monitor_level":       dawport.CapMonitorLevel,
+	"read_place":          dawport.CapFollowPosition,
+	"go_to":               dawport.CapFollowPosition,
 	"fx_range_params":     dawport.CapFXRange,
 	"fx_range_set_param":  dawport.CapFXRange,
 	"fx_range_bypass":     dawport.CapFXRange,

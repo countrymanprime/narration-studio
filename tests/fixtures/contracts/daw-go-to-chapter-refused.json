@@ -1,0 +1,7 @@
+{
+  "ok": false,
+  "changed": false,
+  "message": "The place to go to is not a usable number of seconds.",
+  "undoSteps": 0,
+  "refused": "The place to go to is not a usable number of seconds."
+}

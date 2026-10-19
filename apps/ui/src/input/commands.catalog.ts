@@ -256,7 +256,7 @@ export const COMMAND_CATALOG: readonly CommandDescriptor[] = [
   },
   {
     id: 'editing.escape',
-    label: 'Close the card, clear the selection, then leave the text',
+    label: 'Close the card, clear the selection, then close the drawer',
     scope: 'page',
     defaults: [key('Escape')],
     group: 'Editing',

@@ -32,8 +32,8 @@ export type RecordControlState = {
   /** `reason` is about the chapter's track link (none, or several), which the audio engine panel fixes. */
   reasonIsTrackLink?: boolean;
   disabled: boolean;
-  /** Start or stop a take (the `reading.toggle` command). A start that a precondition stops says why through `notify` and starts nothing. */
-  toggle: () => Promise<void>;
+  /** Start or stop a take (the `reading.toggle` command), a start at `at` seconds when it is a punch. A start that a precondition stops says why through `notify` and starts nothing. Answers whether the take started. */
+  toggle: (at?: number) => Promise<boolean>;
   /** The take was stopped by another path (the leave guard's "Stop and leave"): the Booth stops holding it now, not when the DAW's next heartbeat says so. */
   stopped: () => void;
   /** Read the capabilities again, after a setting the Booth itself changed. */
@@ -48,6 +48,8 @@ export type RecordControlState = {
   facts: RecordSetupFacts;
   /** True while the last read of those facts failed; `facts` is then the last heard, and nothing is concluded from it. */
   factsFailed: boolean;
+  /** True once the link facts have been read (or failed to be): until then nothing is concluded about whether a project file is linked. */
+  factsLoaded: boolean;
 };
 
 /** The sentence for a DAW that has gone quiet: what the Booth can and cannot tell, and the way out. */
@@ -177,10 +179,11 @@ export function useRecordControl({ chapterId, notify }: { chapterId: string; not
   const refresh = useCallback(() => setReads((n) => n + 1), []);
 
   // The link facts the setup steps and the wrong-project refusal read, re-read with every capability read and when the DAW's reachability changes.
-  const [link, setLink] = useState<{ facts: RecordSetupFacts; open: OpenProject; failed: boolean }>({
+  const [link, setLink] = useState<{ facts: RecordSetupFacts; open: OpenProject; failed: boolean; loaded: boolean }>({
     facts: { dawFileLinked: false, launcherPath: '' },
     open: 'unknown',
     failed: false,
+    loaded: false,
   });
   const reachable = capabilities?.reachable;
   useEffect(() => {
@@ -192,10 +195,10 @@ export function useRecordControl({ chapterId, notify }: { chapterId: string; not
         const facts = { dawFileLinked: data.dawFileLinked, launcherPath: data.runtime.Reaper?.launcherPath ?? '' };
         // The host reports "does not match" as false while nothing is linked or the DAW is silent: only a linked, heard DAW that disagrees is a refusal.
         const open: OpenProject = !data.dawFileLinked || !data.dawReachable ? 'unknown' : data.dawProjectMatches ? 'same' : 'different';
-        setLink({ facts, open, failed: false });
+        setLink({ facts, open, failed: false, loaded: true });
       })
       // A failed read keeps what was last heard and says it failed: it never turns a linked project into "not linked" or a refusal.
-      .catch(() => live && setLink((last) => ({ ...last, failed: true })));
+      .catch(() => live && setLink((last) => ({ ...last, failed: true, loaded: true })));
     return () => {
       live = false;
     };
@@ -370,45 +373,50 @@ export function useRecordControl({ chapterId, notify }: { chapterId: string; not
   const recordingRef = useRef(recording);
   recordingRef.current = recording;
 
-  const toggle = useCallback(async () => {
-    if (busy.current) return;
-    if (!recordingRef.current && gateRef.current) {
-      notify(gateRef.current);
-      return;
-    }
-    busy.current = true;
-    const starting = !recordingRef.current;
-    try {
-      // Another project can be opened in the DAW with no event to say so, and the last read may be seconds old: a start asks once more first, so a
-      // take never begins in a project that is not the linked one. A read that fails claims nothing and the start goes on.
-      if (starting && capabilitiesRef.current) {
-        const fresh = await system.bootstrap().catch(() => null);
-        if (fresh && fresh.dawFileLinked && fresh.dawReachable && !fresh.dawProjectMatches) {
-          setLink((last) => ({ ...last, open: 'different' }));
-          const wrong = recordCheck(capabilitiesRef.current, { tracks: 'unread', message: '' }, 'different');
-          if (wrong) notify(wrong.reason);
-          return;
+  const toggle = useCallback(
+    async (at?: number): Promise<boolean> => {
+      if (busy.current) return false;
+      if (!recordingRef.current && gateRef.current) {
+        notify(gateRef.current);
+        return false;
+      }
+      busy.current = true;
+      const starting = !recordingRef.current;
+      try {
+        // Another project can be opened in the DAW with no event to say so, and the last read may be seconds old: a start asks once more first, so a
+        // take never begins in a project that is not the linked one. A read that fails claims nothing and the start goes on.
+        if (starting && capabilitiesRef.current) {
+          const fresh = await system.bootstrap().catch(() => null);
+          if (fresh && fresh.dawFileLinked && fresh.dawReachable && !fresh.dawProjectMatches) {
+            setLink((last) => ({ ...last, open: 'different' }));
+            const wrong = recordCheck(capabilitiesRef.current, { tracks: 'unread', message: '' }, 'different');
+            if (wrong) notify(wrong.reason);
+            return false;
+          }
         }
+        // The start tone, if the narrator turned it on, ends before the take begins so it is not on the recording. A stop has none.
+        if (starting) await playTakeTone();
+        const result = await (starting ? daw.recordStart(chapterId, at) : daw.recordStop());
+        if (result.ok) {
+          setRefused(null);
+          setRecording(starting);
+          return starting;
+        } else {
+          setRefused({ chapterId, sentence: result.refused ?? result.message });
+          // The app's own recorder refuses a stop only when no take is recording: the take is over, so the Booth stops holding it.
+          if (!starting && recordsInApp(capabilitiesRef.current?.daw)) setRecording(false);
+        }
+      } catch (error) {
+        // A host call that failed (not a refusal): nothing changed that this app knows of, and the narrator is told so.
+        const what = starting ? 'Record did not start' : 'Stop did not go through';
+        setRefused({ chapterId, sentence: `${what}: ${apiErrorMessage(error)}. Check ${capabilitiesRef.current?.daw ?? 'the DAW'} before pressing again.` });
+      } finally {
+        busy.current = false;
       }
-      // The start tone, if the narrator turned it on, ends before the take begins so it is not on the recording. A stop has none.
-      if (starting) await playTakeTone();
-      const result = await (starting ? daw.recordStart(chapterId) : daw.recordStop());
-      if (result.ok) {
-        setRefused(null);
-        setRecording(starting);
-      } else {
-        setRefused({ chapterId, sentence: result.refused ?? result.message });
-        // The app's own recorder refuses a stop only when no take is recording: the take is over, so the Booth stops holding it.
-        if (!starting && recordsInApp(capabilitiesRef.current?.daw)) setRecording(false);
-      }
-    } catch (error) {
-      // A host call that failed (not a refusal): nothing changed that this app knows of, and the narrator is told so.
-      const what = starting ? 'Record did not start' : 'Stop did not go through';
-      setRefused({ chapterId, sentence: `${what}: ${apiErrorMessage(error)}. Check ${capabilitiesRef.current?.daw ?? 'the DAW'} before pressing again.` });
-    } finally {
-      busy.current = false;
-    }
-  }, [daw, system, chapterId, notify]);
+      return false;
+    },
+    [daw, system, chapterId, notify],
+  );
 
   const stopped = useCallback(() => {
     heardRecording.current = false;
@@ -431,5 +439,6 @@ export function useRecordControl({ chapterId, notify }: { chapterId: string; not
     readFailed,
     facts: { ...link.facts, openProject: link.open },
     factsFailed: link.failed,
+    factsLoaded: link.loaded,
   };
 }

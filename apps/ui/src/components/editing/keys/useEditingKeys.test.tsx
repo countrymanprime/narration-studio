@@ -178,7 +178,7 @@ describe('brackets-step-flags-enter-opens-the-card', () => {
     expect(keep).toHaveBeenCalledTimes(1);
   });
 
-  it('Escape closes the card, then clears the selection, then blurs', () => {
+  it('Escape closes the card, then clears the selection, and focus stays on the script text', () => {
     const doc = marksDoc();
     mount(doc);
     act(() => {
@@ -196,7 +196,7 @@ describe('brackets-step-flags-enter-opens-the-card', () => {
     document.body.append(script);
     script.focus();
     emit('Escape', [], script);
-    expect(document.activeElement).toBe(document.body);
+    expect(document.activeElement).toBe(script);
     script.remove();
   });
 
@@ -212,7 +212,7 @@ describe('brackets-step-flags-enter-opens-the-card', () => {
 });
 
 describe('Escape-closes-the-drawer', () => {
-  it('closes an open drawer once the card and the selection are done with, before it blurs', () => {
+  it('closes an open drawer once the card and the selection are done with, before anything else', () => {
     const doc = marksDoc();
     const closeDrawer = vi.fn(() => true);
     mount(doc, { closeDrawer });
@@ -224,7 +224,7 @@ describe('Escape-closes-the-drawer', () => {
     expect(closeDrawer).toHaveBeenCalledTimes(1);
   });
 
-  it('blurs the script text when the drawer is already shut', () => {
+  it('keeps focus on the script text when the drawer is already shut', () => {
     const doc = marksDoc();
     mount(doc, { closeDrawer: () => false });
     const el = document.createElement('div');
@@ -233,7 +233,7 @@ describe('Escape-closes-the-drawer', () => {
     document.body.append(el);
     el.focus();
     emit('Escape', [], el);
-    expect(document.activeElement).toBe(document.body);
+    expect(document.activeElement).toBe(el);
     el.remove();
   });
 });
