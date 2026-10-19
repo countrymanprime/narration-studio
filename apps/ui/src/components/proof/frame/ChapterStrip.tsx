@@ -48,7 +48,7 @@ export function ChapterStrip({
             data-state={state}
             data-current={isCurrent || undefined}
             onClick={() => onChooseChapter(chapter.id)}
-            className={`flex min-w-0 flex-1 flex-col items-center justify-center rounded border bg-[var(--surface)] text-xs ${dense ? 'h-10 px-0' : 'h-12 px-1'} ${STATE_CLASS[state]} ${isCurrent ? 'bg-[var(--accent-soft)] font-semibold' : ''}`}
+            className={`flex min-w-0 flex-1 flex-col items-center justify-center rounded border bg-[var(--surface)] text-xs ${dense ? 'h-10 px-0' : 'h-[54px] px-1'} ${STATE_CLASS[state]} ${isCurrent ? 'bg-[var(--accent-soft)] font-semibold' : ''}`}
           >
             {/* The number and count are drawn as generated content from data-text: they abbreviate the name ("1", "Open"), and
                 drawn as text axe's label-content-name-mismatch would require the name to hold them word for word. */}

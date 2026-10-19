@@ -12,7 +12,10 @@ import {
 import { statusTone } from '../../../kinds/statusTone';
 import type { KindId } from '../../../kinds/kindMap';
 import type { StatusTone } from '../../primitives/StatusBadge';
-import { analyzerLabel, noteTime } from '../findingFormat';
+import { analyzerLabel, findingSummary, noteTime } from '../findingFormat';
+import { evidenceQuotes } from '../inspector/evidenceQuotes';
+import { deliveryEvidence } from '../deliveryFindingFormat';
+import { takeComparisonEvidence, takeReviewEvidence } from '../takeReviewFormat';
 import { noteIsOpen } from '../proof.selectors';
 import { fixKindOf } from '../resolution';
 import { proofProgress } from '../proof.selectors';
@@ -28,6 +31,8 @@ export type NoteRow = {
   type: FindingNoteType;
   script: string;
   heard: string;
+  /** The Script vs heard cell's sentence as markup (`<b>` marks the word in question), the same marks the Inspector's quotes use. */
+  headline: string;
   /** The analyzer's name; the Sources line counts by it. */
   from: string;
   confidence: number | null;
@@ -54,6 +59,27 @@ function resolutionWords(finding: Finding): { label: string; tone: StatusTone } 
   }
 }
 
+const quoted = (markup: string) => `“${markup}”`;
+const escapeText = (text: string) => text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
+/**
+ * The note's one-sentence headline for the table (mock `ProofNote.h`): the script's words with the ones in question marked bold, and
+ * what was heard in the kind's own wording: `“Who are you?” — heard “Who you?”`, `“myself” not heard`, `“um” heard, not in the script`.
+ * The marks are the Inspector's difference marks (`<del>` / `<ins>` there) as `<b>` here. A take review, a take comparison and a
+ * delivery check have no script words to mark and keep their own sentence (`findingSummary`).
+ */
+export function headlineOf(finding: Finding): string {
+  if (takeReviewEvidence(finding) || takeComparisonEvidence(finding) || deliveryEvidence(finding)) return escapeText(findingSummary(finding));
+  const quotes = evidenceQuotes(finding);
+  if (!quotes) return escapeText(findingSummary(finding));
+  const bold = (markup: string) => markup.replace(/<(\/?)(?:del|ins)>/g, '<$1b>');
+  const script = bold(quotes.script);
+  const heard = bold(quotes.heard);
+  if (script && heard) return `${quoted(script)} — heard ${quoted(heard)}`;
+  if (script) return finding.category === 'transcript_discrepancy' ? `${quoted(script)} not heard` : quoted(script);
+  return finding.category === 'transcript_discrepancy' ? `${quoted(heard)} heard, not in the script` : quoted(heard);
+}
+
 export function noteRow(finding: Finding): NoteRow {
   const chapterId = finding.manuscript?.chapter_id ?? '';
   const status = finding.review.status;
@@ -67,6 +93,7 @@ export function noteRow(finding: Finding): NoteRow {
     type: shownFindingNoteType(finding),
     script: finding.manuscript?.expected ?? '',
     heard: finding.manuscript?.recorded ?? '',
+    headline: headlineOf(finding),
     from: analyzerLabel(finding.analyzer),
     confidence: finding.confidence,
     confidenceReason: finding.confidence_reason,

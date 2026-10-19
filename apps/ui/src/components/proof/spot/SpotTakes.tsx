@@ -2,25 +2,13 @@ import { useApi } from '../../../api/ApiContext';
 import { IconButton } from '../../primitives/IconButton';
 import { SectionLabel } from '../../primitives/SectionLabel';
 import { statusTone } from '../../../kinds/statusTone';
-import { StatusBadge } from '../../primitives/StatusBadge';
+import { StatusBadge, toneColors } from '../../primitives/StatusBadge';
 import { useRangePlayer } from '../../engine/useRangePlayer';
-import { parseMarkup, type MarkupNode } from '../inspector/evidenceQuotes';
+import { Markup } from '../inspector/Markup';
 import { heardMarkup, type Spot, type SpotTake } from './spot';
 
 // A raw play is the take's own range and nothing around it.
 const NO_ROLL = { pre: 0, post: 0 };
-
-function Markup({ nodes }: { nodes: MarkupNode[] }) {
-  return nodes.map((node, index) => {
-    if (typeof node === 'string') return node;
-    const Tag = node.tag;
-    return (
-      <Tag key={index} className={node.tag === 'del' || node.tag === 'ins' ? 'font-semibold' : undefined}>
-        <Markup nodes={node.children} />
-      </Tag>
-    );
-  });
-}
 
 const seconds = (value: number) => `${value.toFixed(1)} s`;
 
@@ -57,7 +45,7 @@ export function SpotTakes({
         <span className="flex-1" />
         <IconButton size="sm" action="manageTakes" label="Manage takes in Editing" onClick={() => onOpenInEditing(spot.chapterId, spot.passageId)} />
       </div>
-      <ul className="flex flex-col gap-1.5">
+      <ul className="flex flex-col gap-2">
         {spot.takes.map((take) => {
           const unplayable =
             take.sourceFile === ''
@@ -66,8 +54,15 @@ export function SpotTakes({
                 ? (take.reason ?? 'This take cannot be heard.')
                 : undefined;
           const on = playing(take);
+          // The kept take's card is tinted with the kept-take tone of the status registry, never a colour of its own.
+          const kept = toneColors(statusTone('kept_take'));
           return (
-            <li key={take.id} className="flex flex-col gap-0.5">
+            <li
+              key={take.id}
+              data-kept={take.kept || undefined}
+              className="flex flex-col gap-0.5 rounded-[var(--radius-card)] border border-[var(--border)] p-2"
+              style={take.kept ? { background: kept.fill, borderColor: kept.line } : undefined}
+            >
               <div className="flex items-center gap-2 text-sm">
                 <IconButton
                   size="sm"
@@ -88,7 +83,7 @@ export function SpotTakes({
               {take.heard !== undefined && (
                 <p data-heard={take.id} className="text-sm [overflow-wrap:anywhere]">
                   <span className="sr-only">Heard: </span>
-                  {take.kept ? <Markup nodes={parseMarkup(heardMarkup(spot.script, take.heard))} /> : take.heard}
+                  {take.kept ? <Markup source={heardMarkup(spot.script, take.heard)} /> : take.heard}
                 </p>
               )}
             </li>

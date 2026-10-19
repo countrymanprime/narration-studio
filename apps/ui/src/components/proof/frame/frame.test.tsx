@@ -23,6 +23,7 @@ describe('ProofHeader', () => {
     const ring = container.querySelector('[data-ring]')!;
     expect(ring.getAttribute('data-ring')).toBe('38');
     expect(ring.getAttribute('aria-hidden')).toBe('true');
+    expect(ring.className).toContain('size-9');
   });
   it('has no ring and no counters without notes', () => {
     const { container } = render(<ProofHeader progress={{ cleared: 0, total: 0, decided: 0, open: 0, percent: 0 }} chapterBar={null} />);
@@ -52,6 +53,13 @@ describe('ChapterStrip', () => {
     expect(screen.getByRole('button', { name: 'Chapter 3: 3 open of 4' }).getAttribute('aria-current')).toBe('true');
     fireEvent.click(screen.getByRole('button', { name: 'Chapter 2: 0 open of 4' }));
     expect(onChoose).toHaveBeenCalledWith('c2');
+  });
+  it('draws 54 px tiles, 40 px when dense (PF-7)', () => {
+    const { unmount } = render(<ChapterStrip chapters={chapters(5)} current="c3" onChooseChapter={() => {}} />);
+    expect(screen.getAllByRole('button')[0]!.className).toContain('h-[54px]');
+    unmount();
+    render(<ChapterStrip chapters={chapters(24)} current="c1" onChooseChapter={() => {}} />);
+    expect(screen.getAllByRole('button')[0]!.className).toContain('h-10');
   });
   it('goes dense above the threshold: a dot per tile and every fifth number labelled', () => {
     render(<ChapterStrip chapters={chapters(24)} current="c1" onChooseChapter={() => {}} />);

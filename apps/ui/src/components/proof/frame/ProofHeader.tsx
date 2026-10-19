@@ -18,7 +18,7 @@ export function ProofHeader({ progress, chapterBar }: { progress: ProofProgress;
           <div
             aria-hidden="true"
             data-ring={progress.percent}
-            className="size-6 rounded-full motion-ok:transition-[--ring-percent] motion-ok:duration-(--motion-base) motion-ok:ease-(--ease-standard)"
+            className="size-9 rounded-full motion-ok:transition-[--ring-percent] motion-ok:duration-(--motion-base) motion-ok:ease-(--ease-standard)"
             style={{
               ['--ring-percent' as string]: `${progress.percent}%`,
               background: 'conic-gradient(var(--accent) var(--ring-percent), var(--border) 0)',

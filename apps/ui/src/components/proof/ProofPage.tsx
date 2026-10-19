@@ -16,6 +16,7 @@ import type { ManuscriptChapter } from '../../types';
 import { ALL_CHAPTERS, ChapterStepper } from '../primitives/ChapterStepper';
 import { IconButton } from '../primitives/IconButton';
 import { KeyHints } from '../primitives/KeyHints';
+import { SectionLabel } from '../primitives/SectionLabel';
 import { openCheckRecordings } from '../recordingcheck/openCheckRecordings';
 import { creditsEntries, creditsKindOfId, ownsOpeningCredits } from '../credits/creditsEntries';
 import { useCreditsRows } from '../credits/useCreditsRows';
@@ -440,7 +441,7 @@ export function ProofPage({
             <ProofHeader progress={progress} chapterBar={stepper} />
             {all || !chapter ? (
               <div className="flex flex-col gap-1">
-                <span className="text-xs text-[var(--text-muted)]">Open notes, by chapter</span>
+                <SectionLabel>Open notes, by chapter</SectionLabel>
                 <ChapterStrip chapters={strip} current={current} onChooseChapter={chooseTile} />
               </div>
             ) : (

@@ -9,6 +9,7 @@ import {
   inWindow,
   matchesChip,
   matchesFind,
+  headlineOf,
   noteRow,
   queryFor,
   sourcesOf,
@@ -141,5 +142,27 @@ describe('by-time-lists-chapters-in-book-order', () => {
   it('keeps the host order inside a chapter and puts an unlisted chapter last', () => {
     const hostOrder = [at('gone', 1), at('ch2', 50), at('ch2', 5)];
     expect(inBookOrder(hostOrder, ['ch1', 'ch2']).map((f) => f.id)).toEqual(['ch2-50', 'ch2-5', 'gone-1']);
+  });
+});
+
+describe('the-headline-marks-the-word-in-question (PF-6)', () => {
+  const finding = (manuscript: { expected?: string; recorded?: string }, category = 'transcript_discrepancy') => ({
+    ...notesFixture()[0],
+    category,
+    evidence: undefined,
+    manuscript: { chapter_id: 'ch1', chapter_title: 'Chapter 1', ...manuscript },
+  });
+  it('marks the differing words on both sides in bold', () => {
+    expect(byId('a').headline).toBe('“I could not help <b>it</b>” — heard “I could not help <b>myself</b>”');
+  });
+  it("words a skipped and an extra read in the kind's own sentence", () => {
+    expect(headlineOf(finding({ expected: 'explain myself' }))).toBe('“<b>explain</b> <b>myself</b>” not heard');
+    expect(headlineOf(finding({ recorded: 'um' }))).toBe('“<b>um</b>” heard, not in the script');
+  });
+  it('escapes markup typed into the script so it is text, not elements', () => {
+    expect(headlineOf(finding({ expected: 'a <b>x', recorded: 'a <b>x' }, 'pickup'))).toBe('“a &lt;b&gt;x” — heard “a &lt;b&gt;x”');
+  });
+  it('falls back to the plain summary for a note with no script words', () => {
+    expect(headlineOf({ ...finding({}), category: 'audio_quality' })).toBe('Audio quality');
   });
 });

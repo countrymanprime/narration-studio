@@ -2,7 +2,7 @@
 import { cleanup, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { DecisionButtons, OTHER_FIX } from './DecisionButtons';
+import { DecisionButtons } from './DecisionButtons';
 
 afterEach(cleanup);
 
@@ -25,18 +25,23 @@ describe('decision-buttons-set-the-status-and-show-the-key', () => {
     const onDecide = vi.fn();
     render(<DecisionButtons status="unreviewed" fix="pickup" onDecide={onDecide} />);
     for (const name of ['Needs pickup', 'Fix in edit', 'Waive', 'Defer']) await userEvent.click(screen.getByRole('button', { name: new RegExp(`^${name}`) }));
-    // Fix in edit is off for a note whose fix is a pickup, so it never saves a pickup in its name.
-    expect(onDecide.mock.calls.map(([s]) => s)).toEqual(['accepted', 'dismissed', 'deferred']);
+    expect(onDecide.mock.calls.map(([s]) => s)).toEqual(['accepted', 'accepted', 'dismissed', 'deferred']);
   });
 
-  it('turns off the fix the note does not ask for, and says why', () => {
-    const { rerender } = render(<DecisionButtons status="unreviewed" fix="pickup" onDecide={() => {}} />);
-    expect((screen.getByRole('button', { name: /^Fix in edit/ }) as HTMLButtonElement).disabled).toBe(true);
-    expect((screen.getByRole('button', { name: /^Needs pickup/ }) as HTMLButtonElement).disabled).toBe(false);
-    expect(screen.getByText(OTHER_FIX.pickup)).toBeTruthy();
-    rerender(<DecisionButtons status="unreviewed" fix="edit" onDecide={() => {}} />);
-    expect((screen.getByRole('button', { name: /^Needs pickup/ }) as HTMLButtonElement).disabled).toBe(true);
-    expect(screen.getByText(OTHER_FIX.edit)).toBeTruthy();
+  it('allows every decision on every note and draws no helper sentence (PF-1)', () => {
+    for (const fix of ['pickup', 'edit'] as const) {
+      const { unmount } = render(<DecisionButtons status="unreviewed" fix={fix} onDecide={() => {}} />);
+      for (const button of screen.getAllByRole('button')) expect((button as HTMLButtonElement).disabled).toBe(false);
+      expect(screen.queryByText(/is re-recorded|is fixed in the edit/)).toBeNull();
+      unmount();
+    }
+  });
+
+  it('is a two-column grid of equal large buttons', () => {
+    render(<DecisionButtons status="unreviewed" fix="pickup" onDecide={() => {}} />);
+    const group = screen.getByRole('group', { name: 'Resolution' });
+    expect(group.className).toContain('grid-cols-2');
+    for (const button of group.querySelectorAll('button')) expect(button.className).toContain('min-h-[var(--button-height-lg)]');
   });
 
   it('presses the one that was chosen, the fix the note asks for deciding between the two accepted ones', () => {

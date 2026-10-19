@@ -221,3 +221,20 @@ describe('the page actions slot', () => {
     expect(names.indexOf('Check recordings…')).toBe(names.indexOf('Find in notes') + 1);
   });
 });
+
+describe('filter-chips-and-headline (PF-2, PF-6)', () => {
+  it('draws the filter chips as 28 px sentence-case pills with the pressed one filled with the text colour', () => {
+    render(<Harness />);
+    const group = screen.getByRole('group', { name: 'Filter notes' });
+    const pressed = within(group).getByRole('button', { pressed: true });
+    expect(pressed.textContent).toMatch(/^All/);
+    expect(pressed.className).toContain('h-7');
+    expect(pressed.className).toContain('rounded-full');
+    expect(pressed.className).toContain('bg-[var(--text)]');
+    expect(pressed.className).not.toContain('uppercase');
+  });
+  it('shows the headline with the marked word in bold', () => {
+    render(<Harness />);
+    expect([...document.querySelectorAll('tbody b')].some((b) => b.textContent === 'it')).toBe(true);
+  });
+});

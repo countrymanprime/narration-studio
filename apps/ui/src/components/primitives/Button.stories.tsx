@@ -8,7 +8,7 @@ const meta = {
   args: { children: 'Save changes', onClick: fn() },
   argTypes: {
     variant: { control: 'radio', options: ['primary', 'secondary', 'ghost', 'danger', 'link'] },
-    size: { control: 'radio', options: ['md', 'sm'] },
+    size: { control: 'radio', options: ['md', 'sm', 'lg'] },
   },
 } satisfies Meta<typeof Button>;
 
@@ -27,6 +27,8 @@ export const Danger: Story = { args: { variant: 'danger', children: 'Delete' } }
 
 export const PrimarySmall: Story = { args: { variant: 'primary', size: 'sm', children: 'Punch & roll here' } };
 export const SecondarySmall: Story = { args: { variant: 'secondary', size: 'sm', children: 'Resolve' } };
+// 40 px, for a grid of equal choices (Proof's decisions).
+export const SecondaryLarge: Story = { args: { variant: 'secondary', size: 'lg', children: 'Waive' } };
 export const DangerSmall: Story = { args: { variant: 'danger', size: 'sm', children: 'Delete' } };
 
 // The underlined text action inside a sentence: the sentence's font, size and colour, and none of the button chrome.

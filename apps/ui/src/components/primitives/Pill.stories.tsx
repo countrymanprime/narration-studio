@@ -14,6 +14,19 @@ type Story = StoryObj<typeof meta>;
 export const Inactive: Story = {};
 // The selected pill: accent fill, so its label must use the contrast colour.
 export const Active: Story = { args: { active: true } };
+// A list's filter chip (Proof's notes): 28 px, sentence case, the selected one filled with the text colour.
+export const Filter: Story = {
+  render: (args) => (
+    <div className="flex gap-1.5">
+      <Pill {...args} look="filter" label="To review 5" active />
+      <Pill {...args} look="filter" label="Pickups 2" active={false} />
+    </div>
+  ),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await expect(canvas.getByRole('button', { name: 'To review 5', pressed: true }).getBoundingClientRect().height).toBe(28);
+  },
+};
 export const Disabled: Story = { args: { disabled: true } };
 export const WithTooltip: Story = { args: { title: 'Jump ten minutes ahead' } };
 

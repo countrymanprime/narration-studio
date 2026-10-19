@@ -239,6 +239,7 @@ html[data-motion='reduce'] {
   --radius-tag: 0.1875rem; /* 3 */
   --button-height: 2.25rem; /* 36, .btn */
   --button-height-sm: 2rem; /* 32, .btn.sm */
+  --button-height-lg: 2.5rem; /* 40, .decide .btn */
   --row-height: 2.4375rem; /* 39, 15 px body line plus 8 px padding each side and the rule */
   --header-row-height: 2.25rem; /* 36, th: 13 px line plus 8 px padding each side and the rule */
   --font-size-page-title: 1.75rem; /* 28, h1 */

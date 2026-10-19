@@ -2,6 +2,7 @@ import { useLayoutEffect, useRef, type ReactNode } from 'react';
 import { Button } from '../../primitives/Button';
 import { statusTone } from '../../../kinds/statusTone';
 import { KindChip } from '../../primitives/KindChip';
+import { Markup } from '../inspector/Markup';
 import { StatusBadge } from '../../primitives/StatusBadge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../primitives/Table';
 import { TooltipTarget } from '../../primitives/Tooltip';
@@ -10,7 +11,7 @@ import { NOTE_KIND, RESOLUTION_CHIP_CH, TYPE_CHIP_CH, groupByChapter, type NoteR
 /** A badge as wide as the longest word it can show, so a changed type or decision never moves the cells around it. */
 function FixedChip({ ch, children }: { ch: number; children: ReactNode }) {
   return (
-    <span className="inline-flex" style={{ minWidth: `${ch + 2}ch` }}>
+    <span className="inline-flex" style={{ minWidth: `${ch + 4}ch` }}>
       {children}
     </span>
   );
@@ -93,7 +94,9 @@ export function NotesTable({
         <TypeChip row={row} />
       </TableCell>
       <TableCell>
-        <span className="[overflow-wrap:anywhere]">{[row.script, row.heard].filter(Boolean).join(' → ')}</span>
+        <span className="[overflow-wrap:anywhere]">
+          <Markup source={row.headline} />
+        </span>
         {badge?.(row)}
       </TableCell>
       <TableCell muted>
@@ -101,7 +104,7 @@ export function NotesTable({
       </TableCell>
       <TableCell>
         <FixedChip ch={RESOLUTION_CHIP_CH}>
-          <StatusBadge tone={row.resolution.tone} label={row.resolution.label} className="w-full justify-center" />
+          <StatusBadge tone={row.resolution.tone} label={row.resolution.label} className="w-full justify-center py-[0.2rem]! text-[0.8125rem]!" />
         </FixedChip>
       </TableCell>
     </TableRow>
@@ -122,7 +125,7 @@ export function NotesTable({
         <TableBody>
           {allChapters
             ? groupByChapter(rows).flatMap((group) => [
-                <TableRow key={`g-${group.chapterId}`}>
+                <TableRow key={`g-${group.chapterId}`} className="*:bg-[var(--surface-2)]">
                   <TableCell colSpan={5}>
                     <b>{group.title}</b> <span className="text-[var(--text-muted)]">· {group.open} open</span>
                   </TableCell>

@@ -6,8 +6,9 @@ import type { ComponentProps } from 'react';
 // `ghost` is the same button with no fill, for the rare one on a tinted surface. `link` is the underlined text action that sits
 // inside a sentence: it takes the sentence's font, size and colour and draws none of the button chrome.
 type ButtonVariant = 'primary' | 'secondary' | 'ghost' | 'danger' | 'link';
-// `md` is the mocks' 32 px button (`--button-height`); `sm` is 28 px (`--button-height-sm`), for the companion and dense rows.
-type ButtonSize = 'md' | 'sm';
+// `md` is the mocks' 36 px button (`--button-height`); `sm` is 32 px (`--button-height-sm`), for the companion and dense rows; `lg` is 40 px
+// (`--button-height-lg`), for a group of equal choices such as Proof's decisions.
+type ButtonSize = 'md' | 'sm' | 'lg';
 
 const VARIANT_CLASSES: Record<Exclude<ButtonVariant, 'link'>, string> = {
   primary: 'border-transparent bg-[var(--accent)] text-[var(--accent-contrast)] not-aria-disabled:hover:bg-[var(--accent-strong)]',
@@ -19,6 +20,7 @@ const VARIANT_CLASSES: Record<Exclude<ButtonVariant, 'link'>, string> = {
 const SIZE_CLASSES: Record<ButtonSize, string> = {
   md: 'min-h-[var(--button-height)]',
   sm: 'min-h-[var(--button-height-sm)]',
+  lg: 'min-h-[var(--button-height-lg)]',
 };
 
 // The measured spec: the height includes the 1 px border, 12 px each side, the label Barlow Condensed

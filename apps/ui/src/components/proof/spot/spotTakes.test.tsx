@@ -98,6 +98,17 @@ describe('inspector-section-lists-takes-with-raw-play', () => {
     expect(document.querySelector('[data-heard=a]')).toBeNull();
   });
 
+  it('draws each take as a bordered card and tints only the kept one (PF-8)', () => {
+    view();
+    const cards = [...document.querySelectorAll('section[aria-label="Takes at this spot"] li')] as HTMLElement[];
+    expect(cards).toHaveLength(3);
+    for (const card of cards) expect(card.className).toContain('border');
+    const kept = cards.filter((card) => card.hasAttribute('data-kept'));
+    expect(kept).toHaveLength(1);
+    expect(kept[0]!.style.background).not.toBe('');
+    expect(cards.filter((card) => !card.hasAttribute('data-kept')).every((card) => card.style.background === '')).toBe(true);
+  });
+
   it('plays a take raw, and a second press stops it; another take replaces it', async () => {
     const user = userEvent.setup();
     view();

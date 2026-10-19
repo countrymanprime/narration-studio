@@ -77,7 +77,8 @@ A chapter with no recording yet says **No recording for this chapter yet** where
 
 The notes panel lists the notes in view, **Notes · 14** for example, with:
 
-- chips that narrow the list: **All**, **To review**, **Open**, **Pickups** and **Decided**, each with its count;
+- chips that narrow the list: **All**, **To review**, **Open**, **Pickups** and **Decided**, each with its count (the one
+  in use is filled dark);
 - **In view**, on one chapter while the waveform window shows only part of it. It starts on, so the list keeps to the
   notes in the window; press it to list the whole chapter;
 - the sort: **By time**, **By confidence** (lowest first, so the least certain come up first) or **By severity** (most
@@ -91,9 +92,9 @@ The notes panel lists the notes in view, **Notes · 14** for example, with:
   DAW.
 
 Under them, **Sources** names the checks the notes came from, with a count for each, before any chip or search narrows
-the list. The table lists Time (minutes and seconds, `02:14.6`), Type, Script vs heard, From and Resolution (**To
+the list. The table lists Time (minutes and seconds, `02:14.6`), Type, Script vs heard (a sentence with the word in question in bold, such as “the harbour wall” heard “the harbor”), From and Resolution (**To
 review**, **Needs pickup**, **Fix in edit**, **Waive** or **Defer**) for every note; with All chapters it groups them by
-chapter, with each chapter's open count. A note whose spot has more than one take has a takes badge.
+chapter, with each chapter's open count on a shaded row. A note whose spot has more than one take has a takes badge.
 
 ![Proof - the To review chip: "Notes · 3 of 4", the waived note left out](../../images/ui/proof-notes-filtered.webp)
 
@@ -107,17 +108,18 @@ Select a note in the table, or its pin on the waveform, and the Inspector shows 
   choice is kept with the note;
 - the arrows to step to the previous or next note on the list (a chip, the search or the In view filter can hide notes; the keys skip them);
 - what the script says and what was heard, with the difference marked;
-- **Takes at this spot**, when the spot has more than one take: each take with **Play** (from its own recording, without
-  the DAW) and which one is active or kept. **Manage takes in Editing** opens the chapter on
+- **Takes at this spot**, when the spot has more than one take: a card for each take with **Play** (from its own recording,
+  without the DAW) and which one is active or kept, the kept take's card tinted green. **Manage takes in Editing** opens the chapter on
   [Editing](editing.md) with the note's words selected and the takes of its line open, where takes are chosen;
 - **Trim the gap to 1.2 s**, on a gap note not decided yet (see [Trimming a gap](#trimming-a-gap));
 - **Show in** and **Add marker in** your DAW, each followed by your DAW's name (see [Going to a note in the
   DAW](#going-to-a-note-in-the-daw)), **Open this chapter in Script** and **Open this chapter in Booth**, and **Reopen**
   once the note is decided;
-- the decisions, **Needs pickup**, **Fix in edit**, **Waive** and **Defer** (keys P, E, W and D), an optional note with the
-  decision (up to 2,000 characters), and the check's confidence, or why it has none. Whether a note needs a pickup or a
-  fix in the edit comes from its kind: a misread or a skipped word is re-recorded, a repeat or a gap is fixed in the edit.
-  So only one of the two is on for a note, and the line under the buttons says which and why;
+- the decisions, **Needs pickup**, **Fix in edit**, **Waive** and **Defer** (keys P, E, W and D) in two columns of equal
+  buttons, each with its key, the one set on the note outlined; any of the four can be chosen on any note. An optional
+  note with the decision (up to 2,000 characters) sits under them, and the check's confidence, or why it has none. **Needs
+  pickup** and **Fix in edit** are both saved as accepted, and the note's kind says which one reads as set: a misread or a
+  skipped word reads **Needs pickup**, a repeat or a gap reads **Fix in edit**;
 - **Notes on this finding**, the conversation about the spot (see [Notes on a finding](#notes-on-a-finding)).
 
 A decision is saved at once and the next note is selected. A message says what was saved, with **Undo** to put the
@@ -134,14 +136,13 @@ hears **Now**, and keeps your note. Press **Use the new evidence**, look again a
 
 ![Proof - a decision refused because the evidence changed since the note was shown: before and now, with the typed note kept](../../images/ui/proof-evidence-changed.webp)
 
-Right-click a note in the table, or its pin, for the same actions: the four decisions (the one that does not fit the note
-says why), **Reopen**, **Go to** your DAW, **Trim the gap** on a gap note, and open its chapter in Script or the Booth.
+Right-click a note in the table, or its pin, for the same actions: the four decisions, **Reopen**, **Go to** your DAW, **Trim the gap** on a gap note, and open its chapter in Script or the Booth.
 
 ## Notes on a finding
 
 Under the decision, **Notes on this finding** keeps a thread of notes on the spot: questions for yourself, or a
 proofer's replies. Choose **Proofer replied** to paste in what the proofer wrote, or **My note** for your own, type it
-and press **Add note**. Each note shows who wrote it and when; edit it with the pencil, or delete it, with **Undo** to
+in the box and press **Add note** beside it. Each note shows who wrote it and when; edit it with the pencil, or delete it, with **Undo** to
 bring it back where it was. The notes are kept with the project beside your decisions, are not a decision themselves,
 and stay with the note when a check runs again.
 
@@ -179,7 +180,7 @@ why.
 | Ctrl+F | Find in notes |
 | Ctrl+Z | Undo the last change, a decision included |
 
-The footer lists them, and you can change them in [Settings](settings.md). Space is not a Proof key.
+The footer lists them, ending with Undo, and you can change them in [Settings](settings.md). Space is not a Proof key.
 
 Choosing between takes is on [Editing](editing.md), not here.
 

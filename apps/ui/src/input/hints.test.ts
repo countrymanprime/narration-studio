@@ -47,6 +47,11 @@ describe('footerHints', () => {
     }
   });
 
+  it('the Proof footer ends with Undo (PF-5)', () => {
+    const hints = footerHints('proof', keymap);
+    expect(hints.at(-1)).toMatchObject({ label: 'Undo', keys: ['Ctrl', 'Z'] });
+  });
+
   it('footer-spec-is-the-mocks: the Booth footer follows the mock, from the keymap, with pickups off', () => {
     expect(footerHints('booth', keymap)).toEqual([
       { keys: ['Space'], label: 'Record / stop', id: 'hint-reading.toggle' },

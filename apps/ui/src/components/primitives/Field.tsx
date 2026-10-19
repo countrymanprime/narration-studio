@@ -7,7 +7,7 @@ export const FIELD_LABEL_CLASSES = 'block text-[0.88rem] font-medium text-[var(-
 
 // mt-2 (8px) is the mocks' label-to-control gap.
 const CONTROL_CLASSES =
-  'mt-2 w-full rounded-[var(--control-radius)] font-medium border border-[var(--line-strong)] bg-[var(--surface)] px-3 py-[0.6rem] text-[0.88rem] leading-[1.35] text-[var(--text)] data-[invalid]:border-[var(--danger)]';
+  'w-full rounded-[var(--control-radius)] font-medium border border-[var(--line-strong)] bg-[var(--surface)] px-3 py-[0.6rem] text-[0.88rem] leading-[1.35] text-[var(--text)] data-[invalid]:border-[var(--danger)]';
 
 // A labelled text control. Base UI's Field wires the label, the hint and the error to the control (`for`, `aria-invalid`,
 // `aria-describedby`), so none of that is written by hand here. The control stays controlled: it never holds
@@ -24,6 +24,8 @@ export function Field({
   hint,
   error,
   secret = false,
+  labelHidden = false,
+  compact = false,
 }: {
   label: string;
   value: string;
@@ -42,14 +44,19 @@ export function Field({
   // A value that must not be shown or kept by the browser (the narrator's own API key): a masked input with the browser's
   // autofill, spell check and autocorrect off. Never with `textarea`.
   secret?: boolean;
+  // The label names the control for assistive technology and is not drawn: the placeholder says what to type (Proof's decision note).
+  labelHidden?: boolean;
+  // A textarea 56 px tall instead of 80 px (the mock's inline notes).
+  compact?: boolean;
 }) {
+  const gap = labelHidden ? '' : 'mt-2 ';
   return (
     <BaseField.Root invalid={Boolean(error)} disabled={disabled} className="text-[0.88rem] font-medium text-[var(--text-muted)] first:mt-3">
-      <BaseField.Label className={FIELD_LABEL_CLASSES}>{label}</BaseField.Label>
+      <BaseField.Label className={labelHidden ? 'sr-only' : FIELD_LABEL_CLASSES}>{label}</BaseField.Label>
       <BaseField.Control
         render={
           textarea ? (
-            <textarea className={`min-h-20 ${CONTROL_CLASSES}`} />
+            <textarea className={`${compact ? 'min-h-14' : 'min-h-20'} ${gap}${CONTROL_CLASSES}`} />
           ) : secret ? (
             <input
               type="password"
@@ -57,10 +64,10 @@ export function Field({
               spellCheck={false}
               autoCapitalize="off"
               autoCorrect="off"
-              className={`min-h-[var(--control-height)] ${CONTROL_CLASSES}`}
+              className={`min-h-[var(--control-height)] ${gap}${CONTROL_CLASSES}`}
             />
           ) : (
-            <input className={`min-h-[var(--control-height)] ${CONTROL_CLASSES}`} />
+            <input className={`min-h-[var(--control-height)] ${gap}${CONTROL_CLASSES}`} />
           )
         }
         disabled={disabled}

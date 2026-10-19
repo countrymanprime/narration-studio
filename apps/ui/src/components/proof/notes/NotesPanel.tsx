@@ -169,9 +169,15 @@ export function NotesPanel({
         </h2>
         <div role="group" aria-label="Filter notes" className="flex flex-wrap gap-1.5">
           {NOTE_CHIPS.map(({ key, label }) => (
-            <Pill key={key} label={`${label} ${String(counts[key]).padStart(digits, FIGURE_SPACE)}`} active={chip === key} onClick={() => setChip(key)} />
+            <Pill
+              key={key}
+              look="filter"
+              label={`${label} ${String(counts[key]).padStart(digits, FIGURE_SPACE)}`}
+              active={chip === key}
+              onClick={() => setChip(key)}
+            />
           ))}
-          {narrow && <Pill label="In view" active={inView} onClick={() => setInView((on) => !on)} />}
+          {narrow && <Pill look="filter" label="In view" active={inView} onClick={() => setInView((on) => !on)} />}
         </div>
         <span className="flex-1" />
         <div className="flex items-center gap-1.5">

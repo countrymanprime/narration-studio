@@ -8,8 +8,9 @@ import { fixKindOf, savedMessage } from '../resolution';
 import { DecisionButtons } from './DecisionButtons';
 import { EvidenceChangedBanner } from './EvidenceChangedBanner';
 import { FindingThread, type FindingThreadApi } from './FindingThread';
-import { evidenceQuotes, parseMarkup, type MarkupNode } from './evidenceQuotes';
+import { evidenceQuotes } from './evidenceQuotes';
 import { InspectorActions, type InspectorActionsApi } from './InspectorActions';
+import { Markup } from './Markup';
 import { NoteSteps } from './NoteSteps';
 import { TrimGap, trimmableGap } from './TrimGap';
 import { useShownEvidence, type InspectorApi } from './useShownEvidence';
@@ -19,18 +20,6 @@ export type InspectorHostApi = InspectorApi & InspectorActionsApi & FindingThrea
 
 /** The counter shows only for the last stretch of the note's limit. */
 const COUNTER_FROM = MAX_REVIEW_NOTE_LENGTH - 100;
-
-function Markup({ nodes }: { nodes: MarkupNode[] }) {
-  return nodes.map((node, index) => {
-    if (typeof node === 'string') return node;
-    const Tag = node.tag;
-    return (
-      <Tag key={index} className={node.tag === 'b' || node.tag === 'del' || node.tag === 'ins' ? 'font-semibold' : undefined}>
-        <Markup nodes={node.children} />
-      </Tag>
-    );
-  });
-}
 
 function Quote({ label, markup, which }: { label: string; markup: string; which: 'script' | 'heard' }) {
   return (
@@ -43,7 +32,7 @@ function Quote({ label, markup, which }: { label: string; markup: string; which:
         {markup === '' ? (
           <span className="text-[var(--text-muted)]">{which === 'heard' ? 'Nothing heard' : 'Nothing in the script'}</span>
         ) : (
-          <Markup nodes={parseMarkup(markup)} />
+          <Markup source={markup} />
         )}
       </p>
     </>
@@ -132,7 +121,10 @@ export function Inspector({
       <DecisionButtons status={shown.review.status} fix={fix} disabled={inert} pendingStatus={saving} onDecide={(status) => void decide(status)} />
       <Field
         label="Note with the decision (optional)"
+        labelHidden
+        compact
         textarea
+        placeholder="Note with the decision (optional)"
         value={evidence.note}
         onChange={(value) => evidence.setNote([...value].slice(0, MAX_REVIEW_NOTE_LENGTH).join(''))}
         hint={noteLength >= COUNTER_FROM ? `${noteLength} of ${MAX_REVIEW_NOTE_LENGTH}` : undefined}

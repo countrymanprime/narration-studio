@@ -135,6 +135,7 @@ const SIZES: Record<string, number> = {
   'radius-tag': 3,
   'button-height': 36,
   'button-height-sm': 32,
+  'button-height-lg': 40,
   'row-height': 39,
   'header-row-height': 36,
   'font-size-base': 15,
