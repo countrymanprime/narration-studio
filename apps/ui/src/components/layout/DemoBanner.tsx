@@ -41,7 +41,8 @@ function HowToUseThisPage() {
 function PlayAnimationsSwitch() {
   const [on, setOn] = useState(readStoredPlay);
   return (
-    <span className="inline-flex rounded-full bg-[var(--surface)] px-2.5 py-0.5 text-[var(--text)]">
+    // A plate that keeps the switch legible on the accent banner; squared, so it does not read as a status pill (badgeShapes.test.ts).
+    <span className="inline-flex rounded-md bg-[var(--surface)] px-2.5 py-0.5 text-[var(--text)]">
       <Switch
         checked={on}
         onChange={(next) => {
