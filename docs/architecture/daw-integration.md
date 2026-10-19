@@ -98,13 +98,13 @@ instead of a second, possibly-drifting lookup. A portable REAPER install that ne
 false negative: the narrator can still use "Get REAPER" or their own copy, and nothing here blocks any feature on
 detection (see below).
 
-**The UI.** `Host.DawCatalogList()` returns the catalog plus each entry's live detection state; `Host.DawCatalogOpenDownloadPage(id)` looks the id up server-side in `dawcatalog.Catalog` and opens it with `openInBrowser` (`apps/desktop/wailsapp.go`) — the id, not a URL, crosses the Wails boundary, so nothing UI-supplied can pick an arbitrary destination (the same trusted-URL discipline `update.go`'s `openReleaseNotes` already uses for release notes). `DawCatalogPanel` (`apps/ui/src/components/settings/DawCatalogPanel.tsx`), shown in Settings' global-scope DAW Integration category:
+**The UI.** `Host.DawCatalogList()` returns the catalog plus each entry's live detection state; `Host.DawCatalogOpenDownloadPage(id)` looks the id up server-side in `dawcatalog.Catalog` and opens it with `openInBrowser` (`apps/desktop/wailsapp.go`) — the id, not a URL, crosses the Wails boundary, so nothing UI-supplied can pick an arbitrary destination (the same trusted-URL discipline `update.go`'s `openReleaseNotes` already uses for release notes). `DawCatalogPanel` (`apps/ui/src/components/settings/controls/EngineBody.tsx`), shown in Settings' global-scope DAW Integration category:
 
 - Lists each entry with a detected/not-detected dot and its publisher/licence line.
 - Offers a **"Get `<name>`"** button on an undetected entry, which opens the vendor's download page; the button
   disables and reads "Opening…" while the browser call is in flight, so a narrator cannot open two tabs.
 - Offers a **"Check again"** button that re-runs the same detection call the panel's mount already makes (one call
-  site, two triggers — the same pattern `LocalAssets`' mount-plus-"Try again" uses), reading "Checking…" and
+  site, two triggers — the same pattern `LocalAssets`' mount-plus-"Retry" uses), reading "Checking…" and
   disabled meanwhile, so a narrator who just installed a DAW sees it detected without leaving Settings.
 - Offers a **"Link a REAPER project file"** handoff button on a detected-but-not-yet-linked entry, which calls the
   one shared `linkDawFile()` action Settings' project-scoped DAW panel, and the audio engine panel

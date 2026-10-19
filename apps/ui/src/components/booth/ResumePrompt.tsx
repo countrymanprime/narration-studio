@@ -304,7 +304,7 @@ function PromptBody({
       <Actions
         buttons={
           <Button variant="secondary" onClick={onRetry}>
-            Try again
+            Retry
           </Button>
         }
       >

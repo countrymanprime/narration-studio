@@ -61,7 +61,7 @@ export function AnalysisToolsSection({ bare = false }: { bare?: boolean }) {
             >
               <span>The analysis tools could not be listed: {tools.loadError}</span>
               <Button variant="secondary" onClick={() => void tools.reload()}>
-                Try again
+                Retry
               </Button>
             </div>
           ) : (

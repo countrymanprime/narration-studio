@@ -102,7 +102,7 @@ describe('check-recordings-opens-from-pickups', () => {
 });
 
 describe('the-list-read-failing-and-going-stale', () => {
-  it('failed: says why the list could not be read and offers Check again, never "No pickups queued"', async () => {
+  it('failed: says why the list could not be read and offers Retry, never "No pickups queued"', async () => {
     let read: () => Promise<PickupList> = () => Promise.reject(new Error('the project folder is not reachable'));
     const again = vi.fn(() => read());
     renderPage(createMockApi({ pickupsList: again }));
@@ -111,7 +111,7 @@ describe('the-list-read-failing-and-going-stale', () => {
     expect(screen.queryByText('No pickups queued')).toBeNull();
     read = () => Promise.resolve(LIST);
     const before = again.mock.calls.length;
-    await userEvent.setup().click(within(alert).getByRole('button', { name: 'Check again' }));
+    await userEvent.setup().click(within(alert).getByRole('button', { name: 'Retry' }));
     expect(again.mock.calls.length).toBe(before + 1);
     await waitFor(() => expect(screen.getAllByRole('button', { name: 'Open in Booth at this line' }).length).toBeGreaterThan(0));
     expect(screen.queryByText('The pickup list could not be read')).toBeNull();
@@ -305,7 +305,7 @@ describe('narrator-walkthrough-fixes-2', () => {
     expect(write).not.toHaveBeenCalled();
   });
 
-  it('Check again shows it is working', async () => {
+  it('Retry shows it is working', async () => {
     let finish: () => void = () => {};
     let attempt = 0;
     renderPage(
@@ -313,9 +313,9 @@ describe('narrator-walkthrough-fixes-2', () => {
         pickupsList: () => (++attempt === 1 ? Promise.reject(new Error('nope')) : new Promise<PickupList>((resolve) => (finish = () => resolve(LIST)))),
       }),
     );
-    const again = await screen.findByRole('button', { name: 'Check again' });
+    const again = await screen.findByRole('button', { name: 'Retry' });
     await userEvent.setup().click(again);
-    await waitFor(() => expect(screen.getByRole('button', { name: 'Check again' }).getAttribute('aria-busy')).toBe('true'));
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Retry' }).getAttribute('aria-busy')).toBe('true'));
     finish();
   });
 });

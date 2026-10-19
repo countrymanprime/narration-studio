@@ -78,7 +78,7 @@ describe('a failed read says so, with a way forward', () => {
     expect(notify).not.toHaveBeenCalledWith(expect.stringContaining('Error: Error'), 'error');
   });
 
-  it('the types failing says so in the list panel, keeps the entries, and Check again reads the types again', async () => {
+  it('the types failing says so in the list panel, keeps the entries, and Retry reads the types again', async () => {
     const api = createMockApi();
     const types = vi.spyOn(api, 'guideTypes').mockRejectedValue(new Error('no answer'));
     mount(api);
@@ -88,18 +88,18 @@ describe('a failed read says so, with a way forward', () => {
     expect(rowNames()).toContain('Alice');
     expect(await screen.findByText(/Could not read which entries can speak/)).toBeTruthy();
     types.mockRestore();
-    await userEvent.click(within(note.closest('[role="status"]') as HTMLElement).getByRole('button', { name: 'Check again' }));
+    await userEvent.click(within(note.closest('[role="status"]') as HTMLElement).getByRole('button', { name: 'Retry' }));
     await vi.waitFor(() => expect(screen.queryByText(/Could not read the entry types/)).toBeNull());
   });
 
-  it('the chapters failing says so, and Check again reads them again', async () => {
+  it('the chapters failing says so, and Retry reads them again', async () => {
     const api = createMockApi();
     const chapters = vi.spyOn(api, 'manuscriptChapters').mockRejectedValue(new Error('no answer'));
     mount(api);
     await screen.findAllByText('Alice');
     const note = await screen.findByText(/Could not read the chapters/);
     chapters.mockRestore();
-    await userEvent.click(within(note.closest('[role="status"]') as HTMLElement).getByRole('button', { name: 'Check again' }));
+    await userEvent.click(within(note.closest('[role="status"]') as HTMLElement).getByRole('button', { name: 'Retry' }));
     await vi.waitFor(() => expect(screen.queryByText(/Could not read the chapters/)).toBeNull());
   });
 });

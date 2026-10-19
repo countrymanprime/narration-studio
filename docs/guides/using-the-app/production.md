@@ -258,7 +258,7 @@ If the evidence changes after you confirmed and a check that was met no longer i
 the evidence changed since you confirmed and offers **Revert**; nothing moves on its own. If the
 evidence changed while you were looking at it, Confirm and Dismiss are refused with a message and the
 readiness is read again. If it cannot be read at all, every chapter says **Couldn't check**, with
-the reason and **Try again** above the table.
+the reason and **Retry** above the table.
 
 ### Choose what a suggestion waits for
 

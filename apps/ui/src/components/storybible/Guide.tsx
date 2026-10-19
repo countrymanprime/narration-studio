@@ -138,7 +138,7 @@ function GuideLoaded({ notify, goToManuscript }: Pick<GuideProps, 'notify' | 'go
   // A suggestion with no entry yet, chosen from the loose rows above the entries: the detail shows its row instead of an entry.
   const [looseId, setLooseId] = useState<string | null>(null);
   const [chapters, setChapters] = useState<ManuscriptChapter[]>([]);
-  // A read of the chapters or the types that failed: said in the list panel with Check again, never dropped (the page works on without them).
+  // A read of the chapters or the types that failed: said in the list panel with Retry, never dropped (the page works on without them).
   const [chaptersFailed, setChaptersFailed] = useState(false);
   const [typesFailed, setTypesFailed] = useState(false);
   const [readNonce, setReadNonce] = useState(0);
