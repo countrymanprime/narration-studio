@@ -108,7 +108,7 @@ func (s *Service) SaveFindings() error {
 }
 
 // schemaVersion is the newest Story Bible file this host reads. The Python sidecar writes it (manuscript_guide.py SCHEMA_VERSION), and so
-// does the host for the commands it runs itself (editInHost, mutateInHost: an edit without aliases, a merge, an unmerge and a split among them),
+// does the host for the commands it runs itself (editInHost, mutateInHost: an edit without aliases, a merge, an unmerge, a split and a rescan among them),
 // which refuse a newer file instead of rewriting it.
 const schemaVersion = 2
 
@@ -554,10 +554,6 @@ func (s *Service) SetSpeakerColor(id string, index *int) error {
 	return s.mutateInHost(func(document map[string]any) (bool, error) { return speakerColor(document, id, value) })
 }
 
-func (s *Service) Rescan(id string) error {
-	_, err := s.Run("rescan", "--guide", s.guidePath(), "--manuscript", s.manuscript(), "--entity-id", id)
-	return err
-}
 func (s *Service) Create(name, category string, aliases []string) (string, error) {
 	return s.CreateDescribed(name, category, aliases, "")
 }
