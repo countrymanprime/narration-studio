@@ -123,6 +123,24 @@ textarea.input{height:60px;padding:8px 10px;resize:vertical}
 .side .vh{display:flex;gap:8px;align-items:center}
 .hint{color:var(--muted);font-size:12px;margin-top:6px}
 .live{background:var(--bad-soft);color:var(--bad);border-radius:6px;padding:4px 10px;font:600 12px var(--f-display);letter-spacing:.1em;text-transform:uppercase}
+
+/* In-page mark (draft 2026-10-19) */
+.script .dotbtn{all:unset;display:inline-grid;place-items:center;width:20px;height:20px;border-radius:50%;vertical-align:middle;cursor:pointer;margin-left:1px}
+.script .dotbtn::before{content:"";width:9px;height:9px;border-radius:50%;background:var(--spk)}
+.script .dotbtn:hover,.script .dotbtn:focus-visible,.script .dotbtn[aria-expanded="true"]{outline:2px solid var(--copper);outline-offset:0}
+.script .dotbtn[data-state="changed"]::before{background:none;border:2px solid var(--warn)}
+.script .dotbtn[data-state="missing"]::before{background:none;border:2px dashed var(--bad)}
+.script .dotbtn[data-state="narration"]::before{background:var(--muted)}
+.script .dotbtn[data-count]::before{content:attr(data-count);width:16px;height:16px;font:700 10px/16px var(--f-body);color:var(--copper-ink);text-align:center}
+.script .dotbtn[data-count]{background:none}
+.script .dotbtn[data-count]::before{background:var(--spk)}
+.script .rng{background:var(--copper-soft);border-radius:3px}
+.mpop{font:14px/1.45 var(--f-body);background:var(--surface);border:1px solid var(--line-strong);border-radius:10px;box-shadow:var(--shadow);padding:10px;width:320px;margin:4px 0 0 24px}
+.mpop .vh{display:flex;gap:8px;align-items:center}
+.mpop .vh b{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mpop .sub{color:var(--muted);font-size:13px}
+.mpop .acts{display:flex;gap:8px;margin-top:8px;flex-wrap:wrap}
+.mpop hr{border:0;border-top:1px solid var(--line);margin:8px 0}
 .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
 </style>
 </head>
@@ -197,6 +215,79 @@ textarea.input{height:60px;padding:8px 10px;resize:vertical}
   <div class="frame">
     <div class="cap"><b>Saved</b><span class="sub">Toast, 10 s</span></div>
     <div class="panel"><div class="pb row"><span class="pill ok">Saved</span><span>Saved voice sample for The Queen of Hearts.</span><span class="spacer"></span><button class="btn sm quiet" type="button">Undo</button></div></div>
+  </div>
+</div>
+
+<h2 style="margin:24px 0 8px">1b · Editing: the in-page mark <span class="pill warn">Draft 2026-10-19, not approved</span></h2>
+<p class="sub" style="margin:0 0 12px">A dot after the last word of a marked range (drawn in the first frame above) becomes a button. It adds no key of its own: <kbd>V</kbd> still marks, the dot is reached with <kbd>Tab</kbd> in reading order and opened with <kbd>Enter</kbd> or <kbd>Space</kbd>. Play uses the same one-at-a-time player as the Story Bible; Editing's own playback stops when a sample starts. The dot is read-only: rename, delete and move stay in the Story Bible.</p>
+<div class="grid">
+  <div class="frame">
+    <div class="cap"><b>Resting</b><span class="sub">One dot per sample, in the speaker's colour</span></div>
+    <div class="panel"><div class="pb">
+      <div class="script" aria-label="Chapter 3 script">
+        “Off with his head!” cried the Queen<button class="dotbtn" type="button" aria-label="Voice sample: The Queen of Hearts, Furious, to the court. Press Enter for details" aria-expanded="false"></button>, and the whole court fell silent. “Curiouser and curiouser<button class="dotbtn" type="button" aria-label="Voice sample: Alice, Wondering. Press Enter for details" aria-expanded="false" style="--spk:var(--info)"></button>,” said Alice. <span class="w">Nobody moved.</span>
+      </div>
+      <p class="hint">Hover or focus draws the sample's range behind its words. The dot is a 20 px target around a 9 px mark. A chapter with no samples draws no dots.</p>
+    </div></div>
+  </div>
+
+  <div class="frame">
+    <div class="cap"><b>Opened</b><span class="sub">Popover under the dot; Esc closes and returns focus to the dot</span></div>
+    <div class="panel"><div class="pb">
+      <div class="script">
+        “Off with his head!” cried the Queen<button class="dotbtn" type="button" aria-expanded="true" aria-label="Voice sample: The Queen of Hearts, Furious, to the court"></button>, and the whole court fell silent.
+      </div>
+      <div class="mpop" role="dialog" aria-label="Voice sample for The Queen of Hearts">
+        <div class="vh"><button class="ibtn" type="button" aria-label="Play voice sample" aria-pressed="false" data-play><svg><use href="#play"/></svg></button><b>The Queen of Hearts</b><span class="star" title="Primary">★</span></div>
+        <div class="sub" style="margin-top:4px">Furious, to the court · <span class="mono">6.8 s</span></div>
+        <div class="sub">How you did it: pitch up, clipped, no breaths</div>
+        <hr>
+        <div class="acts"><button class="btn sm quiet" type="button">Open in Story Bible</button></div>
+      </div>
+    </div></div>
+  </div>
+
+  <div class="frame">
+    <div class="cap"><b>Playing</b><span class="sub">Same player as the Story Bible</span></div>
+    <div class="panel"><div class="pb">
+      <div class="script">
+        “Off with his head!” cried the Queen<button class="dotbtn" type="button" aria-expanded="true" aria-label="Voice sample: The Queen of Hearts, Furious, to the court" style="outline:2px solid var(--copper)"></button>
+      </div>
+      <div class="mpop" role="dialog" aria-label="Voice sample for The Queen of Hearts">
+        <div class="vh"><button class="ibtn" type="button" aria-label="Stop voice sample" aria-pressed="true" data-play><svg><use href="#stop"/></svg></button><b>The Queen of Hearts</b><span class="pill neutral">Playing</span></div>
+        <div class="prog"><i style="width:42%"></i></div>
+        <p class="hint">Starting it stops Editing's playback; starting Editing's playback stops it. While a take records, play says “Not while recording. Stop the take first.”</p>
+      </div>
+    </div></div>
+  </div>
+
+  <div class="frame">
+    <div class="cap"><b>Stale and missing</b><span class="sub">Same words as the Story Bible badges</span></div>
+    <div class="panel"><div class="pb">
+      <div class="script">
+        “Off with his head!”<button class="dotbtn" type="button" data-state="changed" aria-label="Voice sample: Alice, Whispering. The words changed since it was marked. Press Enter for details" aria-expanded="false"></button> Then <span class="w">the King</span> spoke<button class="dotbtn" type="button" data-state="missing" aria-label="Voice sample: The Hatter, Laughing. The audio file is missing. Press Enter for details" aria-expanded="false"></button>.
+      </div>
+      <div class="mpop" role="dialog" aria-label="Voice sample for The Hatter">
+        <div class="vh"><button class="ibtn" type="button" aria-label="Play voice sample" aria-disabled="true"><svg><use href="#play"/></svg></button><b>The Hatter</b><span class="pill bad">Audio file missing</span></div>
+        <div class="sub" style="margin-top:4px">Laughing</div>
+        <div class="acts"><button class="btn sm quiet" type="button">Open in Story Bible</button></div>
+      </div>
+      <p class="hint">Hollow warn ring: <span class="pill warn">Passage changed</span> (still plays; the dot sits where the words now are, or at the chapter start if they are gone). Dashed red ring: the clip is missing or changed; play is off and the Story Bible has <b>Check again</b> and <b>Delete</b>.</p>
+    </div></div>
+  </div>
+
+  <div class="frame">
+    <div class="cap"><b>Several, and Narration</b><span class="sub">A count when samples end on the same word</span></div>
+    <div class="panel"><div class="pb">
+      <div class="script">
+        “…and the whole court fell silent<button class="dotbtn" type="button" data-count="2" aria-label="2 voice samples end here. Press Enter for the list" aria-expanded="false"></button>.” It was the end of the trial<button class="dotbtn" type="button" data-state="narration" aria-label="Voice sample: Narration, Closing line. Press Enter for details" aria-expanded="false"></button>.
+      </div>
+      <div class="mpop" role="dialog" aria-label="2 voice samples end here">
+        <div class="opt"><button class="ibtn" type="button" aria-label="Play voice sample for The Queen of Hearts" aria-pressed="false" data-play><svg><use href="#play"/></svg></button><span class="n">The Queen of Hearts</span><span class="s">Furious · 6.8 s</span></div>
+        <div class="opt"><button class="ibtn" type="button" aria-label="Play voice sample for The King" aria-pressed="false" data-play><svg><use href="#play"/></svg></button><span class="n">The King</span><span class="s">Hushed · 3.1 s</span></div>
+      </div>
+      <p class="hint">Narration's dot is grey. Labels that are long, right-to-left or emoji truncate in the popover and are read in full by the dot's accessible name.</p>
+    </div></div>
   </div>
 </div>
 
