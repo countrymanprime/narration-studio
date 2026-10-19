@@ -50,8 +50,8 @@ added `ManuscriptGuide.default_pronunciation_source` (Settings > Voice & pronunc
 original CMU-then-Wiktionary-then-eSpeak order) or one of the three source names. It only **reorders** the automatic
 fallback to try the narrator's preferred source first — the rest of the chain still runs if that source has nothing
 for a name — and never limits the entity/alias Generate/Replace control's own explicit per-name choice.
-`apps/desktop/internal/guide/service.go` passes it to the sidecar's `build`, `create`, and an `edit` that adds an
-alias; it is left off the command line entirely while unset, so an untouched project's command line is unchanged.
+`apps/desktop/internal/guide/service.go` passes it to the sidecar's `build` and `pronunciation-lookup` (the pronunciations of a
+create's names and of the aliases an edit adds); it is left off the command line entirely while unset, so an untouched project's command line is unchanged.
 
 ## Open, owner-only item
 

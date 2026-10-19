@@ -1,0 +1,44 @@
+{
+  "line": {
+    "pronunciations": [
+      {
+        "confidence": "unknown",
+        "ipa": "",
+        "source": "not generated"
+      },
+      {
+        "confidence": "low",
+        "ipa": "/name 1/",
+        "source": "espeak"
+      },
+      {
+        "confidence": "medium",
+        "ipa": "/name 2/",
+        "source": "cmu"
+      },
+      {
+        "confidence": "medium",
+        "ipa": "/name 4/",
+        "source": "wiktextract"
+      },
+      {
+        "confidence": "unknown",
+        "ipa": "",
+        "source": "not generated"
+      },
+      {
+        "confidence": "low",
+        "ipa": "/דוד/",
+        "source": "espeak"
+      }
+    ]
+  },
+  "names": [
+    "Name 0",
+    "Name 1",
+    "Name 2",
+    "Name 4",
+    "Zoë 😀",
+    "דוד"
+  ]
+}

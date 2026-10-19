@@ -202,3 +202,57 @@ class CandidateCommandTests(unittest.TestCase):
 
     def test_an_automatic_build_records_the_registry_name_it_used(self):
         self.assertEqual("cmu", guide.pronunciation("hello", None)["source"])
+
+
+class PronunciationLookupCommandTests(unittest.TestCase):
+    def _run(self, *names, default_source=""):
+        import contextlib
+        import io
+
+        out = io.StringIO()
+        with contextlib.redirect_stdout(out):
+            guide.pronunciation_lookup(argparse.Namespace(name=list(names), espeak_library="", wiktextract_index="", default_source=default_source))
+        lines = out.getvalue().splitlines()
+        self.assertEqual(1, len(lines))
+        return json.loads(lines[0])
+
+    def test_it_answers_the_whole_value_of_pronunciation_for_each_name_in_order(self):
+        answers = {"Ann": {"ipa": "æn", "source": "cmu", "confidence": "medium"}, "Zzyzx": {"ipa": "", "source": "not generated", "confidence": "unknown"}}
+        with patch.object(guide, "pronunciation", side_effect=lambda name, *_: dict(answers[name])) as lookup:
+            result = self._run("Zzyzx", "Ann", "Zzyzx")
+        self.assertEqual({"pronunciations": [answers["Zzyzx"], answers["Ann"], answers["Zzyzx"]]}, result)
+        self.assertEqual(["Zzyzx", "Ann", "Zzyzx"], [call.args[0] for call in lookup.call_args_list])
+
+    def test_the_settings_default_source_goes_to_the_lookup_and_none_when_unset(self):
+        with patch.object(guide, "pronunciation", return_value={}) as lookup:
+            self._run("Ann", default_source="espeak")
+            self._run("Ann")
+        self.assertEqual("espeak", lookup.call_args_list[0].args[2])
+        self.assertIsNone(lookup.call_args_list[1].args[2])
+
+    def test_a_name_no_source_knows_is_not_generated_and_not_an_error(self):
+        with patch.object(guide.SOURCES, "fallback_order", return_value=[]):
+            self.assertEqual({"pronunciations": [{"ipa": "", "source": "not generated", "confidence": "unknown"}]}, self._run("Zzyzx"))
+
+    def test_non_ascii_names_come_back_as_themselves(self):
+        with patch.object(guide, "pronunciation", side_effect=lambda name, *_: {"ipa": name, "source": "cmu", "confidence": "medium"}):
+            names = ["Zoë 😀", "דוד", "محمد"]
+            self.assertEqual(names, [value["ipa"] for value in self._run(*names)["pronunciations"]])
+
+    def test_it_reads_and_writes_no_guide(self):
+        with (
+            patch.object(guide, "pronunciation", return_value={}),
+            patch.object(guide, "write_json", side_effect=AssertionError("wrote")),
+            patch.object(guide, "load_json", side_effect=AssertionError("read")),
+        ):
+            self._run("Ann")
+
+    def test_the_command_is_registered_and_a_dash_name_is_a_value(self):
+        with patch("sys.argv", ["g", "pronunciation-lookup", "--name=-brave", "--name", "Ann"]), patch.object(guide, "pronunciation_lookup") as run:
+            guide.main()
+        run.assert_called_once()
+        self.assertEqual(["-brave", "Ann"], run.call_args.args[0].name)
+
+    def test_a_name_is_required(self):
+        with patch("sys.argv", ["g", "pronunciation-lookup"]), patch("sys.stderr"), self.assertRaises(SystemExit):
+            guide.main()

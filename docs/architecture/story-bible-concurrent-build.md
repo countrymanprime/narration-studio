@@ -35,8 +35,11 @@ narrator who always builds right after importing gets it without a second manual
   processes with no lock, so seeding always finishes before a build starts.
 - **The host's edits are locked against each other only.** The edits the host applies itself (`editInHost`, `mutateInHost`
   in `apps/desktop/internal/guide`) take `guide.Service`'s `editMu`, so two of them never overlap. `Service.Run`, which
-  starts the sidecar for a build, a pronunciation lookup or an alias edit, does not take it: holding it for a
-  sidecar run would block every Save for the length of a build. An edit made while a sidecar command is running can
+  starts the sidecar for a build or a pronunciation, does not take it: holding it for a
+  sidecar run would block every Save for the length of a build. A create and an alias edit ask the sidecar for the
+  pronunciations of the names they add (`pronunciation-lookup`) between two passes over the file and do not hold the
+  lock while they wait (`withPronunciations`), for the same reason; the second pass reads the file again, so a build that
+  wrote meanwhile is not written over. An edit made while a sidecar command is running can
   therefore be overwritten by that command, as two sidecar commands could overwrite each other before edits moved to the
   host. The host sees the sidecar's write on its next edit, because it compares the file's bytes with the ones it holds.
 

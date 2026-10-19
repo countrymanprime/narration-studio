@@ -5,7 +5,6 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
-	"runtime"
 	"slices"
 	"strings"
 	"testing"
@@ -16,18 +15,10 @@ import (
 )
 
 // recordingSidecar is a fake sidecar process: it appends its arguments, one command per line with the parts joined by a unit separator,
-// to a log file and prints what a create prints.
+// to a log file and answers a pronunciation lookup (lookupSidecar).
 func recordingSidecar(t *testing.T, root string) (program, log string) {
 	t.Helper()
-	if runtime.GOOS == "windows" {
-		t.Skip("the fake sidecar is a shell script")
-	}
-	log = filepath.Join(root, "calls.log")
-	program = filepath.Join(root, "fake-guide")
-	script := "#!/bin/sh\nIFS=\"$(printf '\\037')\"\necho \"$*\" >> '" + log + "'\nif [ \"$1\" = create ]; then echo 'CREATED|new-id'; fi\n"
-	if err := os.WriteFile(program, []byte(script), 0o700); err != nil {
-		t.Fatal(err)
-	}
+	program, log, _ = lookupSidecar(t, root)
 	return program, log
 }
 
@@ -97,9 +88,9 @@ func TestExtractionBibleReadsEntriesAndCues(t *testing.T) {
 	}
 }
 
-// The apply step writes through the Story Bible's own commands. Creating an entry and changing its names still start the sidecar (a new
-// name needs a pronunciation); the properties, the relationship, the review flags, the cue correction and the deletion are applied by the
-// host (editInHost, mutateInHost) and are checked in the file.
+// The apply step writes through the Story Bible's own commands. The host writes all of them; creating an entry asks the sidecar for the
+// pronunciations of its names (one process), and changing the names to ones the entry has asks for none. The properties, the relationship,
+// the review flags, the cue correction and the deletion are checked in the file.
 func TestExtractionBibleWritesThroughTheStoryBibleCommands(t *testing.T) {
 	s, log := newExtractionService(t)
 	writeBible(t, s, []any{
@@ -108,12 +99,13 @@ func TestExtractionBibleWritesThroughTheStoryBibleCommands(t *testing.T) {
 		map[string]any{"id": "mill", "canonical_name": "The Mill", "category": "Place", "aliases": []any{}},
 		map[string]any{"id": "brook", "canonical_name": "Brook", "category": "Place", "aliases": []any{}},
 	}, []any{map[string]any{"id": "c1", "speaker_entity_id": nil, "speaker_source": "unknown", "corrected": false}})
+	writeManuscript(t, s, manuscriptOf("The stream ran past the Brook."))
 	b := s.ExtractionBible()
-	if id, err := b.Create("Brook", "Place", []string{"the stream"}, "A stream."); err != nil || id != "new-id" {
+	if id, err := b.Create("Brook", "Place", []string{"the stream"}, "A stream."); err != nil || id != entityID("Brook") {
 		t.Fatalf("%q %v", id, err)
 	}
 	steps := []error{
-		b.SetAliases("wren", []string{"Little Wren"}),
+		b.SetAliases("wren", []string{"Little Wren", "W"}),
 		b.SetProperties("wren", []apply.Property{{Key: "Says", Value: "Hold the door."}}),
 		b.Relate("wren", "mill", "works at"),
 		b.Flag("wren", "Little Wren"),
@@ -131,17 +123,17 @@ func TestExtractionBibleWritesThroughTheStoryBibleCommands(t *testing.T) {
 	for _, c := range calls(t, log) {
 		verbs = append(verbs, c[0])
 	}
-	if want := []string{"create", "edit"}; !slices.Equal(verbs, want) {
+	if want := []string{"pronunciation-lookup"}; !slices.Equal(verbs, want) {
 		t.Fatalf("sidecar commands = %v, want %v", verbs, want)
 	}
-	if all := calls(t, log); !slices.Contains(all[1], "--value=Little Wren") {
-		t.Fatalf("alias edit: %v", all[1])
+	if all := calls(t, log); !slices.Equal(all[0][1:], []string{"--name=Brook", "--name=the stream"}) {
+		t.Fatalf("the create's lookup: %v", all[0])
 	}
 	entities, err := s.Entities()
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(entities) != 2 {
+	if len(entities) != 3 { // Wren, The Mill and the Brook the create made; the Brook the file had is deleted
 		t.Fatalf("entries after deleting Brook = %d", len(entities))
 	}
 	wren := entities[0]

@@ -26,15 +26,30 @@ var errNoGuide = errors.New("Guide file does not exist; build it first.") //noli
 // new Story Bible for (typesInHost). A file that is there but is not a JSON object is errNoGuide alone.
 var errNoFile = fmt.Errorf("%w", errNoGuide)
 
-// editInHost is manuscript_guide.py `edit` for every field but "aliases" (locked, description, personality, context, properties,
-// category, canonical_name; a new alias needs a pronunciation lookup and the manuscript, so that stays in the sidecar). Every field is
-// applied to a copy of the entity, in name order (the order editArgs sends them to the sidecar); only when all of them are accepted does
-// the copy replace the entity, marked reviewed, and the file get written, once. So a refused field leaves the file, and the held
+// editInHost is manuscript_guide.py `edit` (locked, description, personality, context, properties, category, canonical_name and aliases).
+// Every field is applied to a copy of the entity, in name order (the order the sidecar is given them); only when all of them are accepted
+// does the copy replace the entity, marked reviewed, and the file get written, once. So a refused field leaves the file, and the held
 // document, exactly as they were. A file from a newer schema is refused, never rewritten.
+//
+// A new alias needs a pronunciation, which only the sidecar can give: it is asked for between two passes over the file, not while the
+// host holds it (withPronunciations, create.go). The alias search reads the manuscript, which is refused when it cannot be read, before
+// any field is applied, as the sidecar does.
 //
 // Edits are serialized by editMu. A sidecar command that rewrites the file at the same time (a build) is not; the host sees what it
 // wrote on the next edit (heldDocument), and an edit made while it runs can still be overwritten by it, as before this edit moved here.
 func (s *Service) editInHost(id string, values map[string]string) error {
+	if _, editsAliases := values["aliases"]; !editsAliases {
+		return s.editOnce(id, values, nil)
+	}
+	edit := &aliasEdit{}
+	return s.withPronunciations(func(known pronunciations) error {
+		edit.pronounce = &pronouncer{known: known}
+		return s.editOnce(id, values, edit)
+	})
+}
+
+// editOnce is one pass of editInHost. edit is nil when no alias is edited.
+func (s *Service) editOnce(id string, values map[string]string, edit *aliasEdit) error {
 	s.editMu.Lock()
 	defer s.editMu.Unlock()
 	document, err := s.documentForEdit()
@@ -44,6 +59,11 @@ func (s *Service) editInHost(id string, values map[string]string) error {
 	index, entity, err := findEntity(document, id)
 	if err != nil {
 		return err
+	}
+	if edit != nil {
+		if err := edit.load(s.manuscript()); err != nil {
+			return err
+		}
 	}
 	categories, err := documentTypeNames(document)
 	if err != nil {
@@ -56,8 +76,13 @@ func (s *Service) editInHost(id string, values map[string]string) error {
 	slices.Sort(fields)
 	changed, _ := deepCopy(entity).(map[string]any)
 	for _, field := range fields {
-		if err := applyEdit(changed, field, values[field], categories); err != nil {
+		if err := applyEdit(changed, field, values[field], categories, edit); err != nil {
 			return err
+		}
+	}
+	if edit != nil {
+		if err := edit.pronounce.need(); err != nil {
+			return err // nothing was changed: the pass runs again with the answers
 		}
 	}
 	changed["review_state"] = "reviewed"
@@ -207,8 +232,9 @@ func documentTypeNames(document map[string]any) ([]string, error) {
 	return names, nil
 }
 
-// applyEdit is manuscript_guide.py apply_edit for one field editInHost takes; any other field is refused, as the sidecar refuses it.
-func applyEdit(entity map[string]any, field, value string, categories []string) error {
+// applyEdit is manuscript_guide.py apply_edit for one field; any other field is refused, as the sidecar refuses it. edit is nil when the
+// edit has no aliases: then "aliases" is not a field it can take.
+func applyEdit(entity map[string]any, field, value string, categories []string, edit *aliasEdit) error {
 	if truthy(entity["locked"]) && field != "locked" {
 		return errors.New("This entity is locked. Unlock it before editing.") //nolint:staticcheck // the sidecar's own words, shown to the narrator
 	}
@@ -242,6 +268,11 @@ func applyEdit(entity map[string]any, field, value string, categories []string) 
 		entity["category"] = value
 	case "canonical_name":
 		entity["canonical_name"] = value
+	case "aliases":
+		if edit == nil {
+			return errors.New("Unsupported editable field.") //nolint:staticcheck // the sidecar's own words, shown to the narrator
+		}
+		applyAliases(entity, value, edit)
 	default:
 		return errors.New("Unsupported editable field.") //nolint:staticcheck // the sidecar's own words, shown to the narrator
 	}

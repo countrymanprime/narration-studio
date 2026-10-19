@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"os"
 	"path/filepath"
-	"slices"
 	"testing"
 
 	"github.com/countrymanprime/narration-utils/shell/internal/process"
@@ -66,26 +65,41 @@ func TestEntitiesRejectPropertiesThatAreNotAList(t *testing.T) {
 	}
 }
 
-func TestEditSendsThePropertiesAsOneJSONValue(t *testing.T) {
-	s := serviceWithRawGuide(t, `{"entities":[]}`)
-	value := `[{"key":"Codename","value":"-Wren"}]`
-	args := s.editArgs("entity-1", map[string]string{"properties": value})
-	if !slices.Contains(args, "properties") || !slices.Contains(args, "--value="+value) {
-		t.Fatalf("edit arguments must carry the properties as one --value: %#v", args)
+// The host writes the properties itself, in the order they were given, and a value that starts with a dash is a value.
+func TestEditWritesThePropertiesAsGivenAndCreateDoes(t *testing.T) {
+	s := hostEditService(t)
+	writeStart(t, s, `{"schema_version":2,"entities":[{"id":"entity-1","canonical_name":"Al","aliases":[],"category":"Character"}]}`)
+	value := `[{"key":"Codename","value":"-Wren"},{"key":"Abilities","value":"Flight"}]`
+	if err := s.Edit("entity-1", "properties", value); err != nil {
+		t.Fatal(err)
 	}
-}
-
-func TestCreateSendsPropertiesOnlyWhenThereAreSome(t *testing.T) {
-	s := serviceWithRawGuide(t, `{"entities":[]}`)
-	none := s.createArgs("Juno", "Character", nil, "", nil)
-	for _, arg := range none {
-		if len(arg) >= 12 && arg[:12] == "--properties" {
-			t.Fatalf("create without properties must not send the flag: %#v", none)
+	writeManuscript(t, s, manuscriptOf("Juno sat."))
+	s.lookup = func(names []string) ([]map[string]any, error) {
+		values := make([]map[string]any, len(names))
+		for index := range values {
+			values[index] = map[string]any{"ipa": "", "source": "not generated", "confidence": "unknown"}
 		}
+		return values, nil
 	}
-	some := s.createArgs("Juno", "Character", nil, "", []Property{{Key: "Codename", Value: "Wren"}, {Key: "Abilities", Value: "Flight, sleight of hand"}})
-	const want = `--properties=[{"key":"Codename","value":"Wren"},{"key":"Abilities","value":"Flight, sleight of hand"}]`
-	if !slices.Contains(some, want) {
-		t.Fatalf("create arguments = %#v, want %q among them", some, want)
+	id, err := s.CreateFull("Juno", "Character", nil, "", []Property{{Key: "Codename", Value: "-Wren"}, {Key: "Abilities", Value: "Flight, sleight of hand"}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	entities, err := s.Entities()
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, entity := range entities {
+		encoded, _ := json.Marshal(entity["properties"])
+		switch entity["id"] {
+		case "entity-1":
+			if string(encoded) != `[{"key":"Codename","value":"-Wren"},{"key":"Abilities","value":"Flight"}]` {
+				t.Errorf("edited properties = %s", encoded)
+			}
+		case id:
+			if string(encoded) != `[{"key":"Codename","value":"-Wren"},{"key":"Abilities","value":"Flight, sleight of hand"}]` {
+				t.Errorf("created properties = %s", encoded)
+			}
+		}
 	}
 }

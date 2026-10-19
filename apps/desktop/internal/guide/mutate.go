@@ -47,7 +47,10 @@ func (s *Service) changeInHost(start bool, change func(document map[string]any) 
 	}
 	write, err := change(document)
 	if err != nil {
-		s.held = nil
+		var need *needPronunciations
+		if !errors.As(err, &need) { // a pass that asks for pronunciations has changed nothing: the held copy is as it was
+			s.held = nil
+		}
 		return err
 	}
 	if !write {
