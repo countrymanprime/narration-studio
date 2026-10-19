@@ -13,6 +13,8 @@
 //   loading                        'the choice is off until the project's recorder is known'
 //   test sound                     'Test sound plays on the chosen output', 'a failing output says so and the tone still plays on the default'
 //   re-read on focus               'the list is read again when the window gets focus'
+//   unplugged or plugged in        'the list follows the computer's own device changes without a focus event'
+//   Test sound pressed again       'pressing Test sound again stops the tone before it and starts a new one'
 //   refused save                   not tested here: the host's refusal of a text value is the store's (SettingsStore tests)
 //   recording                      not built: Settings has no recorder state; the player's own guard refuses a sample while a take records
 //   reload, leave mid-action       not tested: the row holds no state the host keeps
@@ -33,12 +35,14 @@ type Device = { kind: string; deviceId: string; label: string };
 const out = (deviceId: string, label: string): Device => ({ kind: 'audiooutput', deviceId, label });
 
 let devices: Device[];
+let mediaDevices: EventTarget & { enumerateDevices: () => Promise<Device[]> };
 let setSinkId: ReturnType<typeof vi.fn>;
 let play: ReturnType<typeof vi.fn>;
 
 beforeEach(() => {
   devices = [out('default', 'Default - Speakers'), out('a1', 'Speakers (Realtek)'), out('b2', 'Headphones (Focusrite USB Audio)')];
-  vi.stubGlobal('navigator', { ...navigator, mediaDevices: { enumerateDevices: vi.fn(async () => devices) } });
+  mediaDevices = Object.assign(new EventTarget(), { enumerateDevices: vi.fn(async () => devices) });
+  vi.stubGlobal('navigator', { ...navigator, mediaDevices });
   setSinkId = vi.fn(async () => undefined);
   play = vi.fn(async () => undefined);
   const proto = HTMLMediaElement.prototype as unknown as Record<string, unknown>;
@@ -181,6 +185,31 @@ describe('Voice sample output: following "Record with"', () => {
   });
 });
 
+describe('Voice sample output: device changes', () => {
+  it("the list follows the computer's own device changes without a focus event", async () => {
+    const api = createMockApi({}, { recording: { engine: 'builtin' } });
+    await api.saveSettings('VoiceSamples', 'project', { output_device: 'USB DAC' });
+    devices = [...devices, out('d4', 'USB DAC')];
+    await renderRow(api);
+    await waitFor(async () => expect((await picker()).value).toBe('USB DAC'));
+    expect(within(row()).queryByRole('alert')).toBeNull();
+    devices = devices.filter((d) => d.label !== 'USB DAC');
+    act(() => void mediaDevices.dispatchEvent(new Event('devicechange')));
+    await within(row()).findByText(/USB DAC is not connected/);
+    devices = [...devices, out('d5', 'USB DAC')];
+    act(() => void mediaDevices.dispatchEvent(new Event('devicechange')));
+    await waitFor(() => expect(within(row()).queryByRole('alert')).toBeNull());
+  });
+
+  it('stops listening when the row goes away', async () => {
+    const remove = vi.spyOn(mediaDevices, 'removeEventListener');
+    await renderRow();
+    await picker();
+    cleanup();
+    expect(remove).toHaveBeenCalledWith('devicechange', expect.any(Function));
+  });
+});
+
 describe('Voice sample output: a DAW is connected', () => {
   it('with a DAW the row is a sentence and a test sound, and has no choice', async () => {
     await renderRow(createMockApi({}, { recording: { engine: 'daw' } }));
@@ -211,6 +240,21 @@ describe('Voice sample output: test sound', () => {
     fireEvent.click(within(row()).getByRole('button', { name: 'Test sound' }));
     await waitFor(() => expect(toast).toHaveBeenCalledWith('Could not play on Speakers (Realtek). Choose another output or use the system default.'));
     expect(play).toHaveBeenCalledTimes(1);
+  });
+
+  it('pressing Test sound again stops the tone before it and starts a new one', async () => {
+    const pause = vi.fn();
+    (HTMLMediaElement.prototype as unknown as Record<string, unknown>).pause = pause;
+    await renderRow();
+    await picker();
+    const press = () => fireEvent.click(within(row()).getByRole('button', { name: 'Test sound' }));
+    press();
+    await waitFor(() => expect(play).toHaveBeenCalledTimes(1));
+    // An earlier test's tone may still be the current one (jsdom never ends a sound): only what the second press does is counted.
+    pause.mockClear();
+    press();
+    await waitFor(() => expect(play).toHaveBeenCalledTimes(2));
+    expect(pause).toHaveBeenCalledTimes(1);
   });
 
   it('with a DAW the test sound is on the default output', async () => {

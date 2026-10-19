@@ -59,9 +59,16 @@ export function SampleOutputBody() {
     listAudioOutputs().then((result) => setListing({ phase: 'ready', checkedAt: Date.now(), ...result }));
   }, []);
   useEffect(load, [load]);
+  // The list is read again when the window gets focus and whenever the computer says an output came or went, so an unplugged speaker is noticed
+  // without the narrator leaving the window.
   useEffect(() => {
     window.addEventListener('focus', load);
-    return () => window.removeEventListener('focus', load);
+    const devices = typeof navigator !== 'undefined' ? navigator.mediaDevices : undefined;
+    devices?.addEventListener?.('devicechange', load);
+    return () => {
+      window.removeEventListener('focus', load);
+      devices?.removeEventListener?.('devicechange', load);
+    };
   }, [load]);
 
   const outputs = listing.phase === 'ready' && listing.status === 'ok' ? listing.outputs : [];
@@ -89,8 +96,8 @@ export function SampleOutputBody() {
 
   if (engine === 'daw' && hasProject) {
     return (
-      <div className="flex flex-col items-start gap-2">
-        <p className="m-0 max-w-[52ch] text-sm">{DAW_SENTENCE}</p>
+      <div className="flex max-w-full min-w-0 flex-col items-start gap-2">
+        <p className="m-0 max-w-full text-sm break-words sm:max-w-[52ch]">{DAW_SENTENCE}</p>
         <div className="flex items-center gap-2">
           {testButton}
           <span className="text-[0.8125rem] text-[var(--text-muted)]">Plays on the default output</span>
@@ -101,22 +108,28 @@ export function SampleOutputBody() {
 
   const unavailable = listing.phase === 'ready' && listing.status === 'unavailable' ? listing.message : undefined;
   return (
-    <div className="flex flex-col items-start gap-2">
+    <div className="flex max-w-full min-w-0 flex-col items-start gap-2">
       {unavailable && (
-        <p role="alert" className="m-0 max-w-[52ch] rounded-[var(--radius-card)] bg-[var(--danger-soft)] px-3 py-2 text-sm text-[var(--danger-text)]">
+        <p
+          role="alert"
+          className="m-0 max-w-full rounded-[var(--radius-card)] bg-[var(--danger-soft)] px-3 py-2 text-sm break-words text-[var(--danger-text)] sm:max-w-[52ch]"
+        >
           {unavailable}
         </p>
       )}
       {missing && (
-        <p role="alert" className="m-0 max-w-[52ch] rounded-[var(--radius-card)] bg-[var(--warn-soft)] px-3 py-2 text-sm text-[var(--warn-text)]">
+        <p
+          role="alert"
+          className="m-0 max-w-full rounded-[var(--radius-card)] bg-[var(--warn-soft)] px-3 py-2 text-sm break-words text-[var(--warn-text)] sm:max-w-[52ch]"
+        >
           {value} is not connected. Voice samples play on the system default until it is back.
         </p>
       )}
-      <div className="flex max-w-full flex-wrap items-center gap-2">
+      <div className="flex max-w-full min-w-0 flex-wrap items-center gap-2">
         <Select
           label="Voice sample output"
           id={`set-${row.id}`}
-          className="max-w-full"
+          className="max-w-full min-w-0"
           value={unavailable ? '' : value}
           onChange={choose}
           disabled={unavailable !== undefined || engine === undefined || !hasProject}
@@ -133,9 +146,9 @@ export function SampleOutputBody() {
         {listing.phase === 'loading' && <span className="text-[0.8125rem] text-[var(--text-muted)]">Looking for outputs…</span>}
       </div>
       {!hasProject && <span className="text-[0.8125rem] text-[var(--text-muted)]">Open a project to choose where its voice samples play.</span>}
-      <span className="max-w-[52ch] text-[0.8125rem] text-[var(--text-muted)]">{NOTE}</span>
+      <span className="max-w-full text-[0.8125rem] break-words text-[var(--text-muted)] sm:max-w-[52ch]">{NOTE}</span>
       {missing && listing.phase === 'ready' && (
-        <span className="max-w-[52ch] text-[0.8125rem] text-[var(--text-muted)]">
+        <span className="max-w-full text-[0.8125rem] break-words text-[var(--text-muted)] sm:max-w-[52ch]">
           Last checked {new Date(listing.checkedAt).toLocaleTimeString()}. The list is read again when you open Settings, when the window gets focus, and while
           this notice is up.
         </span>

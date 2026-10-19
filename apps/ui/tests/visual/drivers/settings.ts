@@ -12,6 +12,29 @@ async function openUpdates(page: Page, seed: string): Promise<void> {
   await page.getByRole('region', { name: 'This version' }).evaluate((panel) => panel.scrollIntoView({ block: 'start' }));
 }
 
+/**
+ * Settings > Recording & DAW with the built-in recorder chosen on a computer that names `outputs`, and the Voice sample output row on screen with
+ * `choose` picked. The suite's browser names no outputs of its own (or its own, by machine), so the list is fixed before the page loads.
+ */
+async function openSampleOutput(page: Page, outputs: string[], choose: string): Promise<void> {
+  await page.addInitScript((labels) => {
+    const list = [
+      { kind: 'audiooutput', deviceId: 'default', label: 'Default - Speakers' },
+      ...labels.map((label, i) => ({ kind: 'audiooutput', deviceId: `out${i}`, label })),
+    ];
+    Object.defineProperty(navigator.mediaDevices, 'enumerateDevices', { value: async () => list, configurable: true });
+  }, outputs);
+  await openSettings(page, undefined, '?mockDawExperimentalOn=1');
+  await page.getByRole('radio', { name: /^Built-in recorder/ }).click();
+  await page
+    .getByRole('radio', { name: /^Built-in recorder/ })
+    .and(page.locator('[aria-checked="true"]'))
+    .waitFor();
+  const row = await showSettingsRow(page, 'daw.sampleOutput');
+  await row.getByRole('combobox', { name: 'Voice sample output' }).selectOption(choose);
+  await row.getByRole('button', { name: 'Refresh the list' }).waitFor();
+}
+
 /** Brings the connection card under Record with to the top of the page area, where the engine's state and its actions are. */
 async function showConnection(page: Page): Promise<void> {
   const card = page.getByRole('group', { name: 'Connection' });
@@ -89,24 +112,12 @@ export const settingsDrivers: Record<string, Driver> = {
     await row.getByText("Voice samples play on this computer's default output.", { exact: false }).waitFor();
   },
   'recording-sample-output-builtin': async (page) => {
-    // A computer with two named outputs: the suite's browser would name none (or its own), so the list is fixed before the page loads.
-    await page.addInitScript(() => {
-      const outputs = [
-        { kind: 'audiooutput', deviceId: 'default', label: 'Default - Speakers' },
-        { kind: 'audiooutput', deviceId: 'a1', label: 'Speakers (Realtek)' },
-        { kind: 'audiooutput', deviceId: 'b2', label: 'Headphones (Focusrite USB Audio)' },
-      ];
-      Object.defineProperty(navigator.mediaDevices, 'enumerateDevices', { value: async () => outputs, configurable: true });
-    });
-    await openSettings(page, undefined, '?mockDawExperimentalOn=1');
-    await page.getByRole('radio', { name: /^Built-in recorder/ }).click();
-    await page
-      .getByRole('radio', { name: /^Built-in recorder/ })
-      .and(page.locator('[aria-checked="true"]'))
-      .waitFor();
-    const row = await showSettingsRow(page, 'daw.sampleOutput');
-    await row.getByRole('combobox', { name: 'Voice sample output' }).selectOption('Headphones (Focusrite USB Audio)');
-    await row.getByRole('button', { name: 'Refresh the list' }).waitFor();
+    await openSampleOutput(page, ['Speakers (Realtek)', 'Headphones (Focusrite USB Audio)'], 'Headphones (Focusrite USB Audio)');
+  },
+  'recording-sample-output-long-name': async (page) => {
+    // An interface that names itself at length, and one in Arabic with an emoji: the row must stay inside its card at every width.
+    const long = 'Line Out (Behringer UMC1820 18x20 USB Audio Interface, front panel monitor output 3/4, left and right)';
+    await openSampleOutput(page, [long, 'مكبرات الصوت (USB Audio Device 🎧)'], long);
   },
   'recording-found': async (page) => {
     await openSettings(page, undefined, '?mockDawChoice=found');

@@ -27,14 +27,27 @@ export function testToneUrl(): string {
   return URL.createObjectURL(new Blob([bytes], { type: 'audio/wav' }));
 }
 
+/** Stops the tone that is playing, if one is. */
+let stopCurrent: (() => void) | undefined;
+
 /**
  * Plays the test tone on the output named `label` (empty: the system default). Answers the sentence to show when it could not be played on that
  * output; the tone still plays on the default then, as a sample would.
  */
 export async function playTestSound(label: string): Promise<string | undefined> {
+  // Pressed again, the tone before it stops, so presses never pile up into one long noise.
+  stopCurrent?.();
   const url = testToneUrl();
   const el = new Audio(url);
-  const done = () => URL.revokeObjectURL(url);
+  const done = () => {
+    URL.revokeObjectURL(url);
+    if (stopCurrent === stop) stopCurrent = undefined;
+  };
+  const stop = () => {
+    el.pause();
+    done();
+  };
+  stopCurrent = stop;
   el.addEventListener('ended', done, { once: true });
   const result = await setOutput(el, label);
   try {

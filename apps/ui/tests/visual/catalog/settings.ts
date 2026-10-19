@@ -37,6 +37,14 @@ export const settingsStates: StateEntry[] = [
   },
   {
     page: 'settings',
+    state: 'recording-sample-output-long-name',
+    description:
+      'Settings, Recording & DAW with the built-in recorder on a computer whose outputs have a very long name and an Arabic one with an emoji: the Voice sample output row with the long one chosen, kept inside its card at every width',
+    ...REFLOW,
+    ...KEEPS_DESKTOP_SCROLL,
+  },
+  {
+    page: 'settings',
     state: 'recording-found',
     description:
       'Settings, Recording & DAW for a folder holding one .rpp that is not linked (?mockDawChoice=found): REAPER chosen, every engine listed with its state, "REAPER not linked", "Alice.rpp is in the project folder." and Link Alice.rpp',
