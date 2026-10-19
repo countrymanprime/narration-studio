@@ -53,6 +53,9 @@ type Overlay = {
   question?: boolean;
   /** A dialog that keeps Space (a question, the Jump menu); a menu or popover yields it to the take. */
   keepsSpace?: boolean;
+  /** The question opens with focus on its safe button ("Keep recording", #2148): with focus there Space and Enter press that button, which closes the
+   * question and lets the take go on, so they are not the keys a leak is judged by; the pass with focus on the page still is. */
+  safeDefault?: boolean;
   /** Focus opens on a field that takes typed text: Space types a space there, and the pedal wins once focus is elsewhere. */
   typesSpace?: boolean;
   /** A menu closes on Tab by the platform's own convention; the others hold focus. */
@@ -137,6 +140,7 @@ const OVERLAYS: Overlay[] = [
     name: 'leave dialog (a take is running)',
     question: true,
     keepsSpace: true,
+    safeDefault: true,
     open: async (page) => {
       await record(page).click();
       await page.getByRole('button', { name: /^Stop$/ }).waitFor();
@@ -173,6 +177,8 @@ for (const overlay of OVERLAYS) {
         if (focusBody) await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
         for (const key of KEYS) {
           if (key === 'Space' && !overlay.keepsSpace) continue;
+          // With focus on the question's safe button, Space and Enter press it (the next test); only the pass with focus on the page judges them.
+          if (overlay.safeDefault && !focusBody && (key === 'Space' || key === 'Enter')) continue;
           await page.keyboard.press(key);
           // A popover or a question stays until Escape or its own button; only a menu may close on a key (it chose an item).
           if (!overlay.menu) await expect(popup, `${key} closed the open ${overlay.name}`).toBeVisible();
@@ -182,6 +188,17 @@ for (const overlay of OVERLAYS) {
         }
       }
     });
+
+    if (overlay.safeDefault)
+      test('the question opens on its safe button: Space presses it, the question closes and the take goes on', async ({ page }) => {
+        await openBooth(page, overlay.query, overlay.recordReady);
+        const { popup } = await overlay.open(page);
+        await focusSettled(page, popup);
+        await expect(popup.getByRole('button', { name: 'Keep recording' })).toBeFocused();
+        await page.keyboard.press('Space');
+        await expect(popup).toBeHidden();
+        expect((await behindTheOverlay(page)).recording).toBe(true);
+      });
 
     if (!overlay.keepsSpace)
       test('a pedal Space closes it and starts the take, and with a take running stops it', async ({ page }) => {
