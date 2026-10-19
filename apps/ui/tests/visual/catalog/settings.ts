@@ -466,7 +466,7 @@ export const settingsStates: StateEntry[] = [
     sameAs: {
       of: 'settings/page-top',
       reason: 'The category list folds only where the page is narrower than 760 px; wider, it is always open and this is the top of the page.',
-      viewports: ['desktop', 'small-desktop'],
+      viewports: ['desktop'],
     },
     ...REFLOW,
     ...FOLDS_WITH_THE_PAGE_WIDTH,
