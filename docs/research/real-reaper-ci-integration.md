@@ -1,12 +1,13 @@
 # Real-REAPER integration testing in CI
 
-**Researched 2026-10-18. Status: a design, plus a prototype in a separate pull request ([`claude/real-reaper-ci-workflow`](https://github.com/countrymanprime/narration-utils/tree/claude/real-reaper-ci-workflow)) that has not run in a real REAPER.** Question: how do the bridge's actions get exercised against a real REAPER on a CI runner, with public-domain audiobook audio (decision D71), so the facts in [the REAPER reference](../reference/daw/reaper.md) are re-checked on every release instead of by the owner's hand?
+**Researched 2026-10-18. Status: a design, plus a prototype in a separate pull request ([`claude/real-reaper-ci-workflow`](https://github.com/countrymanprime/narration-utils/tree/claude/real-reaper-ci-workflow)) that **ran green in a real REAPER 7.82 on Linux on 2026-10-19** (see [Result](#result-reaper-782-linux-under-xvfb-2026-10-19)); it has not run on a GitHub runner or on Windows.** Question: how do the bridge's actions get exercised against a real REAPER on a CI runner, with public-domain audiobook audio (decision D71), so the facts in [the REAPER reference](../reference/daw/reaper.md) are re-checked on every release instead of by the owner's hand?
 
 ## What could and could not be checked here
 
-- The cloud session this note was written in cannot reach `www.reaper.fm` or `librivox.org` (the egress proxy answers 403; `archive.org` works). REAPER could not be downloaded, so **nothing in this note was run in REAPER.** A runner that can reach `reaper.fm` is required (the existing [`windows-reaper-transport.yml`](../../.github/workflows/windows-reaper-transport.yml) shows `windows-latest` can).
-- **Run here:** the prototype's driver (`drive.py`) against the harness's fake `reaper`, through `scripts/research/bridge-fake-driver.py`: 6 rows pass (ping, project, heartbeat, transport, stale track, regions create then idempotent) and 7 are skipped as needing a real REAPER. The pinned LibriVox download (`drive.py fetch`) ran here and its SHA-256 matched.
-- **Not read:** REAPER's licence text (`reaper.fm` unreachable). See [Licence](#licence).
+- The first pass of this note was written in a session that could not reach `www.reaper.fm`. It was run again on 2026-10-19 after the owner allowed the host: REAPER 7.82 (Linux x86_64 tarball, SHA-256 `a4aa961534f22ae5ae910e4ec0c200dcb4476c9f7556806fe09a9743cd582563`, verified against the download) ran under `xvfb-run` with no sound card (`/dev/snd` absent).
+- **Run:** the prototype in [the workflow pull request](https://github.com/countrymanprime/narration-utils/tree/claude/real-reaper-ci-workflow), against that REAPER and against the harness's fake. Results below.
+- **Not run:** anything on Windows, anything on a GitHub-hosted runner, Verification pass Part A, and every row marked "no" in the matrix that needs playback or recording.
+- **Licence:** read from `REAPER/EULA.txt` in the tarball. See [Licence](#licence).
 
 ## What already exists
 
@@ -58,14 +59,34 @@ In [the workflow pull request](https://github.com/countrymanprime/narration-util
 - `drive.py`, a Python driver that talks the same file protocol as the Go host (`commands/NNNNNNNN.cmd` in, `events.log` out) and prints one `PASS`, `FAIL` or `SKIP` per action, `results.md` and `results.json`. It also fetches the pinned chapter. The same driver runs against the fake (`--target fake`), which is how it was tested here.
 - `run-real-reaper-check.ps1` and `.github/workflows/real-reaper-bridge.yml` (`workflow_dispatch`): install the hash-pinned REAPER, fetch the chapter, start REAPER through the existing `run-reaper.ps1` (so the audio-device and save dialogs are answered as in the 9.7 run), run the driver, upload the report. The workflow is `risk:high` and needs the owner's approval.
 
-**Not proven, and why:** that REAPER decodes the MP3 itself (nothing in the repository records a REAPER run on MP3 input; the fallback is to decode to WAV with PyAV, as `audio.py` does); that `Main_SaveProject(0, false)` writes to the project opened from the command line; that action 40004 quits without a dialog the driver does not answer; that Start-Job and `run-reaper.ps1` cooperate as written; that `ci_render` finishes synchronously. The first dispatch is expected to find at least one of these wrong.
+**Proven on 2026-10-19 (Linux, REAPER 7.82):** REAPER decodes the MP3 itself; `Main_SaveProject(0, false)` writes the project opened from the command line; `ci_render` finishes before the next command is read. **Not proven:** the Windows path (`Start-Job` with `run-reaper.ps1`, action 40004 quitting with its save prompt answered by the driver) and anything on a GitHub runner.
+
+## Result: REAPER 7.82 Linux under xvfb, 2026-10-19
+
+`scripts/ci/real-reaper/run-linux-check.sh` (downloads the pinned tarball, fetches the pinned LibriVox chapter `kara_01`, starts REAPER under `xvfb-run -a`, runs `drive.py`) took 9 s and every real row passed. REAPER reported `7.82/linux-x86_64`, its title bar said "audio device closed", and `GetOS()` returned `Other`.
+
+| Action | Result in real REAPER 7.82 |
+| --- | --- |
+| `ping` | `PONG` |
+| `project_state`, heartbeat | The saved project path; `PROJECT_STATUS` every tick with unsaved `0` and a change count that rose with edits |
+| `chapter_track_state`, `play_position` | Play state 0, cursor 0 |
+| stale track GUID | `TRACK_STALE` |
+| Chapter file as an item | `TRACK_ITEM` with the item GUID the launcher read, `kara_01.mp3` as the source and length 796.285896 s: **REAPER decoded the MP3 directly** |
+| `create_regions` | 3 created; the same payload again: 0 created, 3 existing |
+| Undo | `Undo_CanUndo2` read "Narration Utils: create regions"; one `Undo_DoUndo2` left 0 regions (C17's label and one-step part, for regions only) |
+| `configure_chapter_render` | `RENDER_TARGETS` predicted `Chapter 1.wav`, `Chapter 2.wav`, `Chapter 3.wav` |
+| Render (action 42230) | Three files of that name, 20.0 s each, 44.1 kHz stereo 24-bit WAV, 5,292,690 bytes each: S5's `$region` result holds on 7.82/Linux |
+
+What the first run found: the launcher's `fixture.json` call had a missing argument (fixed), and at quit REAPER asks "Save project … before closing?" and shows its "REAPER IS NOT FREE" evaluation notice. The launcher now saves the scratch copy first, and the script kills REAPER at exit. Nothing else needed a dialog answered; the audio-device prompt of Windows did not appear.
+
+Not yet shown by this run: it is one REAPER version on one OS, S0 and S7 facts were not re-run, and Linux and Windows may differ (paths, file dialogs, the `.rpp` encoding).
 
 ## Recommended CI design
 
 - **Triggers.** `workflow_dispatch` first. Then a nightly `schedule` and a run before each release, **not** every pull request: a run takes minutes, depends on `reaper.fm` being up, and a REAPER release can break it for reasons unrelated to a change.
-- **Runner.** `windows-latest` (pin `windows-2025` once a run is green), because it is the product's platform, it is the only runner a REAPER run is recorded on, and `run-reaper.ps1` handles its dialogs. A Linux runner is a later experiment: REAPER ships a Linux build, an X server such as `xvfb` would be needed for its windows and a dialog answerer would replace `run-reaper.ps1`; none of it was tried, and the Lua bridge paths, the `.rpp` and the file dialogs would differ from the product's.
+- **Runner.** Both, as separate jobs. **Linux** (`ubuntu-24.04`, `xvfb`, the tarball pinned by SHA-256) is fast (9 s locally, no installer, no dialog driver) and ran green on 2026-10-19, so it can be the nightly. **Windows** (`windows-latest`, pin `windows-2025` once green) is the product's platform and the only OS the repository's REAPER facts were recorded on, so it stays as the pre-release run; its driver is `run-reaper.ps1`, which answers the dialogs. Linux needs `libgtk-3-0` and `xvfb`; REAPER prints JACK warnings that do not matter.
 - **REAPER install.** The silent installer pinned by SHA-256 (the `installer-sha256` input; nothing runs unless it matches), as the 9.7 workflow does. Record version and signature in the report. Bump the pin deliberately; the owner compares the first hash with the one `reaper.fm` publishes. No cache: the installer is small; cache only the LibriVox MP3 (key: its SHA-256).
-- **Audio.** None. Each script calls `Audio_Quit()` and asserts `Audio_IsRunning() == 0`; the driver answers "Error opening devices". Rows that need playback or recording stay owner rows.
+- **Audio.** None. The launcher calls `Audio_Quit()` and asserts `Audio_IsRunning() == 0`; on Windows the driver answers "Error opening devices", on Linux REAPER simply shows "audio device closed". Rows that need playback or recording stay owner rows.
 - **Pins.** REAPER version and installer hash; the LibriVox file by SHA-256 (`sources.json`); the runner image; actions by commit SHA.
 - **Timeouts.** Job 25 minutes; REAPER 240 s (`run-reaper.ps1 -TimeoutSec`); each command 30 s, the render 120 s. A hung REAPER is killed by `run-reaper.ps1`, which closes only the process it started.
 - **Reporting.** Per-action rows in the job summary and in `results.md`/`results.json`; `events.log` and `fixture.json` as artifacts (14 days). A row is `PASS`, `FAIL` or `SKIP` with a reason; any `FAIL` fails the job; a skipped row names what it needs. A failing row that disagrees with the fake is a fake bug: per [reaper-api-facts](../../.claude/skills/reaper-api-facts/SKILL.md), pin the observed value in `fake_fidelity_test.lua` first, then fix the fake.
@@ -73,18 +94,24 @@ In [the workflow pull request](https://github.com/countrymanprime/narration-util
 
 ## Licence
 
-Not read. `reaper.fm` could not be reached from the session that wrote this note, and I did not rely on memory of the terms. The repository's existing workflow installs the **evaluation** build, and the driver already dismisses a "REAPER IS NOT FREE" notice, so the nag screen appears. Before a nightly run is scheduled, the owner reads the licence agreement and the evaluation terms for these points: automated or unattended use of the evaluation build, how long the evaluation lasts and whether a fresh runner counts as a fresh evaluation each night, whether CI use counts as commercial use for a licence purchase, and any bar on redistributing the installer or its output. If a licence is needed, how a key reaches an isolated `-cfgfile` run was not researched.
+Read from `REAPER/EULA.txt` in the 7.82 Linux tarball (the same file is in the installer). The clauses that matter here:
+
+- **1.1:** "You may download and use the Software for free for sixty (60) days after installation ("Trial Period")", "for evaluation purposes only". The evaluation copy "is fully functional".
+- **1.2:** after the Trial Period "you are required to purchase a license": $225 USD commercial, or $60 USD discounted for an individual using it only personally and non-commercially, a business under $20,000 annual gross revenue from commercial activity, or an educational or non-profit organisation.
+- **1.4:** other uses are for `licensing@cockos.com`. **1.5:** one computer at a time. **1.6:** a purchased licence covers up to version 8.99.
+
+The EULA has no clause on automated or unattended use. What it leaves to the owner: a fresh runner every night installs REAPER anew, so the 60 days restart, but that evades the trial's purpose ("evaluate and test it before paying", clause 6); a project that ships a commercial product and tests it with REAPER is likely a commercial use, so a purchased licence is the safe course. I am not a lawyer and this is not advice. A licence key's route into an isolated `-cfgfile` run was not researched. The tarball also carries the EULA text; the Linux job uploads it with the run's artifacts.
 
 ## Phased plan
 
 | Phase | Work | Needs |
 | --- | --- | --- |
 | 0 | Owner approves the `risk:high` workflow, reads the licence, and pins the installer hash (run once to see the hash; compare with `reaper.fm`'s). | Owner |
-| 1 | Run **Part A as it is** on the runner: add a dispatch workflow around `run-pass-part-a.ps1` (about 20 lines, copied from the 9.7 workflow) and read A1 to A14 from CI. | No new test code |
+| 1 | Run **Part A as it is** on the runner: a Windows dispatch workflow around `run-pass-part-a.ps1` (about 20 lines, copied from the 9.7 workflow), or its Lua under the Linux script (`pass_part_a.lua` has not been tried on Linux). Read A1 to A14 from CI. | No new test code |
 | 2 | Land the prototype after its first dispatch is fixed; add `read_line_ids`/`stamp_item_lines` (the item `P_EXT` round trip across save and reload), pickups and fixed lanes. | Phase 0 |
 | 3 | Part C rows with `kara_01` and `leach_01` as two reads: takes, stacking, cuts, FX ranges. Assert audibility by rendering and measuring the WAV. Add an MP3 render with ID3 `CHAP` frames read back with `mutagen`. Capture the `RENDER_FORMAT` blob for MP3 from a real REAPER first. | Phases 1 and 2 |
 | 4 | Nightly `schedule` and a pre-release run; on failure open or update one issue. Each result recorded in `reaper.md` with REAPER version and run link. | Licence answer |
-| 5 | Try Linux under `xvfb` for speed; keep Windows as the reference. Part B stays with the owner. | Optional |
+| 5 | The Linux job exists and passed locally; dispatch it on a GitHub runner, then decide whether Linux alone is enough for the nightly and Windows stays a pre-release check. Part B stays with the owner. | Phase 0 |
 
 ## Observations from reading the code
 
