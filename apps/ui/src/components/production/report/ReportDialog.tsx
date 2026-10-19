@@ -1,11 +1,14 @@
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faXmark } from '@fortawesome/free-solid-svg-icons';
 import { useEffect, useRef, useState } from 'react';
-import type { ProductionReportExport, ProductionReportPreview } from '../../../api/contracts/production';
+import type { ProductionReportExport, ProductionReportInclude, ProductionReportPreview } from '../../../api/contracts/production';
 import { apiErrorMessage } from '../../../api/errorMessage';
 import { usePort } from '../../../ports/usePort';
 import { Button } from '../../primitives/Button';
+import { IconButton } from '../../primitives/IconButton';
 import { Checkbox } from '../../primitives/Checkbox';
 import { ToggleGroup } from '../../primitives/ToggleGroup';
-import { amountOffered, reportPath, type ReportFormat } from './reportModel';
+import { amountOffered, DEFAULT_INCLUDE, REPORT_SECTIONS, reportPath, type ReportFormat, type ReportSection } from './reportModel';
 
 const MUTED = { color: 'var(--text-muted)' };
 const DANGER = { color: 'var(--danger-text)' };
@@ -22,15 +25,15 @@ export type ReportDialogProps = {
 };
 
 /**
- * "Export status report" (the mock's ReportDialog): the host's own document in a preview pane, the format, the path an export would
- * write, and Cancel / Export. Nothing is rebuilt here: the preview is `productionStatusReportPreview` and Export calls the existing
- * writer, so what is drawn is what the file holds. The mock's per-section checkboxes are not built (the host report has fixed
- * sections); its money pair is the one opt-in, off on open and offered only to a per-finished-hour plan with an amount.
+ * "Export status report" (the mock's ReportDialog): two panes, the form (an Include checkbox per section, the format, the path an
+ * export would write) beside a tall live preview, then Cancel / Export. Nothing is rebuilt here: the preview is
+ * `productionStatusReportPreview(include)` and Export calls the existing writer with the same sections, so what is drawn is what the
+ * file holds. The money section is off on open and offered only to a per-finished-hour plan with an amount.
  */
 export function ReportDialog({ projectName, asOf, onClose }: ReportDialogProps) {
   const production = usePort('production');
   const [offered, setOffered] = useState(false);
-  const [include, setInclude] = useState(false);
+  const [include, setInclude] = useState<ProductionReportInclude>(DEFAULT_INCLUDE);
   const [format, setFormat] = useState<ReportFormat>('html');
   const [preview, setPreview] = useState<ProductionReportPreview>();
   const [previewProblem, setPreviewProblem] = useState<string>();
@@ -74,67 +77,91 @@ export function ReportDialog({ projectName, asOf, onClose }: ReportDialogProps) 
     }
   };
 
-  const changeAmount = (next: boolean) => {
+  const changeSection = (section: ReportSection, next: boolean) => {
     setWritten(undefined);
-    setInclude(next);
+    setInclude((current) => ({ ...current, [section]: next }));
   };
 
   return (
-    <div className="flex flex-col gap-3.5">
-      <p className="text-sm" style={MUTED}>
-        {projectName} · as of {asOf}
-      </p>
-      <p className="text-sm" style={MUTED}>
-        Writes an HTML page anyone can open and a JSON file with the same figures into this project’s reports folder. The contracted amount and effective rate
-        are left out unless you include them.
-      </p>
-      <div className="flex flex-wrap items-center gap-3">
-        <ToggleGroup label="Format" value={format} onChange={(value) => setFormat(value as ReportFormat)} options={FORMATS} look="segmented" />
-        {offered && (
-          <Checkbox checked={include} onChange={changeAmount}>
-            Include the contracted amount and effective rate
-          </Checkbox>
-        )}
+    <div className="flex w-[min(62rem,100%)] flex-col">
+      <div className="flex items-start justify-between gap-3 border-b border-[var(--border)] px-[1.1rem] py-4">
+        <div>
+          <h2 className="text-[26px] leading-tight font-semibold">Export status report</h2>
+          <p className="text-sm" style={MUTED}>
+            {projectName} · as of {asOf}
+          </p>
+        </div>
+        <IconButton label="Close" onClick={onClose}>
+          <FontAwesomeIcon icon={faXmark} />
+        </IconButton>
       </div>
-      {preview && <code className="text-xs [overflow-wrap:anywhere] select-text">{reportPath(preview.folder, preview.stem, format)}</code>}
-      {previewProblem ? (
-        <p role="alert" className="text-sm" style={DANGER}>
-          The report could not be previewed: {previewProblem}
-        </p>
-      ) : (
-        <div className="h-[22rem] overflow-auto rounded-[var(--radius-card)] border border-[var(--border)] bg-[var(--bg)]">
-          {preview === undefined ? (
-            <p className="p-3 text-sm" style={MUTED} aria-live="polite">
-              Building the preview…
+      <div className="grid min-h-0 gap-4 p-[1.1rem] md:grid-cols-[17rem_minmax(0,1fr)]">
+        <div className="flex flex-col gap-3.5">
+          <fieldset className="flex flex-col gap-2.5">
+            <legend className="mb-2 text-xs font-semibold tracking-wide uppercase" style={MUTED}>
+              Include
+            </legend>
+            {REPORT_SECTIONS.filter((section) => section.id !== 'money' || offered).map((section) => (
+              <Checkbox key={section.id} checked={include[section.id]} onChange={(next) => changeSection(section.id, next)}>
+                {section.label}
+              </Checkbox>
+            ))}
+          </fieldset>
+          <p className="text-xs" style={MUTED}>
+            Writes an HTML page anyone can open and a JSON file with the same figures into this project’s reports folder. The contracted amount and effective
+            rate are left out unless you include them.
+          </p>
+          <div className="flex flex-col gap-1.5">
+            <span className="text-xs font-semibold tracking-wide uppercase" style={MUTED}>
+              Format
+            </span>
+            <div>
+              <ToggleGroup label="Format" value={format} onChange={(value) => setFormat(value as ReportFormat)} options={FORMATS} look="segmented" />
+            </div>
+          </div>
+          {preview && <code className="text-xs [overflow-wrap:anywhere] select-text">{reportPath(preview.folder, preview.stem, format)}</code>}
+        </div>
+        <div className="flex min-w-0 flex-col gap-3">
+          {previewProblem ? (
+            <p role="alert" className="text-sm" style={DANGER}>
+              The report could not be previewed: {previewProblem}
             </p>
-          ) : format === 'html' ? (
-            <iframe title="Preview of the report" sandbox="" srcDoc={preview.html} className="size-full border-0 bg-white" />
           ) : (
-            <pre aria-label="Preview of the report" className="p-3 font-mono text-xs [overflow-wrap:anywhere] whitespace-pre-wrap">
-              {preview.json}
-            </pre>
+            <div className="h-[min(34rem,58dvh)] overflow-auto rounded-[var(--radius-card)] border border-[var(--border)] bg-[var(--bg)]">
+              {preview === undefined ? (
+                <p className="p-3 text-sm" style={MUTED} aria-live="polite">
+                  Building the preview…
+                </p>
+              ) : format === 'html' ? (
+                <iframe title="Preview of the report" sandbox="" srcDoc={preview.html} className="size-full border-0 bg-white" />
+              ) : (
+                <pre aria-label="Preview of the report" className="p-3 font-mono text-xs [overflow-wrap:anywhere] whitespace-pre-wrap">
+                  {preview.json}
+                </pre>
+              )}
+            </div>
+          )}
+          {exportProblem && (
+            <p role="alert" className="text-sm" style={DANGER}>
+              The report was not written: {exportProblem}
+            </p>
+          )}
+          {written && (
+            <div aria-live="polite" className="text-sm">
+              <p>
+                Wrote <span className="font-medium [overflow-wrap:anywhere]">{written.htmlFile}</span> and{' '}
+                <span className="font-medium [overflow-wrap:anywhere]">{written.jsonFile}</span> to {written.folder}.
+              </p>
+              <p className="mt-1" style={MUTED}>
+                {written.contractedAmountIncluded
+                  ? 'The contracted amount and effective rate are included.'
+                  : 'The contracted amount and effective rate are left out.'}
+              </p>
+            </div>
           )}
         </div>
-      )}
-      {exportProblem && (
-        <p role="alert" className="text-sm" style={DANGER}>
-          The report was not written: {exportProblem}
-        </p>
-      )}
-      {written && (
-        <div aria-live="polite" className="text-sm">
-          <p>
-            Wrote <span className="font-medium [overflow-wrap:anywhere]">{written.htmlFile}</span> and{' '}
-            <span className="font-medium [overflow-wrap:anywhere]">{written.jsonFile}</span> to {written.folder}.
-          </p>
-          <p className="mt-1" style={MUTED}>
-            {written.contractedAmountIncluded
-              ? 'The contracted amount and effective rate are included.'
-              : 'The contracted amount and effective rate are left out.'}
-          </p>
-        </div>
-      )}
-      <div className="flex justify-end gap-2">
+      </div>
+      <div className="flex justify-end gap-2 border-t border-[var(--border)] px-4 pt-3 pb-4">
         <Button variant="secondary" onClick={onClose}>
           Cancel
         </Button>

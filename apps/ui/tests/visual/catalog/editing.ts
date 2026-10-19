@@ -61,6 +61,19 @@ export const editingStates: StateEntry[] = [
   },
   {
     page: 'editing',
+    state: 'voice-sample-mark',
+    description:
+      'Editing, a voice sample saved from four selected words - the dot after the last word of the range, with its accessible name naming the character and what was saved',
+    ...TOAST_FADES_OUT,
+  },
+  {
+    page: 'editing',
+    state: 'voice-sample-mark-open',
+    description: 'Editing, the dot after a marked range opened - the character, its length and a play control under the dot, with Open in Story Bible',
+    ...TOAST_FADES_OUT,
+  },
+  {
+    page: 'editing',
     state: 'takes-open',
     description:
       'Editing, the first line’s takes opened under it - the suggested take with the steps that would make it surer, each take’s evidence, and how retries are kept',
@@ -119,5 +132,11 @@ export const editingStates: StateEntry[] = [
     state: 'loading',
     description:
       'Editing while the chapters are still being read (?mockChapters=loading): the page\'s own header (the title, a block where the chapter stepper will be, the strip and Clean up and effects buttons) and the script\'s three paragraphs as grey blocks, with one polite "Reading the chapters…" status',
+  },
+  {
+    page: 'editing',
+    state: 'address-checking',
+    description:
+      'Editing opened from a link to a chapter the list does not have, while the list is read once more (?mockChapters=reread-hangs, at /editing/gone): the Editing title and a block where the chapter stepper will be, then the script\'s three paragraphs as grey blocks, with one polite "Checking this link…" status',
   },
 ];

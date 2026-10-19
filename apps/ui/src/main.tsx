@@ -223,18 +223,19 @@ const mockHold = (mockParams.get('mockHold') ?? '')
 // `?mockPlan=loading|fails` makes the Schedule's read of the production plan never answer, or fail, so it shows its loading skeleton or its error.
 const mockPlan = (['loading', 'fails'] as const).find((seed) => seed === mockParams.get('mockPlan'));
 // `?mockChapters=loading|fails` makes the read of the manuscript's chapters never answer, or fail, so a page that reads them (the Booth) shows its loading skeleton or its error.
-const mockChapters = (['loading', 'fails'] as const).find((seed) => seed === mockParams.get('mockChapters'));
+// `reread-hangs` answers while the app is on `/` and never once it has moved to another page, so a link to a chapter the list lacks stays on the address gate's "Checking this link…".
+const mockChapters = (['loading', 'fails', 'reread-hangs'] as const).find((seed) => seed === mockParams.get('mockChapters'));
 // `?mockSettings=loading|unreadable|save-fails` makes the settings file never answer a read, fail every read, or refuse every save as read-only,
 // so Settings can be seen loading, unreadable and failing to save.
 const mockSettings = (['loading', 'unreadable', 'save-fails'] as const).find((seed) => seed === mockParams.get('mockSettings'));
 // `?mockSeries=not-in-series|single-book` boots the Series tab outside any
-// series, or in one with no other book yet, so its honest empty state can be seen. Unset boots as a member of a two-book
+// series, or in one with no other book yet, so its honest empty state can be seen; `?mockSeries=fails` makes its read fail, so its error and Retry can be seen. Unset boots as a member of a two-book
 // series (WIRE_SERIES), matching the approved concept mock.
 // `?mockVoiceSamples=bible|full` boots with voice samples already saved (api/voiceSamplesMock.ts): `bible` is the Story Bible's states (a Queen of
 // Hearts with four samples, one whose passage changed and one whose audio file is missing, the Hatter's, Narration's, and one for a character who left
 // the Story Bible); `full` is a Queen with the 20 a character may have.
 const mockVoiceSamples = (['bible', 'full'] as const).find((seed) => seed === mockParams.get('mockVoiceSamples'));
-const mockSeries = (['not-in-series', 'single-book'] as const).find((seed) => seed === mockParams.get('mockSeries'));
+const mockSeries = (['not-in-series', 'single-book', 'fails'] as const).find((seed) => seed === mockParams.get('mockSeries'));
 // `?mockDictionary=missing|damaged` boots without the offline dictionary, or with one whose index fails its check, so the reader's Look up asks to
 // download it (or to download it again) first.
 const mockDictionary = (['missing', 'damaged'] as const).find((seed) => seed === mockParams.get('mockDictionary'));

@@ -42,7 +42,8 @@ export const storybibleStates: StateEntry[] = [
     description: 'Story Bible, an entity selected (detail panel open)',
     sameAs: { of: 'storybible/category-all', reason: 'Story Bible opens on All with the first entity already selected.' },
   },
-  { page: 'storybible', state: 'alias-typeahead', description: 'Story Bible, alias-typeahead dropdown open' },
+  { page: 'storybible', state: 'name-clash', description: 'Story Bible, a typed name another entry has: the clash line and Merge into this entry' },
+  { page: 'storybible', state: 'relationship-picker', description: 'Story Bible, a relationship in edit with the entry picker open' },
   { page: 'storybible', state: 'delete-confirm', description: 'Story Bible, delete confirm dialog open' },
   { page: 'storybible', state: 'entry-locked', description: 'Story Bible, a locked entry' },
   {
@@ -200,5 +201,11 @@ export const storybibleStates: StateEntry[] = [
     state: 'series-tab-loading',
     description:
       'Story Bible, the Series tab while the series are still being read (?mockHold=series): the page and its tabs as usual and grey blocks in the tab, with one polite "Reading the series…" status',
+  },
+  {
+    page: 'storybible',
+    state: 'series-tab-load-failed',
+    description:
+      'Story Bible, the Series tab when the series cannot be read (?mockSeries=fails): the page and its tabs as usual and, in the tab, "This page could not be loaded" with the read\'s own sentence as an alert and a Retry button that reads the series again; no skeleton left behind',
   },
 ];
