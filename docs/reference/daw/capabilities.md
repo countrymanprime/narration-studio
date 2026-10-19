@@ -129,7 +129,7 @@ Facts about REAPER, Audacity and the built-in recorder are copied from the pages
 - **Role:** `ProjectReader`, synchronous (`ReadProject(path)`).
 - **Result:** the project's tracks, chapter links and items. Needs no running engine.
 - **REAPER:** the Go `tracks` package parses the `.rpp` file ([Tracks](../../utilities/tracks.md)).
-- **Audacity:** not built; Audacity's project format is not read.
+- **Audacity 3.x:** Experimental, over a snapshot ([snapshot.go](../../../apps/desktop/internal/dawport/audacity/snapshot.go), [the snapshot](audacity-3.md#the-snapshot)). The `.aup3` is a SQLite file the app does not read, so while Audacity answers the host writes the tracks, clips and labels into `narration-utils/audacity-snapshot.json`, and the role turns that file into the same project model. A track's id is `audacity:<name>` (with `#2`, `#3` for a repeated name), a clip's is its track's id and its start in milliseconds, a range label `[nu:region] <title>` is a region, and a pickup label is a `PICKUP:` or `PICKUP_DONE:` marker. Its clips have no source file the app can open, so a reader that needs the audio (the recording check) says so. It is only as fresh as the last time Audacity answered.
 - **Built-in recorder:** Unsupported, with "The built-in recorder keeps no saved project.": its takes are files in the project's Recordings folder ([built-in recorder](builtin-recorder.md)).
 - **Checked:** REAPER, Go tests in `apps/desktop/internal/tracks`.
 
@@ -139,7 +139,7 @@ Facts about REAPER, Audacity and the built-in recorder are copied from the pages
 - **Role:** `TrackStateReader`, synchronous.
 - **Result:** `TRACK_STATE` (play state, edit cursor, play position, project path, unsaved, change count, armed flags, record input), a `TRACK_ITEM` per item (at most 1000), then `TRACK_STATE_END`. A track that is gone answers `TRACK_STALE`. An empty GUID answers the transport only. No undo point and the change count does not move.
 - **REAPER:** `chapter_track_state`.
-- **Audacity:** not built.
+- **Audacity 3.x:** Experimental ([places.go](../../../apps/desktop/internal/dawport/audacity/places.go)). A track is found by its id (a renamed or deleted track is stale, never another track). Audacity has no record-arm, so "armed" is "selected": `ArmedCount` is the selected audio tracks and `TrackArmed` whether this one is. The cursor is the start of the time selection. Audacity reports no play state, project path, unsaved flag or change count, so those stay zero; `Playing` and `Recording` are what this app started and has not stopped (a loop it began; a recording once the Record role exists), and a transport started or stopped in Audacity is invisible. The track's clips are listed as items.
 - **Checked:** harness (`track_state_test.lua`); expected result is rows A2 and A3 of the verification pass; the run in REAPER is pending with the owner ([#510](https://github.com/countrymanprime/narration-utils/issues/510)).
 
 ### `track_select`
@@ -148,7 +148,7 @@ Facts about REAPER, Audacity and the built-in recorder are copied from the pages
 - **Role:** `TrackSelector`, synchronous.
 - **Result:** `TRACK_SELECTED`; only that track is selected afterwards. An unknown or empty GUID answers `TRACK_STALE` and leaves the selection as it was. No undo point.
 - **REAPER:** `select_track`.
-- **Audacity:** not built.
+- **Audacity 3.x:** Experimental. Re-reads the tracks, finds the one whose id matches and selects only it (`SelectTracks`, Mode Set). A track that is gone is a stale error and the selection is left as it was.
 - **Checked:** harness (`track_select_test.lua`); expected result is row A11; the run in REAPER is pending with the owner ([#510](https://github.com/countrymanprime/narration-utils/issues/510)).
 
 ### `follow_position`
@@ -157,7 +157,7 @@ Facts about REAPER, Audacity and the built-in recorder are copied from the pages
 - **Role:** `PlaceFollower`, synchronous. `ReadPlace()` answers a `Place`: the engine's id for the one selected track (empty when none or several are selected, so a caller never guesses), how many are selected, and the cursor in project seconds. `GoTo(trackID, target)` selects that track alone and puts the cursor at the end of what is on it, or at a time in project seconds. The caller names the track by the id the chapter's link holds, never a path; the host maps a track back to its chapter.
 - **Result:** neither starts or seeks playback, neither adds an undo point, and `ReadPlace` changes nothing. A track the engine no longer has is its stale error and nothing moves. A time that is negative or not a number is refused before anything is sent.
 - **REAPER:** `read_place` (`PLACE`) and `go_to` (`PLACE_SET`), Experimental, in `narration_track_select.lua`. The track is the one selected track (`CountSelectedTracks`, `GetSelectedTrack`), the cursor `GetCursorPosition`; `go_to` uses `SetOnlyTrackSelected` and `SetEditCurPos(time, true, false)`, with the end of the track the latest item's `D_POSITION + D_LENGTH`.
-- **Audacity:** not built. The same role fits it: its selected track and cursor are readable and settable through its scripting commands.
+- **Audacity 3.x:** Experimental. `ReadPlace` counts the selected audio tracks (a selected label track does not count) and reads the cursor with `GetInfo: Type=Selection`, so a range the narrator selected reads as a cursor at its start; `GoTo` selects the track and puts the cursor at the end of the track's audio or at a time (`SelectTime`). Whether Audacity scrolls its view to the cursor is not known (matrix A3-T12), so the app says it moved the cursor, not that it is on screen.
 - **Binding:** `DawPlace()` and `DawGoToChapter(chapterId, where, seconds)` (`apps/desktop/bindings_daw_place.go`).
 - **Checked:** harness (`track_select_test.lua`); the run in REAPER is pending with the owner.
 
@@ -189,7 +189,7 @@ Facts about REAPER, Audacity and the built-in recorder are copied from the pages
 - **Role:** `RegionWriter`, synchronous.
 - **Result:** `REGIONS_CREATED` with counts created, existing, invalid, updated, ambiguous and failed. Sending the same list twice creates none the second time; with `update` on, a moved end moves the region and keeps its number and colour. One undo point.
 - **REAPER:** `create_regions`.
-- **Audacity:** not built.
+- **Audacity 3.x:** Experimental. A region is a range label `[nu:region] <title>` on the "Narration Utils" label track; the counts are REAPER's. A label with the same title and bounds within 0.01 s is existing; with `update`, the one label a title has is moved (`SetLabel` Start and End); a title held by several is ambiguous. A label is not a render target in Audacity, so a region here marks a chapter's place for the narrator and the readiness signals, nothing more. It makes one undo step per label.
 - **Checked:** harness (`regions_test.lua`); expected result is row A9; the run in REAPER is pending with the owner ([#510](https://github.com/countrymanprime/narration-utils/issues/510)).
 
 ### `takes`

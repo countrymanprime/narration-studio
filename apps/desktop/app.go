@@ -714,7 +714,7 @@ func (h *Host) configureLocked(next config) {
 		},
 		Reporter: h.persist,
 		// Reads the saved .rpp through the DAW port's offline role instead of tracks.Parse directly.
-		ProjectReader: reaper.ProjectReader{},
+		ProjectReader: projectFileReader{},
 	}, h.coverageLauncherLocked(), h.emitCoverage)
 	// A chapter's recordedFraction is the measured share of its words from a current, complete check, and absent otherwise;
 	// reading it never starts a check.
@@ -728,7 +728,7 @@ func (h *Host) configureLocked(next config) {
 		Policy:      func() editing.Policy { return editingPolicy(settingsStore) },
 		Reporter:    h.persist,
 		// Reads the saved .rpp through the DAW port's offline role instead of tracks.Parse directly.
-		ProjectReader: reaper.ProjectReader{},
+		ProjectReader: projectFileReader{},
 		// The render association the proofing stage already owns, reused as-is,
 		// plus this package's own per-chapter source choice.
 		Renders: proofing.NewRenderStore(h.config.projectFolder),
@@ -738,7 +738,7 @@ func (h *Host) configureLocked(next config) {
 		Project:     h.config.projectFolder,
 		ProjectFile: func() (string, error) { return selectedProjectFile(projectFolder, settingsStore) },
 		// Reads the saved .rpp through the DAW port's offline role instead of tracks.Parse directly.
-		ProjectReader: reaper.ProjectReader{},
+		ProjectReader: projectFileReader{},
 	})
 	// Every finished comparison is recorded for the proofing pickups signal.
 	h.transcript.SetRunRecorder(comparisonRecorder(h.config.projectFolder, h.manuscript, settingsStore, h.persist))
@@ -789,6 +789,10 @@ func (h *Host) configureLocked(next config) {
 		h.takeCreator, h.takeSelector, h.puncher, h.rangeCutter, h.rangeFX, h.takeStacker = nil, nil, nil, nil, nil, nil
 		h.filePreviewer, h.fileRevealer, h.rangeGain, h.clickRepairer, h.lastActionUndoer = nil, nil, nil, nil, nil
 		h.monitorLeveler, h.placeFollower = nil, nil
+		// An Audacity project's place and track-selection roles are the Audacity adapter's, over the project's one pipe client.
+		if h.audacity != nil {
+			h.placeFollower, _ = h.audacity.adapter.Role(dawport.CapFollowPosition).(dawport.PlaceFollower)
+		}
 	}
 	// Only an Audacity project has a backups role: REAPER and the built-in recorder declare backups not yet
 	// available or unsupported, and the table lives in the project folder. The connection was made above.

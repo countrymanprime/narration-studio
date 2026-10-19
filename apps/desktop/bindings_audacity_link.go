@@ -14,6 +14,7 @@ import (
 	"github.com/countrymanprime/narration-utils/shell/internal/audacitylink"
 	"github.com/countrymanprime/narration-utils/shell/internal/daw"
 	"github.com/countrymanprime/narration-utils/shell/internal/dawport"
+	"github.com/countrymanprime/narration-utils/shell/internal/dawport/audacity"
 )
 
 // Linking Audacity 3: AudacityLink and its live event audacity_link_changed tell the UI how far the project is from talking to
@@ -33,6 +34,8 @@ const (
 	audacityProbeEvery = 2 * time.Second
 	// audacityExe is the program name the running check looks for.
 	audacityExe = "audacity.exe"
+	// snapshotEvery is how often the heartbeat looks at the project's tracks, clips and labels for the snapshot (three GetInfo commands).
+	snapshotEvery = 10 * time.Second
 )
 
 // AudacityLink is the AudacityLink, AudacityLinkCheck, AudacityEnableModule, AudacityLinkFile, AudacityLinkOpenProject and
@@ -229,13 +232,53 @@ func (h *Host) locateAudacity() (string, error) {
 // audacityLinkRefresh reads the link state now (asking Audacity when probe is set, and when the project records with Audacity),
 // caches it on the connection and tells the window when it changed.
 func (h *Host) audacityLinkRefresh(svc hostServices, probe bool) AudacityLink {
+	return h.audacityLinkRefreshWith(svc, probe, probe)
+}
+
+// audacityLinkRefreshWith is audacityLinkRefresh that also says whether to take the project snapshot now (a narrator's action) or
+// only when it is due (the heartbeat).
+func (h *Host) audacityLinkRefreshWith(svc hostServices, probe, forceSnapshot bool) AudacityLink {
 	ctx, cancel := context.WithTimeout(context.Background(), backupTimeout)
 	defer cancel()
 	link := h.audacityLinkNow(ctx, svc, probe)
 	if svc.audacity != nil {
 		h.storeAudacityLink(svc.audacity, link)
+		if probe && link.State == string(audacitylink.StateAnswering) {
+			h.snapshotAudacity(ctx, svc, forceSnapshot)
+		}
 	}
 	return h.withHeard(link, svc)
+}
+
+// snapshotAudacity writes the project's snapshot (the tracks, clips and labels the offline readers use, internal/dawport/audacity
+// snapshot.go) when it is due or forced, and only when the project changed since the last one (a selection change is not a change).
+// A failure is not the link's: it is logged and the last snapshot stays.
+func (h *Host) snapshotAudacity(ctx context.Context, svc hostServices, force bool) {
+	conn, folder := svc.audacity, svc.config.projectFolder
+	if conn == nil || folder == "" {
+		return
+	}
+	conn.mu.Lock()
+	due := force || conn.lastSnap == nil || time.Since(conn.lastSnapAt) >= snapshotEvery
+	conn.mu.Unlock()
+	if !due {
+		return
+	}
+	snap, err := conn.adapter.Session().TakeSnapshot(ctx, time.Now())
+	if err != nil {
+		return // Audacity went quiet between the probe and the reads; the next heartbeat tries again
+	}
+	path := audacity.SnapshotPath(folder)
+	conn.mu.Lock()
+	unchanged := conn.lastSnap != nil && conn.lastSnap.Same(snap)
+	conn.lastSnap, conn.lastSnapAt = &snap, time.Now()
+	conn.mu.Unlock()
+	if _, statErr := os.Stat(path); unchanged && statErr == nil {
+		return
+	}
+	if err := audacity.WriteSnapshot(path, snap); err != nil {
+		_ = h.log.Report("audacity_snapshot", "The Audacity project's tracks could not be saved for offline reading: "+err.Error())
+	}
 }
 
 // storeAudacityLink caches link on conn and emits audacity_link_changed when it differs from the last one sent.
@@ -346,7 +389,7 @@ func (h *Host) pollAudacityLink() {
 			conn.probing = false
 			conn.mu.Unlock()
 		}()
-		h.audacityLinkRefresh(svc, true)
+		h.audacityLinkRefreshWith(svc, true, false)
 	}()
 }
 
@@ -366,4 +409,15 @@ func (h *Host) audacityLinkFacts(svc hostServices) (linked, reachable, matches, 
 		link = &read
 	}
 	return link.Linked, link.State == string(audacitylink.StateAnswering), link.OpenProject == string(audacitylink.ProjectLinked), true
+}
+
+// inAudacityWords says a sentence worded for REAPER in Audacity's name, for the bindings that serve both. The Experimental switch keeps
+// its own name, which is the setting's label whichever DAW it gates.
+func inAudacityWords(message string) string {
+	const keep = "Experimental REAPER actions"
+	parts := strings.Split(message, keep)
+	for i, part := range parts {
+		parts[i] = strings.ReplaceAll(part, "REAPER", "Audacity")
+	}
+	return strings.Join(parts, keep)
 }

@@ -69,9 +69,17 @@ func trackSelectRefusal(err error) TrackSelectResult {
 	return trackSelectRefused(refusedFailed, "REAPER could not do that: "+err.Error()+".")
 }
 
-// trackSelectInReaperIn selects trackGUID in REAPER. selector is nil exactly when trackSelectorFrom would answer nil
-// (no resolver, the capability off, or REAPER not reachable).
+// trackSelectInReaperIn selects trackGUID in REAPER (or Audacity, for an Audacity project, with its sentences in Audacity's name).
+// selector is nil exactly when trackSelectorFrom would answer nil (no resolver, the capability off, or REAPER not reachable).
 func trackSelectInReaperIn(ctx context.Context, svc hostServices, selector dawport.TrackSelector, trackGUID string) (TrackSelectResult, error) {
+	result, err := trackSelectIn(ctx, svc, selector, trackGUID)
+	if svc.audacity != nil {
+		result.Message = inAudacityWords(result.Message)
+	}
+	return result, err
+}
+
+func trackSelectIn(ctx context.Context, svc hostServices, selector dawport.TrackSelector, trackGUID string) (TrackSelectResult, error) {
 	if trackGUID == "" {
 		return TrackSelectResult{}, fmt.Errorf("choose a track before selecting it in REAPER")
 	}
