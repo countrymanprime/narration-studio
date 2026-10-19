@@ -20,6 +20,15 @@ export const EDITING_FOOTER_SPEC: readonly HintSpec[] = [
   { id: 'editing.escape', label: 'Clear' },
 ];
 
+/**
+ * What Enter does now, for its hint: it keeps the take the keys are on once T has opened the takes, opens the card on a flagged word, and
+ * otherwise keeps the line's active take, so the hint points at T for choosing.
+ */
+export function enterHintLabel({ takesOpen, onFlag }: { takesOpen: boolean; onFlag: boolean }): string {
+  if (takesOpen) return 'Keep take';
+  return onFlag ? 'Open flag card' : 'Keep take (T picks which)';
+}
+
 /** "Escape" is drawn "Esc", as the mock draws it. */
 const cap = (key: string): string => (key === 'Escape' ? 'Esc' : key);
 

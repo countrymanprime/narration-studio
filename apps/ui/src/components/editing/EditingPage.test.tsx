@@ -457,6 +457,27 @@ describe('EditingPage', () => {
     }
   });
 
+  describe('the Enter hint names what Enter does here', () => {
+    const hint = () => screen.getByRole('note', { name: 'Keyboard shortcuts' }).textContent ?? '';
+    it('points at T on a word that is not flagged, and says Keep take once the takes are open', async () => {
+      mount();
+      await script();
+      press('ArrowRight');
+      await waitFor(() => expect(cursorKey()).toBe('w-p1:0'));
+      expect(hint()).toContain('Keep take (T picks which)');
+      press('t');
+      await waitFor(() => expect(hint()).not.toContain('T picks which'));
+      expect(hint()).toContain('Keep take');
+    });
+    it('says Open flag card on a flagged word, where Enter opens the card and does not keep a take', async () => {
+      mount({ findingId: FINDING.id });
+      await script();
+      await waitFor(() => expect(cursorKey()).toBe('w-p1:3'));
+      expect(hint()).toContain('Open flag card');
+      expect(hint()).not.toContain('Keep take');
+    });
+  });
+
   describe('opens-at-a-passage-from-another-page', () => {
     it('opens a passage with its takes open under the line', async () => {
       mount({ chapterId: 'c1', passageId: 'ps-1' });
