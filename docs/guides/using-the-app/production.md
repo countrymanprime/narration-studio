@@ -283,8 +283,10 @@ live preview of the host's own report is on the right, under the project's name 
 ![The Export status report dialog: the Include checkboxes and format beside the live preview](../../images/ui/production-report-dialog.webp)
 
 The sections are **Words and finished audio**, **Hours by stage**, **Deadline and milestones**,
-**Chapters held back** (the chapters whose stage is held back, with the reason), **Chapter readiness** (the count of chapters by verdict)
-and, when the book pays per finished hour and has an amount, **Contracted amount and effective rate**. Every section but the last is
+**Open pickups and chapters held back** (the lines still to record again, counted by chapter from the [Pickups](pickups.md) list, and
+the chapters whose stage is held back, with the reason), **Delivery check and chapter readiness** (the files of the last measurement
+made in this session, judged against the project's delivery profile, and the count of chapters by verdict; with nothing measured yet it
+says so, and never reads that as a pass) and, when the book pays per finished hour and has an amount, **Contracted amount and effective rate**. Every section but the last is
 ticked when the dialog opens. Ticking or unticking one rebuilds the preview, and **Export** writes exactly the sections that are
 ticked: a section you leave out is missing from both the HTML page and the JSON file. The JSON file records which sections were
 ticked, so a reader can tell a section left out from one that is empty.

@@ -70,7 +70,13 @@ describe('ReportDialog', () => {
   it('a-section-checkbox-per-section-and-unticking-follows-the-preview', async () => {
     const { preview, write } = mount();
     await screen.findByTitle('Preview of the report');
-    for (const name of ['Words and finished audio', 'Hours by stage', 'Deadline and milestones', 'Chapters held back', 'Chapter readiness']) {
+    for (const name of [
+      'Words and finished audio',
+      'Hours by stage',
+      'Deadline and milestones',
+      'Open pickups and chapters held back',
+      'Delivery check and chapter readiness',
+    ]) {
       expect(screen.getByRole('checkbox', { name }).getAttribute('aria-checked')).toBe('true');
     }
     await userEvent.click(screen.getByRole('checkbox', { name: 'Words and finished audio' }));
