@@ -199,6 +199,7 @@ function MasterBody({ projectFolder, onOpenDelivery, openSettings, fileActions, 
                   <ChapterStepper chapters={bar} value={chapterOfSelection.id} stepKeys={['Alt+↑', 'Alt+↓']} onChange={goToChapter} onStep={stepChapter} />
                 )}
                 {profile && (
+                  // native-control-ok: the profile name is a badge-shaped link to Delivery; Button's padded uppercase chrome cannot draw it.
                   <button
                     type="button"
                     title="Open Delivery"

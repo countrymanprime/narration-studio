@@ -16,6 +16,7 @@ export function TakeBadge({
   onToggle: () => void;
 }) {
   return (
+    // native-control-ok: a 22 px round count in the gutter; IconButton and Button draw a 28 px or taller square or padded control.
     <button
       type="button"
       data-tbadge
