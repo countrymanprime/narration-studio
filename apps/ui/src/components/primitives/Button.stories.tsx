@@ -8,7 +8,7 @@ const meta = {
   args: { children: 'Save changes', onClick: fn() },
   argTypes: {
     variant: { control: 'radio', options: ['primary', 'secondary', 'ghost', 'danger', 'link'] },
-    size: { control: 'radio', options: ['md', 'sm'] },
+    size: { control: 'radio', options: ['lg', 'md', 'sm'] },
   },
 } satisfies Meta<typeof Button>;
 
@@ -122,3 +122,6 @@ export const DisabledIsInert: Story = {
     await expect(args.onClick).not.toHaveBeenCalled();
   },
 };
+
+// The 40 px size (`--button-height-lg`): the Inspector's decision buttons.
+export const SecondaryLarge: Story = { args: { variant: 'secondary', size: 'lg', children: 'Needs pickup' } };
