@@ -71,3 +71,9 @@ export function findOutwardLoads(root) {
   }
   return rows;
 }
+
+/** The page with an icon of its own: one that names none makes the browser ask for `/favicon.ico` at the host's root, which is outside the site. */
+export function withIcon(html, icon = 'data:,') {
+  if (/<link\b[^>]*\brel=["']?(?:shortcut )?icon/i.test(html)) return html;
+  return html.replace(/<head\b[^>]*>/i, (head) => `${head}<link rel="icon" href="${icon}">`);
+}

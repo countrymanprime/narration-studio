@@ -7,6 +7,8 @@ const REPO_URL = 'https://github.com/countrymanprime/narration-utils';
 // demo is unmodified, but linking the source here keeps that offer visible rather than relying on
 // a visitor finding it another way.
 const isDemoBuild = import.meta.env.VITE_DEMO === '1';
+// The public site's own copy (`vite build --mode site`) sits at `demo/` beside the landing page and the Storybook, and links both by relative address.
+const isSiteBuild = import.meta.env.VITE_SITE === '1';
 
 // Rendered unconditionally by every top-level screen (StartupScreen, ProjectPicker, AppShell) so
 // it shows before and after a project loads, so every page of the demo says it is a demo. Self-gates on isDemoBuild so callers never branch on it.
@@ -23,6 +25,17 @@ export function DemoBanner() {
       <a href={REPO_URL} target="_blank" rel="noopener noreferrer" className="underline">
         View source
       </a>
+      {isSiteBuild && (
+        <>
+          <a href="../index.html" className="underline">
+            Site
+          </a>
+          <a href="../storybook/index.html" className="underline">
+            Storybook
+          </a>
+          <span className="min-[960px]:hidden">Best on a larger screen: the app is built for a window at least 960 px wide.</span>
+        </>
+      )}
     </div>
   );
 }

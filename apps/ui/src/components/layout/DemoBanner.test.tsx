@@ -25,4 +25,22 @@ describe('DemoBanner', () => {
     expect(link.getAttribute('href')).toBe('https://github.com/countrymanprime/narration-utils');
     expect(link.getAttribute('rel')).toContain('noopener');
   });
+
+  it('links the landing page and the Storybook beside the demo only in the public site build', async () => {
+    vi.stubEnv('VITE_DEMO', '1');
+    vi.stubEnv('VITE_SITE', '1');
+    const { DemoBanner } = await import('./DemoBanner');
+    render(<DemoBanner />);
+    expect(screen.getByRole('link', { name: 'Site' }).getAttribute('href')).toBe('../index.html');
+    expect(screen.getByRole('link', { name: 'Storybook' }).getAttribute('href')).toBe('../storybook/index.html');
+    expect(screen.getByText(/at least 960 px wide/)).toBeTruthy();
+  });
+
+  it('has no site links in the Pages demo build', async () => {
+    vi.stubEnv('VITE_DEMO', '1');
+    vi.stubEnv('VITE_SITE', undefined);
+    const { DemoBanner } = await import('./DemoBanner');
+    render(<DemoBanner />);
+    expect(screen.queryByRole('link', { name: 'Storybook' })).toBeNull();
+  });
 });

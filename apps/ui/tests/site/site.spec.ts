@@ -19,7 +19,10 @@ function watchRequests(page: Page): { outside: string[]; failed: string[]; error
   page.on('response', (response) => {
     if (response.status() >= 400) seen.failed.push(`${response.status()} ${response.url()}`);
   });
-  page.on('requestfailed', (request) => seen.failed.push(request.url()));
+  // A request cut short by the visitor moving on is not a failure.
+  page.on('requestfailed', (request) => {
+    if (request.failure()?.errorText !== 'net::ERR_ABORTED') seen.failed.push(request.url());
+  });
   page.on('pageerror', (error) => seen.errors.push(error.message));
   page.on('console', (message) => {
     if (message.type() === 'error') seen.errors.push(message.text());
@@ -148,4 +151,65 @@ test('the render setup and a cleanup tool the app opens in REAPER show up as wha
   await dawBadge(page).click();
   await expect(dawPanel(page)).toContainText('Render set to all regions');
   await expect(dawPanel(page)).toContainText('Cleanup tool');
+});
+
+test('Storybook opens from the landing page and from the demo, and renders a story', async ({ page }) => {
+  const seen = watchRequests(page);
+  await page.goto('./');
+  await page.getByRole('navigation', { name: 'Main' }).getByRole('link', { name: 'Storybook' }).click();
+  await expect(page).toHaveURL(/storybook\/index\.html/);
+  // A story's own page (the manager's iframe) renders a component, with no request outside the site.
+  await page.goto('storybook/iframe.html?id=primitives-button--primary&viewMode=story');
+  await expect(page.locator('#storybook-root button').first()).toBeVisible();
+
+  await page.goto('demo/index.html#/proof');
+  await expect(page.getByRole('link', { name: 'Storybook' })).toHaveAttribute('href', '../storybook/index.html');
+  await page.getByRole('link', { name: 'Storybook' }).click();
+  await expect(page).toHaveURL(/storybook\/index\.html/);
+  await expect(page.getByRole('link', { name: 'Narration Studio' }).or(page.locator('#storybook-explorer-tree'))).toBeVisible();
+  await page.goto('demo/index.html#/proof');
+  await page.getByRole('link', { name: 'Site' }).click();
+  await expect(page.getByRole('heading', { level: 1 })).toContainText('Proof every chapter');
+  expect(seen).toEqual({ outside: [], failed: [], errors: [] });
+});
+
+test('the landing page follows the app theme the demo stored, and the toggle changes both', async ({ page }) => {
+  await page.goto('demo/index.html#/proof');
+  await page.evaluate(() => localStorage.setItem('narration-ui-theme', 'dark'));
+  await page.goto('./');
+  await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
+  await page.getByRole('button', { name: 'Switch colour theme' }).click();
+  await expect(page.locator('html')).not.toHaveAttribute('data-theme', 'dark');
+  expect(await page.evaluate(() => localStorage.getItem('narration-ui-theme'))).toBe('light');
+});
+
+test('the demo and the landing page each run from one file inside a sandboxed frame, with no request but their own page', async ({ page }) => {
+  for (const path of ['demo/index.html', 'index.html']) {
+    await page.goto('./');
+    const own = new URL(path, page.url()).href;
+    const requests: string[] = [];
+    const errors: string[] = [];
+    page.on('request', (request) => requests.push(request.url()));
+    page.on('pageerror', (error) => errors.push(error.message));
+    // `sandbox="allow-scripts"` alone gives the frame an opaque origin: no storage, no cookies, and a module script or a font fetched from a file
+    // beside the page would need CORS headers. What the page carries inline is all it has.
+    await page.setContent(`<iframe id="f" title="site" sandbox="allow-scripts" src="${own}" style="width:1440px;height:900px;border:0"></iframe>`);
+    const frame = page.frameLocator('#f');
+    if (path === 'demo/index.html') {
+      await expect(frame.getByText('Alice’s Adventures in Wonderland').first()).toBeVisible();
+      await frame
+        .locator('nav')
+        .first()
+        .getByRole('button', { name: /^Proof/i })
+        .click();
+      await expect(frame.getByRole('button', { name: /^needs pickup/i }).first()).toBeVisible();
+      await expect(frame.getByRole('button', { name: /^Simulated DAW/ })).toBeVisible();
+    } else {
+      await expect(frame.getByRole('heading', { level: 1 })).toContainText('Proof every chapter');
+    }
+    expect(requests.filter((url) => url !== own && !url.startsWith('data:'))).toEqual([]);
+    expect(errors).toEqual([]);
+    page.removeAllListeners('request');
+    page.removeAllListeners('pageerror');
+  }
 });

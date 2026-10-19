@@ -22,6 +22,7 @@ export function startServer({ dir, base = '/', port = 0 }) {
     }
     if (existsSync(file) && statSync(file).isDirectory()) file = join(file, 'index.html');
     if (!existsSync(file)) {
+      console.error(`404 ${path}`);
       response.statusCode = 404;
       return response.end('not found');
     }
