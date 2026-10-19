@@ -1,14 +1,14 @@
 import { IconButton } from '../../primitives/IconButton';
 import type { GuideEntity } from '../../../api/contracts/storyBible';
-import { entityColour } from './decorations';
+import type { EntityColour } from '../../../kinds/entityColour';
+import { KindChip } from '../../primitives/KindChip';
 import { voiceNote } from './nearby';
 import type { BoothReference } from './sections';
 import { DIM_CLASS, ROW_CLASS, SideSection } from './SideSection';
 
 const FIELD = 'text-xs font-semibold uppercase tracking-wide text-[var(--text-muted)]';
 
-function Entry({ entry, onOpenEntry }: { entry: GuideEntity; onOpenEntry: (id: string) => void }) {
-  const colour = entityColour(entry.category);
+function Entry({ entry, colour, onOpenEntry }: { entry: GuideEntity; colour?: EntityColour; onOpenEntry: (id: string) => void }) {
   const summary = entry.description.text.trim();
   const isCharacter = entry.category.toLowerCase() === 'character';
   const voice = voiceNote(entry);
@@ -20,12 +20,7 @@ function Entry({ entry, onOpenEntry }: { entry: GuideEntity; onOpenEntry: (id: s
     <div className="flex flex-col gap-2" data-ref="entry">
       <div className="flex items-center gap-2">
         <b>{entry.canonical_name}</b>
-        <span
-          className="rounded-full px-2 text-xs"
-          style={{ background: `var(${colour}-soft, var(--surface-2))`, color: `var(${colour}-text, var(${colour}))` }}
-        >
-          {entry.category}
-        </span>
+        <KindChip kind="entity" label={entry.category} colour={colour} />
         <span className="flex-1" />
         <IconButton action="openInStoryBible" size="sm" onClick={() => onOpenEntry(entry.id)} />
       </div>
@@ -55,7 +50,7 @@ export function Reference({ reference, onOpenEntry }: { reference: BoothReferenc
   const { entry, note } = reference;
   return (
     <SideSection title="Reference" id="booth-reference">
-      {entry ? <Entry entry={entry} onOpenEntry={onOpenEntry} /> : null}
+      {entry ? <Entry entry={entry} colour={reference.colour} onOpenEntry={onOpenEntry} /> : null}
       {note ? (
         <div className="flex flex-col gap-1.5" data-ref="note">
           <div className="flex items-baseline gap-2">

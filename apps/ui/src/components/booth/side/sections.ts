@@ -1,4 +1,5 @@
 import type { ComponentType } from 'react';
+import type { EntityColour } from '../../../kinds/entityColour';
 import type { GuideEntity } from '../../../api/contracts/storyBible';
 import type { SuspectedFlag } from '../suspected/suspectedLinesModel';
 import type { ComingUpWord, NearbyVoice } from './nearby';
@@ -6,6 +7,8 @@ import type { ComingUpWord, NearbyVoice } from './nearby';
 /** What the narrator clicked in the text: a Story Bible entry and/or a note on a marked word, shown read-only. */
 export type BoothReference = {
   entry?: GuideEntity;
+  /** The entry's colour (`entryColour`): its type's, so the chip matches the name's tint in the text. */
+  colour?: EntityColour;
   note?: { name: string; quote: string; messages: ReadonlyArray<{ who?: string; text: string }> };
 };
 
