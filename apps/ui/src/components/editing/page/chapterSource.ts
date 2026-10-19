@@ -129,14 +129,21 @@ export function playlistOf(doc: ChapterDoc, read: ChapterRead): PlaylistSegment[
 /** The chapter's length now: where its last heard word ends. */
 export const lengthOf = (doc: ChapterDoc): number => doc.items.reduce((a, i) => (i.t1 != null && !i.cut ? Math.max(a, i.t1) : a), 0);
 
-/** Where a doubled read of a paragraph is cut, in seconds from the start of its take, or null when the paragraph is not read twice. */
-export function doubledCut(read: ChapterRead, paragraphId: string): number | null {
+/** How a take that reads its paragraph twice splits: where the second read starts and where to cut, in seconds from the start of the take. Null when it reads the paragraph once. */
+function doubledRead(read: ChapterRead, paragraphId: string): { startsAt: number; cutAt: number } | null {
   const para = read.workspace.paragraphs.find((p) => p.id === paragraphId);
   const span = heardSpans(read.answer, read.workspace.paragraphs[0]?.id).get(paragraphId);
   if (!para || !span) return null;
   const words: ModelWord[] = span.words.map((w) => ({ text: w.text, off0: w.off0 - span.origin, off1: w.off1 - span.origin, conf: w.conf ?? 1 }));
-  return duplicateRead(para.text, words)?.cutAt ?? null;
+  const dup = duplicateRead(para.text, words);
+  return dup ? { startsAt: dup.startsAt, cutAt: dup.cutAt } : null;
 }
+
+/** Where a doubled read of a paragraph is cut, in seconds from the start of its take, or null when the paragraph is not read twice. */
+export const doubledCut = (read: ChapterRead, paragraphId: string): number | null => doubledRead(read, paragraphId)?.cutAt ?? null;
+
+/** Where the second read of a doubled paragraph starts, in seconds from the start of its take, or null when the paragraph is not read twice. */
+export const doubledStart = (read: ChapterRead, paragraphId: string): number | null => doubledRead(read, paragraphId)?.startsAt ?? null;
 
 /** The script word at a moment of the chapter (the last one begun by then), or null when nothing is heard there. */
 export function wordAt(doc: ChapterDoc, t: number): string | null {

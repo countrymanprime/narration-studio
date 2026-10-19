@@ -32,7 +32,9 @@ export const Paragraph = memo(function Paragraph({ dp, sel, cursor, nowKey, flag
       className={`mb-2 grid max-w-[1000px] grid-cols-[76px_minmax(0,1fr)] gap-x-1.5 border-l-[3px] py-1 ${active ? 'border-[var(--accent-strong)] bg-[var(--accent-soft)]/40' : 'border-transparent'}`}
       style={{ contentVisibility: 'auto', containIntrinsicSize: 'auto 4.5rem' }}
     >
-      <span className="pt-[0.7em] pr-2 text-right font-mono text-xs text-[var(--text-muted)]">{dp.start != null ? clockText(dp.start) : ''}</span>
+      <div data-gutter className="flex flex-col items-end gap-1 pt-[0.7em] pr-2">
+        <span className="font-mono text-xs text-[var(--text-muted)]">{dp.start != null ? clockText(dp.start) : ''}</span>
+      </div>
       <p className={`m-0 min-w-0 ${dp.recorded ? 'text-[var(--text)]' : 'text-[var(--text-muted)]'}`}>
         {dp.units.map((us) => (
           <Fragment key={us.u.key}>

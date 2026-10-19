@@ -14,7 +14,7 @@ export interface DrawerProps {
   tab: DrawerTab;
   /** The tabs on offer with their labels. */
   tabs: ReadonlyArray<readonly [DrawerTab, string]>;
-  /** The count each tab wears; Clean up defaults to what the Found list counts. */
+  /** The count each tab wears; Clean up defaults to what the Found list counts, and the page adds the audio proposals to it. */
   counts?: Partial<Record<DrawerTab, number>>;
   onTab: (tab: DrawerTab) => void;
   onClose: () => void;
@@ -28,11 +28,12 @@ export interface DrawerProps {
   onKeyDown?: KeyboardEventHandler<HTMLElement>;
 }
 
-const foundTotal = (doc: ChapterDoc): number => doc.counts.extra + doc.counts.miss + doc.counts.mis + doc.counts.low;
+/** The words that differ from the script, summed over the four kinds. */
+export const flagTotal = (doc: ChapterDoc): number => doc.counts.extra + doc.counts.miss + doc.counts.mis + doc.counts.low;
 
 /** The clean-up and effects drawer: tabs by capability, each tab a panel of the sections that registered for it. */
 export function Drawer({ doc, chapterId, tab, tabs, counts = {}, onTab, onClose, flagKind, onReview, strip, onKeyDown }: DrawerProps) {
-  const count = (k: DrawerTab): number => counts[k] ?? (k === 'cleanup' ? foundTotal(doc) : 0);
+  const count = (k: DrawerTab): number => counts[k] ?? (k === 'cleanup' ? flagTotal(doc) : 0);
   const sections = drawSections(tab, { doc, chapterId });
   let body: ReactNode;
   if (tab === 'timeline') {
