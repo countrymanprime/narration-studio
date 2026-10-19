@@ -39,8 +39,8 @@ const (
 	messageStackBackupGone = "The backup made before the stack is no longer in the Audacity project, so nothing was moved back."
 )
 
-// maxStackMoves is the most later reads one stack moves: three new tracks, pastes and mutes and the split and shift are 11 undo
-// points, under dawport.MaxUndoSteps.
+// maxStackMoves is the most later reads one stack moves: three new tracks and pastes and the split and shift are 8 undo points
+// (a mute adds none), under dawport.MaxUndoSteps.
 const maxStackMoves = 3
 
 // takeTrackName is the muted track a stacked read is pasted to. It records what an un-stack needs, as REAPER's take P_EXT does:
@@ -212,6 +212,13 @@ func (s *steps) StackTakes(ctx context.Context, request dawport.StackRequest) (d
 	if err := s.selectRange(ctx, source.Index, lineUp, end); err != nil {
 		return dawport.Result{}, err
 	}
+	// The Delete below moves the audio of the clips after it only while clips may move other clips (A3-T18); the Split makes the
+	// stretch a clip of its own, so without the preference the audio after it would stay where it was and leave a gap.
+	restore, err := s.clipsMove(ctx)
+	if err != nil {
+		return dawport.Result{}, err
+	}
+	defer restore()
 	if err := s.do(ctx, "Split"); err != nil {
 		return dawport.Result{}, err
 	}
@@ -221,10 +228,10 @@ func (s *steps) StackTakes(ctx context.Context, request dawport.StackRequest) (d
 	}
 	e.did(stepShiftFollowing, 1)
 	for _, index := range takes {
-		if _, err := s.client.Do(ctx, audacitybridge.NewCommand("SetTrackAudio").Int("Track", index).Bool("Mute", true)); err != nil {
+		if err := s.client.SetTrackMute(ctx, index, true); err != nil {
 			return dawport.Result{}, err
 		}
-		e.did(stepMuteReads, 1)
+		e.did(stepMuteReads, 0) // a mute adds no undo point (A3-T22c)
 	}
 	return e.done("Stacked " + plural(len(group.Moves), "take", "takes") + " in Audacity. Done in " +
 		strconv.Itoa(len(e.steps)) + " steps."), nil
@@ -343,6 +350,12 @@ func (s *steps) UnstackTakes(ctx context.Context, request dawport.StackRequest) 
 	if err := s.selectRange(ctx, source.Index, lineUp, lineUp); err != nil {
 		return dawport.Result{}, err
 	}
+	// The Paste moves the audio of the clips after the spot up only while clips may move other clips (A3-T18).
+	restore, err := s.clipsMove(ctx)
+	if err != nil {
+		return dawport.Result{}, err
+	}
+	defer restore()
 	if err := s.do(ctx, "Paste"); err != nil {
 		return dawport.Result{}, err
 	}
