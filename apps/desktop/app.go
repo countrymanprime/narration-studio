@@ -1561,6 +1561,10 @@ func (h *Host) Bootstrap() map[string]any {
 		transcriptState = svc.transcript.Snapshot()
 	}
 	dawFileLinked, dawReachable, dawProjectMatches := dawLinkFacts(h.persist, config.projectFolder, config.daw, svc.reachability)
+	// An Audacity project has no .rpp and no REAPER heartbeat: its facts are the Audacity link's (bindings_audacity_link.go).
+	if linked, reachable, matches, ok := h.audacityLinkFacts(svc); ok {
+		dawFileLinked, dawReachable, dawProjectMatches = linked, reachable, matches
+	}
 	h.traceDawLink(config.projectFolder, concreteReachability(svc.reachability), dawFileLinked, dawReachable, dawProjectMatches)
 	return map[string]any{
 		"apiVersion": hostAPIVersion, "diagnosticId": h.diagnostic, "version": h.version,

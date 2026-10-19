@@ -349,3 +349,21 @@ func (h *Host) pollAudacityLink() {
 		h.audacityLinkRefresh(svc, true)
 	}()
 }
+
+// audacityLinkFacts is Bootstrap's three DAW facts (dawfacts.go) for a project that records with Audacity, read from the last heartbeat
+// without asking Audacity: linked is a link recorded for the project, reachable is Audacity answering, and matches is the open project
+// carrying this project's link label. ok is false for any other project, whose facts are REAPER's.
+func (h *Host) audacityLinkFacts(svc hostServices) (linked, reachable, matches, ok bool) {
+	conn := svc.audacity
+	if conn == nil || svc.config.projectFolder == "" {
+		return false, false, false, false
+	}
+	conn.mu.Lock()
+	link := conn.cached
+	conn.mu.Unlock()
+	if link == nil {
+		read := h.audacityLinkNow(context.Background(), svc, false)
+		link = &read
+	}
+	return link.Linked, link.State == string(audacitylink.StateAnswering), link.OpenProject == string(audacitylink.ProjectLinked), true
+}

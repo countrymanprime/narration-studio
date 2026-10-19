@@ -397,3 +397,41 @@ func TestAudacityLinkContractGoldensAreCurrent(t *testing.T) {
 		contractfile.Check(t, "audacity-link-not-chosen", asMap(now(f, true)))
 	})
 }
+
+func TestBootstrapFactsForAnAudacityProjectAreTheAudacityLinks(t *testing.T) {
+	f := newAudacityLinkFixture(t)
+	f.write(t, "[Module]\nmod-script-pipe=1\n")
+	*f.running = true
+	f.server.With(func(p *abt.Project) { p.AddWaveTrack("Chapter 1", 0, 60) })
+	facts := func() [3]bool {
+		linked, reachable, matches, ok := f.host.audacityLinkFacts(f.host.services())
+		if !ok {
+			t.Fatal("an Audacity project has Audacity facts")
+		}
+		return [3]bool{linked, reachable, matches}
+	}
+	if got := facts(); got != [3]bool{false, false, false} {
+		t.Errorf("before the first read = %v", got)
+	}
+	f.check(t)
+	if got := facts(); got != [3]bool{false, true, false} {
+		t.Errorf("answering, not linked = %v", got)
+	}
+	if _, err := f.host.AudacityLinkOpenProject(); err != nil {
+		t.Fatal(err)
+	}
+	if got := facts(); got != [3]bool{true, true, true} {
+		t.Errorf("linked and the same project open = %v", got)
+	}
+	f.server.SetDown(true)
+	*f.running = false
+	f.check(t)
+	if got := facts(); got != [3]bool{true, false, false} {
+		t.Errorf("Audacity closed = %v", got)
+	}
+	// Bootstrap carries them.
+	boot := f.host.Bootstrap()
+	if boot["dawFileLinked"] != true || boot["dawReachable"] != false {
+		t.Errorf("bootstrap = linked %v reachable %v", boot["dawFileLinked"], boot["dawReachable"])
+	}
+}
