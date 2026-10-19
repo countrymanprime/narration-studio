@@ -259,4 +259,22 @@ describe('Settings: Models & downloads', () => {
     await ready('whisper/small');
     expect(screen.queryByText('The list of models could not be read.')).toBeNull();
   });
+  it('opens the asset folder from the disk bar and says when the host refuses', async () => {
+    const assetsOpenFolder = vi.fn().mockResolvedValueOnce(undefined).mockRejectedValueOnce(new Error('No file manager.'));
+    await renderModels({ overrides: { assetsOpenFolder } });
+    await ready('whisper/small');
+    fireEvent.click(screen.getByRole('button', { name: 'Open folder' }));
+    await waitFor(() => expect(assetsOpenFolder).toHaveBeenCalledTimes(1));
+    fireEvent.click(screen.getByRole('button', { name: 'Open folder' }));
+    expect((await screen.findByRole('alert')).textContent).toContain('The folder could not be opened: No file manager.');
+  });
+
+  it('opens the asset folder from the load-error banner', async () => {
+    const base = createMockApi();
+    const assetsList = vi.fn(base.assetsList).mockRejectedValueOnce(new Error('The folder did not answer.'));
+    const assetsOpenFolder = vi.fn().mockResolvedValue(undefined);
+    await renderModels({ overrides: { assetsList, assetsOpenFolder } });
+    fireEvent.click(within(await screen.findByRole('alert')).getByRole('button', { name: 'Open the folder' }));
+    await waitFor(() => expect(assetsOpenFolder).toHaveBeenCalledTimes(1));
+  });
 });
