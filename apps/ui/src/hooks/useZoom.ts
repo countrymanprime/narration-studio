@@ -5,7 +5,7 @@ import { useDebouncedValue } from './useDebouncedValue';
 // Mirrors apps/desktop/bindings_window.go's zoomSteps: the header's buttons and Ctrl+=/-/0 step
 // through these six levels; the host snaps and clamps to the same list defensively, so a value this file computes
 // from it is never rejected.
-const ZOOM_STEPS = [1.0, 1.1, 1.25, 1.5, 1.75, 2.0];
+export const ZOOM_STEPS = [1.0, 1.1, 1.25, 1.5, 1.75, 2.0];
 const ZOOM_MIN = ZOOM_STEPS[0];
 const ZOOM_MAX = ZOOM_STEPS[ZOOM_STEPS.length - 1];
 const ANNOUNCE_DEBOUNCE_MS = 500;
@@ -109,6 +109,8 @@ export function useZoom(api: Pick<SystemApi, 'windowZoom' | 'windowSetZoom' | 'w
     zoomIn: () => apply(ZOOM_STEPS[Math.min(index + 1, ZOOM_STEPS.length - 1)]),
     zoomOut: () => apply(ZOOM_STEPS[Math.max(index - 1, 0)]),
     reset: () => apply(ZOOM_MIN),
+    /** Sets one of `ZOOM_STEPS` outright (the jump menu's "Set zoom to N%"). */
+    setLevel: (factor: number) => apply(factor),
     /** Debounced, polite "Zoom N%"; empty until the first real change. */
     announcement,
   };
