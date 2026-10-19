@@ -13,6 +13,12 @@ test('an inline script is not read for urls', () => {
   assert.deepEqual(outwardHtmlLoads('<script>var u = "<img src=/x.png>";</script>'), []);
 });
 
+test('cutting an inline script cannot leave a script tag behind', () => {
+  assert.deepEqual(outwardHtmlLoads('<scr<script>x</script>ipt src="https://cdn.example/x.js"></script>'), []);
+  assert.deepEqual(outwardHtmlLoads('<script>a</script ><img src="/x.png"><script>b</script\n>'), ['/x.png']);
+  assert.deepEqual(outwardHtmlLoads('<script>never closed <img src="/x.png">'), []);
+});
+
 test('css url() and @import are checked', () => {
   const css = `@font-face{src:url(./f.woff2)} a{background:url("/img.png")} @import "https://fonts.googleapis.com/css"; b{background:url(data:image/svg+xml;base64,AA)}`;
   assert.deepEqual(outwardCssLoads(css), ['/img.png', 'https://fonts.googleapis.com/css']);
