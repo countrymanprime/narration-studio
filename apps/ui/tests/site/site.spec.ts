@@ -66,3 +66,86 @@ test('the demo is the real app on a sample project, and a note marked Needs pick
   ).toBeVisible();
   expect(seen).toEqual({ outside: [], failed: [], errors: [] });
 });
+
+const dawBadge = (page: Page) => page.getByRole('button', { name: /^Simulated DAW/ });
+const dawPanel = (page: Page) => page.getByRole('region', { name: 'Simulated DAW' });
+
+test('Show in REAPER and Add marker in REAPER act on the simulated DAW, and its panel shows the cursor and the marker', async ({ page }) => {
+  const seen = watchRequests(page);
+  await page.goto('demo/index.html#/proof');
+  await expect(dawBadge(page)).toContainText('REAPER');
+  // The panel sits over the corner of the page, so it is opened to read and shut to use the app, as a visitor would.
+  await dawBadge(page).click();
+  await expect(dawPanel(page)).toContainText('Answering');
+  await expect(dawPanel(page)).toContainText('No take markers yet');
+  await dawBadge(page).click();
+
+  await page.getByRole('button', { name: 'Show in REAPER' }).click();
+  await page.getByRole('button', { name: 'Add marker in REAPER' }).click();
+  await expect(page.getByText(/Marker added in REAPER/)).toBeVisible();
+  await dawBadge(page).click();
+  await expect(dawPanel(page)).toContainText('Cursor moved to Chapter 1');
+  await expect(dawPanel(page)).toContainText('Take marker dropped at');
+  await expect(dawPanel(page)).toContainText('1 take marker');
+  expect(seen).toEqual({ outside: [], failed: [], errors: [] });
+});
+
+test('linking the simulated DAW: an unlinked project offers its .rpp, linking it makes the DAW answer', async ({ page }) => {
+  await page.goto('demo/index.html?mockDaw=live&mockDawChoice=found#/settings');
+  await expect(page.getByText('REAPER not linked')).toBeVisible();
+  await page.getByRole('button', { name: 'Link Alice.rpp' }).click();
+  await expect(page.getByText(/Linked to Alice\.rpp/)).toBeVisible();
+  // The panel is the DAW's side of the same fact.
+  await dawBadge(page).click();
+  await expect(dawPanel(page)).toContainText('Project file linked');
+});
+
+test('the panel switches the simulated DAW to Audacity, which has no take markers', async ({ page }) => {
+  await page.goto('demo/index.html#/proof');
+  await dawBadge(page).click();
+  await dawPanel(page).getByRole('button', { name: 'Switch to Audacity' }).click();
+  await expect(dawBadge(page)).toContainText('Audacity');
+  await expect(page.getByRole('button', { name: 'Add marker in REAPER' })).toHaveCount(0);
+});
+
+test('recording in the Booth starts and stops a take in the simulated DAW', async ({ page }) => {
+  await page.goto('demo/index.html#/booth');
+  await page.getByRole('button', { name: /^Record$/i }).click();
+  await expect(dawBadge(page)).toContainText('recording');
+  await page.getByRole('button', { name: /^Stop$/i }).click();
+  await expect(dawBadge(page)).not.toContainText('recording');
+  await dawBadge(page).click();
+  await expect(dawPanel(page)).toContainText('Recording started on Chapter 1');
+  await expect(dawPanel(page)).toContainText('Recording stopped: take 1 added to the track');
+  await expect(dawPanel(page)).toContainText('1 added this visit');
+});
+
+test('the render setup and a cleanup tool the app opens in REAPER show up as what the DAW was asked to do', async ({ page }) => {
+  await page.goto('demo/index.html#/proof');
+  await page
+    .getByRole('button', { name: /^REAPER/ })
+    .first()
+    .click();
+  await page.getByRole('button', { name: /^Prepare chapter render/i }).click();
+  await page
+    .getByRole('dialog')
+    .last()
+    .getByRole('button', { name: /^Configure render$/i })
+    .click();
+  await page
+    .getByRole('dialog')
+    .last()
+    .getByRole('button', { name: /^Close$/i })
+    .click();
+  await page.getByRole('button', { name: /^Cleanup tools/i }).click();
+  await page.getByRole('dialog').last().getByRole('button', { name: /open/i }).first().click();
+  await page
+    .getByRole('dialog')
+    .last()
+    .getByRole('button', { name: /^Close$/i })
+    .click();
+  await page.keyboard.press('Escape');
+  await dawBadge(page).click();
+  await expect(dawPanel(page)).toContainText('Render set to all regions');
+  await expect(dawPanel(page)).toContainText('Cleanup tool');
+});

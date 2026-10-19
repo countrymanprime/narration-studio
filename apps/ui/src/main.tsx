@@ -9,6 +9,7 @@ import { wailsClient } from './api/wailsClient';
 import { enableUiLog } from './api/uiLog';
 import type { RecordingMockSeed } from './api/recordingMock';
 import { createMockApi } from './api/mockApi';
+import { simulateDaw } from './api/mockHost/simulatedDaw';
 import { scenarioFromToday } from './api/productionMock';
 import { MOCK_FIDELITY, mockFidelityFrom } from './api/mockHost/mockFidelity';
 import { WIRE_CHAPTERS, WIRE_FINDINGS, WIRE_TRACKS_PROJECT, editingCandidateFor, takeReviewPickupFor } from './api/mockFixtures';
@@ -72,7 +73,10 @@ const mockDawNotDetected = mockParams.has('mockDawNotDetected');
 // `?mockDawExperimentalOn=1` turns every Experimental DAW capability on (the old `DAW.experimental_reaper_actions`
 // setting's own effect), so a `CapabilityGate('item_gain')` control's live,
 // clickable state can be seen without a host - it still carries the "Experimental" badge.
-const mockDawExperimentalOn = mockParams.has('mockDawExperimentalOn');
+// The public site (`vite build --mode site`, .env.site) also boots with Experimental REAPER actions on and shows the "Simulated DAW" panel, so a
+// visitor's Show in REAPER, markers, pickups and recording all get an answer from the mock DAW and the panel shows what they did.
+const siteDemo = import.meta.env.VITE_SITE === '1';
+const mockDawExperimentalOn = mockParams.has('mockDawExperimentalOn') || siteDemo;
 // `?mockDaw=Audacity` boots the app talking to Audacity instead of REAPER: Proof's finding detail
 // leaves out REAPER's take management (Go to/Loop/Add marker, take review, take comparison), which has no
 // Audacity analog, while everything else about a finding works the same.
@@ -636,8 +640,10 @@ const mockInitial = {
     mockDawRecording ? { transport: { playing: true, recording: true, position: 12 } } : undefined,
   ),
 };
-const api = import.meta.env.VITE_USE_MOCK_API === '1' ? createMockApi(window.__NARRATION_MOCK_OVERRIDES__, mockInitial) : wailsClient;
-if (api === wailsClient) enableUiLog();
+const hostApi = import.meta.env.VITE_USE_MOCK_API === '1' ? createMockApi(window.__NARRATION_MOCK_OVERRIDES__, mockInitial) : wailsClient;
+if (hostApi === wailsClient) enableUiLog();
+const simulatedDaw = siteDemo && hostApi !== wailsClient ? simulateDaw(hostApi) : undefined;
+const api = simulatedDaw?.api ?? hostApi;
 
 createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
@@ -657,4 +663,10 @@ createRoot(document.getElementById('root')!).render(
 // shipped build holds neither the panel nor its sentence.
 if (import.meta.env.VITE_USE_MOCK_API === '1' && mockParams.get('mockPanel') === '1') {
   void import('./components/devtools/MockStatesPanel').then(({ mountMockStatesPanel }) => mountMockStatesPanel());
+}
+
+// The site build's "Simulated DAW" badge. Only the site build reaches the dynamic import, so the shipped build holds neither the panel nor its text.
+if (simulatedDaw) {
+  const sim = simulatedDaw;
+  void import('./components/devtools/SimulatedDawPanel').then(({ mountSimulatedDawPanel }) => mountSimulatedDawPanel(sim, () => window.__NARRATION_MOCK_DAW__));
 }

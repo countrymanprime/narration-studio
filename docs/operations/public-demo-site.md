@@ -33,13 +33,20 @@ The `site` mode (`apps/ui/.env.site`, `apps/ui/vite.config.ts`) differs from the
 
 The build script then fails when any built HTML or CSS file loads something by an absolute path or from another host (`scripts/site/siteFiles.mjs`). The Pages `demo` mode is untouched.
 
+## The simulated DAW
+
+The demo boots with the DAW's Experimental switch on (`VITE_SITE=1`, read in `apps/ui/src/main.tsx`; Settings > Recording & DAW shows it on), because the mock DAW refuses every DAW action while it is off. The mock host already answers the DAW port like REAPER's adapter would. Two pieces make that visible:
+
+- **`apps/ui/src/api/mockHost/simulatedDaw.ts`** wraps `NarrationApi` in the site build only. It passes every answer through unchanged and keeps a picture of what the calls did to a DAW project: the cursor `Show in REAPER` moved, the take markers `Add marker in REAPER` dropped, pickup runs, recording started and stopped, takes made current, the render setup and the cleanup tools the app opened. It depends on `NarrationApi`, never on a concrete adapter. A refused call is shown as refused and changes nothing.
+- **`apps/ui/src/components/devtools/SimulatedDawPanel.tsx`** is the **Simulated DAW** badge at the bottom right of every page, which opens a small non-modal panel: connection, project, transport, cursor, a timeline with the markers, and the last actions. It can switch the demo to Audacity (which has no take markers), start it unlinked (a fresh machine whose folder holds `Alice.rpp`, so Settings > Recording & DAW offers **Link Alice.rpp**), and make the DAW stop or start answering. The mock reads its scenario once at boot (`?mockDaw=`, `?mockDawChoice=`), so a scenario choice reloads the page.
+
 ## Smoke test
 
 ```bash
 pnpm --dir apps/ui run test:site
 ```
 
-`apps/ui/playwright.site.config.ts` builds `dist-site/`, serves it under `/narration-utils/` and runs `apps/ui/tests/site/site.spec.ts`: the landing page loads from the sub-path, the demo opens, a Proof note marked **Needs pickup** moves the rail's Pickups count at once and appears in Pickups and in Production's open-pickups tile, and no request leaves the folder or fails. `SITE_SKIP_BUILD=1` serves the folder as it is. In a container, set `PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH` to the installed Chromium ([verification tooling](verification-tooling.md)).
+`apps/ui/playwright.site.config.ts` builds `dist-site/`, serves it under `/narration-utils/` and runs `apps/ui/tests/site/site.spec.ts`: the landing page loads from the sub-path, the demo opens, a Proof note marked **Needs pickup** moves the rail's Pickups count at once and appears in Pickups and in Production's open-pickups tile, the simulated DAW shows Show in REAPER, a marker, a Booth take, the render setup, a cleanup tool and the linking of an unlinked project, and no request leaves the folder or fails. `SITE_SKIP_BUILD=1` serves the folder as it is. In a container, set `PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH` to the installed Chromium ([verification tooling](verification-tooling.md)).
 
 ## Build it in CI, without publishing
 

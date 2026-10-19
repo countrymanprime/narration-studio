@@ -148,6 +148,7 @@ export function createMockApi(
     () => base.bootstrap(),
     (tool, _scope, values) => dawControl.settingsSaved(tool, values),
     initial.settings,
+    initial.daw?.experimentalOn,
   );
   const manuscript = createManuscriptMock(s, initial, { withMeasurement: (chapter) => withMeasurement(chapter) });
   const { manuscriptReady } = manuscript;

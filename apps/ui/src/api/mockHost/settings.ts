@@ -18,8 +18,15 @@ export function createSettingsMock(
   bootstrap: NarrationApi['bootstrap'],
   onSaved: (tool: string, scope: Scope, values: Record<string, string | null>) => void = () => {},
   seed?: MockSettingsSeed,
+  /** A switch the file already holds on: the public demo starts with Experimental REAPER actions on, so its simulated DAW answers. */
+  experimentalReaper = false,
 ) {
   const globalSettings = wireSettings();
+  if (experimentalReaper) {
+    globalSettings.DAW = globalSettings.DAW?.map((field) =>
+      field.key === 'experimental_reaper_actions' ? { ...field, value: 'true', isSet: true, effectiveValue: 'true', effectiveSource: 'Global' } : field,
+    );
+  }
   const settings: MockSettings = {
     global: globalSettings,
     project: Object.fromEntries(
