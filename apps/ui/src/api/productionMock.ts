@@ -20,8 +20,12 @@ import type {
   ProductionReportExport,
   ProductionReportPreview,
   ProductionSession,
+  ReportSection,
 } from './contracts/production';
 import type { StageRecommendations } from './contracts/stages';
+
+/** The order the host writes the report's sections in, whatever order they were asked for. */
+const REPORT_SECTION_ORDER: readonly ReportSection[] = ['words', 'stages', 'milestones', 'pickups', 'delivery', 'money'];
 
 type SeedLog = 'on-pace' | 'at-risk' | 'mock-fidelity-01';
 
@@ -305,6 +309,7 @@ export function createProductionMock(deps: Deps): ProductionApi & { applyProfile
   }
   const running = () => sessions.find((session) => session.endedAt === undefined) ?? null;
   let reportExports = 0;
+  const orderedSections = (chosen: readonly ReportSection[]) => REPORT_SECTION_ORDER.filter((section) => chosen.includes(section));
 
   const overview = async (): Promise<ProductionOverview> => {
     // Like the host (internal/production/overview.go), stage recommendations that cannot be read leave every chapter's readiness
@@ -410,27 +415,42 @@ export function createProductionMock(deps: Deps): ProductionApi & { applyProfile
     },
     // The host's writeProductionReport (production_report.go): the mock writes nothing, but names the file the same
     // way (a stem from the export time, -2, -3, ... within the same second) and echoes the narrator's own choice.
-    productionStatusReport: async (includeContractedAmount): Promise<ProductionReportExport> => {
+    productionStatusReport: async (sections): Promise<ProductionReportExport> => {
       reportExports += 1;
       const stem = `production-status-20260921-100000Z${reportExports > 1 ? `-${reportExports}` : ''}`;
       return {
         folder: 'narration-utils/production/reports',
         htmlFile: `${stem}.html`,
         jsonFile: `${stem}.json`,
-        contractedAmountIncluded: includeContractedAmount,
+        sections: orderedSections(sections),
+        contractedAmountIncluded: sections.includes('money'),
       };
     },
-    // The host's own document in miniature: the mock builds the page from the same overview it answers, leaves
-    // the contracted amount and rate out unless asked, and says "Not available" for a figure it cannot give.
-    productionStatusReportPreview: async (includeContractedAmount): Promise<ProductionReportPreview> => {
-      const { totals, deadline } = await overview();
+    // The host's own document in miniature: the mock builds the page from the same overview it answers, writes only
+    // the sections asked for (the contracted amount and rate being one of them), and says "Not available" for a
+    // figure it cannot give.
+    productionStatusReportPreview: async (sections): Promise<ProductionReportPreview> => {
+      const { totals, deadline, chapters } = await overview();
       const figure = (value: number | null) => (value === null ? 'Not available' : value.toFixed(2));
-      const rows: [string, string][] = [
-        ['Hours logged', totals.hoursLogged.toFixed(1)],
-        ['Book PFH', figure(totals.bookPfh)],
-        ['Deadline', deadline === null ? 'Not available' : deadline.date],
-      ];
-      if (includeContractedAmount) rows.push(['Contracted amount', figure(totals.contractedAmount)], ['Effective rate', figure(totals.effectiveRate)]);
+      const ticked = orderedSections(sections);
+      const rowsOf: Record<ReportSection, [string, string][]> = {
+        words: [
+          ['Chapters', String(chapters.length)],
+          ['Words', String(totals.wordCount)],
+        ],
+        stages: [
+          ['Hours logged', totals.hoursLogged.toFixed(1)],
+          ['Book PFH', figure(totals.bookPfh)],
+        ],
+        milestones: [['Deadline', deadline === null ? 'Not available' : deadline.date]],
+        pickups: [['Open pickups', 'None']],
+        delivery: [['Delivery check', 'Nothing has been measured']],
+        money: [
+          ['Contracted amount', figure(totals.contractedAmount)],
+          ['Effective rate', figure(totals.effectiveRate)],
+        ],
+      };
+      const rows = ticked.flatMap((section) => rowsOf[section]);
       const html = `<!doctype html><html><body><h1>Production status</h1><dl>${rows.map(([name, value]) => `<dt>${name}</dt><dd>${value}</dd>`).join('')}</dl></body></html>\n`;
       const json = `${JSON.stringify(Object.fromEntries(rows), null, 2)}\n`;
       return {
@@ -438,7 +458,8 @@ export function createProductionMock(deps: Deps): ProductionApi & { applyProfile
         json,
         folder: 'narration-utils/production/reports',
         stem: 'production-status-20260921-100000Z',
-        contractedAmountIncluded: includeContractedAmount,
+        sections: ticked,
+        contractedAmountIncluded: ticked.includes('money'),
       };
     },
     productionBurndown: async () => burndownOf(sessions),

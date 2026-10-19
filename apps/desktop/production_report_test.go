@@ -11,20 +11,29 @@ import (
 	"github.com/countrymanprime/narration-utils/shell/internal/project"
 )
 
+// reportSections is the narrator's choice of sections: every one but the contracted amount and rate, which are added with money.
+func reportSections(money bool) []string {
+	sections := []string{"words", "stages", "milestones", "pickups", "delivery"}
+	if money {
+		sections = append(sections, "money")
+	}
+	return sections
+}
+
 // The Production page's status report export (ProductionStatusReport): the host builds it from exactly
 // the overview and plan ProductionOverview just answered, and writes it into the project's own
 // narration-utils/production/reports folder, never over an earlier report.
 
 func TestProductionStatusReportRequiresAnOpenProject(t *testing.T) {
 	host := NewHost()
-	if _, err := host.ProductionStatusReport(false); err == nil {
+	if _, err := host.ProductionStatusReport(reportSections(false)); err == nil {
 		t.Fatal("want an error with no project open")
 	}
 }
 
 func TestProductionStatusReportWritesFilesAndLeavesOutTheContractedAmountByDefault(t *testing.T) {
 	host := productionHost(t)
-	answer := decodeAnswer(t)(host.ProductionStatusReport(false))
+	answer := decodeAnswer(t)(host.ProductionStatusReport(reportSections(false)))
 	if answer["contractedAmountIncluded"] != false {
 		t.Fatalf("want the contracted amount left out by default, got %v", answer)
 	}
@@ -51,7 +60,7 @@ func TestProductionStatusReportWritesFilesAndLeavesOutTheContractedAmountByDefau
 
 func TestProductionStatusReportIncludesTheContractedAmountWhenAsked(t *testing.T) {
 	host := productionHost(t)
-	answer := decodeAnswer(t)(host.ProductionStatusReport(true))
+	answer := decodeAnswer(t)(host.ProductionStatusReport(reportSections(true)))
 	if answer["contractedAmountIncluded"] != true {
 		t.Fatalf("want the contracted amount included, got %v", answer)
 	}
@@ -59,8 +68,8 @@ func TestProductionStatusReportIncludesTheContractedAmountWhenAsked(t *testing.T
 
 func TestProductionStatusReportNeverOverwritesAnEarlierReport(t *testing.T) {
 	host := productionHost(t)
-	first := decodeAnswer(t)(host.ProductionStatusReport(false))
-	second := decodeAnswer(t)(host.ProductionStatusReport(false))
+	first := decodeAnswer(t)(host.ProductionStatusReport(reportSections(false)))
+	second := decodeAnswer(t)(host.ProductionStatusReport(reportSections(false)))
 	if first["jsonFile"] == second["jsonFile"] {
 		t.Fatalf("two exports named the same file: %v", first["jsonFile"])
 	}
@@ -70,7 +79,7 @@ func TestProductionStatusReportNeverOverwritesAnEarlierReport(t *testing.T) {
 // names fixed: they carry the export time, which contractfile.Stabilize does not normalize (it is not RFC 3339).
 func TestContractProductionStatusReport(t *testing.T) {
 	host := productionHost(t)
-	answer := decodeAnswer(t)(host.ProductionStatusReport(false))
+	answer := decodeAnswer(t)(host.ProductionStatusReport(reportSections(false)))
 	answer["htmlFile"] = "production-status-20260921-100000Z.html"
 	answer["jsonFile"] = "production-status-20260921-100000Z.json"
 	stable, err := contractfile.Stabilize(answer)
@@ -85,14 +94,14 @@ func TestContractProductionStatusReport(t *testing.T) {
 
 func previewOf(t *testing.T, host *Host, include bool) map[string]any {
 	t.Helper()
-	return decodeAnswer(t)(host.ProductionStatusReportPreview(include))
+	return decodeAnswer(t)(host.ProductionStatusReportPreview(reportSections(include)))
 }
 
 func TestProductionStatusReportPreviewEqualsTheWrittenFile(t *testing.T) {
 	host := productionHost(t)
 	for attempt := 0; attempt < 5; attempt++ {
 		preview := previewOf(t, host, true)
-		exported := decodeAnswer(t)(host.ProductionStatusReport(true))
+		exported := decodeAnswer(t)(host.ProductionStatusReport(reportSections(true)))
 		folder := filepath.Join(host.config.projectFolder, filepath.FromSlash(exported["folder"].(string)))
 		writtenJSON, err := os.ReadFile(filepath.Join(folder, exported["jsonFile"].(string)))
 		if err != nil {
@@ -148,8 +157,8 @@ func TestProductionStatusReportPreviewKeepsTheContractedAmountOptIn(t *testing.T
 }
 
 func TestProductionStatusReportPreviewRequiresAnOpenProject(t *testing.T) {
-	_, previewErr := NewHost().ProductionStatusReportPreview(false)
-	_, exportErr := NewHost().ProductionStatusReport(false)
+	_, previewErr := NewHost().ProductionStatusReportPreview(reportSections(false))
+	_, exportErr := NewHost().ProductionStatusReport(reportSections(false))
 	if previewErr == nil || exportErr == nil || previewErr.Error() != exportErr.Error() {
 		t.Fatalf("want the export's own sentence, got %v and %v", previewErr, exportErr)
 	}
@@ -162,7 +171,7 @@ func TestProductionStatusReportPreviewNamesTheNextFile(t *testing.T) {
 		t.Fatalf("folder = %v", first["folder"])
 	}
 	// The preview's stem is the name it would use now; an export a later second may name differently.
-	exported := decodeAnswer(t)(host.ProductionStatusReport(false))
+	exported := decodeAnswer(t)(host.ProductionStatusReport(reportSections(false)))
 	next := previewOf(t, host, false)
 	taken := strings.TrimSuffix(exported["jsonFile"].(string), ".json")
 	if next["stem"] == taken {
@@ -195,6 +204,96 @@ func TestContractProductionStatusReportPreview(t *testing.T) {
 		t.Fatal(err)
 	}
 	contractfile.Check(t, "production-status-report-preview", stable)
+}
+
+func TestProductionStatusReportWritesOnlyTheTickedSections(t *testing.T) {
+	host := productionHost(t)
+	exported := decodeAnswer(t)(host.ProductionStatusReport([]string{"words", "milestones"}))
+	if got := exported["sections"].([]any); len(got) != 2 || got[0] != "words" || got[1] != "milestones" {
+		t.Fatalf("sections = %v", got)
+	}
+	folder := filepath.Join(host.config.projectFolder, filepath.FromSlash(exported["folder"].(string)))
+	written, err := os.ReadFile(filepath.Join(folder, exported["jsonFile"].(string)))
+	if err != nil {
+		t.Fatal(err)
+	}
+	var doc map[string]any
+	if err := json.Unmarshal(written, &doc); err != nil {
+		t.Fatal(err)
+	}
+	if doc["book"] == nil || doc["schedule"] == nil {
+		t.Fatalf("a ticked section is missing: %s", written)
+	}
+	for _, left := range []string{"stages", "pickups", "delivery", "rate"} {
+		if doc[left] != nil {
+			t.Fatalf("%s was written although it was not ticked", left)
+		}
+	}
+	page, err := os.ReadFile(filepath.Join(folder, exported["htmlFile"].(string)))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if strings.Contains(string(page), "Hours by stage") || strings.Contains(string(page), "Delivery check") {
+		t.Fatal("the page holds a section that was not ticked")
+	}
+}
+
+func TestProductionStatusReportPreviewFollowsTheTickedSections(t *testing.T) {
+	host := productionHost(t)
+	all := previewOf(t, host, false)["html"].(string)
+	words := decodeAnswer(t)(host.ProductionStatusReportPreview([]string{"words"}))
+	if !strings.Contains(all, "Hours by stage") || strings.Contains(words["html"].(string), "Hours by stage") {
+		t.Fatal("the preview does not follow the ticked sections")
+	}
+	if got := words["sections"].([]any); len(got) != 1 || got[0] != "words" {
+		t.Fatalf("sections = %v", got)
+	}
+}
+
+func TestProductionStatusReportRefusesAnUnknownSection(t *testing.T) {
+	host := productionHost(t)
+	if _, err := host.ProductionStatusReport([]string{"words", "chapters"}); err == nil {
+		t.Fatal("want an error for a section the report does not have")
+	}
+	if _, err := host.ProductionStatusReportPreview([]string{"chapters"}); err == nil {
+		t.Fatal("want an error for a section the report does not have")
+	}
+	if entries, _ := os.ReadDir(filepath.Join(host.config.projectFolder, "narration-utils", "production")); len(entries) > 0 {
+		for _, entry := range entries {
+			if entry.Name() == "reports" {
+				t.Fatal("a refused export wrote the reports folder")
+			}
+		}
+	}
+}
+
+func TestProductionStatusReportCountsTheOpenPickupsOfTheList(t *testing.T) {
+	f := newGapFixture(t)
+	preview := decodeAnswer(t)(f.host.ProductionStatusReportPreview([]string{"pickups", "delivery"}))
+	page := preview["html"].(string)
+	if !strings.Contains(page, "1 open in") || !strings.Contains(page, "Nothing has been measured") {
+		t.Fatalf("the pickups or the delivery sentence are missing:\n%s", page)
+	}
+}
+
+func TestProductionStatusReportJudgesTheLastMeasurementAgainstTheProfile(t *testing.T) {
+	host := productionHost(t)
+	good, quiet := measuredFile("ch-1.wav", 600, nil), measuredFile("ch-2.wav", 600, nil)
+	good.Report.IntegratedLUFS = floatPtr(-20)
+	quiet.Report.IntegratedLUFS = floatPtr(-12) // far over ACX's RMS window
+	unread := MeasureFileResult{Path: "ch-3.wav", Name: "ch-3.wav", Status: measureFileFailed, Error: "not a RIFF/WAVE file"}
+	lastRun(host, good, quiet, unread)
+	input := host.reportDelivery()
+	if input == nil || len(input.Files) != 3 || input.Profile == "" {
+		t.Fatalf("delivery input = %+v", input)
+	}
+	if input.Files[2].Measured || len(input.Files[2].Missed) > 0 {
+		t.Fatalf("a file that could not be read is unchecked, not failing: %+v", input.Files[2])
+	}
+	preview := decodeAnswer(t)(host.ProductionStatusReportPreview([]string{"delivery"}))
+	if !strings.Contains(preview["html"].(string), "unchecked") {
+		t.Fatalf("the page does not count the unchecked file:\n%s", preview["html"])
+	}
 }
 
 func generatedAt(reportJSON string) string {

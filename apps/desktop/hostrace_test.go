@@ -249,8 +249,8 @@ var stressReaders = []stressReader{
 	{"ProductionOverview", func(h *Host) { _, _ = h.ProductionOverview() }},
 	{"ProductionStartTimer (unknown chapter)", func(h *Host) { _, _ = h.ProductionStartTimer("missing", "recording") }},
 	{"ProductionStopTimer", func(h *Host) { _, _ = h.ProductionStopTimer() }},
-	{"ProductionStatusReport", func(h *Host) { _, _ = h.ProductionStatusReport(false) }},
-	{"ProductionStatusReportPreview", func(h *Host) { _, _ = h.ProductionStatusReportPreview(false) }},
+	{"ProductionStatusReport", func(h *Host) { _, _ = h.ProductionStatusReport([]string{"words"}) }},
+	{"ProductionStatusReportPreview", func(h *Host) { _, _ = h.ProductionStatusReportPreview([]string{"words"}) }},
 	{"ProductionBurndown", func(h *Host) { _, _ = h.ProductionBurndown() }},
 	{"emit callbacks", func(h *Host) {
 		h.emitTranscript(emptyTranscript())

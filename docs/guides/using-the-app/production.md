@@ -270,14 +270,27 @@ the reason and **Try again** above the table.
 
 ## Status report
 
-**Export status report** opens the report dialog: a preview of the host's own report, the format
-(HTML or JSON), the path it will be written to, and **Export**. The file goes into this project's
-`narration-utils/production/reports` folder, under a name built from when you exported it, and an
-export never overwrites an earlier one.
+**Export status report** opens the report dialog. Its title says the project and the date the report is as of. On the left are the
+choices; on the right is a live preview of the host's own report, which is exactly what **Export** writes.
 
-The contracted amount and effective rate are left out unless you tick the box to include them: a
-status report is often handed to someone else — a publisher, a collaborator, a rights holder
+![Export status report: an Include box for each section on the left, a preview of the report on the right](../../images/ui/production-report-dialog.webp)
+
+- **Include** has a box for each part of the report: **Words and finished audio**, **Hours and readiness by stage**, **Deadline and
+  milestones**, **Open pickups**, **Delivery check** and **Contracted amount and effective rate**. A section you untick is left out of
+  the preview and out of both files. With nothing ticked, **Export** is off.
+- **Format** switches the preview and the path between HTML and JSON. **Export** writes both files whichever you are looking at.
+- The path shows where the files go: this project's `narration-utils/production/reports` folder, under a name built from when you
+  exported it. An export never overwrites an earlier one.
+
+![The same dialog with Open pickups and Delivery check unticked and JSON chosen](../../images/ui/production-report-dialog-some-sections.webp)
+
+The contracted amount and effective rate are unticked each time the dialog opens, and the box is only there when the book pays per
+finished hour and an amount is set: a status report is often handed to someone else — a publisher, a collaborator, a rights holder
 checking on progress — who has no need to know what the book pays.
+
+**Open pickups** counts the lines still to record again, by chapter, from the [Pickups](pickups.md) list. **Delivery check** judges the
+files of the last measurement made in this session against the project's delivery profile; with nothing measured yet it says so, and
+never reads that as a pass.
 
 ## Importing the manuscript
 

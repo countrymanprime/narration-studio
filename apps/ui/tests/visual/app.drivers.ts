@@ -59,7 +59,13 @@ async function startInRequestedTheme(page: Page): Promise<void> {
   if (!theme) return;
   // A mistyped value must not turn into a light run that gets filed as the dark one.
   if (theme !== 'light' && theme !== 'dark') throw new Error(`UI_THEME must be "light" or "dark", got "${theme}"`);
-  await page.addInitScript(([key, value]) => window.localStorage.setItem(key, value), [THEME_STORAGE_KEY, theme]);
+  // The script runs in every frame: a sandboxed preview frame (the status report's) has no storage to set, and the app reads its theme from the top page.
+  await page.addInitScript(
+    ([key, value]) => {
+      if (window.self === window.top) window.localStorage.setItem(key, value);
+    },
+    [THEME_STORAGE_KEY, theme],
+  );
 }
 
 async function throttleRequestedCpu(page: Page): Promise<void> {

@@ -339,6 +339,21 @@ export const productionStates: StateEntry[] = [
     description:
       'Production, the Opening credits row opened from its Edit cell in the pipeline: its template, words and estimated length, Open in Script, its status select and why credits are not checked yet',
   },
+  // The status report dialog, opened from the page header's Export icon
+  {
+    page: 'production',
+    state: 'report-dialog',
+    reloadPerViewport: true,
+    description:
+      'Production with the status report dialog open (?mockProduction=on-pace, a contracted amount): the 26 px title with "project · as of date", an Include box for each of the six sections (the amount and rate unticked), Format and the path beside a tall live preview, then Cancel and Export',
+  },
+  {
+    page: 'production',
+    state: 'report-dialog-some-sections',
+    reloadPerViewport: true,
+    description:
+      'The status report dialog with the Pickups and Delivery check boxes unticked and the JSON format chosen: the preview holds only the ticked sections and the path ends in .json',
+  },
   {
     page: 'production',
     state: 'credits-closing-not-set-up',

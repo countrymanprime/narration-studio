@@ -4382,30 +4382,38 @@ describe('the production tracking mock', () => {
     await expect(api.productionStartTimer('chapter-99', 'recording')).rejects.toThrow(/no chapter/);
   });
 
-  it('the status report export leaves out the contracted amount unless asked, and never repeats a file name', async () => {
+  it('the status report export writes the ticked sections, leaves out the contracted amount unless asked, and never repeats a file name', async () => {
     const pinned = productionReportExportSchema.parse(readGolden('production-status-report.json'));
     const api = createMockApi();
-    const left = await api.productionStatusReport(false);
+    const left = await api.productionStatusReport(pinned.sections);
     expectMatches(productionReportExportSchema, left, 'mock production status report, default');
-    expect(left).toMatchObject({ folder: pinned.folder, contractedAmountIncluded: false });
-    const included = await api.productionStatusReport(true);
+    expect(left).toMatchObject({ folder: pinned.folder, sections: pinned.sections, contractedAmountIncluded: false });
+    const included = await api.productionStatusReport([...pinned.sections, 'money']);
     expectMatches(productionReportExportSchema, included, 'mock production status report, opted in');
     expect(included.contractedAmountIncluded).toBe(true);
     expect(included.jsonFile).not.toBe(left.jsonFile);
+    const some = await api.productionStatusReport(['pickups', 'words']);
+    expect(some.sections).toEqual(['words', 'pickups']);
+    expect(() => productionReportExportSchema.parse({ ...pinned, sections: ['chapters'] })).toThrow();
   });
 
   it('the status report preview parses the golden, rejects an unknown key, and the mock gives a document the schema parses', async () => {
     const pinned = productionReportPreviewSchema.parse(readGolden('production-status-report-preview.json'));
     expect(() => productionReportPreviewSchema.parse({ ...pinned, extra: 1 })).toThrow();
     const api = createMockApi();
-    const left = await api.productionStatusReportPreview(false);
+    const left = await api.productionStatusReportPreview(pinned.sections);
     expectMatches(productionReportPreviewSchema, left, 'mock production status report preview, default');
-    expect(left).toMatchObject({ folder: pinned.folder, contractedAmountIncluded: false });
+    expect(left).toMatchObject({ folder: pinned.folder, sections: pinned.sections, contractedAmountIncluded: false });
     expect(left.html).not.toMatch(/<script/i);
     expect(left.json).toContain('Not available');
-    const included = await api.productionStatusReportPreview(true);
+    expect(left.json).not.toContain('Contracted amount');
+    const included = await api.productionStatusReportPreview([...pinned.sections, 'money']);
     expectMatches(productionReportPreviewSchema, included, 'mock production status report preview, opted in');
     expect(included.contractedAmountIncluded).toBe(true);
+    expect(included.json).toContain('Contracted amount');
+    const onlyWords = await api.productionStatusReportPreview(['words']);
+    expect(onlyWords.json).not.toContain('Hours logged');
+    expect(onlyWords.sections).toEqual(['words']);
   });
 
   it('the burndown is empty with nothing logged, and cumulative by day once a seed logs some', async () => {

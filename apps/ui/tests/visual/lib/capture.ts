@@ -29,10 +29,14 @@ import {
   type RawAxeViolation,
 } from './validators';
 
+// The status report's preview frame is sandboxed with no scripts on purpose (the host's page has none); the harness's own injected scripts
+// (axe, init scripts) are what the browser reports as blocked there.
+const BLOCKED_IN_SANDBOXED_PREVIEW = /^Blocked script execution in 'about:srcdoc' because the document's frame is sandboxed/;
+
 function watchForProblems(page: Page, problems: string[]): void {
   page.on('pageerror', (error) => problems.push(`uncaught error: ${error.message}`));
   page.on('console', (message) => {
-    if (message.type() === 'error') problems.push(`console.error: ${message.text()}`);
+    if (message.type() === 'error' && !BLOCKED_IN_SANDBOXED_PREVIEW.test(message.text())) problems.push(`console.error: ${message.text()}`);
   });
   // ERR_ABORTED is the browser cancelling a request the app abandoned (React StrictMode's dev double-effect), not a failure.
   page.on('requestfailed', (request) => {

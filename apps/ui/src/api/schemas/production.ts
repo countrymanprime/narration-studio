@@ -11,6 +11,7 @@ import type {
   ProductionReadiness,
   ProductionReportExport,
   ProductionReportPreview,
+  ReportSection,
   ProductionSession,
   ProductionStartResult,
   ProductionStopResult,
@@ -114,10 +115,13 @@ export const productionStopResultSchema = z.union([
   z.object({ stopped: z.literal(false), session: z.null() }),
 ]) satisfies z.ZodType<ProductionStopResult>;
 
+const reportSectionSchema = z.enum(['words', 'stages', 'milestones', 'pickups', 'delivery', 'money']) satisfies z.ZodType<ReportSection>;
+
 export const productionReportExportSchema = z.object({
   folder: z.string(),
   htmlFile: z.string(),
   jsonFile: z.string(),
+  sections: z.array(reportSectionSchema),
   contractedAmountIncluded: z.boolean(),
 }) satisfies z.ZodType<ProductionReportExport>;
 
@@ -126,6 +130,7 @@ export const productionReportPreviewSchema = z.strictObject({
   json: z.string(),
   folder: z.string(),
   stem: z.string(),
+  sections: z.array(reportSectionSchema),
   contractedAmountIncluded: z.boolean(),
 }) satisfies z.ZodType<ProductionReportPreview>;
 

@@ -1,4 +1,5 @@
 // How to reach each `production` state in STATE_CATALOG (see app.drivers.ts).
+import type { Page } from '@playwright/test';
 import { settlePage } from '../helpers/settle';
 import {
   type Driver,
@@ -17,6 +18,17 @@ import {
 // The mock's own day: the `?mockProduction=` seeds are dated against it and move to the real day when the app opens, so a state that
 // names a date (or counts days) reads the same on every run with the clock pinned here. The clock keeps ticking.
 const MOCK_DAY = new Date(2026, 8, 26, 9, 0, 0);
+
+/** Opens the status report dialog on the on-pace page (it has a contracted amount, so the amount box is offered) and waits for its preview. */
+async function openReportDialog(page: Page) {
+  await page.clock.install({ time: MOCK_DAY });
+  await openProduction(page, '?mockProduction=on-pace');
+  await page.getByRole('button', { name: 'Export status report' }).click();
+  const dialog = page.getByRole('dialog', { name: 'Export status report' });
+  await dialog.getByTitle('Preview of the report').waitFor();
+  await dialog.getByRole('checkbox', { name: /contracted amount/i }).waitFor();
+  return dialog;
+}
 
 export const productionDrivers: Record<string, Driver> = {
   // The overview never answers, so `openProduction` (which waits for the pipeline table) is not used.
@@ -363,6 +375,16 @@ export const productionDrivers: Record<string, Driver> = {
     // The credits are rows of the pipeline: the Edit cell of the Opening credits row opens the row's panel.
     await page.getByRole('button', { name: /^Opening credits: Edit / }).click();
     await page.getByRole('dialog', { name: 'Opening credits' }).getByRole('link', { name: 'Open in Script' }).waitFor();
+  },
+  'report-dialog': async (page) => {
+    await openReportDialog(page);
+  },
+  'report-dialog-some-sections': async (page) => {
+    const dialog = await openReportDialog(page);
+    await dialog.getByRole('checkbox', { name: 'Open pickups' }).click();
+    await dialog.getByRole('checkbox', { name: 'Delivery check' }).click();
+    await dialog.getByRole('button', { name: 'JSON' }).click();
+    await dialog.getByLabel('Preview of the report').waitFor();
   },
   'credits-closing-not-set-up': async (page) => {
     await page.goto('/?mockCreditsMissing=1');

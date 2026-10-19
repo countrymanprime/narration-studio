@@ -129,16 +129,24 @@ export type ProductionStopResult = { stopped: true; session: ProductionSession }
 
 /**
  * What one status report export wrote (ProductionStatusReport): the folder
- * relative to the project (`narration-utils/production/reports`), the two file names in it, and whether the narrator
- * chose to include the contracted amount and effective rate (off by default: a status report is often shared with
- * someone the narrator would not otherwise tell their rate).
+ * relative to the project (`narration-utils/production/reports`), the two file names in it, the sections they hold
+ * and whether the narrator chose to include the contracted amount and effective rate (off by default: a status report
+ * is often shared with someone the narrator would not otherwise tell their rate).
  */
 export type ProductionReportExport = {
   folder: string;
   htmlFile: string;
   jsonFile: string;
+  sections: ReportSection[];
   contractedAmountIncluded: boolean;
 };
+
+/**
+ * One part of the status report the narrator can tick (ProductionStatusReport): the words and finished audio, the hours
+ * and readiness by stage, the deadline and milestones, the open pickups, the delivery check, and the contracted amount
+ * and effective rate (`money`, the one that is off unless named).
+ */
+export type ReportSection = 'words' | 'stages' | 'milestones' | 'pickups' | 'delivery' | 'money';
 
 /**
  * The document one export would write now (ProductionStatusReportPreview): the host's own HTML page and JSON
@@ -151,6 +159,7 @@ export type ProductionReportPreview = {
   json: string;
   folder: string;
   stem: string;
+  sections: ReportSection[];
   contractedAmountIncluded: boolean;
 };
 
@@ -183,18 +192,17 @@ export interface ProductionApi {
   /** Stops the running timer; a no-op (`stopped: false`) when none runs. */
   productionStopTimer(): Promise<ProductionStopResult>;
   /**
-   * Writes an HTML and a JSON status report (hours by stage, PFH, the deadline and milestone status, and book-wide
-   * readiness counts) into the project's sidecar folder, from exactly the same figures `productionOverview` just
-   * answered. `includeContractedAmount` writes the contracted amount and effective rate; off by default. Rejects
-   * without a project.
+   * Writes an HTML and a JSON status report into the project's sidecar folder, from exactly the same figures
+   * `productionOverview` just answered. `sections` names the parts to write; one not named is left out of both files,
+   * and `money` (the contracted amount and effective rate) is written only when named. An unknown section is refused
+   * and nothing is written. Rejects without a project.
    */
-  productionStatusReport(includeContractedAmount: boolean): Promise<ProductionReportExport>;
+  productionStatusReport(sections: readonly ReportSection[]): Promise<ProductionReportExport>;
   /**
    * The status report an export would write now, built by the host from the same model as `productionStatusReport`,
-   * so the preview is the written file. Writes nothing; `includeContractedAmount` is the same opt-in. Rejects without
-   * a project.
+   * so the preview is the written file. Writes nothing; `sections` is the same choice. Rejects without a project.
    */
-  productionStatusReportPreview(includeContractedAmount: boolean): Promise<ProductionReportPreview>;
+  productionStatusReportPreview(sections: readonly ReportSection[]): Promise<ProductionReportPreview>;
   /** The book's logged hours by day, one point per day from the first stopped session to the last; empty until one
    * is logged. Data only, for a chart primitive that does not exist yet. */
   productionBurndown(): Promise<ProductionBurndownPoint[]>;

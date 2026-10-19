@@ -120,6 +120,20 @@
   },
   {
     "page": "production",
+    "state": "report-dialog",
+    "viewport": "desktop",
+    "docName": "production-report-dialog",
+    "caption": "Production - Export status report, with an Include box for each section beside a live preview of the report"
+  },
+  {
+    "page": "production",
+    "state": "report-dialog-some-sections",
+    "viewport": "desktop",
+    "docName": "production-report-dialog-some-sections",
+    "caption": "Production - Export status report with Open pickups and Delivery check unticked and JSON chosen: the preview and the path follow"
+  },
+  {
+    "page": "production",
     "state": "recording-check-incomplete",
     "viewport": "desktop",
     "docName": "production-recording-check",

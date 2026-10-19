@@ -7,6 +7,7 @@ export function openReportDialog(props: Omit<ReportDialogProps, 'onClose'>): () 
     kind: 'dialog',
     dismissOnOutsidePress: true,
     title: 'Export status report',
+    headerless: true,
     render: ({ close }) => <ReportDialog {...props} onClose={close} />,
   });
 }

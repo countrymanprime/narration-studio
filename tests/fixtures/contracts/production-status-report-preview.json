@@ -3,5 +3,12 @@
   "folder": "narration-utils/production/reports",
   "html": "<!doctype html>\n",
   "json": "{}\n",
+  "sections": [
+    "words",
+    "stages",
+    "milestones",
+    "pickups",
+    "delivery"
+  ],
   "stem": "production-status-20260921-100000Z"
 }

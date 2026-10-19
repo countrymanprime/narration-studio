@@ -43,8 +43,26 @@ func sampleInput() Input {
 			{Name: "ACX 15-minute checkpoint", DueDate: "2026-10-15", Note: "The rights holder approves the first 15 minutes."},
 			{Name: "Final delivery", DueDate: "2026-09-01"},
 		},
-		Now: time.Date(2026, 9, 27, 12, 0, 0, 0, time.UTC),
+		Now:     time.Date(2026, 9, 27, 12, 0, 0, 0, time.UTC),
+		Options: Options{Sections: everySectionButMoney()},
+		Pickups: []PickupChapter{
+			{Chapter: "Chapter 1", Open: 0},
+			{Chapter: "Chapter 2", Open: 2, Kinds: []string{"misread", "noise"}},
+		},
+		Delivery: &DeliveryInput{Profile: "ACX", Files: []DeliveryFile{
+			{Name: "ch-1.wav", Measured: true},
+			{Name: "ch-2.wav", Measured: true, Missed: []string{"noise floor", "peak"}},
+			{Name: "ch-3.wav"},
+		}},
 	}
+}
+
+func everySectionButMoney() Sections {
+	chosen := Sections{}
+	for _, section := range AllSections {
+		chosen[section] = section != SectionMoney
+	}
+	return chosen
 }
 
 func render(t *testing.T, in Input) (string, string) {
@@ -95,8 +113,8 @@ func TestTheSameInputGivesTheSameBytesApartFromTheTimestamp(t *testing.T) {
 
 func TestTheContractedAmountAndRateAreLeftOutUnlessTheNarratorOptsIn(t *testing.T) {
 	report := Build(sampleInput())
-	if report.Rate.ContractedAmount != nil || report.Rate.EffectiveRate != nil {
-		t.Fatal("the contracted amount and rate should be left out by default")
+	if report.Rate != nil {
+		t.Fatal("the contracted amount and rate should be left out unless the money section is ticked")
 	}
 	if report.Privacy.ContractedAmountIncluded {
 		t.Fatal("Privacy.ContractedAmountIncluded should be false by default")
@@ -107,7 +125,7 @@ func TestTheContractedAmountAndRateAreLeftOutUnlessTheNarratorOptsIn(t *testing.
 	}
 
 	in := sampleInput()
-	in.Options.IncludeContractedAmount = true
+	in.Options.Sections[SectionMoney] = true
 	optedIn := Build(in)
 	if optedIn.Rate.ContractedAmount == nil || *optedIn.Rate.ContractedAmount != 2400 {
 		t.Fatal("opting in should include the contracted amount")
@@ -124,7 +142,7 @@ func TestAnUndefinedBookPFHIsWrittenAsAbsentNeverZero(t *testing.T) {
 	in := sampleInput()
 	in.Overview.Totals.BookPFH = nil
 	report := Build(in)
-	if report.Book.BookPFH != nil {
+	if report.Stages.BookPFH != nil {
 		t.Fatal("an undefined BookPFH should stay nil, never 0")
 	}
 	_, page := render(t, in)
@@ -135,20 +153,95 @@ func TestAnUndefinedBookPFHIsWrittenAsAbsentNeverZero(t *testing.T) {
 
 func TestAMilestonePastItsDateIsOverdue(t *testing.T) {
 	report := Build(sampleInput())
-	if len(report.Milestones) != 2 {
-		t.Fatalf("expected 2 milestones, got %d", len(report.Milestones))
+	if len(report.Schedule.Milestones) != 2 {
+		t.Fatalf("expected 2 milestones, got %d", len(report.Schedule.Milestones))
 	}
-	if report.Milestones[0].Overdue {
+	if report.Schedule.Milestones[0].Overdue {
 		t.Fatal("the ACX checkpoint (2026-10-15) should not be overdue as of 2026-09-27")
 	}
-	if !report.Milestones[1].Overdue {
+	if !report.Schedule.Milestones[1].Overdue {
 		t.Fatal("final delivery (2026-09-01) should be overdue as of 2026-09-27")
 	}
 }
 
 func TestReadinessCountsEveryChapterByItsVerdictAndNoneWhenNotAssessed(t *testing.T) {
 	report := Build(sampleInput())
-	if report.Readiness.Recommended != 1 || report.Readiness.NotReady != 1 || report.Readiness.None != 1 {
-		t.Fatalf("unexpected readiness counts: %+v", report.Readiness)
+	if report.Stages.Readiness.Recommended != 1 || report.Stages.Readiness.NotReady != 1 || report.Stages.Readiness.None != 1 {
+		t.Fatalf("unexpected readiness counts: %+v", report.Stages.Readiness)
+	}
+}
+
+func TestOnlyTheTickedSectionsAreWritten(t *testing.T) {
+	for _, section := range AllSections {
+		in := sampleInput()
+		in.Options.Sections = Sections{section: true}
+		report := Build(in)
+		present := map[Section]bool{
+			SectionWords: report.Book != nil, SectionStages: report.Stages != nil, SectionMilestones: report.Schedule != nil,
+			SectionPickups: report.Pickups != nil, SectionDelivery: report.Delivery != nil, SectionMoney: report.Rate != nil,
+		}
+		for _, other := range AllSections {
+			if present[other] != (other == section) {
+				t.Fatalf("ticking only %q: section %q present = %v", section, other, present[other])
+			}
+		}
+		if got := report.Sections; len(got) != 1 || got[0] != string(section) {
+			t.Fatalf("ticking only %q: Sections = %v", section, got)
+		}
+	}
+}
+
+func TestAnUntickedSectionIsAbsentFromThePageAndTheFile(t *testing.T) {
+	in := sampleInput()
+	in.Options.Sections = Sections{SectionWords: true}
+	encoded, page := render(t, in)
+	for _, leftOut := range []string{"Hours by stage", "Milestones", "Open pickups", "Delivery check", "Rate", "Caucus", "ACX 15-minute", "noise floor"} {
+		if bytes.Contains([]byte(page), []byte(leftOut)) || bytes.Contains([]byte(encoded), []byte(leftOut)) {
+			t.Fatalf("%q is in a report that ticked only the words section", leftOut)
+		}
+	}
+	if !bytes.Contains([]byte(page), []byte("8600 words")) {
+		t.Fatal("the words section is missing")
+	}
+}
+
+func TestOpenPickupsSkipAChapterWithNone(t *testing.T) {
+	report := Build(sampleInput())
+	if report.Pickups.Open != 2 || len(report.Pickups.Chapters) != 1 || report.Pickups.Chapters[0].Chapter != "Chapter 2" {
+		t.Fatalf("unexpected pickups: %+v", report.Pickups)
+	}
+}
+
+func TestDeliveryCountsPassFailAndUncheckedFiles(t *testing.T) {
+	report := Build(sampleInput())
+	d := report.Delivery
+	if !d.Measured || d.Pass != 1 || d.Fail != 1 || d.Unchecked != 1 || len(d.Failing) != 1 || d.Failing[0].File != "ch-2.wav" {
+		t.Fatalf("unexpected delivery: %+v", d)
+	}
+}
+
+func TestDeliverySaysNothingWasMeasuredNeverAPass(t *testing.T) {
+	in := sampleInput()
+	in.Delivery = nil
+	d := Build(in).Delivery
+	if d.Measured || d.Pass != 0 || d.Note == "" {
+		t.Fatalf("unexpected delivery: %+v", d)
+	}
+	_, page := render(t, in)
+	if !bytes.Contains([]byte(page), []byte("Nothing has been measured")) {
+		t.Fatal("the page should say nothing was measured")
+	}
+}
+
+func TestParseSectionsRefusesAnUnknownSection(t *testing.T) {
+	if _, err := ParseSections([]string{"words", "chapters"}); err == nil {
+		t.Fatal("want an error for a section the report does not have")
+	}
+	chosen, err := ParseSections([]string{"money", "words"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if ids := chosen.IDs(); len(ids) != 2 || ids[0] != "words" || ids[1] != "money" {
+		t.Fatalf("IDs are in report order, got %v", ids)
 	}
 }

@@ -432,22 +432,23 @@ describe('wailsClient', () => {
     expect(update).toHaveBeenCalledWith({ attached: false, reason: 'Busy' });
   });
 
-  it('reads the status report preview through its schema and passes the opt-in on', async () => {
+  it('reads the status report preview through its schema and passes the sections on', async () => {
     const preview = {
       html: '<p>x</p>',
       json: '{}\n',
       folder: 'narration-utils/production/reports',
       stem: 'production-status-20260921-100000Z',
+      sections: ['words', 'money'],
       contractedAmountIncluded: true,
     };
     const productionStatusReportPreview = vi.fn().mockResolvedValue(JSON.stringify(preview));
     standInHost({ ProductionStatusReportPreview: productionStatusReportPreview });
 
-    await expect(wailsClient.productionStatusReportPreview(true)).resolves.toEqual(preview);
-    expect(productionStatusReportPreview).toHaveBeenCalledWith(true);
+    await expect(wailsClient.productionStatusReportPreview(['words', 'money'])).resolves.toEqual(preview);
+    expect(productionStatusReportPreview).toHaveBeenCalledWith(['words', 'money']);
 
     standInHost({ ProductionStatusReportPreview: vi.fn().mockResolvedValue(JSON.stringify({ ...preview, extra: 1 })) });
-    await expect(wailsClient.productionStatusReportPreview(false)).rejects.toBeInstanceOf(WireError);
+    await expect(wailsClient.productionStatusReportPreview(['words'])).rejects.toBeInstanceOf(WireError);
   });
 
   it('sets the schedule basis through the plan schema and refuses an unknown one in the reply', async () => {

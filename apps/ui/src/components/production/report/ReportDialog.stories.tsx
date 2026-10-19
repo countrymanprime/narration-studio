@@ -1,26 +1,31 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import { expect, userEvent, within } from 'storybook/test';
 import { ApiProvider } from '../../../api/ApiContext';
-import type { ProductionPlan, ProductionReportPreview } from '../../../api/contracts/production';
+import type { ProductionPlan, ProductionReportPreview, ReportSection } from '../../../api/contracts/production';
 import { createMockApi } from '../../../api/mockApi';
 import { ReportDialog } from './ReportDialog';
 
 const PLAN: ProductionPlan = { deadline: '2026-11-01', contractedAmount: 250, payment: 'per_finished_hour', milestones: [] };
-const previewOf = (included: boolean): ProductionReportPreview => ({
-  html: `<!doctype html><html><body style="font-family:sans-serif"><h1>Production status</h1><dl><dt>Hours logged</dt><dd>41.5</dd><dt>Book PFH</dt><dd>5.20</dd>${
-    included ? '<dt>Contracted amount</dt><dd>250.00</dd><dt>Effective rate</dt><dd>31.25</dd>' : ''
-  }</dl></body></html>`,
-  json: `${JSON.stringify({ hoursLogged: 41.5, bookPfh: 5.2, ...(included ? { contractedAmount: 250, effectiveRate: 31.25 } : {}) }, null, 2)}\n`,
-  folder: 'narration-utils/production/reports',
-  stem: 'production-status-20260921-100000Z',
-  contractedAmountIncluded: included,
-});
+const previewOf = (sections: readonly ReportSection[]): ProductionReportPreview => {
+  const included = sections.includes('money');
+  const hours = sections.includes('stages');
+  return {
+    html: `<!doctype html><html><body style="font-family:sans-serif"><h1>Production status</h1><dl>${
+      hours ? '<dt>Hours logged</dt><dd>41.5</dd><dt>Book PFH</dt><dd>5.20</dd>' : ''
+    }${included ? '<dt>Contracted amount</dt><dd>250.00</dd><dt>Effective rate</dt><dd>31.25</dd>' : ''}</dl></body></html>`,
+    json: `${JSON.stringify({ ...(hours ? { hoursLogged: 41.5, bookPfh: 5.2 } : {}), ...(included ? { contractedAmount: 250, effectiveRate: 31.25 } : {}) }, null, 2)}\n`,
+    folder: 'narration-utils/production/reports',
+    stem: 'production-status-20260921-100000Z',
+    sections: [...sections],
+    contractedAmountIncluded: included,
+  };
+};
 const host = (plan: ProductionPlan = PLAN, refused?: string) =>
   createMockApi({
     productionPlan: async () => plan,
-    productionStatusReportPreview: async (included) => {
+    productionStatusReportPreview: async (sections) => {
       if (refused) throw new Error(refused);
-      return previewOf(included);
+      return previewOf(sections);
     },
   });
 
@@ -33,7 +38,7 @@ const meta = {
   decorators: [
     (Story, { parameters }) => (
       <ApiProvider api={parameters.api}>
-        <div className="max-w-3xl rounded-[var(--radius-card)] border border-[var(--border)] bg-[var(--surface)] p-4">
+        <div className="max-w-5xl rounded-[var(--radius-card)] border border-[var(--border)] bg-[var(--surface)] p-4">
           <Story />
         </div>
       </ApiProvider>
@@ -58,6 +63,15 @@ export const JsonPreview: Story = {
     await expect(canvasElement.querySelector('pre')?.textContent).toContain('hoursLogged');
   },
 };
+export const OnlySomeSections: Story = {
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await canvas.findByTitle('Preview of the report');
+    await userEvent.click(canvas.getByRole('checkbox', { name: /hours and readiness/i }));
+    await userEvent.click(canvas.getByRole('button', { name: 'JSON' }));
+    await expect((await canvas.findByLabelText('Preview of the report')).textContent).not.toContain('hoursLogged');
+  },
+};
 export const WithAmount: Story = {
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
@@ -71,7 +85,7 @@ export const RoyaltyShare: Story = {
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
     await canvas.findByTitle('Preview of the report');
-    await expect(canvas.queryByRole('checkbox')).toBeNull();
+    await expect(canvas.queryByRole('checkbox', { name: /contracted amount/i })).toBeNull();
   },
 };
 export const PreviewRefused: Story = {

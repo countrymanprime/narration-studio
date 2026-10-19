@@ -5,7 +5,7 @@
 // The output is deterministic apart from GeneratedAt: every map is written in key order and every list keeps the order
 // its input already has (the same order the Production page reads). The contracted amount and the effective rate, the
 // one financial pair this report can hold, are written only when the narrator opts in
-// (Options.IncludeContractedAmount): a status report is often the one thing a narrator shares with someone they would
+// (the money section): a status report is often the one thing a narrator shares with someone they would
 // not otherwise tell their rate.
 package productionreport
 
@@ -19,7 +19,7 @@ import (
 )
 
 // SchemaVersion is the version of the JSON report this package writes.
-const SchemaVersion = 1
+const SchemaVersion = 2
 
 // Dir is the sidecar folder the host writes reports to, relative to the project folder; distinct from
 // narration-utils/production's own sessions.json, so an export never touches the time log.
@@ -27,8 +27,30 @@ const Dir = "narration-utils/production/reports"
 
 // Options are the narrator's choices for one export.
 type Options struct {
-	// IncludeContractedAmount writes the contracted amount and the effective rate; off by default.
-	IncludeContractedAmount bool
+	// Sections are the parts of the report to write. The money section (the contracted amount and the effective rate) is
+	// off unless it is named: the host only names it when the narrator ticks it.
+	Sections Sections
+}
+
+// PickupChapter is one chapter's open pickups as the host's pickup list has them.
+type PickupChapter struct {
+	Chapter string
+	Open    int
+	Kinds   []string
+}
+
+// DeliveryFile is one measured file's verdict against the delivery profile: Measured is false for a file the
+// measurement could not read, and Missed names the rules a measured file does not meet.
+type DeliveryFile struct {
+	Name     string
+	Measured bool
+	Missed   []string
+}
+
+// DeliveryInput is the last measurement of this session, judged; nil when nothing has been measured.
+type DeliveryInput struct {
+	Profile string
+	Files   []DeliveryFile
 }
 
 // Input is everything one report is built from. Overview is the same production.Overview the Production page reads
@@ -41,24 +63,48 @@ type Input struct {
 
 	Overview   production.Overview
 	Milestones []project.Milestone
+	// Pickups is the open pickups by chapter and Delivery the last judged measurement; each is read only when its section is included.
+	Pickups  []PickupChapter
+	Delivery *DeliveryInput
 	// Now is the local time milestones' days-left are counted from; the host passes real time, tests a fixed one.
 	Now time.Time
 }
 
 // Build turns the input into the report model. It never fails: an undefined figure is written as absent, not guessed at.
 func Build(in Input) Report {
-	return Report{
+	chosen := in.Options.Sections
+	report := Report{
 		SchemaVersion: SchemaVersion,
 		GeneratedAt:   in.GeneratedAt,
 		App:           App{Name: "Narration Studio", Version: in.AppVersion},
 		Notice:        notice,
-		Book:          bookOf(in.Overview),
-		Deadline:      deadlineOf(in.Overview),
-		Milestones:    milestonesOf(in.Milestones, in.Now),
-		Readiness:     readinessOf(in.Overview.Chapters),
-		Rate:          rateOf(in.Overview.Totals, in.Options),
-		Privacy:       privacyOf(in.Options),
+		Sections:      chosen.IDs(),
+		Privacy:       privacyOf(chosen),
 	}
+	if chosen[SectionWords] {
+		book := bookOf(in.Overview)
+		report.Book = &book
+	}
+	if chosen[SectionStages] {
+		stages := stagesOf(in.Overview)
+		report.Stages = &stages
+	}
+	if chosen[SectionMilestones] {
+		report.Schedule = &Schedule{Deadline: deadlineOf(in.Overview), Milestones: milestonesOf(in.Milestones, in.Now)}
+	}
+	if chosen[SectionPickups] {
+		pickups := pickupsOf(in.Pickups)
+		report.Pickups = &pickups
+	}
+	if chosen[SectionDelivery] {
+		delivery := deliveryOf(in.Delivery)
+		report.Delivery = &delivery
+	}
+	if chosen[SectionMoney] {
+		rate := rateOf(in.Overview.Totals)
+		report.Rate = &rate
+	}
+	return report
 }
 
 // JSON renders the report as indented JSON with a trailing newline.
@@ -90,15 +136,59 @@ func (r Report) Render() (Rendered, error) {
 }
 
 func bookOf(overview production.Overview) BookSummary {
+	return BookSummary{
+		Chapters: overview.Totals.Chapters, FinalizedChapters: overview.Totals.FinalizedChapters, WordCount: overview.Totals.WordCount,
+		RecordedSeconds: overview.Totals.RecordedSeconds, MeasuredChapters: overview.Totals.MeasuredChapters,
+	}
+}
+
+func stagesOf(overview production.Overview) Stages {
 	byStage := map[string]float64{}
 	for stage, hours := range overview.Totals.HoursByStage {
 		byStage[string(stage)] = hours
 	}
-	return BookSummary{
-		Chapters: overview.Totals.Chapters, FinalizedChapters: overview.Totals.FinalizedChapters, WordCount: overview.Totals.WordCount,
-		RecordedSeconds: overview.Totals.RecordedSeconds, MeasuredChapters: overview.Totals.MeasuredChapters,
+	return Stages{
 		HoursLogged: overview.Totals.HoursLogged, HoursByStage: byStage, BookPFH: overview.Totals.BookPFH,
+		Readiness: readinessOf(overview.Chapters),
 	}
+}
+
+// pickupsOf totals the chapters that have an open pickup; the host lists a chapter with none as zero and it is left out.
+func pickupsOf(chapters []PickupChapter) Pickups {
+	out := Pickups{Chapters: []ChapterPickups{}}
+	for _, chapter := range chapters {
+		if chapter.Open == 0 {
+			continue
+		}
+		kinds := chapter.Kinds
+		if kinds == nil {
+			kinds = []string{}
+		}
+		out.Open += chapter.Open
+		out.Chapters = append(out.Chapters, ChapterPickups{Chapter: chapter.Chapter, Open: chapter.Open, Kinds: kinds})
+	}
+	return out
+}
+
+// deliveryOf counts the measured files that meet every rule, those that miss one and those the measurement could not read.
+func deliveryOf(in *DeliveryInput) Delivery {
+	if in == nil || len(in.Files) == 0 {
+		return Delivery{Failing: []FailingFile{}, Note: "Nothing has been measured in this session, so no file was judged against a delivery profile."}
+	}
+	out := Delivery{Measured: true, Profile: in.Profile, Failing: []FailingFile{},
+		Note: "The files the last measurement of this session covered, judged against the delivery profile in force."}
+	for _, file := range in.Files {
+		switch {
+		case !file.Measured:
+			out.Unchecked++
+		case len(file.Missed) > 0:
+			out.Fail++
+			out.Failing = append(out.Failing, FailingFile{File: file.Name, Rules: file.Missed})
+		default:
+			out.Pass++
+		}
+	}
+	return out
 }
 
 func deadlineOf(overview production.Overview) *Deadline {
@@ -153,10 +243,7 @@ func readinessOf(chapters []production.OverviewChapter) Readiness {
 	return counts
 }
 
-func rateOf(totals production.Totals, options Options) RateInfo {
-	if !options.IncludeContractedAmount {
-		return RateInfo{Note: "The narrator chose not to include the contracted amount or the effective rate in this report."}
-	}
+func rateOf(totals production.Totals) RateInfo {
 	note := "The effective rate is undefined (no contracted amount set, or no hours logged yet)."
 	if totals.EffectiveRate != nil {
 		note = "The contracted amount divided by every hour logged on the book."
@@ -164,10 +251,10 @@ func rateOf(totals production.Totals, options Options) RateInfo {
 	return RateInfo{ContractedAmount: totals.ContractedAmount, EffectiveRate: totals.EffectiveRate, Note: note}
 }
 
-func privacyOf(options Options) Privacy {
+func privacyOf(chosen Sections) Privacy {
 	note := "The contracted amount and effective rate are left out unless the narrator ticks the box to include them."
-	if options.IncludeContractedAmount {
+	if chosen[SectionMoney] {
 		note = "The narrator chose to include the contracted amount and the effective rate."
 	}
-	return Privacy{ContractedAmountIncluded: options.IncludeContractedAmount, Note: note}
+	return Privacy{ContractedAmountIncluded: chosen[SectionMoney], Note: note}
 }

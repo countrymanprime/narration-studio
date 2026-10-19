@@ -4,9 +4,12 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 	"time"
 
+	"github.com/countrymanprime/narration-utils/shell/internal/deliveryprofile"
+	"github.com/countrymanprime/narration-utils/shell/internal/production"
 	"github.com/countrymanprime/narration-utils/shell/internal/productionreport"
 )
 
@@ -19,28 +22,34 @@ import (
 // maxProductionReportNameAttempts bounds the search for a free file name when reports are exported within the same second.
 const maxProductionReportNameAttempts = 100
 
-// ProductionReportExport is what one export wrote: the folder (relative to the project, slash-separated) and the two
-// file names in it.
+// ProductionReportExport is what one export wrote: the folder (relative to the project, slash-separated), the two
+// file names in it and the sections they hold.
 type ProductionReportExport struct {
-	Folder                   string `json:"folder"`
-	HTMLFile                 string `json:"htmlFile"`
-	JSONFile                 string `json:"jsonFile"`
-	ContractedAmountIncluded bool   `json:"contractedAmountIncluded"`
+	Folder                   string   `json:"folder"`
+	HTMLFile                 string   `json:"htmlFile"`
+	JSONFile                 string   `json:"jsonFile"`
+	Sections                 []string `json:"sections"`
+	ContractedAmountIncluded bool     `json:"contractedAmountIncluded"`
 }
 
 // ProductionReportPreview is what an export would write now, built from the same Report the export renders: the HTML
 // page and the JSON text byte for byte, and the folder and file stem (the name it would use now; an export a second
 // later may differ). Nothing is written.
 type ProductionReportPreview struct {
-	HTML                     string `json:"html"`
-	JSON                     string `json:"json"`
-	Folder                   string `json:"folder"`
-	Stem                     string `json:"stem"`
-	ContractedAmountIncluded bool   `json:"contractedAmountIncluded"`
+	HTML                     string   `json:"html"`
+	JSON                     string   `json:"json"`
+	Folder                   string   `json:"folder"`
+	Stem                     string   `json:"stem"`
+	Sections                 []string `json:"sections"`
+	ContractedAmountIncluded bool     `json:"contractedAmountIncluded"`
 }
 
 // buildProductionReport builds the report both the preview and the export render; it refuses without a project.
-func (h *Host) buildProductionReport(includeContractedAmount bool) (project, generatedAt string, report productionreport.Report, err error) {
+func (h *Host) buildProductionReport(sectionIDs []string) (project, generatedAt string, report productionreport.Report, err error) {
+	sections, err := productionreport.ParseSections(sectionIDs)
+	if err != nil {
+		return "", "", productionreport.Report{}, err
+	}
 	project = h.services().config.projectFolder
 	if project == "" {
 		return "", "", productionreport.Report{}, fmt.Errorf("open a project first; the report is kept in its narration-utils/production/reports folder")
@@ -51,20 +60,87 @@ func (h *Host) buildProductionReport(includeContractedAmount bool) (project, gen
 	}
 	now := time.Now()
 	generatedAt = now.UTC().Format(time.RFC3339)
-	report = productionreport.Build(productionreport.Input{
+	in := productionreport.Input{
 		GeneratedAt: generatedAt, AppVersion: h.version,
-		Options:    productionreport.Options{IncludeContractedAmount: includeContractedAmount},
+		Options:    productionreport.Options{Sections: sections},
 		Overview:   overview,
 		Milestones: milestones,
 		Now:        now,
-	})
+	}
+	// Each of these reads only for a section that is included, so a report without it never touches the pickup list or the measurement.
+	if sections[productionreport.SectionPickups] {
+		if in.Pickups, err = h.reportPickups(overview); err != nil {
+			return "", "", productionreport.Report{}, err
+		}
+	}
+	if sections[productionreport.SectionDelivery] {
+		in.Delivery = h.reportDelivery()
+	}
+	report = productionreport.Build(in)
 	return project, generatedAt, report, nil
 }
 
+// reportPickups counts the open pickups of each chapter, in the manuscript's order, from the same merged list the Pickups page reads.
+func (h *Host) reportPickups(overview production.Overview) ([]productionreport.PickupChapter, error) {
+	list, err := h.pickupList().List()
+	if err != nil {
+		return nil, fmt.Errorf("could not read the pickup list: %w", err)
+	}
+	byChapter := map[string]*productionreport.PickupChapter{}
+	chapters := make([]productionreport.PickupChapter, len(overview.Chapters))
+	for i, chapter := range overview.Chapters {
+		chapters[i].Chapter = chapter.Title
+		byChapter[chapter.ID] = &chapters[i]
+	}
+	for _, pickup := range list.Pickups {
+		row := byChapter[pickup.ChapterID]
+		if row == nil || pickup.Done {
+			continue
+		}
+		row.Open++
+		if !slices.Contains(row.Kinds, pickup.Type) {
+			row.Kinds = append(row.Kinds, pickup.Type)
+		}
+	}
+	return chapters, nil
+}
+
+// reportDelivery judges the last measurement of this session against the project's delivery profile, the way Master & QC does;
+// nil when nothing has been measured.
+func (h *Host) reportDelivery() *productionreport.DeliveryInput {
+	job := h.judgeMeasure(h.measureState())
+	if len(job.Files) == 0 {
+		return nil
+	}
+	labels := map[string]string{}
+	name := ""
+	if job.Profile != nil {
+		name = job.Profile.Name
+		for _, rule := range job.Profile.Rules {
+			labels[rule.ID] = rule.Label
+		}
+	}
+	files := make([]productionreport.DeliveryFile, len(job.Files))
+	for i, file := range job.Files {
+		files[i] = productionreport.DeliveryFile{Name: file.Name, Measured: file.Status == measureFileMeasured}
+		for _, result := range file.Rules {
+			if result.Status != deliveryprofile.StatusNotMet {
+				continue
+			}
+			label := labels[result.RuleID]
+			if label == "" {
+				label = result.RuleID
+			}
+			files[i].Missed = append(files[i].Missed, label)
+		}
+	}
+	return &productionreport.DeliveryInput{Profile: name, Files: files}
+}
+
 // ProductionStatusReportPreview answers the document ProductionStatusReport would write, without writing anything
-// includeContractedAmount is the same opt-in as the export's.
-func (h *Host) ProductionStatusReportPreview(includeContractedAmount bool) (string, error) {
-	project, generatedAt, report, err := h.buildProductionReport(includeContractedAmount)
+// sections is the same choice as the export's.
+func (h *Host) ProductionStatusReportPreview(sections []string) (string, error) {
+	project, generatedAt, report, err := h.buildProductionReport(sections)
 	if err != nil {
 		return "", err
 	}
@@ -78,16 +154,16 @@ func (h *Host) ProductionStatusReportPreview(includeContractedAmount bool) (stri
 	}
 	return encodeBinding(ProductionReportPreview{
 		HTML: string(rendered.HTML), JSON: string(rendered.JSON), Folder: productionreport.Dir, Stem: stem,
-		ContractedAmountIncluded: report.Privacy.ContractedAmountIncluded,
+		Sections: report.Sections, ContractedAmountIncluded: report.Privacy.ContractedAmountIncluded,
 	}, nil)
 }
 
-// ProductionStatusReport writes the book's status report: hours by stage, PFH, the deadline and milestone
-// status, and book-wide readiness counts, as an HTML and a JSON file. includeContractedAmount is the narrator's choice
-// to write the contracted amount and the effective rate; off by default, since a status report is often shared with
-// someone the narrator would not otherwise tell their rate. It refuses without a project.
-func (h *Host) ProductionStatusReport(includeContractedAmount bool) (string, error) {
-	project, generatedAt, report, err := h.buildProductionReport(includeContractedAmount)
+// ProductionStatusReport writes the book's status report as an HTML and a JSON file. sections names the parts to
+// write: words, stages, milestones, pickups, delivery and money (the contracted amount and the effective rate, which a
+// status report leaves out unless asked, since it is often shared with someone the narrator would not otherwise tell
+// their rate). A section not named is not written, and an id that is no section is refused. It refuses without a project.
+func (h *Host) ProductionStatusReport(sections []string) (string, error) {
+	project, generatedAt, report, err := h.buildProductionReport(sections)
 	if err != nil {
 		return "", err
 	}
@@ -117,7 +193,7 @@ func writeProductionReport(project, generatedAt string, report productionreport.
 		}
 	}
 	return ProductionReportExport{
-		Folder: productionreport.Dir, HTMLFile: stem + ".html", JSONFile: stem + ".json",
+		Folder: productionreport.Dir, HTMLFile: stem + ".html", JSONFile: stem + ".json", Sections: report.Sections,
 		ContractedAmountIncluded: report.Privacy.ContractedAmountIncluded,
 	}, nil
 }
