@@ -44,6 +44,9 @@ async function toRecordReady(page: Page): Promise<void> {
 }
 
 test.describe('Booth with a moving mock DAW', () => {
+  // A linked project holds the setup steps back for the connect grace (20 s, RecordSetup) before "Open in REAPER and connect" can be pressed,
+  // so reaching Record-ready takes ~25 s on an idle machine. The default 30 s budget is then a coin flip on a loaded runner.
+  test.describe.configure({ timeout: 90_000 });
   test('link, launcher, heartbeat, notice clears, Record enables, a take runs and stops', async ({ page }) => {
     await toRecordReady(page);
     await record(page).click();
