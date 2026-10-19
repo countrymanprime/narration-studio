@@ -4,18 +4,13 @@ import { describeApiError } from '../../api/errorMessage';
 import { useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent, type ReactNode } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faLock, faMicrophone, faPlus, faRotate } from '@fortawesome/free-solid-svg-icons';
+import { faLock, faMicrophone, faPlus } from '@fortawesome/free-solid-svg-icons';
 import type { ManuscriptChapter } from '../../api/contracts/manuscript';
-import type { GuideBuildResult, GuideEntity, GuideType } from '../../types';
+import type { GuideEntity, GuideType } from '../../types';
 import { categoryLabel } from '../../state';
 import { CommandScope } from '../../input/router';
 import { useCommand } from '../../input/useCommand';
 import { useApi } from '../../api/ApiContext';
-import { useAssetInstall } from '../../hooks/useAssetInstall';
-import { usePendingAction } from '../../hooks/usePendingAction';
-import { useWorkJob } from '../../hooks/useWorkJob';
-import { AssetFacts } from '../assets/AssetFacts';
-import { AssetInstallPrompt } from '../assets/AssetInstallPrompt';
 import { Button } from '../primitives/Button';
 import { Heading } from '../primitives/Heading';
 import { Panel } from '../primitives/Panel';
@@ -60,7 +55,6 @@ import { SamplePlayerAnnouncement } from '../voicesamples/SamplePlayButton';
 import { useSamplePlayer } from '../voicesamples/useSamplePlayer';
 import { VoiceDataPanel } from './VoiceDataPanel';
 import { SeriesTab } from '../series/SeriesTab';
-import { WorkDialog } from '../primitives/WorkDialog';
 import { IconButton } from '../primitives/IconButton';
 import { SearchField } from '../primitives/SearchField';
 import { Select } from '../primitives/Select';
@@ -148,11 +142,6 @@ function GuideLoaded({ notify, goToManuscript }: Pick<GuideProps, 'notify' | 'go
   const [chaptersFailed, setChaptersFailed] = useState(false);
   const [typesFailed, setTypesFailed] = useState(false);
   const [readNonce, setReadNonce] = useState(0);
-  // The start call is quick, but the button says it was heard and a second press cannot start a second rebuild.
-  const starting = usePendingAction();
-  // The build needs a language model, an asset: when it is not installed the host says so instead of starting, and the narrator chooses to
-  // download it, to build without it this once, or to cancel. Nothing downloads on its own.
-  const [modelPrompt, setModelPrompt] = useState<Extract<GuideBuildResult, { status: 'asset_required' }>>();
   const [pendingNewEntity, setPendingNewEntity] = useState<{ name: string }>();
   // Memoized so the object identity only changes when a draft opens/closes,
   // not on every Guide re-render - GuideDetail resets its local form state
@@ -178,61 +167,10 @@ function GuideLoaded({ notify, goToManuscript }: Pick<GuideProps, 'notify' | 'go
     },
     [api, notify],
   );
-  // Follows a running rebuild. A success reloads the rows before the dialog goes, so the page never briefly renders on stale
-  // (pre-build) rows - that render trips the route ErrorBoundary, which looks exactly like the build itself had failed. The
-  // app says the build is done: the host's job-end event is the one place that does.
-  const [buildJob, setBuildJob] = useWorkJob({ poll: () => api.guideBuildState(), onSuccess: () => load() });
-  const modelInstall = useAssetInstall({
-    start: () => {
-      if (!modelPrompt) return Promise.reject(new Error('Build the Story Bible first.'));
-      return api.assetsInstall('spacy', modelPrompt.model.id);
-    },
-    state: (jobId) => api.assetsInstallState(jobId),
-    cancel: (jobId) => api.assetsInstallCancel(jobId),
-    onSuccess: async () => {
-      setModelPrompt(undefined);
-      notify('Language model installed.');
-      await startBuild(false);
-    },
-  });
-  const resetModelInstall = modelInstall.reset;
-  /** Starts a build and follows its job, or opens the first-use question when the language model has to be downloaded first. */
-  const startBuild = useCallback(
-    (rulesOnly: boolean) =>
-      starting.run('build', async () => {
-        try {
-          const result = await api.guideBuild({ rulesOnly });
-          if (result.status === 'asset_required') {
-            resetModelInstall();
-            setModelPrompt(result);
-          } else if (result.job.phase === 'success') await load();
-          else setBuildJob(result.job);
-        } catch (error) {
-          notify(describeApiError(error), 'error');
-        }
-      }),
-    [api, load, notify, resetModelInstall, setBuildJob, starting],
-  );
-  const closeModelPrompt = () => {
-    setModelPrompt(undefined);
-    resetModelInstall();
-  };
   useEffect(() => {
     void load(entityId);
     if (entityId) routerNavigate('/story-bible', { replace: true });
   }, [entityId, load, routerNavigate]);
-  // A rebuild that was started before the narrator left this page and is still going shows its dialog again on return; one that ended while
-  // they were away needs nothing here, because the page just loaded its rows and the app already said it finished.
-  useEffect(() => {
-    let active = true;
-    api
-      .guideBuildState()
-      .then((job) => active && ['preparing', 'running'].includes(job.phase) && setBuildJob(job))
-      .catch((error) => active && notify(describeApiError(error), 'error'));
-    return () => {
-      active = false;
-    };
-  }, [api, notify, setBuildJob]);
   // The chapters, for Appears in and for where a suggestion's quote is; without them those sections stay empty and the list panel says so.
   useEffect(() => {
     let live = true;
@@ -277,7 +215,7 @@ function GuideLoaded({ notify, goToManuscript }: Pick<GuideProps, 'notify' | 'go
   );
   const scanStart = useStartScan({ scan: found.scan.start, onImported: () => void load() });
   const links = useMemo(() => evidenceLinks(chapters, goToManuscript), [chapters, goToManuscript]);
-  // A rebuild that ends while its dialog is dismissed or the narrator is elsewhere on this page still refreshes the entries.
+  // A build that ends while the narrator is elsewhere on this page still refreshes the entries.
   useEffect(() => api.subscribeJobEnded((event) => event.kind === 'story_bible' && void load()), [api, load]);
 
   // A Draft entry (a brand new, not-yet-categorized entity) is hidden from
@@ -414,19 +352,9 @@ function GuideLoaded({ notify, goToManuscript }: Pick<GuideProps, 'notify' | 'go
   );
   const scanWithStart = { ...found.scan, start: scanStart.startScan };
   const actions = (
-    <div className="flex flex-wrap gap-2">
+    <div className="flex items-center gap-2">
       <ScanButton scan={scanWithStart} />
       <ImportButton onImport={() => openImportDialog({ onChanged: () => void load() })} />
-      <TooltipTarget text="Voice data: narration reference, remove voice data">
-        <IconButton label="Voice data" onClick={() => setVoiceDataOpen(true)}>
-          <FontAwesomeIcon icon={faMicrophone} />
-        </IconButton>
-      </TooltipTarget>
-      <TooltipTarget text="Build / refresh Story Bible">
-        <IconButton label="Build / refresh Story Bible" pending={starting.isPending('build')} onClick={() => void startBuild(false)}>
-          <FontAwesomeIcon icon={faRotate} />
-        </IconButton>
-      </TooltipTarget>
       <TooltipTarget text="Add entity">
         <IconButton label="Add entity" onClick={addEntity}>
           <FontAwesomeIcon icon={faPlus} />
@@ -440,7 +368,7 @@ function GuideLoaded({ notify, goToManuscript }: Pick<GuideProps, 'notify' | 'go
       <Tabs
         value={tab}
         onChange={setTab}
-        className="mx-auto flex h-[calc(100dvh-6.5rem)] max-w-6xl flex-col gap-4 overflow-hidden max-md:h-auto [@media(max-width:1023px)_and_(max-height:899px)]:h-auto [@media(max-width:1023px)_and_(max-height:899px)]:overflow-visible"
+        className="flex h-full flex-col gap-4 overflow-hidden max-md:h-auto [@media(max-width:1023px)_and_(max-height:899px)]:h-auto [@media(max-width:1023px)_and_(max-height:899px)]:overflow-visible"
       >
         {tab === SERIES_TAB && (
           <div className="flex-none space-y-4">
@@ -455,7 +383,7 @@ function GuideLoaded({ notify, goToManuscript }: Pick<GuideProps, 'notify' | 'go
         ) : (
           <div className="grid min-h-0 flex-1 gap-4 max-md:h-auto lg:grid-cols-[20rem_minmax(0,1fr)] [&>*]:max-md:min-h-96 [@media(max-width:1023px)_and_(max-height:899px)]:h-auto [&>*]:[@media(max-width:1023px)_and_(max-height:899px)]:min-h-96">
             <TabPanel value={tab} className={`${PANEL_FRAME_CLASS} flex min-h-0 flex-col overflow-hidden`}>
-              <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 px-4 pt-3">
+              <div className="flex items-center justify-between gap-2 px-4 pt-3">
                 <Heading title="Story Bible" />
                 {actions}
               </div>
@@ -578,6 +506,11 @@ function GuideLoaded({ notify, goToManuscript }: Pick<GuideProps, 'notify' | 'go
                   </ul>
                 )}
               </div>
+              <div className="flex-none border-t border-[var(--border)] px-4 py-2">
+                <Button variant="secondary" onClick={() => setVoiceDataOpen(true)}>
+                  <FontAwesomeIcon icon={faMicrophone} /> Voice data
+                </Button>
+              </div>
             </TabPanel>
             <div ref={detailRef} className="flex min-h-0 min-w-0">
               {!entriesRead ? (
@@ -626,34 +559,6 @@ function GuideLoaded({ notify, goToManuscript }: Pick<GuideProps, 'notify' | 'go
             </div>
           </div>
         )}
-        {modelPrompt && (
-          <AssetInstallPrompt
-            ask={{
-              title: 'Download local language model?',
-              body: 'The Story Bible reads your manuscript with a language model to find people, places and organizations. It is not bundled with Narration Studio and will be stored in your per-user asset cache. You can build without it this once, with lower-quality results.',
-              confirmLabel: 'Download model',
-              alternative: { label: 'Build with rules-only', action: () => void startBuild(true).then(closeModelPrompt) },
-            }}
-            workTitle="Downloading language model"
-            install={modelInstall}
-            dismiss={closeModelPrompt}
-          >
-            <AssetFacts
-              label="Language model"
-              name={modelPrompt.model.displayName}
-              version={modelPrompt.model.version}
-              publisher={modelPrompt.model.publisher}
-              license={modelPrompt.model.license}
-              licenseUrl={modelPrompt.model.licenseUrl}
-              modelCardUrl={modelPrompt.model.modelCardUrl}
-              provenanceUrl={modelPrompt.model.provenanceUrl}
-              downloadSize={modelPrompt.downloadSize}
-              diskSize={modelPrompt.diskSize}
-              installPath={modelPrompt.installPath}
-            />
-          </AssetInstallPrompt>
-        )}
-        {buildJob && <WorkDialog title="Rebuild Story Bible" job={buildJob} close={() => setBuildJob(undefined)} background={() => setBuildJob(undefined)} />}
         {scanStart.dialogs}
         <VoiceDataPanel open={voiceDataOpen} onClose={() => setVoiceDataOpen(false)} notify={notify} entities={rows} types={types} player={samplePlayer} />
         <SamplePlayerAnnouncement text={samplePlayer.announcement} />

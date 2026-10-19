@@ -22,6 +22,10 @@ func TestReadReply(t *testing.T) {
 		{"CRLF line endings", "x\r\nBatchCommand finished: OK\r\n\r\n", []string{"x"}, true, nil},
 		{"a body with an empty line inside", "[\n\n]\nBatchCommand finished: OK\n\n", []string{"[", "", "]"}, true, nil},
 		{"a bare empty line: no project open", "\n", nil, false, ErrNoProject},
+		{"an OK that starts with an empty line (Audacity 3.7.7: Import2, SelectTime, Undo)", "\nBatchCommand finished: OK\n\n", nil, true, nil},
+		{"a body that starts with an empty line (Audacity 3.7.7: GetInfo)", "\n[  ]\nBatchCommand finished: OK\n\n", []string{"[  ]"}, true, nil},
+		{"a Failed! that starts with an empty line (GetPreference of a missing key)", "\nBatchCommand finished: Failed!\n\n", nil, false, nil},
+		{"an empty line, then an empty body line", "\n\nBatchCommand finished: OK\n\n", []string{""}, true, nil},
 		{"an unknown terminator", "BatchCommand finished: Maybe\n\n", nil, false, ErrProtocol},
 		{"a terminator with trailing space", "BatchCommand finished: OK \n\n", nil, false, ErrProtocol},
 		{"text instead of the empty line", "BatchCommand finished: OK\nstray\n", nil, false, ErrProtocol},
@@ -158,5 +162,22 @@ func TestParseClips(t *testing.T) {
 	}
 	if _, err := parseClips(lines(`[ { "start":0, "end":1 } ]`)); !errors.Is(err, ErrProtocol) {
 		t.Errorf("a clip with no track: err = %v, want ErrProtocol", err)
+	}
+}
+
+// Audacity writes one reply in one write, so the empty line that starts a reply with a body arrives with the lines after it, and the
+// whole answer when no project is open is that line alone. This is the observed behaviour of Audacity 3.7.7 on Linux
+// (docs/research/real-audacity3-ci-integration.md, Finding 1); a reply that arrives in pieces after the empty line is not handled.
+func TestReadReplyTellsALoneEmptyLineFromOneThatStartsAReply(t *testing.T) {
+	for _, size := range []int{16, 64, 4096} {
+		blank := bufio.NewReaderSize(strings.NewReader("\n[ 1 ]\nBatchCommand finished: OK\n\n"), size)
+		reply, ok, err := readReply(blank)
+		if err != nil || !ok || !reflect.DeepEqual(reply.Lines, []string{"[ 1 ]"}) {
+			t.Errorf("buffer %d: blank-led reply = %q ok=%v err=%v", size, reply.Lines, ok, err)
+		}
+		lone := bufio.NewReaderSize(strings.NewReader("\n"), size)
+		if _, _, err := readReply(lone); !errors.Is(err, ErrNoProject) {
+			t.Errorf("buffer %d: a lone empty line = %v, want ErrNoProject", size, err)
+		}
 	}
 }

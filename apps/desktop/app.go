@@ -70,7 +70,7 @@ import (
 // Keep this in lockstep with apps/ui/src/hostApi.ts.  The frontend rejects
 // an older host before bootstrapping so a partial update cannot run against a
 // binding contract it does not understand.
-const hostAPIVersion = 137
+const hostAPIVersion = 138
 
 // Host is the Wails binding boundary. The frontend invokes only this bound
 // object; it never receives a loopback port or an HTTP capability.
@@ -2126,15 +2126,6 @@ func (h *Host) startGuideBuild(rulesOnly bool) (map[string]any, error) {
 		}
 	}()
 	return map[string]any{"status": "started", "job": snapshotWork(job)}, nil
-}
-func (h *Host) guideBuildState() map[string]any {
-	h.mu.RLock()
-	job := h.guideJob
-	h.mu.RUnlock()
-	if job == nil {
-		return map[string]any{"id": nil, "kind": "story_bible", "phase": "idle", "message": "Ready to build the Story Bible.", "percent": 0, "logs": []string{}, "elapsed": 0}
-	}
-	return snapshotWork(job)
 }
 
 // pollWorkJob folds the sidecar's latest progress line and any new log lines
