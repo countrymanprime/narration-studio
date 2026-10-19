@@ -187,6 +187,9 @@ importers:
       lint-staged:
         specifier: ^17.6.0
         version: 17.6.0
+      markdown-it:
+        specifier: 15.0.1
+        version: 15.0.1
       markdownlint-cli2:
         specifier: 0.23.3
         version: 0.23.3(supports-color@7.2.0)

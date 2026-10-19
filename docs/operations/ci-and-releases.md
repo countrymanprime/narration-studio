@@ -538,6 +538,7 @@ demand: the docs at the root ([below](#the-public-docs-site)) and the Storybook 
   Actions, re-run the latest run; the deployed address appears on the `deploy` job and in the repository's Environments list.
 - **Change it like any workflow:** every action is pinned to a commit (`pinact run --verify --check`), `zizmor` must be clean, and a
   new artifact path or job goes through review of the token scopes above.
+- **A build of the demo site that publishes nothing** is `site-preview.yml`: manual, read-only, uploads `dist-site/` as an artifact ([The public demo site](public-demo-site.md)).
 
 ## The public docs site
 

@@ -47,6 +47,7 @@ import { useChapterTimeline } from './useChapterTimeline';
 import { useProofKeys } from './useProofKeys';
 import { useNoteContextMenu } from './useNoteContextMenu';
 import { addressPath } from '../../navigation/address';
+import { announcePickupListChanged } from '../pickups/pickupListChanged';
 
 /** A pin's ink is its note type's kind colour (kinds/kindMap.ts); a take comparison has no hue, so it is muted. */
 const pinColour = (type: FindingNoteType): string => {
@@ -298,6 +299,7 @@ export function ProofPage({
             });
             replace(back);
             select(request.id);
+            announcePickupListChanged();
             // The note may be in a chapter other than the one now open: go back to it, so the decision taken back is the one in view.
             const home = chapterOf(before);
             if (home && !scopeRef.current.all && scopeRef.current.scope !== home) choose(home);
@@ -323,10 +325,12 @@ export function ProofPage({
       entryOf.current.delete(next.id);
       replace(next);
       setReload((n) => n + 1);
-      if (!decided || entry === undefined) return;
-      const after = order[order.indexOf(next.id) + 1];
-      if (after) select(after);
-      overlay.toastUndo(`${noteRow(next).time} · ${noteRow(next).resolution.label}`, () => journal.undo(entry), { entry });
+      if (decided && entry !== undefined) {
+        const after = order[order.indexOf(next.id) + 1];
+        if (after) select(after);
+        overlay.toastUndo(`${noteRow(next).time} · ${noteRow(next).resolution.label}`, () => journal.undo(entry), { entry });
+      }
+      announcePickupListChanged();
     },
     [order, replace, select, overlay, journal],
   );

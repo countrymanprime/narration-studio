@@ -23,6 +23,9 @@
         // (apps/ui/src/motion.ts, applyMotion; same key, duplicated for the same reason).
         try {
           if (localStorage.getItem('narration-ui-motion') === 'reduce') document.documentElement.setAttribute('data-motion', 'reduce');
+          // The public demo's "Play animations" switch (DemoBanner) wins over both, and exists only in a demo build (VITE_DEMO is replaced by Vite there).
+          if ('%VITE_DEMO%' === '1' && localStorage.getItem('narration-ui-demo-play-motion') === '1')
+            document.documentElement.setAttribute('data-motion', 'play');
         } catch (error) {
           // Storage unavailable - follow Windows.
         }
