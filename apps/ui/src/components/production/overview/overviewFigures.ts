@@ -6,7 +6,7 @@ import type { Measured } from '../../../api/schemas/base';
 import { fmtD, hm } from '../../schedule/dates';
 import { RATIO } from '../../schedule/estimates';
 import { statusTone } from '../../../kinds/statusTone';
-import { deadlineTone, scheduleChapters, TONE_STATUS, type Calc, type Tone } from '../../schedule/progress';
+import { deadlineTone, TONE_STATUS, type Calc, type Tone } from '../../schedule/progress';
 import type { ChapterSyncChapter } from '../../../api/contracts/chapterSync';
 
 /** The page a figure goes to. The components import no router; the page maps this to a route. */
@@ -151,24 +151,55 @@ export function kpiTiles({ k, wph, recordedSeconds, due, openPickups, pickupMinu
   ];
 }
 
-export type StageSegment = { key: 'proofed' | 'edited' | 'recorded' | 'unrecorded'; label: string; words: number; hours: number; percent: number };
+export type StageSegment = {
+  key: 'delivered' | 'proofed' | 'edited' | 'recorded' | 'unrecorded';
+  label: string;
+  words: number;
+  hours: number;
+  percent: number;
+};
+
+/** The stages a status has finished, as a share of the chapter: a stage is done from the status after it. */
+const DONE_SHARE: Record<ChapterStatus, { rec: number; edit: number; proof: number }> = {
+  not_started: { rec: 0, edit: 0, proof: 0 },
+  recording: { rec: 0, edit: 0, proof: 0 },
+  editing: { rec: 1, edit: 0, proof: 0 },
+  proofing: { rec: 1, edit: 1, proof: 0 },
+  finalized: { rec: 1, edit: 1, proof: 1 },
+};
 
 /**
- * The stage bar's segments, by the finished hours at each stage, from each chapter's status. "Delivered" has no chapter-level source
- * (the audit's pipeline table), so it is left out rather than estimated. The percents sum to 100 over the narrated words, or the bar is empty.
+ * The stage bar's segments (the mock's five), each chapter's words weighted by how far that chapter is: Delivered where the delivery review
+ * has mastered it, Proofed, Edited and Recorded from its status, and a chapter still `recording` counts for the share of its finished audio
+ * measured so far. A later stage never counts for less than an earlier one, so the segments are the gaps between the running totals and
+ * sum to 100 over the narrated words, or the bar is empty.
  */
-export function stageSegments(chapters: readonly ProductionChapter[], wph: number): StageSegment[] {
-  const narrated = scheduleChapters(chapters);
-  const total = narrated.reduce((a, c) => a + c.words, 0);
-  const at = (status: ChapterStatus): number => narrated.filter((c) => c.status === status).reduce((a, c) => a + c.words, 0);
-  const proofed = at('finalized');
-  const edited = at('proofing');
-  const recorded = at('editing');
+export function stageSegments(chapters: readonly ProductionChapter[], wph: number, master?: Readonly<Record<string, { mastered: boolean }>>): StageSegment[] {
+  let total = 0;
+  let rw = 0;
+  let ew = 0;
+  let pw = 0;
+  let mw = 0;
+  for (const c of chapters) {
+    if (c.contentKind === 'reference') continue;
+    const done = DONE_SHARE[c.status];
+    const measured = c.recordedSeconds !== null && c.wordCount > 0 ? Math.min(1, c.recordedSeconds / ((c.wordCount / wph) * 3600)) : 0;
+    const delivered = master?.[c.id]?.mastered ? 1 : 0;
+    const proofed = Math.max(delivered, done.proof);
+    const edited = Math.max(proofed, done.edit);
+    const recorded = Math.max(edited, done.rec, measured);
+    total += c.wordCount;
+    mw += c.wordCount * delivered;
+    pw += c.wordCount * proofed;
+    ew += c.wordCount * edited;
+    rw += c.wordCount * recorded;
+  }
   const parts: Array<[StageSegment['key'], string, number]> = [
-    ['proofed', 'Proofed', proofed],
-    ['edited', 'Edited', edited],
-    ['recorded', 'Recorded, not edited yet', recorded],
-    ['unrecorded', 'Not recorded yet', total - proofed - edited - recorded],
+    ['delivered', 'Delivered', mw],
+    ['proofed', 'Proofed', pw - mw],
+    ['edited', 'Edited', ew - pw],
+    ['recorded', 'Recorded', rw - ew],
+    ['unrecorded', 'Not recorded yet', total - rw],
   ];
   return parts.map(([key, label, words]) => ({ key, label, words, hours: words / wph, percent: total > 0 ? (words / total) * 100 : 0 }));
 }

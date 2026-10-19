@@ -135,14 +135,14 @@ describe('answers that arrive in the wrong order', () => {
 describe('an entry taken back from the history panel', () => {
   it('shows what the host holds after the undo, not the value the page last drew', async () => {
     await mountSchedule({ today: null });
-    const due = (await screen.findByRole('textbox', { name: 'Delivery due' })) as HTMLInputElement;
+    const due = (await screen.findByLabelText('Delivery due')) as HTMLInputElement;
     fireEvent.change(due, { target: { value: '2026-12-01' } });
     fireEvent.blur(due);
     await screen.findByText(/Due Dec 1/);
     const [entry] = await kit.journal.entries();
     await act(async () => void (await kit.journal.undo(entry.id)));
     await screen.findByText(/Due Oct 31/);
-    expect(((await screen.findByRole('textbox', { name: 'Delivery due' })) as HTMLInputElement).value).toBe('2026-10-31');
+    expect(((await screen.findByLabelText('Delivery due')) as HTMLInputElement).value).toBe('2026-10-31');
   });
 });
 
@@ -168,7 +168,7 @@ describe('a milestone dialog open while the list changes', () => {
     const dialog = await screen.findByRole('dialog');
     await kit.api.saveProductionMilestones([REC, CUSTOM, { name: 'Added elsewhere', dueDate: '2026-10-20' }]);
     fireEvent.change(within(dialog).getByRole('textbox', { name: 'Name' }), { target: { value: 'Mine' } });
-    fireEvent.change(within(dialog).getByRole('textbox', { name: 'Due' }), { target: { value: '2026-10-25' } });
+    fireEvent.change(within(dialog).getByLabelText('Due'), { target: { value: '2026-10-25' } });
     fireEvent.click(within(dialog).getByRole('button', { name: 'Add milestone' }));
     await waitFor(async () =>
       expect((await stored()).milestones.map((m) => m.name)).toEqual(['All chapters recorded', 'Retail sample', 'Added elsewhere', 'Mine']),

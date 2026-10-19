@@ -4,7 +4,7 @@ import { aliceChapterSeeds, WIRE_NOTES, WIRE_READER_STATE, WIRE_TRACKS_PROJECT, 
 import { loadAliceManuscript } from '../aliceManuscript';
 import { mockRecordedLength } from '../chapterTrackMatchMock';
 import { mockImportPreview, mockImportPreviewLog } from '../mockImportPreview';
-import { withSeededStatuses, type MockApiSeed, type MockState } from './state';
+import { type MockApiSeed, type MockState } from './state';
 
 // `?mockManuscript=mixed`: a buttonless row (Front Matter, contentKind 'opening') before
 // the narration chapters, one narration chapter's word count raised to 5 digits, so the header's stat block and
@@ -94,7 +94,6 @@ export function createManuscriptMock(
       ...chapter,
       paragraphIds: s.paragraphs.filter((paragraph) => paragraph.chapterId === chapter.id).map(({ id, index }) => ({ id, index })),
     }));
-    s.chapters = withSeededStatuses(s.chapters, initial);
     if (initial.mockManuscript === 'mixed') {
       const mixed = applyMixedManuscriptMock(s.chapters, s.paragraphs);
       s.chapters = mixed.chapters;

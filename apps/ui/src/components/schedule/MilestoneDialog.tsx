@@ -2,6 +2,7 @@ import { useState } from 'react';
 import type { ProductionMilestone } from '../../api/contracts/production';
 import { Button } from '../primitives/Button';
 import { Checkbox } from '../primitives/Checkbox';
+import { DateField } from '../primitives/DateField';
 import { Field, FIELD_LABEL_CLASSES } from '../primitives/Field';
 import { Select } from '../primitives/Select';
 import { TextField } from '../primitives/TextField';
@@ -49,7 +50,12 @@ export function MilestoneDialog({ existing, profileId, reportedCapabilities, bou
       }}
     >
       <Field label="Name" value={draft.name} onChange={(name) => set({ name })} autoFocus={!focusNote} />
-      <Field label="Due" value={draft.date} onChange={(date) => set({ date })} placeholder="YYYY-MM-DD" />
+      <div>
+        <label className={FIELD_LABEL_CLASSES} htmlFor="milestone-due">
+          Due
+        </label>
+        <DateField id="milestone-due" value={draft.date} onChange={(date) => set({ date })} className="mt-2" />
+      </div>
       <div>
         <span className={FIELD_LABEL_CLASSES} id="milestone-measure-label">
           Measures

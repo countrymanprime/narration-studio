@@ -85,9 +85,12 @@ describe('production-route-draws-the-mock-page', () => {
   it('lays the stats row out 1.5 : 1 : 1 and gives Next up 360 px', async () => {
     await renderPage({ initial: { production: PRODUCTION_SCENARIOS['on-pace'] } });
     const stats = (await screen.findByRole('heading', { name: 'Where the book stands' })).closest('.grid') as HTMLElement;
-    expect(stats.className).toContain('min-[1024px]:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)_minmax(0,1fr)]');
+    // The mock's widths: three columns above 1280, two from 1180 with the stage card across both, one below.
+    expect(stats.className).toContain('min-[1281px]:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)_minmax(0,1fr)]');
+    expect(stats.className).toContain('min-[1180px]:grid-cols-2');
+    expect(stats.className).toContain('min-[1180px]:max-[1280px]:[&>:first-child]:col-span-2');
     const board = screen.getByRole('heading', { name: 'Chapter pipeline' }).closest('.grid') as HTMLElement;
-    expect(board.className).toContain('min-[1280px]:grid-cols-[minmax(0,1fr)_22.5rem]');
+    expect(board.className).toContain('min-[1281px]:grid-cols-[minmax(0,1fr)_22.5rem]');
   });
 
   it('is the import when there is no manuscript', async () => {
@@ -451,5 +454,12 @@ describe('deleted-files-have-no-importers', () => {
   it.each(['ChapterBoard', 'PlanPanel', 'StatusReportPanel', 'StageSummary'])('no source imports %s', (name) => {
     const importers = sources(SRC).filter((file) => new RegExp(`from '[^']*/${name}'`).test(readFileSync(file, 'utf8')));
     expect(importers).toEqual([]);
+  });
+
+  it('opens the Schedule from the calendar button on the Recorded vs plan panel', async () => {
+    const { go } = await renderPage({ initial: { production: PRODUCTION_SCENARIOS['on-pace'] } });
+    await pipeline();
+    await userEvent.setup().click(within(screen.getByRole('region', { name: 'Recorded vs plan' })).getByRole('button', { name: 'Open schedule' }));
+    expect(go).toHaveBeenLastCalledWith('/schedule');
   });
 });
