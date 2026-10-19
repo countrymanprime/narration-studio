@@ -1,4 +1,4 @@
-import { useEffect, type RefObject } from 'react';
+import { useEffect, useRef, type RefObject } from 'react';
 
 /** What a focused control was, so its stand-in on the next note can be found by name when the control itself is replaced. */
 type Held = { el: HTMLElement; group: string | null; name: string };
@@ -14,8 +14,16 @@ const enabled = (el: HTMLElement) => !(el as HTMLButtonElement).disabled && el.g
  * pressed - is never touched). The Inspector lives under the panel's own `key`, so this watches the panel, not the Inspector.
  */
 export function useKeepFocusInside(panel: RefObject<HTMLElement | null>): void {
+  const detach = useRef<(() => void) | null>(null);
+  const attached = useRef<HTMLElement | null>(null);
+
+  // The panel is not on the page while the chapter loads, so it is looked for after every render and watched from the render it appears in.
   useEffect(() => {
     const root = panel.current;
+    if (root === attached.current) return;
+    detach.current?.();
+    detach.current = null;
+    attached.current = root;
     if (!root) return;
     let held: Held | null = null;
     let lost = false;
@@ -47,9 +55,18 @@ export function useKeepFocusInside(panel: RefObject<HTMLElement | null>): void {
     root.addEventListener('focusin', onFocusIn);
     const watch = new MutationObserver(settle);
     watch.observe(root, { childList: true, subtree: true, attributes: true, attributeFilter: ['disabled', 'aria-disabled'] });
-    return () => {
+    detach.current = () => {
       root.removeEventListener('focusin', onFocusIn);
       watch.disconnect();
     };
-  }, [panel]);
+  });
+
+  useEffect(
+    () => () => {
+      detach.current?.();
+      detach.current = null;
+      attached.current = null;
+    },
+    [],
+  );
 }

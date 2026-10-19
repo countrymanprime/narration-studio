@@ -215,6 +215,8 @@ export const SILENT_CATCHES: Record<string, string> = {
   'src/components/booth/page/useBoothData.ts#2': 'The running session only picks the default chapter; the first chapter is used without it.',
   'src/components/booth/page/useBoothData.ts#3': 'The Story Bible entries only tint names and fill the side panel; without them the chapter reads unmarked.',
   'src/components/booth/page/useBoothData.ts#4': 'The dialogue cues only add speaker chips; without them every phrase reads as narration.',
+  'src/components/booth/page/useBoothData.ts#5': 'The Story Bible types only colour names and speakers; without them every entry reads in the fallback colour.',
   'src/components/booth/page/useBoothPage.ts#1':
     'The resume lookup only offers where the recording ends; a failure offers nothing and Record still starts at the end of the last item.',
+  'src/motion.ts#1': 'Storage can be unavailable (a private window, blocked site data); the motion choice then holds for this window only.',
 };

@@ -15,23 +15,23 @@ import (
 func DroppedFile(paths []string) (string, error) {
 	switch {
 	case len(paths) == 0:
-		return "", errors.New("Nothing was dropped.")
+		return "", errors.New("Nothing was dropped.") //nolint:staticcheck // a sentence for the narrator, not a Go error string
 	case len(paths) > 1:
-		return "", errors.New("Drop one manuscript at a time.")
+		return "", errors.New("Drop one manuscript at a time.") //nolint:staticcheck // a sentence for the narrator, not a Go error string
 	}
 	path := paths[0]
 	if !filepath.IsAbs(path) || filepath.Clean(path) != path {
-		return "", errors.New("This file could not be read from where it was dropped. Use Choose a file… instead.")
+		return "", errors.New("This file could not be read from where it was dropped. Use Choose a file… instead.") //nolint:staticcheck // a sentence for the narrator, not a Go error string
 	}
 	if !supported(filepath.Ext(path)) {
-		return "", errors.New("Choose a Word (.docx), Markdown (.md), plain text (.txt) or EPUB (.epub) manuscript.")
+		return "", errors.New("Choose a Word (.docx), Markdown (.md), plain text (.txt) or EPUB (.epub) manuscript.") //nolint:staticcheck // a sentence for the narrator, not a Go error string
 	}
 	info, err := os.Stat(path)
 	switch {
 	case err != nil || !info.Mode().IsRegular():
-		return "", errors.New("This file could not be read from where it was dropped. Use Choose a file… instead.")
+		return "", errors.New("This file could not be read from where it was dropped. Use Choose a file… instead.") //nolint:staticcheck // a sentence for the narrator, not a Go error string
 	case info.Size() == 0:
-		return "", errors.New("This file is empty.")
+		return "", errors.New("This file is empty.") //nolint:staticcheck // a sentence for the narrator, not a Go error string
 	}
 	return path, nil
 }
