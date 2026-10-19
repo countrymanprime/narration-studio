@@ -25,19 +25,20 @@ ul.plain li { border-bottom: 1px solid var(--line); padding: .35rem 0; }
 
 <h2>Book</h2>
 <ul>
-<li>{{.Book.Chapters}} chapter(s), {{.Book.FinalizedChapters}} finalized, {{.Book.WordCount}} words.</li>
-<li>Finished audio: {{clock .Book.RecordedSeconds}} ({{.Book.MeasuredChapters}} of {{.Book.Chapters}} chapters measured).</li>
-<li>Hours logged: {{optClock .Book.HoursLogged}}.</li>
-<li>Hours per finished hour (book-wide): {{optPfh .Book.BookPFH}}.</li>
-</ul>
-
+<li>{{.Book.Chapters}} chapter(s), {{.Book.FinalizedChapters}} finalized.</li>
+{{with .Words}}<li>{{.WordCount}} words.</li>
+<li>Finished audio: {{clock .RecordedSeconds}} ({{.MeasuredChapters}} of {{$.Book.Chapters}} chapters measured).</li>
+{{end}}{{with .Stages}}<li>Hours logged: {{optClock .HoursLogged}}.</li>
+<li>Hours per finished hour (book-wide): {{optPfh .BookPFH}}.</li>
+{{end}}</ul>
+{{with .Stages}}
 <h3>Hours by stage</h3>
 <ul class="plain">
-{{range stageHours .Book.HoursByStage}}<li>{{.}}</li>
+{{range stageHours .HoursByStage}}<li>{{.}}</li>
 {{else}}<li class="muted">Nothing logged yet.</li>
 {{end}}
 </ul>
-
+{{end}}{{with .Schedule}}
 <h2>Deadline</h2>
 {{with .Deadline}}<p>{{.Date}} ({{days .DaysLeft}})</p>{{else}}<p class="muted">No deadline set.</p>{{end}}
 
@@ -47,17 +48,24 @@ ul.plain li { border-bottom: 1px solid var(--line); padding: .35rem 0; }
 {{else}}<li class="muted">No milestones set.</li>
 {{end}}
 </ul>
-
-<h2>Chapter readiness</h2>
+{{end}}{{with .HeldBack}}
+<h2>Chapters held back</h2>
 <ul class="plain">
-{{range readiness .Readiness}}<li>{{.}}</li>
+{{range .Chapters}}<li>{{.Title}}{{with .Reason}} — {{.}}{{end}}</li>
+{{else}}<li class="muted">No chapter is held back.</li>
 {{end}}
 </ul>
-
+{{end}}{{with .Readiness}}
+<h2>Chapter readiness</h2>
+<ul class="plain">
+{{range readiness .}}<li>{{.}}</li>
+{{end}}
+</ul>
+{{end}}{{with .Rate}}
 <h2>Rate</h2>
-<p>Contracted amount: {{optAmount .Rate.ContractedAmount}}. Effective rate: {{optAmount .Rate.EffectiveRate}} / hour.</p>
-<p class="muted">{{.Rate.Note}}</p>
-
+<p>Contracted amount: {{optAmount .ContractedAmount}}. Effective rate: {{optAmount .EffectiveRate}} / hour.</p>
+<p class="muted">{{.Note}}</p>
+{{end}}
 <h2>Privacy</h2>
 <p class="muted">{{.Privacy.Note}}</p>
 </body>

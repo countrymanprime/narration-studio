@@ -127,6 +127,13 @@
   },
   {
     "page": "production",
+    "state": "report-dialog",
+    "viewport": "desktop",
+    "docName": "production-report-dialog",
+    "caption": "Production - Export status report: the Include checkboxes, format and path beside the live preview"
+  },
+  {
+    "page": "production",
     "state": "recording-check-options",
     "viewport": "desktop",
     "docName": "production-recording-check-options",
@@ -239,10 +246,17 @@
   },
   {
     "page": "storybible",
-    "state": "alias-typeahead",
+    "state": "name-clash",
     "viewport": "desktop",
-    "docName": "storybible-alias-dropdown",
-    "caption": "Story Bible - alias typeahead dropdown matching existing entries"
+    "docName": "storybible-name-clash",
+    "caption": "Story Bible - a typed name another entry already has, with Merge into this entry"
+  },
+  {
+    "page": "storybible",
+    "state": "relationship-picker",
+    "viewport": "desktop",
+    "docName": "storybible-relationship-picker",
+    "caption": "Story Bible - a relationship in edit mode, choosing the other entry from the picker"
   },
   {
     "page": "booth",

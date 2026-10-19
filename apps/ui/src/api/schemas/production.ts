@@ -10,6 +10,7 @@ import type {
   ProductionPlan,
   ProductionReadiness,
   ProductionReportExport,
+  ProductionReportInclude,
   ProductionReportPreview,
   ProductionSession,
   ProductionStartResult,
@@ -114,11 +115,21 @@ export const productionStopResultSchema = z.union([
   z.object({ stopped: z.literal(false), session: z.null() }),
 ]) satisfies z.ZodType<ProductionStopResult>;
 
+const productionReportIncludeSchema = z.strictObject({
+  words: z.boolean(),
+  stages: z.boolean(),
+  milestones: z.boolean(),
+  pickups: z.boolean(),
+  delivery: z.boolean(),
+  money: z.boolean(),
+}) satisfies z.ZodType<ProductionReportInclude>;
+
 export const productionReportExportSchema = z.object({
   folder: z.string(),
   htmlFile: z.string(),
   jsonFile: z.string(),
   contractedAmountIncluded: z.boolean(),
+  include: productionReportIncludeSchema,
 }) satisfies z.ZodType<ProductionReportExport>;
 
 export const productionReportPreviewSchema = z.strictObject({
@@ -127,6 +138,7 @@ export const productionReportPreviewSchema = z.strictObject({
   folder: z.string(),
   stem: z.string(),
   contractedAmountIncluded: z.boolean(),
+  include: productionReportIncludeSchema,
 }) satisfies z.ZodType<ProductionReportPreview>;
 
 export const productionBurndownSchema = z.array(z.object({ date: calendarDate, hoursLogged: z.number() })) satisfies z.ZodType<ProductionBurndownPoint[]>;

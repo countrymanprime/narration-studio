@@ -1194,7 +1194,6 @@
       "consumers": [
         "src/components/booth/ReaderKey.tsx",
         "src/components/booth/ReaderText.tsx",
-        "src/components/manuscript/EntitySummary.tsx",
         "src/components/script/page/tools/find/FindBar.tsx",
         "src/components/settings/CreditsPanel.tsx"
       ],
@@ -1275,7 +1274,6 @@
         "src/components/editing/takes/TakeLines.tsx",
         "src/components/editing/takes/useShowInDaw.tsx",
         "src/components/layout/AppShell.tsx",
-        "src/components/manuscript/EntitySummary.tsx",
         "src/components/masterqc/files/FileChecks.tsx",
         "src/components/pickups/list/PickupsTable.tsx",
         "src/components/pickups/list/SessionPanel.tsx",
@@ -2877,7 +2875,6 @@
         "src/components/editing/takes/prep/PrepControls.tsx",
         "src/components/engine/EnginePanel.tsx",
         "src/components/layout/HistoryPanel.tsx",
-        "src/components/manuscript/EntitySummary.tsx",
         "src/components/master/MasteringChain.tsx",
         "src/components/master/RuleBadges.tsx",
         "src/components/masterqc/files/FileChecks.tsx",
@@ -3437,7 +3434,6 @@
         "src/components/editing/takes/split/SplitButton.tsx",
         "src/components/layout/AppShell.tsx",
         "src/components/layout/EngineChip.tsx",
-        "src/components/manuscript/EntitySummary.tsx",
         "src/components/primitives/CapabilityGate.tsx",
         "src/components/primitives/ChapterStepper.tsx",
         "src/components/primitives/IconButton.tsx",
