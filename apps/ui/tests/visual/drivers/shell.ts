@@ -59,7 +59,7 @@ export const shellDrivers: Record<string, Driver> = {
   // The project name pressed: the project picker opens over the open project, with Back to return to it.
   'switch-project-open': async (page) => {
     await productionLoaded(page);
-    await page.getByRole('button', { name: /^Switch project/ }).click();
+    await page.getByRole('button', { name: /, switch project$/ }).click();
     await page.getByRole('heading', { name: 'Choose your project' }).waitFor();
     await page.getByRole('button', { name: /^Back to / }).waitFor();
   },

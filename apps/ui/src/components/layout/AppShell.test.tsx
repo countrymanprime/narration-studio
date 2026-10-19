@@ -42,7 +42,7 @@ describe('AppShell on the Booth', () => {
     expect(screen.queryByRole('navigation')).toBeNull();
     expect(screen.queryByRole('banner')).toBeNull();
     expect(screen.queryByRole('button', { name: 'Open navigation' })).toBeNull();
-    expect(screen.queryByRole('button', { name: /Switch project/ })).toBeNull();
+    expect(screen.queryByRole('button', { name: /, switch project$/ })).toBeNull();
     expect(within(screen.getByRole('main')).getByText('page content')).toBeTruthy();
   });
 
@@ -55,7 +55,7 @@ describe('AppShell on the Booth', () => {
   it('keeps the rail and header on every other page', () => {
     renderShell({ pathname: '/script' });
     expect(screen.getAllByRole('button', { name: 'Booth' }).length).toBeGreaterThan(0);
-    expect(screen.getByRole('button', { name: /Switch project/ })).toBeTruthy();
+    expect(screen.getByRole('button', { name: /, switch project$/ })).toBeTruthy();
   });
 });
 
@@ -349,7 +349,7 @@ describe('AppShell header', () => {
     const onSwitchProject = vi.fn();
     renderShell({ onSwitchProject });
     const header = screen.getByRole('banner');
-    const project = within(header).getByRole('button', { name: 'Switch project (now Alice)' });
+    const project = within(header).getByRole('button', { name: 'Alice, switch project' });
     expect(project.textContent).toBe('Alice');
     expect(within(header).getByText('Project').compareDocumentPosition(project) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     fireEvent.click(project);
@@ -366,7 +366,7 @@ describe('AppShell header', () => {
     const header = screen.getByRole('banner');
     const order = [
       within(header).getByText('Project'),
-      within(header).getByRole('button', { name: /^Switch project/ }),
+      within(header).getByRole('button', { name: /, switch project$/ }),
       within(header).getByRole('button', { name: /Jump to or run/ }),
       within(header).getByRole('button', { name: /^Zoom 125%/ }),
       within(header).getByRole('button', { name: /^REAPER: / }),

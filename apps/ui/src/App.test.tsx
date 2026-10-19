@@ -1684,7 +1684,7 @@ describe('App shell mounts', () => {
     renderApp();
     await screen.findByRole('heading', { level: 1, name: 'Production' });
     const header = screen.getAllByRole('banner')[0]!;
-    fireEvent.click(within(header).getByRole('button', { name: /^Switch project/ }));
+    fireEvent.click(within(header).getByRole('button', { name: /, switch project$/ }));
     await screen.findByRole('heading', { name: 'Choose your project' });
     fireEvent.click(screen.getByRole('button', { name: /^Back to / }));
     await screen.findByRole('heading', { level: 1, name: 'Production' });
@@ -1695,7 +1695,7 @@ describe('App shell mounts', () => {
   it('project-switch: opening a recent project from the picker closes it', async () => {
     renderApp();
     await screen.findByRole('heading', { level: 1, name: 'Production' });
-    fireEvent.click(within(screen.getAllByRole('banner')[0]!).getByRole('button', { name: /^Switch project/ }));
+    fireEvent.click(within(screen.getAllByRole('banner')[0]!).getByRole('button', { name: /, switch project$/ }));
     fireEvent.click(await screen.findByRole('button', { name: 'Open Voltage and the Undercroft' }));
     await screen.findByRole('heading', { level: 1, name: 'Production' });
     expect(screen.queryByRole('heading', { name: 'Choose your project' })).toBeNull();

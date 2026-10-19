@@ -34,7 +34,7 @@ export const shellPageCases: OverlayCase[] = [
 // A top-bar hint does not move with the content, so one pass over content scrolled to the end (where a sticky footer or table header
 // sits under the hint) stands for the halfway one too.
 export const shellChromeCases: OverlayCase[] = [
-  hoverCase('hint on Switch project', (page) => header(page).getByRole('button', { name: /^Switch project/ }), { scrolled: 'end' }),
+  hoverCase('hint on Switch project', (page) => header(page).getByRole('button', { name: /, switch project$/ }), { scrolled: 'end' }),
   hoverCase('hint on Jump to or run', (page) => header(page).getByRole('button', { name: 'Jump to or run…' }), { scrolled: 'end' }),
   clickCase('Jump to or run', 'dialog', (page) => header(page).getByRole('button', { name: 'Jump to or run…' })),
   {

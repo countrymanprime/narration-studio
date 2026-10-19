@@ -218,7 +218,8 @@ export function AppShell({
               <button
                 type="button"
                 onClick={onSwitchProject}
-                aria-label={`Switch project (now ${projectName})`}
+                // The name starts with the text the button draws: axe fails a name that does not.
+                aria-label={`${projectName}, switch project`}
                 className="min-w-0 cursor-pointer truncate rounded-[var(--radius-button)] px-1.5 py-1 text-left font-medium hover:bg-[var(--surface-2)]"
               >
                 {projectName}
