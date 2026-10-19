@@ -825,7 +825,7 @@ export const wireSettings = (): Record<string, ScopedSettingField[]> => ({
     },
     {
       key: 'experimental_reaper_actions',
-      label: 'Experimental REAPER actions',
+      label: 'Experimental DAW actions',
       kind: 'bool',
       choices: [],
       value: '',

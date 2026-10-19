@@ -152,7 +152,7 @@ func TestDawSetMonitorLevelRefusesALevelOutsideTheScale(t *testing.T) {
 // TestDawMonitorLevelContractGoldenIsCurrent pins the bindings' answers: a level read or set, and a refusal. UPDATE_CONTRACTS=1
 // rewrites tests/fixtures/contracts/daw-monitor-level-*.json.
 func TestDawMonitorLevelContractGoldenIsCurrent(t *testing.T) {
-	refusedCapability := dawport.Support{Message: "Experimental REAPER actions are off. Turn them on in Settings to set the monitor level."}
+	refusedCapability := dawport.Support{Message: "Experimental DAW actions are off. Turn them on in Settings to set the monitor level."}
 	cases := map[string]struct {
 		support dawport.Support
 		role    *fakeMonitorLeveler

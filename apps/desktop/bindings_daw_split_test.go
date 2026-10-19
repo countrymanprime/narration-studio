@@ -192,7 +192,7 @@ func splitHost(t *testing.T, kind string, reach *daw.Reachability, role dawport.
 // TestDawSplitTakeContractGoldenIsCurrent pins the binding's answers: a cut in REAPER (one undo step), REAPER's stale refusal and
 // the takes capability's refusal. UPDATE_CONTRACTS=1 rewrites tests/fixtures/contracts/daw-split-take-*.json.
 func TestDawSplitTakeContractGoldenIsCurrent(t *testing.T) {
-	refusedCapability := dawport.Support{Message: "Experimental REAPER actions are off. Turn them on in Settings to choose takes."}
+	refusedCapability := dawport.Support{Message: "Experimental DAW actions are off. Turn them on in Settings to choose takes."}
 	cases := map[string]struct {
 		support dawport.Support
 		answer  dawport.Result

@@ -452,7 +452,7 @@ func TestDawTrimRangeRefusesWithTheResolversSentenceAndSendsNothing(t *testing.T
 // a gap no longer in its item, and the cut_range capability's refusal. UPDATE_CONTRACTS=1 rewrites
 // tests/fixtures/contracts/daw-trim-range-*.json.
 func TestDawTrimRangeContractGoldenIsCurrent(t *testing.T) {
-	refusedCapability := dawport.Support{Message: "Experimental REAPER actions are off. Turn them on in Settings to cut words and audio."}
+	refusedCapability := dawport.Support{Message: "Experimental DAW actions are off. Turn them on in Settings to cut words and audio."}
 	cases := map[string]struct {
 		support dawport.Support
 		start   float64

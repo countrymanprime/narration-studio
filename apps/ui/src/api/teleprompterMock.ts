@@ -113,7 +113,7 @@ function mockReaperInput(seed: MockReaperInputSeed, devices: string[]): Teleprom
         status: 'unavailable',
         reason: 'experimental_off',
         candidates: [],
-        message: "Reading REAPER's tracks is an experimental action. Turn on Experimental REAPER actions in Settings to use it.",
+        message: "Reading REAPER's tracks is an experimental action. Turn on Experimental DAW actions in Settings to use it.",
       };
   }
 }
@@ -198,7 +198,7 @@ function mockReaperState(seed: MockReaperSeed, title: string): ReadAloudReaperSt
       return {
         status: 'unavailable',
         reason: 'experimental_off',
-        message: "Reading REAPER's tracks is an experimental action. Turn on Experimental REAPER actions in Settings to use it.",
+        message: "Reading REAPER's tracks is an experimental action. Turn on Experimental DAW actions in Settings to use it.",
         playing: false,
         recording: false,
       };
@@ -218,7 +218,7 @@ function mockReadAloudRecording(seed: MockReaperSeed, kind: 'arm' | 'start' | 's
     return {
       outcome: 'refused',
       reason: 'experimental_off',
-      message: "Reading REAPER's tracks is an experimental action. Turn on Experimental REAPER actions in Settings to use it.",
+      message: "Reading REAPER's tracks is an experimental action. Turn on Experimental DAW actions in Settings to use it.",
     };
   // ReadAloudRecordStop takes no chapter id (it stops whatever this app is recording), so no_link only refuses arm and start.
   if (kind !== 'stop' && seed === 'no_link')

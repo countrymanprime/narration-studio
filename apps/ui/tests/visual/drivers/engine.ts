@@ -55,6 +55,15 @@ export const engineDrivers: Record<string, Driver> = {
     await openEnginePanel(page);
     await page.getByRole('button', { name: 'Link a REAPER project file' }).waitFor();
   },
+  'wrong-project': async (page) => {
+    // The mock's live heartbeat whose open project disagrees with the linked file (see main.tsx): the card says when it last checked.
+    await page.goto('/?mockDawMismatch=1');
+    await settlePage(page);
+    await openEnginePanel(page);
+    const card = page.getByRole('region', { name: 'REAPER project' });
+    await card.getByText(/Last checked \d+ s ago/).waitFor();
+    await card.getByRole('button', { name: 'Check again' }).waitFor();
+  },
   'chapter-link-confirmed': async (page) => {
     // Boots with no link, so the click through Confirm below is what makes it (an unset seed boots Chapter 1 already linked).
     await page.goto('/?mockChapterLink=none');

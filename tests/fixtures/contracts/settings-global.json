@@ -109,7 +109,7 @@
       "isSet": false,
       "key": "experimental_reaper_actions",
       "kind": "bool",
-      "label": "Experimental REAPER actions",
+      "label": "Experimental DAW actions",
       "value": ""
     },
     {

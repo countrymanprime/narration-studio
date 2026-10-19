@@ -280,7 +280,7 @@ export function createChapterTracksMock(
         return {
           outcome: 'refused',
           reason: 'experimental_off',
-          message: 'Selecting a track in REAPER is an experimental action. Turn on Experimental REAPER actions in Settings to use it.',
+          message: 'Selecting a track in REAPER is an experimental action. Turn on Experimental DAW actions in Settings to use it.',
         };
       }
       return { outcome: 'selected', trackGuid };

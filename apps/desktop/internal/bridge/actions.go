@@ -127,7 +127,7 @@ var actionTags = []string{"TRACK_STATE", "TRACK_ITEM", "TRACK_STATE_END", "TRACK
 type Gate func(command string) error
 
 // ErrExperimentalOff: the command is experimental and switched off in Settings, so nothing was sent to REAPER.
-var ErrExperimentalOff = errors.New("this REAPER action is experimental and switched off: turn on Experimental REAPER actions in Settings")
+var ErrExperimentalOff = errors.New("this REAPER action is experimental and switched off: turn on Experimental DAW actions in Settings")
 
 // actionRun collects the events of one request until one of its closing tags (or an ERROR) arrives.
 type actionRun struct {

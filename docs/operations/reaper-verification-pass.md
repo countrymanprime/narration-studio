@@ -1,6 +1,6 @@
 # The REAPER verification pass
 
-**Status: Part A is scripted and its run on the owner's machine is pending; Part B has not run.** The owner runs it. Until it has run, every command below stays Experimental: the host refuses to send it unless the narrator turns its capability on, with its own `DAW.capability.<name>` setting or, for one left on `auto`, the **Experimental REAPER actions** switch (`DAW.experimental_reaper_actions`, off by default; owner decision D38, [resolver.go](../../apps/desktop/internal/dawport/resolver.go)).
+**Status: Part A is scripted and its run on the owner's machine is pending; Part B has not run.** The owner runs it. Until it has run, every command below stays Experimental: the host refuses to send it unless the narrator turns its capability on, with its own `DAW.capability.<name>` setting or, for one left on `auto`, the **Experimental DAW actions** switch (`DAW.experimental_reaper_actions`, off by default; owner decision D38, [resolver.go](../../apps/desktop/internal/dawport/resolver.go)).
 
 The harness ([The DAW port](../architecture/daw-integration.md#the-daw-port), `integrations/reaper/tests`) proves each command's logic, refusals and events against a fake REAPER. It cannot prove what REAPER itself does with a call. This pass checks that, command by command, in a real REAPER. The calls and what the reference leaves open are in [the ReaScript calls behind the planned commands](../research/reaper-api-for-planned-commands.md).
 

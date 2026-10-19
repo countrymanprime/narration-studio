@@ -32,7 +32,7 @@ func trackSelectRefused(reason, message string) TrackSelectResult {
 // messages read "To record with reading..." and "Reading REAPER's tracks...", which describe chapter_track_state, not
 // select_track. messageNotRunning (bindings_navigation.go) is already feature-neutral, so that one is reused as is.
 const (
-	messageTrackSelectExperimentalOff = "Selecting a track in REAPER is an experimental action. Turn on Experimental REAPER actions in Settings to use it."
+	messageTrackSelectExperimentalOff = "Selecting a track in REAPER is an experimental action. Turn on Experimental DAW actions in Settings to use it."
 	messageTrackSelectStandalone      = "REAPER is not connected to this app. To select a track in REAPER, open this app from the Narration Utils action in REAPER."
 )
 

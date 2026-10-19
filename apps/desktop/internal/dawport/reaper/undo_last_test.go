@@ -119,7 +119,7 @@ func TestUndoLastAnswersADawResult(t *testing.T) {
 
 // A refused capability is its own sentence, steps outside 1 to 12 are refused and an unknown kind is an error; nothing is sent.
 func TestUndoLastRefusesBeforeAnythingIsSent(t *testing.T) {
-	refusedSentence := "Experimental REAPER actions are off. Turn them on in Settings to undo the app's last action."
+	refusedSentence := "Experimental DAW actions are off. Turn them on in Settings to undo the app's last action."
 	var asked []dawport.Capability
 	adapter, dir := newAdapter(t, func(c dawport.Capability) error {
 		asked = append(asked, c)

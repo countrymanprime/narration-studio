@@ -79,7 +79,7 @@ export const settingsStates: StateEntry[] = [
     page: 'settings',
     state: 'recording-advanced',
     description:
-      'Settings, Recording & DAW with Advanced open: the REAPER program path box, Experimental REAPER actions and the Capabilities table (each capability with its Auto / On / Off setting and what the recording tool reports now)',
+      'Settings, Recording & DAW with Advanced open: the REAPER program path box, Experimental DAW actions and the Capabilities table (each capability with its Auto / On / Off setting and what the recording tool reports now)',
     ...REFLOW,
     ...KEEPS_DESKTOP_SCROLL,
   },

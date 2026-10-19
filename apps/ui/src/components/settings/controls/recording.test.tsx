@@ -98,6 +98,7 @@ describe('Recording & DAW: Record with', () => {
     expect(screen.getByRole('radio', { name: /^REAPER\./ }).getAttribute('aria-checked')).toBe('true');
     fireEvent.click(screen.getByRole('button', { name: 'Test connection' }));
     expect(await screen.findByText('No answer from REAPER.')).toBeTruthy();
+    expect(screen.getByText(/^Last checked \d+ s ago\.$/)).toBeTruthy();
   });
 
   it('drops a failed Test connection result once another project file is linked, since it was about the old one', async () => {
@@ -126,6 +127,7 @@ describe('Recording & DAW: Record with', () => {
     const before = read.mock.calls.length;
     fireEvent.click(screen.getByRole('button', { name: 'Test connection' }));
     expect(await screen.findByText(/^Connected\. Answered in \d+ ms\.$/)).toBeTruthy();
+    expect(screen.getByText(/^Last checked \d+ s ago\.$/)).toBeTruthy();
     expect(read.mock.calls.length).toBeGreaterThan(before);
   });
 
@@ -180,6 +182,42 @@ describe('Recording & DAW: Record with', () => {
     fireEvent.click(await screen.findByRole('radio', { name: /^Built-in recorder/ }));
     expect((await screen.findByRole('alert')).textContent).toContain('Experimental: switched off in Settings.');
     expect(screen.getByRole('radio', { name: /^REAPER\./ }).getAttribute('aria-checked')).toBe('true');
+  });
+
+  it('words the Recording tool rows for the chosen DAW: the Experimental switch is for every DAW and the REAPER-only rows are not shown under Audacity', async () => {
+    const audacity = createMockApi({}, { dawChoice: { chosen: 'Audacity' }, daw: { daw: 'Audacity' } });
+    await renderPage({ api: audacity, category: 'Recording & DAW', advanced: true });
+    await screen.findByRole('group', { name: 'Audacity connection' });
+    expect(row('daw.experimental')).toBeTruthy();
+    expect(row('daw.experimental').textContent).toContain('Experimental DAW actions');
+    expect(row('daw.experimental').textContent).not.toMatch(/REAPER/);
+    expect(row('daw.reaperPath')).toBeFalsy();
+    expect(row('daw.autoLauncher')).toBeFalsy();
+    expect(document.body.textContent).not.toMatch(/Experimental REAPER actions/);
+    cleanup();
+    await renderPage({ api: createMockApi(), category: 'Recording & DAW', advanced: true });
+    expect(row('daw.reaperPath')).toBeTruthy();
+    expect(row('daw.autoLauncher')).toBeTruthy();
+    expect(row('daw.experimental').textContent).toContain('Experimental DAW actions');
+  });
+
+  it('points the switched-off built-in option at the switch by its own name', async () => {
+    await renderPage({ api: createMockApi({}, foundSeed), category: 'Recording & DAW' });
+    fireEvent.click(await screen.findByRole('radio', { name: /^Built-in recorder/ }));
+    await screen.findByRole('alert');
+    expect(screen.getAllByText(/Turn on Experimental DAW actions under Advanced, below\./).length).toBeGreaterThan(0);
+  });
+
+  it('the rows follow the recorder chosen here: REAPER-only rows go when Audacity is chosen and come back with REAPER', async () => {
+    await renderPage({ api: createMockApi({}, { daw: { experimentalOn: true } }), category: 'Recording & DAW', advanced: true });
+    await screen.findByText('REAPER linked');
+    expect(row('daw.reaperPath')).toBeTruthy();
+    fireEvent.click(screen.getByRole('radio', { name: /^Audacity/ }));
+    await waitFor(() => expect(row('daw.reaperPath')).toBeFalsy());
+    expect(row('daw.autoLauncher')).toBeFalsy();
+    expect(row('daw.experimental')).toBeTruthy();
+    fireEvent.click(screen.getByRole('radio', { name: /^REAPER\./ }));
+    await waitFor(() => expect(row('daw.reaperPath')).toBeTruthy());
   });
 
   it('keeps the REAPER launcher path reachable, with Copy path', async () => {

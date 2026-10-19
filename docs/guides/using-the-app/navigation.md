@@ -152,7 +152,11 @@ one is linked): the link a chapter's [Proof view](proof.md#comparing-the-recordi
 and the same one [Settings](settings.md#daw-integration) makes. The file can be anywhere: in the project
 folder or a subfolder of it (the link then survives moving the whole project), or in a separate folder or
 drive kept for REAPER (a short note says where the file and the project are). When REAPER has a different project
-open than the linked one, the panel says so: link the open project, or switch REAPER to the linked file.
+open than the linked one, the panel says so: link the open project, or switch REAPER to the linked file. The notice
+says what it is waiting for ("Waiting for REAPER to open the linked project"), when the app last checked ("Last checked 4 s
+ago") and has **Check again**, which reads the project's state from the app again at once.
+
+![The audio engine panel when REAPER has a different project open: the notice with when it last checked, and Check again](../../images/ui/engine-panel-wrong-project.webp)
 
 If the project folder holds more than one `.rpp` file, the panel asks which one to read. Backup copies
 (`.rpp-bak`, or files inside a subfolder such as Backups) aren't offered. The choice is remembered for the

@@ -59,7 +59,7 @@ func TestMonitorLevelReadsAndSetsTheWholeNumber(t *testing.T) {
 }
 
 func TestMonitorLevelRefusesBeforeAnythingIsSent(t *testing.T) {
-	refused := "Experimental REAPER actions are off. Turn them on in Settings to set the monitor level."
+	refused := "Experimental DAW actions are off. Turn them on in Settings to set the monitor level."
 	adapter, dir := newAdapter(t, func(c dawport.Capability) error {
 		return &dawport.NotSupportedError{Capability: c, Support: dawport.Support{Reason: dawport.ReasonExperimentalOff, Message: refused}}
 	})
