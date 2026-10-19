@@ -3,10 +3,11 @@ import { faChevronRight } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import type { ReactNode } from 'react';
 
-// A titled group that opens and closes: the whole title row is the button (a chevron, the title and a short summary of what is
-// inside), and the panel under it is not in the page while collapsed. `Collapsible` is the other shape of the same idea, an icon
-// button that can sit apart from its panel; use this one when the row itself is the control and a count should be readable while it is
-// closed. Base UI supplies `aria-expanded` and links the button to its panel with `aria-controls`.
+// A titled group that opens and closes: the whole title row is the button (a chevron, the title as a letter-spaced uppercase
+// sub-heading, as the mock draws Settings' Advanced, and a short summary of what is inside), and the panel under it is not in the
+// page while collapsed. `Collapsible` is the other shape of the same idea, an icon button that can sit apart from its panel; use
+// this one when the row itself is the control and a count should be readable while it is closed. Base UI supplies `aria-expanded`
+// and links the button to its panel with `aria-controls`.
 //
 // Controlled: the caller holds `open`, so a group can be opened for a reason of its own (a row was moved into it). `aside` sits beside the
 // button, never inside it, because a control inside a button is not valid: it is where an info icon goes.
@@ -36,7 +37,9 @@ export function Disclosure({
             icon={faChevronRight}
             className="size-3 flex-none text-[var(--text-muted)] group-data-[panel-open]:rotate-90 motion-ok:transition-transform"
           />
-          <span className="text-sm font-semibold">{title}</span>
+          <span className="font-['Barlow_Condensed',sans-serif] text-[0.8125rem] font-semibold tracking-[0.14em] text-[var(--text-muted)] uppercase">
+            {title}
+          </span>
           {/* The space is only for the button's name: the two spans are flex items, which drop it from the layout. */}
           {summary && ' '}
           {summary && <span className="min-w-0 text-xs text-[var(--text-muted)]">{summary}</span>}

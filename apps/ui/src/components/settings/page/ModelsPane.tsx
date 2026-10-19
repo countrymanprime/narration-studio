@@ -1,4 +1,6 @@
 import { useMemo, useState } from 'react';
+import { apiErrorMessage } from '../../../api/errorMessage';
+import { usePort } from '../../../ports/usePort';
 import { formatSize } from '../../assets/AssetFacts';
 import { Button } from '../../primitives/Button';
 import { InsetCard } from '../../primitives/InsetCard';
@@ -40,12 +42,27 @@ function Heading({ category }: { category: Category }) {
  */
 export function ModelsPane({ category }: { category: Category }) {
   const assets = useAssetsStore();
+  const api = usePort('assets');
   const settings = useSettingsStore();
   const { go } = useSettingsNav();
   const [filter, setFilter] = useState<Filter>('all');
   const [removing, setRemoving] = useState<AssetView>();
   const [removePending, setRemovePending] = useState(false);
   const [notice, setNotice] = useState<Notice>();
+  const noticeCard = notice && (
+    <InsetCard
+      as="p"
+      role={notice.tone === 'alert' ? 'alert' : 'status'}
+      tone={notice.tone === 'alert' ? 'danger' : 'neutral'}
+      fill={notice.tone !== 'alert'}
+      className="m-0"
+    >
+      {notice.text}
+    </InsetCard>
+  );
+  const openFolder = () => {
+    api.assetsOpenFolder().catch((failure) => setNotice({ tone: 'alert', text: `The folder could not be opened: ${apiErrorMessage(failure)}` }));
+  };
 
   const { catalog, loadError } = assets;
   const { fieldsOf } = settings;
@@ -71,10 +88,16 @@ export function ModelsPane({ category }: { category: Category }) {
         <InsetCard tone="danger" role="alert" className="flex flex-col items-start gap-1.5">
           <b>The list of models could not be read.</b>
           <span>{loadError} Your downloads are not touched.</span>
-          <Button variant="secondary" size="sm" onClick={() => void assets.refresh()}>
-            Try again
-          </Button>
+          <div className="flex flex-wrap items-center gap-2">
+            <Button variant="secondary" size="sm" onClick={() => void assets.refresh()}>
+              Try again
+            </Button>
+            <Button variant="secondary" size="sm" onClick={openFolder}>
+              Open the folder
+            </Button>
+          </div>
         </InsetCard>
+        {noticeCard}
       </div>
     );
   }
@@ -144,19 +167,12 @@ export function ModelsPane({ category }: { category: Category }) {
           <span className="text-[0.8125rem] text-[var(--text-muted)]">
             Stored in <code className="font-['IBM_Plex_Mono',ui-monospace,monospace] text-[0.75rem] [overflow-wrap:anywhere]">{catalog.cacheRoot}</code>
           </span>
+          <Button variant="secondary" size="sm" onClick={openFolder}>
+            Open folder
+          </Button>
         </div>
       </Panel>
-      {notice && (
-        <InsetCard
-          as="p"
-          role={notice.tone === 'alert' ? 'alert' : 'status'}
-          tone={notice.tone === 'alert' ? 'danger' : 'neutral'}
-          fill={notice.tone !== 'alert'}
-          className="m-0"
-        >
-          {notice.text}
-        </InsetCard>
-      )}
+      {noticeCard}
       {rows.every((view) => view.status !== 'installed') && (
         <Panel label="Nothing is downloaded yet">
           <div className="flex flex-col items-start gap-2.5">
