@@ -243,7 +243,9 @@ function MasterBody({ projectFolder, onOpenDelivery, openSettings, fileActions, 
           />
           {profile && rows.length > 0 && (
             <>
-              {staleLink === undefined && <FileChecks row={current} chapterLabel={chapterOfSelection && chapterName(chapterOfSelection)} actions={actions} />}
+              {staleLink === undefined && (current || chapterOfSelection) && (
+                <FileChecks row={current} chapterLabel={chapterOfSelection && chapterName(chapterOfSelection)} actions={actions} />
+              )}
               {currentFile && rulesClosed !== currentFile.path && (
                 <FileRulesPanel file={currentFile} profile={profile} onClose={() => setRulesClosed(currentFile.path)} />
               )}
