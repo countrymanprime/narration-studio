@@ -225,10 +225,17 @@
   },
   {
     "page": "storybible",
-    "state": "alias-typeahead",
+    "state": "name-clash",
     "viewport": "desktop",
-    "docName": "storybible-alias-dropdown",
-    "caption": "Story Bible - alias typeahead dropdown matching existing entries"
+    "docName": "storybible-name-clash",
+    "caption": "Story Bible - a typed name another entry already has, with Merge into this entry"
+  },
+  {
+    "page": "storybible",
+    "state": "relationship-picker",
+    "viewport": "desktop",
+    "docName": "storybible-relationship-picker",
+    "caption": "Story Bible - a relationship in edit mode, choosing the other entry from the picker"
   },
   {
     "page": "booth",

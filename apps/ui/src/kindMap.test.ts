@@ -174,7 +174,6 @@ const PENDING: Record<string, { owner: number; max: number }> = {
   'components/delivery/page/Preflight.tsx': { owner: 7, max: 0 },
   'components/engine/LinkChaptersDialog.tsx': { owner: 7, max: 0 },
   'components/layout/EngineChip.tsx': { owner: 7, max: 0 },
-  'components/manuscript/EntitySummary.tsx': { owner: 6, max: 4 },
   'components/master/RuleBadges.tsx': { owner: 7, max: 0 },
   'components/masterqc/page/PackageChecks.tsx': { owner: 7, max: 0 },
   'components/pickups/list/pickupRows.ts': { owner: 6, max: 0 },

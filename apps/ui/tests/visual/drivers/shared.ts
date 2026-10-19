@@ -508,6 +508,6 @@ export async function openLinkedProofChapter(page: Page, chapterTitle: string): 
   await page.getByRole('heading', { level: 1, name: new RegExp(`^Proof · ${chapterTitle}( — |$)`) }).waitFor();
 }
 
-// Some states have no known/safe driver yet (e.g. alias-typeahead, forcing
+// Some states have no known/safe driver yet (e.g. forcing
 // the manuscript-not-found banner without a mock-data override seam). Those
 // are left out here on purpose - the catalog entry is simply skipped.

@@ -21,7 +21,7 @@ words, so add unusual names by hand with the + button.
 
 ![Story Bible entity detail panel](../../images/ui/storybible-entity.webp)
 
-Pressing Edit switches the entry to edit mode, where Save, Cancel and a red Delete appear on the far
+Pressing Edit switches the entry to edit mode: the name in the header turns into a plain, large input (there is no separate Name field), and Save, Cancel and a red Delete appear on the far
 side of the header, set apart from Save so it can't be mis-clicked. Lock only appears in the read
 view: an entry can never be locked while it is being edited, so unlocking always returns you to a
 read-only entry, never back into an edit in progress. Locked entries show only Unlock; a brand-new
@@ -31,8 +31,7 @@ Each entry also has **Properties**: a list of labelled facts, such as "Codename:
 that you keep in the order you give them. In edit mode each property is a row with a name and a value, buttons to
 move it up or down or remove it, and an Add button below. A value needs a name, and no two properties may share
 one (capital letters do not make a name different); Save says which row to fix. A row you add and leave blank is
-dropped. Properties are kept when you rebuild the Story Bible, and the summary of an entry that opens from the
-Script lists them too.
+dropped. Properties are kept when you rebuild the Story Bible.
 
 ![Story Bible - an entry in edit mode, with Save and Cancel shown](../../images/ui/storybible-entry-editing.webp)
 
@@ -44,11 +43,26 @@ An entry with suggestions still to verify shows **Mark reviewed** switched off, 
 
 ![Story Bible - an entry of the Needs Review kind, with its relationships and the chapters it appears in](../../images/ui/storybible-needs-review.webp)
 
-In edit mode, typing into the alias field opens a dropdown of existing entries whose name or alias matches,
-so a name mentioned under a different spelling can be merged into the entry it already
-belongs to instead of creating a duplicate.
+In edit mode, **Add a name** is one input: type a name and press Enter to add it as an alias. If another entry
+already has that name, the line under the input says so and offers **Merge into this entry**, so a name mentioned under a
+different spelling is merged into the entry it already belongs to instead of creating a duplicate. The merge can be undone from its toast. A name the
+entry already has is refused with a line saying so.
 
-![Story Bible alias field with a matching-entries dropdown open](../../images/ui/storybible-alias-dropdown.webp)
+![Story Bible - a typed name another entry already has, with Merge into this entry](../../images/ui/storybible-name-clash.webp)
+
+## Relationships
+
+**Relationships** lists what this entry is to another entry, one row each: the relationship (for example "serves") and the entry it is to.
+A relationship written from the other entry's side ("The gardeners serve Queen of Hearts") shows an arrow, and its hint gives the whole sentence.
+In edit mode a row changes in place:
+
+- Type in the relationship box, or pick one of the suggestions (loves, hates, lives in and so on), and press Enter or leave the box. An emptied box goes back to what it was.
+- Press the entry's name to open the picker: type to search by name or alias (it lists up to 50), press Enter to take the first match or press a row. The current one is marked.
+- The trash removes the row. The **+** below the rows adds a blank row; nothing is saved until it has both a relationship and an entry, and its trash drops it.
+
+A change is saved at once, like the other edits to names and relationships, not with Save. It is written as the new relationship and then the old one is removed.
+
+![Story Bible - a relationship in edit mode, choosing the other entry from the picker](../../images/ui/storybible-relationship-picker.webp)
 
 ## Building with a language model
 
@@ -88,7 +102,7 @@ again tries again; a failed run never leaves a broken recording behind.
 
 An entry lists **the names the app links in the text, and how I say each**: its first name, then each alias, one row
 each. Read-only, a row shows how you say the name and where that came from. In edit mode a row has a **How I say**
-field and a source tag:
+field, a source tag, and beside the play button **Record my own clip** (for your own recording of the name):
 
 - Type in the field and press Enter (or leave it) to use your own; the tag then reads **Entered by me**.
 - Press the tag to choose a source instead: the CMU dictionary, Wiktionary (when it is installed), eSpeak NG, or
