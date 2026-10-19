@@ -161,13 +161,15 @@ experimental stay off until you turn them on in [Settings](settings.md).
 
 ### Effects, Backups and Timeline
 
-**Effects** lists the effects on words in this chapter and adds one. **Backups** shows only with a DAW that keeps
+**Effects** lists the effects on words in this chapter and adds one. Under **Add an effect** the DAW's own chains and plug-ins are listed, each with a **Favourite** button. A favourite is listed first here, in the Add FX menu and in the question that asks before an effect goes on; the buttons edit the global list, the same one as **Favourite effects** under **Set on a page** in [Settings](settings.md#set-on-a-page), which can also set it for one project. A name with a comma in it cannot be a favourite. **Backups** shows only with a DAW that keeps
 backups of its project; with one that edits the audio itself, the app backs the words up before each delete, effect or
 stack, and refuses the edit if the backup fails. The Backups tab is also where this project's backup settings can be changed (**Keep backups**, the window either side of an edit, and **Keep backups for (days)**). It is a shortcut to the same settings as the Audacity backups under **Set on a page** in [Settings](settings.md#set-on-a-page), which also sets them for every project (Global); the tab edits this project only. **Timeline** shows the line the cursor is on as the chapter's audio
 and one lane per take on one time axis. On a window 1360 px wide or more it is a strip under the text, which the header's
 **Timeline** button (S) shows and hides; on a narrower window it is a tab of the drawer.
 
 ![Editing - the Clean up and effects panel on Effects: no effects yet, and Add effect waiting for a selection](../../images/ui/editing-drawer-effects.webp)
+
+![Editing - the Effects tab with a DAW that lists its chains: each has a Favourite button, and the favourites are listed first](../../images/ui/editing-drawer-effects-chains.webp)
 
 ![Editing - the Timeline strip under the text: the waveform and takes of the line the cursor is on](../../images/ui/editing-drawer-timeline.webp)
 
