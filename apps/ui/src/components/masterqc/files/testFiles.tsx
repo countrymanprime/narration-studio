@@ -9,7 +9,6 @@ import { DAW_SETUPS, type DawSetupId } from '../../../fixtures/daw';
 import { createMockDawClient } from '../../../ports/daw';
 import { PortOverrides } from '../../../ports/usePort';
 import type { DeliveryRuleResult, ManuscriptChapter, MeasureFileResult } from '../../../types';
-import { Heading } from '../../primitives/Heading';
 import { FileChecks } from './FileChecks';
 import type { FileActions } from './FileActions';
 import { FilesTable } from './FilesTable';
@@ -90,7 +89,7 @@ export function FilesDemo({
   const current = selected === undefined ? undefined : rows.find((row) => row.id === selected);
   return (
     <div className="flex flex-col gap-4">
-      <FilesTable rows={buildRows(labelled, profile)} heading={<Heading title="Master & QC" />} selected={selected} onSelect={pick} actions={actions} />
+      <FilesTable files={labelled} profile={profile} selected={selected} onSelect={pick} actions={actions} />
       <FileChecks
         row={current ?? (selected === undefined ? undefined : undefined)}
         chapterLabel={selected !== undefined && !current ? 'Chapter 09' : undefined}

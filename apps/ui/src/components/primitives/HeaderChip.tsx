@@ -34,7 +34,6 @@ export function HeaderChip({
   short = false,
   role,
   'aria-label': ariaLabel,
-  title,
   'aria-busy': ariaBusy,
   className = '',
 }: {
@@ -47,8 +46,6 @@ export function HeaderChip({
   /** `group` for a named chip that is not a button; `timer` for the running clock (never a live region). */
   role?: 'group' | 'timer';
   'aria-label'?: string;
-  /** The native hint on a chip that is a button (what pressing it does). */
-  title?: string;
   'aria-busy'?: boolean;
   /** Placement only (`flex-none`, or `min-w-0` for a chip that truncates): the look is the chip's. */
   className?: string;
@@ -65,7 +62,6 @@ export function HeaderChip({
       <button
         type="button"
         onClick={onClick}
-        title={title}
         aria-label={ariaLabel}
         aria-busy={ariaBusy || undefined}
         className={`${classes} cursor-pointer hover:shadow-[inset_0_0_0_1px_var(--accent)] disabled:pointer-events-none disabled:opacity-60`}

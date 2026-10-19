@@ -58,6 +58,7 @@ export const measureReportSchema = z.object({
   full_scale_samples: z.number(),
   clip_run_count: z.number(),
   clip_runs: listFromNull(measureClipRunSchema),
+  click_candidate_count: nullableNumber,
   mp3: measureMP3Schema.optional(),
   mp3_levels_decoded: z.boolean().optional(),
   range: measureRangeSchema.optional(),

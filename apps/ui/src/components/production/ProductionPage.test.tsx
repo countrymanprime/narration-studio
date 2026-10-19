@@ -148,6 +148,23 @@ describe('production loading state', () => {
     expect(region()).toBeTruthy();
   });
 
+  it('shows no chapter count, word count or due date in the header until the first read ends', async () => {
+    await renderPage({ overrides: { productionOverview: never } });
+    expect(await screen.findByRole('heading', { level: 1, name: 'Production' })).toBeTruthy();
+    expect(region()).toBeTruthy();
+    expect(screen.queryByText(/\d+ chapters/)).toBeNull();
+    expect(screen.queryByText(/no delivery date set/)).toBeNull();
+    expect(screen.queryByText('No due date set')).toBeNull();
+    expect(within(region()!).getAllByRole('status')).toHaveLength(1);
+  });
+
+  it('says "0 chapters" when the log is read and has none', async () => {
+    const base = await createMockApi().productionOverview();
+    await renderPage({ overrides: { productionOverview: async () => ({ ...base, chapters: [] }) } });
+    expect(await screen.findByText(/0 chapters · 0 words/)).toBeTruthy();
+    expect(region()).toBeNull();
+  });
+
   it('is replaced by the overview when the log arrives', async () => {
     await renderPage({ initial: { production: PRODUCTION_SCENARIOS['on-pace'] } });
     await pipeline();
@@ -165,6 +182,7 @@ describe('production loading state', () => {
     await userEvent.click(retry);
     await waitFor(() => expect(region()).toBeTruthy());
     expect(screen.queryByRole('button', { name: 'Retry' })).toBeNull();
+    expect(screen.queryByText(/\d+ chapters/)).toBeNull();
   });
 });
 

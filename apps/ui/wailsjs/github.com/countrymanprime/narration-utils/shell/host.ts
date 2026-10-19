@@ -56,6 +56,14 @@ export function AssetsList(): $CancellablePromise<string> {
 }
 
 /**
+ * AssetsOpenFolder shows the folder the approved assets are kept in (the "Stored in" path AssetsList reports) in the file manager. It takes
+ * no path: the folder is the host's own, so the page cannot name another.
+ */
+export function AssetsOpenFolder(): $CancellablePromise<string> {
+    return $Call.ByID(2617467899);
+}
+
+/**
  * AssetsRemove deletes one asset. It refuses while the asset is downloading, and touches nothing else: not another asset, not a setting,
  * not a project.
  */
@@ -1424,18 +1432,6 @@ export function FindingsThread(id: string, op: string, messageID: string, who: s
 }
 
 /**
- * GuideBuild starts the Story Bible build, or asks for the language model it needs first (see startGuideBuild). rulesOnly builds without one
- * for this run.
- */
-export function GuideBuild(rulesOnly: boolean): $CancellablePromise<string> {
-    return $Call.ByID(2237994534, rulesOnly);
-}
-
-export function GuideBuildState(): $CancellablePromise<string> {
-    return $Call.ByID(1236161883);
-}
-
-/**
  * GuideCorrectCue records the narrator's own attribution for one dialogue
  * cue. speakerEntityID "unknown" or "" clears the cue back to unknown; a
  * rebuild never overwrites a correction (mirroring sidecars/manuscript-guide/core/manuscript_guide.py's lock guard).
@@ -2078,21 +2074,22 @@ export function ProductionStartTimer(chapterID: string, stage: string): $Cancell
 }
 
 /**
- * ProductionStatusReport writes the book's status report: hours by stage, PFH, the deadline and milestone
- * status, and book-wide readiness counts, as an HTML and a JSON file. includeContractedAmount is the narrator's choice
- * to write the contracted amount and the effective rate; off by default, since a status report is often shared with
- * someone the narrator would not otherwise tell their rate. It refuses without a project.
+ * ProductionStatusReport writes the book's status report, as an HTML and a JSON file, with the sections include ticks:
+ * words and finished audio, hours by stage and PFH, the deadline and milestones, the chapters held back, and
+ * book-wide readiness counts. include.Money is the narrator's choice to write the contracted amount and the effective
+ * rate; off by default, since a status report is often shared with someone the narrator would not otherwise tell their
+ * rate. It refuses without a project.
  */
-export function ProductionStatusReport(includeContractedAmount: boolean): $CancellablePromise<string> {
-    return $Call.ByID(1628238977, includeContractedAmount);
+export function ProductionStatusReport(include: $models.ProductionReportInclude): $CancellablePromise<string> {
+    return $Call.ByID(1628238977, include);
 }
 
 /**
  * ProductionStatusReportPreview answers the document ProductionStatusReport would write, without writing anything
- * includeContractedAmount is the same opt-in as the export's.
+ * include is the same choice of sections as the export's.
  */
-export function ProductionStatusReportPreview(includeContractedAmount: boolean): $CancellablePromise<string> {
-    return $Call.ByID(1952080667, includeContractedAmount);
+export function ProductionStatusReportPreview(include: $models.ProductionReportInclude): $CancellablePromise<string> {
+    return $Call.ByID(1952080667, include);
 }
 
 /**

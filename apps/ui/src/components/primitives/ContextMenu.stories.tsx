@@ -109,3 +109,33 @@ export const Grouped: Story = {
     await waitFor(() => expect(screen.queryByRole('menuitem')).toBeNull());
   },
 };
+
+// An item with `submenu` is a row that opens a nested list beside it (Right arrow or a press); the nested items run and close the whole menu.
+export const Submenu: Story = {
+  args: {
+    items: [
+      { key: 'play', label: 'Play selection', onSelect: fn() },
+      {
+        key: 'mark',
+        label: 'Mark as',
+        onSelect: fn(),
+        submenu: [
+          { key: 'tone', label: 'Tone', onSelect: fn() },
+          { key: 'query', label: 'Query', onSelect: fn() },
+        ],
+      },
+      { key: 'fx', label: 'Add FX', unavailable: 'Select some words first.', onSelect: fn(), submenu: [{ key: 'warm', label: 'Warm', onSelect: fn() }] },
+    ],
+  },
+  play: async ({ args, canvasElement }) => {
+    fireEvent.contextMenu(within(canvasElement).getByText(/Alice was beginning/));
+    const row = await screen.findByRole('menuitem', { name: 'Mark as' });
+    await expect(row).toHaveAttribute('aria-haspopup', 'menu');
+    await userEvent.click(row);
+    await expect(await screen.findAllByRole('menuitem', { name: /Tone|Query/ })).toHaveLength(2);
+    await expect(screen.getByRole('menuitem', { name: /Add FX/ })).toHaveAttribute('aria-disabled', 'true');
+    await userEvent.click(screen.getByRole('menuitem', { name: 'Tone' }));
+    await expect(args.items[1].submenu?.[0].onSelect).toHaveBeenCalledOnce();
+    await waitFor(() => expect(screen.queryByRole('menuitem')).toBeNull());
+  },
+};

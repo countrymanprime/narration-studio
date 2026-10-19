@@ -35,6 +35,7 @@
         "full_scale_samples": 0,
         "clip_run_count": 0,
         "clip_runs": [],
+        "click_candidate_count": null,
         "mp3": {
           "version": "MPEG-1",
           "layer": 3,
@@ -127,6 +128,7 @@
         "full_scale_samples": 0,
         "clip_run_count": 0,
         "clip_runs": [],
+        "click_candidate_count": null,
         "mp3": {
           "version": "MPEG-1",
           "layer": 3,

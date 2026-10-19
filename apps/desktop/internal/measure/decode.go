@@ -81,5 +81,6 @@ func decodeAndMeasureLevels(ctx context.Context, decoder Decoder, path string, r
 	report.HeadRoomToneSeconds, report.TailRoomToneSeconds = decoded.HeadRoomToneSeconds, decoded.TailRoomToneSeconds
 	report.HeadDigitalSilenceSeconds, report.TailDigitalSilenceSeconds = decoded.HeadDigitalSilenceSeconds, decoded.TailDigitalSilenceSeconds
 	report.FullScaleSamples, report.ClipRunCount, report.ClipRuns = decoded.FullScaleSamples, decoded.ClipRunCount, decoded.ClipRuns
+	report.ClickCandidateCount = decoded.ClickCandidateCount
 	return report, nil
 }

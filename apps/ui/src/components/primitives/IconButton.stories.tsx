@@ -33,6 +33,21 @@ export const FromAction: Story = {
     await expect(canvas.getByRole('button', { name: 'Delete' }).querySelector('svg')).toHaveAttribute('data-icon', 'trash-can');
   },
 };
+// A toggle that is on (`aria-pressed`) or a button whose panel is open (`aria-expanded`) draws the accent border and tint.
+export const Pressed: Story = {
+  render: () => (
+    <div className="flex gap-2">
+      <IconButton action="sidePanel" aria-pressed={true} />
+      <IconButton action="sidePanel" aria-expanded={true} />
+      <IconButton action="sidePanel" aria-pressed={false} />
+    </div>
+  ),
+  play: async ({ canvasElement }) => {
+    const buttons = within(canvasElement).getAllByRole('button');
+    await expect(buttons[0]).toHaveAttribute('aria-pressed', 'true');
+    await expect(buttons[1]).toHaveAttribute('aria-expanded', 'true');
+  },
+};
 export const Primary: Story = { args: { variant: 'primary', label: 'Save changes' } };
 export const Danger: Story = { args: { variant: 'danger', label: 'Delete entity', children: <FontAwesomeIcon icon={faTrash} /> } };
 // 28 px, beside a small Button in a dense row.

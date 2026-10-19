@@ -414,18 +414,9 @@ func (s *Session) ExportChapter(ctx context.Context, projectFolder, chapter stri
 	if start < 0 || end <= start {
 		return "", fmt.Errorf("%w: a chapter from %v to %v", audacitybridge.ErrInvalidValue, start, end)
 	}
-	tracks, err := s.client.Tracks(ctx)
+	channels, err := s.selectAudioForExport(ctx)
 	if err != nil {
 		return "", err
-	}
-	channels := 0
-	for _, t := range tracks {
-		if t.Kind == "wave" && t.Channels > channels {
-			channels = t.Channels
-		}
-	}
-	if channels == 0 {
-		return "", errors.New("the Audacity project has no audio to export")
 	}
 	folder := ExportFolder(projectFolder)
 	if err := os.MkdirAll(folder, 0o755); err != nil {
@@ -439,6 +430,32 @@ func (s *Session) ExportChapter(ctx context.Context, projectFolder, chapter stri
 		return "", err
 	}
 	return path, s.client.Export(ctx, path, min(channels, 2))
+}
+
+// selectAudioForExport selects the project's audio tracks, so Export2 writes them, and returns the channel count of the widest.
+// Export2 writes only the selected tracks and answers OK for a file with
+// no audio in it, and importing findings leaves only the label track selected, so without this an export is silent. A label track
+// between two audio tracks is selected with them: it adds nothing to the file.
+func (s *Session) selectAudioForExport(ctx context.Context) (channels int, err error) {
+	tracks, err := s.client.Tracks(ctx)
+	if err != nil {
+		return 0, err
+	}
+	first, last := -1, -1
+	for _, t := range tracks {
+		if t.Kind != "wave" {
+			continue
+		}
+		if first < 0 {
+			first = t.Index
+		}
+		last = t.Index
+		channels = max(channels, t.Channels)
+	}
+	if first < 0 {
+		return 0, errors.New("the Audacity project has no audio to export")
+	}
+	return channels, s.client.SelectTracks(ctx, first, last-first+1)
 }
 
 // WriteReviewedLabels writes the reviewed findings' labels to a new label file in ExportFolder(projectFolder), in Audacity's

@@ -11,7 +11,7 @@ import { createJournal } from './studio/journal/createJournal';
 import { ThemeProvider } from './theme/ThemeContext';
 import { parseWire } from './api/wire/parseWire';
 import { bootstrapSchema } from './api/schemas/system';
-import type { GuideBuildResult, WorkJob } from './types';
+import type { WorkJob } from './types';
 import { WIRE_CHAPTERS, WIRE_TRACKS_PROJECT } from './api/mockFixtures';
 import type { JobEnded } from './api/contracts/system';
 import type { DawTransport } from './api/contracts/daw';
@@ -253,33 +253,6 @@ describe('App (integration, driven through the mock NarrationApi)', () => {
     expect(await screen.findByRole('button', { name: 'Delete entity' })).toBeTruthy();
   });
 
-  it('opens Review Entry as a read-only overlay without discarding the in-progress edit', async () => {
-    renderApp();
-    await waitFor(() => screen.getByRole('heading', { level: 1, name: 'Production' }));
-    fireEvent.click(screen.getAllByRole('button', { name: /^Story Bible/ })[0]);
-    await waitFor(() => expect(screen.getByRole('heading', { name: /^Story Bible/ })).toBeTruthy());
-
-    fireEvent.click((await screen.findAllByText('Alice'))[0]);
-    // An entry opens read-only (SN-B91); Edit this entry turns the fields on.
-    fireEvent.click(await screen.findByRole('button', { name: 'Edit this entry' }));
-    const nameInput = await screen.findByDisplayValue('Alice');
-    fireEvent.change(nameInput, { target: { value: 'Alice (editing)' } });
-
-    const aliasInput = screen.getByPlaceholderText('Add an alias or find a matching entry…');
-    fireEvent.change(aliasInput, { target: { value: 'White Rabbit' } });
-    const matchList = await screen.findByRole('listbox', { name: 'Matching Story Bible entries' });
-    // The text box is the combobox that drives the list (#156): it names the list and the active option.
-    const combobox = screen.getByRole('combobox', { name: 'Add an alias or find a matching entry' });
-    expect(combobox.getAttribute('aria-expanded')).toBe('true');
-    expect(combobox.getAttribute('aria-controls')).toBe(matchList.id);
-    expect(combobox.getAttribute('aria-activedescendant')).toBe(within(matchList).getAllByRole('option')[0].id);
-    fireEvent.click(within(matchList).getByRole('option', { name: /White Rabbit/ }));
-    fireEvent.click(screen.getByRole('button', { name: 'Review entry' }));
-
-    expect(await screen.findByRole('button', { name: 'Close review panel' })).toBeTruthy();
-    expect((screen.getByDisplayValue('Alice (editing)') as HTMLInputElement).value).toBe('Alice (editing)');
-  });
-
   it('shows a repeated message as a fresh toast, so a second click on the same action gives a new signal', async () => {
     window.history.replaceState(null, '', `/proof/${WIRE_CHAPTERS[0].id}`);
     renderApp({ transcriptSuggestHints: async () => ({ terms: [], found: 0 }) });
@@ -418,31 +391,6 @@ describe('App (integration, driven through the mock NarrationApi)', () => {
     hasFocus.mockRestore();
   });
 
-  it('closes the rebuild dialog by itself once the host reports the build done', async () => {
-    const job = { id: 'guide-9', kind: 'story_bible' as const, message: 'Extracting names', percent: 40, logs: [], elapsed: 12 };
-    let calls = 0;
-    renderApp({ guideBuildState: async () => ({ ...job, phase: ++calls === 1 ? ('running' as const) : ('success' as const) }) });
-    await screen.findByRole('heading', { level: 1, name: 'Production' });
-    fireEvent.click(screen.getAllByRole('button', { name: /^Story Bible/ })[0]);
-    await screen.findByRole('dialog', { name: 'Rebuild Story Bible' });
-    await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Rebuild Story Bible' })).toBeNull(), { timeout: 3000 });
-  });
-
-  it('keeps the rebuild dialog open with the reason when asking the host how far the build is fails', async () => {
-    const running = { id: 'guide-9', kind: 'story_bible' as const, phase: 'running' as const, message: 'Extracting names', percent: 40, logs: [], elapsed: 12 };
-    let calls = 0;
-    renderApp({
-      guideBuildState: async () => {
-        if (++calls === 1) return running;
-        throw new Error('the host stopped answering');
-      },
-    });
-    await screen.findByRole('heading', { level: 1, name: 'Production' });
-    fireEvent.click(screen.getAllByRole('button', { name: /^Story Bible/ })[0]);
-    const dialog = await screen.findByRole('dialog', { name: 'Rebuild Story Bible' });
-    expect(await within(dialog).findAllByText(/the host stopped answering/)).not.toHaveLength(0);
-  });
-
   it('says so when refreshing the project after an attach fails, instead of an unhandled rejection', async () => {
     // App.tsx only wires this listener up from a useEffect, a passive effect React flushes on its own
     // schedule after the commit that renders the Production heading - not necessarily before it. Under load the
@@ -525,30 +473,6 @@ describe('App (integration, driven through the mock NarrationApi)', () => {
     await waitFor(() => expect(confirm.getAttribute('aria-busy')).toBe('true'));
     expect(clearProjectData).toHaveBeenCalledTimes(1);
     expect((screen.getByRole('button', { name: 'Cancel' }) as HTMLButtonElement).disabled).toBe(true);
-  });
-
-  it('says the rebuild was heard and starts only one when the button is pressed twice', async () => {
-    const guideBuild = vi.fn(() => new Promise<GuideBuildResult>(() => {}));
-    renderApp({ guideBuild });
-    await screen.findByRole('heading', { level: 1, name: 'Production' });
-    fireEvent.click(screen.getAllByRole('button', { name: /^Story Bible/ })[0]);
-    await screen.findByRole('heading', { name: /^Story Bible/ });
-    const build = await screen.findByRole('button', { name: 'Build / refresh Story Bible' });
-    fireEvent.click(build);
-    fireEvent.click(build);
-    await waitFor(() => expect(build.getAttribute('aria-busy')).toBe('true'));
-    expect(guideBuild).toHaveBeenCalledTimes(1);
-  });
-
-  it('shows a rebuild that is still running when the narrator comes back to the Story Bible, and lets them send it to the background', async () => {
-    const running = { id: 'guide-9', kind: 'story_bible' as const, phase: 'running' as const, message: 'Extracting names', percent: 40, logs: [], elapsed: 12 };
-    renderApp({ guideBuildState: async () => running });
-    await screen.findByRole('heading', { level: 1, name: 'Production' });
-    fireEvent.click(screen.getAllByRole('button', { name: /^Story Bible/ })[0]);
-    const dialog = await screen.findByRole('dialog', { name: 'Rebuild Story Bible' });
-    expect(within(dialog).getByText(/keeps running/)).toBeTruthy();
-    fireEvent.click(within(dialog).getByRole('button', { name: 'Continue in background' }));
-    await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Rebuild Story Bible' })).toBeNull());
   });
 
   it('wires every primary page through the application router', async () => {
@@ -983,9 +907,9 @@ describe('App (integration, driven through the mock NarrationApi)', () => {
     fireEvent.click(editButton);
     expect((await screen.findByRole('button', { name: 'Save changes to this entry' })).textContent?.trim()).toBe('');
 
-    const addAliasButton = screen.getByRole('button', { name: 'Add alias' });
-    const rescanButton = screen.getByRole('button', { name: /Rescan occurrences/ });
-    expect(addAliasButton.closest('[data-alias-actions]')).toBe(rescanButton.closest('[data-alias-actions]'));
+    // Add a name is one input; Rescan stays beside the Names heading.
+    expect(screen.getByRole('textbox', { name: 'Add a name' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: /Rescan occurrences/ })).toBeTruthy();
   });
 
   it('guards navigating away from unsaved Settings changes and saves on confirm', async () => {
@@ -1127,13 +1051,6 @@ describe('App (integration, driven through the mock NarrationApi)', () => {
       manuscriptImportPreview: preview,
       manuscriptImportState: async () => hostJob,
       manuscriptChapters: async () => (imported ? importedChapters : []),
-      // This test is about the import dialog's own activity log and Home's refresh, not the chained build after an import
-      // (on by default): turn it off so the import dialog stays open with a manual Close, as asserted below.
-      settingsForScope: async () => ({
-        ManuscriptGuide: [
-          { key: 'build_after_import', label: '', kind: 'bool', choices: [], value: 'false', isSet: true, effectiveValue: 'false', effectiveSource: 'project' },
-        ],
-      }),
       manuscriptImportCommit: async (): Promise<WorkJob> => {
         imported = true;
         return (hostJob = {

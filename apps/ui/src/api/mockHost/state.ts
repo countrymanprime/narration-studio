@@ -100,14 +100,6 @@ export type MockApiSeed = {
   notice?: string;
   /** Makes every Story Bible edit hang, as a Python process that has not answered would, so the busy state can be seen without a host. */
   holdEdits?: boolean;
-  /** Boots with a Story Bible rebuild that is still running, so its dialog (and Continue in background) can be seen without a host. */
-  rebuildRunning?: boolean;
-  /**
-   * How the next Story Bible build behaves: `hold` starts it and keeps it running at 30 percent, and `fails` starts it and has the host
-   * report it failed at the first poll, so the chained build after an import can be seen
-   * running and failing without a host. Without it a build finishes at once.
-   */
-  build?: 'hold' | 'fails';
   /** Which manuscript an import picks: a Word file (the default) or a Markdown one, which has the chapter heading level choice. */
   importPreview?: MockImportKind;
   /** Boots the update state (see `MockUpdateSeed`). */
@@ -120,8 +112,9 @@ export type MockApiSeed = {
   held?: readonly ('overview' | 'entities' | 'series')[];
   /** `?mockPlan=`: the read of the production plan (the Schedule's) never answers (`loading`) or fails (`fails`), so the Schedule shows its loading skeleton or its error. */
   planRead?: 'loading' | 'fails';
-  /** `?mockChapters=`: the read of the manuscript's chapters never answers (`loading`) or fails (`fails`), so a page that reads them shows its loading skeleton or its error. */
-  chaptersRead?: 'loading' | 'fails';
+  /** `?mockChapters=`: the read of the manuscript's chapters never answers (`loading`) or fails (`fails`), so a page that reads them shows its loading skeleton or its error.
+   * `reread-hangs` answers while the app is on `/` and never once it has moved to another page, so a link to a chapter the list lacks stays on the address gate's "Checking this link…". */
+  chaptersRead?: 'loading' | 'fails' | 'reread-hangs';
   /** `?mockSettings=`: how the settings file behaves (see `MockSettingsSeed`). */
   settings?: MockSettingsSeed;
   /** What `teleprompterDevices` reports; defaults to `WIRE_TELEPROMPTER_DEVICES`. An empty array exercises the picker's no-devices fallback. */
@@ -251,9 +244,10 @@ export type MockApiSeed = {
   characterContinuity?: 'empty';
   /**
    * Boots the current project outside any series, so the Series
-   * tab's "not in a series" state can be seen. Unset boots as a member of `WIRE_SERIES` (two books).
+   * tab's "not in a series" state can be seen. Unset boots as a member of `WIRE_SERIES` (two books). `fails` makes the read of the
+   * series voice bible fail, so the tab's error and its Retry can be seen.
    */
-  seriesVoiceBible?: 'not-in-series' | 'single-book';
+  seriesVoiceBible?: 'not-in-series' | 'single-book' | 'fails';
   /** Boots with voice samples saved (`?mockVoiceSamples=`), see `VoiceSamplesSeed`. Unset boots with none. */
   voiceSamples?: VoiceSamplesSeed;
   /** Seeds the mastering chain mock (whether a project is open, its stored choice), see `MasteringMockSeed`. */

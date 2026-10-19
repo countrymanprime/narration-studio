@@ -1,22 +1,30 @@
 import { describe, expect, it } from 'vitest';
-import { passing, profile } from '../files/testFiles';
+import type { DeliveryProfile } from '../../../types';
+import { acx, passing } from './testPage';
 import { packageItems } from './packageItems';
 
-const sampleFile = (seconds: number) => {
+const sample = (seconds: number) => {
   const file = passing('Retail sample.wav');
   return { ...file, report: { ...file.report!, duration_seconds: seconds } };
 };
+const withSampleRule = (min: number | null, max: number | null): DeliveryProfile => ({
+  ...acx,
+  rules: acx.rules.map((rule) => (rule.metric === 'retail_sample_seconds' ? { ...rule, min, max, off: false } : rule)),
+});
+const retail = (profile: DeliveryProfile, seconds: number) => packageItems(profile, [sample(seconds)]).find((item) => item.text.startsWith('Retail sample'));
 
-describe('the retail sample line names the profile’s own range', () => {
-  const text = (p: typeof profile, seconds: number) => packageItems(p, [sampleFile(seconds)]).find((item) => item.text.startsWith('Retail sample'))!;
-
-  it('says "up to 5 min" when the profile has a maximum and no minimum, never a lower bound it does not hold', () => {
-    expect(text(profile, 280)).toEqual({ state: 'ok', text: 'Retail sample 4:40 (up to 5 min)' });
+describe('the retail sample line', () => {
+  it('names the profile’s range when it has both ends, and passes inside it', () => {
+    expect(retail(withSampleRule(60, 300), 280)).toEqual({ state: 'ok', text: 'Retail sample 4:40 (1 to 5 min)' });
   });
 
-  it('says "1 to 5 min" when the profile has both bounds, and fails a sample under the minimum', () => {
-    const bounded = { ...profile, rules: profile.rules.map((rule) => (rule.metric === 'retail_sample_seconds' ? { ...rule, min: 60 } : rule)) };
-    expect(text(bounded, 280)).toEqual({ state: 'ok', text: 'Retail sample 4:40 (1 to 5 min)' });
-    expect(text(bounded, 30).state).toBe('bad');
+  it('fails a sample under the minimum or over the maximum', () => {
+    expect(retail(withSampleRule(60, 300), 30)?.state).toBe('bad');
+    expect(retail(withSampleRule(60, 300), 301)?.state).toBe('bad');
+  });
+
+  it('names only the end the profile has, never a minimum it lacks', () => {
+    expect(retail(withSampleRule(null, 300), 280)?.text).toBe('Retail sample 4:40 (up to 5 min)');
+    expect(retail(withSampleRule(60, null), 280)?.text).toBe('Retail sample 4:40 (at least 1 min)');
   });
 });

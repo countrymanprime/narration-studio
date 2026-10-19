@@ -20,7 +20,7 @@ something, there is no ring, every chapter in the strip is empty and the Inspect
 ![Proof - no notes yet](../../images/ui/proof-empty.webp)
 
 While Proof reads its chapters and notes, it keeps its title and shows grey blocks where the chapter strip, the notes and the
-Inspector will be, and says **Reading the chapters and notes…**.
+Inspector will be, and says **Reading the chapters and notes…**. A link to a chapter the list does not have first shows the same blocks with **Checking this link…** while the chapter list is read once more.
 
 If the page's chapters or notes cannot be read when it opens, Proof keeps its title and says "This page could not be
 loaded" with the reason and a **Retry** button, which reads them again. The rest of the app keeps working.
@@ -92,8 +92,10 @@ The notes panel lists the notes in view, **Notes · 14** for example, with:
 
 Under them, **Sources** names the checks the notes came from, with a count for each, before any chip or search narrows
 the list. The table lists Time (minutes and seconds, `02:14.6`), Type, Script vs heard, From and Resolution (**To
-review**, **Needs pickup**, **Fix in edit**, **Waive** or **Defer**) for every note; with All chapters it groups them by
-chapter, with each chapter's open count. A note whose spot has more than one take has a takes badge.
+review**, **Needs pickup**, **Fix in edit**, **Waive** or **Defer**) for every note. Script vs heard is the note's headline
+sentence with the words in question marked in the note's own colour and form, for example “are” read as “our”; a note whose
+spot has more than one take also has a takes badge. With All chapters the table groups the notes by chapter, each group a
+tinted row with the chapter's open count.
 
 ![Proof - the To review chip: "Notes · 3 of 4", the waived note left out](../../images/ui/proof-notes-filtered.webp)
 
@@ -107,17 +109,18 @@ Select a note in the table, or its pin on the waveform, and the Inspector shows 
   choice is kept with the note;
 - the arrows to step to the previous or next note on the list (a chip, the search or the In view filter can hide notes; the keys skip them);
 - what the script says and what was heard, with the difference marked;
-- **Takes at this spot**, when the spot has more than one take: each take with **Play** (from its own recording, without
-  the DAW) and which one is active or kept. **Manage takes in Editing** opens the chapter on
+- **Takes at this spot**, when the spot has more than one take: each take is a bordered card with **Play** (from its own recording, without
+  the DAW), its length and whether it is active or kept; the kept take's card is tinted green. **Manage takes in Editing** opens the chapter on
   [Editing](editing.md) with the note's words selected and the takes of its line open, where takes are chosen;
 - **Trim the gap to 1.2 s**, on a gap note not decided yet (see [Trimming a gap](#trimming-a-gap));
 - **Show in** and **Add marker in** your DAW, each followed by your DAW's name (see [Going to a note in the
   DAW](#going-to-a-note-in-the-daw)), **Open this chapter in Script** and **Open this chapter in Booth**, and **Reopen**
   once the note is decided;
-- the decisions, **Needs pickup**, **Fix in edit**, **Waive** and **Defer** (keys P, E, W and D), an optional note with the
-  decision (up to 2,000 characters), and the check's confidence, or why it has none. Whether a note needs a pickup or a
-  fix in the edit comes from its kind: a misread or a skipped word is re-recorded, a repeat or a gap is fixed in the edit.
-  So only one of the two is on for a note, and the line under the buttons says which and why;
+- the decisions, **Needs pickup**, **Fix in edit**, **Waive** and **Defer** (keys P, E, W and D) as four equal buttons in two
+  columns, each with its key, the decision taken outlined; an optional note with the decision (a box with a placeholder,
+  up to 2,000 characters), and the check's confidence, or why it has none. All four work on any note. Whether a note
+  counts as a pickup or a fix in the edit comes from its kind: a misread or a skipped word is re-recorded, a repeat or a gap
+  is fixed in the edit, so **Fix in edit** on a misread saves your decision and the note still reads **Needs pickup**;
 - **Notes on this finding**, the conversation about the spot (see [Notes on a finding](#notes-on-a-finding)).
 
 A decision is saved at once and the next note is selected. A message says what was saved, with **Undo** to put the
@@ -141,7 +144,7 @@ says why), **Reopen**, **Go to** your DAW, **Trim the gap** on a gap note, and o
 
 Under the decision, **Notes on this finding** keeps a thread of notes on the spot: questions for yourself, or a
 proofer's replies. Choose **Proofer replied** to paste in what the proofer wrote, or **My note** for your own, type it
-and press **Add note**. Each note shows who wrote it and when; edit it with the pencil, or delete it, with **Undo** to
+and press **Add note**, which sits beside the box. Each note shows who wrote it, on the left, and when, on the right; edit it with the pencil, or delete it, with **Undo** to
 bring it back where it was. The notes are kept with the project beside your decisions, are not a decision themselves,
 and stay with the note when a check runs again.
 
@@ -179,7 +182,7 @@ why.
 | Ctrl+F | Find in notes |
 | Ctrl+Z | Undo the last change, a decision included |
 
-The footer lists them, and you can change them in [Settings](settings.md). Space is not a Proof key.
+The footer lists them, Ctrl+Z as Undo, and you can change them in [Settings](settings.md). Space is not a Proof key.
 
 Choosing between takes is on [Editing](editing.md), not here.
 
@@ -205,7 +208,7 @@ linked chapter's **Open in Proof** link in the [audio engine panel](navigation.m
 Proof cell or **Open Proof** in its row's menu on [Production](production.md). Its
 notes and its recording check card are on [Proof](#one-chapter); listening to the chapter against its script, its flags, effects and
 takes are on [Editing](editing.md).
-While the chapter is being read, the view shows the page title and grey blocks; an address for a chapter the manuscript does not have says so instead.
+While the chapter is being read, the view shows the page title and grey blocks; an address for a chapter the manuscript does not have says so instead. If the chapter or its check cannot be read, the view says "This page could not be loaded" with the reason and **Retry**; Retry shows the grey blocks again while it reads, then the chapter or the reason again.
 
 If the chapter hasn't been checked yet, the chapter view says so and offers **Check recording**, the same check
 [Production](production.md#checking-a-chapters-recording) runs.

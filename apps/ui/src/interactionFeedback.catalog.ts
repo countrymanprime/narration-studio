@@ -67,12 +67,16 @@ for (const rows of AREAS) {
  * The list may only shrink: a new one needs a reason a reviewer accepts, and a narrator's action never belongs here.
  */
 export const SILENT_CATCHES: Record<string, string> = {
+  'src/components/editing/voicesample/sampleMarksContext.tsx#1':
+    'The names of the characters the voice-sample dots are read for: a failed read leaves the names as they were, and a dot with no names is called "this character" and still plays. The dots are an extra on the page, and the Story Bible says what failed.',
   'src/components/voicesamples/samplePlayerStore.ts#1':
     "Another page's stop (Editing's playback, a take audition) threw while a sample was starting: the sample still starts, and that page's own audio is the thing that failed, not an action the narrator took.",
   'src/components/settings/controls/AppearanceBodies.tsx#1':
     'The zoom read: a failure leaves the select at its last level, and the header zoom chip is the display of record.',
   'src/components/settings/controls/CreditsBody.tsx#1':
     'A template that cannot be previewed is shown as unknown in the credits summary; Edit credits opens the editor, which shows the real error.',
+  'src/motion.ts#1':
+    'Saving the motion choice to browser storage: when storage is unavailable the choice still holds for this window, which is all a per-window setting promises.',
   'src/api/uiLog.ts#1':
     'The trace line is best effort: a failed write of a log line must never become an error the narrator sees or the client reports again (it would loop).',
   'src/api/uiLog.ts#2': 'No host to write the trace line to (a test, the mock client): the call is a no-op there, never an error.',
@@ -127,8 +131,6 @@ export const SILENT_CATCHES: Record<string, string> = {
   'src/App.tsx#8':
     'Best effort when leaving a Proof chapter view with a compare run through the nav: a reset that fails leaves the finished results in place, which is harmless.',
   'src/App.tsx#9': 'Best effort when leaving a Proof chapter view with a compare run through guarded Back/Forward: same as the nav, harmless either way.',
-  'src/components/production/ManuscriptImport.tsx#1':
-    'Only pre-fills the "Build the Story Bible after import" checkbox from Settings; it keeps its on-by-default local state without it, and the narrator can still change it per import.',
   'src/components/proof/CompareRun.tsx#1': 'Reads the last model and chunk choice; the defaults stay usable and Settings reports a real error.',
   'src/components/proof/CompareRun.tsx#2':
     'The "may have changed since comparison" background check: comparing a successful REAPER answer against the baseline is best-effort - a failure just leaves the note as it was, tried again next low-frequency poll.',
@@ -214,7 +216,9 @@ export const SILENT_CATCHES: Record<string, string> = {
   'src/components/booth/page/useBoothData.ts#1': 'The credits templates only decide whether the picker offers the credits; with none, it offers the chapters.',
   'src/components/booth/page/useBoothData.ts#2': 'The running session only picks the default chapter; the first chapter is used without it.',
   'src/components/booth/page/useBoothData.ts#3': 'The Story Bible entries only tint names and fill the side panel; without them the chapter reads unmarked.',
-  'src/components/booth/page/useBoothData.ts#4': 'The dialogue cues only add speaker chips; without them every phrase reads as narration.',
+  'src/components/booth/page/useBoothData.ts#4':
+    'The Story Bible types only colour the names and speakers; without them every entry keeps the fallback colour and the page still opens.',
+  'src/components/booth/page/useBoothData.ts#5': 'The dialogue cues only add speaker chips; without them every phrase reads as narration.',
   'src/components/booth/page/useBoothPage.ts#1':
     'The resume lookup only offers where the recording ends; a failure offers nothing and Record still starts at the end of the last item.',
 };

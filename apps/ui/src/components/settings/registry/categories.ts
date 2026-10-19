@@ -43,7 +43,7 @@ export const CATEGORIES: readonly Category[] = [
     id: 'appearance',
     label: 'Appearance & keys',
     group: 'This computer',
-    icon: 'themeDark',
+    icon: 'appearance',
     blurb: 'How the app looks and which keys do what on this computer.',
   },
   { id: 'app', label: 'App & updates', group: 'This computer', icon: 'gear', blurb: 'Updates, notifications and diagnostics.' },

@@ -25,6 +25,12 @@ const missed = (files: readonly MeasureFileResult[], rules: readonly (DeliveryRu
 
 const minutes = (seconds: number): string => String(Number((seconds / 60).toFixed(1)));
 
+/** The profile's range for the retail sample, as the mock writes it: "1 to 5 min", "up to 5 min" or "at least 1 min". */
+function sampleRange(rule: DeliveryRule): string {
+  if (rule.min != null && rule.max != null) return `${minutes(rule.min)} to ${minutes(rule.max)} min`;
+  return rule.max != null ? `up to ${minutes(rule.max)} min` : `at least ${minutes(rule.min!)} min`;
+}
+
 /** The credits files Delivery counts as chapters, read the way its page reads them. */
 type CreditsEntries = { opening?: CreditsEntry; closing?: CreditsEntry };
 
@@ -48,11 +54,10 @@ export function packageItems(profile: DeliveryProfile | undefined, files: readon
 
   const retail = ruleFor(profile, 'retail_sample_seconds');
   const sample = measured(files).find(isSample);
-  if (retail?.max != null && sample) {
+  if (retail && (retail.min != null || retail.max != null) && sample) {
     const seconds = sample.report!.duration_seconds;
-    // The range is the profile's own: "1 to 5 min" when its rule has a lower bound, else "up to 5 min"; a bound the profile lacks is not drawn.
-    const range = retail.min != null ? `${minutes(retail.min)} to ${minutes(retail.max)} min` : `up to ${minutes(retail.max)} min`;
-    items.push({ state: seconds <= retail.max && seconds >= (retail.min ?? 0) ? 'ok' : 'bad', text: `Retail sample ${formatLength(seconds)} (${range})` });
+    const fits = (retail.min == null || seconds >= retail.min) && (retail.max == null || seconds <= retail.max);
+    items.push({ state: fits ? 'ok' : 'bad', text: `Retail sample ${formatLength(seconds)} (${sampleRange(retail)})` });
   }
 
   const channels = ruleFor(profile, 'channels');

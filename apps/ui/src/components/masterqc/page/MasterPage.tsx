@@ -17,9 +17,9 @@ import { ReportExportPanel } from '../../master/ReportExportPanel';
 import { useExportJobs } from '../../master/useExportJobs';
 import { Button } from '../../primitives/Button';
 import { ChapterStepper } from '../../primitives/ChapterStepper';
-import { HeaderChip } from '../../primitives/HeaderChip';
 import { Heading } from '../../primitives/Heading';
 import { Panel } from '../../primitives/Panel';
+import { badgeClass, badgeStyle, toneColors } from '../../primitives/StatusBadge';
 import { useOpenPickups } from '../../pickups/useOpenPickups';
 import { NeedManuscript } from '../../layout/NeedManuscript';
 import type { FileActions } from '../files/FileActions';
@@ -125,19 +125,16 @@ function MasterBody({ projectFolder, onOpenDelivery, openSettings, fileActions, 
 
   // The profile a measurement was judged against wins over the project's current choice until it is measured again.
   const profile = run.job?.profile ?? chosen;
-  // One row per chapter and credits file, then the retail sample, whether or not a file is measured. A row with no file waits on its open
-  // pickups, counted as Production's pipeline and Delivery count them; nothing is claimed until that list is read.
-  const listed = useMemo(() => listedChapters(chapters, credits), [chapters, credits]);
+  // One row per chapter, the credits and the retail sample, with a file or without; the open pickups come from the Pickups page's own list.
   const openLines = useOpenPickups();
-  const pickups = useMemo(() => {
+  const openPickups = useMemo(() => {
+    if (!openLines) return undefined;
     const counts: Record<string, number> = {};
-    for (const line of openLines ?? []) counts[line.chapterId] = (counts[line.chapterId] ?? 0) + 1;
+    for (const line of openLines) counts[line.chapterId] = (counts[line.chapterId] ?? 0) + 1;
     return counts;
   }, [openLines]);
-  const rows = useMemo(
-    () => (profile ? buildChapterRows(run.files, profile, listed, openLines ? pickups : undefined) : []),
-    [run.files, profile, listed, openLines, pickups],
-  );
+  const slots = useMemo(() => listedChapters(chapters, credits), [chapters, credits]);
+  const rows = useMemo(() => (profile ? buildChapterRows(run.files, profile, slots, openPickups) : []), [run.files, profile, slots, openPickups]);
   // A link by chapter id lands on that chapter's file once the files are known.
   const selected = useMemo(() => {
     const chapter = chapters.find((candidate) => candidate.id === picked);
@@ -192,13 +189,52 @@ function MasterBody({ projectFolder, onOpenDelivery, openSettings, fileActions, 
     <div className="mx-auto max-w-[96rem]">
       <div className="grid items-start gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(19rem,22.4rem)]">
         <div className="flex min-w-0 flex-col gap-4">
-          <div className="flex flex-wrap items-center gap-2 lg:justify-end">
-            {/* Opens Master to spec below (no mock equivalent, kept as built). */}
-            <Button variant="secondary" onClick={() => void jobs.pick()} pending={jobs.picking} disabled={jobs.exportRunning}>
-              Master all to spec…
-            </Button>
-            <MeasureControls run={run} />
-          </div>
+          {/* The mock's header row lives in the table's panel: the title, the chapter bar, the profile as a pill, then the refresh icon. The
+              run controls and Master to spec have no equivalent in the mock and stay as built, beside the icon. */}
+          {(() => {
+            const heading = (
+              <>
+                <Heading title="Master & QC" />
+                {bar.length > 0 && chapterOfSelection && (
+                  <ChapterStepper chapters={bar} value={chapterOfSelection.id} stepKeys={['Alt+↑', 'Alt+↓']} onChange={goToChapter} onStep={stepChapter} />
+                )}
+                {profile && (
+                  <button
+                    type="button"
+                    title="Open Delivery"
+                    className={`${badgeClass('pill')} cursor-pointer text-left`}
+                    style={badgeStyle(toneColors('neutral'))}
+                    onClick={onOpenDelivery}
+                  >
+                    {profileName(profile)}
+                  </button>
+                )}
+              </>
+            );
+            const controls = (
+              <>
+                {/* Opens Master to spec below (no mock equivalent, kept as built). */}
+                <Button variant="secondary" onClick={() => void jobs.pick()} pending={jobs.picking} disabled={jobs.exportRunning}>
+                  Master all to spec…
+                </Button>
+                <MeasureControls run={run} />
+              </>
+            );
+            // One element either way, so the header's buttons survive the profile and the chapters arriving.
+            return (
+              <FilesTable
+                files={run.files}
+                profile={profile && chaptersRead ? profile : undefined}
+                slots={slots}
+                openPickups={openPickups}
+                heading={heading}
+                controls={controls}
+                selected={selected}
+                onSelect={select}
+                actions={actions}
+              />
+            );
+          })()}
           {profileProblem && (
             <p role="alert" className="text-sm" style={DANGER}>
               The delivery profile could not be read: {profileProblem}
@@ -222,28 +258,9 @@ function MasterBody({ projectFolder, onOpenDelivery, openSettings, fileActions, 
             </div>
           )}
           <MeasureProgress run={run} />
-          <FilesTable
-            rows={rows}
-            selected={selected}
-            onSelect={select}
-            actions={actions}
-            heading={
-              <>
-                <Heading title="Master & QC" />
-                {bar.length > 0 && chapterOfSelection && (
-                  <ChapterStepper chapters={bar} value={chapterOfSelection.id} stepKeys={['Alt+↑', 'Alt+↓']} onChange={goToChapter} onStep={stepChapter} />
-                )}
-                {profile && (
-                  <HeaderChip title="Open Delivery" onClick={onOpenDelivery}>
-                    {profileName(profile)}
-                  </HeaderChip>
-                )}
-              </>
-            }
-          />
-          {profile && rows.length > 0 && (
+          {profile && chaptersRead && (
             <>
-              {staleLink === undefined && (current || chapterOfSelection) && (
+              {staleLink === undefined && (current || run.files.length > 0) && (
                 <FileChecks row={current} chapterLabel={chapterOfSelection && chapterName(chapterOfSelection)} actions={actions} />
               )}
               {currentFile && rulesClosed !== currentFile.path && (

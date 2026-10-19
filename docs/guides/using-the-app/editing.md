@@ -18,7 +18,7 @@ The header has the chapter step (the previous and next chapter buttons, Alt+↑ 
 legend of the marks in the text with how many of each, the recogniser that heard the words (**Flagged by**), the
 **Timeline** button (on a window 1360 px wide or more) and the button that opens the drawer. At 1280 px and below the
 legend uses short labels with no counts.
-While the chapters and the chapter's lines are being read, the header stays and the script is drawn as grey blocks; if the chapters cannot be read, the page says so.
+While the chapters and the chapter's lines are being read, the header stays and the script is drawn as grey blocks; if the chapters cannot be read, the page says so. A link to a chapter the list does not have shows the title and the same blocks with **Checking this link…** while the chapter list is read once more.
 
 Words carry what the last [recording check](production.md#checking-a-chapters-recording) heard. Each kind is drawn the
 same way on every page of the app, and the legend shows a sample of each beside its count, so the shape tells two red kinds apart
@@ -69,7 +69,7 @@ line** (on a line with more than one take) and **Delete**; the bar offers the sa
 audio** in full on a wide window. **Delete**, **Mute** and **Add FX** stay on the bar but are off while the DAW cannot make
 the change (they are Experimental and start switched off in [Settings](settings.md)); a line above the bar then says so
 and why, and the same sentence is in each button's hint. The line's audio shows under it while the cursor is on it. Right-click a word for its
-menu: play the selection, copy, delete or mute the words, add or remove an effect, **Mark as voice sample…**, mark them for a pickup, add a note,
+menu: play the selection, copy, delete or mute the words, **Add FX** and **Mark as** (each opens a list beside it), remove an effect, **Mark as voice sample…**, mark them for a pickup, add a note,
 show or keep the line's takes, and **Split into takes** on a line whose one take reads it twice.
 
 With a screen reader, the script is one read-only text box. Each time the cursor stops, the screen reader says the word it is on
@@ -99,10 +99,16 @@ touched. **Mute** keeps the audio and silences the words.
 **Add FX** (F) lists your FX chains from the DAW. Choose one and the question shows how the item will be split around
 the words, where the splits fall, the fades at the joins and what the DAW does: it splits the item at both ends and puts
 the chain on the middle piece only. Nothing else moves, and one undo step in the DAW takes it off. The words with an
-effect are underlined and end with an effects marker: click it to select the words or remove the effect. The word
-menu offers **Remove** with the chain's name too, and the drawer's Effects tab lists them.
+effect are underlined and end with an effects marker: click it to select the words or remove the effect. The question
+also has **A/B**, which plays the words in the DAW without the chain and then with it, and puts the chain back as it was.
+A/B compares a chain that is already on the words, so it is off, with the reason beside it, until the chain you picked is
+on them; the Effects tab's **Compare** does the same for any effect in the list. The word menu (right-click) has **Add FX**
+with your chains in a list beside it, and **Remove** with the chain's name on words that carry an effect. The drawer's
+Effects tab lists them.
 
 ![Editing - Add FX on four selected words: the DAW's effect chains](../../images/ui/editing-fx-menu.webp)
+
+![Editing - the word menu's Add FX list on four selected words](../../images/ui/editing-word-menu-fx.webp)
 
 The Effects tab shows how much of the chapter effects cover against a cap, 10% unless you change it in the tab's **Cap**
 field (a whole percent from 1 to 100, kept for the project). Over the cap the tab warns, and Add effect asks again
@@ -132,7 +138,24 @@ takes ("Choose words inside one take"), the recording changed since the chapter 
 sample"), some of the words are cut ("Restore the cut words or choose words without them"), the clip would be under half a
 second or over 30 seconds, the recording is not a WAV file, the audio file is missing, the saved REAPER project cannot be read,
 the character has 20 samples, or samples already use the 200 MiB a project may hold. Play, rename and manage a saved sample under
-**Voice samples** on the character's entry in the [Story Bible](story-bible.md#voice-samples); playing one from the Booth is not built yet.
+**Voice samples** on the character's entry in the [Story Bible](story-bible.md#voice-samples), and hear them in the
+[Booth](booth.md#voice-samples).
+
+### Samples in the script
+
+A small dot after the last word of a marked stretch says it is a voice sample. It is grey for Narration, and a number in it says
+how many samples end on that word. **Tab** reaches it in reading order; **Enter**, **Space** or a
+click opens what was marked there: the character, the label, the length, the words that were marked and any note, a play button, and **Open in Story
+Bible** for a character who has an entry. The play button plays the saved clip, not the recording as it is now, and stops
+Editing's own playback while it plays; the same button reads **Stop** and ends it, and **Esc** closes the list. Rename, move and delete
+stay in the Story Bible.
+
+![Editing - the dot after a marked stretch, opened: the character, the length and a play button, with Open in Story Bible](../../images/ui/editing-voice-sample-mark.webp)
+
+A dot with a hollow ring says the words changed since the sample was marked; the sample still plays. A dashed ring says the audio
+file is missing or changed; it cannot play, and the Story Bible has **Check again** and **Delete**. A sample whose last word is no
+longer in the chapter is drawn once above the script as "A voice sample whose words moved". Unlike the Booth, Editing does not
+check whether a take is recording before it plays a sample, so do not play one while you record.
 
 ## Takes
 
@@ -168,7 +191,7 @@ experimental stay off until you turn them on in [Settings](settings.md).
 
 ### Effects, Backups and Timeline
 
-**Effects** lists the effects on words in this chapter and adds one. Under **Add an effect** the DAW's own chains and plug-ins are listed, each with a **Favourite** button. A favourite is listed first here, in the Add FX menu and in the question that asks before an effect goes on; the buttons edit the global list, the same one as **Favourite effects** under **Set on a page** in [Settings](settings.md#set-on-a-page), which can also set it for one project. A name with a comma in it cannot be a favourite. **Backups** shows only with a DAW that keeps
+**Effects** lists the effects on words in this chapter and adds one. Under **Add an effect** the DAW's own chains and plug-ins are listed, each with a **Favourite** button. A favourite is listed first here, in the Add FX menu and in the question that asks before an effect goes on; the buttons edit the global list, the same one as **Favourite effects** under **Set on a page** in [Settings](settings.md#set-on-a-page), which can also set it for one project. A name with a comma in it cannot be a favourite. Pick an effect in the list to see it under the list. Its header has **Previous effect** and **Next effect** (off at the first and last), and **Show in REAPER** (or your DAW's name) next to **Remove this effect** moves the DAW to the effect's first word, or says why it cannot. **Backups** shows only with a DAW that keeps
 backups of its project; with one that edits the audio itself, the app backs the words up before each delete, effect or
 stack, and refuses the edit if the backup fails. The Backups tab is also where this project's backup settings can be changed (**Keep backups**, the window either side of an edit, and **Keep backups for (days)**). It is a shortcut to the same settings as the Audacity backups under **Set on a page** in [Settings](settings.md#set-on-a-page), which also sets them for every project (Global); the tab edits this project only. **Timeline** shows the line the cursor is on as the chapter's audio
 and one lane per take on one time axis. On a window 1360 px wide or more it is a strip under the text, which the header's

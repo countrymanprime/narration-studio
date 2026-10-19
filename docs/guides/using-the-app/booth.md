@@ -7,7 +7,7 @@ starts and stops the take in your DAW (or the built-in recorder). It needs an [i
 Open it from **Booth** in the navigation, or from **Record in Booth** on a chapter or credits card on [Script](script.md), which
 opens it on that chapter. What the Booth is reading is part of its address (`/booth?chapter=…`, `/booth?credits=opening`), so Back
 and a link land on the same chapter. The Booth fills the window and follows the app's theme, light or dark.
-While the chapters are being read, the Booth draws its top bar, text, side panel and footer as grey blocks, and the text appears in their place. If the chapters cannot be read, the page says so instead.
+While the chapters are being read, the Booth draws its top bar, text, side panel and footer as grey blocks, and the text appears in their place. If the chapters cannot be read, the page says so instead. A link to a chapter the list does not have shows the same blocks with **Checking this link…** while the chapter list is read once more.
 
 ## The page
 
@@ -16,7 +16,7 @@ where you are (`¶ 1 of 24 · 0% · ~13:48 finished left`), the resume line, and
 built-in recorder). The chip opens [Settings](settings.md). The chapter is named as the manuscript heads it
 (`CHAPTER I. Down the Rabbit-Hole`). **Text settings** chooses the font, the same choice as the reader font on
 [Script](script.md), and the Booth's text size, 24 to 72 px; **+** and **-** change the size too, and the Booth opens at the size
-you last chose. The button at the right shows or hides the side panel; in a window 1280 pixels wide or narrower the panel is a
+you last chose. The button at the right shows or hides the side panel, and is drawn pressed while the panel is open; in a window 1280 pixels wide or narrower the panel is a
 drawer that starts closed, the chapter picker is narrower, and the top bar wraps onto a second row when it runs out of room.
 
 ![Booth - the Text settings: the font and size of the text you read](../../images/ui/booth-text-settings.webp)
@@ -28,7 +28,7 @@ its own once connected. Click it to fix that in [Settings](settings.md#link-your
 
 ![Booth - ready to record: the chapter stepper, progress and resume line on the top bar, the text with the reading position, the side panel, and Record, the levels and the key hints in the footer](../../images/ui/booth-setup.webp)
 
-The text fills the middle, with speaker chips beside the lines a character speaks, Story Bible names tinted and the words you
+The text fills the middle, fading into the page at the top and bottom edges, with speaker chips beside the lines a character speaks, Story Bible names tinted and the words you
 marked on [Script](script.md) drawn in their mark's colour and the line style you chose for it (a tint, a box, or a solid, double,
 dotted or wavy underline), as they are on Script; a mark's note shows under its paragraph with a bar in the mark's colour. A
 speaker chip takes its character's colour; a suggested speaker's chip is dashed, and a quote nobody is matched to has a grey dashed
@@ -201,8 +201,9 @@ in chapter 19 as in chapter 3.
   **Everyone else**. A character with samples shows how many, and a play button at the right of the row plays its primary sample (the starred one in the
   Story Bible); a character with none says "no sample". The picker has the arrow keys now: **Up** and **Down** move the highlighted row and
   **Enter** chooses it. **Ctrl+Enter** plays the highlighted character's primary sample without choosing it, and **Esc** stops it.
-- **Side panel.** Each voice in **Voices in this scene** has a play button for its primary sample and a count; press the count to list every sample
-  with its length, and press one to hear it. A voice with none says "No voice sample yet. Mark one in Editing." Press the play button, or a sample, again to stop it.
+- **Side panel.** Each voice in **Voices in this scene** is one row: its speaker chip in the character's own colour, the Story Bible's note on how they talk, and the
+  speaker button at the right, **Hear the reference clip**, which plays the primary sample. A voice with a sample also has a count below the row; press the count to list every
+  sample with its length, and press one to hear it. A voice with none keeps the button, switched off, and its hint says "No voice sample yet. Mark one in Editing." Press the button, or a sample, again to stop it.
 
 ![Booth - the speaker picker with a count and a play button on each character who has voice samples](../../images/ui/booth-voice-samples-picker.webp)
 
@@ -273,6 +274,8 @@ If the address asks for credits that have no template (for example an old link t
 deleted), the Booth shows a panel instead of text: **The closing credits are not set up**, with **Set up credits in Settings** and
 **Back to the chapters**, which opens [Script](script.md), the chapter list, as Escape does with a chapter open. A link to a chapter the book no longer has shows the
 same panel with **Back to the chapters**. An address the app cannot read at all, or one that names a chapter or line the book lacks, shows "This link could not be opened" with **Open Booth** and **Go to Production**; Escape leaves it as it leaves the Booth: for [Pickups](pickups.md) when the link still names pickups ("Open 3 in Booth"), otherwise for [Script](script.md).
+
+If the book's chapters cannot be read when the Booth opens, it shows "This page could not be loaded" with the reason and **Retry**; Retry shows the Booth's grey blocks again while it reads, then the page or the reason again.
 
 ![Booth - the closing credits with no closing template: the panel that says so and offers Settings and the chapters](../../images/ui/booth-credits-missing.webp)
 

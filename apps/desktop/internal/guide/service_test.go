@@ -180,23 +180,23 @@ func TestCommandUsesFrozenSidecarDirectlyWithoutBackendScript(t *testing.T) {
 	}
 }
 
-func TestAliasAndCreateOperationsUseCanonicalManuscriptWithoutLegacyESpeakPath(t *testing.T) {
+func TestThePronunciationLookupIsGivenWordsAndNoFileOrLegacyESpeakPath(t *testing.T) {
 	root := t.TempDir()
-	store := settings.New(root, root)
-	s := New(root, "unused", "", store, process.NewSupervisor())
-	alias := s.editArgs("entity-1", map[string]string{"aliases": "A. Name"})
-	if !slices.Contains(alias, "--manuscript") || !slices.Contains(alias, filepath.Join(root, "narration-utils", "manuscript", "manuscript.json")) || slices.Contains(alias, "--espeak-library") {
-		t.Fatalf("alias arguments must use canonical context only: %#v", alias)
+	s := New(root, "unused", "", settings.New(root, root), process.NewSupervisor())
+	args := s.lookupArgs([]string{"A. Name", "Wren"})
+	for _, flag := range []string{"--manuscript", "--guide", "--espeak-library"} {
+		if slices.Contains(args, flag) {
+			t.Fatalf("the lookup is given %s, but needs only the words: %#v", flag, args)
+		}
 	}
-	create := s.createArgs("Name", "Character", []string{"A. Name"}, "", nil)
-	if slices.Contains(create, "--espeak-library") {
-		t.Fatalf("create arguments must not include an eSpeak path: %#v", create)
+	if !slices.Contains(args, "--word=A. Name") || !slices.Contains(args, "--word=Wren") {
+		t.Fatalf("the lookup does not carry the words: %#v", args)
 	}
 }
 
-// TestDefaultPronunciationSourceIsOmittedWhenUnset pins the settings default: --default-source is left off build, an alias
-// edit and create entirely while the narrator has not set a preference, so every project's command line is unchanged
-// from before this setting existed; once set, it reaches all three, but never a field edit that does not touch aliases.
+// TestDefaultPronunciationSourceIsOmittedWhenUnset pins the settings default: --default-source is left off build and the pronunciation
+// lookup entirely while the narrator has not set a preference, so every project's command line is unchanged from before this setting
+// existed; once set, it reaches both.
 func TestDefaultPronunciationSourceIsOmittedWhenUnset(t *testing.T) {
 	root := t.TempDir()
 	t.Setenv("APPDATA", filepath.Join(root, "appdata")) // sandbox global scope away from the real machine (store_test.go's own pattern)
@@ -204,15 +204,12 @@ func TestDefaultPronunciationSourceIsOmittedWhenUnset(t *testing.T) {
 	if got := s.buildArgs("progress.txt", "log.txt", "en_core_web_sm"); slices.Contains(got, "--default-source") {
 		t.Fatalf("build arguments must not include --default-source when unset: %#v", got)
 	}
-	if got := s.editArgs("entity-1", map[string]string{"aliases": "A. Name"}); slices.Contains(got, "--default-source") {
-		t.Fatalf("alias edit arguments must not include --default-source when unset: %#v", got)
-	}
-	if got := s.createArgs("Name", "Character", []string{"A. Name"}, "", nil); slices.Contains(got, "--default-source") {
-		t.Fatalf("create arguments must not include --default-source when unset: %#v", got)
+	if got := s.lookupArgs([]string{"A. Name"}); slices.Contains(got, "--default-source") {
+		t.Fatalf("lookup arguments must not include --default-source when unset: %#v", got)
 	}
 }
 
-func TestDefaultPronunciationSourceReachesBuildAliasEditAndCreate(t *testing.T) {
+func TestDefaultPronunciationSourceReachesBuildAndTheLookup(t *testing.T) {
 	root := t.TempDir()
 	t.Setenv("APPDATA", filepath.Join(root, "appdata")) // sandbox global scope away from the real machine (store_test.go's own pattern)
 	store := settings.New(root, root)
@@ -224,14 +221,8 @@ func TestDefaultPronunciationSourceReachesBuildAliasEditAndCreate(t *testing.T) 
 	if got := s.buildArgs("progress.txt", "log.txt", "en_core_web_sm"); !slices.Contains(got, "--default-source") || !slices.Contains(got, "espeak") {
 		t.Fatalf("build arguments must carry the narrator's default source: %#v", got)
 	}
-	if got := s.editArgs("entity-1", map[string]string{"aliases": "A. Name"}); !slices.Contains(got, "--default-source") || !slices.Contains(got, "espeak") {
-		t.Fatalf("alias edit arguments must carry the narrator's default source: %#v", got)
-	}
-	if got := s.createArgs("Name", "Character", []string{"A. Name"}, "", nil); !slices.Contains(got, "--default-source") || !slices.Contains(got, "espeak") {
-		t.Fatalf("create arguments must carry the narrator's default source: %#v", got)
-	}
-	if got := s.editArgs("entity-1", map[string]string{"description": "New."}); slices.Contains(got, "--default-source") {
-		t.Fatalf("a field edit that is not aliases must not include --default-source: %#v", got)
+	if got := s.lookupArgs([]string{"A. Name"}); !slices.Contains(got, "--default-source") || !slices.Contains(got, "espeak") {
+		t.Fatalf("lookup arguments must carry the narrator's default source: %#v", got)
 	}
 }
 
