@@ -32,7 +32,7 @@ const WINDOW_PAGES = DEMO_PAGES.map(({ label, route }) => ({ route, title: label
 export const APP_MIN_WINDOW = { width: 960, height: 640 };
 /** The demo window's height: with the widest content column it is 1280 x 800. It does not shrink to a short screen (the page scrolls instead),
  * because the app's icon rail needs about 780 px to show every page without scrolling. */
-export const APP_WINDOW_HEIGHT = 800;
+const APP_WINDOW_HEIGHT = 800;
 
 const ICON = {
   ext: '<path d="M9 3h4v4M13 3L7 9M11 10v3H3V5h3"/>',
@@ -204,7 +204,7 @@ export function demoPage({ withStorybook, docs }) {
 }
 
 /** The story the Storybook window opens on. */
-export const STORYBOOK_FIRST_STORY = 'primitives-button--primary';
+const STORYBOOK_FIRST_STORY = 'primitives-button--primary';
 
 // The Storybook page's script: opens the Storybook in the site's theme (Storybook's `globals` URL parameter, which the repo's theme toolbar reads,
 // apps/ui/.storybook/preview.tsx), and reopens it on the same story when the site's theme changes.

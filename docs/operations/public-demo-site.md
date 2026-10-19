@@ -73,7 +73,6 @@ The `site` mode (`apps/ui/.env.site`, `apps/ui/vite.config.ts`) differs from the
 - **No probe for the desktop host's script.** The Wails runtime asks `/wails/custom.js` with a HEAD request; the `site` mode removes that call, so the demo makes no request outside its own folder.
 - **The demo banner.** `VITE_DEMO=1`, as in the `demo` mode, so every page says it is a demo with nothing saved (in the window, the page around it says so).
 - **The mock reader's pace.** The mock teleprompter (`apps/ui/src/api/teleprompterMock.ts`, every mock build) reads at `MOCK_READING_WORDS_PER_MINUTE`, 150 words a minute: it replays its recorded 100-word read-through one block after another across the chapter, so the Booth's highlight moves as a narrator reads. Play animations and reduced motion act on it as on the real app (`booth/usePacedCursor.ts`).
-
 - **Banner links.** In the site build the demo banner also links **Site** (`../index.html`) and **Storybook** (`../storybook/index.html`), and below 860 px wide says the app is best on a larger screen (the app has no phone layout).
 
 The build script then fails when any built HTML or CSS file loads something by an absolute path or from another host (`scripts/site/siteFiles.mjs`), and gives Storybook's pages an empty icon so no browser asks the host's root for `/favicon.ico`. The Pages `demo` mode is untouched.

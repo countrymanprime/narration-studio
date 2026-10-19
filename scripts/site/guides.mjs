@@ -27,7 +27,7 @@ export const GROUPS = [
   { title: 'Settings', hint: 'Set it up', pages: ['settings'] },
 ];
 /** The demo page each docs page is about, as a hash route of demo/index.html. */
-export const DEMO_ROUTE = {
+const DEMO_ROUTE = {
   'getting-started': '/',
   navigation: '/',
   production: '/',
@@ -182,7 +182,7 @@ export function renderPage(markdown, page, knownPages, repoRoot) {
 }
 
 /** The whole page for one docs page, as the mock's docs view draws it. */
-export function docsPage({ page, meta, rendered, flat, withStorybook, search }) {
+function docsPage({ page, meta, rendered, flat, withStorybook, search }) {
   const at = flat.findIndex((entry) => entry.page === page);
   const group = flat[at].group;
   const prev = flat[at - 1];
