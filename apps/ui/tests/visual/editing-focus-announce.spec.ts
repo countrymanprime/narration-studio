@@ -79,8 +79,12 @@ test.describe('Editing: the cursor is announced', () => {
   });
 
   test('a held arrow key speaks where it stopped, not each word it passed', async ({ page }) => {
+    // A held key repeats faster than the announcer settles. Real presses are a browser round trip apart, which a loaded machine stretches past
+    // the settle delay, so the page's timers are held while the keys go in and released after: only the last stop can be spoken.
+    await page.clock.install();
     await openEditing(page);
     await page.locator(WORDS).nth(0).click();
+    await page.clock.pauseAt(new Date(Date.now() + 60_000));
     await page.evaluate(() => {
       const w = window as unknown as { __said: string[] };
       w.__said = [];
@@ -91,8 +95,8 @@ test.describe('Editing: the cursor is announced', () => {
     });
     for (let i = 0; i < 12; i++) {
       await page.keyboard.press('ArrowRight');
-      await page.waitForTimeout(30);
     }
+    await page.clock.resume();
     const last = (await page.locator(WORDS).nth(12).textContent())!.trim();
     await expect(announcer(page)).toHaveText(last);
     const said = await page.evaluate(() => (window as unknown as { __said: string[] }).__said.filter(Boolean));
