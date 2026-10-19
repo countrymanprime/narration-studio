@@ -92,13 +92,6 @@ type pickup struct {
 	note  string
 }
 
-func (p pickup) body() string {
-	if p.tag != "" {
-		return "[" + p.tag + "] " + p.note
-	}
-	return p.note
-}
-
 func (p *Pickups) read(ctx context.Context) ([]pickup, []audacitybridge.LabelInfo, error) {
 	labels, err := p.session.client.Labels(ctx)
 	if err != nil {
@@ -186,7 +179,7 @@ type pickupRow struct {
 func readPickupPayload(path string) (rows []pickupRow, invalid int, err error) {
 	file, err := os.Open(path)
 	if err != nil {
-		return nil, 0, errors.New("The pickup list was not found.")
+		return nil, 0, errors.New("The pickup list was not found.") //nolint:staticcheck // a sentence the narrator reads
 	}
 	defer func() { _ = file.Close() }()
 	scanner := bufio.NewScanner(file)
@@ -224,7 +217,7 @@ func (p *Pickups) ExportPickups(runID, outputPath string) error {
 			}
 		}
 		if err := os.WriteFile(outputPath, []byte(out.String()), 0o600); err != nil {
-			return errors.New("Could not write the pickup list.")
+			return errors.New("Could not write the pickup list.") //nolint:staticcheck // a sentence the narrator reads
 		}
 		p.emit("PICKUPS_EXPORTED", runID, outputPath, strconv.Itoa(count))
 		return nil
@@ -246,7 +239,7 @@ func (p *Pickups) NextPickup(runID string) error {
 			}
 		}
 		if len(open) == 0 {
-			return errors.New("No pickups remain.")
+			return errors.New("No pickups remain.") //nolint:staticcheck // a sentence the narrator reads
 		}
 		cursor, _, err := p.session.client.Selection(ctx)
 		if err != nil {
@@ -334,7 +327,7 @@ func (p *Pickups) ListPickupMarkers(runID, outputPath string) error {
 			out.WriteString(f6(k.label.Start) + "|" + state + "|" + k.tag + "|" + k.note + "\n")
 		}
 		if err := os.WriteFile(outputPath, []byte(out.String()), 0o600); err != nil {
-			return errors.New("Could not write the pickup list.")
+			return errors.New("Could not write the pickup list.") //nolint:staticcheck // a sentence the narrator reads
 		}
 		p.emit("PICKUP_MARKERS_LISTED", runID, outputPath, strconv.Itoa(open), strconv.Itoa(done))
 		return nil
