@@ -23,7 +23,7 @@ import type {
 } from './contracts/production';
 import type { StageRecommendations } from './contracts/stages';
 
-type SeedLog = 'on-pace' | 'at-risk' | 'mock-fidelity-01';
+type SeedLog = 'on-pace' | 'at-risk';
 
 /** A plan to start from, and optionally a seeded time log (`log`). */
 export type ProductionSeed = Partial<ProductionPlan> & {
@@ -38,13 +38,10 @@ type Deps = {
   seed?: ProductionSeed;
 };
 
-/** The `?mockProduction=` scenarios: a time log with the plan that goes with it. `mock-fidelity-01` is `?mockFidelity=01`'s
- * (mockHost/mockFidelity.ts): benchmark mock 01's delivery date, hours and rate. */
+/** The `?mockProduction=` scenarios: a time log with the plan that goes with it. */
 export const PRODUCTION_SCENARIOS: Record<SeedLog, ProductionSeed> = {
   'on-pace': { log: 'on-pace', deadline: '2026-10-14', contractedAmount: 2400 },
   'at-risk': { log: 'at-risk', deadline: '2026-09-29', contractedAmount: 2400 },
-  // 420 over the 11:20 logged is mock 01's "37/hr".
-  'mock-fidelity-01': { log: 'mock-fidelity-01', deadline: '2026-10-14', contractedAmount: 420 },
 };
 
 // The mock's today, so the days left to a seeded deadline are the same on every run (the host counts from the real date).
@@ -97,25 +94,6 @@ const SEED_HOURS: Record<string, Partial<Record<ChapterStatus, number>>> = {
   'chapter-10': { recording: 1.5, editing: 1 },
 };
 
-// Mock 01's board (benchmark 01-production-home): chapters 1-6 measured at the mock's FIN. lengths, and its stage hours
-// (record 5:40 · edit 3:55 · proof 1:45, 11:20 in all) spread over the chapters that reached each stage.
-const MOCK_01_RECORDED: Record<string, number> = {
-  'chapter-1': 708,
-  'chapter-2': 725,
-  'chapter-3': 631,
-  'chapter-4': 790,
-  'chapter-5': 760,
-  'chapter-6': 802,
-};
-const MOCK_01_HOURS: Record<string, Partial<Record<ChapterStatus, number>>> = {
-  'chapter-1': { recording: 1.25, editing: 1, proofing: 0.5 },
-  'chapter-2': { recording: 1.25, editing: 1, proofing: 0.5 },
-  'chapter-3': { recording: 1, editing: 0.75, proofing: 0.5 },
-  'chapter-4': { recording: 1, editing: 40 / 60, proofing: 0.25 },
-  'chapter-5': { recording: 40 / 60, editing: 0.5 },
-  'chapter-6': { recording: 0.5 },
-};
-
 type SeededLog = {
   hours: Record<string, Partial<Record<ChapterStatus, number>>>;
   recorded: Record<string, number>;
@@ -127,7 +105,6 @@ type SeededLog = {
 const LOGS: Record<SeedLog, SeededLog> = {
   'on-pace': { hours: SEED_HOURS, recorded: SEED_RECORDED, hoursScale: 1, running: 'chapter-6' },
   'at-risk': { hours: SEED_HOURS, recorded: SEED_RECORDED, hoursScale: 1.6 },
-  'mock-fidelity-01': { hours: MOCK_01_HOURS, recorded: MOCK_01_RECORDED, hoursScale: 1, running: 'chapter-7' },
 };
 
 function checkDate(value: string): string {
@@ -410,27 +387,29 @@ export function createProductionMock(deps: Deps): ProductionApi & { applyProfile
     },
     // The host's writeProductionReport (production_report.go): the mock writes nothing, but names the file the same
     // way (a stem from the export time, -2, -3, ... within the same second) and echoes the narrator's own choice.
-    productionStatusReport: async (includeContractedAmount): Promise<ProductionReportExport> => {
+    productionStatusReport: async (include): Promise<ProductionReportExport> => {
       reportExports += 1;
       const stem = `production-status-20260921-100000Z${reportExports > 1 ? `-${reportExports}` : ''}`;
       return {
         folder: 'narration-utils/production/reports',
         htmlFile: `${stem}.html`,
         jsonFile: `${stem}.json`,
-        contractedAmountIncluded: includeContractedAmount,
+        contractedAmountIncluded: include.money,
+        include: { ...include },
       };
     },
     // The host's own document in miniature: the mock builds the page from the same overview it answers, leaves
     // the contracted amount and rate out unless asked, and says "Not available" for a figure it cannot give.
-    productionStatusReportPreview: async (includeContractedAmount): Promise<ProductionReportPreview> => {
-      const { totals, deadline } = await overview();
+    productionStatusReportPreview: async (include): Promise<ProductionReportPreview> => {
+      const { totals, deadline, chapters } = await overview();
       const figure = (value: number | null) => (value === null ? 'Not available' : value.toFixed(2));
-      const rows: [string, string][] = [
-        ['Hours logged', totals.hoursLogged.toFixed(1)],
-        ['Book PFH', figure(totals.bookPfh)],
-        ['Deadline', deadline === null ? 'Not available' : deadline.date],
-      ];
-      if (includeContractedAmount) rows.push(['Contracted amount', figure(totals.contractedAmount)], ['Effective rate', figure(totals.effectiveRate)]);
+      const rows: [string, string][] = [['Chapters', String(totals.chapters)]];
+      if (include.words) rows.push(['Words', String(totals.wordCount)]);
+      if (include.stages) rows.push(['Hours logged', totals.hoursLogged.toFixed(1)], ['Book PFH', figure(totals.bookPfh)]);
+      if (include.milestones) rows.push(['Deadline', deadline === null ? 'Not available' : deadline.date]);
+      if (include.pickups) rows.push(['Chapters held back', String(chapters.filter((chapter) => chapter.readiness?.verdict === 'not_ready').length)]);
+      if (include.delivery) rows.push(['Chapters finalized', String(totals.finalizedChapters)]);
+      if (include.money) rows.push(['Contracted amount', figure(totals.contractedAmount)], ['Effective rate', figure(totals.effectiveRate)]);
       const html = `<!doctype html><html><body><h1>Production status</h1><dl>${rows.map(([name, value]) => `<dt>${name}</dt><dd>${value}</dd>`).join('')}</dl></body></html>\n`;
       const json = `${JSON.stringify(Object.fromEntries(rows), null, 2)}\n`;
       return {
@@ -438,7 +417,8 @@ export function createProductionMock(deps: Deps): ProductionApi & { applyProfile
         json,
         folder: 'narration-utils/production/reports',
         stem: 'production-status-20260921-100000Z',
-        contractedAmountIncluded: includeContractedAmount,
+        contractedAmountIncluded: include.money,
+        include: { ...include },
       };
     },
     productionBurndown: async () => burndownOf(sessions),

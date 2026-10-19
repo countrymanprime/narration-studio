@@ -1,5 +1,6 @@
 import { Fragment, memo, useEffect } from 'react';
 import { clockText } from '../../booth/boothProgress';
+import { useSampleMarksValue } from '../voicesample/sampleMarksContext';
 import type { DocPara } from './types';
 import { LineNotes } from './LineNotes';
 import { SpeakerTag } from './SpeakerTag';
@@ -24,6 +25,7 @@ export const Paragraph = memo(function Paragraph({ dp, sel, cursor, nowKey, flag
   useEffect(() => {
     onRender?.(dp.p.id);
   });
+  const sampleMarks = useSampleMarksValue()?.marks.at;
   const nowIdx = nowKey ? dp.items.findIndex((i) => i.key === nowKey) : -1;
   const index = new Map(dp.items.map((i, k) => [i.key, k]));
   return (
@@ -55,6 +57,7 @@ export const Paragraph = memo(function Paragraph({ dp, sel, cursor, nowKey, flag
                   flag={flag === it.key}
                   join={selected && !!next && sel.has(next.key) && (it.kind === 'x' || !!it.gap)}
                   fxEnd={it.fx.length > 0 && !it.cut && !(next && !next.cut && next.fx.includes(it.fx[0]))}
+                  samples={sampleMarks?.get(it.key)}
                 />
               );
             })}

@@ -39,7 +39,7 @@ All under `motion-ok:`, in `apps/ui/src/components/`:
 - The Proof ring (`proof/frame/ProofHeader.tsx`) eases its arc to a new percent on the base token. Its percent is the registered custom property `--ring-percent` (`@property` in `styles.css`), so the conic-gradient stop can transition; the counters beside it change at once.
 - `ProgressBar` eases its fill, and slides while nothing is measured (`work-progress-slide`); `LevelMeter` eases its fill and peak tick.
 - `Button`, `Switch`, `Disclosure` and the Booth's resume choices ease their colours or position; the pending spinner in `Button`, `IconButton` and `ResumePrompt` spins.
-- `Skeleton`, the loading placeholder on every page that reads before it draws, sweeps a band across itself every 1.4 s (`skeleton-shimmer`) while a page reads. Settings: the per-row "Saved" fades (`settings-saved`). Script: a bookmark or paragraph a jump lands on pulses while it is lit.
+- `Skeleton`, the loading placeholder on every page that reads before it draws, sweeps a band across itself every 1.4 s (`skeleton-shimmer`) while a page reads. Settings: the per-row "Saved" fades (`settings-saved`). Script: a bookmark or paragraph a jump lands on fades from the accent tint once (`change-highlight`).
 
 ## What changed, and what arrived
 

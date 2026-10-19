@@ -12,6 +12,29 @@ async function openUpdates(page: Page, seed: string): Promise<void> {
   await page.getByRole('region', { name: 'This version' }).evaluate((panel) => panel.scrollIntoView({ block: 'start' }));
 }
 
+/**
+ * Settings > Recording & DAW with the built-in recorder chosen on a computer that names `outputs`, and the Voice sample output row on screen with
+ * `choose` picked. The suite's browser names no outputs of its own (or its own, by machine), so the list is fixed before the page loads.
+ */
+async function openSampleOutput(page: Page, outputs: string[], choose: string): Promise<void> {
+  await page.addInitScript((labels) => {
+    const list = [
+      { kind: 'audiooutput', deviceId: 'default', label: 'Default - Speakers' },
+      ...labels.map((label, i) => ({ kind: 'audiooutput', deviceId: `out${i}`, label })),
+    ];
+    Object.defineProperty(navigator.mediaDevices, 'enumerateDevices', { value: async () => list, configurable: true });
+  }, outputs);
+  await openSettings(page, undefined, '?mockDawExperimentalOn=1');
+  await page.getByRole('radio', { name: /^Built-in recorder/ }).click();
+  await page
+    .getByRole('radio', { name: /^Built-in recorder/ })
+    .and(page.locator('[aria-checked="true"]'))
+    .waitFor();
+  const row = await showSettingsRow(page, 'daw.sampleOutput');
+  await row.getByRole('combobox', { name: 'Voice sample output' }).selectOption(choose);
+  await row.getByRole('button', { name: 'Refresh the list' }).waitFor();
+}
+
 /** Brings the connection card under Record with to the top of the page area, where the engine's state and its actions are. */
 async function showConnection(page: Page): Promise<void> {
   const card = page.getByRole('group', { name: 'Connection' });
@@ -82,6 +105,19 @@ export const settingsDrivers: Record<string, Driver> = {
       .waitFor();
     await page.getByText('Recording happens in the app. Nothing to connect.').waitFor();
     await showConnection(page);
+  },
+  'recording-sample-output-daw': async (page) => {
+    await openSettings(page);
+    const row = await showSettingsRow(page, 'daw.sampleOutput');
+    await row.getByText("Voice samples play on this computer's default output.", { exact: false }).waitFor();
+  },
+  'recording-sample-output-builtin': async (page) => {
+    await openSampleOutput(page, ['Speakers (Realtek)', 'Headphones (Focusrite USB Audio)'], 'Headphones (Focusrite USB Audio)');
+  },
+  'recording-sample-output-long-name': async (page) => {
+    // An interface that names itself at length, and one in Arabic with an emoji: the row must stay inside its card at every width.
+    const long = 'Line Out (Behringer UMC1820 18x20 USB Audio Interface, front panel monitor output 3/4, left and right)';
+    await openSampleOutput(page, [long, 'مكبرات الصوت (USB Audio Device 🎧)'], long);
   },
   'recording-found': async (page) => {
     await openSettings(page, undefined, '?mockDawChoice=found');

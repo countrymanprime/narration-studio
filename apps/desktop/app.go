@@ -70,7 +70,7 @@ import (
 // Keep this in lockstep with apps/ui/src/hostApi.ts.  The frontend rejects
 // an older host before bootstrapping so a partial update cannot run against a
 // binding contract it does not understand.
-const hostAPIVersion = 137
+const hostAPIVersion = 138
 
 // Host is the Wails binding boundary. The frontend invokes only this bound
 // object; it never receives a loopback port or an HTTP capability.
@@ -1623,7 +1623,13 @@ var fieldSchemas = map[string][]fieldSchema{
 	"Script": {{"definition_source", "Show definitions from", "choice", settings.DefinitionSources()}},
 	// storage is where a voice sample is kept (internal/voicesample): project copies its clip into the project folder. The DAW choices
 	// (daw, both) come with phase 6 of docs/prds/character-voice-samples.prd.md, so a save of either is refused until then.
-	"VoiceSamples":      {{"storage", "Where voice samples are kept", "choice", []string{"project"}}},
+	"VoiceSamples": {
+		{"storage", "Where voice samples are kept", "choice", []string{"project"}},
+		// output_device is the name of the output a voice sample plays on, per project (docs/prds/character-voice-samples.prd.md, phase 7): the
+		// webview's own audio output, chosen in Settings and applied by the page, so the host only keeps the name. Empty is the system default. The
+		// name is free text: only the audio system can say whether an output exists, and a missing one plays on the default with a sentence.
+		{"output_device", "Where voice samples play", "text", nil},
+	},
 	"Piper":             {{"tts_provider", "TTS provider", "choice", []string{ttsport.Piper}}, {"tts_voice_id", "Preview voice", "choice", []string{"en_US-ljspeech-high"}}},
 	"Updates":           {{"check_on_startup", "Check for updates on startup", "bool", nil}, {"channel", "Update channel", "choice", []string{"candidates", "stable"}}},
 	"TranscriptCompare": {{"model_size", "Default Whisper model", "choice", []string{"tiny", "small", "medium", "large-v3-turbo", "large-v3"}}, {"chunk_seconds", "Default chunk length", "choice", []string{"30", "60", "300", "600"}}, {"color_misread", "Misread marker color", "color", nil}, {"color_skipped", "Skipped marker color", "color", nil}, {"color_extra", "Extra marker color", "color", nil}},
@@ -2120,15 +2126,6 @@ func (h *Host) startGuideBuild(rulesOnly bool) (map[string]any, error) {
 		}
 	}()
 	return map[string]any{"status": "started", "job": snapshotWork(job)}, nil
-}
-func (h *Host) guideBuildState() map[string]any {
-	h.mu.RLock()
-	job := h.guideJob
-	h.mu.RUnlock()
-	if job == nil {
-		return map[string]any{"id": nil, "kind": "story_bible", "phase": "idle", "message": "Ready to build the Story Bible.", "percent": 0, "logs": []string{}, "elapsed": 0}
-	}
-	return snapshotWork(job)
 }
 
 // pollWorkJob folds the sidecar's latest progress line and any new log lines

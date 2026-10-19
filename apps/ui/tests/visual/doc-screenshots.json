@@ -127,6 +127,13 @@
   },
   {
     "page": "production",
+    "state": "report-dialog",
+    "viewport": "desktop",
+    "docName": "production-report-dialog",
+    "caption": "Production - Export status report: the Include checkboxes, format and path beside the live preview"
+  },
+  {
+    "page": "production",
     "state": "recording-check-options",
     "viewport": "desktop",
     "docName": "production-recording-check-options",
@@ -239,10 +246,17 @@
   },
   {
     "page": "storybible",
-    "state": "alias-typeahead",
+    "state": "name-clash",
     "viewport": "desktop",
-    "docName": "storybible-alias-dropdown",
-    "caption": "Story Bible - alias typeahead dropdown matching existing entries"
+    "docName": "storybible-name-clash",
+    "caption": "Story Bible - a typed name another entry already has, with Merge into this entry"
+  },
+  {
+    "page": "storybible",
+    "state": "relationship-picker",
+    "viewport": "desktop",
+    "docName": "storybible-relationship-picker",
+    "caption": "Story Bible - a relationship in edit mode, choosing the other entry from the picker"
   },
   {
     "page": "booth",
@@ -609,11 +623,25 @@
     "caption": "Editing - an FX chain chosen for four words: how the item is split around the words"
   },
   {
+    "page": "settings",
+    "state": "recording-sample-output-builtin",
+    "viewport": "desktop",
+    "docName": "settings-sample-output",
+    "caption": "Settings - Recording & DAW: Voice sample output with the built-in recorder and an output chosen, with Refresh the list and Test sound"
+  },
+  {
     "page": "editing",
     "state": "voice-sample-dialog",
     "viewport": "desktop",
     "docName": "editing-voice-sample-dialog",
     "caption": "Editing - Voice sample on four selected words: the character, the words with Play range, the label and note, and Save sample"
+  },
+  {
+    "page": "editing",
+    "state": "voice-sample-mark-open",
+    "viewport": "desktop",
+    "docName": "editing-voice-sample-mark",
+    "caption": "Editing - the dot after a marked stretch, opened: the character, the length and a play button, with Open in Story Bible"
   },
   {
     "page": "editing",
@@ -1041,6 +1069,13 @@
     "viewport": "desktop",
     "docName": "editing-fx-menu",
     "caption": "Editing - Add FX on four selected words: the DAW's effect chains"
+  },
+  {
+    "page": "editing",
+    "state": "word-menu-fx",
+    "viewport": "desktop",
+    "docName": "editing-word-menu-fx",
+    "caption": "Editing - the word menu's Add FX submenu on four selected words"
   },
   {
     "page": "editing",

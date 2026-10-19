@@ -11,4 +11,4 @@ Storybook title: `Settings/Page/MarksPanel`. Source: `src/components/settings/pa
 
 ## Used by
 
-- `src/components/settings/page/SettingsPage.tsx`
+- `src/components/settings/controls/ProjectBodies.tsx`

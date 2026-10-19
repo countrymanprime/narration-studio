@@ -22,14 +22,14 @@ function open(id: string) {
 describe('the read-only entry', () => {
   it('shows no relationship controls until Edit, and none again after Cancel', () => {
     open('mad-hatter');
-    expect(screen.queryByRole('button', { name: 'Add relationship' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Add a relationship' })).toBeNull();
     expect(screen.queryByRole('button', { name: 'Remove relationship' })).toBeNull();
-    expect(screen.queryByRole('textbox', { name: 'Relationship' })).toBeNull();
+    expect(screen.queryByRole('combobox', { name: 'Relationship' })).toBeNull();
     fireEvent.click(screen.getByRole('button', { name: 'Edit this entry' }));
-    expect(screen.getByRole('button', { name: 'Add relationship' })).toBeTruthy();
-    expect(screen.getByRole('textbox', { name: 'Relationship' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Add a relationship' })).toBeTruthy();
+    expect(screen.getAllByRole('combobox', { name: 'Relationship' }).length).toBeGreaterThan(0);
     fireEvent.click(screen.getByRole('button', { name: 'Cancel editing' }));
-    expect(screen.queryByRole('button', { name: 'Add relationship' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Add a relationship' })).toBeNull();
   });
 
   it('draws the kind as a plain pill, with a menu only while the kind can change', () => {
@@ -41,12 +41,14 @@ describe('the read-only entry', () => {
     expect(kind().querySelector('svg')).not.toBeNull();
   });
 
-  it('Add relationship says what it is waiting for instead of doing nothing', () => {
+  it('a blank relationship row is only here until it is complete: the trash drops it without a write', () => {
     open('mad-hatter');
     fireEvent.click(screen.getByRole('button', { name: 'Edit this entry' }));
-    const add = screen.getByRole('button', { name: 'Add relationship' });
-    expect(add.getAttribute('aria-disabled')).toBe('true');
-    fireEvent.focus(add);
-    expect(document.body.textContent).toContain('Choose an entry and write the relationship first.');
+    const before = screen.getAllByRole('combobox', { name: 'Relationship' }).length;
+    fireEvent.click(screen.getByRole('button', { name: 'Add a relationship' }));
+    expect(screen.getAllByRole('combobox', { name: 'Relationship' })).toHaveLength(before + 1);
+    expect(screen.getByRole('button', { name: 'To: choose an entry' })).toBeTruthy();
+    fireEvent.click(screen.getAllByRole('button', { name: 'Remove relationship' }).pop()!);
+    expect(screen.getAllByRole('combobox', { name: 'Relationship' })).toHaveLength(before);
   });
 });

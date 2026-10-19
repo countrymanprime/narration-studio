@@ -30,9 +30,13 @@ import {
 } from './validators';
 
 function watchForProblems(page: Page, problems: string[]): void {
-  page.on('pageerror', (error) => problems.push(`uncaught error: ${error.message}`));
+  // The report preview is a sandboxed frame: the harness's own init scripts (the theme in localStorage, page scripts) are refused there.
+  const sandboxedFrame = /sandboxed/;
+  page.on('pageerror', (error) => {
+    if (!sandboxedFrame.test(error.message)) problems.push(`uncaught error: ${error.message}`);
+  });
   page.on('console', (message) => {
-    if (message.type() === 'error') problems.push(`console.error: ${message.text()}`);
+    if (message.type() === 'error' && !/^Blocked script execution in 'about:srcdoc'/.test(message.text())) problems.push(`console.error: ${message.text()}`);
   });
   // ERR_ABORTED is the browser cancelling a request the app abandoned (React StrictMode's dev double-effect), not a failure.
   page.on('requestfailed', (request) => {

@@ -56,7 +56,6 @@ import { masteringProvidersSchema } from './schemas/mastering';
 import { recorderDevicesResultSchema, recorderLevelSchema, recorderStateSchema } from './schemas/recording';
 import { chapterSyncPreviewSchema, chapterSyncStateSchema } from './schemas/chapterSync';
 import {
-  guideBuildResultSchema,
   guideCreatedSchema,
   guideDialogueCuesSchema,
   guideEntitiesSchema,
@@ -322,8 +321,6 @@ export const wailsClient: NarrationApi = {
   manuscriptImportCancel: (jobId) => decode(voidResult, 'ManuscriptImportCancel', host.ManuscriptImportCancel(jobId)),
   saveSettings: (tool, scope, values) => decode(bootstrapSchema, 'SystemSaveSettings', host.SystemSaveSettings(tool, scope, values)),
   settingsForScope: (scope) => decode(settingsForScopeSchema, 'SystemSettingsForScope', host.SystemSettingsForScope(scope)),
-  guideBuild: (options) => decode(guideBuildResultSchema, 'GuideBuild', host.GuideBuild(options?.rulesOnly ?? false)),
-  guideBuildState: () => decode(workJobSchema, 'GuideBuildState', host.GuideBuildState()),
   clearProjectData: () => decode(voidResult, 'ManuscriptClearProjectData', host.ManuscriptClearProjectData(true)),
   guideEntities: () => decode(guideEntitiesSchema, 'GuideEntities', host.GuideEntities()),
   guideEdit: (id, values) => decode(voidResult, 'GuideEdit', host.GuideEdit(id, values)),
@@ -376,6 +373,7 @@ export const wailsClient: NarrationApi = {
   assetsInstallState: (jobId) => decode(assetInstallJobSchema, 'AssetsInstallState', host.AssetsInstallState(jobId)),
   assetsInstallCancel: (jobId) => decode(assetInstallJobSchema, 'AssetsInstallCancel', host.AssetsInstallCancel(jobId)),
   assetsVerify: (kind, id) => decode(assetVerifyResultSchema, 'AssetsVerify', host.AssetsVerify(kind, id)),
+  assetsOpenFolder: () => decode(voidResult, 'AssetsOpenFolder', host.AssetsOpenFolder()),
   assetsRemove: (kind, id) => decode(voidResult, 'AssetsRemove', host.AssetsRemove(kind, id)),
   transcriptStart: (options) => decode(startResultSchema, 'TranscriptStart', host.TranscriptStart(options)),
   transcriptCancel: () => decode(voidResult, 'TranscriptCancel', host.TranscriptCancel()),
@@ -502,10 +500,9 @@ export const wailsClient: NarrationApi = {
   productionOverview: () => decode(productionOverviewSchema, 'ProductionOverview', host.ProductionOverview()),
   productionStartTimer: (chapterId, stage) => decode(productionStartResultSchema, 'ProductionStartTimer', host.ProductionStartTimer(chapterId, stage)),
   productionStopTimer: () => decode(productionStopResultSchema, 'ProductionStopTimer', host.ProductionStopTimer()),
-  productionStatusReport: (includeContractedAmount) =>
-    decode(productionReportExportSchema, 'ProductionStatusReport', host.ProductionStatusReport(includeContractedAmount)),
-  productionStatusReportPreview: (includeContractedAmount) =>
-    decode(productionReportPreviewSchema, 'ProductionStatusReportPreview', host.ProductionStatusReportPreview(includeContractedAmount)),
+  productionStatusReport: (include) => decode(productionReportExportSchema, 'ProductionStatusReport', host.ProductionStatusReport(include)),
+  productionStatusReportPreview: (include) =>
+    decode(productionReportPreviewSchema, 'ProductionStatusReportPreview', host.ProductionStatusReportPreview(include)),
   productionBurndown: () => decode(productionBurndownSchema, 'ProductionBurndown', host.ProductionBurndown()),
   subscribeCoverage: (onUpdate) => subscribeChecked('coverage:state', coverageStateSchema, onUpdate),
   editingStart: (documentId, chapterId, chapterTitle) =>

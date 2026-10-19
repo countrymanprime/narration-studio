@@ -55,6 +55,7 @@ import { useBoothMarks } from '../side/useBoothMarks';
 import { useBoothReference, type ReferenceTarget } from '../side/useBoothReference';
 import { useTeleprompterSession } from '../useTeleprompterSession';
 import { boothQuery, readBoothQuery, readPickupIds, type BoothStart, type BoothTarget } from './boothQuery';
+import { LoadError } from '../../layout/LoadError';
 import { BoothSkeleton } from './BoothSkeleton';
 import { BoothUnavailable } from './BoothUnavailable';
 import { CreditsWarning } from './CreditsWarning';
@@ -133,12 +134,7 @@ function BoothLoaded({ navigate, exitTo }: { navigate: (next: string) => void; e
   );
 
   const { source } = data;
-  if (data.error)
-    return (
-      <p role="alert" className="p-4 text-sm text-[var(--danger-text)]">
-        {data.error}
-      </p>
-    );
+  if (data.error) return <LoadError title="Booth" message={data.error} retry={data.retry} />;
   if (data.chapters?.length === 0)
     return (
       <div className="p-4 md:p-6">
@@ -420,6 +416,9 @@ function BoothSession({ source, from, requested, adopt, data, choose, navigate, 
       {/* The shell gives the Booth the whole window and none of its chrome, its context menu included: the page hosts its own. */}
       <ContextMenuHost className="size-full">
         <div ref={page.root} className="flex size-full flex-col bg-[var(--bg)] text-[var(--text)]">
+          <div role="status" aria-label="Take status" className="sr-only">
+            {page.takeNote}
+          </div>
           {/* The top bar keeps the drawer open: its toggle opens and closes it, and nothing else on it is the text. */}
           <div data-booth-side-keep="">
             <BoothTop

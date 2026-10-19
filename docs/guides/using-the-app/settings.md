@@ -31,14 +31,14 @@ how many in the list and **Reset <category> to defaults**. A change that costs s
 transcription model says earlier checks are marked out of date and run again. A value the host refuses keeps
 the previous value and says why under the row; the page then notes that changes may not be kept until one succeeds.
 
-Rarely changed settings sit under **Advanced** at the foot of a category, closed until you open it; the button
+Rarely changed settings sit under **Advanced** at the foot of a category, closed until you open it; the heading
 says how many it holds.
 
 ![Settings - a project overriding a setting that is otherwise for all projects](../../images/ui/settings-override.webp)
 
 ## Find a setting
 
-**Search settings** matches the name, the description and words you might use instead (typing "whisper" finds the
+At the top right, the search box (with its magnifier) and the **All** / **Changed** / **In this project** control sit on one line. **Search settings** matches the name, the description and words you might use instead (typing "whisper" finds the
 transcription model; "breath" finds silence cleanup). Results are grouped under their category with **Show the
 whole category**, and include matches from the Advanced sections. **Changed** lists everything that differs from
 the default, wherever it is; **In this project** lists the settings this project owns or overrides. Each says so
@@ -56,6 +56,19 @@ Under it, **Connection** says what the app can reach right now, with **Test conn
 Also here: **Microphone** (a list of the computer's inputs, with **Refresh the list**; the Booth uses the same
 one), and, for REAPER only, **Start the launcher script with REAPER**, and under Advanced **REAPER program**,
 **Experimental REAPER actions** and **Capabilities**. These are settings of this computer; a project has no override for them.
+
+**Start tone** (under **Take cues**) is **Off** or **On**. On, the Booth plays a short beep when you press Record, for recording by foot pedal without looking at the screen, and the take starts when the beep ends, a fraction of a second later, so the beep is not on the recording. Turning it on plays it once. It is kept in this window, as Theme and Motion are, and there is no tone to stop a take.
+
+**Voice sample output** chooses where this project's [voice samples](editing.md#marking-a-voice-sample) play, and is saved with the
+project. With the **Built-in recorder** it lists this computer's outputs after **System default**; **Refresh the list** reads them
+again, and **Test sound** plays a short tone on the one chosen so you can tell where a sample will come from. A sample always plays
+in the app's own audio, so with a DAW the row is a sentence: samples play on this computer's default output and the DAW's own audio
+device is not used or changed. An output that is not connected stays chosen, with a notice that samples play on the system default
+until it is back; the list is read again when the window gets focus and every few seconds while the notice shows. If the audio
+system will not list its outputs, the row says so and the choice is off. Taking and read-aloud keep using the microphone and output
+you chose elsewhere, and the row does not check whether a take is recording.
+
+![Settings - Recording & DAW: Voice sample output with the built-in recorder and an output chosen, with Refresh the list and Test sound](../../images/ui/settings-sample-output.webp)
 
 ![Settings - Recording & DAW: the capabilities and the REAPER path under Advanced](../../images/ui/settings-daw.webp)
 
@@ -126,7 +139,7 @@ or `small`) the [Booth](booth.md) follows your voice with. Under Advanced, **Rec
 ## Models and downloads
 
 One list of everything Narration Studio can keep on this computer: Whisper models, Moonshine models, the preview voice, the Story Bible language models, the dictionary, the wiktionary pronunciations and the MP3 encoder. Nothing downloads by itself, and
-removing one never touches your projects. Above the list, the disk the installed ones use and the folder they are kept in.
+removing one never touches your projects. Above the list, the disk the installed ones use and the folder they are kept in, with **Open folder** to show it in the file manager. When the list cannot be read, the message offers **Try again** and **Open the folder**.
 Which one is *used* is chosen in the category that uses it; here you only get, check and remove them.
 
 ![Settings - Models & downloads: the disk used and each download with its state, size, what uses it and its actions](../../images/ui/settings-models.webp)

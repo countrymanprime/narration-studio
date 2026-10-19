@@ -5,6 +5,7 @@ import { chapterName } from '../../../chapterName';
 import type { DeliveryProfile, ManuscriptChapter } from '../../../types';
 import { creditsEntries, ownsOpeningCredits } from '../../credits/creditsEntries';
 import { useCreditsRows } from '../../credits/useCreditsRows';
+import { listedChapters } from '../../delivery/page/chapterStates';
 import { chapterOfFile, fileOf } from '../../master/chapterFile';
 import { deliveryProfileKey } from '../../master/deliveryProfile';
 import { DiagnosticsSection } from '../../master/DiagnosticsSection';
@@ -18,11 +19,13 @@ import { Button } from '../../primitives/Button';
 import { ChapterStepper } from '../../primitives/ChapterStepper';
 import { Heading } from '../../primitives/Heading';
 import { Panel } from '../../primitives/Panel';
+import { badgeClass, badgeStyle, toneColors } from '../../primitives/StatusBadge';
+import { useOpenPickups } from '../../pickups/useOpenPickups';
 import { NeedManuscript } from '../../layout/NeedManuscript';
 import type { FileActions } from '../files/FileActions';
 import { FileChecks } from '../files/FileChecks';
 import { FilesTable } from '../files/FilesTable';
-import { buildRows, labelFiles } from '../files/rows';
+import { buildChapterRows } from '../files/rows';
 import { Consistency } from './Consistency';
 import { MeasureControls, MeasureProgress, useMeasureRun } from './MeasureRun';
 import { PackageChecks } from './PackageChecks';
@@ -83,6 +86,11 @@ function MasterBody({ projectFolder, onOpenDelivery, openSettings, fileActions, 
   const [all, setAll] = useState<DeliveryProfile[]>([]);
   const [chosen, setChosen] = useState<DeliveryProfile>();
   const [profileProblem, setProfileProblem] = useState<string>();
+  // Whether that problem is a read that failed (Retry reads again) or a profile the project names that the list lacks (reading again would not change it).
+  const [profileReadFailed, setProfileReadFailed] = useState(false);
+  // Retry counters: each failed read's Retry clears its line and bumps one, so the effect reads again and the package panel shows its skeleton.
+  const [profileAttempt, setProfileAttempt] = useState(0);
+  const [chaptersAttempt, setChaptersAttempt] = useState(0);
   // A file's path, or a chapter's id when that chapter has no file yet. The chapter bar is read off it.
   const [picked, setPicked] = useState<string | undefined>(focusFile);
   // A link that arrives while the page is open (the narrator follows another one) moves the selection too.
@@ -102,12 +110,21 @@ function MasterBody({ projectFolder, onOpenDelivery, openSettings, fileActions, 
         if (found) setChosen(found);
         else setProfileProblem(`the profile ${state.projectProfile} is not in the list`);
       },
-      (error) => active && setProfileProblem(apiErrorMessage(error)),
+      (error) => {
+        if (!active) return;
+        setProfileProblem(apiErrorMessage(error));
+        setProfileReadFailed(true);
+      },
     );
     return () => {
       active = false;
     };
-  }, [profilesPort]);
+  }, [profilesPort, profileAttempt]);
+  const retryProfile = () => {
+    setProfileProblem(undefined);
+    setProfileReadFailed(false);
+    setProfileAttempt((n) => n + 1);
+  };
 
   useEffect(() => {
     let live = true;
@@ -118,12 +135,25 @@ function MasterBody({ projectFolder, onOpenDelivery, openSettings, fileActions, 
     return () => {
       live = false;
     };
-  }, [manuscript]);
+  }, [manuscript, chaptersAttempt]);
+  const retryChapters = () => {
+    setChaptersProblem(undefined);
+    setChaptersRead(false);
+    setChaptersAttempt((n) => n + 1);
+  };
 
   // The profile a measurement was judged against wins over the project's current choice until it is measured again.
   const profile = run.job?.profile ?? chosen;
-  const files = useMemo(() => labelFiles(run.files, chapters), [run.files, chapters]);
-  const rows = useMemo(() => (profile ? buildRows(files, profile) : []), [files, profile]);
+  // One row per chapter, the credits and the retail sample, with a file or without; the open pickups come from the Pickups page's own list.
+  const openLines = useOpenPickups();
+  const openPickups = useMemo(() => {
+    if (!openLines) return undefined;
+    const counts: Record<string, number> = {};
+    for (const line of openLines) counts[line.chapterId] = (counts[line.chapterId] ?? 0) + 1;
+    return counts;
+  }, [openLines]);
+  const slots = useMemo(() => listedChapters(chapters, credits), [chapters, credits]);
+  const rows = useMemo(() => (profile ? buildChapterRows(run.files, profile, slots, openPickups) : []), [run.files, profile, slots, openPickups]);
   // A link by chapter id lands on that chapter's file once the files are known.
   const selected = useMemo(() => {
     const chapter = chapters.find((candidate) => candidate.id === picked);
@@ -151,7 +181,7 @@ function MasterBody({ projectFolder, onOpenDelivery, openSettings, fileActions, 
     (id: string) => {
       setPicked(id);
       const file = run.files.find((candidate) => candidate.path === id);
-      remember(file && chapterOfFile(file, chapters));
+      remember(file ? chapterOfFile(file, chapters) : chapters.find((candidate) => candidate.id === id));
     },
     [run.files, chapters, remember],
   );
@@ -178,33 +208,73 @@ function MasterBody({ projectFolder, onOpenDelivery, openSettings, fileActions, 
     <div className="mx-auto max-w-[96rem]">
       <div className="grid items-start gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(19rem,22.4rem)]">
         <div className="flex min-w-0 flex-col gap-4">
-          <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
-            <Heading title="Master & QC" />
-            {bar.length > 0 && chapterOfSelection && (
-              <ChapterStepper chapters={bar} value={chapterOfSelection.id} stepKeys={['Alt+↑', 'Alt+↓']} onChange={goToChapter} onStep={stepChapter} />
-            )}
-            {profile && (
-              <Button variant="ghost" size="sm" title="Open Delivery" onClick={onOpenDelivery}>
-                {profileName(profile)}
-              </Button>
-            )}
-            <div className="flex flex-wrap items-center gap-2 lg:ml-auto">
-              {/* Opens Master to spec below (no mock equivalent, kept as built). */}
-              <Button variant="secondary" onClick={() => void jobs.pick()} pending={jobs.picking} disabled={jobs.exportRunning}>
-                Master all to spec…
-              </Button>
-              <MeasureControls run={run} />
-            </div>
-          </div>
+          {/* The mock's header row lives in the table's panel: the title, the chapter bar, the profile as a pill, then the refresh icon. The
+              run controls and Master to spec have no equivalent in the mock and stay as built, beside the icon. */}
+          {(() => {
+            const heading = (
+              <>
+                <Heading title="Master & QC" />
+                {bar.length > 0 && chapterOfSelection && (
+                  <ChapterStepper chapters={bar} value={chapterOfSelection.id} stepKeys={['Alt+↑', 'Alt+↓']} onChange={goToChapter} onStep={stepChapter} />
+                )}
+                {profile && (
+                  <button
+                    type="button"
+                    title="Open Delivery"
+                    className={`${badgeClass('pill')} cursor-pointer text-left`}
+                    style={badgeStyle(toneColors('neutral'))}
+                    onClick={onOpenDelivery}
+                  >
+                    {profileName(profile)}
+                  </button>
+                )}
+              </>
+            );
+            const controls = (
+              <>
+                {/* Opens Master to spec below (no mock equivalent, kept as built). */}
+                <Button variant="secondary" onClick={() => void jobs.pick()} pending={jobs.picking} disabled={jobs.exportRunning}>
+                  Master all to spec…
+                </Button>
+                <MeasureControls run={run} />
+              </>
+            );
+            // One element either way, so the header's buttons survive the profile and the chapters arriving.
+            return (
+              <FilesTable
+                files={run.files}
+                profile={profile && chaptersRead ? profile : undefined}
+                slots={slots}
+                openPickups={openPickups}
+                heading={heading}
+                controls={controls}
+                selected={selected}
+                onSelect={select}
+                actions={actions}
+              />
+            );
+          })()}
           {profileProblem && (
-            <p role="alert" className="text-sm" style={DANGER}>
-              The delivery profile could not be read: {profileProblem}
-            </p>
+            <div className="flex flex-wrap items-center gap-2">
+              <p role="alert" className="text-sm" style={DANGER}>
+                The delivery profile could not be read: {profileProblem}
+              </p>
+              {profileReadFailed && (
+                <Button variant="secondary" size="sm" aria-label="Retry reading the delivery profile" onClick={retryProfile}>
+                  Retry
+                </Button>
+              )}
+            </div>
           )}
           {chaptersProblem && (
-            <p role="alert" className="text-sm" style={DANGER}>
-              The chapters could not be read, so the files keep their file names: {chaptersProblem}
-            </p>
+            <div className="flex flex-wrap items-center gap-2">
+              <p role="alert" className="text-sm" style={DANGER}>
+                The chapters could not be read, so the files keep their file names: {chaptersProblem}
+              </p>
+              <Button variant="secondary" size="sm" aria-label="Retry reading the chapters" onClick={retryChapters}>
+                Retry
+              </Button>
+            </div>
           )}
           {staleLink !== undefined && (
             <div role="status" aria-label="Link not found" className="flex flex-wrap items-center gap-2 text-sm" style={MUTED}>
@@ -219,20 +289,20 @@ function MasterBody({ projectFolder, onOpenDelivery, openSettings, fileActions, 
             </div>
           )}
           <MeasureProgress run={run} />
-          {profile && run.files.length > 0 ? (
+          {profile && chaptersRead && (
             <>
-              <FilesTable files={files} profile={profile} selected={selected} onSelect={select} actions={actions} />
-              {staleLink === undefined && <FileChecks row={current} chapterLabel={chapterOfSelection && chapterName(chapterOfSelection)} actions={actions} />}
-              {profile && currentFile && rulesClosed !== currentFile.path && (
+              {staleLink === undefined && (current || run.files.length > 0) && (
+                <FileChecks row={current} chapterLabel={chapterOfSelection && chapterName(chapterOfSelection)} actions={actions} />
+              )}
+              {currentFile && rulesClosed !== currentFile.path && (
                 <FileRulesPanel file={currentFile} profile={profile} onClose={() => setRulesClosed(currentFile.path)} />
               )}
             </>
-          ) : (
-            !run.running && (
-              <p className="text-sm" style={MUTED}>
-                Nothing measured yet. Check your rendered chapter files (WAV) to see them here.
-              </p>
-            )
+          )}
+          {run.files.length === 0 && !run.running && (
+            <p className="text-sm" style={MUTED}>
+              Nothing measured yet. Check your rendered chapter files (WAV) to see them here.
+            </p>
           )}
           <Panel title="Book consistency" subtitle={profile ? `RMS by file against the ${profileName(profile)} range` : undefined}>
             <Consistency files={run.files} profile={profile} />

@@ -123,6 +123,34 @@ textarea.input{height:60px;padding:8px 10px;resize:vertical}
 .side .vh{display:flex;gap:8px;align-items:center}
 .hint{color:var(--muted);font-size:12px;margin-top:6px}
 .live{background:var(--bad-soft);color:var(--bad);border-radius:6px;padding:4px 10px;font:600 12px var(--f-display);letter-spacing:.1em;text-transform:uppercase}
+
+/* Output device (draft 2026-10-19) */
+.srow{display:grid;grid-template-columns:minmax(0,1fr);gap:6px;padding:12px 0;border-bottom:1px solid var(--line)}
+.srow:last-child{border:0}
+.srow .lab{display:flex;gap:8px;align-items:center;flex-wrap:wrap;font-weight:600}
+.srow .ctl{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.srow .ctl .input{flex:1;min-width:180px}
+.srow .own{color:var(--muted);font-size:13px}
+.srow .own b{color:var(--text,inherit)}
+.radios{display:flex;gap:16px;flex-wrap:wrap;margin:0 0 8px}
+.radios label{display:flex;gap:6px;align-items:center}
+/* In-page mark (draft 2026-10-19) */
+.script .dotbtn{all:unset;display:inline-grid;place-items:center;width:20px;height:20px;border-radius:50%;vertical-align:middle;cursor:pointer;margin-left:1px}
+.script .dotbtn::before{content:"";width:9px;height:9px;border-radius:50%;background:var(--spk)}
+.script .dotbtn:hover,.script .dotbtn:focus-visible,.script .dotbtn[aria-expanded="true"]{outline:2px solid var(--copper);outline-offset:0}
+.script .dotbtn[data-state="changed"]::before{background:none;border:2px solid var(--warn)}
+.script .dotbtn[data-state="missing"]::before{background:none;border:2px dashed var(--bad)}
+.script .dotbtn[data-state="narration"]::before{background:var(--muted)}
+.script .dotbtn[data-count]::before{content:attr(data-count);width:16px;height:16px;font:700 10px/16px var(--f-body);color:var(--copper-ink);text-align:center}
+.script .dotbtn[data-count]{background:none}
+.script .dotbtn[data-count]::before{background:var(--spk)}
+.script .rng{background:var(--copper-soft);border-radius:3px}
+.mpop{font:14px/1.45 var(--f-body);background:var(--surface);border:1px solid var(--line-strong);border-radius:10px;box-shadow:var(--shadow);padding:10px;width:320px;margin:4px 0 0 24px}
+.mpop .vh{display:flex;gap:8px;align-items:center}
+.mpop .vh b{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mpop .sub{color:var(--muted);font-size:13px}
+.mpop .acts{display:flex;gap:8px;margin-top:8px;flex-wrap:wrap}
+.mpop hr{border:0;border-top:1px solid var(--line);margin:8px 0}
 .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
 </style>
 </head>
@@ -197,6 +225,79 @@ textarea.input{height:60px;padding:8px 10px;resize:vertical}
   <div class="frame">
     <div class="cap"><b>Saved</b><span class="sub">Toast, 10 s</span></div>
     <div class="panel"><div class="pb row"><span class="pill ok">Saved</span><span>Saved voice sample for The Queen of Hearts.</span><span class="spacer"></span><button class="btn sm quiet" type="button">Undo</button></div></div>
+  </div>
+</div>
+
+<h2 style="margin:24px 0 8px">1b · Editing: the in-page mark <span class="pill ok">Approved 2026-10-19</span></h2>
+<p class="sub" style="margin:0 0 12px">A dot after the last word of a marked range (drawn in the first frame above) becomes a button. It adds no key of its own: <kbd>V</kbd> still marks, the dot is reached with <kbd>Tab</kbd> in reading order and opened with <kbd>Enter</kbd> or <kbd>Space</kbd>. Play uses the same one-at-a-time player as the Story Bible; Editing's own playback stops when a sample starts. The dot is read-only: rename, delete and move stay in the Story Bible.</p>
+<div class="grid">
+  <div class="frame">
+    <div class="cap"><b>Resting</b><span class="sub">One dot per sample, in the speaker's colour</span></div>
+    <div class="panel"><div class="pb">
+      <div class="script" aria-label="Chapter 3 script">
+        “Off with his head!” cried the Queen<button class="dotbtn" type="button" aria-label="Voice sample: The Queen of Hearts, Furious, to the court. Press Enter for details" aria-expanded="false"></button>, and the whole court fell silent. “Curiouser and curiouser<button class="dotbtn" type="button" aria-label="Voice sample: Alice, Wondering. Press Enter for details" aria-expanded="false" style="--spk:var(--info)"></button>,” said Alice. <span class="w">Nobody moved.</span>
+      </div>
+      <p class="hint">Hover or focus draws the sample's range behind its words. The dot is a 20 px target around a 9 px mark. A chapter with no samples draws no dots.</p>
+    </div></div>
+  </div>
+
+  <div class="frame">
+    <div class="cap"><b>Opened</b><span class="sub">Popover under the dot; Esc closes and returns focus to the dot</span></div>
+    <div class="panel"><div class="pb">
+      <div class="script">
+        “Off with his head!” cried the Queen<button class="dotbtn" type="button" aria-expanded="true" aria-label="Voice sample: The Queen of Hearts, Furious, to the court"></button>, and the whole court fell silent.
+      </div>
+      <div class="mpop" role="dialog" aria-label="Voice sample for The Queen of Hearts">
+        <div class="vh"><button class="ibtn" type="button" aria-label="Play voice sample" aria-pressed="false" data-play><svg><use href="#play"/></svg></button><b>The Queen of Hearts</b><span class="star" title="Primary">★</span></div>
+        <div class="sub" style="margin-top:4px">Furious, to the court · <span class="mono">6.8 s</span></div>
+        <div class="sub">How you did it: pitch up, clipped, no breaths</div>
+        <hr>
+        <div class="acts"><button class="btn sm quiet" type="button">Open in Story Bible</button></div>
+      </div>
+    </div></div>
+  </div>
+
+  <div class="frame">
+    <div class="cap"><b>Playing</b><span class="sub">Same player as the Story Bible</span></div>
+    <div class="panel"><div class="pb">
+      <div class="script">
+        “Off with his head!” cried the Queen<button class="dotbtn" type="button" aria-expanded="true" aria-label="Voice sample: The Queen of Hearts, Furious, to the court" style="outline:2px solid var(--copper)"></button>
+      </div>
+      <div class="mpop" role="dialog" aria-label="Voice sample for The Queen of Hearts">
+        <div class="vh"><button class="ibtn" type="button" aria-label="Stop voice sample" aria-pressed="true" data-play><svg><use href="#stop"/></svg></button><b>The Queen of Hearts</b><span class="pill neutral">Playing</span></div>
+        <div class="prog"><i style="width:42%"></i></div>
+        <p class="hint">Starting it stops Editing's playback; starting Editing's playback stops it. While a take records, play says “Not while recording. Stop the take first.”</p>
+      </div>
+    </div></div>
+  </div>
+
+  <div class="frame">
+    <div class="cap"><b>Stale and missing</b><span class="sub">Same words as the Story Bible badges</span></div>
+    <div class="panel"><div class="pb">
+      <div class="script">
+        “Off with his head!”<button class="dotbtn" type="button" data-state="changed" aria-label="Voice sample: Alice, Whispering. The words changed since it was marked. Press Enter for details" aria-expanded="false"></button> Then <span class="w">the King</span> spoke<button class="dotbtn" type="button" data-state="missing" aria-label="Voice sample: The Hatter, Laughing. The audio file is missing. Press Enter for details" aria-expanded="false"></button>.
+      </div>
+      <div class="mpop" role="dialog" aria-label="Voice sample for The Hatter">
+        <div class="vh"><button class="ibtn" type="button" aria-label="Play voice sample" aria-disabled="true"><svg><use href="#play"/></svg></button><b>The Hatter</b><span class="pill bad">Audio file missing</span></div>
+        <div class="sub" style="margin-top:4px">Laughing</div>
+        <div class="acts"><button class="btn sm quiet" type="button">Open in Story Bible</button></div>
+      </div>
+      <p class="hint">Hollow warn ring: <span class="pill warn">Passage changed</span> (still plays; the dot sits where the words now are, or at the chapter start if they are gone). Dashed red ring: the clip is missing or changed; play is off and the Story Bible has <b>Check again</b> and <b>Delete</b>.</p>
+    </div></div>
+  </div>
+
+  <div class="frame">
+    <div class="cap"><b>Several, and Narration</b><span class="sub">A count when samples end on the same word</span></div>
+    <div class="panel"><div class="pb">
+      <div class="script">
+        “…and the whole court fell silent<button class="dotbtn" type="button" data-count="2" aria-label="2 voice samples end here. Press Enter for the list" aria-expanded="false"></button>.” It was the end of the trial<button class="dotbtn" type="button" data-state="narration" aria-label="Voice sample: Narration, Closing line. Press Enter for details" aria-expanded="false"></button>.
+      </div>
+      <div class="mpop" role="dialog" aria-label="2 voice samples end here">
+        <div class="opt"><button class="ibtn" type="button" aria-label="Play voice sample for The Queen of Hearts" aria-pressed="false" data-play><svg><use href="#play"/></svg></button><span class="n">The Queen of Hearts</span><span class="s">Furious · 6.8 s</span></div>
+        <div class="opt"><button class="ibtn" type="button" aria-label="Play voice sample for The King" aria-pressed="false" data-play><svg><use href="#play"/></svg></button><span class="n">The King</span><span class="s">Hushed · 3.1 s</span></div>
+      </div>
+      <p class="hint">Narration's dot is grey. Labels that are long, right-to-left or emoji truncate in the popover and are read in full by the dot's accessible name.</p>
+    </div></div>
   </div>
 </div>
 
@@ -335,6 +436,65 @@ textarea.input{height:60px;padding:8px 10px;resize:vertical}
       <div class="prog" role="progressbar" aria-label="Sample progress" aria-valuenow="57" aria-valuemin="0" aria-valuemax="100"><i style="width:57%"></i></div>
       <p class="hint">Listening resumes when the sample ends or on <kbd>Esc</kbd>. Pending the phase 5 spike (PRD, unknowns).</p>
     </div></div>
+  </div>
+</div>
+
+<h2 style="margin:24px 0 8px">4 · Settings: the output device <span class="pill ok">Approved 2026-10-19</span></h2>
+<p class="sub" style="margin:0 0 12px">For #2047. One row under <b>Recording &amp; DAW</b>, below <b>Microphone</b>, shown whenever the project can play a sample. It is a <b>This project</b> setting and only has a choice with the <b>Built-in recorder</b>. With REAPER or Audacity connected the row is a sentence, because samples play in the app's own audio and the DAW's device is not touched (owner ruling, 2026-10-19). Search finds it by "output", "speaker", "headphones" and "sample".</p>
+<div class="grid">
+  <div class="frame">
+    <div class="cap"><b>Built-in recorder</b><span class="sub">A choice, saved with the project</span></div>
+    <div class="panel"><div class="pb">
+      <div class="radios" role="radiogroup" aria-label="Record with"><label><input type="radio" name="rec1"  disabled> REAPER</label><label><input type="radio" name="rec1"  disabled> Audacity</label><label><input type="radio" name="rec1" checked disabled> Built-in recorder</label></div>
+      <div class="srow">
+        <div class="lab"><label for="od1">Voice sample output</label><span class="pill neutral">This project</span></div>
+        <div class="ctl"><select id="od1" class="input"><option>System default (Speakers, Realtek Audio)</option><option>Headphones (Focusrite USB Audio)</option><option>Studio monitors (Scarlett 2i2)</option></select><button class="btn sm quiet" type="button">Refresh the list</button><button class="btn sm quiet" type="button"><svg width="14" height="14" fill="currentColor" style="vertical-align:-2px"><use href="#play"/></svg> Test sound</button></div>
+        <div class="own">Where voice samples play. Takes and read-aloud keep using the microphone and output you chose elsewhere.</div>
+      </div>
+    </div></div>
+  </div>
+  <div class="frame">
+    <div class="cap"><b>A DAW is connected</b><span class="sub">No choice; says where samples play</span></div>
+    <div class="panel"><div class="pb">
+      <div class="radios" role="radiogroup" aria-label="Record with"><label><input type="radio" name="rec2" checked disabled> REAPER</label><label><input type="radio" name="rec2"  disabled> Audacity</label><label><input type="radio" name="rec2"  disabled> Built-in recorder</label></div>
+      <div class="srow">
+        <div class="lab"><span>Voice sample output</span><span class="pill neutral">This project</span></div>
+        <div class="own" style="font-size:14px;color:inherit">Voice samples play on this computer's default output. REAPER's own audio device is not used or changed.</div>
+        <div class="ctl"><button class="btn sm quiet" type="button"><svg width="14" height="14" fill="currentColor" style="vertical-align:-2px"><use href="#play"/></svg> Test sound</button><span class="sub">Plays on the default output</span></div>
+      </div>
+    </div></div>
+  </div>
+  <div class="frame">
+    <div class="cap"><b>Saved device is gone</b><span class="sub">Unplugged: falls back, says so, stays chosen</span></div>
+    <div class="panel"><div class="pb">
+      <div class="radios" role="radiogroup" aria-label="Record with"><label><input type="radio" name="rec3"  disabled> REAPER</label><label><input type="radio" name="rec3"  disabled> Audacity</label><label><input type="radio" name="rec3" checked disabled> Built-in recorder</label></div>
+      <div class="srow">
+        <div class="lab"><label for="od3">Voice sample output</label><span class="pill neutral">This project</span></div>
+        <div class="alert" role="alert" style="background:var(--warn-soft);color:var(--warn)">Headphones (Focusrite USB Audio) is not connected. Voice samples play on the system default until it is back.</div>
+        <div class="ctl"><select id="od3" class="input"><option>Headphones (Focusrite USB Audio), not connected</option><option>System default (Speakers, Realtek Audio)</option></select><button class="btn sm quiet" type="button">Check again</button></div>
+        <div class="own">Last checked 3 s ago. The list is read again when you open Settings, when the window gets focus, and while this notice is up.</div>
+      </div>
+    </div></div>
+  </div>
+  <div class="frame">
+    <div class="cap"><b>Cannot list or switch</b><span class="sub">The webview refuses, or no output exists</span></div>
+    <div class="panel"><div class="pb">
+      <div class="radios" role="radiogroup" aria-label="Record with"><label><input type="radio" name="rec4"  disabled> REAPER</label><label><input type="radio" name="rec4"  disabled> Audacity</label><label><input type="radio" name="rec4" checked disabled> Built-in recorder</label></div>
+      <div class="srow">
+        <div class="lab"><span>Voice sample output</span><span class="pill neutral">This project</span></div>
+        <div class="alert" role="alert">This computer's audio system would not list its outputs, so the choice is off. Voice samples play on the system default.</div>
+        <div class="ctl"><select class="input" disabled aria-label="Voice sample output"><option>System default</option></select><button class="btn sm quiet" type="button">Check again</button></div>
+        <div class="own">Also shown when a device refuses a test sound: "Could not play on Studio monitors. Choose another output or use the system default." The choice is kept; nothing else changes.</div>
+      </div>
+    </div></div>
+  </div>
+  <div class="frame">
+    <div class="cap"><b>Long, right-to-left and emoji names</b><span class="sub">Truncate in the row, read in full by the control</span></div>
+    <div class="panel"><div class="pb"><div class="srow">
+        <div class="lab"><label for="od5">Voice sample output</label><span class="pill neutral">This project</span></div>
+        <div class="ctl"><select id="od5" class="input" dir="auto"><option>مكبرات الصوت (USB Audio Device 🎧)</option><option>Line Out (Behringer UMC1820 18x20 USB Audio Interface, front panel monitor output 3/4)</option></select><button class="btn sm quiet" type="button">Refresh the list</button></div>
+        <div class="own">While a sample plays, the control is not disabled; a change applies to the next play and a playing sample stops first. While a take records, the control reads "Not while recording." and changes nothing.</div>
+    </div></div></div>
   </div>
 </div>
 

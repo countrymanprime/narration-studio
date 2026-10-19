@@ -3,7 +3,7 @@ import { expect, fn, userEvent, within } from 'storybook/test';
 import { Dot as BareDot, StatusBadge, type StatusTone } from './StatusBadge';
 
 // A badge's fill is a tint of its tone (paletteContrast.test.ts checks it against surface), the same
-// backdrop every real caller gives it (EntitySummary's badges, the benchmark mocks): a card, a table cell, a panel -
+// backdrop every real caller gives it (the Story Bible's kind badges, the benchmark mocks): a card, a table cell, a panel -
 // never the bare page background the atlas's own decorator otherwise renders a story on.
 const onSurface: Decorator = (Story) => (
   <div className="rounded-lg bg-[var(--surface)] p-6">

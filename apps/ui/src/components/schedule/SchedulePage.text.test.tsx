@@ -32,7 +32,7 @@ describe('names and notes as written', () => {
     fireEvent.click(await screen.findByRole('button', { name: 'Add milestone' }));
     const dialog = await screen.findByRole('dialog');
     fireEvent.change(within(dialog).getByRole('textbox', { name: 'Name' }), { target: { value: RTL } });
-    fireEvent.change(within(dialog).getByRole('textbox', { name: 'Due' }), { target: { value: '2026-10-25' } });
+    fireEvent.change(within(dialog).getByLabelText('Due'), { target: { value: '2026-10-25' } });
     fireEvent.change(within(dialog).getByRole('textbox', { name: 'Note' }), { target: { value: EMOJI } });
     fireEvent.click(within(dialog).getByRole('button', { name: 'Add milestone' }));
     await waitFor(async () => expect((await stored()).milestones.at(-1)).toMatchObject({ name: RTL, note: EMOJI }));
@@ -43,7 +43,7 @@ describe('names and notes as written', () => {
     fireEvent.click(await screen.findByRole('button', { name: 'Add milestone' }));
     const dialog = await screen.findByRole('dialog');
     fireEvent.change(within(dialog).getByRole('textbox', { name: 'Name' }), { target: { value: '   ' } });
-    fireEvent.change(within(dialog).getByRole('textbox', { name: 'Due' }), { target: { value: '2026-10-25' } });
+    fireEvent.change(within(dialog).getByLabelText('Due'), { target: { value: '2026-10-25' } });
     fireEvent.click(within(dialog).getByRole('button', { name: 'Add milestone' }));
     await waitFor(() => expect(within(dialog).getByRole('alert').textContent).toMatch(/name/i));
     fireEvent.change(within(dialog).getByRole('textbox', { name: 'Name' }), { target: { value: 'N'.repeat(201) } });

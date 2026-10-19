@@ -200,11 +200,6 @@ const MOCK_PREVIEW_WARNING_CANDIDATE: PreviewCandidate = {
 const mockInvalidPayload = (['bootstrap', 'manuscript', 'storybible', 'production'] as const).find((which) => which === mockParams.get('mockInvalidPayload'));
 // `?mockLiveDegraded=1` tells the app at once that live updates are degraded, so the notice can be seen without a failing host.
 const mockLiveDegraded = mockParams.has('mockLiveDegraded');
-// `?mockRebuildRunning=1` boots with a Story Bible rebuild still running, so its dialog can be seen without a host.
-const mockRebuildRunning = mockParams.has('mockRebuildRunning');
-// `?mockBuild=hold|fails` makes the next Story Bible build stay running, or fail at its first poll, so the build chained after an import
-// can be seen running and failing without a host.
-const mockBuild = (['hold', 'fails'] as const).find((seed) => seed === mockParams.get('mockBuild'));
 // `?mockHoldEdits=1` makes every Story Bible edit hang, so the busy Save button can be seen without a host.
 const mockHoldEdits = mockParams.has('mockHoldEdits');
 // `?mockUpdate=available|found|downloading|download-fails|ready|install-blocked|install-refused|failed|current|development` boots the mock host in that update state ("Version 0.2.7 is available", "could not reach
@@ -228,18 +223,21 @@ const mockHold = (mockParams.get('mockHold') ?? '')
 // `?mockPlan=loading|fails` makes the Schedule's read of the production plan never answer, or fail, so it shows its loading skeleton or its error.
 const mockPlan = (['loading', 'fails'] as const).find((seed) => seed === mockParams.get('mockPlan'));
 // `?mockChapters=loading|fails` makes the read of the manuscript's chapters never answer, or fail, so a page that reads them (the Booth) shows its loading skeleton or its error.
-const mockChapters = (['loading', 'fails'] as const).find((seed) => seed === mockParams.get('mockChapters'));
+// `reread-hangs` answers while the app is on `/` and never once it has moved to another page, so a link to a chapter the list lacks stays on the address gate's "Checking this link…".
+const mockChapters = (['loading', 'fails', 'reread-hangs'] as const).find((seed) => seed === mockParams.get('mockChapters'));
+// `?mockProfileRead=fails` makes the read of the delivery profiles fail, so Master & QC says so and offers Retry.
+const mockProfileRead = (['fails'] as const).find((seed) => seed === mockParams.get('mockProfileRead'));
 // `?mockSettings=loading|unreadable|save-fails` makes the settings file never answer a read, fail every read, or refuse every save as read-only,
 // so Settings can be seen loading, unreadable and failing to save.
 const mockSettings = (['loading', 'unreadable', 'save-fails'] as const).find((seed) => seed === mockParams.get('mockSettings'));
 // `?mockSeries=not-in-series|single-book` boots the Series tab outside any
-// series, or in one with no other book yet, so its honest empty state can be seen. Unset boots as a member of a two-book
+// series, or in one with no other book yet, so its honest empty state can be seen; `?mockSeries=fails` makes its read fail, so its error and Retry can be seen. Unset boots as a member of a two-book
 // series (WIRE_SERIES), matching the approved concept mock.
 // `?mockVoiceSamples=bible|full` boots with voice samples already saved (api/voiceSamplesMock.ts): `bible` is the Story Bible's states (a Queen of
 // Hearts with four samples, one whose passage changed and one whose audio file is missing, the Hatter's, Narration's, and one for a character who left
 // the Story Bible); `full` is a Queen with the 20 a character may have.
 const mockVoiceSamples = (['bible', 'full'] as const).find((seed) => seed === mockParams.get('mockVoiceSamples'));
-const mockSeries = (['not-in-series', 'single-book'] as const).find((seed) => seed === mockParams.get('mockSeries'));
+const mockSeries = (['not-in-series', 'single-book', 'fails'] as const).find((seed) => seed === mockParams.get('mockSeries'));
 // `?mockDictionary=missing|damaged` boots without the offline dictionary, or with one whose index fails its check, so the reader's Look up asks to
 // download it (or to download it again) first.
 const mockDictionary = (['missing', 'damaged'] as const).find((seed) => seed === mockParams.get('mockDictionary'));
@@ -409,7 +407,7 @@ const mockDelivery = (['ready', 'building', 'fails', 'quiet'] as const).find((se
 // `?mockProduction=on-pace|at-risk` seeds the Production page with a time log, a running timer (on-pace only), a deadline and a
 // contracted amount; with none, nothing is logged or set yet.
 const mockProduction = (['on-pace', 'at-risk'] as const).find((seed) => seed === mockParams.get('mockProduction'));
-// `?mockFidelity=01` draws the mock backend as benchmark mock 01 draws Production, for the pixel-match tool (mockHost/mockFidelity.ts).
+// `?mockFidelity=05` draws the mock backend as benchmark mock 05 draws Master & QC, for the pixel-match tool (mockHost/mockFidelity.ts).
 const mockFidelity = mockFidelityFrom(mockParams.get('mockFidelity'));
 
 // `?mockRecorder=recording|failed|empty|no-devices|start-fails|unavailable` seeds the Booth's built-in recorder
@@ -466,6 +464,7 @@ const mockInitial = {
   ...(mockAssets ? { assets: mockAssets } : {}),
   ...(mockAssetsList ? { assetsList: mockAssetsList } : {}),
   ...(mockChapters ? { chaptersRead: mockChapters } : {}),
+  ...(mockProfileRead ? { profileRead: mockProfileRead } : {}),
   ...(mockPlan ? { planRead: mockPlan } : {}),
   ...(mockHold.length > 0 ? { held: mockHold } : {}),
   ...(mockSettings ? { settings: mockSettings } : {}),
@@ -474,8 +473,6 @@ const mockInitial = {
   ...(mockDictionary ? { dictionary: mockDictionary } : {}),
   ...(mockUpdate ? { update: mockUpdate } : {}),
   ...(mockLiveDegraded ? { liveUpdatesDegraded: true } : {}),
-  ...(mockRebuildRunning ? { rebuildRunning: true } : {}),
-  ...(mockBuild ? { build: mockBuild } : {}),
   ...(mockHoldEdits ? { holdEdits: true } : {}),
   ...(mockInvalidPayload ? { invalidPayload: mockInvalidPayload } : {}),
   ...(mockNoManuscript ? { noManuscript: true } : {}),

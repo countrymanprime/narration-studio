@@ -72,7 +72,7 @@ export function BoothTop({
 }) {
   const drawer = useSidePanelDrawer();
   return (
-    <div className="flex min-h-13 flex-wrap items-center gap-x-3 gap-y-2 border-b border-[var(--border)] bg-[var(--surface)] px-5 py-1.5">
+    <div className="flex min-h-14 flex-wrap items-center gap-x-2.5 gap-y-2 border-b border-[var(--border)] bg-[var(--surface)] px-4 py-2.5">
       {chapter}
       {pickupsOpen != null ? (
         <Badge

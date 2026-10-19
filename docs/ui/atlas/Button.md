@@ -25,17 +25,18 @@ Storybook title: `Primitives/Button`. Source: `src/components/primitives/Button.
 - Pending Is Busy And Focusable
 - Click Invokes Handler
 - Disabled Is Inert
+- Secondary Large
 
 ## Used by
 
-- `src/components/assets/LocalAssetRow.tsx`
-- `src/components/assets/LocalAssets.tsx`
 - `src/components/booth/CompanionShell.tsx`
 - `src/components/booth/ResumePrompt.tsx`
 - `src/components/booth/UnresolvedCreditsWarning.tsx`
+- `src/components/booth/page/BoothUnavailable.tsx`
 - `src/components/booth/pickups/PickupSession.tsx`
 - `src/components/booth/record/RecordControl.tsx`
 - `src/components/booth/record/RecordSetup.tsx`
+- `src/components/booth/side/VoicesNearby.tsx`
 - `src/components/credits/CreditsSetupBanner.tsx`
 - `src/components/credits/CreditsSetupDialog.tsx`
 - `src/components/delivery/page/OutputPanel.tsx`
@@ -52,10 +53,12 @@ Storybook title: `Primitives/Button`. Source: `src/components/primitives/Button.
 - `src/components/editing/effects/EffectsList.tsx`
 - `src/components/editing/flags/FlagCard.tsx`
 - `src/components/editing/menu/marks/NoteDialog.tsx`
+- `src/components/editing/page/DawOffBanner.tsx`
 - `src/components/editing/page/NoAudioBanner.tsx`
 - `src/components/editing/range/cut/CutButtons.tsx`
 - `src/components/editing/range/cut/CutDialog.tsx`
 - `src/components/editing/range/fx/FxDialog.tsx`
+- `src/components/editing/script/ScriptDoc.tsx`
 - `src/components/editing/stack/RetryBar.tsx`
 - `src/components/editing/stack/StackControls.tsx`
 - `src/components/editing/stack/StackDialog.tsx`
@@ -64,6 +67,7 @@ Storybook title: `Primitives/Button`. Source: `src/components/primitives/Button.
 - `src/components/editing/takes/TakeCompare.tsx`
 - `src/components/editing/takes/prep/PrepControls.tsx`
 - `src/components/editing/takes/split/SplitButton.tsx`
+- `src/components/editing/voicesample/VoiceSampleDialog.tsx`
 - `src/components/engine/ChapterLinksTable.tsx`
 - `src/components/engine/ChapterSyncConsentDialog.tsx`
 - `src/components/engine/ChapterSyncPanel.tsx`
@@ -102,6 +106,7 @@ Storybook title: `Primitives/Button`. Source: `src/components/primitives/Button.
 - `src/components/primitives/WorkDialog.tsx`
 - `src/components/production/ChapterTrackPanel.tsx`
 - `src/components/production/CreditsRowPanel.tsx`
+- `src/components/production/ImportChooseDialog.tsx`
 - `src/components/production/ImportReview.tsx`
 - `src/components/production/ManuscriptImport.tsx`
 - `src/components/production/RecordingCheck.tsx`
@@ -126,12 +131,14 @@ Storybook title: `Primitives/Button`. Source: `src/components/primitives/Button.
 - `src/components/proof/inspector/FindingThread.tsx`
 - `src/components/proof/inspector/InspectorActions.tsx`
 - `src/components/proof/notes/NotesTable.tsx`
+- `src/components/proof/proofOptions/ProofOptions.tsx`
 - `src/components/recordingcheck/CheckRecordingsDialog.tsx`
 - `src/components/recordingcheck/RunningView.tsx`
 - `src/components/schedule/MilestoneDialog.tsx`
 - `src/components/schedule/SchedulePage.tsx`
 - `src/components/script/dictionaryInstall.tsx`
 - `src/components/script/page/chapters/CreditsSection.tsx`
+- `src/components/script/page/layout/SkipToRail.tsx`
 - `src/components/script/page/rail/threads/MessageEditor.tsx`
 - `src/components/script/page/rail/threads/NoteCard.tsx`
 - `src/components/script/page/rail/threads/ThreadsTab.tsx`
@@ -148,21 +155,29 @@ Storybook title: `Primitives/Button`. Source: `src/components/primitives/Button.
 - `src/components/settings/BackupsSection.tsx`
 - `src/components/settings/CapabilitySection.tsx`
 - `src/components/settings/CreditsPanel.tsx`
-- `src/components/settings/DawCatalogPanel.tsx`
 - `src/components/settings/DeliveryProfileEditor.tsx`
 - `src/components/settings/DeliveryProfilesPanel.tsx`
 - `src/components/settings/KeyboardPanel.tsx`
-- `src/components/settings/OnlineDictionaryPanel.tsx`
 - `src/components/settings/RetailSamplePanel.tsx`
 - `src/components/settings/ScopedSetting.tsx`
 - `src/components/settings/UpdatesPanel.tsx`
 - `src/components/settings/analysis/AnalysisToolsSection.tsx`
 - `src/components/settings/analysis/ConsentDialog.tsx`
-- `src/components/settings/page/DawPanel.tsx`
-- `src/components/settings/page/LocalModelCard.tsx`
+- `src/components/settings/controls/CapabilitiesBody.tsx`
+- `src/components/settings/controls/CreditsBody.tsx`
+- `src/components/settings/controls/EngineBody.tsx`
+- `src/components/settings/controls/MicBody.tsx`
+- `src/components/settings/controls/MwKeyBody.tsx`
+- `src/components/settings/models/AssetRow.tsx`
+- `src/components/settings/page/CategoryPane.tsx`
+- `src/components/settings/page/ModelsPane.tsx`
+- `src/components/settings/page/PagesPane.tsx`
 - `src/components/settings/page/ProjectDataPanel.tsx`
-- `src/components/settings/page/RecordingPanel.tsx`
+- `src/components/settings/page/Results.tsx`
 - `src/components/settings/page/ScopedFieldsPanel.tsx`
+- `src/components/settings/page/SettingsPage.tsx`
+- `src/components/settings/row/AssetNote.tsx`
+- `src/components/settings/row/SettingRowView.tsx`
 - `src/components/stages/StageEvidence.tsx`
 - `src/components/stages/StageSuggestion.tsx`
 - `src/components/storybible/CommonsAudioLookup.tsx`
@@ -175,6 +190,9 @@ Storybook title: `Primitives/Button`. Source: `src/components/primitives/Button.
 - `src/components/storybible/source/PronSourceTag.tsx`
 - `src/components/storybible/source/SourceMenu.tsx`
 - `src/components/storybible/suggested/import/ImportDialog.tsx`
-- `src/components/storybible/suggested/panel/ScanButton.tsx`
 - `src/components/storybible/suggested/row/Quotes.tsx`
 - `src/components/storybible/suggested/scan/AnalysisPrompt.tsx`
+- `src/components/storybible/voicesamples/EditVoiceSampleDialog.tsx`
+- `src/components/storybible/voicesamples/MoveVoiceSampleDialog.tsx`
+- `src/components/storybible/voicesamples/VoiceSampleRow.tsx`
+- `src/components/storybible/voicesamples/VoiceSamplesBody.tsx`

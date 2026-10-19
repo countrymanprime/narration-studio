@@ -60,7 +60,6 @@ export const GAPS: readonly string[] = [
   'src/components/layout/AppShell.tsx',
   'src/components/layout/LoadError.tsx',
   'src/components/layout/useNavCounts.ts',
-  'src/components/manuscript/EntitySummary.tsx',
   'src/components/master/DeliveryProfilePanel.tsx',
   'src/components/master/DiagnosticsSection.tsx',
   'src/components/master/MasteringChain.tsx',

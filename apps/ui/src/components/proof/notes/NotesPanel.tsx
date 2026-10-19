@@ -75,6 +75,9 @@ export function NotesPanel({
   const [query, setQuery] = useState('');
   const root = useRef<HTMLElement>(null);
   const focusOnSelect = useRef(false);
+  // Whether a note row last held focus: a selection the page moves (the step after a decision) then brings focus along, and one made while
+  // focus is on the Inspector, the sort box or the find field leaves it there.
+  const rowFocused = useRef(false);
 
   const base = useMemo(() => findings.map(noteRow), [findings]);
   const counts = useMemo(() => chipCounts(base), [base]);
@@ -150,8 +153,9 @@ export function NotesPanel({
 
   // A key move brings the selected row's focus with it, so the tab-order row and the focus never disagree.
   useEffect(() => {
-    if (!focusOnSelect.current) return;
+    const keyMove = focusOnSelect.current;
     focusOnSelect.current = false;
+    if (!keyMove && !rowFocused.current) return;
     root.current?.querySelector<HTMLElement>('tr[aria-selected="true"]')?.focus();
   }, [selectedId]);
 
@@ -160,6 +164,11 @@ export function NotesPanel({
       ref={root}
       aria-label="Notes"
       onKeyDown={onKeyDown}
+      onFocus={(event) => (rowFocused.current = event.target instanceof HTMLTableRowElement)}
+      onBlur={(event) => {
+        // Focus going to another row keeps it; going anywhere else (or out of the window) lets it go.
+        if (!(event.relatedTarget instanceof HTMLTableRowElement && root.current?.contains(event.relatedTarget))) rowFocused.current = false;
+      }}
       className="flex min-h-0 flex-col rounded-[var(--radius-card)] border border-[var(--border)] bg-[var(--surface)]"
     >
       <div className="flex flex-wrap items-center gap-3 px-4 py-2">
@@ -169,9 +178,15 @@ export function NotesPanel({
         </h2>
         <div role="group" aria-label="Filter notes" className="flex flex-wrap gap-1.5">
           {NOTE_CHIPS.map(({ key, label }) => (
-            <Pill key={key} label={`${label} ${String(counts[key]).padStart(digits, FIGURE_SPACE)}`} active={chip === key} onClick={() => setChip(key)} />
+            <Pill
+              key={key}
+              label={`${label} ${String(counts[key]).padStart(digits, FIGURE_SPACE)}`}
+              active={chip === key}
+              look="filter"
+              onClick={() => setChip(key)}
+            />
           ))}
-          {narrow && <Pill label="In view" active={inView} onClick={() => setInView((on) => !on)} />}
+          {narrow && <Pill label="In view" look="filter" active={inView} onClick={() => setInView((on) => !on)} />}
         </div>
         <span className="flex-1" />
         <div className="flex items-center gap-1.5">

@@ -505,7 +505,7 @@ function ScriptWorkspace({
       case 'pron':
         return <WordsTab chapterId={inView} host={wordsHost} selection={missSel ?? undefined} />;
       case 'bible':
-        return <BibleTab chapterId={inView} onOpenStoryBible={focusStoryBibleEntity} />;
+        return <BibleTab chapterId={inView} host={wordsHost} onOpenStoryBible={focusStoryBibleEntity} />;
       case 'marks':
       case 'queries':
         return (

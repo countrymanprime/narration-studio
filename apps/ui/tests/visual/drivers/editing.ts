@@ -1,7 +1,7 @@
 // How to reach each `editing` state in STATE_CATALOG (see app.drivers.ts): the Editing page.
 import type { Page } from '@playwright/test';
 import { settlePage } from '../helpers/settle';
-import { type Driver, clickNav, goToPage, openWithoutManuscript } from './shared';
+import { type Driver, openCheckingLink, clickNav, goToPage, openWithoutManuscript } from './shared';
 
 /** Chapter 1 linked to its track, so its words carry their heard times. */
 const LINKED = '?mockChapterLink=confirmed';
@@ -9,6 +9,9 @@ const LINKED = '?mockChapterLink=confirmed';
 const EDITS = `${LINKED}&mockDawExperimentalOn=1`;
 
 export const editingDrivers: Record<string, Driver> = {
+  'address-checking': async (page) => {
+    await openCheckingLink(page, '/editing/gone');
+  },
   // The chapters never answer, so the page's content never arrives and `goToPage` (which waits for it) is not used.
   loading: async (page) => {
     await page.goto('/?mockChapters=loading');
@@ -39,6 +42,16 @@ export const editingDrivers: Record<string, Driver> = {
       .waitFor();
     // The list of effects is a picker: the page menu's search items do not belong in it.
     if (await page.getByRole('menuitem', { name: /Jump menu|Find a page/ }).count()) throw new Error('The Add FX menu lists the page menu’s search items.');
+  },
+  'word-menu-fx': async (page) => {
+    await openEditing(page, EDITS);
+    await selectWords(page);
+    await page.locator('[data-k="p-1:2"]').click({ button: 'right' });
+    await page.getByRole('menuitem', { name: 'Add FX' }).click();
+    await page
+      .getByRole('menuitem', { name: /RfxChain$/ })
+      .first()
+      .waitFor();
   },
   'fx-dialog': async (page) => {
     await openEditing(page, EDITS);
@@ -76,6 +89,15 @@ export const editingDrivers: Record<string, Driver> = {
     const toast = page.getByRole('status').filter({ hasText: /^Saved voice sample for / });
     await toast.waitFor();
     await toast.getByRole('button', { name: 'Undo' }).waitFor();
+  },
+  'voice-sample-mark': async (page) => {
+    await saveSample(page);
+    await sampleDot(page).waitFor();
+  },
+  'voice-sample-mark-open': async (page) => {
+    await saveSample(page);
+    await sampleDot(page).click();
+    await page.getByRole('dialog', { name: /^Voice sample: / }).waitFor();
   },
   'takes-open': async (page) => {
     await openTakes(page, EDITS);
@@ -193,6 +215,19 @@ const question = (page: Page, title: string | RegExp) => page.locator('[role="di
 const bar = (page: Page) => page.getByRole('toolbar', { name: 'Playback and selection' });
 
 /** Loads `query` and opens Editing from the rail on the first chapter, its script read. */
+/** Saves a voice sample from the four selected words, as the narrator would, and waits for the dialog to close. */
+async function saveSample(page: Page): Promise<void> {
+  await openEditing(page, EDITS);
+  await selectWords(page);
+  await bar(page).getByRole('button', { name: 'Voice sample' }).click();
+  const dialog = page.getByRole('dialog', { name: 'Voice sample' });
+  await dialog.getByRole('button', { name: 'Save sample' }).click();
+  await dialog.waitFor({ state: 'hidden' });
+}
+
+/** The dot after the last word of the range just saved. */
+const sampleDot = (page: Page) => page.getByRole('button', { name: /^Voice sample: .*Press Enter for details$/ }).first();
+
 async function openEditing(page: Page, query: string): Promise<void> {
   await page.goto(`/${query}`);
   await settlePage(page);

@@ -124,9 +124,9 @@ export const Para = memo(function Para({
       data-para={paragraph.id}
       data-ch={paragraph.chapterId}
       data-just-changed={flash ? '' : undefined}
-      className={`relative pb-3 pl-8 ${flash ? `flash ${CHANGE_HIGHLIGHT_CLASSES}` : ''}`}
+      className={`relative py-1.5 ${flash ? `flash ${CHANGE_HIGHLIGHT_CLASSES}` : ''}`}
     >
-      <div data-gutter="" className="absolute inset-y-0 left-0 w-6">
+      <div data-gutter="" className="absolute inset-y-0 left-[-19px] w-4">
         {renderGutter?.(paragraph)}
       </div>
       <p data-pid={paragraph.id} className="m-0 whitespace-pre-wrap">

@@ -23,6 +23,7 @@ import { LoadError } from '../layout/LoadError';
 import { ProofSkeleton } from './frame/ProofSkeleton';
 import { NeedManuscript } from '../layout/NeedManuscript';
 import { CheckCard } from './checkcard/CheckCard';
+import { SectionLabel } from '../primitives/SectionLabel';
 import { ChapterStrip, type StripChapter } from './frame/ChapterStrip';
 import type { Band, Pin } from './frame/pins';
 import { ProofHeader } from './frame/ProofHeader';
@@ -440,7 +441,7 @@ export function ProofPage({
             <ProofHeader progress={progress} chapterBar={stepper} />
             {all || !chapter ? (
               <div className="flex flex-col gap-1">
-                <span className="text-xs text-[var(--text-muted)]">Open notes, by chapter</span>
+                <SectionLabel>Open notes, by chapter</SectionLabel>
                 <ChapterStrip chapters={strip} current={current} onChooseChapter={chooseTile} />
               </div>
             ) : (
