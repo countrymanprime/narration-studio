@@ -205,13 +205,13 @@ export function ChapterTrackPanel({
                 </p>
               )}
               <div className="flex flex-wrap items-center gap-2">
-                <Button variant="secondary" onClick={player.skipBackward} disabled={!canPlay} aria-label="Skip back 30 seconds">
+                <Button variant="secondary" onClick={player.skipBackward} disabled={!canPlay} aria-label="Skip back 30s">
                   <FontAwesomeIcon icon={faBackward} /> 30s
                 </Button>
                 <Button onClick={player.togglePlay} disabled={!canPlay} aria-label={player.isPlaying ? 'Pause' : 'Play'}>
                   <FontAwesomeIcon icon={player.isPlaying ? faPause : faPlay} />
                 </Button>
-                <Button variant="secondary" onClick={player.skipForward} disabled={!canPlay} aria-label="Skip forward 30 seconds">
+                <Button variant="secondary" onClick={player.skipForward} disabled={!canPlay} aria-label="Skip forward 30s">
                   30s <FontAwesomeIcon icon={faForward} />
                 </Button>
                 {canPlay && (

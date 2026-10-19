@@ -213,7 +213,7 @@ describe('CompanionShell', () => {
     const start = vi.fn();
     const recording = fakeRecording();
     renderCompanion({ session: baseSession({ start }), recording });
-    await user.click(screen.getByRole('button', { name: 'Play' }));
+    await user.click(screen.getByRole('button', { name: 'Space Play' }));
     await waitFor(() => expect(start).toHaveBeenCalledTimes(1));
     expect(recording.beforeStart).toHaveBeenCalled();
     await user.keyboard(' ');
@@ -226,7 +226,7 @@ describe('CompanionShell', () => {
     const stop = vi.fn();
     const recording = fakeRecording();
     renderCompanion({ session: baseSession({ active: true, pause, stop }), recording });
-    await user.click(screen.getByRole('button', { name: 'Pause' }));
+    await user.click(screen.getByRole('button', { name: 'Space Pause' }));
     expect(pause).toHaveBeenCalledWith(true);
     await user.click(screen.getByRole('button', { name: 'Stop reading' }));
     expect(stop).toHaveBeenCalled();

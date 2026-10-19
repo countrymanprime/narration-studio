@@ -201,6 +201,9 @@ func (h *Host) GuideMerge(sourceID, targetID string) (string, error) {
 		return "", fmt.Errorf("the Story Bible is unavailable")
 	}
 	result, err := service.Merge(sourceID, targetID)
+	if err == nil {
+		h.followMerge(result.UndoID, sourceID, targetID)
+	}
 	return encodeBinding(result, err)
 }
 
@@ -210,7 +213,11 @@ func (h *Host) GuideUnmerge(undoID string) (string, error) {
 	if service == nil {
 		return "", fmt.Errorf("the Story Bible is unavailable")
 	}
-	return encodeBinding(nil, service.Unmerge(undoID))
+	err := service.Unmerge(undoID)
+	if err == nil {
+		h.unfollowMerge(undoID)
+	}
+	return encodeBinding(nil, err)
 }
 func (h *Host) GuideDelete(id string) (string, error) {
 	service := h.services().guide

@@ -255,7 +255,7 @@ export const engineDrivers: Record<string, Driver> = {
   'retake-lanes-list': async (page) => {
     await openEnginePanel(page);
     await clickVisible(page, 'button', 'Retakes on lanes…');
-    await page.getByRole('button', { name: 'Play lane 2 for line-000013 on Chapter 1' }).waitFor();
+    await page.getByRole('button', { name: 'Play this lane: lane 2 for line-000013 on Chapter 1' }).waitFor();
   },
   'retake-lanes-picked': async (page) => {
     await page.goto('/?mockRetakeLanes=picked');

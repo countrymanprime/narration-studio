@@ -182,6 +182,9 @@ repeated passage, and `large-v3-turbo` got all 16 right at about twice the time.
 `large-v3-turbo` and no more accurate. The full tables and the time
 budget (about 10 s of CPU per audio minute with `small` and about 20 s with `large-v3-turbo` on the machine measured) are in
 [the calibration note](../research/recording-coverage-calibration.md).
+faster-whisper's batched pipeline was measured on 2026-10-18 and not adopted: it is about twice as fast for `small`, but it drops
+the first sentence after a preamble and turned 0 wrong chapters of 14 into 3
+([the batched Whisper note](../research/recording-coverage-batched-whisper.md)).
 
 ## The model cascade
 

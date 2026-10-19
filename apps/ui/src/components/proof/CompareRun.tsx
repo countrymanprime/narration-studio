@@ -22,6 +22,7 @@ import { TagInput } from '../primitives/TagInput';
 import { Tooltip, TooltipTarget } from '../primitives/Tooltip';
 import { hasHint, splitHintTerms, suggestionMessage } from './hints';
 import { PROOFING_CHUNK_OPTIONS } from './options';
+import { ProofOptions } from './proofOptions/ProofOptions';
 import type { Notify } from '../primitives/Toast';
 import { ARRIVE_CLASSES } from '../primitives/changeHighlight';
 
@@ -50,6 +51,9 @@ const WORKER_LIMITS: Record<string, string[]> = {
   'large-v3-turbo': ['Auto', '1', '2'],
   'large-v3': ['1'],
 };
+/** The host's TranscriptCompare settings that belong to a run: the chunk length it starts with and the colours its REAPER markers get. The model is chosen in Settings. */
+const COMPARE_OPTION_KEYS = ['chunk_seconds', 'color_misread', 'color_skipped', 'color_extra'] as const;
+
 const CHUNK_OPTIONS: number[] = PROOFING_CHUNK_OPTIONS.map((option) => option.seconds);
 const LOG_VERBOSITY_OPTIONS = ['Quiet', 'Normal', 'Verbose'].map((mode) => ({ value: mode, label: mode }));
 const CHUNK_LABELS = PROOFING_CHUNK_OPTIONS.map((option) => option.label);
@@ -402,6 +406,7 @@ export function CompareRun({
               }
             />
           </div>
+          <ProofOptions title="Compare options" group="Proof" tool="TranscriptCompare" keys={COMPARE_OPTION_KEYS} />
           <div className="flex items-center justify-end gap-4 border-t pt-3" style={{ borderColor: 'var(--border)' }}>
             <CapabilityGate capability={startCapability(dawFileLinked, reviewCapability)}>
               <Button variant="primary" onClick={() => void start()}>

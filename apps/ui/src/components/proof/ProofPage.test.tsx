@@ -20,6 +20,9 @@ import * as checkRecordings from '../recordingcheck/openCheckRecordings';
 import { proofProgress } from './proof.selectors';
 import { ProofPage } from './ProofPage';
 
+/** What a chapter tile draws: its number and count, which it draws as generated content from data-text. */
+const drawn = (tile: HTMLElement): string => [...tile.querySelectorAll('[data-text]')].map((part) => part.getAttribute('data-text')).join('');
+
 afterEach(() => {
   cleanup();
   window.localStorage.clear();
@@ -150,9 +153,9 @@ describe('proof-route-draws-the-mock-page', () => {
     await waitFor(() => expect(within(strip).getAllByRole('button')[0].getAttribute('aria-label')).toBe('Opening credits: no notes'));
     const tiles = within(strip).getAllByRole('button');
     expect(tiles.at(-1)?.getAttribute('aria-label')).toBe('Closing credits: no notes');
-    expect(tiles[0].textContent).toBe('Open—');
-    expect(tiles.at(-1)?.textContent).toBe('Close—');
-    expect(tiles[1].textContent?.startsWith('1')).toBe(true);
+    expect(drawn(tiles[0])).toBe('Open—');
+    expect(drawn(tiles.at(-1)!)).toBe('Close—');
+    expect(drawn(tiles[1]).startsWith('1')).toBe(true);
   });
 
   it('opens the credits card in Script from a credits tile, since Proof has no chapter view for them', async () => {
@@ -566,5 +569,40 @@ describe('the jump menu on Proof', () => {
     await noteRows();
     const steps = providedCommands().filter((command) => command.group === 'Proof');
     expect(steps.map((command) => command.label)).toEqual(['Next chapter', 'Previous chapter']);
+  });
+});
+
+// The loading state (definition-of-done.md state matrix): the title and one busy region while the chapters and the notes are first read, then the
+// page, or the error with Retry; a later re-read does not bring the blocks back. Never an endless skeleton.
+describe('ProofPage loading state', () => {
+  const never = () => new Promise<never>(() => {});
+  const region = () => screen.queryByRole('group', { name: 'Loading Proof' });
+
+  it('keeps the title and shows one busy region while the chapters are read, however long that takes', async () => {
+    renderPage({ api: createMockApi({ manuscriptChapters: never }) });
+    expect(await screen.findByRole('heading', { level: 1, name: 'Proof' })).toBeTruthy();
+    expect(region()?.getAttribute('aria-busy')).toBe('true');
+    expect(within(region()!).getByRole('status').textContent).toBe('Reading the chapters and notes…');
+    await new Promise((resolve) => setTimeout(resolve, 60));
+    expect(region()).toBeTruthy();
+    expect(screen.queryByRole('region', { name: 'Notes' })).toBeNull();
+  });
+
+  it('keeps the skeleton while the notes are still being read', async () => {
+    renderPage({ api: createMockApi({ findingsList: never }) });
+    expect(await screen.findByRole('group', { name: 'Loading Proof' })).toBeTruthy();
+  });
+
+  it('is replaced by the page when both reads end, and does not come back', async () => {
+    renderPage();
+    await noteRows();
+    expect(region()).toBeNull();
+    expect(screen.getAllByRole('heading', { level: 1, name: 'Proof' })).toHaveLength(1);
+  });
+
+  it('shows the error with Retry, not a skeleton, when the first read fails', async () => {
+    renderPage({ api: createMockApi({ manuscriptChapters: () => Promise.reject(new Error('The manuscript could not be read.')) }) });
+    expect(await screen.findByRole('button', { name: 'Retry' })).toBeTruthy();
+    expect(region()).toBeNull();
   });
 });

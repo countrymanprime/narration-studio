@@ -110,6 +110,40 @@ func (h *Host) VoiceSamplesRemoveAll() (string, error) {
 	return encodeBinding(removed, err)
 }
 
+// followMerge moves the absorbed Story Bible entry's voice samples to the entry it was merged into, after the merge succeeded
+// (undoID is the id it answered). The merge has happened whatever this does, so a failure here is not the merge's: the samples
+// stay with the absorbed entry, which the Story Bible lists under "a character who is no longer in the Story Bible" with a way to
+// move them, and the reason goes to host.log.
+func (h *Host) followMerge(undoID, sourceID, targetID string) {
+	if h.services().config.projectFolder == "" {
+		return
+	}
+	followed, err := h.voiceSamples().FollowMerge(undoID, sourceID, targetID)
+	if err != nil {
+		_ = h.log.Report("voice_samples_merge_follow", err.Error())
+		return
+	}
+	if followed.Moved > 0 {
+		h.emitVoiceSamplesChanged()
+	}
+}
+
+// unfollowMerge gives the samples a merge moved back to the entry they came from, after the Story Bible took that merge back. It
+// fails the way followMerge does: the entries are restored whatever happens here, and the samples then stay where they are.
+func (h *Host) unfollowMerge(undoID string) {
+	if h.services().config.projectFolder == "" {
+		return
+	}
+	followed, err := h.voiceSamples().UndoFollow(undoID)
+	if err != nil {
+		_ = h.log.Report("voice_samples_unmerge_follow", err.Error())
+		return
+	}
+	if followed.Moved > 0 {
+		h.emitVoiceSamplesChanged()
+	}
+}
+
 func (h *Host) emitVoiceSamplesChanged() {
 	emitEvent(voiceSamplesChangedEvent, voiceSamplesChanged{Revision: h.voiceSamplesRevision.Add(1)})
 }

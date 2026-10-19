@@ -80,7 +80,7 @@ describe('PipelineTable', () => {
     const { onGo } = table();
     await userEvent.click(screen.getByRole('button', { name: 'Chapter 3: Edit in progress' }));
     await userEvent.click(screen.getByRole('button', { name: 'Chapter 4: Record 50% recorded' }));
-    await userEvent.click(screen.getByRole('button', { name: 'Chapter 2: Proof 6 of 9 notes cleared' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Chapter 2: Proof 66%, 6 of 9 notes cleared' }));
     expect(onGo.mock.calls).toEqual([
       ['editing', 'c3'],
       ['booth', 'c4'],

@@ -39,7 +39,7 @@ rail shows no note counts, since the notes and pickups the project still holds b
 
 The header runs, left to right: Back and Forward (below), the project's name, **Jump to or run…** (`Ctrl+K`), Undo and History, the timer,
 the [zoom controls](#zoom) and the engine chip. Jump to or run… opens the jump menu: type to find a page, a chapter or a command, or
-type `>` to list commands only. Escape, or a press anywhere outside the menu, closes it.
+type `>` to list commands only. Escape, or a press anywhere outside the menu, closes it, and focus goes back to the control that had it.
 
 ![The jump menu open over the page: type to find a page, a chapter or a command](../../images/ui/nav-jump-menu.webp)
 

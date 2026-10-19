@@ -159,7 +159,7 @@ Right-click the text for **Start from here** (on a phrase), **Bookmark here** (o
 **Punch and roll**, **Larger text**, **Smaller text** and **Exit Booth**. **Start from here** marks where the next take starts;
 during a take it rolls again from that phrase, as **R** does. A take is held while the menu is open.
 
-While a popover, a menu or a question is open (Levels, Text settings, a speaker, the chapter list, the jump menu, "Stop recording?"), no key reaches the Booth behind it: a foot pedal's Space cannot start or stop a take until it is closed. Escape closes the one on top and returns you to the control that opened it.
+While a popover or a menu is open (Levels, Text settings, a speaker, the chapter list, a right-click menu), a foot pedal's Space still starts or stops the take: it closes the popup, as Escape would, and records. The exception is a box you can type in (the speaker search): Space types a space there until focus moves. A question ("Stop recording?") or the jump menu keeps every key, Space included, until you answer it. Escape closes the one on top and returns you to the control that opened it.
 
 The engine and model the Booth listens with are chosen in [Settings](settings.md) › Booth. Nothing you say is sent anywhere.
 

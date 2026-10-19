@@ -1,3 +1,4 @@
+import type { KeyboardEventHandler } from 'react';
 import { IconButton } from '../../primitives/IconButton';
 import { StatusBadge } from '../../primitives/StatusBadge';
 import { Diff } from './TakeDiff';
@@ -22,6 +23,8 @@ export interface TakeLinesProps {
   onKeep: (take: LineTake) => void;
   /** Plays the take's own source range; called again for the take that plays, it stops. */
   onPlay: (take: LineTake) => void;
+  /** Escape inside the takes: the page folds them and focuses their chip. */
+  onKeyDown?: KeyboardEventHandler<HTMLDivElement>;
 }
 
 const takeRowId = (passageId: string, takeId: string): string => `take-${passageId}-${takeId}`;
@@ -106,6 +109,7 @@ export function TakeLines(props: TakeLinesProps) {
       aria-label={`Takes of this line, ${passage.takes.length}`}
       aria-activedescendant={props.onTake ? takeRowId(passage.id, props.onTake) : undefined}
       data-takes={passage.id}
+      onKeyDown={props.onKeyDown}
       className="flex flex-col gap-2 border-l border-[var(--line)] pl-3"
     >
       <Suggested suggestion={suggestion} labelOf={labelOf} />

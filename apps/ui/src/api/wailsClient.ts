@@ -6,6 +6,7 @@ import { voidResult } from './schemas/base';
 import {
   chaptersSchema,
   fileSelectionSchema,
+  manuscriptDroppedSchema,
   notesSchema,
   chapterKindResultSchema,
   chapterSchema,
@@ -301,6 +302,7 @@ export const wailsClient: NarrationApi = {
   ready: () => decodeObject(readySchema, 'Ready', host.Ready()),
   bootstrap: () => decodeObject(bootstrapSchema, 'Bootstrap', host.Bootstrap()),
   selectManuscript: () => decode(fileSelectionSchema, 'ManuscriptSelectFile', host.ManuscriptSelectFile()),
+  subscribeManuscriptDropped: (onDropped) => subscribeChecked('manuscript:dropped', manuscriptDroppedSchema, onDropped),
   manuscriptBeginImport: (path) => decode(fileSelectionSchema, 'ManuscriptBeginImport', host.ManuscriptBeginImport(path)),
   manuscriptImportState: (jobId) => decode(workJobSchema, 'ManuscriptImportState', host.ManuscriptImportState(jobId)),
   manuscriptImportPreview: (jobId, options) =>
