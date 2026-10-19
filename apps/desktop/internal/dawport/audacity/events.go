@@ -12,10 +12,13 @@ import (
 // requests produce and Dispatch delivers them to the subscribers on the caller's goroutine, in order, once. Each subscription gets the
 // events it asks for (Subscription.Wants), as bridge.Client's fan-out gives them.
 type eventHub struct {
-	mu     sync.Mutex
+	mu sync.Mutex
+	// +checklocks:mu
 	nextID uint64
-	subs   map[uint64]dawport.Subscription
-	queue  []bridge.Event
+	// +checklocks:mu
+	subs map[uint64]dawport.Subscription
+	// +checklocks:mu
+	queue []bridge.Event
 }
 
 func newEventHub() *eventHub { return &eventHub{subs: map[uint64]dawport.Subscription{}} }
