@@ -1,5 +1,7 @@
-import type { Mark, MarkColour, Marks, MarkThreadAuthor } from '../../../api/contracts/marks';
+import type { Mark, Marks, MarkThreadAuthor } from '../../../api/contracts/marks';
 import type { GuideEntity } from '../../../api/contracts/storyBible';
+import { entryColour } from '../../../kinds/entityColour';
+import type { GuideType } from '../../../types';
 import type { ParagraphNote, ReadingParagraph, WordDecoration } from '../reading/boothUnits';
 import type { BoothReference } from './sections';
 
@@ -7,25 +9,15 @@ import type { BoothReference } from './sections';
 // marks and the notes under a paragraph. Pure; the Booth page passes the result to `BoothText`, and what a click on a marked word or a
 // note shows in the side panel.
 
-/** The colour token a Story Bible category is tinted with (the mock's `typeColour`). */
-export function entityColour(category: string): string {
-  const key = category.trim().toLowerCase();
-  if (key === 'character') return '--character';
-  if (key === 'place' || key === 'location') return '--place';
-  return '--accent';
-}
-
-/** The token each of the six mark colours is drawn with, as the Script draws them. */
-const MARK_COLOUR: Record<MarkColour, string> = { copper: '--accent', info: '--info', ok: '--ok', warn: '--warn', bad: '--danger', violet: '--org' };
 const AUTHOR: Record<MarkThreadAuthor, string | undefined> = { you: undefined, author: 'Author', proofer: 'Proofer' };
 
 const escapeRegExp = (text: string): string => text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
 /** Every place a name of a Story Bible entry (its own or an alias) stands in a paragraph, as an entity tint. */
-function entityDecorations(paragraphs: readonly ReadingParagraph[], entities: readonly GuideEntity[]): WordDecoration[] {
+function entityDecorations(paragraphs: readonly ReadingParagraph[], entities: readonly GuideEntity[], types: readonly GuideType[]): WordDecoration[] {
   const out: WordDecoration[] = [];
   for (const entity of entities) {
-    const colour = entityColour(entity.category);
+    const colour = entryColour(types, entity.category);
     const names = new Set([entity.canonical_name, ...entity.aliases.map((alias) => alias.text)].filter((name) => name.trim() !== ''));
     for (const name of names) {
       const pattern = new RegExp(`(?<![\\p{L}\\p{N}_])${escapeRegExp(name)}(?![\\p{L}\\p{N}_])`, 'gu');
@@ -45,7 +37,7 @@ const standing = (paragraphs: readonly ReadingParagraph[], marks: Marks): Mark[]
   return marks.marks.filter((mark) => !mark.stale && ids.has(mark.paragraphId));
 };
 
-/** The marked words, underlined in their type's colour and named by it. */
+/** The marked words, drawn in their type's colour and chosen style (D8) and named by it. */
 function markDecorations(own: readonly Mark[], marks: Marks): WordDecoration[] {
   return own
     .filter((mark) => mark.end > mark.start)
@@ -56,7 +48,8 @@ function markDecorations(own: readonly Mark[], marks: Marks): WordDecoration[] {
         start: mark.start,
         end: mark.end,
         kind: 'mark' as const,
-        colour: MARK_COLOUR[type?.colour ?? 'copper'],
+        colour: type?.colour ?? 'copper',
+        style: type?.style ?? 'underline',
         title: type?.name ?? mark.type,
       };
     });
@@ -71,6 +64,7 @@ function paragraphNotes(own: readonly Mark[], marks: Marks): ParagraphNote[] {
       paragraphId: mark.paragraphId,
       name: marks.types.find((type) => type.key === mark.type)?.name ?? mark.type,
       text: mark.text,
+      colour: marks.types.find((type) => type.key === mark.type)?.colour ?? 'copper',
     }));
 }
 
@@ -93,7 +87,12 @@ export function markNote(mark: Mark, marks: Marks): NonNullable<BoothReference['
 
 export type BoothDecorations = { decorations: WordDecoration[]; notes: ParagraphNote[] };
 
-export function boothDecorations(paragraphs: readonly ReadingParagraph[], entities: readonly GuideEntity[], marks: Marks): BoothDecorations {
+export function boothDecorations(
+  paragraphs: readonly ReadingParagraph[],
+  entities: readonly GuideEntity[],
+  marks: Marks,
+  types: readonly GuideType[],
+): BoothDecorations {
   const own = standing(paragraphs, marks);
-  return { decorations: [...entityDecorations(paragraphs, entities), ...markDecorations(own, marks)], notes: paragraphNotes(own, marks) };
+  return { decorations: [...entityDecorations(paragraphs, entities, types), ...markDecorations(own, marks)], notes: paragraphNotes(own, marks) };
 }

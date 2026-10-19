@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/countrymanprime/narration-utils/shell/internal/assets"
+	"github.com/countrymanprime/narration-utils/shell/internal/update"
 )
 
 // AssetsList is every approved asset of every kind with its state, size, publisher, licence and provenance links, where it is installed,
@@ -35,6 +36,19 @@ func (h *Host) AssetsInstallCancel(jobID string) (string, error) {
 // AssetsVerify reads every byte of one asset and answers with its state: installed, damaged (verification_failed) or absent.
 func (h *Host) AssetsVerify(kind, id string) (string, error) {
 	return encodeBinding(h.verifyAsset(kind, id))
+}
+
+// AssetsOpenFolder shows the folder the approved assets are kept in (the "Stored in" path AssetsList reports) in the file manager. It takes
+// no path: the folder is the host's own, so the page cannot name another.
+func (h *Host) AssetsOpenFolder() (string, error) {
+	dir := h.registry().base
+	if dir == "" {
+		return "", fmt.Errorf("the approved asset catalog is unavailable")
+	}
+	if h.openFolder != nil {
+		return encodeBinding(nil, h.openFolder(dir))
+	}
+	return encodeBinding(nil, update.OpenFolder(dir))
 }
 
 // AssetsRemove deletes one asset. It refuses while the asset is downloading, and touches nothing else: not another asset, not a setting,

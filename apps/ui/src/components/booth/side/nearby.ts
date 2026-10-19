@@ -1,4 +1,6 @@
 import type { GuideEntity } from '../../../api/contracts/storyBible';
+import { speakerColour, type EntityColour } from '../../../kinds/entityColour';
+import type { GuideType } from '../../../types';
 import type { BoothUnit } from '../reading/boothUnits';
 
 /** How many phrases before and after the current one count as "nearby" (the mock's window). */
@@ -22,15 +24,21 @@ export function voiceNote(entity: GuideEntity): string {
     .join(' ');
 }
 
-export type NearbyVoice = { id: string; name: string; voice: string; aliases: string[] };
+export type NearbyVoice = { id: string; name: string; voice: string; aliases: string[]; colour?: EntityColour };
 
 /** The speakers in and around the current phrase, one row per Story Bible entry with the labels used for it. */
-export function voicesNearby(units: readonly BoothUnit[], cur: number, entities: readonly GuideEntity[]): NearbyVoice[] {
+export function voicesNearby(units: readonly BoothUnit[], cur: number, entities: readonly GuideEntity[], types: readonly GuideType[] = []): NearbyVoice[] {
   const byEntry = new Map<string, NearbyVoice>();
   for (const unit of units.slice(Math.max(0, cur - BEHIND), cur + AHEAD)) {
     const entity = unit.quoted && unit.speaker.trim() !== '' ? entityOfSpeaker(entities, unit.speaker) : undefined;
     if (!entity) continue;
-    const row = byEntry.get(entity.id) ?? { id: entity.id, name: entity.canonical_name, voice: voiceNote(entity), aliases: [] };
+    const row = byEntry.get(entity.id) ?? {
+      id: entity.id,
+      name: entity.canonical_name,
+      voice: voiceNote(entity),
+      aliases: [],
+      colour: speakerColour(types, { category: entity.category, speakerColor: entity.speaker_color }) ?? undefined,
+    };
     if (!row.aliases.includes(unit.speaker)) row.aliases.push(unit.speaker);
     byEntry.set(entity.id, row);
   }

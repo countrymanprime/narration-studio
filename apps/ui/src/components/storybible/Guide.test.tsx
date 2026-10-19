@@ -127,12 +127,12 @@ describe('the-type-colour-tints-the-chips-and-rows', () => {
     expect(within(kindGroup()).getByRole('button', { name: 'All' }).querySelector('[aria-hidden="true"]')).toBeNull();
   });
 
-  it('draws a row the build was unsure of in the review hue', async () => {
+  it('draws a row the build was unsure of in the amber (D7)', async () => {
     await renderGuide();
     await screen.findAllByText('Alice');
     const unsure = (await createMockApi().guideEntities()).find((row) => row.category === 'Needs Review')!;
     const row = rows().find((r) => r.textContent?.includes(unsure.canonical_name))!;
-    await waitFor(() => expect(swatchOf(row)).toBe('var(--review)'));
+    await waitFor(() => expect(swatchOf(row)).toBe('var(--warn)'));
     // The review state is the row's badge, not the type word.
     expect(row.querySelector('[data-line="name"]')!.textContent).toContain('Review');
     expect(row.querySelector('[data-line="kind"]')!.textContent).toMatch(/^Type not set · 1 name · \d+ chapters?$/);

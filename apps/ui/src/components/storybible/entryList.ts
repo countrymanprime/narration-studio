@@ -5,7 +5,7 @@
 import type { ExtractionSuggestion } from '../../api/contracts/extraction';
 import type { GuideEntity, GuideReview, GuideType } from '../../types';
 import type { SwatchColour } from '../primitives/Swatch';
-import { typeColour } from '../../storyBibleTypes';
+import { entryColour } from '../../kinds/entityColour';
 import { verifyOf } from './suggested/row/selectors';
 
 export type EntrySortKey = 'name' | 'type' | 'chapters';
@@ -61,20 +61,8 @@ export function reviewPill(entry: GuideEntity, suggestions: readonly ExtractionS
   return entryFlagged(entry) || typeUnknown(entry) ? 'Review' : undefined;
 }
 
-/** The swatch each type colour is drawn with: the kind hue it names in styles.css. */
-const SWATCH_OF_COLOUR = {
-  green: 'character',
-  blue: 'place',
-  violet: 'org',
-  amber: 'lore',
-  teal: 'item',
-  rose: 'event',
-  review: 'review',
-  faint: 'non-text',
-} as const satisfies Record<ReturnType<typeof typeColour>, SwatchColour>;
-
-/** The swatch of a category's type colour, so a row and a chip follow what the narrator set in Settings (`typeColour`). */
-export const kindSwatch = (types: readonly GuideType[], category: string): SwatchColour => SWATCH_OF_COLOUR[typeColour(types, category)];
+/** The swatch of a category's type colour, so a row and a chip follow what the narrator set in Settings. The colour is the registry's (`entryColour`): a Needs Review or Draft entry is amber (D7), a type nobody defines is faint. */
+export const kindSwatch = (types: readonly GuideType[], category: string): SwatchColour => entryColour(types, category).line.slice(2) as SwatchColour;
 
 /** Whether the entry's name or one of its other names contains the query, ignoring case; an empty query matches every entry. */
 export function matchesQuery(entry: GuideEntity, query: string): boolean {

@@ -2,7 +2,7 @@ import type { Meta, StoryObj } from '@storybook/react-vite';
 import { expect, fn, within } from 'storybook/test';
 import type { ManuscriptParagraph } from '../../../../api/contracts/manuscript';
 import { Reader } from './Reader';
-import { chapter, cue, entry, flaggedWord, mark, paragraph, TYPES } from './readerFixtures';
+import { chapter, cue, entry, flaggedWord, GUIDE_TYPES, mark, paragraph, TYPES } from './readerFixtures';
 
 // The Studio Next mock's continuous reader (`pages/script/Reader.tsx`): all chapters in one scroll under a sticky header that
 // names the chapter in view and the paragraph. It takes its data as props; the page that assembles it reads the host.
@@ -18,6 +18,7 @@ const sources = {
   marks: [mark('m1', 'c1-p0', at('left'), 'note'), mark('m2', 'c1-p1', at('harbour'), 'ask')],
   words: [flaggedWord('harbour', 'c1-p0', at('harbour'))],
   entries: [entry('e1', 'Mina', 'Character', 3)],
+  types: GUIDE_TYPES,
   cues: [
     cue('q1', 'c1-p0', 'c1', at('"Come along,"'), 'e1', 'correction'),
     cue('q2', 'c1-p1', 'c1', at('"Come along,"'), 'e1', 'tag'),

@@ -70,7 +70,7 @@ function renderDialog(overrides: Partial<NarrationApi> = {}, initial: Initial = 
 const prompt = () => screen.findByRole('region', { name: 'Where you stopped' });
 
 async function startReading(user: ReturnType<typeof userEvent.setup>) {
-  const play = await screen.findByRole('button', { name: 'Play' });
+  const play = await screen.findByRole('button', { name: 'Space Play' });
   await waitFor(() => expect(play.hasAttribute('disabled')).toBe(false));
   await user.click(play);
 }

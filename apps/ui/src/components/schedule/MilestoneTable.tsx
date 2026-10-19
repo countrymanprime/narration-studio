@@ -2,7 +2,8 @@ import { useState } from 'react';
 import type { ProductionMilestone } from '../../api/contracts/production';
 import { Icon } from '../primitives/Icon';
 import { IconButton } from '../primitives/IconButton';
-import { StatusBadge, type StatusTone } from '../primitives/StatusBadge';
+import { statusTone, type StatusId } from '../../kinds/statusTone';
+import { StatusBadge } from '../primitives/StatusBadge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../primitives/Table';
 import { TextField } from '../primitives/TextField';
 import { TooltipTarget } from '../primitives/Tooltip';
@@ -10,14 +11,14 @@ import { fmtIso } from './dates';
 import { measureText } from './measures';
 import { milestoneStatus, type MilestoneStatus, type ScheduleChapter } from './progress';
 
-const STATUS_TONE: Record<MilestoneStatus['kind'], StatusTone> = { done: 'success', ok: 'success', risk: 'warning', late: 'danger', none: 'neutral' };
+const STATUS_ID: Record<MilestoneStatus['kind'], StatusId> = { done: 'done', ok: 'on_track', risk: 'at_risk', late: 'late', none: 'no_estimate' };
 
 /** A status as a small cell: the value is short ("+3 d", a date, a check, a dash) and the sentence is its name and its tooltip. */
 function StatusCell({ status, finalRow = false }: { status: MilestoneStatus; finalRow?: boolean }) {
   return (
     <TooltipTarget text={status.sentence}>
       <span role="img" aria-label={status.sentence} data-status={status.kind} data-final-status={finalRow ? '' : undefined}>
-        <StatusBadge shape="cell" tone={STATUS_TONE[status.kind]} label={status.short} />
+        <StatusBadge shape="cell" tone={statusTone(STATUS_ID[status.kind])} label={status.short} />
       </span>
     </TooltipTarget>
   );

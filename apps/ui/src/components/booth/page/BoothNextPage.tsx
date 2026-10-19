@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { Marks } from '../../../api/contracts/marks';
 import type { PickupItem } from '../../../api/contracts/pickups';
 import type { GuideEntity } from '../../../api/contracts/storyBible';
+import type { GuideType } from '../../../types';
 import { useSearchParams } from 'react-router-dom';
 import { chapterHeading } from '../../../chapterHeading';
 import { chapterName } from '../../../chapterName';
@@ -23,7 +24,7 @@ import type { ContextMenuItem } from '../../primitives/ContextMenu';
 import { ChapterStepper } from '../../primitives/ChapterStepper';
 import { Panel } from '../../primitives/Panel';
 import { NeedManuscript } from '../../layout/NeedManuscript';
-import { speakerColorToken } from '../../primitives/speakerColor';
+import { entryColour, speakerColour } from '../../../kinds/entityColour';
 import { BookmarkRibbons } from '../bookmarks/BookmarkRibbons';
 import { useBoothBookmarks } from '../bookmarks/useBoothBookmarks';
 import { BoothFooter, useRoomTone } from '../frame/BoothFooter';
@@ -211,7 +212,7 @@ function BoothSession({ source, from, requested, adopt, data, choose, navigate, 
     credits: source.kind === 'credits' ? { kind: source.credits, text: source.preview.text } : undefined,
   });
   const title = chapter ? headingName(chapter) : CREDITS_LABEL[source.kind === 'credits' ? source.credits : 'opening'];
-  const { entities, cues } = data;
+  const { entities, types, cues } = data;
   const paragraphs = useMemo(
     () => (source.kind === 'credits' ? creditsParagraphs(source.credits, source.preview.text) : readingParagraphsOf(session.paragraphs ?? [], cues, entities)),
     [source, session.paragraphs, cues, entities],
@@ -291,12 +292,12 @@ function BoothSession({ source, from, requested, adopt, data, choose, navigate, 
   const side = useBoothSideOpen();
   const marks = useBoothMarks((message) => overlay.toast(message, { tone: 'error' }));
   const decorated = useMemo(
-    () => (source.kind === 'chapter' ? boothDecorations(paragraphs, entities, marks) : { decorations: [], notes: [] }),
-    [source, paragraphs, entities, marks],
+    () => (source.kind === 'chapter' ? boothDecorations(paragraphs, entities, marks, types) : { decorations: [], notes: [] }),
+    [source, paragraphs, entities, marks, types],
   );
   // What the side panel's Reference shows: a clicked Story Bible name, a marked word or a note under a paragraph, read-only.
   const referenced = useBoothReference(recordId);
-  const reference = useMemo(() => referenceOf(referenced.target, entities, marks), [referenced.target, entities, marks]);
+  const reference = useMemo(() => referenceOf(referenced.target, entities, marks, types), [referenced.target, entities, marks, types]);
 
   // A chapter asked for in the address while a take runs: leaving this one is asked about like any other way out; staying puts the
   // address back. The picker is disabled during a take, so this is a link from elsewhere (a Script card, a bookmark, a pickup).
@@ -372,9 +373,9 @@ function BoothSession({ source, from, requested, adopt, data, choose, navigate, 
     const byName = new Map(characters.map((entity) => [entity.canonical_name, entity]));
     return (speaker: string) => {
       const entity = byName.get(speaker);
-      return entity ? speakerColorToken(entity.id, entity.speaker_color) : undefined;
+      return entity ? (speakerColour(types, { category: entity.category, speakerColor: entity.speaker_color }) ?? undefined) : undefined;
     };
-  }, [characters]);
+  }, [characters, types]);
   const setSpeaker = (cueId: string, speaker: string) => {
     const entity = characters.find((item) => item.canonical_name === speaker);
     if (!entity) return;
@@ -517,7 +518,7 @@ function BoothSession({ source, from, requested, adopt, data, choose, navigate, 
                   data={{
                     chapterId: recordId,
                     reference,
-                    voices: voicesNearby(units, at.cur, entities),
+                    voices: voicesNearby(units, at.cur, entities, types),
                     comingUp: comingUpWords(units, at.cur, entities),
                     numbers: page.numbers,
                     flags: page.flags,
@@ -574,9 +575,9 @@ const sameSource = (a: BoothTarget, b: BoothTarget): boolean =>
   'credits' in a ? 'credits' in b && a.credits === b.credits : 'chapter' in b && a.chapter === b.chapter;
 
 /** The entry and the mark a reference target names, as the side panel draws them; nothing when neither is there any more. */
-function referenceOf(target: ReferenceTarget | null, entities: readonly GuideEntity[], marks: Marks): BoothReference | null {
+function referenceOf(target: ReferenceTarget | null, entities: readonly GuideEntity[], marks: Marks, types: readonly GuideType[]): BoothReference | null {
   if (!target) return null;
   const entry = target.entryId ? entities.find((item) => item.id === target.entryId) : undefined;
   const mark = target.noteId ? marks.marks.find((item) => item.id === target.noteId) : undefined;
-  return entry || mark ? { entry, note: mark && markNote(mark, marks) } : null;
+  return entry || mark ? { entry, colour: entry && entryColour(types, entry.category), note: mark && markNote(mark, marks) } : null;
 }

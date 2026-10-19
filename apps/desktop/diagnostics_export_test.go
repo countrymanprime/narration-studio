@@ -96,3 +96,30 @@ func TestSystemCopyDiagnosticsLast30MinutesUsesTheWindowScope(t *testing.T) {
 		t.Fatalf("saved to %q, want inside %q", path, destFolder)
 	}
 }
+
+func TestAssetsOpenFolderOpensTheAssetFolder(t *testing.T) {
+	t.Setenv("APPDATA", t.TempDir())
+	host := NewHost()
+	base := t.TempDir()
+	host.assets = &assetRegistry{base: base}
+	var opened string
+	host.openFolder = func(dir string) error { opened = dir; return nil }
+
+	if _, err := host.AssetsOpenFolder(); err != nil {
+		t.Fatal(err)
+	}
+	if opened != base {
+		t.Fatalf("opened %q, want the asset folder %q", opened, base)
+	}
+}
+
+func TestAssetsOpenFolderRefusesWithoutACatalog(t *testing.T) {
+	t.Setenv("APPDATA", t.TempDir())
+	host := NewHost()
+	host.assets = nil
+	host.openFolder = func(dir string) error { t.Fatalf("opened %q", dir); return nil }
+
+	if _, err := host.AssetsOpenFolder(); err == nil {
+		t.Fatal("want a refusal when the asset folder is unknown")
+	}
+}

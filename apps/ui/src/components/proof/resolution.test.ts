@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { Finding } from '../../types';
-import { decisionLabel, fixKindOf, flagFixKind, resolutionCounts, resolutionOf, savedMessage } from './resolution';
+import { decisionLabel, fixKindOf, flagFixKind, resolutionCounts, savedMessage } from './resolution';
 
 function finding(overrides: Partial<Finding> = {}): Finding {
   return {
@@ -44,19 +44,6 @@ describe('fixKindOf (D85 #7: the mock says what a note asks for, a pickup or an 
     expect(flagFixKind('cleanup')).toBe('edit');
     expect(flagFixKind('misread')).toBe('pickup');
     expect(flagFixKind('skip')).toBe('pickup');
-  });
-});
-
-describe('resolutionOf (mock 04 Resolution column)', () => {
-  it('says Pickup or Edit for an accepted note, by what it asks for', () => {
-    expect(resolutionOf(finding({ review: { status: 'accepted' } }))).toEqual({ label: 'Pickup', tone: 'danger' });
-    expect(resolutionOf(finding({ evidence: { kind: 'EXTRA' }, review: { status: 'accepted' } }))).toEqual({ label: 'Edit', tone: 'warning' });
-  });
-
-  it('says Waived for a dismissed note, and names the undecided and deferred ones plainly', () => {
-    expect(resolutionOf(finding({ review: { status: 'dismissed' } }))).toEqual({ label: 'Waived', tone: 'success' });
-    expect(resolutionOf(finding())).toEqual({ label: 'To review', tone: 'neutral' });
-    expect(resolutionOf(finding({ review: { status: 'deferred' } }))).toEqual({ label: 'Deferred', tone: 'info' });
   });
 });
 
