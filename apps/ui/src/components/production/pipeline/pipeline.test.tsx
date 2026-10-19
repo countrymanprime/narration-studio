@@ -232,6 +232,24 @@ describe('PageHeader', () => {
     expect(h.onStartSession).toHaveBeenCalledOnce();
   });
 
+  it('draws blocks, not figures, the due date or a verdict, while the production log is read, and keeps the title and the actions', () => {
+    header({ loading: true, chapters: 0, words: 0, due: null });
+    expect(screen.getByRole('heading', { level: 1, name: 'Production' })).toBeTruthy();
+    expect(screen.queryByText(/chapters/)).toBeNull();
+    expect(screen.queryByText(/no delivery date set/)).toBeNull();
+    expect(screen.queryByText('No due date set')).toBeNull();
+    expect(screen.queryByRole('button', { name: /(On track|Tight|Behind|No due date set)/ })).toBeNull();
+    expect(screen.queryByRole('status')).toBeNull();
+    expect(screen.getByRole('button', { name: 'Export status report' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Start session' })).toBeTruthy();
+  });
+
+  it('says "0 chapters" and "no delivery date set" once a read that found nothing has ended', () => {
+    header({ loading: false, chapters: 0, words: 0, due: null });
+    expect(screen.getByText(/0 chapters · 0 words · no delivery date set/)).toBeTruthy();
+    expect(screen.getByText('No due date set')).toBeTruthy();
+  });
+
   it('says the tone in a word and a shape when the due date is close', () => {
     header({ due: new Date(2026, 9, 5), k: calcFor(MID_BOOK, new Date(2026, 9, 5)) });
     expect(screen.getByText(/due soon|overdue or behind/)).toBeTruthy();

@@ -38,6 +38,7 @@ func sampleOverview() production.Overview {
 func sampleInput() Input {
 	return Input{
 		GeneratedAt: "2026-09-27T18:00:00Z", AppVersion: "0.9.0",
+		Options:  Options{Include: AllSections},
 		Overview: sampleOverview(),
 		Milestones: []project.Milestone{
 			{Name: "ACX 15-minute checkpoint", DueDate: "2026-10-15", Note: "The rights holder approves the first 15 minutes."},
@@ -95,7 +96,7 @@ func TestTheSameInputGivesTheSameBytesApartFromTheTimestamp(t *testing.T) {
 
 func TestTheContractedAmountAndRateAreLeftOutUnlessTheNarratorOptsIn(t *testing.T) {
 	report := Build(sampleInput())
-	if report.Rate.ContractedAmount != nil || report.Rate.EffectiveRate != nil {
+	if report.Rate != nil {
 		t.Fatal("the contracted amount and rate should be left out by default")
 	}
 	if report.Privacy.ContractedAmountIncluded {
@@ -107,9 +108,9 @@ func TestTheContractedAmountAndRateAreLeftOutUnlessTheNarratorOptsIn(t *testing.
 	}
 
 	in := sampleInput()
-	in.Options.IncludeContractedAmount = true
+	in.Options.Include.Money = true
 	optedIn := Build(in)
-	if optedIn.Rate.ContractedAmount == nil || *optedIn.Rate.ContractedAmount != 2400 {
+	if optedIn.Rate == nil || optedIn.Rate.ContractedAmount == nil || *optedIn.Rate.ContractedAmount != 2400 {
 		t.Fatal("opting in should include the contracted amount")
 	}
 	if optedIn.Rate.EffectiveRate == nil || *optedIn.Rate.EffectiveRate != 600 {
@@ -124,7 +125,7 @@ func TestAnUndefinedBookPFHIsWrittenAsAbsentNeverZero(t *testing.T) {
 	in := sampleInput()
 	in.Overview.Totals.BookPFH = nil
 	report := Build(in)
-	if report.Book.BookPFH != nil {
+	if report.Stages.BookPFH != nil {
 		t.Fatal("an undefined BookPFH should stay nil, never 0")
 	}
 	_, page := render(t, in)
@@ -135,13 +136,13 @@ func TestAnUndefinedBookPFHIsWrittenAsAbsentNeverZero(t *testing.T) {
 
 func TestAMilestonePastItsDateIsOverdue(t *testing.T) {
 	report := Build(sampleInput())
-	if len(report.Milestones) != 2 {
-		t.Fatalf("expected 2 milestones, got %d", len(report.Milestones))
+	if len(report.Schedule.Milestones) != 2 {
+		t.Fatalf("expected 2 milestones, got %d", len(report.Schedule.Milestones))
 	}
-	if report.Milestones[0].Overdue {
+	if report.Schedule.Milestones[0].Overdue {
 		t.Fatal("the ACX checkpoint (2026-10-15) should not be overdue as of 2026-09-27")
 	}
-	if !report.Milestones[1].Overdue {
+	if !report.Schedule.Milestones[1].Overdue {
 		t.Fatal("final delivery (2026-09-01) should be overdue as of 2026-09-27")
 	}
 }
@@ -150,5 +151,42 @@ func TestReadinessCountsEveryChapterByItsVerdictAndNoneWhenNotAssessed(t *testin
 	report := Build(sampleInput())
 	if report.Readiness.Recommended != 1 || report.Readiness.NotReady != 1 || report.Readiness.None != 1 {
 		t.Fatalf("unexpected readiness counts: %+v", report.Readiness)
+	}
+}
+
+func TestAnUntickedSectionIsLeftOutOfBothRenderings(t *testing.T) {
+	cases := []struct {
+		name    string
+		untick  func(*Sections)
+		jsonKey string
+		heading string
+	}{
+		{"words", func(s *Sections) { s.Words = false }, `"word_count"`, "Finished audio"},
+		{"stages", func(s *Sections) { s.Stages = false }, `"hours_by_stage"`, "Hours by stage"},
+		{"milestones", func(s *Sections) { s.Milestones = false }, `"schedule"`, "<h2>Milestones</h2>"},
+		{"pickups", func(s *Sections) { s.Pickups = false }, `"held_back"`, "Chapters held back"},
+		{"delivery", func(s *Sections) { s.Delivery = false }, `"readiness"`, "Chapter readiness"},
+	}
+	whole, wholePage := render(t, sampleInput())
+	for _, tc := range cases {
+		if !bytes.Contains([]byte(whole), []byte(tc.jsonKey)) || !bytes.Contains([]byte(wholePage), []byte(tc.heading)) {
+			t.Fatalf("%s: the fully ticked report should hold %q and %q", tc.name, tc.jsonKey, tc.heading)
+		}
+		in := sampleInput()
+		tc.untick(&in.Options.Include)
+		encoded, page := render(t, in)
+		if bytes.Contains([]byte(encoded), []byte(tc.jsonKey)) {
+			t.Errorf("%s: the JSON still holds %q", tc.name, tc.jsonKey)
+		}
+		if bytes.Contains([]byte(page), []byte(tc.heading)) {
+			t.Errorf("%s: the page still holds %q", tc.name, tc.heading)
+		}
+	}
+}
+
+func TestAChapterHeldBackIsListedWithItsReason(t *testing.T) {
+	held := Build(sampleInput()).HeldBack
+	if held == nil || len(held.Chapters) != 1 || held.Chapters[0].ID != "ch-2" || held.Chapters[0].Reason != "2 pickups open" {
+		t.Fatalf("unexpected held-back chapters: %+v", held)
 	}
 }

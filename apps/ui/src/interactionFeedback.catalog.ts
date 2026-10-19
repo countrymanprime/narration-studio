@@ -67,6 +67,8 @@ for (const rows of AREAS) {
  * The list may only shrink: a new one needs a reason a reviewer accepts, and a narrator's action never belongs here.
  */
 export const SILENT_CATCHES: Record<string, string> = {
+  'src/components/editing/voicesample/sampleMarksContext.tsx#1':
+    'The names of the characters the voice-sample dots are read for: a failed read leaves the names as they were, and a dot with no names is called "this character" and still plays. The dots are an extra on the page, and the Story Bible says what failed.',
   'src/components/voicesamples/samplePlayerStore.ts#1':
     "Another page's stop (Editing's playback, a take audition) threw while a sample was starting: the sample still starts, and that page's own audio is the thing that failed, not an action the narrator took.",
   'src/components/settings/controls/AppearanceBodies.tsx#1':

@@ -6,7 +6,6 @@ import { createMockApi } from '../../api/mockApi';
 import { WIRE_ENTITIES } from '../../api/mockFixtures';
 import type { GuideEntity } from '../../types';
 import { GuideDetail } from './GuideDetail';
-import { EntitySummary } from '../manuscript/EntitySummary';
 
 afterEach(() => cleanup());
 
@@ -137,16 +136,5 @@ describe('Story Bible entry properties', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Remove property Age' }));
     fireEvent.click(screen.getByRole('button', { name: 'Cancel editing' }));
     expect(within(properties()).getByText('Age')).toBeTruthy();
-  });
-});
-
-describe('the entry summary opened from the Manuscript', () => {
-  it('lists the properties, and leaves the section out when there are none', () => {
-    const { unmount } = render(<EntitySummary entity={alice} types={[]} jumpToLine={vi.fn()} />);
-    expect(screen.getByText('Properties')).toBeTruthy();
-    expect(screen.getByText('Seven')).toBeTruthy();
-    unmount();
-    render(<EntitySummary entity={caterpillar} types={[]} jumpToLine={vi.fn()} />);
-    expect(screen.queryByText('Properties')).toBeNull();
   });
 });

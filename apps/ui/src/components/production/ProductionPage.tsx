@@ -378,6 +378,7 @@ export function ProductionPage({
         />
       )}
       <PageHeader
+        loading={load.status === 'loading'}
         chapters={narrated.length}
         words={k.words}
         k={k}

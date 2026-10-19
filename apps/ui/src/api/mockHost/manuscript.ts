@@ -197,6 +197,7 @@ export function createManuscriptMock(
     },
     manuscriptChapters: async () => {
       if (initial.chaptersRead === 'loading') return new Promise<never>(() => {});
+      if (initial.chaptersRead === 'reread-hangs' && typeof window !== 'undefined' && window.location.pathname !== '/') return new Promise<never>(() => {});
       if (initial.chaptersRead === 'fails') throw new Error('The manuscript could not be read from this project.');
       await manuscriptReady;
       const readable = Boolean(s.tracksDiscovery.selected);
