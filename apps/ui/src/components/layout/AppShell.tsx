@@ -63,7 +63,7 @@ const ALL_PAGES: { name: string; path: string }[] = [...NAV_GROUPS.flatMap((grou
 const pageNameFor = (pathname: string) => ALL_PAGES.find((page) => isActivePath(pathname, page.path))?.name;
 // The skip link: hidden until it takes focus, then drawn over the top of the window. It is the first tab stop on every page.
 const SKIP_LINK_CLASS =
-  'sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-[var(--z-toast)] focus:rounded-[var(--radius-button)] focus:bg-[var(--surface)] focus:px-3 focus:py-2 focus:text-sm focus:font-medium focus:text-[var(--text)] focus:shadow-[var(--shadow-lg)] focus:outline-2 focus:outline-offset-2 focus:outline-[var(--accent)]';
+  'sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-[var(--z-popover)] focus:rounded-[var(--radius-button)] focus:bg-[var(--surface)] focus:px-3 focus:py-2 focus:text-sm focus:font-medium focus:text-[var(--text)] focus:shadow-[var(--shadow-lg)] focus:outline-2 focus:outline-offset-2 focus:outline-[var(--accent)]';
 
 // A dialog that closes (the jump menu after a pick) gives focus back to the control that opened it a moment after the page changed, which
 // would undo the move into <main>. So focus <main> a tick later, and with a dialog still on screen after the last one leaves, unless focus
