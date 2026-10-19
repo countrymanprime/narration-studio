@@ -12,6 +12,7 @@ import { KeyHints } from '../../primitives/KeyHints';
 import { keepsBackups, registerBackupsSection } from '../backups/registerBackupsSection';
 import { SelectionBar } from '../bar/SelectionBar';
 import { SelToolbar } from '../bar/SelToolbar';
+import { useAnnouncePlayback } from '../bar/useAnnouncePlayback';
 import { useScriptPlayback } from '../bar/useScriptPlayback';
 import { registerCleanupSection } from '../cleanup/registerCleanupSection';
 import { useCleanupDeps } from '../cleanup/useCleanupDeps';
@@ -166,6 +167,7 @@ export function EditingBody(props: EditingBodyProps) {
 
   // Playback: the chapter on the document's clock, and a take on its own.
   const playback = useScriptPlayback({ playlist, mediaUrl: tracks.mediaUrl });
+  useAnnouncePlayback(playback.playing);
   // The DAW's own play lights its word too, and the text follows whichever lit it.
   useDawPlayPosition({ items: read.workspace.items, playlist, caps, playback });
   useFollowScroll(root, playback);

@@ -4,6 +4,7 @@ import type { ReadAloudReaperReason, ReadAloudReaperStatus } from '../../../api/
 import { usePort } from '../../../ports/usePort';
 import { recorderName, recorderNameCapital, recordsInApp } from '../../../studio/dawNames';
 import { apiErrorMessage } from '../../../api/errorMessage';
+import { playTakeTone } from '../takeTone';
 import { recordCheck, type ChapterRecordState, type OpenProject } from './recordCheck';
 import type { RecordSetupFacts } from './recordSetupModel';
 
@@ -389,6 +390,8 @@ export function useRecordControl({ chapterId, notify }: { chapterId: string; not
           return;
         }
       }
+      // The start tone, if the narrator turned it on, ends before the take begins so it is not on the recording. A stop has none.
+      if (starting) await playTakeTone();
       const result = await (starting ? daw.recordStart(chapterId) : daw.recordStop());
       if (result.ok) {
         setRefused(null);

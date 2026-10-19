@@ -2,9 +2,7 @@
 import type { DawChoiceMockSeed } from '../dawChoiceMock';
 import type {
   ApprovedCharacterReference,
-  ChapterStatus,
   CreditValues,
-  CreditsStatuses,
   Finding,
   GuideDialogueCue,
   GuideEntity,
@@ -75,10 +73,6 @@ export type MockApiSeed = {
   /** Drops the closing credit templates from the seeded library the
    * Home table's Closing credits row then shows "Not set up" with a link to Settings > Credits. */
   creditsMissingClosing?: boolean;
-  /** The credits rows' statuses at boot (`?mockFidelity=01` draws mock 01's opening credits finished). */
-  creditsStatuses?: CreditsStatuses;
-  /** Chapter statuses at boot, by chapter id, over the Alice fixture's own (`?mockFidelity=01`, mock 01's board). */
-  chapterStatuses?: Record<string, ChapterStatus>;
   /** Widens `creditsProjectValues().detected` past Title/Author to every token the front matter parser can find
    * including one low-confidence candidate, so
    * Settings > Credits' per-field source caption can be seen on every field, not just the two the default mock
@@ -286,12 +280,6 @@ export type MockState = {
   series: Series[];
 };
 
-/** The chapters with `initial.chapterStatuses` over their own: at boot, and again once the real manuscript has loaded. */
-export function withSeededStatuses(chapters: ManuscriptChapter[], initial: MockApiSeed): ManuscriptChapter[] {
-  const statuses = initial.chapterStatuses;
-  return statuses ? chapters.map((chapter) => ({ ...chapter, status: statuses[chapter.id] ?? chapter.status })) : chapters;
-}
-
 export function createMockState(initial: MockApiSeed): MockState {
   // One candidate auto-selects (like the Go host); several leave the choice to the narrator.
   const tracksCandidates = initial.tracksCandidates ?? [WIRE_TRACKS_PROJECT.path];
@@ -301,7 +289,7 @@ export function createMockState(initial: MockApiSeed): MockState {
   const jobEndListeners = new Set<(event: JobEnded) => void>();
   return {
     entities: wireClone(WIRE_ENTITIES),
-    chapters: withSeededStatuses(wireClone(initial.chapters ?? WIRE_CHAPTERS), initial),
+    chapters: wireClone(initial.chapters ?? WIRE_CHAPTERS),
     paragraphs: wireClone(initial.paragraphs ?? WIRE_PARAGRAPHS),
     nextId: 1,
     tracksDiscovery: { candidates: tracksCandidates, selected: tracksCandidates.length === 1 ? tracksCandidates[0] : '' },

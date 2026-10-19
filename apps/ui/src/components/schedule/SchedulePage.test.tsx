@@ -316,7 +316,7 @@ describe('the milestone dialog', () => {
 describe('the due date', () => {
   it('changes with the date field, as one journal entry, and the header reads the new date', async () => {
     await mount();
-    const field = await screen.findByRole('textbox', { name: 'Delivery due' });
+    const field = await screen.findByLabelText('Delivery due');
     fireEvent.change(field, { target: { value: '2026-11-01' } });
     fireEvent.blur(field);
     await waitFor(() => expect(screen.getByText(/^Due Nov 1/)).toBeTruthy());
@@ -324,12 +324,11 @@ describe('the due date', () => {
     expect(await entries()).toEqual(['Change the due date']);
   });
 
-  it('refuses a date that is not written YYYY-MM-DD and changes nothing', async () => {
+  it('ignores text that is not a date and changes nothing', async () => {
     await mount();
-    const field = await screen.findByRole('textbox', { name: 'Delivery due' });
+    const field = await screen.findByLabelText('Delivery due');
     fireEvent.change(field, { target: { value: 'next week' } });
     fireEvent.blur(field);
-    expect(await screen.findByText('Write the due date as YYYY-MM-DD.')).toBeTruthy();
     expect((await api.productionPlan()).deadline).toBe('2026-10-31');
     expect(await entries()).toEqual([]);
   });

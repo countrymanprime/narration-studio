@@ -14,8 +14,6 @@ export type NextUpInputs = {
   pickups: { lines: number; chapters: readonly string[] } | null;
   /** The first chapter that fails the delivery check, and what failed. */
   failing: { chapterId: string; tag: string; fails: readonly string[] } | null;
-  /** Chapters changed by a new manuscript; only a host that reports them fills it. */
-  changed: { count: number; names: readonly string[] } | null;
 };
 
 export type NextItem =
@@ -31,8 +29,7 @@ export type NextItem =
       hoursLeft: number | null;
     }
   | { kind: 'pick'; group: Group; stage: number; risk: number; lines: number; chapters: readonly string[] }
-  | { kind: 'fail'; group: Group; stage: number; risk: number; chapterId: string; tag: string; fails: readonly string[] }
-  | { kind: 'flags'; group: Group; stage: number; risk: number; count: number; names: readonly string[] };
+  | { kind: 'fail'; group: Group; stage: number; risk: number; chapterId: string; tag: string; fails: readonly string[] };
 
 /**
  * What to do next, ranked by risk to the due date: the work-hours at risk first, then apps/desktop/internal/production/overview.go's group order, then the least advanced
@@ -75,9 +72,6 @@ export function rankNextUp(inputs: NextUpInputs): NextItem[] {
       tag: inputs.failing.tag,
       fails: inputs.failing.fails,
     });
-  }
-  if (inputs.changed && inputs.changed.count > 0) {
-    items.push({ kind: 'flags', group: 1, stage: STAGE.prep, risk: 0, count: inputs.changed.count, names: inputs.changed.names });
   }
   const hundredths = (item: NextItem): number => Math.round(item.risk * 100);
   return items
