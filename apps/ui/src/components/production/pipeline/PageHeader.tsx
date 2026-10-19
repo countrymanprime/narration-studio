@@ -19,7 +19,7 @@ const TONE_MARK: Record<Tone, { glyph: string; word: string; color: string } | n
 };
 
 type Props = {
-  /** The production log is still being read: the figures, due date and verdict are blocks, because nothing is known yet (not "0 chapters", not "No due date set"). */
+  /** The production log is still being read: the figures, due date and verdict are blocks, because nothing is known yet (not "0 chapters", not "No due date set"). The blocks are as tall as the text line (19.5 px) and the verdict row (24.3 px) they stand for, so the header does not change height when the figures arrive. */
   loading?: boolean;
   chapters: number;
   words: number;
@@ -64,7 +64,7 @@ export function PageHeader({
       <div className="flex min-w-0 flex-[1_1_24rem] flex-col gap-2">
         <Heading title="Production" size="hero" />
         {loading ? (
-          <Skeleton className="w-80 max-w-full" />
+          <Skeleton className="h-[1.21875rem] w-80 max-w-full" />
         ) : (
           <p className="text-[0.8125rem] text-[var(--text-muted)]">
             {chapters} chapters · {num(words)} words ·{' '}
@@ -86,7 +86,7 @@ export function PageHeader({
           </p>
         )}
         {loading ? (
-          <Skeleton className="h-[1.5625rem] w-64 max-w-full" />
+          <Skeleton className="h-[1.52rem] w-64 max-w-full" />
         ) : (
           <div>
             <TooltipTarget text="Open the schedule">

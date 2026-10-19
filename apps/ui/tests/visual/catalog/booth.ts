@@ -262,7 +262,7 @@ export const boothStates: StateEntry[] = [
     page: 'booth',
     state: 'address-checking',
     description:
-      'Booth opened from a link to a chapter the list does not have, while the list is read once more (?mockChapters=reread-hangs, at /booth?chapter=gone): the Booth\'s top bar, reading column, side panel and footer as grey blocks, with one polite "Checking this link…" status',
+      'Booth opened from a link to a chapter the list does not have, while the list is read once more (?mockChapters=reread-hangs, at /booth?chapter=gone): the Booth\'s top bar with its visible Booth title and a Go to Production button, then the reading column, side panel and footer as grey blocks, with one polite "Checking this link…" status',
     ...REFLOW,
   },
 ];
