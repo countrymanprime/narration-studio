@@ -102,7 +102,7 @@ Both use the same comparison: a pixel matches when its YIQ colour difference is 
 
 | Mock                        | State                             | Theme | Match % (text-blind) | Raw pixel % |
 | --------------------------- | --------------------------------- | ----- | -------------------- | ----------- |
-| 01 Production               | `production/mock-fidelity-01`     | light | 87.94                | 82.32       |
+| 01 Production (no longer scored: the page follows the Studio Next mock, and its state is gone) | `production/mock-fidelity-01` | light | 87.94 | 82.32 |
 | 02 Script                   | `script/prep-rail-pronunciations` | light | 93.03                | 86.33       |
 | 03 Booth                    | `booth/speaker-tags`              | dark  | 93.20                | 87.59       |
 | 04 Proof                    | `proof/default`                   | light | 93.75                | 89.44       |

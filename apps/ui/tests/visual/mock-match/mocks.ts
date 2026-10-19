@@ -41,8 +41,6 @@ export interface ApprovedMock {
 export const SPEC_DIR = 'docs/research/mockups/audiobook-studio-benchmark';
 
 export const APPROVED_MOCKS: ApprovedMock[] = [
-  // Scored against its own data (?mockFidelity=01).
-  { file: '01-production-home.webp', target: { page: 'production', state: 'mock-fidelity-01' }, theme: 'light' },
   {
     file: '02-prep-script.webp',
     theme: 'light',
