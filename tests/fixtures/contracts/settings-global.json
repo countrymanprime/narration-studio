@@ -347,7 +347,7 @@
       "isSet": false,
       "key": "capability.track_select",
       "kind": "choice",
-      "label": "Select a track in REAPER",
+      "label": "Select a track in the recording tool",
       "value": ""
     },
     {

@@ -23,7 +23,7 @@
       "record": {
         "available": false,
         "level": "not_yet_available",
-        "message": "Audacity support is not available yet. This version can't read audio from Audacity or add labels to it, so open the project from REAPER to compare it.",
+        "message": "Record is not available with Audacity yet.",
         "reason": "not_yet"
       }
     },

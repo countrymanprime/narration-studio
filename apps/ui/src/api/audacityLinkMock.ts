@@ -86,7 +86,7 @@ function answeringMessage(project: AudacityOpenProject): string {
 function stepsOf(f: Facts): AudacityLinkStep[] {
   const answering = f.pipe === 'answering' || f.pipe === 'no_project';
   return [
-    { id: 'installed', label: 'Audacity 3 is installed', done: f.installed || f.running },
+    { id: 'installed', label: 'Audacity 3 is installed', done: (f.installed || f.running) && !f.looks4 },
     { id: 'started_once', label: 'Audacity has started once, so it has made its settings', done: f.module !== 'unknown' || answering },
     { id: 'scripting_on', label: 'Scripting is turned on in Audacity', done: f.module === 'on' || answering },
     { id: 'answering', label: 'Audacity answers the app', done: answering },
@@ -192,7 +192,7 @@ export function createAudacityLinkMock(
     audacityUnlink: async () => {
       facts.linked = false;
       facts.linkedFile = null;
-      if (facts.openProject === 'linked') facts.openProject = 'other';
+      if (facts.openProject === 'linked') facts.openProject = 'unlabelled';
       return push();
     },
     subscribeAudacityLink: (onUpdate) => {

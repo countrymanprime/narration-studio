@@ -25,8 +25,9 @@ export type DawSetupId = 'reaper' | 'reaper-off' | 'builtin' | 'audacity' | 'aud
 
 const REAPER_NOT_RUNNING = 'REAPER is not answering. Check that REAPER is open and the Narration Utils action is running, then try again.';
 const MACRO_UNSUPPORTED = 'Mastering with an effect macro is not something REAPER can do.';
-const AUDACITY_NOT_YET =
-  "Audacity support is not available yet. This version can't read audio from Audacity or add labels to it, so open the project from REAPER to compare it.";
+/** The resolver's sentence for a capability Audacity does not build yet (dawport's `message`; audacity.go's Explain leaves it to it). */
+const audacityNotYet = (key: DawCapabilityKey): string =>
+  `${DAW_CAPABILITIES.find((row) => row.key === key)?.label ?? key} is not available with Audacity yet.`;
 const TURNED_OFF = 'Turned off in Settings.';
 const BUILTIN_UNSUPPORTED = 'Not available with the built-in recorder.';
 const BUILTIN_NOT_YET = 'Not available with the built-in recorder yet.';
@@ -147,7 +148,7 @@ const audacityCapabilities = (backups: boolean): DawCapabilities['capabilities']
     backups
       ? { ...audacityExperimental, ...(mode ? { mode } : {}) }
       : { level: 'experimental', available: false, reason: 'turned_off', message: needsBackups(what), ...(mode ? { mode } : {}) };
-  return everyCapability(() => notYet(AUDACITY_NOT_YET), {
+  return everyCapability((key) => notYet(audacityNotYet(key)), {
     input_level: noInputLevel('Audacity'),
     review: audacityExperimental,
     pickups: audacityExperimental,
