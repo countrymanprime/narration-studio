@@ -237,7 +237,7 @@ describe('ResumePrompt', () => {
 
     const region = await prompt();
     expect(await within(region).findByText(/could not read/)).toBeTruthy();
-    await user.click(within(region).getByRole('button', { name: 'Try again' }));
+    await user.click(within(region).getByRole('button', { name: 'Retry' }));
 
     await waitFor(() => expect(teleprompterLocate).toHaveBeenCalledTimes(2));
   });

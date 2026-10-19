@@ -59,12 +59,12 @@ back with **Undo** on the message that follows; a line from a check or a note ca
 
 ### When the list cannot be read
 
-If the list cannot be read, the page says why and offers **Check again**; it never shows "No pickups queued" for a list
+If the list cannot be read, the page says why and offers **Retry**; it never shows "No pickups queued" for a list
 it could not read. If a later read fails while a list is showing, the list stays and a line above it says **Can’t tell if
 this list is current**, with the reason and when it was last read. The page tries again by itself every few seconds
 while it cannot read, and whenever you return to the window.
 
-![Pickups - the list could not be read: the reason and Check again](../../images/ui/pickups-unreadable.webp)
+![Pickups - the list could not be read: the reason and Retry](../../images/ui/pickups-unreadable.webp)
 
 **Check recordings** opens the recording check on the chapters whose check is not current, so their gaps can join the
 list. It is off when the DAW is not reachable. An off button stays in the Tab order: focus it and the reason appears, and

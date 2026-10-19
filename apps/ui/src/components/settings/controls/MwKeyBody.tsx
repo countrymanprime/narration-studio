@@ -60,7 +60,7 @@ export function MwKeyBody() {
       <p role="alert" className="text-[0.8125rem] text-[var(--danger-text)]">
         The key’s state could not be read: {readError}{' '}
         <Button variant="link" size="sm" onClick={reload}>
-          Try again
+          Retry
         </Button>
       </p>
     ) : (

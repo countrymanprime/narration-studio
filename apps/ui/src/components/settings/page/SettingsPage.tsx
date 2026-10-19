@@ -265,7 +265,7 @@ function Body({ initialCategory, cameFrom }: { initialCategory?: string; cameFro
                 <b>Your settings could not be read.</b>
                 <span>{store.readError.global}. Nothing can be changed until the file can be read.</span>
                 <Button variant="secondary" size="sm" onClick={() => void store.reload()}>
-                  Try again
+                  Retry
                 </Button>
               </InsetCard>
             )}

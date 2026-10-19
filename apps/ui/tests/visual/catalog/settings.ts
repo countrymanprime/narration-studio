@@ -152,8 +152,7 @@ export const settingsStates: StateEntry[] = [
   {
     page: 'settings',
     state: 'models-failed',
-    description:
-      'Settings, Models & downloads after a download failed (?mockAssets=download-fails): the reason is written in the row with Try again and Dismiss',
+    description: 'Settings, Models & downloads after a download failed (?mockAssets=download-fails): the reason is written in the row with Retry and Dismiss',
     ...REFLOW,
   },
   {
@@ -192,7 +191,7 @@ export const settingsStates: StateEntry[] = [
     page: 'settings',
     state: 'models-error',
     description:
-      'Settings, Models & downloads when the list cannot be read (?mockAssetsList=fails): "The list of models could not be read." with the reason and Try again',
+      'Settings, Models & downloads when the list cannot be read (?mockAssetsList=fails): "The list of models could not be read." with the reason and Retry',
     ...REFLOW,
   },
   {
@@ -482,7 +481,7 @@ export const settingsStates: StateEntry[] = [
     page: 'settings',
     state: 'unreadable',
     description:
-      'Settings when the settings file cannot be read (?mockSettings=unreadable): "Your settings could not be read." with the reason and Try again, and the rows disabled',
+      'Settings when the settings file cannot be read (?mockSettings=unreadable): "Your settings could not be read." with the reason and Retry, and the rows disabled',
     ...REFLOW,
   },
   {

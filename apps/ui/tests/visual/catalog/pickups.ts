@@ -51,7 +51,7 @@ export const pickupsStates: StateEntry[] = [
     page: 'pickups',
     state: 'unreadable',
     description:
-      'Pickups with the host unable to read the list (?mockPickupList=unreadable): the reason and Check again, not "No pickups queued"; the session panel counts none',
+      'Pickups with the host unable to read the list (?mockPickupList=unreadable): the reason and Retry, not "No pickups queued"; the session panel counts none',
     ...REFLOW,
   },
   {

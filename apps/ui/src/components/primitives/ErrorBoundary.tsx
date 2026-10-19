@@ -29,7 +29,7 @@ export class ErrorBoundary extends Component<{ children: ReactNode; onError?: (e
             </p>
             <Button variant="primary" className="mt-5" onClick={() => this.setState({ error: undefined })}>
               <FontAwesomeIcon icon={faRotate} />
-              Try again
+              Retry
             </Button>
           </div>
         </div>

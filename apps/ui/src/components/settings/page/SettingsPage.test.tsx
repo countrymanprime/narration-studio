@@ -298,7 +298,7 @@ describe('Settings: states', () => {
     expect(screen.getByText('Reading your settings…')).toBeTruthy();
   });
 
-  it('an unreadable settings file shows an alert, disables the controls and Try again recovers', async () => {
+  it('an unreadable settings file shows an alert, disables the controls and Retry recovers', async () => {
     const api = createMockApi();
     const read = api.settingsForScope.bind(api);
     let failing = true;
@@ -310,7 +310,7 @@ describe('Settings: states', () => {
     const alert = await screen.findByRole('alert');
     expect(alert.textContent).toContain('Your settings could not be read.');
     failing = false;
-    fireEvent.click(within(alert).getByRole('button', { name: 'Try again' }));
+    fireEvent.click(within(alert).getByRole('button', { name: 'Retry' }));
     await screen.findByRole('heading', { level: 2, name: 'Recording & DAW' });
     await waitFor(() => expect(screen.queryByText('Your settings could not be read.')).toBeNull());
   });

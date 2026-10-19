@@ -154,7 +154,7 @@ describe('Settings: Models & downloads', () => {
     expect(screen.queryByRole('progressbar', { name: /^Downloading LJ Speech/ })).toBeNull();
   });
 
-  it('a download that fails says why and offers Try again', async () => {
+  it('a download that fails says why and offers Retry', async () => {
     const reason = 'Not enough free disk space: 114 MB are needed and 20 MB are free.';
     const assetsInstall = vi.fn().mockRejectedValue(new Error(reason));
     await renderModels({ overrides: { assetsInstall }, seed: { assets: 'missing' } });
@@ -248,14 +248,14 @@ describe('Settings: Models & downloads', () => {
     expect(within(loading as HTMLElement).getByRole('status').textContent).toBe('Reading the models on this computer…');
   });
 
-  it('says when the list cannot be read and Try again reads it again', async () => {
+  it('says when the list cannot be read and Retry reads it again', async () => {
     const base = createMockApi();
     const assetsList = vi.fn(base.assetsList).mockRejectedValueOnce(new Error('The folder did not answer.'));
     await renderModels({ overrides: { assetsList } });
     const alert = await screen.findByRole('alert');
     expect(alert.textContent).toContain('The list of models could not be read.');
     expect(alert.textContent).toContain('The folder did not answer.');
-    fireEvent.click(within(alert).getByRole('button', { name: 'Try again' }));
+    fireEvent.click(within(alert).getByRole('button', { name: 'Retry' }));
     await ready('whisper/small');
     expect(screen.queryByText('The list of models could not be read.')).toBeNull();
   });

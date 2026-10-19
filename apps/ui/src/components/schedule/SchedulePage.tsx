@@ -65,7 +65,7 @@ export function SchedulePage({ journal, today, hasManuscript = true, onImport }:
       <div role="alert" className="flex flex-col items-start gap-3">
         <p style={{ color: 'var(--danger-text)' }}>{state.message}</p>
         <Button variant="secondary" onClick={() => void reload()}>
-          Try again
+          Retry
         </Button>
       </div>
     );
@@ -205,7 +205,7 @@ export function SchedulePage({ journal, today, hasManuscript = true, onImport }:
         <div role="status" className="flex flex-wrap items-center gap-3 text-[0.88rem]" style={{ color: 'var(--danger-text)' }}>
           <span>{`Couldn't read the schedule again: ${refreshFailure}. This is what was read ${agoText(now - readAt)}.`}</span>
           <Button variant="secondary" onClick={() => void reload()}>
-            Check again
+            Retry
           </Button>
         </div>
       )}
