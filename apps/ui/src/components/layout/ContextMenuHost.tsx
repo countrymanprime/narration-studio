@@ -12,7 +12,7 @@ type SwitchableEvent = MouseEvent & { preventBaseUIHandler?: () => void };
 /**
  * The one context menu of the shell: wraps the content of `<main>` in the `ContextMenu` primitive and fills it from the
  * registered providers when it opens (docs/architecture/studio-shell-and-registries.md#command-providers-and-go-to). The first provider that matches the target supplies the items,
- * then `tail` follows (unless the provider opts out with `tail: false`, as a picker does); with no provider, `fallback` (the shell's empty-space menu) answers; with neither the browser's menu
+ * then `tail` follows (unless the provider opts out with `tail: false`, as a picker does); with no provider, `fallback` (the shell's empty-space menu, which already ends in the tail's items) answers; with neither the browser's menu
  * is left alone, as it always is in a text field. The Menu key and Shift+F10 reach it as a `contextmenu` event on the
  * focused element, so it binds no key and listens to nothing on `document`.
  */
@@ -70,7 +70,8 @@ export function ContextMenuHost({
 
     const provided = contextItemsFor(hit);
     const matched = provided ?? fallback?.(hit);
-    const next = matched ? [...matched, ...(provided && !contextTailFor(hit) ? [] : tail)] : [];
+    // The fallback is the whole empty-space menu, ending in the same two items `tail` holds (the mock's `pageItems`), so it takes no tail of its own.
+    const next = matched ? [...matched, ...(provided && contextTailFor(hit) ? tail : [])] : [];
     if (next.length === 0) {
       leaveToBrowser(event);
       return;
