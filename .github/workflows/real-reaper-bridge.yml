@@ -11,7 +11,7 @@ on:
         description: REAPER version to install (the repository's recorded runs used 7.80)
         default: '7.80'
       installer-sha256:
-        description: SHA-256 of the installer (required; the installer is not run unless it matches. A first run on an unpinned version fails with the hash it saw, in the job log)
+        description: SHA-256 of the installer (required; the installer is not run unless it matches. A first run on an unpinned version fails with the hash it saw, in the job log. For reaper-version 7.82 the x64 installer hashed ae86dd8396673318a85275175dc8c1c9b0b8e090bf305f9cec920358e9d1e18f on 2026-10-19; the owner compares it with the hash reaper.fm publishes)
         required: true
       installer-size:
         description: Size of the installer in bytes (optional extra check)
