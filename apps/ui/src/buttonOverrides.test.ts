@@ -12,7 +12,11 @@ import { describe, expect, test } from 'vitest';
 //
 // The files left still size their buttons through `className`; each composes the fixed primitive when its page is
 // redrawn, and the ceiling is lowered then.
-const CEILING: Record<string, number> = {};
+const CEILING: Record<string, number> = {
+  // The Script selection toolbar's two Buttons (the across-paragraphs note and Look up) take `TOOL_BUTTON`, the mock's `.seltool` look: no
+  // border or fill on the ink pill. `Button` has no variant that draws no border, so `border-0` stays in the className until it gets one.
+  'src/components/script/page/tools/select/SelectionTool.tsx': 2,
+};
 // The Booth's top bar Companion/Exit buttons and `CompanionShell.tsx`'s own toolbar recipe use `size="sm"`, so both
 // have no entry.
 

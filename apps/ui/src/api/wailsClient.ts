@@ -23,6 +23,7 @@ import {
   projectFolderSelectionSchema,
   projectSwitchResultSchema,
   recentProjectsSchema,
+  runningDawProjectSchema,
 } from './schemas/project';
 import {
   creditsAnnouncementsSchema,
@@ -44,6 +45,7 @@ import {
   dawFxRangeSettingsSchema,
   dawLastActionSchema,
   dawMonitorLevelSchema,
+  dawPlaceSchema,
   dawProjectStateSchema,
   dawResultSchema,
   dawTransportSchema,
@@ -586,6 +588,8 @@ export const wailsClient: NarrationApi = {
   createProject: (parent, name) => decode(projectSwitchResultSchema, 'ProjectCreateIn', host.ProjectCreateIn(parent, name)),
   projectDefaultLocation: () => decode(projectDefaultLocationSchema, 'ProjectDefaultLocation', host.ProjectDefaultLocation()),
   removeRecentProject: (path) => decode(recentProjectsSchema, 'ProjectRemoveRecent', host.ProjectRemoveRecent(path)),
+  setProjectPinned: (path, pinned) => decode(recentProjectsSchema, 'ProjectSetPinned', host.ProjectSetPinned(path, pinned)),
+  projectRunningDaw: () => decode(runningDawProjectSchema, 'ProjectRunningDaw', host.ProjectRunningDaw()),
   linkDawFile: () => decode(dawLinkResultSchema, 'ProjectLinkDawFile', host.ProjectLinkDawFile()),
   launchDaw: () => decode(dawLaunchResultSchema, 'DawLaunch', host.DawLaunch()),
   creditsTemplates: () => decode(creditTemplatesSchema, 'CreditsTemplates', host.CreditsTemplates()),
@@ -687,6 +691,8 @@ export const wailsClient: NarrationApi = {
   dawUndoLast: (kind, steps) => decode(dawResultSchema, 'DawUndoLast', host.DawUndoLast(kind, steps)),
   dawMonitorLevel: () => decode(dawMonitorLevelSchema, 'DawMonitorLevel', host.DawMonitorLevel()),
   dawSetMonitorLevel: (level) => decode(dawMonitorLevelSchema, 'DawSetMonitorLevel', host.DawSetMonitorLevel(level)),
+  dawPlace: () => decode(dawPlaceSchema, 'DawPlace', host.DawPlace()),
+  dawGoToChapter: (chapterId, where, seconds) => decode(dawResultSchema, 'DawGoToChapter', host.DawGoToChapter(chapterId, where, seconds)),
   dawBackupAround: (chapterId, firstToken, lastToken, label) =>
     decode(dawResultSchema, 'DawBackupAround', host.DawBackupAround(chapterId, firstToken, lastToken, label)),
   dawRestoreBackup: (backupId) => decode(dawResultSchema, 'DawRestoreBackup', host.DawRestoreBackup(backupId)),

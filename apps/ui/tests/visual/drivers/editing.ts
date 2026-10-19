@@ -64,10 +64,27 @@ export const editingDrivers: Record<string, Driver> = {
     await selectWords(page);
     await page.locator('[data-k="p-1:2"]').click({ button: 'right' });
     await page.getByRole('menuitem', { name: 'Add FX' }).click();
-    await page
-      .getByRole('menuitem', { name: /RfxChain$/ })
-      .first()
-      .waitFor();
+    const chain = page.getByRole('menuitem', { name: /RfxChain$/ }).first();
+    await chain.waitFor();
+    // The submenu fades in: wait until it is fully drawn before the page is captured.
+    await chain.evaluate(async (el) => {
+      const popup = el.closest('[role="menu"]');
+      await Promise.all(popup?.getAnimations().map((a) => a.finished) ?? []);
+    });
+  },
+  'drawer-effects-inspector': async (page) => {
+    // Two effects on different words, so the inspector has a neighbour either way; the first is picked.
+    await openEditing(page, EDITS);
+    await addEffect(page, 'p-1:1', 'p-1:4');
+    await addEffect(page, 'p-2:0', 'p-2:2');
+    await page.getByRole('button', { name: 'Clean up and effects' }).click();
+    await page.locator('#drawer').waitFor();
+    await page.getByRole('tab', { name: /^Effects/ }).click();
+    await page.getByRole('button', { name: 'Next effect' }).waitFor();
+    // The two "Added …" toasts cover the panel; the inspector is scrolled up under its header.
+    const dismiss = page.getByRole('button', { name: 'Dismiss message' });
+    while (await dismiss.count()) await dismiss.first().click();
+    await page.getByRole('region', { name: 'Effect', exact: true }).evaluate((el) => el.scrollIntoView({ block: 'start' }));
   },
   'fx-dialog': async (page) => {
     await openEditing(page, EDITS);
@@ -253,6 +270,20 @@ async function openEditing(page: Page, query: string): Promise<void> {
 }
 
 /** Selects the second to the fifth word of the first line: a click, then a Shift+click. */
+/** Selects the words from `from` to `to` and puts the first listed chain on them through the question. */
+async function addEffect(page: Page, from: string, to: string): Promise<void> {
+  await page.locator(`[data-k="${from}"]`).click();
+  await page.locator(`[data-k="${to}"]`).click({ modifiers: ['Shift'] });
+  await bar(page).getByRole('button', { name: 'Add FX' }).click();
+  await page
+    .getByRole('menuitem', { name: /RfxChain$/ })
+    .first()
+    .click();
+  const question = page.getByRole('dialog', { name: /^Add FX to / });
+  await question.getByRole('button', { name: /^(Split and add effect|Add anyway)$/ }).click();
+  await question.waitFor({ state: 'hidden' });
+}
+
 async function selectWords(page: Page): Promise<void> {
   await page.locator('[data-k="p-1:1"]').click();
   await page.locator('[data-k="p-1:4"]').click({ modifiers: ['Shift'] });

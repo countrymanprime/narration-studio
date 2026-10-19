@@ -87,7 +87,7 @@ describe('D5 Build: what it waits for', () => {
     mount({ manuscriptChapters: async () => [] });
     expect(await screen.findByText('0 of 0')).toBeTruthy();
     expect(screen.getByText('There are no chapters to check.')).toBeTruthy();
-    expect(await buildButton()).toHaveProperty('disabled', true);
+    expect((await buildButton()).getAttribute('aria-disabled')).toBe('true');
   });
 
   it('one: a single passing chapter is ready and builds with the files that were encoded', async () => {
@@ -117,7 +117,7 @@ describe('D5 Build: what it waits for', () => {
     expect((await screen.findByRole('group', { name: 'Loading the chapter checks' })).getAttribute('aria-busy')).toBe('true');
     expect(await screen.findByText("Can't tell which chapters pass yet.")).toBeTruthy();
     expect(screen.queryByText('Not mastered')).toBeNull();
-    expect(await buildButton()).toHaveProperty('disabled', true);
+    expect((await buildButton()).getAttribute('aria-disabled')).toBe('true');
   });
 
   it('long, right-to-left and emoji chapter names are kept as written and read in their own direction', async () => {
@@ -134,7 +134,7 @@ describe('D5 Build: what it waits for', () => {
   it('no files encoded: says to master first, and Build stays off', async () => {
     mount({ exportState: async () => exportJob('success', 0) });
     expect(await screen.findByText('Master all to spec in Master & QC first.')).toBeTruthy();
-    expect(await buildButton()).toHaveProperty('disabled', true);
+    expect((await buildButton()).getAttribute('aria-disabled')).toBe('true');
   });
 
   it('the export is still running elsewhere: says so, and Build stays off', async () => {
@@ -148,13 +148,13 @@ describe('D5 Build: what it waits for', () => {
     mount({ measureState: async () => measureJob(PASSING, { phase: 'running', percent: 40, message: 'Measuring Chapter 02.wav' }) });
     expect(await screen.findByText('Measuring the files in Master & QC.')).toBeTruthy();
     expect(screen.getByText('Measuring Chapter 02.wav (40%)')).toBeTruthy();
-    expect(await buildButton()).toHaveProperty('disabled', true);
+    expect((await buildButton()).getAttribute('aria-disabled')).toBe('true');
   });
 
   it('failing and waiting chapters are counted and keep Build off', async () => {
     mount({ measureState: async () => measureJob([passing('Chapter 01.wav'), failingTwo('Chapter 04.wav')]) });
     expect(await screen.findByText('1 failing, 2 not ready')).toBeTruthy();
-    expect(await buildButton()).toHaveProperty('disabled', true);
+    expect((await buildButton()).getAttribute('aria-disabled')).toBe('true');
   });
 });
 
@@ -165,7 +165,7 @@ describe('D5 Build: pressing it', () => {
     await screen.findByText(READY);
     await userEvent.click(await buildButton());
     expect((await screen.findByRole('alert')).textContent).toContain('a package is already being built');
-    expect(await buildButton()).toHaveProperty('disabled', false);
+    expect((await buildButton()).getAttribute('aria-disabled')).toBeNull();
     await userEvent.click(await buildButton());
     expect(await screen.findByText('4 files')).toBeTruthy();
     expect(screen.queryByText(/already being built/)).toBeNull();
@@ -183,6 +183,7 @@ describe('D5 Build: pressing it', () => {
     expect(packageStart).toHaveBeenCalledOnce();
     expect(screen.getByText('Choose a folder in the window that opened…')).toBeTruthy();
     expect(button.getAttribute('aria-busy')).toBe('true');
+    expect(button.getAttribute('aria-disabled')).toBe('true');
     await act(async () => answer.resolve(BUILT));
     expect(await screen.findByText('4 files')).toBeTruthy();
     expect(screen.queryByText('Choose a folder in the window that opened…')).toBeNull();
@@ -249,6 +250,7 @@ describe('D5 and D6 a running build', () => {
     expect(await screen.findByRole('button', { name: 'Cancel' })).toBeTruthy();
     expect(screen.getByRole('progressbar', { name: 'Building the package' })).toBeTruthy();
     expect((await buildButton()).getAttribute('aria-busy')).toBe('true');
+    expect((await buildButton()).getAttribute('aria-disabled')).toBe('true');
     await act(async () => vi.advanceTimersByTimeAsync(1200));
     expect(await screen.findByText('4 files')).toBeTruthy();
     expect(screen.queryByRole('button', { name: 'Cancel' })).toBeNull();
@@ -267,7 +269,7 @@ describe('D5 and D6 a running build', () => {
     await userEvent.click(await screen.findByRole('button', { name: 'Cancel' }), { advanceTimers: vi.advanceTimersByTime });
     expect(await screen.findByText('Packaging cancelled.')).toBeTruthy();
     expect(screen.queryByRole('button', { name: 'Cancel' })).toBeNull();
-    expect(await buildButton()).toHaveProperty('disabled', false);
+    expect((await buildButton()).getAttribute('aria-disabled')).toBeNull();
   });
 
   it("Cancel refused: the host's words are shown and the build keeps running", async () => {
@@ -393,7 +395,7 @@ describe('D5 and D6 a running build', () => {
     await act(async () => vi.advanceTimersByTimeAsync(700));
     await waitFor(() => expect(screen.queryByRole('button', { name: 'Cancel' })).toBeNull());
     expect(screen.queryByRole('alert')).toBeNull();
-    expect(await buildButton()).toHaveProperty('disabled', false);
+    expect((await buildButton()).getAttribute('aria-disabled')).toBeNull();
   });
 });
 
@@ -533,7 +535,7 @@ describe('D10 Check again and the host events', () => {
     expect(alert.textContent).toContain('The credits could not be read: templates locked');
     // Nothing is judged without them: no "4 of 4", and Build stays off.
     expect(screen.queryByText('4 of 4')).toBeNull();
-    expect(await buildButton()).toHaveProperty('disabled', true);
+    expect((await buildButton()).getAttribute('aria-disabled')).toBe('true');
     fail = false;
     await userEvent.click(within(alert).getByRole('button', { name: 'Check again' }));
     expect(await screen.findByText('4 of 4')).toBeTruthy();

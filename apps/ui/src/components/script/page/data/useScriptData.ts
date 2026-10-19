@@ -194,6 +194,8 @@ export function useEntries(): EntriesView {
 }
 
 export type SpeakersView = ReadView<GuideDialogueCue[]> & {
+  /** Every cue the Story Bible found, for a page that draws the quotes itself. */
+  cues: GuideDialogueCue[];
   phrasesOf: (paragraph: Pick<ManuscriptParagraph, 'id' | 'chapterId'>) => select.Phrase[];
   unattributed: (chapterId: string) => number;
   /** The entries whose type can speak: the only ones a phrase can be attributed to. */
@@ -212,6 +214,7 @@ export function useSpeakers(): SpeakersView {
     const candidates = select.speakerCandidates(entries.entries, entries.types);
     return {
       ...view(cues, retry),
+      cues: list,
       phrasesOf: (paragraph: Pick<ManuscriptParagraph, 'id' | 'chapterId'>) => select.phrasesOf(list, candidates, paragraph),
       unattributed: (chapterId: string) => select.unattributed(list, candidates, chapterId),
       candidates,

@@ -34,6 +34,13 @@ export const editingStates: StateEntry[] = [
     state: 'word-menu-fx',
     description: 'Editing, right-click on four selected words with Add FX open - the word menu with its submenu of the DAW’s FX chains',
     ...POPUP_ANCHORED_AT_FIRST_WIDTH,
+    // The pointer rests on the Add FX row, which is what holds its submenu open: moved away, the submenu closes before the shot.
+    pointer: 'keep',
+  },
+  {
+    page: 'editing',
+    state: 'drawer-effects-inspector',
+    description: 'Editing, the Effects tab with two effects on words - the inspector with Previous and Next effect and Show in the DAW',
   },
   {
     page: 'editing',

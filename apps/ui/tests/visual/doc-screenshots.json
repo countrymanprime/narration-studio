@@ -4,7 +4,7 @@
     "state": "picker-empty",
     "viewport": "desktop",
     "docName": "project-picker",
-    "caption": "Choose your project - New project, the recent projects with Open and Remove, and Browse folders"
+    "caption": "Choose your project - New project, the pinned and recent projects with Open, Pin and Remove, and Browse folders"
   },
   {
     "page": "project",
@@ -12,6 +12,13 @@
     "viewport": "desktop",
     "docName": "project-picker-removed",
     "caption": "A removed recent project - the row is gone and the toast offers Undo"
+  },
+  {
+    "page": "project",
+    "state": "picker-daw-running",
+    "viewport": "desktop",
+    "docName": "project-picker-daw-running",
+    "caption": "REAPER is running with a project linked to a recent project - the bar above the list offers Open"
   },
   {
     "page": "production",
@@ -1104,6 +1111,13 @@
     "viewport": "desktop",
     "docName": "editing-drawer-effects-chains",
     "caption": "Editing - the Effects tab with a DAW that lists its chains: each has a Favourite button, and the favourites are listed first"
+  },
+  {
+    "page": "editing",
+    "state": "drawer-effects-inspector",
+    "viewport": "desktop",
+    "docName": "editing-drawer-effects-inspector",
+    "caption": "Editing - the Effects tab with two effects on words: the inspector with its Previous and Next arrows and Show in the DAW"
   },
   {
     "page": "proof",

@@ -464,7 +464,7 @@ describe('wailsClient', () => {
   });
 
   it('lists recent projects from the native binding', async () => {
-    const recents = [{ path: 'C:/Projects/Alice', name: 'Alice', lastOpened: '2026-09-10T12:00:00Z' }];
+    const recents = [{ path: 'C:/Projects/Alice', name: 'Alice', lastOpened: '2026-09-10T12:00:00Z', pinned: false }];
     const projectRecents = vi.fn().mockResolvedValue(JSON.stringify(recents));
     standInHost({ ProjectRecents: projectRecents });
 
@@ -523,12 +523,28 @@ describe('wailsClient', () => {
   });
 
   it('removes a recent project via the native binding and resolves with the updated list', async () => {
-    const remaining = [{ path: 'C:/Projects/Alice', name: 'Alice', lastOpened: '2026-09-10T12:00:00Z' }];
+    const remaining = [{ path: 'C:/Projects/Alice', name: 'Alice', lastOpened: '2026-09-10T12:00:00Z', pinned: false }];
     const removeRecentProject = vi.fn().mockResolvedValue(JSON.stringify(remaining));
     standInHost({ ProjectRemoveRecent: removeRecentProject });
 
     await expect(wailsClient.removeRecentProject('C:/Projects/Voltage-and-the-Undercroft')).resolves.toEqual(remaining);
     expect(removeRecentProject).toHaveBeenCalledWith('C:/Projects/Voltage-and-the-Undercroft');
+  });
+
+  it('pins a recent project via the native binding and resolves with the updated list', async () => {
+    const updated = [{ path: 'C:/Projects/Alice', name: 'Alice', lastOpened: '2026-09-10T12:00:00Z', pinned: true }];
+    const setPinned = vi.fn().mockResolvedValue(JSON.stringify(updated));
+    standInHost({ ProjectSetPinned: setPinned });
+
+    await expect(wailsClient.setProjectPinned('C:/Projects/Alice', true)).resolves.toEqual(updated);
+    expect(setPinned).toHaveBeenCalledWith('C:/Projects/Alice', true);
+  });
+
+  it('decodes the project the running DAW has open', async () => {
+    const running = { linked: true, path: 'C:/Projects/Alice', name: 'Alice' };
+    standInHost({ ProjectRunningDaw: vi.fn().mockResolvedValue(JSON.stringify(running)) });
+
+    await expect(wailsClient.projectRunningDaw()).resolves.toEqual(running);
   });
 
   it('decodes the Tracks discover, select, and list bindings', async () => {

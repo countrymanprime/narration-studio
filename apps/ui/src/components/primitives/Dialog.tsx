@@ -46,6 +46,9 @@ type DialogProps = {
   footer?: ReactNode;
   // Where focus returns on close when the element that had it at open is gone (the menu item that ran, then closed). Absent: the page's <main>.
   returnFocus?: () => HTMLElement | null;
+  // True: when the element that had focus is gone or was <body>, leave focus there on close instead of moving it into the page's <main>. For a question
+  // that interrupts a page where a stray Enter on the first control would do harm (the Booth's "Stop recording?").
+  stayOnBody?: boolean;
   children: ReactNode;
 } & (
   | { variant?: 'dialog'; description?: ReactNode }
@@ -83,6 +86,7 @@ export function Dialog({
   actionsAlign = 'between',
   footer,
   returnFocus,
+  stayOnBody = false,
   children,
 }: DialogProps) {
   // Both families share their parts; typing them as one keeps the wrapper a single shell.
@@ -101,6 +105,7 @@ export function Dialog({
   };
   const finalFocus = () => {
     if (opener?.isConnected && opener !== document.body) return opener;
+    if (stayOnBody && (!opener || opener === document.body)) return false;
     // The opener is gone (the click removed it, or one dialog replaced another): where the opener says, then the landmark.
     const target = returnFocus?.();
     if (target?.isConnected) return target;

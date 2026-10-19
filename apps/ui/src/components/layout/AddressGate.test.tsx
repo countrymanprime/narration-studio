@@ -156,6 +156,32 @@ describe('AddressGate', () => {
       expect(screen.queryByRole('alert')).toBeNull();
     });
 
+    it('draws the Booth title where the page is drawn, not hidden, and gives the Booth a way out while it checks', async () => {
+      checking('booth', '/booth?chapter=c9', '/booth');
+      const title = screen.getByRole('heading', { level: 1, name: 'Booth' });
+      expect(title.closest('.sr-only')).toBeNull();
+      expect(screen.getAllByRole('heading', { level: 1 })).toHaveLength(1);
+      await userEvent.click(screen.getByRole('button', { name: 'Go to Production' }));
+      expect(screen.getAllByTestId('where')[0]!.textContent).toBe('/');
+    });
+
+    it('leaves a checking Booth link with Escape, for the Script page, as a bad Booth link does', () => {
+      checking('booth', '/booth?chapter=c9', '/booth');
+      fireEvent.keyDown(document.body, { key: 'Escape', code: 'Escape' });
+      expect(screen.getAllByTestId('where')[0]!.textContent).toBe('/script');
+    });
+
+    it('leaves a checking pickup link with Escape, for Pickups', () => {
+      checking('booth', '/booth?chapter=c9&pickups=p1', '/booth');
+      fireEvent.keyDown(document.body, { key: 'Escape', code: 'Escape' });
+      expect(screen.getAllByTestId('where')[0]!.textContent).toBe('/pickups');
+    });
+
+    it('gives Proof and Editing no extra button while they check: the sidebar is their way out', () => {
+      checking('proof', '/proof?chapter=c9', '/proof');
+      expect(screen.queryByRole('button', { name: 'Go to Production' })).toBeNull();
+    });
+
     it('is replaced by the bad-address message, with its way out, when the fresh list still lacks the chapter', async () => {
       mount({ at: '/proof?chapter=c9', page: 'proof', route: '/proof' });
       await waitFor(() => expect(screen.getByRole('alert').textContent).toContain('not in this manuscript'));

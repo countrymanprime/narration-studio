@@ -14,7 +14,7 @@ import { CHANGE_HIGHLIGHT_CLASSES, useJustChanged } from '../primitives/changeHi
 import { NewProjectDialog } from './NewProjectDialog';
 import { recentWhen } from './recentWhen';
 import { DemoBanner } from '../layout/DemoBanner';
-import type { ProjectSwitchResult, RecentProject } from '../../types';
+import type { ProjectSwitchResult, RecentProject, RunningDawProject } from '../../types';
 
 // How long a removed recent project can be brought back. The host has no call that puts an entry back, so a removal is only sent to it when
 // this has passed (or the picker closes); until then the row is just hidden. Longer than the toast that offers the Undo, so the Undo is never
@@ -25,7 +25,7 @@ export const REMOVE_UNDO_MS = TOAST_INFO_MS + 1_000;
 // standalone launch (Start Menu shortcut, taskbar pin) with no REAPER-supplied
 // project. Distinct from StartupScreen, which only models host-connection
 // failure states before any bootstrap payload exists at all. Built to the Studio Next mock's
-// ProjectPicker.tsx, less what the host cannot back yet: pins, the taskbar jump list and the "REAPER is running" banner.
+// ProjectPicker.tsx, less the taskbar jump list preview, which the host does not expose.
 // `onCreated` runs when New project made a project (the app opens it on Script); opening or browsing to one leaves the page alone.
 // `onBack` is set when the picker was opened from the header's project name over a project that is already open: it draws a Back button that closes the picker and keeps that project.
 export function ProjectPicker({
@@ -41,6 +41,8 @@ export function ProjectPicker({
 }) {
   const api = useApi();
   const [recents, setRecents] = useState<RecentProject[]>([]);
+  // The recent project the running REAPER has open, when the host knows one; null draws no banner (a failed read draws none either).
+  const [running, setRunning] = useState<RunningDawProject | null>(null);
   const [recentsFailed, setRecentsFailed] = useState(false);
   const [reason, setReason] = useState('');
   const [busy, setBusy] = useState(false);
@@ -60,6 +62,14 @@ export function ProjectPicker({
       })
       .catch(() => {
         if (active) setRecentsFailed(true);
+      });
+    void api
+      .projectRunningDaw()
+      .then((next) => {
+        if (active && next.linked) setRunning(next);
+      })
+      .catch(() => {
+        if (active) setRunning(null);
       });
     return () => {
       active = false;
@@ -88,7 +98,16 @@ export function ProjectPicker({
 
   const openRecent = (entry: RecentProject) => runAction(async () => applyResult(await api.switchProject(entry.path, entry.name)));
 
-  const visible = recents.filter((entry) => !hidden.includes(entry.path));
+  // Pinned projects first, each group in the host's most-recent-first order.
+  const visible = [...recents.filter((entry) => entry.pinned), ...recents.filter((entry) => !entry.pinned)].filter((entry) => !hidden.includes(entry.path));
+  const togglePin = async (entry: RecentProject) => {
+    try {
+      setRecents(await api.setProjectPinned(entry.path, !entry.pinned));
+    } catch (error) {
+      setReason(describeApiError(error));
+    }
+  };
+
   const removeButtonRefs = useRef(new Map<string, HTMLButtonElement>());
   const listRef = useRef<HTMLDivElement>(null);
   const pendingFocusRef = useRef<string | null | undefined>(undefined);
@@ -200,8 +219,26 @@ export function ProjectPicker({
               {reason}
             </p>
           )}
+          {running && (
+            <div
+              className="flex flex-wrap items-center gap-x-4 gap-y-2 rounded-[var(--radius-button)] border border-[var(--accent)] bg-[var(--accent-soft)] px-4 py-3 text-sm"
+              role="status"
+            >
+              <span className="min-w-0 flex-1">
+                REAPER is running with a project linked to <b>{running.name}</b>.
+              </span>
+              <Button
+                variant="secondary"
+                aria-label={`Open ${running.name}`}
+                onClick={() => void openRecent({ path: running.path, name: running.name, lastOpened: '', pinned: false })}
+                disabled={busy}
+              >
+                Open
+              </Button>
+            </div>
+          )}
           <Panel
-            title="Recent projects"
+            title="Pinned and recent"
             flush
             actions={
               <TooltipTarget text="Browse folders…">
@@ -246,6 +283,12 @@ export function ProjectPicker({
                       <Button variant="secondary" aria-label={`Open ${entry.name}`} onClick={() => void openRecent(entry)} disabled={busy}>
                         Open
                       </Button>
+                      <IconButton
+                        action={entry.pinned ? 'unpin' : 'pin'}
+                        label={`${entry.pinned ? 'Unpin' : 'Pin'} ${entry.name}`}
+                        aria-pressed={entry.pinned}
+                        onClick={() => void togglePin(entry)}
+                      />
                       <IconButton
                         ref={(node) => {
                           if (node) removeButtonRefs.current.set(entry.path, node);

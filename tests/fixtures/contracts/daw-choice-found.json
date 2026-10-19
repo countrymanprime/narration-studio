@@ -6,7 +6,7 @@
     "Book.rpp"
   ],
   "hasProject": true,
-  "launcherAutoStart": false,
+  "launcherAutoStart": true,
   "linkedFile": null,
   "options": [
     {

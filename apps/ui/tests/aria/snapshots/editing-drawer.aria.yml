@@ -9,10 +9,11 @@
     - tab /^Clean up · \d+$/ [selected]
     - tab /^Effects · \d+$/
   - tabpanel /^Clean up/:
-    - region "Found in this chapter"
-    - region "Retries"
-    - region "Clean up findings":
-      - group "Kind of finding"
-      - group "Strength"
-      - button "Preview"
-      - button /^Apply to \d+ selected$/
+    - group "Clean up":
+      - region "Found in this chapter"
+      - region "Retries"
+      - region "Clean up findings":
+        - group "Kind of finding"
+        - group "Strength"
+        - button "Preview"
+        - button /^Apply to \d+ selected$/

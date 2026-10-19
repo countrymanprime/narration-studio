@@ -1,10 +1,19 @@
 // The golden payloads for projects and the DAW link: which schema owns each file in tests/fixtures/contracts/ (see index.ts).
 import type { z } from 'zod';
-import { dawLaunchResultSchema, dawLinkResultSchema, projectDefaultLocationSchema, projectSwitchResultSchema, recentProjectsSchema } from '../schemas/project';
+import {
+  dawLaunchResultSchema,
+  dawLinkResultSchema,
+  projectDefaultLocationSchema,
+  projectSwitchResultSchema,
+  recentProjectsSchema,
+  runningDawProjectSchema,
+} from '../schemas/project';
 
 export const projectGoldens: Record<string, z.ZodType> = {
   'project-recents.json': recentProjectsSchema,
   'project-recents-empty.json': recentProjectsSchema,
+  'project-running-daw.json': runningDawProjectSchema,
+  'project-running-daw-none.json': runningDawProjectSchema,
   'project-switch-attached.json': projectSwitchResultSchema,
   'project-switch-refused.json': projectSwitchResultSchema,
   'project-default-location.json': projectDefaultLocationSchema,

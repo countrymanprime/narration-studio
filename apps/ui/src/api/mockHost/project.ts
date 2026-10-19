@@ -45,8 +45,8 @@ export function createProjectMock(
     },
   ];
   let recentProjects: RecentProject[] = [
-    { path: 'C:\\Projects\\Alice-in-Wonderland', name: 'Alice’s Adventures in Wonderland', lastOpened: '2026-09-15T09:00:00Z' },
-    { path: 'C:\\Projects\\Voltage-and-the-Undercroft', name: 'Voltage and the Undercroft', lastOpened: '2026-09-10T18:30:00Z' },
+    { path: 'C:\\Projects\\Alice-in-Wonderland', name: 'Alice’s Adventures in Wonderland', lastOpened: '2026-09-15T09:00:00Z', pinned: false },
+    { path: 'C:\\Projects\\Voltage-and-the-Undercroft', name: 'Voltage and the Undercroft', lastOpened: '2026-09-10T18:30:00Z', pinned: false },
   ];
   const projectAttachSubscribers = new Set<(state: ProjectAttachState) => void>();
   const attachProject = (path: string, name?: string) => {
@@ -73,6 +73,14 @@ export function createProjectMock(
     removeRecentProject: async (path) => {
       recentProjects = recentProjects.filter((entry) => entry.path.toLowerCase() !== path.toLowerCase());
       return wireClone(recentProjects);
+    },
+    setProjectPinned: async (path, pinned) => {
+      recentProjects = recentProjects.map((entry) => (entry.path.toLowerCase() === path.toLowerCase() ? { ...entry, pinned } : entry));
+      return wireClone(recentProjects);
+    },
+    projectRunningDaw: async () => {
+      const running = initial.dawRunningProject ? recentProjects[1] : undefined;
+      return running ? { linked: true, path: running.path, name: running.name } : { linked: false, path: '', name: '' };
     },
     linkDawFile: async () => {
       dawFileLinked = true;

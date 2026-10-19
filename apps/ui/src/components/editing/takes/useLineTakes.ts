@@ -13,7 +13,7 @@ export interface LineTakesState {
   handlers: Required<Pick<EditingKeyHandlers, 'takes' | 'keep'>>;
 }
 
-const oneTake = 'This line has one take.';
+const noTakes = 'This line has no takes.';
 
 /**
  * The open/closed state of a line's takes and the take the keys are on. T opens the takes and puts the keys on the active take; each T after moves
@@ -26,13 +26,18 @@ export function useLineTakes(passage: LinePassage | null, keep: (passage: LinePa
 
   const walk = useCallback(
     (d: 1 | -1) => {
-      if (takes.length < 2) {
-        overlay.toast(oneTake);
+      if (takes.length < 1) {
+        overlay.toast(noTakes);
         return;
       }
       if (!open) {
         setOpen(true);
         setOnTake((takes.find((t) => t.active) ?? takes[0]).id);
+        return;
+      }
+      // One take has no other to move to: T folds the takes again, as it does the other way round.
+      if (takes.length === 1) {
+        setOpen(false);
         return;
       }
       const at = takes.findIndex((t) => t.id === onTake);

@@ -64,6 +64,7 @@ import {
   faArrowsLeftRightToLine,
   faScissors,
   faSliders,
+  faTimeline,
   faStop,
   faSun,
   faTableColumns,
@@ -285,6 +286,8 @@ export const CATALOG = {
   voiceSample: action(faCommentDots, 'voice sample', 'Mark a voice sample', 'V'),
   // The mock's wave is the Proof page's icon (audit rule 1), so the takes of a line wear the layers.
   showTakes: action(faLayerGroup, 'takes', 'Show the takes of this line', 'T'),
+  // The mock's wave is the Proof page's icon (audit rule 1), so the strip wears the timeline.
+  timelineStrip: action(faTimeline, 'timeline', 'Show the timeline strip', 'S'),
 
   // No unambiguous icon: text (audit rule 6).
   cancel: text('cancel', 'Cancel'),

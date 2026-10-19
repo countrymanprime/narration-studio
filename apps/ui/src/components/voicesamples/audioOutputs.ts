@@ -3,11 +3,11 @@
 // id: the id is the webview's own and changes when its profile is reset, the name is what the narrator chose.
 
 /** One named output of this computer. */
-export type AudioOutput = { id: string; label: string };
+type AudioOutput = { id: string; label: string };
 
 export type OutputListing = { status: 'ok'; outputs: AudioOutput[] } | { status: 'unavailable'; message: string };
 
-export const OUTPUTS_UNAVAILABLE = "This computer's audio system would not list its outputs, so the choice is off. Voice samples play on the system default.";
+const OUTPUTS_UNAVAILABLE = "This computer's audio system would not list its outputs, so the choice is off. Voice samples play on the system default.";
 
 type Sinkable = HTMLMediaElement & { setSinkId?: (id: string) => Promise<void> };
 

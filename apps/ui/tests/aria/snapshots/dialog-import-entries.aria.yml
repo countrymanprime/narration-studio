@@ -1,5 +1,7 @@
 # The Story Bible's Import entries (SN-X522): a modal dialog with its file choice, the paste box and Add, which stays off until
 # something is read. The page behind it is aria-hidden; the live regions stay exposed (see dialog-mark-composer.aria.yml).
+# The overlay opens it headerless (the shell's own title is screen-reader only, and it has no Close), so the dialog's own header
+# draws the eyebrow, the visible title and Cancel (#2052).
 - /children: equal
 - main
 - status
@@ -9,12 +11,13 @@
 - status
 - dialog "Import entries":
   - heading "Import entries" [level=2]
-  - button "Close"
+  - text: Story Bible
+  - heading "Import entries" [level=2]
   - paragraph: A CSV or JSON file, or a JSON blob from any LLM you ran the manuscript through.
+  - button "Cancel"
   - button "Choose a file…"
   - button "Copy the prompt for your own LLM"
   - button "Show the format example"
   - textbox "Paste JSON or CSV":
     - /placeholder: Or paste JSON (or CSV) here
-  - button "Cancel"
   - button "Add to the Story Bible" [disabled]

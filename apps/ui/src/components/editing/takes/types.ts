@@ -13,6 +13,8 @@ export interface LineTake {
   sourceFile: string;
   sourceStart: number;
   sourceLength: number;
+  /** Where the take begins in the project, in seconds, when the DAW's item for it is known. */
+  start?: number;
   /** What the take said, as the transcript has it; the Diff against the script is drawn only when it is known. */
   said?: string;
   evidence?: TakeEvidenceData;

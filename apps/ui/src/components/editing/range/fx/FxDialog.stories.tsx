@@ -27,7 +27,17 @@ const list = {
 };
 
 /** The question as the overlay draws it: the Dialog primitive with the dialog's own body and buttons. */
-function Question({ plan, over = null }: { plan: Acting; over?: string | null }) {
+function Question({
+  plan,
+  over = null,
+  compareReason = '',
+  onCompare = fn(),
+}: {
+  plan: Acting;
+  over?: string | null;
+  compareReason?: string;
+  onCompare?: () => void;
+}) {
   return (
     <Dialog dismissOnOutsidePress={false} title={fxTitle(2)} onClose={fn()} actions={null}>
       <FxDialog
@@ -40,14 +50,16 @@ function Question({ plan, over = null }: { plan: Acting; over?: string | null })
         locator={locator}
         snap={snap}
         overOf={() => (over ? { overlaps: [], cap: over, text: over } : null)}
-        compareReason={() => ''}
-        onCompare={fn()}
+        compareReason={() => compareReason}
+        onCompare={onCompare}
         onCancel={fn()}
         onConfirm={fn()}
       />
     </Dialog>
   );
 }
+
+const abPressed = fn();
 
 const meta = { title: 'Editing/FxDialog', parameters: { layout: 'fullscreen' } } satisfies Meta;
 export default meta;
@@ -63,6 +75,29 @@ export const Preview: Story = {
     await expect(within(dialog).getByText(/one undo step in REAPER/)).toBeTruthy();
     await userEvent.selectOptions(within(dialog).getByRole('combobox', { name: 'Effect' }), 'Vocal Chain/Warmth.RfxChain');
     await expect(within(dialog).getByText(/Piece 2 · Vocal Chain\/Warmth\.RfxChain/)).toBeTruthy();
+  },
+};
+
+// A/B hears the words without and with the chain once the question has its snapped ends, and asks the DAW when pressed.
+export const AbOn: Story = {
+  render: () => <Question plan={{ kind: 'daw', dawName: 'REAPER' }} onCompare={abPressed} />,
+  play: async () => {
+    const dialog = await screen.findByRole('dialog', { name: 'Add FX to 2 words?' });
+    const ab = within(dialog).getByRole('button', { name: /A\/B/ });
+    await waitFor(() => expect(ab).toBeEnabled());
+    await userEvent.click(ab);
+    await expect(abPressed).toHaveBeenCalled();
+  },
+};
+
+// A chain the DAW cannot compare yet: A/B is off and the reason sits beside it, read as its description.
+export const AbOff: Story = {
+  render: () => <Question plan={{ kind: 'daw', dawName: 'REAPER' }} compareReason="Add the effect first, then compare it on the Effects tab." />,
+  play: async () => {
+    const dialog = await screen.findByRole('dialog', { name: 'Add FX to 2 words?' });
+    const ab = within(dialog).getByRole('button', { name: /A\/B/ });
+    await expect(ab).toBeDisabled();
+    await expect(ab).toHaveAccessibleDescription('Add the effect first, then compare it on the Effects tab.');
   },
 };
 

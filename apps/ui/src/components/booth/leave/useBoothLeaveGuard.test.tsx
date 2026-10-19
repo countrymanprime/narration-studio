@@ -40,6 +40,7 @@ describe('useBoothLeaveGuard', () => {
         body: 'Audacity is recording. Leaving the Booth stops it.',
         confirmLabel: 'Stop and leave',
         cancelLabel: 'Keep recording',
+        safeDefault: true,
       },
     });
   });

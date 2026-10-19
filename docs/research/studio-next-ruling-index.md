@@ -37,7 +37,7 @@ Regenerate with `node scripts/ci/studio-next-rulings.mjs --write`: it rewrites t
 | PR-2 | Production page rulings > Agreed (build later) | agreed | Deadline tone: use days left. | SNP-8 | is neutral beyond a week, a warning at a week or less, danger once past, success when finished |
 | PR-3 | Production page rulings > Agreed (build later) | agreed | Plan chart: keep, mostly depends on getting timing right. | SNP-8 | chart-plan-actual-projection |
 | PR-4 | Production page rulings > Agreed (build later) | agreed | Pipeline cells open the stage. | SNP-8 | cells-go-to-their-stage-and-chapter |
-| PR-5 | Production page rulings > Agreed (build later) | agreed | Next up ranking (adopt repo group order as tie-break). | SNP-8 | breaks a tie of hours by group, then by the least advanced stage |
+| PR-5 | Production page rulings > Agreed (build later) | agreed | Next up ranking (adopt repo group order as tie-break). | SNP-8 | lists the most work-hours at risk first, then an item with no hours by group and stage |
 | PR-6 | Production page rulings > Agreed (build later) | agreed | This week card (drop invented numbers; source them). | SNP-8 | week-figures-never-invent-a-number |
 | PR-7 | Production page rulings > Agreed (build later) | agreed | Delivery date + contracted amount (agreed "I think"). | SNP-8 | changes with the date field, as one journal entry, and the header reads the new date |
 | PR-8 | Production page rulings > Agreed (build later) | agreed | Recording check (stale / "as of last save"). | SNP-8 | TestAManuscriptTextChangeMakesTheResultStale |

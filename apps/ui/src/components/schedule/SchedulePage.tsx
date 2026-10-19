@@ -23,7 +23,7 @@ import { WPH } from './estimates';
 import { calc } from './progress';
 import { useScheduleReading } from './useScheduleReading';
 import { saveMilestonesCommand, setAmountCommand, setDueDateCommand, setPaymentCommand } from './scheduleCommands';
-import { VerdictPill } from './VerdictPill';
+import { VerdictPill, verdictLabel } from './VerdictPill';
 import { WorkedOut } from './WorkedOut';
 
 /** How long a write waits for the one before it to be answered, before it goes ahead anyway. */
@@ -189,7 +189,14 @@ export function SchedulePage({ journal, today, hasManuscript = true, onImport }:
       overlay.toast(problem, { tone: 'error', topic: REFUSAL });
       return false;
     }
-    return (await run((latest) => setDueDateCommand(production, latest, text.trim()))) === undefined;
+    const date = text.trim();
+    const refusal = await run((latest) => setDueDateCommand(production, latest, date));
+    if (refusal !== undefined) return false;
+    // The header and the pill change silently: say the saved date and what it makes the verdict.
+    const saved = date === '' ? null : parseIso(date);
+    const verdict = verdictLabel(calc(chapters, day, saved, openLines?.length ?? 0), day, saved);
+    overlay.announce(saved ? `Due date saved: ${fmtDY(saved, day)}. ${verdict}.` : `Due date cleared. ${verdict}.`);
+    return true;
   };
 
   return (

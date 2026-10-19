@@ -48,7 +48,7 @@ type Result struct {
 }
 
 // ErrBadTime is the answer for a negative or non-finite time.
-var ErrBadTime = errors.New("a cut point is a finite time of at least 0 seconds")
+var ErrBadTime = errors.New("a cut point must be a finite time of 0 seconds or later")
 
 // Snap answers sourceTime moved to the nearest zero crossing of path's audio within MaxShift, asking decoder for
 // only that window. A crossing is a sign change between two adjacent nonzero frames; the cut lands
