@@ -34,6 +34,8 @@ export const editingStates: StateEntry[] = [
     state: 'word-menu-fx',
     description: 'Editing, the word menu with its Add FX submenu open - the DAW’s FX chains beside the row, Mark as and Remove in the menu',
     ...POPUP_ANCHORED_AT_FIRST_WIDTH,
+    // The pointer rests on the Add FX row, which is what holds its submenu open.
+    pointer: 'keep',
   },
   {
     page: 'editing',

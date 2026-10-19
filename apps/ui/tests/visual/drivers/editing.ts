@@ -45,10 +45,13 @@ export const editingDrivers: Record<string, Driver> = {
     await selectWords(page);
     await page.locator('[data-k="p-1:2"]').click({ button: 'right' });
     await page.getByRole('menuitem', { name: /^Add FX/ }).click();
-    await page
-      .getByRole('menuitem', { name: /RfxChain$/ })
-      .first()
-      .waitFor();
+    const chain = page.getByRole('menuitem', { name: /RfxChain$/ }).first();
+    await chain.waitFor();
+    // The submenu fades in: wait until it is fully drawn before the page is captured.
+    await chain.evaluate(async (el) => {
+      const popup = el.closest('[role="menu"]');
+      await Promise.all(popup?.getAnimations().map((a) => a.finished) ?? []);
+    });
   },
   'drawer-effects-inspector': async (page) => {
     // Two effects on different words, so the inspector has a neighbour either way; the first is picked.
@@ -58,7 +61,12 @@ export const editingDrivers: Record<string, Driver> = {
     await page.getByRole('button', { name: 'Clean up and effects' }).click();
     await page.locator('#drawer').waitFor();
     await page.getByRole('tab', { name: /^Effects/ }).click();
-    await page.getByRole('button', { name: 'Next effect' }).waitFor();
+    const next = page.getByRole('button', { name: 'Next effect' });
+    await next.waitFor();
+    // The two "Added …" toasts cover the panel; the inspector is scrolled up under its header.
+    const dismiss = page.getByRole('button', { name: 'Dismiss message' });
+    while (await dismiss.count()) await dismiss.first().click();
+    await page.getByRole('region', { name: 'Effect', exact: true }).evaluate((el) => el.scrollIntoView({ block: 'start' }));
   },
   'fx-dialog': async (page) => {
     await openEditing(page, EDITS);

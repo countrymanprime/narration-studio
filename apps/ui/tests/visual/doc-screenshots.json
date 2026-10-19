@@ -1044,6 +1044,13 @@
   },
   {
     "page": "editing",
+    "state": "word-menu-fx",
+    "viewport": "desktop",
+    "docName": "editing-word-menu-fx",
+    "caption": "Editing - the word menu with Add FX open: the DAW's chains beside the menu"
+  },
+  {
+    "page": "editing",
     "state": "suggestion-step",
     "viewport": "desktop",
     "docName": "editing-suggestion-step",
@@ -1062,6 +1069,13 @@
     "viewport": "desktop",
     "docName": "editing-drawer-effects-chains",
     "caption": "Editing - the Effects tab with a DAW that lists its chains: each has a Favourite button, and the favourites are listed first"
+  },
+  {
+    "page": "editing",
+    "state": "drawer-effects-inspector",
+    "viewport": "desktop",
+    "docName": "editing-drawer-effects-inspector",
+    "caption": "Editing - the Effects tab with two effects on words: the inspector with its Previous and Next arrows and Show in the DAW"
   },
   {
     "page": "proof",

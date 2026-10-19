@@ -69,7 +69,7 @@ line** (on a line with more than one take) and **Delete**; the bar offers the sa
 audio** in full on a wide window. **Delete**, **Mute** and **Add FX** stay on the bar but are off while the DAW cannot make
 the change (they are Experimental and start switched off in [Settings](settings.md)); a line above the bar then says so
 and why, and the same sentence is in each button's hint. The line's audio shows under it while the cursor is on it. Right-click a word for its
-menu: play the selection, copy, delete or mute the words, add or remove an effect, **Mark as voice sample…**, mark them for a pickup, add a note,
+menu: play the selection, copy, delete or mute the words, add an effect (**Add FX** opens your chains beside it) or remove one, **Mark as** (the kinds open beside it), **Mark as voice sample…**, mark them for a pickup, add a note,
 show or keep the line's takes, and **Split into takes** on a line whose one take reads it twice.
 
 With a screen reader, the script is one read-only text box. Each time the cursor stops, the screen reader says the word it is on
@@ -103,6 +103,16 @@ effect are underlined and end with an effects marker: click it to select the wor
 menu offers **Remove** with the chain's name too, and the drawer's Effects tab lists them.
 
 ![Editing - Add FX on four selected words: the DAW's effect chains](../../images/ui/editing-fx-menu.webp)
+
+Right-click the words and **Add FX** opens the same chains in a submenu beside the menu (click it, press Enter or the right arrow,
+or rest the pointer on it; the left arrow closes it). Choosing one opens the question, not the DAW. When the DAW cannot add an
+effect to these words, **Add FX** is off in the menu and says why under it.
+
+![Editing - the word menu with Add FX open: the DAW's chains beside the menu](../../images/ui/editing-word-menu-fx.webp)
+
+The question has an **A/B** button that plays the words without the effect and then with it. The DAW can only compare an
+effect that is already on the words, so for a chain you have not added yet **A/B** is off and says to add it first; with the chain
+already on the words it plays them in the DAW and stops when the question closes.
 
 The Effects tab shows how much of the chapter effects cover against a cap, 10% unless you change it in the tab's **Cap**
 field (a whole percent from 1 to 100, kept for the project). Over the cap the tab warns, and Add effect asks again
@@ -177,6 +187,13 @@ and one lane per take on one time axis. On a window 1360 px wide or more it is a
 ![Editing - the Clean up and effects panel on Effects: no effects yet, and Add effect waiting for a selection](../../images/ui/editing-drawer-effects.webp)
 
 ![Editing - the Effects tab with a DAW that lists its chains: each has a Favourite button, and the favourites are listed first](../../images/ui/editing-drawer-effects-chains.webp)
+
+Pick an effect in the list and its inspector shows the chain, the words, the time and its settings. The up and down arrows beside
+its name go to the previous and next effect (the first has no previous, the last no next). **Show in the DAW** (the arrow-out
+button under **Compare**) moves the DAW to the effect's first word and says where it went, or is off with the reason when the DAW cannot
+move to a place in the project.
+
+![Editing - the Effects tab with two effects on words: the inspector with its Previous and Next arrows and Show in the DAW](../../images/ui/editing-drawer-effects-inspector.webp)
 
 ![Editing - the Timeline strip under the text: the waveform and takes of the line the cursor is on](../../images/ui/editing-drawer-timeline.webp)
 

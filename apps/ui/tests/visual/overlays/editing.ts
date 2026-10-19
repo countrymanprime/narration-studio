@@ -17,16 +17,7 @@ export const editingCases: OverlayCase[] = [
       await page.locator('[role="menu"]:visible').last().waitFor({ timeout: 2000 });
     },
   },
-  {
-    name: 'Add FX submenu of the word menu',
-    kind: 'context-menu',
-    viewports: ({ height }) => height >= 500,
-    open: async (page) => {
-      await page.locator('[data-k="p-1:1"]').click({ button: 'right' });
-      await page.getByRole('menuitem', { name: /^Add FX/ }).click();
-      await page.locator('[role="menu"]:visible').nth(1).waitFor({ timeout: 2000 });
-    },
-  },
+  fromState('editing', 'word-menu-fx', 'menu'),
   fromState('editing', 'fx-menu', 'menu'),
   fromState('editing', 'fx-dialog'),
   fromState('editing', 'voice-sample-dialog'),
