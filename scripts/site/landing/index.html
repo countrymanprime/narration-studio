@@ -3,15 +3,15 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<title>Narration Studio: professional studio software, free</title>
-<meta name="description" content="Professional studio software for audiobook narrators, without the commercial pricing. Free software that imports your manuscript, follows along as you read, marks every skipped or added word and checks your files against the platform's delivery rules.">
+<title>Narration Studio: All pro. All free.</title>
+<meta name="description" content="Studio-grade narration software for audiobook narrators, free: no price, no trial, no watermark. It imports your manuscript, follows along as you read, marks every skipped or added word and checks your files against the platform's delivery rules.">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="Narration Studio">
-<meta property="og:title" content="Narration Studio: professional studio software, free">
-<meta property="og:description" content="Professional studio software for audiobook narrators, without the commercial pricing. Free software that imports your manuscript, follows along as you read, marks every skipped or added word and checks your files against the platform's delivery rules.">
+<meta property="og:title" content="Narration Studio: All pro. All free.">
+<meta property="og:description" content="Studio-grade narration software for audiobook narrators, free: no price, no trial, no watermark. It imports your manuscript, follows along as you read, marks every skipped or added word and checks your files against the platform's delivery rules.">
 <meta name="twitter:card" content="summary">
-<meta name="twitter:title" content="Narration Studio: professional studio software, free">
-<meta name="twitter:description" content="Professional studio software for audiobook narrators, without the commercial pricing. Free software that imports your manuscript, follows along as you read, marks every skipped or added word and checks your files against the platform's delivery rules.">
+<meta name="twitter:title" content="Narration Studio: All pro. All free.">
+<meta name="twitter:description" content="Studio-grade narration software for audiobook narrators, free: no price, no trial, no watermark. It imports your manuscript, follows along as you read, marks every skipped or added word and checks your files against the platform's delivery rules.">
 <!-- The landing page: the Product view of the public-site mock (docs/research/mockups/public-site/index.html). The shell (fonts, theme,
      top bar, footer, search) is put in at the shell markers by scripts/site/shell.mjs. -->
 <!--shell:head-->
@@ -28,11 +28,12 @@ section.block{padding-block:72px 0}
 .hero{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.05fr);gap:48px;align-items:center;padding-block:64px 8px}
 .hero h1{font:700 clamp(52px,8.4vw,104px)/.88 var(--display);text-transform:uppercase;letter-spacing:.003em}
 .hero h1 span{display:block;animation:rise .8s cubic-bezier(.2,.7,.2,1) both}
-.hero h1 span:nth-child(2){animation-delay:.08s}.hero h1 span:nth-child(3){animation-delay:.16s;color:var(--accent)}
+.hero h1 span:nth-child(2){animation-delay:.08s;color:var(--accent)}
 @keyframes rise{from{transform:translateY(22px);opacity:.35}}
 .hero .sub{margin-top:22px;font-size:18px;color:var(--text-muted);max-width:520px}
 .hero .cta{display:flex;flex-wrap:wrap;gap:12px;margin-top:28px}
 .hero .facts{margin-top:22px;font:400 12.5px/1.6 var(--mono);color:var(--text-muted);display:flex;flex-wrap:wrap;gap:6px 18px}
+.hero .facts+.facts{margin-top:8px}
 .hero .facts span::before{content:"";display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--ok);margin-right:8px;vertical-align:1px}
 .stage{position:relative}
 .stage::before{content:"";position:absolute;inset:-24px -16px -16px 24px;background:repeating-linear-gradient(90deg,var(--border) 0 1px,transparent 1px 28px);opacity:.7;border-radius:14px;z-index:0;mask-image:linear-gradient(135deg,transparent 15%,#000 80%)}
@@ -142,12 +143,13 @@ section.block{padding-block:72px 0}
   <section class="hero">
     <div>
       <div class="eyebrow">For audiobook narrators · Windows</div>
-      <h1 style="margin-top:16px"><span>Professional</span> <span>Studio Software</span> <span>without the commercial pricing</span></h1>
-      <p class="sub">Studio-quality tools for audiobook narrators, free to download and use. Narration Studio imports your manuscript, follows along as you read, listens to the recording with a local Whisper model and marks every skipped or added word. Then it checks your files against the platform's delivery rules.</p>
+      <h1 style="margin-top:16px"><span>Studio-grade.</span> <span>Not studio-priced.</span></h1>
+      <p class="sub">Studio-quality tools for audiobook narrators, free to download and use. Narration Studio imports your manuscript, follows along as you read, listens to the recording with a local Whisper model and marks every skipped or added word. Then it checks your files against the platform's delivery rules. Free software, built for narrators.</p>
       <div class="cta">
         <a class="btn primary lg" href="https://github.com/countrymanprime/narration-utils/releases" target="_blank" rel="noopener">Download for Windows</a>
         <a class="btn lg" href="demo/index.html">Try the live demo</a>
       </div>
+      <div class="facts"><span>No watermark. No trial. No price.</span></div>
       <div class="facts"><span>Windows x64</span><span>Audio stays on your machine</span><span>Works with your DAW</span></div>
     </div>
     <div class="stage">
@@ -167,7 +169,7 @@ section.block{padding-block:72px 0}
   <div class="stats reveal">
     <div><b data-count="3">3</b><span>on-device tools: Story Bible, Proof and Teleprompter</span></div>
     <div><b data-count="11">11</b><span>pages, from Production to Delivery</span></div>
-    <div><b>Free</b><span>to download and use, under AGPL-3.0-or-later</span></div>
+    <div><b>$0</b><span>to download, use or keep, under AGPL-3.0-or-later</span></div>
     <div><b data-count="0">0</b><span>audio files uploaded to anyone</span></div>
   </div>
 
@@ -202,7 +204,7 @@ section.block{padding-block:72px 0}
       <div>
         <div class="eyebrow">Install on Windows</div>
         <h2 class="display" style="font-size:clamp(40px,5vw,60px);text-transform:uppercase;margin:12px 0 14px">Four minutes to a first project</h2>
-        <p style="color:var(--text-muted);max-width:44ch">Windows x64 only for now. The installer is per-user, so it asks for no administrator rights.</p>
+        <p style="color:var(--text-muted);max-width:44ch">Studio software that costs nothing but your time. Windows x64 only for now. The installer is per-user, so it asks for no administrator rights.</p>
         <div style="display:flex;gap:12px;flex-wrap:wrap;margin-top:22px"><a class="btn primary lg" href="https://github.com/countrymanprime/narration-utils/releases" target="_blank" rel="noopener">Get the latest release</a><a class="btn lg" href="docs/getting-started.html">Setup guide</a></div>
       </div>
       <ol>

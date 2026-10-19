@@ -30,10 +30,22 @@ function watchRequests(page: Page): { outside: string[]; failed: string[]; error
   return seen;
 }
 
+test('the landing page carries the free-software tagline in its title, social tags, trust line and stats', async ({ page }) => {
+  await page.goto('./');
+  const title = 'Narration Studio: All pro. All free.';
+  await expect(page).toHaveTitle(title);
+  for (const key of ['og:title', 'twitter:title']) {
+    await expect(page.locator(`meta[property="${key}"], meta[name="${key}"]`)).toHaveAttribute('content', title);
+  }
+  await expect(page.getByText('No watermark. No trial. No price.')).toBeVisible();
+  await expect(page.getByText('$0', { exact: true })).toBeVisible();
+  await expect(page.getByText('Studio software that costs nothing but your time.')).toBeVisible();
+});
+
 test('the landing page links the demo by a relative address and loads nothing from outside the site', async ({ page }) => {
   const seen = watchRequests(page);
   await page.goto('./');
-  await expect(page.getByRole('heading', { level: 1 })).toContainText('Professional Studio Software');
+  await expect(page.getByRole('heading', { level: 1 })).toHaveText('Studio-grade. Not studio-priced.');
   await expect(page.getByRole('link', { name: 'Try the live demo' })).toHaveAttribute('href', 'demo/index.html');
   expect(seen).toEqual({ outside: [], failed: [], errors: [] });
 });
@@ -169,7 +181,7 @@ test('Storybook opens from the landing page and from the demo, and renders a sto
   await expect(page.getByRole('link', { name: 'Narration Studio' }).or(page.locator('#storybook-explorer-tree'))).toBeVisible();
   await page.goto('demo/index.html#/proof');
   await page.getByRole('link', { name: 'Site' }).click();
-  await expect(page.getByRole('heading', { level: 1 })).toContainText('Professional Studio Software');
+  await expect(page.getByRole('heading', { level: 1 })).toHaveText('Studio-grade. Not studio-priced.');
   expect(seen).toEqual({ outside: [], failed: [], errors: [] });
 });
 
@@ -205,7 +217,7 @@ test('the demo and the landing page each run from one file inside a sandboxed fr
       await expect(frame.getByRole('button', { name: /^needs pickup/i }).first()).toBeVisible();
       await expect(frame.getByRole('button', { name: /^Simulated DAW/ })).toBeVisible();
     } else {
-      await expect(frame.getByRole('heading', { level: 1 })).toContainText('Professional Studio Software');
+      await expect(frame.getByRole('heading', { level: 1 })).toHaveText('Studio-grade. Not studio-priced.');
     }
     expect(requests.filter((url) => url !== own && !url.startsWith('data:'))).toEqual([]);
     expect(errors).toEqual([]);
