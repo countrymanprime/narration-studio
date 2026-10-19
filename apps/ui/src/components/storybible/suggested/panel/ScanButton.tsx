@@ -1,3 +1,4 @@
+import { useEffect, useRef } from 'react';
 import { TooltipTarget } from '../../../primitives/Tooltip';
 import { IconButton } from '../../../primitives/IconButton';
 import { ProgressBar } from '../../../primitives/ProgressBar';
@@ -10,13 +11,27 @@ import type { ExtractionScan } from './useSuggestions';
  */
 export function ScanButton({ scan }: { scan: ExtractionScan }) {
   const { running, starting } = scan;
-  if (running)
-    return (
-      <TooltipTarget text="Cancel scan">
-        <IconButton action="close" label="Cancel scan" onClick={() => void scan.cancel()} />
-      </TooltipTarget>
-    );
-  return <IconButton action="sourceAuto" label="Scan the manuscript for suggestions" pending={starting} onClick={() => void scan.start()} />;
+  const slot = useRef<HTMLSpanElement>(null);
+  const wasRunning = useRef(running);
+  // The two buttons are different elements, so the one under the keyboard goes when the scan starts or ends: hand focus to the one that
+  // replaces it. Only when focus was lost (the narrator may have moved on), and never on arrival.
+  useEffect(() => {
+    if (running === wasRunning.current) return;
+    wasRunning.current = running;
+    if (document.activeElement && document.activeElement !== document.body) return;
+    slot.current?.querySelector('button')?.focus();
+  }, [running]);
+  return (
+    <span ref={slot} className="contents">
+      {running ? (
+        <TooltipTarget text="Cancel scan">
+          <IconButton action="close" label="Cancel scan" onClick={() => void scan.cancel()} />
+        </TooltipTarget>
+      ) : (
+        <IconButton action="sourceAuto" label="Scan the manuscript for suggestions" pending={starting} onClick={() => void scan.start()} />
+      )}
+    </span>
+  );
 }
 
 /**

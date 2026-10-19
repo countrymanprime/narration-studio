@@ -1790,3 +1790,53 @@ describe('App shell mounts', () => {
     expect(screen.queryByRole('alertdialog')).toBeNull();
   });
 });
+
+// Issue 2076: every way of changing page names it in the title and leaves focus in the page, not on the control of the page left.
+describe('App page change signal', () => {
+  const focusIsInMain = () => screen.getByRole('main').contains(document.activeElement);
+
+  it('titles the document with the page for rail clicks, the jump menu and Back/Forward', async () => {
+    renderApp();
+    await screen.findByRole('heading', { level: 1, name: 'Production' });
+    await waitFor(() => expect(document.title).toBe('Production · Narration Studio'));
+    fireEvent.click(screen.getAllByRole('button', { name: 'Script' })[0]);
+    await screen.findByRole('heading', { name: 'Script' });
+    await waitFor(() => expect(document.title).toBe('Script · Narration Studio'));
+    await waitFor(() => expect(focusIsInMain()).toBe(true));
+
+    fireEvent.keyDown(document, { key: 'ArrowLeft', code: 'ArrowLeft', altKey: true });
+    await screen.findByRole('heading', { level: 1, name: 'Production' });
+    await waitFor(() => expect(document.title).toBe('Production · Narration Studio'));
+    await waitFor(() => expect(focusIsInMain()).toBe(true));
+    fireEvent.keyDown(document, { key: 'ArrowRight', code: 'ArrowRight', altKey: true });
+    await screen.findByRole('heading', { name: 'Script' });
+    await waitFor(() => expect(document.title).toBe('Script · Narration Studio'));
+  });
+
+  it('leaves focus in the page after the jump menu picks one', async () => {
+    renderApp();
+    await screen.findByRole('heading', { level: 1, name: 'Production' });
+    const rail = await within(screen.getByRole('complementary', { name: 'Primary navigation' })).findByRole('button', { name: 'Production' });
+    rail.focus();
+    expect(document.activeElement).toBe(rail);
+    fireEvent.click(screen.getByRole('button', { name: /^Jump to or run…/ }));
+    fireEvent.change(await screen.findByRole('combobox', { name: 'Jump menu' }), { target: { value: 'Script' } });
+    fireEvent.click(await screen.findByRole('option', { name: /Script/ }));
+    await screen.findByRole('heading', { name: 'Script' });
+    await waitFor(() => expect(screen.queryByRole('combobox', { name: 'Jump menu' })).toBeNull());
+    await waitFor(() => expect(focusIsInMain()).toBe(true));
+    expect(document.title).toBe('Script · Narration Studio');
+  });
+
+  it('keeps the drawer returning focus to its menu button when a page is picked in it', async () => {
+    renderApp();
+    await screen.findByRole('heading', { level: 1, name: 'Production' });
+    const menu = screen.getByRole('button', { name: 'Open navigation' });
+    fireEvent.click(menu);
+    const dialog = await screen.findByRole('dialog', { name: 'Navigation' });
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Script' }));
+    await screen.findByRole('heading', { name: 'Script' });
+    await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Navigation' })).toBeNull());
+    expect(document.title).toBe('Script · Narration Studio');
+  });
+});

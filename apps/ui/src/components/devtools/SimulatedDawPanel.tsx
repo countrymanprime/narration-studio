@@ -78,19 +78,19 @@ export function SimulatedDawPanel({
       className="fixed right-3 bottom-24 z-[var(--z-takeover)] flex max-w-[calc(100vw-1.5rem)] flex-col-reverse items-end gap-2 text-sm font-[var(--font-body,inherit)]"
       data-simulated-daw
     >
-      <button
-        type="button"
+      <Button
+        variant="secondary"
         aria-expanded={open}
         aria-controls="simulated-daw-panel"
         onClick={() => setOpen((was) => !was)}
-        className="flex items-center gap-2 rounded-full border border-[var(--btn-line)] bg-[var(--surface)] px-3 py-1.5 text-[var(--text)] shadow-[var(--shadow,0_1px_4px_rgba(0,0,0,0.2))] hover:bg-[var(--surface-2)]"
+        className="rounded-full shadow-[var(--shadow,0_1px_4px_rgba(0,0,0,0.2))]"
       >
         <span aria-hidden="true" className="inline-block size-2 rounded-full" style={{ background: answering ? 'var(--ok)' : 'var(--non-text)' }} />
         <span>
           Simulated DAW · {daw}
           {snapshot.recording ? ' · recording' : ''}
         </span>
-      </button>
+      </Button>
       {open && (
         <section
           id="simulated-daw-panel"

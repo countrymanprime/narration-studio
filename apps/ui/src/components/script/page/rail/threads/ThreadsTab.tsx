@@ -8,6 +8,7 @@ import { useMarks, useScriptCommands, useScriptView } from '../../data/useScript
 import type { NoteActions } from './NoteCard';
 import { copyQuery } from './copyQuery';
 import { ThreadsPanel } from './ThreadsPanel';
+import { keepFocusOnRemoval } from '../../../../layout/keepFocusOnRemoval';
 
 export type ThreadsTabProps = {
   /** Notes are the chapter's marks whose type does not ask; queries are the asking marks of the book. */
@@ -75,7 +76,7 @@ export function ThreadsTab({ kind, chapterId, lineOf, onShowInText }: ThreadsTab
     return (
       <div role="alert" className="flex flex-col items-start gap-2 p-3 text-[0.88rem]">
         <span>{marks.message}</span>
-        <Button variant="secondary" size="sm" onClick={marks.retry}>
+        <Button ref={keepFocusOnRemoval} variant="secondary" size="sm" onClick={marks.retry}>
           Retry
         </Button>
       </div>

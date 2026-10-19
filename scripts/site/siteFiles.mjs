@@ -4,7 +4,7 @@
 import { readdirSync, readFileSync, statSync } from 'node:fs';
 import { extname, join, relative } from 'node:path';
 
-export const CONTENT_TYPES = {
+const CONTENT_TYPES = {
   '.html': 'text/html; charset=utf-8',
   '.js': 'text/javascript; charset=utf-8',
   '.mjs': 'text/javascript; charset=utf-8',
@@ -23,7 +23,7 @@ export const CONTENT_TYPES = {
 
 export const contentType = (file) => CONTENT_TYPES[extname(file).toLowerCase()] ?? 'application/octet-stream';
 
-export function walk(dir) {
+function walk(dir) {
   const files = [];
   for (const name of readdirSync(dir)) {
     const path = join(dir, name);
@@ -41,7 +41,7 @@ const isOutward = (url) => ABSOLUTE.test(url) && !SELF_CONTAINED.test(url);
 /** The resources an HTML page loads by an absolute path or from another host. A plain link (`<a href>`) is navigation, not a load. */
 export function outwardHtmlLoads(html) {
   const found = [];
-  const strippedScripts = html.replace(/<script\b(?![^>]*\bsrc=)[^>]*>[\s\S]*?<\/script>/gi, '');
+  const strippedScripts = html.replace(/<script\b(?![^>]*\bsrc=)[^>]*>[\s\S]*?<\/script\b[^>]*>/gi, '');
   for (const tag of strippedScripts.matchAll(/<(script|link|img|source|iframe|audio|video|embed)\b[^>]*>/gi)) {
     const [markup, name] = tag;
     if (name.toLowerCase() === 'link' && !/\brel=["']?(?:stylesheet|icon|preload|modulepreload|manifest|apple-touch-icon)/i.test(markup)) continue;

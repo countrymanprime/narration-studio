@@ -11,11 +11,14 @@ import type { CategoryId } from '../registry/types';
 export function Results({
   hits,
   empty,
+  hint,
   lit,
   onShowCategory,
 }: {
   hits: readonly Hit[];
   empty: string;
+  /** A line under the empty message. Only a text search has words to try; the Changed and In this project filters have none. */
+  hint?: string;
   lit: string | null;
   onShowCategory: (id: CategoryId) => void;
 }) {
@@ -23,7 +26,7 @@ export function Results({
     return (
       <div className="rounded-[var(--radius-card)] border border-dashed border-[var(--border)] p-6 text-center" data-empty-results>
         <p className="m-0 font-semibold">{empty}</p>
-        <p className="m-0 mt-1 text-[0.8125rem] text-[var(--text-muted)]">Try a word from the setting’s name, such as “whisper”, “voice” or “reaper”.</p>
+        {hint && <p className="m-0 mt-1 text-[0.8125rem] text-[var(--text-muted)]">{hint}</p>}
       </div>
     );
   }

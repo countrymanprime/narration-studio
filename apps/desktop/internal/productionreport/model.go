@@ -17,7 +17,9 @@ type Report struct {
 	Stages        *Stages     `json:"stages,omitempty"`
 	Schedule      *Schedule   `json:"schedule,omitempty"`
 	HeldBack      *HeldBack   `json:"held_back,omitempty"`
+	Pickups       *Pickups    `json:"pickups,omitempty"`
 	Readiness     *Readiness  `json:"readiness,omitempty"`
+	Delivery      *Delivery   `json:"delivery,omitempty"`
 	Rate          *RateInfo   `json:"rate,omitempty"`
 	Privacy       Privacy     `json:"privacy"`
 }
@@ -65,6 +67,39 @@ type HeldBackChapter struct {
 	ID     string `json:"id"`
 	Title  string `json:"title"`
 	Reason string `json:"reason"`
+}
+
+// Pickups is the other half of the "pickups" section: the lines still to record again, by chapter in the manuscript's
+// order, from the same merged pickup list the Pickups page reads.
+type Pickups struct {
+	Open     int              `json:"open"`
+	Chapters []ChapterPickups `json:"chapters"`
+}
+
+// ChapterPickups is one chapter's open pickups and the kinds they are, in the order they first appear.
+type ChapterPickups struct {
+	Chapter string   `json:"chapter"`
+	Open    int      `json:"open"`
+	Kinds   []string `json:"kinds"`
+}
+
+// Delivery is the other half of the "delivery" section: the files the last measurement of this session covered, judged
+// against the delivery profile in force. Measured is false, and every count 0, when nothing has been measured yet: the
+// report says so rather than reading it as a pass.
+type Delivery struct {
+	Measured  bool          `json:"measured"`
+	Profile   string        `json:"profile"`
+	Pass      int           `json:"pass"`
+	Fail      int           `json:"fail"`
+	Unchecked int           `json:"unchecked"`
+	Failing   []FailingFile `json:"failing"`
+	Note      string        `json:"note"`
+}
+
+// FailingFile is a measured file that misses at least one rule, with the rules it misses.
+type FailingFile struct {
+	File  string   `json:"file"`
+	Rules []string `json:"rules"`
 }
 
 // Deadline is the book's due date and the whole days left as of GeneratedAt, negative once it has passed.

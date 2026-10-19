@@ -6,12 +6,12 @@ import { existsSync, readFileSync, statSync } from 'node:fs';
 import { join, normalize, resolve, sep } from 'node:path';
 import { contentType } from './siteFiles.mjs';
 
-export function startServer({ dir, base = '/', port = 0 }) {
+function startServer({ dir, base = '/', port = 0 }) {
   const root = resolve(dir);
   const prefix = base.endsWith('/') ? base : `${base}/`;
   const server = createServer((request, response) => {
     const path = decodeURIComponent(new URL(request.url ?? '/', 'http://localhost').pathname);
-    if (!path.startsWith(prefix)) {
+    if (path.includes('\0') || !path.startsWith(prefix)) {
       response.statusCode = 404;
       return response.end('not under the base path');
     }
