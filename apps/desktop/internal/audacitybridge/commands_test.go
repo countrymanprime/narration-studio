@@ -76,13 +76,33 @@ func TestCommands(t *testing.T) {
 			},
 		},
 		{
-			name:  "SetTrackName renames a track",
-			setup: func(p *abt.Project) { p.AddLabelTrack("Label") },
-			run:   func(c *audacitybridge.Client) error { return c.SetTrackName(ctx, 0, "Narration Utils") },
-			sent:  []string{`SetTrackStatus: Track=0 Name="Narration Utils"`},
+			// SetTrackStatus has no Track parameter (Name, Selected, Focused only): Audacity 3.7.7 ignores one and renames the selected
+			// track, so the client selects the track first (tests/audacity3/real/edits, A3-T17).
+			name: "SetTrackName selects the track, then renames the selected one",
+			setup: func(p *abt.Project) {
+				p.AddWaveTrack("a", 0, 10)
+				p.AddLabelTrack("Label")
+			},
+			run:  func(c *audacitybridge.Client) error { return c.SetTrackName(ctx, 1, "Narration Utils") },
+			sent: []string{"SelectTracks: Track=1 TrackCount=1 Mode=Set", `SetTrackStatus: Name="Narration Utils"`},
 			check: func(t *testing.T, p *abt.Project) {
-				if p.Tracks[0].Name != "Narration Utils" {
-					t.Errorf("name = %q", p.Tracks[0].Name)
+				if p.Tracks[1].Name != "Narration Utils" || p.Tracks[0].Name != "a" {
+					t.Errorf("names = %q, %q", p.Tracks[0].Name, p.Tracks[1].Name)
+				}
+			},
+		},
+		{
+			// SetTrackAudio has no Track parameter either (Mute, Solo, Volume, Pan): sent with one, it mutes the selected track.
+			name: "SetTrackMute selects the track, then mutes the selected one",
+			setup: func(p *abt.Project) {
+				p.AddWaveTrack("a", 0, 10)
+				p.AddWaveTrack("b", 0, 10)
+			},
+			run:  func(c *audacitybridge.Client) error { return c.SetTrackMute(ctx, 1, true) },
+			sent: []string{"SelectTracks: Track=1 TrackCount=1 Mode=Set", "SetTrackAudio: Mute=1"},
+			check: func(t *testing.T, p *abt.Project) {
+				if p.Tracks[0].Muted || !p.Tracks[1].Muted {
+					t.Errorf("muted = %v, %v", p.Tracks[0].Muted, p.Tracks[1].Muted)
 				}
 			},
 		},
@@ -113,11 +133,18 @@ func TestCommands(t *testing.T) {
 			},
 		},
 		{
-			name: "ApplyMacro runs a saved macro by name",
+			// Audacity 3.7.7 has no ApplyMacro command: a macro is the menu command Macro_<name>, with the spaces taken out of the name
+			// (tests/audacity3/real/edits, A3-T20), and it runs on the selected tracks.
+			name: "ApplyMacro runs a saved macro as its Macro_ menu command",
+			setup: func(p *abt.Project) {
+				p.AddWaveTrack("a", 0, 10)
+				p.Tracks[0].Selected = true
+				p.Macros = []string{"MasteringforACX"}
+			},
 			run:  func(c *audacitybridge.Client) error { return c.ApplyMacro(ctx, "Mastering for ACX") },
-			sent: []string{`ApplyMacro: MacroName="Mastering for ACX"`},
+			sent: []string{"Macro_MasteringforACX:"},
 			check: func(t *testing.T, p *abt.Project) {
-				if !reflect.DeepEqual(p.MacrosApplied, []string{"Mastering for ACX"}) {
+				if !reflect.DeepEqual(p.MacrosApplied, []string{"Macro_MasteringforACX"}) {
 					t.Errorf("macros applied = %v", p.MacrosApplied)
 				}
 			},
@@ -177,6 +204,9 @@ func TestCommandsRefuseBeforeSending(t *testing.T) {
 		"a negative track":               func(c *audacitybridge.Client) error { return c.SetTrackName(ctx, -1, "x") },
 		"a track name with a quote":      func(c *audacitybridge.Client) error { return c.SetTrackName(ctx, 0, `a"b`) },
 		"a macro name with a quote":      func(c *audacitybridge.Client) error { return c.ApplyMacro(ctx, `a"b`) },
+		"a macro name with an accent":    func(c *audacitybridge.Client) error { return c.ApplyMacro(ctx, "Café") },
+		"a macro name of spaces":         func(c *audacitybridge.Client) error { return c.ApplyMacro(ctx, "   ") },
+		"a negative track to mute":       func(c *audacitybridge.Client) error { return c.SetTrackMute(ctx, -1, true) },
 		"an export path on another host": func(c *audacitybridge.Client) error { return c.Export(ctx, `\\nas\book\x.wav`, 1) },
 	}
 	for name, run := range cases {
@@ -230,5 +260,49 @@ func TestAnUnrecognisedCommandFails(t *testing.T) {
 	var ce *audacitybridge.CommandError
 	if !errors.As(err, &ce) || len(ce.Lines) != 1 {
 		t.Fatalf("err = %v", err)
+	}
+}
+
+// GetInfo Tracks reports a muted track (mute 1), and a client reads it back: a backup or a take track is muted to stay out of the
+// narrator's export, and a caller checks that it is.
+func TestTracksReportMuted(t *testing.T) {
+	client, server := newClient(t, time.Second)
+	server.With(func(p *abt.Project) {
+		p.AddWaveTrack("a", 0, 10)
+		p.AddWaveTrack("b", 0, 10)
+	})
+	ctx := context.Background()
+	if err := client.SetTrackMute(ctx, 1, true); err != nil {
+		t.Fatal(err)
+	}
+	tracks, err := client.Tracks(ctx)
+	if err != nil || len(tracks) != 2 || tracks[0].Muted || !tracks[1].Muted {
+		t.Fatalf("tracks = %+v, err %v; want only b muted", tracks, err)
+	}
+}
+
+// GetPreference of a key nothing has set fails (Audacity stores a preference only once it is set); the client says "not set" and keeps
+// the error for a real fault. SetPreference writes with Reload=1, which a behaviour preference needs to take effect.
+func TestPreferencesReadAndWrite(t *testing.T) {
+	client, server := newClient(t, time.Second)
+	ctx := context.Background()
+	if v, set, err := client.Preference(ctx, audacitybridge.PrefClipsMove); err != nil || set || v != "" {
+		t.Fatalf("an unset preference = %q, %v, %v", v, set, err)
+	}
+	if err := client.SetPreference(ctx, audacitybridge.PrefClipsMove, "1"); err != nil {
+		t.Fatal(err)
+	}
+	if v, set, err := client.Preference(ctx, audacitybridge.PrefClipsMove); err != nil || !set || v != "1" {
+		t.Fatalf("a set preference = %q, %v, %v", v, set, err)
+	}
+	if got := server.Log(); len(got) != 3 || got[0] != `GetPreference: Name="/GUI/EditClipCanMove"` || got[1] != `SetPreference: Name="/GUI/EditClipCanMove" Value="1" Reload=1` {
+		t.Errorf("sent %q", got)
+	}
+	// Only the preferences the app has a reason to change can be written through the pipe.
+	if err := client.SetPreference(ctx, "/Directories/TempDir", "C:/x"); !errors.Is(err, audacitybridge.ErrInvalidValue) {
+		t.Errorf("a preference outside the list = %v, want ErrInvalidValue", err)
+	}
+	if err := client.SetPreference(ctx, audacitybridge.PrefClipsMove, `a"b`); !errors.Is(err, audacitybridge.ErrInvalidValue) {
+		t.Errorf("a value with a quote = %v, want ErrInvalidValue", err)
 	}
 }

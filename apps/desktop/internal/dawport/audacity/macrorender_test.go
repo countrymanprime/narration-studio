@@ -42,11 +42,27 @@ func TestRenderWithMacroRefusesWithNoMacroName(t *testing.T) {
 	}
 }
 
+// A macro name Audacity's id is unknown for is refused before the source is imported.
+func TestRenderWithMacroRefusesAnUnknownMacroIdBeforeImporting(t *testing.T) {
+	client, server := newTestClient(t)
+	role := macroRender{client}
+	_, err := role.RenderWithMacro(t.Context(), dawport.MacroRender{Source: `C:\book\ch01.wav`, Macro: "Café", Approval: "tok"})
+	if !errors.Is(err, audacitybridge.ErrInvalidValue) {
+		t.Fatalf("err = %v, want ErrInvalidValue", err)
+	}
+	if len(server.Log()) != 0 {
+		t.Errorf("sent %q before checking the macro name", server.Log())
+	}
+}
+
 // The happy path imports the source as its own track, selects only that track (never whatever else is open), applies the named
 // macro, and exports at the imported track's own channel count.
 func TestRenderWithMacroImportsSelectsAppliesAndExports(t *testing.T) {
 	client, server := newTestClient(t)
-	server.With(func(p *abt.Project) { p.AddWaveTrack("Existing narration", 0, 30) })
+	server.With(func(p *abt.Project) {
+		p.AddWaveTrack("Existing narration", 0, 30)
+		p.Macros = []string{"MasteringforACX"}
+	})
 	role := macroRender{client}
 	req := dawport.MacroRender{
 		Source:     `C:\book\ch01.wav`,
@@ -65,7 +81,8 @@ func TestRenderWithMacroImportsSelectsAppliesAndExports(t *testing.T) {
 		`Import2: Filename="C:/book/ch01.wav"`,
 		"GetInfo: Type=Tracks Format=JSON",
 		"SelectTracks: Track=1 TrackCount=1 Mode=Set",
-		`ApplyMacro: MacroName="Mastering for ACX"`,
+		// Audacity 3.7.7 has no ApplyMacro command: a macro is the menu command Macro_<name>, spaces taken out.
+		"Macro_MasteringforACX:",
 		`Export2: Filename="C:/book/narration-utils/mastering/master-abc/out.wav" NumChannels=1`,
 	}
 	if got := server.Log(); !reflect.DeepEqual(got, want) {
@@ -75,7 +92,7 @@ func TestRenderWithMacroImportsSelectsAppliesAndExports(t *testing.T) {
 		if !p.Tracks[1].Selected || p.Tracks[0].Selected {
 			t.Errorf("tracks selected = %+v, want only the imported one", p.Tracks)
 		}
-		if !reflect.DeepEqual(p.MacrosApplied, []string{"Mastering for ACX"}) {
+		if !reflect.DeepEqual(p.MacrosApplied, []string{"Macro_MasteringforACX"}) {
 			t.Errorf("macros applied = %v", p.MacrosApplied)
 		}
 	})
@@ -112,6 +129,10 @@ func TestRenderWithMacroStopsAtARefusalFromAnyLaterStep(t *testing.T) {
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			client, server := newTestClient(t)
+			server.With(func(p *abt.Project) {
+				p.AddWaveTrack("Existing narration", 0, 30)
+				p.Macros = []string{"MasteringforACX"}
+			})
 			server.Script(tc.faults...)
 			role := macroRender{client}
 			_, err := role.RenderWithMacro(t.Context(), dawport.MacroRender{

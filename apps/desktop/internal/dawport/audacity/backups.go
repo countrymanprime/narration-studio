@@ -222,7 +222,7 @@ func (b *Backups) BackupAround(ctx context.Context, request dawport.BackupReques
 	if err := b.do(ctx, "Paste"); err != nil {
 		return dawport.Result{}, err
 	}
-	if _, err := b.client.Do(ctx, audacitybridge.NewCommand("SetTrackAudio").Int("Track", index).Bool("Mute", true)); err != nil {
+	if err := b.client.SetTrackMute(ctx, index, true); err != nil {
 		return dawport.Result{}, err
 	}
 	after, err := b.client.Tracks(ctx)
