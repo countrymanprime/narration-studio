@@ -1,8 +1,8 @@
 // Assembles the public site into one folder, `dist-site/` by default:
-//   index.html          the landing page (scripts/site/landing/)
-//   demo/index.html     the live demo page: the site's header and footer around a window that holds demo/app.html (scripts/site/windowPages.mjs)
+//   index.html          the landing page (scripts/site/landing/), in the site shell (scripts/site/shell.mjs)
+//   demo/index.html     the live demo page: the site shell around a window that holds demo/app.html (scripts/site/windowPages.mjs)
 //   demo/app.html       the real UI, built in its `site` mode as one self-contained page: mock host, hash routes, script, styles and fonts inline (apps/ui/.env.site)
-//   guides/             the how-to guides (docs/guides/using-the-app/), one static page each with their screenshots (scripts/site/guides.mjs)
+//   docs/               the Docs section: the condensed guides (scripts/site/docs/), one static page each with their screenshots (scripts/site/guides.mjs)
 //   storybook/index.html  the Storybook page: the same window around storybook/sb/, unless --skip-storybook
 //   storybook/sb/       the component Storybook (`pnpm --dir apps/ui run build-storybook`), unless --skip-storybook
 // The landing page and the demo are each one file with nothing fetched from another host, and every link between the pieces is relative, so the
@@ -12,7 +12,8 @@ import { spawnSync } from 'node:child_process';
 import { cpSync, existsSync, mkdirSync, readFileSync, renameSync, rmSync, writeFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { buildGuides } from './guides.mjs';
+import { buildGuides, DEMO_PAGES } from './guides.mjs';
+import { fillShell, searchItems } from './shell.mjs';
 import { findOutwardLoads, withIcon } from './siteFiles.mjs';
 import { demoPage, storybookPage } from './windowPages.mjs';
 
@@ -48,42 +49,20 @@ if (withStorybook) {
   }
 }
 
-// The landing page carries its fonts and icon as data URIs, as the demo does: a font fetched from a file beside the page needs CORS headers a
-// sandboxed frame's host may not send.
-const dataUri = (file, type) => `data:${type};base64,${readFileSync(file).toString('base64')}`;
-const fontFile = (pkg, file) => join(ui, 'node_modules', '@fontsource', pkg, 'files', file);
-const fonts = {
-  'barlow-condensed-600': fontFile('barlow-condensed', 'barlow-condensed-latin-600-normal.woff2'),
-  'barlow-condensed-700': fontFile('barlow-condensed', 'barlow-condensed-latin-700-normal.woff2'),
-  'ibm-plex-sans-400': fontFile('ibm-plex-sans', 'ibm-plex-sans-latin-400-normal.woff2'),
-  'ibm-plex-sans-600': fontFile('ibm-plex-sans', 'ibm-plex-sans-latin-600-normal.woff2'),
-  'ibm-plex-mono-500': fontFile('ibm-plex-mono', 'ibm-plex-mono-latin-500-normal.woff2'),
-};
+const docs = buildGuides({ root, out, withStorybook });
+console.log(`site: ${docs.pages.length} docs pages, ${docs.images.length} screenshots`);
 
 // The landing page names Storybook only when this build holds it, so a --skip-storybook folder has no dead link.
-let landing = readFileSync(join(root, 'scripts', 'site', 'landing', 'index.html'), 'utf8');
-for (const [name, file] of Object.entries(fonts)) landing = landing.replaceAll(`./assets/fonts/${name}.woff2`, dataUri(file, 'font/woff2'));
-landing = landing.replace('./assets/favicon.png', dataUri(join(ui, 'public', 'favicon.png'), 'image/png'));
-const storybook = {
-  STORYBOOK_NAV: '<a href="storybook/index.html">Storybook</a>',
-  STORYBOOK_CTA: '<a class="btn" href="storybook/index.html">Storybook</a>',
-  STORYBOOK_CARD: `<a class="card" href="storybook/index.html">
-              <h3>Storybook</h3>
-              <p>Every component of the app with its states, controls and an accessibility check, in both themes.</p>
-              <span class="go">Browse components →</span>
-            </a>`,
-};
-for (const [marker, html] of Object.entries(storybook)) landing = landing.replace(`<!--${marker}-->`, withStorybook ? html : '');
-writeFileSync(join(out, 'index.html'), landing);
-const icon = dataUri(join(ui, 'public', 'favicon.png'), 'image/png');
-const guides = buildGuides({ root, out, withStorybook, icon });
-console.log(`site: ${guides.pages.length} guide pages, ${guides.images.length} screenshots`);
-
-// The demo and Storybook pages: the site's header and footer around a window.
-const fontUris = Object.fromEntries(Object.entries(fonts).map(([name, file]) => [name, dataUri(file, 'font/woff2')]));
-const guideList = guides.pages.map((page) => ({ page, title: guides.titles[page] }));
-writeFileSync(join(out, 'demo', 'index.html'), demoPage({ fonts: fontUris, icon, withStorybook, guides: guideList }));
-if (withStorybook) writeFileSync(join(out, 'storybook', 'index.html'), storybookPage({ fonts: fontUris, icon, guides: guideList }));
+const landing = fillShell(readFileSync(join(root, 'scripts', 'site', 'landing', 'index.html'), 'utf8'), {
+  base: '',
+  current: 'home',
+  withStorybook,
+  search: searchItems({ base: '', docs: docs.pages, demoPages: DEMO_PAGES, withStorybook }),
+});
+writeFileSync(join(out, 'index.html'), withStorybook ? landing : landing.replace(/<a class="card reveal" href="storybook\/index\.html">[\s\S]*?<\/a>\n/, ''));
+// The demo and Storybook pages: the site shell around a window.
+writeFileSync(join(out, 'demo', 'index.html'), demoPage({ withStorybook, docs: docs.pages }));
+if (withStorybook) writeFileSync(join(out, 'storybook', 'index.html'), storybookPage({ docs: docs.pages }));
 writeFileSync(join(out, '.nojekyll'), '');
 
 const outward = findOutwardLoads(out);

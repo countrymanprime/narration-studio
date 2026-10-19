@@ -1,4 +1,4 @@
-// The public site's how-to guides (docs/guides/using-the-app/, rendered to `guides/` beside the demo by scripts/site/guides.mjs): which guide
+// The public site's how-to guides (the condensed guides in scripts/site/docs/, rendered to `docs/` beside the demo by scripts/site/guides.mjs): which guide
 // explains the demo page a route draws. The banner's "How to use this page" link reads it.
 const GUIDE_BY_SEGMENT: Record<string, string> = {
   '': 'production',
@@ -27,7 +27,7 @@ export function guideForPath(path: string): string {
   return GUIDE_BY_SEGMENT[segment] ?? 'index';
 }
 
-/** The address of that guide from the demo page, which sits at `demo/index.html` beside `guides/`. */
+/** The address of that guide from the demo page, which sits at `demo/index.html` beside `docs/`. */
 export function guideHref(path: string): string {
-  return `../guides/${guideForPath(path)}.html`;
+  return `../docs/${guideForPath(path)}.html`;
 }

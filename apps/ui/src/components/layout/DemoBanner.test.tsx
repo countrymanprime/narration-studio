@@ -36,7 +36,7 @@ describe('DemoBanner', () => {
     expect(screen.getByRole('link', { name: 'Site' }).getAttribute('href')).toBe('../index.html');
     expect(screen.getByRole('link', { name: 'Storybook' }).getAttribute('href')).toBe('../storybook/index.html');
     expect(screen.getByText(/at least 860 px wide/)).toBeTruthy();
-    expect(screen.getByRole('link', { name: 'How to use this page' }).getAttribute('href')).toBe('../guides/production.html');
+    expect(screen.getByRole('link', { name: 'How to use this page' }).getAttribute('href')).toBe('../docs/production.html');
   });
 
   it('points How to use this page at the guide of the route on screen', async () => {
@@ -49,7 +49,7 @@ describe('DemoBanner', () => {
         <DemoBanner />
       </MemoryRouter>,
     );
-    expect(screen.getByRole('link', { name: 'How to use this page' }).getAttribute('href')).toBe('../guides/pickups.html');
+    expect(screen.getByRole('link', { name: 'How to use this page' }).getAttribute('href')).toBe('../docs/pickups.html');
   });
 
   it('has no site links in the Pages demo build', async () => {

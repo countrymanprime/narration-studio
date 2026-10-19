@@ -33,7 +33,7 @@ function watchRequests(page: Page): { outside: string[]; failed: string[]; error
 test('the landing page links the demo by a relative address and loads nothing from outside the site', async ({ page }) => {
   const seen = watchRequests(page);
   await page.goto('./');
-  await expect(page.getByRole('heading', { level: 1 })).toContainText('Proof every chapter');
+  await expect(page.getByRole('heading', { level: 1 })).toContainText('Professional Studio Software');
   await expect(page.getByRole('link', { name: 'Try the live demo' })).toHaveAttribute('href', 'demo/index.html');
   expect(seen).toEqual({ outside: [], failed: [], errors: [] });
 });
@@ -174,7 +174,7 @@ test('Storybook opens from the landing page and from the demo, and renders a sto
   await expect(page.frameLocator('#storybook').locator('#storybook-explorer-tree')).toBeVisible();
   await page.goto('demo/app.html#/proof');
   await page.getByRole('link', { name: 'Site' }).click();
-  await expect(page.getByRole('heading', { level: 1 })).toContainText('Proof every chapter');
+  await expect(page.getByRole('heading', { level: 1 })).toContainText('Professional Studio Software');
   expect(seen).toEqual({ outside: [], failed: [], errors: [] });
 });
 
@@ -210,7 +210,7 @@ test('the demo and the landing page each run from one file inside a sandboxed fr
       await expect(frame.getByRole('button', { name: /^needs pickup/i }).first()).toBeVisible();
       await expect(frame.getByRole('button', { name: /^Simulated DAW/ })).toBeVisible();
     } else {
-      await expect(frame.getByRole('heading', { level: 1 })).toContainText('Proof every chapter');
+      await expect(frame.getByRole('heading', { level: 1 })).toContainText('Professional Studio Software');
     }
     expect(requests.filter((url) => url !== own && !url.startsWith('data:'))).toEqual([]);
     expect(errors).toEqual([]);
@@ -219,8 +219,8 @@ test('the demo and the landing page each run from one file inside a sandboxed fr
   }
 });
 
-// The how-to guides (docs/guides/using-the-app/) rendered by scripts/site/guides.mjs.
-const GUIDES = [
+// The Docs section: the condensed guides (scripts/site/docs/) rendered by scripts/site/guides.mjs.
+const DOCS = [
   'index',
   'getting-started',
   'navigation',
@@ -237,62 +237,77 @@ const GUIDES = [
   'settings',
 ];
 
-test('the landing page links the guides, every guide page exists and its screenshots load', async ({ page, request }) => {
+test('the landing page links the docs, every docs page exists and its screenshots load', async ({ page, request }) => {
   const seen = watchRequests(page);
   await page.goto('./');
-  await page.getByRole('navigation', { name: 'Main' }).getByRole('link', { name: 'Guides' }).click();
-  await expect(page).toHaveURL(/guides\/index\.html$/);
+  await page.getByRole('navigation', { name: 'Main' }).getByRole('link', { name: 'Docs' }).click();
+  await expect(page).toHaveURL(/docs\/index\.html$/);
   await expect(page.getByRole('heading', { level: 1 })).toHaveText('Using the app');
-  for (const name of GUIDES) {
-    const response = await request.get(`guides/${name}.html`);
+  for (const name of DOCS) {
+    const response = await request.get(`docs/${name}.html`);
     expect(response.status(), name).toBe(200);
   }
-  // Every screenshot of a long guide loads (they are lazy, so ask for them all).
-  await page.goto('guides/pickups.html');
+  // Every screenshot of a page loads (they are lazy, so ask for them all).
+  await page.goto('docs/proof.html');
   await page.evaluate(() => document.querySelectorAll('img').forEach((image) => (image.loading = 'eager')));
   const images = page.locator('article img');
-  expect(await images.count()).toBeGreaterThan(3);
+  expect(await images.count()).toBeGreaterThan(0);
   await expect
     .poll(() => images.evaluateAll((all) => all.every((image) => (image as HTMLImageElement).complete && (image as HTMLImageElement).naturalWidth > 0)))
     .toBe(true);
-  // A link between guides keeps its heading.
-  await page.goto('guides/pickups.html');
+  // A link between docs pages keeps its heading.
+  await page.goto('docs/pickups.html');
   await page
     .locator('article')
     .getByRole('link', { name: /recording check/i })
     .first()
     .click();
-  await expect(page).toHaveURL(/guides\/proof\.html#one-chapter$/);
+  await expect(page).toHaveURL(/docs\/proof\.html#one-chapter$/);
   expect(seen).toEqual({ outside: [], failed: [], errors: [] });
 });
 
-test('each demo page links the guide that explains it, and the guide links back to the page', async ({ page }) => {
-  await page.goto('demo/index.html#/pickups');
-  await page.getByRole('link', { name: 'How to use this page' }).click();
-  await expect(page).toHaveURL(/guides\/pickups\.html$/);
-  await expect(page.getByRole('heading', { level: 1 })).toHaveText('Pickups');
-  await page.getByRole('link', { name: /Open this page in the live demo/ }).click();
-  await expect(page).toHaveURL(/demo\/index\.html#\/pickups$/);
-  await page.getByRole('link', { name: 'How to use this page' }).waitFor();
-  await page.goto('demo/app.html#/proof');
-  await expect(page.getByRole('link', { name: 'How to use this page' })).toHaveAttribute('href', '../guides/proof.html');
+test('the docs follow the mock: a grouped sidebar, On this page, previous and next, and the full guide on GitHub', async ({ page }) => {
+  await page.goto('docs/proof.html');
+  const side = page.getByRole('navigation', { name: 'Documentation' });
+  await expect(side.getByRole('link', { name: 'Proof' })).toHaveAttribute('aria-current', 'page');
+  await expect(page.getByRole('complementary', { name: 'On this page' }).getByRole('link', { name: 'One chapter' })).toBeVisible();
+  await expect(page.getByRole('link', { name: /Full guide on GitHub/ })).toHaveAttribute(
+    'href',
+    'https://github.com/countrymanprime/narration-utils/blob/main/docs/guides/using-the-app/proof.md',
+  );
+  await page.getByRole('link', { name: /Next\s*Pickups/ }).click();
+  await expect(page).toHaveURL(/docs\/pickups\.html$/);
 });
 
-test('a guide runs from one file inside a sandboxed frame, with no request but its own page and its screenshots', async ({ page }) => {
+test('each demo page links the docs page that explains it, and the docs page links back to the page', async ({ page }) => {
+  await page.goto('demo/index.html#/pickups');
+  await page.getByRole('link', { name: 'How to use this page' }).click();
+  await expect(page).toHaveURL(/docs\/pickups\.html$/);
+  await expect(page.getByRole('heading', { level: 1 })).toHaveText('Pickups');
+  await page.locator('article').getByRole('link', { name: 'live demo' }).click();
+  await expect(page).toHaveURL(/demo\/index\.html#\/pickups$/);
+  await page.getByRole('link', { name: 'How to use this page' }).waitFor();
+  await page.goto('demo/index.html#/proof');
+  await expect(page.getByRole('link', { name: 'How to use this page' })).toHaveAttribute('href', '../docs/proof.html');
+  await page.goto('demo/app.html#/proof');
+  await expect(page.getByRole('link', { name: 'How to use this page' })).toHaveAttribute('href', '../docs/proof.html');
+});
+
+test('a docs page runs from one file inside a sandboxed frame, with no request but its own page and its screenshots', async ({ page }) => {
   await page.goto('./');
-  const own = new URL('guides/pickups.html', page.url()).href;
+  const own = new URL('docs/pickups.html', page.url()).href;
   const requests: string[] = [];
   const errors: string[] = [];
   page.on('request', (request) => requests.push(request.url()));
   page.on('pageerror', (error) => errors.push(error.message));
-  await page.setContent(`<iframe id="f" title="guide" sandbox="allow-scripts" src="${own}" style="width:1000px;height:800px;border:0"></iframe>`);
+  await page.setContent(`<iframe id="f" title="docs" sandbox="allow-scripts" src="${own}" style="width:1000px;height:800px;border:0"></iframe>`);
   const frame = page.frameLocator('#f');
   await expect(frame.getByRole('heading', { level: 1 })).toHaveText('Pickups');
   const image = frame.locator('article img').first();
   await image.scrollIntoViewIfNeeded();
   await expect.poll(() => image.evaluate((element) => (element as HTMLImageElement).complete && (element as HTMLImageElement).naturalWidth > 0)).toBe(true);
-  const guidesFolder = new URL('guides/', page.url()).href;
-  expect(requests.filter((url) => url !== own && !url.startsWith('data:') && !url.startsWith(`${guidesFolder}images/`))).toEqual([]);
+  const docsFolder = new URL('docs/', page.url()).href;
+  expect(requests.filter((url) => url !== own && !url.startsWith('data:') && !url.startsWith(`${docsFolder}images/`))).toEqual([]);
   expect(errors).toEqual([]);
 });
 
@@ -380,7 +395,7 @@ test('the window follows the app route both ways and links the guide of the page
   await page.goto('demo/index.html#/proof');
   const app = appFrame(page);
   await expect(page.locator('#win-title')).toHaveText('Narration Studio · Proof');
-  await expect(page.getByRole('link', { name: 'How to use this page' })).toHaveAttribute('href', '../guides/proof.html');
+  await expect(page.getByRole('link', { name: 'How to use this page' })).toHaveAttribute('href', '../docs/proof.html');
   await expect(page.getByRole('link', { name: 'Open in a new tab' })).toHaveAttribute('href', 'app.html#/proof');
   // A route the app opens is the page's address, and an address the visitor types opens in the app.
   await app
@@ -389,7 +404,7 @@ test('the window follows the app route both ways and links the guide of the page
     .getByRole('button', { name: /^Pickups/i })
     .click();
   await expect(page).toHaveURL(/demo\/index\.html#\/pickups$/);
-  await expect(page.getByRole('link', { name: 'How to use this page' })).toHaveAttribute('href', '../guides/pickups.html');
+  await expect(page.getByRole('link', { name: 'How to use this page' })).toHaveAttribute('href', '../docs/pickups.html');
   await page.evaluate(() => (window.location.hash = '/delivery'));
   await expect(app.getByRole('heading', { name: 'Delivery', level: 1 })).toBeVisible();
   await expect(page.locator('#win-title')).toHaveText('Narration Studio · Delivery');
