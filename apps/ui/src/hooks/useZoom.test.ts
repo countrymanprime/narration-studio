@@ -61,6 +61,17 @@ describe('useZoom', () => {
     expect(api.windowSetZoom).toHaveBeenLastCalledWith(1.0);
   });
 
+  it('setLevel sets one of the steps outright, from any level (the jump menu\'s "Set zoom to N%")', async () => {
+    const api = fakeApi(1.0);
+    const { result } = renderHook(() => useZoom(api));
+    await waitFor(() => expect(result.current.level).toBe(1.0));
+
+    await act(async () => result.current.setLevel(1.75));
+    await waitFor(() => expect(result.current.level).toBe(1.75));
+    expect(api.windowSetZoom).toHaveBeenLastCalledWith(1.75);
+    expect(result.current.percent).toBe(175);
+  });
+
   it('zoom out is disabled at 100% and zoom in is disabled at 200%', async () => {
     const atFloor = fakeApi(1.0);
     const { result: floor } = renderHook(() => useZoom(atFloor));
