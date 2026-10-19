@@ -31,8 +31,7 @@ export const proofChapterStates: StateEntry[] = [
   {
     page: 'proof-chapter',
     state: 'options-open',
-    description:
-      'Proof chapter view, the Compare options and the Preview options opened: the chunk length and the three marker colours, then the excerpt length, tolerance, preset and ending exclusion',
+    description: 'Proof chapter view, the Compare options dialog opened from the jump menu: the chunk length and the three marker colours',
   },
   {
     page: 'proof-chapter',

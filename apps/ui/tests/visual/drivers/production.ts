@@ -19,6 +19,12 @@ import {
 const MOCK_DAY = new Date(2026, 8, 26, 9, 0, 0);
 
 export const productionDrivers: Record<string, Driver> = {
+  // The overview never answers, so `openProduction` (which waits for the pipeline table) is not used.
+  loading: async (page) => {
+    await page.goto('/?mockHold=overview');
+    await settlePage(page);
+    await page.getByRole('group', { name: 'Loading the production overview' }).waitFor();
+  },
   'load-error': async (page) => {
     await page.goto('/?mockInvalidPayload=production');
     await settlePage(page);
@@ -214,11 +220,16 @@ export const productionDrivers: Record<string, Driver> = {
     await dialog.getByText('Check options').click();
     await dialog.getByRole('combobox', { name: 'Chapters at once' }).waitFor();
   },
-  // The rules the check judges by, opened from the closed "Check rules" line: the last of them, the background switch, is in the picture.
+  // The rules the check judges by, opened from the jump menu on Production: the last of them, the background switch, is in the picture.
   'recording-check-rules': async (page) => {
-    const dialog = await openRecordingCheck(page, 'Chapter 4');
-    await dialog.getByRole('button', { name: /^Check rules/ }).click();
-    const background = dialog.getByRole('switch', { name: 'Check changed chapters in the background' });
+    await openProduction(page);
+    await page.keyboard.press('Control+KeyK');
+    await page.getByRole('combobox', { name: 'Jump menu' }).fill('Open Recording check rules');
+    await page
+      .getByRole('option', { name: /^Open Recording check rules/ })
+      .first()
+      .click();
+    const background = page.getByRole('switch', { name: 'Check changed chapters in the background' });
     await background.waitFor();
     await background.evaluate((element) => element.scrollIntoView({ block: 'end' }));
   },
@@ -257,10 +268,15 @@ export const productionDrivers: Record<string, Driver> = {
     await ask.waitFor();
     await ask.getByRole('button', { name: 'Check with tiny only' }).waitFor();
   },
-  // The stage board's own options, opened below the pipeline: the switch and the signals, down to the last of them.
+  // The stage board's own options, opened from the jump menu: the switch and the signals, down to the last of them.
   'stage-suggestion-options': async (page) => {
     await openProduction(page, '?mockStages=mixed');
-    await page.getByRole('button', { name: /^Stage suggestion options/ }).click();
+    await page.keyboard.press('Control+KeyK');
+    await page.getByRole('combobox', { name: 'Jump menu' }).fill('Open Stage suggestion options');
+    await page
+      .getByRole('option', { name: /^Open Stage suggestion options/ })
+      .first()
+      .click();
     await page.getByRole('switch', { name: 'Suggest stage advances' }).waitFor();
     await page
       .getByRole('combobox', { name: 'Rendered file: length matches the chapter (proofing)' })

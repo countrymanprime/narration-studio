@@ -80,7 +80,7 @@ describe('PipelineTable', () => {
     const { onGo } = table();
     await userEvent.click(screen.getByRole('button', { name: 'Chapter 3: Edit in progress' }));
     await userEvent.click(screen.getByRole('button', { name: 'Chapter 4: Record 50% recorded' }));
-    await userEvent.click(screen.getByRole('button', { name: 'Chapter 2: Proof 6 of 9 notes cleared' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Chapter 2: Proof 66%, 6 of 9 notes cleared' }));
     expect(onGo.mock.calls).toEqual([
       ['editing', 'c3'],
       ['booth', 'c4'],
@@ -247,6 +247,18 @@ describe('PageHeader', () => {
     const button = screen.getByRole('button', { name: 'Start session' }) as HTMLButtonElement;
     expect(button.disabled).toBe(true);
     expect(screen.getByText('No recorder is connected.')).toBeTruthy();
+  });
+
+  it('offers the settings that switch recording on when that is the reason Start session is off', async () => {
+    const onOpenSettings = vi.fn();
+    header({ record: { ok: false, reason: 'Experimental: switched off in Settings.', inSettings: true }, onOpenSettings });
+    await userEvent.click(screen.getByRole('button', { name: 'Open DAW settings' }));
+    expect(onOpenSettings).toHaveBeenCalledOnce();
+  });
+
+  it('offers no settings link for a reason Settings cannot fix', () => {
+    header({ record: { ok: false, reason: 'No recorder is connected.' }, onOpenSettings: vi.fn() });
+    expect(screen.queryByRole('button', { name: 'Open DAW settings' })).toBeNull();
   });
 
   it('shows Stop timer only while a timer runs', async () => {

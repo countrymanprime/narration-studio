@@ -21,11 +21,13 @@ import { useRefreshOnFocus } from '../stages/useRefreshOnFocus';
 import { StageSuggestionOptions } from '../stages/StageSuggestionOptions';
 import { useStageRecommendations } from '../stages/useStageRecommendations';
 import { chapterCheckStatus } from './chapterCheckStatus';
+import { RecordingCheckRules } from './RecordingCheckRules';
 import { useManuscriptImport } from './ManuscriptImport';
 import { planStart, recordedSeries, weekFigures } from './measured/measured.selectors';
 import { useMeasured } from './measured/useMeasured';
 import { CheckCountsCard } from './overview/CheckCountsCard';
 import { KpiRow } from './overview/KpiRow';
+import { ProductionSkeleton } from './overview/ProductionSkeleton';
 import { checkCounts, deliveryCounts, stageSegments, type OverviewTarget } from './overview/overviewFigures';
 import { ProgressChart } from './overview/ProgressChart';
 import { StageBar } from './overview/StageBar';
@@ -47,6 +49,7 @@ import { PIPELINE_AREA, useChapterTools } from './useChapterTools';
 import { useChapterSyncToast } from './useChapterSyncToast';
 import { usePipelineSources } from './usePipelineSources';
 import { addressPath } from '../../navigation/address';
+import { useJustChanged } from '../primitives/changeHighlight';
 
 const DANGER = { color: 'var(--danger-text)' };
 
@@ -257,6 +260,8 @@ export function ProductionPage({
   const entries = useMemo(() => creditsEntries(credits.rows, ownsOpening), [credits.rows, ownsOpening]);
   const pipelineRows = useMemo(() => (overview ? pipelineChapters(overview.chapters, entries) : []), [overview, entries]);
 
+  // The pipeline row a Confirm, a Revert or a Restore just changed is highlighted once (changeHighlight.ts).
+  const changedRow = useJustChanged();
   const tools = useChapterTools({
     rows: pipelineRows,
     credits,
@@ -267,6 +272,7 @@ export function ProductionPage({
     active: found,
     refreshKey: manuscriptKey,
     onChanged,
+    onRestored: changedRow.mark,
     daw: {
       name: caps && caps.daw !== 'none' ? caps.daw : 'your DAW',
       unavailable: !caps
@@ -304,7 +310,12 @@ export function ProductionPage({
   }
 
   const record = caps
-    ? { ok: Boolean(caps.capabilities.record?.available), reason: caps.capabilities.record?.message ?? '' }
+    ? {
+        ok: Boolean(caps.capabilities.record?.available),
+        reason: caps.capabilities.record?.message ?? '',
+        // Switched off is the one refusal the narrator fixes in Settings; the others (not connected, not answering) are fixed in the DAW.
+        inSettings: caps.capabilities.record?.reason === 'experimental_off' || caps.capabilities.record?.reason === 'turned_off',
+      }
     : { ok: false, reason: 'Checking the audio engine…' };
   const due = plan?.deadline ? parseIso(plan.deadline) : null;
   const k = calc(scheduleChapters(narrated), today, due, openPickups);
@@ -379,14 +390,11 @@ export function ProductionPage({
         onStartSession={() => goToBooth(recordingChapter?.id)}
         onExport={() => openReportDialog({ projectName: data.projectName, asOf: fmtD(today) })}
         onOpenSchedule={() => go('/schedule')}
+        onOpenSettings={() => go('/settings#daw')}
       />
       {manuscriptImport.dialogs}
       {manuscriptImport.creditsBanner}
-      {load.status === 'loading' && (
-        <p role="status" className="text-sm text-[var(--text-muted)]">
-          Reading the production log…
-        </p>
-      )}
+      {load.status === 'loading' && <ProductionSkeleton />}
       {timer.problem && (
         <p role="alert" className="text-sm" style={DANGER}>
           {timer.problem}
@@ -430,10 +438,15 @@ export function ProductionPage({
                     recommendations={recommendations}
                     onGo={(target, chapterId) => onGo(target, chapterId)}
                     notify={notify}
-                    onStatus={() => onChanged()}
+                    justChanged={changedRow.changed}
+                    onStatus={(chapterId) => {
+                      changedRow.mark(chapterId);
+                      onChanged();
+                    }}
                   />
                 </div>
                 <StageSuggestionOptions onSaved={refreshStages} />
+                <RecordingCheckRules onSaved={onChanged} />
               </Panel>
               {tools.panels}
             </div>

@@ -515,10 +515,14 @@ describe('mark-reviewed-in-the-detail', () => {
     expect(mark).not.toHaveBeenCalled();
   });
 
-  it('an entry with only suggestions to verify shows the flag but no Mark reviewed button', () => {
-    renderReview(cat({ review: { entry: false, aliases: [] }, review_state: 'reviewed' }), { toVerify: 1 });
+  it('an entry with only suggestions to verify shows the flag and a Mark reviewed button that is off with the reason', () => {
+    const { mark } = renderReview(cat({ review: { entry: false, aliases: [] }, review_state: 'reviewed' }), { toVerify: 1 });
     expect(screen.getAllByText('Needs review').length).toBeGreaterThan(0);
-    expect(screen.queryByRole('button', { name: 'Mark reviewed' })).toBeNull();
+    const button = screen.getByRole('button', { name: 'Mark reviewed' }) as HTMLButtonElement;
+    expect(button.disabled).toBe(true);
+    expect(screen.getByRole('group', { name: 'Verify or reject its suggestions first.' })).toBeTruthy();
+    fireEvent.click(button);
+    expect(mark).not.toHaveBeenCalled();
   });
 
   it('mark-reviewed-can-be-undone: Undo in the toast calls guideFlagReview to put the same flags back', async () => {

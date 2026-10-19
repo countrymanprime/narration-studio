@@ -200,6 +200,13 @@ export const settingsStates: StateEntry[] = [
   },
   {
     page: 'settings',
+    state: 'import-choose',
+    description:
+      'Settings, Project with Replace manuscript… pressed: step 1 of 2, "Choose your manuscript", with the drop zone, Choose a file… and the read-only note',
+    ...REFLOW,
+  },
+  {
+    page: 'settings',
     state: 'manuscript',
     description: 'Settings, Project with Replace manuscript… pressed: the "Import Alice.docx" review dialog over the page, naming what a replace clears',
     sameAs: {
@@ -257,7 +264,8 @@ export const settingsStates: StateEntry[] = [
   {
     page: 'settings',
     state: 'appearance',
-    description: 'Settings, Appearance & keys: the Theme radios (Match my system, Light, Dark), Reader text, Note colour and Zoom, then Shortcuts',
+    description:
+      'Settings, Appearance & keys: the Theme radios (Match my system, Light, Dark), the Motion radios (Follow Windows, Reduce), Reader text, Note colour and Zoom, then Shortcuts',
     ...REFLOW,
   },
   {

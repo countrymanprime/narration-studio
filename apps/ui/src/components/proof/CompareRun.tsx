@@ -24,6 +24,7 @@ import { hasHint, splitHintTerms, suggestionMessage } from './hints';
 import { PROOFING_CHUNK_OPTIONS } from './options';
 import { ProofOptions } from './proofOptions/ProofOptions';
 import type { Notify } from '../primitives/Toast';
+import { ARRIVE_CLASSES } from '../primitives/changeHighlight';
 
 /** The host rejects with its error text as a plain string; an Error carries it in `message`. */
 const errorText = apiErrorMessage;
@@ -405,7 +406,7 @@ export function CompareRun({
               }
             />
           </div>
-          <ProofOptions title="Compare options" tool="TranscriptCompare" keys={COMPARE_OPTION_KEYS} />
+          <ProofOptions title="Compare options" group="Proof" tool="TranscriptCompare" keys={COMPARE_OPTION_KEYS} />
           <div className="flex items-center justify-end gap-4 border-t pt-3" style={{ borderColor: 'var(--border)' }}>
             <CapabilityGate capability={startCapability(dawFileLinked, reviewCapability)}>
               <Button variant="primary" onClick={() => void start()}>
@@ -478,7 +479,7 @@ export function CompareRun({
         </div>
       )}
       {phase === 'results' && (
-        <div className="space-y-2 text-sm">
+        <div className={`space-y-2 text-sm ${ARRIVE_CLASSES}`}>
           <div className="flex flex-wrap items-center justify-between gap-2">
             <p>
               {results.trackName ? `${results.trackName}: ` : ''}

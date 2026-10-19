@@ -1,34 +1,41 @@
-import { Button } from '../../../primitives/Button';
+import { TooltipTarget } from '../../../primitives/Tooltip';
 import { IconButton } from '../../../primitives/IconButton';
 import { ProgressBar } from '../../../primitives/ProgressBar';
 import { scanFailures } from './selectors';
 import type { ExtractionScan } from './useSuggestions';
 
 /**
- * The Story Bible header's scan button. Idle it is the icon button; while the scan runs it is busy, shows the host's percent and message
- * (docs/architecture/principles.md: nothing made up) with Cancel, and when the scan ended it says what did not run, in the host's sentences, while
- * what the other sources found stays listed.
+ * The Story Bible header's scan button: the wand while idle, and the same slot as Cancel scan while the scan runs, so the buttons beside it and
+ * everything below never move. What the scan reports (its percent and message, and what did not run) is `ScanStatus`, drawn under the filters.
  */
 export function ScanButton({ scan }: { scan: ExtractionScan }) {
-  const { job, running, starting } = scan;
+  const { running, starting } = scan;
+  if (running)
+    return (
+      <TooltipTarget text="Cancel scan">
+        <IconButton action="close" label="Cancel scan" onClick={() => void scan.cancel()} />
+      </TooltipTarget>
+    );
+  return <IconButton action="sourceAuto" label="Scan the manuscript for suggestions" pending={starting} onClick={() => void scan.start()} />;
+}
+
+/**
+ * The scan's progress while it runs, with the host's percent and message (docs/architecture/principles.md: nothing made up), and, when
+ * it ended, what did not run in the host's sentences, while what the other sources found stays listed. Nothing is drawn when idle.
+ */
+export function ScanStatus({ scan }: { scan: ExtractionScan }) {
+  const { job, running } = scan;
   const failures = running ? [] : scanFailures(job);
+  if (!running && failures.length === 0) return null;
   return (
-    <div className="flex min-w-0 flex-col gap-1.5" data-scan={running ? 'running' : (job?.phase ?? 'idle')}>
-      <div className="flex min-w-0 items-center gap-2">
-        <IconButton action="sourceAuto" label="Scan the manuscript for suggestions" pending={running || starting} onClick={() => void scan.start()} />
-        {running && (
-          <Button variant="secondary" size="sm" onClick={() => void scan.cancel()}>
-            Cancel scan
-          </Button>
-        )}
-      </div>
+    <div className="flex min-w-0 flex-col gap-1" data-scan={running ? 'running' : (job?.phase ?? 'idle')}>
       {running && job && (
-        <div className="flex min-w-0 flex-col gap-1">
+        <>
           <ProgressBar label="Scan progress" value={job.percent} running valueText={`${job.percent}%. ${job.message}`} size="thin" />
           <p className="min-w-0 truncate text-[var(--text-muted)]" role="status">
             {job.percent}% · {job.message}
           </p>
-        </div>
+        </>
       )}
       {failures.length > 0 && (
         <div className="text-[var(--warn-text)]" role="status">

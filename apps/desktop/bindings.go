@@ -144,7 +144,8 @@ func (h *Host) GuideEdit(id string, values map[string]string) (string, error) {
 	if service == nil {
 		return "", fmt.Errorf("the Story Bible is unavailable")
 	}
-	// One sidecar process for the whole edit, and all of it or none of it: a field the sidecar refuses leaves the file as it was.
+	// All of it or none of it: a refused field leaves the file as it was. The host applies it, or one sidecar process when it changes the
+	// aliases (guide.Service.EditFields).
 	if err := service.EditFields(id, values); err != nil {
 		return "", err
 	}
@@ -200,6 +201,9 @@ func (h *Host) GuideMerge(sourceID, targetID string) (string, error) {
 		return "", fmt.Errorf("the Story Bible is unavailable")
 	}
 	result, err := service.Merge(sourceID, targetID)
+	if err == nil {
+		h.followMerge(result.UndoID, sourceID, targetID)
+	}
 	return encodeBinding(result, err)
 }
 
@@ -209,7 +213,11 @@ func (h *Host) GuideUnmerge(undoID string) (string, error) {
 	if service == nil {
 		return "", fmt.Errorf("the Story Bible is unavailable")
 	}
-	return encodeBinding(nil, service.Unmerge(undoID))
+	err := service.Unmerge(undoID)
+	if err == nil {
+		h.unfollowMerge(undoID)
+	}
+	return encodeBinding(nil, err)
 }
 func (h *Host) GuideDelete(id string) (string, error) {
 	service := h.services().guide

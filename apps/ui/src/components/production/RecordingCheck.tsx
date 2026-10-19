@@ -17,7 +17,6 @@ import { InsetCard } from '../primitives/InsetCard';
 import { SlideOver } from '../primitives/SlideOver';
 import { type Notify, retryAction } from '../primitives/Toast';
 import { WorkDialog } from '../primitives/WorkDialog';
-import { ProofOptions } from '../proof/proofOptions/ProofOptions';
 import { RecordingCheckReport } from './RecordingCheckReport';
 import { COVERAGE_REASON_TEXT, LINK_REASONS, REASON_PAGE, formatWhen, passLabel, recheckLabel } from './recordingCheckText';
 
@@ -68,18 +67,6 @@ function coverageWorkJob(state: CoverageState, logs: string[], now: number): Wor
  * reopened chapter is a fresh mount, so a run left going in the background, or a refusal from the last time it was
  * open, is never shown stale.
  */
-/** The recording check's own rules, judged on this project's values (docs/utilities/recording-coverage.md); the model and chunking stay in Settings > Speech to text. */
-const RULE_KEYS = ['min_paragraph_present', 'max_missing_run', 'max_misread_run', 'min_anchor_run', 'background_checks'] as const;
-const RULES_NOTE = (
-  <div className="space-y-1 text-[length:var(--font-size-sm)] text-[var(--text-muted)]">
-    <div className="font-medium text-[var(--text)]">Proposed values, not yet calibrated</div>
-    <div>
-      They were chosen on synthetic test recordings and have not been checked against real ones. The first two only change how a stored check is judged;
-      changing either of the next two changes which words count, so earlier checks read as out of date and those chapters need checking again.
-    </div>
-  </div>
-);
-
 export function RecordingCheck({
   chapter,
   coverage,
@@ -339,7 +326,6 @@ export function RecordingCheck({
             </div>
           </details>
         )}
-        <ProofOptions title="Check rules" tool="RecordingCoverage" keys={RULE_KEYS} onSaved={() => void load()} note={RULES_NOTE} />
         {options.error && (
           <p role="status" style={{ color: 'var(--text-muted)' }}>
             The check options could not be read ({options.error}); the check runs your settings.

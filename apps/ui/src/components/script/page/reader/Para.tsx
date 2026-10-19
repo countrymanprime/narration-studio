@@ -2,6 +2,7 @@ import { Fragment, memo, type CSSProperties, type MouseEvent, type ReactNode } f
 import type { ManuscriptParagraph } from '../../../../api/contracts/manuscript';
 import { composeLayers, type Layer, type PhraseLayer } from './layers';
 import { markStyle } from './markStyles';
+import { CHANGE_HIGHLIGHT_CLASSES } from '../../../primitives/changeHighlight';
 
 export type FindRange = { start: number; end: number };
 
@@ -122,7 +123,12 @@ export const Para = memo(function Para({
   const found: Layer[] = find.map((range, i) => ({ kind: 'find', start: range.start, end: range.end, current: i === findCurrent }));
   const pieces = composeLayers(paragraph.text, found.length ? [...layers, ...found] : layers);
   return (
-    <div data-para={paragraph.id} data-ch={paragraph.chapterId} className={`relative pb-3 pl-8 ${flash ? 'flash motion-ok:animate-pulse' : ''}`}>
+    <div
+      data-para={paragraph.id}
+      data-ch={paragraph.chapterId}
+      data-just-changed={flash ? '' : undefined}
+      className={`relative pb-3 pl-8 ${flash ? `flash ${CHANGE_HIGHLIGHT_CLASSES}` : ''}`}
+    >
       <div data-gutter="" className="absolute inset-y-0 left-0 w-6">
         {renderGutter?.(paragraph)}
       </div>

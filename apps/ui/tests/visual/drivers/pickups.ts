@@ -39,6 +39,13 @@ export const pickupsDrivers: Record<string, Driver> = {
     await list(page).getByRole('button', { name: 'Mark recorded' }).first().click();
     await page.getByText('Not in the DAW yet').first().waitFor();
   },
+  // The list never answers, so `openPickups` (which waits for its lines) is not used.
+  loading: async (page) => {
+    await page.goto('/?mockPickupList=loading');
+    await settlePage(page);
+    await goToPage(page, 'Pickups');
+    await page.getByRole('group', { name: 'Loading the pickups' }).waitFor();
+  },
   unreadable: async (page) => {
     await page.goto('/?mockPickupList=unreadable');
     await settlePage(page);

@@ -251,7 +251,14 @@ export const settingsDrivers: Record<string, Driver> = {
     await openSettings(page, 'Project');
     await page.getByText(/^Imported .* words$/).waitFor();
     await clickVisible(page, 'button', 'Replace manuscript…');
+    await clickVisible(page, 'button', 'Choose a file…');
     await confirmDialog(page, 'Import Alice.docx').waitFor();
+  },
+  'import-choose': async (page) => {
+    await openSettings(page, 'Project');
+    await page.getByText(/^Imported .* words$/).waitFor();
+    await clickVisible(page, 'button', 'Replace manuscript…');
+    await page.getByRole('heading', { name: 'Choose your manuscript' }).waitFor();
   },
   'marks-dialog': async (page) => {
     await openSettings(page, 'Project');
@@ -477,7 +484,7 @@ export const settingsDrivers: Record<string, Driver> = {
   override: async (page) => {
     await openSettings(page, 'Project');
     await showSettingsRow(page, 'project.build');
-    await page.getByRole('button', { name: 'Override Build the Story Bible after import for this project' }).click();
+    await page.getByRole('button', { name: 'Override for this project: Build the Story Bible after import' }).click();
     await page.getByText('This project uses', { exact: true }).waitFor();
   },
 };

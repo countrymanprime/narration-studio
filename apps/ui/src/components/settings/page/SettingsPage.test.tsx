@@ -144,10 +144,10 @@ describe('Settings: editing', () => {
     pick('Project');
     const build = row('project.build');
     expect(build.textContent).toContain('This project uses the computer setting.');
-    fireEvent.click(within(build).getByRole('button', { name: 'Override Build the Story Bible after import for this project' }));
+    fireEvent.click(within(build).getByRole('button', { name: 'Override for this project: Build the Story Bible after import' }));
     await waitFor(() => expect(save).toHaveBeenCalledWith('ManuscriptGuide', 'project', { build_after_import: 'true' }));
     await waitFor(() => expect(within(row('project.build')).getByText('overridden here', { exact: false })).toBeTruthy());
-    fireEvent.click(within(row('project.build')).getByRole('button', { name: 'Use the computer setting for Build the Story Bible after import' }));
+    fireEvent.click(within(row('project.build')).getByRole('button', { name: 'Use computer setting for Build the Story Bible after import' }));
     await waitFor(() => expect(save).toHaveBeenLastCalledWith('ManuscriptGuide', 'project', { build_after_import: null }));
     await waitFor(() => expect(row('project.build').textContent).toContain('This project uses the computer setting.'));
   });
@@ -204,37 +204,19 @@ describe('Settings: search and filters', () => {
     expect(document.querySelector('[data-page-setting="ps.cleanup"]')).toBeTruthy();
   });
 
-  it('lists the Audacity backups with a way to Editing and no second editor here', async () => {
+  it('keeps the punch pre-roll and the Audacity backups editable here, with the page shortcut beside them', async () => {
     await renderPage();
-    await userEvent.type(await screen.findByRole('textbox', { name: 'Search settings' }), 'retention');
-    const entry = document.querySelector<HTMLElement>('[data-page-setting="ps.backups"]');
-    expect(entry).toBeTruthy();
-    expect(within(entry!).getByRole('button', { name: /^Open Editing/ })).toBeTruthy();
-    expect(within(entry!).queryByRole('button', { name: 'Change it here for now' })).toBeNull();
-  });
-
-  it('lists the preview options and the compare defaults with a way to Proof and no second editor here', async () => {
-    await renderPage();
-    for (const [term, id] of [
-      ['sample', 'ps.preview'],
-      ['misread', 'ps.compare'],
-    ]) {
-      await userEvent.clear(await screen.findByRole('textbox', { name: 'Search settings' }));
-      await userEvent.type(screen.getByRole('textbox', { name: 'Search settings' }), term);
-      const entry = document.querySelector<HTMLElement>(`[data-page-setting="${id}"]`);
-      expect(entry, id).toBeTruthy();
-      expect(within(entry!).getByRole('button', { name: /^Open Proof/ })).toBeTruthy();
-      expect(within(entry!).queryByRole('button', { name: 'Change it here for now' })).toBeNull();
-    }
-  });
-
-  it('lists the silence cleanup thresholds with a way to Master & QC and no second editor here', async () => {
-    await renderPage();
-    await userEvent.type(await screen.findByRole('textbox', { name: 'Search settings' }), 'breath');
-    const entry = document.querySelector<HTMLElement>('[data-page-setting="ps.cleanup"]');
-    expect(entry).toBeTruthy();
-    expect(within(entry!).getByRole('button', { name: /^Open Master & QC/ })).toBeTruthy();
-    expect(within(entry!).queryByRole('button', { name: 'Change it here for now' })).toBeNull();
+    await userEvent.type(await screen.findByRole('textbox', { name: 'Search settings' }), 'preroll');
+    const punch = document.querySelector<HTMLElement>('[data-page-setting="ps.punch"]');
+    expect(punch).toBeTruthy();
+    expect(within(punch!).getByRole('button', { name: /^Open Booth/ })).toBeTruthy();
+    expect(within(punch!).getByRole('button', { name: 'Change it here for now' })).toBeTruthy();
+    await userEvent.clear(screen.getByRole('textbox', { name: 'Search settings' }));
+    await userEvent.type(screen.getByRole('textbox', { name: 'Search settings' }), 'retention');
+    const backups = document.querySelector<HTMLElement>('[data-page-setting="ps.backups"]');
+    expect(backups).toBeTruthy();
+    expect(within(backups!).getByRole('button', { name: /^Open Editing/ })).toBeTruthy();
+    expect(within(backups!).getByRole('button', { name: 'Change it here for now' })).toBeTruthy();
   });
 
   it('Escape clears the search', async () => {

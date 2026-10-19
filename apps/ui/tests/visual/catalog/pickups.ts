@@ -54,4 +54,11 @@ export const pickupsStates: StateEntry[] = [
       'Pickups with the host unable to read the list (?mockPickupList=unreadable): the reason and Check again, not "No pickups queued"; the session panel counts none',
     ...REFLOW,
   },
+  {
+    page: 'pickups',
+    state: 'loading',
+    description:
+      'Pickups while the list is still being read (?mockPickupList=loading): the page title, chapter stepper and header buttons, and grey blocks where the table rows will be, with one polite "Reading the pickup list…" status; the Pickup session panel beside it shows blocks for Lines and About, and no "no pickups yet" line',
+    ...REFLOW,
+  },
 ];

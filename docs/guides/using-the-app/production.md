@@ -8,6 +8,7 @@ editing and proofing is left, the open pickups, the due date and whether the pac
 what to work on next. Its **Chapter pipeline** has one row per chapter and one column per stage.
 The book's dates, payment and milestones are on [Schedule](schedule.md), the item after Production in
 the navigation.
+While the production log is being read, the page keeps its header and shows grey blocks where the figures, cards and pipeline will be; if it cannot be read, the page says so with **Retry**.
 
 ![Production - the figures, the chapter pipeline and Next up, with a stage timer running in the header](../../images/ui/production-home.webp)
 
@@ -16,7 +17,8 @@ due 14 Oct (18 days)"), with the due date's tone as a word and a mark, not only 
 under it is the verdict for the due date (on track, tight or behind); it opens
 [Schedule](schedule.md). **Export status report** (the export icon) opens the
 [status report](#status-report), and **Start session** opens the [Booth](booth.md) on the chapter
-being recorded, or says why it cannot when the audio engine cannot record.
+being recorded, or says why it cannot when the audio engine cannot record. When recording is
+switched off, **Open DAW settings** beside the reason opens the section that turns it on.
 
 With no manuscript imported yet, the page is the import: **Import manuscript** opens the file
 picker (see [Importing the manuscript](#importing-the-manuscript)), and the calendar icon opens
@@ -51,7 +53,9 @@ The six figures are one card; each opens the page it counts.
   yet" until the host reports a check per chapter.
 - **Due**: the due date and what the pace says about it. It opens [Schedule](schedule.md).
 
-Under the figures, **Where the book stands** splits the book's finished hours by stage, **This
+Under the figures, **Where the book stands** splits the book's finished hours by stage, estimated
+from each chapter's words and status (its **Recorded, not edited yet** share is the chapters
+recorded but not edited; **Finished audio** above is the measured length), **This
 week** says how much was recorded this week and in the last 24 hours (from the built-in recorder's
 take log), and **Recording check** counts the chapters checked as of the last save, out of date,
 and never checked; its icon opens **Check recordings** with the out-of-date and unchecked chapters
@@ -161,7 +165,7 @@ the work dialog. The app tells you when
 it ends, wherever you are. If the Whisper model is not installed yet, the app asks before
 downloading it, as a chapter's Proof view does. A changed chapter can also be re-checked on its
 own, in the background, once REAPER has been quiet for a few minutes and the app is not otherwise
-busy (**Check changed chapters in the background**, under the chapter panel's **Check rules**); pressing **Check recording**
+busy (**Check changed chapters in the background**, in Settings, or for this project in Production's **Open Recording check rules**); pressing **Check recording**
 yourself always pre-empts it.
 
 A chapter's recording check panel has the same choices under **Check options**, closed until you open it, and its **Check recording** button runs exactly
@@ -170,9 +174,9 @@ button waits for a chapter being checked elsewhere, and says so, and above 1 it 
 
 ![Production - a chapter's recording check with Check options open](../../images/ui/production-recording-check-options.webp)
 
-**Check rules**, also closed until you open it, are what the check judges a chapter by, for this project: **Share of each paragraph that must be read**, **Longest run of missing words allowed**, **Longest misread still counted as read**, **Shortest match that counts as read** and **Check changed chapters in the background**. They are proposed values, chosen on synthetic recordings and not yet calibrated on real narration. A change is saved at once and the last check is read again; the first two only change how a stored check is judged, but the next two change which words count, so earlier checks read as out of date and those chapters need checking again. **Reset** hands a rule back to the computer-wide value or the default (Settings › Set on a page still sets the computer-wide values).
+On Production, **Jump to or run** (Ctrl+K) has **Open Recording check rules**: a dialog with what the check judges a chapter by, for this project: **Share of each paragraph that must be read**, **Longest run of missing words allowed**, **Longest misread still counted as read**, **Shortest match that counts as read** and **Check changed chapters in the background**. They are proposed values, chosen on synthetic recordings and not yet calibrated on real narration. A change is saved at once and the last check is read again; the first two only change how a stored check is judged, but the next two change which words count, so earlier checks read as out of date and those chapters need checking again. **Reset** hands a rule back to the computer-wide value or the default. Settings under **Set on a page** has the same five rules with a **Global** / **This project** switch.
 
-![Production - a chapter's recording check with Check rules open](../../images/ui/production-recording-check-rules.webp)
+![Production - the Recording check rules dialog opened from Jump to or run](../../images/ui/production-recording-check-rules.webp)
 
 **Check recordings** (the card's icon) lets you set up the run before it starts. **Speech model** is the
 first pass. **Look again with a larger model** adds a second pass: the **Larger model** transcribes again only
@@ -251,9 +255,9 @@ the reason and **Try again** above the table.
 
 ### Choose what a suggestion waits for
 
-**Stage suggestion options**, closed under the chapter pipeline, hold this project's say in the suggestions: a switch, **Suggest stage advances**, turns them off or on, and each readiness signal (the recording check, the editing signals, the pickups, and each check on the rendered file) is **Required** before a stage is suggested or **Ignored**. A change is saved at once and the suggestions are read again. **Reset** on a signal hands it back to the computer-wide value or the default. A rendered-file check counts only while the project's delivery profile has a limit for it, The two editing signals marked not yet validated, clicks and breaths, are offered like any other.
+**Jump to or run** (Ctrl+K) has **Open Stage suggestion options**, a dialog for this project's say in the suggestions (Settings under **Set on a page** has the same values with a **Global** / **This project** switch): a switch, **Suggest stage advances**, turns them off or on, and each readiness signal (the recording check, the editing signals, the pickups, and each check on the rendered file) is **Required** before a stage is suggested or **Ignored**. A change is saved at once and the suggestions are read again. **Reset** on a signal hands it back to the computer-wide value or the default. A rendered-file check counts only while the project's delivery profile has a limit for it, The two editing signals marked not yet validated, clicks and breaths, are offered like any other.
 
-![Production - the Stage suggestion options opened under the chapter pipeline](../../images/ui/production-stage-suggestion-options.webp)
+![Production - the Stage suggestion options dialog opened from Jump to or run](../../images/ui/production-stage-suggestion-options.webp)
 
 ![Production - a chapter's readiness slide-over: the evidence behind a suggestion with Confirm and Dismiss](../../images/ui/production-stage-evidence.webp)
 
@@ -276,7 +280,14 @@ checking on progress — who has no need to know what the book pays.
 
 ## Importing the manuscript
 
-Importing (or replacing) the manuscript opens a confirm dialog previewing the detected format,
+**Import manuscript** (or **Replace manuscript…** in Settings, Project) first opens step 1 of 2, **Choose your
+manuscript**: drop a file on the zone or press **Choose a file…** to pick a .docx, .md or .txt file. A copy is
+kept in your project, and the original is read-only. The app checks a dropped file before it reads it: one file at a time, in a format
+it can import. If it cannot use the file, it says why under the zone; press **Choose a file…** instead.
+
+![Replace manuscript, step 1 of 2: Choose your manuscript, with the drop zone and Choose a file…](../../images/ui/production-import-choose.webp)
+
+Choosing the file opens step 2 of 2, **Check the chapter outline**. Each heading in the outline shows how many words it holds, and pressing its title shows how it begins in the preview beside the outline. The step previews the detected format,
 paragraph count, and proposed chapters before anything changes. Each section is named the way the
 manuscript writes its headings: a heading with a label shows the label in bold and the chapter's name
 after it ("CHAPTER VIII. Croquet", "8. Croquet" or "Chapter 8: Croquet"), and any other heading shows its
@@ -289,7 +300,7 @@ goes back into the chapter's text so it is narrated (the row says it "is read as
 **Read a heading's second line as its subtitle** option in Import options does the same for every
 row at once; a row you changed by hand keeps your choice.
 
-![Production - import manuscript confirm dialog with format/paragraph/chapter preview](../../images/ui/production-import-confirm.webp)
+![Import manuscript, step 2 of 2: Check the chapter outline, with each heading's words and a preview of how the selected one begins](../../images/ui/production-import-confirm.webp)
 
 The message at the top says what was found: the format, the number of paragraphs and of narration
 chapters, then how many front matter and reference sections, character suggestions and repairs the

@@ -37,10 +37,10 @@ const plural = (count: number, one: string, many: string) => `${count} ${count =
 /**
  * Silence cleanup candidates: every
  * `silence_cleanup` finding a checked file raised, apart from the Diagnostics tab's own findings above, with the
- * thresholds a check used, which the narrator sets in the options group under them (this project's values). Findings view only: nothing here
+ * thresholds a check used (the narrator's own, from Settings > Silence cleanup). Findings view only: nothing here
  * applies a cut, because acting on a candidate in REAPER is not built here.
  */
-function CleanupSection({ job }: { job: DiagnosticsJob | undefined }) {
+function CleanupSection({ job, openSettings }: { job: DiagnosticsJob | undefined; openSettings: () => void }) {
   const dawName = useDawName();
   const files = job?.files ?? [];
   const candidates = files.flatMap((file) => file.cleanupFindings);
@@ -76,16 +76,19 @@ function CleanupSection({ job }: { job: DiagnosticsJob | undefined }) {
               </div>
             ))}
           </dl>
-          <p className="mt-2 text-xs" style={MUTED}>
-            These are the values this check used. A change in the options below applies to the next check.
-          </p>
-          <ProofOptions title="Silence cleanup options" tool="Cleanup" keys={CLEANUP_OPTION_KEYS} className="mt-2" />
+          <div className="mt-2 flex flex-wrap items-center gap-1 text-xs" style={MUTED}>
+            <span>Set in Settings &gt; Silence cleanup, or for this project only from Jump to or run &gt; Open Silence cleanup options.</span>
+            <Button variant="ghost" onClick={openSettings}>
+              Open Settings
+            </Button>
+          </div>
         </>
       ) : (
         <p className="mt-2 text-sm" style={MUTED}>
           Reading the thresholds…
         </p>
       )}
+      <ProofOptions title="Silence cleanup options" group="Master & QC" tool="Cleanup" keys={CLEANUP_OPTION_KEYS} />
     </Panel>
   );
 }
@@ -123,9 +126,9 @@ function ThresholdsPanel({ job }: { job: DiagnosticsJob | undefined }) {
  * grade. It is read-only: nothing is saved, played or sent to REAPER, so every finding stays unreviewed, and
  * the narrator listens at those times in REAPER. `measuredPaths` are the files of the last measurement, which the
  * host already accepts, so they can be checked without picking them again. Below it, `CleanupSection` lists the same check's silence
- * cleanup candidates apart from these findings, with the options that set its thresholds.
+ * cleanup candidates apart from these findings; `openSettings` opens Settings > Silence cleanup.
  */
-export function DiagnosticsSection({ measuredPaths }: { measuredPaths: readonly string[] }) {
+export function DiagnosticsSection({ measuredPaths, openSettings }: { measuredPaths: readonly string[]; openSettings: () => void }) {
   const dawName = useDawName();
   const api = useApi();
   const [job, setJob] = useState<DiagnosticsJob>();
@@ -300,7 +303,7 @@ export function DiagnosticsSection({ measuredPaths }: { measuredPaths: readonly 
         )}
       </Panel>
       <ThresholdsPanel job={job} />
-      <CleanupSection job={job} />
+      <CleanupSection job={job} openSettings={openSettings} />
     </div>
   );
 }

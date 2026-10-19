@@ -25,6 +25,8 @@ export interface EditingKeyHandlers {
   hideOthers?: () => void;
   strip?: () => void;
   drawer?: () => void;
+  /** Closes the drawer if it is open and says whether it did: Escape's last step, before it blurs. The drawer closes itself on an Escape from inside it. */
+  closeDrawer?: () => boolean;
   chapterStep?: (d: 1 | -1) => void;
 }
 
@@ -86,7 +88,7 @@ function openWordMenu(key: string): void {
 export function useEditingKeys({ handlers = {}, keymap }: EditingKeysOptions): void {
   const { doc, state, dispatch } = useEditingPage();
   const on = doc.items.length > 0;
-  const { play, remove, mute, fx, voiceSample, takes, keep, hideOthers, strip, drawer, chapterStep } = handlers;
+  const { play, remove, mute, fx, voiceSample, takes, keep, hideOthers, strip, drawer, closeDrawer, chapterStep } = handlers;
 
   const move = useCallback(
     (d: number) => {
@@ -146,7 +148,9 @@ export function useEditingKeys({ handlers = {}, keymap }: EditingKeysOptions): v
     'editing.escape',
     (e) => {
       if (state.flag || state.sel) dispatch({ type: 'clear' });
-      else if (e.target instanceof HTMLElement && e.target !== document.body) e.target.blur();
+      else if (closeDrawer?.()) return;
+      // "Leave the text" lets go of the script only. A button or tab keeps focus: blurring it would drop the narrator on <body>.
+      else if (e.target instanceof HTMLElement && e.target.closest('[data-script]')) e.target.blur();
     },
     on,
   );

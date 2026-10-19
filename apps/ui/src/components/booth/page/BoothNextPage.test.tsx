@@ -662,7 +662,7 @@ describe('credits-are-readable-and-recordable', () => {
   it('open as a source with the unresolved-token warning, and record to their own region', async () => {
     const page = renderPage({ search: '?credits=opening', api: credits as Partial<NarrationApi> });
     await screen.findByText('Read', { exact: false });
-    expect(screen.getByRole('button', { name: /Credits tokens with no value: Title/ })).toBeTruthy();
+    expect(screen.getByRole('button', { name: /token has no value: Title/ })).toBeTruthy();
     await waitFor(() => expect((screen.getByRole('button', { name: /^Record$/ }) as HTMLButtonElement).disabled).toBe(false));
     await space();
     await waitFor(() => expect(page.daw.recordStart).toHaveBeenCalledWith('credits-opening'));
@@ -694,19 +694,18 @@ describe('a page that has nothing to show says so and leaves a way out', () => {
     expect(page.navigate).toHaveBeenCalledWith('/script');
   });
 
-  it('Back to the chapters opens the book on its first chapter', async () => {
-    renderPage({ search: '?credits=closing', api: openingOnly });
+  it('Back to the chapters goes to the chapter list (Script), not into a Booth already reading chapter 1', async () => {
+    const page = renderPage({ search: '?credits=closing', api: openingOnly });
     await userEvent.click(await screen.findByRole('button', { name: 'Back to the chapters' }));
-    expect(driver.search()).toBe('');
-    await ready();
-    expect(screen.queryByRole('heading', { name: /credits are not set up/ })).toBeNull();
+    expect(page.navigate).toHaveBeenCalledWith('/script');
+    expect(screen.queryByRole('button', { name: /^Record$/ })).toBeNull();
   });
 
   it('a chapter the book does not have says so too, and the way back works', async () => {
-    renderPage({ search: '?chapter=no-such-chapter' });
+    const page = renderPage({ search: '?chapter=no-such-chapter' });
     expect(await screen.findByRole('heading', { name: 'That chapter is not in this book' })).toBeTruthy();
     await userEvent.click(screen.getByRole('button', { name: 'Back to the chapters' }));
-    await ready();
+    expect(page.navigate).toHaveBeenCalledWith('/script');
   });
 
   it('while the credits are still being read there is no panel yet', async () => {
@@ -1301,5 +1300,92 @@ describe('the text follows the voice: the listening microphone and the model', (
       expect(document.getElementById('blisten-why')?.textContent).toBe('The text cannot follow your voice: The microphone is in use by another application.'),
     );
     expect(screen.getByRole('button', { name: /^Stop$/ })).toBeTruthy();
+  });
+});
+
+describe('a-pedals-space-records-and-stops-with-a-popup-open', () => {
+  const spaceOn = (target: Element) => press(' ', 'Space', {}, target);
+  const openContextMenu = async () => {
+    const word = document.querySelector('[data-unit="1"] [data-word]')!;
+    await act(async () => {
+      fireEvent.contextMenu(word, { button: 2, clientX: 10, clientY: 10 });
+    });
+    return screen.findByRole('menu');
+  };
+  const openPopover = async (name: string) => {
+    await userEvent.click(screen.getByRole('button', { name }));
+    return screen.findByRole('dialog', { name });
+  };
+
+  it('stops the take from an open context menu, and closes the menu', async () => {
+    const page = renderPage();
+    await record(page);
+    const menu = await openContextMenu();
+    await spaceOn((menu.querySelector('[role="menuitem"]') as Element | null) ?? menu);
+    await waitFor(() => expect(page.daw.recordStop).toHaveBeenCalledTimes(1));
+    await waitFor(() => expect(menu.isConnected).toBe(false));
+    expect(screen.queryByText('Stop recording?')).toBeNull();
+    expect(page.navigate).not.toHaveBeenCalled();
+  });
+
+  it('does not choose the focused menu item with the pedal', async () => {
+    const page = renderPage();
+    await ready();
+    const menu = await openContextMenu();
+    const item = menu.querySelector('[role="menuitem"]') as HTMLElement;
+    const click = vi.fn();
+    item.addEventListener('click', click);
+    await spaceOn(item);
+    await waitFor(() => expect(page.daw.recordStart).toHaveBeenCalledTimes(1));
+    expect(click).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    ['Text settings', () => screen.getByRole('combobox', { name: 'Font' })],
+    ['Text settings', () => screen.getByRole('slider', { name: /Size/ })],
+    ['Levels', () => document.activeElement ?? document.body],
+  ])('starts a take from the %s popover with focus on a non-text control', async (name, pick) => {
+    const page = renderPage();
+    await ready();
+    const popover = await openPopover(name);
+    const target = pick();
+    (target as HTMLElement).focus?.();
+    await spaceOn(target);
+    await waitFor(() => expect(page.daw.recordStart).toHaveBeenCalledTimes(1));
+    await waitFor(() => expect(popover.isConnected).toBe(false));
+  });
+
+  it('stops a running take from the Levels popover', async () => {
+    const page = renderPage();
+    await record(page);
+    const popover = await openPopover('Levels');
+    await spaceOn(document.activeElement ?? popover);
+    await waitFor(() => expect(page.daw.recordStop).toHaveBeenCalledTimes(1));
+  });
+
+  it('still types a space into a text field inside a popup', async () => {
+    const page = renderPage();
+    await ready();
+    const popover = await openPopover('Levels');
+    const field = document.createElement('input');
+    field.type = 'text';
+    popover.append(field);
+    await spaceOn(field);
+    const area = document.createElement('textarea');
+    popover.append(area);
+    await spaceOn(area);
+    await settle();
+    expect(page.daw.recordStart).not.toHaveBeenCalled();
+    expect(popover.isConnected).toBe(true);
+  });
+
+  it('leaves Space to a modal question: the Stop recording question is answered, not recorded behind', async () => {
+    const page = renderPage();
+    await record(page);
+    await press('Escape');
+    const dialog = await screen.findByRole('alertdialog');
+    await spaceOn(within(dialog).getAllByRole('button')[0]);
+    await settle();
+    expect(page.daw.recordStop).not.toHaveBeenCalled();
   });
 });

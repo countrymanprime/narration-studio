@@ -15,6 +15,12 @@ export type ListboxOption = {
   group?: string;
   // Off: the row is announced as unavailable and stays in the list. Its `description` should say why.
   disabled?: boolean;
+  // A control at the right of the row, outside the option (an option may not hold a button): for the mouse only, hidden from assistive
+  // technology and out of the Tab order, so the same thing must be reachable by a key from the text box that drives the list. The caller gives
+  // it `tabIndex={-1}`. A press on it does not pick the option and does not take focus from the text box.
+  action?: ReactNode;
+  // A sentence for screen readers only, read after the option's name (`aria-describedby`): what a key does on this row.
+  hint?: string;
 };
 
 /** The DOM id of one option, for the combobox's `aria-activedescendant`. */
@@ -58,6 +64,38 @@ export function Listbox({
             const active = index === activeIndex;
             const selected = option.id === selectedId;
             const heading = option.group !== undefined && option.group !== options[index - 1]?.group;
+            const button = (
+              <button
+                id={listboxOptionId(id, option.id)}
+                type="button"
+                role="option"
+                tabIndex={-1}
+                aria-selected={selectedId === undefined ? active : selected}
+                aria-disabled={option.disabled || undefined}
+                aria-describedby={option.hint ? `${listboxOptionId(id, option.id)}-hint` : undefined}
+                className={`flex w-full items-center gap-2 px-3 py-2 text-left aria-disabled:cursor-not-allowed aria-disabled:opacity-55 ${option.action ? 'min-w-0 flex-1' : `not-aria-disabled:hover:bg-[var(--surface-2)] ${active ? 'bg-[var(--surface-2)]' : ''}`}`}
+                // A press picks without taking focus from the text box that drives the list.
+                onMouseDown={(event) => event.preventDefault()}
+                onClick={() => onPick(option.id)}
+              >
+                {selectedId !== undefined && (
+                  <span className="w-3.5 flex-none text-[var(--accent)]" aria-hidden="true">
+                    {selected && <FontAwesomeIcon icon={faCheck} />}
+                  </span>
+                )}
+                {option.leading}
+                <span className="min-w-0 flex-1">
+                  <span className="block text-sm font-semibold">{option.label}</span>
+                  {option.description && <span className="block text-xs text-[var(--text-muted)]">{option.description}</span>}
+                </span>
+                {option.trailing && <span className="flex-none text-xs text-[var(--text-muted)]">{option.trailing}</span>}
+                {option.hint && (
+                  <span id={`${listboxOptionId(id, option.id)}-hint`} className="sr-only">
+                    {option.hint}
+                  </span>
+                )}
+              </button>
+            );
             return (
               <Fragment key={option.id}>
                 {heading && (
@@ -65,30 +103,22 @@ export function Listbox({
                     {option.group}
                   </div>
                 )}
-                <button
-                  id={listboxOptionId(id, option.id)}
-                  type="button"
-                  role="option"
-                  tabIndex={-1}
-                  aria-selected={selectedId === undefined ? active : selected}
-                  aria-disabled={option.disabled || undefined}
-                  className={`flex w-full items-center gap-2 px-3 py-2 text-left hover:bg-[var(--surface-2)] ${active ? 'bg-[var(--surface-2)]' : ''}`}
-                  // A press picks without taking focus from the text box that drives the list.
-                  onMouseDown={(event) => event.preventDefault()}
-                  onClick={() => onPick(option.id)}
-                >
-                  {selectedId !== undefined && (
-                    <span className="w-3.5 flex-none text-[var(--accent)]" aria-hidden="true">
-                      {selected && <FontAwesomeIcon icon={faCheck} />}
+                {option.action ? (
+                  <div role="presentation" className={`flex w-full items-center hover:bg-[var(--surface-2)] ${active ? 'bg-[var(--surface-2)]' : ''}`}>
+                    {button}
+                    {/* The row's mouse-only control: not announced, not tabbable, and a press on it neither picks nor moves focus. */}
+                    <span
+                      aria-hidden="true"
+                      className="flex-none pr-2"
+                      onMouseDown={(event) => event.preventDefault()}
+                      onClick={(event) => event.stopPropagation()}
+                    >
+                      {option.action}
                     </span>
-                  )}
-                  {option.leading}
-                  <span className="min-w-0 flex-1">
-                    <span className="block text-sm font-semibold">{option.label}</span>
-                    {option.description && <span className="block text-xs text-[var(--text-muted)]">{option.description}</span>}
-                  </span>
-                  {option.trailing && <span className="flex-none text-xs text-[var(--text-muted)]">{option.trailing}</span>}
-                </button>
+                  </div>
+                ) : (
+                  button
+                )}
               </Fragment>
             );
           })}

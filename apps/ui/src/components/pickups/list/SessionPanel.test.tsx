@@ -118,3 +118,26 @@ describe('SessionPanel', () => {
     await waitFor(() => expect(toasts()).toEqual([expect.stringContaining('could not be copied')]));
   });
 });
+
+describe('SessionPanel loading state', () => {
+  it('session-panel-loading-shows-blocks-not-a-count-or-an-empty-reason', () => {
+    setup({ pickups: [], loading: true });
+    // The table's region announces the read; the panel adds no second status.
+    expect(screen.queryByText('Reading the pickup list…')).toBeNull();
+    expect(screen.queryByText('There are no pickups to include yet.')).toBeNull();
+    expect(screen.getByText('Lines').nextElementSibling?.textContent).toBe('');
+    expect(screen.getByText('About').nextElementSibling?.textContent).toBe('');
+    expect(screen.getByRole('button', { name: 'Open 0 in Booth' }).getAttribute('aria-describedby')).toBeNull();
+  });
+
+  it('session-panel-loaded-says-its-counts', () => {
+    setup({ pickups: [] });
+    expect(screen.getByText('Lines').nextElementSibling?.textContent).toBe('0');
+    expect(screen.getByText('There are no pickups to include yet.')).toBeTruthy();
+  });
+
+  it('session-panel-unreadable-is-not-a-loading-state', () => {
+    setup({ pickups: [], unreadable: true });
+    expect(screen.getByText('not known')).toBeTruthy();
+  });
+});

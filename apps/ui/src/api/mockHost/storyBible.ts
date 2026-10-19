@@ -1,4 +1,5 @@
 // The mock host (mockApi.ts): the Story Bible.
+import type { MergeEvents } from './mergeEvents';
 import { parseWireJson } from '../wire/parseWire';
 import { guidePropertiesSchema } from '../schemas/storyBible';
 import type { GuideEntity, GuidePronunciation, GuideProperty, GuideType, NarrationApi, WorkJob } from '../../types';
@@ -69,6 +70,7 @@ export function createStoryBibleMock(
     mockVoiceIdentity,
     mockVoice,
   }: Pick<AssetsMock, 'spacyInstalled' | 'ttsInstalled' | 'mockLanguageModel' | 'mockVoiceIdentity' | 'mockVoice'>,
+  merges?: MergeEvents,
 ) {
   let storyBibleJob: WorkJob = initial.rebuildRunning
     ? {
@@ -275,6 +277,7 @@ export function createStoryBibleMock(
       // As the sidecar: the undo keeps the entries as they were and as the merge left them (the newest ten merges).
       const undoId = (++mergeCount).toString(16).padStart(16, '0');
       mergeUndo = [...mergeUndo, { undoId, sourceId, targetId, before, after: wireClone(s.entities) }].slice(-10);
+      merges?.merged(undoId, sourceId, targetId);
       return { undoId };
     },
     guideUnmerge: async (undoId) => {
@@ -303,6 +306,7 @@ export function createStoryBibleMock(
       restored.splice(Math.min(record.before.indexOf(source), restored.length), 0, source);
       s.entities = restored;
       mergeUndo = mergeUndo.filter((row) => row !== record);
+      merges?.unmerged(undoId);
     },
     guideDelete: async (id) => {
       s.entities = s.entities

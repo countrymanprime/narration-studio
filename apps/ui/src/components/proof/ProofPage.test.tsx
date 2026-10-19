@@ -3,7 +3,7 @@ import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-li
 import userEvent from '@testing-library/user-event';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
+import { MemoryRouter, Route, Routes, useLocation, useNavigate } from 'react-router-dom';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { ApiProvider } from '../../api/ApiContext';
 import { createMockApi } from '../../api/mockApi';
@@ -20,6 +20,9 @@ import * as checkRecordings from '../recordingcheck/openCheckRecordings';
 import { proofProgress } from './proof.selectors';
 import { ProofPage } from './ProofPage';
 
+/** What a chapter tile draws: its number and count, which it draws as generated content from data-text. */
+const drawn = (tile: HTMLElement): string => [...tile.querySelectorAll('[data-text]')].map((part) => part.getAttribute('data-text')).join('');
+
 afterEach(() => {
   cleanup();
   window.localStorage.clear();
@@ -31,20 +34,37 @@ function Where() {
   return <p data-testid="where">{location.pathname + location.search}</p>;
 }
 
-function renderPage({ api = createMockApi(), at = '/proof', hasManuscript = true }: { api?: NarrationApi; at?: string; hasManuscript?: boolean } = {}) {
+/** The browser's Back, as a button the tests press. */
+function Back() {
+  const navigate = useNavigate();
+  return (
+    <button type="button" onClick={() => navigate(-1)}>
+      history back
+    </button>
+  );
+}
+
+function renderPage({
+  api = createMockApi(),
+  at = '/proof',
+  before = [],
+  hasManuscript = true,
+}: { api?: NarrationApi; at?: string; before?: string[]; hasManuscript?: boolean } = {}) {
   const handlers = { goTo: vi.fn(), goToScript: vi.fn(), goToBooth: vi.fn(), goToEditing: vi.fn() };
   const journal = createJournal({ dawName: () => 'REAPER', dawLastAction: async () => 'unknown' });
   window.localStorage.setItem('narration.proof.lastChapter./p', 'chapter-2');
   render(
-    <MemoryRouter initialEntries={[at]}>
+    <MemoryRouter initialEntries={[...before, at]} initialIndex={before.length}>
       <ApiProvider api={api}>
         <StudioProvider journal={journal}>
           <CommandRouter>
             <TooltipProvider>
               <Routes>
+                <Route path="/pickups" element={<p>The pickups page</p>} />
                 <Route path="/proof" element={<ProofPage hasManuscript={hasManuscript} projectFolder="/p" {...handlers} />} />
               </Routes>
               <Where />
+              <Back />
               <OverlayHost />
             </TooltipProvider>
           </CommandRouter>
@@ -133,9 +153,9 @@ describe('proof-route-draws-the-mock-page', () => {
     await waitFor(() => expect(within(strip).getAllByRole('button')[0].getAttribute('aria-label')).toBe('Opening credits: no notes'));
     const tiles = within(strip).getAllByRole('button');
     expect(tiles.at(-1)?.getAttribute('aria-label')).toBe('Closing credits: no notes');
-    expect(tiles[0].textContent).toBe('Open—');
-    expect(tiles.at(-1)?.textContent).toBe('Close—');
-    expect(tiles[1].textContent?.startsWith('1')).toBe(true);
+    expect(drawn(tiles[0])).toBe('Open—');
+    expect(drawn(tiles.at(-1)!)).toBe('Close—');
+    expect(drawn(tiles[1]).startsWith('1')).toBe(true);
   });
 
   it('opens the credits card in Script from a credits tile, since Proof has no chapter view for them', async () => {
@@ -175,6 +195,33 @@ describe('proof-route-draws-the-mock-page', () => {
     press('ArrowLeft', 'ArrowLeft');
     await waitFor(() => expect(where()).toBe('/proof?chapter=chapter-1'));
     expect(window.localStorage.getItem('narration.proof.lastChapter./p')).toBe('chapter-1');
+  });
+
+  it('a chapter change is a step in the history, so Back goes to the page before it, not out of the page', async () => {
+    renderPage({ before: ['/pickups'] });
+    await noteRows();
+    press('ArrowRight', 'ArrowRight');
+    await waitFor(() => expect(where()).toBe('/proof?chapter=chapter-2'));
+    fireEvent.click(screen.getByRole('button', { name: 'history back' }));
+    await waitFor(() => expect(where()).toBe('/proof'));
+    fireEvent.click(screen.getByRole('button', { name: 'history back' }));
+    await waitFor(() => expect(where()).toBe('/pickups'));
+  });
+
+  it('opens on the note that was selected when the page is left and opened again, with the note typed for it', async () => {
+    renderPage({ at: '/proof?chapter=chapter-1' });
+    const rows = () => [...screen.getByRole('region', { name: 'Notes' }).querySelectorAll<HTMLElement>('tr[data-row]')];
+    await noteRows();
+    await waitFor(() => expect(rows()[0].getAttribute('aria-selected')).toBe('true'));
+    press('j', 'KeyJ');
+    await waitFor(() => expect(rows()[1].getAttribute('aria-selected')).toBe('true'));
+    fireEvent.change(await screen.findByRole('textbox', { name: 'Note with the decision (optional)' }), { target: { value: 'Say it slower' } });
+    cleanup();
+    renderPage({ at: '/proof?chapter=chapter-1' });
+    await noteRows();
+    await waitFor(() => expect(rows()[1].getAttribute('aria-selected')).toBe('true'));
+    expect((await screen.findByRole('textbox', { name: 'Note with the decision (optional)' })).getAttribute('value') ?? '').toBe('');
+    expect((screen.getByRole('textbox', { name: 'Note with the decision (optional)' }) as HTMLTextAreaElement).value).toBe('Say it slower');
   });
 
   it('opens on the first note, moves through the notes with J and K and with Down and Up, and does not claim Space', async () => {
@@ -247,6 +294,31 @@ describe('proof-route-draws-the-mock-page', () => {
     ]) {
       expect(source).not.toContain(gone);
     }
+  });
+});
+
+describe('proof-keys-follow-the-visible-list', () => {
+  it('J and the arrow keys stay on the rows the list shows when a filter hides some notes', async () => {
+    const { journal } = renderPage({ at: '/proof?chapter=chapter-1' });
+    const user = userEvent.setup();
+    const all = await noteRows();
+    expect(all.length).toBeGreaterThan(1);
+    const notes = screen.getByRole('region', { name: 'Notes' });
+    // "To review" hides every decided note; decide the last one first so at least one row below the others is hidden by the chip.
+    await user.click(all[all.length - 1]);
+    press('w', 'KeyW');
+    await waitFor(async () => expect(await journal.entries()).toHaveLength(1));
+    await user.click(within(notes).getByRole('button', { name: /To review/ }));
+    const shown = () => [...notes.querySelectorAll<HTMLElement>('tr[data-row]')];
+    await waitFor(() => expect(shown().length).toBeLessThan(all.length));
+    for (let n = 0; n < all.length + 2; n++) {
+      press('ArrowDown', 'ArrowDown');
+    }
+    await waitFor(() => expect(shown().filter((row) => row.getAttribute('aria-selected') === 'true')).toHaveLength(1));
+    // Waive what is selected: it must be a note on the list, so the list loses exactly one row.
+    const before = shown().length;
+    press('w', 'KeyW');
+    await waitFor(() => expect(shown().length).toBe(before - 1));
   });
 });
 
@@ -497,5 +569,40 @@ describe('the jump menu on Proof', () => {
     await noteRows();
     const steps = providedCommands().filter((command) => command.group === 'Proof');
     expect(steps.map((command) => command.label)).toEqual(['Next chapter', 'Previous chapter']);
+  });
+});
+
+// The loading state (definition-of-done.md state matrix): the title and one busy region while the chapters and the notes are first read, then the
+// page, or the error with Retry; a later re-read does not bring the blocks back. Never an endless skeleton.
+describe('ProofPage loading state', () => {
+  const never = () => new Promise<never>(() => {});
+  const region = () => screen.queryByRole('group', { name: 'Loading Proof' });
+
+  it('keeps the title and shows one busy region while the chapters are read, however long that takes', async () => {
+    renderPage({ api: createMockApi({ manuscriptChapters: never }) });
+    expect(await screen.findByRole('heading', { level: 1, name: 'Proof' })).toBeTruthy();
+    expect(region()?.getAttribute('aria-busy')).toBe('true');
+    expect(within(region()!).getByRole('status').textContent).toBe('Reading the chapters and notes…');
+    await new Promise((resolve) => setTimeout(resolve, 60));
+    expect(region()).toBeTruthy();
+    expect(screen.queryByRole('region', { name: 'Notes' })).toBeNull();
+  });
+
+  it('keeps the skeleton while the notes are still being read', async () => {
+    renderPage({ api: createMockApi({ findingsList: never }) });
+    expect(await screen.findByRole('group', { name: 'Loading Proof' })).toBeTruthy();
+  });
+
+  it('is replaced by the page when both reads end, and does not come back', async () => {
+    renderPage();
+    await noteRows();
+    expect(region()).toBeNull();
+    expect(screen.getAllByRole('heading', { level: 1, name: 'Proof' })).toHaveLength(1);
+  });
+
+  it('shows the error with Retry, not a skeleton, when the first read fails', async () => {
+    renderPage({ api: createMockApi({ manuscriptChapters: () => Promise.reject(new Error('The manuscript could not be read.')) }) });
+    expect(await screen.findByRole('button', { name: 'Retry' })).toBeTruthy();
+    expect(region()).toBeNull();
   });
 });

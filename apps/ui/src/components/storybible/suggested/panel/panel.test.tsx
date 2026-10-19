@@ -17,7 +17,7 @@ import { EntryVerifyPill } from './EntryVerifyPill';
 import { ImportButton } from './ImportButton';
 import { LooseSuggestionRows } from './LooseSuggestionRows';
 import { NeedsVerificationChip } from './NeedsVerificationChip';
-import { ScanButton } from './ScanButton';
+import { ScanButton, ScanStatus } from './ScanButton';
 import { filterEntries } from './selectors';
 import { useSuggestions } from './useSuggestions';
 
@@ -39,6 +39,7 @@ function Panel({ pollMs = 10, entries = [] as { id: string; name: string }[] }) 
   return (
     <div>
       <ScanButton scan={scan} />
+      <ScanStatus scan={scan} />
       <NeedsVerificationChip count={verifyCount(suggestions)} on={on} onToggle={setOn} />
       <ul aria-label="Entries">
         <LooseSuggestionRows suggestions={loose} selectedId={chosen} onSelect={setChosen} />
@@ -211,7 +212,8 @@ describe('scan-button-starts-the-job-and-shows-real-progress', () => {
     await u.click(scanButton);
     expect(h.calls.scan).toHaveBeenCalledWith(sources.filter((s) => s.runs && s.available).map((s) => s.id));
     await screen.findByRole('button', { name: 'Cancel scan' });
-    expect(screen.getByRole('button', { name: 'Scan the manuscript for suggestions' }).getAttribute('aria-busy')).toBe('true');
+    // The wand gives its slot to Cancel while the job runs, so nothing beside it moves.
+    expect(screen.queryByRole('button', { name: 'Scan the manuscript for suggestions' })).toBeNull();
     h.set({ percent: 40, message: 'Scanning with Rules (1 of 2).' });
     await waitFor(() => expect(screen.getByRole('status').textContent).toBe('40% · Scanning with Rules (1 of 2).'));
     expect(screen.getByRole('progressbar').getAttribute('aria-valuenow')).toBe('40');

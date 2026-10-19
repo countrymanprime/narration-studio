@@ -204,7 +204,7 @@ export const productionStates: StateEntry[] = [
     page: 'production',
     state: 'recording-check-rules',
     description:
-      "Production, a chapter's recording check panel with its Check rules section open: the note that the values are proposed, then the share of each paragraph, the missing and misread runs, the shortest match and the background switch, this project's values",
+      "Production, the Recording check rules dialog opened from the jump menu: the note that the values are proposed, then the share of each paragraph, the missing and misread runs, the shortest match and the background switch, this project's values",
   },
   {
     page: 'production',
@@ -249,7 +249,7 @@ export const productionStates: StateEntry[] = [
     page: 'production',
     state: 'stage-suggestion-options',
     description:
-      "Production, the Stage suggestion options opened under the chapter pipeline (?mockStages=mixed): the switch and each readiness signal as Required or Ignored, this project's values",
+      "Production, the Stage suggestion options dialog opened from the jump menu (?mockStages=mixed): the switch and each readiness signal as Required or Ignored, this project's values",
     ...KEEPS_DESKTOP_SCROLL,
   },
   {
@@ -350,5 +350,11 @@ export const productionStates: StateEntry[] = [
     page: 'production',
     state: 'chapter-sync-consent',
     description: 'Production, "Sync chapters to tracks?" (?mockChapterSync=ask) - it shows from every link path, not only Tracks',
+  },
+  {
+    page: 'production',
+    state: 'loading',
+    description:
+      'Production while the production log is still being read (?mockHold=overview): the page header (title, counts, buttons) as usual and grey blocks in place of the KPI row, the three cards, the chapter pipeline and the side panels, with one polite "Reading the production log…" status',
   },
 ];

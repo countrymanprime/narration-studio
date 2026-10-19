@@ -190,7 +190,45 @@ describe('brackets-step-flags-enter-opens-the-card', () => {
     expect(state().sel).not.toBeNull();
     emit('Escape');
     expect(state().sel).toBeNull();
+    const script = document.createElement('div');
+    script.setAttribute('data-script', '');
+    script.tabIndex = 0;
+    document.body.append(script);
+    script.focus();
+    emit('Escape', [], script);
+    expect(document.activeElement).toBe(document.body);
+    script.remove();
+  });
+
+  it('Escape on a control outside the script text leaves focus where it is', () => {
+    mount(marksDoc());
+    const button = document.createElement('button');
+    document.body.append(button);
+    button.focus();
+    emit('Escape', [], button);
+    expect(document.activeElement).toBe(button);
+    button.remove();
+  });
+});
+
+describe('Escape-closes-the-drawer', () => {
+  it('closes an open drawer once the card and the selection are done with, before it blurs', () => {
+    const doc = marksDoc();
+    const closeDrawer = vi.fn(() => true);
+    mount(doc, { closeDrawer });
+    act(() => page.dispatch({ type: 'select', anchor: doc.items[0].key, head: doc.items[2].key }));
+    emit('Escape');
+    expect(state().sel).toBeNull();
+    expect(closeDrawer).not.toHaveBeenCalled();
+    emit('Escape');
+    expect(closeDrawer).toHaveBeenCalledTimes(1);
+  });
+
+  it('blurs the script text when the drawer is already shut', () => {
+    const doc = marksDoc();
+    mount(doc, { closeDrawer: () => false });
     const el = document.createElement('div');
+    el.setAttribute('data-script', '');
     el.tabIndex = 0;
     document.body.append(el);
     el.focus();

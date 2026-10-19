@@ -7,6 +7,13 @@ import { HINT_POPUP_SELECTOR } from './hintLayer';
 import { IconButton } from './IconButton';
 import { POPOVER_POPUP_SELECTOR } from './Popover';
 
+// Portals attach in the order the layers opened, so a modal later in the document is above this one.
+function hasModalAbove(popup: HTMLElement): boolean {
+  return Array.from(document.querySelectorAll('[role="dialog"], [role="alertdialog"]')).some(
+    (other) => other !== popup && !popup.contains(other) && Boolean(popup.compareDocumentPosition(other) & Node.DOCUMENT_POSITION_FOLLOWING),
+  );
+}
+
 type DialogProps = {
   title: string;
   // Shows the header Close button and lets Escape close the dialog.
@@ -37,6 +44,8 @@ type DialogProps = {
   // A region between the body and `actions` that never scrolls with it: the read-aloud dialog's
   // control bar, kept visible in every scroll position. Absent, most dialogs draw nothing here. Unlike `actions` it has no padding or alignment opinion of its own - a toolbar lays out its own row.
   footer?: ReactNode;
+  // Where focus returns on close when the element that had it at open is gone (the menu item that ran, then closed). Absent: the page's <main>.
+  returnFocus?: () => HTMLElement | null;
   children: ReactNode;
 } & (
   | { variant?: 'dialog'; description?: ReactNode }
@@ -73,6 +82,7 @@ export function Dialog({
   actions,
   actionsAlign = 'between',
   footer,
+  returnFocus,
   children,
 }: DialogProps) {
   // Both families share their parts; typing them as one keeps the wrapper a single shell.
@@ -91,7 +101,9 @@ export function Dialog({
   };
   const finalFocus = () => {
     if (opener?.isConnected && opener !== document.body) return opener;
-    // The opener is gone (the click removed it, or one dialog replaced another): the landmark is the next best place.
+    // The opener is gone (the click removed it, or one dialog replaced another): where the opener says, then the landmark.
+    const target = returnFocus?.();
+    if (target?.isConnected) return target;
     return document.querySelector<HTMLElement>('main') ?? true;
   };
 
@@ -105,6 +117,13 @@ export function Dialog({
           return;
         }
         if (details.reason !== 'escape-key') return;
+        // Another modal opened above this one: Escape is its to answer, even while focus has not yet moved into it (the key
+        // then lands in this dialog first, and Base UI would stop it here and close the layer underneath).
+        if (popupRef.current && hasModalAbove(popupRef.current)) {
+          details.cancel();
+          details.allowPropagation();
+          return;
+        }
         // Escape belongs to a hint or a Popover that is showing (a tooltip, a device picker, a settings panel inside the
         // dialog), and to a handler that already took it.
         if (!dismiss || details.event.defaultPrevented || document.querySelector(HINT_POPUP_SELECTOR) || document.querySelector(POPOVER_POPUP_SELECTOR))

@@ -130,6 +130,13 @@ describe('StageBar', () => {
     expect(screen.queryByText(/Delivered/)).toBeNull();
   });
 
+  it('names its recorded share as not yet edited and says it is an estimate, not the measured length of the Finished audio tile', () => {
+    const { segments } = overviewFor(MID_BOOK);
+    view(<StageBar segments={segments} wph={9300} />);
+    expect(screen.getByText(/Recorded, not edited yet/)).toBeTruthy();
+    expect(screen.getByText(/Estimated from each chapter's words and status\. Finished audio above is the measured length\./)).toBeTruthy();
+  });
+
   it('draws an empty bar for a book with no words', () => {
     view(<StageBar segments={overviewFor([]).segments} wph={9300} />);
     expect(screen.getByRole('img', { name: 'Book progress by stage' }).querySelectorAll('i')).toHaveLength(4);
@@ -152,9 +159,20 @@ describe('WeekCard', () => {
 });
 
 describe('ProgressChart', () => {
-  const chart = (chapters = MID_BOOK, log = undefined as Parameters<typeof overviewFor>[2]) => {
+  const chart = (chapters = MID_BOOK, log = undefined as Parameters<typeof overviewFor>[2], clearTodayLabel = false) => {
     const o = overviewFor(chapters, undefined, log);
-    return view(<ProgressChart k={o.k} wph={9300} start={o.start} today={STORY_TODAY} due={o.kpi.due} recordedHours={o.recordedHours} series={o.series} />);
+    return view(
+      <ProgressChart
+        k={o.k}
+        wph={9300}
+        start={o.start}
+        today={STORY_TODAY}
+        due={o.kpi.due}
+        recordedHours={o.recordedHours}
+        series={o.series}
+        clearTodayLabel={clearTodayLabel}
+      />,
+    );
   };
 
   it('chart-plan-actual-projection', () => {
@@ -164,6 +182,39 @@ describe('ProgressChart', () => {
     expect(screen.getByText(/^done .* \(est\.\)$/)).toBeTruthy();
     const svg = screen.getByRole('img', { name: 'Recorded audio versus plan' });
     expect(document.getElementById(svg.getAttribute('aria-describedby') ?? '')?.textContent).toMatch(/starts .*due .*Today is .*Estimated finish/);
+  });
+
+  it('chart-today-label-clears-the-estimate-line: never centred over the dot, where the projection runs up and right from it', () => {
+    const { container } = chart(MID_BOOK, undefined, true);
+    const dot = container.querySelector('[data-marker="today"]') as SVGCircleElement;
+    const label = screen.getByText('today');
+    const [x, y, cx, cy] = [label.getAttribute('x'), label.getAttribute('y'), dot.getAttribute('cx'), dot.getAttribute('cy')].map(Number);
+    // Left of the dot and above it (recording ahead of the plan), or right of it and below (behind it, or no room on the left).
+    if (label.getAttribute('text-anchor') === 'end') expect([x < cx, y < cy]).toEqual([true, true]);
+    else expect([label.getAttribute('text-anchor'), x > cx, y > cy]).toEqual(['start', true, true]);
+  });
+
+  it('chart-today-label-leaves-the-dot-when-the-due-line-is-close: a due date a day away puts the label left of the dot', () => {
+    const o = overviewFor(MID_BOOK, undefined, undefined);
+    const dayAfter = new Date(STORY_TODAY.getTime() + 24 * 3600 * 1000);
+    view(
+      <ProgressChart
+        k={o.k}
+        wph={9300}
+        start={new Date(STORY_TODAY.getTime() - 20 * 24 * 3600 * 1000)}
+        today={STORY_TODAY}
+        due={dayAfter}
+        recordedHours={0.1}
+        series={o.series}
+        clearTodayLabel
+      />,
+    );
+    expect(screen.getByText('today').getAttribute('text-anchor')).toBe('end');
+  });
+
+  it('chart keeps the label centred above the dot unless asked, as Production draws it', () => {
+    chart();
+    expect(screen.getByText('today').getAttribute('text-anchor')).toBe('middle');
   });
 
   it('chart without a take log has no actual line and says why', () => {

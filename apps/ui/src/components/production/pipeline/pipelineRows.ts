@@ -124,7 +124,7 @@ function proofCell(chapter: ProductionChapter, notes: { cleared: number; total: 
   if (chapter.status === 'finalized') return done('proof', 'proof', counted || 'Proofed');
   if (notes && total > 0) {
     const percent = Math.floor((notes.cleared / total) * 100);
-    return notes.cleared >= total ? done('proof', 'proof', counted) : cell('proof', 'proof', 'progress', `${percent}%`, counted, counted);
+    return notes.cleared >= total ? done('proof', 'proof', counted) : cell('proof', 'proof', 'progress', `${percent}%`, `${percent}%, ${counted}`, counted);
   }
   return notStarted('proof', 'proof');
 }
@@ -140,7 +140,7 @@ function pickupsCell(chapter: ProductionChapter, open: number | undefined): Pipe
   // Pickups wait for a chapter recorded to the end: until then nothing is left to pick up.
   if (!past(chapter.status, 'editing')) return cell('pickups', 'pickups', 'none', DASH, 'waiting for the recording', 'Waits for the full recording', false);
   if (open === undefined) return cell('pickups', 'pickups', 'none', DASH, 'not measured yet', 'Pickups are counted for the whole project');
-  if (open === 0) return cell('pickups', 'pickups', 'done', '0', 'none open', 'No open pickups');
+  if (open === 0) return cell('pickups', 'pickups', 'done', '0', '0 open', 'No open pickups');
   return cell('pickups', 'pickups', 'open', String(open), `${open} open`, `${open} open pickups`);
 }
 
@@ -151,7 +151,7 @@ function masterCell(review: { mastered: boolean; qc: string | null } | undefined
 
 function qcCell(review: { mastered: boolean; qc: string | null } | undefined): PipelineCell {
   if (!review) return unknown('qc', 'master');
-  if (review.qc === 'PASS') return cell('qc', 'master', 'done', 'PASS', 'passes', 'Passes the delivery check');
+  if (review.qc === 'PASS') return cell('qc', 'master', 'done', 'PASS', 'PASS', 'Passes the delivery check');
   if (review.qc) return cell('qc', 'master', 'open', review.qc, `fails: ${review.qc}`, `Fails the delivery check: ${review.qc}`);
   return cell('qc', 'master', 'none', DASH, 'not checked', 'Not checked');
 }
@@ -190,4 +190,6 @@ export function buildPipelineRows(chapters: readonly ProductionChapter[], source
 }
 
 /** The accessible name of a cell: "<chapter>: <stage> <state>". */
+// A cell's state starts with the text it draws (a count, a percent, PASS), so its name holds that text: axe fails a name that
+// leaves out what the button draws.
 export const cellName = (rowName: string, c: PipelineCell): string => `${rowName}: ${COLUMN_LABEL[c.column]} ${c.state}`;

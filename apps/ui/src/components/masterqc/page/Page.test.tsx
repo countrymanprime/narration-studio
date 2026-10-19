@@ -18,7 +18,7 @@ const mount = (files: readonly MeasureFileResult[], profile: DeliveryProfile = a
   const api = apiOf(jobOf(files, profile), profile, overrides);
   render(
     <PageHost api={api}>
-      <MasterPage {...PROPS} onOpenDelivery={onOpenDelivery} />
+      <MasterPage {...PROPS} onOpenDelivery={onOpenDelivery} openSettings={vi.fn()} />
     </PageHost>,
   );
   return { api, onOpenDelivery };
@@ -34,7 +34,7 @@ describe('Master & QC page body', () => {
     const api = apiOf(jobOf(files, acx), acx, { manuscriptChapters: async () => CHAPTERS });
     render(
       <PageHost api={api}>
-        <MasterPage {...PROPS} onOpenDelivery={vi.fn()} {...props} />
+        <MasterPage {...PROPS} onOpenDelivery={vi.fn()} openSettings={vi.fn()} {...props} />
       </PageHost>,
     );
   };
@@ -77,7 +77,7 @@ describe('Master & QC page body', () => {
   it('asks for the manuscript first', () => {
     render(
       <PageHost api={apiOf(jobOf(TWO_FAIL))}>
-        <MasterPage {...PROPS} hasManuscript={false} onOpenDelivery={vi.fn()} />
+        <MasterPage {...PROPS} hasManuscript={false} onOpenDelivery={vi.fn()} openSettings={vi.fn()} />
       </PageHost>,
     );
     expect(screen.getByText('Import manuscript')).toBeTruthy();
@@ -88,7 +88,7 @@ describe('Master & QC page body', () => {
     const api = apiOf(jobOf(TWO_FAIL, acx), acx);
     render(
       <PageHost api={api}>
-        <MasterPage {...PROPS} onOpenDelivery={vi.fn()} focusFile="C:/Renders/Chapter 02.wav" />
+        <MasterPage {...PROPS} onOpenDelivery={vi.fn()} openSettings={vi.fn()} focusFile="C:/Renders/Chapter 02.wav" />
       </PageHost>,
     );
     expect(await screen.findByRole('heading', { name: 'Chapter 02.wav · Checks' })).toBeTruthy();
@@ -115,13 +115,13 @@ describe('Master & QC page body', () => {
     const api = apiOf(jobOf(TWO_FAIL, acx), acx);
     const view = render(
       <PageHost api={api}>
-        <MasterPage {...PROPS} onOpenDelivery={vi.fn()} focusFile="C:/Renders/Chapter 04.wav" />
+        <MasterPage {...PROPS} onOpenDelivery={vi.fn()} openSettings={vi.fn()} focusFile="C:/Renders/Chapter 04.wav" />
       </PageHost>,
     );
     expect(await screen.findByRole('heading', { name: 'Chapter 04.wav · Why it fails' })).toBeTruthy();
     view.rerender(
       <PageHost api={api}>
-        <MasterPage {...PROPS} onOpenDelivery={vi.fn()} focusFile="C:/Renders/Chapter 02.wav" />
+        <MasterPage {...PROPS} onOpenDelivery={vi.fn()} openSettings={vi.fn()} focusFile="C:/Renders/Chapter 02.wav" />
       </PageHost>,
     );
     expect(await screen.findByRole('heading', { name: 'Chapter 02.wav · Checks' })).toBeTruthy();
@@ -168,7 +168,7 @@ describe('Master & QC page body', () => {
     const api = apiOf(jobOf([]), acx, { manuscriptChapters: async () => CHAPTERS });
     render(
       <PageHost api={api}>
-        <MasterPage {...PROPS} onOpenDelivery={vi.fn()} />
+        <MasterPage {...PROPS} onOpenDelivery={vi.fn()} openSettings={vi.fn()} />
       </PageHost>,
     );
     const notReady = chapterStates(CHAPTERS, []).filter((state) => state.kind === 'wait').length + CREDITS_FILES;
@@ -187,7 +187,7 @@ describe('Master & QC page body', () => {
     const api = apiOf(jobOf(files), acx, { manuscriptChapters: async () => chapters });
     render(
       <PageHost api={api}>
-        <MasterPage {...PROPS} onOpenDelivery={vi.fn()} />
+        <MasterPage {...PROPS} onOpenDelivery={vi.fn()} openSettings={vi.fn()} />
       </PageHost>,
     );
     const states = chapterStates(chapters, files);
@@ -276,3 +276,33 @@ function failingRms(): MeasureFileResult {
     report: { ...file.report!, rms_dbfs: -30 },
   };
 }
+
+// The loading state of the Delivery package panel (state matrix): no count is drawn until the profile and the chapters have been read, because
+// "0 failing and 0 not ready" would read as a pass; a failed read ends it, never an endless skeleton.
+describe('Master & QC package panel loading state', () => {
+  const never = () => new Promise<never>(() => undefined);
+  const region = () => screen.queryByRole('group', { name: 'Loading the delivery package checks' });
+
+  it('shows a busy region and no counts while the chapters are read, however long that takes', async () => {
+    mount(ALL_PASS, acx, { manuscriptChapters: never });
+    await screen.findByRole('complementary', { name: /Delivery package/ });
+    expect(region()?.getAttribute('aria-busy')).toBe('true');
+    expect(within(region()!).getByRole('status').textContent).toBe('Reading the profile and the chapters…');
+    expect(screen.queryByText(/failing and \d+ not ready/)).toBeNull();
+    expect(screen.getByRole('button', { name: 'Open Delivery' })).toBeTruthy();
+    await new Promise((resolve) => setTimeout(resolve, 60));
+    expect(region()).toBeTruthy();
+  });
+
+  it('shows the counts, and no region, once both have been read', async () => {
+    mount(TWO_FAIL, acx, { manuscriptChapters: async () => CHAPTERS });
+    expect(await screen.findByText(/\d+ failing and \d+ not ready\./)).toBeTruthy();
+    expect(region()).toBeNull();
+  });
+
+  it('ends the region when the chapters cannot be read, and says so', async () => {
+    mount(ALL_PASS, acx, { manuscriptChapters: () => Promise.reject(new Error('unreadable')) });
+    expect(await screen.findByText(/The chapters could not be read/)).toBeTruthy();
+    await waitFor(() => expect(region()).toBeNull());
+  });
+});

@@ -53,8 +53,10 @@ describe('Settings > Manuscript', () => {
 
   it('says when the manuscript was imported and how many words it has, as the mock does, and Replace is the danger button', async () => {
     await renderManuscript();
-    // The mock's "Imported Sep 12 · 29,222 words": a short day, not the stored timestamp, and the narratable word count.
-    expect(await screen.findByText(/^Imported [A-Z][a-z]{2} \d{1,2} · 2,672 words$/)).toBeTruthy();
+    // The mock's "Imported Sep 12 · 29,222 words": a short day, not the stored timestamp, and the narratable word count. It is the
+    // figure Production's header shows for the same book, so the two pages never name two totals.
+    const words = (await createMockApi({}, {}).manuscriptChapters()).reduce((sum, chapter) => sum + chapter.wordCount, 0);
+    expect(await screen.findByText(new RegExp(`^Imported [A-Z][a-z]{2} \\d{1,2} · ${words.toLocaleString('en-US')} words$`))).toBeTruthy();
     expect(screen.queryByText(/T00:00:00Z/)).toBeNull();
     expect(screen.getByRole('button', { name: 'Replace manuscript…' }).className).toMatch(/danger/);
   });
@@ -69,6 +71,7 @@ describe('Settings > Manuscript', () => {
   it('replace-opens-the-existing-flow: the button opens the import review through the host, naming what a replace clears', async () => {
     await renderManuscript({ replace: true });
     fireEvent.click(await screen.findByRole('button', { name: 'Replace manuscript…' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Choose a file…' }));
     const dialog = await screen.findByRole('alertdialog', { name: /^Import / });
     // confirmation-lists-what-a-replace-clears (no bookmark count until the bookmarks binding exists, SN-B5)
     expect(within(dialog).getByText(/clears Story Bible, notes, bookmarks, statuses, and saved comparison results/)).toBeTruthy();
@@ -81,6 +84,7 @@ describe('Settings > Manuscript', () => {
     let commit = vi.fn();
     await renderManuscript({ replace: true, prepare: (api) => void (commit = vi.spyOn(api, 'manuscriptImportCommit')) });
     fireEvent.click(await screen.findByRole('button', { name: 'Replace manuscript…' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Choose a file…' }));
     const dialog = await screen.findByRole('alertdialog', { name: /^Import / });
     fireEvent.click(within(dialog).getByRole('button', { name: 'Replace and reset' }));
     await waitFor(() => expect(commit).toHaveBeenCalled());
