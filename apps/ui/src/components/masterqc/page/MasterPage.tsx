@@ -17,9 +17,9 @@ import { ReportExportPanel } from '../../master/ReportExportPanel';
 import { useExportJobs } from '../../master/useExportJobs';
 import { Button } from '../../primitives/Button';
 import { ChapterStepper } from '../../primitives/ChapterStepper';
+import { HeaderChip } from '../../primitives/HeaderChip';
 import { Heading } from '../../primitives/Heading';
 import { Panel } from '../../primitives/Panel';
-import { badgeClass, badgeStyle, toneColors } from '../../primitives/StatusBadge';
 import { useOpenPickups } from '../../pickups/useOpenPickups';
 import { NeedManuscript } from '../../layout/NeedManuscript';
 import type { FileActions } from '../files/FileActions';
@@ -218,15 +218,9 @@ function MasterBody({ projectFolder, onOpenDelivery, openSettings, fileActions, 
                   <ChapterStepper chapters={bar} value={chapterOfSelection.id} stepKeys={['Alt+↑', 'Alt+↓']} onChange={goToChapter} onStep={stepChapter} />
                 )}
                 {profile && (
-                  <button
-                    type="button"
-                    title="Open Delivery"
-                    className={`${badgeClass('pill')} cursor-pointer text-left`}
-                    style={badgeStyle(toneColors('neutral'))}
-                    onClick={onOpenDelivery}
-                  >
+                  <HeaderChip title="Open Delivery" onClick={onOpenDelivery}>
                     {profileName(profile)}
-                  </button>
+                  </HeaderChip>
                 )}
               </>
             );
