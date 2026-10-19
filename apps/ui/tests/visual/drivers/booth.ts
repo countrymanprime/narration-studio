@@ -2,7 +2,7 @@
 // It opens on Chapter 1 (the mock's last chapter read) unless a state picks otherwise. The Companion rows open `/companion`.
 import type { Page } from '@playwright/test';
 import { settlePage } from '../helpers/settle';
-import { type Driver, openCheckingLink, chooseTheme, clickNav, goToPage, openBooth, selectReaderWord, openWithoutManuscript } from './shared';
+import { type Driver, chooseMicrophone, openCheckingLink, chooseTheme, clickNav, goToPage, openBooth, selectReaderWord, openWithoutManuscript } from './shared';
 
 // The record capability on, so Record is enabled (the mock's REAPER keeps it switched off by default, which is the refusal row).
 const RECORD_ON = '?mockRecordCapabilityOn=1';
@@ -27,6 +27,7 @@ async function readyToRecord(page: Page, query = RECORD_ON): Promise<void> {
 // narrator reads on.
 async function startTake(page: Page, query = RECORD_ON): Promise<void> {
   await readyToRecord(page, query);
+  if (query.includes('mockEngine=builtin')) await chooseMicrophone(page);
   await page.clock.install({ time: REC_START });
   await page.clock.pauseAt(REC_START + 1_000);
   await record(page).click();
