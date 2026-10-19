@@ -47,12 +47,13 @@ if (withStorybook) {
 // sandboxed frame's host may not send.
 const dataUri = (file, type) => `data:${type};base64,${readFileSync(file).toString('base64')}`;
 const fontFile = (pkg, file) => join(ui, 'node_modules', '@fontsource', pkg, 'files', file);
-const fonts = {
-  'barlow-condensed-600': fontFile('barlow-condensed', 'barlow-condensed-latin-600-normal.woff2'),
-  'barlow-condensed-700': fontFile('barlow-condensed', 'barlow-condensed-latin-700-normal.woff2'),
-  'ibm-plex-sans-400': fontFile('ibm-plex-sans', 'ibm-plex-sans-latin-400-normal.woff2'),
-  'ibm-plex-sans-600': fontFile('ibm-plex-sans', 'ibm-plex-sans-latin-600-normal.woff2'),
-};
+const fonts = Object.fromEntries(
+  [
+    ['barlow-condensed', [500, 600, 700]],
+    ['ibm-plex-mono', [400, 500]],
+    ['ibm-plex-sans', [400, 500, 600, 700]],
+  ].flatMap(([pkg, weights]) => weights.map((weight) => [`${pkg}-${weight}`, fontFile(pkg, `${pkg}-latin-${weight}-normal.woff2`)])),
+);
 
 // The landing page names Storybook only when this build holds it, so a --skip-storybook folder has no dead link.
 let landing = readFileSync(join(root, 'scripts', 'site', 'landing', 'index.html'), 'utf8');

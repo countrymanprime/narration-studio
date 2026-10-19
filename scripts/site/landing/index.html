@@ -1,466 +1,1115 @@
 <!doctype html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Narration Studio</title>
-    <link rel="icon" type="image/png" href="./assets/favicon.png" />
-    <meta name="description" content="Narration Studio proofs every audiobook chapter before the proofer does. Try the real app in your browser." />
-    <script>
-      // Same key and logic as apps/ui/index.html, so the site opens in the theme the demo app last used on this origin.
-      (function () {
-        try {
-          var stored = localStorage.getItem('narration-ui-theme');
-          var preference = stored === 'light' || stored === 'dark' || stored === 'system' ? stored : 'system';
-          var dark = preference === 'dark' || (preference === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
-          if (dark) document.documentElement.setAttribute('data-theme', 'dark');
-        } catch (error) {
-          // Storage or matchMedia unavailable (a sandboxed frame): the light palette.
-        }
-      })();
-    </script>
-    <style>
-      /* The font files are copied from the app's own bundle by scripts/site/build-demo-site.mjs; no font host is contacted. */
-      @font-face {
-        font-family: 'Barlow Condensed';
-        font-weight: 600;
-        font-display: swap;
-        src: url('./assets/fonts/barlow-condensed-600.woff2') format('woff2');
-      }
-      @font-face {
-        font-family: 'Barlow Condensed';
-        font-weight: 700;
-        font-display: swap;
-        src: url('./assets/fonts/barlow-condensed-700.woff2') format('woff2');
-      }
-      @font-face {
-        font-family: 'IBM Plex Sans';
-        font-weight: 400;
-        font-display: swap;
-        src: url('./assets/fonts/ibm-plex-sans-400.woff2') format('woff2');
-      }
-      @font-face {
-        font-family: 'IBM Plex Sans';
-        font-weight: 600;
-        font-display: swap;
-        src: url('./assets/fonts/ibm-plex-sans-600.woff2') format('woff2');
-      }
-      :root {
-        --bg: #efede7;
-        --surface: #fbfaf7;
-        --surface-2: #f4f2ec;
-        --border: #dcd7cb;
-        --line-strong: #969083;
-        --btn-line: #2b2723;
-        --text: #23201b;
-        --text-muted: #5c564b;
-        --accent: #b04f17;
-        --accent-strong: #8f3f0f;
-        --accent-soft: #f2deca;
-        --accent-contrast: #ffffff;
-        --focus: #1f5fbf;
-        --ok: #2f6b3e;
-        --ok-soft: #dcede3;
-        --warn: #8a5a00;
-        --warn-soft: #f4e6c4;
-        --display: 'Barlow Condensed', 'Arial Narrow', sans-serif;
-        --body: 'IBM Plex Sans', system-ui, sans-serif;
-      }
-      :root[data-theme='dark'] {
-        --bg: #14120e;
-        --surface: #1d1a15;
-        --surface-2: #26221c;
-        --border: #38332a;
-        --line-strong: #6d6659;
-        --btn-line: #7a7060;
-        --text: #ede8de;
-        --text-muted: #b0a797;
-        --accent: #d9803f;
-        --accent-strong: #f0a06a;
-        --accent-soft: #3a2617;
-        --accent-contrast: #1a0f05;
-        --focus: #7fb0ff;
-        --ok: #7dc08a;
-        --ok-soft: #1e3324;
-        --warn: #e3b04f;
-        --warn-soft: #3a2d10;
-      }
-      * {
-        box-sizing: border-box;
-      }
-      body {
-        margin: 0;
-        background: var(--bg);
-        color: var(--text);
-        font: 400 16px/1.55 var(--body);
-      }
-      a {
-        color: inherit;
-      }
-      :focus-visible {
-        outline: 2px solid var(--focus);
-        outline-offset: 2px;
-      }
-      .wrap {
-        max-width: 1120px;
-        margin: 0 auto;
-        padding: 0 16px;
-      }
-      header {
-        border-bottom: 1px solid var(--border);
-        background: var(--surface);
-      }
-      header .wrap {
-        display: flex;
-        align-items: center;
-        gap: 24px;
-        min-height: 60px;
-        flex-wrap: wrap;
-      }
-      .brand {
-        font: 700 22px/1 var(--display);
-        letter-spacing: 0.04em;
-        text-transform: uppercase;
-        text-decoration: none;
-        margin-right: auto;
-      }
-      nav {
-        display: flex;
-        gap: 20px;
-        flex-wrap: wrap;
-      }
-      nav a {
-        font: 600 15px/1 var(--display);
-        letter-spacing: 0.08em;
-        text-transform: uppercase;
-        text-decoration: none;
-        color: var(--text-muted);
-        padding: 8px 0;
-      }
-      nav a:hover {
-        color: var(--text);
-      }
-      .btn {
-        display: inline-flex;
-        align-items: center;
-        gap: 8px;
-        min-height: 40px;
-        padding: 0 18px;
-        border: 1px solid var(--btn-line);
-        border-radius: 6px;
-        background: var(--surface);
-        color: var(--text);
-        font: 600 15px/1 var(--display);
-        letter-spacing: 0.08em;
-        text-transform: uppercase;
-        text-decoration: none;
-        cursor: pointer;
-      }
-      .btn:hover {
-        background: var(--surface-2);
-      }
-      .btn.primary {
-        background: var(--accent);
-        border-color: var(--accent);
-        color: var(--accent-contrast);
-      }
-      .btn.primary:hover {
-        background: var(--accent-strong);
-        border-color: var(--accent-strong);
-      }
-      .btn.icon {
-        padding: 0 12px;
-      }
-      .hero {
-        padding: 64px 0 40px;
-        display: grid;
-        grid-template-columns: 1.1fr 1fr;
-        gap: 40px;
-        align-items: center;
-      }
-      .eyebrow {
-        font: 600 13px/1 var(--display);
-        letter-spacing: 0.16em;
-        text-transform: uppercase;
-        color: var(--accent);
-      }
-      h1 {
-        margin: 14px 0 0;
-        font: 700 clamp(44px, 7vw, 76px)/0.98 var(--display);
-        text-transform: uppercase;
-      }
-      .sub {
-        margin: 20px 0 0;
-        max-width: 52ch;
-        color: var(--text-muted);
-        font-size: 18px;
-      }
-      .cta {
-        display: flex;
-        gap: 12px;
-        flex-wrap: wrap;
-        margin-top: 28px;
-      }
-      .facts {
-        display: flex;
-        gap: 8px 20px;
-        flex-wrap: wrap;
-        margin-top: 22px;
-        padding: 0;
-        list-style: none;
-        color: var(--text-muted);
-        font-size: 14px;
-      }
-      .facts li::before {
-        content: '✓ ';
-        color: var(--ok);
-      }
-      .card {
-        background: var(--surface);
-        border: 1px solid var(--border);
-        border-radius: 10px;
-        padding: 22px;
-      }
-      .note-card {
-        display: grid;
-        gap: 12px;
-      }
-      .row {
-        display: flex;
-        align-items: center;
-        gap: 10px;
-        font-size: 14px;
-      }
-      .badge {
-        font: 600 12px/1 var(--display);
-        letter-spacing: 0.1em;
-        text-transform: uppercase;
-        padding: 5px 8px;
-        border-radius: 4px;
-      }
-      .badge.warn {
-        background: var(--warn-soft);
-        color: var(--warn);
-      }
-      .badge.ok {
-        background: var(--ok-soft);
-        color: var(--ok);
-      }
-      section.block {
-        padding: 40px 0;
-      }
-      h2 {
-        margin: 10px 0 0;
-        font: 700 clamp(30px, 4vw, 42px)/1.05 var(--display);
-        text-transform: uppercase;
-      }
-      h3 {
-        margin: 0 0 6px;
-        font: 700 22px/1.1 var(--display);
-        text-transform: uppercase;
-        letter-spacing: 0.02em;
-      }
-      p {
-        margin: 0;
-      }
-      .tour {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-        gap: 16px;
-        margin-top: 24px;
-      }
-      .tour .card {
-        text-decoration: none;
-        display: grid;
-        gap: 8px;
-        align-content: start;
-      }
-      .tour .card:hover {
-        border-color: var(--line-strong);
-      }
-      .tour p {
-        color: var(--text-muted);
-        font-size: 15px;
-      }
-      .go {
-        font: 600 14px/1 var(--display);
-        letter-spacing: 0.1em;
-        text-transform: uppercase;
-        color: var(--accent);
-      }
-      .trio {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-        gap: 16px;
-        margin-top: 24px;
-      }
-      .trio p {
-        color: var(--text-muted);
-        font-size: 15px;
-      }
-      .install {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 32px;
-      }
-      .install ol {
-        margin: 0;
-        padding-left: 20px;
-        display: grid;
-        gap: 10px;
-        color: var(--text-muted);
-        font-size: 15px;
-      }
-      .install b {
-        color: var(--text);
-        display: block;
-      }
-      footer {
-        border-top: 1px solid var(--border);
-        margin-top: 24px;
-        padding: 24px 0 40px;
-        color: var(--text-muted);
-        font-size: 14px;
-      }
-      footer .wrap {
-        display: flex;
-        gap: 8px 24px;
-        flex-wrap: wrap;
-      }
-      @media (max-width: 800px) {
-        .hero,
-        .install {
-          grid-template-columns: 1fr;
-        }
-        .hero {
-          padding-top: 40px;
-        }
-      }
-    </style>
-  </head>
-  <body>
-    <header>
-      <div class="wrap">
-        <a class="brand" href="./">Narration Studio</a>
-        <nav aria-label="Main">
-          <a href="demo/index.html">Live demo</a>
-          <!--STORYBOOK_NAV-->
-          <a href="guides/index.html">Guides</a>
-          <a href="https://github.com/countrymanprime/narration-utils/releases" target="_blank" rel="noopener">Download</a>
-        </nav>
-        <button type="button" class="btn icon" id="theme" aria-label="Switch colour theme">Theme</button>
-      </div>
-    </header>
-    <main>
-      <div class="wrap">
-        <section class="hero">
-          <div>
-            <div class="eyebrow">For audiobook narrators · Windows</div>
-            <h1>Proof every chapter before the proofer does.</h1>
-            <p class="sub">
-              Narration Studio imports your manuscript, listens to the recording with a local Whisper model and marks every skipped or added word. Then it
-              checks your files against the platform's delivery rules.
-            </p>
-            <div class="cta">
-              <a class="btn primary" href="demo/index.html">Try the live demo</a>
-              <!--STORYBOOK_CTA-->
-              <a class="btn" href="https://github.com/countrymanprime/narration-utils/releases" target="_blank" rel="noopener">Download for Windows</a>
-            </div>
-            <ul class="facts">
-              <li>Windows x64</li>
-              <li>Audio stays on your machine</li>
-              <li>REAPER · Audacity 3</li>
-            </ul>
-          </div>
-          <div class="card note-card" aria-label="Example of the Proof check">
-            <div class="row"><b>Proof · Chapter 3</b></div>
-            <div class="row"><span class="badge warn">Skipped word</span><span>“Oh dear!” not heard</span></div>
-            <div class="row"><span class="badge ok">Needs pickup</span><span>Marker dropped in the DAW, line queued in Pickups</span></div>
-            <p style="color: var(--text-muted); font-size: 14px">The demo runs this same flow in the real interface.</p>
-          </div>
-        </section>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Narration Studio Site</title>
+<link rel="icon" type="image/png" href="./assets/favicon.png">
+<style>
+/* Fonts: the app's own files (@fontsource), inlined by scripts/site/build-demo-site.mjs; no font host is contacted. */
+@font-face{font-family:'Barlow Condensed';font-weight:500;font-display:swap;src:url('./assets/fonts/barlow-condensed-500.woff2') format('woff2')}
+@font-face{font-family:'Barlow Condensed';font-weight:600;font-display:swap;src:url('./assets/fonts/barlow-condensed-600.woff2') format('woff2')}
+@font-face{font-family:'Barlow Condensed';font-weight:700;font-display:swap;src:url('./assets/fonts/barlow-condensed-700.woff2') format('woff2')}
+@font-face{font-family:'IBM Plex Mono';font-weight:400;font-display:swap;src:url('./assets/fonts/ibm-plex-mono-400.woff2') format('woff2')}
+@font-face{font-family:'IBM Plex Mono';font-weight:500;font-display:swap;src:url('./assets/fonts/ibm-plex-mono-500.woff2') format('woff2')}
+@font-face{font-family:'IBM Plex Sans';font-weight:400;font-display:swap;src:url('./assets/fonts/ibm-plex-sans-400.woff2') format('woff2')}
+@font-face{font-family:'IBM Plex Sans';font-weight:500;font-display:swap;src:url('./assets/fonts/ibm-plex-sans-500.woff2') format('woff2')}
+@font-face{font-family:'IBM Plex Sans';font-weight:600;font-display:swap;src:url('./assets/fonts/ibm-plex-sans-600.woff2') format('woff2')}
+@font-face{font-family:'IBM Plex Sans';font-weight:700;font-display:swap;src:url('./assets/fonts/ibm-plex-sans-700.woff2') format('woff2')}
+/* Layout concept: a paper-and-ink product site. Sticky bar over four views (Product, Docs, Live demo, Storybook).
+   Tokens are the app's own (apps/ui/src/styles.css): warm paper, burnt-orange accent, Barlow Condensed + IBM Plex. */
+:root{
+  --bg:#efede7; --surface:#fbfaf7; --surface-2:#f4f2ec; --surface-3:#dcd8cd; --border:#dcd7cb; --line-strong:#969083;
+  --btn-line:#2b2723; --text:#23201b; --text-muted:#5c564b; --non-text:#766f60;
+  --accent:#b04f17; --accent-strong:#8f3f0f; --accent-soft:#f2deca; --accent-contrast:#ffffff; --focus:#1f5fbf;
+  --character:#3c7a5c; --character-soft:#dcede3; --place:#3f6ea6; --place-soft:#dce7f3; --org:#6b4c9a; --org-soft:#e6ddf3;
+  --review:#b5473c; --review-soft:#f5dedb;
+  --danger:#a3302a; --warn:#8a5a00; --info:#2a5c86; --ok:#2f6b3e; --experimental:#1f7a7a;
+  --ok-soft:#d9ead9; --warn-soft:#f5e6bf; --info-soft:#d8e5f2; --danger-soft:#f4d6d2; --exp-soft:#d6ebea;
+  --reading:#fbfaf7; --shadow:0 1px 2px rgba(35,32,27,.08),0 2px 8px rgba(35,32,27,.06);
+  --shadow-lg:0 1px 2px rgba(35,32,27,.1),0 14px 36px rgba(35,32,27,.16);
+  --display:'Barlow Condensed','Arial Narrow',sans-serif; --sans:'IBM Plex Sans',system-ui,sans-serif; --mono:'IBM Plex Mono',ui-monospace,Consolas,monospace;
+  --bar-h:56px;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#14120e; --surface:#1d1a15; --surface-2:#26221c; --surface-3:#363023; --border:#38332a; --line-strong:#6d6659;
+  --btn-line:#7a7060; --text:#ede8de; --text-muted:#b0a797; --non-text:#968d7d;
+  --accent:#d9803f; --accent-strong:#f0a06a; --accent-soft:#3a2617; --accent-contrast:#1a0f05; --focus:#7fb0ff;
+  --character:#5fae85; --character-soft:#1d2e24; --place:#6e9fdb; --place-soft:#1c2a3b; --org:#b79de0; --org-soft:#2e2545;
+  --review:#db7a6e; --review-soft:#3a2320;
+  --danger:#f09088; --warn:#e3b04f; --info:#8dbbe6; --ok:#7dc08a; --experimental:#4fbdbd;
+  --ok-soft:#1e3324; --warn-soft:#3a2d10; --info-soft:#1b2f42; --danger-soft:#40201d; --exp-soft:#16302f;
+  --reading:#0e0d09; --shadow:0 1px 2px rgba(0,0,0,.4),0 2px 8px rgba(0,0,0,.25);
+  --shadow-lg:0 1px 2px rgba(0,0,0,.4),0 10px 28px rgba(0,0,0,.55); color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#14120e; --surface:#1d1a15; --surface-2:#26221c; --surface-3:#363023; --border:#38332a; --line-strong:#6d6659;
+  --btn-line:#7a7060; --text:#ede8de; --text-muted:#b0a797; --non-text:#968d7d;
+  --accent:#d9803f; --accent-strong:#f0a06a; --accent-soft:#3a2617; --accent-contrast:#1a0f05; --focus:#7fb0ff;
+  --character:#5fae85; --character-soft:#1d2e24; --place:#6e9fdb; --place-soft:#1c2a3b; --org:#b79de0; --org-soft:#2e2545;
+  --review:#db7a6e; --review-soft:#3a2320;
+  --danger:#f09088; --warn:#e3b04f; --info:#8dbbe6; --ok:#7dc08a; --experimental:#4fbdbd;
+  --ok-soft:#1e3324; --warn-soft:#3a2d10; --info-soft:#1b2f42; --danger-soft:#40201d; --exp-soft:#16302f;
+  --reading:#0e0d09; --shadow:0 1px 2px rgba(0,0,0,.4),0 2px 8px rgba(0,0,0,.25);
+  --shadow-lg:0 1px 2px rgba(0,0,0,.4),0 10px 28px rgba(0,0,0,.55); color-scheme:dark}
 
-        <section class="block">
-          <div class="eyebrow">See it before you install it</div>
-          <h2>Three ways to look around</h2>
-          <div class="tour">
-            <a class="card" href="demo/index.html">
-              <h3>Live demo</h3>
-              <p>
-                The real app, built in its mock mode, running in this tab against a sample project (Alice's Adventures in Wonderland, public domain). A
-                simulated DAW stands in for REAPER. Nothing is uploaded or saved.
-              </p>
-              <span class="go">Open the demo →</span>
-            </a>
-            <!--STORYBOOK_CARD-->
-            <a class="card" href="guides/index.html">
-              <h3>Guides</h3>
-              <p>A how-to guide for each page of the app, with screenshots. Each demo page links to its own guide.</p>
-              <span class="go">Read the guides →</span>
-            </a>
-          </div>
-        </section>
+*{box-sizing:border-box}
+html{scroll-behavior:smooth;scroll-padding-top:calc(var(--bar-h) + 16px + env(safe-area-inset-top,0px))}
+body{background:var(--bg);color:var(--text);font:400 15px/1.55 var(--sans);padding-inline:max(16px,env(safe-area-inset-left,0px)) max(16px,env(safe-area-inset-right,0px));padding-block:0;-webkit-font-smoothing:antialiased}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:90;background:var(--surface)}
+h1,h2,h3,h4{margin:0;text-wrap:balance}
+p{margin:0}
+a{color:var(--accent-strong);text-underline-offset:3px}
+button{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--focus);outline-offset:2px;border-radius:4px}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.wrap{max-width:1180px;margin-inline:auto}
+.mono{font-family:var(--mono)}
+.eyebrow{font:500 12px/1 var(--mono);letter-spacing:.12em;text-transform:uppercase;color:var(--accent-strong)}
+.display{font-family:var(--display);font-weight:700;letter-spacing:.005em;line-height:.95}
+svg.i{width:1em;height:1em;flex:none;stroke:currentColor;fill:none;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+svg.i.fill{fill:currentColor;stroke:none}
 
-        <section class="block">
-          <div class="eyebrow">Built for long sessions</div>
-          <h2>Quiet where it should be</h2>
-          <div class="trio">
-            <div class="card">
-              <h3>Your audio stays here</h3>
-              <p>Transcription runs on a local Whisper model. Nothing is downloaded until a feature that needs a model asks you first.</p>
-            </div>
-            <div class="card">
-              <h3>Marks land in your DAW</h3>
-              <p>With REAPER running, the app drops a take marker at every discrepancy, so the fix is one click away.</p>
-            </div>
-            <div class="card">
-              <h3>Readable in a dim booth</h3>
-              <p>Light and dark themes with contrast checked by tests, a visible focus ring and keys for the notes queue.</p>
-            </div>
-          </div>
-        </section>
+/* ---------- primitives (shared by the site, the demo and Storybook) ---------- */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:36px;padding:0 14px;border-radius:6px;border:1px solid var(--btn-line);background:var(--surface);color:var(--text);font-weight:500;font-size:14px;cursor:pointer;text-decoration:none;white-space:nowrap;transition:transform .12s,background .15s,box-shadow .15s}
+.btn:hover{background:var(--surface-2);box-shadow:var(--shadow)}
+.btn:active{transform:translateY(1px)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-contrast)}
+.btn.primary:hover{background:var(--accent-strong);border-color:var(--accent-strong)}
+.btn.danger{background:var(--danger-soft);border-color:var(--danger);color:var(--danger)}
+.btn.quiet{border-color:transparent;background:transparent}
+.btn.quiet:hover{background:var(--surface-2);box-shadow:none}
+.btn.sm{min-height:28px;padding:0 10px;font-size:13px}
+.btn.lg{min-height:46px;padding:0 22px;font-size:16px}
+.btn[disabled]{opacity:.5;cursor:not-allowed;box-shadow:none;transform:none}
+.badge{display:inline-flex;align-items:center;gap:6px;height:22px;padding:0 8px;border-radius:999px;font:500 12px/1 var(--sans);white-space:nowrap}
+.badge::before{content:"";width:9px;height:9px;background:currentColor;flex:none}
+.badge.ok{background:var(--ok-soft);color:var(--ok)} .badge.ok::before{border-radius:50%}
+.badge.warn{background:var(--warn-soft);color:var(--warn)} .badge.warn::before{clip-path:polygon(50% 0,100% 100%,0 100%)}
+.badge.info{background:var(--info-soft);color:var(--info)} .badge.info::before{clip-path:polygon(50% 0,100% 50%,50% 100%,0 50%)}
+.badge.danger{background:var(--danger-soft);color:var(--danger)} .badge.danger::before{clip-path:polygon(20% 0,80% 0,100% 20%,100% 80%,80% 100%,20% 100%,0 80%,0 20%)}
+.badge.experimental{background:var(--exp-soft);color:var(--experimental)} .badge.experimental::before{clip-path:polygon(25% 0,75% 0,100% 50%,75% 100%,25% 100%,0 50%)}
+.ent{padding:1px 5px;border-radius:3px;border-bottom:2px solid;font-weight:500}
+.ent.character{background:var(--character-soft);border-color:var(--character);color:var(--text)}
+.ent.place{background:var(--place-soft);border-color:var(--place);color:var(--text)}
+.ent.org{background:var(--org-soft);border-color:var(--org);color:var(--text)}
+.ent.review{background:var(--review-soft);border-color:var(--review);color:var(--text)}
+.seg{display:inline-flex;border:1px solid var(--line-strong);border-radius:6px;overflow:hidden;background:var(--surface)}
+.seg button{border:0;background:transparent;padding:0 12px;min-height:30px;font-size:13px;cursor:pointer;border-right:1px solid var(--line-strong)}
+.seg button:last-child{border-right:0}
+.seg button[aria-pressed="true"]{background:var(--accent-soft);color:var(--accent-strong);font-weight:600}
+.meter{position:relative;height:10px;border-radius:5px;background:var(--surface-3);overflow:hidden;min-width:120px}
+.meter i{position:absolute;inset:0 auto 0 0;border-radius:5px;transition:width .12s linear}
+.meter.floor i{background:var(--non-text)} .meter.body i{background:var(--ok)} .meter.hot i{background:var(--warn)} .meter.over i{background:var(--danger)}
+kbd{font:500 12px/1 var(--mono);padding:3px 6px;border:1px solid var(--line-strong);border-bottom-width:2px;border-radius:4px;background:var(--surface);color:var(--text)}
+.pill{display:inline-flex;align-items:center;gap:6px;height:24px;padding:0 10px;border-radius:999px;border:1px solid var(--border);background:var(--surface);font-size:12px;font-weight:500}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:10px}
 
-        <section class="block">
-          <div class="card install">
-            <div>
-              <div class="eyebrow">Install on Windows</div>
-              <h2>Four minutes to a first project</h2>
-              <p style="color: var(--text-muted); margin-top: 14px; max-width: 44ch">
-                Windows x64 only for now. The installer is per-user, so it asks for no administrator rights.
-              </p>
-              <div class="cta">
-                <a class="btn primary" href="https://github.com/countrymanprime/narration-utils/releases" target="_blank" rel="noopener"
-                  >Get the latest release</a
-                >
-              </div>
-            </div>
-            <ol>
-              <li><b>Download the setup file</b>and its .sha256 file to check it.</li>
-              <li><b>Run it</b>It installs to your user folder and adds a Start Menu entry.</li>
-              <li><b>Expect a SmartScreen warning</b>The release is unsigned. Choose More info, then Run anyway.</li>
-              <li><b>Start Narration Studio</b>Updates come from the same releases, and only after you click.</li>
-            </ol>
-          </div>
-        </section>
+/* ---------- top bar ---------- */
+.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:80;margin-inline:calc(-1 * max(16px,env(safe-area-inset-left,0px))) calc(-1 * max(16px,env(safe-area-inset-right,0px)));padding-inline:max(16px,env(safe-area-inset-left,0px)) max(16px,env(safe-area-inset-right,0px));background:color-mix(in srgb,var(--surface) 92%,transparent);backdrop-filter:blur(10px);border-bottom:1px solid var(--border)}
+.bar{max-width:1180px;margin-inline:auto;height:var(--bar-h);display:flex;align-items:center;gap:20px}
+.brand{display:flex;align-items:center;gap:10px;text-decoration:none;color:var(--text);font:700 22px/1 var(--display);letter-spacing:.02em;text-transform:uppercase}
+.brand .mark{display:flex;align-items:center;gap:2px;height:22px}
+.brand .mark b{display:block;width:3px;border-radius:2px;background:var(--accent);animation:mark 1.8s ease-in-out infinite}
+.brand .mark b:nth-child(1){height:9px}.brand .mark b:nth-child(2){height:20px;animation-delay:.2s}.brand .mark b:nth-child(3){height:13px;animation-delay:.4s}.brand .mark b:nth-child(4){height:17px;animation-delay:.6s}
+@keyframes mark{50%{transform:scaleY(.55)}}
+.nav{display:flex;gap:2px;margin-left:8px}
+.nav a{padding:8px 12px;border-radius:6px;text-decoration:none;color:var(--text-muted);font-weight:500;font-size:14px;position:relative}
+.nav a:hover{color:var(--text);background:var(--surface-2)}
+.nav a[aria-current="page"]{color:var(--text)}
+.nav a[aria-current="page"]::after{content:"";position:absolute;left:12px;right:12px;bottom:2px;height:2px;background:var(--accent);border-radius:2px}
+.bar-right{margin-left:auto;display:flex;align-items:center;gap:8px}
+.search-btn{display:flex;align-items:center;gap:8px;height:34px;padding:0 10px;border:1px solid var(--line-strong);border-radius:6px;background:var(--surface);color:var(--text-muted);cursor:pointer;font-size:13px}
+.search-btn:hover{color:var(--text)}
+.icon-btn{width:34px;height:34px;display:grid;place-items:center;border:1px solid transparent;border-radius:6px;background:transparent;cursor:pointer;color:var(--text)}
+.icon-btn:hover{background:var(--surface-2);border-color:var(--border)}
+.menu-btn{display:none}
+.strip{margin-inline:calc(-1 * max(16px,env(safe-area-inset-left,0px))) calc(-1 * max(16px,env(safe-area-inset-right,0px)));padding:7px max(16px,env(safe-area-inset-right,0px)) 7px max(16px,env(safe-area-inset-left,0px));background:var(--accent-soft);color:var(--text);font-size:13px;text-align:center}
+.strip button{margin-left:10px;border:0;background:none;color:var(--accent-strong);text-decoration:underline;cursor:pointer;font-size:13px}
+
+/* ---------- views ---------- */
+.view{display:none;padding-block:0 72px}
+.view.on{display:block;animation:viewIn .4s cubic-bezier(.2,.7,.2,1)}
+@keyframes viewIn{from{opacity:.4;transform:translateY(8px)}}
+.reveal{transform:translateY(14px);transition:transform .7s cubic-bezier(.2,.7,.2,1)}
+.reveal.in{transform:none}
+section.block{padding-block:72px 0}
+.sec-head{max-width:720px;display:grid;gap:12px;margin-bottom:32px}
+.sec-head h2{font:700 clamp(34px,5vw,52px)/.98 var(--display);text-transform:uppercase}
+.sec-head p{color:var(--text-muted);font-size:17px}
+
+/* hero */
+.hero{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.05fr);gap:48px;align-items:center;padding-block:64px 8px}
+.hero h1{font:700 clamp(52px,8.4vw,104px)/.88 var(--display);text-transform:uppercase;letter-spacing:.003em}
+.hero h1 span{display:block;animation:rise .8s cubic-bezier(.2,.7,.2,1) both}
+.hero h1 span:nth-child(2){animation-delay:.08s}.hero h1 span:nth-child(3){animation-delay:.16s;color:var(--accent)}
+@keyframes rise{from{transform:translateY(22px);opacity:.35}}
+.hero .sub{margin-top:22px;font-size:18px;color:var(--text-muted);max-width:520px}
+.hero .cta{display:flex;flex-wrap:wrap;gap:12px;margin-top:28px}
+.hero .facts{margin-top:22px;font:400 12.5px/1.6 var(--mono);color:var(--text-muted);display:flex;flex-wrap:wrap;gap:6px 18px}
+.hero .facts span::before{content:"";display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--ok);margin-right:8px;vertical-align:1px}
+.stage{position:relative}
+.stage::before{content:"";position:absolute;inset:-24px -16px -16px 24px;background:repeating-linear-gradient(90deg,var(--border) 0 1px,transparent 1px 28px);opacity:.7;border-radius:14px;z-index:0;mask-image:linear-gradient(135deg,transparent 15%,#000 80%)}
+.win{position:relative;z-index:1;background:var(--surface);border:1px solid var(--line-strong);border-radius:10px;box-shadow:var(--shadow-lg);overflow:hidden}
+.win-bar{display:flex;align-items:center;gap:10px;height:36px;padding:0 12px;background:var(--surface-2);border-bottom:1px solid var(--border);font-size:12.5px;color:var(--text-muted)}
+.win-bar .dots{margin-left:auto;display:flex;gap:10px}.win-bar .dots i{width:10px;height:10px;border:1.5px solid var(--non-text);border-radius:2px}
+.ra{padding:22px 24px 10px;background:var(--reading)}
+.ra .ch{display:flex;justify-content:space-between;gap:12px;align-items:center;flex-wrap:wrap;margin-bottom:16px}
+.ra .ch strong{font:600 20px/1 var(--display);letter-spacing:.03em;text-transform:uppercase}
+.ra-text{font:400 21px/1.75 var(--sans);min-height:4.2em}
+.ra-text .w{border-radius:3px;padding:0 1px;transition:background .2s,color .2s}
+.ra-text .w.now{background:var(--accent-soft);box-shadow:0 2px 0 var(--accent)}
+.ra-text .w.heard{color:var(--text-muted)}
+.ra-text .w.skip{background:var(--warn-soft);color:var(--warn);text-decoration:underline wavy;text-underline-offset:4px;font-weight:600}
+.wave{display:flex;align-items:center;gap:3px;height:54px;margin:14px 0 4px}
+.wave i{flex:1;max-width:5px;min-height:4px;border-radius:3px;background:var(--non-text);opacity:.55;height:var(--h);transform-origin:center;animation:bar 1.4s ease-in-out infinite;animation-delay:var(--d)}
+.wave i.hot{background:var(--accent);opacity:1}
+@keyframes bar{50%{transform:scaleY(.35)}}
+.take-note{display:flex;align-items:center;gap:10px;margin:10px 24px 20px;padding:10px 12px;border:1px solid var(--warn);border-radius:8px;background:var(--warn-soft);color:var(--text);font-size:13.5px;transform:translateY(0);transition:opacity .35s,transform .35s}
+.take-note.hide{opacity:.0;transform:translateY(8px);visibility:hidden}
+.take-note .mk{width:3px;align-self:stretch;background:var(--warn);border-radius:2px}
+.rec{display:inline-flex;align-items:center;gap:7px;padding:3px 9px;border-radius:999px;background:var(--review-soft);color:var(--danger);font:500 12px/1.4 var(--mono)}
+.rec::before{content:"";width:8px;height:8px;border-radius:50%;background:var(--danger);animation:blink 1.2s steps(2) infinite}
+@keyframes blink{50%{opacity:.2}}
+
+.stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:0;margin-top:64px;border-block:1px solid var(--border)}
+.stats div{padding:22px 20px;border-left:1px solid var(--border)}.stats div:first-child{border-left:0;padding-left:0}
+.stats b{display:block;font:700 56px/1 var(--display);font-variant-numeric:tabular-nums}
+.stats span{font-size:13.5px;color:var(--text-muted)}
+
+/* workflow tabs */
+.tabs{display:grid;grid-template-columns:240px minmax(0,1fr);gap:28px;align-items:start}
+.tablist{display:grid;gap:4px}
+.tab{display:grid;gap:2px;text-align:left;padding:12px 14px;border:1px solid transparent;border-left:3px solid var(--border);border-radius:0 8px 8px 0;background:transparent;cursor:pointer;color:var(--text-muted)}
+.tab b{font:600 20px/1 var(--display);letter-spacing:.04em;text-transform:uppercase;color:var(--text)}
+.tab small{font-size:12.5px}
+.tab:hover{background:var(--surface-2)}
+.tab[aria-selected="true"]{border-left-color:var(--accent);background:var(--surface);border-color:var(--border);border-left-color:var(--accent);box-shadow:var(--shadow)}
+.panel{display:grid;grid-template-columns:minmax(0,.9fr) minmax(0,1.1fr);gap:28px;align-items:center;padding:28px;min-height:360px}
+.panel h3{font:700 36px/1 var(--display);text-transform:uppercase;margin-bottom:12px}
+.panel p{color:var(--text-muted)}
+.panel ul{margin:16px 0 0;padding:0;list-style:none;display:grid;gap:8px;font-size:14.5px}
+.panel li{display:flex;gap:10px}.panel li svg{margin-top:4px;color:var(--ok)}
+.panel .link{display:inline-flex;gap:6px;align-items:center;margin-top:18px;font-weight:600}
+.mini{background:var(--reading);border:1px solid var(--border);border-radius:8px;padding:14px;display:grid;gap:10px;font-size:13.5px;animation:viewIn .45s both}
+.mini .row{display:flex;align-items:center;gap:10px;padding:8px 10px;border:1px solid var(--border);border-radius:6px;background:var(--surface)}
+.mini .row .grow{flex:1;min-width:0}
+.mini .row small{color:var(--text-muted)}
+.mini .fill{height:8px;border-radius:4px;background:var(--surface-3);overflow:hidden}
+.mini .fill i{display:block;height:100%;background:var(--accent);width:0;animation:grow 1.8s .2s ease-out forwards}
+@keyframes grow{to{width:var(--w,70%)}}
+.ring{--p:0;width:56px;height:56px;border-radius:50%;background:conic-gradient(var(--ok) calc(var(--p)*1%),var(--surface-3) 0);display:grid;place-items:center;flex:none;transition:--p .6s}
+.ring::after{content:attr(data-t);width:42px;height:42px;border-radius:50%;background:var(--surface);display:grid;place-items:center;font:600 12px var(--mono)}
+
+.trio{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:20px}
+.spot{position:relative;padding:26px;overflow:hidden}
+.spot::before{content:"";position:absolute;inset:0;background:radial-gradient(260px circle at var(--mx,50%) var(--my,0%),var(--accent-soft),transparent 70%);opacity:0;transition:opacity .25s}
+.spot:hover::before{opacity:1}
+.spot>*{position:relative}
+.spot h3{font:700 28px/1 var(--display);text-transform:uppercase;margin:14px 0 8px}
+.spot p{color:var(--text-muted);font-size:14.5px}
+.spot .glyph{width:42px;height:42px;border-radius:8px;display:grid;place-items:center;background:var(--accent-soft);color:var(--accent-strong);font-size:22px}
+
+.tour{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:20px}
+.tour a.card{display:grid;gap:14px;padding:20px;text-decoration:none;color:var(--text);transition:transform .2s,box-shadow .2s;align-content:start}
+.tour a.card:hover{transform:translateY(-3px);box-shadow:var(--shadow-lg)}
+.tour h3{font:700 30px/1 var(--display);text-transform:uppercase}
+.tour p{color:var(--text-muted);font-size:14.5px}
+.tour .go{display:inline-flex;align-items:center;gap:6px;font-weight:600;color:var(--accent-strong)}
+.tour .go svg{transition:transform .2s}.tour a:hover .go svg{transform:translateX(4px)}
+.thumb{height:130px;border-radius:8px;border:1px solid var(--border);background:var(--reading);padding:12px;display:grid;gap:8px;align-content:start;overflow:hidden}
+
+.dl{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:40px;padding:36px;align-items:start}
+.dl ol{margin:0;padding:0;list-style:none;display:grid;gap:14px;counter-reset:s}
+.dl li{display:grid;grid-template-columns:30px 1fr;gap:12px;counter-increment:s}
+.dl li::before{content:counter(s);width:28px;height:28px;border-radius:50%;background:var(--accent);color:var(--accent-contrast);display:grid;place-items:center;font:600 13px var(--mono)}
+.dl li span{color:var(--text-muted);font-size:14.5px}
+.dl li b{display:block;color:var(--text);font-size:15px}
+
+footer.foot{margin-top:72px;padding-block:28px 40px;border-top:1px solid var(--border);display:flex;flex-wrap:wrap;gap:12px 28px;color:var(--text-muted);font-size:13.5px;max-width:1180px;margin-inline:auto}
+footer.foot a{color:var(--text-muted)}footer.foot .sp{margin-left:auto}
+
+/* ---------- docs ---------- */
+.docs{display:grid;grid-template-columns:260px minmax(0,1fr) 210px;gap:36px;padding-top:28px;align-items:start}
+.side{position:sticky;top:calc(var(--bar-h) + 16px + env(safe-area-inset-top,0px));max-height:calc(100vh - var(--bar-h) - 32px);overflow:auto;display:grid;gap:18px;padding-right:6px}
+.side h4{font:600 12px/1 var(--mono);letter-spacing:.1em;text-transform:uppercase;color:var(--text-muted);display:flex;gap:8px;align-items:center;margin-bottom:6px}
+.side h4 em{font-style:normal;font-size:10.5px;text-transform:none;letter-spacing:0;color:var(--non-text);font-weight:400}
+.side a{display:block;padding:6px 10px;border-radius:6px;text-decoration:none;color:var(--text);font-size:14px;border-left:2px solid transparent}
+.side a:hover{background:var(--surface-2)}
+.side a[aria-current="page"]{background:var(--accent-soft);border-left-color:var(--accent);font-weight:600;color:var(--accent-strong)}
+.doc-m{display:none}
+article.doc{min-width:0;max-width:720px}
+.crumb{font:400 12.5px var(--mono);color:var(--text-muted);margin-bottom:14px}
+article.doc h1{font:700 clamp(40px,5vw,60px)/.95 var(--display);text-transform:uppercase}
+article.doc .lead{font-size:18.5px;color:var(--text-muted);margin:14px 0 26px}
+article.doc h2{font:700 30px/1 var(--display);text-transform:uppercase;margin:40px 0 12px;display:flex;gap:10px;align-items:baseline}
+article.doc h2 a.anchor{opacity:0;text-decoration:none;color:var(--non-text);font:400 18px var(--mono)}
+article.doc h2:hover a.anchor{opacity:1}
+article.doc p{margin:0 0 14px;max-width:66ch}
+article.doc ul,article.doc ol{margin:0 0 16px;padding-left:22px;display:grid;gap:6px;max-width:66ch}
+article.doc code{font:400 .88em var(--mono);background:var(--surface-2);border:1px solid var(--border);border-radius:4px;padding:1px 5px}
+.codebox{position:relative;margin:0 0 18px}
+.codebox pre{margin:0;padding:16px 18px;overflow:auto;background:var(--reading);border:1px solid var(--border);border-radius:8px;font:400 13px/1.65 var(--mono)}
+.codebox pre code{background:none;border:0;padding:0}
+.codebox button{position:absolute;top:8px;right:8px}
+.codebox .lang{position:absolute;top:-9px;left:12px;background:var(--bg);padding:0 6px;font:500 11px var(--mono);color:var(--text-muted);letter-spacing:.06em}
+.note{display:flex;gap:12px;padding:14px 16px;border-radius:8px;border:1px solid var(--border);border-left:4px solid var(--info);background:var(--info-soft);margin:0 0 18px;font-size:14.5px;max-width:66ch}
+.note.warn{border-left-color:var(--warn);background:var(--warn-soft)}
+.note svg{margin-top:3px;flex:none}
+.tbl{overflow:auto;margin:0 0 18px;border:1px solid var(--border);border-radius:8px}
+.tbl table{border-collapse:collapse;width:100%;font-size:14px}
+.tbl th,.tbl td{text-align:left;padding:10px 14px;border-bottom:1px solid var(--border);vertical-align:top}
+.tbl th{background:var(--surface-2);font:600 12px var(--mono);letter-spacing:.06em;text-transform:uppercase;color:var(--text-muted)}
+.tbl tr:last-child td{border-bottom:0}
+.fig{margin:0 0 20px}.fig figcaption{font-size:13px;color:var(--text-muted);margin-top:6px}
+.meta-row{display:flex;flex-wrap:wrap;gap:12px 20px;margin-top:36px;padding-top:18px;border-top:1px solid var(--border);font-size:13.5px;color:var(--text-muted);align-items:center}
+.pn{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:28px}
+.pn a{display:grid;gap:2px;padding:14px 16px;border:1px solid var(--border);border-radius:8px;text-decoration:none;color:var(--text);background:var(--surface);transition:border-color .2s}
+.pn a:hover{border-color:var(--accent)}.pn a small{color:var(--text-muted)}.pn a:last-child{text-align:right}
+.toc{position:sticky;top:calc(var(--bar-h) + 16px + env(safe-area-inset-top,0px));display:grid;gap:2px;font-size:13px;border-left:1px solid var(--border);padding-left:14px}
+.toc b{font:600 11.5px var(--mono);letter-spacing:.1em;text-transform:uppercase;color:var(--text-muted);margin-bottom:6px}
+.toc a{color:var(--text-muted);text-decoration:none;padding:3px 0}.toc a:hover{color:var(--text)}
+.toc a.on{color:var(--accent-strong);font-weight:600}
+.dx{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:8px}
+.dx a{display:grid;gap:6px;padding:18px;border:1px solid var(--border);border-radius:10px;background:var(--surface);text-decoration:none;color:var(--text)}
+.dx a:hover{border-color:var(--accent)}
+.dx b{font:700 24px/1 var(--display);text-transform:uppercase}.dx span{color:var(--text-muted);font-size:14px}.dx small{font:500 11px var(--mono);color:var(--accent-strong);letter-spacing:.08em;text-transform:uppercase}
+
+/* ---------- command palette ---------- */
+.pal-scrim{position:fixed;inset:0;z-index:200;background:rgba(20,18,14,.55);display:none;align-items:flex-start;justify-content:center;padding:12vh 16px 0}
+.pal-scrim.on{display:flex;animation:viewIn .18s}
+.pal{width:min(600px,100%);background:var(--surface);border:1px solid var(--line-strong);border-radius:12px;box-shadow:var(--shadow-lg);overflow:hidden}
+.pal input{width:100%;border:0;border-bottom:1px solid var(--border);background:transparent;padding:16px 18px;font:400 16px var(--sans);color:var(--text);outline:0}
+.pal ul{list-style:none;margin:0;padding:6px;max-height:340px;overflow:auto}
+.pal li{display:flex;gap:10px;align-items:center;padding:9px 12px;border-radius:6px;cursor:pointer;font-size:14.5px}
+.pal li small{margin-left:auto;font:400 11.5px var(--mono);color:var(--text-muted)}
+.pal li[aria-selected="true"]{background:var(--accent-soft)}
+.pal .foot{padding:8px 14px;border-top:1px solid var(--border);font-size:12px;color:var(--text-muted);display:flex;gap:14px}
+
+#toasts{position:fixed;right:max(16px,env(safe-area-inset-right,0px));bottom:max(16px,env(safe-area-inset-bottom,0px));z-index:300;display:grid;gap:8px;max-width:360px}
+.toast{padding:12px 14px;border:1px solid var(--line-strong);border-radius:8px;background:var(--surface);box-shadow:var(--shadow-lg);font-size:14px;display:flex;gap:10px;align-items:center;animation:viewIn .25s}
+.toast.err{border-color:var(--danger)}
+
+/* ---------- live demo ---------- */
+.demo-top{display:flex;flex-wrap:wrap;gap:14px 24px;align-items:end;justify-content:space-between;padding-block:36px 18px}
+.demo-top h1{font:700 clamp(38px,5vw,56px)/.95 var(--display);text-transform:uppercase}
+.demo-top p{color:var(--text-muted);max-width:60ch;margin-top:8px}
+.demo-grid{display:grid;grid-template-columns:minmax(0,1fr) 270px;gap:18px;align-items:start}
+.app{display:grid;grid-template-columns:188px minmax(0,1fr);min-height:640px;background:var(--bg)}
+.app-nav{background:var(--surface-2);border-right:1px solid var(--border);padding:10px 8px;display:grid;gap:2px;align-content:start}
+.app-nav h5{margin:10px 8px 2px;font:600 10.5px var(--mono);letter-spacing:.1em;text-transform:uppercase;color:var(--non-text)}
+.app-nav button{display:flex;align-items:center;gap:9px;padding:7px 10px;border:0;border-radius:6px;background:transparent;text-align:left;cursor:pointer;font-size:13.5px;color:var(--text)}
+.app-nav button:hover{background:var(--surface-3)}
+.app-nav button[aria-current="page"]{background:var(--surface);box-shadow:var(--shadow);font-weight:600;color:var(--accent-strong)}
+.app-nav button.off{color:var(--text-muted)}
+.app-nav .cnt{margin-left:auto;font:500 11px var(--mono);background:var(--accent);color:var(--accent-contrast);border-radius:999px;padding:1px 6px}
+.app-main{padding:22px 24px 28px;min-width:0;position:relative}
+.app-h{display:flex;flex-wrap:wrap;gap:10px 16px;align-items:center;margin-bottom:18px}
+.app-h h2{font:700 30px/1 var(--display);letter-spacing:.03em;text-transform:uppercase}
+.app-h .sub{color:var(--text-muted);font-size:13.5px;flex-basis:100%}
+.app-h .grow{flex:1}
+.figs{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:1px;background:var(--border);border:1px solid var(--border);border-radius:10px;overflow:hidden;margin-bottom:18px}
+.fig-t{background:var(--surface);padding:14px 16px;border:0;text-align:left;cursor:pointer;display:grid;gap:4px}
+.fig-t:hover{background:var(--surface-2)}
+.fig-t small{color:var(--text-muted);font-size:12px}
+.fig-t b{font:700 30px/1 var(--display);font-variant-numeric:tabular-nums;letter-spacing:.02em}
+.pipe{overflow:auto;border:1px solid var(--border);border-radius:10px;background:var(--surface)}
+.pipe table{border-collapse:collapse;width:100%;font-size:13px;min-width:520px}
+.pipe th,.pipe td{padding:7px 12px;border-bottom:1px solid var(--border);text-align:left}
+.pipe th{font:600 11px var(--mono);letter-spacing:.06em;text-transform:uppercase;color:var(--text-muted);background:var(--surface-2)}
+.pipe tr:last-child td{border-bottom:0}
+.pipe tbody tr:nth-child(even){background:color-mix(in srgb,var(--surface) 94%,var(--text))}
+.cell{display:inline-flex;align-items:center;gap:6px;border:0;background:transparent;cursor:pointer;padding:2px 6px;border-radius:5px;font-size:12.5px;color:var(--text)}
+.cell:hover{background:var(--accent-soft)}
+.cell::before{content:"";width:9px;height:9px;background:var(--non-text)}
+.cell.d::before{background:var(--ok);border-radius:50%}
+.cell.a::before{background:var(--warn);clip-path:polygon(50% 0,100% 100%,0 100%)}
+.cell.t::before{border:1.5px solid var(--non-text);background:transparent;border-radius:50%}
+.cell.f::before{background:var(--danger);clip-path:polygon(20% 0,80% 0,100% 20%,100% 80%,80% 100%,20% 100%,0 80%,0 20%)}
+.two{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);gap:16px}
+.queue{display:grid;gap:0;border:1px solid var(--border);border-radius:10px;background:var(--surface);overflow:hidden;align-content:start}
+.queue h4{padding:8px 14px;background:var(--surface-2);font:600 11px var(--mono);letter-spacing:.06em;text-transform:uppercase;color:var(--text-muted);border-bottom:1px solid var(--border)}
+.note-row{display:flex;gap:10px;align-items:center;padding:10px 14px;border:0;border-bottom:1px solid var(--border);background:transparent;text-align:left;cursor:pointer;width:100%}
+.note-row:hover{background:var(--surface-2)}
+.note-row[aria-selected="true"]{background:color-mix(in srgb,var(--accent) 8%,var(--surface));box-shadow:inset 3px 0 0 var(--accent)}
+.note-row .grow{flex:1;min-width:0}.note-row small{display:block;color:var(--text-muted);font-size:12px}
+.insp{padding:16px;display:grid;gap:14px;align-content:start;position:sticky;top:calc(var(--bar-h) + 12px)}
+.ev{padding:10px 12px;border-radius:8px;background:var(--reading);border:1px solid var(--border);font-size:14px;line-height:1.7}
+.ev small{display:block;font:500 11px var(--mono);letter-spacing:.06em;text-transform:uppercase;color:var(--text-muted)}
+.ev del{background:var(--warn-soft);color:var(--warn);text-decoration:line-through}.ev ins{background:var(--danger-soft);color:var(--danger);text-decoration:none}
+.decide{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.keys{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:12px;color:var(--text-muted);margin-top:14px}
+.rule{display:grid;grid-template-columns:minmax(0,1.3fr) repeat(3,minmax(0,1fr));gap:10px;padding:9px 14px;border-bottom:1px solid var(--border);align-items:center;font-size:13px}
+.rule:last-child{border-bottom:0}.rule.h{font:600 11px var(--mono);letter-spacing:.06em;text-transform:uppercase;color:var(--text-muted);background:var(--surface-2)}
+.skel{height:14px;border-radius:5px;background:linear-gradient(90deg,var(--surface-3) 25%,var(--surface-2) 50%,var(--surface-3) 75%);background-size:200% 100%;animation:shimmer 1.2s infinite}
+@keyframes shimmer{to{background-position:-200% 0}}
+.steps{display:grid;gap:8px;margin-top:14px}
+.step{display:flex;align-items:center;gap:10px;font-size:13.5px;color:var(--text-muted)}.step.on{color:var(--text);font-weight:500}.step.done{color:var(--ok)}
+.bible{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.entry{padding:14px;display:grid;gap:8px}
+.entry input{width:100%;min-height:34px;padding:0 10px;border:1px solid var(--line-strong);border-radius:6px;background:var(--surface);color:var(--text);font:400 14px var(--mono)}
+.entry .top-r{display:flex;gap:8px;align-items:center}
+.stub{padding:40px 24px;text-align:center;display:grid;gap:12px;justify-items:center;border:1px dashed var(--line-strong);border-radius:10px;background:var(--surface)}
+.host{background:var(--surface);border:1px solid var(--border);border-radius:10px;overflow:hidden;position:sticky;top:calc(var(--bar-h) + 12px)}
+.host h3{padding:10px 14px;font:600 11px var(--mono);letter-spacing:.08em;text-transform:uppercase;background:var(--surface-2);border-bottom:1px solid var(--border);display:flex;justify-content:space-between;gap:8px}
+.host .ctl{padding:12px 14px;display:grid;gap:10px;font-size:13px;border-bottom:1px solid var(--border)}
+.host .ctl label{display:grid;gap:4px;color:var(--text-muted)}
+.host .ctl input[type=range]{width:100%;accent-color:var(--accent)}
+.logs{list-style:none;margin:0;padding:6px 0;max-height:300px;overflow:auto;font:400 11.5px/1.5 var(--mono)}
+.logs li{padding:3px 14px;display:flex;gap:8px;justify-content:space-between}
+.logs li span:first-child{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.logs .e{color:var(--danger)}.logs .ms{color:var(--text-muted);flex:none}
+
+/* ---------- storybook ---------- */
+.sb{display:grid;grid-template-columns:240px minmax(0,1fr);border:1px solid var(--line-strong);border-radius:10px;overflow:hidden;background:var(--surface);min-height:680px;margin-top:24px}
+.sb-side{background:var(--surface-2);border-right:1px solid var(--border);padding:12px;display:grid;gap:10px;align-content:start}
+.sb-side input{width:100%;min-height:32px;padding:0 10px;border:1px solid var(--line-strong);border-radius:6px;background:var(--surface);color:var(--text);font:400 13px var(--sans)}
+.sb-side h5{margin:8px 6px 0;font:600 10.5px var(--mono);letter-spacing:.1em;text-transform:uppercase;color:var(--non-text)}
+.sb-side button{display:flex;gap:8px;align-items:center;width:100%;padding:6px 10px;border:0;border-radius:6px;background:transparent;font-size:13.5px;cursor:pointer;text-align:left}
+.sb-side button::before{content:"";width:8px;height:8px;border-radius:2px;background:var(--accent);opacity:.7}
+.sb-side button:hover{background:var(--surface-3)}
+.sb-side button[aria-current="page"]{background:var(--accent);color:var(--accent-contrast);font-weight:600}
+.sb-side button[aria-current="page"]::before{background:var(--accent-contrast)}
+.sb-main{display:grid;grid-template-rows:auto minmax(0,1fr) auto;min-width:0}
+.sb-tool{display:flex;flex-wrap:wrap;gap:8px 14px;align-items:center;padding:8px 14px;border-bottom:1px solid var(--border);background:var(--surface)}
+.sb-tool .sp{margin-left:auto}
+.sb-tool label{font-size:12.5px;display:flex;align-items:center;gap:6px;color:var(--text-muted)}
+.sb-tool select{min-height:28px;border:1px solid var(--line-strong);border-radius:6px;background:var(--surface);color:var(--text);font:inherit;padding:0 6px}
+.sb-view{padding:20px;overflow:auto;background:var(--bg)}
+.canvas{margin-inline:auto;transition:max-width .3s;border:1px dashed var(--line-strong);border-radius:8px;min-height:240px;display:grid;place-items:center;padding:32px;background:var(--cbg,var(--surface))}
+.canvas.outline *{outline:1px dashed var(--accent);outline-offset:1px}
+.canvas .stack{display:flex;flex-wrap:wrap;gap:14px;align-items:center;justify-content:center}
+.sb-panel{border-top:1px solid var(--border);background:var(--surface);min-height:230px}
+.ptabs{display:flex;gap:2px;padding:0 10px;border-bottom:1px solid var(--border);background:var(--surface-2)}
+.ptabs button{border:0;background:transparent;padding:9px 12px;font-size:13px;cursor:pointer;border-bottom:2px solid transparent;color:var(--text-muted)}
+.ptabs button[aria-selected="true"]{color:var(--text);border-bottom-color:var(--accent);font-weight:600}
+.pbody{padding:14px 16px;max-height:300px;overflow:auto;font-size:13.5px}
+.ctrls{display:grid;gap:8px;max-width:620px}
+.ctrl{display:grid;grid-template-columns:130px minmax(0,1fr);gap:12px;align-items:center}
+.ctrl code{font:500 12.5px var(--mono)}
+.ctrl input[type=text],.ctrl select{width:100%;min-height:30px;border:1px solid var(--line-strong);border-radius:6px;background:var(--surface);color:var(--text);padding:0 8px;font:inherit}
+.ctrl input[type=range]{accent-color:var(--accent);width:100%}
+.sb-docs{max-width:760px;margin-inline:auto;display:grid;gap:14px}
+.sb-docs h2{font:700 38px/1 var(--display);text-transform:uppercase}
+.sb-mob{display:none}
+.a11y-r{display:grid;grid-template-columns:minmax(0,1fr) 80px 90px;gap:10px;align-items:center;padding:6px 0;border-bottom:1px solid var(--border)}
+
+/* ---------- responsive ---------- */
+@media (max-width:1040px){
+  .docs{grid-template-columns:230px minmax(0,1fr)}.toc{display:none}
+  .demo-grid{grid-template-columns:minmax(0,1fr)}.host{position:static}
+}
+@media (max-width:860px){
+  .hero{grid-template-columns:minmax(0,1fr);gap:36px;padding-top:40px}
+  .stats{grid-template-columns:repeat(2,minmax(0,1fr))}.stats div:nth-child(3){border-left:0;padding-left:0}.stats div:nth-child(n+3){border-top:1px solid var(--border)}
+  .tabs{grid-template-columns:minmax(0,1fr)}.tablist{grid-auto-flow:column;overflow:auto;gap:6px}
+  .tab{border-left:1px solid transparent;border-radius:8px;border-bottom:3px solid var(--border);min-width:130px}
+  .tab[aria-selected="true"]{border-left-color:var(--border);border-bottom-color:var(--accent)}
+  .panel{grid-template-columns:minmax(0,1fr);padding:20px}
+  .trio,.tour{grid-template-columns:minmax(0,1fr)}
+  .dl{grid-template-columns:minmax(0,1fr);padding:22px;gap:24px}
+  .docs{grid-template-columns:minmax(0,1fr)}.side{display:none}.doc-m{display:block;margin-bottom:14px}
+  .doc-m select{width:100%;min-height:40px;border:1px solid var(--line-strong);border-radius:6px;background:var(--surface);color:var(--text);padding:0 10px;font:inherit}
+  .app{grid-template-columns:minmax(0,1fr)}
+  .app-nav{display:flex;overflow:auto;border-right:0;border-bottom:1px solid var(--border);padding:8px}.app-nav h5{display:none}.app-nav button{white-space:nowrap}
+  .two{grid-template-columns:minmax(0,1fr)}.insp{position:static}
+  .figs{grid-template-columns:repeat(2,minmax(0,1fr))}.bible{grid-template-columns:minmax(0,1fr)}
+  .sb{grid-template-columns:minmax(0,1fr)}.sb-side{display:none}.sb-mob{display:block;padding:10px 14px;background:var(--surface-2);border-bottom:1px solid var(--border)}
+  .sb-mob select{width:100%;min-height:38px;border:1px solid var(--line-strong);border-radius:6px;background:var(--surface);color:var(--text);padding:0 8px;font:inherit}
+  .ctrl{grid-template-columns:minmax(0,1fr)}
+  .dx{grid-template-columns:minmax(0,1fr)}
+}
+@media (max-width:720px){
+  .nav,.search-btn span,.bar-right .dl-btn{display:none}
+  .menu-btn{display:grid}
+  .nav.open{display:grid;position:absolute;top:var(--bar-h);left:0;right:0;background:var(--surface);border-bottom:1px solid var(--border);padding:8px max(16px,env(safe-area-inset-left,0px)) 12px;box-shadow:var(--shadow-lg)}
+  .bar{position:relative;gap:10px}
+  .rule{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
+  .rule.h{display:none}
+  .pn{grid-template-columns:minmax(0,1fr)}
+  .ra-text{font-size:18px}
+}
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation-duration:.001ms!important;animation-iteration-count:1!important;transition-duration:.001ms!important;scroll-behavior:auto!important}
+  .reveal{transform:none}
+}
+</style>
+</head>
+<body>
+
+<div id="top-strip" class="strip">Design mockup for review. This is not the live site; the public site is paused (owner decision D75). <button type="button" id="strip-x">Dismiss</button></div>
+
+<header class="top">
+  <div class="bar">
+    <a class="brand" href="#home" data-go="home" aria-label="Narration Studio, home"><span class="mark" aria-hidden="true"><b></b><b></b><b></b><b></b></span>Narration Studio</a>
+    <nav class="nav" id="nav" aria-label="Main">
+      <a href="#home" data-go="home" data-v="home">Product</a>
+      <a href="#docs" data-go="docs" data-v="docs">Docs</a>
+      <a href="demo/index.html" data-v="demo">Live demo</a>
+      <a href="storybook/index.html" data-v="storybook">Storybook</a>
+    </nav>
+    <div class="bar-right">
+      <button type="button" class="search-btn" id="open-pal" aria-label="Search the site"><svg class="i" viewBox="0 0 16 16"><path d="M11 11l4 4M7 12a5 5 0 110-10 5 5 0 010 10z"/></svg><span>Search</span><kbd>Ctrl K</kbd></button>
+      <button type="button" class="icon-btn" id="theme" aria-label="Switch colour theme"></button>
+      <a class="btn primary sm dl-btn" href="https://github.com/countrymanprime/narration-utils/releases" target="_blank" rel="noopener">Download</a>
+      <button type="button" class="icon-btn menu-btn" id="menu" aria-label="Menu" aria-expanded="false"><svg class="i" viewBox="0 0 16 16"><path d="M2 4h12M2 8h12M2 12h12"/></svg></button>
+    </div>
+  </div>
+</header>
+
+<main id="main">
+<!-- ================= HOME ================= -->
+<div class="view" id="v-home"><div class="wrap">
+  <section class="hero">
+    <div>
+      <div class="eyebrow">For audiobook narrators · Windows</div>
+      <h1 style="margin-top:16px"><span>Proof every</span><span>chapter before</span><span>the proofer does.</span></h1>
+      <p class="sub">Narration Studio imports your manuscript, follows along as you read, listens to the recording with a local Whisper model and marks every skipped or added word. Then it checks your files against the platform's delivery rules.</p>
+      <div class="cta">
+        <a class="btn primary lg" href="https://github.com/countrymanprime/narration-utils/releases" target="_blank" rel="noopener">Download for Windows</a>
+        <a class="btn lg" href="demo/index.html">Try the live demo</a>
       </div>
-    </main>
-    <footer>
-      <div class="wrap">
-        <span>Narration Studio is AGPL-3.0-or-later.</span>
-        <a href="https://github.com/countrymanprime/narration-utils" target="_blank" rel="noopener">Source on GitHub</a>
+      <div class="facts"><span>Windows x64</span><span>Audio stays on your machine</span><span>REAPER · Audacity 3</span></div>
+    </div>
+    <div class="stage">
+      <div class="win" aria-label="Animated example of the Proof check">
+        <div class="win-bar"><span>Proof · Chapter 7, The Lantern Room</span><span class="dots" aria-hidden="true"><i></i><i></i><i></i></span></div>
+        <div class="ra">
+          <div class="ch"><strong>Recording check</strong><span class="rec" id="ra-rec">00:00</span></div>
+          <p class="ra-text" id="ra-text" aria-label="The keeper climbed the stairs with a lantern in one hand and the logbook in the other."></p>
+          <div class="wave" id="wave" aria-hidden="true"></div>
+          <div style="display:flex;justify-content:space-between;font:400 12px var(--mono);color:var(--text-muted)"><span id="ra-count">Heard 0 of 17 words</span><span>local Whisper model</span></div>
+        </div>
+        <div class="take-note hide" id="ra-note" role="status"><span class="mk"></span><div><b>Skipped word</b> · "the" before "logbook"<br><small style="color:var(--text-muted)">Take marker dropped at 04:12 · Needs pickup</small></div></div>
       </div>
-    </footer>
-    <script>
-      document.getElementById('theme').addEventListener('click', function () {
-        var dark = document.documentElement.getAttribute('data-theme') !== 'dark';
-        if (dark) document.documentElement.setAttribute('data-theme', 'dark');
-        else document.documentElement.removeAttribute('data-theme');
-        try {
-          localStorage.setItem('narration-ui-theme', dark ? 'dark' : 'light');
-        } catch (error) {
-          // Storage unavailable: the choice lasts until the page closes.
-        }
-      });
-    </script>
-  </body>
+    </div>
+  </section>
+
+  <div class="stats reveal">
+    <div><b data-count="3">3</b><span>on-device tools: Story Bible, Proof and Teleprompter</span></div>
+    <div><b data-count="11">11</b><span>pages, from Production to Delivery</span></div>
+    <div><b data-count="2">2</b><span>DAWs: REAPER, and Audacity 3.x</span></div>
+    <div><b data-count="0">0</b><span>audio files uploaded to anyone</span></div>
+  </div>
+
+  <section class="block" id="workflow">
+    <div class="sec-head reveal"><div class="eyebrow">One workspace · five stages</div><h2>From manuscript to a file that passes</h2><p>The sidebar follows the job: Prep, Record, Edit, Review, Finish. Pick a stage to see what the app does there.</p></div>
+    <div class="tabs reveal">
+      <div class="tablist" role="tablist" aria-label="Workflow stages" id="wf-tabs"></div>
+      <div class="card panel" id="wf-panel" role="tabpanel" aria-live="polite"></div>
+    </div>
+  </section>
+
+  <section class="block">
+    <div class="sec-head reveal"><div class="eyebrow">Built for long sessions</div><h2>Quiet where it should be</h2></div>
+    <div class="trio">
+      <div class="card spot reveal"><div class="glyph"><svg class="i" viewBox="0 0 16 16"><path d="M3 7V5a5 5 0 0110 0v2M3 7h10v7H3z"/></svg></div><h3>Your audio stays here</h3><p>Transcription runs on a local Whisper model. Nothing is downloaded until a feature that needs a model asks you first.</p></div>
+      <div class="card spot reveal"><div class="glyph"><svg class="i" viewBox="0 0 16 16"><path d="M8 1v14M3 5v6M13 4v8M5.5 3v10M10.5 3.5v9"/></svg></div><h3>Marks land in your DAW</h3><p>With REAPER running, the app stamps chapters onto items and drops a take marker at every discrepancy, so the fix is one click away.</p></div>
+      <div class="card spot reveal"><div class="glyph"><svg class="i" viewBox="0 0 16 16"><path d="M13 9.5A5.5 5.5 0 116.5 3a4.5 4.5 0 006.5 6.5z"/></svg></div><h3>Readable in a dim booth</h3><p>Light and dark themes with contrast checked by tests, a visible focus ring and keyboard keys for the queue.</p></div>
+    </div>
+  </section>
+
+  <section class="block">
+    <div class="sec-head reveal"><div class="eyebrow">See it before you install it</div><h2>Three ways to look around</h2></div>
+    <div class="tour">
+      <a class="card reveal" href="#docs" data-go="docs"><div class="thumb"><div class="skel" style="width:60%"></div><div class="skel" style="width:90%"></div><div class="skel" style="width:75%"></div><div class="skel" style="width:40%"></div></div><h3>Docs</h3><p>A tutorial, task guides, reference and the reasoning behind the app, kept apart so each stays short.</p><span class="go">Read the docs <svg class="i" viewBox="0 0 16 16"><path d="M3 8h10M9 4l4 4-4 4"/></svg></span></a>
+      <a class="card reveal" href="demo/index.html"><div class="thumb"><div style="display:flex;gap:8px;align-items:center"><span class="badge warn">Open</span><span style="font-size:13px">Skipped word · ch. 3</span></div><div style="display:flex;gap:8px;align-items:center"><span class="badge ok">Cleared</span><span style="font-size:13px">Pronunciation · ch. 5</span></div><div class="meter body"><i style="width:62%"></i></div></div><h3>Live demo</h3><p>The real interface running against a mock host. Decide notes, edit a pronunciation, build a package, break the host on purpose.</p><span class="go">Open the demo <svg class="i" viewBox="0 0 16 16"><path d="M3 8h10M9 4l4 4-4 4"/></svg></span></a>
+      <a class="card reveal" href="storybook/index.html"><div class="thumb"><div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn primary sm" type="button" tabindex="-1">Primary</button><button class="btn sm" type="button" tabindex="-1">Default</button><span class="ent character">Ysolde</span><span class="ent place">Port Caul</span></div></div><h3>Storybook</h3><p>Every component with its states, controls and an accessibility check, in both themes.</p><span class="go">Browse components <svg class="i" viewBox="0 0 16 16"><path d="M3 8h10M9 4l4 4-4 4"/></svg></span></a>
+    </div>
+  </section>
+
+  <section class="block" id="download">
+    <div class="card dl reveal">
+      <div>
+        <div class="eyebrow">Install on Windows</div>
+        <h2 class="display" style="font-size:clamp(40px,5vw,60px);text-transform:uppercase;margin:12px 0 14px">Four minutes to a first project</h2>
+        <p style="color:var(--text-muted);max-width:44ch">Windows x64 only for now. The installer is per-user, so it asks for no administrator rights.</p>
+        <div style="display:flex;gap:12px;flex-wrap:wrap;margin-top:22px"><a class="btn primary lg" href="https://github.com/countrymanprime/narration-utils/releases" target="_blank" rel="noopener">Get the latest release</a><a class="btn lg" href="#docs-getting-started" data-go="docs-getting-started">Setup guide</a></div>
+      </div>
+      <ol>
+        <li><span><b>Download the setup file</b>narration-utils-&lt;version&gt;-windows-x64-setup.exe, and its .sha256 file to check it.</span></li>
+        <li><span><b>Run it</b>It installs to your user folder and adds a Start Menu entry. A second entry opens the app ready for Audacity.</span></li>
+        <li><span><b>Expect a SmartScreen warning</b>The release is unsigned. Choose More info, then Run anyway. The docs show how to verify the file first.</span></li>
+        <li><span><b>Start Narration Studio</b>Updates come from the same releases, and only after you click.</span></li>
+      </ol>
+    </div>
+  </section>
+</div></div>
+
+<!-- ================= DOCS ================= -->
+<div class="view" id="v-docs"><div class="wrap"><div class="docs">
+  <nav class="side" id="doc-side" aria-label="Documentation"></nav>
+  <article class="doc" id="doc-article"></article>
+  <aside class="toc" id="doc-toc" aria-label="On this page"></aside>
+</div></div></div>
+
+<!-- ================= DEMO ================= -->
+<div class="view" id="v-demo"><div class="wrap">
+  <div class="demo-top">
+    <div><div class="eyebrow">Live demo · mock host</div><h1>Try the app in this tab</h1><p>This is the interface running against a mock host that lives in the page. Nothing is uploaded, and your changes stay in this browser. The panel on the right shows every call the interface makes.</p></div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap"><button type="button" class="btn" id="demo-reset">Reset demo data</button></div>
+  </div>
+  <div class="demo-grid">
+    <div class="win" style="border-radius:10px">
+      <div class="win-bar"><span id="app-title">Narration Studio · Salt and Signal</span><span class="pill" style="margin-left:auto">Engine: built-in recorder</span><span class="dots" aria-hidden="true"><i></i><i></i><i></i></span></div>
+      <div class="app"><nav class="app-nav" id="app-nav" aria-label="App pages"></nav><div class="app-main" id="app-main" aria-live="polite"></div></div>
+    </div>
+    <aside class="host" aria-label="Mock host">
+      <h3><span>Mock host</span><span id="host-n">0 calls</span></h3>
+      <div class="ctl">
+        <label for="lat">Latency <b id="lat-v" class="mono">280 ms</b><input type="range" id="lat" min="0" max="1500" step="20" value="280"></label>
+        <button type="button" class="btn sm" id="fail-next" aria-pressed="false">Fail the next call</button>
+      </div>
+      <ul class="logs" id="logs" aria-label="Host call log"><li><span style="color:var(--text-muted)">Waiting for the first call…</span></li></ul>
+    </aside>
+  </div>
+  <p style="margin-top:14px;font-size:13px;color:var(--text-muted)">Try: open Proof, press <kbd>J</kbd> and <kbd>K</kbd> to move through notes, choose a decision, then look at Production, Pickups and Delivery. They all read the same data, as in the real app.</p>
+</div></div>
+
+<!-- ================= STORYBOOK ================= -->
+<div class="view" id="v-storybook"><div class="wrap">
+  <div class="demo-top" style="padding-bottom:0">
+    <div><div class="eyebrow">Component atlas</div><h1>Storybook</h1><p>Every primitive with its states, controls and a live contrast check. The demo and this page use the same components.</p></div>
+  </div>
+  <div class="sb">
+    <div class="sb-mob"><label class="sr" for="sb-sel">Story</label><select id="sb-sel"></select></div>
+    <div class="sb-side" id="sb-side"></div>
+    <div class="sb-main" id="sb-main"></div>
+  </div>
+  <p style="margin-top:14px;font-size:13px;color:var(--text-muted)">In production this view would be the app's real Storybook build (<code>pnpm --dir apps/ui run storybook</code>), embedded with the same header.</p>
+</div></div>
+</main>
+
+<footer class="foot">
+  <span class="display" style="font-size:20px;color:var(--text);text-transform:uppercase">Narration Studio</span>
+  <a href="https://github.com/countrymanprime/narration-utils" target="_blank" rel="noopener">GitHub</a>
+  <a href="https://github.com/countrymanprime/narration-utils/releases" target="_blank" rel="noopener">Releases</a>
+  <a href="#docs" data-go="docs">Docs</a>
+  <a href="https://github.com/countrymanprime/narration-utils/blob/main/SECURITY.md" target="_blank" rel="noopener">Security</a>
+  <span class="sp">Windows x64 · MIT-style license in the repo</span>
+</footer>
+
+<div class="pal-scrim" id="pal-scrim"><div class="pal" role="dialog" aria-modal="true" aria-label="Search">
+  <input id="pal-in" type="text" placeholder="Search docs, demo pages, components…" autocomplete="off" aria-controls="pal-list">
+  <ul id="pal-list" role="listbox"></ul>
+  <div class="foot"><span><kbd>↑</kbd> <kbd>↓</kbd> move</span><span><kbd>Enter</kbd> open</span><span><kbd>Esc</kbd> close</span></div>
+</div></div>
+<div id="toasts" role="status" aria-live="polite"></div>
+
+<script>
+(()=>{
+'use strict';
+const $=(s,r=document)=>r.querySelector(s), $$=(s,r=document)=>[...r.querySelectorAll(s)];
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const RM=matchMedia('(prefers-reduced-motion: reduce)').matches;
+const store={get(k){try{return localStorage.getItem(k)}catch(e){return null}},set(k,v){try{localStorage.setItem(k,v)}catch(e){}}};
+const wait=ms=>new Promise(r=>setTimeout(r,ms));
+const REPO='https://github.com/countrymanprime/narration-utils/blob/main/';
+const IC={
+  check:'<path d="M3 8.5l3.5 3.5L13 4.5"/>',x:'<path d="M4 4l8 8M12 4l-8 8"/>',
+  play:'<path class="f" d="M5 3.5v9l7-4.5z"/>',info:'<circle cx="8" cy="8" r="6.5"/><path d="M8 7.5V11M8 5v.1"/>',
+  sun:'<circle cx="8" cy="8" r="3"/><path d="M8 1v2M8 13v2M1 8h2M13 8h2M3 3l1.4 1.4M11.6 11.6L13 13M3 13l1.4-1.4M11.6 4.4L13 3"/>',
+  moon:'<path d="M13 9.5A5.5 5.5 0 116.5 3a4.5 4.5 0 006.5 6.5z"/>',
+  arrow:'<path d="M3 8h10M9 4l4 4-4 4"/>',ext:'<path d="M9 3h4v4M13 3L7 9M11 10v3H3V5h3"/>',
+  home:'<path d="M2 8l6-5.5L14 8v6H2z"/>',cal:'<rect x="2" y="3" width="12" height="11" rx="1.5"/><path d="M2 7h12M5 1.5v3M11 1.5v3"/>',
+  doc:'<path d="M4 1.5h5.5L13 5v9.5H4zM9 1.5V5h4"/>',users:'<circle cx="6" cy="5.5" r="2.5"/><path d="M1.5 14c0-3 2-4.5 4.5-4.5s4.5 1.5 4.5 4.5M11 3.5a2.5 2.5 0 010 5"/>',
+  mic:'<rect x="6" y="1.5" width="4" height="8" rx="2"/><path d="M3.5 7.5a4.5 4.5 0 009 0M8 12v2.5"/>',
+  cut:'<circle cx="4" cy="4" r="2"/><circle cx="4" cy="12" r="2"/><path d="M5.5 5.5L14 12M5.5 10.5L14 4"/>',
+  flag:'<path d="M3.5 14V2M3.5 3h8l-2 3 2 3h-8"/>',list:'<path d="M5 4h9M5 8h9M5 12h9M1.5 4h.1M1.5 8h.1M1.5 12h.1"/>',
+  sliders:'<path d="M2 4h12M2 8h12M2 12h12"/><circle cx="5" cy="4" r="1.5" class="f"/><circle cx="10.5" cy="8" r="1.5" class="f"/><circle cx="6" cy="12" r="1.5" class="f"/>',
+  box:'<path d="M2 5l6-3 6 3v6l-6 3-6-3zM2 5l6 3 6-3M8 8v6"/>',gear:'<circle cx="8" cy="8" r="2.2"/><path d="M8 1.5v2M8 12.5v2M1.5 8h2M12.5 8h2M3.4 3.4l1.4 1.4M11.2 11.2l1.4 1.4M3.4 12.6l1.4-1.4M11.2 4.8l1.4-1.4"/>'
+};
+const ic=(n,c='')=>`<svg class="i ${c}" viewBox="0 0 16 16" aria-hidden="true">${IC[n].replace(/class="f"/g,'fill="currentColor" stroke="none"')}</svg>`;
+
+/* ---------- toast, theme, copy ---------- */
+function toast(msg,err,action){
+  const t=document.createElement('div');t.className='toast'+(err?' err':'');t.innerHTML=`<span style="flex:1">${esc(msg)}</span>`;
+  if(action){const b=document.createElement('button');b.className='btn sm';b.type='button';b.textContent=action.label;b.onclick=()=>{t.remove();action.fn()};t.append(b)}
+  $('#toasts').append(t);setTimeout(()=>t.remove(),action?8000:3800);
+}
+const root=document.documentElement;
+const isDark=()=>root.dataset.theme?root.dataset.theme==='dark':matchMedia('(prefers-color-scheme: dark)').matches;
+function paintThemeBtn(){$('#theme').innerHTML=isDark()?ic('sun'):ic('moon')}
+function setTheme(t){root.dataset.theme=t;store.set('narration-ui-theme',t);paintThemeBtn();window.dispatchEvent(new Event('themechange'))}
+{const t=store.get('narration-ui-theme');if(t==='light'||t==='dark')root.dataset.theme=t}
+paintThemeBtn();
+$('#theme').onclick=()=>setTheme(isDark()?'light':'dark');
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change',()=>{paintThemeBtn();window.dispatchEvent(new Event('themechange'))});
+$('#strip-x').onclick=()=>$('#top-strip').remove();
+document.addEventListener('click',e=>{
+  const b=e.target.closest('[data-copy]');
+  if(b){const txt=b.closest('.codebox').querySelector('code').textContent;
+    const done=()=>{b.textContent='Copied';setTimeout(()=>b.textContent='Copy',1400)};
+    (navigator.clipboard?navigator.clipboard.writeText(txt):Promise.reject()).then(done,()=>{const r=document.createRange();r.selectNodeContents(b.closest('.codebox').querySelector('code'));const s=getSelection();s.removeAllRanges();s.addRange(r);b.textContent='Selected'});}
+});
+
+/* ================= ROUTER ================= */
+const VIEWS=['home','docs','demo','storybook'];
+let cur={v:'home',sub:''}, inited={};
+function parse(h){h=(h||'').replace(/^#/,'');const i=h.indexOf('-');const v=i<0?h:h.slice(0,i);return VIEWS.includes(v)?{v,sub:i<0?'':h.slice(i+1)}:{v:'home',sub:''}}
+function go(h){const p=parse(h);const same=p.v===cur.v&&p.sub===cur.sub;cur=p;try{if(location.hash!=='#'+h)location.hash=h}catch(e){}render(same)}
+addEventListener('hashchange',()=>{const p=parse(location.hash);if(p.v!==cur.v||p.sub!==cur.sub){cur=p;render()}});
+document.addEventListener('click',e=>{const a=e.target.closest('[data-go]');if(!a)return;e.preventDefault();closeMenu();go(a.dataset.go)});
+function render(same){
+  VIEWS.forEach(v=>$('#v-'+v).classList.toggle('on',v===cur.v));
+  $$('#nav a').forEach(a=>a.toggleAttribute('aria-current',a.dataset.v===cur.v)); $$('#nav a').forEach(a=>{if(a.dataset.v===cur.v)a.setAttribute('aria-current','page');else a.removeAttribute('aria-current')});
+  if(!inited[cur.v]){inited[cur.v]=true;({home:initHome,docs:()=>{},demo:initDemo,storybook:()=>{}})[cur.v]()}
+  if(cur.v==='docs')showDoc(cur.sub||'getting-started');
+  if(cur.v==='demo')showApp(cur.sub||'production');
+  if(cur.v==='storybook')showStory(cur.sub||'button');
+  if(!same)scrollTo({top:0,behavior:'auto'});
+  document.title='Narration Studio Site';
+}
+function closeMenu(){$('#nav').classList.remove('open');$('#menu').setAttribute('aria-expanded','false')}
+$('#menu').onclick=()=>{const o=$('#nav').classList.toggle('open');$('#menu').setAttribute('aria-expanded',o)};
+
+/* ================= HOME ================= */
+const WF=[
+ {id:'prep',n:'Prep',s:'Script · Story Bible',h:'Know the book before you read it',p:'Import a DOCX, Markdown, plain text or EPUB manuscript. A scan builds a reference of characters, places and organizations, with how you will say each name.',
+  b:['Pronunciations live next to each entry','A language model makes the scan more accurate; without one it falls back to rules','Locked entries are never overwritten by a rebuild'],link:'docs-import-manuscript',
+  mini:()=>`<div class="mini"><div class="row"><span class="ent character">Ysolde Marrow</span><span class="grow mono" style="font-size:12.5px">ih-ZOHL-duh</span>${ic('play')}</div><div class="row"><span class="ent place">Port Caul</span><span class="grow mono" style="font-size:12.5px">port KAWL</span>${ic('play')}</div><div class="row"><span class="ent org">Tidewarden Guild</span><span class="grow mono" style="font-size:12.5px">TIDE-war-den</span>${ic('play')}</div><div class="row"><span class="badge warn">Needs review</span><span class="grow">3 suggestions from the last scan</span></div></div>`},
+ {id:'record',n:'Record',s:'Booth',h:'A teleprompter that listens',p:'The Booth follows you word by word as you narrate, with a level meter and a REC pill, in the app or beside your DAW in companion mode.',
+  b:['Highlights the word you are reading','Flag a line in the moment; it lands in Pickups','Runs with the built-in recorder or your DAW'],link:'docs-proof-a-chapter',
+  mini:()=>`<div class="mini"><div style="display:flex;justify-content:space-between;align-items:center"><span class="rec" data-timer>00:00</span><span class="pill">Chapter 7</span></div><div style="font-size:16px;line-height:1.7">The keeper <span class="w" style="background:var(--accent-soft);box-shadow:0 2px 0 var(--accent);border-radius:3px">climbed</span> the stairs with a lantern in one hand.</div><div class="meter body" data-meter><i style="width:50%"></i></div></div>`},
+ {id:'edit',n:'Edit',s:'Editing',h:'Edit the script, not the waveform',p:'See what was heard set against each word. Delete words with their audio, compare takes of a line, add effects to a word and tidy up from the clean-up drawer.',
+  b:['Takes of each line side by side','Words carry their audio','Works through to the timeline'],link:'docs-proof-a-chapter',
+  mini:()=>`<div class="mini"><div class="row"><b>Take 2 of 3</b><span class="grow"><div class="fill"><i style="--w:82%"></i></div></span><small>0:06</small></div><div class="row"><small>Take 1</small><span class="grow"><div class="fill"><i style="--w:60%"></i></div></span><small>0:07</small></div><div class="row"><small>Take 3</small><span class="grow"><div class="fill"><i style="--w:75%"></i></div></span><small>0:06</small></div></div>`},
+ {id:'review',n:'Review',s:'Proof · Pickups',h:'One queue for everything to fix',p:'Every check lands as a note. Mark it Needs pickup, Fix in edit, Waive or Defer, and your decision is kept with the project. Re-running a check keeps decisions on notes whose evidence did not change.',
+  b:['J and K move through the queue','Evidence sits beside the decision','Pickups collects the lines to record again'],link:'docs-proof-a-chapter',
+  mini:()=>`<div class="mini"><div style="display:flex;gap:12px;align-items:center"><div class="ring" style="--p:86" data-t="12/14"></div><div><b>12 of 14 cleared</b><br><small style="color:var(--text-muted)">13 decided</small></div></div><div class="row"><span class="badge danger">Skipped</span><span class="grow">"the" before "logbook"</span><span class="pill">Needs pickup</span></div><div class="row"><span class="badge info">Pronunciation</span><span class="grow">Ysolde, ch. 5</span><span class="pill">Waive</span></div></div>`},
+ {id:'finish',n:'Finish',s:'Master & QC · Delivery',h:'Pass the platform before you upload',p:'Pick a delivery profile, see which rules each chapter meets and why one fails, then build the package. If the build stops, the page says why.',
+  b:['Rules cite their source','Per-chapter pass, fail or not measured','Packages for more than one platform'],link:'docs-delivery-profile-rules',
+  mini:()=>`<div class="mini"><div class="row"><span class="badge ok">Pass</span><span class="grow">RMS between −23 and −18 dB</span></div><div class="row"><span class="badge ok">Pass</span><span class="grow">Peak at or below −3 dB</span></div><div class="row"><span class="badge danger">Fail</span><span class="grow">Noise floor −57 dB (limit −60)</span></div><div class="fill"><i style="--w:92%"></i></div></div>`}
+];
+function initHome(){
+  // read-along hero
+  const lines=[['The','keeper','climbed','the','stairs','with','a','lantern','in','one','hand'],['and','the','logbook','in','the','other.']];
+  const box=$('#ra-text'),words=[];
+  lines.forEach((l,li)=>{l.forEach((w,i)=>{const s=document.createElement('span');s.className='w';s.textContent=w;box.append(s,' ');words.push(s)});if(!li)box.append(document.createElement('br'))});
+  const SK=12; // index of the second "the" (skipped)
+  const wv=$('#wave');for(let i=0;i<46;i++){const b=document.createElement('i');b.style.setProperty('--h',(10+Math.abs(Math.sin(i*1.3)*38+Math.cos(i*.7)*12))+'px');b.style.setProperty('--d',(i*-.07)+'s');if(i>26&&i<31)b.className='hot';wv.append(b)}
+  const rec=$('#ra-rec'),cnt=$('#ra-count'),note=$('#ra-note');let alive=false,tok=0;
+  const final=()=>{words.forEach((w,i)=>w.className='w'+(i===SK?' skip':' heard'));cnt.textContent='Heard 16 of 17 words';note.classList.remove('hide')};
+  async function loop(){const my=++tok;
+    while(alive&&my===tok){
+      words.forEach(w=>w.className='w');note.classList.add('hide');let n=0;
+      for(let i=0;i<words.length&&alive&&my===tok;i++){
+        words[i].classList.add('now');rec.textContent='04:'+String(4+i).padStart(2,'0');await wait(230);
+        words[i].classList.remove('now');
+        if(i===SK){words[i].classList.add('skip');await wait(120);note.classList.remove('hide')}else{words[i].classList.add('heard');n++}
+        cnt.textContent=`Heard ${n} of 17 words`;
+      }
+      await wait(3600);
+    }}
+  if(RM){final()}else{new IntersectionObserver(es=>{es.forEach(e=>{if(e.isIntersecting&&!alive){alive=true;loop()}else if(!e.isIntersecting){alive=false}})}).observe(box)}
+  // count up
+  const co=new IntersectionObserver(es=>es.forEach(e=>{if(!e.isIntersecting)return;co.unobserve(e.target);const el=e.target,to=+el.dataset.count;if(RM||!to)return;let t0=null;const step=t=>{t0??=t;const k=Math.min(1,(t-t0)/900);el.textContent=Math.round(to*(1-Math.pow(1-k,3)));if(k<1)requestAnimationFrame(step)};requestAnimationFrame(step)}));
+  $$('[data-count]').forEach(el=>co.observe(el));
+  // reveal
+  const ro=new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting){e.target.classList.add('in');ro.unobserve(e.target)}}),{threshold:.12});
+  $$('.reveal').forEach(el=>ro.observe(el));
+  // spotlight
+  $$('.spot').forEach(c=>c.addEventListener('pointermove',e=>{const r=c.getBoundingClientRect();c.style.setProperty('--mx',(e.clientX-r.left)+'px');c.style.setProperty('--my',(e.clientY-r.top)+'px')}));
+  // workflow tabs
+  const tl=$('#wf-tabs');let sel='prep',timers=[];
+  tl.innerHTML=WF.map(w=>`<button class="tab" role="tab" id="t-${w.id}" aria-selected="false" data-w="${w.id}"><b>${w.n}</b><small>${w.s}</small></button>`).join('');
+  function pick(id,focus){sel=id;const w=WF.find(x=>x.id===id);
+    $$('.tab',tl).forEach(t=>{const on=t.dataset.w===id;t.setAttribute('aria-selected',on);t.tabIndex=on?0:-1;if(on&&focus)t.focus()});
+    $('#wf-panel').setAttribute('aria-labelledby','t-'+id);
+    $('#wf-panel').innerHTML=`<div><h3>${w.h}</h3><p>${w.p}</p><ul>${w.b.map(x=>`<li>${ic('check')}<span>${x}</span></li>`).join('')}</ul><a class="link" href="#${w.link}" data-go="${w.link}">Read the guide ${ic('arrow')}</a></div>${w.mini()}`;
+    timers.forEach(clearInterval);timers=[];
+    const tm=$('[data-timer]');if(tm){let s=0;timers.push(setInterval(()=>{s++;tm.textContent='00:'+String(s%60).padStart(2,'0')},1000))}
+    const mt=$('[data-meter]');if(mt&&!RM){const i=$('i',mt);timers.push(setInterval(()=>{const v=35+Math.random()*50;i.style.width=v+'%';mt.className='meter '+(v>82?'hot':'body')},130))}
+  }
+  tl.addEventListener('click',e=>{const t=e.target.closest('.tab');if(t)pick(t.dataset.w)});
+  tl.addEventListener('keydown',e=>{const i=WF.findIndex(w=>w.id===sel);let n=null;if(e.key==='ArrowDown'||e.key==='ArrowRight')n=(i+1)%WF.length;if(e.key==='ArrowUp'||e.key==='ArrowLeft')n=(i-1+WF.length)%WF.length;if(n!=null){e.preventDefault();pick(WF[n].id,true)}});
+  pick('prep');
+}
+
+/* ================= DOCS ================= */
+const T={tut:'Tutorial',how:'How-to',ref:'Reference',exp:'Explanation'};
+const DOCS=[
+ {g:'Tutorials',k:'tut',hint:'Learn by doing',items:[
+  {id:'getting-started',t:'Getting started',src:'README.md',lead:'Install Narration Studio, open a project and proof your first chapter.',html:`
+   <h2>Install on Windows</h2><p>Narration Studio supports Windows x64. Get the setup program from the releases page; every file carries its version in its name.</p>
+   <ol><li>Download <code>narration-utils-&lt;version&gt;-windows-x64-setup.exe</code> and the <code>.sha256</code> file beside it.</li><li>Run the setup program. It installs for your user account, so it asks for no administrator rights.</li><li>If Windows SmartScreen says it prevented an unrecognized app from starting, choose <b>More info</b>, then <b>Run anyway</b>.</li></ol>
+   <div class="note warn">${ic('info')}<div>The release is unsigned. The warning is about the missing signature, not about anything found in the file. Check the file yourself first, as below.</div></div>
+   <h2>Verify the download</h2><p>The checksum only detects a damaged download. The second command shows where the file was built.</p>
+   <div class="codebox"><span class="lang">POWERSHELL</span><button class="btn sm quiet" data-copy type="button">Copy</button><pre><code>(Get-FileHash .\\narration-utils-0.2.7-windows-x64-setup.exe).Hash
+gh attestation verify narration-utils-0.2.7-windows-x64-setup.exe --repo countrymanprime/narration-utils</code></pre></div>
+   <h2>Open a project</h2><p>The first screen is the project picker. Choose a folder for the book, then you land on Production. With no manuscript imported, the page is the import.</p>
+   <h2>Run your first check</h2><p>Open <a href="#docs-proof-a-chapter" data-go="docs-proof-a-chapter">Proof a chapter</a>. The first check asks before it downloads a Whisper model; nothing is downloaded without asking.</p>`},
+ ]},
+ {g:'How-to guides',k:'how',hint:'Solve a task',items:[
+  {id:'import-manuscript',t:'Import a manuscript',src:'docs/guides/using-the-app/production.md',lead:'Bring a manuscript into a project so the pipeline has chapters to track.',html:`
+   <h2>Choose a file</h2><p>On Production, choose <b>Import manuscript</b>. The app reads DOCX, Markdown, plain text (<code>.txt</code>) and EPUB. PDF import is not offered yet.</p>
+   <h2>Check the chapters</h2><p>The header then names the book's chapters, words and due date. The <b>Chapter pipeline</b> has one row per chapter and one column per stage.</p>
+   <div class="note">${ic('info')}<div>To replace a manuscript later, use Settings. Importing again on Production is only for the first import.</div></div>
+   <h2>Build the Story Bible</h2><p>Run a scan from Story Bible. A downloadable spaCy language model makes it more accurate; without one the scan uses its rules-only fallback.</p>`},
+  {id:'proof-a-chapter',t:'Proof a chapter',src:'docs/guides/using-the-app/proof.md',lead:'Work through what the checks found, one note at a time.',html:`
+   <h2>Open the queue</h2><p>Proof gathers the differences a check heard between the script and the recording, the Story Bible entries that need a look and the delivery rules your measured files did not meet.</p>
+   <h2>Decide each note</h2><p>A note waits until you choose one of four decisions:</p>
+   <div class="tbl"><table><thead><tr><th>Decision</th><th>What it does</th></tr></thead><tbody><tr><td>Needs pickup</td><td>Adds the line to Pickups to record again.</td></tr><tr><td>Fix in edit</td><td>Leaves it for the Editing page.</td></tr><tr><td>Waive</td><td>Clears the note.</td></tr><tr><td>Defer</td><td>Decided, but still open.</td></tr></tbody></table></div>
+   <h2>Read the ring</h2><p>The ring counts cleared notes. A note is cleared once it is waived; a deferred note, or one waiting for its pickup, is decided but still open.</p>
+   <div class="note">${ic('info')}<div>Running a check again keeps your decision on a note whose evidence did not change.</div></div>`},
+  {id:'build-a-package',t:'Build a delivery package',src:'docs/guides/using-the-app/delivery.md',lead:'Check chapters against a profile and build the files a platform expects.',html:`
+   <h2>Pick the profile</h2><p>Delivery shows the project's profile, its rules and their sources. You can edit a profile or start a custom one.</p>
+   <h2>Fix what fails</h2><p>Each chapter shows pass, fail or not measured per rule. A failing rule names the measured value and the limit. Fix it in Editing, or waive the note in Proof if you accept it.</p>
+   <h2>Build</h2><p>Choose <b>Build package</b>. If the build stops, the page says why, and says so separately when the host does not answer.</p>
+   <p>Try this in the <a href="#demo-delivery" data-go="demo-delivery">live demo</a>.</p>`}
+ ]},
+ {g:'Reference',k:'ref',hint:'Look it up',items:[
+  {id:'keyboard-shortcuts',t:'Keyboard shortcuts',src:'docs/guides/using-the-app/proof.md',lead:'Keys on the Proof page. Each page lists its own keys along the bottom.',html:`
+   <div class="tbl"><table><thead><tr><th>Key</th><th>Action</th></tr></thead><tbody>
+   <tr><td><kbd>J</kbd></td><td>Next note, in book order on All chapters</td></tr><tr><td><kbd>K</kbd></td><td>Previous note</td></tr>
+   <tr><td><kbd>←</kbd> <kbd>→</kbd></td><td>Step to the previous or next chapter</td></tr><tr><td><kbd>Esc</kbd></td><td>Back to All chapters</td></tr></tbody></table></div>`},
+  {id:'delivery-profile-rules',t:'Delivery profile rules',src:'docs/guides/using-the-app/delivery.md',lead:'The shape of a profile rule, shown with an example profile.',html:`
+   <p>The example below uses the published ACX audiobook limits. Profiles in the app cite the source of each rule.</p>
+   <div class="tbl"><table><thead><tr><th>Rule</th><th>Limit</th><th>Measured from</th></tr></thead><tbody>
+   <tr><td>RMS loudness</td><td>−23 dB to −18 dB</td><td>Each chapter's rendered file</td></tr><tr><td>Peak</td><td>At or below −3 dB</td><td>Each chapter's rendered file</td></tr><tr><td>Noise floor</td><td>At or below −60 dB</td><td>Silent stretches</td></tr></tbody></table></div>
+   <div class="note warn">${ic('info')}<div>Example values for this mockup. Check the platform's current specification before relying on them.</div></div>`}
+ ]},
+ {g:'Explanation',k:'exp',hint:'Understand why',items:[
+  {id:'local-first',t:'Why everything runs locally',src:'docs/architecture/threat-model.md',lead:'What stays on your machine, what can leave it, and how the app asks first.',html:`
+   <h2>The default is no network</h2><p>Transcription uses a local Whisper model and the Story Bible scan runs on your computer. The interface fonts ship inside the app, so it makes no request to a font host.</p>
+   <h2>When the app asks</h2><p>A feature that needs a model asks you before it downloads one. Updates are fetched from the same releases page, after you click, and never installed on their own.</p>
+   <h2>Where the line is</h2><p>The threat model lists each place untrusted input crosses in: a download, the update, a sidecar's arguments, the DAW bridge and files from someone else.</p>`},
+  {id:'recording-check',t:'How the recording check works',src:'docs/utilities/transcript-compare.md',lead:'What happens between pressing Check and seeing notes.',html:`
+   <h2>Transcribe</h2><p>The Transcript Compare sidecar transcribes the recorded chapter with a local Whisper model.</p>
+   <h2>Compare</h2><p>The transcript is diffed against the manuscript. Each discrepancy becomes a note with the expected words and the heard words side by side.</p>
+   <h2>Mark</h2><p>With REAPER running, a take marker is dropped at every discrepancy so the fix is one click away.</p>`}
+ ]}
+];
+const FLAT=DOCS.flatMap(g=>g.items.map(i=>({...i,g:g.g,k:g.k})));
+function showDoc(id){
+  const i=Math.max(0,FLAT.findIndex(x=>x.id===id)),d=FLAT[i];
+  $('#doc-side').innerHTML=DOCS.map(g=>`<div><h4>${g.g} <em>${g.hint}</em></h4>${g.items.map(x=>`<a href="#docs-${x.id}" data-go="docs-${x.id}" ${x.id===d.id?'aria-current="page"':''}>${x.t}</a>`).join('')}</div>`).join('');
+  const prev=FLAT[i-1],next=FLAT[i+1];
+  $('#doc-article').innerHTML=`<div class="doc-m"><label class="sr" for="doc-sel">Page</label><select id="doc-sel">${FLAT.map(x=>`<option value="${x.id}" ${x.id===d.id?'selected':''}>${x.g}: ${x.t}</option>`).join('')}</select></div>
+   <div class="crumb">Docs / ${d.g} / ${d.t}</div><h1>${d.t}</h1><p class="lead">${d.lead}</p>${d.html}
+   ${i===0?`<h2>Pick your path</h2><div class="dx">${DOCS.map(g=>`<a href="#docs-${g.items[0].id}" data-go="docs-${g.items[0].id}"><small>${g.hint}</small><b>${g.g}</b><span>${g.items.length} page${g.items.length>1?'s':''}</span></a>`).join('')}</div>`:''}
+   <div class="meta-row"><span class="badge info">${T[d.k]}</span><a href="${REPO}${d.src}" target="_blank" rel="noopener">Edit this page on GitHub ${ic('ext')}</a><span style="margin-left:auto" id="fb">Was this page helpful? <button class="btn sm" type="button" data-fb="y">Yes</button> <button class="btn sm" type="button" data-fb="n">No</button></span></div>
+   <div class="pn">${prev?`<a href="#docs-${prev.id}" data-go="docs-${prev.id}"><small>Previous</small><b>${prev.t}</b></a>`:'<span></span>'}${next?`<a href="#docs-${next.id}" data-go="docs-${next.id}"><small>Next</small><b>${next.t}</b></a>`:'<span></span>'}</div>`;
+  $$('#doc-article h2').forEach((h,n)=>{h.id='h-'+n;h.innerHTML+=`<a class="anchor" href="#" data-sc="h-${n}" aria-label="Scroll to this heading">#</a>`});
+  const hs=$$('#doc-article h2');
+  $('#doc-toc').innerHTML=hs.length?`<b>On this page</b>`+hs.map((h,n)=>`<a href="#" data-sc="h-${n}">${esc(h.firstChild.textContent)}</a>`).join(''):'';
+  $('#doc-sel')&&($('#doc-sel').onchange=e=>go('docs-'+e.target.value));
+  document.title='Narration Studio Site';
+  if(window._spy)window._spy.disconnect();
+  window._spy=new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting){$$('#doc-toc a').forEach(a=>a.classList.toggle('on',a.dataset.sc===e.target.id))}}),{rootMargin:'-20% 0px -70% 0px'});
+  hs.forEach(h=>window._spy.observe(h));
+}
+document.addEventListener('click',e=>{
+  const s=e.target.closest('[data-sc]');if(s){e.preventDefault();const t=document.getElementById(s.dataset.sc);t&&t.scrollIntoView({behavior:RM?'auto':'smooth'})}
+  const f=e.target.closest('[data-fb]');if(f){$('#fb').textContent=f.dataset.fb==='y'?'Thanks, glad it helped.':'Thanks. Tell us what was missing on GitHub.'}
+});
+
+/* ================= SEARCH PALETTE ================= */
+const APP_PAGES=[['production','Production'],['story-bible','Story Bible'],['proof','Proof'],['pickups','Pickups'],['delivery','Delivery'],['settings','Settings']];
+let pal={items:[],i:0};
+function palItems(){
+  return [...FLAT.map(d=>({t:d.t,k:'Docs · '+T[d.k],go:'docs-'+d.id})),...APP_PAGES.map(p=>({t:p[1]+' page',k:'Live demo',go:'demo-'+p[0]})),...STORIES.map(s=>({t:s.name,k:'Storybook · '+s.group,go:'storybook-'+s.id})),
+   {t:'Toggle light and dark',k:'Action',fn:()=>setTheme(isDark()?'light':'dark')},{t:'Download for Windows',k:'Action',fn:()=>window.open('https://github.com/countrymanprime/narration-utils/releases','_blank')}];
+}
+function palDraw(){
+  const q=$('#pal-in').value.trim().toLowerCase();pal.items=palItems().filter(x=>!q||(x.t+' '+x.k).toLowerCase().includes(q));pal.i=Math.min(pal.i,Math.max(0,pal.items.length-1));
+  $('#pal-list').innerHTML=pal.items.length?pal.items.map((x,n)=>`<li role="option" data-n="${n}" aria-selected="${n===pal.i}">${esc(x.t)}<small>${esc(x.k)}</small></li>`).join(''):'<li style="cursor:default;color:var(--text-muted)">No matches. Try a page name like "Proof".</li>';
+}
+function palOpen(){$('#pal-scrim').classList.add('on');$('#pal-in').value='';pal.i=0;palDraw();$('#pal-in').focus()}
+function palClose(){$('#pal-scrim').classList.remove('on')}
+function palRun(){const x=pal.items[pal.i];if(!x)return;palClose();x.fn?x.fn():go(x.go)}
+$('#open-pal').onclick=palOpen;
+$('#pal-scrim').addEventListener('mousedown',e=>{if(e.target.id==='pal-scrim')palClose()});
+$('#pal-in').addEventListener('input',()=>{pal.i=0;palDraw()});
+$('#pal-list').addEventListener('click',e=>{const li=e.target.closest('li[data-n]');if(li){pal.i=+li.dataset.n;palRun()}});
+document.addEventListener('keydown',e=>{
+  const open=$('#pal-scrim').classList.contains('on');
+  if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='k'){e.preventDefault();open?palClose():palOpen();return}
+  if(open){
+    if(e.key==='Escape')palClose();
+    else if(e.key==='ArrowDown'){e.preventDefault();pal.i=Math.min(pal.items.length-1,pal.i+1);palDraw();$('#pal-list [aria-selected=true]')?.scrollIntoView({block:'nearest'})}
+    else if(e.key==='ArrowUp'){e.preventDefault();pal.i=Math.max(0,pal.i-1);palDraw();$('#pal-list [aria-selected=true]')?.scrollIntoView({block:'nearest'})}
+    else if(e.key==='Enter'){e.preventDefault();palRun()}
+    return;
+  }
+  if(cur.v==='demo'&&!/INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName))demoKey(e);
+});
+
+/* ================= MOCK HOST + DEMO ================= */
+const SEED=()=>({
+  chapters:[
+   [1,'Landfall',2410,'dddd'],[2,'The Breakwater',2680,'dddd'],[3,'Salt Ledger',2290,'ddat'],[4,"Keeper's Hours",2540,'dddd'],[5,'Ysolde',3010,'ddat'],[6,'Low Tide',2330,'dddt'],
+   [7,'The Lantern Room',2760,'datt'],[8,'Signal Fire',2480,'ddaf'],[9,'What the Harbour Knew',2620,'attt'],[10,'Storm Warning',2200,'tttt'],[11,'The Long Dark',2950,'tttt'],[12,'Return',2310,'tttt']
+  ].map(([id,title,words,st])=>({id,title,words,rec:st[0],edit:st[1],proof:st[2],deliv:st[3]})),
+  notes:[
+   {id:'n1',ch:3,kind:'Skipped word',tone:'warn',at:'12:31',exp:'carried the ledger along the harbour wall',got:'carried the ledger along harbour wall',d:null},
+   {id:'n2',ch:3,kind:'Added word',tone:'danger',at:'14:02',exp:'a thin line of smoke',got:'a very thin line of smoke',d:null},
+   {id:'n3',ch:5,kind:'Pronunciation',tone:'info',at:'03:48',exp:'Ysolde (ih-ZOHL-duh)',got:'ih-SOLD',d:null},
+   {id:'n4',ch:5,kind:'Skipped word',tone:'warn',at:'21:09',exp:'she did not look back at the light',got:'she did not look back at light',d:null},
+   {id:'n5',ch:7,kind:'Misread',tone:'danger',at:'04:12',exp:'the lantern burned low',got:'the lanterns burned low',d:null},
+   {id:'n6',ch:7,kind:'Skipped word',tone:'warn',at:'05:40',exp:'and the logbook in the other',got:'and logbook in the other',d:null},
+   {id:'n7',ch:8,kind:'Noise floor',tone:'danger',at:'00:00',exp:'limit −60 dB',got:'measured −57 dB',d:null},
+   {id:'n8',ch:8,kind:'Pronunciation',tone:'info',at:'09:15',exp:'Tidewarden (TIDE-war-den)',got:'tide-WAR-den',d:null}
+  ],
+  bible:[
+   {id:'b1',name:'Ysolde Marrow',kind:'character',pron:'ih-ZOHL-duh',review:true},{id:'b2',name:'Port Caul',kind:'place',pron:'port KAWL',review:false},
+   {id:'b3',name:'Tidewarden Guild',kind:'org',pron:'TIDE-war-den',review:true},{id:'b4',name:'Hesper Vane',kind:'character',pron:'HESS-per VAYN',review:false}
+  ],
+  meas:{1:[-20.4,-4.1,-63],2:[-19.8,-3.6,-62],3:[-21.0,-3.2,-61],4:[-19.1,-3.9,-64],5:[-22.5,-3.4,-60.5],6:[-20.0,-3.1,-62],7:[-18.7,-3.3,-61],8:[-20.6,-3.8,-57]},
+  built:null
+});
+let DB;try{DB=JSON.parse(store.get('ns-demo')||'null')}catch(e){DB=null}
+if(!DB||!DB.notes)DB=SEED();
+const save=()=>store.set('ns-demo',JSON.stringify(DB));
+const host={lat:280,fail:false,n:0,
+  async call(method,fn){
+    const t0=performance.now();this.n++;
+    const ms=Math.round(this.lat*(.7+Math.random()*.6));await wait(ms);
+    const log=(ok,msg)=>{const ul=$('#logs');if(this.n===1||ul.firstElementChild?.dataset.empty!==undefined)ul.innerHTML='';const li=document.createElement('li');if(!ok)li.className='e';li.innerHTML=`<span>${esc(method)} ${ok?'ok':esc(msg)}</span><span class="ms">${Math.round(performance.now()-t0)} ms</span>`;ul.prepend(li);while(ul.children.length>40)ul.lastChild.remove();$('#host-n').textContent=this.n+' calls'};
+    if(this.fail){this.fail=false;$('#fail-next').setAttribute('aria-pressed','false');log(false,'failed: host did not answer');throw new Error('The host did not answer.')}
+    const r=fn();save();log(true);return r;
+  }};
+const api={
+  project:()=>host.call('project.get',()=>JSON.parse(JSON.stringify({chapters:DB.chapters,notes:DB.notes,meas:DB.meas}))),
+  notes:()=>host.call('proof.list',()=>JSON.parse(JSON.stringify(DB.notes))),
+  decide:(id,d)=>host.call(`proof.decide(${id}, ${d||'none'})`,()=>{const n=DB.notes.find(x=>x.id===id);n.d=n.d===d?null:d;return n.d}),
+  bible:()=>host.call('guide.list',()=>JSON.parse(JSON.stringify(DB.bible))),
+  setPron:(id,v)=>host.call(`guide.setPronunciation(${id})`,()=>{const b=DB.bible.find(x=>x.id===id);b.pron=v;b.review=false}),
+  check:()=>host.call('delivery.check',()=>deliveryRows()),
+  build:()=>host.call('delivery.build',()=>{const f=deliveryRows().filter(r=>r.fail);if(f.length)throw new Error(`Chapter ${f[0].ch} fails ${f[0].failed[0]}. Fix it or waive its note in Proof.`);DB.built=Date.now();return true}),
+};
+const RULES=[['RMS loudness','−23 to −18 dB',v=>v>=-23&&v<=-18],['Peak','≤ −3 dB',v=>v<=-3],['Noise floor','≤ −60 dB',v=>v<=-60]];
+function deliveryRows(){
+  return DB.chapters.map(c=>{const m=DB.meas[c.id];if(!m)return{ch:c.id,title:c.title,none:true};
+    const waived=DB.notes.some(n=>n.ch===c.id&&n.kind==='Noise floor'&&n.d==='waive');
+    const res=RULES.map((r,i)=>r[2](m[i])||(i===2&&waived));const failed=RULES.filter((r,i)=>!res[i]).map(r=>r[0]);
+    return{ch:c.id,title:c.title,m,res,fail:failed.length>0,failed,waived}});
+}
+const openN=()=>DB.notes.filter(n=>n.d!=='waive').length;
+const pickupN=()=>DB.notes.filter(n=>n.d==='pickup').length;
+let appPage='production',busy=0,sel=null,chFilter=null;
+const NAV=[['Production',[['production','Production','home'],['schedule','Schedule','cal']]],['Prep',[['script','Script','doc'],['story-bible','Story Bible','users']]],['Record',[['booth','Booth','mic']]],['Edit',[['editing','Editing','cut']]],['Review',[['proof','Proof','flag'],['pickups','Pickups','list']]],['Finish',[['master','Master & QC','sliders'],['delivery','Delivery','box']]],['',[['settings','Settings','gear']]]];
+const LIVE=new Set(['production','story-bible','proof','pickups','delivery','settings']);
+function initDemo(){
+  $('#lat').oninput=e=>{host.lat=+e.target.value;$('#lat-v').textContent=host.lat+' ms'};
+  $('#fail-next').onclick=e=>{host.fail=!host.fail;e.target.setAttribute('aria-pressed',host.fail);toast(host.fail?'The next call will fail. Click anything that talks to the host.':'Failure cleared.')};
+  $('#demo-reset').onclick=()=>{DB=SEED();save();sel=null;chFilter=null;toast('Demo data reset.');showApp(appPage)};
+  $('#logs').innerHTML='<li data-empty><span style="color:var(--text-muted)">Waiting for the first call…</span></li>';
+  $('#app-main').addEventListener('click',onAppClick);
+}
+function drawNav(){
+  $('#app-nav').innerHTML=NAV.map(([g,items])=>(g?`<h5>${g}</h5>`:'')+items.map(([id,l,i])=>`<button type="button" data-p="${id}" class="${LIVE.has(id)?'':'off'}" ${id===appPage?'aria-current="page"':''}>${ic(i)}<span>${l}</span>${id==='pickups'&&pickupN()?`<span class="cnt">${pickupN()}</span>`:''}${id==='proof'&&openN()?`<span class="cnt" style="background:var(--warn);color:var(--surface)">${openN()}</span>`:''}</button>`).join('')).join('');
+  $$('#app-nav button').forEach(b=>b.onclick=()=>go('demo-'+b.dataset.p));
+}
+const hdr=(t,sub,extra='')=>`<div class="app-h"><h2>${t}</h2><span class="grow"></span>${extra}${sub?`<span class="sub">${sub}</span>`:''}</div>`;
+const skeleton=()=>`<div style="display:grid;gap:12px"><div class="skel" style="width:40%;height:28px"></div><div class="skel" style="height:90px"></div><div class="skel" style="height:200px"></div></div>`;
+async function showApp(p){
+  appPage=p;if(!NAV.flat().some(x=>Array.isArray(x)&&x[0]===p)&&!NAV.some(g=>g[1].some(i=>i[0]===p)))appPage=p='production';
+  drawNav();const my=++busy;const main=$('#app-main');main.innerHTML=skeleton();
+  try{
+    let html;
+    if(p==='production')html=await pgProduction();else if(p==='proof')html=await pgProof();else if(p==='pickups')html=await pgPickups();
+    else if(p==='story-bible')html=await pgBible();else if(p==='delivery')html=await pgDelivery();else if(p==='settings')html=pgSettings();else html=pgStub(p);
+    if(my!==busy)return;main.innerHTML=html;if(p==='proof')proofDraw();
+  }catch(err){if(my!==busy)return;main.innerHTML=`<div class="stub"><span class="badge danger">Host not answering</span><b>${esc(err.message)}</b><span style="color:var(--text-muted);max-width:44ch">The page could not load its data. This is the state the real app shows when the host is quiet.</span><button class="btn primary" type="button" data-act="retry">Retry</button></div>`}
+}
+function pgStub(p){const name=NAV.flatMap(g=>g[1]).find(i=>i[0]===p)[1];const f={schedule:'schedule',script:'script',booth:'booth',editing:'editing',master:'master-and-qc'}[p];
+  return `${hdr(name,'')}<div class="stub"><span class="badge experimental">Not in this demo</span><b>${name} needs the desktop app</b><span style="color:var(--text-muted);max-width:46ch">This page records, plays or renders audio, which a browser demo cannot do. The guide shows it with screenshots.</span><a class="btn" target="_blank" rel="noopener" href="${REPO}docs/guides/using-the-app/${f}.md">Read the ${name} guide ${ic('ext')}</a></div>`}
+const stIcon=(s,l)=>`<button type="button" class="cell ${s}" data-act="cell" data-ch="${l}" aria-label="${{d:'done',a:'in progress',t:'not started',f:'fails'}[s]}">${{d:'Done',a:'Working',t:'To do',f:'Fails'}[s]}</button>`;
+async function pgProduction(){
+  const {chapters:C}=await api.project();const dl=await api.check().catch(()=>[]);
+  const wph=9000/60; const hrs=w=>w/150/60; // 150 wpm finished audio
+  const fin=C.filter(c=>c.rec==='d').reduce((a,c)=>a+hrs(c.words),0), tot=C.reduce((a,c)=>a+hrs(c.words),0);
+  const recLeft=C.filter(c=>c.rec!=='d').reduce((a,c)=>a+hrs(c.words)*3.2,0), epLeft=C.filter(c=>c.proof!=='d').reduce((a,c)=>a+hrs(c.words)*2.4,0);
+  const pass=dl.filter(r=>r.res&&!r.fail).length,fail=dl.filter(r=>r.fail).length,unm=C.length-pass-fail;
+  const f=h=>`${Math.floor(h)}:${String(Math.round((h%1)*60)).padStart(2,'0')}`;
+  const words=C.reduce((a,c)=>a+c.words,0);
+  return `${hdr('Production',`${C.length} chapters · ${words.toLocaleString('en-US')} words · delivery due 14 Nov (28 days)`,`<span class="badge ok">On track</span><button class="btn sm" type="button" data-act="session">Start session</button>`)}
+   <div class="figs">
+    <button class="fig-t" type="button" data-act="goto" data-p="delivery"><small>Finished audio</small><b>${f(fin)} <span style="font-size:15px;color:var(--text-muted)">of ${f(tot)}</span></b></button>
+    <button class="fig-t" type="button" data-act="goto" data-p="booth"><small>Recording left</small><b>${f(recLeft)} h</b></button>
+    <button class="fig-t" type="button" data-act="goto" data-p="proof"><small>Editing + proof left</small><b>${f(epLeft)} h</b></button>
+    <button class="fig-t" type="button" data-act="goto" data-p="pickups"><small>Open pickups</small><b>${pickupN()}</b></button>
+    <button class="fig-t" type="button" data-act="goto" data-p="delivery"><small>Delivery check</small><b>${pass} pass · ${fail} fail <span style="font-size:14px;color:var(--text-muted)">${unm} not measured</span></b></button>
+    <button class="fig-t" type="button" data-act="goto" data-p="schedule"><small>Due</small><b>14 Nov</b></button>
+   </div>
+   <h3 style="font:600 13px var(--mono);letter-spacing:.06em;text-transform:uppercase;color:var(--text-muted);margin:0 0 8px">Chapter pipeline</h3>
+   <div class="pipe"><table><thead><tr><th>#</th><th>Chapter</th><th>Recording</th><th>Editing</th><th>Proof</th><th>Delivery</th></tr></thead><tbody>
+   ${C.map(c=>`<tr><td class="mono">${c.id}</td><td>${esc(c.title)}</td><td>${stIcon(c.rec,c.id)}</td><td>${stIcon(c.edit,c.id)}</td><td>${stIcon(c.proof,c.id)}</td><td>${stIcon(dl.find(r=>r.ch===c.id)?.fail?'f':c.deliv==='f'?'a':c.deliv,c.id)}</td></tr>`).join('')}
+   </tbody></table></div>`;
+}
+async function pgProof(){
+  await api.notes();
+  return `<div id="proof-root"></div>`;
+}
+function proofDraw(){
+  const N=chFilter?DB.notes.filter(n=>n.ch===chFilter):DB.notes;
+  if(!N.find(n=>n.id===sel))sel=N[0]?.id||null;
+  const cleared=DB.notes.filter(n=>n.d==='waive').length,decided=DB.notes.filter(n=>n.d).length,p=Math.round(cleared/DB.notes.length*100);
+  const chs=[...new Set(N.map(n=>n.ch))];
+  const dec=(n)=>({pickup:'Needs pickup',edit:'Fix in edit',waive:'Waived',defer:'Deferred'}[n.d]||'Open');
+  const s=DB.notes.find(n=>n.id===sel);
+  const diff=n=>n.kind==='Skipped word'?`<small>Script</small>${esc(n.exp)}<br><small>Heard</small>${esc(n.got).replace(/(\S+ )?(\S+ \S+ \S+)$/,'$1$2')}`:`<small>Script</small><del>${esc(n.exp)}</del><br><small>Heard</small><ins>${esc(n.got)}</ins>`;
+  $('#proof-root').innerHTML=`<div class="app-h"><h2>Proof</h2><div class="seg" role="group" aria-label="Chapter">
+     <button type="button" data-act="chf" data-c="0" aria-pressed="${!chFilter}">All chapters</button>${[3,5,7,8].map(c=>`<button type="button" data-act="chf" data-c="${c}" aria-pressed="${chFilter===c}">Ch. ${c}</button>`).join('')}</div>
+     <span class="grow"></span><div class="ring" style="--p:${p}" data-t="${cleared}/${DB.notes.length}" role="img" aria-label="${cleared} of ${DB.notes.length} notes cleared"></div><div style="font-size:13px"><b>${cleared} of ${DB.notes.length} cleared</b><br><span style="color:var(--text-muted)">${decided} decided</span></div></div>
+   <div class="two"><div class="queue" role="listbox" aria-label="Notes">${chs.map(c=>`<h4>Chapter ${c} · ${esc(DB.chapters[c-1].title)}</h4>${N.filter(n=>n.ch===c).map(n=>`<button type="button" class="note-row" role="option" data-act="sel" data-id="${n.id}" aria-selected="${n.id===sel}"><span class="badge ${n.tone}">${n.kind}</span><span class="grow">${esc(n.exp)}<small>${n.at} · ${dec(n)}</small></span></button>`).join('')}`).join('')||'<div style="padding:20px">No notes yet.</div>'}</div>
+   <div class="card insp" aria-label="Inspector">${s?`<div style="display:flex;gap:8px;align-items:center"><span class="badge ${s.tone}">${s.kind}</span><span class="mono" style="font-size:12.5px;color:var(--text-muted)">Ch. ${s.ch} · ${s.at}</span></div><div class="ev">${diff(s)}</div>
+     <div class="decide">${[['pickup','Needs pickup'],['edit','Fix in edit'],['waive','Waive'],['defer','Defer']].map(([k,l])=>`<button type="button" class="btn ${s.d===k?'primary':''}" data-act="dec" data-d="${k}" aria-pressed="${s.d===k}">${l}</button>`).join('')}</div>
+     <div style="font-size:12.5px;color:var(--text-muted)">Your decision is kept with the project.</div>`:'<b>No notes yet</b>'}</div></div>
+   <div class="keys"><span><kbd>J</kbd> next</span><span><kbd>K</kbd> previous</span><span><kbd>Esc</kbd> all chapters</span></div>`;
+}
+async function pgPickups(){
+  await api.notes();const P=DB.notes.filter(n=>n.d==='pickup');const chs=[...new Set(P.map(n=>n.ch))];
+  return `${hdr('Pickups',`${P.length} line${P.length===1?'':'s'} to record again`,`<button class="btn primary sm" type="button" data-act="session" ${P.length?'':'disabled'}>Start pickup session</button>`)}
+   ${P.length?chs.map(c=>`<div class="queue" style="margin-bottom:12px"><h4>Chapter ${c} · ${esc(DB.chapters[c-1].title)}</h4>${P.filter(n=>n.ch===c).map(n=>`<div class="note-row" style="cursor:default"><span class="badge ${n.tone}">${n.kind}</span><span class="grow">${esc(n.exp)}<small>${n.at}</small></span><button class="btn sm quiet" type="button" data-act="undo" data-id="${n.id}">Remove</button></div>`).join('')}</div>`).join(''):`<div class="stub"><b>No pickups yet</b><span style="color:var(--text-muted);max-width:44ch">Mark a note Needs pickup in Proof and its line appears here.</span><button class="btn" type="button" data-act="goto" data-p="proof">Open Proof</button></div>`}`;
+}
+async function pgBible(){
+  const B=await api.bible();
+  return `${hdr('Story Bible',`${B.length} entries · ${B.filter(b=>b.review).length} need a look`)}<div class="bible">${B.map(b=>`<div class="card entry"><div class="top-r"><span class="ent ${b.kind}">${esc(b.name)}</span><span class="grow"></span>${b.review?'<span class="badge warn">Needs review</span>':'<span class="badge ok">Reviewed</span>'}</div>
+   <label for="pr-${b.id}" style="font-size:12px;color:var(--text-muted)">How you say it</label>
+   <div style="display:flex;gap:8px"><input id="pr-${b.id}" value="${esc(b.pron)}" data-id="${b.id}"><button type="button" class="btn sm" data-act="savepron" data-id="${b.id}">Save</button><button type="button" class="btn sm quiet" data-act="play" aria-label="Preview ${esc(b.name)}">${ic('play')}</button></div></div>`).join('')}</div>`;
+}
+async function pgDelivery(){
+  const R=await api.check();const fails=R.filter(r=>r.fail).length;
+  return `${hdr('Delivery','Profile: ACX audiobook (example). Rules cite their source in the app.',`<button class="btn primary" type="button" data-act="build">Build package</button>`)}
+   <div class="queue"><div class="rule h"><span>Chapter</span>${RULES.map(r=>`<span>${r[0]} <span style="text-transform:none;letter-spacing:0">${r[1]}</span></span>`).join('')}</div>
+   ${R.map(r=>r.none?`<div class="rule"><span>${r.ch}. ${esc(r.title)}</span><span style="grid-column:span 3;color:var(--text-muted)">Not measured yet</span></div>`:`<div class="rule"><span>${r.ch}. ${esc(r.title)}</span>${r.m.map((v,i)=>`<span><span class="badge ${r.res[i]?'ok':'danger'}">${r.res[i]?'Pass':'Fail'}</span> <span class="mono" style="font-size:12px">${v.toFixed(1)}</span></span>`).join('')}</div>`).join('')}</div>
+   <p style="margin-top:12px;font-size:13px;color:var(--text-muted)">${fails?`${fails} chapter fails. Chapter 8 can be accepted by waiving its Noise floor note in Proof.`:'All measured chapters pass.'}</p>
+   <div id="build-out">${DB.built?`<div class="note" style="margin-top:14px">${ic('check')}<div><b>Package built.</b> 8 chapter files and a manifest are ready in the project's Delivery folder.</div></div>`:''}</div>`;
+}
+function pgSettings(){
+  const t=store.get('narration-ui-theme')||'system';
+  return `${hdr('Settings','Appearance and project data')}<div class="card entry" style="max-width:520px"><b>Appearance</b><div class="seg" role="group" aria-label="Theme">${['light','dark','system'].map(x=>`<button type="button" data-act="theme" data-t="${x}" aria-pressed="${t===x}">${x[0].toUpperCase()+x.slice(1)}</button>`).join('')}</div>
+   <b style="margin-top:8px">Project data</b><div><button class="btn danger" type="button" data-act="reset">Clear demo data</button></div></div>`;
+}
+async function onAppClick(e){
+  const b=e.target.closest('[data-act]');if(!b)return;const a=b.dataset.act;
+  try{
+  if(a==='retry')return showApp(appPage);
+  if(a==='goto')return go('demo-'+b.dataset.p);
+  if(a==='cell')return go('demo-proof'), (chFilter=null);
+  if(a==='session')return toast('The Booth needs the desktop app. In the real app this opens the chapter being recorded.');
+  if(a==='play')return toast('Voice preview uses local Piper in the desktop app.');
+  if(a==='chf'){chFilter=+b.dataset.c||null;sel=null;return proofDraw()}
+  if(a==='sel'){sel=b.dataset.id;return proofDraw()}
+  if(a==='dec'){await api.decide(sel,b.dataset.d);proofDraw();drawNav();return}
+  if(a==='undo'){await api.decide(b.dataset.id,'pickup');return showApp('pickups')}
+  if(a==='savepron'){const v=$(`#pr-${b.dataset.id}`).value.trim();if(!v)return toast('Enter how the name is said.',true);b.disabled=true;await api.setPron(b.dataset.id,v);toast('Saved. The entry is marked reviewed.');return showApp('story-bible')}
+  if(a==='theme'){const t=b.dataset.t;if(t==='system'){root.removeAttribute('data-theme');store.set('narration-ui-theme','system');paintThemeBtn();window.dispatchEvent(new Event('themechange'))}else setTheme(t);return showApp('settings')}
+  if(a==='reset'){DB=SEED();save();return toast('Demo data cleared.')}
+  if(a==='build'){
+    b.disabled=true;const out=$('#build-out');const st=['Checking chapters','Encoding files','Writing the manifest'];
+    out.innerHTML=`<div class="steps">${st.map((s,i)=>`<div class="step" id="st${i}"><span class="skel" style="width:14px;height:14px;border-radius:50%"></span>${s}</div>`).join('')}</div>`;
+    for(let i=0;i<st.length;i++){$('#st'+i).className='step on';await wait(RM?0:350);if(i===0){try{await api.build()}catch(err){out.innerHTML=`<div class="note warn" style="margin-top:14px">${ic('info')}<div><b>The build stopped.</b> ${esc(err.message)}</div></div>`;b.disabled=false;return}}$('#st'+i).className='step done'}
+    drawNav();return showApp('delivery');
+  }}catch(err){toast(err.message,true,{label:'Retry',fn:()=>b.click()});if(b.disabled)b.disabled=false}
+}
+async function demoKey(e){
+  if(appPage!=='proof'||!$('#proof-root'))return;
+  const N=chFilter?DB.notes.filter(n=>n.ch===chFilter):DB.notes;const i=N.findIndex(n=>n.id===sel);
+  if(e.key==='j'||e.key==='J'){sel=N[Math.min(N.length-1,i+1)].id;proofDraw()}
+  else if(e.key==='k'||e.key==='K'){sel=N[Math.max(0,i-1)].id;proofDraw()}
+  else if(e.key==='Escape'&&chFilter){chFilter=null;proofDraw()}
+}
+
+/* ================= STORYBOOK ================= */
+const STORIES=[
+ {id:'button',name:'Button',group:'Primitives',desc:'The control for an action. The default has a near-black outline; Primary is for the one main action on a page.',
+  args:[{n:'label',t:'text',v:'Build package'},{n:'variant',t:'select',o:['default','primary','danger','quiet'],v:'primary'},{n:'size',t:'select',o:['sm','md','lg'],v:'md'},{n:'disabled',t:'bool',v:false}],
+  render:a=>`<div class="stack"><button type="button" class="btn ${a.variant==='default'?'':a.variant} ${a.size==='md'?'':a.size}" ${a.disabled?'disabled':''} data-act="click" data-a11y>${esc(a.label)}</button></div>`,
+  states:a=>['default','primary','danger','quiet'].map(v=>`<button type="button" class="btn ${v==='default'?'':v}" data-a11y>${v}</button>`).join('')+'<button type="button" class="btn" disabled>disabled</button>',
+  code:a=>`<Button variant="${a.variant}"${a.size!=='md'?` size="${a.size}"`:''}${a.disabled?' disabled':''} onClick={onClick}>\n  ${a.label}\n</Button>`},
+ {id:'status-badge',name:'StatusBadge',group:'Primitives',desc:'A status as a word and a shape, never a colour alone. Each tone has its own shape so it still reads without colour.',
+  args:[{n:'tone',t:'select',o:['ok','warn','info','danger','experimental'],v:'warn'},{n:'label',t:'text',v:'Needs review'}],
+  render:a=>`<div class="stack"><span class="badge ${a.tone}" data-a11y>${esc(a.label)}</span></div>`,
+  states:a=>['ok','warn','info','danger','experimental'].map(t=>`<span class="badge ${t}" data-a11y>${t}</span>`).join(''),
+  code:a=>`<StatusBadge tone="${a.tone}">${a.label}</StatusBadge>`},
+ {id:'segmented',name:'SegmentedControl',group:'Primitives',desc:'One choice from a short list. The chosen option is filled and bold, so it is not only a colour change.',
+  args:[{n:'selected',t:'range',min:0,max:2,v:0}],
+  render:(a,log)=>`<div class="stack"><div class="seg" role="group" aria-label="Chapter">${['All chapters','Chapter 7','Chapter 8'].map((x,i)=>`<button type="button" data-act="seg" data-i="${i}" aria-pressed="${i===+a.selected}" data-a11y>${x}</button>`).join('')}</div></div>`,
+  states:a=>['One','Two','Three'].map((x,i)=>`<div class="seg"><button type="button" aria-pressed="${i===0}">${x}</button><button type="button" aria-pressed="${i===1}">…</button></div>`).join(''),
+  code:a=>`<SegmentedControl\n  value={${a.selected}}\n  options={['All chapters', 'Chapter 7', 'Chapter 8']}\n  onChange={onChange}\n/>`},
+ {id:'level-meter',name:'LevelMeter',group:'Domain',desc:'The Booth input level. Its zones are named for role: floor, body, hot and over.',
+  args:[{n:'level',t:'range',min:0,max:100,v:58},{n:'live',t:'bool',v:false}],
+  render:a=>{const z=a.level>92?'over':a.level>80?'hot':a.level>8?'body':'floor';return `<div class="stack" style="width:min(360px,100%)"><div class="meter ${z}" style="flex:1" role="meter" aria-valuenow="${a.level}" aria-valuemin="0" aria-valuemax="100" aria-label="Input level"><i style="width:${a.level}%"></i></div><span class="mono" data-a11y>${z} · ${a.level}%</span></div>`},
+  states:a=>[[4,'floor'],[55,'body'],[86,'hot'],[97,'over']].map(([l,z])=>`<div style="width:150px;display:grid;gap:6px"><div class="meter ${z}"><i style="width:${l}%"></i></div><span class="mono" style="font-size:12px" data-a11y>${z}</span></div>`).join(''),
+  code:a=>`<LevelMeter level={${a.level}} />`},
+ {id:'entity',name:'EntityHighlight',group:'Domain',desc:'A name marked in the manuscript by its Story Bible type. The tint and underline use the type colour; the text keeps full contrast.',
+  args:[{n:'kind',t:'select',o:['character','place','org','review'],v:'character'},{n:'text',t:'text',v:'Ysolde Marrow'}],
+  render:a=>`<p style="font-size:18px;max-width:34ch;text-align:center">She did not look back at <span class="ent ${a.kind}" data-a11y>${esc(a.text)}</span> as the light failed.</p>`,
+  states:a=>['character','place','org','review'].map(k=>`<span class="ent ${k}" data-a11y>${k}</span>`).join(''),
+  code:a=>`<EntityHighlight kind="${a.kind}">${a.text}</EntityHighlight>`}
+];
+const sb={id:'button',tab:'canvas',ptab:'controls',args:{},actions:[],vp:'full',bg:'surface',outline:false};
+function showStory(id){
+  const s=STORIES.find(x=>x.id===id)||STORIES[0];
+  if(sb.id!==s.id||!Object.keys(sb.args).length){sb.id=s.id;sb.args=Object.fromEntries(s.args.map(a=>[a.n,a.v]));sb.actions=[]}
+  const groups=[...new Set(STORIES.map(x=>x.group))];
+  $('#sb-side').innerHTML=`<label class="sr" for="sb-q">Filter stories</label><input id="sb-q" placeholder="Find components" type="search">`+groups.map(g=>`<h5>${g}</h5>`+STORIES.filter(x=>x.group===g).map(x=>`<button type="button" data-s="${x.id}" ${x.id===s.id?'aria-current="page"':''}>${x.name}</button>`).join('')).join('');
+  $('#sb-sel').innerHTML=STORIES.map(x=>`<option value="${x.id}" ${x.id===s.id?'selected':''}>${x.group} / ${x.name}</option>`).join('');
+  $('#sb-sel').onchange=e=>go('storybook-'+e.target.value);
+  $$('#sb-side [data-s]').forEach(b=>b.onclick=()=>go('storybook-'+b.dataset.s));
+  $('#sb-q').oninput=e=>{const q=e.target.value.toLowerCase();$$('#sb-side [data-s]').forEach(b=>b.hidden=!b.textContent.toLowerCase().includes(q))};
+  sbDraw();
+}
+function sbDraw(){
+  const s=STORIES.find(x=>x.id===sb.id),a=sb.args;
+  const vpw={full:'100%',tablet:'768px',phone:'375px'}[sb.vp],bg={surface:'var(--surface)',page:'var(--bg)',reading:'var(--reading)'}[sb.bg];
+  const canvas=`<div class="canvas ${sb.outline?'outline':''}" id="sb-canvas" style="max-width:${vpw};--cbg:${bg}">${s.render(a)}</div>
+    <h3 style="font:600 12px var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--text-muted);margin:22px 0 8px">All states</h3><div class="canvas" id="sb-states" style="--cbg:${bg}"><div class="stack">${s.states(a)}</div></div>`;
+  const docs=`<div class="sb-docs"><div class="eyebrow">${s.group}</div><h2>${s.name}</h2><p style="color:var(--text-muted);font-size:16px">${s.desc}</p>
+    <div class="tbl"><table><thead><tr><th>Prop</th><th>Type</th><th>Default</th></tr></thead><tbody>${s.args.map(x=>`<tr><td><code>${x.n}</code></td><td>${x.t==='select'?x.o.map(o=>`<code>${o}</code>`).join(' '):x.t==='bool'?'boolean':x.t==='range'?'number':'string'}</td><td><code>${x.v}</code></td></tr>`).join('')}</tbody></table></div>
+    <div class="note">${ic('info')}<div>Used by the live demo: ${{button:'Proof, Delivery, Settings',['status-badge']:'Proof, Delivery, Story Bible',segmented:'Proof, Settings','level-meter':'Booth (desktop app)',entity:'Story Bible, Script'}[s.id]}.</div></div></div>`;
+  $('#sb-main').innerHTML=`<div class="sb-tool"><div class="seg" role="group" aria-label="View"><button type="button" data-t="canvas" aria-pressed="${sb.tab==='canvas'}">Canvas</button><button type="button" data-t="docs" aria-pressed="${sb.tab==='docs'}">Docs</button></div>
+    <label>Viewport <select id="sb-vp">${['full','tablet','phone'].map(v=>`<option ${sb.vp===v?'selected':''}>${v}</option>`).join('')}</select></label>
+    <label>Background <select id="sb-bg">${['surface','page','reading'].map(v=>`<option ${sb.bg===v?'selected':''}>${v}</option>`).join('')}</select></label>
+    <label><input type="checkbox" id="sb-ol" ${sb.outline?'checked':''}> Outline</label>
+    <span class="sp"><button type="button" class="btn sm" id="sb-th">${isDark()?'Light':'Dark'} theme</button></span></div>
+    <div class="sb-view">${sb.tab==='canvas'?canvas:docs}</div>
+    <div class="sb-panel"><div class="ptabs" role="tablist">${['controls','actions','accessibility','code'].map(t=>`<button type="button" role="tab" data-pt="${t}" aria-selected="${sb.ptab===t}">${t[0].toUpperCase()+t.slice(1)}${t==='actions'&&sb.actions.length?` (${sb.actions.length})`:''}</button>`).join('')}</div><div class="pbody" id="pbody"></div></div>`;
+  $$('#sb-main [data-t]').forEach(b=>b.onclick=()=>{sb.tab=b.dataset.t;sbDraw()});
+  $('#sb-vp').onchange=e=>{sb.vp=e.target.value;sbDraw()};$('#sb-bg').onchange=e=>{sb.bg=e.target.value;sbDraw()};$('#sb-ol').onchange=e=>{sb.outline=e.target.checked;sbDraw()};
+  $('#sb-th').onclick=()=>setTheme(isDark()?'light':'dark');
+  $$('#sb-main [data-pt]').forEach(b=>b.onclick=()=>{sb.ptab=b.dataset.pt;pDraw()});
+  const cv=$('#sb-canvas');if(cv)cv.addEventListener('click',e=>{const b=e.target.closest('[data-act]');if(!b)return;
+    if(b.dataset.act==='click'&&!b.disabled)logAct('onClick','{ type: "click" }');
+    if(b.dataset.act==='seg'){sb.args.selected=+b.dataset.i;logAct('onChange',`"${['All chapters','Chapter 7','Chapter 8'][+b.dataset.i]}"`);sbDraw()}});
+  pDraw();
+}
+function logAct(n,p){sb.actions.unshift(`${new Date().toLocaleTimeString('en-GB')}  ${n}  ${p}`);if(sb.ptab==='actions')pDraw();else{const t=$('[data-pt=actions]');if(t)t.textContent=`Actions (${sb.actions.length})`}}
+function pDraw(){
+  const s=STORIES.find(x=>x.id===sb.id);$$('#sb-main [data-pt]').forEach(b=>b.setAttribute('aria-selected',b.dataset.pt===sb.ptab));
+  const el=$('#pbody');if(!el)return;
+  if(sb.ptab==='controls'){
+    el.innerHTML=`<div class="ctrls">${s.args.map(x=>`<div class="ctrl"><label for="c-${x.n}"><code>${x.n}</code></label>${
+      x.t==='select'?`<select id="c-${x.n}" data-c="${x.n}">${x.o.map(o=>`<option ${sb.args[x.n]===o?'selected':''}>${o}</option>`).join('')}</select>`:
+      x.t==='bool'?`<input id="c-${x.n}" type="checkbox" data-c="${x.n}" ${sb.args[x.n]?'checked':''}>`:
+      x.t==='range'?`<input id="c-${x.n}" type="range" min="${x.min}" max="${x.max}" value="${sb.args[x.n]}" data-c="${x.n}">`:
+      `<input id="c-${x.n}" type="text" value="${esc(sb.args[x.n])}" data-c="${x.n}">`}</div>`).join('')}</div>`;
+    $$('[data-c]',el).forEach(i=>i.oninput=()=>{const k=i.dataset.c,x=s.args.find(a=>a.n===k);sb.args[k]=x.t==='bool'?i.checked:x.t==='range'?+i.value:i.value;redrawCanvas()});
+  }else if(sb.ptab==='actions'){
+    el.innerHTML=sb.actions.length?`<pre class="mono" style="margin:0;font-size:12.5px">${esc(sb.actions.join('\n'))}</pre>`:'<span style="color:var(--text-muted)">Interact with the component on the Canvas tab to log events here.</span>';
+  }else if(sb.ptab==='code'){
+    el.innerHTML=`<div class="codebox" style="margin:0"><button class="btn sm quiet" data-copy type="button">Copy</button><pre><code>${esc(s.code(sb.args))}</code></pre></div>`;
+  }else a11y(el);
+}
+function redrawCanvas(){const s=STORIES.find(x=>x.id===sb.id);const cv=$('#sb-canvas');if(cv){cv.innerHTML=s.render(sb.args);const st=$('#sb-states .stack');if(st)st.innerHTML=s.states(sb.args)}}
+function pc(s){let m=s.match(/rgba?\(([^)]+)\)/);if(m){const p=m[1].split(/[ ,\/]+/).filter(Boolean).map(parseFloat);return{r:p[0],g:p[1],b:p[2],a:p[3]??1}}
+  m=s.match(/color\(srgb ([^)]+)\)/);if(m){const p=m[1].split(/[ \/]+/).filter(Boolean).map(parseFloat);return{r:p[0]*255,g:p[1]*255,b:p[2]*255,a:p[3]??1}}return null}
+const lum=c=>{const f=v=>{v/=255;return v<=.03928?v/12.92:Math.pow((v+.055)/1.055,2.4)};return .2126*f(c.r)+.7152*f(c.g)+.0722*f(c.b)};
+function bgOf(el){while(el){const c=pc(getComputedStyle(el).backgroundColor);if(c&&c.a>.9)return c;el=el.parentElement}return{r:255,g:255,b:255}}
+function a11y(el){
+  const els=[...$$('#sb-canvas [data-a11y]'),...$$('#sb-states [data-a11y]')].filter(x=>!x.disabled);
+  el.innerHTML=`<div style="color:var(--text-muted);margin-bottom:8px">Text contrast against its own background, measured in the current theme. WCAG AA asks for 4.5:1 for body text.</div>`+(els.map(x=>{
+    const fg=pc(getComputedStyle(x).color),bg=bgOf(x);if(!fg)return'';const l1=lum(fg),l2=lum(bg),r=(Math.max(l1,l2)+.05)/(Math.min(l1,l2)+.05);
+    return `<div class="a11y-r"><span>${esc(x.textContent.trim().slice(0,40))}</span><b class="mono">${r.toFixed(2)}:1</b><span class="badge ${r>=4.5?'ok':'danger'}">${r>=4.5?'Pass AA':'Fail AA'}</span></div>`}).join('')||'<span style="color:var(--text-muted)">No text to measure.</span>')+
+   `<div class="a11y-r" style="border:0"><span>Keyboard focus ring</span><b class="mono">2px</b><span class="badge ok">Present</span></div>`;
+}
+window.addEventListener('themechange',()=>{if(cur.v==='storybook'&&sb.ptab==='accessibility')setTimeout(()=>pDraw(),50);const b=$('#sb-th');if(b)b.textContent=(isDark()?'Light':'Dark')+' theme'});
+
+/* boot */
+go(parse(location.hash).v==='home'&&!location.hash?'home':location.hash.replace(/^#/,'')||'home');
+})();
+</script>
+</body>
 </html>
