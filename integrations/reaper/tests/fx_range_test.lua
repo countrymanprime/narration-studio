@@ -911,8 +911,17 @@ H.test("a setting is changed on the chain's FX, not on an FX the narrator put ah
 end)
 
 -- fx_range_compare and stop_fx_compare (SN-E113): the effect's words played in REAPER with the chain on, then with it
--- bypassed, then the chain put back as it was. The switches are made outside any undo block, so a Compare adds nothing to
--- REAPER's undo history, and the edit cursor goes back where it was.
+-- bypassed, then the chain put back as it was. The switches are made outside any undo block, and the edit cursor goes back where it
+-- was. REAPER 7.82 writes one "FX bypass toggle" point of its own for every FX switched each way (the real-REAPER CI run, 2026-10-19):
+-- the fake models it, and none of them is a point the app made.
+
+-- Every point in the undo history is REAPER's own toggle, none the app's.
+local function only_toggles(s, count)
+  H.eq(#s.fake.undo, count, 'one REAPER "FX bypass toggle" point for each switch that changed an FX')
+  for _, entry in ipairs(s.fake.undo) do
+    H.truthy(entry.label:match('^FX bypass toggle'), entry.label)
+  end
+end
 
 local COMPARE_UNSUPPORTED = 'This REAPER version cannot play an effect on words to compare it.'
 
@@ -967,7 +976,7 @@ H.test('fx_range_compare plays the words with the chain on and then bypassed, an
     H.eq(call[3], false, 'no switch is inside an undo block')
   end
   H.eq(#switches(s), 6, 'on, bypassed, then back as it was')
-  H.eq(#s.fake.undo, 0, 'a Compare adds no undo point')
+  only_toggles(s, 4)
   H.eq(s.fake.open_undo_blocks, 0)
   H.eq(s:events(), {}, 'the passes send nothing more')
   heard(s, 20)
@@ -987,7 +996,7 @@ H.test('a chain that was bypassed is played on, then bypassed, and stays bypasse
   heard(s, 15)
   heard(s, 16)
   H.eq(enabled(take), { false })
-  H.eq(#s.fake.undo, 0)
+  only_toggles(s, 2)
 end)
 
 H.test('stop_fx_compare stops a Compare midway and puts the chain and the cursor back', function()
@@ -1004,7 +1013,7 @@ H.test('stop_fx_compare stops a Compare midway and puts the chain and the cursor
   H.eq(enabled(take), { true })
   H.eq(s.fake.cursor, 7)
   H.eq(s.fake.play_state, 0)
-  H.eq(#s.fake.undo, 0)
+  only_toggles(s, 2)
   s:send('stop_fx_compare', 's2')
   H.eq(s:events(), { { 'RANGE_FX_COMPARE_STOPPED', 's2', '0' } }, 'a second stop finds nothing running')
 end)
@@ -1150,7 +1159,8 @@ H.test('a change to the chain mid-Compare ends the Compare first, so it acts on 
   s:events()
   s:send('fx_range_bypass', 'b1', middle.guid, take.guid, CHAIN, '1')
   H.eq(s:events(), { { 'RANGE_FX_BYPASSED', 'b1', middle.guid, take.guid, CHAIN, '1', '1' } }, 'the chain was on, so the bypass is a change')
-  H.eq(s.fake:undo_labels(), { BYPASS_LABEL })
+  H.eq(s.fake:undo_labels()[#s.fake:undo_labels()], BYPASS_LABEL, 'the narrator\'s change is the top of the history')
+  H.eq(#s.fake:undo_labels(), 3, 'after the two toggles REAPER wrote for the Compare')
   heard(s, 15)
   heard(s, 16)
   H.eq(enabled(take), { false }, 'the bypass is kept')

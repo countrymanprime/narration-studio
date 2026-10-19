@@ -52,7 +52,9 @@ def undo_once(env: Env) -> str:
 @scenario("regions", "create_regions", "regions: bounds, titles, colour, one undo step, kept across save and reload")
 def regions_create(env: Env) -> str:
     payload = env.payload("regions.txt", ["0|20|Opening Credits", "20|40|Chapter 1", "40|60|Chapter 2 | with a pipe"])
+    tracks_before = env.witness(markers=False)
     added = env.ok("create_regions", payload, "ff8800", "0", until="REGIONS_CREATED")
+    assert env.witness(markers=False) == tracks_before, "create_regions changed a track (row A10)"
     assert added[2:9] == ["3", "0", "0", "0", "0", "0"], f"created/existing/invalid/updated/ambiguous/failed {added[2:9]}"
     state = env.snapshot()
     regions = [m for m in state["markers"] if m["region"]]
@@ -129,8 +131,10 @@ def fx_chains(env: Env) -> str:
     listed = [e[2] for e in events if e[0] == "FX_CHAIN"]
     assert listed == ["Voice/Deep/Other EQ.RfxChain", "Voice/Quiet.RfxChain", "Voice/Test EQ.RfxChain"], listed
     assert events[-1][2:4] == ["3", "0"], f"count/truncated {events[-1][2:4]}"
+    others = env.witness("Chapter 1")
     applied = env.ok("apply_fx_chain", fx["ch1"], "Voice/Test EQ.RfxChain", until="FX_CHAIN_APPLIED")
     assert applied[2] == "Voice/Test EQ.RfxChain" and applied[4] == "1", f"applied {applied[2:]}"
+    assert env.witness("Chapter 1") == others, "apply_fx_chain changed the master, another track or a marker (row A10)"
     state = env.snapshot()
     chapter = next(t for t in state["tracks"] if t["name"] == "Chapter 1")
     assert [f for f in chapter["fx"] if "ReaEQ" in f], f"track FX {chapter['fx']}"
@@ -169,7 +173,9 @@ def item_gain(env: Env) -> str:
     fx = two_chapters(env)
     base = env.render_mix("gain_before", 0.0, 3.0).tone(0.2, 2.8, 440.0)  # tone_a's pitch: Chapter 2 plays tone_b over it
     payload = env.payload("gain.txt", [f"{fx['first']}|-6|f1"])
+    others = env.witness("Chapter 1")
     events = env.send("apply_item_gain", payload, until="GAIN_APPLIED")
+    assert env.witness("Chapter 1") == others, "apply_item_gain changed another track, the master or a marker (row A10)"
     item = next(e for e in events if e[0] == "GAIN_ITEM")
     near(float(item[3]), 1.0, 1e-6, "volume before")
     near(float(item[4]), 0.501187, 1e-5, "volume after")

@@ -206,6 +206,40 @@ function M.snapshot()
   }
 end
 
+-- Row A10, "nothing else changed": every track's state chunk (the master's too) but those named in `except`, without the arm and selection
+-- lines, and every marker and region unless `markers` is false. Two reads that are equal mean the command touched none of them.
+function M.witness(except, markers)
+  local skip = {}
+  for _, name in ipairs(except or {}) do
+    skip[name] = true
+  end
+  local out = {}
+  local function add(track, label)
+    local _, name = reaper.GetSetMediaTrackInfo_String(track, 'P_NAME', '', false)
+    if skip[name] then
+      return
+    end
+    local _, chunk = reaper.GetTrackStateChunk(track, '', false)
+    out[#out + 1] = '# ' .. label
+    for line in chunk:gmatch('[^\r\n]+') do
+      local key = line:match('^%s*(%S+)')
+      if key ~= 'REC' and key ~= 'SEL' and key ~= 'FLOATPOS' then
+        out[#out + 1] = line
+      end
+    end
+  end
+  add(reaper.GetMasterTrack(0), 'master')
+  for index = 0, reaper.CountTracks(0) - 1 do
+    add(reaper.GetTrack(0, index), 'track ' .. index)
+  end
+  if markers ~= false then
+    for _, marker in ipairs(M.snapshot().markers) do
+      out[#out + 1] = string.format('marker %s %.6f %.6f %s %s %s', tostring(marker.region), marker.start, marker.finish, marker.name, marker.number, marker.color)
+    end
+  end
+  return table.concat(out, '\n')
+end
+
 -- Scenes ------------------------------------------------------------------------------------------------------------------
 
 -- Empties the project (tracks, markers, every setting the scenes touch), saves it and opens it again from disk, so a scene

@@ -1184,6 +1184,11 @@ function Fake:add_take_api(api)
     fake.calls[#fake.calls + 1] = { name = 'TakeFX_SetEnabled', fx = index, enabled = enabled, in_block = fake.open_undo_blocks > 0 }
     local fx = fx_at(take, index)
     if fx then
+      -- REAPER 7.82 adds one undo point ("FX bypass toggle: ...") for every TakeFX_SetEnabled that changes the state, outside an
+      -- undo block or inside one the narrator has no say in (the real-REAPER CI run, 2026-10-19).
+      if (fx.enabled ~= false) ~= enabled and fake.open_undo_blocks == 0 then
+        fake.undo[#fake.undo + 1] = { label = 'FX bypass toggle: ' .. tostring(fx.name) }
+      end
       fx.enabled = enabled
     end
   end

@@ -34,14 +34,50 @@ def make_tone(path: Path, hz: float, seconds: float, rate: int = 44100, amplitud
         out.writeframes(bytes(frames))
 
 
+def make_steps(path: Path, seconds: float = 30.0, step: float = 5.0, rate: int = 44100, amplitude: float = 0.3) -> None:
+    """A file whose pitch changes every `step` seconds (tone_a, tone_b, tone_c, tone_a, ...): a render says which part of it played."""
+    pitches = list(TONES.values())
+    frames = bytearray()
+    for i in range(int(seconds * rate)):
+        hz = pitches[int(i / rate / step) % len(pitches)]
+        frames += struct.pack("<h", int(amplitude * math.sin(2 * math.pi * hz * i / rate) * 32767))
+    with wave.open(str(path), "wb") as out:
+        out.setnchannels(1)
+        out.setsampwidth(2)
+        out.setframerate(rate)
+        out.writeframes(bytes(frames))
+
+
+def make_click(path: Path, at: float = 5.0, seconds: float = 12.0, rate: int = 44100) -> None:
+    """tone_a with a loud 2 ms click at `at`: a mouth click for repair_click to dip."""
+    frames = bytearray()
+    for i in range(int(seconds * rate)):
+        t = i / rate
+        value = 0.2 * math.sin(2 * math.pi * 440.0 * t)
+        if at <= t < at + 0.002:
+            value = 0.9 if (i // 8) % 2 else -0.9
+        frames += struct.pack("<h", int(value * 32767))
+    with wave.open(str(path), "wb") as out:
+        out.setnchannels(1)
+        out.setsampwidth(2)
+        out.setframerate(rate)
+        out.writeframes(bytes(frames))
+
+
 def make_media(directory: Path) -> dict[str, Path]:
-    """Writes tone_a/b/c.wav (30 s each, 440/660/880 Hz) and returns name -> path."""
+    """Writes tone_a/b/c.wav (30 s each, 440/660/880 Hz), steps.wav and click.wav; answers name -> path."""
     directory.mkdir(parents=True, exist_ok=True)
     out = {}
     for name, hz in TONES.items():
         out[name] = directory / f"{name}.wav"
         if not out[name].exists():
             make_tone(out[name], hz, 30.0)
+    out["steps"] = directory / "steps.wav"
+    if not out["steps"].exists():
+        make_steps(out["steps"])
+    out["click"] = directory / "click.wav"
+    if not out["click"].exists():
+        make_click(out["click"])
     return out
 
 
@@ -109,10 +145,11 @@ class Wav:
         return 2 * math.sqrt(max(power, 0.0)) / len(w)
 
     def pitch(self, start: float, end: float) -> str:
-        """The name of the TONES file the window plays, or "silence" when it is quiet."""
+        """The name of the TONES file the window plays, "silence" when it is quiet, "mixed" when no pitch clearly dominates."""
         if self.rms(start, end) < 0.005:
             return "silence"
-        return max(TONES, key=lambda name: self.tone(start, end, TONES[name]))
+        levels = sorted(((self.tone(start, end, hz), name) for name, hz in TONES.items()), reverse=True)
+        return levels[0][1] if levels[0][0] > 4 * levels[1][0] else "mixed"
 
 
 def db(ratio: float) -> float:
@@ -151,6 +188,10 @@ class Env:
 
     def snapshot(self) -> dict:
         return self.lua("return ci.snapshot()")
+
+    def witness(self, *except_tracks: str, markers: bool = True) -> str:
+        """Every track's state chunk but the named ones' (and the markers): equal before and after means a command touched none of it (row A10)."""
+        return self.lua("return ci.witness({ table.unpack(args, 2) }, args[1] == '1')", "1" if markers else "0", *except_tracks)
 
     def media_path(self, name: str) -> str:
         return str(self.media[name])
