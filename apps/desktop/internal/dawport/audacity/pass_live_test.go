@@ -293,7 +293,7 @@ func stepsPass(ctx context.Context, run *passRun, client *audacitybridge.Client,
 	// C3: the narrator's macro on a range, when they named one.
 	if macro := os.Getenv("NU_AUDACITY_PASS_MACRO"); macro != "" {
 		result, err = fx.ApplyFXToRange(ctx, dawport.FXRangeRequest{RangeRequest: rangeOf(5, 6), ChainID: macro, ChainName: macro})
-		check("C3", "Apply the macro to 5 to 6 s (Split, ApplyMacro), after a backup", result, err, 11)
+		check("C3", "Apply the macro to 5 to 6 s (Split, then Macro_<name>), after a backup", result, err, 11)
 	} else {
 		run.steps = append(run.steps, passStep{"C3", "Apply a macro to a range", "SKIP", "set NU_AUDACITY_PASS_MACRO to one of your macros"})
 	}

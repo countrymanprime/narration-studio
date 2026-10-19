@@ -18,7 +18,8 @@ import (
 // made after BackupAround has cloned the audio around it: a roll (steps_roll.go), a cut and an effect on a range
 // (steps_range.go), a stack and an un-stack (steps_stack.go), lowered stretches (ReduceRangeGain, below) and repaired clicks (RepairClick, below). Each answers a Result whose Steps are the edits in the order
 // they were sent and whose UndoSteps counts the ones that add an Audacity undo point (selecting and copying add none); how many
-// Audacity really adds is checked on the owner's pass (docs/operations/audacity-verification-pass.md).
+// Audacity really adds was measured on Linux (tests/audacity3/real/edits, A3-T22c: an effect, a rename and a mute add none) and is
+// checked on Windows by the owner's pass (docs/operations/audacity-verification-pass.md).
 //
 // Every check is made before the backup, and the backup before the first edit: a request out of shape is Refused, a track named
 // that Audacity no longer lists is RefusedStale, and a backup that is refused or fails stops the call with its answer. The role
@@ -89,6 +90,28 @@ func (s *steps) do(ctx context.Context, name string) error {
 }
 
 // selectRange selects [start, end] of one track.
+// clipsMove turns on Audacity's "Editing a clip can move other clips" for an edit that closes a gap, and returns what puts the
+// preference back as the narrator had it (off when it was never set, which is how Audacity behaves then). With it off a Delete or a
+// Paste moves only the audio of its own clip, and the clips after it stay where they were (A3-T18). The caller defers the restore.
+func (s *steps) clipsMove(ctx context.Context) (restore func(), err error) {
+	was, set, err := s.client.Preference(ctx, audacitybridge.PrefClipsMove)
+	if err != nil {
+		return nil, err
+	}
+	if set && was == "1" {
+		return func() {}, nil
+	}
+	if err := s.client.SetPreference(ctx, audacitybridge.PrefClipsMove, "1"); err != nil {
+		return nil, err
+	}
+	back := "0"
+	if set {
+		back = was
+	}
+	// The edit's own context may be done by the time this runs, and the narrator's preference must still go back.
+	return func() { _ = s.client.SetPreference(context.WithoutCancel(ctx), audacitybridge.PrefClipsMove, back) }, nil
+}
+
 func (s *steps) selectRange(ctx context.Context, track int, start, end float64) error {
 	if err := s.client.SelectTracks(ctx, track, 1); err != nil {
 		return err
@@ -186,7 +209,7 @@ func (s *steps) ReduceRangeGain(ctx context.Context, request dawport.RangeGainRe
 		if _, err := s.client.Do(ctx, audacitybridge.NewCommand("Amplify").Float("Ratio", ratio).Bool("AllowClipping", false)); err != nil {
 			return dawport.Result{}, err
 		}
-		e.did("Lower it by "+db+" dB", 1)
+		e.did("Lower it by "+db+" dB", 0) // Amplify adds no undo point: the next Undo takes back the edit before it (A3-T22c)
 	}
 	return e.done("Lowered " + plural(len(stretches), "stretch", "stretches") + " by " + db + " dB in Audacity."), nil
 }
@@ -255,7 +278,7 @@ func (s *steps) RepairClick(ctx context.Context, request dawport.ClickRepairRequ
 		if err := s.do(ctx, "ClickRemoval"); err != nil {
 			return dawport.Result{}, err
 		}
-		e.did(stepRemoveClick, 1)
+		e.did(stepRemoveClick, 0) // ClickRemoval adds no undo point (A3-T22c)
 	}
 	return e.done("Repaired " + what + " in Audacity."), nil
 }

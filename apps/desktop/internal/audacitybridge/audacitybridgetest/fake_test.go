@@ -17,7 +17,7 @@ func TestParseCommand(t *testing.T) {
 		{`SetLabel: Label=2  Text="a b" Start=1.5`, "SetLabel", map[string]string{"Label": "2", "Text": "a b", "Start": "1.5"}, false},
 		{`SetLabel: Text="a\nb\\d"`, "SetLabel", map[string]string{"Text": "a\nb\\d"}, false},
 		{`SetLabel: Text="a" Text="b"`, "SetLabel", map[string]string{"Text": "b"}, false},
-		{"NoColon", "", nil, true},
+		{"NoColon", "NoColon", map[string]string{}, false}, // Audacity 3.7.7 answers a bare SelectNone, Play or Stop (A3-T3)
 		{"SetLabel: Label", "", nil, true},
 		{`SetLabel: Text="open`, "", nil, true},
 	}
@@ -64,7 +64,11 @@ func TestProjectHandlesEveryDocumentedCommand(t *testing.T) {
 		{"SetLabel: Label=x", false},
 		{"SetLabel: Label=0 Start=x", false},
 		{"SetLabel: Label=0 End=x", false},
-		{"SetTrackStatus: Track=9", false},
+		{"SetTrackStatus: Name=\"x\"", true},
+		{"SelectTracks: Track=0 TrackCount=1 Mode=Set", true},
+		{"SetTrackAudio: Mute=1", true},
+		{"ApplyMacro: MacroName=\"x\"", false},
+		{"Macro_Nope:", false},
 		{"Play:", true},
 		{"PlayAtSpeedLooped:", true},
 		{"Stop:", true},
@@ -89,5 +93,45 @@ func TestProjectHandlesEveryDocumentedCommand(t *testing.T) {
 	empty := NewProject()
 	if body, ok := empty.handle(`Export2: Filename="C:/a.wav"`); ok || !strings.Contains(strings.Join(body, " "), "no audio") {
 		t.Errorf("export with no audio = %q %v", body, ok)
+	}
+}
+
+// Audacity 3.7.7 takes SetTrackStatus and SetTrackAudio on the selected track and ignores a Track parameter without an error: a call
+// that names a track other than the selected one changes the selected one (tests/audacity3/real/edits, A3-T17 and A3-T19).
+func TestTrackCommandsActOnTheSelectionAndIgnoreATrackParameter(t *testing.T) {
+	p := NewProject()
+	p.AddWaveTrack("a", 0, 10)
+	p.AddWaveTrack("b", 0, 10)
+	for _, line := range []string{"SelectTracks: Track=0 TrackCount=1 Mode=Set", "SetTrackAudio: Track=1 Mute=1", `SetTrackStatus: Track=1 Name="renamed"`} {
+		if body, ok := p.handle(line); !ok {
+			t.Fatalf("%q: %q", line, body)
+		}
+	}
+	if !p.Tracks[0].Muted || p.Tracks[1].Muted || p.Tracks[0].Name != "renamed" || p.Tracks[1].Name != "b" {
+		t.Errorf("tracks = %+v", p.Tracks)
+	}
+	p.handle("SelectNone:")
+	if body, ok := p.handle("SetTrackAudio: Mute=1"); ok {
+		t.Errorf("a mute with no track selected = %q, want a failure", body)
+	}
+}
+
+// A macro is the menu command Macro_<name> and runs on the selected tracks; ApplyMacro does not exist.
+func TestMacrosAreMenuCommands(t *testing.T) {
+	p := NewProject()
+	p.Macros = []string{"FadeEnds"}
+	p.AddWaveTrack("a", 0, 10)
+	if body, ok := p.handle(`ApplyMacro: MacroName="FadeEnds"`); ok || !strings.Contains(strings.Join(body, " "), "not recognized") {
+		t.Errorf("ApplyMacro = %q %v", body, ok)
+	}
+	if body, ok := p.handle("Macro_FadeEnds:"); ok || !strings.Contains(strings.Join(body, " "), "tracks to be selected") {
+		t.Errorf("a macro with no track selected = %q %v", body, ok)
+	}
+	p.handle("SelectTracks: Track=0")
+	if body, ok := p.handle("Macro_FadeEnds:"); !ok {
+		t.Errorf("Macro_FadeEnds = %q", body)
+	}
+	if len(p.MacrosApplied) != 1 || p.MacrosApplied[0] != "Macro_FadeEnds" {
+		t.Errorf("applied = %v", p.MacrosApplied)
 	}
 }

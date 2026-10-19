@@ -20,7 +20,9 @@ const (
 // Roll stops the recording, backs up the track's audio from at to its end, and records again from at with Audacity's Punch and
 // Roll, which records over the audio from there on (docs/reference/daw/capabilities.md: the earlier audio is kept, here in Backups). trackGUID is
 // the track's name. With no backups it records over without one: the capability is destructive then, and the page has asked
-// first (SN-D64). The recording's undo point is Audacity's, added when it stops, so UndoSteps is 0. Audacity's scripting cannot
+// first (SN-D64). The recording's undo point is Audacity's, added when it stops (one, measured: A3-T16), so UndoSteps is 0 at the call.
+// While it records, any batch command sent to Audacity (a read, a ping) ends the recording; only the menu commands AddLabelPlaying
+// and Stop leave it running (A3-T15), so nothing polls Audacity after a roll starts. Audacity's scripting cannot
 // say who started a recording, so a roll is not refused for one the app did not start; the page offers a roll only while its own
 // recording runs.
 func (s *steps) Roll(ctx context.Context, trackGUID string, at float64) (dawport.Result, error) {
