@@ -5,13 +5,13 @@
 // code cannot tell it is there. Nothing here is a second source of truth: the host's answers pass through unchanged.
 import type { NarrationApi } from '../../types';
 
-export type SimulatedDawEventKind = 'cursor' | 'marker' | 'pickup' | 'record' | 'take' | 'render' | 'cleanup' | 'link' | 'refused';
+type SimulatedDawEventKind = 'cursor' | 'marker' | 'pickup' | 'record' | 'take' | 'render' | 'cleanup' | 'link' | 'refused';
 
 export type SimulatedDawEvent = { id: number; at: number; kind: SimulatedDawEventKind; text: string };
 
-export type SimulatedDawMarker = { seconds: number; label: string };
+type SimulatedDawMarker = { seconds: number; label: string };
 
-export type SimulatedDawSnapshot = {
+type SimulatedDawSnapshot = {
   /** Newest first, at most `MAX_EVENTS`. */
   events: readonly SimulatedDawEvent[];
   /** Where the app last sent the DAW's edit cursor; null before it did. */
