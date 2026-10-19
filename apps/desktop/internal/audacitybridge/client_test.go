@@ -49,6 +49,33 @@ func TestRequestsShareOneConnection(t *testing.T) {
 	}
 }
 
+// Audacity 3.7.7 starts the reply to a command with no text of its own (GetInfo, Import2, SelectTime, ...) with an empty line. Read as
+// "no project open", it left the rest of the reply in the stream and every later request read the one before it.
+func TestBlankLedRepliesKeepRequestsInStep(t *testing.T) {
+	client, server := newClient(t, time.Second)
+	server.With(func(p *abt.Project) { p.AddWaveTrack("Chapter 1", 0, 600) })
+	ctx := context.Background()
+	for range 3 {
+		tracks, err := client.Tracks(ctx)
+		if err != nil || len(tracks) != 1 || tracks[0].Name != "Chapter 1" {
+			t.Fatalf("Tracks = %+v, err %v", tracks, err)
+		}
+		if err := client.SelectTime(ctx, 1, 2); err != nil {
+			t.Fatalf("SelectTime: %v", err)
+		}
+		labels, err := client.Labels(ctx)
+		if err != nil || len(labels) != 0 {
+			t.Fatalf("Labels = %+v, err %v", labels, err)
+		}
+	}
+	if err := client.Ping(ctx); err != nil {
+		t.Fatalf("Ping after blank-led replies: %v", err)
+	}
+	if server.Dials() != 1 {
+		t.Errorf("dials = %d: a reply was misread and the connection dropped", server.Dials())
+	}
+}
+
 func TestFailures(t *testing.T) {
 	cases := []struct {
 		name    string

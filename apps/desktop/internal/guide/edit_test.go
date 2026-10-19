@@ -162,13 +162,18 @@ func TestEditRefusesWithoutAFileOrAFileFromANewerVersion(t *testing.T) {
 	}
 }
 
-// An alias edit needs a pronunciation and the manuscript, so it, and every field sent with it, still goes to the sidecar in one process.
-func TestAnAliasEditStillNeedsTheSidecar(t *testing.T) {
+// An alias edit reads the manuscript before it applies any field, as the sidecar's edit does, and is refused with the sidecar's words when
+// there is none: the file is untouched and no sidecar starts (this service has none to start; asking one would say so).
+func TestAnAliasEditNeedsTheManuscriptAndNotTheSidecar(t *testing.T) {
 	s := hostEditService(t)
-	if err := os.WriteFile(s.guidePath(), []byte(`{"schema_version": 2, "entities": [{"id": "e", "canonical_name": "E", "category": "Character"}]}`), 0o600); err != nil {
+	start := `{"schema_version": 2, "entities": [{"id": "e", "canonical_name": "E", "category": "Character"}]}`
+	if err := os.WriteFile(s.guidePath(), []byte(start), 0o600); err != nil {
 		t.Fatal(err)
 	}
-	if err := s.EditFields("e", map[string]string{"aliases": "Al", "description": "x"}); err == nil || !strings.Contains(err.Error(), "configure the Manuscript Guide executable") {
-		t.Fatalf("an alias edit did not go to the sidecar: %v", err)
+	if err := s.EditFields("e", map[string]string{"aliases": "Al", "description": "x"}); err == nil || err.Error() != "Import a manuscript first." {
+		t.Fatalf("an alias edit with no manuscript: %v", err)
+	}
+	if written, _ := os.ReadFile(s.guidePath()); string(written) != start {
+		t.Fatalf("a refused edit changed the file: %s", written)
 	}
 }

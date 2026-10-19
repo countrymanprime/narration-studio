@@ -26,12 +26,14 @@ Storybook title: `Primitives/Field`. Source: `src/components/primitives/Field.ts
 - With Error
 - Textarea With Hint And Error
 - Focused On Mount
+- Textarea Compact Hidden Label
 
 ## Used by
 
 - `src/components/credits/CreditsSetupDialog.tsx`
 - `src/components/delivery/ImportProfileField.tsx`
 - `src/components/editing/menu/marks/NoteDialog.tsx`
+- `src/components/editing/voicesample/VoiceSampleDialog.tsx`
 - `src/components/engine/ChapterTagsDialog.tsx`
 - `src/components/engine/RenderConfigDialog.tsx`
 - `src/components/pickups/list/AddPickup.tsx`
@@ -43,6 +45,8 @@ Storybook title: `Primitives/Field`. Source: `src/components/primitives/Field.ts
 - `src/components/script/page/tools/select/MarkComposer.tsx`
 - `src/components/settings/CreditsPanel.tsx`
 - `src/components/settings/DeliveryProfileEditor.tsx`
-- `src/components/settings/OnlineDictionaryPanel.tsx`
+- `src/components/settings/controls/MwKeyBody.tsx`
 - `src/components/storybible/EntryText.tsx`
 - `src/components/storybible/GuideDetail.tsx`
+- `src/components/storybible/voicesamples/EditVoiceSampleDialog.tsx`
+- `src/components/storybible/voicesamples/MoveVoiceSampleDialog.tsx`

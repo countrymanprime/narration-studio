@@ -55,6 +55,7 @@ import { useBoothMarks } from '../side/useBoothMarks';
 import { useBoothReference, type ReferenceTarget } from '../side/useBoothReference';
 import { useTeleprompterSession } from '../useTeleprompterSession';
 import { boothQuery, readBoothQuery, readPickupIds, type BoothStart, type BoothTarget } from './boothQuery';
+import { LoadError } from '../../layout/LoadError';
 import { BoothSkeleton } from './BoothSkeleton';
 import { BoothUnavailable } from './BoothUnavailable';
 import { CreditsWarning } from './CreditsWarning';
@@ -133,12 +134,7 @@ function BoothLoaded({ navigate, exitTo }: { navigate: (next: string) => void; e
   );
 
   const { source } = data;
-  if (data.error)
-    return (
-      <p role="alert" className="p-4 text-sm text-[var(--danger-text)]">
-        {data.error}
-      </p>
-    );
+  if (data.error) return <LoadError title="Booth" message={data.error} retry={data.retry} />;
   if (data.chapters?.length === 0)
     return (
       <div className="p-4 md:p-6">
