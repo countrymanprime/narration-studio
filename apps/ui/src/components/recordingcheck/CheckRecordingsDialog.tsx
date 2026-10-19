@@ -229,13 +229,6 @@ export function CheckRecordingsDialog({ preselected, close }: { preselected: rea
       <div className="grid gap-5 sm:grid-cols-2">
         <div className="flex min-w-0 flex-col gap-3">
           <RunOptions engines={loaded.engines} choices={choices} onChange={change} />
-          <dl className="m-0 flex flex-col gap-2 border-t border-[var(--border)] pt-3">
-            <div className="flex justify-between gap-3">
-              <dt>Audio to check</dt>
-              <dd className="m-0 font-mono">{audio.seconds === 0 && audio.unmeasured > 0 ? 'Not measured' : formatAudio(audio.seconds)}</dd>
-            </div>
-          </dl>
-          {note ? <p className="m-0 text-[var(--text-muted)]">{note}</p> : null}
         </div>
         <div className="flex min-w-0 flex-col gap-2">
           <div className="flex items-center gap-2">
@@ -272,6 +265,13 @@ export function CheckRecordingsDialog({ preselected, close }: { preselected: rea
               })}
             </ul>
           )}
+          <dl className="m-0 flex flex-col gap-2 border-t border-[var(--border)] pt-3">
+            <div className="flex justify-between gap-3">
+              <dt>Audio to check</dt>
+              <dd className="m-0 font-mono">{audio.seconds === 0 && audio.unmeasured > 0 ? 'Not measured' : formatAudio(audio.seconds)}</dd>
+            </div>
+          </dl>
+          {note ? <p className="m-0 text-[var(--text-muted)]">{note}</p> : null}
         </div>
       </div>
       {blockedByDaw ? (
