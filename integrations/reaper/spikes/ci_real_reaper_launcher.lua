@@ -77,6 +77,8 @@ end)
 registry.register('ci_quit', function(ctx, args)
   ctx.event('CI_QUIT', args[1] or '')
   write(out .. SEP .. 'done', 'done\n')
+  -- Save the scratch copy first so REAPER's "Save project before closing?" prompt (seen on 7.82/Linux) does not hold it open.
+  reaper.Main_SaveProject(0, false)
   reaper.Main_OnCommand(40004, 0)
 end)
 
@@ -88,6 +90,7 @@ write(
     audio,
     length,
     item_guid,
+    track_guid,
     reaper.GetAppVersion(),
     reaper.GetOS()
   )
