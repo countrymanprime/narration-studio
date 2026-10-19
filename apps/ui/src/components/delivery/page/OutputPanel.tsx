@@ -1,4 +1,4 @@
-import { useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { DeliveryProfile } from '../../../types';
 import { Button } from '../../primitives/Button';
 import { IconButton } from '../../primitives/IconButton';
@@ -13,10 +13,11 @@ import { ARRIVE_CLASSES } from '../../primitives/changeHighlight';
 
 const MUTED = { color: 'var(--text-muted)' };
 const DANGER = { color: 'var(--danger-text)' };
+const WHY_ID = 'delivery-build-why';
 
 /**
- * The mock's second panel: the folder the package goes to, "Build <profile> package" (disabled until every chapter passes, saying how many
- * do not), and once built "<n> files in <folder>", the button that opens that folder, and a Written pill per file. The host asks for the
+ * The mock's second panel: the folder the package goes to, "Build <profile> package" (`aria-disabled` until every chapter passes, so it stays
+ * in the Tab order, described by `#delivery-build-why` which says how many do not, and a press says nothing was built), and once built "<n> files in <folder>", the button that opens that folder, and a Written pill per file. The host asks for the
  * folder with the operating system's own picker when the build starts and never takes a typed path, so the folder shown is the one its
  * job reports, and before a build it says the host will ask.
  */
@@ -52,6 +53,11 @@ export function OutputPanel({
         : build.exportRunning
           ? 'Master & QC is still preparing the files.'
           : waiting;
+  // A press on a blocked Build builds nothing; this says so, with the reason, to a screen reader as well as the eye. It goes when Build is live.
+  const [refused, setRefused] = useState(false);
+  useEffect(() => {
+    if (canBuild) setRefused(false);
+  }, [canBuild]);
   return (
     <Panel title="Output">
       <div className="flex flex-col gap-3">
@@ -65,8 +71,9 @@ export function OutputPanel({
           <Button
             className="max-w-full text-left [overflow-wrap:anywhere] whitespace-normal"
             ref={buildButton}
-            onClick={() => void build.build()}
-            disabled={!canBuild}
+            onClick={canBuild ? () => void build.build() : () => setRefused(true)}
+            // Spread only when blocked: an explicit `aria-disabled={undefined}` would override the Button's own pending `aria-disabled`.
+            {...(canBuild ? {} : { 'aria-disabled': true, 'aria-describedby': why ? WHY_ID : undefined })}
             pending={build.starting || build.busy}
           >
             Build {profile.name} package
@@ -83,10 +90,15 @@ export function OutputPanel({
               Cancel
             </Button>
           )}
-          <span className="text-sm" style={MUTED}>
+          <span id={WHY_ID} className="text-sm" style={MUTED}>
             {why}
           </span>
         </div>
+        {refused && !canBuild && (
+          <p role="status" className="sr-only">
+            Nothing was built{why ? `: ${why}` : ''}
+          </p>
+        )}
         {!ready && failure && !stale && (
           <p dir="auto" className="text-sm" style={DANGER}>
             {failure}
