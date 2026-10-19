@@ -61,8 +61,9 @@ export const globalDrivers: Record<string, Driver> = {
     await page.getByRole('dialog', { name: 'Keyboard shortcuts' }).waitFor();
   },
   'theme-light': async (page) => {
+    // Light is the default theme, so the Production home after choosing it is `production/no-data`'s picture: stay where it was chosen.
     await chooseTheme(page, 'Light');
-    await goToPage(page, 'Production');
+    await page.getByRole('radiogroup', { name: 'Theme' }).getByRole('radio', { name: 'Light', exact: true }).and(page.locator(':checked')).waitFor();
   },
   'theme-dark': async (page) => {
     await chooseTheme(page, 'Dark');

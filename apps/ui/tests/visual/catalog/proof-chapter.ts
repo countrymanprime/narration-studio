@@ -26,7 +26,7 @@ export const proofChapterStates: StateEntry[] = [
   {
     page: 'proof-chapter',
     state: 'compare-setup',
-    description: 'Proof chapter view, the compare run’s setup with its default model, chunk length and workers',
+    description: 'Proof chapter view, the compare run’s setup with its default model, chunk length and workers and the keyboard on Start comparison',
   },
   {
     page: 'proof-chapter',

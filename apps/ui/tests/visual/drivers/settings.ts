@@ -494,6 +494,11 @@ export const settingsDrivers: Record<string, Driver> = {
   },
   'folded-category-list': async (page) => {
     await openSettings(page);
+    // The page has arrived (as `page-top` waits for it) before the list is judged folded or not: a capture ahead of the first category's
+    // draw differs from `page-top` where the list is not folded and the two are declared the same.
+    await page.getByRole('heading', { level: 2, name: 'Recording & DAW', exact: true }).waitFor();
+    await page.getByRole('radiogroup', { name: 'Record with' }).waitFor();
+    await page.getByRole('radio', { name: /^Built-in recorder/ }).waitFor();
     // Narrower than 760 px the list is folded behind the Category button, which names the current category; open it.
     const folded = page.getByRole('button', { name: /^Category/ });
     if (await folded.isVisible()) {
