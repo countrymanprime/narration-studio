@@ -9,7 +9,7 @@ type IconButtonVariant = 'default' | 'primary' | 'danger';
 
 const VARIANT_CLASSES: Record<IconButtonVariant, string> = {
   default:
-    'border-[var(--line-strong)] bg-[var(--surface)] text-[var(--text-muted)] not-aria-disabled:hover:border-[var(--accent)] not-aria-disabled:hover:text-[var(--accent)]',
+    'border-[var(--line-strong)] bg-[var(--surface)] text-[var(--text-muted)] not-aria-disabled:hover:border-[var(--accent)] not-aria-disabled:hover:text-[var(--accent)] aria-expanded:border-[var(--accent)] aria-expanded:bg-[var(--accent-soft)] aria-pressed:border-[var(--accent)] aria-pressed:bg-[var(--accent-soft)]',
   primary: 'border-[var(--accent)] bg-[var(--accent)] text-[var(--accent-contrast)] not-aria-disabled:hover:bg-[var(--accent-strong)]',
   danger: 'border-[var(--danger)] bg-[var(--surface)] text-[var(--danger-text)] not-aria-disabled:hover:bg-[var(--review-soft)]',
 };

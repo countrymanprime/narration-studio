@@ -10,7 +10,7 @@ const mmss = (seconds: number): string => {
 export function LastPunch({ numbers }: { numbers: SessionNumbersData }) {
   return (
     <SideSection title="Last punch">
-      <div className="text-sm">{numbers.lastPunch ?? 'No punches yet'}</div>
+      <div>{numbers.lastPunch ?? 'No punches yet'}</div>
       {numbers.nextRoll ? <div className={DIM_CLASS}>{numbers.nextRoll}</div> : null}
     </SideSection>
   );
@@ -20,7 +20,7 @@ export function LastPunch({ numbers }: { numbers: SessionNumbersData }) {
 export function SessionNumbers({ numbers }: { numbers: SessionNumbersData }) {
   return (
     <SideSection title="This session">
-      <div className="text-sm">
+      <div>
         Recorded <b className="font-mono">{mmss(numbers.recordedSeconds)}</b> · {numbers.punches} {numbers.punches === 1 ? 'punch' : 'punches'}
       </div>
     </SideSection>

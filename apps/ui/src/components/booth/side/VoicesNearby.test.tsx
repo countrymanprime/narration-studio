@@ -84,14 +84,18 @@ describe('Voices in this scene, with voice samples', () => {
     setup(null);
     expect(screen.getByText('Shrill, impatient.')).toBeTruthy();
     expect(screen.queryByText(NO_SAMPLE_NOTE)).toBeNull();
-    expect(screen.queryByRole('button')).toBeNull();
+    for (const button of screen.getAllByRole('button')) expect(button.getAttribute('aria-disabled')).toBe('true');
   });
 
-  it('a voice with no sample says where to make one and has no play control', () => {
+  it('a voice with no sample says where to make one and its reference-clip button is off', () => {
     setup();
     const king = screen.getByText('King').closest('div[class*="flex-col"]') as HTMLElement;
     expect(within(king).getByText(NO_SAMPLE_NOTE)).toBeTruthy();
-    expect(within(king).queryByRole('button')).toBeNull();
+    expect(
+      within(king)
+        .getByRole('button', { name: /Play primary voice sample for/ })
+        .getAttribute('aria-disabled'),
+    ).toBe('true');
   });
 
   it('a voice with samples shows its count, plays the primary, and lists every sample on press', async () => {
@@ -121,7 +125,7 @@ describe('Voices in this scene, with voice samples', () => {
   it('before the list is read nothing is said about samples', () => {
     setup(stand({ loaded: false, samplesOf: () => [], primaryOf: () => undefined }));
     expect(screen.queryByText(NO_SAMPLE_NOTE)).toBeNull();
-    expect(screen.queryByRole('button')).toBeNull();
+    for (const button of screen.getAllByRole('button')) expect(button.getAttribute('aria-disabled')).toBe('true');
   });
 
   it('the play controls are off with the refusal as their reason', async () => {

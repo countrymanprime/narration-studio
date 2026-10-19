@@ -24,12 +24,12 @@ export function VoicesNearby({ voices }: { voices: readonly NearbyVoice[] }) {
     <SideSection title="Voices in this scene">
       {samples?.cantTell ? <CantTell samples={samples} /> : null}
       {samples?.listeningPaused ? (
-        <p role="status" className="m-0 flex flex-wrap items-center gap-2 text-sm" data-listening-paused>
+        <p role="status" className="m-0 flex flex-wrap items-center gap-2" data-listening-paused>
           <StatusBadge tone="neutral" label="Listening paused while a voice sample plays" />
         </p>
       ) : null}
       {samples?.readProblem ? (
-        <p role="alert" className="m-0 text-sm" style={{ color: 'var(--danger-text)' }}>
+        <p role="alert" className="m-0" style={{ color: 'var(--danger-text)' }}>
           {`Couldn't read the voice samples. ${samples.readProblem}`}
         </p>
       ) : null}
@@ -49,7 +49,7 @@ export function VoicesNearby({ voices }: { voices: readonly NearbyVoice[] }) {
 /** The DAW has gone quiet: the Booth cannot tell whether a take is recording, says so, and offers a fresh read. */
 function CantTell({ samples }: { samples: BoothSamples }) {
   return (
-    <div className="flex flex-wrap items-center gap-2 text-sm text-[var(--text-muted)]" data-cant-tell>
+    <div className="flex flex-wrap items-center gap-2 text-[var(--text-muted)]" data-cant-tell>
       <span>{samples.refusal}</span>
       <Button variant="link" onClick={samples.checkAgain}>
         Check again
@@ -66,31 +66,30 @@ function VoiceRow({ voice, samples }: { voice: NearbyVoice; samples: BoothSample
   return (
     <>
       <div className="flex items-center gap-2">
-        {samples && primary ? (
-          <IconButton
-            size="sm"
-            label={playing ? `Stop voice sample for ${voice.name}` : `Play primary voice sample for ${voice.name}`}
-            aria-pressed={playing}
-            disabledReason={playing ? undefined : samples.refusal}
-            onClick={() => (playing ? samples.stop() : samples.play(primary, voice.name))}
-          >
-            <Icon name={playing ? 'stop' : 'play'} />
-          </IconButton>
-        ) : null}
-        <span className="flex flex-1 flex-col gap-0.5">
+        <span className="flex flex-col gap-0.5">
           {voice.aliases.map((alias) => (
             <span className="w-fit" key={alias} data-speaker={alias}>
               <KindChip kind="speaker" label={alias} colour={voice.colour} />
             </span>
           ))}
         </span>
+        <span className="flex-1">{voice.voice || 'No voice note yet'}</span>
         {mine.length > 0 ? (
           <Button variant="ghost" size="sm" aria-expanded={open} aria-controls={`voice-samples-${voice.id}`} onClick={() => setOpen((now) => !now)}>
             {plural(mine.length)}
           </Button>
         ) : null}
+        {/* The mock's reference-clip button is always there; with no sample it is off and says why. */}
+        <IconButton
+          size="sm"
+          label={playing ? `Stop voice sample for ${voice.name}` : `Play primary voice sample for ${voice.name}`}
+          aria-pressed={playing}
+          disabledReason={playing ? undefined : samples && primary ? samples.refusal : NO_SAMPLE_NOTE}
+          onClick={() => (samples && primary ? (playing ? samples.stop() : samples.play(primary, voice.name)) : undefined)}
+        >
+          <Icon name={playing ? 'stop' : 'hear'} />
+        </IconButton>
       </div>
-      <span className="flex-1">{voice.voice || 'No voice note yet'}</span>
       {playing && primary && samples ? (
         <ProgressBar
           label={`Voice sample for ${voice.name}`}
