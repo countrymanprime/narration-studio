@@ -18,11 +18,10 @@ import (
 // state for the Booth. Audacity has no record-arm, so "armed" is "selected": the track a recording would go to.
 
 var (
-	_            dawport.TrackSelector    = (*Session)(nil)
-	_            dawport.PlaceFollower    = (*Session)(nil)
-	_            dawport.TrackStateReader = (*Session)(nil)
-	_            dawport.RegionWriter     = (*Session)(nil)
-	errTrackGone                          = "this chapter's track is no longer in the Audacity project"
+	_ dawport.TrackSelector    = (*Session)(nil)
+	_ dawport.PlaceFollower    = (*Session)(nil)
+	_ dawport.TrackStateReader = (*Session)(nil)
+	_ dawport.RegionWriter     = (*Session)(nil)
 )
 
 // maxTrackItems is how many clips a track's state lists, as the REAPER bridge limits its items.
