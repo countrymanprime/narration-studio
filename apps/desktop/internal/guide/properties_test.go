@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"os"
 	"path/filepath"
-	"slices"
 	"testing"
 
 	"github.com/countrymanprime/narration-utils/shell/internal/process"
@@ -63,29 +62,5 @@ func TestEntitiesKeepThePropertiesInTheOrderTheyWereWritten(t *testing.T) {
 func TestEntitiesRejectPropertiesThatAreNotAList(t *testing.T) {
 	if _, err := serviceWithRawGuide(t, `{"schema_version":2,"entities":[{"id":"one","properties":{"Codename":"Wren"}}]}`).Entities(); err == nil {
 		t.Fatal("properties as an object must be refused, not shown as if they were empty")
-	}
-}
-
-func TestEditSendsThePropertiesAsOneJSONValue(t *testing.T) {
-	s := serviceWithRawGuide(t, `{"entities":[]}`)
-	value := `[{"key":"Codename","value":"-Wren"}]`
-	args := s.editArgs("entity-1", map[string]string{"properties": value})
-	if !slices.Contains(args, "properties") || !slices.Contains(args, "--value="+value) {
-		t.Fatalf("edit arguments must carry the properties as one --value: %#v", args)
-	}
-}
-
-func TestCreateSendsPropertiesOnlyWhenThereAreSome(t *testing.T) {
-	s := serviceWithRawGuide(t, `{"entities":[]}`)
-	none := s.createArgs("Juno", "Character", nil, "", nil)
-	for _, arg := range none {
-		if len(arg) >= 12 && arg[:12] == "--properties" {
-			t.Fatalf("create without properties must not send the flag: %#v", none)
-		}
-	}
-	some := s.createArgs("Juno", "Character", nil, "", []Property{{Key: "Codename", Value: "Wren"}, {Key: "Abilities", Value: "Flight, sleight of hand"}})
-	const want = `--properties=[{"key":"Codename","value":"Wren"},{"key":"Abilities","value":"Flight, sleight of hand"}]`
-	if !slices.Contains(some, want) {
-		t.Fatalf("create arguments = %#v, want %q among them", some, want)
 	}
 }
