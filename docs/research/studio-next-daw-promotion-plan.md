@@ -31,7 +31,7 @@ Built from the published scripting spec and tested over a fake pipe ([The DAW po
 
 | Capability | Declared in `audacity.go` | Tests | Check still owed | Promoted by |
 | --- | --- | --- | --- | --- |
-| `backups` | `d[dawport.CapBackups] = dawport.Experimental` | `backups_test.go` 19, `backups_prune_test.go` 3, `backups_label_test.go` 3, `backups_contract_test.go` 1; `bindings_daw_backups_test.go` 13 | The Backups table of [the Audacity pass](../operations/audacity-verification-pass.md#backups-pending-not-in-part-a-yet), which no part runs yet; nine items in [#1495, comment 6122537699](https://github.com/countrymanprime/narration-utils/issues/1495#issuecomment-6122537699); spike SND-1g (#992) | Change that line to `dawport.Supported`, first |
+| `backups` | `d[dawport.CapBackups] = dawport.Experimental` | `backups_test.go` 19, `backups_prune_test.go` 3, `backups_label_test.go` 3, `backups_contract_test.go` 1; `bindings_daw_backups_test.go` 13 | The Backups table of [the Audacity pass](../operations/audacity-verification-pass.md#backups-not-in-part-a-yet-run-on-a-linux-audacity), which no part runs yet; nine items in [#1495, comment 6122537699](https://github.com/countrymanprime/narration-utils/issues/1495#issuecomment-6122537699); spike SND-1g (#992) | Change that line to `dawport.Supported`, first |
 | `punch` (roll after a backup) | the `needBackups` loop | `steps_test.go`, 9 (all five edits) | Audacity pass Part C row C6 | One line after the loop |
 | `cut_range` | the `needBackups` loop | as above | Part C rows C1, C2 and C7 | One line after the loop |
 | `fx_range` | the `needBackups` loop | as above | Part C row C3 (needs the narrator's macro) | One line after the loop |

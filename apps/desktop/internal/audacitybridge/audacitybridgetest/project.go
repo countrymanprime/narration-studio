@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"path/filepath"
+	"slices"
 	"sort"
 	"strconv"
 	"strings"
@@ -20,6 +21,7 @@ type Track struct {
 	Name       string
 	Kind       string
 	Selected   bool
+	Muted      bool
 	Start, End float64
 	Labels     []Label
 }
@@ -36,12 +38,16 @@ type Export struct {
 
 // Project is the fake's state. Tests read and set it through Server.With.
 type Project struct {
-	Tracks                    []Track
-	SelStart, SelEnd          float64
-	Playing, Looping          bool
-	Exports                   []Export
-	Imported                  []string
-	MacrosApplied             []string
+	Tracks           []Track
+	SelStart, SelEnd float64
+	Playing, Looping bool
+	Exports          []Export
+	Imported         []string
+	MacrosApplied    []string
+	// Prefs are the saved preferences. Audacity stores a preference only once something sets it, so GetPreference of any other key fails.
+	Prefs map[string]string
+	// Macros are the ids of the saved macros (the macro's name with its spaces taken out): each is the menu command Macro_<id>.
+	Macros                    []string
 	Opened, Saved             string
 	LoopStart, LoopEnd        float64
 	RejectExportsWithoutAudio bool
@@ -113,13 +119,46 @@ func (p *Project) handle(line string) ([]string, bool) {
 		p.LoopStart, p.LoopEnd = p.SelStart, p.SelEnd
 		return nil, true
 	case "SetTrackStatus":
-		index, err := number(cmd, "Track", 0)
-		if err != nil || int(index) >= len(p.Tracks) {
-			return []string{"Track is out of range."}, false
+		// Audacity 3.7.7: Name, Selected and Focused only, applied to the selected track; a Track parameter is ignored without an error
+		// (tests/audacity3/real/edits, A3-T17).
+		for i := range p.Tracks {
+			if p.Tracks[i].Selected {
+				if name, ok := cmd.Params["Name"]; ok {
+					p.Tracks[i].Name = name
+				}
+				return nil, true
+			}
 		}
-		if name, ok := cmd.Params["Name"]; ok {
-			p.Tracks[int(index)].Name = name
+		return []string{"Select a track first."}, false
+	case "SetTrackAudio":
+		// Mute, Solo, Volume and Pan, applied to every selected audio track; a Track parameter is ignored.
+		found := false
+		for i := range p.Tracks {
+			if p.Tracks[i].Selected && p.Tracks[i].Kind == "wave" {
+				found = true
+				if mute, ok := cmd.Params["Mute"]; ok {
+					p.Tracks[i].Muted = mute == "1"
+				}
+			}
 		}
+		if !found {
+			return []string{"Select a track first."}, false
+		}
+		return nil, true
+	case "GetPreference":
+		v, ok := p.Prefs[cmd.Params["Name"]]
+		if !ok {
+			return nil, false
+		}
+		return []string{v}, true
+	case "SetPreference":
+		if cmd.Params["Name"] == "" {
+			return []string{"SetPreference needs a Name."}, false
+		}
+		if p.Prefs == nil {
+			p.Prefs = map[string]string{}
+		}
+		p.Prefs[cmd.Params["Name"]] = cmd.Params["Value"]
 		return nil, true
 	case "Export2":
 		return p.export(cmd)
@@ -131,13 +170,6 @@ func (p *Project) handle(line string) ([]string, bool) {
 		p.Imported = append(p.Imported, name)
 		p.AddWaveTrack(strings.TrimSuffix(filepath.Base(name), filepath.Ext(name)), 0, 1)
 		return nil, true
-	case "ApplyMacro":
-		name := cmd.Params["MacroName"]
-		if name == "" {
-			return []string{"ApplyMacro needs a MacroName."}, false
-		}
-		p.MacrosApplied = append(p.MacrosApplied, name)
-		return nil, true
 	case "OpenProject2":
 		p.Opened = cmd.Params["Filename"]
 		return nil, true
@@ -145,6 +177,17 @@ func (p *Project) handle(line string) ([]string, bool) {
 		p.Saved = cmd.Params["Filename"]
 		return nil, true
 	default:
+		if id, ok := strings.CutPrefix(cmd.Name, "Macro_"); ok && slices.Contains(p.Macros, id) {
+			// A macro runs on the selected tracks. With none selected the real Audacity opens a modal dialog ("Normalize requires one
+			// or more tracks to be selected") that holds the pipe and gives no reply; the fake can only refuse.
+			for _, t := range p.Tracks {
+				if t.Selected && t.Kind == "wave" {
+					p.MacrosApplied = append(p.MacrosApplied, cmd.Name)
+					return nil, true
+				}
+			}
+			return []string{"The macro requires one or more tracks to be selected."}, false
+		}
 		return []string{fmt.Sprintf("Your batch command of %s was not recognized.", cmd.Name)}, false
 	}
 }
@@ -186,7 +229,7 @@ func (p *Project) getInfo(cmd Parsed) ([]string, bool) {
 		for _, t := range p.Tracks {
 			row := map[string]any{"name": t.Name, "focused": 0, "selected": boolInt(t.Selected), "kind": t.Kind}
 			if t.Kind == "wave" {
-				row["start"], row["end"], row["pan"], row["gain"], row["channels"], row["solo"], row["mute"] = t.Start, t.End, 0, 1, 1, 0, 0
+				row["start"], row["end"], row["pan"], row["gain"], row["channels"], row["solo"], row["mute"] = t.Start, t.End, 0, 1, 1, 0, boolInt(t.Muted)
 			}
 			out = append(out, row)
 		}
@@ -205,6 +248,9 @@ func (p *Project) getInfo(cmd Parsed) ([]string, bool) {
 		return []string{fmt.Sprintf("The fake does not answer GetInfo Type=%s.", cmd.Params["Type"])}, false
 	}
 	b, _ := json.MarshalIndent(v, "", " ")
+	if string(b) == "[]" {
+		b = []byte("[  ]") // what Audacity 3.7.7 writes for an empty list (A3-T3 golden replies)
+	}
 	return strings.Split(string(b), "\n"), true
 }
 
