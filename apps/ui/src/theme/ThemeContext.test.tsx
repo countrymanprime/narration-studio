@@ -2,6 +2,7 @@
 import { act, cleanup, render, renderHook, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import { registerAppExtension, resetAppExtension } from '../appExtension';
 import { ThemeProvider, useTheme } from './ThemeContext';
 import { THEME_STORAGE_KEY } from './theme';
 
@@ -33,6 +34,7 @@ afterEach(() => {
   localStorage.clear();
   document.documentElement.removeAttribute('data-theme');
   vi.unstubAllGlobals();
+  resetAppExtension();
 });
 
 describe('ThemeProvider / useTheme', () => {
@@ -102,5 +104,37 @@ describe('ThemeProvider / useTheme', () => {
     );
     expect(screen.getByTestId('preference').textContent).toBe('dark');
     expect(screen.getByTestId('resolved').textContent).toBe('dark');
+  });
+  it("follows a host page's theme when the extension hands one over, and its own setting still works in between", async () => {
+    vi.stubGlobal('matchMedia', () => matchMediaMock(false));
+    let notify: (theme: 'light' | 'dark') => void = () => undefined;
+    const subscribe = vi.fn((listener: (theme: 'light' | 'dark') => void) => {
+      notify = listener;
+      return () => undefined;
+    });
+    registerAppExtension({ hostTheme: { initial: () => 'dark', subscribe } });
+    const user = userEvent.setup();
+    render(
+      <ThemeProvider>
+        <ThemeProbe />
+      </ThemeProvider>,
+    );
+    expect(screen.getByTestId('preference').textContent).toBe('dark');
+    await user.click(screen.getByRole('button', { name: 'light' }));
+    expect(screen.getByTestId('resolved').textContent).toBe('light');
+    act(() => notify('dark'));
+    expect(screen.getByTestId('resolved').textContent).toBe('dark');
+  });
+
+  it('subscribes to no host theme when the page handed none over', () => {
+    vi.stubGlobal('matchMedia', () => matchMediaMock(false));
+    const subscribe = vi.fn(() => () => undefined);
+    registerAppExtension({ hostTheme: { initial: () => null, subscribe } });
+    render(
+      <ThemeProvider>
+        <ThemeProbe />
+      </ThemeProvider>,
+    );
+    expect(subscribe).not.toHaveBeenCalled();
   });
 });

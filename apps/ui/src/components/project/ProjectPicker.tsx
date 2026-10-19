@@ -13,7 +13,7 @@ import { TooltipTarget } from '../primitives/Tooltip';
 import { CHANGE_HIGHLIGHT_CLASSES, useJustChanged } from '../primitives/changeHighlight';
 import { NewProjectDialog } from './NewProjectDialog';
 import { recentWhen } from './recentWhen';
-import { DemoBanner } from '../layout/DemoBanner';
+import { ExtensionBanner } from '../../appExtension';
 import type { ProjectSwitchResult, RecentProject, RunningDawProject } from '../../types';
 
 // How long a removed recent project can be brought back. The host has no call that puts an entry back, so a removal is only sent to it when
@@ -192,7 +192,7 @@ export function ProjectPicker({
   return (
     // tabIndex -1 like AppShell's <main>: a dialog that closes with nothing to give focus back to sends it here, not to <body>.
     <div className="flex h-full flex-col overflow-hidden">
-      <DemoBanner />
+      <ExtensionBanner />
       <main tabIndex={-1} className="min-h-0 flex-1 overflow-y-auto p-6 focus:outline-none">
         {/* min-w-0: the column otherwise grows to its longest nowrap child (a project path) and overflows narrow screens. */}
         <div className="mx-auto flex min-h-full w-full max-w-[47.5rem] min-w-0 flex-col justify-center gap-5">

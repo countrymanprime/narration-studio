@@ -1,6 +1,6 @@
 // Knip: unused files, exports and dependencies (docs/operations/verification-tooling.md).
 // Every entry under `ignore*` says why, so a reader can tell a real exception from a way to make the report quiet.
-// Workspaces come from pnpm-workspace.yaml (apps/ui, apps/desktop); the root workspace covers scripts/ and tools/.
+// Workspaces come from pnpm-workspace.yaml (apps/ui, apps/site, apps/desktop); the root workspace covers scripts/ and tools/.
 {
   "$schema": "https://unpkg.com/knip@6/schema.json",
   // The scripts are entries (nothing imports them), and an entry's exports are normally never reported.
@@ -15,8 +15,6 @@
       // node:test files. None of them is imported, so each is an entry.
       "entry": ["scripts/**/*.mjs"],
       "project": ["scripts/**"],
-      // Browser scripts of the public site: scripts/site/*.mjs read them with readFileSync and inline them into the pages.
-      "ignore": ["scripts/site/docs/docs.js", "scripts/site/common/shell.js"],
       "ignoreDependencies": [
         // Loaded by `nx release version` (nx.json "release"), not imported anywhere.
         "@nx/js"
@@ -33,7 +31,14 @@
         "playwright"
       ]
     },
-    "apps/ui": {}
+    "apps/ui": {},
+    // The public site. Its build scripts are plain Node (the entries below) and the app starts from demo/src/entry.ts. The Vite, Vitest and Playwright
+    // configs are found by knip's own plugins. The browser scripts apps/site/build/*.mjs read with readFileSync and inline into the pages
+    // (common/shell.js, docs/docs.js) are text to knip, not modules, and it already treats them so.
+    "apps/site": {
+      "entry": ["build/*.mjs", "demo/src/entry.ts", "tests/*.spec.ts"],
+      "project": ["build/**", "demo/**", "tests/**", "*.ts"]
+    }
   },
   // Exported types in the wire contracts document what the host sends and accepts, whether or not a component
   // names each one yet (the boundary schema PRD turns these into schemas). Unused ones are not dead code.

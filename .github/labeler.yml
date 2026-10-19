@@ -4,6 +4,10 @@ area:ui:
   - changed-files:
       - any-glob-to-any-file: apps/ui/**
 
+area:site:
+  - changed-files:
+      - any-glob-to-any-file: apps/site/**
+
 area:shell:
   - changed-files:
       - any-glob-to-any-file: apps/desktop/**

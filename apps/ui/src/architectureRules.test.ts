@@ -40,6 +40,21 @@ async function violations(entry: string): Promise<string[]> {
 }
 
 describe('the import-graph rules', () => {
+  test('the app may not import the site that is built from it', async () => {
+    // `../site/` from the fixture root is a sibling folder of it, as apps/site is a sibling of apps/ui.
+    const siteDir = join(fixtureRoot, '..', 'site');
+    mkdirSync(siteDir, { recursive: true });
+    writeFileSync(join(siteDir, 'banner.ts'), 'export const banner = 1;\n');
+    write('src/Leaky.ts', "import { banner } from '../../site/banner';\nexport const leaky = banner;\n");
+    write('src/appExtension.ts', 'export const extension = {};\n');
+    write('src/Fine.ts', "import { extension } from './appExtension';\nexport const fine = extension;\n");
+    try {
+      expect(await violations('src')).toEqual(['app-does-not-import-the-site: src/Leaky.ts -> ../site/banner.ts']);
+    } finally {
+      rmSync(siteDir, { recursive: true, force: true });
+    }
+  });
+
   test('a primitive may not import a feature component, in a story, a test or a type import either', async () => {
     write('src/components/manuscript/Chapters.ts', 'export const STATUS = 1;\nexport type Chapter = { id: string };\n');
     write('src/components/primitives/Leaky.ts', "import { STATUS } from '../manuscript/Chapters';\nexport const leaky = STATUS;\n");

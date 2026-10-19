@@ -12,7 +12,7 @@ import { TooltipTarget } from '../primitives/Tooltip';
 import type { AudacityLink, DawKind } from '../../api/contracts/daw';
 import { navAvailability, type NavFacts } from '../../navigation/navAvailability';
 import { Brand } from './Brand';
-import { DemoBanner } from './DemoBanner';
+import { ExtensionBanner } from '../../appExtension';
 import { EngineChip, type EngineState } from './EngineChip';
 import { HeaderChip } from '../primitives/HeaderChip';
 import type { NavCounts } from './useNavCounts';
@@ -276,7 +276,7 @@ export function AppShell({
     <div className="flex h-full flex-col overflow-hidden bg-[var(--bg)]">
       {skipLink}
       {pageStatus}
-      <DemoBanner />
+      <ExtensionBanner />
       <div className="flex min-h-0 flex-1 overflow-hidden">
         {/* One rail from 860 px (the mock's `.rail`; below it the mock's tab bar is the hamburger and drawer here): 216 px from 1360 CSS px, 64 px of icons below it. Below 1360 the panel inside
             is taken out of the flow, so it opens over the page on hover or keyboard focus without moving anything; the labels stay in the

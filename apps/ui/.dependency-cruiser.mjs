@@ -125,6 +125,15 @@ export default {
       from: { path: '^src/registries/' },
       to: { path: '^src/', pathNot: '^src/(registries|input|components/primitives)/' },
     },
+    {
+      // apps/site is the public demo site, built from this app and not part of it. It plugs in through src/appExtension.tsx, which it registers
+      // before it loads the app; the app never names it, or the shipped build could grow a dependency on a site-only module.
+      name: 'app-does-not-import-the-site',
+      comment: 'apps/ui imports nothing from apps/site. The site registers an extension (src/appExtension.tsx); add a field there for a new seam.',
+      severity: 'error',
+      from: { path: '^(src|tests)/' },
+      to: { path: '^\\.\\./site/' },
+    },
   ],
   options: {
     // Follow imports into wailsjs/ (rule 2 needs to see them) but never into packages.

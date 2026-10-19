@@ -5,7 +5,7 @@ import { Button } from '../primitives/Button';
 import { Heading } from '../primitives/Heading';
 import { InsetCard } from '../primitives/InsetCard';
 import { Panel } from '../primitives/Panel';
-import { DemoBanner } from './DemoBanner';
+import { ExtensionBanner } from '../../appExtension';
 
 export type StartupState = 'connecting' | 'error' | 'timeout' | 'disconnected';
 
@@ -38,7 +38,7 @@ export function StartupScreen({ state, error, details, diagnosticId, retry }: Pr
           : error;
   return (
     <div className="flex h-full flex-col overflow-hidden">
-      <DemoBanner />
+      <ExtensionBanner />
       <main className="grid min-h-0 flex-1 place-items-center overflow-y-auto p-6">
         <Panel className="max-w-lg">
           <div className="text-center">
