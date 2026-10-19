@@ -12,10 +12,7 @@ import { describe, expect, test } from 'vitest';
 //
 // The files left still size their buttons through `className`; each composes the fixed primitive when its page is
 // redrawn, and the ceiling is lowered then.
-const CEILING: Record<string, number> = {
-  // The header: the zoom readout, a mono number between the zoom buttons.
-  'src/components/layout/AppShell.tsx': 1,
-};
+const CEILING: Record<string, number> = {};
 // The Booth's top bar Companion/Exit buttons and `CompanionShell.tsx`'s own toolbar recipe use `size="sm"`, so both
 // have no entry.
 
