@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useState, type ReactNode } from 'react';
 import { useCommandProvider } from '../../../input/commandProviders';
 import { Button } from '../../primitives/Button';
 import { Dialog } from '../../primitives/Dialog';
@@ -110,6 +110,7 @@ export function ProofOptions({
   tool,
   keys,
   onSaved,
+  note,
 }: {
   title: string;
   /** The jump menu heading the command is listed under: the page's name. */
@@ -118,6 +119,8 @@ export function ProofOptions({
   keys: readonly string[];
   /** Runs after each accepted save, so the page can read again what the option changes. */
   onSaved?: () => void;
+  /** What to know before changing them, above the rows. */
+  note?: ReactNode;
 }) {
   const [open, setOpen] = useState(false);
   const { fields, error, set } = useProjectOptions(tool, keys, { enabled: open, onSaved });
@@ -141,6 +144,7 @@ export function ProofOptions({
       }
     >
       <div className="flex flex-col gap-3">
+        {note}
         {fields.map((field) => (
           <Row key={field.key} field={field} onSet={set} />
         ))}

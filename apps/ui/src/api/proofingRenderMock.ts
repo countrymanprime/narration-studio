@@ -72,6 +72,7 @@ function measurementFor(path: string): MeasureReport {
     full_scale_samples: 0,
     clip_run_count: 0,
     clip_runs: [],
+    click_candidate_count: 0,
   };
 }
 

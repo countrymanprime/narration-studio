@@ -79,6 +79,76 @@ describe('Booth loading state', () => {
     expect(skeleton()).toBeNull();
   });
 
+  describe('a failed first read offers Retry', () => {
+    const fail = (message = 'The manuscript could not be read.') => Promise.reject(new Error(message));
+    const retry = () => screen.getByRole('button', { name: 'Retry' });
+
+    it("shows the read's sentence as an alert with a Retry button, and no skeleton", async () => {
+      renderBooth({ manuscriptChapters: () => fail() });
+      const alert = await screen.findByText('The manuscript could not be read.');
+      expect(alert.getAttribute('role')).toBe('alert');
+      expect(retry()).toBeTruthy();
+      expect(skeleton()).toBeNull();
+    });
+
+    it('reads again on Retry: the skeleton shows with no stale error, then the page replaces it', async () => {
+      const second = hold();
+      const reads = [() => fail(), () => second.promise];
+      renderBooth({ manuscriptChapters: () => (reads.shift() ?? reads[0] ?? (() => second.promise))() });
+      await screen.findByText('The manuscript could not be read.');
+      await act(async () => retry().click());
+      await settle();
+      expect(skeleton()).toBeTruthy();
+      expect(screen.queryByText('The manuscript could not be read.')).toBeNull();
+      expect(screen.queryByRole('button', { name: 'Retry' })).toBeNull();
+      const chapters = await pageApi().manuscriptChapters();
+      await act(async () => second.release(chapters));
+      await screen.findByText('Nobody', { exact: false });
+      expect(skeleton()).toBeNull();
+    });
+
+    it('shows the error again, with Retry, when the second read fails too', async () => {
+      const reads = [() => fail('first'), () => fail('second')];
+      renderBooth({ manuscriptChapters: () => (reads.shift() as () => Promise<ManuscriptChapter[]>)() });
+      await screen.findByText('first');
+      await act(async () => retry().click());
+      expect(await screen.findByText('second')).toBeTruthy();
+      expect(screen.queryByText('first')).toBeNull();
+      expect(retry()).toBeTruthy();
+      expect(skeleton()).toBeNull();
+    });
+
+    it('fires one read for a double press', async () => {
+      const read = vi
+        .fn<() => Promise<ManuscriptChapter[]>>()
+        .mockImplementationOnce(() => fail())
+        .mockImplementation(() => new Promise(() => {}));
+      renderBooth({ manuscriptChapters: read });
+      await screen.findByText('The manuscript could not be read.');
+      const button = retry();
+      await act(async () => {
+        button.click();
+        button.click();
+      });
+      await settle();
+      expect(read).toHaveBeenCalledTimes(2);
+    });
+
+    it('does not set state after the page is left mid-retry', async () => {
+      const second = hold();
+      const reads = [() => fail(), () => second.promise];
+      const spy = vi.spyOn(console, 'error').mockImplementation(() => {});
+      const { view } = renderBooth({ manuscriptChapters: () => (reads.shift() as () => Promise<ManuscriptChapter[]>)() });
+      await screen.findByText('The manuscript could not be read.');
+      await act(async () => retry().click());
+      view.unmount();
+      const chapters = await pageApi().manuscriptChapters();
+      await act(async () => second.release(chapters));
+      expect(spy).not.toHaveBeenCalled();
+      spy.mockRestore();
+    });
+  });
+
   it('shows the empty panel, not the skeleton, for a manuscript with no narration chapters', async () => {
     renderBooth({ manuscriptChapters: async () => [] });
     await screen.findByText('This manuscript has no chapters to read');

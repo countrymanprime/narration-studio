@@ -21,6 +21,7 @@ import { useRefreshOnFocus } from '../stages/useRefreshOnFocus';
 import { StageSuggestionOptions } from '../stages/StageSuggestionOptions';
 import { useStageRecommendations } from '../stages/useStageRecommendations';
 import { chapterCheckStatus } from './chapterCheckStatus';
+import { RecordingCheckRules } from './RecordingCheckRules';
 import { useManuscriptImport } from './ManuscriptImport';
 import { planStart, recordedSeries, weekFigures } from './measured/measured.selectors';
 import { useMeasured } from './measured/useMeasured';
@@ -374,6 +375,7 @@ export function ProductionPage({
         />
       )}
       <PageHeader
+        loading={load.status === 'loading'}
         chapters={narrated.length}
         words={k.words}
         k={k}
@@ -443,6 +445,7 @@ export function ProductionPage({
                   />
                 </div>
                 <StageSuggestionOptions onSaved={refreshStages} />
+                <RecordingCheckRules onSaved={onChanged} />
               </Panel>
               {tools.panels}
             </div>

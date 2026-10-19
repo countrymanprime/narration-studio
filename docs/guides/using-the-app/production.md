@@ -8,7 +8,7 @@ editing and proofing is left, the open pickups, the due date and whether the pac
 what to work on next. Its **Chapter pipeline** has one row per chapter and one column per stage.
 The book's dates, payment and milestones are on [Schedule](schedule.md), the item after Production in
 the navigation.
-While the production log is being read, the page keeps its header and shows grey blocks where the figures, cards and pipeline will be; if it cannot be read, the page says so with **Retry**.
+While the production log is being read, the page keeps its title and buttons and shows grey blocks where the chapter and word counts, due date, verdict, figures, cards and pipeline will be (it never says "0 chapters" or "No due date set" before it knows); if it cannot be read, the page says so with **Retry**.
 
 ![Production - the figures, the chapter pipeline and Next up, with a stage timer running in the page header](../../images/ui/production-home.webp)
 
@@ -93,7 +93,8 @@ mark (✓) for a stage done, a half circle for the stage under way and a dash fo
 circle while in progress and an empty circle when not started. **Pickups** counts the chapter's
 open lines once it is recorded to the end (0 when none are open). **Master** and **QC** come from
 the files measured on [Master & QC](master-and-qc.md): mastered, and PASS or FAIL. A cell with nothing to
-read says "Not measured yet". A cell opens its stage for the chapter: Script, the Booth, the editing
+read says "Not measured yet". A cell's colour is the colour of its status everywhere in the app: green for done or passing, blue for under way,
+amber for open pickups, red for a failed check, grey for not started. A cell opens its stage for the chapter: Script, the Booth, the editing
 check, Proof, Pickups or Master & QC. The table scrolls sideways in a narrow window.
 
 The chip on the chapter's current-stage cell is its [readiness](#stage-readiness).
@@ -164,7 +165,7 @@ the work dialog. The app tells you when
 it ends, wherever you are. If the Whisper model is not installed yet, the app asks before
 downloading it, as a chapter's Proof view does. A changed chapter can also be re-checked on its
 own, in the background, once REAPER has been quiet for a few minutes and the app is not otherwise
-busy (Settings' **Check changed chapters in the background**); pressing **Check recording**
+busy (**Check changed chapters in the background**, in Settings, or for this project in Production's **Open Recording check rules**); pressing **Check recording**
 yourself always pre-empts it.
 
 A chapter's recording check panel has the same choices under **Check options**, closed until you open it, and its **Check recording** button runs exactly
@@ -173,14 +174,25 @@ button waits for a chapter being checked elsewhere, and says so, and above 1 it 
 
 ![Production - a chapter's recording check with Check options open](../../images/ui/production-recording-check-options.webp)
 
+On Production, **Jump to or run** (Ctrl+K) has **Open Recording check rules**: a dialog with what the check judges a chapter by, for this project: **Share of each paragraph that must be read**, **Longest run of missing words allowed**, **Longest misread still counted as read**, **Shortest match that counts as read** and **Check changed chapters in the background**. They are proposed values, chosen on synthetic recordings and not yet calibrated on real narration. A change is saved at once and the last check is read again; the first two only change how a stored check is judged, but the next two change which words count, so earlier checks read as out of date and those chapters need checking again. **Reset** hands a rule back to the computer-wide value or the default. Settings under **Set on a page** has the same five rules with a **Global** / **This project** switch.
+
+![Production - the Recording check rules dialog opened from Jump to or run](../../images/ui/production-recording-check-rules.webp)
+
 **Check recordings** (the card's icon) lets you set up the run before it starts. **Speech model** is the
 first pass. **Look again with a larger model** adds a second pass: the **Larger model** transcribes again only
 the passages that are missing and the words Whisper scored under the **Also look again at words scored under**
-share. For a long chapter, **Chunk length** cuts each recording into pieces, **Parallel processes** is how
-many Whisper copies work on the pieces at once (each holds the whole model in memory), and **Crossover** is how
-much neighbouring pieces overlap, so a word on an edge is whole in one of them. A line under the choices says
-what will run, in words. **Chapters at once** checks that many of the ticked chapters together, each with its own share of the processors, and starts the next as each ends. The boxes start at the values in Settings, and the check runs exactly what the dialog
+share. In the **Check recordings** dialog, three sliders set how a long chapter is read: **Chunk length** (10 to 120 s, in steps
+of 5) cuts each recording into pieces, **Overlap between chunks** (0 to 10 s) is how much neighbouring pieces overlap, so a
+word on an edge is whole in one of them, and **Parallel workers** (1 to 8) is how many Whisper copies work on the pieces at
+once (each holds the whole model in memory). **Transcribe each recording whole** turns the chunks off and leaves one worker, and **Let the model choose
+the workers** hands the count back to the computer. A setting the sliders do not reach, such as a 5 min chunk from Settings, shows its real figure
+and is kept until you move the slider. A chapter's own **Check options** keeps the same choices as lists (**Chunk length**, **Parallel processes**,
+**Crossover**). A line under the choices says what will run, in words. **Chapters at once** checks that many of the ticked chapters together, each with its own share of the
+processors, and starts the next as each ends. The boxes start at the values in Settings, and the check runs exactly what the dialog
 shows, so the same chapter is checked the same way wherever you start it, including in the background.
+
+The dialog scrolls when the window is short, but **Audio to check** (the recorded time of the ticked chapters, or **Not measured**) and the buttons stay in view
+under it. It gives no estimate of how long the check will take. The line by the buttons says what a check adds: skipped, changed or unclear lines become pickups.
 
 ![Proof - the Check recordings dialog before a run, with the options shared with every page](../../images/ui/proof-check-recordings-dialog.webp)
 
@@ -264,12 +276,23 @@ the reason and **Try again** above the table.
 
 ## Status report
 
-**Export status report** opens the report dialog: a preview of the host's own report, the format
-(HTML or JSON), the path it will be written to, and **Export**. The file goes into this project's
-`narration-utils/production/reports` folder, under a name built from when you exported it, and an
-export never overwrites an earlier one.
+**Export status report** opens the report dialog in two panes. The form is on the left: an **Include**
+checkbox for each section, the format (HTML or JSON) and the path the file will be written to. A tall
+live preview of the host's own report is on the right, under the project's name and the date it is "as of".
 
-The contracted amount and effective rate are left out unless you tick the box to include them: a
+![The Export status report dialog: the Include checkboxes and format beside the live preview](../../images/ui/production-report-dialog.webp)
+
+The sections are **Words and finished audio**, **Hours by stage**, **Deadline and milestones**,
+**Chapters held back** (the chapters whose stage is held back, with the reason), **Chapter readiness** (the count of chapters by verdict)
+and, when the book pays per finished hour and has an amount, **Contracted amount and effective rate**. Every section but the last is
+ticked when the dialog opens. Ticking or unticking one rebuilds the preview, and **Export** writes exactly the sections that are
+ticked: a section you leave out is missing from both the HTML page and the JSON file. The JSON file records which sections were
+ticked, so a reader can tell a section left out from one that is empty.
+
+**Export** writes the HTML page and the JSON file into this project's `narration-utils/production/reports` folder, under a name built
+from when you exported it, and an export never overwrites an earlier one.
+
+The contracted amount and effective rate are left out unless you tick their box: a
 status report is often handed to someone else — a publisher, a collaborator, a rights holder
 checking on progress — who has no need to know what the book pays.
 
@@ -315,12 +338,8 @@ together), the repairs are listed at the end.
 
 The **Import options** group holds, for a Markdown file, the chapter heading level (choosing another
 level reads the file again and drops the choices you made for the old sections), then the subtitle
-option, then **Build the Story Bible after import**. That box starts checked; the default is in
-[Settings](settings.md), under Story Bible. With it checked, the import dialog closes once the import has finished and the Story
-Bible build starts in its own dialog, which you can leave running in the background. A build that
-fails never undoes the import. The build is most of the wait: on one test machine, about 6 seconds
-for a 26,000-word book and about 15 for a 79,000-word novel, against well under a second for the
-import itself.
+option. The import dialog stays open with its activity log until you press Close. It does not build the Story Bible: open
+[Story Bible](story-bible.md) and use **Scan the manuscript** or **Import entries**.
 
 Every dialog in the app can be used from the keyboard. Focus starts inside the dialog (on its
 message, outlined when you opened it with the keyboard), Tab and Shift+Tab stay inside it, and the
@@ -329,7 +348,7 @@ returns to the button that opened it. Clicking the dimmed background closes a di
 read-only view, a picker that applies each choice at once) and never closes a confirm or a form, so a
 stray click cannot discard a decision or typed input. A running job (such as an import) ignores Escape
 until it has finished. The red confirm button marks an action that destroys data. A step that
-cannot be cancelled (rebuilding the Story Bible, or an import while it writes to the project) says
+cannot be cancelled (an import while it writes to the project) says
 so at the top of its dialog, offers no button while it runs, and shows Close when it finishes.
 
 If the project folder contains a file named `manuscript.docx` or `manuscript.md` and nothing has

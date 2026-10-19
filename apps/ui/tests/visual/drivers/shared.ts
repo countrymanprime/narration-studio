@@ -76,14 +76,6 @@ const PAGE_CONTENT: Partial<Record<AppPage, (page: Page) => Locator>> = {
 // and "Story Bible", so an unscoped query can land on the wrong control. The shell renders one of two navigation asides
 // per width (the full sidebar from 1400 px, the icon rail below), the other is display:none, and both come before <main>
 // in the DOM, so the first visible aside is the navigation.
-/** Opens the Story Bible and presses Build / refresh, so the app asks to download the language model. */
-export async function askForTheLanguageModel(page: Page, url: string): Promise<void> {
-  await page.goto(url);
-  await settlePage(page);
-  await clickNav(page, 'Story Bible');
-  await page.getByRole('button', { name: 'Build / refresh Story Bible' }).click();
-}
-
 /** Opens the Story Bible on the first entry and presses its Play, so the app asks to download the local preview voice. */
 export async function askForThePreviewVoice(page: Page, url: string): Promise<void> {
   await page.goto(url);
@@ -508,6 +500,21 @@ export async function openLinkedProofChapter(page: Page, chapterTitle: string): 
   await page.getByRole('heading', { level: 1, name: new RegExp(`^Proof · ${chapterTitle}( — |$)`) }).waitFor();
 }
 
-// Some states have no known/safe driver yet (e.g. alias-typeahead, forcing
+// Some states have no known/safe driver yet (e.g. forcing
 // the manuscript-not-found banner without a mock-data override seam). Those
 // are left out here on purpose - the catalog entry is simply skipped.
+
+/**
+ * Opens `path` (a link to a chapter the list lacks) on an app whose chapter list answers once and then never (?mockChapters=reread-hangs), so
+ * the address gate stays on "Checking this link…". The address is opened in place, as the Proof chapter's loading driver does, because
+ * `goToPage` waits for content that never arrives.
+ */
+export async function openCheckingLink(page: Page, path: string): Promise<void> {
+  await page.goto('/?mockChapters=reread-hangs');
+  await settlePage(page);
+  await page.evaluate((to) => {
+    window.history.pushState(null, '', to);
+    window.dispatchEvent(new PopStateEvent('popstate'));
+  }, path);
+  await page.getByRole('group', { name: 'Checking this link' }).waitFor();
+}

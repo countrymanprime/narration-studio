@@ -2,7 +2,7 @@
 // It opens on Chapter 1 (the mock's last chapter read) unless a state picks otherwise. The Companion rows open `/companion`.
 import type { Page } from '@playwright/test';
 import { settlePage } from '../helpers/settle';
-import { type Driver, chooseTheme, clickNav, goToPage, openBooth, selectReaderWord, openWithoutManuscript } from './shared';
+import { type Driver, openCheckingLink, chooseTheme, clickNav, goToPage, openBooth, selectReaderWord, openWithoutManuscript } from './shared';
 
 // The record capability on, so Record is enabled (the mock's REAPER keeps it switched off by default, which is the refusal row).
 const RECORD_ON = '?mockRecordCapabilityOn=1';
@@ -57,6 +57,9 @@ async function openBoothReading(page: Page, seam: 'loading' | 'fails'): Promise<
 }
 
 export const boothDrivers: Record<string, Driver> = {
+  'address-checking': async (page) => {
+    await openCheckingLink(page, '/booth?chapter=gone');
+  },
   loading: async (page) => {
     await openBoothReading(page, 'loading');
     await page.getByRole('group', { name: 'Loading the Booth' }).waitFor();
@@ -68,6 +71,7 @@ export const boothDrivers: Record<string, Driver> = {
   'load-failed': async (page) => {
     await openBoothReading(page, 'fails');
     await page.locator('p[role="alert"]', { hasText: 'The manuscript could not be read from this project.' }).waitFor();
+    await page.getByRole('button', { name: 'Retry' }).waitFor();
     // The failed host call also raises its own toast, which removes itself on a real timer and would race the screenshot: dismiss it.
     await page.getByRole('button', { name: 'Dismiss message' }).click();
   },

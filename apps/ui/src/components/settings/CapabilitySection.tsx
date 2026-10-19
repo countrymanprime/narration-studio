@@ -4,14 +4,15 @@ import { describeApiError } from '../../api/errorMessage';
 import { usePort } from '../../ports/usePort';
 import { Button } from '../primitives/Button';
 import { SectionLabel } from '../primitives/SectionLabel';
-import { StatusBadge, type StatusTone } from '../primitives/StatusBadge';
+import { statusLabel, statusTone, type StatusId } from '../../kinds/statusTone';
+import { StatusBadge } from '../primitives/StatusBadge';
 
 // Each level is a word and a glyph, so no level is told apart by colour alone.
-const LEVEL: Record<DawCapabilityLevel, { label: string; glyph: string; tone: StatusTone }> = {
-  supported: { label: 'Supported', glyph: '✓', tone: 'success' },
-  experimental: { label: 'Experimental', glyph: '◇', tone: 'experimental' },
-  not_yet_available: { label: 'Not yet available', glyph: '…', tone: 'neutral' },
-  unsupported: { label: 'Unsupported', glyph: '✕', tone: 'neutral' },
+const LEVEL: Record<DawCapabilityLevel, { status: StatusId; glyph: string }> = {
+  supported: { status: 'supported', glyph: '✓' },
+  experimental: { status: 'experimental', glyph: '◇' },
+  not_yet_available: { status: 'not_yet_available', glyph: '…' },
+  unsupported: { status: 'unsupported', glyph: '✕' },
 };
 
 const MODE: Record<DawCapabilityMode, string> = {
@@ -38,7 +39,7 @@ function CapabilityRow({ name, support }: { name: string; support: DawCapability
       <div className="flex flex-wrap items-center gap-2">
         <span className="font-medium">{name}</span>
         <span data-testid="capability-level">
-          <StatusBadge tone={level.tone} label={level.label} icon={level.glyph} />
+          <StatusBadge tone={statusTone(level.status)} label={statusLabel(level.status)} icon={level.glyph} />
         </span>
         {support.destructive && <StatusBadge tone="warning" label={DESTRUCTIVE_CHIP} icon="⚠" />}
       </div>

@@ -79,6 +79,12 @@ type Report struct {
 	ClipRunCount     int       `json:"clip_run_count"`
 	ClipRuns         []ClipRun `json:"clip_runs"`
 
+	// ClickCandidateCount is how many click candidates the Diagnostics click detector finds in the measured audio at its
+	// default thresholds (cleanup.go: a burst of at most 30 ms with silence on both sides, standing 30 dB above it), so
+	// the two never disagree. Zero is a measurement. Null when the audio was not read: an MP3 whose audio was not
+	// decoded. A candidate is not a verdict; it is what the narrator is asked to listen to.
+	ClickCandidateCount *int `json:"click_candidate_count"`
+
 	// MP3 is what the frame headers of an MP3 say (mp3header.go), set
 	// only for an MP3. Nil for a WAV.
 	MP3 *MP3Info `json:"mp3,omitempty"`
@@ -131,6 +137,7 @@ type meterSet struct {
 	floor    *noiseFloorMeter
 	clips    *clipMeter
 	edges    *edgeMeter
+	cleanup  *cleanupMeter
 	energy   float64
 	frames   int64
 }
@@ -143,6 +150,7 @@ func newMeterSet(format Format) *meterSet {
 		floor:    newNoiseFloorMeter(format.SampleRate, format.Channels),
 		clips:    newClipMeter(format),
 		edges:    newEdgeMeter(format),
+		cleanup:  newCleanupMeter(format, DefaultDiagnosticOptions().SilenceFloordBFS),
 	}
 }
 
@@ -152,6 +160,7 @@ func (m *meterSet) Add(block [][]float64) {
 	m.floor.Add(block)
 	m.clips.Add(block)
 	m.edges.Add(block)
+	m.cleanup.Add(block)
 	for _, channel := range block {
 		for _, s := range channel {
 			m.energy += s * s
@@ -164,6 +173,7 @@ func (m *meterSet) Report() Report {
 	m.peaks.Flush()
 	m.clips.Flush()
 	m.edges.Flush()
+	m.cleanup.Flush()
 	report := Report{
 		SampleRate:             m.format.SampleRate,
 		Channels:               m.format.Channels,
@@ -178,6 +188,8 @@ func (m *meterSet) Report() Report {
 		ClipRunCount:           m.clips.runCount,
 		ClipRuns:               m.clips.runs,
 	}
+	clicks := len(m.cleanup.clicks(report.DurationSeconds, DefaultCleanupOptions()))
+	report.ClickCandidateCount = &clicks
 	report.HeadRoomToneSeconds, report.TailRoomToneSeconds, report.HeadDigitalSilenceSeconds, report.TailDigitalSilenceSeconds = m.edges.edges()
 	if m.frames > 0 {
 		report.RMSdBFS = energyToDB(m.energy / float64(m.frames*int64(m.format.Channels)))

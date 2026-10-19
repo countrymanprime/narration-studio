@@ -5,7 +5,8 @@ import type { ProductionChapter } from '../../../api/contracts/production';
 import type { Measured } from '../../../api/schemas/base';
 import { fmtD, hm } from '../../schedule/dates';
 import { RATIO } from '../../schedule/estimates';
-import { deadlineTone, scheduleChapters, type Calc, type Tone } from '../../schedule/progress';
+import { statusTone } from '../../../kinds/statusTone';
+import { deadlineTone, scheduleChapters, TONE_STATUS, type Calc, type Tone } from '../../schedule/progress';
 import type { ChapterSyncChapter } from '../../../api/contracts/chapterSync';
 
 /** The page a figure goes to. The components import no router; the page maps this to a route. */
@@ -66,7 +67,14 @@ export type KpiInputs = {
   delivery: Measured<DeliveryCounts>;
 };
 
-const TONE_TILE: Record<Tone, KpiTile['tone']> = { neutral: 'neutral', success: 'success', warn: 'warning', danger: 'danger' };
+// The tile tones the due date can take, each the tone of its registry status (schedule/progress.ts `TONE_STATUS`).
+const tileTone = (tone: Tone): KpiTile['tone'] => statusTone(TONE_STATUS[tone]) as KpiTile['tone'];
+const TONE_TILE: Record<Tone, KpiTile['tone']> = {
+  neutral: tileTone('neutral'),
+  success: tileTone('success'),
+  warn: tileTone('warn'),
+  danger: tileTone('danger'),
+};
 const days = (n: number): string => `${Math.abs(n)} ${Math.abs(n) === 1 ? 'day' : 'days'}`;
 
 /** The six KPI tiles of the mock's Production page. */

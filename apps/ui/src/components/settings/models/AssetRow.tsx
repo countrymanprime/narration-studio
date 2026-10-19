@@ -1,22 +1,13 @@
 import { Button } from '../../primitives/Button';
 import { IconButton } from '../../primitives/IconButton';
 import { ProgressBar } from '../../primitives/ProgressBar';
-import { StatusBadge, type StatusTone } from '../../primitives/StatusBadge';
+import { StatusBadge } from '../../primitives/StatusBadge';
+import { installPill } from '../installPill';
 import { TableRow } from '../../primitives/Table';
 import { TABLE_CELL_CLASS } from '../../primitives/tableStyles';
 import { formatSize } from '../../assets/AssetFacts';
 import { PAGE_LABEL, PAGE_PATH, type UsedPage } from '../registry/types';
-import type { AssetStatus, AssetView } from './AssetsStore';
-
-const PILL: Record<AssetStatus, [StatusTone, string]> = {
-  installed: ['success', 'Installed · checked'],
-  downloading: ['info', 'Downloading'],
-  verifying: ['info', 'Checking the download'],
-  failed: ['danger', 'Download failed'],
-  missing: ['neutral', 'Not installed'],
-  repair: ['warning', 'Needs repair'],
-  unavailable: ['neutral', 'Not available yet'],
-};
+import type { AssetView } from './AssetsStore';
 
 /** Below the page's 1020px container a row is a card: each cell on its own line, named by its `data-label`. */
 const CARD_ROW =
@@ -51,7 +42,7 @@ export type AssetRowProps = {
 export function AssetRow({ view, pages, inUse, go, install, cancel, remove, dismiss }: AssetRowProps) {
   const { item, status } = view;
   const name = item.displayName;
-  const [tone, label] = PILL[status];
+  const { tone, label } = installPill(status);
   const busy = status === 'downloading' || status === 'verifying';
   const size = formatSize(item.diskSize || item.downloadSize);
   return (

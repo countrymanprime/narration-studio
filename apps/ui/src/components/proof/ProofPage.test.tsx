@@ -486,7 +486,7 @@ describe('proof-decisions-and-undo', () => {
 describe('page-level-checks', () => {
   const inspector = () => screen.findByRole('complementary', { name: 'Note' });
 
-  it('P, E and D decide the selected note, and E does nothing on a note fixed with a pickup', async () => {
+  it('P, E, D and W decide the selected note, whatever its kind', async () => {
     const api = createMockApi();
     const review = vi.spyOn(api, 'findingsReview');
     renderPage({ api, at: '/proof?chapter=chapter-1' });
@@ -494,14 +494,15 @@ describe('page-level-checks', () => {
     const at = rows.findIndex((row) => row.textContent?.includes('misread') && row.textContent?.includes('To review'));
     fireEvent.click(rows[at]!);
     await inspector();
-    press('e', 'KeyE');
-    press('d', 'KeyD');
-    await waitFor(() => expect(review).toHaveBeenCalledTimes(1));
-    expect(review.mock.calls[0]![0].status).toBe('deferred');
-    fireEvent.click((await noteRows())[at]!);
-    press('p', 'KeyP');
-    await waitFor(() => expect(review).toHaveBeenCalledTimes(2));
-    expect(review.mock.calls[1]![0].status).toBe('accepted');
+    const decide = async (key: string, code: string, status: string, calls: number) => {
+      fireEvent.click((await noteRows())[at]!);
+      press(key, code);
+      await waitFor(() => expect(review).toHaveBeenCalledTimes(calls));
+      expect(review.mock.calls[calls - 1]![0].status).toBe(status);
+    };
+    await decide('e', 'KeyE', 'accepted', 1);
+    await decide('d', 'KeyD', 'deferred', 2);
+    await decide('p', 'KeyP', 'accepted', 3);
   });
 
   it('the retype is stored', async () => {

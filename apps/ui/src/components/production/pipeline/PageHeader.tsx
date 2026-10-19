@@ -2,21 +2,26 @@ import { Button } from '../../primitives/Button';
 import { Heading } from '../../primitives/Heading';
 import { Icon } from '../../primitives/Icon';
 import { IconButton } from '../../primitives/IconButton';
+import { Skeleton } from '../../primitives/Skeleton';
 import { TooltipTarget } from '../../primitives/Tooltip';
 import { fmtD, num } from '../../schedule/dates';
-import { deadlineTone, type Calc, type Tone } from '../../schedule/progress';
+import { statusTone } from '../../../kinds/statusTone';
+import { toneColors } from '../../primitives/StatusBadge';
+import { deadlineTone, TONE_STATUS, type Calc, type Tone } from '../../schedule/progress';
 import { VerdictPill } from '../../schedule/VerdictPill';
 import { TimerChip, type RunningTimer } from '../../layout/TimerChip';
 
 /** The tone as a word and a shape, beside its colour, so the due date is never told by colour alone. */
 const TONE_MARK: Record<Tone, { glyph: string; word: string; color: string } | null> = {
   neutral: null,
-  success: { glyph: '✓', word: 'finished', color: 'var(--ok-text)' },
-  warn: { glyph: '!', word: 'due soon', color: 'var(--warn-text)' },
-  danger: { glyph: '✕', word: 'overdue or behind', color: 'var(--danger-text)' },
+  success: { glyph: '✓', word: 'finished', color: toneColors(statusTone(TONE_STATUS.success)).text },
+  warn: { glyph: '!', word: 'due soon', color: toneColors(statusTone(TONE_STATUS.warn)).text },
+  danger: { glyph: '✕', word: 'overdue or behind', color: toneColors(statusTone(TONE_STATUS.danger)).text },
 };
 
 type Props = {
+  /** The production log is still being read: the figures, due date and verdict are blocks, because nothing is known yet (not "0 chapters", not "No due date set"). */
+  loading?: boolean;
   chapters: number;
   words: number;
   k: Calc;
@@ -39,6 +44,7 @@ type Props = {
 
 /** The Production title, the book's figures and due date in their tone, the verdict, and the page's actions (the mock's `phead`). */
 export function PageHeader({
+  loading = false,
   chapters,
   words,
   k,
@@ -61,36 +67,44 @@ export function PageHeader({
     <header className="flex flex-wrap items-start justify-between gap-4">
       <div className="flex min-w-0 flex-[1_1_24rem] flex-col gap-2">
         <Heading title="Production" size="hero" />
-        <p className="text-[0.8125rem] text-[var(--text-muted)]">
-          {chapters} chapters · {num(words)} words ·{' '}
-          {due && days ? (
-            <>
-              delivery due <b style={mark ? { color: mark.color } : undefined}>{fmtD(due)}</b> ({days}
-              {k.daysLeft !== null && k.daysLeft < 0 ? ' past' : ''}
-              {mark && (
-                <span style={{ color: mark.color }}>
-                  {' '}
-                  · <span aria-hidden="true">{mark.glyph}</span> {mark.word}
-                </span>
-              )}
-              )
-            </>
-          ) : (
-            'no delivery date set'
-          )}
-        </p>
-        <div>
-          <TooltipTarget text="Open the schedule">
-            {/* native-control-ok: the verdict pill is a badge that opens the Schedule; Button's chrome would replace the pill the mock draws. */}
-            <button
-              type="button"
-              className="cursor-pointer rounded-full focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)]"
-              onClick={onOpenSchedule}
-            >
-              <VerdictPill k={k} today={today} due={due} />
-            </button>
-          </TooltipTarget>
-        </div>
+        {loading ? (
+          <Skeleton className="w-80 max-w-full" />
+        ) : (
+          <p className="text-[0.8125rem] text-[var(--text-muted)]">
+            {chapters} chapters · {num(words)} words ·{' '}
+            {due && days ? (
+              <>
+                delivery due <b style={mark ? { color: mark.color } : undefined}>{fmtD(due)}</b> ({days}
+                {k.daysLeft !== null && k.daysLeft < 0 ? ' past' : ''}
+                {mark && (
+                  <span style={{ color: mark.color }}>
+                    {' '}
+                    · <span aria-hidden="true">{mark.glyph}</span> {mark.word}
+                  </span>
+                )}
+                )
+              </>
+            ) : (
+              'no delivery date set'
+            )}
+          </p>
+        )}
+        {loading ? (
+          <Skeleton className="h-[1.5625rem] w-64 max-w-full" />
+        ) : (
+          <div>
+            <TooltipTarget text="Open the schedule">
+              {/* native-control-ok: the verdict pill is a badge that opens the Schedule; Button's chrome would replace the pill the mock draws. */}
+              <button
+                type="button"
+                className="cursor-pointer rounded-full focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)]"
+                onClick={onOpenSchedule}
+              >
+                <VerdictPill k={k} today={today} due={due} />
+              </button>
+            </TooltipTarget>
+          </div>
+        )}
       </div>
       <div className="flex flex-none flex-wrap items-center gap-2">
         {timer && <TimerChip timer={timer} />}

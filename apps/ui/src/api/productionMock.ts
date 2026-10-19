@@ -410,27 +410,29 @@ export function createProductionMock(deps: Deps): ProductionApi & { applyProfile
     },
     // The host's writeProductionReport (production_report.go): the mock writes nothing, but names the file the same
     // way (a stem from the export time, -2, -3, ... within the same second) and echoes the narrator's own choice.
-    productionStatusReport: async (includeContractedAmount): Promise<ProductionReportExport> => {
+    productionStatusReport: async (include): Promise<ProductionReportExport> => {
       reportExports += 1;
       const stem = `production-status-20260921-100000Z${reportExports > 1 ? `-${reportExports}` : ''}`;
       return {
         folder: 'narration-utils/production/reports',
         htmlFile: `${stem}.html`,
         jsonFile: `${stem}.json`,
-        contractedAmountIncluded: includeContractedAmount,
+        contractedAmountIncluded: include.money,
+        include: { ...include },
       };
     },
     // The host's own document in miniature: the mock builds the page from the same overview it answers, leaves
     // the contracted amount and rate out unless asked, and says "Not available" for a figure it cannot give.
-    productionStatusReportPreview: async (includeContractedAmount): Promise<ProductionReportPreview> => {
-      const { totals, deadline } = await overview();
+    productionStatusReportPreview: async (include): Promise<ProductionReportPreview> => {
+      const { totals, deadline, chapters } = await overview();
       const figure = (value: number | null) => (value === null ? 'Not available' : value.toFixed(2));
-      const rows: [string, string][] = [
-        ['Hours logged', totals.hoursLogged.toFixed(1)],
-        ['Book PFH', figure(totals.bookPfh)],
-        ['Deadline', deadline === null ? 'Not available' : deadline.date],
-      ];
-      if (includeContractedAmount) rows.push(['Contracted amount', figure(totals.contractedAmount)], ['Effective rate', figure(totals.effectiveRate)]);
+      const rows: [string, string][] = [['Chapters', String(totals.chapters)]];
+      if (include.words) rows.push(['Words', String(totals.wordCount)]);
+      if (include.stages) rows.push(['Hours logged', totals.hoursLogged.toFixed(1)], ['Book PFH', figure(totals.bookPfh)]);
+      if (include.milestones) rows.push(['Deadline', deadline === null ? 'Not available' : deadline.date]);
+      if (include.pickups) rows.push(['Chapters held back', String(chapters.filter((chapter) => chapter.readiness?.verdict === 'not_ready').length)]);
+      if (include.delivery) rows.push(['Chapters finalized', String(totals.finalizedChapters)]);
+      if (include.money) rows.push(['Contracted amount', figure(totals.contractedAmount)], ['Effective rate', figure(totals.effectiveRate)]);
       const html = `<!doctype html><html><body><h1>Production status</h1><dl>${rows.map(([name, value]) => `<dt>${name}</dt><dd>${value}</dd>`).join('')}</dl></body></html>\n`;
       const json = `${JSON.stringify(Object.fromEntries(rows), null, 2)}\n`;
       return {
@@ -438,7 +440,8 @@ export function createProductionMock(deps: Deps): ProductionApi & { applyProfile
         json,
         folder: 'narration-utils/production/reports',
         stem: 'production-status-20260921-100000Z',
-        contractedAmountIncluded: includeContractedAmount,
+        contractedAmountIncluded: include.money,
+        include: { ...include },
       };
     },
     productionBurndown: async () => burndownOf(sessions),

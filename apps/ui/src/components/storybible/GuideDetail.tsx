@@ -1,5 +1,6 @@
 import { apiErrorMessage, describeApiError } from '../../api/errorMessage';
-import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { statusLabel, statusTone } from '../../kinds/statusTone';
+import { useEffect, useId, useRef, useState, type ReactNode } from 'react';
 import { useInRouterContext, useNavigate } from 'react-router-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import {
@@ -10,7 +11,6 @@ import {
   faLockOpen,
   faPause,
   faPen,
-  faPlus,
   faRotate,
   faTrash,
   faWaveSquare,
@@ -18,7 +18,9 @@ import {
 } from '@fortawesome/free-solid-svg-icons';
 import type { GuideEntity, GuidePreview, GuideType, TtsInstallJob } from '../../types';
 import { canSpeak } from '../../storyBibleTypes';
-import { categoryCssName, categoryLabel, CREATABLE_CATEGORIES, findAliasMatches } from '../../state';
+import { categoryLabel, CREATABLE_CATEGORIES } from '../../state';
+import { entryColour } from '../../kinds/entityColour';
+import { kindChipColors } from '../../kinds/kindMap';
 import { useApi } from '../../api/ApiContext';
 import { usePort } from '../../ports/usePort';
 import { useAssetInstall } from '../../hooks/useAssetInstall';
@@ -26,10 +28,8 @@ import { overlay } from '../../overlay/overlayService';
 import { usePendingAction } from '../../hooks/usePendingAction';
 import { AssetFacts } from '../assets/AssetFacts';
 import { AssetInstallPrompt } from '../assets/AssetInstallPrompt';
-import { CAT_DOT_BG, EntitySummary, entityBadgeColors } from '../manuscript/EntitySummary';
 import { Icon } from '../primitives/Icon';
 import { Dot, StatusBadge, badgeClass, badgeStyle } from '../primitives/StatusBadge';
-import { SlideOver } from '../primitives/SlideOver';
 import { Button } from '../primitives/Button';
 import { Field } from '../primitives/Field';
 import { ConfirmDialog } from '../primitives/ConfirmDialog';
@@ -65,13 +65,10 @@ import {
   type TalkDraft,
 } from './propertyDraft';
 import { IconButton } from '../primitives/IconButton';
-import { Listbox, listboxOptionId } from '../primitives/Listbox';
 import { TextField } from '../primitives/TextField';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../primitives/Table';
+import { PANEL_BODY_CLASS, PANEL_ENTRY_TITLE_CLASS, PANEL_FRAME_CLASS, PANEL_HEADER_CLASS, PANEL_SUBTITLE_CLASS } from '../primitives/panelStyles';
+import { Relationships, type RelationRow } from './Relationships';
 import type { Notify } from '../primitives/Toast';
-
-// The alias box's popup of matching entries, named by the text box that drives it.
-const ALIAS_MATCHES_ID = 'story-bible-alias-matches';
 
 // What the form holds while an entry is being edited: the entry's own values, until the narrator changes them.
 // The says, does and knows properties of an entry whose type can speak are fields of their own (`talk`), so `properties` holds the rest.
@@ -116,48 +113,54 @@ function useGuideTypes(entities: readonly GuideEntity[]): { types: GuideType[]; 
   return { types, failed, checkAgain: () => setNonce((n) => n + 1) };
 }
 
-// The matches of the relationship picker's search box, named by the text box that drives it.
-const RELATION_MATCHES_ID = 'story-bible-relation-matches';
-const PICKER_LIMIT = 50;
-
 const sameName = (a: string, b: string) => a.trim().toLowerCase() === b.trim().toLowerCase();
-const hasText = (entry: GuideEntity, text: string) => {
-  const needle = text.trim().toLowerCase();
-  return entry.canonical_name.toLowerCase().includes(needle) || entry.aliases.some((alias) => alias.text.toLowerCase().includes(needle));
-};
 const hasName = (entry: GuideEntity, text: string) => sameName(entry.canonical_name, text) || entry.aliases.some((alias) => sameName(alias.text, text));
 /** The other entry that already has `text` as its name or one of its names, ignoring case; a draft is not an entry yet. */
 const nameOwner = (entries: readonly GuideEntity[], text: string, exceptId: string) =>
   entries.find((row) => row.id !== exceptId && row.category !== 'Draft' && hasName(row, text));
 
-/** One row of the Relationships table: the relationship and the other entry. The host holds a relationship on the entry it was written from. */
-type RelationRow = { key: string; label: string; otherId: string; otherName: string; incoming: boolean; holderId: string; targetId: string };
-const relationRows = (entity: GuideEntity, entries: readonly GuideEntity[]): RelationRow[] => [
-  ...entity.relationships.map((rel) => ({
-    key: `out:${rel.id}:${rel.label}`,
-    label: rel.label,
-    otherId: rel.id,
-    otherName: rel.name,
-    incoming: false,
-    holderId: entity.id,
-    targetId: rel.id,
-  })),
-  ...entries
-    .filter((other) => other.id !== entity.id && other.category !== 'Draft')
-    .flatMap((other) =>
-      other.relationships
-        .filter((rel) => rel.id === entity.id)
-        .map((rel) => ({
-          key: `in:${other.id}:${rel.label}`,
-          label: rel.label,
-          otherId: other.id,
-          otherName: other.canonical_name,
-          incoming: true,
-          holderId: other.id,
-          targetId: entity.id,
-        })),
-    ),
-];
+/**
+ * The entry's card: the panel look (panelStyles.ts) with the name as its heading, or, while the entry is edited, as a bare 26 px input in the
+ * header with no label of its own (the mock's EntryEditor). Always the same elements, so turning Edit on does not rebuild the body.
+ */
+function EntryFrame({
+  title,
+  nameInput,
+  leading,
+  subtitle,
+  actions,
+  className,
+  children,
+}: {
+  title: string;
+  nameInput?: ReactNode;
+  leading: ReactNode;
+  subtitle: ReactNode;
+  actions: ReactNode;
+  className: string;
+  children: ReactNode;
+}) {
+  const titleId = useId();
+  return (
+    <section aria-labelledby={titleId} className={`${PANEL_FRAME_CLASS} flex flex-col overflow-hidden ${className}`}>
+      <div className={PANEL_HEADER_CLASS}>
+        <div className="flex min-w-0 flex-1 flex-wrap items-baseline gap-x-2.5 gap-y-1">
+          <span className="flex items-center gap-2 self-center">{leading}</span>
+          {/* The heading stays for assistive technology while the input stands in for it, so the sections below keep their level. */}
+          <h2 id={titleId} className={nameInput ? 'sr-only' : PANEL_ENTRY_TITLE_CLASS}>
+            {title}
+          </h2>
+          {nameInput}
+          <div className={PANEL_SUBTITLE_CLASS}>{subtitle}</div>
+        </div>
+        <div className="flex flex-wrap items-center gap-2">{actions}</div>
+      </div>
+      <div className={`${PANEL_BODY_CLASS} min-h-0 flex-1 overflow-y-auto`} tabIndex={0} role="group" aria-labelledby={titleId}>
+        {children}
+      </div>
+    </section>
+  );
+}
 
 /** The entry's header button that opens the Script page's Find on its name. Drawn only inside the router, which every page has. */
 function FindInManuscript({ name }: { name: string }) {
@@ -223,27 +226,19 @@ export function GuideDetail({
   const api = useApi();
   const { types, failed: typesFailed, checkAgain: checkTypesAgain } = useGuideTypes(entities);
   const speaks = entity ? canSpeak(types, entity.category) : false;
+  /** The dot beside a category: its type's colour (a Needs Review or Draft entry is amber), the same as its chip and its list swatch. */
+  const dotOf = (category: string): string => `var(${entryColour(types, category).line})`;
   // The Find button navigates, so it needs the router every page has; a detail drawn outside one (a story, a unit test) has none.
   const inRouter = useInRouterContext();
   const [draft, setDraft] = useState<Draft>({ name: '', description: '', personality: '', context: '', properties: [], talk: NO_TALK });
   const [propertyError, setPropertyError] = useState<string>();
   const [editing, setEditing] = useState(false);
   const [aliasQuery, setAliasQuery] = useState('');
-  const [aliasSelectedId, setAliasSelectedId] = useState<string>();
-  const [aliasActiveIndex, setAliasActiveIndex] = useState(0);
   // A name the narrator asked to add that the entry or another entry already has: the Names box says so, and for another entry's offers to merge it in.
   const [nameNote, setNameNote] = useState<{ text: string; ownerId?: string }>();
   const [nameError, setNameError] = useState<string>();
-  const [relationOtherId, setRelationOtherId] = useState('');
-  const [relationQuery, setRelationQuery] = useState('');
-  const [relationActiveIndex, setRelationActiveIndex] = useState(0);
-  const [relationLabel, setRelationLabel] = useState('');
   const [confirmation, setConfirmation] = useState<'delete'>();
   const nameField = useRef<HTMLInputElement>(null);
-  // A slide-over, not select(id), so opening an alias match to review it
-  // never resets the in-progress draft of the entry the user was already
-  // editing - see the "Review entry" button below.
-  const [reviewOverlayId, setReviewOverlayId] = useState<string>();
   const [ttsPrompt, setTtsPrompt] = useState<{ preview: Extract<GuidePreview, { status: 'asset_required' }>; aliasIndex?: number }>();
   // The voice download: one install-poll hook for every asset. Success carries on with the preview the narrator asked for.
   const voiceInstall = useAssetInstall<TtsInstallJob>({
@@ -294,10 +289,6 @@ export function GuideDetail({
   // What was half done for one entry (an offer to merge, a relationship being written) is not carried to the next.
   useEffect(() => {
     setNameNote(undefined);
-    setRelationOtherId('');
-    setRelationQuery('');
-    setRelationActiveIndex(0);
-    setRelationLabel('');
   }, [entity?.id]);
   // A new entry opens with its name ready to type over (the mock's NameBox); starting another one while it is open does the same.
   // The field holds the draft's name only once the draft has been set from the entry, a render after this one, so the name is selected then.
@@ -314,8 +305,6 @@ export function GuideDetail({
   }, [isNewDraft, entity, draft.name]);
   useEffect(() => {
     setAliasQuery('');
-    setAliasSelectedId(undefined);
-    setAliasActiveIndex(0);
     setNameError(undefined);
     setTtsPrompt(undefined);
     resetVoiceInstall();
@@ -384,14 +373,6 @@ export function GuideDetail({
     const owner = nameOwner(entities, name, entity.id);
     return owner ? `“${name.trim()}” is already a name of ${owner.canonical_name}.` : undefined;
   };
-  const otherEntities = entities.filter((row) => row.id !== entity.id && row.category !== 'Draft');
-  const relations = relationRows(entity, entities);
-  const pickedEntity = otherEntities.find((row) => row.id === relationOtherId);
-  // The picker lists matches only once the narrator types, as the alias box does; the arrow keys and Enter act on that list.
-  const relationMatches = relationQuery.trim() && !editingDisabled ? otherEntities.filter((row) => hasText(row, relationQuery)).slice(0, PICKER_LIMIT) : [];
-  const aliasMatches = aliasSelectedId ? [] : findAliasMatches(entities, aliasQuery, entity.id);
-  const selectedAliasMatch = aliasSelectedId ? entities.find((row) => row.id === aliasSelectedId) : undefined;
-  const reviewOverlayEntity = reviewOverlayId ? entities.find((row) => row.id === reviewOverlayId) : undefined;
 
   const save = async (key: string, values: Record<string, string>, message: string): Promise<boolean> =>
     (await mutation.run(key, async () => {
@@ -408,8 +389,6 @@ export function GuideDetail({
   const setAliasTexts = (aliases: string[], key = 'alias') => save(key, { aliases: aliases.join(';') }, 'Aliases updated.');
   const clearAliasMatch = () => {
     setAliasQuery('');
-    setAliasSelectedId(undefined);
-    setAliasActiveIndex(0);
     setNameNote(undefined);
   };
   // The text in the Names box is a name this entry or another entry already has (ignoring case): adding it would make a copy.
@@ -521,40 +500,34 @@ export function GuideDetail({
         notify(describeApiError(error), 'error');
       }
     });
-  const pickRelated = (id: string) => {
-    setRelationOtherId(id);
-    setRelationQuery('');
-    setRelationActiveIndex(0);
-  };
-  const onRelationKeyDown = (event: React.KeyboardEvent) => {
-    if (event.key === 'Escape') {
-      event.preventDefault();
-      setRelationQuery('');
-      return;
-    }
-    if ((event.key === 'ArrowDown' || event.key === 'ArrowUp') && relationMatches.length) {
-      event.preventDefault();
-      setRelationActiveIndex((current) => (current + (event.key === 'ArrowDown' ? 1 : -1) + relationMatches.length) % relationMatches.length);
-      return;
-    }
-    if (event.key === 'Enter' && relationMatches[relationActiveIndex]) {
-      event.preventDefault();
-      pickRelated(relationMatches[relationActiveIndex].id);
-    }
-  };
-  const addRelationship = () => {
-    if (!relationOtherId || !relationLabel.trim()) return;
-    return mutation.run('relate', async () => {
+  // A change is written as the new relationship, then the old one removed: a failure between leaves both, never neither.
+  const changeRelationship = (row: RelationRow, change: { label?: string; otherId?: string }) => {
+    const label = change.label ?? row.label;
+    const otherId = change.otherId ?? row.otherId;
+    const holderId = row.incoming ? otherId : entity.id;
+    const targetId = row.incoming ? entity.id : otherId;
+    if (holderId === row.holderId && targetId === row.targetId && label === row.label) return;
+    return mutation.run(`rerelate:${row.key}`, async () => {
       try {
-        await api.guideRelate(entity.id, relationOtherId, relationLabel.trim());
-        setRelationOtherId('');
-        setRelationLabel('');
-        await reloadFor(entity.id);
+        await api.guideRelate(holderId, targetId, label);
+        await api.guideUnrelate(row.holderId, row.targetId, row.label);
       } catch (error) {
         notify(describeApiError(error), 'error');
       }
+      await reloadFor(entity.id);
     });
   };
+  const addRelationship = (otherId: string, label: string) =>
+    mutation.run('relate', async () => {
+      try {
+        await api.guideRelate(entity.id, otherId, label);
+        await reloadFor(entity.id);
+        return true;
+      } catch (error) {
+        notify(describeApiError(error), 'error');
+        return false;
+      }
+    });
   const deleteEntry = () =>
     mutation.run('delete', async () => {
       try {
@@ -612,17 +585,9 @@ export function GuideDetail({
       clearAliasMatch();
       return;
     }
-    if (!aliasSelectedId && (event.key === 'ArrowDown' || event.key === 'ArrowUp')) {
-      if (!aliasMatches.length) return;
-      event.preventDefault();
-      setAliasActiveIndex((current) => (current + (event.key === 'ArrowDown' ? 1 : -1) + aliasMatches.length) % aliasMatches.length);
-      return;
-    }
     if (event.key === 'Enter') {
       event.preventDefault();
-      // A name that is already taken is answered, not read as a pick from the list of matches that contain it.
-      if (!aliasSelectedId && aliasMatches.length > 0 && !typedOwner()) setAliasSelectedId(aliasMatches[aliasActiveIndex].id);
-      else if (!aliasSelectedId) addAliasFromQuery();
+      addAliasFromQuery();
     }
   };
 
@@ -633,20 +598,36 @@ export function GuideDetail({
   };
 
   return (
-    <Panel
+    <EntryFrame
       title={entity.canonical_name || 'New entity'}
-      titleStyle="entry"
-      leading={<Dot color={CAT_DOT_BG[categoryCssName(entity.category)]} />}
+      nameInput={
+        (canEdit && editing) || isNewDraft ? (
+          <div className="min-w-0 flex-[1_1_12rem]">
+            <TextField
+              ref={nameField}
+              label="Name"
+              aria-invalid={nameError ? true : undefined}
+              value={draft.name}
+              onChange={(name) => {
+                setNameError(undefined);
+                setDraft({ ...draft, name });
+              }}
+              className="h-auto! border-transparent! bg-transparent! px-1! font-['Barlow_Condensed',sans-serif] text-[1.625rem]! leading-[1.2]! font-semibold hover:border-[var(--line-strong)]! focus-visible:border-[var(--accent)]!"
+            />
+          </div>
+        ) : undefined
+      }
+      leading={<Dot color={dotOf(entity.category)} />}
       subtitle={
         <div className="flex items-center gap-2" style={{ position: 'relative' }}>
           <Menu
             triggerClassName={badgeClass('pill')}
-            triggerStyle={badgeStyle(entityBadgeColors(entity.category))}
+            triggerStyle={badgeStyle(kindChipColors('entity', entryColour(types, entity.category)))}
             disabled={locked || !(editing || isNewDraft) || mutation.isBusy}
             items={(types.length > 0 ? types.map((type) => type.name) : CREATABLE_CATEGORIES).map((label) => ({
               key: label,
               label,
-              leading: <Dot color={CAT_DOT_BG[label]} />,
+              leading: <Dot color={dotOf(label)} />,
               onSelect: () => {
                 if (isNewDraft) void createNewEntity(label);
                 else void save('category', { category: label }, `Category changed to ${label}.`);
@@ -657,7 +638,7 @@ export function GuideDetail({
             {/* The mock's read-only kind is a plain pill: the chevron promises a menu only while the kind can change. */}
             {!locked && (editing || isNewDraft) && <FontAwesomeIcon icon={faChevronDown} />}
           </Menu>
-          {(entryFlagged(entity) || toVerify > 0) && <StatusBadge tone="warning" label="Needs review" />}
+          {(entryFlagged(entity) || toVerify > 0) && <StatusBadge tone={statusTone('needs_review')} label={statusLabel('needs_review')} />}
         </div>
       }
       actions={
@@ -733,7 +714,6 @@ export function GuideDetail({
           )}
         </>
       }
-      scroll
       className="min-h-0 flex-1"
     >
       <div className="space-y-4">
@@ -755,34 +735,17 @@ export function GuideDetail({
             Choose a category above to finish setting up this entry.
           </p>
         )}
-        {/* The name is the panel's heading until Edit; only then is it a field (the mock's EntryEditor). A new draft has no heading worth reading yet, so it keeps the field. */}
-        {(!editingDisabled || isNewDraft) && (
-          <div>
-            <div className="mb-1.5 text-[0.82rem] font-medium text-[var(--text-muted)]">Name</div>
-            <TextField
-              ref={nameField}
-              label="Name"
-              disabled={editingDisabled && !isNewDraft}
-              value={draft.name}
-              aria-invalid={nameError ? true : undefined}
-              onChange={(name) => {
-                setNameError(undefined);
-                setDraft({ ...draft, name });
-              }}
-            />
-            {nameError && (
-              <p role="alert" className="mt-1 text-xs" style={{ color: 'var(--danger-text)' }}>
-                {nameError}
-              </p>
-            )}
-          </div>
+        {nameError && (
+          <p role="alert" className="text-xs" style={{ color: 'var(--danger-text)' }}>
+            {nameError}
+          </p>
         )}
 
         <div>
           <div className="mb-1.5 flex items-center justify-between gap-2 text-[0.82rem] font-medium text-[var(--text-muted)]">
             <span>Names the app links in the text, and how I say each</span>
-            {/* Rescan has no mock equivalent and stays as built; while editing it sits beside Add alias. */}
-            {editingDisabled && !isNewDraft && (
+            {/* Rescan has no mock equivalent and stays as built. */}
+            {!isNewDraft && (
               <TooltipTarget text="Rescan occurrences for this entry">
                 <IconButton
                   label="Rescan occurrences"
@@ -814,7 +777,7 @@ export function GuideDetail({
                       reload={() => reloadFor(entity.id)}
                       notify={notify}
                     />
-                    {flagged && <StatusBadge tone="warning" label="Needs review" />}
+                    {flagged && <StatusBadge tone={statusTone('needs_review')} label={statusLabel('needs_review')} />}
                     {/* A note from before pronunciation statuses were removed: kept readable, no longer edited. */}
                     {pronunciation.note && <p className="m-0 text-xs text-[var(--text-muted)]">Note: {pronunciation.note}</p>}
                   </div>
@@ -846,6 +809,11 @@ export function GuideDetail({
                       <FontAwesomeIcon icon={playing ? faPause : faWaveSquare} />
                     </IconButton>
                   </TooltipTarget>
+                  {canEdit && editing && (
+                    <TooltipTarget text={`Record my own clip for ${name}`}>
+                      <IconButton action="record" label={`Record my own clip for ${name}`} onClick={() => notify('Recording your own clip')} />
+                    </TooltipTarget>
+                  )}
                   {flagged && (
                     <TooltipTarget text={`Mark ${name} reviewed`}>
                       <IconButton
@@ -869,32 +837,25 @@ export function GuideDetail({
                         )
                       }
                     >
-                      <FontAwesomeIcon icon={faXmark} />
+                      <FontAwesomeIcon icon={faTrash} />
                     </IconButton>
                   )}
                 </li>
               );
             })}
           </ul>
-          {editingDisabled && !isNewDraft ? null : (
+          {canEdit && editing && (
             <div className="mt-3">
               <TextField
-                label="Add an alias or find a matching entry"
-                role="combobox"
-                aria-expanded={aliasMatches.length > 0}
-                aria-controls={aliasMatches.length > 0 ? ALIAS_MATCHES_ID : undefined}
-                aria-activedescendant={aliasMatches[aliasActiveIndex] ? listboxOptionId(ALIAS_MATCHES_ID, aliasMatches[aliasActiveIndex].id) : undefined}
-                disabled={editingDisabled}
-                className="disabled:cursor-not-allowed disabled:opacity-60"
+                label="Add a name"
+                disabled={waiting('alias')}
                 value={aliasQuery}
                 onChange={(value) => {
                   setAliasQuery(value);
-                  setAliasSelectedId(undefined);
-                  setAliasActiveIndex(0);
                   setNameNote(undefined);
                 }}
                 onKeyDown={onAliasKeyDown}
-                placeholder="Add an alias or find a matching entry…"
+                placeholder="Add a name"
               />
               {nameNote && (
                 <div className="mt-2 flex flex-wrap items-center gap-2">
@@ -904,84 +865,6 @@ export function GuideDetail({
                       : `“${nameNote.text}” is already a name of this entry.`}
                   </span>
                   {nameNote.ownerId && mergeButton(entities.find((row) => row.id === nameNote.ownerId))}
-                </div>
-              )}
-              {selectedAliasMatch ? (
-                <div className="mt-2 flex flex-wrap items-center gap-2">
-                  <span className="text-xs" style={{ color: 'var(--text-muted)' }}>
-                    Selected match: <strong>{selectedAliasMatch.canonical_name}</strong>
-                    {selectedAliasMatch.locked ? ' · locked' : ''}
-                  </span>
-                  <Button variant="secondary" onClick={() => setReviewOverlayId(selectedAliasMatch.id)}>
-                    Review entry
-                  </Button>
-                  {mergeButton(selectedAliasMatch)}
-                  <Button variant="secondary" onClick={clearAliasMatch}>
-                    Clear selection
-                  </Button>
-                </div>
-              ) : aliasQuery ? (
-                <div className="mt-1">
-                  <Listbox
-                    id={ALIAS_MATCHES_ID}
-                    label="Matching Story Bible entries"
-                    options={aliasMatches.map((match) => ({
-                      id: match.id,
-                      label: match.canonical_name,
-                      description: categoryLabel(match.category),
-                      leading: <Dot color={CAT_DOT_BG[categoryCssName(match.category)]} />,
-                    }))}
-                    activeIndex={aliasActiveIndex}
-                    onPick={setAliasSelectedId}
-                    empty="No matching Story Bible entries."
-                    footer={
-                      <div data-alias-actions className="flex items-center justify-between p-2">
-                        <TooltipTarget text="Add alias">
-                          <IconButton
-                            label="Add alias"
-                            disabled={editingDisabled || waiting('alias')}
-                            pending={mutation.isPending('alias')}
-                            onClick={addAliasFromQuery}
-                          >
-                            <FontAwesomeIcon icon={faPlus} />
-                          </IconButton>
-                        </TooltipTarget>
-                        <TooltipTarget text="Rescan occurrences for this entry">
-                          <IconButton
-                            label="Rescan occurrences"
-                            disabled={isNewDraft || waiting('rescan')}
-                            pending={mutation.isPending('rescan')}
-                            onClick={() => void rescanOccurrences()}
-                          >
-                            <FontAwesomeIcon icon={faRotate} />
-                          </IconButton>
-                        </TooltipTarget>
-                      </div>
-                    }
-                  />
-                </div>
-              ) : (
-                <div data-alias-actions className="mt-2 flex items-center justify-between">
-                  <TooltipTarget text="Add alias">
-                    <IconButton
-                      label="Add alias"
-                      disabled={editingDisabled || waiting('alias')}
-                      pending={mutation.isPending('alias')}
-                      onClick={addAliasFromQuery}
-                    >
-                      <FontAwesomeIcon icon={faPlus} />
-                    </IconButton>
-                  </TooltipTarget>
-                  <TooltipTarget text="Rescan occurrences for this entry">
-                    <IconButton
-                      label="Rescan occurrences"
-                      disabled={isNewDraft || waiting('rescan')}
-                      pending={mutation.isPending('rescan')}
-                      onClick={() => void rescanOccurrences()}
-                    >
-                      <FontAwesomeIcon icon={faRotate} />
-                    </IconButton>
-                  </TooltipTarget>
                 </div>
               )}
             </div>
@@ -1053,129 +936,18 @@ export function GuideDetail({
         {suggested}
 
         <div className="border-t pt-4" style={{ borderColor: 'var(--border)' }}>
-          <div className="mb-2 text-[0.82rem] font-medium text-[var(--text-muted)]">Relationships</div>
-          <Table label="Relationships">
-            <TableHead>
-              <TableRow>
-                <TableHeader>Relationship</TableHeader>
-                <TableHeader>Entry</TableHeader>
-                <TableHeader hiddenLabel="Remove" />
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {relations.map((row) => (
-                <TableRow key={row.key}>
-                  <TableCell>
-                    {row.incoming ? (
-                      <TooltipTarget text={`${row.otherName} ${row.label} ${entity.canonical_name}`}>
-                        <span className="inline-flex items-center gap-1.5">
-                          <span role="img" aria-label="Incoming" className="text-[var(--text-muted)]">
-                            <Icon name="incomingRelationship" />
-                          </span>
-                          {row.label}
-                        </span>
-                      </TooltipTarget>
-                    ) : (
-                      row.label
-                    )}
-                  </TableCell>
-                  <TableCell>{row.otherName}</TableCell>
-                  <TableCell align="right">
-                    {!editingDisabled && (
-                      <IconButton
-                        label="Remove relationship"
-                        disabled={editingDisabled || waiting(`unrelate:${row.key}`)}
-                        pending={mutation.isPending(`unrelate:${row.key}`)}
-                        onClick={() => void removeRelationship(row)}
-                      >
-                        <FontAwesomeIcon icon={faXmark} />
-                      </IconButton>
-                    )}
-                  </TableCell>
-                </TableRow>
-              ))}
-              {relations.length === 0 && (
-                <TableRow>
-                  <TableCell colSpan={3} style={{ color: 'var(--text-muted)' }}>
-                    No related entries yet.
-                  </TableCell>
-                </TableRow>
-              )}
-            </TableBody>
-          </Table>
-          {/* The mock draws the add-a-relationship row only while editing. */}
-          {!editingDisabled && (
-            <div className="mt-3 grid items-start gap-3" style={{ gridTemplateColumns: '1fr 1fr auto' }}>
-              <TextField
-                label="Relationship"
-                disabled={editingDisabled}
-                value={relationLabel}
-                onChange={setRelationLabel}
-                placeholder="Relationship, e.g. located in"
-              />
-              <div>
-                {pickedEntity ? (
-                  <div
-                    data-picked
-                    className="flex min-h-[var(--control-height)] items-center justify-between gap-2 rounded-[var(--control-radius)] border border-[var(--line-strong)] px-3"
-                  >
-                    <span className="truncate">{pickedEntity.canonical_name}</span>
-                    <IconButton label="Choose another entry" disabled={editingDisabled} onClick={() => setRelationOtherId('')}>
-                      <FontAwesomeIcon icon={faXmark} />
-                    </IconButton>
-                  </div>
-                ) : (
-                  <>
-                    <TextField
-                      label="Search entries to relate to"
-                      role="combobox"
-                      aria-expanded={relationMatches.length > 0}
-                      aria-controls={relationMatches.length > 0 ? RELATION_MATCHES_ID : undefined}
-                      aria-activedescendant={
-                        relationMatches[relationActiveIndex] ? listboxOptionId(RELATION_MATCHES_ID, relationMatches[relationActiveIndex].id) : undefined
-                      }
-                      disabled={editingDisabled}
-                      value={relationQuery}
-                      onChange={(value) => {
-                        setRelationQuery(value);
-                        setRelationActiveIndex(0);
-                      }}
-                      onKeyDown={onRelationKeyDown}
-                      placeholder="Search entries…"
-                    />
-                    {relationQuery.trim() && !editingDisabled && (
-                      <div className="mt-1">
-                        <Listbox
-                          id={RELATION_MATCHES_ID}
-                          label="Matching entries"
-                          options={relationMatches.map((match) => ({
-                            id: match.id,
-                            label: match.canonical_name,
-                            description: categoryLabel(match.category),
-                            leading: <Dot color={CAT_DOT_BG[categoryCssName(match.category)]} />,
-                          }))}
-                          activeIndex={relationActiveIndex}
-                          onPick={pickRelated}
-                          empty="No entries match."
-                        />
-                      </div>
-                    )}
-                  </>
-                )}
-              </div>
-              <TooltipTarget text={relationOtherId && relationLabel.trim() ? 'Add relationship' : 'Choose an entry and write the relationship first.'}>
-                <IconButton
-                  label="Add relationship"
-                  disabled={editingDisabled || waiting('relate')}
-                  disabledReason={!relationOtherId || !relationLabel.trim() ? 'Choose an entry and write the relationship first.' : undefined}
-                  pending={mutation.isPending('relate')}
-                  onClick={() => void addRelationship()}
-                >
-                  <FontAwesomeIcon icon={faPlus} />
-                </IconButton>
-              </TooltipTarget>
-            </div>
-          )}
+          <Relationships
+            key={`${entity.id}:${canEdit && editing}`}
+            entity={entity}
+            entries={entities}
+            types={types}
+            editing={canEdit && editing}
+            isPending={mutation.isPending}
+            isBlocked={waiting}
+            onChange={(row, change) => void changeRelationship(row, change)}
+            onAdd={addRelationship}
+            onRemove={(row) => void removeRelationship(row)}
+          />
         </div>
 
         <AppearsIn entity={entity} manuscript={chapters} onGo={(chapterId) => goToManuscript(chapterId)} />
@@ -1217,16 +989,6 @@ export function GuideDetail({
           />
         )}
       </div>
-      <SlideOver
-        open={Boolean(reviewOverlayEntity)}
-        title={reviewOverlayEntity?.canonical_name || 'Review entry'}
-        closeLabel="Close review panel"
-        onClose={() => setReviewOverlayId(undefined)}
-      >
-        {reviewOverlayEntity && (
-          <EntitySummary entity={reviewOverlayEntity} speaks={canSpeak(types, reviewOverlayEntity.category)} jumpToLine={goToManuscript} />
-        )}
-      </SlideOver>
-    </Panel>
+    </EntryFrame>
   );
 }

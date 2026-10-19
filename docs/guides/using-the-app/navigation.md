@@ -98,6 +98,7 @@ chapter, or the previous Story Bible entry are not Back steps.
 
 A link the app cannot open (a typed address it cannot read, or one that names a chapter or line the book does not have) shows
 **This link could not be opened** with **Open** *page* (the solid button) and **Go to Production** (quieter); both replace the link, so Back does not return to it.
+A link to a chapter the list does not have yet is checked first: the list is read once more, and meanwhile Proof, Editing and the Booth show their title and grey blocks with **Checking this link…**. If the chapter turns up the page opens; if the list cannot be read, the page opens as well.
 The [Booth](booth.md#the-credits) fills the window and has no rail, so there Escape also leaves the message: for [Pickups](pickups.md) when the link still names pickups, otherwise for [Script](script.md).
 
 ## Zoom

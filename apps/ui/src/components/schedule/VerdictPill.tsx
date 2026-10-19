@@ -1,4 +1,5 @@
-import { StatusBadge, type StatusTone } from '../primitives/StatusBadge';
+import { statusLabel, statusTone, type StatusId } from '../../kinds/statusTone';
+import { StatusBadge } from '../primitives/StatusBadge';
 import { addDays, daysText, fmtDY } from './dates';
 import { PACE } from './estimates';
 import { deadlineTone, type Calc, type Tone, type Verdict } from './progress';
@@ -7,12 +8,11 @@ type Kind = 'ok' | 'warn' | 'bad';
 const RANK: Record<Kind, number> = { ok: 0, warn: 1, bad: 2 };
 const TONE_KIND: Record<Tone, Kind> = { neutral: 'ok', success: 'ok', warn: 'warn', danger: 'bad' };
 const VERDICT_KIND: Record<Verdict, Kind> = { ok: 'ok', tight: 'warn', behind: 'bad' };
-const LABEL: Record<Kind, string> = { ok: 'On track', warn: 'Tight', bad: 'Behind' };
-/** A shape as well as a colour, so the verdict is never told by colour alone. */
-const KIND: Record<Kind, { tone: StatusTone; glyph: string }> = {
-  ok: { tone: 'success', glyph: '✓' },
-  warn: { tone: 'warning', glyph: '!' },
-  bad: { tone: 'danger', glyph: '✕' },
+/** A shape as well as a colour, so the verdict is never told by colour alone; the status gives the word and the tone (kinds/statusTone.ts). */
+const KIND: Record<Kind, { status: StatusId; glyph: string }> = {
+  ok: { status: 'on_track', glyph: '✓' },
+  warn: { status: 'tight', glyph: '!' },
+  bad: { status: 'behind', glyph: '✕' },
 };
 
 /** The words after the verdict: when the work is done at the pace, and what the due date needs. */
@@ -35,5 +35,5 @@ export function VerdictPill({ k, today, due }: { k: Calc; today: Date; due: Date
   const byDays = TONE_KIND[deadlineTone(k)];
   const byPace = VERDICT_KIND[k.verdict];
   const kind = RANK[byDays] > RANK[byPace] ? byDays : byPace;
-  return <StatusBadge tone={KIND[kind].tone} icon={KIND[kind].glyph} label={`${LABEL[kind]} · ${detail(k, today, due)}`} />;
+  return <StatusBadge tone={statusTone(KIND[kind].status)} icon={KIND[kind].glyph} label={`${statusLabel(KIND[kind].status)} · ${detail(k, today, due)}`} />;
 }

@@ -120,10 +120,10 @@ describe('NextUp', () => {
     expect(within(items[2]!).getByRole('button', { name: 'Inspect failed check' })).toBeTruthy();
   });
 
-  it("tints each item's disc by what it is: recording, then pickups and a failed check as danger (the mock)", () => {
+  it("tints each item's disc by its status: recording in progress, an open pickup session a warning, a failed check danger (kinds/statusTone.ts)", () => {
     view(<NextUp inputs={NEXT_UP_BUSY} record={record} onGo={noop} timer={timer} />);
     const items = within(screen.getByRole('list', { name: 'Next up' })).getAllByRole('listitem');
-    expect(items.map((li) => li.querySelector('[data-tone]')?.getAttribute('data-tone'))).toEqual(['rec', 'danger', 'danger']);
+    expect(items.map((li) => li.querySelector('[data-tone]')?.getAttribute('data-tone'))).toEqual(['info', 'warning', 'danger']);
   });
 
   // The mock's `.next .ico` (app.css:125): a 30 px rounded square, not a 24 px circle.
@@ -235,6 +235,24 @@ describe('PageHeader', () => {
     expect(h.onOpenSchedule).toHaveBeenCalledOnce();
     expect(h.onExport).toHaveBeenCalledOnce();
     expect(h.onStartSession).toHaveBeenCalledOnce();
+  });
+
+  it('draws blocks, not figures, the due date or a verdict, while the production log is read, and keeps the title and the actions', () => {
+    header({ loading: true, chapters: 0, words: 0, due: null });
+    expect(screen.getByRole('heading', { level: 1, name: 'Production' })).toBeTruthy();
+    expect(screen.queryByText(/chapters/)).toBeNull();
+    expect(screen.queryByText(/no delivery date set/)).toBeNull();
+    expect(screen.queryByText('No due date set')).toBeNull();
+    expect(screen.queryByRole('button', { name: /(On track|Tight|Behind|No due date set)/ })).toBeNull();
+    expect(screen.queryByRole('status')).toBeNull();
+    expect(screen.getByRole('button', { name: 'Export status report' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Start session' })).toBeTruthy();
+  });
+
+  it('says "0 chapters" and "no delivery date set" once a read that found nothing has ended', () => {
+    header({ loading: false, chapters: 0, words: 0, due: null });
+    expect(screen.getByText(/0 chapters · 0 words · no delivery date set/)).toBeTruthy();
+    expect(screen.getByText('No due date set')).toBeTruthy();
   });
 
   it('says the tone in a word and a shape when the due date is close', () => {

@@ -5,7 +5,7 @@
 // The output is deterministic apart from GeneratedAt: every map is written in key order and every list keeps the order
 // its input already has (the same order the Production page reads). The contracted amount and the effective rate, the
 // one financial pair this report can hold, are written only when the narrator opts in
-// (Options.IncludeContractedAmount): a status report is often the one thing a narrator shares with someone they would
+// (Sections.Money): a status report is often the one thing a narrator shares with someone they would
 // not otherwise tell their rate.
 package productionreport
 
@@ -19,7 +19,7 @@ import (
 )
 
 // SchemaVersion is the version of the JSON report this package writes.
-const SchemaVersion = 1
+const SchemaVersion = 2
 
 // Dir is the sidecar folder the host writes reports to, relative to the project folder; distinct from
 // narration-utils/production's own sessions.json, so an export never touches the time log.
@@ -27,9 +27,12 @@ const Dir = "narration-utils/production/reports"
 
 // Options are the narrator's choices for one export.
 type Options struct {
-	// IncludeContractedAmount writes the contracted amount and the effective rate; off by default.
-	IncludeContractedAmount bool
+	// Include is the sections to write; Include.Money (the contracted amount and the effective rate) is off by default.
+	Include Sections
 }
+
+// AllSections ticks every section but the money one, the dialog's first state.
+var AllSections = Sections{Words: true, Stages: true, Milestones: true, Pickups: true, Delivery: true}
 
 // Input is everything one report is built from. Overview is the same production.Overview the Production page reads
 // (production.BuildOverview), so the report's figures never drift from what the page just showed. Milestones is the
@@ -47,18 +50,36 @@ type Input struct {
 
 // Build turns the input into the report model. It never fails: an undefined figure is written as absent, not guessed at.
 func Build(in Input) Report {
-	return Report{
+	include := in.Options.Include
+	report := Report{
 		SchemaVersion: SchemaVersion,
 		GeneratedAt:   in.GeneratedAt,
 		App:           App{Name: "Narration Studio", Version: in.AppVersion},
 		Notice:        notice,
-		Book:          bookOf(in.Overview),
-		Deadline:      deadlineOf(in.Overview),
-		Milestones:    milestonesOf(in.Milestones, in.Now),
-		Readiness:     readinessOf(in.Overview.Chapters),
-		Rate:          rateOf(in.Overview.Totals, in.Options),
-		Privacy:       privacyOf(in.Options),
+		Book:          BookSummary{Chapters: in.Overview.Totals.Chapters, FinalizedChapters: in.Overview.Totals.FinalizedChapters},
+		Privacy:       privacyOf(include),
 	}
+	if include.Words {
+		report.Words = wordsOf(in.Overview)
+	}
+	if include.Stages {
+		report.Stages = stagesOf(in.Overview)
+	}
+	if include.Milestones {
+		report.Schedule = &Schedule{Deadline: deadlineOf(in.Overview), Milestones: milestonesOf(in.Milestones, in.Now)}
+	}
+	if include.Pickups {
+		report.HeldBack = heldBackOf(in.Overview.Chapters)
+	}
+	if include.Delivery {
+		readiness := readinessOf(in.Overview.Chapters)
+		report.Readiness = &readiness
+	}
+	if include.Money {
+		rate := rateOf(in.Overview.Totals)
+		report.Rate = &rate
+	}
+	return report
 }
 
 // JSON renders the report as indented JSON with a trailing newline.
@@ -89,16 +110,27 @@ func (r Report) Render() (Rendered, error) {
 	return Rendered{HTML: page, JSON: encoded}, nil
 }
 
-func bookOf(overview production.Overview) BookSummary {
+func wordsOf(overview production.Overview) *Words {
+	totals := overview.Totals
+	return &Words{WordCount: totals.WordCount, RecordedSeconds: totals.RecordedSeconds, MeasuredChapters: totals.MeasuredChapters}
+}
+
+func stagesOf(overview production.Overview) *Stages {
 	byStage := map[string]float64{}
 	for stage, hours := range overview.Totals.HoursByStage {
 		byStage[string(stage)] = hours
 	}
-	return BookSummary{
-		Chapters: overview.Totals.Chapters, FinalizedChapters: overview.Totals.FinalizedChapters, WordCount: overview.Totals.WordCount,
-		RecordedSeconds: overview.Totals.RecordedSeconds, MeasuredChapters: overview.Totals.MeasuredChapters,
-		HoursLogged: overview.Totals.HoursLogged, HoursByStage: byStage, BookPFH: overview.Totals.BookPFH,
+	return &Stages{HoursLogged: overview.Totals.HoursLogged, HoursByStage: byStage, BookPFH: overview.Totals.BookPFH}
+}
+
+func heldBackOf(chapters []production.OverviewChapter) *HeldBack {
+	held := HeldBack{Chapters: []HeldBackChapter{}}
+	for _, chapter := range chapters {
+		if chapter.Readiness != nil && chapter.Readiness.Verdict == "not_ready" {
+			held.Chapters = append(held.Chapters, HeldBackChapter{ID: chapter.ID, Title: chapter.Title, Reason: chapter.Readiness.Reason})
+		}
 	}
+	return &held
 }
 
 func deadlineOf(overview production.Overview) *Deadline {
@@ -153,10 +185,7 @@ func readinessOf(chapters []production.OverviewChapter) Readiness {
 	return counts
 }
 
-func rateOf(totals production.Totals, options Options) RateInfo {
-	if !options.IncludeContractedAmount {
-		return RateInfo{Note: "The narrator chose not to include the contracted amount or the effective rate in this report."}
-	}
+func rateOf(totals production.Totals) RateInfo {
 	note := "The effective rate is undefined (no contracted amount set, or no hours logged yet)."
 	if totals.EffectiveRate != nil {
 		note = "The contracted amount divided by every hour logged on the book."
@@ -164,10 +193,10 @@ func rateOf(totals production.Totals, options Options) RateInfo {
 	return RateInfo{ContractedAmount: totals.ContractedAmount, EffectiveRate: totals.EffectiveRate, Note: note}
 }
 
-func privacyOf(options Options) Privacy {
+func privacyOf(include Sections) Privacy {
 	note := "The contracted amount and effective rate are left out unless the narrator ticks the box to include them."
-	if options.IncludeContractedAmount {
+	if include.Money {
 		note = "The narrator chose to include the contracted amount and the effective rate."
 	}
-	return Privacy{ContractedAmountIncluded: options.IncludeContractedAmount, Note: note}
+	return Privacy{Sections: include, ContractedAmountIncluded: include.Money, Note: note}
 }

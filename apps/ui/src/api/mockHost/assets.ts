@@ -308,6 +308,7 @@ export function createAssetsMock(initial: MockApiSeed) {
       if (kind === 'whisper' && whisperDamaged) return { kind, id, installState: 'verification_failed' as const };
       return { kind, id, installState: installed ? ('installed' as const) : ('not_installed' as const) };
     },
+    assetsOpenFolder: async () => {},
     assetsRemove: async (kind) => {
       if (kind === 'tts') ttsInstalled = false;
       else if (kind === 'spacy') spacyInstalled = false;
