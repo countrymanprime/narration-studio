@@ -9,7 +9,7 @@ import { NavDrawer } from '../primitives/NavDrawer';
 import { IconButton } from '../primitives/IconButton';
 import { KeyChord } from '../primitives/KeyCap';
 import { TooltipTarget } from '../primitives/Tooltip';
-import type { DawKind } from '../../api/contracts/daw';
+import type { AudacityLink, DawKind } from '../../api/contracts/daw';
 import { navAvailability, type NavFacts } from '../../navigation/navAvailability';
 import { Brand } from './Brand';
 import { DemoBanner } from './DemoBanner';
@@ -108,6 +108,7 @@ export function AppShell({
   linkingDawFile = false,
   engine = 'daw',
   daw,
+  audacity,
   navCounts = {},
   zoom,
   onOpenJump,
@@ -134,6 +135,8 @@ export function AppShell({
   engine?: EngineState;
   /** Which DAW backs the session, from the DAW capabilities; the header's chip names it. */
   daw?: DawKind;
+  /** Audacity's link state; the chip words an Audacity project from it instead of REAPER's file and heartbeat. */
+  audacity?: AudacityLink;
   /** The rail's count badges, from useNavCounts: a missing or zero count draws none. */
   navCounts?: NavCounts;
   /** The zoom level: the header draws a chip only while `percent` is not 100, and `announcement` is the debounced live-region text `useZoom` builds. */
@@ -338,6 +341,7 @@ export function AppShell({
             </div>
             <EngineChip
               daw={daw}
+              audacity={audacity}
               engine={engine}
               dawFileLinked={dawFileLinked}
               dawReachable={dawReachable}

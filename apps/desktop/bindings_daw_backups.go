@@ -287,8 +287,7 @@ func newestFirst(rows []audacity.Backup) []audacity.Backup {
 	return sorted
 }
 
-// audacityBackups is the Audacity adapter's backups role with the pipe client under it, so configureLocked can close the pipe when
-// the next project replaces the role.
+// audacityBackups is the Audacity adapter's backups role with the pipe client under it, and whether the next project has replaced it.
 type audacityBackups struct {
 	*audacity.Backups
 	pipe *audacitybridge.Client
@@ -296,6 +295,7 @@ type audacityBackups struct {
 	closed *atomic.Bool
 }
 
+// closePipe marks the role replaced and drops the pipe.
 func (a audacityBackups) closePipe() {
 	a.closed.Store(true)
 	_ = a.pipe.Close()
@@ -303,14 +303,8 @@ func (a audacityBackups) closePipe() {
 
 func (a audacityBackups) replaced() bool { return a.closed.Load() }
 
-// audacityBackupsFor is the Audacity backups role for the project configureLocked opens, with its table under project and the
-// narrator's window read from store on each backup. The pipe is opened on the role's first request, never here.
+// audacityBackupsFor is the Audacity backups role for the project configureLocked opens, over a connection of its own. The host
+// itself takes the role from its shared connection (newAudacityConn); this is the role alone, for a caller that needs no more.
 func audacityBackupsFor(project string, reporter *persist.Reporter, store *settings.Store) audacityBackups {
-	pipe := audacitybridge.New(audacitybridge.PipeTransport(), audacitybridge.Options{})
-	adapter := audacity.NewWithBackups(pipe, audacity.BackupsConfig{
-		Project:       func() string { return project },
-		Reporter:      reporter,
-		WindowSetting: func() float64 { return backupWindowSeconds(store) },
-	})
-	return audacityBackups{Backups: adapter.Backups(), pipe: pipe, closed: &atomic.Bool{}}
+	return newAudacityConn(project, reporter, store).backups
 }

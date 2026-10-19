@@ -199,6 +199,60 @@ export interface DawChoiceApi {
   dawLinkFound(): Promise<DawChoice>;
 }
 
+/** Where the app is on the way to Audacity 3 (apps/desktop/internal/audacitylink): `unsupported` (not Windows), `not_installed`,
+ * `not_running`, `module_off` (scripting is not turned on, or Audacity has never started so it has no settings yet),
+ * `needs_restart` (scripting is on and Audacity is open but does not answer: it was started before), `audacity4` (the program looks
+ * like Audacity 4, which has no scripting pipe), `dialog` (Audacity did not answer and may be waiting on a dialog),
+ * `no_project` (it answers and has no project open) and `answering`. */
+export type AudacityLinkState =
+  'unsupported' | 'not_installed' | 'not_running' | 'module_off' | 'needs_restart' | 'audacity4' | 'dialog' | 'no_project' | 'answering';
+
+/** The one thing the app can do for the state: start Audacity, turn scripting on in its settings, or nothing. */
+export type AudacityLinkAction = 'none' | 'launch' | 'enable_module';
+
+/** How the project open in Audacity relates to this one: `linked` (it carries this project's link label), `other` (another
+ * project's), `unlabelled` (none) or `unknown` (Audacity is not answering). */
+export type AudacityOpenProject = 'unknown' | 'linked' | 'other' | 'unlabelled';
+
+/** One line of the first-start walk-through. */
+export type AudacityLinkStep = { id: 'installed' | 'started_once' | 'scripting_on' | 'answering'; label: string; done: boolean };
+
+/** AudacityLink and its audacity_link_changed event (apps/desktop/bindings_audacity_link.go). `chosen` is whether the project
+ * records with Audacity; nothing is read from Audacity while it does not. `message` is a whole sentence worded by the host.
+ * `linkedFile` is a file name, never a path. `heardSecondsAgo` is how long since Audacity last answered, null when it has not
+ * since the app opened the project; a page shows "last heard N s ago" from it, never a stale fact as if it were current. */
+export type AudacityLink = {
+  hasProject: boolean;
+  chosen: boolean;
+  state: AudacityLinkState;
+  message: string;
+  action: AudacityLinkAction;
+  steps: AudacityLinkStep[];
+  installed: boolean;
+  running: boolean;
+  openProject: AudacityOpenProject;
+  linked: boolean;
+  linkedFile: string | null;
+  heardSecondsAgo: number | null;
+};
+
+export interface AudacityLinkApi {
+  /** The last heartbeat's state, or a fresh read when there is none yet. */
+  audacityLink(): Promise<AudacityLink>;
+  /** Asks Audacity now ("Check again"); can take as long as the pipe's timeout while Audacity shows a dialog. */
+  audacityLinkCheck(): Promise<AudacityLink>;
+  /** Turns scripting on in Audacity's settings file; refused with a sentence while Audacity is open. */
+  audacityEnableModule(): Promise<AudacityLink>;
+  /** Opens a file dialog for the project's .aup3, records it and chooses Audacity; cancelling changes nothing. */
+  audacityLinkFile(): Promise<AudacityLink>;
+  /** Writes this project's link label into the project open in Audacity. */
+  audacityLinkOpenProject(): Promise<AudacityLink>;
+  /** Forgets the linked Audacity project; the label stays in the Audacity project. */
+  audacityUnlink(): Promise<AudacityLink>;
+  /** The host pushes the link state on a change (the heartbeat asks every 2 s) and not otherwise. */
+  subscribeAudacityLink(onUpdate: (state: AudacityLink) => void): () => void;
+}
+
 /** The DAW project as last saved against the live one (DawProjectState and daw_project_state_changed;
  * apps/desktop/bindings_daw_projectstate.go). `savedAt` is the saved file's modification time, read by the host, as a local
  * date and time to the minute (`2026-09-26T08:40`), null when the DAW keeps no saved project or this one was never saved.

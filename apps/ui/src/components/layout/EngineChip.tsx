@@ -1,4 +1,5 @@
-import type { DawKind } from '../../api/contracts/daw';
+import type { AudacityLink, DawKind } from '../../api/contracts/daw';
+import { audacityTitle } from '../engine/audacityLinkText';
 import { dawShortName } from '../../studio/StudioProvider';
 import { statusTone, type StatusId } from '../../kinds/statusTone';
 import { HeaderChip, type HeaderChipTone } from '../primitives/HeaderChip';
@@ -16,6 +17,7 @@ export function EngineChip({
   dawFileLinked,
   dawReachable = false,
   dawProjectMatches = false,
+  audacity,
   followingChapter,
   onOpenEnginePanel,
   linkingDawFile = false,
@@ -29,6 +31,8 @@ export function EngineChip({
   dawReachable?: boolean;
   /** Whether that heartbeat's open project is the linked file; only meaningful when dawReachable is true. */
   dawProjectMatches?: boolean;
+  /** Audacity's link state. For an Audacity project the chip words it from this instead of REAPER's file link and heartbeat. */
+  audacity?: AudacityLink;
   /** The chapter the DAW is following, when the host reports one. */
   followingChapter?: string;
   /** Opens the engine panel: the linked project and its link action, the tracks, chapter sync and the DAW tools. */
@@ -46,17 +50,25 @@ export function EngineChip({
     );
   }
   const label = daw ? dawShortName(daw) : '';
-  const mismatch = dawFileLinked && dawReachable && !dawProjectMatches;
-  const tooltip = !dawFileLinked
+  // An Audacity project has no .rpp and no REAPER heartbeat: its link is the label in the Audacity project, and "answering" is its pipe.
+  const forAudacity = daw === 'Audacity' && audacity?.chosen === true ? audacity : undefined;
+  const linked = forAudacity ? forAudacity.linked : dawFileLinked;
+  const reachable = forAudacity ? forAudacity.state === 'answering' : dawReachable;
+  const matches = forAudacity ? forAudacity.openProject === 'linked' : dawProjectMatches;
+  const mismatch = linked && reachable && !matches;
+  let tooltip = !linked
     ? 'Open the engine panel to link a project file'
-    : !dawReachable
+    : !reachable
       ? 'Not running'
       : mismatch
         ? 'A different project is open than the one linked here. Open the engine panel to link the open project, or switch to the linked file.'
         : followingChapter
           ? `Linked · following ${followingChapter}`
           : 'Linked';
-  const status: StatusId = !dawFileLinked ? 'not_linked' : mismatch ? 'wrong_project' : !dawReachable ? 'not_running' : 'linked';
+  if (forAudacity && !reachable) tooltip = `${audacityTitle(forAudacity)}. Open the engine panel for the steps.`;
+  if (forAudacity && reachable && !linked) tooltip = 'Audacity is answering. Open the engine panel to link the open project.';
+  const status: StatusId =
+    forAudacity && !reachable ? 'not_running' : !linked ? 'not_linked' : mismatch ? 'wrong_project' : !reachable ? 'not_running' : 'linked';
   const tone = statusTone(status) as HeaderChipTone;
   const dot = tone === 'neutral' ? 'var(--non-text)' : toneColors(tone).line;
   return (

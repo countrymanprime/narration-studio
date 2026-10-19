@@ -52,6 +52,7 @@ var swappableHostFields = map[string]bool{
 	"monitorLeveler":   true,
 	"placeFollower":    true,
 	"backupKeeper":     true,
+	"audacity":         true,
 	"dawPortResolver":  true,
 }
 

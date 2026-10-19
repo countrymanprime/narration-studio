@@ -122,11 +122,10 @@ func explainRequirement(c, required dawport.Capability, r dawport.Reason) string
 
 // The sentences a refusal shows the narrator.
 const (
-	// messageNotConnected: the host does not open the pipe from any page yet, so an Audacity
-	// launch's resolver has no connection.
-	messageNotConnected = "Audacity isn't connected to this app yet. This part of Audacity support is still being tested."
-	// messageNotReachable: the pipe is not there or not answering.
-	messageNotReachable = "Audacity is not answering. Open Audacity 3 with mod-script-pipe enabled in Preferences > Modules, then try again. Audacity 4.0 has no scripting pipe."
+	// messageNotConnected: the project does not record with Audacity, so the host holds no pipe to it.
+	messageNotConnected = "Audacity isn't connected to this project. Choose Audacity under Record with in Settings, then follow its steps."
+	// messageNotReachable: the pipe is not there or not answering. The link card (docs/reference/daw/audacity-3.md#linking) says which.
+	messageNotReachable = "Audacity is not answering. Open the Audacity chip at the top for the steps: Audacity 3 must be open with scripting turned on (Audacity 4.0 has no scripting pipe)."
 )
 
 // Adapter is Audacity over one pipe client.
@@ -238,7 +237,10 @@ func (declaration) Explain(_ dawport.Capability, r dawport.Reason) string {
 	switch r {
 	case dawport.ReasonNotYet:
 		return string(ErrNotAvailable)
-	case dawport.ReasonStandalone, dawport.ReasonNotRunning:
+	case dawport.ReasonNotRunning:
+		// The host holds a pipe for this project (Runtime.Bridge) and Audacity is not answering on it.
+		return messageNotReachable
+	case dawport.ReasonStandalone:
 		return messageNotConnected
 	default:
 		return ""

@@ -1,0 +1,35 @@
+{
+  "action": "none",
+  "chosen": true,
+  "hasProject": true,
+  "heardSecondsAgo": null,
+  "installed": true,
+  "linked": false,
+  "linkedFile": null,
+  "message": "Audacity is open but did not answer. It may be waiting on a dialog: look for a message box in Audacity, close it, and the app reconnects by itself. Nothing is sent to Audacity meanwhile.",
+  "openProject": "unknown",
+  "running": true,
+  "state": "dialog",
+  "steps": [
+    {
+      "done": true,
+      "id": "installed",
+      "label": "Audacity 3 is installed"
+    },
+    {
+      "done": true,
+      "id": "started_once",
+      "label": "Audacity has started once, so it has made its settings"
+    },
+    {
+      "done": true,
+      "id": "scripting_on",
+      "label": "Scripting is turned on in Audacity"
+    },
+    {
+      "done": false,
+      "id": "answering",
+      "label": "Audacity answers the app"
+    }
+  ]
+}

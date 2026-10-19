@@ -81,6 +81,8 @@ func backupHost(t *testing.T, kind string, bridge bool, role dawport.BackupKeepe
 		host.bridge = nil
 	}
 	host.backupKeeper = role
+	// The test's reachability and role stand in for the project's own Audacity connection.
+	host.audacity = nil
 	host.mu.Unlock()
 	return host
 }

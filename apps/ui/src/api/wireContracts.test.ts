@@ -3,6 +3,7 @@ import { fileURLToPath } from 'node:url';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { z } from 'zod';
 import { DESKTOP_HOST_API_VERSION } from '../hostApi';
+import { AUDACITY_LINK_MOCK_SEEDS, type AudacityLinkMockName, type AudacityLinkMockSeed } from './audacityLinkMock';
 import { createMockApi } from './mockApi';
 import {
   backedUpAnswer,
@@ -210,6 +211,7 @@ import {
   dawProjectStateSchema,
   dawResultSchema,
   dawTransportSchema,
+  audacityLinkSchema,
 } from './schemas/daw';
 import { providerCapabilitiesSchema } from './schemas/providers';
 import { masteringProvidersSchema } from './schemas/mastering';
@@ -1947,6 +1949,65 @@ describe('answers of the mock client for the settings, voice, model, transcript 
       '2 REAPER project files',
     );
     expect(() => parseWire(dawChoiceSchema, { ...golden, path: 'C:/x.rpp' }, ctx('daw choice'))).toThrow();
+  });
+
+  it('the Audacity link: every seeded state passes the schema, the sentences match the host goldens, and the first-start steps move it on', async () => {
+    const audacity = (audacityLink: AudacityLinkMockSeed | undefined) => createMockApi({}, { daw: { daw: 'Audacity' }, audacityLink });
+    const read = async (seed: AudacityLinkMockSeed) => {
+      const link = await audacity(seed).audacityLink();
+      expectMatches(audacityLinkSchema, link, 'mock AudacityLink');
+      return link;
+    };
+    // The same facts as the host's goldens (bindings_audacity_link_test.go): the mock's sentences are the host's.
+    const strip = ({ heardSecondsAgo: _heard, ...rest }: { heardSecondsAgo: number | null }) => rest;
+    const golden = (file: string) => readGolden(file) as { heardSecondsAgo: number | null };
+    expect(strip(await read({ module: 'on', linkedFile: null }))).toEqual({ ...strip(golden('audacity-link-not-running.json')) });
+    expect(strip(await read({ module: 'unknown' }))).toEqual(strip(golden('audacity-link-first-start.json')));
+    expect(strip(await read({ module: 'on', running: true, pipe: 'silent' }))).toEqual(strip({ ...golden('audacity-link-dialog.json') }));
+    for (const file of ['audacity-link-answering-linked.json', 'audacity-link-not-chosen.json']) expectMatches(audacityLinkSchema, readGolden(file), file);
+    for (const name of Object.keys(AUDACITY_LINK_MOCK_SEEDS) as AudacityLinkMockName[]) {
+      const link = await read(AUDACITY_LINK_MOCK_SEEDS[name]);
+      expect(link.chosen, name).toBe(true);
+      expect(link.message.length, name).toBeGreaterThan(10);
+    }
+    // A project that records elsewhere reads nothing from Audacity.
+    expect((await createMockApi().audacityLink()).chosen).toBe(false);
+
+    // The two-start procedure, step by step.
+    const api = audacity({ module: 'unknown' });
+    expect((await api.audacityLink()).action).toBe('launch');
+    await expect(api.audacityEnableModule()).rejects.toThrow(/start Audacity once/);
+    await api.launchDaw();
+    const firstStart = await api.audacityLink();
+    expect(firstStart).toMatchObject({ state: 'module_off', running: true, action: 'none' });
+    await expect(api.audacityEnableModule()).rejects.toThrow(/Close it first/);
+    expect(await api.audacityLinkCheck()).toMatchObject({ running: false, action: 'enable_module' });
+    expect(await api.audacityEnableModule()).toMatchObject({ state: 'not_running', action: 'launch' });
+    await api.launchDaw();
+    expect(await api.audacityLink()).toMatchObject({ state: 'answering', openProject: 'unlabelled' });
+    const linked = await api.audacityLinkOpenProject();
+    expect(linked).toMatchObject({ openProject: 'linked', linked: true });
+    expectMatches(audacityLinkSchema, linked, 'mock link after linking the open project');
+    expect(await api.audacityUnlink()).toMatchObject({ linked: false, linkedFile: null });
+    await expect(audacity({ module: 'on' }).audacityLinkOpenProject()).rejects.toThrow(/did not answer/);
+  });
+
+  it('subscribeAudacityLink pushes every change, and the schema rejects a missing sentence, an unknown state and an extra key', async () => {
+    const api = createMockApi({}, { daw: { daw: 'Audacity' }, audacityLink: { module: 'on', running: true, pipe: 'answering', openProject: 'unlabelled' } });
+    const pushed: unknown[] = [];
+    const stop = api.subscribeAudacityLink((state) => pushed.push(structuredClone(state)));
+    await api.audacityLinkOpenProject();
+    stop();
+    await api.audacityUnlink();
+    expect(pushed).toHaveLength(1);
+    expectMatches(audacityLinkSchema, pushed[0], 'mock audacity_link_changed');
+    const valid = readGolden('audacity-link-answering-linked.json') as Record<string, unknown>;
+    expect(audacityLinkSchema.safeParse(valid).success).toBe(true);
+    expect(audacityLinkSchema.safeParse({ ...valid, message: '' }).success).toBe(false);
+    expect(audacityLinkSchema.safeParse({ ...valid, state: 'asleep' }).success).toBe(false);
+    expect(audacityLinkSchema.safeParse({ ...valid, linkedFile: 'C:/Audio/Book.aup3', path: 'C:/Audio/Book.aup3' }).success).toBe(false);
+    expect(audacityLinkSchema.safeParse({ ...valid, heardSecondsAgo: -1 }).success).toBe(false);
+    expect(audacityLinkSchema.safeParse({ ...valid, steps: [] }).success).toBe(false);
   });
 
   it('the built-in recorder matches the host goldens and records a take', async () => {
@@ -3903,6 +3964,12 @@ describe('answers of the mock client for the settings, voice, model, transcript 
   it('every method of the API is either checked in this file, void, or not a request', () => {
     // A new binding fails this until it has a schema and a row above. The list of what is checked is kept by hand.
     const CHECKED = [
+      'audacityLink',
+      'audacityLinkCheck',
+      'audacityEnableModule',
+      'audacityLinkFile',
+      'audacityLinkOpenProject',
+      'audacityUnlink',
       'dawChoice',
       'dawChoose',
       'dawLinkFound',
@@ -4327,6 +4394,7 @@ describe('answers of the mock client for the settings, voice, model, transcript 
       'subscribeDawCapabilities',
       'subscribeDawTransport',
       'subscribeDawProjectState',
+      'subscribeAudacityLink',
       'subscribeRecorderState',
       'subscribeRecorderLevel',
     ];

@@ -53,6 +53,8 @@ recorder** (see [Choose REAPER](#choose-reaper)). The choice is saved with the p
 a take running, or the built-in recorder not available) says why under the radios, and the choice stays where it was.
 Under it, **Connection** says what the app can reach right now, with **Test connection**.
 
+With **Audacity** chosen, **Connection** is **Audacity connection** instead: a status, one sentence that says what to do next, when Audacity was last heard from, and a **Set up Audacity** checklist. Audacity must be Audacity 3 with its scripting turned on, and the first start of a new Audacity cannot load scripting, so it takes two starts: **Start Audacity**, close it, **Turn on scripting** (the app edits Audacity's settings; it refuses while Audacity is open), then **Start Audacity** again. Once Audacity answers, **Link the open Audacity project** marks the project open in Audacity as this project's, with one label in a track named "Narration Utils"; **Choose Audacity project file** records the `.aup3` so **Start Audacity** opens it; **Unlink** forgets both and leaves the label in Audacity. **Check again** asks Audacity now. If Audacity may be waiting on a dialog, the card says so; close the dialog in Audacity and the app reconnects by itself. The same status shows on the header's engine chip and in the engine panel.
+
 Also here: **Microphone** (a list of the computer's inputs, with **Refresh the list**; the Booth uses the same
 one), and, for REAPER only, **Start the launcher script with REAPER**, and under Advanced **REAPER program**,
 **Experimental REAPER actions** and **Capabilities**. These are settings of this computer; a project has no override for them.

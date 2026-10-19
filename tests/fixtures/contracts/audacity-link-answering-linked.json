@@ -1,0 +1,35 @@
+{
+  "action": "none",
+  "chosen": true,
+  "hasProject": true,
+  "heardSecondsAgo": 3,
+  "installed": true,
+  "linked": true,
+  "linkedFile": "Book One.aup3",
+  "message": "Audacity is open and answering, with this project's Audacity project.",
+  "openProject": "linked",
+  "running": true,
+  "state": "answering",
+  "steps": [
+    {
+      "done": true,
+      "id": "installed",
+      "label": "Audacity 3 is installed"
+    },
+    {
+      "done": true,
+      "id": "started_once",
+      "label": "Audacity has started once, so it has made its settings"
+    },
+    {
+      "done": true,
+      "id": "scripting_on",
+      "label": "Scripting is turned on in Audacity"
+    },
+    {
+      "done": true,
+      "id": "answering",
+      "label": "Audacity answers the app"
+    }
+  ]
+}

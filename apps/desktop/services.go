@@ -97,6 +97,8 @@ type hostServices struct {
 	placeFollower dawport.PlaceFollower
 	// backupKeeper is the DAW port's backups role; nil (a true nil interface) with no Audacity launch or no project.
 	backupKeeper dawport.BackupKeeper
+	// audacity is the open project's one Audacity connection; nil unless the project records with Audacity.
+	audacity *audacityConn
 	// dawPortResolver is the DAW port's resolver for the roles bindings_navigation.go, readaloudreaper.go,
 	// teleprompterinput.go and chapterregions.go ask for; nil with no bridge client.
 	dawPortResolver *dawport.Resolver
@@ -175,6 +177,7 @@ func (h *Host) services() hostServices {
 		monitorLeveler:   h.monitorLeveler,
 		placeFollower:    h.placeFollower,
 		backupKeeper:     h.backupKeeper,
+		audacity:         h.audacity,
 		dawPortResolver:  h.dawPortResolver,
 	}
 }

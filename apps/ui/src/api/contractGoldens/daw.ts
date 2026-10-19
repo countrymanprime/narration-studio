@@ -3,6 +3,7 @@
 // tests/fixtures/contracts/ (see index.ts).
 import type { z } from 'zod';
 import {
+  audacityLinkSchema,
   dawBackupsFileSchema,
   dawCapabilitiesSchema,
   dawChoiceSchema,
@@ -17,6 +18,12 @@ import {
 } from '../schemas/daw';
 
 export const dawGoldens: Record<string, z.ZodType> = {
+  // AudacityLink (bindings_audacity_link_test.go): the link state at each point on the way to a working link.
+  'audacity-link-answering-linked.json': audacityLinkSchema,
+  'audacity-link-not-running.json': audacityLinkSchema,
+  'audacity-link-first-start.json': audacityLinkSchema,
+  'audacity-link-dialog.json': audacityLinkSchema,
+  'audacity-link-not-chosen.json': audacityLinkSchema,
   'daw-capabilities-standalone.json': dawCapabilitiesSchema,
   'daw-capabilities-reaper.json': dawCapabilitiesSchema,
   'daw-capabilities-audacity.json': dawCapabilitiesSchema,

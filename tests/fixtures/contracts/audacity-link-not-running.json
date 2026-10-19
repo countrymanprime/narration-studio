@@ -1,0 +1,35 @@
+{
+  "action": "launch",
+  "chosen": true,
+  "hasProject": true,
+  "heardSecondsAgo": null,
+  "installed": true,
+  "linked": false,
+  "linkedFile": null,
+  "message": "Audacity is not running. Start it here and the app connects.",
+  "openProject": "unknown",
+  "running": false,
+  "state": "not_running",
+  "steps": [
+    {
+      "done": true,
+      "id": "installed",
+      "label": "Audacity 3 is installed"
+    },
+    {
+      "done": true,
+      "id": "started_once",
+      "label": "Audacity has started once, so it has made its settings"
+    },
+    {
+      "done": true,
+      "id": "scripting_on",
+      "label": "Scripting is turned on in Audacity"
+    },
+    {
+      "done": false,
+      "id": "answering",
+      "label": "Audacity answers the app"
+    }
+  ]
+}
