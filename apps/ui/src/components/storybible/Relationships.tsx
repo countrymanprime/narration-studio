@@ -3,6 +3,7 @@ import type { GuideEntity, GuideType } from '../../types';
 import { entryColour } from '../../kinds/entityColour';
 import { categoryLabel } from '../../state';
 import { Icon } from '../primitives/Icon';
+import { Button } from '../primitives/Button';
 import { IconButton } from '../primitives/IconButton';
 import { Listbox, listboxOptionId } from '../primitives/Listbox';
 import { Popover } from '../primitives/Popover';
@@ -128,14 +129,10 @@ function PickButton({
       open={open}
       onOpenChange={setOpen}
       trigger={
-        <button
-          type="button"
-          aria-label={name ? `To: ${name}` : 'To: choose an entry'}
-          className="box-border inline-flex h-9 w-full items-center justify-between gap-2 rounded-[var(--control-radius)] border border-[var(--line-strong)] bg-[var(--surface)] px-3 text-left text-[0.88rem] text-[var(--text)] hover:border-[var(--accent)]"
-        >
+        <Button variant="secondary" aria-label={name ? `To: ${name}` : 'To: choose an entry'} className="w-full justify-between">
           <span className={`truncate ${name ? '' : 'text-[var(--text-muted)]'}`}>{name ?? 'Choose an entry'}</span>
           <span aria-hidden="true">▾</span>
-        </button>
+        </Button>
       }
     >
       <EntryPicker

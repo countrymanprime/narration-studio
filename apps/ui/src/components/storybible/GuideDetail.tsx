@@ -35,7 +35,6 @@ import { Field } from '../primitives/Field';
 import { ConfirmDialog } from '../primitives/ConfirmDialog';
 import { Menu } from '../primitives/Menu';
 import { Panel } from '../primitives/Panel';
-import { Input } from '@base-ui/react/input';
 import { TooltipTarget } from '../primitives/Tooltip';
 import { previewKey, usePreviewAudio } from './usePreviewAudio';
 import { PropertiesSection } from './PropertiesSection';
@@ -604,16 +603,16 @@ export function GuideDetail({
       nameInput={
         (canEdit && editing) || isNewDraft ? (
           <div className="min-w-0 flex-[1_1_12rem]">
-            <Input
+            <TextField
               ref={nameField}
-              aria-label="Name"
+              label="Name"
               aria-invalid={nameError ? true : undefined}
               value={draft.name}
-              onChange={(event) => {
+              onChange={(name) => {
                 setNameError(undefined);
-                setDraft({ ...draft, name: event.target.value });
+                setDraft({ ...draft, name });
               }}
-              className={`${PANEL_ENTRY_TITLE_CLASS} box-border w-full rounded-[var(--control-radius)] border border-transparent bg-transparent px-1 py-0 hover:border-[var(--line-strong)] focus-visible:border-[var(--accent)]`}
+              className="h-auto! border-transparent! bg-transparent! px-1! font-['Barlow_Condensed',sans-serif] text-[1.625rem]! leading-[1.2]! font-semibold hover:border-[var(--line-strong)]! focus-visible:border-[var(--accent)]!"
             />
           </div>
         ) : undefined
