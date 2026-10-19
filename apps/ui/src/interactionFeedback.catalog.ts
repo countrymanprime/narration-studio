@@ -92,8 +92,6 @@ export const SILENT_CATCHES: Record<string, string> = {
   'src/api/wailsClient.ts#2': 'The host binding is missing (not running inside the desktop app), so there is nothing to report to.',
   'src/components/booth/page/useBoothData.ts#5':
     'The Story Bible types only colour the names and speakers: when none can be read, every entry keeps the fallback colour and the Booth still opens.',
-  'src/motion.ts#1':
-    'Saving the Motion choice to local storage failed (storage unavailable): the choice was already applied, so it holds for this window only.',
   'src/App.tsx#1':
     "The header's running-timer chip on first load: an unreadable overview just leaves the chip hidden until the Production home reads one and says why there.",
   'src/App.tsx#2': 'A diagnostic report while showing the startup error; it must not throw over it.',
@@ -224,7 +222,6 @@ export const SILENT_CATCHES: Record<string, string> = {
   'src/components/booth/page/useBoothData.ts#3': 'The Story Bible entries only tint names and fill the side panel; without them the chapter reads unmarked.',
   'src/components/booth/page/useBoothData.ts#4':
     'The Story Bible types only colour the names and speakers; without them every entry keeps the fallback colour and the page still opens.',
-  'src/components/booth/page/useBoothData.ts#5': 'The dialogue cues only add speaker chips; without them every phrase reads as narration.',
   'src/components/booth/page/useBoothPage.ts#1':
     'The resume lookup only offers where the recording ends; a failure offers nothing and Record still starts at the end of the last item.',
 };
