@@ -41,7 +41,9 @@ place of its values and shows a neutral **Waiting** pill: **Waiting on 3 pickups
 chapter has open pickups (the number the Pickups page lists), else **No file measured yet · not mastered**.
 A row with a file shows its **Length**, **RMS**, **Peak**, **Noise floor** and the room
 tone at its **Head / tail** in seconds, then its **Result**: **Pass**, **Fail**, **Not judged** (a value the
-profile needs could not be measured), or **Waiting** / **Not measured**. A value that misses the
+profile needs could not be measured), or **Waiting** / **Not measured**. The table has no
+Clicks or Text column: the measurement reports clipping, not clicks, and does not compare the audio with the text, so
+nothing is drawn for them. A value that misses the
 profile's rule is red with a cross; a value the app could not measure (a silent render, or a file too
 short) is a dash, never a number, and never counted as met. A file not measured yet, or one that could not
 be read, says so in place of its values. If the measurement itself breaks on a file, its row says the
