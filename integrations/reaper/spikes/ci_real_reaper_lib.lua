@@ -121,22 +121,26 @@ function M.describe_item(item)
   }
   for slot = 0, reaper.CountTakes(item) - 1 do
     local take = reaper.GetTake(item, slot)
-    local source = reaper.GetMediaItemTake_Source(take)
-    local fx = {}
-    for index = 0, reaper.TakeFX_GetCount(take) - 1 do
-      local _, name = reaper.TakeFX_GetFXName(take, index, '')
-      fx[#fx + 1] = { name = name, enabled = reaper.TakeFX_GetEnabled(take, index) }
+    if not take then
+      out.takes[#out.takes + 1] = { empty = true, guid = '', active = false, file = '', offset = 0, volume = 0, rate = 1, fx = {}, envelope_points = {} }
+    else
+      local source = reaper.GetMediaItemTake_Source(take)
+      local fx = {}
+      for index = 0, reaper.TakeFX_GetCount(take) - 1 do
+        local _, name = reaper.TakeFX_GetFXName(take, index, '')
+        fx[#fx + 1] = { name = name, enabled = reaper.TakeFX_GetEnabled(take, index) }
+      end
+      out.takes[#out.takes + 1] = {
+        guid = M.take_guid(take),
+        active = take == active,
+        file = M.basename(source and reaper.GetMediaSourceFileName(source, '') or ''),
+        offset = reaper.GetMediaItemTakeInfo_Value(take, 'D_STARTOFFS'),
+        volume = reaper.GetMediaItemTakeInfo_Value(take, 'D_VOL'),
+        rate = reaper.GetMediaItemTakeInfo_Value(take, 'D_PLAYRATE'),
+        fx = fx,
+        envelope_points = M.volume_points(take),
+      }
     end
-    out.takes[#out.takes + 1] = {
-      guid = M.take_guid(take),
-      active = take == active,
-      file = M.basename(source and reaper.GetMediaSourceFileName(source, '') or ''),
-      offset = reaper.GetMediaItemTakeInfo_Value(take, 'D_STARTOFFS'),
-      volume = reaper.GetMediaItemTakeInfo_Value(take, 'D_VOL'),
-      rate = reaper.GetMediaItemTakeInfo_Value(take, 'D_PLAYRATE'),
-      fx = fx,
-      envelope_points = M.volume_points(take),
-    }
   end
   return out
 end
@@ -255,6 +259,7 @@ function M.reset(rpp)
     index = index + 1
   end
   reaper.SetEditCurPos(0, false, false)
+  reaper.GetSet_LoopTimeRange(true, false, 0, 0, false)
   reaper.Main_SaveProjectEx(0, rpp, 0)
   reaper.Main_openProject('noprompt:' .. rpp)
 end

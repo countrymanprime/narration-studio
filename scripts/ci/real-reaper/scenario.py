@@ -182,6 +182,14 @@ class Env:
             raise AssertionError(f"snippet failed: {final[2:]}")
         return json.loads(final[2])
 
+    def lua_async(self, code: str, *args: object) -> str:
+        """Sends a Lua snippet without waiting for it; answers its run id (CI_RESULT arrives when REAPER gets to it)."""
+        self.snippets += 1
+        file = self.out / "snippets" / f"s{self.snippets:04d}.lua"
+        file.parent.mkdir(parents=True, exist_ok=True)
+        file.write_text(textwrap.dedent(code), encoding="utf-8", newline="\n")
+        return self.session.send("ci_exec", str(file), *args)
+
     def reset(self) -> None:
         """An empty, saved project with no undo history, no recording and the transport stopped."""
         self.lua("reaper.OnStopButton() ci.reset(ci.rpp) return true")
@@ -213,6 +221,23 @@ class Env:
         events = self.send(command, *args, until=wanted)
         assert events[-1][0] == tag, f"{command}: expected {tag}, got {events}"
         return events[-1]
+
+    def start(self, command: str, *args: object) -> str:
+        """Sends a command without waiting; answers its run id (for events that come later, such as RECORD_ENDED)."""
+        return self.session.send(command, *args)
+
+    def wait_event(self, run: str, tag: str, *, timeout: float = 20.0) -> list[str]:
+        """The first event `tag` carrying the run id, waiting for it to arrive."""
+
+        def find():
+            self.session.events()
+            return next((e for e in self.session.seen if len(e) > 1 and e[0] == tag and e[1] == run), None)
+
+        return self.wait_for(find, timeout=timeout, what=f"{tag} for {run}")
+
+    def events_for(self, run: str) -> list[list[str]]:
+        self.session.events()
+        return [e for e in self.session.seen if len(e) > 1 and e[1] == run]
 
     def payload(self, name: str, lines: list[str]) -> str:
         directory = self.out / "payloads"
