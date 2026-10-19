@@ -317,6 +317,11 @@ export function createMockApi(
     seed: initial.proofingRender,
   });
   const { current: deliveryProfile, all: deliveryProfilesAll, ...deliveryProfiles } = createDeliveryProfilesMock(initial.deliveryProfile);
+  // `?mockProfileRead=fails`: the read of the delivery profiles fails, so Master & QC says so and offers Retry.
+  if (initial.profileRead === 'fails')
+    deliveryProfiles.deliveryProfiles = async () => {
+      throw new Error('The delivery profiles could not be read from this project.');
+    };
   const { peekDiagnostics, ...diagnostics } = createDiagnosticsMock(endJob, measurePicked, initial.diagnostics);
   const editing = createEditingMock(initial.editing, editingChoices);
   const cleanupAction = createCleanupActionMock(initial.cleanupAction);
