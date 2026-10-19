@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { renderHook, waitFor } from '@testing-library/react';
+import { act, renderHook, waitFor } from '@testing-library/react';
 import type { ReactNode } from 'react';
 import { describe, expect, it } from 'vitest';
 import { ApiProvider } from '../../api/ApiContext';
@@ -7,6 +7,7 @@ import { createMockApi } from '../../api/mockApi';
 import type { NarrationApi as Api } from '../../types';
 import { MIXED } from '../pickups/list/pickupFixtures';
 import { openPickups } from '../pickups/list/pickupRows';
+import { announcePickupListChanged } from '../pickups/pickupListChanged';
 import { useNavCounts } from './useNavCounts';
 
 const wrap = (api: Api) =>
@@ -51,5 +52,22 @@ describe('useNavCounts (rail badges, N-B61)', () => {
     const { result } = renderHook(() => useNavCounts('/'), { wrapper: wrap(api) });
     await waitFor(() => expect(result.current.pickups).toBeDefined());
     expect(result.current.proof).toBeUndefined();
+  });
+
+  it('reads both counts again when Proof announces a saved decision, without a page move', async () => {
+    const api = createMockApi({}, {});
+    const { findings } = await api.findingsList({});
+    // A note whose fix is a pickup, not an edit: the mock host lists only those (mockHost/pickupsFromProof.test.ts).
+    const edit = new Set(['duplicate_read', 'take_comparison', 'pacing', 'audio_quality', 'silence_cleanup', 'level_consistency', 'delivery_qc']);
+    const note = findings.find((finding) => finding.manuscript?.chapter_id && !edit.has(finding.category) && finding.evidence?.kind !== 'EXTRA');
+    if (!note) throw new Error('the fixtures have no pickup note');
+    const { result } = renderHook(() => useNavCounts('/proof'), { wrapper: wrap(api) });
+    await waitFor(() => expect(result.current.pickups).toBeDefined());
+    const before = result.current;
+
+    await api.findingsReview({ id: note.id, evidenceVersion: note.evidence_version ?? '', status: 'accepted', note: '' });
+    expect(result.current).toEqual(before);
+    act(() => announcePickupListChanged());
+    await waitFor(() => expect(result.current.pickups).toBe((before.pickups ?? 0) + 1));
   });
 });

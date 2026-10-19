@@ -1,0 +1,466 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Narration Studio</title>
+    <link rel="icon" type="image/png" href="./assets/favicon.png" />
+    <meta name="description" content="Narration Studio proofs every audiobook chapter before the proofer does. Try the real app in your browser." />
+    <script>
+      // Same key and logic as apps/ui/index.html, so the site opens in the theme the demo app last used on this origin.
+      (function () {
+        try {
+          var stored = localStorage.getItem('narration-ui-theme');
+          var preference = stored === 'light' || stored === 'dark' || stored === 'system' ? stored : 'system';
+          var dark = preference === 'dark' || (preference === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
+          if (dark) document.documentElement.setAttribute('data-theme', 'dark');
+        } catch (error) {
+          // Storage or matchMedia unavailable (a sandboxed frame): the light palette.
+        }
+      })();
+    </script>
+    <style>
+      /* The font files are copied from the app's own bundle by scripts/site/build-demo-site.mjs; no font host is contacted. */
+      @font-face {
+        font-family: 'Barlow Condensed';
+        font-weight: 600;
+        font-display: swap;
+        src: url('./assets/fonts/barlow-condensed-600.woff2') format('woff2');
+      }
+      @font-face {
+        font-family: 'Barlow Condensed';
+        font-weight: 700;
+        font-display: swap;
+        src: url('./assets/fonts/barlow-condensed-700.woff2') format('woff2');
+      }
+      @font-face {
+        font-family: 'IBM Plex Sans';
+        font-weight: 400;
+        font-display: swap;
+        src: url('./assets/fonts/ibm-plex-sans-400.woff2') format('woff2');
+      }
+      @font-face {
+        font-family: 'IBM Plex Sans';
+        font-weight: 600;
+        font-display: swap;
+        src: url('./assets/fonts/ibm-plex-sans-600.woff2') format('woff2');
+      }
+      :root {
+        --bg: #efede7;
+        --surface: #fbfaf7;
+        --surface-2: #f4f2ec;
+        --border: #dcd7cb;
+        --line-strong: #969083;
+        --btn-line: #2b2723;
+        --text: #23201b;
+        --text-muted: #5c564b;
+        --accent: #b04f17;
+        --accent-strong: #8f3f0f;
+        --accent-soft: #f2deca;
+        --accent-contrast: #ffffff;
+        --focus: #1f5fbf;
+        --ok: #2f6b3e;
+        --ok-soft: #dcede3;
+        --warn: #8a5a00;
+        --warn-soft: #f4e6c4;
+        --display: 'Barlow Condensed', 'Arial Narrow', sans-serif;
+        --body: 'IBM Plex Sans', system-ui, sans-serif;
+      }
+      :root[data-theme='dark'] {
+        --bg: #14120e;
+        --surface: #1d1a15;
+        --surface-2: #26221c;
+        --border: #38332a;
+        --line-strong: #6d6659;
+        --btn-line: #7a7060;
+        --text: #ede8de;
+        --text-muted: #b0a797;
+        --accent: #d9803f;
+        --accent-strong: #f0a06a;
+        --accent-soft: #3a2617;
+        --accent-contrast: #1a0f05;
+        --focus: #7fb0ff;
+        --ok: #7dc08a;
+        --ok-soft: #1e3324;
+        --warn: #e3b04f;
+        --warn-soft: #3a2d10;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        background: var(--bg);
+        color: var(--text);
+        font: 400 16px/1.55 var(--body);
+      }
+      a {
+        color: inherit;
+      }
+      :focus-visible {
+        outline: 2px solid var(--focus);
+        outline-offset: 2px;
+      }
+      .wrap {
+        max-width: 1120px;
+        margin: 0 auto;
+        padding: 0 16px;
+      }
+      header {
+        border-bottom: 1px solid var(--border);
+        background: var(--surface);
+      }
+      header .wrap {
+        display: flex;
+        align-items: center;
+        gap: 24px;
+        min-height: 60px;
+        flex-wrap: wrap;
+      }
+      .brand {
+        font: 700 22px/1 var(--display);
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        text-decoration: none;
+        margin-right: auto;
+      }
+      nav {
+        display: flex;
+        gap: 20px;
+        flex-wrap: wrap;
+      }
+      nav a {
+        font: 600 15px/1 var(--display);
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        text-decoration: none;
+        color: var(--text-muted);
+        padding: 8px 0;
+      }
+      nav a:hover {
+        color: var(--text);
+      }
+      .btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        min-height: 40px;
+        padding: 0 18px;
+        border: 1px solid var(--btn-line);
+        border-radius: 6px;
+        background: var(--surface);
+        color: var(--text);
+        font: 600 15px/1 var(--display);
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        text-decoration: none;
+        cursor: pointer;
+      }
+      .btn:hover {
+        background: var(--surface-2);
+      }
+      .btn.primary {
+        background: var(--accent);
+        border-color: var(--accent);
+        color: var(--accent-contrast);
+      }
+      .btn.primary:hover {
+        background: var(--accent-strong);
+        border-color: var(--accent-strong);
+      }
+      .btn.icon {
+        padding: 0 12px;
+      }
+      .hero {
+        padding: 64px 0 40px;
+        display: grid;
+        grid-template-columns: 1.1fr 1fr;
+        gap: 40px;
+        align-items: center;
+      }
+      .eyebrow {
+        font: 600 13px/1 var(--display);
+        letter-spacing: 0.16em;
+        text-transform: uppercase;
+        color: var(--accent);
+      }
+      h1 {
+        margin: 14px 0 0;
+        font: 700 clamp(44px, 7vw, 76px)/0.98 var(--display);
+        text-transform: uppercase;
+      }
+      .sub {
+        margin: 20px 0 0;
+        max-width: 52ch;
+        color: var(--text-muted);
+        font-size: 18px;
+      }
+      .cta {
+        display: flex;
+        gap: 12px;
+        flex-wrap: wrap;
+        margin-top: 28px;
+      }
+      .facts {
+        display: flex;
+        gap: 8px 20px;
+        flex-wrap: wrap;
+        margin-top: 22px;
+        padding: 0;
+        list-style: none;
+        color: var(--text-muted);
+        font-size: 14px;
+      }
+      .facts li::before {
+        content: '✓ ';
+        color: var(--ok);
+      }
+      .card {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        padding: 22px;
+      }
+      .note-card {
+        display: grid;
+        gap: 12px;
+      }
+      .row {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        font-size: 14px;
+      }
+      .badge {
+        font: 600 12px/1 var(--display);
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        padding: 5px 8px;
+        border-radius: 4px;
+      }
+      .badge.warn {
+        background: var(--warn-soft);
+        color: var(--warn);
+      }
+      .badge.ok {
+        background: var(--ok-soft);
+        color: var(--ok);
+      }
+      section.block {
+        padding: 40px 0;
+      }
+      h2 {
+        margin: 10px 0 0;
+        font: 700 clamp(30px, 4vw, 42px)/1.05 var(--display);
+        text-transform: uppercase;
+      }
+      h3 {
+        margin: 0 0 6px;
+        font: 700 22px/1.1 var(--display);
+        text-transform: uppercase;
+        letter-spacing: 0.02em;
+      }
+      p {
+        margin: 0;
+      }
+      .tour {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+        gap: 16px;
+        margin-top: 24px;
+      }
+      .tour .card {
+        text-decoration: none;
+        display: grid;
+        gap: 8px;
+        align-content: start;
+      }
+      .tour .card:hover {
+        border-color: var(--line-strong);
+      }
+      .tour p {
+        color: var(--text-muted);
+        font-size: 15px;
+      }
+      .go {
+        font: 600 14px/1 var(--display);
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        color: var(--accent);
+      }
+      .trio {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+        gap: 16px;
+        margin-top: 24px;
+      }
+      .trio p {
+        color: var(--text-muted);
+        font-size: 15px;
+      }
+      .install {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 32px;
+      }
+      .install ol {
+        margin: 0;
+        padding-left: 20px;
+        display: grid;
+        gap: 10px;
+        color: var(--text-muted);
+        font-size: 15px;
+      }
+      .install b {
+        color: var(--text);
+        display: block;
+      }
+      footer {
+        border-top: 1px solid var(--border);
+        margin-top: 24px;
+        padding: 24px 0 40px;
+        color: var(--text-muted);
+        font-size: 14px;
+      }
+      footer .wrap {
+        display: flex;
+        gap: 8px 24px;
+        flex-wrap: wrap;
+      }
+      @media (max-width: 800px) {
+        .hero,
+        .install {
+          grid-template-columns: 1fr;
+        }
+        .hero {
+          padding-top: 40px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <div class="wrap">
+        <a class="brand" href="./">Narration Studio</a>
+        <nav aria-label="Main">
+          <a href="demo/index.html">Live demo</a>
+          <!--STORYBOOK_NAV-->
+          <a href="https://github.com/countrymanprime/narration-utils/tree/main/docs/guides" target="_blank" rel="noopener">Docs</a>
+          <a href="https://github.com/countrymanprime/narration-utils/releases" target="_blank" rel="noopener">Download</a>
+        </nav>
+        <button type="button" class="btn icon" id="theme" aria-label="Switch colour theme">Theme</button>
+      </div>
+    </header>
+    <main>
+      <div class="wrap">
+        <section class="hero">
+          <div>
+            <div class="eyebrow">For audiobook narrators · Windows</div>
+            <h1>Proof every chapter before the proofer does.</h1>
+            <p class="sub">
+              Narration Studio imports your manuscript, listens to the recording with a local Whisper model and marks every skipped or added word. Then it
+              checks your files against the platform's delivery rules.
+            </p>
+            <div class="cta">
+              <a class="btn primary" href="demo/index.html">Try the live demo</a>
+              <!--STORYBOOK_CTA-->
+              <a class="btn" href="https://github.com/countrymanprime/narration-utils/releases" target="_blank" rel="noopener">Download for Windows</a>
+            </div>
+            <ul class="facts">
+              <li>Windows x64</li>
+              <li>Audio stays on your machine</li>
+              <li>REAPER · Audacity 3</li>
+            </ul>
+          </div>
+          <div class="card note-card" aria-label="Example of the Proof check">
+            <div class="row"><b>Proof · Chapter 3</b></div>
+            <div class="row"><span class="badge warn">Skipped word</span><span>“Oh dear!” not heard</span></div>
+            <div class="row"><span class="badge ok">Needs pickup</span><span>Marker dropped in the DAW, line queued in Pickups</span></div>
+            <p style="color: var(--text-muted); font-size: 14px">The demo runs this same flow in the real interface.</p>
+          </div>
+        </section>
+
+        <section class="block">
+          <div class="eyebrow">See it before you install it</div>
+          <h2>Three ways to look around</h2>
+          <div class="tour">
+            <a class="card" href="demo/index.html">
+              <h3>Live demo</h3>
+              <p>
+                The real app, built in its mock mode, running in this tab against a sample project (Alice's Adventures in Wonderland, public domain). A
+                simulated DAW stands in for REAPER. Nothing is uploaded or saved.
+              </p>
+              <span class="go">Open the demo →</span>
+            </a>
+            <!--STORYBOOK_CARD-->
+            <a class="card" href="https://github.com/countrymanprime/narration-utils/tree/main/docs/guides" target="_blank" rel="noopener">
+              <h3>Docs</h3>
+              <p>A how-to guide for each page of the app, with screenshots.</p>
+              <span class="go">Read the guides →</span>
+            </a>
+          </div>
+        </section>
+
+        <section class="block">
+          <div class="eyebrow">Built for long sessions</div>
+          <h2>Quiet where it should be</h2>
+          <div class="trio">
+            <div class="card">
+              <h3>Your audio stays here</h3>
+              <p>Transcription runs on a local Whisper model. Nothing is downloaded until a feature that needs a model asks you first.</p>
+            </div>
+            <div class="card">
+              <h3>Marks land in your DAW</h3>
+              <p>With REAPER running, the app drops a take marker at every discrepancy, so the fix is one click away.</p>
+            </div>
+            <div class="card">
+              <h3>Readable in a dim booth</h3>
+              <p>Light and dark themes with contrast checked by tests, a visible focus ring and keys for the notes queue.</p>
+            </div>
+          </div>
+        </section>
+
+        <section class="block">
+          <div class="card install">
+            <div>
+              <div class="eyebrow">Install on Windows</div>
+              <h2>Four minutes to a first project</h2>
+              <p style="color: var(--text-muted); margin-top: 14px; max-width: 44ch">
+                Windows x64 only for now. The installer is per-user, so it asks for no administrator rights.
+              </p>
+              <div class="cta">
+                <a class="btn primary" href="https://github.com/countrymanprime/narration-utils/releases" target="_blank" rel="noopener"
+                  >Get the latest release</a
+                >
+              </div>
+            </div>
+            <ol>
+              <li><b>Download the setup file</b>and its .sha256 file to check it.</li>
+              <li><b>Run it</b>It installs to your user folder and adds a Start Menu entry.</li>
+              <li><b>Expect a SmartScreen warning</b>The release is unsigned. Choose More info, then Run anyway.</li>
+              <li><b>Start Narration Studio</b>Updates come from the same releases, and only after you click.</li>
+            </ol>
+          </div>
+        </section>
+      </div>
+    </main>
+    <footer>
+      <div class="wrap">
+        <span>Narration Studio is AGPL-3.0-or-later.</span>
+        <a href="https://github.com/countrymanprime/narration-utils" target="_blank" rel="noopener">Source on GitHub</a>
+      </div>
+    </footer>
+    <script>
+      document.getElementById('theme').addEventListener('click', function () {
+        var dark = document.documentElement.getAttribute('data-theme') !== 'dark';
+        if (dark) document.documentElement.setAttribute('data-theme', 'dark');
+        else document.documentElement.removeAttribute('data-theme');
+        try {
+          localStorage.setItem('narration-ui-theme', dark ? 'dark' : 'light');
+        } catch (error) {
+          // Storage unavailable: the choice lasts until the page closes.
+        }
+      });
+    </script>
+  </body>
+</html>

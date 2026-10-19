@@ -7,7 +7,7 @@ The sidebar on the left is grouped by production stage, the way a narrator's wee
 **Review** ([Proof](proof.md), [Pickups](pickups.md)) and **Finish** ([Master & QC](master-and-qc.md), [Delivery](delivery.md)).
 From 1360 px wide each group but the first shows as a heading over its pages; Production and Schedule sit straight under the logo. Below that the rail shrinks to icons, grouped by a thin line,
 and below 860 px it hides behind a hamburger menu that opens it as a slide-in drawer with the headings back. [Settings](settings.md) lives at the bottom of the sidebar, in every layout, below every group, under a **Dark theme** / **Light theme** item that switches the theme. **Proof** carries a count of
-the notes still open and **Pickups** the open lines of the Pickups list; a zero, or a count the app cannot read, shows no badge.
+the notes still open and **Pickups** the open lines of the Pickups list; a zero, or a count the app cannot read, shows no badge. Both counts move as soon as you decide a note on Proof or change the Pickups list, not only when you leave the page.
 
 ![Primary navigation sidebar at desktop width](../../images/ui/nav-sidebar-desktop.webp)
 

@@ -65,3 +65,4 @@ apps/ui/playwright.local.config.ts
 /apps/desktop/shell
 integrations/reaper/narration-utils-app-path.txt
 integrations/reaper/narration-utils-app-path.txt.tmp
+/dist-site/
