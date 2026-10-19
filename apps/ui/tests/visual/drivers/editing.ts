@@ -126,6 +126,10 @@ export const editingDrivers: Record<string, Driver> = {
   'voice-sample-mark': async (page) => {
     await saveSample(page);
     await sampleDot(page).waitFor();
+    // The mark is the subject: the toast that confirmed the save is dismissed so the picture differs from voice-sample-saved's.
+    const toast = page.getByRole('status').filter({ hasText: /^Saved voice sample for / });
+    await toast.getByRole('button', { name: 'Dismiss message' }).click();
+    await toast.waitFor({ state: 'hidden' });
   },
   'voice-sample-mark-open': async (page) => {
     await saveSample(page);

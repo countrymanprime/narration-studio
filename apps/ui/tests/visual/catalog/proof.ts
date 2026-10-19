@@ -1,6 +1,6 @@
 // The `proof` rows of STATE_CATALOG: the Studio Next Proof page (see state-catalog.ts), in the order they are captured.
 import type { StateEntry } from '../lib/types';
-import { REFLOW } from './shared';
+import { KEEPS_DESKTOP_SCROLL, REFLOW } from './shared';
 
 export const proofStates: StateEntry[] = [
   {
@@ -78,6 +78,7 @@ export const proofStates: StateEntry[] = [
     description:
       "Proof, all chapters, the first note with a thread: a note of your own and a proofer's reply under Notes on this finding, with Proofer replied chosen for the next one",
     ...REFLOW,
+    ...KEEPS_DESKTOP_SCROLL,
   },
   {
     page: 'proof',
@@ -116,6 +117,11 @@ export const proofStates: StateEntry[] = [
     state: 'address-checking',
     description:
       'Proof opened from a link to a chapter the list does not have, while the list is read once more (?mockChapters=reread-hangs, at /proof?chapter=gone): the Proof title and the loaded page\'s two columns as grey blocks, with one polite "Checking this link…" status in place of the bare sentence',
+    sameAs: {
+      of: 'proof/loading',
+      reason:
+        "The address gate holds Proof on the page's own skeleton (ProofSkeleton) while it checks the link, as the chapter read does while it loads: the two differ only in the polite status a screen reader hears, which draws nothing.",
+    },
     ...REFLOW,
   },
 ];

@@ -41,6 +41,8 @@ export const masterDrivers: Record<string, Driver> = {
     await settlePage(page);
     await goToPage(page, 'Master & QC');
     await page.getByRole('button', { name: 'Retry reading the delivery profile' }).waitFor();
+    // The line sits under the file table, below the fold where the window is short: bring it up, or the picture is `empty`'s.
+    await scrollToTop(page, page.getByRole('alert').filter({ hasText: 'The delivery profile could not be read' }));
   },
   empty: async (page) => {
     await openMaster(page);

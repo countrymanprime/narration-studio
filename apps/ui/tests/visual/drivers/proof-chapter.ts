@@ -49,6 +49,11 @@ export const proofChapterDrivers: Record<string, Driver> = {
   // Proof's chapter picker with no track linked, scrolled so the run fills the picture.
   'compare-setup': async (page) => {
     await openCompare(page);
+    // The chapter view fits one screen, so the setup's picture would be `current`'s and the Preview's: the run's primary action has the keyboard.
+    await compareRun(page).getByRole('button', { name: 'Start comparison' }).focus();
+    // A scripted focus draws no ring after a mouse click; a key press back and forth makes it the keyboard's.
+    await page.keyboard.press('Shift+Tab');
+    await page.keyboard.press('Tab');
   },
   // The compare run's options, opened from the jump menu (they have no control on the page itself).
   'options-open': async (page) => {
