@@ -301,6 +301,8 @@ describe('Master & QC page body', () => {
     await userEvent.click(await screen.findByRole('button', { name: 'Check files…' }));
     await waitFor(() => expect(analyze).toHaveBeenCalledWith(['C:/a.wav']));
     expect(await screen.findByText('Reading Chapter 01.wav')).toBeTruthy();
+    // Check files… is disabled for the run, which would leave the keyboard on the page: it goes to Cancel instead.
+    await waitFor(() => expect(document.activeElement).toBe(screen.getByRole('button', { name: 'Cancel' })));
     const cancel = vi.spyOn(api, 'measureCancel');
     await userEvent.click(screen.getByRole('button', { name: 'Cancel' }));
     expect(cancel).toHaveBeenCalled();
