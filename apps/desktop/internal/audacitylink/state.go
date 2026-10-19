@@ -11,13 +11,13 @@ import (
 type Pipe int
 
 const (
-	// PipeAbsent: nothing to connect to (Audacity closed, scripting off, or no scripting at all).
+	// PipeAbsent nothing to connect to (Audacity closed, scripting off, or no scripting at all).
 	PipeAbsent Pipe = iota
-	// PipeSilent: Audacity took the command and did not answer in time, which is what a modal dialog does.
+	// PipeSilent Audacity took the command and did not answer in time, which is what a modal dialog does.
 	PipeSilent
-	// PipeNoProject: Audacity answered with a bare empty line, which it does with no project window open.
+	// PipeNoProject Audacity answered with a bare empty line, which it does with no project window open.
 	PipeNoProject
-	// PipeAnswering: Audacity echoed the probe.
+	// PipeAnswering Audacity echoed the probe.
 	PipeAnswering
 )
 
@@ -46,24 +46,24 @@ func Probe(ctx context.Context, p Pinger) Pipe {
 type State string
 
 const (
-	// StateUnsupported: this computer cannot run the scripting pipe the app uses (the app links Audacity on Windows).
+	// StateUnsupported this computer cannot run the scripting pipe the app uses (the app links Audacity on Windows).
 	StateUnsupported State = "unsupported"
-	// StateNotInstalled: no Audacity was found.
+	// StateNotInstalled no Audacity was found.
 	StateNotInstalled State = "not_installed"
-	// StateNotRunning: Audacity is closed.
+	// StateNotRunning Audacity is closed.
 	StateNotRunning State = "not_running"
-	// StateModuleOff: Audacity's scripting module is not turned on (or Audacity has never started, so it has no settings yet).
+	// StateModuleOff Audacity's scripting module is not turned on (or Audacity has never started, so it has no settings yet).
 	StateModuleOff State = "module_off"
-	// StateNeedsRestart: the module is on and Audacity is open, but no pipe answers: Audacity was started before scripting was
+	// StateNeedsRestart the module is on and Audacity is open, but no pipe answers: Audacity was started before scripting was
 	// turned on.
 	StateNeedsRestart State = "needs_restart"
-	// StateAudacity4: Audacity is open and no pipe answers, and the program looks like Audacity 4, which has no scripting pipe.
+	// StateAudacity4 Audacity is open and no pipe answers, and the program looks like Audacity 4, which has no scripting pipe.
 	StateAudacity4 State = "audacity4"
-	// StateDialog: Audacity may be waiting on a dialog.
+	// StateDialog Audacity may be waiting on a dialog.
 	StateDialog State = "dialog"
-	// StateNoProject: Audacity answers and has no project open.
+	// StateNoProject Audacity answers and has no project open.
 	StateNoProject State = "no_project"
-	// StateAnswering: Audacity answers with a project open.
+	// StateAnswering Audacity answers with a project open.
 	StateAnswering State = "answering"
 )
 
@@ -71,8 +71,11 @@ const (
 type Action string
 
 const (
-	ActionNone         Action = "none"
-	ActionLaunch       Action = "launch"
+	// ActionNone is offered when there is nothing for the narrator to do, or nothing the app can do for them.
+	ActionNone Action = "none"
+	// ActionLaunch starts Audacity.
+	ActionLaunch Action = "launch"
+	// ActionEnableModule turns Audacity's scripting module on.
 	ActionEnableModule Action = "enable_module"
 )
 
@@ -81,13 +84,13 @@ const (
 type OpenProject string
 
 const (
-	// ProjectUnknown: not read (Audacity is not answering).
+	// ProjectUnknown not read (Audacity is not answering).
 	ProjectUnknown OpenProject = "unknown"
-	// ProjectLinked: the open project carries this app project's link label.
+	// ProjectLinked the open project carries this app project's link label.
 	ProjectLinked OpenProject = "linked"
-	// ProjectOther: the open project carries another app project's link label.
+	// ProjectOther the open project carries another app project's link label.
 	ProjectOther OpenProject = "other"
-	// ProjectUnlabelled: the open project carries no link label, so the app cannot tell whose it is.
+	// ProjectUnlabelled the open project carries no link label, so the app cannot tell whose it is.
 	ProjectUnlabelled OpenProject = "unlabelled"
 )
 
