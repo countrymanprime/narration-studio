@@ -64,7 +64,9 @@ export const OnWordsMany: Story = { render: () => shell(<OnWords effects={MANY} 
 
 const inspector = (dawName: string, width = 420, index = 0) =>
   shell(
-    <EffectInspector fx={MANY[index]} cuts={[]} total={TOTAL} dawName={dawName} onRemove={fn()} position={{ index, count: MANY.length }} onStep={fn()} />,
+    <ApiProvider api={api}>
+      <EffectInspector fx={MANY[index]} cuts={[]} total={TOTAL} dawName={dawName} onRemove={fn()} position={{ index, count: MANY.length }} onStep={fn()} />
+    </ApiProvider>,
     width,
   );
 export const InspectorReaper: Story = {
