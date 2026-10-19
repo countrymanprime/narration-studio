@@ -22,7 +22,7 @@ const PICKER_LIMIT = 50;
 export type RelationRow = { key: string; label: string; otherId: string; otherName: string; incoming: boolean; holderId: string; targetId: string };
 
 /** The rows of `entity`'s table: what it holds, then what the other entries hold toward it. */
-export const relationRows = (entity: GuideEntity, entries: readonly GuideEntity[]): RelationRow[] => [
+const relationRows = (entity: GuideEntity, entries: readonly GuideEntity[]): RelationRow[] => [
   ...entity.relationships.map((rel) => ({
     key: `out:${rel.id}:${rel.label}`,
     label: rel.label,
