@@ -137,6 +137,7 @@ const AUDACITY_NEED_BACKUPS_KEYS: readonly DawCapabilityKey[] = ['takes', 'punch
  * the rows that need backups); the rest is not_yet_available. */
 const AUDACITY_EXPERIMENTAL: ReadonlySet<DawCapabilityKey> = new Set<DawCapabilityKey>([
   'review',
+  'pickups',
   'navigate',
   'markers',
   'macro_render',

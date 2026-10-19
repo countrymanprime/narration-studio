@@ -191,6 +191,8 @@ func (p *Project) getInfo(cmd Parsed) ([]string, bool) {
 			out = append(out, row)
 		}
 		v = out
+	case "Selection":
+		v = map[string]any{"start": p.SelStart, "end": p.SelEnd}
 	case "Clips":
 		out := []map[string]any{}
 		for i, t := range p.Tracks {

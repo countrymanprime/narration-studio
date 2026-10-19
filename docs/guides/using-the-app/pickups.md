@@ -91,7 +91,11 @@ figure). From there:
   [A pickup session](booth.md#a-pickup-session)). With no lines in the session it is off, and the line under the
   buttons says why: there are no pickups yet, every line in view is recorded, or every open line is left out.
 - **Add N as markers in** the DAW puts a pickup marker at each line's place and says "Pickup markers for N lines are in
-  REAPER." (or that those markers were already there). It is off, with the reason, when the DAW cannot add markers.
+  REAPER." (or that those markers were already there). It is off, with the reason, when the DAW cannot add markers. With
+  Audacity the markers are labels on a label track named "Narration Utils", written `[nu:pickup open] …` (and
+  `[nu:pickup done] …` once resolved): one label per line, with no colour. They are Experimental, so they stay off until the
+  Experimental switch is on, and Audacity must be [linked and answering](settings.md#recording--daw). Edit one by hand and the
+  app reads it as it stands; delete the `[nu:pickup …]` start and it is no longer a pickup.
 - **Copy the pickup script** copies the lines, one per line as "chapter · time: line", to paste elsewhere. If the window
   does not allow the clipboard, it says so.
 

@@ -9,7 +9,7 @@ What each engine declares for each capability today. The levels are the adapters
 | `review` | `ReviewSession` | Engine answering | Supported | Experimental | Not reachable | Unsupported |
 | `navigate` | `Navigator` | Engine answering | Supported | Experimental | Not reachable | Unsupported |
 | `markers` | `MarkerWriter` | Engine answering | Supported | Experimental | Not reachable | Unsupported |
-| `pickups` | `PickupList` | Engine answering | Supported | Not yet available | Not reachable | Unsupported |
+| `pickups` | `PickupList` | Engine answering | Supported | Experimental | Not reachable | Unsupported |
 | `line_identity` | `LineStamper` | Engine answering | Supported | Not yet available | Not reachable | Unsupported |
 | `render_config` | `RenderConfigurer` | Engine answering | Supported | Not yet available | Not reachable | Unsupported |
 | `cleanup_tools` | `CleanupLauncher` | Engine answering | Supported | Not yet available | Not reachable | Unsupported |

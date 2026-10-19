@@ -852,7 +852,12 @@ func (h *Host) configureLocked(next config) {
 	// The pickup-list service is the bridge's third real
 	// consumer: pollTranscript's Drain call already pumps its events too, the same way it does for line
 	// identity above.
-	h.pickups = pickups.New(pickups.Config{SessionDir: h.config.sessionDir}, pickupsRole, h.emitPickups)
+	pickupsDir, pickupsDAW := h.config.sessionDir, ""
+	if h.audacity != nil {
+		// An Audacity project's pickups are labels, kept through the Audacity adapter's role; the files they trade go under the project.
+		pickupsRole, pickupsDir, pickupsDAW = h.gatedAudacityPickups(h.audacity), audacity.SessionFolder(h.config.projectFolder), projectKind.String()
+	}
+	h.pickups = pickups.New(pickups.Config{SessionDir: pickupsDir, DAW: pickupsDAW}, pickupsRole, h.emitPickups)
 	// The render-config service is the bridge's fourth real
 	// consumer: pollTranscript's Drain call already pumps its events too, the same way it does for line identity
 	// and pickups above.
