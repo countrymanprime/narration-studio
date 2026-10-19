@@ -86,7 +86,7 @@ project's `.rpp` file is linked or changed:
 - **Amber dot, "A different project is open"**: the DAW has another project open than the linked one. Link the open project instead,
   or switch the DAW to the linked file.
 - **Quiet dot, "Open the engine panel to link a project file"**: nothing is linked yet.
-- **Audacity**: the dot follows the Audacity link. The chip's hover text gives the next step (turn scripting on, start Audacity on the linked project, close and start it from the app, or close the dialog it may be waiting on). The panel then shows the Audacity link card instead of the REAPER project, tools and track list.
+- **Audacity**: the dot follows the Audacity link. The chip's hover text gives the next step (turn scripting on, start Audacity on the linked project, close and start it from the app, or close the dialog it may be waiting on). The panel then shows the Audacity link card instead of the REAPER project and tools, with the [track list](#tracks) read from Audacity.
 - **Built-in**: the project records in the app. Choose it with the **Recording** radios in [Settings](settings.md), where it can be chosen only when the app can capture audio.
 
 ## Moving around: Back and Forward
@@ -164,6 +164,12 @@ If the folder has no `.rpp` file at all, the panel says so. Save the REAPER proj
 and open the panel again.
 
 ![The audio engine panel explaining that no REAPER project file was found](../../images/ui/engine-panel-no-project-file.webp)
+
+### An Audacity project
+
+When the project records with Audacity, the **Audacity project** card replaces the REAPER project section and the REAPER tools are not shown.
+The Tracks list below it comes from the snapshot the app takes while Audacity answers, and refreshes when the card hears from Audacity (a
+change, or **Check again**). Until Audacity has answered with the project open, the panel says no tracks have been read from Audacity yet.
 
 ### Tracks
 

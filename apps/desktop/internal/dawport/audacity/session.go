@@ -30,8 +30,11 @@ type Session struct {
 
 // transportState is the app's own belief about Audacity's transport.
 type transportState struct {
-	mu                 sync.Mutex
-	playing, recording bool
+	mu sync.Mutex
+	// +checklocks:mu
+	playing bool
+	// +checklocks:mu
+	recording bool
 }
 
 func (t *transportState) snapshot() (playing, recording bool) {

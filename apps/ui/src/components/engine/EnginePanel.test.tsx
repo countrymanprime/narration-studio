@@ -166,7 +166,7 @@ describe('EnginePanel for an Audacity project', () => {
 
   it('says no tracks have been read when the host has no snapshot yet', async () => {
     renderPanel(
-      { tracksDiscover: async () => ({ candidates: [], selected: null }) },
+      { tracksDiscover: async () => ({ candidates: [], selected: '' }) },
       { daw: { daw: 'Audacity' }, audacityLink: { module: 'on', running: true, pipe: 'answering' } },
     );
     const panel = await screen.findByRole('dialog', { name: 'Audio engine' });
