@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { act, cleanup, render, screen, within } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, screen, within } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { createOverlayService } from '../../../overlay/overlayService';
 import type { ManuscriptChapter, NarrationApi } from '../../../types';
@@ -15,10 +15,10 @@ afterEach(() => {
 
 // The Booth's loading state: a skeleton in the page's own frame while the chapters are read, replaced by the page, an empty panel or the error.
 // The state matrix (definition-of-done.md): loading, slow, loaded, empty, failed, reload mid-load; "leave mid-load" is the unmount in the last test.
-function renderBooth(api: Partial<NarrationApi> = {}, hasManuscript = true) {
+function renderBooth(api: Partial<NarrationApi> = {}, hasManuscript = true, navigate: (next: string) => void = () => {}) {
   const host = (
     <BoothHost api={pageApi(api)} daw={dawFor('reaper')} journal={newJournal()} overlay={createOverlayService()}>
-      <BoothNextPage hasManuscript={hasManuscript} navigate={() => {}} />
+      <BoothNextPage hasManuscript={hasManuscript} navigate={navigate} />
     </BoothHost>
   );
   return { view: render(host), host };
@@ -146,6 +146,67 @@ describe('Booth loading state', () => {
       await act(async () => second.release(chapters));
       expect(spy).not.toHaveBeenCalled();
       spy.mockRestore();
+    });
+  });
+
+  // The Booth fills the window, so with no chapters read there is no rail: a failed or endless read must still say how to leave (issue #2139).
+  describe('a failed or endless chapter read can be left', () => {
+    const escape = () =>
+      act(async () => {
+        fireEvent.keyDown(document.body, { key: 'Escape', code: 'Escape' });
+      });
+
+    it('offers Leave the Booth beside Retry on a failed read, and it leaves for the chapter list', async () => {
+      const navigate = vi.fn();
+      renderBooth({ manuscriptChapters: () => Promise.reject(new Error('The manuscript could not be read.')) }, true, navigate);
+      await screen.findByText('The manuscript could not be read.');
+      expect(screen.getByRole('button', { name: 'Retry' })).toBeTruthy();
+      await act(async () => screen.getByRole('button', { name: 'Leave the Booth' }).click());
+      expect(navigate).toHaveBeenCalledWith('/script');
+    });
+
+    it('leaves on Escape from a failed read', async () => {
+      const navigate = vi.fn();
+      renderBooth({ manuscriptChapters: () => Promise.reject(new Error('The manuscript could not be read.')) }, true, navigate);
+      await screen.findByText('The manuscript could not be read.');
+      await escape();
+      expect(navigate).toHaveBeenCalledWith('/script');
+    });
+
+    it('leaves on Escape while the chapters are still being read, and the skeleton has no stray buttons', async () => {
+      const navigate = vi.fn();
+      renderBooth({ manuscriptChapters: () => new Promise(() => {}) }, true, navigate);
+      await settle();
+      expect(skeleton()).toBeTruthy();
+      expect(screen.queryByRole('button', { name: 'Leave the Booth' })).toBeNull();
+      await escape();
+      expect(navigate).toHaveBeenCalledWith('/script');
+    });
+
+    it('still leaves for Pickups when the address names a pickup session', async () => {
+      const navigate = vi.fn();
+      render(
+        <BoothHost
+          api={pageApi({ manuscriptChapters: () => Promise.reject(new Error('The manuscript could not be read.')) })}
+          daw={dawFor('reaper')}
+          journal={newJournal()}
+          overlay={createOverlayService()}
+          search="?pickups=p1"
+        >
+          <BoothNextPage hasManuscript navigate={navigate} />
+        </BoothHost>,
+      );
+      await screen.findByText('The manuscript could not be read.');
+      await act(async () => screen.getByRole('button', { name: 'Leave the Booth' }).click());
+      expect(navigate).toHaveBeenCalledWith('/pickups');
+    });
+
+    it('does not leave on Escape once the page has loaded: the session asks first, as before', async () => {
+      const navigate = vi.fn();
+      renderBooth({}, true, navigate);
+      await screen.findByText('Nobody', { exact: false });
+      await escape();
+      expect(navigate).not.toHaveBeenCalledWith('/pickups');
     });
   });
 
