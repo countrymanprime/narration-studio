@@ -407,8 +407,9 @@ export function createProductionMock(deps: Deps): ProductionApi & { applyProfile
       if (include.words) rows.push(['Words', String(totals.wordCount)]);
       if (include.stages) rows.push(['Hours logged', totals.hoursLogged.toFixed(1)], ['Book PFH', figure(totals.bookPfh)]);
       if (include.milestones) rows.push(['Deadline', deadline === null ? 'Not available' : deadline.date]);
-      if (include.pickups) rows.push(['Chapters held back', String(chapters.filter((chapter) => chapter.readiness?.verdict === 'not_ready').length)]);
-      if (include.delivery) rows.push(['Chapters finalized', String(totals.finalizedChapters)]);
+      if (include.pickups)
+        rows.push(['Open pickups', 'None'], ['Chapters held back', String(chapters.filter((chapter) => chapter.readiness?.verdict === 'not_ready').length)]);
+      if (include.delivery) rows.push(['Delivery check', 'Nothing has been measured'], ['Chapters finalized', String(totals.finalizedChapters)]);
       if (include.money) rows.push(['Contracted amount', figure(totals.contractedAmount)], ['Effective rate', figure(totals.effectiveRate)]);
       const html = `<!doctype html><html><body><h1>Production status</h1><dl>${rows.map(([name, value]) => `<dt>${name}</dt><dd>${value}</dd>`).join('')}</dl></body></html>\n`;
       const json = `${JSON.stringify(Object.fromEntries(rows), null, 2)}\n`;

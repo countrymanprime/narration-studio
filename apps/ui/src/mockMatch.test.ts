@@ -148,8 +148,8 @@ describe('the approved-mock list', () => {
   test('the spec is the research benchmark folder and the older per-feature mock sets are gone', () => {
     expect(SPEC_DIR).toBe('docs/research/mockups/audiobook-studio-benchmark');
     expect(existsSync(resolve(mockPath('01-production-home.webp'), '../../../../prds/mockups'))).toBe(false);
-    // Six: the Production mock left the list when that page was laid out to the Studio Next mock (#2107).
-    expect(APPROVED_MOCKS).toHaveLength(6);
+    // Seven: the Production mock stays in the list as retired (#2150), with the reason it is no longer a target.
+    expect(APPROVED_MOCKS).toHaveLength(7);
     for (const mock of APPROVED_MOCKS) {
       expect(mockPath(mock.file).replaceAll('\\', '/'), mock.file).toContain(`/${SPEC_DIR}/`);
     }

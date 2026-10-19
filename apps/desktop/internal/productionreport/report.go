@@ -34,6 +34,27 @@ type Options struct {
 // AllSections ticks every section but the money one, the dialog's first state.
 var AllSections = Sections{Words: true, Stages: true, Milestones: true, Pickups: true, Delivery: true}
 
+// PickupChapter is one chapter's open pickups as the host's pickup list has them.
+type PickupChapter struct {
+	Chapter string
+	Open    int
+	Kinds   []string
+}
+
+// DeliveryFile is one measured file's verdict against the delivery profile: Measured is false for a file the
+// measurement could not read, and Missed names the rules a measured file does not meet.
+type DeliveryFile struct {
+	Name     string
+	Measured bool
+	Missed   []string
+}
+
+// DeliveryInput is the last measurement of this session, judged; nil when nothing has been measured.
+type DeliveryInput struct {
+	Profile string
+	Files   []DeliveryFile
+}
+
 // Input is everything one report is built from. Overview is the same production.Overview the Production page reads
 // (production.BuildOverview), so the report's figures never drift from what the page just showed. Milestones is the
 // plan's own list (production.Plan.Milestones); Overview carries only the deadline, not the milestones.
@@ -46,6 +67,9 @@ type Input struct {
 	Milestones []project.Milestone
 	// Now is the local time milestones' days-left are counted from; the host passes real time, tests a fixed one.
 	Now time.Time
+	// Pickups and Delivery are read only when their section is ticked: the open pickups by chapter, and the last judged measurement.
+	Pickups  []PickupChapter
+	Delivery *DeliveryInput
 }
 
 // Build turns the input into the report model. It never fails: an undefined figure is written as absent, not guessed at.
@@ -70,10 +94,14 @@ func Build(in Input) Report {
 	}
 	if include.Pickups {
 		report.HeldBack = heldBackOf(in.Overview.Chapters)
+		pickups := pickupsOf(in.Pickups)
+		report.Pickups = &pickups
 	}
 	if include.Delivery {
 		readiness := readinessOf(in.Overview.Chapters)
 		report.Readiness = &readiness
+		delivery := deliveryOf(in.Delivery)
+		report.Delivery = &delivery
 	}
 	if include.Money {
 		rate := rateOf(in.Overview.Totals)
@@ -131,6 +159,44 @@ func heldBackOf(chapters []production.OverviewChapter) *HeldBack {
 		}
 	}
 	return &held
+}
+
+// pickupsOf totals the chapters that have an open pickup; a chapter with none is left out.
+func pickupsOf(chapters []PickupChapter) Pickups {
+	out := Pickups{Chapters: []ChapterPickups{}}
+	for _, chapter := range chapters {
+		if chapter.Open == 0 {
+			continue
+		}
+		kinds := chapter.Kinds
+		if kinds == nil {
+			kinds = []string{}
+		}
+		out.Open += chapter.Open
+		out.Chapters = append(out.Chapters, ChapterPickups{Chapter: chapter.Chapter, Open: chapter.Open, Kinds: kinds})
+	}
+	return out
+}
+
+// deliveryOf counts the measured files that meet every rule, those that miss one and those the measurement could not read.
+func deliveryOf(in *DeliveryInput) Delivery {
+	if in == nil || len(in.Files) == 0 {
+		return Delivery{Failing: []FailingFile{}, Note: "Nothing has been measured in this session, so no file was judged against a delivery profile."}
+	}
+	out := Delivery{Measured: true, Profile: in.Profile, Failing: []FailingFile{},
+		Note: "The files the last measurement of this session covered, judged against the delivery profile in force."}
+	for _, file := range in.Files {
+		switch {
+		case !file.Measured:
+			out.Unchecked++
+		case len(file.Missed) > 0:
+			out.Fail++
+			out.Failing = append(out.Failing, FailingFile{File: file.Name, Rules: file.Missed})
+		default:
+			out.Pass++
+		}
+	}
+	return out
 }
 
 func deadlineOf(overview production.Overview) *Deadline {

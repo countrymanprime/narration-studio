@@ -44,6 +44,9 @@ async function toRecordReady(page: Page): Promise<void> {
 }
 
 test.describe('Booth with a moving mock DAW', () => {
+  // A linked project holds the setup steps back for the connect grace (20 s, RecordSetup) before "Open in REAPER and connect" can be pressed,
+  // so reaching Record-ready takes ~25 s on an idle machine. The default 30 s budget is then a coin flip on a loaded runner.
+  test.describe.configure({ timeout: 90_000 });
   test('link, launcher, heartbeat, notice clears, Record enables, a take runs and stops', async ({ page }) => {
     await toRecordReady(page);
     await record(page).click();
@@ -128,6 +131,9 @@ test.describe('Booth with a moving mock DAW', () => {
     await expect(page.getByText(/The take ended there/)).toHaveCount(0);
     await expect(stop(page)).toHaveCount(0);
     await expect(record(page)).toBeDisabled();
+    // The project is linked, so the app first says it is connecting on its own; the steps (and "not answering") are one press away.
+    await expect(notice(page).getByRole('heading', { name: 'Connecting to REAPER…' })).toBeVisible();
+    await notice(page).getByRole('button', { name: 'Show the steps' }).click();
     await expect(notice(page).getByRole('heading', { name: 'REAPER is not answering' })).toBeVisible();
     await page.evaluate(() => window.__NARRATION_MOCK_DAW__?.heartbeat());
     await expect(record(page)).toBeEnabled();

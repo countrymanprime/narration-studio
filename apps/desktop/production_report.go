@@ -4,9 +4,12 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 	"time"
 
+	"github.com/countrymanprime/narration-utils/shell/internal/deliveryprofile"
+	"github.com/countrymanprime/narration-utils/shell/internal/production"
 	"github.com/countrymanprime/narration-utils/shell/internal/productionreport"
 )
 
@@ -66,14 +69,80 @@ func (h *Host) buildProductionReport(include ProductionReportInclude) (project, 
 	}
 	now := time.Now()
 	generatedAt = now.UTC().Format(time.RFC3339)
-	report = productionreport.Build(productionreport.Input{
+	in := productionreport.Input{
 		GeneratedAt: generatedAt, AppVersion: h.version,
 		Options:    productionreport.Options{Include: productionreport.Sections(include)},
 		Overview:   overview,
 		Milestones: milestones,
 		Now:        now,
-	})
-	return project, generatedAt, report, nil
+	}
+	// Each of these reads only for a section that is ticked, so a report without it never touches the pickup list or the measurement.
+	if include.Pickups {
+		if in.Pickups, err = h.reportPickups(overview); err != nil {
+			return "", "", productionreport.Report{}, err
+		}
+	}
+	if include.Delivery {
+		in.Delivery = h.reportDelivery()
+	}
+	return project, generatedAt, productionreport.Build(in), nil
+}
+
+// reportPickups counts the open pickups of each chapter, in the manuscript's order, from the same merged list the Pickups page reads.
+func (h *Host) reportPickups(overview production.Overview) ([]productionreport.PickupChapter, error) {
+	list, err := h.pickupList().List()
+	if err != nil {
+		return nil, fmt.Errorf("could not read the pickup list: %w", err)
+	}
+	byChapter := map[string]*productionreport.PickupChapter{}
+	chapters := make([]productionreport.PickupChapter, len(overview.Chapters))
+	for i, chapter := range overview.Chapters {
+		chapters[i].Chapter = chapter.Title
+		byChapter[chapter.ID] = &chapters[i]
+	}
+	for _, pickup := range list.Pickups {
+		row := byChapter[pickup.ChapterID]
+		if row == nil || pickup.Done {
+			continue
+		}
+		row.Open++
+		if !slices.Contains(row.Kinds, pickup.Type) {
+			row.Kinds = append(row.Kinds, pickup.Type)
+		}
+	}
+	return chapters, nil
+}
+
+// reportDelivery judges the last measurement of this session against the project's delivery profile, the way Master & QC does;
+// nil when nothing has been measured.
+func (h *Host) reportDelivery() *productionreport.DeliveryInput {
+	job := h.judgeMeasure(h.measureState())
+	if len(job.Files) == 0 {
+		return nil
+	}
+	labels := map[string]string{}
+	name := ""
+	if job.Profile != nil {
+		name = job.Profile.Name
+		for _, rule := range job.Profile.Rules {
+			labels[rule.ID] = rule.Label
+		}
+	}
+	files := make([]productionreport.DeliveryFile, len(job.Files))
+	for i, file := range job.Files {
+		files[i] = productionreport.DeliveryFile{Name: file.Name, Measured: file.Status == measureFileMeasured}
+		for _, result := range file.Rules {
+			if result.Status != deliveryprofile.StatusNotMet {
+				continue
+			}
+			label := labels[result.RuleID]
+			if label == "" {
+				label = result.RuleID
+			}
+			files[i].Missed = append(files[i].Missed, label)
+		}
+	}
+	return &productionreport.DeliveryInput{Profile: name, Files: files}
 }
 
 // ProductionStatusReportPreview answers the document ProductionStatusReport would write, without writing anything

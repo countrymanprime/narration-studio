@@ -1,3 +1,4 @@
+import { useEffect, useRef } from 'react';
 import type { ExportJob, PackageItemKind } from '../../types';
 import { Button } from '../primitives/Button';
 import { Checkbox } from '../primitives/Checkbox';
@@ -46,7 +47,20 @@ function exportRowStatus(file: ExportJob['files'][number]): string {
 export function MasterToSpecPanel({ jobs, chainLabel }: { jobs: ExportJobs; chainLabel?: string }) {
   const { items, exportJob, exportRunning, problem } = jobs;
   const started = !!exportJob?.files.length;
-  if (items.length === 0 && !started && !problem) return null;
+  const hasFiles = items.length > 0 || started;
+  const shown = hasFiles || !!problem;
+  const revealRef = useRef<HTMLDivElement & HTMLParagraphElement>(null);
+  const wasShown = useRef(shown);
+  // The panel sits far below the header's "Master all to spec…" button on a 15-file book, so showing it off screen looks like a dead
+  // button: bring it into view and put the keyboard on its files. Not on mount: a page that opens with a job running stays where it is.
+  useEffect(() => {
+    if (shown && !wasShown.current) {
+      revealRef.current?.scrollIntoView?.({ block: 'nearest' });
+      if (hasFiles) revealRef.current?.focus();
+    }
+    wasShown.current = shown;
+  }, [shown, hasFiles]);
+  if (!shown) return null;
   return (
     <Panel
       title="Master to spec"
@@ -59,12 +73,13 @@ export function MasterToSpecPanel({ jobs, chainLabel }: { jobs: ExportJobs; chai
       }
     >
       {problem && (
-        <p role="alert" className="text-sm" style={DANGER}>
+        <p ref={hasFiles ? undefined : revealRef} role="alert" className="text-sm" style={DANGER}>
           {problem}
         </p>
       )}
       {(items.length > 0 || started) && (
         <div
+          ref={revealRef}
           tabIndex={0}
           className={`${problem ? 'mt-2' : ''} overflow-x-auto focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:outline-none focus-visible:ring-inset`}
         >

@@ -135,6 +135,8 @@ describe('Master & QC: the measurement host goes quiet', () => {
     await act(async () => void (await vi.advanceTimersByTimeAsync(600))); // the second read is now in flight
     await userEvent.click(screen.getByRole('button', { name: 'Cancel' }));
     await waitFor(() => expect(screen.queryByRole('progressbar', { name: 'Measuring' })).toBeNull());
+    // Cancel went with the run: the keyboard goes back to the check button instead of the page.
+    expect(document.activeElement).toBe(screen.getByRole('button', { name: /^Re-check/ }));
     await act(async () => late(running(40))); // the old read lands after the cancel
     expect(screen.queryByRole('progressbar', { name: 'Measuring' })).toBeNull();
   });
