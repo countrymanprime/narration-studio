@@ -2,8 +2,7 @@
 # header's engine chip, the only thing in <body> besides the two empty toast live regions. Its title is an <h2> (it opens over any
 # page, so it follows the page's <h1>), and each part of what the Tracks page held is a named region under its own heading.
 - /children: equal
-- main:
-  - group "Zoom"
+- main
 - status
 - alert
 - status

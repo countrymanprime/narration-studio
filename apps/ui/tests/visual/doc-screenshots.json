@@ -53,7 +53,7 @@
     "state": "on-pace",
     "viewport": "desktop",
     "docName": "production-home",
-    "caption": "Production - the figures, the chapter pipeline and Next up, with a stage timer running in the header"
+    "caption": "Production - the figures, the chapter pipeline and Next up, with a stage timer running in the page header"
   },
   {
     "page": "script",
