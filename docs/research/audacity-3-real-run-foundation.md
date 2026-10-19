@@ -39,7 +39,7 @@
 
 ## On a GitHub-hosted runner
 
-Run 39215656846 of `real-audacity3-foundation.yml` (Audacity 3.7.7 on `ubuntu-latest`, head `e067efc`): 24 of 25 tests passed, with the same facts as above (one start answered 0 of 5 times, the two-start procedure 5 of 5; the 93-id command list; `PlaybackVolume` honoured only at start; the in-window Save panel; 300 labels added in 39 s). **A3-T34 failed, and the failure was the test's.** It killed Audacity from a goroutine 20 ms after sending, then read `Alive()` and dialled the FIFO without waiting for the kill; `Send` returned after 0 s, so the process was still running and the dial succeeded (`error <nil> after 0s`, `Reachable=true`). The test now waits for the kill to finish before it checks anything. The container run passed because its timing happened to let the kill land first. No Audacity limitation was involved.
+Run 39215656846 of `real-audacity3-foundation.yml` (Audacity 3.7.7 on `ubuntu-latest`, head `e067efc`): 19 of 20 tests passed, with the same facts as above (one start answered 0 of 5 times, the two-start procedure 5 of 5; the 93-id command list; `PlaybackVolume` honoured only at start; the in-window Save panel; 300 labels added in 39 s). **A3-T34 failed, and the failure was the test's.** It killed Audacity from a goroutine 20 ms after sending, then read `Alive()` and dialled the FIFO without waiting for the kill; `Send` returned after 0 s, so the process was still running and the dial succeeded (`error <nil> after 0s`, `Reachable=true`). The test now waits for the kill to finish before it checks anything. The container run passed because its timing happened to let the kill land first. No Audacity limitation was involved.
 
 ## Not exercised
 
