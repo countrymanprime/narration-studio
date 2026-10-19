@@ -3,8 +3,7 @@
 # The overlay opens it headerless (the shell's own title is screen-reader only, and it has no Close), so the dialog's own header
 # draws the eyebrow, the visible title and Cancel (#2052).
 - /children: equal
-- main:
-  - group "Zoom"
+- main
 - status
 - alert
 - status

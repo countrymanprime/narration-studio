@@ -21,7 +21,7 @@ function nearestStepIndex(level: number): number {
 }
 
 /**
- * The header's zoom group: reads and sets the window's real
+ * The zoom level behind the header's zoom chip and the jump menu's zoom commands: reads and sets the window's real
  * webview zoom through the `windowZoom`/`windowSetZoom` binding. `zoomIn`/`zoomOut` step through docs/guides/using-the-app/navigation.md#zoom's six
  * levels from the current one's nearest step; `reset` always sets 100%, from any level.
  *
