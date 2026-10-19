@@ -5,7 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { ManuscriptChapter, ManuscriptParagraph } from '../../../../api/contracts/manuscript';
 import { Reader } from './Reader';
 import { READER_POSITION_KEY } from './readerPosition';
-import { chapter, cue, entry, mark, paragraph, TYPES } from './readerFixtures';
+import { chapter, cue, entry, GUIDE_TYPES, mark, paragraph, TYPES } from './readerFixtures';
 
 // jsdom lays nothing out, so the rows get tops by their order in the document (100 px each) and scrollTop is a stored number.
 const tops = new WeakMap<Element, number>();
@@ -42,7 +42,7 @@ const paras: Record<string, ManuscriptParagraph[]> = {
   c2: [paragraph('p3', 'c2', 'Mina said, "Come along," and left.', 0), paragraph('p4', 'c2', 'A line in the second chapter.', 1)],
   c3: [paragraph('p5', 'c3', 'The last chapter has one line.', 0)],
 };
-const sources = { marks: [], markTypes: TYPES, words: [], entries: [], cues: [] };
+const sources = { marks: [], markTypes: TYPES, words: [], entries: [], cues: [], types: GUIDE_TYPES };
 const paragraphsOf = (id: string): ManuscriptParagraph[] | undefined => paras[id];
 
 type Props = ComponentProps<typeof Reader>;
@@ -266,6 +266,7 @@ describe('clicks', () => {
     markTypes: TYPES,
     words: [],
     entries: [entry('e1', 'Mina', 'Character')],
+    types: GUIDE_TYPES,
     cues: [cue('q1', 'p3', 'c2', { start: 11, end: 24 }, 'e1', 'correction')],
   };
 
