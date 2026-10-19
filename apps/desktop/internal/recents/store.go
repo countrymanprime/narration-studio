@@ -25,6 +25,8 @@ type Entry struct {
 	Path       string    `json:"path"`
 	Name       string    `json:"name"`
 	LastOpened time.Time `json:"lastOpened"`
+	// Pinned keeps the entry in the list's pinned group, and past the cap. A file written before pins existed reads as false.
+	Pinned bool `json:"pinned"`
 }
 
 type Store struct {
@@ -85,9 +87,11 @@ func (s *Store) Touch(path, name string) error {
 		return err
 	}
 	next := make([]Entry, 0, len(entries)+1)
-	next = append(next, Entry{Path: cleaned, Name: name, LastOpened: time.Now()})
+	touched := Entry{Path: cleaned, Name: name, LastOpened: time.Now()}
+	next = append(next, touched)
 	for _, entry := range entries {
 		if samePath(entry.Path, cleaned) {
+			next[0].Pinned = entry.Pinned
 			continue
 		}
 		if !isFolder(entry.Path) {
@@ -95,10 +99,51 @@ func (s *Store) Touch(path, name string) error {
 		}
 		next = append(next, entry)
 	}
-	if len(next) > maxEntries {
-		next = next[:maxEntries]
+	return s.writeLocked(capUnpinned(next))
+}
+
+// capUnpinned drops the oldest unpinned entries until at most maxEntries remain. A pinned entry is never dropped, so the
+// list can exceed the cap only by pins.
+func capUnpinned(entries []Entry) []Entry {
+	for len(entries) > maxEntries {
+		dropped := false
+		for i := len(entries) - 1; i >= 0; i-- {
+			if !entries[i].Pinned {
+				entries = append(entries[:i], entries[i+1:]...)
+				dropped = true
+				break
+			}
+		}
+		if !dropped {
+			break
+		}
 	}
-	return s.writeLocked(next)
+	return entries
+}
+
+// SetPinned pins or unpins the entry for path. A path that is not in the list is not an error, as with Remove.
+func (s *Store) SetPinned(path string, pinned bool) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	cleaned, err := normalize(path)
+	if err != nil {
+		return nil // nothing that names no folder can be in the list
+	}
+	entries, err := s.readLocked()
+	if err != nil {
+		return err
+	}
+	changed := false
+	for i := range entries {
+		if samePath(entries[i].Path, cleaned) && entries[i].Pinned != pinned {
+			entries[i].Pinned = pinned
+			changed = true
+		}
+	}
+	if !changed {
+		return nil
+	}
+	return s.writeLocked(entries)
 }
 
 // Remove drops the entry for path, if any. Removing a path that is not

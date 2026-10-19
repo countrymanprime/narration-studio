@@ -23,6 +23,7 @@ import {
   projectFolderSelectionSchema,
   projectSwitchResultSchema,
   recentProjectsSchema,
+  runningDawProjectSchema,
 } from './schemas/project';
 import {
   creditsAnnouncementsSchema,
@@ -587,6 +588,8 @@ export const wailsClient: NarrationApi = {
   createProject: (parent, name) => decode(projectSwitchResultSchema, 'ProjectCreateIn', host.ProjectCreateIn(parent, name)),
   projectDefaultLocation: () => decode(projectDefaultLocationSchema, 'ProjectDefaultLocation', host.ProjectDefaultLocation()),
   removeRecentProject: (path) => decode(recentProjectsSchema, 'ProjectRemoveRecent', host.ProjectRemoveRecent(path)),
+  setProjectPinned: (path, pinned) => decode(recentProjectsSchema, 'ProjectSetPinned', host.ProjectSetPinned(path, pinned)),
+  projectRunningDaw: () => decode(runningDawProjectSchema, 'ProjectRunningDaw', host.ProjectRunningDaw()),
   linkDawFile: () => decode(dawLinkResultSchema, 'ProjectLinkDawFile', host.ProjectLinkDawFile()),
   launchDaw: () => decode(dawLaunchResultSchema, 'DawLaunch', host.DawLaunch()),
   creditsTemplates: () => decode(creditTemplatesSchema, 'CreditsTemplates', host.CreditsTemplates()),

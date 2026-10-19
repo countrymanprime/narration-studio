@@ -70,13 +70,14 @@ export const MOCK_GROUPS: readonly MockGroup[] = [
     id: 'daw-project',
     label: 'DAW project',
     kind: 'radio',
-    params: ['mockNoProject', 'mockNoDaw', 'mockDawMismatch', 'mockDawNotDetected'],
+    params: ['mockNoProject', 'mockNoDaw', 'mockDawMismatch', 'mockDawNotDetected', 'mockDawRunning'],
     options: [
       { ...DEFAULT, label: 'Project linked' },
       { value: 'no-project', label: 'No project folder', set: { mockNoProject: '1' } },
       { value: 'not-linked', label: 'No DAW project linked', set: { mockNoDaw: '1' } },
       { value: 'mismatch', label: 'Wrong project open', set: { mockDawMismatch: '1' } },
       { value: 'not-detected', label: 'DAW not detected', set: { mockDawNotDetected: '1' } },
+      { value: 'running', label: 'No project folder, REAPER has a recent project open', set: { mockNoProject: '1', mockDawRunning: '1' } },
     ],
   },
   {
