@@ -234,9 +234,9 @@ function MasterBody({ projectFolder, onOpenDelivery, openSettings, fileActions, 
                   <ChapterStepper chapters={bar} value={chapterOfSelection.id} stepKeys={['Alt+↑', 'Alt+↓']} onChange={goToChapter} onStep={stepChapter} />
                 )}
                 {profile && (
-                  <span title="Open Delivery" className="inline-flex">
-                    <HeaderChip onClick={onOpenDelivery}>{profileName(profile)}</HeaderChip>
-                  </span>
+                  <HeaderChip title="Open Delivery" onClick={onOpenDelivery}>
+                    {profileName(profile)}
+                  </HeaderChip>
                 )}
               </>
             }
