@@ -7,6 +7,7 @@ import { Button } from '../primitives/Button';
 import { SectionLabel } from '../primitives/SectionLabel';
 import { numberProblem } from './numberSetting';
 import { ScopedSetting } from './ScopedSetting';
+import { keepFocusOnRemoval } from '../layout/keepFocusOnRemoval';
 
 const TOOL = 'DAW';
 const WINDOW_KEY = 'backups.window_seconds';
@@ -73,7 +74,7 @@ export function BackupsView({ daw, reason, loadError, onRetry, rows, drafts, onC
         >
           <span>The backups settings could not be read: {loadError}.</span>
           {onRetry && (
-            <Button variant="secondary" type="button" onClick={onRetry}>
+            <Button ref={keepFocusOnRemoval} variant="secondary" type="button" onClick={onRetry}>
               Retry
             </Button>
           )}

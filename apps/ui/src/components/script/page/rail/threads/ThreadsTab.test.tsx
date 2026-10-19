@@ -53,7 +53,10 @@ function mount(props: Partial<ThreadsTabProps> = {}) {
       <StudioProvider>
         <TooltipProvider>
           <Probe />
-          <ThreadsTab kind="notes" chapterId="chapter-1" lineOf={lineOf} onShowInText={onShowInText} {...props} />
+          {/* The shell's focusable landmark, which a Retry that goes away hands focus to. */}
+          <main tabIndex={-1}>
+            <ThreadsTab kind="notes" chapterId="chapter-1" lineOf={lineOf} onShowInText={onShowInText} {...props} />
+          </main>
         </TooltipProvider>
       </StudioProvider>
     </ApiProvider>,
@@ -111,6 +114,20 @@ describe('notes-and-queries-are-two-views-of-threads', () => {
     fail = false;
     await user.click(screen.getByRole('button', { name: 'Retry' }));
     await waitFor(() => expect(screen.queryByRole('alert')).toBeNull());
+  });
+});
+
+describe('a failed read and Retry', () => {
+  it('keeps focus on the page when Retry removes the error it was pressed on', async () => {
+    let fail = true;
+    const base = api;
+    api = { ...base, marksList: () => (fail ? Promise.reject(new Error('The marks file could not be read.')) : base.marksList()) };
+    const { user } = mount();
+    await screen.findByRole('alert');
+    fail = false;
+    await user.click(screen.getByRole('button', { name: 'Retry' }));
+    await waitFor(() => expect(screen.queryByRole('alert')).toBeNull());
+    expect(document.activeElement).toBe(screen.getByRole('main'));
   });
 });
 

@@ -242,6 +242,7 @@ describe('Settings: search and filters', () => {
     await renderPage();
     await userEvent.type(await screen.findByRole('textbox', { name: 'Search settings' }), 'zzzz');
     expect(screen.getByText('No settings match “zzzz”')).toBeTruthy();
+    expect(screen.getByText(/Try a word from the setting’s name/)).toBeTruthy();
   });
 
   it('Changed lists what differs from the default, wherever it is, and says when nothing does', async () => {
@@ -250,6 +251,8 @@ describe('Settings: search and filters', () => {
     await screen.findByRole('heading', { level: 2, name: 'Recording & DAW' });
     fireEvent.click(screen.getByRole('button', { name: 'Changed' }));
     expect(screen.getByText('Nothing is changed from the defaults')).toBeTruthy();
+    // No search was typed, so there is no word to try instead.
+    expect(screen.queryByText(/Try a word from the setting’s name/)).toBeNull();
     fireEvent.click(screen.getByRole('button', { name: 'All' }));
     pick('App & updates');
     fireEvent.change(await screen.findByRole('combobox', { name: /Update channel/ }), { target: { value: 'stable' } });

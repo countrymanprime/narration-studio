@@ -37,6 +37,12 @@ Off only decides what the rail offers. A page you reach another way (a typed add
 If the manuscript goes while you are on one of these pages, the page stays and asks for it, its rail item turns off where it is, and the
 rail shows no note counts, since the notes and pickups the project still holds belong to an earlier manuscript.
 
+## Skipping the sidebar and changing page
+
+The first `Tab` on any page lands on **Skip to content**, a link that is hidden until it has focus and then shows at the top left. Press `Enter` on it and focus moves into the page, past the sidebar and the header.
+
+When you move to another page (a sidebar item, **Jump to or run…**, `Alt+Left` or `Alt+Right`, `Ctrl+,` for [Settings](settings.md), or the drawer), the window title becomes the page's name, for example "Proof · Narration Studio", and a screen reader announces the name. Focus moves into the page, so the next `Tab` goes to the page's own controls rather than the item of the page you left. Opening a different chapter on the same page changes neither the title nor focus. From the drawer, focus goes back to the hamburger button as before, and the title and the announcement tell you where you are.
+
 ## The header
 
 The header is short, and the same on every page. Left to right: the **Project** label (hidden on a narrow window), the project's name, **Jump to or run…** (`Ctrl+K`),

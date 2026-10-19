@@ -1,5 +1,6 @@
 // @vitest-environment jsdom
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { ApiProvider } from '../../api/ApiContext';
 import type { DawCapabilities } from '../../api/contracts/daw';
@@ -47,7 +48,9 @@ function renderSection({
   const view = render(
     <ApiProvider api={api}>
       <PortOverrides clients={{ daw: client }}>
-        <BackupsSection />
+        <main tabIndex={-1}>
+          <BackupsSection />
+        </main>
       </PortOverrides>
     </ApiProvider>,
   );
@@ -60,10 +63,10 @@ const retentionBox = () => screen.findByRole('textbox', { name: 'Keep backups fo
 describe('BackupsSection', () => {
   it.each<DawSetupId>(['reaper', 'builtin'])('hidden-when-the-daw-lacks-the-capability: %s renders nothing', async (setup) => {
     const capabilities = vi.fn(() => Promise.resolve(DAW_SETUPS[setup]));
-    const { container } = renderSection({ setup, daw: { capabilities } });
+    renderSection({ setup, daw: { capabilities } });
     await waitFor(() => expect(capabilities).toHaveBeenCalled());
     await Promise.resolve();
-    expect(container.innerHTML).toBe('');
+    expect(screen.getByRole('main').innerHTML).toBe('');
     expect(screen.queryByRole('heading')).toBeNull();
     expect(screen.queryByRole('textbox')).toBeNull();
   });
@@ -144,6 +147,21 @@ describe('BackupsSection', () => {
     fail = false;
     fireEvent.click(screen.getByRole('button', { name: 'Retry' }));
     expect(await windowBox()).toBeTruthy();
+  });
+
+  it('keeps focus on the page when Retry succeeds and its error line goes away, and on Retry when the read fails again', async () => {
+    let fail = true;
+    const capabilities = vi.fn(() => (fail ? Promise.reject(new Error('the DAW did not answer')) : Promise.resolve(DAW_SETUPS['audacity-backups'])));
+    renderSection({ daw: { capabilities } });
+    await screen.findByRole('alert');
+    const retry = screen.getByRole('button', { name: 'Retry' });
+    await userEvent.click(retry);
+    await waitFor(() => expect(capabilities).toHaveBeenCalledTimes(2));
+    expect(document.activeElement).toBe(retry);
+    fail = false;
+    await userEvent.click(screen.getByRole('button', { name: 'Retry' }));
+    expect(await windowBox()).toBeTruthy();
+    expect(document.activeElement).toBe(screen.getByRole('main'));
   });
 
   it('standalone-and-self-contained: it takes no props, so a page can draw it anywhere', async () => {
