@@ -12567,305 +12567,103 @@
   ],
   "manuscripts": {
     "missing": {
+      "data": null,
       "error": "Import a manuscript first."
     },
     "no-text": {
+      "data": {
+        "chapters": [
+          {
+            "contentKind": "narration",
+            "id": "c-1",
+            "title": "One"
+          },
+          {
+            "contentKind": "narration",
+            "id": "c-2",
+            "title": "Two"
+          },
+          {
+            "contentKind": "front",
+            "id": "c-front",
+            "title": "Front matter"
+          }
+        ],
+        "documentId": "doc-1",
+        "paragraphs": [
+          {
+            "chapterId": "c-front",
+            "chapterTitle": "Front matter",
+            "id": "p-4",
+            "text": "Wren is in the front matter and is not narrated."
+          }
+        ],
+        "schemaVersion": 1
+      },
       "error": "The manuscript has no readable text paragraphs."
     },
     "story": {
+      "data": {
+        "chapters": [
+          {
+            "contentKind": "narration",
+            "id": "c-1",
+            "title": "One"
+          },
+          {
+            "contentKind": "narration",
+            "id": "c-2",
+            "title": "Two"
+          },
+          {
+            "contentKind": "front",
+            "id": "c-front",
+            "title": "Front matter"
+          }
+        ],
+        "documentId": "doc-1",
+        "paragraphs": [
+          {
+            "chapterId": "c-1",
+            "chapterTitle": "One",
+            "id": "p-0",
+            "text": "Wren was a tall girl, and Wren ran. Nick looked on."
+          },
+          {
+            "chapterId": "c-1",
+            "chapterTitle": "One",
+            "id": "p-1",
+            "text": "The boy said nothing.  Nick, the boy, is the quiet one! Wren? Wren."
+          },
+          {
+            "chapterId": "c-2",
+            "chapterTitle": "Two",
+            "id": "p-2",
+            "text": "Zoë Ünal laughed. Zoë is an old friend; Ünal agreed. שלום Wren 😀 Nico-Rose O'Neil."
+          },
+          {
+            "chapterId": "c-2",
+            "chapterTitle": "Two",
+            "id": "p-3",
+            "text": "The Mill  was the oldest building. Mill hands left. A mill is a place, they said."
+          },
+          {
+            "chapterId": "c-front",
+            "chapterTitle": "Front matter",
+            "id": "p-4",
+            "text": "Wren is in the front matter and is not narrated."
+          },
+          {
+            "chapterId": "c-2",
+            "chapterTitle": "Two",
+            "id": "p-5",
+            "text": "Arelian—Captain Arelian, was the captain of the Ash. Captain Arelian is the man. xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+          }
+        ],
+        "schemaVersion": 1
+      },
       "error": ""
     }
-  },
-  "occurrences": {
-    "Arelian": [
-      {
-        "chapter": "Two",
-        "chapterId": "c-2",
-        "excerpt": "Arelian—Captain Arelian, was the captain of the Ash. Captain Arelian is the man. xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx…",
-        "paragraph": 4,
-        "paragraphId": "p-5"
-      },
-      {
-        "chapter": "Two",
-        "chapterId": "c-2",
-        "excerpt": "Arelian—Captain Arelian, was the captain of the Ash. Captain Arelian is the man. xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx…",
-        "paragraph": 4,
-        "paragraphId": "p-5"
-      },
-      {
-        "chapter": "Two",
-        "chapterId": "c-2",
-        "excerpt": "Arelian—Captain Arelian, was the captain of the Ash. Captain Arelian is the man. xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx…",
-        "paragraph": 4,
-        "paragraphId": "p-5"
-      }
-    ],
-    "Captain Arelian": [
-      {
-        "chapter": "Two",
-        "chapterId": "c-2",
-        "excerpt": "Arelian—Captain Arelian, was the captain of the Ash. Captain Arelian is the man. xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx…",
-        "paragraph": 4,
-        "paragraphId": "p-5"
-      },
-      {
-        "chapter": "Two",
-        "chapterId": "c-2",
-        "excerpt": "Arelian—Captain Arelian, was the captain of the Ash. Captain Arelian is the man. xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx…",
-        "paragraph": 4,
-        "paragraphId": "p-5"
-      }
-    ],
-    "Closed": [],
-    "LONG NAME NAME NAME NAME NAME NAME NAME NAME NAME NAME NAME NAME NAME NAME NAME NAME NAME NAME NAME NAME NAME NAME NAME NAME NAME NAME NAME NAME NAME NAME NAME NAME NAME NAME NAME NAME NAME NAME NAME NAME NAME NAME NAME NAME NAME NAME NAME NAME NAME NAME NAME NAME NAME NAME NAME NAME NAME NAME NAME NAME END": [],
-    "Long name name name name name name name name name name name name name name name name name name name name name name name name name name name name name name name name name name name name name name name name name name name name name name name name name name name name name name name name name name name name end": [],
-    "MIRA": [],
-    "Mi": [],
-    "Mill": [
-      {
-        "chapter": "Two",
-        "chapterId": "c-2",
-        "excerpt": "The Mill  was the oldest building. Mill hands left. A mill is a place, they said.",
-        "paragraph": 3,
-        "paragraphId": "p-3"
-      },
-      {
-        "chapter": "Two",
-        "chapterId": "c-2",
-        "excerpt": "The Mill  was the oldest building. Mill hands left. A mill is a place, they said.",
-        "paragraph": 3,
-        "paragraphId": "p-3"
-      },
-      {
-        "chapter": "Two",
-        "chapterId": "c-2",
-        "excerpt": "The Mill  was the oldest building. Mill hands left. A mill is a place, they said.",
-        "paragraph": 3,
-        "paragraphId": "p-3"
-      }
-    ],
-    "Mira": [],
-    "Mira the Tall": [],
-    "Mirb": [],
-    "Mirc": [],
-    "Nick": [
-      {
-        "chapter": "One",
-        "chapterId": "c-1",
-        "excerpt": "Wren was a tall girl, and Wren ran. Nick looked on.",
-        "paragraph": 0,
-        "paragraphId": "p-0"
-      },
-      {
-        "chapter": "One",
-        "chapterId": "c-1",
-        "excerpt": "The boy said nothing.  Nick, the boy, is the quiet one! Wren? Wren.",
-        "paragraph": 1,
-        "paragraphId": "p-1"
-      }
-    ],
-    "Nick the Quiet": [],
-    "Nico": [
-      {
-        "chapter": "Two",
-        "chapterId": "c-2",
-        "excerpt": "Zoë Ünal laughed. Zoë is an old friend; Ünal agreed. שלום Wren 😀 Nico-Rose O'Neil.",
-        "paragraph": 2,
-        "paragraphId": "p-2"
-      }
-    ],
-    "Nico-Rose O'Neil": [
-      {
-        "chapter": "Two",
-        "chapterId": "c-2",
-        "excerpt": "Zoë Ünal laughed. Zoë is an old friend; Ünal agreed. שלום Wren 😀 Nico-Rose O'Neil.",
-        "paragraph": 2,
-        "paragraphId": "p-2"
-      }
-    ],
-    "Nobody Home": [],
-    "Old": [
-      {
-        "chapter": "Two",
-        "chapterId": "c-2",
-        "excerpt": "Zoë Ünal laughed. Zoë is an old friend; Ünal agreed. שלום Wren 😀 Nico-Rose O'Neil.",
-        "paragraph": 2,
-        "paragraphId": "p-2"
-      }
-    ],
-    "Somebody": [],
-    "The Mill": [
-      {
-        "chapter": "Two",
-        "chapterId": "c-2",
-        "excerpt": "The Mill  was the oldest building. Mill hands left. A mill is a place, they said.",
-        "paragraph": 3,
-        "paragraphId": "p-3"
-      }
-    ],
-    "WREN": [
-      {
-        "chapter": "One",
-        "chapterId": "c-1",
-        "excerpt": "Wren was a tall girl, and Wren ran. Nick looked on.",
-        "paragraph": 0,
-        "paragraphId": "p-0"
-      },
-      {
-        "chapter": "One",
-        "chapterId": "c-1",
-        "excerpt": "Wren was a tall girl, and Wren ran. Nick looked on.",
-        "paragraph": 0,
-        "paragraphId": "p-0"
-      },
-      {
-        "chapter": "One",
-        "chapterId": "c-1",
-        "excerpt": "The boy said nothing.  Nick, the boy, is the quiet one! Wren? Wren.",
-        "paragraph": 1,
-        "paragraphId": "p-1"
-      },
-      {
-        "chapter": "One",
-        "chapterId": "c-1",
-        "excerpt": "The boy said nothing.  Nick, the boy, is the quiet one! Wren? Wren.",
-        "paragraph": 1,
-        "paragraphId": "p-1"
-      },
-      {
-        "chapter": "Two",
-        "chapterId": "c-2",
-        "excerpt": "Zoë Ünal laughed. Zoë is an old friend; Ünal agreed. שלום Wren 😀 Nico-Rose O'Neil.",
-        "paragraph": 2,
-        "paragraphId": "p-2"
-      }
-    ],
-    "Wr": [],
-    "Wren": [
-      {
-        "chapter": "One",
-        "chapterId": "c-1",
-        "excerpt": "Wren was a tall girl, and Wren ran. Nick looked on.",
-        "paragraph": 0,
-        "paragraphId": "p-0"
-      },
-      {
-        "chapter": "One",
-        "chapterId": "c-1",
-        "excerpt": "Wren was a tall girl, and Wren ran. Nick looked on.",
-        "paragraph": 0,
-        "paragraphId": "p-0"
-      },
-      {
-        "chapter": "One",
-        "chapterId": "c-1",
-        "excerpt": "The boy said nothing.  Nick, the boy, is the quiet one! Wren? Wren.",
-        "paragraph": 1,
-        "paragraphId": "p-1"
-      },
-      {
-        "chapter": "One",
-        "chapterId": "c-1",
-        "excerpt": "The boy said nothing.  Nick, the boy, is the quiet one! Wren? Wren.",
-        "paragraph": 1,
-        "paragraphId": "p-1"
-      },
-      {
-        "chapter": "Two",
-        "chapterId": "c-2",
-        "excerpt": "Zoë Ünal laughed. Zoë is an old friend; Ünal agreed. שלום Wren 😀 Nico-Rose O'Neil.",
-        "paragraph": 2,
-        "paragraphId": "p-2"
-      }
-    ],
-    "Wren 😀": [],
-    "Zoë": [
-      {
-        "chapter": "Two",
-        "chapterId": "c-2",
-        "excerpt": "Zoë Ünal laughed. Zoë is an old friend; Ünal agreed. שלום Wren 😀 Nico-Rose O'Neil.",
-        "paragraph": 2,
-        "paragraphId": "p-2"
-      },
-      {
-        "chapter": "Two",
-        "chapterId": "c-2",
-        "excerpt": "Zoë Ünal laughed. Zoë is an old friend; Ünal agreed. שלום Wren 😀 Nico-Rose O'Neil.",
-        "paragraph": 2,
-        "paragraphId": "p-2"
-      }
-    ],
-    "Zoë Ünal": [
-      {
-        "chapter": "Two",
-        "chapterId": "c-2",
-        "excerpt": "Zoë Ünal laughed. Zoë is an old friend; Ünal agreed. שלום Wren 😀 Nico-Rose O'Neil.",
-        "paragraph": 2,
-        "paragraphId": "p-2"
-      }
-    ],
-    "Zzyzx": [],
-    "Zzyzx the Great": [],
-    "mira": [],
-    "nick": [
-      {
-        "chapter": "One",
-        "chapterId": "c-1",
-        "excerpt": "Wren was a tall girl, and Wren ran. Nick looked on.",
-        "paragraph": 0,
-        "paragraphId": "p-0"
-      },
-      {
-        "chapter": "One",
-        "chapterId": "c-1",
-        "excerpt": "The boy said nothing.  Nick, the boy, is the quiet one! Wren? Wren.",
-        "paragraph": 1,
-        "paragraphId": "p-1"
-      }
-    ],
-    "the boy": [
-      {
-        "chapter": "One",
-        "chapterId": "c-1",
-        "excerpt": "The boy said nothing.  Nick, the boy, is the quiet one! Wren? Wren.",
-        "paragraph": 1,
-        "paragraphId": "p-1"
-      },
-      {
-        "chapter": "One",
-        "chapterId": "c-1",
-        "excerpt": "The boy said nothing.  Nick, the boy, is the quiet one! Wren? Wren.",
-        "paragraph": 1,
-        "paragraphId": "p-1"
-      }
-    ],
-    "Ünal Zoë": [],
-    "ünal": [
-      {
-        "chapter": "Two",
-        "chapterId": "c-2",
-        "excerpt": "Zoë Ünal laughed. Zoë is an old friend; Ünal agreed. שלום Wren 😀 Nico-Rose O'Neil.",
-        "paragraph": 2,
-        "paragraphId": "p-2"
-      },
-      {
-        "chapter": "Two",
-        "chapterId": "c-2",
-        "excerpt": "Zoë Ünal laughed. Zoë is an old friend; Ünal agreed. שלום Wren 😀 Nico-Rose O'Neil.",
-        "paragraph": 2,
-        "paragraphId": "p-2"
-      }
-    ],
-    "שלום": [
-      {
-        "chapter": "Two",
-        "chapterId": "c-2",
-        "excerpt": "Zoë Ünal laughed. Zoë is an old friend; Ünal agreed. שלום Wren 😀 Nico-Rose O'Neil.",
-        "paragraph": 2,
-        "paragraphId": "p-2"
-      }
-    ],
-    "😀": []
   },
   "pronunciations": {
     "Arelian": {

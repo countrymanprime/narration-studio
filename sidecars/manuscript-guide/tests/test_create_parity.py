@@ -3,12 +3,12 @@
 The host creates an entry and adds an alias itself and asks the sidecar only for the pronunciations (apps/desktop/internal/guide/create.go),
 so each has two implementations. Each case here is a start file, a manuscript and a list of steps; every step runs the real command on the
 file the step before left, with pronunciation fixed by ``fixed_pronunciation`` so no dictionary is involved, and records whether it wrote
-and what the file then holds, or the reason it refused. It also records what the command asked of the two things the host answers
-differently: the words it wanted a pronunciation for, and the names it searched the manuscript for, each with the answer it got.
+and what the file then holds, or the reason it refused. It also records the words the command wanted a pronunciation for and the names it searched the manuscript for, in order. The manuscripts
+are in the file, so the host searches the same text with its own search.
 
 ``TestCreatesMatchTheSidecarCases`` in the guide package replays every case twice, once as a chain on the host's own writes and once with
-every step on the sidecar's file, answering the pronunciations and the searches from what is recorded here; it requires the same JSON, the
-same reason, and the same words and names asked in the same order. Run with ``UPDATE_CONTRACTS=1`` to rewrite the file after a deliberate
+every step on the sidecar's file. It answers the pronunciations from what is recorded here, searches the manuscript itself, and requires
+the same JSON, the same reason, and the same words and names asked in the same order. Run with ``UPDATE_CONTRACTS=1`` to rewrite the file after a deliberate
 change.
 """
 
@@ -340,7 +340,7 @@ def run_step(path: str, manuscript: str, command: str, arguments: dict) -> None:
     guide.edit(argparse.Namespace(**common, entity_id=arguments["entity_id"], field=fields, value=[arguments["fields"][field] for field in fields]))
 
 
-def run_case(start: dict | None, manuscript_key: str, steps: list, pronounced: dict, searched: dict) -> list[dict]:
+def run_case(start: dict | None, manuscript_key: str, steps: list, pronounced: dict) -> list[dict]:
     results = []
     asked: list[str] = []
     seen: list[str] = []
@@ -354,8 +354,7 @@ def run_case(start: dict | None, manuscript_key: str, steps: list, pronounced: d
 
     def find_occurrences(paragraphs, name):
         seen.append(name)
-        searched[name] = real_find(paragraphs, name)
-        return searched[name]
+        return real_find(paragraphs, name)
 
     with (
         tempfile.TemporaryDirectory() as temporary,
@@ -395,14 +394,13 @@ def run_case(start: dict | None, manuscript_key: str, steps: list, pronounced: d
 class CreateParityTests(unittest.TestCase):
     def test_every_case_matches_the_committed_file(self):
         pronounced: dict = {}
-        searched: dict = {}
         cases = [
             {
                 "name": name,
                 "start": start,
                 "manuscript": manuscript,
                 "steps": steps,
-                "results": run_case(STARTS[start], manuscript, steps, pronounced, searched),
+                "results": run_case(STARTS[start], manuscript, steps, pronounced),
             }
             for name, start, manuscript, steps in CASES
         ]
@@ -421,10 +419,9 @@ class CreateParityTests(unittest.TestCase):
         contract_files.check(
             "create-parity",
             {
-                "manuscripts": {key: ({"error": self.manuscript_error(key)} if key != "story" else {"error": ""}) for key in MANUSCRIPTS},
+                "manuscripts": {key: {"data": MANUSCRIPTS[key], "error": self.manuscript_error(key)} for key in MANUSCRIPTS},
                 "starts": STARTS,
                 "pronunciations": pronounced,
-                "occurrences": searched,
                 "cases": cases,
             },
             TESTDATA,

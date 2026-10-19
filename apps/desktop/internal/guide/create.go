@@ -4,11 +4,9 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"regexp"
 	"slices"
 	"strings"
-	"unicode"
-	"unicode/utf8"
+	"sync"
 )
 
 // occurrenceSearch is manuscript_guide.py find_occurrences for one manuscript: where one name occurs in it, as the evidence items the
@@ -19,22 +17,22 @@ type occurrenceSearch func(name string) ([]any, error)
 // errNoEntries is the sidecar's KeyError for a Story Bible file that is an object without a list of entries.
 var errNoEntries = errors.New("The Story Bible has no list of entries.") //nolint:staticcheck // shown to the narrator
 
-// hostCreates says whether the host creates an entry and adds an alias itself (create.go) or leaves both to the sidecar's `create` and
-// `edit`. It needs a way to search the manuscript (searchManuscript), which the host gets from the Go find_occurrences.
-func (s *Service) hostCreates() bool { return s.searchManuscript != nil }
-
-// openSearch is manuscript_guide.py load_manuscript followed by find_occurrences over it: the search over the project's manuscript, or
-// the reason it cannot be read.
-func (s *Service) openSearch() (occurrenceSearch, error) {
-	if s.searchManuscript == nil {
-		return nil, errors.New("the manuscript cannot be searched")
+// searchNarration is manuscript_guide.py load_manuscript followed by find_occurrences over it (narration and findOccurrences): the search
+// over the manuscript at path, or the sidecar's reason it cannot be read.
+func searchNarration(path string) (occurrenceSearch, error) {
+	paragraphs, err := narration(path)
+	if err != nil {
+		return nil, err
 	}
-	return s.searchManuscript(s.manuscript())
+	return func(name string) ([]any, error) { return findOccurrences(paragraphs, name), nil }, nil
 }
+
+// openSearch is the search over the project's manuscript.
+func (s *Service) openSearch() (occurrenceSearch, error) { return s.searchManuscript(s.manuscript()) }
 
 // pronunciations asks the sidecar's `pronunciation` command for the automatic pronunciation of each word, in order (the value
 // manuscript_guide.py pronunciation() makes: the narrator's default source first, then the rest). It is the one thing the sidecar is
-// asked when the host creates an entry or adds an alias. A word nothing knows gets the "not generated" value; a lookup that fails
+// asked when the host creates an entry or adds an alias; the manuscript and the Story Bible stay with the host. A word nothing knows gets the "not generated" value; a lookup that fails
 // (the sidecar missing, killed or crashed) is an error, so nothing is written with a name left without a pronunciation.
 func (s *Service) pronunciations(words []string) ([]map[string]any, error) {
 	if len(words) == 0 {
@@ -257,99 +255,133 @@ func newEntry(id, name, category string, aliasList []string, values []map[string
 	return entity, nil
 }
 
-// pythonSpace is the white space Python's str.isspace and the \s of its regular expressions know: the same as pythonStrip trims.
-func pythonSpace(r rune) bool { return unicode.IsSpace(r) || (r >= 0x1c && r <= 0x1f) }
-
-// pythonSpaceClass is \s as Python reads it in a pattern for text. Go's \s is only the ASCII white space, without even \v.
-const pythonSpaceClass = `[\t\n\v\f\r \x{1c}-\x{1f}\x{85}\x{a0}\x{1680}\x{2000}-\x{200a}\x{2028}\x{2029}\x{202f}\x{205f}\x{3000}]`
-
-// describedAs is what follows a name in direct_description, from the end of the name: "was"/"is", then "a", "an" or "the", then the
-// description up to the next , . ! or ;.
-var describedAs = regexp.MustCompile(`(?i)\A` + pythonSpaceClass + `*(?:,` + pythonSpaceClass + `*)?(?:was|is)` + pythonSpaceClass +
-	`+(?:an?|the)` + pythonSpaceClass + `+([^,.!;]+)`)
-
-// splitSentences is manuscript_guide.py SENTENCES.split: the text cut at each run of white space that follows a . ! or ?.
-func splitSentences(text string) []string {
-	var sentences []string
-	start, previous := 0, rune(0)
-	for index := 0; index < len(text); {
-		r, size := utf8.DecodeRuneInString(text[index:])
-		if pythonSpace(r) && (previous == '.' || previous == '!' || previous == '?') {
-			end := index + size
-			for end < len(text) {
-				next, nextSize := utf8.DecodeRuneInString(text[end:])
-				if !pythonSpace(next) {
-					break
-				}
-				end += nextSize
-			}
-			sentences = append(sentences, text[start:index])
-			start, index, previous = end, end, 0
+// splitSentences is manuscript_guide.py SENTENCES.split, (?<=[.!?])\s+: the text cut at each run of white space that follows a . ! or ?.
+func splitSentences(tables *pythonUnicodeTables, text []rune) [][]rune {
+	var sentences [][]rune
+	start := 0
+	for at := 1; at < len(text); at++ {
+		if !tables.isSpace(text[at]) || (text[at-1] != '.' && text[at-1] != '!' && text[at-1] != '?') {
 			continue
 		}
-		previous = r
-		index += size
+		end := at
+		for end < len(text) && tables.isSpace(text[end]) {
+			end++
+		}
+		sentences = append(sentences, text[start:at])
+		start, at = end, end-1
 	}
 	return append(sentences, text[start:])
 }
 
-// wordRune is Python's \w for text: a letter, a number or an underscore.
-func wordRune(r rune) bool { return unicode.IsLetter(r) || unicode.IsNumber(r) || r == '_' }
+// The words direct_description looks for after a name, compiled like any other literal of a pattern run with re.IGNORECASE.
+var describedWords = sync.OnceValue(func() map[string][]literal {
+	words := map[string][]literal{}
+	for _, word := range []string{"was", "is", "a", "n", "the"} {
+		words[word] = compileLiterals(pythonUnicode(), []rune(word))
+	}
+	return words
+})
 
-// wordBoundary is Python's \b at a byte offset of text: a word character on one side only. Go's \b knows only ASCII letters and digits.
-func wordBoundary(text string, offset int) bool {
-	var before, after bool
-	if offset > 0 {
-		r, _ := utf8.DecodeLastRuneInString(text[:offset])
-		before = wordRune(r)
-	}
-	if offset < len(text) {
-		r, _ := utf8.DecodeRuneInString(text[offset:])
-		after = wordRune(r)
-	}
-	return before != after
+// wordAt is whether text holds the literals at at.
+func wordAt(tables *pythonUnicodeTables, text []rune, at int, word []literal) bool {
+	return at+len(word) <= len(text) && matchesAt(tables, word, text, at)
 }
 
-// describedBy is re.search(r"\b" + re.escape(literal) + r"\b\s*(?:,\s*)?(?:was|is)\s+(?:an?|the)\s+([^,.!;]+)", sentence, re.IGNORECASE)
-// and group 1: the leftmost place the name is followed by "is a ...".
-func describedBy(sentence, literal string) (string, bool) {
-	name := regexp.MustCompile(`(?i)\A` + regexp.QuoteMeta(literal))
-	for start := range sentence {
-		if !wordBoundary(sentence, start) {
+// skipSpace is the index of the first character from at on that is not white space (\s*).
+func skipSpace(tables *pythonUnicodeTables, text []rune, at int) int {
+	for at < len(text) && tables.isSpace(text[at]) {
+		at++
+	}
+	return at
+}
+
+// describedAfter is what follows a name in direct_description's pattern, from the end of the name:
+// \s*(?:,\s*)?(?:was|is)\s+(?:an?|the)\s+([^,.!;]+) under re.IGNORECASE, and its group. Each step has one way to go on, so there is no
+// search, except at the end: when white space is all that is left of the group's run, \s+ gives its last character back to the group.
+func describedAfter(tables *pythonUnicodeTables, text []rune, at int) ([]rune, bool) {
+	words := describedWords()
+	at = skipSpace(tables, text, at)
+	if at < len(text) && text[at] == ',' {
+		at = skipSpace(tables, text, at+1)
+	}
+	switch {
+	case wordAt(tables, text, at, words["was"]):
+		at += 3
+	case wordAt(tables, text, at, words["is"]):
+		at += 2
+	default:
+		return nil, false
+	}
+	spaced := skipSpace(tables, text, at)
+	if spaced == at {
+		return nil, false
+	}
+	at = spaced
+	switch {
+	case wordAt(tables, text, at, words["a"]):
+		at++
+		if wordAt(tables, text, at, words["n"]) {
+			at++
+		}
+	case wordAt(tables, text, at, words["the"]):
+		at += 3
+	default:
+		return nil, false
+	}
+	next := skipSpace(tables, text, at)
+	if next == at {
+		return nil, false
+	}
+	end := next
+	for end < len(text) && !strings.ContainsRune(",.!;", text[end]) {
+		end++
+	}
+	if end > next {
+		return text[next:end], true
+	}
+	if next-at >= 2 {
+		return text[next-1 : next], true
+	}
+	return nil, false
+}
+
+// describedBy is re.search(r"\b" + re.escape(candidate) + r"\b\s*(?:,\s*)?(?:was|is)\s+(?:an?|the)\s+([^,.!;]+)", sentence, re.IGNORECASE)
+// and its group 1: the leftmost place the candidate is followed by "is a ...".
+func describedBy(tables *pythonUnicodeTables, sentence []rune, pattern []literal) ([]rune, bool) {
+	for start := 0; start+len(pattern) <= len(sentence); start++ {
+		if !atBoundary(tables, sentence, start) || !matchesAt(tables, pattern, sentence, start) {
 			continue
 		}
-		found := name.FindStringIndex(sentence[start:])
-		if found == nil {
+		end := start + len(pattern)
+		if !atBoundary(tables, sentence, end) {
 			continue
 		}
-		end := start + found[1]
-		if !wordBoundary(sentence, end) {
-			continue
-		}
-		if match := describedAs.FindStringSubmatch(sentence[end:]); match != nil {
-			return match[1], true
+		if group, ok := describedAfter(tables, sentence, end); ok {
+			return group, true
 		}
 	}
-	return "", false
+	return nil, false
 }
 
 // directDescription is manuscript_guide.py direct_description: only an explicit appositive or copular description ("Wren is a tall
-// girl"), never a guess, from the first occurrence whose excerpt has one; the name is tried whole and then by its last word.
+// girl"), never a guess, from the first occurrence whose excerpt has one; the name is tried whole and then by its last word. It reads
+// the text by Python's tables (python-unicode.json), as the search that found the occurrences does.
 func directDescription(name string, occurrences []any) map[string]any {
-	words := strings.FieldsFunc(name, pythonSpace)
-	candidates := []string{name, words[len(words)-1]}
+	tables := pythonUnicode()
+	words := strings.FieldsFunc(name, tables.isSpace)
+	candidates := [][]literal{compileLiterals(tables, []rune(name)), compileLiterals(tables, []rune(words[len(words)-1]))}
 	for _, raw := range occurrences {
 		occurrence, _ := raw.(map[string]any)
 		source, ok := occurrence["text"].(string)
 		if !ok {
 			source, _ = getOr(occurrence, "excerpt", "").(string)
 		}
-		for _, sentence := range splitSentences(source) {
+		for _, sentence := range splitSentences(tables, []rune(source)) {
 			for _, candidate := range candidates {
-				if description, found := describedBy(sentence, candidate); found {
+				if description, found := describedBy(tables, sentence, candidate); found {
 					return map[string]any{
-						"text":     "Explicitly described as " + pythonStrip(description) + ".",
-						"evidence": map[string]any{"chapter": occurrence["chapter"], "excerpt": pythonStrip(sentence)},
+						"text":     "Explicitly described as " + string(stripRunes(description)) + ".",
+						"evidence": map[string]any{"chapter": occurrence["chapter"], "excerpt": string(stripRunes(sentence))},
 					}
 				}
 			}

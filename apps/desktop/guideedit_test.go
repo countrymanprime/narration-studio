@@ -3,7 +3,6 @@ package main
 import (
 	"bufio"
 	"encoding/json"
-	"maps"
 	"os"
 	"path/filepath"
 	"slices"
@@ -17,7 +16,7 @@ import (
 )
 
 // fakeGuideCountEnv turns this test binary into a Story Bible sidecar that only records how it was called: one JSON line of arguments per
-// process it is started as, in the file the variable names. It answers a create the way the real one does.
+// process it is started as, in the file the variable names. It answers a pronunciation lookup the way the real one does: one line per word.
 const fakeGuideCountEnv = "SHELL_FAKE_GUIDE_COUNT"
 
 func runFakeGuideCount(path string) int {
@@ -28,8 +27,12 @@ func runFakeGuideCount(path string) int {
 	defer func() { _ = file.Close() }()
 	line, _ := json.Marshal(os.Args[1:])
 	_, _ = file.Write(append(line, '\n'))
-	if len(os.Args) > 1 && os.Args[1] == "create" {
-		_, _ = os.Stdout.WriteString("CREATED|entity-1|0\n")
+	if len(os.Args) > 1 && os.Args[1] == "pronunciation" {
+		for _, arg := range os.Args[2:] {
+			if strings.HasPrefix(arg, "--word=") {
+				_, _ = os.Stdout.WriteString(`{"ipa": "say ` + strings.ReplaceAll(strings.TrimPrefix(arg, "--word="), `"`, "") + `", "source": "cmu", "confidence": "high"}` + "\n")
+			}
+		}
 	}
 	return 0
 }
@@ -72,26 +75,29 @@ func countingGuideIn(t *testing.T) (*guide.Service, func() [][]string, string) {
 	}, project
 }
 
-// pairs reads the --field and --value arguments of one edit call back into a map.
-func pairs(t *testing.T, args []string) map[string]string {
-	t.Helper()
-	fields, values := []string{}, []string{}
-	for i := 0; i < len(args); i++ {
-		switch {
-		case args[i] == "--field" && i+1 < len(args):
-			fields = append(fields, args[i+1])
-		case strings.HasPrefix(args[i], "--value="):
-			values = append(values, strings.TrimPrefix(args[i], "--value="))
+// words reads the --word arguments of one pronunciation lookup back, in order.
+func words(args []string) []string {
+	out := []string{}
+	for _, arg := range args {
+		if value, ok := strings.CutPrefix(arg, "--word="); ok {
+			out = append(out, value)
 		}
 	}
-	if len(fields) != len(values) {
-		t.Fatalf("fields %v and values %v do not pair up", fields, values)
-	}
-	out := map[string]string{}
-	for i := range fields {
-		out[fields[i]] = values[i]
-	}
 	return out
+}
+
+// writeManuscript puts a manuscript with one narrated paragraph in the service's project, where the host searches for a new name.
+func writeManuscript(t *testing.T, project string) {
+	t.Helper()
+	path := filepath.Join(project, "narration-utils", "manuscript", "manuscript.json")
+	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	content := `{"schemaVersion": 1, "documentId": "d", "chapters": [{"id": "c1", "title": "One"}],
+		"paragraphs": [{"id": "p1", "chapterId": "c1", "chapterTitle": "One", "text": "Juno met Zeph. Juno is a friend."}]}`
+	if err := os.WriteFile(path, []byte(content), 0o600); err != nil {
+		t.Fatal(err)
+	}
 }
 
 // writeStoryBible puts a Story Bible with one entry, entity-1, a Character with three aliases, in the service's project.
@@ -152,55 +158,64 @@ func TestSettingTheLockStartsNoProcess(t *testing.T) {
 	}
 }
 
-func TestAnEditIsTheSameCommandEveryTimeAndOnlyAnAliasEditReadsTheManuscript(t *testing.T) {
-	service, calls := countingGuide(t)
+// An edit of the aliases is applied by the host too; the sidecar is started once, for the pronunciation of the names the entry did not have,
+// and not at all when it had them all. The manuscript and the file never reach it.
+func TestAnAliasEditAsksTheSidecarOnlyForTheNewNames(t *testing.T) {
+	service, calls, project := countingGuideIn(t)
+	writeStoryBible(t, project)
+	writeManuscript(t, project)
 	host := &Host{guide: service}
 	for i := 0; i < 3; i++ {
-		if _, err := host.GuideEdit("entity-1", map[string]string{"context": "C", "aliases": "Al;Ally", "description": "D"}); err != nil {
+		if _, err := host.GuideEdit("entity-1", map[string]string{"context": "C", "aliases": "Ally;Alfie;Juno;Zeph", "description": "D"}); err != nil {
 			t.Fatal(err)
 		}
 	}
 	got := calls()
-	if len(got) != 3 {
-		t.Fatalf("calls = %d", len(got))
+	if len(got) != 1 || got[0][0] != "pronunciation" || !slices.Equal(words(got[0]), []string{"Juno", "Zeph"}) {
+		t.Fatalf("calls = %v, want one pronunciation lookup of the two new names", got)
 	}
-	for _, call := range got[1:] {
-		if !slices.Equal(call, got[0]) {
-			t.Fatalf("the same edit produced different commands:\n%v\n%v", got[0], call)
+	for _, arg := range got[0] {
+		if arg == "--manuscript" || arg == "--guide" || arg == "--field" {
+			t.Fatalf("the lookup is given more than the words: %v", got[0])
 		}
 	}
-	if !slices.Contains(got[0], "--manuscript") {
-		t.Fatalf("an alias edit needs the manuscript: %v", got[0])
+	entities, err := service.Entities()
+	if err != nil {
+		t.Fatal(err)
 	}
-	fields := []string{}
-	for i, arg := range got[0] {
-		if arg == "--field" {
-			fields = append(fields, got[0][i+1])
-		}
+	aliases, _ := entities[0]["aliases"].([]any)
+	if len(aliases) != 4 || entities[0]["context"] != "C" || entities[0]["occurrence_count"] == nil {
+		t.Fatalf("entity after the edit = %v", entities[0])
 	}
-	if !slices.Equal(fields, []string{"aliases", "context", "description"}) {
-		t.Fatalf("fields are sent in name order, got %v", fields)
+	juno := aliases[2].(map[string]any)
+	if juno["text"] != "Juno" || len(juno["occurrences"].([]any)) != 2 || juno["pronunciation"].(map[string]any)["ipa"] != "say Juno" {
+		t.Fatalf("the new alias = %v", juno)
 	}
 }
 
-// A value that starts with a dash ("-brave") is a value, not an option: argparse only takes it in the --name=value form, so a note the
-// narrator typed that way must not fail the whole Save (or make a seeded character be skipped).
+// A name that starts with a dash ("-brave") is a name, not an option: argparse only takes it in the --word=value form, so an alias the
+// narrator typed that way must not fail the whole Save (or make a seeded character be skipped). Every other value is written by the host.
 func TestAValueThatLooksLikeAnOptionIsSentAsAValue(t *testing.T) {
-	service, calls := countingGuide(t)
+	service, calls, project := countingGuideIn(t)
+	writeStoryBible(t, project)
+	writeManuscript(t, project)
 	host := &Host{guide: service}
-	// An edit with aliases is the one that still goes to the sidecar.
-	if _, err := host.GuideEdit("entity-1", map[string]string{"aliases": "Al", "personality": "-brave", "description": "--not-a-flag"}); err != nil {
+	if _, err := host.GuideEdit("entity-1", map[string]string{"aliases": "-brave", "personality": "-brave", "description": "--not-a-flag"}); err != nil {
 		t.Fatal(err)
 	}
 	got := calls()
-	if len(got) != 1 {
+	if len(got) != 1 || !slices.Equal(words(got[0]), []string{"-brave"}) {
 		t.Fatalf("calls = %v", got)
 	}
-	if want := (map[string]string{"aliases": "Al", "personality": "-brave", "description": "--not-a-flag"}); !maps.Equal(pairs(t, got[0]), want) {
-		t.Fatalf("pairs = %v in %v", pairs(t, got[0]), got[0])
+	if slices.Contains(got[0], "-brave") {
+		t.Fatalf("a bare option-looking name would be read as a flag: %v", got[0])
 	}
-	if slices.Contains(got[0], "-brave") || slices.Contains(got[0], "--not-a-flag") {
-		t.Fatalf("a bare option-looking value would be read as a flag: %v", got[0])
+	entities, err := service.Entities()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if entities[0]["description"].(map[string]any)["text"] != "--not-a-flag" || entities[0]["aliases"].([]any)[0].(map[string]any)["text"] != "-brave" {
+		t.Fatalf("entity = %v", entities[0])
 	}
 }
 
@@ -215,10 +230,13 @@ func TestAnEmptyEditStartsNoProcess(t *testing.T) {
 	}
 }
 
+// Seeding a character is one sidecar process, for its name's pronunciation, and one write: the host makes the entry, with the description
+// and the labelled facts (Codename, Abilities, ...) a candidate carries, and an unchecked candidate is not created.
 func TestSeedingACharacterIsOneProcessNotTwo(t *testing.T) {
-	service, calls := countingGuide(t)
+	service, calls, project := countingGuideIn(t)
+	writeManuscript(t, project)
 	candidates := []importer.CharacterCandidate{
-		{ID: "a", Name: "Juno", Description: "The narrator's friend."},
+		{ID: "a", Name: "Juno", Description: "The narrator's friend.", Properties: []importer.Property{{Key: "Codename", Value: "The Sparrow"}, {Key: "Abilities", Value: "Flight"}}},
 		{ID: "b", Name: "Zeph"},
 		{ID: "c", Name: "Unchecked", Description: "Not chosen."},
 	}
@@ -228,37 +246,23 @@ func TestSeedingACharacterIsOneProcessNotTwo(t *testing.T) {
 	if len(got) != 2 {
 		t.Fatalf("two checked characters started %d processes, want 2: %v", len(got), got)
 	}
-	for _, call := range got {
-		if call[0] != "create" {
-			t.Fatalf("seeding must only create: %v", call)
+	for index, name := range []string{"Juno", "Zeph"} {
+		if got[index][0] != "pronunciation" || !slices.Equal(words(got[index]), []string{name}) {
+			t.Fatalf("seeding must only look up the name: %v", got[index])
 		}
-	}
-	if !slices.Contains(got[0], "--description=The narrator's friend.") || slices.ContainsFunc(got[1], func(arg string) bool { return strings.HasPrefix(arg, "--description") }) {
-		t.Fatalf("only a candidate with a description carries one: %v %v", got[0], got[1])
 	}
 	if last != "Added 2 Story Bible characters" {
 		t.Fatalf("last report = %q", last)
 	}
-}
-
-// TestSeedingACharacterSendsItsPropertiesInTheSameCreateCall covers seeding a character: a candidate's
-// labelled facts (Codename, Abilities, ...) go to the sidecar's create --properties in the same process as the name and
-// description - not a second edit - and a candidate with none sends no --properties flag at all.
-func TestSeedingACharacterSendsItsPropertiesInTheSameCreateCall(t *testing.T) {
-	service, calls := countingGuide(t)
-	candidates := []importer.CharacterCandidate{
-		{ID: "a", Name: "Wren", Description: "A spy.", Properties: []importer.Property{{Key: "Codename", Value: "The Sparrow"}, {Key: "Abilities", Value: "Flight"}}},
-		{ID: "b", Name: "Juno"},
+	entities, err := service.Entities()
+	if err != nil || len(entities) != 2 {
+		t.Fatalf("entries = %v, %v", entities, err)
 	}
-	seedCharacterCandidates(service, candidates, []string{"a", "b"}, func(_ int, _ string) {})
-	got := calls()
-	if len(got) != 2 {
-		t.Fatalf("two checked characters started %d processes, want 2: %v", len(got), got)
+	juno, zeph := entities[0], entities[1]
+	if juno["description"].(map[string]any)["text"] != "The narrator's friend." || len(juno["properties"].([]any)) != 2 {
+		t.Fatalf("Juno did not carry her description and properties: %v", juno)
 	}
-	if !slices.Contains(got[0], `--properties=[{"key":"Codename","value":"The Sparrow"},{"key":"Abilities","value":"Flight"}]`) {
-		t.Fatalf("Wren's create did not carry its properties: %v", got[0])
-	}
-	if slices.ContainsFunc(got[1], func(arg string) bool { return strings.HasPrefix(arg, "--properties") }) {
-		t.Fatalf("Juno has no properties and must send no --properties flag: %v", got[1])
+	if zeph["description"].(map[string]any)["text"] != "" || len(zeph["properties"].([]any)) != 0 {
+		t.Fatalf("Zeph has neither and must be written with none: %v", zeph)
 	}
 }

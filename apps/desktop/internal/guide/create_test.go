@@ -17,10 +17,9 @@ package guide
 //	stale document (another writer)           TestACreateSeesAnotherWritersChange
 //	emoji, right-to-left, very long names     the recorded case "names in other scripts, emoji and a very long name"
 //	rapid double-fire                         TestTwoCreatesOfOneNameAtOnceMakeOne; the recorded case "a create twice"
-//	manuscript missing or without text        the recorded cases (the manuscript's own words come from the recording; the host's own
-//	                                          reading of the file is the Go find_occurrences', pinned with it)
+//	manuscript missing or without text        the recorded cases "the manuscript missing or without text", "no readable text": the host reads the
+//	                                          recorded manuscript, so its refusals are its own, and must be the sidecar's words
 //	a file with no list of entries            TestACreateInAFileWithNoEntriesIsRefused
-//	the host cannot search the manuscript     TestWithoutASearchTheSidecarStillCreates
 //	reload mid-action, leave mid-action       not tested: the file is read and written in one call under editMu
 
 import (
@@ -54,15 +53,17 @@ type createCase struct {
 }
 
 type recordedCreates struct {
-	Manuscripts    map[string]struct{ Error string } `json:"manuscripts"`
-	Starts         map[string]json.RawMessage        `json:"starts"`
-	Pronunciations map[string]json.RawMessage        `json:"pronunciations"`
-	Occurrences    map[string]json.RawMessage        `json:"occurrences"`
-	Cases          []createCase                      `json:"cases"`
+	Manuscripts map[string]struct {
+		Data  json.RawMessage `json:"data"`
+		Error string          `json:"error"`
+	} `json:"manuscripts"`
+	Starts         map[string]json.RawMessage `json:"starts"`
+	Pronunciations map[string]json.RawMessage `json:"pronunciations"`
+	Cases          []createCase               `json:"cases"`
 }
 
-// replayer answers the two things the sidecar's recording fixes: the pronunciation of a word and the occurrences of a name. It keeps what
-// it was asked, in order, so a step can require the host to ask for the same words and names the sidecar did.
+// replayer answers the pronunciations from the sidecar's recording and searches the recorded manuscript with the host's own search. It
+// keeps what it was asked, in order, so a step can require the host to ask for the same words and names the sidecar did.
 type replayer struct {
 	t          *testing.T
 	recorded   recordedCreates
@@ -85,19 +86,34 @@ func (r *replayer) install(s *Service) {
 		}
 		return values, nil
 	}
-	s.searchManuscript = func(string) (occurrenceSearch, error) {
-		if message := r.recorded.Manuscripts[r.manuscript].Error; message != "" {
-			return nil, errors.New(message)
+	s.searchManuscript = func(path string) (occurrenceSearch, error) {
+		search, err := searchNarration(path)
+		if err != nil {
+			return nil, err
 		}
 		return func(name string) ([]any, error) {
 			r.searched = append(r.searched, name)
-			raw, ok := r.recorded.Occurrences[name]
-			if !ok {
-				r.t.Errorf("the manuscript was searched for %q, which the sidecar never searched for", name)
-				return nil, errors.New("unrecorded name")
-			}
-			return decodeExactly(r.t, raw).([]any), nil
+			return search(name)
 		}, nil
+	}
+}
+
+// useManuscript puts the recorded manuscript where the service reads it, or takes it away when the case has none.
+func (r *replayer) useManuscript(s *Service, key string) {
+	r.manuscript = key
+	path := s.manuscript()
+	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
+		r.t.Fatal(err)
+	}
+	data := r.recorded.Manuscripts[key].Data
+	if string(data) == "null" {
+		if err := os.Remove(path); err != nil && !os.IsNotExist(err) {
+			r.t.Fatal(err)
+		}
+		return
+	}
+	if err := os.WriteFile(path, data, 0o600); err != nil {
+		r.t.Fatal(err)
 	}
 }
 
@@ -179,7 +195,7 @@ func TestCreatesMatchTheSidecarCases(t *testing.T) {
 		}
 	}
 	for _, c := range recorded.Cases {
-		replay.manuscript = c.Manuscript
+		replay.useManuscript(s, c.Manuscript)
 		var startText []byte
 		if stored := recorded.Starts[c.Start]; string(stored) != "null" {
 			startText = sidecarText(t, decodeExactly(t, stored))
@@ -439,23 +455,6 @@ func TestACreateInAFileFromANewerVersionIsRefused(t *testing.T) {
 	}
 }
 
-// Until the host can search the manuscript (hostCreates), a create and an edit of the aliases still go to the sidecar, as before.
-func TestWithoutASearchTheSidecarStillCreates(t *testing.T) {
-	s := heldService(t)
-	if s.hostCreates() {
-		t.Fatal("a service with no search creates in the host")
-	}
-	if _, err := s.CreateFull("Mira", "Character", nil, "", nil); err == nil || !strings.Contains(err.Error(), "Manuscript Guide executable") {
-		t.Fatalf("create = %v, want the sidecar to be asked (and, in this test, missing)", err)
-	}
-	if err := s.EditFields("a", map[string]string{"aliases": "Ay"}); err == nil || !strings.Contains(err.Error(), "Manuscript Guide executable") {
-		t.Fatalf("alias edit = %v, want the sidecar to be asked (and, in this test, missing)", err)
-	}
-	if err := s.EditFields("a", map[string]string{"description": "x"}); err != nil {
-		t.Fatalf("an edit without aliases still works in the host: %v", err)
-	}
-}
-
 func TestTheLookupCommandCarriesEachWordWhole(t *testing.T) {
 	s := heldService(t)
 	got := s.lookupArgs([]string{"-brave", "Wren", "שלום 😀"})
@@ -528,7 +527,11 @@ func TestADescriptionIsTakenFromTheFirstSentenceThatHasOne(t *testing.T) {
 			t.Errorf("%q in %q: %q, want %q", c.name, c.excerpts, got, c.want)
 		}
 	}
-	if got := splitSentences("A. B!  C? D.E"); !slices.Equal(got, []string{"A.", "B!", "C?", "D.E"}) {
-		t.Errorf("sentences = %q", got)
+	var sentences []string
+	for _, sentence := range splitSentences(pythonUnicode(), []rune("A. B!  C?\u00a0D.E. ")) {
+		sentences = append(sentences, string(sentence))
+	}
+	if !slices.Equal(sentences, []string{"A.", "B!", "C?", "D.E.", ""}) {
+		t.Errorf("sentences = %q", sentences)
 	}
 }
