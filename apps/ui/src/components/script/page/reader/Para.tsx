@@ -1,5 +1,7 @@
-import { Fragment, memo, type CSSProperties, type MouseEvent, type ReactNode } from 'react';
+import { Fragment, memo, type MouseEvent, type ReactNode } from 'react';
 import type { ManuscriptParagraph } from '../../../../api/contracts/manuscript';
+import { kindChipColors, kindDef, type KindId } from '../../../../kinds/kindMap';
+import { kindMarkStyle } from '../../../../kinds/markStyle';
 import { composeLayers, type Layer, type PhraseLayer } from './layers';
 import { markStyle } from './markStyles';
 import { CHANGE_HIGHLIGHT_CLASSES } from '../../../primitives/changeHighlight';
@@ -25,13 +27,8 @@ export type ParaProps = {
 
 const NO_FIND: readonly FindRange[] = [];
 
-const speakerVars = (index: number): CSSProperties => ({ '--sp': `var(--speaker-${index})`, '--sp-text': `var(--speaker-${index}-text)` }) as CSSProperties;
-
-const CHIP_LOOK: Record<PhraseLayer['state'], string> = {
-  confirmed: 'bg-[var(--sp)] text-[var(--surface)]',
-  suggested: 'border border-dashed border-[var(--sp)] bg-transparent text-[var(--sp-text)]',
-  unknown: 'border border-[var(--line-strong)] bg-transparent text-[var(--text-muted)]',
-};
+/** The registry kind a speaker chip is drawn as (D6): a confirmed speaker in its entry's colour, a suggested one dashed, an unknown one neutral and dashed. */
+const CHIP_KIND: Record<PhraseLayer['state'], KindId> = { confirmed: 'speaker', suggested: 'speaker-suggested', unknown: 'speaker-unknown' };
 
 const STATE_WORDS: Record<PhraseLayer['state'], string> = { confirmed: 'confirmed', suggested: 'suggested', unknown: 'unknown' };
 
@@ -41,6 +38,8 @@ function Chip({ phrase, onPick }: { phrase: PhraseLayer; onPick?: ParaProps['onP
     event.stopPropagation();
     onPick?.(phrase.cueId, event.currentTarget.getBoundingClientRect());
   };
+  const kind = CHIP_KIND[phrase.state];
+  const colours = kindChipColors(kind, phrase.colour ?? undefined);
   const name = phrase.state === 'unknown' ? 'speaker unknown' : `${phrase.label}, ${STATE_WORDS[phrase.state]}`;
   return (
     // native-control-ok: the chip is an inline label in running text, with no box of its own; Button and IconButton draw a bordered control
@@ -51,8 +50,13 @@ function Chip({ phrase, onPick }: { phrase: PhraseLayer; onPick?: ParaProps['onP
       data-label={phrase.label}
       aria-label={`Speaker: ${name}. Change speaker`}
       onClick={click}
-      className={`mr-1 inline-block cursor-pointer rounded-sm px-1 align-baseline text-[0.7em] leading-[1.5] font-semibold select-none before:content-[attr(data-label)] focus-visible:outline-2 focus-visible:outline-[var(--focus)] ${CHIP_LOOK[phrase.state]}`}
-      style={speakerVars(phrase.colourIndex)}
+      className="mr-1 inline-block cursor-pointer rounded-sm border px-1 align-baseline text-[0.7em] leading-[1.5] font-semibold select-none before:content-[attr(data-label)] focus-visible:outline-2 focus-visible:outline-[var(--focus)]"
+      style={{
+        background: colours.fill,
+        color: colours.text,
+        borderStyle: kindDef(kind).dashed ? 'dashed' : 'solid',
+        borderColor: kindDef(kind).dashed ? colours.line : 'transparent',
+      }}
     />
   );
 }
@@ -61,24 +65,19 @@ function wrap(layer: Layer, node: ReactNode, activeMarkId: string | null | undef
   switch (layer.kind) {
     case 'phrase':
       return (
-        <span data-ph={layer.cueId} data-spk={layer.speakerId ?? ''} data-state={layer.state} style={speakerVars(layer.colourIndex)}>
+        <span data-ph={layer.cueId} data-spk={layer.speakerId ?? ''} data-state={layer.state}>
           {node}
         </span>
       );
     case 'name':
       return (
-        <span data-ent={layer.entryId} data-k={layer.entryKind} className="rounded-sm border-b border-dotted border-[var(--text-muted)]">
+        <span data-ent={layer.entryId} data-k={layer.entryKind} className="rounded-sm" style={kindMarkStyle('entity', layer.colour)}>
           {node}
         </span>
       );
     case 'word':
       return (
-        <span
-          data-w={layer.key}
-          data-a={layer.flagId}
-          data-status={layer.status}
-          className={`rounded-sm bg-[var(--warn-soft)] ${layer.status === 'set' ? 'border-b-2 border-[var(--ok)]' : 'border-b-2 border-dashed border-[var(--warn)]'}`}
-        >
+        <span data-w={layer.key} data-a={layer.flagId} data-status={layer.status} className="rounded-sm" style={kindMarkStyle('pron')}>
           {node}
         </span>
       );
@@ -96,9 +95,7 @@ function wrap(layer: Layer, node: ReactNode, activeMarkId: string | null | undef
       );
     case 'find':
       return (
-        <mark
-          className={`rounded-sm text-[var(--text)] ${layer.current ? 'a-find-cur bg-[color-mix(in_srgb,var(--search)_45%,transparent)] ring-2 ring-[var(--search)]' : 'bg-[color-mix(in_srgb,var(--search)_25%,transparent)]'}`}
-        >
+        <mark className={`rounded-sm ${layer.current ? 'a-find-cur ring-2 ring-[var(--search)]' : ''}`} style={kindMarkStyle('search')} data-kind="search">
           {node}
         </mark>
       );

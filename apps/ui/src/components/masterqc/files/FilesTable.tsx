@@ -2,6 +2,7 @@ import { useMemo } from 'react';
 import { useContextProvider, type ContextProvider } from '../../../registries/context';
 import type { DeliveryProfile, MeasureFileResult } from '../../../types';
 import { Panel } from '../../primitives/Panel';
+import { statusTone } from '../../../kinds/statusTone';
 import { StatusBadge } from '../../primitives/StatusBadge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../primitives/Table';
 import type { FileActions } from './FileActions';
@@ -27,10 +28,10 @@ function Value({ cell }: { cell: Cell | undefined }) {
 }
 
 function Result({ row }: { row: FileRow }) {
-  if (row.waiting) return <StatusBadge tone="neutral" label={row.waitingPill ?? 'Waiting'} />;
-  if (row.verdict === 'fail') return <StatusBadge tone="danger" label="Fail" icon="✕" />;
-  if (row.verdict === 'pass') return <StatusBadge tone="success" label="Pass" />;
-  return <StatusBadge tone="neutral" label="Not judged" />;
+  if (row.waiting) return <StatusBadge tone={statusTone('waiting')} label={row.waitingPill ?? 'Waiting'} />;
+  if (row.verdict === 'fail') return <StatusBadge tone={statusTone('fail')} label="Fail" icon="✕" />;
+  if (row.verdict === 'pass') return <StatusBadge tone={statusTone('pass')} label="Pass" />;
+  return <StatusBadge tone={statusTone('not_checked')} label="Not judged" />;
 }
 
 /**

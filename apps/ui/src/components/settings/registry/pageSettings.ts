@@ -20,9 +20,9 @@ export const PAGE_SETTINGS: readonly PageSetting[] = [
     id: 'ps.coverage',
     label: 'Recording check rules',
     page: 'production',
-    where: 'Recording check › Rules',
+    where: 'Jump to or run › Open Recording check rules',
     panel: 'coverage',
-    why: 'Only the recording check reads them, and the run already shows the values it used.',
+    why: 'Only the recording check reads them, and the run already shows the values it used. On Production, Jump to or run opens the same keys for this project.',
     syn: 'paragraph present missing run misread anchor threshold',
   },
   {
@@ -47,9 +47,9 @@ export const PAGE_SETTINGS: readonly PageSetting[] = [
     id: 'ps.stages',
     label: 'Stage suggestions',
     page: 'production',
-    where: 'Stage board › Suggestions',
+    where: 'Jump to or run › Open Stage suggestion options',
     panel: 'stages',
-    why: 'They shape the board they appear on.',
+    why: 'They shape the board they appear on. On Production, Jump to or run opens the same keys for this project.',
     syn: 'readiness signals required ignored',
   },
   {

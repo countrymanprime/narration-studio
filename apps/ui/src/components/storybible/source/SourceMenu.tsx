@@ -55,7 +55,7 @@ export function SourceMenu({
           </li>
         ))}
         {alternate && (
-          <li className="border-t border-[var(--line)] pt-1">
+          <li className="border-t border-[var(--border)] pt-1">
             <Button variant="ghost" size="sm" className="w-full justify-start" onClick={choose(alternate.onUse)}>
               {alternate.label}
             </Button>

@@ -1,4 +1,5 @@
 import type { ReaderMark, ReaderRow } from './readerModel';
+import type { KindId } from '../../kinds/kindMap';
 import type { TeleprompterFlag, TeleprompterFlagKind, TeleprompterFlagSave } from '../../types';
 
 /**
@@ -18,6 +19,12 @@ export const FLAG_KINDS: TeleprompterFlagKind[] = ['skipped', 'restart', 'misrea
  * most 1): skipped and restart show by default; misread and extra wait behind a toggle until their rate meets the target.
  */
 export const DEFAULT_FLAG_VISIBILITY: FlagVisibility = { skipped: true, restart: true, misread: false, extra: false };
+
+/**
+ * What each suspected flag is, in the registry's words (`kinds/kindMap.ts`), so a flag is drawn as the same mark and chip as the same kind
+ * of finding on Editing, Proof and the Script: skipped words are missing, a restart is a repeat.
+ */
+export const FLAG_KIND_ID: Record<TeleprompterFlagKind, KindId> = { skipped: 'missing', restart: 'repeat', misread: 'misread', extra: 'extra' };
 
 /** The flags to draw: kinds the narrator shows, less the ones dismissed. Keeps the list's order. */
 export function visibleFlags(flags: TeleprompterFlag[], visibility: FlagVisibility, dismissed: ReadonlySet<number>): TeleprompterFlag[] {

@@ -4246,6 +4246,7 @@ describe('answers of the mock client for the settings, voice, model, transcript 
       'seriesDelete',
       'ttsRemove',
       'whisperRemove',
+      'assetsOpenFolder',
       'assetsRemove',
       'transcriptCancel',
       'coverageCancel',

@@ -43,6 +43,8 @@ type Service struct {
 	// held is the Story Bible as the last host edit left it (heldDocument); nil until the first edit and after a failed write.
 	// +checklocks:editMu
 	held *heldDocument
+	// undoIDs makes the id a merge is stored under; nil in the app (a random one), set by the tests that need a known one.
+	undoIDs func() string
 	// parses counts how often an edit had to parse the file, for the tests of heldDocument.
 	parses atomic.Int64 // +checklocksignore: an atomic; it is only ever counted while editMu is held
 }
@@ -106,7 +108,8 @@ func (s *Service) SaveFindings() error {
 }
 
 // schemaVersion is the newest Story Bible file this host reads. The Python sidecar writes it (manuscript_guide.py SCHEMA_VERSION), and so
-// does the host for an edit without aliases (editInHost), which refuses a newer file instead of rewriting it.
+// does the host for the commands it runs itself (editInHost, mutateInHost: an edit without aliases, a merge, an unmerge, a split and a rescan among them),
+// which refuse a newer file instead of rewriting it.
 const schemaVersion = 2
 
 // document reads and version-checks the Story Bible file, returning its raw
@@ -551,10 +554,6 @@ func (s *Service) SetSpeakerColor(id string, index *int) error {
 	return s.mutateInHost(func(document map[string]any) (bool, error) { return speakerColor(document, id, value) })
 }
 
-func (s *Service) Rescan(id string) error {
-	_, err := s.Run("rescan", "--guide", s.guidePath(), "--manuscript", s.manuscript(), "--entity-id", id)
-	return err
-}
 func (s *Service) Create(name, category string, aliases []string) (string, error) {
 	return s.CreateDescribed(name, category, aliases, "")
 }
@@ -603,21 +602,17 @@ type MergeResult struct {
 }
 
 // Merge folds the source entry into the target (names with their pronunciations, relationships re-pointed, appearances unioned) and
-// deletes the source. The sidecar keeps what the merge changed in the Story Bible file, under the returned id.
+// deletes the source, in the host (mergeEntities). It keeps what the merge changed in the Story Bible file, under the returned id.
 func (s *Service) Merge(source, target string) (MergeResult, error) {
-	out, err := s.Run("merge", "--guide", s.guidePath(), "--source-id", source, "--target-id", target)
-	if err != nil {
+	var undoID string
+	newID := func() string {
+		undoID = s.undoID()
+		return undoID
+	}
+	if err := s.mutateInHost(func(document map[string]any) (bool, error) { return mergeEntities(document, source, target, newID) }); err != nil {
 		return MergeResult{}, err
 	}
-	return mergeResult(out)
-}
-
-func mergeResult(out string) (MergeResult, error) {
-	parts := strings.Split(out, "|")
-	if len(parts) != 3 || parts[0] != "MERGED" || !isUndoID(parts[2]) {
-		return MergeResult{}, fmt.Errorf("the Story Bible merge did not say how to undo it")
-	}
-	return MergeResult{UndoID: parts[2]}, nil
+	return MergeResult{UndoID: undoID}, nil
 }
 
 // isUndoID is the sidecar's own check of an undo id: 16 lowercase hexadecimal characters.
@@ -634,14 +629,25 @@ func isUndoID(id string) bool {
 }
 
 // Unmerge takes back one merge by the id Merge returned: both entries, every relationship it re-pointed and every absorbed name it
-// set, as they were. The sidecar refuses with the reason when the target or a re-pointed entry changed since, or the file no longer
-// holds that merge (undone already, a rebuild since, or ten newer merges).
+// set, as they were (unmergeEntities). It refuses with the reason when the target or a re-pointed entry changed since, or the file no
+// longer holds that merge (undone already, a rebuild since, or ten newer merges).
 func (s *Service) Unmerge(undoID string) error {
 	if !isUndoID(undoID) {
 		return errors.New("that is not an undo id")
 	}
-	_, err := s.Run("unmerge", "--guide", s.guidePath(), "--undo-id", undoID)
-	return err
+	return s.mutateInHost(func(document map[string]any) (bool, error) { return unmergeEntities(document, undoID) })
+}
+
+// Split gives one of the entry's aliases an entry of its own again, the inverse of a merge, and answers the new entry's id (splitAlias).
+// Refused on a locked entry.
+func (s *Service) Split(id, aliasText string) (string, error) {
+	var created string
+	err := s.mutateInHost(func(document map[string]any) (bool, error) {
+		var err error
+		created, err = splitAlias(document, id, aliasText)
+		return err == nil, err
+	})
+	return created, err
 }
 
 // Delete removes an entry, and every other entry's relationship to it. A locked entry is refused.

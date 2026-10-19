@@ -319,7 +319,7 @@ export function RecordingCheck({
           </p>
         )}
         {options.engines && options.choices && (
-          <details className="rounded-[var(--radius)] border border-[var(--line)] px-3 py-2">
+          <details className="rounded-[var(--radius-card)] border border-[var(--border)] px-3 py-2">
             <summary className="cursor-pointer font-semibold">Check options</summary>
             <div className="pt-3">
               <RunOptions engines={options.engines} choices={options.choices} onChange={options.change} showInstallProblems={false} />

@@ -1,4 +1,5 @@
 import type { StageChapterRecommendation, StageSignal } from '../../../types';
+import { statusTone, type StatusId } from '../../../kinds/statusTone';
 import type { StatusTone } from '../../primitives/StatusBadge';
 import { CAUSE_TEXT, SIGNAL_STATE_LABEL, signalName, stageLabel, verdictSentence } from '../../stages/stageText';
 
@@ -14,13 +15,22 @@ export const VERDICT_LABEL: Record<Verdict, string> = {
   confirmed: 'Confirmed',
 };
 
+const VERDICT_STATUS: Record<Verdict, StatusId> = {
+  ready: 'ready',
+  notready: 'not_ready',
+  notchecked: 'not_checked',
+  progress: 'in_progress',
+  changed: 'evidence_changed',
+  confirmed: 'confirmed',
+};
+
 export const VERDICT_TONE: Record<Verdict, StatusTone> = {
-  ready: 'success',
-  notready: 'danger',
-  notchecked: 'neutral',
-  progress: 'info',
-  changed: 'warning',
-  confirmed: 'success',
+  ready: statusTone(VERDICT_STATUS.ready),
+  notready: statusTone(VERDICT_STATUS.notready),
+  notchecked: statusTone(VERDICT_STATUS.notchecked),
+  progress: statusTone(VERDICT_STATUS.progress),
+  changed: statusTone(VERDICT_STATUS.changed),
+  confirmed: statusTone(VERDICT_STATUS.confirmed),
 };
 
 /** One character per verdict for the chip, drawn as text: the icon catalogue has no verdict rows yet. */

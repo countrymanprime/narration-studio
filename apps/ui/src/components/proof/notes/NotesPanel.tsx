@@ -160,7 +160,7 @@ export function NotesPanel({
       ref={root}
       aria-label="Notes"
       onKeyDown={onKeyDown}
-      className="flex min-h-0 flex-col rounded-[var(--radius-panel)] border border-[var(--border)] bg-[var(--surface)]"
+      className="flex min-h-0 flex-col rounded-[var(--radius-card)] border border-[var(--border)] bg-[var(--surface)]"
     >
       <div className="flex flex-wrap items-center gap-3 px-4 py-2">
         <h2 className="text-base font-semibold">

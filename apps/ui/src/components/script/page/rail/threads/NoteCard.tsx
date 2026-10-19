@@ -88,7 +88,7 @@ export function NoteCard({
       aria-label={`${type?.name ?? 'Note'}: ${quote || line}`}
       aria-current={active ? 'true' : undefined}
       data-mark={mark.id}
-      className={`${active ? 'a-active border-[var(--accent)] bg-[var(--accent-soft)]' : 'border-[var(--line)] bg-[var(--surface)]'} flex flex-col gap-2 rounded-lg border p-3`}
+      className={`${active ? 'a-active border-[var(--accent)] bg-[var(--accent-soft)]' : 'border-[var(--border)] bg-[var(--surface)]'} flex flex-col gap-2 rounded-lg border p-3`}
     >
       <div className="flex items-center gap-1.5">
         {type && <Swatch colour={markSwatch(type.colour)} size={14} />}

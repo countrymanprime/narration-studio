@@ -119,7 +119,7 @@ function StickyHeader({
   const section = current.chapterId ? names?.get(current.chapterId) : undefined;
   const chapter = chapters.find((c) => c.id === current.chapterId) ?? chapters[0];
   return (
-    <div className="flex items-center gap-3 border-b border-[var(--line)] bg-[var(--surface)] px-4 py-2">
+    <div className="flex items-center gap-3 border-b border-[var(--border)] bg-[var(--surface)] px-4 py-2">
       <div className="min-w-0">
         <b className="block truncate font-['Barlow_Condensed',sans-serif] text-xl font-semibold">{section ?? (chapter ? chapterName(chapter) : '—')}</b>
         <div aria-live="off" className="text-sm text-[var(--text-muted)]">
