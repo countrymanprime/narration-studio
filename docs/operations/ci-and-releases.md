@@ -279,7 +279,7 @@ names looks for `narration-utils-windows-x64.zip`, finds nothing on a newer rele
 A narrator installs from `narration-utils-<version>-windows-x64-setup.exe`, an NSIS installer that the build script compiles on Wails v3 ([ADR 0001](../adr/0001-the-app-is-written-in-go.md)).
 
 - **How it is built.** `.github/actions/build-native` passes `--installer` to `scripts/release/wails-build.mjs` on `windows-x64`, after a
-  step that installs NSIS (`choco install nsis`, version pinned in the step, up to four attempts with a growing pause because the Chocolatey feed sometimes answers 503) when `makensis` is not already on the runner. The script
+  step that installs NSIS when `makensis` is not already on the runner: the official 3.11 zip from SourceForge, checked against a SHA-256 pinned in the step (the digest SourceForge lists for the file), with `choco install nsis` at the same version as the fallback, because the Chocolatey feed answered 503 for four minutes on 2026-10-19. The step fails when `makensis -VERSION` cannot run afterwards. The script
   renders `wails_tools.nsh` for the release version (`wails3 update build-assets`, from `wails.json`), writes the WebView2 bootstrapper
   beside `project.nsi` (`wails3 generate webview2bootstrapper`) and runs `makensis -DARG_WAILS_AMD64_BINARY=<the program> project.nsi` in
   `apps/desktop/build/windows/installer`. It removes a setup program left by an earlier build first and fails when `makensis` cannot start
