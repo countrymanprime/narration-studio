@@ -98,6 +98,11 @@ export function startSiteWindow(): void {
       report();
     };
   }
+  // The page around the frame never sees the pointer over it, and a key pressed with focus on that page goes to the page, not the app. So
+  // the app takes focus when the pointer enters it, and the shortcuts it documents work without a click first.
+  document.addEventListener('pointerover', () => {
+    if (!document.hasFocus()) window.focus();
+  });
   window.addEventListener('hashchange', report);
   window.addEventListener('popstate', report);
   report();

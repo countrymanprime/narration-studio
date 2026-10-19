@@ -137,6 +137,7 @@
   }
   function palClose() {
     $('#pal-scrim').classList.remove('on');
+    $('#pal-in').blur();
   }
   function palRun() {
     const x = pal.items[pal.i];

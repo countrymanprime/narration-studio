@@ -120,14 +120,21 @@ query.set('embed','1');query.set('siteTheme',(Site.isDark()?'dark':'light'));
 if(storedPlay())query.set('motion','play');
 frame.src='app.html?'+query.toString()+'#'+route;
 showRoute(route,null);
+// The app hears the keyboard only while its frame has focus (a keydown with focus on the page goes to the page). The app takes focus itself when the
+// pointer enters the window (siteWindow.ts); here the frame takes it back after the title bar's own controls are used.
+function focusApp(){
+  if(document.activeElement===frame||!frame.contentWindow)return;
+  try{frame.contentWindow.focus()}catch(e){}
+}
 play.setAttribute('aria-checked',String(storedPlay()));
 play.addEventListener('click',function(){
   var on=play.getAttribute('aria-checked')!=='true';
   play.setAttribute('aria-checked',String(on));
   try{if(on)localStorage.setItem(PLAY_KEY,'1');else localStorage.removeItem(PLAY_KEY)}catch(e){}
   send({kind:'motion',play:on});
+  focusApp();
 });
-daw.addEventListener('click',function(){send({kind:'daw-panel',open:daw.getAttribute('aria-expanded')!=='true'})});
+daw.addEventListener('click',function(){send({kind:'daw-panel',open:daw.getAttribute('aria-expanded')!=='true'});focusApp()});
 window.addEventListener('themechange',function(){send({kind:'theme',theme:(Site.isDark()?'dark':'light')})});
 // A route the visitor asks for in the address is sent until the app reports it: a message sent while the app is still starting is lost, and
 // the app's first report would otherwise pull the address back.

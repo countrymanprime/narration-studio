@@ -422,6 +422,33 @@ test('the window follows the app route both ways and links the guide of the page
   await expect(page.locator('#win-title')).toHaveText('Narration Studio · Delivery');
 });
 
+test("the app's keys work in the window once the pointer is over it or the title bar was used, and Ctrl+K elsewhere is the site search", async ({ page }) => {
+  await page.goto('demo/index.html#/proof');
+  const app = appFrame(page);
+  await expect(app.getByRole('heading', { name: 'Proof', level: 1 })).toBeVisible();
+  const box = await page.locator('#win-body').boundingBox();
+  if (!box) throw new Error('the window has no box');
+
+  // Focus on the page, pointer outside the window: Ctrl+K is the site's search, and the app hears nothing.
+  await page.mouse.move(5, 5);
+  await page.keyboard.press('Control+,');
+  await expect(page).toHaveURL(/demo\/index\.html#\/proof$/);
+  await page.keyboard.press('Control+k');
+  await expect(page.locator('#pal-scrim')).toHaveClass(/\bon\b/);
+  await page.keyboard.press('Escape');
+  await expect(page.locator('#pal-scrim')).not.toHaveClass(/\bon\b/);
+
+  // With the pointer over the window and no click, a real key reaches the app: Ctrl+, opens Settings.
+  await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+  await page.keyboard.press('Control+,');
+  await expect(page).toHaveURL(/demo\/index\.html#\/settings$/);
+
+  // After the title bar's own switch (focus on the page's button), the keys are the app's again: Alt+Left goes back.
+  await page.getByRole('switch', { name: 'Play animations' }).click();
+  await page.keyboard.press('Alt+ArrowLeft');
+  await expect(page).toHaveURL(/demo\/index\.html#\/proof$/);
+});
+
 test("the site's theme switch and Play animations reach the app in the window", async ({ page }) => {
   await page.emulateMedia({ colorScheme: 'light', reducedMotion: 'reduce' });
   await page.goto('demo/index.html#/proof');
