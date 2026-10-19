@@ -54,7 +54,18 @@ runs:
         if command -v makensis > /dev/null 2>&1; then
           echo "makensis was already on PATH: $(command -v makensis)"
         else
-          choco install nsis --version="$NSIS_VERSION" --no-progress -y
+          # The Chocolatey community feed answers 503 now and then, and choco then says the version "may not exist" (a failed run on 2026-10-19
+          # showed this with the pin unchanged). A bounded retry with backoff rides that out; a pin that is really gone fails all four attempts.
+          for attempt in 1 2 3 4; do
+            choco install nsis --version="$NSIS_VERSION" --no-progress -y && break
+            if [ "$attempt" -eq 4 ]; then
+              echo "::error::choco could not install nsis $NSIS_VERSION after $attempt attempts"
+              exit 1
+            fi
+            delay=$((attempt * 20))
+            echo "choco install nsis failed (attempt $attempt of 4); retrying in ${delay}s"
+            sleep "$delay"
+          done
         fi
         # The installer puts makensis in Program Files (x86); the build step below adds that folder to its own PATH.
         PATH="$PATH:/c/Program Files (x86)/NSIS"
