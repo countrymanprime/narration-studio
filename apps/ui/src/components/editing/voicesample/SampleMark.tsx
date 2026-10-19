@@ -34,6 +34,7 @@ export function SampleMark({ samples }: { samples: readonly VoiceSample[] }) {
       fitToWindow
       label={many ? `${samples.length} voice samples` : name}
       trigger={
+        // native-control-ok: an inline dot inside running prose, sized in em, which Button's variants cannot draw
         <button
           type="button"
           data-sample-mark

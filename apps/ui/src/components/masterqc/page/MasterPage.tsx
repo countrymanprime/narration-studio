@@ -218,6 +218,7 @@ function MasterBody({ projectFolder, onOpenDelivery, openSettings, fileActions, 
                   <ChapterStepper chapters={bar} value={chapterOfSelection.id} stepKeys={['Alt+↑', 'Alt+↓']} onChange={goToChapter} onStep={stepChapter} />
                 )}
                 {profile && (
+                  // native-control-ok: the mock's profile pill is badge-shaped, which Button's variants do not draw
                   <button
                     type="button"
                     title="Open Delivery"
