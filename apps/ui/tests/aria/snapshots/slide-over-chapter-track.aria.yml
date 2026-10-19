@@ -1,5 +1,4 @@
-- main:
-  - group "Zoom"
+- main
 - status
 - alert
 - status

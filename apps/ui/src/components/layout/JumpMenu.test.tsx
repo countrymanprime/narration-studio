@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { act, cleanup, render, screen, within } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { OverlayHost } from '../../overlay/OverlayHost';
@@ -27,7 +27,14 @@ const provide = (...commands: ProvidedCommand[]) => cleanups.push(registerComman
 const command = (id: string, group: string, label: string, run: () => void = () => {}): ProvidedCommand => ({ id, group, label, run });
 const GO_TO = [command('t.prod', 'Go to', 'Go to Production'), command('t.proof', 'Go to', 'Go to Proof'), command('t.set', 'Go to', 'Go to Settings')];
 
-function mount(options: { catalog?: readonly CommandDescriptor[]; runCommand?: (id: string) => void } = {}) {
+function mount(
+  options: {
+    catalog?: readonly CommandDescriptor[];
+    runCommand?: (id: string) => void;
+    initialGroup?: string;
+    disabledReasons?: () => Record<string, string>;
+  } = {},
+) {
   const catalog = options.catalog ?? COMMAND_CATALOG;
   render(
     <main tabIndex={-1}>
@@ -35,13 +42,58 @@ function mount(options: { catalog?: readonly CommandDescriptor[]; runCommand?: (
       <OverlayHost service={service} />
     </main>,
   );
-  const open = () => openJumpMenu({ service, catalog, keymap: defaultKeymap(catalog, false), runCommand: options.runCommand ?? (() => {}) });
+  const open = () =>
+    openJumpMenu({
+      service,
+      catalog,
+      keymap: defaultKeymap(catalog, false),
+      runCommand: options.runCommand ?? (() => {}),
+      initialGroup: options.initialGroup,
+      disabledReasons: options.disabledReasons,
+    });
   return { open };
 }
 const field = () => screen.getByRole('combobox');
 const names = () => screen.queryAllByRole('option').map((option) => option.textContent ?? '');
 
 describe('JumpMenu', () => {
+  it('opens-at-a-group: initialGroup lists that group with the way back, and All commands returns to the groups', async () => {
+    const { open } = mount({ initialGroup: 'Zoom' });
+    act(() => void open());
+    expect(names().map((name) => name.replace(/\s+/g, ' '))).toEqual([
+      expect.stringContaining('All commands'),
+      expect.stringMatching(/^Zoom in/),
+      expect.stringMatching(/^Zoom out/),
+      expect.stringMatching(/^Reset zoom to 100%/),
+    ]);
+    await userEvent.setup().click(screen.getByRole('option', { name: /All commands/ }));
+    expect(names().some((name) => name.startsWith('Zoom'))).toBe(true);
+    expect(screen.queryByRole('option', { name: /^Zoom in/ })).toBeNull();
+  });
+
+  it('shows-why-a-catalogue-command-is-off: the row stays listed, off, with the reason, and choosing it runs nothing and keeps the menu open', async () => {
+    const runCommand = vi.fn();
+    const { open } = mount({ initialGroup: 'Zoom', runCommand, disabledReasons: () => ({ 'zoom.reset': 'Already 100%' }) });
+    act(() => void open());
+    const reset = screen.getByRole('option', { name: /^Reset zoom to 100%/ });
+    expect(reset.getAttribute('aria-disabled')).toBe('true');
+    expect(reset.textContent).toContain('Already 100%');
+    await userEvent.setup().click(reset);
+    expect(runCommand).not.toHaveBeenCalled();
+    expect(screen.getByRole('combobox')).toBeTruthy();
+    await userEvent.setup().click(screen.getByRole('option', { name: /^Zoom in/ }));
+    expect(runCommand).toHaveBeenCalledWith('zoom.in');
+  });
+
+  it('lists-the-commands-the-header-used-to-hold: Back, Forward, Undo, History and the zoom steps are each findable by name', () => {
+    const { open } = mount();
+    act(() => void open());
+    fireEvent.change(field(), { target: { value: '>' } });
+    const all = names().join('|');
+    for (const label of ['Back', 'Forward', 'Undo the last change', 'Open the undo history', 'Zoom in', 'Zoom out', 'Reset zoom to 100%'])
+      expect(all).toContain(label);
+  });
+
   it('opens-on-a-short-list: one row per group, at most ten, and Go to Production waits for its group', () => {
     provide(...GO_TO);
     const { open } = mount();
