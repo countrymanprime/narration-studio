@@ -17,7 +17,7 @@ const AVAILABLE: UpdateAvailable = {
   version: '0.2.7',
   tag: 'v0.2.7-rc',
   candidate: true,
-  notesUrl: 'https://github.com/countrymanprime/narration-utils/releases/tag/v0.2.7-rc',
+  notesUrl: 'https://github.com/countrymanprime/narration-studio/releases/tag/v0.2.7-rc',
   size: 419_895_808,
   publishedAt: '2026-09-20T10:00:00Z',
   replaces: true,

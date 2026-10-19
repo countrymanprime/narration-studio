@@ -4,8 +4,8 @@ MkDocs' strict build checks the Markdown it was given; this checks what it produ
 `href` and `src` in every HTML file that points inside the site must resolve to a file of the output folder, and every
 `#fragment` to an `id` on the page it names. Links to other sites are not followed.
 
-    python tools/docs-site/check_site.py tools/docs-site/build/site --base /narration-utils/ \\
-        --site-url https://countrymanprime.github.io/narration-utils/ --require storybook/index.html
+    python tools/docs-site/check_site.py tools/docs-site/build/site --base /narration-studio/ \\
+        --site-url https://countrymanprime.github.io/narration-studio/ --require storybook/index.html
 """
 
 from __future__ import annotations
@@ -118,7 +118,7 @@ def check_site(site: Path, *, base: str = "/", site_url: str = "", require: tupl
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("site", type=Path, help="the built site folder")
-    parser.add_argument("--base", default="/", help="the path the site is served under, for example /narration-utils/")
+    parser.add_argument("--base", default="/", help="the path the site is served under, for example /narration-studio/")
     parser.add_argument("--site-url", default="", help="absolute URLs that start with this are internal links")
     parser.add_argument("--require", action="append", default=[], help="a file that must exist in the site (repeatable)")
     args = parser.parse_args(argv)

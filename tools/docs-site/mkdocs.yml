@@ -3,7 +3,7 @@
 # and hooks.py rewrites the links that leave the published set. Build it with `pnpm exec nx run docs-site:build-site`.
 site_name: narration-utils
 site_description: Documentation for narration-utils, a local-first toolkit for audiobook narration.
-site_url: https://countrymanprime.github.io/narration-utils/
+site_url: https://countrymanprime.github.io/narration-studio/
 
 docs_dir: ../../docs
 # The mocks are web apps (each index.html collides with its README.md); they are never published (include.txt).
@@ -63,10 +63,10 @@ validation:
   anchors: warn
 
 extra:
-  repo_url: https://github.com/countrymanprime/narration-utils
+  repo_url: https://github.com/countrymanprime/narration-studio
   social:
     - icon: fontawesome/brands/github
-      link: https://github.com/countrymanprime/narration-utils
+      link: https://github.com/countrymanprime/narration-studio
       name: narration-utils on GitHub
   # Read by hooks.py. Paths are relative to this file.
   include_manifest: include.txt

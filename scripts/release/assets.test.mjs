@@ -242,7 +242,7 @@ test('verifyAssets reports an asset that no longer matches its checksum', () => 
 
 // `assets.mjs verify --attestations` asks `gh attestation verify` who built each downloaded file. The tests use a
 // fake `run` in place of `gh`; the flag names and the signer identities were checked against real attestations
-const REPOSITORY = 'countrymanprime/narration-utils';
+const REPOSITORY = 'countrymanprime/narration-studio';
 
 function fakeGh(failing = {}) {
   const calls = [];

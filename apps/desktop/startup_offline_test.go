@@ -203,7 +203,7 @@ func TestTheUpdateCheckIsTheOnlyRequestAtStartupAndOnlyToTheGitHubReleasesAPI(t 
 	if len(seen) != 1 {
 		t.Fatalf("the update check should be the only request, got %v", seen)
 	}
-	if want := "GET https://api.github.com/repos/countrymanprime/narration-utils/releases"; !strings.HasPrefix(seen[0], want) {
+	if want := "GET https://api.github.com/repos/countrymanprime/narration-studio/releases"; !strings.HasPrefix(seen[0], want) {
 		t.Fatalf("the request was %q, want a GET of %s", seen[0], want)
 	}
 	if files := filesUnder(t, cache); len(files) != 0 {

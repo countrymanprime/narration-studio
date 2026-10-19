@@ -22,11 +22,11 @@ The work it schedules comes from the PRDs in `docs/prds/`: the Studio Next serie
 | --- | --- |
 | The procedure (this file) | `.claude/skills/agent-train/SKILL.md` on `main`; `docs/operations/agent-train.md` is a pointer to it |
 | What to build | The PRDs in `docs/prds/`: phase tables, `Depends`, and the Parallel-session compatibility tables |
-| Live state: switches, target concurrency, lanes and their sessions, the log | Issue [#989, Train control](https://github.com/countrymanprime/narration-utils/issues/989). The coordinator rewrites its body |
-| Steps only the owner can take | Issue [#992, Owner queue](https://github.com/countrymanprime/narration-utils/issues/992) |
-| Owner decisions and their defaults | Issue [#993, Studio Next decisions](https://github.com/countrymanprime/narration-utils/issues/993), one comment per decision |
+| Live state: switches, target concurrency, lanes and their sessions, the log | Issue [#989, Train control](https://github.com/countrymanprime/narration-studio/issues/989). The coordinator rewrites its body |
+| Steps only the owner can take | Issue [#992, Owner queue](https://github.com/countrymanprime/narration-studio/issues/992) |
+| Owner decisions and their defaults | Issue [#993, Studio Next decisions](https://github.com/countrymanprime/narration-studio/issues/993), one comment per decision |
 | Slice counts per PRD, the oldest ready slice, the critical path | The "Studio Next status" issue, which the coordinator rewrites |
-| Pipeline repairs after merges that did not wait for CI | Issue [#1119](https://github.com/countrymanprime/narration-utils/issues/1119) |
+| Pipeline repairs after merges that did not wait for CI | Issue [#1119](https://github.com/countrymanprime/narration-studio/issues/1119) |
 | A paused stream's progress | Its draft PR's `## Resume notes` block |
 
 State never lives in a file on `main`, so recording state can't cause merge conflicts.
@@ -267,7 +267,7 @@ The Routine fires every 30 minutes (two hourly Routines, 30 minutes apart; D50).
       - its PRD is in the [queue](#queue) at or above the current wave.
    2. **Group phases into streams** of 1–3 consecutive phases of one PRD in one lane. Phases that each need their own worker (marked parallel in the PRD) become separate streams.
    3. **Launch in priority order** until running = `TARGET`. Keep Opus workers ≤ `MAX_OPUS_WORKERS`. Skip a stream that has hit the [launch limit](#safety-net). Use `create_session` with:
-      - `source_url` `https://github.com/countrymanprime/narration-utils`;
+      - `source_url` `https://github.com/countrymanprime/narration-studio`;
       - `permission_mode` `"auto"`;
       - a model from the lane table: Sonnet by default, Opus only for lane K, lane X, new Lua commands and semantic fixers, Haiku for bookkeeping;
       - `title` `"<ID> <scope>"` and `tags` `["agent-train", "lane-<L>"]`;

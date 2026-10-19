@@ -22,7 +22,7 @@ describe('DemoBanner', () => {
     render(<DemoBanner />);
     expect(screen.getByText(/nothing you do here is saved/i)).toBeTruthy();
     const link = screen.getByRole('link', { name: /view source/i });
-    expect(link.getAttribute('href')).toBe('https://github.com/countrymanprime/narration-utils');
+    expect(link.getAttribute('href')).toBe('https://github.com/countrymanprime/narration-studio');
     expect(link.getAttribute('rel')).toContain('noopener');
   });
 });

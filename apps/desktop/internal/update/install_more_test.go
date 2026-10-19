@@ -55,7 +55,7 @@ func TestUserErrorsAreShownAsWrittenAndAnythingElseBecomesTheFallback(t *testing
 
 func TestTheDefaultReleasesBaseIsTheCompiledInRepository(t *testing.T) {
 	checker := &Checker{Repository: Repository}
-	if got := checker.releasesBase(); got != "https://github.com/countrymanprime/narration-utils/releases" {
+	if got := checker.releasesBase(); got != "https://github.com/countrymanprime/narration-studio/releases" {
 		t.Fatalf("releasesBase = %s", got)
 	}
 	checker.DownloadBase = "http://127.0.0.1:1/releases"
