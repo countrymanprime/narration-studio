@@ -23,7 +23,7 @@ export function StageBar({ segments, wph }: { segments: readonly StageSegment[];
         <div
           role="img"
           aria-label="Book progress by stage"
-          className="flex h-3.5 w-full gap-0.5 overflow-hidden rounded-full bg-[var(--line)]"
+          className="flex h-3.5 w-full gap-0.5 overflow-hidden rounded-full bg-[var(--border)]"
           title={`By finished audio, at each stage. Estimated at ${num(wph)} words per finished hour.`}
         >
           {segments.map((s) => (
