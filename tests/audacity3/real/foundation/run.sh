@@ -102,6 +102,10 @@ status=0
 		go test -tags audacityreal -run "$PATTERN" -v -count=1 -timeout 28m ./internal/audacityreal/foundation/
 ) 2>&1 | tee "$WORK/out/go-test.log" || status=$?
 
+if [ "$status" -ne 0 ]; then
+	# Audacity's own output, without the library list the AppImage prints, for a run that never got a pipe.
+	for f in "$WORK"/out/logs/audacity-*.log; do [ -f "$f" ] && { echo "--- $f"; grep -v '^/' "$f" | tail -20; }; done 2>/dev/null | head -80 || true
+fi
 python3 -I "$HERE/summarise.py" "$WORK/out" || true
 log "artifacts in $WORK/out and $WORK/logs"
 exit "$status"

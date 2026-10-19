@@ -3,6 +3,7 @@
 package audacityreal
 
 import (
+	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -21,6 +22,45 @@ type PrimeResult struct {
 	TwoStartAfter  time.Duration
 	TwoStartStatus string
 	Home           string
+	Diag           string // set when the second start did not answer: process state, FIFOs, windows and the tail of Audacity's output
+}
+
+// Diagnose says what an Audacity that does not answer looks like from outside: alive or not, the FIFOs, the windows, the log tail.
+func (e Env) Diagnose(p *Proc) string {
+	var b strings.Builder
+	fmt.Fprintf(&b, "alive=%v", p.Alive())
+	to, from := PipePaths()
+	for _, f := range []string{to, from} {
+		st, err := os.Stat(f)
+		fmt.Fprintf(&b, "; %s: %v", filepath.Base(f), func() any {
+			if err != nil {
+				return err
+			}
+			return st.Mode()
+		}())
+	}
+	var ws []string
+	for _, w := range e.Windows() {
+		ws = append(ws, fmt.Sprintf("%q %dx%d", w.Title, w.Width, w.Height))
+	}
+	fmt.Fprintf(&b, "; windows: %s", strings.Join(ws, ", "))
+	if out, err := exec.Command("pgrep", "-a", "audacity").Output(); err == nil {
+		fmt.Fprintf(&b, "; processes: %s", strings.ReplaceAll(strings.TrimSpace(string(out)), "\n", " | "))
+	}
+	if lb, err := os.ReadFile(p.Log); err == nil {
+		lines := strings.Split(strings.TrimSpace(string(lb)), "\n")
+		var keep []string
+		for _, l := range lines {
+			if !strings.HasPrefix(l, "/") { // the AppImage prints every library it loads
+				keep = append(keep, l)
+			}
+		}
+		if len(keep) > 12 {
+			keep = keep[len(keep)-12:]
+		}
+		fmt.Fprintf(&b, "; log: %s", strings.Join(keep, " / "))
+	}
+	return b.String()
 }
 
 // Prime is the first-start procedure on a profile Audacity has never seen (docs/research/real-audacity3-ci-integration.md,
@@ -48,6 +88,9 @@ func (e Env) Prime(t testing.TB, name string, firstWait time.Duration) (PrimeRes
 	second := e.Start(t, home)
 	res.TwoStartAfter, res.TwoStartEcho, _ = Echo(30 * time.Second)
 	res.TwoStartStatus = ModuleStatus(home)
+	if !res.TwoStartEcho {
+		res.Diag = e.Diagnose(second)
+	}
 	return res, second
 }
 
@@ -64,7 +107,7 @@ func (e Env) Template(t testing.TB) string {
 	tmplOnce.Do(func() {
 		res, p := e.Prime(t, "template", 6*time.Second)
 		if !res.TwoStartEcho {
-			tmplErr = "the second start did not answer within 30 s (module status " + res.TwoStartStatus + ")"
+			tmplErr = "the second start did not answer within 30 s (module status " + res.TwoStartStatus + "): " + res.Diag
 			p.Kill()
 			return
 		}

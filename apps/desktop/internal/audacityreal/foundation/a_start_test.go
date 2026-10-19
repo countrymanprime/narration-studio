@@ -38,7 +38,7 @@ func TestA3T01FirstStart(t *testing.T) {
 			twoStart++
 		}
 		r.Check(step+": second start answers", res.TwoStartEcho && res.TwoStartAfter <= 20*time.Second,
-			fmt.Sprintf("echo=%v after %v; module status %q", res.TwoStartEcho, res.TwoStartAfter.Round(100*time.Millisecond), res.TwoStartStatus))
+			fmt.Sprintf("echo=%v after %v; module status %q; %s", res.TwoStartEcho, res.TwoStartAfter.Round(100*time.Millisecond), res.TwoStartStatus, res.Diag))
 		r.Check(step+": module recorded as enabled", res.TwoStartStatus == "mod-script-pipe=1", fmt.Sprintf("recorded %q after the second start", res.TwoStartStatus))
 		p.Stop()
 	}

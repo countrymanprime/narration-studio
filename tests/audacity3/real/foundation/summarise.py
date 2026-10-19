@@ -42,12 +42,12 @@ def main() -> int:
     ]
     for r in results:
         lines.append(f"| {r['test']} | {r['status']} | {r['duration_s']:.0f} s | {cell(r['title'])} |")
-    problems = [(r, row) for r in results for row in r["rows"] if row["status"] in ("fail", "skip")]
+    problems = [(r, row) for r in results for row in (r.get("rows") or []) if row["status"] in ("fail", "skip")]
     if problems:
         lines += ["", "#### Failed and skipped steps", "", "| Test | Step | Result | Evidence |", "| --- | --- | --- | --- |"]
         for r, row in problems:
             lines.append(f"| {r['test']} | {cell(row['step'])} | {row['status']} | {cell(row.get('evidence', ''))[:400]} |")
-    infos = [(r, row) for r in results for row in r["rows"] if row["status"] == "info"]
+    infos = [(r, row) for r in results for row in (r.get("rows") or []) if row["status"] == "info"]
     if infos:
         lines += ["", "<details><summary>Measurements and observed facts</summary>", "", "| Test | Step | Evidence |", "| --- | --- | --- |"]
         for r, row in infos:
