@@ -1159,7 +1159,7 @@ H.test('a change to the chain mid-Compare ends the Compare first, so it acts on 
   s:events()
   s:send('fx_range_bypass', 'b1', middle.guid, take.guid, CHAIN, '1')
   H.eq(s:events(), { { 'RANGE_FX_BYPASSED', 'b1', middle.guid, take.guid, CHAIN, '1', '1' } }, 'the chain was on, so the bypass is a change')
-  H.eq(s.fake:undo_labels()[#s.fake:undo_labels()], BYPASS_LABEL, 'the narrator\'s change is the top of the history')
+  H.eq(s.fake:undo_labels()[#s.fake:undo_labels()], BYPASS_LABEL, "the narrator's change is the top of the history")
   H.eq(#s.fake:undo_labels(), 3, 'after the two toggles REAPER wrote for the Compare')
   heard(s, 15)
   heard(s, 16)

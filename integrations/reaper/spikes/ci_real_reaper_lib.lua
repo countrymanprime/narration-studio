@@ -234,7 +234,8 @@ function M.witness(except, markers)
   end
   if markers ~= false then
     for _, marker in ipairs(M.snapshot().markers) do
-      out[#out + 1] = string.format('marker %s %.6f %.6f %s %s %s', tostring(marker.region), marker.start, marker.finish, marker.name, marker.number, marker.color)
+      out[#out + 1] =
+        string.format('marker %s %.6f %.6f %s %s %s', tostring(marker.region), marker.start, marker.finish, marker.name, marker.number, marker.color)
     end
   end
   return table.concat(out, '\n')

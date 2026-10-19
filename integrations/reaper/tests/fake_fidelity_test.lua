@@ -167,6 +167,6 @@ H.test('7.82/Linux: TakeFX_SetEnabled adds an undo point per change outside an u
   reaper_api.Undo_BeginBlock2(0)
   reaper_api.TakeFX_SetEnabled(take, 0, false)
   reaper_api.Undo_EndBlock2(0, 'Narration Utils: bypass effect', -1)
-  H.eq(#fake.undo, 3, 'inside a block the change is the block\'s own point')
+  H.eq(#fake.undo, 3, "inside a block the change is the block's own point")
   H.eq(fake.undo[3].label, 'Narration Utils: bypass effect')
 end)
