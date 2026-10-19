@@ -304,6 +304,26 @@ func resolverOver(t *testing.T, values map[string]string) (*dawport.Resolver, *A
 	return resolver, adapter, dir
 }
 
+// sentWhileWaiting runs request (which waits for an answer REAPER never gives) and answers the most command files it saw in the session
+// folder while it waited: a request that times out takes its command back, so the folder is empty afterwards.
+func sentWhileWaiting(t *testing.T, dir string, request func() error) (int, error) {
+	t.Helper()
+	done := make(chan error, 1)
+	go func() { done <- request() }()
+	most := 0
+	for {
+		select {
+		case err := <-done:
+			return most, err
+		default:
+			if n := commandsWritten(t, dir); n > most {
+				most = n
+			}
+			time.Sleep(time.Millisecond)
+		}
+	}
+}
+
 func commandsWritten(t *testing.T, dir string) int {
 	t.Helper()
 	entries, _ := os.ReadDir(filepath.Join(dir, "commands"))
@@ -320,12 +340,13 @@ func TestTurningPunchOnAloneSendsPunchAndNothingElse(t *testing.T) {
 	if n := commandsWritten(t, dir); n != 0 {
 		t.Fatalf("a refused FX command wrote %d files", n)
 	}
-	adapter.roles[dawport.CapPunch].(puncher).SetTimeout(time.Millisecond)
+	adapter.roles[dawport.CapPunch].(puncher).SetTimeout(200 * time.Millisecond)
 	punch := adapter.Role(dawport.CapPunch).(dawport.Puncher)
-	if _, err := punch.PlayPosition(t.Context()); errors.Is(err, bridge.ErrExperimentalOff) {
+	n, err := sentWhileWaiting(t, dir, func() error { _, err := punch.PlayPosition(t.Context()); return err })
+	if errors.Is(err, bridge.ErrExperimentalOff) {
 		t.Fatalf("PlayPosition with punch on = %v: it was refused", err)
 	}
-	if n := commandsWritten(t, dir); n != 1 {
+	if n != 1 {
 		t.Fatalf("PlayPosition with punch on wrote %d command files, want 1", n)
 	}
 }
@@ -343,11 +364,15 @@ func TestTheOldSwitchStillTurnsExperimentalCapabilitiesOn(t *testing.T) {
 	if n := commandsWritten(t, dir); n != 0 {
 		t.Fatalf("a refused FX command wrote %d files", n)
 	}
-	adapter.roles[dawport.CapPunch].(puncher).SetTimeout(time.Millisecond)
-	if _, err := adapter.Role(dawport.CapPunch).(dawport.Puncher).PlayPosition(t.Context()); errors.Is(err, bridge.ErrExperimentalOff) {
+	adapter.roles[dawport.CapPunch].(puncher).SetTimeout(200 * time.Millisecond)
+	n, err := sentWhileWaiting(t, dir, func() error {
+		_, err := adapter.Role(dawport.CapPunch).(dawport.Puncher).PlayPosition(t.Context())
+		return err
+	})
+	if errors.Is(err, bridge.ErrExperimentalOff) {
 		t.Fatalf("PlayPosition on auto with the old switch on = %v: it was refused", err)
 	}
-	if n := commandsWritten(t, dir); n != 1 {
+	if n != 1 {
 		t.Fatalf("wrote %d command files, want 1", n)
 	}
 }
